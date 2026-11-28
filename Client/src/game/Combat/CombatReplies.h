@@ -9,10 +9,14 @@ namespace Client::Protocol::Combat
 struct KillExperience;
 struct Death;
 } // namespace Client::Protocol::Combat
-namespace Client::Scenes
+namespace Client::Chat
+{
+struct ChatReceiveContext;
+} // namespace Client::Chat
+
+namespace Client::Combat
 {
 struct ActorCombatContext;
-struct ChatReceiveContext;
 
 // 0x4cf200 (0x16) y 0x4cfce0 (0x9C), con el flag de descifrado en 1 (con 0 manda el F1 03 la sesión): el muerto de
 // 0x5110d0 (el lugar 400 si nadie tiene la clave, como con el 0x9C de Blood Castle: Q-C1160); con el bit 15, 0x4f5660
@@ -22,11 +26,11 @@ struct ChatReceiveContext;
 // de tipo 1, con el nombre de 0x576798c, o 0x5767990 el 0x9C: vacíos, P-C252 d).
 [[nodiscard]] Core::Expected<void, std::string> ApplyKillExperience(const Protocol::Combat::KillExperience& reply,
                                                                     const ActorCombatContext& combat,
-                                                                    const ChatReceiveContext& chat);
+                                                                    const Chat::ChatReceiveContext& chat);
 
 // 0x4d0a30 (0x17): el que muere (0x5110d0, sin máscara) queda con +0x389 en 1, +0x378 en 0 y la skill en +0x391. En
 // Blood Castle y Chaos Castle (mapas 11 a 23), 0x4d07c0 con la celda del TerrainWall; en los demás, la skill 0x28 o
 // 0x3b lo empuja (dos rand()) y lo gira hacia el que lo mató.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& reply,
                                                            const ActorCombatContext& combat);
-} // namespace Client::Scenes
+} // namespace Client::Combat

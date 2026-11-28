@@ -33,7 +33,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -124,7 +124,7 @@ std::int32_t NameColorOf(const Kernel::ItemState& item, std::int32_t level)
 std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
 {
     const std::int64_t added = static_cast<std::int64_t>(tax) * static_cast<std::int64_t>(price) / 100;
-    return FormatZen(price + static_cast<std::uint32_t>(static_cast<std::uint64_t>(added) & 0xffffffffu));
+    return Ui::FormatZen(price + static_cast<std::uint32_t>(static_cast<std::uint64_t>(added) & 0xffffffffu));
 }
 
 // 0x5b2cad..0x5b3716: el precio. Con la tienda de NPC abierta (0x10000, 1 rand()), salvo la caja de la suerte y el
@@ -132,7 +132,7 @@ std::string PriceWithTax(std::uint32_t price, std::int32_t tax)
 // 0x54d0f0 en el modo 0 con el impuesto (0x5b1200) y sin él; si no (0x5b2e46), el 63 con el del modo 1. Los dos con
 // el color del nombre, sin negrita, y un "\n" (0x6c99c8) detrás. Con la tienda personal propia (0x800) o la ajena
 // (0x20000), sin rand(), el de la grilla de la tienda personal (WriteThePersonalShopPrice, CL9 hito 7).
-Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteTheShopPrice(Hud::GameHudContext& context, TooltipWriter& lines,
                                                     const Kernel::ItemState& item, std::int32_t level,
                                                     std::int32_t nameColor, std::uint8_t grid)
 {
@@ -140,34 +140,34 @@ Core::Expected<void, std::string> WriteTheShopPrice(GameHudContext& context, Too
     if (id == Scroll || (id >= FirstQuestScroll && id <= LastQuestScroll) ||
         (id == WarriorRing && level >= 1 && level <= 2))
         return {};
-    GamePanels panels(context.world, context.random);
-    UI::PanelRegistry& registry = panels.Registry();
-    if (registry.IsOpen(UI::NpcShopPanel) && id != LuckyBox &&
+    Hud::GamePanels panels(context.world, context.random);
+    Ui::PanelRegistry& registry = panels.Registry();
+    if (registry.IsOpen(Ui::NpcShopPanel) && id != LuckyBox &&
         !(id == EventTicket && level >= 1 && level <= LastFreeTicketLevel))
     {
         lines.At("0x5b2d23");
         if (grid != 0)
         {
-            auto price = ItemPrice(item, *context.items, ShopGridPrice, std::nullopt);
+            auto price = Items::ItemPrice(item, *context.items, Items::ShopGridPrice, std::nullopt);
             if (!price.HasValue())
                 return Core::Unexpected(std::move(price).Error());
-            const std::string plain = FormatZen(price.Value());
+            const std::string plain = Ui::FormatZen(price.Value());
             const std::string taxed = PriceWithTax(price.Value(), context.world.Runtime().npcWindows.taxRate);
             lines.PrintText(BuyPriceText, std::string_view(taxed), std::string_view(plain));
         }
         else
         {
-            auto price = ItemPrice(item, *context.items, InventoryPrice, std::nullopt);
+            auto price = Items::ItemPrice(item, *context.items, Items::InventoryPrice, std::nullopt);
             if (!price.HasValue())
                 return Core::Unexpected(std::move(price).Error());
-            lines.PrintText(SellPriceText, std::string_view(FormatZen(price.Value())));
+            lines.PrintText(SellPriceText, std::string_view(Ui::FormatZen(price.Value())));
         }
         lines.Color(nameColor);
         lines.Next();
         lines.NewLine();
         return {};
     }
-    if (!registry.IsOpen(UI::PersonalShopPanel) && !registry.IsOpen(UI::OtherShopPanel))
+    if (!registry.IsOpen(Ui::PersonalShopPanel) && !registry.IsOpen(Ui::OtherShopPanel))
         return {};
     return WriteThePersonalShopPrice(context, lines, item);
 }
@@ -210,25 +210,25 @@ std::int32_t RepairNameColorOf(const Kernel::ItemState& item, std::int32_t level
 // 0x5b8373..0x5b839b: un ítem gastado pone el modo de reparar en 2 y lleva el precio de 0x54d0f0 en el modo 2 con el
 // formato de 0x5b13e0, que lee [0x78abb10]. El 0x1a04 y el 0x1a05, los únicos que leen las mascotas (0x422930, con los
 // niveles del A9), salen al principio de 0x5b8150.
-Core::Expected<RepairPrice, std::string> RepairTheWornItem(GameHudContext& hud, const Kernel::ItemState& item,
-                                                           std::uint16_t maximum)
+Core::Expected<Items::RepairPrice, std::string> RepairTheWornItem(Hud::GameHudContext& hud,
+                                                                  const Kernel::ItemState& item, std::uint16_t maximum)
 {
     Kernel::WorldRuntime& runtime = hud.world.Runtime();
     if (!hud.projecting)
         runtime.panels.repairMode = 2;
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
-    auto price = ItemPrice(item, *hud.items, RepairPriceMode, pets);
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    auto price = Items::ItemPrice(item, *hud.items, Items::RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
-    return RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
+    return Items::RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
 }
 
 // 0x5b8ae1..0x5b8b6d: la caja de reparar, con la altura en enteros sin signo: ((N − M) · cy + M · cy / 2) · 480 / H.
 Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& context,
                                                    std::span<const std::byte, Tables::ItemRecordSize> record)
 {
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -248,7 +248,7 @@ Core::Expected<void, std::string> DrawTheRepairBox(const ItemTooltipContext& con
 Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& context,
                                                  std::span<const std::byte, Tables::ItemRecordSize> record)
 {
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     const TooltipLines& lines = hud.hud.tooltip;
     const std::string_view first = std::string_view(lines.text[0]).substr(0, 1);
     const std::int32_t cy = hud.text.Measure(hud.hud.dcFont, first).height;
@@ -267,7 +267,7 @@ Core::Expected<void, std::string> DrawTheItemBox(const ItemTooltipContext& conte
 
 Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& context)
 {
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     const Kernel::ItemState& item = context.item;
     if (item.id == NoItem)
         return {};
@@ -310,7 +310,7 @@ Core::Expected<void, std::string> DrawTheItemTooltip(const ItemTooltipContext& c
 
 Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext& context)
 {
-    GameHudContext& hud = context.hud;
+    Hud::GameHudContext& hud = context.hud;
     const Kernel::ItemState& item = context.item;
     const std::int32_t type = static_cast<std::int16_t>(item.id);
     if (!IsRepairable(type))
@@ -331,7 +331,7 @@ Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext&
     lines.At("0x5b8327");
     lines.NewLine();
     // 0x5b835d..0x5b840b: el precio de reparar, con la durabilidad que falta.
-    const std::uint16_t maximum = MaxDurability(item, *record, level);
+    const std::uint16_t maximum = Items::MaxDurability(item, *record, level);
     if (item.durability < maximum)
     {
         auto price = RepairTheWornItem(hud, item, maximum);
@@ -351,7 +351,7 @@ Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext&
     lines.NewLine();
     // 0x5b895a..0x5b8a2b: el nombre. 0x180b (0x5b8453) y 0x1a0a (0x5b8915) no llegan: salen al principio.
     lines.At("0x5b895a");
-    const std::string name = ItemRecordName(*record);
+    const std::string name = Items::ItemRecordName(*record);
     const bool plain = (type >= FirstLateWing && type <= LastLateWing) || type >= CapeOfLord;
     if (!plain && (item.flags1b & ExcellentBits) != 0)
     {
@@ -377,4 +377,4 @@ Core::Expected<void, std::string> DrawTheRepairTooltip(const ItemTooltipContext&
         return Core::Unexpected(lines.Error());
     return DrawTheRepairBox(context, *record);
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

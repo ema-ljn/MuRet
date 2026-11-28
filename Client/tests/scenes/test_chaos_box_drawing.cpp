@@ -38,12 +38,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
+using Client::Npc::NpcWindowState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::NpcWindowState;
 using Client::Tests::RecordedText;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -148,8 +148,8 @@ protected:
                                .texts = m_drawnTexts,
                                .mouse = {.x = x, .y = y},
                                .leftDown = leftDown};
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawTheChaosBox(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::ChaosMix::DrawTheChaosBox(context, panels.Registry());
     }
 
     // Lo que se dibujó desde el renglón del nombre, sin el título.

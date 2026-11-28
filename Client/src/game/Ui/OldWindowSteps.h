@@ -15,7 +15,7 @@
 // Lo que comparten UI/OldWindows.cpp (el administrador, el marco y la caja) y UI/FriendWindows.cpp (la ventana de
 // amigos, sus pestañas y la caja de agregar): los métodos de la ventana base y del marco, y la vtable de las clases de
 // los amigos. No es para fuera de UI.
-namespace Client::UI::Steps
+namespace Client::Ui::Steps
 {
 // 0x45a210 (con el id de 0x459ef0), 0x45ad80 y 0x491ca0.
 [[nodiscard]] OldWindowBase MakeTheBase(OldWindowManager& manager);
@@ -85,8 +85,9 @@ void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show);
 // y la de invitar). Con el mouse sobre el renglón `row` (el elemento `at`): el clic lo elige y da vuelta su marca, el
 // doble clic es el 0xd al padre (0x490b40) y el derecho lo elige, da vuelta la marca y abre el susurro con el nombre
 // (0x4694c0). Da 1: el paso sigue.
-[[nodiscard]] std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
-                                           std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
+[[nodiscard]] std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list,
+                                           std::deque<Messenger::FriendEntry>& friends, std::int32_t row,
+                                           std::size_t at, const OldWindowGlobals& globals,
                                            const OldWindowStepView& view);
 // La vtable + 0x28 (0x4a2be0, 0x49d0b0, 0x49ea50, 0x4a11b0 y 0x4a3850).
 [[nodiscard]] Core::Expected<void, std::string> HandleTheFriendsMessage(OldWindowManager& manager, OldWindow& window,
@@ -168,7 +169,7 @@ void RefreshTheLetters(OldWindowManager& manager, OldWindow& tab);
 // 0x49d0b0 con el 10 y 4 (0x49dbd4): la ventana de escribir con el nombre del elegido (0x49cad0), si hay. Da su id
 // (0 sin ventana) para la cola 0x49dc37 de la pestaña de amigos.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> WriteToTheFriend(OldWindowManager& manager,
-                                                                         const FriendEntry* selected,
+                                                                         const Messenger::FriendEntry* selected,
                                                                          const OldWindowGlobals& globals,
                                                                          const OldWindowStepView& view);
-} // namespace Client::UI::Steps
+} // namespace Client::Ui::Steps

@@ -53,7 +53,7 @@
 #include <tuple>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -103,7 +103,7 @@ Models::LogicalAccess OwnAccess(GameHudContext& context)
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -172,7 +172,7 @@ void DrawTextCenteredAt(GameHudContext& context, int x, int y, std::string_view 
 // sobre un fondo transparente (0x6c8e5c en −1 y 0x6c8e64 en 0).
 void DrawHelp(GameHudContext& context, int x, int y, std::string_view help)
 {
-    UI::DrawHelp(context.sprites, context.text, x, y, help);
+    Ui::DrawHelp(context.sprites, context.text, x, y, help);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }
 
@@ -241,8 +241,8 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
 
 } // namespace
 
-Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
-                                                  std::string_view where)
+Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
+                                                         std::string_view where)
 {
     if (context.items == nullptr)
         return Core::Unexpected(std::format("{}: sin Item.bmd", where));
@@ -252,21 +252,21 @@ Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context,
     constexpr std::size_t Width = 0x24;
     constexpr std::size_t Height = 0x25;
     constexpr float CellPixels = 20.0f;
-    UiItemBox box;
+    Items::UiItemBox box;
     box.width = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Width])) * CellPixels);
     box.height = F32(static_cast<double>(std::to_integer<std::uint8_t>((*record)[Height])) * CellPixels);
     return box;
 }
 
-Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box, std::int32_t type,
+Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Items::UiItemBox& box, std::int32_t type,
                                              std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
 {
     // 0x5e1486..0x5e1d69: bajo el mouse, el punto de la caja y 0x620480 con él (sin efectos fuera de 0x7d36834).
-    const bool hovered = UiItemHovered(box, context.mouse, context.world.Runtime().cursorItemCount, always);
-    const auto anchor = UiItemAnchor(type, level, box);
+    const bool hovered = Items::UiItemHovered(box, context.mouse, context.world.Runtime().cursorItemCount, always);
+    const auto anchor = Items::UiItemAnchor(type, level, box);
     if (!anchor.HasValue())
         return Core::Unexpected(anchor.Error());
-    const std::optional<UiItemCall> call = UiItemCallOf(type, level);
+    const std::optional<Items::UiItemCall> call = Items::UiItemCallOf(type, level);
     if (!call)
         return {};
     if (context.uiItems == nullptr)
@@ -280,13 +280,14 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiIt
         SpendUiItemRandoms(context, call->model, excellent, set);
         return {};
     }
-    UiItemResources& resources = *context.uiItems;
-    const UnprojectedPoint point = UnprojectGamePoint(resources.pass.projection, anchor.Value().x, anchor.Value().y);
+    Items::UiItemResources& resources = *context.uiItems;
+    const Scenes::UnprojectedPoint point =
+        Scenes::UnprojectGamePoint(resources.pass.projection, anchor.Value().x, anchor.Value().y);
     auto placement =
-        PlaceUiItem(*call, point, hovered, always, context.worldClock, context.items, context.hud.uiItemAngles);
+        Items::PlaceUiItem(*call, point, hovered, always, context.worldClock, context.items, context.hud.uiItemAngles);
     if (!placement.HasValue())
         return Core::Unexpected(placement.Error());
-    return DrawUiItemModel(resources, context.random, placement.Value(), excellent, set);
+    return Items::DrawUiItemModel(resources, context.random, placement.Value(), excellent, set);
 }
 
 namespace
@@ -423,16 +424,16 @@ Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context, std::
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::InventoryPanel))
+    if (!panels.IsOpen(Ui::InventoryPanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     Kernel::HudState& hud = context.hud;
     std::int32_t x = 0x1c2;
-    if (panels.IsOpen(UI::CharacterPanel) || panels.IsOpen(UI::PartyPanel))
+    if (panels.IsOpen(Ui::CharacterPanel) || panels.IsOpen(Ui::PartyPanel))
         x = 0x104;
     constexpr std::int32_t y = 0;
     hud.inventoryX = x;
@@ -462,7 +463,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
         zen = world.OwnCharacter().zen;
     }
     // 0x5f26a7..0x5f2751 y 0x5f2771..0x5f27ef: la misma cuenta que 0x5b1130 y 0x5b10f0, copiada.
-    const std::string amount = FormatZen(zen);
+    const std::string amount = Ui::FormatZen(zen);
     hud.textColors = Render::Text::TextColors{.text = 0xff96dcffu, .background = 0xff282828u};
     const std::int32_t textY = Truncate(zenY) + 3;
     const std::int32_t textX = Truncate(zenX);
@@ -470,12 +471,12 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
     if (!zenLabel.HasValue())
         return Core::Unexpected(zenLabel.Error());
     DrawText(context, textX - 30, textY, zenLabel.Value());
-    hud.textColors.text = ZenColor(zen);
+    hud.textColors.text = Ui::ZenColor(zen);
     DrawText(context, textX + 10, textY, amount);
     // 0x5f27ff..0x5f28f5: cerrar, sin el comercio y sin la caja del entrenador.
-    const UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     const float footY = F32(static_cast<double>(y) + 395.0);
-    if (!panels.IsOpen(UI::TradePanel) && delegated.trainer != TrainerWithBox)
+    if (!panels.IsOpen(Ui::TradePanel) && delegated.trainer != TrainerWithBox)
     {
         if (auto close = DrawFootButton(context, 0x118, F32(static_cast<double>(x) + 20.0), footY, CloseHelpText, 13,
                                         "0x5f28d6");
@@ -489,9 +490,9 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
         level = world.OwnCharacter().level;
     }
     // 0x5f2be1..0x5f2da9: reparar, sin ninguna otra ventana, sin 0x78abb00 y desde el nivel 50.
-    if (!panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::NpcShopPanel) && !panels.IsOpen(UI::WarehousePanel) &&
-        !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::CastleSiegeListPanel) &&
-        !panels.IsOpen(UI::EventNpcPanel) && !panels.IsOpen(UI::SecondEventNpcPanel) &&
+    if (!panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::NpcShopPanel) && !panels.IsOpen(Ui::WarehousePanel) &&
+        !panels.IsOpen(Ui::ChaosBoxPanel) && !panels.IsOpen(Ui::CastleSiegeListPanel) &&
+        !panels.IsOpen(Ui::EventNpcPanel) && !panels.IsOpen(Ui::SecondEventNpcPanel) &&
         delegated.trainer != TrainerWithBox && runtime.panels.field78abb00 == 0 && level > 0x31)
     {
         const std::uint16_t slot = runtime.panels.repairMode == 0 ? 0x11e : 0x11f;
@@ -502,18 +503,18 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::
     }
     // 0x5f2dac..0x5f3008: la tienda personal, con las mismas ventanas en otro orden y desde el nivel 6.
     const float shopX = F32(static_cast<double>(x) + 76.0);
-    if (!panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::NpcShopPanel) && delegated.trainer != TrainerWithBox &&
-        !panels.IsOpen(UI::WarehousePanel) && !panels.IsOpen(UI::ChaosBoxPanel) &&
-        !panels.IsOpen(UI::CastleSiegeListPanel) && !panels.IsOpen(UI::EventNpcPanel) &&
-        !panels.IsOpen(UI::SecondEventNpcPanel) && runtime.panels.field78abb00 == 0 && level > 5)
+    if (!panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::NpcShopPanel) && delegated.trainer != TrainerWithBox &&
+        !panels.IsOpen(Ui::WarehousePanel) && !panels.IsOpen(Ui::ChaosBoxPanel) &&
+        !panels.IsOpen(Ui::CastleSiegeListPanel) && !panels.IsOpen(Ui::EventNpcPanel) &&
+        !panels.IsOpen(Ui::SecondEventNpcPanel) && runtime.panels.field78abb00 == 0 && level > 5)
     {
-        const bool shopOpen = panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel);
+        const bool shopOpen = panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel);
         Quad(sprites, shopOpen ? 0x658 : 0x657, shopX, footY, 24.0f, 24.0f, 0.75f, 0.75f);
         if (MouseInSquare(context, shopX, footY, 24.0f))
         {
             SelectFont(context, Render::Text::FontKind::Normal);
             hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0xff000000u};
-            const bool open = panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel);
+            const bool open = panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel);
             auto help = TextOf(context, open ? ShopOpenHelpText : OpenShopHelpText, "0x5f2fc4");
             if (!help.HasValue())
                 return Core::Unexpected(help.Error());
@@ -622,11 +623,11 @@ void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span
                     continue;
                 sprites.SetColor(NumberColor);
                 const auto steps = static_cast<std::int32_t>((item.scalar1Low >> 3u) & 0xfu);
-                UI::DrawNumber(sprites, F32(static_cast<double>(left) + 14.0), top, (steps * 5 + 5) * 2, 7.0f, 8.0f);
+                Ui::DrawNumber(sprites, F32(static_cast<double>(left) + 14.0), top, (steps * 5 + 5) * 2, 7.0f, 8.0f);
                 continue;
             }
             sprites.SetColor(NumberColor);
-            UI::DrawNumber(sprites, F32(static_cast<double>(left) + 13.0), top, item.durability, 9.0f, 10.0f);
+            Ui::DrawNumber(sprites, F32(static_cast<double>(left) + 13.0), top, item.durability, 9.0f, 10.0f);
         }
     }
 }
@@ -652,12 +653,12 @@ constexpr float TrainerBoxGridLeft = 275.0f;
 constexpr float TrainerBoxGridTop = 110.0f;
 } // namespace
 
-Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const UI::DelegatedPanels& delegated = runtime.panels.delegated;
-    if (panels.IsOpen(UI::InventoryPanel))
+    const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
+    if (panels.IsOpen(Ui::InventoryPanel))
     {
         // 0x5e2fc0: el equipo, con el registro propio abierto alrededor (los accesos de cada lugar, 0x4e79a0 y
         // 0x40f370 o los de 0x5e2d00, quedan adentro y no sacan nada; el color de 0x5e22d0 de cada lugar lo pisa el
@@ -671,12 +672,12 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
                 if (item.id == Kernel::EmptyOwnItemId || static_cast<std::int32_t>(item.occupied) <= 0)
                     continue;
                 const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-                const UiItemBox box{.x =
-                                        F32(static_cast<double>(context.hud.inventoryX) + static_cast<double>(place.x)),
-                                    .y = F32(static_cast<double>(context.hud.inventoryY) +
-                                             static_cast<double>(place.y) - static_cast<double>(place.lift)),
-                                    .width = place.width,
-                                    .height = place.height};
+                const Items::UiItemBox box{
+                    .x = F32(static_cast<double>(context.hud.inventoryX) + static_cast<double>(place.x)),
+                    .y = F32(static_cast<double>(context.hud.inventoryY) + static_cast<double>(place.y) -
+                             static_cast<double>(place.lift)),
+                    .width = place.width,
+                    .height = place.height};
                 if (auto drawn = DrawUiItem(context, box, type, item.scalar1Low, item.flags1b, item.flags1c, false);
                     !drawn.HasValue())
                     return drawn;
@@ -691,17 +692,17 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
     }
     // 0x5f769b y 0x5f7756: la tienda (con su rand()) y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 0) desde
     // la esquina que dejó su dibujo (0x78aba28 y 0x78aba2c).
-    if (panels.IsOpen(UI::NpcShopPanel))
+    if (panels.IsOpen(Ui::NpcShopPanel))
     {
         if (auto shop = DrawTheGridModels(context, NpcGridLeft(context), NpcGridTop(context), runtime.npcWindows.grid,
                                           NpcWindowGridColumns, NpcWindowGridRows);
             !shop.HasValue())
             return shop;
     }
-    if (panels.IsOpen(UI::TradePanel))
+    if (panels.IsOpen(Ui::TradePanel))
     {
         // 0x5f76b4..0x5f7717: la grilla del otro (0x78a5a20) en la esquina más 15 y 70, y la propia (0x78a92a8) en 270.
-        const TradeState& trade = runtime.social.trade;
+        const Social::TradeState& trade = runtime.social.trade;
         const float left = F32(static_cast<double>(context.hud.tradeX) + TradeGridLeft);
         if (auto other = DrawTheGridModels(context, left, F32(static_cast<double>(context.hud.tradeY) + OtherGridTop),
                                            trade.otherGrid, TradeColumns, TradeRows);
@@ -712,7 +713,7 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             !own.HasValue())
             return own;
     }
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
     {
         if (auto warehouse = DrawTheGridModels(context, NpcGridLeft(context), NpcGridTop(context),
                                                runtime.npcWindows.grid, NpcWindowGridColumns, NpcWindowGridRows);
@@ -720,9 +721,9 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             return warehouse;
     }
     // 0x5f77c6: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0) desde la esquina que dejó su dibujo.
-    if (panels.IsOpen(UI::ChaosBoxPanel) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if (panels.IsOpen(Ui::ChaosBoxPanel) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
     {
         if (auto chaos = DrawTheGridModels(context, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
                                            runtime.npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
@@ -730,11 +731,11 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
             return chaos;
     }
     // 0x5f7772..0x5f7799: sin la caja, con la lista del asedio, el mismo dibujo si la marca del héroe lo pide.
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+    if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
         // 0x5f77f6..0x5f7821: la grilla de las tiendas personales (0x78ab0b8) en la esquina (0x78aba58 y 0x78aba5c) más
         // 15 y 110.
-        const PersonalShopState& shops = runtime.social.personalShop;
+        const Social::PersonalShopState& shops = runtime.social.personalShop;
         if (auto shop = DrawTheGridModels(context, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
                                           F32(static_cast<double>(shops.windowY) + ShopGridTop),
                                           world.Inventory().secondCells, ShopColumns, ShopRows);
@@ -748,51 +749,51 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
-    const UI::DelegatedPanels& delegated = world.Runtime().panels.delegated;
+    const Ui::DelegatedPanels& delegated = world.Runtime().panels.delegated;
     // 0x5f7849..0x5f78e4: sale sin ninguna grilla abierta, en este orden.
-    bool any = panels.IsOpen(UI::InventoryPanel) || panels.IsOpen(UI::NpcShopPanel) ||
-               panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::TradePanel);
-    if (!any && panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
-        any = HeroCanCraftAtTheCastle(context.world);
+    bool any = panels.IsOpen(Ui::InventoryPanel) || panels.IsOpen(Ui::NpcShopPanel) ||
+               panels.IsOpen(Ui::WarehousePanel) || panels.IsOpen(Ui::ChaosBoxPanel) || panels.IsOpen(Ui::TradePanel);
+    if (!any && panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
+        any = CastleSiege::HeroCanCraftAtTheCastle(context.world);
     if (!any)
-        any = panels.IsOpen(UI::TrainerPanel);
+        any = panels.IsOpen(Ui::TrainerPanel);
     if (!any)
         return {};
     context.sprites.SetBlend(BlendMode::Alpha);
-    if (panels.IsOpen(UI::InventoryPanel))
+    if (panels.IsOpen(Ui::InventoryPanel))
         DrawTheGridCounts(context.sprites, F32(static_cast<double>(context.hud.inventoryX) + 15.0),
                           F32(static_cast<double>(context.hud.inventoryY) + 200.0), world.Inventory().cells,
                           Kernel::InventoryColumns, Kernel::InventoryColumns);
     // 0x5f7973 y 0x5f7a2e: la tienda y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 1).
-    if (panels.IsOpen(UI::NpcShopPanel))
+    if (panels.IsOpen(Ui::NpcShopPanel))
         DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
                           NpcWindowGridColumns, NpcWindowGridRows);
-    if (panels.IsOpen(UI::TradePanel))
+    if (panels.IsOpen(Ui::TradePanel))
     {
         // 0x5f798c..0x5f79f0: las dos grillas del comercio, como sus ítems.
-        const TradeState& trade = world.Runtime().social.trade;
+        const Social::TradeState& trade = world.Runtime().social.trade;
         const float left = F32(static_cast<double>(context.hud.tradeX) + TradeGridLeft);
         DrawTheGridCounts(context.sprites, left, F32(static_cast<double>(context.hud.tradeY) + OtherGridTop),
                           trade.otherGrid, TradeColumns, TradeRows);
         DrawTheGridCounts(context.sprites, left, F32(static_cast<double>(context.hud.tradeY) + OwnGridTop),
                           trade.ownGrid, TradeColumns, TradeRows);
     }
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
         DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
                           NpcWindowGridColumns, NpcWindowGridRows);
     // 0x5f7a9e: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 1).
-    if (panels.IsOpen(UI::ChaosBoxPanel) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if (panels.IsOpen(Ui::ChaosBoxPanel) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
         DrawTheGridCounts(context.sprites, ChaosBoxGridLeft(context), ChaosBoxGridTop(context),
                           world.Runtime().npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+    if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
         // 0x5f7ace..0x5f7af9: la grilla de las tiendas personales, como sus ítems.
-        const PersonalShopState& shops = world.Runtime().social.personalShop;
+        const Social::PersonalShopState& shops = world.Runtime().social.personalShop;
         DrawTheGridCounts(context.sprites, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
                           F32(static_cast<double>(shops.windowY) + ShopGridTop), world.Inventory().secondCells,
                           ShopColumns, ShopRows);
@@ -856,19 +857,19 @@ Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, flo
     const Kernel::ItemState& item = source == DialogItemSource::Cursor ? runtime.cursorItem : runtime.dialogItem;
     const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
     // 0x63326f..0x633283.
-    constexpr UiItemBox Box{.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f};
+    constexpr Items::UiItemBox Box{.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f};
     if (context.uiItems == nullptr)
         return DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
     // 0x633163..0x6331f7: el pase propio; 0x633288..0x633293, los dos glPopMatrix. El de 0x5ac120 vuelve a quedar para
     // el próximo frame.
-    UiItemResources& resources = *context.uiItems;
-    auto pass = MakeUiItemPass(resources.pass.pass.screen, farPlane);
+    Items::UiItemResources& resources = *context.uiItems;
+    auto pass = Items::MakeUiItemPass(resources.pass.pass.screen, farPlane);
     if (!pass.HasValue())
         return Core::Unexpected(pass.Error());
-    const UiItemPass itemsPass = resources.pass;
+    const Items::UiItemPass itemsPass = resources.pass;
     resources.pass = pass.Value();
     auto drawn = DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
-    CloseUiItemPass(resources);
+    Items::CloseUiItemPass(resources);
     resources.pass = itemsPass;
     return drawn;
 }
@@ -980,8 +981,8 @@ Core::Expected<void, std::string> DrawTradeMoney(GameHudContext& context, float 
     if (!label.HasValue())
         return Core::Unexpected(label.Error());
     DrawText(context, textX - 30, textY, label.Value());
-    context.hud.textColors.text = ZenColor(zen);
-    DrawText(context, textX + 10, textY, FormatZen(zen));
+    context.hud.textColors.text = Ui::ZenColor(zen);
+    DrawText(context, textX + 10, textY, Ui::FormatZen(zen));
     return {};
 }
 
@@ -1009,11 +1010,11 @@ Core::Expected<void, std::string> DrawTheOthersGuild(GameHudContext& context, st
     constexpr float MarkTop = 40.0f;
     constexpr float MarkSize = 32.0f;
     constexpr std::int32_t NameTop = 0x1e;
-    const GuildState& guild = context.world.Runtime().guild;
+    const Guild::GuildState& guild = context.world.Runtime().guild;
     const std::int32_t other = context.world.Runtime().social.trade.otherGuild;
-    for (std::size_t index = 0; index < GuildTableSize; ++index)
+    for (std::size_t index = 0; index < Guild::GuildTableSize; ++index)
     {
-        const GuildTableEntry& entry = guild.table[index];
+        const Guild::GuildTableEntry& entry = guild.table[index];
         if (entry.key == -1 || entry.key != other)
             continue;
         if (context.guildMarks == nullptr)
@@ -1038,14 +1039,14 @@ std::string_view NameUntilZero(std::span<const std::byte> name)
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::TradePanel))
+    if (!panels.IsOpen(Ui::TradePanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const TradeState& trade = runtime.social.trade;
+    const Social::TradeState& trade = runtime.social.trade;
     hud.tradeX = TradeWindowX;
     hud.tradeY = TradeWindowY;
     const std::int32_t x = hud.tradeX;
@@ -1306,7 +1307,7 @@ Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std
 // algo o si se mira la de otro (vacío, entonces). MuRet guarda hasta 36 bytes (07 Q-C962): no pasa de los 48. Termina
 // sin mezcla.
 Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::int32_t x, std::int32_t y,
-                                                  const PersonalShopState& shops)
+                                                  const Social::PersonalShopState& shops)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Quad(sprites, MoneyBoxSlot, F32(static_cast<double>(x) + ShopNameBoxLeft),
@@ -1317,7 +1318,7 @@ Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::
     if (!placeholder.HasValue())
         return Core::Unexpected(placeholder.Error());
     std::string_view name = placeholder.Value();
-    if (!shops.ownTitle.empty() || shops.mode == OtherShopView)
+    if (!shops.ownTitle.empty() || shops.mode == Social::OtherShopView)
         name = shops.ownTitle;
     WindowDrawing::DrawInBox(context, x + ShopNameLeft, y + ShopNameTop, name, StatusBox);
     sprites.SetBlend(BlendMode::Opaque);
@@ -1357,9 +1358,9 @@ Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std:
         !warning.HasValue())
         return warning;
     hud.textColors.text = LinesColor;
-    if (mode == OwnShopView || mode == OtherShopView)
+    if (mode == Social::OwnShopView || mode == Social::OtherShopView)
     {
-        for (const ShopLine& line : mode == OwnShopView ? OwnShopLines : OtherShopLines)
+        for (const ShopLine& line : mode == Social::OwnShopView ? OwnShopLines : OtherShopLines)
         {
             if (auto drawn = DrawShopText(context, x + LinesLeft, y + line.top, line.text, line.where);
                 !drawn.HasValue())
@@ -1378,13 +1379,13 @@ Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std:
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel))
+    if (!panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::WorldState& world = context.world;
-    PersonalShopState& shops = world.Runtime().social.personalShop;
+    Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     shops.windowX = ShopWindowX;
     shops.windowY = ShopWindowY;
     const std::int32_t x = shops.windowX;
@@ -1398,7 +1399,7 @@ Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& cont
     if (!title.HasValue())
         return Core::Unexpected(title.Error());
     WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
-    const bool own = shops.mode == OwnShopView;
+    const bool own = shops.mode == Social::OwnShopView;
     const bool open = shops.ownOpen != 0;
     if (own)
     {
@@ -1419,4 +1420,4 @@ Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& cont
     }
     return DrawTheShopLines(context, x, y, shops.mode);
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

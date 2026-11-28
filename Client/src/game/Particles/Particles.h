@@ -25,6 +25,11 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
+namespace Client::WorldObjects
+{
+struct WorldObject;
+} // namespace Client::WorldObjects
+
 // Las partículas (CL7.6 B2): la tabla de 0x53fe70 (0x743a198, 3.000 lugares de 0x78 bytes) y su paso,
 // 0x5446e0, con el viento de 0x7609bb8. Su dibujo, 0x548550, tiene un solo contrato: el de
 // World/ParticleDrawing.h, que sigue la tabla de saltos del ASM y no este subconjunto de creación. De sus
@@ -35,11 +40,10 @@ struct TerrainLighting;
 // 5d9/0..3, 5f2/2, 5c6/9, 607/0, 67/0 y 622/8 según sus contratos específicos. Los cálculos
 // conservan stores binary32 e intermedios double (53 bits); no emulan status/excepciones x87 ni
 // prometen equivalencia para cualquier control word o plataforma XP.
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class IParticleTrigonometry;
-struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
 // 0x52a866/0x52a89a: las dos luces que siguen los huesos del blanco de Swell Life.
@@ -176,7 +180,7 @@ inline constexpr std::int32_t BloodParticle = 0x5e4;
 inline constexpr std::int32_t SkillShineParticle = 0x5fe;
 // El brillo de la mano 5fd (Effect\Shiny02.jpg) de la skill que pega a varios (0x53d810, del 1A): la /0 y la /2 nacen
 // en 0x542b0e con vida 36 y el ángulo x en 45, y 0x53fdb0 las pone en la mano de su dueño, un personaje (lo hace quien
-// las crea: Scenes::RaiseTheHandShine). Su paso (0x546cd4) late la escala con el seno de la vida, gira la /2 y las
+// las crea: Effects::RaiseTheHandShine). Su paso (0x546cd4) late la escala con el seno de la vida, gira la /2 y las
 // vuelve a poner en la mano; 548550 las dibuja con el billboard común (0x5488f6 → 0x54889a).
 inline constexpr std::int32_t HandShineParticle = 0x5fd;
 inline constexpr std::int32_t HandShineSecondSubtype = 2;
@@ -246,7 +250,7 @@ using ParticleTerrainHeight = std::function<double(float, float)>;
 using ParticleTextureHeight = std::function<std::optional<float>(std::int32_t)>;
 // El objeto del mundo de una identidad (ParticleOwner::identity): lo que el original lee por el puntero
 // +0x40. nullptr si no está.
-using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
+using ParticleObjectOwners = std::function<WorldObjects::WorldObject*(std::uint64_t)>;
 // La acción (+0x111) del personaje de una identidad (ParticleOwnerKind::Actor, el lugar del pool): lo que el paso de
 // la órbita 60f/0 lee por el puntero +0x40 (0x54735f). nullopt si no está. Con un efecto con modelo de dueño, el paso
 // la lee de ParticleOwnerStates.
@@ -413,4 +417,4 @@ StepParticlesChecked(Particles& particles, Crt::CrtRandom& random, std::referenc
                      const ParticleOwnerBones& ownerBones, const std::function<void(Audio::SoundId)>& sound,
                      const ParticleOwnerStates& ownerStates = {}, FrameSprites* sprites = nullptr);
 
-} // namespace Client::World
+} // namespace Client::Particles

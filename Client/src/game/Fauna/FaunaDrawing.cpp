@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 namespace
 {
@@ -154,7 +154,7 @@ Core::Expected<void, std::string> BirdExtras(FaunaObject& bird, FaunaDrawContext
 {
     if (bird.model == Assets::ButterflyModel)
     {
-        const auto light = World::BirdGlowLight(bird.model, context.cloth.random);
+        const auto light = Fauna::BirdGlowLight(bird.model, context.cloth.random);
         static_cast<void>(context.sprites.Create(0x5ac, bird.position, 1, *light, 0, 0));
     }
     if (bird.model == Assets::CrowModel)
@@ -162,7 +162,7 @@ Core::Expected<void, std::string> BirdExtras(FaunaObject& bird, FaunaDrawContext
         if (!context.carry.models.contains(static_cast<std::uint16_t>(bird.model)))
             return Core::Unexpected(std::string("446d51: origen/escala retenidos del modelo BC sin evidencia"));
         const auto left = BonePoint(context, bird, 1, {-5, 0, 0}, true);
-        const auto light = World::BirdGlowLight(bird.model, context.cloth.random);
+        const auto light = Fauna::BirdGlowLight(bird.model, context.cloth.random);
         static_cast<void>(context.sprites.Create(0x5ac, left, .1f, *light, 0, 0));
         const auto right = BonePoint(context, bird, 1, {5, 0, 0}, true);
         static_cast<void>(context.sprites.Create(0x5ac, right, .1f, *light, 0, 0));
@@ -285,4 +285,4 @@ Core::Expected<void, std::string> DrawGameFish(Render::ModelBatch& batch, FaunaD
 {
     return DrawPool(batch, context.fauna.Fish(), context, false);
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

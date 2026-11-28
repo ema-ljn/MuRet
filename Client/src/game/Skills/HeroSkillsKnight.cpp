@@ -44,7 +44,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -234,7 +234,7 @@ void FaceTheTarget(Kernel::ActorState& hero)
 
 // 0x583f12..0x583f63 (y 0x586436, 0x587aab y 0x588899): la distancia del héroe al centro de la celda del blanco
 // (0x77e1ba8 y 0x77e1bac) contra el alcance (el local de 0x5526f0) · 100; con NaN, en alcance (TEST AH, 0x41).
-bool OutOfRange(const Kernel::ActorState& hero, const GameMovementState& state)
+bool OutOfRange(const Kernel::ActorState& hero, const Movement::GameMovementState& state)
 {
     const double dx = static_cast<double>(hero.position.x) -
                       (static_cast<double>(std::bit_cast<std::int32_t>(state.targetX)) * CellSize + HalfCell);
@@ -307,7 +307,7 @@ Core::Expected<std::uint8_t, std::string> RelativeCellOf(const Kernel::ActorStat
 Core::Expected<std::uint16_t, std::string> ChosenKey(const Kernel::ActorState& hero, std::int32_t target,
                                                      const HeroSkillContext& context)
 {
-    const auto key = ChosenKeyOf(context.world, SlotOf(context.world, hero), target, context.controlDown);
+    const auto key = Hero::ChosenKeyOf(context.world, SlotOf(context.world, hero), target, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     return static_cast<std::uint16_t>(static_cast<std::uint32_t>(key.Value()));
@@ -415,7 +415,7 @@ Core::Expected<void, std::string> UseSkill29(Kernel::ActorState& hero, std::uint
             return Core::Unexpected(direction.Error());
         SendTheDurationMagic(hero, skill, {.direction = direction.Value(), .key = key.Value()}, context);
     }
-    RefreshCombatActionSpeeds(context.world, context.random);
+    Combat::RefreshCombatActionSpeeds(context.world, context.random);
     return ActAndStop(hero, 0x3d, context);
 }
 
@@ -448,7 +448,7 @@ Core::Expected<void, std::string> UseSkill2a(Kernel::ActorState& hero, std::uint
 Core::Expected<void, std::string> UseSkill37(Kernel::ActorState& hero, std::uint8_t skill,
                                              const HeroSkillContext& context)
 {
-    const GameMovementState& state = context.world.Runtime().movement;
+    const Movement::GameMovementState& state = context.world.Runtime().movement;
     FaceTheTarget(hero);
     const Cells cells = ReadTheCells(hero, context.random);
     const std::uint8_t position = TargetPosition(Minus(std::bit_cast<std::int32_t>(state.targetX), cells.x),
@@ -464,7 +464,7 @@ Core::Expected<void, std::string> UseSkill37(Kernel::ActorState& hero, std::uint
         SendTheDurationMagic(hero, skill, {.direction = direction.Value(), .towards = position, .key = key.Value()},
                              context);
     }
-    RefreshCombatActionSpeeds(context.world, context.random);
+    Combat::RefreshCombatActionSpeeds(context.world, context.random);
     return ActAndStop(hero, 0x3d, context);
 }
 
@@ -478,7 +478,7 @@ Core::Expected<void, std::string> UseSkill38(Kernel::ActorState& hero, std::uint
     if ((pet >= static_cast<std::int16_t>(UniriaModel) && pet <= static_cast<std::int16_t>(DarkHorseModel)) ||
         pet == static_cast<std::int16_t>(FenrirModel))
         return {};
-    const GameMovementState& state = context.world.Runtime().movement;
+    const Movement::GameMovementState& state = context.world.Runtime().movement;
     FaceTheTarget(hero);
     if (OutOfRange(hero, state))
         return {};
@@ -502,7 +502,7 @@ Core::Expected<void, std::string> UseSkill38(Kernel::ActorState& hero, std::uint
             {.direction = direction.Value(), .towards = position, .back = opposite.Value(), .key = key.Value()},
             context);
     }
-    RefreshCombatActionSpeeds(context.world, context.random);
+    Combat::RefreshCombatActionSpeeds(context.world, context.random);
     const bool fenrir = hero.pet.model == FenrirModel && hero.safeZone == 0;
     return ActAndStop(hero, fenrir ? 0x5d : 0x8d, context);
 }
@@ -543,7 +543,7 @@ Core::Expected<void, std::string> UseSkill3eOr41(Kernel::ActorState& hero, std::
             {.direction = direction.Value(), .towards = position, .back = relative.Value(), .key = key.Value()},
             context);
     }
-    RefreshCombatActionSpeeds(context.world, context.random);
+    Combat::RefreshCombatActionSpeeds(context.world, context.random);
     if (skill == 0x3e)
     {
         if (auto put = PutTheAction(hero, 0x53, context); !put.HasValue())
@@ -598,7 +598,7 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(Kernel::ActorState& hero,
     const auto path =
         Pathfinding::PathFinder(terrain.attributes->cells)
             .Find({cells.x, cells.y}, {static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)},
-                  CrywolfAltarGoal(context.world), reach);
+                  Events::Crywolf::CrywolfAltarGoal(context.world), reach);
     if (!path)
         return {};
     hero.path = *path;
@@ -614,7 +614,7 @@ Core::Expected<void, std::string> WalkTowardsTheTarget(Kernel::ActorState& hero,
 Core::Expected<void, std::string> UseSkill4c(Kernel::ActorState& hero, std::uint8_t skill,
                                              const HeroSkillContext& context)
 {
-    GameMovementState& state = context.world.Runtime().movement;
+    Movement::GameMovementState& state = context.world.Runtime().movement;
     const auto targetX = CellOf(hero.attackPosition.x, "0x588880");
     if (!targetX.HasValue())
         return Core::Unexpected(targetX.Error());
@@ -714,4 +714,4 @@ Core::Expected<void, std::string> UseTheKnightSkill(Kernel::ActorState& hero, Ke
         return {};
     return UseTheSkill(hero, skill, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

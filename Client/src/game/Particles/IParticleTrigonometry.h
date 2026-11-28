@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 enum class ParticleError : std::uint8_t;
 
@@ -22,4 +22,4 @@ public:
     [[nodiscard]] virtual Core::Expected<double, ParticleError> CosineProductPC53(double argument,
                                                                                   float multiplier) const = 0;
 };
-} // namespace Client::World
+} // namespace Client::Particles

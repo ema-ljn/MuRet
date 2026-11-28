@@ -4,7 +4,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Ui
 {
 std::string FormatZen(std::uint32_t zen)
 {
@@ -30,4 +30,4 @@ std::uint32_t ZenColor(std::uint32_t zen)
         return 0xff18c900u;
     return 0xff96dcffu;
 }
-} // namespace Client::Scenes
+} // namespace Client::Ui

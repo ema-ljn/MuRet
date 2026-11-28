@@ -23,12 +23,12 @@ using Client::Models::BoneKey;
 using Client::Models::ObjectTransform;
 using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
-using Client::Scenes::DarkHorseGait;
-using Client::Scenes::DarkHorseGaitOf;
-using Client::Scenes::DarkHorseLoginScale;
-using Client::Scenes::DarkHorseModel;
-using Client::Scenes::DrawnDarkHorse;
-using Client::Scenes::StepDarkHorse;
+using Client::Pets::DarkHorseGait;
+using Client::Pets::DarkHorseGaitOf;
+using Client::Pets::DarkHorseLoginScale;
+using Client::Pets::DarkHorseModel;
+using Client::Pets::DrawnDarkHorse;
+using Client::Pets::StepDarkHorse;
 
 // Las siete acciones de DarkHorse.bmd, de 10 keys cada una, en un hueso.
 Skeleton HorseSkeleton()

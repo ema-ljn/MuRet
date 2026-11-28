@@ -42,13 +42,21 @@ struct TerrainPolygon;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::MapScripts::Kalima
+{
+class KalimaWorld;
+} // namespace Client::MapScripts::Kalima
+
+namespace Client::Particles
 {
 class FrameSprites;
-class KalimaWorld;
-class ModelEffects;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Actors
 {
@@ -63,10 +71,10 @@ struct WorldRuntime;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 class IGuildMarks;
-} // namespace Client::Scenes
+} // namespace Client::Guild
 
 // The characters in the game's draw (0x6374dd, 0x510d00), as far as MuRet has them. Contract: 06 § El dibujo del juego.
 namespace Client::Actors::Drawing
@@ -89,14 +97,14 @@ struct GameCharacterPass
     std::int32_t hovered = -1;
     std::int32_t targeted = -1;
     std::span<CharacterCloth> cloths{};
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // The global pose buffer (0x68b181c) and the globals of 0x60b3d0 the frame's owner lends.
     Kernel::PoseBuffer* poseCarry = nullptr;
     // The frame's joints (0x530860) and particles (0x53fe70), for what hangs and the full set, and the model effects
     // (0x518cf0), for the 0x5ac/3 of the +0x35c counter.
     std::span<Scenes::JointState> joints{};
-    World::Particles* particles = nullptr;
-    World::ModelEffects* effects = nullptr;
+    Particles::Particles* particles = nullptr;
+    Effects::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;
     Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Math::BoneTransform>, const Models::ObjectTransform&, bool)>
@@ -115,11 +123,11 @@ struct GameCharacterPass
     // The terrain of that height and of the gates' TerrainWall; without it, an empty one. The selection has its own.
     const Terrain::WorldTerrain* terrain = nullptr;
     // The guild marks (0x5f16a0) 0x50d533 draws on the players with a guild; without them, one with the mark stops.
-    Scenes::IGuildMarks* guildMarks = nullptr;
+    Guild::IGuildMarks* guildMarks = nullptr;
     // What the monsters' helpers touch (0x43c150, Scenes/KalimaSiegeHelpers.h): this frame's Kalima world (0x723c48,
     // which 0x437860 perturbs; without it, nothing happens) and the camera shake (0x7d325c8). In an intermediate draw,
     // the projection's.
-    World::KalimaWorld* kalima = nullptr;
+    MapScripts::Kalima::KalimaWorld* kalima = nullptr;
     float* cameraShake = nullptr;
     // The models a creation loaded for the monsters and NPCs (Assets::AssetsState::fauna), where their pose leaves
     // its key. nullptr: no monster or NPC is drawn.
@@ -131,7 +139,7 @@ struct GameCharacterPass
     // does a joint of what hangs, of the full set or of the raven.
     const ICharacterDrawHooks* hooks = nullptr;
     // Who creates the model effects (0x518cf0) of the full set, the actions, the guild mark and the raven
-    // (Scenes::ActorEffectHooks). nullptr: those stop.
+    // (Effects::ActorEffectHooks). nullptr: those stop.
     const IEffectHooks* effectHooks = nullptr;
 };
 
@@ -179,8 +187,8 @@ DrawCharacterTail(Render::ModelBatch& batch, const Models::IModelLibrary& models
 // (0x50c0fb), the cloths of the 0x47, the 0x4a and the 0x12d (0x50c59f), the 0x49 and the 0x4b (0x50c36b), the 0x4d
 // (0x50c177), the shine of the 0x35 and the 0x36 (0x50c71b), the weapons hung by the 0x2a (0x50c762) and by the 0x84 to
 // 0x86 (0x50c83b) and the shine of the 0x87 (0x50c8ce). With one of them, it stops with its address. A monster's draw
-// (Scenes::DrawGameMonster) draws the ported ones before and calls this with the others; the 0x20a's path stops with
-// all of them.
+// (Monsters::Drawing::DrawGameMonster) draws the ported ones before and calls this with the others; the 0x20a's path
+// stops with all of them.
 [[nodiscard]] Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster);
 
 // 0x50db57..0x50dc58 without its rand(): the light of what hangs (+0x3b4). With +0x375 from 6, (1, 0.1, 0.1).

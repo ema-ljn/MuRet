@@ -27,7 +27,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
 namespace
 {
@@ -58,7 +58,8 @@ void HitTheHero(Kernel::WorldState& world, std::uint16_t damage, Crt::CrtRandom&
 } // namespace
 
 Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
-                                                        Kernel::PlayerKey player, const WorldEntryResources& resources)
+                                                        Kernel::PlayerKey player,
+                                                        const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -68,7 +69,7 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
     runtime.lastAttacker = static_cast<std::int32_t>(casterSlot);
     Kernel::ActorState& caster = world.Actors()[casterSlot];
     // 0x4cee0f.
-    if (auto raised = RaiseTheHandShine(world.Actors(), runtime.hero, casterSlot, world.Particles(), random);
+    if (auto raised = Effects::RaiseTheHandShine(world.Actors(), runtime.hero, casterSlot, world.Particles(), random);
         !raised.HasValue())
         return raised;
     runtime.RequestSound(MagicAttackSound);
@@ -104,4 +105,4 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

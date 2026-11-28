@@ -146,7 +146,7 @@ TEST(MonsterMeshClothTest, TheMeshRobeUsesTheMapWind)
     for (const std::uint8_t map : std::array<std::uint8_t, 3>{0x36, 0x37, 0x38})
     {
         SCOPED_TRACE(static_cast<unsigned>(map));
-        Client::Scenes::MonsterMeshCloth cloth;
+        Client::Actors::Drawing::MonsterMeshCloth cloth;
         std::array<Client::Models::SkinnedMesh, 3> meshes;
         meshes[2].positions = RobeAt({0.0f, 0.0f, 0.0f});
         ClothWorld world;
@@ -282,10 +282,10 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
-    Client::Scenes::ActorEffectHooks m_effectHooks;
+    Client::Effects::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Actors::Drawing::CharacterCloth> m_cloths;

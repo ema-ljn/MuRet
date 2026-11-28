@@ -32,15 +32,19 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 class ModelEffects;
-class Particles;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors
 {
-// What the wizards' effects read from the scene besides the world (Scenes::WizardSceneParts): the terrain's heights,
+// What the wizards' effects read from the scene besides the world (Effects::WizardSceneParts): the terrain's heights,
 // the camera's fixed height, the dynamic light and the models a creation loads.
 struct WizardEffectScene
 {
@@ -59,54 +63,54 @@ class IEffectHooks
 public:
     virtual ~IEffectHooks() = default;
 
-    // World::KillModelEffectsOf.
-    virtual bool KillTheEffectsOf(World::ModelEffects& effects, std::int16_t type, const void* owner,
+    // Effects::KillModelEffectsOf.
+    virtual bool KillTheEffectsOf(Effects::ModelEffects& effects, std::int16_t type, const void* owner,
                                   std::int32_t subtype) const = 0;
-    // World::ModelEffects::CreateSkillFlare.
+    // Effects::ModelEffects::CreateSkillFlare.
     [[nodiscard]] virtual std::optional<std::size_t>
-    CreateTheSkillFlare(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
+    CreateTheSkillFlare(Effects::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                         const glm::vec3& light, std::int32_t subtype, void* owner) const = 0;
-    // World::ModelEffects::CreateFullSetFlare.
+    // Effects::ModelEffects::CreateFullSetFlare.
     [[nodiscard]] virtual std::optional<std::size_t>
-    CreateTheFullSetFlare(World::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
+    CreateTheFullSetFlare(Effects::ModelEffects& effects, const glm::vec3& position, const glm::vec3& angles,
                           const glm::vec3& light, void* owner) const = 0;
-    // World::ModelEffects::CreateIceShard.
-    [[nodiscard]] virtual std::optional<std::size_t> CreateTheIceShard(World::ModelEffects& effects,
+    // Effects::ModelEffects::CreateIceShard.
+    [[nodiscard]] virtual std::optional<std::size_t> CreateTheIceShard(Effects::ModelEffects& effects,
                                                                        const glm::vec3& position,
                                                                        const glm::vec3& angles, const glm::vec3& light,
                                                                        Crt::CrtRandom& random) const = 0;
-    // World::ModelEffects::CreateDebris.
-    [[nodiscard]] virtual std::optional<std::size_t> CreateTheDebris(World::ModelEffects& effects, std::int16_t type,
+    // Effects::ModelEffects::CreateDebris.
+    [[nodiscard]] virtual std::optional<std::size_t> CreateTheDebris(Effects::ModelEffects& effects, std::int16_t type,
                                                                      const glm::vec3& position, const glm::vec3& angles,
                                                                      const glm::vec3& light, Crt::CrtRandom& random,
                                                                      std::int32_t subtype) const = 0;
-    // World::CreateSkinShell.
-    [[nodiscard]] virtual std::optional<std::size_t> CreateTheSkinShell(World::ModelEffects& effects,
+    // Effects::CreateSkinShell.
+    [[nodiscard]] virtual std::optional<std::size_t> CreateTheSkinShell(Effects::ModelEffects& effects,
                                                                         const Kernel::ModelEffectArguments& arguments,
                                                                         Crt::CrtRandom& random) const = 0;
-    // World::CreateBlastModelEffect, without an owner read live (+0x108) and without services.
+    // Effects::CreateBlastModelEffect, without an owner read live (+0x108) and without services.
     [[nodiscard]] virtual Core::Expected<std::optional<std::size_t>, std::string>
-    CreateTheBlastEffect(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+    CreateTheBlastEffect(Effects::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
                          Crt::CrtRandom& random) const = 0;
-    // Scenes::CreateHighModelEffect, with the world, its rand() and its clock.
+    // Effects::CreateHighModelEffect, with the world, its rand() and its clock.
     [[nodiscard]] virtual Core::Expected<std::optional<std::size_t>, std::string>
     CreateTheHighEffect(const Kernel::ModelEffectArguments& arguments, Kernel::WorldState& world,
                         Crt::CrtRandom& random, float worldClock) const = 0;
-    // World::CreateWizardModelEffect in the world's table, with the services of Scenes::WizardEffectServicesOf: the
+    // Effects::CreateWizardModelEffect in the world's table, with the services of Effects::WizardEffectServicesOf: the
     // world's particles and `scene`.
     [[nodiscard]] virtual Core::Expected<std::optional<std::size_t>, std::string>
     CreateTheWizardEffect(Kernel::WorldState& world, Crt::CrtRandom& random, const WizardEffectScene& scene,
                           const Kernel::ModelEffectArguments& arguments, glm::vec3* callerLight) const = 0;
-    // Scenes::PutTheSkullOn.
+    // Effects::PutTheSkullOn.
     [[nodiscard]] virtual Core::Expected<void, std::string> PutTheSkullOn(Kernel::ActorState& actor,
                                                                           Kernel::WorldState& world,
                                                                           Crt::CrtRandom& random,
                                                                           std::uint32_t address) const = 0;
-    // Scenes::GuildMarkIsDue.
+    // Effects::GuildMarkIsDue.
     [[nodiscard]] virtual bool IsTheGuildMarkDue(const Kernel::ActorState& actor, float worldClock) const = 0;
-    // Scenes::RaiseTheGuildMark.
+    // Effects::RaiseTheGuildMark.
     [[nodiscard]] virtual Core::Expected<void, std::string>
-    RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint, World::ModelEffects& effects,
-                      World::Particles& particles, Crt::CrtRandom& random, float worldClock) const = 0;
+    RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint, Effects::ModelEffects& effects,
+                      Particles::Particles& particles, Crt::CrtRandom& random, float worldClock) const = 0;
 };
 } // namespace Client::Actors

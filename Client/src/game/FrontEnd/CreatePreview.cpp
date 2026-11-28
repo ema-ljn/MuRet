@@ -40,7 +40,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -299,10 +299,10 @@ Render::Camera3D PreviewCamera(const CreatePreview& preview)
     return camera;
 }
 
-Render::ViewportRect PreviewViewport(const UI::Rect& box, Core::PixelSize screen)
+Render::ViewportRect PreviewViewport(const Ui::Rect& box, Core::PixelSize screen)
 {
     return Render::ViewportRect{Render::Text::DesignX(box.x, screen), Render::Text::DesignY(box.y, screen),
                                 Render::Text::DesignX(PreviewWidth, screen),
                                 Render::Text::DesignY(PreviewHeight, screen)};
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

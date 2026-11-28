@@ -43,13 +43,13 @@ TEST(NoriaObjectServicesTest, CommonFlaresReadTheRetainedWorldBonesAndTheCommonR
          {Probe{1, {2, 4, 6}, 0.5f}, Probe{9, {1}, 1.5f}, Probe{0x11, {4, 7, 10, 13}, 1.0f}, Probe{0x23, {3}, 1.5f}})
     {
         auto pose = Pose();
-        Client::World::FrameSprites sprites;
-        Client::Scenes::GameObjectPass pass;
+        Client::Particles::FrameSprites sprites;
+        Client::WorldObjects::GameObjectPass pass;
         pass.sprites = &sprites;
         pass.retainedPose = &pose;
-        Client::World::WorldObject object;
+        Client::WorldObjects::WorldObject object;
         object.type = probe.type;
-        const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
+        const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         for (std::size_t index = 0; index < probe.bones.size(); ++index)
         {
@@ -70,18 +70,18 @@ TEST(NoriaObjectServicesTest, CommonFlaresReadTheRetainedWorldBonesAndTheCommonR
 TEST(NoriaObjectServicesTest, TheFairyPublishesItsPairedRingsAndFiveWhiteFlaresBeforeItsGuard)
 {
     auto pose = Pose();
-    Client::World::FrameSprites sprites;
-    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Particles::FrameSprites sprites;
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
     pass.retainedPose = &pose;
     pass.worldClock = 1234.75f;
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x27;
-    const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
+    const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_TRUE(sprites.Sprites()[6].alive);
     EXPECT_FALSE(sprites.Sprites()[7].alive);
@@ -101,12 +101,12 @@ TEST(NoriaObjectServicesTest, TheFairyPublishesItsPairedRingsAndFiveWhiteFlaresB
 TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTheParticlePoolIsFull)
 {
     auto pose = Pose();
-    Client::World::FrameSprites sprites;
-    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Particles::FrameSprites sprites;
+    auto particles = std::make_unique<Client::Particles::Particles>();
     for (auto& particle : particles->All())
         particle.alive = true;
     Client::Crt::CrtRandom random(4);
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
@@ -130,9 +130,9 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
         ++calls;
         return {};
     };
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x27;
-    const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
+    const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(calls, 8);
     Client::Crt::CrtRandom expected(4);
@@ -143,15 +143,15 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
 TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlreadyPublished)
 {
     auto pose = Pose();
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(7);
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.retainedPose = &pose;
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x27;
-    const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
+    const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53fe70"), std::string::npos);
     EXPECT_EQ(random.State(), 0x1b8052fbu); // R4&31==0, antes del quinto flare.
@@ -162,10 +162,10 @@ TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlre
 TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInterleavedRandom)
 {
     auto pose = Pose();
-    Client::World::FrameSprites sprites;
-    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Particles::FrameSprites sprites;
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(4);
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
@@ -179,9 +179,9 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
         static_cast<void>(random.Next());
         return {};
     };
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x27;
-    const auto stepped = Client::Scenes::StepNoriaObjectFrame(object, 61, pass);
+    const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_EQ(stepped.Error(), "joint failure");
     EXPECT_EQ(calls, 3);

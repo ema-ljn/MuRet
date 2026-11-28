@@ -17,7 +17,7 @@
 #include <format>
 #include <string>
 
-namespace Client::World
+namespace Client::MapScripts::Crywolf
 {
 namespace
 {
@@ -61,9 +61,9 @@ Core::Expected<void, std::string> Bubble(std::uint8_t x, std::uint8_t y, const C
         return Core::Unexpected(std::string("0x5fa731: falta el pool de partículas 0x743a198 para la 698/0"));
     const glm::vec3 light(std::bit_cast<float>(0x3e99999au), std::bit_cast<float>(0x3ecccccdu),
                           std::bit_cast<float>(0x3e4ccccdu));
-    const auto created =
-        context.particles->CreateChecked(BubbleParticle, glm::vec3(bubbleX, bubbleY, bubbleZ), context.heroAngles,
-                                         light, BubbleSubtype, BubbleScale, context.worldClock.get(), random);
+    const auto created = context.particles->CreateChecked(
+        Particles::BubbleParticle, glm::vec3(bubbleX, bubbleY, bubbleZ), context.heroAngles, light, BubbleSubtype,
+        BubbleScale, context.worldClock.get(), random);
     if (!created.HasValue())
         return Core::Unexpected(
             std::format("0x5fa731: el alta de 0x698/0 falla con error {}", static_cast<unsigned>(created.Error())));
@@ -100,4 +100,4 @@ Core::Expected<void, std::string> StepCrywolfWaterCell(const Terrain::TerrainVie
     }
     return {};
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Crywolf

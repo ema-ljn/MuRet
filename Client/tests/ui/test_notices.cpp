@@ -13,16 +13,16 @@
 // que hace su OK, de 0x643560. Todos son del tipo 2, con un OK.
 namespace
 {
-using Client::UI::FollowUpOf;
-using Client::UI::KindOf;
-using Client::UI::NoticeFollowUp;
-using Client::UI::NoticeId;
-using Client::UI::NoticeKind;
-using Client::UI::NoticeOfCreateResult;
-using Client::UI::NoticeOfDeleteResult;
-using Client::UI::NoticeOfLoginResult;
-using Client::UI::NoticeTexts;
-using Client::UI::TextsOf;
+using Client::Ui::FollowUpOf;
+using Client::Ui::KindOf;
+using Client::Ui::NoticeFollowUp;
+using Client::Ui::NoticeId;
+using Client::Ui::NoticeKind;
+using Client::Ui::NoticeOfCreateResult;
+using Client::Ui::NoticeOfDeleteResult;
+using Client::Ui::NoticeOfLoginResult;
+using Client::Ui::NoticeTexts;
+using Client::Ui::TextsOf;
 
 // Un aviso como optional, sin pasar un int por la plantilla de std::optional (C4242 en MSVC).
 std::optional<NoticeId> Some(NoticeId notice)

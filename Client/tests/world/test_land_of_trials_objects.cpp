@@ -23,9 +23,9 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Terrain::TerrainLighting;
-using Client::World::ObjectStepGlobals;
-using Client::World::StepWorldObjectChecked;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::StepWorldObjectChecked;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
 constexpr std::int16_t Hidden = -2;
@@ -45,7 +45,7 @@ WorldObject Object(std::int16_t type)
 struct Step
 {
     std::unique_ptr<TerrainLighting> lighting = std::make_unique<TerrainLighting>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     std::vector<std::int32_t> sounds;
     std::vector<std::uint32_t> times;
     std::uint32_t ambient = 0;
@@ -94,7 +94,7 @@ TEST(LandOfTrialsObjectsTest, TheButterflyObjectsReleaseOneOnlyInsideTheWindowAn
             if (time % 0x400 < 10)
             {
                 ASSERT_TRUE(effect.alive);
-                EXPECT_EQ(effect.type, Client::World::ButterflyEffect);
+                EXPECT_EQ(effect.type, Client::Effects::ButterflyEffect);
                 EXPECT_EQ(effect.subtype, c.subtype);
                 EXPECT_EQ(effect.transform.position, object.transform.position);
                 EXPECT_EQ(effect.light, glm::vec3(1.0f));

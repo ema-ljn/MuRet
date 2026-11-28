@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -303,4 +303,4 @@ bool TextField::Masked() const
 {
     return m_masked;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -13,7 +13,7 @@ struct ActorState;
 
 // CL9 hito 4, fase 2c: la rama del elfo de 0x57cfc0 (0x57d790..0x58187c; 06, "La rama del elfo"). La usa el elfo
 // (+0x1d4 & 7 en 2); sigue en 0x5808da (las skills 0x43 a 0x48, de todas las clases: HeroSkillsTail.h).
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // 0x57d790..0x58187c con `skill`, la del lugar, y el alcance de GameMovementState::selectedSkillRange ([ebp−0x50]).
@@ -34,4 +34,4 @@ namespace Client::Scenes
 // dirección: la poción (0x57d837, hito 5).
 [[nodiscard]] Core::Expected<void, std::string> UseTheElfSkill(Kernel::ActorState& hero, std::uint8_t skill,
                                                                const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

@@ -12,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 TooltipWriter::TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts)
     : TooltipWriter(lines, texts, lines.next, lines.halves)
@@ -53,7 +53,7 @@ void TooltipWriter::Fail(std::string error)
 
 std::string_view TooltipWriter::Text(std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(m_texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(m_texts, index);
     if (!text)
     {
         Fail(std::format("{}: sin el texto {} de Text.bmd", m_where, index));
@@ -143,4 +143,4 @@ const Tables::TextTable* TooltipWriter::Texts() const
 {
     return m_texts;
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

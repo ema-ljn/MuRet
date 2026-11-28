@@ -493,7 +493,8 @@ Core::Expected<void, std::string> StepTheWeaponTrail(Kernel::ActorState& actor, 
     if (auto emitted = context.hooks->EmitEarlyMonsterRibbonTrails(actor, skeleton, context); !emitted.HasValue())
         return emitted;
     // 0x4fd5c1..0x4fd5df: 0x441260 (only 0x1a7), 0x42fa40 (0x1b1 and 0x1b3), 0x432bd0 and 0x426d90 (0x1b8 to
-    // 0x1ba). 0x4fd5d7: 0x432bd0, with its unconditional rand() of 0x432bf1 (Scenes::StepTheSwingsOf1abTo1b4).
+    // 0x1ba). 0x4fd5d7: 0x432bd0, with its unconditional rand() of 0x432bf1
+    // (Monsters::Drawing::StepTheSwingsOf1abTo1b4).
     if (auto swung = context.hooks->StepTheSwingsOf1abTo1b4(actor, slot, context); !swung.HasValue())
         return swung;
     return context.hooks->EmitLateMonsterRibbonTrails(actor, skeleton, context);
@@ -643,7 +644,7 @@ Core::Expected<void, std::string> StepTheBoneEmitter(Kernel::ActorState& actor, 
 }
 
 // 0x4fdb3f: 0x4fd5f0's local light with particle 0x5ac (0.3f is 0x3e99999a); the skill cases read it later
-// (Scenes::BodyLight).
+// (Skills::BodyLight).
 constexpr glm::vec3 ActionFlareLight{0.3f, 0.5f, 1.0f};
 
 Core::Expected<void, std::string> CreateTheActionFlare(Kernel::ActorState& actor, const CharacterStepContext& context)
@@ -930,8 +931,8 @@ Core::Expected<void, std::string> BlowTheAtlansBubble(const Kernel::ActorState& 
         return Core::Unexpected(
             std::format("0x506d77: falta el pool de partículas de la burbuja de Atlans, lugar {}", slot));
     }
-    const auto created = context.particles->CreateChecked(World::DropParticle, point, actor.angles, glm::vec3(1.0f), 0,
-                                                          1.0f, context.worldClock, context.random, 0);
+    const auto created = context.particles->CreateChecked(Particles::DropParticle, point, actor.angles, glm::vec3(1.0f),
+                                                          0, 1.0f, context.worldClock, context.random, 0);
     if (!created.HasValue())
     {
         return Core::Unexpected(std::format("0x506d77: la burbuja 0x607/0 del lugar {} falla con error {}", slot,
@@ -1066,7 +1067,7 @@ Core::Expected<void, std::string> StepTheEffects(Kernel::ActorState& actor, std:
     // 0x4fd5f0 writes +0x3d8, lowering it if positive (0x4fd75e); the others that write +0x3d4 and +0x3d8 belong to the
     // UI (*static*).
     // 0x506cac..0x506cf1: rand() & 7, unconditional, and the case of type − 0x152. With another model, its case or the
-    // helpers of 0x5085db (Scenes::StepTheModelEffects); 0x50862f..0x508801 belong to the 0x20a, which falls into
+    // helpers of 0x5085db (Monsters::StepTheModelEffects); 0x50862f..0x508801 belong to the 0x20a, which falls into
     // 0x506cf8 (it looks at map 7 only in scene 5) and does not read the rand() (*static*, Q-C207).
     const std::int32_t map = context.world.Runtime().map;
     if (!player)
@@ -1264,7 +1265,7 @@ ActorCooldownServices CharacterCooldownServices(const CharacterStepContext& cont
             if (context.particles == nullptr)
                 return Core::Unexpected(std::string("0x506a73: falta el pool de partículas del polvo 0x5f3/1"));
             const auto created =
-                context.particles->CreateChecked(World::DustParticle, position, actor.angles, actor.light,
+                context.particles->CreateChecked(Particles::DustParticle, position, actor.angles, actor.light,
                                                  BrakeDustSubtype, 1.0f, context.worldClock, context.random, 0);
             if (!created.HasValue())
                 return Core::Unexpected(std::format("0x506a73: el polvo 0x5f3/1 falla con error {}",

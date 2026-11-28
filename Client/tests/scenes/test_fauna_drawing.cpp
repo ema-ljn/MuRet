@@ -64,16 +64,16 @@ public:
 class FaunaDrawingTest : public ::testing::Test
 {
 protected:
-    Client::Scenes::FaunaState m_fauna;
+    Client::Fauna::FaunaState m_fauna;
     Models m_models;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Terrain::TerrainLighting m_light;
     Client::Terrain::TerrainPolygon m_polygon{.everything = true};
     Client::Models::ClothWorld m_cloth;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
     Client::Render::ModelBatch m_batch;
-    Client::Scenes::FaunaDrawContext Context()
+    Client::Fauna::FaunaDrawContext Context()
     {
         return {m_fauna, m_models, m_terrain, m_light, m_polygon, m_cloth, m_sprites, m_carry, 0, 0, {}};
     }
@@ -82,7 +82,7 @@ protected:
         m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     }
-    void Live(Client::Scenes::FaunaObject& object, std::int16_t model)
+    void Live(Client::Fauna::FaunaObject& object, std::int16_t model)
     {
         object.active = 1;
         object.model = model;
@@ -181,10 +181,10 @@ TEST_F(FaunaDrawingTest, AnIntermediateFrameDrawsWithoutRepeatingNativeMutations
 }
 TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
 {
-    std::array<Client::World::WorldObject, 1> objects{};
+    std::array<Client::WorldObjects::WorldObject, 1> objects{};
     objects[0].type = 0;
     objects[0].transform.position = {1000, 1000, 0};
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.map = 0;
     pass.originalFrame = true;
     pass.random = &m_cloth.random;
@@ -205,9 +205,9 @@ TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
 
 TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAgain)
 {
-    std::array<Client::World::WorldObject, 1> objects{};
+    std::array<Client::WorldObjects::WorldObject, 1> objects{};
     objects[0].transform.position = {1000, 1000, 0};
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.originalFrame = false;
     int publications = 0;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
@@ -334,11 +334,11 @@ TEST_F(FaunaDrawingTest, AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch)
 // Translate en 0, lleva el vértice solo por esa matriz, sin la escala ni el origen del objeto.
 TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposingFromIdentity)
 {
-    std::array<Client::World::WorldObject, 1> objects{};
+    std::array<Client::WorldObjects::WorldObject, 1> objects{};
     objects[0].transform.position = {1000, 1000, 300};
     m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.random = &m_cloth.random;
     pass.retainedPose = &m_carry;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)

@@ -41,9 +41,9 @@ using Client::App::CharacterCreated;
 using Client::App::CharacterDeleted;
 using Client::App::CharacterEvent;
 using Client::App::CharacterListReceived;
+using Client::FrontEnd::SelectionState;
 using Client::Kernel::WorldState;
 using Client::Protocol::FrontEnd::CharacterEntry;
-using Client::Scenes::SelectionState;
 using Client::Terrain::CullingScene;
 
 Client::Terrain::WorldTerrain TerrainOf(float height, std::uint16_t attribute = 0)
@@ -118,7 +118,7 @@ TEST_F(SelectionStateTest, ConstructionReadsTheInitialCellBeforePlacingTheSlot)
 // gremio del héroe publicado, antes de construir los personajes (0x4c1800 en línea).
 TEST_F(SelectionStateTest, TheListEndsTheWarAndMarksTheHerosGuild)
 {
-    Client::Scenes::GuildState& guild = m_world.Runtime().guild;
+    Client::Guild::GuildState& guild = m_world.Runtime().guild;
     guild.warOn = 1;
     guild.warType = 1;
     guild.rivalIndex = 4;

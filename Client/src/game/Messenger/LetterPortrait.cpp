@@ -66,7 +66,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Messenger
 {
 namespace
 {
@@ -115,21 +115,21 @@ constexpr std::uint16_t DarkHorseHelper = 0xbf;
 constexpr std::uint16_t FirstFenrirHelper = 0x14a;
 constexpr std::uint16_t LastFenrirHelper = 0x14c;
 
-Kernel::ActorState& HeroOf(const WorldEntryResources& resources)
+Kernel::ActorState& HeroOf(const Scenes::WorldEntryResources& resources)
 {
     return resources.world.Hero();
 }
 
-const Models::Skeleton* PlayerSkeleton(const WorldEntryResources& resources)
+const Models::Skeleton* PlayerSkeleton(const Scenes::WorldEntryResources& resources)
 {
     return resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
 }
 
-Actors::ActorStopContext StopContextOf(const WorldEntryResources& resources, const Models::Skeleton& player)
+Actors::ActorStopContext StopContextOf(const Scenes::WorldEntryResources& resources, const Models::Skeleton& player)
 {
-    const auto& terrain = TerrainOf(resources);
+    const auto& terrain = Scenes::TerrainOf(resources);
     return Actors::ActorStopContext{.runtime = resources.world.Runtime(),
-                                    .scene = SceneId::Game,
+                                    .scene = Scenes::SceneId::Game,
                                     .playerSkeleton = player,
                                     .items = resources.items,
                                     .random = resources.cloth.random,
@@ -156,8 +156,8 @@ private:
     std::int32_t m_map;
 };
 
-Core::Expected<void, std::string> StopThePortrait(Kernel::ActorState& actor, const WorldEntryResources& resources,
-                                                  std::string_view where)
+Core::Expected<void, std::string> StopThePortrait(Kernel::ActorState& actor,
+                                                  const Scenes::WorldEntryResources& resources, std::string_view where)
 {
     const auto* player = PlayerSkeleton(resources);
     if (player == nullptr)
@@ -169,7 +169,8 @@ Core::Expected<void, std::string> StopThePortrait(Kernel::ActorState& actor, con
 }
 
 // 0x513100 sobre el personaje del retrato (0x4977d0 y 0x496575).
-Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyTheClassParts(Kernel::ActorState& actor,
+                                                     const Scenes::WorldEntryResources& resources)
 {
     if (actor.type != Tables::PlayerSkeletonModel)
         return {};
@@ -265,7 +266,7 @@ Differences CompareWithTheHero(const Kernel::ActorState& actor, const Kernel::Ac
 
 // 0x49665d..0x496975: con +0x3e3 del héroe distinto de 0, contra el registro propio, con su acceso abierto.
 Differences CompareWithTheRecord(const Kernel::ActorState& actor, std::uint8_t heroClass,
-                                 const WorldEntryResources& resources)
+                                 const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     const Models::LogicalAccess own(world.Runtime().ownRecordDepth, resources.cloth.random,
@@ -307,7 +308,7 @@ void CopyFromTheHero(LetterPortrait& portrait, const Kernel::ActorState& hero, c
 
 // 0x496a65..0x497636: del registro propio, cada grupo con su acceso (y los 3.848 rand() de su cierre).
 void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const Differences& differ,
-                       const WorldEntryResources& resources)
+                       const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
     Kernel::WorldState& world = resources.world;
@@ -347,7 +348,8 @@ void CopyFromTheRecord(LetterPortrait& portrait, std::uint8_t heroClass, const D
 
 // 0x497676..0x49777c: el ayudante de nuevo por la mascota (las tablas 0x4977a4 y 0x49778c), su alpha (+0x174) en 0 y
 // +0x688 con la escala del personaje del retrato.
-Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, const WorldEntryResources& resources)
+Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
     Kernel::HelperState& helper = portrait.helper;
@@ -378,8 +380,8 @@ Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, con
     }
     if (type)
     {
-        auto built = ConstructHelper(helper, *type, actor.position, actor, Kernel::ActorPoolSize,
-                                     resources.world.Runtime().map, &resources.cloth.random);
+        auto built = Pets::ConstructHelper(helper, *type, actor.position, actor, Kernel::ActorPoolSize,
+                                           resources.world.Runtime().map, &resources.cloth.random);
         if (!built.HasValue())
             return Core::Unexpected(built.Error());
     }
@@ -389,7 +391,7 @@ Core::Expected<void, std::string> RebuildTheHelper(LetterPortrait& portrait, con
     return {};
 }
 
-Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
+Actors::CharacterStepContext StepContextOf(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -400,11 +402,11 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
     return Actors::CharacterStepContext{
         .world = world,
         .random = resources.cloth.random,
-        .scene = SceneId::Game,
+        .scene = Scenes::SceneId::Game,
         .playerSkeleton = PlayerSkeleton(resources),
         .items = resources.items,
-        .terrain = &TerrainOf(resources),
-        .darkSpiritSkeleton = resources.models.SkeletonOf(Models::ModelId{DarkSpiritModel}),
+        .terrain = &Scenes::TerrainOf(resources),
+        .darkSpiritSkeleton = resources.models.SkeletonOf(Models::ModelId{Pets::DarkSpiritModel}),
         .particles = &world.Particles(),
         .worldClock = worldClock,
         .counter = resources.cloth.logicSteps,
@@ -414,28 +416,28 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .soundAt = [&runtime](Audio::SoundId sound, const glm::vec3& origin) { runtime.RequestSound(sound, origin); },
         .groundMarks = resources.states != nullptr ? &resources.states->terrain.groundMarks : nullptr,
         .trapezoid = resources.states != nullptr ? &resources.states->camera.trapezoid : nullptr,
-        .dynamicLighting = DynamicLightingOf(resources),
-        .faunaModels = FaunaModelsOf(resources),
+        .dynamicLighting = Scenes::DynamicLightingOf(resources),
+        .faunaModels = Scenes::FaunaModelsOf(resources),
         .reportedCell = resources.states != nullptr ? &resources.states->actors.reportedCell : nullptr,
         .hooks = resources.characterStepHooks,
         .effectHooks = resources.effectHooks};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.
-HelperStepContext HelperStepContextOf(const WorldEntryResources& resources)
+Pets::HelperStepContext HelperStepContextOf(const Scenes::WorldEntryResources& resources)
 {
     const float worldClock =
         resources.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(resources.clock->Now()).count())
             : 0.0f;
-    return HelperStepContext{.world = resources.world,
-                             .models = &resources.models,
-                             .random = resources.cloth.random,
-                             .worldClock = worldClock,
-                             .scene = SceneId::Game,
-                             .terrain = &TerrainOf(resources),
-                             .logicSteps = resources.cloth.logicSteps,
-                             .cameraShake = &resources.cameraInput.shake};
+    return Pets::HelperStepContext{.world = resources.world,
+                                   .models = &resources.models,
+                                   .random = resources.cloth.random,
+                                   .worldClock = worldClock,
+                                   .scene = Scenes::SceneId::Game,
+                                   .terrain = &Scenes::TerrainOf(resources),
+                                   .logicSteps = resources.cloth.logicSteps,
+                                   .cameraShake = &resources.cameraInput.shake};
 }
 
 bool RidesTheHelper(const Kernel::HelperState& helper)
@@ -466,7 +468,8 @@ Core::Expected<std::int32_t, std::string> NextIn(const std::array<std::int32_t, 
 }
 } // namespace
 
-Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, const WorldEntryResources& resources)
+Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Crt::CrtRandom& random = resources.cloth.random;
     // 0x4961d9..0x4961ec: el ayudante en cero (0x75 dwords).
@@ -494,7 +497,7 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
     // 0x496354..0x4963e0: la celda lógica del héroe publicado, la Y y después la X.
     const Actors::LogicalCell cell = Actors::ReadLogicalCell(HeroOf(resources), random);
     Kernel::WorldState& world = resources.world;
-    const Actors::ActorConstructionContext construction{TerrainOf(resources), world.Runtime().map,
+    const Actors::ActorConstructionContext construction{Scenes::TerrainOf(resources), world.Runtime().map,
                                                         Terrain::CullingScene::Game, resources.camera.fixedHeight};
     if (auto built = Actors::ConstructActor(actor, Tables::PlayerSkeletonModel, {cell.x, cell.y, 0.0f}, construction,
                                             resources.cloth);
@@ -505,7 +508,7 @@ Core::Expected<void, std::string> BuildThePortrait(LetterPortrait& portrait, con
 }
 
 Core::Expected<void, std::string> SetThePortraitClass(LetterPortrait& portrait, std::uint8_t characterClass,
-                                                      const WorldEntryResources& resources)
+                                                      const Scenes::WorldEntryResources& resources)
 {
     // 0x4977de..0x497804: [0x743a16c] (el pool) apunta al personaje del retrato mientras dura; 0x513100 no lo lee.
     portrait.actor.characterClass = characterClass;
@@ -513,10 +516,10 @@ Core::Expected<void, std::string> SetThePortraitClass(LetterPortrait& portrait, 
 }
 
 Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Kernel::Equipment equipment,
-                                                   std::int32_t action, const WorldEntryResources& resources)
+                                                   std::int32_t action, const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
-    const OwnHelper helper(portrait.helper, actor, resources.world, &resources.cloth.random);
+    const Pets::OwnHelper helper(portrait.helper, actor, resources.world, &resources.cloth.random);
     if (auto dressed = Actors::ApplyCharacterSetTo(actor, helper, equipment, resources); !dressed.HasValue())
         return dressed;
     // 0x497836..0x497855: la x87 con la escala del héroe publicado, guardada en float.
@@ -529,7 +532,7 @@ Core::Expected<void, std::string> DressThePortrait(LetterPortrait& portrait, Ker
 }
 
 Core::Expected<bool, std::string> CopyTheHeroToThePortrait(LetterPortrait& portrait, std::int32_t& action,
-                                                           const WorldEntryResources& resources)
+                                                           const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
     const Kernel::ActorState& hero = HeroOf(resources);
@@ -575,7 +578,7 @@ Core::Expected<bool, std::string> CopyTheHeroToThePortrait(LetterPortrait& portr
 
 Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& portrait, std::int32_t action,
                                                                 std::int32_t delta,
-                                                                const WorldEntryResources& resources)
+                                                                const Scenes::WorldEntryResources& resources)
 {
     auto next = RidesTheHelper(portrait.helper) ? NextIn(RidingActions, RidingWrap, action, delta)
                                                 : NextIn(GestureActions, GestureWrap, action, delta);
@@ -597,7 +600,7 @@ Core::Expected<std::int32_t, std::string> ShowThePortraitAction(LetterPortrait& 
         // +0x381 en 1, el frame (+0x114) en 0 y el blanco (+0x3a4) en 0xffff.
         {
             const MapAtZero map(runtime);
-            if (auto attacked = SetActorAttack(actor, CombatContextOf(resources)); !attacked.HasValue())
+            if (auto attacked = Combat::SetActorAttack(actor, Combat::CombatContextOf(resources)); !attacked.HasValue())
                 return Core::Unexpected(attacked.Error());
         }
         actor.byte381 = 1;
@@ -641,7 +644,7 @@ void TurnThePortrait(LetterPortrait& portrait)
     portrait.actor.angles = {PortraitPitch, PortraitRoll, PortraitYaw};
 }
 
-Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& base, const Kernel::ActorState& actor)
+Render::Pass3D PortraitPass(Core::PixelSize screen, const Ui::OldWindowBase& base, const Kernel::ActorState& actor)
 {
     // 0x6ba004: el alto del retrato.
     constexpr float PortraitHeight = 141.0f;
@@ -679,7 +682,7 @@ Render::Pass3D PortraitPass(Core::PixelSize screen, const UI::OldWindowBase& bas
     return pass;
 }
 
-Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitPart& part, Core::PixelSize screen)
+Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const Ui::OldPortraitPart& part, Core::PixelSize screen)
 {
     Kernel::ActorState& actor = portrait.actor;
     // 0x4957a4..0x4958c6.
@@ -702,9 +705,9 @@ Render::Pass3D PlaceThePortrait(LetterPortrait& portrait, const UI::OldPortraitP
     return pass;
 }
 
-Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait, UI::OldPortraitPart& part,
+Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrait& portrait, Ui::OldPortraitPart& part,
                                                                    Core::PixelSize screen,
-                                                                   const WorldEntryResources& resources)
+                                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::ActorState& actor = portrait.actor;
     // 0x497cac..0x497d3d: el frame contra +0x6a8 (la x87: el int a la pila y el float del frame).
@@ -739,7 +742,7 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
         if (auto stepped = Actors::StepTheBodyAndEffects(actor, StepContextOf(resources)); !stepped.HasValue())
             return Core::Unexpected(stepped.Error());
         // 0x495796: 0x444010(ayudante, 1), vivo o no.
-        auto helped = StepTheHelperOutsideTheTable(portrait.helper, actor, HelperStepContextOf(resources));
+        auto helped = Pets::StepTheHelperOutsideTheTable(portrait.helper, actor, HelperStepContextOf(resources));
         if (!helped.HasValue())
             return Core::Unexpected(helped.Error());
     }
@@ -748,7 +751,7 @@ Core::Expected<Render::Pass3D, std::string> PrepareThePortraitDraw(LetterPortrai
 
 Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait, const Render::Pass3D& pass,
                                                        const LetterPortraitDraw& draw,
-                                                       const WorldEntryResources& resources)
+                                                       const Scenes::WorldEntryResources& resources)
 {
     if (draw.characters.clothWorld == nullptr)
         return Core::Unexpected(std::string("0x4959cc: falta el flujo global de rand del dibujo del retrato"));
@@ -763,26 +766,26 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
     const Actors::Drawing::GameCharacterPass& characters = draw.characters;
     const float worldClock =
         static_cast<float>(std::chrono::duration<double, std::milli>(characters.frameClock).count());
-    const HelperDrawContext helpers{.batch = draw.batch,
-                                    .models = *draw.helperModels,
-                                    .world = resources.world,
-                                    .random = characters.clothWorld->random,
-                                    .frameClock = characters.frameClock,
-                                    .stepAlpha = 0.0f,
-                                    .originalFrame = draw.originalFrame,
-                                    .onPose = draw.onHelperPose,
-                                    .publishProjectedPose = true,
-                                    .posedMeshes = draw.posedMeshes,
-                                    .scene = SceneId::Game,
-                                    .lighting = characters.dynamicLighting,
-                                    .sprites = characters.sprites,
-                                    .worldClock = worldClock,
-                                    .effects = characters.effects,
-                                    .particles = characters.particles,
-                                    .systemTime = draw.systemTime,
-                                    .globalPose = draw.globalPose};
+    const Pets::HelperDrawContext helpers{.batch = draw.batch,
+                                          .models = *draw.helperModels,
+                                          .world = resources.world,
+                                          .random = characters.clothWorld->random,
+                                          .frameClock = characters.frameClock,
+                                          .stepAlpha = 0.0f,
+                                          .originalFrame = draw.originalFrame,
+                                          .onPose = draw.onHelperPose,
+                                          .publishProjectedPose = true,
+                                          .posedMeshes = draw.posedMeshes,
+                                          .scene = Scenes::SceneId::Game,
+                                          .lighting = characters.dynamicLighting,
+                                          .sprites = characters.sprites,
+                                          .worldClock = worldClock,
+                                          .effects = characters.effects,
+                                          .particles = characters.particles,
+                                          .systemTime = draw.systemTime,
+                                          .globalPose = draw.globalPose};
     // 0x4959cc: 0x445260(ayudante, 1); 0x4959d5: 0x50ba30(personaje, personaje, 0).
-    auto drawn = DrawTheHelperOutsideTheTable(portrait.helper, portrait.actor, helpers);
+    auto drawn = Pets::DrawTheHelperOutsideTheTable(portrait.helper, portrait.actor, helpers);
     if (drawn.HasValue())
         drawn =
             Actors::Drawing::DrawCharacterOutsideThePool(draw.batch, resources.models, resources.world, portrait.actor,
@@ -796,7 +799,7 @@ Core::Expected<void, std::string> DrawThePortraitModel(LetterPortrait& portrait,
 namespace
 {
 // 0x497c22..0x497ca2: el cuadro negro y el logo.
-void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const UI::OldWindowBase& base)
+void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const Ui::OldWindowBase& base)
 {
     constexpr float BlankWidth = 119.0f;  // 0x42ee0000
     constexpr float BlankHeight = 141.0f; // 0x430d0000
@@ -808,15 +811,15 @@ void DrawTheBlankPortrait(Render::SpriteBatch& sprites, const UI::OldWindowBase&
     constexpr float LogoDv = 0.76171875f; // 0x3f430000
     sprites.SetColor(Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f});
     sprites.ColorQuad(static_cast<float>(base.x), static_cast<float>(base.y), BlankWidth, BlankHeight);
-    UI::OldDraw::WhiteWithTexture(sprites);
-    UI::OldDraw::Quad(sprites, LogoSlot, static_cast<float>(base.x + LogoX), static_cast<float>(base.y + LogoY),
+    Ui::OldDraw::WhiteWithTexture(sprites);
+    Ui::OldDraw::Quad(sprites, LogoSlot, static_cast<float>(base.x + LogoX), static_cast<float>(base.y + LogoY),
                       LogoWidth, LogoHeight, 0.0f, 0.0f, 1.0f, LogoDv);
 }
 
 // 0x497d56..0x497f44: con +0x4c & 1, el ícono de la ayuda y, con la ayuda a la vista, sus tres renglones.
-Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart& part, GameHudContext& hud)
+Core::Expected<void, std::string> DrawThePortraitHelp(const Ui::OldPortraitPart& part, Hud::GameHudContext& hud)
 {
-    const UI::OldWindowBase& base = part.base;
+    const Ui::OldWindowBase& base = part.base;
     if ((base.flags & 1) == 0)
         return {};
     constexpr std::uint16_t HelpSlot = 0x651;
@@ -829,7 +832,7 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart&
         // 0x497d89..0x497dcb.
         constexpr float IconSize = 16.0f; // 0x41800000
         constexpr std::int32_t IconRise = 0x11;
-        UI::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 1),
+        Ui::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 1),
                           static_cast<float>(base.y + base.height - IconRise), IconSize, IconSize, 0.0f, 0.0f, 1.0f,
                           1.0f);
         return {};
@@ -839,8 +842,8 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart&
     constexpr float PressedSize = 15.0f; // 0x41700000
     constexpr float PressedUv = 0.9375f; // 0x3f700000
     constexpr std::int32_t PressedRise = 0x10;
-    UI::OldDraw::Gray(sprites, PressedGray);
-    UI::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 2),
+    Ui::OldDraw::Gray(sprites, PressedGray);
+    Ui::OldDraw::Quad(sprites, HelpSlot, static_cast<float>(base.x + 2),
                       static_cast<float>(base.y + base.height - PressedRise), PressedSize, PressedSize, 0.0f, 0.0f,
                       PressedUv, PressedUv);
     sprites.SetColor(Render::Color{});
@@ -848,7 +851,7 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart&
     if (hud.texts == nullptr)
         return Core::Unexpected(std::string("0x497e62: la ayuda del retrato sin Text.bmd"));
     constexpr std::array<std::size_t, 3> HelpTexts{997, 998, 999};
-    TooltipLines& lines = hud.hud.tooltip;
+    Tooltips::TooltipLines& lines = hud.hud.tooltip;
     lines.next = 0;
     for (const std::size_t index : HelpTexts)
     {
@@ -869,12 +872,12 @@ Core::Expected<void, std::string> DrawThePortraitHelp(const UI::OldPortraitPart&
     const std::int32_t y = base.y + base.height - (rowHeight + RowGap) * lines.next;
     const std::int32_t x = base.x + base.width / 2;
     constexpr std::int32_t LeftAligned = 1;
-    return DrawTheTooltipBox(hud, x, y, lines.next, 0, LeftAligned, 1);
+    return Tooltips::DrawTheTooltipBox(hud, x, y, lines.next, 0, LeftAligned, 1);
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheLetterPortrait(UI::OldPortraitPart& part, const LetterPortraitDraw& draw,
-                                                        const WorldEntryResources& resources)
+Core::Expected<void, std::string> DrawTheLetterPortrait(Ui::OldPortraitPart& part, const LetterPortraitDraw& draw,
+                                                        const Scenes::WorldEntryResources& resources)
 {
     // 0x497c1b.
     if (part.blank == 1)
@@ -905,9 +908,9 @@ Core::Expected<void, std::string> DrawTheLetterPortrait(UI::OldPortraitPart& par
     return DrawThePortraitHelp(part, draw.hud);
 }
 
-UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)
+Ui::OldPortraitHook LetterPortraitHook(const Scenes::WorldEntryResources& resources)
 {
-    return [&resources](UI::OldPortraitPart& part, UI::PortraitCallKind call,
+    return [&resources](Ui::OldPortraitPart& part, Ui::PortraitCallKind call,
                         std::int32_t arg) -> Core::Expected<void, std::string>
     {
         if (!part.actor)
@@ -916,30 +919,30 @@ UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)
         const bool built = part.built != 0;
         switch (call)
         {
-        case UI::PortraitCallKind::Build:
+        case Ui::PortraitCallKind::Build:
             if (auto made = BuildThePortrait(portrait, resources); !made.HasValue())
                 return made;
             part.built = 1;
             return {};
-        case UI::PortraitCallKind::SetClass:
+        case Ui::PortraitCallKind::SetClass:
             return built ? SetThePortraitClass(portrait, part.portraitClass, resources)
                          : Core::Expected<void, std::string>{};
-        case UI::PortraitCallKind::SetEquipment:
+        case Ui::PortraitCallKind::SetEquipment:
             return built ? DressThePortrait(portrait, part.equipment, part.action, resources)
                          : Core::Expected<void, std::string>{};
-        case UI::PortraitCallKind::CopyTheHero:
+        case Ui::PortraitCallKind::CopyTheHero:
         {
             if (!built)
                 return {};
             auto copied = CopyTheHeroToThePortrait(portrait, part.action, resources);
             return copied.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(copied.Error());
         }
-        case UI::PortraitCallKind::SetAction:
+        case Ui::PortraitCallKind::SetAction:
         {
             auto shown = ShowThePortraitAction(portrait, part.action, 0, resources);
             return shown.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(shown.Error());
         }
-        case UI::PortraitCallKind::TurnAction:
+        case Ui::PortraitCallKind::TurnAction:
         {
             auto shown = ShowThePortraitAction(portrait, part.action, arg, resources);
             if (!shown.HasValue())
@@ -949,15 +952,15 @@ UI::OldPortraitHook LetterPortraitHook(const WorldEntryResources& resources)
             portrait.idle = 1;
             return {};
         }
-        case UI::PortraitCallKind::SetAngle:
+        case Ui::PortraitCallKind::SetAngle:
             if (built)
                 TurnThePortrait(portrait);
             return {};
-        case UI::PortraitCallKind::Step:
+        case Ui::PortraitCallKind::Step:
             portrait.actor.byte360 = HeroOf(resources).byte360;
             return {};
         }
         return {};
     };
 }
-} // namespace Client::Scenes
+} // namespace Client::Messenger

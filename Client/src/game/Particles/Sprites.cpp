@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -92,4 +92,4 @@ void StepSpriteAlpha(Sprite& sprite)
         sprite.alpha = AlphaFloor;
     }
 }
-} // namespace Client::World
+} // namespace Client::Particles

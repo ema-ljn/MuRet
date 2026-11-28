@@ -25,7 +25,7 @@ class ITextDrawer;
 // cada paso, después del de la escena (0x637cf3 y 0x637cf8, dentro de 0x637700). Lo que el dibujo escribe y dura
 // (los anchos de los renglones, los contadores del parpadeo, la fuente del DC) va en MessageFrameState, que el
 // juego copia en sus dibujos intermedios.
-namespace Client::UI
+namespace Client::Ui
 {
 // Los tipos de mensaje de 0x555190 y 0x45bb20, por sus colores (0x5554e0 y 0x45cbb0) y por quién los manda.
 inline constexpr std::int32_t WhisperMessage = 0;
@@ -165,4 +165,4 @@ void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, 
 // en 1), con la negrita y la mezcla normal.
 void DrawTheNotices(const MessageAreaState& area, MessageFrameState& frame, const MessageDrawContext& context,
                     std::int32_t chatPlacement);
-} // namespace Client::UI
+} // namespace Client::Ui

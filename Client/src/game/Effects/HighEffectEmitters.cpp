@@ -21,15 +21,15 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 Core::Expected<void, std::string> CreateHighJoint(Kernel::WorldState& world, Crt::CrtRandom& random, std::int32_t type,
                                                   glm::vec3 first, glm::vec3 second, glm::vec3 angles,
-                                                  std::int32_t subtype, World::ModelEffect* owner, float scale,
+                                                  std::int32_t subtype, Effects::ModelEffect* owner, float scale,
                                                   std::uint32_t address, std::int32_t key)
 {
     constexpr std::int32_t NoTarget = -1;
-    const auto made = CreateFaunaJoint(
+    const auto made = Joints::CreateFaunaJoint(
         world.DrawTail().joints,
         Kernel::JointRequest{type, first, second, angles, subtype, owner, scale, key, 0, 0, NoTarget}, random,
         owner != nullptr ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
@@ -41,10 +41,10 @@ Core::Expected<void, std::string> CreateHighJoint(Kernel::WorldState& world, Crt
 Core::Expected<std::optional<std::size_t>, std::string>
 CreateHighParticle(Kernel::WorldState& world, Crt::CrtRandom& random, float worldClock, std::int32_t type,
                    const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
-                   float scale, std::uint32_t address, World::ParticleOwner owner)
+                   float scale, std::uint32_t address, Particles::ParticleOwner owner)
 {
     const auto created =
-        owner.kind == World::ParticleOwnerKind::None
+        owner.kind == Particles::ParticleOwnerKind::None
             ? world.Particles().CreateChecked(type, position, angles, light, subtype, scale, worldClock, random, 0)
             : world.Particles().CreateOwnedChecked(type, position, angles, light, subtype, scale, worldClock, random, 0,
                                                    owner);
@@ -63,4 +63,4 @@ Core::Expected<void, std::string> CreateHighSprite(const HighEffectStepContext& 
     static_cast<void>(context.services.sprites->Create(texture, position, scale, light, rotation, 0));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

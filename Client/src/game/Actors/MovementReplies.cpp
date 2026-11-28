@@ -102,7 +102,7 @@ Core::Expected<void, std::string> ApplyOtherWalk(Kernel::ActorState& actor,
     Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: with a Crywolf altar in 0x6c8e54, the A* flag also in another's D3.
     const auto path = finder.Find({actor.cellX, actor.cellY}, {actor.targetX, actor.targetY},
-                                  Scenes::CrywolfAltarGoal(resources.world));
+                                  Events::Crywolf::CrywolfAltarGoal(resources.world));
     actor.movement = path.has_value() ? 1 : 0;
     if (path)
     {
@@ -145,7 +145,7 @@ Core::Expected<void, std::string> ApplyJumpingWalk(Kernel::ActorState& actor,
 void CreateRisingDamage(Kernel::WorldState& world, const glm::vec3& position, std::int32_t amount,
                         const glm::vec3& light, float scale)
 {
-    Scenes::CreateDamageNumber(world, position, amount, light, scale, true);
+    Combat::CreateDamageNumber(world, position, amount, light, scale, true);
 }
 void SubtractHeroLife(std::uint16_t amount, const Scenes::WorldEntryResources& resources)
 {
@@ -203,7 +203,7 @@ Core::Expected<void, std::string> RaiseTheShield(Kernel::ActorState& hero, const
                                               .light = hero.light,
                                               .subtype = 0,
                                               .key = 0xffff};
-    if (auto made = Scenes::CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random);
+    if (auto made = Combat::CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random);
         !made.HasValue())
         return Core::Unexpected(std::format("0x4cb3b0: {}", made.Error()));
     return {};

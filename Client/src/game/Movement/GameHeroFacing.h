@@ -11,7 +11,7 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Movement
 {
 struct GameMovementState;
 
@@ -34,4 +34,4 @@ struct HeroFacingContext
 
 // Rama quieta 59b333..59b83a. Invocar antes de caminar; una llegada no ejecuta esta rama.
 [[nodiscard]] Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Movement

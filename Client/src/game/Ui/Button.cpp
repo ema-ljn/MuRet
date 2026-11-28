@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -186,4 +186,4 @@ std::uint32_t Button::LabelColor() const
     }
     return Pressed() ? m_colors.pressed : (m_hover ? m_colors.hover : m_colors.normal);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -16,7 +16,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 Core::Expected<void, std::string> CastleUi::FailurePopup(const CastleReceiveContext& context, std::uint32_t address)
 {
@@ -28,8 +28,8 @@ Core::Expected<void, std::string> CastleUi::FailurePopup(const CastleReceiveCont
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x6600d0: la respuesta de HuntZone sin medidor"));
     const std::array<std::string, 1> lines{std::move(text).Value()};
-    auto popup = PopUpThePanelDialog(context.world.Runtime(), {.lines = lines, .flags = UI::PanelDialogOk},
-                                     *context.measure, context.screen, context.tick);
+    auto popup = Guild::PopUpThePanelDialog(context.world.Runtime(), {.lines = lines, .flags = Ui::PanelDialogOk},
+                                            *context.measure, context.screen, context.tick);
     if (!popup.HasValue())
         return Core::Unexpected(std::move(popup).Error());
     return {};
@@ -48,9 +48,9 @@ Core::Expected<void, std::string> ApplyHuntInformation(std::uint8_t mode, std::u
     window.editedFee = std::bit_cast<std::int32_t>(fee);
     window.max = std::bit_cast<std::int32_t>(max);
     window.step = std::bit_cast<std::int32_t>(step);
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     LendTheCastlePanelServices(panels, context);
-    auto opened = panels.Registry().Open(UI::SecondCastleSiegePanel);
+    auto opened = panels.Registry().Open(Ui::SecondCastleSiegePanel);
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     return {};
@@ -60,4 +60,4 @@ Core::Expected<void, std::string> ApplyHuntEntryResult(std::uint8_t result, cons
 {
     return result == 0 ? CastleUi::FailurePopup(context, 0x76fc1ac) : Core::Expected<void, std::string>{};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

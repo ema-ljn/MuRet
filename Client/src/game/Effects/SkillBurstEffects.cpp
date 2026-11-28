@@ -26,7 +26,7 @@
 
 // Cotejado con el PE c32bbd5f: las altas 0x51e397, 0x51e529 y 0x51e773, los pasos 0x52a6d6, 0x52abbe, 0x52acc3 y
 // 0x529dee, y la rama del 0x5ca de 0x518b60.
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -53,7 +53,7 @@ const Kernel::ActorState* ActorOwnerOf(const Kernel::WorldState& world, const vo
 // 0x518b60 con el 0x5ca (0x518bfd..0x518c13): con el dueño vivo (+0), visto (+0x16c) y a 100 o menos en el plano
 // (FSQRT de dy² + dx², sin orden también sigue), la vida en 1 y la partícula 0x5c6/1 en su posición y con sus
 // ángulos, en blanco (0x518bd2) y de escala 6.
-Core::Expected<void, std::string> HitTheEnergyBallOwner(World::ModelEffect& effect,
+Core::Expected<void, std::string> HitTheEnergyBallOwner(Effects::ModelEffect& effect,
                                                         const HighEffectStepContext& context)
 {
     if (effect.ownerContext == nullptr)
@@ -81,7 +81,7 @@ Core::Expected<void, std::string> HitTheEnergyBallOwner(World::ModelEffect& effe
 }
 } // namespace
 
-void BeginTheSweepEmitter(World::ModelEffect& effect)
+void BeginTheSweepEmitter(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t SweepLife = 30;                    // 0x1e
     constexpr float Glow = std::bit_cast<float>(0x3f4ccccdu); // 0,8f
@@ -95,7 +95,7 @@ void BeginTheSweepEmitter(World::ModelEffect& effect)
     effect.start = effect.transform.position;
 }
 
-void BeginTheEnergyBall(World::ModelEffect& effect)
+void BeginTheEnergyBall(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t BallLife = 20;                          // 0x14
     constexpr float Push = std::bit_cast<float>(0xc2700000u);      // −60
@@ -108,7 +108,7 @@ void BeginTheEnergyBall(World::ModelEffect& effect)
         effect.transform.scale = WideScale;
 }
 
-void BeginTheFlameBurst(World::ModelEffect& effect)
+void BeginTheFlameBurst(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t BurstLife = 10;                     // 0xa
     constexpr float Ahead = std::bit_cast<float>(0xc2700000u); // −60
@@ -122,7 +122,8 @@ void BeginTheFlameBurst(World::ModelEffect& effect)
     position.z = F32(D(offset.z) + D(position.z) + Lift);
 }
 
-Core::Expected<void, std::string> StepTheSweepEmitter(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheSweepEmitter(Effects::ModelEffect& effect,
+                                                      const HighEffectStepContext& context)
 {
     constexpr std::int32_t SweepLife = 30;
     if (effect.life != SweepLife)
@@ -146,13 +147,13 @@ Core::Expected<void, std::string> StepTheSweepEmitter(World::ModelEffect& effect
                                        .skill = effect.byte89,
                                        .skillSerial = 0,
                                        .target = NoTarget};
-    const auto made = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random);
+    const auto made = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x52a72a: {} (CL11)", made.Error()));
     return {};
 }
 
-Core::Expected<void, std::string> StepTheEnergyBall(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheEnergyBall(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     const float level = F32(static_cast<double>(effect.life) * Fifth);
     glm::vec3 color{1.0f, 1.0f, 1.0f};
@@ -172,14 +173,14 @@ Core::Expected<void, std::string> StepTheEnergyBall(World::ModelEffect& effect, 
     if (!spark.HasValue())
         return Core::Unexpected(spark.Error());
     const glm::vec3 light{F32(D(level) * Fifth), F32(D(level) * TwoFifths), level};
-    if (auto lit = World::AddDynamicLight(context.services.lighting, effect.transform.position, light, BurstLightRadius,
-                                          "0x52ac64");
+    if (auto lit = WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, light,
+                                                 BurstLightRadius, "0x52ac64");
         !lit.HasValue())
         return lit;
     return HitTheEnergyBallOwner(effect, context);
 }
 
-Core::Expected<void, std::string> StepTheFlameBurst(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTheFlameBurst(Effects::ModelEffect& effect, float luminosity,
                                                     const HighEffectStepContext& context)
 {
     constexpr std::int32_t BurstParticle = 0x5da, BurstSubtype = 1;
@@ -189,11 +190,11 @@ Core::Expected<void, std::string> StepTheFlameBurst(World::ModelEffect& effect, 
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
     const glm::vec3 light{luminosity, F32(D(luminosity) * ThreeFifths), F32(D(luminosity) * ThreeTenths)};
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, light, BurstLightRadius,
-                                  "0x52b3a9");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, light, BurstLightRadius,
+                                         "0x52b3a9");
 }
 
-Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheArrowBlast(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr double Pitch = 5.0, Drop = 8.0; // 0x6b87f8 y 0x6b86c4
     effect.transform.angles.x = F32(D(effect.transform.angles.x) - Pitch);
@@ -228,4 +229,4 @@ Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect, 
         effect.alive = false;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

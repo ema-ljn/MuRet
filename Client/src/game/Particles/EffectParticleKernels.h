@@ -12,7 +12,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Particles
 {
 class IParticleTrigonometry;
 
@@ -72,4 +72,4 @@ struct EffectParticleBirth
                                                                      IParticleTrigonometry* trigonometry,
                                                                      const ParticleOwnerStates& ownerStates);
 
-} // namespace Client::World
+} // namespace Client::Particles

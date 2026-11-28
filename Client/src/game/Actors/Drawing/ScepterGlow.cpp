@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Actors::Drawing
 {
 namespace
 {
@@ -50,13 +50,13 @@ ScepterGlowRandoms DrawScepterGlowRandoms(Crt::CrtRandom& random)
     return randoms;
 }
 
-void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(Particles::FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, Crt::CrtRandom& random)
 {
     CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, DrawScepterGlowRandoms(random));
 }
 
-void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
+void CreateScepterGlow(Particles::FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms)
 {
     const glm::vec3 light{1.0f, 0.3f, 0.0f};
@@ -87,7 +87,7 @@ void CreateScepterGlow(FrameSprites& sprites, const Math::OriginalMatrix& bone, 
                          90.0f, Additive);
 }
 
-void ScepterGlowCarry::Create(FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
+void ScepterGlowCarry::Create(Particles::FrameSprites& sprites, const Math::OriginalMatrix& bone, float bodyScale,
                               const glm::vec3& bodyOrigin, Crt::CrtRandom& random, Core::Duration clock,
                               Models::OriginalFramePace pace)
 {
@@ -98,4 +98,4 @@ void ScepterGlowCarry::Create(FrameSprites& sprites, const Math::OriginalMatrix&
     }
     CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, m_last);
 }
-} // namespace Client::World
+} // namespace Client::Actors::Drawing

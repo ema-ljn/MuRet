@@ -52,6 +52,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
@@ -59,10 +60,9 @@ using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::KeypadKeyAt;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
+using Client::Warehouse::KeypadKeyAt;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x2b7e1516u;
@@ -174,7 +174,7 @@ protected:
                                .text = m_text,
                                .texts = m_drawnTexts,
                                .mouse = {.x = x, .y = y}};
-        return Client::Scenes::DrawTheKeypad(context);
+        return Client::Warehouse::DrawTheKeypad(context);
     }
 
     void Type(std::string_view digits)
@@ -187,22 +187,22 @@ protected:
     // 0x5e7bf0 con el mouse en (x, y), con los cables de las ventanas de los NPC como los presta el paso de la UI.
     Client::Core::Expected<bool, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_random);
+        Client::Hud::GamePanels panels(*m_world, m_random);
         const auto send = [this](Client::Protocol::Outgoing packet)
         {
             m_sent.push_back(std::move(packet));
             return Client::Core::Expected<void, std::string>{};
         };
-        panels.LendTheNpcWindows(*m_world, m_random, Client::Scenes::InventoryServices{}, send);
-        const Client::Scenes::GameUiContext context{
+        panels.LendTheNpcWindows(*m_world, m_random, Client::Items::InventoryServices{}, send);
+        const Client::Hud::GameUiContext context{
             .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .sendNpcWindow = send};
-        return Client::Scenes::StepTheKeypad(context, panels.Registry());
+        return Client::Warehouse::StepTheKeypad(context, panels.Registry());
     }
 
     // El clic sobre la tecla `key` (0 a 12), adentro de lo que toca 0x5e7b50.
     Client::Core::Expected<bool, std::string> Press(int key)
     {
-        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
         if (key == OkKey || key == CancelKey)
             return Step(0x109 + 0x4e * (key - OkKey) + 5, 0xeb + 5);
         return Step((key % 5) * 40 + 0xdf + 5, (key / 5) * 40 + 0x96 + 5);
@@ -436,7 +436,7 @@ TEST_P(WarehouseKeypadTest, AMissingTextStopsWithItsAddress)
 // 0x5e7c12..0x5e7c19: con el modo en 0 devuelve 0 sin tocar el clic, y 0x5ee140 sigue.
 TEST_P(WarehouseKeypadTest, ClosedTheStepLetsTheClickThrough)
 {
-    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
 
     const auto stepped = Step(0xdf + 5, 0x96 + 5);
 
@@ -481,7 +481,7 @@ TEST_P(WarehouseKeypadTest, TheKeysTypeEraseAndPress)
 
     // El clic fuera de las teclas también la aprieta y se gasta.
     Runtime().movement.releasedClick = false;
-    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(Runtime().npcWindows.keypadPressed, 1);
     EXPECT_FALSE(Runtime().movement.pendingClick);
@@ -554,8 +554,8 @@ TEST_P(WarehouseKeypadTest, SettingAPasswordSends83WithOne)
     Runtime().ui.field78abb20 = 4;
     PressDigits("2580");
     CrtRandom keys = m_random;
-    std::array<std::uint16_t, Client::Scenes::WarehouseKeyCount> keypad{};
-    Client::Scenes::ShuffleTheKeypad(keys, keypad);
+    std::array<std::uint16_t, Client::Npc::WarehouseKeyCount> keypad{};
+    Client::Items::ShuffleTheKeypad(keys, keypad);
 
     ASSERT_TRUE(Press(OkKey).HasValue());
     EXPECT_EQ(m_random.State(), keys.State());

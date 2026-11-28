@@ -13,12 +13,12 @@
 // - El 0x13a, el tiro de la skill 0x2e (su alta es la de Scenes/ArrowEffects, CreateTheBlast): paso 0x529dee.
 // Los tres primeros son tipos de 0x151 en adelante sin caso en 0x52d620 ni en el pase del suelo (0x52dc20): no se
 // dibujan. El 0x13a va por el camino común (0x52da92 → 0x602e90). 06, "Los efectos con modelo de los tipos altos".
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectStepContext;
 
@@ -30,20 +30,20 @@ inline constexpr std::int16_t ArrowBlastEffect = 0x13a;   // el tiro de la skill
 // 0x51e397..0x51e3eb, el 0x5be de cualquier subtipo: vida 30, la luz en 0,8f, los ángulos copiados (+0x28) en
 // (0, 0, z + 45) con la z de los ángulos del argumento (un fadd y un fstp) y la partida (+0x17c) en la posición. Sin
 // rand().
-void BeginTheSweepEmitter(World::ModelEffect& effect);
+void BeginTheSweepEmitter(Effects::ModelEffect& effect);
 
 // 0x51e529..0x51e569, el 0x5ca de cualquier subtipo: vida 20, la velocidad (0, −60, 0), la z 100 más y, con el /1, la
 // escala en 1,5f. Sin rand().
-void BeginTheEnergyBall(World::ModelEffect& effect);
+void BeginTheEnergyBall(Effects::ModelEffect& effect);
 
 // 0x51e773..0x51e7d7, el 0x5da de cualquier subtipo: vida 10 y (0, −60, 0) girado por los ángulos sumado a la
 // posición, con 130 más en la z (en la x87 hasta el fstp). Sin rand().
-void BeginTheFlameBurst(World::ModelEffect& effect);
+void BeginTheFlameBurst(Effects::ModelEffect& effect);
 
 // 0x52a6d6..0x52a732: con la vida en 30, el joint 0x61c/0 (0x52a72a) en (x, y, z + 100), con los ángulos copiados,
 // el dueño del efecto (+0x108, el personaje), ancho 150, la clave (+0x8a) y la skill (+0x89) del efecto. Corta donde
 // corta el alta del joint.
-[[nodiscard]] Core::Expected<void, std::string> StepTheSweepEmitter(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheSweepEmitter(Effects::ModelEffect& effect,
                                                                     const HighEffectStepContext& context);
 
 // 0x52abbe..0x52ac75: el nivel vida · 0,2f; el color, (nivel, nivel, nivel) con el /0, (1; 0,8f; 0,2f) con el /1 y
@@ -51,12 +51,12 @@ void BeginTheFlameBurst(World::ModelEffect& effect);
 // luz dinámica (nivel · 0,2f; nivel · 0,4f; nivel) de radio 2; y 0x518b60: con el dueño (+0x108) vivo, visto (+0x16c)
 // y a 100 o menos en el plano, la vida en 1 y la partícula 0x5c6/1 en blanco de escala 6. Un dueño que no es uno de
 // los personajes del mundo corta (0x518b7a).
-[[nodiscard]] Core::Expected<void, std::string> StepTheEnergyBall(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheEnergyBall(Effects::ModelEffect& effect,
                                                                   const HighEffectStepContext& context);
 
 // 0x52acc3..0x52b3b1: la partícula 0x5da/1 en blanco de escala 1 y la luz dinámica (L; L · 0,6f; L · 0,3f) de radio
 // 2, con L la luz local del paso (0x5208c5).
-[[nodiscard]] Core::Expected<void, std::string> StepTheFlameBurst(World::ModelEffect& effect, float luminosity,
+[[nodiscard]] Core::Expected<void, std::string> StepTheFlameBurst(Effects::ModelEffect& effect, float luminosity,
                                                                   const HighEffectStepContext& context);
 
 // 0x529dee..0x529f07: la x de los ángulos 5 menos y la y de la velocidad 8 menos; con la vida debajo de 2, el /0 y
@@ -64,6 +64,6 @@ void BeginTheFlameBurst(World::ModelEffect& effect);
 // rand() % 100 − 50 más en x y en y y 1200 más en z, los joints 0x632/2 y /3 (0x529eca y 0x529eed) con el efecto de
 // dueño, ancho 50 y clave −1 (JointFamilies::StormJoint, un rand() cada uno); con los joints llenos, nada. Si no, con
 // el /1, el lugar libre. Un dueño que no es uno de los personajes del mundo corta (0x529e3e).
-[[nodiscard]] Core::Expected<void, std::string> StepTheArrowBlast(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheArrowBlast(Effects::ModelEffect& effect,
                                                                   const HighEffectStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Effects

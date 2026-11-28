@@ -60,13 +60,13 @@ struct Spirals
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random);
+        return Client::Joints::CreateFaunaJoint(joints, request, random);
     }
 
     Client::Core::Expected<void, std::string> Step(Client::Kernel::WorldState* world = nullptr,
-                                                   Client::World::FrameSprites* sprites = nullptr)
+                                                   Client::Particles::FrameSprites* sprites = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, sprites, nullptr, {}, {}, {}, {},
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, sprites, nullptr, {}, {}, {}, {},
                                           nullptr, nullptr, world);
     }
 
@@ -188,7 +188,7 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
                                                     glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec3{10.0f, 20.0f, 30.0f});
     auto world = std::make_unique<Client::Kernel::WorldState>();
     world->PlaceModel(owner.type, {.scale = 1.25f, .origin = {9.0f, 9.0f, 9.0f}, .action = 4});
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
 
     for (const std::int32_t subtype : {5, 6})
     {
@@ -226,7 +226,8 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
                     F32(static_cast<double>(velocity.y) - static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
                 if (segment % 2 == 0)
                 {
-                    const Client::World::Sprite& sprite = sprites.Sprites()[static_cast<std::size_t>(expectedSprites)];
+                    const Client::Particles::Sprite& sprite =
+                        sprites.Sprites()[static_cast<std::size_t>(expectedSprites)];
                     ++expectedSprites;
                     EXPECT_TRUE(sprite.alive);
                     EXPECT_EQ(sprite.texture, 0x60f);

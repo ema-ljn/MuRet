@@ -38,7 +38,7 @@ Core::Expected<void, std::string> ApplyViewportPosition(const Protocol::Actors::
             static_cast<float>(static_cast<std::int32_t>(y) - static_cast<std::int32_t>(position.y)) * PushScale;
         // 0x41ed10(0x1b, 0, 0).
         world.Runtime().RequestSound(PushSound);
-        if (auto burst = World::CreatePushBurst(world.Particles(), actor.position, random); !burst.HasValue())
+        if (auto burst = Particles::CreatePushBurst(world.Particles(), actor.position, random); !burst.HasValue())
             return Core::Unexpected(std::format("0x51fe9e: particle 0x5c5/2 of the DF push, error {}",
                                                 static_cast<unsigned>(burst.Error())));
         return {};

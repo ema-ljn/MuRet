@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::GameLogic
+namespace Client::Movement
 {
 namespace
 {
@@ -151,4 +151,4 @@ GateDecision GateCheck(const Tables::GateTable& table, const GateCheckState& sta
     }
     return decision;
 }
-} // namespace Client::GameLogic
+} // namespace Client::Movement

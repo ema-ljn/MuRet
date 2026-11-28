@@ -18,7 +18,7 @@
 // 0x5b58ea..0x5b6a3b del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): los paquetes de joyas, el texto
 // de cada joya y de cada objeto de evento, las alas y las capas. Los textos son los de Text.bmd (la dirección −
 // 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -300,7 +300,7 @@ void WriteTheKalimaLevels(Frame& frame)
     lines.At("0x437d49");
     if (lines.Failed())
         return;
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
     const std::size_t first =
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? KalimaCount : 0;
@@ -352,7 +352,7 @@ void WriteTheChaosCastleLevels(Frame& frame)
     lines.At("0x5b63b7");
     if (lines.Failed())
         return;
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     const std::uint8_t heroClass = HeroClassOf(context) & HeroClassBits;
     const std::size_t first =
         heroClass == FirstClassOfTheSecondTable || heroClass == SecondClassOfTheSecondTable ? ChaosCastleCount : 0;
@@ -459,4 +459,4 @@ Core::Expected<void, std::string> WriteTheNotes(ItemTooltipFrame& frame)
         return {};
     return WriteTheEventItem(frame, type);
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

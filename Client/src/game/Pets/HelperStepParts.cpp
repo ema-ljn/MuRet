@@ -25,7 +25,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -146,7 +146,7 @@ Core::Expected<void, std::string> ScatterTheDust(const Kernel::HelperState& help
     {
         return {};
     }
-    const std::int32_t type = map == DeviasMap ? std::int32_t{World::BreathParticle} : World::DustParticle;
+    const std::int32_t type = map == DeviasMap ? std::int32_t{Particles::BreathParticle} : Particles::DustParticle;
     return EmitHelperParticle(context, type, DustSubtype, place, helper.angles, HelperDustLight, address);
 }
 
@@ -163,8 +163,8 @@ Core::Expected<void, std::string> PuffTheIcarusDust(const glm::vec3& base, const
         const int z = (random.Next() % PuffHeight) - PuffHeightCentre;
         const glm::vec3 puff(Shifted(x, base.x), Shifted(y, base.y),
                              F32((static_cast<double>(z) + static_cast<double>(base.z)) - PuffSink));
-        if (auto emitted =
-                EmitHelperParticle(context, World::BreathParticle, DustSubtype, puff, angles, HelperDustLight, address);
+        if (auto emitted = EmitHelperParticle(context, Particles::BreathParticle, DustSubtype, puff, angles,
+                                              HelperDustLight, address);
             !emitted.HasValue())
         {
             return emitted;
@@ -184,4 +184,4 @@ void FadeWithTheRider(Kernel::HelperState& helper, const Kernel::ActorState& rid
     const double faded = static_cast<double>(helper.horse.alpha) - FadeRate;
     helper.horse.alpha = faded < 0.0 ? HiddenAlpha : F32(faded);
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

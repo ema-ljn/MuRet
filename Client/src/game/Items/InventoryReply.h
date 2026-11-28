@@ -11,11 +11,15 @@ namespace Client::Protocol::Items
 struct InventoryList;
 }
 
-// El F3 10, 0x4c55a0 desde 0x4e309c. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el
-// inventario", y 04-protocolo.md, "La entrada al mundo: la respuesta del F3 03 y el F3 10".
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// El F3 10, 0x4c55a0 desde 0x4e309c. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El F3 10, el
+// inventario", y 04-protocolo.md, "La entrada al mundo: la respuesta del F3 03 y el F3 10".
+namespace Client::Items
+{
 
 // Los sonidos de Fenrir que pide cada 0x4f2250 dentro de 0x512a30, en el orden en que los pide.
 struct InventoryReplyResult
@@ -26,12 +30,12 @@ struct InventoryReplyResult
 // La inicialización común de 0x4c55a0 (0x4c55c4..0x4c56e0), que corre antes de mirar si llegó cifrado y
 // también con la cantidad en 0: abre el registro propio, vacía su equipo (ClearEquipmentForInventory), lo
 // cierra (3.848 rand() si lo deja sin accesos) y vacía las dos grillas del inventario.
-void ClearForInventoryReply(const WorldEntryResources& resources);
+void ClearForInventoryReply(const Scenes::WorldEntryResources& resources);
 
 // 0x4c55a0 con el paquete cifrado: la inicialización común; 0x443d40 con el héroe publicado, que apaga su
 // caballo (TurnOffHelpersOf), y 0x421d60, que en MuRet no suelta nada; y 0x5bc740 por cada entrada, en
-// orden y con las repetidas (Scenes::PlaceInventoryItem). La primera que corta deja lo que hicieron las de
+// orden y con las repetidas (Items::PlaceInventoryItem). La primera que corta deja lo que hicieron las de
 // antes.
 [[nodiscard]] Core::Expected<InventoryReplyResult, std::string>
-ApplyInventory(const Protocol::Items::InventoryList& list, const WorldEntryResources& resources);
-} // namespace Client::Scenes
+ApplyInventory(const Protocol::Items::InventoryList& list, const Scenes::WorldEntryResources& resources);
+} // namespace Client::Items

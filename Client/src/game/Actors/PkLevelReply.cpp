@@ -39,7 +39,7 @@ constexpr std::size_t MurdererBuffer = 0x20;
 
 Core::Expected<std::string_view, std::string> TextOf(const Scenes::WorldEntryResources& resources, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(resources.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(resources.texts, index);
     if (!text)
         return Core::Unexpected(std::format("0x4d3b50: falta el texto {} de Text.bmd", index));
     return *text;
@@ -74,7 +74,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
     actor.level = packet.level < MurdererLevel ? 0 : 1;
     // 0x4d3ba7..0x4d3bb6: the table 0x4d3ca8 from 1 to 6; 0 and from 7 on, nothing else.
     std::string text;
-    std::int32_t type = UI::SystemMessage;
+    std::int32_t type = Ui::SystemMessage;
     switch (packet.level)
     {
     case 1:
@@ -93,7 +93,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
         if (!read.HasValue())
             return Core::Unexpected(read.Error());
         text = read.Value();
-        type = UI::ErrorMessage;
+        type = Ui::ErrorMessage;
         break;
     }
     case 5:
@@ -103,7 +103,7 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
         if (!line.HasValue())
             return Core::Unexpected(std::move(line).Error());
         text = std::move(line).Value();
-        type = UI::ErrorMessage;
+        type = Ui::ErrorMessage;
         break;
     }
     default:

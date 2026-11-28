@@ -11,22 +11,34 @@
 // de confirmación 0x9c (0x4716e0, su paso 0x471930 y su respuesta 0x623750) y las respuestas de los avisos que 0x5d8d50
 // mira antes del ítem del cursor (0x5d8dee..0x5deac5). Lo que mandan sale por InventoryServices::sendGamePacket, con
 // los dos rand() de cada C3 antes. El GameServer 0.97 no tiene el 3F: el oráculo es el ASM del cliente (*estático*).
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 struct DialogState;
-} // namespace Client::UI
+} // namespace Client::Ui
 
 namespace Client::Kernel
 {
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
+{
+struct GameUiContext;
+} // namespace Client::Hud
+
+namespace Client::Items
+{
+struct InventoryMoveContext;
+} // namespace Client::Items
+
+namespace Client::Social
 {
 struct ConfirmBoxState;
-struct GameUiContext;
-struct InventoryMoveContext;
+} // namespace Client::Social
+
+namespace Client::PersonalShop
+{
 
 // 0x5eba70: los dos modos del diálogo 0x91, que quedan en 0x78aba60.
 inline constexpr std::int32_t ShopTitleMode = 1;
@@ -48,26 +60,26 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // sin Enter ni botón, nada. Después, 0x6c932e en 1 con el OK y un título no vacío o un precio mayor que 0 (con signo),
 // y en 2 si no; los campos de texto vacíos (0x553570(0)), el campo del chat cerrado, el foco a la ventana del juego y
 // el diálogo que espera abierto. Sin rand().
-[[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& context);
 
 // 0x4716e0(id, texto, tipo) sobre 0x575d9d0: con el 0x9c abierto (0x7d3a10c), false. Si no, el 0x9c por 0x6236f0 (con
 // otro abierto, esperando) y, con el tipo fuera de 1..2, false con el diálogo ya pedido. Si no, el id, el tipo y los
 // renglones de nuevo: el texto en pedazos que se cortan al pasar de 24 bytes (los de 0x80 o más cuentan 2, sin mirar
 // el que sigue) o en el final justo; el pedazo que termina con un byte de 0x80 o más pasado del final se pierde
 // (Q-C966). true.
-[[nodiscard]] bool OpenTheConfirmBox(ConfirmBoxState& box, UI::DialogState& dialogs, std::int32_t id,
+[[nodiscard]] bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, std::int32_t id,
                                      std::string_view text, std::int32_t type);
 
 // 0x471930, el paso del 0x9c (0x6260d1): con el 0x9c abierto y el clic, los botones en y de h + 140 a h + 156 con los
 // bordes (h: los renglones por el paso de la letra (0x7758568) + 2, comparados en la x87). Con dos botones, el de x de
 // 0xff a 0x133 responde 1 y el de 0x14a a 0x17e responde 2; con uno, el de 0x127 a 0x15b responde 1. Cada uno gasta
 // el clic y llama a 0x623750 con el id de la caja.
-[[nodiscard]] Core::Expected<void, std::string> StepTheConfirmBox(const GameUiContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& context);
 
 // 0x623750(id, respuesta): con el 1000 y el 1, el C1 28 3F 02 con el título (0x78aba64) en C3, todos los paneles
 // cerrados (0x657a90) y el diálogo que espera abierto (0x7d3a110 a 0x7d3a10c); con el 1000 y el 2, solo esto último.
 // Con otro id o respuesta, nada. No es el diálogo del título (ese es el 0x91 de 0x5eba70).
-[[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const GameUiContext& context, std::int32_t id,
+[[nodiscard]] Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& context, std::int32_t id,
                                                                     std::int32_t answer);
 
 // 0x5ea290 (desde 0x5ee1c5): con la tienda propia o la ajena abiertas (0x800 y 0x20000, sin rand()) y 0x6c931c en 1:
@@ -81,14 +93,14 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // - el de cerrar (x de x + 0x69 a x + 0xa1, la misma y, con el clic, que gasta): con la tienda abierta, el C1 04 3F 03
 //   en C3;
 // - el del título (x de x + 0x14 a x + 0xaa e y de y + 0x41 a y + 0x59, con el clic, que no gasta): 0x5eba70(1).
-[[nodiscard]] Core::Expected<void, std::string> StepThePersonalShopWindow(const GameUiContext& context,
-                                                                          UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiContext& context,
+                                                                          Ui::PanelRegistry& panels);
 
 // 0x5d8dee..0x5dc798 y 0x5deaa7..0x5deac0: lo que 0x5d8d50 hace antes del ítem del cursor, ya sin la traba de C3 24.
 // Con 0x78abb14 de 1 a 6 (en ese orden) o, si no, con 0x78aba60 en 2, la respuesta de 0x6c932e: con 1 o 2 la atiende
 // y la borra; con otra el paso termina sin hacer nada más (el aviso sigue esperando). Devuelve si el paso sigue con el
 // ítem del cursor (0x5deac5):
-// - 1, 2 y 4 son de las ventanas de NPC (Scenes::AnswerTheNpcWarning, CL9 hito 6): la venta valiosa, la mezcla y el
+// - 1, 2 y 4 son de las ventanas de NPC (Npc::AnswerTheNpcWarning, CL9 hito 6): la venta valiosa, la mezcla y el
 //   teclado del almacén;
 // - 3, el aviso del OK del comercio (0x5ecf67): con el sí, el OK propio da vuelta, 0x78abaa5 en 1 y el C1 04 3C con el
 //   OK nuevo en C3; con el no, se borra;
@@ -101,6 +113,6 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode);
 // El precio (0x5da5ac.. y 0x5dc807..): con la tienda abierta, el C1 04 3F 03 en C3; con un ítem en el cursor, el C1 09
 // 3F 01 con el lugar [0x78a6758] y el precio en C3, el 24 de la grilla 0 a la 4 (con la traba suelta) y el precio en el
 // mapa del modo en 0x77f3cc8; sin ítem, el 3F 01 y el precio en el mapa en [0x78a6758]. Al final 0x77f3b6c en 0.
-[[nodiscard]] Core::Expected<bool, std::string> StepTheWarningAnswers(const GameUiContext& context,
-                                                                      const InventoryMoveContext& moves);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<bool, std::string> StepTheWarningAnswers(const Hud::GameUiContext& context,
+                                                                      const Items::InventoryMoveContext& moves);
+} // namespace Client::PersonalShop

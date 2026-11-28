@@ -33,7 +33,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -42,30 +42,30 @@ using CastleUi::ConsumeClick;
 using CastleUi::Send;
 constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
 
-bool Hit(const GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
+bool Hit(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y, std::int32_t w, std::int32_t h)
 {
-    return UI::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
+    return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, w, h, 1);
 }
 
-void Cover(const GameUiContext& context, std::int32_t x, std::int32_t y)
+void Cover(const Hud::GameUiContext& context, std::int32_t x, std::int32_t y)
 {
     if (Hit(context, x, y, CastleUi::WindowWidth, CastleUi::WindowHeight))
         context.world.Runtime().ui.mouseOnUi = 1;
 }
 
-bool Click(const GameUiContext& context, UI::OldButton& button)
+bool Click(const Hud::GameUiContext& context, Ui::OldButton& button)
 {
-    return UI::ClickTheButton(button, OldWindowGlobalsOf(context.world.Runtime()), context.mouseX, context.mouseY);
+    return Ui::ClickTheButton(button, Hud::OldWindowGlobalsOf(context.world.Runtime()), context.mouseX, context.mouseY);
 }
 
-Core::Expected<void, std::string> Close(const GameUiContext& context, UI::PanelId id, std::int32_t x)
+Core::Expected<void, std::string> Close(const Hud::GameUiContext& context, Ui::PanelId id, std::int32_t x)
 {
     auto& runtime = context.world.Runtime();
     if (!runtime.movement.pendingClick || !Hit(context, x, CastleUi::CloseY, CastleUi::CloseSize, CastleUi::CloseSize))
         return {};
     ConsumeClick(runtime);
     runtime.RequestSound(ClickSound);
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.requests);
     panels.LendTheCastleWindowSteps(context);
     // El botón llama al destructor lógico de la ventana, no al wrapper que cierra también sus compañeros.
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> Close(const GameUiContext& context, UI::PanelI
     return {};
 }
 
-Core::Expected<void, std::string> RegistrationAction(const GameUiContext& context)
+Core::Expected<void, std::string> RegistrationAction(const Hud::GameUiContext& context)
 {
     auto& world = context.world;
     auto& runtime = world.Runtime();
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> RegistrationAction(const GameUiContext& contex
             return {};
         if (CastleUi::HeroCanRegister(world, context.random))
             return Send(context, Castle::WriteRegister());
-        auto popup = CastleUi::PopupAt(context, {0x7725c78, 0x7725da4}, UI::PanelDialogOwner::None, UI::PanelDialogOk);
+        auto popup = CastleUi::PopupAt(context, {0x7725c78, 0x7725da4}, Ui::PanelDialogOwner::None, Ui::PanelDialogOk);
         if (!popup.HasValue())
             return Core::Unexpected(std::move(popup).Error());
     }
@@ -99,7 +99,7 @@ Core::Expected<void, std::string> RegistrationAction(const GameUiContext& contex
     return {};
 }
 
-void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::CastleGuildRow>& rows)
+void StepList(const Hud::GameUiContext& context, Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& rows)
 {
     auto& runtime = context.world.Runtime();
     auto& ui = runtime.ui;
@@ -108,9 +108,9 @@ void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::Ca
     {
         list.base.current = std::move(list.base.queue.front());
         list.base.queue.pop_front();
-        UI::HandleTheListMessage(list, rows.size());
+        Ui::HandleTheListMessage(list, rows.size());
     }
-    UI::OldListGlobals globals{.leftClick = runtime.movement.pendingClick,
+    Ui::OldListGlobals globals{.leftClick = runtime.movement.pendingClick,
                                .wheel = ui.wheel,
                                .capture = ui.capture,
                                .focusedList = ui.focusedList,
@@ -119,20 +119,20 @@ void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::Ca
                                .drawn = runtime.oldWindows.drawn != 0,
                                .modal = runtime.oldWindows.modal,
                                .soundRequest = [&runtime](Audio::SoundId sound) { runtime.RequestSound(sound); }};
-    UI::OldListView view{.mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
+    Ui::OldListView view{.mouseX = context.mouseX, .mouseY = context.mouseY, .keyDown = [&context](std::uint8_t key) {
                              return context.input.IsDown(key == 0x26 ? Input::Key::Up : Input::Key::Down);
                          }};
-    if (PassesTheGuildWindowGate(list.base, ui, context.mouseX, context.mouseY))
-        static_cast<void>(UI::StepTheListMouse(
+    if (Guild::PassesTheGuildWindowGate(list.base, ui, context.mouseX, context.mouseY))
+        static_cast<void>(Ui::StepTheListMouse(
             list, rows.size(), globals, view,
             [&](std::int32_t row, std::size_t at)
             {
                 const auto width =
                     static_cast<std::int32_t>(static_cast<float>(list.base.width) - list.thumbWidth + 1.0f);
-                if (Hit(context, list.base.x, UI::ListRowY(list, rows.size(), row) - 3, width, 13) &&
+                if (Hit(context, list.base.x, Ui::ListRowY(list, rows.size(), row) - 3, width, 13) &&
                     runtime.movement.pendingClick)
                 {
-                    UI::SelectInTheList(list, rows.size(), list.scroll + row + 1);
+                    Ui::SelectInTheList(list, rows.size(), list.scroll + row + 1);
                     const std::uint32_t next = static_cast<std::uint32_t>(rows[at].toggled) + 1u;
                     rows[at].toggled = std::bit_cast<std::int32_t>(next) % 2;
                     runtime.movement.pendingClick = false;
@@ -140,13 +140,13 @@ void StepList(const GameUiContext& context, UI::OldList& list, std::deque<UI::Ca
                 return 1;
             }));
     ui.capture = 0;
-    if (OldWindowKeyEdge(ui, context.input, 0x21))
-        UI::ScrollTheList(list, rows.size(), -list.rows);
-    if (OldWindowKeyEdge(ui, context.input, 0x22))
-        UI::ScrollTheList(list, rows.size(), list.rows);
+    if (Hud::OldWindowKeyEdge(ui, context.input, 0x21))
+        Ui::ScrollTheList(list, rows.size(), -list.rows);
+    if (Hud::OldWindowKeyEdge(ui, context.input, 0x22))
+        Ui::ScrollTheList(list, rows.size(), list.rows);
 }
 
-Core::Expected<void, std::string> RegistrationList(const GameUiContext& context)
+Core::Expected<void, std::string> RegistrationList(const Hud::GameUiContext& context)
 {
     auto& window = context.world.Runtime().castleSiege.registration;
     if (window.state == 1 || window.state == 3)
@@ -155,13 +155,13 @@ Core::Expected<void, std::string> RegistrationList(const GameUiContext& context)
         StepList(context, window.registeredGuildList, window.registeredGuilds);
     if (!Click(context, window.button))
         return {};
-    auto popup = CastleUi::PopupAt(context, {0x772ad54}, UI::PanelDialogOwner::CastleGiveUp, UI::PanelDialogConfirm);
+    auto popup = CastleUi::PopupAt(context, {0x772ad54}, Ui::PanelDialogOwner::CastleGiveUp, Ui::PanelDialogConfirm);
     if (!popup.HasValue())
         return Core::Unexpected(std::move(popup).Error());
     return {};
 }
 
-Core::Expected<void, std::string> StepRegistration(const GameUiContext& context)
+Core::Expected<void, std::string> StepRegistration(const Hud::GameUiContext& context)
 {
     auto& window = context.world.Runtime().castleSiege.registration;
     Cover(context, window.x, window.y);
@@ -195,10 +195,10 @@ Core::Expected<void, std::string> StepRegistration(const GameUiContext& context)
         if (auto list = RegistrationList(context); !list.HasValue())
             return list;
     }
-    return Close(context, UI::CastleSiegePanel, 475);
+    return Close(context, Ui::CastleSiegePanel, 475);
 }
 
-Core::Expected<void, std::string> EnterHunt(const GameUiContext& context)
+Core::Expected<void, std::string> EnterHunt(const Hud::GameUiContext& context)
 {
     auto& world = context.world;
     auto& runtime = world.Runtime();
@@ -207,9 +207,9 @@ Core::Expected<void, std::string> EnterHunt(const GameUiContext& context)
     {
         if (auto sent = Send(context, Castle::WriteHuntZoneEntry(window.fee)); !sent.HasValue())
             return sent;
-        GamePanels panels(world, context.random);
+        Hud::GamePanels panels(world, context.random);
         panels.LendTheCastleRequests(world, CastleUi::SenderOf(context));
-        auto closed = panels.Registry().CloseByMask(UI::SecondCastleSiegePanel);
+        auto closed = panels.Registry().CloseByMask(Ui::SecondCastleSiegePanel);
         if (!closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
@@ -226,9 +226,9 @@ Core::Expected<void, std::string> EnterHunt(const GameUiContext& context)
             if (auto cancelled = CastleUi::CancelPopup(world, CastleUi::SenderOf(context)); !cancelled.HasValue())
                 return cancelled;
             auto popup = window.allowed == 1 ? CastleUi::PopupAt(context, {0x7734480, 0x77345ac},
-                                                                 UI::PanelDialogOwner::None, UI::PanelDialogOk, 1)
-                                             : CastleUi::PopupAt(context, {0x7734480}, UI::PanelDialogOwner::None,
-                                                                 UI::PanelDialogOk, 1);
+                                                                 Ui::PanelDialogOwner::None, Ui::PanelDialogOk, 1)
+                                             : CastleUi::PopupAt(context, {0x7734480}, Ui::PanelDialogOwner::None,
+                                                                 Ui::PanelDialogOk, 1);
             if (!popup.HasValue())
                 return Core::Unexpected(std::move(popup).Error());
         }
@@ -237,7 +237,7 @@ Core::Expected<void, std::string> EnterHunt(const GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepHunt(const GameUiContext& context)
+Core::Expected<void, std::string> StepHunt(const Hud::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.huntZone;
@@ -279,10 +279,10 @@ Core::Expected<void, std::string> StepHunt(const GameUiContext& context)
     }
     if (Click(context, window.enter))
         return EnterHunt(context);
-    return Close(context, UI::SecondCastleSiegePanel, 475);
+    return Close(context, Ui::SecondCastleSiegePanel, 475);
 }
 
-Core::Expected<void, std::string> SeniorTabs(const GameUiContext& context)
+Core::Expected<void, std::string> SeniorTabs(const Hud::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.senior;
@@ -300,23 +300,23 @@ Core::Expected<void, std::string> SeniorTabs(const GameUiContext& context)
             if (!permission.Value())
                 continue;
             auto& data = runtime.castleSiege.data;
-            data.SetU32(UI::StoreTaxAt, data.U32(UI::ServerStoreTaxAt));
-            data.SetU32(UI::ChaosTaxAt, data.U32(UI::ServerChaosTaxAt));
+            data.SetU32(CastleSiege::StoreTaxAt, data.U32(CastleSiege::ServerStoreTaxAt));
+            data.SetU32(CastleSiege::ChaosTaxAt, data.U32(CastleSiege::ServerChaosTaxAt));
         }
         tab = next;
-        if (UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) == window.dialogId)
+        if (Ui::PanelDialogHandle(runtime.panels.delegated.panelDialog) == window.dialogId)
         {
             if (auto cancelled = CastleUi::CancelPopup(context.world, CastleUi::SenderOf(context));
                 !cancelled.HasValue())
                 return cancelled;
             window.dialogId = 0;
         }
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         panels.LendTheSession(context.world, context.random, context.requests);
         panels.LendTheCastleWindowSteps(context);
         if (next != 3)
         {
-            if (auto closed = panels.Registry().Close(UI::InventoryPanel); !closed.HasValue())
+            if (auto closed = panels.Registry().Close(Ui::InventoryPanel); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
         }
         else
@@ -326,7 +326,7 @@ Core::Expected<void, std::string> SeniorTabs(const GameUiContext& context)
             {
                 runtime.ui.npcWindowX = 0x104;
                 runtime.ui.npcWindowY = 0;
-                if (auto opened = panels.Registry().Open(UI::InventoryPanel); !opened.HasValue())
+                if (auto opened = panels.Registry().Open(Ui::InventoryPanel); !opened.HasValue())
                     return Core::Unexpected(std::move(opened).Error());
             }
         }
@@ -335,23 +335,24 @@ Core::Expected<void, std::string> SeniorTabs(const GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> SeniorNpcDialog(const GameUiContext& context, bool statue, std::int32_t action)
+Core::Expected<void, std::string> SeniorNpcDialog(const Hud::GameUiContext& context, bool statue, std::int32_t action)
 {
     auto& runtime = context.world.Runtime();
     auto& data = runtime.castleSiege.data;
-    const auto selected = data.U32(statue ? UI::SelectedStatueAt : UI::SelectedGateAt);
-    const auto at = (statue ? UI::FirstStatueAt : UI::FirstGateAt) + selected * UI::NpcRecordBytes;
-    if (!UI::CastleData::Holds(at, UI::NpcRecordBytes))
+    const auto selected = data.U32(statue ? CastleSiege::SelectedStatueAt : CastleSiege::SelectedGateAt);
+    const auto at =
+        (statue ? CastleSiege::FirstStatueAt : CastleSiege::FirstGateAt) + selected * CastleSiege::NpcRecordBytes;
+    if (!CastleSiege::CastleData::Holds(at, CastleSiege::NpcRecordBytes))
         return Core::Unexpected(std::string("la ventana Senior lee el registro elegido fuera de 0x7d5c504..0x7d5c658"));
-    const bool alive = data.bytes.at(at + UI::RecordAlive - UI::CastleDataBase) != 0;
+    const bool alive = data.bytes.at(at + CastleSiege::RecordAlive - CastleSiege::CastleDataBase) != 0;
     constexpr std::array<std::uint32_t, 4> GateTexts{0x772eb70, 0x772f020, 0x772f14c, 0};
     constexpr std::array<std::uint32_t, 4> StatueTexts{0x7733094, 0x7733418, 0x7733544, 0x7733670};
-    constexpr std::array<UI::PanelDialogOwner, 4> GateOwners{
-        UI::PanelDialogOwner::CastleGate, UI::PanelDialogOwner::CastleGateLife, UI::PanelDialogOwner::CastleGateDefense,
-        UI::PanelDialogOwner::None};
-    constexpr std::array<UI::PanelDialogOwner, 4> StatueOwners{
-        UI::PanelDialogOwner::CastleStatue, UI::PanelDialogOwner::CastleStatueLife,
-        UI::PanelDialogOwner::CastleStatueDefense, UI::PanelDialogOwner::CastleStatueRecovery};
+    constexpr std::array<Ui::PanelDialogOwner, 4> GateOwners{
+        Ui::PanelDialogOwner::CastleGate, Ui::PanelDialogOwner::CastleGateLife, Ui::PanelDialogOwner::CastleGateDefense,
+        Ui::PanelDialogOwner::None};
+    constexpr std::array<Ui::PanelDialogOwner, 4> StatueOwners{
+        Ui::PanelDialogOwner::CastleStatue, Ui::PanelDialogOwner::CastleStatueLife,
+        Ui::PanelDialogOwner::CastleStatueDefense, Ui::PanelDialogOwner::CastleStatueRecovery};
     auto first = CastleUi::Text(
         context.texts, action == 0 && alive ? (statue ? 0x77331c0 : 0x772ec9c)
                                             : (statue ? StatueTexts : GateTexts)[static_cast<std::size_t>(action)]);
@@ -367,9 +368,10 @@ Core::Expected<void, std::string> SeniorNpcDialog(const GameUiContext& context, 
         second.Value() = Crt::Sprintf(second.Value(), CastleUi::NpcCost(data, at));
     else
     {
-        const auto type = data.U32(at + UI::RecordType);
+        const auto type = data.U32(at + CastleSiege::RecordType);
         const std::int32_t tier =
-            action == 1   ? UI::LifeLevelOf(type, std::bit_cast<std::int32_t>(data.U32(at + UI::RecordMaxLife)))
+            action == 1
+                ? CastleSiege::LifeLevelOf(type, std::bit_cast<std::int32_t>(data.U32(at + CastleSiege::RecordMaxLife)))
             : action == 2 ? CastleUi::DefenseLevel(data, at)
                           : CastleUi::RecoveryLevel(data, at);
         const auto requirement = statue ? (tier == 0 ? 3 : tier == 1 ? 5 : 7) : (tier == 0 ? 2 : tier == 1 ? 3 : 4);
@@ -379,18 +381,18 @@ Core::Expected<void, std::string> SeniorNpcDialog(const GameUiContext& context, 
     const std::array<std::string, 3> lines{std::move(first).Value(), std::move(second).Value(),
                                            std::move(last).Value()};
     const auto owner = (statue ? StatueOwners : GateOwners)[static_cast<std::size_t>(action)];
-    auto popup = CastleUi::Popup(context, lines, owner, UI::PanelDialogConfirm);
+    auto popup = CastleUi::Popup(context, lines, owner, Ui::PanelDialogConfirm);
     if (!popup.HasValue())
         return Core::Unexpected(std::move(popup).Error());
     runtime.castleSiege.senior.dialogId = popup.Value();
     return {};
 }
 
-Core::Expected<void, std::string> SeniorNpcs(const GameUiContext& context, bool statue)
+Core::Expected<void, std::string> SeniorNpcs(const Hud::GameUiContext& context, bool statue)
 {
     auto& runtime = context.world.Runtime();
-    constexpr std::array<UI::Point, 6> Gates{{{532, 122}, {514, 170}, {550, 170}, {498, 222}, {532, 222}, {566, 222}}};
-    constexpr std::array<UI::Point, 4> Statues{{{532, 107}, {532, 152}, {514, 197}, {550, 197}}};
+    constexpr std::array<Ui::Point, 6> Gates{{{532, 122}, {514, 170}, {550, 170}, {498, 222}, {532, 222}, {566, 222}}};
+    constexpr std::array<Ui::Point, 4> Statues{{{532, 107}, {532, 152}, {514, 197}, {550, 197}}};
     if (runtime.movement.pendingClick && Hit(context, 465, 87, 160, 165))
     {
         const std::size_t count = statue ? Statues.size() : Gates.size();
@@ -399,7 +401,7 @@ Core::Expected<void, std::string> SeniorNpcs(const GameUiContext& context, bool 
             const auto& point = statue ? Statues[i] : Gates[i];
             if (Hit(context, point.x, point.y, 24, 24))
             {
-                runtime.castleSiege.data.SetU32(statue ? UI::SelectedStatueAt : UI::SelectedGateAt,
+                runtime.castleSiege.data.SetU32(statue ? CastleSiege::SelectedStatueAt : CastleSiege::SelectedGateAt,
                                                 static_cast<std::uint32_t>(i));
                 break;
             }
@@ -415,7 +417,7 @@ Core::Expected<void, std::string> SeniorNpcs(const GameUiContext& context, bool 
     return {};
 }
 
-Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
+Core::Expected<void, std::string> SeniorTaxes(const Hud::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     auto& window = runtime.castleSiege.senior;
@@ -431,9 +433,10 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
         if (!confirm.HasValue())
             return Core::Unexpected(std::move(confirm).Error());
         const std::array<std::string, 3> lines{
-            Crt::Sprintf(chaos.Value(), runtime.castleSiege.data.U32(UI::ChaosTaxAt)),
-            Crt::Sprintf(store.Value(), runtime.castleSiege.data.U32(UI::StoreTaxAt)), std::move(confirm).Value()};
-        auto popup = CastleUi::Popup(context, lines, UI::PanelDialogOwner::CastleTaxes, UI::PanelDialogConfirm);
+            Crt::Sprintf(chaos.Value(), runtime.castleSiege.data.U32(CastleSiege::ChaosTaxAt)),
+            Crt::Sprintf(store.Value(), runtime.castleSiege.data.U32(CastleSiege::StoreTaxAt)),
+            std::move(confirm).Value()};
+        auto popup = CastleUi::Popup(context, lines, Ui::PanelDialogOwner::CastleTaxes, Ui::PanelDialogConfirm);
         if (!popup.HasValue())
             return Core::Unexpected(std::move(popup).Error());
         window.dialogId = popup.Value();
@@ -444,8 +447,8 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
         dialog.inputWidth = 70;
         dialog.inputMaxChars = 8;
         dialog.inputFilter = 1;
-        auto popup = CastleUi::PopupAt(context, {0x77302e0, 0x77301b4}, UI::PanelDialogOwner::CastleMoney,
-                                       UI::PanelDialogTextField | UI::PanelDialogYesNo);
+        auto popup = CastleUi::PopupAt(context, {0x77302e0, 0x77301b4}, Ui::PanelDialogOwner::CastleMoney,
+                                       Ui::PanelDialogTextField | Ui::PanelDialogYesNo);
         if (!popup.HasValue())
             return Core::Unexpected(std::move(popup).Error());
         window.dialogId = popup.Value();
@@ -458,7 +461,7 @@ Core::Expected<void, std::string> SeniorTaxes(const GameUiContext& context)
             input.dialogEdit.compositionStart = 0;
             input.dialogEdit.compositionLength = 0;
             // El helper compartido modela la pérdida de foco al ocultar el HWND; 0x660350 no llama SetFocusGame.
-            UI::ShowTheDialogField(input, UI::HiddenWindow);
+            Chat::ShowTheDialogField(input, Ui::HiddenWindow);
             input.messageLength = 0;
             runtime.social.dialogFieldLimit = 10;
         };
@@ -486,7 +489,7 @@ bool HasCraftSpace(const Kernel::WorldState& world)
     return false;
 }
 
-Core::Expected<void, std::string> SeniorCraft(const GameUiContext& context)
+Core::Expected<void, std::string> SeniorCraft(const Hud::GameUiContext& context)
 {
     if (!HeroCanCraftAtTheCastle(context.world) ||
         !Click(context, context.world.Runtime().castleSiege.senior.buttons[6]))
@@ -498,15 +501,15 @@ Core::Expected<void, std::string> SeniorCraft(const GameUiContext& context)
         return Core::Unexpected(std::move(text).Error());
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: el aviso de espacio del castillo sin medidor"));
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text.Value(), 2);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text.Value(), 2);
 }
 
-Core::Expected<void, std::string> StepSenior(const GameUiContext& context)
+Core::Expected<void, std::string> StepSenior(const Hud::GameUiContext& context)
 {
     auto& runtime = context.world.Runtime();
     const auto& window = runtime.castleSiege.senior;
     Cover(context, window.x, window.y);
-    if (UI::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
+    if (Ui::PanelDialogHandle(runtime.panels.delegated.panelDialog) != 0)
         return {};
     if (runtime.movement.leftHeld)
     {
@@ -533,16 +536,16 @@ Core::Expected<void, std::string> StepSenior(const GameUiContext& context)
     }
     if (!stepped.HasValue())
         return stepped;
-    return Close(context, UI::CastleSiegeListPanel, window.x + 25);
+    return Close(context, Ui::CastleSiegeListPanel, window.x + 25);
 }
 } // namespace
 
-Core::Expected<void, std::string> StepTheCastleWindow(const GameUiContext& context, UI::PanelId id)
+Core::Expected<void, std::string> StepTheCastleWindow(const Hud::GameUiContext& context, Ui::PanelId id)
 {
-    if (id == UI::CastleSiegePanel)
+    if (id == Ui::CastleSiegePanel)
         return StepRegistration(context);
-    if (id == UI::SecondCastleSiegePanel)
+    if (id == Ui::SecondCastleSiegePanel)
         return StepHunt(context);
     return StepSenior(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

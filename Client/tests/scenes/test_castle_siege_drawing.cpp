@@ -54,24 +54,24 @@ using Client::Actors::Drawing::DrawnObject;
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::MapScripts::CastleSiege::StepCastleSiegeObjectFrame;
 using Client::Math::RoundedSin;
 using Client::Models::IModelLibrary;
 using Client::Models::Skeleton;
+using Client::Particles::Particle;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::StepCastleSiegeObjectFrame;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CastleSiegeMap = 30;
 constexpr std::uint32_t Seed = 7;
 
 struct Fixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random{Seed};
     bool siege = false;
 
@@ -155,7 +155,7 @@ TEST(CastleSiegeObjectServicesTest, TheFountainSplashesOneOfTheTwoSplashesWithou
         Fixture fixture;
         fixture.random = CrtRandom(seed);
         CrtRandom draws(seed);
-        const std::int32_t type = Client::World::WaterfallSplashFirst + draws.Next() % 2;
+        const std::int32_t type = Client::Particles::WaterfallSplashFirst + draws.Next() % 2;
         for (int draw = 0; draw < 6; ++draw)
             static_cast<void>(draws.Next());
         WorldObject object = ObjectOf(0x36);
@@ -166,9 +166,9 @@ TEST(CastleSiegeObjectServicesTest, TheFountainSplashesOneOfTheTwoSplashesWithou
         EXPECT_EQ(alive[0]->subtype, 0);
         EXPECT_EQ(alive[0]->life, 20);
         EXPECT_EQ(alive[0]->light, glm::vec3(1.0f));
-        EXPECT_EQ(alive[0]->typedOwner, Client::World::ParticleOwner{});
+        EXPECT_EQ(alive[0]->typedOwner, Client::Particles::ParticleOwner{});
         EXPECT_EQ(fixture.random.State(), draws.State());
-        (type == Client::World::WaterfallSplashFirst ? first : second) = true;
+        (type == Client::Particles::WaterfallSplashFirst ? first : second) = true;
     }
     EXPECT_TRUE(first);
     EXPECT_TRUE(second);
@@ -236,8 +236,8 @@ TEST(CastleSiegeObjectServicesTest, TheTorchesSparkOnceInThreeOnTheirSideOfTheSi
             }
             ASSERT_EQ(alive.size(), 1u);
             const Particle& spark = *alive[0];
-            EXPECT_EQ(spark.type, Client::World::CrywolfFanta);
-            EXPECT_EQ(spark.texture, Client::World::CrywolfFanta);
+            EXPECT_EQ(spark.type, Client::Particles::CrywolfFanta);
+            EXPECT_EQ(spark.texture, Client::Particles::CrywolfFanta);
             EXPECT_EQ(spark.subtype, 0);
             EXPECT_EQ(spark.life, 24);
             EXPECT_EQ(spark.scale, 1.5f);
@@ -248,7 +248,7 @@ TEST(CastleSiegeObjectServicesTest, TheTorchesSparkOnceInThreeOnTheirSideOfTheSi
                       static_cast<float>(static_cast<double>(draws.Next() % 10 - 5) * static_cast<double>(0.4f)));
             EXPECT_EQ(spark.velocity.z,
                       static_cast<float>(static_cast<double>(draws.Next() % 10 + 5) * static_cast<double>(0.2f)));
-            EXPECT_EQ(spark.typedOwner, Client::World::ParticleOwner{});
+            EXPECT_EQ(spark.typedOwner, Client::Particles::ParticleOwner{});
             EXPECT_EQ(fixture.random.State(), draws.State());
         }
 
@@ -274,8 +274,8 @@ TEST(CastleSiegeObjectServicesTest, TheBrazierDropsItsFallOnEveryFrameWithoutThe
     const auto alive = fixture.Alive();
     ASSERT_EQ(alive.size(), 1u);
     const Particle& fall = *alive[0];
-    EXPECT_EQ(fall.type, Client::World::KalimaWaterfallLast);
-    EXPECT_EQ(fall.subtype, Client::World::BrazierFallSubtype);
+    EXPECT_EQ(fall.type, Client::Particles::KalimaWaterfallLast);
+    EXPECT_EQ(fall.subtype, Client::Particles::BrazierFallSubtype);
     EXPECT_EQ(fall.life, 30);
     EXPECT_EQ(fall.rotation, static_cast<float>(draws.Next() % 360));
     EXPECT_EQ(fall.scale, static_cast<float>(1.5 + static_cast<double>(std::bit_cast<float>(0x3f19999au))));
@@ -324,8 +324,8 @@ TEST(CastleSiegeObjectServicesTest, TheChimneySmokesOnlyDuringTheSiege)
         }
         ASSERT_EQ(alive.size(), 1u);
         const Particle& smoke = *alive[0];
-        EXPECT_EQ(smoke.type, Client::World::BreathParticle);
-        EXPECT_EQ(smoke.subtype, Client::World::CrywolfSmokeSubtype);
+        EXPECT_EQ(smoke.type, Client::Particles::BreathParticle);
+        EXPECT_EQ(smoke.subtype, Client::Particles::CrywolfSmokeSubtype);
         EXPECT_EQ(smoke.life, 80);
         const int size = (draws.Next() & 63) + 64;
         EXPECT_EQ(smoke.scale, static_cast<float>(static_cast<double>(size) * 1.5 *
@@ -585,9 +585,9 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
 {
     const SiegeModels models(1);
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    auto particles = std::make_unique<Client::World::Particles>();
-    Client::World::FrameSprites sprites;
-    std::array<Client::World::ModelEffect, 4> effects{};
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    Client::Particles::FrameSprites sprites;
+    std::array<Client::Effects::ModelEffect, 4> effects{};
     effects[3].alive = true;
     effects[3].type = 0xee;
     effects[3].alpha = 1;
@@ -620,7 +620,7 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
     EXPECT_TRUE(batch.Vertices().empty());
     EXPECT_TRUE(effects[3].seen);
     EXPECT_EQ(particles->All()[2].typedOwner,
-              (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::ModelEffect, 3}));
+              (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 3}));
     EXPECT_EQ(sprites.Sprites()[0].position, (glm::vec3{100, 201.5f, 300}));
     EXPECT_TRUE(sprites.Sprites()[9].alive);
     CrtRandom expected(Seed);

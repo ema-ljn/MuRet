@@ -7,7 +7,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <cstdint>
 #include <string>
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -69,4 +69,4 @@ Core::Expected<void, std::string> EmitTheCastleAttackHit(const Kernel::ActorStat
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

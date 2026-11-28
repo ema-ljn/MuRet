@@ -3,7 +3,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::UI
+namespace Client::Ui
 {
 PanelTimerFrame PanelTimerFrameAt(std::uint32_t now, std::uint32_t started, std::uint32_t ends)
 {
@@ -16,4 +16,4 @@ PanelTimerFrame PanelTimerFrameAt(std::uint32_t now, std::uint32_t started, std:
             .width = width,
             .du = static_cast<float>(static_cast<double>(width) * 0.00390625)};
 }
-} // namespace Client::UI
+} // namespace Client::Ui

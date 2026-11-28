@@ -31,15 +31,15 @@
 #include <sstream>
 #include <string>
 
-// Client::World::Particles con el aliento del caballo (0x5f2, subtipo 0) y la chispa del cuervo (0x5c6,
+// Client::Particles::Particles con el aliento del caballo (0x5f2, subtipo 0) y la chispa del cuervo (0x5c6,
 // subtipo 5) contra el código real del main.exe: 0x53fe70, 0x5446e0 y 0x548550(0) en 20 casos del aliento
 // y 8 de la chispa, de 20 pasos, con las que nacen en pasos al azar (tests/vectors/world55/particles.txt,
 // make_particle_vectors.py), bit a bit.
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 
 using Client::Math::Bits;
 
@@ -107,7 +107,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
     std::size_t step = 0;
     const auto checkUnlisted = [&]()
     {
-        for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+        for (std::size_t k = 0; k < Client::Particles::ParticleCount; ++k)
         {
             if (!listed.contains(k))
             {
@@ -152,14 +152,14 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
             ASSERT_TRUE(
                 particles.Create(particleType, position, angles, light, subtype, scale, clock, random).has_value())
                 << where;
-            sparks += particleType == Client::World::SparkParticle ? 1u : 0u;
+            sparks += particleType == Client::Particles::SparkParticle ? 1u : 0u;
             ++creations;
         }
         else if (kind == "step")
         {
             ++step;
             listed.clear();
-            Client::World::StepParticles(particles, random);
+            Client::Particles::StepParticles(particles, random);
             EXPECT_EQ(Bits(particles.Wind().wind.x), Bits(next())) << where << ": el viento x";
             EXPECT_EQ(Bits(particles.Wind().wind.y), Bits(next())) << where << ": el viento y";
             EXPECT_EQ(Bits(particles.Wind().change.x), Bits(next())) << where << ": el cambio x";
@@ -191,7 +191,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
             recorder.dimensions.insert_or_assign(particleType, textureSize);
             recorder.materialFlags.insert_or_assign(particleType, static_cast<std::uint8_t>(components));
             const float clock = 0.0f;
-            ASSERT_TRUE(Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder).HasValue())
+            ASSERT_TRUE(Client::Particles::DrawParticlesChecked(particles, 0, std::cref(clock), recorder).HasValue())
                 << where;
             std::size_t read = 0;
             for (const Client::Tests::RecordedParticleDraw& drawn : recorder.draws)
@@ -250,21 +250,21 @@ TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
 {
     Particles particles;
     CrtRandom random(5);
-    for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::ParticleCount; ++k)
     {
-        ASSERT_EQ(particles.Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0,
-                                   1.0f, 0.0f, random),
+        ASSERT_EQ(particles.Create(Client::Particles::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f),
+                                   0, 1.0f, 0.0f, random),
                   k);
     }
     const std::uint32_t before = random.State();
     EXPECT_FALSE(particles
-                     .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0, 1.0f,
-                             0.0f, random)
+                     .Create(Client::Particles::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0,
+                             1.0f, 0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), before);
     particles.Clear();
     EXPECT_FALSE(particles.Any());
-    EXPECT_EQ(particles.Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0,
+    EXPECT_EQ(particles.Create(Client::Particles::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0,
                                1.0f, 0.0f, random),
               0u);
 }
@@ -274,30 +274,31 @@ TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
 {
     Particles particles;
     CrtRandom random(5);
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const glm::vec3 zero{};
     int boneCalls = 0;
-    const Client::World::ParticleOwnerBones bones = [&boneCalls](const Particle&)
+    const Client::Particles::ParticleOwnerBones bones = [&boneCalls](const Particle&)
     {
         ++boneCalls;
         return std::optional<glm::vec3>{};
     };
-    using Result = Client::Core::Expected<std::optional<std::size_t>, Client::World::ParticleError>;
+    using Result = Client::Core::Expected<std::optional<std::size_t>, Client::Particles::ParticleError>;
     const std::array<std::function<Result()>, 6> create{
         {[&] { return particles.CreateChecked(-1, zero, zero, zero, -1, 1.0f, clock, random); }, [&]
          { return particles.CreateChecked(-1, zero, zero, zero, -1, 1.0f, std::cref(clock), random, 0, trigonometry); },
          [&] { return particles.CreateKalimaChecked(-1, zero, zero, zero, -1, 1.0f, clock, random, 0); },
          [&] { return particles.CreateOwnedChecked(-1, zero, zero, zero, -1, 1.0f, clock, random, 0); },
          [&] { return particles.CreateFollowingChecked(-1, zero, zero, zero, -1, 1.0f, {}, bones); },
-         [&] {
-             return particles.CreateFollowingChecked(Client::World::SkillShineParticle, zero, zero, zero, 0, 1.0f, {},
-                                                     bones);
+         [&]
+         {
+             return particles.CreateFollowingChecked(Client::Particles::SkillShineParticle, zero, zero, zero, 0, 1.0f,
+                                                     {}, bones);
          }}};
     for (Particle& particle : particles.All())
     {
         particle.alive = true;
-        particle.type = Client::World::BreathParticle;
+        particle.type = Client::Particles::BreathParticle;
         particle.position = glm::vec3(7.0f);
         particle.life = 42;
     }
@@ -320,10 +321,10 @@ TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
 
     // Un lugar libre al final alcanza para restablecer los errores de validación habituales.
     particles.All().back().alive = false;
-    constexpr std::array<Client::World::ParticleError, 6> Errors{
-        Client::World::ParticleError::UnsupportedType,    Client::World::ParticleError::UnsupportedType,
-        Client::World::ParticleError::UnsupportedSubtype, Client::World::ParticleError::UnsupportedSubtype,
-        Client::World::ParticleError::UnsupportedType,    Client::World::ParticleError::MissingOwner};
+    constexpr std::array<Client::Particles::ParticleError, 6> Errors{
+        Client::Particles::ParticleError::UnsupportedType,    Client::Particles::ParticleError::UnsupportedType,
+        Client::Particles::ParticleError::UnsupportedSubtype, Client::Particles::ParticleError::UnsupportedSubtype,
+        Client::Particles::ParticleError::UnsupportedType,    Client::Particles::ParticleError::MissingOwner};
     for (std::size_t entry = 0; entry < create.size(); ++entry)
     {
         SCOPED_TRACE(entry);
@@ -344,16 +345,16 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
     EXPECT_FALSE(
         particles.Create(0x5f3, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 2, 1.0f, 0.0f, random).has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5, 1.0f,
-                             0.0f, random)
-                     .has_value());
-    EXPECT_FALSE(particles
-                     .Create(Client::World::MagicSparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5,
+                     .Create(Client::Particles::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 5,
                              1.0f, 0.0f, random)
                      .has_value());
     EXPECT_FALSE(particles
-                     .Create(Client::World::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 11, 1.0f,
-                             0.0f, random)
+                     .Create(Client::Particles::MagicSparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f),
+                             5, 1.0f, 0.0f, random)
+                     .has_value());
+    EXPECT_FALSE(particles
+                     .Create(Client::Particles::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 11,
+                             1.0f, 0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());
 }
@@ -365,14 +366,14 @@ TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
 {
     Particles particles;
     CrtRandom random(1);
-    const auto index = particles.CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f},
+    const auto index = particles.CreateChecked(Client::Particles::DustParticle, {1000.5f, 2000.25f, 300.0f},
                                                {0.0f, 0.0f, 0.0f}, glm::vec3(1.0f), 0, 1.5f, 0.0f, random);
     ASSERT_TRUE(index.HasValue());
     ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
     const Particle& dust = particles.All()[0];
     EXPECT_TRUE(dust.alive);
-    EXPECT_EQ(dust.type, Client::World::DustParticle);
-    EXPECT_EQ(dust.texture, Client::World::DustParticle);
+    EXPECT_EQ(dust.type, Client::Particles::DustParticle);
+    EXPECT_EQ(dust.texture, Client::Particles::DustParticle);
     EXPECT_EQ(dust.life, 32);
     EXPECT_EQ(dust.position, (glm::vec3{1001.5f, 1995.25f, 300.0f}));
     EXPECT_EQ(Bits(dust.scale), 0x3f6e147bu);
@@ -386,8 +387,8 @@ TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
     EXPECT_EQ(random.State(), expected.State());
 
     const glm::vec3 turn{0.0f, 0.0f, 45.0f};
-    const auto turned = particles.CreateChecked(Client::World::DustParticle, glm::vec3(0.0f), turn, glm::vec3(1.0f), 0,
-                                                1.0f, 0.0f, random);
+    const auto turned = particles.CreateChecked(Client::Particles::DustParticle, glm::vec3(0.0f), turn, glm::vec3(1.0f),
+                                                0, 1.0f, 0.0f, random);
     ASSERT_TRUE(turned.HasValue());
     ASSERT_EQ(turned.Value(), std::optional<std::size_t>{1});
     EXPECT_EQ(particles.All()[1].velocity,
@@ -403,17 +404,17 @@ TEST(ParticlesTest, TheGallopDustMovesTwiceBrakesAndSitsOnTheGround)
     Particles particles;
     CrtRandom random(1);
     ASSERT_TRUE(particles
-                    .CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
+                    .CreateChecked(Client::Particles::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
                                    glm::vec3(1.0f), 0, 1.5f, 0.0f, random)
                     .HasValue());
     Particle& dust = particles.All()[0];
     dust.angles = glm::vec3(0.0f);
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
     glm::vec2 asked{};
     std::int32_t textureAsked = 0;
-    const auto stepped = Client::World::StepParticlesChecked(
+    const auto stepped = Client::Particles::StepParticlesChecked(
         particles, random, std::cref(clock), &map, trigonometry,
         [&asked](float x, float y)
         {
@@ -437,7 +438,7 @@ TEST(ParticlesTest, TheGallopDustMovesTwiceBrakesAndSitsOnTheGround)
     EXPECT_EQ(Bits(dust.position.z), 0x438d28f6u);
     EXPECT_EQ(dust.velocity, (glm::vec3{0.0f, std::bit_cast<float>(0x402cccccu), 0.0f}));
     EXPECT_EQ(asked, (glm::vec2{1001.5f, 2001.25f}));
-    EXPECT_EQ(textureAsked, Client::World::DustParticle);
+    EXPECT_EQ(textureAsked, Client::Particles::DustParticle);
     CrtRandom expected(1);
     for (int draw = 0; draw < 6; ++draw)
         static_cast<void>(expected.Next());
@@ -454,24 +455,24 @@ TEST(ParticlesTest, TheGallopDustNeedsTheGroundAndItsTexture)
         Particles particles;
         CrtRandom random(1);
         ASSERT_TRUE(particles
-                        .CreateChecked(Client::World::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
+                        .CreateChecked(Client::Particles::DustParticle, {1000.5f, 2000.25f, 300.0f}, glm::vec3(0.0f),
                                        glm::vec3(1.0f), 0, 1.5f, 0.0f, random)
                         .HasValue());
         Particle& dust = particles.All()[0];
         dust.angles = glm::vec3(0.0f);
-        Client::World::PortableParticleTrigonometry trigonometry;
+        Client::Particles::PortableParticleTrigonometry trigonometry;
         const float clock = 0.0f;
         const std::int32_t map = 0;
-        const Client::World::ParticleTerrainHeight ground =
-            withGround ? Client::World::ParticleTerrainHeight([](float, float) { return 250.0; })
-                       : Client::World::ParticleTerrainHeight{};
+        const Client::Particles::ParticleTerrainHeight ground =
+            withGround ? Client::Particles::ParticleTerrainHeight([](float, float) { return 250.0; })
+                       : Client::Particles::ParticleTerrainHeight{};
         const auto stepped =
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, ground, {}, {},
-                                                [](std::int32_t) { return std::optional<float>{}; });
+            Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry, ground, {},
+                                                    {}, [](std::int32_t) { return std::optional<float>{}; });
 
         ASSERT_FALSE(stepped.HasValue());
-        EXPECT_EQ(stepped.Error(), withGround ? Client::World::ParticleError::MissingTextureSize
-                                              : Client::World::ParticleError::MissingTerrainHeight);
+        EXPECT_EQ(stepped.Error(), withGround ? Client::Particles::ParticleError::MissingTextureSize
+                                              : Client::Particles::ParticleError::MissingTerrainHeight);
         EXPECT_EQ(Bits(dust.scale), 0x3f8147aeu);
         EXPECT_EQ(dust.position, (glm::vec3{1001.5f, 2001.25f, 300.0f}));
         EXPECT_EQ(dust.velocity.y, std::bit_cast<float>(0x402cccccu));
@@ -484,7 +485,7 @@ TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
 {
     Particle dust;
     dust.alive = true;
-    dust.type = dust.texture = Client::World::DustParticle;
+    dust.type = dust.texture = Client::Particles::DustParticle;
     dust.scale = 0.5f;
     dust.angles = {220.0f, 0.0f, 0.0f};
     dust.light = glm::vec3(0.75f);
@@ -495,7 +496,7 @@ TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_TRUE(drawn.Value().has_value());
     EXPECT_EQ(drawn.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Blended);
-    EXPECT_EQ(drawn.Value()->texture, Client::World::DustParticle);
+    EXPECT_EQ(drawn.Value()->texture, Client::Particles::DustParticle);
     EXPECT_EQ(drawn.Value()->width, 32.0f);
     EXPECT_EQ(drawn.Value()->height, 32.0f);
     EXPECT_EQ(drawn.Value()->rotation, 0.0f);
@@ -511,14 +512,14 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
 {
     Particles particles;
     CrtRandom random(1);
-    const auto index = particles.CreateChecked(Client::World::ExplosionParticle, {1000.5f, 2000.25f, 300.0f},
+    const auto index = particles.CreateChecked(Client::Particles::ExplosionParticle, {1000.5f, 2000.25f, 300.0f},
                                                glm::vec3(0.0f), glm::vec3(1.0f), 0, 0.5f, 0.0f, random);
     ASSERT_TRUE(index.HasValue());
     ASSERT_EQ(index.Value(), std::optional<std::size_t>{0});
     Particle& explosion = particles.All()[0];
     EXPECT_TRUE(explosion.alive);
-    EXPECT_EQ(explosion.type, Client::World::ExplosionParticle);
-    EXPECT_EQ(explosion.texture, Client::World::ExplosionParticle);
+    EXPECT_EQ(explosion.type, Client::Particles::ExplosionParticle);
+    EXPECT_EQ(explosion.texture, Client::Particles::ExplosionParticle);
     EXPECT_EQ(explosion.subtype, 0);
     EXPECT_EQ(explosion.life, 20);
     EXPECT_EQ(explosion.scale, 0.5f);
@@ -527,7 +528,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
     EXPECT_EQ(explosion.light, glm::vec3(1.0f));
     EXPECT_EQ(random.State(), 1u);
 
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
     CrtRandom expectedRandom(1);
@@ -535,8 +536,8 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
     {
         SCOPED_TRACE(life);
         auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        const auto stepped = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map,
-                                                                 trigonometry, {}, {}, {}, {}, lighting.get());
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map,
+                                                                     trigonometry, {}, {}, {}, {}, lighting.get());
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(explosion.life, life);
         EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), (20 - life) / 2);
@@ -546,8 +547,8 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3e99999au))),
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)))};
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(
-            Client::World::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test").HasValue());
+        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test")
+                        .HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
         static_cast<void>(expectedRandom.Next());
         static_cast<void>(expectedRandom.Next());
@@ -555,9 +556,9 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
     }
 
     // Sin la luz dinámica, corta con el cuadro ya escrito.
-    const auto blind = Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
+    const auto blind = Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
     ASSERT_FALSE(blind.HasValue());
-    EXPECT_EQ(blind.Error(), Client::World::ParticleError::MissingDynamicLight);
+    EXPECT_EQ(blind.Error(), Client::Particles::ParticleError::MissingDynamicLight);
     EXPECT_EQ(explosion.life, 16);
     EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), 2);
 }
@@ -569,7 +570,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionDrawsItsFrameFromAFourByFourAtlas)
 {
     Particle explosion;
     explosion.alive = true;
-    explosion.type = explosion.texture = Client::World::ExplosionParticle;
+    explosion.type = explosion.texture = Client::Particles::ExplosionParticle;
     explosion.scale = 0.5f;
     explosion.angles = {30.0f, 0.0f, 0.0f};
     explosion.rotation = 12.0f;
@@ -584,7 +585,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionDrawsItsFrameFromAFourByFourAtlas)
         ASSERT_TRUE(drawn.HasValue());
         ASSERT_TRUE(drawn.Value().has_value());
         EXPECT_EQ(drawn.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Alpha);
-        EXPECT_EQ(drawn.Value()->texture, Client::World::ExplosionParticle);
+        EXPECT_EQ(drawn.Value()->texture, Client::Particles::ExplosionParticle);
         EXPECT_EQ(drawn.Value()->rotation, 0.0f);
         EXPECT_EQ(drawn.Value()->position, (glm::vec3{1.0f, 2.0f, 3.0f}));
         EXPECT_EQ(drawn.Value()->uv, (glm::vec2{static_cast<float>((frame % 4) * 0.25 + inset),
@@ -598,7 +599,7 @@ TEST(ParticlesTest, ANotANumberClockTurnsNothing)
 {
     Particles particles;
     CrtRandom random(5);
-    const auto index = particles.Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f),
+    const auto index = particles.Create(Client::Particles::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f),
                                         glm::vec3(3.0f), 0, 1.0f, std::numeric_limits<float>::quiet_NaN(), random);
     ASSERT_TRUE(index.has_value());
     EXPECT_EQ(particles.All()[*index].rotation, 0.0f);
@@ -623,15 +624,15 @@ TEST(ParticlesTest, AMovingParticleTurnsItsVelocityByItsAngles)
 {
     Particles particles;
     CrtRandom random(9);
-    const auto index = particles.Create(Client::World::BreathParticle, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 0.0f},
-                                        glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
+    const auto index = particles.Create(Client::Particles::BreathParticle, {1000.0f, 2000.0f, 300.0f},
+                                        {0.0f, 0.0f, 0.0f}, glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(index.has_value());
     Particle& particle = particles.All()[*index];
     particle.velocity = {3.0f, -2.0f, 0.5f};
     particle.angles = {10.0f, 20.0f, 30.0f};
     const glm::vec3 turned =
         Client::Math::OriginalVectorRotate(particle.velocity, Client::Math::OriginalAngleMatrix(particle.angles));
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.position.x), Bits(static_cast<float>(static_cast<double>(turned.x) + 1000.0)));
     EXPECT_EQ(Bits(particle.position.y), Bits(static_cast<float>(static_cast<double>(turned.y) + 2000.0)));
     const auto moved = static_cast<float>(static_cast<double>(turned.z) + 300.0);
@@ -639,7 +640,7 @@ TEST(ParticlesTest, AMovingParticleTurnsItsVelocityByItsAngles)
               Bits(static_cast<float>((0.0 + static_cast<double>(0.2f)) + static_cast<double>(moved))));
     particle.moves = false;
     const glm::vec3 still = particle.position;
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.position.x, still.x) << "sin +0x4c no se mueve";
 }
 } // namespace

@@ -152,9 +152,9 @@ template <> struct RoutedPart<const Tables::TextTable*>
     }
 };
 
-template <> struct RoutedPart<World::LeafWeather&>
+template <> struct RoutedPart<Weather::LeafWeather&>
 {
-    static World::LeafWeather& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
+    static Weather::LeafWeather& Of(const Scenes::WorldEntryResources& world, App::ServerSession&)
     {
         return world.world.Runtime().leafWeather;
     }
@@ -169,26 +169,26 @@ template <> struct RoutedPart<Kernel::PlayerKey>
 };
 
 // The chat's context, with the session's chosen character, chat rooms and GameServer for the guild's window.
-template <> struct RoutedPart<const Scenes::ChatReceiveContext&>
+template <> struct RoutedPart<const Chat::ChatReceiveContext&>
 {
-    static Scenes::ChatReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
+    static Chat::ChatReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
 };
 
 // The guild's context, with the session's player and GameServer.
-template <> struct RoutedPart<const Scenes::GuildReceiveContext&>
+template <> struct RoutedPart<const Guild::GuildReceiveContext&>
 {
-    static Scenes::GuildReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
+    static Guild::GuildReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
 };
 
 // The castle's context, with the session's GameServer.
-template <> struct RoutedPart<const Scenes::CastleReceiveContext&>
+template <> struct RoutedPart<const CastleSiege::CastleReceiveContext&>
 {
-    static Scenes::CastleReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
+    static CastleSiege::CastleReceiveContext Of(const Scenes::WorldEntryResources& world, App::ServerSession& session);
 };
 
-template <> struct RoutedPart<const Scenes::ActorCombatContext&>
+template <> struct RoutedPart<const Combat::ActorCombatContext&>
 {
-    static Scenes::ActorCombatContext Of(const Scenes::WorldEntryResources& world, App::ServerSession&);
+    static Combat::ActorCombatContext Of(const Scenes::WorldEntryResources& world, App::ServerSession&);
 };
 
 // The C1 18 through the session's GameServer (App::ServerSession::SendAction).
@@ -198,9 +198,9 @@ template <> struct RoutedPart<const Actors::ActionSender&>
 };
 
 // A world packet through the session's GameServer (App::ServerSession::SendGamePacket).
-template <> struct RoutedPart<const Scenes::GamePacketSender&>
+template <> struct RoutedPart<const Social::GamePacketSender&>
 {
-    static Scenes::GamePacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
+    static Social::GamePacketSender Of(const Scenes::WorldEntryResources&, App::ServerSession& session);
 };
 
 // The kernel's port over the session's GameServer.

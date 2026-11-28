@@ -28,7 +28,7 @@ Core::Expected<ConnectProgress, SocketError> FakeSocket::StartConnect(std::strin
     {
         Close();
     }
-    connects.push_back(App::ServerAddress{.host = std::string(host), .port = port});
+    connects.push_back(Session::ServerAddress{.host = std::string(host), .port = port});
     // Como en SystemSocket, un nombre que no resuelve no llega a crear el socket.
     if (connectResult == SocketError::ResolveFailed)
     {

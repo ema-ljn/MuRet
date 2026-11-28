@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <system_error>
 
-namespace Client::World
+namespace Client::Weather
 {
 enum class LeafWave : std::uint8_t
 {
@@ -29,4 +29,4 @@ public:
     [[nodiscard]] virtual Core::Expected<void, std::error_code> Evaluate(LeafWave wave, float time) = 0;
     [[nodiscard]] virtual Core::Expected<std::int32_t, std::error_code> Truncate() = 0;
 };
-} // namespace Client::World
+} // namespace Client::Weather

@@ -53,17 +53,17 @@ struct BareWorld
 
     Kernel::WorldState world;
     Session::ModuleStates states;
-    Scenes::SelectionState selection{world};
+    FrontEnd::SelectionState selection{world};
     Camera::GameCamera camera;
     Camera::GameCameraInput input;
     Models::ClothWorld cloth;
-    Scenes::SingleModelLibrary models;
+    FrontEnd::SingleModelLibrary models;
     LetterMeasure measure;
     std::unique_ptr<Tables::ItemTable> items;
     std::unique_ptr<Tables::ItemSetTables> itemSets;
     RecordingSink sink;
     Core::Log log{sink, Core::LogLevel::Debug};
-    Scenes::ActorEffectHooks effectHooks;
+    Effects::ActorEffectHooks effectHooks;
     Scenes::WorldEntryResources resources{.world = world,
                                           .selection = selection,
                                           .dataRoot = {},

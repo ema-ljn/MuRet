@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -44,7 +44,7 @@ void ApplyPetOrder(const Protocol::Pets::PetOrder& order, Kernel::WorldState& wo
     spirit.target = Kernel::ActorWithKey(world, order.key);
 }
 
-void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryResources& resources)
+void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::ActorState& owner = world.Actors()[Kernel::ActorWithKey(world, attack.owner)];
@@ -79,4 +79,4 @@ void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const WorldEntryRes
     if (spirit.state == ShoutingState)
         world.Runtime().RequestSound(Audio::SoundId{0x1d0});
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

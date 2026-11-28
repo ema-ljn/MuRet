@@ -10,7 +10,7 @@
 // en 0x4c2290 y 0x4e2fe9, y el OK de cada uno sigue en 0x643560. Los del login son del tipo 2, un
 // OK; los de la selección van por KindOf. Los textos van por índice de Text.bmd: acá no hay
 // ninguno escrito.
-namespace Client::UI
+namespace Client::Ui
 {
 // El número del aviso, el que recibe 0x65ee60.
 using NoticeId = std::uint8_t;
@@ -96,4 +96,4 @@ enum class NoticeFollowUp : std::uint8_t
 };
 
 [[nodiscard]] NoticeFollowUp FollowUpOf(NoticeId notice);
-} // namespace Client::UI
+} // namespace Client::Ui

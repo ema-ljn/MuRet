@@ -19,23 +19,23 @@
 #include <span>
 #include <vector>
 
-// Client::Scenes::CreatePreview: la vista previa de la ventana de crear (0x63e460 y 0x63e3e0, con
+// Client::FrontEnd::CreatePreview: la vista previa de la ventana de crear (0x63e460 y 0x63e3e0, con
 // 0x63e430 en el paso), con un NewFace sintético por clase.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::ChoosePreviewClass;
+using Client::FrontEnd::CreatePreview;
+using Client::FrontEnd::DrawnPreview;
+using Client::FrontEnd::FirstNewFaceModel;
+using Client::FrontEnd::PreviewCamera;
+using Client::FrontEnd::PreviewViewport;
+using Client::FrontEnd::StepPreview;
 using Client::Models::ActionInfo;
 using Client::Models::BoneKey;
 using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
-using Client::Scenes::ChoosePreviewClass;
-using Client::Scenes::CreatePreview;
-using Client::Scenes::DrawnPreview;
-using Client::Scenes::FirstNewFaceModel;
-using Client::Scenes::PreviewCamera;
-using Client::Scenes::PreviewViewport;
-using Client::Scenes::StepPreview;
-using Client::UI::Rect;
+using Client::Ui::Rect;
 
 // Dos acciones de 4 keys, la 1 sin repetir, en un hueso.
 class FaceModels final : public Client::Models::IModelLibrary

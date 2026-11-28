@@ -61,19 +61,19 @@
 // textos son inventados.
 namespace
 {
+using Client::Chat::ChatReceiveContext;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
 using Client::Protocol::Outgoing;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::ChatReceiveContext;
-using Client::UI::FriendSend;
-using Client::UI::FriendSendKind;
-using Client::UI::OldPortraitPart;
-using Client::UI::OldWindow;
-using Client::UI::OldWindowKind;
-using Client::UI::PortraitCallKind;
+using Client::Ui::FriendSend;
+using Client::Ui::FriendSendKind;
+using Client::Ui::OldPortraitPart;
+using Client::Ui::OldWindow;
+using Client::Ui::OldWindowKind;
+using Client::Ui::PortraitCallKind;
 
 constexpr std::uint32_t Seed = 9191;
 constexpr std::string_view Hero = "Yaguarete";
@@ -194,7 +194,7 @@ std::map<std::size_t, std::string> LetterTexts()
     };
 }
 
-class FakeRequests final : public Client::Scenes::IGameUiRequests
+class FakeRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}
@@ -242,9 +242,9 @@ protected:
 
     // Lo que el juego le da al paso (Scenes/GameUi), con un retrato de prueba: arma el personaje (+0x68c en 1) con el
     // zoom de 0,8 y no saca rand().
-    [[nodiscard]] Client::UI::OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
+    [[nodiscard]] Client::Ui::OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
     {
-        Client::UI::OldWindowStepView view{.mouseX = x,
+        Client::Ui::OldWindowStepView view{.mouseX = x,
                                            .mouseY = y,
                                            .keyEdge = [](std::uint8_t /*key*/) { return false; },
                                            .keyDown = {},
@@ -265,7 +265,7 @@ protected:
             }
             return {};
         };
-        // Solo anota la copia. El del juego (Scenes::LendTheGameHooks) la lee con ReadLetterCopy, que también lee la
+        // Solo anota la copia. El del juego (Hud::LendTheGameHooks) la lee con ReadLetterCopy, que también lee la
         // de una carta de 1000 (LettersTest.TheCopyOfAThousandLetterLetterReadsAgain), y la da a ApplyLetterRead.
         view.replayLetter = [this](const std::vector<std::byte>& copy) -> Client::Core::Expected<void, std::string>
         {
@@ -276,35 +276,35 @@ protected:
         return view;
     }
 
-    [[nodiscard]] Client::UI::OldWindowGlobals Globals()
+    [[nodiscard]] Client::Ui::OldWindowGlobals Globals()
     {
-        return Client::Scenes::OldWindowGlobalsOf(Runtime());
+        return Client::Hud::OldWindowGlobalsOf(Runtime());
     }
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x = 639, std::int32_t y = 479)
     {
-        return Client::UI::StepTheOldWindows(Manager(), Globals(), View(x, y));
+        return Client::Ui::StepTheOldWindows(Manager(), Globals(), View(x, y));
     }
 
     // La de amigos con tres: dos en línea y uno fuera.
     void OpenTheFriendsWithThree()
     {
-        auto opened = Client::UI::OpenTheFriendsWindow(Manager(), Client::UI::FriendsWindowX,
-                                                       Client::UI::FriendsWindowY, Globals(), View());
+        auto opened = Client::Messenger::OpenTheFriendsWindow(Manager(), Client::Messenger::FriendsWindowX,
+                                                              Client::Messenger::FriendsWindowY, Globals(), View());
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
-        Client::UI::AddAFriend(Manager().friendModel, "Tordo", 0, 2);
-        Client::UI::AddAFriend(Manager().friendModel, "Calandria", 0, 1);
-        Client::UI::AddAFriend(Manager().friendModel, "Benteveo", 0, 0xfd);
-        Client::UI::RefreshTheFriendTab(Manager());
+        Client::Messenger::AddAFriend(Manager().friendModel, "Tordo", 0, 2);
+        Client::Messenger::AddAFriend(Manager().friendModel, "Calandria", 0, 1);
+        Client::Messenger::AddAFriend(Manager().friendModel, "Benteveo", 0, 0xfd);
+        Client::Messenger::RefreshTheFriendTab(Manager());
     }
 
     void ChooseTheFriend(std::string_view name)
     {
-        OldWindow& tab = Friends().tabs[Client::UI::FriendTabNumber];
+        OldWindow& tab = Friends().tabs[Client::Messenger::FriendTabNumber];
         for (std::size_t at = 0; at < tab.tab.friends.size(); ++at)
         {
             if (tab.tab.friends[at].name == name)
-                Client::UI::SelectInTheList(tab.tab.list, tab.tab.friends.size(), static_cast<std::int32_t>(at + 1));
+                Client::Ui::SelectInTheList(tab.tab.list, tab.tab.friends.size(), static_cast<std::int32_t>(at + 1));
         }
     }
 
@@ -314,19 +314,21 @@ protected:
     {
         OpenTheFriendsWithThree();
         ChooseTheFriend("Tordo");
-        Client::UI::PostToTheWindow(Manager(), Friends().tabs[Client::UI::FriendTabNumber].base.id,
-                                    Client::UI::CommandMessage, 3, 0);
+        Client::Ui::PostToTheWindow(Manager(), Friends().tabs[Client::Messenger::FriendTabNumber].base.id,
+                                    Client::Ui::CommandMessage, 3, 0);
         if (!Step().HasValue())
             return 0;
-        const auto joined = Client::Scenes::ApplyRoomAnswer(
+        const auto joined = Client::Messenger::ApplyRoomAnswer(
             Client::Protocol::Messenger::RoomAnswer{
                 .address = "10.0.0.9", .room = 0x0304, .ticket = 77, .type = 0, .name = "Tordo", .result = 1},
             Context());
         OldWindow* chat = FirstOfKind(OldWindowKind::ChatWindow);
         if (!joined.HasValue() || chat == nullptr)
             return 0;
-        if (!Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue() ||
-            !Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue())
+        if (!Client::Messenger::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure)
+                 .HasValue() ||
+            !Client::Messenger::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure)
+                 .HasValue())
             return 0;
         m_rooms.calls.clear();
         return chat->base.id;
@@ -351,7 +353,7 @@ protected:
     {
         for (const auto& message : Manager().queue)
         {
-            if (message.type == Client::UI::CloseMessage && message.a == id)
+            if (message.type == Client::Ui::CloseMessage && message.a == id)
                 return true;
         }
         return false;
@@ -362,7 +364,7 @@ protected:
         return m_world->Runtime();
     }
 
-    [[nodiscard]] Client::UI::OldWindowManager& Manager()
+    [[nodiscard]] Client::Ui::OldWindowManager& Manager()
     {
         return Runtime().oldWindows;
     }
@@ -378,8 +380,8 @@ protected:
     CrtRandom m_random;
     LetterMeasure m_letters;
     Client::Tables::TextTable m_texts;
-    Client::UI::OldWindowTexts m_oldTexts = Client::Scenes::OldWindowTextsOf(&m_texts);
-    Client::UI::OldWindowMeasure m_oldMeasure{
+    Client::Ui::OldWindowTexts m_oldTexts = Client::Messenger::OldWindowTextsOf(&m_texts);
+    Client::Ui::OldWindowMeasure m_oldMeasure{
         .measure = m_letters, .dcFont = FontKind::Normal, .screen = Client::Core::PixelSize{640, 480}};
     std::vector<FriendSend> m_sent;
     std::vector<PortraitCallKind> m_portraitCalls;
@@ -397,24 +399,24 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
 {
     OpenTheFriendsWithThree();
     ChooseTheFriend("Tordo");
-    const std::int32_t friendTab = Friends().tabs[Client::UI::FriendTabNumber].base.id;
-    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 3, 0);
+    const std::int32_t friendTab = Friends().tabs[Client::Messenger::FriendTabNumber].base.id;
+    Client::Ui::PostToTheWindow(Manager(), friendTab, Client::Ui::CommandMessage, 3, 0);
     ASSERT_TRUE(Step().HasValue());
-    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 3, 0);
+    Client::Ui::PostToTheWindow(Manager(), friendTab, Client::Ui::CommandMessage, 3, 0);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(m_sent[0].kind, FriendSendKind::RoomRequest);
     auto request = Bytes({0xc1, 0x0d, 0xca});
     Append(request, "Tordo", 10);
-    EXPECT_EQ(BytesOf(Client::Scenes::FriendPacketOf(m_sent[0])), Xor32Of(request));
-    EXPECT_TRUE(Client::UI::IsAPendingChat(Manager(), "Tordo"));
+    EXPECT_EQ(BytesOf(Client::Messenger::FriendPacketOf(m_sent[0])), Xor32Of(request));
+    EXPECT_TRUE(Client::Messenger::IsAPendingChat(Manager(), "Tordo"));
 
-    const auto joined = Client::Scenes::ApplyRoomAnswer(
+    const auto joined = Client::Messenger::ApplyRoomAnswer(
         Client::Protocol::Messenger::RoomAnswer{
             .address = "10.0.0.9", .room = 0x0304, .ticket = 77, .type = 0, .name = "Tordo", .result = 1},
         Context());
     ASSERT_TRUE(joined.HasValue()) << joined.Error();
-    EXPECT_FALSE(Client::UI::IsAPendingChat(Manager(), "Tordo"));
+    EXPECT_FALSE(Client::Messenger::IsAPendingChat(Manager(), "Tordo"));
     OldWindow* chat = FirstOfKind(OldWindowKind::ChatWindow);
     ASSERT_NE(chat, nullptr);
     const std::int32_t chatId = chat->base.id;
@@ -422,7 +424,7 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(Manager().windowList.list.chats, std::deque<std::int32_t>{chatId});
     EXPECT_EQ(Manager().chatRooms.used[0], 1);
     EXPECT_EQ(Manager().chatRooms.slots.at(0), 0x0304u);
-    const Client::UI::ChatRoom* room = Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304);
+    const Client::Messenger::ChatRoom* room = Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304);
     ASSERT_NE(room, nullptr);
     EXPECT_EQ(room->window, chatId);
     ASSERT_EQ(m_rooms.calls.size(), 2u);
@@ -435,14 +437,16 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(m_rooms.calls[1].bytes,
               Xor32Of(Joined(Bytes({0xc1, 0x10, 0x00, 0x00, 0x04, 0x03}), ChatTextOf("77", 10))));
 
-    ASSERT_TRUE(Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
-    const auto members = Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure);
+    ASSERT_TRUE(
+        Client::Messenger::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
+    const auto members =
+        Client::Messenger::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure);
     ASSERT_TRUE(members.HasValue()) << members.Error();
     EXPECT_EQ(members.Value(), 2);
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("Chat: Tordo"));
-    EXPECT_EQ(Client::UI::FindTheChatWith(Manager(), "Tordo", Hero), chatId);
+    EXPECT_EQ(Client::Messenger::FindTheChatWith(Manager(), "Tordo", Hero), chatId);
 
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::CommandMessage, 1, 0);
     ASSERT_TRUE(Step().HasValue());
     chat = &Manager().windows.at(chatId);
     EXPECT_EQ(chat->chat.mode, 2);
@@ -450,19 +454,19 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(chat->chat.invitable[0].name, "Calandria");
     // El 6 (subir el chat, 0x49541c) le da el foco al EDIT, como cada clic sobre la ventana: invitar no mira el foco
     // sino +0xb4 del EDIT (0x49455e), que solo prende el chat cerrado.
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::RaisedMessage, 0, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::RaisedMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_EQ(Runtime().chat.input.focus, Client::UI::ChatFocus::OldWindow);
+    EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::OldWindow);
     EXPECT_EQ(Manager().focusedEdit, chat->chat.edit.base.id);
     // 0x461f00 sobre el renglón de Calandria (13 de alto, 3 más arriba que su y): el clic lo elige y el doble clic es
     // el 0xd al chat, que 0x4944d9 vuelve el 10 con 2.
     chat = &Manager().windows.at(chatId);
     const std::int32_t rowX = chat->chat.invite.base.x + 4;
-    const std::int32_t rowY = Client::UI::ListRowY(chat->chat.invite, chat->chat.invitable.size(), 0) + 3;
+    const std::int32_t rowY = Client::Ui::ListRowY(chat->chat.invite, chat->chat.invitable.size(), 0) + 3;
     Runtime().movement.pendingClick = true;
     ASSERT_TRUE(Step(rowX, rowY).HasValue());
     chat = &Manager().windows.at(chatId);
-    EXPECT_EQ(Client::UI::SelectedInTheList(chat->chat.invite, chat->chat.invitable.size()),
+    EXPECT_EQ(Client::Ui::SelectedInTheList(chat->chat.invite, chat->chat.invitable.size()),
               std::optional<std::size_t>(0));
     EXPECT_EQ(chat->chat.invitable[0].selected, 1);
     EXPECT_EQ(m_sent.size(), 1u);
@@ -477,9 +481,9 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     for (const int value : {0x00, 0x04, 0x03, static_cast<int>(window & 0xffU), static_cast<int>((window >> 8) & 0xffU),
                             static_cast<int>((window >> 16) & 0xffU), static_cast<int>(window >> 24)})
         invite.push_back(static_cast<std::byte>(value));
-    EXPECT_EQ(BytesOf(Client::Scenes::FriendPacketOf(m_sent[1])), Xor32Of(invite));
+    EXPECT_EQ(BytesOf(Client::Messenger::FriendPacketOf(m_sent[1])), Xor32Of(invite));
 
-    ASSERT_TRUE(Client::Scenes::ApplyInviteResult(
+    ASSERT_TRUE(Client::Messenger::ApplyInviteResult(
                     Client::Protocol::Messenger::InviteResult{.result = 1, .window = window}, Context())
                     .HasValue());
     ASSERT_FALSE(chat->chat.lineRows.empty());
@@ -498,13 +502,13 @@ TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
     for (int times = 0; times < 2; ++times)
     {
         Manager().windows.at(chatId).chat.edit.text.SetText("hola");
-        Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::EnterMessage, 0, 0);
+        Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::EnterMessage, 0, 0);
         auto stepped = Step();
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     }
     EXPECT_EQ(Manager().chatRooms.orders.size(), 1u);
-    Client::UI::PingTheChatRooms(Manager());
-    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    Client::Messenger::PingTheChatRooms(Manager());
+    Client::Messenger::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
     EXPECT_TRUE(Manager().chatRooms.orders.empty());
     ASSERT_EQ(m_rooms.calls.size(), 2u);
     EXPECT_EQ(m_rooms.calls[0].kind, "send");
@@ -513,22 +517,22 @@ TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
     EXPECT_EQ(m_rooms.calls[1].kind, "send");
     EXPECT_EQ(m_rooms.calls[1].bytes, Bytes({0xc1, 0x03, 0x05}));
 
-    ASSERT_TRUE(Client::Scenes::ApplyChatRoomClosed(
+    ASSERT_TRUE(Client::Messenger::ApplyChatRoomClosed(
                     Client::App::ChatRoomClosed{.room = 0x0304, .window = chatId, .opened = true}, Context())
                     .HasValue());
     const OldWindow& chat = Manager().windows.at(chatId);
     ASSERT_FALSE(chat.chat.lineRows.empty());
     EXPECT_EQ(chat.chat.lineRows.back().text, "se fue todo el mundo");
-    EXPECT_NE(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    EXPECT_NE(Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
 
     m_rooms.calls.clear();
-    Client::UI::PostToTheManager(Manager(), Client::UI::CloseMessage, chatId, 0);
+    Client::Ui::PostToTheManager(Manager(), Client::Ui::CloseMessage, chatId, 0);
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(Manager().windows.contains(chatId));
-    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    EXPECT_EQ(Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
     EXPECT_EQ(Manager().chatRooms.used[0], 0);
-    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    Client::Messenger::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
     ASSERT_EQ(m_rooms.calls.size(), 2u);
     EXPECT_EQ(m_rooms.calls[0].kind, "send");
     EXPECT_EQ(m_rooms.calls[0].bytes, Bytes({0xc1, 0x03, 0x01}));
@@ -551,7 +555,7 @@ TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)
         EXPECT_TRUE(packet.HasValue());
         if (!packet.HasValue())
             return false;
-        const auto applied = Client::Scenes::ApplyRoomPacket(chatId, packet.Value(), Context());
+        const auto applied = Client::Messenger::ApplyRoomPacket(chatId, packet.Value(), Context());
         EXPECT_TRUE(applied.HasValue()) << applied.Error();
         return applied.HasValue();
     };
@@ -595,7 +599,7 @@ TEST_F(GameLettersTest, ACallToTheSameRoomLeavesItBeforeJoiningAgain)
 {
     const std::int32_t chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
-    const auto called = Client::Scenes::ApplyRoomAnswer(
+    const auto called = Client::Messenger::ApplyRoomAnswer(
         Client::Protocol::Messenger::RoomAnswer{
             .address = "10.0.0.9", .room = 0x0304, .ticket = 88, .type = 1, .name = "Tordo", .result = 1},
         Context());
@@ -613,7 +617,7 @@ TEST_F(GameLettersTest, ACallToTheSameRoomLeavesItBeforeJoiningAgain)
     EXPECT_EQ(m_rooms.calls[3].bytes,
               Xor32Of(Joined(Bytes({0xc1, 0x10, 0x00, 0x00, 0x04, 0x03}), ChatTextOf("88", 10))));
     EXPECT_TRUE(Manager().chatRooms.orders.empty());
-    const Client::UI::ChatRoom* room = Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304);
+    const Client::Messenger::ChatRoom* room = Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304);
     ASSERT_NE(room, nullptr);
     EXPECT_EQ(room->window, chatId);
     EXPECT_EQ(m_random.State(), After(0));
@@ -627,35 +631,35 @@ TEST_F(GameLettersTest, AClosedChatNeitherSaysNorInvites)
     const std::int32_t chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
     m_sent.clear();
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::CommandMessage, 1, 0);
     ASSERT_TRUE(Step().HasValue());
     OldWindow* chat = &Manager().windows.at(chatId);
     ASSERT_EQ(chat->chat.invitable.size(), 1u);
-    Client::UI::SelectInTheList(chat->chat.invite, chat->chat.invitable.size(), 1);
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::RaisedMessage, 0, 0);
+    Client::Ui::SelectInTheList(chat->chat.invite, chat->chat.invitable.size(), 1);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::RaisedMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(Manager().focusedEdit, chat->chat.edit.base.id);
-    Client::UI::CloseTheChat(*chat, 1, m_oldTexts);
+    Client::Messenger::CloseTheChat(*chat, 1, m_oldTexts);
     EXPECT_EQ(chat->chat.edit.base.state, 0);
 
     chat->chat.edit.text.SetText("hola");
-    Client::UI::PressEnterInTheOldEdit(Manager());
+    Client::Messenger::PressEnterInTheOldEdit(Manager());
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     chat = &Manager().windows.at(chatId);
     EXPECT_TRUE(Manager().chatRooms.orders.empty());
     EXPECT_EQ(chat->chat.edit.text.Value(), "hola");
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::CommandMessage, 2, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::CommandMessage, 2, 0);
     ASSERT_TRUE(Step().HasValue());
     EXPECT_TRUE(m_sent.empty());
 
-    Client::UI::CloseTheChat(*chat, 0, m_oldTexts);
-    Client::UI::PressEnterInTheOldEdit(Manager());
+    Client::Messenger::CloseTheChat(*chat, 0, m_oldTexts);
+    Client::Messenger::PressEnterInTheOldEdit(Manager());
     stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Manager().chatRooms.orders.size(), 1u);
     chat = &Manager().windows.at(chatId);
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::CommandMessage, 2, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::CommandMessage, 2, 0);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(m_sent[0].kind, FriendSendKind::Invite);
@@ -668,26 +672,26 @@ TEST_F(GameLettersTest, ARoomThatDoesNotConnectIsForgottenAndTheResetLeavesTheRo
 {
     std::int32_t chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
-    ASSERT_TRUE(Client::Scenes::ApplyChatRoomClosed(
+    ASSERT_TRUE(Client::Messenger::ApplyChatRoomClosed(
                     Client::App::ChatRoomClosed{.room = 0x0304, .window = chatId, .opened = false}, Context())
                     .HasValue());
-    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    EXPECT_EQ(Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
     EXPECT_EQ(Manager().chatRooms.used[0], 1);
     EXPECT_TRUE(Manager().windows.at(chatId).chat.lineRows.empty());
     Manager().windows.at(chatId).chat.edit.text.SetText("hola");
-    Client::UI::PostToTheWindow(Manager(), chatId, Client::UI::EnterMessage, 0, 0);
+    Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::EnterMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
     EXPECT_TRUE(Manager().chatRooms.orders.empty());
 
-    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
-    Client::UI::ClearTheFriends(Manager().friendModel);
+    Client::Ui::ResetTheOldWindows(Manager(), m_pressedButton);
+    Client::Messenger::ClearTheFriends(Manager().friendModel);
     m_rooms.calls.clear();
     chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
-    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
+    Client::Ui::ResetTheOldWindows(Manager(), m_pressedButton);
     EXPECT_TRUE(Manager().windows.empty());
-    EXPECT_EQ(Client::UI::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
-    Client::Scenes::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
+    EXPECT_EQ(Client::Messenger::FindTheChatRoom(Manager().chatRooms, 0x0304), nullptr);
+    Client::Messenger::FlushTheChatRoomOrders(Manager().chatRooms, &m_rooms);
     ASSERT_EQ(m_rooms.calls.size(), 2u);
     EXPECT_EQ(m_rooms.calls[0].bytes, Bytes({0xc1, 0x03, 0x01}));
     EXPECT_EQ(m_rooms.calls[1].kind, "close");
@@ -700,33 +704,34 @@ TEST_F(GameLettersTest, TheFriendStateClosesAndOpensItsChat)
     OpenTheFriendsWithThree();
     auto view = View();
     auto globals = Globals();
-    auto created = Client::UI::CreateTheOldWindow(
+    auto created = Client::Ui::CreateTheOldWindow(
         Manager(),
-        Client::UI::OldWindowRequest{
-            .kind = Client::UI::ChatCase, .x = 100, .y = 100, .data = "Chat: ", .aux = 0, .flags = 0},
+        Client::Ui::OldWindowRequest{
+            .kind = Client::Ui::ChatCase, .x = 100, .y = 100, .data = "Chat: ", .aux = 0, .flags = 0},
         m_oldTexts, m_oldMeasure, &globals, &view);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     OldWindow* chat = &Manager().windows.at(created.Value());
-    ASSERT_TRUE(Client::UI::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
     ASSERT_TRUE(
-        Client::UI::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
+        Client::Messenger::AddAChatMember(Manager(), *chat, Hero, 0, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
+    ASSERT_TRUE(
+        Client::Messenger::AddAChatMember(Manager(), *chat, "Tordo", 1, 0, m_oldTexts, Hero, &m_oldMeasure).HasValue());
     ASSERT_EQ(Manager().windowList.list.chats.size(), 1u);
 
-    ASSERT_TRUE(Client::Scenes::ApplyFriendState(
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(
                     Client::Protocol::Messenger::FriendState{.name = "Tordo", .state = 0xfd}, Context())
                     .HasValue());
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("[cerrado] Chat: Tordo"));
     EXPECT_EQ(chat->chat.edit.closed, 1);
     EXPECT_EQ(chat->chat.edit.base.state, 0);
-    ASSERT_TRUE(Client::Scenes::ApplyFriendState(Client::Protocol::Messenger::FriendState{.name = "Tordo", .state = 3},
-                                                 Context())
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(
+                    Client::Protocol::Messenger::FriendState{.name = "Tordo", .state = 3}, Context())
                     .HasValue());
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("Chat: Tordo"));
     EXPECT_EQ(chat->chat.edit.closed, 0);
     EXPECT_EQ(chat->chat.edit.base.state, 0);
-    ASSERT_TRUE(
-        Client::Scenes::ApplyFriendState(Client::Protocol::Messenger::FriendState{.name = "", .state = 0xfc}, Context())
-            .HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(Client::Protocol::Messenger::FriendState{.name = "", .state = 0xfc},
+                                                    Context())
+                    .HasValue());
     ASSERT_FALSE(chat->chat.lineRows.empty());
     EXPECT_EQ(chat->chat.lineRows.back().text, "se fue todo el mundo");
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("[cerrado] Chat: Tordo"));
@@ -740,8 +745,8 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
 {
     OpenTheFriendsWithThree();
     ChooseTheFriend("Tordo");
-    Client::UI::PostToTheWindow(Manager(), Friends().tabs[Client::UI::FriendTabNumber].base.id,
-                                Client::UI::CommandMessage, 4, 0);
+    Client::Ui::PostToTheWindow(Manager(), Friends().tabs[Client::Messenger::FriendTabNumber].base.id,
+                                Client::Ui::CommandMessage, 4, 0);
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     OldWindow* write = FirstOfKind(OldWindowKind::LetterWriteWindow);
@@ -755,14 +760,14 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     EXPECT_EQ(write->frame.title, std::optional<std::string>("Carta nueva (1000)"));
     EXPECT_EQ(write->letter.to.text.Value(), "Tordo");
     EXPECT_EQ(write->letter.prepared, 1);
-    EXPECT_EQ(write->base.current.type, Client::UI::SizeMessage);
+    EXPECT_EQ(write->base.current.type, Client::Ui::SizeMessage);
     EXPECT_FLOAT_EQ(write->letter.portrait.angle, 90.0f);
     EXPECT_EQ(write->letter.portrait.action, 0x7a);
 
     write->letter.subject.text.SetText("Saludos");
     write->letter.text.text.SetText("Linea uno\r\nLinea dos");
     const std::int32_t writeId = write->base.id;
-    Client::UI::PostToTheWindow(Manager(), writeId, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(Manager(), writeId, Client::Ui::CommandMessage, 1, 0);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(m_sent[0].kind, FriendSendKind::LetterSend);
@@ -778,23 +783,23 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     for (const int value : {0x0f, 0x02, static_cast<int>(body.size()), 0x00})
         plain.push_back(static_cast<std::byte>(value));
     Append(plain, body, body.size());
-    const Outgoing letter = Client::Scenes::FriendPacketOf(m_sent[0]);
+    const Outgoing letter = Client::Messenger::FriendPacketOf(m_sent[0]);
     EXPECT_EQ(letter.delivery, Client::Network::Delivery::Encrypted);
     EXPECT_EQ(BytesOf(letter), Xor32Of(plain, 4));
 
     FakeRequests requests;
-    Client::Scenes::SendAFriendPacket(requests, m_random, m_sent[0]);
+    Client::Messenger::SendAFriendPacket(requests, m_random, m_sent[0]);
     ASSERT_EQ(requests.sent.size(), 1u);
     EXPECT_EQ(requests.sent[0], BytesOf(letter));
     EXPECT_EQ(m_random.State(), After(1 + Client::Models::SerialCloseRandoms));
     const std::uint32_t before = m_random.State();
-    Client::Scenes::SendAFriendPacket(
+    Client::Messenger::SendAFriendPacket(
         requests, m_random, FriendSend{.kind = FriendSendKind::LetterRead, .value = 0, .name = {}, .index = 7});
     EXPECT_EQ(m_random.State(), before);
 
     // 0x4dc840 con 1: el 4 a la de escribir y el 1046 con el costo al chat.
     ASSERT_TRUE(
-        Client::Scenes::ApplyLetterSendResult(
+        Client::Messenger::ApplyLetterSendResult(
             Client::Protocol::Messenger::LetterSendResult{.result = 1, .window = static_cast<std::uint32_t>(writeId)},
             Context())
             .HasValue());
@@ -811,8 +816,8 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
 {
     OpenTheFriendsWithThree();
     ChooseTheFriend("Tordo");
-    const std::int32_t friendTab = Friends().tabs[Client::UI::FriendTabNumber].base.id;
-    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 4, 0);
+    const std::int32_t friendTab = Friends().tabs[Client::Messenger::FriendTabNumber].base.id;
+    Client::Ui::PostToTheWindow(Manager(), friendTab, Client::Ui::CommandMessage, 4, 0);
     ASSERT_TRUE(Step().HasValue());
     OldWindow* write = FirstOfKind(OldWindowKind::LetterWriteWindow);
     ASSERT_NE(write, nullptr);
@@ -829,32 +834,32 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     write->letter.text.text.SetText("Linea uno");
     write->letter.text.text.SetCursor(0);
     std::int32_t focusedList = 0;
-    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                     &focusedList);
+    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                            &focusedList);
     EXPECT_EQ(Manager().focusedEdit, text);
     EXPECT_EQ(focusedList, text);
     EXPECT_EQ(write->letter.text.text.Cursor(), 9u);
-    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                     &focusedList);
+    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                            &focusedList);
     EXPECT_EQ(Manager().focusedEdit, to);
     EXPECT_EQ(write->letter.to.text.Cursor(), 5u);
-    Client::UI::ApplyKeyToTheOldEdit(Manager(), Client::UI::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                     &focusedList);
+    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                            &focusedList);
     EXPECT_EQ(Manager().focusedEdit, subject);
     EXPECT_EQ(focusedList, subject);
 
     write->letter.subject.text.SetText("Sal");
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(Manager(), writeId, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(Manager(), writeId, m_pressedButton).HasValue());
     EXPECT_EQ(Manager().windows.count(writeId), 0u);
     EXPECT_TRUE(Manager().focusedEditIsOrphan);
     ASSERT_TRUE(Manager().orphanedEdit.has_value());
     EXPECT_EQ(Manager().orphanedEdit->base.id, subject);
-    Client::UI::TypeInTheOldEdit(Manager(), "udos");
+    Client::Messenger::TypeInTheOldEdit(Manager(), "udos");
     EXPECT_EQ(Manager().orphanedEdit->text.Value(), "Saludos");
 
     // Otra de escribir le saca el foco al huérfano.
     ChooseTheFriend("Calandria");
-    Client::UI::PostToTheWindow(Manager(), friendTab, Client::UI::CommandMessage, 4, 0);
+    Client::Ui::PostToTheWindow(Manager(), friendTab, Client::Ui::CommandMessage, 4, 0);
     ASSERT_TRUE(Step().HasValue());
     OldWindow* again = FirstOfKind(OldWindowKind::LetterWriteWindow);
     ASSERT_NE(again, nullptr);
@@ -864,20 +869,20 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
 
     Manager().letterWindows[7] = 0;
     Manager().letterWindows[9] = again->base.id;
-    Client::UI::ResetTheOldWindows(Manager(), m_pressedButton);
+    Client::Ui::ResetTheOldWindows(Manager(), m_pressedButton);
     EXPECT_TRUE(Manager().letterWindows.empty());
 }
 
 // 0x4dccbd: _strnicmp(nombre, "webzen", 10), sin importar las mayúsculas; otro nombre que empieza igual no lo es.
 TEST(GameLettersWebzenTest, OnlyWebzenWithAnyCaseIsTheBlankPortrait)
 {
-    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("webzen"));
-    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("WebZen"));
-    EXPECT_TRUE(Client::Scenes::LetterFromWebzen("WEBZEN"));
-    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("webzen2"));
-    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("webze"));
-    EXPECT_FALSE(Client::Scenes::LetterFromWebzen("Tordo"));
-    EXPECT_TRUE(Client::Scenes::LetterFromWebzen(std::string_view("Webzen\0xy", 9)));
+    EXPECT_TRUE(Client::Messenger::LetterFromWebzen("webzen"));
+    EXPECT_TRUE(Client::Messenger::LetterFromWebzen("WebZen"));
+    EXPECT_TRUE(Client::Messenger::LetterFromWebzen("WEBZEN"));
+    EXPECT_FALSE(Client::Messenger::LetterFromWebzen("webzen2"));
+    EXPECT_FALSE(Client::Messenger::LetterFromWebzen("webze"));
+    EXPECT_FALSE(Client::Messenger::LetterFromWebzen("Tordo"));
+    EXPECT_TRUE(Client::Messenger::LetterFromWebzen(std::string_view("Webzen\0xy", 9)));
 }
 
 // Sin el retrato del juego (P-C212), abrir la de escribir corta.
@@ -886,9 +891,9 @@ TEST_F(GameLettersTest, WithoutThePortraitTheWriteWindowIsACut)
     OpenTheFriendsWithThree();
     auto view = View();
     view.portrait = {};
-    Client::UI::PostToTheWindow(Manager(), Friends().tabs[Client::UI::FriendTabNumber].base.id,
-                                Client::UI::CommandMessage, 4, 0);
-    const auto stepped = Client::UI::StepTheOldWindows(Manager(), Globals(), view);
+    Client::Ui::PostToTheWindow(Manager(), Friends().tabs[Client::Messenger::FriendTabNumber].base.id,
+                                Client::Ui::CommandMessage, 4, 0);
+    const auto stepped = Client::Ui::StepTheOldWindows(Manager(), Globals(), view);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("P-C212"), std::string::npos);
 }
@@ -896,7 +901,7 @@ TEST_F(GameLettersTest, WithoutThePortraitTheWriteWindowIsACut)
 // 0x4dc840: con un error, la caja con su texto y la de escribir sin el envío pendiente (+0x778 = 0).
 TEST_F(GameLettersTest, AFailedSendOpensItsBox)
 {
-    ASSERT_TRUE(Client::Scenes::ApplyLetterSendResult(
+    ASSERT_TRUE(Client::Messenger::ApplyLetterSendResult(
                     Client::Protocol::Messenger::LetterSendResult{.result = 2, .window = 0}, Context())
                     .HasValue());
     OldWindow* box = FirstOfKind(OldWindowKind::MessageBox);
@@ -910,7 +915,7 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
 {
     OpenTheFriendsWithThree();
     ASSERT_TRUE(
-        Client::Scenes::ApplyLetterRow(
+        Client::Messenger::ApplyLetterRow(
             Client::Protocol::Messenger::LetterRow{
                 .index = 7, .name = "Tordo", .date = "2026/11/13", .time = "10:20", .subject = "Saludos", .type = 2},
             Context())
@@ -921,18 +926,19 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
     ASSERT_EQ(Manager().letterModel.letters.size(), 1u);
     EXPECT_EQ(Manager().letterModel.letters[0].type, 0);
 
-    Friends().friends.currentTab = Client::UI::LettersTabNumber;
-    OldWindow& tab = Friends().tabs[Client::UI::LettersTabNumber];
+    Friends().friends.currentTab = Client::Messenger::LettersTabNumber;
+    OldWindow& tab = Friends().tabs[Client::Messenger::LettersTabNumber];
     ASSERT_EQ(tab.tab.letters.size(), 1u);
-    Client::UI::SelectInTheList(tab.tab.list, 1, 1);
+    Client::Ui::SelectInTheList(tab.tab.list, 1, 1);
     for (int times = 0; times < 2; ++times)
     {
-        Client::UI::PostToTheWindow(Manager(), tab.base.id, Client::UI::CommandMessage, 2, 0);
+        Client::Ui::PostToTheWindow(Manager(), tab.base.id, Client::Ui::CommandMessage, 2, 0);
         ASSERT_TRUE(Step().HasValue());
     }
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(m_sent[0].kind, FriendSendKind::LetterRead);
-    EXPECT_EQ(BytesOf(Client::Scenes::FriendPacketOf(m_sent[0])), Xor32Of(Bytes({0xc1, 0x06, 0xc7, 0x00, 0x07, 0x00})));
+    EXPECT_EQ(BytesOf(Client::Messenger::FriendPacketOf(m_sent[0])),
+              Xor32Of(Bytes({0xc1, 0x06, 0xc7, 0x00, 0x07, 0x00})));
     EXPECT_EQ(Manager().letterWindows.at(7), 0);
 
     Client::Protocol::Messenger::LetterRead read{.index = 7,
@@ -943,18 +949,18 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
                                                  .action = 2,
                                                  .body = "Hola che",
                                                  .copy = Bytes({0xc2, 0x00, 0x24, 0xc7})};
-    const auto shown = Client::Scenes::ApplyLetterRead(read, Context());
+    const auto shown = Client::Messenger::ApplyLetterRead(read, Context());
     ASSERT_FALSE(shown.HasValue());
     EXPECT_NE(shown.Error().find("P-C212"), std::string::npos);
     EXPECT_EQ(Manager().letterModel.letters[0].type, 1);
-    ASSERT_NE(Client::UI::KeptLetter(Manager().letterModel, 7), nullptr);
+    ASSERT_NE(Client::Messenger::KeptLetter(Manager().letterModel, 7), nullptr);
 
-    ASSERT_TRUE(Client::Scenes::ApplyLetterDeleteResult(
+    ASSERT_TRUE(Client::Messenger::ApplyLetterDeleteResult(
                     Client::Protocol::Messenger::LetterDeleteResult{.result = 1, .index = 7}, Context())
                     .HasValue());
     EXPECT_TRUE(Manager().letterModel.letters.empty());
-    EXPECT_EQ(Client::UI::KeptLetter(Manager().letterModel, 7), nullptr);
-    EXPECT_TRUE(Friends().tabs[Client::UI::LettersTabNumber].tab.letters.empty());
+    EXPECT_EQ(Client::Messenger::KeptLetter(Manager().letterModel, 7), nullptr);
+    EXPECT_TRUE(Friends().tabs[Client::Messenger::LettersTabNumber].tab.letters.empty());
     EXPECT_EQ(m_random.State(), After(0));
 }
 
@@ -964,24 +970,24 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
 TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
 {
     OpenTheFriendsWithThree();
-    Client::UI::AddALetter(Manager().letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 1);
-    Client::UI::AddALetter(Manager().letterModel, 9, "Calandria", "Otra", "2026/11/13", "10:30", 0);
-    Client::UI::RefreshTheLettersTab(Manager());
+    Client::Messenger::AddALetter(Manager().letterModel, 7, "Tordo", "Saludos", "2026/11/13", "10:20", 1);
+    Client::Messenger::AddALetter(Manager().letterModel, 9, "Calandria", "Otra", "2026/11/13", "10:30", 0);
+    Client::Messenger::RefreshTheLettersTab(Manager());
     const auto openTheFirst = [this]() -> std::int32_t
     {
         auto view = View();
         auto globals = Globals();
-        auto created = Client::UI::CreateTheOldWindow(
+        auto created = Client::Ui::CreateTheOldWindow(
             Manager(),
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::LetterReadCase, .x = 120, .y = 110, .data = "Leer", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::LetterReadCase, .x = 120, .y = 110, .data = "Leer", .aux = 0, .flags = 0},
             m_oldTexts, m_oldMeasure, &globals, &view);
         EXPECT_TRUE(created.HasValue()) << created.Error();
         if (!created.HasValue())
             return 0;
         OldWindow& read = Manager().windows.at(created.Value());
-        const auto set = Client::UI::SetTheLetter(Manager(), read, Manager().letterModel.letters[0],
-                                                  "Linea uno\n\nLinea dos", &m_oldMeasure);
+        const auto set = Client::Messenger::SetTheLetter(Manager(), read, Manager().letterModel.letters[0],
+                                                         "Linea uno\n\nLinea dos", &m_oldMeasure);
         EXPECT_TRUE(set.HasValue()) << set.Error();
         Manager().letterWindows[7] = created.Value();
         return created.Value();
@@ -991,26 +997,27 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     EXPECT_EQ(m_portraitCalls, std::vector<PortraitCallKind>{PortraitCallKind::Build});
     EXPECT_EQ(Manager().windows.at(readId).letter.lineRows, (std::deque<std::string>{"Linea uno", "Linea dos"}));
 
-    Client::UI::PostToTheWindow(Manager(), readId, Client::UI::CommandMessage, 2, 0);
+    Client::Ui::PostToTheWindow(Manager(), readId, Client::Ui::CommandMessage, 2, 0);
     ASSERT_TRUE(Step().HasValue());
     OldWindow* question = FirstOfKind(OldWindowKind::MessageBox);
     ASSERT_NE(question, nullptr);
     EXPECT_EQ(question->box.lines[0], "Borrar la carta?");
     EXPECT_EQ(question->box.owner, readId);
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(Manager(), question->base.id, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(Manager(), question->base.id, m_pressedButton).HasValue());
     Manager().modal = 0;
 
     // El sí: el C8 y el 4, que el administrador atiende en el mismo paso (la ventana suelta su carta, 0x4916b0).
-    Client::UI::PostToTheWindow(Manager(), readId, Client::UI::AnswerMessage, 0, 1);
+    Client::Ui::PostToTheWindow(Manager(), readId, Client::Ui::AnswerMessage, 0, 1);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
-    EXPECT_EQ(BytesOf(Client::Scenes::FriendPacketOf(m_sent[0])), Xor32Of(Bytes({0xc1, 0x06, 0xc8, 0x00, 0x07, 0x00})));
+    EXPECT_EQ(BytesOf(Client::Messenger::FriendPacketOf(m_sent[0])),
+              Xor32Of(Bytes({0xc1, 0x06, 0xc8, 0x00, 0x07, 0x00})));
     EXPECT_EQ(Manager().windows.count(readId), 0u);
     EXPECT_EQ(Manager().letterWindows.count(7), 0u);
 
     readId = openTheFirst();
     ASSERT_NE(readId, 0);
-    Client::UI::PostToTheWindow(Manager(), readId, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(Manager(), readId, Client::Ui::CommandMessage, 1, 0);
     ASSERT_TRUE(Step().HasValue());
     OldWindow* reply = FirstOfKind(OldWindowKind::LetterWriteWindow);
     ASSERT_NE(reply, nullptr);
@@ -1019,7 +1026,7 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     EXPECT_EQ(Manager().windows.count(readId), 1u);
 
     const std::int32_t readX = Manager().windows.at(readId).base.x;
-    Client::UI::PostToTheWindow(Manager(), readId, Client::UI::CommandMessage, 5, 0);
+    Client::Ui::PostToTheWindow(Manager(), readId, Client::Ui::CommandMessage, 5, 0);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(m_sent[1].kind, FriendSendKind::LetterRead);
@@ -1028,7 +1035,7 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     EXPECT_EQ(Manager().letterWindows.count(7), 0u);
     EXPECT_EQ(Manager().letterWindows.at(9), 0);
     EXPECT_EQ(Manager().nextReadX, readX);
-    EXPECT_EQ(Friends().tabs[Client::UI::LettersTabNumber].tab.list.selection, 2);
+    EXPECT_EQ(Friends().tabs[Client::Messenger::LettersTabNumber].tab.list.selection, 2);
     EXPECT_EQ(m_random.State(), After(0));
 }
 
@@ -1048,24 +1055,24 @@ TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
     Runtime().map = GetParam();
     const std::int32_t chatId = JoinARoomWithTordo();
     ASSERT_NE(chatId, 0);
-    ASSERT_TRUE(
-        Client::Scenes::ApplyFriendState(Client::Protocol::Messenger::FriendState{.name = "", .state = 0xfc}, Context())
-            .HasValue());
+    ASSERT_TRUE(Client::Messenger::ApplyFriendState(Client::Protocol::Messenger::FriendState{.name = "", .state = 0xfc},
+                                                    Context())
+                    .HasValue());
     ASSERT_EQ(Manager().windows.at(chatId).frame.title, std::optional<std::string>("[cerrado] Chat: Tordo"));
-    Client::UI::ShowTheWindowList(Manager(), 1);
+    Client::Ui::ShowTheWindowList(Manager(), 1);
 
     Client::Render::SpriteBatch sprites;
     sprites.Begin(Client::Core::PixelSize{640, 480});
     Client::Tests::RecordingTextDrawer text(sprites);
     FontKind font = FontKind::Bold;
     Client::Render::Text::TextColors colors{};
-    const Client::UI::OldWindowDrawContext context{
+    const Client::Ui::OldWindowDrawContext context{
         .sprites = sprites, .text = text, .dcFont = font, .textColors = colors};
-    const Client::UI::OldWindowDrawView view{
+    const Client::Ui::OldWindowDrawView view{
         .friendsOpen = true, .texts = &m_oldTexts, .chatPlacement = Runtime().ui.chatModes.placement};
-    const auto windows = Client::UI::DrawTheOldWindows(Manager(), context, view);
+    const auto windows = Client::Ui::DrawTheOldWindows(Manager(), context, view);
     ASSERT_TRUE(windows.HasValue()) << windows.Error();
-    const auto list = Client::UI::DrawTheWindowList(Manager(), context, view);
+    const auto list = Client::Ui::DrawTheWindowList(Manager(), context, view);
     ASSERT_TRUE(list.HasValue()) << list.Error();
 
     const auto drawn = [&](std::string_view what)
@@ -1109,7 +1116,7 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
                ChatTextOf(Said, 100));
     auto packet = Client::Network::Packet::FromBytes(std::move(bytes));
     ASSERT_TRUE(packet.HasValue());
-    const auto applied = Client::Scenes::ApplyRoomPacket(chatId, packet.Value(), Context());
+    const auto applied = Client::Messenger::ApplyRoomPacket(chatId, packet.Value(), Context());
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
     const OldWindow& chat = Manager().windows.at(chatId);
@@ -1127,11 +1134,11 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
     Client::Tests::RecordingTextDrawer text(sprites);
     FontKind font = FontKind::Bold;
     Client::Render::Text::TextColors colors{};
-    const Client::UI::OldWindowDrawContext context{
+    const Client::Ui::OldWindowDrawContext context{
         .sprites = sprites, .text = text, .dcFont = font, .textColors = colors};
-    const Client::UI::OldWindowDrawView drawView{
+    const Client::Ui::OldWindowDrawView drawView{
         .friendsOpen = true, .texts = &m_oldTexts, .chatPlacement = Runtime().ui.chatModes.placement};
-    const auto windows = Client::UI::DrawTheOldWindows(Manager(), context, drawView);
+    const auto windows = Client::Ui::DrawTheOldWindows(Manager(), context, drawView);
     ASSERT_TRUE(windows.HasValue()) << windows.Error();
     const auto drawn = [&](std::string_view what)
     {
@@ -1156,23 +1163,24 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
 
     auto view = View();
     auto globals = Globals();
-    auto created = Client::UI::CreateTheOldWindow(
+    auto created = Client::Ui::CreateTheOldWindow(
         Manager(),
-        Client::UI::OldWindowRequest{
-            .kind = Client::UI::LetterReadCase, .x = 120, .y = 110, .data = "Leer", .aux = 0, .flags = 0},
+        Client::Ui::OldWindowRequest{
+            .kind = Client::Ui::LetterReadCase, .x = 120, .y = 110, .data = "Leer", .aux = 0, .flags = 0},
         m_oldTexts, m_oldMeasure, &globals, &view);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     constexpr std::string_view Long = "el horno de barro ya esta listo para las empanadas de carne del domingo que "
                                       "viene, asi que cada uno avise cuantas va a comer antes";
-    const Client::UI::LetterEntry entry{.selected = 0,
-                                        .index = 7,
-                                        .name = "Tordo",
-                                        .subject = "Horno",
-                                        .date = "2026/11/13",
-                                        .time = "10:20",
-                                        .type = 1};
+    const Client::Messenger::LetterEntry entry{.selected = 0,
+                                               .index = 7,
+                                               .name = "Tordo",
+                                               .subject = "Horno",
+                                               .date = "2026/11/13",
+                                               .time = "10:20",
+                                               .type = 1};
     OldWindow& read = Manager().windows.at(created.Value());
-    const auto set = Client::UI::SetTheLetter(Manager(), read, entry, "Hola\n" + std::string(Long), &m_oldMeasure);
+    const auto set =
+        Client::Messenger::SetTheLetter(Manager(), read, entry, "Hola\n" + std::string(Long), &m_oldMeasure);
     ASSERT_TRUE(set.HasValue()) << set.Error();
     // 360 de adentro − 0x78 del retrato: 240, y 210 para partir (105 letras de 2).
     ASSERT_EQ(read.letter.lines.base.width, 240);
@@ -1181,7 +1189,7 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
     EXPECT_EQ(read.letter.lines.fixedCountValue, 3);
 
     text.texts.clear();
-    ASSERT_TRUE(Client::UI::DrawTheReadWindow(Manager(), read, context, drawView).HasValue());
+    ASSERT_TRUE(Client::Messenger::DrawTheReadWindow(Manager(), read, context, drawView).HasValue());
     ASSERT_GE(text.texts.size(), 3u);
     EXPECT_EQ(text.texts[0].text, Long.substr(105));
     EXPECT_EQ(text.texts[1].text, Long.substr(0, 105));

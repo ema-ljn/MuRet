@@ -104,14 +104,9 @@ using Client::App::CharacterListReceived;
 using Client::App::Credentials;
 using Client::App::GameLoop;
 using Client::App::KeepaliveSpeeds;
-using Client::App::PacingMode;
 using Client::App::ReplyTimeout;
-using Client::App::ServerAddress;
 using Client::App::ServerSession;
-using Client::App::SessionFailure;
 using Client::App::SessionSettings;
-using Client::App::SessionState;
-using Client::App::TickCountMs;
 using Client::App::WorldEvent;
 using Client::Core::Duration;
 using Client::Core::LogLevel;
@@ -119,6 +114,8 @@ using Client::Crypto::CipherBlockSize;
 using Client::Crypto::EncryptBlock;
 using Client::Crypto::PlainBlockSize;
 using Client::Input::InputState;
+using Client::Kernel::PacingMode;
+using Client::Kernel::TickCountMs;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 using Client::Network::HeaderSize;
@@ -152,6 +149,9 @@ using Client::Protocol::Session::WriteLoginRequest;
 using Client::Scenes::IScene;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
+using Client::Session::ServerAddress;
+using Client::Session::SessionFailure;
+using Client::Session::SessionState;
 using Client::Tests::AddressReply;
 using Client::Tests::BareWorld;
 using Client::Tests::BusyReply;
@@ -5036,7 +5036,7 @@ TEST(ServerSessionTest, TheMapServerAuthenticationReadsItsTickAfterTheWorldReset
     const auto tick = std::to_integer<std::uint32_t>(bytes[44]) | (std::to_integer<std::uint32_t>(bytes[45]) << 8u) |
                       (std::to_integer<std::uint32_t>(bytes[46]) << 16u) |
                       (std::to_integer<std::uint32_t>(bytes[47]) << 24u);
-    EXPECT_EQ(tick, Client::App::TickCountMs(tested.clock.Now()));
+    EXPECT_EQ(tick, Client::Kernel::TickCountMs(tested.clock.Now()));
 }
 
 } // namespace

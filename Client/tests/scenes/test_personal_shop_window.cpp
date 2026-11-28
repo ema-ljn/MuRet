@@ -156,7 +156,7 @@ Sent PlainOf(const Client::Protocol::Outgoing& outgoing)
 }
 
 // Lo que sale por el cable de la UI (IGameUiRequests::SendGamePacket), en la misma lista que lo de InventoryServices.
-class RecordingRequests final : public Client::Scenes::IGameUiRequests
+class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     explicit RecordingRequests(std::vector<Sent>& sent) : m_sent(sent) {}
@@ -220,7 +220,7 @@ protected:
     {
         shop = std::make_unique<ShopWorld>();
         Client::Kernel::WorldState& world = shop->world;
-        Client::Scenes::ClearSelectionInventory(world, random);
+        Client::FrontEnd::ClearSelectionInventory(world, random);
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = GetParam();
         world.OwnCharacter().ClearEquipmentForEntry();
@@ -255,7 +255,7 @@ protected:
         return shop->world.Runtime();
     }
 
-    Client::Scenes::PersonalShopState& Shops()
+    Client::Social::PersonalShopState& Shops()
     {
         return Runtime().social.personalShop;
     }
@@ -271,9 +271,9 @@ protected:
     }
 
     // Open(0x800) u Open(0x20000), como el botón del pie o el 3F 05.
-    void OpenTheShop(Client::UI::PanelId id)
+    void OpenTheShop(Client::Ui::PanelId id)
     {
-        Client::Scenes::GamePanels panels(shop->world, random);
+        Client::Hud::GamePanels panels(shop->world, random);
         panels.LendThePersonalShops(shop->world, random,
                                     [this](Client::Protocol::Outgoing packet) { sent.push_back(PlainOf(packet)); });
         const auto opened = panels.Registry().Open(id);
@@ -303,37 +303,37 @@ protected:
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click, bool rightClick = false)
     {
         if (click)
-            Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+            Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
         if (rightClick)
             Runtime().ui.rightClick = true;
         mark = random;
-        return Client::Scenes::StepTheGameUi(Context(x, y));
+        return Client::Hud::StepTheGameUi(Context(x, y));
     }
 
     // El paso de los diálogos (0x623e70) con el mouse en (x, y) y el clic.
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y, bool click)
     {
         if (click)
-            Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+            Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
         mark = random;
-        return Client::Scenes::StepTheGameDialogs(Context(x, y));
+        return Client::Hud::StepTheGameDialogs(Context(x, y));
     }
 
-    Client::Scenes::GameUiContext Context(std::int32_t x, std::int32_t y)
+    Client::Hud::GameUiContext Context(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::GameUiContext{.world = shop->world,
-                                             .random = random,
-                                             .input = input,
-                                             .mouseX = x,
-                                             .mouseY = y,
-                                             .texts = &shop->texts,
-                                             .requests = &requests,
-                                             .inventory = &services,
-                                             .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                                             {
-                                                 sent.push_back(PlainOf(packet));
-                                                 return Client::Core::Expected<void, std::string>{};
-                                             }};
+        return Client::Hud::GameUiContext{.world = shop->world,
+                                          .random = random,
+                                          .input = input,
+                                          .mouseX = x,
+                                          .mouseY = y,
+                                          .texts = &shop->texts,
+                                          .requests = &requests,
+                                          .inventory = &services,
+                                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                          {
+                                              sent.push_back(PlainOf(packet));
+                                              return Client::Core::Expected<void, std::string>{};
+                                          }};
     }
 
     // Los rand() del último paso.
@@ -360,7 +360,7 @@ protected:
     // El valor del ítem (0x54d0f0 con el modo 2).
     [[nodiscard]] std::uint32_t ValueOf(const ItemState& item) const
     {
-        const auto value = Client::Scenes::ItemPrice(item, shop->items, 2, std::nullopt);
+        const auto value = Client::Items::ItemPrice(item, shop->items, 2, std::nullopt);
         EXPECT_TRUE(value.HasValue());
         return value.HasValue() ? value.Value() : 0;
     }
@@ -371,7 +371,7 @@ protected:
     Client::Input::InputState input;
     std::vector<Sent> sent;
     RecordingRequests requests{sent};
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     std::vector<std::pair<std::size_t, std::int32_t>> messages;
 };
 
@@ -390,7 +390,7 @@ const std::vector<std::uint8_t> CloseShopBytes{0xc1, 0x04, 0x3f, 0x03};
 // (0x471930 → 0x623750) manda el C1 28 3F 02 con el título y los ceros detrás, en C3, y cierra los paneles (0x657a90).
 TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Shops().windowX = 0;
     auto stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -429,8 +429,8 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms);
     EXPECT_EQ(messages.size(), 4U);
     EXPECT_EQ(Runtime().dialogs.current, 0x9c);
-    const Client::Scenes::ConfirmBoxState& box = Runtime().social.confirmBox;
-    EXPECT_EQ(box.id, Client::Scenes::OpenShopConfirm);
+    const Client::Social::ConfirmBoxState& box = Runtime().social.confirmBox;
+    EXPECT_EQ(box.id, Client::PersonalShop::OpenShopConfirm);
     EXPECT_EQ(box.type, 2);
     EXPECT_EQ(box.lines, (std::vector<std::string>{"abrir la tienda con estos", " precios y este titulo"}));
     EXPECT_TRUE(sent.empty());
@@ -452,7 +452,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().panels.inventory, 0);
     EXPECT_EQ(Runtime().panels.personalShop, 0);
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
     EXPECT_FALSE(Runtime().movement.pendingClick);
 }
 
@@ -460,7 +460,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
 // cierra el inventario (0x65cae0(0x4000000)), que se lleva la tienda (0x11d9e0).
 TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
     Shops().ownPrices[0x4c + static_cast<std::int32_t>(PotionCell)] = 500;
     Shops().ownTitle = "Puesto Sur";
@@ -493,21 +493,21 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().panels.inventory, 0);
     EXPECT_EQ(Runtime().panels.personalShop, 0);
-    EXPECT_EQ(Shops().mode, Client::Scenes::NoShopView);
+    EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
 }
 
 // 0x5eafc8..0x5eb00b: el título (sin gastar el clic) abre el diálogo 0x91 en el modo 1, con el campo de 0x1c, sin el
 // zen y sin el chat; respondido (0x6c932e en 1 o 2), el paso siguiente lo borra (0x5ea2f1).
 TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Runtime().ui.chatOpen = true;
     Runtime().social.moneyField = 1;
     auto stepped = Step(TitleBoxX, TitleBoxY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms);
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopTitleMode);
+    EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopTitleMode);
     EXPECT_EQ(Runtime().social.dialogFieldLimit, 0x1c);
     EXPECT_EQ(Runtime().social.moneyField, 0);
     EXPECT_FALSE(Runtime().ui.chatOpen);
@@ -528,12 +528,12 @@ TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
 // (0xfd, 0x8a), y vacío; con el precio, +0x4c en 9 (solo cifras), el tope de 8 y 0x3c × 10 en (0x125, 0x8a).
 TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 {
-    Client::UI::OldEdit& edit = Runtime().chat.input.dialogEdit;
+    Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
     edit.text.SetText("viejo");
-    edit.base.state = Client::UI::HiddenWindow;
-    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
+    edit.base.state = Client::Ui::HiddenWindow;
+    Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(edit.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(edit.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(edit.filter, 0xc);
     EXPECT_EQ(edit.backgroundColor, 0u);
     EXPECT_EQ(edit.base.width, 0x85);
@@ -541,16 +541,16 @@ TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
     EXPECT_EQ(edit.base.x, 0xfd);
     EXPECT_EQ(edit.base.y, 0x8a);
     EXPECT_EQ(edit.text.Value(), "");
-    Client::UI::TypeInTheEdit(edit, std::string(0x20, 'a'));
+    Client::Ui::TypeInTheEdit(edit, std::string(0x20, 'a'));
     EXPECT_EQ(edit.text.Value().size(), 0x1cu);
 
     Runtime().dialogs.current = 0;
-    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopPriceMode);
+    Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopPriceMode);
     EXPECT_EQ(edit.filter, 9);
     EXPECT_EQ(edit.base.width, 0x3c);
     EXPECT_EQ(edit.base.x, 0x125);
     EXPECT_EQ(edit.text.Value(), "");
-    Client::UI::TypeInTheEdit(edit, "12a3456789");
+    Client::Ui::TypeInTheEdit(edit, "12a3456789");
     EXPECT_EQ(edit.text.Value(), "12345678");
 }
 
@@ -559,10 +559,10 @@ TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 // Sin rand().
 TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
 {
-    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
-    Client::UI::ChatInputState& chat = Runtime().chat.input;
-    Client::UI::TypeInTheEdit(chat.dialogEdit, "Mi puesto");
-    chat.focus = Client::UI::ChatFocus::Dialog;
+    Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
+    Client::Chat::ChatInputState& chat = Runtime().chat.input;
+    Client::Ui::TypeInTheEdit(chat.dialogEdit, "Mi puesto");
+    chat.focus = Client::Chat::ChatFocus::Dialog;
     const auto stepped = Dialogs(ShopOkRight, ShopButtonBottom, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
@@ -571,7 +571,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
     EXPECT_EQ(Runtime().social.trade.warningByte, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(chat.dialogEdit.text.Value(), "");
-    EXPECT_EQ(chat.focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(chat.focus, Client::Chat::ChatFocus::Game);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 }
@@ -583,8 +583,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
          {std::tuple<std::string_view, std::int32_t, std::uint8_t>{"1250", 1250, std::uint8_t{1}},
           std::tuple<std::string_view, std::int32_t, std::uint8_t>{"0", 0, std::uint8_t{2}}})
     {
-        Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopPriceMode);
-        Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, typed);
+        Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopPriceMode);
+        Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, typed);
         const auto stepped = Dialogs(ShopOkLeft, ShopButtonTop, true);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(Runtime().social.typedMoney, price) << typed;
@@ -596,8 +596,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
 // El cancelar gasta el clic y responde 2 sin leer el EDIT; fuera de los dos botones, ni el clic ni el diálogo cambian.
 TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
 {
-    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
-    Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Otro");
+    Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
+    Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Otro");
     Runtime().social.trade.warningByte = 0xff;
     auto stepped = Dialogs(ShopCancelRight + 1, ShopButtonTop, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -621,8 +621,8 @@ TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
     for (const auto& [title, answer] : {std::pair<std::string_view, std::uint8_t>{"Del Enter", std::uint8_t{1}},
                                         std::pair<std::string_view, std::uint8_t>{"", std::uint8_t{2}}})
     {
-        Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
-        Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "no se lee");
+        Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
+        Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "no se lee");
         Shops().ownTitle = std::string(title);
         Runtime().ui.enterPressed = true;
         const auto stepped = Dialogs(NowhereX, NowhereY, false);
@@ -638,21 +638,21 @@ TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
 // sin nombre, y la respuesta 2 con el título vacío.
 TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
 {
-    Client::Scenes::OpenTheShopDialog(Runtime(), Client::Scenes::ShopTitleMode);
-    Client::UI::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Mal  ");
+    Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
+    Client::Ui::TypeInTheEdit(Runtime().chat.input.dialogEdit, "Mal  ");
     LetterMeasure letters;
-    Client::Scenes::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
+    Client::Hud::GameUiContext context = Context(ShopOkLeft, ShopButtonTop);
     context.measure = &letters;
-    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
-    const auto stepped = Client::Scenes::StepTheGameDialogs(context);
+    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    const auto stepped = Client::Hud::StepTheGameDialogs(context);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Shops().ownTitle, "");
     EXPECT_EQ(Runtime().social.trade.warningByte, 2);
     const auto& entries = Runtime().chat.log.entries;
     EXPECT_TRUE(std::ranges::any_of(entries,
-                                    [](const Client::UI::ChatEntry& entry) {
+                                    [](const Client::Chat::ChatEntry& entry) {
                                         return entry.text == "aviso titulo malo" &&
-                                               entry.type == Client::UI::SystemMessage && entry.name.empty();
+                                               entry.type == Client::Ui::SystemMessage && entry.name.empty();
                                     }));
 }
 
@@ -660,7 +660,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
 // sonido ni el comercio, y borra el ítem bajo el mouse; 0x78abaa4 marca la grilla de la tienda.
 TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
     Runtime().lastSoundId = Client::Audio::SoundId{0};
@@ -672,7 +672,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms);
     EXPECT_EQ(Runtime().ui.shopGridHovered, 1);
-    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::ShopCell);
+    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::ShopCell);
     EXPECT_EQ(Runtime().ui.hoveredItem.index, PotionCell);
     EXPECT_EQ(Runtime().ui.field78abb28, 0);
     EXPECT_EQ(Runtime().ui.field78abb2c, 0x4c + static_cast<std::int32_t>(PotionCell));
@@ -690,7 +690,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_EQ(Runtime().slot78a6758, 12 + static_cast<std::int32_t>(StaffCell));
     for (const std::size_t cell : {StaffCell, StaffCell + 8, StaffCell + 16})
         EXPECT_EQ(InventoryCells()[cell].id, EmptyOwnItemId);
-    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::None);
+    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_EQ(Runtime().hoveredItemCopy.id, StaffType);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0});
     EXPECT_FALSE(Runtime().movement.pendingClick);
@@ -712,8 +712,8 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
 // no y el sí sin la clave solo lo borran. Uno del inventario se levanta.
 TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
 {
-    OpenTheShop(Client::UI::OtherShopPanel);
-    ASSERT_EQ(Shops().mode, Client::Scenes::OtherShopView);
+    OpenTheShop(Client::Ui::OtherShopPanel);
+    ASSERT_EQ(Shops().mode, Client::Social::OtherShopView);
     Place(ShopCells(), PotionCell + 2, PotionType, 0, 1);
     const std::int32_t potionX = CenterOf(ShopGridLeft, PotionCell + 2);
     const std::int32_t potionY = CenterOf(ShopGridTop, 0);
@@ -728,7 +728,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
     EXPECT_EQ(Runtime().cursorItemCount, 0);
     EXPECT_EQ(ShopCells()[PotionCell + 2].id, PotionType);
-    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::None);
+    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_FALSE(Runtime().movement.pendingClick);
 
     // El 0x94 (0x6282dc, CL9.3) deja la respuesta y se cierra. Sin respuesta todavía, el aviso sigue esperando.
@@ -779,7 +779,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
 // propia y su grilla abre el diálogo del precio (0x5eba70(2): el campo de 8 y el zen). El ítem bajo el mouse queda.
 TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
     auto stepped = Step(CenterOf(ShopGridLeft, PotionCell), CenterOf(ShopGridTop, 0), false, true);
@@ -787,13 +787,13 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms);
     EXPECT_FALSE(Runtime().ui.rightClick);
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopPriceMode);
+    EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopPriceMode);
     EXPECT_EQ(Runtime().social.dialogFieldLimit, 8);
     EXPECT_EQ(Runtime().social.moneyField, 1);
     EXPECT_EQ(Runtime().dialogItem.id, PotionType);
     EXPECT_EQ(Runtime().slot78a6758, 0x4c + static_cast<std::int32_t>(PotionCell));
     EXPECT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::PersonalShop);
-    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::UI::HoveredItem::Place::ShopCell);
+    EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::ShopCell);
     EXPECT_EQ(ShopCells()[PotionCell].id, PotionType);
 
     // Sobre el bastón del inventario: el lugar con 0x4c igual (0x5c526a), sin diálogo.
@@ -815,7 +815,7 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
 // precio, y su no vuelve al diálogo del precio. El no del diálogo vuelve el bastón a su lugar.
 TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     auto stepped = Step(CenterOf(InventoryGridLeft, 1), CenterOf(InventoryGridTop, 2), true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -834,7 +834,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms + CursorQueryRandoms);
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopPriceMode);
+    EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopPriceMode);
     EXPECT_EQ(Runtime().dialogItem.id, StaffType);
     EXPECT_EQ(Runtime().itemMoveTarget, 0x4c + 2);
     EXPECT_EQ(Runtime().cursorItemCount, 1);
@@ -847,10 +847,10 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     ThePriceIsTyped(static_cast<std::int32_t>(value - 1));
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::MoneyTextDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MoneyTextDialog);
     EXPECT_EQ(Runtime().dialogBox.lineCount, 2);
-    EXPECT_EQ(Client::UI::DialogRow(Runtime().dialogBox, 0), "precio " + Client::Scenes::FormatZen(value - 1) + " zen");
-    EXPECT_EQ(Client::UI::DialogRow(Runtime().dialogBox, 1), "vender a ese precio");
+    EXPECT_EQ(Client::Ui::DialogRow(Runtime().dialogBox, 0), "precio " + Client::Ui::FormatZen(value - 1) + " zen");
+    EXPECT_EQ(Client::Ui::DialogRow(Runtime().dialogBox, 1), "vender a ese precio");
     EXPECT_EQ(Runtime().social.trade.warningKind, 6);
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
     EXPECT_EQ(Shops().dialogMode, 0);
@@ -862,11 +862,11 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopPriceMode);
+    EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopPriceMode);
     EXPECT_TRUE(sent.empty());
 
     // El precio igual al valor, con la tienda abierta: el 3F 03, el 3F 01 y el 24.
-    Shops().dialogMode = Client::Scenes::ShopPriceMode;
+    Shops().dialogMode = Client::PersonalShop::ShopPriceMode;
     Shops().ownOpen = 1;
     ThePriceIsTyped(static_cast<std::int32_t>(value));
     stepped = Step(NowhereX, NowhereY, false);
@@ -889,7 +889,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     // El no del diálogo: 0x5be150 vuelve el bastón.
     sent.clear();
     Runtime().ui.field78abb39 = 0;
-    Shops().dialogMode = Client::Scenes::ShopPriceMode;
+    Shops().dialogMode = Client::PersonalShop::ShopPriceMode;
     Runtime().social.trade.warningByte = 2;
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -904,13 +904,13 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
 // precio (sin ítem en el cursor, el 3F 01 y el precio en el lugar de 0x78a6758).
 TEST_P(PersonalShopWindowTest, TheLowPriceWarningAnswers)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Runtime().social.trade.warningKind = 6;
     Runtime().social.trade.warningByte = 2;
     auto stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().dialogs.current, 0x91);
-    EXPECT_EQ(Shops().dialogMode, Client::Scenes::ShopPriceMode);
+    EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopPriceMode);
     EXPECT_EQ(Runtime().social.trade.warningKind, 0);
     EXPECT_TRUE(sent.empty());
 
@@ -933,7 +933,7 @@ TEST_P(PersonalShopWindowTest, TheLowPriceWarningAnswers)
 // abierta, el 3F 03 y el 24 de la 4 a la 4; al inventario, el 3F 03 y el 24 de la 4 a la 0 con el lugar + 12.
 TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
     Shops().ownOpen = 1;
     const std::int32_t potionX = CenterOf(ShopGridLeft, PotionCell);
@@ -980,7 +980,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
 // que gastar el clic dentro de la grilla.
 TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
+    OpenTheShop(Client::Ui::PersonalShopPanel);
     Place(InventoryCells(), 0, UntradableType, 0, 1);
     auto stepped = Step(CenterOf(InventoryGridLeft, 0), CenterOf(InventoryGridTop, 0), true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -992,7 +992,7 @@ TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
     EXPECT_FALSE(Runtime().movement.pendingClick);
     EXPECT_TRUE(sent.empty());
 
-    Shops().mode = Client::Scenes::OtherShopView;
+    Shops().mode = Client::Social::OtherShopView;
     Runtime().cursorItem.id = PotionType;
     stepped = Step(CenterOf(ShopGridLeft, 0), CenterOf(ShopGridTop, 0), true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -1003,11 +1003,11 @@ TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
 
 // Los avisos de 0x78abb14 van antes del ítem del cursor: el 3 (0x5d966b) con el sí da vuelta el OK propio y manda el
 // C1 04 3C con el nuevo en C3; sin respuesta el paso termina sin soltar el ítem; los de las ventanas de NPC los atiende
-// Scenes::AnswerTheNpcWarning (hito 6).
+// Npc::AnswerTheNpcWarning (hito 6).
 TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
 {
-    OpenTheShop(Client::UI::PersonalShopPanel);
-    Client::Scenes::TradeState& trade = Runtime().social.trade;
+    OpenTheShop(Client::Ui::PersonalShopPanel);
+    Client::Social::TradeState& trade = Runtime().social.trade;
     trade.warningKind = 3;
     trade.warningByte = 1;
     auto stepped = Step(NowhereX, NowhereY, false);
@@ -1068,30 +1068,30 @@ INSTANTIATE_TEST_SUITE_P(LorenciaAndDevias, PersonalShopWindowTest, ::testing::V
 // 0x9c abierto, falso; con un tipo fuera de 1..2, falso con el diálogo pedido.
 TEST(ConfirmBoxTest, TheTextIsCutIntoRows)
 {
-    Client::Scenes::ConfirmBoxState box;
-    Client::UI::DialogState dialogs;
-    ASSERT_TRUE(Client::Scenes::OpenTheConfirmBox(box, dialogs, 7, std::string(30, 'a'), 1));
+    Client::Social::ConfirmBoxState box;
+    Client::Ui::DialogState dialogs;
+    ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 7, std::string(30, 'a'), 1));
     EXPECT_EQ(dialogs.current, 0x9c);
     EXPECT_EQ(box.id, 7);
     EXPECT_EQ(box.type, 1);
     EXPECT_EQ(box.lines, (std::vector<std::string>{std::string(25, 'a'), std::string(5, 'a')}));
-    EXPECT_FALSE(Client::Scenes::OpenTheConfirmBox(box, dialogs, 8, "otro", 2));
+    EXPECT_FALSE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 8, "otro", 2));
     EXPECT_EQ(box.id, 7);
 
     // Un byte alto en el 25: el pedazo llega a 26, con el byte que lo sigue.
     dialogs = {};
     const std::string wide = std::string(24, 'b') + "\xb0\xa1" + "cc";
-    ASSERT_TRUE(Client::Scenes::OpenTheConfirmBox(box, dialogs, 1, wide, 2));
+    ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 1, wide, 2));
     EXPECT_EQ(box.lines, (std::vector<std::string>{std::string(24, 'b') + "\xb0\xa1", "cc"}));
 
     // Uno alto en el último byte: el pedazo se pierde.
     dialogs = {};
-    ASSERT_TRUE(Client::Scenes::OpenTheConfirmBox(box, dialogs, 1, std::string("dd") + "\xb0", 2));
+    ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 1, std::string("dd") + "\xb0", 2));
     EXPECT_TRUE(box.lines.empty());
 
     // El tipo 3: el diálogo pedido y nada más.
     dialogs = {};
-    EXPECT_FALSE(Client::Scenes::OpenTheConfirmBox(box, dialogs, 9, "x", 3));
+    EXPECT_FALSE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 9, "x", 3));
     EXPECT_EQ(dialogs.current, 0x9c);
     EXPECT_EQ(box.id, 1);
 }
@@ -1108,15 +1108,15 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     RecordingRequests requests{sent};
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(runtime.movement, true, true);
-        return Client::Scenes::StepTheGameDialogs(Client::Scenes::GameUiContext{
+        Client::Hud::LatchTheLeftButton(runtime.movement, true, true);
+        return Client::Hud::StepTheGameDialogs(Client::Hud::GameUiContext{
             .world = *world, .random = random, .input = input, .mouseX = x, .mouseY = y, .requests = &requests});
     };
     const std::int32_t row = Client::Render::Text::FontStepFor(640) + 2;
 
     // Dos botones, el no en el borde de abajo: el diálogo que esperaba (0x7d3a110) vuelve.
-    ASSERT_TRUE(Client::Scenes::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs,
-                                                  Client::Scenes::OpenShopConfirm, "pregunta", 2));
+    ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs,
+                                                        Client::PersonalShop::OpenShopConfirm, "pregunta", 2));
     runtime.dialogs.pending = 0x8c;
     auto stepped = step(0x17e, row + 156);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -1127,7 +1127,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
 
     // Un botón, otro id: el clic se gasta y la caja queda.
     runtime.dialogs = {};
-    ASSERT_TRUE(Client::Scenes::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs, 5, "aviso", 1));
+    ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs, 5, "aviso", 1));
     stepped = step(0x14a, row + 140);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.dialogs.current, 0x9c);

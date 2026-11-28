@@ -12,7 +12,7 @@
 
 namespace Client::App
 {
-GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, int maxFps)
+GameLoop::GameLoop(Core::IClock& clock, Scenes::ILoopClient& client, Kernel::PacingMode mode, int maxFps)
     : m_clock(clock), m_client(client), m_mode(mode),
       m_minFrameTime(maxFps > 0 ? Core::Duration{std::chrono::seconds{1}} / maxFps : Core::Duration::zero())
 {
@@ -28,7 +28,7 @@ int GameLoop::RunFrame(const Platform::WindowState& state, Input::InputState& in
     // Poll va a unos 25 Hz (duerme hasta el próximo paso de 40 ms), de sobra para un keepalive de
     // 20 s.
     m_client.Poll();
-    const int steps = m_mode == PacingMode::Faithful ? RunFaithful(state, input) : RunDecoupled(state, input);
+    const int steps = m_mode == Kernel::PacingMode::Faithful ? RunFaithful(state, input) : RunDecoupled(state, input);
     ++m_stats.frames;
     m_stats.steps += static_cast<std::uint64_t>(steps);
     return steps;
@@ -74,7 +74,7 @@ int GameLoop::RunDecoupled(const Platform::WindowState& state, Input::InputState
         // Sin dibujo, el swap no frena el bucle: duerme lo que falta para el próximo paso, que
         // es más que 0 porque el acumulador quedó debajo de LogicStep. El tope no se usa, y al
         // volver arranca de nuevo.
-        m_clock.SleepFor(LogicStep - m_fixedStep.Accumulated());
+        m_clock.SleepFor(Kernel::LogicStep - m_fixedStep.Accumulated());
         m_frameDeadline.reset();
         // Retenido, el original da la vuelta y corre el frame sin presentarlo; minimizada, va por la rama sin
         // frame, que no se modela (P-C61).

@@ -13,7 +13,7 @@
 #include <optional>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -134,4 +134,4 @@ void MenuBar::Place(Core::PixelSize screen)
     m_menu.MoveTo(Point{m_layout.menu.x, m_layout.menu.y});
     m_credit.MoveTo(Point{m_layout.credit.x, m_layout.credit.y});
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -35,8 +35,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::ModelEffect;
-using Client::World::ModelEffects;
+using Client::Effects::ModelEffect;
+using Client::Effects::ModelEffects;
 
 constexpr double Hundredth = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0.
 
@@ -58,30 +58,30 @@ TEST(GroundStonesTest, TheCellAttributeIsTheRowTimes256PlusTheColumnWithoutAMask
     attributes->cells[257] = 0x77;
     attributes->cells[255] = 0x55;
 
-    const auto inside = Client::World::UnmaskedCellAttribute(attributes.get(), {1250.5f, 3499.9f, 0.0f}, "test");
+    const auto inside = Client::Effects::UnmaskedCellAttribute(attributes.get(), {1250.5f, 3499.9f, 0.0f}, "test");
     ASSERT_TRUE(inside.HasValue()) << inside.Error();
     EXPECT_EQ(inside.Value(), 0x1234);
     // La columna 257 de la fila 0 es la celda (1, 1): 0x5f82a0 la habría enmascarado a (1, 0).
-    const auto wide = Client::World::UnmaskedCellAttribute(attributes.get(), {25750.0f, 50.0f, 0.0f}, "test");
+    const auto wide = Client::Effects::UnmaskedCellAttribute(attributes.get(), {25750.0f, 50.0f, 0.0f}, "test");
     ASSERT_TRUE(wide.HasValue());
     EXPECT_EQ(wide.Value(), 0x77);
     // 0,01f es un poco menos que 0,01: 25.700 · 0,01f es 256,99999… y el ftol lo deja en la columna 256.
-    const auto under = Client::World::UnmaskedCellAttribute(attributes.get(), {25700.0f, 50.0f, 0.0f}, "test");
+    const auto under = Client::Effects::UnmaskedCellAttribute(attributes.get(), {25700.0f, 50.0f, 0.0f}, "test");
     ASSERT_TRUE(under.HasValue());
     EXPECT_EQ(under.Value(), 0x66);
     // ftol(−1,5) es −1: la fila 1 menos uno es la última columna de la fila 0.
-    const auto behind = Client::World::UnmaskedCellAttribute(attributes.get(), {-150.0f, 150.0f, 0.0f}, "test");
+    const auto behind = Client::Effects::UnmaskedCellAttribute(attributes.get(), {-150.0f, 150.0f, 0.0f}, "test");
     ASSERT_TRUE(behind.HasValue());
     EXPECT_EQ(behind.Value(), 0x55);
 
     for (const glm::vec3 outside : {glm::vec3(0.0f, 25650.0f, 0.0f), glm::vec3(-150.0f, 0.0f, 0.0f),
                                     glm::vec3(std::numeric_limits<float>::infinity(), 0.0f, 0.0f)})
     {
-        const auto cut = Client::World::UnmaskedCellAttribute(attributes.get(), outside, "0xdead");
+        const auto cut = Client::Effects::UnmaskedCellAttribute(attributes.get(), outside, "0xdead");
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0xdead"), std::string::npos) << cut.Error();
     }
-    const auto blind = Client::World::UnmaskedCellAttribute(nullptr, {}, "0xbeef");
+    const auto blind = Client::Effects::UnmaskedCellAttribute(nullptr, {}, "0xbeef");
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0xbeef"), std::string::npos) << blind.Error();
 }
@@ -91,7 +91,7 @@ TEST(GroundStonesTest, TheCellAttributeIsTheRowTimes256PlusTheColumnWithoutAMask
 TEST(GroundStonesTest, TheGroundStonesAreBornWithTwoRandomsOnAnOpenCell)
 {
     auto attributes = OpenGround(0xff23);
-    for (const std::int16_t type : {Client::World::FirstGroundStoneEffect, Client::World::SecondGroundStoneEffect})
+    for (const std::int16_t type : {Client::Effects::FirstGroundStoneEffect, Client::Effects::SecondGroundStoneEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -102,7 +102,7 @@ TEST(GroundStonesTest, TheGroundStonesAreBornWithTwoRandomsOnAnOpenCell)
         ASSERT_EQ(created.Value(), std::optional<std::size_t>(0));
         const ModelEffect& stone = effects.Effects()[0];
         CrtRandom draws(7);
-        const double base = type == Client::World::FirstGroundStoneEffect
+        const double base = type == Client::Effects::FirstGroundStoneEffect
                                 ? static_cast<double>(std::bit_cast<float>(0x3f99999au))
                                 : 1.0;
         const float scale = F32(static_cast<double>(draws.Next() % 30) * Hundredth + base);
@@ -138,13 +138,13 @@ TEST(GroundStonesTest, ABlockedCellLeavesTheStoneWrittenButDeadWithoutRandoms)
         ModelEffects effects;
         effects.Effects()[0].life = 3;
         CrtRandom random(5);
-        const auto created = effects.CreateGroundStone(Client::World::SecondGroundStoneEffect, {100.0f, 200.0f, 5.0f},
+        const auto created = effects.CreateGroundStone(Client::Effects::SecondGroundStoneEffect, {100.0f, 200.0f, 5.0f},
                                                        {}, glm::vec3(1.0f), attributes.get(), random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_FALSE(created.Value().has_value());
         const ModelEffect& slot = effects.Effects()[0];
         EXPECT_FALSE(slot.alive);
-        EXPECT_EQ(slot.type, Client::World::SecondGroundStoneEffect);
+        EXPECT_EQ(slot.type, Client::Effects::SecondGroundStoneEffect);
         EXPECT_EQ(slot.transform.position, glm::vec3(100.0f, 200.0f, 5.0f));
         EXPECT_EQ(slot.life, 3);
         EXPECT_EQ(random.State(), 5u);
@@ -153,14 +153,14 @@ TEST(GroundStonesTest, ABlockedCellLeavesTheStoneWrittenButDeadWithoutRandoms)
     ModelEffects effects;
     CrtRandom random(5);
     auto cut =
-        effects.CreateGroundStone(Client::World::FirstGroundStoneEffect, {}, {}, glm::vec3(1.0f), nullptr, random);
+        effects.CreateGroundStone(Client::Effects::FirstGroundStoneEffect, {}, {}, glm::vec3(1.0f), nullptr, random);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x51cc8b"), std::string::npos) << cut.Error();
     EXPECT_TRUE(effects.Effects()[0].alive);
     EXPECT_EQ(random.State(), 5u);
     auto attributes = OpenGround();
-    cut = effects.CreateGroundStone(Client::World::SecondGroundStoneEffect, {0.0f, -150.0f, 0.0f}, {}, glm::vec3(1.0f),
-                                    attributes.get(), random);
+    cut = effects.CreateGroundStone(Client::Effects::SecondGroundStoneEffect, {0.0f, -150.0f, 0.0f}, {},
+                                    glm::vec3(1.0f), attributes.get(), random);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x51cd3b"), std::string::npos) << cut.Error();
 
@@ -172,7 +172,7 @@ TEST(GroundStonesTest, ABlockedCellLeavesTheStoneWrittenButDeadWithoutRandoms)
     ModelEffects full;
     for (ModelEffect& effect : full.Effects())
         effect.alive = true;
-    const auto crowded = full.CreateGroundStone(Client::World::FirstGroundStoneEffect, {}, {}, glm::vec3(1.0f),
+    const auto crowded = full.CreateGroundStone(Client::Effects::FirstGroundStoneEffect, {}, {}, glm::vec3(1.0f),
                                                 attributes.get(), random);
     ASSERT_TRUE(crowded.HasValue());
     EXPECT_FALSE(crowded.Value().has_value());
@@ -186,7 +186,7 @@ TEST(GroundStonesTest, TheGroundStoneChipIsBornWithFiveRandoms)
 {
     constexpr double Fifth = std::bit_cast<double>(0x3fc999999999999aull);
     constexpr double Twentieth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
-    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    for (const std::int16_t type : {Client::Effects::FirstStoneChipEffect, Client::Effects::SecondStoneChipEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -202,7 +202,7 @@ TEST(GroundStonesTest, TheGroundStoneChipIsBornWithFiveRandoms)
         const auto yaw = static_cast<float>(draws.Next() % 360);
         const auto fall = static_cast<float>((draws.Next() & 15) + 28);
         EXPECT_EQ(chip.type, type);
-        EXPECT_EQ(chip.subtype, Client::World::GroundStoneChipSubtype);
+        EXPECT_EQ(chip.subtype, Client::Effects::GroundStoneChipSubtype);
         EXPECT_EQ(chip.life, life);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(chip.transform.scale), std::bit_cast<std::uint32_t>(scale));
         EXPECT_EQ(chip.transform.angles, glm::vec3(5.0f, 0.0f, yaw));
@@ -226,8 +226,8 @@ TEST(GroundStonesTest, TheStompShockWaveIsBornWithoutRandoms)
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
     const ModelEffect& wave = effects.Effects()[0];
     EXPECT_TRUE(wave.alive);
-    EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
-    EXPECT_EQ(wave.subtype, Client::World::StompShockWaveSubtype);
+    EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
+    EXPECT_EQ(wave.subtype, Client::Effects::StompShockWaveSubtype);
     EXPECT_EQ(wave.life, 30);
     EXPECT_EQ(wave.transform.scale, 20.0f);
     EXPECT_EQ(wave.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
@@ -249,13 +249,13 @@ TEST(GroundStonesTest, TheStompShockWaveShrinksAndFadesWithItsLife)
     ModelEffects effects;
     ASSERT_TRUE(effects.CreateStompShockWave({100.5f, 200.25f, 300.0f}, {}, glm::vec3(1.0f)).has_value());
     ModelEffect& wave = effects.Effects()[0];
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     CrtRandom random(3);
     for (int step = 1; step <= 30; ++step)
     {
         SCOPED_TRACE(step);
         const std::int32_t life = wave.life;
-        const auto stepped = Client::World::StepGameModelEffect(wave, nullptr, particles, 0.0f, random);
+        const auto stepped = Client::Effects::StepGameModelEffect(wave, nullptr, particles, 0.0f, random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(wave.transform.scale, step <= 20 ? static_cast<float>(20 - step) : 0.0f);
         const std::int32_t fade = life > 20 ? 40 - life : life;
@@ -271,7 +271,7 @@ ModelEffect GroundStone(std::int32_t life)
 {
     ModelEffect stone;
     stone.alive = true;
-    stone.type = Client::World::FirstGroundStoneEffect;
+    stone.type = Client::Effects::FirstGroundStoneEffect;
     stone.life = life;
     stone.transform.scale = 1.2f;
     stone.transform.position = {1000.0f, 2000.0f, 300.0f};
@@ -294,23 +294,23 @@ TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
         ModelEffect stone = GroundStone(life);
         stone.alpha = 0.5f;
         stone.objectState.light = 0.75f;
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         ModelEffects effects;
         auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        Client::World::ModelEffectStepServices services;
+        Client::Effects::ModelEffectStepServices services;
         services.effects = &effects;
         services.lighting = lighting.get();
         CrtRandom random(9);
         const auto stepped =
-            Client::World::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
+            Client::Effects::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(stone.alpha, life < 8 ? F32(0.5 * Fade) : 0.5f);
         EXPECT_EQ(stone.objectState.light, life < 8 ? 0.375f : 0.75f);
         EXPECT_FALSE(particles.Any());
         EXPECT_FALSE(effects.Effects()[0].alive);
         auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(
-            Client::World::AddDynamicLight(expected.get(), {1000.0f, 2000.0f, 300.0f}, Glow, 2, "test").HasValue());
+        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expected.get(), {1000.0f, 2000.0f, 300.0f}, Glow, 2, "test")
+                        .HasValue());
         EXPECT_EQ(lighting->cells, expected->cells);
         EXPECT_EQ(stone.transform.position, glm::vec3(1000.0f, 2000.0f, 300.0f));
         EXPECT_EQ(stone.life, life - 1);
@@ -333,31 +333,31 @@ TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirt
             SCOPED_TRACE(life);
             SCOPED_TRACE(seed);
             ModelEffect stone = GroundStone(life);
-            Client::World::Particles particles;
+            Client::Particles::Particles particles;
             ModelEffects effects;
             auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-            Client::World::ModelEffectStepServices services;
+            Client::Effects::ModelEffectStepServices services;
             services.effects = &effects;
             services.lighting = lighting.get();
             CrtRandom random(seed);
             const auto stepped =
-                Client::World::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
+                Client::Effects::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
 
             CrtRandom draws(seed);
             static_cast<void>(draws.Next());
-            Client::World::Particles expectedParticles;
+            Client::Particles::Particles expectedParticles;
             ASSERT_TRUE(expectedParticles
-                            .CreateChecked(Client::World::BreathParticle, point, stone.transform.angles, dustLight,
-                                           Client::World::StoneDustSubtype, 2.0f, 0.0f, draws)
+                            .CreateChecked(Client::Particles::BreathParticle, point, stone.transform.angles, dustLight,
+                                           Client::Particles::StoneDustSubtype, 2.0f, 0.0f, draws)
                             .HasValue());
             const auto type = static_cast<std::int16_t>(0xc8 + (draws.Next() & 1));
             ModelEffects expectedEffects;
             ASSERT_TRUE(expectedEffects.CreateGroundStoneChip(type, point, stone.transform.angles, stone.light, draws)
                             .has_value());
 
-            const Client::World::Particle& dust = particles.All()[0];
-            const Client::World::Particle& wanted = expectedParticles.All()[0];
+            const Client::Particles::Particle& dust = particles.All()[0];
+            const Client::Particles::Particle& wanted = expectedParticles.All()[0];
             ASSERT_TRUE(dust.alive);
             EXPECT_EQ(dust.type, 0x5f2);
             EXPECT_EQ(dust.subtype, 11);
@@ -371,7 +371,7 @@ TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirt
             const ModelEffect& chip = effects.Effects()[0];
             ASSERT_TRUE(chip.alive);
             EXPECT_EQ(chip.type, type);
-            EXPECT_EQ(chip.subtype, Client::World::GroundStoneChipSubtype);
+            EXPECT_EQ(chip.subtype, Client::Effects::GroundStoneChipSubtype);
             EXPECT_EQ(chip.transform.position, point);
             EXPECT_EQ(chip.light, stone.light);
             EXPECT_EQ(chip.velocity, expectedEffects.Effects()[0].velocity);
@@ -388,12 +388,12 @@ TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirt
 TEST(GroundStonesTest, TheGroundStoneCutsWithoutItsTables)
 {
     ModelEffect stone = GroundStone(35);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::ModelEffectStepServices services;
+    Client::Effects::ModelEffectStepServices services;
     services.lighting = lighting.get();
     CrtRandom random(1);
-    auto cut = Client::World::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
+    auto cut = Client::Effects::StepGameModelEffect(stone, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52766a"), std::string::npos) << cut.Error();
     EXPECT_TRUE(particles.All()[0].alive);
@@ -403,7 +403,7 @@ TEST(GroundStonesTest, TheGroundStoneCutsWithoutItsTables)
     ModelEffects effects;
     services.effects = &effects;
     services.lighting = nullptr;
-    cut = Client::World::StepGameModelEffect(dark, nullptr, particles, 0.0f, random, nullptr, services);
+    cut = Client::Effects::StepGameModelEffect(dark, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52c4f1"), std::string::npos) << cut.Error();
     EXPECT_EQ(dark.objectState.light, 0.5f);
@@ -417,19 +417,20 @@ TEST(GroundStonesTest, TheGroundStoneChipBouncesWithoutBurning)
         ++burns;
     ModelEffect chip;
     chip.alive = true;
-    chip.type = Client::World::FirstStoneChipEffect;
-    chip.subtype = Client::World::GroundStoneChipSubtype;
+    chip.type = Client::Effects::FirstStoneChipEffect;
+    chip.subtype = Client::Effects::GroundStoneChipSubtype;
     chip.life = 40;
     chip.transform.scale = 0.75f;
     chip.transform.position = {1000.0f, 1000.0f, 100.0f};
     chip.velocity = {10.0f, 0.0f, 0.0f};
     chip.turnDirection = 5.0f;
     chip.animation.action = 0xff;
-    Client::World::Particles particles;
-    Client::World::ModelEffectStepServices services;
+    Client::Particles::Particles particles;
+    Client::Effects::ModelEffectStepServices services;
     services.terrainHeight = [](float, float) { return 200.0; };
     CrtRandom random(burns);
-    const auto stepped = Client::World::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services);
+    const auto stepped =
+        Client::Effects::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(chip.transform.position.z, 200.0f);
     EXPECT_EQ(chip.velocity.x, F32(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
@@ -445,15 +446,15 @@ TEST(GroundStonesTest, TheGroundStoneChipBouncesWithoutBurning)
 // rand().
 TEST(GroundStonesTest, TheStoneDustIsBornWithSevenRandoms)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     CrtRandom random(21);
     const glm::vec3 light{1.0f, 0.8f, 0.6f};
     const auto created =
-        particles.CreateChecked(Client::World::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f}, light,
-                                Client::World::StoneDustSubtype, 2.0f, 0.0f, random);
+        particles.CreateChecked(Client::Particles::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f},
+                                light, Client::Particles::StoneDustSubtype, 2.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_EQ(created.Value(), std::optional<std::size_t>(0));
-    const Client::World::Particle& dust = particles.All()[0];
+    const Client::Particles::Particle& dust = particles.All()[0];
     CrtRandom draws(21);
     const int x = (draws.Next() & 63) - 32;
     const int y = (draws.Next() & 63) - 32;
@@ -484,17 +485,17 @@ TEST(GroundStonesTest, TheStoneDustDimsBrakesGrowsAndSinks)
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
     constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     CrtRandom random(21);
     ASSERT_TRUE(particles
-                    .CreateChecked(Client::World::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f},
-                                   {1.0f, 0.8f, 0.6f}, Client::World::StoneDustSubtype, 2.0f, 0.0f, random)
+                    .CreateChecked(Client::Particles::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f},
+                                   {1.0f, 0.8f, 0.6f}, Client::Particles::StoneDustSubtype, 2.0f, 0.0f, random)
                     .HasValue());
-    Client::World::Particle before = particles.All()[0];
+    Client::Particles::Particle before = particles.All()[0];
     const std::uint32_t state = random.State();
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
-    const Client::World::Particle& dust = particles.All()[0];
+    const Client::Particles::Particle& dust = particles.All()[0];
     const glm::vec3 turned =
         Client::Math::OriginalVectorRotate(before.velocity, Client::Math::OriginalAngleMatrix(before.angles));
     glm::vec3 moved{};
@@ -516,13 +517,13 @@ TEST(GroundStonesTest, TheStoneDustDimsBrakesGrowsAndSinks)
 // escala, su luz y el giro de +0x44.
 TEST(GroundStonesTest, TheStoneDustIsDrawnWithTheCommonBillboard)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     CrtRandom random(21);
     ASSERT_TRUE(particles
-                    .CreateChecked(Client::World::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f},
-                                   {1.0f, 0.8f, 0.6f}, Client::World::StoneDustSubtype, 2.0f, 0.0f, random)
+                    .CreateChecked(Client::Particles::BreathParticle, {1060.0f, 1940.0f, 350.0f}, {0.0f, 7.0f, 45.0f},
+                                   {1.0f, 0.8f, 0.6f}, Client::Particles::StoneDustSubtype, 2.0f, 0.0f, random)
                     .HasValue());
-    Client::World::Particle dust = particles.All()[0];
+    Client::Particles::Particle dust = particles.All()[0];
     const auto drawn = Client::Tests::DrawOneParticle(dust, glm::vec2(64.0f, 32.0f), std::uint8_t{0});
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_TRUE(drawn.Value().has_value());

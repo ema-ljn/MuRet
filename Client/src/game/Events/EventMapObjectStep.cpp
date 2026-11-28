@@ -21,7 +21,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::Events
 {
 namespace
 {
@@ -70,7 +70,8 @@ float FlashCoordinate(int spread, float hero)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random, const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
+                                                         const WorldObjects::ObjectStepGlobals& globals)
 {
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(globals.worldClock));
     if (!clock)
@@ -85,7 +86,8 @@ Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
         const float y = FlashCoordinate(spreadY, globals.heroPosition->y);
         const int spreadX = random.Next() % FlashSpread;
         const float x = FlashCoordinate(spreadX, globals.heroPosition->x);
-        if (auto lit = AddDynamicLight(globals.dynamicLighting, glm::vec3(x, y, 0.0f), color, FlashRadius, "0x604b8e");
+        if (auto lit = WorldObjects::AddDynamicLight(globals.dynamicLighting, glm::vec3(x, y, 0.0f), color, FlashRadius,
+                                                     "0x604b8e");
             !lit.HasValue())
             return lit;
     }
@@ -96,7 +98,7 @@ Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
 }
 
 Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random, const glm::vec3& hero,
-                                                         Particles* particles, const float& worldClock)
+                                                         Particles::Particles* particles, const float& worldClock)
 {
     // fild del entero y fadd del float del héroe; la z suma después los 250. Todo cabe exacto en la x87.
     const int spreadX = random.Next() % OrbSpread - OrbBack;
@@ -110,18 +112,19 @@ Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random,
     if (particles == nullptr)
         return Core::Unexpected(std::string("0x6063be: falta el pool de partículas (0x53fe70) para la órbita "
                                             "0x60f/3 de Blood Castle"));
-    PortableParticleTrigonometry trigonometry;
-    const auto created = particles->CreateChecked(OrbitParticle, glm::vec3(x, y, z), glm::vec3(0.0f), glm::vec3(1.0f),
-                                                  OrbSubtype, OrbScale, std::cref(worldClock), random, 0, trigonometry);
+    Particles::PortableParticleTrigonometry trigonometry;
+    const auto created =
+        particles->CreateChecked(Particles::OrbitParticle, glm::vec3(x, y, z), glm::vec3(0.0f), glm::vec3(1.0f),
+                                 OrbSubtype, OrbScale, std::cref(worldClock), random, 0, trigonometry);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x6063be: la órbita 0x60f/3 de Blood Castle falla con error {}",
                                             static_cast<int>(created.Error())));
     return {};
 }
 
-void StepBloodCastleObject(WorldObject& object)
+void StepBloodCastleObject(WorldObjects::WorldObject& object)
 {
     if (object.type >= FirstGate && object.type <= LastGate && object.field8a != OpenGate)
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
 }
-} // namespace Client::World
+} // namespace Client::Events

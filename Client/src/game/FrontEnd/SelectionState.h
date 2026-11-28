@@ -39,7 +39,7 @@ struct TerrainState;
 // La selección sobre el pool durable (06, "Los personajes de la lista", y CL7.3 B): construye en los
 // cinco primeros registros de WorldState y escribe el mundo en curso en su WorldRuntime, sin otra
 // copia. main es dueño de los dos; la vista usa las revisiones, nunca la igualdad de las entradas.
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 class SelectionState
 {
@@ -104,4 +104,4 @@ private:
     bool m_initialized = false;
     std::optional<std::string> m_failure;
 };
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

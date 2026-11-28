@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <initializer_list>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
 namespace
 {
@@ -60,7 +60,7 @@ void SetMagicSpeeds(Actors::PlayerActionSpeeds& speeds, float magic, float halfM
     SetOffsets(speeds, {0x5d4}, half + static_cast<double>(0.37f));
 }
 } // namespace
-void RefreshCombatActionSpeeds(const WorldEntryResources& resources)
+void RefreshCombatActionSpeeds(const Scenes::WorldEntryResources& resources)
 {
     RefreshCombatActionSpeeds(resources.world, resources.cloth.random);
 }
@@ -81,4 +81,4 @@ void RefreshCombatActionSpeeds(Kernel::WorldState& world, Crt::CrtRandom& random
     SetAttackSpeeds(world.ActionSpeeds(), attack);
     SetMagicSpeeds(world.ActionSpeeds(), magic, halfMagic);
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

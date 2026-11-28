@@ -49,6 +49,10 @@ struct ItemDrawContext;
 namespace Client::Scenes
 {
 struct GameDrawTailState;
+} // namespace Client::Scenes
+
+namespace Client::Items
+{
 
 // La caja de un ítem de la UI en 640 × 480: los cuatro floats que reciben 0x5e1480 y 0x5e2d00.
 struct UiItemBox
@@ -74,7 +78,7 @@ struct UiItemCall
 
 // 0x5e1486..0x5e14e5: el ítem está bajo el mouse (los enteros de 0x7d3682c y 0x7d36828, en 640 × 480) si nadie
 // tiene un ítem en el cursor (0x7879fbc en 0) o con `always`, y x ≤ mx < x + w e y ≤ my < y + h en la x87.
-[[nodiscard]] bool UiItemHovered(const UiItemBox& box, UI::Point mouse, std::int32_t cursorItemCount, bool always);
+[[nodiscard]] bool UiItemHovered(const UiItemBox& box, Ui::Point mouse, std::int32_t cursorItemCount, bool always);
 
 // 0x5e14e9..0x5e1d69: el punto de la caja que 0x5e1480 le pasa a 0x620480: x + w · kx e y + h · ky en la x87 con los
 // factores de la tabla del tipo (y del nivel en algunos), truncados con _ftol. Con un paso que la tabla no tiene
@@ -106,7 +110,7 @@ struct UiItemPlacement
 // 0, 1 ni 2 no los escribe y se queda con los del ítem anterior. Con los modelos de 0x212 a 0xe11 lee el byte +0x1e
 // (las dos manos) de su registro de Item.bmd; sin él, corta.
 [[nodiscard]] Core::Expected<UiItemPlacement, std::string>
-PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor, bool hovered, bool always, float worldClock,
+PlaceUiItem(const UiItemCall& call, const Scenes::UnprojectedPoint& anchor, bool hovered, bool always, float worldClock,
             const Tables::ItemTable* items, glm::vec3& angles);
 
 // El pase 3D de 0x5ac120: la proyección de 1°, W / H, 20 y 2.000 en la pantalla entera (0x620d10 y 0x6203c0) y la
@@ -116,7 +120,7 @@ PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor, bool hovered
 struct UiItemPass
 {
     Render::Pass3D pass{};
-    GameProjection projection{};
+    Scenes::GameProjection projection{};
 };
 
 [[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, float farPlane = 2000.0f);
@@ -160,5 +164,5 @@ void CloseUiItemPass(UiItemResources& resources);
 // paso del frame siguiente (la vida en 0, 0x53c3ad..0x53c3bd), antes del dibujo que sigue: el original no las dibuja
 // nunca. Los dibujos intermedios de MuRet (GameScene::PrepareDrawProjection) las apagan en su copia de la cola; la
 // tabla de verdad las guarda para el paso, con sus rand().
-void HideUiItemJoints(GameDrawTailState& tail);
-} // namespace Client::Scenes
+void HideUiItemJoints(Scenes::GameDrawTailState& tail);
+} // namespace Client::Items

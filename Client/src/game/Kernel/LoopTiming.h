@@ -8,7 +8,7 @@
 // Las constantes del bucle (CL3.2): el paso de la lógica, el tope del frame y el ritmo del modo
 // fiel. Vienen de 02 § El ritmo y de la tabla "Lo que dice el binario del bucle" del plan de la
 // CL3.
-namespace Client::App
+namespace Client::Kernel
 {
 // 02 § El ritmo: CMP [0x6d5ee4],0x28 en 0x637791, SUB EAX,0x28 en 0x638167.
 inline constexpr Core::Duration LogicStep = std::chrono::milliseconds{40};
@@ -40,4 +40,4 @@ inline constexpr int MaxFpsLimit = 1000;
 {
     return maxFps == 0 || (maxFps >= MinFpsLimit && maxFps <= MaxFpsLimit);
 }
-} // namespace Client::App
+} // namespace Client::Kernel

@@ -14,7 +14,7 @@
 // bytes en las dos. La del GameServer llega del cable, en el F4 03 (ReadServerAddress), y la
 // ServerSession la guarda sin pasarla por ParseHost: un host que no sirve termina en un
 // ResolveFailed de la conexión.
-namespace Client::App
+namespace Client::Session
 {
 // El puerto compilado del ConnectServer, 0x6d5dc4 (02 § Del launcher al juego).
 inline constexpr std::uint16_t DefaultConnectPort = 44405;
@@ -35,4 +35,4 @@ Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
 // Un host de 1 a MaxHostBytes bytes de ASCII visible (0x21 a 0x7E): una IP o un nombre, que con
 // acentos va en punycode. No resuelve nombres ni mira si es una IP.
 Core::Expected<std::string, std::string> ParseHost(std::string_view text);
-} // namespace Client::App
+} // namespace Client::Session

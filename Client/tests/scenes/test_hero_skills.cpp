@@ -53,8 +53,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
-using Client::Scenes::UseTheHeroSkill;
+using Client::Skills::HeroSkillContext;
+using Client::Skills::UseTheHeroSkill;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -165,11 +165,11 @@ struct SkillHero
     {
         return world.Actors()[0];
     }
-    Client::UI::GameUiState& Ui()
+    Client::Ui::GameUiState& Ui()
     {
         return world.Runtime().ui;
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -1047,7 +1047,7 @@ TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
         EXPECT_TRUE(shine.alive);
         EXPECT_EQ(shine.type, 0x5fe);
         EXPECT_EQ(shine.life, 18);
-        EXPECT_EQ(shine.typedOwner.kind, Client::World::ParticleOwnerKind::Actor);
+        EXPECT_EQ(shine.typedOwner.kind, Client::Particles::ParticleOwnerKind::Actor);
         EXPECT_EQ(shine.typedOwner.identity, 0u);
         EXPECT_EQ(shine.position, tested->Hero().position);
         EXPECT_EQ(tested->world.PlayerModel().origin, tested->Hero().position);
@@ -1399,7 +1399,7 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     AnyModels models;
     tested->Hero().type = 0x28;
     tested->Hero().animation.action = 0;
-    Client::Scenes::HeroMovementContext context{.world = tested->world, .random = tested->random};
+    Client::Movement::HeroMovementContext context{.world = tested->world, .random = tested->random};
     context.input.ticksMs = tested->ticks;
     context.input.worldTime = tested->worldTime;
     context.playerSkeleton = &tested->skeleton;
@@ -1407,7 +1407,7 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     context.sendSkill = [&tested](Client::Protocol::Outgoing packet) { tested->sent.push_back(std::move(packet)); };
     context.models = &models;
     context.terrain = &tested->terrain;
-    const auto used = Client::Scenes::StepHeroMovement(context);
+    const auto used = Client::Movement::StepHeroMovement(context);
     ASSERT_TRUE(used.HasValue()) << used.Error();
     EXPECT_EQ(tested->Hero().animation.action, 1);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd2});

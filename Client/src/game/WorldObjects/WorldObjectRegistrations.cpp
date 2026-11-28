@@ -1,6 +1,6 @@
 #include "WorldObjects/WorldObjectRegistrations.h"
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 void RegisterWorldObject(WorldObjectRegistrations& registrations, WorldObjectIdentity object)
 {
@@ -15,4 +15,4 @@ void RegisterWorldObject(WorldObjectRegistrations& registrations, WorldObjectIde
         return;
     }
 }
-} // namespace Client::World
+} // namespace Client::WorldObjects

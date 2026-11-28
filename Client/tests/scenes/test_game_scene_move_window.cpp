@@ -81,7 +81,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     world->Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
     world->OwnCharacter().ClearEquipmentForEntry();
     // El cuerpo del héroe (0x4f9580) pide el esqueleto de Player.bmd.
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     LetterMeasure letters;
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = dataRoot,
@@ -101,7 +101,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     // [3, 188) e y en [40, 54) con 640 de ancho (test_game_move_window).
     Client::Kernel::WorldRuntime& runtime = world->Runtime();
     runtime.drawingEnabled = true;
-    runtime.panels.overlayMode = Client::UI::MoveOverlayMode;
+    runtime.panels.overlayMode = Client::Ui::MoveOverlayMode;
     runtime.moves = {Client::Tables::MoveRequirement{
         .index = 1, .name = "Campo", .searchName = {}, .level = 10, .zen = 100, .gate = 0}};
     world->OwnCharacter().level = 20;
@@ -118,7 +118,7 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     scene.Step(input);
 
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
-    EXPECT_NE(runtime.panels.overlayMode, Client::UI::MoveOverlayMode);
+    EXPECT_NE(runtime.panels.overlayMode, Client::Ui::MoveOverlayMode);
     Client::Network::PacketSerials serials;
     const auto received =
         Client::Tests::AsTheGameServerReceives(std::span(online.socket.sent).subspan(sentBefore), serials);

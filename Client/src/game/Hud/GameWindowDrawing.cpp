@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace Client::Scenes::WindowDrawing
+namespace Client::Hud::WindowDrawing
 {
 namespace
 {
@@ -66,7 +66,7 @@ void KeepTheMeasure(GameHudContext& context, std::string_view text, std::int32_t
 }
 
 // fild del mouse contra la caja en float: izquierda ≤ x < izquierda + lado, con la suma en la x87.
-bool MouseInSquare(const UI::Point mouse, float left, float top, float size)
+bool MouseInSquare(const Ui::Point mouse, float left, float top, float size)
 {
     const auto x = static_cast<double>(mouse.x);
     const auto y = static_cast<double>(mouse.y);
@@ -234,10 +234,10 @@ void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, s
     const float top = F32(static_cast<double>(y) + CloseTop);
     SelectFont(context, Render::Text::FontKind::Normal);
     context.hud.textColors = CloseHelpColors;
-    UI::DrawHelp(context.sprites, context.text, Truncate(static_cast<double>(left)),
+    Ui::DrawHelp(context.sprites, context.text, Truncate(static_cast<double>(left)),
                  Truncate(static_cast<double>(top)) - HelpAbove, help);
     // 0x554340 selecciona la normal, que queda en el DC, y deja el texto en blanco sobre un fondo transparente.
     SelectFont(context, Render::Text::FontKind::Normal);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }
-} // namespace Client::Scenes::WindowDrawing
+} // namespace Client::Hud::WindowDrawing

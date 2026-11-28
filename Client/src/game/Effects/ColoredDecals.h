@@ -17,12 +17,12 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
-namespace Client::Terrain
+namespace Client::Effects
 {
 
 // The subtypes of 0x61e with their own case in the creation (0x51eebb), besides those of ModelEffects.h.
@@ -36,11 +36,11 @@ inline constexpr std::int32_t CoolPulsingDecalSubtype = 0xa; // that of 0x45, be
 // 0x51eebb..0x51efa4, the case of 0x61e after the prefix: life 20; /4 and /0xa, life 40 and the scale
 // (rand() % 50 + 50) · 0.04f; /6, life 60, that scale and the start at the position; /7, life 40 and the z angle at
 // rand() % 360; /8, life 20; /9, life 10 and the scale at 0.1f. The rest, only the life.
-void BeginColoredDecal(World::ModelEffect& effect, Crt::CrtRandom& random);
+void BeginColoredDecal(Effects::ModelEffect& effect, Crt::CrtRandom& random);
 
 // 0x518cf0(0x61e, …) on `table`: the prefix (BeginModelEffect) and BeginColoredDecal. With the table full, nothing and
 // no rand().
-[[nodiscard]] std::optional<std::size_t> CreateColoredDecal(std::span<World::ModelEffect> table,
+[[nodiscard]] std::optional<std::size_t> CreateColoredDecal(std::span<Effects::ModelEffect> table,
                                                             const Kernel::ModelEffectArguments& arguments,
                                                             Crt::CrtRandom& random);
-} // namespace Client::Terrain
+} // namespace Client::Effects

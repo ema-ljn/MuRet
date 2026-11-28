@@ -42,7 +42,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::HeroSkillContext;
+using Client::Skills::HeroSkillContext;
 
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
@@ -170,7 +170,7 @@ struct TailHero
     {
         return world.Actors()[ChosenSlot];
     }
-    Client::Scenes::GameMovementState& Movement()
+    Client::Movement::GameMovementState& Movement()
     {
         return world.Runtime().movement;
     }
@@ -194,7 +194,7 @@ struct TailHero
     }
     Client::Core::Expected<void, std::string> Use()
     {
-        return Client::Scenes::UseTheSharedTail(Hero(), skill, Context());
+        return Client::Skills::UseTheSharedTail(Hero(), skill, Context());
     }
     std::vector<std::uint8_t> Sent(std::size_t index) const
     {
@@ -492,7 +492,7 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
         SCOPED_TRACE(map);
         const auto tested = AHeroClicking(0x43, map);
         const CrtRandom expected = Advanced(tested->random, AimDraws + SternDraws);
-        const auto result = Client::Scenes::UseTheHeroSkill(tested->Hero(), tested->Context());
+        const auto result = Client::Skills::UseTheHeroSkill(tested->Hero(), tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         ASSERT_EQ(tested->sent.size(), 1u);
@@ -506,7 +506,7 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
         const auto tested = AHeroClicking(0x43, 2, 1);
         const CrtRandom expected =
             Advanced(tested->random, AimDraws + 2 * OwnDraws + EntryDraws + OwnDraws + SternDraws);
-        const auto result = Client::Scenes::UseTheHeroSkill(tested->Hero(), tested->Context());
+        const auto result = Client::Skills::UseTheHeroSkill(tested->Hero(), tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->random.State(), expected.State());
         ASSERT_EQ(tested->sent.size(), 1u);
@@ -519,7 +519,7 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
         const auto tested = AHeroClicking(0x47, map);
         tested->Hero().safeZone = 1;
         tested->Hero().pet.model = 0x1c37;
-        const auto result = Client::Scenes::UseTheHeroSkill(tested->Hero(), tested->Context());
+        const auto result = Client::Skills::UseTheHeroSkill(tested->Hero(), tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x47, 0x0a, 0x1b}));
@@ -528,7 +528,7 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
     // En la zona segura de Lorencia, 0x57d33d no deja pasar: ni la cola.
     const auto tested = AHeroClicking(0x47, 0);
     tested->Hero().safeZone = 1;
-    ASSERT_TRUE(Client::Scenes::UseTheHeroSkill(tested->Hero(), tested->Context()).HasValue());
+    ASSERT_TRUE(Client::Skills::UseTheHeroSkill(tested->Hero(), tested->Context()).HasValue());
     EXPECT_TRUE(tested->sent.empty());
     EXPECT_EQ(tested->Hero().animation.action, 1);
 }

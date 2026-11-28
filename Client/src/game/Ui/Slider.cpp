@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -261,4 +261,4 @@ int Slider::ThumbX() const
 {
     return m_thumb.Area().x;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -28,16 +28,16 @@
 #include <string>
 #include <utility>
 
-// Client::World::ModelEffects con el dragón del login (06 § El dragón de fondo), contra lo que hizo el
+// Client::Effects::ModelEffects con el dragón del login (06 § El dragón de fondo), contra lo que hizo el
 // código real del main.exe: 0x518cf0 con el 0xb4 y 1.500 pasos de 0x5208a0 (tests/vectors/world55,
 // make_dragon_vectors.py), bit a bit.
 namespace
 {
+using Client::Effects::DragonEffect;
+using Client::Effects::ModelEffect;
+using Client::Effects::ModelEffects;
 using Client::Tests::DragonVectors;
 using Client::Tests::DragonVectorState;
-using Client::World::DragonEffect;
-using Client::World::ModelEffect;
-using Client::World::ModelEffects;
 
 using Client::Math::Bits;
 
@@ -97,7 +97,7 @@ protected:
     std::optional<std::size_t> CreateTheDragon(ModelEffects& effects) const
     {
         return effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
-                              Client::World::DragonScale);
+                              Client::Effects::DragonScale);
     }
 
     DragonVectors m_vectors;
@@ -122,7 +122,7 @@ TEST_F(DragonTest, FifteenHundredStepsMatchTheBinary)
     for (std::size_t step = 0; step < m_vectors.steps.size(); ++step)
     {
         ModelEffect& dragon = effects.Effects()[*index];
-        Client::World::StepModelEffect(dragon, &skeleton);
+        Client::Effects::StepModelEffect(dragon, &skeleton);
         ExpectSameState(dragon, m_vectors.steps[step], "en el paso " + std::to_string(step + 1));
         if (HasFailure())
         {
@@ -135,7 +135,7 @@ TEST_F(DragonTest, FifteenHundredStepsMatchTheBinary)
 TEST(ModelEffectsTest, TheTableHasTwoHundredPlaces)
 {
     ModelEffects effects;
-    for (std::size_t k = 0; k < Client::World::ModelEffectCount; ++k)
+    for (std::size_t k = 0; k < Client::Effects::ModelEffectCount; ++k)
     {
         const auto index = effects.Create(DragonEffect, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 1.0f);
         ASSERT_TRUE(index.has_value());
@@ -165,12 +165,12 @@ TEST(ModelEffectsTest, ReusingASlotRetainsItsLastDrawVisibility)
     const auto first = effects.Create(DragonEffect, {}, {}, {}, 1.0f);
     ASSERT_EQ(first, 0u);
     effects.Effects()[0].seen = true;
-    const auto second = effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f);
+    const auto second = effects.Create(Client::Effects::ArrivalEffect, {}, {}, {}, 1.0f);
     ASSERT_EQ(second, 1u);
     EXPECT_FALSE(effects.Effects()[1].seen);
     effects.Clear();
     EXPECT_TRUE(effects.Effects()[0].seen);
-    ASSERT_EQ(effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
+    ASSERT_EQ(effects.Create(Client::Effects::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
     EXPECT_TRUE(effects.Effects()[0].seen);
     EXPECT_FALSE(effects.Effects()[1].seen);
     effects.Effects()[0].alive = false;
@@ -184,14 +184,14 @@ TEST(ModelEffectsTest, AnUnseenSlotDoesNotBecomeSeenWhenReused)
     ASSERT_EQ(effects.Create(DragonEffect, {}, {}, {}, 1.0f), 0u);
     EXPECT_FALSE(effects.Effects()[0].seen);
     effects.Effects()[0].alive = false;
-    ASSERT_EQ(effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
+    ASSERT_EQ(effects.Create(Client::Effects::ArrivalEffect, {}, {}, {}, 1.0f), 0u);
     EXPECT_FALSE(effects.Effects()[0].seen);
 }
 
 // 0x518d28..0x518e36 sólo pisa el prefijo: los otros campos físicos pertenecen al lugar reciclado.
 TEST(ModelEffectsTest, ReusingTheGenericEffectsRetainsFieldsOutsideTheNativePrefix)
 {
-    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -242,7 +242,7 @@ TEST(ModelEffectsTest, ReusingTheGenericEffectsRetainsFieldsOutsideTheNativePref
 // 0x518db5/0x518dcb/0x518dbe: el teletransporte también pisa los bytes de argumentos y +0x100.
 TEST(ModelEffectsTest, ReusingTheGenericEffectsReinitializesEveryNativePrefixField)
 {
-    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -293,7 +293,7 @@ TEST(ModelEffectsTest, AnUnimplementedSubtypeLeavesTheFreeSlotUntouched)
     ModelEffect& slot = effects.Effects()[0];
     slot.life = 42;
     slot.disturbanceState = 17;
-    const Client::Kernel::ModelEffectArguments arguments{.type = Client::World::ArrivalEffect, .subtype = 6};
+    const Client::Kernel::ModelEffectArguments arguments{.type = Client::Effects::ArrivalEffect, .subtype = 6};
     EXPECT_FALSE(effects.Create(arguments));
     EXPECT_FALSE(slot.alive);
     EXPECT_EQ(slot.life, 42);
@@ -303,7 +303,7 @@ TEST(ModelEffectsTest, AnUnimplementedSubtypeLeavesTheFreeSlotUntouched)
 // El overload conserva los argumentos reales del caller, en vez de sintetizar un dueño o una clave.
 TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
 {
-    for (const auto type : {DragonEffect, Client::World::ArrivalEffect, Client::World::TeleportEffect})
+    for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -327,7 +327,7 @@ TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
         EXPECT_EQ(effect.byte1bd, 24);
         EXPECT_EQ(effect.state, type == DragonEffect ? 0 : 2);
         EXPECT_EQ(effect.transform.scale, 0.5f);
-        EXPECT_EQ(effect.life, type == DragonEffect ? 1000 : type == Client::World::ArrivalEffect ? 20 : 10);
+        EXPECT_EQ(effect.life, type == DragonEffect ? 1000 : type == Client::Effects::ArrivalEffect ? 20 : 10);
         if (type != DragonEffect)
         {
             EXPECT_EQ(effect.transform.position, arguments.position);
@@ -346,7 +346,7 @@ TEST_F(DragonTest, TheDragonNeverDies)
     const auto skeleton = DragonSkeleton();
     for (int step = 0; step < 5000; ++step)
     {
-        Client::World::StepModelEffect(effects.Effects()[*index], &skeleton);
+        Client::Effects::StepModelEffect(effects.Effects()[*index], &skeleton);
         ASSERT_TRUE(effects.Effects()[*index].alive) << step;
         ASSERT_GT(effects.Effects()[*index].life, 0) << step;
     }
@@ -375,12 +375,12 @@ TEST(ModelEffectsTest, ANotANumberTurnIsNotATurn)
 {
     ModelEffects effects;
     const auto index = effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
-                                      Client::World::DragonScale);
+                                      Client::Effects::DragonScale);
     ASSERT_TRUE(index.has_value());
     ModelEffect& dragon = effects.Effects()[*index];
     dragon.transform.position.y += 2000.0f;
     dragon.turnPending = std::numeric_limits<float>::quiet_NaN();
-    Client::World::StepModelEffect(dragon, nullptr);
+    Client::Effects::StepModelEffect(dragon, nullptr);
     EXPECT_EQ(dragon.transform.angles.z, 1.5f);
     EXPECT_EQ(dragon.turnDirection, 1.0f);
     EXPECT_EQ(dragon.reference, 30.0f);
@@ -391,11 +391,11 @@ TEST(ModelEffectsTest, ANotANumberFrameIsNotReset)
 {
     ModelEffects effects;
     const auto index = effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
-                                      Client::World::DragonScale);
+                                      Client::Effects::DragonScale);
     ASSERT_TRUE(index.has_value());
     ModelEffect& dragon = effects.Effects()[*index];
     dragon.animation.frame = std::numeric_limits<float>::quiet_NaN();
-    Client::World::StepModelEffect(dragon, nullptr);
+    Client::Effects::StepModelEffect(dragon, nullptr);
     EXPECT_TRUE(std::isnan(dragon.animation.frame));
 }
 // 0x518cf0(0xae, …, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: oculta en la escena 4, vida 250, animación
@@ -415,12 +415,12 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
             ASSERT_EQ(slot, std::optional<std::size_t>(0));
             const ModelEffect& effect = effects.Effects()[0];
             EXPECT_TRUE(effect.alive);
-            EXPECT_EQ(effect.type, Client::World::ButterflyEffect);
+            EXPECT_EQ(effect.type, Client::Effects::ButterflyEffect);
             EXPECT_EQ(effect.subtype, subtype);
             EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
             EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
             EXPECT_EQ(effect.objectState.hiddenMesh,
-                      selection ? Client::World::HiddenObject : ModelEffect{}.objectState.hiddenMesh);
+                      selection ? Client::WorldObjects::HiddenObject : ModelEffect{}.objectState.hiddenMesh);
             EXPECT_EQ(effect.life, 250);
             EXPECT_EQ(effect.speed, std::bit_cast<float>(0x3e99999au));
             EXPECT_FALSE(effect.vertexLight);
@@ -462,7 +462,7 @@ TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
         const auto y = -static_cast<float>((draws.Next() & 31) + 50);
         const auto z = static_cast<float>((draws.Next() & 127) + 200);
         EXPECT_TRUE(effect.alive);
-        EXPECT_EQ(effect.type, Client::World::FallingStoneEffect);
+        EXPECT_EQ(effect.type, Client::Effects::FallingStoneEffect);
         EXPECT_EQ(effect.subtype, 0);
         EXPECT_EQ(effect.life, life);
         EXPECT_EQ(effect.transform.scale, scale);
@@ -497,7 +497,7 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
             effects.CreateFlameJet({1.0f, 2.0f, 3.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), depth, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& effect = effects.Effects()[0];
-        EXPECT_EQ(effect.type, Client::World::FlameJetEffect);
+        EXPECT_EQ(effect.type, Client::Effects::FlameJetEffect);
         EXPECT_EQ(effect.subtype, 0);
         EXPECT_EQ(effect.life, 40);
         EXPECT_EQ(effect.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
@@ -519,7 +519,7 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
 TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
 {
     int owner = 0;
-    Client::Kernel::ModelEffectArguments arguments{.type = Client::World::FlameJetEffect,
+    Client::Kernel::ModelEffectArguments arguments{.type = Client::Effects::FlameJetEffect,
                                                    .position = {1050.0f, 2050.0f, 130.0f},
                                                    .angles = {0.0f, 0.0f, 90.0f},
                                                    .light = glm::vec3(0.5f),
@@ -537,7 +537,7 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
         const auto slot = effects.CreateOwnedFlameJet(arguments, depth, std::uint8_t{0xc5}, random);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& effect = effects.Effects()[0];
-        EXPECT_EQ(effect.type, Client::World::FlameJetEffect);
+        EXPECT_EQ(effect.type, Client::Effects::FlameJetEffect);
         EXPECT_EQ(effect.subtype, 0);
         EXPECT_EQ(effect.life, 40);
         EXPECT_EQ(effect.transform.position, glm::vec3(1050.0f, 2050.0f, 130.0f));
@@ -561,9 +561,9 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
     arguments.subtype = 1;
     EXPECT_FALSE(other.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
     arguments.subtype = 0;
-    arguments.type = Client::World::IcarusFlareEffect;
+    arguments.type = Client::Effects::IcarusFlareEffect;
     EXPECT_FALSE(other.CreateOwnedFlameJet(arguments, depth, 0, untouched).has_value());
-    arguments.type = Client::World::FlameJetEffect;
+    arguments.type = Client::Effects::FlameJetEffect;
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
@@ -576,7 +576,7 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
 TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
 {
     int owner = 0;
-    for (const std::int32_t subtype : {Client::World::SwellFlareSubtype, Client::World::GuardFlareSubtype})
+    for (const std::int32_t subtype : {Client::Effects::SwellFlareSubtype, Client::Effects::GuardFlareSubtype})
     {
         SCOPED_TRACE(subtype);
         ModelEffects effects;
@@ -584,7 +584,7 @@ TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
             effects.CreateSkillFlare({10.0f, 20.0f, 30.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(0.5f), subtype, &owner);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& flare = effects.Effects()[0];
-        EXPECT_EQ(flare.type, Client::World::IcarusFlareEffect);
+        EXPECT_EQ(flare.type, Client::Effects::IcarusFlareEffect);
         EXPECT_EQ(flare.subtype, subtype);
         EXPECT_EQ(flare.life, 1000);
         EXPECT_EQ(flare.speed, 0.0f);
@@ -597,7 +597,7 @@ TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
     ModelEffects other;
     EXPECT_FALSE(other.CreateSkillFlare({}, {}, glm::vec3(1.0f), 0, &owner).has_value());
     EXPECT_FALSE(
-        other.CreateSkillFlare({}, {}, glm::vec3(1.0f), Client::World::FullSetFlareSubtype, &owner).has_value());
+        other.CreateSkillFlare({}, {}, glm::vec3(1.0f), Client::Effects::FullSetFlareSubtype, &owner).has_value());
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
@@ -610,7 +610,7 @@ TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
 TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    for (const std::int16_t type : {Client::Effects::FirstStoneChipEffect, Client::Effects::SecondStoneChipEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -649,7 +649,7 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
 TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    for (const std::int16_t type : {Client::Effects::FirstStoneChipEffect, Client::Effects::SecondStoneChipEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -657,7 +657,7 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
         Client::Crt::CrtRandom draws(9);
         const glm::vec3 angles{12.0f, 34.0f, 30.0f};
         const auto slot = effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, angles, {0.5f, 0.6f, 0.7f}, random,
-                                                  Client::World::ColumnStoneChipSubtype);
+                                                  Client::Effects::ColumnStoneChipSubtype);
         ASSERT_EQ(slot, std::optional<std::size_t>(0));
         const ModelEffect& effect = effects.Effects()[0];
         const auto push = static_cast<float>(((draws.Next() & 255) + 64) * Tenth);
@@ -682,8 +682,8 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
     for (auto& effect : full.Effects())
         effect.alive = true;
     Client::Crt::CrtRandom random(9);
-    EXPECT_FALSE(full.CreateStoneChip(Client::World::FirstStoneChipEffect, {}, {}, glm::vec3(1.0f), random,
-                                      Client::World::ColumnStoneChipSubtype)
+    EXPECT_FALSE(full.CreateStoneChip(Client::Effects::FirstStoneChipEffect, {}, {}, glm::vec3(1.0f), random,
+                                      Client::Effects::ColumnStoneChipSubtype)
                      .has_value());
     EXPECT_EQ(random.State(), 9u);
 }
@@ -695,7 +695,7 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
 TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-    for (const std::int16_t type : {Client::World::FirstSplinterEffect, Client::World::SecondSplinterEffect})
+    for (const std::int16_t type : {Client::Effects::FirstSplinterEffect, Client::Effects::SecondSplinterEffect})
     {
         SCOPED_TRACE(type);
         ModelEffects effects;
@@ -731,11 +731,11 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
     ModelEffects effects;
     Client::Crt::CrtRandom random(7);
     EXPECT_FALSE(
-        effects.CreateStoneChip(Client::World::FirstSplinterEffect, {}, {}, glm::vec3(1.0f), random, 5).has_value());
+        effects.CreateStoneChip(Client::Effects::FirstSplinterEffect, {}, {}, glm::vec3(1.0f), random, 5).has_value());
     for (auto& effect : effects.Effects())
         effect.alive = true;
     EXPECT_FALSE(
-        effects.CreateStoneChip(Client::World::SecondSplinterEffect, {}, {}, glm::vec3(1.0f), random).has_value());
+        effects.CreateStoneChip(Client::Effects::SecondSplinterEffect, {}, {}, glm::vec3(1.0f), random).has_value());
     EXPECT_EQ(random.State(), 7u);
 }
 
@@ -744,25 +744,25 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
 TEST(ModelEffectsTest, TheFlameColumnLivesFifteenSteps)
 {
     ModelEffects effects;
-    const auto slot = effects.CreateFlameColumn({.type = Client::World::FlameJetEffect,
+    const auto slot = effects.CreateFlameColumn({.type = Client::Effects::FlameJetEffect,
                                                  .position = {1.0f, 2.0f, 3.0f},
                                                  .angles = {0.0f, 0.0f, 45.0f},
                                                  .light = {0.5f, 0.5f, 0.5f},
-                                                 .subtype = Client::World::FlameColumnSubtype});
+                                                 .subtype = Client::Effects::FlameColumnSubtype});
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
     const ModelEffect& column = effects.Effects()[0];
     EXPECT_TRUE(column.alive);
-    EXPECT_EQ(column.type, Client::World::FlameJetEffect);
+    EXPECT_EQ(column.type, Client::Effects::FlameJetEffect);
     EXPECT_EQ(column.subtype, 3);
     EXPECT_EQ(column.life, 15);
     EXPECT_EQ(column.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
     EXPECT_EQ(column.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
     EXPECT_EQ(column.disturbanceState, 0xffff);
-    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::World::FlameJetEffect}).has_value());
+    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::Effects::FlameJetEffect}).has_value());
     EXPECT_FALSE(effects.CreateFlameColumn({.type = 0x5dd, .subtype = 3}).has_value());
     for (auto& effect : effects.Effects())
         effect.alive = true;
-    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::World::FlameJetEffect, .subtype = 3}).has_value());
+    EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::Effects::FlameJetEffect, .subtype = 3}).has_value());
 }
 
 // 0x518cf0(0xca, …) → 0x51b659..0x51b809, el pedazo de hielo de 0x52e810: el blendMesh (+0x64) en 0 y su luz (+0x68)
@@ -785,7 +785,7 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
     const auto yaw = static_cast<float>(draws.Next() % 360);
     const auto fall = static_cast<float>((draws.Next() & 15) + 8);
     EXPECT_TRUE(effect.alive);
-    EXPECT_EQ(effect.type, Client::World::IceShardEffect);
+    EXPECT_EQ(effect.type, Client::Effects::IceShardEffect);
     EXPECT_EQ(effect.subtype, 0);
     EXPECT_EQ(effect.objectState.blendMesh, 0);
     EXPECT_EQ(effect.objectState.light, std::bit_cast<float>(0x3e99999au));
@@ -816,11 +816,11 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
 {
     ModelEffects effects;
     Client::Crt::CrtRandom random(1);
-    const auto cloud = effects.CreateIcarusEffect(Client::World::IcarusCloudEffect, {100.0f, 200.0f, 300.0f},
+    const auto cloud = effects.CreateIcarusEffect(Client::Effects::IcarusCloudEffect, {100.0f, 200.0f, 300.0f},
                                                   glm::vec3(0.0f), {0.1f, 0.2f, 0.3f}, random);
     ASSERT_EQ(cloud, std::optional<std::size_t>(0));
     const ModelEffect& sky = effects.Effects()[0];
-    EXPECT_EQ(sky.type, Client::World::IcarusCloudEffect);
+    EXPECT_EQ(sky.type, Client::Effects::IcarusCloudEffect);
     EXPECT_EQ(sky.transform.position, glm::vec3(100.0f, 400.0f, 110.0f));
     EXPECT_EQ(sky.previousPosition, sky.transform.position);
     EXPECT_EQ(sky.light, glm::vec3(0.1f, 0.2f, 0.3f));
@@ -834,11 +834,11 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
     while (Client::Crt::CrtRandom(seed).Next() % 5 != 0)
         ++seed;
     Client::Crt::CrtRandom draws(seed);
-    const auto flare = effects.CreateIcarusEffect(Client::World::IcarusFlareEffect, {1.0f, 2.0f, 3.0f}, glm::vec3(0.0f),
-                                                  glm::vec3(1.0f), draws);
+    const auto flare = effects.CreateIcarusEffect(Client::Effects::IcarusFlareEffect, {1.0f, 2.0f, 3.0f},
+                                                  glm::vec3(0.0f), glm::vec3(1.0f), draws);
     ASSERT_EQ(flare, std::optional<std::size_t>(1));
     const ModelEffect& falling = effects.Effects()[1];
-    EXPECT_EQ(falling.type, Client::World::IcarusFlareEffect);
+    EXPECT_EQ(falling.type, Client::Effects::IcarusFlareEffect);
     EXPECT_EQ(falling.light, glm::vec3(std::bit_cast<float>(0x3e99999au)));
     EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.x), 0x3f4500edu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(falling.velocity.y), 0x3faa9c31u);
@@ -873,7 +873,7 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
     const int push = draws.Next() & 7;
     const int grow = draws.Next() % 5;
     EXPECT_EQ(random.State(), draws.State());
-    EXPECT_EQ(wisp.type, Client::World::AidaWispEffect);
+    EXPECT_EQ(wisp.type, Client::Effects::AidaWispEffect);
     EXPECT_EQ(wisp.subtype, 0);
     const glm::vec3 moved{static_cast<float>(static_cast<double>(x) - 100.0 + static_cast<double>(at.x)),
                           static_cast<float>(static_cast<double>(y) - 100.0 + static_cast<double>(at.y)),
@@ -917,8 +917,8 @@ TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
     const ModelEffect& wave = effects.Effects()[0];
     EXPECT_TRUE(wave.alive);
-    EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
-    EXPECT_EQ(wave.subtype, Client::World::GallopShockWaveSubtype);
+    EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
+    EXPECT_EQ(wave.subtype, Client::Effects::GallopShockWaveSubtype);
     EXPECT_EQ(wave.life, 20);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.transform.scale), 0x3f8ccccdu);
     EXPECT_EQ(wave.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
@@ -956,7 +956,7 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
     {
         SCOPED_TRACE(seed);
         ModelEffects effects;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         int owner = 0;
         Client::Crt::CrtRandom random(seed);
         const auto slot = effects.CreateLightning(at, {0.0f, 0.0f, 45.0f}, light, &owner, random, bonePoint, sprites);
@@ -1005,7 +1005,7 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
         }
         EXPECT_EQ(random.State(), draws.State());
         EXPECT_EQ(bolt.alive, alive);
-        EXPECT_EQ(bolt.type, Client::World::LightningEffect);
+        EXPECT_EQ(bolt.type, Client::Effects::LightningEffect);
         EXPECT_EQ(bolt.subtype, 0);
         EXPECT_EQ(bolt.life, 100);
         EXPECT_EQ(bolt.alpha, alive ? std::bit_cast<float>(0x3f333333u) : 0.0f);
@@ -1030,7 +1030,7 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
     ModelEffects full;
     for (auto& effect : full.Effects())
         effect.alive = true;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom untouched(1);
     const auto none = full.CreateLightning(at, {}, light, nullptr, untouched, bonePoint, sprites);
     ASSERT_TRUE(none.HasValue());
@@ -1054,7 +1054,7 @@ TEST(ModelEffectsTest, TheLightningDecalKeepsItsHourAndLiesOnZeroHeight)
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
     const ModelEffect& decal = effects.Effects()[0];
     EXPECT_TRUE(decal.alive);
-    EXPECT_EQ(decal.type, Client::World::LightningDecalEffect);
+    EXPECT_EQ(decal.type, Client::Effects::LightningDecalEffect);
     EXPECT_EQ(decal.subtype, 2);
     EXPECT_EQ(decal.life, 200);
     EXPECT_EQ(decal.textureFrame, 0);
@@ -1080,8 +1080,8 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
     ASSERT_EQ(slot, std::optional<std::size_t>(0));
     const ModelEffect& summon = effects.Effects()[0];
     EXPECT_TRUE(summon.alive);
-    EXPECT_EQ(summon.type, Client::World::ColoredDecalEffect);
-    EXPECT_EQ(summon.subtype, Client::World::PetSummonSubtype);
+    EXPECT_EQ(summon.type, Client::Effects::ColoredDecalEffect);
+    EXPECT_EQ(summon.subtype, Client::Effects::PetSummonSubtype);
     EXPECT_EQ(summon.life, 20);
     EXPECT_EQ(summon.transform.scale, 0.9f);
     EXPECT_EQ(summon.transform.position, glm::vec3(100.5f, 200.25f, 300.0f));
@@ -1099,7 +1099,7 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
     EXPECT_FALSE(full.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner).has_value());
 
     // El /3 de la 0x1c y de las invocaciones (y el 0 y el 2) salen igual; desde el 4, cada uno tiene su caso.
-    for (const std::int32_t subtype : {0, 2, Client::World::SummonDecalSubtype})
+    for (const std::int32_t subtype : {0, 2, Client::Effects::SummonDecalSubtype})
     {
         SCOPED_TRACE(subtype);
         ModelEffects decals;
@@ -1119,7 +1119,7 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
 
 namespace
 {
-using Client::World::ModelEffectOwner;
+using Client::Effects::ModelEffectOwner;
 
 float EarthquakeSum(float value, double addend)
 {
@@ -1152,7 +1152,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         Client::Crt::CrtRandom expected(7);
         const int subtype = expected.Next() % 100;
         EXPECT_TRUE(quake.alive);
-        EXPECT_EQ(quake.type, Client::World::EarthquakeEffect);
+        EXPECT_EQ(quake.type, Client::Effects::EarthquakeEffect);
         EXPECT_EQ(quake.subtype, subtype);
         EXPECT_EQ(quake.state, 2);
         EXPECT_EQ(quake.life, 20);
@@ -1171,7 +1171,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         EXPECT_EQ(quake.owner.type, &horseType);
         EXPECT_EQ(quake.owner.angles, &horseAngles);
         EXPECT_EQ(quake.renderFlags, 0u);
-        EXPECT_EQ(Client::World::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
+        EXPECT_EQ(Client::Effects::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
         // La cuenta +0xf04 es un byte: 0xff más uno vuelve a 0.
         EXPECT_EQ(count, 0);
         EXPECT_EQ(depth, start);
@@ -1205,13 +1205,13 @@ struct CrackLifeCase
 // y +0x64 en 0 salvo en 0xfd y 0x100. Sin rand().
 TEST(ModelEffectsTest, TheEarthquakeBurstUsesTheFirstFreeSlotWithoutAnOwner)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     effects->Effects()[0].alive = true;
     const auto slot = effects->CreateEarthquakeBurst({1, 2, 40}, {3, 4, 5}, glm::vec3(0.2f));
     ASSERT_EQ(slot, 1u);
     const auto& burst = effects->Effects()[*slot];
     EXPECT_TRUE(burst.alive);
-    EXPECT_EQ(burst.type, Client::World::EarthquakeBurstEffect);
+    EXPECT_EQ(burst.type, Client::Effects::EarthquakeBurstEffect);
     EXPECT_EQ(burst.life, 15);
     EXPECT_EQ(burst.transform.position, (glm::vec3{1, 2, 25}));
     EXPECT_EQ(burst.transform.angles, (glm::vec3{3, 4, 5}));
@@ -1258,7 +1258,7 @@ TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
             EXPECT_EQ(effect.objectState.blendMesh, keepsItsBlend ? Client::Models::NoBlendMesh : 0);
             const bool flagged =
                 crack.subtype == 1 && (crack.type == 0xfc || crack.type == 0xff || crack.type == 0x102);
-            EXPECT_EQ(effect.renderFlags, flagged ? Client::World::CrackRenderFlags : 0u);
+            EXPECT_EQ(effect.renderFlags, flagged ? Client::Effects::CrackRenderFlags : 0u);
             EXPECT_EQ(effect.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
             EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 72.5f));
             EXPECT_EQ(effect.light, glm::vec3(0.25f));
@@ -1303,15 +1303,15 @@ TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousE
 TEST(ModelEffectsTest, TheOwnerTypeIsReadFromTheLiveOwner)
 {
     ModelEffect owner;
-    owner.type = Client::World::EarthquakeEffect;
+    owner.type = Client::Effects::EarthquakeEffect;
     std::uint16_t helperType = 0x1b1;
-    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = &owner, .angles = nullptr}),
+    EXPECT_EQ(Client::Effects::OwnerTypeOf({.type = &helperType, .effect = &owner, .angles = nullptr}),
               std::optional<std::uint16_t>(std::uint16_t{0xfa}));
-    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
+    EXPECT_EQ(Client::Effects::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
               std::optional<std::uint16_t>(std::uint16_t{0x1b1}));
     helperType = 0x1b2;
-    EXPECT_EQ(Client::World::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
+    EXPECT_EQ(Client::Effects::OwnerTypeOf({.type = &helperType, .effect = nullptr, .angles = nullptr}),
               std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
-    EXPECT_EQ(Client::World::OwnerTypeOf({}), std::nullopt);
+    EXPECT_EQ(Client::Effects::OwnerTypeOf({}), std::nullopt);
 }
 } // namespace

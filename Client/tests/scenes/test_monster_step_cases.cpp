@@ -36,7 +36,7 @@ namespace
 {
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldRuntime;
-using Client::Scenes::CastleObjectStep;
+using Client::Monsters::CastleObjectStep;
 
 constexpr std::size_t LevelText = 1176;
 
@@ -50,11 +50,11 @@ ActorState NamedGate(std::string_view name, std::uint16_t level)
     for (const char letter : name)
         bytes.push_back(static_cast<std::byte>(letter));
     bytes.push_back(std::byte{0});
-    EXPECT_TRUE(Client::Scenes::PutActorText(gate, bytes, 0x4fd612).HasValue());
+    EXPECT_TRUE(Client::Monsters::PutActorText(gate, bytes, 0x4fd612).HasValue());
     return gate;
 }
 
-std::string QueuedText(const Client::Scenes::WorldText& entry)
+std::string QueuedText(const Client::Hud::WorldText& entry)
 {
     const auto end = std::ranges::find(entry.text, '\0');
     return {entry.text.begin(), end};
@@ -66,9 +66,9 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
     const ActorState gate = NamedGate("Portal", 3);
-    Client::Scenes::WorldTextQueue queue;
+    Client::Hud::WorldTextQueue queue;
 
-    const auto queued = Client::Scenes::QueueTheGateName(gate, &texts, queue);
+    const auto queued = Client::Monsters::QueueTheGateName(gate, &texts, queue);
 
     ASSERT_TRUE(queued.HasValue()) << queued.Error();
     ASSERT_EQ(queue.size(), 1u);
@@ -81,14 +81,14 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
 TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
-    Client::Scenes::WorldTextQueue queue;
+    Client::Hud::WorldTextQueue queue;
 
-    ASSERT_TRUE(Client::Scenes::QueueTheGateName(NamedGate("Magic stone of Carpincho", 3), &texts, queue).HasValue());
+    ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Magic stone of Carpincho", 3), &texts, queue).HasValue());
     ASSERT_EQ(queue.size(), 1u);
     EXPECT_EQ(QueuedText(queue.front()), "Magic stone of Carpincho .Nivel 3");
 
     const auto unended =
-        Client::Scenes::QueueTheGateName(NamedGate("Piedra de mago de Yacare Overo", 3), &texts, queue);
+        Client::Monsters::QueueTheGateName(NamedGate("Piedra de mago de Yacare Overo", 3), &texts, queue);
     ASSERT_FALSE(unended.HasValue());
     EXPECT_NE(unended.Error().find("0x4fd625"), std::string::npos) << unended.Error();
     EXPECT_EQ(queue.size(), 1u);
@@ -99,25 +99,25 @@ TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
 TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, std::string(90, 'x') + "%d"}});
-    Client::Scenes::WorldTextQueue queue;
+    Client::Hud::WorldTextQueue queue;
 
-    ASSERT_TRUE(Client::Scenes::QueueTheGateName(NamedGate("Portal", 3), &texts, queue).HasValue());
+    ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), &texts, queue).HasValue());
     ASSERT_EQ(queue.size(), 1u);
     // 0x438209: 0x4381f0 copia 64 bytes (los 0x10 dwords).
     EXPECT_EQ(QueuedText(queue.front()), "Portal ." + std::string(56, 'x'));
 
-    const auto overflow = Client::Scenes::QueueTheGateName(NamedGate("Portal", 10), &texts, queue);
+    const auto overflow = Client::Monsters::QueueTheGateName(NamedGate("Portal", 10), &texts, queue);
     ASSERT_FALSE(overflow.HasValue());
     EXPECT_NE(overflow.Error().find("0x4fd67c"), std::string::npos) << overflow.Error();
     EXPECT_NE(overflow.Error().find("101"), std::string::npos) << overflow.Error();
 
-    const auto missing = Client::Scenes::QueueTheGateName(NamedGate("Portal", 3), nullptr, queue);
+    const auto missing = Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), nullptr, queue);
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4fd63b"), std::string::npos) << missing.Error();
     EXPECT_EQ(queue.size(), 1u);
     // Un Text.bmd con el 1176 vacío deja el nombre solo.
     const auto empty = Client::Tests::MakeTextTable({{1, "otro"}});
-    ASSERT_TRUE(Client::Scenes::QueueTheGateName(NamedGate("Portal", 3), &empty, queue).HasValue());
+    ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), &empty, queue).HasValue());
     ASSERT_EQ(queue.size(), 2u);
     EXPECT_EQ(QueuedText(queue.back()), "Portal .");
 }
@@ -142,7 +142,7 @@ TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
     };
 
     // En el aire: 260 − 10 = 250, sobre los 230 del piso.
-    Client::Scenes::StepTheFallingBall(ball, ground);
+    Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 250.0f);
     EXPECT_EQ(ball.floatE4, -16.0f);
     EXPECT_EQ(ball.angles, glm::vec3(11.0f, -3.0f, 5.5f));
@@ -153,9 +153,9 @@ TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
     EXPECT_EQ(asked[0], glm::vec2(500.0f, 700.0f));
 
     // 250 − 16 = 234, todavía arriba; después 234 − 22 = 212: el piso (230) la sube y +0xe4 rebota.
-    Client::Scenes::StepTheFallingBall(ball, ground);
+    Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 234.0f);
-    Client::Scenes::StepTheFallingBall(ball, ground);
+    Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 230.0f);
     EXPECT_EQ(ball.floatE4, static_cast<float>(-28.0 * static_cast<double>(-0.4f)));
 
@@ -163,7 +163,7 @@ TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
     ActorState resting;
     resting.position = {0.0f, 0.0f, 236.0f};
     resting.floatE4 = -6.0f;
-    Client::Scenes::StepTheFallingBall(resting, ground);
+    Client::Monsters::StepTheFallingBall(resting, ground);
     EXPECT_EQ(resting.position.z, 230.0f);
     EXPECT_EQ(resting.floatE4, -12.0f);
 }
@@ -186,7 +186,7 @@ TEST(MonsterStepCasesTest, PlayerNearMeasuresByItsMode)
     object.position = {1000.0f, 1000.0f, 0.0f};
     auto pool = std::make_unique<std::array<ActorState, 401>>();
     const auto near = [&](std::uint8_t mode, float range)
-    { return Client::Scenes::PlayerNear(object, *pool, mode, range); };
+    { return Client::Monsters::PlayerNear(object, *pool, mode, range); };
 
     // El modo 1: |dx| debajo de 1 y dy en (0, rango).
     (*pool)[5] = Player({1000.5f, 600.0f, 0.0f});
@@ -284,7 +284,7 @@ TEST_F(CastleObjectTest, OutsideTheCastleMapNothingMoves)
             object.byte42d = 0x80;
             object.flags78 = 1;
             const ActorState before = object;
-            const auto stepped = Client::Scenes::StepTheCastleObject(object, Step());
+            const auto stepped = Client::Monsters::StepTheCastleObject(object, Step());
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(object.position, before.position);
             EXPECT_EQ(object.dword100, before.dword100);
@@ -301,19 +301,19 @@ TEST_F(CastleObjectTest, TheBannerStandsOnTheGroundAndCopiesItsFlags)
 {
     ActorState banner = Object(216);
     banner.flags78 = 0x40;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(banner, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(banner, Step()).HasValue());
     EXPECT_EQ(banner.position.z, 600.0f);
     EXPECT_EQ(m_runtime->castleSiege.castleFlags7239e4, 0x40u);
     EXPECT_EQ(banner.byte42c, 1);
 
     banner.flags78 = 0;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(banner, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(banner, Step()).HasValue());
     EXPECT_EQ(m_runtime->castleSiege.castleFlags7239e4, 0u);
     EXPECT_EQ(banner.byte42c, 0);
 
     CastleObjectStep flat = Step();
     flat.height = {};
-    const auto cut = Client::Scenes::StepTheCastleObject(banner, flat);
+    const auto cut = Client::Monsters::StepTheCastleObject(banner, flat);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x42dad6"), std::string::npos) << cut.Error();
 }
@@ -322,24 +322,24 @@ TEST_F(CastleObjectTest, TheBannerStandsOnTheGroundAndCopiesItsFlags)
 TEST_F(CastleObjectTest, TheGateLockTheMarkAndTheSiegeSwitch)
 {
     ActorState lock = Object(277);
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lock, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(lock, Step()).HasValue());
     EXPECT_EQ(m_runtime->castleSiege.castleGatesClosed, 1);
 
     ActorState mark = Object(278);
     mark.byte42d = 0x40;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(mark, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(mark, Step()).HasValue());
     EXPECT_EQ(m_runtime->castleSiege.castleMarkX, 0.0f);
     mark.byte42d = 0x80;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(mark, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(mark, Step()).HasValue());
     EXPECT_EQ(m_runtime->castleSiege.castleMarkX, 300.0f);
     EXPECT_EQ(m_runtime->castleSiege.castleMarkY, 500.0f);
 
     ActorState lever = Object(283);
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lever, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(lever, Step()).HasValue());
     EXPECT_EQ(lever.dword58, -2);
     EXPECT_EQ(lever.byte42c, 0);
     m_runtime->castleSiege.siegeActive = true;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(lever, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(lever, Step()).HasValue());
     EXPECT_EQ(lever.dword58, -1);
     EXPECT_EQ(lever.byte42c, 1);
 }
@@ -354,13 +354,13 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
         SetUp();
         ActorState gate = Object(monster);
         gate.dword100 = 77;
-        ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+        ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.byte110, 0);
         EXPECT_EQ(gate.dword100, -1);
         EXPECT_EQ(gate.animation.action, 0);
 
         (*m_pool)[12] = Player({300.0f, 200.0f, 0.0f});
-        ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+        ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 4);
         EXPECT_EQ(m_runtime->castleSiege.castleByte7239d8, 2);
         EXPECT_EQ(gate.byte110, 1);
@@ -368,14 +368,14 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
 
         // Con alguien enfrente al vencer, vuelve a 300.
         gate.dword100 = -1;
-        ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+        ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.dword100, 299);
         EXPECT_EQ(gate.animation.action, 4);
 
         // Sin nadie, cierra.
         (*m_pool)[12] = ActorState{};
         gate.dword100 = -1;
-        ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+        ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 0);
         EXPECT_EQ(gate.byte110, 0);
         EXPECT_EQ(m_runtime->castleSiege.castleByte7239d8, 0);
@@ -383,7 +383,7 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
 
         // Otra puerta abierta (0x7239d8 en 2) abre esta también.
         m_runtime->castleSiege.castleByte7239d8 = 2;
-        ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+        ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 4);
         EXPECT_EQ(gate.dword100, 299);
     }
@@ -397,28 +397,28 @@ TEST_F(CastleObjectTest, TheGateEdges)
     gate.byte110 = 1;
     gate.dword100 = -5;
     gate.animation.action = 5;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
     EXPECT_EQ(gate.byte110, 1);
     EXPECT_EQ(gate.dword100, -6);
 
     gate.animation.action = 4;
     gate.dword100 = 100;
     m_runtime->castleSiege.castleByte7239d8 = 0;
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
     EXPECT_EQ(gate.byte110, 0);
     EXPECT_EQ(gate.animation.action, 0);
 
     gate.byte110 = 1;
     gate.animation.action = 5;
     gate.dword100 = std::numeric_limits<std::int32_t>::min();
-    ASSERT_TRUE(Client::Scenes::StepTheCastleObject(gate, Step()).HasValue());
+    ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
     EXPECT_EQ(gate.dword100, std::numeric_limits<std::int32_t>::max());
 
     CastleObjectStep bare = Step();
     bare.skeleton = nullptr;
     ActorState closed = Object(287);
     m_runtime->castleSiege.castleByte7239d8 = 2;
-    const auto cut = Client::Scenes::StepTheCastleObject(closed, bare);
+    const auto cut = Client::Monsters::StepTheCastleObject(closed, bare);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x42db87"), std::string::npos) << cut.Error();
 }

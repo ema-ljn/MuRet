@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 std::uint8_t ReadTheSkill(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
@@ -31,4 +31,4 @@ std::int32_t OwnSkillIndex(const Actors::CharacterStepContext& context, std::uin
     }
     return 0;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

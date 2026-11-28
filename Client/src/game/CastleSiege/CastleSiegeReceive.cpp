@@ -32,7 +32,7 @@
 #include <variant>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -62,16 +62,16 @@ Core::Expected<void, std::string> ShowMessage(const CastleReceiveContext& contex
     {
         return Core::Unexpected(std::string("0x555190: no hay con qué medir el mensaje"));
     }
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
     {
         return Core::Unexpected("el texto " + std::to_string(index) + " de Text.bmd no está");
     }
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, std::string_view{}, CString(*text),
-                          UI::SystemMessage);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, std::string_view{},
+                                CString(*text), Ui::SystemMessage);
 }
 
-UI::CastleSiegeState& CastleOf(const CastleReceiveContext& context)
+CastleSiege::CastleSiegeState& CastleOf(const CastleReceiveContext& context)
 {
     return context.world.Runtime().castleSiege;
 }
@@ -88,11 +88,11 @@ Core::Expected<void, std::string> Discard(const CastleReceiveContext& context, s
 // 0x668fd0: dónde copia un registro entero; std::nullopt para un tipo que no es puerta ni estatua (no copia nada).
 std::optional<std::uint32_t> RecordTarget(std::uint32_t type, std::uint32_t index)
 {
-    if (type != UI::GateType && type != UI::StatueType)
+    if (type != CastleSiege::GateType && type != CastleSiege::StatueType)
     {
         return std::nullopt;
     }
-    return UI::NpcRecordAddress(type, index);
+    return CastleSiege::NpcRecordAddress(type, index);
 }
 
 std::uint32_t RecordU32(const Castle::NpcRecord& record, std::size_t at)
@@ -111,20 +111,22 @@ Core::Expected<void, std::string> StoreTheNpcRecords(const CastleReceiveContext&
 {
     for (const Castle::NpcRecord& record : records)
     {
-        const auto target = RecordTarget(RecordU32(record, UI::RecordType), RecordU32(record, UI::RecordIndex));
-        if (target && !UI::CastleData::Holds(*target, UI::NpcRecordBytes))
+        const auto target =
+            RecordTarget(RecordU32(record, CastleSiege::RecordType), RecordU32(record, CastleSiege::RecordIndex));
+        if (target && !CastleSiege::CastleData::Holds(*target, CastleSiege::NpcRecordBytes))
         {
             return Discard(context, what, *target);
         }
     }
     for (const Castle::NpcRecord& record : records)
     {
-        const auto target = RecordTarget(RecordU32(record, UI::RecordType), RecordU32(record, UI::RecordIndex));
+        const auto target =
+            RecordTarget(RecordU32(record, CastleSiege::RecordType), RecordU32(record, CastleSiege::RecordIndex));
         if (!target)
         {
             continue;
         }
-        std::array<std::uint8_t, UI::NpcRecordBytes> bytes{};
+        std::array<std::uint8_t, CastleSiege::NpcRecordBytes> bytes{};
         std::ranges::transform(record, bytes.begin(), [](std::byte b) { return std::to_integer<std::uint8_t>(b); });
         CastleOf(context).data.SetBytes(*target, bytes);
     }
@@ -150,9 +152,9 @@ Core::Expected<void, std::string> ApplyState(const Castle::CastleState& state, c
     case 2:
     {
         // 0x4e50f2: 0x6599a0(0x80000, 0) sin mirar lo que devuelve, y 0x64b0f0.
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         LendTheCastlePanelServices(panels, context);
-        auto opened = panels.Registry().Open(UI::CastleSiegePanel);
+        auto opened = panels.Registry().Open(Ui::CastleSiegePanel);
         if (!opened.HasValue())
         {
             return Core::Unexpected(std::move(opened).Error());
@@ -212,7 +214,7 @@ Core::Expected<void, std::string> ApplyGiveUp(const Castle::GiveUpResult& result
 }
 
 // B2 03, 0x4e5186: con 0 o 2, 0x64d290(0); con 1, 0x64d290(pkt[0x11] == 0) y 0x64d2b0 con las marcas.
-void ApplyRegistration(const Castle::RegistrationInfo& info, UI::SiegeRegistrationWindow& window)
+void ApplyRegistration(const Castle::RegistrationInfo& info, CastleSiege::SiegeRegistrationWindow& window)
 {
     if (info.result == 0 || info.result == 2)
     {
@@ -258,12 +260,12 @@ Core::Expected<void, std::string> ApplyNpcBuy(const Castle::NpcBuyResult& result
         // 0x4df806: el registro en la pila, con la defensa y la recuperación en 0, las dos vidas y +0x1a en 1. +0x18,
         // +0x19 y +0x1b quedan con lo que había en la pila (Q-C1361): MuRet, 0.
         Castle::NpcRecord record{};
-        const std::uint32_t life = result.type == UI::GateType ? BoughtGateLife : BoughtStatueLife;
-        PutU32(record, UI::RecordType, result.type);
-        PutU32(record, UI::RecordIndex, result.index);
-        PutU32(record, UI::RecordMaxLife, life);
-        PutU32(record, UI::RecordLife, life);
-        record[UI::RecordAlive] = std::byte{1};
+        const std::uint32_t life = result.type == CastleSiege::GateType ? BoughtGateLife : BoughtStatueLife;
+        PutU32(record, CastleSiege::RecordType, result.type);
+        PutU32(record, CastleSiege::RecordIndex, result.index);
+        PutU32(record, CastleSiege::RecordMaxLife, life);
+        PutU32(record, CastleSiege::RecordLife, life);
+        record[CastleSiege::RecordAlive] = std::byte{1};
         return StoreTheNpcRecords(context, "el B2 05", std::vector<Castle::NpcRecord>{record});
     }
     case 2:
@@ -287,13 +289,13 @@ Core::Expected<void, std::string> ApplyNpcRepair(const Castle::NpcRepairResult& 
         return ShowMessage(context, 1519);
     case 1:
     {
-        const std::uint32_t record = UI::NpcRecordAddress(result.type, result.index);
-        if (!UI::CastleData::Holds(record + UI::RecordMaxLife, 8))
+        const std::uint32_t record = CastleSiege::NpcRecordAddress(result.type, result.index);
+        if (!CastleSiege::CastleData::Holds(record + CastleSiege::RecordMaxLife, 8))
         {
             return Discard(context, "el B2 06", record);
         }
-        CastleOf(context).data.SetU32(record + UI::RecordLife, result.life);
-        CastleOf(context).data.SetU32(record + UI::RecordMaxLife, result.maxLife);
+        CastleOf(context).data.SetU32(record + CastleSiege::RecordLife, result.life);
+        CastleOf(context).data.SetU32(record + CastleSiege::RecordMaxLife, result.maxLife);
         return {};
     }
     case 2:
@@ -326,32 +328,32 @@ Core::Expected<void, std::string> ApplyNpcUpgrade(const Castle::NpcUpgradeResult
     {
         return {};
     }
-    const std::uint32_t record = UI::NpcRecordAddress(result.type, result.index);
+    const std::uint32_t record = CastleSiege::NpcRecordAddress(result.type, result.index);
     std::uint32_t at = 0;
     std::uint32_t size = 4;
     switch (result.kind)
     {
     case 1:
-        at = UI::RecordDefense;
+        at = CastleSiege::RecordDefense;
         break;
     case 2:
-        at = UI::RecordRecovery;
+        at = CastleSiege::RecordRecovery;
         break;
     case 3:
-        at = UI::RecordMaxLife;
+        at = CastleSiege::RecordMaxLife;
         size = 8;
         break;
     default:
         return {};
     }
-    if (!UI::CastleData::Holds(record + at, size))
+    if (!CastleSiege::CastleData::Holds(record + at, size))
     {
         return Discard(context, "el B2 07", record);
     }
     CastleOf(context).data.SetU32(record + at, result.value);
     if (result.kind == 3)
     {
-        CastleOf(context).data.SetU32(record + UI::RecordLife, result.value);
+        CastleOf(context).data.SetU32(record + CastleSiege::RecordLife, result.value);
     }
     return {};
 }
@@ -365,12 +367,12 @@ Core::Expected<void, std::string> ApplyTaxInfo(const Castle::TaxInfo& info, cons
         return ShowMessage(context, 1525);
     case 1:
     {
-        UI::CastleData& data = CastleOf(context).data;
-        data.SetU32(UI::ServerChaosTaxAt, info.chaosTax);
-        data.SetU32(UI::ChaosTaxAt, info.chaosTax);
-        data.SetU32(UI::ServerStoreTaxAt, info.storeTax);
-        data.SetU32(UI::StoreTaxAt, info.storeTax);
-        data.SetU64(UI::CastleMoneyAt, info.money);
+        CastleSiege::CastleData& data = CastleOf(context).data;
+        data.SetU32(CastleSiege::ServerChaosTaxAt, info.chaosTax);
+        data.SetU32(CastleSiege::ChaosTaxAt, info.chaosTax);
+        data.SetU32(CastleSiege::ServerStoreTaxAt, info.storeTax);
+        data.SetU32(CastleSiege::StoreTaxAt, info.storeTax);
+        data.SetU64(CastleSiege::CastleMoneyAt, info.money);
         return {};
     }
     case 2:
@@ -389,20 +391,20 @@ Core::Expected<void, std::string> ApplyTaxRate(const Castle::TaxRateResult& rate
         return ShowMessage(context, 1526);
     case 1:
     {
-        UI::CastleSiegeState& castle = CastleOf(context);
+        CastleSiege::CastleSiegeState& castle = CastleOf(context);
         if (rate.kind == 3)
         {
             castle.huntZone.fee = rate.value;
         }
         else if (rate.kind == 1)
         {
-            castle.data.SetU32(UI::ServerChaosTaxAt, rate.value);
-            castle.data.SetU32(UI::ChaosTaxAt, rate.value);
+            castle.data.SetU32(CastleSiege::ServerChaosTaxAt, rate.value);
+            castle.data.SetU32(CastleSiege::ChaosTaxAt, rate.value);
         }
         else if (rate.kind == 2)
         {
-            castle.data.SetU32(UI::ServerStoreTaxAt, rate.value);
-            castle.data.SetU32(UI::StoreTaxAt, rate.value);
+            castle.data.SetU32(CastleSiege::ServerStoreTaxAt, rate.value);
+            castle.data.SetU32(CastleSiege::StoreTaxAt, rate.value);
         }
         return {};
     }
@@ -421,7 +423,7 @@ Core::Expected<void, std::string> ApplyMoneyOut(const Castle::MoneyOutResult& ou
     case 0:
         return ShowMessage(context, 1527);
     case 1:
-        CastleOf(context).data.SetU64(UI::CastleMoneyAt, out.money);
+        CastleOf(context).data.SetU64(CastleSiege::CastleMoneyAt, out.money);
         return {};
     case 2:
         return ShowMessage(context, Text1386);
@@ -477,19 +479,19 @@ Core::Expected<void, std::string> ApplyNpcList(const Castle::NpcList& list, cons
     }
 }
 
-void ClearGuildList(UI::OldList& list, std::deque<UI::CastleGuildRow>& rows)
+void ClearGuildList(Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& rows)
 {
     rows.clear();
-    UI::SelectInTheList(list, 0, 0);
+    Ui::SelectInTheList(list, 0, 0);
     list.scroll = 0;
 }
 
-void AppendGuild(UI::OldList& list, std::deque<UI::CastleGuildRow>& rows, const Castle::GuildName& name,
+void AppendGuild(Ui::OldList& list, std::deque<CastleSiege::CastleGuildRow>& rows, const Castle::GuildName& name,
                  std::uint32_t marks, std::uint8_t first, std::uint8_t second)
 {
     if (name[0] == std::byte{0})
         return;
-    UI::CastleGuildRow row{.marks = marks, .first = first, .second = second};
+    CastleSiege::CastleGuildRow row{.marks = marks, .first = first, .second = second};
     bool ended = false;
     for (std::size_t i = 0; i < name.size(); ++i)
     {
@@ -500,8 +502,8 @@ void AppendGuild(UI::OldList& list, std::deque<UI::CastleGuildRow>& rows, const 
     // 0x46f7e0/0x470bb0: v6c recorta el BACK antes de ordenar, y el elegido termina en count.
     while (rows.size() > static_cast<std::size_t>(list.maxEntries))
         rows.pop_back();
-    UI::SelectInTheList(list, rows.size(), static_cast<std::int32_t>(rows.size()));
-    UI::ScrollTheList(list, rows.size(), -10000);
+    Ui::SelectInTheList(list, rows.size(), static_cast<std::int32_t>(rows.size()));
+    Ui::ScrollTheList(list, rows.size(), -10000);
 }
 
 // B4, 0x4dfce0.
@@ -518,7 +520,8 @@ Core::Expected<void, std::string> ApplySiegeGuildList(const Castle::SiegeGuildLi
         ClearGuildList(window.siegeGuildList, window.siegeGuilds);
         for (const auto& entry : list.entries)
             AppendGuild(window.siegeGuildList, window.siegeGuilds, entry.name, entry.marks, entry.first, entry.second);
-        Crt::Msvc6Sort(window.siegeGuilds, [](const UI::CastleGuildRow& left, const UI::CastleGuildRow& right)
+        Crt::Msvc6Sort(window.siegeGuilds,
+                       [](const CastleSiege::CastleGuildRow& left, const CastleSiege::CastleGuildRow& right)
                        { return std::bit_cast<std::int32_t>(left.marks) < std::bit_cast<std::int32_t>(right.marks); });
         return {};
     }
@@ -600,14 +603,14 @@ void StrNCopy(const std::array<std::byte, Size>& from, std::array<std::uint8_t, 
 
 void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, Kernel::WorldRuntime& runtime)
 {
-    UI::SiegeRegistrationWindow& window = runtime.castleSiege.registration;
+    CastleSiege::SiegeRegistrationWindow& window = runtime.castleSiege.registration;
     runtime.panels.delegated.castleSiege = 1;
     window.state = state.state;
     StrNCopy(state.ownerGuild, window.ownerGuild);
     StrNCopy(state.ownerMaster, window.ownerMaster);
     for (std::size_t i = 0; i < window.dates.size(); ++i)
     {
-        window.dates[i] = UI::SiegeDate{.year = state.dates[i].year, .rest = state.dates[i].rest};
+        window.dates[i] = CastleSiege::SiegeDate{.year = state.dates[i].year, .rest = state.dates[i].rest};
     }
     window.remaining = state.remaining;
 }
@@ -668,4 +671,4 @@ Core::Expected<void, std::string> ApplyCastleSiegePacket(const Protocol::CastleS
         },
         packet);
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

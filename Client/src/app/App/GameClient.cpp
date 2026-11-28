@@ -160,11 +160,11 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
     // 0x61ecdf: 0x54a440 keeps MonsterSkill.bmd in [0x7437670].
     runtime.monsterSkills = data.monsterSkills;
     // 0x61ed05: 0x54e7f0 keeps NpcName(%s).txt in the records of 0x7681eb8.
-    runtime.npcNames = Scenes::NpcNameTableOf(data.npcNames);
+    runtime.npcNames = Monsters::NpcNameTableOf(data.npcNames);
     // 0x61ed18: 0x46b3b0 keeps Slide.bmd in the banner of [0x5763528].
     if (data.slides)
     {
-        UI::LoadTheSlides(runtime.hud.slides, *data.slides);
+        Ui::LoadTheSlides(runtime.hud.slides, *data.slides);
     }
     // 0x4bada2..0x4bade0: the angle table, once, with WinMain's CRT.
     Actors::Drawing::InitializeGameItemRenderState(runtime.itemRender, m_cloth.random);
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> GameClient::Start()
     return m_manager.Start(Scenes::FirstScene);
 }
 
-ILoopClient& GameClient::Loop()
+Scenes::ILoopClient& GameClient::Loop()
 {
     return m_manager;
 }
@@ -197,7 +197,8 @@ std::optional<GameExit> GameClient::Exit() const
 {
     const ServerSession* session = Session();
     return GameExitOf(m_world.Runtime().fatalDataMessage, m_manager.Failure(), m_selection.Failure(),
-                      session != nullptr && session->State() == SessionState::QuitOrdered, m_manager.WantsToQuit());
+                      session != nullptr && session->State() == Session::SessionState::QuitOrdered,
+                      m_manager.WantsToQuit());
 }
 
 Kernel::WorldState& GameClient::World()
@@ -285,8 +286,8 @@ std::optional<Scenes::SceneId> GameClient::TakeSceneOrder()
 bool GameClient::Connecting() const
 {
     const ServerSession* session = Session();
-    return session != nullptr && (session->State() == SessionState::ConnectingConnectServer ||
-                                  session->State() == SessionState::ConnectingGameServer);
+    return session != nullptr && (session->State() == Session::SessionState::ConnectingConnectServer ||
+                                  session->State() == Session::SessionState::ConnectingGameServer);
 }
 
 void GameClient::BeforeSceneFrame(Core::Duration now)
@@ -315,7 +316,7 @@ Core::Expected<void, std::string> GameClient::AfterSceneStep()
     {
         return {};
     }
-    if (auto clocks = Scenes::StepTheMessageClocks(m_world.Runtime(), m_devices.textMeasure, m_devices.screen());
+    if (auto clocks = Chat::StepTheMessageClocks(m_world.Runtime(), m_devices.textMeasure, m_devices.screen());
         !clocks.HasValue())
     {
         return clocks;

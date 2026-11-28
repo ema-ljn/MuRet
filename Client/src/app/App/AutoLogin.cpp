@@ -22,29 +22,29 @@ void AutoLogin::Poll()
     }
     switch (m_session.State())
     {
-    case SessionState::ChoosingServer:
+    case Session::SessionState::ChoosingServer:
         Choose();
         return;
-    case SessionState::WaitingCredentials:
+    case Session::SessionState::WaitingCredentials:
         Submit();
         return;
-    case SessionState::Idle:
-    case SessionState::ConnectingConnectServer:
-    case SessionState::WaitingConnectHello:
-    case SessionState::WaitingServerList:
-    case SessionState::WaitingServerAddress:
-    case SessionState::ConnectingGameServer:
-    case SessionState::WaitingGameHello:
-    case SessionState::WaitingLoginResult:
-    case SessionState::LoggedIn:
-    case SessionState::WaitingCharacterList:
-    case SessionState::ChoosingCharacter:
-    case SessionState::WaitingCreateResult:
-    case SessionState::WaitingDeleteResult:
-    case SessionState::EnteringWorld:
-    case SessionState::InWorld:
-    case SessionState::QuitOrdered:
-    case SessionState::Failed:
+    case Session::SessionState::Idle:
+    case Session::SessionState::ConnectingConnectServer:
+    case Session::SessionState::WaitingConnectHello:
+    case Session::SessionState::WaitingServerList:
+    case Session::SessionState::WaitingServerAddress:
+    case Session::SessionState::ConnectingGameServer:
+    case Session::SessionState::WaitingGameHello:
+    case Session::SessionState::WaitingLoginResult:
+    case Session::SessionState::LoggedIn:
+    case Session::SessionState::WaitingCharacterList:
+    case Session::SessionState::ChoosingCharacter:
+    case Session::SessionState::WaitingCreateResult:
+    case Session::SessionState::WaitingDeleteResult:
+    case Session::SessionState::EnteringWorld:
+    case Session::SessionState::InWorld:
+    case Session::SessionState::QuitOrdered:
+    case Session::SessionState::Failed:
         return;
     }
 }

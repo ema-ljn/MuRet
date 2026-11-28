@@ -15,7 +15,7 @@
 // Lo que el HUD del juego (CL8 hito 2) lee de los ítems: las ranuras rápidas (Q, W y E: 0x558110 y 0x558490), la
 // cuenta de flechas o virotes del inventario (0x557d80) y la durabilidad máxima de un ítem (0x5b1ba0). Las grillas
 // son las 64 casillas de 0x78a9bb0, que no están en la tabla de protección: recorrerlas no saca rand().
-namespace Client::Scenes
+namespace Client::Items
 {
 // Las ranuras rápidas: 0x6c8e40, 0x6c8e44 y 0x6c8e48 (.data 0x1c00, 0x1c04 y 0x1c08: la poción de vida chica, la
 // de maná chica y el antídoto) y sus niveles en 0x77f3b34, 0x77f3b38 y 0x77f3b3c (.bss 0). Los cambia el F3 30
@@ -71,4 +71,4 @@ CountQuickSlotItems(const QuickSlots& slots, std::span<const Kernel::ItemState, 
 // El nombre de un registro de Item.bmd: sus bytes desde el +0 hasta el primer '\0' (o los 0x54), como lo lee el
 // "%s" del original.
 [[nodiscard]] std::string ItemRecordName(std::span<const std::byte, Tables::ItemRecordSize> record);
-} // namespace Client::Scenes
+} // namespace Client::Items

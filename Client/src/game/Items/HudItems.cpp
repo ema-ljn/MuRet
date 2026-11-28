@@ -13,7 +13,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -224,4 +224,4 @@ std::string ItemRecordName(std::span<const std::byte, Tables::ItemRecordSize> re
     }
     return name;
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

@@ -186,7 +186,7 @@ TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
         actor.dying = probe.dying;
         actor.angles.x = 20.0f;
         CrtRandom random(Seed);
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         std::int32_t sound = 0;
         int soundRequests = 0;
         const auto requestSound = [&](Client::Audio::SoundId requested)
@@ -201,18 +201,18 @@ TEST(ActorDyingTest, ChaosCastleSparksOnTheOddSteps)
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(random.State(), After(Seed, 143).State());
             std::size_t alive = 0;
-            for (const Client::World::Particle& particle : particles.All())
+            for (const Client::Particles::Particle& particle : particles.All())
             {
                 if (!particle.alive)
                     continue;
                 if (alive < 20)
                 {
-                    EXPECT_EQ(particle.type, Client::World::FairySparkParticle);
+                    EXPECT_EQ(particle.type, Client::Particles::FairySparkParticle);
                     EXPECT_EQ(particle.subtype, 2);
                 }
                 else
                 {
-                    EXPECT_EQ(particle.type, Client::World::ExplosionParticle);
+                    EXPECT_EQ(particle.type, Client::Particles::ExplosionParticle);
                     EXPECT_EQ(particle.subtype, 0);
                 }
                 ++alive;
@@ -248,8 +248,8 @@ TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
 {
     ActorState actor = Dying();
     actor.dying = 15;
-    Client::World::Particles particles;
-    for (Client::World::Particle& particle : particles.All())
+    Client::Particles::Particles particles;
+    for (Client::Particles::Particle& particle : particles.All())
     {
         particle.alive = true;
         particle.type = -1;
@@ -267,7 +267,7 @@ TEST(ActorDyingTest, AFullChaosCastlePoolSkipsTheExplosionAndItsSound)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), After(Seed, 43).State());
     EXPECT_EQ(soundRequests, 0);
-    for (const Client::World::Particle& particle : particles.All())
+    for (const Client::Particles::Particle& particle : particles.All())
         EXPECT_EQ(particle.type, -1);
 }
 
@@ -321,9 +321,9 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
             sparks.dying = dying;
             sparks.angles = {0.0f, 0.0f, 30.0f};
             CrtRandom flareRandom(Seed);
-            auto particles = std::make_unique<Client::World::Particles>();
+            auto particles = std::make_unique<Client::Particles::Particles>();
             if (full)
-                for (Client::World::Particle& particle : particles->All())
+                for (Client::Particles::Particle& particle : particles->All())
                     particle.alive = true;
             ASSERT_TRUE(StepActorDying(sparks, Slot, {.random = flareRandom, .particles = particles.get()}).HasValue());
             EXPECT_EQ(flareRandom.State(), After(Seed, 20).State());
@@ -335,7 +335,7 @@ TEST(ActorDyingTest, ThePushedFliesUntilTheFourteenthStep)
                 SCOPED_TRACE(flare);
                 static_cast<void>(expected.Next());
                 const int draw = expected.Next() % 100;
-                const Client::World::Particle& made = particles->All()[flare];
+                const Client::Particles::Particle& made = particles->All()[flare];
                 EXPECT_TRUE(made.alive);
                 EXPECT_EQ(made.type, 0x5ac);
                 EXPECT_EQ(made.subtype, 5);
@@ -362,7 +362,7 @@ TEST(ActorDyingTest, AtlansBlowsFourBubbles)
     ActorState actor = Dying();
     actor.angles = {0.0f, 0.0f, 30.0f};
     actor.light = {0.25f, 0.5f, 0.75f};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     CrtRandom random(Seed);
     CrtRandom expected(Seed);
     const auto x = static_cast<float>((expected.Next() & 0x7f) - 0x40);
@@ -375,7 +375,7 @@ TEST(ActorDyingTest, AtlansBlowsFourBubbles)
     for (std::size_t bubble = 0; bubble < 4; ++bubble)
     {
         EXPECT_TRUE(particles.All()[bubble].alive);
-        EXPECT_EQ(particles.All()[bubble].type, Client::World::DropParticle);
+        EXPECT_EQ(particles.All()[bubble].type, Client::Particles::DropParticle);
         EXPECT_EQ(particles.All()[bubble].angles, actor.angles);
     }
     EXPECT_FALSE(particles.All()[4].alive);

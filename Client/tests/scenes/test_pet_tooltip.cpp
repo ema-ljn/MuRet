@@ -48,12 +48,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::TooltipLines;
+using Client::Tooltips::TooltipLines;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
@@ -214,8 +214,8 @@ protected:
     {
         GameHudContext context = Context();
         const Client::Models::LogicalAccess own(Runtime().ownRecordDepth, m_random, OwnRecordCloseRandoms);
-        return Client::Scenes::DrawTheItemTooltip(
-            Client::Scenes::ItemTooltipContext{.hud = context, .x = BoxX, .y = y, .item = item});
+        return Client::Tooltips::DrawTheItemTooltip(
+            Client::Tooltips::ItemTooltipContext{.hud = context, .x = BoxX, .y = y, .item = item});
     }
 
     // Dos pasadas: la primera pide el A9 y la segunda dibuja. Devuelve la segunda.
@@ -243,7 +243,7 @@ protected:
             EXPECT_EQ(lines.colors[i], expected[i].color) << "renglón " << i;
             EXPECT_EQ(lines.bold[i], expected[i].bold) << "renglón " << i;
         }
-        for (std::size_t i = expected.size(); i < Client::Scenes::TooltipLineCount; ++i)
+        for (std::size_t i = expected.size(); i < Client::Tooltips::TooltipLineCount; ++i)
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
         // 0x422990 cuenta en EBX y [EBP−0x24]: 0x78abb30 y 0x78abb34 quedan en el 0 de 0x5b2aa0.
         EXPECT_EQ(lines.next, 0);
@@ -507,15 +507,15 @@ TEST_P(PetTooltipTest, AProjectedDrawNeitherAsksNorWrites)
 {
     ItemState& cell = m_world->Inventory().cells[3];
     cell = TheHorse();
-    Client::UI::GameUiState& ui = Runtime().ui;
-    ui.hoveredItem = Client::UI::HoveredItem{.place = Client::UI::HoveredItem::Place::InventoryCell, .index = 3};
+    Client::Ui::GameUiState& ui = Runtime().ui;
+    ui.hoveredItem = Client::Ui::HoveredItem{.place = Client::Ui::HoveredItem::Place::InventoryCell, .index = 3};
     ui.skillTooltipX = BoxX;
     ui.skillTooltipY = BoxY;
     const auto draw = [this](bool projecting)
     {
         m_projecting = projecting;
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheTooltips(context);
+        return Client::Tooltips::DrawTheTooltips(context);
     };
 
     ASSERT_TRUE(draw(true).HasValue());
@@ -542,8 +542,8 @@ TEST_P(PetTooltipTest, AnotherTypeIsNotAPet)
     item.id = 0x1a03;
     GameHudContext context = Context();
 
-    const auto pet = Client::Scenes::DrawThePetTooltip(
-        Client::Scenes::ItemTooltipContext{.hud = context, .x = BoxX, .y = BoxY, .item = item});
+    const auto pet = Client::Tooltips::DrawThePetTooltip(
+        Client::Tooltips::ItemTooltipContext{.hud = context, .x = BoxX, .y = BoxY, .item = item});
 
     ASSERT_TRUE(pet.HasValue()) << pet.Error();
     EXPECT_FALSE(pet.Value());

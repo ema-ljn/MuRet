@@ -35,7 +35,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -77,7 +77,7 @@ bool SkillForPost(std::uint32_t skill, const Kernel::ActorState& hero, bool init
     return !initialize && hero.guildStatus == BattleMaster && FirstSiegeSkill <= skill && skill <= 0x45;
 }
 
-Core::Expected<std::uint8_t, std::string> SkillCost(const GameUiContext& context)
+Core::Expected<std::uint8_t, std::string> SkillCost(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& hero = context.world.Hero();
@@ -102,7 +102,7 @@ void ConsumeLeft(Kernel::WorldRuntime& runtime)
     runtime.movement.leftHeld = false;
 }
 
-Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet)
+Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet)
 {
     if (context.requests == nullptr)
         return Core::Unexpected(std::string("Castle Siege: sin cable para el paquete de la ventana"));
@@ -110,7 +110,7 @@ Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::O
     return {};
 }
 
-Core::Expected<void, std::string> CloseGate(const GameUiContext& context)
+Core::Expected<void, std::string> CloseGate(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeGate = 0;
@@ -118,7 +118,7 @@ Core::Expected<void, std::string> CloseGate(const GameUiContext& context)
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
-Core::Expected<void, std::string> CloseWeapon(const GameUiContext& context)
+Core::Expected<void, std::string> CloseWeapon(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.panels.delegated.siegeWeapon = 0;
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> CloseWeapon(const GameUiContext& context)
     return Send(context, Protocol::Session::WriteWindowClose());
 }
 
-Core::Expected<void, std::string> StepWeapon(const GameUiContext& context)
+Core::Expected<void, std::string> StepWeapon(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const std::uint8_t mode = runtime.panels.delegated.siegeWeapon;
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> StepWeapon(const GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepGate(const GameUiContext& context)
+Core::Expected<void, std::string> StepGate(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.panels.delegated.siegeGate == 0)
@@ -206,19 +206,19 @@ Core::Expected<void, std::string> RefreshTheSiegePanel(Kernel::WorldRuntime& run
     if (runtime.map != CastleMap)
     {
         runtime.castleSiege.siegePanelKind.reset();
-        runtime.castleSiege.siegePanel = UI::SiegePanelState{};
+        runtime.castleSiege.siegePanel = CastleSiege::SiegePanelState{};
         return {};
     }
-    const GuildState& guild = runtime.guild;
+    const Guild::GuildState& guild = runtime.guild;
     const std::uint8_t post = guild.heroGuildStatus;
     std::uint8_t kind = 1;
     if (post == NoGuild)
         kind = 0;
     else if (post == Master)
     {
-        if (guild.heroGuildIndex < 0 || static_cast<std::size_t>(guild.heroGuildIndex) >= GuildTableSize)
+        if (guild.heroGuildIndex < 0 || static_cast<std::size_t>(guild.heroGuildIndex) >= Guild::GuildTableSize)
             return Core::Unexpected(std::format("0x412203: el gremio {} cae fuera de la tabla", guild.heroGuildIndex));
-        const GuildTableEntry& entry = guild.table[static_cast<std::size_t>(guild.heroGuildIndex)];
+        const Guild::GuildTableEntry& entry = guild.table[static_cast<std::size_t>(guild.heroGuildIndex)];
         if (entry.unionName[0] == '\0' || std::string_view(entry.unionName.data()) == entry.guildName.data())
             kind = 2;
     }
@@ -226,7 +226,7 @@ Core::Expected<void, std::string> RefreshTheSiegePanel(Kernel::WorldRuntime& run
         return {};
     if (runtime.castleSiege.siegePanelKind == kind)
         return {};
-    runtime.castleSiege.siegePanel = UI::SiegePanelState{};
+    runtime.castleSiege.siegePanel = CastleSiege::SiegePanelState{};
     if (kind == 2)
         runtime.castleSiege.siegePanel.members.reserve(MemberReservation);
     runtime.castleSiege.siegePanelKind = kind;
@@ -238,7 +238,7 @@ Core::Expected<void, std::string> ReceiveSiegePanelStatus(Kernel::WorldRuntime& 
 {
     if (!runtime.castleSiege.siegePanelKind || *runtime.castleSiege.siegePanelKind == 0)
         return {};
-    if (status[0] >= UI::SiegeStatusSlots)
+    if (status[0] >= CastleSiege::SiegeStatusSlots)
         return Core::Unexpected(
             std::format("0x4102b0/0x410580: el índice {} pisa fuera de las siete marcas", status[0]));
     auto& slot = runtime.castleSiege.siegePanel.status[status[0]];
@@ -288,7 +288,7 @@ Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContex
     runtime.panels.delegated.siegeWeapon = 0;
     runtime.castleSiege.siegeBattleUi.weaponChoice = 0;
     runtime.castleSiege.siegeBattleUi.weaponKey = key;
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     LendTheCastlePanelServices(panels, context);
     if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
         return closed;
@@ -297,7 +297,7 @@ Core::Expected<void, std::string> ApplySiegeWeaponOpen(const CastleReceiveContex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheSiegeControls(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheSiegeControls(const Hud::GameUiContext& context)
 {
     if (auto weapon = StepWeapon(context); !weapon.HasValue())
         return weapon;
@@ -322,7 +322,7 @@ void InitializeTheBattleSkill(Kernel::WorldState& world, Crt::CrtRandom& random)
     hero.byte371 = static_cast<std::uint8_t>(selected);
 }
 
-Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattleSkill(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
@@ -347,7 +347,7 @@ Core::Expected<void, std::string> StepTheBattleSkill(const GameUiContext& contex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheBattleSkillChoice(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
@@ -401,4 +401,4 @@ Core::Expected<void, std::string> StepTheBattleSkillChoice(const GameUiContext& 
     runtime.ui.wheel = 0;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

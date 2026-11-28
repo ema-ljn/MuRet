@@ -130,12 +130,12 @@ const HelperTable& WorldState::Helpers() const
     return m_helpers;
 }
 
-World::Particles& WorldState::Particles()
+Particles::Particles& WorldState::Particles()
 {
     return *m_particles;
 }
 
-const World::Particles& WorldState::Particles() const
+const Particles::Particles& WorldState::Particles() const
 {
     return *m_particles;
 }
@@ -148,11 +148,11 @@ const Actors::PlayerActionSpeeds& WorldState::ActionSpeeds() const
 {
     return m_actionSpeeds;
 }
-Scenes::FaunaState& WorldState::Fauna()
+Fauna::FaunaState& WorldState::Fauna()
 {
     return m_fauna;
 }
-const Scenes::FaunaState& WorldState::Fauna() const
+const Fauna::FaunaState& WorldState::Fauna() const
 {
     return m_fauna;
 }
@@ -230,11 +230,11 @@ const Scenes::GameDrawTailState& WorldState::DrawTail() const
 {
     return *m_drawTail;
 }
-World::Leaves& WorldState::Leaves()
+Weather::Leaves& WorldState::Leaves()
 {
     return *m_leaves;
 }
-const World::Leaves& WorldState::Leaves() const
+const Weather::Leaves& WorldState::Leaves() const
 {
     return *m_leaves;
 }

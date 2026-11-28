@@ -42,15 +42,15 @@ namespace
 using Client::Core::PixelSize;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
+using Client::PersonalShop::ShopSignBox;
+using Client::PersonalShop::ShopSignColors;
+using Client::PersonalShop::ShopTitleLines;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::BoxShape;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Scenes::GameProjection;
-using Client::Scenes::ShopSignBox;
-using Client::Scenes::ShopSignColors;
-using Client::Scenes::ShopTitle;
-using Client::Scenes::ShopTitleLines;
+using Client::Social::ShopTitle;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -137,7 +137,7 @@ protected:
         return m_world->Runtime();
     }
 
-    Client::Scenes::PersonalShopState& Shops()
+    Client::Social::PersonalShopState& Shops()
     {
         return Runtime().social.personalShop;
     }
@@ -171,15 +171,15 @@ protected:
     Client::Core::Expected<void, std::string> Draw(bool projecting = false, bool withProjection = true,
                                                    bool withTexts = true)
     {
-        Client::Scenes::ShopSignDrawContext context{.world = *m_world,
-                                                    .panels = m_panels.Registry(),
-                                                    .projection = withProjection ? &m_projection : nullptr,
-                                                    .sprites = m_sprites,
-                                                    .text = m_text,
-                                                    .dcFont = m_dcFont,
-                                                    .texts = withTexts ? &m_texts : nullptr,
-                                                    .projecting = projecting};
-        return Client::Scenes::DrawTheShopSigns(context);
+        Client::PersonalShop::ShopSignDrawContext context{.world = *m_world,
+                                                          .panels = m_panels.Registry(),
+                                                          .projection = withProjection ? &m_projection : nullptr,
+                                                          .sprites = m_sprites,
+                                                          .text = m_text,
+                                                          .dcFont = m_dcFont,
+                                                          .texts = withTexts ? &m_texts : nullptr,
+                                                          .projecting = projecting};
+        return Client::PersonalShop::DrawTheShopSigns(context);
     }
 
     [[nodiscard]] const std::vector<RecordedText>& Texts() const
@@ -189,7 +189,7 @@ protected:
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
     CrtRandom m_random{Seed};
-    Client::Scenes::GamePanels m_panels{*m_world, m_random};
+    Client::Hud::GamePanels m_panels{*m_world, m_random};
     SpriteBatch m_sprites;
     RecordingTextDrawer m_text;
     GameProjection m_projection{};
@@ -201,7 +201,7 @@ protected:
 // parte una letra de dos bytes, y la segunda con el resto.
 TEST_P(ShopSignsTest, TheTitleSplitsFromTheMiddle)
 {
-    using Client::Scenes::SplitTheShopTitle;
+    using Client::PersonalShop::SplitTheShopTitle;
     EXPECT_EQ(SplitTheShopTitle("Arcos"), (ShopTitleLines{.first = "Arcos", .second = ""}));
     EXPECT_EQ(SplitTheShopTitle("abcdefghijklmnopqrst"),
               (ShopTitleLines{.first = "abcdefghijklmnopqrst", .second = ""}));
@@ -217,7 +217,7 @@ TEST_P(ShopSignsTest, TheTitleSplitsFromTheMiddle)
 // bytes) y "..". Sin cartel, vacío.
 TEST_P(ShopSignsTest, TheShortTitleKeepsTwelveBytesAndTwoDots)
 {
-    using Client::Scenes::ShortShopTitle;
+    using Client::PersonalShop::ShortShopTitle;
     EXPECT_EQ(ShortShopTitle("Arcos y flecha"), "Arcos y flecha");
     EXPECT_EQ(ShortShopTitle("Arcos y flechas"), "Arcos y flec..");
     const std::string wide = std::string(11, 'a') + "\xb0\xa1" + std::string(5, 'b');
@@ -231,7 +231,7 @@ TEST_P(ShopSignsTest, TheShortTitleKeepsTwelveBytesAndTwoDots)
 // un renglón por cada uno que hay.
 TEST_P(ShopSignsTest, TheMeasureCountsTheRows)
 {
-    using Client::Scenes::MeasureTheShopSign;
+    using Client::PersonalShop::MeasureTheShopSign;
     const auto measure = [&](std::string name, std::string title, int step)
     { return MeasureTheShopSign(ShopTitle{.name = std::move(name), .title = std::move(title)}, Header, m_text, step); };
 
@@ -375,7 +375,7 @@ TEST_P(ShopSignsTest, TheEdgesKeepTheSignsOnTheScreen)
                                       {.x = 10, .y = 5, .width = 700, .height = 500}}};
     // De a uno, para que no se pisen.
     for (ShopSignBox& sign : signs)
-        Client::Scenes::SpreadTheShopSigns(std::span<ShopSignBox>(&sign, 1), Screen640);
+        Client::PersonalShop::SpreadTheShopSigns(std::span<ShopSignBox>(&sign, 1), Screen640);
     EXPECT_EQ(signs[0], (ShopSignBox{.x = 0, .y = 0, .width = 84, .height = 24}));
     EXPECT_EQ(signs[1], (ShopSignBox{.x = 552, .y = 456, .width = 84, .height = 24}));
     EXPECT_EQ(signs[2], (ShopSignBox{.x = 555, .y = 455, .width = 84, .height = 24}));
@@ -387,8 +387,8 @@ TEST_P(ShopSignsTest, TheEdgesKeepTheSignsOnTheScreen)
 // el alto, ni con el 640 de 0x554000).
 TEST_P(ShopSignsTest, TheRowStopsAtTheBarLine)
 {
-    using Client::Scenes::ShopSignRowAt;
-    using Client::UI::Point;
+    using Client::PersonalShop::ShopSignRowAt;
+    using Client::Ui::Point;
     EXPECT_EQ(ShopSignRowAt(Point{.x = -10, .y = -10}, 88, Step640, Screen640), (Point{.x = 0, .y = 0}));
     EXPECT_EQ(ShopSignRowAt(Point{.x = 600, .y = 421}, 88, Step640, Screen640), (Point{.x = 552, .y = 421}));
     EXPECT_EQ(ShopSignRowAt(Point{.x = 552, .y = 425}, 88, Step640, Screen640), (Point{.x = 552, .y = 433}));
@@ -456,7 +456,7 @@ TEST_P(ShopSignsTest, TheChosenSignBlinksWithTheShopCommand)
 // 0x452a10: con el PK 4, 5 o 6, el texto 1104 y el nombre del mismo color y el fondo de los tres casos.
 TEST_P(ShopSignsTest, ThePkColorsTheSign)
 {
-    using Client::Scenes::ShopSignColorsOf;
+    using Client::PersonalShop::ShopSignColorsOf;
     EXPECT_EQ(ShopSignColorsOf(3, false), Plain);
     EXPECT_EQ(ShopSignColorsOf(0, true), Hovered);
     EXPECT_EQ(ShopSignColorsOf(4, false),
@@ -479,10 +479,10 @@ TEST_P(ShopSignsTest, ThePkColorsTheSign)
 // con +0x370 en 2 u 8 como el PK 6.
 TEST_P(ShopSignsTest, TheBubbleColorsFollowTheSign)
 {
-    using Client::Scenes::ShopBubbleColorsOf;
+    using Client::PersonalShop::ShopBubbleColorsOf;
     Sign(Seller, "Brezal", "Arcos").hovered = 1;
-    EXPECT_TRUE(Client::Scenes::ShopSignHovered(Shops(), Seller));
-    EXPECT_FALSE(Client::Scenes::ShopSignHovered(Shops(), Buyer));
+    EXPECT_TRUE(Client::PersonalShop::ShopSignHovered(Shops(), Seller));
+    EXPECT_FALSE(Client::PersonalShop::ShopSignHovered(Shops(), Buyer));
 
     Client::Kernel::ActorState& owner = m_world->Actors()[Seller];
     EXPECT_EQ(ShopBubbleColorsOf(owner, false), Plain);

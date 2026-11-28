@@ -11,7 +11,7 @@
 #include <span>
 #include <system_error>
 
-namespace Client::World
+namespace Client::Fauna
 {
 inline constexpr std::size_t FishPoolSize = 10;
 
@@ -100,4 +100,4 @@ public:
     // Devuelve producto retenido antes de sumar0.5PC53 y almacenarF32; errores del perfil al alcanzarse.
     [[nodiscard]] virtual Core::Expected<double, std::error_code> OscillationProductPC53(float phase) = 0;
 };
-} // namespace Client::World
+} // namespace Client::Fauna

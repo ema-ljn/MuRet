@@ -20,7 +20,7 @@
 
 // El 0x61b y el 0x5bc, los rayos de las manos de los monstruos (0x4f5b70): comparten el alta (0x5335cf, 0x5335d6) y
 // el paso (0x539ccc..0x539f16); el 0x61b repite la textura.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -29,7 +29,7 @@ using Math::D;
 using Math::F32;
 } // namespace
 
-void CreateHandBoltJoint(JointState& joint)
+void CreateHandBoltJoint(Scenes::JointState& joint)
 {
     // 0x5335cf..0x5335f3: velocidad 40, ancho 60, 50 puntos y vida 2.
     if (joint.type == RedHandBoltJoint)
@@ -56,7 +56,8 @@ void CreateHandBoltJoint(JointState& joint)
 namespace
 {
 // 0x539def..0x539e6f: (rand() & 3) + 4 por 0,05f (0x6b8a48) en la luz dinámica de radio 2.
-Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& random, Terrain::TerrainLighting* lighting)
+Core::Expected<void, std::string> Glow(const Scenes::JointState& joint, CrtRandom& random,
+                                       Terrain::TerrainLighting* lighting)
 {
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
     constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
@@ -71,11 +72,11 @@ Core::Expected<void, std::string> Glow(const JointState& joint, CrtRandom& rando
         color = {F32(value), F32(value * Tenth), F32(value * Tenth)};
     else
         color = {F32(value), F32(value * Green), F32(value * Blue)};
-    return World::AddDynamicLight(lighting, joint.position, color, 2, "0x539e6f");
+    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x539e6f");
 }
 
 // 0x539ed4..0x539f11: al llegar, una vez cada dos, tres rand() para un punto que nadie lee y el fuego 0x5d9/0.
-Core::Expected<void, std::string> Arrive(const JointState& joint, CrtRandom& random,
+Core::Expected<void, std::string> Arrive(const Scenes::JointState& joint, CrtRandom& random,
                                          const JointKernels::StepServices& services)
 {
     if (random.Next() % 2 != 0)
@@ -85,7 +86,7 @@ Core::Expected<void, std::string> Arrive(const JointState& joint, CrtRandom& ran
     if (services.particles == nullptr)
         return Core::Unexpected(
             std::format("0x539f11: faltan las partículas del joint {:#x}/{}", joint.type, joint.subtype));
-    const auto created = services.particles->CreateChecked(World::FireParticle, joint.position, joint.angles,
+    const auto created = services.particles->CreateChecked(Particles::FireParticle, joint.position, joint.angles,
                                                            joint.light, 0, 1.0f, services.worldClock, random);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x539f11: falló el 0x5d9 del joint {:#x}/{} ({})", joint.type,
@@ -94,7 +95,8 @@ Core::Expected<void, std::string> Arrive(const JointState& joint, CrtRandom& ran
 }
 } // namespace
 
-Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepHandBoltJoint(Scenes::JointState& joint,
+                                                    const JointKernels::StepServices& services)
 {
     if (joint.maximumCount <= 0)
         return {};
@@ -139,4 +141,4 @@ Core::Expected<void, std::string> StepHandBoltJoint(JointState& joint, const Joi
     }
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

@@ -11,7 +11,7 @@
 #include <optional>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -29,25 +29,25 @@ bool FreeDeletionGroup(const Tables::TextTable* texts, std::optional<std::uint16
     {
         return true;
     }
-    const std::string_view name = TextAt(texts, GroupNameText(GroupOf(*chosenServer))).value_or(std::string_view{});
-    const std::string_view free = TextAt(texts, FreeGroupText).value_or(std::string_view{});
+    const std::string_view name = Ui::TextAt(texts, GroupNameText(GroupOf(*chosenServer))).value_or(std::string_view{});
+    const std::string_view free = Ui::TextAt(texts, FreeGroupText).value_or(std::string_view{});
     return name == free;
 }
 
-NoticeId NoticeOfDeleteButton(const Protocol::FrontEnd::CharacterEntry& chosen, bool freeDeletionGroup)
+Ui::NoticeId NoticeOfDeleteButton(const Protocol::FrontEnd::CharacterEntry& chosen, bool freeDeletionGroup)
 {
     if (chosen.guildStatus != Protocol::FrontEnd::NoGuildStatus)
     {
-        return GuildMemberNotice;
+        return Ui::GuildMemberNotice;
     }
     if (chosen.level >= HighLevel && !freeDeletionGroup)
     {
-        return HighLevelNotice;
+        return Ui::HighLevelNotice;
     }
     if ((chosen.flags & BlockingFlags) != 0)
     {
-        return BlockedAccountNotice;
+        return Ui::BlockedAccountNotice;
     }
-    return ConfirmDeletionNotice;
+    return Ui::ConfirmDeletionNotice;
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

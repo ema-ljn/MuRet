@@ -5,7 +5,7 @@
 #include <vector>
 
 // Efectos ordinarios de la decisión pura de gates, para que el caller los aplique en su paso.
-namespace Client::GameLogic
+namespace Client::Movement
 {
 struct GateWarning
 {
@@ -25,4 +25,4 @@ struct GateDecision
     // del pedido, si lo hay: ese pedido vuelve a poner pending en 1.
     bool clearWarpPending = false;
 };
-} // namespace Client::GameLogic
+} // namespace Client::Movement

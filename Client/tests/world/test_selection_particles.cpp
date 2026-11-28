@@ -25,9 +25,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::Particles;
 
 constexpr std::int32_t SelectionScene = 4;
 constexpr std::int32_t GameScene = 5;
@@ -39,7 +39,7 @@ constexpr double Fiftieth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au
 using Client::Math::F32;
 
 const Particle& Create(Particles& particles, std::int32_t type, std::int32_t subtype, float scale, CrtRandom& random,
-                       std::int32_t scene = SelectionScene, Client::World::ParticleOwner owner = {})
+                       std::int32_t scene = SelectionScene, Client::Particles::ParticleOwner owner = {})
 {
     const auto created =
         particles.CreateOwnedChecked(type, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, {0.5f, 0.25f, 0.125f},
@@ -50,7 +50,7 @@ const Particle& Create(Particles& particles, std::int32_t type, std::int32_t sub
 }
 
 // El seno de 0x547723 por el 20 de 0x6b86d0: anota el argumento y devuelve un producto fijo.
-class RecordingSine final : public Client::World::IParticleTrigonometry
+class RecordingSine final : public Client::Particles::IParticleTrigonometry
 {
 public:
     mutable std::vector<double> arguments;
@@ -71,13 +71,13 @@ public:
 // Un paso de 0x5446e0 con el reloj del mundo y los objetos de `objects` como dueños.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
                                                  RecordingSine& sine,
-                                                 std::vector<Client::World::WorldObject>* objects = nullptr)
+                                                 std::vector<Client::WorldObjects::WorldObject>* objects = nullptr)
 {
     const std::int32_t map = 54;
-    Client::World::ParticleObjectOwners owners;
+    Client::Particles::ParticleObjectOwners owners;
     if (objects != nullptr)
     {
-        owners = [objects](std::uint64_t identity) -> Client::World::WorldObject*
+        owners = [objects](std::uint64_t identity) -> Client::WorldObjects::WorldObject*
         {
             for (auto& object : *objects)
             {
@@ -87,7 +87,7 @@ Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom
             return nullptr;
         };
     }
-    return Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, sine, {}, owners);
+    return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, sine, {}, owners);
 }
 
 // 0x543851..0x54389c: el 729/1 se dibuja con Impack03 (0x719), con escala y subida sorteadas.
@@ -96,7 +96,7 @@ TEST(SelectionParticlesTest, TheChaseLightRisingSubtypeDrawsWithImpack03AndSixRa
     auto particles = std::make_unique<Particles>();
     CrtRandom random(7);
     CrtRandom draws(7);
-    const Particle& p = Create(*particles, Client::World::ChaseLightParticle, 1, 1.0f, random);
+    const Particle& p = Create(*particles, Client::Particles::ChaseLightParticle, 1, 1.0f, random);
     const int scale = draws.Next() % 10 + 20;
     const int rise = draws.Next() % 10 + 20;
     const int life = draws.Next() % 3 + 20;
@@ -119,7 +119,7 @@ TEST(SelectionParticlesTest, TheWideChaseLightStaysStillAndDrawsFiveTimes)
     auto particles = std::make_unique<Particles>();
     CrtRandom random(11);
     CrtRandom draws(11);
-    const Particle& p = Create(*particles, Client::World::ChaseLightParticle, 0, 1.0f, random);
+    const Particle& p = Create(*particles, Client::Particles::ChaseLightParticle, 0, 1.0f, random);
     const int scale = draws.Next() % 5 + 20;
     const int life = draws.Next() % 3 + 20;
     const int x = draws.Next() % 50 - 25;
@@ -141,7 +141,7 @@ TEST(SelectionParticlesTest, TheChaseLightBrightensUntilTenStepsAreLeftAndThenFa
         auto particles = std::make_unique<Particles>();
         Particle& p = particles->All()[0];
         p.alive = true;
-        p.type = p.texture = Client::World::ChaseLightParticle;
+        p.type = p.texture = Client::Particles::ChaseLightParticle;
         p.subtype = 1;
         p.life = life;
         p.light = glm::vec3(0.5f);
@@ -168,7 +168,7 @@ TEST(SelectionParticlesTest, TheRisingFlameDrawsItsDriftOnlyWhenTheSeventhOfTenC
         auto particles = std::make_unique<Particles>();
         CrtRandom random(seed);
         CrtRandom draws(seed);
-        const Particle& p = Create(*particles, Client::World::FlameParticle, 7, 1.5f, random);
+        const Particle& p = Create(*particles, Client::Particles::FlameParticle, 7, 1.5f, random);
         const float scale = F32(1.5 - (draws.Next() % 20) * Hundredth);
         const int turn = draws.Next() % 360;
         const int side = draws.Next() & 1;
@@ -201,7 +201,7 @@ TEST(SelectionParticlesTest, TheLostTowerFloorFlameRisesStraightWithTwoDraws)
     auto particles = std::make_unique<Particles>();
     CrtRandom random(5);
     CrtRandom draws(5);
-    const auto created = particles->CreateChecked(Client::World::FlameParticle, {1000.0f, 2000.0f, 300.0f},
+    const auto created = particles->CreateChecked(Client::Particles::FlameParticle, {1000.0f, 2000.0f, 300.0f},
                                                   {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), 0, 1.5f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
@@ -235,7 +235,7 @@ TEST(SelectionParticlesTest, TheRisingFlameTurnsBySideOfItsStartAndDiesWhenItsSc
         auto particles = std::make_unique<Particles>();
         Particle& p = particles->All()[0];
         p.alive = true;
-        p.type = p.texture = Client::World::FlameParticle;
+        p.type = p.texture = Client::Particles::FlameParticle;
         p.subtype = 7;
         p.life = 20;
         p.moves = false;
@@ -257,7 +257,7 @@ TEST(SelectionParticlesTest, TheRisingFlameTurnsBySideOfItsStartAndDiesWhenItsSc
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
-    p.type = p.texture = Client::World::FlameParticle;
+    p.type = p.texture = Client::Particles::FlameParticle;
     p.subtype = 7;
     p.life = 20;
     p.moves = false;
@@ -277,8 +277,8 @@ TEST(SelectionParticlesTest, TheOwnedMistDrawsSevenTimesAndAddsTheScaleArgumentT
     auto particles = std::make_unique<Particles>();
     CrtRandom random(5);
     CrtRandom draws(5);
-    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::WorldObject, 77};
-    const Particle& p = Create(*particles, Client::World::CloudParticle, 1, 0.75f, random, SelectionScene, owner);
+    const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::WorldObject, 77};
+    const Particle& p = Create(*particles, Client::Particles::CloudParticle, 1, 0.75f, random, SelectionScene, owner);
     const int phase = draws.Next() % 1000;
     const int x = draws.Next() % 500 - 250;
     const int y = draws.Next() % 500 - 250;
@@ -302,18 +302,18 @@ TEST(SelectionParticlesTest, TheOwnedMistDrawsSevenTimesAndAddsTheScaleArgumentT
 // de partida y el giro, el reloj por el factor por 0,02 más la fase.
 TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsSeen)
 {
-    std::vector<Client::World::WorldObject> objects(1);
+    std::vector<Client::WorldObjects::WorldObject> objects(1);
     objects[0].identity = 77;
     objects[0].seen = true;
-    objects[0].state.hiddenMesh = Client::World::HiddenObject;
+    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
-    p.type = p.texture = Client::World::CloudParticle;
+    p.type = p.texture = Client::Particles::CloudParticle;
     p.subtype = 1;
     p.life = 2;
     p.moves = false;
-    p.typedOwner = {Client::World::ParticleOwnerKind::WorldObject, 77};
+    p.typedOwner = {Client::Particles::ParticleOwnerKind::WorldObject, 77};
     p.verticalSpeed = 500.0f;
     p.start = {0.0f, 0.25f, 310.0f};
     p.rotationFactor = 1.5f;
@@ -323,7 +323,7 @@ TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsS
     ASSERT_TRUE(Step(*particles, random, clock, sine, &objects).HasValue());
     EXPECT_EQ(p.life, 50);
     EXPECT_TRUE(p.alive);
-    EXPECT_EQ(objects[0].state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(objects[0].state.hiddenMesh, Client::WorldObjects::HiddenObject);
     ASSERT_EQ(sine.arguments.size(), 1u);
     EXPECT_EQ(sine.arguments[0], (1234.0 + 500.0) * static_cast<double>(std::bit_cast<float>(0x3951b717u)));
     EXPECT_EQ(p.position.z, F32(3.0 + 310.0));
@@ -334,18 +334,18 @@ TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsS
 // igual termina su altura y su giro.
 TEST(SelectionParticlesTest, TheOwnedMistLetsItsOwnerEmitAgainWhenItDiesUnseen)
 {
-    std::vector<Client::World::WorldObject> objects(1);
+    std::vector<Client::WorldObjects::WorldObject> objects(1);
     objects[0].identity = 77;
     objects[0].seen = false;
-    objects[0].state.hiddenMesh = Client::World::HiddenObject;
+    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
-    p.type = p.texture = Client::World::CloudParticle;
+    p.type = p.texture = Client::Particles::CloudParticle;
     p.subtype = 1;
     p.life = 1;
     p.moves = false;
-    p.typedOwner = {Client::World::ParticleOwnerKind::WorldObject, 77};
+    p.typedOwner = {Client::Particles::ParticleOwnerKind::WorldObject, 77};
     CrtRandom random(3);
     RecordingSine sine;
     ASSERT_TRUE(Step(*particles, random, 10.0f, sine, &objects).HasValue());
@@ -362,14 +362,14 @@ TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
     for (std::int32_t subtype = 0; subtype <= 5; ++subtype)
     {
         SCOPED_TRACE(subtype);
-        std::vector<Client::World::WorldObject> objects(1);
+        std::vector<Client::WorldObjects::WorldObject> objects(1);
         objects[0].identity = 77;
         objects[0].seen = true;
         auto particles = std::make_unique<Particles>();
         CrtRandom random(5);
-        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::WorldObject, 77};
+        const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::WorldObject, 77};
         Particle& p = const_cast<Particle&>(
-            Create(*particles, Client::World::CloudParticle, subtype, 0.75f, random, GameScene, owner));
+            Create(*particles, Client::Particles::CloudParticle, subtype, 0.75f, random, GameScene, owner));
         EXPECT_EQ(p.life, 30);
         CrtRandom draws(5);
         for (int draw = 0; draw < 7; ++draw)
@@ -393,16 +393,16 @@ TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
 // Sin el objeto dueño entre los del mapa, el paso corta con MissingOwner antes de escribir la partícula.
 TEST(SelectionParticlesTest, TheOwnedMistNeedsItsOwnerAmongTheMapObjects)
 {
-    std::vector<Client::World::WorldObject> objects(1);
+    std::vector<Client::WorldObjects::WorldObject> objects(1);
     objects[0].identity = 5;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
-    p.type = p.texture = Client::World::CloudParticle;
+    p.type = p.texture = Client::Particles::CloudParticle;
     p.subtype = 1;
     p.life = 4;
     p.moves = false;
-    p.typedOwner = {Client::World::ParticleOwnerKind::WorldObject, 77};
+    p.typedOwner = {Client::Particles::ParticleOwnerKind::WorldObject, 77};
     p.position.z = 9.0f;
     CrtRandom random(3);
     RecordingSine sine;
@@ -420,7 +420,7 @@ TEST(SelectionParticlesTest, TheObjectWaterfallAddsItsScaleArgument)
     auto particles = std::make_unique<Particles>();
     CrtRandom random(9);
     CrtRandom draws(9);
-    const Particle& p = Create(*particles, Client::World::KalimaWaterfallFirst, 2, 0.5f, random, GameScene);
+    const Particle& p = Create(*particles, Client::Particles::KalimaWaterfallFirst, 2, 0.5f, random, GameScene);
     const int turn = draws.Next() % 360;
     const int fall = draws.Next() % 5;
     EXPECT_EQ(p.life, 30);
@@ -437,7 +437,7 @@ TEST(SelectionParticlesTest, TheObjectWaterfallMistLivesFortyAndAddsItsScaleArgu
     auto particles = std::make_unique<Particles>();
     CrtRandom random(13);
     CrtRandom draws(13);
-    const Particle& p = Create(*particles, Client::World::KalimaWaterfallMist, 2, 0.5f, random, SelectionScene);
+    const Particle& p = Create(*particles, Client::Particles::KalimaWaterfallMist, 2, 0.5f, random, SelectionScene);
     const int turn = draws.Next() % 360;
     const int size = draws.Next() % 6 + 6;
     const int fall = draws.Next() % 3;
@@ -460,7 +460,7 @@ TEST(SelectionParticlesTest, TheObjectSplashDrawsItsScaleTwice)
     auto particles = std::make_unique<Particles>();
     CrtRandom random(17);
     CrtRandom draws(17);
-    const Particle& p = Create(*particles, Client::World::WaterfallSplashFirst, 4, 0.5f, random, GameScene);
+    const Particle& p = Create(*particles, Client::Particles::WaterfallSplashFirst, 4, 0.5f, random, GameScene);
     const int turn = draws.Next() % 360;
     static_cast<void>(draws.Next());
     const int rise = draws.Next() % 5 + 2;
@@ -481,8 +481,8 @@ TEST(SelectionParticlesTest, OwnedCreationRejectsOtherFamilies)
 {
     auto particles = std::make_unique<Particles>();
     CrtRandom random(1);
-    const auto created =
-        particles->CreateOwnedChecked(Client::World::CloudParticle, {}, {}, {}, 6, 1.0f, 0.0f, random, SelectionScene);
+    const auto created = particles->CreateOwnedChecked(Client::Particles::CloudParticle, {}, {}, {}, 6, 1.0f, 0.0f,
+                                                       random, SelectionScene);
     ASSERT_FALSE(created.HasValue());
     EXPECT_EQ(created.Error(), ParticleError::UnsupportedSubtype);
     EXPECT_FALSE(particles->All()[0].alive);

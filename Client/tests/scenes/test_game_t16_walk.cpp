@@ -111,7 +111,7 @@ protected:
                                       static_cast<std::uint8_t>(key), static_cast<std::uint8_t>(x),
                                       static_cast<std::uint8_t>(y), static_cast<std::uint8_t>(direction << 4)}),
                 false);
-        ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+        ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
         EXPECT_EQ(Hero().direction, direction);
     }
 
@@ -119,7 +119,7 @@ protected:
     {
         Receive(Client::Tests::Bytes({0xc1, 5, 0xf1, 2, 1}));
         ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
-        ASSERT_EQ(m_online->session.State(), Client::App::SessionState::WaitingCharacterList);
+        ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::WaitingCharacterList);
         EXPECT_EQ(m_world->Runtime().map, -1);
         EXPECT_EQ(m_manager->Current(), Client::Scenes::SceneId::Game);
         Step();
@@ -135,7 +135,7 @@ protected:
         Client::Tests::CharacterEntryFields entry{.slot = 0, .level = 400};
         entry.equipment[4] = 3; // Sin mascota: no alcanza la frontera de helpers de selección.
         Receive(Client::Tests::CharacterListBytes({entry}), false);
-        ASSERT_EQ(m_online->session.State(), Client::App::SessionState::ChoosingCharacter);
+        ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::ChoosingCharacter);
         Step();
         ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
         ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
@@ -159,7 +159,7 @@ protected:
                                                    packet.Bytes().size() > 4 && packet.Bytes()[3] == std::byte{3};
                                         }));
         ReceiveEntry();
-        ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+        ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
         Step();
         ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
         EXPECT_EQ(m_world->Runtime().map, 0);
@@ -173,7 +173,7 @@ protected:
             std::ranges::find_if(events, [](const auto& event)
                                  { return event.kind == Client::Tests::FrameEvent::Kind::Models && event.pass; });
         ASSERT_NE(models, events.end());
-        const glm::vec3 chest(Client::Scenes::CharacterSlots[0].position, Client::Scenes::CharacterSlotHeight + 60);
+        const glm::vec3 chest(Client::FrontEnd::CharacterSlots[0].position, Client::FrontEnd::CharacterSlotHeight + 60);
         const auto pixel = models->pass->Project(chest);
         ASSERT_TRUE(pixel.has_value());
         Client::Tests::ClickAt(m_input, static_cast<int>(pixel->x), static_cast<int>(pixel->y));
@@ -229,7 +229,7 @@ TEST_F(GameT16Journey, RealClicksEchoesAndGateRectanglesTravelToNoriaAndBackBefo
 {
     // Gate 23 real: 213..217 × 246..247. El fakeGS elige una llegada cercana al gate 25 real.
     Teleport(0, 215, 244);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     static_cast<void>(Sent());
     m_world->OwnCharacter().level = 400;
     OpenManagedScene();
@@ -241,18 +241,18 @@ TEST_F(GameT16Journey, RealClicksEchoesAndGateRectanglesTravelToNoriaAndBackBefo
     ASSERT_GT(noriaGate->x1, 2);
     const auto gateCentreX = static_cast<std::uint8_t>((noriaGate->x1 + noriaGate->x2) / 2);
     Teleport(3, gateCentreX, static_cast<std::uint8_t>(noriaGate->y2 + 2), 23);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     ASSERT_EQ(Sent().packets.size(), 1u);
     ASSERT_EQ(m_world->Runtime().map, 3);
     WaitForInput();
     ASSERT_NO_FATAL_FAILURE(ExpectWalkThenGate(25, gateCentreX, noriaGate->y1));
     Teleport(0, Client::Tests::T16::HomeX, Client::Tests::T16::HomeY, 25);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     ASSERT_EQ(Sent().packets.size(), 1u);
     WaitForInput();
     ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
     Regen(0);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     EXPECT_TRUE(Sent().packets.empty());
     ASSERT_NO_FATAL_FAILURE(ReturnThroughRealSelection());
 }
@@ -357,7 +357,7 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     const std::uint8_t y = start(87, 47, 103, 29, 130, 104, 165, 174, 90, 30);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
     ASSERT_NO_FATAL_FAILURE(ClickCell(far(x), y));
@@ -407,7 +407,7 @@ TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
 {
     static_cast<void>(Sent());
     Teleport(30, 92, 98);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     ASSERT_EQ(m_world->Runtime().map, 30);
     const auto sent = Sent();
     ASSERT_EQ(sent.packets.size(), 2u);
@@ -422,10 +422,10 @@ TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
 TEST_F(GameT16Journey, CastleSiegeFogsTheWholeWorldPassInsideItsRectangle)
 {
     Teleport(30, 165, 191);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
-    ASSERT_TRUE(Client::World::InTheCastleSiegeFog(Hero().position));
+    ASSERT_TRUE(Client::CastleSiege::InTheCastleSiegeFog(Hero().position));
     const auto before = m_target.frames.size();
     ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
     constexpr Client::Render::ModelFog Fog{.color = glm::vec3(0.0f), .start = 2000.0f, .end = 2700.0f};
@@ -455,7 +455,7 @@ TEST_F(GameT16Journey, CastleSiegeFogsTheWholeWorldPassInsideItsRectangle)
 TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
 {
     Teleport(6, 62, 47);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     constexpr std::string_view Name = "xwebzenx";
     Hero().name.fill(std::byte{0});
     for (std::size_t index = 0; index < Name.size(); ++index)
@@ -497,7 +497,7 @@ TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvanc
     const std::uint8_t x = bloodCastle ? 12 : SafeX[map];
     const std::uint8_t y = bloodCastle ? 3 : SafeY[map];
     Teleport(map, x, y);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
     ASSERT_EQ(Hero().safeZone, 1);
@@ -516,7 +516,7 @@ TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvanc
 TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
 {
     Teleport(static_cast<std::uint8_t>(GetParam()), 254, 254);
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
     const auto start = Hero().position;
@@ -544,7 +544,7 @@ TEST_P(GameT16ChaosCastleWalk, RegenWalksInsideTheCastleAndTheArmedTrapFires)
     constexpr std::uint8_t Y = 90;
     Regen(map, X, Y);
     ASSERT_FALSE(m_pollFailure) << *m_pollFailure;
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     ASSERT_EQ(m_world->Runtime().map, map);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
@@ -587,7 +587,7 @@ TEST_P(GameT16KalimaWalk, RealPickingLiteralD3AndEchoAdvanceTheHeroAndEmitNative
     const auto map = static_cast<std::uint8_t>(GetParam());
     Teleport(map, 62, 67);
     ASSERT_FALSE(m_pollFailure) << *m_pollFailure;
-    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     OpenScene();
     ASSERT_NO_FATAL_FAILURE(WaitForInput());
     const auto start = Hero().position;

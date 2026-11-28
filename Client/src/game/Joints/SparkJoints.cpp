@@ -26,7 +26,7 @@
 // alta 0x531c43..0x531cc7 y 0x531dd0..0x531dff, paso 0x537a00..0x537b31. Y el 0x60f/0x2a, el que gira alrededor del
 // NPC 257 (0x5165d1, con él de dueño), con las 0x60f/0x29 que suelta (0x53a0eb): alta 0x5339a5 y 0x533915, paso
 // 0x53a039 y 0x539fc2.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -39,7 +39,7 @@ constexpr double Glimmer = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu)
 // del color del skill: 20 con el 0 y el 3, 40 con el 1; con otro, el ancho que tenía el lugar) y la /5: la luz en 1
 // (el color la pisa), la mezcla 4, sólo la segunda cara (+0x11 en 2), velocidad 3, vida 50, 8 puntos y el pase 2
 // (+0x64). El destino es el segundo punto. Sin rand().
-Core::Expected<void, std::string> CreateHelperSpark(JointState& joint, const Kernel::JointRequest& request)
+Core::Expected<void, std::string> CreateHelperSpark(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::uint8_t OwnerColor = 3;
     // 0x531c71..0x531c8c: el color 3 lee la luz del dueño (+0xf4), que la /5 pisa; sin dueño, el original cae.
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> CreateHelperSpark(JointState& joint, const Ker
 // acelera de a 5 hasta 30 y gira hacia el destino a esa velocidad (0x4e9810); cerca (70 o menos, o NaN), si el rumbo
 // cambió más de 20 y la velocidad es de 20 o más, frena 10. Con vida de menos de 10, las tres luces son la roja por
 // 0,8333333f. Siempre, la luz dinámica de radio 2 en su posición, (0,4; 1; 0,8) por (rand() % 4 + 8) · 0,03f.
-Core::Expected<void, std::string> StepHelperSpark(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepHelperSpark(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr)
         return Core::Unexpected(std::string("0x537ae0: falta el RNG del joint 0x610/5"));
@@ -108,11 +108,11 @@ Core::Expected<void, std::string> StepHelperSpark(JointState& joint, const Joint
     constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
     const glm::vec3 color{F32(glow * Red), F32(glow), F32(glow * Blue)};
     constexpr std::int32_t Radius = 2;
-    return World::AddDynamicLight(services.lighting, joint.position, color, Radius, "0x537b29");
+    return WorldObjects::AddDynamicLight(services.lighting, joint.position, color, Radius, "0x537b29");
 }
 
 // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
-void CreateCommonSparkle(JointState& joint)
+void CreateCommonSparkle(Scenes::JointState& joint)
 {
     constexpr std::int32_t Life = 100, Points = 20;
     constexpr float Width = 10.0f;
@@ -123,7 +123,7 @@ void CreateCommonSparkle(JointState& joint)
 
 // 0x533915..0x53399b: la /0x29, vida 40, el ancho del pedido, 50 puntos, la luz (1 − a, 1 − b, 1) con a y b en
 // rand() % 300 · 0,001f (a guardada en float, b no) y vz en rand() % 5 + 5. Tres rand().
-void CreateFallingSparkle(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
+void CreateFallingSparkle(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 40, Points = 50, Spread = 300, Lift = 5;
     constexpr double Thousandth = Math::ThousandthAsDouble; // 0x6ba128
@@ -138,7 +138,7 @@ void CreateFallingSparkle(JointState& joint, const Kernel::JointRequest& request
 
 // 0x5339a5..0x533a1e: la /0x2a nace (0, −15, 0) girado por sus ángulos más allá, con el ancho del pedido; el camino
 // (+0x24) es esa posición, la velocidad (0, −50, 0), sin la cola común (+0x9f2) y la luz en 1. Sin rand().
-void CreateSpinningSparkle(JointState& joint, const Kernel::JointRequest& request)
+void CreateSpinningSparkle(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr float Start = -15.0f, Radius = -50.0f; // 0xc1700000 y 0xc2480000
     joint.velocity.y = Start;
@@ -154,7 +154,8 @@ void CreateSpinningSparkle(JointState& joint, const Kernel::JointRequest& reques
 
 // 0x539fc2..0x53a028: la /0x29 con vida de 20 o menos queda sobre el destino, sube vz (que crece de a 1) y apaga la luz
 // por 0,9090909f; siempre, la luz dinámica de radio 1 con su luz en su posición.
-Core::Expected<void, std::string> StepFallingSparkle(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepFallingSparkle(Scenes::JointState& joint,
+                                                     const JointKernels::StepServices& services)
 {
     constexpr std::int32_t RisingLife = 20;
     if (joint.life <= RisingLife)
@@ -169,14 +170,15 @@ Core::Expected<void, std::string> StepFallingSparkle(JointState& joint, const Jo
             joint.light[axis] = F32(D(joint.light[axis]) * Fading);
     }
     constexpr std::int32_t Radius = 1;
-    return World::AddDynamicLight(services.lighting, joint.position, joint.light, Radius, "0x53a023");
+    return WorldObjects::AddDynamicLight(services.lighting, joint.position, joint.light, Radius, "0x53a023");
 }
 
 // 0x53a039..0x53a122: la /0x2a gira 15 su z. Con el dueño muerto (su byte vivo), apaga todos los 0x60f/0x2a de ese
 // dueño (0x534f90, él incluido) y va a la cola común. Vivo: vida 100, la posición en el camino más la velocidad girada
 // por los ángulos; rand() % 100 y, si la z en ftol es múltiplo de 45 y el rand() no pasa de 50, suelta una 0x60f/0x29
 // en su posición, con los ángulos en 0, sin dueño y su ancho. Después, la luz dinámica de radio 2 en el destino.
-Core::Expected<void, std::string> StepSpinningSparkle(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepSpinningSparkle(Scenes::JointState& joint,
+                                                      const JointKernels::StepServices& services)
 {
     constexpr double Spin = 15.0; // 0x6b87bc
     joint.angles.z = F32(D(joint.angles.z) + Spin);
@@ -218,7 +220,7 @@ Core::Expected<void, std::string> StepSpinningSparkle(JointState& joint, const J
             return Core::Unexpected(std::format("0x53a0eb: {}", created.Error()));
     }
     constexpr std::int32_t Radius = 2;
-    return World::AddDynamicLight(services.lighting, joint.targetPosition, joint.light, Radius, "0x53a105");
+    return WorldObjects::AddDynamicLight(services.lighting, joint.targetPosition, joint.light, Radius, "0x53a105");
 }
 } // namespace
 
@@ -228,7 +230,7 @@ bool IsSpark(std::int32_t type, std::int32_t subtype)
            (type == DropJoint && (subtype == FallingSparkleSubtype || subtype == SpinningSparkleSubtype));
 }
 
-Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateSparkJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     if (request.type == HelperSparkJoint)
@@ -243,7 +245,7 @@ Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const Kern
     return {};
 }
 
-Core::Expected<void, std::string> StepSparkJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepSparkJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.type == HelperSparkJoint)
         return StepHelperSpark(joint, services);
@@ -260,4 +262,4 @@ Core::Expected<void, std::string> StepSparkJoint(JointState& joint, const JointK
             joint.light[axis] = F32(D(joint.light[axis]) * Fading);
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

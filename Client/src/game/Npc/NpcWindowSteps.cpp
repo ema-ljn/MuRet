@@ -41,7 +41,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Npc
 {
 namespace
 {
@@ -151,12 +151,13 @@ constexpr std::int32_t Panel2000BackTop = 350;
 constexpr std::int32_t Panel2000ButtonHeight = 24;
 constexpr std::int32_t Panel2000QuestionText = 0x1c0;
 
-bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right, std::int32_t bottom)
+bool InRect(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top, std::int32_t right,
+            std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
-bool OnButton(const GameUiContext& context, std::int32_t left, std::int32_t top)
+bool OnButton(const Hud::GameUiContext& context, std::int32_t left, std::int32_t top)
 {
     return InRect(context, left, top, left + ButtonSize, top + ButtonSize);
 }
@@ -176,18 +177,20 @@ std::int32_t LevelOf(const Kernel::ItemState& item)
     return static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
 }
 
-const InventoryServices& ServicesOf(const GameUiContext& context)
+const Items::InventoryServices& ServicesOf(const Hud::GameUiContext& context)
 {
-    static const InventoryServices None{};
+    static const Items::InventoryServices None{};
     return context.inventory != nullptr ? *context.inventory : None;
 }
 
-InventoryMoveContext MovesOf(const GameUiContext& context)
+Items::InventoryMoveContext MovesOf(const Hud::GameUiContext& context)
 {
-    return InventoryMoveContext{.world = context.world, .random = context.random, .services = ServicesOf(context)};
+    return Items::InventoryMoveContext{
+        .world = context.world, .random = context.random, .services = ServicesOf(context)};
 }
 
-Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet, std::string_view what)
+Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet,
+                                       std::string_view what)
 {
     if (!context.sendNpcWindow)
         return Core::Unexpected(std::format("{} sin la sesión", what));
@@ -195,7 +198,7 @@ Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::O
 }
 
 // Un C1 con el XOR32 y en C3: los dos rand() del envío, antes del paquete.
-Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protocol::Outgoing packet,
+Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing packet,
                                            std::string_view what)
 {
     context.random.Discard(C3SendRandoms);
@@ -203,7 +206,7 @@ Core::Expected<void, std::string> SendInC3(const GameUiContext& context, Protoco
 }
 
 // 0x62da70 y sus copias: el que espera pasa a abierto.
-void CloseTheDialog(UI::DialogState& dialogs)
+void CloseTheDialog(Ui::DialogState& dialogs)
 {
     dialogs.current = dialogs.pending;
     dialogs.pending = 0;
@@ -227,15 +230,16 @@ Core::Expected<void, std::string> AddTheRepairOf(Kernel::WorldState& world, cons
     if (!record)
         return Core::Unexpected(
             std::format("0x5b17d3: el tipo {:#x} lee fuera de Item.bmd ([0x7758550] + tipo · 0x54)", item.id));
-    const std::uint16_t maximum = MaxDurability(item, *record, LevelOf(item));
+    const std::uint16_t maximum = Items::MaxDurability(item, *record, LevelOf(item));
     if (IsLeftOutOfTheRepair(item.id) || item.durability >= maximum)
         return {};
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
-    auto price = ItemPrice(item, items, RepairPriceMode, pets);
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    auto price = Items::ItemPrice(item, items, Items::RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
-    const RepairPrice repair = RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
+    const Items::RepairPrice repair =
+        Items::RepairPriceOf(price.Value(), item.durability, maximum, runtime.field78abb10);
     // 0x5b1879..0x5b1884: la suma en el int de 0x78ababc, que da la vuelta.
     NpcWindowState& npc = runtime.npcWindows;
     npc.repairAllPrice = static_cast<std::int32_t>(static_cast<std::uint32_t>(npc.repairAllPrice) +
@@ -268,24 +272,25 @@ bool IsUnsellable(const Kernel::ItemState& item)
 }
 
 // 0x555190(0x6e57a4, texto, 2): el aviso de error, sin nombre.
-Core::Expected<void, std::string> ErrorMessage(const GameUiContext& context, std::string_view text,
+Core::Expected<void, std::string> ErrorMessage(const Hud::GameUiContext& context, std::string_view text,
                                                std::string_view where)
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el aviso (0x555190) sin el medidor de los textos", where));
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text, ErrorMessageType);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text, ErrorMessageType);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameUiContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameUiContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
-Core::Expected<void, std::string> TextMessage(const GameUiContext& context, std::size_t index, std::string_view where)
+Core::Expected<void, std::string> TextMessage(const Hud::GameUiContext& context, std::size_t index,
+                                              std::string_view where)
 {
     auto text = TextOf(context, index, where);
     if (!text.HasValue())
@@ -298,7 +303,7 @@ Core::Expected<void, std::string> TextMessage(const GameUiContext& context, std:
 // 596. Si no, lo que pide el tipo de la mezcla (0x7d2dc98): los avisos de los negativos y del 0, o, con lugar en el
 // inventario (0x5fd200) y sin ítem en el cursor, 0x78abb14 en 2 y el diálogo 0x98 con el texto 0x21b. El clic se
 // gasta y suena 0x19, salvo con el zen que no alcanza, que no suena.
-Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context)
+Core::Expected<void, std::string> PressTheMixButton(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
@@ -316,9 +321,9 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
         return {};
     }
     runtime.movement.pendingClick = false;
-    switch (MixButtonActionFor(npc.mixKind))
+    switch (ChaosMix::MixButtonActionFor(npc.mixKind))
     {
-    case MixButtonAction::LevelTooLow:
+    case ChaosMix::MixButtonAction::LevelTooLow:
     {
         // 0x5feaab..0x5feae2: wsprintfA con el texto 1171 y 10.
         auto format = TextOf(context, LevelTooLowText, "0x5feab6");
@@ -329,12 +334,12 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
             return shown;
         break;
     }
-    case MixButtonAction::NotTheSame:
+    case ChaosMix::MixButtonAction::NotTheSame:
         // 0x5fea87..0x5fea93.
         if (auto shown = TextMessage(context, NotTheSameText, "0x5fea93"); !shown.HasValue())
             return shown;
         break;
-    case MixButtonAction::NothingToMix:
+    case ChaosMix::MixButtonAction::NothingToMix:
     {
         // 0x5feac4..0x5feae2: sprintf con el texto 580 y el 591.
         auto format = TextOf(context, NothingToMixText, "0x5fead2");
@@ -348,11 +353,12 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
             return shown;
         break;
     }
-    case MixButtonAction::Mix:
+    case ChaosMix::MixButtonAction::Mix:
     {
         // 0x5fe9bd..0x5fea82.
-        const MixRoom room = MixRoomFor(npc, npc.mixKind);
-        if (!HasRoomFor(context.world.Inventory().cells, NpcGridColumns, NpcGridColumns, room.width, room.height))
+        const ChaosMix::MixRoom room = ChaosMix::MixRoomFor(npc, npc.mixKind);
+        if (!ChaosMix::HasRoomFor(context.world.Inventory().cells, NpcGridColumns, NpcGridColumns, room.width,
+                                  room.height))
         {
             if (auto shown = TextMessage(context, NoRoomText, "0x5fea27"); !shown.HasValue())
                 return shown;
@@ -362,13 +368,13 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
             break;
         runtime.social.trade.warningKind = MixChoice;
         runtime.social.trade.warningByte = NoAnswerYet;
-        if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, MixDialogLines,
+        if (auto opened = Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, MixDialogLines,
                                              MixDialogText, ConfirmDialog);
             !opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
         break;
     }
-    case MixButtonAction::Nothing:
+    case ChaosMix::MixButtonAction::Nothing:
         break;
     }
     runtime.RequestSound(ButtonSound);
@@ -380,17 +386,17 @@ Core::Expected<void, std::string> PressTheMixButton(const GameUiContext& context
 void OpenTheKeypad(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random, std::int32_t mode)
 {
     NpcWindowState& npc = runtime.npcWindows;
-    ShuffleTheKeypad(random, npc.keypad);
+    Items::ShuffleTheKeypad(random, npc.keypad);
     npc.typedNumber.fill(0);
     runtime.ui.field78abb20 = mode;
 }
 
-Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheNpcShop(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
-    UI::PanelState& state = runtime.panels;
-    if (!panels.IsOpen(UI::NpcShopPanel))
+    Movement::GameMovementState& movement = runtime.movement;
+    Ui::PanelState& state = runtime.panels;
+    if (!panels.IsOpen(Ui::NpcShopPanel))
         return {};
     if (state.field78abb09 != 0)
     {
@@ -430,7 +436,7 @@ Core::Expected<void, std::string> StepTheNpcShop(const GameUiContext& context, U
     movement.pendingClick = false;
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    if (auto closed = panels.Close(UI::InventoryPanel); !closed.HasValue())
+    if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
 }
@@ -472,11 +478,11 @@ Core::Expected<void, std::string> PriceTheRepairOfEverything(Kernel::WorldState&
     return {};
 }
 
-Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheWarehouse(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
-    if (!panels.IsOpen(UI::WarehousePanel))
+    Movement::GameMovementState& movement = runtime.movement;
+    if (!panels.IsOpen(Ui::WarehousePanel))
         return {};
     std::optional<std::int32_t> pressed{};
     for (std::size_t button = 0; button < WarehouseButtons.size(); ++button)
@@ -493,14 +499,14 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
     movement.pendingClick = false;
     runtime.RequestSound(ButtonSound);
     NpcWindowState& npc = runtime.npcWindows;
-    SocialState& social = runtime.social;
+    Social::SocialState& social = runtime.social;
     switch (*pressed)
     {
     case DepositButton:
     case WithdrawButton:
         // 0x5ea127..0x5ea1a5.
-        UI::PushDialog(runtime.dialogs, MoneyDialog);
-        UI::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::PushDialog(runtime.dialogs, MoneyDialog);
+        Chat::ResetTheTextBuffers(runtime.chat.input, false);
         runtime.ui.chatOpen = false;
         social.typedMoney = 0;
         social.trade.field78abacc = *pressed;
@@ -514,7 +520,7 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
         return {};
     case CloseWarehouseButton:
         // 0x5ea24d..0x5ea261.
-        if (auto closed = panels.Close(UI::WarehousePanel); !closed.HasValue())
+        if (auto closed = panels.Close(Ui::WarehousePanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
         movement.mouseUpdateTime = 0;
         movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
@@ -524,11 +530,11 @@ Core::Expected<void, std::string> StepTheWarehouse(const GameUiContext& context,
     }
 }
 
-Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheChaosBox(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
-    if (!panels.IsOpen(UI::ChaosBoxPanel))
+    Movement::GameMovementState& movement = runtime.movement;
+    if (!panels.IsOpen(Ui::ChaosBoxPanel))
         return {};
     // 0x5fe62e..0x5fe68a.
     const std::int32_t left = runtime.ui.npcWindowX + MixButtonX;
@@ -545,16 +551,16 @@ Core::Expected<void, std::string> StepTheChaosBox(const GameUiContext& context, 
     if (!OnButton(context, x + CloseButtonX, y + CloseButtonY) || !movement.pendingClick)
         return {};
     movement.pendingClick = false;
-    if (auto closed = panels.Close(UI::ChaosBoxPanel); !closed.HasValue())
+    if (auto closed = panels.Close(Ui::ChaosBoxPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
 }
 
-Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& context, std::int32_t kind)
+Core::Expected<void, std::string> AnswerTheNpcWarning(const Hud::GameUiContext& context, std::int32_t kind)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    TradeState& trade = runtime.social.trade;
+    Social::TradeState& trade = runtime.social.trade;
     const bool yes = trade.warningByte == YesAnswer;
     trade.warningKind = 0;
     trade.warningByte = NoAnswerYet;
@@ -570,7 +576,7 @@ Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& conte
             return {};
         }
         // 0x5d9327..0x5d9334 → 0x5e0709.
-        return ReturnTheCursorItem(MovesOf(context));
+        return Items::ReturnTheCursorItem(MovesOf(context));
     }
     if (kind == MixChoice)
     {
@@ -595,12 +601,12 @@ Core::Expected<void, std::string> AnswerTheNpcWarning(const GameUiContext& conte
     return Core::Unexpected(std::format("0x5d8dee: el aviso {} de 0x78abb14 no es de las ventanas de NPC", kind));
 }
 
-Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<bool, std::string> SellTheCursorItem(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ItemState& cursor = runtime.cursorItem;
     // 0x5deca7..0x5ded0e: el nivel se lee antes del IsOpen, que saca su rand().
-    if (!panels.IsOpen(UI::NpcShopPanel))
+    if (!panels.IsOpen(Ui::NpcShopPanel))
         return false;
     const std::int32_t x = runtime.ui.npcWindowX;
     const std::int32_t y = runtime.ui.npcWindowY;
@@ -611,7 +617,7 @@ Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context
         // 0x5df417..0x5df430.
         runtime.social.trade.warningKind = SellChoice;
         runtime.social.trade.warningByte = NoAnswerYet;
-        if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, SellDialogLines,
+        if (auto opened = Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, SellDialogLines,
                                              SellDialogText, ConfirmDialog);
             !opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
@@ -629,12 +635,12 @@ Core::Expected<bool, std::string> SellTheCursorItem(const GameUiContext& context
     return true;
 }
 
-Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& context)
+Core::Expected<void, std::string> MoveTheWarehouseMoney(const Hud::GameUiContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     NpcWindowState& npc = runtime.npcWindows;
-    UI::DialogState& dialogs = runtime.dialogs;
+    Ui::DialogState& dialogs = runtime.dialogs;
     const std::int32_t money = runtime.social.typedMoney;
     // 0x6270ed..0x62820a: con el registro propio abierto, que se cierra al final (3.848 rand()).
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -645,7 +651,7 @@ Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& con
         // 0x627100..0x6278f3: meter zen. El zen contra el del registro, sin signo.
         CloseTheDialog(dialogs);
         if (amount > record.zen)
-            UI::PushDialog(dialogs, NotEnoughMoneyDialog);
+            Ui::PushDialog(dialogs, NotEnoughMoneyDialog);
         else if (auto sent = Send(context, Npc::WriteWarehouseMoney(DepositType, amount), "0x627229: el C1 08 81");
                  !sent.HasValue())
             return sent;
@@ -658,7 +664,7 @@ Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& con
     if (money > static_cast<std::int32_t>(record.warehouseZen) || sum > MaxZen)
     {
         if (sum <= MaxZen)
-            UI::PushDialog(dialogs, NotEnoughMoneyDialog);
+            Ui::PushDialog(dialogs, NotEnoughMoneyDialog);
     }
     else if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
     {
@@ -674,7 +680,8 @@ Core::Expected<void, std::string> MoveTheWarehouseMoney(const GameUiContext& con
 }
 namespace
 {
-Core::Expected<void, std::string> LeaveThePanel2000(const GameUiContext& context, UI::PanelRegistry& panels, bool cross)
+Core::Expected<void, std::string> LeaveThePanel2000(const Hud::GameUiContext& context, Ui::PanelRegistry& panels,
+                                                    bool cross)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.movement.pendingClick = false;
@@ -691,9 +698,9 @@ Core::Expected<void, std::string> LeaveThePanel2000(const GameUiContext& context
 }
 } // namespace
 
-Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePanel2000(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::Panel2000))
+    if (!panels.IsOpen(Ui::Panel2000))
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto x = runtime.hud.inventoryX;
@@ -721,7 +728,7 @@ Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context,
         runtime.movement.leftHeld = false;
         runtime.social.trade.warningKind = KeypadChoice;
         runtime.social.trade.warningByte = NoAnswerYet;
-        return UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 1, Panel2000QuestionText,
+        return Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 1, Panel2000QuestionText,
                                   ConfirmDialog);
     }
     if (on(Panel2000BackTop))
@@ -730,4 +737,4 @@ Core::Expected<void, std::string> StepThePanel2000(const GameUiContext& context,
         return LeaveThePanel2000(context, panels, true);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Npc

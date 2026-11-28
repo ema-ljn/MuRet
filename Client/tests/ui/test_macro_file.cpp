@@ -12,11 +12,11 @@
 // Data\Macro.txt (0x61c1c0 y 0x61c170; CL8 hito 3). Las macros son inventadas.
 namespace
 {
-using Client::UI::MacroCount;
-using Client::UI::Macros;
-using Client::UI::MacroSlotBytes;
-using Client::UI::ReadTheMacros;
-using Client::UI::WrittenMacros;
+using Client::Chat::MacroCount;
+using Client::Chat::Macros;
+using Client::Chat::MacroSlotBytes;
+using Client::Chat::ReadTheMacros;
+using Client::Chat::WrittenMacros;
 
 std::span<const std::byte> BytesOf(std::string_view text)
 {

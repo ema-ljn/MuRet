@@ -42,7 +42,7 @@
 
 // Cotejado con el PE c32bbd5f: 0x51c727 y 0x51efdc (las altas), 0x525f6a (el paso del 0x13f) y 0x5260bd (el del
 // 0x13d).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -50,7 +50,7 @@ using Math::D;
 using Math::F32;
 
 // 0x525f7b..0x526028: un joint 0x60f/0x18 de la lluvia, con sus dos rand() del lugar antes de crearlo.
-Core::Expected<void, std::string> DropTheRain(const World::ModelEffect& effect, int drop,
+Core::Expected<void, std::string> DropTheRain(const Effects::ModelEffect& effect, int drop,
                                               const HighEffectStepContext& context)
 {
     constexpr float Pitch = -10.0f;                    // 0xc1200000
@@ -71,7 +71,8 @@ Core::Expected<void, std::string> DropTheRain(const World::ModelEffect& effect, 
 
 // 0x5260bd..0x526103: la luz dinámica (v, v, v + 0,1) de radio 10, con v = FSIN(vida · π/120) · −0,5 en la x87 (el
 // FMUL por un float negativo de potencia de dos, exacto: el producto retenido de SineDoubleProductPC53).
-Core::Expected<void, std::string> LightTheMeteor(const World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> LightTheMeteor(const Effects::ModelEffect& effect,
+                                                 const HighEffectStepContext& context)
 {
     constexpr double Pulse = 0.02617993950843811; // 0x6ba250
     constexpr double Depth = -0.5;                // 0x6ba298, −0,5f
@@ -81,11 +82,12 @@ Core::Expected<void, std::string> LightTheMeteor(const World::ModelEffect& effec
     if (!wave)
         return Core::Unexpected(std::string("0x5260d4: el seno de la vida del 0x13d fuera del perfil PC53"));
     const glm::vec3 color{F32(*wave), F32(*wave), F32(*wave + Blue)};
-    return World::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius, "0x5260fe");
+    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius,
+                                         "0x5260fe");
 }
 
 // 0x52614a..0x526207: la piedrita 0xc8 o 0xc9, rand() % 150 + 300 adelante con el giro rand() % 360 en z, y el tipo.
-void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext& context)
+void DropTheStone(const Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int ReachSpan = 150;           // 0x96
     constexpr double Reach = 300.0;          // 0x6b8900, 300,0f
@@ -108,7 +110,7 @@ void DropTheStone(const World::ModelEffect& effect, const HighEffectStepContext&
 // (+0x114), el anterior (+0x118) y su acción (+0x112), los ángulos (+0x1c), los de la cabeza (+0x28 y +0x2c) y las
 // banderas (0, 0). Sin acciones no hace nada; si no, deja en el modelo el frame y su key (+0xa4 y +0xa8), como
 // PoseWorldModel.
-Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
+Core::Expected<void, std::string> PoseTheMeteor(const Effects::ModelEffect& effect, const Models::Skeleton& skeleton,
                                                 Kernel::WorldState& world, Assets::FaunaModels* faunaModels)
 {
     auto& carry = world.PoseCarry();
@@ -148,7 +150,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const World::ModelEffect& effect
 // 0x526254..0x526331: por cada hueso que no es dummy, rand() % 12; con 0, su punto (0x4ec110(modelo, hueso, 0, punto,
 // 1): la escala y el origen que el dibujo del efecto dejó en el modelo, PoseCarry::models, o los de la tabla en cero)
 // y las dos partículas.
-Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect, const Models::Skeleton& skeleton,
+Core::Expected<void, std::string> SparkTheBones(const Effects::ModelEffect& effect, const Models::Skeleton& skeleton,
                                                 const HighEffectStepContext& context)
 {
     constexpr int SparkOdds = 12; // 0xc
@@ -162,11 +164,11 @@ Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect
     // 0x5262cf: push ebx, el efecto, como dueño de la 0x6ec/3; la 0x5f2/0x15 va sin dueño (0x5262ed: push 0).
     const auto pool = context.world.Map().effects.Effects();
     const auto found =
-        std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
+        std::ranges::find_if(pool, [&](const Effects::ModelEffect& candidate) { return &candidate == &effect; });
     if (found == pool.end())
         return Core::Unexpected(std::string("0x5262cf: el 0x13d fuera de su pool durable"));
-    const World::ParticleOwner owner{World::ParticleOwnerKind::ModelEffect,
-                                     static_cast<std::uint64_t>(found - pool.begin())};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::ModelEffect,
+                                         static_cast<std::uint64_t>(found - pool.begin())};
     for (std::size_t bone = 0; bone < skeleton.bones.size(); ++bone)
     {
         if (skeleton.bones[bone].dummy || context.random.Next() % SparkOdds != 0)
@@ -188,7 +190,7 @@ Core::Expected<void, std::string> SparkTheBones(const World::ModelEffect& effect
 }
 } // namespace
 
-void BeginTheMeteor(World::ModelEffect& effect)
+void BeginTheMeteor(Effects::ModelEffect& effect)
 {
     if (effect.type == MeteorCallEffect)
     {
@@ -202,7 +204,7 @@ void BeginTheMeteor(World::ModelEffect& effect)
     effect.transform.scale = MeteorScale;
 }
 
-Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheMeteorCall(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t RainLife = 8, FallLife = 2;
     if (effect.life == RainLife)
@@ -238,7 +240,7 @@ Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect, 
     return {};
 }
 
-Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepTheMeteor(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
                                                 const HighEffectStepContext& context)
 {
     if (auto lit = LightTheMeteor(effect, context); !lit.HasValue())
@@ -260,7 +262,7 @@ Core::Expected<void, std::string> StepTheMeteor(World::ModelEffect& effect, cons
 }
 
 Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                    World::ModelEffect& effect,
+                                                    Effects::ModelEffect& effect,
                                                     const Actors::Drawing::DrawnObject& object,
                                                     Core::Duration frameClock, std::optional<float> worldClock)
 {
@@ -316,4 +318,4 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
     effect.objectState.uv.x = 1.0f; // 0x44363d
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

@@ -28,24 +28,24 @@
 // 0x4f2250 y 0x634c60), como datos y como lo cambia cada paso (06 § El logo en el binario).
 namespace
 {
+using Client::FrontEnd::AdvanceRoutes;
+using Client::FrontEnd::LoginCharacter;
+using Client::FrontEnd::LoginCharacterActionAt;
+using Client::FrontEnd::LoginCharacterLight;
+using Client::FrontEnd::LoginCharacterStandingAction;
+using Client::FrontEnd::LoginCharacterTransform;
+using Client::FrontEnd::LoginLogo;
+using Client::FrontEnd::LoginLogoFile;
+using Client::FrontEnd::LoginLogoFirstSlot;
+using Client::FrontEnd::LoginLogoLight;
+using Client::FrontEnd::LoginLogoModel;
+using Client::FrontEnd::LoginLogoSampling;
+using Client::FrontEnd::LoginRoutes;
+using Client::FrontEnd::ModelObject;
+using Client::FrontEnd::UnlitObjectColor;
 using Client::Kernel::BodyPart;
 using Client::Kernel::CharacterAppearance;
 using Client::Models::NoHiddenMesh;
-using Client::Scenes::AdvanceRoutes;
-using Client::Scenes::LoginCharacter;
-using Client::Scenes::LoginCharacterActionAt;
-using Client::Scenes::LoginCharacterLight;
-using Client::Scenes::LoginCharacterStandingAction;
-using Client::Scenes::LoginCharacterTransform;
-using Client::Scenes::LoginLogo;
-using Client::Scenes::LoginLogoFile;
-using Client::Scenes::LoginLogoFirstSlot;
-using Client::Scenes::LoginLogoLight;
-using Client::Scenes::LoginLogoModel;
-using Client::Scenes::LoginLogoSampling;
-using Client::Scenes::LoginRoutes;
-using Client::Scenes::ModelObject;
-using Client::Scenes::UnlitObjectColor;
 using Client::Tests::FixedSeed;
 
 // El 0xa2 de 0x6349a0 en su lugar, con Logo03.bmd de Data\Logo\ y sus texturas desde el 0x455.
@@ -267,8 +267,8 @@ TEST(LoginModelsTest, TheActionComesFromRandModSix)
 // lo para ni la 0x4000 que le saca las chispas).
 TEST(LoginModelsTest, TheRavensOwnerIsTheRiderWithoutFlags)
 {
-    const Client::Scenes::DarkSpiritOwner owner = Client::Scenes::LoginRavenOwner();
-    EXPECT_EQ(owner.position, Client::Scenes::LoginCharacterTransform().position);
+    const Client::Pets::DarkSpiritOwner owner = Client::FrontEnd::LoginRavenOwner();
+    EXPECT_EQ(owner.position, Client::FrontEnd::LoginCharacterTransform().position);
     EXPECT_EQ(owner.flags, 0u);
 }
 } // namespace

@@ -92,7 +92,7 @@ TEST(LoginActorTest, MissingWorldDataCutsAfterThePreviousCellRandoms)
         Client::Kernel::WorldRuntime runtime;
         Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
         const auto skeleton = Client::Tests::PlayerActionsSkeleton();
-        const auto built = Client::Scenes::ConstructLoginActor(
+        const auto built = Client::FrontEnd::ConstructLoginActor(
             actor,
             {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
             runtime, cloth, skeleton);
@@ -112,7 +112,7 @@ TEST(LoginActorTest, TheHorseChoosesItsStandingActionWithoutItemBmd)
     Client::Kernel::WorldRuntime runtime;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed)};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
-    const auto built = Client::Scenes::ConstructLoginActor(
+    const auto built = Client::FrontEnd::ConstructLoginActor(
         actor, {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
         runtime, cloth, skeleton);
     ASSERT_TRUE(built.HasValue()) << built.Error();
@@ -135,7 +135,7 @@ TEST(LoginActorTest, OpenCellAndCounterAccessesKeepTheirBirthRandoms)
     Client::Kernel::WorldRuntime runtime;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(Seed), .openCounterAccesses = 1};
     const auto skeleton = Client::Tests::PlayerActionsSkeleton();
-    const auto built = Client::Scenes::ConstructLoginActor(
+    const auto built = Client::FrontEnd::ConstructLoginActor(
         actor, {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
         runtime, cloth, skeleton);
     ASSERT_TRUE(built.HasValue()) << built.Error();

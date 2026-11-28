@@ -53,7 +53,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Chat
 {
 namespace
 {
@@ -102,7 +102,7 @@ constexpr std::size_t BadShopTitleText = 1130;
 Core::Expected<std::string_view, std::string> TextOf(const GameChatContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -127,23 +127,23 @@ Core::Expected<void, std::string> AddNotice(const GameChatContext& context, std:
     return AddMessage(context, "", text.Value(), type, where);
 }
 
-std::int32_t LengthOf(const UI::ChatBuffer& buffer)
+std::int32_t LengthOf(const Chat::ChatBuffer& buffer)
 {
-    return static_cast<std::int32_t>(UI::CStringOf(buffer).size());
+    return static_cast<std::int32_t>(Chat::CStringOf(buffer).size());
 }
 
 // La vtable + 0x4c del EDIT de [0x5763504] con 0 y la + 4 con 3 (0x4b558a..0x4b55ab).
-void HideTheDialogEdit(UI::ChatInputState& input)
+void HideTheDialogEdit(Chat::ChatInputState& input)
 {
     input.dialogEdit.text.SetText({});
-    input.dialogEdit.base.state = UI::HiddenWindow;
-    if (input.focus == UI::ChatFocus::Dialog)
-        input.focus = UI::ChatFocus::Game;
+    input.dialogEdit.base.state = Ui::HiddenWindow;
+    if (input.focus == Chat::ChatFocus::Dialog)
+        input.focus = Chat::ChatFocus::Game;
 }
 
 // 0x4b8886..0x4b88e2: con 0x77f3b6b en 0, los 0x100 bytes del campo en uso y su largo en 0, y el chat cerrado; con la
 // entrada del número de serie (0x77f3b6b), nada (0x4b888f).
-void ForgetWhatWasTyped(const Kernel::WorldRuntime& runtime, UI::ChatInputState& input, UI::GameUiState& ui)
+void ForgetWhatWasTyped(const Kernel::WorldRuntime& runtime, Chat::ChatInputState& input, Ui::GameUiState& ui)
 {
     if (runtime.events.serialEntry)
         return;
@@ -167,9 +167,9 @@ std::string LegacyControlText(Input::Key key)
     }
 }
 
-std::optional<UI::OldEditKey> EditKeyOf(Input::Key key)
+std::optional<Ui::OldEditKey> EditKeyOf(Input::Key key)
 {
-    using Edit = UI::OldEditKey;
+    using Edit = Ui::OldEditKey;
     switch (key)
     {
     case Input::Key::Backspace:
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         return {};
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x576eb0: los emotes sin Text.bmd"));
-    const std::optional<Actors::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
+    const std::optional<Actors::EmoteCase> emote = Chat::FindTheEmote(*context.texts, said);
     if (!emote)
         return {};
     // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
@@ -242,27 +242,27 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
 }
 
 // Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).
-SocialRequestContext SocialRequestsOf(const GameChatContext& context)
+Social::SocialRequestContext SocialRequestsOf(const GameChatContext& context)
 {
-    return SocialRequestContext{
+    return Social::SocialRequestContext{
         .world = context.world, .random = context.random, .texts = *context.texts, .send = context.send};
 }
 
 // Lo que 0x56c440 lee y escribe.
-Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChatContext& context, std::string_view text,
-                                                                  bool fromMacro)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RunTheCommand(const GameChatContext& context,
+                                                                    std::string_view text, bool fromMacro)
 {
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x56c440: los comandos sin Text.bmd"));
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GamePanels panels(context.world, context.random);
-    const UI::ChatCommandContext commands{
+    Hud::GamePanels panels(context.world, context.random);
+    const Chat::ChatCommandContext commands{
         .texts = *context.texts,
         .items = context.items,
         .setOptions = context.setOptions,
         .map = runtime.map,
         .logoutRequested = runtime.ui.logoutRequested,
-        .warehouseOpen = panels.Registry().IsOpen(UI::WarehousePanel),
+        .warehouseOpen = panels.Registry().IsOpen(Ui::WarehousePanel),
         .log = runtime.chat.log,
         .macros = runtime.chat.input.macros,
         .overlayMode = runtime.panels.overlayMode,
@@ -285,29 +285,29 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             context.send(Protocol::Social::WriteDuelEnd());
             return {};
         },
-        .requestATrade = [&context]() { return RequestATrade(SocialRequestsOf(context)); },
-        .requestAParty = [&context]() { return RequestAParty(SocialRequestsOf(context)); },
-        .requestADuel = [&context]() { return RequestADuel(SocialRequestsOf(context)); },
-        .trainerOpen = panels.Registry().IsOpen(UI::TrainerPanel),
+        .requestATrade = [&context]() { return Social::RequestATrade(SocialRequestsOf(context)); },
+        .requestAParty = [&context]() { return Social::RequestAParty(SocialRequestsOf(context)); },
+        .requestADuel = [&context]() { return Social::RequestADuel(SocialRequestsOf(context)); },
+        .trainerOpen = panels.Registry().IsOpen(Ui::TrainerPanel),
         .openThePersonalShop = [&context]() -> Core::Expected<void, std::string>
         {
             // 0x65ac3f: abrir la propia cierra lo demás menos el inventario, con el 3D y el 31.
-            GamePanels shops(context.world, context.random);
+            Hud::GamePanels shops(context.world, context.random);
             shops.LendTheSession(context.world, context.random, context.send, context.sendWindowClose);
-            auto opened = shops.Registry().Open(UI::PersonalShopPanel);
+            auto opened = shops.Registry().Open(Ui::PersonalShopPanel);
             if (!opened.HasValue())
                 return Core::Unexpected(std::move(opened).Error());
             return {};
         },
         .requestShopItems = [&context](std::optional<std::string_view> name)
-        { return RequestTheShopItems(SocialRequestsOf(context), name); },
-        .requestAGuildJoin = [&context]() { return RequestAGuildJoin(context); },
-        .requestAGuildRelation = [&context](UI::GuildRelationCommand command)
-        { return RequestAGuildRelation(context, command); }};
-    auto outcome = UI::RunTheChatCommand(commands, text, fromMacro);
+        { return Social::RequestTheShopItems(SocialRequestsOf(context), name); },
+        .requestAGuildJoin = [&context]() { return Hud::RequestAGuildJoin(context); },
+        .requestAGuildRelation = [&context](Chat::GuildRelationCommand command)
+        { return Hud::RequestAGuildRelation(context, command); }};
+    auto outcome = Chat::RunTheChatCommand(commands, text, fromMacro);
     if (!outcome.HasValue())
         return outcome;
-    for (const UI::ChatCommandNotice& notice : outcome.Value().notices)
+    for (const Chat::ChatCommandNotice& notice : outcome.Value().notices)
     {
         auto added = notice.formatted ? AddMessage(context, "", *notice.formatted, notice.type, "0x56c440")
                                       : AddNotice(context, notice.text, notice.type, "0x56c440");
@@ -315,14 +315,14 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RunTheCommand(const GameChat
             return Core::Unexpected(added.Error());
     }
     if (outcome.Value().sound)
-        runtime.RequestSound(UI::ChatButtonSound);
+        runtime.RequestSound(Chat::ChatButtonSound);
     return outcome;
 }
 
 // 0x622b40(texto, 1): con alguna palabra de Filter.bmd, el texto 570.
 Core::Expected<std::string, std::string> FilteredOf(const GameChatContext& context, std::string_view said)
 {
-    if (!UI::ContainsAFilteredWord(said, context.filter, true))
+    if (!FrontEnd::ContainsAFilteredWord(said, context.filter, true))
         return std::string(said);
     auto filtered = TextOf(context, FilteredText, "0x4b566c");
     if (!filtered.HasValue())
@@ -355,7 +355,7 @@ std::int32_t AtoiLikeTheCrt(std::string_view text)
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     const Kernel::ActorState& hero = context.world.Hero();
     if (input.brake > BrakeLimit)
         return {};
@@ -363,7 +363,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
         return {};
     input.lastSaid = std::string(said);
     input.brake = BrakeSteps;
-    if (UI::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord) &&
+    if (FrontEnd::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord) &&
         std::ranges::none_of(WebzenPrefixes, [said](std::string_view prefix) { return said.starts_with(prefix); }))
         return {};
     if (hero.dying == 0)
@@ -376,7 +376,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
             if (StartsWithTheCommand(said, off.Value()))
             {
                 runtime.chat.whisperBlocked = true;
-                return AddNotice(context, WhisperOffNoticeText, UI::SystemMessage, "0x4b5aa1");
+                return AddNotice(context, WhisperOffNoticeText, Ui::SystemMessage, "0x4b5aa1");
             }
             auto on = TextOf(context, WhisperOnCommandText, "0x4b5aae");
             if (!on.HasValue())
@@ -384,13 +384,13 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
             if (StartsWithTheCommand(said, on.Value()))
             {
                 runtime.chat.whisperBlocked = false;
-                return AddNotice(context, WhisperOnNoticeText, UI::SystemMessage, "0x4b5b00");
+                return AddNotice(context, WhisperOnNoticeText, Ui::SystemMessage, "0x4b5b00");
             }
         }
     }
     else
     {
-        auto move = TextOf(context, UI::MoveCommandText, "0x4b59f4");
+        auto move = TextOf(context, Chat::MoveCommandText, "0x4b59f4");
         if (!move.HasValue())
             return Core::Unexpected(move.Error());
         if (StartsWithTheCommand(said, move.Value()))
@@ -408,19 +408,19 @@ namespace
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::ChatInputState& input = runtime.chat.input;
+    const Chat::ChatInputState& input = runtime.chat.input;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (context.world.OwnCharacter().level >= WhisperLevel)
             return true;
     }
-    const std::string_view target = UI::CStringOf(input.whisperBuffer);
-    for (std::size_t slot = 0; slot < UI::WhisperSenderSlots; ++slot)
+    const std::string_view target = Chat::CStringOf(input.whisperBuffer);
+    for (std::size_t slot = 0; slot < Chat::WhisperSenderSlots; ++slot)
     {
-        if (UI::WhisperSenderAt(runtime.chat.whisperSenders, slot) == target)
+        if (Chat::WhisperSenderAt(runtime.chat.whisperSenders, slot) == target)
             return true;
     }
-    auto added = AddNotice(context, WhisperDeniedText, UI::SystemMessage, "0x554d0b");
+    auto added = AddNotice(context, WhisperDeniedText, Ui::SystemMessage, "0x554d0b");
     if (!added.HasValue())
         return Core::Unexpected(added.Error());
     return false;
@@ -436,9 +436,9 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
     if (!allowed.Value())
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     const Kernel::ActorState& hero = context.world.Hero();
-    if (!UI::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord))
+    if (!FrontEnd::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord))
     {
         std::array<std::byte, Protocol::Chat::ChatNameSize> target{};
         std::transform(input.whisperBuffer.begin(), input.whisperBuffer.begin() + Protocol::Chat::ChatNameSize,
@@ -449,24 +449,24 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
         const std::string_view sent(input.whisperBuffer.data(), Protocol::Chat::ChatNameSize);
         runtime.chat.lastWhisperTarget = std::string(sent.substr(0, sent.find('\0')));
     }
-    return AddMessage(context, Actors::HeroNameOf(hero), said, UI::WhisperMessage, "0x4b8839");
+    return AddMessage(context, Actors::HeroNameOf(hero), said, Ui::WhisperMessage, "0x4b8839");
 }
 
 // 0x4b5624..0x4b883e: lo escrito, con el campo ya leído. Devuelve si sigue en 0x4b8841 (todo menos un comando que
 // lo atendió).
 Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context)
 {
-    UI::ChatInputState& input = context.world.Runtime().chat.input;
-    auto command = RunTheCommand(context, UI::CStringOf(input.messageBuffer), false);
+    Chat::ChatInputState& input = context.world.Runtime().chat.input;
+    auto command = RunTheCommand(context, Chat::CStringOf(input.messageBuffer), false);
     if (!command.HasValue())
         return Core::Unexpected(command.Error());
     if (command.Value().handled)
         return false;
-    auto said = FilteredOf(context, UI::CStringOf(input.messageBuffer));
+    auto said = FilteredOf(context, Chat::CStringOf(input.messageBuffer));
     if (!said.HasValue())
         return Core::Unexpected(said.Error());
     // 0x4b566c: strcpy al buffer, que deja lo de detrás.
-    UI::CopyIntoTheBuffer(input.messageBuffer, said.Value());
+    Chat::CopyIntoTheBuffer(input.messageBuffer, said.Value());
     const std::string& text = said.Value();
     if ((!text.empty() && text.front() == '/') || input.whisperLength == 0 || !input.whisperMode)
     {
@@ -485,7 +485,7 @@ Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context
 Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& context, std::string_view typed)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     constexpr std::string_view Keys{"\t\r\b", 3};
     std::string_view rest = typed;
     while (!rest.empty())
@@ -494,14 +494,14 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         // El EDIT de una ventana vieja con el foco de Windows (CL9 hito 9) recibe el WM_CHAR, y su subclase (0x467b10)
         // le pasa el Enter a su padre y, con padre, el Tab al EDIT de +0x98 (0x467cdf..0x467d28; solo los enlaza la de
         // escribir una carta, CL9 hito 10). Sin el de +0x98, el Tab no hace nada (P-C181).
-        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        const bool oldEdit = Messenger::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         // El EDIT de los diálogos con el foco: el de [0x5763504] (la entrada del número de serie, hito 11; el nombre
         // del gremio de la ventana 2, CL9 hito 8) o el de [0x5763508] (el número del 0x7d, CL9 hito 8). La misma
         // subclase, con el filtro de +0x4c.
-        UI::OldEdit* dialogEdit = nullptr;
-        if (input.focus == UI::ChatFocus::Dialog)
+        Ui::OldEdit* dialogEdit = nullptr;
+        if (input.focus == Chat::ChatFocus::Dialog)
             dialogEdit = &input.dialogEdit;
-        else if (input.focus == UI::ChatFocus::NumberField)
+        else if (input.focus == Chat::ChatFocus::NumberField)
             dialogEdit = &input.numberField;
         // 0x467b9d: con el WM_CHAR, la subclase pone en 0 los dibujos del EDIT (+0x80, el cursor prendido). MuRet lo
         // hace con los dos EDIT de los diálogos (CL9 hito 8, P-C286), los de la escena que se dibujan con 0x468320 y no
@@ -511,9 +511,9 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         if (const std::string_view run = rest.substr(0, key); !run.empty())
         {
             if (oldEdit)
-                UI::TypeInTheOldEdit(runtime.oldWindows, run);
+                Messenger::TypeInTheOldEdit(runtime.oldWindows, run);
             else
-                UI::TypeInTheChat(input, run);
+                Chat::TypeInTheChat(input, run);
         }
         if (key == std::string_view::npos)
             break;
@@ -522,15 +522,15 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         if (oldEdit)
         {
             if (pressed == Input::EnterChar)
-                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+                Messenger::PressEnterInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::BackspaceChar)
-                UI::BackspaceInTheOldEdit(runtime.oldWindows);
+                Messenger::BackspaceInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::TabChar)
-                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, UI::OldEditKey::Tab, false, false, context.clipboard,
-                                         context.measure, &runtime.ui.focusedList);
+                Messenger::ApplyKeyToTheOldEdit(runtime.oldWindows, Ui::OldEditKey::Tab, false, false,
+                                                context.clipboard, context.measure, &runtime.ui.focusedList);
             continue;
         }
-        if (UI::OldEdit* edit = UI::ChatEditWithFocus(input); edit != nullptr && !edit->compositionText.empty())
+        if (Ui::OldEdit* edit = Chat::ChatEditWithFocus(input); edit != nullptr && !edit->compositionText.empty())
         {
             edit->draws = 0;
             continue;
@@ -542,7 +542,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
             // 0x5c, 0x4676d0) o +0xc4 en 1, que nadie prende en este EDIT. El borrar es del EDIT.
             if (pressed == Input::BackspaceChar)
             {
-                UI::BackspaceInTheChat(input);
+                Chat::BackspaceInTheChat(input);
                 continue;
             }
             if (pressed == Input::EnterChar && runtime.oldWindows.windowList.list.armed == 1)
@@ -550,8 +550,8 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         }
         if (pressed == Input::TabChar)
         {
-            if (UI::PressTabInTheChat(input, runtime.ui.chatOpen, &runtime.ui.focusedList))
-                runtime.RequestSound(UI::ChatButtonSound);
+            if (Chat::PressTabInTheChat(input, runtime.ui.chatOpen, &runtime.ui.focusedList))
+                runtime.RequestSound(Chat::ChatButtonSound);
         }
         else if (pressed == Input::EnterChar)
         {
@@ -559,7 +559,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
                 return entered;
         }
         else
-            UI::BackspaceInTheChat(input);
+            Chat::BackspaceInTheChat(input);
     }
     return {};
 }
@@ -568,7 +568,7 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
                                                    std::span<const Input::TextInputEvent> events)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     for (const Input::TextInputEvent& event : events)
     {
         if (event.kind == Input::TextInputEvent::Kind::Text)
@@ -577,25 +577,25 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
                 return typed;
             continue;
         }
-        const bool oldEdit = UI::HasAnOldEditFocused(runtime.oldWindows, input.focus);
-        UI::OldEdit* chatEdit = UI::ChatEditWithFocus(input);
+        const bool oldEdit = Messenger::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        Ui::OldEdit* chatEdit = Chat::ChatEditWithFocus(input);
         if (event.kind == Input::TextInputEvent::Kind::Composition)
         {
             if (oldEdit)
-                UI::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
-                                             event.compositionLength);
+                Messenger::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
+                                                    event.compositionLength);
             else if (chatEdit != nullptr)
-                UI::SetTheEditComposition(*chatEdit, event.text, event.compositionStart, event.compositionLength);
+                Ui::SetTheEditComposition(*chatEdit, event.text, event.compositionStart, event.compositionLength);
             continue;
         }
         const auto editKey = EditKeyOf(event.key);
         if (oldEdit)
         {
             if (event.key == Input::Key::Enter)
-                UI::PressEnterInTheOldEdit(runtime.oldWindows);
+                Messenger::PressEnterInTheOldEdit(runtime.oldWindows);
             else if (editKey)
-                UI::ApplyKeyToTheOldEdit(runtime.oldWindows, *editKey, event.shift, event.ctrl, context.clipboard,
-                                         context.measure, &runtime.ui.focusedList);
+                Messenger::ApplyKeyToTheOldEdit(runtime.oldWindows, *editKey, event.shift, event.ctrl,
+                                                context.clipboard, context.measure, &runtime.ui.focusedList);
             continue;
         }
         // SDL entrega teclas durante el preedit. El mismo guard del EDIT evita editar o enviar antes del commit;
@@ -603,12 +603,12 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
         if (chatEdit != nullptr && !chatEdit->compositionText.empty())
         {
             if (editKey)
-                UI::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
+                Ui::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
             continue;
         }
         if (chatEdit != nullptr && editKey && event.key != Input::Key::Tab)
         {
-            UI::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
+            Ui::ApplyKeyToTheEdit(*chatEdit, *editKey, event.shift, event.ctrl, context.clipboard, context.measure);
             continue;
         }
         // Los EDIT sin padre reenvían Tab y Enter a la ventana del juego (0x467b5d..0x467c19).
@@ -624,8 +624,8 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
 Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    UI::ChatInputState& input = runtime.chat.input;
+    Ui::GameUiState& ui = runtime.ui;
+    Chat::ChatInputState& input = runtime.chat.input;
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x4b50c0..0x4b5106: en Chaos Castle fuera de la zona segura, nada; si no, 0x5763588 en 1, el Enter que leen los
     // diálogos (0x6263df y 0x62da58). La escena es la 5; con 0x77f3b68, el campo del alta del gremio (CL9 hito 8),
@@ -640,7 +640,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     if (runtime.panels.field78abb00 == EnterBlockingField)
         return {};
     {
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         panels.LendTheSession(context.world, context.random, context.send, context.sendWindowClose);
         auto taken = panels.Registry().PanelKey(EnterVirtualKey);
         if (!taken.HasValue())
@@ -652,10 +652,10 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     // con la caja modal (0x5762ebc) arriba de todas (el último de +0x84) o con una caja no modal (+0xb8 de
     // [0x5763514], 0x4918a0) arriba de todas. 0x4b533d..0x4b5360: con el foco fuera de la ventana del juego, 0x467360
     // guarda el modo del IME, que MuRet no tiene.
-    const UI::OldWindowManager& old = runtime.oldWindows;
+    const Ui::OldWindowManager& old = runtime.oldWindows;
     if (old.windowList.list.armed == 1)
         return {};
-    const std::int32_t top = UI::LastOldWindow(old);
+    const std::int32_t top = Ui::LastOldWindow(old);
     if (old.modal != 0 && top == old.modal)
         return {};
     if (!old.boxes.empty() && std::ranges::find(old.boxes, top) != old.boxes.end())
@@ -664,11 +664,11 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     // hito 11, y el de los diálogos 0x73 y 0x91, hito 7); con él abierto, los dos EDIT y lo escrito al historial (la
     // vtable + 8).
     if (!ui.chatOpen)
-        UI::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
+        Chat::CopyIntoTheBuffer(input.messageBuffer, input.dialogEdit.text.Value());
     else
     {
-        UI::ReadTheChatFields(input);
-        UI::RememberTheMessage(input, UI::CStringOf(input.messageBuffer));
+        Chat::ReadTheChatFields(input);
+        Chat::RememberTheMessage(input, Chat::CStringOf(input.messageBuffer));
         input.whisperLength = LengthOf(input.whisperBuffer);
     }
     input.messageLength = LengthOf(input.messageBuffer);
@@ -679,34 +679,34 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
         if (ui.chatOpen)
         {
             ui.chatOpen = false;
-            UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
+            Chat::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
         }
         else if (runtime.dialogs.current == MoneyDialog)
         {
             // 0x4b54e1..0x4b5513: la vtable + 0x4c del EDIT de [0x5763504] con 0 (vacío) y SetFocus de la ventana del
             // juego ([0x5763544]). El dibujo del 0x73 le devuelve el foco al EDIT en el frame siguiente (0x6308b8).
             input.dialogEdit.text.SetText({});
-            input.focus = UI::ChatFocus::Game;
+            input.focus = Chat::ChatFocus::Game;
         }
         else
         {
             // 0x4b5515..0x4b554d: 0x77f31c0 en 0 es de la entrada sin EDIT (0x6c7b8c en 0).
             runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
-            input.fieldCount = UI::ChatFieldCount;
+            input.fieldCount = Chat::ChatFieldCount;
             runtime.social.moneyField = 0;
-            UI::ShowTheChatFields(input, ShowFocused, &runtime.ui.focusedList);
+            Chat::ShowTheChatFields(input, ShowFocused, &runtime.ui.focusedList);
             ui.chatOpen = true;
         }
         return {};
     }
-    input.field = UI::MessageField;
+    input.field = Chat::MessageField;
     // 0x4b5563..0x4b55ae: con el modo del zen (0x77f3b6a, el diálogo 0x73 o el precio del 0x91), lo escrito es un
     // número (atoi a 0x77f3b6c) y no se dice; después la vtable + 0x4c del EDIT de [0x5763504] con 0 (vacío), la + 4
     // con 3 (oculto, ShowWindow(SW_HIDE): con el foco en él, el foco vuelve a la ventana del juego, *inferido* como en
-    // UI::ShowTheChatFields) y el salto a 0x4b8886.
+    // Chat::ShowTheChatFields) y el salto a 0x4b8886.
     if (runtime.social.moneyField != 0)
     {
-        runtime.social.typedMoney = AtoiLikeTheCrt(UI::CStringOf(input.messageBuffer));
+        runtime.social.typedMoney = AtoiLikeTheCrt(Chat::CStringOf(input.messageBuffer));
         HideTheDialogEdit(input);
         ForgetWhatWasTyped(runtime, input, ui);
         return {};
@@ -715,10 +715,10 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     // el strcpy a 0x78aba64; si no, el texto 1130 del tipo 1 sin nombre (0x6e57a4, ""). Después, el salto a 0x4b8886.
     if (runtime.social.personalShop.dialogMode == ShopTitleDialogMode)
     {
-        const std::string_view typed = UI::CStringOf(input.messageBuffer);
-        if (UI::IsAShopTitle(typed, context.filter))
+        const std::string_view typed = Chat::CStringOf(input.messageBuffer);
+        if (FrontEnd::IsAShopTitle(typed, context.filter))
             runtime.social.personalShop.ownTitle = std::string(typed);
-        else if (auto said = AddNotice(context, BadShopTitleText, UI::SystemMessage, "0x4b5607"); !said.HasValue())
+        else if (auto said = AddNotice(context, BadShopTitleText, Ui::SystemMessage, "0x4b5607"); !said.HasValue())
             return said;
         ForgetWhatWasTyped(runtime, input, ui);
         return {};
@@ -731,20 +731,20 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
     if (!said.HasValue())
         return Core::Unexpected(said.Error());
     if (said.Value())
-        runtime.chat.area.firstShown = UI::FirstShownRow;
+        runtime.chat.area.firstShown = Ui::FirstShownRow;
     // 0x4b884b..0x4b8883.
-    UI::SetTheChatFields(input, std::string_view{}, std::nullopt);
-    UI::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
-    UI::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
+    Chat::SetTheChatFields(input, std::string_view{}, std::nullopt);
+    Chat::ShowTheChatFields(input, Hide, &runtime.ui.focusedList);
+    Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, ScrollAfterSaying);
     ForgetWhatWasTyped(runtime, input, ui);
     return {};
 }
 
 Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
-                                               const std::array<bool, UI::MacroCount>& pressed)
+                                               const std::array<bool, Chat::MacroCount>& pressed)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    for (std::size_t macro = 0; macro < UI::MacroCount; ++macro)
+    for (std::size_t macro = 0; macro < Chat::MacroCount; ++macro)
     {
         if (!pressed[macro])
             continue;
@@ -762,8 +762,8 @@ Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
         if (auto chat = SayInTheChat(context, said.Value()); !chat.HasValue())
             return chat;
         // 0x5a1ea1.
-        runtime.hud.macroTime = UI::MacroLockSteps;
+        runtime.hud.macroTime = Chat::MacroLockSteps;
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Chat

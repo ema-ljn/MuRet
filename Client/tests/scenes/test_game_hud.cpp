@@ -64,6 +64,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
@@ -72,7 +73,6 @@ using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -500,13 +500,13 @@ protected:
     Client::Core::Expected<void, std::string> Hud(bool projecting = false)
     {
         GameHudContext context = Context(projecting);
-        return Client::Scenes::DrawTheHud(context);
+        return Client::Hud::DrawTheHud(context);
     }
 
     Client::Core::Expected<void, std::string> Cursor()
     {
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGameCursor(context);
+        return Client::Hud::DrawTheGameCursor(context);
     }
 
     Client::Kernel::ActorState& Hero()
@@ -562,7 +562,7 @@ protected:
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
     std::uint32_t tickCount = 0;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     bool leftDown = false;
     bool controlDown = false;
     const Client::Scenes::GameProjection* projection = nullptr;
@@ -594,7 +594,7 @@ TEST_F(GameHudTest, TheLorenciaFrameDrawsTheQuadsOfTheTrace)
     ASSERT_EQ(text.texts.size(), 1u);
     const auto record = data.items->table.Record(0x1a00);
     ASSERT_TRUE(record.has_value());
-    EXPECT_EQ(text.texts[0].text, Client::Scenes::ItemRecordName(*record));
+    EXPECT_EQ(text.texts[0].text, Client::Items::ItemRecordName(*record));
     EXPECT_EQ(text.texts[0].y, 4);
 }
 
@@ -633,10 +633,10 @@ TEST_F(GameHudTest, TheLifeAndTheManaPacketsMoveTheOrbs)
     EXPECT_EQ(orbV(0xeb), 0.0f);
 
     namespace Inventory = Client::Protocol::Items;
-    ASSERT_TRUE(Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = Inventory::CurrentPlace, .life = 25},
-                                                world, random)
+    ASSERT_TRUE(Client::Items::ApplyLifeRefill(Inventory::LifeRefill{.place = Inventory::CurrentPlace, .life = 25},
+                                               world, random)
                     .HasValue());
-    ASSERT_TRUE(Client::Scenes::ApplyManaRefill(
+    ASSERT_TRUE(Client::Items::ApplyManaRefill(
                     Inventory::ManaRefill{.place = Inventory::CurrentPlace, .mana = 50, .bp = 0}, world, random)
                     .HasValue());
     sprites.Begin(Screen640);
@@ -699,13 +699,13 @@ TEST_F(GameHudTest, AWornItemShowsItsWarningAndMarksIt)
     sword.durability = 1;
     const auto record = data.items->table.Record(0);
     ASSERT_TRUE(record.has_value());
-    const std::uint16_t maximum = Client::Scenes::MaxDurability(sword, *record, 0);
+    const std::uint16_t maximum = Client::Items::MaxDurability(sword, *record, 0);
     ASSERT_GT(maximum, 5);
 
     ASSERT_TRUE(Hud(true).HasValue());
     EXPECT_EQ(sword.warning, 0) << "el dibujo intermedio no escribe los avisos";
     ASSERT_EQ(text.texts.size(), 1u);
-    EXPECT_EQ(text.texts[0].text, Client::Scenes::ItemRecordName(*record) + " (1/" + std::to_string(maximum) + ")");
+    EXPECT_EQ(text.texts[0].text, Client::Items::ItemRecordName(*record) + " (1/" + std::to_string(maximum) + ")");
     EXPECT_EQ(text.texts[0].style.colors.text, 0xff0a0affu);
     EXPECT_EQ(text.texts[0].style.colors.background, 0x80000000u);
     EXPECT_EQ(text.texts[0].y, 15);
@@ -747,10 +747,10 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
     ASSERT_TRUE(Hud().HasValue());
 
     ASSERT_GE(text.texts.size(), 2u);
-    const auto format = Client::UI::TextAt(&*data.text, 351);
+    const auto format = Client::Ui::TextAt(&*data.text, 351);
     ASSERT_TRUE(format.has_value());
     const std::array<std::string_view, 2> arguments{"100", "0"};
-    EXPECT_EQ(text.texts[0].text, Client::UI::PlaceArguments(*format, arguments));
+    EXPECT_EQ(text.texts[0].text, Client::Ui::PlaceArguments(*format, arguments));
     EXPECT_EQ(text.texts[0].x, 640 - 0x5a);
     EXPECT_EQ(text.texts[0].y, 4);
     EXPECT_EQ(world.Runtime().hud.arrowsTextWidth,
@@ -762,7 +762,7 @@ TEST_F(GameHudTest, TheArrowsShowTheirCountAndPushTheHelperDown)
 // del chat abierto, la caja sin mezcla (0xf8 y 0xf9) y, con el modo de F3, su indicador (0xef).
 TEST_F(GameHudTest, TheMacroTimeAndTheChatBoxAreDrawn)
 {
-    world.Runtime().hud.macroTime = Client::UI::MacroLockSteps;
+    world.Runtime().hud.macroTime = Client::Chat::MacroLockSteps;
     world.Runtime().ui.chatOpen = true;
 
     ASSERT_TRUE(Hud().HasValue());
@@ -827,7 +827,7 @@ TEST_F(GameHudTest, TheOpenSkillListDrawsTheNativeRowsColorsAndAccesses)
     auto context = Context();
     context.skills = &skills;
 
-    const auto drawn = Client::Scenes::DrawTheHud(context);
+    const auto drawn = Client::Hud::DrawTheHud(context);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     std::vector<DrawnQuad> icons;
@@ -859,7 +859,7 @@ TEST_F(GameHudTest, TheOpenListAddsRavenCommandsOnlyWhenTheRavenExists)
     world.Runtime().ui.skillListOpen = 1;
     auto context = Context();
     context.skills = &skills;
-    const auto drawn = Client::Scenes::DrawTheHud(context);
+    const auto drawn = Client::Hud::DrawTheHud(context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     std::vector<DrawnQuad> commands;
     for (const auto& quad : QuadsOf(sprites))
@@ -877,7 +877,7 @@ TEST_F(GameHudTest, TheOpenListAddsRavenCommandsOnlyWhenTheRavenExists)
               Advanced(CrtRandom(Seed), HudBaseDraws + OwnRecordCloseRandoms + 5 * SkillIconDraws).State());
     Hero().darkSpirit.reset();
     sprites.Begin(Screen640);
-    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheHud(context).HasValue());
     for (const auto& quad : QuadsOf(sprites))
         EXPECT_FALSE(quad.slot == 300 && std::abs(quad.first.y - 150.0f) < 0.001f);
 }
@@ -893,7 +893,7 @@ TEST_F(GameHudTest, TheOrdinarySkillDrawsTheHotkeyOfTheChosenCharacter)
     auto context = Context();
     context.skills = &skills;
     context.chosenSlot = std::uint8_t{3};
-    ASSERT_TRUE(Client::Scenes::DrawTheHud(context).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheHud(context).HasValue());
     const auto quads = QuadsOf(sprites);
     const auto key = std::ranges::find_if(quads,
                                           [](const DrawnQuad& quad)
@@ -1013,12 +1013,12 @@ TEST_F(GameHudTest, TheHudDrawsThePanel2000ThroughItsWindowPass)
 // y = 352,00003 (ry = 768 · 0x3b088889 es 1,6000001 en float), y el borde de arriba en GL, 768 − y = 415,99997.
 TEST_F(GameHudTest, TheNineteenthChildDrawsTheMapBannerWhileItFades)
 {
-    Client::Scenes::MapBanner& banner = world.Runtime().hud.mapBanner;
-    Client::Scenes::ResetTheMapBanner(banner, 0);
+    Client::Hud::MapBanner& banner = world.Runtime().hud.mapBanner;
+    Client::Hud::ResetTheMapBanner(banner, 0);
     const auto bannerQuads = [this]
     {
         std::vector<DrawnQuad> quads = QuadsOf(sprites);
-        std::erase_if(quads, [](const DrawnQuad& quad) { return quad.slot != Client::Scenes::MapBannerSlot; });
+        std::erase_if(quads, [](const DrawnQuad& quad) { return quad.slot != Client::Hud::MapBannerSlot; });
         return quads;
     };
     sprites.Begin(Screen1024);
@@ -1028,7 +1028,7 @@ TEST_F(GameHudTest, TheNineteenthChildDrawsTheMapBannerWhileItFades)
     EXPECT_TRUE(bannerQuads().empty());
     EXPECT_EQ(banner.last, 10u);
 
-    Client::Scenes::ShowTheMapBanner(banner, 0);
+    Client::Hud::ShowTheMapBanner(banner, 0);
     sprites.Begin(Screen1024);
     tickCount = 30;
     const auto drawn = Hud();
@@ -1056,7 +1056,7 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     owner.alive = true;
     owner.seen = true;
     owner.boundsTop = 120.0f;
-    Client::Scenes::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
+    Client::Chat::ChatBubble& bubble = world.Runtime().chat.bubbles[0];
     bubble.name = "Tero";
     bubble.nameTime = 100;
     bubble.owner = 4;
@@ -1112,7 +1112,7 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
         owner.seen = true;
         owner.boundsTop = 120.0f;
         world.Runtime().social.personalShop.titles.emplace(
-            4, Client::Scenes::ShopTitle{.key = 0x234, .name = "Brezal", .title = "Arcos"});
+            4, Client::Social::ShopTitle{.key = 0x234, .name = "Brezal", .title = "Arcos"});
         projection = nullptr;
         const auto cut = Hud();
         ASSERT_FALSE(cut.HasValue());
@@ -1175,13 +1175,13 @@ TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
 // en 0: el HUD sigue.
 TEST_F(GameHudTest, TheEventObjectsWithoutTheirPacketsDrawNothing)
 {
-    for (const auto& [map, kind] : {std::pair{9, Client::Scenes::EventMapKind::DevilSquare},
-                                    std::pair{11, Client::Scenes::EventMapKind::BloodCastle},
-                                    std::pair{18, Client::Scenes::EventMapKind::ChaosCastle}})
+    for (const auto& [map, kind] : {std::pair{9, Client::Events::EventMapKind::DevilSquare},
+                                    std::pair{11, Client::Events::EventMapKind::BloodCastle},
+                                    std::pair{18, Client::Events::EventMapKind::ChaosCastle}})
     {
         SCOPED_TRACE(map);
         world.Runtime().map = map;
-        world.Runtime().eventObject = Client::Scenes::EventMapObject{.kind = kind};
+        world.Runtime().eventObject = Client::Events::EventMapObject{.kind = kind};
         const auto drawn = Hud();
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
     }
@@ -1195,18 +1195,18 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
     struct Case
     {
         std::int32_t map;
-        Client::Scenes::EventMapKind kind;
+        Client::Events::EventMapKind kind;
         std::uint8_t state;
         std::size_t points;
         bool draws;
     };
-    for (const Case& probe : {Case{11, Client::Scenes::EventMapKind::BloodCastle, 1, 864, true},
-                              Case{23, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, true},
-                              Case{0, Client::Scenes::EventMapKind::BloodCastle, 1, 864, false},
-                              Case{2, Client::Scenes::EventMapKind::ChaosCastle, 7, 1161, false}})
+    for (const Case& probe : {Case{11, Client::Events::EventMapKind::BloodCastle, 1, 864, true},
+                              Case{23, Client::Events::EventMapKind::ChaosCastle, 7, 1161, true},
+                              Case{0, Client::Events::EventMapKind::BloodCastle, 1, 864, false},
+                              Case{2, Client::Events::EventMapKind::ChaosCastle, 7, 1161, false}})
     {
         SCOPED_TRACE(probe.map);
-        const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, probe.points);
+        const std::optional<std::string_view> format = Client::Ui::TextAt(&*data.text, probe.points);
         ASSERT_TRUE(format.has_value());
         const auto points = Client::Crt::FormatOriginal(Client::Crt::FormatFunction::Wsprintf, *format,
                                                         std::vector<Client::Crt::FormatArgument>{42, 70}, "test");
@@ -1216,7 +1216,7 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
             SCOPED_TRACE(projecting);
             world.Runtime() = Client::Kernel::WorldRuntime{};
             world.Runtime().map = probe.map;
-            world.Runtime().eventObject = Client::Scenes::EventMapObject{
+            world.Runtime().eventObject = Client::Events::EventMapObject{
                 .kind = probe.kind, .field10 = probe.state, .field14 = {900, 1000, 70, 42}};
             text.texts.clear();
             const auto drawn = Hud(projecting);
@@ -1235,7 +1235,7 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
             EXPECT_EQ(line->y, 345);
             ASSERT_NE(time, text.texts.end());
             EXPECT_EQ(time->y, 367);
-            const bool writes = probe.kind == Client::Scenes::EventMapKind::ChaosCastle && !projecting;
+            const bool writes = probe.kind == Client::Events::EventMapKind::ChaosCastle && !projecting;
             EXPECT_EQ(world.Runtime().chaosCastleArea, writes ? 0 : 0xff);
         }
     }
@@ -1246,8 +1246,8 @@ TEST_F(GameHudTest, TheCastleObjectsDrawTheirPointsAndTime)
 // Vencida, el frame del original apaga +8; un dibujo intermedio no. En Lorencia, Devias y los mapas del evento.
 TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
 {
-    const std::optional<std::string_view> format = Client::UI::TextAt(&*data.text, 828);
-    const std::optional<std::string_view> name = Client::UI::TextAt(&*data.text, 1147);
+    const std::optional<std::string_view> format = Client::Ui::TextAt(&*data.text, 828);
+    const std::optional<std::string_view> name = Client::Ui::TextAt(&*data.text, 1147);
     ASSERT_TRUE(format && name);
     const std::vector<Client::Crt::FormatArgument> arguments{Client::Crt::TextArgument{.index = 1147, .text = *name},
                                                              18};
@@ -1259,7 +1259,7 @@ TEST_F(GameHudTest, TheEventCountdownDrawsTheSecondsLeftAndExpires)
         SCOPED_TRACE(map);
         world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
-        world.Runtime().eventObject = Client::Scenes::EventMapObject{.field08 = 12, .field0c = 1000};
+        world.Runtime().eventObject = Client::Events::EventMapObject{.field08 = 12, .field0c = 1000};
         tickCount = 1000 + 12345;
         text.texts.clear();
         ASSERT_TRUE(Hud().HasValue());
@@ -1445,8 +1445,8 @@ TEST_F(GameHudTest, TheAttackCursorFollowsWhetherTheChosenCanBeAttacked)
 TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
 {
     Hero().flags78 = 0x10000;
-    Client::Scenes::TooltipLines& lines = world.Runtime().hud.tooltip;
-    lines.colors[3] = Client::Scenes::TooltipWhiteOnRed;
+    Client::Tooltips::TooltipLines& lines = world.Runtime().hud.tooltip;
+    lines.colors[3] = Client::Tooltips::TooltipWhiteOnRed;
     const CrtRandom before = random;
     mouse = {320, 300};
     ASSERT_TRUE(Hud().HasValue());
@@ -1474,18 +1474,18 @@ TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
     ASSERT_FALSE(name.empty());
     EXPECT_EQ(lines.text[1], name);
     EXPECT_TRUE(std::ranges::any_of(text.texts, [&name](const auto& drawnText) { return drawnText.text == name; }));
-    EXPECT_EQ(lines.colors[1], Client::Scenes::TooltipBlue);
+    EXPECT_EQ(lines.colors[1], Client::Tooltips::TooltipBlue);
     EXPECT_EQ(lines.bold[1], 1);
     EXPECT_EQ(lines.text[2], "\n");
     const std::array<std::size_t, 3> texts{1638, 1639, 1472};
     for (std::size_t i = 0; i < texts.size(); ++i)
     {
-        const std::optional<std::string_view> help = Client::UI::TextAt(&*data.text, texts[i]);
+        const std::optional<std::string_view> help = Client::Ui::TextAt(&*data.text, texts[i]);
         ASSERT_TRUE(help.has_value());
         EXPECT_EQ(lines.text[3 + i], Client::Crt::Sprintf(*help)) << i;
     }
-    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhiteOnRed);
-    EXPECT_EQ(lines.colors[5], Client::Scenes::TooltipWhite);
+    EXPECT_EQ(lines.colors[3], Client::Tooltips::TooltipWhiteOnRed);
+    EXPECT_EQ(lines.colors[5], Client::Tooltips::TooltipWhite);
     EXPECT_EQ(lines.text[6], "\n");
 }
 
@@ -1494,14 +1494,14 @@ TEST_F(GameHudTest, TheMouseOverAStatusIconShowsItsHelp)
 TEST_F(GameHudTest, AStatusIconWithoutTextKeepsTheThirdLine)
 {
     Hero().flags78 = 0x400;
-    Client::Scenes::TooltipLines& lines = world.Runtime().hud.tooltip;
+    Client::Tooltips::TooltipLines& lines = world.Runtime().hud.tooltip;
     lines.text[3] = "previo";
-    lines.colors[3] = Client::Scenes::TooltipRed;
+    lines.colors[3] = Client::Tooltips::TooltipRed;
     mouse = {190, 10};
     const auto drawn = Hud();
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(lines.text[3], "previo");
-    EXPECT_EQ(lines.colors[3], Client::Scenes::TooltipWhite);
+    EXPECT_EQ(lines.colors[3], Client::Tooltips::TooltipWhite);
     EXPECT_EQ(lines.text[4], "\n");
     // El nombre de la entrada 0x35 de Skill.bmd está vacío: la caja mide hasta el renglón 1 y no escribe nada.
     EXPECT_EQ(lines.text[1], "");
@@ -1518,10 +1518,10 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
         SCOPED_TRACE(map);
         world.Runtime() = Client::Kernel::WorldRuntime{};
         world.Runtime().map = map;
-        Client::UI::OldWindowManager& windows = world.Runtime().oldWindows;
+        Client::Ui::OldWindowManager& windows = world.Runtime().oldWindows;
         windows.windowList.list.waiting.push_back(7);
         windows.windowList.list.newLetter = 1;
-        Client::UI::AddALetter(windows.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
+        Client::Messenger::AddALetter(windows.letterModel, 3, "Tordo", "Asado", "2026/11/13", "21:30", 0);
         sprites.Begin(Screen640);
         const CrtRandom expected = Advanced(random, HudBaseDraws);
 
@@ -1551,16 +1551,16 @@ TEST_F(GameHudTest, TheMainBarDrawsTheFriendAndLetterIcons)
 // WorldRuntime quedan como los dejó el último frame del original.
 TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
 {
-    Client::UI::OldWindowManager& windows = world.Runtime().oldWindows;
+    Client::Ui::OldWindowManager& windows = world.Runtime().oldWindows;
     windows.windowList.list.waiting.push_back(7);
     windows.windowList.list.newLetter = 1;
     windows.windowList.list.barBlink = 11;
     windows.windowList.list.letterBlinks = 5;
-    Client::UI::OldWindowManager copy = windows;
+    Client::Ui::OldWindowManager copy = windows;
     GameHudContext context = Context(true);
     context.oldWindows = &copy;
 
-    const auto drawn = Client::Scenes::DrawTheHud(context);
+    const auto drawn = Client::Hud::DrawTheHud(context);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     // En el 11 de cada 24, prendido, un parpadeo más; con el sexto, la carta nueva se apaga y la cuenta vuelve a 0.
@@ -1574,9 +1574,9 @@ TEST_F(GameHudTest, AnIntermediateDrawBlinksTheCopyOfTheIcons)
 // 4. 0x5a6fc0 con el objeto de 0x5767924 (el B2 20, hito 13): las dos celdas del héroe con sus accesos y, adentro de
 // la zona (X 150..200, Y 180..230), una línea por mitad con +6 distinto de 0 en (0, 150 + 15 · mitad). No mira el
 // mapa. Los nombres son inventados.
-std::array<std::uint8_t, Client::UI::SwitchHoldersSize> SwitchHolders()
+std::array<std::uint8_t, Client::CastleSiege::SwitchHoldersSize> SwitchHolders()
 {
-    std::array<std::uint8_t, Client::UI::SwitchHoldersSize> holders{};
+    std::array<std::uint8_t, Client::CastleSiege::SwitchHoldersSize> holders{};
     const auto put = [&holders](std::size_t at, std::string_view text)
     {
         for (std::size_t i = 0; i < text.size(); ++i)

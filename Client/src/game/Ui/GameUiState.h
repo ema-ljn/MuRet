@@ -10,7 +10,7 @@
 // Los globales de la UI del juego que leen y escriben el paso de la UI (0x636ded..0x63705b), los diálogos
 // (0x623e70), MoveHero y el picking del frame (06 § HUD y ventanas, "El clic es primero de la UI"). Todos en la
 // .bss salvo los que dicen otra cosa; ninguna escena los vuelve a poner en 0 fuera de los lugares que se citan.
-namespace Client::UI
+namespace Client::Ui
 {
 // 0x77f36d4: el latch de 0x553520, un int por tecla virtual. Lo comparten Esc (0x623e70 y 0x490490), las teclas
 // del chat, las de los paneles, Q/W/E, B, R y el Tab del panel del asedio: el primero que lee una tecla abajo
@@ -101,7 +101,7 @@ struct GameUiState
     std::uint8_t skillListOpen = 0;
     // 0x6c7a88 (.data 1): el lugar del registro del chat, que su constructor (0x45b620) pone en 0 desde WinMain antes
     // de la primera escena; y 0x6c8dd1 (.data 1), F2, el chat normal a la vista.
-    ChatModes chatModes{};
+    Chat::ChatModes chatModes{};
     // 0x6c8e68: el campo del chat abierto. Mientras está abierto, su EDIT tiene el foco (el clic sin dueño no se lo
     // saca, 0x636e80).
     bool chatOpen = false;
@@ -124,7 +124,7 @@ struct GameUiState
     // 0x5bec50) y en 0 0x5e5212.
     std::uint8_t field78abaac = 0;
     // 0x78abb20: el modo del teclado del almacén. Con 0, 0x5e7bf0 devuelve 0 y 0x5ee140 sigue. Lo prenden 0x5e7aa0
-    // (Scenes::OpenTheKeypad), soltar en el inventario con la traba (0x5cb432) y el botón 2 del almacén (0x5ea227).
+    // (Npc::OpenTheKeypad), soltar en el inventario con la traba (0x5cb432) y el botón 2 del almacén (0x5ea227).
     // 0x5d9c19 (el sí con 0x78abb14 en 4) también, con 6, y 0x5c0139 (soltar en el equipo un ítem del almacén con la
     // traba).
     std::int32_t field78abb20 = 0;
@@ -186,4 +186,4 @@ struct GameUiState
     std::optional<std::int32_t> volumeRequest{};
 };
 
-} // namespace Client::UI
+} // namespace Client::Ui

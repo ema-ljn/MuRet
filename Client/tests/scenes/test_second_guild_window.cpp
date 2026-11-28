@@ -56,13 +56,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Guild::GuildMarkTextures;
+using Client::Guild::GuildState;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GuildMarkTextures;
-using Client::Scenes::GuildState;
 
 constexpr std::uint32_t Seed = 11;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -195,12 +195,12 @@ protected:
         return Runtime().guild;
     }
 
-    Client::UI::ChatInputState& Input()
+    Client::Chat::ChatInputState& Input()
     {
         return Runtime().chat.input;
     }
 
-    Client::Scenes::GuildSender Sender()
+    Client::Guild::GuildSender Sender()
     {
         return [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); };
     }
@@ -208,26 +208,25 @@ protected:
     // Lo que hace el 54 (0x4e4279): abre el panel 0x40000.
     void OpenIt()
     {
-        Client::Scenes::GamePanels panels(*m_world, m_random);
+        Client::Hud::GamePanels panels(*m_world, m_random);
         panels.LendTheGuild(*m_world, Sender());
-        auto opened = panels.Registry().Open(Client::UI::SecondGuildPanel);
+        auto opened = panels.Registry().Open(Client::Ui::SecondGuildPanel);
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         ASSERT_TRUE(opened.Value());
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepTheSecondGuildWindow(
-            Client::Scenes::SecondGuildStepContext{.world = *m_world,
-                                                   .mouseX = m_mouseX,
-                                                   .mouseY = m_mouseY,
-                                                   .now = Now,
-                                                   .screen = Screen640,
-                                                   .measure = &m_text,
-                                                   .texts = &m_texts,
-                                                   .filterName = m_filterName,
-                                                   .filter = m_filter,
-                                                   .send = Sender()});
+        return Client::Guild::StepTheSecondGuildWindow(Client::Guild::SecondGuildStepContext{.world = *m_world,
+                                                                                             .mouseX = m_mouseX,
+                                                                                             .mouseY = m_mouseY,
+                                                                                             .now = Now,
+                                                                                             .screen = Screen640,
+                                                                                             .measure = &m_text,
+                                                                                             .texts = &m_texts,
+                                                                                             .filterName = m_filterName,
+                                                                                             .filter = m_filter,
+                                                                                             .send = Sender()});
     }
 
     Client::Core::Expected<void, std::string> Draw(bool withMarks = true)
@@ -247,7 +246,7 @@ protected:
                                .texts = &m_texts,
                                .mouse = {m_mouseX, m_mouseY},
                                .guildMarks = withMarks ? &m_marks : nullptr};
-        return Client::Scenes::DrawTheSecondGuildWindow(context);
+        return Client::Guild::DrawTheSecondGuildWindow(context);
     }
 
     // Un cuadro de la escena: el paso de la UI y el dibujo, con el lote vacío.
@@ -264,10 +263,10 @@ protected:
     // 0x45b200: el flanco sobre el botón y, el cuadro que sigue, soltarlo encima.
     void Click(std::size_t button)
     {
-        const Client::UI::OldWindowBase& base = Guild().secondWindow.buttons[button].base;
+        const Client::Ui::OldWindowBase& base = Guild().secondWindow.buttons[button].base;
         m_mouseX = base.x + base.width / 2;
         m_mouseY = base.y + base.height / 2;
-        Client::Scenes::GameMovementState& movement = Runtime().movement;
+        Client::Movement::GameMovementState& movement = Runtime().movement;
         movement.pendingClick = true;
         movement.leftHeld = true;
         Frame();
@@ -316,7 +315,7 @@ protected:
 // ella con los comandos 1, 2, 5 y 4.
 TEST_P(SecondGuildWindowTest, TheWindowStartsOnTheQuestion)
 {
-    const Client::Scenes::SecondGuildWindowState& window = Guild().secondWindow;
+    const Client::Guild::SecondGuildWindowState& window = Guild().secondWindow;
     EXPECT_EQ(window.base.x, WindowX);
     EXPECT_EQ(window.base.y, WindowY);
     EXPECT_EQ(window.base.width, 0xbe);
@@ -357,12 +356,12 @@ TEST_P(SecondGuildWindowTest, TheQuestionPageDrawsTheQuestionAndPlacesTheButtons
     EXPECT_EQ(texts[1].style.colors.text, 0xffe6e6e6u);
     EXPECT_EQ(texts[2].text, "Armar gremio");
     EXPECT_EQ(texts[3].text, "Otra marca");
-    const Client::Scenes::SecondGuildWindowState& window = Guild().secondWindow;
+    const Client::Guild::SecondGuildWindowState& window = Guild().secondWindow;
     EXPECT_EQ(window.buttons[0].base.x, WindowX + 0x2d);
     EXPECT_EQ(window.buttons[0].base.y, 0x3c + 0x1e);
-    EXPECT_EQ(window.buttons[0].base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(window.buttons[0].base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(window.buttons[1].base.y, 0x3c + 0x1e + 0x18);
-    EXPECT_EQ(window.buttons[1].base.state, Client::UI::DisabledWindow);
+    EXPECT_EQ(window.buttons[1].base.state, Client::Ui::DisabledWindow);
     EXPECT_EQ(Draws(m_random), 0);
 }
 
@@ -384,8 +383,8 @@ TEST_P(SecondGuildWindowTest, WithAGuildTheQuestionPageShowsTheGuildAndTheScore)
     EXPECT_EQ(texts[1].x, WindowX + 0x19);
     EXPECT_EQ(texts[1].columns, 140);
     EXPECT_EQ(texts[4].text, "Cerrar");
-    EXPECT_EQ(Guild().secondWindow.buttons[0].base.state, Client::UI::DisabledWindow);
-    EXPECT_EQ(Guild().secondWindow.buttons[1].base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Guild().secondWindow.buttons[0].base.state, Client::Ui::DisabledWindow);
+    EXPECT_EQ(Guild().secondWindow.buttons[1].base.state, Client::Ui::ShownWindow);
 }
 
 // 0x655d70: Crear arma un gremio (las dos en 1, el campo del alta prendido) y manda C1 04 54 01.
@@ -393,7 +392,7 @@ TEST_P(SecondGuildWindowTest, CreateGoesToTheNamePageAndAnswersYes)
 {
     OpenIt();
     ASSERT_TRUE(Draw().HasValue());
-    Click(Client::Scenes::SecondGuildCreateButton);
+    Click(Client::Guild::SecondGuildCreateButton);
     EXPECT_EQ(Guild().createKind, 1);
     EXPECT_EQ(Guild().createStep, 1);
     EXPECT_TRUE(Input().dialogFieldOn);
@@ -410,10 +409,10 @@ TEST_P(SecondGuildWindowTest, TheMarkButtonOpensTheNotEnabledDialog)
     Hero().word1f2 = 4;
     OpenIt();
     ASSERT_TRUE(Draw().HasValue());
-    Click(Client::Scenes::SecondGuildMarkButton);
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
-    ASSERT_NE(Client::UI::PanelDialogHandle(dialog), 0u);
-    EXPECT_EQ(Guild().secondWindow.dialog2a0, Client::UI::PanelDialogHandle(dialog));
+    Click(Client::Guild::SecondGuildMarkButton);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    ASSERT_NE(Client::Ui::PanelDialogHandle(dialog), 0u);
+    EXPECT_EQ(Guild().secondWindow.dialog2a0, Client::Ui::PanelDialogHandle(dialog));
     EXPECT_EQ(Guild().createStep, 0);
     EXPECT_TRUE(m_sent.empty());
 }
@@ -427,12 +426,12 @@ TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
     Hero().word1f2 = 4;
     OpenIt();
     ASSERT_TRUE(Draw().HasValue());
-    Click(Client::Scenes::SecondGuildMarkButton);
-    const Client::UI::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
+    Click(Client::Guild::SecondGuildMarkButton);
+    const Client::Ui::PanelDialogState& dialog = Runtime().panels.delegated.panelDialog;
     ASSERT_EQ(Guild().secondWindow.dialog2a0, Now);
     ASSERT_TRUE(Runtime().chat.log.entries.empty());
 
-    Click(Client::Scenes::SecondGuildMarkButton);
+    Click(Client::Guild::SecondGuildMarkButton);
     constexpr std::array<std::uint8_t, 26> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
                                                   0xc3, 0xa2, 0xc0, 0xcc, 0x20, 0xb6, 0xb0, 0x20, 0xc0,
                                                   0xd6, 0xbd, 0xc0, 0xb4, 0xcf, 0xb4, 0xd9, 0x2e};
@@ -441,7 +440,7 @@ TEST_P(SecondGuildWindowTest, ASecondClickOnTheMarkGetsTheBusyNotice)
         notice.push_back(static_cast<char>(byte));
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
     EXPECT_EQ(Runtime().chat.log.entries.front().text, notice);
-    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::UI::SystemMessage);
+    EXPECT_EQ(Runtime().chat.log.entries.front().type, Client::Ui::SystemMessage);
     EXPECT_EQ(Guild().secondWindow.dialog2a0, 0U);
     EXPECT_EQ(dialog.opened, Now);
     EXPECT_EQ(dialog.lines[0], "Todavia no");
@@ -483,7 +482,7 @@ TEST_P(SecondGuildWindowTest, TheGateSkipsTheStepWhenAnotherWindowHoldsTheMouse)
     EXPECT_EQ(Runtime().ui.mouseOnUi, 0);
     Runtime().ui.capture = 0;
     ASSERT_TRUE(Step().HasValue());
-    EXPECT_EQ(Runtime().ui.hovered, Client::Scenes::SecondGuildWindowId);
+    EXPECT_EQ(Runtime().ui.hovered, Client::Guild::SecondGuildWindowId);
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
 }
 
@@ -521,11 +520,11 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     Guild().table[Creating].mark[9] = 4;
     Runtime().ui.focusedList = 3;
     ASSERT_TRUE(Draw().HasValue());
-    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::ShownWindow);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::ShownWindow);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
     // 0x655232: el id del EDIT en 0x5762ec0, así las flechas ya no mueven otra lista.
-    EXPECT_EQ(Runtime().ui.focusedList, Client::UI::DialogFieldId);
-    Client::UI::TypeInTheChat(Input(), "Ceibo");
+    EXPECT_EQ(Runtime().ui.focusedList, Client::Chat::DialogFieldId);
+    Client::Chat::TypeInTheChat(Input(), "Ceibo");
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -535,7 +534,7 @@ TEST_P(SecondGuildWindowTest, TheNamePageDrawsTheFieldAndTheEditor)
     // 0x468320, después de "nombre" (4): la caja del EDIT en el fondo de +0xa0 (0), alta como el EDIT (0xe), y el texto
     // (6). Cada WM_CHAR de "Ceibo" pone +0x80 en 0 (la subclase, 0x467b9d), y el cursor del segundo dibujo (+0x80 en 0,
     // prendido) va en la columna 3 + cx + 1 de un bitmap de ftol(3 + cx): al final del texto queda recortado (el editor
-    // XP de UI::OldDraw::DrawTheOldEdit).
+    // XP de Ui::OldDraw::DrawTheOldEdit).
     constexpr float Tolerance = 1e-3f;
     EXPECT_EQ(quads[4].slot, Marker);
     EXPECT_EQ(quads[5].slot, NoTexture);
@@ -597,9 +596,9 @@ TEST_P(SecondGuildWindowTest, TheNameChecksOpenTheirNotices)
         SCOPED_TRACE(name);
         ASSERT_TRUE(Draw().HasValue());
         Input().dialogEdit.text.SetText({});
-        Client::UI::TypeInTheChat(Input(), name);
+        Client::Chat::TypeInTheChat(Input(), name);
         Runtime().dialogs.current = 0;
-        Click(Client::Scenes::SecondGuildNextButton);
+        Click(Client::Guild::SecondGuildNextButton);
         EXPECT_EQ(Runtime().dialogs.current, notice);
         EXPECT_EQ(Guild().createStep, 1);
         EXPECT_TRUE(Input().dialogEdit.text.Value().empty());
@@ -613,16 +612,16 @@ TEST_P(SecondGuildWindowTest, BackFromTheNameReturnsToTheQuestion)
     Guild().createKind = 1;
     Guild().createStep = 1;
     Hero().word1f2 = 1999;
-    Client::UI::CopyIntoTheBuffer(Input().messageBuffer, "Molle");
+    Client::Chat::CopyIntoTheBuffer(Input().messageBuffer, "Molle");
     Input().messageLength = 5;
     ASSERT_TRUE(Draw().HasValue());
-    Click(Client::Scenes::SecondGuildBackButton);
+    Click(Client::Guild::SecondGuildBackButton);
     EXPECT_EQ(Guild().createKind, 0);
     EXPECT_EQ(Guild().createStep, 0);
     EXPECT_EQ(Hero().word1f2, 0xffff);
     EXPECT_EQ(Input().messageBuffer[0], '\0');
     EXPECT_EQ(Input().messageLength, 0);
-    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
 }
 
 // 0x655c10 (la marca sola, Q-C1288): Próximo con la marca vacía avisa 0x7e; con color, la confirmación; en la
@@ -635,17 +634,17 @@ TEST_P(SecondGuildWindowTest, TheMarkOnlyPagesSendNoCreate)
     Guild().createKind = 2;
     Guild().createStep = 2;
     ASSERT_TRUE(Draw().HasValue());
-    Click(Client::Scenes::SecondGuildNextButton);
+    Click(Client::Guild::SecondGuildNextButton);
     EXPECT_EQ(Runtime().dialogs.current, 0x7e);
     EXPECT_EQ(Guild().createStep, 2);
     Runtime().dialogs.current = 0;
     Guild().table[Creating].mark[0] = 3;
-    Click(Client::Scenes::SecondGuildNextButton);
+    Click(Client::Guild::SecondGuildNextButton);
     EXPECT_EQ(Guild().createStep, 3);
-    Click(Client::Scenes::SecondGuildBackButton);
+    Click(Client::Guild::SecondGuildBackButton);
     EXPECT_EQ(Guild().createStep, 2);
-    Click(Client::Scenes::SecondGuildNextButton);
-    Click(Client::Scenes::SecondGuildNextButton);
+    Click(Client::Guild::SecondGuildNextButton);
+    Click(Client::Guild::SecondGuildNextButton);
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(PlainOf(m_sent[0]), BytesOf({0xc1, 0x04, 0x54, 0x00}));
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
@@ -696,7 +695,7 @@ TEST_P(SecondGuildWindowTest, WithoutTheMarksOrTheTextsTheDrawIsCut)
                            .sound = m_sound,
                            .sprites = m_sprites,
                            .text = m_text};
-    EXPECT_FALSE(Client::Scenes::DrawTheSecondGuildWindow(context).HasValue());
+    EXPECT_FALSE(Client::Guild::DrawTheSecondGuildWindow(context).HasValue());
 }
 
 // El alta de punta a punta: el 54 abre la ventana; Crear manda 54 01; el nombre tecleado (el Enter no lo toma el
@@ -705,24 +704,24 @@ TEST_P(SecondGuildWindowTest, WithoutTheMarksOrTheTextsTheDrawIsCut)
 // ventana queda cerrada, el campo del alta apagado, y el 56 con 1 vacía el buffer del mensaje.
 TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
 {
-    Client::Scenes::GuildReceiveContext receive{
+    Client::Guild::GuildReceiveContext receive{
         .world = *m_world, .random = m_random, .measure = &m_text, .texts = &m_texts, .now = Now, .send = Sender()};
-    ASSERT_TRUE(Client::Scenes::ApplyGuildPacket(Client::Protocol::Guild::MasterQuestion{}, receive).HasValue());
+    ASSERT_TRUE(Client::Guild::ApplyGuildPacket(Client::Protocol::Guild::MasterQuestion{}, receive).HasValue());
     ASSERT_EQ(Runtime().panels.delegated.secondGuild, 1);
     // El primer cuadro: el paso con los botones sin ubicar y el dibujo que los ubica.
     Frame();
-    Click(Client::Scenes::SecondGuildCreateButton);
+    Click(Client::Guild::SecondGuildCreateButton);
     ASSERT_EQ(Guild().createStep, 1);
     ASSERT_EQ(m_sent.size(), 1u);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::Dialog);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::Dialog);
 
     // Los cuadros de la página del nombre: el EDIT cuenta sus dibujos (0x468320) y el WM_CHAR los vuelve a 0
     // (0x467b9d).
     Frame();
     Frame();
     EXPECT_GE(Input().dialogEdit.draws, 2);
-    Client::Scenes::GameChatContext chat{.world = *m_world, .random = m_random, .texts = &m_texts};
-    ASSERT_TRUE(Client::Scenes::TypeInTheGameChat(chat, "Ceibo\r").HasValue());
+    Client::Chat::GameChatContext chat{.world = *m_world, .random = m_random, .texts = &m_texts};
+    ASSERT_TRUE(Client::Chat::TypeInTheGameChat(chat, "Ceibo\r").HasValue());
     EXPECT_EQ(Input().dialogEdit.draws, 0);
     EXPECT_EQ(Input().dialogEdit.text.Value(), "Ceibo");
     EXPECT_TRUE(Runtime().ui.enterPressed);
@@ -736,13 +735,13 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     ASSERT_EQ(Guild().table[Creating].mark[0], 4);
     ASSERT_EQ(Guild().table[Creating].mark[63], 12);
 
-    Click(Client::Scenes::SecondGuildNextButton);
+    Click(Client::Guild::SecondGuildNextButton);
     ASSERT_EQ(Guild().createStep, 3);
     EXPECT_EQ(Runtime().dialogs.current, 0);
-    EXPECT_EQ(Input().dialogEdit.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Input().dialogEdit.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(std::string_view(Guild().table[Creating].guildName.data()), "Ceibo");
-    EXPECT_EQ(Client::UI::CStringOf(Input().messageBuffer), "Ceibo");
-    Click(Client::Scenes::SecondGuildNextButton);
+    EXPECT_EQ(Client::Chat::CStringOf(Input().messageBuffer), "Ceibo");
+    Click(Client::Guild::SecondGuildNextButton);
 
     ASSERT_EQ(m_sent.size(), 4u);
     std::vector<std::byte> create = BytesOf({0xc1, 0x2c, 0x55, 0x00, 'C', 'e', 'i', 'b', 'o', 0, 0, 0});
@@ -762,7 +761,7 @@ TEST_P(SecondGuildWindowTest, CreatesAGuildFromTheQuestionToTheCreatePacket)
     EXPECT_EQ(Guild().createStep, 0);
 
     ASSERT_TRUE(
-        Client::Scenes::ApplyGuildPacket(Client::Protocol::Guild::CreateResult{.result = 1}, receive).HasValue());
+        Client::Guild::ApplyGuildPacket(Client::Protocol::Guild::CreateResult{.result = 1}, receive).HasValue());
     EXPECT_EQ(Input().messageBuffer[0], '\0');
     EXPECT_EQ(m_sent.size(), 4u);
 }

@@ -25,7 +25,7 @@
 // (+0x18..+0x24) y el resto de su vtable. El original lo corre una vez por frame, antes de los pasos
 // de ese frame (0x63778c, con los milisegundos del frame, hasta 200); MuRet, como el resto de la UI
 // (Q-C81), al empezar cada paso de la escena, con los 40 ms del paso (Q-C490).
-namespace Client::UI
+namespace Client::Ui
 {
 // Qué mira vtable + 0xc (0x669df0): el rectángulo entero (0) o el título, los 26 píxeles de arriba
 // (2), que es lo que se agarra para arrastrar.
@@ -159,4 +159,4 @@ private:
     NewUiMode m_mode = NewUiMode::None;
     bool m_hasTheMouse = false;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -13,7 +13,7 @@ TEST(CastleFlagImageTest, TheOriginal64SquareHasTheMarkTheGrayFieldAndTheBorder)
     std::array<std::uint8_t, 64> mark{};
     mark[0] = 4;   // rojo
     mark[63] = 12; // azul
-    const auto painted = Client::Scenes::PaintTheCastleFlag(mark, 64, 64);
+    const auto painted = Client::CastleSiege::PaintTheCastleFlag(mark, 64, 64);
     ASSERT_TRUE(painted.HasValue()) << painted.Error();
     const auto& image = painted.Value();
     ASSERT_EQ(image.pixels.size(), 64u * 64u * 4u);

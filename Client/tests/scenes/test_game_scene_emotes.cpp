@@ -78,7 +78,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Session::ModuleStates states;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
@@ -95,7 +95,7 @@ TEST(GameSceneEmoteTest, ATransformedHeroSendsBothActionsAndTheChatBeforeTheFirs
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     scene.Step(Client::Input::InputState{});
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::EnteringWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::EnteringWorld);
     ASSERT_FALSE(world->Runtime().drawingEnabled);
 
     Client::Models::ModelTextureSlots slots{FaunaFirstTexture};

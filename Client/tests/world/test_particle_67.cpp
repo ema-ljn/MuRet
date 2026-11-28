@@ -18,10 +18,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
-using Client::World::Particle;
-using Client::World::Particles;
 constexpr std::int32_t Type67 = 0x67;
 
 TEST(Particle67Test, CreationUsesOneRandomValueAndLeavesTheCopiedVectorsUntouched)
@@ -57,7 +57,7 @@ TEST(Particle67Test, ExpiryStillMovesGrowsAndUsesTheMap34Color)
                         .velocity = {4, 5, 6}};
     CrtRandom random(7);
     const std::int32_t map = 34;
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
@@ -77,7 +77,7 @@ TEST(Particle67Test, TheMapPredicateReadsAllThirtyTwoBitsAndOtherMapsSubtractWit
         Particle& particle = particles.All()[0];
         particle = Particle{.alive = true, .type = Type67, .subtype = 0, .scale = 1, .light = {0, -1, 1}, .life = 2};
         CrtRandom random(7);
-        const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.light.x), 0xbd4ccccdu) << map;
         EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.light.y), 0xbf866666u) << map;
@@ -92,9 +92,9 @@ TEST(Particle67Test, MissingMapReportsTheFrontierAfterTheNativePrefixAndScaleSto
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true, .type = Type67, .subtype = 0, .scale = 1, .light = {2, 3, 4}, .life = 1};
     CrtRandom random(7);
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_FALSE(stepped.HasValue());
-    EXPECT_EQ(stepped.Error(), Client::World::ParticleError::MissingMap);
+    EXPECT_EQ(stepped.Error(), Client::Particles::ParticleError::MissingMap);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.scale), 0x3f83d70au);
@@ -109,7 +109,7 @@ TEST(Particle67Test, ThePostMovementSubtypeOneContinuationUsesTheStoredAccumulat
     particle = Particle{.alive = true, .type = Type67, .subtype = 1, .scale = 1, .life = 2, .verticalSpeed = 0.25f};
     CrtRandom random(7);
     const std::int32_t map = 34;
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.scale, 1.25f);
     EXPECT_EQ(particle.verticalSpeed, 0.25f);
@@ -122,7 +122,7 @@ TEST(Particle67Test, GrowthUsesTheBinary32ConstantRatherThanAnIdealDecimal)
         Particle{.alive = true, .type = Type67, .subtype = 0, .scale = std::bit_cast<float>(0xbcf5c28fu), .life = 2};
     CrtRandom random(7);
     const std::int32_t map = 34;
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.scale), 0u);
 }
@@ -132,16 +132,16 @@ TEST(Particle67Test, TheLegacyStepExposesItsMissingMapErrorInsteadOfReportingSuc
     Particles particles;
     particles.All()[0] = Particle{.alive = true, .type = Type67, .subtype = 0, .life = 2};
     CrtRandom random(7);
-    const auto error = Client::World::StepParticles(particles, random);
+    const auto error = Client::Particles::StepParticles(particles, random);
     ASSERT_TRUE(error.has_value());
-    EXPECT_EQ(*error, Client::World::ParticleError::MissingMap);
+    EXPECT_EQ(*error, Client::Particles::ParticleError::MissingMap);
 }
 
 TEST(Particle67Test, AnEmptyCheckedStepNeedsNoMapAndStillConsumesTheWindDraws)
 {
     Particles particles;
     CrtRandom random(7);
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     EXPECT_TRUE(stepped.HasValue());
     EXPECT_EQ(random.State(), 0xc40e66b9u);
 }
@@ -185,7 +185,7 @@ TEST(Particle67Test, CheckedDrawKeepsTheHeightOverlapAndReportsMissingMetadataFo
     }
     const auto missing = DrawOneParticle(particle, std::nullopt, std::uint8_t{3});
     ASSERT_FALSE(missing.HasValue());
-    EXPECT_EQ(missing.Error().reason, Client::World::ParticleError::MissingTextureSize);
+    EXPECT_EQ(missing.Error().reason, Client::Particles::ParticleError::MissingTextureSize);
     particle.position.z = 351;
     const auto hidden = DrawOneParticle(particle, std::nullopt, std::nullopt, 0, 0, 1);
     ASSERT_TRUE(hidden.HasValue());

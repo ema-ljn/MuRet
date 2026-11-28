@@ -12,7 +12,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -103,4 +103,4 @@ std::int32_t ReadLogicSteps(MonsterBodyFrame& frame)
     }
     return steps;
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

@@ -34,7 +34,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Items
 {
 namespace
 {
@@ -605,7 +605,7 @@ std::optional<UiItemCall> UiItemCallOf(std::int32_t type, std::uint32_t level)
     return call(type + ModelOffset);
 }
 
-bool UiItemHovered(const UiItemBox& box, UI::Point mouse, std::int32_t cursorItemCount, bool always)
+bool UiItemHovered(const UiItemBox& box, Ui::Point mouse, std::int32_t cursorItemCount, bool always)
 {
     if (cursorItemCount != 0 && !always)
         return false;
@@ -633,7 +633,7 @@ Core::Expected<glm::ivec2, std::string> UiItemAnchor(std::int32_t type, std::uin
     return glm::ivec2(*pixelX, *pixelY);
 }
 
-Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call, const UnprojectedPoint& anchor,
+Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call, const Scenes::UnprojectedPoint& anchor,
                                                          bool hovered, bool always, float worldClock,
                                                          const Tables::ItemTable* items, glm::vec3& angles)
 {
@@ -687,7 +687,7 @@ Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, f
     made.pass.projection = Math::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
     made.pass.farPlane = farPlane;
-    auto projection = MakeGameProjection(made.pass, FieldOfView);
+    auto projection = Scenes::MakeGameProjection(made.pass, FieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());
     made.projection = projection.Value();
@@ -770,12 +770,12 @@ void* UiItemLocalObject()
     return &localObject;
 }
 
-void HideUiItemJoints(GameDrawTailState& tail)
+void HideUiItemJoints(Scenes::GameDrawTailState& tail)
 {
-    for (JointState& joint : tail.joints)
+    for (Scenes::JointState& joint : tail.joints)
     {
         if (joint.alive && joint.ownerContext == UiItemLocalObject())
             joint.alive = false;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

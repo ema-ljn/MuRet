@@ -17,9 +17,9 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Items
 {
-void ClearForInventoryReply(const WorldEntryResources& resources)
+void ClearForInventoryReply(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     {
@@ -33,7 +33,7 @@ void ClearForInventoryReply(const WorldEntryResources& resources)
 }
 
 Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol::Items::InventoryList& list,
-                                                                 const WorldEntryResources& resources)
+                                                                 const Scenes::WorldEntryResources& resources)
 {
     ClearForInventoryReply(resources);
     // 0x4c5e4f..0x4c5e61: 0x443d40 apaga las entradas vivas de la tabla de 0x7d335d0 cuyo jinete (+0x108) es
@@ -57,4 +57,4 @@ Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol:
     }
     return result;
 }
-} // namespace Client::Scenes
+} // namespace Client::Items

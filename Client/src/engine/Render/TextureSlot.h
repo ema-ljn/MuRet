@@ -32,7 +32,7 @@ inline constexpr TextureSlot FirstTextTextureSlot{static_cast<std::uint16_t>(Ori
 // MuRet's guild marks, after the text slots. The original paints each mark into slot 0x22 (Interface\guild.tga) with
 // glTexImage2D right before its quad (0x5f16a0); MuRet builds the frame's batches and draws them later, so each mark
 // has its own slot: one per guild table entry (2000, 0x447b50) and background (0x5f16a0's second argument),
-// Scenes::GuildMarkTextures.
+// Guild::GuildMarkTextures.
 inline constexpr std::size_t GuildMarkTextureSlotCount = 4000;
 inline constexpr TextureSlot FirstGuildMarkTextureSlot{
     static_cast<std::uint16_t>(OriginalTextureSlotCount + TextTextureSlotCount)};
@@ -44,7 +44,7 @@ inline constexpr TextureSlot FirstGuildSwatchTextureSlot{
 // The alliance list rows' marks (P-C289), after the colors: 0x46dfa0 paints each row's into entry 1999
 // (0x5f16a0(1999, 1)) and draws its quad right away, so in the original each row sees its own; with the frame batch,
 // slot (1999, 1) would hold the last one's. MuRet gives each of the list's 6 rows one (+0x104 of 0x45f630,
-// Scenes::GuildSmallList).
+// Guild::GuildSmallList).
 inline constexpr std::size_t GuildUnionMarkTextureSlotCount = 6;
 inline constexpr TextureSlot FirstGuildUnionMarkTextureSlot{static_cast<std::uint16_t>(
     OriginalTextureSlotCount + TextTextureSlotCount + GuildMarkTextureSlotCount + GuildSwatchTextureSlotCount)};

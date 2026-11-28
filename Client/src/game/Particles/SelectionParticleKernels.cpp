@@ -15,7 +15,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -129,7 +129,7 @@ Core::Expected<void, ParticleError> StepOwnedMist(Particle& p, const float* worl
                                                   IParticleTrigonometry* trigonometry,
                                                   const ParticleObjectOwners& owners)
 {
-    WorldObject* owner = nullptr;
+    WorldObjects::WorldObject* owner = nullptr;
     if (p.typedOwner.kind == ParticleOwnerKind::WorldObject && owners)
         owner = owners(p.typedOwner.identity);
     if (owner == nullptr)
@@ -226,4 +226,4 @@ Core::Expected<void, ParticleError> StepSelectionParticle(Particle& particle, co
         StepChaseLight(particle);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

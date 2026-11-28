@@ -104,12 +104,12 @@ struct Replies
     }
     static constexpr std::uint16_t PlayerKey = 33;
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };

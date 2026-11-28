@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::ChaosMix
 {
 namespace
 {
@@ -154,9 +154,9 @@ Core::Expected<std::uint32_t, std::string> PriceOf(const Kernel::ItemState& item
 {
     if (items == nullptr)
         return Core::Unexpected(std::format("{}: 0x54d0f0 sin Item.bmd ([0x7758550])", address));
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
-    auto price = ItemPrice(item, *items, mode, pets);
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    auto price = Items::ItemPrice(item, *items, mode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, price.Error()));
     return price.Value();
@@ -184,7 +184,7 @@ Core::Expected<bool, std::string> WithTheFirstExcellent(const Kernel::ItemState&
 }
 
 // 0x5fd9c3..0x5fda7b: lo que no tiene un caso propio.
-Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
+Core::Expected<void, std::string> CountTheRest(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                std::int32_t level, bool& checksLuck, const Tables::ItemTable* items,
                                                const Kernel::WorldRuntime& runtime)
 {
@@ -217,7 +217,7 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc
         return {};
     }
     ++tally.excellent;
-    auto price = PriceOf(item, items, ShopGridPrice, runtime, "0x5fda65");
+    auto price = PriceOf(item, items, Items::ShopGridPrice, runtime, "0x5fda65");
     if (!price.HasValue())
         return Core::Unexpected(price.Error());
     tally.excellentPrices += price.Value();
@@ -226,12 +226,12 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, NpcWindowState& npc
 
 // 0x5fd7f7..0x5fda99: las alas de primer nivel, con su precio y la opción de las alas. Después mira la suerte sin
 // mirar [EBP − 8], en la variable local [EBP − 0x11] (y en 0x7d2dc9c si el nivel la prendió).
-Core::Expected<void, std::string> CountTheWings(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
+Core::Expected<void, std::string> CountTheWings(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                 const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
     ++tally.wings;
     npc.mixWingOption = 0;
-    auto price = PriceOf(item, items, ShopGridPrice, runtime, "0x5fd814");
+    auto price = PriceOf(item, items, Items::ShopGridPrice, runtime, "0x5fd814");
     if (!price.HasValue())
         return Core::Unexpected(price.Error());
     tally.wingsPrice = price.Value();
@@ -332,12 +332,12 @@ bool CountByType(Tally& tally, const Kernel::ItemState& item, std::int32_t level
 }
 
 // Una casilla con tipo y +0x3c (0x5fd5bd..0x5fd7b7).
-Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc, const Kernel::ItemState& item,
+Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
     ++tally.total;
     // 0x5fd5ca..0x5fd60d: el ancho y el alto más grandes.
-    auto footprint = ItemFootprintOf(items, item.id, "0x5fd5ef");
+    auto footprint = Items::ItemFootprintOf(items, item.id, "0x5fd5ef");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
     if (npc.mixWidth <= footprint.Value().width)
@@ -362,7 +362,7 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc
                                           ++tally.excellentWeapons;
                                       else if (type >= WeaponsEnd)
                                           ++tally.excellentArmors;
-                                      auto price = PriceOf(item, items, InventoryPrice, runtime, "0x5fd671");
+                                      auto price = PriceOf(item, items, Items::InventoryPrice, runtime, "0x5fd671");
                                       if (!price.HasValue())
                                           return Core::Unexpected(price.Error());
                                       npc.mixExcellentValue = static_cast<std::int32_t>(
@@ -418,7 +418,7 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, NpcWindowState& npc
 }
 
 // 0x5fdac0..0x5fdc30: los que se deciden por la cuenta total.
-std::optional<std::int32_t> KindByTotal(const Tally& t, NpcWindowState& npc)
+std::optional<std::int32_t> KindByTotal(const Tally& t, Npc::NpcWindowState& npc)
 {
     if (t.total == 3)
     {
@@ -469,7 +469,7 @@ std::optional<std::int32_t> KindByTotal(const Tally& t, NpcWindowState& npc)
 }
 
 // 0x5fe30d..0x5fe33a y 0x5fe386..0x5fe3b1.
-void RateTheWings(const Tally& t, NpcWindowState& npc)
+void RateTheWings(const Tally& t, Npc::NpcWindowState& npc)
 {
     const std::uint32_t rate = t.excellentPrices / ExcellentRateDivisor + t.wingsPrice / WingsRateDivisor;
     const auto signedRate = static_cast<std::int32_t>(rate);
@@ -525,7 +525,8 @@ std::int32_t KindOfTheRest(const Tally& t)
 } // namespace
 
 Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const Kernel::ItemState> grid,
-                                                        const Tables::ItemTable* items, const PetPriceLevels& pets)
+                                                        const Tables::ItemTable* items,
+                                                        const Items::PetPriceLevels& pets)
 {
     std::int32_t value = 0;
     bool chaos = false;
@@ -555,7 +556,7 @@ Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const Kernel::
         {
             if (items == nullptr)
                 return Core::Unexpected(std::string("0x5fd1ae: 0x54d0f0 sin Item.bmd ([0x7758550])"));
-            auto price = ItemPrice(item, *items, ShopGridPrice, pets);
+            auto price = Items::ItemPrice(item, *items, Items::ShopGridPrice, pets);
             if (!price.HasValue())
                 return Core::Unexpected(std::format("0x5fd1ae: {}", price.Error()));
             add = static_cast<std::int32_t>(price.Value());
@@ -573,7 +574,7 @@ Core::Expected<std::int32_t, std::string> ChaosMixKind(Kernel::WorldState& world
                                                        const Tables::ItemTable* items)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     // 0x5fd4fc..0x5fd552.
     npc.mixExcellentValue = 0;
     npc.mixHeight = 1;
@@ -628,9 +629,9 @@ Core::Expected<void, std::string> ScanTheChaosBox(Kernel::WorldState& world, Crt
                                                   const Tables::ItemTable* items)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    Npc::NpcWindowState& npc = runtime.npcWindows;
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
     auto value = ChaosBoxValue(npc.chaosBox, items, pets);
     if (!value.HasValue())
         return Core::Unexpected(value.Error());
@@ -668,7 +669,7 @@ bool HasRoomFor(std::span<const Kernel::ItemState> grid, std::int32_t columns, s
     return false;
 }
 
-MixRoom MixRoomFor(const NpcWindowState& npc, std::int32_t kind)
+MixRoom MixRoomFor(const Npc::NpcWindowState& npc, std::int32_t kind)
 {
     // La tabla de 0x5febd4 con kind − 1 (0..0x1b) y sus casos de 0x5febc0.
     switch (kind)
@@ -756,7 +757,7 @@ std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate)
     return ThousandsText(price + tax);
 }
 
-Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc, const MixQuoteData& data)
+Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc, const MixQuoteData& data)
 {
     // 0x5fedac..0x5fede8: la chance de lo que vale la caja (/ 20.000 con signo, tope 100) y su precio.
     std::int32_t rate = npc.chaosBoxValue / 20'000;
@@ -860,4 +861,4 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const NpcWindowState& npc, cons
         return result;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::ChaosMix

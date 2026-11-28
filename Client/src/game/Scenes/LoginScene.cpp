@@ -147,18 +147,18 @@ namespace
 {
 constexpr Audio::SoundId ButtonClickSound = Sound::ButtonClickSound;
 
-std::string ObjectCreationFailureMessage(const World::WorldObjectCreationFailure& failure)
+std::string ObjectCreationFailureMessage(const WorldObjects::WorldObjectCreationFailure& failure)
 {
     const char* reason = "error de creación desconocido";
     switch (failure.error)
     {
-    case World::WorldObjectCreationError::InvalidAngle:
+    case WorldObjects::WorldObjectCreationError::InvalidAngle:
         reason = "ángulo fuera del dominio admitido";
         break;
-    case World::WorldObjectCreationError::UnsupportedEffect:
+    case WorldObjects::WorldObjectCreationError::UnsupportedEffect:
         reason = "efecto de creación no disponible";
         break;
-    case World::WorldObjectCreationError::UnsupportedMapHandler:
+    case WorldObjects::WorldObjectCreationError::UnsupportedMapHandler:
         reason = "handler de creación no disponible";
         break;
     }
@@ -255,9 +255,10 @@ constexpr int NoSlot = -1;
 }
 
 // Los dos estados del connect, que en el original es bloqueante (Q-C85).
-[[nodiscard]] bool IsConnecting(App::SessionState state)
+[[nodiscard]] bool IsConnecting(Session::SessionState state)
 {
-    return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
+    return state == Session::SessionState::ConnectingConnectServer ||
+           state == Session::SessionState::ConnectingGameServer;
 }
 } // namespace
 
@@ -297,7 +298,7 @@ public:
 private:
     [[nodiscard]] const Models::IModelLibrary& Of(Models::ModelId model) const
     {
-        return model.Value() == LoginLogoModel ? m_logo : m_world;
+        return model.Value() == FrontEnd::LoginLogoModel ? m_logo : m_world;
     }
 
     const Models::IModelLibrary& m_world;
@@ -343,18 +344,18 @@ private:
 };
 
 // El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
-World::WorldObject LogoWorldObject()
+WorldObjects::WorldObject LogoWorldObject()
 {
-    const ModelObject logo = LoginLogo();
-    World::WorldObject object;
+    const FrontEnd::ModelObject logo = FrontEnd::LoginLogo();
+    WorldObjects::WorldObject object;
     object.type = static_cast<std::int16_t>(logo.model);
     object.transform = logo.transform;
     object.state = logo.state;
     object.light = logo.light;
     object.speed = logo.speed;
     object.vertexLight = false;
-    object.sectorX = World::SectorOf(object.transform.position.x);
-    object.sectorY = World::SectorOf(object.transform.position.y);
+    object.sectorX = WorldObjects::SectorOf(object.transform.position.x);
+    object.sectorY = WorldObjects::SectorOf(object.transform.position.y);
     return object;
 }
 
@@ -411,7 +412,7 @@ void LoginScene::DetachTheDragonOwner()
     // El mundo compartido puede conservar efectos después de la escena, aun en lugares inactivos.
     // La vida y la visibilidad del último dibujo no dependen de este enlace.
     const void* owner = &m_objects.front();
-    for (World::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
+    for (Effects::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
     {
         if (effect.ownerContext == owner)
         {
@@ -492,16 +493,16 @@ Core::Expected<void, std::string> LoginScene::Enter()
     m_menuBar.Close();
     m_login.Close();
     m_notice.Close();
-    m_escape.Arm(UI::NewUiMode::Login);
+    m_escape.Arm(Ui::NewUiMode::Login);
     // 0x644120 con los globales (0x6446e0) y 0x63f020, que lee credit.bmd (en MuRet, GameData).
-    m_options.Arm(OptionsSettingsOf(CharacterWorld().Runtime()));
+    m_options.Arm(Hud::OptionsSettingsOf(CharacterWorld().Runtime()));
     m_credits.Arm();
     ReleaseTheIllustrations();
     // 0x65f300: cada una en la cabeza, en este orden: el aviso, la de Esc, las opciones, la barra, la
     // lista, la cuenta y los créditos.
-    const std::array<UI::NewUiWindow*, 7> uiWindows{&m_notice,     &m_escape, &m_options, &m_menuBar,
+    const std::array<Ui::NewUiWindow*, 7> uiWindows{&m_notice,     &m_escape, &m_options, &m_menuBar,
                                                     &m_serverList, &m_login,  &m_credits};
-    m_ui.Build(UI::NewUiMode::Login, uiWindows);
+    m_ui.Build(Ui::NewUiMode::Login, uiWindows);
     m_seen.reset();
     m_sawTheAddress = false;
     m_quit = false;
@@ -513,13 +514,14 @@ Core::Expected<void, std::string> LoginScene::Enter()
     // 0x634b45..0x634b5e: 120 mensajes vacíos.
     if (m_context.world != nullptr)
     {
-        if (auto emptied = AddTheEmptyMessages(m_context.world->Runtime(), m_context.textMeasure); !emptied.HasValue())
+        if (auto emptied = Chat::AddTheEmptyMessages(m_context.world->Runtime(), m_context.textMeasure);
+            !emptied.HasValue())
         {
             RetainTheTerrain();
             return emptied;
         }
         // 0x634bf0..0x634c2e: la ventana de los comandos ([0x6e592c]) cerrada y sin comando.
-        UI::ResetTheCommands(m_context.world->Runtime().panels.delegated);
+        Ui::ResetTheCommands(m_context.world->Runtime().panels.delegated);
     }
     auto placed = PlaceTheModels();
     if (!placed.HasValue())
@@ -651,7 +653,7 @@ void LoginScene::LoadTheObjects()
 Core::Expected<void, std::string> LoginScene::LoadTheLogo()
 {
     m_logo.Clear();
-    auto model = Data::Models::LoadModelFile(m_context.dataRoot, LoginLogoFile);
+    auto model = Data::Models::LoadModelFile(m_context.dataRoot, FrontEnd::LoginLogoFile);
     if (!model.HasValue())
     {
         m_context.log.Warning("el logo no se puede leer y no se dibuja: {}", model.Error().path);
@@ -672,10 +674,10 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     }
     else
     {
-        m_logoSlots.emplace(LoginLogoFirstSlot);
+        m_logoSlots.emplace(FrontEnd::LoginLogoFirstSlot);
     }
     std::vector<Render::TextureSlot> meshTextures =
-        m_logoSlots->Assign(model.Value(), LoginLogoTextureFolder, LoginLogoSampling);
+        m_logoSlots->Assign(model.Value(), FrontEnd::LoginLogoTextureFolder, FrontEnd::LoginLogoSampling);
     // Una textura del logo que falta cierra el original (0x60d5f0 con su quinto argumento en 1).
     m_logoTextures.emplace(m_context.textures, m_logoSlots->ToLoad());
     auto uploaded = m_logoTextures->Load(m_context.dataRoot);
@@ -683,7 +685,8 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     {
         return uploaded;
     }
-    m_logo.Set(LoginLogoModel, std::move(model).Value(), std::move(skeleton).Value(), std::move(meshTextures));
+    m_logo.Set(FrontEnd::LoginLogoModel, std::move(model).Value(), std::move(skeleton).Value(),
+               std::move(meshTextures));
     return {};
 }
 
@@ -702,17 +705,17 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     if (map == DragonMap)
     {
         Data::Terrain::TerrainObject owner;
-        owner.type = World::DragonEffect;
+        owner.type = Effects::DragonEffect;
         owner.position = {DragonOwnerPosition.x, DragonOwnerPosition.y, DragonOwnerPosition.z};
         owner.scale = 1.0f;
-        auto created = World::CreateWorldObjects(std::span(&owner, 1), map, World::ObjectScene::Login);
+        auto created = WorldObjects::CreateWorldObjects(std::span(&owner, 1), map, WorldObjects::ObjectScene::Login);
         if (created.failure.has_value())
         {
             return Core::Unexpected(ObjectCreationFailureMessage(*created.failure));
         }
         m_objects = std::move(created.objects);
     }
-    auto fromTheFile = World::CreateWorldObjects(m_objectRecords, map, World::ObjectScene::Login);
+    auto fromTheFile = WorldObjects::CreateWorldObjects(m_objectRecords, map, WorldObjects::ObjectScene::Login);
     if (fromTheFile.failure.has_value())
     {
         return Core::Unexpected(ObjectCreationFailureMessage(*fromTheFile.failure));
@@ -736,13 +739,13 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     if (m_world && m_world->map == DragonMap)
     {
         // 0x606953..0x60697a: el dueño durable y la clave -1, después de la última realocación.
-        (void)CharacterWorld().Map().effects.Create(Kernel::ModelEffectArguments{.type = World::DragonEffect,
+        (void)CharacterWorld().Map().effects.Create(Kernel::ModelEffectArguments{.type = Effects::DragonEffect,
                                                                                  .position = DragonOwnerPosition,
                                                                                  .angles = glm::vec3(0.0f),
                                                                                  .light = glm::vec3(1.0f),
                                                                                  .owner = &m_objects.front(),
                                                                                  .key = 0xffff,
-                                                                                 .scale = World::DragonScale});
+                                                                                 .scale = Effects::DragonScale});
     }
     m_routes = {};
     m_horse = {};
@@ -762,7 +765,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
         {
             if (const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId))
             {
-                PrepareLoginPresentationActor(world.Actors()[LoginActorSlot], *skeleton);
+                FrontEnd::PrepareLoginPresentationActor(world.Actors()[FrontEnd::LoginActorSlot], *skeleton);
             }
             return {};
         }
@@ -772,12 +775,13 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
     // Un modelo todavía sin cargar tiene cero acciones: 0x4ea030 no cambia la acción, y el paso corta
     // donde necesita Player.bmd (0x4f9580). Así los tests de carga pueden inspeccionar las texturas.
     const Models::Skeleton empty;
-    auto built = ConstructLoginActor(world.Actors()[LoginActorSlot],
-                                     {.terrain = *terrain,
-                                      .map = world.Runtime().map,
-                                      .scene = Terrain::CullingScene::Login,
-                                      .fixedHeight = CameraState().fixedHeight},
-                                     world.Runtime(), CharacterRandomWorld(), skeleton != nullptr ? *skeleton : empty);
+    auto built =
+        FrontEnd::ConstructLoginActor(world.Actors()[FrontEnd::LoginActorSlot],
+                                      {.terrain = *terrain,
+                                       .map = world.Runtime().map,
+                                       .scene = Terrain::CullingScene::Login,
+                                       .fixedHeight = CameraState().fixedHeight},
+                                      world.Runtime(), CharacterRandomWorld(), skeleton != nullptr ? *skeleton : empty);
     if (built.HasValue() && m_context.selection != nullptr)
     {
         m_context.selection->EnterLogin();
@@ -825,7 +829,7 @@ void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
     }
     // Con la orden de cerrar el juego, el paso no atiende nada, ni el mundo: el original no corre otro
     // después del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
-    if (m_session->State() == App::SessionState::QuitOrdered)
+    if (m_session->State() == Session::SessionState::QuitOrdered)
     {
         return;
     }
@@ -862,14 +866,14 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
     if (m_context.world == nullptr && m_terrain.Terrain() == nullptr)
     {
         // Los fixtures de UI/modelos no tienen un TerrainWall que pueda pasar 0x508f00.
-        Kernel::ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
+        Kernel::ActorState& actor = CharacterWorld().Actors()[FrontEnd::LoginActorSlot];
         const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId);
         if (actor.alive && skeleton != nullptr && actor.animation.action < skeleton->actions.size())
         {
             const auto& action = skeleton->actions[actor.animation.action];
             if (Models::AdvanceAnimation(actor.animation, action, action.speed, Models::AnimationScene::Other))
             {
-                Models::SetAction(actor.animation, *skeleton, LoginCharacterStandingAction);
+                Models::SetAction(actor.animation, *skeleton, FrontEnd::LoginCharacterStandingAction);
             }
         }
         return {};
@@ -886,7 +890,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          .scene = SceneId::Login,
          .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId),
          .terrain = m_terrain.Terrain(),
-         .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{DarkSpiritModel}),
+         .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{Pets::DarkSpiritModel}),
          .particles = &CharacterWorld().Particles(),
          .worldClock = clock,
          .counter = cloth.logicSteps,
@@ -906,10 +910,10 @@ void LoginScene::StepTheWorld()
     {
         // 0x634cca: el gesto va antes de las olas y de todo el paso del mundo.
         const std::optional<std::uint8_t> action =
-            LoginCharacterActionAt(m_context.clock->Now(), CharacterRandomWorld().random);
+            FrontEnd::LoginCharacterActionAt(m_context.clock->Now(), CharacterRandomWorld().random);
         if (action)
         {
-            Models::SetAction(CharacterWorld().Actors()[LoginActorSlot].animation, *player, *action);
+            Models::SetAction(CharacterWorld().Actors()[FrontEnd::LoginActorSlot].animation, *player, *action);
         }
     }
     // 0x634cf0: con los créditos abiertos (+0x4584), nada más: ni la luz, ni los objetos, ni el caballo, ni
@@ -930,24 +934,24 @@ void LoginScene::StepTheWorld()
     }
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
     // del mundo con los casos del mapa 55, y el logo con los suyos.
-    StepWorldObjects(m_objects, m_world ? m_world->map : 0, m_worldModels,
-                     [this](World::WorldObject& object)
-                     {
-                         if (!m_logoIndex || &object != &m_objects[*m_logoIndex])
-                         {
-                             return false;
-                         }
-                         StepTheLogo(object);
-                         return true;
-                     });
+    WorldObjects::StepWorldObjects(m_objects, m_world ? m_world->map : 0, m_worldModels,
+                                   [this](WorldObjects::WorldObject& object)
+                                   {
+                                       if (!m_logoIndex || &object != &m_objects[*m_logoIndex])
+                                       {
+                                           return false;
+                                       }
+                                       StepTheLogo(object);
+                                       return true;
+                                   });
     // 0x445230 → 0x444010: el caballo, con la acción que el jinete tiene en este paso (la de arriba, o la
     // del gesto que todavía no terminó).
-    if (const Models::Skeleton* horse = m_models.SkeletonOf(Models::ModelId{DarkHorseModel}))
+    if (const Models::Skeleton* horse = m_models.SkeletonOf(Models::ModelId{Pets::DarkHorseModel}))
     {
         // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
         // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
         const Kernel::DarkHorse drawn = m_horse;
-        StepDarkHorse(m_horse, *horse, CharacterWorld().Actors()[LoginActorSlot].animation.action);
+        Pets::StepDarkHorse(m_horse, *horse, CharacterWorld().Actors()[FrontEnd::LoginActorSlot].animation.action);
         BreatheTheHorse(drawn);
     }
     // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
@@ -958,12 +962,12 @@ void LoginScene::StepTheWorld()
     if (const Terrain::WorldTerrain* terrain = m_terrain.Terrain();
         m_context.cloth != nullptr && terrain != nullptr && m_world && m_world->map == EmberMap)
     {
-        const World::EmberWorld embers{.hero = CameraInputState().hero,
-                                       .cameraY = m_drawnSinceEntering ? m_drawnCamera.position.y : 0.0f,
-                                       .heights = terrain->heights.get(),
-                                       .attributes = terrain->attributes.get(),
-                                       .fixedHeight = CameraState().fixedHeight};
-        World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
+        const Weather::EmberWorld embers{.hero = CameraInputState().hero,
+                                         .cameraY = m_drawnSinceEntering ? m_drawnCamera.position.y : 0.0f,
+                                         .heights = terrain->heights.get(),
+                                         .attributes = terrain->attributes.get(),
+                                         .fixedHeight = CameraState().fixedHeight};
+        Weather::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
     }
     // 0x634d13: el paso común incluye el cuerpo, el cuervo de cada dueño y sus efectos y cabeza.
     if (auto stepped = StepTheCharacters(); !stepped.HasValue())
@@ -993,7 +997,7 @@ void LoginScene::StepTheWorld()
             return;
         }
     }
-    AdvanceRoutes(m_routes);
+    FrontEnd::AdvanceRoutes(m_routes);
 }
 
 std::function<double(float, float)> LoginScene::TerrainHeight()
@@ -1028,7 +1032,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
     };
     // Lo que 0x5208a0 lee afuera del efecto, como en el juego: los joints que suelta un efecto (0x530860) van a la
     // tabla del mundo, que el login avanza (0x53c670, StepTheJoints) y dibuja (0x53c6a0(0), DrawTheModels).
-    const World::ModelEffectStepServices services{
+    const Effects::ModelEffectStepServices services{
         .terrainHeight = terrainHeight,
         .sprites = &m_sprites,
         .effects = &world.Map().effects,
@@ -1039,7 +1043,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         .sound = sound,
         .joint = [&world, &cloth](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
-            const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
+            const auto created = Joints::CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
             return {};
@@ -1047,31 +1051,31 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         .publishAction = publishAction,
         .soundAt = [&world](Audio::SoundId id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); },
         .hero = &world.Hero()};
-    World::WizardEffectServices wizard =
-        WizardEffectServicesOf(world, cloth.random,
-                               WizardSceneParts{.particles = &world.Particles(),
-                                                .worldClock = worldClock,
-                                                .sprites = &m_sprites,
-                                                .terrain = terrain,
-                                                .fixedHeight = CameraState().fixedHeight,
-                                                .cameraShake = &CameraInputState().shake,
-                                                .sound = sound,
-                                                .dynamicLighting = &DynamicLight().Lighting(),
-                                                .faunaModels = &States().assets.fauna});
+    Effects::WizardEffectServices wizard =
+        Effects::WizardEffectServicesOf(world, cloth.random,
+                                        Effects::WizardSceneParts{.particles = &world.Particles(),
+                                                                  .worldClock = worldClock,
+                                                                  .sprites = &m_sprites,
+                                                                  .terrain = terrain,
+                                                                  .fixedHeight = CameraState().fixedHeight,
+                                                                  .cameraShake = &CameraInputState().shake,
+                                                                  .sound = sound,
+                                                                  .dynamicLighting = &DynamicLight().Lighting(),
+                                                                  .faunaModels = &States().assets.fauna});
     // 0x52d222..0x52d22d: 0x44dc40(0, 0, 0) borra el desvío de la cámara antes del primer efecto.
     CameraInputState().effectTarget = glm::vec3(0.0f);
     const LoginEffectModels models(m_worldModels, m_models);
-    for (World::ModelEffect& effect : world.Map().effects.Effects())
+    for (Effects::ModelEffect& effect : world.Map().effects.Effects())
     {
         if (!effect.alive)
             continue;
         const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)});
         // 0x5208a0 con su primer rand() (0x5208c5) para todos: los de las magias (el meteoro 0xc2/9) por
-        // World::WizardModelEffects y los demás (el dragón 0xb4) por World::StepGameModelEffect.
-        const auto stepped = World::IsWizardModelEffect(effect.type)
-                                 ? World::StepWizardModelEffect(effect, skeleton, cloth.random, wizard)
-                                 : World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock,
-                                                              cloth.random, world.Map().kalima.get(), services);
+        // World::WizardModelEffects y los demás (el dragón 0xb4) por Effects::StepGameModelEffect.
+        const auto stepped = Effects::IsWizardModelEffect(effect.type)
+                                 ? Effects::StepWizardModelEffect(effect, skeleton, cloth.random, wizard)
+                                 : Effects::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock,
+                                                                cloth.random, world.Map().kalima.get(), services);
         if (!stepped.HasValue())
             return Core::Unexpected(stepped.Error() + ", en el login (0x634d18 → 0x52d220)");
     }
@@ -1089,7 +1093,7 @@ Core::Expected<void, std::string> LoginScene::StepTheJoints()
     const auto actors = world.Actors();
     const std::size_t heroSlot = world.Runtime().hero;
     const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
-    const auto stepped = StepJoints(
+    const auto stepped = Joints::StepJoints(
         world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), WorldClock(), &m_sprites,
         &DynamicLight().Lighting(), [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, TerrainHeight(),
         actors, {}, &world.Map().effects, hero, &world);
@@ -1102,13 +1106,14 @@ Core::Expected<void, std::string> LoginScene::StepTheParticles()
 {
     Kernel::WorldState& world = CharacterWorld();
     const float worldClock = WorldClock();
-    World::PortableParticleTrigonometry trigonometry;
-    const auto stepped = World::StepParticlesChecked(
+    Particles::PortableParticleTrigonometry trigonometry;
+    const auto stepped = Particles::StepParticlesChecked(
         world.Particles(), m_context.cloth->random, std::cref(worldClock), &world.Runtime().map, trigonometry,
-        TerrainHeight(), ParticleOwnersAmong(m_objects), ParticleActorActionsAmong(world.Actors()),
-        ParticleTextureHeightsOf(m_models), &DynamicLight().Lighting(),
-        ParticleActorHandsAmong(world.Actors(), world.Runtime().hero), ParticleOwnerBonesOf(world),
-        [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, ParticleOwnerStatesOf(world), &m_sprites);
+        TerrainHeight(), Effects::ParticleOwnersAmong(m_objects), Effects::ParticleActorActionsAmong(world.Actors()),
+        Effects::ParticleTextureHeightsOf(m_models), &DynamicLight().Lighting(),
+        Effects::ParticleActorHandsAmong(world.Actors(), world.Runtime().hero), Effects::ParticleOwnerBonesOf(world),
+        [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, Effects::ParticleOwnerStatesOf(world),
+        &m_sprites);
     if (!stepped.HasValue())
         return Core::Unexpected(std::format("0x634d22 → 0x5446e0: el paso de las partículas del login falla con el "
                                             "error {}",
@@ -1139,8 +1144,9 @@ void LoginScene::BreatheTheHorse(const Kernel::DarkHorse& drawn)
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
-    (void)CharacterWorld().Particles().Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset, drawn),
-                                              LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
+    (void)CharacterWorld().Particles().Create(
+        Particles::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset, drawn),
+        FrontEnd::LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
 }
 
 glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
@@ -1160,11 +1166,11 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
     if (drawnHorse.alpha >= Drawn)
     {
         posed.push_back(Actors::Drawing::PosedInTheBuffer{
-            &m_models, DrawnDarkHorse(drawnHorse, m_models.SkeletonOf(Models::ModelId{DarkHorseModel}),
-                                      LoginCharacterTransform(), DarkHorseLoginScale, 0.0f)});
+            &m_models, Pets::DrawnDarkHorse(drawnHorse, m_models.SkeletonOf(Models::ModelId{Pets::DarkHorseModel}),
+                                            FrontEnd::LoginCharacterTransform(), Pets::DarkHorseLoginScale, 0.0f)});
     }
     const LoginEffectModels effectModels(m_worldModels, m_models);
-    for (const World::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
+    for (const Effects::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
     {
         if (!effect.alive || !effect.seen || effect.alpha < Drawn)
         {
@@ -1181,7 +1187,7 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
 
 void LoginScene::FollowSession()
 {
-    const App::SessionState state = m_session->State();
+    const Session::SessionState state = m_session->State();
     if (m_seen == state)
     {
         return;
@@ -1189,10 +1195,10 @@ void LoginScene::FollowSession()
     m_seen = state;
     switch (state)
     {
-    case App::SessionState::ChoosingServer:
+    case Session::SessionState::ChoosingServer:
     {
         // 0x4c1860 con el F4 06.
-        UI::ServerGroups groups = UI::GroupServers(m_session->ServerList());
+        FrontEnd::ServerGroups groups = FrontEnd::GroupServers(m_session->ServerList());
         if (groups.ignored > 0)
         {
             m_context.log.Warning("{} servidores de la lista no se muestran: son de un grupo sin botón o pasan los "
@@ -1207,44 +1213,44 @@ void LoginScene::FollowSession()
         m_ui.Raise(m_menuBar);
         return;
     }
-    case App::SessionState::WaitingCredentials:
+    case Session::SessionState::WaitingCredentials:
         m_ui.Close(m_serverList);
         // Con un resultado, el login se rechazó: su aviso, y el OK abre la cuenta (0x643560). Sin
         // él, el F1 00 (0x4c1e20).
         if (const std::optional<std::uint8_t> result = m_session->LoginResult())
         {
-            if (const std::optional<UI::NoticeId> notice = UI::NoticeOfLoginResult(*result))
+            if (const std::optional<Ui::NoticeId> notice = Ui::NoticeOfLoginResult(*result))
             {
                 OpenNotice(*notice);
                 return;
             }
         }
-        OpenLogin(UI::LoginFocus::Account);
+        OpenLogin(FrontEnd::LoginFocus::Account);
         return;
-    case App::SessionState::Failed:
+    case Session::SessionState::Failed:
         m_ui.Close(m_serverList);
         m_ui.Close(m_login);
         ShowFailure();
         return;
-    case App::SessionState::Idle:
-    case App::SessionState::ConnectingConnectServer:
-    case App::SessionState::WaitingConnectHello:
-    case App::SessionState::WaitingServerList:
-    case App::SessionState::WaitingServerAddress:
-    case App::SessionState::ConnectingGameServer:
-    case App::SessionState::WaitingGameHello:
-    case App::SessionState::WaitingLoginResult:
-    case App::SessionState::LoggedIn:
-    case App::SessionState::WaitingCharacterList:
-    case App::SessionState::ChoosingCharacter:
-    case App::SessionState::WaitingCreateResult:
-    case App::SessionState::WaitingDeleteResult:
-    case App::SessionState::EnteringWorld:
-    case App::SessionState::InWorld:
+    case Session::SessionState::Idle:
+    case Session::SessionState::ConnectingConnectServer:
+    case Session::SessionState::WaitingConnectHello:
+    case Session::SessionState::WaitingServerList:
+    case Session::SessionState::WaitingServerAddress:
+    case Session::SessionState::ConnectingGameServer:
+    case Session::SessionState::WaitingGameHello:
+    case Session::SessionState::WaitingLoginResult:
+    case Session::SessionState::LoggedIn:
+    case Session::SessionState::WaitingCharacterList:
+    case Session::SessionState::ChoosingCharacter:
+    case Session::SessionState::WaitingCreateResult:
+    case Session::SessionState::WaitingDeleteResult:
+    case Session::SessionState::EnteringWorld:
+    case Session::SessionState::InWorld:
         m_ui.Close(m_serverList);
         m_ui.Close(m_login);
         return;
-    case App::SessionState::QuitOrdered:
+    case Session::SessionState::QuitOrdered:
         // El juego se cierra al final de este frame (main.cpp), sin aviso: el original no dibuja
         // otro después del WM_DESTROY (Q-C106), así que las ventanas quedan como estaban.
         return;
@@ -1253,7 +1259,7 @@ void LoginScene::FollowSession()
 
 void LoginScene::NoticeTheServerAddress()
 {
-    const std::optional<App::ServerAddress> address = m_session->GameServer();
+    const std::optional<Session::ServerAddress> address = m_session->GameServer();
     const bool fresh = address.has_value() && !m_sawTheAddress;
     m_sawTheAddress = address.has_value();
     if (!fresh)
@@ -1272,46 +1278,46 @@ void LoginScene::AddTheMessage(std::size_t index, std::span<const std::string_vi
     {
         return;
     }
-    const std::string text = UI::PlaceArguments(UI::TextAt(m_texts, index).value_or(std::string_view{}), arguments);
-    if (auto added =
-            AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+    const std::string text = Ui::PlaceArguments(Ui::TextAt(m_texts, index).value_or(std::string_view{}), arguments);
+    if (auto added = Chat::AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text,
+                                          Ui::SystemMessage);
         !added.HasValue())
     {
         m_failure = added.Error();
     }
 }
 
-void LoginScene::OnServerClick(const UI::ServerClick& click)
+void LoginScene::OnServerClick(const FrontEnd::ServerClick& click)
 {
     switch (click.kind)
     {
-    case UI::ServerClick::Kind::Chosen:
+    case FrontEnd::ServerClick::Kind::Chosen:
         m_session->ChooseServer(click.code);
         AddTheMessage(ConnectingText);
         AddTheMessage(PleaseWaitText);
         return;
-    case UI::ServerClick::Kind::Full:
-        OpenNotice(UI::ServerFullNotice);
+    case FrontEnd::ServerClick::Kind::Full:
+        OpenNotice(Ui::ServerFullNotice);
         return;
     }
 }
 
-void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
+void LoginScene::OnLoginRequest(const FrontEnd::LoginRequest& request)
 {
     switch (request.kind)
     {
-    case UI::LoginRequest::Kind::Submit:
+    case FrontEnd::LoginRequest::Kind::Submit:
         m_session->SubmitCredentials(request.credentials);
         AddTheMessage(CheckingAccountText);
         AddTheMessage(WaitAgainText);
         return;
-    case UI::LoginRequest::Kind::EmptyAccount:
-        OpenNotice(UI::EmptyAccountNotice);
+    case FrontEnd::LoginRequest::Kind::EmptyAccount:
+        OpenNotice(Ui::EmptyAccountNotice);
         return;
-    case UI::LoginRequest::Kind::EmptyPassword:
-        OpenNotice(UI::EmptyPasswordNotice);
+    case FrontEnd::LoginRequest::Kind::EmptyPassword:
+        OpenNotice(Ui::EmptyPasswordNotice);
         return;
-    case UI::LoginRequest::Kind::Cancel:
+    case FrontEnd::LoginRequest::Kind::Cancel:
         // 0x642810: cierra el GameServer y conecta otra vez al ConnectServer.
         m_context.log.Info("se cancela la cuenta: se vuelve a pedir la lista");
         m_session->Start();
@@ -1319,15 +1325,15 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
     }
 }
 
-void LoginScene::OnMenuBarClick(UI::MenuBarClick click)
+void LoginScene::OnMenuBarClick(Ui::MenuBarClick click)
 {
     switch (click)
     {
-    case UI::MenuBarClick::Menu:
+    case Ui::MenuBarClick::Menu:
         // 0x6411d8: la de Esc, con 0x65f690 y sin sonido.
         OpenTheEscapeWindow();
         return;
-    case UI::MenuBarClick::Credit:
+    case Ui::MenuBarClick::Credit:
         OpenTheCredits();
         return;
     }
@@ -1351,7 +1357,7 @@ void LoginScene::OpenTheCredits()
     m_ui.Raise(m_credits);
 }
 
-void LoginScene::FollowTheCredits(const UI::CreditsStep& step)
+void LoginScene::FollowTheCredits(const FrontEnd::CreditsStep& step)
 {
     // 0x63fc50: el par nuevo, encima del que había (en MuRet, en su lugar). Una que falta corta, como el
     // MessageBox y el WM_DESTROY de 0x63b870.
@@ -1393,27 +1399,27 @@ void LoginScene::ReleaseTheIllustrations()
     }
 }
 
-void LoginScene::OnNoticeClosed(UI::NoticeId notice)
+void LoginScene::OnNoticeClosed(Ui::NoticeId notice)
 {
-    const UI::NoticeFollowUp followUp = UI::FollowUpOf(notice);
+    const Ui::NoticeFollowUp followUp = Ui::FollowUpOf(notice);
     switch (followUp)
     {
-    case UI::NoticeFollowUp::Close:
+    case Ui::NoticeFollowUp::Close:
     // Los del borrado son de la selección: el login no los abre.
-    case UI::NoticeFollowUp::AskForTheCode:
-    case UI::NoticeFollowUp::SendTheDeletion:
+    case Ui::NoticeFollowUp::AskForTheCode:
+    case Ui::NoticeFollowUp::SendTheDeletion:
         return;
-    case UI::NoticeFollowUp::ReopenAtAccount:
-    case UI::NoticeFollowUp::ReopenAtPassword:
+    case Ui::NoticeFollowUp::ReopenAtAccount:
+    case Ui::NoticeFollowUp::ReopenAtPassword:
         // Solo si la sesión sigue esperando la cuenta. Si falló, el aviso de la falla ya tapó a
         // este: la guarda es por las dudas.
-        if (m_session->State() == App::SessionState::WaitingCredentials)
+        if (m_session->State() == Session::SessionState::WaitingCredentials)
         {
-            OpenLogin(followUp == UI::NoticeFollowUp::ReopenAtPassword ? UI::LoginFocus::Password
-                                                                       : UI::LoginFocus::Account);
+            OpenLogin(followUp == Ui::NoticeFollowUp::ReopenAtPassword ? FrontEnd::LoginFocus::Password
+                                                                       : FrontEnd::LoginFocus::Account);
         }
         return;
-    case UI::NoticeFollowUp::Quit:
+    case Ui::NoticeFollowUp::Quit:
         // El PostMessage con WM_CLOSE de 0x643560 (Q-C69): lo hace Main.
         m_context.log.Info("el OK del aviso cierra el juego (el {:#04x})", static_cast<int>(notice));
         m_quit = true;
@@ -1421,14 +1427,14 @@ void LoginScene::OnNoticeClosed(UI::NoticeId notice)
     }
 }
 
-void LoginScene::OpenLogin(UI::LoginFocus focus)
+void LoginScene::OpenLogin(FrontEnd::LoginFocus focus)
 {
     m_login.SetTitle(LoginTitle());
     m_login.Open(focus);
     m_ui.Raise(m_login);
 }
 
-void LoginScene::OpenNotice(UI::NoticeId notice)
+void LoginScene::OpenNotice(Ui::NoticeId notice)
 {
     m_notice.Open(notice);
     m_ui.Raise(m_notice);
@@ -1450,50 +1456,51 @@ void LoginScene::OpenTheOptions()
 void LoginScene::StepTheWindows(const Input::InputState& input)
 {
     // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
-    constexpr double StepMs = std::chrono::duration<double, std::milli>(App::LogicStep).count();
+    constexpr double StepMs = std::chrono::duration<double, std::milli>(Kernel::LogicStep).count();
     m_ui.Step(
         input, m_screen,
-        [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
+        [&](Ui::NewUiWindow& window, Ui::NewUiTurn turn)
         {
             if (&window == &m_notice)
             {
-                if (const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen, turn))
+                if (const std::optional<Ui::NoticeId> closed = m_notice.Step(input, m_screen, turn))
                 {
                     OnNoticeClosed(*closed);
                 }
             }
             else if (&window == &m_escape)
             {
-                if (const std::optional<UI::EscapeWindowEvent> event = m_escape.Step(input, m_screen, StepMs, turn))
+                if (const std::optional<FrontEnd::EscapeWindowEvent> event =
+                        m_escape.Step(input, m_screen, StepMs, turn))
                 {
                     OnEscapeEvent(*event);
                 }
             }
             else if (&window == &m_options)
             {
-                if (const std::optional<UI::OptionsEvent> event =
-                        m_options.Step(input, m_screen, StepMs, OptionsSettingsOf(CharacterWorld().Runtime()), turn))
+                if (const std::optional<FrontEnd::OptionsEvent> event = m_options.Step(
+                        input, m_screen, StepMs, Hud::OptionsSettingsOf(CharacterWorld().Runtime()), turn))
                 {
                     OnOptionsEvent(*event);
                 }
             }
             else if (&window == &m_menuBar)
             {
-                if (const std::optional<UI::MenuBarClick> click = m_menuBar.Step(input, m_screen, turn))
+                if (const std::optional<Ui::MenuBarClick> click = m_menuBar.Step(input, m_screen, turn))
                 {
                     OnMenuBarClick(*click);
                 }
             }
             else if (&window == &m_serverList)
             {
-                if (const std::optional<UI::ServerClick> click = m_serverList.Step(input, m_screen, turn))
+                if (const std::optional<FrontEnd::ServerClick> click = m_serverList.Step(input, m_screen, turn))
                 {
                     OnServerClick(*click);
                 }
             }
             else if (&window == &m_login)
             {
-                if (const std::optional<UI::LoginRequest> request = m_login.Step(input, m_screen, turn))
+                if (const std::optional<FrontEnd::LoginRequest> request = m_login.Step(input, m_screen, turn))
                 {
                     OnLoginRequest(*request);
                 }
@@ -1506,40 +1513,40 @@ void LoginScene::StepTheWindows(const Input::InputState& input)
         [&] { CharacterWorld().Runtime().RequestSound(ButtonClickSound); });
 }
 
-void LoginScene::OnOptionsEvent(const UI::OptionsEvent& event)
+void LoginScene::OnOptionsEvent(const FrontEnd::OptionsEvent& event)
 {
     // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
     Kernel::WorldRuntime& runtime = CharacterWorld().Runtime();
-    ApplyOption(runtime, event);
-    if (event.kind == UI::OptionsEvent::Kind::Volume)
+    Hud::ApplyOption(runtime, event);
+    if (event.kind == FrontEnd::OptionsEvent::Kind::Volume)
         runtime.SetSoundVolume(static_cast<std::uint8_t>(event.value));
 }
 
-void LoginScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
+void LoginScene::OnEscapeEvent(const FrontEnd::EscapeWindowEvent& event)
 {
     switch (event.kind)
     {
-    case UI::EscapeWindowEvent::Kind::Countdown:
+    case FrontEnd::EscapeWindowEvent::Kind::Countdown:
     {
         // 0x647ef0: sprintf del 380 con lo que falta y 0x555190, de sistema y sin nombre.
         const std::string seconds = std::to_string(event.seconds);
         const std::array<std::string_view, 1> arguments{seconds};
-        AddTheMessage(UI::LeavingTheGameText, arguments);
+        AddTheMessage(FrontEnd::LeavingTheGameText, arguments);
         return;
     }
-    case UI::EscapeWindowEvent::Kind::Quit:
+    case FrontEnd::EscapeWindowEvent::Kind::Quit:
         // 0x647d87: el log del original (0x41fa40) y el PostMessage con WM_CLOSE: lo hace Main.
         m_context.log.Info("> Menu - Exit game.");
         m_quit = true;
         return;
-    case UI::EscapeWindowEvent::Kind::JoinAnotherServer:
+    case FrontEnd::EscapeWindowEvent::Kind::JoinAnotherServer:
         // En el login el 1 está deshabilitado (0x6478c0): no tiene clic.
         return;
-    case UI::EscapeWindowEvent::Kind::Options:
+    case FrontEnd::EscapeWindowEvent::Kind::Options:
         // 0x647e6c: 0x65f6c0 la cierra y 0x65f690 abre las opciones.
         OpenTheOptions();
         return;
-    case UI::EscapeWindowEvent::Kind::Closed:
+    case FrontEnd::EscapeWindowEvent::Kind::Closed:
         // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
         return;
     }
@@ -1549,8 +1556,8 @@ void LoginScene::ShowFailure()
 {
     // 0x4c1e20 abre el 0x6f con otra versión y el 0x70 cuando no conecta o el F1 00 no acepta. Con
     // una lista vacía, sin respuesta o una cuenta que no entra, MuRet abre el 0x70 también.
-    const bool otherVersion = m_session->Failure() == App::SessionFailure::VersionMismatch;
-    OpenNotice(otherVersion ? UI::VersionMismatchNotice : UI::ConnectFailedNotice);
+    const bool otherVersion = m_session->Failure() == Session::SessionFailure::VersionMismatch;
+    OpenNotice(otherVersion ? Ui::VersionMismatchNotice : Ui::ConnectFailedNotice);
 }
 
 std::string LoginScene::LoginTitle() const
@@ -1560,18 +1567,18 @@ std::string LoginScene::LoginTitle() const
     {
         return {};
     }
-    const std::uint16_t group = UI::GroupOf(*code);
-    const int number = UI::ServerNumber(*code);
+    const std::uint16_t group = FrontEnd::GroupOf(*code);
+    const int number = FrontEnd::ServerNumber(*code);
     const std::optional<std::string_view> format =
-        UI::TextAt(m_texts, UI::LoginTitleText(UI::GroupSlot(group).value_or(NoSlot), number));
+        Ui::TextAt(m_texts, FrontEnd::LoginTitleText(FrontEnd::GroupSlot(group).value_or(NoSlot), number));
     if (!format)
     {
         return {};
     }
-    const std::string_view name = UI::TextAt(m_texts, UI::GroupNameText(group)).value_or(std::string_view{});
+    const std::string_view name = Ui::TextAt(m_texts, FrontEnd::GroupNameText(group)).value_or(std::string_view{});
     const std::string numberText = std::to_string(number);
     const std::array<std::string_view, 2> arguments{name, numberText};
-    return UI::PlaceArguments(*format, arguments);
+    return Ui::PlaceArguments(*format, arguments);
 }
 
 Assets::TextureBufferSize LoginScene::BufferSize(Render::TextureSlot slot) const
@@ -1646,10 +1653,10 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
         Render::Pass3D eye = pass;
         eye.view = glm::mat4(1.0f);
         canvas.models.Begin(eye);
-        DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
+        WorldObjects::DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
         const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-        const auto particles =
-            DrawParticles(canvas.models, CharacterWorld().Particles(), m_models, Render::ViewRows(pass.view), clock);
+        const auto particles = WorldObjects::DrawParticles(canvas.models, CharacterWorld().Particles(), m_models,
+                                                           Render::ViewRows(pass.view), clock);
         if (!particles.HasValue())
         {
             ReportParticleFailure(particles.Error());
@@ -1671,7 +1678,7 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
     // (0x635560).
     DrawTheMessages(canvas);
     // 0x65fe00: de la cola a la cabeza, la última que se abrió o se apretó arriba (Q-C84).
-    for (UI::NewUiWindow* window : m_ui.DrawOrder())
+    for (Ui::NewUiWindow* window : m_ui.DrawOrder())
     {
         if (window == &m_serverList)
         {
@@ -1695,7 +1702,7 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
         }
         else if (window == &m_options)
         {
-            m_options.Draw(sprites, canvas.text, canvas.screen, OptionsSettingsOf(CharacterWorld().Runtime()));
+            m_options.Draw(sprites, canvas.text, canvas.screen, Hud::OptionsSettingsOf(CharacterWorld().Runtime()));
         }
         else if (window == &m_credits)
         {
@@ -1704,11 +1711,11 @@ void LoginScene::Render(Render::Frame::SceneCanvas& canvas, float alpha)
     }
     if (m_context.input != nullptr)
     {
-        UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
+        Ui::DrawGameCursor(sprites, *m_context.input, canvas.screen);
     }
 }
 
-void LoginScene::ReportParticleFailure(const World::ParticleDrawingFailure& failure)
+void LoginScene::ReportParticleFailure(const Particles::ParticleDrawingFailure& failure)
 {
     // El pase quedó cortado en ese lugar (sin rollback). Va una vez por entrada: el mismo corte se
     // repite en cada frame.
@@ -1738,9 +1745,9 @@ Actors::FullSetScan LoginScene::ScanTheCharacter(const Kernel::CharacterAppearan
 
 Actors::Drawing::DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
-    const Kernel::ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
+    const Kernel::ActorState& actor = CharacterWorld().Actors()[FrontEnd::LoginActorSlot];
     Actors::Drawing::DrawnCharacter character;
-    character.appearance = actor.alive ? Actors::AppearanceOfActor(actor) : LoginCharacter();
+    character.appearance = actor.alive ? Actors::AppearanceOfActor(actor) : FrontEnd::LoginCharacter();
     character.body = actor.animation;
     if (const auto* skeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId);
         skeleton != nullptr && actor.animation.action < skeleton->actions.size())
@@ -1749,7 +1756,7 @@ Actors::Drawing::DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
         character.body = Models::Interpolated(actor.animation, action, action.speed, alpha);
     }
     character.object = actor.alive ? Models::ObjectTransform{actor.position, actor.angles, actor.scale, 0.0f}
-                                   : LoginCharacterTransform();
+                                   : FrontEnd::LoginCharacterTransform();
     // La cabeza del paso: el original no la interpola.
     character.headAngles = actor.headTurn.angles;
     if (actor.alive)
@@ -1779,7 +1786,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     if (nativeFrames == 0)
         projection = CharacterWorld().PoseCarry();
     auto& carry = nativeFrames > 0 ? CharacterWorld().PoseCarry() : projection;
-    Kernel::ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
+    Kernel::ActorState& actor = CharacterWorld().Actors()[FrontEnd::LoginActorSlot];
     Actors::Drawing::DrawnCharacter character = TheCharacterToDraw(alpha);
     // Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su
     // buffer de huesos (+0x120, 0x5123c4..0x5123ff). 0x510d00 → 0x50ba30 → 0x6001b0 posa ahí el cuerpo (0x600259),
@@ -1840,8 +1847,9 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
         DrawTheRaven(canvas, alpha, &carry);
     }
 
-    Actors::Drawing::DrawnObject horse = DrawnDarkHorse(m_horse, m_models.SkeletonOf(Models::ModelId{DarkHorseModel}),
-                                                        character.object, DarkHorseLoginScale, alpha);
+    Actors::Drawing::DrawnObject horse =
+        Pets::DrawnDarkHorse(m_horse, m_models.SkeletonOf(Models::ModelId{Pets::DarkHorseModel}), character.object,
+                             Pets::DarkHorseLoginScale, alpha);
     if (auto result = Actors::Drawing::PublishPose(carry, m_models, horse, true); !result.HasValue())
         m_failure = result.Error();
     horse.retainedMeshes = carry.meshes;
@@ -1859,28 +1867,29 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     }
     const LoginObjectModels objects(m_worldModels, m_logo);
     const Terrain::TerrainLighting* lighting = &DynamicLight().Lighting();
-    DrawWorldObjects(canvas.models, objects, m_objects, SharedTerrainPolygon(), lighting, m_world ? m_world->map : 0,
-                     canvas.frameClock, alpha,
-                     ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
-                                        .sprites = &m_sprites,
-                                        .particles = &CharacterWorld().Particles(),
-                                        .posedBefore = posed,
-                                        .scene = World::ObjectScene::Login,
-                                        .frames = nativeFrames,
-                                        .lastRandoms = m_objectEffectRandoms,
-                                        .onPose =
-                                            [&](const Actors::Drawing::DrawnObject& object)
-                                        {
-                                            auto result = Actors::Drawing::PublishPose(carry, objects, object, true);
-                                            if (!result.HasValue())
-                                                m_failure = result.Error();
-                                            return result;
-                                        },
-                                        .retainedPose = &carry,
-                                        .publishProjectedPose = true,
-                                        .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter,
-                                        .modelEffects = &CharacterWorld().Map().effects,
-                                        .onFailure = [&](const std::string& error) { m_failure = error; }});
+    WorldObjects::DrawWorldObjects(
+        canvas.models, objects, m_objects, SharedTerrainPolygon(), lighting, m_world ? m_world->map : 0,
+        canvas.frameClock, alpha,
+        WorldObjects::ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
+                                         .sprites = &m_sprites,
+                                         .particles = &CharacterWorld().Particles(),
+                                         .posedBefore = posed,
+                                         .scene = WorldObjects::ObjectScene::Login,
+                                         .frames = nativeFrames,
+                                         .lastRandoms = m_objectEffectRandoms,
+                                         .onPose =
+                                             [&](const Actors::Drawing::DrawnObject& object)
+                                         {
+                                             auto result = Actors::Drawing::PublishPose(carry, objects, object, true);
+                                             if (!result.HasValue())
+                                                 m_failure = result.Error();
+                                             return result;
+                                         },
+                                         .retainedPose = &carry,
+                                         .publishProjectedPose = true,
+                                         .objectDrawCounter = &CharacterWorld().Runtime().objectDrawCounter,
+                                         .modelEffects = &CharacterWorld().Map().effects,
+                                         .onFailure = [&](const std::string& error) { m_failure = error; }});
     // 0x53c6a0(0) (0x635217), después de los objetos (0x6046a0) y antes de los efectos con modelo: los joints del
     // mundo. Sólo un frame del original saca los rand() de su dibujo (los giros del 0x610/6 y /8); entre frames van
     // sobre una copia y repiten los giros guardados.
@@ -1896,7 +1905,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     // Scenes/WizardEffectDrawing). La posición va `alpha` de un paso más (D-C4).
     const LoginEffectModels effectModels(m_worldModels, m_models);
     const Terrain::SphereFrustum frustum = Terrain::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera);
-    const std::span<World::ModelEffect> table = CharacterWorld().Map().effects.Effects();
+    const std::span<Effects::ModelEffect> table = CharacterWorld().Map().effects.Effects();
     const Terrain::WorldTerrain* terrain = m_terrain.Terrain();
     Core::Expected<void, std::string> effects;
     if (terrain != nullptr && terrain->heights)
@@ -1919,7 +1928,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     if (!effects.HasValue())
         m_failure = effects.Error();
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
-    DrawLeaves(canvas.models, m_leaves);
+    WorldObjects::DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
 }
 
@@ -1939,11 +1948,11 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
     const bool originalFrame = frames > 0;
     // Entre frames, los globales de los ítems sobre copias, como GameScene y SelectionWorld.
     std::optional<Actors::Drawing::GameItemRenderState> projectedItems;
-    std::optional<World::ObjectModelStepState> projectedModels;
+    std::optional<WorldObjects::ObjectModelStepState> projectedModels;
     std::optional<Crt::CrtRandom> projectedRandom;
     Actors::Drawing::GameItemRenderState& items =
         originalFrame ? world.Runtime().itemRender : projectedItems.emplace(world.Runtime().itemRender);
-    World::ObjectModelStepState& modelState =
+    WorldObjects::ObjectModelStepState& modelState =
         originalFrame ? world.Runtime().objectModelState : projectedModels.emplace(world.Runtime().objectModelState);
     Crt::CrtRandom& itemRandom = originalFrame ? cloth.random : projectedRandom.emplace(cloth.random);
     const int runs = std::max(frames, 1);
@@ -1981,8 +1990,8 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
                                                       .itemContext = &itemContext,
                                                       .hooks = &m_characterDrawHooks,
                                                       .effectHooks = &m_effectHooks};
-        if (auto drawn = Actors::Drawing::DrawCharacterTail(batch, m_models, world, actor, LoginActorSlot, character,
-                                                            pass, scan, originalFrame);
+        if (auto drawn = Actors::Drawing::DrawCharacterTail(batch, m_models, world, actor, FrontEnd::LoginActorSlot,
+                                                            character, pass, scan, originalFrame);
             !drawn.HasValue())
         {
             m_failure = drawn.Error() + ", en el personaje del login";
@@ -1996,7 +2005,7 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
     }
     if (!originalFrame && !m_tailSpriteReplayValid)
         return;
-    for (World::Sprite& sprite : (originalFrame ? m_tailSprites : m_tailSpriteReplay).Sprites())
+    for (Particles::Sprite& sprite : (originalFrame ? m_tailSprites : m_tailSpriteReplay).Sprites())
     {
         if (sprite.alive)
             static_cast<void>(m_sprites.Create(sprite.texture, sprite.position, sprite.scale, sprite.light,
@@ -2006,13 +2015,13 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
 
 void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, Kernel::PoseBuffer* carry)
 {
-    DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
+    Kernel::DarkSpirit& spirit = *CharacterWorld().Actors()[FrontEnd::LoginActorSlot].darkSpirit;
     if (!Actors::Drawing::DarkSpiritSeen(spirit, SharedTerrainPolygon()))
     {
         Actors::Drawing::MissTheView(spirit);
         return;
     }
-    const Models::Skeleton* skeleton = m_models.SkeletonOf(Models::ModelId{DarkSpiritModel});
+    const Models::Skeleton* skeleton = m_models.SkeletonOf(Models::ModelId{Pets::DarkSpiritModel});
     const glm::vec3 light = TerrainLightAt(spirit.position);
     const Terrain::WorldTerrain* terrain = m_terrain.Terrain();
     Actors::Drawing::DrawnObject drawn = Actors::Drawing::DrawnDarkSpirit(spirit, skeleton, light, alpha);
@@ -2039,12 +2048,12 @@ void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, K
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a
 // +0xd8 (no a la velocidad de la acción).
-void LoginScene::StepTheLogo(World::WorldObject& logo) const
+void LoginScene::StepTheLogo(WorldObjects::WorldObject& logo) const
 {
-    const float light = LoginLogoLight(m_routes);
+    const float light = FrontEnd::LoginLogoLight(m_routes);
     logo.light = glm::vec3(light);
     logo.state.light = light;
-    if (const Models::Skeleton* skeleton = m_logo.SkeletonOf(Models::ModelId{LoginLogoModel});
+    if (const Models::Skeleton* skeleton = m_logo.SkeletonOf(Models::ModelId{FrontEnd::LoginLogoModel});
         skeleton != nullptr && logo.animation.action < skeleton->actions.size())
     {
         Models::AdvanceAnimation(logo.animation, skeleton->actions[logo.animation.action], logo.speed,
@@ -2065,9 +2074,9 @@ void LoginScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
     const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     Kernel::HudState projected;
     Kernel::HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
-    const UI::Point mouse =
-        m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
-    Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
+    const Ui::Point mouse =
+        m_context.input != nullptr ? Ui::MouseIn640x480(*m_context.input, canvas.screen) : Ui::Point{};
+    Chat::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
 void LoginScene::DrawTexts(Render::Frame::SceneCanvas& canvas) const
@@ -2104,7 +2113,7 @@ void LoginScene::Leave()
     m_credits.Close();
     m_ui.Clear();
     // 0x61c7c0 vuelve a subir las brasas de 0x61ccb0. El slot común sobrevive a la salida del login.
-    const Render::TextureSlot ember{World::EmberTexture};
+    const Render::TextureSlot ember{Weather::EmberTexture};
     const auto commonSlot = m_models.TextureSlotOf(ember.value);
     m_textures.Release(commonSlot == ember ? commonSlot : std::nullopt);
     m_windowTextures.Release();
@@ -2123,7 +2132,7 @@ void LoginScene::Leave()
 
 std::optional<SceneId> LoginScene::Next() const
 {
-    if (m_session != nullptr && m_session->State() == App::SessionState::LoggedIn)
+    if (m_session != nullptr && m_session->State() == Session::SessionState::LoggedIn)
     {
         return SceneId::CharacterSelect;
     }
@@ -2151,7 +2160,7 @@ bool LoginScene::HoldsTheLastFrame() const
     // Conectando, y también con lo que el paso todavía no vio (desde Enter, o un Poll que cambió el
     // estado en un frame sin pasos): un connect que falla enseguida sale en ese Poll, y el frame
     // sería el login sin el aviso.
-    const App::SessionState state = m_session->State();
+    const Session::SessionState state = m_session->State();
     return IsConnecting(state) || m_seen != state;
 }
 
@@ -2170,7 +2179,7 @@ void LoginScene::OnFrameHeld()
 
 const Kernel::CharacterHead& LoginScene::Head() const
 {
-    return CharacterWorld().Actors()[LoginActorSlot].headTurn;
+    return CharacterWorld().Actors()[FrontEnd::LoginActorSlot].headTurn;
 }
 
 std::optional<std::string> LoginScene::Failure() const

@@ -7,13 +7,17 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct WorldObject;
 }
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 struct GameObjectPass;
+} // namespace Client::WorldObjects
+
+namespace Client::MapScripts::LandOfTrials
+{
 
 // 0x4401e0 (0x602ed0), con el mapa 31 (0x43ff10), después del rand() común de 0x602ef4 (que no usa): el 3 y
 // el 0x35, con rand() % 3 en 0, sueltan la salpicadura 6f2/3 y el humo 5f2/22 sobre el objeto, con luz
@@ -21,8 +25,8 @@ struct GameObjectPass;
 // sprites 0x5ac en rojo (el primero de escala ((sin(reloj · 0,002f) · 0,35f + 0,65f) · 1,2f + 0,3f), el
 // segundo de 0,5) y un 0x5fd de 1,2 en gris 0,3, girado rand() % 360. Un pool, un rand() o una pose
 // ausentes cortan donde lo pide el ASM, conservando lo ya creado.
-[[nodiscard]] Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const World::WorldObject& object,
-                                                                            const GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects::WorldObject& object,
+                                                                            const WorldObjects::GameObjectPass& pass);
 
 // Lo que 0x4403b0 (la cadena de 0x6002e0 en el 31) hace con el cuerpo de un objeto.
 struct TrialsBodyDraw
@@ -39,5 +43,5 @@ struct TrialsBodyDraw
 // el 0xa lo pone en (0,56; 0,8; 0,81). Los demás tipos siguen sin caso (nullopt). Un pulso fuera del
 // dominio portado corta.
 [[nodiscard]] Core::Expected<std::optional<TrialsBodyDraw>, std::string>
-LandOfTrialsBody(const World::WorldObject& object, const glm::vec3& color, float worldClock);
-} // namespace Client::Scenes
+LandOfTrialsBody(const WorldObjects::WorldObject& object, const glm::vec3& color, float worldClock);
+} // namespace Client::MapScripts::LandOfTrials

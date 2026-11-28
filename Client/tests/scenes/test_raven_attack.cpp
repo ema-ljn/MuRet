@@ -21,8 +21,8 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::DarkSpirit;
-using Client::Scenes::DarkSpiritOwner;
-using Client::Scenes::DarkSpiritTargets;
+using Client::Pets::DarkSpiritOwner;
+using Client::Pets::DarkSpiritTargets;
 
 constexpr std::uint8_t Lorencia = 0;
 
@@ -40,15 +40,15 @@ struct Raven
         spirit.position = {1000.0f, 1000.0f, 300.0f};
         owner.position = {1000.0f, 1100.0f, 200.0f};
     }
-    Client::Scenes::DarkSpiritStepped Step(std::uint8_t map = Lorencia, const DarkSpiritTargets& targets = {})
+    Client::Pets::DarkSpiritStepped Step(std::uint8_t map = Lorencia, const DarkSpiritTargets& targets = {})
     {
-        return Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 1, targets);
+        return Client::Pets::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 1, targets);
     }
 
     DarkSpirit spirit;
     DarkSpiritOwner owner;
     Client::Models::Skeleton skeleton = RavenSkeleton();
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random;
 };
 

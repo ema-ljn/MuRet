@@ -22,11 +22,11 @@ namespace Client::Render
 class ModelBatch;
 } // namespace Client::Render
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Models
 {
@@ -39,10 +39,10 @@ struct ActorState;
 struct PoseBuffer;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 struct GuildState;
-} // namespace Client::Scenes
+} // namespace Client::Guild
 
 // What hangs from a player in the game's draw (0x50ba30, from 0x50db57 to 0x50e9fa): the weapon on the back, the GMs'
 // layer, the wings, Helper02 and the hands' loop, each one except the layer with 0x509340 (posed on the global pose
@@ -67,13 +67,13 @@ struct GameHangingPass
     Crt::CrtRandom& random;
     // The global pose buffer (0x68b181c) and the frame's sprite table (0x5491e0). Needed only if something hangs.
     Kernel::PoseBuffer* carry = nullptr;
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     // The frame's joints of 0x530860, who creates them, and the particles of 0x53fe70. Needed only if something
     // creates them: the 0x617 of action 0x8c (0x50a110), the 0x618/0x11 of 0xc1e, the 0x610/4 of 0x223 and the 0x614/10
     // of 0x224. The 0x610/4 and 0x618/0x11 keep the hanging character as owner (+0x54): an ActorState.
     std::span<Scenes::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // The globals of 0x60b3d0 the frame's owner lends (without it, those of an empty ItemDrawContext).
     const ItemDrawContext* itemContext = nullptr;
     Core::Duration frameClock{};
@@ -88,7 +88,7 @@ struct GameHangingPass
     // In an original frame the animation of what hangs advances; between frames, it is drawn as it was left.
     bool originalFrame = true;
     // 0x414820 reads the guild and alliance names only for a master of role 6, 7, 8 or 12.
-    const Scenes::GuildState* guild = nullptr;
+    const Guild::GuildState* guild = nullptr;
     // +0x6c..+0x74 of the type's model ([ebp−0x14] of 0x50ba30, 0x50ba7f): the position 0x6001b0 copied to it for the
     // player before the floor of Blood Castle's shadow (0x50bcaf), and for a monster that of the last 0x5ffdf0 or that
     // of its shadow's 0x60cf70 (0x50beb6, already on the floor of 0x50be4d; without it, 0x18e, 0x18f and 0xa8 to 0xac

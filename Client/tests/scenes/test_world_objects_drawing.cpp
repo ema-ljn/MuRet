@@ -55,7 +55,7 @@
 #include <span>
 #include <vector>
 
-// Client::Scenes::StepWorldObjects y DrawWorldObjects (06 § El mundo del login): qué objetos avanzan,
+// Client::WorldObjects::StepWorldObjects y DrawWorldObjects (06 § El mundo del login): qué objetos avanzan,
 // en qué orden se dibujan y cómo van los remolinos del mapa 55, con modelos de mentira; y los del juego,
 // DrawGameWorldObjects y StepGameWorldObjects (06 § Los objetos del juego).
 namespace
@@ -67,9 +67,9 @@ using Client::Models::TextureMetadata;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
-using Client::Scenes::DrawWorldObjects;
-using Client::Scenes::StepWorldObjects;
-using Client::World::WorldObject;
+using Client::WorldObjects::DrawWorldObjects;
+using Client::WorldObjects::StepWorldObjects;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
@@ -172,7 +172,7 @@ private:
 };
 
 WorldObject ObjectAt(std::int16_t type, float x, float y, std::uint8_t map = Login,
-                     Client::World::ObjectScene scene = Client::World::ObjectScene::Login)
+                     Client::WorldObjects::ObjectScene scene = Client::WorldObjects::ObjectScene::Login)
 {
     Client::Data::Terrain::TerrainObject record;
     record.type = type;
@@ -251,8 +251,8 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
     Draw(batch, models, objects, polygon);
     EXPECT_TRUE(objects[0].seen);
     EXPECT_FALSE(objects[1].seen);
-    EXPECT_EQ(Client::World::SectorX(objects[2]), 9);
-    EXPECT_EQ(Client::World::SectorY(objects[2]), 7);
+    EXPECT_EQ(Client::WorldObjects::SectorX(objects[2]), 9);
+    EXPECT_EQ(Client::WorldObjects::SectorY(objects[2]), 7);
     EXPECT_FALSE(objects[2].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
 }
@@ -263,8 +263,8 @@ TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
 {
     const TwoMeshModels models;
     const Client::Terrain::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
-    for (const auto scene : {Client::World::ObjectScene::Other, Client::World::ObjectScene::Login,
-                             Client::World::ObjectScene::CharacterSelect})
+    for (const auto scene : {Client::WorldObjects::ObjectScene::Other, Client::WorldObjects::ObjectScene::Login,
+                             Client::WorldObjects::ObjectScene::CharacterSelect})
     {
         SCOPED_TRACE(static_cast<int>(scene));
         std::array objects{ObjectAt(Bridge, 1400.0f, 500.0f, Lorencia, scene),
@@ -322,14 +322,14 @@ TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
     std::vector<WorldObject> objects{ObjectAt(Rock, 14400.0f, 12100.0f), ObjectAt(Rock, 100.0f, 100.0f),
                                      ObjectAt(Rock, 14450.0f, 12150.0f), ObjectAt(Rock, 14420.0f, 12120.0f)};
     objects[2].alpha = 0.0f;
-    objects[3].state.hiddenMesh = Client::World::HiddenObject;
+    objects[3].state.hiddenMesh = Client::WorldObjects::HiddenObject;
     const auto polygon =
         Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f,
-                     Client::Scenes::ObjectFrameEffects{.random = &random});
+                     Client::WorldObjects::ObjectFrameEffects{.random = &random});
     Client::Crt::CrtRandom expected(7);
     for (int k = 0; k < 3; ++k)
     {
@@ -347,7 +347,7 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
-                     Client::Scenes::ObjectFrameEffects{.random = &random, .frames = 0});
+                     Client::WorldObjects::ObjectFrameEffects{.random = &random, .frames = 0});
     EXPECT_TRUE(objects[0].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
     EXPECT_EQ(random.State(), 4u);
@@ -357,10 +357,10 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
 // semilla 7.
 Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Models::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
-                                                   const Client::Scenes::GameObjectPass& pass)
+                                                   const Client::WorldObjects::GameObjectPass& pass)
 {
     batch.Begin(Client::Render::Pass3D{});
-    return Client::Scenes::DrawGameWorldObjects(batch, models, objects, Everything, nullptr, {}, pass);
+    return Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, Everything, nullptr, {}, pass);
 }
 
 Client::Crt::CrtRandom SevenAfter(int draws)
@@ -382,11 +382,12 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
     for (const std::uint8_t map : {Lorencia, std::uint8_t{2}})
     {
         SCOPED_TRACE(static_cast<int>(map));
-        std::vector<WorldObject> objects{ObjectAt(Rock, 8000.0f, 3500.0f, map, Client::World::ObjectScene::Other),
-                                         ObjectAt(Rock, 100.0f, 5000.0f, map, Client::World::ObjectScene::Other),
-                                         ObjectAt(Rock, 200.0f, 5100.0f, map, Client::World::ObjectScene::Other)};
+        std::vector<WorldObject> objects{
+            ObjectAt(Rock, 8000.0f, 3500.0f, map, Client::WorldObjects::ObjectScene::Other),
+            ObjectAt(Rock, 100.0f, 5000.0f, map, Client::WorldObjects::ObjectScene::Other),
+            ObjectAt(Rock, 200.0f, 5100.0f, map, Client::WorldObjects::ObjectScene::Other)};
         objects[1].alive = false;
-        objects[2].state.hiddenMesh = Client::World::HiddenObject;
+        objects[2].state.hiddenMesh = Client::WorldObjects::HiddenObject;
         Client::Crt::CrtRandom random(7);
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects, {.map = map, .random = &random});
@@ -407,11 +408,12 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
 TEST(WorldObjectsDrawingTest, TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-                                     ObjectAt(0x38, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-                                     ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(0x38, 200.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ModelBatch batch;
     const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random, .sprites = &sprites});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -459,8 +461,9 @@ TEST(WorldObjectsDrawingTest, TheLostTowerChromeGoesBeforeTheBody)
 {
     constexpr std::uint8_t LostTower = 4;
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(3, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other),
-                                     ObjectAt(0x17, 300.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(3, 100.0f, 100.0f, LostTower, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(0x17, 300.0f, 100.0f, LostTower, Client::WorldObjects::ObjectScene::Other)};
     for (auto& object : objects)
     {
         object.vertexLight = false;
@@ -509,11 +512,12 @@ TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
 {
     constexpr std::uint8_t LostTower = 4;
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(0x28, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other),
-                                     ObjectAt(9, 300.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(0x28, 100.0f, 100.0f, LostTower, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(9, 300.0f, 100.0f, LostTower, Client::WorldObjects::ObjectScene::Other)};
     objects[0].transform.position.z = 40.0f;
     Client::Crt::CrtRandom random(7);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ModelBatch batch;
     const auto drawn = DrawGame(batch, models, objects,
                                 {.map = LostTower, .random = &random, .worldClock = 12345.0f, .sprites = &sprites});
@@ -539,7 +543,7 @@ TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
     EXPECT_TRUE(std::isnan(live[2].position.x));
     EXPECT_EQ(live[2].scale, static_cast<float>(static_cast<double>(second) * 5.0));
 
-    std::vector<WorldObject> boned{ObjectAt(0x13, 100.0f, 100.0f, LostTower, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> boned{ObjectAt(0x13, 100.0f, 100.0f, LostTower, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom other(7);
     ModelBatch third;
     const auto cut = DrawGame(third, models, boned, {.map = LostTower, .random = &other, .sprites = &sprites});
@@ -557,7 +561,8 @@ TEST(WorldObjectsDrawingTest, TheTarkanChromeGoesAfterItsFirstMesh)
     for (const float alpha : {1.0f, 0.5f})
     {
         SCOPED_TRACE(alpha);
-        std::vector<WorldObject> objects{ObjectAt(0x51, 100.0f, 100.0f, Tarkan, Client::World::ObjectScene::Other)};
+        std::vector<WorldObject> objects{
+            ObjectAt(0x51, 100.0f, 100.0f, Tarkan, Client::WorldObjects::ObjectScene::Other)};
         objects[0].vertexLight = false;
         objects[0].light = glm::vec3(0.5f);
         objects[0].alpha = alpha;
@@ -593,7 +598,7 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutDrawsFourLooseMeshes)
 {
     const FourMeshModels models;
     std::vector<WorldObject> objects{
-        ObjectAt(Client::World::Waterspout, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+        ObjectAt(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     ASSERT_EQ(objects[0].state.blendMesh, 3) << "el alta del 0x69 en el 0";
     objects[0].light = glm::vec3(1.0f);
     objects[0].state.light = 0.5f;
@@ -657,12 +662,13 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
     {
         SCOPED_TRACE(std::to_string(probe.odd) + " " + std::to_string(probe.hidden));
         std::vector<WorldObject> objects{
-            ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-            ObjectAt(Client::World::Waterspout, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-            ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+            ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+            ObjectAt(Client::WorldObjects::Waterspout, 200.0f, 100.0f, Lorencia,
+                     Client::WorldObjects::ObjectScene::Other),
+            ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
         if (probe.hidden)
         {
-            objects[1].state.hiddenMesh = Client::World::HiddenObject;
+            objects[1].state.hiddenMesh = Client::WorldObjects::HiddenObject;
         }
         objects[1].state.light = 0.25f;
         const std::uint32_t seed = SeedWithThirdRand(probe.odd);
@@ -700,25 +706,25 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
 // que no tiene caso de suelo (el dragón). No se recalcula la esfera en este pase.
 TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlots)
 {
-    std::array<Client::World::ModelEffect, 3> effects{};
+    std::array<Client::Effects::ModelEffect, 3> effects{};
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Crt::CrtRandom random(1234);
     Client::Crt::CrtRandom expected(1234);
-    const Client::Terrain::GroundEffectResources resources{.heights = *heights, .random = random};
+    const Client::Effects::GroundEffectResources resources{.heights = *heights, .random = random};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto initial = batch.State();
-    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
     effects[1].alive = true;
-    effects[1].type = Client::World::ArrivalEffect;
-    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    effects[1].type = Client::Effects::ArrivalEffect;
+    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.State(), initial);
     effects[0].seen = true; // muerto: tampoco participa.
     effects[2].alive = true;
     effects[2].seen = true;
-    effects[2].type = Client::World::DragonEffect;
-    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    effects[2].type = Client::Effects::DragonEffect;
+    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
@@ -729,10 +735,10 @@ TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlo
 
 TEST(WorldObjectsDrawingTest, AVisibleArrivalConsumesTheCommonRandomBeforeDrawing)
 {
-    std::array<Client::World::ModelEffect, 1> effects{};
+    std::array<Client::Effects::ModelEffect, 1> effects{};
     effects[0].alive = true;
     effects[0].seen = true;
-    effects[0].type = Client::World::ArrivalEffect;
+    effects[0].type = Client::Effects::ArrivalEffect;
     effects[0].life = 20;
     effects[0].transform.position = {1000.0f, 1000.0f, 0.0f};
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -740,7 +746,7 @@ TEST(WorldObjectsDrawingTest, AVisibleArrivalConsumesTheCommonRandomBeforeDrawin
     Client::Crt::CrtRandom expected(1234);
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random});
+    const auto drawn = Client::WorldObjects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
@@ -749,15 +755,16 @@ TEST(WorldObjectsDrawingTest, AVisibleArrivalConsumesTheCommonRandomBeforeDrawin
 
 TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATexture)
 {
-    std::array<Client::World::ModelEffect, 1> effects{};
+    std::array<Client::Effects::ModelEffect, 1> effects{};
     effects[0].alive = true;
     effects[0].seen = true;
-    effects[0].type = Client::World::DragonEffect;
+    effects[0].type = Client::Effects::DragonEffect;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random}).HasValue());
+    ASSERT_TRUE(
+        Client::WorldObjects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random}).HasValue());
     using Operation = Client::Render::ModelStateOperation;
     const std::array wanted{Operation::Blend, Operation::Cull, Operation::DepthWrite, Operation::AlphaTest,
                             Operation::Texture2d};
@@ -772,7 +779,7 @@ TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATex
 
 TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDepthWrite)
 {
-    std::array<Client::World::ModelEffect, 1> effects{};
+    std::array<Client::Effects::ModelEffect, 1> effects{};
     effects[0].alive = true;
     effects[0].seen = true;
     effects[0].type = 0x6eb;
@@ -780,7 +787,7 @@ TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDep
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawGroundEffects(
+    const auto drawn = Client::WorldObjects::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     using Operation = Client::Render::ModelStateOperation;
@@ -797,18 +804,18 @@ TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDep
 
 TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabledDepthWrite)
 {
-    std::array<Client::World::ModelEffect, 1> effects{};
+    std::array<Client::Effects::ModelEffect, 1> effects{};
     effects[0].alive = true;
     effects[0].seen = true;
     effects[0].type = 0x6eb;
     effects[0].transform.scale = 1;
     effects[0].transform.position.x = std::numeric_limits<float>::infinity();
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::World::KalimaWorld water(24);
+    Client::MapScripts::Kalima::KalimaWorld water(24);
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawGroundEffects(
+    const auto drawn = Client::WorldObjects::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24, .kalima = &water});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x41dd90"), std::string::npos);
@@ -843,10 +850,10 @@ TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
                               Case{2, 0x35, 0, false, OwnRecordClose}, Case{0, 0x50, 1, true, 1}})
     {
         SCOPED_TRACE(std::to_string(probe.heroClass) + " " + std::to_string(probe.level));
-        std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+        std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
         Client::Crt::CrtRandom random(7);
         std::uint8_t depth = probe.depth;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         const Client::Kernel::PoseBuffer pose;
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects,
@@ -871,13 +878,13 @@ TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
 TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBone)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
     Client::Kernel::PoseBuffer pose;
     Client::Math::BoneTransform bone(1.0f);
     bone[3] = glm::vec3(10.0f, 20.0f, 30.0f);
     pose.bones.push_back(bone);
     Client::Crt::CrtRandom random(7);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ModelBatch batch;
     const auto drawn = DrawGame(batch, models, objects,
                                 {.map = 2,
@@ -979,7 +986,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
     {
         SCOPED_TRACE(std::to_string(probe.seed) + " " + std::to_string(probe.action) + " " +
                      std::to_string(probe.frame));
-        std::vector<WorldObject> objects{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+        std::vector<WorldObject> objects{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
         objects[0].animation.action = probe.action;
         objects[0].animation.frame = probe.frame;
         Client::Crt::CrtRandom random(probe.seed);
@@ -999,7 +1006,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
         }
     }
 
-    std::vector<WorldObject> unposed{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> unposed{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
     unposed[0].alpha = 0.005f;
     unposed[0].animation.frame = 5.0f;
     Client::Crt::CrtRandom random(7);
@@ -1009,7 +1016,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
     EXPECT_NE(cut.Error().find("0x60320a"), std::string::npos) << cut.Error();
     EXPECT_EQ(random.State(), SevenAfter(1).State());
 
-    std::vector<WorldObject> outside{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> outside{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
     outside[0].animation.action = 2;
     Client::Crt::CrtRandom other(7);
     ModelBatch second;
@@ -1023,7 +1030,8 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
 TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> lorencia{ObjectAt(0x38, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> lorencia{
+        ObjectAt(0x38, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     ASSERT_TRUE(
@@ -1031,7 +1039,7 @@ TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
     EXPECT_TRUE(lorencia[0].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
 
-    std::vector<WorldObject> devias{ObjectAt(0x64, 100.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> devias{ObjectAt(0x64, 100.0f, 100.0f, 2, Client::WorldObjects::ObjectScene::Other)};
     std::uint8_t depth = 0;
     ASSERT_TRUE(
         DrawGame(batch, models, devias,
@@ -1043,11 +1051,12 @@ TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
 TEST(WorldObjectsDrawingTest, ProjectedPosePublicationDoesNotRunOriginalFrameProducers)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     int publications = 0;
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.map = Lorencia;
     pass.originalFrame = false;
     pass.random = &random;
@@ -1071,8 +1080,9 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
     const TwoMeshModels models;
     for (const bool original : {false, true})
     {
-        std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
-        objects.front().state.hiddenMesh = Client::World::HiddenObject;
+        std::vector<WorldObject> objects{
+            ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
+        objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
         Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
@@ -1080,7 +1090,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         auto& target = original ? native : projected;
         Client::Crt::CrtRandom random(7);
         ModelBatch batch;
-        Client::Scenes::GameObjectPass pass;
+        Client::WorldObjects::GameObjectPass pass;
         pass.map = Lorencia;
         pass.originalFrame = original;
         pass.publishProjectedPose = !original;
@@ -1089,7 +1099,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         int publications = 0;
         pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
-            EXPECT_EQ(pose.state.hiddenMesh, Client::World::HiddenObject);
+            EXPECT_EQ(pose.state.hiddenMesh, Client::WorldObjects::HiddenObject);
             ++publications;
             return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
@@ -1114,8 +1124,9 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
     const TwoMeshModels models;
     for (const bool original : {false, true})
     {
-        std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Login, Client::World::ObjectScene::Login)};
-        objects.front().state.hiddenMesh = Client::World::HiddenObject;
+        std::vector<WorldObject> objects{
+            ObjectAt(Rock, 100.0f, 100.0f, Login, Client::WorldObjects::ObjectScene::Login)};
+        objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
         Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
@@ -1123,7 +1134,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
         auto& target = original ? native : projected;
         Client::Crt::CrtRandom random(7);
         ModelBatch batch;
-        Client::Scenes::ObjectFrameEffects effects;
+        Client::WorldObjects::ObjectFrameEffects effects;
         effects.random = &random;
         effects.frames = original ? 1 : 0;
         effects.publishProjectedPose = !original;
@@ -1154,9 +1165,10 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
 TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjectedPublication)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     objects.front().alpha = 0.005f;
-    objects.front().state.hiddenMesh = Client::World::HiddenObject;
+    objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
     int publications = 0;
     const auto observe = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
@@ -1164,13 +1176,13 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
         return {};
     };
     ModelBatch batch;
-    Client::Scenes::GameObjectPass pass;
+    Client::WorldObjects::GameObjectPass pass;
     pass.map = Lorencia;
     pass.originalFrame = false;
     pass.publishProjectedPose = true;
     pass.onPose = observe;
     ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
-    Client::Scenes::ObjectFrameEffects effects;
+    Client::WorldObjects::ObjectFrameEffects effects;
     effects.frames = 0;
     effects.publishProjectedPose = true;
     effects.onPose = observe;
@@ -1184,7 +1196,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
 TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     const auto drawn = DrawGame(batch, models, objects, {.map = 35, .random = &random});
@@ -1200,10 +1212,11 @@ TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
 TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
 {
     const TwoMeshModels models;
-    std::vector<WorldObject> objects{ObjectAt(0x7a, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-                                     ObjectAt(0x5a, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-                                     ObjectAt(0x7a, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-                                     ObjectAt(0x7a, 150.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{
+        ObjectAt(0x7a, 300.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(0x5a, 200.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(0x7a, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other),
+        ObjectAt(0x7a, 150.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     for (WorldObject& object : objects)
     {
         object.seen = true;
@@ -1211,8 +1224,8 @@ TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
     }
     objects[2].alive = false;
     Client::Crt::CrtRandom random(7);
-    const auto stepped =
-        Client::Scenes::StepGameWorldObjects(objects, Lorencia, models, random, Client::World::ObjectStepGlobals{});
+    const auto stepped = Client::WorldObjects::StepGameWorldObjects(objects, Lorencia, models, random,
+                                                                    Client::WorldObjects::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x605718"), std::string::npos) << stepped.Error();
     EXPECT_GT(objects[0].alpha, 0.5f);
@@ -1286,7 +1299,7 @@ private:
 
 struct LanternGlow
 {
-    std::vector<Client::World::Sprite> sprites;
+    std::vector<Client::Particles::Sprite> sprites;
     std::optional<glm::vec3> horse8;
     std::optional<glm::vec3> horse9;
     std::optional<glm::vec3> rock9;
@@ -1294,7 +1307,7 @@ struct LanternGlow
 
 // El caballo posado antes de los objetos (0x4453b0) en (1.000; 2.000; 300) y `objects` dibujados en su
 // orden, con el farol al final.
-LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene scene, std::uint32_t seed)
+LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::WorldObjects::ObjectScene scene, std::uint32_t seed)
 {
     const TenBoneModels models;
     Client::Actors::Drawing::DrawnObject horse;
@@ -1303,14 +1316,14 @@ LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene
     horse.transform.scale = 1.5f;
     const std::array<Client::Actors::Drawing::PosedInTheBuffer, 1> before{{{&models, horse}}};
     Client::Crt::CrtRandom random(seed);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
-                     Client::Scenes::ObjectFrameEffects{
+                     Client::WorldObjects::ObjectFrameEffects{
                          .random = &random, .sprites = &sprites, .posedBefore = before, .scene = scene});
     LanternGlow glow;
-    for (const Client::World::Sprite& sprite : sprites.Sprites())
+    for (const Client::Particles::Sprite& sprite : sprites.Sprites())
     {
         if (sprite.alive)
         {
@@ -1330,7 +1343,7 @@ TEST(WorldObjectsDrawingTest, AZeroFrameDrawReplaysTheLanternWithoutConsumingRan
 {
     const TenBoneModels models;
     std::array objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(4);
     std::array<std::optional<int>, 1> lastRandoms;
     Client::Actors::Drawing::DrawnObject horse;
@@ -1342,12 +1355,12 @@ TEST(WorldObjectsDrawingTest, AZeroFrameDrawReplaysTheLanternWithoutConsumingRan
     {
         batch.Begin(Client::Render::Pass3D{});
         DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
-                         Client::Scenes::ObjectFrameEffects{.random = &random,
-                                                            .sprites = &sprites,
-                                                            .posedBefore = before,
-                                                            .scene = Client::World::ObjectScene::Login,
-                                                            .frames = frames,
-                                                            .lastRandoms = lastRandoms});
+                         Client::WorldObjects::ObjectFrameEffects{.random = &random,
+                                                                  .sprites = &sprites,
+                                                                  .posedBefore = before,
+                                                                  .scene = Client::WorldObjects::ObjectScene::Login,
+                                                                  .frames = frames,
+                                                                  .lastRandoms = lastRandoms});
     };
     draw(1);
     ASSERT_TRUE(sprites.Sprites()[0].alive);
@@ -1372,7 +1385,7 @@ TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFr
 {
     const TenBoneModels models;
     std::array objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(4);
     std::array<std::optional<int>, 1> lastRandoms;
     const auto outside =
@@ -1383,11 +1396,11 @@ TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFr
         sprites.Clear();
         batch.Begin(Client::Render::Pass3D{});
         DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f,
-                         Client::Scenes::ObjectFrameEffects{.random = &random,
-                                                            .sprites = &sprites,
-                                                            .scene = Client::World::ObjectScene::Login,
-                                                            .frames = frames,
-                                                            .lastRandoms = lastRandoms});
+                         Client::WorldObjects::ObjectFrameEffects{.random = &random,
+                                                                  .sprites = &sprites,
+                                                                  .scene = Client::WorldObjects::ObjectScene::Login,
+                                                                  .frames = frames,
+                                                                  .lastRandoms = lastRandoms});
     };
     draw(1, Everything);
     ASSERT_TRUE(lastRandoms[0].has_value());
@@ -1415,15 +1428,15 @@ TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFr
 TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesThatTheHorseLeft)
 {
     std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
-    const LanternGlow glow = GlowOf(objects, Client::World::ObjectScene::Login, 11);
+    const LanternGlow glow = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 11);
     ASSERT_EQ(glow.sprites.size(), 2u);
     Client::Crt::CrtRandom random(11);
-    const glm::vec3 light = Client::World::StreetLightGlowLight(random.Next());
+    const glm::vec3 light = Client::WorldObjects::StreetLightGlowLight(random.Next());
     ASSERT_TRUE(glow.horse8.has_value());
     ASSERT_TRUE(glow.horse9.has_value());
     EXPECT_EQ(glow.sprites[0].position, *glow.horse8);
     EXPECT_EQ(glow.sprites[1].position, *glow.horse9);
-    for (const Client::World::Sprite& sprite : glow.sprites)
+    for (const Client::Particles::Sprite& sprite : glow.sprites)
     {
         EXPECT_EQ(sprite.texture, 0x5ac);
         EXPECT_EQ(sprite.scale, 1.0f);
@@ -1440,26 +1453,26 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
 {
     std::vector<WorldObject> objects{ObjectAt(static_cast<std::int16_t>(TenBoneModels::SecondRock), 100.0f, 100.0f),
                                      ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
-    const LanternGlow posed = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    const LanternGlow posed = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(posed.sprites.size(), 2u);
     EXPECT_EQ(posed.sprites[0].position, *posed.horse8);
     ASSERT_TRUE(posed.rock9.has_value());
     EXPECT_EQ(posed.sprites[1].position, *posed.rock9);
 
-    objects[0].state.hiddenMesh = Client::World::HiddenObject;
-    const LanternGlow hidden = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    const LanternGlow hidden = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(hidden.sprites.size(), 2u);
     EXPECT_EQ(hidden.sprites[1].position, *hidden.rock9) << "posado aunque no se dibuje";
 
     objects[0].state.hiddenMesh = Client::Models::NoHiddenMesh;
     objects[0].alpha = 0.0f;
-    const LanternGlow faded = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    const LanternGlow faded = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(faded.sprites.size(), 2u);
     EXPECT_EQ(faded.sprites[1].position, *faded.horse9);
 
     // `fcomp` con 0,01f y `test ah, 1`: con el alpha justo en 0,01 no sale.
     objects[0].alpha = std::bit_cast<float>(0x3C23D70Au);
-    const LanternGlow edge = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    const LanternGlow edge = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(edge.sprites.size(), 2u);
     EXPECT_EQ(edge.sprites[1].position, *edge.rock9) << "posado con el alpha en 0,01";
 }
@@ -1468,7 +1481,7 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
 TEST(WorldObjectsDrawingTest, TheLanternGlowsOnlyInTheLogin)
 {
     std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
-    EXPECT_TRUE(GlowOf(objects, Client::World::ObjectScene::CharacterSelect, 11).sprites.empty());
+    EXPECT_TRUE(GlowOf(objects, Client::WorldObjects::ObjectScene::CharacterSelect, 11).sprites.empty());
 }
 
 // Los dos remolinos rojos (86) del .obj están en el mismo lugar, con el mismo giro y aditivos desde su
@@ -1562,11 +1575,11 @@ TEST(WorldObjectsDrawingTest, ASpecialObjectIsSteppedByItsOwner)
 
 // Un efecto con modelo vivo, como el dragón, en (1.000; 1.000; 3.400), y su paso anterior 70 más atrás
 // en y.
-Client::World::ModelEffect LiveEffect()
+Client::Effects::ModelEffect LiveEffect()
 {
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     effect.alive = true;
-    effect.type = Client::World::DragonEffect;
+    effect.type = Client::Effects::DragonEffect;
     effect.transform.position = {1000.0f, 1000.0f, 3400.0f};
     effect.previousPosition = {1000.0f, 1070.0f, 3400.0f};
     effect.light = glm::vec3(1.0f);
@@ -1580,11 +1593,11 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
     const TwoMeshModels models;
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     lighting->cells.fill({0.25f, 0.5f, 0.75f});
-    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    std::array<Client::Effects::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, lighting.get(), {},
-                                     0.0f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, lighting.get(), {},
+                                           0.0f);
     ASSERT_EQ(batch.Vertices().size(), 6u);
     const float light = Client::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     const auto& color = batch.Vertices()[0].color;
@@ -1597,7 +1610,7 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
 TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHistory)
 {
     const TwoMeshModels models;
-    std::array<Client::World::ModelEffect, 3> effects{LiveEffect(), LiveEffect(), LiveEffect()};
+    std::array<Client::Effects::ModelEffect, 3> effects{LiveEffect(), LiveEffect(), LiveEffect()};
     Client::Terrain::SphereFrustum frustum;
     frustum.normals[0] = {1.0f, 0.0f, 0.0f};
     effects[0].seen = true;
@@ -1611,7 +1624,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
     effects[2].seen = true;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 1.0f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 1.0f);
     EXPECT_FALSE(effects[0].seen);
     EXPECT_TRUE(effects[1].seen);
     EXPECT_TRUE(effects[2].seen);
@@ -1642,18 +1655,18 @@ struct MissingEffectModels final : Client::Models::IModelLibrary
 TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
 {
     const MissingEffectModels models;
-    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    std::array<Client::Effects::ModelEffect, 1> effects{LiveEffect()};
     Client::Terrain::SphereFrustum frustum;
     frustum.normals[0] = {1.0f, 0.0f, 0.0f};
     effects[0].seen = true;
     effects[0].transform.position.x = -401.0f;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
     EXPECT_FALSE(effects[0].seen);
     EXPECT_EQ(models.lookups, 0);
     effects[0].transform.position.x = 0.0f;
-    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
     EXPECT_TRUE(effects[0].seen);
     EXPECT_GT(models.lookups, 0);
     EXPECT_TRUE(batch.Vertices().empty());
@@ -1663,11 +1676,11 @@ TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
 TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
 {
     const TwoMeshModels models;
-    std::array<Client::World::ModelEffect, 2> effects{LiveEffect(), LiveEffect()};
+    std::array<Client::Effects::ModelEffect, 2> effects{LiveEffect(), LiveEffect()};
     effects[1].alive = false;
     effects[0].life = 100;
     effects[1].life = 100;
-    Client::Scenes::StepModelEffects(effects, models);
+    Client::WorldObjects::StepModelEffects(effects, models);
     EXPECT_EQ(effects[0].life, 99);
     EXPECT_EQ(effects[1].life, 100);
 }
@@ -1677,10 +1690,10 @@ TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
 TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 {
     const TwoMeshModels models;
-    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    std::array<Client::Effects::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.5f);
+    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.5f);
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
@@ -1736,8 +1749,8 @@ public:
     {
         if (interrupt && m_batch.HasOpenPrimitive() && ++m_colorQueries == 2)
             return std::nullopt;
-        if (selector == Client::World::TorchFlameParticle)
-            selector = Client::World::BreathParticle;
+        if (selector == Client::Particles::TorchFlameParticle)
+            selector = Client::Particles::BreathParticle;
         return SpriteTextures::TextureMetadataOf(selector);
     }
 
@@ -1762,14 +1775,14 @@ TEST(SpritesDrawingTest, RgbaSpritesUseLightRedAsBillboardAlpha)
 {
     const RgbaSpriteTextures textures;
     for (const std::uint16_t selector :
-         {std::uint16_t{0x5ac}, Client::World::AtlasSprite, Client::Render::OpaqueAlphaBillboardSlot})
+         {std::uint16_t{0x5ac}, Client::Particles::AtlasSprite, Client::Render::OpaqueAlphaBillboardSlot})
     {
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         ASSERT_TRUE(sprites.Create(selector, {0, 0, -10}, 1, {0.25f, 0.5f, 0.75f}, 0, 0));
         sprites.MarkSeen();
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1)));
+        Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1)));
         ASSERT_EQ(batch.Vertices().size(), 6u);
         for (const auto& vertex : batch.Vertices())
         {
@@ -1786,18 +1799,19 @@ TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNex
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     InterruptedEffectTextures textures(batch);
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
     for (int i = 0; i < 2; ++i)
         ASSERT_TRUE(
-            particles.Create(Client::World::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
+            particles
+                .Create(Client::Particles::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
                 .has_value());
     const auto view = Client::Render::ViewRows(glm::mat4(1));
-    const auto failed = Client::Scenes::DrawParticles(batch, particles, textures, view);
+    const auto failed = Client::WorldObjects::DrawParticles(batch, particles, textures, view);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_EQ(failed.Error().slot, 1u);
-    EXPECT_EQ(failed.Error().error.reason, Client::World::ParticleError::MissingColorFlag);
-    EXPECT_EQ(failed.Error().error.phase, Client::World::ParticleDrawingPhase::ColorFlag);
+    EXPECT_EQ(failed.Error().error.reason, Client::Particles::ParticleError::MissingColorFlag);
+    EXPECT_EQ(failed.Error().error.phase, Client::Particles::ParticleDrawingPhase::ColorFlag);
     EXPECT_FALSE(failed.Error().error.backendError);
     EXPECT_FALSE(batch.HasOpenPrimitive());
     ASSERT_EQ(batch.Vertices().size(), 6u);
@@ -1807,10 +1821,10 @@ TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNex
         completed += command.vertexCount;
     EXPECT_EQ(completed, 6u);
     textures.interrupt = false;
-    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, view).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures, view).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 18u);
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, view).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures, view).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 12u);
 }
 
@@ -1825,25 +1839,25 @@ TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProdu
         const auto expected = temporaryOverride ? TextureEnvMode::Modulate : TextureEnvMode::Add;
         batch.SetTextureEnv(expected);
         InterruptedEffectTextures textures(batch);
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         Client::Crt::CrtRandom random(1);
         for (int i = 0; i < 2; ++i)
-            ASSERT_TRUE(
-                particles
-                    .Create(Client::World::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
-                    .has_value());
+            ASSERT_TRUE(particles
+                            .Create(Client::Particles::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1,
+                                    0, random)
+                            .has_value());
         if (temporaryOverride)
         {
             auto& second = particles.All()[1];
-            second.type = Client::World::TorchFlameParticle;
-            second.texture = Client::World::TorchFlameParticle;
-            second.subtype = Client::World::BrightFlameSubtype;
+            second.type = Client::Particles::TorchFlameParticle;
+            second.texture = Client::Particles::TorchFlameParticle;
+            second.subtype = Client::Particles::BrightFlameSubtype;
         }
         const auto result =
-            Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
+            Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(result.Error().slot, 1u);
-        EXPECT_EQ(result.Error().error.phase, Client::World::ParticleDrawingPhase::ColorFlag);
+        EXPECT_EQ(result.Error().error.phase, Client::Particles::ParticleDrawingPhase::ColorFlag);
         EXPECT_FALSE(batch.HasOpenPrimitive());
         ASSERT_EQ(batch.Vertices().size(), 6u);
         EXPECT_EQ(batch.TextureEnv(), expected);
@@ -1858,13 +1872,13 @@ TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProdu
 TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
 {
     const SpriteTextures textures;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, {10.0f, 20.0f, -300.0f}, 2.0f, {1.0f, 0.3f, 0.0f}, 0.0f, 0));
     sprites.MarkSeen();
     const auto identity = Client::Render::ViewRows(glm::mat4(1.0f));
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawFrameSprites(batch, sprites, textures, identity);
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, identity);
     ASSERT_EQ(batch.Commands().size(), 1u);
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
     EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5ac});
@@ -1888,7 +1902,7 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
     EXPECT_FLOAT_EQ((minX + maxX) / 2.0f, 10.0f);
     EXPECT_FALSE(sprites.Sprites()[0].alive);
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawFrameSprites(batch, sprites, textures, identity);
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, identity);
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
@@ -1897,13 +1911,13 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
 TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
 {
     const SpriteTextures textures;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(0.0f, 0.0f, -10.0f), 1.0f, glm::vec3(1.0f), 0.0f, 1));
     ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(0.0f, 0.0f, -10.0f), 1.0f, glm::vec3(1.0f), 0.0f, 2));
     sprites.MarkSeen();
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_EQ(batch.Commands().size(), 2u);
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Subtractive);
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
@@ -1914,11 +1928,11 @@ TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
 TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
 {
     const SpriteTextures textures;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, {0.0f, 0.0f, -300.0f}, 2.0f, glm::vec3(1.0f), 0.0f, 0));
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_EQ(batch.Vertices().size(), 6u);
     float minX = 1e9f;
     float maxX = -1e9f;
@@ -1937,16 +1951,17 @@ TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
 TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 {
     const SpriteTextures textures;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
-    const auto index = particles.Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
+    const auto index = particles.Create(Client::Particles::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
                                         glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(index.has_value());
     const float scale = particles.All()[*index].scale;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)))
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)))
+            .HasValue());
     ASSERT_FALSE(batch.Commands().empty());
     const auto& drawn = batch.Commands().back();
     EXPECT_EQ(drawn.operation, Client::Render::ModelStateOperation::Draw);
@@ -1998,19 +2013,19 @@ public:
 TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
 {
     const NoEffectTextures textures;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
-    const auto index = particles.Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
+    const auto index = particles.Create(Client::Particles::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
                                         glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(index.has_value());
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn =
-        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+        Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_EQ(drawn.Error().slot, *index);
-    EXPECT_EQ(drawn.Error().error.reason, Client::World::ParticleError::MissingTextureSize);
-    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
+    EXPECT_EQ(drawn.Error().error.reason, Client::Particles::ParticleError::MissingTextureSize);
+    EXPECT_EQ(drawn.Error().error.phase, Client::Particles::ParticleDrawingPhase::Dimensions);
     EXPECT_TRUE(batch.Commands().empty());
 }
 
@@ -2033,7 +2048,8 @@ TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScrol
                               Case{0x42, ModelBlend::Opaque, std::bit_cast<float>(0x3851b717u)}})
     {
         SCOPED_TRACE(probe.type);
-        std::vector<WorldObject> objects{ObjectAt(probe.type, 100.0f, 100.0f, Aida, Client::World::ObjectScene::Other)};
+        std::vector<WorldObject> objects{
+            ObjectAt(probe.type, 100.0f, 100.0f, Aida, Client::WorldObjects::ObjectScene::Other)};
         objects[0].light = glm::vec3(0.25f, 0.5f, 0.75f);
         objects[0].vertexLight = false;
         objects[0].state.uv = glm::vec2(0.5f, 0.125f);
@@ -2061,7 +2077,7 @@ TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScrol
         }
     }
     // Otros tipos del 33 no repiten nada.
-    std::vector<WorldObject> objects{ObjectAt(0x10, 100.0f, 100.0f, Aida, Client::World::ObjectScene::Other)};
+    std::vector<WorldObject> objects{ObjectAt(0x10, 100.0f, 100.0f, Aida, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     ASSERT_TRUE(DrawGame(batch, models, objects, {.map = Aida, .originalFrame = false, .random = &random}).HasValue());
@@ -2086,11 +2102,11 @@ TEST(WorldObjectsDrawingTest, TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawn
     {
         SCOPED_TRACE(probe.type);
         std::vector<WorldObject> objects{
-            ObjectAt(probe.type, 100.0f, 100.0f, Trials, Client::World::ObjectScene::Other)};
+            ObjectAt(probe.type, 100.0f, 100.0f, Trials, Client::WorldObjects::ObjectScene::Other)};
         objects[0].light = light;
         objects[0].vertexLight = false;
         objects[0].field84 = 2.5f;
-        const auto body = Client::Scenes::LandOfTrialsBody(objects[0], light, clock);
+        const auto body = Client::MapScripts::LandOfTrials::LandOfTrialsBody(objects[0], light, clock);
         ASSERT_TRUE(body.HasValue());
         const glm::vec3 color = body.Value() ? body.Value()->color : light;
         for (const bool original : {false, true})

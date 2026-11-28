@@ -20,7 +20,7 @@ class ITextDrawer;
 // El dibujo del registro del chat (CL8 hito 3; 06 § El chat): 0x479080, su vtable + 0x14, que el HUD llama en el
 // juego (0x5a7320, paso 17). Arma el marco con la barra (0x45c460, solo con el registro en su ventana), los renglones
 // (0x45cbb0) y los botones (0x45d420), todo en 640 × 480.
-namespace Client::UI
+namespace Client::Chat
 {
 // Los slots de Interface\ que carga 0x61ccb0: el fondo del marco (Message_box2.jpg), el agarre (nis_rsframe), los
 // lados (nis_vframe), el cursor (nis_bar), la pista (nis_back), las flechas (nis_btnarrow) y los botones (nis_btnchat,
@@ -66,4 +66,4 @@ struct ChatLogDrawView
 // lista en x = 0xba, la y (0x12f).
 void DrawTheChatLog(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
                     const ChatLogDrawView& view);
-} // namespace Client::UI
+} // namespace Client::Chat

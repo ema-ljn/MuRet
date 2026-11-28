@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -325,4 +325,4 @@ void NoticeWindow::Place(Core::PixelSize screen)
         m_cancel.MoveTo(Point{m_layout.cancel->x, m_layout.cancel->y});
     }
 }
-} // namespace Client::UI
+} // namespace Client::Ui

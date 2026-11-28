@@ -41,7 +41,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Hero
 {
 namespace
 {
@@ -99,7 +99,7 @@ std::string CNameOf(const Kernel::ActorState& actor)
     return name;
 }
 
-std::string CNameOf(const std::array<std::byte, DuelNameSize>& bytes)
+std::string CNameOf(const std::array<std::byte, Social::DuelNameSize>& bytes)
 {
     std::string name;
     for (const std::byte letter : bytes)
@@ -194,7 +194,7 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
     runtime.movement.mouseUpdateTime = runtime.movement.mouseUpdateTimeMax;
-    if (auto attacked = SetActorAttack(hero, context.combat); !attacked.HasValue())
+    if (auto attacked = Combat::SetActorAttack(hero, context.combat); !attacked.HasValue())
         return attacked;
     hero.byte381 = 1;
     hero.attackPosition = world.Actors()[static_cast<std::size_t>(target)].position;
@@ -251,7 +251,7 @@ Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::i
     // 0x566272: PathFinding2 calcula primero la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance
     // distinto de 0 no cuenta (0x4eadd4).
     const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({x, y}, target, CrywolfAltarGoal(context.combat.world), range);
+                          .Find({x, y}, target, Events::Crywolf::CrywolfAltarGoal(context.combat.world), range);
     if (!path)
         return {};
     hero.path = *path;
@@ -309,21 +309,21 @@ ArrivalSkillKind ArrivalSkillKindOf(std::uint32_t skill)
     }
 }
 
-HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
+Skills::HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
 {
-    return HeroSkillContext{.world = context.combat.world,
-                            .random = context.combat.random,
-                            .skills = context.skills,
-                            .playerSkeleton = context.combat.playerSkeleton,
-                            .items = context.combat.items,
-                            .models = context.combat.models,
-                            .tickCount = context.tickCount,
-                            .inventory = context.inventory,
-                            .controlDown = context.controlDown,
-                            .send = context.sendSkill,
-                            .terrain = context.combat.terrain,
-                            .dynamicLighting = context.combat.dynamicLighting,
-                            .faunaModels = context.combat.faunaModels};
+    return Skills::HeroSkillContext{.world = context.combat.world,
+                                    .random = context.combat.random,
+                                    .skills = context.skills,
+                                    .playerSkeleton = context.combat.playerSkeleton,
+                                    .items = context.combat.items,
+                                    .models = context.combat.models,
+                                    .tickCount = context.tickCount,
+                                    .inventory = context.inventory,
+                                    .controlDown = context.controlDown,
+                                    .send = context.sendSkill,
+                                    .terrain = context.combat.terrain,
+                                    .dynamicLighting = context.combat.dynamicLighting,
+                                    .faunaModels = context.combat.faunaModels};
 }
 
 // 0x56601f..0x566754: el caso 5.
@@ -332,7 +332,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     Kernel::WorldState& world = context.combat.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
-    const WeaponSkillRequest request = runtime.movement.weaponSkill;
+    const Movement::WeaponSkillRequest request = runtime.movement.weaponSkill;
     // 0x56601f..0x566106: con el byte de 0x7758580, el lugar 0x7758584 del registro propio; si no, 0x7758584 entero. El
     // registro se abre y se cierra igual.
     std::uint32_t skill = 0;
@@ -342,8 +342,8 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     }
     if (skill > LastSkill)
         return Core::Unexpected(std::format("0x566108: la skill {:#x} de 0x7758584 está fuera de Skill.bmd", skill));
-    const HeroSkillContext skills = SkillContextOf(context);
-    const auto range = SkillRangeOf(static_cast<std::uint8_t>(skill), hero, skills);
+    const Skills::HeroSkillContext skills = SkillContextOf(context);
+    const auto range = Skills::SkillRangeOf(static_cast<std::uint8_t>(skill), hero, skills);
     if (!range.HasValue())
         return Core::Unexpected(range.Error());
     ArrivalSkillKind kind = ArrivalSkillKindOf(skill);
@@ -388,7 +388,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     if (distance <= limit && hero.safeZone == 0)
     {
         if (castsAtTheTarget)
-            return CastTheSkillAtTheTarget(hero, hero, skills);
+            return Skills::CastTheSkillAtTheTarget(hero, hero, skills);
         // 0x56634c..0x5663a7: la línea de vista desde la celda lógica del héroe (la Y y la X).
         const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
         const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
@@ -402,8 +402,8 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
         if (!seen || !*seen)
             return {};
         if (kind == ArrivalSkillKind::OnItsTarget)
-            return UseTheSkillOnItsTarget(hero, hero, skills);
-        return UseTheElfSkillOnItsTarget(hero, hero, skills);
+            return Skills::UseTheSkillOnItsTarget(hero, hero, skills);
+        return Skills::UseTheElfSkillOnItsTarget(hero, hero, skills);
     }
     // 0x56620d..0x566299: el camino hasta el alcance (· 1,2 en un float, con 0x55b6f0) desde la celda lógica del héroe.
     const float reach = castsAtTheTarget
@@ -467,11 +467,11 @@ Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, cons
 // el PK de 6 o más y gremio (+0x1f2 distinto de 0xffff) compara con strcmp el nombre de su gremio (0x787aa55 + i ·
 // 0x58, el +0xd de la tabla) con el del héroe. El índice del héroe no se mira: con −1 lee lo que está antes de la tabla
 // (GuildNameAt, Q-C1281). Un índice fuera de la tabla leería otra memoria: corta.
-Core::Expected<bool, std::string> SameGuildAsTheHero(const GuildState& guild, const Kernel::ActorState& hero,
+Core::Expected<bool, std::string> SameGuildAsTheHero(const Guild::GuildState& guild, const Kernel::ActorState& hero,
                                                      const Kernel::ActorState& target, std::string_view where)
 {
-    const auto theirs = GuildNameAt(guild, static_cast<std::int16_t>(target.word1f2));
-    const auto ours = GuildNameAt(guild, static_cast<std::int16_t>(hero.word1f2));
+    const auto theirs = Guild::GuildNameAt(guild, static_cast<std::int16_t>(target.word1f2));
+    const auto ours = Guild::GuildNameAt(guild, static_cast<std::int16_t>(hero.word1f2));
     if (!theirs || !ours)
         return Core::Unexpected(std::format("{}: el gremio de +0x1f2 cae fuera de la tabla (0x787aa48)", where));
     return *theirs == *ours;
@@ -485,7 +485,7 @@ Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& wor
     const Kernel::WorldRuntime& runtime = world.Runtime();
     const Kernel::ActorState& hero = world.Hero();
     const bool isHero = &target == &hero;
-    const GuildState& guild = runtime.guild;
+    const Guild::GuildState& guild = runtime.guild;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap && !isHero)
         return true;
     // 0x558c07: en la guerra (0x576796c), un monstruo sólo con 0x576796d (el tipo de la guerra, el 61 y el 62).
@@ -511,7 +511,7 @@ Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& wor
     }
     // 0x558dff..0x558e3d: con el duelo en curso (el BYTE de 0x78abad8), sólo el rival: la clave con MOVSX contra el
     // DWORD de 0x78abadc y strcmp de +0x1d9 con 0x78abae0 (SocialState::duel, del hito 7).
-    const DuelState& duel = runtime.social.duel;
+    const Social::DuelState& duel = runtime.social.duel;
     if (duel.active != 0)
     {
         const bool rival = static_cast<std::int32_t>(static_cast<std::int16_t>(target.key)) == duel.rivalKey;
@@ -570,7 +570,7 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& 
     // 0x558ef0..0x558f08.
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return key;
-    const GuildState& guild = runtime.guild;
+    const Guild::GuildState& guild = runtime.guild;
     // 0x558f09..0x558f7c: los nombres de gremio, como en 0x558da4; iguales, −1.
     if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)
     {
@@ -581,7 +581,7 @@ Core::Expected<std::int32_t, std::string> ChosenKeyOf(const Kernel::WorldState& 
             return NoKey;
     }
     // 0x558f84..0x558fed: con el duelo en curso, la clave del rival o −1, sin el nombre.
-    if (const DuelState& duel = runtime.social.duel; duel.active != 0)
+    if (const Social::DuelState& duel = runtime.social.duel; duel.active != 0)
         return key == duel.rivalKey ? key : NoKey;
     if (target.byte370 == 2 || target.byte370 == 8)
         return key;
@@ -618,4 +618,4 @@ Core::Expected<void, std::string> InteractOnArrival(Kernel::ActorState& hero, co
         return {};
     return Core::Unexpected(std::string(other));
 }
-} // namespace Client::Scenes
+} // namespace Client::Hero

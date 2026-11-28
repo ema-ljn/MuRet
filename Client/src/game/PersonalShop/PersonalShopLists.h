@@ -27,32 +27,37 @@ class WorldState;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::PersonalShop
+{
 
 // 0x65ac65..0x65b21d (0x800) y 0x65b33a..0x65ba37 (0x20000), después de abrir el inventario: con 0x6c931c distinto de
 // −1, el C1 04 F3 10 en C3 (dos rand(), el relleno y el serial); los dos mapas si ninguno estaba (los arma juntos, y
 // solo los suelta la vuelta a la selección, ResetThePersonalShops); 0x6c931c en 1 (la propia) o 2 (la de otro).
 [[nodiscard]] Core::Expected<void, std::string> OpenThePersonalShop(Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                                    UI::PanelId id, const GamePacketSender& send);
+                                                                    Ui::PanelId id,
+                                                                    const Social::GamePacketSender& send);
 
 // 0x5eb020, al cerrar cualquiera de las dos: con 0x6c931c en 2, la grilla de la tienda propia vuelve de su copia
 // (0x78a6768 → 0x78ab0b8), el título de la ventana (0x78aba64) vuelve al del cartel del héroe (0x451810 y 0x451860) o
 // queda vacío, y con la clave del dueño (0x78a6514) distinta de 0, el 3F 07 en C3. Después, con el diálogo 0x91 o el
 // 0x94 con 0x78abb14 en 5, el diálogo 0 (0x6236f0); 0x6c931c en −1 y la copia del dueño (0x78a6320) en ceros.
 [[nodiscard]] Core::Expected<void, std::string> CloseThePersonalShop(Kernel::WorldState& world, Crt::CrtRandom& random,
-                                                                     const GamePacketSender& send);
+                                                                     const Social::GamePacketSender& send);
 
 // 0x5eb960, por el jmp de 0x657690 al final de 0x657670 (la vuelta a la selección, 0x4c26e7): 0x78aba50 en 0, 0x6c931c
 // en −1, 0x78aba60 en 0 y el título (0x78aba64) vacío; los carteles (0x4514a0 sobre 0x7245c8, que no toca la cuenta
 // del dibujo ni si se dibujan) y los dos mapas de los precios (0x4c0340 y el delete de 0x7245e4 y 0x7245e0, que quedan
 // en 0: el próximo Open los vuelve a armar). Sin rand(). La copia del dueño (0x78a6320), la grilla guardada (0x78a6768)
 // y la esquina de las ventanas quedan como estaban.
-void ResetThePersonalShops(PersonalShopState& shops);
+void ResetThePersonalShops(Social::PersonalShopState& shops);
 
 // 0x4db120 (3F 01): con un resultado distinto de 1 y 0x6c931c en 1, 0x5be150 con un ítem en el cursor, el lugar
 // sale del mapa de la tienda propia (0x7245e4) y el C1 04 F3 10 en C3. Si no, nada (el log 0x6c84a0 siempre).
 [[nodiscard]] Core::Expected<void, std::string> ApplyPriceResult(const Protocol::PersonalShop::PriceResult& result,
-                                                                 const WorldEntryResources& resources,
-                                                                 const GamePacketSender& send);
+                                                                 const Scenes::WorldEntryResources& resources,
+                                                                 const Social::GamePacketSender& send);
 
 // 0x4db890 (3F 05): con 1, Close(0x40) y Close(0x4000000) si están abiertas, la copia del dueño en ceros, la grilla
 // propia a su copia si 0x20000 no estaba abierta, el título (strncpy de 0x24), la grilla de la tienda vacía,
@@ -62,20 +67,20 @@ void ResetThePersonalShops(PersonalShopState& shops);
 // que se ponen con una huella que pasa su grilla (Q-C200) descarta el paquete entero, antes de cerrar nada, con un
 // aviso en el log.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopItemList(const Protocol::PersonalShop::ShopItemList& list,
-                                                                  const WorldEntryResources& resources,
-                                                                  const GamePacketSender& send);
+                                                                  const Scenes::WorldEntryResources& resources,
+                                                                  const Social::GamePacketSender& send);
 
 // 0x4dbcb0 (3F 06): con 1 y 0x6c931c en 2, el lugar de 0x78a6758 sale del mapa de la de otro y de la grilla
 // (0x5bd750); con 1 y otro modo, ese mapa vacío; con 1, el ítem comprado en su lugar (0x5bc740 con el último argumento
 // en 0). Con 6, el texto 1166 y Close(0x800) y Close(0x20000); con 7, el 423; con 8, el 375 (todos con el tipo 2); con
 // 7, 8 u otro, 0x5be150. Con 1 y una huella que pasa su grilla (Q-C200), el paquete se descarta entero con un aviso.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopPurchase(const Protocol::PersonalShop::ShopPurchase& purchase,
-                                                                  const WorldEntryResources& resources,
-                                                                  const GamePacketSender& send);
+                                                                  const Scenes::WorldEntryResources& resources,
+                                                                  const Social::GamePacketSender& send);
 
 // 0x4dbb40 (3F 0x13): con 1 y 0x6c931c en 2, la grilla de la tienda vacía, el mapa de la de otro vacío y cada entrada
 // en su lugar con su precio, sin mirar el precio. Si no, el log. Una entrada con una huella que pasa su grilla (Q-C200)
 // descarta el paquete entero, con un aviso en el log.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopRefresh(const Protocol::PersonalShop::ShopRefresh& refresh,
-                                                                 const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                 const Scenes::WorldEntryResources& resources);
+} // namespace Client::PersonalShop

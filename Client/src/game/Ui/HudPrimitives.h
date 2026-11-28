@@ -9,7 +9,7 @@
 // Las primitivas que el HUD del juego comparte (06 § HUD y ventanas, CL8 hito 2): las cifras de FontTest
 // (0x6218f0), las barras chicas (0x5a6af0) y la ayuda con su marco que sale con el mouse encima (0x554340). Todas en
 // 640 × 480 y con el estado de GL que dejan, como el original.
-namespace Client::UI
+namespace Client::Ui
 {
 // Interface\FontTest.tga, el atlas de las cifras (Assets::DamageTextureSet): 16 columnas de 16 píxeles en una fila
 // de 32 de las 64 de alto.
@@ -35,4 +35,4 @@ void DrawGauge(Render::SpriteBatch& sprites, float x, float y, float width, floa
 // fondo negro con alfa 0,8 en (x − 1, y − 2, cx/rx + 2, cy/ry + 2), con cx y cy en píxeles y rx y ry los de la
 // pantalla. Guarda la mezcla de antes (0x7d366dc) y la vuelve a poner al final; el color queda en blanco.
 void DrawHelp(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, int x, int y, std::string_view help);
-} // namespace Client::UI
+} // namespace Client::Ui

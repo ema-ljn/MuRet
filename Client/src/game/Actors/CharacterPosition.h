@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace Client::GameLogic
+namespace Client::Actors
 {
 // Metadatos prestados de lvalues del tipo exacto: el wrapper rechaza temporales/conversiones.
 struct CharacterPositionState
@@ -28,4 +28,4 @@ void UpdateCharacterPosition(CharacterPositionState state, const std::function<d
 // del store de altura y del avance de fase. El callback de velocidad sigue siendo obligatorio.
 [[nodiscard]] bool TryUpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
                                               const std::function<double(float, float)>& height);
-} // namespace Client::GameLogic
+} // namespace Client::Actors

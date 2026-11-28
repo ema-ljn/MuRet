@@ -40,11 +40,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
-using Client::Scenes::GameUiContext;
-using Client::Scenes::JewelBundleList;
-using Client::Scenes::JewelMixState;
+using Client::Npc::JewelBundleList;
+using Client::Npc::JewelMixState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -87,24 +87,23 @@ public:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheGameDialogs(
-            GameUiContext{.world = *world,
-                          .random = random,
-                          .input = input,
-                          .mouseX = x,
-                          .mouseY = y,
-                          .measure = &measure,
-                          .texts = &texts,
-                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                          {
-                              sent.push_back(std::move(packet));
-                              return Client::Core::Expected<void, std::string>{};
-                          }});
+        return Client::Hud::StepTheGameDialogs(GameUiContext{.world = *world,
+                                                             .random = random,
+                                                             .input = input,
+                                                             .mouseX = x,
+                                                             .mouseY = y,
+                                                             .measure = &measure,
+                                                             .texts = &texts,
+                                                             .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                                             {
+                                                                 sent.push_back(std::move(packet));
+                                                                 return Client::Core::Expected<void, std::string>{};
+                                                             }});
     }
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(world->Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
         return Step(x, y);
     }
 
@@ -119,7 +118,7 @@ public:
     [[nodiscard]] std::vector<std::string> Errors() const
     {
         std::vector<std::string> errors;
-        for (const Client::UI::MessageAreaRow& row : world->Runtime().chat.area.rows)
+        for (const Client::Ui::MessageAreaRow& row : world->Runtime().chat.area.rows)
         {
             if (row.type == 2 && !row.text.empty())
                 errors.push_back(row.text);
@@ -271,8 +270,8 @@ TEST(JewelUnmixTest, TheOkAsksForTheChosenBundle)
         EXPECT_EQ(tested.Jewels().level, 5);
         EXPECT_EQ(tested.Jewels().counted, 1);
         EXPECT_EQ(tested.Jewels().price, 1000000);
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "deshacer alma 6?");
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "deshacer alma 6?");
         EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_TRUE(tested.sent.empty());
@@ -317,14 +316,14 @@ TEST(JewelUnmixTest, TheDoubleClickOnARowAsksForItsBundle)
         EXPECT_EQ(list.selection, 2);
         EXPECT_EQ(tested.Jewels().cell, 3);
         EXPECT_EQ(tested.Jewels().level, 4);
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "deshacer bendicion 5?");
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "deshacer bendicion 5?");
 
         runtime.dialogs.current = UnmixDialog;
         list.selection = 1;
         ASSERT_TRUE(tested.Click(OkX, ButtonsY).HasValue());
         EXPECT_EQ(tested.Jewels().cell, 0);
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
     }
 }
 

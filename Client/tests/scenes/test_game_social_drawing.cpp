@@ -35,12 +35,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
 
 constexpr std::uint32_t Seed = 7;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -146,14 +146,14 @@ protected:
     void Score()
     {
         GameHudContext context = Context();
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        Client::Scenes::DrawTheDuelScore(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        Client::Social::DrawTheDuelScore(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> Request(std::int32_t x, std::int32_t y)
     {
         GameHudContext context = Context(x, y);
-        return Client::Scenes::DrawTheDuelRequest(context);
+        return Client::Social::DrawTheDuelRequest(context);
     }
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
@@ -177,7 +177,7 @@ TEST_P(GameSocialDrawingTest, WithoutADuelTheScoreDrawsNothing)
 // inventario, 0x5bb8d0 no consulta nada.
 TEST_P(GameSocialDrawingTest, TheScoreDrawsTheBandTheNamesAndThePoints)
 {
-    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    Client::Social::DuelState& duel = Runtime().social.duel;
     duel.active = 1;
     duel.ownScore = 3;
     duel.rivalScore = 12;
@@ -277,7 +277,7 @@ TEST_P(GameSocialDrawingTest, TheNoButtonLightsAndMissingTextsCut)
     EXPECT_EQ(quads[8].slot, 0xf4);
     GameHudContext context = Context();
     context.texts = nullptr;
-    const auto cut = Client::Scenes::DrawTheDuelRequest(context);
+    const auto cut = Client::Social::DrawTheDuelRequest(context);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("910"), std::string::npos) << cut.Error();
 }

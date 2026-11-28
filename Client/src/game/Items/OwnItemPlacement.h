@@ -32,6 +32,10 @@ class WorldState;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Items
+{
 
 using InventoryItemBytes = std::span<const std::byte, Protocol::Items::InventoryItemDataSize>;
 
@@ -54,14 +58,14 @@ inline constexpr std::uint8_t FirstSecondGridSlot = 0x4c;
 // son 0. Lo que MuRet no tiene corta con error después de lo que el original hace antes, y el registro se
 // cierra igual. Devuelve lo que pidió 0x4f2250 dentro de 0x512a30, si corrió.
 [[nodiscard]] Core::Expected<Actors::ActorStopResult, std::string>
-PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const Scenes::WorldEntryResources& resources);
 
 // 0x5bc150(lugar, datos), desde el 31 con una grilla que no es la 3 ni la 5 (0x4c6033): el ítem en la grilla de la
 // tienda y del almacén (0x78a7070), de 8 por fila desde el lugar, sin tope, y 0x54bf40 en cada casilla de su huella.
 // No abre el registro propio. Con el tipo 0x1fff, nada.
 [[nodiscard]] Core::Expected<void, std::string> PlaceInTheNpcGrid(std::span<Kernel::ItemState> cells, std::uint8_t slot,
                                                                   InventoryItemBytes bytes,
-                                                                  const WorldEntryResources& resources);
+                                                                  const Scenes::WorldEntryResources& resources);
 
 // 0x5bc740(grilla, columnas, filas, lugar, ítem, …) con una grilla que no es la del inventario (0x5bc766 salta a
 // 0x5bd307..0x5bd3ec): la huella del tipo desde `origin`, fila · `columns` + origen + columna, con la columna (origen %
@@ -70,34 +74,35 @@ PlaceInventoryItem(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntry
 // en 0, el registro propio) es de quien la llama.
 [[nodiscard]] Core::Expected<void, std::string>
 PlaceItemInOtherGrid(std::span<Kernel::ItemState> cells, std::int32_t columns, std::int32_t origin,
-                     InventoryItemBytes bytes, const WorldEntryResources& resources, std::string_view where);
+                     InventoryItemBytes bytes, const Scenes::WorldEntryResources& resources, std::string_view where);
 
 // La primera casilla de la huella del tipo de `bytes` desde `origin`, en el orden en que 0x5bc740 las escribe (fila ·
 // `columns` + origen + columna), que cae fuera de las `cells` casillas de la grilla, sin escribir nada: la que el
 // original escribiría pasada la grilla (Q-C200). Con el tipo 0x1fff, o con toda la huella adentro, nada.
 [[nodiscard]] Core::Expected<std::optional<std::int32_t>, std::string>
 FirstCellPastTheGrid(std::size_t cells, std::int32_t columns, std::int32_t origin, InventoryItemBytes bytes,
-                     const WorldEntryResources& resources, std::string_view where);
+                     const Scenes::WorldEntryResources& resources, std::string_view where);
 
 // FirstCellPastTheGrid con el lugar de PlaceInventoryItem: del 0 al 11 (el equipo), nada; del 12 al 75, las 64
 // casillas de 0x78a9bb0 desde el lugar − 12; del 76 en adelante, las 32 de 0x78ab0b8 desde el lugar − 76. Devuelve el
 // aviso, que nombra la grilla y la casilla.
 [[nodiscard]] Core::Expected<std::optional<std::string>, std::string>
-InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes, const WorldEntryResources& resources);
+InventoryPlacementPastTheGrid(std::uint8_t slot, InventoryItemBytes bytes,
+                              const Scenes::WorldEntryResources& resources);
 
 // Q-C200: un paquete cuya huella escribe fuera de la grilla se descarta antes de sus efectos. Un error del
 // proveedor no se consume: el camino normal lo devuelve en el punto original.
 [[nodiscard]] bool DiscardGridOverflow(std::size_t cells, std::int32_t columns, std::int32_t origin,
-                                       InventoryItemBytes bytes, const WorldEntryResources& resources,
+                                       InventoryItemBytes bytes, const Scenes::WorldEntryResources& resources,
                                        std::string_view where);
 [[nodiscard]] bool DiscardInventoryOverflow(std::uint8_t slot, InventoryItemBytes bytes,
-                                            const WorldEntryResources& resources);
+                                            const Scenes::WorldEntryResources& resources);
 
 // 0x4225d0, la defensa del Dark Horse, que 0x54bf40 llama en 0x54cc5c con el 0x1a04: la opción 0x96 con
 // 5 + la agilidad del registro propio / 20 + 2 · el nivel del caballo (WorldRuntime::pets), en un byte, calculada con
 // el registro abierto (3.848 rand() al cerrarlo si queda sin accesos). Si ya tiene una 0x96 desde la segunda opción, le
 // reescribe el valor; si no, o si es la primera (Q-C415), la agrega al final.
-void AddTheDarkHorseOption(Kernel::ItemState& item, const WorldEntryResources& resources);
+void AddTheDarkHorseOption(Kernel::ItemState& item, const Scenes::WorldEntryResources& resources);
 // Lo mismo con la cuenta de accesos del registro propio y el rand() dados: el tooltip de las mascotas (0x423b07) la
 // llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un dibujo intermedio. No mira el tipo: quien
 // la llama ya sabe que es el 0x1a04 (0x4225dc).
@@ -105,4 +110,4 @@ void AddTheDarkHorseOption(Kernel::ItemState& item, const Kernel::WorldState& wo
                            Crt::CrtRandom& random);
 // Dónde escribe 0x4225d0 su 0x96: el lugar de una 0x96 desde la segunda opción, o el que sigue a la última (Q-C415).
 [[nodiscard]] std::uint8_t DarkHorseOptionPlace(const Kernel::ItemState& item);
-} // namespace Client::Scenes
+} // namespace Client::Items

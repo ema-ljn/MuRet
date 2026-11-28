@@ -78,13 +78,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Items::ApplyInventory;
 using Client::Kernel::ActorState;
 using Client::Kernel::EmptyOwnItemId;
 using Client::Kernel::HelperState;
 using Client::Kernel::ItemState;
 using Client::Protocol::Items::InventoryEntry;
 using Client::Protocol::Items::InventoryList;
-using Client::Scenes::ApplyInventory;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::AfterDraws;
 
@@ -198,12 +198,12 @@ public:
 
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState& world = *m_world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     const Client::Tables::ItemTable* items = nullptr;
     Client::Tables::ItemSetTables sets = NoSets();
     Client::Tests::RecordingSink sink;
@@ -252,13 +252,13 @@ TEST(InventoryItemTypeTest, TakesByte0TheTopBitOfByte3AndTheTopNibbleOfByte5)
 {
     const std::array<std::byte, 7> bytes{std::byte{0x12}, std::byte{0xff}, std::byte{0xff}, std::byte{0x80},
                                          std::byte{0xff}, std::byte{0xa7}, std::byte{0xff}};
-    EXPECT_EQ(Client::Scenes::InventoryItemType(bytes), 0x12 | 0x100 | 0x1400);
+    EXPECT_EQ(Client::Items::InventoryItemType(bytes), 0x12 | 0x100 | 0x1400);
     const std::array<std::byte, 7> low{std::byte{0x34}, std::byte{0xff}, std::byte{0xff}, std::byte{0x7f},
                                        std::byte{0xff}, std::byte{0x0f}, std::byte{0xff}};
-    EXPECT_EQ(Client::Scenes::InventoryItemType(low), 0x34);
+    EXPECT_EQ(Client::Items::InventoryItemType(low), 0x34);
     for (const std::uint16_t type : {Kris, SmallShield, GuardianHelm, Apple, JewelOfBless, HornOfDoom})
     {
-        EXPECT_EQ(Client::Scenes::InventoryItemType(ItemBytes(type)), type);
+        EXPECT_EQ(Client::Items::InventoryItemType(ItemBytes(type)), type);
     }
 }
 
@@ -268,12 +268,12 @@ TEST_F(InventoryReplyTest, TheType1fffTouchesNothing)
     Stage tested = Fresh();
     const std::array<std::byte, 7> none{std::byte{0xff}, std::byte{0x01}, std::byte{0x02}, std::byte{0x80},
                                         std::byte{0x04}, std::byte{0xf0}, std::byte{0x06}};
-    ASSERT_EQ(Client::Scenes::InventoryItemType(none), Client::Scenes::NoInventoryItem);
+    ASSERT_EQ(Client::Items::InventoryItemType(none), Client::Items::NoInventoryItem);
 
     for (const int slot : {0, 12, 80})
     {
         ASSERT_TRUE(
-            Client::Scenes::PlaceInventoryItem(static_cast<std::uint8_t>(slot), none, tested.Resources()).HasValue());
+            Client::Items::PlaceInventoryItem(static_cast<std::uint8_t>(slot), none, tested.Resources()).HasValue());
     }
 
     EXPECT_EQ(tested.world.OwnCharacter().equipment[0].id, EmptyOwnItemId);
@@ -394,7 +394,7 @@ TEST_F(InventoryReplyTest, TheGridTakesTheWidthAndHeightOfItemBmd)
     Stage tested = Fresh();
 
     const auto placed =
-        Client::Scenes::PlaceInventoryItem(12 + 9, ItemBytes(SmallShield, 0x10, 40, 0x01, 0x02), tested.Resources());
+        Client::Items::PlaceInventoryItem(12 + 9, ItemBytes(SmallShield, 0x10, 40, 0x01, 0x02), tested.Resources());
 
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
     for (const std::size_t cell : {9u, 10u, 17u, 18u})
@@ -419,7 +419,7 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastColumnContinuesOnTheNextRow)
 {
     Stage tested = Fresh();
 
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 7, ItemBytes(SmallShield), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12 + 7, ItemBytes(SmallShield), tested.Resources()).HasValue());
 
     for (const std::size_t cell : {7u, 8u, 15u, 16u})
     {
@@ -437,7 +437,7 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
     const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
     Stage& tested = *testedOnHeap;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(12 + 63, ItemBytes(SmallShield), tested.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(12 + 63, ItemBytes(SmallShield), tested.Resources());
 
     ASSERT_FALSE(placed.HasValue());
     EXPECT_NE(placed.Error().find("Q-C200"), std::string::npos) << placed.Error();
@@ -448,9 +448,9 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
     EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
 
     Stage second = Fresh();
-    const auto past = Client::Scenes::PlaceInventoryItem(0x4c + 31, ItemBytes(Apple), second.Resources());
+    const auto past = Client::Items::PlaceInventoryItem(0x4c + 31, ItemBytes(Apple), second.Resources());
     ASSERT_TRUE(past.HasValue()) << past.Error();
-    const auto beyond = Client::Scenes::PlaceInventoryItem(0x4c + 32, ItemBytes(Apple), second.Resources());
+    const auto beyond = Client::Items::PlaceInventoryItem(0x4c + 32, ItemBytes(Apple), second.Resources());
     ASSERT_FALSE(beyond.HasValue());
     EXPECT_NE(beyond.Error().find("0x78ab0b8"), std::string::npos) << beyond.Error();
 }
@@ -460,7 +460,7 @@ TEST_F(InventoryReplyTest, TheSecondGridStartsAtSlot76)
 {
     Stage tested = Fresh();
 
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(0x4c + 11, ItemBytes(GuardianHelm), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(0x4c + 11, ItemBytes(GuardianHelm), tested.Resources()).HasValue());
 
     const auto& second = tested.world.Inventory().secondCells;
     for (const std::size_t cell : {11u, 12u, 19u, 20u})
@@ -485,8 +485,8 @@ TEST_F(InventoryReplyTest, AfterTheGridTheRecordClosesOnlyWithSlot78a6758BelowTw
     constexpr std::uint16_t Untouched = 0x1234;
     closing.world.OwnCharacter().attackSpeed = Untouched;
 
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12, ItemBytes(Apple), closing.Resources()).HasValue());
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12, ItemBytes(Apple), skipping.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12, ItemBytes(Apple), closing.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12, ItemBytes(Apple), skipping.Resources()).HasValue());
 
     EXPECT_EQ(closing.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
     EXPECT_EQ(skipping.cloth.random.State(), CrtRandom(Seed).State());
@@ -502,7 +502,7 @@ TEST_F(InventoryReplyTest, EachNonZeroWord3eOr42RunsTheSpeeds)
     own.agility = 100;
     own.speedAdjustBits = 0x01;
 
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12, ItemBytes(Apple), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12, ItemBytes(Apple), tested.Resources()).HasValue());
 
     // Clase 0: agilidad / 20 y agilidad / 10, más 20 por el bit 0x01 de +0x3c (0x54fe10).
     EXPECT_EQ(own.attackSpeed, 100 / 20 + 20);
@@ -516,7 +516,7 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
 {
     const std::unique_ptr<Stage> closedOnHeap = FreshOnTheHeap();
     Stage& closed = *closedOnHeap;
-    const auto cut = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), closed.Resources());
+    const auto cut = Client::Items::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), closed.Resources());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("Q-C202"), std::string::npos) << cut.Error();
     EXPECT_EQ(closed.Cell(0).id, Kris);
@@ -526,7 +526,7 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
     Stage& held = *heldOnHeap;
     held.world.Runtime().ownRecordDepth = 1;
     held.world.OwnCharacter().level = 200;
-    const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), held.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(12, ItemBytes(Kris, 0, 20, 0x10), held.Resources());
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
     const ItemState& top = held.Cell(0);
     std::optional<std::uint8_t> levelOption;
@@ -550,7 +550,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
     grid.world.OwnCharacter().agility = 205;
     grid.world.Runtime().pets[Client::Kernel::DarkHorsePetStats].level = 3;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(12, ItemBytes(DarkHorse), grid.Resources());
 
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
     const ItemState& horse = grid.Cell(0);
@@ -570,7 +570,7 @@ TEST_F(InventoryReplyTest, TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen
     worn.PublishedHero();
     worn.world.OwnCharacter().agility = 40;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(8, ItemBytes(DarkHorse), worn.Resources());
 
     if (!placed.HasValue())
     {
@@ -600,7 +600,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
     second.optionBytes[0] = 0x3e;
     second.optionBytes[1] = 0x96;
     second.optionBytes[Client::Kernel::ItemOptionValueOffset + 1] = 99;
-    Client::Scenes::AddTheDarkHorseOption(second, tested.Resources());
+    Client::Items::AddTheDarkHorseOption(second, tested.Resources());
     EXPECT_EQ(second.optionCount, 2);
     EXPECT_EQ(second.OptionTag(1), 0x96);
     EXPECT_EQ(second.OptionValue(1), 97);
@@ -610,7 +610,7 @@ TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
     first.optionCount = 1;
     first.optionBytes[0] = 0x96;
     first.optionBytes[Client::Kernel::ItemOptionValueOffset] = 99;
-    Client::Scenes::AddTheDarkHorseOption(first, tested.Resources());
+    Client::Items::AddTheDarkHorseOption(first, tested.Resources());
     EXPECT_EQ(first.optionCount, 2);
     EXPECT_EQ(first.OptionValue(0), 99);
     EXPECT_EQ(first.OptionTag(1), 0x96);
@@ -630,7 +630,7 @@ TEST_F(InventoryReplyTest, AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom)
     ActorState& hero = tested.PublishedHero();
     hero.position = {1000.0f, 2000.0f, 300.0f};
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(GuardianAngel), tested.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(8, ItemBytes(GuardianAngel), tested.Resources());
 
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
     EXPECT_EQ(hero.pet.model, ModelOf(GuardianAngel));
@@ -665,8 +665,8 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
     tested.PublishedHero();
     constexpr std::size_t OtherRider = 7;
     auto& helpers = tested.world.Helpers();
-    helpers[0] = HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = PublishedSlot};
-    helpers[1] = HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = OtherRider};
+    helpers[0] = HelperState{.alive = true, .type = Client::Pets::DarkHorseModel, .rider = PublishedSlot};
+    helpers[1] = HelperState{.alive = true, .type = Client::Pets::DarkHorseModel, .rider = OtherRider};
 
     const auto applied = ApplyInventory(ListOf({Entry(12, Apple)}), tested.Resources());
 
@@ -691,7 +691,7 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZon
         hero.light = {0.25f, 0.5f, 0.75f};
 
         const auto placed =
-            Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
+            Client::Items::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
 
         ASSERT_TRUE(placed.HasValue()) << placed.Error();
         EXPECT_EQ(hero.pet.flags1b, 0x02);
@@ -702,8 +702,8 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZon
         EXPECT_EQ(summon.alive, safeZone == 0);
         if (safeZone == 0)
         {
-            EXPECT_EQ(summon.type, Client::World::ColoredDecalEffect);
-            EXPECT_EQ(summon.subtype, Client::World::PetSummonSubtype);
+            EXPECT_EQ(summon.type, Client::Effects::ColoredDecalEffect);
+            EXPECT_EQ(summon.subtype, Client::Effects::PetSummonSubtype);
             EXPECT_EQ(summon.transform.position, hero.position);
             EXPECT_EQ(summon.transform.angles, hero.angles);
             EXPECT_EQ(summon.light, hero.light);
@@ -729,7 +729,7 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     hero.cellY = 127;
     hero.darkSpirit.emplace().state = 4;
 
-    const auto placed = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), tested.Resources());
+    const auto placed = Client::Items::PlaceInventoryItem(1, ItemBytes(DarkRaven), tested.Resources());
 
     ASSERT_TRUE(placed.HasValue()) << placed.Error();
     EXPECT_EQ(hero.hands[1].model, ModelOf(DarkRaven));
@@ -745,13 +745,13 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     chaos.world.Runtime().map = ChaosCastleMap;
     rider.darkSpirit.emplace();
 
-    const auto inChaos = Client::Scenes::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
+    const auto inChaos = Client::Items::PlaceInventoryItem(1, ItemBytes(DarkRaven), chaos.Resources());
 
     const auto shieldedStage = FreshOnTheHeap();
     Stage& shielded = *shieldedStage;
     shielded.PublishedHero();
     shielded.world.Runtime().map = ChaosCastleMap;
-    const auto withShield = Client::Scenes::PlaceInventoryItem(1, ItemBytes(SmallShield), shielded.Resources());
+    const auto withShield = Client::Items::PlaceInventoryItem(1, ItemBytes(SmallShield), shielded.Resources());
 
     ASSERT_TRUE(inChaos.HasValue()) << inChaos.Error();
     ASSERT_TRUE(withShield.HasValue()) << withShield.Error();
@@ -772,7 +772,7 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
         ActorState& hero = tested.PublishedHero();
         hero.layer.emplace();
         hero.byte360 = 5;
-        const auto placed = Client::Scenes::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x18), tested.Resources());
+        const auto placed = Client::Items::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x18), tested.Resources());
         ASSERT_TRUE(placed.HasValue()) << placed.Error();
         EXPECT_FALSE(hero.layer.has_value());
         EXPECT_EQ(hero.byte360, 4);
@@ -781,7 +781,7 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
         Stage& other = *otherStage;
         ActorState& plain = other.PublishedHero();
         plain.byte360 = 5;
-        const auto levelTwo = Client::Scenes::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x10), other.Resources());
+        const auto levelTwo = Client::Items::PlaceInventoryItem(slot, ItemBytes(WizardsRing, 0x10), other.Resources());
         ASSERT_TRUE(levelTwo.HasValue()) << levelTwo.Error();
         EXPECT_EQ(plain.byte360, 5);
     }
@@ -790,7 +790,7 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
     Stage& event = *eventStage;
     ActorState& bloodCastle = event.PublishedHero();
     bloodCastle.byte360 = 2;
-    const auto inTen = Client::Scenes::PlaceInventoryItem(10, ItemBytes(WizardsRing, 0x18), event.Resources());
+    const auto inTen = Client::Items::PlaceInventoryItem(10, ItemBytes(WizardsRing, 0x18), event.Resources());
     ASSERT_TRUE(inTen.HasValue()) << inTen.Error();
     EXPECT_EQ(bloodCastle.byte360, 2);
 }
@@ -801,8 +801,8 @@ TEST_F(InventoryReplyTest, WithoutItemBmdBothPathsStop)
     Stage tested(m_dataRoot, nullptr);
     tested.PublishedHero();
 
-    const auto grid = Client::Scenes::PlaceInventoryItem(12, ItemBytes(Apple), tested.Resources());
-    const auto worn = Client::Scenes::PlaceInventoryItem(0, ItemBytes(Kris), tested.Resources());
+    const auto grid = Client::Items::PlaceInventoryItem(12, ItemBytes(Apple), tested.Resources());
+    const auto worn = Client::Items::PlaceInventoryItem(0, ItemBytes(Kris), tested.Resources());
 
     ASSERT_FALSE(grid.HasValue());
     EXPECT_NE(grid.Error().find("0x7758550"), std::string::npos) << grid.Error();
@@ -863,7 +863,7 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
 
     static_cast<void>(online.session.Poll());
 
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     const Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     ASSERT_EQ(runtime.hero, static_cast<std::size_t>(runtime.heroSlot));
     const ActorState& hero = tested.world.Hero();
@@ -904,7 +904,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     runtime.cursorItem.id = Apple;
     runtime.cursorItem.occupied = 1;
     runtime.cursorItemCount = 1;
-    const auto moved = Client::Scenes::ApplyItemMoveResult(
+    const auto moved = Client::Items::ApplyItemMoveResult(
         Client::Protocol::Items::ItemMoveResult{.result = 0, .slot = 12 + 9, .item = ItemBytes(Apple)},
         tested.Resources());
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
@@ -923,7 +923,7 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     back.cursorItemCount = 1;
     back.cursorGrid = Client::Kernel::CursorGrid::Inventory;
     back.slot78a6758 = 12 + 1;
-    const auto rejected = Client::Scenes::ApplyItemMoveResult(
+    const auto rejected = Client::Items::ApplyItemMoveResult(
         Client::Protocol::Items::ItemMoveResult{.result = 0xff, .slot = 0, .item = {}}, refused.Resources());
     ASSERT_TRUE(rejected.HasValue()) << rejected.Error();
     EXPECT_EQ(back.ui.field78abb39, 0);
@@ -938,11 +938,11 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
 {
     Stage tested = Fresh();
     tested.PublishedHero();
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 2, ItemBytes(ShortSword), tested.Resources()).HasValue());
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 6, ItemBytes(Apple), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12 + 2, ItemBytes(ShortSword), tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12 + 6, ItemBytes(Apple), tested.Resources()).HasValue());
     Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
 
-    const auto worn = Client::Scenes::ApplyDurability(
+    const auto worn = Client::Items::ApplyDurability(
         Client::Protocol::Items::Durability{.slot = 12 + 2, .durability = 7, .endsTheWait = 0}, tested.Resources());
     ASSERT_TRUE(worn.HasValue()) << worn.Error();
     for (const std::size_t cell : {2u, 10u, 18u})
@@ -952,7 +952,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     tested.world.OwnCharacter().equipment[3].id = GuardianHelm;
     const CrtRandom before = tested.cloth.random;
     runtime.ui.field5767954 = 10;
-    const auto helm = Client::Scenes::ApplyDurability(
+    const auto helm = Client::Items::ApplyDurability(
         Client::Protocol::Items::Durability{.slot = 3, .durability = 9, .endsTheWait = 1}, tested.Resources());
     ASSERT_TRUE(helm.HasValue()) << helm.Error();
     EXPECT_EQ(tested.world.OwnCharacter().equipment[3].durability, 9);
@@ -962,15 +962,15 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_EQ(tested.cloth.random.State(), expected.State());
 
     runtime.ui.field5767954 = 10;
-    const auto deleted = Client::Scenes::ApplyItemDelete(
+    const auto deleted = Client::Items::ApplyItemDelete(
         Client::Protocol::Items::ItemDelete{.slot = 12 + 6, .endsTheWait = 1}, tested.Resources());
     ASSERT_TRUE(deleted.HasValue()) << deleted.Error();
     EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.field5767954, 0);
 
     // Desde el 0x4c, sin mirar la tienda de otro (0x6c931c en −1): la grilla de la tienda (0x78ab0b8).
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
-    const auto shop = Client::Scenes::ApplyItemDelete(
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
+    const auto shop = Client::Items::ApplyItemDelete(
         Client::Protocol::Items::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
     ASSERT_TRUE(shop.HasValue()) << shop.Error();
     EXPECT_EQ(tested.world.Inventory().secondCells[1].id, EmptyOwnItemId);
@@ -983,13 +983,13 @@ TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
 {
     const std::unique_ptr<Stage> tested = FreshOnTheHeap();
     tested->PublishedHero();
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 6, ItemBytes(Apple, 0, 2), tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12 + 6, ItemBytes(Apple, 0, 2), tested->Resources()).HasValue());
     Client::Kernel::WorldState& world = tested->world;
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
     CrtRandom& random = tested->cloth.random;
     namespace Inventory = Client::Protocol::Items;
     const auto refill = [&](std::uint8_t place, std::uint16_t life)
-    { return Client::Scenes::ApplyLifeRefill(Inventory::LifeRefill{.place = place, .life = life}, world, random); };
+    { return Client::Items::ApplyLifeRefill(Inventory::LifeRefill{.place = place, .life = life}, world, random); };
 
     CrtRandom expected = random;
     ASSERT_TRUE(refill(Inventory::MaximumPlace, 300).HasValue());
@@ -1034,14 +1034,14 @@ TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
 {
     const std::unique_ptr<Stage> tested = FreshOnTheHeap();
     tested->PublishedHero();
-    ASSERT_TRUE(Client::Scenes::PlaceInventoryItem(12 + 9, ItemBytes(Apple, 0, 1), tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::PlaceInventoryItem(12 + 9, ItemBytes(Apple, 0, 1), tested->Resources()).HasValue());
     Client::Kernel::WorldState& world = tested->world;
     CrtRandom& random = tested->cloth.random;
     namespace Inventory = Client::Protocol::Items;
     const auto refill = [&](std::uint8_t place, std::uint16_t mana, std::uint16_t bp)
     {
-        return Client::Scenes::ApplyManaRefill(Inventory::ManaRefill{.place = place, .mana = mana, .bp = bp}, world,
-                                               random);
+        return Client::Items::ApplyManaRefill(Inventory::ManaRefill{.place = place, .mana = mana, .bp = bp}, world,
+                                              random);
     };
     const Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
 
@@ -1080,23 +1080,23 @@ TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhe
     change.equipment[0] = std::byte{7};
     change.equipment[4] = std::byte{3}; // Sin mascota ni ayudante.
     // 0x5110d0 compara MOVSX del WORD de la clave: 0x9234 no coincide con un actor de clave 0x1234.
-    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyEquipmentChange(change, tested.Resources()).HasValue());
     EXPECT_EQ(hero.hands[0].model, Client::Kernel::NoItemModel);
     change.key = 0x1234;
-    const auto changed = Client::Scenes::ApplyEquipmentChange(change, tested.Resources());
+    const auto changed = Client::Items::ApplyEquipmentChange(change, tested.Resources());
     ASSERT_TRUE(changed.HasValue()) << changed.Error();
     EXPECT_EQ(hero.hands[0].model, 0x219);
     EXPECT_EQ(hero.pet.model, Client::Kernel::NoItemModel);
     hero.type = 0;
     hero.hands[0].model = 99;
-    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyEquipmentChange(change, tested.Resources()).HasValue());
     EXPECT_EQ(hero.hands[0].model, 99);
     ActorState& sentinel = tested.world.Actors()[400];
     sentinel = Client::Tests::UnarmedPlayer();
     sentinel.byte3e3 = 1;
     change.key = 0x4321;
     change.equipment[0] = std::byte{9};
-    ASSERT_TRUE(Client::Scenes::ApplyEquipmentChange(change, tested.Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyEquipmentChange(change, tested.Resources()).HasValue());
     EXPECT_EQ(sentinel.hands[0].model, 0x21b);
 }
 
@@ -1108,7 +1108,7 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
     ActorState& hero = tested.PublishedHero();
     Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
     runtime.cursorItemCount = 1;
-    const auto put = Client::Scenes::ApplyItemPut(
+    const auto put = Client::Items::ApplyItemPut(
         Client::Protocol::Items::ItemPut{.slot = 12 + 4, .item = ItemBytes(Apple)}, tested.Resources());
     ASSERT_TRUE(put.HasValue()) << put.Error();
     EXPECT_EQ(runtime.cursorItemCount, 0);
@@ -1116,10 +1116,10 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x45});
 
     hero.key = 0x1234;
-    const auto nobody = Client::Scenes::ApplyEquipmentChange(
+    const auto nobody = Client::Items::ApplyEquipmentChange(
         Client::Protocol::Items::EquipmentChange{.key = 0x4321, .equipment = {}}, tested.Resources());
     EXPECT_TRUE(nobody.HasValue()) << nobody.Error();
-    const auto player = Client::Scenes::ApplyEquipmentChange(
+    const auto player = Client::Items::ApplyEquipmentChange(
         Client::Protocol::Items::EquipmentChange{.key = 0x1234, .equipment = {}}, tested.Resources());
     ASSERT_TRUE(player.HasValue()) << player.Error();
     EXPECT_EQ(hero.pet.model, 0x1c12);
@@ -1144,7 +1144,7 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
             change.equipment[9] = std::byte{6};
             change.equipment[10] = std::byte{6};
         }
-        const auto changed = Client::Scenes::ApplyEquipmentChange(change, tested.Resources());
+        const auto changed = Client::Items::ApplyEquipmentChange(change, tested.Resources());
         ASSERT_TRUE(changed.HasValue()) << changed.Error();
         EXPECT_EQ(hero.hands[0].model, 0x1211);
         EXPECT_EQ(hero.hands[1].model, 0x1211);
@@ -1152,7 +1152,7 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
         ASSERT_EQ(tested.models.Find(Client::Models::ModelId{0x1211}), nullptr);
         Client::Render::ModelBatch batch;
         Client::Kernel::PoseBuffer carry;
-        auto sprites = std::make_unique<Client::World::FrameSprites>();
+        auto sprites = std::make_unique<Client::Particles::FrameSprites>();
         std::array<Client::Math::BoneTransform, 64> bones;
         bones.fill(Client::Math::BoneTransform(1.0f));
         const auto before = tested.cloth.random;

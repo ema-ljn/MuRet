@@ -113,7 +113,7 @@ protected:
         return m_world->Actors()[TargetIndex];
     }
     // El contexto de la llegada con los envíos grabados, como los manda la sesión (XOR32 y en claro).
-    [[nodiscard]] Client::Scenes::HeroArrivalContext Arrival()
+    [[nodiscard]] Client::Hero::HeroArrivalContext Arrival()
     {
         return {.combat = {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton, .terrain = &m_terrain},
                 .sendWalk = [this](std::span<const Client::Protocol::Movement::Cell> path,
@@ -173,7 +173,7 @@ TEST_F(HeroAttackTest, InRangeTheHeroTurnsAndSendsTheD3AndTheD7)
     for (const std::int32_t map : {0, 2, 11})
     {
         Reset(map);
-        const auto attacked = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+        const auto attacked = Client::Hero::InteractOnArrival(Hero(), Arrival());
         ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
 
         ASSERT_EQ(m_sent.size(), 2u);
@@ -199,7 +199,7 @@ TEST_F(HeroAttackTest, TheD7CarriesTheWholeKeyAndTheTurnedDirection)
 {
     Target().key = 0x8001;
     Target().position = {18250.0f, 11650.0f, 0.0f};
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     ASSERT_EQ(m_sent.size(), 2u);
     EXPECT_EQ(m_sent[0], Bytes({0xc1, 0x06, 0xd3, 182, 115, 0x50}));
     EXPECT_EQ(m_sent[1], Bytes({0xc1, 0x07, 0xd7, 0x80, 0x01, 0x78, 0x05}));
@@ -209,14 +209,14 @@ TEST_F(HeroAttackTest, TheD7CarriesTheWholeKeyAndTheTurnedDirection)
 TEST_F(HeroAttackTest, AHeroNamedWebzenTurnsButDoesNotHit)
 {
     Name(Hero(), "xwebzenx");
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_EQ(m_sent[0][2], std::byte{0xd3});
     EXPECT_EQ(Hero().attackTarget, TargetIndex);
 
     m_sent.clear();
     Name(Hero(), "webze");
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
@@ -226,7 +226,7 @@ TEST_F(HeroAttackTest, WithoutSendersTheHeroStillHits)
     auto context = Arrival();
     context.sendWalk = nullptr;
     context.sendAttack = nullptr;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), context).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), context).HasValue());
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Hero().animation.action, 0x22);
     EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
@@ -245,7 +245,7 @@ TEST_F(HeroAttackTest, AFailedTurnSendStillCompletesTheAttackAndAttemptsTheD7)
         return {};
     };
 
-    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+    const auto attacked = Client::Hero::InteractOnArrival(Hero(), context);
 
     ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
     EXPECT_TRUE(attemptedAttack);
@@ -264,7 +264,7 @@ TEST_F(HeroAttackTest, AFailedAttackSendDoesNotUndoTheCompletedArrival)
         return Client::Core::Unexpected(std::string("GameServer no abierto"));
     };
 
-    const auto attacked = Client::Scenes::InteractOnArrival(Hero(), context);
+    const auto attacked = Client::Hero::InteractOnArrival(Hero(), context);
 
     ASSERT_TRUE(attacked.HasValue()) << attacked.Error();
     EXPECT_TRUE(attemptedAttack);
@@ -278,14 +278,14 @@ TEST_F(HeroAttackTest, AFailedAttackSendDoesNotUndoTheCompletedArrival)
 TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
 {
     Target().position = {18450.0f, 11550.0f, 0.0f};
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Hero().byte381, 0);
     EXPECT_EQ(Runtime().movement.targetX, 184u);
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 
     m_world->OwnCharacter().equipment[0].id = 0x600;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 
     // A seis celdas, el arco de la izquierda llega.
@@ -294,15 +294,15 @@ TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
     Target().position = {18850.0f, 11550.0f, 0.0f};
     m_world->OwnCharacter().equipment[0].id = 0xffff;
     m_world->OwnCharacter().equipment[1].id = 0x800;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 
     m_sent.clear();
     Target().position = {18950.0f, 11550.0f, 0.0f};
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_TRUE(m_sent.empty());
     Hero().word376 = 9;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
@@ -313,19 +313,19 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
 {
     Target().position = {19250.0f, 11550.0f, 0.0f};
     Hero().movement = 0;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(Hero().movement, 0);
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 
     Hero().characterClass = 2;
     m_random = CrtRandom(Seed);
-    const auto cut = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+    const auto cut = Client::Hero::InteractOnArrival(Hero(), Arrival());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x566272"), std::string::npos);
 
     m_terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     m_random = CrtRandom(Seed);
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(Hero().movement, 1);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Hero().byte381, 0);
@@ -357,7 +357,7 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywol
             m_world->Actors()[AltarIndex].type = 0x206;
             Runtime().movement.chosenNpc = offTheGrid ? -1 : static_cast<std::int32_t>(AltarIndex);
 
-            const auto arrived = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+            const auto arrived = Client::Hero::InteractOnArrival(Hero(), Arrival());
 
             EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
             EXPECT_TRUE(m_sent.empty());
@@ -379,17 +379,17 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywol
 TEST_F(HeroAttackTest, TheEarlyExitsDoNotHit)
 {
     Runtime().movement.attackTarget = -1;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 
     Runtime().movement.attackTarget = TargetIndex;
     Hero().animation.action = 0x8d;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(Runtime().movement.targetX, 0u);
 
     Hero().animation.action = 0;
     Hero().safeZone = 1;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(Runtime().movement.targetX, 183u);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Hero().byte381, 0);
@@ -399,7 +399,7 @@ TEST_F(HeroAttackTest, TheEarlyExitsDoNotHit)
 TEST_F(HeroAttackTest, OnlyAction8DStopsAPlayerThatIsAlreadyHitting)
 {
     Hero().animation.action = 0x23;
-    ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+    ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
@@ -410,7 +410,7 @@ TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
     for (const std::uint8_t type : {std::uint8_t{0}, std::uint8_t{6}, std::uint8_t{0xff}})
     {
         Hero().movementType = type;
-        ASSERT_TRUE(Client::Scenes::InteractOnArrival(Hero(), Arrival()).HasValue());
+        ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     }
     EXPECT_EQ(m_random.State(), After(0));
     struct Case
@@ -421,7 +421,7 @@ TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
     for (const Case probe : {Case{1, "0x566755"}, Case{2, "0x5674c8"}, Case{4, "0x5695b4"}})
     {
         Hero().movementType = probe.type;
-        const auto cut = Client::Scenes::InteractOnArrival(Hero(), Arrival());
+        const auto cut = Client::Hero::InteractOnArrival(Hero(), Arrival());
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find(probe.address), std::string::npos) << cut.Error();
     }
@@ -437,13 +437,13 @@ TEST(ActionBrakeTest, ThreeHundredMillisecondsOrLessDoNotPass)
 
     std::uint32_t last = 1000;
     ticks = {1300};
-    EXPECT_FALSE(Client::Scenes::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(calls, 1u);
     EXPECT_EQ(last, 1000u);
 
     calls = 0;
     ticks = {1301, 1305};
-    EXPECT_TRUE(Client::Scenes::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(calls, 2u);
     EXPECT_EQ(last, 1305u);
 }
@@ -457,16 +457,16 @@ TEST(ActionBrakeTest, TheDifferenceIsSignedAndAbsolute)
 
     std::uint32_t last = 2000;
     now = 1000;
-    EXPECT_TRUE(Client::Scenes::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
     EXPECT_EQ(last, 1000u);
 
     last = 1200;
     now = 1000;
-    EXPECT_FALSE(Client::Scenes::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
 
     last = 0xffffff00u;
     now = 0x10;
-    EXPECT_FALSE(Client::Scenes::PassesTheActionBrake(last, 0, tickCount));
+    EXPECT_FALSE(Client::Hero::PassesTheActionBrake(last, 0, tickCount));
 }
 
 // Con la skill 0x28 no hay freno: anota el reloj con una sola llamada.
@@ -475,7 +475,7 @@ TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
     std::size_t calls = 0;
     const std::function<std::uint32_t()> tickCount = [&]() { return static_cast<std::uint32_t>(1001 + calls++); };
     std::uint32_t last = 1000;
-    EXPECT_TRUE(Client::Scenes::PassesTheActionBrake(last, 0x28, tickCount));
+    EXPECT_TRUE(Client::Hero::PassesTheActionBrake(last, 0x28, tickCount));
     EXPECT_EQ(calls, 1u);
     EXPECT_EQ(last, 1001u);
 }
@@ -483,15 +483,15 @@ TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
 // 0x558bb0: con un ítem en el cursor o sin elegido, no; en Chaos Castle, cualquiera que no sea el héroe.
 TEST_F(HeroAttackTest, NothingIsAttackableWithAnItemOnTheCursorOrWithoutAChosen)
 {
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
     Chosen(TargetIndex);
     Runtime().cursorItemCount = 1;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
     Runtime().cursorItemCount = -1;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
 
     Runtime().selectedTargets[2] = 401;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).HasValue());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).HasValue());
 }
 
 TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
@@ -501,9 +501,9 @@ TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
         Runtime().map = map;
         ActorState& other = Chosen(20);
         other.byte88 = 0;
-        EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
         Chosen(HeroIndex);
-        EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+        EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
     }
 }
 
@@ -515,12 +515,12 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     for (const std::int32_t map : {0, 2})
     {
         Runtime().map = map;
-        EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     }
     Runtime().guild.warOn = 1;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
     Runtime().guild.warType = 1;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     Runtime().guild.warOn = 0;
     Runtime().guild.warType = 0;
 
@@ -528,16 +528,16 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.pk = 3;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
     player.pk = 6;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.pk = 3;
     player.byte370 = 8;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
 
     Chosen(HeroIndex);
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558e74..0x558e7b: el umbral PK 6 permite al héroe; con 5 no lo permite ni siquiera con Ctrl.
@@ -545,12 +545,12 @@ TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
 {
     Chosen(HeroIndex);
     Hero().pk = 5;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 
     Hero().pk = 6;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558d6e..0x558d7e: +0x370 en 2/8 antecede los filtros de gremio, duelo y PK.
@@ -570,7 +570,7 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     {
         SCOPED_TRACE(byte370);
         player.byte370 = byte370;
-        EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+        EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     }
 }
 
@@ -583,9 +583,9 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     ActorState& player = Chosen(20);
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
     player.byte374 = 2;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.pk = 6;
     player.word1f2 = 3;
     Hero().word1f2 = 5;
@@ -593,22 +593,22 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     GuildName(5, "Rojos");
     for (const bool controlDown : {false, true})
     {
-        const auto attackable = Client::Scenes::IsAttackable(*m_world, controlDown);
+        const auto attackable = Client::Hero::IsAttackable(*m_world, controlDown);
         ASSERT_TRUE(attackable.HasValue()) << attackable.Error();
         EXPECT_FALSE(attackable.Value());
     }
     GuildName(5, "Azules");
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.byte374 = 0;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 
     // Un héroe sin gremio (−1) compara con lo que está antes de la tabla (Q-C1281): el byte 9 del miembro 74.
     Hero().word1f2 = 0xffff;
     player.byte374 = 2;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     // Un índice fuera de la tabla leería otra memoria: corta.
     player.word1f2 = 2000;
-    const auto outside = Client::Scenes::IsAttackable(*m_world, false);
+    const auto outside = Client::Hero::IsAttackable(*m_world, false);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x558da4"), std::string::npos);
 }
@@ -623,16 +623,16 @@ TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
     player.key = 0x77;
     player.pk = 6;
     Name(player, "rival");
-    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    Client::Social::DuelState& duel = Runtime().social.duel;
     duel.active = 1;
     duel.rivalKey = 0x77;
     for (std::size_t i = 0; i < 5; ++i)
         duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, false).Value(), 0x77);
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, false).Value(), 0x77);
     duel.rivalKey = 0x78;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
-    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
 }
 
 // 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin
@@ -644,16 +644,16 @@ TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
     player.byte88 = 1;
     player.key = 0x8001;
     Name(player, "rival");
-    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    Client::Social::DuelState& duel = Runtime().social.duel;
     duel.active = 1;
     duel.rivalKey = 0x8001;
     for (std::size_t i = 0; i < 5; ++i)
         duel.rivalName[i] = static_cast<std::byte>(std::string_view("rival")[i]);
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
-    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
+    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
     duel.rivalKey = -0x7fff;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_EQ(Client::Scenes::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_EQ(Client::Hero::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
 }
 
 // 0x558c2a..0x558d6d: en el asedio, un atacante (+0x360 en 6 a 11) contra un defensor (12 o 13) decide por el escudo
@@ -666,15 +666,15 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.byte360 = 13;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 
     // Del mismo lado no decide: sigue como sin asedio.
     player.flags78 = 0;
     player.byte360 = 9;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
@@ -686,9 +686,9 @@ TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
     player = Client::Tests::UnarmedPlayer();
     player.byte88 = 1;
     player.byte360 = 6;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 }
 
 // 0x558cc1..0x558d59: las marcas 0x80000/0x400000/0x800000 comparan blanco sin marcas; si ambos tienen marca, sigue
@@ -702,19 +702,19 @@ TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
     player.pk = 3;
     Hero().flags78 = 0x80000;
     player.flags78 = 0;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, true).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, true).Value());
 
     player.pk = 6;
     player.flags78 = 0x400000 | 0x4000;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
 
     Hero().flags78 = 0x40000;
     player.pk = 3;
     player.flags78 = 0;
-    EXPECT_TRUE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_TRUE(Client::Hero::IsAttackable(*m_world, false).Value());
     player.flags78 = 0x4000;
-    EXPECT_FALSE(Client::Scenes::IsAttackable(*m_world, false).Value());
+    EXPECT_FALSE(Client::Hero::IsAttackable(*m_world, false).Value());
 }
 } // namespace

@@ -67,7 +67,7 @@ struct SweepWorld
                                                    .skill = 3,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
         for (std::size_t slot = 0; slot < Last; ++slot)
             joints[slot].alive = false;
         return created;
@@ -75,16 +75,16 @@ struct SweepWorld
 
     Client::Core::Expected<void, std::string> Step(const ActorState* hero = nullptr)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, nullptr, {}, {}, {},
+        return Client::Joints::StepJoints(joints, random, nullptr, particles.get(), 0.0f, nullptr, nullptr, {}, {}, {},
                                           {}, nullptr, hero, nullptr, volley.get());
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 400.0f};
     std::vector<JointState> joints = std::vector<JointState>(Last + 1);
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random{Seed};
     // El asedio, los atributos y los blancos del héroe (0x53b569..0x53b5b1).
-    std::unique_ptr<Client::Scenes::JointKernels::VolleyServices> volley;
+    std::unique_ptr<Client::Joints::JointKernels::VolleyServices> volley;
 };
 
 constexpr std::size_t HeroSlot = 42;
@@ -143,13 +143,13 @@ struct HeroWorld
 void Attach(SweepWorld& sweep, HeroWorld& hero)
 {
     sweep.volley =
-        std::make_unique<Client::Scenes::JointKernels::VolleyServices>(Client::Scenes::JointKernels::VolleyServices{
+        std::make_unique<Client::Joints::JointKernels::VolleyServices>(Client::Joints::JointKernels::VolleyServices{
             .siegeActive = hero.world.Runtime().castleSiege.siegeActive,
             .attributes = hero.terrain.attributes.get(),
-            .skillHits = [&sweep, &hero](const Client::Scenes::SkillHitsRequest& request)
+            .skillHits = [&sweep, &hero](const Client::Skills::SkillHitsRequest& request)
                 -> Client::Core::Expected<void, std::string>
             {
-                const auto hit = Client::Scenes::HitTheTargetsAround(request, hero.world, hero.terrain, sweep.random,
+                const auto hit = Client::Skills::HitTheTargetsAround(request, hero.world, hero.terrain, sweep.random,
                                                                      hero.Capture());
                 if (!hit.HasValue())
                     return Client::Core::Unexpected(hit.Error());
@@ -158,7 +158,7 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
 }
 
 // La partícula 0x5d9 con rand() & 1 en 0 y los anchos de los dos rayos (0x53b4a0..0x53b51d) de un tramo, en la réplica.
-void ReplaySegment(CrtRandom& replay, Client::World::Particles& twin, glm::vec3 point)
+void ReplaySegment(CrtRandom& replay, Client::Particles::Particles& twin, glm::vec3 point)
 {
     if ((replay.Next() & 1) == 0)
     {
@@ -236,7 +236,7 @@ TEST(SweepJointsTest, TheSweepShedsTwoSparksForEachOfItsEightSegments)
     EXPECT_EQ(tested.joints[0].position, (glm::vec3{1000.0f, 1820.0f, 400.0f}));
 
     CrtRandom replay{Seed};
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     int fires = 0;
     glm::vec3 velocity{};
     for (std::size_t turn = 0; turn < 8; ++turn)
@@ -375,7 +375,7 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     // rand() del C3. Las dos llamadas de este barrido tienen blancos.
     constexpr std::uint32_t HitRandoms = Client::Models::OwnRecordCloseRandoms + TargetRandoms;
     CrtRandom replay{Seed};
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     glm::vec3 velocity{};
     for (int turn = 0; turn < 8; ++turn)
     {
@@ -417,7 +417,7 @@ TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.joints[Last].count, 7);
     CrtRandom replay{Seed};
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     glm::vec3 velocity{};
     for (int turn = 0; turn < 8; ++turn)
     {
@@ -475,7 +475,7 @@ TEST(SweepJointsTest, TheSiegeStopsTheHeroSweepOnTheMarkedCells)
             continue;
         }
         CrtRandom replay{Seed};
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         ReplaySegment(replay, *particles, SegmentPoint(glm::vec3(0.0f)));
         EXPECT_EQ(tested.random.State(), replay.State());
         EXPECT_TRUE(hero.sent.empty());

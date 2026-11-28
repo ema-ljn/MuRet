@@ -12,7 +12,7 @@
 // cómo pintar el fondo y presentar (main, con el GL de la ventana), y los tests, un registro.
 namespace Client::Scenes
 {
-class TestScene final : public App::ILoopClient
+class TestScene final : public Scenes::ILoopClient
 {
 public:
     // El color del fondo, de 0 a 1 por canal.

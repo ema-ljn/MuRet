@@ -22,17 +22,17 @@ class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors::Drawing
 {
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 struct HighEffectStepContext;
 
@@ -41,13 +41,13 @@ inline constexpr std::int16_t MeteorShellEffect = 0x13e;
 inline constexpr std::int16_t MeteorCallEffect = 0x13f;
 
 // 0x51c727 (el 0x13d y el 0x13e: vida 120 y escala 0,8f) y 0x51efdc (el 0x13f: vida 20). Cualquier subtipo; sin rand().
-void BeginTheMeteor(World::ModelEffect& effect);
+void BeginTheMeteor(Effects::ModelEffect& effect);
 
 // 0x525f6a..0x5260b8, el 0x13f. Con vida 8, dieciséis joints 0x60f/0x18 sin dueño, de ancho 90 (0x526028): cada uno con
 // los ángulos (−10, 0, i · 10), en la posición con la z 100 más y la x más rand() % 600 − 200 y la y más rand() % 600 −
 // 400. Con vida 2, los ángulos (0, 0, rand() % 360), el 0x13d (0x526090) y el 0x13e (0x5260ad) en su posición, con su
 // luz y él de dueño (clave −1, escala 0), y el lugar libre (la cola sigue).
-[[nodiscard]] Core::Expected<void, std::string> StepTheMeteorCall(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> StepTheMeteorCall(Effects::ModelEffect& effect,
                                                                   const HighEffectStepContext& context);
 
 // 0x5260bd..0x526337, el 0x13d:
@@ -60,7 +60,7 @@ void BeginTheMeteor(World::ModelEffect& effect);
 //   lote: con lugar corta) y la 0x5f2/0x15 (0x526307).
 // Sin la luz dinámica o el temblor en los servicios corta, después de los rand() de antes.
 [[nodiscard]] Core::Expected<void, std::string>
-StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton, const HighEffectStepContext& context);
+StepTheMeteor(Effects::ModelEffect& effect, const Models::Skeleton* skeleton, const HighEffectStepContext& context);
 
 // 0x6002e0 → 0x442e10 con el 0x13d (0x44357f) y el 0x13e (0x4435e9), después de la pose y de mirar la malla oculta −2:
 // entre 0x4ecc10 y 0x4ecc20, sin RenderBody, el color del modelo en (1, 1, 1) y 0x4ecc30 sobre la malla 0 con las
@@ -72,7 +72,7 @@ StepTheMeteor(World::ModelEffect& effect, const Models::Skeleton* skeleton, cons
 //   +0x6c; después +0x6c vuelve a 1. T es el reloj del mundo (0x5767b88): sin él, corta.
 // Devuelve true si es uno de los dos; false con otro tipo (sigue el pase común).
 [[nodiscard]] Core::Expected<bool, std::string>
-DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, World::ModelEffect& effect,
+DrawTheMeteorBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, Effects::ModelEffect& effect,
                   const Actors::Drawing::DrawnObject& object, Core::Duration frameClock,
                   std::optional<float> worldClock);
-} // namespace Client::Scenes
+} // namespace Client::Effects

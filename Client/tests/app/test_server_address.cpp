@@ -7,12 +7,12 @@
 
 using namespace std::string_view_literals;
 
-// Client::App::ParsePort y ParseHost: lo que validan la config y la línea de comandos (CL3.4).
+// Client::Session::ParsePort y ParseHost: lo que validan la config y la línea de comandos (CL3.4).
 namespace
 {
-using Client::App::MaxHostBytes;
-using Client::App::ParseHost;
-using Client::App::ParsePort;
+using Client::Session::MaxHostBytes;
+using Client::Session::ParseHost;
+using Client::Session::ParsePort;
 
 std::string PortError(std::string_view text)
 {

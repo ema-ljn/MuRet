@@ -24,7 +24,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Aida
 {
 namespace
 {
@@ -73,12 +73,13 @@ using Math::Tenth;
 constexpr float Fifteenth = std::bit_cast<float>(0x3e19999au);
 constexpr float BlueGlow = std::bit_cast<float>(0x3e99999au);
 
-Core::Expected<void, std::string> Flares(const GameObjectPass& pass, std::span<const FlarePair> flares, bool blue)
+Core::Expected<void, std::string> Flares(const WorldObjects::GameObjectPass& pass, std::span<const FlarePair> flares,
+                                         bool blue)
 {
     const glm::vec3 secondLight = blue ? glm::vec3(Fifteenth) : glm::vec3(Fifteenth, 0.0f, 0.0f);
     for (const FlarePair& flare : flares)
     {
-        const auto position = ObjectBonePoint(pass, flare.bone, flare.offset);
+        const auto position = WorldObjects::ObjectBonePoint(pass, flare.bone, flare.offset);
         if (!position.HasValue())
         {
             return Core::Unexpected(position.Error());
@@ -97,9 +98,9 @@ Core::Expected<void, std::string> Flares(const GameObjectPass& pass, std::span<c
     return {};
 }
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
-                                       std::int32_t subtype, const glm::vec3& light, World::ParticleOwner owner,
-                                       std::string_view address)
+Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
+                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
+                                       const glm::vec3& light, Particles::ParticleOwner owner, std::string_view address)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
     {
@@ -117,18 +118,19 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::
     return {};
 }
 
-Core::Expected<void, std::string> Mist(const GameObjectPass& pass, const World::WorldObject& object,
-                                       const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> Mist(const WorldObjects::GameObjectPass& pass,
+                                       const WorldObjects::WorldObject& object, const glm::vec3& light,
+                                       std::string_view address)
 {
     // 0x425740/0x4257ed/0x42583d: con +0x58 en −2 (el paso de 0x4250f0) no emite.
-    if (object.state.hiddenMesh == World::HiddenObject)
+    if (object.state.hiddenMesh == WorldObjects::HiddenObject)
     {
         return {};
     }
-    const World::ParticleOwner owner{World::ParticleOwnerKind::WorldObject, object.identity};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::WorldObject, object.identity};
     for (int count = 0; count < MistCount; ++count)
     {
-        auto emitted = Emit(pass, object, World::CloudParticle, World::OwnedMistSubtype, light, owner, address);
+        auto emitted = Emit(pass, object, Particles::CloudParticle, Particles::OwnedMistSubtype, light, owner, address);
         if (!emitted.HasValue())
         {
             return emitted;
@@ -138,7 +140,8 @@ Core::Expected<void, std::string> Mist(const GameObjectPass& pass, const World::
 }
 } // namespace
 
-Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject& object,
+                                                      const WorldObjects::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
     {
@@ -161,15 +164,15 @@ Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object
         {
             return {};
         }
-        return Emit(pass, object, World::KalimaWaterfallFirst, WaterfallSubtype, glm::vec3(1.0f), {}, "0x42569d");
+        return Emit(pass, object, Particles::KalimaWaterfallFirst, WaterfallSubtype, glm::vec3(1.0f), {}, "0x42569d");
     case 0x39:
-        return Emit(pass, object, World::WaterfallSplashFirst, SplashSubtype, glm::vec3(1.0f), {}, "0x4256dc");
+        return Emit(pass, object, Particles::WaterfallSplashFirst, SplashSubtype, glm::vec3(1.0f), {}, "0x4256dc");
     case 0x3a:
         if (pass.random->Next() % 3 != 0)
         {
             return {};
         }
-        return Emit(pass, object, World::KalimaWaterfallMist, WaterfallSubtype, glm::vec3(1.0f), {}, "0x42572f");
+        return Emit(pass, object, Particles::KalimaWaterfallMist, WaterfallSubtype, glm::vec3(1.0f), {}, "0x42572f");
     case 0x3b:
         return Mist(pass, object,
                     glm::vec3(std::bit_cast<float>(0x3c23d70au), std::bit_cast<float>(0x3cf5c28fu),
@@ -200,13 +203,14 @@ Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object
                 object.transform.scale, pass.scene == SelectionSceneId, *pass.random));
         }
         // 0x4257dd: siempre, aunque no haya salido la mariposa.
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     }
     case 0x43:
         // 0x4258ff: la luz del objeto (+0xf4..+0xfc) en 0,3 antes de prestarla a la llama.
         object.light = glm::vec3(BlueGlow);
-        return Emit(pass, object, World::FlameParticle, World::RisingFlameSubtype, object.light, {}, "0x42592e");
+        return Emit(pass, object, Particles::FlameParticle, Particles::RisingFlameSubtype, object.light, {},
+                    "0x42592e");
     case 0x46:
     {
         if (!pass.systemTime)
@@ -231,4 +235,4 @@ Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Aida

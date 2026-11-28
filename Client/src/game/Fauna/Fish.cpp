@@ -15,7 +15,7 @@
 #include "Math/FloatConstants.h"
 #include "Fauna/IFishStepServices.h"
 
-namespace Client::World
+namespace Client::Fauna
 {
 namespace
 {
@@ -110,9 +110,9 @@ std::int16_t AtlansFishModel(bool lower, std::int32_t draw)
     return static_cast<std::int16_t>(lower ? draw % LowerAtlansFishKinds + Fish04Model
                                            : draw % UpperAtlansFishKinds + Fish08Model);
 }
-} // namespace Client::World
+} // namespace Client::Fauna
 
-namespace Client::World
+namespace Client::Fauna
 {
 std::uint32_t FishTileIndex(std::int32_t x, std::int32_t y)
 {
@@ -632,4 +632,4 @@ Core::Expected<void, std::error_code> StepFish(std::span<FishStepView, FishPoolS
 {
     return FishStep(pool, world, services).Run();
 }
-} // namespace Client::World
+} // namespace Client::Fauna

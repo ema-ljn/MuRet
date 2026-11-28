@@ -26,7 +26,7 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Chat
 {
 
 inline constexpr std::size_t ChatBubbleCount = 100;
@@ -122,4 +122,4 @@ struct ChatBubbleStepInput
 // pone su nombre en el EDIT y en el buffer del susurro (0x7798cf8) y suena el 0x19.
 [[nodiscard]] Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world,
                                                                    const ChatBubbleStepInput& input);
-} // namespace Client::Scenes
+} // namespace Client::Chat

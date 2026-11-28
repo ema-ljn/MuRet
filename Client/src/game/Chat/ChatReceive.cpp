@@ -36,7 +36,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Chat
 {
 namespace
 {
@@ -123,7 +123,7 @@ Core::Expected<void, std::string> AddMessage(const ChatReceiveContext& context, 
 
 Core::Expected<std::string_view, std::string> TextOf(const ChatReceiveContext& context, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected("el texto " + std::to_string(index) + " de Text.bmd no está");
     return CString(*text);
@@ -147,29 +147,30 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    GamePanels panels(world, context.random);
+    Hud::GamePanels panels(world, context.random);
     // 0x4e345c → 0x6599a0: abrir el gremio pasa por los cierres compartidos de NPC, castillo y batalla.
-    LendTheCastlePanelServices(panels, world, context.random, context.guildSend, context.worldEntry,
-                               {.measure = context.measure, .texts = context.texts, .screen = context.screen});
+    CastleSiege::LendTheCastlePanelServices(
+        panels, world, context.random, context.guildSend, context.worldEntry,
+        {.measure = context.measure, .texts = context.texts, .screen = context.screen});
     // Conserva el cierre local del gremio también sin socket (LendTheSession sólo presta cables no vacíos).
     panels.LendTheGuild(world, context.guildSend);
-    if (auto opened = panels.Registry().Open(UI::SecondGuildPanel); !opened.HasValue())
+    if (auto opened = panels.Registry().Open(Ui::SecondGuildPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     input.dialogFieldOn = true;
     runtime.ui.chatOpen = false;
-    UI::ResetTheTextBuffers(input, false);
+    Chat::ResetTheTextBuffers(input, false);
     input.fieldCount = 0;
     Kernel::ActorState& hero = world.Hero();
-    if (static_cast<std::int16_t>(hero.word1f2) == NoGuildIndex)
-        hero.word1f2 = static_cast<std::uint16_t>(CreatingGuildIndex);
+    if (static_cast<std::int16_t>(hero.word1f2) == Guild::NoGuildIndex)
+        hero.word1f2 = static_cast<std::uint16_t>(Guild::CreatingGuildIndex);
     return {};
 }
 } // namespace
 
 Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, const ChatReceiveContext& context)
 {
-    if (context.scene == SceneId::Login)
+    if (context.scene == Scenes::SceneId::Login)
     {
         if (context.requestServerList)
             context.requestServerList();
@@ -184,12 +185,12 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, co
     const ChatBubbleMeasure bubbleMeasure{
         .measure = *measure.Value(), .screen = context.screen, .texts = context.texts};
     if (mark == PartyMark)
-        return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), UI::PartyMessage);
+        return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), Ui::PartyMessage);
     if (mark == GuildMark)
     {
         if (raw.size() > 1 && raw[1] == GuildMark)
-            return AddMessage(context, name, CopiedText(raw, 2, GuildNoticeTextBytes), UI::GuildNoticeMessage);
-        return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), UI::GuildMessage);
+            return AddMessage(context, name, CopiedText(raw, 2, GuildNoticeTextBytes), Ui::GuildNoticeMessage);
+        return AddMessage(context, name, CopiedText(raw, 1, MarkedTextBytes), Ui::GuildMessage);
     }
     if (mark == BubbleMark)
         return AddChatBubbleByName(context.world, bubbleMeasure, name, CopiedText(raw, 1, MarkedTextBytes),
@@ -198,7 +199,7 @@ Core::Expected<void, std::string> ApplyChat(const Protocol::Chat::Chat& chat, co
     if (auto bubble = AddChatBubbleByName(context.world, bubbleMeasure, name, text, ChatBubbleMode::Chat);
         !bubble.HasValue())
         return bubble;
-    return AddMessage(context, name, text, UI::ChatMessage);
+    return AddMessage(context, name, text, Ui::ChatMessage);
 }
 
 Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& chat, const ChatReceiveContext& context)
@@ -231,11 +232,11 @@ Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& wh
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
-    UI::RememberTheWhisperSender(runtime.chat.whisperSenders, level, name);
+    Chat::RememberTheWhisperSender(runtime.chat.whisperSenders, level, name);
     // 0x41ed10(0x26, 0, 0).
     if (runtime.chat.noticeSound)
         runtime.RequestSound(WhisperSound);
-    return AddMessage(context, name, text, UI::WhisperMessage);
+    return AddMessage(context, name, text, Ui::WhisperMessage);
 }
 
 Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Chat::WhisperResult& result,
@@ -247,7 +248,7 @@ Core::Expected<void, std::string> ApplyWhisperResult(const Protocol::Chat::Whisp
     if (!text.HasValue())
         return Core::Unexpected(text.Error());
     const std::string target(CString(context.world.Runtime().chat.lastWhisperTarget));
-    return AddMessage(context, target, text.Value(), UI::ErrorMessage);
+    return AddMessage(context, target, text.Value(), Ui::ErrorMessage);
 }
 
 Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& notice, const ChatReceiveContext& context)
@@ -259,17 +260,17 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
         auto measure = MeasureOf(context, "0x554610");
         if (!measure.HasValue())
             return Core::Unexpected(measure.Error());
-        UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 0);
+        Ui::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, text, 0);
         return {};
     }
     if (notice.type == SystemNotice)
     {
         // 0x4c65d8: fuera de la selección, 0x555190 con el "" de 0x5767980.
-        if (context.scene != SceneId::CharacterSelect)
-            return AddMessage(context, {}, text, UI::SystemMessage);
+        if (context.scene != Scenes::SceneId::CharacterSelect)
+            return AddMessage(context, {}, text, Ui::SystemMessage);
         // 0x4c65f9..0x4c662a: la franja de la barra (+0x510), una vez; después, con el "" de 0x5767984.
         if (runtime.chat.selectionNotice)
-            return AddMessage(context, {}, text, UI::SystemMessage);
+            return AddMessage(context, {}, text, Ui::SystemMessage);
         runtime.chat.selectionNotice = std::string(text);
         return {};
     }
@@ -283,20 +284,21 @@ Core::Expected<void, std::string> ApplyNotice(const Protocol::Chat::Notice& noti
             return Core::Unexpected(measure.Error());
         // 0x4c6645: sprintf a un buffer de 100 bytes, sin tope (Q-C514).
         const std::array<std::string_view, 1> arguments{text};
-        const std::string line = UI::PlaceArguments(format.Value(), arguments);
-        UI::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, line, 1);
+        const std::string line = Ui::PlaceArguments(format.Value(), arguments);
+        Ui::AddNotice(runtime.chat.area, *measure.Value(), runtime.hud.dcFont, line, 1);
         // 0x4c665f: 0x651680 con el texto del paquete, a la lista del aviso de la ventana del gremio.
-        return AddTheGuildNotice(runtime.guild.window, *measure.Value(), runtime.hud.dcFont, context.screen, text);
+        return Guild::AddTheGuildNotice(runtime.guild.window, *measure.Value(), runtime.hud.dcFont, context.screen,
+                                        text);
     }
     if (notice.type < FirstSlideNotice || notice.type > LastSlideNotice || text.empty())
         return {};
     // 0x4c667d..0x4c66b3: 0x46b720(pkt[4], pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]). La x87
     // multiplica el byte por el float y guarda en float: el producto es exacto y se redondea una vez. 0x46b720 y
     // 0x46abf0 solo encolan en la escena 5.
-    if (context.scene != SceneId::Game)
+    if (context.scene != Scenes::SceneId::Game)
         return {};
     const auto speed = static_cast<float>(static_cast<double>(notice.speed) * static_cast<double>(SlideSpeedStep));
-    UI::QueueTheSlide(runtime.hud.slides, notice.byte4, notice.word6, text, notice.type - FirstSlideNotice, speed,
+    Ui::QueueTheSlide(runtime.hud.slides, notice.byte4, notice.word6, text, notice.type - FirstSlideNotice, speed,
                       notice.color);
     return {};
 }
@@ -349,4 +351,4 @@ Core::Expected<void, std::string> ApplyOptionData(const Protocol::Player::Option
         static_cast<float>(static_cast<double>(data.chatWindow & LowNibble) * static_cast<double>(AlphaStep));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Chat

@@ -161,7 +161,7 @@ struct Replies
     Client::Core::Expected<void, std::string> Attack(std::uint8_t skill, std::uint16_t source = CasterKey,
                                                      bool succeeded = true)
     {
-        return Client::Scenes::ApplyMagicAttack(MagicAttack{skill, source, TargetKey, succeeded}, Resources());
+        return Client::Skills::ApplyMagicAttack(MagicAttack{skill, source, TargetKey, succeeded}, Resources());
     }
     std::size_t AliveEffects(std::int16_t type)
     {
@@ -172,7 +172,7 @@ struct Replies
     }
 
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
@@ -182,7 +182,7 @@ struct Replies
     const Client::Tables::SkillTable* skills = nullptr;
     Client::Session::ModuleStates states;
     Client::Session::CharacterDrawHooks jointHooks;
-    Client::Scenes::ActorEffectHooks effectHooks;
+    Client::Effects::ActorEffectHooks effectHooks;
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ TEST(SkillRepliesTest, TheMagicAttackWithoutTheTargetDoesNothing)
     auto tested = std::make_unique<Replies>();
     tested->world.Runtime().lastAttacker = -5;
     const auto applied =
-        Client::Scenes::ApplyMagicAttack(MagicAttack{0x13, CasterKey, 0x0999, true}, tested->Resources());
+        Client::Skills::ApplyMagicAttack(MagicAttack{0x13, CasterKey, 0x0999, true}, tested->Resources());
     ASSERT_TRUE(applied.HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).byte38e, 0);
     EXPECT_EQ(tested->world.Runtime().lastAttacker, -5);
@@ -480,7 +480,7 @@ TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
     auto twin = std::make_unique<Replies>();
     Client::Crt::CrtRandom replay = full->cloth.random;
     const ActorState& twinSource = twin->Actor(CasterIndex);
-    const auto made = Client::Scenes::CreateBlastEffectOutsideTheStep({.type = 0x112,
+    const auto made = Client::Combat::CreateBlastEffectOutsideTheStep({.type = 0x112,
                                                                        .position = twinSource.position,
                                                                        .angles = twinSource.angles,
                                                                        .light = twinSource.light,
@@ -535,7 +535,7 @@ TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
     {
         SCOPED_TRACE(subtype);
         EXPECT_TRUE(effects[slot].alive);
-        EXPECT_EQ(effects[slot].type, Client::World::IceEffect);
+        EXPECT_EQ(effects[slot].type, Client::Effects::IceEffect);
         EXPECT_EQ(effects[slot].subtype, subtype);
         EXPECT_EQ(effects[slot].ownerContext, &target);
         EXPECT_FLOAT_EQ(effects[slot].transform.angles.z, heading);
@@ -588,7 +588,7 @@ TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.position = {700, 800, 90};
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x40, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x40, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x40u);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x85});
@@ -773,12 +773,12 @@ TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
 
             const auto& flare = effects.Effects()[0];
             ASSERT_TRUE(flare.alive);
-            EXPECT_EQ(flare.type, Client::World::IcarusFlareEffect);
+            EXPECT_EQ(flare.type, Client::Effects::IcarusFlareEffect);
             EXPECT_EQ(flare.subtype, subtype);
             EXPECT_EQ(flare.ownerContext, &target);
             EXPECT_EQ(flare.life, 1000);
             EXPECT_EQ(flare.transform.position, target.position);
-            EXPECT_EQ(tested->AliveEffects(Client::World::IcarusFlareEffect), 1u);
+            EXPECT_EQ(tested->AliveEffects(Client::Effects::IcarusFlareEffect), 1u);
             EXPECT_EQ(joint.alive, skill != 0x35);
             EXPECT_EQ(target.flags78 & bit, bit);
 
@@ -787,7 +787,7 @@ TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
             lit->world.Runtime().map = map;
             lit->Actor(TargetIndex).flags78 = bit;
             ASSERT_TRUE(lit->Attack(skill).HasValue());
-            EXPECT_EQ(lit->AliveEffects(Client::World::IcarusFlareEffect), 0u);
+            EXPECT_EQ(lit->AliveEffects(Client::Effects::IcarusFlareEffect), 0u);
             EXPECT_EQ(lit->cloth.random.State(), tested->cloth.random.State());
 
             auto full = std::make_unique<Replies>();
@@ -885,7 +885,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
     caster.attackTarget = 3;
     caster.byte380 = 9;
     const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
-    ASSERT_TRUE(Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 0x80, 0x81, 0x40}, tested->Resources())
+    ASSERT_TRUE(Client::Skills::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 0x80, 0x81, 0x40}, tested->Resources())
                     .HasValue());
     EXPECT_EQ(caster.byte38e, 0xc);
     EXPECT_EQ(caster.angles.z, static_cast<float>(64.0 * static_cast<double>(1.0f / 255.0f) * 360.0));
@@ -913,7 +913,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerCanBeTheAttackAction)
             caster.animation.frame = 2.0f;
             const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + OwnRecordRandoms);
             ASSERT_TRUE(
-                Client::Scenes::ApplyDurationMagic(DurationMagic{skill, CasterKey, 4, 5, 0}, tested->Resources())
+                Client::Skills::ApplyDurationMagic(DurationMagic{skill, CasterKey, 4, 5, 0}, tested->Resources())
                     .HasValue());
             EXPECT_EQ(caster.animation.action, 0x22);
             EXPECT_EQ(caster.attackCount, 1);
@@ -932,7 +932,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
     ActorState& hero = tested->Actor(HeroIndex);
     const std::uint8_t action = hero.animation.action;
     ASSERT_TRUE(
-        Client::Scenes::ApplyDurationMagic(DurationMagic{0xe, HeroKey, 10, 11, 0}, tested->Resources()).HasValue());
+        Client::Skills::ApplyDurationMagic(DurationMagic{0xe, HeroKey, 10, 11, 0}, tested->Resources()).HasValue());
     EXPECT_EQ(hero.byte38e, 0xe);
     EXPECT_EQ(hero.animation.action, action);
     EXPECT_EQ(hero.skillCellX, 10);
@@ -951,7 +951,7 @@ TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackAction)
     caster.byte380 = 2;
     const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + 1);
     ASSERT_TRUE(
-        Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 1, 2, 0xff}, tested->Resources()).HasValue());
+        Client::Skills::ApplyDurationMagic(DurationMagic{0xc, CasterKey, 1, 2, 0xff}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.byte38e, 0xc);
     EXPECT_EQ(caster.animation.action, 3);
     EXPECT_EQ(caster.attackCount, 2);
@@ -984,7 +984,7 @@ TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
         const std::uint8_t action = phantom.animation.action;
         const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
         ASSERT_TRUE(
-            Client::Scenes::ApplyDurationMagic(DurationMagic{0xc, 0x0777, 1, 2, 0x40}, tested->Resources()).HasValue());
+            Client::Skills::ApplyDurationMagic(DurationMagic{0xc, 0x0777, 1, 2, 0x40}, tested->Resources()).HasValue());
         EXPECT_EQ(phantom.byte38e, 0xc);
         EXPECT_EQ(phantom.angles.z, static_cast<float>(64.0 * static_cast<double>(1.0f / 255.0f) * 360.0));
         EXPECT_EQ(phantom.animation.action, action);
@@ -997,7 +997,7 @@ TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
         EXPECT_EQ(phantom.byte380, 0);
         EXPECT_EQ(tested->cloth.random.State(), expected.State());
         phantom.flags78 = 8;
-        ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources()).HasValue());
+        ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x1b, 0x0777}, tested->Resources()).HasValue());
         EXPECT_EQ(phantom.flags78, 0u);
     }
 }
@@ -1014,7 +1014,7 @@ TEST(SkillRepliesTest, TheDurationTableChoosesTheActionOfTheOtherPlayer)
     {
         auto tested = std::make_unique<Replies>();
         tested->Actor(CasterIndex).pet.model = model;
-        ASSERT_TRUE(Client::Scenes::ApplyDurationMagic(DurationMagic{skill, CasterKey, 1, 2, 3}, tested->Resources())
+        ASSERT_TRUE(Client::Skills::ApplyDurationMagic(DurationMagic{skill, CasterKey, 1, 2, 3}, tested->Resources())
                         .HasValue());
         EXPECT_EQ(tested->Actor(CasterIndex).animation.action, action) << int{skill};
     }
@@ -1028,12 +1028,12 @@ TEST(SkillRepliesTest, TheMagicCancelLowersItsFlag)
     auto tested = std::make_unique<Replies>();
     ActorState& caster = tested->Actor(CasterIndex);
     caster.flags78 = 0x4fff;
-    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x1b, CasterKey}, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x1b, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x4ff7u);
-    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x46, CasterKey}, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x46, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
     // Una skill sin bandera no hace nada.
-    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0x99, CasterKey}, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x99, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
 }
 
@@ -1044,7 +1044,7 @@ TEST(SkillRepliesTest, TheMonsterCancelSettlesBeforeTheFlag)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.type = MonsterType;
     caster.flags78 = 0x108;
-    ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(MagicCancel{0xc9, CasterKey}, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0xc9, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.byte110, 0x21);
     EXPECT_EQ(caster.flags78, 0u);
 }
@@ -1057,17 +1057,17 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     caster.flags78 = 0x30;
     caster.flags7c = 0x200123;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0x200000u);
     caster.flags7c = 0x123;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0u);
     // 0x4cbe47: sin prender, 0x4e6380 con la máscara (ApplyEffectFlags): el 4 se prende y +0x7c queda.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x4, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x4, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x34u);
     EXPECT_EQ(caster.flags7c, 0u);
@@ -1075,7 +1075,7 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     // abajo.
     caster.position = {1000, 2000, 300};
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x1000, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x1000, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x1034u);
     const auto& joints = tested->world.DrawTail().joints;
@@ -1095,7 +1095,7 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     EXPECT_FALSE(joints[3].alive);
     // El 0x400 (CL9 hito 4): el 0x5ac/2 del personaje, y sigue.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x400, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x400, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x1434u);
     const auto& flare = tested->world.Map().effects.Effects()[0];
@@ -1127,13 +1127,13 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
                                      });
     };
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78 & 0x100u, 0x100u);
     EXPECT_EQ(rings(), 5);
     joints[1].alive = false;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x100, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(rings(), 4);
 }
@@ -1142,11 +1142,11 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
 TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
 {
     auto tested = std::make_unique<Replies>();
-    const auto hero = Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, HeroKey},
+    const auto hero = Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, HeroKey},
                                                       tested->Resources());
     ASSERT_FALSE(hero.HasValue());
     EXPECT_NE(hero.Error().find("0x4e68f5"), std::string::npos) << hero.Error();
-    ASSERT_TRUE(Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, CasterKey},
+    ASSERT_TRUE(Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x2000000, CasterKey},
                                                 tested->Resources())
                     .HasValue());
     EXPECT_EQ(tested->Actor(CasterIndex).flags78, 0x2000000u);
@@ -1163,12 +1163,12 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
     caster.angles = {0.0f, 0.0f, 30.0f};
     const auto effects = tested->world.Map().effects.Effects();
     effects[OldIce].alive = true;
-    effects[OldIce].type = Client::World::IceEffect;
+    effects[OldIce].type = Client::Effects::IceEffect;
     effects[OldIce].subtype = 1;
     effects[OldIce].ownerContext = &caster;
 
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
             .HasValue());
 
     EXPECT_EQ(caster.flags78, 0x20u);
@@ -1179,7 +1179,7 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
         SCOPED_TRACE(subtype);
         const auto& ice = effects[slot];
         EXPECT_TRUE(ice.alive);
-        EXPECT_EQ(ice.type, Client::World::IceEffect);
+        EXPECT_EQ(ice.type, Client::Effects::IceEffect);
         EXPECT_EQ(ice.subtype, subtype);
         EXPECT_EQ(ice.ownerContext, &caster);
         EXPECT_EQ(ice.transform.position, caster.position);
@@ -1192,7 +1192,7 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
     const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
     const auto state = tested->cloth.random.State();
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; }), alive);
     EXPECT_EQ(tested->cloth.random.State(), state);
@@ -1204,12 +1204,12 @@ TEST(SkillRepliesTest, TheActorStateOfAnotherTypeLowersTheLitFlag)
     ActorState& caster = tested->Actor(CasterIndex);
     caster.flags78 = 0x30;
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
     // Sin prender, nada.
     ASSERT_TRUE(
-        Client::Scenes::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
+        Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
 }
@@ -1272,7 +1272,7 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
     auto tested = std::make_unique<Replies>();
     const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
     ASSERT_TRUE(
-        Client::Scenes::ApplySkillTarget(SkillTarget{0x20, CasterKey, TargetKey}, tested->Resources()).HasValue());
+        Client::Skills::ApplySkillTarget(SkillTarget{0x20, CasterKey, TargetKey}, tested->Resources()).HasValue());
     const ActorState& caster = tested->Actor(CasterIndex);
     EXPECT_EQ(caster.byte42e, 0x20);
     EXPECT_EQ(caster.attackTarget, TargetIndex);
@@ -1281,7 +1281,7 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 
     // Con el bit 15, 0x5110d0 no lo encuentra: nada.
-    ASSERT_TRUE(Client::Scenes::ApplySkillTarget(
+    ASSERT_TRUE(Client::Skills::ApplySkillTarget(
                     SkillTarget{0x21, CasterKey, static_cast<std::uint16_t>(TargetKey | 0x8000)}, tested->Resources())
                     .HasValue());
     EXPECT_EQ(caster.byte42e, 0x20);
@@ -1298,7 +1298,7 @@ TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
         caster.animation.frame = 2.0f;
         const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms + OwnRecordRandoms);
         ASSERT_TRUE(
-            Client::Scenes::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
+            Client::Skills::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
         EXPECT_EQ(caster.byte42e, skill);
         EXPECT_EQ(caster.animation.action, 0x22);
         EXPECT_EQ(caster.attackCount, 1);
@@ -1310,7 +1310,7 @@ TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
     {
         auto tested = std::make_unique<Replies>();
         ASSERT_TRUE(
-            Client::Scenes::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
+            Client::Skills::ApplySkillTarget(SkillTarget{skill, CasterKey, TargetKey}, tested->Resources()).HasValue());
         EXPECT_EQ(tested->Actor(CasterIndex).byte381, 0);
         EXPECT_EQ(tested->Actor(CasterIndex).attackCount, 0);
     }
@@ -1331,7 +1331,7 @@ TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
         const std::uint8_t action = phantom.animation.action;
         const CrtRandom expected = Advanced(tested->cloth.random, ActorByteRandoms);
         ASSERT_TRUE(
-            Client::Scenes::ApplySkillTarget(SkillTarget{1, 0x0777, TargetKey}, tested->Resources()).HasValue());
+            Client::Skills::ApplySkillTarget(SkillTarget{1, 0x0777, TargetKey}, tested->Resources()).HasValue());
         EXPECT_EQ(tested->world.Runtime().lastAttacker, 400);
         EXPECT_EQ(phantom.byte42e, 1);
         EXPECT_EQ(phantom.attackTarget, TargetIndex);
@@ -1365,7 +1365,7 @@ TEST(SkillRepliesTest, TheLevelUpEffectRespectsBothPoolsAndContinuesToItsSound)
             const int created = std::min(freeJoints, 15);
             const auto expected = Advanced(tested->cloth.random, 3 * created);
 
-            const auto applied = Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources());
+            const auto applied = Client::Skills::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources());
 
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
             EXPECT_EQ(tested->cloth.random.State(), expected.State());
@@ -1425,7 +1425,7 @@ TEST(SkillRepliesTest, LevelUpUpdatesTheOwnRecordBeforeEffectsWithoutActorGuards
             auto expected = Advanced(tested->cloth.random, OwnRecordRandoms);
             if (!full)
                 expected = Advanced(expected, 45);
-            const auto applied = Client::Scenes::ApplyLevelUp(
+            const auto applied = Client::Skills::ApplyLevelUp(
                 Client::Protocol::Skills::LevelUp{level, 2, 3, 4, 5, 6, 7}, tested->Resources());
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
             EXPECT_EQ(own.level, level);
@@ -1462,10 +1462,10 @@ TEST(SkillRepliesTest, TheLevelUpEffectChecksItsActorAndKindBeforeEitherPool)
     auto tested = std::make_unique<Replies>();
     tested->Actor(CasterIndex).byte88 = 1;
     const auto before = tested->cloth.random.State();
-    EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x11}, tested->Resources()).HasValue());
-    EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{0x0777, 0x10}, tested->Resources()).HasValue());
+    EXPECT_TRUE(Client::Skills::ApplyActorEffect(ActorEffect{CasterKey, 0x11}, tested->Resources()).HasValue());
+    EXPECT_TRUE(Client::Skills::ApplyActorEffect(ActorEffect{0x0777, 0x10}, tested->Resources()).HasValue());
     tested->Actor(CasterIndex).byte88 = 2;
-    EXPECT_TRUE(Client::Scenes::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources()).HasValue());
+    EXPECT_TRUE(Client::Skills::ApplyActorEffect(ActorEffect{CasterKey, 0x10}, tested->Resources()).HasValue());
     EXPECT_EQ(tested->cloth.random.State(), before);
     EXPECT_FALSE(tested->world.Map().effects.Effects().front().alive);
     EXPECT_FALSE(tested->world.DrawTail().joints.front().alive);
@@ -1488,7 +1488,7 @@ TEST(SkillRepliesTest, TheWholeSkillListCountsTheShownAndTheHidden)
         Advanced(tested->cloth.random, OwnRecordRandoms + 2 * SkillEntryRandoms + OwnRecordRandoms);
     const SkillList list{
         .count = 2, .list = 0, .slot = 0, .skill = 0, .entries = {SkillListEntry{0, 0x11}, SkillListEntry{1, 0x29}}};
-    ASSERT_TRUE(Client::Scenes::ApplySkillList(list, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplySkillList(list, tested->Resources()).HasValue());
     EXPECT_EQ(own.SkillAt(0), 0x11);
     EXPECT_EQ(own.SkillAt(1), 0x29);
     EXPECT_EQ(own.SkillAt(9), 0);
@@ -1507,7 +1507,7 @@ TEST(SkillRepliesTest, TheDarkLordGetsTheRavenOrders)
     tested->skills = &skills;
     tested->Actor(HeroIndex).characterClass = 4;
     const SkillList list{.count = 1, .list = 1, .slot = 0, .skill = 0, .entries = {SkillListEntry{0, 0x3c}}};
-    ASSERT_TRUE(Client::Scenes::ApplySkillList(list, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplySkillList(list, tested->Resources()).HasValue());
     const auto& own = tested->world.OwnCharacter();
     for (std::uint8_t order = 0x78; order < 0x7c; ++order)
         EXPECT_EQ(own.SkillAt(order), order);
@@ -1527,14 +1527,14 @@ TEST(SkillRepliesTest, OneSkillAddedOrRemovedFixesTheHeroSkill)
     ActorState& hero = tested->Actor(HeroIndex);
     hero.skillIndex = 0;
     const SkillList add{.count = 0xfe, .list = 0, .slot = 3, .skill = 0x12, .entries = {}};
-    ASSERT_TRUE(Client::Scenes::ApplySkillList(add, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplySkillList(add, tested->Resources()).HasValue());
     EXPECT_EQ(own.SkillAt(3), 0x12);
     EXPECT_EQ(own.byte6a, 4);
     EXPECT_EQ(hero.skillIndex, 2);
 
     hero.skillIndex = 3;
     const SkillList remove{.count = 0xff, .list = 0, .slot = 3, .skill = 0, .entries = {}};
-    ASSERT_TRUE(Client::Scenes::ApplySkillList(remove, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplySkillList(remove, tested->Resources()).HasValue());
     EXPECT_EQ(own.SkillAt(3), 0);
     EXPECT_EQ(own.byte6a, 3);
     // 3 >= +0x6a: a 0, y de ahí saltea las dos del Dark Lord.
@@ -1551,7 +1551,7 @@ TEST(SkillRepliesTest, TheListTwoClearsTheSlot)
     own.SetSkillAt(5, 0x11);
     own.SetSkillAt(6, 0x12);
     const SkillList clear{.count = 1, .list = 2, .slot = 5, .skill = 0, .entries = {}};
-    ASSERT_TRUE(Client::Scenes::ApplySkillList(clear, tested->Resources()).HasValue());
+    ASSERT_TRUE(Client::Skills::ApplySkillList(clear, tested->Resources()).HasValue());
     EXPECT_EQ(own.SkillAt(5), 0);
     EXPECT_EQ(own.SkillAt(6), 0x12);
     EXPECT_EQ(own.byte6a, 1);
@@ -1577,7 +1577,7 @@ TEST(SkillRepliesTest, TheEmptyClearListStillRecountsAndClosesBothAccesses)
             Client::Tests::PacketOf(Client::Tests::Bytes({0xc1, 6, 0xf3, 0x11, 0, 2})));
 
         ASSERT_TRUE(read.HasValue());
-        ASSERT_TRUE(Client::Scenes::ApplySkillList(read.Value(), tested->Resources()).HasValue());
+        ASSERT_TRUE(Client::Skills::ApplySkillList(read.Value(), tested->Resources()).HasValue());
 
         EXPECT_EQ(own.SkillAt(0), 0x12);
         EXPECT_EQ(own.SkillAt(64), 0x11);
@@ -1594,7 +1594,7 @@ TEST(SkillRepliesTest, TheSkillListWithoutSkillBmdIsACut)
 {
     auto tested = std::make_unique<Replies>();
     const SkillList add{.count = 0xfe, .list = 0, .slot = 0, .skill = 0x11, .entries = {}};
-    const auto applied = Client::Scenes::ApplySkillList(add, tested->Resources());
+    const auto applied = Client::Skills::ApplySkillList(add, tested->Resources());
     ASSERT_FALSE(applied.HasValue());
     EXPECT_NE(applied.Error().find("0x4c54ed"), std::string::npos) << applied.Error();
     EXPECT_EQ(tested->world.OwnCharacter().SkillAt(0), 0x11);
@@ -1603,7 +1603,7 @@ TEST(SkillRepliesTest, TheSkillListWithoutSkillBmdIsACut)
 TEST(SkillRepliesTest, TheSummonLifeGoesToTheHud)
 {
     auto tested = std::make_unique<Replies>();
-    Client::Scenes::ApplySummonLife(SummonLife{0x42}, tested->Resources());
+    Client::Skills::ApplySummonLife(SummonLife{0x42}, tested->Resources());
     EXPECT_EQ(tested->world.Runtime().hud.summonLife, 0x42);
 }
 } // namespace

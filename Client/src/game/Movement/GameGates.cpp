@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Movement
 {
 namespace
 {
@@ -56,26 +56,26 @@ void WriteWait(std::int32_t value, const GameGateContext& context)
     runtime.warpCounter = value;
 }
 
-GameLogic::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
+Movement::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     const Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& hero = context.world.Hero();
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
-    const GameLogic::GateCheckState state{.x = hero.cellX,
-                                          .y = hero.cellY,
-                                          .map = runtime.map,
-                                          .level = own.level,
-                                          .characterClass = hero.characterClass,
-                                          .mount = static_cast<std::int16_t>(own.equipment[MountSlot].id),
-                                          .wings = static_cast<std::int16_t>(own.equipment[WingsSlot].id),
-                                          .alternateMount = context.alternateMount,
-                                          .alternateMountActive = runtime.cursorItemCount > 0,
-                                          .warpCounter = runtime.warpCounter,
-                                          .elapsedMs = context.ticksMs - runtime.movement.lastTeleportMs,
-                                          .heroGateBlocked = hero.byte399 != 0,
-                                          .requestBlocked = runtime.movement.gateRequestBlocked != 0,
-                                          .warpPending = runtime.movement.warpPending};
-    return GameLogic::CheckGate(index, gate, state);
+    const Movement::GateCheckState state{.x = hero.cellX,
+                                         .y = hero.cellY,
+                                         .map = runtime.map,
+                                         .level = own.level,
+                                         .characterClass = hero.characterClass,
+                                         .mount = static_cast<std::int16_t>(own.equipment[MountSlot].id),
+                                         .wings = static_cast<std::int16_t>(own.equipment[WingsSlot].id),
+                                         .alternateMount = context.alternateMount,
+                                         .alternateMountActive = runtime.cursorItemCount > 0,
+                                         .warpCounter = runtime.warpCounter,
+                                         .elapsedMs = context.ticksMs - runtime.movement.lastTeleportMs,
+                                         .heroGateBlocked = hero.byte399 != 0,
+                                         .requestBlocked = runtime.movement.gateRequestBlocked != 0,
+                                         .warpPending = runtime.movement.warpPending};
+    return Movement::CheckGate(index, gate, state);
 }
 
 // 0x59a094..0x59a16c: el gate28 abre/cierra sólo para probar el nivel, aun si después vuelve a abrir.
@@ -87,7 +87,7 @@ bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, c
     }
     const Models::LogicalAccess access(context.world.Runtime().ownRecordDepth, context.random,
                                        Models::OwnRecordCloseRandoms);
-    const GameLogic::GateDecision decision = DecideGate(index, gate, context);
+    const Movement::GateDecision decision = DecideGate(index, gate, context);
     // En el gate28 sólo el nivel insuficiente no produce ninguno de estos efectos.
     return decision.request.has_value() || decision.clearWarpPending || decision.waitSteps != 0 ||
            !decision.warnings.empty();
@@ -126,13 +126,13 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::Gat
     return {};
 }
 
-Core::Expected<GameLogic::GateDecision, std::string>
-ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
+Core::Expected<Movement::GateDecision, std::string> ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate,
+                                                                      const GameGateContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-    GameLogic::GateDecision decision = DecideGate(index, gate, context);
+    Movement::GateDecision decision = DecideGate(index, gate, context);
     if (decision.waitSteps != 0)
     {
         WriteWait(decision.waitSteps, context);
@@ -159,7 +159,7 @@ ApplyEligibleGate(std::size_t index, const Tables::GateRecord& gate, const GameG
     return decision;
 }
 
-void AppendDecision(GameLogic::GateDecision& result, const GameLogic::GateDecision& decision)
+void AppendDecision(Movement::GateDecision& result, const Movement::GateDecision& decision)
 {
     result.warnings.insert(result.warnings.end(), decision.warnings.begin(), decision.warnings.end());
     result.clearWarpPending = result.clearWarpPending || decision.clearWarpPending;
@@ -174,7 +174,7 @@ void AppendDecision(GameLogic::GateDecision& result, const GameLogic::GateDecisi
 }
 } // namespace
 
-Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGateContext& context)
+Core::Expected<Movement::GateDecision, std::string> CheckGameGates(const GameGateContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.hero >= context.world.Actors().size())
@@ -182,7 +182,7 @@ Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGa
         return Core::Unexpected(std::string("0x599ef0: el héroe publicado no está en el pool"));
     }
     Kernel::ActorState& hero = context.world.Hero();
-    GameLogic::GateDecision result;
+    Movement::GateDecision result;
     for (std::size_t index = 0; index < Tables::GateCount && index < context.gates.Count(); ++index)
     {
         const auto gate = Tables::ReadGateRecord(context.gates, index);
@@ -204,4 +204,4 @@ Core::Expected<GameLogic::GateDecision, std::string> CheckGameGates(const GameGa
     }
     return result;
 }
-} // namespace Client::Scenes
+} // namespace Client::Movement

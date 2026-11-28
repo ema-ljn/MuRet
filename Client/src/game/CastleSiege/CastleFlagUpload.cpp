@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8_t, 64> mark,
                                                       Assets::ModelTextureTable& table)
@@ -47,4 +47,4 @@ Core::Expected<void, std::string> UploadTheCastleFlag(std::span<const std::uint8
     // las dimensiones y las referencias anteriores; no se llama al cargador ni se omiten paquetes repetidos.
     return table.Store()->Load(std::span(&texture, 1));
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

@@ -26,14 +26,14 @@
 // Los objetos de Castle Siege (el mapa 30) en el paso: 06 § Los objetos de Castle Siege.
 namespace
 {
+using Client::CastleSiege::CastleSiegePrelude;
 using Client::Crt::CrtRandom;
 using Client::Terrain::TerrainLighting;
-using Client::World::CastleSiegePrelude;
-using Client::World::ObjectStepGlobals;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CastleSiegeMap = 30;
-constexpr std::int16_t Hidden = Client::World::HiddenObject;
+constexpr std::int16_t Hidden = Client::WorldObjects::HiddenObject;
 const std::int16_t Shown = WorldObject{}.state.hiddenMesh;
 
 WorldObject Object(std::int16_t type)
@@ -75,8 +75,8 @@ std::unique_ptr<TerrainLighting> TorchLightOf(const WorldObject& object, int dra
     const double level = static_cast<double>((draw & 3) + 3) * static_cast<double>(0.1f);
     const glm::vec3 light(static_cast<float>(level), static_cast<float>(level * static_cast<double>(0.6f)),
                           static_cast<float>(level * static_cast<double>(0.2f)));
-    EXPECT_TRUE(
-        Client::World::AddDynamicLight(lighting.get(), object.transform.position, light, 3, "oráculo").HasValue());
+    EXPECT_TRUE(Client::WorldObjects::AddDynamicLight(lighting.get(), object.transform.position, light, 3, "oráculo")
+                    .HasValue());
     return lighting;
 }
 } // namespace
@@ -84,7 +84,7 @@ std::unique_ptr<TerrainLighting> TorchLightOf(const WorldObject& object, int dra
 // 0x63741d..0x637466: la niebla negra solo dentro del rectángulo, con los bordes.
 TEST(CastleSiegeObjectsTest, TheBlackFogCoversOnlyTheRectangleWithItsEdges)
 {
-    using Client::World::InTheCastleSiegeFog;
+    using Client::CastleSiege::InTheCastleSiegeFog;
     EXPECT_TRUE(InTheCastleSiegeFog({16100.0f, 18900.0f, 0.0f}));
     EXPECT_TRUE(InTheCastleSiegeFog({19000.0f, 21700.0f, 0.0f}));
     EXPECT_TRUE(InTheCastleSiegeFog({17500.0f, 20000.0f, -50.0f}));
@@ -121,7 +121,7 @@ TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheA
                                              EXPECT_FALSE(siege);
                                              sounds.push_back(-1);
                                          }};
-        ASSERT_TRUE(Client::World::StepCastleSiegePrelude(prelude).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(prelude).HasValue());
         EXPECT_EQ(music, c.refreshes ? static_cast<float>(c.now) : c.last);
         EXPECT_EQ(sounds, c.refreshes ? (std::vector<std::int32_t>{-1, 0x1e2}) : std::vector<std::int32_t>{0x1e2});
     }
@@ -136,18 +136,18 @@ TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
                                .musicTime = &music,
                                .systemTime = [] { return 7000u; },
                                .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }};
-    const auto siege = Client::World::StepCastleSiegePrelude(prelude);
+    const auto siege = Client::CastleSiege::StepCastleSiegePrelude(prelude);
     ASSERT_FALSE(siege.HasValue());
     EXPECT_NE(siege.Error().find("0x42b5fe"), std::string::npos) << siege.Error();
     EXPECT_EQ(sounds, std::vector<std::int32_t>{0x1e2});
 
     prelude.siegeActive = false;
     prelude.sound = {};
-    const auto mute = Client::World::StepCastleSiegePrelude(prelude);
+    const auto mute = Client::CastleSiege::StepCastleSiegePrelude(prelude);
     ASSERT_FALSE(mute.HasValue());
     EXPECT_NE(mute.Error().find("0x42b5e9"), std::string::npos) << mute.Error();
     prelude.systemTime = {};
-    const auto clockless = Client::World::StepCastleSiegePrelude(prelude);
+    const auto clockless = Client::CastleSiege::StepCastleSiegePrelude(prelude);
     ASSERT_FALSE(clockless.HasValue());
     EXPECT_NE(clockless.Error().find("0x42b557"), std::string::npos) << clockless.Error();
 }
@@ -165,8 +165,9 @@ TEST(CastleSiegeObjectsTest, TheTorchesLightTheTerrainOnlyOnTheirSideOfTheSiege)
             step.siege = siege;
             auto object = Object(type);
             CrtRandom random(11);
-            ASSERT_TRUE(Client::World::StepWorldObjectChecked(object, CastleSiegeMap, nullptr, random, step.globals)
-                            .HasValue());
+            ASSERT_TRUE(
+                Client::WorldObjects::StepWorldObjectChecked(object, CastleSiegeMap, nullptr, random, step.globals)
+                    .HasValue());
             EXPECT_EQ(object.state.hiddenMesh, Hidden);
             const bool lit = (type == 0) != siege;
             if (lit)
@@ -193,22 +194,22 @@ TEST(CastleSiegeObjectsTest, TheScrollingWaterTheSpearmenAndTheHiddenMarkers)
     auto water = Object(4);
     water.state.hiddenMesh = Hidden;
     CrtRandom random(3);
-    ASSERT_TRUE(Client::World::StepCastleSiegeObject(water, random, step.globals).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeObject(water, random, step.globals).HasValue());
     EXPECT_EQ(water.state.hiddenMesh, Shown);
     EXPECT_EQ(water.state.uv.x, static_cast<float>(static_cast<double>(12345.5f) *
                                                    static_cast<double>(std::bit_cast<float>(0x38d1b717u))));
     for (const std::int16_t type : {std::int16_t{0x2a}, std::int16_t{0x34}, std::int16_t{0x36}})
     {
         auto marker = Object(type);
-        ASSERT_TRUE(Client::World::StepCastleSiegeObject(marker, random, step.globals).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeObject(marker, random, step.globals).HasValue());
         EXPECT_EQ(marker.state.hiddenMesh, Hidden) << type;
     }
     auto spearman = Object(0x19f);
     spearman.state.hiddenMesh = Hidden;
-    ASSERT_TRUE(Client::World::StepCastleSiegeObject(spearman, random, step.globals).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeObject(spearman, random, step.globals).HasValue());
     EXPECT_EQ(spearman.state.hiddenMesh, Shown);
     step.siege = true;
-    ASSERT_TRUE(Client::World::StepCastleSiegeObject(spearman, random, step.globals).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeObject(spearman, random, step.globals).HasValue());
     EXPECT_EQ(spearman.state.hiddenMesh, Hidden);
     EXPECT_EQ(random.State(), CrtRandom(3).State());
 }
@@ -221,14 +222,14 @@ TEST(CastleSiegeObjectsTest, TheSiegeOnlyMarkerAndTheMissingSiegeByteStop)
     step.siege = true;
     auto marker = Object(0x42);
     CrtRandom random(3);
-    const auto siege = Client::World::StepCastleSiegeObject(marker, random, step.globals);
+    const auto siege = Client::CastleSiege::StepCastleSiegeObject(marker, random, step.globals);
     ASSERT_FALSE(siege.HasValue());
     EXPECT_NE(siege.Error().find("0x42c977"), std::string::npos) << siege.Error();
     EXPECT_EQ(marker.state.hiddenMesh, Hidden);
 
     step.globals.siegeActive = nullptr;
     auto torch = Object(0);
-    const auto missing = Client::World::StepCastleSiegeObject(torch, random, step.globals);
+    const auto missing = Client::CastleSiege::StepCastleSiegeObject(torch, random, step.globals);
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x42c850"), std::string::npos) << missing.Error();
     EXPECT_EQ(torch.state.hiddenMesh, Shown);
@@ -244,7 +245,7 @@ TEST(CastleSiegeObjectsTest, TheSeenFlowsScrollTheirVAndTheGatesStopWithTheSiege
     {
         SCOPED_TRACE(type);
         auto object = Object(type);
-        ASSERT_TRUE(Client::World::StepCastleSiegeSeenObject(object, false, Clock).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeSeenObject(object, false, Clock).HasValue());
         EXPECT_EQ(object.state.blendMesh, 1);
         EXPECT_EQ(object.state.light, 1.0f);
         const std::uint32_t bits = type == 0x51 ? 0x3951b717u : 0xb9d1b717u;
@@ -252,14 +253,14 @@ TEST(CastleSiegeObjectsTest, TheSeenFlowsScrollTheirVAndTheGatesStopWithTheSiege
                   static_cast<float>(static_cast<double>(Clock) * static_cast<double>(std::bit_cast<float>(bits))));
         auto applied = Object(type);
         applied.state = object.state;
-        Client::World::ApplyCastleSiegeObjectState(applied, 0);
+        Client::WorldObjects::ApplyCastleSiegeObjectState(applied, 0);
         EXPECT_EQ(object.state, applied.state);
     }
     for (std::int16_t gate = 0x3d; gate <= 0x40; ++gate)
     {
         auto object = Object(gate);
-        ASSERT_TRUE(Client::World::StepCastleSiegeSeenObject(object, false, Clock).HasValue()) << gate;
-        const auto siege = Client::World::StepCastleSiegeSeenObject(object, true, Clock);
+        ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeSeenObject(object, false, Clock).HasValue()) << gate;
+        const auto siege = Client::CastleSiege::StepCastleSiegeSeenObject(object, true, Clock);
         ASSERT_TRUE(siege.HasValue());
         EXPECT_EQ(object.state.hiddenMesh, -1);
     }
@@ -272,21 +273,21 @@ TEST(CastleSiegeObjectsTest, TheGatePlaneNeverDiesAndFloatsOnlyWithAnOwner)
     for (const bool owner : {false, true})
     {
         SCOPED_TRACE(owner);
-        Client::World::ModelEffects effects;
+        Client::Effects::ModelEffects effects;
         const glm::vec3 position(5000.0f, 6000.0f, 300.0f);
         const auto slot = effects.CreateGatePlane(position, glm::vec3(0.0f, 0.0f, 90.0f), glm::vec3(0.5f), owner);
         ASSERT_TRUE(slot.has_value());
         auto& plane = effects.Effects()[*slot];
-        EXPECT_EQ(plane.type, Client::World::GatePlaneEffect);
+        EXPECT_EQ(plane.type, Client::Effects::GatePlaneEffect);
         EXPECT_EQ(plane.life, 100);
         EXPECT_EQ(plane.objectState.light, std::bit_cast<float>(0x3e99999au));
         EXPECT_EQ(plane.start, position);
         EXPECT_EQ(plane.hasOwner, owner);
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         CrtRandom random(9);
         constexpr float Clock = 4000.0f;
         plane.life = 3;
-        ASSERT_TRUE(Client::World::StepGameModelEffect(plane, nullptr, *particles, Clock, random).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(plane, nullptr, *particles, Clock, random).HasValue());
         // 0x52973e la repone en 100 y el paso común (StepModelEffect) la baja: nunca llega a 0.
         EXPECT_TRUE(plane.alive);
         EXPECT_EQ(plane.life, 99);

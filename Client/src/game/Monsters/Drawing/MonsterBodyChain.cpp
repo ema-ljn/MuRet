@@ -39,7 +39,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -245,16 +245,16 @@ Result ScatterKundun(MonsterBodyFrame& frame)
                                                      .owner = &actor,
                                                      .key = std::bit_cast<std::uint16_t>(piece.key),
                                                      .byte89 = piece.byte89};
-        const auto made = CreateTheKundunPiece(*frame.effects, arguments, frame.random, frame.terrainHeight);
+        const auto made = Effects::CreateTheKundunPiece(*frame.effects, arguments, frame.random, frame.terrainHeight);
         if (!made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", piece.call, made.Error()));
     }
     constexpr std::int32_t EchoSubtype = 2;
-    const auto called = CreateTheKundunCall(*frame.effects, {.type = KundunCallEffect,
-                                                             .position = actor.position,
-                                                             .angles = actor.angles,
-                                                             .light = actor.light,
-                                                             .subtype = EchoSubtype});
+    const auto called = Effects::CreateTheKundunCall(*frame.effects, {.type = Effects::KundunCallEffect,
+                                                                      .position = actor.position,
+                                                                      .angles = actor.angles,
+                                                                      .light = actor.light,
+                                                                      .subtype = EchoSubtype});
     if (!called.HasValue())
         return Core::Unexpected(std::format("0x43f144: {}", called.Error()));
     return {};
@@ -331,7 +331,7 @@ Result DrawKundun(MonsterBodyFrame& frame)
                                                        .skill = 0,
                                                        .skillSerial = 0,
                                                        .target = -1};
-                    const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
+                    const auto created = Joints::CreateFaunaJoint(frame.joints, request, frame.random);
                     if (!created.HasValue())
                         return Core::Unexpected(
                             std::format("{}: {}", type == RayJoints[0] ? "0x43f20d" : "0x43f234", created.Error()));
@@ -1261,4 +1261,4 @@ Chained DrawTheBodyChain(MonsterBodyFrame& frame)
         return fifth;
     return DrawTheMap34Case(frame);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

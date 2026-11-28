@@ -19,7 +19,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -28,7 +28,7 @@ constexpr glm::vec3 HandShineLight(1.0f, 0.5f, 0.2f);
 // 0x53d879 y 0x53d8ab: la escala, un 0 entero que 0x53fe70 lee como float.
 constexpr float HandShineScale = 0.0f;
 // 0x53d81c y 0x53d8a8: el subtipo de cada una (el segundo argumento, 0, y ese más 2).
-constexpr std::array<std::int32_t, 2> HandShineSubtypes{0, World::HandShineSecondSubtype};
+constexpr std::array<std::int32_t, 2> HandShineSubtypes{0, Particles::HandShineSecondSubtype};
 constexpr std::size_t RightHand = 0;
 
 // 0x4ec110(modelo, huesos propios + hueso · 0x30, (0, 0, 0), punto, 1) con la escala y la posición del personaje.
@@ -60,17 +60,18 @@ ParticleActorHandsAmong(std::span<const Kernel::ActorState> actors, std::size_t 
 }
 
 Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::ActorState> actors, std::size_t hero,
-                                                    std::size_t slot, World::Particles& particles,
+                                                    std::size_t slot, Particles::Particles& particles,
                                                     Crt::CrtRandom& random)
 {
     const Kernel::ActorState& actor = actors[slot];
     const glm::vec3 point = BoneOrigin(actor, actor.hands[RightHand].bone);
-    const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, slot};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::Actor, slot};
     for (const std::int32_t subtype : HandShineSubtypes)
     {
         // 0x53fe70 no lee el reloj ni la escena para la 5fd.
-        const auto created = particles.CreateOwnedChecked(World::HandShineParticle, point, actor.angles, HandShineLight,
-                                                          subtype, HandShineScale, 0.0f, random, 0, owner);
+        const auto created =
+            particles.CreateOwnedChecked(Particles::HandShineParticle, point, actor.angles, HandShineLight, subtype,
+                                         HandShineScale, 0.0f, random, 0, owner);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x53d8a2: la 5fd/{} falla con el error {}", subtype,
                                                 static_cast<unsigned>(created.Error())));
@@ -79,4 +80,4 @@ Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::Acto
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

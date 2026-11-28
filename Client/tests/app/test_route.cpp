@@ -42,8 +42,8 @@
 
 namespace
 {
-using Client::App::SessionState;
 using Client::Protocol::Movement::Walk;
+using Client::Session::SessionState;
 using Client::Tests::ServerSessionSupport::Harness;
 
 struct Handled
@@ -84,7 +84,7 @@ struct ChatParts
 };
 std::optional<ChatParts> chatParts;
 
-void HandleWithTheChat(const Walk&, const Client::Scenes::ChatReceiveContext& chat)
+void HandleWithTheChat(const Walk&, const Client::Chat::ChatReceiveContext& chat)
 {
     chatParts = ChatParts{.world = &chat.world,
                           .random = &chat.random,
@@ -103,7 +103,7 @@ struct CombatParts
 };
 std::optional<CombatParts> combatParts;
 
-void HandleWithTheCombat(const Walk&, const Client::Scenes::ActorCombatContext& combat)
+void HandleWithTheCombat(const Walk&, const Client::Combat::ActorCombatContext& combat)
 {
     combatParts = CombatParts{.world = &combat.world,
                               .random = &combat.random,
@@ -128,7 +128,7 @@ void HandleWithTheLogAndTheRandom(const Walk&, Client::Core::Log& log, Client::C
     worldServices = WorldServices{.log = &log, .random = &random};
 }
 
-void HandleBySendingTheAction(const Walk& walk, const Client::Scenes::GamePacketSender& send)
+void HandleBySendingTheAction(const Walk& walk, const Client::Social::GamePacketSender& send)
 {
     send(Client::Protocol::Movement::WriteAction(walk.direction, 0x7a));
 }
@@ -425,7 +425,7 @@ TEST_F(RouteTest, AHandlerErrorFailsTheSessionAfterItsReceptionEnds)
     ASSERT_TRUE(stateAtTheEnd.has_value());
     EXPECT_NE(*stateAtTheEnd, SessionState::Failed);
     EXPECT_EQ(online.session.State(), SessionState::Failed);
-    EXPECT_EQ(online.session.Failure(), Client::App::SessionFailure::ApplicationFailed);
+    EXPECT_EQ(online.session.Failure(), Client::Session::SessionFailure::ApplicationFailed);
     const auto polled = online.session.Poll();
     ASSERT_FALSE(polled.HasValue());
     EXPECT_EQ(polled.Error(), "the handler failed");

@@ -16,7 +16,7 @@
 // tabla de los ayudantes en el juego (el jinete, el polvo, el aliento y los efectos) está en
 // Scenes/HelperTable.h. Sin la cabeza del jinete en su hueso 7 (en DarkHorse.bmd, una raíz que ningún
 // vértice usa).
-namespace Client::Scenes
+namespace Client::Pets
 {
 inline constexpr std::uint16_t DarkHorseModel = Assets::DarkHorseModel;
 // La escala que le pone 0x445260 con el jinete en el login (la escena 2). En la selección (la 4) y en el
@@ -64,4 +64,4 @@ void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, s
                                                           const Models::Skeleton* skeleton,
                                                           const Models::ObjectTransform& place, float scale,
                                                           float stepAlpha);
-} // namespace Client::Scenes
+} // namespace Client::Pets

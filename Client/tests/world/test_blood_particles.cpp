@@ -23,9 +23,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::BloodParticle;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::BloodParticle;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 
 constexpr std::uint32_t Seed = 0x2468aceu;
 const float Brake = std::bit_cast<float>(0x3f733333u);
@@ -88,7 +88,7 @@ TEST(BloodParticlesTest, TheBloodBrakesCountsItsFramesAndDiesAtTwelve)
                                    glm::vec3(1.0f), 0, 1.0f, 0.0f, random)
                     .HasValue());
     Particle& blood = particles.All()[0];
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const float clock = 0.0f;
     const std::int32_t map = 0;
     for (int step = 1; step <= 12; ++step)
@@ -110,7 +110,7 @@ TEST(BloodParticlesTest, TheBloodBrakesCountsItsFramesAndDiesAtTwelve)
         static_cast<void>(wind.Next());
 
         const auto stepped =
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
+            Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
 
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(blood.life, 12 - step);

@@ -5,12 +5,16 @@
 #include <cstdint>
 #include <string>
 
-// Los dibujos de las tres pestañas de la ventana del gremio, [0x7d536f0] (CL9 hito 8, fase 5; 06 § La ventana del
-// gremio): 0x64fdf0 (la 0, el gremio y su aviso), 0x6507d0 (los miembros) y 0x651400 (la alianza), con las listas
-// sobre UI::OldList y su dibujo de la plantilla (0x47a810 y sus iguales 0x480520 y 0x481bf0).
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
+} // namespace Client::Hud
+
+// Los dibujos de las tres pestañas de la ventana del gremio, [0x7d536f0] (CL9 hito 8, fase 5; 06 § La ventana del
+// gremio): 0x64fdf0 (la 0, el gremio y su aviso), 0x6507d0 (los miembros) y 0x651400 (la alianza), con las listas
+// sobre Ui::OldList y su dibujo de la plantilla (0x47a810 y sus iguales 0x480520 y 0x481bf0).
+namespace Client::Guild
+{
 
 // 0x652291..0x6522c0: el dibujo de la pestaña `tab` después de las pestañas (0x651f1c..0x652275), con la negrita en
 // blanco sobre 0 que dejaron.
@@ -32,5 +36,5 @@ struct GameHudContext;
 // 0xa0 × 0x50 en x + 0xf, colgada de y + 0x6e más el alto de la lista del aviso (+0x224, no el suyo: Q-C1293) y, con el
 // héroe maestro, +0x64c con el 1324 y +0x6d4 a la vista si es el maestro de la alianza, o +0x64c con el 1325 y +0x6d4
 // apagado (6).
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildTab(GameHudContext& context, std::int32_t tab);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGuildTab(Hud::GameHudContext& context, std::int32_t tab);
+} // namespace Client::Guild

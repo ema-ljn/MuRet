@@ -27,15 +27,15 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::HitTheTargetsAround: 0x517a20, los blancos de una skill alrededor de un punto y el C1 10 que los
+// Client::Skills::HitTheTargetsAround: 0x517a20, los blancos de una skill alrededor de un punto y el C1 10 que los
 // manda (06, "La flecha").
 namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
-using Client::Scenes::HitTheTargetsAround;
-using Client::Scenes::SkillHitsRequest;
+using Client::Skills::HitTheTargetsAround;
+using Client::Skills::SkillHitsRequest;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;

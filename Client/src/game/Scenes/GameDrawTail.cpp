@@ -66,7 +66,7 @@ bool AdditiveLeaves(std::int32_t map)
 {
     return map == 2 || map == 7 || map == 10 || map == 30 || map == 55;
 }
-void LeafInWorld(Render::ModelBatch& batch, const World::Leaf& leaf, float a, float b)
+void LeafInWorld(Render::ModelBatch& batch, const Weather::Leaf& leaf, float a, float b)
 {
     const auto turn = Math::OriginalAngleMatrix(leaf.angles);
     const std::array<glm::vec3, 4> local{{{-a, -a, -b}, {a, a, -b}, {a, a, b}, {-a, -a, b}}};
@@ -83,13 +83,13 @@ bool GenericEffect(std::int16_t type)
     return type == 9 || (type >= 0x3d && type <= 0x40) || type == 0xae || type == 0xb3 || type == 0xb4 ||
            type == 0xbb || type == 0x192 || type == 0xc1a;
 }
-bool SpecialEffect(const World::ModelEffect& effect)
+bool SpecialEffect(const Effects::ModelEffect& effect)
 {
     const auto type = effect.type;
     return (type == 0xcf && effect.subtype >= 3 && effect.subtype <= 7) || type == 0xf4 || type == 0xfa ||
            type == 0x10f || type == 0x135 || type == 0x14e || (type >= 0x5e8 && type <= 0x5ea);
 }
-bool OmittedEffect(const World::ModelEffect& effect)
+bool OmittedEffect(const Effects::ModelEffect& effect)
 {
     return effect.type == 0xf3 || effect.type == 0xf8 || (effect.type == 0x105 && effect.subtype == 3) ||
            (effect.type == 0x115 && effect.subtype == 1);
@@ -136,7 +136,7 @@ Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items
 
 Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const FloorItemDrawContext& context)
 {
-    return DrawFloorItemDrawing(items, context);
+    return Items::DrawFloorItemDrawing(items, context);
 }
 Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::span<const RibbonState> ribbons)
 {
@@ -265,7 +265,7 @@ Core::Expected<void, std::string> DrawDamage(Render::ModelBatch& batch, std::spa
     return {};
 }
 
-Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const World::Leaves& leaves,
+Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, const Weather::Leaves& leaves,
                                                  std::int32_t map, const Math::OriginalMatrix& view,
                                                  std::int32_t weatherState)
 {
@@ -297,7 +297,7 @@ Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, cons
             if (map != 34 || weatherState == 1)
                 LeafInWorld(batch, leaf, 1, 20);
         }
-        else if (leaf.type == World::EmberTexture)
+        else if (leaf.type == Weather::EmberTexture)
             LeafInWorld(batch, leaf, F32(static_cast<double>(leaf.scale) * 2),
                         F32(static_cast<double>(leaf.scale) * 4));
         else
@@ -322,7 +322,7 @@ void Opaque(Render::ModelBatch& batch)
         batch.ApplyOperation(state, operation);
 }
 
-Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, const World::ModelEffect& effect,
+Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, const Effects::ModelEffect& effect,
                                                  const ModelEffectDrawResources* resources)
 {
     Blend(batch, Render::ModelBlend::Additive);
@@ -347,7 +347,7 @@ Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, cons
 }
 
 // 52d941: el guard de asedio devuelve toda la pasada, después del sprite y antes de sumar luz.
-Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batch, World::ModelEffect& effect,
+Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                         const ModelEffectDrawResources* resources)
 {
     glm::vec3 point = effect.transform.position;
@@ -439,7 +439,7 @@ EffectItemMeshes(const Models::IModelLibrary& models, const Actors::Drawing::Dra
 }
 Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch& batch,
                                                              const Models::IModelLibrary& models,
-                                                             World::ModelEffect& effect, Core::Duration frameClock,
+                                                             Effects::ModelEffect& effect, Core::Duration frameClock,
                                                              const ModelEffectDrawResources* resources)
 {
     Actors::Drawing::DrawnObject object;
@@ -470,7 +470,7 @@ float EffectItemScale(std::int16_t type)
         return 0.7f;
     return 0.8f;
 }
-void InitializeEffectItemPrefix(World::ModelEffect& effect)
+void InitializeEffectItemPrefix(Effects::ModelEffect& effect)
 {
     // 607b74..607bfd: stores durables anteriores a cualquier CRT específico del tipo.
     effect.light = glm::vec3(0.3f);
@@ -486,7 +486,7 @@ void InitializeEffectItemPrefix(World::ModelEffect& effect)
     effect.objectState.uv = {};
     effect.transform.scale = EffectItemScale(effect.type);
 }
-Core::Expected<void, std::string> InitializeEffectItem(World::ModelEffect& effect, Core::Duration clock,
+Core::Expected<void, std::string> InitializeEffectItem(Effects::ModelEffect& effect, Core::Duration clock,
                                                        const ModelEffectDrawResources* resources)
 {
     InitializeEffectItemPrefix(effect);
@@ -504,7 +504,7 @@ Core::Expected<void, std::string> InitializeEffectItem(World::ModelEffect& effec
     return {};
 }
 Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                      World::ModelEffect& effect,
+                                                      Effects::ModelEffect& effect,
                                                       const Terrain::TerrainLighting* lighting, Core::Duration clock,
                                                       const ModelEffectDrawResources* resources)
 {
@@ -586,7 +586,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
 }
 
 Core::Expected<void, std::string>
-DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, const Models::IModelLibrary& models,
+DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, const Models::IModelLibrary& models,
                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
@@ -596,7 +596,8 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     // sin orden, con NaN) devuelve al = 0 sin posar, y 0x602eb0 salta 0x6002e0: ni la pose, ni el cuerpo, ni el caso
     // propio (0x438fe0 del 0x125, sus sprites, ni los rand() del 0x11b).
     if (resources != nullptr && resources->originalFrame && resources->kalimaPass != nullptr)
-        effect.alpha = World::ChaosCastlePoseAlpha(resources->kalimaPass->map, resources->heroByte1a1, effect.alpha);
+        effect.alpha =
+            Events::ChaosCastle::ChaosCastlePoseAlpha(resources->kalimaPass->map, resources->heroByte1a1, effect.alpha);
     constexpr float VisibleAlpha = 0.01f; // 0x6b88d4
     if (!(effect.alpha >= VisibleAlpha))
         return {};
@@ -613,7 +614,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     object.color = terrain + effect.light;
     object.alpha = effect.alpha;
     object.vertexLight = effect.vertexLight;
-    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == World::SpiritTrailEffect ||
+    if ((effect.type == 0xe1 && effect.subtype == 1) || effect.type == Effects::SpiritTrailEffect ||
         effect.type == 0x145 || effect.type == 0x147 || effect.type == 0x10a || effect.type == 0x10b ||
         (effect.type >= 0x12b && effect.type <= 0x133) ||
         (effect.type == 0x114 && (effect.subtype == 2 || effect.subtype == 6)) ||
@@ -626,7 +627,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
         }
-        const auto body = DrawCastleWeaponBody(
+        const auto body = Effects::DrawCastleWeaponBody(
             batch, models, effect, object, frameClock,
             [&](std::int32_t type, const Actors::Drawing::DrawnObject& owner,
                 std::span<const Models::SkinnedMesh> meshes) -> Core::Expected<void, std::string>
@@ -638,19 +639,19 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             });
         if (!body.HasValue())
             return body;
-        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != World::HiddenObject)
+        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
         {
             if (resources == nullptr || resources->particles == nullptr || resources->sprites == nullptr ||
                 resources->random == nullptr || !resources->posedBones)
                 return Core::Unexpected(std::string("0x602596: faltan los servicios de la cola del misil de Crywolf"));
-            return DrawCrywolfMissileTail(effect, physicalSlot, *resources->particles, *resources->sprites,
-                                          *resources->random, resources->posedBones(), resources->worldClock);
+            return Effects::DrawCrywolfMissileTail(effect, physicalSlot, *resources->particles, *resources->sprites,
+                                                   *resources->random, resources->posedBones(), resources->worldClock);
         }
         return {};
     }
     const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
                             resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
-    if (castleGate && effect.objectState.hiddenMesh != World::HiddenObject)
+    if (castleGate && effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
     {
         if (resources->onPose)
         {
@@ -686,22 +687,23 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     // 0x6002e0 mira antes que el tipo.
     const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
     {
-        if (effect.type == World::SkinShellEffect && effect.renderFlags != World::CrackRenderFlags)
-            return DrawTheSkinShellBody(batch, models, effect, object, frameClock);
-        if (effect.type == MeteorEffect || effect.type == MeteorShellEffect)
-            return DrawTheMeteorBody(batch, models, effect, object, frameClock,
-                                     resources != nullptr ? std::optional<float>(resources->worldClock) : std::nullopt);
-        if (effect.renderFlags != World::CrackRenderFlags && HasHighEffectBody(effect))
+        if (effect.type == Effects::SkinShellEffect && effect.renderFlags != Effects::CrackRenderFlags)
+            return Effects::DrawTheSkinShellBody(batch, models, effect, object, frameClock);
+        if (effect.type == Effects::MeteorEffect || effect.type == Effects::MeteorShellEffect)
+            return Effects::DrawTheMeteorBody(batch, models, effect, object, frameClock,
+                                              resources != nullptr ? std::optional<float>(resources->worldClock)
+                                                                   : std::nullopt);
+        if (effect.renderFlags != Effects::CrackRenderFlags && Effects::HasHighEffectBody(effect))
         {
-            HighEffectDrawServices services;
+            Effects::HighEffectDrawServices services;
             if (resources != nullptr)
                 services = {.sprites = resources->sprites,
                             .random = resources->random,
                             .posedBones = resources->posedBones,
                             .worldClock = resources->worldClock};
-            return DrawTheHighEffectBody(batch, models, effect, object, frameClock, services);
+            return Effects::DrawTheHighEffectBody(batch, models, effect, object, frameClock, services);
         }
-        return DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
+        return Effects::DrawTheWizardEffectBody(batch, models, effect, object, frameClock);
     };
     if (resources != nullptr && resources->onPose && models.Find(Models::ModelId{model}) != nullptr &&
         models.SkeletonOf(Models::ModelId{model}) != nullptr)
@@ -709,7 +711,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
         if (auto published = resources->onPose(object); !published.HasValue())
             return published;
         // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección), 0x6002e0 sale después de posar.
-        if (effect.objectState.hiddenMesh != World::HiddenObject)
+        if (effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
         {
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
@@ -725,7 +727,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
             }
         }
     }
-    else if (effect.objectState.hiddenMesh != World::HiddenObject)
+    else if (effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
     {
         const auto special = drawTheSpecialBody();
         if (!special.HasValue())
@@ -737,16 +739,17 @@ DrawPlainModelEffect(Render::ModelBatch& batch, World::ModelEffect& effect, cons
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
         Maps::IsKalimaMap(resources->kalimaPass->map))
     {
-        World::WorldObject view;
+        WorldObjects::WorldObject view;
         view.type = effect.type;
-        return DrawKalimaObjectTail(batch, models, view, object, frameClock, *resources->kalimaPass);
+        return MapScripts::Kalima::DrawKalimaObjectTail(batch, models, view, object, frameClock,
+                                                        *resources->kalimaPass);
     }
     return {};
 }
 
 Core::Expected<void, std::string>
 DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                            std::span<World::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
+                            std::span<Effects::ModelEffect> effects, const Terrain::SphereFrustum& frustum,
                             const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                             const ModelEffectDrawResources* resources, std::uint8_t mode)
 {
@@ -835,7 +838,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
 } // namespace
 
 Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       std::span<World::ModelEffect> effects,
+                                                       std::span<Effects::ModelEffect> effects,
                                                        const Terrain::SphereFrustum& frustum,
                                                        const Terrain::TerrainLighting* lighting,
                                                        Core::Duration frameClock, float alpha, std::uint8_t mode)
@@ -844,7 +847,7 @@ Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch
 }
 
 Core::Expected<void, std::string> DrawGameModelEffects(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       std::span<World::ModelEffect> effects,
+                                                       std::span<Effects::ModelEffect> effects,
                                                        const Terrain::SphereFrustum& frustum,
                                                        const Terrain::TerrainLighting* lighting,
                                                        Core::Duration frameClock, float alpha,

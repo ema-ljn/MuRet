@@ -23,7 +23,7 @@
 #include <type_traits>
 #include <variant>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -40,7 +40,7 @@ Core::Expected<void, std::string> ApplyOwnerMark(const Battle::OwnerMark& mark, 
                                                  Assets::FaunaModels* faunaModels)
 {
     auto& battle = world.Runtime().castleSiege.battle;
-    for (std::size_t i = 0; i < UI::OwnerMarkColors; ++i)
+    for (std::size_t i = 0; i < CastleSiege::OwnerMarkColors; ++i)
     {
         const std::uint8_t packed = mark.packed[i / 2];
         battle.ownerMark[i] =
@@ -80,8 +80,8 @@ Core::Expected<void, std::string> ApplyMinimapMembers(const Battle::MinimapMembe
 // B2 20, 0x4e04e0.
 void ApplySwitchHolder(const Battle::SwitchHolder& holder, Kernel::WorldRuntime& runtime)
 {
-    const bool first = holder.key == UI::FirstHalfKey;
-    const std::size_t half = first ? 0 : UI::SwitchHolderHalf;
+    const bool first = holder.key == CastleSiege::FirstHalfKey;
+    const std::size_t half = first ? 0 : CastleSiege::SwitchHolderHalf;
     if (!runtime.castleSiege.castleSiegeInfo)
     {
         // 0x4e04f3..0x4e0528: new(0x36) con +4, +5, +6, +0x1f, +0x20 y +0x21 en 0 (lo demás, lo que dejó el heap:
@@ -94,7 +94,7 @@ void ApplySwitchHolder(const Battle::SwitchHolder& holder, Kernel::WorldRuntime&
     // 0x4e0558..0x4e05e4: la mitad tal cual y después, con lo mismo, +8..+0x19 otra vez y el último byte en 0 (DL en 0,
     // 0x4e05c7): Q-C1401.
     std::ranges::copy(holder.bytes, runtime.castleSiege.castleSiegeInfo->begin() + static_cast<std::ptrdiff_t>(half));
-    (*runtime.castleSiege.castleSiegeInfo)[half + UI::HolderEndAt] = 0;
+    (*runtime.castleSiege.castleSiegeInfo)[half + CastleSiege::HolderEndAt] = 0;
 }
 } // namespace
 
@@ -104,8 +104,8 @@ void ForgetTheSwitchHolder(Kernel::WorldRuntime& runtime, std::uint16_t key)
     {
         return;
     }
-    const std::size_t half = key == UI::FirstHalfKey ? 0 : UI::SwitchHolderHalf;
-    for (const std::size_t at : {UI::HolderShownAt, std::size_t{4}, std::size_t{5}})
+    const std::size_t half = key == CastleSiege::FirstHalfKey ? 0 : CastleSiege::SwitchHolderHalf;
+    for (const std::size_t at : {CastleSiege::HolderShownAt, std::size_t{4}, std::size_t{5}})
     {
         (*runtime.castleSiege.castleSiegeInfo)[half + at] = 0;
     }
@@ -151,4 +151,4 @@ Core::Expected<void, std::string> ApplyCastleBattlePacket(const Protocol::Castle
         },
         packet);
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

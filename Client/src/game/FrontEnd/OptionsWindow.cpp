@@ -28,7 +28,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -40,10 +40,10 @@ constexpr Render::TextureSlot TopSlot{0x730};
 constexpr Render::TextureSlot LineSlot{0x72d};
 constexpr Render::TextureSlot CheckSlot{0x731};
 constexpr Render::TextureSlot CloseSlot{0x72f};
-constexpr SliderParts SliderLook{.thumb = {.slot = Render::TextureSlot{0x732}, .width = 13, .height = 13},
-                                 .track = {.slot = Render::TextureSlot{0x734}, .width = 98, .height = 13},
-                                 .fill = {.slot = Render::TextureSlot{0x733}, .width = 4, .height = 7},
-                                 .fillArea = Rect{.x = 3, .y = 3, .width = 92, .height = 7}};
+constexpr Ui::SliderParts SliderLook{.thumb = {.slot = Render::TextureSlot{0x732}, .width = 13, .height = 13},
+                                     .track = {.slot = Render::TextureSlot{0x734}, .width = 98, .height = 13},
+                                     .fill = {.slot = Render::TextureSlot{0x733}, .width = 4, .height = 7},
+                                     .fillArea = Ui::Rect{.x = 3, .y = 3, .width = 92, .height = 7}};
 
 constexpr int FrameWidth = 213;
 constexpr int TopHeight = 65;
@@ -80,32 +80,32 @@ constexpr std::size_t CloseText = 388;
 constexpr Render::Text::TextStyle TextLook{Render::Text::FontKind::OtherFace12,
                                            Render::Text::TextColors{0xffffffff, 0}};
 // El rótulo del botón, con los colores de 0x644378 (los de la ventana de Esc).
-constexpr ButtonColors CloseColors{.normal = 0xffe2e2e2,
-                                   .pressed = 0xffe2e2e2,
-                                   .hover = 0xffffffff,
-                                   .checkedNormal = 0xffe2e2e2,
-                                   .checkedPressed = 0xffe2e2e2,
-                                   .checkedHover = 0xffffffff,
-                                   .disabled = 0,
-                                   .checkedDisabled = 0};
+constexpr Ui::ButtonColors CloseColors{.normal = 0xffe2e2e2,
+                                       .pressed = 0xffe2e2e2,
+                                       .hover = 0xffffffff,
+                                       .checkedNormal = 0xffe2e2e2,
+                                       .checkedPressed = 0xffe2e2e2,
+                                       .checkedHover = 0xffffffff,
+                                       .disabled = 0,
+                                       .checkedDisabled = 0};
 // La base de 0x669c70 con el slot −1: negra con alfa 0x80.
 constexpr float BaseAlpha = 128.0f / 255.0f;
 
-Button MakeCheck()
+Ui::Button MakeCheck()
 {
     // 0x63c330(16, 16, 0x731, 2, 0, 0, −1, 1, 1, 1, −1): el cuadro 0 sin marcar, apretada o no, y el 1
     // marcada.
-    Button check(CheckSlot, CheckSize, CheckSize, CheckedFrame);
+    Ui::Button check(CheckSlot, CheckSize, CheckSize, CheckedFrame);
     check.SetStateFrames(0, 0);
     return check;
 }
 
 std::string_view TextOf(const Tables::TextTable* texts, std::size_t index)
 {
-    return TextAt(texts, index).value_or(std::string_view{});
+    return Ui::TextAt(texts, index).value_or(std::string_view{});
 }
 
-void DrawAt(Render::Frame::ITextDrawer& text, Point pixel, std::string_view line, Core::PixelSize screen)
+void DrawAt(Render::Frame::ITextDrawer& text, Ui::Point pixel, std::string_view line, Core::PixelSize screen)
 {
     // 0x5542f0 con el modo 1 y ancho 0; no dibuja un texto vacío.
     if (line.empty())
@@ -145,40 +145,40 @@ OptionsWindowLayout LayoutOptionsWindow(Core::PixelSize screen, int lineHeight)
 {
     OptionsWindowLayout layout;
     const int height = lineHeight * Lines + TopHeight + BottomHeight;
-    layout.frame = Rect{
+    layout.frame = Ui::Rect{
         .x = (screen.width - FrameWidth) / 2, .y = (screen.height - height) / 2, .width = FrameWidth, .height = height};
     const int left = layout.frame.x + Inset;
     int top = layout.frame.y + Inset;
-    for (Rect& check : layout.checks)
+    for (Ui::Rect& check : layout.checks)
     {
-        check = Rect{.x = left, .y = top, .width = CheckSize, .height = CheckSize};
+        check = Ui::Rect{.x = left, .y = top, .width = CheckSize, .height = CheckSize};
         top += CheckSize + CheckGap;
     }
     const int first = CheckSize + layout.checks[2].y + SliderGap;
-    layout.sliders[0] = Point{left, first};
-    layout.sliders[1] = Point{left, first + SliderLook.thumb.height + SliderGap};
-    layout.close = Rect{.x = (FrameWidth - CloseWidth) / 2 + layout.frame.x,
-                        .y = layout.frame.y + CloseTop,
-                        .width = CloseWidth,
-                        .height = CloseHeight};
+    layout.sliders[0] = Ui::Point{left, first};
+    layout.sliders[1] = Ui::Point{left, first + SliderLook.thumb.height + SliderGap};
+    layout.close = Ui::Rect{.x = (FrameWidth - CloseWidth) / 2 + layout.frame.x,
+                            .y = layout.frame.y + CloseTop,
+                            .width = CloseWidth,
+                            .height = CloseHeight};
     return layout;
 }
 
-OptionsWindow::OptionsWindow(TextureSizes sizes, const Tables::TextTable* texts)
+OptionsWindow::OptionsWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_checks{MakeCheck(), MakeCheck(), MakeCheck()},
-      m_close(CloseSlot, CloseWidth, CloseHeight), m_sliders{Slider(SliderLook), Slider(SliderLook)}
+      m_close(CloseSlot, CloseWidth, CloseHeight), m_sliders{Ui::Slider(SliderLook), Ui::Slider(SliderLook)}
 {
 }
 
 void OptionsWindow::Arm(const OptionsSettings& settings)
 {
-    for (Button& check : m_checks)
+    for (Ui::Button& check : m_checks)
     {
         check = MakeCheck();
     }
-    m_close = Button(CloseSlot, CloseWidth, CloseHeight);
+    m_close = Ui::Button(CloseSlot, CloseWidth, CloseHeight);
     m_close.SetLabel(std::string(TextOf(m_texts, CloseText)), CloseColors);
-    m_sliders = {Slider(SliderLook), Slider(SliderLook)};
+    m_sliders = {Ui::Slider(SliderLook), Ui::Slider(SliderLook)};
     m_sliders[0].SetMax(VolumeMax);
     m_sliders[1].SetMax(GlowMax);
     m_layout = OptionsWindowLayout{};
@@ -194,7 +194,7 @@ void OptionsWindow::Arm(const OptionsSettings& settings)
 void OptionsWindow::Open()
 {
     m_open = true;
-    for (Slider& slider : m_sliders)
+    for (Ui::Slider& slider : m_sliders)
     {
         slider.Open(true);
     }
@@ -210,35 +210,35 @@ bool OptionsWindow::IsOpen() const
     return m_open;
 }
 
-Rect OptionsWindow::Bounds(Core::PixelSize screen) const
+Ui::Rect OptionsWindow::Bounds(Core::PixelSize screen) const
 {
-    return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
+    return Ui::Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
-const Button& OptionsWindow::Check(std::size_t index) const
+const Ui::Button& OptionsWindow::Check(std::size_t index) const
 {
     return m_checks.at(index);
 }
 
-const Button& OptionsWindow::CloseButton() const
+const Ui::Button& OptionsWindow::CloseButton() const
 {
     return m_close;
 }
 
-const Slider& OptionsWindow::SliderAt(std::size_t index) const
+const Ui::Slider& OptionsWindow::SliderAt(std::size_t index) const
 {
     return m_sliders.at(index);
 }
 
 std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, Core::PixelSize screen,
-                                                double elapsedMs, const OptionsSettings& current, NewUiTurn turn)
+                                                double elapsedMs, const OptionsSettings& current, Ui::NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     std::array<bool, 3> checked{};
     for (std::size_t i = 0; i < m_checks.size(); ++i)
     {
@@ -250,8 +250,8 @@ std::optional<OptionsEvent> OptionsWindow::Step(const Input::InputState& input, 
         return std::nullopt;
     }
     // 0x644730: los deslizadores primero, con el mouse de 0x640850.
-    const Point raw = MouseInPixels(input, screen);
-    for (Slider& slider : m_sliders)
+    const Ui::Point raw = Ui::MouseInPixels(input, screen);
+    for (Ui::Slider& slider : m_sliders)
     {
         slider.Step(input, raw, elapsedMs, turn.buttonClicked);
     }
@@ -333,16 +333,17 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     }
     for (std::size_t i = 0; i < m_checks.size(); ++i)
     {
-        const Rect area = m_checks[i].Area();
-        DrawAt(text, Point{area.x + CheckLabelLeft, area.y + CheckLabelTop}, TextOf(m_texts, CheckTexts[i]), screen);
+        const Ui::Rect area = m_checks[i].Area();
+        DrawAt(text, Ui::Point{area.x + CheckLabelLeft, area.y + CheckLabelTop}, TextOf(m_texts, CheckTexts[i]),
+               screen);
     }
     // Los valores son los de los globales: el del brillo, 2 · d + 5.
     const std::array<int, 2> values{current.volume, current.glowDetail * 2 + 5};
     for (std::size_t i = 0; i < m_sliders.size(); ++i)
     {
-        const Point at = m_sliders[i].Position();
-        DrawAt(text, Point{at.x, at.y - SliderLabelAbove}, TextOf(m_texts, SliderTexts[i]), screen);
-        DrawAt(text, Point{at.x + SliderValueLeft, at.y - SliderLabelAbove}, std::to_string(values[i]), screen);
+        const Ui::Point at = m_sliders[i].Position();
+        DrawAt(text, Ui::Point{at.x, at.y - SliderLabelAbove}, TextOf(m_texts, SliderTexts[i]), screen);
+        DrawAt(text, Ui::Point{at.x + SliderValueLeft, at.y - SliderLabelAbove}, std::to_string(values[i]), screen);
         if (m_sliders[i].IsOpen())
         {
             for (const Render::UiImage& image : m_sliders[i].Images(m_sizes))
@@ -352,7 +353,7 @@ void OptionsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
         }
     }
     // 0x66a090: las casillas y el botón, en el orden en que 0x66a070 los sumó.
-    for (const Button& check : m_checks)
+    for (const Ui::Button& check : m_checks)
     {
         sprites.Image(check.Image(m_sizes));
     }
@@ -365,9 +366,9 @@ void OptionsWindow::Place(Core::PixelSize screen)
     m_layout = LayoutOptionsWindow(screen, m_sizes(LineSlot).height);
     for (std::size_t i = 0; i < m_checks.size(); ++i)
     {
-        m_checks[i].MoveTo(Point{m_layout.checks[i].x, m_layout.checks[i].y});
+        m_checks[i].MoveTo(Ui::Point{m_layout.checks[i].x, m_layout.checks[i].y});
     }
-    m_close.MoveTo(Point{m_layout.close.x, m_layout.close.y});
+    m_close.MoveTo(Ui::Point{m_layout.close.x, m_layout.close.y});
     for (std::size_t i = 0; i < m_sliders.size(); ++i)
     {
         if (m_sliders[i].Position() != m_layout.sliders[i])
@@ -376,4 +377,4 @@ void OptionsWindow::Place(Core::PixelSize screen)
         }
     }
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

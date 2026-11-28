@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-namespace Client::Scenes
+namespace Client::Combat
 {
 namespace
 {
@@ -18,7 +18,7 @@ constexpr float DamageSpeed = 10.0f;
 void CreateDamageNumber(Kernel::WorldState& world, const glm::vec3& position, std::int32_t amount,
                         const glm::vec3& light, float scale, bool rise)
 {
-    for (DamageNumberState& number : world.DrawTail().damage)
+    for (Scenes::DamageNumberState& number : world.DrawTail().damage)
     {
         if (number.alive)
             continue;
@@ -34,4 +34,4 @@ void CreateDamageNumber(Kernel::WorldState& world, const glm::vec3& position, st
         return;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Combat

@@ -204,9 +204,9 @@ struct Stage
                                    .states = &states};
     }
 
-    [[nodiscard]] Scenes::InventoryMoveContext Moves()
+    [[nodiscard]] Client::Items::InventoryMoveContext Moves()
     {
-        return Scenes::InventoryMoveContext{.world = world, .random = cloth.random, .services = services};
+        return Client::Items::InventoryMoveContext{.world = world, .random = cloth.random, .services = services};
     }
 
     FloorItemState& Item(std::size_t index)
@@ -216,11 +216,11 @@ struct Stage
 
     WorldState world;
     Client::Session::ModuleStates states;
-    Scenes::SelectionState selection;
+    Client::FrontEnd::SelectionState selection;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
-    Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = NamedItems({{Sword, "Espada inventada", 1, 3},
                                                   {Potion, "Pocion inventada"},
                                                   {Zen, "Oro"},
@@ -232,7 +232,7 @@ struct Stage
     Client::Render::SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text;
     Client::Tables::TextTable texts;
-    Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
 };
 
 std::unique_ptr<Stage> StageIn(std::int32_t map)
@@ -266,7 +266,7 @@ TEST(FloorItemsSceneTest, TheCreateFillsEachEntryInEveryMap)
             Advanced(stage->cloth.random, Client::Actors::Drawing::HangingRandomCount(Zen + FirstModel) +
                                               Client::Actors::Drawing::HangingRandomCount(Potion + FirstModel) +
                                               Client::Actors::Drawing::HangingRandomCount(Sword + FirstModel));
-        const auto created = Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources());
+        const auto created = Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(stage->cloth.random.State(), expected.State()) << map;
 
@@ -322,7 +322,7 @@ TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
             .items = {FloorItemEntry{.key = 0x8003, .x = 30, .y = 40, .item = ItemBytes(BoxOfLuck, 5 << 3, 1)},
                       FloorItemEntry{.key = 0x8004, .x = 50, .y = 60, .item = ItemBytes(BoxOfLuck, 6 << 3, 1)},
                       FloorItemEntry{.key = 6, .x = 70, .y = 80, .item = ItemBytes(BoxOfLuck, 5 << 3, 1)}}};
-        const auto created = Scenes::ApplyFloorItemsCreate(create, stage->Resources());
+        const auto created = Client::Items::ApplyFloorItemsCreate(create, stage->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
 
@@ -350,7 +350,7 @@ TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
         for (std::size_t slot = 0; slot < cracks.size(); ++slot)
         {
             SCOPED_TRACE(slot);
-            const Client::World::ModelEffect& effect = effects[slot];
+            const Client::Effects::ModelEffect& effect = effects[slot];
             const FloorItemState& owner = *cracks[slot].owner;
             EXPECT_TRUE(effect.alive);
             EXPECT_EQ(effect.type, cracks[slot].type);
@@ -364,7 +364,7 @@ TEST(FloorItemsSceneTest, TheDroppedMedalsCrackTheGroundInEveryMap)
             EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f));
             EXPECT_EQ(effect.light, glm::vec3(1.0f));
             EXPECT_TRUE(effect.hasOwner);
-            EXPECT_EQ(Client::World::OwnerTypeOf(effect.owner),
+            EXPECT_EQ(Client::Effects::OwnerTypeOf(effect.owner),
                       std::optional<std::uint16_t>(static_cast<std::uint16_t>(owner.type)));
             EXPECT_EQ(effect.owner.angles, &owner.angles);
         }
@@ -393,14 +393,14 @@ TEST(FloorItemsSceneTest, WithTheEffectsFullTheDroppedMedalStillFalls)
             Advanced(stage->cloth.random, Client::Actors::Drawing::HangingRandomCount(GoldMedal));
         const FloorItemsCreate create{
             .items = {FloorItemEntry{.key = 0x8009, .x = 12, .y = 34, .item = ItemBytes(BoxOfLuck, 6 << 3, 1)}}};
-        const auto created = Scenes::ApplyFloorItemsCreate(create, stage->Resources());
+        const auto created = Client::Items::ApplyFloorItemsCreate(create, stage->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
         const FloorItemState& gold = stage->Item(9);
         EXPECT_EQ(gold.type, GoldMedal);
         EXPECT_FLOAT_EQ(gold.position.z, Ground + 3.0f);
         EXPECT_FLOAT_EQ(gold.dropSpeed, 50.0f);
-        const Client::World::ModelEffect& last = effects.back();
+        const Client::Effects::ModelEffect& last = effects.back();
         EXPECT_TRUE(last.alive);
         EXPECT_EQ(last.type, free == 1 ? std::int16_t{0x100} : Busy);
         for (std::size_t slot = 0; slot + 1 < effects.size(); ++slot)
@@ -412,8 +412,8 @@ TEST(FloorItemsSceneTest, WithTheEffectsFullTheDroppedMedalStillFalls)
 TEST(FloorItemsSceneTest, TheDeleteTurnsOffEachKey)
 {
     auto stage = StageIn(0);
-    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
-    Scenes::ApplyFloorItemsDelete(Client::Protocol::Items::FloorItemsDelete{.keys = {5, 1500}}, stage->world);
+    ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    Client::Items::ApplyFloorItemsDelete(Client::Protocol::Items::FloorItemsDelete{.keys = {5, 1500}}, stage->world);
     EXPECT_FALSE(stage->Item(5).alive);
     EXPECT_FALSE(stage->Item(0).alive);
     EXPECT_TRUE(stage->Item(7).alive);
@@ -437,7 +437,7 @@ TEST(FloorItemsSceneTest, ThePickingSearchLightsTheItemsAndTakesTheFirstHit)
     put(9, true, 0.0f);
     const Client::Terrain::TerrainPickingSegment ray{.origin = {0.0f, 0.0f, 1000.0f}, .end = {0.0f, 0.0f, -1000.0f}};
 
-    EXPECT_EQ(Scenes::PickTheFloorItem(*items, ray), 8);
+    EXPECT_EQ(Client::Items::PickTheFloorItem(*items, ray), 8);
     EXPECT_FALSE((*items)[8].vertexLight);
     EXPECT_EQ((*items)[8].light, glm::vec3(1.5f));
     EXPECT_TRUE((*items)[9].vertexLight);
@@ -447,7 +447,7 @@ TEST(FloorItemsSceneTest, ThePickingSearchLightsTheItemsAndTakesTheFirstHit)
 
     const Client::Terrain::TerrainPickingSegment away{.origin = {2000.0f, 0.0f, 1000.0f},
                                                       .end = {2000.0f, 0.0f, -1000.0f}};
-    EXPECT_EQ(Scenes::PickTheFloorItem(*items, away), -1);
+    EXPECT_EQ(Client::Items::PickTheFloorItem(*items, away), -1);
 }
 
 // 0x5c9d20: entra si hay algún lugar con todas sus casillas vacías.
@@ -459,13 +459,13 @@ TEST(FloorItemsSceneTest, TheRoomInTheGridLooksForEmptyCells)
         cell.id = Potion;
     constexpr auto PotionType = static_cast<std::int16_t>(Potion);
     constexpr auto SwordType = static_cast<std::int16_t>(Sword);
-    EXPECT_FALSE(Scenes::HasRoomFor(&stage->items, cells, PotionType).Value());
+    EXPECT_FALSE(Client::Items::HasRoomFor(&stage->items, cells, PotionType).Value());
     cells[63].id = Client::Kernel::EmptyOwnItemId;
-    EXPECT_TRUE(Scenes::HasRoomFor(&stage->items, cells, PotionType).Value());
-    EXPECT_FALSE(Scenes::HasRoomFor(&stage->items, cells, SwordType).Value());
+    EXPECT_TRUE(Client::Items::HasRoomFor(&stage->items, cells, PotionType).Value());
+    EXPECT_FALSE(Client::Items::HasRoomFor(&stage->items, cells, SwordType).Value());
     cells[47].id = Client::Kernel::EmptyOwnItemId;
     cells[55].id = Client::Kernel::EmptyOwnItemId;
-    EXPECT_TRUE(Scenes::HasRoomFor(&stage->items, cells, SwordType).Value());
+    EXPECT_TRUE(Client::Items::HasRoomFor(&stage->items, cells, SwordType).Value());
 }
 
 // El caso 1 de 0x5650c0 con el héroe a menos de 150 del centro de la celda del destino: la espera del mouse en 6, el
@@ -475,7 +475,7 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
     for (const std::int32_t map : {0, 2, 10})
     {
         auto stage = StageIn(map);
-        ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+        ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
         std::vector<std::uint16_t> sent;
         stage->services.sendPickUp = [&sent](std::uint16_t index)
         {
@@ -488,15 +488,15 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         runtime.movement.targetX = 10;
         runtime.movement.targetY = 20;
 
-        ASSERT_TRUE(
-            Scenes::PickUpTheFloorItem(stage->Moves(), {1300.0f, 2050.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
-                .HasValue());
+        ASSERT_TRUE(Client::Items::PickUpTheFloorItem(stage->Moves(), {1300.0f, 2050.0f, 0.0f},
+                                                      stage->states.terrain.current, 1200.0f)
+                        .HasValue());
         EXPECT_TRUE(sent.empty());
 
         const CrtRandom expected = Advanced(stage->cloth.random, SendRandoms);
-        ASSERT_TRUE(
-            Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
-                .HasValue());
+        ASSERT_TRUE(Client::Items::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f},
+                                                      stage->states.terrain.current, 1200.0f)
+                        .HasValue());
         EXPECT_EQ(stage->cloth.random.State(), expected.State());
         ASSERT_EQ(sent.size(), 1u);
         const auto packet = Client::Protocol::Items::WritePickUp(sent.front());
@@ -505,9 +505,9 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
         EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
 
         runtime.floor.chosen = 5;
-        ASSERT_TRUE(
-            Scenes::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f}, stage->states.terrain.current, 1200.0f)
-                .HasValue());
+        ASSERT_TRUE(Client::Items::PickUpTheFloorItem(stage->Moves(), {1100.0f, 2100.0f, 0.0f},
+                                                      stage->states.terrain.current, 1200.0f)
+                        .HasValue());
         EXPECT_EQ(sent.size(), 1u);
     }
 }
@@ -516,7 +516,7 @@ TEST(FloorItemsSceneTest, ArrivingPicksUpTheChosenItemByteByByte)
 TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
 {
     auto stage = StageIn(2);
-    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
     for (auto& cell : stage->world.Inventory().cells)
         cell.id = Potion;
     std::vector<std::string> lines;
@@ -532,7 +532,8 @@ TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
     runtime.floor.chosen = 0;
     runtime.floor.fromSpace = 1;
     const auto before = stage->cloth.random.State();
-    ASSERT_TRUE(Scenes::PickUpTheFloorItem(stage->Moves(), {}, stage->states.terrain.current, 1200.0f).HasValue());
+    ASSERT_TRUE(
+        Client::Items::PickUpTheFloorItem(stage->Moves(), {}, stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(stage->cloth.random.State(), before);
     EXPECT_EQ(lines, std::vector<std::string>{"no hay lugar"});
     EXPECT_FLOAT_EQ(stage->Item(0).position.z, Ground + 3.0f);
@@ -545,7 +546,7 @@ TEST(FloorItemsSceneTest, WithoutRoomTheItemJumpsAndWarns)
 TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
 {
     auto stage = StageIn(0);
-    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
     std::vector<std::uint16_t> sent;
     stage->services.sendPickUp = [&sent](std::uint16_t index)
     {
@@ -556,11 +557,13 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
     Client::Kernel::ActorState& hero = stage->world.Actors()[HeroSlot];
     hero.position = {1050.0f, 2050.0f + 299.0f, Ground};
     stage->Item(7).seen = false;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
+    ASSERT_TRUE(
+        Client::Items::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_TRUE(sent.empty());
 
     stage->Item(7).seen = true;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
+    ASSERT_TRUE(
+        Client::Items::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(sent, std::vector<std::uint16_t>{7});
     EXPECT_EQ(stage->world.Runtime().floor.chosen, 7);
     EXPECT_EQ(stage->world.Runtime().floor.fromSpace, 0);
@@ -568,7 +571,8 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
 
     stage->world.Runtime().floor.pendingPickUp = -1;
     hero.position.y = 2050.0f + 300.0f;
-    ASSERT_TRUE(Scenes::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
+    ASSERT_TRUE(
+        Client::Items::PickUpTheNearestFloorItem(stage->Moves(), stage->states.terrain.current, 1200.0f).HasValue());
     EXPECT_EQ(sent.size(), 1u);
 }
 
@@ -577,12 +581,12 @@ TEST(FloorItemsSceneTest, TheSpaceBarPicksUpTheNearestSeenItem)
 TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
 {
     auto stage = StageIn(0);
-    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
     Client::Kernel::WorldRuntime& runtime = stage->world.Runtime();
     runtime.floor.pendingPickUp = 5;
     runtime.floor.chosen = 5;
     const CrtRandom expected = Advanced(stage->cloth.random, Own);
-    ASSERT_TRUE(Scenes::ApplyPickUpResult({.result = 0xfe, .zen = 123456}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyPickUpResult({.result = 0xfe, .zen = 123456}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->cloth.random.State(), expected.State());
     EXPECT_EQ(stage->world.OwnCharacter().zen, 123456u);
     ASSERT_EQ(runtime.chat.log.entries.size(), 1u);
@@ -591,12 +595,13 @@ TEST(FloorItemsSceneTest, ThePickUpResultTakesTheZenOrNamesTheItem)
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
 
     runtime.floor.pendingPickUp = 5;
-    ASSERT_TRUE(Scenes::ApplyPickUpResult({.result = 0xff}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyPickUpResult({.result = 0xff}, stage->Resources()).HasValue());
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
     EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
 
     runtime.floor.chosen = 0;
-    ASSERT_TRUE(Scenes::ApplyPickUpResult({.result = 0xfd, .item = ItemBytes(Jewel)}, stage->Resources()).HasValue());
+    ASSERT_TRUE(
+        Client::Items::ApplyPickUpResult({.result = 0xfd, .item = ItemBytes(Jewel)}, stage->Resources()).HasValue());
     ASSERT_EQ(runtime.chat.log.entries.size(), 2u);
     // El registro guarda el último primero.
     EXPECT_EQ(runtime.chat.log.entries[0].text, "Espada inventada +3 levantado");
@@ -616,18 +621,18 @@ TEST(FloorItemsSceneTest, TheDropResultReturnsOrRemovesTheCursorItem)
     cell.gridRow = 1;
     cell.occupied = 1;
     stage->world.Runtime().movement.pendingClick = true;
-    ASSERT_TRUE(Scenes::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
+    ASSERT_TRUE(Client::Items::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
     stage->world.Runtime().floor.pendingDrop = 22;
 
-    const auto rejected = Scenes::ApplyDropResult({.result = 0, .slot = 22}, stage->Resources());
+    const auto rejected = Client::Items::ApplyDropResult({.result = 0, .slot = 22}, stage->Resources());
     ASSERT_TRUE(rejected.HasValue()) << rejected.Error();
     EXPECT_EQ(stage->world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(cell.id, Potion);
     EXPECT_EQ(stage->world.Runtime().floor.pendingDrop, -1);
 
     stage->world.Runtime().movement.pendingClick = true;
-    ASSERT_TRUE(Scenes::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
-    const auto dropped = Scenes::ApplyDropResult({.result = 1, .slot = 22}, stage->Resources());
+    ASSERT_TRUE(Client::Items::PickUpFromTheGrid(stage->Moves(), 10).HasValue());
+    const auto dropped = Client::Items::ApplyDropResult({.result = 1, .slot = 22}, stage->Resources());
     ASSERT_TRUE(dropped.HasValue()) << dropped.Error();
     EXPECT_EQ(stage->world.Runtime().cursorItemCount, 0);
     EXPECT_EQ(stage->world.Runtime().cursorItem.occupied, 0u);
@@ -643,22 +648,23 @@ TEST(FloorItemsSceneTest, TheStatFruitChangesTheStatAndWarns)
     own.vitality = 40;
     stage->world.Runtime().ui.field5767954 = 10;
     const CrtRandom expected = Advanced(stage->cloth.random, Own);
-    ASSERT_TRUE(
-        Scenes::ApplyStatFruit({.result = 0, .points = 3, .stat = 1}, stage->world, stage->cloth.random, &stage->texts)
-            .HasValue());
+    ASSERT_TRUE(Client::Items::ApplyStatFruit({.result = 0, .points = 3, .stat = 1}, stage->world, stage->cloth.random,
+                                              &stage->texts)
+                    .HasValue());
     EXPECT_EQ(stage->cloth.random.State(), expected.State());
     EXPECT_EQ(own.vitality, 43);
     EXPECT_EQ(own.addedPoints, 3);
-    EXPECT_EQ(Client::UI::DialogRow(stage->world.Runtime().dialogBox, 0), "vitalidad 3 sumados");
+    EXPECT_EQ(Client::Ui::DialogRow(stage->world.Runtime().dialogBox, 0), "vitalidad 3 sumados");
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 
-    ASSERT_TRUE(
-        Scenes::ApplyStatFruit({.result = 3, .points = 2, .stat = 3}, stage->world, stage->cloth.random, &stage->texts)
-            .HasValue());
+    ASSERT_TRUE(Client::Items::ApplyStatFruit({.result = 3, .points = 2, .stat = 3}, stage->world, stage->cloth.random,
+                                              &stage->texts)
+                    .HasValue());
     EXPECT_EQ(own.levelUpPoints, 2);
 
     stage->world.Runtime().ui.field5767954 = 10;
-    ASSERT_TRUE(Scenes::ApplyStatFruit({.result = 1}, stage->world, stage->cloth.random, &stage->texts).HasValue());
+    ASSERT_TRUE(
+        Client::Items::ApplyStatFruit({.result = 1}, stage->world, stage->cloth.random, &stage->texts).HasValue());
     EXPECT_EQ(stage->world.Runtime().ui.field5767954, 0);
 }
 
@@ -671,10 +677,10 @@ TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
     Client::Kernel::WorldRuntime& runtime = stage->world.Runtime();
     runtime.floor.pendingPickUp = 5;
     runtime.ui.field5767954 = 10;
-    Scenes::ApplyShortPickUpResult(stage->world);
+    Client::Items::ApplyShortPickUpResult(stage->world);
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
     EXPECT_EQ(runtime.ui.field5767954, 10);
-    Scenes::ApplyShortStatFruit(stage->world);
+    Client::Items::ApplyShortStatFruit(stage->world);
     EXPECT_EQ(runtime.ui.field5767954, 0);
 
     for (const std::optional<std::uint8_t> result :
@@ -683,13 +689,13 @@ TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
         runtime.cursorItemCount = 1;
         runtime.cursorItem.occupied = 1;
         runtime.floor.pendingDrop = 22;
-        Scenes::ApplyShortDropResult({.result = result}, stage->world);
+        Client::Items::ApplyShortDropResult({.result = result}, stage->world);
         EXPECT_EQ(runtime.floor.pendingDrop, -1);
         EXPECT_EQ(runtime.cursorItemCount, 1);
         EXPECT_EQ(runtime.cursorItem.occupied, 1u);
     }
     runtime.floor.pendingDrop = 22;
-    Scenes::ApplyShortDropResult({.result = std::uint8_t{1}}, stage->world);
+    Client::Items::ApplyShortDropResult({.result = std::uint8_t{1}}, stage->world);
     EXPECT_EQ(runtime.floor.pendingDrop, -1);
     EXPECT_EQ(runtime.cursorItemCount, 0);
     EXPECT_EQ(runtime.cursorItem.occupied, 0u);
@@ -702,14 +708,14 @@ TEST(FloorItemsSceneTest, TheShortRepliesReleaseOnlyTheirWaits)
 TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
 {
     auto stage = StageIn(0);
-    ASSERT_TRUE(Scenes::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyFloorItemsCreate(ThreeItems(), stage->Resources()).HasValue());
     Client::Kernel::WorldRuntime& runtime = stage->world.Runtime();
     runtime.floor.pendingPickUp = 5;
     runtime.floor.chosen = 5;
     // El de los ítems que cayeron recién.
     runtime.lastSoundId.reset();
     const CrtRandom expected = Advanced(stage->cloth.random, Own);
-    ASSERT_TRUE(Scenes::ApplyShortZenPickUp({.zen = 123456}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyShortZenPickUp({.zen = 123456}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->cloth.random.State(), expected.State());
     EXPECT_EQ(stage->world.OwnCharacter().zen, 123456u);
     ASSERT_EQ(runtime.chat.log.entries.size(), 1u);
@@ -720,7 +726,7 @@ TEST(FloorItemsSceneTest, TheShortZenOfThe22WritesTheZenWithoutTheSound)
     // Con el elegido sin ítem (0x77f4714 en 0), el zen sin el aviso.
     runtime.floor.chosen = 3;
     runtime.floor.pendingPickUp = 5;
-    ASSERT_TRUE(Scenes::ApplyShortZenPickUp({.zen = 1000}, stage->Resources()).HasValue());
+    ASSERT_TRUE(Client::Items::ApplyShortZenPickUp({.zen = 1000}, stage->Resources()).HasValue());
     EXPECT_EQ(stage->world.OwnCharacter().zen, 1000u);
     EXPECT_EQ(runtime.chat.log.entries.size(), 1u);
     EXPECT_EQ(runtime.floor.pendingPickUp, -1);
@@ -743,30 +749,30 @@ class FloorItemNameTest : public ::testing::Test
 protected:
     FloorItemNameTest() : m_stage(StageIn(0)) {}
 
-    Scenes::GameHudContext Context()
+    Client::Hud::GameHudContext Context()
     {
         Stage& stage = *m_stage;
-        return Scenes::GameHudContext{.world = stage.world,
-                                      .random = stage.cloth.random,
-                                      .ownRecordDepth = m_own,
-                                      .cellXDepth = m_cellX,
-                                      .cellYDepth = m_cellY,
-                                      .hud = m_hud,
-                                      .crywolfSandOverlay = m_sand,
-                                      .sound = m_sound,
-                                      .sprites = stage.sprites,
-                                      .text = stage.text,
-                                      .texts = &stage.texts,
-                                      .items = &stage.items,
-                                      .setOptions = &stage.sets.options,
-                                      .setTypes = &stage.sets.types,
-                                      .mouse = {300, 200}};
+        return Client::Hud::GameHudContext{.world = stage.world,
+                                           .random = stage.cloth.random,
+                                           .ownRecordDepth = m_own,
+                                           .cellXDepth = m_cellX,
+                                           .cellYDepth = m_cellY,
+                                           .hud = m_hud,
+                                           .crywolfSandOverlay = m_sand,
+                                           .sound = m_sound,
+                                           .sprites = stage.sprites,
+                                           .text = stage.text,
+                                           .texts = &stage.texts,
+                                           .items = &stage.items,
+                                           .setOptions = &stage.sets.options,
+                                           .setTypes = &stage.sets.types,
+                                           .mouse = {300, 200}};
     }
 
     Expected<void, std::string> Draw(const FloorItemState& item, bool atTheItem = false)
     {
-        Scenes::GameHudContext context = Context();
-        return Scenes::DrawTheFloorItemName(context, item, atTheItem);
+        Client::Hud::GameHudContext context = Context();
+        return Client::Items::DrawTheFloorItemName(context, item, atTheItem);
     }
 
     [[nodiscard]] static FloorItemState Item(std::uint16_t type, std::int32_t value, std::uint8_t excellent = 0)
@@ -888,7 +894,7 @@ TEST_F(FloorItemNameTest, TheBoxesGoWithTheirTexts)
 // (0x5bb30f, Q-C1242).
 TEST_F(FloorItemNameTest, TheTransformationRingNamesItsFirstMonster)
 {
-    Scenes::NpcNameTable& names = m_stage->world.Runtime().npcNames;
+    Client::Monsters::NpcNameTable& names = m_stage->world.Runtime().npcNames;
     names[3].type = 7;
     std::ranges::copy(std::string_view("Gigante A"), names[3].name.begin());
     names[10].type = 7;
@@ -907,7 +913,7 @@ TEST_F(FloorItemNameTest, TheBoxOfLevelThirteenTakesTheModelOfTheNextCase)
 {
     const FloorItemsCreate create{
         .items = {FloorItemEntry{.key = 3, .x = 1, .y = 2, .item = ItemBytes(BoxOfLuck, 13 << 3, 1)}}};
-    const auto created = Scenes::ApplyFloorItemsCreate(create, m_stage->Resources());
+    const auto created = Client::Items::ApplyFloorItemsCreate(create, m_stage->Resources());
     ASSERT_TRUE(created.HasValue()) << created.Error();
     const FloorItemState& box = m_stage->Item(3);
     EXPECT_EQ(box.type, 0x223f);
@@ -925,20 +931,20 @@ TEST_F(FloorItemNameTest, TheHoverNamesThePickedItemAndAltTheOthers)
     std::array<std::int32_t, 5> targets{3, -1, -1, -1, -1};
     std::int32_t latch = 0;
     std::uint8_t names = 0;
-    Scenes::GameHudContext context = Context();
-    Scenes::GameHoverContext hover{.world = m_stage->world,
-                                   .tail = *tail,
-                                   .random = m_stage->cloth.random,
-                                   .targets = targets,
-                                   .hud = m_hud,
-                                   .altLatch = latch,
-                                   .altNames = names,
-                                   .altDown = true,
-                                   .sprites = m_stage->sprites,
-                                   .text = m_stage->text,
-                                   .names = &context};
+    Client::Hud::GameHudContext context = Context();
+    Client::Hud::GameHoverContext hover{.world = m_stage->world,
+                                        .tail = *tail,
+                                        .random = m_stage->cloth.random,
+                                        .targets = targets,
+                                        .hud = m_hud,
+                                        .altLatch = latch,
+                                        .altNames = names,
+                                        .altDown = true,
+                                        .sprites = m_stage->sprites,
+                                        .text = m_stage->text,
+                                        .names = &context};
     const auto before = m_stage->cloth.random.State();
-    ASSERT_TRUE(Scenes::DrawTheHover(hover).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheHover(hover).HasValue());
     EXPECT_EQ(m_stage->cloth.random.State(), before);
     ASSERT_EQ(m_stage->text.texts.size(), 2u);
     EXPECT_EQ(m_stage->text.texts[0].text, "Pocion inventada");

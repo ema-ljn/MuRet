@@ -25,7 +25,7 @@ class ITextDrawer;
 // El dibujo de las ventanas viejas (CL8 hito 7; 06 § HUD y ventanas): 0x490390 (0x637673) dibuja las del
 // administrador de abajo hacia arriba, y 0x637680 la lista de ventanas, siempre, con su vtable + 0x14 (0x492500, el
 // marco). Todo en 640 × 480.
-namespace Client::UI
+namespace Client::Ui
 {
 // Los slots de Interface\ que carga 0x61ccb0: la barra del título (win_titlebar.jpg), el botón (win_button.tga), los
 // botones de la barra (win_size.jpg) y la esquina del tamaño (win_resize.tga).
@@ -68,7 +68,7 @@ struct OldWindowDrawView
     // 0x6c7a88: con 1, el registro del chat en su ventana (ChatModes::placement); los renglones del chat con un amigo
     // (0x460550) y de la carta (0x465770) dejan sin fondo un texto de fondo negro.
     std::int32_t chatPlacement = 0;
-    // La vtable + 0x14 del retrato de las cartas (0x497c10), que da el juego (Scenes::DrawTheLetterPortrait): el
+    // La vtable + 0x14 del retrato de las cartas (0x497c10), que da el juego (Messenger::DrawTheLetterPortrait): el
     // personaje es de Scenes. Vacío, el retrato a la vista corta.
     std::function<Core::Expected<void, std::string>(OldPortraitPart&)> portrait{};
     // 0x45aa50 también ejecuta mensajes funcionales al recolocar: son los servicios del paso de esta pasada.
@@ -92,4 +92,4 @@ DrawTheOldWindows(OldWindowManager& manager, const OldWindowDrawContext& context
 // 0x637680: el marco de la lista de ventanas (0x492500), aunque esté oculta.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawTheWindowList(OldWindowManager& manager, const OldWindowDrawContext& context, const OldWindowDrawView& view);
-} // namespace Client::UI
+} // namespace Client::Ui

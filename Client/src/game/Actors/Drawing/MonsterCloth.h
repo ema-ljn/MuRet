@@ -14,7 +14,7 @@
 // La tela sobre la malla de un monstruo (0x50bae7..0x50bbca, 08 P-C22 f): la clase de la vtable 0x6b8d04
 // (Models::Cloth::BuildOnTheMesh) en objeto + 0x190, entre la pose de 0x5ffdf0 y el cuerpo de 0x6002e0.
 // Contrato: 06 § El dibujo de los monstruos y los NPC, "La tela sobre la malla".
-namespace Client::Scenes
+namespace Client::Actors::Drawing
 {
 // 0x50bb3b..0x50bb84: la malla 2, el hueso 0x12, las banderas 0x400 (la gravedad fuerte, sin viento propio) y dos
 // esferas en el hueso 0x12: (0, 0, 0) de radio 50 y (0, −20, 0) de radio 30.
@@ -53,4 +53,4 @@ private:
     std::optional<Models::Cloth> m_cloth;
     std::optional<Actors::Drawing::SimulatedClothBody> m_simulatedBody;
 };
-} // namespace Client::Scenes
+} // namespace Client::Actors::Drawing

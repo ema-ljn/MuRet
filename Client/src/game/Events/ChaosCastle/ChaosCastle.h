@@ -22,10 +22,18 @@ namespace Client::Kernel
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::Particles
 {
 class Particles;
+} // namespace Client::Particles
+
+namespace Client::WorldObjects
+{
 struct WorldObject;
+} // namespace Client::WorldObjects
+
+namespace Client::Events::ChaosCastle
+{
 
 // Un rectángulo de celdas de 0x405e00, con los bordes incluidos: x0, y0, x1, y1.
 struct ChaosCastleCellRect
@@ -55,7 +63,7 @@ struct ChaosCastleCellContext
     // +0x18 del héroe (0x743a170): la z de la piedra.
     float heroZ = 0.0f;
     Crt::CrtRandom* random = nullptr;
-    Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     std::reference_wrapper<const float> worldClock;
     // 0x7d325c8, el temblor de la cámara.
     float* cameraShake = nullptr;
@@ -91,10 +99,10 @@ StepChaosCastlePrelude(std::int32_t count, const ChaosCastlePreludeContext& cont
 // 0x4055b0 por cada objeto visto, después de 0x604ab0: solo el 3, que suma 1 a la cuenta. Con la trampa armada
 // (0x6c634d, 1 en la .data; solo el paquete de 0x404e20 la vuelve a armar) prende +0x8a, deja +0x60 en 10 y la
 // desarma. Si no, con el selector distinto de 0 lo baja: +0x60 = 10 y +0x8a en 0, o en 1 si llegó a 0.
-void StepChaosCastleSeenObject(WorldObject& object, std::int32_t& selector, std::int32_t& count,
+void StepChaosCastleSeenObject(WorldObjects::WorldObject& object, std::int32_t& selector, std::int32_t& count,
                                std::uint8_t& trapArmed);
 
 // 0x5ffdf0 (0x5ffdff..0x5ffe24): en los mapas 18 a 23, con +0x1a1 del héroe prendido, el alpha del objeto baja
 // 0,15f (0x6b8ae8) con fsub y fstp, antes de compararlo con 0,01; queda guardado en el objeto. Si no, igual.
 [[nodiscard]] float ChaosCastlePoseAlpha(std::int32_t map, std::uint8_t heroByte1a1, float alpha);
-} // namespace Client::World
+} // namespace Client::Events::ChaosCastle

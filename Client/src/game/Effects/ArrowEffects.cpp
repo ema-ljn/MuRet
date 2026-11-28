@@ -54,7 +54,7 @@
 // 0x53e2b0, 0x53d9a0, los casos de flecha de 0x518cf0 y de 0x5208a0, 0x520170, 0x517850 y 0x51fe10, cotejados con
 // el PE c32bbd5f (06, "La flecha"). CL9 hito 4: 0x53e741, 0x53e2e0, los casos 0x13a y 0x105 de 0x518cf0, 0x51c601,
 // 0x52413a, 0x5267dc y 0x5201ed.
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -112,7 +112,7 @@ void AddRotated(glm::vec3& position, const glm::vec3& rotated)
 
 // 0x51a1b6 (y 0x51a4b7 en el 0xe2): abre el registro propio (0x4e79a0, no gasta), copia su +0xf04 a +0x8c (MOVZX) y lo
 // cierra (0x40f370: 3.848 rand() si la cuenta queda en 0).
-void CopyTheOwnCount(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
+void CopyTheOwnCount(Effects::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     const LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     effect.word8c = world.OwnCharacter().bytef04;
@@ -132,7 +132,7 @@ void CountTheVolley(Kernel::WorldState& world, CrtRandom& random)
 // escala 10 y la luz (0,9; 0,4; 0,6) (0x51a01b), los dos con la partida en la posición del dueño (0x51a040); después,
 // cuatro joints 610/0..3 con la clave 30 y el subtipo del alta de noveno argumento, el sonido 7a sin posición y la
 // escala en 1. Cada alta busca el primer hueco, aun con saturación parcial; sin rand().
-Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow, Kernel::WorldState& world,
+Core::Expected<void, std::string> CreateTheArrowTrail(Effects::ModelEffect& arrow, Kernel::WorldState& world,
                                                       CrtRandom& random, std::int32_t subtype)
 {
     constexpr std::int16_t TrailType = 0x105;
@@ -149,11 +149,11 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
                                                  .byte88 = 0,
                                                  .byte1bd = 0,
                                                  .scale = 0.0f};
-    World::ModelEffects& effects = world.Map().effects;
+    Effects::ModelEffects& effects = world.Map().effects;
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
         return {};
-    World::ModelEffect& trail = effects.Effects()[*slot];
+    Effects::ModelEffect& trail = effects.Effects()[*slot];
     trail.life = TrailLife;
     trail.objectState.blendMesh = 0;
     trail.objectState.light = 1.0f;
@@ -173,11 +173,11 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     constexpr std::int32_t TrailJoint = 0x610, JointLife = 30, NoTarget = -1;
     for (std::int32_t joint = 0; joint < 4; ++joint)
     {
-        const auto made =
-            CreateFaunaJoint(world.DrawTail().joints,
-                             {TrailJoint, trail.transform.position, trail.transform.position, trail.transform.angles,
-                              joint, &trail, trail.transform.scale, JointLife, subtype, 0, NoTarget},
-                             random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {TrailJoint, trail.transform.position, trail.transform.position,
+                                                    trail.transform.angles, joint, &trail, trail.transform.scale,
+                                                    JointLife, subtype, 0, NoTarget},
+                                                   random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
     }
@@ -191,7 +191,7 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
 // + 50) · 0,0666…f (0x6ba1e0), la partida en la posición del héroe ([0x743a170]) y, con el 3, la y de la velocidad en
 // −(rand() % 30 + 50) y la x de los ángulos en −(rand() % 20 + 45); con el 4, la velocidad en −(rand() % 15 + 55) y la
 // x en −10. Cada fild más la constante y el fchs en la x87, guardados en float.
-void BeginTheSiegeArrow(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
+void BeginTheSiegeArrow(Effects::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     constexpr std::int32_t SiegeArrowLife = 40;
     constexpr float SiegeArrowScale = 1.5f; // 0x3fc00000
@@ -217,7 +217,7 @@ void BeginTheSiegeArrow(World::ModelEffect& effect, Kernel::WorldState& world, C
 }
 
 // 0x51c43b..0x51c722: el alta común de las flechas 0xdb..0xe1, 0xe3, 0xf9 y 0x11c.
-Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+Core::Expected<void, std::string> BeginTheArrow(Effects::ModelEffect& effect, Kernel::WorldState& world,
                                                 CrtRandom& random)
 {
     const std::int16_t type = effect.type;
@@ -258,11 +258,11 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
         // 0x51c542..0x51c56c: 0x530860(0x610, posición, posición, ángulos, 0xe, flecha, 50, 40, 0, 0, −1).
         constexpr std::int32_t ViperTrailSubtype = 0xe, ViperTrailKey = 0x28;
         constexpr float ViperTrailWidth = 50.0f; // 0x42480000
-        const auto made =
-            CreateFaunaJoint(world.DrawTail().joints,
-                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
-                              ViperTrailSubtype, &effect, ViperTrailWidth, ViperTrailKey, 0, 0, -1},
-                             random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {0x610, effect.transform.position, effect.transform.position,
+                                                    effect.transform.angles, ViperTrailSubtype, &effect,
+                                                    ViperTrailWidth, ViperTrailKey, 0, 0, -1},
+                                                   random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c56c: {}", made.Error()));
     }
@@ -283,10 +283,10 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
     }
     if (type == NatureArrow && effect.subtype == 1)
     {
-        const auto made = CreateFaunaJoint(world.DrawTail().joints,
-                                           {0x610, effect.transform.position, effect.transform.position,
-                                            effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
-                                           random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {0x610, effect.transform.position, effect.transform.position,
+                                                    effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
+                                                   random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -305,11 +305,11 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
         // 0x51c6ef..0x51c713: 0x530860(0x610, posición, posición, ángulos, 0xc, flecha, 40, 80, 0, 0, −1).
         constexpr std::int32_t TwentiethTrailSubtype = 0xc, TwentiethTrailKey = 0x50;
         constexpr float TwentiethTrailWidth = 40.0f; // 0x42200000
-        const auto made =
-            CreateFaunaJoint(world.DrawTail().joints,
-                             {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
-                              TwentiethTrailSubtype, &effect, TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
-                             random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {0x610, effect.transform.position, effect.transform.position,
+                                                    effect.transform.angles, TwentiethTrailSubtype, &effect,
+                                                    TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
+                                                   random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
     }
@@ -318,7 +318,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
 }
 
 // 0x51a41e..0x51a4ed: el alta de la flecha 0xe2.
-void BeginTheAquagoldArrow(World::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
+void BeginTheAquagoldArrow(Effects::ModelEffect& effect, Kernel::WorldState& world, CrtRandom& random)
 {
     constexpr std::int32_t FirstLife = 30;
     constexpr std::int32_t AquagoldLife = 40;
@@ -342,7 +342,7 @@ void BeginTheAquagoldArrow(World::ModelEffect& effect, Kernel::WorldState& world
 }
 
 // 51a2bd..51a417: el punto de partida usa los ángulos originales; después escribe los del caller, no los del efecto.
-Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+Core::Expected<void, std::string> BeginCelestialArrow(Effects::ModelEffect& effect, Kernel::WorldState& world,
                                                       CrtRandom& random, glm::vec3* callerAngles)
 {
     constexpr glm::vec3 Muzzle{-10.0f, -100.0f, 15.0f};
@@ -362,10 +362,10 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
     const int joints = celestial ? 3 : 4;
     for (int joint = 0; joint < joints; ++joint)
     {
-        const auto made = CreateFaunaJoint(world.DrawTail().joints,
-                                           {ArrowJoint, effect.start, effect.start, angles, jointSubtype, &effect,
-                                            ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
-                                           random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
+                                                   {ArrowJoint, effect.start, effect.start, angles, jointSubtype,
+                                                    &effect, ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
+                                                   random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", celestial ? 0x51a3b7u : 0x51a405u, made.Error()));
     }
@@ -374,7 +374,7 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
 }
 
 // 51a10f/51a1e6/51a2bd/51be81: prefijos y colas que el allocator de joints lleno también alcanza.
-Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect, Kernel::WorldState& world,
+Core::Expected<void, std::string> BeginAdvancedArrow(Effects::ModelEffect& effect, Kernel::WorldState& world,
                                                      CrtRandom& random, glm::vec3* callerAngles)
 {
     if (effect.type == ReignArrow && effect.subtype != 0 && effect.subtype != 2)
@@ -406,7 +406,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
         const auto address = effect.type == SaintArrow ? 0x51a24au : effect.type == ReignArrow ? 0x51bf35u : 0x51a173u;
         constexpr std::int32_t ArrowBeamSubtype = 5;
         constexpr float ArrowBeamWidth = 100.0f; // 0x42c80000
-        const Kernel::JointRequest request{.type = JointFamilies::BeamJoint,
+        const Kernel::JointRequest request{.type = Joints::JointFamilies::BeamJoint,
                                            .firstPosition = effect.transform.position,
                                            .secondPosition = effect.transform.position,
                                            .angles = effect.transform.angles,
@@ -417,7 +417,8 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto made = CreateFaunaJoint(world.DrawTail().joints, request, random, Kernel::JointOwnerKind::ModelEffect);
+        if (auto made =
+                Joints::CreateFaunaJoint(world.DrawTail().joints, request, random, Kernel::JointOwnerKind::ModelEffect);
             !made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     }
@@ -474,11 +475,11 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
                                                  .byte88 = flag,
                                                  .byte1bd = 0,
                                                  .scale = 0.0f};
-    World::ModelEffects& effects = context.world.Map().effects;
+    Effects::ModelEffects& effects = context.world.Map().effects;
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
         return {};
-    World::ModelEffect& blast = effects.Effects()[*slot];
+    Effects::ModelEffect& blast = effects.Effects()[*slot];
     blast.speed = 1.0f;
     blast.life = BlastLife;
     blast.transform.scale = std::bit_cast<float>(0x3fe66666u);
@@ -492,7 +493,7 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
     // (JointFamilies::StormJoint, alta 0x534977, sin rand()); con los joints llenos, nada.
     constexpr std::int32_t BlastJointSubtype = 4, BlastJointKey = 0x32, NoTarget = -1;
     constexpr float BlastJointWidth = 40.0f; // 0x42200000
-    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+    const Kernel::JointRequest request{.type = Joints::JointFamilies::StormJoint,
                                        .firstPosition = blast.transform.position,
                                        .secondPosition = blast.transform.position,
                                        .angles = blast.transform.angles,
@@ -503,8 +504,8 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = NoTarget};
-    if (auto made = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
-                                     Kernel::JointOwnerKind::ModelEffect);
+    if (auto made = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
+                                             Kernel::JointOwnerKind::ModelEffect);
         !made.HasValue())
         return Core::Unexpected(std::format("0x51e01a: {}", made.Error()));
     // 0x51e01f..0x51e04d: la cuenta de la tanda en +0x8c.
@@ -537,14 +538,14 @@ Core::Expected<void, std::string> CreateTheReignHandShine(Kernel::ActorState& ac
         {
             const Kernel::JointRequest request{ShineJoint, point, point, angles, ShineSubtype, nullptr, 10.0f,
                                                -1,         0,     0,     -1};
-            const auto joint = CreateFaunaJoint(context.joints, request, context.random);
+            const auto joint = Joints::CreateFaunaJoint(context.joints, request, context.random);
             if (!joint.HasValue())
                 return Core::Unexpected(std::format("0x53e6a8: {}", joint.Error()));
         }
         if (context.particles == nullptr)
             return Core::Unexpected(std::string("0x53e73a: falta el pool de partículas del brillo de la mano"));
         const auto particle = context.particles->CreateChecked(
-            World::FairySparkParticle, point, angles, glm::vec3(1.0f), 0, 1.0f, context.worldClock, context.random);
+            Particles::FairySparkParticle, point, angles, glm::vec3(1.0f), 0, 1.0f, context.worldClock, context.random);
         if (!particle.HasValue())
             return Core::Unexpected(std::format("0x53e73a: la partícula 0x5c5/0 falla con error {}",
                                                 static_cast<unsigned>(particle.Error())));
@@ -625,7 +626,7 @@ Core::Expected<void, std::string> ShootTheArrows(Kernel::ActorState& actor, Kern
 // 0x517850(efecto, radio, _, clase): el primero de los 400 vivos, que no sea de la clase (+0x88; 0 no excluye), ni el
 // dueño (+0x108), que se vea (+0x16c), que no sea el héroe salvo con la clase 2 y que no se esté muriendo (+0x389), a
 // `radius` o menos en el plano (la raíz en la x87 con PC53, guardada en float; NaN choca).
-bool HitsSomeone(const World::ModelEffect& effect, Kernel::WorldState& world, const Kernel::ActorState& hero,
+bool HitsSomeone(const Effects::ModelEffect& effect, Kernel::WorldState& world, const Kernel::ActorState& hero,
                  float radius, std::uint8_t kind)
 {
     constexpr std::uint8_t HeroKind = 2;
@@ -664,7 +665,7 @@ Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const Arrow
         return Core::Unexpected(std::string("0x51fe9e: falta el pool de partículas de 0x51fe10"));
     }
     const auto created =
-        World::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
+        Particles::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x51fe9e: el estallido de 0x51fe10 falla con error {}",
                                             static_cast<unsigned>(created.Error())));
@@ -676,8 +677,8 @@ Core::Expected<void, std::string> BurstAt(const glm::vec3& position, const Arrow
 // 0x5201ed..0x5205ad: el choque de la flecha con +0x88 (la bandera 1 de 0x53e2e0 o el 1 de la skill 0x34) y sin el
 // subtipo 0x63.
 // 0x52055f y0x52083f: el dueño durable es la flecha física, no el personaje que la disparó.
-Core::Expected<void, std::string> CreatePiercingImpactJoint(World::ModelEffect& effect, const ArrowStepContext& context,
-                                                            std::string_view address)
+Core::Expected<void, std::string> CreatePiercingImpactJoint(Effects::ModelEffect& effect,
+                                                            const ArrowStepContext& context, std::string_view address)
 {
     constexpr std::int32_t FlareJoint = 0x60f, ImpactSubtype = 6;
     constexpr float Width = 30.0f;
@@ -692,14 +693,14 @@ Core::Expected<void, std::string> CreatePiercingImpactJoint(World::ModelEffect& 
                                        0,
                                        0,
                                        -1};
-    const auto created =
-        CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, Kernel::JointOwnerKind::ModelEffect);
+    const auto created = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
+                                                  Kernel::JointOwnerKind::ModelEffect);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, created.Error()));
     return {};
 }
 
-Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+Core::Expected<void, std::string> HitWithTheMarkedArrow(Effects::ModelEffect& effect, const ArrowStepContext& context)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -740,14 +741,14 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
     }
     // 0x520474..0x5204a1: 0x517a20(+0x89, la posición, 100, el byte +0x8c, +0x8a, 0); sin blancos, nada.
     constexpr float HitRadius = 100.0f; // 0x42c80000
-    const SkillHitsRequest request{.skillIndex = effect.byte89,
-                                   .point = effect.transform.position,
-                                   .radius = HitRadius,
-                                   .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
-                                   .key = effect.disturbanceState,
-                                   .extra = 0};
-    const auto hit =
-        HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain), context.random, context.send);
+    const Skills::SkillHitsRequest request{.skillIndex = effect.byte89,
+                                           .point = effect.transform.position,
+                                           .radius = HitRadius,
+                                           .volley = static_cast<std::uint8_t>(effect.word8c & 0xff),
+                                           .key = effect.disturbanceState,
+                                           .extra = 0};
+    const auto hit = Skills::HitTheTargetsAround(request, world, Terrain::TerrainOrEmpty(context.terrain),
+                                                 context.random, context.send);
     if (!hit.HasValue())
         return Core::Unexpected(hit.Error());
     if (!hit.Value())
@@ -786,7 +787,7 @@ Core::Expected<void, std::string> HitWithTheMarkedArrow(World::ModelEffect& effe
 }
 
 // 0x520170(efecto): el choque de la flecha.
-Core::Expected<void, std::string> HitWithTheArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+Core::Expected<void, std::string> HitWithTheArrow(Effects::ModelEffect& effect, const ArrowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x520179..0x5201d2: con el asedio (0x4294b0), el bit 0x100 de la celda (0x5f82c0) la frena y le deja media vida.
@@ -863,7 +864,7 @@ Core::Expected<float, std::string> SpriteTurn(float worldClock, bool negated, st
 
 // Los dos sprites que las flechas 0xe1, 0xe2 y 0xe3 sueltan en su lugar (0x5491e0(textura, posición, escala, luz,
 // efecto, ±ftol(reloj) · 0,1f, 0)).
-Core::Expected<void, std::string> TwoSprites(const World::ModelEffect& effect, std::uint16_t texture,
+Core::Expected<void, std::string> TwoSprites(const Effects::ModelEffect& effect, std::uint16_t texture,
                                              const glm::vec3& light, float firstScale, float secondScale,
                                              const ArrowStepContext& context, std::string_view address)
 {
@@ -897,13 +898,13 @@ glm::vec3 ScatteredPoint(const glm::vec3& position, CrtRandom& random, std::arra
 }
 
 // 0x5f9780(x, y, (luz · 0,6f; luz · 0,8f; luz · 0,8f), 2, 0x7b4ccc4), la de las flechas 0xe1, 0xe2 y 0xe3.
-Core::Expected<void, std::string> GreenLight(const World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> GreenLight(const Effects::ModelEffect& effect, float luminosity,
                                              const ArrowStepContext& context, std::string_view address)
 {
     const double six = static_cast<double>(std::bit_cast<float>(0x3f19999au));
     const double eight = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
     const glm::vec3 color{F32(D(luminosity) * six), F32(D(luminosity) * eight), F32(D(luminosity) * eight)};
-    return World::AddDynamicLight(context.lighting, effect.transform.position, color, 2, address);
+    return WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, address);
 }
 
 // 0x52413a..0x5241f1: la flecha 0xdb con el subtipo 3 o 4. Con el 3, +0xe4 se suma a la x de los ángulos; la x queda en
@@ -911,7 +912,7 @@ Core::Expected<void, std::string> GreenLight(const World::ModelEffect& effect, f
 // tiene el 0x08 en el byte bajo de su atributo (0x7d0d348), con el terreno (0x5f93c0) más alto que la z, la z queda en
 // la altura + 10 (0x6b87a8) y la velocidad en 0. Después, 0x53fe70(0x5d9, posición, ángulos, `color`, 5, 1,0f, 0), sin
 // el choque.
-Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, const glm::vec3& color,
+Core::Expected<void, std::string> StepTheSiegeArrow(Effects::ModelEffect& effect, const glm::vec3& color,
                                                     const ArrowStepContext& context)
 {
     if (effect.subtype == 3)
@@ -953,8 +954,8 @@ Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, 
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x5241e9: falta el pool de partículas del fuego 0x5d9 de la flecha"));
     const auto created =
-        context.particles->CreateChecked(World::FireParticle, effect.transform.position, effect.transform.angles, color,
-                                         SiegeFireSubtype, 1.0f, context.worldClock, context.random);
+        context.particles->CreateChecked(Particles::FireParticle, effect.transform.position, effect.transform.angles,
+                                         color, SiegeFireSubtype, 1.0f, context.worldClock, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x5241e9: el fuego 0x5d9/5 de la flecha 0xdb del asedio falla con error "
                                             "{}, sin portar (CL11)",
@@ -963,14 +964,14 @@ Core::Expected<void, std::string> StepTheSiegeArrow(World::ModelEffect& effect, 
 }
 
 // 0x52406c..0x52410b: la flecha 0xdb.
-Core::Expected<void, std::string> StepBowArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepBowArrow(Effects::ModelEffect& effect, float luminosity,
                                                const ArrowStepContext& context)
 {
     const double eight = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
     const double half = 0.5;
     const double fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
     const glm::vec3 color{F32(D(luminosity) * eight), F32(D(luminosity) * half), F32(D(luminosity) * fifth)};
-    if (auto lit = World::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x5240a5");
+    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x5240a5");
         !lit.HasValue())
         return lit;
     // 0x5240aa..0x5240bc: los subtipos 3 y 4 (los del asedio) no chocan.
@@ -990,8 +991,8 @@ Core::Expected<void, std::string> StepBowArrow(World::ModelEffect& effect, float
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x524127: falta el pool de partículas del fuego 0x5d9 de la flecha"));
     const auto created =
-        context.particles->CreateChecked(World::FireParticle, effect.transform.position, effect.transform.angles, fire,
-                                         0, 1.0f, context.worldClock, context.random);
+        context.particles->CreateChecked(Particles::FireParticle, effect.transform.position, effect.transform.angles,
+                                         fire, 0, 1.0f, context.worldClock, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x524127: el fuego 0x5d9/0 de la flecha falla con error {}",
                                             static_cast<unsigned>(created.Error())));
@@ -1002,7 +1003,7 @@ Core::Expected<void, std::string> StepBowArrow(World::ModelEffect& effect, float
 // 0,1f) y las escalas 0,3f y 0,7f, la luz dinámica (luz · 0,2f; luz · 0,8f; luz · 0,2f), la y de los ángulos 60 más
 // (0x6b86cc) y, con más de 25 de vida y par, dos veces el punto ((& 31) − 16; (& 63) − 32; (& 31) − 16) y
 // 0x53fe70(0x60f, punto, ángulos, (0,4f;1;0,2f),5,0,2f,0). Después, choque ycola comunes.
-Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTheFortressArrow(Effects::ModelEffect& effect, float luminosity,
                                                        const ArrowStepContext& context)
 {
     constexpr std::uint16_t Glow = 0x5d5;
@@ -1015,7 +1016,7 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
     const double fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854
     const double eight = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38
     const glm::vec3 color{F32(D(luminosity) * fifth), F32(D(luminosity) * eight), F32(D(luminosity) * fifth)};
-    if (auto lit = World::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x52688a");
+    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x52688a");
         !lit.HasValue())
         return lit;
     constexpr double Turn = 60.0; // 0x6b86cc
@@ -1029,7 +1030,7 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
             const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
             if (context.particles == nullptr)
                 return Core::Unexpected(std::string("0x526961: falta el pool60f/5 del misilE1/1"));
-            World::PortableParticleTrigonometry trigonometry;
+            Particles::PortableParticleTrigonometry trigonometry;
             const auto created =
                 context.particles->CreateChecked(0x60f, point, effect.transform.angles, {.4f, 1, .2f}, 5, .2f,
                                                  std::cref(context.worldClock), context.random, 0, trigonometry);
@@ -1041,7 +1042,7 @@ Core::Expected<void, std::string> StepTheFortressArrow(World::ModelEffect& effec
 }
 
 // 0x52697e..0x526aea: la flecha 0xe1 (salvo el subtipo 1, 0x5267dc).
-Core::Expected<void, std::string> StepNatureArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepNatureArrow(Effects::ModelEffect& effect, float luminosity,
                                                   const ArrowStepContext& context)
 {
     constexpr std::uint16_t Glow = 0x5d5;
@@ -1073,7 +1074,7 @@ Core::Expected<void, std::string> StepNatureArrow(World::ModelEffect& effect, fl
 }
 
 // 0x526c61..0x526dc8: la flecha 0xe3.
-Core::Expected<void, std::string> StepBluewingArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepBluewingArrow(Effects::ModelEffect& effect, float luminosity,
                                                     const ArrowStepContext& context)
 {
     constexpr std::uint16_t Glow = 0x5d5;
@@ -1088,15 +1089,15 @@ Core::Expected<void, std::string> StepBluewingArrow(World::ModelEffect& effect, 
     {
         const glm::vec3 point = ScatteredPoint(effect.transform.position, context.random, {15, 15, 15}, {8, 8, 8});
         const auto created =
-            context.particles->CreateChecked(World::DropParticle, point, effect.transform.angles, effect.light, 1, 1.0f,
-                                             context.worldClock, context.random);
+            context.particles->CreateChecked(Particles::DropParticle, point, effect.transform.angles, effect.light, 1,
+                                             1.0f, context.worldClock, context.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x526d5f: la 0x607/1 de la flecha 0xe3 falla con error {} (CL11)",
                                                 static_cast<unsigned>(created.Error())));
     }
     // 0x526d74..0x526d88: 0x53fe70(0x5f2, posición, ángulos, +0xf4, 0, 1,0f, 0).
     const auto smoke =
-        context.particles->CreateChecked(World::BreathParticle, effect.transform.position, effect.transform.angles,
+        context.particles->CreateChecked(Particles::BreathParticle, effect.transform.position, effect.transform.angles,
                                          effect.light, 0, 1.0f, context.worldClock, context.random);
     if (!smoke.HasValue())
         return Core::Unexpected(std::format("0x526d88: la 0x5f2/0 de la flecha 0xe3 falla con error {}",
@@ -1107,7 +1108,7 @@ Core::Expected<void, std::string> StepBluewingArrow(World::ModelEffect& effect, 
 }
 
 // 0x524237..0x52443f: la flecha 0xe2.
-Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepAquagoldArrow(Effects::ModelEffect& effect, float luminosity,
                                                     const ArrowStepContext& context)
 {
     constexpr std::uint16_t Glow = 0x5ac;
@@ -1121,8 +1122,8 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
     {
         const glm::vec3 point = ScatteredPoint(effect.transform.position, context.random, {15, 15, 15}, {8, 8, 8});
         const auto created =
-            context.particles->CreateChecked(World::DropParticle, point, effect.transform.angles, effect.light, 1, 1.0f,
-                                             context.worldClock, context.random);
+            context.particles->CreateChecked(Particles::DropParticle, point, effect.transform.angles, effect.light, 1,
+                                             1.0f, context.worldClock, context.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x52434e: la 0x607/1 de la flecha 0xe2 falla con error {} (CL11)",
                                                 static_cast<unsigned>(created.Error())));
@@ -1158,14 +1159,14 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
         constexpr std::int32_t MarkedSubtype = 0x63;
         if (effect.ownerContext == &context.world.Hero() && effect.subtype != MarkedSubtype)
         {
-            const SkillHitsRequest hits{.skillIndex = effect.byte89,
-                                        .point = position,
-                                        .radius = 100.0f,
-                                        .volley = static_cast<std::uint8_t>(effect.word8c),
-                                        .key = static_cast<std::uint16_t>(effect.disturbanceState),
-                                        .extra = 0};
-            if (auto hit = HitTheTargetsAround(hits, context.world, Terrain::TerrainOrEmpty(context.terrain),
-                                               context.random, context.send);
+            const Skills::SkillHitsRequest hits{.skillIndex = effect.byte89,
+                                                .point = position,
+                                                .radius = 100.0f,
+                                                .volley = static_cast<std::uint8_t>(effect.word8c),
+                                                .key = static_cast<std::uint16_t>(effect.disturbanceState),
+                                                .extra = 0};
+            if (auto hit = Skills::HitTheTargetsAround(hits, context.world, Terrain::TerrainOrEmpty(context.terrain),
+                                                       context.random, context.send);
                 !hit.HasValue())
                 return Core::Unexpected(hit.Error());
         }
@@ -1177,7 +1178,7 @@ Core::Expected<void, std::string> StepAquagoldArrow(World::ModelEffect& effect, 
 }
 
 // 0x526aef..0x526c51: la flecha 0x11c.
-Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTwentiethArrow(Effects::ModelEffect& effect, float luminosity,
                                                      const ArrowStepContext& context)
 {
     constexpr double Turn = 60.0; // 0x6b86cc
@@ -1195,9 +1196,9 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
         for (int index = 0; index < SparkCount; ++index)
         {
             const auto point = ScatteredPoint(effect.transform.position, context.random, {31, 63, 31}, {16, 32, 16});
-            World::PortableParticleTrigonometry trigonometry;
+            Particles::PortableParticleTrigonometry trigonometry;
             const auto created = context.particles->CreateChecked(
-                World::OrbitParticle, point, effect.transform.angles, Violet, ShineSubtype, ShineScale,
+                Particles::OrbitParticle, point, effect.transform.angles, Violet, ShineSubtype, ShineScale,
                 std::cref(context.worldClock), context.random, 0, trigonometry);
             if (!created.HasValue())
                 return Core::Unexpected(std::format("0x526bc2: la 0x60f/5 de la flecha 0x11c falla con el error {}",
@@ -1218,7 +1219,7 @@ Core::Expected<void, std::string> StepTwentiethArrow(World::ModelEffect& effect,
     glm::vec3 color{};
     for (int axis = 0; axis < 3; ++axis)
         color[axis] = F32(D(luminosity) * D(Tint[axis]));
-    if (auto lit = World::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x526c44");
+    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x526c44");
         !lit.HasValue())
         return lit;
     return HitWithTheArrow(effect, context);
@@ -1231,11 +1232,11 @@ Core::Expected<void, std::string> ArrowLightAt(const glm::vec3& position, float 
     for (int axis = 0; axis < 3; ++axis)
         color[axis] = F32(D(luminosity) * D(tint[axis]));
     constexpr int Radius = 2;
-    return World::AddDynamicLight(context.lighting, position, color, Radius, address);
+    return WorldObjects::AddDynamicLight(context.lighting, position, color, Radius, address);
 }
 
 // 523f33..524067: la /1 hace Hit; las otras iluminan start y salen sin choque.
-Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepCelestialArrow(Effects::ModelEffect& effect, float luminosity,
                                                      const ArrowStepContext& context)
 {
     constexpr glm::vec3 Pink{0.9f, 0.4f, 0.6f}, Blue{0.2f, 0.4f, 1.0f};
@@ -1271,7 +1272,7 @@ Core::Expected<void, std::string> StepCelestialArrow(World::ModelEffect& effect,
 
 // 52593c..525a5f: el giro y +30, tres humos 0x5f2/13 en la posición de la flecha con sus ángulos, la luz 1 de
 // 0x520921 y escala 1 (0x525972, 0x52598b, 0x5259a4; tres rand() cada uno) y el estallido terminal.
-Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepReignArrow(Effects::ModelEffect& effect, float luminosity,
                                                  const ArrowStepContext& context)
 {
     if (effect.subtype != 0 && effect.subtype != 2)
@@ -1282,8 +1283,8 @@ Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, flo
     for (const std::string_view call : {"0x525972", "0x52598b", "0x5259a4"})
     {
         const auto created = context.particles->CreateChecked(
-            World::BreathParticle, effect.transform.position, effect.transform.angles, glm::vec3(1.0f),
-            World::EmberSmokeSubtype, 1.0f, context.worldClock, context.random);
+            Particles::BreathParticle, effect.transform.position, effect.transform.angles, glm::vec3(1.0f),
+            Particles::EmberSmokeSubtype, 1.0f, context.worldClock, context.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{}: el humo 0x5f2/13 de la flecha 0x111 falla con el error {}", call,
                                                 static_cast<unsigned>(created.Error())));
@@ -1302,7 +1303,7 @@ Core::Expected<void, std::string> StepReignArrow(World::ModelEffect& effect, flo
     return HitWithTheArrow(effect, context);
 }
 
-Core::Expected<void, std::string> StepAdvancedArrow(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepAdvancedArrow(Effects::ModelEffect& effect, float luminosity,
                                                     const ArrowStepContext& context)
 {
     if (effect.type == CelestialArrow)
@@ -1340,7 +1341,7 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
 {
     constexpr int Groups = 8;
     constexpr int YawStep = 45;
-    constexpr std::array Subtypes{World::RisingStoneChipSubtype, std::int32_t{0}};
+    constexpr std::array Subtypes{Effects::RisingStoneChipSubtype, std::int32_t{0}};
     constexpr glm::vec3 Offset{0.0f, -220.0f, 0.0f};
     auto& effects = context.world.Map().effects;
     for (int group = 0; group < Groups; ++group)
@@ -1355,7 +1356,7 @@ Core::Expected<void, std::string> ScatterCombatBurstAt(const glm::vec3& position
         // 0x520119 y 0x520152: cada selector precede a su intento, incluso con el pool lleno.
         for (const auto subtype : Subtypes)
         {
-            const auto type = static_cast<std::int16_t>(World::FirstStoneChipEffect + (context.random.Next() & 1));
+            const auto type = static_cast<std::int16_t>(Effects::FirstStoneChipEffect + (context.random.Next() & 1));
             static_cast<void>(effects.CreateStoneChip(type, point, angles, glm::vec3(1.0f), context.random, subtype));
         }
     }
@@ -1380,7 +1381,7 @@ Core::Expected<void, std::string> CreateAquagoldArrow(Kernel::ActorState& owner,
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return {};
-    World::ModelEffect& effect = context.world.Map().effects.Effects()[*slot];
+    Effects::ModelEffect& effect = context.world.Map().effects.Effects()[*slot];
     BeginTheAquagoldArrow(effect, context.world, context.random);
     return {};
 }
@@ -1395,7 +1396,7 @@ Core::Expected<void, std::string> CreateCombatBurstAt(const glm::vec3& position,
         return Core::Unexpected(std::string("0x51fe9e: falta el pool de partículas de 0x51fe10"));
     }
     const auto created =
-        World::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
+        Particles::CreateParticleBurst(*context.particles, position, context.random, true, context.worldClock);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x51fe9e: el estallido de 0x51fe10 falla con error {}",
                                             static_cast<unsigned>(created.Error())));
@@ -1423,11 +1424,11 @@ Core::Expected<void, std::string> CreateTheArrowEffect(const Kernel::ModelEffect
         return Core::Unexpected(
             std::format("0x518cf0: el efecto {:#x} no es una flecha (su caso no está acá)", arguments.type));
     }
-    World::ModelEffects& effects = world.Map().effects;
+    Effects::ModelEffects& effects = world.Map().effects;
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
         return {};
-    World::ModelEffect& effect = effects.Effects()[*slot];
+    Effects::ModelEffect& effect = effects.Effects()[*slot];
     switch (arguments.type)
     {
     case AquagoldArrow:
@@ -1517,7 +1518,7 @@ Core::Expected<void, std::string> FireTheArrow(Kernel::ActorState& actor, Kernel
     return {};
 }
 
-Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Models::Skeleton* skeleton,
+Core::Expected<void, std::string> StepArrow(Effects::ModelEffect& effect, const Models::Skeleton* skeleton,
                                             const ArrowStepContext& context)
 {
     if (!effect.alive)
@@ -1525,14 +1526,15 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Mo
     if (!IsArrowEffect(effect.type))
         return Core::Unexpected(std::format("0x5208a0: el efecto {:#x} no es una flecha", effect.type));
     // 0x5208c5: el primer rand() de todo efecto vivo, la luz local.
-    const float luminosity = World::StepLuminosity(context.random.Next(), effect.life);
+    const float luminosity = Effects::StepLuminosity(context.random.Next(), effect.life);
     Core::Expected<void, std::string> stepped;
     switch (effect.type)
     {
     case TourArrow:
         // 0x524210 → 0x52c4e9: luz roja y cola común; no pasa por el choque de las flechas.
         effect.light = {1.0f, 0.0f, 0.0f};
-        stepped = World::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
+        stepped =
+            WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
         break;
     case BowArrow:
         stepped = StepBowArrow(effect, luminosity, context);
@@ -1578,7 +1580,7 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Mo
     const bool alive = effect.alive;
     effect.alive = true;
     const glm::vec3 position = effect.transform.position;
-    World::StepModelEffect(effect, skeleton);
+    Effects::StepModelEffect(effect, skeleton);
     if (effect.type == CelestialArrow)
     {
         // 0x52ccbe..0x52cd3f: la 0xf8 no se mueve; la velocidad girada por sus ángulos corre la partida (+0x17c).
@@ -1592,8 +1594,8 @@ Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Mo
     return {};
 }
 
-Core::Expected<void, std::string> HitTheArrow(World::ModelEffect& effect, const ArrowStepContext& context)
+Core::Expected<void, std::string> HitTheArrow(Effects::ModelEffect& effect, const ArrowStepContext& context)
 {
     return HitWithTheArrow(effect, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

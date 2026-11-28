@@ -3,7 +3,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::GameLogic
+namespace Client::Actors
 {
 namespace
 {
@@ -88,4 +88,4 @@ float UpdateMovementSpeed(std::uint8_t& run, MovementSpeedSharedState& shared, c
     }
     return (input.flags & HalfSpeedFlag) != 0 ? speed * HalfSpeedFactor : speed;
 }
-} // namespace Client::GameLogic
+} // namespace Client::Actors

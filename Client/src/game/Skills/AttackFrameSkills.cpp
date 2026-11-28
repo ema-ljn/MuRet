@@ -47,7 +47,7 @@
 
 // 0x4f9899..0x4fb0e6, los casos de 0x4f97b0, cotejados con el PE c32bbd5f: 06, "Las habilidades de los frames del
 // ataque".
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -55,7 +55,7 @@ namespace
 Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArguments& arguments,
                                                    const Actors::CharacterStepContext& context, std::uint32_t address)
 {
-    if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
+    if (auto made = Effects::CreateHighModelEffect(arguments, Effects::HighContextOf(context)); !made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     return {};
 }
@@ -206,7 +206,8 @@ Core::Expected<void, std::string> StepTheSkill2b(Kernel::ActorState& actor, std:
                                                .skill = 0,
                                                .skillSerial = 0,
                                                .target = -1};
-            if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
+            if (auto created =
+                    Joints::CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
                 !created.HasValue())
                 return Core::Unexpected(std::format("0x4f99fe: {}", created.Error()));
         }
@@ -314,13 +315,13 @@ Core::Expected<void, std::string> StepTheSkill2c(Kernel::ActorState& actor, std:
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
+        if (auto created = Joints::CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("0x4fa964: {}", created.Error()));
         if (context.particles == nullptr)
             return CutAt(0x4fa980, "falta el pool de partículas de las 0x5d9/2", skill, actor, slot);
         const auto flame =
-            context.particles->CreateChecked(World::FireParticle, point, angles, actor.light, FlameSubtype, FlameScale,
-                                             context.worldClock, context.random);
+            context.particles->CreateChecked(Particles::FireParticle, point, angles, actor.light, FlameSubtype,
+                                             FlameScale, context.worldClock, context.random);
         if (!flame.HasValue())
         {
             return Core::Unexpected(std::format("0x4fa980: la 0x5d9/2 del lugar {} falla con error {}", slot,
@@ -428,7 +429,7 @@ Core::Expected<void, std::string> StepTheSkill2f(Kernel::ActorState& actor, std:
                                                      .light = RockLight,
                                                      .subtype = subtype,
                                                      .owner = &actor};
-        if (auto made = CreateBlastEffect(arguments, &actor, context); !made.HasValue())
+        if (auto made = Combat::CreateBlastEffect(arguments, &actor, context); !made.HasValue())
             return Core::Unexpected(made.Error());
     }
     return {};
@@ -452,7 +453,7 @@ Core::Expected<void, std::string> StepTheSkill34(Kernel::ActorState& actor, std:
     constexpr std::uint8_t GlowStep = 3;
     if (actor.byte381 == GlowStep)
     {
-        static_cast<void>(context.world.Map().effects.CreatePiercingShot({.type = World::PiercingShotGlowEffect,
+        static_cast<void>(context.world.Map().effects.CreatePiercingShot({.type = Effects::PiercingShotGlowEffect,
                                                                           .position = actor.position,
                                                                           .angles = actor.angles,
                                                                           .light = actor.light,
@@ -484,7 +485,7 @@ Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std:
     if (actor.byte381 >= 1 && actor.byte381 <= LastGlowStep)
     {
         constexpr std::int32_t HeldGlowSubtype = 1;
-        if (auto made = CreateHighEffect({.type = World::PiercingShotGlowEffect,
+        if (auto made = CreateHighEffect({.type = Effects::PiercingShotGlowEffect,
                                           .position = actor.position,
                                           .angles = actor.angles,
                                           .light = actor.light,
@@ -501,7 +502,7 @@ Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std:
         return {};
     }
     // 0x4f9f5d..0x4f9f6f: o+0x8a = 0x558eb0(c, [0x6c8e30]).
-    const auto key = ChosenKeyOf(context.world, slot, context.controlDown);
+    const auto key = Hero::ChosenKeyOf(context.world, slot, context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     actor.word8a = static_cast<std::int16_t>(key.Value());
@@ -515,7 +516,7 @@ Core::Expected<void, std::string> StepTheSkill37(Kernel::ActorState& actor, std:
     // Detrás (0x4f9fb3..0x4fa47e): el registro propio abierto y cerrado en línea para fijar la velocidad de la acción
     // 0x3d de Player.bmd (+0x3d4 de las acciones de +0x30 del modelo 0x20a) en +0x4c · 0,004f + 0,54f (0x6b89e8,
     // 0x6ba17c), y +0x381 en 15.
-    if (auto made = CreateHighEffect({.type = SweepEmitterEffect,
+    if (auto made = CreateHighEffect({.type = Effects::SweepEmitterEffect,
                                       .position = actor.position,
                                       .angles = actor.angles,
                                       .light = actor.light,
@@ -561,8 +562,9 @@ Core::Expected<void, std::string> StepTheSkill38(Kernel::ActorState& actor, std:
         {
             if (wave > 0)
                 angles.z = static_cast<float>(static_cast<double>(angles.z) + NextTurn);
-            const auto created = CreateWizardEffect(
-                context, WizardArguments(World::MagicEffect, actor.position, angles, actor.light, WaveSubtype, &actor));
+            const auto created = Effects::CreateWizardEffect(
+                context, Effects::WizardArguments(Effects::MagicEffect, actor.position, angles, actor.light,
+                                                  WaveSubtype, &actor));
             if (!created.HasValue())
             {
                 return Core::Unexpected(std::format("{:#x}: el 0xce/2 de la habilidad {:#x} del lugar {}: {}",
@@ -588,7 +590,7 @@ Core::Expected<void, std::string> CreateSkill39Bolts(Kernel::ActorState& actor,
     {
         const Kernel::JointRequest request{
             BoltJoint, actor.position, actor.position, actor.angles, BoltSubtype, nullptr, Width, key, 0, 0, -1};
-        const auto created = CreateFaunaJoint(context.joints, request, context.random);
+        const auto created = Joints::CreateFaunaJoint(context.joints, request, context.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     }
@@ -754,4 +756,4 @@ Core::Expected<bool, std::string> StepTheFrameSkill(Kernel::ActorState& actor, s
         return false;
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

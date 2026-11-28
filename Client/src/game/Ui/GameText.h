@@ -12,7 +12,7 @@
 // Los textos de Text.bmd que arma la UI del login (CL5.5). El original los usa como formato de
 // sprintf, como el 456 de la escena (Q-C61); MuRet no: cambia cada "%s" y cada "%d", en orden,
 // por el argumento que sigue, y lo demás queda como está.
-namespace Client::UI
+namespace Client::Ui
 {
 // `format` con su primer "%s", "%d" o "%u" cambiado por arguments[0], el siguiente por arguments[1], y
 // así (el %u es del 201 del HUD, la experiencia). Una marca sin argumento queda; un argumento de más no
@@ -34,4 +34,4 @@ namespace Client::UI
 // laboratorio); con una de dos bytes, el original no parte un carácter de dos.
 [[nodiscard]] std::vector<std::string> SplitIntoLines(std::string_view text, std::size_t maxLines,
                                                       std::size_t lineBytes);
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -36,12 +36,20 @@ namespace Client::Kernel
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::Actors::Drawing
+{
+class ScepterGlowCarry;
+} // namespace Client::Actors::Drawing
+
+namespace Client::WorldObjects
+{
+struct ObjectModelStepState;
+} // namespace Client::WorldObjects
+
+namespace Client::Particles
 {
 class FrameSprites;
-class ScepterGlowCarry;
-struct ObjectModelStepState;
-} // namespace Client::World
+} // namespace Client::Particles
 
 namespace Client::Models
 {
@@ -102,10 +110,10 @@ struct DrawnCharacter
     // The frame's sprite table (0x5491e0, World/Sprites.h): the cloth's 30 flares, when drawing it, and the sceptre's
     // five (0x509340, case 0x620, World/ScepterGlow.h) with the rand() of `clothWorld`, in that order. Without it, they
     // are not requested.
-    World::FrameSprites* sprites = nullptr;
-    // The draw of the sceptre's five between MuRet frames (World::ScepterGlowCarry): with it, once per original frame;
-    // without it, on each DrawCharacter.
-    World::ScepterGlowCarry* scepter = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
+    // The draw of the sceptre's five between MuRet frames (Actors::Drawing::ScepterGlowCarry): with it, once per
+    // original frame; without it, on each DrawCharacter.
+    Actors::Drawing::ScepterGlowCarry* scepter = nullptr;
     // How the cloth and the sceptre count the original's frames (Models::OriginalFrameCarry): by the frame's clock, or
     // one per draw in the faithful mode (SceneContext::pacing).
     Models::OriginalFramePace pace = Models::OriginalFramePace::ByTheClock;
@@ -306,7 +314,7 @@ struct ItemDrawContext
     float glowPulse = 0;
     std::map<std::uint16_t, std::int32_t>* selections = nullptr;
     bool originalFrame = true;
-    World::ObjectModelStepState* modelState = nullptr;
+    WorldObjects::ObjectModelStepState* modelState = nullptr;
     std::int32_t map = 0;
     void* ownerContext = nullptr;
     std::function<std::span<const Math::BoneTransform>()> poseBones{};

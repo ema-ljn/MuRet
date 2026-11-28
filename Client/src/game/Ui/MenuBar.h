@@ -19,7 +19,7 @@
 // Los clics se ven, pero la escena todavía no hace nada con ellos: el del menú abre en el original
 // la ventana de Esc (+0x3d0) y el de los créditos manda C1 04 F4 06 al CS y abre la de +0x4578,
 // las dos sin leer (P-C13). Se atiende en el paso (Q-C81).
-namespace Client::UI
+namespace Client::Ui
 {
 // Dónde va cada cosa, en píxeles con la y desde arriba.
 struct MenuBarLayout
@@ -70,4 +70,4 @@ private:
     Button m_credit;
     MenuBarLayout m_layout;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -126,31 +126,31 @@ int GateProbeRandoms(const Client::Tables::GateTable& gates, std::int32_t map, c
 // Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
 Client::Core::Expected<void, std::string>
 AdvanceEnvironmentPrefix(Client::Kernel::WorldState& world, Client::Session::ModuleStates& states,
-                         const Client::Kernel::ActorState& hero, Client::World::LeafWeather weather,
+                         const Client::Kernel::ActorState& hero, Client::Weather::LeafWeather weather,
                          std::int32_t heroCellLayer, Client::Models::ClothWorld& reference)
 {
     const Client::Terrain::WorldTerrain& terrain = states.terrain.current;
-    Client::World::Leaves leaves;
-    Client::Scenes::FaunaState fauna;
+    Client::Weather::Leaves leaves;
+    Client::Fauna::FaunaState fauna;
     const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
     const float worldClock = 0.0f;
-    Client::Scenes::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
-                                                hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
-                                                reference.random, worldClock};
-    if (auto stepped = Client::Scenes::StepGameLeaves(leafContext); !stepped.HasValue())
+    Client::Weather::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
+                                                 hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
+                                                 reference.random, worldClock};
+    if (auto stepped = Client::Weather::StepGameLeaves(leafContext); !stepped.HasValue())
         return stepped;
-    Client::Scenes::FaunaStepContext faunaContext{fauna,
-                                                  world.Runtime().map,
-                                                  world.Runtime().storm,
-                                                  hero.position,
-                                                  hero.animation.action,
-                                                  hero.safeZone,
-                                                  terrain,
-                                                  states.terrain.dynamicLight.Lighting(),
-                                                  states.assets.fauna,
-                                                  reference,
-                                                  worldClock};
-    return Client::Scenes::StepGameFauna(faunaContext);
+    Client::Fauna::FaunaStepContext faunaContext{fauna,
+                                                 world.Runtime().map,
+                                                 world.Runtime().storm,
+                                                 hero.position,
+                                                 hero.animation.action,
+                                                 hero.safeZone,
+                                                 terrain,
+                                                 states.terrain.dynamicLight.Lighting(),
+                                                 states.assets.fauna,
+                                                 reference,
+                                                 worldClock};
+    return Client::Fauna::StepGameFauna(faunaContext);
 }
 
 // Los cierres del registro propio, el pasto, el lugar del héroe, 0x511290 y el sufijo de 0x4f2250.
@@ -267,7 +267,7 @@ public:
     {
         const auto effects = world.Map().effects.Effects();
         return static_cast<std::size_t>(std::ranges::count_if(
-            effects, [](const auto& effect) { return effect.alive && effect.type == Client::World::ArrivalEffect; }));
+            effects, [](const auto& effect) { return effect.alive && effect.type == Client::Effects::ArrivalEffect; }));
     }
 
     // El héroe ya vestido en `slot`, para lo que sigue a 0x512a30.
@@ -285,12 +285,12 @@ public:
 
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState& world = *m_world;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
@@ -424,7 +424,7 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
 
     static_cast<void>(online.session.Poll());
 
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::Failed);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::Failed);
     EXPECT_EQ(tested.world.Runtime().hero, 0u);
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait);
     EXPECT_EQ(tested.AliveArrivals(), 0u);
@@ -495,16 +495,16 @@ TEST_F(WorldEntryTest, TheEntryShowsTheMapBannerAndTheWelcomeLine)
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
     const Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-    const Client::Scenes::MapBanner& banner = runtime.hud.mapBanner;
-    EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
+    const Client::Hud::MapBanner& banner = runtime.hud.mapBanner;
+    EXPECT_EQ(banner.state, Client::Hud::MapBannerState::FadingIn);
     EXPECT_EQ(banner.shownMap, 0);
     ASSERT_TRUE(banner.pendingImage.has_value());
     EXPECT_EQ(*banner.pendingImage, "Interface\\lorencia.tga");
     ASSERT_FALSE(runtime.chat.log.entries.empty());
-    const Client::UI::ChatEntry& welcome = runtime.chat.log.entries.back();
+    const Client::Chat::ChatEntry& welcome = runtime.chat.log.entries.back();
     EXPECT_EQ(welcome.name, "");
     EXPECT_EQ(welcome.text, "<mapa 0> <bienvenida>");
-    EXPECT_EQ(welcome.type, Client::UI::SystemMessage);
+    EXPECT_EQ(welcome.type, Client::Ui::SystemMessage);
 }
 
 // La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la
@@ -1164,7 +1164,7 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
     Client::Network::PacketSerials serials;
     online.socket.reads = {EntryPacket(133, 127, serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     const std::size_t firstSlot = tested.world.Runtime().hero;
     const std::size_t secondSlot = NextHeroSlot(tested.cloth.random);
     ASSERT_NE(secondSlot, firstSlot);
@@ -1172,7 +1172,7 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
     online.socket.reads = {EntryPacket(143, 120, serials)};
     static_cast<void>(online.session.Poll());
 
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
     EXPECT_EQ(tested.Hero().cellX, 143);
     EXPECT_TRUE(tested.world.Actors()[firstSlot].alive);

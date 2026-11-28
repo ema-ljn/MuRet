@@ -9,7 +9,7 @@ namespace Client::Pathfinding
 {
 struct Path;
 } // namespace Client::Pathfinding
-namespace Client::GameLogic
+namespace Client::Actors
 {
 struct MovePathState
 {
@@ -43,4 +43,4 @@ struct LogicalCellEffects
 // Ruta válida: count<=MaxPathCells y progress<=3; los callbacks pueden alterar sus valores vivos
 // manteniendo ese dominio. Retorna llegada; no desplaza XY salvo al llegar.
 [[nodiscard]] bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects& effects = {});
-} // namespace Client::GameLogic
+} // namespace Client::Actors

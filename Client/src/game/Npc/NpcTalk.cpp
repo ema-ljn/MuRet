@@ -35,7 +35,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Npc
 {
 namespace
 {
@@ -82,8 +82,8 @@ void DrawTheC3Randoms(Crt::CrtRandom& random)
 }
 
 // 0x567c2d.., 0x568288.., 0x568908.. y 0x568f54..: C1 05 30 claveH claveL, la clave (+0x1f4) del NPC con MOVSX.
-Core::Expected<void, std::string> SendTheTalk(const HeroMovementContext& context, const Kernel::ActorState& npc,
-                                              std::string_view where)
+Core::Expected<void, std::string> SendTheTalk(const Movement::HeroMovementContext& context,
+                                              const Kernel::ActorState& npc, std::string_view where)
 {
     if (!context.sendTalk)
         return Core::Unexpected(std::format("{}: falta el servicio del C3 30", where));
@@ -93,25 +93,25 @@ Core::Expected<void, std::string> SendTheTalk(const HeroMovementContext& context
 }
 
 // 0x555190("", texto, tipo) con los nombres vacíos de la .bss (0x77f3bf0 y 0x77f3bf4, que nadie escribe).
-Core::Expected<void, std::string> SayIt(const HeroMovementContext& context, std::string_view text, std::int32_t type,
-                                        std::string_view where)
+Core::Expected<void, std::string> SayIt(const Movement::HeroMovementContext& context, std::string_view text,
+                                        std::int32_t type, std::string_view where)
 {
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el aviso sin medidor", where));
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text, type);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, text, type);
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const HeroMovementContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Movement::HeroMovementContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
 Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const Kernel::ActorState& hero,
-                                                                         const HeroMovementContext& context)
+                                                                         const Movement::HeroMovementContext& context)
 {
     static const Models::Skeleton EmptySkeleton;
     const bool player = hero.type == Tables::PlayerSkeletonModel;
@@ -130,7 +130,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
     }
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),
-                                    .scene = SceneId::Game,
+                                    .scene = Scenes::SceneId::Game,
                                     .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
@@ -141,14 +141,14 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForHero(const K
 }
 } // namespace
 
-Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const HeroMovementContext& context)
+Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const Movement::HeroMovementContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& state = runtime.movement;
+    Movement::GameMovementState& state = runtime.movement;
     state.mouseUpdateTimeMax = ArrivalMouseUpdateTimeMax;
     // 0x5674d2..0x5674ed: fuera de Crywolf activo (0x435a00 && 0x4303c0), 0x4f2250 y +0x378 en 0 (en la llegada de
     // MoveHero el héroe ya está parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
-    const bool crywolf = InTheCrywolfDefense(runtime);
+    const bool crywolf = Events::Crywolf::InTheCrywolfDefense(runtime);
     if (!crywolf)
     {
         const auto stop = StopContextForHero(hero, context);
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const H
         auto format = TextOf(context, LevelLimitText, "0x567618");
         if (!format.HasValue())
             return Core::Unexpected(std::move(format).Error());
-        return SayIt(context, Crt::Sprintf(format.Value(), LevelLimit), UI::SystemMessage, "0x567639");
+        return SayIt(context, Crt::Sprintf(format.Value(), LevelLimit), Ui::SystemMessage, "0x567639");
     }
     const std::uint16_t word = npc.word376;
     runtime.panels.field78abb09 =
@@ -192,16 +192,16 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const H
     runtime.panels.repairMode = 0;
     // 0x567672..0x567697: la ventana de las misiones (el panel 8) se cierra con 0x65cae0(8, 0), que manda el C1 03 31.
     {
-        GamePanels panels(context.world, context.random);
+        Hud::GamePanels panels(context.world, context.random);
         panels.LendTheWindowClose(context.sendWindowClose);
-        if (panels.Registry().IsOpen(UI::QuestPanel))
+        if (panels.Registry().IsOpen(Ui::QuestPanel))
         {
-            if (auto closed = panels.Registry().Close(UI::QuestPanel); !closed.HasValue())
+            if (auto closed = panels.Registry().Close(Ui::QuestPanel); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
         }
     }
     // 0x56769c..0x567a85: el C3 A0 si las misiones todavía no tienen la clase ([0x710148] + 4 en 0xff).
-    if (runtime.quest.characterClass == QuestClassUnknown)
+    if (runtime.quest.characterClass == Quests::QuestClassUnknown)
     {
         if (!context.requestQuestList)
             return Core::Unexpected(std::string("0x5676b0: falta el servicio del C3 A0"));
@@ -214,7 +214,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const H
         auto text = TextOf(context, FlagLimitText, "0x567ad3");
         if (!text.HasValue())
             return Core::Unexpected(std::move(text).Error());
-        if (auto said = SayIt(context, text.Value(), UI::ErrorMessage, "0x567add"); !said.HasValue())
+        if (auto said = SayIt(context, text.Value(), Ui::ErrorMessage, "0x567add"); !said.HasValue())
             return said;
         state.chosenNpc = -1;
         return {};
@@ -223,12 +223,12 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const H
     {
         // 0x567b00..0x567c23 (CL9 hito 11): el clic en un altar. Con una elfa, 0x4365a0 y 0x435b00 muestran el estado
         // del altar y siguen en 0x569573, sin el C1 30; sin elfa, el C1 30 de 0x567c2d; otro blanco, el de 0x568288.
-        const auto click = ClickTheCrywolfAltar(runtime, context.texts, hero, npc);
+        const auto click = Events::Crywolf::ClickTheCrywolfAltar(runtime, context.texts, hero, npc);
         if (!click.HasValue())
             return Core::Unexpected(click.Error());
-        if (click.Value() != AltarClick::Contract)
+        if (click.Value() != Events::Crywolf::AltarClick::Contract)
         {
-            const bool altar = click.Value() == AltarClick::Talk;
+            const bool altar = click.Value() == Events::Crywolf::AltarClick::Talk;
             if (auto sent = SendTheTalk(context, npc, altar ? "0x567c2d" : "0x568288"); !sent.HasValue())
                 return sent;
         }
@@ -249,4 +249,4 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const H
     state.chosenNpc = -1;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Npc

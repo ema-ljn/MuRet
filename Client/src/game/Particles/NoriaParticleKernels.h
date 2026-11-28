@@ -11,7 +11,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 
@@ -36,4 +36,4 @@ CreateNoriaParticle(Particle& particle, float scale, Crt::CrtRandom& random, con
 // rand(), moverse y apagarse, antes del sprite.
 [[nodiscard]] Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Crt::CrtRandom& random,
                                                                       FrameSprites* sprites);
-} // namespace Client::World
+} // namespace Client::Particles

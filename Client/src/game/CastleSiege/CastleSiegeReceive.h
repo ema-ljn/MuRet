@@ -46,12 +46,16 @@ namespace Client::Terrain
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-// Los paquetes del castillo que llegan fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
-// castillo): lo que hacen 0x4e2b10 y sus funciones con el B2 (0x00..0x10, 0x1A y 0x1F), el B3, el B4, el B5, el B6 y
-// el B8 sobre WorldRuntime::castleSiege, el héroe, los paneles y el chat. Ninguno mira la escena ni el flag de cifrado.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// Los paquetes del castillo que llegan fuera de la batalla (CL9 hito 12; 04 § Castle Siege, las ventanas del
+// castillo): lo que hacen 0x4e2b10 y sus funciones con el B2 (0x00..0x10, 0x1A y 0x1F), el B3, el B4, el B5, el B6 y
+// el B8 sobre WorldRuntime::castleSiege, el héroe, los paneles y el chat. Ninguno mira la escena ni el flag de cifrado.
+namespace Client::CastleSiege
+{
 
 // El GameServer: los C1 que manda el B2 02 con 1 (0x4df1a0).
 using CastleSender = std::function<void(Protocol::Outgoing)>;
@@ -71,7 +75,7 @@ struct CastleReceiveContext
     CastleSender send{};
     std::filesystem::path dataRoot{};
     std::uint32_t tick = 0;
-    const WorldEntryResources* entryResources = nullptr;
+    const Scenes::WorldEntryResources* entryResources = nullptr;
     // The current map's terrain, whose .att and light the siege's B2 reloads (0x4294c0); without it, that stops.
     Terrain::WorldTerrain* terrain = nullptr;
     // The models a creation loads (Assets::AssetsState::fauna), whose texture table takes the B9 02's castle flag;
@@ -88,4 +92,4 @@ ApplyCastleSiegePacket(const Protocol::CastleSiege::CastleSiegePacket& packet, c
 // 0x64b0f0, lo que el B2 00 con 1 o 2 guarda en [0x7d536f8] después de abrir el panel 0x80000: +4 en 1 (el byte de
 // abierto, DelegatedPanels::castleSiege), el estado, los dos nombres con strncpy, las tres fechas y lo que falta.
 void StoreTheCastleState(const Protocol::CastleSiege::CastleState& state, Kernel::WorldRuntime& runtime);
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

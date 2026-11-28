@@ -12,8 +12,8 @@
 // Client/docs/research/11-edit-win32.md, «SetText y atajos». Vectores privados c32, session-02/edit-word-own-01.
 namespace
 {
-using Client::UI::OldEditWordMovement::CursorAfterCtrlLeft;
-using Client::UI::OldEditWordMovement::CursorAfterCtrlRight;
+using Client::Ui::OldEditWordMovement::CursorAfterCtrlLeft;
+using Client::Ui::OldEditWordMovement::CursorAfterCtrlRight;
 
 TEST(OldEditWordMovementTest, MatchesTheNativeControlOnUsefulByteBoundaries)
 {

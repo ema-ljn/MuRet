@@ -13,7 +13,7 @@
 #include <span>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -458,4 +458,4 @@ const NewUi::Entry* NewUi::Find(const NewUiWindow& window) const
     const auto found = std::ranges::find(m_entries, &window, &Entry::window);
     return found == m_entries.end() ? nullptr : &*found;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

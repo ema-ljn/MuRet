@@ -47,12 +47,12 @@
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
-const Client::Scenes::ActorEffectHooks EffectHooks{};
+const Client::Effects::ActorEffectHooks EffectHooks{};
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Models::ActionInfo;
 using Client::Models::Skeleton;
-using Client::Scenes::ModelActionEnd;
+using Client::Monsters::ModelActionEnd;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 
@@ -81,7 +81,7 @@ ActorState Monster(std::uint16_t type, std::uint8_t action)
 
 TEST(ModelBodyTest, TheSpeedOfTheOtherModelsByType)
 {
-    using Client::Scenes::ModelSpeedOf;
+    using Client::Monsters::ModelSpeedOf;
     EXPECT_EQ(ModelSpeedOf(0xa8, 0, 0.0f, 0.3f), 0.6f);
     EXPECT_EQ(ModelSpeedOf(0xac, 6, 7.0f, 0.3f), 0.6f);
     // 0x4f96f7..0x4f9712: el 0x192 en la 6 solo pasado el frame 6.
@@ -104,7 +104,7 @@ TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
         SCOPED_TRACE(static_cast<int>(action));
         ActorState actor = Monster(0x153, action);
         CrtRandom random(Seed);
-        const auto end = Client::Scenes::FinishTheModelAction(actor, skeleton, runtime, random);
+        const auto end = Client::Monsters::FinishTheModelAction(actor, skeleton, runtime, random);
         ASSERT_TRUE(end.HasValue()) << end.Error();
         EXPECT_EQ(end.Value(), ModelActionEnd::Done);
         EXPECT_EQ(actor.animation.action, 0);
@@ -115,17 +115,17 @@ TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
     {
         ActorState actor = Monster(0x1c9, action);
         CrtRandom random(Seed);
-        ASSERT_TRUE(Client::Scenes::FinishTheModelAction(actor, skeleton, runtime, random).HasValue());
+        ASSERT_TRUE(Client::Monsters::FinishTheModelAction(actor, skeleton, runtime, random).HasValue());
         EXPECT_EQ(actor.animation.action, action);
         EXPECT_EQ(random.State(), Seed);
     }
     ActorState dying = Monster(0x160, 6);
     CrtRandom random(Seed);
-    const auto left = Client::Scenes::FinishTheModelAction(dying, skeleton, runtime, random);
+    const auto left = Client::Monsters::FinishTheModelAction(dying, skeleton, runtime, random);
     ASSERT_TRUE(left.HasValue()) << left.Error();
     EXPECT_EQ(left.Value(), ModelActionEnd::LeaveRemains);
     EXPECT_EQ(dying.byte38a, 1);
-    const auto again = Client::Scenes::FinishTheModelAction(dying, skeleton, runtime, random);
+    const auto again = Client::Monsters::FinishTheModelAction(dying, skeleton, runtime, random);
     ASSERT_TRUE(again.HasValue()) << again.Error();
     EXPECT_EQ(again.Value(), ModelActionEnd::Done);
     EXPECT_EQ(dying.animation.action, 6);
@@ -147,29 +147,29 @@ TEST(ModelBodyTest, TheNpcsDrawTheirNextAction)
         const int action = first < 12 ? 0 : 1 + expected.Next() % 2;
         ActorState smith = Monster(0x1ce, 3);
         CrtRandom random(seed);
-        ASSERT_TRUE(Client::Scenes::FinishTheModelAction(smith, skeleton, runtime, random).HasValue());
+        ASSERT_TRUE(Client::Monsters::FinishTheModelAction(smith, skeleton, runtime, random).HasValue());
         EXPECT_EQ(smith.animation.action, action);
         EXPECT_EQ(random.State(), expected.State());
 
         CrtRandom other(seed);
         const int otherAction = CrtRandom(seed).Next() % 2;
         ActorState girl = Monster(0x1cd, 3);
-        ASSERT_TRUE(Client::Scenes::FinishTheModelAction(girl, skeleton, runtime, other).HasValue());
+        ASSERT_TRUE(Client::Monsters::FinishTheModelAction(girl, skeleton, runtime, other).HasValue());
         EXPECT_EQ(girl.animation.action, otherAction);
         EXPECT_EQ(other.State(), Client::Tests::AfterDraws(seed, 1).State());
     }
     ActorState face = Monster(0xa9, 3);
     CrtRandom random(Seed);
-    ASSERT_TRUE(Client::Scenes::FinishTheModelAction(face, skeleton, runtime, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::FinishTheModelAction(face, skeleton, runtime, random).HasValue());
     EXPECT_EQ(face.animation.action, 3);
     ActorState named = Monster(0xc5, 3);
-    ASSERT_TRUE(Client::Scenes::FinishTheModelAction(named, skeleton, runtime, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::FinishTheModelAction(named, skeleton, runtime, random).HasValue());
     EXPECT_EQ(named.animation.action, 1);
     EXPECT_EQ(named.animation.frame, 4.0f);
     EXPECT_EQ(random.State(), Seed);
     runtime.map = 1;
     ActorState statue = Monster(0x28, 3);
-    ASSERT_TRUE(Client::Scenes::FinishTheModelAction(statue, skeleton, runtime, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::FinishTheModelAction(statue, skeleton, runtime, random).HasValue());
     EXPECT_EQ(statue.animation.action, 0);
     EXPECT_EQ(random.State(), Seed);
 }
@@ -185,7 +185,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     CrtRandom random(Seed);
     ActorState guard = Monster(0x1c0, 3);
     guard.word376 = 221;
-    auto end = Client::Scenes::FinishTheModelAction(guard, skeleton, runtime, random);
+    auto end = Client::Monsters::FinishTheModelAction(guard, skeleton, runtime, random);
     ASSERT_TRUE(end.HasValue()) << end.Error();
     EXPECT_EQ(end.Value(), ModelActionEnd::AdvanceAgain);
     EXPECT_EQ(guard.animation.action, 0);
@@ -193,12 +193,12 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     ActorState carried = Monster(0x1c0, 3);
     carried.word376 = 277;
     carried.flags78 = 0x20000;
-    ASSERT_EQ(Client::Scenes::FinishTheModelAction(carried, skeleton, runtime, random).Value(),
+    ASSERT_EQ(Client::Monsters::FinishTheModelAction(carried, skeleton, runtime, random).Value(),
               ModelActionEnd::AdvanceAgain);
     EXPECT_EQ(carried.animation.action, 2);
     EXPECT_EQ(carried.byte42c, 0);
     carried.flags78 = 0;
-    ASSERT_EQ(Client::Scenes::FinishTheModelAction(carried, skeleton, runtime, random).Value(),
+    ASSERT_EQ(Client::Monsters::FinishTheModelAction(carried, skeleton, runtime, random).Value(),
               ModelActionEnd::AdvanceAgain);
     EXPECT_EQ(carried.animation.action, 0);
     EXPECT_EQ(carried.byte42c, 1);
@@ -207,7 +207,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     gate.word376 = 286;
     gate.animation.previousAction = 1;
     gate.animation.previousKey = 7;
-    ASSERT_EQ(Client::Scenes::FinishTheModelAction(gate, skeleton, runtime, random).Value(),
+    ASSERT_EQ(Client::Monsters::FinishTheModelAction(gate, skeleton, runtime, random).Value(),
               ModelActionEnd::AdvanceAgain);
     EXPECT_EQ(gate.animation.action, 4);
     EXPECT_EQ(gate.animation.previousAction, 4);
@@ -219,14 +219,14 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     // La 3 no es de 0x42d890: sigue a los monstruos, que la vuelven a la 0.
     gate.word376 = 287;
     gate.animation.action = 3;
-    ASSERT_EQ(Client::Scenes::FinishTheModelAction(gate, skeleton, runtime, random).Value(), ModelActionEnd::Done);
+    ASSERT_EQ(Client::Monsters::FinishTheModelAction(gate, skeleton, runtime, random).Value(), ModelActionEnd::Done);
     EXPECT_EQ(gate.animation.action, 0);
     EXPECT_EQ(random.State(), Seed);
 
     runtime.map = 0;
     ActorState outside = Monster(0x1c0, 2);
     outside.word376 = 221;
-    ASSERT_EQ(Client::Scenes::FinishTheModelAction(outside, skeleton, runtime, random).Value(), ModelActionEnd::Done);
+    ASSERT_EQ(Client::Monsters::FinishTheModelAction(outside, skeleton, runtime, random).Value(), ModelActionEnd::Done);
     EXPECT_EQ(outside.animation.action, 2);
 }
 
@@ -243,35 +243,35 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     const auto heading = static_cast<float>(Client::Math::CreateAngle(100.0f, 200.0f, 300.0f, 900.0f));
     actor.angles.z = heading;
     CrtRandom random(Seed);
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target.x, 0.0f);
     EXPECT_EQ(actor.headTurn.target.y, static_cast<float>((180.0 - (30.0 + 50.0)) * static_cast<double>(0.2f)));
     // De espaldas: a 180 grados, en 0.
     actor.angles.z = heading >= 180.0f ? heading - 180.0f : heading + 180.0f;
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{0.0f, 0.0f}));
     // Debajo: el ángulo negativo suma 360.
     actor.angles.z = heading;
     pool[5].position.z = 0.0f;
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target.y, static_cast<float>((0.0 - 80.0) * static_cast<double>(0.2f)) + 360.0f);
     actor.attackTarget = 0xffff;
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{0.0f, 0.0f}));
     actor.attackTarget = 500;
-    const auto outside = Client::Scenes::SetTheModelHeadTarget(actor, pool, random);
+    const auto outside = Client::Monsters::SetTheModelHeadTarget(actor, pool, random);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x4ea24c"), std::string::npos);
     actor.animation.action = 6;
     actor.headTurn.target = {7.0f, 8.0f};
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{7.0f, 8.0f}));
     actor.animation.action = 3;
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{0.0f, 0.0f}));
     EXPECT_EQ(random.State(), Seed);
     actor.animation.action = 0;
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(actor, pool, random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     CrtRandom expected(Seed);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, expected.Next() % 32 == 0 ? 3 : 1).State());
 }
@@ -555,7 +555,7 @@ TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
 }
 
 // Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): fuera de las ventanas de frame de su aliento no saca más que el
-// & 7 (Scenes::StepTheModelEffects).
+// & 7 (Monsters::StepTheModelEffects).
 TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 {
     m_actor.animation.action = 1;
@@ -642,8 +642,9 @@ TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNex
 }
 
 // 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
-// cada una de sus diez poses (Scenes::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de 0x505de0;
-// después, el helper 0x431470 no hace nada con el 0x1b0 en la 4. El esqueleto de Monster02 con diez keys por acción.
+// cada una de sus diez poses (Monsters::Drawing::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de
+// 0x505de0; después, el helper 0x431470 no hace nada con el 0x1b0 en la 4. El esqueleto de Monster02 con diez keys por
+// acción.
 TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
 {
     Skeleton swinging = Model();

@@ -26,14 +26,14 @@ struct GameSceneFrameProjection
 {
     GameDrawTailState tail{};
     Terrain::TerrainLighting lighting{};
-    World::ObjectModelStepState modelState{};
+    WorldObjects::ObjectModelStepState modelState{};
     Actors::Drawing::GameItemRenderState items{};
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
-    World::ModelEffects effects{};
-    World::Particles particles{};
-    std::vector<World::WorldObject> objects{};
+    Effects::ModelEffects effects{};
+    Particles::Particles particles{};
+    std::vector<WorldObjects::WorldObject> objects{};
     std::vector<Actors::ActorPickingBox> actorPickingBoxes{};
-    std::unique_ptr<World::KalimaWorld> kalima{};
+    std::unique_ptr<MapScripts::Kalima::KalimaWorld> kalima{};
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;
     std::uint8_t ownRecordDepth = 0;
@@ -50,6 +50,6 @@ struct GameSceneFrameProjection
     std::uint8_t altNames = 0;
     // Lo que el dibujo de las ventanas viejas escribe (0x490390 y 0x637680): +0x40, los botones de una caja arrastrada
     // y el renglón y el parpadeo de la lista de ventanas.
-    UI::OldWindowManager oldWindows{};
+    Ui::OldWindowManager oldWindows{};
 };
 } // namespace Client::Scenes

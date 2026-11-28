@@ -47,20 +47,20 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::StepTheAttack: 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, y ChosenKeyOf (0x558eb0). 06, "El paso
+// Client::Combat::StepTheAttack: 0x4fdb9a..0x50539e con 0x4f97b0 y 0x4f5b70, y ChosenKeyOf (0x558eb0). 06, "El paso
 // del ataque".
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Actors::CharacterStepContext;
 using Client::Actors::StepCharacters;
+using Client::Combat::StepTheAttack;
 using Client::Crt::CrtRandom;
+using Client::Hero::ChosenKeyOf;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Models::ActionInfo;
-using Client::Scenes::ChosenKeyOf;
 using Client::Scenes::JointState;
-using Client::Scenes::StepTheAttack;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;
@@ -203,7 +203,7 @@ struct AttackWorld
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> soundOrigins;
     bool controlDown = false;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     bool withParticles = true;
     // Un pool corto: los dos 0x618 del que mató son los únicos joints de estas pruebas.
     std::vector<JointState> joints = std::vector<JointState>(16);
@@ -212,10 +212,11 @@ struct AttackWorld
 };
 
 // Las partículas vivas de `type`.
-std::vector<const Client::World::Particle*> AliveOf(const Client::World::Particles& particles, std::int32_t type)
+std::vector<const Client::Particles::Particle*> AliveOf(const Client::Particles::Particles& particles,
+                                                        std::int32_t type)
 {
-    std::vector<const Client::World::Particle*> found;
-    for (const Client::World::Particle& particle : particles.All())
+    std::vector<const Client::Particles::Particle*> found;
+    for (const Client::Particles::Particle& particle : particles.All())
     {
         if (particle.alive && particle.type == type)
             found.push_back(&particle);
@@ -505,7 +506,7 @@ TEST(AttackStepTest, TheSparkOf0x39LeavesItsParticles)
     ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
     const auto count = [&](std::int32_t type)
     {
-        return std::ranges::count_if(tested.particles.All(), [type](const Client::World::Particle& particle)
+        return std::ranges::count_if(tested.particles.All(), [type](const Client::Particles::Particle& particle)
                                      { return particle.alive && particle.type == type && particle.subtype == 0; });
     };
     EXPECT_EQ(count(0x5c6), 1);
@@ -577,16 +578,16 @@ TEST(AttackStepTest, TheSkillThreeTailCreatesItsTwoLightningJoints)
     EXPECT_EQ(tested.joints[0].width, 50.0f);
     EXPECT_EQ(tested.joints[1].width, 10.0f);
     const auto particles = tested.particles.All();
-    EXPECT_EQ(std::ranges::count_if(particles, [](const Client::World::Particle& particle)
-                                    { return particle.alive && particle.type == Client::World::ThunderParticle; }),
+    EXPECT_EQ(std::ranges::count_if(particles, [](const Client::Particles::Particle& particle)
+                                    { return particle.alive && particle.type == Client::Particles::ThunderParticle; }),
               1);
 }
 
 // La luz local de 0x4fd5f0 llega a los casos: la 0x07 crea su 0xc1/0 sobre el blanco con ella (0x50474e), la de
-// Scenes::BodyLight o la que le pasa el cuerpo con la partícula 0x5ac (0x4fdb3f).
+// Skills::BodyLight o la que le pasa el cuerpo con la partícula 0x5ac (0x4fdb3f).
 TEST(AttackStepTest, TheSkillCasesTakeTheBodyLight)
 {
-    for (const glm::vec3& light : {Client::Scenes::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
+    for (const glm::vec3& light : {Client::Skills::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
     {
         AttackWorld tested;
         ActorState& hero = tested.Striker(HeroSlot, 0x23, VictimSlot);
@@ -597,7 +598,7 @@ TEST(AttackStepTest, TheSkillCasesTakeTheBodyLight)
 
         ASSERT_TRUE(stepped.HasValue()) << ErrorOf(stepped);
         const auto ice = std::ranges::find_if(tested.world.Map().effects.Effects(), [](const auto& effect)
-                                              { return effect.alive && effect.type == Client::World::IceEffect; });
+                                              { return effect.alive && effect.type == Client::Effects::IceEffect; });
         ASSERT_NE(ice, tested.world.Map().effects.Effects().end());
         EXPECT_EQ(ice->light, light);
         EXPECT_EQ(ice->transform.position, tested.Victim().position);
@@ -720,12 +721,12 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget + Bleeding);
         EXPECT_EQ(tested.sounds.size(), 1u);
-        const auto blood = AliveOf(tested.particles, Client::World::BloodParticle);
+        const auto blood = AliveOf(tested.particles, Client::Particles::BloodParticle);
         ASSERT_EQ(blood.size(), 10u);
         CrtRandom expected(Seed);
         for (int draw = 0; draw < CountingStep + SkillRead; ++draw)
             static_cast<void>(expected.Next());
-        for (const Client::World::Particle* drop : blood)
+        for (const Client::Particles::Particle* drop : blood)
         {
             const int x = (expected.Next() & 63) - 32;
             const int y = (expected.Next() & 63) - 32;
@@ -749,7 +750,7 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
     }
     {
         AttackWorld tested;
-        for (Client::World::Particle& particle : tested.particles.All())
+        for (Client::Particles::Particle& particle : tested.particles.All())
             particle.alive = true;
         ActorState* hero = prepare(tested);
         ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
@@ -761,7 +762,7 @@ TEST(AttackStepTest, TheTargetWithDamageBleedsTenTimes)
         tested.Victim().type = 0x159;
         ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
         EXPECT_EQ(DrawsSince(Seed, tested.random), CountingStep + SkillWithTarget);
-        EXPECT_TRUE(AliveOf(tested.particles, Client::World::BloodParticle).empty());
+        EXPECT_TRUE(AliveOf(tested.particles, Client::Particles::BloodParticle).empty());
     }
 }
 
@@ -809,16 +810,16 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
         EXPECT_EQ(DrawsSince(Seed, tested.random),
                   CountingStep + SkillWithTarget + Bleeding + Flips + static_cast<int>(rises.size()) * StoneDraws);
         EXPECT_NE(std::ranges::find(tested.sounds, 0x88), tested.sounds.end());
-        std::vector<Client::World::ModelEffect*> stones;
-        for (Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+        std::vector<Client::Effects::ModelEffect*> stones;
+        for (Client::Effects::ModelEffect& effect : tested.world.Map().effects.Effects())
         {
-            if (effect.alive && effect.type == Client::World::DebrisEffect)
+            if (effect.alive && effect.type == Client::Effects::DebrisEffect)
                 stones.push_back(&effect);
         }
         ASSERT_EQ(stones.size(), rises.size());
         for (std::size_t index = 0; index < stones.size(); ++index)
         {
-            const Client::World::ModelEffect& stone = *stones[index];
+            const Client::Effects::ModelEffect& stone = *stones[index];
             const float lifted = static_cast<float>(static_cast<double>(victimAt.z) + 50.0);
             const float z = static_cast<float>(static_cast<double>(rises[index]) + static_cast<double>(lifted));
             EXPECT_EQ(stone.transform.position, (glm::vec3{victimAt.x, victimAt.y, z + 50.0f}));
@@ -833,10 +834,10 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
         // rand() % 10 en 0 corta ahí (el polvo en un local sin escribir, Q-C1176); si no, la cola resta la vida.
         // Con la misma semilla las tres piedras darían el mismo primer paso: cada mapa corre la CRT `map` lugares para
         // pasar por las dos ramas.
-        Client::World::ModelEffectStepServices services;
+        Client::Effects::ModelEffectStepServices services;
         services.terrainHeight = [](float, float) { return 0.0; };
         tested.random.Discard(static_cast<std::uint32_t>(map));
-        for (Client::World::ModelEffect* stone : stones)
+        for (Client::Effects::ModelEffect* stone : stones)
         {
             while (stone->alive)
             {
@@ -845,8 +846,8 @@ TEST(AttackStepTest, TheStatueWithDamageThrowsStones)
                 const bool dusty = probe.Next() % 10 == 0;
                 const std::int32_t life = stone->life;
                 const CrtRandom before = tested.random;
-                const auto moved = Client::World::StepGameModelEffect(*stone, nullptr, tested.particles, 0.0f,
-                                                                      tested.random, nullptr, services);
+                const auto moved = Client::Effects::StepGameModelEffect(*stone, nullptr, tested.particles, 0.0f,
+                                                                        tested.random, nullptr, services);
                 EXPECT_EQ(DrawsSince(before.State(), tested.random), 2);
                 if (dusty)
                 {
@@ -891,13 +892,13 @@ TEST(AttackStepTest, TheBowInTheOwnLeftHandSparksTwentyTimes)
         EXPECT_EQ(DrawsSince(Seed, tested.random), SkillRead + OwnRecord + Sparks * SparkDraws + AfterTheFrames);
         EXPECT_EQ(hero->byte381, 0);
         int found = 0;
-        for (const Client::World::Particle& spark : tested.particles.All())
+        for (const Client::Particles::Particle& spark : tested.particles.All())
         {
             if (!spark.alive)
                 continue;
             ++found;
-            EXPECT_EQ(spark.type, Client::World::SparkParticle);
-            EXPECT_EQ(spark.subtype, Client::World::BowSparkSubtype);
+            EXPECT_EQ(spark.type, Client::Particles::SparkParticle);
+            EXPECT_EQ(spark.subtype, Client::Particles::BowSparkSubtype);
             EXPECT_EQ(spark.texture, 0x5fc);
             EXPECT_EQ(spark.life, 40);
             EXPECT_EQ(spark.angles, hero->angles);
@@ -914,7 +915,7 @@ TEST(AttackStepTest, TheBowInTheOwnLeftHandSparksTwentyTimes)
     }
     {
         AttackWorld tested;
-        for (Client::World::Particle& particle : tested.particles.All())
+        for (Client::Particles::Particle& particle : tested.particles.All())
             particle.alive = true;
         ActorState* hero = prepare(tested);
         ASSERT_TRUE(tested.Attack(*hero, HeroSlot).HasValue());
@@ -945,7 +946,7 @@ TEST(AttackStepTest, TheKillerLaunchesTwoBeamsFromTheTarget)
         SCOPED_TRACE(subtype);
         const JointState& beam = tested.joints[static_cast<std::size_t>(subtype)];
         EXPECT_TRUE(beam.alive);
-        EXPECT_EQ(beam.type, Client::Scenes::KillBeamJoint);
+        EXPECT_EQ(beam.type, Client::Joints::KillBeamJoint);
         EXPECT_EQ(beam.subtype, subtype);
         EXPECT_EQ(beam.ownerContext, &hero);
         EXPECT_EQ(beam.position, tested.Victim().position);
@@ -1010,7 +1011,7 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
                     striker.byte381 = 0;
                 if (hurt)
                     tested.world.Actors()[heroStrikes ? VictimSlot : HeroSlot].damage = 12;
-                Client::World::PortableParticleTrigonometry trigonometry;
+                Client::Particles::PortableParticleTrigonometry trigonometry;
                 const float clock = 0.0f;
                 const std::int32_t map = 0;
                 const auto heads = [&tested]
@@ -1033,18 +1034,18 @@ TEST(AttackStepTest, AMeleeAttackOfEachClassRunsItsSteps)
                         if (before[k] != after[k])
                             headDraws += HeadSortDraws;
                     }
-                    if (!Client::World::StepParticlesChecked(tested.particles, tested.random, std::cref(clock), &map,
-                                                             trigonometry)
+                    if (!Client::Particles::StepParticlesChecked(tested.particles, tested.random, std::cref(clock),
+                                                                 &map, trigonometry)
                              .HasValue())
                         return Client::Core::Expected<void, std::string>(
                             Client::Core::Unexpected(std::string("0x5446e0: el paso de las partículas")));
                 }
                 EXPECT_EQ(striker.byte381, 0);
                 EXPECT_EQ(tested.sounds.size(), attacking ? 1u : 0u);
-                const auto created = std::ranges::count(tested.particles.All(), Client::World::BloodParticle,
-                                                        &Client::World::Particle::type);
+                const auto created = std::ranges::count(tested.particles.All(), Client::Particles::BloodParticle,
+                                                        &Client::Particles::Particle::type);
                 EXPECT_EQ(created, attacking && hurt ? 10 : 0);
-                EXPECT_TRUE(AliveOf(tested.particles, Client::World::BloodParticle).empty());
+                EXPECT_TRUE(AliveOf(tested.particles, Client::Particles::BloodParticle).empty());
                 draws = DrawsSince(Seed, tested.random) - headDraws;
                 return Client::Core::Expected<void, std::string>{};
             };
@@ -1086,7 +1087,7 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
             tested.Victim().alive = true;
             tested.Victim().position = {hero.position.x + 300.0f, hero.position.y, hero.position.z};
             tested.Victim().damage = 12;
-            Client::World::PortableParticleTrigonometry trigonometry;
+            Client::Particles::PortableParticleTrigonometry trigonometry;
             auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
             const float clock = 0.0f;
             const auto sound = [&tested](Client::Audio::SoundId played) { tested.sounds.push_back(played.Value()); };
@@ -1096,11 +1097,11 @@ TEST(AttackStepTest, AKillOfEachClassSendsTheBeamsBackWithoutACut)
                 SCOPED_TRACE(step);
                 const auto stepped = StepCharacters(tested.Context());
                 ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-                ASSERT_TRUE(Client::Scenes::StepJoints(tested.joints, tested.random, nullptr, &tested.particles, clock,
+                ASSERT_TRUE(Client::Joints::StepJoints(tested.joints, tested.random, nullptr, &tested.particles, clock,
                                                        nullptr, lighting.get(), sound)
                                 .HasValue());
-                ASSERT_TRUE(Client::World::StepParticlesChecked(tested.particles, tested.random, std::cref(clock), &map,
-                                                                trigonometry, {}, {}, {}, {}, lighting.get())
+                ASSERT_TRUE(Client::Particles::StepParticlesChecked(tested.particles, tested.random, std::cref(clock),
+                                                                    &map, trigonometry, {}, {}, {}, {}, lighting.get())
                                 .HasValue());
                 if (step > 10 && !tested.particles.Any() && std::ranges::none_of(tested.joints, &JointState::alive))
                     break;

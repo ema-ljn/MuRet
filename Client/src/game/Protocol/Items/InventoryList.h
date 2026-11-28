@@ -29,6 +29,6 @@ struct InventoryList
 // The C2 MuRet's transport rebuilds from the C4, whatever WasDecrypted says. The list keeps the packet's order, its
 // duplicates and any slot, and ignores what follows the counted entries. TooShort without the count or a whole entry,
 // with no partial result (ADR 0010). Only the wire: 0x4c55a0's initialization, its admission flag and the placing are
-// Scenes::ApplyInventory's and Scenes::PlaceInventoryItem's (06, "El F3 10, el inventario").
+// Items::ApplyInventory's and Items::PlaceInventoryItem's (06, "El F3 10, el inventario").
 [[nodiscard]] Core::Expected<InventoryList, Network::ProtocolError> ReadInventoryList(const Network::Packet& packet);
 } // namespace Client::Protocol::Items

@@ -10,7 +10,7 @@
 #include <span>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 inline constexpr std::size_t BirdPoolSize = 40;
 struct FaunaSound
@@ -29,10 +29,10 @@ public:
     FaunaState& operator=(FaunaState&&) = delete;
     [[nodiscard]] std::span<FaunaObject, BirdPoolSize> Birds();
     [[nodiscard]] std::span<const FaunaObject, BirdPoolSize> Birds() const;
-    [[nodiscard]] std::span<FaunaObject, World::FishPoolSize> Fish();
-    [[nodiscard]] std::span<const FaunaObject, World::FishPoolSize> Fish() const;
-    [[nodiscard]] std::array<World::BirdRecord, BirdPoolSize> BirdRecords();
-    [[nodiscard]] std::array<World::FishStepView, World::FishPoolSize> FishViews();
+    [[nodiscard]] std::span<FaunaObject, Fauna::FishPoolSize> Fish();
+    [[nodiscard]] std::span<const FaunaObject, Fauna::FishPoolSize> Fish() const;
+    [[nodiscard]] std::array<Fauna::BirdRecord, BirdPoolSize> BirdRecords();
+    [[nodiscard]] std::array<Fauna::FishStepView, Fauna::FishPoolSize> FishViews();
     void Clear();
     // 41ed10: solicitudes lógicas con identidad durable; el consumidor de audio las drena.
     void Sound(std::int32_t id, const void* owner);
@@ -41,7 +41,7 @@ public:
 
 private:
     std::array<FaunaObject, BirdPoolSize> m_birds{};
-    std::array<FaunaObject, World::FishPoolSize> m_fish{};
+    std::array<FaunaObject, Fauna::FishPoolSize> m_fish{};
     std::vector<FaunaSound> m_sounds;
 };
-} // namespace Client::Scenes
+} // namespace Client::Fauna

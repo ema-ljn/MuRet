@@ -130,7 +130,7 @@ struct ActorState
     std::uint32_t flags7c = 0;
     // +0x78: 0x511290 sets it to 0 (0x511d51). The rider's is read by the horse's step (with 0x4000, no dust or breath:
     // 0x444414 and 0x44455a), its draw (with 0x4000, 0x602e90 with 10: 0x445310) and 0x5ffdf0 (with 0x1000, the horse's
-    // frame at 0: 0x5ffefc). Kalima's guards set 0x100 or 0x8 (0x43aabf, Scenes::StepTheAttackCases). Who else writes
+    // frame at 0: 0x5ffefc). Kalima's guards set 0x100 or 0x8 (0x43aabf, Monsters::StepTheAttackCases). Who else writes
     // it on the character, unread.
     std::uint32_t flags78 = 0;
     // +8: at 1, the dark horse's step of this rider emits twelve 60f/0 (0x44468d) and resets it to 0 (0x444758),
@@ -168,12 +168,12 @@ struct ActorState
     // cases of 0x179, 0x17b to 0x17f, 0x1aa and 0x1ab. 0x511290 does not write it. Who reads it, unread.
     glm::vec3 bonePoint4c{};
     // +0x17c, +0x180 and +0x184: the position 0x4fcee0 copies before frame 3 and outside action 0x8d
-    // (0x4fcf06..0x4fcf1b). 0x4f5b70's 0x49 and 0x4b write it too on the 13 (0x4f7ab9, Scenes::StepTheAttackCases);
+    // (0x4fcf06..0x4fcf1b). 0x4f5b70's 0x49 and 0x4b write it too on the 13 (0x4f7ab9, Monsters::StepTheAttackCases);
     // 0x511290 leaves it: the record's previous use stays (Q-C363). Joint 0x610/4 of sword 0x223 follows the character
     // from here (0x537d55).
     glm::vec3 trailOrigin{};
     // +0x194, +0x198 and +0x19c: the hand bone's point that 0x4f97b0's skill 0x2b leaves with +0x381 up to 8, moved 300
-    // along the heading (0x4f9a1e..0x4f9a80, Scenes::StepTheFrameSkill). The step of the joints with this owner reads
+    // along the heading (0x4f9a1e..0x4f9a80, Skills::StepTheFrameSkill). The step of the joints with this owner reads
     // it (0x535ea9; the same skill's 0x10f/2, CL11). 0x511290 does not write it.
     glm::vec3 skillHandPoint{};
     // +0x1a0: skill 0x2b lights 35 steps of sparks on the target (4f9ba2); 511c62 initializes it to 0.
@@ -212,7 +212,7 @@ struct ActorState
     float blendMeshLight = 0.0f;
     // +0x6c and +0x70: the U and V of 0x4ef0c0's and 0x4ecc30's passes of the character and its parts (0x60cf70).
     // 0x511290 sets them to 0 (0x511d7b and 0x511d7e); 0x433b2f (0x1af on map 34) stores U, and 0x505de0's cases store
-    // U for 0x186 and 0x16c and V for 0x189, 0x16f, 0x16d and 0x161 (Scenes::StepTheModelEffects).
+    // U for 0x186 and 0x16c and V for 0x189, 0x16f, 0x16d and 0x161 (Monsters::StepTheModelEffects).
     float textureU = 0.0f;
     float textureV = 0.0f;
     // +0x188: the logic step counter (0x7d3a0f0) when 0x511290 built it.
@@ -353,7 +353,7 @@ struct ActorState
     std::uint8_t byte38eAccesses = 0;
     // +0x38e: the logical value. With ')' (0x29), 0x50ba30's hands loop skips the right one in action 0x3d, and with
     // '4' (0x34) 0x509340 sets the frame of what hangs to 3.2 in actions 0x22 to 0x97. 0x4cc530 and 0x4f5b70 write it,
-    // unported, and the 1A (0x4ceee4, Scenes::ApplyMagicAttackCount).
+    // unported, and the 1A (0x4ceee4, Combat::ApplyMagicAttackCount).
     std::uint8_t byte38e = 0;
     // What the arriving skills write (CL9 milestone 4, Scenes/SkillReplies.h). What 0x511290 puts in each, unread:
     // they stay 0 until the first arrives.

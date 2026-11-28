@@ -27,13 +27,13 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::ChaosMix
 {
 namespace
 {
+using Hud::WindowDrawing::DrawText;
+using Hud::WindowDrawing::DrawTitle;
 using Render::Text::FontKind;
-using WindowDrawing::DrawText;
-using WindowDrawing::DrawTitle;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -117,10 +117,10 @@ constexpr Render::Text::TextColors HelpColors{.text = 0xffffffffu, .background =
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -138,8 +138,8 @@ Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room
 
 // 0x5fec8d..0x5fed95: el título del modo (0x7d3a114) en la caja de 120 · W / 640; los modos 0 y 1 con el impuesto
 // abajo (sprintf del texto 1623 con 0x78aba34).
-Core::Expected<void, std::string> DrawTheTitle(GameHudContext& context, const NpcWindowState& npc, std::int32_t x,
-                                               std::int32_t y)
+Core::Expected<void, std::string> DrawTheTitle(Hud::GameHudContext& context, const Npc::NpcWindowState& npc,
+                                               std::int32_t x, std::int32_t y)
 {
     if (npc.chaosMixMode != 0 && npc.chaosMixMode != 1)
     {
@@ -164,7 +164,7 @@ Core::Expected<void, std::string> DrawTheTitle(GameHudContext& context, const Np
 }
 
 // 0x5ff0c5..0x5ff2ed: el nombre de la mezcla, del tipo (0x7d2dc98) o de EDI (el tipo, 0 si es negativo, 7 con el 0xb).
-Core::Expected<std::string, std::string> TheMixName(const GameHudContext& context, const NpcWindowState& npc,
+Core::Expected<std::string, std::string> TheMixName(const Hud::GameHudContext& context, const Npc::NpcWindowState& npc,
                                                     std::int32_t shown)
 {
     const auto text = [&context](std::size_t index) { return TextOf(context, index, "0x5ff2ab"); };
@@ -246,8 +246,8 @@ Core::Expected<std::string, std::string> TheMixName(const GameHudContext& contex
 
 // 0x5ff2f2..0x5ff3e4: la chance, sprintf del texto 584 con el 591 y ESI. Con 0x7d2dc9d y el tipo 2 u 8, en celeste
 // con "%s + %d%%" (0x6c9dc0) sobre el mismo buffer, y después el color de los renglones.
-Core::Expected<void, std::string> DrawTheRate(GameHudContext& context, const NpcWindowState& npc, std::int32_t shown,
-                                              std::int32_t rate, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheRate(Hud::GameHudContext& context, const Npc::NpcWindowState& npc,
+                                              std::int32_t shown, std::int32_t rate, std::int32_t x, std::int32_t y)
 {
     auto format = TextOf(context, RateText, "0x5ff336");
     auto mixing = TextOf(context, MixingText, "0x5ff336");
@@ -277,7 +277,7 @@ Core::Expected<void, std::string> DrawTheRate(GameHudContext& context, const Npc
 
 // 0x5ff3e7..0x5ff497: el precio con el impuesto (0x5b12f0) y el de 0x5b1130; el 0xf y el 0x10 con el texto 1636 y el
 // renglón 590 abajo, los demás con el 1622.
-Core::Expected<void, std::string> DrawThePrice(GameHudContext& context, const NpcWindowState& npc,
+Core::Expected<void, std::string> DrawThePrice(Hud::GameHudContext& context, const Npc::NpcWindowState& npc,
                                                std::string_view priceText, std::int32_t x, std::int32_t y)
 {
     const std::string taxed = TaxedPriceText(npc.mixPrice, npc.chaosTaxRate);
@@ -300,8 +300,8 @@ Core::Expected<void, std::string> DrawThePrice(GameHudContext& context, const Np
 }
 
 // 0x5ff49a..0x5ff6ed: la joya del caos y los avisos del tipo (la tabla de 0x5ff8c0 con el tipo − 3).
-Core::Expected<void, std::string> DrawTheWarnings(GameHudContext& context, const NpcWindowState& npc, std::int32_t x,
-                                                  std::int32_t y)
+Core::Expected<void, std::string> DrawTheWarnings(Hud::GameHudContext& context, const Npc::NpcWindowState& npc,
+                                                  std::int32_t x, std::int32_t y)
 {
     context.hud.textColors = Render::Text::TextColors{.text = JewelColor, .background = LineBackground};
     auto jewel = TextOf(context, JewelText, "0x5ff4bf");
@@ -359,12 +359,13 @@ Core::Expected<void, std::string> DrawTheWarnings(GameHudContext& context, const
 
 // 0x5ff6f0..0x5ff816: el botón de mezclar, apretado con el botón izquierdo abajo, y su ayuda (texto 591) con el mouse
 // encima (x87: izquierda ≤ mouse < izquierda + 44, arriba ≤ mouse < arriba + 32).
-Core::Expected<void, std::string> DrawTheMixButton(GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheMixButton(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const float left = F32(static_cast<double>(x) + MixButtonLeft);
     const float top = F32(static_cast<double>(y) + MixButtonTop);
-    WindowDrawing::Quad(sprites, MixButtonSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu, MixButtonDv);
+    Hud::WindowDrawing::Quad(sprites, MixButtonSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu,
+                             MixButtonDv);
     const auto mouseX = static_cast<double>(context.mouse.x);
     const auto mouseY = static_cast<double>(context.mouse.y);
     const bool inside = static_cast<double>(left) <= mouseX &&
@@ -374,40 +375,40 @@ Core::Expected<void, std::string> DrawTheMixButton(GameHudContext& context, std:
     if (!inside)
         return {};
     if (context.leftDown)
-        WindowDrawing::Quad(sprites, MixButtonDownSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu,
-                            MixButtonDv);
+        Hud::WindowDrawing::Quad(sprites, MixButtonDownSlot, left, top, MixButtonWidth, MixButtonHeight, MixButtonDu,
+                                 MixButtonDv);
     auto help = TextOf(context, MixingText, "0x5ff811");
     if (!help.HasValue())
         return Core::Unexpected(help.Error());
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = HelpColors;
-    UI::DrawHelp(sprites, context.text, Truncate(static_cast<double>(left)),
+    Ui::DrawHelp(sprites, context.text, Truncate(static_cast<double>(left)),
                  Truncate(static_cast<double>(top)) - HelpAbove, help.Value());
     // 0x554340 selecciona la normal, que queda en el DC, y deja el texto en blanco sobre un fondo transparente.
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawTheChaosBox(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::ChaosBoxPanel))
+    if (!panels.IsOpen(Ui::ChaosBoxPanel))
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     runtime.ui.npcWindowX = WindowLeft;
     runtime.ui.npcWindowY = WindowTop;
     const std::int32_t x = runtime.ui.npcWindowX;
     const std::int32_t y = runtime.ui.npcWindowY;
     // 0x5fec2c: 0x5ee220(0x104, 0, 0) y la grilla (0x5e3660).
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
-    DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + GridLeft), F32(static_cast<double>(y) + GridTop),
-                     npc.chaosBox, GridColumns, GridRows);
+    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Hud::DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + GridLeft), F32(static_cast<double>(y) + GridTop),
+                          npc.chaosBox, GridColumns, GridRows);
     sprites.SetColor(White);
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     hud.textColors = TitleColors;
     if (auto title = DrawTheTitle(context, npc, x, y); !title.HasValue())
         return title;
@@ -449,4 +450,4 @@ Core::Expected<void, std::string> DrawTheChaosBox(GameHudContext& context, UI::P
         return warnings;
     return DrawTheMixButton(context, x, y);
 }
-} // namespace Client::Scenes
+} // namespace Client::ChaosMix

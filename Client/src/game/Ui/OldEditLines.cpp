@@ -16,7 +16,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -327,4 +327,4 @@ void BreakTheEditLine(OldEdit& edit)
     edit.text.Insert(LineBreak);
     edit.followCaret = true;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

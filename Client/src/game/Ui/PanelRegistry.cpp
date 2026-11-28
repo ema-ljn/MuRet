@@ -17,7 +17,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -657,7 +657,7 @@ Core::Expected<bool, std::string> PanelRegistry::CloseByMask(PanelId mask, bool 
         case SecondGuildPanel:
         {
             // 0x657b50 y 0x657b73: la vtable + 0x2c de [0x7d536f0] (0x6522f0) y de [0x7d536f4] (0x6570b0), sin mirar
-            // nada. MuRet corta sin el cierre prestado (Scenes::GamePanels::LendTheGuild o LendTheSession).
+            // nada. MuRet corta sin el cierre prestado (Hud::GamePanels::LendTheGuild o LendTheSession).
             const auto& closer = id == GuildPanel ? m_context.guildClosed : m_context.secondGuildClosed;
             if (!closer)
                 return Core::Unexpected(CloseCut(id));
@@ -924,4 +924,4 @@ void PanelRegistry::PlayTheSounds() const
     m_context.sound(FirstPanelSound);
     m_context.sound(SecondPanelSound);
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -30,7 +30,7 @@ constexpr std::int16_t FirstAdditiveBody = 0xed, CrywolfShotBody = 0xee;
 } // namespace
 
 Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       World::ModelEffect& effect,
+                                                       Effects::ModelEffect& effect,
                                                        const Actors::Drawing::DrawnObject& input,
                                                        Core::Duration frameClock, const VertexEffectEmitter& emit)
 {
@@ -64,7 +64,7 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
         if (auto emitted = emit(stone ? StoneFragments : IceFragments, object, meshes); !emitted.HasValue())
             return emitted;
     }
-    else if (effect.type == World::FirstDebrisEffect || effect.type == World::DebrisEffect)
+    else if (effect.type == Effects::FirstDebrisEffect || effect.type == Effects::DebrisEffect)
     {
         if (effect.subtype == 2 || effect.subtype == 3)
         {
@@ -123,4 +123,4 @@ Core::Expected<void, std::string> DrawCastleWeaponBody(Render::ModelBatch& batch
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

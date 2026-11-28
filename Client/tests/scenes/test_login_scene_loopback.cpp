@@ -61,10 +61,8 @@ namespace
 using Client::App::AutoLogin;
 using Client::App::Credentials;
 using Client::App::LabXorRemapTables;
-using Client::App::ServerAddress;
 using Client::App::ServerSession;
 using Client::App::SessionSettings;
-using Client::App::SessionState;
 using Client::Assets::LoginTextureSet;
 using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
@@ -80,6 +78,8 @@ using Client::Scenes::LoginScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
+using Client::Session::ServerAddress;
+using Client::Session::SessionState;
 using Client::Tables::GameData;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeServers;
@@ -127,7 +127,7 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     WriteTextureSet(folder.Path(), WindowTextureSet);
     FakeTextureStore store;
     const GameData data;
-    const Client::Scenes::SingleModelLibrary models;
+    const Client::FrontEnd::SingleModelLibrary models;
     RecordingFrameTarget target;
     std::vector<SceneId> built;
     SceneManager manager(

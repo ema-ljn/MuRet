@@ -22,7 +22,7 @@
 #include <string_view>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -34,7 +34,7 @@ constexpr std::uint32_t OpenGate = 0x20000;
 constexpr Audio::SoundId GateSound{0x1ed};
 
 Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, bool open,
-                                                    const WorldEntryResources& resources)
+                                                    const Scenes::WorldEntryResources& resources)
 {
     std::int32_t x = 0, y = 0;
     // El orden de los cierres de 4 bytes es Y, X; no se comparte con accesos exteriores.
@@ -52,7 +52,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, b
     {
         if (x != gate.x || y != gate.y)
             continue;
-        const auto& attributes = TerrainOf(resources).attributes;
+        const auto& attributes = Scenes::TerrainOf(resources).attributes;
         if (!attributes)
             return Core::Unexpected(std::string("0x42a110: faltan los atributos de las puertas del castillo"));
         constexpr int GateWidth = 4;
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, b
 } // namespace
 
 Core::Expected<void, std::string> SetTheCastleGateState(Kernel::ActorState& actor, bool open,
-                                                        const WorldEntryResources& resources)
+                                                        const Scenes::WorldEntryResources& resources)
 {
     if (auto action = Actors::SetMonsterAction(actor, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
         return action;
@@ -78,7 +78,7 @@ Core::Expected<void, std::string> SetTheCastleGateState(Kernel::ActorState& acto
 }
 
 Core::Expected<void, std::string> SetTheCastleGate(Kernel::ActorState& cellsActor, Kernel::ActorState& gate, bool open,
-                                                   const WorldEntryResources& resources)
+                                                   const Scenes::WorldEntryResources& resources)
 {
     if (auto action = Actors::SetMonsterAction(gate, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
         return action;
@@ -96,14 +96,14 @@ Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name, Ker
 
 Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name,
                                                       std::span<Kernel::ActorState, CastleBattleActorCount> actors,
-                                                      const GuildState& guild)
+                                                      const Guild::GuildState& guild)
 {
     for (Kernel::ActorState& actor : actors)
     {
         if (!actor.alive || !actor.seen)
             continue;
         Kernel::ReleaseTheLayer(actor);
-        const auto unionName = UnionNameAt(guild, static_cast<std::int16_t>(actor.word1f2));
+        const auto unionName = Guild::UnionNameAt(guild, static_cast<std::int16_t>(actor.word1f2));
         if (!unionName)
             return Core::Unexpected(std::format("0x42aea2: la alianza del índice {} sale de la tabla del gremio",
                                                 static_cast<std::int16_t>(actor.word1f2)));
@@ -126,4 +126,4 @@ Core::Expected<void, std::string> ApplyTheCastleOwner(std::string_view name,
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

@@ -12,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -165,4 +165,4 @@ std::string ServerLabel(std::string_view group, int number, bool nonPvp, std::st
     label.append(load);
     return label;
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

@@ -25,7 +25,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> EquipSelectionActor(Kernel::WorldState& world,
                 ? 0.0
                 : Terrain::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes, CellCentre,
                                            CellCentre, construction.fixedHeight);
-        actor.darkSpirit = CreateDarkSpirit(
+        actor.darkSpirit = Pets::CreateDarkSpirit(
             actor.cellX, actor.cellY, height, cloth.random,
             {.cellX = actor.cellXAccesses, .cellY = actor.cellYAccesses, .counter = cloth.openCounterAccesses});
     }
@@ -100,8 +100,8 @@ Core::Expected<void, std::string> EquipSelectionActor(Kernel::WorldState& world,
         actor.wings.flags1c = 0;
     }
     Kernel::TurnOffHelpersOf(world.Helpers(), entry.slot);
-    if (auto pets =
-            Actors::CreateCharacterSetPets(world, entry.slot, entry.equipment, TableHelpers(world, &cloth.random));
+    if (auto pets = Actors::CreateCharacterSetPets(world, entry.slot, entry.equipment,
+                                                   Pets::TableHelpers(world, &cloth.random));
         !pets.HasValue())
     {
         return pets;
@@ -146,7 +146,7 @@ Core::Expected<void, std::string> ConstructSelectionActor(Kernel::WorldState& wo
     }
     actor.head = Kernel::HeadUnder(actor.body[0].model, characterClass).value_or(Kernel::NoItemModel);
     auto stopped = Actors::SetActorStop(actor, {.runtime = world.Runtime(),
-                                                .scene = SceneId::CharacterSelect,
+                                                .scene = Scenes::SceneId::CharacterSelect,
                                                 .playerSkeleton = skeleton,
                                                 .random = cloth.random});
     if (!stopped.HasValue())
@@ -169,4 +169,4 @@ Core::Expected<void, std::string> ConstructSelectionActor(Kernel::WorldState& wo
     actor.guildStatus = entry.guildStatus;
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

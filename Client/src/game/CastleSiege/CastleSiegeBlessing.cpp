@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -26,7 +26,7 @@ bool InRange(const Kernel::ActorState& actor, float x, float y)
 } // namespace
 Core::Expected<void, std::string> DrawTheCastleBlessing(const Kernel::ActorState& actor, std::uint16_t heroGuildIndex,
                                                         float markX, float markY, std::int32_t logicSteps,
-                                                        World::Particles& particles, Crt::CrtRandom& random)
+                                                        Particles::Particles& particles, Crt::CrtRandom& random)
 {
     bool close = false;
     if ((actor.flags78 & 0x40000) != 0)
@@ -43,10 +43,10 @@ Core::Expected<void, std::string> DrawTheCastleBlessing(const Kernel::ActorState
         close = InRange(actor, markX, markY);
     if (!close || logicSteps % 10 != 0)
         return {};
-    const auto emitted = particles.CreateChecked(World::SiegeBlessingParticle, actor.position, actor.angles,
+    const auto emitted = particles.CreateChecked(Particles::SiegeBlessingParticle, actor.position, actor.angles,
                                                  actor.light, 0, 1.0f, 0.0f, random);
     if (!emitted.HasValue())
         return Core::Unexpected(std::string("0x42de7f: falla el alta de la bendición638"));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

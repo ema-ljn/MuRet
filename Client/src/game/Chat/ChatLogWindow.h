@@ -14,7 +14,7 @@
 // El paso del registro del chat (CL8 hito 3; 06 § El chat): 0x45aa80, su vtable + 0x18, que corre desde el paso de
 // la UI (0x636e4c) con 0, y lo que llama: el mouse (0x479960), la barra, los botones y el borde de arriba (0x45d760 y
 // 0x45d990) y el mouse sobre los nombres (0x45dec0). También la barra que calcula el dibujo del marco (0x47a230).
-namespace Client::UI
+namespace Client::Chat
 {
 // Los globales de la UI que lee y escribe el paso.
 struct ChatLogGlobals
@@ -97,4 +97,4 @@ void PlaceTheLogBar(const ChatLogState& log, ChatModes modes, ChatLogFrame& fram
 // no sigue. Después 0x479960.
 [[nodiscard]] ChatLogStepResult StepTheChatLog(ChatLogState& log, ChatLogFrame& frame, const ChatLogGlobals& globals,
                                                const ChatLogStepView& view);
-} // namespace Client::UI
+} // namespace Client::Chat

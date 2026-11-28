@@ -6,7 +6,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -93,4 +93,4 @@ glm::vec3 ScaledParticleDrawLight(const Particle& particle)
     }
     return light;
 }
-} // namespace Client::World
+} // namespace Client::Particles

@@ -14,7 +14,7 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::MapScripts::Kalima
 {
 // 4379a0: tabla pública clase/nivel. Conserva el retorno7 cuando ningún rango acepta.
 [[nodiscard]] std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level);
@@ -22,4 +22,4 @@ namespace Client::Scenes
 // local del pase; WorldRuntime conserva el count anterior hasta completar este prefijo.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldState& world,
                                                                                 Models::ClothWorld& cloth);
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Kalima

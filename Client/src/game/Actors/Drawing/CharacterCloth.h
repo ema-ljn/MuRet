@@ -120,7 +120,7 @@ public:
     }
     // object + 0x190 of a monster with the cloth on the mesh (vtable 0x6b8d04, 0x50bae7): the one DrawGameMonster
     // builds and simulates. With the same +0x376 it does not wear the one above.
-    [[nodiscard]] Scenes::MonsterMeshCloth& OnTheMesh()
+    [[nodiscard]] Actors::Drawing::MonsterMeshCloth& OnTheMesh()
     {
         return m_onTheMesh;
     }
@@ -151,6 +151,6 @@ private:
     std::vector<Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
     Models::OriginalFrameCarry m_frames;
-    Scenes::MonsterMeshCloth m_onTheMesh;
+    Actors::Drawing::MonsterMeshCloth m_onTheMesh;
 };
 } // namespace Client::Actors::Drawing

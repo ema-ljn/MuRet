@@ -137,11 +137,11 @@ struct Game
     // The lab's Data folder, for the Monster*.bmd that the creation of 0x5141e0 looks at; empty outside the tests with
     // data.
     std::filesystem::path dataRoot;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     // Item.bmd with nothing marked, for 0x54efe0 from 0x512a30.
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     // Without any set: 0x40e1b0 (from 0x512a30) walks the equipment and applies nothing.
@@ -150,7 +150,7 @@ struct Game
                                          std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize));
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    Client::Scenes::ActorEffectHooks effectHooks;
+    Client::Effects::ActorEffectHooks effectHooks;
 };
 
 struct Cell
@@ -256,7 +256,7 @@ TEST_F(ViewportPlayersTest, ANewPlayerAppearsInTheCentreOfItsCell)
         EXPECT_EQ(actor.byte1e3, 0);
         const auto& effect = game->world.Map().effects.Effects()[0];
         EXPECT_TRUE(effect.alive);
-        EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+        EXPECT_EQ(effect.type, Client::Effects::ArrivalEffect);
         EXPECT_TRUE(effect.hasOwner);
         EXPECT_EQ(effect.ownerContext, &actor);
         EXPECT_EQ(effect.disturbanceState, 0xffffu);
@@ -304,8 +304,8 @@ TEST_F(ViewportPlayersTest, AnOldPlayerWalksTowardsItsTarget)
 // here). With the table full, none, and it goes on.
 TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
 {
-    using Client::World::GuardFlareSubtype;
-    using Client::World::SwellFlareSubtype;
+    using Client::Effects::GuardFlareSubtype;
+    using Client::Effects::SwellFlareSubtype;
     struct Case
     {
         std::uint32_t flags;
@@ -347,7 +347,7 @@ TEST_F(ViewportPlayersTest, TheGuardAndSwellFlagsLightTheirFlaresOnThePlayer)
                 ASSERT_EQ(effect.alive, test.subtypes[slot] >= 0);
                 if (!effect.alive)
                     continue;
-                EXPECT_EQ(effect.type, Client::World::IcarusFlareEffect);
+                EXPECT_EQ(effect.type, Client::Effects::IcarusFlareEffect);
                 EXPECT_EQ(effect.subtype, test.subtypes[slot]);
                 EXPECT_EQ(effect.ownerContext, &actor);
                 EXPECT_EQ(effect.life, 1000);
@@ -369,7 +369,7 @@ TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFo
         Load(map);
         const Cell cell = FreeRow();
         auto& effects = game->world.Map().effects;
-        while (effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f))
+        while (effects.Create(Client::Effects::ArrivalEffect, {}, {}, {}, 0.0f))
         {
         }
         const std::array<ViewportPlayerRecord, 1> records{
@@ -378,7 +378,7 @@ TEST_F(ViewportPlayersTest, TheFlaresOfTheFlagsWithAFullTableAreNoneAndTheRestFo
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Actor(1).flags78, 0x410u | 0x1000000u);
         for (const auto& effect : effects.Effects())
-            EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+            EXPECT_EQ(effect.type, Client::Effects::ArrivalEffect);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, FreshRecordDraws).State());
     }
 }
@@ -447,8 +447,8 @@ TEST_F(ViewportPlayersTest, TheTeleportStateKeepsWhatTheOldOneHad)
     EXPECT_EQ(actor.alpha, 0.0f);
     EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x76});
     const auto effects = game->world.Map().effects.Effects();
-    EXPECT_EQ(effects[0].type, Client::World::TeleportEffect);
-    EXPECT_EQ(effects[1].type, Client::World::ArrivalEffect);
+    EXPECT_EQ(effects[0].type, Client::Effects::TeleportEffect);
+    EXPECT_EQ(effects[1].type, Client::Effects::ArrivalEffect);
     EXPECT_FALSE(effects[0].hasOwner);
     EXPECT_EQ(effects[0].ownerContext, nullptr);
     EXPECT_TRUE(effects[1].hasOwner);
@@ -556,12 +556,12 @@ TEST_F(ViewportPlayersTest, TheKalimaJointFollowsItsPlayerAndDiesWithIt)
     auto& joints = game->world.DrawTail().joints;
     ActorState& actor = Actor(1);
     actor.position = {1234.0f, 5678.0f, 90.0f};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_TRUE(joints[0].alive);
     EXPECT_EQ(joints[0].position, glm::vec3(1234.0f, 5678.0f, 300.0f));
     EXPECT_EQ(joints[0].life, 99);
     actor.alive = false;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FALSE(joints[0].alive);
 }
 
@@ -663,7 +663,7 @@ TEST(ViewportLeaveTest, TheLeaveRemovesWithoutTheNewBitAndClearsTheSiegeHalf)
     leaving.alive = true;
     leaving.key = 0x0123;
     leaving.darkSpirit.emplace();
-    const auto helper = Client::Scenes::CreateHelper(world, 0xc6, leaving.position, 2);
+    const auto helper = Client::Pets::CreateHelper(world, 0xc6, leaving.position, 2);
     ASSERT_TRUE(helper.HasValue()) << helper.Error();
     ASSERT_TRUE(helper.Value().has_value());
     auto& info = world.Runtime().castleSiege.castleSiegeInfo;
@@ -783,7 +783,7 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
     EXPECT_EQ(std::to_integer<char>(actor.name[0]), 'U');
     const auto effects = std::as_const(game->world.Map().effects).Effects();
-    const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+    const auto circle = std::ranges::find_if(effects, [](const Client::Effects::ModelEffect& effect)
                                              { return effect.alive && effect.type == 0xec; });
     ASSERT_NE(circle, effects.end());
     EXPECT_EQ(circle->subtype, 0);
@@ -791,11 +791,11 @@ TEST_F(ViewportPlayersTest, FinishingTheTransformedWalksOrRaisesItsCircleWhenItA
     EXPECT_EQ(circle->life, 30);
     EXPECT_EQ(circle->transform.position, actor.position);
     const auto& particles = std::as_const(game->world.Particles()).All();
-    const auto bolt = std::ranges::find_if(particles, [](const Client::World::Particle& particle)
+    const auto bolt = std::ranges::find_if(particles, [](const Client::Particles::Particle& particle)
                                            { return particle.alive && particle.type == 0x5d5; });
     ASSERT_NE(bolt, particles.end());
     EXPECT_EQ(bolt->subtype, 2);
-    EXPECT_EQ(bolt->typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, 1}));
+    EXPECT_EQ(bolt->typedOwner, (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::Actor, 1}));
     EXPECT_EQ(actor.alpha, 0.0f);
     EXPECT_EQ(actor.position.x, (static_cast<float>(cell.x) + 0.5f) * 100.0f);
     CrtRandom expected = before;
@@ -821,8 +821,8 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
     Client::Tests::RecordingTextDrawer measure{sprites};
     auto resources = game->Resources();
     resources.texts = &texts;
-    Client::Scenes::ChatMessages messages{game->world.Runtime(), measure,
-                                          [] { return Client::Core::PixelSize{640, 480}; }};
+    Client::Chat::ChatMessages messages{game->world.Runtime(), measure,
+                                        [] { return Client::Core::PixelSize{640, 480}; }};
     resources.onScreenMessages = &messages;
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
@@ -880,7 +880,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     Client::Tests::RecordingTextDrawer measure{sprites};
     auto resources = game->Resources();
     resources.texts = &texts;
-    Client::Scenes::ChatMessages messages{game->world.Runtime(), measure, resources.screen};
+    Client::Chat::ChatMessages messages{game->world.Runtime(), measure, resources.screen};
     resources.onScreenMessages = &messages;
     auto& chat = game->world.Runtime().chat;
     chat.log.entries.push_back({.name = "", .text = "previo"});
@@ -895,7 +895,7 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     ASSERT_EQ(chat.area.count, 1);
     EXPECT_TRUE(chat.area.rows[0].name.empty());
     EXPECT_TRUE(chat.area.rows[0].text.empty());
-    EXPECT_EQ(chat.area.clock, Client::UI::MessageClockSteps);
+    EXPECT_EQ(chat.area.clock, Client::Ui::MessageClockSteps);
 }
 
 // The 0x25 and the 0xDF on a player already there.
@@ -1047,7 +1047,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeCreatesTwentySparksWithoutMovingItsCell)
         EXPECT_EQ(particles[index].alive, index < 20);
         if (index >= 20)
             continue;
-        EXPECT_EQ(particles[index].type, Client::World::FairySparkParticle);
+        EXPECT_EQ(particles[index].type, Client::Particles::FairySparkParticle);
         EXPECT_EQ(particles[index].subtype, 2);
         EXPECT_EQ(particles[index].position, glm::vec3(12, 34, 136));
         EXPECT_EQ(particles[index].light, glm::vec3(1));
@@ -1085,7 +1085,7 @@ TEST_F(ShownEquipmentTest, ThePushedTypeKeepsEveryAttemptWithAPartialOrFullPool)
             EXPECT_TRUE(particles[index].alive);
             if (index < free)
             {
-                EXPECT_EQ(particles[index].type, Client::World::FairySparkParticle);
+                EXPECT_EQ(particles[index].type, Client::Particles::FairySparkParticle);
                 EXPECT_EQ(particles[index].subtype, 2);
             }
             else

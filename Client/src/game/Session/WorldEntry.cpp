@@ -212,7 +212,7 @@ void PublishTheHero(const WorldEntryResources& resources)
 void CreateTheArrival(const WorldEntryResources& resources)
 {
     Kernel::ActorState& hero = HeroOf(resources);
-    static_cast<void>(resources.world.Map().effects.Create({.type = World::ArrivalEffect,
+    static_cast<void>(resources.world.Map().effects.Create({.type = Effects::ArrivalEffect,
                                                             .position = hero.position,
                                                             .angles = hero.angles,
                                                             .light = hero.light,
@@ -232,8 +232,8 @@ void StartTheWait(const WorldEntryResources& resources)
 // consultas del comercio y de la tienda de NPC.
 Core::Expected<void, std::string> CloseTheWindows(const WorldEntryResources& resources)
 {
-    GamePanels panels(resources.world, resources.cloth.random);
-    LendTheCastlePanelServices(panels, resources);
+    Hud::GamePanels panels(resources.world, resources.cloth.random);
+    CastleSiege::LendTheCastlePanelServices(panels, resources);
     return panels.Registry().CloseAll();
 }
 
@@ -374,7 +374,7 @@ SettleWorldEntry(WorldEntryResult result, const WorldEntryResources& resources, 
     AskForTheSounds(resources.world.Runtime().map, resources.world.Runtime(), result);
     // 0x4c4a19..0x4c4b0e, el chequeo de ResourceGuard, no hace nada (Q-C147). 0x4c4b22..0x4c4b28: 0x65dc30, el cartel
     // con el nombre del mapa.
-    ShowTheMapBanner(resources.world.Runtime().hud.mapBanner, resources.world.Runtime().map);
+    Hud::ShowTheMapBanner(resources.world.Runtime().hud.mapBanner, resources.world.Runtime().map);
     // 0x4c4b2d..0x4c4b60: el renglón de bienvenida, con el formato 0x6c83e0 y el nombre 0x5767978.
     if (auto welcome = AddTheWelcomeLine(resources); !welcome.HasValue())
     {

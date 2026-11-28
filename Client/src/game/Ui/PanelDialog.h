@@ -23,7 +23,7 @@ class ITextMeasure;
 // pregunta de hasta diez renglones con uno o dos botones, que abren los paquetes (el 50 y el E5) con 0x6600d0 y que
 // responde a quien lo abrió con un motivo. Lo atienden el registro de los paneles (la tecla primero, 0x657880; el paso,
 // 0x657930; cerrar todo, 0x657a90) y el dibujo de los paneles (0x6579e0 → 0x660830).
-namespace Client::UI
+namespace Client::Ui
 {
 // +0xa18: los botones y lo demás. 1, Aceptar (228); 2, Sí y No (228 y 229); 4, Confirmar y Cancelar (1037 y 1038); 8,
 // el reloj; 0x10, el campo de texto.
@@ -199,7 +199,7 @@ struct PanelDialogRequest
 
 // 0x6605b0: abierto, el mouse sobre la caja (0x140 − ancho / 2, 0x82 − alto / 2) es de la UI; después, los botones
 // (0x45b200) o el reloj, y la respuesta. Con el paso propio (+8), nada más: lo llama quien lo puso
-// (Scenes::LendThePanelDialogStepTo).
+// (Guild::LendThePanelDialogStepTo).
 [[nodiscard]] Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog,
                                                                    const OldWindowGlobals& globals, std::int32_t mouseX,
                                                                    std::int32_t mouseY, std::uint32_t now,
@@ -208,5 +208,5 @@ struct PanelDialogRequest
 // 0x660830, la parte que el paso lee: la caja (0x6576a0: x 0xd6 e y 0x82 − alto / 2, nunca menos de 40, o 10 con
 // +0xa24) y la y de los botones (y + 0x14, 15 por renglón, 17 con el campo, 17 con el reloj y 9), con sus x. Devuelve
 // la esquina de la caja.
-UI::Point PlaceThePanelDialog(PanelDialogState& dialog);
-} // namespace Client::UI
+Ui::Point PlaceThePanelDialog(PanelDialogState& dialog);
+} // namespace Client::Ui

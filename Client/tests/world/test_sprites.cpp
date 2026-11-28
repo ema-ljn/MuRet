@@ -8,17 +8,17 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::World::FrameSprites (0x5491e0, 0x549510 y el alpha de 0x549290; 06 § Los efectos del login).
+// Client::Particles::FrameSprites (0x5491e0, 0x549510 y el alpha de 0x549290; 06 § Los efectos del login).
 namespace
 {
-using Client::World::FrameSprites;
-using Client::World::Sprite;
+using Client::Particles::FrameSprites;
+using Client::Particles::Sprite;
 
 // 0x5491e0 toma el primer lugar sin el byte vivo de los 1.000 y lo arma con el alpha en 1.
 TEST(SpritesTest, TheFirstFreePlaceOfAThousand)
 {
     FrameSprites sprites;
-    for (std::size_t k = 0; k < Client::World::SpriteCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::SpriteCount; ++k)
     {
         ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(static_cast<float>(k)), 1.0f, glm::vec3(1.0f), 0.0f, 0));
     }
@@ -46,14 +46,14 @@ TEST(SpritesTest, TheAlphaRisesWhenSeenAndFallsWhenNot)
     Sprite sprite;
     sprite.alpha = 0.5f;
     sprite.seen = true;
-    Client::World::StepSpriteAlpha(sprite);
+    Client::Particles::StepSpriteAlpha(sprite);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(sprite.alpha), std::bit_cast<std::uint32_t>(0.5f + 0.1f));
     sprite.alpha = 0.95f;
-    Client::World::StepSpriteAlpha(sprite);
+    Client::Particles::StepSpriteAlpha(sprite);
     EXPECT_EQ(sprite.alpha, 1.0f);
     sprite.seen = false;
     sprite.alpha = 0.25f;
-    Client::World::StepSpriteAlpha(sprite);
+    Client::Particles::StepSpriteAlpha(sprite);
     EXPECT_EQ(sprite.alpha, 0.2f);
 }
 } // namespace

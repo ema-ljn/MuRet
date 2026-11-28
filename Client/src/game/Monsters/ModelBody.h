@@ -25,7 +25,7 @@ struct ActorState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 
 // 0x4f96d4..0x4f9737, después de los factores comunes: el NewFace (0xa8..0xac) por 2 (FADD), el 0x192 en la acción 6
@@ -62,4 +62,4 @@ SetTheModelHeadTarget(Kernel::ActorState& actor, std::span<const Kernel::ActorSt
 // negativo; si no, (0, 0).
 void LookAtTheTarget(Kernel::ActorState& actor, const Kernel::ActorState& target);
 
-} // namespace Client::Scenes
+} // namespace Client::Monsters

@@ -49,13 +49,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -134,7 +134,7 @@ protected:
         return world->Runtime();
     }
 
-    Client::Core::Expected<void, std::string> Draw(Client::UI::Point mouse, bool projecting = false)
+    Client::Core::Expected<void, std::string> Draw(Client::Ui::Point mouse, bool projecting = false)
     {
         Client::Kernel::WorldRuntime& runtime = Runtime();
         Client::Kernel::ActorState& hero = world->Hero();
@@ -151,13 +151,13 @@ protected:
                                .text = text,
                                .texts = &texts,
                                .mouse = mouse};
-        Client::Scenes::GamePanels panels(*world, random);
-        return Client::Scenes::DrawTheEventNpcWindow(context, panels.Registry());
+        Client::Hud::GamePanels panels(*world, random);
+        return Client::Events::DrawTheEventNpcWindow(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        const Client::Scenes::GameChatContext chat{
+        const Client::Chat::GameChatContext chat{
             .world = *world, .random = random, .send = [this](Client::Protocol::Outgoing packet) {
                 sent.push_back(std::move(packet));
             }};
@@ -168,15 +168,15 @@ protected:
                                     .mouseY = y,
                                     .chat = &chat,
                                     .texts = &texts};
-        Client::Scenes::GamePanels panels(*world, random);
+        Client::Hud::GamePanels panels(*world, random);
         panels.LendTheWindowClose([this]() { sent.push_back(Client::Protocol::Session::WriteWindowClose()); });
-        return Client::Scenes::StepTheEventNpcWindow(context, panels.Registry());
+        return Client::Events::StepTheEventNpcWindow(context, panels.Registry());
     }
 
     void Open(std::uint8_t kind)
     {
         // Cada mundo sintético ya pasó por la selección (0x5bbe10), igual que el juego real.
-        Client::Scenes::ClearSelectionInventory(*world, random);
+        Client::FrontEnd::ClearSelectionInventory(*world, random);
         Runtime().panels.eventNpc = 1;
         Runtime().panels.eventNpcKind = kind;
         Runtime().panels.inventory = 1;
@@ -204,16 +204,16 @@ protected:
 TEST_F(EventNpcWindowTest, FindsTheInventoryItemFromTheLastColumn)
 {
     const Client::Kernel::OwnInventory& inventory = world->Inventory();
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, 0), -1);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 0), -1);
     PutItem(9, 0x1c13, 0);  // fila 1, columna 1
     PutItem(17, 0x1c13, 0); // fila 2, columna 1
     PutItem(2, 0x1c13, 3);  // fila 0, columna 2
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, 0), 17);
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, -1), 2);
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, 3), 2);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 0), 17);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, -1), 2);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 3), 2);
     world->Inventory().cells[2].occupied = 0;
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1c13, 3), -1);
-    EXPECT_EQ(Client::Scenes::FindInventoryItem(inventory, 0x1a12, -1), -1);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1c13, 3), -1);
+    EXPECT_EQ(Client::Events::FindInventoryItem(inventory, 0x1a12, -1), -1);
 }
 
 // Devil Square (0x1000): el fondo, los seis botones 0xf0 desde (285, 187) de a 40 (blanco con el mouse, si no
@@ -350,7 +350,7 @@ TEST_F(EventNpcWindowTest, TheBloodCastleWindowDrawsItsBridges)
         EXPECT_EQ(text.texts[0].style.colors.text, 0xdcffdcbeu);
         EXPECT_EQ(text.texts[6].text, characterClass == 0 ? "puente 7 (331-400)" : "puente 7 (311-400)");
         EXPECT_EQ(text.texts[7].text, "el castillo");
-        const std::vector<std::string> story = Client::UI::SplitIntoLines(NpcTexts()[832], 7, 0x1a);
+        const std::vector<std::string> story = Client::Ui::SplitIntoLines(NpcTexts()[832], 7, 0x1a);
         ASSERT_EQ(text.texts.size(), 8u + story.size());
         for (std::size_t line = 0; line < story.size(); ++line)
         {
@@ -407,7 +407,7 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
                                              Client::Protocol::Session::WriteWindowClose().packet.Bytes()));
         EXPECT_EQ(Runtime().panels.eventNpc, 0);
         EXPECT_EQ(Runtime().panels.inventory, 0);
-        EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+        EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
         EXPECT_EQ(std::string_view(Runtime().dialogBox.rows.data()), warning);
     }
     sent.clear();
@@ -419,7 +419,7 @@ TEST_F(EventNpcWindowTest, TheDevilSquareStepWarns)
     const auto stepped = Step(300, 232);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sent.empty());
-    EXPECT_EQ(Runtime().dialogs.current, Client::UI::MessageBoxDialog);
+    EXPECT_EQ(Runtime().dialogs.current, Client::Ui::MessageBoxDialog);
     EXPECT_EQ(std::string_view(Runtime().dialogBox.rows.data()), "sin invitacion");
 
     world = std::make_unique<WorldState>();

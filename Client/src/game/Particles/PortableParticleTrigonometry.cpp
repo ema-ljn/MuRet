@@ -6,7 +6,7 @@
 
 #include <optional>
 
-namespace Client::World
+namespace Client::Particles
 {
 Core::Expected<double, ParticleError> PortableParticleTrigonometry::SineProductPC53(double argument,
                                                                                     float multiplier) const
@@ -29,4 +29,4 @@ Core::Expected<double, ParticleError> PortableParticleTrigonometry::CosineProduc
     }
     return *product;
 }
-} // namespace Client::World
+} // namespace Client::Particles

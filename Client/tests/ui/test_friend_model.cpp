@@ -11,17 +11,17 @@
 // La lista de amigos de [0x5763518] (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"). Los nombres son inventados.
 namespace
 {
-using Client::UI::AddAFriend;
-using Client::UI::ByNameSort;
-using Client::UI::ByStateSort;
-using Client::UI::ClearTheFriends;
-using Client::UI::FriendModel;
-using Client::UI::NameComesFirst;
-using Client::UI::RemoveAFriend;
-using Client::UI::SameSort;
-using Client::UI::SetAFriend;
-using Client::UI::SetAllTheFriends;
-using Client::UI::SortTheFriends;
+using Client::Messenger::AddAFriend;
+using Client::Messenger::ByNameSort;
+using Client::Messenger::ByStateSort;
+using Client::Messenger::ClearTheFriends;
+using Client::Messenger::FriendModel;
+using Client::Messenger::NameComesFirst;
+using Client::Messenger::RemoveAFriend;
+using Client::Messenger::SameSort;
+using Client::Messenger::SetAFriend;
+using Client::Messenger::SetAllTheFriends;
+using Client::Messenger::SortTheFriends;
 
 std::vector<std::string> NamesOf(const FriendModel& model)
 {
@@ -86,8 +86,8 @@ TEST(FriendModelTest, TheNameOrderGoesBackwardsWithSignedChars)
     EXPECT_EQ(NamesOf(model), (std::vector<std::string>{"Zorzal", "Tordo", "Tordos", "Hornero", "Calandria", "Benteveo",
                                                         "\xd1"
                                                         "andu"}));
-    const Client::UI::FriendEntry tordo{.selected = 0, .name = "Tordo", .flag = 0, .state = 0};
-    const Client::UI::FriendEntry tordos{.selected = 0, .name = "Tordos", .flag = 0, .state = 0};
+    const Client::Messenger::FriendEntry tordo{.selected = 0, .name = "Tordo", .flag = 0, .state = 0};
+    const Client::Messenger::FriendEntry tordos{.selected = 0, .name = "Tordos", .flag = 0, .state = 0};
     EXPECT_FALSE(NameComesFirst(tordo, tordos));
     EXPECT_FALSE(NameComesFirst(tordos, tordo));
 }

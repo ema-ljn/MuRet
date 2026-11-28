@@ -22,15 +22,15 @@
 
 TEST(KalimaObjectStepTest, TheNativeOverlappingLevelTableKeepsItsFirstMatchAndUnmatchedSeven)
 {
-    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 39), 7);
-    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 40), 1);
-    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 350), 1);
-    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 999), 1);
-    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 1000), 7);
+    EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(0, 39), 7);
+    EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(0, 40), 1);
+    EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(0, 350), 1);
+    EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(0, 999), 1);
+    EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(0, 1000), 7);
     for (const std::uint8_t characterClass : std::array<std::uint8_t, 4>{3, 4, 11, 12})
     {
-        EXPECT_EQ(Client::Scenes::KalimaLevelOf(characterClass, 19), 7);
-        EXPECT_EQ(Client::Scenes::KalimaLevelOf(characterClass, 20), 1);
+        EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(characterClass, 19), 7);
+        EXPECT_EQ(Client::MapScripts::Kalima::KalimaLevelOf(characterClass, 20), 1);
     }
 }
 
@@ -69,7 +69,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
             if (model)
                 static_cast<void>(expected.Next());
         }
-        const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+        const auto result = Client::MapScripts::Kalima::StepKalimaObjectPrelude(*world, cloth);
         EXPECT_EQ(cloth.random.State(), expected.State());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(world->Runtime().ownRecordDepth, 0);
@@ -87,7 +87,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
             EXPECT_TRUE(p.alive);
             EXPECT_EQ(p.type, 0x5ac);
             EXPECT_EQ(p.subtype, 7);
-            EXPECT_EQ(p.typedOwner.kind, Client::World::ParticleOwnerKind::Actor);
+            EXPECT_EQ(p.typedOwner.kind, Client::Particles::ParticleOwnerKind::Actor);
             EXPECT_EQ(p.light, glm::vec3(0.3f, 0.8f, 1));
             if (model)
             {
@@ -118,7 +118,7 @@ TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDo
         if (expected.Next() % 10 != 0)
             continue;
         const int selector = expected.Next() % 3;
-        const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+        const auto result = Client::MapScripts::Kalima::StepKalimaObjectPrelude(*world, cloth);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(result.Value(), selector);
         EXPECT_EQ(cloth.random.State(), expected.State());
@@ -166,7 +166,7 @@ TEST(KalimaObjectStepTest, RegionCellClosesStoreTheNativeRandomBytesOnlyAtDepthZ
             world->OwnCharacter().level = 0;
             world->Runtime().ownRecordDepth = 1;
             world->Runtime().objectSelectionCount = 3;
-            const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+            const auto result = Client::MapScripts::Kalima::StepKalimaObjectPrelude(*world, cloth);
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_EQ(result.Value(), selector);
             EXPECT_EQ(hero.cellXLeft, expectedX);

@@ -23,13 +23,13 @@ namespace
 {
 TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInputAngles)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Kernel::ActorState owner;
     Client::Crt::CrtRandom random(7);
     const Client::Kernel::ModelEffectArguments args{
         .type = 0x147, .position = {100, 200, 300}, .angles = {11, 22, 33}, .light = {0, 0, 80}, .owner = &owner};
-    const auto result = Client::Scenes::CreateCrywolfDeathSpirit(args, *effects, particles.get(), random, 0);
+    const auto result = Client::Effects::CreateCrywolfDeathSpirit(args, *effects, particles.get(), random, 0);
     ASSERT_TRUE(result.HasValue());
     ASSERT_TRUE(result.Value());
     const auto& effect = effects->Effects()[*result.Value()];
@@ -48,14 +48,14 @@ TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInpu
 }
 TEST(CrywolfDeathSpiritTest, TheEchoCopiesTheOwnersLifetimeAndEmitsItsBlueFire)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Kernel::ActorState owner;
     owner.dword60 = 12;
     Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(3);
-    const auto result = Client::Scenes::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1, .owner = &owner},
-                                                                 *effects, particles.get(), random, 0);
+    const auto result = Client::Effects::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1, .owner = &owner},
+                                                                  *effects, particles.get(), random, 0);
     ASSERT_TRUE(result.HasValue());
     ASSERT_TRUE(result.Value());
     const auto& e = effects->Effects()[*result.Value()];
@@ -71,7 +71,7 @@ TEST(CrywolfDeathSpiritTest, TheEchoCopiesTheOwnersLifetimeAndEmitsItsBlueFire)
 TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsTheSound)
 {
     Client::Kernel::ActorState owner;
-    Client::World::ModelEffect e;
+    Client::Effects::ModelEffect e;
     e.type = 0x147;
     e.life = 30;
     e.hasOwner = true;
@@ -80,7 +80,7 @@ TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsT
     e.speed = 10;
     Client::Crt::CrtRandom random(7);
     int sound = 0;
-    const auto result = Client::Scenes::StepCrywolfDeathSpirit(
+    const auto result = Client::Effects::StepCrywolfDeathSpirit(
         e, random, {.sound = [&](Client::Audio::SoundId id) { sound = id.Value(); }});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FLOAT_EQ(e.turnDirection, 1.1f);
@@ -90,9 +90,9 @@ TEST(CrywolfDeathSpiritTest, TheFirstTickOnlyIncrementsTheIterationsAndRequestsT
 }
 TEST(CrywolfDeathSpiritTest, AFreeLateDecalRequiresTheNativeStackPointWhileAFullPoolDoesNot)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Kernel::ActorState owner;
-    Client::World::ModelEffect e;
+    Client::Effects::ModelEffect e;
     e.type = 0x147;
     e.life = 8;
     e.hasOwner = true;
@@ -101,25 +101,25 @@ TEST(CrywolfDeathSpiritTest, AFreeLateDecalRequiresTheNativeStackPointWhileAFull
     e.speed = 10;
     e.velocity = {0, -26, 0};
     Client::Crt::CrtRandom random(7);
-    const auto result = Client::Scenes::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()});
+    const auto result = Client::Effects::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()});
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x5271a8"), std::string::npos);
     for (auto& slot : effects->Effects())
         slot.alive = true;
-    ASSERT_TRUE(Client::Scenes::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()}).HasValue());
+    ASSERT_TRUE(Client::Effects::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()}).HasValue());
 }
 TEST(CrywolfDeathSpiritTest, TrailLifeAndItsFallingSpeedFollowTheNativeBody)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
-    auto result = Client::World::CreateSpiritTrail({.type = 0x104, .position = {0, 0, 300}}, *effects);
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
+    auto result = Client::Effects::CreateSpiritTrail({.type = 0x104, .position = {0, 0, 300}}, *effects);
     ASSERT_TRUE(result);
     auto& e = effects->Effects()[*result];
     EXPECT_EQ(e.life, 6);
     EXPECT_FLOAT_EQ(e.turnDirection, 80);
     EXPECT_EQ(e.transform.angles, (glm::vec3{0, 0, 45}));
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
-    const auto stepped = Client::World::StepGameModelEffect(e, nullptr, particles, 0.0f, random);
+    const auto stepped = Client::Effects::StepGameModelEffect(e, nullptr, particles, 0.0f, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(e.life, 5);
     EXPECT_FLOAT_EQ(e.transform.position.z, 220);
@@ -128,12 +128,12 @@ TEST(CrywolfDeathSpiritTest, TrailLifeAndItsFallingSpeedFollowTheNativeBody)
 }
 TEST(CrywolfDeathSpiritTest, TheFullModelPoolDoesNotReadTheOwnerOrNeedParticles)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     for (auto& e : effects->Effects())
         e.alive = true;
     Client::Crt::CrtRandom random(7);
     const auto result =
-        Client::Scenes::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1}, *effects, nullptr, random);
+        Client::Effects::CreateCrywolfDeathSpirit({.type = 0x147, .subtype = 1}, *effects, nullptr, random);
     ASSERT_TRUE(result.HasValue());
     EXPECT_FALSE(result.Value());
     EXPECT_EQ(random.State(), 7u);
@@ -141,7 +141,7 @@ TEST(CrywolfDeathSpiritTest, TheFullModelPoolDoesNotReadTheOwnerOrNeedParticles)
 // El punto es sintético: verifica la propagación, no una captura de la pila del original.
 TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersTyped)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     auto& e = effects->Effects()[0];
     e.alive = true;
     e.type = 0x147;
@@ -155,7 +155,7 @@ TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersType
     Client::Crt::CrtRandom random(7), expected(7);
     expected.Discard(1);
     const auto result =
-        Client::Scenes::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()}, glm::vec3{11, 22, 33});
+        Client::Effects::StepCrywolfDeathSpirit(e, random, {.effects = effects.get()}, glm::vec3{11, 22, 33});
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(effects->Effects()[1].type, 0x61e);
     EXPECT_EQ(effects->Effects()[1].transform.position, (glm::vec3{11, 22, 33}));
@@ -165,15 +165,15 @@ TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersType
     EXPECT_FLOAT_EQ(e.speed, 10.5f);
     EXPECT_EQ(random.State(), expected.State());
     const auto position = e.transform.position;
-    Client::World::StepModelEffect(e, nullptr);
+    Client::Effects::StepModelEffect(e, nullptr);
     EXPECT_EQ(e.transform.position, position);
     EXPECT_EQ(e.life, 7);
 }
 TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
 {
-    Client::World::ModelEffect parent;
+    Client::Effects::ModelEffect parent;
     parent.transform.position = {100, 200, 300};
-    Client::World::ModelEffect decal;
+    Client::Effects::ModelEffect decal;
     decal.alive = true;
     decal.type = 0x61e;
     decal.subtype = 1;
@@ -184,7 +184,7 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     Client::Crt::CrtRandom random(7), expected(7);
     const Client::Session::CharacterDrawHooks hooks;
     expected.Discard(13);
-    ASSERT_TRUE(Client::Scenes::StepPetSummon(decal, joints, &hooks, random).HasValue());
+    ASSERT_TRUE(Client::Effects::StepPetSummon(decal, joints, &hooks, random).HasValue());
     for (auto& joint : joints)
     {
         EXPECT_TRUE(joint.alive);
@@ -192,8 +192,8 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
         joint.life = 1;
     }
     parent.transform.position = {400, 500, 600};
-    Client::World::FrameSprites sprites;
-    const auto stepped = Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0, &sprites);
+    Client::Particles::FrameSprites sprites;
+    const auto stepped = Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0, &sprites);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     for (std::size_t i = 0; i < 3; ++i)
     {

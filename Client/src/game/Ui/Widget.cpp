@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -49,4 +49,4 @@ Render::UiImage PixelImage(Render::TextureSlot slot, Rect area, Assets::TextureB
                            .textureWidth = static_cast<float>(buffer.width),
                            .textureHeight = static_cast<float>(buffer.height)};
 }
-} // namespace Client::UI
+} // namespace Client::Ui

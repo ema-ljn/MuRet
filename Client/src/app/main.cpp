@@ -131,7 +131,7 @@ constexpr std::string_view Version = MU_VERSION;
 // operator<< ni log: la cuenta y la clave no se imprimen (pregunta 7), y las claves tampoco.
 struct ServerStartup
 {
-    App::ServerAddress connectServer;
+    Client::Session::ServerAddress connectServer;
     // Solo con --auto-login: sin él, las teclea el jugador en la ventana de la cuenta.
     std::optional<App::Credentials> credentials;
     Network::ConnectionKeys keys;
@@ -172,7 +172,7 @@ std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, 
         log.Error("{}", keys.Error());
         return std::nullopt;
     }
-    return ServerStartup{.connectServer = config.server.value_or(App::ServerAddress{}),
+    return ServerStartup{.connectServer = config.server.value_or(Client::Session::ServerAddress{}),
                          .credentials = std::move(credentials),
                          .keys = keys.Value(),
                          .mainCheckFile = {}};
@@ -352,7 +352,7 @@ void RunFrame(App::GameLoop& loop, const Platform::WindowState& state, Client::I
     if (loop.Stats().clampedFrames != clampedBefore)
     {
         log.Warning("un frame pasó de {} ms: se corrieron solo los pasos del tope, y el resto se perdió",
-                    std::chrono::duration_cast<std::chrono::milliseconds>(App::MaxFrameTime).count());
+                    std::chrono::duration_cast<std::chrono::milliseconds>(Client::Kernel::MaxFrameTime).count());
     }
 }
 

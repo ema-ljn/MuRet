@@ -12,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -28,8 +28,8 @@ constexpr std::uint32_t LifeKind = 3;
 std::optional<std::uint32_t> SelectedRecord(const CastleAnswerContext& context, std::uint32_t selectedAt,
                                             std::uint32_t firstAt, std::string_view what)
 {
-    const std::uint32_t record = firstAt + context.data.U32(selectedAt) * UI::NpcRecordBytes;
-    if (!UI::CastleData::Holds(record, UI::NpcRecordBytes))
+    const std::uint32_t record = firstAt + context.data.U32(selectedAt) * CastleSiege::NpcRecordBytes;
+    if (!CastleSiege::CastleData::Holds(record, CastleSiege::NpcRecordBytes))
     {
         context.log.Warning("{} no manda nada: el registro elegido, {:#x}, cae fuera de 0x7d5c504..0x7d5c658 "
                             "(Q-C1360)",
@@ -60,9 +60,9 @@ void BuyOrRepair(std::int32_t answer, const CastleAnswerContext& context, std::u
     {
         return;
     }
-    const std::uint32_t type = context.data.U32(*record + UI::RecordType);
-    const std::uint32_t index = context.data.U32(*record + UI::RecordIndex);
-    if (context.data.bytes.at(*record + UI::RecordAlive - UI::CastleDataBase) == 0)
+    const std::uint32_t type = context.data.U32(*record + CastleSiege::RecordType);
+    const std::uint32_t index = context.data.U32(*record + CastleSiege::RecordIndex);
+    if (context.data.bytes.at(*record + CastleSiege::RecordAlive - CastleSiege::CastleDataBase) == 0)
     {
         Send(context, Castle::WriteNpcBuy(type, index));
     }
@@ -79,26 +79,27 @@ enum class Upgrade : std::uint8_t
     Recovery, // 0x661020 + 1
 };
 
-std::int32_t NextValue(const UI::CastleData& data, std::uint32_t record, Upgrade upgrade)
+std::int32_t NextValue(const CastleSiege::CastleData& data, std::uint32_t record, Upgrade upgrade)
 {
-    const std::uint32_t type = data.U32(record + UI::RecordType);
-    const bool gateOrStatue = type == UI::GateType || type == UI::StatueType;
+    const std::uint32_t type = data.U32(record + CastleSiege::RecordType);
+    const bool gateOrStatue = type == CastleSiege::GateType || type == CastleSiege::StatueType;
     switch (upgrade)
     {
     case Upgrade::Life:
     {
-        const auto maxLife = static_cast<std::int32_t>(data.U32(record + UI::RecordMaxLife));
-        return UI::MaxLifeOfLevel(type, UI::LifeLevelOf(type, maxLife) + 1);
+        const auto maxLife = static_cast<std::int32_t>(data.U32(record + CastleSiege::RecordMaxLife));
+        return CastleSiege::MaxLifeOfLevel(type, CastleSiege::LifeLevelOf(type, maxLife) + 1);
     }
     case Upgrade::Defense:
-        return std::bit_cast<std::int32_t>((gateOrStatue ? data.U32(record + UI::RecordDefense) : 0xffffffffu) + 1u);
+        return std::bit_cast<std::int32_t>(
+            (gateOrStatue ? data.U32(record + CastleSiege::RecordDefense) : 0xffffffffu) + 1u);
     case Upgrade::Recovery:
-        if (type == UI::GateType)
+        if (type == CastleSiege::GateType)
         {
             return 1;
         }
         return std::bit_cast<std::int32_t>(
-            (type == UI::StatueType ? data.U32(record + UI::RecordRecovery) : 0xffffffffu) + 1u);
+            (type == CastleSiege::StatueType ? data.U32(record + CastleSiege::RecordRecovery) : 0xffffffffu) + 1u);
     }
     return 0;
 }
@@ -117,9 +118,9 @@ void SendTheUpgrade(std::int32_t answer, const CastleAnswerContext& context, std
         return;
     }
     const std::int32_t value = NextValue(context.data, *record, upgrade);
-    Send(context,
-         Castle::WriteNpcUpgrade(context.data.U32(*record + UI::RecordType),
-                                 context.data.U32(*record + UI::RecordIndex), kind, static_cast<std::uint32_t>(value)));
+    Send(context, Castle::WriteNpcUpgrade(context.data.U32(*record + CastleSiege::RecordType),
+                                          context.data.U32(*record + CastleSiege::RecordIndex), kind,
+                                          static_cast<std::uint32_t>(value)));
 }
 
 bool IsCrtSpace(char c)
@@ -162,38 +163,42 @@ std::optional<std::uint32_t> ScanUnsigned(std::string_view text)
 
 void AnswerTheGateDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    BuyOrRepair(answer, context, UI::SelectedGateAt, UI::FirstGateAt, "0x6623e0");
+    BuyOrRepair(answer, context, CastleSiege::SelectedGateAt, CastleSiege::FirstGateAt, "0x6623e0");
 }
 
 void AnswerTheStatueDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    BuyOrRepair(answer, context, UI::SelectedStatueAt, UI::FirstStatueAt, "0x664370");
+    BuyOrRepair(answer, context, CastleSiege::SelectedStatueAt, CastleSiege::FirstStatueAt, "0x664370");
 }
 
 void AnswerTheGateLifeDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    SendTheUpgrade(answer, context, UI::SelectedGateAt, UI::FirstGateAt, Upgrade::Life, LifeKind, "0x662d50");
+    SendTheUpgrade(answer, context, CastleSiege::SelectedGateAt, CastleSiege::FirstGateAt, Upgrade::Life, LifeKind,
+                   "0x662d50");
 }
 
 void AnswerTheStatueLifeDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    SendTheUpgrade(answer, context, UI::SelectedStatueAt, UI::FirstStatueAt, Upgrade::Life, LifeKind, "0x664ce0");
+    SendTheUpgrade(answer, context, CastleSiege::SelectedStatueAt, CastleSiege::FirstStatueAt, Upgrade::Life, LifeKind,
+                   "0x664ce0");
 }
 
 void AnswerTheGateDefenseDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    SendTheUpgrade(answer, context, UI::SelectedGateAt, UI::FirstGateAt, Upgrade::Defense, DefenseKind, "0x663440");
+    SendTheUpgrade(answer, context, CastleSiege::SelectedGateAt, CastleSiege::FirstGateAt, Upgrade::Defense,
+                   DefenseKind, "0x663440");
 }
 
 void AnswerTheStatueDefenseDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    SendTheUpgrade(answer, context, UI::SelectedStatueAt, UI::FirstStatueAt, Upgrade::Defense, DefenseKind, "0x6653d0");
+    SendTheUpgrade(answer, context, CastleSiege::SelectedStatueAt, CastleSiege::FirstStatueAt, Upgrade::Defense,
+                   DefenseKind, "0x6653d0");
 }
 
 void AnswerTheStatueRecoveryDialog(std::int32_t answer, const CastleAnswerContext& context)
 {
-    SendTheUpgrade(answer, context, UI::SelectedStatueAt, UI::FirstStatueAt, Upgrade::Recovery, RecoveryKind,
-                   "0x665ab0");
+    SendTheUpgrade(answer, context, CastleSiege::SelectedStatueAt, CastleSiege::FirstStatueAt, Upgrade::Recovery,
+                   RecoveryKind, "0x665ab0");
 }
 
 void AnswerTheTaxDialog(std::int32_t answer, const CastleAnswerContext& context)
@@ -202,8 +207,8 @@ void AnswerTheTaxDialog(std::int32_t answer, const CastleAnswerContext& context)
     {
         return;
     }
-    Send(context, Castle::WriteTaxRate(1, context.data.U32(UI::ChaosTaxAt)));
-    Send(context, Castle::WriteTaxRate(2, context.data.U32(UI::StoreTaxAt)));
+    Send(context, Castle::WriteTaxRate(1, context.data.U32(CastleSiege::ChaosTaxAt)));
+    Send(context, Castle::WriteTaxRate(2, context.data.U32(CastleSiege::StoreTaxAt)));
 }
 
 void AnswerTheMoneyDialog(std::int32_t answer, std::string_view field, const CastleAnswerContext& context)
@@ -221,4 +226,4 @@ void AnswerTheMoneyDialog(std::int32_t answer, std::string_view field, const Cas
     }
     Send(context, Castle::WriteMoneyOut(*amount));
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

@@ -57,12 +57,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Guild::GuildReceiveContext;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
-using Client::Scenes::GuildReceiveContext;
 namespace Guild = Client::Protocol::Guild;
 
 class LetterMeasure final : public ITextMeasure
@@ -227,7 +227,7 @@ protected:
 
     Client::Core::Expected<void, std::string> Apply(const Guild::GuildPacket& packet, bool withModels = true)
     {
-        return Client::Scenes::ApplyGuildPacket(packet, Context(withModels));
+        return Client::Guild::ApplyGuildPacket(packet, Context(withModels));
     }
 
     [[nodiscard]] Client::Kernel::WorldRuntime& Runtime()
@@ -235,12 +235,12 @@ protected:
         return m_world->Runtime();
     }
 
-    [[nodiscard]] Client::Scenes::GuildState& GuildOf()
+    [[nodiscard]] Client::Guild::GuildState& GuildOf()
     {
         return Runtime().guild;
     }
 
-    [[nodiscard]] Client::UI::PanelDialogState& Dialog()
+    [[nodiscard]] Client::Ui::PanelDialogState& Dialog()
     {
         return Runtime().panels.delegated.panelDialog;
     }
@@ -277,7 +277,7 @@ protected:
 
     void NameTheGuild(std::size_t index, std::int32_t key, std::string_view guildName, std::string_view unionName = {})
     {
-        Client::Scenes::GuildTableEntry& entry = GuildOf().table[index];
+        Client::Guild::GuildTableEntry& entry = GuildOf().table[index];
         entry.key = key;
         Fill(entry.guildName, guildName);
         Fill(entry.unionName, unionName);
@@ -296,7 +296,7 @@ TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFrom
     for (const bool trainer : {false, true})
     {
         Reset(0);
-        Client::Scenes::SelectionState selection(*m_world);
+        Client::FrontEnd::SelectionState selection(*m_world);
         Client::Models::ClothWorld cloth;
         Client::Camera::GameCamera camera;
         Client::Camera::GameCameraInput cameraInput;
@@ -327,7 +327,7 @@ TEST_F(GuildReceiveTest, TheMasterQuestionBorrowsBothCastleAndTrainerClosersFrom
         auto context = Context();
         context.worldEntry = &resources;
 
-        auto result = Client::Scenes::ApplyGuildPacket(Guild::MasterQuestion{}, context);
+        auto result = Client::Guild::ApplyGuildPacket(Guild::MasterQuestion{}, context);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
@@ -377,8 +377,8 @@ TEST_F(GuildReceiveTest, TheOtherCreateResultsAreMessages)
     ASSERT_TRUE(Apply(Guild::CreateResult{0}).HasValue());
     ASSERT_TRUE(Apply(Guild::CreateResult{2}).HasValue());
     ASSERT_TRUE(Apply(Guild::CreateResult{7}).HasValue());
-    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::ErrorMessage, "crear 0"},
-                                                                     {Client::UI::ErrorMessage, "crear 2"}};
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::Ui::ErrorMessage, "crear 0"},
+                                                                     {Client::Ui::ErrorMessage, "crear 2"}};
     EXPECT_EQ(Messages(), expected);
 }
 
@@ -394,10 +394,10 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
         ASSERT_TRUE(Apply(Guild::JoinRequest{0x0123}).HasValue());
         EXPECT_EQ(GuildOf().requester, 0x0123);
         ASSERT_EQ(Dialog().opened, Now);
-        EXPECT_EQ(Dialog().owner, Client::UI::PanelDialogOwner::GuildJoin);
+        EXPECT_EQ(Dialog().owner, Client::Ui::PanelDialogOwner::GuildJoin);
         EXPECT_EQ(Dialog().lines[0], "Benteveo quiere entrar");
         EXPECT_EQ(Dialog().lines[1], "Acepta?");
-        EXPECT_EQ(Dialog().flags, Client::UI::PanelDialogConfirm);
+        EXPECT_EQ(Dialog().flags, Client::Ui::PanelDialogConfirm);
         EXPECT_TRUE(m_sent.empty());
 
         // Otro pedido con el diálogo abierto: no, y la clave nueva queda.
@@ -409,14 +409,14 @@ TEST_F(GuildReceiveTest, AJoinRequestAsksAndTheAnswerCarriesTheKey)
 
         // Confirmar responde con la clave guardada (0x78aba40), la del último.
         const auto answered =
-            Client::Scenes::AnswerThePanelDialog(*m_world, Context().send, Client::UI::PanelDialogOwner::GuildJoin, 8);
+            Client::Guild::AnswerThePanelDialog(*m_world, Context().send, Client::Ui::PanelDialogOwner::GuildJoin, 8);
         ASSERT_TRUE(answered.HasValue()) << answered.Error();
         EXPECT_TRUE(answered.Value());
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x06, 0x51, 0x01, 0x04, 0x56}}));
         m_sent.clear();
 
         // Esc por el registro (0x657880 → 0x660410): 0x50, el no, y el diálogo cerrado.
-        Client::Scenes::GamePanels panels(*m_world, m_random);
+        Client::Hud::GamePanels panels(*m_world, m_random);
         panels.LendTheGuild(*m_world, Context().send);
         const auto key = panels.Registry().PanelKey(0x1b);
         ASSERT_TRUE(key.HasValue()) << key.Error();
@@ -440,7 +440,7 @@ TEST_F(GuildReceiveTest, AJoinRequestFromSomeoneOutOfSightIsDiscarded)
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(GuildOf().requester, 0x0777);
         EXPECT_EQ(Dialog().opened, 0u);
-        EXPECT_EQ(Dialog().owner, Client::UI::PanelDialogOwner::None);
+        EXPECT_EQ(Dialog().owner, Client::Ui::PanelDialogOwner::None);
         EXPECT_TRUE(m_sent.empty());
         EXPECT_TRUE(Messages().empty());
         EXPECT_EQ(DrawsSince(), 0);
@@ -458,7 +458,7 @@ TEST_F(GuildReceiveTest, TheJoinResultIsAMessage)
     Runtime().dialogs.current = 0x22;
     ASSERT_TRUE(Apply(Guild::JoinResult{1}).HasValue());
     ASSERT_TRUE(Apply(Guild::JoinResult{8}).HasValue());
-    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::ErrorMessage, "texto 504"}};
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::Ui::ErrorMessage, "texto 504"}};
     EXPECT_EQ(Messages(), expected);
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
@@ -552,8 +552,8 @@ TEST_F(GuildReceiveTest, LeavingTheGuildClosesTheWindow)
 
         ASSERT_TRUE(Apply(Guild::LeaveResult{5}).HasValue());
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x03, 0x52}}));
-        const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::ErrorMessage, "echado"},
-                                                                         {Client::UI::ErrorMessage, "lista otra vez"}};
+        const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::Ui::ErrorMessage, "echado"},
+                                                                         {Client::Ui::ErrorMessage, "lista otra vez"}};
         EXPECT_EQ(Messages(), expected);
     }
 }
@@ -566,9 +566,9 @@ TEST_F(GuildReceiveTest, OpeningTheGuildAsksForTheList)
     {
         SCOPED_TRACE(map);
         Reset(map);
-        Client::Scenes::GamePanels panels(*m_world, m_random);
+        Client::Hud::GamePanels panels(*m_world, m_random);
         panels.LendTheGuild(*m_world, Context().send);
-        const auto opened = panels.Registry().Open(Client::UI::GuildPanel);
+        const auto opened = panels.Registry().Open(Client::Ui::GuildPanel);
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         EXPECT_TRUE(opened.Value());
         EXPECT_EQ(Runtime().panels.delegated.guild, 1);
@@ -576,10 +576,10 @@ TEST_F(GuildReceiveTest, OpeningTheGuildAsksForTheList)
         EXPECT_EQ(DrawsSince(), 4);
 
         // Con la ventana 2 abierta, CanOpen no deja abrir nada.
-        const auto closed = panels.Registry().Close(Client::UI::GuildPanel);
+        const auto closed = panels.Registry().Close(Client::Ui::GuildPanel);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
         Runtime().panels.delegated.secondGuild = 1;
-        const auto refused = panels.Registry().Open(Client::UI::GuildPanel);
+        const auto refused = panels.Registry().Open(Client::Ui::GuildPanel);
         ASSERT_TRUE(refused.HasValue());
         EXPECT_FALSE(refused.Value());
     }
@@ -639,7 +639,7 @@ TEST_F(GuildReceiveTest, TheGuildInfoWritesTheEntryOfItsKey)
     info.mark[0] = 0x12;
     info.mark[31] = 0xab;
     ASSERT_TRUE(Apply(info).HasValue());
-    const Client::Scenes::GuildTableEntry& entry = GuildOf().table[1];
+    const Client::Guild::GuildTableEntry& entry = GuildOf().table[1];
     EXPECT_EQ(TextOf(entry.guildName), "Horneros");
     EXPECT_EQ(TextOf(entry.unionName), "Ceibos");
     EXPECT_EQ(entry.mark[0], 1);
@@ -786,7 +786,7 @@ TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
         ASSERT_TRUE(
             Apply(Guild::RelationshipRequest{.relation = 1, .request = 1, .keyHigh = 0x01, .keyLow = 0x23}).HasValue());
         ASSERT_EQ(Dialog().opened, Now);
-        EXPECT_EQ(Dialog().owner, Client::UI::PanelDialogOwner::Relationship);
+        EXPECT_EQ(Dialog().owner, Client::Ui::PanelDialogOwner::Relationship);
         EXPECT_EQ(Dialog().lines[0], "Benteveo propone alianza");
         EXPECT_EQ(Dialog().lines[1], "para unirse");
         EXPECT_EQ(Dialog().lines[2], "Acepta la alianza?");
@@ -797,14 +797,14 @@ TEST_F(GuildReceiveTest, AnAllianceRequestAsksAndTheAnswerGoesBack)
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x08, 0xe6, 0x02, 0x02, 0x00, 0x01, 0x23}}));
         m_sent.clear();
 
-        const auto answered = Client::Scenes::AnswerThePanelDialog(*m_world, Context().send,
-                                                                   Client::UI::PanelDialogOwner::Relationship, 8);
+        const auto answered = Client::Guild::AnswerThePanelDialog(*m_world, Context().send,
+                                                                  Client::Ui::PanelDialogOwner::Relationship, 8);
         ASSERT_TRUE(answered.HasValue()) << answered.Error();
         EXPECT_EQ(m_sent, (std::vector<std::vector<std::uint8_t>>{{0xc1, 0x08, 0xe6, 0x01, 0x01, 0x01, 0x01, 0x23}}));
         m_sent.clear();
         // 0x654289: lo que no es Confirmar ni Cancelar no manda nada.
-        ASSERT_TRUE(Client::Scenes::AnswerThePanelDialog(*m_world, Context().send,
-                                                         Client::UI::PanelDialogOwner::Relationship, 0x50)
+        ASSERT_TRUE(Client::Guild::AnswerThePanelDialog(*m_world, Context().send,
+                                                        Client::Ui::PanelDialogOwner::Relationship, 0x50)
                         .HasValue());
         EXPECT_TRUE(m_sent.empty());
     }
@@ -867,12 +867,12 @@ TEST_F(GuildReceiveTest, BreakingTheAllianceClearsItsName)
     ASSERT_TRUE(Apply(Guild::RelationshipResult{.relation = 1, .request = 1, .result = 0x20, .key = 0}).HasValue());
     ASSERT_TRUE(Apply(Guild::RelationshipResult{.relation = 1, .request = 1, .result = 0x12, .key = 0}).HasValue());
     const std::vector<std::pair<std::int32_t, std::string>> expected{
-        {Client::UI::SystemMessage, "alianza rota"},
-        {Client::UI::SystemMessage, "alianza rota"},
-        {Client::UI::SystemMessage, "resultado 20"},
+        {Client::Ui::SystemMessage, "alianza rota"},
+        {Client::Ui::SystemMessage, "alianza rota"},
+        {Client::Ui::SystemMessage, "resultado 20"},
         // 0x45bb20 corta desde 30 bytes en dos renglones.
-        {Client::UI::SystemMessage, "Invalid GuildRelationShipResul"},
-        {Client::UI::SystemMessage, "t"}};
+        {Client::Ui::SystemMessage, "Invalid GuildRelationShipResul"},
+        {Client::Ui::SystemMessage, "t"}};
     EXPECT_EQ(Messages(), expected);
 }
 
@@ -908,7 +908,7 @@ TEST_F(GuildReceiveTest, TheUnionListAndItsRefresh)
     EXPECT_TRUE(GuildOf().window.unions.empty());
 
     ASSERT_TRUE(Apply(Guild::UnionListRefresh{.kind = 1, .result = 0}).HasValue());
-    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::SystemMessage, "sin alianza"}};
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::Ui::SystemMessage, "sin alianza"}};
     EXPECT_EQ(Messages(), expected);
 }
 
@@ -918,7 +918,7 @@ TEST_F(GuildReceiveTest, TheAssignResultIsASystemMessage)
     ASSERT_TRUE(Apply(Guild::AssignResult{.type = 2, .result = 1}).HasValue());
     ASSERT_TRUE(Apply(Guild::AssignResult{.type = 9, .result = 1}).HasValue());
     const std::vector<std::pair<std::int32_t, std::string>> expected{
-        {Client::UI::SystemMessage, "asignado 2"}, {Client::UI::SystemMessage, "Invalid GuildAssign"}};
+        {Client::Ui::SystemMessage, "asignado 2"}, {Client::Ui::SystemMessage, "Invalid GuildAssign"}};
     EXPECT_EQ(Messages(), expected);
 }
 
@@ -1048,8 +1048,8 @@ TEST_F(GuildReceiveTest, ARefusedWarRequestForgetsTheRival)
     EXPECT_EQ(GuildOf().rivalIndex, -1);
     EXPECT_EQ(TextOf(GuildOf().rival), "");
     EXPECT_EQ(m_world->Actors()[0].byte374, 0);
-    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::UI::ErrorMessage, "guerra 520"},
-                                                                     {Client::UI::ErrorMessage, "guerra 522"}};
+    const std::vector<std::pair<std::int32_t, std::string>> expected{{Client::Ui::ErrorMessage, "guerra 520"},
+                                                                     {Client::Ui::ErrorMessage, "guerra 522"}};
     EXPECT_EQ(Messages(), expected);
 }
 } // namespace

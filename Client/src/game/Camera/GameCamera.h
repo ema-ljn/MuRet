@@ -9,14 +9,14 @@
 #include <optional>
 
 // 06 § La cámara del juego: 0x635ae0 per drawn frame, with the hero of the last step. While the CCameraMove tour of
-// 0x6e57a8 runs (BD 00, Scenes::CameraTour), the camera looks at its position (0x635ead) and takes its +0x150 as level.
+// 0x6e57a8 runs (BD 00, Events::CameraTour), the camera looks at its position (0x635ead) and takes its +0x150 as level.
 namespace Client::Camera
 {
 // 0x635ec0: while the tour runs, the hero's z ([0x743a170] + 0x18) at 300 before the camera height. The scene, which
 // owns the hero, writes it.
 inline constexpr float CameraTourHeroHeight = 300.0f;
 
-// 0x4034b0: what the camera tour (Scenes::CameraTour) gives the game camera while it runs (0x4033d0).
+// 0x4034b0: what the camera tour (Events::CameraTour) gives the game camera while it runs (0x4033d0).
 struct GameCameraTour
 {
     glm::vec3 position{};   // +4..+0xc: overrides 0x44dc60's point.

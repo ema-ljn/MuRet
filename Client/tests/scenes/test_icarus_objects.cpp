@@ -39,12 +39,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::MapScripts::Icarus::IcarusObjectServices;
 using Client::Math::RoundedSin;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::IcarusObjectServices;
+using Client::Particles::Particle;
 using Client::Scenes::JointState;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t IcarusMap = 10;
 constexpr std::int32_t GameScene = 5;
@@ -82,7 +82,7 @@ WorldObject ObjectOf(std::int16_t type)
 
 struct FrameFixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     float clock = 2345.0f;
@@ -121,10 +121,10 @@ struct FrameFixture
     }
 };
 
-void ExpectSameParticles(const Client::World::Particles& actual, const Client::World::Particles& expected)
+void ExpectSameParticles(const Client::Particles::Particles& actual, const Client::Particles::Particles& expected)
 {
-    const auto all = const_cast<Client::World::Particles&>(actual).All();
-    const auto reference = const_cast<Client::World::Particles&>(expected).All();
+    const auto all = const_cast<Client::Particles::Particles&>(actual).All();
+    const auto reference = const_cast<Client::Particles::Particles&>(expected).All();
     for (std::size_t slot = 0; slot < all.size(); ++slot)
     {
         SCOPED_TRACE(slot);
@@ -162,8 +162,8 @@ struct StepFixture
     CrtRandom random;
     glm::vec3 hero{12800.0f, 12900.0f, 300.0f};
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
     std::vector<JoinedRequest> joins;
 
     explicit StepFixture(std::uint32_t seed) : random(seed) {}
@@ -186,9 +186,9 @@ struct StepFixture
             }};
     }
 
-    [[nodiscard]] std::vector<const Client::World::ModelEffect*> AliveEffects() const
+    [[nodiscard]] std::vector<const Client::Effects::ModelEffect*> AliveEffects() const
     {
-        std::vector<const Client::World::ModelEffect*> alive;
+        std::vector<const Client::Effects::ModelEffect*> alive;
         for (const auto& effect : effects->Effects())
         {
             if (effect.alive)
@@ -208,17 +208,18 @@ TEST(IcarusObjectsTest, TheCloudsEmitTwentyOrTenOwnedMistsOnlyOnce)
         SCOPED_TRACE(type);
         FrameFixture fixture;
         WorldObject object = ObjectOf(type);
-        ASSERT_TRUE(Client::Scenes::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         EXPECT_EQ(fixture.AliveCount(), type <= 2 ? 20u : 10u);
 
-        auto reference = std::make_unique<Client::World::Particles>();
+        auto reference = std::make_unique<Client::Particles::Particles>();
         CrtRandom draws(7);
-        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::WorldObject, object.identity};
+        const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::WorldObject,
+                                                     object.identity};
         for (std::size_t cloud = 0; cloud < fixture.AliveCount(); ++cloud)
         {
             ASSERT_TRUE(reference
-                            ->CreateOwnedChecked(Client::World::CloudParticle, object.transform.position,
+                            ->CreateOwnedChecked(Client::Particles::CloudParticle, object.transform.position,
                                                  object.transform.angles, glm::vec3(std::bit_cast<float>(0x3dcccccdu)),
                                                  type, 1.25f, fixture.clock, draws, GameScene, owner)
                             .HasValue());
@@ -226,7 +227,7 @@ TEST(IcarusObjectsTest, TheCloudsEmitTwentyOrTenOwnedMistsOnlyOnce)
         ExpectSameParticles(*fixture.particles, *reference);
         EXPECT_EQ(fixture.random.State(), draws.State());
 
-        ASSERT_TRUE(Client::Scenes::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
+        ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
         EXPECT_EQ(fixture.AliveCount(), type <= 2 ? 20u : 10u);
         EXPECT_EQ(fixture.random.State(), draws.State());
     }
@@ -237,12 +238,12 @@ TEST(IcarusObjectsTest, TheFlareObjectSendsAKalimaFlareFromItsThirdBone)
 {
     FrameFixture fixture;
     WorldObject object = ObjectOf(10);
-    ASSERT_TRUE(Client::Scenes::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
     ASSERT_EQ(fixture.AliveCount(), 1u);
-    auto reference = std::make_unique<Client::World::Particles>();
+    auto reference = std::make_unique<Client::Particles::Particles>();
     CrtRandom draws(7);
     ASSERT_TRUE(reference
-                    ->CreateOwnedChecked(Client::World::KalimaFlare, {30.0f, 1.0f, 2.0f}, object.transform.angles,
+                    ->CreateOwnedChecked(Client::Particles::KalimaFlare, {30.0f, 1.0f, 2.0f}, object.transform.angles,
                                          glm::vec3(1.0f), 0, 1.0f, fixture.clock, draws, GameScene, {})
                     .HasValue());
     ExpectSameParticles(*fixture.particles, *reference);
@@ -258,7 +259,7 @@ TEST(IcarusObjectsTest, TheOtherTypesDoNothingAndTheCloudsNeedThePool)
     for (std::int16_t type = 6; type <= 9; ++type)
     {
         WorldObject object = ObjectOf(type);
-        ASSERT_TRUE(Client::Scenes::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
+        ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
         EXPECT_EQ(object.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
     }
     EXPECT_EQ(fixture.AliveCount(), 0u);
@@ -267,7 +268,7 @@ TEST(IcarusObjectsTest, TheOtherTypesDoNothingAndTheCloudsNeedThePool)
     WorldObject cloud = ObjectOf(0);
     GameObjectPass pass = fixture.Pass();
     pass.particles = nullptr;
-    const auto cut = Client::Scenes::StepIcarusObjectFrame(cloud, pass);
+    const auto cut = Client::MapScripts::Icarus::StepIcarusObjectFrame(cloud, pass);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603f3b"), std::string::npos) << cut.Error();
     EXPECT_EQ(cloud.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
@@ -282,19 +283,19 @@ TEST(IcarusObjectsTest, TheSeenObjectCountsAndOnlySparksWithItsTenth)
     WorldObject object = ObjectOf(2);
     std::int32_t count = 4;
     const auto before = fixture.random.State();
-    ASSERT_TRUE(Client::Scenes::StepIcarusSeenObject(object, 0, count, services).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusSeenObject(object, 0, count, services).HasValue());
     EXPECT_EQ(count, 5);
     EXPECT_EQ(fixture.random.State(), before);
 
     CrtRandom draws = fixture.random;
     static_cast<void>(draws.Next());
-    ASSERT_TRUE(Client::Scenes::StepIcarusSeenObject(object, 3, count, services).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusSeenObject(object, 3, count, services).HasValue());
     EXPECT_EQ(count, 5);
     EXPECT_EQ(fixture.random.State(), draws.State());
 
     StepFixture other(SeedWhere([](CrtRandom& random) { return Draw(random) % 10 == 0; }));
     WorldObject big = ObjectOf(6);
-    ASSERT_TRUE(Client::Scenes::StepIcarusSeenObject(big, 3, count, other.Services()).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusSeenObject(big, 3, count, other.Services()).HasValue());
     EXPECT_EQ(count, 5);
     EXPECT_FALSE(other.sprites->Any());
     EXPECT_TRUE(other.joins.empty());
@@ -308,7 +309,7 @@ TEST(IcarusObjectsTest, TheSeenObjectSparksASpriteAndTwoBoltsOfItsOwn)
     StepFixture fixture(seed);
     WorldObject object = ObjectOf(3);
     std::int32_t count = 2;
-    ASSERT_TRUE(Client::Scenes::StepIcarusSeenObject(object, 1, count, fixture.Services()).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusSeenObject(object, 1, count, fixture.Services()).HasValue());
     EXPECT_EQ(count, 3);
 
     CrtRandom draws(seed);
@@ -347,7 +348,7 @@ TEST(IcarusObjectsTest, ThePreludeWithoutItsGatesOnlyDraws)
     const std::uint32_t seed =
         SeedWhere([](CrtRandom& random) { return Draw(random) % 50 != 0 && Draw(random) % 10 != 0; });
     StepFixture fixture(seed);
-    const auto selector = Client::Scenes::StepIcarusObjectPrelude(9, fixture.Services());
+    const auto selector = Client::MapScripts::Icarus::StepIcarusObjectPrelude(9, fixture.Services());
     ASSERT_TRUE(selector.HasValue()) << selector.Error();
     EXPECT_EQ(selector.Value(), 0);
     EXPECT_TRUE(fixture.AliveEffects().empty());
@@ -373,7 +374,7 @@ TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
             return Draw(random) % 5 != 0 && Draw(random) % 10 != 0;
         });
     StepFixture fixture(seed);
-    const auto selector = Client::Scenes::StepIcarusObjectPrelude(7, fixture.Services());
+    const auto selector = Client::MapScripts::Icarus::StepIcarusObjectPrelude(7, fixture.Services());
     ASSERT_TRUE(selector.HasValue()) << selector.Error();
 
     CrtRandom draws(seed);
@@ -389,13 +390,14 @@ TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
     EXPECT_EQ(fixture.random.State(), draws.State());
 
     auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
-    ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), {lightX, fixture.hero.y, 0.0f}, color, 2, "test").HasValue());
+    ASSERT_TRUE(
+        Client::WorldObjects::AddDynamicLight(lit.get(), {lightX, fixture.hero.y, 0.0f}, color, 2, "test").HasValue());
     EXPECT_TRUE(lit->cells == fixture.lighting->cells);
 
     const auto alive = fixture.AliveEffects();
     ASSERT_EQ(alive.size(), 1u);
     const auto& cloud = *alive[0];
-    EXPECT_EQ(cloud.type, Client::World::IcarusCloudEffect);
+    EXPECT_EQ(cloud.type, Client::Effects::IcarusCloudEffect);
     EXPECT_EQ(cloud.transform.position, glm::vec3(12800.0f, 13100.0f, 110.0f));
     EXPECT_EQ(cloud.previousPosition, cloud.transform.position);
     EXPECT_EQ(cloud.light, color);
@@ -441,7 +443,7 @@ TEST(IcarusObjectsTest, ThePreludeThrowsTwoSkyBoltsFromOneOfFourSides)
                 return Draw(random) % 10 != 0;
             });
         StepFixture fixture(seed);
-        const auto selector = Client::Scenes::StepIcarusObjectPrelude(0, fixture.Services());
+        const auto selector = Client::MapScripts::Icarus::StepIcarusObjectPrelude(0, fixture.Services());
         ASSERT_TRUE(selector.HasValue()) << selector.Error();
         EXPECT_EQ(selector.Value(), 0);
         ASSERT_EQ(fixture.joins.size(), 2u);
@@ -484,7 +486,7 @@ TEST(IcarusObjectsTest, ThePreludeSometimesDropsAFlareAroundTheHero)
     const std::uint32_t seed =
         SeedWhere([](CrtRandom& random) { return Draw(random) % 50 != 0 && Draw(random) % 10 == 0; });
     StepFixture fixture(seed);
-    ASSERT_TRUE(Client::Scenes::StepIcarusObjectPrelude(3, fixture.Services()).HasValue());
+    ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectPrelude(3, fixture.Services()).HasValue());
     CrtRandom draws(seed);
     static_cast<void>(draws.Next());
     static_cast<void>(draws.Next());
@@ -494,7 +496,7 @@ TEST(IcarusObjectsTest, ThePreludeSometimesDropsAFlareAroundTheHero)
     EXPECT_EQ(fixture.random.State(), draws.State());
     const auto alive = fixture.AliveEffects();
     ASSERT_EQ(alive.size(), 1u);
-    EXPECT_EQ(alive[0]->type, Client::World::IcarusFlareEffect);
+    EXPECT_EQ(alive[0]->type, Client::Effects::IcarusFlareEffect);
     EXPECT_EQ(alive[0]->transform.position, glm::vec3(x, y, -700.0f));
     EXPECT_EQ(alive[0]->transform.angles, glm::vec3(0.0f));
     EXPECT_EQ(alive[0]->velocity.z, F32(RoundedSin(std::bit_cast<double>(0x3ff38c3540000000ull)) * (speed * 0.5)));
@@ -515,7 +517,7 @@ TEST(IcarusObjectsTest, ThePreludeNeedsTheJointTable)
     StepFixture fixture(seed);
     auto services = fixture.Services();
     services.createJoint = {};
-    const auto cut = Client::Scenes::StepIcarusObjectPrelude(0, services);
+    const auto cut = Client::MapScripts::Icarus::StepIcarusObjectPrelude(0, services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x530860"), std::string::npos) << cut.Error();
     EXPECT_EQ(fixture.AliveEffects().size(), 1u);
@@ -531,7 +533,7 @@ TEST(IcarusObjectsTest, TheSkyBoltIsCreatedWithOneDraw)
     glm::vec3 angles{};
     const Client::Kernel::JointRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
     CrtRandom random(11);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     CrtRandom draws(11);
     const JointState& joint = joints[0];
     EXPECT_TRUE(joint.alive);
@@ -559,12 +561,12 @@ TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
     glm::vec3 angles{};
     const Client::Kernel::JointRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
     CrtRandom random(11);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];
     CrtRandom draws = random;
     for (int draw = 0; draw < 2 + 50 * 3; ++draw)
         static_cast<void>(draws.Next());
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(joint.life, 19);
@@ -575,7 +577,7 @@ TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
 
     joint.life = 15;
     const glm::vec3 position = joint.position;
-    const auto faded = Client::Scenes::StepJoints(joints, random);
+    const auto faded = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(faded.HasValue()) << faded.Error();
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(joint.light.z, F32(50.0 - D(std::bit_cast<float>(0x4121eb85u))));
@@ -584,7 +586,7 @@ TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
     EXPECT_NE(joint.position, position);
 
     joint.life = 10;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_FALSE(joint.tailEnabled);
 }
 
@@ -599,7 +601,7 @@ TEST(IcarusObjectsTest, TheObjectBoltIsCreatedWithThreeDraws)
     glm::vec3 angles = object.transform.angles;
     const Client::Kernel::JointRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
     CrtRandom random(13);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     CrtRandom draws(13);
     const JointState& joint = joints[0];
     EXPECT_EQ(joint.life, draws.Next() % 20 + 6);
@@ -628,11 +630,11 @@ TEST(IcarusObjectsTest, TheObjectBoltRebuildsTowardsItsOwnerAtTheEnd)
     glm::vec3 angles = object.transform.angles;
     const Client::Kernel::JointRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
     CrtRandom random(13);
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];
     joint.life = 6;
     CrtRandom draws = random;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(joint.count, 0);
     EXPECT_EQ(joint.life, 5);
@@ -640,7 +642,7 @@ TEST(IcarusObjectsTest, TheObjectBoltRebuildsTowardsItsOwnerAtTheEnd)
     joint.life = 4;
     for (int draw = 0; draw < 50 * 5; ++draw)
         static_cast<void>(draws.Next());
-    const auto rebuilt = Client::Scenes::StepJoints(joints, random);
+    const auto rebuilt = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(rebuilt.HasValue()) << rebuilt.Error();
     EXPECT_EQ(random.State(), draws.State());
     EXPECT_EQ(joint.count, 49);
@@ -653,7 +655,7 @@ TEST(IcarusObjectsTest, TheObjectBoltRebuildsTowardsItsOwnerAtTheEnd)
 
     joint.life = 4;
     joint.ownerContext = nullptr;
-    const auto cut = Client::Scenes::StepJoints(joints, random);
+    const auto cut = Client::Joints::StepJoints(joints, random);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x536a15"), std::string::npos) << cut.Error();
 }

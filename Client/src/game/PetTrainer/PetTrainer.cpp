@@ -33,7 +33,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::PetTrainer
 {
 namespace
 {
@@ -112,21 +112,21 @@ constexpr std::array<std::uint32_t, 3> MixPrices{0, 5'000'000, 1'000'000};
 constexpr std::uint8_t HorseMixKind = 0x0d;
 constexpr std::uint8_t RavenMixKind = 0x0e;
 
-bool Inside(const GameUiContext& context, const Rect& rect)
+bool Inside(const Hud::GameUiContext& context, const Rect& rect)
 {
     return context.mouseX >= rect.left && context.mouseX < rect.right && context.mouseY >= rect.top &&
            context.mouseY < rect.bottom;
 }
 
 // 0x7d36874 y 0x7d366d4 en 0.
-void ConsumeTheClick(GameMovementState& movement)
+void ConsumeTheClick(Movement::GameMovementState& movement)
 {
     movement.leftHeld = false;
     movement.pendingClick = false;
 }
 
 // El botón de `count` desde `firstTop` cada `step` bajo el mouse con el clic, como lo recorren 0x44b580 y 0x44b972.
-std::optional<std::size_t> PressedButton(const GameUiContext& context, std::int32_t firstTop, std::int32_t step)
+std::optional<std::size_t> PressedButton(const Hud::GameUiContext& context, std::int32_t firstTop, std::int32_t step)
 {
     if (!context.world.Runtime().movement.pendingClick)
         return std::nullopt;
@@ -139,7 +139,8 @@ std::optional<std::size_t> PressedButton(const GameUiContext& context, std::int3
     return std::nullopt;
 }
 
-Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Outgoing packet, std::string_view what)
+Core::Expected<void, std::string> Send(const Npc::NpcWindowSender& send, Protocol::Outgoing packet,
+                                       std::string_view what)
 {
     if (!send)
         return Core::Unexpected(std::format("{} sin la sesión", what));
@@ -147,40 +148,40 @@ Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Ou
 }
 
 // 0x555190(0x6e57a4, el texto 1211, 2).
-Core::Expected<void, std::string> WarnTheBoxIsNotEmpty(const InventoryServices* services, std::string_view where)
+Core::Expected<void, std::string> WarnTheBoxIsNotEmpty(const Items::InventoryServices* services, std::string_view where)
 {
     if (services == nullptr || !services->systemMessage)
         return Core::Unexpected(std::format("{}: 0x555190 sin el chat", where));
-    return services->systemMessage(BoxNotEmptyText, UI::ErrorMessage);
+    return services->systemMessage(BoxNotEmptyText, Ui::ErrorMessage);
 }
 
 // El primer acceso de 0x44b190 (0x44b197..0x44b3be): el precio sin el doble y el texto de 0x5b13e0, o −1 sin la
 // mascota. Con la durabilidad en la máxima o más, 0.
-Core::Expected<std::optional<RepairPrice>, std::string> PriceThePet(const PetQuoteContext& context, const Pet& pet,
-                                                                    bool& found)
+Core::Expected<std::optional<Items::RepairPrice>, std::string> PriceThePet(const PetQuoteContext& context,
+                                                                           const Pet& pet, bool& found)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ItemState& item = context.world.OwnCharacter().equipment[pet.slot];
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     found = item.id == pet.type;
     if (!found)
-        return std::optional<RepairPrice>{};
+        return std::optional<Items::RepairPrice>{};
     if (context.items == nullptr)
         return Core::Unexpected(std::string("0x44b31a: el precio de la mascota sin Item.bmd ([0x7758550])"));
     const auto record = context.items->Record(item.id);
     if (!record)
         return Core::Unexpected(std::format("0x44b31f: el tipo {:#x} lee fuera de Item.bmd", item.id));
     const std::int32_t level = static_cast<std::int32_t>((item.scalar1Low >> LevelShift) & LevelMask);
-    const std::uint16_t maximum = MaxDurability(item, *record, level);
+    const std::uint16_t maximum = Items::MaxDurability(item, *record, level);
     if (item.durability >= maximum)
-        return std::optional<RepairPrice>{};
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
-    auto price = ItemPrice(item, *context.items, RepairPriceMode, pets);
+        return std::optional<Items::RepairPrice>{};
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    auto price = Items::ItemPrice(item, *context.items, Items::RepairPriceMode, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
     // 0x78abb10 ya está en 0 (0x44b1a3).
-    return std::optional<RepairPrice>{RepairPriceOf(price.Value(), item.durability, maximum, 0)};
+    return std::optional<Items::RepairPrice>{Items::RepairPriceOf(price.Value(), item.durability, maximum, 0)};
 }
 } // namespace
 
@@ -188,7 +189,7 @@ void OpenTheTrainer(Kernel::WorldState& world, std::int32_t mode)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     runtime.panels.delegated.trainer = mode;
-    runtime.npcWindows.trainerBox = EmptyTrainerBox();
+    runtime.npcWindows.trainerBox = Npc::EmptyTrainerBox();
 }
 
 bool TrainerBoxHasItems(const Kernel::WorldState& world)
@@ -197,8 +198,8 @@ bool TrainerBoxHasItems(const Kernel::WorldState& world)
                                [](const Kernel::ItemState& cell) { return cell.id != EmptyCell; });
 }
 
-Core::Expected<bool, std::string> CloseTheTrainer(Kernel::WorldState& world, const InventoryServices* services,
-                                                  const NpcWindowSender& send)
+Core::Expected<bool, std::string> CloseTheTrainer(Kernel::WorldState& world, const Items::InventoryServices* services,
+                                                  const Npc::NpcWindowSender& send)
 {
     if (TrainerBoxHasItems(world))
     {
@@ -206,7 +207,7 @@ Core::Expected<bool, std::string> CloseTheTrainer(Kernel::WorldState& world, con
             return Core::Unexpected(std::move(warned).Error());
         return false;
     }
-    UI::DelegatedPanels& delegated = world.Runtime().panels.delegated;
+    Ui::DelegatedPanels& delegated = world.Runtime().panels.delegated;
     delegated.field724584 = 0;
     delegated.trainer = 0;
     if (auto sent = Send(send, Protocol::Session::WriteWindowClose(), "0x449ad1: el C1 03 31"); !sent.HasValue())
@@ -222,7 +223,7 @@ std::uint32_t TrainerMixPrice(std::uint8_t kind)
 void ScanTheTrainerBox(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     runtime.panels.delegated.field724584 = 0;
     npc.trainerZenShort = 0;
     std::int32_t bless = 0;
@@ -288,7 +289,7 @@ Core::Expected<PetRecoveryQuote, std::string> QuoteThePetRecovery(const PetQuote
         return Core::Unexpected(std::move(repair).Error());
     if (!found)
         return PetRecoveryQuote{.price = NoPet, .line = PetQuoteLine::NoPet, .number = {}};
-    const std::optional<RepairPrice>& priced = repair.Value();
+    const std::optional<Items::RepairPrice>& priced = repair.Value();
     std::uint32_t price = priced ? static_cast<std::uint32_t>(priced->gold) : 0u;
     // 0x44b366..0x44b36d: el doble, en 32 bits, con la durabilidad en 0.
     if (context.world.OwnCharacter().equipment[pet.slot].durability == 0)
@@ -299,13 +300,14 @@ Core::Expected<PetRecoveryQuote, std::string> QuoteThePetRecovery(const PetQuote
     const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::uint32_t zen = context.world.OwnCharacter().zen;
     if (zen < price)
-        return PetRecoveryQuote{.price = price, .line = PetQuoteLine::Short, .number = ThousandsText(price - zen)};
+        return PetRecoveryQuote{
+            .price = price, .line = PetQuoteLine::Short, .number = ChaosMix::ThousandsText(price - zen)};
     // 0x44b465: el buffer de quien llama tiene lo que escribió 0x5b13e0, el precio sin el doble (Q-C955).
     return PetRecoveryQuote{
         .price = price, .line = PetQuoteLine::Cost, .number = priced ? priced->text : std::string{}};
 }
 
-Core::Expected<void, std::string> StepTheTrainer(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainer(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     switch (context.world.Runtime().panels.delegated.trainer)
     {
@@ -321,7 +323,7 @@ Core::Expected<void, std::string> StepTheTrainer(const GameUiContext& context, U
     }
 }
 
-Core::Expected<void, std::string> StepTheTrainerMenu(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainerMenu(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (Inside(context, SmallWindow))
@@ -348,16 +350,16 @@ Core::Expected<void, std::string> StepTheTrainerMenu(const GameUiContext& contex
         return {};
     // 0x449970: el modo 3 y 0x6599a0(0x4000000, 0), que con el modo 3 no cierra el entrenador.
     runtime.panels.delegated.trainer = TrainerBoxMode;
-    auto opened = panels.Open(UI::InventoryPanel);
+    auto opened = panels.Open(Ui::InventoryPanel);
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     return {};
 }
 
-Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& context)
+Core::Expected<void, std::string> StepThePetRecovery(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (Inside(context, SmallWindow))
         runtime.ui.mouseOnUi = 1;
     const std::optional<std::size_t> pressed = PressedButton(context, RecoveryFirstTop, RecoveryStep);
@@ -401,10 +403,10 @@ Core::Expected<void, std::string> StepThePetRecovery(const GameUiContext& contex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheTrainerBox(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTrainerBox(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (Inside(context, BoxWindow))
         runtime.ui.mouseOnUi = 1;
     if (Inside(context, MixButton) && movement.pendingClick)
@@ -425,11 +427,11 @@ Core::Expected<void, std::string> StepTheTrainerBox(const GameUiContext& context
     {
         ConsumeTheClick(movement);
         // 0x44d661: 0x65cae0(0x8000, 0).
-        if (auto closed = panels.Close(UI::TrainerPanel); !closed.HasValue())
+        if (auto closed = panels.Close(Ui::TrainerPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
     // 0x44d666.
     ScanTheTrainerBox(context.world, context.random);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::PetTrainer

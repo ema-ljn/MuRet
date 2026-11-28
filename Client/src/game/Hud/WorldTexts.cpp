@@ -16,7 +16,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -43,7 +43,7 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const W
     // 0x438434..0x43843d: fld de la z, fadd del float y fstp a float.
     const glm::vec3 point{entry.position.x, entry.position.y,
                           static_cast<float>(static_cast<double>(entry.position.z) + AboveThePosition)};
-    const auto projected = ProjectGamePoint(*context.projection, point);
+    const auto projected = Scenes::ProjectGamePoint(*context.projection, point);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
     // 0x438460..0x438469: con signo, las dos.
@@ -89,4 +89,4 @@ Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& contex
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

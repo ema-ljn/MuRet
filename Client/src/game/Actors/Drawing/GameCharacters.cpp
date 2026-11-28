@@ -235,21 +235,21 @@ constexpr glm::vec3 BlueCloth{0.0f, 0.2f, 1.0f};
 Core::Expected<void, std::string> DressForTheWar(const Kernel::WorldState& world, const Kernel::ActorState& actor,
                                                  ClothLook& look)
 {
-    const Scenes::GuildState& guild = world.Runtime().guild;
+    const Guild::GuildState& guild = world.Runtime().guild;
     const auto index = static_cast<std::int16_t>(actor.word1f2);
-    if (index == Scenes::NoGuildIndex || guild.warType == 0)
+    if (index == Guild::NoGuildIndex || guild.warType == 0)
         return {};
-    const auto own = Scenes::GuildNameAt(guild, index);
+    const auto own = Guild::GuildNameAt(guild, index);
     if (!own)
         return Core::Unexpected(std::format("0x50c9b8: el gremio {} cae fuera de la tabla (0x787aa48)", index));
     const auto heroIndex = static_cast<std::int16_t>(world.Hero().word1f2);
-    const auto heros = Scenes::GuildNameAt(guild, heroIndex);
+    const auto heros = Guild::GuildNameAt(guild, heroIndex);
     if (!heros)
         return Core::Unexpected(std::format("0x50c9cf: el gremio {} del héroe cae fuera de la tabla", heroIndex));
     const bool firstTeam = guild.warTeam == 0;
     if (*heros == *own)
         look = {.wears = true, .color = firstTeam ? RedCloth : BlueCloth};
-    if (Scenes::GuildTextOf(guild.rival) == *own)
+    if (Guild::GuildTextOf(guild.rival) == *own)
         look = {.wears = true, .color = firstTeam ? BlueCloth : RedCloth};
     return {};
 }
@@ -262,12 +262,12 @@ Core::Expected<void, std::string> DressForSoccer(const Kernel::WorldState& world
     if (!soccer.active)
         return {};
     const auto index = static_cast<std::int16_t>(actor.word1f2);
-    const auto name = Scenes::GuildNameAt(world.Runtime().guild, index);
+    const auto name = Guild::GuildNameAt(world.Runtime().guild, index);
     if (!name)
         return Core::Unexpected(std::format("0x50cac6: el gremio {} cae fuera de la tabla", index));
-    if (*name == Scenes::GuildTextOf(soccer.firstName))
+    if (*name == Guild::GuildTextOf(soccer.firstName))
         look = {.wears = true, .color = RedCloth};
-    if (*name == Scenes::GuildTextOf(soccer.secondName))
+    if (*name == Guild::GuildTextOf(soccer.secondName))
         look = {.wears = true, .color = BlueCloth};
     return {};
 }
@@ -289,7 +289,7 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const Kernel::WorldState& 
         return Core::Unexpected(std::move(war).Error());
     if (auto soccer = DressForSoccer(world, actor, look); !soccer.HasValue())
         return Core::Unexpected(std::move(soccer).Error());
-    const Scenes::DuelState& duel = world.Runtime().social.duel;
+    const Social::DuelState& duel = world.Runtime().social.duel;
     if (duel.active == 0)
         return look;
     const std::string name = ChatNameOf(actor);
@@ -420,16 +420,16 @@ Core::Expected<void, std::string> DrawTheMarkQuad(Render::ModelBatch& batch, con
 // the 0x4000 flag of +0x78: the mark of 0x5f16a0(+0x1f2, 1) in the quad of 0x5091e0.
 Core::Expected<void, std::string> DrawTheGuildMark(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                    const Kernel::ActorState& actor, const DrawnCharacter& character,
-                                                   const GameCharacterPass& pass, const Scenes::GuildState& guild)
+                                                   const GameCharacterPass& pass, const Guild::GuildState& guild)
 {
     const auto index = static_cast<std::int16_t>(actor.word1f2);
     if (IsChaosCastle(character.map) || index < 0 || actor.type != Tables::PlayerSkeletonModel || actor.alpha == 0.0f)
         return {};
-    if (index != Scenes::CreatingGuildIndex)
+    if (index != Guild::CreatingGuildIndex)
     {
-        if (static_cast<std::size_t>(index) >= Scenes::GuildTableSize)
+        if (static_cast<std::size_t>(index) >= Guild::GuildTableSize)
             return Core::Unexpected(std::format("0x50d543: el gremio {} cae fuera de la tabla", index));
-        const auto found = Scenes::FindGuild(guild, guild.table[static_cast<std::size_t>(index)].key);
+        const auto found = Guild::FindGuild(guild, guild.table[static_cast<std::size_t>(index)].key);
         if (!found)
             return Core::Unexpected<std::string>("0x447b00: la búsqueda pasa de las 2.000 entradas de la tabla");
         if (*found == -1)
@@ -459,7 +459,7 @@ Core::Expected<glm::vec3, std::string> LightTheBody(Kernel::WorldState& world, K
 
 Core::Expected<void, std::string> DrawTheBody(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                               const Kernel::ActorState& actor, const DrawnCharacter& character,
-                                              const GameCharacterPass& pass, bool hero, const Scenes::GuildState& guild)
+                                              const GameCharacterPass& pass, bool hero, const Guild::GuildState& guild)
 {
     if (WearsTheSkeletonBody(actor))
     {
@@ -558,7 +558,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                                .world = &world,
                                                .slot = slot,
                                                .scan = scan,
-                                               .party = Scenes::PartyMembers(world.Runtime()),
+                                               .party = Party::PartyMembers(world.Runtime()),
                                                .actors = world.Actors(),
                                                .worldClock = worldClock,
                                                .map = map,
@@ -717,7 +717,7 @@ Core::Expected<void, std::string> DrawThePool(Render::ModelBatch& batch, const M
         {
             if (pass.clothWorld == nullptr || pass.particles == nullptr)
                 return Core::Unexpected(std::string("0x42de7f: faltan partículas o CRT para la bendición del asedio"));
-            if (auto blessed = Scenes::DrawTheCastleBlessing(
+            if (auto blessed = CastleSiege::DrawTheCastleBlessing(
                     actor, world.Actors()[hero].word1f2, world.Runtime().castleSiege.castleMarkX,
                     world.Runtime().castleSiege.castleMarkY, pass.clothWorld->logicSteps, *pass.particles,
                     pass.clothWorld->random);
@@ -766,7 +766,7 @@ Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch, 
         return Core::Unexpected<std::string>(
             "0x510d00: cantidad de frames del original fuera del presupuesto del dibujo");
     const int frames = std::max(pass.originalFrames, 1);
-    std::optional<World::FrameSprites> discardedSprites;
+    std::optional<Particles::FrameSprites> discardedSprites;
     if (frames > 1 && pass.sprites != nullptr)
         discardedSprites.emplace();
     for (int frame = 0; frame < frames; ++frame)

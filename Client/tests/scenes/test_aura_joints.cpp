@@ -66,12 +66,12 @@ struct Pool
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = target};
-        return Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor);
+        return Client::Joints::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, cloth->random, cloth.get(), nullptr, 0, nullptr, nullptr, {}, {},
+        return Client::Joints::StepJoints(joints, cloth->random, cloth.get(), nullptr, 0, nullptr, nullptr, {}, {},
                                           actors, {}, effects);
     }
 
@@ -79,7 +79,7 @@ struct Pool
     std::vector<ActorState> actors = std::vector<ActorState>(3);
     std::unique_ptr<Client::Models::ClothWorld> cloth = std::make_unique<Client::Models::ClothWorld>();
     glm::vec3 startAngles{};
-    Client::World::ModelEffects* effects = nullptr;
+    Client::Effects::ModelEffects* effects = nullptr;
 };
 
 // 0x5363bf..0x536450 con la frecuencia entera, calculado aparte del código de MuRet (Fraction y Decimal de Python):
@@ -280,8 +280,8 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
 
     // Con la tabla: la onda en el +0x24 de esa vuelta, con los ángulos y la luz del joint, vida 15 y escala 1, sin
     // rand(); llena, nada y el mismo RNG.
-    auto table = std::make_unique<Client::World::ModelEffects>();
-    auto full = std::make_unique<Client::World::ModelEffects>();
+    auto table = std::make_unique<Client::Effects::ModelEffects>();
+    auto full = std::make_unique<Client::Effects::ModelEffects>();
     for (auto& effect : full->Effects())
         effect.alive = true;
     Pool withTable;
@@ -302,7 +302,7 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
         EXPECT_EQ(withTable.cloth->random.State(), withFull.cloth->random.State());
         if (before.volley <= 40 && withTable.joints[0].volley > 40)
         {
-            const Client::World::ModelEffect& wave = table->Effects()[0];
+            const Client::Effects::ModelEffect& wave = table->Effects()[0];
             ASSERT_TRUE(wave.alive);
             EXPECT_EQ(wave.type, 0x6eb);
             EXPECT_EQ(wave.subtype, 3);

@@ -20,7 +20,7 @@ class CrtRandom;
 // después su switch por tipo − 1 (de 1 a 301, la tabla de bytes 0x517138 sobre la de saltos 0x516f44), con el
 // default 0x516e2a. Cada caso es una lista de pasos en el orden del ASM: lo que carga, el 0x512870 con el modelo, lo
 // que escribe en el personaje y lo que llama. Las tablas están leídas del listado caso por caso (*estático*).
-namespace Client::Scenes
+namespace Client::Monsters
 {
 enum class MonsterStepKind : std::uint8_t
 {
@@ -149,4 +149,4 @@ struct MonsterTail
 
 // 0x514103..0x51410f: FILD de los escalones, FMUL por 0,05f (0x6b8a48), FADD de la escala y FSTP a float.
 [[nodiscard]] float AddTailScale(float scale, std::int32_t steps) noexcept;
-} // namespace Client::Scenes
+} // namespace Client::Monsters

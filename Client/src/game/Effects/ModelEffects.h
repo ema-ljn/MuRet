@@ -27,12 +27,16 @@ namespace Client::Crt
 class CrtRandom;
 }
 
+namespace Client::Particles
+{
+class FrameSprites;
+} // namespace Client::Particles
+
 // Los efectos con modelo (CL7.6 A): la tabla de 0x518cf0 (200 lugares de 0x1d4 bytes).
 // El dragón conserva los vectores históricos; llegada, teleport y torre de Noria se contrastaron
 // estáticamente con ASM. Para el paso del juego y su CRT, usar World/GameModelEffects.h.
-namespace Client::World
+namespace Client::Effects
 {
-class FrameSprites;
 
 inline constexpr std::size_t ModelEffectCount = 200;
 // El dragón que vuela en el login, con su modelo (Assets::DragonModel) y la escala que le pasa 0x606660.
@@ -368,7 +372,7 @@ public:
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
     CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
                     Crt::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
-                    FrameSprites& sprites);
+                    Particles::FrameSprites& sprites);
     // 0x518cf0(0x14e, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51ddfc: el prefijo común (+0x8a en
     // −1, escala 0,9) con el dueño, vida 200, el cuadro (+0x1c4) en 0, la luz, el alpha en 1, la hora (+0x1c0) de
     // timeGetTime() y la z en 0. Sin rand(); lleno, ninguno.
@@ -469,4 +473,4 @@ UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes, const 
 // acción termina, el frame en sus keys y la acción en 0xff), la posición más la velocidad girada por los
 // ángulos (0x51fc80 con 0x5fc8f0 y 0x5fcbd0) y una vida menos; con la vida en 0, muere.
 void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton);
-} // namespace Client::World
+} // namespace Client::Effects

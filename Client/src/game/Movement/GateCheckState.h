@@ -4,7 +4,7 @@
 
 // Entrada de la decisión de gates (06 § Los cambios de mapa). Los defaults inicializan el DTO;
 // no representan un snapshot del original. El caller debe completar todos los campos del paso.
-namespace Client::GameLogic
+namespace Client::Movement
 {
 struct GateCheckState
 {
@@ -28,4 +28,4 @@ struct GateCheckState
     bool requestBlocked = false;  // 0x576794c distinto de cero.
     bool warpPending = false;     // 0x77f3bb0 distinto de cero.
 };
-} // namespace Client::GameLogic
+} // namespace Client::Movement

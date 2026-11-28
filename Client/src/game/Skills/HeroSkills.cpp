@@ -35,7 +35,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -198,13 +198,13 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
     constexpr std::uint8_t PlayerObject = 1;
     constexpr std::uint8_t MonsterObject = 2;
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     if (!hero.darkSpirit || (!ui.rightClick && !ui.rightDown) || !InRange(slot, FirstOrderSlot, AttackOrderSlot))
         return false;
     std::optional<Protocol::Pets::PetCommand> command;
     if (slot == AttackOrderSlot)
     {
-        const auto attackable = IsAttackable(context.world, context.controlDown);
+        const auto attackable = Hero::IsAttackable(context.world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
         // 0x558bb0 ya miró el −1 y el lugar del elegido.
@@ -238,7 +238,7 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
 Core::Expected<void, std::string> AimTheSkill(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& state = runtime.movement;
+    Movement::GameMovementState& state = runtime.movement;
     glm::vec3 point{};
     const std::int32_t chosen = runtime.selectedTargets[2];
     if (chosen != -1)
@@ -348,10 +348,10 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, C
             {
                 // 0x57d582..0x57d61b: el registro abierto, 0x7758580 en 1, el lugar y el elegido si se ataca.
                 const auto own = OwnAccess(context);
-                WeaponSkillRequest& request = runtime.movement.weaponSkill;
+                Movement::WeaponSkillRequest& request = runtime.movement.weaponSkill;
                 request.active = 1;
                 request.slot = context.world.Hero().skillIndex;
-                const auto attackable = IsAttackable(context.world, context.controlDown);
+                const auto attackable = Hero::IsAttackable(context.world, context.controlDown);
                 if (!attackable.HasValue())
                     return Core::Unexpected(attackable.Error());
                 request.target = attackable.Value() ? runtime.selectedTargets[2] : -1;
@@ -404,7 +404,7 @@ enum class RightButton : std::uint8_t
 
 RightButton StepTheRightButton(Kernel::ActorState& hero, std::uint8_t& skill, Kernel::WorldState& world)
 {
-    UI::GameUiState& ui = world.Runtime().ui;
+    Ui::GameUiState& ui = world.Runtime().ui;
     if (ui.rightHoldFrames != 0)
     {
         if (!ui.rightReleased)
@@ -437,8 +437,8 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    GameMovementState& state = runtime.movement;
-    UI::GameUiState& ui = runtime.ui;
+    Movement::GameMovementState& state = runtime.movement;
+    Ui::GameUiState& ui = runtime.ui;
     // 0x57cfe2..0x57d00f.
     if (state.inputBlocked || ui.mouseOnUi != 0 || (hero.flags78 & FrozenHeroFlag) == FrozenHeroFlag)
         return {};
@@ -564,9 +564,9 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
         else
         {
             // 0x57d760..0x57d774: los tres en 0 y el elegido en −1.
-            state.weaponSkill = WeaponSkillRequest{.active = 0, .slot = 0, .target = -1};
+            state.weaponSkill = Movement::WeaponSkillRequest{.active = 0, .slot = 0, .target = -1};
         }
     }
     return UseTheClassSkill(hero, heroClass, skill, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

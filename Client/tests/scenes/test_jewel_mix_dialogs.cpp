@@ -42,10 +42,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
-using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -94,20 +94,19 @@ public:
 
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(world->Runtime().movement, true, true);
-        return Client::Scenes::StepTheGameDialogs(
-            GameUiContext{.world = *world,
-                          .random = random,
-                          .input = input,
-                          .mouseX = x,
-                          .mouseY = y,
-                          .measure = &measure,
-                          .texts = &texts,
-                          .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
-                          {
-                              sent.push_back(std::move(packet));
-                              return Client::Core::Expected<void, std::string>{};
-                          }});
+        Client::Hud::LatchTheLeftButton(world->Runtime().movement, true, true);
+        return Client::Hud::StepTheGameDialogs(GameUiContext{.world = *world,
+                                                             .random = random,
+                                                             .input = input,
+                                                             .mouseX = x,
+                                                             .mouseY = y,
+                                                             .measure = &measure,
+                                                             .texts = &texts,
+                                                             .sendNpcWindow = [this](Client::Protocol::Outgoing packet)
+                                                             {
+                                                                 sent.push_back(std::move(packet));
+                                                                 return Client::Core::Expected<void, std::string>{};
+                                                             }});
     }
 
     // `count` joyas `id` desde la casilla `from`.
@@ -120,7 +119,7 @@ public:
     [[nodiscard]] std::vector<std::string> Errors() const
     {
         std::vector<std::string> errors;
-        for (const Client::UI::MessageAreaRow& row : world->Runtime().chat.area.rows)
+        for (const Client::Ui::MessageAreaRow& row : world->Runtime().chat.area.rows)
         {
             if (row.type == 2 && !row.text.empty())
                 errors.push_back(row.text);
@@ -132,7 +131,7 @@ public:
     {
         return world->Runtime();
     }
-    [[nodiscard]] Client::Scenes::JewelMixState& Jewels()
+    [[nodiscard]] Client::Npc::JewelMixState& Jewels()
     {
         return world->Runtime().npcWindows.jewels;
     }
@@ -245,9 +244,9 @@ TEST(JewelMixDialogsTest, ChoosingTheSoulAndTwentyAsksAndTheYesSendsBc00)
         EXPECT_EQ(tested.Jewels().counted, 20);
         EXPECT_EQ(tested.Jewels().price, 1000000);
         EXPECT_EQ(tested.Jewels().field6e57a0, 100);
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "Juntar Joya Dos y 20?");
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 1), "Cuesta 1000000 zen");
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "Juntar Joya Dos y 20?");
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 1), "Cuesta 1000000 zen");
         EXPECT_EQ(runtime.dialogBox.lineCount, 2);
 
         ASSERT_TRUE(tested.Click(YesX, AnswerY).HasValue());
@@ -282,7 +281,7 @@ TEST(JewelMixDialogsTest, MissingJewelsWarnAndTheNoReturnsToTheChoice)
 
         tested.Jewels().kind = 0;
         ASSERT_TRUE(tested.Click(BlessX, TenY).HasValue());
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::ServerTimeDialog);
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::ServerTimeDialog);
         EXPECT_EQ(tested.Jewels().price, 500000);
         ASSERT_TRUE(tested.Click(NoX, AnswerY).HasValue());
         EXPECT_EQ(runtime.social.trade.warningByte, 2);
@@ -313,19 +312,19 @@ TEST(JewelMixDialogsTest, UnmixingSendsBc01WithTheSlotAndTheResultReturns)
         jewels.counted = 1;
         jewels.price = 1000000;
         // 0x402a90 abre el 0xa3 con 0x633300(0, 0, 0xa3), como lo haría la lista del 0xa4.
-        const Client::UI::DialogTextArguments question{
+        const Client::Ui::DialogTextArguments question{
             .jewelMode = 1, .jewelKind = 1, .jewelCount = 1, .jewelLevel = 2, .jewelPrice = 1000000};
-        ASSERT_TRUE(Client::UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &tested.texts, 0, 0,
-                                               Client::UI::ServerTimeDialog, nullptr, &question)
+        ASSERT_TRUE(Client::Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, &tested.texts, 0, 0,
+                                               Client::Ui::ServerTimeDialog, nullptr, &question)
                         .HasValue());
-        EXPECT_EQ(Client::UI::DialogRow(runtime.dialogBox, 0), "Deshacer Joya Dos 3?");
+        EXPECT_EQ(Client::Ui::DialogRow(runtime.dialogBox, 0), "Deshacer Joya Dos 3?");
         ASSERT_TRUE(tested.Click(YesX, AnswerY).HasValue());
         EXPECT_EQ(jewels.cell, 17 + 12);
         ASSERT_EQ(tested.sent.size(), 1u);
         EXPECT_TRUE(
             SameBytes(Xor32Decode(tested.sent[0].packet).Bytes(), Bytes({0xc1, 0x07, 0xbc, 0x01, 0x01, 0x02, 0x1d})));
         // Mandada, otro sí no vuelve a mandar.
-        runtime.dialogs.current = Client::UI::ServerTimeDialog;
+        runtime.dialogs.current = Client::Ui::ServerTimeDialog;
         ASSERT_TRUE(tested.Click(YesX, AnswerY).HasValue());
         EXPECT_EQ(tested.sent.size(), 1u);
 

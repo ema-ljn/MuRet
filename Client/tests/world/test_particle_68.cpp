@@ -16,8 +16,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t EffectType = 0x68;
 
 TEST(Particle68CreateTest, UsesFourOrderedRandomValuesAndRetainsTheNativeWords)
@@ -77,7 +77,7 @@ TEST(Particle68CreateTest, StepRunsAndUnsupportedCreationSubtypeRemainsAnError)
     ASSERT_TRUE(created.Value().has_value());
 
     const std::int32_t map = 34;
-    const auto stepped = Client::World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random, &map);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particles.All()[*created.Value()].life, 19);
 
@@ -85,7 +85,7 @@ TEST(Particle68CreateTest, StepRunsAndUnsupportedCreationSubtypeRemainsAnError)
     CrtRandom untouched(7);
     const auto wrongSubtype = unsupported.CreateChecked(EffectType, {}, {}, {}, 1, 1.0f, 0, untouched);
     ASSERT_FALSE(wrongSubtype.HasValue());
-    EXPECT_EQ(wrongSubtype.Error(), Client::World::ParticleError::UnsupportedSubtype);
+    EXPECT_EQ(wrongSubtype.Error(), Client::Particles::ParticleError::UnsupportedSubtype);
     EXPECT_EQ(untouched.State(), 7u);
 }
 

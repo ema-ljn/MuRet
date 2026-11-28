@@ -10,7 +10,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Particles
 {
 class IParticleTrigonometry;
 
@@ -71,4 +71,4 @@ void CreateSmokeParticle(Particle& particle, Crt::CrtRandom& random, float clock
 [[nodiscard]] Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Crt::CrtRandom& random,
                                                                     const ParticleOwnerStates& ownerStates);
 
-} // namespace Client::World
+} // namespace Client::Particles

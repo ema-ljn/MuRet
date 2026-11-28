@@ -118,11 +118,11 @@ struct Transition
     std::filesystem::path dataRoot;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tables::ItemSetTables itemSets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
@@ -215,8 +215,8 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
     const auto gated = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, 0, 30, 31, 0},
                                                      Transition::PlayerKey, gate->Resources(), publisher);
     ASSERT_TRUE(gated.HasValue()) << gated.Error();
-    const Client::Scenes::MapBanner& shown = gate->world.Runtime().hud.mapBanner;
-    EXPECT_EQ(shown.state, Client::Scenes::MapBannerState::FadingIn);
+    const Client::Hud::MapBanner& shown = gate->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(shown.state, Client::Hud::MapBannerState::FadingIn);
     EXPECT_EQ(shown.shownMap, 0);
     ASSERT_TRUE(shown.pendingImage.has_value());
     EXPECT_EQ(*shown.pendingImage, "Interface\\lorencia.tga");
@@ -225,8 +225,8 @@ TEST(WorldTransitionsTest, AGateTeleportShowsTheMapBannerAndAMagicOneDoesNot)
     const auto moved = Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{0, 0, 30, 31, 0},
                                                      Transition::PlayerKey, magic->Resources(), publisher);
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
-    const Client::Scenes::MapBanner& quiet = magic->world.Runtime().hud.mapBanner;
-    EXPECT_EQ(quiet.state, Client::Scenes::MapBannerState::Off);
+    const Client::Hud::MapBanner& quiet = magic->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(quiet.state, Client::Hud::MapBannerState::Off);
     EXPECT_FALSE(quiet.pendingImage.has_value());
 }
 
@@ -238,8 +238,8 @@ TEST(WorldTransitionsTest, RegenShowsTheMapBanner)
         Client::Scenes::ApplyRegen(Client::Protocol::Movement::Regen{30, 31, 0, 0, 70, 80, 90, 100, 110},
                                    Transition::PlayerKey, tested->Resources());
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    const Client::Scenes::MapBanner& banner = tested->world.Runtime().hud.mapBanner;
-    EXPECT_EQ(banner.state, Client::Scenes::MapBannerState::FadingIn);
+    const Client::Hud::MapBanner& banner = tested->world.Runtime().hud.mapBanner;
+    EXPECT_EQ(banner.state, Client::Hud::MapBannerState::FadingIn);
     EXPECT_EQ(banner.shownMap, 0);
     ASSERT_TRUE(banner.pendingImage.has_value());
     EXPECT_EQ(*banner.pendingImage, "Interface\\lorencia.tga");
@@ -281,7 +281,7 @@ TEST(WorldTransitionsTest, CursorDressFailureRetainsTheReturnedItemAndStopsBefor
     auto tested = std::make_unique<Transition>();
     Publisher publisher;
     tested->items = Client::Tests::ItemTableOf({{0x1c00, 1, 1, 0}});
-    tested->models = Client::Scenes::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
+    tested->models = Client::FrontEnd::SingleModelLibrary{}; // Falta Player.bmd justo en el 512a30 del retorno.
     auto& runtime = tested->world.Runtime();
     runtime.cursorItemCount = 1;
     runtime.cursorGrid = Client::Kernel::CursorGrid::Inventory;
@@ -368,7 +368,7 @@ TEST(WorldTransitionsTest, TransitionArrivalRetainsTheDurableOwnerAndNativeKey)
     Client::Scenes::CreateTransitionArrival(actor, tested.Resources());
     const auto& effect = tested.world.Map().effects.Effects()[0];
     ASSERT_TRUE(effect.alive);
-    EXPECT_EQ(effect.type, Client::World::ArrivalEffect);
+    EXPECT_EQ(effect.type, Client::Effects::ArrivalEffect);
     EXPECT_TRUE(effect.hasOwner);
     EXPECT_EQ(effect.ownerContext, &actor);
     EXPECT_EQ(effect.disturbanceState, 0xffffu);
@@ -430,7 +430,7 @@ TEST_F(WorldTransitionsMapsTest, ATeleportToAnotherMapWelcomesToIt)
     ASSERT_EQ(log.size(), 1u);
     EXPECT_EQ(log.back().name, "");
     EXPECT_EQ(log.back().text, "<mapa 3> <bienvenida>");
-    EXPECT_EQ(log.back().type, Client::UI::SystemMessage);
+    EXPECT_EQ(log.back().type, Client::Ui::SystemMessage);
 }
 
 TEST_F(WorldTransitionsMapsTest, ReentersLorenciaAndNoriaWithTheSameDurableState)
@@ -478,13 +478,13 @@ TEST_F(WorldTransitionsMapsTest, AGameServerBatchAppliesTheLoadedMapBeforeTheFol
     Client::Network::PacketSerials serials;
     online.socket.reads = {EntryPacket(serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     online.socket.sent.clear();
     online.socket.reads = {
         Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 3, 30, 31, 2}), serials),
         Client::Tests::Bytes({0xc1, 8, 0xd3, 0, 5, 40, 41, 0xf0})};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(tested.world.Runtime().map, 3);
     const auto& hero = tested.Hero();
     EXPECT_EQ(hero.position.x, 3050.0f);
@@ -499,7 +499,7 @@ TEST_F(WorldTransitionsMapsTest, AGameServerBatchAppliesTheLoadedMapBeforeTheFol
     online.socket.reads = {
         Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x1c, 25, 0, 133, 127, 4}), serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(tested.Hero().cellX, 133);
     EXPECT_EQ(tested.Hero().position.x, 13350.0f);
@@ -517,19 +517,19 @@ TEST_F(WorldTransitionsMapsTest, AGameServerCanReturnToSelectionAndEnterAgain)
     Client::Network::PacketSerials serials;
     online.socket.reads = {EntryPacket(serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     const auto firstSlot = tested.world.Runtime().hero;
     tested.world.DrawTail().damage[0].alive = true;
     online.socket.reads = {Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 5, 0xf1, 2, 1}), serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::WaitingCharacterList);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::WaitingCharacterList);
     EXPECT_EQ(tested.world.Runtime().hero, firstSlot);
     EXPECT_EQ(tested.world.Runtime().map, -1);
     EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
     EXPECT_FALSE(tested.world.DrawTail().damage[0].alive);
     online.socket.reads = {EntryPacket(serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_TRUE(tested.Hero().alive);
 }
@@ -563,7 +563,7 @@ TEST_F(WorldTransitionsMapsTest, RegenChangesMapsWithoutAcknowledgingOrResetting
     Client::Network::PacketSerials serials;
     online.socket.reads = {EntryPacket(serials)};
     static_cast<void>(online.session.Poll());
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
     tested.world.Runtime().warpCounter = 42;
     online.socket.sent.clear();
     const auto slot = tested.world.Runtime().hero;
@@ -589,7 +589,7 @@ TEST_F(WorldTransitionsMapsTest, RegenChangesMapsWithoutAcknowledgingOrResetting
         regen[12] = std::byte{90};
         online.socket.reads = {Client::Tests::FromTheGameServer(regen, serials)};
         static_cast<void>(online.session.Poll());
-        ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+        ASSERT_EQ(online.session.State(), Client::Session::SessionState::InWorld);
         EXPECT_EQ(tested.world.Runtime().hero, slot);
         EXPECT_EQ(tested.world.Runtime().warpCounter, 42);
         EXPECT_EQ(tested.world.Runtime().map, map);
@@ -678,7 +678,7 @@ TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithout
     resources.textMeasure = &letters;
     resources.texts = &texts;
     Client::Crt::CrtRandom setupRandom(1);
-    Client::Scenes::ClearSelectionInventory(tested->world, setupRandom);
+    Client::FrontEnd::ClearSelectionInventory(tested->world, setupRandom);
     auto& runtime = tested->world.Runtime();
     runtime.panels.delegated.castleSiegeList = 1;
     runtime.npcWindows.chaosBox[0].id = 1;
@@ -690,7 +690,7 @@ TEST(WorldTransitionsTest, TransitionClosersKeepSeniorBusyAsALocalWarningWithout
     EXPECT_EQ(runtime.panels.delegated.castleSiegeList, 1);
     ASSERT_FALSE(runtime.chat.log.entries.empty());
     EXPECT_EQ(runtime.chat.log.entries.back().text, "la caja sigue ocupada");
-    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::UI::ErrorMessage); // 0x65cb89: push 2.
+    EXPECT_EQ(runtime.chat.log.entries.back().type, Client::Ui::ErrorMessage); // 0x65cb89: push 2.
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
@@ -745,16 +745,16 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         runtime.map = pass.from;
         runtime.warpCounter = 9999999;
         const Letters letters;
-        const auto box = Client::UI::CreateTheOldWindow(
+        const auto box = Client::Ui::CreateTheOldWindow(
             runtime.oldWindows,
-            Client::UI::OldWindowRequest{
-                .kind = Client::UI::QuestionCase, .x = -1, .y = -1, .data = "Seguro?", .aux = 0, .flags = 0},
-            Client::UI::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
-            Client::UI::OldWindowMeasure{
+            Client::Ui::OldWindowRequest{
+                .kind = Client::Ui::QuestionCase, .x = -1, .y = -1, .data = "Seguro?", .aux = 0, .flags = 0},
+            Client::Ui::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
+            Client::Ui::OldWindowMeasure{
                 .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}});
         ASSERT_TRUE(box.HasValue()) << box.Error();
         runtime.oldWindows.focus = box.Value();
-        runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+        runtime.chat.input.focus = Client::Chat::ChatFocus::Message;
         const auto result =
             Client::Scenes::ApplyTeleport(Client::Protocol::Movement::Teleport{23, pass.to, 133, 127, 0},
                                           Transition::PlayerKey, tested.Resources(), publisher);
@@ -764,11 +764,11 @@ TEST_F(WorldTransitionsMapsTest, TheChaosCastlePrefixHidesTheOldWindowsWithoutNo
         const bool fromChaos = pass.from >= 18 && pass.from <= 23;
         const bool toChaos = pass.to >= 18 && pass.to <= 23;
         const bool crossesChaos = fromChaos || toChaos;
-        EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, crossesChaos ? Client::UI::HiddenWindow : 0);
+        EXPECT_EQ(runtime.oldWindows.windows.at(box.Value()).base.state, crossesChaos ? Client::Ui::HiddenWindow : 0);
         EXPECT_TRUE(runtime.oldWindows.hidden.empty());
         EXPECT_EQ(runtime.oldWindows.focus, crossesChaos ? 0 : box.Value());
         EXPECT_EQ(runtime.chat.input.focus,
-                  crossesChaos ? Client::UI::ChatFocus::Game : Client::UI::ChatFocus::Message);
+                  crossesChaos ? Client::Chat::ChatFocus::Game : Client::Chat::ChatFocus::Message);
         std::vector<std::string> expected;
         if (crossesChaos)
             expected.push_back("play-loop:158");

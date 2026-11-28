@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <ratio>
 
-namespace Client::App
+namespace Client::Kernel
 {
 namespace
 {
@@ -80,4 +80,4 @@ std::int32_t FaithfulPacer::LastMeasuredMs() const
 {
     return m_lastMeasuredMs;
 }
-} // namespace Client::App
+} // namespace Client::Kernel

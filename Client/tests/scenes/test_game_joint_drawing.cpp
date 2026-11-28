@@ -108,7 +108,7 @@ TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
     {
         SCOPED_TRACE(type);
         Client::Crt::CrtRandom random(9);
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Scenes::JointDrawResources resources{random, sprites, true, 250.0f};
         auto joint = Joint(type, 1);
         Client::Render::ModelBatch batch;
@@ -125,7 +125,7 @@ TEST(GameJointDrawingTest, AnimatedUvsUseSignedClockRemainderWithoutRandoms)
 {
     Client::Crt::CrtRandom random(9);
     Client::Crt::CrtRandom expected(9);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Scenes::JointDrawResources resources{random, sprites, true, -1250.75f};
     auto joint = Joint(0x614, 1);
     Client::Render::ModelBatch batch;
@@ -139,7 +139,7 @@ TEST(GameJointDrawingTest, BloodCastleOwnerHeightSetsPerSegmentColorAndMiddleSpr
 {
     Client::Crt::CrtRandom random(9);
     Client::Crt::CrtRandom expected(9);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     const Client::Scenes::JointDrawResources resources{random, sprites};
     auto joint = Joint(0x10f, 0);
     joint.points[0][0].z = 30;
@@ -173,7 +173,7 @@ TEST(GameJointDrawingTest, IntermediateSpecialSpritesRepeatWithoutChangingTheRan
     auto joint = Joint(0x10f, 9);
     Client::Crt::CrtRandom random(7);
     Client::Crt::CrtRandom expected(7);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch original;
     Client::Render::ModelBatch replay;
     ASSERT_TRUE(Client::Scenes::DrawJoints(original, std::span(&joint, 1), 0, {random, sprites, true}).HasValue());
@@ -187,7 +187,7 @@ TEST(GameJointDrawingTest, IntermediateSpecialSpritesRepeatWithoutChangingTheRan
 
 TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForNine)
 {
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     owner.position.z = 10;
     for (const int subtype : {0, 4, 9})
     {
@@ -195,7 +195,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         joint.ownerContext = &owner;
         joint.points[0][0].z = subtype == 9 ? 215.0f : 85.0f;
         Client::Crt::CrtRandom random(1);
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         Client::Render::ModelBatch batch;
         ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
@@ -210,7 +210,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
     joint.ownerKind = Client::Kernel::JointOwnerKind::Actor;
     joint.points[0][0].z = 215.0f;
     Client::Crt::CrtRandom random(1);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch batch;
     ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
@@ -219,13 +219,13 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
 TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmittedSegment)
 {
     auto joint = Joint(0x619, 9);
-    Client::Scenes::FaunaObject owner;
+    Client::Fauna::FaunaObject owner;
     joint.ownerContext = &owner;
     joint.count = 3;
     joint.light = glm::vec3(0.5f);
     Client::Crt::CrtRandom random(5);
     Client::Crt::CrtRandom expected(5);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch batch;
     ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 24u);
@@ -243,15 +243,15 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
     std::array<Client::Scenes::JointState, 1> joints{};
     glm::vec3 point{100, 200, 300}, angles{};
     Client::Crt::CrtRandom random(1);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     Client::Render::ModelBatch waiting;
     ASSERT_TRUE(Client::Scenes::DrawJoints(waiting, joints, 0, {random, sprites}).HasValue());
     EXPECT_TRUE(waiting.Vertices().empty());
     while (joint.life > 0)
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     ASSERT_TRUE(joint.alive);
     ASSERT_EQ(joint.count, 14);
     Client::Render::ModelBatch last;
@@ -266,7 +266,7 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
     ASSERT_TRUE(Client::Scenes::DrawJoints(replay, joints, 0, {random, sprites, false}).HasValue());
     EXPECT_EQ(replay.Vertices().size(), last.Vertices().size());
     EXPECT_EQ(random.State(), 1u);
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, -1);
     Client::Render::ModelBatch expired;

@@ -202,8 +202,8 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ta
       m_balloons([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
       m_nameFilters{.filterName = data.filterName,
                     .filter = data.filter,
-                    .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
-                    .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
+                    .operation = Ui::TextAt(m_texts, OperationText).value_or(std::string_view{}),
+                    .server = Ui::TextAt(m_texts, ServerText).value_or(std::string_view{})},
       m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_escape([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_options([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
@@ -243,12 +243,12 @@ Camera::GameCameraInput& CharacterSelectScene::CameraInputState()
     return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }
 
-CreatePreview& CharacterSelectScene::Preview()
+FrontEnd::CreatePreview& CharacterSelectScene::Preview()
 {
     return m_context.selection != nullptr ? m_context.selection->PreviewActor() : m_preview;
 }
 
-const CreatePreview& CharacterSelectScene::Preview() const
+const FrontEnd::CreatePreview& CharacterSelectScene::Preview() const
 {
     return m_context.selection != nullptr ? m_context.selection->PreviewActor() : m_preview;
 }
@@ -258,7 +258,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     m_cameraFrames = {};
     m_fullSetScanFrames = {};
     m_previewDrawFrames = {};
-    m_previewCamera = PreviewCamera();
+    m_previewCamera = FrontEnd::PreviewCamera();
     m_steps = 0;
     m_charactersPrepared = false;
     CameraInputState().scene = Terrain::CullingScene::CharacterSelect;
@@ -266,7 +266,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         // Desde el login, el reset precede al único RequestCharacterList del final de Enter.
         // Al volver, F1/02 ya lo hizo: un F3/00 del mismo Poll puede haber construido la lista nueva.
-        if (m_session == nullptr || m_session->State() == App::SessionState::LoggedIn)
+        if (m_session == nullptr || m_session->State() == Session::SessionState::LoggedIn)
             m_context.selection->BeginSelection();
         else
             m_context.selection->SetScene(Terrain::CullingScene::CharacterSelect);
@@ -292,7 +292,7 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     // de la ventana (el Dark Knight) y la acción 1.
     if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.selection == nullptr)
     {
-        ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
+        FrontEnd::ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
     }
     // 0x65f4b0 (CL8, hito 8): el aviso, la de Esc, las opciones, la barra y la de crear, cada una en la
     // cabeza. El original lo arma con la lista (0x633f20), y hasta entonces sigue con la UI del login, de la
@@ -303,14 +303,14 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     m_bar.Close();
     // Los globos los suelta la UI del login (0x65f300 → 0x63ce50) y se arman con la lista (0x65f4b0).
     m_balloons.Release();
-    m_escape.Arm(UI::NewUiMode::Selection);
+    m_escape.Arm(Ui::NewUiMode::Selection);
     m_options.Arm(CurrentOptions());
-    const std::array<UI::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_options, &m_bar, &m_create};
-    m_ui.Build(UI::NewUiMode::Selection, uiWindows);
+    const std::array<Ui::NewUiWindow*, 5> uiWindows{&m_notice, &m_escape, &m_options, &m_bar, &m_create};
+    m_ui.Build(Ui::NewUiMode::Selection, uiWindows);
     m_openedTheBar = false;
     // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
     // (0x4c3653) y espera la lista: no se pide otra.
-    if (m_session != nullptr && m_session->State() == App::SessionState::LoggedIn)
+    if (m_session != nullptr && m_session->State() == Session::SessionState::LoggedIn)
     {
         m_session->RequestCharacterList();
     }
@@ -360,7 +360,7 @@ void CharacterSelectScene::SyncTheCharacters()
     synced.reserve(entries.size());
     for (const Protocol::FrontEnd::CharacterEntry& entry : entries)
     {
-        const SelectionState* selection = m_context.selection;
+        const FrontEnd::SelectionState* selection = m_context.selection;
         const auto same =
             std::ranges::find_if(m_characters,
                                  [&entry, selection](const Character& character)
@@ -419,7 +419,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
                                                         .scene = Terrain::CullingScene::CharacterSelect,
                                                         .fixedHeight = CameraState().fixedHeight};
     constexpr std::uint8_t DefaultPreviewClass = Kernel::ClassNumberOf(Kernel::CharacterClass::DarkKnight);
-    constexpr std::uint16_t DefaultPreviewModel = FirstNewFaceModel + DefaultPreviewClass;
+    constexpr std::uint16_t DefaultPreviewModel = FrontEnd::FirstNewFaceModel + DefaultPreviewClass;
     auto first = Actors::ConstructActor(Preview(), DefaultPreviewModel, {}, construction, *m_context.cloth);
     if (!first.HasValue())
     {
@@ -428,14 +428,15 @@ bool CharacterSelectScene::PrepareTheCharacters()
     }
     Preview().characterClass = DefaultPreviewClass;
     Preview().byte88 = 0;
-    auto window = RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction, *m_context.cloth);
+    auto window =
+        FrontEnd::RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction, *m_context.cloth);
     if (!window.HasValue())
     {
         m_failure = window.Error();
         return false;
     }
     // 0x633f91: vaciado previo al reset parcial; no es el del F3/10, que toca otros campos y grillas.
-    ClearSelectionInventory(*m_context.world, m_context.cloth->random);
+    FrontEnd::ClearSelectionInventory(*m_context.world, m_context.cloth->random);
     // 0x5bc0e5..0x5bc102: primero cierra 0x400000, después 0x800000, con aux0; el comercio se vacía recién después.
     // Las dos ventanas comparten el modo 1/2 y su cierre manda el 31 antes de bajar ese modo (0x657ba7/0x657dc1).
     std::function<void(Protocol::Outgoing)> send;
@@ -443,9 +444,9 @@ bool CharacterSelectScene::PrepareTheCharacters()
         send = m_context.worldEntry->sendGamePacket;
     if (!send && m_session != nullptr)
         send = [session = m_session](Protocol::Outgoing packet) { session->SendGamePacket(std::move(packet)); };
-    GamePanels panels(*m_context.world, m_context.cloth->random);
+    Hud::GamePanels panels(*m_context.world, m_context.cloth->random);
     panels.LendTheSiegeControls(*m_context.world, std::move(send));
-    for (const auto id : {UI::SiegeWeaponPanel, UI::SecondSiegeWeaponPanel})
+    for (const auto id : {Ui::SiegeWeaponPanel, Ui::SecondSiegeWeaponPanel})
     {
         auto closed = panels.Registry().Close(id, false);
         if (!closed.HasValue())
@@ -455,7 +456,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
         }
     }
     // 0x5bc107..0x5bc13f: después vacía el comercio.
-    ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
+    Social::ClearTheTradeForSelection(m_context.world->Runtime().social.trade);
     // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
     const Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
                                        Models::OwnRecordCloseRandoms);
@@ -471,7 +472,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
     runtime.chat.input.otherInput = false;
     runtime.social.moneyField = 0;
     runtime.ui.chatOpen = true;
-    if (auto emptied = AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
+    if (auto emptied = Chat::AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
     {
         m_failure = emptied.Error();
         return false;
@@ -482,7 +483,7 @@ bool CharacterSelectScene::PrepareTheCharacters()
         return false;
     }
     // 0x634271..0x6342a0: la ventana de los comandos ([0x6e592c]) cerrada y sin comando.
-    UI::ResetTheCommands(runtime.panels.delegated);
+    Ui::ResetTheCommands(runtime.panels.delegated);
     return true;
 }
 
@@ -500,8 +501,9 @@ Core::Expected<void, std::string> CharacterSelectScene::AddTheAccountNotice()
     const std::array<std::string_view, 2> arguments{first, second};
     // El original usa el texto como formato de sprintf (Q-C61): MuRet pone los dos números en sus marcas.
     const std::string text =
-        UI::PlaceArguments(UI::TextAt(m_texts, AccountNoticeText).value_or(std::string_view{}), arguments);
-    return AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+        Ui::PlaceArguments(Ui::TextAt(m_texts, AccountNoticeText).value_or(std::string_view{}), arguments);
+    return Chat::AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text,
+                                Ui::SystemMessage);
 }
 
 const Terrain::WorldTerrain* CharacterSelectScene::StepTerrain() const
@@ -523,7 +525,7 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
             .playerSkeleton = m_models.SkeletonOf(Tables::PlayerSkeletonModelId),
             .items = m_items,
             .terrain = StepTerrain(),
-            .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{DarkSpiritModel}),
+            .darkSpiritSkeleton = m_models.SkeletonOf(Models::ModelId{Pets::DarkSpiritModel}),
             .particles = &m_context.world->Particles(),
             .worldClock = clock,
             .counter = m_context.cloth->logicSteps,
@@ -570,13 +572,13 @@ void CharacterSelectScene::StepCharacters()
             }
         }
         // 0x6342f4: 0x445230, los ayudantes, antes del pool. La escena 4 no apaga los de un jinete muerto (Q-C293).
-        if (auto helpers = StepHelpers(HelperStepContext{.world = *m_context.world,
-                                                         .models = &m_models,
-                                                         .random = m_context.cloth->random,
-                                                         .worldClock = worldClock,
-                                                         .scene = SceneId::CharacterSelect,
-                                                         .terrain = StepTerrain(),
-                                                         .logicSteps = m_context.cloth->logicSteps});
+        if (auto helpers = Pets::StepHelpers(Pets::HelperStepContext{.world = *m_context.world,
+                                                                     .models = &m_models,
+                                                                     .random = m_context.cloth->random,
+                                                                     .worldClock = worldClock,
+                                                                     .scene = SceneId::CharacterSelect,
+                                                                     .terrain = StepTerrain(),
+                                                                     .logicSteps = m_context.cloth->logicSteps});
             !helpers.HasValue())
         {
             m_failure = "0x6342f4 → " + helpers.Error();
@@ -613,10 +615,10 @@ void CharacterSelectScene::StepCharacters()
         }
         // 0x634315 → 0x5446e0, después del preview: también sortea el viento con la tabla vacía. La neblina
         // 622/1 lee su dueño entre los objetos del 54 y el reloj del mundo.
-        World::PortableParticleTrigonometry trigonometry;
-        if (auto particles = World::StepParticlesChecked(
+        Particles::PortableParticleTrigonometry trigonometry;
+        if (auto particles = Particles::StepParticlesChecked(
                 m_context.world->Particles(), context.random, std::cref(worldClock), &m_context.world->Runtime().map,
-                trigonometry, height, ParticleOwnersAmong(m_context.world->Map().objects));
+                trigonometry, height, Effects::ParticleOwnersAmong(m_context.world->Map().objects));
             !particles.HasValue())
         {
             m_failure = std::format("0x634315 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -646,28 +648,28 @@ void CharacterSelectScene::StepCharacters()
 // también sin respuesta (NoReply), como el login (Q-C69).
 bool CharacterSelectScene::ShowTheFailure()
 {
-    if (m_failureShown || m_session == nullptr || m_session->State() != App::SessionState::Failed)
+    if (m_failureShown || m_session == nullptr || m_session->State() != Session::SessionState::Failed)
     {
         return false;
     }
     m_failureShown = true;
     m_context.log.Info("la sesión falló en la selección: se abre el aviso {:#04x}",
-                       static_cast<int>(UI::ConnectFailedNotice));
-    OpenNotice(UI::ConnectFailedNotice);
+                       static_cast<int>(Ui::ConnectFailedNotice));
+    OpenNotice(Ui::ConnectFailedNotice);
     return true;
 }
 
 bool CharacterSelectScene::TakeTheCreationResult()
 {
     if (!m_waitingForTheCreation || m_session == nullptr ||
-        m_session->State() == App::SessionState::WaitingCreateResult)
+        m_session->State() == Session::SessionState::WaitingCreateResult)
     {
         return false;
     }
     m_waitingForTheCreation = false;
     const std::optional<std::uint8_t> result = m_session->CreateResult();
     // 0x4c23d2: con el creado, los globos de nuevo (0x63cfb0), aunque la sesión haya caído.
-    if (result && !UI::NoticeOfCreateResult(*result))
+    if (result && !Ui::NoticeOfCreateResult(*result))
     {
         UpdateTheBalloons();
     }
@@ -675,11 +677,11 @@ bool CharacterSelectScene::TakeTheCreationResult()
     {
         return false;
     }
-    const std::optional<UI::NoticeId> notice = UI::NoticeOfCreateResult(*result);
+    const std::optional<Ui::NoticeId> notice = Ui::NoticeOfCreateResult(*result);
     if (!notice)
     {
         // Creado: 0x65f6c0(+0x8) cierra el 0x5d; el nuevo ya está en la lista.
-        if (m_notice.Notice() == UI::PleaseWaitNotice)
+        if (m_notice.Notice() == Ui::PleaseWaitNotice)
         {
             m_ui.Close(m_notice);
         }
@@ -691,9 +693,9 @@ bool CharacterSelectScene::TakeTheCreationResult()
     return true;
 }
 
-void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input, UI::NewUiTurn turn)
+void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input, Ui::NewUiTurn turn)
 {
-    if (m_create.Step(input, m_screen, turn) == UI::CreateWindowEvent::Submitted)
+    if (m_create.Step(input, m_screen, turn) == FrontEnd::CreateWindowEvent::Submitted)
     {
         SubmitTheCreation();
     }
@@ -712,7 +714,7 @@ void CharacterSelectScene::OpenTheCreateWindow()
     m_previewDrawFrames = {};
 }
 
-void CharacterSelectScene::OpenNotice(UI::NoticeId notice, std::string_view argument)
+void CharacterSelectScene::OpenNotice(Ui::NoticeId notice, std::string_view argument)
 {
     m_notice.Open(notice, argument);
     m_ui.Raise(m_notice);
@@ -730,29 +732,29 @@ void CharacterSelectScene::OpenTheOptions()
     m_ui.Raise(m_options);
 }
 
-UI::OptionsSettings CharacterSelectScene::CurrentOptions() const
+FrontEnd::OptionsSettings CharacterSelectScene::CurrentOptions() const
 {
-    return m_context.world != nullptr ? OptionsSettingsOf(m_context.world->Runtime()) : m_localOptions;
+    return m_context.world != nullptr ? Hud::OptionsSettingsOf(m_context.world->Runtime()) : m_localOptions;
 }
 
-void CharacterSelectScene::OnOptionsEvent(const UI::OptionsEvent& event)
+void CharacterSelectScene::OnOptionsEvent(const FrontEnd::OptionsEvent& event)
 {
     // El botón de cerrar (sin sonido) y Esc (con el 0x19, de la CL10) ya las cerraron.
     if (m_context.world != nullptr)
     {
         Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-        ApplyOption(runtime, event);
-        if (event.kind == UI::OptionsEvent::Kind::Volume)
+        Hud::ApplyOption(runtime, event);
+        if (event.kind == FrontEnd::OptionsEvent::Kind::Volume)
             runtime.SetSoundVolume(static_cast<std::uint8_t>(event.value));
         return;
     }
-    UI::ApplyOption(m_localOptions, event);
+    FrontEnd::ApplyOption(m_localOptions, event);
 }
 
 void CharacterSelectScene::SubmitTheCreation()
 {
-    if (const std::optional<UI::NoticeId> refused =
-            UI::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
+    if (const std::optional<Ui::NoticeId> refused =
+            FrontEnd::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
     {
         // El nombre no va al log: solo el aviso. La ventana queda abajo, con el nombre.
         m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));
@@ -764,18 +766,18 @@ void CharacterSelectScene::SubmitTheCreation()
         return;
     }
     m_session->CreateCharacter(m_create.Name(), m_create.ChosenClass());
-    if (m_session->State() == App::SessionState::WaitingCreateResult)
+    if (m_session->State() == Session::SessionState::WaitingCreateResult)
     {
         m_waitingForTheCreation = true;
         m_ui.Close(m_create);
-        OpenNotice(UI::PleaseWaitNotice);
+        OpenNotice(Ui::PleaseWaitNotice);
     }
 }
 
 bool CharacterSelectScene::TakeTheDeletionResult()
 {
     if (!m_waitingForTheDeletion || m_session == nullptr ||
-        m_session->State() == App::SessionState::WaitingDeleteResult)
+        m_session->State() == Session::SessionState::WaitingDeleteResult)
     {
         return false;
     }
@@ -783,7 +785,7 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     const std::optional<std::uint8_t> result = m_session->DeleteResult();
     // 0x643360..0x6433b3: el aviso 0x60 baja el +0 del elegido y pone los globos de nuevo (0x63cfb0). En MuRet el
     // borrado ya salió de la lista de la sesión (Q-C104).
-    if (result && UI::NoticeOfDeleteResult(*result) == UI::CharacterDeletedNotice)
+    if (result && Ui::NoticeOfDeleteResult(*result) == Ui::CharacterDeletedNotice)
     {
         UpdateTheBalloons();
     }
@@ -792,7 +794,7 @@ bool CharacterSelectScene::TakeTheDeletionResult()
     {
         return false;
     }
-    OpenNotice(UI::NoticeOfDeleteResult(*result));
+    OpenNotice(Ui::NoticeOfDeleteResult(*result));
     return true;
 }
 
@@ -800,28 +802,28 @@ bool CharacterSelectScene::TakeTheDeletionResult()
 // en el último que estuvo bajo el mouse. El OK de uno que cierra el juego (el 0x70, Q-C69) lo dice en
 // WantsToQuit; el de la confirmación del borrado abre el del código, y el del código manda el F3 02.
 // Los demás solo se cierran.
-void CharacterSelectScene::StepTheNotice(const Input::InputState& input, UI::NewUiTurn turn)
+void CharacterSelectScene::StepTheNotice(const Input::InputState& input, Ui::NewUiTurn turn)
 {
-    const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen, turn);
+    const std::optional<Ui::NoticeId> closed = m_notice.Step(input, m_screen, turn);
     if (!closed)
     {
         return;
     }
-    switch (UI::FollowUpOf(*closed))
+    switch (Ui::FollowUpOf(*closed))
     {
-    case UI::NoticeFollowUp::Quit:
+    case Ui::NoticeFollowUp::Quit:
         m_context.log.Info("el OK del aviso cierra el juego (el {:#04x})", static_cast<int>(*closed));
         m_quit = true;
         break;
-    case UI::NoticeFollowUp::AskForTheCode:
-        OpenNotice(UI::DeletionCodeNotice);
+    case Ui::NoticeFollowUp::AskForTheCode:
+        OpenNotice(Ui::DeletionCodeNotice);
         break;
-    case UI::NoticeFollowUp::SendTheDeletion:
+    case Ui::NoticeFollowUp::SendTheDeletion:
         SendTheDeletion();
         break;
-    case UI::NoticeFollowUp::Close:
-    case UI::NoticeFollowUp::ReopenAtAccount:
-    case UI::NoticeFollowUp::ReopenAtPassword:
+    case Ui::NoticeFollowUp::Close:
+    case Ui::NoticeFollowUp::ReopenAtAccount:
+    case Ui::NoticeFollowUp::ReopenAtPassword:
         break;
     }
 }
@@ -845,21 +847,21 @@ void CharacterSelectScene::EnableTheBar()
     m_bar.Enable(aFreeSlot, m_session != nullptr && m_session->ChosenCharacter() != nullptr);
 }
 
-void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
+void CharacterSelectScene::OnTheBar(FrontEnd::SelectionBarClick click)
 {
     switch (click)
     {
-    case UI::SelectionBarClick::Connect:
+    case FrontEnd::SelectionBarClick::Connect:
         TryToEnter();
         break;
-    case UI::SelectionBarClick::Menu:
+    case FrontEnd::SelectionBarClick::Menu:
         // 0x63eb90 con +0x31a: la de Esc (0x65f690).
         OpenTheEscapeWindow();
         break;
-    case UI::SelectionBarClick::Create:
+    case FrontEnd::SelectionBarClick::Create:
         OpenTheCreateWindow();
         break;
-    case UI::SelectionBarClick::Delete:
+    case FrontEnd::SelectionBarClick::Delete:
         AskToDelete();
         break;
     }
@@ -872,8 +874,8 @@ void CharacterSelectScene::AskToDelete()
     {
         return;
     }
-    const UI::NoticeId notice =
-        UI::NoticeOfDeleteButton(*chosen, UI::FreeDeletionGroup(m_texts, m_session->ChosenServer()));
+    const Ui::NoticeId notice =
+        FrontEnd::NoticeOfDeleteButton(*chosen, FrontEnd::FreeDeletionGroup(m_texts, m_session->ChosenServer()));
     m_context.log.Info("borrar el personaje del lugar {} abre el aviso {:#04x}", chosen->slot,
                        static_cast<int>(notice));
     // El nombre va en el %s del texto 1712 del 0x5e (0x6431b0); no va al log.
@@ -888,10 +890,10 @@ void CharacterSelectScene::SendTheDeletion()
     }
     // El código, como la clave, no va al log, y no se queda en la ventana.
     m_session->DeleteCharacter(Protocol::FrontEnd::DeleteCodeFromText(m_notice.TakeCode()));
-    if (m_session->State() == App::SessionState::WaitingDeleteResult)
+    if (m_session->State() == Session::SessionState::WaitingDeleteResult)
     {
         m_waitingForTheDeletion = true;
-        OpenNotice(UI::PleaseWaitNotice);
+        OpenNotice(Ui::PleaseWaitNotice);
     }
 }
 
@@ -1005,7 +1007,7 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         }
         OpenTheEscapeWindow();
     }
-    const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
+    const auto now = Kernel::LogicStep * static_cast<std::int64_t>(m_steps);
     const bool doubleClick = m_doubleClick.Step(input, now);
     // 0x6344d3: con el mouse en una ventana, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble
     // clic y no busca quién está debajo, así que el contorno queda en el último.
@@ -1032,10 +1034,10 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
 void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
 {
     // El original le pasa a cada ventana los milisegundos del frame; MuRet, los del paso (Q-C490).
-    constexpr double StepMs = std::chrono::duration<double, std::milli>(App::LogicStep).count();
+    constexpr double StepMs = std::chrono::duration<double, std::milli>(Kernel::LogicStep).count();
     m_ui.Step(
         input, m_screen,
-        [&](UI::NewUiWindow& window, UI::NewUiTurn turn)
+        [&](Ui::NewUiWindow& window, Ui::NewUiTurn turn)
         {
             if (&window == &m_notice)
             {
@@ -1043,14 +1045,15 @@ void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
             }
             else if (&window == &m_escape)
             {
-                if (const std::optional<UI::EscapeWindowEvent> event = m_escape.Step(input, m_screen, StepMs, turn))
+                if (const std::optional<FrontEnd::EscapeWindowEvent> event =
+                        m_escape.Step(input, m_screen, StepMs, turn))
                 {
                     OnEscapeEvent(*event);
                 }
             }
             else if (&window == &m_options)
             {
-                if (const std::optional<UI::OptionsEvent> event =
+                if (const std::optional<FrontEnd::OptionsEvent> event =
                         m_options.Step(input, m_screen, StepMs, CurrentOptions(), turn))
                 {
                     OnOptionsEvent(*event);
@@ -1058,7 +1061,7 @@ void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
             }
             else if (&window == &m_bar)
             {
-                if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
+                if (const std::optional<FrontEnd::SelectionBarClick> click = m_bar.Step(input, m_screen, turn))
                 {
                     OnTheBar(*click);
                 }
@@ -1077,26 +1080,26 @@ void CharacterSelectScene::StepTheWindows(const Input::InputState& input)
         });
 }
 
-void CharacterSelectScene::OnEscapeEvent(const UI::EscapeWindowEvent& event)
+void CharacterSelectScene::OnEscapeEvent(const FrontEnd::EscapeWindowEvent& event)
 {
     switch (event.kind)
     {
-    case UI::EscapeWindowEvent::Kind::Countdown:
+    case FrontEnd::EscapeWindowEvent::Kind::Countdown:
         AddTheCountdown(event.seconds);
         return;
-    case UI::EscapeWindowEvent::Kind::Quit:
+    case FrontEnd::EscapeWindowEvent::Kind::Quit:
         // 0x647d87: el log del original (0x41fa40) y el PostMessage con WM_CLOSE: lo hace Main.
         m_context.log.Info("> Menu - Exit game.");
         m_quit = true;
         return;
-    case UI::EscapeWindowEvent::Kind::JoinAnotherServer:
+    case FrontEnd::EscapeWindowEvent::Kind::JoinAnotherServer:
         JoinAnotherServer();
         return;
-    case UI::EscapeWindowEvent::Kind::Options:
+    case FrontEnd::EscapeWindowEvent::Kind::Options:
         // 0x647e6c: 0x65f6c0 la cierra y 0x65f690 abre las opciones.
         OpenTheOptions();
         return;
-    case UI::EscapeWindowEvent::Kind::Closed:
+    case FrontEnd::EscapeWindowEvent::Kind::Closed:
         // Con Esc, el sonido 0x19 (0x41ed10, de la CL10).
         return;
     }
@@ -1112,9 +1115,9 @@ void CharacterSelectScene::AddTheCountdown(int seconds)
     const std::string left = std::to_string(seconds);
     const std::array<std::string_view, 1> arguments{left};
     const std::string text =
-        UI::PlaceArguments(UI::TextAt(m_texts, UI::LeavingTheGameText).value_or(std::string_view{}), arguments);
-    if (auto added =
-            AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text, UI::SystemMessage);
+        Ui::PlaceArguments(Ui::TextAt(m_texts, FrontEnd::LeavingTheGameText).value_or(std::string_view{}), arguments);
+    if (auto added = Chat::AddGameMessage(m_context.world->Runtime(), *m_context.textMeasure, m_screen, {}, text,
+                                          Ui::SystemMessage);
         !added.HasValue())
     {
         m_failure = added.Error();
@@ -1187,7 +1190,7 @@ void CharacterSelectScene::TryToEnter()
     }
     if (Protocol::FrontEnd::IsLocked(*chosen))
     {
-        OpenNotice(UI::LockedCharacterNotice);
+        OpenNotice(Ui::LockedCharacterNotice);
         return;
     }
     if (m_context.world != nullptr)
@@ -1206,10 +1209,10 @@ void CharacterSelectScene::TryToEnter()
 
 Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
 {
-    const CharacterSlot& slot = CharacterSlots[character.slot];
+    const FrontEnd::CharacterSlot& slot = FrontEnd::CharacterSlots[character.slot];
     const glm::vec3 position = m_context.selection != nullptr
                                    ? m_context.selection->Slots()[character.slot].position
-                                   : glm::vec3(slot.position.x, slot.position.y, CharacterSlotHeight);
+                                   : glm::vec3(slot.position.x, slot.position.y, FrontEnd::CharacterSlotHeight);
     return Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
@@ -1339,7 +1342,7 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     std::string_view serverNotice;
     if (m_context.world != nullptr && m_context.world->Runtime().chat.selectionNotice)
         serverNotice = *m_context.world->Runtime().chat.selectionNotice;
-    for (UI::NewUiWindow* window : m_ui.DrawOrder())
+    for (Ui::NewUiWindow* window : m_ui.DrawOrder())
     {
         if (window == &m_bar)
         {
@@ -1365,16 +1368,16 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
     DrawTheCursor(canvas);
 }
 
-std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRecords() const
+std::array<FrontEnd::BalloonRecord, FrontEnd::BalloonCount> CharacterSelectScene::BalloonRecords() const
 {
-    std::array<UI::BalloonRecord, UI::BalloonCount> records{};
+    std::array<FrontEnd::BalloonRecord, FrontEnd::BalloonCount> records{};
     if (m_context.world == nullptr)
     {
         return records;
     }
     const Protocol::FrontEnd::CharacterList* list =
         m_session != nullptr && m_session->Characters() ? &*m_session->Characters() : nullptr;
-    for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
+    for (std::size_t slot = 0; slot < FrontEnd::BalloonCount; ++slot)
     {
         const Kernel::ActorState& actor = m_context.world->Actors()[slot];
         const bool listed =
@@ -1382,19 +1385,19 @@ std::array<UI::BalloonRecord, UI::BalloonCount> CharacterSelectScene::BalloonRec
             (list != nullptr &&
              std::ranges::any_of(list->characters, [slot](const Protocol::FrontEnd::CharacterEntry& entry)
                                  { return entry.slot == slot; }));
-        records[slot] = UI::BalloonRecord{.alive = actor.alive && listed,
-                                          .characterClass = actor.characterClass,
-                                          .level = actor.level,
-                                          .controlCode = actor.controlCode,
-                                          .name = Protocol::FrontEnd::NameAsText(actor.name),
-                                          .guildStatus = actor.guildStatus};
+        records[slot] = FrontEnd::BalloonRecord{.alive = actor.alive && listed,
+                                                .characterClass = actor.characterClass,
+                                                .level = actor.level,
+                                                .controlCode = actor.controlCode,
+                                                .name = Protocol::FrontEnd::NameAsText(actor.name),
+                                                .guildStatus = actor.guildStatus};
     }
     return records;
 }
 
 void CharacterSelectScene::UpdateTheBalloons()
 {
-    const std::array<UI::BalloonRecord, UI::BalloonCount> records = BalloonRecords();
+    const std::array<FrontEnd::BalloonRecord, FrontEnd::BalloonCount> records = BalloonRecords();
     if (auto updated = m_balloons.Update(records); !updated.HasValue() && !m_failure)
     {
         m_failure = updated.Error();
@@ -1408,11 +1411,11 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
     {
         return;
     }
-    std::array<std::optional<UI::BalloonHead>, UI::BalloonCount> heads{};
+    std::array<std::optional<FrontEnd::BalloonHead>, FrontEnd::BalloonCount> heads{};
     if (m_context.world != nullptr)
     {
         const auto projection = MakeGameProjection(pass, fieldOfView);
-        for (std::size_t slot = 0; slot < UI::BalloonCount; ++slot)
+        for (std::size_t slot = 0; slot < FrontEnd::BalloonCount; ++slot)
         {
             if (!m_balloons.IsShown(slot))
             {
@@ -1425,17 +1428,17 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
             }
             // 0x63ca20: la x y la y del registro, y la z más 280 (0x6b8c78, un double) en el fstp de un float.
             const Kernel::ActorState& actor = m_context.world->Actors()[slot];
-            const glm::vec3 head{
-                actor.position.x, actor.position.y,
-                static_cast<float>(static_cast<double>(actor.position.z) + static_cast<double>(UI::BalloonHeadHeight))};
+            const glm::vec3 head{actor.position.x, actor.position.y,
+                                 static_cast<float>(static_cast<double>(actor.position.z) +
+                                                    static_cast<double>(FrontEnd::BalloonHeadHeight))};
             const auto point = ProjectGamePoint(projection.Value(), head);
             if (!point.HasValue())
             {
                 m_failure = "0x63ca76 → " + point.Error();
                 return;
             }
-            heads[slot] =
-                UI::BalloonHead{.point = UI::Point{point.Value().x, point.Value().y}, .controlCode = actor.controlCode};
+            heads[slot] = FrontEnd::BalloonHead{.point = Ui::Point{point.Value().x, point.Value().y},
+                                                .controlCode = actor.controlCode};
         }
     }
     if (auto drawn = m_balloons.Draw(canvas.sprites, canvas.text, canvas.screen, heads); !drawn.HasValue())
@@ -1477,7 +1480,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     }
     else
     {
-        cameraInput.hero.z = CharacterSlotHeight;
+        cameraInput.hero.z = FrontEnd::CharacterSlotHeight;
     }
     if (!HasTheWorld())
     {
@@ -1492,13 +1495,13 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     }
     const int frames = m_worldFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     m_world.BeginFrame(world, m_context.states->terrain.dynamicLight.Lighting(), *m_context.cloth, frames);
-    const SelectionWorldFrame frame{.batch = canvas.models,
-                                    .polygon = m_polygon,
-                                    .range = m_terrainRange,
-                                    .frameClock = canvas.frameClock,
-                                    .frames = frames,
-                                    .fixedHeight = CameraState().fixedHeight,
-                                    .flushModels = canvas.flushModels};
+    const FrontEnd::SelectionWorldFrame frame{.batch = canvas.models,
+                                              .polygon = m_polygon,
+                                              .range = m_terrainRange,
+                                              .frameClock = canvas.frameClock,
+                                              .frames = frames,
+                                              .fixedHeight = CameraState().fixedHeight,
+                                              .flushModels = canvas.flushModels};
     // 0x6347e9..0x63483e: el elegido vivo lleva su luz a (1, 1, 1) y la suma al buffer dinámico en su lugar,
     // con radio 1 (0x5f9780), entre 0x620a90 y 0x620980.
     const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
@@ -1539,7 +1542,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
     }
     // 0x63486a: 0x4453b0, los ayudantes, con la escala en 1 de la escena 4 (0x4452f1), la luz del terreno 54 y los
     // sprites del frame.
-    if (auto drawn = DrawHelpers(HelperDrawContext{
+    if (auto drawn = Pets::DrawHelpers(Pets::HelperDrawContext{
             .batch = canvas.models,
             .models = m_models,
             .world = world,
@@ -1582,7 +1585,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
         for (const std::int32_t subtype : {0, 1})
         {
             const auto created = m_world.FrameParticles().CreateOwnedChecked(
-                World::ChaseLightParticle, chosenActor->position, chosenActor->angles, chosenActor->light, subtype,
+                Particles::ChaseLightParticle, chosenActor->position, chosenActor->angles, chosenActor->light, subtype,
                 1.0f, static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
                 m_world.FrameRandom(), SelectionSceneId);
             if (!created.HasValue())
@@ -1806,16 +1809,16 @@ void CharacterSelectScene::DrawTheMessages(Render::Frame::SceneCanvas& canvas)
     const int frames = m_messageFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     Kernel::HudState projected;
     Kernel::HudState& hud = frames > 0 ? m_context.world->Runtime().hud : (projected = m_context.world->Runtime().hud);
-    const UI::Point mouse =
-        m_context.input != nullptr ? UI::MouseIn640x480(*m_context.input, canvas.screen) : UI::Point{};
-    Scenes::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
+    const Ui::Point mouse =
+        m_context.input != nullptr ? Ui::MouseIn640x480(*m_context.input, canvas.screen) : Ui::Point{};
+    Chat::DrawTheMessages(*m_context.world, hud, canvas.sprites, canvas.text, mouse, false);
 }
 
 void CharacterSelectScene::DrawTheCursor(Render::Frame::SceneCanvas& canvas) const
 {
     if (m_context.input != nullptr)
     {
-        UI::DrawGameCursor(canvas.sprites, *m_context.input, canvas.screen);
+        Ui::DrawGameCursor(canvas.sprites, *m_context.input, canvas.screen);
     }
 }
 
@@ -1850,8 +1853,8 @@ void CharacterSelectScene::StepThePreview()
                                                                 .map = m_context.world->Runtime().map,
                                                                 .scene = Terrain::CullingScene::CharacterSelect,
                                                                 .fixedHeight = CameraState().fixedHeight};
-            if (auto rebuilt = RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction,
-                                              *m_context.cloth);
+            if (auto rebuilt = FrontEnd::RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels,
+                                                        construction, *m_context.cloth);
                 !rebuilt.HasValue())
             {
                 m_failure = rebuilt.Error();
@@ -1860,10 +1863,10 @@ void CharacterSelectScene::StepThePreview()
         }
         else
         {
-            ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
+            FrontEnd::ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
         }
     }
-    StepPreview(Preview(), m_selectionModels);
+    FrontEnd::StepPreview(Preview(), m_selectionModels);
 }
 
 // 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
@@ -1879,20 +1882,21 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
     }
     m_create.DrawBase(canvas.sprites, canvas.screen);
     canvas.flushSprites();
-    const UI::Rect box = UI::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
+    const Ui::Rect box = FrontEnd::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
     const int frames = m_previewDrawFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     const float stepAlpha = m_previewAdvanced ? alpha : 0.0f;
     Actors::Drawing::DrawnObject drawn;
     for (int frame = 0; frame < frames; ++frame)
     {
-        m_previewCamera = PreviewCamera(Preview());
-        drawn = DrawnPreview(Preview(), m_selectionModels, stepAlpha);
+        m_previewCamera = FrontEnd::PreviewCamera(Preview());
+        drawn = FrontEnd::DrawnPreview(Preview(), m_selectionModels, stepAlpha);
     }
     if (frames == 0)
     {
-        drawn = DrawnPreview(Preview(), m_selectionModels, stepAlpha, 0);
+        drawn = FrontEnd::DrawnPreview(Preview(), m_selectionModels, stepAlpha, 0);
     }
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, PreviewViewport(box, canvas.screen), m_previewCamera);
+    const Render::Pass3D pass =
+        Render::MakePass3D(canvas.screen, FrontEnd::PreviewViewport(box, canvas.screen), m_previewCamera);
     canvas.models.Begin(pass);
     // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
     // va a dar la haría temblar.

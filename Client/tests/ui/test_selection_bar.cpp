@@ -17,23 +17,23 @@
 #include <optional>
 #include <vector>
 
-// Client::UI::SelectionBar: la barra de la selección (+0x7f50: 0x63e820, 0x63eb40, 0x63eb90 y 0x63ec00).
+// Client::FrontEnd::SelectionBar: la barra de la selección (+0x7f50: 0x63e820, 0x63eb40, 0x63eb90 y 0x63ec00).
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::LayoutSelectionBar;
+using Client::FrontEnd::SelectionBar;
+using Client::FrontEnd::SelectionBarClick;
+using Client::FrontEnd::SelectionBarLayout;
 using Client::Input::InputState;
 using Client::Tests::ClickAt;
-using Client::UI::LayoutSelectionBar;
-using Client::UI::Point;
-using Client::UI::Rect;
-using Client::UI::SelectionBar;
-using Client::UI::SelectionBarClick;
-using Client::UI::SelectionBarLayout;
-using Client::UI::WindowHit;
+using Client::Ui::Point;
+using Client::Ui::Rect;
+using Client::Ui::WindowHit;
 
 constexpr PixelSize Screen640{640, 480};
 
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes(
         {{0xe, {256, 128}}, {0xf, {64, 128}}, {0x10, {64, 128}}, {0x11, {64, 128}}, {0x12, {64, 128}}});

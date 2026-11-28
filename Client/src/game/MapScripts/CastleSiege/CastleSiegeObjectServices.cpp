@@ -16,15 +16,16 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::CastleSiege
 {
 namespace
 {
 constexpr int EmitChance = 3;
 
 // 0x53fe70(tipo, +0x10, +0x1c, (1, 1, 1), subtipo, escala, 0). Ninguna de las del 30 lee la escena ni el dueño.
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
-                                       std::int32_t subtype, float scale, std::string_view address)
+Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
+                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
+                                       float scale, std::string_view address)
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(
@@ -38,16 +39,17 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::
 }
 
 // 0x42cb10..0x42cb52: con rand() % 3 en 0, 0x53fe70(0x6ec, …, 0, escala, 0).
-Core::Expected<void, std::string> Spark(const GameObjectPass& pass, const World::WorldObject& object)
+Core::Expected<void, std::string> Spark(const WorldObjects::GameObjectPass& pass,
+                                        const WorldObjects::WorldObject& object)
 {
     if (pass.random->Next() % EmitChance != 0)
         return {};
-    return Emit(pass, object, World::CrywolfFanta, 0, object.transform.scale, "0x42cb52");
+    return Emit(pass, object, Particles::CrywolfFanta, 0, object.transform.scale, "0x42cb52");
 }
 
 // 0x42ca37..0x42ca53: el reloj por 0,002f (0x6b89bc), FSIN, por 0,3f (0x6b89dc) y más 0,7f (0x6b8a5c) en la
 // x87 hasta el fstp de +0x68.
-Core::Expected<void, std::string> Pulse(World::WorldObject& object, float worldClock)
+Core::Expected<void, std::string> Pulse(WorldObjects::WorldObject& object, float worldClock)
 {
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
     constexpr float Swing = std::bit_cast<float>(0x3e99999au);
@@ -60,7 +62,8 @@ Core::Expected<void, std::string> Pulse(World::WorldObject& object, float worldC
 }
 } // namespace
 
-Core::Expected<void, std::string> StepCastleSiegeObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepCastleSiegeObjectFrame(WorldObjects::WorldObject& object,
+                                                             const WorldObjects::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
         return Core::Unexpected(std::string("0x42c9f0: falta el rand() de la CRT"));
@@ -77,13 +80,13 @@ Core::Expected<void, std::string> StepCastleSiegeObjectFrame(World::WorldObject&
         // 0x42ca5b..0x42caaa: solo con el asedio, el humo 5f2/0x15 de Crywolf.
         if (!pass.siegeActive || pass.random->Next() % EmitChance != 0)
             return {};
-        return Emit(pass, object, World::BreathParticle, World::CrywolfSmokeSubtype, object.transform.scale,
+        return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, object.transform.scale,
                     "0x42caaa");
     case 0x34:
         // 0x42cab9..0x42caf4: sin el asedio, sin rand().
         if (pass.siegeActive)
             return {};
-        return Emit(pass, object, World::KalimaWaterfallLast, World::BrazierFallSubtype, object.transform.scale,
+        return Emit(pass, object, Particles::KalimaWaterfallLast, Particles::BrazierFallSubtype, object.transform.scale,
                     "0x42caf4");
     case 0x35:
         if (!pass.siegeActive)
@@ -96,7 +99,7 @@ Core::Expected<void, std::string> StepCastleSiegeObjectFrame(World::WorldObject&
         if (pass.siegeActive)
             return {};
         constexpr int Splashes = 2;
-        const std::int32_t type = World::WaterfallSplashFirst + (pass.random->Next() % Splashes);
+        const std::int32_t type = Particles::WaterfallSplashFirst + (pass.random->Next() % Splashes);
         constexpr float Scale = 1.0f;
         return Emit(pass, object, type, 0, Scale, "0x42cbab");
     }
@@ -104,4 +107,4 @@ Core::Expected<void, std::string> StepCastleSiegeObjectFrame(World::WorldObject&
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::CastleSiege

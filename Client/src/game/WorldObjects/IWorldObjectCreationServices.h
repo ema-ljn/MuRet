@@ -7,7 +7,7 @@
 #include <cstdint>
 
 // Frontera síncrona de 0x606660 con 0x518cf0; contrato: 06 § Creación común de los objetos.
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct WorldObject;
 
@@ -33,4 +33,4 @@ public:
     // exige ese contrato, no recupera excepciones ni fabrica un resultado parcial al terminar.
     virtual bool CreateModelEffect(const WorldObjectModelEffectRequest& request, WorldObject& source) noexcept = 0;
 };
-} // namespace Client::World
+} // namespace Client::WorldObjects

@@ -22,17 +22,17 @@ struct TerrainLighting;
 struct TerrainPolygon;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
-} // namespace Client::World
+} // namespace Client::Particles
 namespace Client::Kernel
 {
 struct PoseBuffer;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 class FaunaState;
 struct FaunaDrawContext
@@ -43,16 +43,16 @@ struct FaunaDrawContext
     const Terrain::TerrainLighting& lighting;
     const Terrain::TerrainPolygon& polygon;
     Models::ClothWorld& cloth;
-    World::FrameSprites& sprites;
+    Particles::FrameSprites& sprites;
     Kernel::PoseBuffer& carry;
     std::int32_t map;
     std::int32_t storm;
     Core::Duration frameClock;
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     bool originalFrame = true;
     float fixedHeight = 1200;
     bool projectedCarry = false;
 };
 [[nodiscard]] Core::Expected<void, std::string> DrawGameBirds(Render::ModelBatch& batch, FaunaDrawContext& context);
 [[nodiscard]] Core::Expected<void, std::string> DrawGameFish(Render::ModelBatch& batch, FaunaDrawContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Fauna

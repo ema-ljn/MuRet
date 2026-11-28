@@ -15,7 +15,7 @@
 #include <deque>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -53,7 +53,8 @@ void QueueTheHealthBar(const Kernel::ActorState& actor, std::deque<Kernel::Queue
 }
 
 Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHealthBar>& queue,
-                                                    const GameProjection* projection, Render::SpriteBatch& sprites)
+                                                    const Scenes::GameProjection* projection,
+                                                    Render::SpriteBatch& sprites)
 {
     // 0x42a4d6..0x42a4e0 y 0x42a645..0x42a64d: la cuenta se lee otra vez después de cada pop_front.
     for (std::size_t i = 0; i < queue.size(); ++i)
@@ -62,17 +63,17 @@ Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHea
         if (projection == nullptr)
             return Core::Unexpected(
                 std::string("0x42a529: la barra de vida no tiene la proyección del pase del mundo"));
-        const auto projected = ProjectGamePoint(*projection, bar.position);
+        const auto projected = Scenes::ProjectGamePoint(*projection, bar.position);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         const glm::ivec2 point = projected.Value();
         // 0x42a53a..0x42a582: el byte bajo del cuarto DWORD, por 10 y truncado, y las tres en float desde el entero.
         const std::int32_t fill = static_cast<std::int32_t>(bar.fill) * FillStep;
-        UI::DrawGauge(sprites, static_cast<float>(Wrapped(point.x, 0u - BarLeft)),
+        Ui::DrawGauge(sprites, static_cast<float>(Wrapped(point.x, 0u - BarLeft)),
                       static_cast<float>(Wrapped(point.y, BarDown)), BarWidth, BarHeight, static_cast<float>(fill),
                       false, true);
         queue.pop_front();
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

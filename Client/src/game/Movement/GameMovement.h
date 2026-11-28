@@ -51,9 +51,13 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::Scenes
+namespace Client::Items
 {
 struct InventoryServices;
+} // namespace Client::Items
+
+namespace Client::Movement
+{
 struct HeroMovementInput
 {
     std::int32_t mouseX = 0;
@@ -96,7 +100,7 @@ struct HeroMovementContext
     Actors::ActionSender sendAction{};
     // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
     // donde los pide.
-    const InventoryServices* inventory = nullptr;
+    const Items::InventoryServices* inventory = nullptr;
     // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..), y el de cerrar el NPC de evento
     // (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 hito 11). Sin él, cerrarlos corta.
     std::function<void()> sendWindowClose{};
@@ -137,4 +141,4 @@ struct HeroMovementContext
     Assets::FaunaModels* faunaModels = nullptr;
 };
 [[nodiscard]] Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Movement

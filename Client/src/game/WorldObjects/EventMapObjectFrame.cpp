@@ -29,7 +29,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 namespace
 {
@@ -109,9 +109,9 @@ Core::Expected<void, std::string> Orbit(const GameObjectPass& pass, const glm::v
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(std::string("0x6042ac: falta el pool de partículas 0x743a198 para 0x60f/4"));
-    World::PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto created =
-        pass.particles->CreateChecked(World::OrbitParticle, position, angles, TorchOrbLight, TorchOrbSubtype,
+        pass.particles->CreateChecked(Particles::OrbitParticle, position, angles, TorchOrbLight, TorchOrbSubtype,
                                       TorchOrbScale, std::cref(pass.worldClock), *pass.random, 0, trigonometry);
     if (!created.HasValue())
         return Core::Unexpected(
@@ -129,8 +129,8 @@ Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::int32_
     return {};
 }
 
-Core::Expected<void, std::string> RainAt(const World::WorldObject& object, const GameObjectPass& pass, std::size_t bone,
-                                         std::string_view address)
+Core::Expected<void, std::string> RainAt(const WorldObjects::WorldObject& object, const GameObjectPass& pass,
+                                         std::size_t bone, std::string_view address)
 {
     const auto point = ObjectBonePoint(pass, bone, RainOffset);
     if (!point.HasValue())
@@ -139,7 +139,7 @@ Core::Expected<void, std::string> RainAt(const World::WorldObject& object, const
 }
 
 // 0x60433a..0x6043e9.
-Core::Expected<void, std::string> StatueGlows(const World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StatueGlows(const WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
     const double phase =
         (static_cast<double>(object.transform.angles.z) * AngleRate) + static_cast<double>(pass.worldClock);
@@ -176,7 +176,7 @@ Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
 }
 
 // 0x604199..0x6041c2 y 0x60421c..0x604245: ftol de la fase (más `lead`) % 4 y la fase más 1, guardada.
-Core::Expected<bool, std::string> TorchTurn(World::WorldObject& object, double lead, std::string_view address)
+Core::Expected<bool, std::string> TorchTurn(WorldObjects::WorldObject& object, double lead, std::string_view address)
 {
     const std::optional<std::int32_t> turn = Math::OriginalFtolLow(static_cast<double>(object.field84) + lead);
     if (!turn)
@@ -187,7 +187,7 @@ Core::Expected<bool, std::string> TorchTurn(World::WorldObject& object, double l
 }
 
 // 0x604171..0x6042ac.
-Core::Expected<void, std::string> TorchFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> TorchFrame(WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
     const glm::vec3& position = object.transform.position;
     const glm::vec3& angles = object.transform.angles;
@@ -199,11 +199,11 @@ Core::Expected<void, std::string> TorchFrame(World::WorldObject& object, const G
         if (turn.Value())
         {
             if (auto flame =
-                    Emit(pass, World::TorchFlameParticle, position, angles, glm::vec3(1.0f), 0, 1.0f, "0x6041e4");
+                    Emit(pass, Particles::TorchFlameParticle, position, angles, glm::vec3(1.0f), 0, 1.0f, "0x6041e4");
                 !flame.HasValue())
                 return flame;
             if (auto spark =
-                    Emit(pass, World::TorchSparkParticle, position, angles, glm::vec3(1.0f), 0, 1.0f, "0x6041fd");
+                    Emit(pass, Particles::TorchSparkParticle, position, angles, glm::vec3(1.0f), 0, 1.0f, "0x6041fd");
                 !spark.HasValue())
                 return spark;
         }
@@ -215,40 +215,40 @@ Core::Expected<void, std::string> TorchFrame(World::WorldObject& object, const G
         return Core::Unexpected(turn.Error());
     if (!turn.Value())
         return {};
-    if (auto smoke = Emit(pass, World::CloudParticle, position, angles, glm::vec3(1.0f), World::TorchSmokeSubtype, 1.0f,
-                          "0x604265");
+    if (auto smoke = Emit(pass, Particles::CloudParticle, position, angles, glm::vec3(1.0f),
+                          Particles::TorchSmokeSubtype, 1.0f, "0x604265");
         !smoke.HasValue())
         return smoke;
-    if (auto spark = Emit(pass, World::TorchSparkParticle, position, angles, glm::vec3(1.0f), 1, 1.0f, "0x60427e");
+    if (auto spark = Emit(pass, Particles::TorchSparkParticle, position, angles, glm::vec3(1.0f), 1, 1.0f, "0x60427e");
         !spark.HasValue())
         return spark;
     return Orbit(pass, position, angles);
 }
 // 0x405abb..0x405c5c: las nubes del 6 al 0xc, con el objeto de dueño, la primera vez.
-Core::Expected<void, std::string> ChaosCastleClouds(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
-    if (object.state.hiddenMesh != World::HiddenObject)
+    if (object.state.hiddenMesh != WorldObjects::HiddenObject)
     {
         const std::int16_t type = object.type;
         const bool bright = type == BrightCloudObject;
         const int count = bright ? BrightClouds : (type <= LastManyCloudObject ? ManyClouds : FewClouds);
         const std::int32_t subtype = bright ? BrightCloudSubtype : type - FirstCloudObject;
         const glm::vec3 light = bright ? BrightCloudLight : CloudLight;
-        const World::ParticleOwner owner{World::ParticleOwnerKind::WorldObject, object.identity};
+        const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::WorldObject, object.identity};
         for (int cloud = 0; cloud < count; ++cloud)
         {
             if (pass.particles == nullptr || pass.random == nullptr)
                 return Core::Unexpected(
                     std::format("0x405b02: falta el pool de partículas 0x743a198 para 0x622/{}", subtype));
             const auto created = pass.particles->CreateOwnedChecked(
-                World::CloudParticle, object.transform.position, object.transform.angles, light, subtype,
+                Particles::CloudParticle, object.transform.position, object.transform.angles, light, subtype,
                 object.transform.scale, pass.worldClock, *pass.random, pass.scene, owner);
             if (!created.HasValue())
                 return Core::Unexpected(std::format("0x405b02: el alta de 0x622/{} falla con error {}", subtype,
                                                     static_cast<unsigned>(created.Error())));
         }
     }
-    object.state.hiddenMesh = World::HiddenObject;
+    object.state.hiddenMesh = WorldObjects::HiddenObject;
     return {};
 }
 
@@ -256,7 +256,7 @@ Core::Expected<void, std::string> ChaosCastleClouds(World::WorldObject& object, 
 // 0x68b184c y el desplazamiento en cero). Con +0x60 en 10 crea ahí el joint 0x615/2, de ese punto a ese punto, con
 // los ángulos del objeto y escala rand() % 10 + 60 (0x6b86cc), y pide el sonido 0x9c + (rand() & 1) con
 // 0x41ed10(id, 0, 0). Después, +0x60 por debajo de 5 apaga +0x8a y, si no, baja uno.
-Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> ChaosCastleTrap(WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
     const auto point = ObjectBonePoint(pass, TrapBone, glm::vec3(0.0f));
     if (!point.HasValue())
@@ -295,13 +295,13 @@ Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, co
 }
 
 // 0x405c7f y 0x405d95: −1 lo vuelve a dibujar y −2 lo esconde.
-void ShowChaosCastleObject(World::WorldObject& object, bool shown)
+void ShowChaosCastleObject(WorldObjects::WorldObject& object, bool shown)
 {
-    object.state.hiddenMesh = shown ? Models::NoHiddenMesh : World::HiddenObject;
+    object.state.hiddenMesh = shown ? Models::NoHiddenMesh : WorldObjects::HiddenObject;
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDevilSquareObjectFrame(const World::WorldObject& object,
+Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects::WorldObject& object,
                                                              const GameObjectPass& pass)
 {
     if (object.type != DevilSquareRainObject)
@@ -321,7 +321,8 @@ Core::Expected<void, std::string> StepDevilSquareObjectFrame(const World::WorldO
     return RainAt(object, pass, FirstRainBone, "0x603ee0");
 }
 
-Core::Expected<void, std::string> StepBloodCastleObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::WorldObject& object,
+                                                             const GameObjectPass& pass)
 {
     if (object.type == GlowingStatue)
         return StatueGlows(object, pass);
@@ -335,12 +336,14 @@ Core::Expected<void, std::string> StepBloodCastleObjectFrame(World::WorldObject&
     return TorchFrame(object, pass);
 }
 
-Core::Expected<void, std::string> StepChaosCastleObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::WorldObject& object,
+                                                             const GameObjectPass& pass)
 {
     const std::int16_t type = object.type;
     const std::uint8_t area = pass.chaosCastleArea;
     // +0x8a lo prende 0x4055b0 en el paso (la trampa armada o la cuenta del elegido); cae después al área.
-    if (type >= 0 && type <= LastTrapObject && object.field8a != 0 && object.state.hiddenMesh != World::HiddenObject)
+    if (type >= 0 && type <= LastTrapObject && object.field8a != 0 &&
+        object.state.hiddenMesh != WorldObjects::HiddenObject)
         if (auto trap = ChaosCastleTrap(object, pass); !trap.HasValue())
             return trap;
     constexpr std::uint8_t OpenAreas = 2;
@@ -374,4 +377,4 @@ Core::Expected<void, std::string> StepChaosCastleObjectFrame(World::WorldObject&
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::WorldObjects

@@ -16,8 +16,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t CloudType = 0x622;
 constexpr std::int32_t CloudSubtype = 8;
 
@@ -33,7 +33,7 @@ TEST(Particle622Subtype8Test, AscendingPhaseAddsTheBinary64ConstantAndRaisesZ)
                         .life = 152};
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.life, 151);
@@ -53,7 +53,7 @@ TEST(Particle622Subtype8Test, DescendingPhaseSubtractsOnlyAboveTheStrictFloatThr
                         .life = 151};
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.life, 150);
@@ -77,7 +77,7 @@ TEST(Particle622Subtype8Test, EqualityAtEitherThresholdLeavesTheRawScaleWordUnto
         CrtRandom random(7);
         const std::uint32_t originalWord = particle.field38;
 
-        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_EQ(particle.field38, originalWord);
@@ -97,7 +97,7 @@ TEST(Particle622Subtype8Test, ExpirationSkipsTheSubtypePhaseButStillRunsTheCommo
                         .life = 1};
     CrtRandom random(7);
 
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_FALSE(particle.alive);
@@ -120,7 +120,7 @@ TEST(Particle622Subtype8Test, UnorderedScaleTakesTheNativeEarlyComparisonButNotT
                             .life = initialLife};
         CrtRandom random(7);
 
-        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
 
         ASSERT_TRUE(stepped.HasValue());
         EXPECT_TRUE(std::isnan(std::bit_cast<float>(particle.field38)));
@@ -154,7 +154,7 @@ TEST(Particle622Subtype8Test, AscendingAtOneEighthDiscriminatesTheBinary64Consta
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true, .type = CloudType, .subtype = CloudSubtype, .field38 = 0x3e000000u, .life = 152};
     CrtRandom random(7);
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.life, 151);
     EXPECT_EQ(particle.field38, 0x3e28f5c3u);

@@ -38,7 +38,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     Client::Tests::RecordingSink sink;
     Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
     Client::Tests::FakeTextureStore store;
-    Client::Scenes::SelectionWorld selection(store, log);
+    Client::FrontEnd::SelectionWorld selection(store, log);
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Terrain::DynamicWorldLight light;
     auto cloth = std::make_unique<Client::Models::ClothWorld>();
@@ -62,7 +62,7 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
                                                .skillSerial = 0,
                                                .target = -1};
     auto& joints = world->DrawTail().joints;
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor).HasValue());
 
     const auto stepped = selection.StepEffects(*world, light.Lighting(), *cloth, 0.0f, {}, 0);
 
@@ -98,7 +98,7 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         Client::Tests::RecordingSink sink;
         Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
         Client::Tests::FakeTextureStore store;
-        Client::Scenes::SelectionWorld selection(store, log);
+        Client::FrontEnd::SelectionWorld selection(store, log);
         auto world = std::make_unique<Client::Kernel::WorldState>();
         Client::Terrain::DynamicWorldLight light;
         auto cloth = std::make_unique<Client::Models::ClothWorld>();
@@ -122,10 +122,10 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         // El 0x613/0 nace leyendo el registro propio (0x532675), como en el juego; los otros dos no lo miran.
         std::uint8_t ownRecordDepth = 0;
         const std::uint8_t ownVolley = 0;
-        const Client::Scenes::JointKernels::CreationServices services{.ownRecordDepth = &ownRecordDepth,
+        const Client::Joints::JointKernels::CreationServices services{.ownRecordDepth = &ownRecordDepth,
                                                                       .ownVolley = &ownVolley};
         auto& joints = world->DrawTail().joints;
-        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, tested.kind, &services);
+        const auto created = Client::Joints::CreateFaunaJoint(joints, request, cloth->random, tested.kind, &services);
         ASSERT_TRUE(created.HasValue()) << created.Error();
 
         const auto stepped =

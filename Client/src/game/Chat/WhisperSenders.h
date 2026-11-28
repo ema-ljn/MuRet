@@ -9,7 +9,7 @@
 // .bss en 0x77997f8, que llena 0x554d20 al recibir un 02 y lee 0x554a40 al mandar uno. Son diez lugares de 10 bytes
 // seguidos, que strcmp y strcpy leen y escriben como textos: un nombre de 10 bytes deja su '\0' en el lugar que sigue
 // y se lee seguido de él.
-namespace Client::UI
+namespace Client::Chat
 {
 inline constexpr std::size_t WhisperSenderSlots = 10;
 inline constexpr std::size_t WhisperSenderSlotBytes = 10;
@@ -36,4 +36,4 @@ void RememberTheWhisperSender(WhisperSenders& senders, std::uint16_t level, std:
 
 // 0x555030: los 110 bytes en 0; el próximo lugar queda.
 void ClearTheWhisperSenders(WhisperSenders& senders);
-} // namespace Client::UI
+} // namespace Client::Chat

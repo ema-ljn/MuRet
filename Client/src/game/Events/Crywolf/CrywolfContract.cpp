@@ -21,7 +21,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Events::Crywolf
 {
 namespace
 {
@@ -103,7 +103,7 @@ Result ShowTheContractMessage(Kernel::WorldRuntime& runtime, const Tables::TextT
         // paquete.
         if (message.altar < 0 || static_cast<std::size_t>(message.altar) >= ui.altars.size())
             return Core::Unexpected(std::format("0x435b39: el altar {} lee fuera de 0x6c73cc", message.altar));
-        const std::optional<std::string_view> format = UI::TextAt(texts, OfferText);
+        const std::optional<std::string_view> format = Ui::TextAt(texts, OfferText);
         if (!format)
             return Core::Unexpected(std::format("0x435b56: sin el texto {} de Text.bmd", OfferText));
         const std::array<Crt::FormatArgument, 1> arguments{
@@ -118,7 +118,7 @@ Result ShowTheContractMessage(Kernel::WorldRuntime& runtime, const Tables::TextT
         // 0x435b61..0x435bac: strcpy del texto 1950 + n; la ventana 2.
         const std::int64_t index = static_cast<std::int64_t>(FirstMessageText) + message.message;
         const std::optional<std::string_view> found =
-            index < 0 ? std::nullopt : UI::TextAt(texts, static_cast<std::size_t>(index));
+            index < 0 ? std::nullopt : Ui::TextAt(texts, static_cast<std::size_t>(index));
         if (!found)
             return Core::Unexpected(std::format("0x435b8f: sin el texto {} de Text.bmd", index));
         text = std::string(*found);
@@ -154,7 +154,7 @@ Result StepTheContractWindow(const ContractWindowContext& context)
 {
     Kernel::WorldRuntime& runtime = context.runtime;
     Kernel::CrywolfInterface& ui = runtime.crywolf.ui;
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     const std::int32_t x = context.mouseX;
     const std::int32_t y = context.mouseY;
     if (ui.byte723a44 == QuestionWindow)
@@ -259,4 +259,4 @@ bool CrywolfAltarGoal(const Kernel::WorldState& world)
     const auto type = static_cast<std::int16_t>(actors[static_cast<std::size_t>(chosen)].type);
     return type >= static_cast<std::int16_t>(FirstAltarType) && type <= static_cast<std::int16_t>(LastAltarType);
 }
-} // namespace Client::Scenes
+} // namespace Client::Events::Crywolf

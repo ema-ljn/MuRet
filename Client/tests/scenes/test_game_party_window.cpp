@@ -53,14 +53,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
@@ -131,7 +131,7 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
 }
 
 // Lo que pide la UI: solo la lista de la party.
-class RecordingRequests final : public Client::Scenes::IGameUiRequests
+class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override
@@ -198,7 +198,7 @@ protected:
         return m_world->Runtime();
     }
 
-    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Scenes::IGameUiRequests* requests = nullptr)
+    GameUiContext UiContext(std::int32_t x, std::int32_t y, Client::Hud::IGameUiRequests* requests = nullptr)
     {
         return GameUiContext{
             .world = *m_world, .random = m_random, .input = m_input, .mouseX = x, .mouseY = y, .requests = requests};
@@ -206,14 +206,14 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::StepThePartyWindow(UiContext(x, y), panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Party::StepThePartyWindow(UiContext(x, y), panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> StepTheUi(std::int32_t x, std::int32_t y,
-                                                        Client::Scenes::IGameUiRequests* requests)
+                                                        Client::Hud::IGameUiRequests* requests)
     {
-        return Client::Scenes::StepTheGameUi(UiContext(x, y, requests));
+        return Client::Hud::StepTheGameUi(UiContext(x, y, requests));
     }
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
@@ -233,8 +233,8 @@ protected:
                                .texts = m_drawnTexts,
                                .mouse = {.x = x, .y = y},
                                .leftDown = m_leftDown};
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawThePartyWindow(context, panels.Registry(), Left, Top);
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Party::DrawThePartyWindow(context, panels.Registry(), Left, Top);
     }
 
     // Tres miembros con nombres inventados: el héroe de jefe, uno fuera del viewport y uno con +0x78 & 8.
@@ -246,7 +246,7 @@ protected:
             for (std::size_t at = 0; at < text.size(); ++at)
                 name[at] = static_cast<std::byte>(text[at]);
         };
-        Client::Scenes::PartyState& party = Runtime().social.party;
+        Client::Social::PartyState& party = Runtime().social.party;
         setName(m_world->Hero().name, "Tejon");
         setName(party.slots[0].name, "Tejon");
         party.slots[0] = {.name = party.slots[0].name,
@@ -281,7 +281,7 @@ protected:
 
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
     }
 
     void Press(Client::Input::Key key)
@@ -352,7 +352,7 @@ TEST_P(GamePartyWindowTest, TheHudButtonOpensThePartyAndWithoutTheWireItCuts)
 // no hace nada. No saca rand().
 TEST_P(GamePartyWindowTest, TheMouseOverTheWindowIsOfTheUi)
 {
-    Client::UI::GameUiState& ui = Runtime().ui;
+    Client::Ui::GameUiState& ui = Runtime().ui;
     Runtime().hud.partyX = Left;
     ASSERT_TRUE(Step(Left, Top).HasValue());
     EXPECT_EQ(ui.mouseOnUi, 0) << "cerrada";
@@ -376,7 +376,7 @@ TEST_P(GamePartyWindowTest, TheMouseOverTheWindowIsOfTheUi)
 TEST_P(GamePartyWindowTest, TheCloseButtonClosesTheParty)
 {
     OpenAndPlace();
-    Client::Scenes::GameMovementState& movement = Runtime().movement;
+    Client::Movement::GameMovementState& movement = Runtime().movement;
     movement.mouseUpdateTime = 4;
     ASSERT_TRUE(Step(CloseX, CloseY).HasValue());
     EXPECT_EQ(Runtime().panels.party, 1) << "sin el clic";
@@ -421,7 +421,7 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
         for (std::size_t at = 0; at < text.size(); ++at)
             name[at] = static_cast<std::byte>(text[at]);
     };
-    Client::Scenes::PartyState& party = Runtime().social.party;
+    Client::Social::PartyState& party = Runtime().social.party;
     setName(party.slots[0].name, "Arbusto");
     party.slots[0].number = 4;
     setName(party.slots[1].name, "Brezal");
@@ -431,8 +431,8 @@ TEST_P(GamePartyWindowTest, WithMembersTheKickButtonsSendTheLeave)
     RecordingRequests requests;
     const auto step = [&](std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::StepThePartyWindow(UiContext(x, y, &requests), panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Party::StepThePartyWindow(UiContext(x, y, &requests), panels.Registry());
     };
     // El jefe echa al segundo.
     Click();
@@ -725,7 +725,7 @@ TEST_P(GamePartyWindowTest, TheKickButtonPressesAndShowsItsHelp)
 
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
-    Client::Scenes::PartyState& party = Runtime().social.party;
+    Client::Social::PartyState& party = Runtime().social.party;
     auto& heroName = m_world->Hero().name;
     std::copy_n(party.slots[1].name.begin(), heroName.size(), heroName.begin());
     ASSERT_TRUE(Draw(0, 0).HasValue());

@@ -23,7 +23,7 @@ namespace
 // 0x54271f..0x542897: seis rand() para 5f6/1; 0x546b66 comparte polvo, incluso al expirar.
 TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto created = particles->CreateChecked(0x5f6, {100, 200, 300}, {}, {2, 3, 4}, 1, 5, 0, random);
     ASSERT_TRUE(created.HasValue());
@@ -37,8 +37,8 @@ TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
     EXPECT_EQ(random.State(), 0x9974714du);
     particle.life = 1;
     const float clock = 0;
-    Client::World::PortableParticleTrigonometry trigonometry;
-    const auto stepped = Client::World::StepParticlesChecked(
+    Client::Particles::PortableParticleTrigonometry trigonometry;
+    const auto stepped = Client::Particles::StepParticlesChecked(
         *particles, random, std::cref(clock), nullptr, trigonometry, [](float, float) { return 20.0; }, {}, {},
         [](std::int32_t type) -> std::optional<float> { return type == 0x5f6 ? std::optional(32.0f) : std::nullopt; });
     ASSERT_TRUE(stepped.HasValue());
@@ -57,7 +57,7 @@ TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
 // como la 5f3/0, con cuatro y el empuje (0; 3; 0). Con los 3.000 llenos, ninguna saca rand(). Los bits, aparte (x87).
 TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     auto created = particles->CreateChecked(0x5f3, {100, 200, 300}, {}, {2, 3, 4}, 1, 5, 0, random);
     ASSERT_TRUE(created.HasValue());
@@ -84,7 +84,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     EXPECT_EQ(stone.angles, (glm::vec3{200, 0, 0}));
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 4).State());
     // La 5f3/0 con el mismo CRT en un pool gemelo: los mismos campos salvo el tipo.
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom oracle(7);
     ASSERT_TRUE(twin->CreateChecked(0x5f3, {100, 200, 300}, {}, {1, 1, 1}, 0, 1.5f, 0, oracle).HasValue());
     const auto& dust = twin->All()[0];
@@ -109,7 +109,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 // 0x54308a: tres rand(), textura 6ad, z−45; 0x547149: escala+0,19 y z+5 tras el paso común.
 TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto created = particles->CreateChecked(0x640, {100, 200, 300}, {}, {2, 3, 4}, 1, 7, 0, random);
     ASSERT_TRUE(created.HasValue());
@@ -125,8 +125,8 @@ TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
     particle.life = 1;
     particle.velocity = {1, 2, 3};
     const float clock = 0;
-    Client::World::PortableParticleTrigonometry trig;
-    const auto stepped = Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig);
+    Client::Particles::PortableParticleTrigonometry trig;
+    const auto stepped = Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trig);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.position, (glm::vec3{101, 202, 263}));
@@ -140,7 +140,7 @@ TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
 }
 TEST(CrywolfArrivalParticlesTest, TheFireworkParticleDrawsItsPhysicalSlotTrail)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto created =
         particles->CreateChecked(0x60d, {100, 200, 300}, {10, 20, 30}, {1, 0.6f, 0.2f}, -1, 7, 0, random);
@@ -157,7 +157,7 @@ TEST(CrywolfArrivalParticlesTest, TheFireworkParticleDrawsItsPhysicalSlotTrail)
     draw.dimensions[0x60d] = glm::vec2(32);
     draw.materialFlags[0x60d] = 3;
     const float clock = 0;
-    const auto drawn = Client::World::DrawParticlesChecked(*particles, 0, std::cref(clock), draw);
+    const auto drawn = Client::Particles::DrawParticlesChecked(*particles, 0, std::cref(clock), draw);
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_EQ(draw.draws.size(), 23u);
     EXPECT_EQ(draw.draws.front().light, glm::vec3(0));
@@ -169,11 +169,11 @@ TEST(CrywolfArrivalParticlesTest, TheFireworkParticleDrawsItsPhysicalSlotTrail)
     particles->All()[7] = particle;
     particle.alive = false;
     draw.draws.clear();
-    ASSERT_TRUE(Client::World::DrawParticlesChecked(*particles, 0, std::cref(clock), draw).HasValue());
+    ASSERT_TRUE(Client::Particles::DrawParticlesChecked(*particles, 0, std::cref(clock), draw).HasValue());
     EXPECT_EQ(draw.draws.size(), 30u);
     particle.alive = true;
     particles->All()[7].alive = false;
-    const auto stepped = Client::World::StepParticlesChecked(*particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(*particles, random);
     ASSERT_TRUE(stepped.HasValue());
     EXPECT_EQ(particle.life, 1);
     EXPECT_EQ(particle.position, (glm::vec3{101, 202, 303}));

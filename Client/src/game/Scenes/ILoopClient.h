@@ -5,7 +5,7 @@
 // Lo que el bucle llama (CL3.2): la red, una vez por frame (CL4.1); la lógica, un paso por vez, con
 // el input del frame (CL3.3); y el dibujo. Está en su propio header porque lo implementan la
 // escena de Main y el cliente de prueba de los tests, y ninguno necesita el bucle entero.
-namespace Client::App
+namespace Client::Scenes
 {
 class ILoopClient
 {
@@ -37,4 +37,4 @@ public:
     // nada que hacer por omisión.
     virtual void FinishTheLoop() {}
 };
-} // namespace Client::App
+} // namespace Client::Scenes

@@ -6,13 +6,17 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // Los tooltips del juego (06 § Los tooltips, CL8 hito 5): 0x5f7bc0, lo que el dibujo del juego llama en 0x63769b
 // (el ítem bajo el mouse, la skill de la barra y la ventana del set del inventario), el cartel de un conjunto
 // (0x40eca0, en 0x6376c6) y la caja que dibujan todos (0x5af090). Los renglones van en HudState::tooltip, que dura de
 // un frame al otro como los arreglos de la .bss.
-namespace Client::Scenes
+namespace Client::Tooltips
 {
-struct GameHudContext;
 struct TooltipLines;
 
 // 0x5af090(x, y, renglones, ancho, modo, marco): la caja de los primeros `count` renglones de HudState::tooltip, hasta
@@ -28,7 +32,7 @@ struct TooltipLines;
 //     (Render::Text::CenterInBox) y el 3 lo pone contra el borde derecho; uno con '\n' o " " solo baja medio o un
 //     renglón, sin dibujar.
 // Cada renglón baja (cy / ry) · 1,1. Termina con el color blanco y sin mezcla. Los modos que no son 1, 2 ni 3 cortan.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(GameHudContext& context, std::int32_t x,
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context, std::int32_t x,
                                                                   std::int32_t y, std::int32_t count,
                                                                   std::int32_t widthOverride, std::int32_t textMode,
                                                                   std::int32_t frame);
@@ -43,10 +47,10 @@ struct TooltipLines;
 // bajo el mouse (0x78abaa8), con el registro propio abierto alrededor, 0x5b8150 (reparar, con el mouse sobre el
 // inventario) o 0x5b2aa0; con la skill de la barra (0x6c9320), 0x5b90b0; con el inventario abierto, la ventana del
 // set (0x40e850). Los cuerpos que MuRet no tiene cortan con su dirección.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltips(GameHudContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context);
 
 // 0x40eca0: con +0x9305, el cartel del conjunto +0x9305 − 1 de ItemSetOption.bmd arriba a la izquierda: su nombre
 // (con el 1089 y el 159) en dorado y cada opción de sus pares, sus dos extras y sus cinco del conjunto completo en
 // azul. Un conjunto sin usar (+0x3c en 0xff) lo apaga.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context);
+} // namespace Client::Tooltips

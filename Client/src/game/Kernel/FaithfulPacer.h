@@ -8,7 +8,7 @@
 // El ritmo del original (CL3.2, modo Faithful): el bucle de 0x637700 con GetTickCount sobre la
 // grilla de FaithfulTick. Solo el dibujo, el swap y la espera van al acumulador; los pasos y lo
 // que corre antes de medir se pierden de a ticks enteros. Sin las reglas de FixedStep.
-namespace Client::App
+namespace Client::Kernel
 {
 // Los ms que leería GetTickCount en `now`, de a FaithfulTick: DWORD, como el original.
 [[nodiscard]] std::uint32_t TickCountMs(Core::Duration now);
@@ -38,4 +38,4 @@ private:
     std::uint32_t m_startMs = 0;
     std::int32_t m_lastMeasuredMs = 0;
 };
-} // namespace Client::App
+} // namespace Client::Kernel

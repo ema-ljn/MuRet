@@ -21,15 +21,15 @@
 #include <optional>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
-bool ActorEffectHooks::KillTheEffectsOf(World::ModelEffects& effects, std::int16_t type, const void* owner,
+bool ActorEffectHooks::KillTheEffectsOf(Effects::ModelEffects& effects, std::int16_t type, const void* owner,
                                         std::int32_t subtype) const
 {
-    return World::KillModelEffectsOf(effects, type, owner, subtype);
+    return Effects::KillModelEffectsOf(effects, type, owner, subtype);
 }
 
-std::optional<std::size_t> ActorEffectHooks::CreateTheSkillFlare(World::ModelEffects& effects,
+std::optional<std::size_t> ActorEffectHooks::CreateTheSkillFlare(Effects::ModelEffects& effects,
                                                                  const glm::vec3& position, const glm::vec3& angles,
                                                                  const glm::vec3& light, std::int32_t subtype,
                                                                  void* owner) const
@@ -37,21 +37,21 @@ std::optional<std::size_t> ActorEffectHooks::CreateTheSkillFlare(World::ModelEff
     return effects.CreateSkillFlare(position, angles, light, subtype, owner);
 }
 
-std::optional<std::size_t> ActorEffectHooks::CreateTheFullSetFlare(World::ModelEffects& effects,
+std::optional<std::size_t> ActorEffectHooks::CreateTheFullSetFlare(Effects::ModelEffects& effects,
                                                                    const glm::vec3& position, const glm::vec3& angles,
                                                                    const glm::vec3& light, void* owner) const
 {
     return effects.CreateFullSetFlare(position, angles, light, owner);
 }
 
-std::optional<std::size_t> ActorEffectHooks::CreateTheIceShard(World::ModelEffects& effects, const glm::vec3& position,
-                                                               const glm::vec3& angles, const glm::vec3& light,
-                                                               Crt::CrtRandom& random) const
+std::optional<std::size_t> ActorEffectHooks::CreateTheIceShard(Effects::ModelEffects& effects,
+                                                               const glm::vec3& position, const glm::vec3& angles,
+                                                               const glm::vec3& light, Crt::CrtRandom& random) const
 {
     return effects.CreateIceShard(position, angles, light, random);
 }
 
-std::optional<std::size_t> ActorEffectHooks::CreateTheDebris(World::ModelEffects& effects, std::int16_t type,
+std::optional<std::size_t> ActorEffectHooks::CreateTheDebris(Effects::ModelEffects& effects, std::int16_t type,
                                                              const glm::vec3& position, const glm::vec3& angles,
                                                              const glm::vec3& light, Crt::CrtRandom& random,
                                                              std::int32_t subtype) const
@@ -59,19 +59,19 @@ std::optional<std::size_t> ActorEffectHooks::CreateTheDebris(World::ModelEffects
     return effects.CreateDebris(type, position, angles, light, random, subtype);
 }
 
-std::optional<std::size_t> ActorEffectHooks::CreateTheSkinShell(World::ModelEffects& effects,
+std::optional<std::size_t> ActorEffectHooks::CreateTheSkinShell(Effects::ModelEffects& effects,
                                                                 const Kernel::ModelEffectArguments& arguments,
                                                                 Crt::CrtRandom& random) const
 {
-    return World::CreateSkinShell(arguments, effects, random);
+    return Effects::CreateSkinShell(arguments, effects, random);
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-ActorEffectHooks::CreateTheBlastEffect(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
+ActorEffectHooks::CreateTheBlastEffect(Effects::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments,
                                        Crt::CrtRandom& random) const
 {
-    return World::CreateBlastModelEffect(effects, arguments, World::ModelEffectOwner{}, random,
-                                         World::BlastEffectServices{});
+    return Effects::CreateBlastModelEffect(effects, arguments, Effects::ModelEffectOwner{}, random,
+                                           Effects::BlastEffectServices{});
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
@@ -87,20 +87,20 @@ ActorEffectHooks::CreateTheWizardEffect(Kernel::WorldState& world, Crt::CrtRando
                                         const Actors::WizardEffectScene& scene,
                                         const Kernel::ModelEffectArguments& arguments, glm::vec3* callerLight) const
 {
-    const World::WizardEffectServices services =
+    const Effects::WizardEffectServices services =
         WizardEffectServicesOf(world, random,
                                WizardSceneParts{.particles = &world.Particles(),
                                                 .terrain = scene.terrain,
                                                 .fixedHeight = scene.fixedHeight,
                                                 .dynamicLighting = scene.dynamicLighting,
                                                 .faunaModels = scene.faunaModels});
-    return World::CreateWizardModelEffect(world.Map().effects, arguments, random, services, callerLight);
+    return Effects::CreateWizardModelEffect(world.Map().effects, arguments, random, services, callerLight);
 }
 
 Core::Expected<void, std::string> ActorEffectHooks::PutTheSkullOn(Kernel::ActorState& actor, Kernel::WorldState& world,
                                                                   Crt::CrtRandom& random, std::uint32_t address) const
 {
-    return Scenes::PutTheSkullOn(actor, world, random, address);
+    return Effects::PutTheSkullOn(actor, world, random, address);
 }
 
 bool ActorEffectHooks::IsTheGuildMarkDue(const Kernel::ActorState& actor, float worldClock) const
@@ -108,10 +108,12 @@ bool ActorEffectHooks::IsTheGuildMarkDue(const Kernel::ActorState& actor, float 
     return GuildMarkIsDue(actor, worldClock);
 }
 
-Core::Expected<void, std::string>
-ActorEffectHooks::RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint, World::ModelEffects& effects,
-                                    World::Particles& particles, Crt::CrtRandom& random, float worldClock) const
+Core::Expected<void, std::string> ActorEffectHooks::RaiseTheGuildMark(Kernel::ActorState& actor,
+                                                                      const glm::vec3& bonePoint,
+                                                                      Effects::ModelEffects& effects,
+                                                                      Particles::Particles& particles,
+                                                                      Crt::CrtRandom& random, float worldClock) const
 {
-    return Scenes::RaiseTheGuildMark(actor, bonePoint, effects, particles, random, worldClock);
+    return Effects::RaiseTheGuildMark(actor, bonePoint, effects, particles, random, worldClock);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

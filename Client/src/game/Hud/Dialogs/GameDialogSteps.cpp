@@ -59,7 +59,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud::Dialogs
 {
 namespace
 {
@@ -219,8 +219,8 @@ constexpr unsigned NibbleShift = 4;
 // La tabla de despacho, en el orden de 0x623f78..0x6263d9. Las filas del OK genérico son las que el original
 // compara antes de llegar a él (0x73 y 0x8f) y su tramo los atiende aparte.
 constexpr auto Routes = std::to_array<DialogRoute>({
-    {UI::EscapeMenuDialog, DialogStep::EscapeMenu, "0x623f90", ""},
-    {UI::OptionsDialog, DialogStep::Options, "0x62556f", ""},
+    {Ui::EscapeMenuDialog, DialogStep::EscapeMenu, "0x623f90", ""},
+    {Ui::OptionsDialog, DialogStep::Options, "0x62556f", ""},
     {ChaosMixModeDialog, DialogStep::ChaosMixMode, "0x625910", ""},
     {JewelMenuDialog, DialogStep::JewelMenu, "0x6259c6", ""},
     {JewelChoiceDialog, DialogStep::JewelChoice, "0x625b23", ""},
@@ -229,9 +229,9 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {0xa7, DialogStep::WarOutcome, "0x62601e", ""},
     {0x9c, DialogStep::ConfirmBox, "0x6260d1", ""},
     {0x91, DialogStep::ShopDialog, "0x6260f6", ""},
-    {UI::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
-    {UI::AnswersDialog, DialogStep::Buttons, "0x62d756", ""},
-    {UI::PagedDialog, DialogStep::Buttons, "0x62d756", ""},
+    {Ui::MessageBoxDialog, DialogStep::Buttons, "0x62d756", ""},
+    {Ui::AnswersDialog, DialogStep::Buttons, "0x62d756", ""},
+    {Ui::PagedDialog, DialogStep::Buttons, "0x62d756", ""},
     {0x8b, DialogStep::Buttons, "0x62d756", ""},
     {0x97, DialogStep::Buttons, "0x62d756", ""},
     {0x9b, DialogStep::Buttons, "0x62d756", ""},
@@ -239,19 +239,19 @@ constexpr auto Routes = std::to_array<DialogRoute>({
     {LeaveNumberDialog, DialogStep::YesNo, "0x62a810", ""},
     {0x95, DialogStep::YesNo, "0x62a7f7", ""},
     {0x76, DialogStep::Cut, "0x62a7f7", "CL9.4"},
-    {UI::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
+    {Ui::IgnoredOverChaosCastle, DialogStep::YesNo, "0x62a7f7", ""},
     {PartyRequestDialog, DialogStep::YesNo, "0x62a7f7", ""},
-    {UI::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
+    {Ui::ForcedDialog, DialogStep::YesNo, "0x62a7f7", ""},
     {WarningDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::ItemNameDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::ItemNameDialog, DialogStep::Warning, "0x6282dc", ""},
     {ConfirmDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::MoneyTextDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::ChaosCastleDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::ServerTimeDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::ItemNameWithLuckDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::MoneyTextDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::ChaosCastleDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::ServerTimeDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::ItemNameWithLuckDialog, DialogStep::Warning, "0x6282dc", ""},
     {BlessDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::NoticeQuestionDialog, DialogStep::Warning, "0x6282dc", ""},
-    {UI::DisconnectDialog, DialogStep::GenericOk, "0x6263df", ""},
+    {Ui::NoticeQuestionDialog, DialogStep::Warning, "0x6282dc", ""},
+    {Ui::DisconnectDialog, DialogStep::GenericOk, "0x6263df", ""},
     {0x6f, DialogStep::GenericOk, "0x6263df", ""},
     {0x1a, DialogStep::GenericOk, "0x6263df", ""},
     {0x1c, DialogStep::GenericOk, "0x6263df", ""},
@@ -299,25 +299,25 @@ Core::Expected<void, std::string> SaveTheOptions(const GameUiContext& context, s
     if (!body.HasValue())
         return Core::Unexpected(std::move(body).Error());
     requests.Value()->SendOptionData(body.Value());
-    return requests.Value()->SaveMacros(UI::WrittenMacros(context.world.Runtime().chat.input.macros));
+    return requests.Value()->SaveMacros(Chat::WrittenMacros(context.world.Runtime().chat.input.macros));
 }
 
 // 0x659290(0x100): la caja del caos abierta, sin rand().
 bool ChaosBoxOpen(const GameUiContext& context)
 {
     GamePanels panels(context.world, context.random);
-    return panels.Registry().IsOpen(UI::ChaosBoxPanel);
+    return panels.Registry().IsOpen(Ui::ChaosBoxPanel);
 }
 
 // 0x555190(0x7d3a14c, Text[592], 2): el nombre es una cadena vacía de la .bss.
 Core::Expected<void, std::string> SayTheChaosBoxIsOpen(const GameUiContext& context, std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, ChaosBoxOpenText);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, ChaosBoxOpenText);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, ChaosBoxOpenText));
     if (context.measure == nullptr)
         return Core::Unexpected(std::format("{}: el mensaje del texto {} sin medidor", where, ChaosBoxOpenText));
-    return AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, *text, UI::ErrorMessage);
+    return Chat::AddGameMessage(context.world.Runtime(), *context.measure, context.screen, {}, *text, Ui::ErrorMessage);
 }
 
 // 0x62411c..: 0x576793c en 1 y el C3 F1 02 con `kind`: un rand() del relleno (0x62449a) y el serial (0x5767913) por la
@@ -341,7 +341,7 @@ Core::Expected<void, std::string> RequestTheLogout(const GameUiContext& context,
 Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& context, std::int32_t button)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogState& dialogs = runtime.dialogs;
+    Ui::DialogState& dialogs = runtime.dialogs;
     switch (button)
     {
     case ExitGameButton:
@@ -387,9 +387,9 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
         // 0x625538: con un diálogo abierto (el menú), las opciones esperan y 0x6240a1 las abre; sin ninguno, se abren
         // sin pasar por el cierre.
         if (dialogs.current != 0)
-            dialogs.pending = UI::OptionsDialog;
+            dialogs.pending = Ui::OptionsDialog;
         else
-            dialogs.current = UI::OptionsDialog;
+            dialogs.current = Ui::OptionsDialog;
         return {};
     default:
         return {};
@@ -400,7 +400,7 @@ Core::Expected<void, std::string> PressTheEscapeMenuButton(const GameUiContext& 
 Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogState& dialogs = runtime.dialogs;
+    Ui::DialogState& dialogs = runtime.dialogs;
     if (runtime.cursorItemCount > 0)
         return {};
     for (std::int32_t button = 0; button < EscapeMenuButtons; ++button)
@@ -416,7 +416,7 @@ Core::Expected<void, std::string> StepTheEscapeMenu(const GameUiContext& context
         if (auto pressed = PressTheEscapeMenuButton(context, button); !pressed.HasValue())
             return pressed;
         // 0x6240a1: con otro que las opciones, el que espera pasa a abierto. 0x625554 salta a 0x6240bf.
-        if (!openedTheOptions && dialogs.current != UI::OptionsDialog)
+        if (!openedTheOptions && dialogs.current != Ui::OptionsDialog)
         {
             dialogs.current = dialogs.pending;
             dialogs.pending = 0;
@@ -439,7 +439,7 @@ std::int32_t DirectSoundVolume(std::int32_t volume)
 void StepTheVolume(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     bool& click = runtime.movement.pendingClick;
     if (!InBox(context, OptionsLeft, VolumeRowY, OptionsWidth, OptionsRowHeight))
         return;
@@ -497,8 +497,8 @@ void StepTheVolume(const GameUiContext& context)
 Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    UI::DialogState& dialogs = runtime.dialogs;
+    Ui::GameUiState& ui = runtime.ui;
+    Ui::DialogState& dialogs = runtime.dialogs;
     bool& click = runtime.movement.pendingClick;
     if (runtime.cursorItemCount > 0)
         return {};
@@ -512,7 +512,7 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
     };
     // 0x6255ca..0x6255de: volver deja el menú esperando y las opciones abiertas (Q-C550).
     if (pressed(BackRowY))
-        (dialogs.current != 0 ? dialogs.pending : dialogs.current) = UI::EscapeMenuDialog;
+        (dialogs.current != 0 ? dialogs.pending : dialogs.current) = Ui::EscapeMenuDialog;
     if (pressed(AutoAttackRowY))
         ui.autoAttack = !ui.autoAttack;
     if (pressed(NoticeSoundRowY))
@@ -549,22 +549,22 @@ Core::Expected<void, std::string> StepTheOptions(const GameUiContext& context)
 Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::DialogBoxState& box = runtime.dialogBox;
+    const Ui::DialogBoxState& box = runtime.dialogBox;
     const std::int32_t answersTop =
-        UI::DialogTextTop(box, UI::AnswersDialog) + box.lineCount * UI::DialogLineStep; // 0x62d943..0x62d94a
+        Ui::DialogTextTop(box, Ui::AnswersDialog) + box.lineCount * Ui::DialogLineStep; // 0x62d943..0x62d94a
     // 0x62d948: la y del mouse negativa sale.
     if (context.mouseY < 0)
         return {};
     const std::int32_t offset = context.mouseY - answersTop;
-    if (offset >= box.answerCount * UI::DialogLineStep)
+    if (offset >= box.answerCount * Ui::DialogLineStep)
         return {};
-    if (std::abs(UI::AnswersCenterX - context.mouseX) > UI::AnswersHalfWidth)
+    if (std::abs(Ui::AnswersCenterX - context.mouseX) > Ui::AnswersHalfWidth)
         return {};
     bool& click = runtime.movement.pendingClick;
     if (!click)
         return {};
     // 0x62d98c..0x62d9a9: la división con signo, hacia el cero; un desvío negativo sale.
-    const std::int32_t answer = offset / UI::DialogLineStep;
+    const std::int32_t answer = offset / Ui::DialogLineStep;
     if (offset < 0 || answer < 0)
         return {};
     // 0x62d9af..0x62d9ca: la cuenta del registro de 0x6d5e28 en Dialog.bmd (+0x12c), con 1 como mínimo.
@@ -583,26 +583,26 @@ Core::Expected<void, std::string> StepTheAnswers(const GameUiContext& context)
     runtime.dialogs.pending = 0;
     if (next < 0)
         return {};
-    return UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, context.texts, next);
+    return Ui::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &table, context.texts, next);
 }
 
 // 0x62d756..0x62da57: las cajas con botones; Enter o un botón las cierran, salvo el 0x8d, que sigue en sus respuestas.
 Core::Expected<void, std::string> StepTheButtons(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogBoxState& box = runtime.dialogBox;
-    const UI::Point mouse{context.mouseX, context.mouseY};
+    Ui::DialogBoxState& box = runtime.dialogBox;
+    const Ui::Point mouse{context.mouseX, context.mouseY};
     const std::int32_t selected =
-        UI::StepTheDialogButtons(box, mouse, runtime.movement.pendingClick, runtime.movement.leftHeld);
+        Ui::StepTheDialogButtons(box, mouse, runtime.movement.pendingClick, runtime.movement.leftHeld);
     // 0x62d7eb: las flechas leen el clic de después de los botones.
-    if (runtime.dialogs.current == UI::PagedDialog)
+    if (runtime.dialogs.current == Ui::PagedDialog)
     {
-        if (auto paged = UI::StepTheDialogPages(box, context.texts, mouse, runtime.movement.pendingClick);
+        if (auto paged = Ui::StepTheDialogPages(box, context.texts, mouse, runtime.movement.pendingClick);
             !paged.HasValue())
             return paged;
     }
     // 0x62d911: el 0x8d no llega al cierre de 0x62da58 (ni Enter ni sus botones lo cierran).
-    if (runtime.dialogs.current == UI::AnswersDialog)
+    if (runtime.dialogs.current == Ui::AnswersDialog)
         return StepTheAnswers(context);
     // 0x62da58..0x62da94.
     if (runtime.ui.enterPressed)
@@ -643,13 +643,13 @@ Core::Expected<void, std::string> StepTheChaosMixMode(const GameUiContext& conte
 Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    TradeState& trade = runtime.social.trade;
+    Social::TradeState& trade = runtime.social.trade;
     const auto typed = static_cast<std::uint32_t>(runtime.social.typedMoney);
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (typed > context.world.OwnCharacter().zen + trade.ownMoney)
     {
-        UI::PushDialog(runtime.dialogs, 0);
-        UI::PushDialog(runtime.dialogs, NotEnoughMoneyDialog);
+        Ui::PushDialog(runtime.dialogs, 0);
+        Ui::PushDialog(runtime.dialogs, NotEnoughMoneyDialog);
         return {};
     }
     auto requests = RequestsOf(context, "0x626b07");
@@ -662,41 +662,41 @@ Core::Expected<void, std::string> OfferTheTypedMoney(const GameUiContext& contex
         requests.Value()->SendGamePacket(Protocol::Social::WriteTradeOkButton(0));
     }
     if (static_cast<std::int32_t>(trade.ownMoney) > 0)
-        trade.okWait = TradeOkWait;
+        trade.okWait = Social::TradeOkWait;
     trade.sentMoney = typed;
     requests.Value()->SendGamePacket(Protocol::Social::WriteTradeMoney(typed));
-    UI::PushDialog(runtime.dialogs, 0);
+    Ui::PushDialog(runtime.dialogs, 0);
     return {};
 }
 
 // 0x626460..0x6270ed y 0x628215..0x6282c8: el OK del 0x73 (el zen del comercio), solo con Enter. Con más de
 // 100.000.000, el 0x75 en su lugar (el 0x6236f0(0) y el 0x6236f0(0x75) en línea); si no, con el comercio abierto, el
-// zen; sin el comercio, el del almacén (0x6270ed, el 81 según 0x78abacc, Scenes::MoveTheWarehouseMoney). Al final, los
+// zen; sin el comercio, el del almacén (0x6270ed, el 81 según 0x78abacc, Npc::MoveTheWarehouseMoney). Al final, los
 // campos de texto vacíos (0x553570(0)), el largo 0x2a, dos campos de Tab, el modo del zen y el campo del chat en 0, y
 // el botón.
 Core::Expected<void, std::string> StepTheMoneyOk(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    SocialState& social = runtime.social;
+    Social::SocialState& social = runtime.social;
     if (social.typedMoney > MaxTypedMoney)
     {
-        UI::PushDialog(runtime.dialogs, 0);
-        UI::PushDialog(runtime.dialogs, TooMuchMoneyDialog);
+        Ui::PushDialog(runtime.dialogs, 0);
+        Ui::PushDialog(runtime.dialogs, TooMuchMoneyDialog);
     }
     else
     {
         GamePanels panels(context.world, context.random);
-        if (panels.Registry().IsOpen(UI::TradePanel))
+        if (panels.Registry().IsOpen(Ui::TradePanel))
         {
             if (auto offered = OfferTheTypedMoney(context); !offered.HasValue())
                 return offered;
         }
-        else if (auto moved = MoveTheWarehouseMoney(context); !moved.HasValue())
+        else if (auto moved = Npc::MoveTheWarehouseMoney(context); !moved.HasValue())
             return moved;
     }
-    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    Chat::ResetTheTextBuffers(runtime.chat.input, false);
     social.dialogFieldLimit = ClosedDialogFieldLimit;
-    runtime.chat.input.fieldCount = UI::ChatFieldCount;
+    runtime.chat.input.fieldCount = Chat::ChatFieldCount;
     social.moneyField = 0;
     runtime.ui.chatOpen = false;
     PressTheButton(runtime);
@@ -730,7 +730,7 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
         // 0x628264..0x62827b: cierra y abre el teclado del almacén en 6.
         runtime.dialogs.current = runtime.dialogs.pending;
         runtime.dialogs.pending = 0;
-        OpenTheKeypad(runtime, context.random, ReopenedKeypadMode);
+        Npc::OpenTheKeypad(runtime, context.random, ReopenedKeypadMode);
         PressTheButton(runtime);
         return {};
     }
@@ -739,7 +739,7 @@ Core::Expected<void, std::string> StepTheGenericOk(const GameUiContext& context)
 }
 
 // [x + 0xd5, x + w + 0xd5] × [y + arriba, y + h + arriba], con signo y los bordes.
-bool OverTheWarningButton(const GameUiContext& context, const UI::DialogButton& button, std::int32_t top)
+bool OverTheWarningButton(const GameUiContext& context, const Ui::DialogButton& button, std::int32_t top)
 {
     return context.mouseX >= button.x + WarningButtonsX && context.mouseY >= button.y + top &&
            context.mouseX <= button.x + button.width + WarningButtonsX &&
@@ -753,13 +753,13 @@ bool OverTheWarningButton(const GameUiContext& context, const UI::DialogButton& 
 std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, bool escape)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::DialogBoxState& box = runtime.dialogBox;
+    Ui::DialogBoxState& box = runtime.dialogBox;
     const std::int32_t id = runtime.dialogs.current;
-    const std::int32_t top = id == UI::ServerTimeDialog ? ServerTimeButtonsY : WarningButtonsY;
+    const std::int32_t top = id == Ui::ServerTimeDialog ? ServerTimeButtonsY : WarningButtonsY;
     std::array<std::int32_t, 2> chosen{-1, -1};
     for (std::size_t index = 0; index < chosen.size(); ++index)
     {
-        UI::DialogButton& button = box.buttons[index];
+        Ui::DialogButton& button = box.buttons[index];
         button.state = static_cast<std::int32_t>(1 + 2 * index);
         if (!OverTheWarningButton(context, button, top))
             continue;
@@ -767,20 +767,20 @@ std::array<std::int32_t, 2> StepTheWarningButtons(const GameUiContext& context, 
             chosen[index] = static_cast<std::int32_t>(index);
         ++button.state;
     }
-    if (id == UI::ItemNameWithLuckDialog && OverTheWarningButton(context, box.thirdButton, top) &&
+    if (id == Ui::ItemNameWithLuckDialog && OverTheWarningButton(context, box.thirdButton, top) &&
         runtime.movement.pendingClick)
         chosen[0] = ThirdChoice;
     runtime.movement.pendingClick = false;
     runtime.movement.leftHeld = false;
     if (escape)
-        chosen[1] = id == UI::ItemNameWithLuckDialog ? ThirdChoice : 1;
+        chosen[1] = id == Ui::ItemNameWithLuckDialog ? ThirdChoice : 1;
     return chosen;
 }
 
 // 0x628c11, 0x6293ea y 0x629c85: el 26 de los diálogos usa los mismos chequeos, espera y C3 del inventario.
-Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const InventoryUse& use)
+Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context, const Items::InventoryUse& use)
 {
-    InventoryServices services = context.inventory != nullptr ? *context.inventory : InventoryServices{};
+    Items::InventoryServices services = context.inventory != nullptr ? *context.inventory : Items::InventoryServices{};
     services.sendUseItem = [&context, where = use.where](const Protocol::Items::UseItem& item)
     {
         if (!context.sendNpcWindow)
@@ -788,9 +788,9 @@ Core::Expected<void, std::string> UseTheDialogItem(const GameUiContext& context,
         return context.sendNpcWindow(Protocol::Items::WriteUseItem(item));
     };
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
-    const auto used =
-        UseInventoryItemOn(InventoryMoveContext{.world = context.world, .random = context.random, .services = services},
-                           panels.Registry(), use);
+    const auto used = Items::UseInventoryItemOn(
+        Items::InventoryMoveContext{.world = context.world, .random = context.random, .services = services},
+        panels.Registry(), use);
     if (!used.HasValue())
         return used;
     CloseTheDialog(context.world.Runtime());
@@ -841,7 +841,7 @@ Core::Expected<void, std::string> AnswerTheLuck(const GameUiContext& context, st
         return {};
     }
     runtime.ui.field78abb26 = static_cast<std::uint8_t>(entry);
-    return UseTheDialogItem(context, {.slot = runtime.dialogItemCell + FirstInventoryGridSlot,
+    return UseTheDialogItem(context, {.slot = runtime.dialogItemCell + Items::FirstInventoryGridSlot,
                                       .where = entry == 0 ? "0x6293ea" : "0x628c11"});
 }
 
@@ -869,7 +869,7 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
     const std::array<std::int32_t, 2> chosen = StepTheWarningButtons(context, escape);
     for (const std::int32_t entry : chosen)
     {
-        if (id == UI::ItemNameWithLuckDialog)
+        if (id == Ui::ItemNameWithLuckDialog)
         {
             if (entry < 0 || entry > ThirdChoice)
                 continue;
@@ -880,23 +880,23 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
         if (entry != 0 && entry != 1)
             continue;
         const bool yes = entry == 0;
-        if (id == UI::ChaosCastleDialog)
+        if (id == Ui::ChaosCastleDialog)
         {
             if (auto answered = AnswerTheChaosCastle(context, entry); !answered.HasValue())
                 return answered;
         }
-        else if (id == UI::NoticeQuestionDialog)
+        else if (id == Ui::NoticeQuestionDialog)
         {
             if (auto answered = AnswerTheNotice(context, entry); !answered.HasValue())
                 return answered;
         }
-        else if (id == WarningDialog || id == ConfirmDialog || id == UI::MoneyTextDialog)
+        else if (id == WarningDialog || id == ConfirmDialog || id == Ui::MoneyTextDialog)
         {
             // 0x62a779..0x62a7e6.
             runtime.social.trade.warningByte = yes ? WarningYes : WarningNo;
             CloseTheDialog(runtime);
         }
-        else if (id == UI::ItemNameDialog)
+        else if (id == Ui::ItemNameDialog)
         {
             // 0x628ae4..0x628b63: el sí cierra y abre el 0xa8 con el ítem de los diálogos.
             if (!yes)
@@ -906,24 +906,25 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
             }
             runtime.dialogs.current = runtime.dialogs.pending;
             runtime.dialogs.pending = 0;
-            if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, LuckDialogLines,
-                                                 LuckDialogText, UI::ItemNameWithLuckDialog, &runtime.dialogItem);
+            if (auto opened = Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, LuckDialogLines,
+                                                 LuckDialogText, Ui::ItemNameWithLuckDialog, &runtime.dialogItem);
                 !opened.HasValue())
                 return opened;
             PressTheButton(runtime);
         }
-        else if (id == UI::ServerTimeDialog)
+        else if (id == Ui::ServerTimeDialog)
         {
             // 0x62846f..0x628500: la pregunta de la mezcla de joyas.
-            if (auto answered = AnswerTheJewelMix(context, yes); !answered.HasValue())
+            if (auto answered = ChaosMix::AnswerTheJewelMix(context, yes); !answered.HasValue())
                 return answered;
         }
         else if (yes)
         {
             // 0x629c57..0x629c85.
-            if (auto used = UseTheDialogItem(context, {.slot = runtime.dialogBox.jewelCell + FirstInventoryGridSlot,
-                                                       .target = runtime.dialogBox.jewelTarget,
-                                                       .where = "0x629c85"});
+            if (auto used =
+                    UseTheDialogItem(context, {.slot = runtime.dialogBox.jewelCell + Items::FirstInventoryGridSlot,
+                                               .target = runtime.dialogBox.jewelTarget,
+                                               .where = "0x629c85"});
                 !used.HasValue())
                 return used;
         }
@@ -932,10 +933,10 @@ Core::Expected<void, std::string> StepTheWarning(const GameUiContext& context, b
             // 0x629c41..0x629c4d: el no suelta la joya y la vuelve a su lugar.
             runtime.dialogBox.jewelCell = 0;
             runtime.dialogBox.jewelTarget = 0;
-            const InventoryServices none{};
-            const InventoryServices& services = context.inventory != nullptr ? *context.inventory : none;
-            if (auto returned = ReturnTheCursorItem(
-                    InventoryMoveContext{.world = context.world, .random = context.random, .services = services});
+            const Items::InventoryServices none{};
+            const Items::InventoryServices& services = context.inventory != nullptr ? *context.inventory : none;
+            if (auto returned = Items::ReturnTheCursorItem(Items::InventoryMoveContext{
+                    .world = context.world, .random = context.random, .services = services});
                 !returned.HasValue())
                 return returned;
             CloseTheDialog(runtime);
@@ -965,7 +966,7 @@ Core::Expected<void, std::string> Answer(const GameUiContext& context, std::int3
 }
 
 // 0x62b372 y 0x62c567: los diez bytes de 0x7798bf8 (dos DWORD y un WORD) y su largo (0x7758590) en 0.
-void ClearTheTypedNumber(UI::ChatInputState& input)
+void ClearTheTypedNumber(Chat::ChatInputState& input)
 {
     std::fill_n(input.messageBuffer.begin(), Protocol::Guild::LeaveNumberSize, '\0');
     input.messageLength = 0;
@@ -981,17 +982,17 @@ Core::Expected<void, std::string> SendTheLeave(const GameUiContext& context)
     if (!requests.HasValue())
         return Core::Unexpected(std::move(requests).Error());
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
-    UI::ReadTheNumberField(input, input.messageBuffer);
-    UI::ClearTheNumberField(input);
+    Chat::ChatInputState& input = runtime.chat.input;
+    Chat::ReadTheNumberField(input, input.messageBuffer);
+    Chat::ClearTheNumberField(input);
     // 0x62a91c: 0x6d5e2c es −1 en la .data y lo pone 0x64faa0 (−1 sin el nombre): fuera de los 80 lugares, el original
     // lee otra memoria (Q-C1296).
     const std::int32_t member = runtime.guild.kickMember;
-    if (member < 0 || static_cast<std::size_t>(member) >= GuildMemberSlots)
+    if (member < 0 || static_cast<std::size_t>(member) >= Guild::GuildMemberSlots)
         return Core::Unexpected(std::format("0x62a91c: el lugar {} de 0x6d5e2c lee fuera de los {} miembros de "
                                             "0x787a5e8 (Q-C1296)",
-                                            member, GuildMemberSlots));
-    const GuildMemberSlot& slot = runtime.guild.members[static_cast<std::size_t>(member)];
+                                            member, Guild::GuildMemberSlots));
+    const Guild::GuildMemberSlot& slot = runtime.guild.members[static_cast<std::size_t>(member)];
     Protocol::FrontEnd::NameBytes name{};
     for (std::size_t index = 0; index < name.size(); ++index)
         name[index] = static_cast<std::byte>(slot.name[index]);
@@ -1022,7 +1023,7 @@ Core::Expected<void, std::string> SendTheWarehouseConfirmation(const GameUiConte
         return Core::Unexpected(requests.Error());
     const auto& runtime = context.world.Runtime();
     const auto& typed = runtime.npcWindows.typedNumber;
-    const auto password = static_cast<std::uint16_t>(static_cast<std::uint32_t>(AtoiLikeTheCrt(std::string_view(
+    const auto password = static_cast<std::uint16_t>(static_cast<std::uint32_t>(Chat::AtoiLikeTheCrt(std::string_view(
                                                          reinterpret_cast<const char*>(typed.data()), typed.size()))) &
                                                      0xffff);
     Protocol::Npc::WarehouseNumber number{};
@@ -1042,7 +1043,7 @@ Core::Expected<void, std::string> AnswerYes(const GameUiContext& context, std::i
         return SendTheLeave(context);
     if (id == 0x95)
         return SendTheWarehouseConfirmation(context);
-    if (id == UI::IgnoredOverChaosCastle)
+    if (id == Ui::IgnoredOverChaosCastle)
         return AnswerTheWar(context, true);
     return Answer(context, id, 1, id == PartyRequestDialog ? "0x62bb1d" : "0x62c20a");
 }
@@ -1078,13 +1079,13 @@ Core::Expected<void, std::string> StepTheYesNo(const GameUiContext& context, boo
         ClearTheTypedNumber(runtime.chat.input);
     // 0x62c5c2: el no del 0x7f manda el C1 04 61 00 y deja el gremio sin guerra ni rival (0x4c1800, que llama dos veces
     // en 0x62c854 y 0x62c86a; la segunda no cambia nada).
-    if (id == UI::IgnoredOverChaosCastle)
+    if (id == Ui::IgnoredOverChaosCastle)
     {
         if (auto said = AnswerTheWar(context, false); !said.HasValue())
             return said;
-        ClearTheWar(context.world);
+        Guild::ClearTheWar(context.world);
     }
-    if (id == PartyRequestDialog || id == UI::ForcedDialog)
+    if (id == PartyRequestDialog || id == Ui::ForcedDialog)
     {
         if (auto said = Answer(context, id, 0, id == PartyRequestDialog ? "0x62cd52" : "0x62d4a2"); !said.HasValue())
             return said;
@@ -1105,7 +1106,7 @@ void StepTheWarOutcome(const GameUiContext& context)
         return;
     runtime.events.guildWarOutcome = {};
     runtime.events.timeValue = 0;
-    UI::PushDialog(runtime.dialogs, 0);
+    Ui::PushDialog(runtime.dialogs, 0);
 }
 } // namespace
 
@@ -1143,17 +1144,17 @@ Core::Expected<void, std::string> StepTheOpenDialog(const GameUiContext& context
     case DialogStep::ChaosMixMode:
         return StepTheChaosMixMode(context);
     case DialogStep::JewelMenu:
-        return StepTheJewelMenu(context);
+        return ChaosMix::StepTheJewelMenu(context);
     case DialogStep::JewelChoice:
-        return StepTheJewelChoice(context);
+        return ChaosMix::StepTheJewelChoice(context);
     case DialogStep::JewelUnmix:
-        return StepTheJewelUnmix(context);
+        return ChaosMix::StepTheJewelUnmix(context);
     case DialogStep::JewelResult:
-        return StepTheJewelResult(context);
+        return ChaosMix::StepTheJewelResult(context);
     case DialogStep::ConfirmBox:
-        return StepTheConfirmBox(context);
+        return PersonalShop::StepTheConfirmBox(context);
     case DialogStep::ShopDialog:
-        return StepTheShopDialog(context);
+        return PersonalShop::StepTheShopDialog(context);
     case DialogStep::Warning:
         return StepTheWarning(context, escape);
     case DialogStep::WarOutcome:
@@ -1189,7 +1190,7 @@ OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<st
             body[key] = Kernel::OwnSkillByte(record, at);
         }
     }
-    const UI::GameUiState& ui = runtime.ui;
+    const Ui::GameUiState& ui = runtime.ui;
     std::uint8_t flags = body[FlagsByte];
     flags = static_cast<std::uint8_t>(flags | (ui.autoAttack ? AutoAttackOn : AutoAttackOff));
     flags = static_cast<std::uint8_t>(flags | (runtime.chat.noticeSound ? NoticeSoundOn : NoticeSoundOff));
@@ -1208,4 +1209,4 @@ OptionBodyOf(Kernel::WorldState& world, Crt::CrtRandom& random, std::optional<st
     body[ChatWindowByte] = static_cast<std::uint8_t>(static_cast<std::uint8_t>(rows << NibbleShift) | alpha);
     return body;
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud::Dialogs

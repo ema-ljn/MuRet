@@ -23,7 +23,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Chat
 {
 namespace
 {
@@ -66,7 +66,7 @@ template <std::size_t Size> std::string NameOf(std::span<const std::byte, Size> 
 Core::Expected<ChatCommandOutcome, std::string> GuildCommand(const ChatCommandContext& context, std::string_view text)
 {
     if (IsChaosCastle(context.map))
-        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
     if (text == TextOr(context.texts, GuildCommandText) || EqualsIgnoringCase(text, "/guild"))
     {
         if (!context.requestAGuildJoin)
@@ -90,9 +90,9 @@ Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCo
 {
     constexpr std::size_t LevelTextBufferSize = 0x30;
     if (IsChaosCastle(context.map))
-        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
     if (context.trainerOpen)
-        return ChatCommandOutcome{.handled = false, .notices = {{ShopTrainerText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = false, .notices = {{ShopTrainerText, Ui::SystemMessage}}};
     if (!context.ownLevel)
         return Core::Unexpected(std::string("0x57673f: /personalshop sin el registro propio"));
     if (context.ownLevel() >= ShopLevel)
@@ -109,7 +109,7 @@ Core::Expected<ChatCommandOutcome, std::string> PersonalShopCommand(const ChatCo
                                             ShopLevelText, LevelTextBufferSize));
     return ChatCommandOutcome{
         .handled = true,
-        .notices = {ChatCommandNotice{.text = ShopLevelText, .type = SystemMessage, .formatted = std::move(text)}}};
+        .notices = {ChatCommandNotice{.text = ShopLevelText, .type = Ui::SystemMessage, .formatted = std::move(text)}}};
 }
 
 // 0x574c8c: sscanf(texto, "%s %s", EBP − 0x108, EBP − 0xc0). Cada %s salta los blancos (isspace del locale "C") y lee
@@ -151,7 +151,7 @@ Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatComman
                                                                 std::string_view text)
 {
     if (IsChaosCastle(context.map))
-        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
     auto name = ScanTheName(text);
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
@@ -165,11 +165,11 @@ Core::Expected<ChatCommandOutcome, std::string> PurchaseCommand(const ChatComman
 Core::Expected<ChatCommandOutcome, std::string> TradeCommand(const ChatCommandContext& context)
 {
     if (IsChaosCastle(context.map))
-        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
     if (!context.ownLevel)
         return Core::Unexpected(std::string("0x56c5d0: /trade sin el registro propio"));
     if (context.ownLevel() < context.tradeLevel)
-        return ChatCommandOutcome{.handled = true, .notices = {{TradeLevelText, SystemMessage}}};
+        return ChatCommandOutcome{.handled = true, .notices = {{TradeLevelText, Ui::SystemMessage}}};
     if (!context.requestATrade)
         return Core::Unexpected(std::string("0x56c68b: /trade sin el pedido"));
     return context.requestATrade();
@@ -193,7 +193,7 @@ Core::Expected<ChatCommandOutcome, std::string> TheNamesTail(const ChatCommandCo
             // 0x576923..0x576952: sin el cartel del conjunto (0x5ae360), la ayuda del ítem (el modo 3), el 0x19 y 1.
             if (context.setLabel != nullptr)
                 *context.setLabel = 0;
-            context.overlayMode = ItemHelpMode;
+            context.overlayMode = Ui::ItemHelpMode;
             context.helpItem = static_cast<std::int32_t>(index);
             return ChatCommandOutcome{.handled = true, .notices = {}, .sound = true};
         }
@@ -260,10 +260,11 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     }
     // 0x56d624..0x56d66a: /move abre la ventana y sigue.
     if (text == TextOr(texts, MoveCommandText) || EqualsIgnoringCase(text, "/move"))
-        context.overlayMode = MoveOverlayMode;
+        context.overlayMode = Ui::MoveOverlayMode;
     if (text == TextOr(texts, ShopCommandText) || EqualsIgnoringCase(text, "/personalshop"))
         return PersonalShopCommand(context);
-    if (ContainsLikeTheOriginal(text, TextOr(texts, BuyCommandText)) || ContainsLikeTheOriginal(text, "/purchase"))
+    if (FrontEnd::ContainsLikeTheOriginal(text, TextOr(texts, BuyCommandText)) ||
+        FrontEnd::ContainsLikeTheOriginal(text, "/purchase"))
         return PurchaseCommand(context, text);
     // 0x56d6ee..0x56d796: "/ver puestos" (strcmp con el texto 1136) prende los carteles (0x4516a0 sobre 0x451d10) con
     // el aviso 1138 del tipo 1, y su par (el 1137) los apaga (0x4516b0) con el 1139 del tipo 2. Las dos comparaciones
@@ -274,14 +275,14 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
         if (context.signsShown == nullptr)
             return Core::Unexpected(std::string("0x56d722: \"/ver puestos\" sin el mapa de los carteles"));
         *context.signsShown = 1;
-        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOnNoticeText, .type = SystemMessage});
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOnNoticeText, .type = Ui::SystemMessage});
     }
     if (text == TextOr(texts, ShopViewOffCommandText))
     {
         if (context.signsShown == nullptr)
             return Core::Unexpected(std::string("0x56d776: apagar los carteles sin su mapa"));
         *context.signsShown = 0;
-        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOffNoticeText, .type = ErrorMessage});
+        outcome.notices.push_back(ChatCommandNotice{.text = ShopViewOffNoticeText, .type = Ui::ErrorMessage});
     }
     // 0x56d7e0..0x56d82b: /duelstart. Con el duelo en curso, el aviso 915; sin él, el AA al elegido o al que está
     // enfrente. Con o sin él, sigue la cadena (0x56ea05 y 0x56e07c).
@@ -289,11 +290,11 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     {
         if (IsChaosCastle(context.map))
         {
-            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, Ui::SystemMessage});
             return outcome;
         }
         if (context.duelActive)
-            outcome.notices.push_back(ChatCommandNotice{.text = DuelBusyText, .type = ErrorMessage});
+            outcome.notices.push_back(ChatCommandNotice{.text = DuelBusyText, .type = Ui::ErrorMessage});
         else if (!context.requestADuel)
             return Core::Unexpected(std::string("0x56d823: /duelstart sin el pedido"));
         else if (auto asked = context.requestADuel(); !asked.HasValue())
@@ -304,7 +305,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     {
         if (IsChaosCastle(context.map))
         {
-            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, SystemMessage});
+            outcome.notices.push_back(ChatCommandNotice{ChaosCastleCommandText, Ui::SystemMessage});
             return outcome;
         }
         if (context.duelActive)
@@ -325,7 +326,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     {
         // 0x56f109..0x56f13e: en Chaos Castle, el aviso 1150 y 0; si no, el pedido de 0x56f13f.
         if (IsChaosCastle(context.map))
-            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, SystemMessage}}};
+            return ChatCommandOutcome{.handled = false, .notices = {{ChaosCastleCommandText, Ui::SystemMessage}}};
         if (!context.requestAParty)
             return Core::Unexpected(std::string("0x56f13f: /party sin el pedido"));
         return context.requestAParty();
@@ -337,7 +338,7 @@ Core::Expected<ChatCommandOutcome, std::string> RunTheChatCommand(const ChatComm
     if ((!filter.empty() && text.starts_with(filter)) || text.starts_with("/filter"))
     {
         if (const auto notice = SetTheChatFilter(context.log, text))
-            outcome.notices.push_back(ChatCommandNotice{*notice, SystemMessage});
+            outcome.notices.push_back(ChatCommandNotice{*notice, Ui::SystemMessage});
     }
     return TheNamesTail(context, text, std::move(outcome));
 }
@@ -352,4 +353,4 @@ bool IsAForbiddenMacro(const Tables::TextTable& texts, std::string_view text)
            macro == TextOr(texts, GuildWarCommandText) || EqualsIgnoringCase(macro, "/GuildWar") ||
            macro == TextOr(texts, SoccerCommandText) || EqualsIgnoringCase(macro, "/BattleSoccer");
 }
-} // namespace Client::UI
+} // namespace Client::Chat

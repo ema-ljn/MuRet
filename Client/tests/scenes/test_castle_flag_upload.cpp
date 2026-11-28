@@ -36,7 +36,7 @@ TEST(CastleFlagUploadTest, IdenticalMarksBothReplaceTheRgbImageAndPreserveCpuMet
     mark[0] = 4;
     for (int repeat = 0; repeat < 2; ++repeat)
     {
-        const auto uploaded = Client::Scenes::UploadTheCastleFlag(mark, table);
+        const auto uploaded = Client::CastleSiege::UploadTheCastleFlag(mark, table);
         ASSERT_TRUE(uploaded.HasValue()) << uploaded.Error();
     }
     EXPECT_EQ(store.loadCalls, 3);

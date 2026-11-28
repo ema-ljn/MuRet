@@ -27,13 +27,13 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Data::Terrain::TerrainHeights;
+using Client::Effects::GroundEffectFrame;
+using Client::Effects::GroundEffectResources;
+using Client::Effects::ModelEffect;
 using Client::Render::Color;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
-using Client::Scenes::GroundEffectFrame;
-using Client::Terrain::GroundEffectResources;
-using Client::World::ModelEffect;
 
 ModelEffect Effect(std::int16_t type)
 {
@@ -214,7 +214,7 @@ TEST(GroundEffectFrameTest, IntermediateArrivalRingsKeepTheClockOfTheOriginalFra
 {
     const auto heights = std::make_unique<TerrainHeights>();
     CrtRandom random;
-    std::array effects{Effect(Client::World::ArrivalEffect)};
+    std::array effects{Effect(Client::Effects::ArrivalEffect)};
     GroundEffectFrame frame;
     ModelBatch original;
     Begin(original);
@@ -342,7 +342,7 @@ TEST(GroundEffectFrameTest, AnEmptyOriginalSnapshotIsValidUntilReset)
 TEST(GroundEffectFrameTest, KalimaReplayOwnsTheWaterBeforeTheLaterWaterPassAndSurvivesItsRelease)
 {
     const auto heights = std::make_unique<TerrainHeights>();
-    auto water = std::make_unique<Client::World::KalimaWorld>(24);
+    auto water = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(24);
     CrtRandom random;
     ASSERT_TRUE(water->Disturb(50, 50, 3, 1000000, random).HasValue());
     std::array effects{Effect(0x6eb)};

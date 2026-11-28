@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Chat
 {
 std::string_view WhisperSenderAt(const WhisperSenders& senders, std::size_t slot)
 {
@@ -42,4 +42,4 @@ void ClearTheWhisperSenders(WhisperSenders& senders)
 {
     senders.bytes.fill('\0');
 }
-} // namespace Client::UI
+} // namespace Client::Chat

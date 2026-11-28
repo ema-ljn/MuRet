@@ -91,7 +91,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -147,7 +147,7 @@ constexpr std::int32_t PetButtonBottom = 0x1a3;
 constexpr std::uint8_t PetWindowOpen = 2;
 
 // Los paquetes del gremio que manda la UI (CL9 hito 8) van por las peticiones de la escena; sin ellas, nada.
-GuildSender GuildSenderOf(IGameUiRequests* requests)
+Guild::GuildSender GuildSenderOf(IGameUiRequests* requests)
 {
     if (requests == nullptr)
         return {};
@@ -157,15 +157,15 @@ GuildSender GuildSenderOf(IGameUiRequests* requests)
 // El paso de diálogos y el de las ventanas tienen registros distintos; ambos necesitan los cierres completos.
 void LendTheUiPanelCloses(GamePanels& panels, const GameUiContext& context)
 {
-    CastleSender send;
+    CastleSiege::CastleSender send;
     if (context.requests != nullptr)
         send = [requests = context.requests](Protocol::Outgoing packet)
         { requests->SendGamePacket(std::move(packet)); };
-    LendTheCastlePanelServices(
+    CastleSiege::LendTheCastlePanelServices(
         panels, context.world, context.random, send, context.worldEntry,
         {.measure = context.measure, .texts = context.texts, .screen = context.screen, .now = context.systemTime});
     panels.LendTheNpcWindows(context.world, context.random,
-                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.inventory != nullptr ? *context.inventory : Items::InventoryServices{},
                              context.sendNpcWindow);
     panels.LendTheGuild(context.world, GuildSenderOf(context.requests));
 }
@@ -214,8 +214,8 @@ struct ChatEditPlace
     std::int32_t x, y, width, height;
 };
 constexpr std::array<ChatEditPlace, 2> ChatEdits{{
-    {UI::MessageField, UI::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
-    {UI::WhisperField, UI::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
+    {Chat::MessageField, Chat::ChatMessageEditId, 0xc1, 0x1a6, 0xb4, 0xe},
+    {Chat::WhisperField, Chat::ChatWhisperEditId, 0x178, 0x1a6, 0x32, 0xe},
 }};
 // 0x5a33dc..0x5a343a: el botón de F3, junto al EDIT del susurro.
 constexpr std::int32_t WhisperModeLeft = 0x1b2;
@@ -224,9 +224,9 @@ constexpr std::int32_t WhisperModeRight = 0x1c6;
 constexpr std::int32_t WhisperModeBottom = 0x1bc;
 
 // 0x553520(vk).
-bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
+bool KeyEdge(Ui::GameUiState& ui, const Input::InputState& input, GameKey key)
 {
-    return UI::LatchTheKey(ui.keyLatches[key.virtualKey], input.IsDown(key.key));
+    return Ui::LatchTheKey(ui.keyLatches[key.virtualKey], input.IsDown(key.key));
 }
 
 // 0x6578e0: hay un campo de texto con el foco (el chat 0x6c8e68, 0x77f3b68, el del diálogo de los paneles) o la
@@ -237,44 +237,44 @@ bool KeyEdge(UI::GameUiState& ui, const Input::InputState& input, GameKey key)
 // de los paneles es de la CL9.5 (P-C285), y su ventana es la del juego.
 bool TextInputBusy(const Kernel::WorldRuntime& runtime)
 {
-    const UI::ChatFocus focus = runtime.chat.input.focus;
+    const Chat::ChatFocus focus = runtime.chat.input.focus;
     const auto& panelDialog = runtime.panels.delegated.panelDialog;
     const bool panelField =
-        UI::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & UI::PanelDialogTextField) != 0;
-    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != UI::ChatFocus::Game;
+        Ui::PanelDialogHandle(panelDialog) != 0 && (panelDialog.flags & Ui::PanelDialogTextField) != 0;
+    return runtime.ui.chatOpen || runtime.chat.input.dialogFieldOn || panelField || focus != Chat::ChatFocus::Game;
 }
 
 // 0x636e51..0x636e5a: el registro del chat, 0x45aa80(0) por la vtable + 0x18 de 0x576350c.
 Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     Kernel::ChatRuntime& chat = runtime.chat;
     const Kernel::ActorState& hero = context.world.Hero();
-    const UI::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
-                                     .rightDown = ui.rightDown,
-                                     .wheel = ui.wheel,
-                                     .capture = ui.capture,
-                                     .hovered = ui.hovered,
-                                     .focusedList = ui.focusedList,
-                                     .mouseOnUi = ui.mouseOnUi,
-                                     .modes = ui.chatModes};
+    const Chat::ChatLogGlobals globals{.leftClick = runtime.movement.pendingClick,
+                                       .rightDown = ui.rightDown,
+                                       .wheel = ui.wheel,
+                                       .capture = ui.capture,
+                                       .hovered = ui.hovered,
+                                       .focusedList = ui.focusedList,
+                                       .mouseOnUi = ui.mouseOnUi,
+                                       .modes = ui.chatModes};
     // El foco en uno de los EDIT del chat: mientras el campo está abierto lo tiene (0x636e80).
-    const UI::ChatLogStepView view{.mouseX = context.mouseX,
-                                   .mouseY = context.mouseY,
-                                   .leftDown = runtime.movement.leftHeld,
-                                   .chatOpen = ui.chatOpen,
-                                   .heroSafeZone = hero.safeZone != 0,
-                                   .heroName = Actors::HeroNameOf(hero),
-                                   .chatEditFocused = ui.chatOpen,
-                                   .measure = context.measure,
-                                   .dcFont = runtime.hud.dcFont};
-    const UI::ChatLogStepResult result = UI::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
+    const Chat::ChatLogStepView view{.mouseX = context.mouseX,
+                                     .mouseY = context.mouseY,
+                                     .leftDown = runtime.movement.leftHeld,
+                                     .chatOpen = ui.chatOpen,
+                                     .heroSafeZone = hero.safeZone != 0,
+                                     .heroName = Actors::HeroNameOf(hero),
+                                     .chatEditFocused = ui.chatOpen,
+                                     .measure = context.measure,
+                                     .dcFont = runtime.hud.dcFont};
+    const Chat::ChatLogStepResult result = Chat::StepTheChatLog(chat.log, runtime.hud.chatFrame, globals, view);
     for (const Audio::SoundId sound : result.sounds)
         runtime.RequestSound(sound);
     // 0x4694c0(0, 0, 1, nombre): el nombre al EDIT del susurro (SetText), sin tocar su buffer.
     if (result.whisperTo)
-        UI::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
+        Chat::SetTheChatFields(chat.input, std::nullopt, *result.whisperTo);
     return {};
 }
 
@@ -285,16 +285,16 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 // a la ventana del juego (SetFocus; el IME de 0x467360, MuRet no lo tiene).
 void StepTheUnownedClick(Kernel::WorldRuntime& runtime)
 {
-    UI::GameUiState& ui = runtime.ui;
-    if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != UI::ChatLogId))
+    Ui::GameUiState& ui = runtime.ui;
+    if (!runtime.movement.leftHeld || (ui.hovered != 0 && ui.hovered != Chat::ChatLogId))
         return;
     runtime.oldWindows.focus = 0;
     if (ui.chatOpen || runtime.chat.input.otherInput || runtime.chat.input.dialogFieldOn ||
         runtime.social.moneyField != 0)
         return;
     ui.focusedList = 0;
-    UI::HideTheWindowList(runtime.oldWindows.windowList);
-    runtime.chat.input.focus = UI::ChatFocus::Game;
+    Ui::HideTheWindowList(runtime.oldWindows.windowList);
+    runtime.chat.input.focus = Chat::ChatFocus::Game;
 }
 
 // 0x435bd0: el paso de la interfaz de Crywolf (06 § La interfaz de Crywolf), solo en el mapa 34 (0x4303c0). Con los
@@ -317,7 +317,7 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
     const std::int32_t mouseX = context.mouseX;
     const std::int32_t mouseY = context.mouseY;
     Kernel::CrywolfInterface& crywolf = runtime.crywolf.ui;
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (crywolf.byte723bf9 == 1 && movement.leftHeld)
     {
         if (mouseX > ButtonLeft && mouseX < ButtonRight && mouseY > ButtonTop && mouseY < ButtonBottom)
@@ -325,21 +325,21 @@ Core::Expected<void, std::string> StepTheCrywolfInterface(const GameUiContext& c
         movement.leftHeld = false;
         movement.pendingClick = false;
     }
-    return StepTheContractWindow(
-        ContractWindowContext{.runtime = runtime,
-                              .texts = context.texts,
-                              .heroPet = context.world.Hero().pet.model,
-                              .mouseX = mouseX,
-                              .mouseY = mouseY,
-                              .send = context.chat != nullptr ? context.chat->send : ChatSender{}});
+    return Events::Crywolf::StepTheContractWindow(Events::Crywolf::ContractWindowContext{
+        .runtime = runtime,
+        .texts = context.texts,
+        .heroPet = context.world.Hero().pet.model,
+        .mouseX = mouseX,
+        .mouseY = mouseY,
+        .send = context.chat != nullptr ? context.chat->send : Chat::ChatSender{}});
 }
 
 // 0x636f04..0x637056: la esquina del registro del chat (0x45a9d0). Fuera de su ventana, (−10, 0x65); en ella, 0x1a4 de
 // alto y la x en 0 debajo de una ventana de la izquierda, o 0xba. Las consultas van en el orden del original, que se
 // corta en la primera abierta: las del comercio y de la tienda de NPC sacan un rand().
-void PlaceTheChatLog(Kernel::WorldRuntime& runtime, UI::PanelRegistry& panels)
+void PlaceTheChatLog(Kernel::WorldRuntime& runtime, Ui::PanelRegistry& panels)
 {
-    UI::ChatLogFrame& frame = runtime.hud.chatFrame;
+    Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
     if (runtime.ui.chatModes.placement != 1)
     {
         frame.x = -10;
@@ -347,14 +347,14 @@ void PlaceTheChatLog(Kernel::WorldRuntime& runtime, UI::PanelRegistry& panels)
         return;
     }
     bool left = false;
-    if (panels.IsOpen(UI::InventoryPanel) &&
-        (panels.IsOpen(UI::CharacterPanel) || panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::WarehousePanel) ||
-         panels.IsOpen(UI::ChaosBoxPanel) || panels.IsOpen(UI::EventNpcPanel) ||
-         panels.IsOpen(UI::SecondEventNpcPanel) || panels.IsOpen(UI::NpcShopPanel) ||
-         panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel) || panels.IsOpen(UI::TrainerPanel)))
+    if (panels.IsOpen(Ui::InventoryPanel) &&
+        (panels.IsOpen(Ui::CharacterPanel) || panels.IsOpen(Ui::TradePanel) || panels.IsOpen(Ui::WarehousePanel) ||
+         panels.IsOpen(Ui::ChaosBoxPanel) || panels.IsOpen(Ui::EventNpcPanel) ||
+         panels.IsOpen(Ui::SecondEventNpcPanel) || panels.IsOpen(Ui::NpcShopPanel) ||
+         panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel) || panels.IsOpen(Ui::TrainerPanel)))
         left = true;
     // 0x636fff: sin el inventario, o con él y ninguna de esas, el personaje con la mascota o la misión.
-    else if (panels.IsOpen(UI::CharacterPanel) && (panels.IsOpen(UI::PetPanel) || panels.IsOpen(UI::QuestPanel)))
+    else if (panels.IsOpen(Ui::CharacterPanel) && (panels.IsOpen(Ui::PetPanel) || panels.IsOpen(Ui::QuestPanel)))
         left = true;
     frame.x = left ? 0 : 0xba;
     frame.y = 0x1a4;
@@ -365,7 +365,7 @@ bool InRect(const GameUiContext& context, std::int32_t left, std::int32_t top, s
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
-Core::Expected<void, std::string> Toggle(UI::PanelRegistry& panels, UI::PanelId id)
+Core::Expected<void, std::string> Toggle(Ui::PanelRegistry& panels, Ui::PanelId id)
 {
     if (panels.IsOpen(id))
     {
@@ -387,7 +387,7 @@ constexpr std::array<GameKey, 6> OldWindowEdgeKeys{EscapeKey, F5Key, F6Key, Ente
 constexpr std::array<GameKey, 2> OldWindowDownKeys{UpKey, DownKey};
 
 // 0x650387 y 0x6503a4: 0x553520 de PgUp y PgDn, que lee la lista de los miembros del gremio.
-std::function<bool(std::uint8_t)> PageKeyEdges(UI::GameUiState& ui, const Input::InputState& input)
+std::function<bool(std::uint8_t)> PageKeyEdges(Ui::GameUiState& ui, const Input::InputState& input)
 {
     return [ui = &ui, input = &input](std::uint8_t virtualKey)
     {
@@ -419,10 +419,11 @@ std::function<bool(std::uint8_t)> ArrowKeysDown(const Input::InputState& input)
 class OldWindowSight
 {
 public:
-    explicit OldWindowSight(const GameUiContext& context) : m_context(context), m_texts(OldWindowTextsOf(context.texts))
+    explicit OldWindowSight(const GameUiContext& context)
+        : m_context(context), m_texts(Messenger::OldWindowTextsOf(context.texts))
     {
         if (context.measure != nullptr)
-            m_measure.emplace(UI::OldWindowMeasure{
+            m_measure.emplace(Ui::OldWindowMeasure{
                 .measure = *context.measure, .dcFont = context.world.Runtime().hud.dcFont, .screen = context.screen});
     }
     OldWindowSight(const OldWindowSight&) = delete;
@@ -431,11 +432,11 @@ public:
     OldWindowSight& operator=(OldWindowSight&&) = delete;
     ~OldWindowSight() = default;
 
-    [[nodiscard]] UI::OldWindowStepView View() const
+    [[nodiscard]] Ui::OldWindowStepView View() const
     {
-        UI::GameUiState& ui = m_context.world.Runtime().ui;
+        Ui::GameUiState& ui = m_context.world.Runtime().ui;
         const Input::InputState& input = m_context.input;
-        UI::OldWindowStepView view{.mouseX = m_context.mouseX,
+        Ui::OldWindowStepView view{.mouseX = m_context.mouseX,
                                    .mouseY = m_context.mouseY,
                                    .keyEdge = [&ui, &input](std::uint8_t virtualKey)
                                    { return OldWindowKeyEdge(ui, input, virtualKey); },
@@ -445,8 +446,8 @@ public:
                                    .send = {},
                                    .openFriends = [this]() { return OpenTheFriendsWindow(); }};
         if (IGameUiRequests* requests = m_context.requests; requests != nullptr)
-            view.send = [requests, &random = m_context.random](const UI::FriendSend& send)
-            { SendAFriendPacket(*requests, random, send); };
+            view.send = [requests, &random = m_context.random](const Ui::FriendSend& send)
+            { Messenger::SendAFriendPacket(*requests, random, send); };
         LendTheGameHooks(view, m_context, true);
         return view;
     }
@@ -454,20 +455,20 @@ public:
     // 0x491080(0x186, 0x106) con los globales de ahora.
     [[nodiscard]] Core::Expected<void, std::string> OpenTheFriendsWindow() const
     {
-        const UI::OldWindowGlobals globals = OldWindowGlobalsOf(m_context.world.Runtime());
-        const UI::OldWindowStepView view = View();
-        return OpenTheFriends(FriendsOpenContext{.world = m_context.world,
-                                                 .random = m_context.random,
-                                                 .measure = m_context.measure,
-                                                 .screen = m_context.screen,
-                                                 .texts = m_context.texts},
-                              globals, view);
+        const Ui::OldWindowGlobals globals = OldWindowGlobalsOf(m_context.world.Runtime());
+        const Ui::OldWindowStepView view = View();
+        return Messenger::OpenTheFriends(Messenger::FriendsOpenContext{.world = m_context.world,
+                                                                       .random = m_context.random,
+                                                                       .measure = m_context.measure,
+                                                                       .screen = m_context.screen,
+                                                                       .texts = m_context.texts},
+                                         globals, view);
     }
 
 private:
     const GameUiContext& m_context;
-    UI::OldWindowTexts m_texts;
-    std::optional<UI::OldWindowMeasure> m_measure;
+    Ui::OldWindowTexts m_texts;
+    std::optional<Ui::OldWindowMeasure> m_measure;
 };
 
 // 0x636e3c..0x636e4c: el paso de la lista de ventanas ([0x5763524], la vtable + 0x18 con 0) y el de las ventanas
@@ -475,11 +476,11 @@ private:
 Core::Expected<void, std::string> StepTheOldWindows(const GameUiContext& context, const OldWindowSight& sight)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::OldWindowStepView view = sight.View();
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
-    if (auto list = UI::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
+    const Ui::OldWindowStepView view = sight.View();
+    const Ui::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    if (auto list = Ui::StepTheWindowList(runtime.oldWindows, globals, view); !list.HasValue())
         return list;
-    return UI::StepTheOldWindows(runtime.oldWindows, globals, view);
+    return Ui::StepTheOldWindows(runtime.oldWindows, globals, view);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -542,15 +543,16 @@ bool IsNotRepaired(std::uint16_t id)
 }
 
 // Los servicios de levantar y soltar; sin ellos, los vacíos, y lo que los necesita corta.
-const InventoryServices& ServicesOf(const GameUiContext& context)
+const Items::InventoryServices& ServicesOf(const GameUiContext& context)
 {
-    static const InventoryServices None{};
+    static const Items::InventoryServices None{};
     return context.inventory != nullptr ? *context.inventory : None;
 }
 
-InventoryMoveContext MovesOf(const GameUiContext& context)
+Items::InventoryMoveContext MovesOf(const GameUiContext& context)
 {
-    return InventoryMoveContext{.world = context.world, .random = context.random, .services = ServicesOf(context)};
+    return Items::InventoryMoveContext{
+        .world = context.world, .random = context.random, .services = ServicesOf(context)};
 }
 
 // El mouse en [left, left + w) × [top, top + h), con el borde de la derecha y el de abajo en la x87:
@@ -582,7 +584,7 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
     {
         if (!inside)
             return {};
-        return DropOnTheEquipment(MovesOf(context), slot);
+        return Items::DropOnTheEquipment(MovesOf(context), slot);
     }
     if (context.world.OwnCharacter().equipment[slot].id == Kernel::EmptyOwnItemId || !inside)
         return {};
@@ -598,12 +600,12 @@ Core::Expected<void, std::string> StepAnEquipmentSlot(const GameUiContext& conte
             if (IsNotRepaired(worn) || worn == RavenItem)
                 return {};
             runtime.movement.pendingClick = false;
-            return SendRepair(context.random, context.sendNpcWindow, static_cast<std::uint8_t>(slot & 0xff),
-                              static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
+            return Npc::SendRepair(context.random, context.sendNpcWindow, static_cast<std::uint8_t>(slot & 0xff),
+                                   static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
         }
-        return PickUpFromTheEquipment(MovesOf(context), slot);
+        return Items::PickUpFromTheEquipment(MovesOf(context), slot);
     }
-    HoverTheEquipment(MovesOf(context), slot, left, top, width);
+    Items::HoverTheEquipment(MovesOf(context), slot, left, top, width);
     return {};
 }
 
@@ -667,7 +669,7 @@ enum class GridHover : std::uint8_t
 struct HoverGrid
 {
     std::span<Kernel::ItemState> cells;
-    UI::HoveredItem::Place place = UI::HoveredItem::Place::InventoryCell;
+    Ui::HoveredItem::Place place = Ui::HoveredItem::Place::InventoryCell;
     std::int32_t rows = 0;
     std::uint8_t kind = 0;
     Kernel::CursorGrid grid = Kernel::CursorGrid::None;
@@ -680,7 +682,7 @@ constexpr std::int32_t WarehouseHelpPlace = 1;
 constexpr std::int32_t ChaosBoxHelpPlace = 4;
 // 0x5c4b6e: con la tienda, 0x78abb28 en 6.
 constexpr std::int32_t ShopHelpPlace = 6;
-static_assert(NpcGridColumns == static_cast<std::int32_t>(Kernel::InventoryColumns));
+static_assert(Npc::NpcGridColumns == static_cast<std::int32_t>(Kernel::InventoryColumns));
 
 // 0x5c4b64..0x5c510f: el ítem bajo el mouse en la grilla de la tienda. 0x78abb28 en 6 y 0x78abb2c en la casilla; con
 // el clic, sin el modo de reparar y sin otra compra esperando (0x5767950), el clic gastado, el precio de 0x54d0f0 en
@@ -692,13 +694,13 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
     const Kernel::ItemState& hovered = grid.cells[index];
     runtime.ui.field78abb28 = ShopHelpPlace;
     runtime.ui.field78abb2c = static_cast<std::int32_t>(index);
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     if (!runtime.movement.pendingClick || runtime.panels.repairMode != 0)
         return GridHover::Stayed;
     runtime.movement.pendingClick = false;
     if (npc.buyLock != 0)
         return GridHover::Stayed;
-    const std::int32_t topLeft = hovered.gridRow * NpcGridColumns + hovered.gridColumn;
+    const std::int32_t topLeft = hovered.gridRow * Npc::NpcGridColumns + hovered.gridColumn;
     if (topLeft >= static_cast<std::int32_t>(grid.cells.size()))
         return Core::Unexpected(std::format("0x5c4bc4: el ítem de arriba a la izquierda ({}) cae fuera de la grilla de "
                                             "la tienda",
@@ -706,9 +708,9 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
     const Tables::ItemTable* items = ServicesOf(context).items;
     if (items == nullptr)
         return Core::Unexpected(std::string("0x5c4bc4: el precio de 0x54d0f0 sin Item.bmd"));
-    const PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
-                              .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
-    auto price = ItemPrice(grid.cells[static_cast<std::size_t>(topLeft)], *items, ShopGridPrice, pets);
+    const Items::PetPriceLevels pets{.raven = runtime.pets[Kernel::RavenPetStats].level,
+                                     .horse = runtime.pets[Kernel::DarkHorsePetStats].level};
+    auto price = Items::ItemPrice(grid.cells[static_cast<std::size_t>(topLeft)], *items, Items::ShopGridPrice, pets);
     if (!price.HasValue())
         return Core::Unexpected(std::move(price).Error());
     context.random.Discard(C3SendRandoms);
@@ -729,7 +731,7 @@ Core::Expected<GridHover, std::string> BuyTheGridItem(const GameUiContext& conte
 // las esferas de skills, la fruta, el 0x1a0b y el resto: UseTheLaterGridItem. Con la grilla propia del comercio
 // (0x5c4aa5 con 0x78a92a8, CL9 hito 7, 08 P-C235) la rama es la misma: lo que llega a UseInventoryItem da el aviso 474,
 // porque el comercio está abierto, y los demás siguen en UseTheLaterGridItem con esa grilla.
-Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, Ui::PanelRegistry& panels,
                                                  const HoverGrid& grid, std::size_t index)
 {
     const Kernel::ItemState& hovered = grid.cells[index];
@@ -739,7 +741,7 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     const std::int32_t cell = hovered.gridRow * Columns + hovered.gridColumn;
     const std::int32_t type = std::bit_cast<std::int16_t>(hovered.id);
     const std::uint32_t levelBits = hovered.scalar1Low & UsedLevelBits;
-    const auto use = [&] { return UseInventoryItem(MovesOf(context), panels, cell); };
+    const auto use = [&] { return Items::UseInventoryItem(MovesOf(context), panels, cell); };
     if (type == TownPortalScroll)
     {
         if (runtime.movement.gateRequestBlocked != 0)
@@ -748,31 +750,33 @@ Core::Expected<void, std::string> UseTheGridItem(const GameUiContext& context, U
     }
     if (type == BoxOfLuck && levelBits == UsedBoxLevelBits)
         return use();
-    if (IsAnEventTicket(type))
-        return UseTheEventTicket(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = grid.grid}, index);
+    if (Items::IsAnEventTicket(type))
+        return Items::UseTheEventTicket(MovesOf(context), panels,
+                                        Items::UsedGrid{.cells = grid.cells, .grid = grid.grid}, index);
     const bool potion = (type >= 0x1c00 && type <= 0x1c06) || type == 0x1c08 || type == 0x1c09 ||
                         (type == 0x1c14 && levelBits == 0) || type == 0x1c07;
     if (potion)
         return use();
-    const Kernel::CursorGrid used = grid.place == UI::HoveredItem::Place::OwnTradeCell ? Kernel::CursorGrid::OwnTrade
-                                    : grid.place == UI::HoveredItem::Place::InventoryCell
+    const Kernel::CursorGrid used = grid.place == Ui::HoveredItem::Place::OwnTradeCell ? Kernel::CursorGrid::OwnTrade
+                                    : grid.place == Ui::HoveredItem::Place::InventoryCell
                                         ? Kernel::CursorGrid::Inventory
                                         : grid.grid;
-    return UseTheLaterGridItem(MovesOf(context), panels, UsedGrid{.cells = grid.cells, .grid = used}, index);
+    return Items::UseTheLaterGridItem(MovesOf(context), panels, Items::UsedGrid{.cells = grid.cells, .grid = used},
+                                      index);
 }
 
 // 0x5c5361..0x5c5876, después de levantar: IsOpen(0x20), con su rand(); con el comercio abierto, el OK propio puesto
 // y el ítem de la grilla propia, el OK en 0 y el C1 04 3C 00 en C3. Después el sonido 0x1d.
-Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, Ui::PanelRegistry& panels,
                                                  const HoverGrid& grid)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    TradeState& trade = runtime.social.trade;
-    if (panels.IsOpen(UI::TradePanel) && trade.ownOk != 0 && grid.place == UI::HoveredItem::Place::OwnTradeCell)
+    Social::TradeState& trade = runtime.social.trade;
+    if (panels.IsOpen(Ui::TradePanel) && trade.ownOk != 0 && grid.place == Ui::HoveredItem::Place::OwnTradeCell)
     {
         trade.ownOk = 0;
         context.random.Discard(2);
-        const InventoryServices& services = ServicesOf(context);
+        const Items::InventoryServices& services = ServicesOf(context);
         if (!services.sendGamePacket)
             return Core::Unexpected(std::string("0x5c5396: el C1 04 3C sin la sesión"));
         services.sendGamePacket(Protocol::Social::WriteTradeOkButton(0));
@@ -782,17 +786,17 @@ Core::Expected<void, std::string> AfterThePickUp(const GameUiContext& context, U
 }
 
 // La grilla de `place` como la guarda 0x78ab9b8.
-Kernel::CursorGrid CursorGridOf(UI::HoveredItem::Place place)
+Kernel::CursorGrid CursorGridOf(Ui::HoveredItem::Place place)
 {
     switch (place)
     {
-    case UI::HoveredItem::Place::InventoryCell:
+    case Ui::HoveredItem::Place::InventoryCell:
         return Kernel::CursorGrid::Inventory;
-    case UI::HoveredItem::Place::OwnTradeCell:
+    case Ui::HoveredItem::Place::OwnTradeCell:
         return Kernel::CursorGrid::OwnTrade;
-    case UI::HoveredItem::Place::OtherTradeCell:
+    case Ui::HoveredItem::Place::OtherTradeCell:
         return Kernel::CursorGrid::OtherTrade;
-    case UI::HoveredItem::Place::ShopCell:
+    case Ui::HoveredItem::Place::ShopCell:
         return Kernel::CursorGrid::PersonalShop;
     default:
         return Kernel::CursorGrid::None;
@@ -818,13 +822,13 @@ Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& cont
     const std::int32_t mode = runtime.social.personalShop.mode;
     const bool shopGrid = from == Kernel::CursorGrid::PersonalShop;
     const bool inventoryGrid = from == Kernel::CursorGrid::Inventory;
-    if (mode == OtherShopView && shopGrid)
+    if (mode == Social::OtherShopView && shopGrid)
     {
         runtime.slot78a6758 = cell + FirstPersonalShopSlot;
         if (static_cast<std::size_t>(cell) >= grid.cells.size())
             return Core::Unexpected(std::format("0x5c515f: la casilla {} está fuera de la grilla de la tienda", cell));
         runtime.dialogItem = grid.cells[static_cast<std::size_t>(cell)];
-        if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, BuyDialogLines,
+        if (auto opened = Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, BuyDialogLines,
                                              BuyDialogText, BuyDialog);
             !opened.HasValue())
             return opened;
@@ -833,11 +837,12 @@ Core::Expected<void, std::string> ClickWithTheShopOpen(const GameUiContext& cont
         runtime.ui.hoveredItem = {};
         return {};
     }
-    const bool picks = (mode == OwnShopView && (shopGrid || inventoryGrid)) || (mode == OtherShopView && inventoryGrid);
+    const bool picks = (mode == Social::OwnShopView && (shopGrid || inventoryGrid)) ||
+                       (mode == Social::OtherShopView && inventoryGrid);
     if (picks)
     {
         const std::int32_t slot = cell + (shopGrid ? FirstPersonalShopSlot : FirstGridSlot);
-        if (auto picked = PickUpForTheShop(MovesOf(context), slot, from); !picked.HasValue())
+        if (auto picked = Items::PickUpForTheShop(MovesOf(context), slot, from); !picked.HasValue())
             return picked;
     }
     runtime.ui.hoveredItem = {};
@@ -860,8 +865,8 @@ Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext&
         return Core::Unexpected(std::format("0x5c526d: la casilla {} está fuera de la grilla", cell));
     runtime.dialogItem = grid.cells[static_cast<std::size_t>(cell)];
     runtime.slot78a6758 = cell + FirstPersonalShopSlot;
-    if (runtime.social.personalShop.mode == OwnShopView && from == Kernel::CursorGrid::PersonalShop)
-        OpenTheShopDialog(runtime, ShopPriceMode);
+    if (runtime.social.personalShop.mode == Social::OwnShopView && from == Kernel::CursorGrid::PersonalShop)
+        PersonalShop::OpenTheShopDialog(runtime, PersonalShop::ShopPriceMode);
     return {};
 }
 
@@ -869,25 +874,25 @@ Core::Expected<void, std::string> RightClickWithTheShopOpen(const GameUiContext&
 // huella (en la del otro del comercio, sin pisar el 99), el ítem del cartel (0x78abaa8, su copia en 0x787a518 y su
 // lugar) y la esquina de su ayuda. Con la grilla del otro, solo 0x5aed40 (0x5c4b2b); con la tienda de NPC, comprar. Si
 // no, según las tiendas personales, la reparación y los clics, levantarlo, usarlo, 0x5aed40 y Ctrl con Q, W o E.
-Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& context, UI::PanelRegistry& panels,
+Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& context, Ui::PanelRegistry& panels,
                                                         const HoverGrid& grid, std::size_t index, std::int32_t left,
                                                         std::int32_t top)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     const std::span<Kernel::ItemState> cells = grid.cells;
     const Kernel::ItemState& hovered = cells[index];
-    const bool ownTrade = grid.place == UI::HoveredItem::Place::OwnTradeCell;
-    const bool otherTrade = grid.place == UI::HoveredItem::Place::OtherTradeCell;
+    const bool ownTrade = grid.place == Ui::HoveredItem::Place::OwnTradeCell;
+    const bool otherTrade = grid.place == Ui::HoveredItem::Place::OtherTradeCell;
     // 0x5c41f4..0x5c4284: el ancho y el alto de Item.bmd, y la marca desde la columna y la fila del ítem, sin mirar los
     // bordes: un ítem puesto entra entero.
-    const auto footprint = ItemFootprintOf(ServicesOf(context).items, hovered.id, "0x5c4110 (0x5c420a)");
+    const auto footprint = Items::ItemFootprintOf(ServicesOf(context).items, hovered.id, "0x5c4110 (0x5c420a)");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
     const std::int32_t column = hovered.gridColumn;
     const std::int32_t row = hovered.gridRow;
     constexpr auto Columns = static_cast<std::int32_t>(Kernel::InventoryColumns);
-    static_assert(Columns == TradeGridColumns && Columns == NpcGridColumns);
+    static_assert(Columns == Social::TradeGridColumns && Columns == Npc::NpcGridColumns);
     for (std::int32_t y = row; y < row + footprint.Value().height; ++y)
     {
         for (std::int32_t x = column; x < column + footprint.Value().width; ++x)
@@ -899,7 +904,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
                                                     marked));
             Kernel::ItemState& marking = cells[static_cast<std::size_t>(marked)];
             // 0x5c4243..0x5c4256: en la grilla del otro, el 99 de la copia (0x5bc470) queda.
-            if (otherTrade && marking.warning == ChangedFromTheCopy)
+            if (otherTrade && marking.warning == Social::ChangedFromTheCopy)
                 continue;
             marking.warning = HoveredMark;
         }
@@ -907,7 +912,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // 0x5c4286..0x5c4302.
     const auto cell = static_cast<std::int32_t>(index);
     ui.field78aba27 = grid.kind;
-    ui.hoveredItem = UI::HoveredItem{.place = grid.place, .index = index};
+    ui.hoveredItem = Ui::HoveredItem{.place = grid.place, .index = index};
     runtime.hoveredItemCopy = hovered;
     ui.field78abb2c = cell + FirstGridSlot;
     ui.skillTooltipX = left + footprint.Value().width * CellSize / 2 + column * CellSize;
@@ -922,11 +927,11 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     if (grid.kind != 0)
         return BuyTheGridItem(context, grid, index);
     // 0x5c4319..0x5c4324: la grilla de la tienda personal.
-    if (grid.place == UI::HoveredItem::Place::ShopCell)
+    if (grid.place == Ui::HoveredItem::Place::ShopCell)
         ui.shopGridHovered = 1;
     // 0x5c432b..0x5c43ee: las tiendas personales (0x800 y 0x20000), sin rand(), y la reparación (0x78abb0c).
     const auto shopOpen = [&panels]
-    { return panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel); };
+    { return panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel); };
     if (shopOpen())
     {
         ui.field78abb28 = 0;
@@ -953,8 +958,8 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
         // columna + 12) y 0x78abb10; después sigue con la casilla de al lado (0x5c4b3b).
         runtime.movement.pendingClick = false;
         const auto position = static_cast<std::uint8_t>((row * Columns + column + FirstGridSlot) & 0xff);
-        if (auto sent = SendRepair(context.random, context.sendNpcWindow, position,
-                                   static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
+        if (auto sent = Npc::SendRepair(context.random, context.sendNpcWindow, position,
+                                        static_cast<std::uint8_t>(runtime.field78abb10 & 0xff));
             !sent.HasValue())
             return Core::Unexpected(sent.Error());
         return GridHover::Stayed;
@@ -962,10 +967,10 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // 0x5c4a8e..0x5c4a9f y 0x5c52b1..0x5c5894: levantarlo.
     if (runtime.movement.pendingClick && runtime.movement.gateRequestBlocked == 0)
     {
-        auto picked = ownTrade ? PickUpFromTheTradeGrid(MovesOf(context), index)
-                      : grid.place == UI::HoveredItem::Place::InventoryCell
-                          ? PickUpFromTheGrid(MovesOf(context), index)
-                          : PickUpFromOtherGrid(MovesOf(context), grid.grid, index);
+        auto picked = ownTrade ? Items::PickUpFromTheTradeGrid(MovesOf(context), index)
+                      : grid.place == Ui::HoveredItem::Place::InventoryCell
+                          ? Items::PickUpFromTheGrid(MovesOf(context), index)
+                          : Items::PickUpFromOtherGrid(MovesOf(context), grid.grid, index);
         if (!picked.HasValue())
             return Core::Unexpected(picked.Error());
         if (auto after = AfterThePickUp(context, panels, grid); !after.HasValue())
@@ -983,9 +988,9 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     // casilla; la de la tienda, mirando la de otro (0x5aedee..0x5aee10), con 5 y la casilla + 0x4c, y con la propia
     // nada (quedan los de 0x5c4353); la caja del caos y la del entrenador (0x449c30) con 4 y la casilla, y la del
     // almacén (con 0x40 abierto, sin rand()) con 1 y la casilla.
-    if (grid.place == UI::HoveredItem::Place::ShopCell)
+    if (grid.place == Ui::HoveredItem::Place::ShopCell)
     {
-        if (runtime.social.personalShop.mode == OtherShopView)
+        if (runtime.social.personalShop.mode == Social::OtherShopView)
         {
             ui.field78abb28 = OtherShopTooltip;
             ui.field78abb2c = cell + FirstPersonalShopSlot;
@@ -998,7 +1003,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
     }
     else if (grid.grid == Kernel::CursorGrid::NpcGrid)
     {
-        if (panels.IsOpen(UI::WarehousePanel))
+        if (panels.IsOpen(Ui::WarehousePanel))
         {
             ui.field78abb28 = WarehouseHelpPlace;
             ui.field78abb2c = cell;
@@ -1026,7 +1031,7 @@ Core::Expected<GridHover, std::string> HoverTheGridItem(const GameUiContext& con
 // 0x5c4110(x, y, grilla, 8, filas, tipo) con las grillas de las ventanas de NPC. Sale con la espera, la traba de C3 24
 // o un ítem en el cursor; si no, 0x78abb38 en 0 (0x5c4163) y recorre las casillas por filas: con el mouse sobre una con
 // un tipo, lo de ese ítem. Levantar o el clic derecho la terminan.
-Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, Ui::PanelRegistry& panels,
                                               const HoverGrid& grid, std::int32_t left, std::int32_t top)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -1036,10 +1041,10 @@ Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::
     for (std::int32_t row = 0; row < grid.rows; ++row)
     {
         const std::int32_t cellTop = top + row * CellSize;
-        for (std::int32_t column = 0; column < NpcGridColumns; ++column)
+        for (std::int32_t column = 0; column < Npc::NpcGridColumns; ++column)
         {
             const std::int32_t cellLeft = left + column * CellSize;
-            const auto index = static_cast<std::size_t>(row * NpcGridColumns + column);
+            const auto index = static_cast<std::size_t>(row * Npc::NpcGridColumns + column);
             if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
                 context.mouseY >= cellTop + CellSize || grid.cells[index].id == Kernel::EmptyOwnItemId)
                 continue;
@@ -1055,7 +1060,7 @@ Core::Expected<void, std::string> StepTheGrid(const GameUiContext& context, UI::
 
 // 0x5c4110(x + 15, y + 200, 0x78a9bb0, 8, 8, 0): la grilla del inventario. Sale con la espera, la traba de C3 24 o
 // un ítem en el cursor; si no, recorre las casillas por filas y, con el mouse sobre una con un tipo, lo de ese ítem.
-Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
@@ -1077,7 +1082,7 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
                 continue;
             const auto hovered = HoverTheGridItem(
                 context, panels,
-                HoverGrid{.cells = context.world.Inventory().cells, .place = UI::HoveredItem::Place::InventoryCell},
+                HoverGrid{.cells = context.world.Inventory().cells, .place = Ui::HoveredItem::Place::InventoryCell},
                 index, left, top);
             if (!hovered.HasValue())
                 return Core::Unexpected(hovered.Error());
@@ -1091,34 +1096,34 @@ Core::Expected<void, std::string> StepTheInventoryGrid(const GameUiContext& cont
 // 0x5e545f..0x5e5717: los botones del pie (reparar, cerrar y la tienda personal) y la S, sin la caja del
 // entrenador (0x449c00). Con la ventana de un NPC de evento (0x1000 o 0x4000), solo cerrar en x + 0x19; MuRet ya
 // cortó con ella abierta.
-Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& context, Ui::PanelRegistry& panels,
                                                      std::uint16_t level)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::PanelState& state = runtime.panels;
-    GameMovementState& movement = runtime.movement;
+    Ui::PanelState& state = runtime.panels;
+    Movement::GameMovementState& movement = runtime.movement;
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
     const auto inFoot = [&context, x, y](std::int32_t from, std::int32_t to)
     { return InRect(context, x + from, y + 0x18b, x + to, y + 0x1a3); };
     const auto toggleThePersonalShop = [&panels]() -> Core::Expected<void, std::string>
     {
-        if (panels.IsOpen(UI::PersonalShopPanel))
+        if (panels.IsOpen(Ui::PersonalShopPanel))
         {
-            if (auto closed = panels.Close(UI::PersonalShopPanel); !closed.HasValue())
+            if (auto closed = panels.Close(Ui::PersonalShopPanel); !closed.HasValue())
                 return Core::Unexpected(std::move(closed).Error());
             return {};
         }
-        if (auto opened = panels.Open(UI::PersonalShopPanel); !opened.HasValue())
+        if (auto opened = panels.Open(Ui::PersonalShopPanel); !opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
         return {};
     };
     if (state.delegated.trainer == TrainerWithBox)
         return {};
-    if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
+    if (panels.IsOpen(Ui::EventNpcPanel) || panels.IsOpen(Ui::SecondEventNpcPanel))
         return {};
-    if (panels.IsOpen(UI::TradePanel) || panels.IsOpen(UI::NpcShopPanel) || panels.IsOpen(UI::WarehousePanel) ||
-        panels.IsOpen(UI::ChaosBoxPanel) || state.field78abb00 != 0)
+    if (panels.IsOpen(Ui::TradePanel) || panels.IsOpen(Ui::NpcShopPanel) || panels.IsOpen(Ui::WarehousePanel) ||
+        panels.IsOpen(Ui::ChaosBoxPanel) || state.field78abb00 != 0)
         return {};
     if (level >= RepairButtonLevel)
     {
@@ -1134,7 +1139,7 @@ Core::Expected<void, std::string> StepTheFootButtons(const GameUiContext& contex
         movement.pendingClick = false;
         movement.mouseUpdateTime = 0;
         movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-        if (auto closed = panels.Close(UI::InventoryPanel); !closed.HasValue())
+        if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
     if (inFoot(0x4c, 100))
@@ -1170,12 +1175,12 @@ Core::Expected<void, std::string> SendRaw(const GameUiContext& context, Protocol
 // 0x5e4510: con el personaje abierto, el mouse sobre la ventana es de la UI; con puntos para repartir (+0x68), los
 // botones de las cuatro estadísticas (cinco con el Dark Lord, 0x6c9330) mandan F3 06, con el registro propio abierto
 // alrededor (3.848 rand() al cerrarlo sin otros accesos); y el botón de cerrar.
-Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
-    if (!panels.IsOpen(UI::CharacterPanel))
+    if (!panels.IsOpen(Ui::CharacterPanel))
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     const std::int32_t x = runtime.hud.characterX;
     const std::int32_t y = runtime.hud.characterY;
     if (InRect(context, x, y, x + CharacterWindowWidth, y + CharacterWindowHeight))
@@ -1205,7 +1210,7 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
     movement.pendingClick = false;
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
-    if (auto closed = panels.Close(UI::CharacterPanel); !closed.HasValue())
+    if (auto closed = panels.Close(Ui::CharacterPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
     return {};
 }
@@ -1215,11 +1220,11 @@ Core::Expected<void, std::string> StepTheCharacterWindow(const GameUiContext& co
 // desde 15, de 49 de ancho): un clic en la que no está elegida, entre 67 y 83, la elige; en la elegida, entre 63 y 83,
 // solo se come el clic. El botón de cerrar (20, 395, de 24 × 24) cierra el panel 0x400. Todo en float, con los bordes
 // incluidos salvo los de la UI y los del botón. Sin rand().
-Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    GameMovementState& movement = runtime.movement;
-    const std::int32_t left = panels.IsOpen(UI::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
+    Movement::GameMovementState& movement = runtime.movement;
+    const std::int32_t left = panels.IsOpen(Ui::CharacterPanel) ? PetWindowBesideTheCharacter : PetWindowLeft;
     const auto mouseX = static_cast<float>(context.mouseX);
     const auto mouseY = static_cast<float>(context.mouseY);
     const auto base = static_cast<float>(left);
@@ -1248,7 +1253,7 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
     {
         movement.leftHeld = false;
         movement.pendingClick = false;
-        if (auto closed = panels.Close(UI::PetPanel); !closed.HasValue())
+        if (auto closed = panels.Close(Ui::PetPanel); !closed.HasValue())
             return Core::Unexpected(std::move(closed).Error());
     }
     return {};
@@ -1257,11 +1262,11 @@ Core::Expected<void, std::string> StepThePetWindow(const GameUiContext& context,
 // 0x424130 → 0x424230: con el personaje cerrado, 0x723911 en 0. Abierto, la primera vez el pedido del caballo oscuro
 // (C1 06 A9 01 00 08, Q-C16) y 0x723911 en 1; el botón de la mascota abre o cierra el panel 0x400. Con 0x723911 en 2,
 // el paso de la ventana de la mascota. 0x416660, desde 0x424130 con 2, no hace nada.
-Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     std::uint8_t& pet = runtime.panels.delegated.pet;
-    if (!panels.IsOpen(UI::CharacterPanel))
+    if (!panels.IsOpen(Ui::CharacterPanel))
     {
         pet = 0;
         return {};
@@ -1274,12 +1279,12 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
             return sent;
         pet = 1;
     }
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     if (InRect(context, PetButtonLeft, PetButtonTop, PetButtonRight, PetButtonBottom) && movement.pendingClick)
     {
         movement.leftHeld = false;
         movement.pendingClick = false;
-        auto toggled = panels.IsOpen(UI::PetPanel) ? panels.Close(UI::PetPanel) : panels.Open(UI::PetPanel);
+        auto toggled = panels.IsOpen(Ui::PetPanel) ? panels.Close(Ui::PetPanel) : panels.Open(Ui::PetPanel);
         if (!toggled.HasValue())
             return Core::Unexpected(std::move(toggled).Error());
     }
@@ -1292,23 +1297,23 @@ Core::Expected<void, std::string> StepThePetButton(const GameUiContext& context,
 // desde x + 15, con el último argumento en 0). Cada una sale como con el inventario (la espera, la traba de C3 24 o un
 // ítem en el cursor) y recorre sus casillas por filas: con el mouse sobre una con un tipo, lo de ese ítem
 // (HoverTheGridItem). Levantar o el clic derecho terminan la de la grilla propia; la del otro sigue.
-Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    TradeState& trade = runtime.social.trade;
+    Social::TradeState& trade = runtime.social.trade;
     const auto scan = [&](const HoverGrid& grid, std::int32_t top) -> Core::Expected<void, std::string>
     {
         if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
             return {};
         runtime.ui.shopGridHovered = 0;
         const std::int32_t left = runtime.hud.tradeX + 15;
-        for (std::int32_t row = 0; row < TradeGridRows; ++row)
+        for (std::int32_t row = 0; row < Social::TradeGridRows; ++row)
         {
-            for (std::int32_t column = 0; column < TradeGridColumns; ++column)
+            for (std::int32_t column = 0; column < Social::TradeGridColumns; ++column)
             {
                 const std::int32_t cellLeft = left + column * CellSize;
                 const std::int32_t cellTop = top + row * CellSize;
-                const auto index = static_cast<std::size_t>(row * TradeGridColumns + column);
+                const auto index = static_cast<std::size_t>(row * Social::TradeGridColumns + column);
                 if (context.mouseX < cellLeft || context.mouseX >= cellLeft + CellSize || context.mouseY < cellTop ||
                     context.mouseY >= cellTop + CellSize || grid.cells[index].id == Kernel::EmptyOwnItemId)
                     continue;
@@ -1321,24 +1326,24 @@ Core::Expected<void, std::string> StepTheTradeGrids(const GameUiContext& context
         }
         return {};
     };
-    if (auto other = scan(HoverGrid{.cells = trade.otherGrid, .place = UI::HoveredItem::Place::OtherTradeCell},
+    if (auto other = scan(HoverGrid{.cells = trade.otherGrid, .place = Ui::HoveredItem::Place::OtherTradeCell},
                           runtime.hud.tradeY + 0x46);
         !other.HasValue())
         return other;
-    return scan(HoverGrid{.cells = trade.ownGrid, .place = UI::HoveredItem::Place::OwnTradeCell},
+    return scan(HoverGrid{.cells = trade.ownGrid, .place = Ui::HoveredItem::Place::OwnTradeCell},
                 runtime.hud.tradeY + 0x10e);
 }
 
 // 0x5e58ea..0x5e5904 (CL9 hito 7, 08 P-C208 b): 0x5c4110(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 0) con la esquina de la
 // ventana de las tiendas personales (0x78aba58 y 0x78aba5c, que escriben su paso 0x5ea290 con la propia y su dibujo
 // 0x5f3030). Sale como las otras y recorre las casillas por filas; levantar o el clic derecho la terminan.
-Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field5767954 > 0 || runtime.ui.field78abb39 != 0 || runtime.cursorItemCount > 0)
         return {};
     runtime.ui.shopGridHovered = 0;
-    const PersonalShopState& shops = runtime.social.personalShop;
+    const Social::PersonalShopState& shops = runtime.social.personalShop;
     const std::int32_t left = shops.windowX + ShopGridLeft;
     const std::int32_t top = shops.windowY + ShopGridTop;
     const std::span<Kernel::ItemState> cells(context.world.Inventory().secondCells);
@@ -1353,7 +1358,7 @@ Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, 
                 context.mouseY >= cellTop + CellSize || cells[index].id == Kernel::EmptyOwnItemId)
                 continue;
             const auto hovered =
-                HoverTheGridItem(context, panels, HoverGrid{.cells = cells, .place = UI::HoveredItem::Place::ShopCell},
+                HoverTheGridItem(context, panels, HoverGrid{.cells = cells, .place = Ui::HoveredItem::Place::ShopCell},
                                  index, left, top);
             if (!hovered.HasValue())
                 return Core::Unexpected(hovered.Error());
@@ -1366,11 +1371,11 @@ Core::Expected<void, std::string> StepTheShopGrid(const GameUiContext& context, 
 
 // 0x5e571c..0x5e5910: las grillas de las otras ventanas, la caja del entrenador (0x44ad10) y el cartel del set
 // (0x40e6c0).
-Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::PanelState& state = runtime.panels;
-    if (panels.IsOpen(UI::TradePanel))
+    const Ui::PanelState& state = runtime.panels;
+    if (panels.IsOpen(Ui::TradePanel))
     {
         if (auto trade = StepTheTradeGrids(context, panels); !trade.HasValue())
             return trade;
@@ -1378,14 +1383,14 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
     // 0x5e577d..0x5e589c: 0x5c4110 desde la esquina de la ventana del NPC, la grilla de la tienda con el tipo 1 y la
     // del almacén con el 0, de 8 × 15 en (x + 0xf, y + 0x32), y la caja del caos de 8 × 4 en (x + 0xf, y + 0x6e)
     // con la mezcla fuera de 1.
-    NpcWindowState& npc = runtime.npcWindows;
+    Npc::NpcWindowState& npc = runtime.npcWindows;
     const std::int32_t npcLeft = runtime.ui.npcWindowX + 0xf;
     const HoverGrid npcGrid{.cells = npc.grid,
-                            .place = UI::HoveredItem::Place::NpcGridCell,
-                            .rows = static_cast<std::int32_t>(NpcGridCellCount) / NpcGridColumns,
+                            .place = Ui::HoveredItem::Place::NpcGridCell,
+                            .rows = static_cast<std::int32_t>(Npc::NpcGridCellCount) / Npc::NpcGridColumns,
                             .kind = 0,
                             .grid = Kernel::CursorGrid::NpcGrid};
-    if (panels.IsOpen(UI::NpcShopPanel))
+    if (panels.IsOpen(Ui::NpcShopPanel))
     {
         HoverGrid shop = npcGrid;
         shop.kind = ShopGridKind;
@@ -1393,26 +1398,26 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
             !hovered.HasValue())
             return hovered;
     }
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
     {
         if (auto hovered = StepTheGrid(context, panels, npcGrid, npcLeft, runtime.ui.npcWindowY + 0x32);
             !hovered.HasValue())
             return hovered;
     }
-    if ((panels.IsOpen(UI::ChaosBoxPanel) && npc.chaosMixState != 1) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if ((panels.IsOpen(Ui::ChaosBoxPanel) && npc.chaosMixState != 1) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
     {
         const HoverGrid chaos{.cells = npc.chaosBox,
-                              .place = UI::HoveredItem::Place::ChaosBoxCell,
-                              .rows = ChaosBoxRows,
+                              .place = Ui::HoveredItem::Place::ChaosBoxCell,
+                              .rows = Npc::ChaosBoxRows,
                               .kind = 0,
                               .grid = Kernel::CursorGrid::ChaosBox};
         if (auto hovered = StepTheGrid(context, panels, chaos, npcLeft, runtime.ui.npcWindowY + 0x6e);
             !hovered.HasValue())
             return hovered;
     }
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+    if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
         if (auto shop = StepTheShopGrid(context, panels); !shop.HasValue())
             return shop;
@@ -1421,8 +1426,8 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
     if (state.delegated.trainer == TrainerWithBox)
     {
         const HoverGrid trainer{.cells = npc.trainerBox,
-                                .place = UI::HoveredItem::Place::TrainerBoxCell,
-                                .rows = ChaosBoxRows,
+                                .place = Ui::HoveredItem::Place::TrainerBoxCell,
+                                .rows = Npc::ChaosBoxRows,
                                 .kind = 0,
                                 .grid = Kernel::CursorGrid::TrainerBox};
         if (auto hovered = StepTheGrid(context, panels, trainer, TrainerBoxLeft, TrainerBoxTop); !hovered.HasValue())
@@ -1443,11 +1448,11 @@ Core::Expected<void, std::string> StepTheOtherGrids(const GameUiContext& context
 }
 
 // 0x5e4ce0, el inventario. Las otras ventanas con grilla cortan donde se consultan por primera vez.
-Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    const UI::PanelState& state = runtime.panels;
+    const Ui::PanelState& state = runtime.panels;
     const std::int32_t x = runtime.hud.inventoryX;
     const std::int32_t y = runtime.hud.inventoryY;
     // 0x5e4ce0..0x5e4f2c: el mouse sobre la ventana es de la UI, y sobre la del NPC abierta (la tienda, con su
@@ -1461,26 +1466,26 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
         if (InRect(context, npcX, npcY, npcX + 0xbe, npcY + 0x1b1))
             runtime.ui.mouseOnUi = 1;
     };
-    if (panels.IsOpen(UI::NpcShopPanel))
+    if (panels.IsOpen(Ui::NpcShopPanel))
         overTheNpcWindow();
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
         overTheNpcWindow();
-    if (panels.IsOpen(UI::ChaosBoxPanel) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if (panels.IsOpen(Ui::ChaosBoxPanel) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
         overTheNpcWindow();
     // 0x5e4e34..0x5e4e7b: el mouse sobre la ventana del comercio (0xbe × 0x1b1 desde 0x78a5a1c y 0x78a5a18).
-    if (panels.IsOpen(UI::TradePanel) &&
+    if (panels.IsOpen(Ui::TradePanel) &&
         InRect(context, runtime.hud.tradeX, runtime.hud.tradeY, runtime.hud.tradeX + 0xbe, runtime.hud.tradeY + 0x1b1))
         runtime.ui.mouseOnUi = 1;
     // 0x5e4e76..0x5e4ed0: con una de los NPC de evento, el mouse sobre su esquina (0x78aba28, que ponen su paso y su
     // dibujo) es de la UI.
-    if (panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::SecondEventNpcPanel))
+    if (panels.IsOpen(Ui::EventNpcPanel) || panels.IsOpen(Ui::SecondEventNpcPanel))
         overTheNpcWindow();
     // 0x5e4ed7..0x5e4f31: el mouse sobre la ventana de las tiendas personales (0xbe × 0x1b1 desde 0x78aba58 y
     // 0x78aba5c).
-    const PersonalShopState& shops = runtime.social.personalShop;
-    if ((panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel)) &&
+    const Social::PersonalShopState& shops = runtime.social.personalShop;
+    if ((panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel)) &&
         InRect(context, shops.windowX, shops.windowY, shops.windowX + 0xbe, shops.windowY + 0x1b1))
         runtime.ui.mouseOnUi = 1;
     // 0x5e4f31..0x5e5128: los doce lugares del equipo, cada uno con su acceso, y +0x44 en 1 con un tipo.
@@ -1499,12 +1504,12 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
             cell.warning = cell.id == Kernel::EmptyOwnItemId ? std::uint8_t{0} : std::uint8_t{1};
     };
     warn(world.Inventory().cells);
-    TradeState& trade = runtime.social.trade;
+    Social::TradeState& trade = runtime.social.trade;
     for (Kernel::ItemState& cell : trade.otherGrid)
     {
         if (cell.id == Kernel::EmptyOwnItemId)
             cell.warning = 0;
-        else if (cell.warning != ChangedFromTheCopy)
+        else if (cell.warning != Social::ChangedFromTheCopy)
             cell.warning = 1;
     }
     warn(trade.ownGrid);
@@ -1534,51 +1539,51 @@ Core::Expected<void, std::string> StepTheInventoryWindow(const GameUiContext& co
 
 // 0x5ee1b1..0x5ee1ca: las seis hermanas de 0x5e4ce0, cada una con su IsOpen: los NPC de evento, la caja del caos
 // (0x5fe610), el almacén (0x5ea060), el comercio, las tiendas personales y la tienda de NPC (0x5ed960, con su rand()).
-Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheInventorySiblings(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     // 0x5e5920: los NPC de evento (CL9 hito 11).
-    if (auto events = StepTheEventNpcWindow(context, panels); !events.HasValue())
+    if (auto events = Events::StepTheEventNpcWindow(context, panels); !events.HasValue())
         return events;
-    if (auto chaos = StepTheChaosBox(context, panels); !chaos.HasValue())
+    if (auto chaos = Npc::StepTheChaosBox(context, panels); !chaos.HasValue())
         return chaos;
-    if (auto warehouse = StepTheWarehouse(context, panels); !warehouse.HasValue())
+    if (auto warehouse = Npc::StepTheWarehouse(context, panels); !warehouse.HasValue())
         return warehouse;
-    if (auto trade = StepTheTradeWindow(context, panels); !trade.HasValue())
+    if (auto trade = Social::StepTheTradeWindow(context, panels); !trade.HasValue())
         return trade;
     // 0x5ea290, que empieza con sus IsOpen (CL9 hito 7).
-    if (auto shop = StepThePersonalShopWindow(context, panels); !shop.HasValue())
+    if (auto shop = PersonalShop::StepThePersonalShopWindow(context, panels); !shop.HasValue())
         return shop;
-    return StepTheNpcShop(context, panels);
+    return Npc::StepTheNpcShop(context, panels);
 }
 
 // 0x5ee140: los paneles con paso propio, sin diálogo y sin el menú de Esc.
 // 0x5d8d50: el ítem del cursor, desde 0x5ee1de con 0x78abaac en 0. Con la caja del caos abierta, lo que vale y el
-// tipo de la mezcla (0x5d8db6, Scenes::ScanTheChaosBox); la lista del asedio con el inventario corta al principio
+// tipo de la mezcla (0x5d8db6, ChaosMix::ScanTheChaosBox); la lista del asedio con el inventario corta al principio
 // (sin rand(), CL9.5); con la traba de C3 24, nada. Después las respuestas de los avisos de 0x78abb14 (de 1 a 6, los
-// de las ventanas de NPC con Scenes::AnswerTheNpcWarning) y del diálogo del precio (0x78aba60 en 2), que pueden
+// de las ventanas de NPC con Npc::AnswerTheNpcWarning) y del diálogo del precio (0x78aba60 en 2), que pueden
 // terminar el paso (StepTheWarningAnswers, CL9 hito 7). Sin ninguno sigue en 0x5deac5 con esi en 6 (0x5da592): con un
 // ítem, soltarlo en la grilla del inventario (0x5ca250), en la del comercio, en la del almacén, en la caja del caos, en
 // la de la tienda personal o en la del entrenador y, con el clic fuera de ellas, venderlo en la tienda de NPC o tirarlo
 // al piso.
-Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::PanelState& state = runtime.panels;
+    const Ui::PanelState& state = runtime.panels;
     // 0x5d8d72..0x5d8ddf.
-    if (panels.IsOpen(UI::ChaosBoxPanel) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if (panels.IsOpen(Ui::ChaosBoxPanel) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
     {
-        if (auto scanned = ScanTheChaosBox(context.world, context.random, ServicesOf(context).items);
+        if (auto scanned = ChaosMix::ScanTheChaosBox(context.world, context.random, ServicesOf(context).items);
             !scanned.HasValue())
             return scanned;
     }
     // 0x5d8ddf..0x5d8dee.
     if (runtime.ui.field78abb39 != 0)
         return {};
-    const InventoryMoveContext moves = MovesOf(context);
+    const Items::InventoryMoveContext moves = MovesOf(context);
     // 0x5d8dee..0x5dc798 y 0x5deaa7..0x5deac0.
-    const auto answered = StepTheWarningAnswers(context, moves);
+    const auto answered = PersonalShop::StepTheWarningAnswers(context, moves);
     if (!answered.HasValue())
         return Core::Unexpected(answered.Error());
     if (!answered.Value())
@@ -1587,66 +1592,67 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     if (runtime.cursorItemCount <= 0)
         return {};
     // 0x5dead2..0x5deb0e: 0x5ca250(x + 15, y + 200, 0x78a9bb0, 8, 8, 0).
-    const auto inGrid = DropOnTheInventoryGrid(moves, GridDrop{.mouseX = context.mouseX,
-                                                               .mouseY = context.mouseY,
-                                                               .left = runtime.hud.inventoryX + 15,
-                                                               .top = runtime.hud.inventoryY + 200,
-                                                               .inventoryOpen = panels.IsOpen(UI::InventoryPanel),
-                                                               .panels = &panels});
+    const auto inGrid =
+        Items::DropOnTheInventoryGrid(moves, Items::GridDrop{.mouseX = context.mouseX,
+                                                             .mouseY = context.mouseY,
+                                                             .left = runtime.hud.inventoryX + 15,
+                                                             .top = runtime.hud.inventoryY + 200,
+                                                             .inventoryOpen = panels.IsOpen(Ui::InventoryPanel),
+                                                             .panels = &panels});
     if (!inGrid.HasValue())
         return Core::Unexpected(inGrid.Error());
     // 0x5deb11..0x5dec41: las otras grillas. La lista del asedio ya cortó arriba.
     bool inAGrid = inGrid.Value();
-    if (panels.IsOpen(UI::TradePanel))
+    if (panels.IsOpen(Ui::TradePanel))
     {
         // 0x5deb1c..0x5deb43: 0x5ca250(x + 15, y + 0x10e, 0x78a92a8, 8, 4, 1), con edi en 1 desde 0x5d8df3.
-        const auto inTrade = DropOnTheTradeGrid(moves, GridDrop{.mouseX = context.mouseX,
-                                                                .mouseY = context.mouseY,
-                                                                .left = runtime.hud.tradeX + 15,
-                                                                .top = runtime.hud.tradeY + 0x10e,
-                                                                .inventoryOpen = false,
-                                                                .panels = nullptr});
+        const auto inTrade = Items::DropOnTheTradeGrid(moves, Items::GridDrop{.mouseX = context.mouseX,
+                                                                              .mouseY = context.mouseY,
+                                                                              .left = runtime.hud.tradeX + 15,
+                                                                              .top = runtime.hud.tradeY + 0x10e,
+                                                                              .inventoryOpen = false,
+                                                                              .panels = nullptr});
         if (!inTrade.HasValue())
             return Core::Unexpected(inTrade.Error());
         inAGrid = inAGrid || inTrade.Value();
     }
     const std::int32_t npcLeft = runtime.ui.npcWindowX + 0xf;
-    if (panels.IsOpen(UI::WarehousePanel))
+    if (panels.IsOpen(Ui::WarehousePanel))
     {
         // 0x5deb57: 0x5ca250(x + 0xf, y + 0x32, 0x78a7070, 8, 0xf, 2).
-        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
-                                                                  .mouseY = context.mouseY,
-                                                                  .left = npcLeft,
-                                                                  .top = runtime.ui.npcWindowY + 0x32,
-                                                                  .grid = Kernel::CursorGrid::NpcGrid});
+        const auto dropped = Items::DropOnOtherGrid(moves, Items::OtherGridDrop{.mouseX = context.mouseX,
+                                                                                .mouseY = context.mouseY,
+                                                                                .left = npcLeft,
+                                                                                .top = runtime.ui.npcWindowY + 0x32,
+                                                                                .grid = Kernel::CursorGrid::NpcGrid});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
     }
-    if ((panels.IsOpen(UI::ChaosBoxPanel) && runtime.npcWindows.chaosMixState != 1) ||
-        (panels.IsOpen(UI::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
-         HeroCanCraftAtTheCastle(context.world)))
+    if ((panels.IsOpen(Ui::ChaosBoxPanel) && runtime.npcWindows.chaosMixState != 1) ||
+        (panels.IsOpen(Ui::CastleSiegeListPanel) && state.delegated.castleSiegeListMode == SiegeListWithInventory &&
+         CastleSiege::HeroCanCraftAtTheCastle(context.world)))
     {
         // 0x5debe4: 0x5ca250(x + 0xf, y + 0x6e, 0x7d2d380, 8, 4, 3).
-        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
-                                                                  .mouseY = context.mouseY,
-                                                                  .left = npcLeft,
-                                                                  .top = runtime.ui.npcWindowY + 0x6e,
-                                                                  .grid = Kernel::CursorGrid::ChaosBox});
+        const auto dropped = Items::DropOnOtherGrid(moves, Items::OtherGridDrop{.mouseX = context.mouseX,
+                                                                                .mouseY = context.mouseY,
+                                                                                .left = npcLeft,
+                                                                                .top = runtime.ui.npcWindowY + 0x6e,
+                                                                                .grid = Kernel::CursorGrid::ChaosBox});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
     }
-    if (panels.IsOpen(UI::PersonalShopPanel) || panels.IsOpen(UI::OtherShopPanel))
+    if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
         // 0x5debf0..0x5dec1e: 0x5ca250(x + 15, y + 0x6e, 0x78ab0b8, 8, 4, 4), con bl en lo que devuelve (CL9 hito 7).
-        const PersonalShopState& shops = runtime.social.personalShop;
-        const auto inShop = DropOnTheShopGrid(moves, GridDrop{.mouseX = context.mouseX,
-                                                              .mouseY = context.mouseY,
-                                                              .left = shops.windowX + ShopGridLeft,
-                                                              .top = shops.windowY + ShopGridTop,
-                                                              .inventoryOpen = false,
-                                                              .panels = nullptr});
+        const Social::PersonalShopState& shops = runtime.social.personalShop;
+        const auto inShop = Items::DropOnTheShopGrid(moves, Items::GridDrop{.mouseX = context.mouseX,
+                                                                            .mouseY = context.mouseY,
+                                                                            .left = shops.windowX + ShopGridLeft,
+                                                                            .top = shops.windowY + ShopGridTop,
+                                                                            .inventoryOpen = false,
+                                                                            .panels = nullptr});
         if (!inShop.HasValue())
             return Core::Unexpected(inShop.Error());
         inAGrid = inAGrid || inShop.Value();
@@ -1654,11 +1660,12 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     // 0x5dec41: 0x44aca0, con 0x724580 en 3, 0x5ca250(0x113, 0x6e, 0x723c80, 8, 4, 5).
     if (state.delegated.trainer == TrainerWithBox)
     {
-        const auto dropped = DropOnOtherGrid(moves, OtherGridDrop{.mouseX = context.mouseX,
-                                                                  .mouseY = context.mouseY,
-                                                                  .left = TrainerBoxLeft,
-                                                                  .top = TrainerBoxTop,
-                                                                  .grid = Kernel::CursorGrid::TrainerBox});
+        const auto dropped =
+            Items::DropOnOtherGrid(moves, Items::OtherGridDrop{.mouseX = context.mouseX,
+                                                               .mouseY = context.mouseY,
+                                                               .left = TrainerBoxLeft,
+                                                               .top = TrainerBoxTop,
+                                                               .grid = Kernel::CursorGrid::TrainerBox});
         if (!dropped.HasValue())
             return Core::Unexpected(dropped.Error());
         inAGrid = inAGrid || dropped.Value();
@@ -1672,24 +1679,24 @@ Core::Expected<void, std::string> StepTheCursorItem(const GameUiContext& context
     if (inAGrid)
         return {};
     // 0x5deca7..0x5df448: la tienda de NPC, con su rand(); con el mouse en su grilla, venderlo.
-    const auto sold = SellTheCursorItem(context, panels);
+    const auto sold = Npc::SellTheCursorItem(context, panels);
     if (!sold.HasValue())
         return Core::Unexpected(sold.Error());
     if (sold.Value())
         return {};
-    return DropOnTheGround(
-        moves,
-        GroundDrop{.mouseX = context.mouseX, .inventoryOpen = panels.IsOpen(UI::InventoryPanel), .panels = &panels});
+    return Items::DropOnTheGround(moves, Items::GroundDrop{.mouseX = context.mouseX,
+                                                           .inventoryOpen = panels.IsOpen(Ui::InventoryPanel),
+                                                           .panels = &panels});
 }
 
-Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    if (runtime.dialogs.current == UI::EscapeMenuDialog)
+    Ui::GameUiState& ui = runtime.ui;
+    if (runtime.dialogs.current == Ui::EscapeMenuDialog)
         return {};
     // 0x5e7bf0: con 0x78abb20 en 0 devuelve 0; si no, la caja de la contraseña y 1, y 0x5ee140 no sigue.
-    auto keypad = StepTheKeypad(context, panels);
+    auto keypad = Warehouse::StepTheKeypad(context, panels);
     if (!keypad.HasValue())
         return Core::Unexpected(std::move(keypad).Error());
     if (keypad.Value())
@@ -1698,13 +1705,13 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     if (runtime.dialogs.current != 0 || ui.capture != 0 || ui.hovered != 0 || ui.field78abad9 != 0)
         return {};
     // 0x5e3c80 y 0x5e4510: la party y el personaje, cada uno con su IsOpen.
-    if (auto party = StepThePartyWindow(context, panels); !party.HasValue())
+    if (auto party = Party::StepThePartyWindow(context, panels); !party.HasValue())
         return party;
     if (auto character = StepTheCharacterWindow(context, panels); !character.HasValue())
         return character;
     // 0x5ee1a3: el inventario (0x5e4ce0) y sus seis hermanas (0x5e5920, 0x5fe610, 0x5ea060, 0x5ecde0, 0x5ea290 y
     // 0x5ed960).
-    if (panels.IsOpen(UI::InventoryPanel))
+    if (panels.IsOpen(Ui::InventoryPanel))
     {
         if (auto inventory = StepTheInventoryWindow(context, panels); !inventory.HasValue())
             return inventory;
@@ -1712,10 +1719,10 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
             return siblings;
     }
     // 0x44b4e0: el entrenador, por 0x724580.
-    if (auto trainer = StepTheTrainer(context, panels); !trainer.HasValue())
+    if (auto trainer = PetTrainer::StepTheTrainer(context, panels); !trainer.HasValue())
         return trainer;
     // 0x44dd50 y 0x44f810: el arma de asedio y la puerta.
-    if (auto siege = StepTheSiegeControls(context); !siege.HasValue())
+    if (auto siege = CastleSiege::StepTheSiegeControls(context); !siege.HasValue())
         return siege;
     // 0x5ee1de: 0x5d8d50, el ítem del cursor.
     if (ui.field78abaac == 0)
@@ -1726,17 +1733,17 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
     // 0x5ee1ec: 0x5e6520, con 0x78abb00 distinto de 0.
     if (runtime.panels.field78abb00 != 0)
     {
-        if (auto chips = StepTheEventChipWindow(context, panels); !chips.HasValue())
+        if (auto chips = Events::StepTheEventChipWindow(context, panels); !chips.HasValue())
             return chips;
     }
     // 0x5e74f0, el panel 0x2000.
-    if (auto stepped = StepThePanel2000(context, panels); !stepped.HasValue())
+    if (auto stepped = Npc::StepThePanel2000(context, panels); !stepped.HasValue())
         return stepped;
     // 0x40a450, los comandos ([0x6e592c]), que empieza con su +4.
     if (auto commands = StepTheCommandsWindow(context); !commands.HasValue())
         return commands;
     // 0x5ee20d (CL9 hito 2): 0x41b5a0, la ventana de las misiones y su botón en la del personaje.
-    if (auto quest = StepTheQuestWindow(context, panels); !quest.HasValue())
+    if (auto quest = Quests::StepTheQuestWindow(context, panels); !quest.HasValue())
         return quest;
     // 0x5ee212: 0x424130.
     return StepThePetButton(context, panels);
@@ -1748,7 +1755,7 @@ Core::Expected<void, std::string> StepThePanels(const GameUiContext& context, UI
 void PointAtTheSkill(const GameUiContext& context, std::uint8_t index, std::int32_t tooltipX, std::int32_t tooltipY)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     ui.skillTooltipX = tooltipX;
     ui.skillTooltip = index;
     ui.skillTooltipY = tooltipY;
@@ -1930,7 +1937,7 @@ bool ChooseTheSkillByKey(const GameUiContext& context, std::uint8_t number)
 Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     if (context.world.OwnCharacter().byte6a == 0)
         return {};
@@ -1950,7 +1957,7 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
         }
     }
     // 0x652330: sin el asedio (0x4294b0) no hace nada.
-    if (auto siege = StepTheBattleSkill(context); !siege.HasValue())
+    if (auto siege = CastleSiege::StepTheBattleSkill(context); !siege.HasValue())
         return siege;
     if (ui.skillListOpen != 0)
         return StepTheSkillList(context);
@@ -1963,16 +1970,16 @@ Core::Expected<void, std::string> StepTheSkillBar(const GameUiContext& context)
 void StepTheOldAreaRows(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     const Kernel::ActorState& hero = context.world.Hero();
-    const UI::MessageAreaState& area = runtime.chat.area;
+    const Ui::MessageAreaState& area = runtime.chat.area;
     for (std::int32_t y = 0, shown = 0; y < OldAreaBottom; y += OldAreaRowHeight, ++shown)
     {
         const std::int32_t index = area.firstShown + shown;
-        if (index < 0 || index >= static_cast<std::int32_t>(UI::MessageAreaRows))
+        if (index < 0 || index >= static_cast<std::int32_t>(Ui::MessageAreaRows))
             continue;
-        const UI::MessageAreaRow& row = area.rows[static_cast<std::size_t>(index)];
-        if (row.text.empty() || (!ui.chatModes.showChat && row.type == UI::ChatMessage))
+        const Ui::MessageAreaRow& row = area.rows[static_cast<std::size_t>(index)];
+        if (row.text.empty() || (!ui.chatModes.showChat && row.type == Ui::ChatMessage))
             continue;
         const std::uint32_t width =
             static_cast<std::uint32_t>(runtime.hud.messageFrame.widths[static_cast<std::size_t>(index)]);
@@ -1984,7 +1991,7 @@ void StepTheOldAreaRows(const GameUiContext& context)
         if (row.name == Actors::HeroNameOf(hero) || !ui.rightClick)
             continue;
         ui.rightClick = false;
-        UI::PutTheWhisperName(runtime.chat.input, row.name);
+        Chat::PutTheWhisperName(runtime.chat.input, row.name);
         runtime.RequestSound(ButtonSound);
     }
 }
@@ -1994,14 +2001,14 @@ void StepTheOldAreaRows(const GameUiContext& context)
 void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t direction)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::ChatInputState& input = runtime.chat.input;
+    Chat::ChatInputState& input = runtime.chat.input;
     if (!KeyEdge(runtime.ui, context.input, key))
         return;
     bool sound = false;
-    if ((input.focus == UI::ChatFocus::Message || input.focus == UI::ChatFocus::Whisper) && input.field % 2 == 0)
-        sound = UI::RecallFromTheHistory(input, direction);
+    if ((input.focus == Chat::ChatFocus::Message || input.focus == Chat::ChatFocus::Whisper) && input.field % 2 == 0)
+        sound = Chat::RecallFromTheHistory(input, direction);
     else
-        sound = UI::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
+        sound = Chat::StepTheWhisperName(input, direction, &runtime.ui.focusedList);
     if (sound)
         runtime.RequestSound(ButtonSound);
 }
@@ -2013,7 +2020,7 @@ void StepTheArrowKey(const GameUiContext& context, GameKey key, std::int32_t dir
 bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     if (InRect(context, edit.x, edit.y, edit.x + edit.width, edit.y + edit.height))
     {
         if (ui.hovered == 0)
@@ -2032,7 +2039,7 @@ bool StepTheChatEdit(const GameUiContext& context, const ChatEditPlace& edit)
     ui.mouseOnUi = 1;
     if (runtime.movement.pendingClick)
     {
-        UI::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
+        Chat::ClickTheChatField(runtime.chat.input, edit.field, &ui.focusedList);
         runtime.movement.mouseUpdateTime = 0;
         runtime.movement.mouseUpdateTimeMax = ButtonMouseUpdateTimeMax;
     }
@@ -2067,38 +2074,38 @@ Core::Expected<void, std::string> StepTheMacros(const GameUiContext& context)
     if (runtime.hud.macroTime != 0 || (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap) ||
         !context.input.IsDown(Key::Alt))
         return {};
-    std::array<bool, UI::MacroCount> pressed{};
+    std::array<bool, Chat::MacroCount> pressed{};
     bool any = false;
-    for (std::size_t macro = 0; macro < UI::MacroCount; ++macro)
+    for (std::size_t macro = 0; macro < Chat::MacroCount; ++macro)
     {
-        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % UI::MacroCount)).key);
+        pressed[macro] = context.input.IsDown(Digit(static_cast<int>((macro + 1) % Chat::MacroCount)).key);
         any = any || pressed[macro];
     }
     if (!any)
         return {};
     if (context.chat == nullptr)
         return Core::Unexpected(std::string("0x5a11cb: las macros sin la entrada del chat"));
-    return SayTheMacros(*context.chat, pressed);
+    return Chat::SayTheMacros(*context.chat, pressed);
 }
 
 // 0x59ff10: las teclas y los botones del HUD.
-Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    GameMovementState& movement = runtime.movement;
+    Ui::GameUiState& ui = runtime.ui;
+    Movement::GameMovementState& movement = runtime.movement;
     const Input::InputState& input = context.input;
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x59ff32..0x59ff3f: con el recorrido de la cámara (0x4033d0), nada.
-    if (CameraTourRunning(runtime.events.cameraTour))
+    if (Events::Crywolf::CameraTourRunning(runtime.events.cameraTour))
         return {};
     StepTheOldAreaRows(context);
     // 0x5a00a1..0x5a0124: PgUp y PgDn corren el registro del chat tantos renglones como muestra (la vtable + 0x38 los
     // da y la + 0x34 corre).
     if (KeyEdge(ui, input, PageUpKey))
-        UI::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
+        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, -runtime.chat.log.rows);
     if (KeyEdge(ui, input, PageDownKey))
-        UI::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
+        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, runtime.chat.log.rows);
     StepTheArrowKey(context, UpKey, -1);
     StepTheArrowKey(context, DownKey, 1);
     // 0x5a03c3..0x5a05e5: los botones del HUD, cada uno con su rectángulo: abierto lo cierra y si no lo abre.
@@ -2106,16 +2113,16 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     {
         struct HudButton
         {
-            UI::PanelId id;
+            Ui::PanelId id;
             std::int32_t left, top, right, bottom;
         };
         constexpr std::array<HudButton, 6> Buttons{{
-            {UI::GuildPanel, 0x246, 0x1cb, 0x27a, 0x1dd},
-            {UI::PartyPanel, 0x15c, 0x1c4, 0x174, 0x1dc},
-            {UI::CharacterPanel, 0x17b, 0x1c4, 0x193, 0x1dc},
-            {UI::InventoryPanel, 0x19a, 0x1c4, 0x1b2, 0x1dc},
-            {UI::FriendsPanel, 0x246, 0x1b3, 0x27a, 0x1c5},
-            {UI::CommandsPanel, 6, 0x1b2, 0x3b, 0x1c5},
+            {Ui::GuildPanel, 0x246, 0x1cb, 0x27a, 0x1dd},
+            {Ui::PartyPanel, 0x15c, 0x1c4, 0x174, 0x1dc},
+            {Ui::CharacterPanel, 0x17b, 0x1c4, 0x193, 0x1dc},
+            {Ui::InventoryPanel, 0x19a, 0x1c4, 0x1b2, 0x1dc},
+            {Ui::FriendsPanel, 0x246, 0x1b3, 0x27a, 0x1c5},
+            {Ui::CommandsPanel, 6, 0x1b2, 0x3b, 0x1c5},
         }};
         for (const HudButton& button : Buttons)
         {
@@ -2131,7 +2138,7 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     // 0x5a10e7..0x5a116f: los números eligen la skill (0x59f810), sin el diálogo 0x73 (0x5a10f0, con 0x6c7b8c en 1:
     // ni mira el foco), con el foco en el juego, sin campos de texto, sin una skill que se carga (0x5a1115, 0x7d368a4
     // en 0), sin las órdenes del cuervo (0x420e30, Shift con 1 a 4) y sin Alt.
-    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == UI::ChatFocus::Game && !ui.chatOpen &&
+    if (runtime.dialogs.current != MoneyDialog && runtime.chat.input.focus == Chat::ChatFocus::Game && !ui.chatOpen &&
         !runtime.chat.input.otherInput && ui.rightHoldFrames == 0)
     {
         if (!StepThePetOrderKeys(context) && !input.IsDown(Key::Alt))
@@ -2158,13 +2165,14 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 continue;
             ui.rightClick = false;
             auto found =
-                FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
+                Items::FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
             // 0x5a2bc8..0x5a32cc: usarlo (CL9 hito 5) y salir de las ranuras.
             if (found.Value())
             {
-                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                if (auto used =
+                        Items::UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
                     !used.HasValue())
                     return used;
                 break;
@@ -2176,12 +2184,12 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     // 0x5a343e..0x5a359a: Q, W y E solo sin campo de texto, con todo esto cerrado y el héroe vivo. Las consultas
     // del comercio y de la tienda de NPC sacan un rand() cada una en cada paso. 0x77f3b68, entre 0x40000 y el
     // diálogo (0x5a34c3), ya lo miró 0x6578e0, la primera.
-    if (!TextInputBusy(runtime) && !panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::WarehousePanel) &&
-        !panels.IsOpen(UI::NpcShopPanel) && !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::SecondGuildPanel) &&
-        runtime.dialogs.current == 0 && runtime.panels.field78abb00 == 0 && !panels.IsOpen(UI::QuestPanel) &&
-        !panels.IsOpen(UI::EventNpcPanel) && !panels.IsOpen(UI::SecondEventNpcPanel) && !panels.IsOpen(UI::Panel2000) &&
-        !panels.IsOpen(UI::PersonalShopPanel) && !panels.IsOpen(UI::OtherShopPanel) &&
-        !panels.IsOpen(UI::TrainerPanel) && hero.dying == 0)
+    if (!TextInputBusy(runtime) && !panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::WarehousePanel) &&
+        !panels.IsOpen(Ui::NpcShopPanel) && !panels.IsOpen(Ui::ChaosBoxPanel) && !panels.IsOpen(Ui::SecondGuildPanel) &&
+        runtime.dialogs.current == 0 && runtime.panels.field78abb00 == 0 && !panels.IsOpen(Ui::QuestPanel) &&
+        !panels.IsOpen(Ui::EventNpcPanel) && !panels.IsOpen(Ui::SecondEventNpcPanel) && !panels.IsOpen(Ui::Panel2000) &&
+        !panels.IsOpen(Ui::PersonalShopPanel) && !panels.IsOpen(Ui::OtherShopPanel) &&
+        !panels.IsOpen(Ui::TrainerPanel) && hero.dying == 0)
     {
         // 0x5a35a6, 0x5a3d2a y 0x5a44b1: la ranura 0, 1 y 2. Sin su ítem en el inventario, la tecla que sigue.
         constexpr std::array<char, 3> QuickSlotLetters{'Q', 'W', 'E'};
@@ -2191,13 +2199,14 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
             if (!KeyEdge(ui, input, Letter(letter)))
                 continue;
             auto found =
-                FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
+                Items::FindQuickSlotItem(runtime.hud.quickSlots, cells, slot, runtime.movement.gateRequestBlocked != 0);
             if (!found.HasValue())
                 return Core::Unexpected(found.Error());
             // 0x5a35e0.., 0x5a3d64.. y 0x5a44eb..: usarlo (CL9 hito 5); la tecla que sigue se lee igual.
             if (found.Value())
             {
-                if (auto used = UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
+                if (auto used =
+                        Items::UseInventoryItem(MovesOf(context), panels, static_cast<std::int32_t>(*found.Value()));
                     !used.HasValue())
                     return used;
             }
@@ -2210,18 +2219,18 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
         struct PanelLetter
         {
             char letter;
-            UI::PanelId id;
+            Ui::PanelId id;
         };
         constexpr std::array<PanelLetter, 9> Letters{{
-            {'G', UI::GuildPanel},
-            {'P', UI::PartyPanel},
-            {'T', UI::QuestPanel},
-            {'C', UI::CharacterPanel},
-            {'I', UI::InventoryPanel},
-            {'V', UI::InventoryPanel},
-            {'F', UI::FriendsPanel},
-            {'M', UI::MovePanel},
-            {'D', UI::CommandsPanel},
+            {'G', Ui::GuildPanel},
+            {'P', Ui::PartyPanel},
+            {'T', Ui::QuestPanel},
+            {'C', Ui::CharacterPanel},
+            {'I', Ui::InventoryPanel},
+            {'V', Ui::InventoryPanel},
+            {'F', Ui::FriendsPanel},
+            {'M', Ui::MovePanel},
+            {'D', Ui::CommandsPanel},
         }};
         bool done = false;
         for (const PanelLetter& letter : Letters)
@@ -2234,12 +2243,12 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
             done = true;
             break;
         }
-        UI::PanelState& state = runtime.panels;
+        Ui::PanelState& state = runtime.panels;
         // 0x5a4ec2..0x5a4f2e: B, con la tienda de NPC abierta y 0x78abb09, el modo de reparar de la tienda.
         if (!done && KeyEdge(ui, input, Letter('B')))
         {
             done = true;
-            if (panels.IsOpen(UI::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0)
+            if (panels.IsOpen(Ui::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0)
             {
                 if (state.repairCursor == 0)
                 {
@@ -2262,10 +2271,10 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
                 level = context.world.OwnCharacter().level;
             }
             constexpr std::uint16_t RepairLevel = 0x32;
-            bool toggle = panels.IsOpen(UI::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0;
-            if (!toggle && !panels.IsOpen(UI::TradePanel) && !panels.IsOpen(UI::NpcShopPanel) &&
-                panels.IsOpen(UI::InventoryPanel) && level >= RepairLevel && !panels.IsOpen(UI::WarehousePanel) &&
-                !panels.IsOpen(UI::ChaosBoxPanel) && !panels.IsOpen(UI::EventNpcPanel) && state.field78abb00 == 0)
+            bool toggle = panels.IsOpen(Ui::NpcShopPanel) && state.field78abb09 != 0 && runtime.cursorItemCount == 0;
+            if (!toggle && !panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::NpcShopPanel) &&
+                panels.IsOpen(Ui::InventoryPanel) && level >= RepairLevel && !panels.IsOpen(Ui::WarehousePanel) &&
+                !panels.IsOpen(Ui::ChaosBoxPanel) && !panels.IsOpen(Ui::EventNpcPanel) && state.field78abb00 == 0)
                 toggle = true;
             if (toggle)
             {
@@ -2277,11 +2286,11 @@ Core::Expected<void, std::string> StepTheKeysAndButtons(const GameUiContext& con
     }
     // 0x5a5504: 0x6529e0, el asedio con la rueda o el mouse en su rectángulo; sin el asedio (0x4294b0) no hace
     // nada.
-    if (auto siege = StepTheBattleSkillChoice(context); !siege.HasValue())
+    if (auto siege = CastleSiege::StepTheBattleSkillChoice(context); !siege.HasValue())
         return siege;
     // 0x5a5511: sin ningún panel abierto, el paso del panel del asedio (0x4125a0). 0x413c90 no hace nada.
-    if (!panels.IsOpen(UI::AnyPanel))
-        return StepTheBattlePanel(context);
+    if (!panels.IsOpen(Ui::AnyPanel))
+        return CastleSiege::StepTheBattlePanel(context);
     return {};
 }
 
@@ -2292,7 +2301,7 @@ bool GameTextInputBusy(const Kernel::WorldRuntime& runtime)
     return TextInputBusy(runtime);
 }
 
-bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
+bool OldWindowKeyEdge(Ui::GameUiState& ui, const Input::InputState& input, std::uint8_t virtualKey)
 {
     for (const GameKey& key : OldWindowEdgeKeys)
     {
@@ -2303,7 +2312,7 @@ bool OldWindowKeyEdge(UI::GameUiState& ui, const Input::InputState& input, std::
 }
 
 // 0x4b3961: un DOWN nuevo rearma held aunque la UI lo hubiera consumido y UP+DOWN lleguen en un mismo pump.
-void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
+void LatchTheLeftButton(Movement::GameMovementState& state, bool pressed, bool down)
 {
     // WM_LBUTTONDBLCLK no toca 0x7d36874 (0x4b4444..0x4b47b6), que solo escriben WM_LBUTTONDOWN (0x4b3961) y
     // WM_LBUTTONUP (0x4b3cf1): con el segundo apretón de un doble clic como el último, `down` (el de los mensajes,
@@ -2319,8 +2328,8 @@ void LatchTheLeftButton(GameMovementState& state, bool pressed, bool down)
     state.pendingClick = down && (state.pendingClick || pressed);
 }
 
-void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, bool down, std::int32_t mouseX,
-                         std::int32_t mouseY)
+void LatchTheLeftRelease(Movement::GameMovementState& state, bool pressed, bool released, bool down,
+                         std::int32_t mouseX, std::int32_t mouseY)
 {
     if (state.releasedClick && (state.releaseX != mouseX || state.releaseY != mouseY))
         state.releasedClick = false;
@@ -2337,15 +2346,15 @@ void LatchTheLeftRelease(GameMovementState& state, bool pressed, bool released, 
     state.releaseY = mouseY;
 }
 
-void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context, bool effects)
+void LendTheGameHooks(Ui::OldWindowStepView& view, const GameUiContext& context, bool effects)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     view.keyDown = ArrowKeysDown(context.input);
     // CL9 hito 10: el filtro de las malas palabras de las cartas y del chat con un amigo (0x622b40 con 0).
-    if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
+    if (const Chat::GameChatContext* chatContext = context.chat; chatContext != nullptr)
         view.badWord = [filter = chatContext->filter](std::string_view text)
-        { return UI::ContainsAFilteredWord(text, filter, false); };
+        { return FrontEnd::ContainsAFilteredWord(text, filter, false); };
     view.heroName = std::string(Actors::HeroNameOf(world.Hero()));
     view.field78abaac = runtime.ui.field78abaac;
     if (!effects)
@@ -2353,13 +2362,13 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
         view.whisperTo = [](std::string_view /*name*/) {};
         view.replayLetter = [](const std::vector<std::byte>& /*copy*/) -> Core::Expected<void, std::string>
         { return {}; };
-        view.portrait = [](UI::OldPortraitPart& /*part*/, UI::PortraitCallKind /*call*/,
+        view.portrait = [](Ui::OldPortraitPart& /*part*/, Ui::PortraitCallKind /*call*/,
                            std::int32_t /*delta*/) -> Core::Expected<void, std::string> { return {}; };
         return;
     }
     // 0x4694c0(0, 0, 1, nombre).
     view.whisperTo = [&chat = runtime.chat.input](std::string_view name)
-    { UI::SetTheChatFields(chat, std::nullopt, name); };
+    { Chat::SetTheChatFields(chat, std::nullopt, name); };
     // 0x4a11b0 con el 10 y 2 sobre una carta guardada: 0x4dcb70 con la copia de 0x4a03c0.
     view.replayLetter = [&world, &random = context.random, measure = context.measure, screen = context.screen,
                          texts = context.texts, chosenSlot = context.chosenSlot, worldEntry = context.worldEntry](
@@ -2368,26 +2377,26 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
         auto letter = Protocol::Messenger::ReadLetterCopy(copy);
         if (!letter.HasValue())
             return Core::Unexpected(std::string("0x4a11b0(2): la carta guardada no se lee"));
-        const ChatReceiveContext receive{.world = world,
-                                         .random = random,
-                                         .measure = measure,
-                                         .screen = screen,
-                                         .scene = std::nullopt,
-                                         .texts = texts,
-                                         .chosenSlot = chosenSlot,
-                                         .worldEntry = worldEntry};
-        return ApplyLetterRead(letter.Value(), receive);
+        const Chat::ChatReceiveContext receive{.world = world,
+                                               .random = random,
+                                               .measure = measure,
+                                               .screen = screen,
+                                               .scene = std::nullopt,
+                                               .texts = texts,
+                                               .chosenSlot = chosenSlot,
+                                               .worldEntry = worldEntry};
+        return Messenger::ApplyLetterRead(letter.Value(), receive);
     };
     // CL9 hito 10: el personaje del retrato de las cartas (Scenes/LetterPortrait), que lee su paso.
     if (context.worldEntry != nullptr)
-        view.portrait = LetterPortraitHook(*context.worldEntry);
+        view.portrait = Messenger::LetterPortraitHook(*context.worldEntry);
 }
 
-UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
+Ui::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
 {
-    UI::GameUiState& ui = runtime.ui;
-    GameMovementState& movement = runtime.movement;
-    return UI::OldWindowGlobals{.leftHeld = movement.leftHeld,
+    Ui::GameUiState& ui = runtime.ui;
+    Movement::GameMovementState& movement = runtime.movement;
+    return Ui::OldWindowGlobals{.leftHeld = movement.leftHeld,
                                 .leftClick = movement.pendingClick,
                                 .releasedClick = movement.releasedClick,
                                 .mouseOnUi = ui.mouseOnUi,
@@ -2408,22 +2417,22 @@ UI::OldWindowGlobals OldWindowGlobalsOf(Kernel::WorldRuntime& runtime)
 Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    UI::DialogState& dialogs = runtime.dialogs;
+    Ui::GameUiState& ui = runtime.ui;
+    Ui::DialogState& dialogs = runtime.dialogs;
     GamePanels panels(context.world, context.random, GamePanelTables{.texts = context.texts});
     // Esc (0x623f17 → 0x657880) cierra la ventana abierta más baja: el comercio manda el 3D, la tienda de otro el
     // 3F 07 y las misiones el 31, por la sesión.
     LendTheUiPanelCloses(panels, context);
     // 0x623e9b..0x623ec2: con la de amigos abierta, Esc es de las ventanas viejas (0x490490). Lo leído queda en
     // [EBP−0x7d], que mira el no de 0x62c50e.
-    const bool escape = !panels.Registry().IsOpen(UI::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
+    const bool escape = !panels.Registry().IsOpen(Ui::FriendsPanel) && KeyEdge(ui, context.input, EscapeKey);
     if (escape)
     {
         // 0x623ec8..0x623ee9: con el recorrido de la cámara (0x4033d0), Esc lo corta (+0x158 = 1 y 0x403d60) y sale.
-        if (CameraTourRunning(runtime.events.cameraTour))
+        if (Events::Crywolf::CameraTourRunning(runtime.events.cameraTour))
         {
             runtime.events.cameraTour.skipped = true;
-            RemoveTheCameraTourActors(context.world, runtime.events.cameraTour);
+            Events::Crywolf::RemoveTheCameraTourActors(context.world, runtime.events.cameraTour);
             return {};
         }
         if (ui.field78abb39 == 0)
@@ -2436,13 +2445,13 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
                 if (!closed.Value())
                 {
                     // 0x623f22..0x623f33: el menú, o en espera si algo abrió un diálogo.
-                    (dialogs.current != 0 ? dialogs.pending : dialogs.current) = UI::EscapeMenuDialog;
+                    (dialogs.current != 0 ? dialogs.pending : dialogs.current) = Ui::EscapeMenuDialog;
                     // 0x623f42: con un ítem en el cursor, lo vuelve a su lugar.
-                    if (auto returned = ReturnTheCursorItem(MovesOf(context)); !returned.HasValue())
+                    if (auto returned = Items::ReturnTheCursorItem(MovesOf(context)); !returned.HasValue())
                         return returned;
                 }
             }
-            else if (dialogs.current == UI::EscapeMenuDialog || dialogs.current == UI::OptionsDialog)
+            else if (dialogs.current == Ui::EscapeMenuDialog || dialogs.current == Ui::OptionsDialog)
             {
                 dialogs.current = dialogs.pending;
                 dialogs.pending = 0;
@@ -2452,13 +2461,13 @@ Core::Expected<void, std::string> StepTheGameDialogs(const GameUiContext& contex
         }
     }
     // 0x623f78: el diálogo abierto, por su tramo.
-    return StepTheOpenDialog(context, escape);
+    return Hud::Dialogs::StepTheOpenDialog(context, escape);
 }
 
 Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     // 0x636df2..0x636e04.
     ui.hoveredItem = {};
     ui.skillTooltip = -1;
@@ -2478,7 +2487,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     gamePanels.LendTheCastleWindowSteps(context);
     gamePanels.LendThePanelDialogStep(context.world, GuildSenderOf(context.requests), context.mouseX, context.mouseY,
                                       context.systemTime);
-    gamePanels.LendTheSecondGuildStep(SecondGuildStepContext{
+    gamePanels.LendTheSecondGuildStep(Guild::SecondGuildStepContext{
         .world = context.world,
         .mouseX = context.mouseX,
         .mouseY = context.mouseY,
@@ -2489,27 +2498,27 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         .filterName = context.chat != nullptr ? context.chat->filterName : std::span<const std::string>{},
         .filter = context.chat != nullptr ? context.chat->filter : std::span<const std::string>{},
         .send = GuildSenderOf(context.requests)});
-    gamePanels.LendTheGuildWindowStep(GuildWindowStepContext{.world = context.world,
-                                                             .mouseX = context.mouseX,
-                                                             .mouseY = context.mouseY,
-                                                             .screen = context.screen,
-                                                             .send = GuildSenderOf(context.requests),
-                                                             .keyEdge = PageKeyEdges(runtime.ui, context.input),
-                                                             .keyDown = ArrowKeysDown(context.input),
-                                                             .now = context.systemTime,
-                                                             .measure = context.measure,
-                                                             .texts = context.texts});
+    gamePanels.LendTheGuildWindowStep(Guild::GuildWindowStepContext{.world = context.world,
+                                                                    .mouseX = context.mouseX,
+                                                                    .mouseY = context.mouseY,
+                                                                    .screen = context.screen,
+                                                                    .send = GuildSenderOf(context.requests),
+                                                                    .keyEdge = PageKeyEdges(runtime.ui, context.input),
+                                                                    .keyDown = ArrowKeysDown(context.input),
+                                                                    .now = context.systemTime,
+                                                                    .measure = context.measure,
+                                                                    .texts = context.texts});
     gamePanels.LendTheFriends([&sight]() { return sight.OpenTheFriendsWindow(); });
-    UI::PanelRegistry& panels = gamePanels.Registry();
+    Ui::PanelRegistry& panels = gamePanels.Registry();
     // 0x636e24: 0x5ecdc0, la ventana /move, sin nadie que agarró el mouse (0x5ecdd1).
-    if (panels.IsOpen(UI::MovePanel) && ui.capture == 0)
+    if (panels.IsOpen(Ui::MovePanel) && ui.capture == 0)
     {
         if (auto moved = StepTheMoveWindow(context); !moved.HasValue())
             return moved;
     }
     ui.hovered = 0;
     // 0x636e35: 0x46b7b0, las dos colas del cartel de Slide.bmd (0x46add0).
-    if (auto slides = UI::StepTheSlides(runtime.hud.slides, UI::SlideStepContext{.measure = context.measure,
+    if (auto slides = Ui::StepTheSlides(runtime.hud.slides, Ui::SlideStepContext{.measure = context.measure,
                                                                                  .dcFont = runtime.hud.dcFont,
                                                                                  .screen = context.screen,
                                                                                  .now = context.systemTime});
@@ -2521,7 +2530,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
         return chat;
     StepTheUnownedClick(runtime);
     // 0x636ed6: 0x5ebca0, con 0x78abad9 en 0 no hace nada.
-    if (auto duel = StepTheDuelRequest(context); !duel.HasValue())
+    if (auto duel = Social::StepTheDuelRequest(context); !duel.HasValue())
         return duel;
     // 0x636edb.
     if (auto crywolf = StepTheCrywolfInterface(context); !crywolf.HasValue())
@@ -2531,7 +2540,7 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
     if (auto keys = StepTheKeysAndButtons(context, panels); !keys.HasValue())
         return keys;
     // 0x5a7cc0: el rectángulo de la ayuda del F3 24 (0x5767920), que nadie prende: no consume el clic.
-    if (runtime.dialogs.current != UI::EscapeMenuDialog)
+    if (runtime.dialogs.current != Ui::EscapeMenuDialog)
     {
         if (auto objects = panels.StepTheObjectPanels(); !objects.HasValue())
             return objects;
@@ -2546,14 +2555,14 @@ Core::Expected<void, std::string> StepTheGameUi(const GameUiContext& context)
 Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
+    Ui::GameUiState& ui = runtime.ui;
     const Input::InputState& input = context.input;
     // 0x5ac8d9..0x5ac9ce: sin ítem en el cursor (0x7879fbc), la barra con el chat cerrado y el mouse fuera de la UI
     // (0x775857c) levanta el primer ítem del piso vivo y a la vista a menos de 300 del héroe (0x5650c0, CL9 hito 5).
     if (runtime.cursorItemCount == 0 && KeyEdge(ui, input, SpaceKey) && !ui.chatOpen && ui.mouseOnUi == 0)
     {
-        if (auto picked = PickUpTheNearestFloorItem(MovesOf(context), Terrain::TerrainOrEmpty(context.terrain),
-                                                    context.fixedHeight);
+        if (auto picked = Items::PickUpTheNearestFloorItem(MovesOf(context), Terrain::TerrainOrEmpty(context.terrain),
+                                                           context.fixedHeight);
             !picked.HasValue())
             return picked;
     }
@@ -2562,7 +2571,7 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     if (KeyEdge(ui, input, F1Key))
     {
         std::int32_t& mode = runtime.panels.overlayMode;
-        mode = mode == UI::ItemHelpMode || mode == UI::MoveOverlayMode ? 0 : (mode + 1) % FunctionHelpModes;
+        mode = mode == Ui::ItemHelpMode || mode == Ui::MoveOverlayMode ? 0 : (mode + 1) % FunctionHelpModes;
         context.world.ItemSets().byte9305 = 0;
         runtime.RequestSound(ButtonSound);
     }
@@ -2571,7 +2580,7 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     {
         ui.chatModes.showChat = !ui.chatModes.showChat;
         runtime.RequestSound(ButtonSound);
-        UI::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
+        Chat::ScrollTheLog(runtime.chat.log, ui.chatModes, 0);
     }
     // 0x5aca86..0x5acad0: F3, el modo del susurro (0x6c8dd0).
     if (KeyEdge(ui, input, F3Key))
@@ -2584,16 +2593,16 @@ Core::Expected<void, std::string> StepTheFunctionKeys(const GameUiContext& conte
     // NPC (cada consulta en su orden, hasta la primera abierta), 0; fuera de ella, (−10, 0x51).
     if (KeyEdge(ui, input, F4Key))
     {
-        UI::CycleTheLogSize(runtime.chat.log, ui.chatModes);
-        UI::ChatLogFrame& frame = runtime.hud.chatFrame;
+        Chat::CycleTheLogSize(runtime.chat.log, ui.chatModes);
+        Chat::ChatLogFrame& frame = runtime.hud.chatFrame;
         if (ui.chatModes.placement == 1)
         {
             GamePanels gamePanels(context.world, context.random);
-            UI::PanelRegistry& panels = gamePanels.Registry();
-            const bool left = panels.IsOpen(UI::InventoryPanel) &&
-                              (panels.IsOpen(UI::CharacterPanel) || panels.IsOpen(UI::TradePanel) ||
-                               panels.IsOpen(UI::WarehousePanel) || panels.IsOpen(UI::ChaosBoxPanel) ||
-                               panels.IsOpen(UI::EventNpcPanel) || panels.IsOpen(UI::NpcShopPanel));
+            Ui::PanelRegistry& panels = gamePanels.Registry();
+            const bool left = panels.IsOpen(Ui::InventoryPanel) &&
+                              (panels.IsOpen(Ui::CharacterPanel) || panels.IsOpen(Ui::TradePanel) ||
+                               panels.IsOpen(Ui::WarehousePanel) || panels.IsOpen(Ui::ChaosBoxPanel) ||
+                               panels.IsOpen(Ui::EventNpcPanel) || panels.IsOpen(Ui::NpcShopPanel));
             frame.x = left ? 0 : 0xba;
             frame.y = 0x1a4;
         }
@@ -2693,7 +2702,7 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     // portado: deja −1.
     if (runtime.ui.mouseOnUi != 0)
     {
-        FindThePartyInTheViewport(context.world);
+        Party::FindThePartyInTheViewport(context.world);
         ForgetTheOther(targets);
         return {};
     }
@@ -2701,7 +2710,7 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     const auto pickTheFloorItem = [&context, &runtime, &targets]
     {
         if (runtime.cursorItemCount == 0 && context.ray)
-            targets[0] = PickTheFloorItem(context.floorItems, *context.ray);
+            targets[0] = Items::PickTheFloorItem(context.floorItems, *context.ray);
     };
     if (context.altDown)
     {
@@ -2709,7 +2718,7 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
         // de 0x22 y 1, y los objetos (0x59eb90, que dejan −1).
         pickTheFloorItem();
         if (targets[0] != NoTarget)
-            FindThePartyInTheViewport(context.world);
+            Party::FindThePartyInTheViewport(context.world);
         else
         {
             targets[1] = pick(4);
@@ -2729,9 +2738,9 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     const std::array<std::uint8_t, 2> order = CharacterSearchOrder(context);
     // 0x59f48d → 0x5e4140: con la party cerrada, la lista de la derecha; si elige, 0x59e3b0 (0x59f494 → 0x59f52a).
     GamePanels panels(context.world, context.random);
-    if (PickFromThePartyList(context, panels.Registry()))
+    if (Party::PickFromThePartyList(context, panels.Registry()))
     {
-        FindThePartyInTheViewport(context.world);
+        Party::FindThePartyInTheViewport(context.world);
         ForgetTheOther(targets);
         return {};
     }
@@ -2755,8 +2764,8 @@ Core::Expected<void, std::string> PickInTheFrame(const FramePickingContext& cont
     }
     // 0x59f522..0x59f52a: con un elegido y 0x6c8e38 puesto, 0x59e3b0.
     if (targets[4] != NoTarget)
-        FindThePartyInTheViewport(context.world);
+        Party::FindThePartyInTheViewport(context.world);
     ForgetTheOther(targets);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

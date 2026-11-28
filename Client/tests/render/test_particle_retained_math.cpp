@@ -128,8 +128,8 @@ TEST(ParticleRetainedMathTest, RetainsCosine64BeforeProduct)
 
 TEST(PortableParticleTrigonometryTest, ReturnsProductsThroughRequiredInterface)
 {
-    const Client::World::PortableParticleTrigonometry backend;
-    const Client::World::IParticleTrigonometry& trig = backend;
+    const Client::Particles::PortableParticleTrigonometry backend;
+    const Client::Particles::IParticleTrigonometry& trig = backend;
     const auto sine = trig.SineProductPC53(-0.0, 20.0f);
     const auto cosine = trig.CosineProductPC53(0.0, 40.0f);
     ASSERT_TRUE(sine.HasValue());
@@ -140,12 +140,12 @@ TEST(PortableParticleTrigonometryTest, ReturnsProductsThroughRequiredInterface)
 
 TEST(PortableParticleTrigonometryTest, TranslatesRepresentationFailure)
 {
-    const Client::World::PortableParticleTrigonometry trig;
+    const Client::Particles::PortableParticleTrigonometry trig;
     const auto sine = trig.SineProductPC53(0x1p63, 20.0f);
     const auto cosine = trig.CosineProductPC53(0.0, -1.0f);
     ASSERT_FALSE(sine.HasValue());
     ASSERT_FALSE(cosine.HasValue());
-    EXPECT_EQ(sine.Error(), Client::World::ParticleError::UnrepresentableTrigonometry);
-    EXPECT_EQ(cosine.Error(), Client::World::ParticleError::UnrepresentableTrigonometry);
+    EXPECT_EQ(sine.Error(), Client::Particles::ParticleError::UnrepresentableTrigonometry);
+    EXPECT_EQ(cosine.Error(), Client::Particles::ParticleError::UnrepresentableTrigonometry);
 }
 } // namespace

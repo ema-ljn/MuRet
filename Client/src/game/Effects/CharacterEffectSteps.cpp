@@ -24,7 +24,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -61,8 +61,9 @@ constexpr float SummonReach = 200.0f;
 constexpr double SummonLift = 120.0;
 constexpr int SummonPitchSpan = 90, SummonTurnSpan = 360;
 
-Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffect& effect, World::Particles* particles,
-                                                         World::ParticleOwner owner, Crt::CrtRandom& random)
+Core::Expected<void, std::string> RaiseSwellLifeChildren(const Effects::ModelEffect& effect,
+                                                         Particles::Particles* particles,
+                                                         Particles::ParticleOwner owner, Crt::CrtRandom& random)
 {
     // 0x52a82b..0x52a89a: the selector runs even with the particle table full.
     const std::size_t bone = static_cast<std::size_t>(random.Next()) % SwellBones.size();
@@ -70,9 +71,9 @@ Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffec
         return Core::Unexpected<std::string>("0x52a866: faltan las partículas de Swell Life");
     for (const std::size_t index : std::array{bone, SwellBones.size() - 1 - bone})
     {
-        const auto made = particles->CreateOwnedChecked(World::SwellLifeParticle, effect.transform.position,
-                                                        glm::vec3(0), {1, 0.5f, 0.1f}, World::SwellLifeParticleSubtype,
-                                                        SwellBones[index], 0, random, 0, owner);
+        const auto made = particles->CreateOwnedChecked(
+            Particles::SwellLifeParticle, effect.transform.position, glm::vec3(0), {1, 0.5f, 0.1f},
+            Particles::SwellLifeParticleSubtype, SwellBones[index], 0, random, 0, owner);
         if (!made.HasValue())
             return Core::Unexpected<std::string>("0x52a866/0x52a89a: no se pudo crear la luz de Swell Life");
     }
@@ -80,12 +81,12 @@ Core::Expected<void, std::string> RaiseSwellLifeChildren(const World::ModelEffec
 }
 } // namespace
 
-Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, std::span<JointState> joints,
+Core::Expected<void, std::string> StepFullSetFlare(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
                                                    const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::IcarusFlareEffect || effect.subtype != World::FullSetFlareSubtype)
+    if (effect.type != Effects::IcarusFlareEffect || effect.subtype != Effects::FullSetFlareSubtype)
         return Core::Unexpected(
             std::format("0x52a9ad: el efecto {:#x}/{} no es el 0x5ac/3", effect.type, effect.subtype));
     // 0x5208c5: the first rand() runs for every live effect, even if the 0x5ac/3 does not use the light.
@@ -119,23 +120,24 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
             return Core::Unexpected(std::format("0x52aa5d: {}", created.Error()));
     }
     // 0x52cb98: 0x5ac does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
+    Effects::StepModelEffect(effect, nullptr);
     return {};
 }
 
-Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<JointState> joints,
+Core::Expected<void, std::string> StepSkillFlare(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
                                                  const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random,
-                                                 World::Particles* particles, World::ParticleOwner particleOwner)
+                                                 Particles::Particles* particles,
+                                                 Particles::ParticleOwner particleOwner)
 {
     if (!effect.alive)
         return {};
-    if (effect.type != World::IcarusFlareEffect ||
-        (effect.subtype != World::SwellFlareSubtype && effect.subtype != World::GuardFlareSubtype))
+    if (effect.type != Effects::IcarusFlareEffect ||
+        (effect.subtype != Effects::SwellFlareSubtype && effect.subtype != Effects::GuardFlareSubtype))
         return Core::Unexpected(
             std::format("0x52a7b7: el efecto {:#x}/{} no es el 0x5ac/1 ni el /2", effect.type, effect.subtype));
     // 0x5208c5: the first rand() runs for every live effect, even if the 0x5ac/1 and the /2 do not use the light.
     static_cast<void>(random.Next());
-    const bool swell = effect.subtype == World::SwellFlareSubtype;
+    const bool swell = effect.subtype == Effects::SwellFlareSubtype;
     // 0x52a7e6 and 0x52a8dc: the owner's +0x78 is read even with +0x108 at 0; MuRet always creates them with the
     // target.
     if (effect.ownerContext == nullptr)
@@ -188,19 +190,19 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
         }
     }
     // 0x52cb98: 0x5ac does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
+    Effects::StepModelEffect(effect, nullptr);
     return {};
 }
 
-bool StepsAsPetSummon(const World::ModelEffect& effect)
+bool StepsAsPetSummon(const Effects::ModelEffect& effect)
 {
     // 0x52b984..0x52b9a5: /4 and /6 to /0xa jump to 0x52b9b8; the others from 1 on, to 0x518900.
     constexpr std::int32_t PulsingSubtype = 4, FirstBindingSubtype = 6, LastOwnSubtype = 0xa;
-    return effect.type == World::ColoredDecalEffect && effect.subtype != PulsingSubtype &&
+    return effect.type == Effects::ColoredDecalEffect && effect.subtype != PulsingSubtype &&
            (effect.subtype < FirstBindingSubtype || effect.subtype > LastOwnSubtype);
 }
 
-Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<JointState> joints,
+Core::Expected<void, std::string> StepPetSummon(Effects::ModelEffect& effect, std::span<Scenes::JointState> joints,
                                                 const Actors::IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)
@@ -210,10 +212,10 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
             std::format("0x52b9a6: el efecto {:#x}/{} no va a 0x518900", effect.type, effect.subtype));
     // 0x52b984 → 0x52b9b8 → 0x52bb29: /0 (and a negative subtype) does not enter 0x518900 or look up joints or an
     // owner.
-    if (effect.subtype < World::PetSummonSubtype)
+    if (effect.subtype < Effects::PetSummonSubtype)
     {
         static_cast<void>(random.Next());
-        World::StepModelEffect(effect, nullptr);
+        Effects::StepModelEffect(effect, nullptr);
         return {};
     }
     if (joints.empty() || jointHooks == nullptr)
@@ -243,7 +245,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
             return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
     }
     // 0x52cb98: 0x61e is not a BMD and does not advance an animation; the speed (0) turned and one life less.
-    World::StepModelEffect(effect, nullptr);
+    Effects::StepModelEffect(effect, nullptr);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

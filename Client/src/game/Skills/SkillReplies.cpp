@@ -38,7 +38,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -83,7 +83,7 @@ bool IsPlayer(const Kernel::ActorState& actor)
 
 // 0x4ea030 con el modelo del tipo del personaje (+2): sin él en MuRet, corta.
 Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t action,
-                                      const WorldEntryResources& resources)
+                                      const Scenes::WorldEntryResources& resources)
 {
     const Models::Skeleton* skeleton = resources.models.SkeletonOf(Models::ModelId{actor.type});
     if (skeleton == nullptr)
@@ -92,14 +92,15 @@ Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t ac
     return {};
 }
 
-// 0x4f4a10, la acción de ataque (Scenes::SetActorAttack, CL9 hito 3).
-Core::Expected<void, std::string> AttackAction(Kernel::ActorState& actor, const WorldEntryResources& resources)
+// 0x4f4a10, la acción de ataque (Combat::SetActorAttack, CL9 hito 3).
+Core::Expected<void, std::string> AttackAction(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
-    return SetActorAttack(actor, CombatContextOf(resources));
+    return Combat::SetActorAttack(actor, Combat::CombatContextOf(resources));
 }
 
 // 0x4cd68e y 0x4cdd2e: 0x4f4a10, el frame en 0 y +0x381 en 1 (0x4cde62).
-Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor,
+                                                  const Scenes::WorldEntryResources& resources)
 {
     if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
         return attacked;
@@ -109,14 +110,14 @@ Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor, con
 }
 
 // 0x41ed10(id, …): el caller despacha el sonido tras comprobar el optional.
-void Sound(const WorldEntryResources& resources, Audio::SoundId id)
+void Sound(const Scenes::WorldEntryResources& resources, Audio::SoundId id)
 {
     resources.world.Runtime().RequestSound(id);
 }
 
 // 0x4f5290: en un jugador, las velocidades (0x4f3f80) y la acción de golpe por la montura, la clase o un rand(); en
 // otro, 3 y 4 alternadas de a tres con +0x38f, que sube.
-Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     if (!IsPlayer(actor))
     {
@@ -126,7 +127,7 @@ Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const Wor
         ++actor.attackCount;
         return {};
     }
-    RefreshCombatActionSpeeds(resources);
+    Combat::RefreshCombatActionSpeeds(resources);
     if (Riding(actor, UniriaModel) || Riding(actor, DinorantModel))
         return Act(actor, 0x97, resources);
     if (Riding(actor, FenrirModel))
@@ -150,7 +151,7 @@ constexpr HandActions StaffHands{0x2e, 0x30, 0x2f, 0x31};  // 0x4cc110
 constexpr HandActions RepeatHands{0x7e, 0x80, 0x7f, 0x81}; // 0x4cc1d0
 
 Core::Expected<void, std::string> ActByTheHands(Kernel::ActorState& actor, const HandActions& actions,
-                                                const WorldEntryResources& resources)
+                                                const Scenes::WorldEntryResources& resources)
 {
     // Los CMP de WORD con signo: el 0xffff sin ítem es −1.
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
@@ -167,7 +168,7 @@ Core::Expected<void, std::string> ActByTheHands(Kernel::ActorState& actor, const
 // 0x4e9c50(con, en): la acción de `on` por las manos de `by`: las dos 0x63, la derecha 0x64, la izquierda 0x65 y
 // ninguna 0x62.
 Core::Expected<void, std::string> ActByBothHands(const Kernel::ActorState& by, Kernel::ActorState& on,
-                                                 const WorldEntryResources& resources)
+                                                 const Scenes::WorldEntryResources& resources)
 {
     const bool right = by.hands[0].model != Kernel::NoItemModel;
     const bool left = by.hands[1].model != Kernel::NoItemModel;
@@ -182,9 +183,10 @@ Core::Expected<void, std::string> ActByBothHands(const Kernel::ActorState& by, K
 
 // 0x53d8d0 y 0x53d930: el que se va (alpha a 0, +0x80 en 1) y el que llega (frame 5, +0x80 en 3, alpha a 1), con las
 // velocidades, la acción 0x93, el destello 0x5c6 y el sonido 0x76.
-Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arriving, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arriving,
+                                         const Scenes::WorldEntryResources& resources)
 {
-    RefreshCombatActionSpeeds(resources);
+    Combat::RefreshCombatActionSpeeds(resources);
     if (auto acted = Act(actor, 0x93, resources); !acted.HasValue())
         return acted;
     if (arriving)
@@ -205,9 +207,9 @@ Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arrivin
 }
 
 // 0x4f2250 sobre `actor`, con el sonido de Fenrir que pida.
-Core::Expected<void, std::string> Stop(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> Stop(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
-    const auto context = TransitionStopContext(actor, resources);
+    const auto context = Scenes::TransitionStopContext(actor, resources);
     if (!context.HasValue())
         return Core::Unexpected(context.Error());
     const auto stopped = Actors::SetActorStop(actor, context.Value());
@@ -260,7 +262,7 @@ struct Cast
     Kernel::ActorState& source;
     Kernel::ActorState& target;
     bool sourceIsHero;
-    const WorldEntryResources& resources;
+    const Scenes::WorldEntryResources& resources;
 };
 
 // 0x4cde62: +0x381 en 1 y vuelve.
@@ -317,7 +319,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
 {
     Kernel::ActorState& source = cast.source;
     Kernel::ActorState& target = cast.target;
-    const WorldEntryResources& resources = cast.resources;
+    const Scenes::WorldEntryResources& resources = cast.resources;
     Kernel::WorldState& world = resources.world;
     const std::uint8_t skill = cast.attack.skill;
     const bool succeeded = source.skillSucceeded != 0;
@@ -434,12 +436,12 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         return Settle(cast);
     }
-    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (Scenes::PutTheSkullOn; con la tabla
+    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (Effects::PutTheSkullOn; con la tabla
     // llena, ninguno). Después, el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
     case 0x37:
         if (succeeded)
         {
-            if (auto skull = PutTheSkullOn(target, world, resources.cloth.random, 0x4cd664); !skull.HasValue())
+            if (auto skull = Effects::PutTheSkullOn(target, world, resources.cloth.random, 0x4cd664); !skull.HasValue())
                 return skull;
             world.Runtime().RequestSound(Audio::SoundId{0x85}, target.position);
             target.flags78 |= 0x40;
@@ -530,7 +532,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return Settle(cast);
         source.flags78 |= 0x2000;
         constexpr std::int16_t ManaRune = 0x138;
-        const auto rune = CreateHighModelEffect(
+        const auto rune = Effects::CreateHighModelEffect(
             {.type = ManaRune, .position = source.position, .angles = source.angles, .light = source.light},
             {.world = world, .random = resources.cloth.random});
         if (!rune.HasValue())
@@ -547,19 +549,20 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         }
         return ActAndSettle(cast, MountedAction(source, 0x3f));
     // 0x4cdc37..0x4cdc9c: sin 0x400 en el blanco, apaga su 0x5ac/2 y sus joints 0x619/9 y crea otro 0x5ac/2 con él de
-    // dueño (0x4cdc88, World::ModelEffects::CreateSkillFlare; con la tabla llena, ninguno). Después, 0x400 y sigue.
+    // dueño (0x4cdc88, Effects::ModelEffects::CreateSkillFlare; con la tabla llena, ninguno). Después, 0x400 y sigue.
     case 0x35:
         if ((target.flags78 & 0x400u) != 0x400u)
         {
-            World::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::GuardFlareSubtype);
+            Effects::KillModelEffectsOf(world.Map().effects, Effects::IcarusFlareEffect, &target,
+                                        Effects::GuardFlareSubtype);
             Actors::KillJointsOf(world.DrawTail().joints, 0x619, &target, 9);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
-                                                                   World::GuardFlareSubtype, &target));
+                                                                   Effects::GuardFlareSubtype, &target));
         }
         target.flags78 |= 0x400;
         return HitUnlessHero(cast);
     case 0x40:
-        RefreshCombatActionSpeeds(resources);
+        Combat::RefreshCombatActionSpeeds(resources);
         target.flags78 |= 0x800;
         return ActAndSettle(cast, ChargeAction(source));
     case 0x3f:
@@ -581,9 +584,10 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x30:
         if ((target.flags78 & 0x10u) != 0x10u)
         {
-            World::KillModelEffectsOf(world.Map().effects, World::IcarusFlareEffect, &target, World::SwellFlareSubtype);
+            Effects::KillModelEffectsOf(world.Map().effects, Effects::IcarusFlareEffect, &target,
+                                        Effects::SwellFlareSubtype);
             static_cast<void>(world.Map().effects.CreateSkillFlare(target.position, target.angles, target.light,
-                                                                   World::SwellFlareSubtype, &target));
+                                                                   Effects::SwellFlareSubtype, &target));
         }
         target.flags78 |= 0x10;
         return ActAndSettle(cast, 0x3f);
@@ -598,13 +602,13 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0x3b:
     {
         constexpr std::int16_t ComboEffect = 0x112;
-        const auto made = CreateBlastEffectOutsideTheStep({.type = ComboEffect,
-                                                           .position = source.position,
-                                                           .angles = source.angles,
-                                                           .light = source.light,
-                                                           .subtype = 0,
-                                                           .key = 0xffff},
-                                                          nullptr, world, resources.cloth.random);
+        const auto made = Combat::CreateBlastEffectOutsideTheStep({.type = ComboEffect,
+                                                                   .position = source.position,
+                                                                   .angles = source.angles,
+                                                                   .light = source.light,
+                                                                   .subtype = 0,
+                                                                   .key = 0xffff},
+                                                                  nullptr, world, resources.cloth.random);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x4cddf5: {}", made.Error()));
         Sound(resources, Audio::SoundId{0x94});
@@ -626,7 +630,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         if (cast.sourceIsHero)
         {
-            UI::GameUiState& ui = world.Runtime().ui;
+            Ui::GameUiState& ui = world.Runtime().ui;
             ui.rightReleased = false;
             ui.rightClick = false;
             ui.rightDown = false;
@@ -643,7 +647,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
 
 // 0x4ce000: la acción de otro jugador por la skill con duración (la tabla de 0x4ced44).
 Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std::uint8_t skill,
-                                                 const WorldEntryResources& resources)
+                                                 const Scenes::WorldEntryResources& resources)
 {
     switch (skill)
     {
@@ -688,27 +692,28 @@ Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std:
     }
 }
 
-Core::Expected<void, std::string> LevelUpEffect(Kernel::ActorState& actor, const WorldEntryResources& resources)
+Core::Expected<void, std::string> LevelUpEffect(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     // 0x4dbfad..0x4dc004 y 0x4d319d..0x4d31f4: quince intentos, el calco /0 y el sonido aun con los pools llenos.
     constexpr int Sparkles = 15;
     for (int sparkle = 0; sparkle < Sparkles; ++sparkle)
     {
-        const auto created =
-            CreateFaunaJoint(resources.world.DrawTail().joints,
-                             {0x60f, actor.position, actor.position, actor.angles, 0, &actor, 40.0f, 2, 0, 0, -1},
-                             resources.cloth.random);
+        const auto created = Joints::CreateFaunaJoint(
+            resources.world.DrawTail().joints,
+            {0x60f, actor.position, actor.position, actor.angles, 0, &actor, 40.0f, 2, 0, 0, -1},
+            resources.cloth.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x4dbfc5: {}", created.Error()));
     }
     static_cast<void>(resources.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
-                                                                    World::LevelUpDecalSubtype));
+                                                                    Effects::LevelUpDecalSubtype));
     Sound(resources, Audio::SoundId{0x98});
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -747,7 +752,8 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack, co
     return CastTheSkill(Cast{attack, source, target, sourceIsHero, resources});
 }
 
-Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
+                                                     const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     const std::size_t index = Kernel::ActorWithKey(world, magic.key);
@@ -789,7 +795,8 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
     return {};
 }
 
-Core::Expected<void, std::string> ApplyMagicCancel(const MagicCancel& cancel, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyMagicCancel(const MagicCancel& cancel,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, cancel.key)];
@@ -856,7 +863,7 @@ Core::Expected<void, std::string> ApplyMagicCancel(const MagicCancel& cancel, co
 }
 
 Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorState& state,
-                                                  const WorldEntryResources& resources)
+                                                  const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::ActorState& actor = world.Actors()[Kernel::ActorWithKey(world, state.key)];
@@ -876,7 +883,8 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
     return {};
 }
 
-Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     const std::size_t sourceIndex = Kernel::ActorWithKey(world, target.source);
@@ -908,7 +916,8 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target, co
     return AttackAndSettle(source, resources);
 }
 
-Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect,
+                                                   const Scenes::WorldEntryResources& resources)
 {
     const std::size_t index = Kernel::ActorWithKey(resources.world, effect.key);
     if (index >= NoActor)
@@ -921,7 +930,7 @@ Core::Expected<void, std::string> ApplyActorEffect(const ActorEffect& effect, co
 }
 
 Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& reply,
-                                               const WorldEntryResources& resources)
+                                               const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -952,7 +961,7 @@ Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& 
     return LevelUpEffect(world.Hero(), resources);
 }
 
-Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const WorldEntryResources& resources)
+Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -1033,8 +1042,8 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Wo
     return {};
 }
 
-void ApplySummonLife(const SummonLife& summon, const WorldEntryResources& resources)
+void ApplySummonLife(const SummonLife& summon, const Scenes::WorldEntryResources& resources)
 {
     resources.world.Runtime().hud.summonLife = summon.life;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

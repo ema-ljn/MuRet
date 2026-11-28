@@ -6,17 +6,21 @@
 
 // La ventana de las misiones (CL9 hito 2; 06 § Las misiones, "La ventana"): el paso (0x41b5a0, con 0x41a9e0 y 0x419bd0
 // para el diálogo con el NPC y 0x41b170 para la lista) y el dibujo (0x41ca40, con 0x41ba20 y 0x41c600), del objeto
-// [0x710148] (WorldRuntime::quest) con su ventana en +0x21383 (UI::DelegatedPanels::quest: 1 el diálogo, 2 la lista).
+// [0x710148] (WorldRuntime::quest) con su ventana en +0x21383 (Ui::DelegatedPanels::quest: 1 el diálogo, 2 la lista).
 // Mandan el C3 A2 (aceptar o terminar la misión, con los dos rand() del C3) y el C1 03 31 (0x419900, cerrarla).
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
 struct GameUiContext;
+} // namespace Client::Hud
+
+namespace Client::Quests
+{
 
 // 0x41b5a0, desde 0x5ee140 (0x5ee20d), después de los comandos: la esquina de la ventana en +0x21390 y +0x21394,
 // (0x104, 0) con el personaje abierto y (0x1c2, 0) si no. Con el personaje abierto, el clic en el botón de las misiones
@@ -40,8 +44,8 @@ struct GameUiContext;
 // 0x41b170: el mouse sobre la ventana; el clic en la pestaña 0 ([x + 0x14, + 0x31) × [0xeb, 0xfb), o [0xed, 0xfb) si no
 // es la elegida) la elige (el C1 9F que le sigue no se alcanza, Q-C845); en la 1 y la 2, nada, y el clic sigue. El clic
 // en el botón de cerrar cierra con Close(8), que suena.
-[[nodiscard]] Core::Expected<void, std::string> StepTheQuestWindow(const GameUiContext& context,
-                                                                   UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> StepTheQuestWindow(const Hud::GameUiContext& context,
+                                                                   Ui::PanelRegistry& panels);
 
 // 0x41ca40, desde 0x5f7440 (0x5f75db), después de la ventana de 0x78abb00: con la ventana en 1, el diálogo con el NPC
 // (0x41ba20); con 2, la lista (0x41c600). Después, con el personaje abierto, el botón de las misiones (0x103 con la
@@ -59,10 +63,11 @@ struct GameUiContext;
 // de cerrar con su ayuda (el texto 927 con "T") y la pestaña elegida: la 0 (0x41c2a0) con "Quest", el nombre de la más
 // alta, el texto del diálogo sin respuestas y el estado (930 a 932); la 1 y la 2 (0x41c420 y 0x41c4a0) no se alcanzan
 // (solo la 0 se elige) y van como el original.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestWindow(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestWindow(Hud::GameHudContext& context,
+                                                                   Ui::PanelRegistry& panels);
 
 // 0x41b9e0, lo primero del 3D de la UI (0x5ac120, 0x5ac1c7): con la ventana en 1, los ítems pedidos de la misión en
 // curso con el estado 1 (0x41b810(1, 0)), cada uno con 0x5e1480 en (480, 235 + 25 · i) de 20 × 20 con el nivel << 3;
 // con la lista y +0x21380 (que nadie prende), los del estado 1 o 2 según +0x21381.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestItems(GameHudContext& context);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> DrawTheQuestItems(Hud::GameHudContext& context);
+} // namespace Client::Quests

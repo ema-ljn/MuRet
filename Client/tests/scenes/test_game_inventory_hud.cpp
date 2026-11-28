@@ -61,13 +61,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Models::SmallLogicalCloseRandoms;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameHudContext;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -208,30 +208,30 @@ protected:
 
     Client::Core::Expected<void, std::string> Window()
     {
-        Client::Scenes::GamePanels panels(world, random);
+        Client::Hud::GamePanels panels(world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheInventory(context, panels.Registry());
+        return Client::Hud::DrawTheInventory(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridItems()
     {
-        Client::Scenes::GamePanels panels(world, random);
+        Client::Hud::GamePanels panels(world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridItems(context, panels.Registry());
+        return Client::Hud::DrawTheGridItems(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> GridNumbers()
     {
-        Client::Scenes::GamePanels panels(world, random);
+        Client::Hud::GamePanels panels(world, random);
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheGridNumbers(context, panels.Registry());
+        return Client::Hud::DrawTheGridNumbers(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> UiItem(std::int32_t type, std::uint32_t level, std::uint8_t excellent,
                                                      std::uint8_t set)
     {
         GameHudContext context = Context();
-        return Client::Scenes::DrawUiItem(context, Client::Scenes::UiItemBox{}, type, level, excellent, set, false);
+        return Client::Hud::DrawUiItem(context, Client::Items::UiItemBox{}, type, level, excellent, set, false);
     }
 
     // Un ítem de `width` × `height` desde la casilla `origin`, como lo deja 0x5bc740: el tipo en todas y +0x3c en 1
@@ -253,30 +253,30 @@ protected:
     }
 
     // El pase de la UI de `screen` con los modelos inventados; los dos fines de lote se anotan en `events`.
-    Client::Scenes::UiItemResources UiItems(Client::Core::PixelSize screen)
+    Client::Items::UiItemResources UiItems(Client::Core::PixelSize screen)
     {
         special.random = &random;
         special.worldClock = worldClock;
         itemContext.special = &special;
         itemContext.selections = &world.Runtime().itemRender.selections;
-        auto pass = Client::Scenes::MakeUiItemPass(screen);
+        auto pass = Client::Items::MakeUiItemPass(screen);
         EXPECT_TRUE(pass.HasValue());
-        return Client::Scenes::UiItemResources{.batch = models,
-                                               .models = uiModels,
-                                               .poseCarry = poseCarry,
-                                               .itemContext = itemContext,
-                                               .flushSprites = [this] { events.emplace_back("2d"); },
-                                               .flushModels = [this] { events.emplace_back("3d"); },
-                                               .pass = pass.HasValue() ? pass.Value() : Client::Scenes::UiItemPass{}};
+        return Client::Items::UiItemResources{.batch = models,
+                                              .models = uiModels,
+                                              .poseCarry = poseCarry,
+                                              .itemContext = itemContext,
+                                              .flushSprites = [this] { events.emplace_back("2d"); },
+                                              .flushModels = [this] { events.emplace_back("3d"); },
+                                              .pass = pass.HasValue() ? pass.Value() : Client::Items::UiItemPass{}};
     }
 
     // Dónde posa 0x5e0720 el ítem de la caja `box` en `screen`, con los ángulos de `angles`.
     glm::vec3 PlacedAt(Client::Core::PixelSize screen, std::int32_t type, std::uint32_t level,
-                       const Client::Scenes::UiItemBox& box, bool always, glm::vec3& angles)
+                       const Client::Items::UiItemBox& box, bool always, glm::vec3& angles)
     {
-        const auto pass = Client::Scenes::MakeUiItemPass(screen);
-        const auto anchor = Client::Scenes::UiItemAnchor(type, level, box);
-        const auto call = Client::Scenes::UiItemCallOf(type, level);
+        const auto pass = Client::Items::MakeUiItemPass(screen);
+        const auto anchor = Client::Items::UiItemAnchor(type, level, box);
+        const auto call = Client::Items::UiItemCallOf(type, level);
         if (!pass.HasValue() || !anchor.HasValue() || !call)
         {
             ADD_FAILURE() << "sin el punto del ítem " << type;
@@ -285,7 +285,7 @@ protected:
         const auto point =
             Client::Scenes::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
         const auto placed =
-            Client::Scenes::PlaceUiItem(*call, point, always, always, worldClock, &data.items->table, angles);
+            Client::Items::PlaceUiItem(*call, point, always, always, worldClock, &data.items->table, angles);
         if (!placed.HasValue())
         {
             ADD_FAILURE() << placed.Error();
@@ -306,7 +306,7 @@ protected:
 
     std::string TextAt(std::size_t index) const
     {
-        return std::string(Client::UI::TextAt(&*data.text, index).value_or("?"));
+        return std::string(Client::Ui::TextAt(&*data.text, index).value_or("?"));
     }
 
     WorldState world;
@@ -315,7 +315,7 @@ protected:
     SpriteBatch sprites;
     Client::Tests::RecordingTextDrawer text{sprites};
     float worldClock = 0.0f;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
     Client::Tables::GameData data;
     UiModels uiModels;
     Client::Render::ModelBatch models;
@@ -607,11 +607,11 @@ TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObje
 {
     PutItem(0, 0x1806, 2, 2);
     uiModels.skeleton.bones.resize(31, uiModels.skeleton.bones[0]);
-    auto glow = std::make_unique<Client::World::FrameSprites>();
+    auto glow = std::make_unique<Client::Particles::FrameSprites>();
     special.sprites = glow.get();
     std::vector<Client::Kernel::JointRequest> requests;
     models.Begin(Client::Render::Pass3D{});
-    Client::Scenes::UiItemResources resources = UiItems(Screen640);
+    Client::Items::UiItemResources resources = UiItems(Screen640);
     itemContext.originalFrame = true;
     itemContext.poseBones = [this]() { return std::span<const Client::Math::BoneTransform>(poseCarry.bones); };
     itemContext.createJoint =
@@ -624,18 +624,18 @@ TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObje
     {
         GameHudContext context = Context();
         context.uiItems = &resources;
-        const auto drawn = Client::Scenes::DrawUiItem(
-            context, {.x = 465.0f, .y = 200.0f, .width = 40.0f, .height = 40.0f}, 0x1806, 0, 0, 0, false);
+        const auto drawn = Client::Hud::DrawUiItem(context, {.x = 465.0f, .y = 200.0f, .width = 40.0f, .height = 40.0f},
+                                                   0x1806, 0, 0, 0, false);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     }
-    Client::Scenes::CloseUiItemPass(resources);
+    Client::Items::CloseUiItemPass(resources);
     EXPECT_EQ(random.State(), unchanged.State());
     ASSERT_EQ(requests.size(), 20u);
     for (std::size_t index = 0; index < requests.size(); ++index)
     {
         EXPECT_EQ(requests[index].type, index % 2 == 0 ? 0x614 : 0x613) << index;
         EXPECT_EQ(requests[index].subtype, index % 2 == 0 ? 14 : 4) << index;
-        EXPECT_EQ(requests[index].ownerContext, Client::Scenes::UiItemLocalObject()) << index;
+        EXPECT_EQ(requests[index].ownerContext, Client::Items::UiItemLocalObject()) << index;
     }
     EXPECT_EQ(std::ranges::count_if(glow->Sprites(), [](const auto& sprite) { return sprite.alive; }), 10);
 }
@@ -803,14 +803,14 @@ TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
     const CrtRandom unchanged = random;
     {
         GameHudContext context = Context();
-        ASSERT_TRUE(Client::Scenes::DrawTheCursorItem(context).HasValue());
+        ASSERT_TRUE(Client::Hud::DrawTheCursorItem(context).HasValue());
     }
     EXPECT_EQ(random.State(), unchanged.State());
 
     world.Runtime().cursorItemCount = 1;
     const CrtRandom expected = Advanced(random, 2);
     GameHudContext context = Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheCursorItem(context).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheCursorItem(context).HasValue());
     EXPECT_EQ(random.State(), expected.State());
 }
 
@@ -819,8 +819,8 @@ TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
 // pasa por el 0x96. El 0x98 de la mezcla (aviso 2) y los otros avisos, nada.
 TEST(DialogItemTest, TheDialogAndItsWarningChooseTheItem)
 {
-    using Client::Scenes::DialogItemOf;
-    using Source = Client::Scenes::DialogItemSource;
+    using Client::Hud::DialogItemOf;
+    using Source = Client::Hud::DialogItemSource;
     EXPECT_EQ(DialogItemOf(0x98, 1), Source::Cursor);
     EXPECT_EQ(DialogItemOf(0x94, 1), Source::Cursor);
     for (const std::int32_t warning : {0, 2, 3, 4, 5, 6})
@@ -850,7 +850,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
     const CrtRandom unchanged = random;
     {
         GameHudContext context = Context();
-        ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+        ASSERT_TRUE(Client::Hud::DrawTheDialogItem(context, 2000.0f).HasValue());
     }
     EXPECT_EQ(random.State(), unchanged.State());
 
@@ -858,7 +858,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
     const CrtRandom sold = Advanced(random, 2);
     {
         GameHudContext context = Context();
-        ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+        ASSERT_TRUE(Client::Hud::DrawTheDialogItem(context, 2000.0f).HasValue());
     }
     EXPECT_EQ(random.State(), sold.State());
 
@@ -868,7 +868,7 @@ TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
     runtime.social.trade.warningKind = 0;
     const CrtRandom priced = Advanced(random, 2);
     GameHudContext context = Context();
-    ASSERT_TRUE(Client::Scenes::DrawTheDialogItem(context, 2000.0f).HasValue());
+    ASSERT_TRUE(Client::Hud::DrawTheDialogItem(context, 2000.0f).HasValue());
     EXPECT_EQ(random.State(), priced.State());
 }
 
@@ -888,11 +888,11 @@ TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
         SCOPED_TRACE(screen.width);
         models.Begin(Client::Render::Pass3D{});
         events.clear();
-        Client::Scenes::UiItemResources resources = UiItems(screen);
+        Client::Items::UiItemResources resources = UiItems(screen);
         {
             GameHudContext context = Context();
             context.uiItems = &resources;
-            const auto drawn = Client::Scenes::DrawTheDialogItem(context, 3200.0f);
+            const auto drawn = Client::Hud::DrawTheDialogItem(context, 3200.0f);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         }
 
@@ -930,7 +930,7 @@ TEST_F(GameInventoryHudTest, TheCursorItemWaitsWhileItsDialogIsOpen)
         const CrtRandom expected =
             Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws + tested.cursorRandoms);
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheHud(context);
+        const auto drawn = Client::Hud::DrawTheHud(context);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), expected.State());
     }
@@ -951,7 +951,7 @@ TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenci
         const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws);
 
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheHud(context);
+        const auto drawn = Client::Hud::DrawTheHud(context);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), expected.State());
@@ -986,15 +986,15 @@ TEST_F(GameInventoryHudTest, TheGridItemsDrawInTheUiPassInTwoMapsAndTwoResolutio
             world.Runtime().hud.uiItemAngles = {};
             models.Begin(Client::Render::Pass3D{});
             events.clear();
-            Client::Scenes::UiItemResources resources = UiItems(screen);
+            Client::Items::UiItemResources resources = UiItems(screen);
             {
-                Client::Scenes::GamePanels panels(world, random);
+                Client::Hud::GamePanels panels(world, random);
                 GameHudContext context = Context();
                 context.uiItems = &resources;
-                const auto drawn = Client::Scenes::DrawTheGridItems(context, panels.Registry());
+                const auto drawn = Client::Hud::DrawTheGridItems(context, panels.Registry());
                 ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             }
-            Client::Scenes::CloseUiItemPass(resources);
+            Client::Items::CloseUiItemPass(resources);
 
             EXPECT_EQ(random.State(), withoutModels.State());
             EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
@@ -1025,14 +1025,14 @@ TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
         SCOPED_TRACE(screen.width);
         models.Begin(Client::Render::Pass3D{});
         events.clear();
-        Client::Scenes::UiItemResources resources = UiItems(screen);
+        Client::Items::UiItemResources resources = UiItems(screen);
         {
             GameHudContext context = Context();
             context.uiItems = &resources;
-            const auto drawn = Client::Scenes::DrawTheCursorItem(context);
+            const auto drawn = Client::Hud::DrawTheCursorItem(context);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         }
-        Client::Scenes::CloseUiItemPass(resources);
+        Client::Items::CloseUiItemPass(resources);
 
         EXPECT_EQ(events, (std::vector<std::string>{"2d", "3d"}));
         glm::vec3 angles{};
@@ -1058,16 +1058,16 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
     // Un pase de la UI con `draw` y lo que dejó en el lote de los modelos.
     const auto pass = [this](const auto& draw)
     {
-        auto glow = std::make_unique<Client::World::FrameSprites>();
+        auto glow = std::make_unique<Client::Particles::FrameSprites>();
         special.sprites = glow.get();
         world.Runtime().hud.uiItemAngles = {};
         models.Begin(Client::Render::Pass3D{});
-        Client::Scenes::UiItemResources resources = UiItems(Screen640);
+        Client::Items::UiItemResources resources = UiItems(Screen640);
         GameHudContext context = Context();
         context.uiItems = &resources;
         const auto drawn = draw(context);
         EXPECT_TRUE(drawn.HasValue()) << drawn.Error();
-        Client::Scenes::CloseUiItemPass(resources);
+        Client::Items::CloseUiItemPass(resources);
         return TriangleOrigins();
     };
     for (const std::int32_t map : {0, 2})
@@ -1078,7 +1078,7 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
             SCOPED_TRACE(testing::Message() << map << " " << probe.window);
             world.Runtime().map = map;
             world.Runtime().panels.field78abb00 = probe.window;
-            const auto chips = [](GameHudContext& context) { return Client::Scenes::DrawTheEventChipItems(context); };
+            const auto chips = [](GameHudContext& context) { return Client::Events::DrawTheEventChipItems(context); };
             static_cast<void>(pass(chips));
 
             random = CrtRandom{Seed};
@@ -1089,7 +1089,7 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
             const std::vector<glm::vec3> expected = pass(
                 [&probe](GameHudContext& context) -> Client::Core::Expected<void, std::string>
                 {
-                    auto box = Client::Scenes::ItemSizeOf(context, probe.type, "test");
+                    auto box = Client::Hud::ItemSizeOf(context, probe.type, "test");
                     if (!box.HasValue())
                         return Client::Core::Unexpected(box.Error());
                     box.Value().x = 540.0f;
@@ -1097,12 +1097,12 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
                     {
                         box.Value().y = 298.0f;
                         if (auto upper =
-                                Client::Scenes::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
+                                Client::Hud::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
                             !upper.HasValue())
                             return upper;
                     }
                     box.Value().y = 333.0f;
-                    return Client::Scenes::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
+                    return Client::Hud::DrawUiItem(context, box.Value(), probe.type, probe.level, 0, 0, false);
                 });
             EXPECT_EQ(random.State(), afterChips.State());
             ASSERT_FALSE(drawn.empty());
@@ -1127,11 +1127,11 @@ TEST_F(GameInventoryHudTest, TheHudDrawsTheUiItemsBetweenItsTwoDimensionalParts)
         const CrtRandom expected = Advanced(random, HudBaseDraws + WindowDraws + Own + 2 * WorldWidthDraws + 1);
         models.Begin(Client::Render::Pass3D{});
         events.clear();
-        Client::Scenes::UiItemResources resources = UiItems(Screen640);
+        Client::Items::UiItemResources resources = UiItems(Screen640);
 
         GameHudContext context = Context();
         context.uiItems = &resources;
-        const auto drawn = Client::Scenes::DrawTheHud(context);
+        const auto drawn = Client::Hud::DrawTheHud(context);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_EQ(random.State(), expected.State());

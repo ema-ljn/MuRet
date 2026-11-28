@@ -53,6 +53,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::FramePickingContext;
+using Client::Hud::GameUiContext;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
@@ -60,8 +62,6 @@ using Client::Input::MouseButton;
 using Client::Kernel::WorldState;
 using Client::Network::Xor32Decode;
 using Client::Protocol::Items::UseItem;
-using Client::Scenes::FramePickingContext;
-using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -98,22 +98,22 @@ public:
         GameUiContext context{
             .world = world, .random = random, .input = input, .mouseX = x, .mouseY = y, .inventory = inventory};
         context.skills = skills;
-        return Client::Scenes::StepTheGameUi(context);
+        return Client::Hud::StepTheGameUi(context);
     }
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x = 0, std::int32_t y = 0)
     {
-        return Client::Scenes::StepTheGameDialogs(
+        return Client::Hud::StepTheGameDialogs(
             GameUiContext{.world = world, .random = random, .input = input, .mouseX = x, .mouseY = y});
     }
     void Click()
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
     }
-    Client::UI::GameUiState& Ui()
+    Client::Ui::GameUiState& Ui()
     {
         return world.Runtime().ui;
     }
-    Client::UI::PanelState& Panels()
+    Client::Ui::PanelState& Panels()
     {
         return world.Runtime().panels;
     }
@@ -122,7 +122,7 @@ public:
     CrtRandom random;
     InputState input;
     const Client::Tables::SkillTable* skills = nullptr;
-    const Client::Scenes::InventoryServices* inventory = nullptr;
+    const Client::Items::InventoryServices* inventory = nullptr;
 };
 
 // Los C1 06 26 que piden los pasos (CL9 hito 5).
@@ -137,7 +137,7 @@ struct UseSink
         };
     }
 
-    Client::Scenes::InventoryServices services;
+    Client::Items::InventoryServices services;
     std::vector<UseItem> sent;
 };
 
@@ -171,19 +171,19 @@ TEST(GameUiTest, EscapeOpensTheMenuWithTheTwoQueriesOfThePanelKey)
     const auto stepped = tested.Dialogs();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.random.State(), expected.State());
-    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::UI::EscapeMenuDialog);
+    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::Ui::EscapeMenuDialog);
     EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     // El latch no deja leer la misma Esc dos veces.
     tested.world.Runtime().lastSoundId.reset();
     ASSERT_TRUE(tested.Dialogs().HasValue());
-    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::UI::EscapeMenuDialog);
+    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::Ui::EscapeMenuDialog);
     EXPECT_FALSE(tested.world.Runtime().lastSoundId.has_value());
 }
 
 TEST(GameUiTest, EscapeClosesTheMenuWithoutQueries)
 {
     SteppingUi tested;
-    tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
+    tested.world.Runtime().dialogs.current = Client::Ui::EscapeMenuDialog;
     Press(tested.input, Key::Escape);
     const auto before = tested.random.State();
     ASSERT_TRUE(tested.Dialogs().HasValue());
@@ -195,7 +195,7 @@ TEST(GameUiTest, EscapeClosesTheMenuWithoutQueries)
 TEST(GameUiTest, TheMenuStepsWithTheUiBlockAndKeepsTheMouse)
 {
     SteppingUi tested;
-    tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
+    tested.world.Runtime().dialogs.current = Client::Ui::EscapeMenuDialog;
     const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
     ASSERT_TRUE(tested.Step().HasValue());
     EXPECT_EQ(tested.random.State(), expected.State());
@@ -206,7 +206,7 @@ TEST(GameUiTest, TheLastMenuButtonGoesBackToTheGame)
 {
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::EscapeMenuDialog;
+    runtime.dialogs.current = Client::Ui::EscapeMenuDialog;
     runtime.movement.mouseUpdateTime = 3;
     tested.Click();
     ASSERT_TRUE(tested.Dialogs(0x110, 185).HasValue());
@@ -241,7 +241,7 @@ TEST(GameUiTest, TheChatLogUnderTheMouseKeepsThePanelsStill)
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     ASSERT_EQ(tested.Panels().inventory, 1);
     ASSERT_TRUE(tested.Step(0, 0).HasValue());
-    EXPECT_EQ(tested.Ui().hovered, Client::UI::ChatLogId);
+    EXPECT_EQ(tested.Ui().hovered, Client::Chat::ChatLogId);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.x, -10);
     EXPECT_EQ(tested.world.Runtime().hud.chatFrame.y, 0x65);
 }
@@ -261,7 +261,7 @@ TEST(GameUiTest, InItsWindowTheChatLogMovesLeftOfTheInventoryAndTheCharacter)
 TEST(GameUiTest, TheUnownedClickTakesTheArrowsFromTheChatLog)
 {
     SteppingUi tested;
-    tested.Ui().focusedList = Client::UI::ChatLogId;
+    tested.Ui().focusedList = Client::Chat::ChatLogId;
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     EXPECT_EQ(tested.Ui().focusedList, 0);
@@ -280,12 +280,12 @@ TEST(GameUiTest, TheUnownedClickLeavesAnOpenDialogField)
         runtime.chat.input.otherInput = field == 0;
         runtime.chat.input.dialogFieldOn = field == 1;
         runtime.social.moneyField = field == 2 ? 1 : 0;
-        runtime.chat.input.focus = Client::UI::ChatFocus::Dialog;
-        tested.Ui().focusedList = Client::UI::DialogFieldId;
+        runtime.chat.input.focus = Client::Chat::ChatFocus::Dialog;
+        tested.Ui().focusedList = Client::Chat::DialogFieldId;
         tested.Click();
         ASSERT_TRUE(tested.Step(320, 240).HasValue());
-        EXPECT_EQ(tested.Ui().focusedList, Client::UI::DialogFieldId);
-        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Dialog);
+        EXPECT_EQ(tested.Ui().focusedList, Client::Chat::DialogFieldId);
+        EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Dialog);
     }
 }
 
@@ -337,7 +337,7 @@ TEST(GameUiTest, TheCrywolfResultsTakeEveryClickOnlyInCrywolf)
     EXPECT_EQ(tested.world.Runtime().crywolf.ui.byte723a44, 1);
     // Otro clic necesita soltar el botón antes (0x4b3ce3).
     tested.world.Runtime().map = 2;
-    Client::Scenes::LatchTheLeftButton(tested.world.Runtime().movement, false, false);
+    Client::Hud::LatchTheLeftButton(tested.world.Runtime().movement, false, false);
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 310).HasValue());
     EXPECT_TRUE(tested.world.Runtime().movement.leftHeld);
@@ -481,7 +481,7 @@ TEST(GameUiTest, TheRightClickOnAQuickSlotUsesItsItem)
 TEST(GameUiTest, ADialogClosesTheSlotGateAfterItsTwoQueries)
 {
     SteppingUi tested;
-    tested.world.Runtime().dialogs.current = Client::UI::EscapeMenuDialog;
+    tested.world.Runtime().dialogs.current = Client::Ui::EscapeMenuDialog;
     Press(tested.input, Key::Q);
     Press(tested.input, Key::I);
     const CrtRandom expected = Advanced(tested.random, BaseStepRandoms);
@@ -651,7 +651,7 @@ TEST(GameUiTest, TheDigitsChooseTheSkillWithThatKey)
     GameUiContext context{
         .world = tested->world, .random = tested->random, .input = tested->input, .mouseX = 320, .mouseY = 100};
     context.chosenSlot = std::uint8_t{2};
-    const auto stepped = Client::Scenes::StepTheGameUi(context);
+    const auto stepped = Client::Hud::StepTheGameUi(context);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_EQ(tested->world.Actors()[0].skillIndex, 3);
@@ -795,31 +795,31 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
         else if (blocked == 2)
         {
             field.opened = 1;
-            field.flags = Client::UI::PanelDialogTextField;
+            field.flags = Client::Ui::PanelDialogTextField;
         }
         else
         {
-            constexpr std::array Focuses{Client::UI::ChatFocus::Message, Client::UI::ChatFocus::Whisper,
-                                         Client::UI::ChatFocus::OldWindow, Client::UI::ChatFocus::Dialog,
-                                         Client::UI::ChatFocus::NumberField};
+            constexpr std::array Focuses{Client::Chat::ChatFocus::Message, Client::Chat::ChatFocus::Whisper,
+                                         Client::Chat::ChatFocus::OldWindow, Client::Chat::ChatFocus::Dialog,
+                                         Client::Chat::ChatFocus::NumberField};
             runtime.chat.input.focus = Focuses[static_cast<std::size_t>(blocked - 3)];
         }
         Press(tested->input, Key::Tab);
         GameUiContext context{.world = tested->world, .random = tested->random, .input = tested->input};
-        EXPECT_TRUE(Client::Scenes::GameTextInputBusy(runtime));
-        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        EXPECT_TRUE(Client::Hud::GameTextInputBusy(runtime));
+        ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(context).HasValue());
         EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 1);
         EXPECT_EQ(runtime.ui.keyLatches[9], 0);
 
         runtime.ui.chatOpen = false;
         runtime.chat.input.dialogFieldOn = false;
-        runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+        runtime.chat.input.focus = Client::Chat::ChatFocus::Game;
         field.opened = 0;
-        EXPECT_FALSE(Client::Scenes::GameTextInputBusy(runtime));
-        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        EXPECT_FALSE(Client::Hud::GameTextInputBusy(runtime));
+        ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(context).HasValue());
         EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
         EXPECT_EQ(runtime.ui.keyLatches[9], 1);
-        ASSERT_TRUE(Client::Scenes::StepTheBattlePanel(context).HasValue());
+        ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(context).HasValue());
         EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
     }
 }
@@ -830,12 +830,12 @@ TEST(GameUiTest, APanelDialogWithoutTextStillAllowsTheSiegeTab)
     auto& runtime = tested->world.Runtime();
     runtime.castleSiege.siegePanelKind = std::uint8_t{0};
     runtime.panels.delegated.panelDialog.opened = 1;
-    runtime.panels.delegated.panelDialog.flags = Client::UI::PanelDialogTimed;
+    runtime.panels.delegated.panelDialog.flags = Client::Ui::PanelDialogTimed;
     Press(tested->input, Key::Tab);
-    EXPECT_FALSE(Client::Scenes::GameTextInputBusy(runtime));
-    ASSERT_TRUE(
-        Client::Scenes::StepTheBattlePanel({.world = tested->world, .random = tested->random, .input = tested->input})
-            .HasValue());
+    EXPECT_FALSE(Client::Hud::GameTextInputBusy(runtime));
+    ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(
+                    {.world = tested->world, .random = tested->random, .input = tested->input})
+                    .HasValue());
     EXPECT_EQ(runtime.castleSiege.siegePanel.visible, 0);
 }
 
@@ -871,17 +871,17 @@ TEST(GameUiTest, TheSiegePanelPagesAndFades)
 
 TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 {
-    Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true);
+    Client::Movement::GameMovementState state;
+    Client::Hud::LatchTheLeftButton(state, true, true);
     EXPECT_TRUE(state.pendingClick);
     EXPECT_TRUE(state.leftHeld);
     state.pendingClick = false;
     state.leftHeld = false;
     // El mismo botón abajo, sin otro WM_LBUTTONDOWN: nada vuelve.
-    Client::Scenes::LatchTheLeftButton(state, false, true);
+    Client::Hud::LatchTheLeftButton(state, false, true);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
-    Client::Scenes::LatchTheLeftButton(state, false, false);
+    Client::Hud::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.leftHeld);
 }
 
@@ -889,9 +889,9 @@ TEST(GameUiTest, TheClickLatchKeepsTheEdgeUntilSomeoneUsesIt)
 TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
 {
     Client::Input::InputState input;
-    Client::Scenes::GameMovementState state;
+    Client::Movement::GameMovementState state;
     input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonDown, .button = Client::Input::MouseButton::Left});
-    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    Client::Hud::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
     ASSERT_TRUE(state.leftHeld);
     ASSERT_TRUE(state.previousLeftDown);
     state.leftHeld = false;
@@ -902,7 +902,7 @@ TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
     ASSERT_TRUE(input.MouseMessages().leftPress);
     ASSERT_TRUE(input.MouseMessages().leftDown);
 
-    Client::Scenes::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+    Client::Hud::LatchTheLeftButton(state, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
 
     EXPECT_TRUE(state.leftHeld);
     EXPECT_TRUE(state.pendingClick);
@@ -912,11 +912,11 @@ TEST(GameUiTest, AnUpDownBatchRearmsAHeldFlagConsumedByTheUi)
 // queda.
 TEST(GameUiTest, TheReleasedButtonDropsTheEdge)
 {
-    Client::Scenes::GameMovementState state;
-    Client::Scenes::LatchTheLeftButton(state, true, true);
-    Client::Scenes::LatchTheLeftButton(state, false, false);
+    Client::Movement::GameMovementState state;
+    Client::Hud::LatchTheLeftButton(state, true, true);
+    Client::Hud::LatchTheLeftButton(state, false, false);
     EXPECT_FALSE(state.pendingClick);
-    Client::Scenes::LatchTheLeftButton(state, true, false);
+    Client::Hud::LatchTheLeftButton(state, true, false);
     EXPECT_FALSE(state.pendingClick);
     EXPECT_FALSE(state.leftHeld);
 }
@@ -929,10 +929,10 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
     using Client::Input::InputEvent;
     using Client::Input::MouseButton;
     Client::Input::InputState input;
-    Client::Scenes::GameMovementState state;
-    const auto latch = [&input](Client::Scenes::GameMovementState& latched)
+    Client::Movement::GameMovementState state;
+    const auto latch = [&input](Client::Movement::GameMovementState& latched)
     {
-        Client::Scenes::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
+        Client::Hud::LatchTheLeftButton(latched, input.MouseMessages().leftPress, input.MouseMessages().leftDown);
         input.ConsumeEdges();
     };
     input.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
@@ -963,8 +963,8 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
     batch.Apply({.kind = InputEvent::Kind::ButtonDown, .button = MouseButton::Left});
     batch.Apply({.kind = InputEvent::Kind::ButtonUp, .button = MouseButton::Left});
     batch.Apply({.kind = InputEvent::Kind::ButtonDoubleClick, .button = MouseButton::Left});
-    Client::Scenes::GameMovementState fast;
-    Client::Scenes::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
+    Client::Movement::GameMovementState fast;
+    Client::Hud::LatchTheLeftButton(fast, batch.MouseMessages().leftPress, batch.MouseMessages().leftDown);
     EXPECT_FALSE(fast.leftHeld);
     EXPECT_FALSE(fast.pendingClick);
 }
@@ -973,22 +973,22 @@ TEST(GameUiTest, AHeldDoubleClickLeavesTheButtonUp)
 // lo apaga (0x4b3cea, 0x4b344d y 0x4b3947).
 TEST(GameUiTest, TheReleaseLatchLastsWhileTheMouseStaysStill)
 {
-    Client::Scenes::GameMovementState state;
+    Client::Movement::GameMovementState state;
     // Apretado y soltado en el mismo paso: el último mensaje es el soltado.
-    Client::Scenes::LatchTheLeftRelease(state, true, true, false, 10, 20);
+    Client::Hud::LatchTheLeftRelease(state, true, true, false, 10, 20);
     EXPECT_TRUE(state.releasedClick);
     EXPECT_EQ(state.releaseX, 10);
     EXPECT_EQ(state.releaseY, 20);
-    Client::Scenes::LatchTheLeftRelease(state, false, false, false, 10, 20);
+    Client::Hud::LatchTheLeftRelease(state, false, false, false, 10, 20);
     EXPECT_TRUE(state.releasedClick);
-    Client::Scenes::LatchTheLeftRelease(state, false, false, false, 11, 20);
+    Client::Hud::LatchTheLeftRelease(state, false, false, false, 11, 20);
     EXPECT_FALSE(state.releasedClick);
-    Client::Scenes::LatchTheLeftRelease(state, false, true, false, 5, 5);
+    Client::Hud::LatchTheLeftRelease(state, false, true, false, 5, 5);
     EXPECT_TRUE(state.releasedClick);
-    Client::Scenes::LatchTheLeftRelease(state, true, false, true, 5, 5);
+    Client::Hud::LatchTheLeftRelease(state, true, false, true, 5, 5);
     EXPECT_FALSE(state.releasedClick);
     // Soltado y vuelto a apretar: el último es el apretón.
-    Client::Scenes::LatchTheLeftRelease(state, true, true, true, 5, 5);
+    Client::Hud::LatchTheLeftRelease(state, true, true, true, 5, 5);
     EXPECT_FALSE(state.releasedClick);
 }
 
@@ -997,12 +997,12 @@ class PickingFrame
 public:
     Client::Core::Expected<void, std::string> Pick(bool alt = false)
     {
-        return Client::Scenes::PickInTheFrame(FramePickingContext{.world = world,
-                                                                  .random = random,
-                                                                  .ownRecordDepth = world.Runtime().ownRecordDepth,
-                                                                  .targets = world.Runtime().selectedTargets,
-                                                                  .altDown = alt,
-                                                                  .cameraPosition = {}});
+        return Client::Hud::PickInTheFrame(FramePickingContext{.world = world,
+                                                               .random = random,
+                                                               .ownRecordDepth = world.Runtime().ownRecordDepth,
+                                                               .targets = world.Runtime().selectedTargets,
+                                                               .altDown = alt,
+                                                               .cameraPosition = {}});
     }
     WorldState world;
     CrtRandom random;
@@ -1071,7 +1071,7 @@ TEST(GameUiTest, PageUpAndPageDownScrollTheChatLog)
     auto& log = tested.world.Runtime().chat.log;
     tested.Ui().chatModes.placement = 1;
     for (int i = 0; i < 20; ++i)
-        log.entries.push_back(Client::UI::ChatEntry{.name = "", .text = "x", .type = 0});
+        log.entries.push_back(Client::Chat::ChatEntry{.name = "", .text = "x", .type = 0});
     Press(tested.input, Key::PageUp);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(log.scroll, log.rows);
@@ -1087,8 +1087,8 @@ TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
 {
     SteppingUi tested;
     auto& input = tested.world.Runtime().chat.input;
-    Client::UI::ShowTheChatFields(input, 0);
-    Client::UI::RememberTheMessage(input, "dicho");
+    Client::Chat::ShowTheChatFields(input, 0);
+    Client::Chat::RememberTheMessage(input, "dicho");
     Press(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(input.message.text.Value(), "dicho");
@@ -1096,10 +1096,10 @@ TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
 
     Release(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    Client::UI::ShowTheChatFields(input, 3);
+    Client::Chat::ShowTheChatFields(input, 3);
     Press(tested.input, Key::Up);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    EXPECT_EQ(input.whisperNameAt, Client::UI::FirstWhisperNameSlot - 1);
+    EXPECT_EQ(input.whisperNameAt, Client::Chat::FirstWhisperNameSlot - 1);
 }
 
 // Con el chat abierto, los números son del EDIT y no eligen la skill.
@@ -1107,7 +1107,7 @@ TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
 {
     SteppingUi tested;
     tested.Ui().chatOpen = true;
-    Client::UI::ShowTheChatFields(tested.world.Runtime().chat.input, 0);
+    Client::Chat::ShowTheChatFields(tested.world.Runtime().chat.input, 0);
     Press(tested.input, Key::Digit1);
     const auto stepped = tested.Step(320, 100);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -1120,7 +1120,7 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
     SteppingUi tested;
     const auto keys = [&tested]
     {
-        return Client::Scenes::StepTheFunctionKeys(GameUiContext{
+        return Client::Hud::StepTheFunctionKeys(GameUiContext{
             .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
     };
     ASSERT_TRUE(keys().HasValue());
@@ -1153,7 +1153,7 @@ TEST(GameUiTest, TheF1KeyWalksTheHelps)
     std::int32_t& mode = tested.world.Runtime().panels.overlayMode;
     const auto keys = [&tested]
     {
-        return Client::Scenes::StepTheFunctionKeys(GameUiContext{
+        return Client::Hud::StepTheFunctionKeys(GameUiContext{
             .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
     };
     const auto f1 = [&]
@@ -1191,7 +1191,7 @@ TEST(GameUiTest, TheFunctionKeysLeaveThePrintScreenKey)
 {
     SteppingUi tested;
     Press(tested.input, Key::PrintScreen);
-    const auto keys = Client::Scenes::StepTheFunctionKeys(GameUiContext{
+    const auto keys = Client::Hud::StepTheFunctionKeys(GameUiContext{
         .world = tested.world, .random = tested.random, .input = tested.input, .mouseX = 320, .mouseY = 100});
     ASSERT_TRUE(keys.HasValue()) << keys.Error();
     EXPECT_EQ(tested.Ui().keyLatches[0x2c], 0);
@@ -1222,25 +1222,25 @@ TEST(GameUiTest, AltAndADigitSayTheMacro)
     const auto texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
     const TypedLetters letters;
     std::vector<Client::Protocol::Outgoing> sent;
-    const Client::Scenes::GameChatContext chat{.world = tested.world,
-                                               .random = tested.random,
-                                               .texts = &texts,
-                                               .measure = &letters,
-                                               .send = [&sent](Client::Protocol::Outgoing packet)
-                                               { sent.push_back(std::move(packet)); }};
+    const Client::Chat::GameChatContext chat{.world = tested.world,
+                                             .random = tested.random,
+                                             .texts = &texts,
+                                             .measure = &letters,
+                                             .send = [&sent](Client::Protocol::Outgoing packet)
+                                             { sent.push_back(std::move(packet)); }};
     const auto step = [&]
     {
-        return Client::Scenes::StepTheGameUi(GameUiContext{.world = tested.world,
-                                                           .random = tested.random,
-                                                           .input = tested.input,
-                                                           .mouseX = 320,
-                                                           .mouseY = 100,
-                                                           .chat = &chat});
+        return Client::Hud::StepTheGameUi(GameUiContext{.world = tested.world,
+                                                        .random = tested.random,
+                                                        .input = tested.input,
+                                                        .mouseX = 320,
+                                                        .mouseY = 100,
+                                                        .chat = &chat});
     };
     const auto said = step();
     ASSERT_TRUE(said.HasValue()) << said.Error();
     EXPECT_EQ(sent.size(), 1u);
-    EXPECT_EQ(tested.world.Runtime().hud.macroTime, Client::UI::MacroLockSteps);
+    EXPECT_EQ(tested.world.Runtime().hud.macroTime, Client::Chat::MacroLockSteps);
     ASSERT_TRUE(step().HasValue());
     EXPECT_EQ(sent.size(), 1u);
 }
@@ -1249,16 +1249,16 @@ TEST(GameUiTest, AltAndADigitSayTheMacro)
 std::int32_t OpenABox(WorldState& world, std::int32_t x, std::int32_t y)
 {
     const TypedLetters letters;
-    const auto opened = Client::UI::CreateTheOldWindow(
+    const auto opened = Client::Ui::CreateTheOldWindow(
         world.Runtime().oldWindows,
-        Client::UI::OldWindowRequest{.kind = Client::UI::QuestionCase,
+        Client::Ui::OldWindowRequest{.kind = Client::Ui::QuestionCase,
                                      .x = x,
                                      .y = y,
                                      .data = "Seguro?",
                                      .aux = 0,
-                                     .flags = Client::UI::KeepPlaceFlag},
-        Client::UI::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
-        Client::UI::OldWindowMeasure{
+                                     .flags = Client::Ui::KeepPlaceFlag},
+        Client::Ui::OldWindowTexts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"},
+        Client::Ui::OldWindowMeasure{
             .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}});
     EXPECT_TRUE(opened.HasValue()) << opened.Error();
     return opened.HasValue() ? opened.Value() : 0;
@@ -1269,13 +1269,13 @@ void OpenTheFriendsWindowIn(WorldState& world)
 {
     const TypedLetters letters;
     auto& runtime = world.Runtime();
-    const Client::UI::OldWindowTexts texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
-    const Client::UI::OldWindowMeasure measure{
+    const Client::Ui::OldWindowTexts texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
+    const Client::Ui::OldWindowMeasure measure{
         .measure = letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
-    const Client::UI::OldWindowStepView view{.texts = &texts, .measure = &measure};
-    const auto opened =
-        Client::UI::OpenTheFriendsWindow(runtime.oldWindows, Client::UI::FriendsWindowX, Client::UI::FriendsWindowY,
-                                         Client::Scenes::OldWindowGlobalsOf(runtime), view);
+    const Client::Ui::OldWindowStepView view{.texts = &texts, .measure = &measure};
+    const auto opened = Client::Messenger::OpenTheFriendsWindow(runtime.oldWindows, Client::Messenger::FriendsWindowX,
+                                                                Client::Messenger::FriendsWindowY,
+                                                                Client::Hud::OldWindowGlobalsOf(runtime), view);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());
 }
@@ -1289,7 +1289,7 @@ TEST(GameUiTest, TheOldWindowsTakeTheMouseBeforeTheChatLog)
     // El primer paso deja el registro en su esquina (0x45a9d0(−10, 0x65)).
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     ASSERT_TRUE(tested.Step(2, 30).HasValue());
-    ASSERT_EQ(tested.Ui().hovered, Client::UI::ChatLogId);
+    ASSERT_EQ(tested.Ui().hovered, Client::Chat::ChatLogId);
 
     const std::int32_t box = OpenABox(tested.world, 0, 0);
     tested.Click();
@@ -1307,11 +1307,11 @@ TEST(GameUiTest, TheUnownedClickTakesTheFocusFromTheOldWindows)
     auto& runtime = tested.world.Runtime();
     const std::int32_t box = OpenABox(tested.world, 0, 0);
     runtime.oldWindows.focus = box;
-    runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+    runtime.chat.input.focus = Client::Chat::ChatFocus::Message;
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     EXPECT_EQ(runtime.oldWindows.focus, 0);
-    EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+    EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
 }
 
 // Q-C446: Esc lo lee 0x623e70 con la ventana de amigos (el panel 1) cerrada, y abre el menú; con ella abierta, llega a
@@ -1334,15 +1334,15 @@ TEST(GameUiTest, EscapeReachesTheOldWindowsOnlyWithTheFriendsWindowOpen)
         ASSERT_TRUE(dialogs.HasValue()) << dialogs.Error();
         // La de amigos mide el texto de su botón del estado en cada paso (0x4a3030).
         const TypedLetters letters;
-        const auto stepped = Client::Scenes::StepTheGameUi(GameUiContext{.world = tested.world,
-                                                                         .random = tested.random,
-                                                                         .input = tested.input,
-                                                                         .mouseX = 639,
-                                                                         .mouseY = 300,
-                                                                         .measure = &letters});
+        const auto stepped = Client::Hud::StepTheGameUi(GameUiContext{.world = tested.world,
+                                                                      .random = tested.random,
+                                                                      .input = tested.input,
+                                                                      .mouseX = 639,
+                                                                      .mouseY = 300,
+                                                                      .measure = &letters});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(runtime.oldWindows.windows.contains(box), !friendsOpen);
-        EXPECT_EQ(runtime.dialogs.current == Client::UI::EscapeMenuDialog, !friendsOpen);
+        EXPECT_EQ(runtime.dialogs.current == Client::Ui::EscapeMenuDialog, !friendsOpen);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 }
@@ -1353,10 +1353,10 @@ TEST(GameUiTest, F5IsReadOnlyWithTheKeyboardInTheGame)
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
     Press(tested.input, Key::F5);
-    runtime.chat.input.focus = Client::UI::ChatFocus::Message;
+    runtime.chat.input.focus = Client::Chat::ChatFocus::Message;
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(tested.Ui().keyLatches[0x74], 0);
-    runtime.chat.input.focus = Client::UI::ChatFocus::Game;
+    runtime.chat.input.focus = Client::Chat::ChatFocus::Game;
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(tested.Ui().keyLatches[0x74], 1);
 }
@@ -1378,7 +1378,7 @@ TEST(GameUiTest, TheFirstF6LeavesF6Stuck)
     const std::int32_t box = OpenABox(tested.world, 300, 0);
     Press(tested.input, Key::F6);
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
-    EXPECT_EQ(runtime.oldWindows.windows.at(box).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(runtime.oldWindows.windows.at(box).base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(tested.Ui().keyLatches[0x75], 1);
 }
 

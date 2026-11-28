@@ -6,11 +6,15 @@
 
 #include <string>
 
-// La skill que pega a varios (CL9 hito 2): el 1A, 0x4cedd0. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
-// "La skill que pega a varios".
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+// La skill que pega a varios (CL9 hito 2): el 1A, 0x4cedd0. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
+// "La skill que pega a varios".
+namespace Client::Combat
+{
 
 // 0x4cedd0: el que pega es el de la clave (0x5110d0, o el 400 fantasma: Q-C778) y queda en [0x5767964]; su brillo de
 // la mano (0x53d810, RaiseTheHandShine), el sonido 0x76 (0x41ed10, en lastSoundId), la acción 0x96 (0x4ea030, con las
@@ -23,5 +27,5 @@ struct WorldEntryResources;
 // con un golpe que corta, corta con la dirección.
 [[nodiscard]] Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::MagicAttackCount& attack,
                                                                       Kernel::PlayerKey player,
-                                                                      const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                      const Scenes::WorldEntryResources& resources);
+} // namespace Client::Combat

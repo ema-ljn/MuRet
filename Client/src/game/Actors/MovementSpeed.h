@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // 06-render-escenas-y-ui § Caminar, velocidad 0x508940 completa: valor y estado persistente.
-namespace Client::GameLogic
+namespace Client::Actors
 {
 struct MovementSpeedInput
 {
@@ -31,4 +31,4 @@ struct MovementSpeedSharedState
 // ABI, slot de argumento, status x87, fallos ni aliases arbitrarios del original.
 [[nodiscard]] float UpdateMovementSpeed(std::uint8_t& run, MovementSpeedSharedState& shared,
                                         const MovementSpeedInput& input);
-} // namespace Client::GameLogic
+} // namespace Client::Actors

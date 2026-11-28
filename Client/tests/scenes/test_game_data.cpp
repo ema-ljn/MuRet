@@ -163,7 +163,7 @@ TEST(GameDataTest, ReadsTheMacros)
 
     const auto without = LoadGameData(folder.Path());
     ASSERT_TRUE(without.HasValue()) << without.Error();
-    EXPECT_EQ(without.Value().macros, Client::UI::Macros{});
+    EXPECT_EQ(without.Value().macros, Client::Chat::Macros{});
 
     const std::string macros = "primera\r\nsegunda\r\n";
     WriteSceneFile(folder.Path(), "MACRO.TXT", std::as_bytes(std::span(macros)));
@@ -179,7 +179,7 @@ TEST(GameDataTest, AnOverflowingMacroIsNamed)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
-    const std::string macros(Client::UI::MacroSlotBytes, 'x');
+    const std::string macros(Client::Chat::MacroSlotBytes, 'x');
     WriteSceneFile(folder.Path(), "Macro.txt", std::as_bytes(std::span(macros)));
 
     const auto data = LoadGameData(folder.Path());
@@ -242,10 +242,10 @@ TEST(GameDataTest, ReadsTheNpcNames)
     const auto without = LoadGameData(folder.Path());
     ASSERT_TRUE(without.HasValue()) << without.Error();
     EXPECT_TRUE(without.Value().npcNames.empty());
-    const Client::Scenes::NpcNameTable empty = Client::Scenes::NpcNameTableOf(without.Value().npcNames);
-    EXPECT_EQ(empty.size(), Client::Scenes::NpcNameCount);
-    EXPECT_EQ(Client::Scenes::NpcNameOf(empty, 0), "");
-    EXPECT_FALSE(Client::Scenes::NpcNameOf(empty, 7).has_value());
+    const Client::Monsters::NpcNameTable empty = Client::Monsters::NpcNameTableOf(without.Value().npcNames);
+    EXPECT_EQ(empty.size(), Client::Monsters::NpcNameCount);
+    EXPECT_EQ(Client::Monsters::NpcNameOf(empty, 0), "");
+    EXPECT_FALSE(Client::Monsters::NpcNameOf(empty, 7).has_value());
 
     const auto write = [&folder](std::string_view text)
     {
@@ -256,12 +256,12 @@ TEST(GameDataTest, ReadsTheNpcNames)
     const auto data = LoadGameData(folder.Path());
     ASSERT_TRUE(data.HasValue()) << data.Error();
     ASSERT_EQ(data.Value().npcNames.size(), 2u);
-    const Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf(data.Value().npcNames);
-    ASSERT_EQ(table.size(), Client::Scenes::NpcNameCount);
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 7), "Guardia inventado");
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 9), "Elfa inventada");
+    const Client::Monsters::NpcNameTable table = Client::Monsters::NpcNameTableOf(data.Value().npcNames);
+    ASSERT_EQ(table.size(), Client::Monsters::NpcNameCount);
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 7), "Guardia inventado");
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 9), "Elfa inventada");
     EXPECT_EQ(table[2].type, 0);
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 0), "");
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 0), "");
 
     write(" 7 1 \"Guardia inventado\" // sin fin de línea");
     const auto hanging = LoadGameData(folder.Path());
@@ -274,21 +274,21 @@ TEST(GameDataTest, ReadsTheNpcNames)
 // the last record, up to the end of the table. The names are made up.
 TEST(GameDataTest, ANameWithoutItsZeroGoesOnInTheNextRecord)
 {
-    Client::Scenes::NpcNameTable table = Client::Scenes::NpcNameTableOf({});
-    const std::string full(Client::Scenes::NpcNameBytes, 'a');
+    Client::Monsters::NpcNameTable table = Client::Monsters::NpcNameTableOf({});
+    const std::string full(Client::Monsters::NpcNameBytes, 'a');
     table[3].type = 5;
     std::ranges::copy(full, table[3].name.begin());
     table[4].type = 0x6362;
     std::ranges::copy(std::string_view("def"), table[4].name.begin());
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "bcdef");
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 5), full + "bcdef");
     table[4].type = 0x0062;
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full + "b");
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 5), full + "b");
     table[4].type = 0x6200;
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 5), full);
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 5), full);
 
     table.back().type = 8;
     std::ranges::fill(table.back().name, 'z');
-    EXPECT_EQ(Client::Scenes::NpcNameOf(table, 8), std::string(Client::Scenes::NpcNameBytes, 'z'));
+    EXPECT_EQ(Client::Monsters::NpcNameOf(table, 8), std::string(Client::Monsters::NpcNameBytes, 'z'));
 }
 
 // One with another sum (or the other file's) is an error that names it, like the original's "File corrupted", which

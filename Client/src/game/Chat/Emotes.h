@@ -9,7 +9,7 @@
 
 // La búsqueda de los emotes en lo dicho (CL9 hito 1; 06 § El chat, "El emote"): 0x576eb0 hasta el salto a su caso.
 // Lo que hace cada caso es Actors::DoTheEmote. *Estático*.
-namespace Client::UI
+namespace Client::Chat
 {
 // 0x576eb0: los textos de Text.bmd que busca, del 270 al 348 y el 783.
 inline constexpr std::size_t FirstEmoteText = 270;
@@ -23,4 +23,4 @@ inline constexpr std::size_t EmoteTriggerCount = 95;
 // el 317 y el 348 se prueban al final, cada uno solo. Un texto que Text.bmd no tiene queda vacío, y un texto vacío
 // 0x576960 lo encuentra en cualquier mensaje, como el original con sus textos en cero. Sin ninguno, vacío.
 [[nodiscard]] std::optional<Actors::EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::string_view said);
-} // namespace Client::UI
+} // namespace Client::Chat

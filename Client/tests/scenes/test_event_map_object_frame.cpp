@@ -29,10 +29,10 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Math::BoneTransform;
-using Client::Scenes::GameObjectPass;
-using Client::World::Particle;
-using Client::World::Particles;
-using Client::World::WorldObject;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 using Client::Math::F32;
 
@@ -65,7 +65,7 @@ WorldObject Object(std::int16_t type)
 
 void ExpectSameParticles(const Particles& actual, const Particles& expected)
 {
-    for (std::size_t k = 0; k < Client::World::ParticleCount; ++k)
+    for (std::size_t k = 0; k < Client::Particles::ParticleCount; ++k)
     {
         const Particle& a = actual.All()[k];
         const Particle& e = expected.All()[k];
@@ -100,7 +100,7 @@ TEST(EventMapObjectFrameTest, TheDevilSquareRainObjectDropsOnItsBones)
         Particles particles;
         CrtRandom random(seed);
         const GameObjectPass pass{.map = 9, .random = &random, .particles = &particles, .retainedPose = &pose};
-        ASSERT_TRUE(Client::Scenes::StepDevilSquareObjectFrame(object, pass).HasValue());
+        ASSERT_TRUE(Client::WorldObjects::StepDevilSquareObjectFrame(object, pass).HasValue());
 
         Particles expected;
         CrtRandom draws(seed);
@@ -130,9 +130,9 @@ TEST(EventMapObjectFrameTest, TheDevilSquareRainObjectDropsOnItsBones)
     CrtRandom random(7);
     Particles particles;
     const GameObjectPass quiet{.map = 9, .random = &random, .particles = &particles, .retainedPose = &pose};
-    ASSERT_TRUE(Client::Scenes::StepDevilSquareObjectFrame(Object(3), quiet).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepDevilSquareObjectFrame(Object(3), quiet).HasValue());
     EXPECT_EQ(random.State(), CrtRandom(7).State());
-    const auto cut = Client::Scenes::StepDevilSquareObjectFrame(Object(2), GameObjectPass{.map = 9});
+    const auto cut = Client::WorldObjects::StepDevilSquareObjectFrame(Object(2), GameObjectPass{.map = 9});
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603e0e"), std::string::npos) << cut.Error();
 }
@@ -143,11 +143,11 @@ TEST(EventMapObjectFrameTest, TheBloodCastleStatueGlowsOnSevenBones)
 {
     const auto pose = Pose(12);
     WorldObject object = Object(0xb);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     CrtRandom random(7);
     const GameObjectPass pass{
         .map = 11, .random = &random, .worldClock = 98765.0f, .sprites = &sprites, .retainedPose = &pose};
-    ASSERT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(object, pass).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepBloodCastleObjectFrame(object, pass).HasValue());
     const double phase = (30.0 * 20.0 + 98765.0) * static_cast<double>(std::bit_cast<float>(0x3a83126fu));
     const auto wave = Client::Math::Detail::SineSumPC53(phase, 1.0);
     ASSERT_TRUE(wave.has_value());
@@ -174,9 +174,9 @@ TEST(EventMapObjectFrameTest, TheBloodCastleOrbPulsesOnItsThirdBone)
 {
     const auto pose = Pose(4);
     WorldObject object = Object(0xd);
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     const GameObjectPass pass{.map = 14, .worldClock = 4321.0f, .sprites = &sprites, .retainedPose = &pose};
-    ASSERT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(object, pass).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepBloodCastleObjectFrame(object, pass).HasValue());
     const auto wave = Client::Math::Detail::SineProductPC53(
         4321.0 * static_cast<double>(std::bit_cast<float>(0x3a83126fu)), std::bit_cast<float>(0x3e99999au));
     ASSERT_TRUE(wave.has_value());
@@ -208,11 +208,11 @@ TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
             CrtRandom random(seed);
             const float clock = 2500.0f;
             const GameObjectPass pass{.map = 17, .random = &random, .worldClock = clock, .particles = &particles};
-            ASSERT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(object, pass).HasValue());
+            ASSERT_TRUE(Client::WorldObjects::StepBloodCastleObjectFrame(object, pass).HasValue());
 
             Particles expected;
             CrtRandom draws(seed);
-            Client::World::PortableParticleTrigonometry trigonometry;
+            Client::Particles::PortableParticleTrigonometry trigonometry;
             const glm::vec3& at = object.transform.position;
             const glm::vec3& angles = object.transform.angles;
             float turn = phase;
@@ -227,8 +227,8 @@ TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
                 if (fires)
                 {
                     sawFlame = true;
-                    make(Client::World::TorchFlameParticle, 0);
-                    make(Client::World::TorchSparkParticle, 0);
+                    make(Client::Particles::TorchFlameParticle, 0);
+                    make(Client::Particles::TorchSparkParticle, 0);
                 }
             }
             if (draws.Next() % 2 == 0)
@@ -238,12 +238,12 @@ TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
                 if (smokes)
                 {
                     sawSmoke = true;
-                    make(Client::World::CloudParticle, 6);
-                    make(Client::World::TorchSparkParticle, 1);
+                    make(Client::Particles::CloudParticle, 6);
+                    make(Client::Particles::TorchSparkParticle, 1);
                     const glm::vec3 orbLight{1.0f, std::bit_cast<float>(0x3f4ccccdu),
                                              std::bit_cast<float>(0x3f4ccccdu)};
                     ASSERT_TRUE(expected
-                                    .CreateChecked(Client::World::OrbitParticle, at, angles, orbLight, 4,
+                                    .CreateChecked(Client::Particles::OrbitParticle, at, angles, orbLight, 4,
                                                    std::bit_cast<float>(0x3e428f5cu), std::cref(clock), draws, 0,
                                                    trigonometry)
                                     .HasValue());
@@ -262,22 +262,22 @@ TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
 TEST(EventMapObjectFrameTest, TheBloodCastleObjectsCutWithoutTheirBindings)
 {
     WorldObject statue = Object(0xb);
-    const auto noPose = Client::Scenes::StepBloodCastleObjectFrame(statue, GameObjectPass{.map = 11});
+    const auto noPose = Client::WorldObjects::StepBloodCastleObjectFrame(statue, GameObjectPass{.map = 11});
     ASSERT_FALSE(noPose.HasValue());
     EXPECT_NE(noPose.Error().find("0x4ec110"), std::string::npos) << noPose.Error();
 
     const auto pose = Pose(4);
     WorldObject orb = Object(0xd);
     const auto noSprites =
-        Client::Scenes::StepBloodCastleObjectFrame(orb, GameObjectPass{.map = 11, .retainedPose = &pose});
+        Client::WorldObjects::StepBloodCastleObjectFrame(orb, GameObjectPass{.map = 11, .retainedPose = &pose});
     ASSERT_FALSE(noSprites.HasValue());
     EXPECT_NE(noSprites.Error().find("0x60432b"), std::string::npos) << noSprites.Error();
 
     WorldObject torch = Object(0x25);
-    const auto noRandom = Client::Scenes::StepBloodCastleObjectFrame(torch, GameObjectPass{.map = 11});
+    const auto noRandom = Client::WorldObjects::StepBloodCastleObjectFrame(torch, GameObjectPass{.map = 11});
     ASSERT_FALSE(noRandom.HasValue());
     EXPECT_NE(noRandom.Error().find("0x604186"), std::string::npos) << noRandom.Error();
 
     WorldObject other = Object(0x30);
-    EXPECT_TRUE(Client::Scenes::StepBloodCastleObjectFrame(other, GameObjectPass{.map = 11}).HasValue());
+    EXPECT_TRUE(Client::WorldObjects::StepBloodCastleObjectFrame(other, GameObjectPass{.map = 11}).HasValue());
 }

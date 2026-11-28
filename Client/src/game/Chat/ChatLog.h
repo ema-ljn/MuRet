@@ -21,7 +21,7 @@
 // std::deque de 0x11c bytes, la más nueva adelante (push_front). Lo que leen sus funciones de afuera (el lugar del
 // registro, 0x6c7a88, y F2, 0x6c8dd1) llega en ChatModes; lo que escriben el dibujo y el paso y dura (el lugar, el
 // tamaño, la barra, los botones y el parpadeo), en ChatLogFrame, que el juego copia en sus dibujos intermedios.
-namespace Client::UI
+namespace Client::Chat
 {
 // +0x40: el id de la ventana, del contador 0x5762eb0 (0x459ef0). *Inferido*: antes que este arma WinMain ocho
 // ventanas viejas (0x4674c0), que se llevan del 1 al 8.
@@ -203,4 +203,4 @@ void ClearTheChatFilter(ChatLogState& log);
 
 // 0x45d8c0, F4 y el segundo botón: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6), y después ScrollTheLog(0).
 void CycleTheLogSize(ChatLogState& log, ChatModes& modes);
-} // namespace Client::UI
+} // namespace Client::Chat

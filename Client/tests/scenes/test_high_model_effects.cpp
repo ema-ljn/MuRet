@@ -46,19 +46,19 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::CreateHighModelEffect y StepHighModelEffect: las altas de 0x518cf0 y los pasos de 0x5208a0 de los
+// Client::Effects::CreateHighModelEffect y StepHighModelEffect: las altas de 0x518cf0 y los pasos de 0x5208a0 de los
 // tipos altos de la CL11 (0x134, 0x13b, 0x141, 0x19f, 0x61c y 0xc1a). 06, "Los efectos con modelo de los tipos altos".
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::CreateHighModelEffect;
+using Client::Effects::HighEffectContext;
+using Client::Effects::HighEffectStepContext;
+using Client::Effects::ModelEffect;
+using Client::Effects::StepHighModelEffect;
 using Client::Kernel::ActorState;
 using Client::Kernel::ModelEffectArguments;
 using Client::Kernel::WorldState;
-using Client::Scenes::CreateHighModelEffect;
-using Client::Scenes::HighEffectContext;
-using Client::Scenes::HighEffectStepContext;
-using Client::Scenes::StepHighModelEffect;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 
@@ -157,7 +157,7 @@ struct HighWorld
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
-    Client::World::ModelEffectStepServices services{.lighting = lighting.get()};
+    Client::Effects::ModelEffectStepServices services{.lighting = lighting.get()};
 };
 
 bool HasError(const Client::Core::Expected<void, std::string>& result, std::string_view address)
@@ -173,7 +173,7 @@ bool HasError(const Client::Core::Expected<std::optional<std::size_t>, std::stri
 // Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
 {
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     const auto made =
         twin->CreateChecked(type, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), subtype, scale, 0.0f, replay);
     ASSERT_TRUE(made.HasValue());
@@ -187,7 +187,7 @@ void Skip(CrtRandom& random, int draws)
 
 std::ptrdiff_t AliveParticles(WorldState& world, std::int32_t type, std::int32_t subtype)
 {
-    return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::World::Particle& particle)
+    return std::ranges::count_if(world.Particles().All(), [type, subtype](const Client::Particles::Particle& particle)
                                  { return particle.alive && particle.type == type && particle.subtype == subtype; });
 }
 
@@ -468,7 +468,7 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     // La luz, el rand() % 400, los dos del punto y, por chispa, su ángulo y los dos del fuego 0x5d9/2.
     EXPECT_EQ(full.Draws(), 1 + 1 + 2 + 4 * 3);
     EXPECT_EQ(std::ranges::count_if(full.world->Particles().All(), [](const auto& particle)
-                                    { return particle.alive && particle.type == Client::World::FireParticle; }),
+                                    { return particle.alive && particle.type == Client::Particles::FireParticle; }),
               4);
 }
 
@@ -647,8 +647,9 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
                                              { return effect.alive && (effect.type == 0xc8 || effect.type == 0xc9); });
     EXPECT_EQ(chips, 6);
     EXPECT_EQ(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
-    EXPECT_TRUE(std::ranges::any_of(tested.world->Particles().All(), [](const auto& particle)
-                                    { return particle.alive && particle.type == Client::World::ExplosionParticle; }));
+    EXPECT_TRUE(
+        std::ranges::any_of(tested.world->Particles().All(), [](const auto& particle)
+                            { return particle.alive && particle.type == Client::Particles::ExplosionParticle; }));
 
     // Con las tablas llenas, sólo la luz y los seis rand() & 1.
     HighWorld full;
@@ -765,7 +766,7 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
         CrtRandom expected{Seed};
         for (int skipped = 0; skipped < before + 2; ++skipped)
             static_cast<void>(expected.Next());
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         const auto& all = tested.world->Particles().All();
         std::size_t made = 0;
         for (int turn = 0; turn < 3; ++turn)
@@ -774,14 +775,14 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
                 continue;
             for (int axis = 0; axis < 3; ++axis)
                 static_cast<void>(expected.Next());
-            const Client::World::Particle& spark = all[made];
+            const Client::Particles::Particle& spark = all[made];
             ASSERT_TRUE(spark.alive);
             EXPECT_EQ(spark.type, 0x5ac);
             EXPECT_EQ(spark.subtype, 8);
             const auto replayed =
                 twin->CreateChecked(0x5ac, spark.start, owner.angles, glm::vec3(1.0f), 8, 1.0f, 0.0f, expected);
             ASSERT_TRUE(replayed.HasValue() && replayed.Value().has_value());
-            const Client::World::Particle& twinSpark = twin->All()[*replayed.Value()];
+            const Client::Particles::Particle& twinSpark = twin->All()[*replayed.Value()];
             EXPECT_EQ(spark.life, twinSpark.life);
             EXPECT_EQ(spark.verticalSpeed, twinSpark.verticalSpeed);
             EXPECT_EQ(spark.scale, twinSpark.scale);
@@ -1104,7 +1105,7 @@ TEST(HighModelEffectsTest, TheFallingStarWaitsUntilLifeFifteen)
 TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
 {
     HighWorld tested;
-    auto sprites = std::make_unique<Client::World::FrameSprites>();
+    auto sprites = std::make_unique<Client::Particles::FrameSprites>();
     tested.services.sprites = sprites.get();
     tested.FillTheParticles();
     ModelEffect& star = FallingStarAt(tested, 0, 15);
@@ -1157,10 +1158,10 @@ TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
     ASSERT_TRUE(lit.HasValue()) << lit.Error();
     CrtRandom replay(Seed);
     Skip(replay, 3);
-    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 7);
+    ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 7);
     Skip(replay, 3);
     EXPECT_EQ(room.random.State(), replay.State());
-    EXPECT_EQ(AliveParticles(*room.world, Client::World::DeathSpiritFireParticle, 7), 1);
+    EXPECT_EQ(AliveParticles(*room.world, Client::Particles::DeathSpiritFireParticle, 7), 1);
 }
 
 // 0x52bfdc..0x52c195: el /1 se queda en la partida y, con el terreno por encima, saca la escala del humo 0x5f2/0xb y
@@ -1172,7 +1173,7 @@ TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrai
     {
         SCOPED_TRACE(ground);
         HighWorld tested;
-        auto sprites = std::make_unique<Client::World::FrameSprites>();
+        auto sprites = std::make_unique<Client::Particles::FrameSprites>();
         tested.services.sprites = sprites.get();
         tested.services.terrainHeight = [ground](float, float) { return ground; };
         tested.FillTheParticles();
@@ -1212,10 +1213,10 @@ TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrai
     EXPECT_TRUE(HasError(cut, "0x52c0a5")) << (cut.HasValue() ? std::string("sin corte") : cut.Error());
     CrtRandom replay(Seed);
     Skip(replay, 1);
-    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xb);
+    ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 0xb);
     Skip(replay, 2);
     EXPECT_EQ(room.random.State(), replay.State());
-    EXPECT_EQ(AliveParticles(*room.world, Client::World::DeathSpiritFireParticle, 0xb), 1);
+    EXPECT_EQ(AliveParticles(*room.world, Client::Particles::DeathSpiritFireParticle, 0xb), 1);
 }
 // 0x51ca31: el 0x116/0 guarda la luz que recibe como la partida y pone la suya en 1; el /2 baja 20; el /1 toma la vida
 // de su dueño (otro efecto) y suelta la llama 0x5da/0 (0x51cb38) con sus rand(); con la tabla de partículas llena,
@@ -1255,9 +1256,9 @@ TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
     tested.Effect(0).life = 12;
     const ModelEffectArguments trail{.type = 0x116, .position = {1, 2, 3}, .subtype = 1, .owner = &tested.Effect(0)};
     ASSERT_TRUE(CreateHighModelEffect(trail, tested.Context()).HasValue());
-    EXPECT_EQ(AliveParticles(*tested.world, Client::World::MissileFireParticle, 0), 1);
+    EXPECT_EQ(AliveParticles(*tested.world, Client::Particles::MissileFireParticle, 0), 1);
     CrtRandom replay(Seed);
-    ReplayParticle(replay, Client::World::MissileFireParticle, 0);
+    ReplayParticle(replay, Client::Particles::MissileFireParticle, 0);
     EXPECT_EQ(tested.random.State(), replay.State());
     tested.random = CrtRandom(Seed);
     tested.FillTheParticles();
@@ -1311,9 +1312,9 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
     ASSERT_TRUE(StepHighModelEffect(room.Effect(0), nullptr, room.StepContext()).HasValue());
     CrtRandom replay(Seed);
     Skip(replay, 2);
-    ReplayParticle(replay, Client::World::MissileFireParticle, 0);
+    ReplayParticle(replay, Client::Particles::MissileFireParticle, 0);
     EXPECT_EQ(room.random.State(), replay.State());
-    EXPECT_EQ(AliveParticles(*room.world, Client::World::MissileFireParticle, 0), 1);
+    EXPECT_EQ(AliveParticles(*room.world, Client::Particles::MissileFireParticle, 0), 1);
 
     HighWorld alone;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x116}, alone.Context()).HasValue());
@@ -1632,10 +1633,10 @@ TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     CrtRandom replay{Seed};
     Skip(replay, 40 + 2);
-    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xa, breath.transform.scale);
-    ReplayParticle(replay, Client::World::DeathSpiritFireParticle, 0xa, breath.transform.scale);
+    ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 0xa, breath.transform.scale);
+    ReplayParticle(replay, Client::Particles::DeathSpiritFireParticle, 0xa, breath.transform.scale);
     EXPECT_EQ(tested.random.State(), replay.State());
-    EXPECT_EQ(AliveParticles(*tested.world, Client::World::DeathSpiritFireParticle, 0xa), 2);
+    EXPECT_EQ(AliveParticles(*tested.world, Client::Particles::DeathSpiritFireParticle, 0xa), 2);
     EXPECT_TRUE(std::ranges::any_of(tested.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
 
     HighWorld full;
@@ -1698,12 +1699,12 @@ TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
             EXPECT_NE(tested.world->Runtime().lastSoundId, Client::Audio::SoundId{0x40});
             continue;
         }
-        EXPECT_EQ(AliveParticles(*tested.world, Client::World::FairySparkParticle, 2), 20);
+        EXPECT_EQ(AliveParticles(*tested.world, Client::Particles::FairySparkParticle, 2), 20);
         ASSERT_EQ(AliveParticles(*tested.world, 0x5ee, 0), 1);
         const auto& all = tested.world->Particles().All();
-        const auto blaze = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+        const auto blaze = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                                 { return particle.alive && particle.type == 0x5ee; });
-        const auto spark = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+        const auto spark = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                                 { return particle.alive && particle.type == 0x5c5; });
         ASSERT_NE(blaze, all.end());
         ASSERT_NE(spark, all.end());
@@ -1821,17 +1822,17 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
     const auto stepped = StepHighModelEffect(javelin, nullptr, tested.StepContext());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(tested.Draws(), 1 + 1 + 3 + 1);
-    EXPECT_EQ(AliveParticles(*tested.world, Client::World::CinderParticle, 1), 1);
+    EXPECT_EQ(AliveParticles(*tested.world, Client::Particles::CinderParticle, 1), 1);
     const auto& all = tested.world->Particles().All();
-    const auto ember = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+    const auto ember = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                             { return particle.alive && particle.type == 0x6ad; });
     ASSERT_NE(ember, all.end());
     CrtRandom expected{Seed};
     expected.Discard(2);
-    Client::World::Particles twin;
+    Client::Particles::Particles twin;
     const auto made = twin.CreateChecked(0x6ad, ember->start, angles, javelin.light, 1, 1.0f, 0.0f, expected);
     ASSERT_TRUE(made.HasValue() && made.Value().has_value());
-    const Client::World::Particle& replayed = twin.All()[*made.Value()];
+    const Client::Particles::Particle& replayed = twin.All()[*made.Value()];
     EXPECT_EQ(ember->angles, angles);
     EXPECT_EQ(ember->life, 15);
     EXPECT_EQ(ember->velocity, replayed.velocity);
@@ -1979,7 +1980,7 @@ struct GlowWorld
     }
 
     HighWorld tested;
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
     std::vector<GlowJoint> joints;
     ActorState& owner = tested.world->Actors()[3];
     bool created = false;
@@ -2018,12 +2019,12 @@ void ExpectTheJoints(const std::vector<GlowJoint>& joints, std::span<const GlowE
 }
 
 // Los sprites 0x5fd desde `first`: rotación rand() % 360 y escala ((rand() & 7) + 8) · 0,2f (0x6b8854), en bits.
-void ExpectTheSprites(std::span<const Client::World::Sprite> sprites, std::size_t first,
+void ExpectTheSprites(std::span<const Client::Particles::Sprite> sprites, std::size_t first,
                       std::span<const std::pair<float, std::uint32_t>> expected)
 {
     for (std::size_t index = 0; index < expected.size(); ++index)
     {
-        const Client::World::Sprite& sprite = sprites[first + index];
+        const Client::Particles::Sprite& sprite = sprites[first + index];
         ASSERT_TRUE(sprite.alive) << index;
         EXPECT_EQ(sprite.texture, 0x5fd);
         EXPECT_EQ(sprite.position, (glm::vec3{101, 202, 313}));
@@ -2041,7 +2042,7 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     ModelEffect& glow = glowing.Glow();
     EXPECT_EQ(glow.life, 20);
     EXPECT_EQ(glow.start, (glm::vec3{100, 200, 300}));
-    EXPECT_TRUE(Client::Scenes::StepsAsHighModelEffect(glow));
+    EXPECT_TRUE(Client::Effects::StepsAsHighModelEffect(glow));
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.world->ModelPlacement(0x4a2).origin, (glm::vec3{100, 200, 300}));
     EXPECT_EQ(glow.transform.position, (glm::vec3{101, 202, 313}));
@@ -2058,7 +2059,7 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
         {{84.0f, 0x3fe66667u}, {18.0f, 0x3fcccccdu}, {13.0f, 0x40333333u}}};
     ExpectTheSprites(glowing.sprites->Sprites(), 0, EvenSprites);
     EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
-                                     [](const Client::World::Particle& particle) { return particle.alive; }));
+                                     [](const Client::Particles::Particle& particle) { return particle.alive; }));
     // Con la vida impar, la chispa 0x5c6/2 de escala (rand() % 50 + 10) · 0,01f (0x6b86c0) antes del sprite: un rand()
     // más por emisión.
     const int before = tested.Draws();
@@ -2073,7 +2074,7 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     const auto particles = tested.world->Particles().All();
     for (std::size_t index = 0; index < Sparks.size(); ++index)
     {
-        const Client::World::Particle& spark = particles[index];
+        const Client::Particles::Particle& spark = particles[index];
         ASSERT_TRUE(spark.alive) << index;
         EXPECT_EQ(spark.type, 0x5c6);
         EXPECT_EQ(spark.subtype, 2);
@@ -2089,7 +2090,7 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
 
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x621}, tested.Context()).HasValue());
     EXPECT_EQ(tested.Effect(1).life, 10);
-    EXPECT_FALSE(Client::Scenes::StepsAsHighModelEffect(tested.Effect(1)));
+    EXPECT_FALSE(Client::Effects::StepsAsHighModelEffect(tested.Effect(1)));
 }
 
 // 0x52bd47..0x52bdd3: el /2 crea el joint 0x614/3 sólo con la vida par (0x52bd61) y siempre el sprite; nunca la
@@ -2123,7 +2124,7 @@ TEST(HighModelEffectsTest, TheThrownPiercingGlowJoinsOnlyOnEvenLives)
         {{71.0f, 0x4019999au}, {182.0f, 0x40000000u}, {295.0f, 0x3fcccccdu}}};
     ExpectTheSprites(glowing.sprites->Sprites(), 3, OddSprites);
     EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
-                                     [](const Client::World::Particle& particle) { return particle.alive; }));
+                                     [](const Client::Particles::Particle& particle) { return particle.alive; }));
     EXPECT_EQ(glow.life, 18);
 }
 

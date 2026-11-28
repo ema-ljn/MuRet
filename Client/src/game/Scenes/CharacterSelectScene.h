@@ -69,7 +69,7 @@ struct PoseBuffer;
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
 // mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
-// (UI::SelectionBar) con conectar, crear y borrar, la ventana de crear (UI::CreateCharacterWindow) y
+// (FrontEnd::SelectionBar) con conectar, crear y borrar, la ventana de crear (FrontEnd::CreateCharacterWindow) y
 // los avisos. Con el paso común del pool y del NewFace y el mundo 54 (SelectionWorld: el terreno, los
 // objetos y sus efectos, la luz y las dos 0x729 del elegido); sin el menú y las opciones (CL8), los
 // carteles de los personajes ni el área de mensajes.
@@ -154,21 +154,21 @@ private:
     // vuelve a abrirse con su aviso arriba. Si abrió uno en este paso.
     bool TakeTheCreationResult();
     // 0x63d880 con la ventana abierta y sin aviso arriba.
-    void StepTheCreateWindow(const Input::InputState& input, UI::NewUiTurn turn);
+    void StepTheCreateWindow(const Input::InputState& input, Ui::NewUiTurn turn);
     // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
     void OpenTheCreateWindow();
-    void OpenNotice(UI::NoticeId notice, std::string_view argument = {});
+    void OpenNotice(Ui::NoticeId notice, std::string_view argument = {});
     void OpenTheEscapeWindow();
     // 0x647e75: 0x65f690 con las opciones.
     void OpenTheOptions();
     // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x6342c0: cada ventana con su turno.
     void StepTheWindows(const Input::InputState& input);
     // 0x647d40: lo que pasó en la de Esc.
-    void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    void OnEscapeEvent(const FrontEnd::EscapeWindowEvent& event);
     // Los globales de las opciones (Scenes/OptionsSettings.h), o los de la escena sin el mundo.
-    [[nodiscard]] UI::OptionsSettings CurrentOptions() const;
+    [[nodiscard]] FrontEnd::OptionsSettings CurrentOptions() const;
     // 0x644730: lo que cambió en las opciones, a los globales.
-    void OnOptionsEvent(const UI::OptionsEvent& event);
+    void OnOptionsEvent(const FrontEnd::OptionsEvent& event);
     // 0x647ef0: el 380 con lo que falta, a los mensajes.
     void AddTheCountdown(int seconds);
     // El 1 de la de Esc (0x647e08): el C3 F1 02 02 con sus dos rand() y se cierran ella y la barra.
@@ -210,7 +210,7 @@ private:
     // Los cinco registros del pool como los lee 0x63cc60. MuRet saca de la lista de la sesión el lugar borrado sin
     // bajar el +0 de su registro (0x643374, Q-C104): uno que no está en la lista va como muerto. Sin el mundo, los
     // cinco muertos.
-    [[nodiscard]] std::array<UI::BalloonRecord, UI::BalloonCount> BalloonRecords() const;
+    [[nodiscard]] std::array<FrontEnd::BalloonRecord, FrontEnd::BalloonCount> BalloonRecords() const;
     // 0x63cfb0: los globos con los registros de ahora.
     void UpdateTheBalloons();
     // 0x65fe00 → 0x63cf80, antes de las ventanas: cada personaje a z + 280 con la proyección del pase del mundo
@@ -219,10 +219,10 @@ private:
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
-    void StepTheNotice(const Input::InputState& input, UI::NewUiTurn turn);
+    void StepTheNotice(const Input::InputState& input, Ui::NewUiTurn turn);
     // 0x63eb40: crear con un lugar libre de los cinco; conectar y borrar con uno elegido.
     void EnableTheBar();
-    void OnTheBar(UI::SelectionBarClick click);
+    void OnTheBar(FrontEnd::SelectionBarClick click);
     // 0x63edf0: las revisiones del borrado con el elegido, y su aviso.
     void AskToDelete();
     // 0x643740: el F3 02 con el código del aviso 0x5f, y el 0x5d.
@@ -238,8 +238,8 @@ private:
 
     [[nodiscard]] Camera::GameCamera& CameraState();
     [[nodiscard]] Camera::GameCameraInput& CameraInputState();
-    [[nodiscard]] CreatePreview& Preview();
-    [[nodiscard]] const CreatePreview& Preview() const;
+    [[nodiscard]] FrontEnd::CreatePreview& Preview();
+    [[nodiscard]] const FrontEnd::CreatePreview& Preview() const;
 
     SceneContext m_context;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
@@ -256,7 +256,7 @@ private:
     Render::Camera3D m_previewCamera;
     Session::CharacterStepHooks m_stepHooks;
     Session::CharacterDrawHooks m_characterDrawHooks;
-    ActorEffectHooks m_effectHooks;
+    Effects::ActorEffectHooks m_effectHooks;
     const Tables::TextTable* m_texts;
     const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;
@@ -265,30 +265,30 @@ private:
     Assets::SceneTextures m_windowTextures;
     // El mundo 54 (P-C50): los tiles, los modelos de Object55, los sprites y las copias de los dibujos
     // intermedios.
-    SelectionWorld m_world;
+    FrontEnd::SelectionWorld m_world;
     // El trapecio y el rango del último frame, los del pase del terreno y los objetos.
     Terrain::TerrainPolygon m_polygon{};
     Terrain::TerrainRange m_terrainRange{};
-    UI::NoticeWindow m_notice;
-    UI::SelectionBar m_bar;
+    Ui::NoticeWindow m_notice;
+    FrontEnd::SelectionBar m_bar;
     // Los globos de los cinco lugares (+0x8dc8 de la UI nueva, 06 § Los globos).
-    UI::CharacterBalloons m_balloons;
+    FrontEnd::CharacterBalloons m_balloons;
     // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.
-    UI::NameFilters m_nameFilters;
-    UI::CreateCharacterWindow m_create;
-    UI::EscapeWindow m_escape;
+    FrontEnd::NameFilters m_nameFilters;
+    FrontEnd::CreateCharacterWindow m_create;
+    FrontEnd::EscapeWindow m_escape;
     // Las opciones (+0x7e8), y lo que guardan cuando la escena no tiene el mundo (los tests).
-    UI::OptionsWindow m_options;
-    UI::OptionsSettings m_localOptions;
+    FrontEnd::OptionsWindow m_options;
+    FrontEnd::OptionsSettings m_localOptions;
     // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
-    UI::NewUi m_ui;
+    Ui::NewUi m_ui;
     // Si ya se abrió la barra con la lista (0x65f4b0).
     bool m_openedTheBar = false;
     const Models::ModelTextureSlots* m_gameSlots;
     Assets::GameModels* m_startupModels = nullptr;
-    SelectionModels m_selectionModels;
+    FrontEnd::SelectionModels m_selectionModels;
     // Adaptador sin SelectionState: main conserva el NewFace en el estado durable de selección.
-    CreatePreview m_preview;
+    FrontEnd::CreatePreview m_preview;
     bool m_previewAdvanced = false;
     bool m_charactersPrepared = false;
     Input::DoubleClick m_doubleClick;

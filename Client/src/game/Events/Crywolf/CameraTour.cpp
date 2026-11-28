@@ -40,7 +40,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Events::Crywolf
 {
 namespace
 {
@@ -284,8 +284,8 @@ private:
                 std::format("0x403a11: el alta 0x5141e0 del personaje {} del recorrido (tipo {:#x}) "
                             "sin los recursos de la entrada",
                             key, type));
-        auto created =
-            CreateMonster(type, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), key, *m_context.resources);
+        auto created = Monsters::CreateMonster(type, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y), key,
+                                               *m_context.resources);
         if (!created.HasValue())
             return Core::Unexpected(std::move(created).Error());
         auto actors = m_context.world.Actors();
@@ -303,7 +303,7 @@ private:
         actor.alpha = 0.0f;
         if (speed >= 0.0f)
         {
-            Assets::FaunaModels* models = FaunaModelsOf(*m_context.resources);
+            Assets::FaunaModels* models = Scenes::FaunaModelsOf(*m_context.resources);
             if (models == nullptr)
                 return Core::Unexpected(std::string("0x403abe: no fauna models (0x5769ad8)"));
             auto set = models->SetActionSpeed(ScriptModelOf(type, sparks), WalkAction, speed, "0x403abe");
@@ -314,7 +314,8 @@ private:
         {
             // 0x403ad5: 0x41ed10(0x243, 0, 0) (CL10).
             m_context.world.Runtime().RequestSound(ArrivalSound);
-            if (auto emitted = CreateArrivalSparks(actor, m_context.world, m_context.random); !emitted.HasValue())
+            if (auto emitted = Effects::CreateArrivalSparks(actor, m_context.world, m_context.random);
+                !emitted.HasValue())
                 return emitted;
         }
         if (advance)
@@ -423,7 +424,7 @@ private:
                 ++count;
                 if (effect)
                 {
-                    auto created = CreateTheArrowEffect(
+                    auto created = Effects::CreateTheArrowEffect(
                         Kernel::ModelEffectArguments{.type = 0xed,
                                                      .position = actor.position,
                                                      .angles = actor.angles,
@@ -738,19 +739,23 @@ private:
 };
 } // namespace
 
+} // namespace Client::Events::Crywolf
+
+namespace Client::Effects
+{
 // 0x403ae7..0x403d02 y 0x4c98a0..0x4c9ac1: sortear el ancho aunque el pool esté lleno.
 Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor, Kernel::WorldState& world,
                                                       Crt::CrtRandom& random)
 {
     const auto joint = [&](std::int32_t type, glm::vec3& from, glm::vec3& to, std::int32_t subtype, float width)
     {
-        return CreateFaunaJoint(
+        return Joints::CreateFaunaJoint(
             world.DrawTail().joints,
             Kernel::JointRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1}, random);
     };
     glm::vec3 corner = actor.position;
-    corner.x = F32(static_cast<double>(corner.x) + 20.0);
-    corner.y = F32(static_cast<double>(corner.y) + 20.0);
+    corner.x = Math::F32(static_cast<double>(corner.x) + 20.0);
+    corner.y = Math::F32(static_cast<double>(corner.y) + 20.0);
     constexpr std::array<int, 4> WidthBases{60, 50, 50, 60};
     for (const int base : WidthBases)
     {
@@ -767,7 +772,7 @@ Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor,
             return Core::Unexpected(std::string("0x403c37/0x4c99e0: no se pudo crear el polvo de llegada 0x5f6/1"));
     }
     glm::vec3 target = actor.position;
-    target.z = F32(static_cast<double>(target.z) + 120.0);
+    target.z = Math::F32(static_cast<double>(target.z) + 120.0);
     for (int index = 0; index < 4; ++index)
     {
         auto made = joint(0x614, actor.position, target, 17, 10.0f);
@@ -776,6 +781,10 @@ Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor,
     }
     return {};
 }
+} // namespace Client::Effects
+
+namespace Client::Events::Crywolf
+{
 
 bool CameraTourRunning(const CameraTour& tour)
 {
@@ -814,4 +823,4 @@ Core::Expected<void, std::string> StepTheCameraTour(const CameraTourContext& con
         return released;
     return TourScript(context, tour).Step();
 }
-} // namespace Client::Scenes
+} // namespace Client::Events::Crywolf

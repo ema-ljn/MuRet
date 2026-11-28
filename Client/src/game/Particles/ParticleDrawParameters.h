@@ -2,7 +2,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <cstddef>
-namespace Client::World
+namespace Client::Particles
 {
 struct Particle;
 enum class ParticleDrawKind
@@ -32,4 +32,4 @@ struct ParticleDrawParameters
                                                               ParticleDrawKind kind);
 void UpdateParticleCloudDrawRotation(Particle& particle, float clock, std::size_t physicalIndex);
 [[nodiscard]] glm::vec3 ScaledParticleDrawLight(const Particle& particle);
-} // namespace Client::World
+} // namespace Client::Particles

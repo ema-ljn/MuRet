@@ -326,7 +326,7 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     RecordingFrameTarget target;
     FakeClock clock;
     const Client::Tables::GameData data;
-    const Client::Scenes::SingleModelLibrary models;
+    const Client::FrontEnd::SingleModelLibrary models;
     const SceneContext context{folder.Path(), store, log};
     SceneManager manager(
         [&](SceneId id) -> std::unique_ptr<Client::Scenes::IScene>

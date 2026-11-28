@@ -38,20 +38,20 @@
 namespace
 {
 using Client::Core::Unexpected;
+using Client::Particles::DrawParticlesChecked;
+using Client::Particles::Particle;
+using Client::Particles::ParticleDrawingPhase;
+using Client::Particles::ParticleError;
 using Client::Render::Color;
-using Client::World::DrawParticlesChecked;
-using Client::World::Particle;
-using Client::World::ParticleDrawingPhase;
-using Client::World::ParticleError;
 using Request = Client::Render::ParticleBillboardRequest;
 using Matrix = Client::Math::OriginalMatrix;
 constexpr Matrix Identity{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
 static_assert(!std::is_default_constructible_v<Request>);
-static_assert(!std::is_default_constructible_v<Client::Scenes::ParticleDrawServices>);
-static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices, const Client::Models::IModelLibrary&&,
+static_assert(!std::is_default_constructible_v<Client::Effects::ParticleDrawServices>);
+static_assert(!std::is_constructible_v<Client::Effects::ParticleDrawServices, const Client::Models::IModelLibrary&&,
                                        std::reference_wrapper<Client::Render::IParticleDrawBackend>,
                                        std::reference_wrapper<const Matrix>>);
-static_assert(!std::is_constructible_v<Client::Scenes::ParticleDrawServices,
+static_assert(!std::is_constructible_v<Client::Effects::ParticleDrawServices,
                                        std::reference_wrapper<const Client::Models::IModelLibrary>,
                                        Client::Render::IParticleDrawBackend&&, std::reference_wrapper<const Matrix>>);
 
@@ -204,8 +204,8 @@ protected:
     Backend m_backend{m_events};
     Matrix m_view = Identity;
     float m_clock = 100;
-    Client::World::Particles m_particles;
-    Client::Scenes::ParticleDrawServices m_services{std::cref(m_library), std::ref(m_backend), std::cref(m_view)};
+    Client::Particles::Particles m_particles;
+    Client::Effects::ParticleDrawServices m_services{std::cref(m_library), std::ref(m_backend), std::cref(m_view)};
     void Seed(std::size_t index = 0, std::int32_t type = 0x67, std::int32_t subtype = 0)
     {
         m_particles.All()[index] =

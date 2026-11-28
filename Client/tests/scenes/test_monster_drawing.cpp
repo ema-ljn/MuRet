@@ -240,9 +240,9 @@ protected:
         return Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
     }
 
-    std::vector<Client::World::Sprite> LiveSprites()
+    std::vector<Client::Particles::Sprite> LiveSprites()
     {
-        std::vector<Client::World::Sprite> live;
+        std::vector<Client::Particles::Sprite> live;
         for (const auto& sprite : m_sprites.Sprites())
         {
             if (sprite.alive)
@@ -256,10 +256,10 @@ protected:
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
-    Client::Scenes::ActorEffectHooks m_effectHooks;
+    Client::Effects::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
-    Client::World::FrameSprites m_sprites;
+    Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     Client::Models::SkinningBuffers m_buffers;
@@ -884,12 +884,12 @@ TEST_F(MonsterDrawingTest, The0x4bLightsItsFireOnBone18)
 {
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     Monster(0, Spider, 0x4b);
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     GameCharacterPass pass = Pass();
     pass.particles = particles.get();
     const auto result = Draw(pass);
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    const Client::World::Particle& fire = particles->All()[0];
+    const Client::Particles::Particle& fire = particles->All()[0];
     EXPECT_TRUE(fire.alive);
     EXPECT_EQ(fire.type, 0x5d9);
     EXPECT_EQ(fire.subtype, 0);
@@ -951,7 +951,7 @@ TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
     EXPECT_TRUE(m_batch.Vertices().empty());
     const auto effects = m_world->Map().effects.Effects();
     const auto stones =
-        std::ranges::count_if(effects, [](const Client::World::ModelEffect& effect)
+        std::ranges::count_if(effects, [](const Client::Effects::ModelEffect& effect)
                               { return effect.alive && (effect.type == 0x10a || effect.type == 0x10b); });
     EXPECT_GT(stones, 0);
     EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(4));
@@ -1488,7 +1488,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
         m_sprites.Clear();
         m_world->Runtime().map = map;
         Monster(3, ModelOf69, 0x45);
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         GameCharacterPass pass = Pass();
         pass.particles = particles.get();
 
@@ -1522,7 +1522,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
     m_clothWorld.random = Client::Crt::CrtRandom{1};
     m_sprites.Clear();
     Monster(3, ModelOf69, 0x45);
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     GameCharacterPass between = Pass();
     between.particles = particles.get();
     between.originalFrames = 0;
@@ -1575,15 +1575,15 @@ TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
     SetUp();
     m_sprites.Clear();
     Monster(0, Spider, 0x4b);
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     GameCharacterPass pass = Pass();
     pass.particles = particles.get();
     const auto sparked = Draw(pass);
     ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
-    std::vector<const Client::World::Particle*> fires;
+    std::vector<const Client::Particles::Particle*> fires;
     for (const auto& particle : particles->All())
     {
-        if (particle.alive && particle.type == Client::World::FireParticle)
+        if (particle.alive && particle.type == Client::Particles::FireParticle)
             fires.push_back(&particle);
     }
     ASSERT_EQ(fires.size(), 1u);
@@ -1764,7 +1764,7 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
     constexpr std::uint16_t GlowKey = 0x1234;
     for (int mesh = 1; mesh <= 6; ++mesh)
         m_models.AddMesh();
-    auto selection = std::make_unique<Client::Scenes::SelectionState>(*m_world);
+    auto selection = std::make_unique<Client::FrontEnd::SelectionState>(*m_world);
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Tests::RecordingSink sink;
@@ -1788,12 +1788,12 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
         m_world->Map().effects.Clear();
         m_world->Runtime().lastSoundId.reset();
 
-        ASSERT_TRUE(Client::Scenes::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources)
+        ASSERT_TRUE(Client::Skills::ApplyMagicCancel(Client::Protocol::Skills::MagicCancel{skill, GlowKey}, resources)
                         .HasValue());
 
         EXPECT_EQ(glow.byte110, strike);
         EXPECT_EQ(glow.flags78, 0u);
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         GameCharacterPass pass = Pass();
         pass.effects = &m_world->Map().effects;
         pass.particles = particles.get();
@@ -2124,10 +2124,10 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     // El camino del 0x20a corta también con los pases de brillo, que DrawGameMonster dibuja.
     constexpr std::array<std::uint16_t, 10> Shining{0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e, 0x53, 0x35, 0x36, 0x87};
     for (const std::uint16_t shining : Shining)
-        EXPECT_TRUE(Client::Scenes::MonsterShines(shining)) << shining;
+        EXPECT_TRUE(Client::Monsters::Drawing::MonsterShines(shining)) << shining;
     constexpr std::array<std::uint16_t, 7> Others{0x45, 0x46, 0x4d, 0x54, 0x2a, 0x86, 0x88};
     for (const std::uint16_t other : Others)
-        EXPECT_FALSE(Client::Scenes::MonsterShines(other)) << other;
+        EXPECT_FALSE(Client::Monsters::Drawing::MonsterShines(other)) << other;
     EXPECT_TRUE(Client::Actors::Drawing::WearsClothOnTheMesh(0x8f));
     EXPECT_FALSE(Client::Actors::Drawing::WearsClothOnTheMesh(0x58));
 }

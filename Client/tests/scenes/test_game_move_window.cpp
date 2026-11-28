@@ -44,13 +44,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GameUiContext;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed1234u;
@@ -117,7 +117,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
-        runtime.panels.overlayMode = Client::UI::MoveOverlayMode;
+        runtime.panels.overlayMode = Client::Ui::MoveOverlayMode;
         // Tres destinos: el primero pasa; el segundo pide más nivel; el tercero, más zen.
         runtime.moves = {Destination(1, "Campo", 10, 100), Destination(2, "Bosque", 50, 100),
                          Destination(3, "Lago", 10, 1000)};
@@ -128,19 +128,19 @@ protected:
 
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool withChat = true)
     {
-        const Client::Scenes::GameChatContext chat{.world = *m_world,
-                                                   .random = m_random,
-                                                   .texts = &m_texts,
-                                                   .send = [this](Client::Protocol::Outgoing packet)
-                                                   { m_sent.push_back(std::move(packet)); }};
-        return Client::Scenes::StepTheMoveWindow(GameUiContext{.world = *m_world,
-                                                               .random = m_random,
-                                                               .input = m_input,
-                                                               .mouseX = x,
-                                                               .mouseY = y,
-                                                               .screen = Screen640,
-                                                               .chat = withChat ? &chat : nullptr,
-                                                               .texts = &m_texts});
+        const Client::Chat::GameChatContext chat{.world = *m_world,
+                                                 .random = m_random,
+                                                 .texts = &m_texts,
+                                                 .send = [this](Client::Protocol::Outgoing packet)
+                                                 { m_sent.push_back(std::move(packet)); }};
+        return Client::Hud::StepTheMoveWindow(GameUiContext{.world = *m_world,
+                                                            .random = m_random,
+                                                            .input = m_input,
+                                                            .mouseX = x,
+                                                            .mouseY = y,
+                                                            .screen = Screen640,
+                                                            .chat = withChat ? &chat : nullptr,
+                                                            .texts = &m_texts});
     }
 
     Client::Core::Expected<void, std::string> Draw(std::int32_t x, std::int32_t y)
@@ -159,7 +159,7 @@ protected:
                                .text = m_text,
                                .texts = m_drawnTexts,
                                .mouse = {.x = x, .y = y}};
-        return Client::Scenes::DrawTheOverlays(context);
+        return Client::Hud::DrawTheOverlays(context);
     }
 
     void HoldTheButton()
@@ -196,7 +196,7 @@ protected:
 // destino abre y cierra el registro propio y nada más.
 TEST_F(GameMoveWindowTest, TheMouseOverTheWindowIsOfTheUi)
 {
-    Client::UI::GameUiState& ui = m_world->Runtime().ui;
+    Client::Ui::GameUiState& ui = m_world->Runtime().ui;
     ASSERT_TRUE(Step(190, 102).HasValue());
     EXPECT_EQ(ui.mouseOnUi, 1);
     ui.mouseOnUi = 0;
@@ -205,7 +205,7 @@ TEST_F(GameMoveWindowTest, TheMouseOverTheWindowIsOfTheUi)
     ASSERT_TRUE(Step(50, 103).HasValue());
     EXPECT_EQ(ui.mouseOnUi, 0);
     EXPECT_EQ(m_random.State(), Advanced(3 * 3 * OwnRecordRandoms).State());
-    EXPECT_EQ(Mode(), Client::UI::MoveOverlayMode);
+    EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     EXPECT_TRUE(m_sent.empty());
 }
 
@@ -230,7 +230,7 @@ TEST_F(GameMoveWindowTest, TheLevelIsTwoThirdsForTheThirdAndFourthClasses)
     m_world->OwnCharacter().level = 33;
     ASSERT_TRUE(Step(50, 60).HasValue());
     EXPECT_TRUE(m_sent.empty());
-    EXPECT_EQ(Mode(), Client::UI::MoveOverlayMode);
+    EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     EXPECT_TRUE(m_world->Runtime().movement.leftHeld);
 
     m_world->OwnCharacter().characterClass = 0x23;
@@ -250,7 +250,7 @@ TEST_F(GameMoveWindowTest, TheZenThePkAndTheEdgesKeepTheWindow)
     ASSERT_TRUE(Step(2, 40).HasValue());
     ASSERT_TRUE(Step(188, 40).HasValue());
     EXPECT_TRUE(m_sent.empty());
-    EXPECT_EQ(Mode(), Client::UI::MoveOverlayMode);
+    EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     ASSERT_TRUE(Step(187, 53).HasValue());
     EXPECT_TRUE(Said("/mover Campo"));
 }
@@ -259,10 +259,10 @@ TEST_F(GameMoveWindowTest, TheZenThePkAndTheEdgesKeepTheWindow)
 TEST_F(GameMoveWindowTest, TheBottomRowClosesTheWindow)
 {
     ASSERT_TRUE(Step(50, 90).HasValue());
-    EXPECT_EQ(Mode(), Client::UI::MoveOverlayMode);
+    EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     HoldTheButton();
     ASSERT_TRUE(Step(50, 96).HasValue());
-    EXPECT_EQ(Mode(), Client::UI::MoveOverlayMode);
+    EXPECT_EQ(Mode(), Client::Ui::MoveOverlayMode);
     ASSERT_TRUE(Step(50, 82).HasValue());
     EXPECT_EQ(Mode(), 0);
     EXPECT_FALSE(m_world->Runtime().movement.leftHeld);

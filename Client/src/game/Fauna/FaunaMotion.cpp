@@ -20,7 +20,7 @@
 #include <limits>
 #include <span>
 
-namespace Client::Scenes
+namespace Client::Fauna
 {
 namespace
 {
@@ -132,6 +132,6 @@ void AdvanceFaunaAnimation(FaunaObject& object, const Models::Skeleton& skeleton
 }
 void FinalizeFauna(FaunaObject& object)
 {
-    World::StepObjectAlpha(object.alphaTarget, object.alpha, object.ceiling, object.alphaMode);
+    Effects::StepObjectAlpha(object.alphaTarget, object.alpha, object.ceiling, object.alphaMode);
 }
-} // namespace Client::Scenes
+} // namespace Client::Fauna

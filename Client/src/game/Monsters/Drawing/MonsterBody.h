@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 // 0x6002e0 desde 0x600436, con +0x58 distinto de −2 y el cuarto argumento de 0x602e90 fuera del 10: el cuerpo de un
 // monstruo o un NPC con sus casos por tipo y por mapa, sobre el modelo que dejó 0x5ffce0 (su color y su luz por
@@ -23,4 +23,4 @@ namespace Client::Scenes
 // lo que no está portado: la clase de los bordes del 0x183 (0x6011f1). Los efectos por vértice de 0x4ee770 (el 0x18e y
 // el 0x18f al morir, Scenes/VertexEffects.h) salen sólo en los frames del original.
 [[nodiscard]] Core::Expected<void, std::string> DrawMonsterBody(MonsterBodyFrame& frame);
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

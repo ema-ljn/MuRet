@@ -13,7 +13,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 class Particles;
 }
@@ -37,7 +37,7 @@ struct ActorDyingContext
     // c == [0x743a170]: the hero sinks but is not erased.
     bool hero = false;
     Crt::CrtRandom& random;
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     float worldClock = 0.0f;
     Kernel::WorldState* world = nullptr;
     std::function<void(Audio::SoundId)> soundRequest{};

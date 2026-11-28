@@ -168,15 +168,15 @@ private:
     void RetainTheTerrain();
     void LoadTheObjects();
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
-    void StepTheLogo(World::WorldObject& logo) const;
+    void StepTheLogo(WorldObjects::WorldObject& logo) const;
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
     void DetachTheDragonOwner();
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters();
     void StepTheWorld();
     // 0x52d220 (0x634d18): 0x44dc40(0, 0, 0) y 0x5208a0 con cada efecto vivo de la tabla del mundo, en su orden, con el
-    // rand() de la CRT: el dragón por World::StepGameModelEffect y el meteoro 0xc2/9 del 0x59 por
-    // World::StepWizardModelEffect.
+    // rand() de la CRT: el dragón por Effects::StepGameModelEffect y el meteoro 0xc2/9 del 0x59 por
+    // Effects::StepWizardModelEffect.
     [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects();
     // 0x53c670 (0x634d1d), entre los efectos con modelo y las partículas: el paso de los joints del mundo
     // (WorldState::DrawTail), con los globales del juego, como la selección (SelectionWorld::StepEffects).
@@ -207,7 +207,7 @@ private:
                      const Actors::Drawing::DrawnCharacter& character, Kernel::PoseBuffer& carry,
                      const Actors::FullSetScan& scan, int frames);
     // El corte del pase de partículas, en el log: una vez por entrada.
-    void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
+    void ReportParticleFailure(const Particles::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(Render::Frame::SceneCanvas& canvas) const;
@@ -220,29 +220,29 @@ private:
     // 0x555190 con el texto `index` de Text.bmd como sistema y sin nombre: el de 0x6e57a4 y el de 0x5767974 están
     // en 0. `arguments` van a las marcas del texto, que el original usa como formato (Q-C61).
     void AddTheMessage(std::size_t index, std::span<const std::string_view> arguments = {});
-    void OnServerClick(const UI::ServerClick& click);
-    void OnLoginRequest(const UI::LoginRequest& request);
-    void OnNoticeClosed(UI::NoticeId notice);
+    void OnServerClick(const FrontEnd::ServerClick& click);
+    void OnLoginRequest(const FrontEnd::LoginRequest& request);
+    void OnNoticeClosed(Ui::NoticeId notice);
     // 0x6411b0: el menú abre la de Esc y el crédito, los créditos.
-    void OnMenuBarClick(UI::MenuBarClick click);
+    void OnMenuBarClick(Ui::MenuBarClick click);
     // 0x647d40: lo que pasó en la de Esc.
-    void OnEscapeEvent(const UI::EscapeWindowEvent& event);
+    void OnEscapeEvent(const FrontEnd::EscapeWindowEvent& event);
     // 0x644730: lo que cambió en las opciones, a los globales.
-    void OnOptionsEvent(const UI::OptionsEvent& event);
+    void OnOptionsEvent(const FrontEnd::OptionsEvent& event);
     // 0x641203: el F4 06, los créditos con 0x65f690 y lo que pasó al abrirlos.
     void OpenTheCredits();
     // Lo que pasó en los créditos al abrirlos o en un paso: cada cierre (0x63f9a0) manda el F4 06, y una
     // ilustración nueva (0x63fc50) se sube.
-    void FollowTheCredits(const UI::CreditsStep& step);
+    void FollowTheCredits(const FrontEnd::CreditsStep& step);
     void ReleaseTheIllustrations();
     // 0x65fc30 al empezar el paso, como 0x637700 antes de 0x634c60: cada ventana con su turno.
     void StepTheWindows(const Input::InputState& input);
     // 0x65f690: abre la ventana con lo suyo y la pasa arriba con el foco.
-    void OpenNotice(UI::NoticeId notice);
+    void OpenNotice(Ui::NoticeId notice);
     void OpenTheEscapeWindow();
     void OpenTheOptions();
     // La ventana de la cuenta, con el título del servidor elegido.
-    void OpenLogin(UI::LoginFocus focus);
+    void OpenLogin(FrontEnd::LoginFocus focus);
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
     void ShowFailure();
     [[nodiscard]] std::string LoginTitle() const;
@@ -296,12 +296,12 @@ private:
     std::vector<Data::Terrain::TerrainObject> m_objectRecords;
     // Los objetos del mundo como los crea 0x606660, y el logo al final (0x61c7c0 lo crea después de la
     // carga del mundo).
-    std::vector<World::WorldObject> m_objects;
+    std::vector<WorldObjects::WorldObject> m_objects;
     std::optional<std::size_t> m_logoIndex;
     // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
-    World::FrameSprites m_sprites;
+    Particles::FrameSprites m_sprites;
     // Las hojas (0x75e34b8): en el mapa 55, las 80 brasas.
-    World::Leaves m_leaves;
+    Weather::Leaves m_leaves;
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
     // login (P-C26).
     bool m_drawnSinceEntering = false;
@@ -311,14 +311,14 @@ private:
     bool m_particleFailureReported = false;
     // Los sprites de lo que cuelga y de los efectos del personaje (el brillo del cetro, 0x509340): los del último
     // frame del original, que un dibujo intermedio repite, como el juego y la selección con toda la tabla.
-    World::FrameSprites m_tailSprites;
-    World::FrameSprites m_tailSpriteReplay;
+    Particles::FrameSprites m_tailSprites;
+    Particles::FrameSprites m_tailSpriteReplay;
     bool m_tailSpriteReplayValid = false;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
-    SingleModelLibrary m_logo;
+    FrontEnd::SingleModelLibrary m_logo;
     std::optional<Models::ModelTextureSlots> m_logoSlots;
     std::optional<Assets::SceneTextures> m_logoTextures;
-    LoginRoutes m_routes;
+    FrontEnd::LoginRoutes m_routes;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     Kernel::DarkHorse m_horse;
     // La tela del Dark Lord (0x50ba30), entre frames.
@@ -328,21 +328,21 @@ private:
     std::optional<std::string_view> m_right;
     std::optional<std::string> m_version;
 
-    UI::ServerListWindow m_serverList;
+    FrontEnd::ServerListWindow m_serverList;
     // La abre la lista y queda abierta hasta salir (06 § Las ventanas de la UI nueva).
-    UI::MenuBar m_menuBar;
-    UI::LoginWindow m_login;
-    UI::NoticeWindow m_notice;
-    UI::EscapeWindow m_escape;
+    Ui::MenuBar m_menuBar;
+    FrontEnd::LoginWindow m_login;
+    Ui::NoticeWindow m_notice;
+    FrontEnd::EscapeWindow m_escape;
     // Las opciones (+0x7e8) y los créditos (+0x4578), con la tabla de credit.bmd de GameData.
-    UI::OptionsWindow m_options;
-    UI::CreditsWindow m_credits;
+    FrontEnd::OptionsWindow m_options;
+    FrontEnd::CreditsWindow m_credits;
     // El par de ilustraciones de los créditos (0x6f8 y 0x6f9) que subió el último 0x63fc50.
     std::optional<Assets::SceneTextures> m_illustrations;
     // El administrador de la UI nueva (CL8, hito 8): el orden, el foco y el mouse de las ventanas.
-    UI::NewUi m_ui;
+    Ui::NewUi m_ui;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.
-    std::optional<App::SessionState> m_seen;
+    std::optional<Session::SessionState> m_seen;
     // Si el último paso vio la dirección del F4 03 en la sesión.
     bool m_sawTheAddress = false;
     // La pantalla del último frame: las ventanas se ubican y leen el mouse con ella. Hasta el
@@ -351,6 +351,6 @@ private:
     bool m_quit = false;
     // Who creates the joints of the character's draw (0x530860).
     Session::CharacterDrawHooks m_characterDrawHooks;
-    ActorEffectHooks m_effectHooks;
+    Effects::ActorEffectHooks m_effectHooks;
 };
 } // namespace Client::Scenes

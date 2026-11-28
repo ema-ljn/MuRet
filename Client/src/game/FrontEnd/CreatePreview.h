@@ -44,7 +44,7 @@ struct ActorConstructionContext;
 // modelos que sube la selección (0x61ca30) y el objeto suelto 0x7437050, que 0x63e3e0 arma con el
 // NewFace de la clase y 0x63e460 dibuja en su propio viewport con su propia cámara (por 0x50ba30,
 // que con un modelo que no es el del personaje va a 0x602e90, sin sombra). *Estático*.
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 // Logo05 en el 0xa4 y NewFace01 a 05 en 0xa8 a 0xac (0x60da30 con "Data\Logo\"); sus texturas, de
 // Logo\ desde 0x60d530(0x6f8), las del 0xa4 con GL_LINEAR y las de los NewFace con GL_NEAREST, las dos
@@ -122,5 +122,5 @@ void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models);
 
 // 0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 / rx), ftol(335 / ry)), con (x, y) la esquina de la
 // caja de la ventana en píxeles.
-[[nodiscard]] Render::ViewportRect PreviewViewport(const UI::Rect& box, Core::PixelSize screen);
-} // namespace Client::Scenes
+[[nodiscard]] Render::ViewportRect PreviewViewport(const Ui::Rect& box, Core::PixelSize screen);
+} // namespace Client::FrontEnd

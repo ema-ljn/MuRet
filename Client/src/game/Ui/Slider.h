@@ -15,7 +15,7 @@
 // (la barra de 0x640220, +0x108); 0x646a50 lo atiende y 0x646e90 lo dibuja. MuRet tiene solo el
 // horizontal (+8 en 0), el de las opciones: el vertical no lo arma ninguna ventana del login ni de la
 // selección.
-namespace Client::UI
+namespace Client::Ui
 {
 // Una imagen del deslizador: su slot y su tamaño, en píxeles.
 struct SliderImage
@@ -99,4 +99,4 @@ private:
     bool m_releaseLater = false;
     bool m_open = false;
 };
-} // namespace Client::UI
+} // namespace Client::Ui

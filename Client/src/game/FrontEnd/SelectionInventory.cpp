@@ -12,7 +12,7 @@
 
 #include <span>
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -38,7 +38,7 @@ void ClearSelectionInventory(Kernel::WorldState& world, Crt::CrtRandom& random)
     Clear(world.Runtime().npcWindows.grid);
     Clear(world.Runtime().npcWindows.chaosBox);
     Clear(world.Runtime().npcWindows.trainerBox);
-    ResetTheJewelMix(world.Runtime().npcWindows);
+    ChaosMix::ResetTheJewelMix(world.Runtime().npcWindows);
     // 0x78ab0b8 sí existe, pero no es una de las que vacía esta función del original.
 }
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

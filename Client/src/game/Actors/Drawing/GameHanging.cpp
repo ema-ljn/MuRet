@@ -421,12 +421,12 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
         frame.Sprite(Flare, point, 2.0f, light);
         return {};
     }
-    case World::HdkMaceModel:
+    case Actors::Drawing::HdkMaceModel:
     {
         if (frame.pass.carry->bones.empty())
             return Core::Unexpected(std::string("0x50a169: el cetro no dejó huesos en el buffer global"));
-        World::CreateScepterGlow(*frame.pass.sprites, Math::OriginalMatrixOf(frame.pass.carry->bones[0]), actor.scale,
-                                 origin, random);
+        Actors::Drawing::CreateScepterGlow(*frame.pass.sprites, Math::OriginalMatrixOf(frame.pass.carry->bones[0]),
+                                           actor.scale, origin, random);
         return {};
     }
     case 0x81c:
@@ -499,13 +499,13 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
         {
             const glm::vec3 light{0.8f, 0.8f, 0.2f};
             const glm::vec3 fourth = at(4, glm::vec3{});
-            if (auto created = frame.Particle(ThirdSpark, fourth, actor.angles, light, World::WeaponSparkSubtype, 0.8f,
-                                              "0x50af72");
+            if (auto created = frame.Particle(ThirdSpark, fourth, actor.angles, light, Particles::WeaponSparkSubtype,
+                                              0.8f, "0x50af72");
                 !created.HasValue())
                 return created;
             const glm::vec3 twelfth = at(12, glm::vec3{});
-            if (auto created = frame.Particle(ThirdSpark, twelfth, actor.angles, light, World::WeaponSparkSubtype, 0.8f,
-                                              "0x50afa7");
+            if (auto created = frame.Particle(ThirdSpark, twelfth, actor.angles, light, Particles::WeaponSparkSubtype,
+                                              0.8f, "0x50afa7");
                 !created.HasValue())
                 return created;
         }
@@ -569,8 +569,8 @@ Result ItemSprites(const Frame& frame, std::int32_t model, const glm::vec3& orig
         frame.Sprite(Flare, point, t, violet);
         frame.Sprite(Shiny, point, t, violet);
         frame.Sprite(Shiny, point, F32(D(t) - D(0.3f)), violet, 90.0f);
-        if (auto created =
-                frame.Particle(ThirdSpark, point, actor.angles, violet, World::WeaponSparkSubtype, 2.0f, "0x50b5d8");
+        if (auto created = frame.Particle(ThirdSpark, point, actor.angles, violet, Particles::WeaponSparkSubtype, 2.0f,
+                                          "0x50b5d8");
             !created.HasValue())
             return created;
         // 0x50b5dd..0x50b763: with the light (a, 0.1, a), a = sin(clock · 0.7f) · 0.2f + 0.5f − 0.1f, and the turn g =
@@ -1220,7 +1220,7 @@ Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
     // 0x5ffdff..0x5ffe3b: in maps 18 to 23, with the hero's +0x1a1, the alpha drops by 0.15f and stays stored (once per
     // original frame); below 0.01, 0x5ffdf0 returns without posing and 0x602e90 does not call 0x6002e0.
     if (pass.originalFrame)
-        layer.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, layer.alpha);
+        layer.alpha = Events::ChaosCastle::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, layer.alpha);
     if (!(layer.alpha >= DrawnLayerAlpha))
         return {};
     object.alpha = layer.alpha;
@@ -1254,8 +1254,8 @@ Result DrawTheSiegeLayer(const Frame& frame)
         if (pass.guild == nullptr)
             return Core::Unexpected(std::string("0x41489c: falta la tabla del gremio para la capa del maestro"));
         const auto index = static_cast<std::int16_t>(actor.word1f2);
-        const auto unionName = Scenes::UnionNameAt(*pass.guild, index);
-        const auto guildName = Scenes::GuildNameAt(*pass.guild, index);
+        const auto unionName = Guild::UnionNameAt(*pass.guild, index);
+        const auto guildName = Guild::GuildNameAt(*pass.guild, index);
         if (!unionName || !guildName)
             return Core::Unexpected(std::string("0x4148aa: el índice de la capa sale de la tabla del gremio"));
         if (unionName->empty() || *unionName == *guildName)
@@ -1263,7 +1263,7 @@ Result DrawTheSiegeLayer(const Frame& frame)
     }
     glm::vec3 position = actor.position;
     position.z = frame.BodyPoint(MuSignBone, Offset).z;
-    static_cast<void>(pass.sprites->Create(World::AtlasSprite, position, 1.0f, glm::vec3(1.0f), 0.0f, variant));
+    static_cast<void>(pass.sprites->Create(Particles::AtlasSprite, position, 1.0f, glm::vec3(1.0f), 0.0f, variant));
     return {};
 }
 

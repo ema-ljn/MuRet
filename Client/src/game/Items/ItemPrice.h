@@ -11,7 +11,7 @@
 // El precio de un ítem (0x54d0f0) y el de repararlo (0x5b13e0), CL8 hito 5 (06 § El precio de un ítem). Son
 // funciones de datos: no abren el registro propio ni sacan rand(). Las usan el cuerpo de reparar (0x5b8150) y el precio
 // de la tienda de NPC del cuerpo del ítem (0x5b2d23, CL9 hito 6).
-namespace Client::Scenes
+namespace Client::Items
 {
 // Los modos con que lo llaman: 0 desde la grilla de la tienda de NPC (0x5b2d2e), 1 desde el inventario con la tienda
 // abierta (0x5b2e46) y 2 para reparar (0x5b838a). Cualquiera distinto de 0 divide por 3; solo el 1 descuenta la
@@ -53,4 +53,4 @@ struct RepairPrice
 // del inventario), que suma 0,05 por cada unidad de su byte bajo. El tipo no lo lee.
 [[nodiscard]] RepairPrice RepairPriceOf(std::uint32_t price, std::int32_t durability, std::int32_t maxDurability,
                                         std::int32_t field78abb10);
-} // namespace Client::Scenes
+} // namespace Client::Items

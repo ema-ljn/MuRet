@@ -11,7 +11,7 @@ namespace
 // 60712a..607150 sólo escribe byte vivo; el dibujo conserva la historia de los slots muertos.
 TEST(FaunaStateTest, ClearingPreservesPhysicalRecordsAndTheirHistory)
 {
-    Client::Scenes::FaunaState fauna;
+    Client::Fauna::FaunaState fauna;
     auto birds = fauna.Birds();
     auto fish = fauna.Fish();
     birds[39].active = 1;
@@ -34,7 +34,7 @@ TEST(FaunaStateTest, ClearingPreservesPhysicalRecordsAndTheirHistory)
 
 TEST(FaunaStateTest, ViewsBorrowCanonicalStorageAndKeepEffectIdentity)
 {
-    Client::Scenes::FaunaState fauna;
+    Client::Fauna::FaunaState fauna;
     auto birds = fauna.BirdRecords();
     auto fish = fauna.FishViews();
     EXPECT_EQ(birds[1].data() - birds[0].data(), 0x1d4);

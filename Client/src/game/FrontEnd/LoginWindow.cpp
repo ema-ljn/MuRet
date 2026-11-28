@@ -22,7 +22,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -69,14 +69,14 @@ LoginLayout LayoutLogin(Core::PixelSize screen)
     const int x = (screen.width - Width) / 2;
     const int y = (screen.height - Height) * 2 / 3;
     return LoginLayout{
-        .window = Rect{.x = x, .y = y, .width = Width, .height = Height},
-        .account = Rect{.x = x + FieldLeft, .y = y + AccountTop, .width = FieldWidth, .height = FieldHeight},
-        .password = Rect{.x = x + FieldLeft, .y = y + PasswordTop, .width = FieldWidth, .height = FieldHeight},
-        .ok = Rect{.x = x + OkLeft, .y = y + ButtonsTop, .width = ButtonWidth, .height = ButtonHeight},
-        .cancel = Rect{.x = x + CancelLeft, .y = y + ButtonsTop, .width = ButtonWidth, .height = ButtonHeight}};
+        .window = Ui::Rect{.x = x, .y = y, .width = Width, .height = Height},
+        .account = Ui::Rect{.x = x + FieldLeft, .y = y + AccountTop, .width = FieldWidth, .height = FieldHeight},
+        .password = Ui::Rect{.x = x + FieldLeft, .y = y + PasswordTop, .width = FieldWidth, .height = FieldHeight},
+        .ok = Ui::Rect{.x = x + OkLeft, .y = y + ButtonsTop, .width = ButtonWidth, .height = ButtonHeight},
+        .cancel = Ui::Rect{.x = x + CancelLeft, .y = y + ButtonsTop, .width = ButtonWidth, .height = ButtonHeight}};
 }
 
-LoginWindow::LoginWindow(TextureSizes sizes, const Tables::TextTable* texts)
+LoginWindow::LoginWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts)
     : m_sizes(std::move(sizes)), m_texts(texts), m_account(App::MaxCredentialBytes, false),
       m_password(App::MaxCredentialBytes, true), m_ok(OkSlot, ButtonWidth, ButtonHeight),
       m_cancel(CancelSlot, ButtonWidth, ButtonHeight)
@@ -87,8 +87,8 @@ void LoginWindow::Open(LoginFocus focus)
 {
     m_open = true;
     m_focus = focus;
-    m_ok = Button(OkSlot, ButtonWidth, ButtonHeight);
-    m_cancel = Button(CancelSlot, ButtonWidth, ButtonHeight);
+    m_ok = Ui::Button(OkSlot, ButtonWidth, ButtonHeight);
+    m_cancel = Ui::Button(CancelSlot, ButtonWidth, ButtonHeight);
 }
 
 void LoginWindow::Close()
@@ -112,29 +112,30 @@ void LoginWindow::SetTitle(std::string title)
     m_title = std::move(title);
 }
 
-const TextField& LoginWindow::Account() const
+const Ui::TextField& LoginWindow::Account() const
 {
     return m_account;
 }
 
-const TextField& LoginWindow::Password() const
+const Ui::TextField& LoginWindow::Password() const
 {
     return m_password;
 }
 
-Rect LoginWindow::Bounds(Core::PixelSize screen) const
+Ui::Rect LoginWindow::Bounds(Core::PixelSize screen) const
 {
     return LayoutLogin(screen).window;
 }
 
-std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn)
+std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Core::PixelSize screen,
+                                              Ui::NewUiTurn turn)
 {
     if (!m_open)
     {
         return std::nullopt;
     }
     Place(screen);
-    const std::optional<Point> mouse = MouseOfTheTurn(turn, input, screen);
+    const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     if (turn.logic && mouse && input.WasPressed(Input::MouseButton::Left))
     {
         if (m_layout.account.Contains(*mouse))
@@ -183,22 +184,22 @@ void LoginWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer&
     }
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
-    sprites.Image(PixelImage(BackgroundSlot, m_layout.window, m_sizes(BackgroundSlot)));
-    sprites.Image(PixelImage(FieldSlot, m_layout.account, m_sizes(FieldSlot)));
-    sprites.Image(PixelImage(FieldSlot, m_layout.password, m_sizes(FieldSlot)));
+    sprites.Image(Ui::PixelImage(BackgroundSlot, m_layout.window, m_sizes(BackgroundSlot)));
+    sprites.Image(Ui::PixelImage(FieldSlot, m_layout.account, m_sizes(FieldSlot)));
+    sprites.Image(Ui::PixelImage(FieldSlot, m_layout.password, m_sizes(FieldSlot)));
     sprites.Image(m_ok.Image(m_sizes));
     sprites.Image(m_cancel.Image(m_sizes));
 
     DrawField(text, m_account, m_layout.account, screen);
     DrawField(text, m_password, m_layout.password, screen);
 
-    const Rect& window = m_layout.window;
+    const Ui::Rect& window = m_layout.window;
     const int labelX = Render::Text::DesignX(window.x + LabelLeft, screen);
-    if (const auto account = TextAt(m_texts, AccountLabelText); account && !account->empty())
+    if (const auto account = Ui::TextAt(m_texts, AccountLabelText); account && !account->empty())
     {
         text.Draw(labelX, Render::Text::DesignY(window.y + AccountLabelTop, screen), *account, LabelStyle);
     }
-    if (const auto password = TextAt(m_texts, PasswordLabelText); password && !password->empty())
+    if (const auto password = Ui::TextAt(m_texts, PasswordLabelText); password && !password->empty())
     {
         text.Draw(labelX, Render::Text::DesignY(window.y + PasswordLabelTop, screen), *password, LabelStyle);
     }
@@ -209,7 +210,7 @@ void LoginWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer&
     }
 }
 
-TextField& LoginWindow::Focused()
+Ui::TextField& LoginWindow::Focused()
 {
     return m_focus == LoginFocus::Account ? m_account : m_password;
 }
@@ -236,8 +237,8 @@ void LoginWindow::TypeInOrder(std::string_view typed)
 void LoginWindow::Place(Core::PixelSize screen)
 {
     m_layout = LayoutLogin(screen);
-    m_ok.MoveTo(Point{m_layout.ok.x, m_layout.ok.y});
-    m_cancel.MoveTo(Point{m_layout.cancel.x, m_layout.cancel.y});
+    m_ok.MoveTo(Ui::Point{m_layout.ok.x, m_layout.ok.y});
+    m_cancel.MoveTo(Ui::Point{m_layout.cancel.x, m_layout.cancel.y});
 }
 
 LoginRequest LoginWindow::Send()
@@ -267,7 +268,7 @@ LoginRequest LoginWindow::Cancel()
     return LoginRequest{.kind = LoginRequest::Kind::Cancel, .credentials = {}};
 }
 
-void LoginWindow::DrawField(Render::Frame::ITextDrawer& text, const TextField& field, const Rect& area,
+void LoginWindow::DrawField(Render::Frame::ITextDrawer& text, const Ui::TextField& field, const Ui::Rect& area,
                             Core::PixelSize screen) const
 {
     const int x = Render::Text::DesignX(area.x + FieldTextInset, screen);
@@ -278,4 +279,4 @@ void LoginWindow::DrawField(Render::Frame::ITextDrawer& text, const TextField& f
         text.Draw(x, y, shown, FieldStyle);
     }
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

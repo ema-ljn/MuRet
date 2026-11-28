@@ -136,11 +136,11 @@ struct Game
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
     std::filesystem::path dataRoot;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
@@ -226,7 +226,7 @@ protected:
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Monsters(std::span<const MonsterRecordBytes> records)
     {
-        return Client::Scenes::ApplyViewportMonsters(ReadMonsters(records), game->Resources());
+        return Client::Monsters::ApplyViewportMonsters(ReadMonsters(records), game->Resources());
     }
 
     void ClickVisibleSiegeNpc(const Client::Tables::SkillTable& skills, std::int16_t key)
@@ -244,7 +244,7 @@ protected:
         Client::Actors::PublishPickingBox(npc, npc.position, npc.boundsMin,
                                           {npc.boundsMaxX, npc.boundsMaxY, npc.boundsTop});
         const glm::vec3 offset{0, 0, 500};
-        const auto picked = Client::Scenes::PickInTheFrame(
+        const auto picked = Client::Hud::PickInTheFrame(
             {.world = game->world,
              .random = game->cloth.random,
              .ownRecordDepth = runtime.ownRecordDepth,
@@ -256,7 +256,7 @@ protected:
         ASSERT_EQ(runtime.selectedTargets[3], -1);
         std::vector<std::int16_t> talkKeys;
         runtime.movement.mouseUpdateTime = 6;
-        const auto clicked = Client::Scenes::StepHeroMovement(
+        const auto clicked = Client::Movement::StepHeroMovement(
             {.world = game->world,
              .random = game->cloth.random,
              .playerSkeleton = game->models.SkeletonOf(Client::Models::ModelId{PlayerSkeletonModel}),
@@ -271,12 +271,12 @@ protected:
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Summons(std::span<const SummonRecordBytes> records)
     {
-        return Client::Scenes::ApplySummons(ReadSummons(records), game->Resources());
+        return Client::Monsters::ApplySummons(ReadSummons(records), game->Resources());
     }
 
     [[nodiscard]] Client::Core::Expected<void, std::string> Objects(std::span<const ObjectRecordBytes> records)
     {
-        return Client::Scenes::ApplyViewportObjects(ReadObjects(records), game->Resources());
+        return Client::Monsters::ApplyViewportObjects(ReadObjects(records), game->Resources());
     }
 
     std::unique_ptr<Game> game;
@@ -323,7 +323,7 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
         EXPECT_EQ(actor.type, tested.model);
         EXPECT_EQ(actor.word376, tested.type);
         EXPECT_EQ(actor.scale, Real(tested.scale));
-        EXPECT_EQ(Client::Scenes::ActorText(actor), tested.name);
+        EXPECT_EQ(Client::Monsters::ActorText(actor), tested.name);
         EXPECT_EQ(actor.boundsMin, (glm::vec3{-60.0f, -60.0f, 0.0f}));
         EXPECT_EQ((glm::vec3{actor.boundsMaxX, actor.boundsMaxY, actor.boundsTop}), tested.box);
         EXPECT_EQ(actor.hands[0].bone, 0x21u);
@@ -398,7 +398,7 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
 // llegaría a las partes de +0x218 corta antes de +0x376 (P-C352). Los nombres son inventados.
 TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
 {
-    const auto put = [](Client::Scenes::NpcName& record, std::uint16_t type, std::string_view name)
+    const auto put = [](Client::Monsters::NpcName& record, std::uint16_t type, std::string_view name)
     {
         record.type = type;
         record.name = {};
@@ -423,7 +423,7 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
             {{.key = 0x0123, .typeLow = tested.type, .x = cell.x, .y = cell.y, .targetX = cell.x, .targetY = cell.y}}};
         auto applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Bicho");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Bicho");
         EXPECT_EQ(Actor(1).word376, tested.type);
 
         names[4].type = 0;
@@ -431,14 +431,14 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         records[0].key = 0x0124;
         applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), tested.caseName);
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(2)), tested.caseName);
 
         // 24 letras y el '\0' llegan a +0x1f1; el WORD de +0x1f2 sigue con el 0xffff de 0x511290.
         put(names[4], tested.type, "Bicho de veinticuatro le");
         records[0].key = 0x0125;
         applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(3)), "Bicho de veinticuatro le");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(3)), "Bicho de veinticuatro le");
         EXPECT_EQ(Actor(3).word1f2, 0xffff);
 
         // Con una más, el '\0' cae en el byte bajo de +0x1f2; la clave de +0x1f4 no la toca.
@@ -446,7 +446,7 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         records[0].key = 0x0126;
         applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(4)), "Bicho de veinticinco letr");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(4)), "Bicho de veinticinco letr");
         EXPECT_EQ(Actor(4).word1f2, 0xff00);
         EXPECT_EQ(Actor(4).key, 0x0126);
         EXPECT_EQ(Actor(4).word376, tested.type);
@@ -483,7 +483,7 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
     {
         SCOPED_TRACE(map);
         Load(map);
-        game->world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(names.Value());
+        game->world.Runtime().npcNames = Client::Monsters::NpcNameTableOf(names.Value());
         const Cell cell = FreeRow();
         const auto monster = [&cell](std::uint16_t key, std::uint8_t type)
         {
@@ -495,18 +495,18 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
         const auto applied = Monsters(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Phoenix of Darkness shield");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Phoenix of Darkness shield");
         EXPECT_EQ(Actor(1).word1f2, 0x0064);
         EXPECT_EQ(Actor(1).key, 0x0130);
         EXPECT_EQ(Actor(1).word376, 76);
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), "Zienna the Weapon Merchant");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(2)), "Zienna the Weapon Merchant");
         EXPECT_EQ(Actor(2).word1f2, 0x0074);
         EXPECT_EQ(Actor(2).key, 0x0131);
 
         // "Thompson Kenel the Weapon Merchant": " M" en +0x1f2, "er" en la clave, "ch" perdidas, "an" en la cabeza.
         const ActorState& merchant = Actor(3);
         EXPECT_EQ(merchant.word376, 231);
-        EXPECT_EQ(Client::Scenes::ActorText(merchant), "Thompson Kenel the Weapon Mer");
+        EXPECT_EQ(Client::Monsters::ActorText(merchant), "Thompson Kenel the Weapon Mer");
         EXPECT_EQ(merchant.word1f2, 0x4d20);
         EXPECT_EQ(merchant.key, 0x7265);
         EXPECT_EQ(merchant.head, 0x6e61);
@@ -548,14 +548,14 @@ TEST_F(MonsterViewportTest, ANewNpcStartsTransparentWithItsClass)
         EXPECT_EQ(actor.angles.z, 0.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, ArrivingRecordDraws).State());
     }
-    EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "\xb8\xb6\xbd\xba\xc5\xcd");
+    EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "\xb8\xb6\xbd\xba\xc5\xcd");
 }
 
 // En Castle Siege (30) el 224 va por el creador de evento 0x42d070: su rand() (0x42d40a) sale después de los 28 del
 // alta y antes de las celdas, y el subtipo es 10 más el resto.
 TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
 {
-    ASSERT_EQ(Client::Scenes::MonsterCreationOf(224, 30).creator, 0x42d070u);
+    ASSERT_EQ(Client::Monsters::MonsterCreationOf(224, 30).creator, 0x42d070u);
     for (const int wanted : {0, 1})
     {
         SCOPED_TRACE(wanted);
@@ -580,7 +580,7 @@ TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
         EXPECT_EQ(actor.hands[0].model, 0xffff);
         EXPECT_EQ(actor.hands[1].model, 0xffff);
         EXPECT_EQ(actor.byte88, 4);
-        EXPECT_EQ(Client::Scenes::ActorText(actor), "\xb1\xd9\xc0\xa7\xba\xb4");
+        EXPECT_EQ(Client::Monsters::ActorText(actor), "\xb1\xd9\xc0\xa7\xba\xb4");
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(seed, WalkingRecordDraws + 1).State());
     }
 }
@@ -637,7 +637,7 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
         const auto reply = Client::Protocol::CastleSiege::ReadCastleBattlePacket(Client::Tests::PacketOf(wire));
         ASSERT_TRUE(reply.HasValue());
         std::size_t extraSends = 0;
-        const auto opened = Client::Scenes::ApplyCastleBattlePacket(
+        const auto opened = Client::CastleSiege::ApplyCastleBattlePacket(
             reply.Value(), {.world = game->world,
                             .random = game->cloth.random,
                             .log = game->log,
@@ -716,7 +716,7 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalS
         EXPECT_EQ(Actor(1).key, key);
         EXPECT_EQ(Actor(1).type, model);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
-        EXPECT_TRUE(std::ranges::all_of(effects, [](const Client::World::ModelEffect& effect)
+        EXPECT_TRUE(std::ranges::all_of(effects, [](const Client::Effects::ModelEffect& effect)
                                         { return effect.alive && effect.life == 42; }));
     }
 }
@@ -786,10 +786,10 @@ TEST_F(MonsterViewportTest, TheCrywolfStatueNamesItsBonesUntilItLeaves)
 TEST_F(MonsterViewportTest, TheCrywolfAltarReadsItsClosedCell)
 {
     Load(34);
-    auto created = Client::Scenes::CreateMonster(348, 100, 100, 0x0600, game->Resources());
+    auto created = Client::Monsters::CreateMonster(348, 100, 100, 0x0600, game->Resources());
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(Actor(created.Value()).angles.z, 180.0f);
-    created = Client::Scenes::CreateMonster(348, 62, 100, 0x0601, game->Resources());
+    created = Client::Monsters::CreateMonster(348, 62, 100, 0x0601, game->Resources());
     ASSERT_TRUE(created.HasValue()) << created.Error();
     EXPECT_EQ(Actor(created.Value()).angles.z, 90.0f);
 
@@ -961,7 +961,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     arriving.animation.action = 0;
     arriving.animation.previousAction = 0;
     game->world.Runtime().lastSoundId.reset();
-    auto arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
+    auto arrived = Client::Monsters::ArriveAsNew(arriving, game->Resources());
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
     EXPECT_EQ(arriving.movementCooldown, 0x3c);
     EXPECT_EQ(arriving.animation.action, 1);
@@ -970,7 +970,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_FALSE(game->world.Runtime().lastSoundId.has_value());
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
     arriving.word376 = 0x154;
-    arrived = Client::Scenes::ArriveAsNew(arriving, game->Resources());
+    arrived = Client::Monsters::ArriveAsNew(arriving, game->Resources());
     ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
     EXPECT_EQ(arriving.alpha, 0.0f);
 }
@@ -983,7 +983,7 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
         SCOPED_TRACE(type);
         Load(0);
         const Cell cell = FreeRow();
-        const auto created = Client::Scenes::CreateMonster(type, cell.x, cell.y, 100, game->Resources());
+        const auto created = Client::Monsters::CreateMonster(type, cell.x, cell.y, 100, game->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ActorState& actor = Actor(created.Value());
         EXPECT_EQ(actor.word376, type);
@@ -1017,7 +1017,7 @@ TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
             for (auto& joint : joints)
                 joint.alive = true;
         const Cell cell = FreeRow();
-        const auto created = Client::Scenes::CreateMonster(257, cell.x, cell.y, 100, game->Resources());
+        const auto created = Client::Monsters::CreateMonster(257, cell.x, cell.y, 100, game->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ActorState& actor = Actor(created.Value());
         if (!full)
@@ -1054,7 +1054,7 @@ TEST_F(MonsterViewportTest, OrdinaryCreationFinishesItsTailWithOneOrNoJointSlots
         auto& joints = game->world.DrawTail().joints;
         for (std::size_t index = free; index < joints.size(); ++index)
             joints[index].alive = true;
-        const auto created = Client::Scenes::CreateMonster(53, 120, 120, 100, game->Resources());
+        const auto created = Client::Monsters::CreateMonster(53, 120, 120, 100, game->Resources());
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(Actor(created.Value()).word376, 53);
         if (free == 1)
@@ -1078,13 +1078,13 @@ TEST_F(MonsterViewportTest, CrywolfArrivalsUseTheTourStageAndPreserveTheJointWid
         actor.word376 = type;
         actor.position = {100, 200, 300};
         game->world.Runtime().events.cameraTour.stage = 3;
-        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        ASSERT_TRUE(Client::Monsters::ArriveAsNew(actor, game->Resources()).HasValue());
         EXPECT_EQ(actor.alpha, 1.0f);
         EXPECT_FALSE(game->world.DrawTail().joints[0].alive);
         EXPECT_FALSE(game->world.Particles().Any());
         EXPECT_EQ(game->cloth.random.State(), Seed);
         game->world.Runtime().events.cameraTour.stage = 2;
-        ASSERT_TRUE(Client::Scenes::ArriveAsNew(actor, game->Resources()).HasValue());
+        ASSERT_TRUE(Client::Monsters::ArriveAsNew(actor, game->Resources()).HasValue());
         EXPECT_EQ(actor.alpha, 0.0f);
         const auto& joints = game->world.DrawTail().joints;
         CrtRandom widths(Seed);
@@ -1133,7 +1133,7 @@ TEST_F(MonsterViewportTest, CrywolfArrivalCompletesWithPartialAndFullEffectPools
         auto particles = game->world.Particles().All();
         for (std::size_t index = capacity.particles; index < particles.size(); ++index)
             particles[index].alive = true;
-        const auto arrived = Client::Scenes::ArriveAsNew(Actor(1), game->Resources());
+        const auto arrived = Client::Monsters::ArriveAsNew(Actor(1), game->Resources());
         ASSERT_TRUE(arrived.HasValue()) << arrived.Error();
         EXPECT_EQ(Actor(1).alpha, 0.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, capacity.draws).State());
@@ -1209,7 +1209,7 @@ TEST_F(MonsterViewportTest, TheSummonsTakeTheirLevelFromTheType)
     EXPECT_EQ(first.dword64, -1);
     EXPECT_EQ(first.hands[0].model, 0xffff);
     EXPECT_EQ(first.animation.frame, 10.0f);
-    EXPECT_EQ(Client::Scenes::ActorText(first), "");
+    EXPECT_EQ(Client::Monsters::ActorText(first), "");
 
     const ActorState& last = Actor(2);
     EXPECT_EQ(last.word376, 0x9e);
@@ -1243,7 +1243,7 @@ TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
         EXPECT_EQ(summon.animation.frame, 0.0f);
         EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x61});
         const auto effects = std::as_const(game->world.Map().effects).Effects();
-        const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+        const auto circle = std::ranges::find_if(effects, [](const Client::Effects::ModelEffect& effect)
                                                  { return effect.alive && effect.type == 0xec; });
         ASSERT_NE(circle, effects.end());
         EXPECT_EQ(circle->ownerContext, &summon);
@@ -1304,7 +1304,7 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     game->texts = &texts;
     applied = Summons(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
-    EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Carpincho con su \xb0\xc5\xb9\xcc");
+    EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Carpincho con su \xb0\xc5\xb9\xcc");
     EXPECT_EQ(Actor(1).byte88, 1);
 
     // Diez letras, " con su " y las nueve del caso del 20 (0x515949): 27, con el '\0' en el byte bajo de la clave. El
@@ -1315,7 +1315,7 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     applied = Summons(records);
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     const ActorState& spilled = Actor(2);
-    EXPECT_EQ(Client::Scenes::ActorText(spilled), "Carpinchos con su \xbc\xb3\xc0\xce \xb4\xeb\xc0\xe5");
+    EXPECT_EQ(Client::Monsters::ActorText(spilled), "Carpinchos con su \xbc\xb3\xc0\xce \xb4\xeb\xc0\xe5");
     EXPECT_EQ(spilled.word1f2, 0xe5c0);
     EXPECT_EQ(spilled.key, 0x0c00);
 
@@ -1329,7 +1329,7 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(arrived.alpha, 0.0f);
     EXPECT_EQ(game->cloth.random.State(), expected.State());
     const auto effects = std::as_const(game->world.Map().effects).Effects();
-    const auto circle = std::ranges::find_if(effects, [](const Client::World::ModelEffect& effect)
+    const auto circle = std::ranges::find_if(effects, [](const Client::Effects::ModelEffect& effect)
                                              { return effect.alive && effect.type == 0xec; });
     ASSERT_NE(circle, effects.end());
     EXPECT_EQ(circle->subtype, 0);
@@ -1337,11 +1337,11 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(circle->life, 30);
     EXPECT_EQ(circle->transform.position, arrived.position);
     const auto& particles = std::as_const(game->world.Particles()).All();
-    const auto bolt = std::ranges::find_if(particles, [](const Client::World::Particle& particle)
+    const auto bolt = std::ranges::find_if(particles, [](const Client::Particles::Particle& particle)
                                            { return particle.alive && particle.type == 0x5d5; });
     ASSERT_NE(bolt, particles.end());
     EXPECT_EQ(bolt->subtype, 2);
-    EXPECT_EQ(bolt->typedOwner, (Client::World::ParticleOwner{Client::World::ParticleOwnerKind::Actor, 3}));
+    EXPECT_EQ(bolt->typedOwner, (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::Actor, 3}));
     EXPECT_EQ(game->world.Runtime().lastSoundId, lastSound);
 }
 
@@ -1361,7 +1361,7 @@ TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
     {
         SCOPED_TRACE(map);
         Load(map);
-        game->world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(names.Value());
+        game->world.Runtime().npcNames = Client::Monsters::NpcNameTableOf(names.Value());
         const Cell cell = FreeRow();
         const auto summon = [&cell](std::uint16_t key, std::uint8_t type, std::string_view owner)
         {
@@ -1380,14 +1380,14 @@ TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
 
         EXPECT_EQ(Actor(1).word376, 0x98);
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Magic stone of Yacare ");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Magic stone of Yacare ");
         // "Magic stone of Carpinchos " tiene 26: los 24 primeros, sin '\0'; +0x1f1 sigue en 0 y corta la cadena.
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(2)), "Magic stone of Carpincho");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(2)), "Magic stone of Carpincho");
         EXPECT_EQ(Actor(2).nameSpill[13], std::byte{0});
         EXPECT_EQ(Actor(2).word1f2, 0xffff);
         EXPECT_EQ(Actor(2).key, 0x0e01);
         EXPECT_EQ(Actor(2).level, 6);
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(3)), "Shadow Knight");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(3)), "Shadow Knight");
         EXPECT_EQ(Actor(3).subtype, 1);
     }
 }
@@ -1423,7 +1423,7 @@ TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
                                                    .owner = "Yacare"}}};
         auto applied = Summons(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Piedra 100% de Yacare");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Piedra 100% de Yacare");
 
         for (const std::uint16_t type : {std::uint16_t{0x99}, std::uint16_t{0x9a}})
         {
@@ -1443,7 +1443,7 @@ TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
         records[0].type = 0x9c;
         applied = Summons(records);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        EXPECT_EQ(Client::Scenes::ActorText(Actor(1)), "Piedra de mago de Carpin");
+        EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Piedra de mago de Carpin");
     }
 }
 
@@ -1469,7 +1469,7 @@ TEST_F(MonsterViewportTest, TheObjectsArePlayersOrMonstersByTheirKind)
     EXPECT_EQ(player.byte88, 0x80);
     EXPECT_EQ(player.dword428, 0x96);
     EXPECT_EQ(player.angles.z, static_cast<float>(expected.Next() % 360));
-    EXPECT_EQ(Client::Scenes::ActorText(player), "   ");
+    EXPECT_EQ(Client::Monsters::ActorText(player), "   ");
     EXPECT_EQ(player.byte1e3, 0);
 
     expected.Discard(ArrivingRecordDraws);

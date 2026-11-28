@@ -15,7 +15,7 @@ class WorldState;
 // El cartel de Slide.bmd del lado del juego (CL8 hito 3; 06 § El cartel de Slide.bmd): lo que lee el registro propio
 // (0x46b0e0) y el timer 0x3eb de la ventana, que arma 0x46b010 en el primer paso del juego y atiende el WndProc. El
 // objeto y sus colas están en UI/SlideBanner, en WorldRuntime::hud.slides.
-namespace Client::Scenes
+namespace Client::Hud
 {
 
 // 0x46b0e0: con la escena 5, los carteles prendidos (0x6c7a8c) y la cola normal apagada (+0x8c0 ≤ 0), el nivel propio
@@ -34,4 +34,4 @@ void StartTheSlides(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint
 // después del frame en que vence, detrás de los mensajes de la red de esa pausa; MuRet lo corre al cerrar la vuelta,
 // antes del Poll de la siguiente.
 void RunTheSlideTimer(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint32_t now, bool gameScene);
-} // namespace Client::Scenes
+} // namespace Client::Hud

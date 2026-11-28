@@ -93,7 +93,7 @@ public:
         return metadata ? std::optional(metadata->size) : std::nullopt;
     }
 };
-Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
+Client::WorldObjects::WorldObject Marker(std::int16_t type = CloudMarker)
 {
     Client::Data::Terrain::TerrainObject record;
     record.type = type;
@@ -101,24 +101,25 @@ Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
     record.angle = {10.0f, 20.0f, 30.0f};
     record.scale = 2.5f;
     return Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), LoginMap,
-                                                       Client::World::ObjectScene::Login)
+                                                       Client::WorldObjects::ObjectScene::Login)
         .front();
 }
-void Emit(Client::World::WorldObject& object, Client::World::Particles& particles, Client::Crt::CrtRandom& random,
-          std::uint8_t map = LoginMap, const Client::Terrain::TerrainPolygon& polygon = {.everything = true})
+void Emit(Client::WorldObjects::WorldObject& object, Client::Particles::Particles& particles,
+          Client::Crt::CrtRandom& random, std::uint8_t map = LoginMap,
+          const Client::Terrain::TerrainPolygon& polygon = {.everything = true})
 {
     const CloudTextures models;
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawWorldObjects(batch, models, std::span(&object, 1), polygon, nullptr, map,
-                                     std::chrono::milliseconds{1234}, 0.0f,
-                                     Client::Scenes::ObjectFrameEffects{.random = &random, .particles = &particles});
+    Client::WorldObjects::DrawWorldObjects(
+        batch, models, std::span(&object, 1), polygon, nullptr, map, std::chrono::milliseconds{1234}, 0.0f,
+        Client::WorldObjects::ObjectFrameEffects{.random = &random, .particles = &particles});
 }
 // Scene 2 solo controla el farol. Seed 4: rand común 51, guard 17945 y cinco rand de creación.
 TEST(LoginCloudDrawingTest, ASeenHiddenMarkerEmitsOutsideSceneTwoAfterTheCommonRand)
 {
     auto object = Marker();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(4);
     Emit(object, particles, random);
     EXPECT_TRUE(object.seen);
@@ -135,7 +136,7 @@ TEST(LoginCloudDrawingTest, ASeenHiddenMarkerEmitsOutsideSceneTwoAfterTheCommonR
 TEST(LoginCloudDrawingTest, ARejectedRollStillConsumesTheCloudGuard)
 {
     auto object = Marker();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(1);
     Emit(object, particles, random);
     EXPECT_FALSE(particles.Any());
@@ -148,8 +149,9 @@ TEST(LoginCloudDrawingTest, AMissingPoolStillConsumesTheCloudGuard)
     Client::Crt::CrtRandom random(4);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawWorldObjects(batch, models, std::span(&object, 1), {.everything = true}, nullptr, LoginMap, {},
-                                     0.0f, Client::Scenes::ObjectFrameEffects{.random = &random});
+    Client::WorldObjects::DrawWorldObjects(batch, models, std::span(&object, 1), {.everything = true}, nullptr,
+                                           LoginMap, {}, 0.0f,
+                                           Client::WorldObjects::ObjectFrameEffects{.random = &random});
     EXPECT_TRUE(object.seen);
     EXPECT_EQ(random.State(), 0xc6192e9eu) << "común51 y guard17945, sin los cinco rand de creación";
 }
@@ -172,19 +174,20 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
         SCOPED_TRACE(static_cast<int>(tested.map));
         auto object = Marker(MeteorMarker);
         const CloudTextures models;
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         Client::Crt::CrtRandom random(4);
         Client::Crt::CrtRandom common(4);
         static_cast<void>(common.Next());
         std::vector<std::string> failures;
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        Client::Scenes::DrawWorldObjects(batch, models, std::span(&object, 1), {.everything = true}, nullptr,
-                                         tested.map, std::chrono::milliseconds{tested.clock}, 0.0f,
-                                         Client::Scenes::ObjectFrameEffects{.random = &random,
-                                                                            .particles = &particles,
-                                                                            .onFailure = [&](const std::string& error)
-                                                                            { failures.push_back(error); }});
+        Client::WorldObjects::DrawWorldObjects(
+            batch, models, std::span(&object, 1), {.everything = true}, nullptr, tested.map,
+            std::chrono::milliseconds{tested.clock}, 0.0f,
+            Client::WorldObjects::ObjectFrameEffects{
+                .random = &random, .particles = &particles, .onFailure = [&](const std::string& error) {
+                    failures.push_back(error);
+                }});
         EXPECT_EQ(random.State(), common.State());
         EXPECT_FALSE(particles.Any());
         ASSERT_EQ(failures.size(), tested.cut ? 1U : 0U);
@@ -197,21 +200,23 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
 }
 
 // El 0x59 dibujado una vez en el mapa 55 con el reloj `clock`, con la tabla de los efectos con modelo.
-std::vector<std::string> DropTheMeteor(Client::World::WorldObject& object, Client::World::ModelEffects& effects,
-                                       Client::Crt::CrtRandom& random, std::int64_t clock)
+std::vector<std::string> DropTheMeteor(Client::WorldObjects::WorldObject& object,
+                                       Client::Effects::ModelEffects& effects, Client::Crt::CrtRandom& random,
+                                       std::int64_t clock)
 {
     const CloudTextures models;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     std::vector<std::string> failures;
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawWorldObjects(
+    Client::WorldObjects::DrawWorldObjects(
         batch, models, std::span(&object, 1), {.everything = true}, nullptr, LoginMap, std::chrono::milliseconds{clock},
         0.0f,
-        Client::Scenes::ObjectFrameEffects{.random = &random,
-                                           .particles = &particles,
-                                           .modelEffects = &effects,
-                                           .onFailure = [&](const std::string& error) { failures.push_back(error); }});
+        Client::WorldObjects::ObjectFrameEffects{.random = &random,
+                                                 .particles = &particles,
+                                                 .modelEffects = &effects,
+                                                 .onFailure = [&](const std::string& error)
+                                                 { failures.push_back(error); }});
     EXPECT_FALSE(particles.Any());
     return failures;
 }
@@ -225,26 +230,26 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerDropsAMeteorInsideItsWindow)
 {
     auto object = Marker(MeteorMarker);
     object.light = {0.25f, 0.5f, 0.75f};
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     Client::Crt::CrtRandom random(4);
     EXPECT_TRUE(DropTheMeteor(object, effects, random, 15999).empty());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(4, 9).State());
-    Client::World::ModelEffects twin;
+    Client::Effects::ModelEffects twin;
     Client::Crt::CrtRandom twinRandom = Client::Tests::AfterDraws(4, 4);
-    ASSERT_TRUE(Client::World::CreateWizardModelEffect(twin,
-                                                       {.type = Client::World::FireEffect,
-                                                        .position = {1537.0f, 1511.0f, 3686.0f},
-                                                        .angles = object.transform.angles,
-                                                        .light = object.light,
-                                                        .subtype = 9},
-                                                       twinRandom, {})
+    ASSERT_TRUE(Client::Effects::CreateWizardModelEffect(twin,
+                                                         {.type = Client::Effects::FireEffect,
+                                                          .position = {1537.0f, 1511.0f, 3686.0f},
+                                                          .angles = object.transform.angles,
+                                                          .light = object.light,
+                                                          .subtype = 9},
+                                                         twinRandom, {})
                     .HasValue());
     EXPECT_EQ(twinRandom.State(), random.State());
-    const Client::World::ModelEffect& meteor = effects.Effects()[0];
-    const Client::World::ModelEffect& expected = twin.Effects()[0];
+    const Client::Effects::ModelEffect& meteor = effects.Effects()[0];
+    const Client::Effects::ModelEffect& expected = twin.Effects()[0];
     ASSERT_TRUE(meteor.alive);
     EXPECT_FALSE(effects.Effects()[1].alive);
-    EXPECT_EQ(meteor.type, Client::World::FireEffect);
+    EXPECT_EQ(meteor.type, Client::Effects::FireEffect);
     EXPECT_EQ(meteor.subtype, 9);
     EXPECT_EQ(meteor.life, 600);
     EXPECT_EQ(meteor.transform.position, glm::vec3(1683.0f, 1511.0f, 4101.0f));
@@ -264,8 +269,8 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerDropsAMeteorInsideItsWindow)
 TEST(LoginCloudDrawingTest, AFullTableTakesOnlyTheThreeRandsOfThePoint)
 {
     auto object = Marker(MeteorMarker);
-    Client::World::ModelEffects effects;
-    for (Client::World::ModelEffect& effect : effects.Effects())
+    Client::Effects::ModelEffects effects;
+    for (Client::Effects::ModelEffect& effect : effects.Effects())
     {
         effect.alive = true;
         effect.type = -1;
@@ -273,7 +278,7 @@ TEST(LoginCloudDrawingTest, AFullTableTakesOnlyTheThreeRandsOfThePoint)
     Client::Crt::CrtRandom random(4);
     EXPECT_TRUE(DropTheMeteor(object, effects, random, 7950).empty());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(4, 4).State());
-    for (const Client::World::ModelEffect& effect : effects.Effects())
+    for (const Client::Effects::ModelEffect& effect : effects.Effects())
         EXPECT_EQ(effect.type, -1);
 }
 
@@ -283,7 +288,7 @@ TEST(LoginCloudDrawingTest, OtherMapsAndTypesConsumeOnlyTheCommonRand)
     {
         SCOPED_TRACE(otherMap);
         auto object = Marker(otherMap ? CloudMarker : 0x55);
-        Client::World::Particles particles;
+        Client::Particles::Particles particles;
         Client::Crt::CrtRandom random(4);
         Emit(object, particles, random, otherMap ? 54 : LoginMap);
         EXPECT_FALSE(particles.Any());
@@ -293,7 +298,7 @@ TEST(LoginCloudDrawingTest, OtherMapsAndTypesConsumeOnlyTheCommonRand)
 TEST(LoginCloudDrawingTest, AnUnseenMarkerDoesNotReachTheEmitter)
 {
     auto object = Marker();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(4);
     const auto polygon =
         Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
@@ -305,7 +310,7 @@ TEST(LoginCloudDrawingTest, AnUnseenMarkerDoesNotReachTheEmitter)
 TEST(LoginCloudDrawingTest, AFullPoolConsumesTheGuardWithoutCreationRandomness)
 {
     auto object = Marker();
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     for (auto& particle : particles.All())
     {
         particle.alive = true;
@@ -319,7 +324,7 @@ TEST(LoginCloudDrawingTest, AFullPoolConsumesTheGuardWithoutCreationRandomness)
         EXPECT_EQ(particle.type, -1);
     }
 }
-void SetCloud(Client::World::Particle& particle, float baseAngle)
+void SetCloud(Client::Particles::Particle& particle, float baseAngle)
 {
     particle.alive = true;
     particle.type = CloudType;
@@ -336,15 +341,15 @@ void SetCloud(Client::World::Particle& particle, float baseAngle)
 TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
 {
     const CloudTextures textures;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     SetCloud(particles.All()[1], 10.0f);
     SetCloud(particles.All()[3], 30.0f);
     SetCloud(particles.All()[4], 40.0f);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(
-        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f)
-            .HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures,
+                                                    Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f)
+                    .HasValue());
     std::size_t draws = 0;
     for (const auto& command : batch.Commands())
     {
@@ -369,9 +374,9 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
         EXPECT_FLOAT_EQ(vertex.position.z, -300.0f);
     }
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(
-        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f)
-            .HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures,
+                                                    Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f)
+                    .HasValue());
     EXPECT_FLOAT_EQ(particles.All()[1].rotation, 2.0f) << "no acumula el giro anterior";
     EXPECT_FLOAT_EQ(particles.All()[4].rotation, 48.0f);
 }
@@ -383,13 +388,13 @@ TEST(LoginCloudDrawingTest, CatchUpVisitsEveryObjectBeforeStartingTheNextOrigina
     const CloudTextures models;
     std::array objects{Marker(), Marker(1)};
     std::array<std::optional<int>, 2> lastRandoms;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random(4);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawWorldObjects(
+    Client::WorldObjects::DrawWorldObjects(
         batch, models, objects, {.everything = true}, nullptr, LoginMap, {}, 0.0f,
-        Client::Scenes::ObjectFrameEffects{
+        Client::WorldObjects::ObjectFrameEffects{
             .random = &random, .particles = &particles, .frames = 2, .lastRandoms = lastRandoms});
     EXPECT_EQ(random.State(), 0x4d199f94u);
     ASSERT_TRUE(particles.All()[1].alive);

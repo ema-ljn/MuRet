@@ -12,7 +12,7 @@
 // detrás de Text.bmd (0x61ee30 → 0x61c1c0); lo escriben la salida del juego, el cambio de servidor y el gate a los
 // mapas 30 y 31 (0x61c170 desde 0x412b6d, 0x59ad45, 0x624067, 0x624edf y 0x624f1d), que son de otras olas. Lo que el
 // jugador guarda en sus macros no va al log. *Estático*.
-namespace Client::UI
+namespace Client::Chat
 {
 // 0x77f1db0: cada macro en 0x100 bytes con su '\0'.
 inline constexpr std::size_t MacroSlotBytes = 0x100;
@@ -28,4 +28,4 @@ using Macros = std::array<std::string, MacroCount>;
 
 // 0x61c170: fopen("wt") y diez fprintf("%s\n"), con el "\r\n" del modo texto. No mira si se abrió.
 [[nodiscard]] std::string WrittenMacros(const Macros& macros);
-} // namespace Client::UI
+} // namespace Client::Chat

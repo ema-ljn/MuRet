@@ -22,7 +22,7 @@ void FillItemCreators(Actors::Drawing::ItemDrawContext& item, const Actors::Draw
         // never read it as a FaunaObject.
         if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
             return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
-        const auto created = Scenes::CreateFaunaJoint(joints, request, *random);
+        const auto created = Joints::CreateFaunaJoint(joints, request, *random);
         return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
     };
     item.createEffect =
@@ -31,11 +31,11 @@ void FillItemCreators(Actors::Drawing::ItemDrawContext& item, const Actors::Draw
     {
         if (type == 0xc2 && subtype == 3)
         {
-            static_cast<void>(Scenes::CreateFaunaLightning(*effects, object.transform.position));
+            static_cast<void>(Fauna::CreateFaunaLightning(*effects, object.transform.position));
             return {};
         }
         if (subtype != 0 ||
-            (type != World::DragonEffect && type != World::ArrivalEffect && type != World::TeleportEffect))
+            (type != Effects::DragonEffect && type != Effects::ArrivalEffect && type != Effects::TeleportEffect))
             return Core::Unexpected(std::string("0x518cf0: creador del efecto de ítem fuera del contrato portable"));
         static_cast<void>(effects->Create(static_cast<std::int16_t>(type), object.transform.position,
                                           object.transform.angles, object.color, object.transform.scale));

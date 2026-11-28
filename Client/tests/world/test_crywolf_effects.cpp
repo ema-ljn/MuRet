@@ -18,9 +18,9 @@ namespace
 {
 TEST(CrywolfEffectsTest, TheCraterFadesBeforeItsLastCommonStep)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
-    Client::World::ModelEffect crater;
+    Client::Effects::ModelEffect crater;
     crater.alive = true;
     crater.type = 0x636;
     crater.life = 1;
@@ -29,8 +29,8 @@ TEST(CrywolfEffectsTest, TheCraterFadesBeforeItsLastCommonStep)
     crater.alpha = 0.75f;
     Client::Crt::CrtRandom random(7);
     const auto stepped =
-        Client::World::StepGameModelEffect(crater, nullptr, *particles, 0, random, nullptr,
-                                           Client::World::ModelEffectStepServices{.lighting = lighting.get()});
+        Client::Effects::StepGameModelEffect(crater, nullptr, *particles, 0, random, nullptr,
+                                             Client::Effects::ModelEffectStepServices{.lighting = lighting.get()});
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FALSE(crater.alive);
     EXPECT_EQ(crater.life, 0);
@@ -41,16 +41,16 @@ TEST(CrywolfEffectsTest, TheCraterFadesBeforeItsLastCommonStep)
 }
 TEST(CrywolfEffectsTest, TheAttackWaveGrowsAndFadesWithoutLosingItsColor)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
-    Client::World::ModelEffect wave;
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    Client::Effects::ModelEffect wave;
     wave.alive = true;
-    wave.type = Client::World::ShockWaveEffect;
+    wave.type = Client::Effects::ShockWaveEffect;
     wave.subtype = 8;
     wave.life = 5;
     wave.transform.scale = 3;
     wave.light = {1, 0.6f, 0.4f};
     Client::Crt::CrtRandom random(7);
-    const auto stepped = Client::World::StepGameModelEffect(wave, nullptr, *particles, 0, random);
+    const auto stepped = Client::Effects::StepGameModelEffect(wave, nullptr, *particles, 0, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(wave.life, 4);
     EXPECT_EQ(wave.transform.scale, 4);
@@ -63,12 +63,12 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
 {
     for (const bool full : {false, true})
     {
-        auto particles = std::make_unique<Client::World::Particles>();
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         if (full)
             for (auto& effect : effects->Effects())
                 effect.alive = true;
-        Client::World::ModelEffect emitter;
+        Client::Effects::ModelEffect emitter;
         emitter.alive = true;
         emitter.type = 0x60e;
         emitter.life = 75;
@@ -77,7 +77,7 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
         Client::Crt::CrtRandom random(0);
         std::vector<int> sounds;
         std::vector<std::pair<int, glm::vec3>> soundsAt;
-        const auto stepped = Client::World::StepGameModelEffect(
+        const auto stepped = Client::Effects::StepGameModelEffect(
             emitter, nullptr, *particles, 0, random, nullptr,
             {.effects = effects.get(),
              .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
@@ -104,11 +104,11 @@ TEST(CrywolfEffectsTest, TheFireworkEmitterKeepsCallerAndAllocatedChildRandoms)
 
 TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& particle : particles->All())
         particle.alive = true;
-    Client::World::ModelEffect firework;
+    Client::Effects::ModelEffect firework;
     firework.alive = true;
     firework.type = 0x60d;
     firework.life = 1;
@@ -117,7 +117,7 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
     Client::Crt::CrtRandom random(0);
     std::vector<int> sounds;
     std::vector<std::pair<int, glm::vec3>> soundsAt;
-    const auto stepped = Client::World::StepGameModelEffect(
+    const auto stepped = Client::Effects::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,
         {.lighting = lighting.get(),
          .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); },
@@ -135,12 +135,12 @@ TEST(CrywolfEffectsTest, TheLastFireworkStillSoundsAndDiesWithTheParticlesFull)
 }
 TEST(CrywolfEffectsTest, TheLastFireworkFillsTheOnlyParticleRoomAndKeepsTheRemainingCallerWork)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     for (auto& particle : particles->All())
         particle.alive = true;
     particles->All()[0].alive = false;
-    Client::World::ModelEffect firework;
+    Client::Effects::ModelEffect firework;
     firework.alive = true;
     firework.type = 0x60d;
     firework.life = 1;
@@ -148,7 +148,7 @@ TEST(CrywolfEffectsTest, TheLastFireworkFillsTheOnlyParticleRoomAndKeepsTheRemai
     firework.transform.position = {1000, 2000, 100};
     Client::Crt::CrtRandom random(0);
     std::vector<int> sounds;
-    const auto stepped = Client::World::StepGameModelEffect(
+    const auto stepped = Client::Effects::StepGameModelEffect(
         firework, nullptr, *particles, 0, random, nullptr,
         {.lighting = lighting.get(),
          .sound = [&sounds](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }});

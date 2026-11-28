@@ -18,22 +18,22 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
 using Math::F32;
 } // namespace
 
-Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& effect, std::uint64_t physicalSlot,
-                                                         World::Particles& particles, World::FrameSprites& sprites,
-                                                         Crt::CrtRandom& random,
+Core::Expected<void, std::string> DrawCrywolfMissileTail(Effects::ModelEffect& effect, std::uint64_t physicalSlot,
+                                                         Particles::Particles& particles,
+                                                         Particles::FrameSprites& sprites, Crt::CrtRandom& random,
                                                          std::span<const Math::BoneTransform> globalPose,
                                                          float worldClock)
 {
     // 602626 transforma(0,1.5,0) con el hueso2 en un local muerto. Las altas leen la posición del efecto.
-    World::PortableParticleTrigonometry trigonometry;
-    const World::ParticleOwner owner{World::ParticleOwnerKind::ModelEffect, physicalSlot};
+    Particles::PortableParticleTrigonometry trigonometry;
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::ModelEffect, physicalSlot};
     const auto emit = [&](std::int32_t type, std::int32_t subtype, float scale) -> Core::Expected<void, std::string>
     {
         const auto created =
@@ -46,14 +46,15 @@ Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& eff
     constexpr float Shrink = 0.4f;
     effect.light = glm::vec3(1);
     for (int index = 0; index < 2; ++index)
-        if (auto made = emit(World::MissileFireParticle, 8,
+        if (auto made = emit(Particles::MissileFireParticle, 8,
                              F32(static_cast<double>(effect.transform.scale) - static_cast<double>(Shrink)));
             !made.HasValue())
             return made;
-    if (auto made = emit(World::BreathParticle, World::MissileSmokeSubtype, effect.transform.scale); !made.HasValue())
+    if (auto made = emit(Particles::BreathParticle, Particles::MissileSmokeSubtype, effect.transform.scale);
+        !made.HasValue())
         return made;
     effect.light = {1, 0.4f, 0};
-    if (auto made = emit(World::MissileFireParticle, 9,
+    if (auto made = emit(Particles::MissileFireParticle, 9,
                          F32(static_cast<double>(effect.transform.scale) - static_cast<double>(Shrink)));
         !made.HasValue())
         return made;
@@ -73,4 +74,4 @@ Core::Expected<void, std::string> DrawCrywolfMissileTail(World::ModelEffect& eff
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

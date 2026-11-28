@@ -37,7 +37,7 @@ TEST(SelectionInventoryTest, TheNpcGridsClearOnlyTheirTypeAndOccupation)
     Client::Crt::CrtRandom random(42);
     auto expected = random;
     expected.Discard(Client::Models::OwnRecordCloseRandoms);
-    Client::Scenes::ClearSelectionInventory(*world, random);
+    Client::FrontEnd::ClearSelectionInventory(*world, random);
     const auto check = [](std::span<const Client::Kernel::ItemState> cells)
     {
         for (const auto& cell : cells)

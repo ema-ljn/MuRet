@@ -62,7 +62,7 @@ CreateFalling(std::span<JointState> joints, ActorState& owner, CrtRandom& random
                                .skill = 0,
                                .skillSerial = 0,
                                .target = -1};
-    return Client::Scenes::CreateFaunaJoint(joints, request, random);
+    return Client::Joints::CreateFaunaJoint(joints, request, random);
 }
 
 // Lo que el 60f/0xa hace en un paso de 0x53b239 con la key 2, sin la caída. Con los ángulos en 0, el movimiento común
@@ -141,7 +141,7 @@ TEST(QuestPrizeJointsTest, TheFallingSparkleTurnsAndGoesDown)
     for (int step = 1; step <= 51; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
         TurnFalling(expected);
         expected.count = std::min(expected.count + 1, expected.maximumCount - 1);
         --expected.life;
@@ -171,7 +171,7 @@ TEST(QuestPrizeJointsTest, ANarrowFallingSparkleFallsWithItsOwner)
         ASSERT_TRUE(CreateFalling(joints, owner, random, 10.0f).HasValue());
         EXPECT_EQ(joints[0].life, 100);
 
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
         const bool falls = action == 0x38;
         EXPECT_EQ(joints[0].subtype, falls ? 1 : FallingSubtype);

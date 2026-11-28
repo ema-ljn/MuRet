@@ -23,7 +23,7 @@ class CrtRandom;
 // tabla de protección y cada consulta saca un rand(). El estado de cada id es un byte propio o uno que vive en otro
 // objeto (DelegatedPanels): un id cuyo dueño no está portado queda cerrado y su consulta saca lo que saca. Lo que
 // un panel hace al abrirse o al cerrarse y es de otra ola corta con su dirección (decisión 4 del plan de la CL8).
-namespace Client::UI
+namespace Client::Ui
 {
 using PanelId = std::uint32_t;
 
@@ -212,7 +212,7 @@ struct PanelContext
     // 0x657930 con [0x7d536f4] abierta: su vtable + 0x18 (0x45aa80(0), que llama a 0x656df0) con el mouse, el reloj y
     // los filtros del paso (Scenes/SecondGuildWindow). Sin él, el paso con la ventana 2 del gremio abierta corta.
     std::function<Core::Expected<void, std::string>()> secondGuildStep{};
-    // 0x657977: el paso de la ventana del gremio (0x45aa80(0) y 0x651840, Scenes::StepTheGuildWindow), con el mouse y
+    // 0x657977: el paso de la ventana del gremio (0x45aa80(0) y 0x651840, Guild::StepTheGuildWindow), con el mouse y
     // el cable del paso. Sin él, con el panel abierto, el paso corta.
     std::function<Core::Expected<void, std::string>()> guildStep{};
     // 0x65bef0..0x65bf0d: con los demás paneles cerrados, 0x64ae10 pide B2 03 y abre el registro del castillo.
@@ -235,15 +235,15 @@ struct PanelContext
     std::function<Core::Expected<void, std::string>()> characterOpened{};
     // 0x657fb5..0x6584a4: lo que cerrar el comercio hace entre la consulta y la escritura del byte protegido: con aux
     // en 0 el C1 03 3D en C3 (dos rand()), y las dos grillas (0x78a92a8 y 0x78a5a20) vacías, con 0x5bbdf0 en cada
-    // vuelta si 0x78abaa5 está en 1 (Scenes::CloseTheTradeGrids). Sin él, cerrar el comercio corta.
+    // vuelta si 0x78abaa5 está en 1 (Social::CloseTheTradeGrids). Sin él, cerrar el comercio corta.
     std::function<Core::Expected<void, std::string>(bool aux)> tradeClosed{};
     // 0x65ac65..0x65b21d y 0x65b33a..0x65ba37: lo que abrir una tienda personal (0x800 o 0x20000) hace si cerró lo
     // demás, después del inventario y antes de prender 0x7d5370f: con 0x6c931c distinto de −1 el C1 04 F3 10 en C3 (dos
     // rand()), los dos mapas de los precios (0x7245e4 y 0x7245e0) si no estaban y 0x6c931c en 1 o 2
-    // (Scenes::OpenThePersonalShop). Sin él, abrir una tienda corta.
+    // (PersonalShop::OpenThePersonalShop). Sin él, abrir una tienda corta.
     std::function<Core::Expected<void, std::string>(PanelId id)> personalShopOpened{};
     // 0x6589cb y 0x6589ef: 0x5eb020 al cerrar cualquiera de las dos, antes de apagar 0x7d5370f
-    // (Scenes::CloseThePersonalShop). Sin él, cerrar una tienda corta.
+    // (PersonalShop::CloseThePersonalShop). Sin él, cerrar una tienda corta.
     std::function<Core::Expected<void, std::string>()> personalShopClosed{};
     // Los pedidos del cuervo y del caballo, C1 06 A9 00 00 01 y A9 01 00 08, con el XOR32 y por send() (CL9 hito 4):
     // lo que abrir la mascota hace si cerró lo demás, después de 0x420cb0 (0x659ff6..0x65a8a3), y abrir el inventario
@@ -320,4 +320,4 @@ void ResetTheCommands(DelegatedPanels& delegated);
 inline constexpr std::int32_t FullWorldWidth = 0x280;
 inline constexpr std::int32_t OnePanelWorldWidth = 0x1c2;
 inline constexpr std::int32_t TwoPanelWorldWidth = 0x104;
-} // namespace Client::UI
+} // namespace Client::Ui

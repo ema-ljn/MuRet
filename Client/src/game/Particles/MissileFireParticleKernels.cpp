@@ -13,7 +13,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -234,4 +234,4 @@ Core::Expected<void, ParticleError> StepMissileFire(Particle& particle, IParticl
     }
 }
 
-} // namespace Client::World
+} // namespace Client::Particles

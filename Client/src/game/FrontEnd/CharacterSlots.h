@@ -6,7 +6,7 @@
 
 // Los cinco lugares de la selección, como los pone 0x4c20a0 (06 § Los personajes de la lista): la
 // posición en el mundo y el ángulo en z. La z es la de 0x634680, que la pone en cada frame.
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 struct CharacterSlot
 {
@@ -23,4 +23,4 @@ inline constexpr std::array<CharacterSlot, 5> CharacterSlots = {{
 }};
 
 inline constexpr float CharacterSlotHeight = 163.0f;
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

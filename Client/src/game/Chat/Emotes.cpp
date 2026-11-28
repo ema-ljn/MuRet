@@ -9,7 +9,7 @@
 #include <optional>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Chat
 {
 using Actors::EmoteCase;
 
@@ -119,16 +119,16 @@ std::optional<EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::strin
     {
         if (!run.literal.empty())
         {
-            if (ContainsLikeTheOriginal(said, run.literal))
+            if (FrontEnd::ContainsLikeTheOriginal(said, run.literal))
                 return run.emote;
             continue;
         }
         for (std::size_t index = run.first; index <= run.last; ++index)
         {
-            if (ContainsLikeTheOriginal(said, TextOr(texts, index)))
+            if (FrontEnd::ContainsLikeTheOriginal(said, TextOr(texts, index)))
                 return run.emote;
         }
     }
     return std::nullopt;
 }
-} // namespace Client::UI
+} // namespace Client::Chat

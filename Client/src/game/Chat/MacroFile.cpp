@@ -9,7 +9,7 @@
 #include <string>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Chat
 {
 namespace
 {
@@ -59,4 +59,4 @@ std::string WrittenMacros(const Macros& macros)
     }
     return written;
 }
-} // namespace Client::UI
+} // namespace Client::Chat

@@ -18,22 +18,26 @@
 // personales van con su ventana (0x5f3b40 y 0x5f3030).
 //
 // El modelo de un ítem de la UI (0x5e1480 → 0x5e0720) va en el pase 3D de 0x5ac120 (Scenes/UiItemDrawing.h).
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
 
-namespace Client::Scenes
+namespace Client::Items
+{
+struct UiItemBox;
+} // namespace Client::Items
+
+namespace Client::Hud
 {
 struct GameHudContext;
-struct UiItemBox;
 
 // 0x5e1480(x, y, w, h, tipo, nivel, excelente, set, siempre): el ítem de la caja `box` con el tipo y el nivel (+4, en
 // 32 bits con signo). Con los modelos del contexto (GameHudContext::uiItems), lo pone delante de la cámara de la UI y
 // lo dibuja en su pase (Scenes/UiItemDrawing.h), con los rand() de 0x607b60, 0x609640 y el pase del set de 0x60b3d0;
 // sin ellos, saca los mismos rand() sin dibujar. Con algunos tipos y niveles no dibuja nada y no saca ninguno. El
 // 0x1a18 corta antes de sus uniones (0x530860).
-[[nodiscard]] Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const UiItemBox& box,
+[[nodiscard]] Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Items::UiItemBox& box,
                                                            std::int32_t type, std::uint32_t level,
                                                            std::uint8_t excellent, std::uint8_t set, bool always);
 
@@ -44,15 +48,15 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
                       std::size_t columns, std::size_t rows);
 // Item.bmd +0x24 y +0x25 del tipo: las casillas de ancho y de alto, cada una por 20 (0x6b86d0) en la x87 con el fstp,
 // en el ancho y el alto de la caja (la x y la y en 0). Sin Item.bmd o sin el tipo, el error con `where`.
-[[nodiscard]] Core::Expected<UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
-                                                                std::string_view where);
+[[nodiscard]] Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const GameHudContext& context, std::int32_t type,
+                                                                       std::string_view where);
 
 // 0x5f2340: con el inventario abierto, la ventana en (0x1c2, 0), o en (0x104, 0) con el personaje o la party
 // abiertos: el fondo, los lugares del equipo con el color de su aviso, la grilla de 8 × 8, el título, el zen, los
 // botones de cerrar, reparar y la tienda personal con su ayuda, y el cartel del set. Saca 3.848 rand() por cada
 // cierre del registro propio que lo deja sin accesos (los lugares, el zen y el nivel) y uno por cada consulta del
 // comercio y de la tienda.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f3b40: con el comercio abierto (IsOpen(0x20), su rand()), la ventana en (0x104, 0) (0x78a5a1c y 0x78a5a18): el
 // fondo con la línea (0x5ee220 con 1), las cajas de las dos grillas (0x5e3660: la del otro en y + 70, la propia en
@@ -61,7 +65,7 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 // con la espera 0x78abac8) y de cerrar, con su ayuda (227 a 229), el zen de los dos (0x10f, "%d,%03d" y el color por
 // cuánto es), el nombre del otro, la flecha que sube y baja (9), su nivel por piso (368 y 369), el nombre del héroe y
 // los renglones 370 (que late), 365, 366 y 367. Sin más rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f3030 (CL9 hito 7): con la tienda personal propia o la de otro abiertas (0x800 o 0x20000, sin rand()), la ventana
 // en (0x104, 0) (0x78aba58 y 0x78aba5c), en la negrita: el fondo (0x5ee220 con 0) y el título (1102); con la propia
@@ -71,16 +75,16 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 // o 1106) y de cerrar (1108, gris con la tienda cerrada); el aviso que late (370) y los renglones de la propia (1109,
 // 1111, 1112, 1113 y 1115) o de la de otro (1110, 1111, 1112, 1114 y 1116), con los dos últimos (1134 y 1135) latiendo.
 [[nodiscard]] Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& context,
-                                                                          UI::PanelRegistry& panels);
+                                                                          Ui::PanelRegistry& panels);
 
 // 0x5f7610: los ítems 3D de las grillas abiertas, en su orden. Del inventario, el equipo (0x5e2fc0, con el registro
 // propio abierto alrededor, cada lugar en su caja) y la grilla (0x5e3760 con 0, con el tamaño de Item.bmd); la de la
 // tienda (con su rand()) y la del almacén, 8 × 15 desde la esquina de la ventana del NPC más (15, 50), y la de la
 // caja del caos, 8 × 4 desde la misma esquina más (15, 110); las de las demás cortan con su dirección.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f7840: las cifras de las grillas (0x5e3760 con 1): las pociones con más de 1 y los paquetes de joyas.
-[[nodiscard]] Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, UI::PanelRegistry& panels);
+[[nodiscard]] Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui::PanelRegistry& panels);
 
 // 0x5f7b10: el ítem del cursor (0x7879f80), del tamaño de Item.bmd y centrado en el mouse, con el último argumento
 // de 0x5e1480 en 1.
@@ -102,4 +106,4 @@ enum class DialogItemSource : std::uint8_t
 // de este frame en 0x6d5d44, y la vista en la identidad) y 0x5e1480(245, 115, 40, 60, tipo, +4, D+0x1b, D+0x1c, 1): la
 // caja es fija, no la de Item.bmd. Los rand() son los de 0x5e0720. Sin los recursos de la UI, solo los rand().
 [[nodiscard]] Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, float farPlane);
-} // namespace Client::Scenes
+} // namespace Client::Hud

@@ -288,17 +288,17 @@ struct Frame
     }
     Client::Core::Expected<void, std::string> Pick(bool alt = false)
     {
-        return Client::Scenes::PickInTheFrame({.world = *world,
-                                               .random = random,
-                                               .ownRecordDepth = world->Runtime().ownRecordDepth,
-                                               .targets = world->Runtime().selectedTargets,
-                                               .altDown = alt,
-                                               .ray = Ray,
-                                               .mouse = mouse});
+        return Client::Hud::PickInTheFrame({.world = *world,
+                                            .random = random,
+                                            .ownRecordDepth = world->Runtime().ownRecordDepth,
+                                            .targets = world->Runtime().selectedTargets,
+                                            .altDown = alt,
+                                            .ray = Ray,
+                                            .mouse = mouse});
     }
     std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
     CrtRandom random;
-    Client::UI::Point mouse{};
+    Client::Ui::Point mouse{};
 };
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -319,7 +319,7 @@ void Name(std::span<std::byte> name, std::string_view text)
 // The party at 0x77f3cd0 with these names, each with +0x1c at `index`.
 void Party(WorldState& world, std::initializer_list<std::string_view> names, std::int32_t index)
 {
-    Client::Scenes::PartyState& party = world.Runtime().social.party;
+    Client::Social::PartyState& party = world.Runtime().social.party;
     std::size_t at = 0;
     for (const std::string_view name : names)
     {
@@ -387,21 +387,21 @@ TEST(CharacterPickingTest, IsInThePartyComparesTheNameAsAPrefix)
         world.Runtime().map = map;
         Client::Kernel::ActorState& actor = world.Actors()[3];
         Name(actor.name, "Brezal");
-        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_FALSE(Client::Party::IsInTheParty(world, actor));
         Party(world, {"Tejon", "Brez"}, -2);
-        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_FALSE(Client::Party::IsInTheParty(world, actor));
         Party(world, {"Tejon", "Brezales"}, -2);
-        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_TRUE(Client::Party::IsInTheParty(world, actor));
         EXPECT_EQ(Indices(world), (std::array<std::int32_t, 4>{-2, -2, 0, 0}));
         Party(world, {"Tejon", "Brezal"}, -2);
-        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_TRUE(Client::Party::IsInTheParty(world, actor));
         // The third, empty slot does not count with the count at 2.
         Name(actor.name, "");
-        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_FALSE(Client::Party::IsInTheParty(world, actor));
         world.Runtime().hud.partyCount = 3;
-        EXPECT_TRUE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_TRUE(Client::Party::IsInTheParty(world, actor));
         world.Runtime().hud.partyCount = -1;
-        EXPECT_FALSE(Client::Scenes::IsInTheParty(world, actor));
+        EXPECT_FALSE(Client::Party::IsInTheParty(world, actor));
     }
 }
 
@@ -448,14 +448,14 @@ TEST(CharacterPickingTest, AltOverAFloorItemAlsoLooksForTheParty)
             item.seen = true;
             item.pickBox = Client::Models::Box{.min = {1500.0f, 970.0f, 30.0f}, .max = {1560.0f, 1030.0f, 90.0f}};
         }
-        ASSERT_TRUE(Client::Scenes::PickInTheFrame({.world = world,
-                                                    .random = tested.random,
-                                                    .ownRecordDepth = world.Runtime().ownRecordDepth,
-                                                    .targets = world.Runtime().selectedTargets,
-                                                    .altDown = true,
-                                                    .ray = Ray,
-                                                    .mouse = tested.mouse,
-                                                    .floorItems = *items})
+        ASSERT_TRUE(Client::Hud::PickInTheFrame({.world = world,
+                                                 .random = tested.random,
+                                                 .ownRecordDepth = world.Runtime().ownRecordDepth,
+                                                 .targets = world.Runtime().selectedTargets,
+                                                 .altDown = true,
+                                                 .ray = Ray,
+                                                 .mouse = tested.mouse,
+                                                 .floorItems = *items})
                         .HasValue());
         if (withItem)
         {

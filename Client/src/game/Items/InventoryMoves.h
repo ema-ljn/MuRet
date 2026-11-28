@@ -32,7 +32,7 @@ namespace Client::Tables
 class TextTable;
 }
 
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
@@ -51,6 +51,10 @@ enum class CursorGrid : std::uint8_t;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Items
+{
 
 // Lo que los pasos de la UI y MoveHero piden afuera para mover ítems. Vacío o nullptr: lo que lo necesita corta.
 struct InventoryServices
@@ -61,8 +65,8 @@ struct InventoryServices
     std::function<Core::Expected<void, std::string>()> dressTheHero{};
     // 0x420cf0: suelta el cuervo y, fuera de los mapas 18 a 23, lo crea de nuevo (ReplaceTheRaven).
     std::function<Core::Expected<void, std::string>()> replaceTheRaven{};
-    // 0x555190(nombre, el texto `index` de Text.bmd, tipo): un mensaje en el chat, con el tipo 2 (UI::ErrorMessage)
-    // o el 1 (UI::SystemMessage, las flechas que se equipan). Los nombres que pasa el original (0x77f3bdc a 0x77f3be4,
+    // 0x555190(nombre, el texto `index` de Text.bmd, tipo): un mensaje en el chat, con el tipo 2 (Ui::ErrorMessage)
+    // o el 1 (Ui::SystemMessage, las flechas que se equipan). Los nombres que pasa el original (0x77f3bdc a 0x77f3be4,
     // 0x78abb44, 0x78abb60 a 0x78abb6c) son buffers que nadie escribe: van vacíos (*inferido*, 08 P-C72).
     std::function<Core::Expected<void, std::string>(std::size_t index, std::int32_t type)> systemMessage{};
     // El C1 0E 24 en C3 por la sesión (ServerSession::SendItemMove), después de los dos rand() del envío.
@@ -84,7 +88,7 @@ struct InventoryServices
 };
 
 // Los servicios de `resources`, sin el envío: Item.bmd, 0x512a30 con Player.bmd, el cuervo y los mensajes.
-[[nodiscard]] InventoryServices InventoryServicesOf(const WorldEntryResources& resources);
+[[nodiscard]] InventoryServices InventoryServicesOf(const Scenes::WorldEntryResources& resources);
 
 // El ancho (+0x24) y el alto (+0x25) del registro de Item.bmd de `type`.
 struct ItemFootprint
@@ -144,7 +148,7 @@ struct InventoryMoveContext
 [[nodiscard]] Core::Expected<void, std::string> PlaceMovedItemInOtherGrid(std::span<Kernel::ItemState> cells,
                                                                           std::int32_t columns, std::uint8_t slot,
                                                                           const Protocol::Items::ItemData& item,
-                                                                          const WorldEntryResources& resources,
+                                                                          const Scenes::WorldEntryResources& resources,
                                                                           std::string_view where);
 
 // pkt[3] y pkt[0xc] del 24 del cliente: la grilla de origen y la de destino, 0 el inventario y 1 la propia del
@@ -177,7 +181,7 @@ inline constexpr std::uint8_t TrainerBoxMoveGrid = 5;
 
 // 0x5cb3af..0x5cb455 y 0x5ea1ad..0x5ea227: el teclado del almacén (0x7879fc8, diez words) con 0 a 9 y veinte cambios
 // de dos teclas al azar (rand() % 10 dos veces, sin cambio si son la misma).
-void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, WarehouseKeyCount>& keys);
+void ShuffleTheKeypad(Crt::CrtRandom& random, std::array<std::uint16_t, Npc::WarehouseKeyCount>& keys);
 
 // 0x5c52b1..0x5c5320, desde 0x5c4110: levanta el ítem de la casilla `cell` de la grilla (la de su columna y su
 // fila): el clic consumido, la copia al cursor desde la de arriba a la izquierda, la grilla de origen, el lugar,
@@ -254,7 +258,7 @@ struct GridDrop
     // IsOpen(0x4000000), que no saca rand().
     bool inventoryOpen = false;
     // Las consultas de 0x659290 de la joya (0x5d838c..0x5d83c2). Sin él, la joya que llega a ellas corta.
-    UI::PanelRegistry* panels = nullptr;
+    Ui::PanelRegistry* panels = nullptr;
 };
 
 [[nodiscard]] Core::Expected<bool, std::string> DropOnTheInventoryGrid(const InventoryMoveContext& context,
@@ -313,7 +317,7 @@ struct GroundDrop
     // IsOpen(0x4000000), que no saca rand().
     bool inventoryOpen = false;
     // Las otras consultas de 0x659290 (0x5df5b6..0x5df6c2 y 0x5dfda8). Sin él, lo que las necesita corta.
-    UI::PanelRegistry* panels = nullptr;
+    Ui::PanelRegistry* panels = nullptr;
 };
 
 [[nodiscard]] Core::Expected<void, std::string> DropOnTheGround(const InventoryMoveContext& context,
@@ -325,7 +329,7 @@ struct GroundDrop
 // 0x5767954 en más de 0, nada; si no, 0x5767954 en 10, los dos rand() del C3, el C1 06 26 con la casilla + 12, 0 y
 // [0x78abb26], y el sonido por el tipo de la casilla (0x21 la 0x1c00 y 0x20 las 0x1c01..0x1c09).
 [[nodiscard]] Core::Expected<void, std::string> UseInventoryItem(const InventoryMoveContext& context,
-                                                                 UI::PanelRegistry& panels, std::int32_t cell);
+                                                                 Ui::PanelRegistry& panels, std::int32_t cell);
 
 // Lo mismo con el lugar y el destino del 26 que se pasan, como el clic derecho de 0x5c4110 sobre los libros, las
 // esferas y el 0x1a0b (lugar = casilla + 12, destino 0) y la joya sobre un ítem de 0x5ca250 (el lugar de la joya,
@@ -339,27 +343,27 @@ struct InventoryUse
 };
 
 [[nodiscard]] Core::Expected<void, std::string> UseInventoryItemOn(const InventoryMoveContext& context,
-                                                                   UI::PanelRegistry& panels, const InventoryUse& use);
+                                                                   Ui::PanelRegistry& panels, const InventoryUse& use);
 
 // 0x5bc740(0x78a9bb0, 8, 8, lugar, ítem, 0) (0x5bcd0b.. y su cola): el ítem en su lugar y, con el registro abierto,
 // los ayudantes sin mascota, el cuervo sin el lugar 1 y la capa sin el anillo de nivel 3. Un tipo 0x1fff no pone nada.
 [[nodiscard]] Core::Expected<void, std::string> PlaceMovedItem(std::uint8_t slot, const Protocol::Items::ItemData& item,
-                                                               const WorldEntryResources& resources);
+                                                               const Scenes::WorldEntryResources& resources);
 
 // 0x4d1400, el 24 cifrado: suelta la traba; con 0xff, 0x5be150; si no, los precios de las tiendas personales
 // (0x4d1b76..0x4d1c7d), la cuenta en 0 y, en el inventario (0) o en la grilla propia del comercio (1, CL9 hito 7),
 // 0x5bc740 con el último argumento en 0 y el sonido 0x1d. Al final, el 3D que guardó la traba (0x4d1d70).
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemMoveResult(const Protocol::Items::ItemMoveResult& result,
-                                                                    const WorldEntryResources& resources);
+                                                                    const Scenes::WorldEntryResources& resources);
 // 0x4c5ec0, el 28: 0x5bd750 con el lugar y el fin de la espera. Desde el 0x4c (la tienda personal), con 0x6c931c en 2
 // en la copia de la grilla propia (0x78a6768); si no, con el ítem del cursor levantado de esa casilla de 0x78ab0b8,
 // 0x5be150 antes.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemDelete(const Protocol::Items::ItemDelete& deleted,
-                                                                const WorldEntryResources& resources);
+                                                                const Scenes::WorldEntryResources& resources);
 // 0x4d3cc0, el 2A: la durabilidad del lugar del equipo, con el registro abierto, o de toda la huella en la grilla, y
 // el fin de la espera.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDurability(const Protocol::Items::Durability& durability,
-                                                                const WorldEntryResources& resources);
+                                                                const Scenes::WorldEntryResources& resources);
 // 0x4d3510, el 26, con el registro propio abierto (3.848 rand() al cerrarlo si queda sin accesos): 0xfd, el fin de
 // la espera (0x5767954 en 0); 0xfe, la vida máxima (+0x26); 0xff, la vida (+0x22); otro, la poción del lugar: la
 // durabilidad (+0x1a) de la casilla lugar − 12 de la grilla baja 1 si no es 0 y, en 0, la casilla queda vacía (tipo
@@ -373,18 +377,18 @@ struct InventoryUse
                                                                 Kernel::WorldState& world, Crt::CrtRandom& random);
 // 0x4e31a3, el F3 14: la cuenta del cursor en 0, 0x5bc740 con el último argumento en 0 y el sonido 0x45.
 [[nodiscard]] Core::Expected<void, std::string> ApplyItemPut(const Protocol::Items::ItemPut& put,
-                                                             const WorldEntryResources& resources);
+                                                             const Scenes::WorldEntryResources& resources);
 // 0x4d10d0, el 23 (CL9 hito 5): con 0, 0x5be150; si no, con un lugar del equipo (menos de 12), con el registro propio
 // abierto (3.848 rand() al cerrarlo sin accesos), el cuervo (0x421d60) si es el 0x1a05 del lugar 1, el tipo en
 // 0xffff, +0x3c y +0x44 en 0, 0x512a30 y, en el 8, los ayudantes (0x443d40); con otro, 0x5bd750. Después la cuenta
 // del cursor en 0. Siempre, 0x6c82ec en −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDropResult(const Protocol::Items::DropResult& result,
-                                                                const WorldEntryResources& resources);
+                                                                const Scenes::WorldEntryResources& resources);
 // Un 23 corto (07 Q-C1240): de 0x4d10d0, el lugar tirado (0x6c82ec) en −1, que escribe en todos los caminos, y con
 // pkt[3] distinto de 0 el cursor vacío (0x7879fbc en 0, 0x4d13c7), también en todos los que leen pkt[4].
 void ApplyShortDropResult(const Protocol::Items::ShortDropResult& result, Kernel::WorldState& world);
 // 0x4e316e, el F3 13: el personaje de la clave (0x5110d0) y, si es un jugador, su equipo (0x5139f0, CL9.2): corta.
 // Si no lo es, o sin ninguno, nada.
 [[nodiscard]] Core::Expected<void, std::string> ApplyEquipmentChange(const Protocol::Items::EquipmentChange& change,
-                                                                     const WorldEntryResources& resources);
-} // namespace Client::Scenes
+                                                                     const Scenes::WorldEntryResources& resources);
+} // namespace Client::Items

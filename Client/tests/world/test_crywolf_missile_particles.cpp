@@ -11,7 +11,7 @@ namespace
 {
 TEST(CrywolfMissileParticlesTest, TheMissileFireKeepsItsSixDrawsAndFinalRotation)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5da, {100, 200, 300}, {}, {1, 2, 3}, 8, 0.6f, 0, random);
     ASSERT_TRUE(made.HasValue());
@@ -24,7 +24,7 @@ TEST(CrywolfMissileParticlesTest, TheMissileFireKeepsItsSixDrawsAndFinalRotation
     EXPECT_EQ(random.State(), 0x9974714du);
     p.life = 1;
     p.velocity = {1, 2, 3};
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.position, (glm::vec3{92, 194, 308}));
     EXPECT_FLOAT_EQ(p.rotation, 37.2f);
@@ -39,7 +39,7 @@ TEST(CrywolfMissileParticlesTest, TheMissileFireKeepsItsSixDrawsAndFinalRotation
 
 TEST(CrywolfMissileParticlesTest, TheSecondFireKeepsItsThreeDrawsAndItsAlternateTexture)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5da, {100, 200, 300}, {}, {1, 2, 3}, 9, 0.6f, 0, random);
     ASSERT_TRUE(made.HasValue());
@@ -55,7 +55,7 @@ TEST(CrywolfMissileParticlesTest, TheSecondFireKeepsItsThreeDrawsAndItsAlternate
 
 TEST(CrywolfMissileParticlesTest, TheMissileSmokeUsesTheWaterfallTextureAndFadesWithoutOwnerReads)
 {
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
     const auto made = particles->CreateChecked(0x5f2, {100, 200, 300}, {}, {1, 2, 3}, 38, 1.7f, 0, random);
     ASSERT_TRUE(made.HasValue());
@@ -66,7 +66,7 @@ TEST(CrywolfMissileParticlesTest, TheMissileSmokeUsesTheWaterfallTextureAndFades
     EXPECT_EQ(p.rotation, 61);
     EXPECT_EQ(random.State(), 0x003d7aaeu);
     p.life = 1;
-    ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_FLOAT_EQ(p.scale, 1.79f);
     EXPECT_FLOAT_EQ(p.light.r, 0.9615384936332703f);

@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -522,4 +522,4 @@ std::int32_t DialogTextTop(const DialogBoxState& box, std::int32_t id)
         return std::max(top, AnswersDialogTopMinimum);
     return top;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

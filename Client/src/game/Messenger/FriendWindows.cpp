@@ -27,7 +27,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Messenger
 {
 namespace
 {
@@ -98,7 +98,7 @@ constexpr std::int32_t ColumnHeight = 0x13;
 constexpr std::int32_t AddBoxPlace = 0x32;
 constexpr std::int32_t AddBoxWidth = 0x96;
 constexpr std::int32_t AddBoxHeight = 100;
-constexpr std::int32_t AddBoxFlags = TitleFlag | BorderFlag | DragFlag;
+constexpr std::int32_t AddBoxFlags = Ui::TitleFlag | Ui::BorderFlag | Ui::DragFlag;
 constexpr std::int32_t EditWidth = 0x50;
 constexpr std::int32_t EditHeight = 0xe;
 constexpr std::int32_t EditX = 0x1e;
@@ -122,91 +122,91 @@ constexpr std::uint8_t LastOnlineState = 0xfc;
 // 0x4a2f70: la F.
 constexpr std::uint8_t FriendsKey = 0x46;
 
-OldWindow* FriendsWindowOf(OldWindowManager& manager)
+Ui::OldWindow* FriendsWindowOf(Ui::OldWindowManager& manager)
 {
     if (manager.friends == 0)
         return nullptr;
-    return FindTheOldWindow(manager, manager.friends);
+    return Ui::FindTheOldWindow(manager, manager.friends);
 }
 
-std::size_t RowCount(const OldWindow& tab)
+std::size_t RowCount(const Ui::OldWindow& tab)
 {
-    if (tab.kind == OldWindowKind::FriendTab)
+    if (tab.kind == Ui::OldWindowKind::FriendTab)
         return tab.tab.friends.size();
-    if (tab.kind == OldWindowKind::WindowsTab)
+    if (tab.kind == Ui::OldWindowKind::WindowsTab)
         return tab.tab.windows.size();
     return tab.tab.letters.size();
 }
 
 // 0x45abc0 y 0x47a9d0 sobre la lista de una pestaña: la cola entera.
-void DrainTheList(OldWindowManager& manager, OldWindow& tab)
+void DrainTheList(Ui::OldWindowManager& manager, Ui::OldWindow& tab)
 {
-    OldList& list = tab.tab.list;
+    Ui::OldList& list = tab.tab.list;
     while (!list.base.queue.empty())
     {
         list.base.current = list.base.queue.front();
         list.base.queue.pop_front();
-        HandleTheListMessage(list, RowCount(tab));
-        Steps::PlaceAgainstTheParent(manager, list.base);
+        Ui::HandleTheListMessage(list, RowCount(tab));
+        Ui::Steps::PlaceAgainstTheParent(manager, list.base);
     }
 }
 
 // 0x45aa50 sobre la lista de una pestaña.
-void PostToTheList(OldWindowManager& manager, OldWindow& tab, std::int32_t type)
+void PostToTheList(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::int32_t type)
 {
-    tab.tab.list.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
+    tab.tab.list.base.queue.push_back(Ui::OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     DrainTheList(manager, tab);
 }
 
 // La cola de un botón con su paso con 1 (0x45aa80): 0x45abc0 con cada mensaje.
-void DrainTheButton(OldWindowManager& manager, OldButton& button)
+void DrainTheButton(Ui::OldWindowManager& manager, Ui::OldButton& button)
 {
     while (!button.base.queue.empty())
     {
         button.base.current = button.base.queue.front();
         button.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, button.base);
+        Ui::Steps::PlaceAgainstTheParent(manager, button.base);
     }
 }
 
 // 0x45aa50 sobre el EDIT: su vtable + 0x28 es 0x45a640, que da 0.
-void PostToTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t type)
+void PostToTheEdit(Ui::OldWindowManager& manager, Ui::OldEdit& edit, std::int32_t type)
 {
-    edit.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
+    edit.base.queue.push_back(Ui::OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!edit.base.queue.empty())
     {
         edit.base.current = edit.base.queue.front();
         edit.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, edit.base);
+        Ui::Steps::PlaceAgainstTheParent(manager, edit.base);
     }
 }
 
 // 0x45a210 de una lista (0x460970, 0x462010 y 0x463190): cuelga de su borde de abajo; lo demás, como OldList.
-OldList MakeTheList(OldWindowManager& manager)
+Ui::OldList MakeTheList(Ui::OldWindowManager& manager)
 {
-    OldList list;
-    list.base = Steps::MakeTheBase(manager);
+    Ui::OldList list;
+    list.base = Ui::Steps::MakeTheBase(manager);
     list.base.rectMode = 2;
     return list;
 }
 
 // Una pestaña: el marco (0x491ca0), la lista y los botones, en el orden de sus campos.
-OldWindow MakeTheTab(OldWindowManager& manager, OldWindowKind kind, std::size_t buttons)
+Ui::OldWindow MakeTheTab(Ui::OldWindowManager& manager, Ui::OldWindowKind kind, std::size_t buttons)
 {
-    OldWindow tab = Steps::MakeTheFrame(manager);
+    Ui::OldWindow tab = Ui::Steps::MakeTheFrame(manager);
     tab.kind = kind;
     tab.tab.list = MakeTheList(manager);
     for (std::size_t at = 0; at < buttons; ++at)
-        tab.tab.buttons.push_back(Steps::MakeTheButton(manager));
+        tab.tab.buttons.push_back(Ui::Steps::MakeTheButton(manager));
     return tab;
 }
 
 // El init de una pestaña (0x49c8b0, 0x49e5c0 y 0x4a06b0): sin banderas, en (0x32, 0x32) de 0xfa × 0xaa, la lista y
 // los botones desde abajo.
-void InitTheTab(OldWindow& tab, const std::string& title, std::int32_t parent, const std::array<std::size_t, 4>& labels,
-                const OldWindowTexts& texts)
+void InitTheTab(Ui::OldWindow& tab, const std::string& title, std::int32_t parent,
+                const std::array<std::size_t, 4>& labels, const Ui::OldWindowTexts& texts)
 {
-    OldWindowBase& base = tab.base;
+    Ui::OldWindowBase& base = tab.base;
     tab.frame.title = title;
     base.parent = parent;
     base.flags = 0;
@@ -218,7 +218,7 @@ void InitTheTab(OldWindow& tab, const std::string& title, std::int32_t parent, c
     tab.frame.minHeight = FriendsMinHeight;
     tab.frame.maxWidth = 0;
     tab.frame.maxHeight = 0;
-    OldList& list = tab.tab.list;
+    Ui::OldList& list = tab.tab.list;
     list.base.parent = base.id;
     list.base.placeMode = 2;
     list.base.placeX = 0;
@@ -228,7 +228,7 @@ void InitTheTab(OldWindow& tab, const std::string& title, std::int32_t parent, c
     list.base.sizeY = ListHeightCut;
     for (std::size_t at = 0; at < tab.tab.buttons.size(); ++at)
     {
-        OldButton& button = tab.tab.buttons[at];
+        Ui::OldButton& button = tab.tab.buttons[at];
         button.base.width = TabButtonWidth;
         button.base.height = TabButtonHeight;
         button.command = static_cast<std::int32_t>(at) + 1;
@@ -241,25 +241,25 @@ void InitTheTab(OldWindow& tab, const std::string& title, std::int32_t parent, c
 }
 
 // 0x49cad0: el nombre y el estado del elegido de la lista de amigos, o ninguno.
-const FriendEntry* SelectedFriend(OldWindow& tab)
+const FriendEntry* SelectedFriend(Ui::OldWindow& tab)
 {
-    const std::optional<std::size_t> at = SelectedInTheList(tab.tab.list, tab.tab.friends.size());
+    const std::optional<std::size_t> at = Ui::SelectedInTheList(tab.tab.list, tab.tab.friends.size());
     if (!at || *at >= tab.tab.friends.size())
         return nullptr;
     return &tab.tab.friends[*at];
 }
 
 // 0x49e740: el id del elegido de la lista de ventanas, o 0.
-std::int32_t SelectedWindow(OldWindow& tab)
+std::int32_t SelectedWindow(Ui::OldWindow& tab)
 {
-    const std::optional<std::size_t> at = SelectedInTheList(tab.tab.list, tab.tab.windows.size());
+    const std::optional<std::size_t> at = Ui::SelectedInTheList(tab.tab.list, tab.tab.windows.size());
     if (!at || *at >= tab.tab.windows.size())
         return 0;
     return tab.tab.windows[*at].id;
 }
 
 // 0x49bd60: la lista con lo del modelo y el lugar (desde 1) del último con el nombre, o 0.
-std::int32_t CopyTheModel(OldWindowManager& manager, OldWindow& tab, std::string_view name)
+std::int32_t CopyTheModel(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::string_view name)
 {
     tab.tab.friends.clear();
     std::int32_t found = 0;
@@ -275,7 +275,7 @@ std::int32_t CopyTheModel(OldWindowManager& manager, OldWindow& tab, std::string
 }
 
 // 0x49ddd0.
-void RefreshTheTab(OldWindowManager& manager, OldWindow& tab)
+void RefreshTheTab(Ui::OldWindowManager& manager, Ui::OldWindow& tab)
 {
     std::string name;
     if (tab.tab.list.selection > 0)
@@ -285,8 +285,8 @@ void RefreshTheTab(OldWindowManager& manager, OldWindow& tab)
     }
     tab.tab.list.refreshed = 1;
     const std::int32_t at = CopyTheModel(manager, tab, name);
-    SelectInTheList(tab.tab.list, tab.tab.friends.size(), at);
-    ScrollTheList(tab.tab.list, tab.tab.friends.size(), 0);
+    Ui::SelectInTheList(tab.tab.list, tab.tab.friends.size(), at);
+    Ui::ScrollTheList(tab.tab.list, tab.tab.friends.size(), 0);
 }
 
 Core::Expected<void, std::string> Cut(std::string what)
@@ -294,16 +294,17 @@ Core::Expected<void, std::string> Cut(std::string what)
     return Core::Unexpected(std::move(what));
 }
 
-Core::Expected<std::int32_t, std::string> CreateFromAStep(OldWindowManager& manager, const OldWindowRequest& request,
-                                                          const OldWindowGlobals& globals,
-                                                          const OldWindowStepView& view, std::string_view where)
+Core::Expected<std::int32_t, std::string> CreateFromAStep(Ui::OldWindowManager& manager,
+                                                          const Ui::OldWindowRequest& request,
+                                                          const Ui::OldWindowGlobals& globals,
+                                                          const Ui::OldWindowStepView& view, std::string_view where)
 {
     if (view.texts == nullptr || view.measure == nullptr)
         return Core::Unexpected(std::string(where) + ": la fábrica de las ventanas viejas sin los textos ni la medida");
-    return CreateTheOldWindow(manager, request, *view.texts, *view.measure, &globals, &view);
+    return Ui::CreateTheOldWindow(manager, request, *view.texts, *view.measure, &globals, &view);
 }
 
-Core::Expected<void, std::string> Send(const OldWindowStepView& view, FriendSend packet, std::string_view where)
+Core::Expected<void, std::string> Send(const Ui::OldWindowStepView& view, Ui::FriendSend packet, std::string_view where)
 {
     if (!view.send)
         return Core::Unexpected(std::string(where) + ": el paquete de los amigos sin el cable");
@@ -313,64 +314,64 @@ Core::Expected<void, std::string> Send(const OldWindowStepView& view, FriendSend
 
 // 0x49dc37..0x49dc62, la cola de los casos 1, 2 y 4 de 0x49d0b0 (el 4, la de escribir una carta): con el id que dio
 // 0x48ee60 (0, sin caja), la busca (0x490a00) y le manda el 8 y el 9, cada uno con su paso con 1 (0x45aa50).
-Core::Expected<void, std::string> PlaceTheNewBox(OldWindowManager& manager, std::int32_t id,
-                                                 const OldWindowGlobals& globals, const OldWindowStepView& view)
+Core::Expected<void, std::string> PlaceTheNewBox(Ui::OldWindowManager& manager, std::int32_t id,
+                                                 const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view)
 {
     if (id == 0)
         return {};
-    OldWindow* box = FindTheOldWindow(manager, id);
+    Ui::OldWindow* box = Ui::FindTheOldWindow(manager, id);
     if (box == nullptr)
         return {};
-    if (auto placed = Steps::PostAndStep(manager, *box, PlaceMessage, globals, view); !placed.HasValue())
+    if (auto placed = Ui::Steps::PostAndStep(manager, *box, Ui::PlaceMessage, globals, view); !placed.HasValue())
         return placed;
-    return Steps::PostAndStep(manager, *box, SizeMessage, globals, view);
+    return Ui::Steps::PostAndStep(manager, *box, Ui::SizeMessage, globals, view);
 }
 
 // 0x461f00 (los amigos) y 0x462bd0 (las ventanas), la vtable + 0x88: el renglón bajo el mouse. Da 1: el paso sigue.
-std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t row, std::size_t at,
-                         const OldWindowGlobals& globals, const OldWindowStepView& view)
+std::int32_t HoverTheRow(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::int32_t row, std::size_t at,
+                         const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view)
 {
-    OldList& list = tab.tab.list;
-    if (tab.kind == OldWindowKind::FriendTab)
-        return Steps::HoverAFriendRow(manager, list, tab.tab.friends, row, at, globals, view);
+    Ui::OldList& list = tab.tab.list;
+    if (tab.kind == Ui::OldWindowKind::FriendTab)
+        return Ui::Steps::HoverAFriendRow(manager, list, tab.tab.friends, row, at, globals, view);
     const std::size_t size = RowCount(tab);
     const auto width =
         static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
-    if (!Steps::MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
+    if (!Ui::Steps::MouseIn(view, list.base.x, Ui::ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
         return 1;
     const auto toggle = [](std::int32_t& selected) { selected = (selected + 1) % 2; };
-    if (tab.kind == OldWindowKind::LettersTab)
+    if (tab.kind == Ui::OldWindowKind::LettersTab)
     {
         // 0x464510, la vtable + 0x88 de la lista de las cartas: el clic en la marca (0xc por 0xd al borde) la da vuelta
         // en la copia y en la carta del modelo (0x4a01a0); el clic elige el renglón. El doble clic, salvo sobre la
         // marca, es el 0xd al padre.
         if (globals.leftClick)
         {
-            if (Steps::MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, LetterMarkWidth, RowHeight,
-                               TopLeftRect))
+            if (Ui::Steps::MouseIn(view, list.base.x, Ui::ListRowY(list, size, row) - RowLift, LetterMarkWidth,
+                                   RowHeight, TopLeftRect))
             {
                 toggle(tab.tab.letters[at].selected);
                 if (LetterEntry* letter = FindALetter(manager.letterModel, tab.tab.letters[at].index);
                     letter != nullptr)
                     letter->selected = tab.tab.letters[at].selected;
             }
-            SelectInTheList(list, size, list.scroll + 1 + row);
+            Ui::SelectInTheList(list, size, list.scroll + 1 + row);
             globals.leftClick = false;
         }
         if (globals.doubleClick && list.base.x + LetterMarkWidth < view.mouseX)
         {
-            PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
+            Ui::PostToTheWindow(manager, list.base.parent, Ui::ChosenRowMessage, list.base.id, 0);
             globals.doubleClick = false;
         }
         return 1;
     }
-    if (tab.kind == OldWindowKind::WindowsTab)
+    if (tab.kind == Ui::OldWindowKind::WindowsTab)
     {
         if (globals.leftClick)
         {
-            SelectInTheList(list, size, list.scroll + 1 + row);
+            Ui::SelectInTheList(list, size, list.scroll + 1 + row);
             toggle(tab.tab.windows[at].selected);
-            PostToTheWindow(manager, list.base.parent, ChosenRowMessage, list.base.id, 0);
+            Ui::PostToTheWindow(manager, list.base.parent, Ui::ChosenRowMessage, list.base.id, 0);
             globals.leftClick = false;
         }
         return 1;
@@ -379,59 +380,62 @@ std::int32_t HoverTheRow(OldWindowManager& manager, OldWindow& tab, std::int32_t
 }
 
 // 0x45aa80 sobre la lista de una pestaña: la cola (0x47a9d0 y 0x45abc0), el mouse y 0x47b0f0 con su renglón.
-void StepTheList(OldWindowManager& manager, OldWindow& tab, std::int32_t arg, const OldWindowGlobals& globals,
-                 const OldWindowStepView& view)
+void StepTheList(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::int32_t arg,
+                 const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view)
 {
     DrainTheList(manager, tab);
     if (arg == 1)
         return;
-    OldList& list = tab.tab.list;
-    if (!Steps::ClaimTheMouse(manager, list.base, globals, view))
+    Ui::OldList& list = tab.tab.list;
+    if (!Ui::Steps::ClaimTheMouse(manager, list.base, globals, view))
         return;
-    const OldListGlobals listGlobals{.leftClick = globals.leftClick,
-                                     .wheel = globals.wheel,
-                                     .capture = globals.capture,
-                                     .focusedList = globals.focusedList,
-                                     .mouseOnUi = globals.mouseOnUi,
-                                     .sound = globals.sound,
-                                     .drawn = manager.drawn == 1,
-                                     .modal = manager.modal,
-                                     .soundRequest = globals.soundRequest};
-    const OldListView listView{.mouseX = view.mouseX, .mouseY = view.mouseY, .keyDown = [&view](std::uint8_t key) {
-                                   return view.keyDown && view.keyDown(key);
-                               }};
-    static_cast<void>(StepTheListMouse(list, RowCount(tab), listGlobals, listView, [&](std::int32_t row, std::size_t at)
-                                       { return HoverTheRow(manager, tab, row, at, globals, view); }));
+    const Ui::OldListGlobals listGlobals{.leftClick = globals.leftClick,
+                                         .wheel = globals.wheel,
+                                         .capture = globals.capture,
+                                         .focusedList = globals.focusedList,
+                                         .mouseOnUi = globals.mouseOnUi,
+                                         .sound = globals.sound,
+                                         .drawn = manager.drawn == 1,
+                                         .modal = manager.modal,
+                                         .soundRequest = globals.soundRequest};
+    const Ui::OldListView listView{.mouseX = view.mouseX, .mouseY = view.mouseY, .keyDown = [&view](std::uint8_t key) {
+                                       return view.keyDown && view.keyDown(key);
+                                   }};
+    static_cast<void>(Ui::StepTheListMouse(list, RowCount(tab), listGlobals, listView,
+                                           [&](std::int32_t row, std::size_t at)
+                                           { return HoverTheRow(manager, tab, row, at, globals, view); }));
 }
 
 // 0x4a37e0: el texto del EDIT (GetText de 0xff), el EDIT vacío y, con algo escrito, el 11 a la pestaña con el texto
 // (el buffer de 0x100 de malloc) y el 4 al administrador para cerrarla.
-void ConfirmTheName(OldWindowManager& manager, OldWindow& box)
+void ConfirmTheName(Ui::OldWindowManager& manager, Ui::OldWindow& box)
 {
     std::string name(box.add.edit.text.Value());
     box.add.edit.text.Clear();
     if (name.empty())
         return;
-    if (OldWindow* owner = FindTheOldWindow(manager, box.add.owner); owner != nullptr)
-        owner->base.queue.push_back(OldMessage{.type = NameMessage, .a = box.base.id, .b = 1, .text = std::move(name)});
-    PostToTheManager(manager, CloseMessage, box.base.id, 0);
+    if (Ui::OldWindow* owner = Ui::FindTheOldWindow(manager, box.add.owner); owner != nullptr)
+        owner->base.queue.push_back(
+            Ui::OldMessage{.type = Ui::NameMessage, .a = box.base.id, .b = 1, .text = std::move(name)});
+    Ui::PostToTheManager(manager, Ui::CloseMessage, box.base.id, 0);
 }
 
 // 0x4a2be0, la vtable + 0x28 de la de amigos. Da 0.
-Core::Expected<void, std::string> HandleTheFriendsWindowMessage(OldWindowManager& manager, OldWindow& window,
-                                                                const OldWindowGlobals& globals,
-                                                                const OldWindowStepView& view)
+Core::Expected<void, std::string> HandleTheFriendsWindowMessage(Ui::OldWindowManager& manager, Ui::OldWindow& window,
+                                                                const Ui::OldWindowGlobals& globals,
+                                                                const Ui::OldWindowStepView& view)
 {
-    const OldMessage& message = window.base.current;
-    if (message.type == RaisedMessage)
+    const Ui::OldMessage& message = window.base.current;
+    if (message.type == Ui::RaisedMessage)
     {
         globals.focusedList = window.tabs[static_cast<std::size_t>(window.friends.currentTab)].tab.list.base.id;
         return {};
     }
     // La respuesta a "¿salir de línea?": C4 00 y +0xe0 en 1. 0x4a7280 cierra los chats con un amigo (hito 10).
-    if (message.type == AnswerMessage && message.b == 1 && manager.offlineSent == 0)
+    if (message.type == Ui::AnswerMessage && message.b == 1 && manager.offlineSent == 0)
     {
-        if (auto sent = Send(view, FriendSend{.kind = FriendSendKind::State, .value = 0, .name = {}}, "0x4a2be0");
+        if (auto sent =
+                Send(view, Ui::FriendSend{.kind = Ui::FriendSendKind::State, .value = 0, .name = {}}, "0x4a2be0");
             !sent.HasValue())
             return sent;
         manager.offlineSent = 1;
@@ -440,27 +444,27 @@ Core::Expected<void, std::string> HandleTheFriendsWindowMessage(OldWindowManager
 }
 
 // 0x49d0b0, la vtable + 0x28 de la pestaña de amigos. Da 0.
-Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& manager, OldWindow& tab,
-                                                            const OldWindowGlobals& globals,
-                                                            const OldWindowStepView& view)
+Core::Expected<void, std::string> HandleTheFriendTabMessage(Ui::OldWindowManager& manager, Ui::OldWindow& tab,
+                                                            const Ui::OldWindowGlobals& globals,
+                                                            const Ui::OldWindowStepView& view)
 {
-    OldMessage& message = tab.base.current;
+    Ui::OldMessage& message = tab.base.current;
     // El doble clic sobre un amigo es el botón del chat.
-    if (message.type == ChosenRowMessage)
+    if (message.type == Ui::ChosenRowMessage)
     {
         globals.RequestSound(ButtonSound);
-        message.type = CommandMessage;
+        message.type = Ui::CommandMessage;
         message.a = ThirdCommand;
     }
-    if (message.type == NameMessage)
+    if (message.type == Ui::NameMessage)
     {
         // El nombre de la caja de agregar: C1 0D C1 y free del buffer.
         if (message.b == 0)
             return {};
-        return Send(view, FriendSend{.kind = FriendSendKind::Add, .value = 0, .name = FriendName(message.text)},
+        return Send(view, Ui::FriendSend{.kind = Ui::FriendSendKind::Add, .value = 0, .name = FriendName(message.text)},
                     "0x49d0b0(11)");
     }
-    if (message.type == AnswerMessage)
+    if (message.type == Ui::AnswerMessage)
     {
         // "¿Borrar?" con sí: C1 0D C3 con el elegido.
         if (message.b != 1)
@@ -468,10 +472,10 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
         const FriendEntry* selected = SelectedFriend(tab);
         if (selected == nullptr)
             return {};
-        return Send(view, FriendSend{.kind = FriendSendKind::Delete, .value = 0, .name = selected->name},
+        return Send(view, Ui::FriendSend{.kind = Ui::FriendSendKind::Delete, .value = 0, .name = selected->name},
                     "0x49d0b0(12)");
     }
-    if (message.type != CommandMessage || manager.modal != 0)
+    if (message.type != Ui::CommandMessage || manager.modal != 0)
         return {};
     switch (message.a)
     {
@@ -481,7 +485,8 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
         const std::string title = view.texts != nullptr ? view.texts->At(TypeTheNameText) : std::string();
         auto created = CreateFromAStep(
             manager,
-            OldWindowRequest{.kind = AddFriendCase, .x = -1, .y = -1, .data = title, .aux = tab.base.id, .flags = 0},
+            Ui::OldWindowRequest{
+                .kind = Ui::AddFriendCase, .x = -1, .y = -1, .data = title, .aux = tab.base.id, .flags = 0},
             globals, view, "0x49d0b0(1)");
         if (!created.HasValue())
             return Core::Unexpected(std::move(created).Error());
@@ -498,8 +503,8 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
             selected->name + (view.texts != nullptr ? view.texts->At(ReallyDeleteText) : std::string());
         auto created = CreateFromAStep(
             manager,
-            OldWindowRequest{
-                .kind = ModalQuestionCase, .x = -1, .y = -1, .data = question, .aux = tab.base.id, .flags = 0},
+            Ui::OldWindowRequest{
+                .kind = Ui::ModalQuestionCase, .x = -1, .y = -1, .data = question, .aux = tab.base.id, .flags = 0},
             globals, view, "0x49d0b0(2)");
         if (!created.HasValue())
             return Core::Unexpected(std::move(created).Error());
@@ -511,12 +516,12 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
         const FriendEntry* selected = SelectedFriend(tab);
         if (selected == nullptr || selected->state > LastOnlineState)
             return {};
-        return Steps::ChatWithTheFriend(manager, selected->name, view);
+        return Ui::Steps::ChatWithTheFriend(manager, selected->name, view);
     }
     case FourthCommand:
     {
         // 0x49dbd4: la ventana de escribir con el nombre del elegido (UI/LetterWindows) y la cola 0x49dc37.
-        auto opened = Steps::WriteToTheFriend(manager, SelectedFriend(tab), globals, view);
+        auto opened = Ui::Steps::WriteToTheFriend(manager, SelectedFriend(tab), globals, view);
         if (!opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
         return PlaceTheNewBox(manager, opened.Value(), globals, view);
@@ -527,64 +532,64 @@ Core::Expected<void, std::string> HandleTheFriendTabMessage(OldWindowManager& ma
 }
 
 // 0x49ea50, la vtable + 0x28 de la pestaña de las ventanas. Da 0.
-Core::Expected<void, std::string> HandleTheWindowsTabMessage(OldWindowManager& manager, OldWindow& tab,
-                                                             const OldWindowGlobals& globals,
-                                                             const OldWindowStepView& view)
+Core::Expected<void, std::string> HandleTheWindowsTabMessage(Ui::OldWindowManager& manager, Ui::OldWindow& tab,
+                                                             const Ui::OldWindowGlobals& globals,
+                                                             const Ui::OldWindowStepView& view)
 {
-    const OldMessage& message = tab.base.current;
-    if (message.type == CommandMessage)
+    const Ui::OldMessage& message = tab.base.current;
+    if (message.type == Ui::CommandMessage)
     {
         // Esconder todas menos la de amigos, sin anotarlas para F6.
         if (manager.modal == 0 && message.a == FirstCommand)
-            return HideTheOldWindows(manager, 1, 0, globals, &view);
+            return Ui::HideTheOldWindows(manager, 1, 0, globals, &view);
         return {};
     }
-    if (message.type != ChosenRowMessage)
+    if (message.type != Ui::ChosenRowMessage)
         return {};
     const std::int32_t id = SelectedWindow(tab);
-    const OldWindow* chosen = FindTheOldWindow(manager, id);
+    const Ui::OldWindow* chosen = Ui::FindTheOldWindow(manager, id);
     // 0x49ea7f: 0x45a9c0 sobre lo que dio 0x490a00, sin mirar si es NULL.
     if (chosen == nullptr)
         return Cut("0x49ea7f: el renglón de una ventana que ya no está (0x45a9c0 sobre NULL)");
     // La de arriba a la vista se minimiza; si no, se sube.
-    if (chosen->base.state != HiddenWindow && SelectedWindow(tab) == TopOldWindow(manager))
+    if (chosen->base.state != Ui::HiddenWindow && SelectedWindow(tab) == Ui::TopOldWindow(manager))
     {
-        PostToTheManager(manager, MinimizeMessage, SelectedWindow(tab), 0);
+        Ui::PostToTheManager(manager, Ui::MinimizeMessage, SelectedWindow(tab), 0);
         return {};
     }
     globals.RequestSound(ButtonSound);
-    PostToTheManager(manager, RaiseMessage, SelectedWindow(tab), 0);
-    ForgetTheHiddenWindows(manager);
+    Ui::PostToTheManager(manager, Ui::RaiseMessage, SelectedWindow(tab), 0);
+    Ui::ForgetTheHiddenWindows(manager);
     globals.leftHeld = false;
     return {};
 }
 
 // 0x4a3850, la vtable + 0x28 de la caja de agregar. Da 0.
-Core::Expected<void, std::string> HandleTheAddBoxMessage(OldWindowManager& manager, OldWindow& box,
-                                                         const OldWindowGlobals& globals)
+Core::Expected<void, std::string> HandleTheAddBoxMessage(Ui::OldWindowManager& manager, Ui::OldWindow& box,
+                                                         const Ui::OldWindowGlobals& globals)
 {
-    const OldMessage& message = box.base.current;
-    if (message.type == RaisedMessage)
-        Steps::FocusTheEdit(manager, box.add.edit, globals);
-    else if (message.type == EnterMessage || (message.type == CommandMessage && message.a == FirstCommand))
+    const Ui::OldMessage& message = box.base.current;
+    if (message.type == Ui::RaisedMessage)
+        Ui::Steps::FocusTheEdit(manager, box.add.edit, globals);
+    else if (message.type == Ui::EnterMessage || (message.type == Ui::CommandMessage && message.a == FirstCommand))
         ConfirmTheName(manager, box);
-    else if (message.type == CommandMessage && message.a == SecondCommand)
-        PostToTheManager(manager, CloseMessage, box.base.id, 0);
+    else if (message.type == Ui::CommandMessage && message.a == SecondCommand)
+        Ui::PostToTheManager(manager, Ui::CloseMessage, box.base.id, 0);
     return {};
 }
 
 // 0x4a3030, la vtable + 0x58 de la de amigos: los encabezados de las pestañas y el botón del estado.
-Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& manager, OldWindow& window,
-                                                            const OldWindowGlobals& globals,
-                                                            const OldWindowStepView& view)
+Core::Expected<void, std::string> AfterTheFriendsWindowMove(Ui::OldWindowManager& manager, Ui::OldWindow& window,
+                                                            const Ui::OldWindowGlobals& globals,
+                                                            const Ui::OldWindowStepView& view)
 {
-    if (window.base.state == ResizedWindow)
+    if (window.base.state == Ui::ResizedWindow)
         return {};
     std::optional<std::int32_t> header;
     for (std::size_t at = 0; at < HeaderX.size(); ++at)
     {
-        if (Steps::MouseIn(view, Steps::ClientX(window, HeaderX[at]), Steps::ClientY(window, HeaderY), HeaderWidth,
-                           HeaderHeight, TopLeftRect))
+        if (Ui::Steps::MouseIn(view, Ui::Steps::ClientX(window, HeaderX[at]), Ui::Steps::ClientY(window, HeaderY),
+                               HeaderWidth, HeaderHeight, TopLeftRect))
         {
             header = static_cast<std::int32_t>(at);
             break;
@@ -598,9 +603,9 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
         const std::string label = view.texts->At(StateButtonText);
         const Render::Text::TextExtent extent = view.measure->measure.Measure(view.measure->dcFont, label);
         const std::int32_t width = Render::Text::DesignX(extent.width, view.measure->screen);
-        const std::int32_t x = Steps::ClientX(window, 0) + Steps::ClientWidth(window) - StateButtonPad - width;
-        if (!Steps::MouseIn(view, x, Steps::ClientY(window, StateButtonY), width + StateButtonPad, StateButtonHeight,
-                            TopLeftRect))
+        const std::int32_t x = Ui::Steps::ClientX(window, 0) + Ui::Steps::ClientWidth(window) - StateButtonPad - width;
+        if (!Ui::Steps::MouseIn(view, x, Ui::Steps::ClientY(window, StateButtonY), width + StateButtonPad,
+                                StateButtonHeight, TopLeftRect))
             return {};
         if (!globals.releasedClick)
             return {};
@@ -609,17 +614,21 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
         {
             // "¿Salir de línea?": la respuesta vuelve a la ventana como el 12 (0x4a2be0).
             const std::string question = view.texts->At(GoOfflineText);
-            auto created = CreateFromAStep(
-                manager,
-                OldWindowRequest{
-                    .kind = ModalQuestionCase, .x = -1, .y = -1, .data = question, .aux = window.base.id, .flags = 0},
-                globals, view, "0x4a3030");
+            auto created = CreateFromAStep(manager,
+                                           Ui::OldWindowRequest{.kind = Ui::ModalQuestionCase,
+                                                                .x = -1,
+                                                                .y = -1,
+                                                                .data = question,
+                                                                .aux = window.base.id,
+                                                                .flags = 0},
+                                           globals, view, "0x4a3030");
             if (!created.HasValue())
                 return Core::Unexpected(std::move(created).Error());
             globals.releasedClick = false;
             return {};
         }
-        if (auto sent = Send(view, FriendSend{.kind = FriendSendKind::State, .value = 1, .name = {}}, "0x4a3030");
+        if (auto sent =
+                Send(view, Ui::FriendSend{.kind = Ui::FriendSendKind::State, .value = 1, .name = {}}, "0x4a3030");
             !sent.HasValue())
             return sent;
         manager.offlineSent = 0;
@@ -636,29 +645,30 @@ Core::Expected<void, std::string> AfterTheFriendsWindowMove(OldWindowManager& ma
     globals.focusedList = window.tabs[static_cast<std::size_t>(*header)].tab.list.base.id;
     globals.leftHeld = false;
     // 0x4a23c0 vuelve a poner la lista de los amigos en 0x5762ec0 (Q-C883).
-    if (auto settled = Steps::SettleTheFriendsKinds(manager, window, globals, view); !settled.HasValue())
+    if (auto settled = Ui::Steps::SettleTheFriendsKinds(manager, window, globals, view); !settled.HasValue())
         return settled;
     if (!changed)
         return {};
     for (const std::size_t at :
          {std::size_t{FriendTabNumber}, std::size_t{WindowsTabNumber}, std::size_t{LettersTabNumber}})
     {
-        if (auto settled = Steps::SettleTheFriendsKinds(manager, window.tabs[at], globals, view); !settled.HasValue())
+        if (auto settled = Ui::Steps::SettleTheFriendsKinds(manager, window.tabs[at], globals, view);
+            !settled.HasValue())
             return settled;
     }
     return {};
 }
 
 // 0x49dcf0, la vtable + 0x58 de la pestaña de amigos: los encabezados de las columnas ordenan por nombre o por estado.
-void AfterTheFriendTabMove(OldWindowManager& manager, OldWindow& tab, const OldWindowGlobals& globals,
-                           const OldWindowStepView& view)
+void AfterTheFriendTabMove(Ui::OldWindowManager& manager, Ui::OldWindow& tab, const Ui::OldWindowGlobals& globals,
+                           const Ui::OldWindowStepView& view)
 {
     if (!globals.leftHeld)
         return;
-    const OldList& list = tab.tab.list;
-    const std::int32_t x = Steps::ClientX(tab, 0);
-    const std::int32_t y = Steps::ClientY(tab, 0);
-    if (Steps::MouseIn(view, x, y, list.nameWidth, ColumnHeight, TopLeftRect))
+    const Ui::OldList& list = tab.tab.list;
+    const std::int32_t x = Ui::Steps::ClientX(tab, 0);
+    const std::int32_t y = Ui::Steps::ClientY(tab, 0);
+    if (Ui::Steps::MouseIn(view, x, y, list.nameWidth, ColumnHeight, TopLeftRect))
     {
         if (manager.friendModel.sortMode != ByNameSort)
         {
@@ -669,7 +679,7 @@ void AfterTheFriendTabMove(OldWindowManager& manager, OldWindow& tab, const OldW
         globals.leftHeld = false;
         return;
     }
-    if (!Steps::MouseIn(view, x + list.nameWidth, y, list.placeWidth, ColumnHeight, TopLeftRect))
+    if (!Ui::Steps::MouseIn(view, x + list.nameWidth, y, list.placeWidth, ColumnHeight, TopLeftRect))
         return;
     if (manager.friendModel.sortMode != ByStateSort)
     {
@@ -682,58 +692,61 @@ void AfterTheFriendTabMove(OldWindowManager& manager, OldWindow& tab, const OldW
 }
 
 // Los 8, el 9 dos veces y el 0xe de 0x49ca40, 0x49e690 y 0x4a0830: los botones y la lista contra la pestaña.
-void SettleTheTab(OldWindowManager& manager, OldWindow& tab)
+void SettleTheTab(Ui::OldWindowManager& manager, Ui::OldWindow& tab)
 {
-    for (OldButton& button : tab.tab.buttons)
-        Steps::PostAndSettle(manager, button, PlaceMessage);
-    PostToTheList(manager, tab, PlaceMessage);
-    PostToTheList(manager, tab, SizeMessage);
-    PostToTheList(manager, tab, SizeMessage);
-    PostToTheList(manager, tab, ToTheEndMessage);
+    for (Ui::OldButton& button : tab.tab.buttons)
+        Ui::Steps::PostAndSettle(manager, button, Ui::PlaceMessage);
+    PostToTheList(manager, tab, Ui::PlaceMessage);
+    PostToTheList(manager, tab, Ui::SizeMessage);
+    PostToTheList(manager, tab, Ui::SizeMessage);
+    PostToTheList(manager, tab, Ui::ToTheEndMessage);
 }
 
 // 0x45aa50: el paso con 1 atiende TODA la cola, incluidos los comandos que llegaron del paso de los hijos.
-Core::Expected<void, std::string> PlaceTheTabForTheDraw(OldWindowManager& manager, OldWindow& tab, std::int32_t type,
-                                                        const OldWindowDrawView& view)
+Core::Expected<void, std::string> PlaceTheTabForTheDraw(Ui::OldWindowManager& manager, Ui::OldWindow& tab,
+                                                        std::int32_t type, const Ui::OldWindowDrawView& view)
 {
     if (view.globals != nullptr && view.stepView != nullptr)
-        return Steps::PostAndStep(manager, tab, type, *view.globals, *view.stepView);
-    if (std::ranges::any_of(tab.base.queue, [](const OldMessage& message)
-                            { return message.type != PlaceMessage && message.type != SizeMessage; }))
+        return Ui::Steps::PostAndStep(manager, tab, type, *view.globals, *view.stepView);
+    if (std::ranges::any_of(tab.base.queue, [](const Ui::OldMessage& message)
+                            { return message.type != Ui::PlaceMessage && message.type != Ui::SizeMessage; }))
         return Cut("0x45aa50: un mensaje funcional de dibujo sin los servicios del paso");
-    tab.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
+    tab.base.queue.push_back(Ui::OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
     while (!tab.base.queue.empty())
     {
         tab.base.current = tab.base.queue.front();
         tab.base.queue.pop_front();
-        Steps::PlaceAgainstTheParent(manager, tab.base);
+        Ui::Steps::PlaceAgainstTheParent(manager, tab.base);
     }
     DrainTheList(manager, tab);
-    for (OldButton& button : tab.tab.buttons)
+    for (Ui::OldButton& button : tab.tab.buttons)
         DrainTheButton(manager, button);
     return {};
 }
 } // namespace
 
-namespace Steps
+} // namespace Client::Messenger
+
+namespace Client::Ui::Steps
 {
 void FocusTheEdit(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals)
 {
     manager.orphanedEdit.reset();
     manager.focusedEditIsOrphan = false;
-    globals.keyboardFocus = ChatFocus::OldWindow;
+    globals.keyboardFocus = Chat::ChatFocus::OldWindow;
     manager.focusedEdit = edit.base.id;
     globals.focusedList = edit.base.id;
 }
 
-std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<FriendEntry>& friends,
+std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::deque<Messenger::FriendEntry>& friends,
                              std::int32_t row, std::size_t at, const OldWindowGlobals& globals,
                              const OldWindowStepView& view)
 {
     const std::size_t size = friends.size();
     const auto width =
         static_cast<std::int32_t>(static_cast<double>(list.base.width) - static_cast<double>(list.thumbWidth) + 1.0);
-    if (!MouseIn(view, list.base.x, ListRowY(list, size, row) - RowLift, width, RowHeight, TopLeftRect))
+    if (!MouseIn(view, list.base.x, ListRowY(list, size, row) - Messenger::RowLift, width, Messenger::RowHeight,
+                 Messenger::TopLeftRect))
         return 1;
     // [+0xb4] es el elegido que dejó la vtable + 0x58: inc, and 1.
     const auto toggle = [](std::int32_t& selected) { selected = (selected + 1) % 2; };
@@ -754,7 +767,7 @@ std::int32_t HoverAFriendRow(OldWindowManager& manager, OldList& list, std::dequ
         toggle(friends[at].selected);
         globals.rightClick = false;
         if (view.whisperTo)
-            view.whisperTo(FriendName(friends[at].name));
+            view.whisperTo(Messenger::FriendName(friends[at].name));
     }
     return 1;
 }
@@ -773,15 +786,15 @@ Core::Expected<void, std::string> HandleTheFriendsMessage(OldWindowManager& mana
     switch (window.kind)
     {
     case OldWindowKind::FriendsWindow:
-        return HandleTheFriendsWindowMessage(manager, window, globals, view);
+        return Messenger::HandleTheFriendsWindowMessage(manager, window, globals, view);
     case OldWindowKind::FriendTab:
-        return HandleTheFriendTabMessage(manager, window, globals, view);
+        return Messenger::HandleTheFriendTabMessage(manager, window, globals, view);
     case OldWindowKind::WindowsTab:
-        return HandleTheWindowsTabMessage(manager, window, globals, view);
+        return Messenger::HandleTheWindowsTabMessage(manager, window, globals, view);
     case OldWindowKind::LettersTab:
         return HandleTheLettersTabMessage(manager, window, globals, view);
     case OldWindowKind::AddFriendBox:
-        return HandleTheAddBoxMessage(manager, window, globals);
+        return Messenger::HandleTheAddBoxMessage(manager, window, globals);
     default:
         return {};
     }
@@ -797,14 +810,15 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
         // 0x4a2f70: la pestaña a la vista, si no se la arrastra ni cambia de tamaño; después la F la cierra.
         const std::int32_t current = window.friends.currentTab;
         if (window.base.state != DraggedWindow && window.base.state != ResizedWindow && current >= 0 &&
-            current < static_cast<std::int32_t>(FriendsTabCount))
+            current < static_cast<std::int32_t>(Messenger::FriendsTabCount))
         {
             if (auto stepped =
                     StepTheWindow(manager, window.tabs[static_cast<std::size_t>(current)], arg, globals, view);
                 !stepped.HasValue())
                 return stepped;
         }
-        if (!view.chatOpen && LastOldWindow(manager) == window.base.id && view.keyEdge && view.keyEdge(FriendsKey))
+        if (!view.chatOpen && LastOldWindow(manager) == window.base.id && view.keyEdge &&
+            view.keyEdge(Messenger::FriendsKey))
         {
             const OldWindow* self = FindTheOldWindow(manager, window.base.id);
             if (self != nullptr && self->base.state == ShownWindow)
@@ -815,13 +829,13 @@ Core::Expected<void, std::string> StepTheFriendsChildren(OldWindowManager& manag
     case OldWindowKind::FriendTab:
     case OldWindowKind::WindowsTab:
         // 0x49dc90 y 0x49eb20: la lista y los botones.
-        StepTheList(manager, window, arg, globals, view);
+        Messenger::StepTheList(manager, window, arg, globals, view);
         for (OldButton& button : window.tab.buttons)
             StepTheButton(manager, button, arg, globals, view);
         return {};
     case OldWindowKind::LettersTab:
         // 0x4a2010: la lista y los cuatro botones.
-        StepTheList(manager, window, arg, globals, view);
+        Messenger::StepTheList(manager, window, arg, globals, view);
         for (OldButton& button : window.tab.buttons)
             StepTheButton(manager, button, arg, globals, view);
         return {};
@@ -840,10 +854,10 @@ Core::Expected<void, std::string> AfterTheFriendsMove(OldWindowManager& manager,
                                                       const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
     if (window.kind == OldWindowKind::FriendsWindow)
-        return AfterTheFriendsWindowMove(manager, window, globals, view);
+        return Messenger::AfterTheFriendsWindowMove(manager, window, globals, view);
     // 0x49eb50 y 0x4a38e0 no hacen nada; 0x4a2070, en UI/LetterWindows.
     if (window.kind == OldWindowKind::FriendTab)
-        AfterTheFriendTabMove(manager, window, globals, view);
+        Messenger::AfterTheFriendTabMove(manager, window, globals, view);
     if (window.kind == OldWindowKind::LettersTab)
         AfterTheLettersTabMove(manager, window, globals, view);
     return {};
@@ -858,7 +872,8 @@ Core::Expected<void, std::string> SettleTheFriendsKinds(OldWindowManager& manage
     {
         // 0x4a23c0: el 8 y el 9 a las tres (+0xb8, +0x4d0 y +0x738), su vtable + 0x30 y la lista de los amigos a
         // 0x5762ec0.
-        constexpr std::array<std::size_t, FriendsTabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
+        constexpr std::array<std::size_t, Messenger::FriendsTabCount> Order{
+            Messenger::FriendTabNumber, Messenger::WindowsTabNumber, Messenger::LettersTabNumber};
         for (const std::int32_t type : {PlaceMessage, SizeMessage})
         {
             for (const std::size_t at : Order)
@@ -872,19 +887,19 @@ Core::Expected<void, std::string> SettleTheFriendsKinds(OldWindowManager& manage
             if (auto settled = SettleTheFriendsKinds(manager, window.tabs[at], globals, view); !settled.HasValue())
                 return settled;
         }
-        globals.focusedList = window.tabs[FriendTabNumber].tab.list.base.id;
+        globals.focusedList = window.tabs[Messenger::FriendTabNumber].tab.list.base.id;
         return {};
     }
     case OldWindowKind::FriendTab:
     case OldWindowKind::WindowsTab:
     case OldWindowKind::LettersTab:
-        SettleTheTab(manager, window);
+        Messenger::SettleTheTab(manager, window);
         return {};
     case OldWindowKind::AddFriendBox:
         // 0x4a3700: los botones y el EDIT, el foco al EDIT y +0x9c en 1.
         for (OldButton& button : window.add.buttons)
             PostAndSettle(manager, button, PlaceMessage);
-        PostToTheEdit(manager, window.add.edit, PlaceMessage);
+        Messenger::PostToTheEdit(manager, window.add.edit, PlaceMessage);
         Steps::FocusTheEdit(manager, window.add.edit, globals);
         window.frame.editField = 1;
         return {};
@@ -899,61 +914,68 @@ Core::Expected<OldWindow, std::string> MakeTheFriendsWindow(OldWindowManager& ma
 {
     OldWindow window = MakeTheFrame(manager);
     window.kind = OldWindowKind::FriendsWindow;
-    window.tabs.resize(FriendsTabCount);
+    window.tabs.resize(Messenger::FriendsTabCount);
     // Los campos en orden: +0xb8 (amigos, 0x48fa60), +0x4d0 (ventanas, 0x48fc80) y +0x738 (cartas, 0x48fd90; su lista
     // y sus botones son del hito 10). Cada una sobre el marco (0x491ca0) con la vtable de las pestañas (0x6b9e80), su
     // lista (0x460970, 0x462010 o 0x463190) y sus botones (0x45ad80).
-    window.tabs[FriendTabNumber] = MakeTheTab(manager, OldWindowKind::FriendTab, 4);
-    window.tabs[WindowsTabNumber] = MakeTheTab(manager, OldWindowKind::WindowsTab, 1);
-    window.tabs[LettersTabNumber] = MakeTheTab(manager, OldWindowKind::LettersTab, 4);
+    window.tabs[Messenger::FriendTabNumber] = Messenger::MakeTheTab(manager, OldWindowKind::FriendTab, 4);
+    window.tabs[Messenger::WindowsTabNumber] = Messenger::MakeTheTab(manager, OldWindowKind::WindowsTab, 1);
+    window.tabs[Messenger::LettersTabNumber] = Messenger::MakeTheTab(manager, OldWindowKind::LettersTab, 4);
     // 0x460970: los anchos de las dos columnas de la lista de amigos.
-    OldList& friendList = window.tabs[FriendTabNumber].tab.list;
+    OldList& friendList = window.tabs[Messenger::FriendTabNumber].tab.list;
     friendList.nameWidth =
-        Render::Text::DesignX(measure.measure.Measure(measure.dcFont, WidestName).width, measure.screen) + ColumnMargin;
+        Render::Text::DesignX(measure.measure.Measure(measure.dcFont, Messenger::WidestName).width, measure.screen) +
+        Messenger::ColumnMargin;
     friendList.placeWidth =
-        Render::Text::DesignX(measure.measure.Measure(measure.dcFont, texts.At(PlaceText)).width, measure.screen) +
-        ColumnMargin;
+        Render::Text::DesignX(measure.measure.Measure(measure.dcFont, texts.At(Messenger::PlaceText)).width,
+                              measure.screen) +
+        Messenger::ColumnMargin;
     // 0x463190: +0x130 (el ancho de la columna de la marca) en 0x19 y +0x134..+0x13c, los anchos de los textos 1028,
     // 1029 y 1030 como los de 0x460970.
-    OldList& letterList = window.tabs[LettersTabNumber].tab.list;
-    letterList.headers = LetterListHeaders;
-    for (const auto& [width, text] :
-         {std::pair{&letterList.nameWidth, SenderColumnText}, std::pair{&letterList.placeWidth, DateColumnText},
-          std::pair{&letterList.subjectWidth, SubjectColumnText}})
+    OldList& letterList = window.tabs[Messenger::LettersTabNumber].tab.list;
+    letterList.headers = Messenger::LetterListHeaders;
+    for (const auto& [width, text] : {std::pair{&letterList.nameWidth, Messenger::SenderColumnText},
+                                      std::pair{&letterList.placeWidth, Messenger::DateColumnText},
+                                      std::pair{&letterList.subjectWidth, Messenger::SubjectColumnText}})
         *width = Render::Text::DesignX(measure.measure.Measure(measure.dcFont, texts.At(text)).width, measure.screen) +
-                 ColumnMargin;
+                 Messenger::ColumnMargin;
     // 0x4a2280.
     OldWindowBase& base = window.base;
     window.frame.title = std::string(request.data);
     base.parent = request.aux;
-    base.x = FriendsPlace;
-    base.y = FriendsPlace;
-    base.width = FriendsWidth;
-    base.height = FriendsHeight;
+    base.x = Messenger::FriendsPlace;
+    base.y = Messenger::FriendsPlace;
+    base.width = Messenger::FriendsWidth;
+    base.height = Messenger::FriendsHeight;
     window.frame.maxWidth = 0;
     window.frame.maxHeight = 0;
-    window.frame.minWidth = FriendsWidth;
-    window.frame.minHeight = FriendsMinHeight;
-    InitTheTab(window.tabs[FriendTabNumber], texts.At(FriendTabText), base.id,
-               {AddButtonText, DeleteButtonText, ChatButtonText, WriteButtonText}, texts);
-    window.tabs[FriendTabNumber].tab.list.headers = 1;
+    window.frame.minWidth = Messenger::FriendsWidth;
+    window.frame.minHeight = Messenger::FriendsMinHeight;
+    Messenger::InitTheTab(
+        window.tabs[Messenger::FriendTabNumber], texts.At(Messenger::FriendTabText), base.id,
+        {Messenger::AddButtonText, Messenger::DeleteButtonText, Messenger::ChatButtonText, Messenger::WriteButtonText},
+        texts);
+    window.tabs[Messenger::FriendTabNumber].tab.list.headers = 1;
     // 0x49ddd0 desde 0x49c8b0: la lista con el modelo.
-    RefreshTheTab(manager, window.tabs[FriendTabNumber]);
-    InitTheTab(window.tabs[WindowsTabNumber], texts.At(WindowsTabText), base.id, {WindowsButtonText, 0, 0, 0}, texts);
+    Messenger::RefreshTheTab(manager, window.tabs[Messenger::FriendTabNumber]);
+    Messenger::InitTheTab(window.tabs[Messenger::WindowsTabNumber], texts.At(Messenger::WindowsTabText), base.id,
+                          {Messenger::WindowsButtonText, 0, 0, 0}, texts);
     // 0x4a06b0: 0x4a0960 copia las cartas del modelo. Los botones, como los de la de amigos (*inferido*).
-    InitTheTab(window.tabs[LettersTabNumber], texts.At(LettersTabText), base.id,
-               {WriteButtonText, SecondLetterButtonText, ThirdLetterButtonText, FourthLetterButtonText}, texts);
-    RefreshTheLetters(manager, window.tabs[LettersTabNumber]);
+    Messenger::InitTheTab(window.tabs[Messenger::LettersTabNumber], texts.At(Messenger::LettersTabText), base.id,
+                          {Messenger::WriteButtonText, Messenger::SecondLetterButtonText,
+                           Messenger::ThirdLetterButtonText, Messenger::FourthLetterButtonText},
+                          texts);
+    RefreshTheLetters(manager, window.tabs[Messenger::LettersTabNumber]);
     for (OldWindow& tab : window.tabs)
     {
         // 0x4908d0: al segundo mapa.
         manager.tabs.try_emplace(tab.base.id, OldTabReference{base.id, window.allocationId});
         tab.base.placeMode = 0;
         tab.base.placeX = 0;
-        tab.base.placeY = TabTop;
+        tab.base.placeY = Messenger::TabTop;
         tab.base.sizeMode = 3;
         tab.base.sizeX = 0;
-        tab.base.sizeY = TabHeightCut;
+        tab.base.sizeY = Messenger::TabHeightCut;
     }
     return window;
 }
@@ -971,25 +993,25 @@ OldWindow MakeTheAddFriendBox(OldWindowManager& manager, const OldWindowRequest&
     box.frame.title = std::string(request.data);
     base.parent = 0;
     box.add.owner = request.aux;
-    base.x = AddBoxPlace;
-    base.y = AddBoxPlace;
-    base.width = AddBoxWidth;
-    base.height = AddBoxHeight;
-    box.frame.minWidth = AddBoxWidth;
-    box.frame.minHeight = AddBoxHeight;
+    base.x = Messenger::AddBoxPlace;
+    base.y = Messenger::AddBoxPlace;
+    base.width = Messenger::AddBoxWidth;
+    base.height = Messenger::AddBoxHeight;
+    box.frame.minWidth = Messenger::AddBoxWidth;
+    box.frame.minHeight = Messenger::AddBoxHeight;
     box.frame.maxWidth = 0;
     box.frame.maxHeight = 0;
-    base.flags = AddBoxFlags;
+    base.flags = Messenger::AddBoxFlags;
     OldEdit& edit = box.add.edit;
-    edit.base.width = EditWidth;
-    edit.base.height = EditHeight;
+    edit.base.width = Messenger::EditWidth;
+    edit.base.height = Messenger::EditHeight;
     edit.base.parent = base.id;
-    edit.filter = AddNameFilter;
+    edit.filter = Messenger::AddNameFilter;
     // 0x4a3645 y 0x4a365e: la fuente normal (+0x34 con 0x5763554) y el fondo en 0 (+0x44(0, 0, 0, 0)): transparente.
     edit.backgroundColor = 0;
     edit.base.placeMode = 0;
-    edit.base.placeX = EditX;
-    edit.base.placeY = EditY;
+    edit.base.placeX = Messenger::EditX;
+    edit.base.placeY = Messenger::EditY;
     edit.base.state = ShownWindow;
     const auto setUp = [&base, &texts](OldButton& button, std::int32_t command, std::size_t label, std::int32_t x)
     {
@@ -998,22 +1020,22 @@ OldWindow MakeTheAddFriendBox(OldWindowManager& manager, const OldWindowRequest&
         button.base.parent = base.id;
         button.base.placeMode = 0;
         button.base.placeX = x;
-        button.base.placeY = AddBoxButtonY;
-        button.base.width = AddBoxButtonWidth;
-        button.base.height = AddBoxButtonHeight;
+        button.base.placeY = Messenger::AddBoxButtonY;
+        button.base.width = Messenger::AddBoxButtonWidth;
+        button.base.height = Messenger::AddBoxButtonHeight;
     };
-    setUp(box.add.buttons[0], FirstCommand, ConfirmText, ConfirmX);
-    setUp(box.add.buttons[1], SecondCommand, CancelText, CancelX);
+    setUp(box.add.buttons[0], Messenger::FirstCommand, Messenger::ConfirmText, Messenger::ConfirmX);
+    setUp(box.add.buttons[1], Messenger::SecondCommand, Messenger::CancelText, Messenger::CancelX);
     return box;
 }
 
 void AddTheWindowRow(OldWindowManager& manager, std::int32_t id, std::string_view title)
 {
-    OldWindow* friends = FriendsWindowOf(manager);
+    OldWindow* friends = Messenger::FriendsWindowOf(manager);
     if (friends == nullptr)
         return;
     // 0x4624b0, la vtable + 0x94 de la lista: adelante, con el título en 0x40.
-    OldWindow& tab = friends->tabs[WindowsTabNumber];
+    OldWindow& tab = friends->tabs[Messenger::WindowsTabNumber];
     OldList& list = tab.tab.list;
     std::deque<WindowRow>& rows = tab.tab.windows;
     const std::size_t end = title.find('\0');
@@ -1032,11 +1054,11 @@ void AddTheWindowRow(OldWindowManager& manager, std::int32_t id, std::string_vie
 
 void ForgetTheWindowRow(OldWindowManager& manager, std::int32_t id)
 {
-    OldWindow* friends = FriendsWindowOf(manager);
+    OldWindow* friends = Messenger::FriendsWindowOf(manager);
     if (friends == nullptr)
         return;
     // 0x462c70, la vtable + 0x98: el primero con el id; después la vtable + 0x34 con 0.
-    OldWindow& tab = friends->tabs[WindowsTabNumber];
+    OldWindow& tab = friends->tabs[Messenger::WindowsTabNumber];
     std::deque<WindowRow>& rows = tab.tab.windows;
     if (const auto found = std::ranges::find(rows, id, &WindowRow::id); found != rows.end())
         rows.erase(found);
@@ -1045,12 +1067,12 @@ void ForgetTheWindowRow(OldWindowManager& manager, std::int32_t id)
 
 void FillTheWindowsTab(OldWindowManager& manager)
 {
-    OldWindow* friends = FriendsWindowOf(manager);
+    OldWindow* friends = Messenger::FriendsWindowOf(manager);
     if (friends == nullptr)
         return;
     // La vtable + 0x2c de la lista (0x47d320): vacía, marca todos los renglones en 0 (+0x48, 0x47da60: sin renglones,
     // nada), elige el 0 (+0x58, 0x47de10, como 0x47aef0) y vuelve el corrimiento (+0x100) a 0.
-    OldTabPart& tab = friends->tabs[WindowsTabNumber].tab;
+    OldTabPart& tab = friends->tabs[Messenger::WindowsTabNumber].tab;
     tab.windows.clear();
     SelectInTheList(tab.list, 0, 0);
     tab.list.scroll = 0;
@@ -1073,30 +1095,34 @@ void SaveTheFriendsPlace(OldWindowManager& manager, const OldWindow& window)
     manager.friendsSavedHeight = window.frame.savedHeight;
     manager.lastTab = window.friends.currentTab;
 }
-} // namespace Steps
+} // namespace Client::Ui::Steps
 
-Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager, std::int32_t x, std::int32_t y,
-                                                       const OldWindowGlobals& globals, const OldWindowStepView& view)
+namespace Client::Messenger
+{
+
+Core::Expected<bool, std::string> OpenTheFriendsWindow(Ui::OldWindowManager& manager, std::int32_t x, std::int32_t y,
+                                                       const Ui::OldWindowGlobals& globals,
+                                                       const Ui::OldWindowStepView& view)
 {
     if (manager.friends != 0)
     {
         // 0x491318..0x49137f: oculta (3), a la vista con los sonidos; a la vista (0), se suelta (0x4914e0); con otro
         // estado, nada. 0x45a9c0 lee el estado de lo que dio 0x490a00 sin mirar si es NULL.
-        const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
+        const Ui::OldWindow* friends = Ui::FindTheOldWindow(manager, manager.friends);
         if (friends == nullptr)
             return Core::Unexpected(std::string("0x49131f: 0x45a9c0 sobre la ventana de amigos que ya no está"));
         const std::int32_t state = friends->base.state;
-        if (state == HiddenWindow)
+        if (state == Ui::HiddenWindow)
         {
-            Steps::ShowTheWindow(manager, manager.friends, true);
+            Ui::Steps::ShowTheWindow(manager, manager.friends, true);
             // 0x41ed10(0x19) y 0x41ed10(0x1c): queda el último.
             globals.RequestSound(ButtonSound);
             globals.RequestSound(OpenSound);
             return false;
         }
-        if (state == ShownWindow)
+        if (state == Ui::ShownWindow)
         {
-            if (auto dropped = DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
+            if (auto dropped = Ui::DropTheFriendsWindow(manager, globals.pressedButton); !dropped.HasValue())
                 return Core::Unexpected(std::move(dropped).Error());
         }
         return false;
@@ -1105,24 +1131,24 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
         return Core::Unexpected(std::string("0x491080: la ventana de amigos sin los textos ni la medida"));
     const std::string title = view.texts->At(static_cast<std::size_t>(manager.titleText));
     const bool first = manager.friendsWidth == 0;
-    OldWindowRequest request{.kind = FriendsCase,
-                             .x = first ? x : manager.friendsX,
-                             .y = first ? y : manager.friendsY,
-                             .data = title,
-                             .aux = 0,
-                             .flags = 0};
-    auto created = CreateTheOldWindow(manager, request, *view.texts, *view.measure, &globals, &view);
+    Ui::OldWindowRequest request{.kind = Ui::FriendsCase,
+                                 .x = first ? x : manager.friendsX,
+                                 .y = first ? y : manager.friendsY,
+                                 .data = title,
+                                 .aux = 0,
+                                 .flags = 0};
+    auto created = Ui::CreateTheOldWindow(manager, request, *view.texts, *view.measure, &globals, &view);
     if (!created.HasValue())
         return Core::Unexpected(std::move(created).Error());
-    PostToTheManager(manager, RaiseMessage, manager.friends, 0);
+    Ui::PostToTheManager(manager, Ui::RaiseMessage, manager.friends, 0);
     if (first)
     {
-        Steps::FillTheWindowsTab(manager);
+        Ui::Steps::FillTheWindowsTab(manager);
         globals.RequestSound(ButtonSound);
         globals.RequestSound(OpenSound);
         return true;
     }
-    OldWindow* friends = FindTheOldWindow(manager, manager.friends);
+    Ui::OldWindow* friends = Ui::FindTheOldWindow(manager, manager.friends);
     if (friends == nullptr)
         return false;
     // La vtable + 8 (0x45a9f0): el tamaño de antes; y lo estirado.
@@ -1131,23 +1157,23 @@ Core::Expected<bool, std::string> OpenTheFriendsWindow(OldWindowManager& manager
     friends->frame.savedY = manager.friendsSavedY;
     friends->frame.stretched = manager.friendsStretched;
     friends->frame.savedHeight = manager.friendsSavedHeight;
-    Steps::FillTheWindowsTab(manager);
-    if (auto settled = Steps::SettleTheWindow(manager, *friends, globals, view); !settled.HasValue())
+    Ui::Steps::FillTheWindowsTab(manager);
+    if (auto settled = Ui::Steps::SettleTheWindow(manager, *friends, globals, view); !settled.HasValue())
         return Core::Unexpected(std::move(settled).Error());
     globals.RequestSound(ButtonSound);
     globals.RequestSound(OpenSound);
-    if (auto stepped = StepTheOldWindows(manager, globals, view); !stepped.HasValue())
+    if (auto stepped = Ui::StepTheOldWindows(manager, globals, view); !stepped.HasValue())
         return Core::Unexpected(std::move(stepped).Error());
     return true;
 }
 
-void RefreshTheFriendTab(OldWindowManager& manager)
+void RefreshTheFriendTab(Ui::OldWindowManager& manager)
 {
-    if (OldWindow* friends = FriendsWindowOf(manager); friends != nullptr)
+    if (Ui::OldWindow* friends = FriendsWindowOf(manager); friends != nullptr)
         RefreshTheTab(manager, friends->tabs[FriendTabNumber]);
 }
 
-void MarkTheFriendList(OldWindowManager& manager, std::int32_t received, const OldWindowTexts& texts)
+void MarkTheFriendList(Ui::OldWindowManager& manager, std::int32_t received, const Ui::OldWindowTexts& texts)
 {
     manager.listReceived = received;
     const std::int32_t title =
@@ -1155,31 +1181,31 @@ void MarkTheFriendList(OldWindowManager& manager, std::int32_t received, const O
     if (manager.titleText == title)
         return;
     manager.titleText = title;
-    if (OldWindow* friends = FriendsWindowOf(manager); friends != nullptr)
+    if (Ui::OldWindow* friends = FriendsWindowOf(manager); friends != nullptr)
         friends->frame.title = texts.At(static_cast<std::size_t>(title));
 }
 
-void RememberTheFriendRequest(OldWindowManager& manager, std::int32_t box, std::string_view name)
+void RememberTheFriendRequest(Ui::OldWindowManager& manager, std::int32_t box, std::string_view name)
 {
-    if (OldWindow* window = FindTheOldWindow(manager, box); window != nullptr)
+    if (Ui::OldWindow* window = Ui::FindTheOldWindow(manager, box); window != nullptr)
         window->box.friendName = FriendName(name);
 }
 
 namespace
 {
 // El EDIT de una ventana vieja con el id `id`, o nullptr.
-OldEdit* EditWithId(OldWindowManager& manager, std::int32_t id)
+Ui::OldEdit* EditWithId(Ui::OldWindowManager& manager, std::int32_t id)
 {
     for (auto& [windowId, window] : manager.windows)
     {
-        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == id)
+        if (window.kind == Ui::OldWindowKind::AddFriendBox && window.add.edit.base.id == id)
             return &window.add.edit;
         // CL9 hito 10: el EDIT del chat con un amigo y los tres de la ventana de escribir una carta.
-        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == id)
+        if (window.kind == Ui::OldWindowKind::ChatWindow && window.chat.edit.base.id == id)
             return &window.chat.edit;
-        if (window.kind != OldWindowKind::LetterWriteWindow)
+        if (window.kind != Ui::OldWindowKind::LetterWriteWindow)
             continue;
-        for (OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
+        for (Ui::OldEdit* edit : {&window.letter.to, &window.letter.subject, &window.letter.text})
         {
             if (edit->base.id == id)
                 return edit;
@@ -1188,7 +1214,7 @@ OldEdit* EditWithId(OldWindowManager& manager, std::int32_t id)
     return nullptr;
 }
 
-OldEdit* FocusedEdit(OldWindowManager& manager)
+Ui::OldEdit* FocusedEdit(Ui::OldWindowManager& manager)
 {
     if (manager.focusedEditIsOrphan)
         return manager.orphanedEdit ? &*manager.orphanedEdit : nullptr;
@@ -1196,20 +1222,20 @@ OldEdit* FocusedEdit(OldWindowManager& manager)
 }
 } // namespace
 
-bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus)
+bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Chat::ChatFocus focus)
 {
-    if (focus != ChatFocus::OldWindow)
+    if (focus != Chat::ChatFocus::OldWindow)
         return false;
     if (manager.focusedEditIsOrphan)
         return manager.orphanedEdit.has_value();
     for (const auto& [id, window] : manager.windows)
     {
-        if (window.kind == OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
+        if (window.kind == Ui::OldWindowKind::AddFriendBox && window.add.edit.base.id == manager.focusedEdit)
             return true;
         // CL9 hito 10: el EDIT del chat con un amigo y los tres de la ventana de escribir una carta.
-        if (window.kind == OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
+        if (window.kind == Ui::OldWindowKind::ChatWindow && window.chat.edit.base.id == manager.focusedEdit)
             return true;
-        if (window.kind == OldWindowKind::LetterWriteWindow &&
+        if (window.kind == Ui::OldWindowKind::LetterWriteWindow &&
             (window.letter.to.base.id == manager.focusedEdit || window.letter.subject.base.id == manager.focusedEdit ||
              window.letter.text.base.id == manager.focusedEdit))
             return true;
@@ -1217,20 +1243,20 @@ bool HasAnOldEditFocused(const OldWindowManager& manager, ChatFocus focus)
     return false;
 }
 
-void TypeInTheOldEdit(OldWindowManager& manager, std::string_view typed)
+void TypeInTheOldEdit(Ui::OldWindowManager& manager, std::string_view typed)
 {
-    if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
+    if (Ui::OldEdit* edit = FocusedEdit(manager); edit != nullptr)
     {
         edit->compositionText.clear();
         edit->compositionStart = 0;
         edit->compositionLength = 0;
-        TypeInTheEdit(*edit, typed);
+        Ui::TypeInTheEdit(*edit, typed);
     }
 }
 
-void BackspaceInTheOldEdit(OldWindowManager& manager)
+void BackspaceInTheOldEdit(Ui::OldWindowManager& manager)
 {
-    if (OldEdit* edit = FocusedEdit(manager); edit != nullptr)
+    if (Ui::OldEdit* edit = FocusedEdit(manager); edit != nullptr)
     {
         edit->draws = 0;
         if (!edit->compositionText.empty())
@@ -1238,44 +1264,45 @@ void BackspaceInTheOldEdit(OldWindowManager& manager)
         edit->compositionText.clear();
         edit->compositionStart = 0;
         edit->compositionLength = 0;
-        BackspaceInTheEdit(*edit);
+        Ui::BackspaceInTheEdit(*edit);
     }
 }
 
-void ApplyKeyToTheOldEdit(OldWindowManager& manager, OldEditKey key, bool shift, bool ctrl,
+void ApplyKeyToTheOldEdit(Ui::OldWindowManager& manager, Ui::OldEditKey key, bool shift, bool ctrl,
                           Platform::IClipboard* clipboard, const Render::Text::ITextMeasure* measure,
                           std::int32_t* focusedList)
 {
-    OldEdit* edit = FocusedEdit(manager);
+    Ui::OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    ApplyKeyToTheEdit(*edit, key, shift, ctrl, clipboard, measure,
-                      [&manager, focusedList](std::int32_t id)
-                      {
-                          if (OldEdit* next = EditWithId(manager, id); next != nullptr)
+    Ui::ApplyKeyToTheEdit(*edit, key, shift, ctrl, clipboard, measure,
+                          [&manager, focusedList](std::int32_t id)
                           {
-                              manager.orphanedEdit.reset();
-                              manager.focusedEditIsOrphan = false;
-                              manager.focusedEdit = next->base.id;
-                              if (focusedList != nullptr)
-                                  *focusedList = next->base.id;
-                              next->text.SetCursor(next->text.Size());
-                              next->draws = 0;
-                          }
-                      });
+                              if (Ui::OldEdit* next = EditWithId(manager, id); next != nullptr)
+                              {
+                                  manager.orphanedEdit.reset();
+                                  manager.focusedEditIsOrphan = false;
+                                  manager.focusedEdit = next->base.id;
+                                  if (focusedList != nullptr)
+                                      *focusedList = next->base.id;
+                                  next->text.SetCursor(next->text.Size());
+                                  next->draws = 0;
+                              }
+                          });
 }
 
-void SetTheOldEditComposition(OldWindowManager& manager, std::string_view text, std::int32_t start, std::int32_t length)
+void SetTheOldEditComposition(Ui::OldWindowManager& manager, std::string_view text, std::int32_t start,
+                              std::int32_t length)
 {
-    OldEdit* edit = FocusedEdit(manager);
+    Ui::OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
-    SetTheEditComposition(*edit, text, start, length);
+    Ui::SetTheEditComposition(*edit, text, start, length);
 }
 
-void PressEnterInTheOldEdit(OldWindowManager& manager)
+void PressEnterInTheOldEdit(Ui::OldWindowManager& manager)
 {
-    OldEdit* edit = FocusedEdit(manager);
+    Ui::OldEdit* edit = FocusedEdit(manager);
     if (edit == nullptr)
         return;
     edit->draws = 0;
@@ -1286,29 +1313,29 @@ void PressEnterInTheOldEdit(OldWindowManager& manager)
     // renglones corta el renglón y en el de una línea no hace nada. Si no, el 7 al padre.
     if (manager.windowList.list.armed == 1 || edit->closed == 1 || edit->multiline == 1)
     {
-        BreakTheEditLine(*edit);
+        Ui::BreakTheEditLine(*edit);
         return;
     }
     if (manager.focusedEditIsOrphan)
         return;
-    PostToTheWindow(manager, edit->base.parent, EnterMessage, 0, 0);
+    Ui::PostToTheWindow(manager, edit->base.parent, Ui::EnterMessage, 0, 0);
 }
 
-Core::Expected<void, std::string> SettleTheFriendsForTheDraw(OldWindowManager& manager, OldWindow& window,
-                                                             const OldWindowDrawView& view)
+Core::Expected<void, std::string> SettleTheFriendsForTheDraw(Ui::OldWindowManager& manager, Ui::OldWindow& window,
+                                                             const Ui::OldWindowDrawView& view)
 {
-    const bool moving = window.base.state == DraggedWindow || window.base.state == ResizedWindow;
-    if (window.kind == OldWindowKind::AddFriendBox)
+    const bool moving = window.base.state == Ui::DraggedWindow || window.base.state == Ui::ResizedWindow;
+    if (window.kind == Ui::OldWindowKind::AddFriendBox)
     {
         // 0x4a3750.
         if (!moving)
             return {};
-        for (OldButton& button : window.add.buttons)
-            Steps::PostAndSettle(manager, button, PlaceMessage);
-        PostToTheEdit(manager, window.add.edit, PlaceMessage);
+        for (Ui::OldButton& button : window.add.buttons)
+            Ui::Steps::PostAndSettle(manager, button, Ui::PlaceMessage);
+        PostToTheEdit(manager, window.add.edit, Ui::PlaceMessage);
         return {};
     }
-    if (window.kind != OldWindowKind::FriendsWindow)
+    if (window.kind != Ui::OldWindowKind::FriendsWindow)
         return {};
     constexpr std::array<std::size_t, FriendsTabCount> Order{FriendTabNumber, WindowsTabNumber, LettersTabNumber};
     // 0x4a2620: el 8 a las tres y su estado en 4; cambiando de tamaño, también el 9 y el estado en 1.
@@ -1316,21 +1343,22 @@ Core::Expected<void, std::string> SettleTheFriendsForTheDraw(OldWindowManager& m
     {
         for (const std::size_t at : Order)
         {
-            if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], PlaceMessage, view); !placed.HasValue())
+            if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], Ui::PlaceMessage, view);
+                !placed.HasValue())
                 return placed;
         }
         for (const std::size_t at : Order)
-            window.tabs[at].base.state = DraggedWindow;
-        if (window.base.state == ResizedWindow)
+            window.tabs[at].base.state = Ui::DraggedWindow;
+        if (window.base.state == Ui::ResizedWindow)
         {
             for (const std::size_t at : Order)
             {
-                if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], SizeMessage, view);
+                if (auto placed = PlaceTheTabForTheDraw(manager, window.tabs[at], Ui::SizeMessage, view);
                     !placed.HasValue())
                     return placed;
             }
             for (const std::size_t at : Order)
-                window.tabs[at].base.state = ResizedWindow;
+                window.tabs[at].base.state = Ui::ResizedWindow;
         }
     }
     // El dibujo de la pestaña a la vista (0x49cc20, 0x4a0a30 o 0x49e7f0): arrastrada o cambiando de tamaño, el 8 a la
@@ -1338,14 +1366,14 @@ Core::Expected<void, std::string> SettleTheFriendsForTheDraw(OldWindowManager& m
     const std::int32_t current = window.friends.currentTab;
     if (current < 0 || current >= static_cast<std::int32_t>(FriendsTabCount))
         return {};
-    OldWindow& tab = window.tabs[static_cast<std::size_t>(current)];
-    if (tab.base.state != DraggedWindow && tab.base.state != ResizedWindow)
+    Ui::OldWindow& tab = window.tabs[static_cast<std::size_t>(current)];
+    if (tab.base.state != Ui::DraggedWindow && tab.base.state != Ui::ResizedWindow)
         return {};
-    PostToTheList(manager, tab, PlaceMessage);
-    for (OldButton& button : tab.tab.buttons)
-        Steps::PostAndSettle(manager, button, PlaceMessage);
-    if (tab.base.state == ResizedWindow)
-        PostToTheList(manager, tab, SizeMessage);
+    PostToTheList(manager, tab, Ui::PlaceMessage);
+    for (Ui::OldButton& button : tab.tab.buttons)
+        Ui::Steps::PostAndSettle(manager, button, Ui::PlaceMessage);
+    if (tab.base.state == Ui::ResizedWindow)
+        PostToTheList(manager, tab, Ui::SizeMessage);
     return {};
 }
-} // namespace Client::UI
+} // namespace Client::Messenger

@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <span>
 
-namespace Client::World
+namespace Client::Weather
 {
 namespace
 {
@@ -186,4 +186,4 @@ LeafQuad LeafQuadOf(const Leaf& leaf)
     quad.uv = {{{0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f}}};
     return quad;
 }
-} // namespace Client::World
+} // namespace Client::Weather

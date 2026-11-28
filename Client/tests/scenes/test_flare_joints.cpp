@@ -51,12 +51,12 @@ struct FlareWorld
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random);
+        return Client::Joints::CreateFaunaJoint(joints, request, random);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr);
     }
 
     glm::vec3 start{1000.0f, 2000.0f, 300.0f};
@@ -245,7 +245,7 @@ TEST(FlareJointsTest, TheSecondFlareSpeedsUpForFiveSegments)
     }
 }
 
-// 0x51bf73..0x51c00d: el combo 0x112/0 (World/BlastModelEffects, por Scenes::CreateBlastEffect) sube 50 y suelta
+// 0x51bf73..0x51c00d: el combo 0x112/0 (World/BlastModelEffects, por Combat::CreateBlastEffect) sube 50 y suelta
 // sesenta joints 0x5ac/0 sin dueño desde su posición con sus ángulos (en 0), cada uno con el ancho rand() % 40 + 70
 // sacado antes de su alta, que saca tres: 240 rand(). Con la tabla de joints llena 0x530860 no encuentra lugar y no
 // saca ninguno: sólo los 60 de los anchos.
@@ -263,11 +263,11 @@ TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
         const Client::Actors::CharacterStepContext context{.world = *world, .random = random, .joints = joints};
         const Client::Kernel::ModelEffectArguments arguments{.type = 0x112, .position = {1000.0f, 2000.0f, 300.0f}};
 
-        const auto made = Client::Scenes::CreateBlastEffect(arguments, nullptr, context);
+        const auto made = Client::Combat::CreateBlastEffect(arguments, nullptr, context);
 
         ASSERT_TRUE(made.HasValue()) << made.Error();
         ASSERT_TRUE(made.Value().has_value());
-        const Client::World::ModelEffect& combo = world->Map().effects.Effects()[*made.Value()];
+        const Client::Effects::ModelEffect& combo = world->Map().effects.Effects()[*made.Value()];
         EXPECT_EQ(combo.type, 0x112);
         EXPECT_EQ(combo.transform.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
         CrtRandom replay{Seed};

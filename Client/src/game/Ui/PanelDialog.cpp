@@ -19,7 +19,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -96,7 +96,7 @@ bool ClickTheButton(OldButton& button, const OldWindowGlobals& globals, std::int
     OldWindowBase& base = button.base;
     if (base.state == DisabledWindow)
         return false;
-    if (MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
+    if (Chat::MouseInRect(mouseX, mouseY, base.x, base.y, base.width, base.height, TopLeftRect))
     {
         globals.mouseOnUi = 1;
         if (globals.leftClick && globals.pressedButton == 0)
@@ -264,8 +264,8 @@ Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog, c
     if (dialog.opened == 0)
         return {};
     // 0x6605c3..0x660615: la división de C (CDQ, SUB, SAR) redondea hacia el 0.
-    if (MouseInRect(mouseX, mouseY, CenterX - dialog.width / 2, CenterY - dialog.height / 2, dialog.width,
-                    dialog.height, TopLeftRect))
+    if (Chat::MouseInRect(mouseX, mouseY, CenterX - dialog.width / 2, CenterY - dialog.height / 2, dialog.width,
+                          dialog.height, TopLeftRect))
         globals.mouseOnUi = 1;
     // 0x66061c: +8, el paso propio que pone 0x6602b0 (0x6504d4, la ventana de los cargos del gremio), en lugar de lo
     // demás. Lo llama Scenes después de este.
@@ -301,7 +301,7 @@ Core::Expected<void, std::string> StepThePanelDialog(PanelDialogState& dialog, c
     return Answer(dialog, *reason, answer);
 }
 
-UI::Point PlaceThePanelDialog(PanelDialogState& dialog)
+Ui::Point PlaceThePanelDialog(PanelDialogState& dialog)
 {
     std::int32_t top = PlacedTop;
     if (dialog.placed == 0)
@@ -335,6 +335,6 @@ UI::Point PlaceThePanelDialog(PanelDialogState& dialog)
         place(dialog.buttons[PanelConfirmButton], LeftButtonX);
         place(dialog.buttons[PanelCancelButton], RightButtonX);
     }
-    return UI::Point{BoxLeft, top};
+    return Ui::Point{BoxLeft, top};
 }
-} // namespace Client::UI
+} // namespace Client::Ui

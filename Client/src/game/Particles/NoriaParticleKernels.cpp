@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -256,4 +256,4 @@ Core::Expected<void, ParticleError> StepTheFallingShine(Particle& particle, Crt:
     static_cast<void>(sprites->Create(FallingShineSprite, particle.position, scale, particle.light, 0.0f, 0));
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

@@ -82,7 +82,7 @@ std::vector<Client::Math::OriginalMatrix> FakePose()
 }
 
 // Los 0x78 bytes de un lugar de 0x743a198.
-std::array<std::uint32_t, 30> WordsOf(const Client::World::Particle& particle)
+std::array<std::uint32_t, 30> WordsOf(const Client::Particles::Particle& particle)
 {
     std::array<std::uint32_t, 30> words{};
     const auto put = [&words](std::size_t at, const glm::vec3& value)
@@ -146,10 +146,10 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
     Terrain terrain;
     CrtRandom random;
     DarkSpirit spirit;
-    Client::Scenes::DarkSpiritOwner owner;
+    Client::Pets::DarkSpiritOwner owner;
     std::int32_t counter = 0;
     std::string start;
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     std::size_t cases = 0;
     std::size_t steps = 0;
     std::size_t sparks = 0;
@@ -186,8 +186,8 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             const double ground = Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes,
                                                                    static_cast<float>((cellX * 100) + 50),
                                                                    static_cast<float>((cellY * 100) + 50));
-            spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
-            owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = Hex(flags)};
+            spirit = Client::Pets::CreateDarkSpirit(cellX, cellY, ground, random);
+            owner = Client::Pets::DarkSpiritOwner{.position = OwnerPosition, .flags = Hex(flags)};
             counter = static_cast<std::int32_t>(Hex(count));
         }
         else if (kind == "ctor")
@@ -241,7 +241,7 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             ++steps;
             particles->Clear();
             const bool shout =
-                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, 0x37, *particles, 0.0f, random, counter).shouts;
+                Client::Pets::StepDarkSpirit(spirit, skeleton, owner, 0x37, *particles, 0.0f, random, counter).shouts;
             sparked = true;
             std::string state;
             words >> state;
@@ -349,11 +349,11 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
     terrain.Build(3, 5);
     CrtRandom random;
     DarkSpirit spirit;
-    Client::Scenes::DarkSpiritOwner owner;
+    Client::Pets::DarkSpiritOwner owner;
     std::uint8_t map = 0;
     std::string start;
     std::vector<std::pair<std::size_t, int>> zones;
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     std::size_t cases = 0;
     std::size_t steps = 0;
     std::size_t step = 0;
@@ -400,15 +400,15 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
             const double ground = Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes,
                                                                    static_cast<float>((cellX * 100) + 50),
                                                                    static_cast<float>((cellY * 100) + 50));
-            spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
-            owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition,
-                                                    .flags = 0,
-                                                    .angles = {3.0f, 0.0f, 188.0f},
-                                                    .pet = static_cast<std::uint16_t>(Hex(pet)),
-                                                    .safeZone = 0,
-                                                    .pose = ownerPose,
-                                                    .modelScale = scale,
-                                                    .modelOrigin = origin};
+            spirit = Client::Pets::CreateDarkSpirit(cellX, cellY, ground, random);
+            owner = Client::Pets::DarkSpiritOwner{.position = OwnerPosition,
+                                                  .flags = 0,
+                                                  .angles = {3.0f, 0.0f, 188.0f},
+                                                  .pet = static_cast<std::uint16_t>(Hex(pet)),
+                                                  .safeZone = 0,
+                                                  .pose = ownerPose,
+                                                  .modelScale = scale,
+                                                  .modelOrigin = origin};
         }
         else if (kind == "ctor")
         {
@@ -438,8 +438,7 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
             ++steps;
             particles->Clear();
             const bool shout =
-                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 0x12345677)
-                    .shouts;
+                Client::Pets::StepDarkSpirit(spirit, skeleton, owner, map, *particles, 0.0f, random, 0x12345677).shouts;
             std::string state;
             words >> state;
             EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand()";
@@ -488,7 +487,7 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
 TEST(DarkSpiritTest, TheBirthRoundsTheGroundFirstAndWrapsTheCells)
 {
     CrtRandom random(1);
-    const DarkSpirit spirit = Client::Scenes::CreateDarkSpirit(259, 1, 450.00003069877624, random);
+    const DarkSpirit spirit = Client::Pets::CreateDarkSpirit(259, 1, 450.00003069877624, random);
     EXPECT_EQ(spirit.position.x, 350.0f);
     EXPECT_EQ(spirit.position.y, 150.0f);
     EXPECT_EQ(spirit.position.z, 750.0f) << "f(f(h) + 300); con f(h + 300) daría 750,00006";
@@ -516,16 +515,16 @@ TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
 TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
 {
     const Client::Models::Skeleton skeleton = RavenSkeleton();
-    auto particles = std::make_unique<Client::World::Particles>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
     DarkSpirit spirit;
     spirit.position = OwnerPosition + glm::vec3(0.0f, 0.0f, 350.0f);
     spirit.state = 6;
     spirit.animation.action = 1;
     spirit.animation.frame = 3.9f;
     CrtRandom random(5);
-    (void)Client::Scenes::StepDarkSpirit(spirit, skeleton,
-                                         Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = 0}, 0x37,
-                                         *particles, 0.0f, random, 1);
+    (void)Client::Pets::StepDarkSpirit(spirit, skeleton,
+                                       Client::Pets::DarkSpiritOwner{.position = OwnerPosition, .flags = 0}, 0x37,
+                                       *particles, 0.0f, random, 1);
     EXPECT_EQ(spirit.animation.action, 0);
 }
 
@@ -536,7 +535,7 @@ TEST(DarkSpiritTest, ItFliesHigherInTheLoginMap)
     const Client::Models::Skeleton skeleton = RavenSkeleton();
     const auto meanHeight = [&skeleton](std::uint8_t map)
     {
-        auto particles = std::make_unique<Client::World::Particles>();
+        auto particles = std::make_unique<Client::Particles::Particles>();
         DarkSpirit spirit;
         spirit.position = OwnerPosition + glm::vec3(0.0f, 0.0f, 250.0f);
         CrtRandom random(77);
@@ -545,9 +544,9 @@ TEST(DarkSpiritTest, ItFliesHigherInTheLoginMap)
         for (int step = 0; step < 3000; ++step)
         {
             particles->Clear();
-            (void)Client::Scenes::StepDarkSpirit(spirit, skeleton,
-                                                 Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = 0},
-                                                 map, *particles, 0.0f, random, 1);
+            (void)Client::Pets::StepDarkSpirit(spirit, skeleton,
+                                               Client::Pets::DarkSpiritOwner{.position = OwnerPosition, .flags = 0},
+                                               map, *particles, 0.0f, random, 1);
             if (step >= 500)
             {
                 sum += static_cast<double>(spirit.position.z - OwnerPosition.z);

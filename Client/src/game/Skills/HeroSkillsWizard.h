@@ -14,7 +14,7 @@ struct ActorState;
 // CL9 hito 4, fase 2c: la rama del Wizard de 0x57cfc0 (0x5897aa..0x593874; 06, "Usar una skill"). La usan el Wizard (0)
 // y el Magic Gladiator (3), que llega desde el final de la rama de las clases 1, 3 y 4 (0x5854c1 → 0x5897a7). Sigue
 // en 0x5808da (las skills 0x43 a 0x48, de todas las clases: HeroSkillsTail.h).
-namespace Client::Scenes
+namespace Client::Skills
 {
 
 // 0x5897a7..0x599d5d con `skill`, la del lugar (0x28 ya cargada como 0x3a por el derecho) y el alcance de
@@ -32,4 +32,4 @@ namespace Client::Scenes
 // Scenes::IsInTheParty y la poción (0x589936), UseAManaPotion.
 [[nodiscard]] Core::Expected<void, std::string> UseTheWizardSkill(Kernel::ActorState& hero, std::uint8_t skill,
                                                                   const HeroSkillContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Skills

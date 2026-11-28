@@ -42,12 +42,12 @@ namespace Client::Scenes
 Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState& input)
 {
     Kernel::WorldState& world = *m_context.world;
-    const UI::Point mouse = UI::MouseIn640x480(input, m_screen);
+    const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     const auto ticks =
         m_context.clock ? std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count() : 0;
     // El flanco del clic ya quedó en 0x7d366d4 al empezar el paso (StepTheDialogs), y la UI pudo usarlo: MoveHero
     // no lo vuelve a prender.
-    HeroMovementContext context{
+    Movement::HeroMovementContext context{
         .world = world,
         .random = m_context.cloth->random,
         .playerSkeleton = m_models ? m_models->SkeletonOf(Tables::PlayerSkeletonModelId) : nullptr,
@@ -67,7 +67,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         if (m_session != nullptr)
             if (const auto* chosen = m_session->ChosenCharacter(); chosen != nullptr)
                 chosenSlot = chosen->slot;
-        auto body = OptionBodyOf(world, m_context.cloth->random, chosenSlot);
+        auto body = Hud::Dialogs::OptionBodyOf(world, m_context.cloth->random, chosenSlot);
         if (!body.HasValue())
             return Core::Unexpected(std::move(body).Error());
         // 0x61c210 no usa el retorno de send: aun si falla, 0x59ad45 sigue con Macro.txt.
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
             m_context.log.Warning("no se manda el F3 30: no hay servidor");
         else if (auto sent = m_session->SendOptionData(body.Value()); !sent.HasValue())
             m_context.log.Warning("no se manda el F3 30: {}", sent.Error());
-        return Tables::WriteMacroFile(m_context.dataRoot, UI::WrittenMacros(world.Runtime().chat.input.macros));
+        return Tables::WriteMacroFile(m_context.dataRoot, Chat::WrittenMacros(world.Runtime().chat.input.macros));
     };
     context.pickTarget = [this] { return GroundUnderTheMouse(); };
     context.sendWalk = [&](auto cells, auto target, float angle) -> Core::Expected<void, std::string>
@@ -142,9 +142,9 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     context.texts = m_texts;
     context.measure = m_context.textMeasure;
     context.screen = m_screen;
-    const InventoryServices inventory = InventoryContext();
+    const Items::InventoryServices inventory = InventoryContext();
     context.inventory = &inventory;
-    return StepHeroMovement(context);
+    return Movement::StepHeroMovement(context);
 }
 
 Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GameScene::GroundUnderTheMouse()
@@ -180,17 +180,17 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     const float time =
         m_context.clock ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
                         : 0;
-    FaunaStepContext context{world.Fauna(),
-                             world.Runtime().map,
-                             world.Runtime().storm,
-                             hero.position,
-                             hero.animation.action,
-                             hero.safeZone,
-                             StepTerrain(),
-                             m_context.states->terrain.dynamicLight.Lighting(),
-                             LoadedFaunaModels(),
-                             *m_context.cloth,
-                             time};
+    Fauna::FaunaStepContext context{world.Fauna(),
+                                    world.Runtime().map,
+                                    world.Runtime().storm,
+                                    hero.position,
+                                    hero.animation.action,
+                                    hero.safeZone,
+                                    StepTerrain(),
+                                    m_context.states->terrain.dynamicLight.Lighting(),
+                                    LoadedFaunaModels(),
+                                    *m_context.cloth,
+                                    time};
     context.fixedHeight = CameraState().fixedHeight;
     context.prefixModel = LoadedFaunaModels().PrefixModel();
     context.runtime = &world.Runtime();
@@ -200,9 +200,9 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     const Assets::FaunaModelLoadContext resources{
         m_context.dataRoot,           m_context.textures,   m_context.log, *slots, &LoadedFaunaModels().TextureTable(),
         &world.Runtime().modelSounds, world.Runtime().audio};
-    context.effects = BindFaunaStepEffects(LoadedFaunaModels(), resources, world.DrawTail().joints, world.Map().effects,
-                                           m_context.cloth->random);
-    return StepGameFauna(context);
+    context.effects = Fauna::BindFaunaStepEffects(LoadedFaunaModels(), resources, world.DrawTail().joints,
+                                                  world.Map().effects, m_context.cloth->random);
+    return Fauna::StepGameFauna(context);
 }
 
 const Terrain::WorldTerrain& GameScene::StepTerrain() const
@@ -237,22 +237,22 @@ Core::Expected<void, std::string> GameScene::StepTheLeaves()
     const float time =
         m_context.clock ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
                         : 0;
-    GameLeafContext context{world.Leaves(),
-                            world.Runtime().leafWeather,
-                            *terrain.heights,
-                            *terrain.attributes,
-                            hero.position,
-                            m_drawnCamera.position.y,
-                            world.Runtime().map,
-                            world.Runtime().heroCellLayer,
-                            m_context.cloth->random,
-                            time,
-                            CameraState().fixedHeight,
-                            &world.Particles()};
+    Weather::GameLeafContext context{world.Leaves(),
+                                     world.Runtime().leafWeather,
+                                     *terrain.heights,
+                                     *terrain.attributes,
+                                     hero.position,
+                                     m_drawnCamera.position.y,
+                                     world.Runtime().map,
+                                     world.Runtime().heroCellLayer,
+                                     m_context.cloth->random,
+                                     time,
+                                     CameraState().fixedHeight,
+                                     &world.Particles()};
     context.cloudHero = &hero;
     context.movementSpeed = &world.Runtime().movementSpeed;
     // 0x5304f6: el clima de Crywolf (0x5763358), que sortea 0x430510.
     context.crywolfState = &world.Runtime().crywolf.weather;
-    return StepGameLeaves(context);
+    return Weather::StepGameLeaves(context);
 }
 } // namespace Client::Scenes

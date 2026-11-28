@@ -163,7 +163,7 @@ protected:
 
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SelectionState m_selection{*m_world};
+    Client::FrontEnd::SelectionState m_selection{*m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_input;
     Client::Models::ClothWorld m_cloth;
@@ -414,7 +414,7 @@ TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
     Other().animation.action = 2;
 
     const auto before = m_cloth.random.State();
-    ASSERT_TRUE(Client::Scenes::SetTheModelHeadTarget(Other(), m_world->Actors(), m_cloth.random).HasValue());
+    ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(Other(), m_world->Actors(), m_cloth.random).HasValue());
     EXPECT_EQ(Other().headTurn.target.x, 0.0f);
     EXPECT_EQ(Other().headTurn.target.y, static_cast<float>((static_cast<double>(heroTarget.position.z) -
                                                              (static_cast<double>(Other().position.z) + 50.0)) *

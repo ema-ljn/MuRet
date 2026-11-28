@@ -17,10 +17,10 @@ namespace
 {
 using Client::Core::Expected;
 using Client::Core::Unexpected;
-using Client::World::ILeafWaveEvaluator;
-using Client::World::LeafWave;
-using Client::World::LeafWeather;
-using Client::World::StepLeafWeatherWaves;
+using Client::Weather::ILeafWaveEvaluator;
+using Client::Weather::LeafWave;
+using Client::Weather::LeafWeather;
+using Client::Weather::StepLeafWeatherWaves;
 
 // Spy de wave-order-v1: observa lecturas/stores/orden en las fronteras de los callbacks.
 // V y Q no tienen observación intermedia; su orden requiere inspección estática.

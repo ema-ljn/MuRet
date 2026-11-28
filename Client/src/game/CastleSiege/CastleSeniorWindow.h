@@ -7,7 +7,7 @@
 
 // [0x7d536fc], constructor 0x661090. Abierto y pestaña tienen un único dueño en DelegatedPanels; los registros,
 // selecciones, impuestos y tesoro viven en CastleData. Acá sólo los campos propios restantes.
-namespace Client::UI
+namespace Client::CastleSiege
 {
 struct CastleSeniorWindow
 {
@@ -17,8 +17,8 @@ struct CastleSeniorWindow
     std::int32_t bottom = 0;
     bool closeWith87 = true;
     std::uint32_t dialogId = 0;
-    std::array<OldButton, 7> buttons = DefaultButtons();
+    std::array<Ui::OldButton, 7> buttons = DefaultButtons();
 
-    [[nodiscard]] static std::array<OldButton, 7> DefaultButtons();
+    [[nodiscard]] static std::array<Ui::OldButton, 7> DefaultButtons();
 };
-} // namespace Client::UI
+} // namespace Client::CastleSiege

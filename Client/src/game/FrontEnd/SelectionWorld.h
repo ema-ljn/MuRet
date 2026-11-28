@@ -48,7 +48,7 @@
 // efectos con modelo(0) y 0x549510 después de los personajes; y en el pase de ojo los sprites, las
 // partículas y los números. Un dibujo intermedio de MuRet (sin frame del original) corre sobre copias:
 // no saca rand() de la CRT ni cambia el estado del paso. Contrato: 06 § El mundo de la selección.
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct ObjectModelStepState;
 }
@@ -64,7 +64,7 @@ struct PoseBuffer;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::FrontEnd
 {
 
 // Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
@@ -145,13 +145,13 @@ public:
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Crt::CrtRandom& FrameRandom();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
-    [[nodiscard]] World::Particles& FrameParticles();
-    [[nodiscard]] World::ModelEffects& FrameEffects();
-    [[nodiscard]] GameDrawTailState& FrameTail();
+    [[nodiscard]] Particles::Particles& FrameParticles();
+    [[nodiscard]] Effects::ModelEffects& FrameEffects();
+    [[nodiscard]] Scenes::GameDrawTailState& FrameTail();
     // La tabla de los sprites del frame (0x5491e0): la del mundo, o la proyectada en un dibujo intermedio.
-    [[nodiscard]] World::FrameSprites& FrameSprites();
+    [[nodiscard]] Particles::FrameSprites& FrameSprites();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
-    [[nodiscard]] World::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] WorldObjects::ObjectModelStepState& FrameModelState();
 
     // 0x5fc260(0): el terreno, el pasto y las marcas del suelo.
     [[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Kernel::WorldState& world,
@@ -171,11 +171,11 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> DrawEye(const Render::Pass3D& pass,
                                                             const SelectionWorldFrame& frame,
                                                             const Assets::SceneTextures& sceneTextures,
-                                                            std::span<const DamageNumberState> damage);
+                                                            std::span<const Scenes::DamageNumberState> damage);
 
 private:
     struct Projection;
-    [[nodiscard]] std::span<World::WorldObject> FrameObjects();
+    [[nodiscard]] std::span<WorldObjects::WorldObject> FrameObjects();
 
     Render::ITextureStore& m_store;
     Core::Log& m_log;
@@ -183,14 +183,14 @@ private:
     Assets::WorldModels m_models;
     std::optional<std::uint8_t> m_modelsMap;
     Terrain::TerrainWater m_water;
-    World::FrameSprites m_sprites;
-    World::FrameSprites m_spriteReplay;
+    Particles::FrameSprites m_sprites;
+    Particles::FrameSprites m_spriteReplay;
     bool m_spriteReplayValid = false;
-    World::FrameSprites m_projectedSprites;
+    Particles::FrameSprites m_projectedSprites;
     std::unique_ptr<Projection> m_projection;
     bool m_projecting = false;
     Kernel::WorldState* m_world = nullptr;
     Terrain::TerrainLighting* m_dynamicLighting = nullptr;
     Models::ClothWorld* m_cloth = nullptr;
 };
-} // namespace Client::Scenes
+} // namespace Client::FrontEnd

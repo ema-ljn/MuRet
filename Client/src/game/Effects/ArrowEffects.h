@@ -32,12 +32,16 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
+{
 struct ModelEffect;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors
 {
@@ -51,13 +55,13 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 
 // Los tipos de flecha que crea 0x53d9a0: 0xdb..0xe3, 0xf7..0xf9, 0x10e, 0x111 y 0x11c.
 [[nodiscard]] bool IsArrowEffect(std::int16_t type);
 
-// 0x518cf0 con un tipo de flecha: el prefijo (World::ModelEffects::Begin) y el alta del tipo (0x51c43b, 0x51a41e,
+// 0x518cf0 con un tipo de flecha: el prefijo (Effects::ModelEffects::Begin) y el alta del tipo (0x51c43b, 0x51a41e,
 // 0x51a1e6..0x51a405, 0x51be81 y la salida 0x51a1b6, que copia +0xf04 del registro propio a +0x8c). La llama 0x53d9a0
 // por cada mano; la 0xdb con el subtipo 3 o 4 la crea el asedio (0x42c319 y 0x42c4e0, CL9.5) y la 0xe1/1 la fortaleza
 // y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
@@ -104,8 +108,8 @@ struct ArrowStepContext
 {
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    World::Particles* particles = nullptr;
-    World::FrameSprites* sprites = nullptr;
+    Particles::Particles* particles = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     Terrain::TerrainLighting* lighting = nullptr;
     float worldClock = 0.0f;
     // The map's load (0x7d0d348); without it, an empty one.
@@ -118,11 +122,11 @@ struct ArrowStepContext
 // 0x5208a0 sobre una flecha viva: el rand() de la luz local (0x5208c5), el caso de su tipo, el choque (0x520170) y la
 // cola común (0x52cb98: la animación con `skeleton`, la velocidad girada y una vida menos), que corre también si el
 // choque la apagó. Corta, con lo de antes y sus rand(), donde pide algo sin portar.
-[[nodiscard]] Core::Expected<void, std::string> StepArrow(World::ModelEffect& effect, const Models::Skeleton* skeleton,
-                                                          const ArrowStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string>
+StepArrow(Effects::ModelEffect& effect, const Models::Skeleton* skeleton, const ArrowStepContext& context);
 
 // 0x520170(efecto) fuera del paso de la flecha: el 0x60f/0xb de la 0xf8 con el skill 1 la pone en su posición y la
 // hace chocar desde el paso de los joints (0x53ae6d).
-[[nodiscard]] Core::Expected<void, std::string> HitTheArrow(World::ModelEffect& effect,
+[[nodiscard]] Core::Expected<void, std::string> HitTheArrow(Effects::ModelEffect& effect,
                                                             const ArrowStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Effects

@@ -34,26 +34,26 @@ namespace
 using namespace Client;
 constexpr std::int32_t Type = 0x60f;
 // Evaluador analítico del fixture: sólo acepta u=0; los errores son explícitos.
-class Trigonometry final : public World::IParticleTrigonometry
+class Trigonometry final : public Particles::IParticleTrigonometry
 {
 public:
     mutable std::vector<int> calls;
-    const World::Particle* observed = nullptr;
+    const Particles::Particle* observed = nullptr;
     bool failSine = false;
     bool failCosine = false;
     double argument = 0;
     double sineProduct = 0;
     double cosineProduct = 40;
-    Core::Expected<double, World::ParticleError> SineProductPC53(double u, float factor) const override
+    Core::Expected<double, Particles::ParticleError> SineProductPC53(double u, float factor) const override
     {
         calls.push_back(1);
         EXPECT_EQ(u, argument);
         EXPECT_EQ(factor, 40);
         if (failSine)
-            return Core::Unexpected(World::ParticleError::UnrepresentableTrigonometry);
+            return Core::Unexpected(Particles::ParticleError::UnrepresentableTrigonometry);
         return sineProduct;
     }
-    Core::Expected<double, World::ParticleError> CosineProductPC53(double u, float factor) const override
+    Core::Expected<double, Particles::ParticleError> CosineProductPC53(double u, float factor) const override
     {
         calls.push_back(2);
         EXPECT_EQ(u, argument);
@@ -63,17 +63,17 @@ public:
             EXPECT_EQ(observed->position.x, static_cast<float>(sineProduct + observed->start.x));
         }
         if (failCosine)
-            return Core::Unexpected(World::ParticleError::UnrepresentableTrigonometry);
+            return Core::Unexpected(Particles::ParticleError::UnrepresentableTrigonometry);
         return cosineProduct;
     }
 };
 // Observador puro del prefijo: devuelve error en el primer seno sin inventar un valor trigonométrico.
-class MovementFailureTrigonometry final : public World::IParticleTrigonometry
+class MovementFailureTrigonometry final : public Particles::IParticleTrigonometry
 {
 public:
-    explicit MovementFailureTrigonometry(const World::Particle& particle) : m_particle(particle) {}
+    explicit MovementFailureTrigonometry(const Particles::Particle& particle) : m_particle(particle) {}
     mutable int sineCalls = 0;
-    Core::Expected<double, World::ParticleError> SineProductPC53(double argument, float multiplier) const override
+    Core::Expected<double, Particles::ParticleError> SineProductPC53(double argument, float multiplier) const override
     {
         ++sineCalls;
         EXPECT_EQ(argument, 0x1.99999ap-3); // (vida0 + Vx2) por f32 bits3dcccccd.
@@ -81,34 +81,34 @@ public:
         EXPECT_EQ(m_particle.life, 0);
         EXPECT_FALSE(m_particle.alive);
         EXPECT_EQ(m_particle.position, glm::vec3(13, 20, 42));
-        return Core::Unexpected(World::ParticleError::UnrepresentableTrigonometry);
+        return Core::Unexpected(Particles::ParticleError::UnrepresentableTrigonometry);
     }
-    Core::Expected<double, World::ParticleError> CosineProductPC53(double, float) const override
+    Core::Expected<double, Particles::ParticleError> CosineProductPC53(double, float) const override
     {
         ADD_FAILURE() << "El error del primer seno debe detener el sufijo";
-        return Core::Unexpected(World::ParticleError::UnrepresentableTrigonometry);
+        return Core::Unexpected(Particles::ParticleError::UnrepresentableTrigonometry);
     }
 
 private:
-    const World::Particle& m_particle;
+    const Particles::Particle& m_particle;
 };
-class Services final : public World::IParticleDrawingServices
+class Services final : public Particles::IParticleDrawingServices
 {
 public:
-    explicit Services(World::Particle& particle) : p(particle) {}
-    World::Particle& p;
+    explicit Services(Particles::Particle& particle) : p(particle) {}
+    Particles::Particle& p;
     std::vector<int> trace;
     float expectedWidth = 16;
     float expectedHeight = 32;
     bool mutate = false;
     bool fail = false;
-    Core::Expected<glm::vec2, World::ParticleError> Dimensions(std::int32_t image) override
+    Core::Expected<glm::vec2, Particles::ParticleError> Dimensions(std::int32_t image) override
     {
         trace.push_back(1);
         EXPECT_EQ(image, Type);
         return glm::vec2(8, 16);
     }
-    Core::Expected<std::uint8_t, World::ParticleError> MaterialFlag(std::int32_t type) override
+    Core::Expected<std::uint8_t, Particles::ParticleError> MaterialFlag(std::int32_t type) override
     {
         trace.push_back(2);
         EXPECT_EQ(type, Type);
@@ -119,8 +119,8 @@ public:
         trace.push_back(3);
         EXPECT_EQ(flag, 3);
         if (fail)
-            return Core::Unexpected(World::ParticleDrawingError{
-                World::ParticleError::MissingMaterialFlag, World::ParticleDrawingPhase::Material, {}});
+            return Core::Unexpected(Particles::ParticleDrawingError{
+                Particles::ParticleError::MissingMaterialFlag, Particles::ParticleDrawingPhase::Material, {}});
         if (mutate)
         {
             p.subtype = 4;
@@ -168,7 +168,7 @@ public:
 };
 TEST(Particle60f3Test, FourRandomValuesInitializeAndRetainResidualFields)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.field38 = 123;
     p.rotationFactor = 7;
@@ -196,7 +196,7 @@ TEST(Particle60f3Test, FourRandomValuesInitializeAndRetainResidualFields)
 }
 TEST(Particle60f3Test, FullPoolReturnsBeforeAdmissionOrRandom)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     for (auto& p : particles.All())
         p.alive = true;
     Crt::CrtRandom random(7);
@@ -209,7 +209,7 @@ TEST(Particle60f3Test, FullPoolReturnsBeforeAdmissionOrRandom)
 }
 TEST(Particle60f3Test, MaterialFailureIsNotHiddenByLifeGateAndStopsLaterSlot)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -222,15 +222,15 @@ TEST(Particle60f3Test, MaterialFailureIsNotHiddenByLifeGateAndStopsLaterSlot)
     services.fail = true;
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    const auto result = World::DrawParticlesChecked(particles, 0, std::cref(clock), services);
+    const auto result = Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error().slot, 0u);
-    EXPECT_EQ(result.Error().error.phase, World::ParticleDrawingPhase::Material);
+    EXPECT_EQ(result.Error().error.phase, Particles::ParticleDrawingPhase::Material);
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3}));
 }
 TEST(Particle60f3Test, DrawGateRunsAfterMetadataAndMaterial)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -241,12 +241,12 @@ TEST(Particle60f3Test, DrawGateRunsAfterMetadataAndMaterial)
     Services services(p);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3}));
 }
 TEST(Particle60f3Test, LateSubtypeFourBypassesGateWithoutRefilterOrRecompute)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -258,13 +258,13 @@ TEST(Particle60f3Test, LateSubtypeFourBypassesGateWithoutRefilterOrRecompute)
     services.mutate = true;
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3, 4}));
 }
 // El ángulo es exactamente cero: sin(0)=0 y cos(0)=1, sin usar el SUT para derivar esperados.
 TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -280,7 +280,7 @@ TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
     Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
+    const auto result = Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
     ASSERT_TRUE(result.HasValue());
     EXPECT_EQ(p.life, 20);
     EXPECT_TRUE(p.alive);
@@ -295,7 +295,7 @@ TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
 }
 TEST(Particle60f3Test, CommonMovementRemainsVisibleBeforeTrigonometryError)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -314,10 +314,10 @@ TEST(Particle60f3Test, CommonMovementRemainsVisibleBeforeTrigonometryError)
     Crt::CrtRandom random(7);
     const float clock = 0;
 
-    const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
+    const auto result = Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), World::ParticleError::UnrepresentableTrigonometry);
+    EXPECT_EQ(result.Error(), Particles::ParticleError::UnrepresentableTrigonometry);
     EXPECT_EQ(trig.sineCalls, 1);
     EXPECT_EQ(random.State(), 3289278137u);
     EXPECT_FALSE(p.alive);
@@ -334,7 +334,7 @@ TEST(Particle60f3Test, CommonMovementRemainsVisibleBeforeTrigonometryError)
 }
 TEST(Particle60f3Test, ExpirationStillFinishesCaseAndVisitsFollowingSlot)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     for (int i = 0; i < 2; ++i)
     {
         auto& p = particles.All()[static_cast<std::size_t>(i)];
@@ -351,7 +351,7 @@ TEST(Particle60f3Test, ExpirationStillFinishesCaseAndVisitsFollowingSlot)
     Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     for (int i = 0; i < 2; ++i)
     {
         const auto& p = particles.All()[static_cast<std::size_t>(i)];
@@ -364,7 +364,7 @@ TEST(Particle60f3Test, ExpirationStillFinishesCaseAndVisitsFollowingSlot)
 }
 TEST(Particle60f3Test, SignedLifeWrapKeepsSlotAlive)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -375,7 +375,7 @@ TEST(Particle60f3Test, SignedLifeWrapKeepsSlotAlive)
     [[maybe_unused]] Trigonometry trig;
     p.velocity.x = -2147483648.0f;
     trig.argument = -0x1.99999ap-4;
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     EXPECT_TRUE(p.alive);
     EXPECT_EQ(p.life, std::numeric_limits<std::int32_t>::max());
 }
@@ -384,7 +384,7 @@ TEST(Particle60f3Test, LifeGateIsExactDwordEqualityAndKeepsNegativeLifeDraws)
 {
     for (const std::int32_t life : {59, 61, 316, 0, -1})
     {
-        World::Particles particles;
+        Particles::Particles particles;
         auto& p = particles.All()[0];
         p.alive = true;
         p.type = Type;
@@ -395,14 +395,14 @@ TEST(Particle60f3Test, LifeGateIsExactDwordEqualityAndKeepsNegativeLifeDraws)
         Services services(p);
         const float clock = 0;
         [[maybe_unused]] Trigonometry trig;
-        ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+        ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
         EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3, 4}));
     }
 }
 
 TEST(Particle60f3Test, AliasInputsAreReadInPrefixOrderAndResidualSlotCanBeReused)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.position = {10, 20, 30};
     p.light = {1, 2, 3};
@@ -432,32 +432,32 @@ TEST(Particle60f3Test, AliasInputsAreReadInPrefixOrderAndResidualSlotCanBeReused
 }
 TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(7);
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
     ASSERT_FALSE(legacy.HasValue());
-    EXPECT_EQ(legacy.Error(), World::ParticleError::UnsupportedType);
+    EXPECT_EQ(legacy.Error(), Particles::ParticleError::UnsupportedType);
     // CrywolfArrowDependenciesTest cubre el alta y paso de la /5. La /6 (0x542eeb) sigue sin acreditar.
     const auto result = particles.CreateChecked(Type, {}, {}, {}, 6, 1, std::cref(clock), random, 0, trig);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), World::ParticleError::UnsupportedSubtype);
+    EXPECT_EQ(result.Error(), Particles::ParticleError::UnsupportedSubtype);
     EXPECT_EQ(random.State(), 7u);
     EXPECT_FALSE(particles.Any());
 }
 TEST(Particle60f3Test, LegacyStepDoesNotAcquireNewAdmission)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
     p.subtype = 3;
     p.life = 60;
     Crt::CrtRandom random(7);
-    const auto result = World::StepParticlesChecked(particles, random, nullptr);
+    const auto result = Particles::StepParticlesChecked(particles, random, nullptr);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error(), World::ParticleError::UnsupportedType);
+    EXPECT_EQ(result.Error(), Particles::ParticleError::UnsupportedType);
     EXPECT_EQ(p.life, 59);
     EXPECT_EQ(random.State(), 3289278137u);
 }
@@ -494,11 +494,11 @@ public:
 class Backend final : public Render::IParticleDrawBackend
 {
 public:
-    Backend(World::Particle& particle, Library& library, Math::OriginalMatrix& view)
+    Backend(Particles::Particle& particle, Library& library, Math::OriginalMatrix& view)
         : p(particle), lib(library), matrix(view)
     {
     }
-    World::Particle& p;
+    Particles::Particle& p;
     Library& lib;
     Math::OriginalMatrix& matrix;
     std::vector<int> events;
@@ -610,7 +610,7 @@ public:
 };
 TEST(Particle60f3Test, DrawConsumesPositionViewAndColorAfterTheirServiceBoundaries)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -623,10 +623,10 @@ TEST(Particle60f3Test, DrawConsumesPositionViewAndColorAfterTheirServiceBoundari
     Math::OriginalMatrix view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
     Library lib;
     Backend backend(p, lib, view);
-    Scenes::ParticleDrawServices services(std::cref(lib), std::ref(backend), std::cref(view));
+    Effects::ParticleDrawServices services(std::cref(lib), std::ref(backend), std::cref(view));
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(lib.queries, (std::vector<std::uint32_t>{Type, Type, LateSelector}));
     EXPECT_EQ(backend.events, (std::vector<int>{1, 2, 3, 4, 5, 6, 5, 6, 5, 6, 5, 6, 7}));
     ASSERT_EQ(backend.vertices.size(), 4u);
@@ -640,7 +640,7 @@ TEST(Particle60f3Test, DrawConsumesPositionViewAndColorAfterTheirServiceBoundari
 }
 TEST(Particle60f3Test, BeginErrorPreservesPrefixWithoutColorQuadOrEnd)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -652,12 +652,12 @@ TEST(Particle60f3Test, BeginErrorPreservesPrefixWithoutColorQuadOrEnd)
     Library lib;
     Backend backend(p, lib, view);
     backend.failBegin = true;
-    Scenes::ParticleDrawServices services(std::cref(lib), std::ref(backend), std::cref(view));
+    Effects::ParticleDrawServices services(std::cref(lib), std::ref(backend), std::cref(view));
     const float clock = 0;
     [[maybe_unused]] Trigonometry trig;
-    const auto result = World::DrawParticlesChecked(particles, 0, std::cref(clock), services);
+    const auto result = Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_EQ(result.Error().error.phase, World::ParticleDrawingPhase::Begin);
+    EXPECT_EQ(result.Error().error.phase, Particles::ParticleDrawingPhase::Begin);
     EXPECT_EQ(result.Error().error.backendError, std::make_error_code(std::errc::io_error));
     EXPECT_EQ(lib.queries, (std::vector<std::uint32_t>{Type, Type}));
     EXPECT_EQ(backend.events, (std::vector<int>{1, 2, 3}));
@@ -670,7 +670,7 @@ TEST(Particle60f3Test, TrigErrorsPreserveTheirExactPrefixAndStopThePass)
 {
     for (const bool failSine : {true, false})
     {
-        World::Particles particles;
+        Particles::Particles particles;
         auto& p = particles.All()[0];
         p.alive = true;
         p.type = Type;
@@ -689,9 +689,9 @@ TEST(Particle60f3Test, TrigErrorsPreserveTheirExactPrefixAndStopThePass)
         trig.observed = &p;
         Crt::CrtRandom random(7);
         const float clock = 0;
-        const auto result = World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
+        const auto result = Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
         ASSERT_FALSE(result.HasValue());
-        EXPECT_EQ(result.Error(), World::ParticleError::UnrepresentableTrigonometry);
+        EXPECT_EQ(result.Error(), Particles::ParticleError::UnrepresentableTrigonometry);
         EXPECT_FALSE(p.alive);
         EXPECT_EQ(p.life, 0);
         EXPECT_EQ(p.position.x, failSine ? 9.0f : 0x1p-48f);
@@ -707,7 +707,7 @@ TEST(Particle60f3Test, TrigErrorsPreserveTheirExactPrefixAndStopThePass)
 }
 TEST(Particle60f3Test, Product53IsAddedBeforeTheSinglePositionStore)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     auto& p = particles.All()[0];
     p.alive = true;
     p.type = Type;
@@ -723,7 +723,7 @@ TEST(Particle60f3Test, Product53IsAddedBeforeTheSinglePositionStore)
     trig.observed = &p;
     Crt::CrtRandom random(7);
     const float clock = 0;
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     EXPECT_EQ(p.position.x, 0x1p-48f);
     EXPECT_EQ(p.position.y, 60);
     EXPECT_EQ(trig.calls, (std::vector<int>{1, 2}));
@@ -732,7 +732,7 @@ TEST(Particle60f3Test, Product53IsAddedBeforeTheSinglePositionStore)
 
 TEST(Particle60f3Test, CompleteCreateStepDrawChainKeepsCommonMovementAndEarlyDrawGate)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(7);
     const float clock = 0;
     Trigonometry trig;
@@ -746,9 +746,9 @@ TEST(Particle60f3Test, CompleteCreateStepDrawChainKeepsCommonMovementAndEarlyDra
     Services services(p);
     services.expectedWidth = 16.399999618530273f;
     services.expectedHeight = 32.79999923706055f;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3}));
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());
     EXPECT_EQ(p.life, 59);
     EXPECT_EQ(p.position.x, 0x1p-48f);
     EXPECT_EQ(p.position.y, 60);
@@ -758,13 +758,13 @@ TEST(Particle60f3Test, CompleteCreateStepDrawChainKeepsCommonMovementAndEarlyDra
     services.trace.clear();
     services.expectedWidth = 16.38399887084961f;
     services.expectedHeight = 32.76799774169922f;
-    ASSERT_TRUE(World::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
+    ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3, 4}));
     EXPECT_EQ(trig.calls, (std::vector<int>{1, 2}));
 }
 TEST(Particle60f3Test, TypedOverloadRetainsExistingCreationAndStepWithoutCallingTrig)
 {
-    World::Particles particles;
+    Particles::Particles particles;
     Crt::CrtRandom random(7);
     const float clock = 0;
     Trigonometry trig;
@@ -774,7 +774,7 @@ TEST(Particle60f3Test, TypedOverloadRetainsExistingCreationAndStepWithoutCalling
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value());
     const std::int32_t map = 34;
-    ASSERT_TRUE(World::StepParticlesChecked(particles, random, std::cref(clock), &map, trig).HasValue());
+    ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trig).HasValue());
     EXPECT_EQ(particles.All()[*created.Value()].life, 19);
     EXPECT_TRUE(trig.calls.empty());
 }

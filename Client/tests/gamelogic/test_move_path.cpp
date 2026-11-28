@@ -15,7 +15,7 @@ struct MovingState
     float yaw = 0.0f;
     std::uint32_t logicalX = 0;
     std::uint32_t logicalY = 0;
-    Client::GameLogic::MovePathState View()
+    Client::Actors::MovePathState View()
     {
         return {path, position, yaw, logicalX, logicalY};
     }
@@ -24,7 +24,7 @@ TEST(MovePathTest, AdvancesOnlyOneQuarterWithoutMovingPosition)
 {
     MovingState actor;
     actor.position.x = 67.96875f;
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.path.progress, 1);
     EXPECT_EQ(actor.path.current, 0);
     EXPECT_EQ(actor.logicalX, 1u);
@@ -37,11 +37,11 @@ TEST(MovePathTest, AdvancesTheSegmentBeforeAdvancingItsLogicalCellNextCall)
     actor.path.progress = 3;
     actor.logicalX = 1;
     actor.position.x = 150.0f;
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.path.current, 1);
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.logicalX, 1u);
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.logicalX, 2u);
 }
 TEST(MovePathTest, ArrivalSnapsAtDistanceTwentyAndSkipsHeading)
@@ -51,7 +51,7 @@ TEST(MovePathTest, ArrivalSnapsAtDistanceTwentyAndSkipsHeading)
     actor.path.progress = 3;
     actor.position.x = 230.0f;
     actor.yaw = 123.0f;
-    EXPECT_TRUE(Client::GameLogic::MovePath(actor.View(), 1));
+    EXPECT_TRUE(Client::Actors::MovePath(actor.View(), 1));
     EXPECT_EQ(actor.path.current, 2);
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.position.x, 250.0f);
@@ -64,15 +64,15 @@ TEST(MovePathTest, EmptyOrConsumedPathHasNoEffects)
     MovingState actor;
     actor.path.current = actor.path.count;
     int calls = 0;
-    const Client::GameLogic::LogicalCellEffects effects{[&](auto, auto, auto&) { ++calls; }};
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 1, effects));
+    const Client::Actors::LogicalCellEffects effects{[&](auto, auto, auto&) { ++calls; }};
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 1, effects));
     EXPECT_EQ(calls, 0);
     EXPECT_EQ(actor.logicalX, 0u);
     EXPECT_EQ(actor.yaw, 0.0f);
 }
 TEST(MovePathTest, CallsEffectsAroundBothStoresEvenForTheSameCellAndRereadsThePath)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.logicalX = 1;
     std::vector<int> events;
@@ -102,12 +102,12 @@ TEST(MovePathTest, QuarterTargetsUseClampedEndpointsAndLiteralWeights)
         MovingState actor;
         actor.path.progress = q;
         actor.position.x = Targets[q] - 20.0f;
-        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
         EXPECT_EQ(actor.path.progress, q == 3 ? 0 : q + 1);
         actor = MovingState{};
         actor.path.progress = q;
         actor.position.x = Targets[q] - 20.0001f;
-        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
         EXPECT_EQ(actor.path.progress, q);
     }
 }
@@ -116,15 +116,15 @@ TEST(MovePathTest, HeadingSnapsFromFortyFiveAndOtherwiseTurnsByHalfDistance)
     MovingState actor;
     actor.position = {0.0f, 50.0f, 0.0f};
     actor.yaw = 45.0f;
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 1));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 1));
     EXPECT_EQ(actor.yaw, 90.0f);
     actor.yaw = 60.0f;
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 2));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 2));
     EXPECT_EQ(actor.yaw, 75.0f);
 }
 TEST(MovePathTest, ArrivalEffectsSeeCountersBeforeThePositionSnap)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.path.current = 1;
     actor.path.progress = 3;
@@ -146,7 +146,7 @@ TEST(MovePathTest, HeadingUsesTheOldTargetInTheFrameThatAdvancesTheSegment)
     actor.path.progress = 3;
     actor.path.cells[2] = {1, 1};
     actor.position = {150.0f, 30.0f, 77.0f};
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 1));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 1));
     EXPECT_EQ(actor.path.current, 1);
     EXPECT_EQ(actor.yaw, 180.0f);
     EXPECT_EQ(actor.position.y, 30.0f);
@@ -156,16 +156,16 @@ TEST(MovePathTest, SingleCellRouteClampsAllFourControlPoints)
     MovingState actor;
     actor.path.count = 1;
     actor.path.progress = 2;
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.path.progress, 3);
-    EXPECT_TRUE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_TRUE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.path.current, 0);
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.position.x, 50.0f);
 }
 TEST(MovePathTest, ArrivalRereadsCurrentAfterEachPreCallbackAndKeepsTheOriginalSnap)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.path.cells[0] = {3, 4};
     actor.path.cells[1] = {5, 6};
@@ -213,7 +213,7 @@ TEST(MovePathTest, ArrivalRereadsCurrentAfterEachPreCallbackAndKeepsTheOriginalS
 }
 TEST(MovePathTest, BeginningKeepsItsCapturedNextIndexWhenPreCallbacksChangeCurrent)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.path.cells[0] = {3, 4};
     actor.path.cells[1] = {5, 6};
@@ -241,7 +241,7 @@ TEST(MovePathTest, UnorderedDistanceAdvancesOneQuarter)
 {
     MovingState actor;
     actor.position.x = std::bit_cast<float>(0x7fc00001u);
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.path.progress, 1);
     EXPECT_EQ(actor.path.current, 0);
 }
@@ -252,7 +252,7 @@ TEST(MovePathTest, UnorderedDistanceAtArrivalSnapsThePosition)
     actor.path.current = 1;
     actor.path.progress = 3;
     actor.yaw = 123.0f;
-    EXPECT_TRUE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_TRUE(Client::Actors::MovePath(actor.View(), 0));
     EXPECT_EQ(actor.position, (glm::vec3{250.0f, 50.0f, 77.0f}));
     EXPECT_EQ(actor.yaw, 123.0f);
     EXPECT_EQ(actor.path.current, 2);
@@ -260,7 +260,7 @@ TEST(MovePathTest, UnorderedDistanceAtArrivalSnapsThePosition)
 }
 TEST(MovePathTest, TargetRereadsCurrentAfterTheBeginningCallbacks)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.position.x = 157.34375f;
     const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)
@@ -286,18 +286,18 @@ TEST(MovePathTest, QuarterTargetsAlsoUseTheNonDegenerateYAxis)
         actor.path.cells[2] = {0, 2};
         actor.path.progress = q;
         actor.position.y = Targets[q] - 20.0f;
-        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
         EXPECT_EQ(actor.path.progress, q == 3 ? 0 : q + 1);
         actor.path.progress = q;
         actor.path.current = 0;
         actor.position.y = Targets[q] - 20.0001f;
-        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 0));
         EXPECT_EQ(actor.path.progress, q);
     }
 }
 TEST(MovePathTest, BeginningYReadsTheCellAfterItsOwnPreCallback)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.path.cells[1] = {0, 1};
     actor.path.cells[2] = {0, 2};
@@ -317,8 +317,8 @@ TEST(MovePathTest, ZeroCountReturnsBeforeAnyCallback)
     MovingState actor;
     actor.path.count = 0;
     int calls = 0;
-    const Client::GameLogic::LogicalCellEffects effects{[&](auto, auto, auto&) { ++calls; }};
-    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 1, effects));
+    const Client::Actors::LogicalCellEffects effects{[&](auto, auto, auto&) { ++calls; }};
+    EXPECT_FALSE(Client::Actors::MovePath(actor.View(), 1, effects));
     EXPECT_EQ(calls, 0);
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.logicalX, 0u);
@@ -326,7 +326,7 @@ TEST(MovePathTest, ZeroCountReturnsBeforeAnyCallback)
 }
 TEST(MovePathTest, TargetRereadsProgressAfterTheBeginningCallbacks)
 {
-    using namespace Client::GameLogic;
+    using namespace Client::Actors;
     MovingState actor;
     actor.position.x = 113.75f;
     const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)

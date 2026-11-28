@@ -37,11 +37,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Models::OwnRecordCloseRandoms;
 using Client::Render::SpriteBatch;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::TooltipLines;
+using Client::Tooltips::TooltipLines;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
@@ -285,7 +285,7 @@ protected:
                                                        std::int32_t x = 320, std::int32_t y = 300)
     {
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheSkillTooltip(context, x, y, slot, siegeSkill);
+        return Client::Tooltips::DrawTheSkillTooltip(context, x, y, slot, siegeSkill);
     }
 
     TooltipLines& Lines()
@@ -316,7 +316,7 @@ protected:
             EXPECT_EQ(lines.colors[i], expected[i].color) << "renglón " << i;
             EXPECT_EQ(lines.bold[i], expected[i].bold) << "renglón " << i;
         }
-        for (std::size_t i = expected.size(); i < Client::Scenes::TooltipLineCount; ++i)
+        for (std::size_t i = expected.size(); i < Client::Tooltips::TooltipLineCount; ++i)
         {
             EXPECT_TRUE(lines.text[i].empty()) << "renglón " << i;
             EXPECT_EQ(lines.colors[i], StaleColor) << "renglón " << i;
@@ -346,7 +346,7 @@ protected:
         const std::vector<Client::Tests::RecordedText> drawn = text.texts;
         text.texts.clear();
         GameHudContext context = Context();
-        EXPECT_TRUE(Client::Scenes::DrawTheTooltipBox(context, 320, top, count, 0, 2, 1).HasValue());
+        EXPECT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 320, top, count, 0, 2, 1).HasValue());
         const std::int32_t y = text.texts.empty() ? -1 : text.texts[0].y;
         text.texts = drawn;
         return y;
@@ -695,14 +695,14 @@ TEST_F(SkillTooltipTest, WhatMuRetLacksStopsWithItsAddress)
 TEST_F(SkillTooltipTest, TheTooltipsDrawTheSkillOfTheHoveredSlot)
 {
     SkillIn(4, Slash);
-    Client::UI::GameUiState& ui = world.Runtime().ui;
+    Client::Ui::GameUiState& ui = world.Runtime().ui;
     ui.skillTooltip = 4;
     ui.skillTooltipX = 320;
     ui.skillTooltipY = 300;
     const CrtRandom expected = Advanced(random, OwnRecordCloseRandoms + SkillAccesses);
     GameHudContext context = Context();
 
-    const auto drawn = Client::Scenes::DrawTheTooltips(context);
+    const auto drawn = Client::Tooltips::DrawTheTooltips(context);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(DrawnTexts(), (std::vector<std::string>{"Tajo", "Golpe 26~39", "Alcance 3", "Mana 12"}));

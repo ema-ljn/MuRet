@@ -16,14 +16,14 @@
 // 0x461830, 0x47aef0..0x47afd0, 0x47b9c0 y 0x461c70. Las listas no tienen elementos propios: el test dice cuántos hay.
 namespace
 {
-using Client::UI::ArrowDownMessage;
-using Client::UI::ArrowUpMessage;
-using Client::UI::OldList;
-using Client::UI::OldListGlobals;
-using Client::UI::OldListView;
-using Client::UI::OldMessage;
-using Client::UI::SizeMessage;
-using Client::UI::ToTheEndMessage;
+using Client::Ui::ArrowDownMessage;
+using Client::Ui::ArrowUpMessage;
+using Client::Ui::OldList;
+using Client::Ui::OldListGlobals;
+using Client::Ui::OldListView;
+using Client::Ui::OldMessage;
+using Client::Ui::SizeMessage;
+using Client::Ui::ToTheEndMessage;
 
 class OldListTest : public ::testing::Test
 {
@@ -72,7 +72,7 @@ protected:
     bool Step(std::size_t size, std::int32_t x, std::int32_t y,
               std::vector<std::pair<std::int32_t, std::size_t>>* rows = nullptr)
     {
-        return Client::UI::StepTheListMouse(m_list, size, Globals(), View(x, y),
+        return Client::Ui::StepTheListMouse(m_list, size, Globals(), View(x, y),
                                             [rows](std::int32_t row, std::size_t at)
                                             {
                                                 if (rows != nullptr)
@@ -84,19 +84,19 @@ protected:
     void Handle(std::int32_t type, std::size_t size)
     {
         m_list.base.current = OldMessage{.type = type, .a = 0, .b = 0, .text = {}};
-        Client::UI::HandleTheListMessage(m_list, size);
+        Client::Ui::HandleTheListMessage(m_list, size);
     }
 };
 
 TEST_F(OldListTest, ScrollingNeedsAsManyAsTheRowsAndStaysInRange)
 {
-    Client::UI::ScrollTheList(m_list, 5, -3);
+    Client::Ui::ScrollTheList(m_list, 5, -3);
     EXPECT_EQ(m_list.scroll, 0);
-    Client::UI::ScrollTheList(m_list, 10, -3);
+    Client::Ui::ScrollTheList(m_list, 10, -3);
     EXPECT_EQ(m_list.scroll, 3);
-    Client::UI::ScrollTheList(m_list, 10, -100);
+    Client::Ui::ScrollTheList(m_list, 10, -100);
     EXPECT_EQ(m_list.scroll, 4);
-    Client::UI::ScrollTheList(m_list, 10, 100);
+    Client::Ui::ScrollTheList(m_list, 10, 100);
     EXPECT_EQ(m_list.scroll, 0);
 }
 
@@ -104,26 +104,26 @@ TEST_F(OldListTest, ScrollingNeedsAsManyAsTheRowsAndStaysInRange)
 TEST_F(OldListTest, FewerRowsScrollOneMore)
 {
     m_list.scroll = 2;
-    Client::UI::SetTheListRows(m_list, 10, 4);
+    Client::Ui::SetTheListRows(m_list, 10, 4);
     EXPECT_EQ(m_list.rows, 4);
     EXPECT_EQ(m_list.scroll, 3);
-    Client::UI::SetTheListRows(m_list, 10, 12);
+    Client::Ui::SetTheListRows(m_list, 10, 12);
     EXPECT_EQ(m_list.rows, 12);
     EXPECT_EQ(m_list.scroll, 0);
 }
 
 TEST_F(OldListTest, TheSelectionMovesInsideTheCount)
 {
-    Client::UI::SelectTheNext(m_list, 3, 1);
+    Client::Ui::SelectTheNext(m_list, 3, 1);
     EXPECT_EQ(m_list.selection, 0);
-    Client::UI::SelectInTheList(m_list, 3, 9);
+    Client::Ui::SelectInTheList(m_list, 3, 9);
     EXPECT_EQ(m_list.selection, 3);
-    Client::UI::SelectTheNext(m_list, 3, 1);
+    Client::Ui::SelectTheNext(m_list, 3, 1);
     EXPECT_EQ(m_list.selection, 3);
-    Client::UI::SelectThePrevious(m_list, 3, 5);
+    Client::Ui::SelectThePrevious(m_list, 3, 5);
     EXPECT_EQ(m_list.selection, 1);
-    EXPECT_EQ(Client::UI::SelectedInTheList(m_list, 3), std::optional<std::size_t>(0));
-    EXPECT_EQ(Client::UI::SelectedInTheList(m_list, 0), std::nullopt);
+    EXPECT_EQ(Client::Ui::SelectedInTheList(m_list, 3), std::optional<std::size_t>(0));
+    EXPECT_EQ(Client::Ui::SelectedInTheList(m_list, 0), std::nullopt);
     EXPECT_EQ(m_list.selection, 0);
 }
 
@@ -141,11 +141,11 @@ TEST_F(OldListTest, TheMessagesCountRowsAndGoToTheEnd)
 // 0xf sube la elección y 0x10 la baja, y el corrimiento la sigue.
 TEST_F(OldListTest, TheKeyboardArrowsKeepTheSelectionInSight)
 {
-    Client::UI::SelectInTheList(m_list, 20, 6);
+    Client::Ui::SelectInTheList(m_list, 20, 6);
     Handle(ArrowUpMessage, 20);
     EXPECT_EQ(m_list.selection, 7);
     EXPECT_EQ(m_list.scroll, 1);
-    Client::UI::SelectInTheList(m_list, 20, 2);
+    Client::Ui::SelectInTheList(m_list, 20, 2);
     Handle(ArrowDownMessage, 20);
     EXPECT_EQ(m_list.selection, 1);
     EXPECT_EQ(m_list.scroll, 0);
@@ -202,7 +202,7 @@ TEST_F(OldListTest, TheBarArrowCountsOnlyAfterADraw)
 // Agarrar el cursor de la barra y arrastrarlo arriba del todo va al final de la cuenta.
 TEST_F(OldListTest, DraggingTheThumbToTheTopScrollsToTheEnd)
 {
-    Client::UI::PlaceTheListBar(m_list, 20);
+    Client::Ui::PlaceTheListBar(m_list, 20);
     EXPECT_FLOAT_EQ(m_list.barTop, static_cast<float>(300 - 0x5b + 0xc));
     EXPECT_FLOAT_EQ(m_list.barBottom, 288.0f);
     m_leftClick = true;
@@ -237,8 +237,8 @@ TEST_F(OldListTest, TheRowsAreWalkedFromTheScroll)
 // 0x461c70: el primero que se ve va abajo y los demás suben de a 13.
 TEST_F(OldListTest, TheFirstShownRowIsTheLowest)
 {
-    EXPECT_EQ(Client::UI::ListRowY(m_list, 20, 0), 6 * 13 - 0x5b - 10 + 300);
-    EXPECT_EQ(Client::UI::ListRowY(m_list, 20, 5), 13 - 0x5b - 10 + 300);
-    EXPECT_EQ(Client::UI::ListRowY(m_list, 2, 0), 2 * 13 - 0x5b - 10 + 300);
+    EXPECT_EQ(Client::Ui::ListRowY(m_list, 20, 0), 6 * 13 - 0x5b - 10 + 300);
+    EXPECT_EQ(Client::Ui::ListRowY(m_list, 20, 5), 13 - 0x5b - 10 + 300);
+    EXPECT_EQ(Client::Ui::ListRowY(m_list, 2, 0), 2 * 13 - 0x5b - 10 + 300);
 }
 } // namespace

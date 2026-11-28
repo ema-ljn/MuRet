@@ -13,7 +13,7 @@
 
 // CL11, el lote de los tipos altos: las altas de 0x518cf0 de los tipos que salen del switch de 9..0x113 por otras
 // comparaciones (0x518e3c..0x518f31, 0x51e349 y 0x51f47f) y sus pasos de 0x5208a0 (0x525e6e, 0x52a688 y 0x52b56d), con
-// el prefijo de World::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". El dibujo de estos tipos
+// el prefijo de Effects::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". El dibujo de estos tipos
 // va por el camino común de 0x52d620 (0x52da84 → 0x602e90, GameDrawTail) o no se dibuja: los de 0x151 en adelante,
 // salvo 0x5e8..0x5ea y 0xc1a, no tienen caso en 0x52d620 ni en el pase del suelo (0x52dc20).
 namespace Client::Assets
@@ -32,11 +32,11 @@ class IModelLibrary;
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Effects
 {
 struct ModelEffect;
 struct ModelEffectStepServices;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Actors
 {
@@ -55,10 +55,10 @@ namespace Client::Terrain
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::Scenes
+namespace Client::Effects
 {
 
-// Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (World::ModelEffects), los
+// Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (Effects::ModelEffects), los
 // joints (0x530860, GameDrawTailState::joints), las partículas (0x53fe70), el sonido (0x41ed10, que queda en
 // WorldRuntime), el héroe ([0x743a170]) y el registro propio, todo de `world`, y el reloj del mundo (0x5767b88). `send`
 // es lo que manda 0x517a20 (el C1 10) desde el alta del 0x5e8; vacío, no sale (sus rand() sí). `models`, si está, da el
@@ -93,7 +93,7 @@ struct HighEffectContext
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
 
 // 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, +0x89, +0x88, +0x1bd, escala) con uno de esos tipos: el
-// prefijo (World::ModelEffects::Begin) y el caso del tipo, con sus rand(), joints, partículas y sonidos. Con la tabla
+// prefijo (Effects::ModelEffects::Begin) y el caso del tipo, con sus rand(), joints, partículas y sonidos. Con la tabla
 // llena, nada y sin rand(). Corta, con lo de antes y sus rand(), donde el caso pide algo que MuRet no tiene (un joint
 // o una partícula de otro lote de la CL11). Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
@@ -106,7 +106,7 @@ struct HighEffectStepContext
 {
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    const World::ModelEffectStepServices& services;
+    const Effects::ModelEffectStepServices& services;
     float worldClock = 0.0f;
     const Models::IModelLibrary* models = nullptr;
     // The current map's terrain, for the fire of Kundun's fall (0x527a6f); without it, an empty one.
@@ -117,16 +117,17 @@ struct HighEffectStepContext
 };
 
 // Los tipos cuyo paso está en este archivo.
-[[nodiscard]] bool StepsAsHighModelEffect(const World::ModelEffect& effect);
+[[nodiscard]] bool StepsAsHighModelEffect(const Effects::ModelEffect& effect);
 
 // 0x5208a0 sobre un efecto vivo de esos tipos: el rand() de la luz local (0x5208c5), el caso del tipo y la cola común
 // (0x52cb98: la acción publicada y la animación de los BMD de [0xad, 0x151), el movimiento de 0x51fc80 salvo los
 // tipos que lo saltan, una vida menos y, con 0 o menos, el lugar libre). Corta, con lo de antes y sus rand(), donde el
 // paso pide algo sin portar.
-[[nodiscard]] Core::Expected<void, std::string>
-StepHighModelEffect(World::ModelEffect& effect, const Models::Skeleton* skeleton, const HighEffectStepContext& context);
+[[nodiscard]] Core::Expected<void, std::string> StepHighModelEffect(Effects::ModelEffect& effect,
+                                                                    const Models::Skeleton* skeleton,
+                                                                    const HighEffectStepContext& context);
 
 // La posición (+0x10) de un personaje de `world` que es el dueño (+0x108) de un efecto, para el pase del suelo (el
 // 0x61e/7, 0x52ded0); nullopt si el dueño no es uno de sus personajes. `world` tiene que vivir más que la función.
 [[nodiscard]] std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const Kernel::WorldState& world);
-} // namespace Client::Scenes
+} // namespace Client::Effects

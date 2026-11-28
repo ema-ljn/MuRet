@@ -33,8 +33,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Kernel::WorldState;
-using Client::Scenes::GameUiContext;
 
 constexpr std::uint32_t Seed = 1;
 
@@ -44,7 +44,7 @@ struct Sent
     std::vector<std::uint8_t> bytes;
 };
 
-class RecordingRequests final : public Client::Scenes::IGameUiRequests
+class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& /*body*/) override {}
@@ -114,14 +114,14 @@ protected:
     Client::Core::Expected<void, std::string> StepTheTrade(std::int32_t x, std::int32_t y, bool click = true)
     {
         Runtime().movement.pendingClick = click;
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::StepTheTradeWindow(Context(x, y), panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Social::StepTheTradeWindow(Context(x, y), panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> StepTheDuel(std::int32_t x, std::int32_t y, bool click = true)
     {
         Runtime().movement.pendingClick = click;
-        return Client::Scenes::StepTheDuelRequest(Context(x, y));
+        return Client::Social::StepTheDuelRequest(Context(x, y));
     }
 
     // Los rand() desde Seed.
@@ -160,7 +160,7 @@ TEST_P(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
 TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
 {
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
-    const Client::Scenes::TradeState& trade = Runtime().social.trade;
+    const Client::Social::TradeState& trade = Runtime().social.trade;
     EXPECT_EQ(trade.ownOk, 1);
     EXPECT_EQ(trade.changed, 1);
     ASSERT_EQ(m_requests.sent.size(), 1u);
@@ -246,7 +246,7 @@ TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
     ASSERT_TRUE(StepTheDuel(0xed, 0xfa).HasValue());
     EXPECT_TRUE(m_requests.sent.empty());
 
-    Client::Scenes::DuelState& duel = Runtime().social.duel;
+    Client::Social::DuelState& duel = Runtime().social.duel;
     duel.rivalKey = 0x0102;
     const std::string_view rival = "Brezal";
     for (std::size_t at = 0; at < rival.size(); ++at)
@@ -280,9 +280,9 @@ TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
 {
     Runtime().panels.trade = 0;
     m_world->Hero().characterClass = 4;
-    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Hud::GamePanels panels(*m_world, m_random);
     panels.LendTheSession(*m_world, m_random, &m_requests);
-    const auto opened = panels.Registry().Open(Client::UI::InventoryPanel);
+    const auto opened = panels.Registry().Open(Client::Ui::InventoryPanel);
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());
     ASSERT_EQ(m_requests.sent.size(), 2u);
@@ -297,17 +297,17 @@ TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
 // sin envíos y la segunda (0x6570b0) con el C1 04 54 00 en claro por SendGuildPacket, y el sonido 0x1c.
 TEST_P(GameSocialStepsTest, TheSessionClosesBothGuildWindows)
 {
-    Client::UI::DelegatedPanels& delegated = Runtime().panels.delegated;
+    Client::Ui::DelegatedPanels& delegated = Runtime().panels.delegated;
     delegated.guild = 1;
     delegated.secondGuild = 1;
-    Client::Scenes::GamePanels panels(*m_world, m_random);
+    Client::Hud::GamePanels panels(*m_world, m_random);
     panels.LendTheSession(*m_world, m_random, &m_requests);
 
-    const auto first = panels.Registry().Close(Client::UI::GuildPanel);
+    const auto first = panels.Registry().Close(Client::Ui::GuildPanel);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     EXPECT_EQ(delegated.guild, 0);
     EXPECT_TRUE(m_requests.guild.empty());
-    const auto second = panels.Registry().Close(Client::UI::SecondGuildPanel);
+    const auto second = panels.Registry().Close(Client::Ui::SecondGuildPanel);
     ASSERT_TRUE(second.HasValue()) << second.Error();
     EXPECT_EQ(delegated.secondGuild, 0);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1c});

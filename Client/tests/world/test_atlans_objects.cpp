@@ -17,11 +17,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::MapScripts::Atlans::StepAtlansObject;
 using Client::Math::RoundedSin;
-using Client::World::ObjectStepGlobals;
-using Client::World::Particles;
-using Client::World::StepAtlansObject;
-using Client::World::WorldObject;
+using Client::Particles::Particles;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::WorldObject;
 
 WorldObject Object(std::int16_t type)
 {
@@ -88,7 +88,7 @@ TEST(AtlansObjectsTest, TheBubblesRiseAndBlowAboveFive)
         EXPECT_EQ(random.State(), After(7, probe.blows ? 2 : 0).State());
         if (probe.blows)
         {
-            EXPECT_EQ(particles.All()[0].type, Client::World::DropParticle);
+            EXPECT_EQ(particles.All()[0].type, Client::Particles::DropParticle);
             EXPECT_EQ(particles.All()[0].subtype, 0);
             EXPECT_EQ(particles.All()[0].position, bubbles.transform.position);
             EXPECT_EQ(particles.All()[0].angles, bubbles.transform.angles);
@@ -160,7 +160,7 @@ TEST(AtlansObjectsTest, TheLightsSwingWithTheWorldClock)
 
     // Por StepWorldObjectChecked en el 7.
     WorldObject stepped = Object(0x17);
-    ASSERT_TRUE(Client::World::StepWorldObjectChecked(stepped, 7, nullptr, random, globals).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(stepped, 7, nullptr, random, globals).HasValue());
     EXPECT_EQ(stepped.state.light, weed.state.light);
 }
 } // namespace

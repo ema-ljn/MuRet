@@ -22,7 +22,7 @@ namespace Client::Render
 {
 class ModelBatch;
 } // namespace Client::Render
-namespace Client::World
+namespace Client::Particles
 {
 class FrameSprites;
 }
@@ -47,7 +47,7 @@ struct ItemSpecialDrawContext
     std::function<Core::Expected<glm::vec3, std::string>(std::size_t)> bonePoint{};
     // object+0x120 lent to 0x4ec110 with position 0 and Translate 1; it is not the global pose.
     std::function<Core::Expected<glm::vec3, std::string>()> privateBoneOrigin{};
-    World::FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     glm::vec3* objectLight = nullptr;
     // Receives each store before drawing: it also keeps the prefix if a resource is missing later.
     DrawnObject* publishedObject = nullptr;

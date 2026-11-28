@@ -78,9 +78,9 @@ std::vector<int> RandomsAfter(std::size_t skipped, std::size_t count)
     return values;
 }
 
-std::vector<Client::World::Particle> LiveParticles(Client::World::Particles& pool)
+std::vector<Client::Particles::Particle> LiveParticles(Client::Particles::Particles& pool)
 {
-    std::vector<Client::World::Particle> live;
+    std::vector<Client::Particles::Particle> live;
     for (const auto& particle : pool.All())
     {
         if (particle.alive)
@@ -115,9 +115,9 @@ protected:
     static constexpr std::size_t Slot = 3;
     ActorState m_actor;
     CrtRandom m_random{1};
-    Client::World::Particles m_particles;
+    Client::Particles::Particles m_particles;
     std::vector<Client::Scenes::JointState> m_joints = std::vector<Client::Scenes::JointState>(16);
-    Client::World::ModelEffects m_effects;
+    Client::Effects::ModelEffects m_effects;
 };
 
 // 0x52a9ad: the light's rand(), +0xd8 one more and, with the life a multiple of 15, the z turn 180 more and the
@@ -129,7 +129,7 @@ TEST_F(CharacterEffectStepsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
     using Client::Math::Detail::SineProductPC53;
     m_actor.angles = {0.0f, 0.0f, 33.3f};
     ASSERT_TRUE(m_effects.CreateFullSetFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
-    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& flare = m_effects.Effects()[0];
     const float tenth = Float(0x3dcccccdu);
 
     std::vector<glm::vec3> expected;
@@ -140,7 +140,7 @@ TEST_F(CharacterEffectStepsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
         const float yaw = flare.transform.angles.z;
         if (step == 16)
             m_actor.position = {130.0f, 170.0f, 290.0f};
-        const auto stepped = Client::Scenes::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
+        const auto stepped = Client::Effects::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -189,10 +189,10 @@ TEST_F(CharacterEffectStepsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
 TEST_F(CharacterEffectStepsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEffectsAreRefused)
 {
     ASSERT_TRUE(m_effects.CreateFullSetFlare(m_actor.position, {}, glm::vec3(0.5f), nullptr).has_value());
-    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& flare = m_effects.Effects()[0];
     EXPECT_FALSE(flare.hasOwner);
 
-    ASSERT_TRUE(Client::Scenes::StepFullSetFlare(flare, m_joints, &JointHooks, m_random).HasValue());
+    ASSERT_TRUE(Client::Effects::StepFullSetFlare(flare, m_joints, &JointHooks, m_random).HasValue());
 
     EXPECT_EQ(flare.transform.position, m_actor.position);
     EXPECT_EQ(flare.transform.angles.z, 0.0f);
@@ -200,7 +200,7 @@ TEST_F(CharacterEffectStepsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     EXPECT_EQ(m_random.State(), AfterRandoms(1));
 
     flare.subtype = 0;
-    const auto refused = Client::Scenes::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
+    const auto refused = Client::Effects::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52a9ad"), std::string::npos) << refused.Error();
 }
@@ -214,9 +214,9 @@ TEST_F(CharacterEffectStepsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     m_actor.position = {1300.0f, 1700.0f, 290.0f};
     m_actor.angles = {0.0f, 0.0f, 45.0f};
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
-    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, &JointHooks, m_random);
+    const auto stepped = Client::Effects::StepPetSummon(summon, m_joints, &JointHooks, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -252,7 +252,7 @@ TEST_F(CharacterEffectStepsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     {
         for (auto& joint : m_joints)
             joint.alive = false;
-        ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, &JointHooks, m_random).HasValue());
+        ASSERT_TRUE(Client::Effects::StepPetSummon(summon, m_joints, &JointHooks, m_random).HasValue());
     }
     EXPECT_FALSE(summon.alive);
     EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
@@ -262,10 +262,10 @@ TEST_F(CharacterEffectStepsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
 TEST_F(CharacterEffectStepsTest, TheLevelUpDecalExpiresWithoutAJointTable)
 {
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, 0).has_value());
-    Client::World::ModelEffect& decal = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& decal = m_effects.Effects()[0];
     for (int step = 1; step <= 20; ++step)
     {
-        const auto stepped = Client::Scenes::StepPetSummon(decal, {}, &JointHooks, m_random);
+        const auto stepped = Client::Effects::StepPetSummon(decal, {}, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(decal.life, 20 - step);
         EXPECT_EQ(decal.alive, step < 20);
@@ -278,16 +278,16 @@ TEST_F(CharacterEffectStepsTest, TheLevelUpDecalExpiresWithoutAJointTable)
 TEST_F(CharacterEffectStepsTest, ThePetSummonRefusesOtherEffectsAndAMissingJointTable)
 {
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());
-    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto tableless = Client::Scenes::StepPetSummon(summon, {}, &JointHooks, m_random);
+    const auto tableless = Client::Effects::StepPetSummon(summon, {}, &JointHooks, m_random);
     ASSERT_FALSE(tableless.HasValue());
     EXPECT_NE(tableless.Error().find("0x5189cc"), std::string::npos) << tableless.Error();
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
     summon.subtype = 4;
-    const auto refused = Client::Scenes::StepPetSummon(summon, m_joints, &JointHooks, m_random);
+    const auto refused = Client::Effects::StepPetSummon(summon, m_joints, &JointHooks, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
@@ -298,11 +298,11 @@ TEST_F(CharacterEffectStepsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
 TEST_F(CharacterEffectStepsTest, TheSummonDecalDropsThreeEnergyJoints)
 {
     ASSERT_TRUE(
-        m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, Client::World::SummonDecalSubtype)
+        m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor, Client::Effects::SummonDecalSubtype)
             .has_value());
-    Client::World::ModelEffect& summon = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Scenes::StepPetSummon(summon, m_joints, &JointHooks, m_random);
+    const auto stepped = Client::Effects::StepPetSummon(summon, m_joints, &JointHooks, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -326,7 +326,7 @@ TEST_F(CharacterEffectStepsTest, TheSummonDecalDropsThreeEnergyJoints)
     for (auto& joint : m_joints)
         joint.alive = true;
     CrtRandom full{1};
-    ASSERT_TRUE(Client::Scenes::StepPetSummon(summon, m_joints, &JointHooks, full).HasValue());
+    ASSERT_TRUE(Client::Effects::StepPetSummon(summon, m_joints, &JointHooks, full).HasValue());
     EXPECT_EQ(full.State(), AfterRandoms(7));
     EXPECT_EQ(summon.life, 18);
 }
@@ -344,9 +344,9 @@ TEST_F(CharacterEffectStepsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     m_actor.angles = {0.0f, 0.0f, 33.3f};
     ASSERT_TRUE(m_effects
                     .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
-                                      Client::World::GuardFlareSubtype, &m_actor)
+                                      Client::Effects::GuardFlareSubtype, &m_actor)
                     .has_value());
-    Client::World::ModelEffect& flare = m_effects.Effects()[0];
+    Client::Effects::ModelEffect& flare = m_effects.Effects()[0];
     const float tenth = Float(0x3dcccccdu);
 
     for (int step = 1; step <= 50; ++step)
@@ -354,7 +354,7 @@ TEST_F(CharacterEffectStepsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
         SCOPED_TRACE(step);
         const glm::vec3 before = flare.transform.position;
         const float yaw = flare.transform.angles.z;
-        const auto stepped = Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random);
+        const auto stepped = Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -390,7 +390,7 @@ TEST_F(CharacterEffectStepsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     // Without 0x400 the life stays at 0 and it dies in the tail; with 0x4000 on the owner, it neither counts nor moves.
     m_actor.flags78 = 0x4000;
     const float counted = flare.speed;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random).HasValue());
+    ASSERT_TRUE(Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random).HasValue());
     EXPECT_EQ(flare.speed, counted);
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(flare.life, -1);
@@ -411,13 +411,13 @@ TEST_F(CharacterEffectStepsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         m_actor.flags78 = 0x10;
         ASSERT_TRUE(m_effects
                         .CreateSkillFlare(m_actor.position, m_actor.angles, glm::vec3(0.5f),
-                                          Client::World::SwellFlareSubtype, &m_actor)
+                                          Client::Effects::SwellFlareSubtype, &m_actor)
                         .has_value());
         auto& flare = m_effects.Effects()[0];
-        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, Slot};
+        const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::Actor, Slot};
 
         const auto stepped =
-            Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles, owner);
+            Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles, owner);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(2));
@@ -438,13 +438,13 @@ TEST_F(CharacterEffectStepsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     m_particles.Clear();
     auto& flare = m_effects.Effects()[0];
     m_actor.flags78 = 0x4010;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_EQ(flare.life, 9);
     EXPECT_TRUE(LiveParticles(m_particles).empty());
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
     m_actor.flags78 = 0x10;
     m_actor.alive = false;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
@@ -453,14 +453,14 @@ TEST_F(CharacterEffectStepsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     flare.alive = true;
     m_actor.alive = true;
     m_actor.flags78 = 0;
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
 
     flare.alive = true;
     flare.ownerContext = nullptr;
-    const auto ownerless = Client::Scenes::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles);
+    const auto ownerless = Client::Effects::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles);
     ASSERT_FALSE(ownerless.HasValue());
     EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos);
     EXPECT_EQ(flare.life, 0);
@@ -480,10 +480,10 @@ TEST_F(CharacterEffectStepsTest, TheSwellBoneTableCoversAllSevenMirroredPairs)
                                                { return static_cast<std::size_t>(value % 7) == index; });
         for (std::size_t draw = 0; draw < skipped; ++draw)
             (void)m_random.Next();
-        ASSERT_TRUE(m_effects.CreateSkillFlare({}, {}, {}, Client::World::SwellFlareSubtype, &m_actor).has_value());
+        ASSERT_TRUE(m_effects.CreateSkillFlare({}, {}, {}, Client::Effects::SwellFlareSubtype, &m_actor).has_value());
         const auto stepped =
-            Client::Scenes::StepSkillFlare(m_effects.Effects()[0], m_joints, &JointHooks, m_random, &m_particles,
-                                           {Client::World::ParticleOwnerKind::Actor, Slot});
+            Client::Effects::StepSkillFlare(m_effects.Effects()[0], m_joints, &JointHooks, m_random, &m_particles,
+                                            {Client::Particles::ParticleOwnerKind::Actor, Slot});
         ASSERT_TRUE(stepped.HasValue());
         ASSERT_EQ(LiveParticles(m_particles).size(), 2u);
         EXPECT_EQ(m_particles.All()[0].rotation, Bones[index]);
@@ -508,15 +508,15 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
     world->PlaceModel(actor);
     auto& effects = world->Map().effects;
     ASSERT_TRUE(
-        effects.CreateSkillFlare({1, 2, 3}, {}, glm::vec3(1), Client::World::SwellFlareSubtype, &actor).has_value());
+        effects.CreateSkillFlare({1, 2, 3}, {}, glm::vec3(1), Client::Effects::SwellFlareSubtype, &actor).has_value());
     CrtRandom random(7);
-    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 3};
-    ASSERT_TRUE(Client::Scenes::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, &JointHooks, random,
-                                               &world->Particles(), owner)
+    const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::Actor, 3};
+    ASSERT_TRUE(Client::Effects::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, &JointHooks, random,
+                                                &world->Particles(), owner)
                     .HasValue());
-    const auto resolver = Client::Scenes::ParticleOwnerBonesOf(*world);
+    const auto resolver = Client::Effects::ParticleOwnerBonesOf(*world);
     ASSERT_TRUE(
-        Client::Scenes::StepGameParticles(world->Particles(), random, 0, {}, 0, {}, {}, {}, nullptr, {}, resolver)
+        Client::Effects::StepGameParticles(world->Particles(), random, 0, {}, 0, {}, {}, {}, nullptr, {}, resolver)
             .HasValue());
     const auto children = LiveParticles(world->Particles());
     ASSERT_EQ(children.size(), 2u);

@@ -30,7 +30,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -151,7 +151,7 @@ void CloseTheWindow(Kernel::WorldRuntime& runtime)
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: la ventana /move sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -184,11 +184,11 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
             if (context.chat == nullptr)
                 return Core::Unexpected(
                     std::string("0x4487d7: el destino de la ventana /move sin la entrada del chat"));
-            auto command = TextOf(context.texts, UI::MoveCommandText, "0x4487e7");
+            auto command = TextOf(context.texts, Chat::MoveCommandText, "0x4487e7");
             if (!command.HasValue())
                 return Core::Unexpected(command.Error());
             const std::string said = std::format("{} {}", command.Value(), move.name);
-            if (auto spoken = SayInTheChat(*context.chat, said); !spoken.HasValue())
+            if (auto spoken = Chat::SayInTheChat(*context.chat, said); !spoken.HasValue())
                 return spoken;
             CloseTheWindow(runtime);
             // 0x448f34..0x448f6e: el renglón de abajo ya no ve el botón.
@@ -283,4 +283,4 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

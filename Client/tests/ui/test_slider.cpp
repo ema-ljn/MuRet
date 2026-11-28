@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-// Client::UI::Slider: el deslizador horizontal de las opciones (vtable 0x6ba9f8: 0x646640, 0x646830,
+// Client::Ui::Slider: el deslizador horizontal de las opciones (vtable 0x6ba9f8: 0x646640, 0x646830,
 // 0x646900, 0x646990, 0x646a50 y 0x646e90; CL8, hito 8). Todo en píxeles.
 namespace
 {
@@ -16,10 +16,10 @@ using Client::Render::TextureSlot;
 using Client::Tests::MoveMouse;
 using Client::Tests::PressLeft;
 using Client::Tests::ReleaseLeft;
-using Client::UI::Point;
-using Client::UI::Rect;
-using Client::UI::Slider;
-using Client::UI::SliderParts;
+using Client::Ui::Point;
+using Client::Ui::Rect;
+using Client::Ui::Slider;
+using Client::Ui::SliderParts;
 
 // Las piezas de las opciones: la perilla de 13 × 13, la barra de 98 × 13 y el relleno en (3, 3, 95, 10):
 // la perilla recorre 85.
@@ -28,7 +28,7 @@ constexpr SliderParts Parts{.thumb = {.slot = TextureSlot{0x732}, .width = 13, .
                             .fill = {.slot = TextureSlot{0x733}, .width = 4, .height = 7},
                             .fillArea = Rect{.x = 3, .y = 3, .width = 92, .height = 7}};
 constexpr Point Corner{100, 200};
-// Un paso de la lógica: 40 ms (App::LogicStep).
+// Un paso de la lógica: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 
 Slider OpenSlider(int max, int value)

@@ -20,8 +20,8 @@
 // 0x5b1c70, el nombre de un ítem, con el anillo de transformación (0x1a0a): los monstruos de 0x7681eb8 (NpcName.txt).
 namespace
 {
-using Client::Scenes::NpcName;
-using Client::Scenes::NpcNameTable;
+using Client::Monsters::NpcName;
+using Client::Monsters::NpcNameTable;
 
 constexpr std::uint16_t TransformationRing = 0x1a0a;
 constexpr std::uint16_t EventTicket = 0x1c0c;
@@ -49,10 +49,10 @@ protected:
 
     Client::Core::Expected<std::string, std::string> Name(std::int32_t level)
     {
-        return Client::Scenes::ItemNameOf(nullptr, &texts, &table, TransformationRing, level);
+        return Client::Items::ItemNameOf(nullptr, &texts, &table, TransformationRing, level);
     }
 
-    NpcNameTable table = NpcNameTable(Client::Scenes::NpcNameCount);
+    NpcNameTable table = NpcNameTable(Client::Monsters::NpcNameCount);
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{103, "Anillo"}});
 };
 
@@ -91,7 +91,7 @@ TEST(ItemNamesTicketTest, TheTicketOfLevelTwoNamesThePrizeOfItsRecord)
 {
     const Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 4}});
-    const auto name = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
+    const auto name = Client::Items::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
     ASSERT_TRUE(name.HasValue()) << name.Error();
     EXPECT_EQ(name.Value(), "256M \xb7\xa5");
 }
@@ -102,15 +102,15 @@ TEST(ItemNamesTicketTest, TheTenPrizesAreTheBytesOfTheData)
     constexpr std::array<std::size_t, 10> Lengths{18, 14, 12, 30, 7, 17, 16, 9, 8, 20};
     for (std::uint32_t i = 0; i < Lengths.size(); ++i)
     {
-        const std::optional<std::string_view> prize = Client::Scenes::EventTicketPrizeOf(i);
+        const std::optional<std::string_view> prize = Client::Items::EventTicketPrizeOf(i);
         ASSERT_TRUE(prize.has_value()) << i;
         EXPECT_EQ(prize->size(), Lengths[i]) << i;
     }
-    EXPECT_EQ(Client::Scenes::EventTicketPrizeOf(0),
+    EXPECT_EQ(Client::Items::EventTicketPrizeOf(0),
               std::string_view("\xc8\xf7\xb5\xf9\xc5\xa9 \xb0\xed\xc7\xe2 \xbf\xa9\xc7\xe0\xb1\xc7"));
-    EXPECT_EQ(Client::Scenes::EventTicketPrizeOf(1), std::string_view("\xc6\xe6\xc6\xbc\xbe\xf6"
-                                                                      "4 \xc4\xc4\xc7\xbb\xc5\xcd"));
-    EXPECT_FALSE(Client::Scenes::EventTicketPrizeOf(10).has_value());
+    EXPECT_EQ(Client::Items::EventTicketPrizeOf(1), std::string_view("\xc6\xe6\xc6\xbc\xbe\xf6"
+                                                                     "4 \xc4\xc4\xc7\xbb\xc5\xcd"));
+    EXPECT_FALSE(Client::Items::EventTicketPrizeOf(10).has_value());
 }
 
 // Desde el 10, 0x6c9350 + i · 100 lee la .data que sigue a los diez (strings de formato y globales que el juego
@@ -119,10 +119,10 @@ TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
 {
     const Client::Tables::ItemTable items =
         Client::Tests::ItemTableOf({}, {{.type = EventTicket, .offset = PrizeOffset, .value = 10}});
-    const auto outside = Client::Scenes::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
+    const auto outside = Client::Items::ItemNameOf(&items, nullptr, nullptr, EventTicket, 2);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x5b1d60"), std::string::npos) << outside.Error();
-    const auto unloaded = Client::Scenes::ItemNameOf(nullptr, nullptr, nullptr, EventTicket, 2);
+    const auto unloaded = Client::Items::ItemNameOf(nullptr, nullptr, nullptr, EventTicket, 2);
     ASSERT_FALSE(unloaded.HasValue());
     EXPECT_NE(unloaded.Error().find("0x5b1c76"), std::string::npos) << unloaded.Error();
 }
@@ -130,7 +130,7 @@ TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
 // Sin la tabla de 0x7681eb8, corta.
 TEST_F(ItemNamesTest, TheTransformationRingNeedsTheMonsterTable)
 {
-    const auto name = Client::Scenes::ItemNameOf(nullptr, &texts, nullptr, TransformationRing, 1);
+    const auto name = Client::Items::ItemNameOf(nullptr, &texts, nullptr, TransformationRing, 1);
     ASSERT_FALSE(name.HasValue());
     EXPECT_NE(name.Error().find("0x5b21a6"), std::string::npos) << name.Error();
 }

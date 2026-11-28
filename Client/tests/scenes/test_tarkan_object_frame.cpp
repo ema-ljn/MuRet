@@ -30,11 +30,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::MapScripts::Tarkan::StepTarkanObjectFrame;
 using Client::Math::RoundedSin;
-using Client::Scenes::GameObjectPass;
-using Client::Scenes::StepTarkanObjectFrame;
-using Client::World::Particle;
-using Client::World::WorldObject;
+using Client::Particles::Particle;
+using Client::WorldObjects::GameObjectPass;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TarkanMap = 8;
 
@@ -43,9 +43,9 @@ using Client::Math::F32;
 
 struct Fixture
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     float clock = 12345.0f;
@@ -106,7 +106,7 @@ double Pulse(double phase)
 // Lo que deja 0x53fe70(0x5f2, …) en un pool aparte con la misma semilla, para comparar lugar por lugar.
 struct Reference
 {
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random;
     float clock;
 
@@ -114,10 +114,10 @@ struct Reference
 
     void Smoke(const WorldObject& object, const glm::vec3& position, std::int32_t subtype, float scale)
     {
-        Client::World::PortableParticleTrigonometry trigonometry;
+        Client::Particles::PortableParticleTrigonometry trigonometry;
         ASSERT_TRUE(particles
-                        ->CreateChecked(Client::World::BreathParticle, position, object.transform.angles, object.light,
-                                        subtype, scale, std::cref(clock), random, 0, trigonometry)
+                        ->CreateChecked(Client::Particles::BreathParticle, position, object.transform.angles,
+                                        object.light, subtype, scale, std::cref(clock), random, 0, trigonometry)
                         .HasValue());
     }
 };
@@ -226,7 +226,7 @@ TEST(TarkanObjectFrameTest, TheSixtyPuffsTwentyTimesOnce)
     ExpectSameParticles(fixture, reference);
     EXPECT_EQ(fixture.Alive().size(), 20u);
     EXPECT_EQ(fixture.Alive().front()->subtype, 6);
-    EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 
     ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
     EXPECT_EQ(fixture.Alive().size(), 20u);
@@ -243,7 +243,7 @@ TEST(TarkanObjectFrameTest, TheSeventyPuffsOneTimeInFive)
         Reference reference(seed, fixture.clock);
         WorldObject object = ObjectOf(0x46);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         if (reference.random.Next() % 5 == 0)
             reference.Smoke(object, object.transform.position, 7, object.transform.scale);
         ExpectSameParticles(fixture, reference);
@@ -260,7 +260,7 @@ TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
         fixture.clock = clock;
         WorldObject object = ObjectOf(0x4c);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         const bool puffs = clock == 14501.0f || clock == 19999.0f;
         ASSERT_EQ(fixture.Alive().size(), puffs ? 1u : 0u);
         if (puffs)
@@ -276,7 +276,7 @@ TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
     const auto cut = StepTarkanObjectFrame(object, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603c59"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 }
 
 // 0x603c9d..0x603dc8: el 0x53 se oculta y, con ftol(T) % 10.000 entre ftol(ángulo z) · 10 + 3.500 y + 4.000
@@ -292,7 +292,7 @@ TEST(TarkanObjectFrameTest, TheEightyThreeSmokesInItsWindowAndSometimesThrowsASt
         fixture.clock = clock;
         WorldObject object = ObjectOf(0x53);
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
         const bool inside = clock != 3800.0f && clock != 4300.0f;
         EXPECT_EQ(fixture.Alive().empty(), !inside);
         if (!inside)
@@ -312,7 +312,7 @@ TEST(TarkanObjectFrameTest, TheEightyThreeSmokesInItsWindowAndSometimesThrowsASt
         ASSERT_TRUE(StepTarkanObjectFrame(object, fixture.Pass()).HasValue());
 
         Reference reference(seed, fixture.clock);
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         reference.Smoke(object, object.transform.position, 8, object.transform.scale);
         if (reference.random.Next() % 3 == 0)
         {
@@ -374,7 +374,7 @@ TEST(TarkanObjectFrameTest, TheEightyThreeCutsWithItsAddresses)
     const auto cut = StepTarkanObjectFrame(object, fixture.Pass());
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x603ca7"), std::string::npos) << cut.Error();
-    EXPECT_EQ(object.state.hiddenMesh, Client::World::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 
     Fixture empty;
     GameObjectPass pass = empty.Pass();

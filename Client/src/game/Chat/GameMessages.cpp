@@ -23,17 +23,17 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Chat
 {
-UI::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
+Ui::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
                               Core::PixelSize screen)
 {
     Kernel::ChatRuntime& chat = runtime.chat;
-    return UI::MessageSink{.log = chat.log,
+    return Ui::MessageSink{.log = chat.log,
                            .area = chat.area,
                            .modes = runtime.ui.chatModes,
                            .measure =
-                               UI::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
+                               Chat::ChatMeasure{.measure = measure, .dcFont = runtime.hud.dcFont, .screen = screen},
                            .noticeSound = chat.noticeSound};
 }
 
@@ -41,7 +41,7 @@ Core::Expected<void, std::string> AddGameMessage(Kernel::WorldRuntime& runtime,
                                                  const Render::Text::ITextMeasure& measure, Core::PixelSize screen,
                                                  std::string_view name, std::string_view text, std::int32_t type)
 {
-    auto sound = UI::AddMessage(MessageSinkOf(runtime, measure, screen), name, text, type);
+    auto sound = Ui::AddMessage(MessageSinkOf(runtime, measure, screen), name, text, type);
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
@@ -68,7 +68,7 @@ Core::Expected<void, std::string> AddTheEmptyMessages(Kernel::WorldRuntime& runt
         return {};
     // Dos textos vacíos no se miden con otra pantalla que la de 640 × 480: ": " no llega a los 256 de 0x555190 ni a
     // los 20 bytes del corte de 0x45bb20.
-    for (std::size_t i = 0; i < UI::MessageAreaRows; ++i)
+    for (std::size_t i = 0; i < Ui::MessageAreaRows; ++i)
     {
         if (auto added = AddGameMessage(runtime, *measure, Core::PixelSize{640, 480}, {}, {}, 0); !added.HasValue())
             return added;
@@ -79,8 +79,8 @@ Core::Expected<void, std::string> AddTheEmptyMessages(Kernel::WorldRuntime& runt
 Core::Expected<void, std::string>
 StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure, Core::PixelSize screen)
 {
-    UI::StepTheNoticeClock(runtime.chat.area, measure, runtime.hud.dcFont);
-    auto sound = UI::StepTheMessageClock(MessageSinkOf(runtime, measure, screen));
+    Ui::StepTheNoticeClock(runtime.chat.area, measure, runtime.hud.dcFont);
+    auto sound = Ui::StepTheMessageClock(MessageSinkOf(runtime, measure, screen));
     if (!sound.HasValue())
         return Core::Unexpected(sound.Error());
     if (sound.Value())
@@ -95,26 +95,26 @@ StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMea
 }
 
 void DrawTheMessages(const Kernel::WorldState& world, Kernel::HudState& hud, Render::SpriteBatch& sprites,
-                     Render::Frame::ITextDrawer& text, UI::Point mouse, bool inTheGame)
+                     Render::Frame::ITextDrawer& text, Ui::Point mouse, bool inTheGame)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    const UI::MessageDrawContext context{.sprites = sprites,
+    const Ui::MessageDrawContext context{.sprites = sprites,
                                          .text = text,
                                          .dcFont = hud.dcFont,
                                          .textColors = hud.textColors,
                                          .textWidth = hud.arrowsTextWidth,
                                          .textHeight = hud.arrowsTextHeight};
-    UI::DrawTheNotices(runtime.chat.area, hud.messageFrame, context, runtime.ui.chatModes.placement);
+    Ui::DrawTheNotices(runtime.chat.area, hud.messageFrame, context, runtime.ui.chatModes.placement);
     if (runtime.ui.chatModes.placement != 1 && inTheGame)
         return;
     const Kernel::ActorState& hero = world.Hero();
-    const UI::MessageAreaView view{.mouseX = mouse.x,
+    const Ui::MessageAreaView view{.mouseX = mouse.x,
                                    .mouseY = mouse.y,
                                    .chatOpen = runtime.ui.chatOpen,
                                    .heroSafeZone = hero.safeZone != 0,
                                    .heroName = Actors::HeroNameOf(hero),
                                    .showChat = runtime.ui.chatModes.showChat,
                                    .crywolfStage = runtime.crywolf.stage};
-    UI::DrawTheMessageArea(runtime.chat.area, hud.messageFrame, context, view);
+    Ui::DrawTheMessageArea(runtime.chat.area, hud.messageFrame, context, view);
 }
-} // namespace Client::Scenes
+} // namespace Client::Chat

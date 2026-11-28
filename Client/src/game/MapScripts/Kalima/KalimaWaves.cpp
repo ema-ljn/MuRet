@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 void UpdateKalimaWaves(KalimaWaveState& state)
 {
@@ -32,4 +32,4 @@ void UpdateKalimaWaves(KalimaWaveState& state)
         }
     }
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

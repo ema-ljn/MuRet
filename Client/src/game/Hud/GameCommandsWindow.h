@@ -5,14 +5,18 @@
 
 #include <string>
 
+namespace Client::Chat
+{
+struct GameChatContext;
+} // namespace Client::Chat
+
 // La ventana de los comandos (D, CL8 hito 6, 08 P-C92): el objeto [0x6e592c], con su paso (0x40a450) y su dibujo
 // (0x40a650). Elegir un comando, el aviso que da, cerrarla y el cartel del personaje elegido (0x6c8e30, que deja el
 // picking desde el hito 1 de la CL9; 0x40aa80..0x40abd8) se portan, y lo que hace el comando elegido sobre él con el
 // clic derecho (0x406050 desde 0x406097, CL9 hito 7, fase 3): el comercio, la tienda personal, la party, el susurro,
 // seguir y el duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
-namespace Client::Scenes
+namespace Client::Hud
 {
-struct GameChatContext;
 struct GameHudContext;
 struct GameUiContext;
 
@@ -31,13 +35,14 @@ struct GameUiContext;
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context);
 
 // 0x573f85..0x574bd5 (/guild fuera de Chaos Castle, CL9 hito 8): con gremio, el aviso 255; si no, el elegido o el de
-// enfrente (Scenes::TheOneToAsk) y, con el mundo cargado, 0x78aba40 con su clave, el C1 05 50 por el cable de `chat` y
+// enfrente (Social::TheOneToAsk) y, con el mundo cargado, 0x78aba40 con su clave, el C1 05 50 por el cable de `chat` y
 // el aviso 477 con su nombre. Sin Text.bmd o sin el cable cuando hace falta, corta.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildJoin(const GameChatContext& chat);
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
+RequestAGuildJoin(const Chat::GameChatContext& chat);
 
 // 0x570d7e..0x573f48 (/union, /rival y /rivaloff fuera de Chaos Castle, CL9 hito 8): sin gremio, el aviso 1355; si no,
 // el elegido o el de enfrente y el E5 de `command` (01 01, 02 01 o, después de la animación 0xb7 y el C1 05 18 del
 // comando 8, 02 02) con su aviso (1358, 1359 o 1360). Sin Text.bmd, sin el cable o sin los modelos (/rivaloff), corta.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
-RequestAGuildRelation(const GameChatContext& chat, UI::GuildRelationCommand command);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
+RequestAGuildRelation(const Chat::GameChatContext& chat, Chat::GuildRelationCommand command);
+} // namespace Client::Hud

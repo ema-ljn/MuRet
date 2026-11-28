@@ -28,18 +28,18 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Messenger
 {
 namespace
 {
-using OldDraw::DrawText;
-using OldDraw::DrawTheButton;
-using OldDraw::RatioX;
-using OldDraw::RatioY;
-using OldDraw::SetThePalette;
-using OldDraw::ToFloat;
-using OldDraw::Truncate;
-using OldDraw::WhiteWithTexture;
+using Ui::OldDraw::DrawText;
+using Ui::OldDraw::DrawTheButton;
+using Ui::OldDraw::RatioX;
+using Ui::OldDraw::RatioY;
+using Ui::OldDraw::SetThePalette;
+using Ui::OldDraw::ToFloat;
+using Ui::OldDraw::Truncate;
+using Ui::OldDraw::WhiteWithTexture;
 
 // Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): las columnas de la lista de amigos (0x7707e58 y
 // 0x7707f84) y la de la lista de ventanas (0x7708434), el botón del estado (0x7708ec0) y el lugar de un amigo: fuera de
@@ -131,7 +131,7 @@ constexpr std::size_t DateSkip = 2;
 // 0x4670ba..0x4670d0: un texto vacío mide el "0" de 0x6c7ae4.
 constexpr std::string_view EmptyTextMeasure = "0";
 
-std::string TextAt(const OldWindowDrawView& view, std::size_t index)
+std::string TextAt(const Ui::OldWindowDrawView& view, std::size_t index)
 {
     return view.texts != nullptr ? view.texts->At(index) : std::string();
 }
@@ -139,7 +139,7 @@ std::string TextAt(const OldWindowDrawView& view, std::size_t index)
 using Math::F32;
 
 // 0x461e31..0x461ebd: sprintf del texto del lugar en el buffer del renglón.
-std::string PlaceOf(const OldWindowDrawView& view, std::uint8_t state)
+std::string PlaceOf(const Ui::OldWindowDrawView& view, std::uint8_t state)
 {
     if (state == FfState || state == FeState || state == AllOfflineState)
         return Crt::Sprintf(TextAt(view, OfflinePlaceText));
@@ -149,70 +149,70 @@ std::string PlaceOf(const OldWindowDrawView& view, std::uint8_t state)
 }
 
 // 0x462a60, la vtable + 0x80 de la lista de ventanas: el renglón y el título (sprintf "%s"). Da 1.
-std::int32_t DrawTheWindowRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
-                              std::size_t at, const OldWindowDrawView& view)
+std::int32_t DrawTheWindowRow(const Ui::OldWindowDrawContext& context, const Ui::OldWindow& tab, std::int32_t row,
+                              std::size_t at, const Ui::OldWindowDrawView& view)
 {
-    const OldList& list = tab.tab.list;
+    const Ui::OldList& list = tab.tab.list;
     const std::size_t size = tab.tab.windows.size();
-    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
+    Ui::OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
     static_cast<void>(
-        DrawText(context, list.base.x + WindowTitleX, ListRowY(list, size, row), tab.tab.windows[at].title));
+        DrawText(context, list.base.x + WindowTitleX, Ui::ListRowY(list, size, row), tab.tab.windows[at].title));
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return 1;
 }
 
 // El principio de 0x49cc20 y 0x49e7f0: con la mezcla normal, el negro debajo de la lista, hasta el borde de abajo;
 // después, el blanco con textura.
-void DrawTheTabBottom(Render::SpriteBatch& sprites, const OldWindow& tab)
+void DrawTheTabBottom(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
 {
     sprites.SetBlend(Render::BlendMode::Alpha);
     SetThePalette(sprites, BlackIndex, 1.0f);
     const std::int32_t listHeight = tab.tab.list.base.height;
     sprites.ColorQuad(
-        ToFloat(Steps::ClientX(tab, 0)), ToFloat(Steps::ClientY(tab, listHeight + BelowTheList)),
-        ToFloat(Steps::ClientWidth(tab)),
-        F32(static_cast<double>(Steps::ClientHeight(tab)) - static_cast<double>(listHeight) - BelowTheListCut));
+        ToFloat(Ui::Steps::ClientX(tab, 0)), ToFloat(Ui::Steps::ClientY(tab, listHeight + BelowTheList)),
+        ToFloat(Ui::Steps::ClientWidth(tab)),
+        F32(static_cast<double>(Ui::Steps::ClientHeight(tab)) - static_cast<double>(listHeight) - BelowTheListCut));
     WhiteWithTexture(sprites);
 }
 
 // La lista de la pestaña (su vtable + 0x14) con la barra (+0x7c) y sus renglones (+0x80), y sus botones (0x45b2e0).
 template <typename RowDraw>
-void DrawTheTabList(const OldWindowDrawContext& context, OldWindow& tab, std::size_t size,
-                    const OldWindowDrawView& view, const RowDraw& rowDraw)
+void DrawTheTabList(const Ui::OldWindowDrawContext& context, Ui::OldWindow& tab, std::size_t size,
+                    const Ui::OldWindowDrawView& view, const RowDraw& rowDraw)
 {
-    OldList& list = tab.tab.list;
-    OldDraw::DrawTheOldList(
+    Ui::OldList& list = tab.tab.list;
+    Ui::OldDraw::DrawTheOldList(
         context, list, size,
-        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
-                                .row = [&](std::int32_t row, std::size_t at)
-                                { return rowDraw(context, tab, row, at, view); },
-                                .tail = {}});
-    for (const OldButton& button : tab.tab.buttons)
+        Ui::OldDraw::OldListDrawing{.head = [&] { Ui::OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                    .row = [&](std::int32_t row, std::size_t at)
+                                    { return rowDraw(context, tab, row, at, view); },
+                                    .tail = {}});
+    for (const Ui::OldButton& button : tab.tab.buttons)
         DrawTheButton(context, button, view);
 }
 
 // Con la mezcla normal: la raya del 2 en y + 16, la franja de las columnas (el 5, de 16) y la raya sobre los botones.
 // La pestaña de amigos pone la primera con ClientY(0x10); la de ventanas, con ClientY(0) + 16 en float: lo mismo.
-void DrawTheColumnBar(Render::SpriteBatch& sprites, const OldWindow& tab)
+void DrawTheColumnBar(Render::SpriteBatch& sprites, const Ui::OldWindow& tab)
 {
     sprites.SetBlend(Render::BlendMode::Alpha);
-    const float left = ToFloat(Steps::ClientX(tab, 0));
-    const float width = ToFloat(Steps::ClientWidth(tab));
+    const float left = ToFloat(Ui::Steps::ClientX(tab, 0));
+    const float width = ToFloat(Ui::Steps::ClientWidth(tab));
     SetThePalette(sprites, LineIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(tab, ColumnLineY)), width, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(tab, ColumnLineY)), width, 1.0f);
     SetThePalette(sprites, ColumnBarIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(tab, 0)), width, ColumnBarHeight);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(tab, 0)), width, ColumnBarHeight);
     SetThePalette(sprites, LineIndex, 1.0f);
-    sprites.ColorQuad(left, ToFloat(Steps::ClientY(tab, tab.tab.list.base.height + ListLineBelow)), width, 1.0f);
+    sprites.ColorQuad(left, ToFloat(Ui::Steps::ClientY(tab, tab.tab.list.base.height + ListLineBelow)), width, 1.0f);
 }
 
 // 0x49cf3c..0x49d099: el título de una columna, en blanco con el mouse sobre ella o con el orden de la columna (+0 del
 // modelo, 0x5763518), y si no, con el color que haya (el de los botones de la pestaña).
-void DrawTheColumnTitle(const OldWindowDrawContext& context, const OldWindowDrawView& view, std::int32_t hitX,
+void DrawTheColumnTitle(const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view, std::int32_t hitX,
                         std::int32_t hitY, std::int32_t hitWidth, bool lit, std::int32_t textX, std::int32_t textY,
                         std::string_view text)
 {
-    if (!OldDraw::MouseIn(view, hitX, hitY, hitWidth, ColumnHeight) && !lit)
+    if (!Ui::OldDraw::MouseIn(view, hitX, hitY, hitWidth, ColumnHeight) && !lit)
     {
         static_cast<void>(DrawText(context, textX, textY, text));
         return;
@@ -225,7 +225,7 @@ void DrawTheColumnTitle(const OldWindowDrawContext& context, const OldWindowDraw
 // 0x465950(x, y, texto, caja, 0, 5, 0, 0x280) → 0x467060 con el modo 5 (0x4670df..0x4670fd): con caja, el texto desde
 // su columna 0 en una caja de ese ancho, cortado a la derecha; sin caja (0 o menos), de su ancho. Vacío y sin caja no
 // dibuja nada (0x467077..0x467098).
-void DrawInABox(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void DrawInABox(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                 std::int32_t box)
 {
     if (text.empty() && box == 0)
@@ -236,7 +236,7 @@ void DrawInABox(const OldWindowDrawContext& context, std::int32_t x, std::int32_
 }
 
 // 0x465950(x, y, texto, caja, 0, 2, 0, 0x280) → 0x467060 con el modo 2: el texto centrado en la caja.
-void DrawCenteredInABox(const OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
+void DrawCenteredInABox(const Ui::OldWindowDrawContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                         std::int32_t box)
 {
     if (text.empty() && box == 0)
@@ -250,23 +250,23 @@ void DrawCenteredInABox(const OldWindowDrawContext& context, std::int32_t x, std
 // 0x461c70): el renglón (DrawTheChosenRow), su casilla (0x463090, marcada con +0 en 1), el sobre, el nombre (strncpy de
 // 0xff) en la caja de su columna (+0x134), la fecha centrada en la suya (+0x138) y el asunto (+0x13) en lo que queda
 // hasta la barra, con 0x465950 directo: las cajas en píxeles (ftol(ancho · rx)). Termina sin mezcla; da 1.
-std::int32_t DrawTheLetterRow(const OldWindowDrawContext& context, const OldWindow& tab, std::int32_t row,
-                              std::size_t at, const OldWindowDrawView& view)
+std::int32_t DrawTheLetterRow(const Ui::OldWindowDrawContext& context, const Ui::OldWindow& tab, std::int32_t row,
+                              std::size_t at, const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    const OldList& list = tab.tab.list;
+    const Ui::OldList& list = tab.tab.list;
     const std::size_t size = tab.tab.letters.size();
-    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
+    Ui::OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
     const LetterEntry& entry = tab.tab.letters[at];
     const std::int32_t x = list.base.x;
-    const std::int32_t y = ListRowY(list, size, row);
-    OldDraw::DrawTheCheckbox(sprites, x + LetterCheckboxX, y - 1, entry.selected == 1);
+    const std::int32_t y = Ui::ListRowY(list, size, row);
+    Ui::OldDraw::DrawTheCheckbox(sprites, x + LetterCheckboxX, y - 1, entry.selected == 1);
     if (entry.type == OpenedLetter)
-        OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - OpenedMailRise), MailWidth, OpenedMailHeight,
-                      0.0f, OpenedMailV, MailDu, OpenedMailDv);
+        Ui::OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - OpenedMailRise), MailWidth,
+                          OpenedMailHeight, 0.0f, OpenedMailV, MailDu, OpenedMailDv);
     else
-        OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - 1), MailWidth, MailHeight, 0.0f, 0.0f, MailDu,
-                      MailDv);
+        Ui::OldDraw::Quad(sprites, MailSlot, ToFloat(x + MailX), ToFloat(y - 1), MailWidth, MailHeight, 0.0f, 0.0f,
+                          MailDu, MailDv);
     const double rx = RatioX(sprites.Screen());
     const std::int32_t mark = list.headers;
     DrawInABox(context, x + mark + LetterTextGap, y, entry.name,
@@ -289,39 +289,41 @@ std::int32_t DrawTheLetterRow(const OldWindowDrawContext& context, const OldWind
 // renglones 0x4641f0), la franja de las columnas con sus tres rayas y sus marcas al final de la marca, del nombre y de
 // la fecha, la casilla de todas (+0x414) y el sobre, los títulos de las columnas (en blanco el del mouse o el del
 // orden de [0x576351c]) y, sin mezcla, los cuatro botones.
-void DrawTheLettersTab(const OldWindowManager& manager, OldWindow& tab, const OldWindowDrawContext& context,
-                       const OldWindowDrawView& view)
+void DrawTheLettersTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context,
+                       const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheTabBottom(sprites, tab);
     sprites.SetBlend(Render::BlendMode::Opaque);
-    OldList& list = tab.tab.list;
+    Ui::OldList& list = tab.tab.list;
     const std::size_t size = tab.tab.letters.size();
-    OldDraw::DrawTheOldList(context, list, size,
-                            OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(sprites, list, size, view); },
-                                                    .row = [&](std::int32_t row, std::size_t at)
-                                                    { return DrawTheLetterRow(context, tab, row, at, view); },
-                                                    .tail = {}});
+    Ui::OldDraw::DrawTheOldList(
+        context, list, size,
+        Ui::OldDraw::OldListDrawing{.head = [&] { Ui::OldDraw::DrawTheListBar(sprites, list, size, view); },
+                                    .row = [&](std::int32_t row, std::size_t at)
+                                    { return DrawTheLetterRow(context, tab, row, at, view); },
+                                    .tail = {}});
     DrawTheColumnBar(sprites, tab);
     // 0x4a0c53..0x4a0e70: FILD de x y FIADD de la suma de las columnas de antes, con la raya del 2 que dejó la franja.
-    const std::int32_t left = Steps::ClientX(tab, 0);
+    const std::int32_t left = Ui::Steps::ClientX(tab, 0);
     const std::array<std::int32_t, 3> ends{list.headers, list.headers + list.nameWidth,
                                            list.headers + list.nameWidth + list.placeWidth};
-    const float separatorHeight = F32(static_cast<double>(Steps::ClientHeight(tab)) - SeparatorCut - SeparatorCutAgain);
+    const float separatorHeight =
+        F32(static_cast<double>(Ui::Steps::ClientHeight(tab)) - SeparatorCut - SeparatorCutAgain);
     for (const std::int32_t end : ends)
-        sprites.ColorQuad(ToFloat(left + end), ToFloat(Steps::ClientY(tab, SeparatorY)), 1.0f, separatorHeight);
+        sprites.ColorQuad(ToFloat(left + end), ToFloat(Ui::Steps::ClientY(tab, SeparatorY)), 1.0f, separatorHeight);
     SetThePalette(sprites, ColumnTickIndex, 1.0f);
     for (const std::int32_t end : ends)
-        sprites.ColorQuad(ToFloat(left + end), ToFloat(Steps::ClientY(tab, TickY)), 1.0f, TickHeight);
+        sprites.ColorQuad(ToFloat(left + end), ToFloat(Ui::Steps::ClientY(tab, TickY)), 1.0f, TickHeight);
     WhiteWithTexture(sprites);
     context.textColors = Render::Text::TextColors{.text = DimColor, .background = 0};
-    OldDraw::DrawTheCheckbox(sprites, Steps::ClientX(tab, LetterCheckboxX), Steps::ClientY(tab, TickY),
-                             tab.tab.allChecked == 1);
-    OldDraw::Quad(sprites, MailSlot, ToFloat(Steps::ClientX(tab, MailX)), ToFloat(Steps::ClientY(tab, TickY)),
-                  MailWidth, MailHeight, 0.0f, 0.0f, MailDu, MailDv);
-    const std::int32_t top = Steps::ClientY(tab, 0);
-    const std::int32_t textX = Steps::ClientX(tab, ColumnTextX);
-    const std::int32_t textY = Steps::ClientY(tab, ColumnTextY);
+    Ui::OldDraw::DrawTheCheckbox(sprites, Ui::Steps::ClientX(tab, LetterCheckboxX), Ui::Steps::ClientY(tab, TickY),
+                                 tab.tab.allChecked == 1);
+    Ui::OldDraw::Quad(sprites, MailSlot, ToFloat(Ui::Steps::ClientX(tab, MailX)),
+                      ToFloat(Ui::Steps::ClientY(tab, TickY)), MailWidth, MailHeight, 0.0f, 0.0f, MailDu, MailDv);
+    const std::int32_t top = Ui::Steps::ClientY(tab, 0);
+    const std::int32_t textX = Ui::Steps::ClientX(tab, ColumnTextX);
+    const std::int32_t textY = Ui::Steps::ClientY(tab, ColumnTextY);
     const std::int32_t sort = manager.letterModel.sortMode;
     DrawTheColumnTitle(context, view, left + ends[0], top, list.nameWidth, sort == BySenderLetters, textX + ends[0],
                        textY, TextAt(view, SenderColumnText));
@@ -330,43 +332,43 @@ void DrawTheLettersTab(const OldWindowManager& manager, OldWindow& tab, const Ol
     DrawTheColumnTitle(context, view, left + ends[2], top, list.subjectWidth, sort == BySubjectLetters, textX + ends[2],
                        textY, TextAt(view, SubjectColumnText));
     sprites.SetBlend(Render::BlendMode::Opaque);
-    for (const OldButton& button : tab.tab.buttons)
+    for (const Ui::OldButton& button : tab.tab.buttons)
         DrawTheButton(context, button, view);
 }
 
 // 0x49cc20, la vtable + 0x14 de la pestaña de amigos (la ubicación del principio está en
 // SettleTheFriendsForTheDraw).
-void DrawTheFriendTab(const OldWindowManager& manager, OldWindow& tab, const OldWindowDrawContext& context,
-                      const OldWindowDrawView& view)
+void DrawTheFriendTab(const Ui::OldWindowManager& manager, Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context,
+                      const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheTabBottom(sprites, tab);
     sprites.SetBlend(Render::BlendMode::Opaque);
     DrawTheFriendList(context, tab.tab.list, tab.tab.friends, view);
-    for (const OldButton& button : tab.tab.buttons)
+    for (const Ui::OldButton& button : tab.tab.buttons)
         DrawTheButton(context, button, view);
     DrawTheColumnBar(sprites, tab);
-    const OldList& list = tab.tab.list;
-    const std::int32_t left = Steps::ClientX(tab, 0);
+    const Ui::OldList& list = tab.tab.list;
+    const std::int32_t left = Ui::Steps::ClientX(tab, 0);
     const float separatorX = F32(static_cast<double>(ToFloat(left)) + static_cast<double>(list.nameWidth));
-    sprites.ColorQuad(separatorX, ToFloat(Steps::ClientY(tab, SeparatorY)), 1.0f,
-                      F32(static_cast<double>(Steps::ClientHeight(tab)) - SeparatorCut - SeparatorCutAgain));
+    sprites.ColorQuad(separatorX, ToFloat(Ui::Steps::ClientY(tab, SeparatorY)), 1.0f,
+                      F32(static_cast<double>(Ui::Steps::ClientHeight(tab)) - SeparatorCut - SeparatorCutAgain));
     SetThePalette(sprites, ColumnTickIndex, 1.0f);
-    sprites.ColorQuad(separatorX, ToFloat(Steps::ClientY(tab, TickY)), 1.0f, TickHeight);
+    sprites.ColorQuad(separatorX, ToFloat(Ui::Steps::ClientY(tab, TickY)), 1.0f, TickHeight);
     WhiteWithTexture(sprites);
     context.textColors.background = 0;
-    const std::int32_t top = Steps::ClientY(tab, 0);
-    const std::int32_t textY = Steps::ClientY(tab, ColumnTextY);
+    const std::int32_t top = Ui::Steps::ClientY(tab, 0);
+    const std::int32_t textY = Ui::Steps::ClientY(tab, ColumnTextY);
     const std::int32_t sort = manager.friendModel.sortMode;
-    DrawTheColumnTitle(context, view, left, top, list.nameWidth, sort == ByNameSort, Steps::ClientX(tab, ColumnTextX),
-                       textY, TextAt(view, NameColumnText));
+    DrawTheColumnTitle(context, view, left, top, list.nameWidth, sort == ByNameSort,
+                       Ui::Steps::ClientX(tab, ColumnTextX), textY, TextAt(view, NameColumnText));
     DrawTheColumnTitle(context, view, left + list.nameWidth, top, list.placeWidth, sort == ByStateSort,
-                       Steps::ClientX(tab, ColumnTextX) + list.nameWidth, textY, TextAt(view, PlaceColumnText));
+                       Ui::Steps::ClientX(tab, ColumnTextX) + list.nameWidth, textY, TextAt(view, PlaceColumnText));
     sprites.SetBlend(Render::BlendMode::Opaque);
 }
 
 // 0x49e7f0, la vtable + 0x14 de la pestaña de las ventanas.
-void DrawTheWindowsTab(OldWindow& tab, const OldWindowDrawContext& context, const OldWindowDrawView& view)
+void DrawTheWindowsTab(Ui::OldWindow& tab, const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view)
 {
     Render::SpriteBatch& sprites = context.sprites;
     DrawTheTabBottom(sprites, tab);
@@ -375,20 +377,20 @@ void DrawTheWindowsTab(OldWindow& tab, const OldWindowDrawContext& context, cons
     WhiteWithTexture(sprites);
     sprites.SetBlend(Render::BlendMode::Alpha);
     context.textColors = Render::Text::TextColors{.text = DimColor, .background = 0};
-    static_cast<void>(DrawText(context, Steps::ClientX(tab, WindowColumnTextX), Steps::ClientY(tab, ColumnTextY),
-                               TextAt(view, WindowColumnText)));
+    static_cast<void>(DrawText(context, Ui::Steps::ClientX(tab, WindowColumnTextX),
+                               Ui::Steps::ClientY(tab, ColumnTextY), TextAt(view, WindowColumnText)));
     sprites.SetBlend(Render::BlendMode::Opaque);
 }
 
 // La y de un texto de la franja de los encabezados: ClientY(0) + ((24 − cy / ry) + 0,5) · 0,5, sin truncar.
-double HeaderTextTop(const OldWindow& window, const Render::Text::TextExtent& extent, Core::PixelSize screen)
+double HeaderTextTop(const Ui::OldWindow& window, const Render::Text::TextExtent& extent, Core::PixelSize screen)
 {
-    return static_cast<double>(Steps::ClientY(window, 0)) +
+    return static_cast<double>(Ui::Steps::ClientY(window, 0)) +
            ((HeaderTextHeight - static_cast<double>(extent.height) / RatioY(screen)) + Half) * Half;
 }
 
 // 0x4a2827..0x4a2a98: los títulos de las tres pestañas, si tienen, en blanco el de la vista o el del mouse (+0xb4).
-void DrawTheHeaderTitles(const OldWindow& window, const OldWindowDrawContext& context)
+void DrawTheHeaderTitles(const Ui::OldWindow& window, const Ui::OldWindowDrawContext& context)
 {
     const Core::PixelSize screen = context.sprites.Screen();
     for (std::size_t at = 0; at < FriendsTabCount; ++at)
@@ -402,40 +404,40 @@ void DrawTheHeaderTitles(const OldWindow& window, const OldWindowDrawContext& co
         const Render::Text::TextExtent extent = context.text.Measure(context.dcFont, *title);
         const std::int32_t y = Truncate(HeaderTextTop(window, extent, screen));
         const std::int32_t x =
-            Truncate(static_cast<double>(Steps::ClientX(window, HeaderTextX[at])) +
+            Truncate(static_cast<double>(Ui::Steps::ClientX(window, HeaderTextX[at])) +
                      ((HeaderTextWidth - static_cast<double>(extent.width) / RatioX(screen)) + Half) * Half);
         static_cast<void>(DrawText(context, x, y, *title));
     }
 }
 
 // 0x4a2a9b..0x4a2bc6: el texto del botón del estado contra el borde derecho y su casilla a la izquierda.
-void DrawTheStateButton(const OldWindowManager& manager, const OldWindow& window, const OldWindowDrawContext& context,
-                        const OldWindowDrawView& view)
+void DrawTheStateButton(const Ui::OldWindowManager& manager, const Ui::OldWindow& window,
+                        const Ui::OldWindowDrawContext& context, const Ui::OldWindowDrawView& view)
 {
     const Core::PixelSize screen = context.sprites.Screen();
     const std::string label = TextAt(view, StateButtonText);
     context.textColors.text = DimColor;
     const Render::Text::TextExtent extent = context.text.Measure(context.dcFont, label);
-    const double right = static_cast<double>(Steps::ClientX(window, 0) + Steps::ClientWidth(window));
+    const double right = static_cast<double>(Ui::Steps::ClientX(window, 0) + Ui::Steps::ClientWidth(window));
     const double textLeft = right - static_cast<double>(extent.width) / RatioX(screen) - StateTextInset;
     const double top = HeaderTextTop(window, extent, screen);
     static_cast<void>(DrawText(context, Truncate(textLeft), Truncate(top), label));
     // FSTP en float de la x de la casilla antes de restarle 1.
     const float boxLeft = F32(textLeft - CheckboxGap);
-    OldDraw::DrawTheCheckbox(context.sprites, Truncate(static_cast<double>(boxLeft) - One), Truncate(top - One),
-                             manager.offlineSent == 1);
+    Ui::OldDraw::DrawTheCheckbox(context.sprites, Truncate(static_cast<double>(boxLeft) - One), Truncate(top - One),
+                                 manager.offlineSent == 1);
 }
 } // namespace
 
-std::int32_t DrawTheFriendRow(const OldWindowDrawContext& context, const OldList& list,
+std::int32_t DrawTheFriendRow(const Ui::OldWindowDrawContext& context, const Ui::OldList& list,
                               const std::deque<FriendEntry>& friends, std::int32_t row, std::size_t at,
-                              const OldWindowDrawView& view)
+                              const Ui::OldWindowDrawView& view)
 {
     const std::size_t size = friends.size();
-    OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
+    Ui::OldDraw::DrawTheChosenRow(context, list, size, row, view.focusedList);
     const FriendEntry& entry = friends[at];
     const std::int32_t x = list.base.x + FriendNameX;
-    const std::int32_t y = ListRowY(list, size, row);
+    const std::int32_t y = Ui::ListRowY(list, size, row);
     // 0x465950 directo, sin el corte de 0x5542f0 para el texto vacío: vacío, tampoco dibuja nada.
     static_cast<void>(DrawText(context, x, y, entry.name));
     if (list.headers == 1)
@@ -444,25 +446,25 @@ std::int32_t DrawTheFriendRow(const OldWindowDrawContext& context, const OldList
     return 1;
 }
 
-void DrawTheFriendList(const OldWindowDrawContext& context, OldList& list, const std::deque<FriendEntry>& friends,
-                       const OldWindowDrawView& view)
+void DrawTheFriendList(const Ui::OldWindowDrawContext& context, Ui::OldList& list,
+                       const std::deque<FriendEntry>& friends, const Ui::OldWindowDrawView& view)
 {
     const std::size_t size = friends.size();
-    OldDraw::DrawTheOldList(
+    Ui::OldDraw::DrawTheOldList(
         context, list, size,
-        OldDraw::OldListDrawing{.head = [&] { OldDraw::DrawTheListBar(context.sprites, list, size, view); },
-                                .row = [&](std::int32_t row, std::size_t at)
-                                { return DrawTheFriendRow(context, list, friends, row, at, view); },
-                                .tail = {}});
+        Ui::OldDraw::OldListDrawing{.head = [&] { Ui::OldDraw::DrawTheListBar(context.sprites, list, size, view); },
+                                    .row = [&](std::int32_t row, std::size_t at)
+                                    { return DrawTheFriendRow(context, list, friends, row, at, view); },
+                                    .tail = {}});
 }
 
-Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager, OldWindow& window,
-                                                       const OldWindowDrawContext& context,
-                                                       const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheFriendsWindow(Ui::OldWindowManager& manager, Ui::OldWindow& window,
+                                                       const Ui::OldWindowDrawContext& context,
+                                                       const Ui::OldWindowDrawView& view)
 {
     if (auto settled = SettleTheFriendsForTheDraw(manager, window, view); !settled.HasValue())
         return settled;
-    const OldWindowDrawView currentView = OldDraw::WithCurrentFocus(manager, view);
+    const Ui::OldWindowDrawView currentView = Ui::OldDraw::WithCurrentFocus(manager, view);
     const std::int32_t current = window.friends.currentTab;
     if (current == FriendTabNumber)
         DrawTheFriendTab(manager, window.tabs[FriendTabNumber], context, currentView);
@@ -473,14 +475,15 @@ Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     SetThePalette(sprites, BlackIndex, 1.0f);
-    const std::int32_t width = Steps::ClientWidth(window);
-    sprites.ColorQuad(ToFloat(Steps::ClientX(window, 0)), ToFloat(Steps::ClientY(window, 0)), ToFloat(width),
+    const std::int32_t width = Ui::Steps::ClientWidth(window);
+    sprites.ColorQuad(ToFloat(Ui::Steps::ClientX(window, 0)), ToFloat(Ui::Steps::ClientY(window, 0)), ToFloat(width),
                       HeaderBarHeight);
-    OldDraw::DrawTheTabHeaders(sprites, Steps::ClientX(window, 0), Steps::ClientY(window, HeaderY), HeaderWidth,
-                               HeaderHeight, static_cast<std::int32_t>(FriendsTabCount), current);
+    Ui::OldDraw::DrawTheTabHeaders(sprites, Ui::Steps::ClientX(window, 0), Ui::Steps::ClientY(window, HeaderY),
+                                   HeaderWidth, HeaderHeight, static_cast<std::int32_t>(FriendsTabCount), current);
     SetThePalette(sprites, LineIndex, 1.0f);
-    sprites.ColorQuad(ToFloat(Steps::ClientX(window, HeaderLineX)),
-                      ToFloat(Steps::ClientY(window, HeaderY) + HeaderLineBelow), ToFloat(width - HeaderLineX), 1.0f);
+    sprites.ColorQuad(ToFloat(Ui::Steps::ClientX(window, HeaderLineX)),
+                      ToFloat(Ui::Steps::ClientY(window, HeaderY) + HeaderLineBelow), ToFloat(width - HeaderLineX),
+                      1.0f);
     WhiteWithTexture(sprites);
     context.textColors.background = 0;
     DrawTheHeaderTitles(window, context);
@@ -488,20 +491,20 @@ Core::Expected<void, std::string> DrawTheFriendsWindow(OldWindowManager& manager
     return {};
 }
 
-Core::Expected<void, std::string> DrawTheAddFriendBox(OldWindowManager& manager, OldWindow& box,
-                                                      const OldWindowDrawContext& context,
-                                                      const OldWindowDrawView& view)
+Core::Expected<void, std::string> DrawTheAddFriendBox(Ui::OldWindowManager& manager, Ui::OldWindow& box,
+                                                      const Ui::OldWindowDrawContext& context,
+                                                      const Ui::OldWindowDrawView& view)
 {
     if (auto settled = SettleTheFriendsForTheDraw(manager, box, view); !settled.HasValue())
         return settled;
-    const OldWindowDrawView currentView = OldDraw::WithCurrentFocus(manager, view);
-    for (const OldButton& button : box.add.buttons)
+    const Ui::OldWindowDrawView currentView = Ui::OldDraw::WithCurrentFocus(manager, view);
+    for (const Ui::OldButton& button : box.add.buttons)
         DrawTheButton(context, button, view);
     context.sprites.SetBlend(Render::BlendMode::Alpha);
-    OldEdit& edit = box.add.edit;
-    OldDraw::DrawTheOldEdit(context, edit, currentView.focusedEdit != 0 && currentView.focusedEdit == edit.base.id,
-                            currentView);
+    Ui::OldEdit& edit = box.add.edit;
+    Ui::OldDraw::DrawTheOldEdit(context, edit, currentView.focusedEdit != 0 && currentView.focusedEdit == edit.base.id,
+                                currentView);
     context.sprites.SetBlend(Render::BlendMode::Opaque);
     return {};
 }
-} // namespace Client::UI
+} // namespace Client::Messenger

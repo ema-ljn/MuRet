@@ -81,7 +81,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Client::Tests::FakeTextureStore textures;
     Client::Models::ClothWorld cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Session::ModuleStates states;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
@@ -131,7 +131,7 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
 
     // Probe contractual de la cola viva: Arrival usa su creador nativo sin BMD ni animación
     // inventados. No se afirma que F303 haya llegado ni que cree este efecto durante la espera.
-    const auto effectSlot = world.Map().effects.Create(Client::World::ArrivalEffect, position, {}, {1, 1, 1}, 1);
+    const auto effectSlot = world.Map().effects.Create(Client::Effects::ArrivalEffect, position, {}, {1, 1, 1}, 1);
     ASSERT_TRUE(effectSlot.has_value());
     auto& effect = world.Map().effects.Effects()[*effectSlot];
     ASSERT_EQ(effect.life, 20);
@@ -208,13 +208,13 @@ TEST_F(InitialGameWaitTest, TheFirstGameStepKeepsSelectionTerrainAndStepsActorsE
     Advance(expected.random, AfterFishBeforeCloth);
     Client::Models::StepTheClothWorld(expected);
     Advance(expected.random, 4); // PrepareFrame consulta/cierra espera después de la tela.
-    Client::App::GameLoop loop(online.clock, manager, Client::App::PacingMode::Faithful);
+    Client::App::GameLoop loop(online.clock, manager, Client::Kernel::PacingMode::Faithful);
 
     ASSERT_EQ(loop.RunFrame(Client::Platform::WindowState{}, input), 1);
 
     ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
     ASSERT_EQ(game->Failure(), std::nullopt);
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::EnteringWorld);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::EnteringWorld);
     EXPECT_EQ(world.Runtime().warpCounter, Client::Kernel::WorldLoadingWait - 1);
     EXPECT_EQ(world.Runtime().warpDepth, 0);
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);

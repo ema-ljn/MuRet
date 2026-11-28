@@ -81,19 +81,19 @@ const WorldEntryResources* SessionEventApplier::RoutedWorld() const
 
 void SessionEventApplier::AfterWorldReception(App::ServerSession& session)
 {
-    FlushTheChatRoomOrders(m_resources.world.Runtime().oldWindows.chatRooms, &session);
+    Messenger::FlushTheChatRoomOrders(m_resources.world.Runtime().oldWindows.chatRooms, &session);
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorldEvent(const App::WorldEvent& event,
                                                                        App::ServerSession& session)
 {
     if (const auto* room = std::get_if<App::ChatRoomPacket>(&event))
-        return ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
+        return Messenger::ApplyRoomPacket(room->window, room->packet, ChatContextOf(m_resources, session));
     if (const auto* closed = std::get_if<App::ChatRoomClosed>(&event))
-        return ApplyChatRoomClosed(*closed, ChatContextOf(m_resources, session));
+        return Messenger::ApplyChatRoomClosed(*closed, ChatContextOf(m_resources, session));
     if (std::holds_alternative<App::ChatRoomPingDue>(event))
     {
-        UI::PingTheChatRooms(m_resources.world.Runtime().oldWindows);
+        Messenger::PingTheChatRooms(m_resources.world.Runtime().oldWindows);
         return {};
     }
     return ApplyWorldContent(event, session);
@@ -118,7 +118,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
 {
     if (std::holds_alternative<App::ClearInventoryReceived>(event))
     {
-        ClearForInventoryReply(m_resources);
+        Items::ClearForInventoryReply(m_resources);
         return {};
     }
     if (std::holds_alternative<App::ReturnToSelectionReceived>(event))
@@ -143,7 +143,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (std::holds_alternative<App::GuildTableReset>(event))
     {
-        ResetTheGuildTable(m_resources.world.Runtime().guild);
+        Guild::ResetTheGuildTable(m_resources.world.Runtime().guild);
         return {};
     }
     if (std::holds_alternative<App::MapServerAuthenticationPrepared>(event))
@@ -157,7 +157,7 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const A
     }
     if (const auto* inventory = std::get_if<Protocol::Items::InventoryList>(&event))
     {
-        const auto applied = ApplyInventory(*inventory, m_resources);
+        const auto applied = Items::ApplyInventory(*inventory, m_resources);
         if (!applied.HasValue())
         {
             return Core::Unexpected(applied.Error());

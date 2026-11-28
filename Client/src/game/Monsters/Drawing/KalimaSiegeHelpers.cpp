@@ -33,7 +33,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -159,7 +159,7 @@ public:
     {
         if (m_pass.joints.empty())
             return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", address));
-        const auto created = CreateFaunaJoint(m_pass.joints, request, m_pass.random);
+        const auto created = Joints::CreateFaunaJoint(m_pass.joints, request, m_pass.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{}: {} (CL11)", address, created.Error()));
         return {};
@@ -172,11 +172,11 @@ public:
         if (m_pass.effects == nullptr)
             return Core::Unexpected(std::format("{}: faltan los efectos del frame (0x518cf0)", address));
         const Kernel::ActorState& actor = m_pass.actor;
-        const auto made = CreateTheKundunCall(*m_pass.effects, {.type = KundunCallEffect,
-                                                                .position = position,
-                                                                .angles = actor.angles,
-                                                                .light = actor.light,
-                                                                .subtype = subtype});
+        const auto made = Effects::CreateTheKundunCall(*m_pass.effects, {.type = Effects::KundunCallEffect,
+                                                                         .position = position,
+                                                                         .angles = actor.angles,
+                                                                         .light = actor.light,
+                                                                         .subtype = subtype});
         if (!made.HasValue())
             return Core::Unexpected(std::format("{}: {}", address, made.Error()));
         return {};
@@ -949,4 +949,4 @@ Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass&
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

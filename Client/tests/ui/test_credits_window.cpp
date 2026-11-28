@@ -20,24 +20,24 @@
 #include <utility>
 #include <vector>
 
-// Client::UI::CreditsWindow: los créditos del login (+0x4578: 0x63f020, 0x63f3a0, 0x63f5a0, 0x63fbf0,
+// Client::FrontEnd::CreditsWindow: los créditos del login (+0x4578: 0x63f020, 0x63f3a0, 0x63f5a0, 0x63fbf0,
 // 0x63f630, 0x63ffe0, 0x6400b0, 0x63fe20 y 0x63f6b0; CL8, hito 8). Las tablas son inventadas.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::CreditsLayout;
+using Client::FrontEnd::CreditsStep;
+using Client::FrontEnd::CreditsWindow;
+using Client::FrontEnd::LayoutCredits;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tables::CreditEntry;
-using Client::UI::CreditsLayout;
-using Client::UI::CreditsStep;
-using Client::UI::CreditsWindow;
-using Client::UI::LayoutCredits;
-using Client::UI::NewUiTurn;
-using Client::UI::Rect;
+using Client::Ui::NewUiTurn;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen800{800, 600};
-// Un paso de la lógica: 40 ms (App::LogicStep).
+// Un paso de la lógica: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 // A 40 ms, una barra se va o vuelve en 8 pasos (34 por paso) y los nombres se quedan 58 (2.320 ms).
 constexpr int BarSteps = 8;

@@ -26,15 +26,15 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Social
 {
 namespace
 {
+using Hud::WindowDrawing::DrawCenteredText;
+using Hud::WindowDrawing::Quad;
+using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
-using WindowDrawing::DrawCenteredText;
-using WindowDrawing::Quad;
-using WindowDrawing::SelectFont;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -120,26 +120,26 @@ std::string_view NameView(std::span<const std::byte> name)
 }
 
 // 0x5bb8d0 (con sus consultas) · 0,5 + `offset`, con _ftol: los anchos son pares y las sumas, enteras.
-std::int32_t FromTheMiddle(UI::PanelRegistry& panels, double offset)
+std::int32_t FromTheMiddle(Ui::PanelRegistry& panels, double offset)
 {
     return static_cast<std::int32_t>(static_cast<double>(panels.WorldWidth()) * 0.5 + offset);
 }
 
-void SetTextColor(GameHudContext& context, std::uint32_t color)
+void SetTextColor(Hud::GameHudContext& context, std::uint32_t color)
 {
     context.hud.textColors.text = color;
 }
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index)
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("0x5f3ac7: sin el texto {} de Text.bmd", index));
     return *text;
 }
 } // namespace
 
-void DrawTheDuelScore(GameHudContext& context, UI::PanelRegistry& panels)
+void DrawTheDuelScore(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const DuelState& duel = runtime.social.duel;
@@ -184,7 +184,7 @@ void DrawTheDuelScore(GameHudContext& context, UI::PanelRegistry& panels)
     sprites.SetBlend(BlendMode::Opaque);
 }
 
-Core::Expected<void, std::string> DrawTheDuelRequest(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheDuelRequest(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (runtime.ui.field78abad9 == 0)
@@ -209,7 +209,7 @@ Core::Expected<void, std::string> DrawTheDuelRequest(GameHudContext& context)
     sprites.SetColor(White);
     Quad(sprites, DuelImageSlot, DuelImageLeft, DuelImageTop, DuelImageSize, DuelImageSize, 1.0f, 1.0f);
     sprites.SetBlend(BlendMode::Opaque);
-    const UI::Point mouse = context.mouse;
+    const Ui::Point mouse = context.mouse;
     const auto over = [&](std::int32_t left, std::int32_t right)
     { return mouse.x >= left && mouse.x < right && mouse.y >= ButtonTop && mouse.y < ButtonBottom; };
     Quad(sprites, over(YesLeft, YesRight) ? YesHoverSlot : YesSlot, YesX, ButtonY, ButtonWidth, ButtonHeight, ButtonDu,
@@ -235,4 +235,4 @@ Core::Expected<void, std::string> DrawTheDuelRequest(GameHudContext& context)
     sprites.SetBlend(BlendMode::Opaque);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Social

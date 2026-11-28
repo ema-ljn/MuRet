@@ -41,7 +41,7 @@ using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
-using Client::Scenes::KalimaSiegeHelperPass;
+using Client::Monsters::Drawing::KalimaSiegeHelperPass;
 
 constexpr std::uint32_t Seed = 1;
 constexpr float Clock = 1234.0f;
@@ -70,9 +70,9 @@ protected:
         m_actor->bodyPose.assign(120, Client::Math::BoneTransform(1.0f));
         for (std::size_t bone = 0; bone < m_actor->bodyPose.size(); ++bone)
             m_actor->bodyPose[bone][3] = glm::vec3(0.0f, 0.0f, static_cast<float>(bone));
-        m_sprites = std::make_unique<Client::World::FrameSprites>();
-        m_particles = std::make_unique<Client::World::Particles>();
-        m_effects = std::make_unique<Client::World::ModelEffects>();
+        m_sprites = std::make_unique<Client::Particles::FrameSprites>();
+        m_particles = std::make_unique<Client::Particles::Particles>();
+        m_effects = std::make_unique<Client::Effects::ModelEffects>();
         m_heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
         m_heights->cells.fill(0.0f);
         m_joints.assign(32, Client::Scenes::JointState{});
@@ -112,7 +112,7 @@ protected:
 
     Client::Core::Expected<bool, std::string> Draw(std::int32_t map)
     {
-        return Client::Scenes::DrawKalimaSiegeHelpers(Pass(map));
+        return Client::Monsters::Drawing::DrawKalimaSiegeHelpers(Pass(map));
     }
 
     void FillParticles()
@@ -133,9 +133,9 @@ protected:
             effect.alive = true;
     }
 
-    std::vector<Client::World::Sprite> Sprites()
+    std::vector<Client::Particles::Sprite> Sprites()
     {
-        std::vector<Client::World::Sprite> live;
+        std::vector<Client::Particles::Sprite> live;
         for (const auto& sprite : m_sprites->Sprites())
         {
             if (sprite.alive)
@@ -162,12 +162,12 @@ protected:
     [[nodiscard]] std::uint32_t ExpectTheEmber(const glm::vec3& point, const glm::vec3& light, float scale,
                                                std::uint32_t state) const
     {
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         CrtRandom expected{state};
         const auto replayed = twin->CreateChecked(0x5f2, point, m_actor->angles, light, 13, scale, Clock, expected);
         EXPECT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{0});
-        const Client::World::Particle& ember = m_particles->All()[0];
-        const Client::World::Particle& reference = twin->All()[0];
+        const Client::Particles::Particle& ember = m_particles->All()[0];
+        const Client::Particles::Particle& reference = twin->All()[0];
         EXPECT_TRUE(ember.alive);
         EXPECT_EQ(ember.type, 0x5f2);
         EXPECT_EQ(ember.subtype, 13);
@@ -192,10 +192,10 @@ protected:
 
     std::unique_ptr<ActorState> m_actor;
     CrtRandom m_random{Seed};
-    std::unique_ptr<Client::World::FrameSprites> m_sprites;
-    std::unique_ptr<Client::World::Particles> m_particles;
-    std::unique_ptr<Client::World::ModelEffects> m_effects;
-    std::unique_ptr<Client::World::KalimaWorld> m_kalima;
+    std::unique_ptr<Client::Particles::FrameSprites> m_sprites;
+    std::unique_ptr<Client::Particles::Particles> m_particles;
+    std::unique_ptr<Client::Effects::ModelEffects> m_effects;
+    std::unique_ptr<Client::MapScripts::Kalima::KalimaWorld> m_kalima;
     std::unique_ptr<Client::Data::Terrain::TerrainHeights> m_heights;
     std::vector<Client::Scenes::JointState> m_joints;
     Client::Render::ModelBatch m_batch;
@@ -262,7 +262,7 @@ TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
         CrtRandom draws{Seed};
         const int turn = draws.Next() % 360;
         EXPECT_EQ(m_random.State(), draws.State());
-        const Client::World::Particle& hole = m_particles->All()[0];
+        const Client::Particles::Particle& hole = m_particles->All()[0];
         ASSERT_TRUE(hole.alive);
         EXPECT_EQ(hole.type, 0x6ae);
         EXPECT_EQ(hole.position, Bone(8));
@@ -340,7 +340,7 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     Actor(0x191, 0);
     ASSERT_TRUE(Draw(2).HasValue());
     EXPECT_EQ(Sprites().size(), 36u);
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     CrtRandom expected{Seed};
     std::size_t made = 0;
     for (std::size_t round = 0; round < 5; ++round)
@@ -353,8 +353,8 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
             const auto replayed =
                 twin->CreateChecked(0x607, Bone(bone), m_actor->angles, glm::vec3(0.5f), 1, 1.0f, Clock, expected);
             ASSERT_TRUE(replayed.HasValue() && replayed.Value() == std::optional<std::size_t>{made});
-            const Client::World::Particle& bubble = m_particles->All()[made];
-            const Client::World::Particle& reference = twin->All()[made];
+            const Client::Particles::Particle& bubble = m_particles->All()[made];
+            const Client::Particles::Particle& reference = twin->All()[made];
             EXPECT_TRUE(bubble.alive);
             EXPECT_EQ(bubble.type, 0x607);
             EXPECT_EQ(bubble.subtype, 1);
@@ -476,7 +476,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
         SetUp();
         const bool kalima = map == 24 || map == 36;
         if (kalima)
-            m_kalima = std::make_unique<Client::World::KalimaWorld>(map);
+            m_kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(map);
         ActorState& roaring = Actor(0x192, 5, 5.0f);
         roaring.dword60 = 100;
         roaring.cellX = 40;
@@ -493,7 +493,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
             ASSERT_TRUE(kalimaCopy->Disturb(cell.x, cell.y, 2, 2000, expected).HasValue());
         }
         const float shake = F32(static_cast<double>((expected.Next() & 7) - 8) * D(0.2f));
-        auto effects = std::make_unique<Client::World::ModelEffects>();
+        auto effects = std::make_unique<Client::Effects::ModelEffects>();
         std::vector<glm::vec3> stones;
         if (kalima)
         {
@@ -530,7 +530,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
     FillParticles();
     KalimaSiegeHelperPass pass = Pass(2);
     pass.cameraShake = nullptr;
-    ExpectCut(Client::Scenes::DrawKalimaSiegeHelpers(pass), "0x43cec4", "0x7d325c8");
+    ExpectCut(Client::Monsters::Drawing::DrawKalimaSiegeHelpers(pass), "0x43cec4", "0x7d325c8");
 }
 
 // Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, Scenes/KundunEffects), sin rand(); con la tabla llena,
@@ -628,7 +628,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
         SetUp();
         const bool kalima = map == 24;
         if (kalima)
-            m_kalima = std::make_unique<Client::World::KalimaWorld>(map);
+            m_kalima = std::make_unique<Client::MapScripts::Kalima::KalimaWorld>(map);
         ActorState& striking = Actor(0x192, 4, 9.5f);
         striking.dword60 = 0x65;
         striking.cellX = 12;
@@ -772,7 +772,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     ASSERT_TRUE(Draw(24).HasValue());
     const double beat = RoundedSin(D(Clock) * D(0.002f)) * D(0.3f) + D(0.6f);
     CrtRandom expected{Seed};
-    auto mist = std::make_unique<Client::World::Particles>();
+    auto mist = std::make_unique<Client::Particles::Particles>();
     ASSERT_TRUE(
         mist->CreateChecked(0x5ac, Bone(60), heart.angles, glm::vec3(F32(beat)), 0, 1.1f, Clock, expected).HasValue());
     EXPECT_EQ(m_random.State(), expected.State());

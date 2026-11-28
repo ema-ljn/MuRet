@@ -42,7 +42,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::World
+namespace Client::Effects
 {
 namespace
 {
@@ -128,7 +128,7 @@ Core::Expected<void, std::string> EmitOnGround(const WizardEffectServices& servi
 {
     if (services.particles == nullptr)
         return Core::Unexpected(std::format("{}: falta la tabla de partículas (0x53fe70) (CL11)", address));
-    PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto created = services.particles->CreateOnGroundChecked(type, position, angles, light, subtype, scale,
                                                                    std::cref(services.worldClock), random, trigonometry,
                                                                    services.terrainHeight);
@@ -153,7 +153,8 @@ Core::Expected<void, std::string> EmitOwned(const WizardEffectServices& services
     const auto found = std::ranges::find_if(pool, [&effect](const ModelEffect& slot) { return &slot == &effect; });
     if (found == pool.end())
         return Core::Unexpected(std::format("{}: el efecto dueño no está en la tabla (CL11)", address));
-    const ParticleOwner owner{ParticleOwnerKind::ModelEffect, static_cast<std::uint64_t>(found - pool.begin())};
+    const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::ModelEffect,
+                                         static_cast<std::uint64_t>(found - pool.begin())};
     const auto created = services.particles->CreateOwnedChecked(type, position, angles, light, subtype, scale,
                                                                 services.worldClock, random, 0, owner);
     if (!created.HasValue())
@@ -210,7 +211,7 @@ Core::Expected<void, std::string> Sprite(const WizardEffectServices& services, s
 Core::Expected<void, std::string> Light(const WizardEffectServices& services, const glm::vec3& position,
                                         const glm::vec3& color, std::int32_t radius, std::string_view address)
 {
-    return AddDynamicLight(services.lighting, position, color, radius, address);
+    return WorldObjects::AddDynamicLight(services.lighting, position, color, radius, address);
 }
 
 Core::Expected<double, std::string> Height(const WizardEffectServices& services, float x, float y,
@@ -390,7 +391,7 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::
         effect.transform.scale = scaleFrom(7, 10);
         effect.velocity = {0.0f, 0.0f, -50.0f};
         return {};
-    case 3: // 0x51ae9b → 0x51a9b1: el rayo del 3 (Scenes::StepFaunaLightning da su paso).
+    case 3: // 0x51ae9b → 0x51a9b1: el rayo del 3 (Fauna::StepFaunaLightning da su paso).
         effect.life = 80;
         effect.transform.scale = LightningScale;
         effect.velocity = {0.0f, -12.0f, 0.0f};
@@ -520,8 +521,8 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
         for (int puff = 0; puff < 3; ++puff)
         {
             const glm::vec3 point = ScatteredAround(at, random);
-            if (auto smoke = Emit(services, random, "0x51acb0", BreathParticle, point, effect.transform.angles,
-                                  effect.light, 0, 1.0f);
+            if (auto smoke = Emit(services, random, "0x51acb0", Particles::BreathParticle, point,
+                                  effect.transform.angles, effect.light, 0, 1.0f);
                 !smoke.HasValue())
                 return smoke;
         }
@@ -772,7 +773,7 @@ Core::Expected<void, std::string> HitTheOwner(ModelEffect& effect, CrtRandom& ra
             .key = NoKey};
         if (auto created = CreateWizardModelEffect(*services.effects, child, random, services); !created.HasValue())
             return Core::Unexpected(created.Error());
-        if (auto smoke = Emit(services, random, "0x518c70", BreathParticle, at, angles, light, 0, 1.0f);
+        if (auto smoke = Emit(services, random, "0x518c70", Particles::BreathParticle, at, angles, light, 0, 1.0f);
             !smoke.HasValue())
             return smoke;
     }
@@ -849,8 +850,8 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
             if ((random.Next() & 1) == 0)
             {
                 const glm::vec3 point = ScatteredAround(at, random);
-                if (auto smoke = Emit(services, random, "0x524743", BreathParticle, point, effect.transform.angles,
-                                      effect.light, 0, 1.0f);
+                if (auto smoke = Emit(services, random, "0x524743", Particles::BreathParticle, point,
+                                      effect.transform.angles, effect.light, 0, 1.0f);
                     !smoke.HasValue())
                     return smoke;
             }
@@ -908,8 +909,8 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
     const glm::vec3 reach = Turned(glm::vec3(60.0f, 0.0f, 0.0f), effect.copiedAngles);
     const glm::vec3 point{F32(D(reach.x) + D(frozen.position.x)), F32(D(reach.y) + D(frozen.position.y)),
                           F32((D(reach.z) + D(frozen.position.z)) + D(effect.turnDirection))};
-    return Emit(services, random, "0x52467b", DeathSpiritFireParticle, point, effect.transform.angles, glm::vec3(1.0f),
-                10, 2.0f);
+    return Emit(services, random, "0x52467b", Particles::DeathSpiritFireParticle, point, effect.transform.angles,
+                glm::vec3(1.0f), 10, 2.0f);
 }
 
 // La celda de 0x5f82a0(ftol(x · 0,01f), ftol(y · 0,01f)), con el byte bajo de cada una, y su atributo (0x7d0d348).
@@ -964,8 +965,8 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
             point.z = F32(D(at.z) + 50.0);
             local = {std::bit_cast<float>(0x3dcccccdu), 0.5f, std::bit_cast<float>(0x3dcccccdu)};
             const float scale = F32(static_cast<double>((random.Next() & 31) + 80) * SmokeStep);
-            if (auto smoke = Emit(services, random, "0x524e02", BreathParticle, point, effect.transform.angles, local,
-                                  StoneDustSubtype, scale);
+            if (auto smoke = Emit(services, random, "0x524e02", Particles::BreathParticle, point,
+                                  effect.transform.angles, local, Particles::StoneDustSubtype, scale);
                 !smoke.HasValue())
                 return smoke;
         }
@@ -977,15 +978,15 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
         if (services.sound)
             services.sound(Audio::SoundId{0x8f});
     }
-    if (auto burst =
-            Emit(services, random, "0x524e8a", ExplosionParticle, point, effect.transform.angles, local, 0, 1.0f);
+    if (auto burst = Emit(services, random, "0x524e8a", Particles::ExplosionParticle, point, effect.transform.angles,
+                          local, 0, 1.0f);
         !burst.HasValue())
         return burst;
     effect.alive = false;
     return {};
 }
 
-// 0x524e99..0x5251b1: la parte común del 0xc2 (el 3 lo da Scenes::StepFaunaLightning).
+// 0x524e99..0x5251b1: la parte común del 0xc2 (el 3 lo da Fauna::StepFaunaLightning).
 Core::Expected<void, std::string> FireGlow(ModelEffect& effect, float luminosity, glm::vec3& local, CrtRandom& random,
                                            const WizardEffectServices& services)
 {
@@ -1016,13 +1017,14 @@ Core::Expected<void, std::string> FireGlow(ModelEffect& effect, float luminosity
         for (int flame = 0; flame < 2; ++flame)
         {
             const glm::vec3 point{F32((static_cast<double>(random.Next() % 50) + D(at.x)) - 25.0), at.y, at.z};
-            if (auto fire =
-                    Emit(services, random, "0x525193", FireParticle, point, effect.transform.angles, local, 5, 1.0f);
+            if (auto fire = Emit(services, random, "0x525193", Particles::FireParticle, point, effect.transform.angles,
+                                 local, 5, 1.0f);
                 !fire.HasValue())
                 return fire;
         }
     }
-    else if (auto fire = Emit(services, random, "0x525001", FireParticle, at, effect.transform.angles, local, 5, 1.0f);
+    else if (auto fire = Emit(services, random, "0x525001", Particles::FireParticle, at, effect.transform.angles, local,
+                              5, 1.0f);
              !fire.HasValue())
         return fire;
     if (subtype == 1)
@@ -1067,8 +1069,8 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
             at.z = ground;
             effect.velocity = {};
             const glm::vec3 point{at.x, at.y, F32(D(at.z) + 80.0)};
-            if (auto burst = Emit(services, random, "0x5248fa", ExplosionParticle, point, effect.transform.angles,
-                                  local, 0, 1.0f);
+            if (auto burst = Emit(services, random, "0x5248fa", Particles::ExplosionParticle, point,
+                                  effect.transform.angles, local, 0, 1.0f);
                 !burst.HasValue())
                 return burst;
             for (int chip = 0; chip < 6; ++chip)
@@ -1084,11 +1086,12 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
         // 0x524959..0x5249f6: dos humos con la velocidad de luz y el efecto de dueño (push ebx), la luz propia, y muere
         // al pasar el terreno. La 0x25 guarda el dueño pero su paso (0x545f68) no lo lee.
         constexpr std::int32_t FirstTrailSubtype = 0x24, SecondTrailSubtype = 0x25;
-        if (auto smoke = EmitOwned(services, random, "0x52497d", effect, BreathParticle, at, effect.transform.angles,
-                                   effect.velocity, FirstTrailSubtype, F32(D(effect.transform.scale) + 1.0));
+        if (auto smoke =
+                EmitOwned(services, random, "0x52497d", effect, Particles::BreathParticle, at, effect.transform.angles,
+                          effect.velocity, FirstTrailSubtype, F32(D(effect.transform.scale) + 1.0));
             !smoke.HasValue())
             return smoke;
-        if (auto smoke = Emit(services, random, "0x5249a0", BreathParticle, at, effect.transform.angles,
+        if (auto smoke = Emit(services, random, "0x5249a0", Particles::BreathParticle, at, effect.transform.angles,
                               effect.velocity, SecondTrailSubtype, F32(D(effect.transform.scale) + 2.0));
             !smoke.HasValue())
             return smoke;
@@ -1323,8 +1326,8 @@ Core::Expected<void, std::string> StepMagic(ModelEffect& effect, float luminosit
     effect.objectState.light = F32(LifeTimes(effect.life, Tenth));
     effect.objectState.uv.x = F32(LifeTimes(effect.life, NegativeFifth));
     for (int smoke = 0; smoke < 4; ++smoke)
-        if (auto created =
-                Emit(services, random, "0x522c0e", BreathParticle, at, effect.transform.angles, effect.light, 3, 1.0f);
+        if (auto created = Emit(services, random, "0x522c0e", Particles::BreathParticle, at, effect.transform.angles,
+                                effect.light, 3, 1.0f);
             !created.HasValue())
             return created;
     const glm::vec3 local{F32(D(luminosity) * ThreeTenths), F32(D(luminosity) * SixTenths), luminosity};
@@ -1336,8 +1339,8 @@ Core::Expected<void, std::string> StepMagic(ModelEffect& effect, float luminosit
     glm::vec3 point = at;
     static_cast<void>(random.Next() % 10); // 0x522c8c: la z de una copia de los ángulos que nadie lee.
     const float scale = F32(static_cast<double>((random.Next() & 31) + 80) * DustStep);
-    if (auto dust = Emit(services, random, "0x522cdb", BreathParticle, at, effect.transform.angles, local,
-                         StoneDustSubtype, scale);
+    if (auto dust = Emit(services, random, "0x522cdb", Particles::BreathParticle, at, effect.transform.angles, local,
+                         Particles::StoneDustSubtype, scale);
         !dust.HasValue())
         return dust;
     point.z = F32(D(point.z) + 50.0);
@@ -1365,10 +1368,12 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
         *services.cameraShake = F32(static_cast<double>((random.Next() & 7) - 4) * Tenth);
         // 0x523144, 0x52315d y 0x523176: la niebla 5f2/28, /29 y /30 en el punto del efecto, con sus ángulos y su luz.
         constexpr std::array<std::pair<std::int32_t, std::string_view>, 3> Mists{
-            {{StormMistSubtype, "0x523144"}, {DarkStormMistSubtype, "0x52315d"}, {ShortStormMistSubtype, "0x523176"}}};
+            {{Particles::StormMistSubtype, "0x523144"},
+             {Particles::DarkStormMistSubtype, "0x52315d"},
+             {Particles::ShortStormMistSubtype, "0x523176"}}};
         for (const auto& [mist, address] : Mists)
-            if (auto created = EmitOnGround(services, random, address, BreathParticle, at, effect.transform.angles,
-                                            effect.light, mist, 1.0f);
+            if (auto created = EmitOnGround(services, random, address, Particles::BreathParticle, at,
+                                            effect.transform.angles, effect.light, mist, 1.0f);
                 !created.HasValue())
                 return created;
         if ((random.Next() & 1) != 0)
@@ -1379,8 +1384,8 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
     {
         effect.objectState.light = F32(LifeTimes(effect.life, Tenth));
         effect.objectState.uv.x = F32(LifeTimes(effect.life, NegativeTenth));
-        if (auto created =
-                Emit(services, random, "0x522dff", BreathParticle, at, effect.transform.angles, effect.light, 3, 1.0f);
+        if (auto created = Emit(services, random, "0x522dff", Particles::BreathParticle, at, effect.transform.angles,
+                                effect.light, 3, 1.0f);
             !created.HasValue())
             return created;
         const glm::vec3 down{90.0f, 0.0f, effect.transform.angles.z};
@@ -1451,12 +1456,12 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
     }
     // 0x52303b..0x5230c3.
     const glm::vec3 point{at.x, at.y, F32(D(at.z) + 100.0)};
-    if (auto created =
-            Emit(services, random, "0x523070", BreathParticle, point, effect.transform.angles, effect.light, 3, 1.0f);
+    if (auto created = Emit(services, random, "0x523070", Particles::BreathParticle, point, effect.transform.angles,
+                            effect.light, 3, 1.0f);
         !created.HasValue())
         return created;
-    if (auto created = Emit(services, random, "0x523089", DropParticle, point, effect.transform.angles, effect.light, 3,
-                            std::bit_cast<float>(0x3dcccccdu));
+    if (auto created = Emit(services, random, "0x523089", Particles::DropParticle, point, effect.transform.angles,
+                            effect.light, 3, std::bit_cast<float>(0x3dcccccdu));
         !created.HasValue())
         return created;
     // 0x52308e..0x5230be: el tono (−0,1L; −0,3L; −L) que guarda en [ebp-0x1c] no lo lee nadie; 0x5f9780 recibe la luz
@@ -1633,4 +1638,4 @@ Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect, con
     effect.previousPosition = before;
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Effects

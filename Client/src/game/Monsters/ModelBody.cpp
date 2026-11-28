@@ -19,7 +19,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -255,4 +255,4 @@ SetTheModelHeadTarget(Kernel::ActorState& actor, std::span<const Kernel::ActorSt
     return {};
 }
 
-} // namespace Client::Scenes
+} // namespace Client::Monsters

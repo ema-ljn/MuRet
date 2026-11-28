@@ -16,10 +16,10 @@
 
 namespace
 {
+using Client::MapScripts::Kalima::DrawKalimaSurfaceDecal;
+using Client::MapScripts::Kalima::KalimaWorld;
 using Client::Render::ModelBatch;
 using Client::Terrain::TerrainDecal;
-using Client::World::DrawKalimaSurfaceDecal;
-using Client::World::KalimaWorld;
 
 TerrainDecal Decal()
 {

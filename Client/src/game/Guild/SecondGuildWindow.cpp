@@ -49,14 +49,14 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Guild
 {
 namespace
 {
+using Hud::WindowDrawing::DrawText;
+using Hud::WindowDrawing::SelectFont;
 using Render::BlendMode;
 using Render::Text::FontKind;
-using WindowDrawing::DrawText;
-using WindowDrawing::SelectFont;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
 
@@ -199,7 +199,7 @@ template <std::size_t Size> std::string_view NameOf(const std::array<char, Size>
 Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* texts, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -213,7 +213,7 @@ Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoi
     return {};
 }
 
-UI::OldButton& ButtonOf(GuildState& guild, std::size_t button)
+Ui::OldButton& ButtonOf(GuildState& guild, std::size_t button)
 {
     return guild.secondWindow.buttons[button];
 }
@@ -312,15 +312,15 @@ void StepTheMarkEditor(Kernel::WorldState& world, std::int32_t x, std::int32_t y
 // 0x6236f0 con el aviso.
 void Notice(Kernel::WorldRuntime& runtime, std::int32_t dialog)
 {
-    UI::PushDialog(runtime.dialogs, dialog);
+    Ui::PushDialog(runtime.dialogs, dialog);
 }
 
 // 0x655087..0x6550b4 y 0x6550d8..0x655100: con el EDIT (0x6c7b8c en 1), SetText(0), 0x467360 (el modo del IME, que
 // MuRet no tiene) y oculto.
-void HideTheNameField(UI::ChatInputState& input)
+void HideTheNameField(Chat::ChatInputState& input)
 {
     input.dialogEdit.text.SetText({});
-    UI::ShowTheDialogField(input, HiddenField);
+    Chat::ShowTheDialogField(input, HiddenField);
 }
 
 // 0x655d70, la página 0: Crear (la ventana arma un gremio: 0x7d536e4 y 0x7d536ec en 1, 0x77f3b68 en 1 y C1 04 54 01);
@@ -328,12 +328,12 @@ void HideTheNameField(UI::ChatInputState& input)
 // de cerrar lo apaga, 0x77f3b10 en 0 y 0x6c8dcc en 6, manda C1 04 54 00, suena el 0x19 y cierra la ventana con la
 // vtable + 0x2c (0x6570b0, que manda otro 54 00: Q-C1289).
 Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& context,
-                                                  const UI::OldWindowGlobals& globals)
+                                                  const Ui::OldWindowGlobals& globals)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
     SecondGuildWindowState& window = guild.secondWindow;
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildCreateButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildCreateButton), globals, context.mouseX, context.mouseY))
     {
         guild.createKind = NewGuild;
         guild.createStep = NamePage;
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
             !sent.HasValue())
             return sent;
     }
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildMarkButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildMarkButton), globals, context.mouseX, context.mouseY))
     {
         auto text = TextOf(context.texts, NotEnabledText, "0x65607a");
         if (!text.HasValue())
@@ -354,16 +354,16 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
         const std::array<std::string, 1> lines{std::string(text.Value())};
         auto opened = PopUpThePanelDialog(
             runtime,
-            UI::PanelDialogRequest{
-                .lines = lines, .flags = UI::PanelDialogOk, .owner = UI::PanelDialogOwner::None, .placed = 0},
+            Ui::PanelDialogRequest{
+                .lines = lines, .flags = Ui::PanelDialogOk, .owner = Ui::PanelDialogOwner::None, .placed = 0},
             *context.measure, context.screen, context.now);
         if (!opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
         window.dialog2a0 = opened.Value();
     }
-    const UI::OldWindowBase& base = window.base;
-    if (!runtime.movement.pendingClick || !UI::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
-                                                           base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
+    const Ui::OldWindowBase& base = window.base;
+    if (!runtime.movement.pendingClick || !Chat::MouseInRect(context.mouseX, context.mouseY, base.x + CloseLeft,
+                                                             base.y + CloseTop, CloseSize, CloseSize, TopLeftRect))
         return {};
     runtime.movement.pendingClick = false;
     runtime.movement.mouseUpdateTime = 0;
@@ -380,14 +380,14 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
 // aviso o sin él, el EDIT vacío y oculto otra vez. Regreso: el héroe sin gremio, el EDIT vacío y oculto, los diez bytes
 // del buffer y su largo en 0 (0x6c8e78 en 10, el tope de la entrada sin EDIT, MuRet no lo guarda) y la página de antes.
 Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& context,
-                                              const UI::OldWindowGlobals& globals)
+                                              const Ui::OldWindowGlobals& globals)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    UI::ChatInputState& input = runtime.chat.input;
-    const UI::OldWindowBase& base = guild.secondWindow.base;
+    Chat::ChatInputState& input = runtime.chat.input;
+    const Ui::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
     {
         // 0x654fb3..0x654fda: GetText(0x78a597d, 0xff) y GetText(0x7798bf8, 0xff). El nombre tiene 9 bytes hasta la
         // marca (+0x16): el EDIT, con EM_LIMITTEXT 8, no pasa de ahí.
@@ -399,21 +399,21 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
                                                 typed.size()));
         std::ranges::copy(typed, name.begin());
         name[typed.size()] = '\0';
-        UI::ReadTheDialogField(input, input.messageBuffer);
+        Chat::ReadTheDialogField(input, input.messageBuffer);
         auto operation = TextOf(context.texts, OperationText, "0x622c70");
         if (!operation.HasValue())
             return Core::Unexpected(std::move(operation).Error());
         auto server = TextOf(context.texts, ServerText, "0x622c70");
         if (!server.HasValue())
             return Core::Unexpected(std::move(server).Error());
-        const UI::NameFilters filters{.filterName = context.filterName,
-                                      .filter = context.filter,
-                                      .operation = operation.Value(),
-                                      .server = server.Value()};
-        const std::string_view message = UI::CStringOf(input.messageBuffer);
-        if (UI::IsFilteredName(message, filters))
+        const FrontEnd::NameFilters filters{.filterName = context.filterName,
+                                            .filter = context.filter,
+                                            .operation = operation.Value(),
+                                            .server = server.Value()};
+        const std::string_view message = Chat::CStringOf(input.messageBuffer);
+        if (FrontEnd::IsFilteredName(message, filters))
             Notice(runtime, FilteredNameDialog);
-        else if (UI::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
+        else if (FrontEnd::HasForbiddenSymbol(std::string_view(input.messageBuffer.data(), input.messageBuffer.size())))
             Notice(runtime, ForbiddenSymbolDialog);
         else if (message.size() < ShortestName)
             Notice(runtime, ShortNameDialog);
@@ -426,7 +426,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
         }
         HideTheNameField(input);
     }
-    if (!UI::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
+    if (!Ui::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
         return {};
     Kernel::ActorState& hero = context.world.Hero();
     hero.word1f2 = NoGuildWord;
@@ -439,20 +439,20 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
 
 // 0x655c10, la página 2: el editor; Próximo con la marca vacía, el aviso 0x7e, y si no, la página que sigue; Regreso,
 // la de antes.
-void StepTheMark(const SecondGuildStepContext& context, const UI::OldWindowGlobals& globals)
+void StepTheMark(const SecondGuildStepContext& context, const Ui::OldWindowGlobals& globals)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    const UI::OldWindowBase& base = guild.secondWindow.base;
+    const Ui::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
     {
         if (MarkHasColor(guild))
             NextPage(guild);
         else
             Notice(runtime, EmptyMarkDialog);
     }
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
         PreviousPage(guild);
 }
 
@@ -460,11 +460,11 @@ void StepTheMark(const SecondGuildStepContext& context, const UI::OldWindowGloba
 // un gremio, manda el C1 55 con el nombre (los 8 bytes de 0x78a597d) y la marca; siempre manda C1 04 54 00 y cierra la
 // ventana (0x6570b0, otro 54 00: Q-C1289). La marca sola (2) no manda nada más (Q-C1288). Regreso, la página de antes.
 Core::Expected<void, std::string> StepTheConfirmation(const SecondGuildStepContext& context,
-                                                      const UI::OldWindowGlobals& globals)
+                                                      const Ui::OldWindowGlobals& globals)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
     {
         const GuildTableEntry& entry = guild.table[CreatingIndex];
         Protocol::Guild::GuildMark packed{};
@@ -485,7 +485,7 @@ Core::Expected<void, std::string> StepTheConfirmation(const SecondGuildStepConte
         if (auto closed = CloseTheSecondGuildWindow(context.world, context.send); !closed.HasValue())
             return closed;
     }
-    if (UI::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
+    if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildBackButton), globals, context.mouseX, context.mouseY))
         PreviousPage(guild);
     return {};
 }
@@ -509,7 +509,7 @@ void QuadAt(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, 
 }
 
 // 0x5f1bb0(x, y, w, h, color): el marco 0x116 y el cuadrado del color.
-Core::Expected<void, std::string> DrawTheSwatch(GameHudContext& context, float x, float y, std::int32_t width,
+Core::Expected<void, std::string> DrawTheSwatch(Hud::GameHudContext& context, float x, float y, std::int32_t width,
                                                 std::int32_t height, std::int32_t color)
 {
     if (context.guildMarks == nullptr)
@@ -525,13 +525,13 @@ Core::Expected<void, std::string> DrawTheSwatch(GameHudContext& context, float x
     auto slot = context.guildMarks->UploadSwatch(color);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    WindowDrawing::Quad(sprites, slot.Value().value, x, y, fw, fh, 1.0f, 1.0f);
+    Hud::WindowDrawing::Quad(sprites, slot.Value().value, x, y, fw, fh, 1.0f, 1.0f);
     return {};
 }
 
 // 0x653750(x, y): la grilla con la marca nueva, la paleta y el color elegido, y los dos renglones con la fuente normal.
-Core::Expected<void, std::string> DrawTheMarkEditor(GameHudContext& context, const GuildState& guild, std::int32_t x,
-                                                    std::int32_t y)
+Core::Expected<void, std::string> DrawTheMarkEditor(Hud::GameHudContext& context, const GuildState& guild,
+                                                    std::int32_t x, std::int32_t y)
 {
     const auto fx = static_cast<double>(static_cast<float>(x));
     const auto fy = static_cast<double>(static_cast<float>(y));
@@ -577,7 +577,7 @@ Core::Expected<void, std::string> DrawTheMarkEditor(GameHudContext& context, con
 }
 
 // 0x5542f0(x, y, texto, caja, 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
-void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
+void DrawInTheBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
     const std::int32_t box = Truncate(rx * TextBox);
@@ -590,7 +590,7 @@ void DrawInTheBox(GameHudContext& context, std::int32_t x, std::int32_t y, std::
 }
 
 // El gremio del héroe (+0x1f2) en la tabla, para "%s ( Score:%d )" (0x6d67cc).
-Core::Expected<std::string, std::string> HeroGuildLine(GameHudContext& context, std::string_view where)
+Core::Expected<std::string, std::string> HeroGuildLine(Hud::GameHudContext& context, std::string_view where)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const auto index = static_cast<std::int16_t>(context.world.Hero().word1f2);
@@ -601,7 +601,7 @@ Core::Expected<std::string, std::string> HeroGuildLine(GameHudContext& context, 
 }
 
 // 0x5f16a0(1999, 1) sin quad: sube la marca nueva y la pisa el primer cuadrado del editor (Q-C1290).
-Core::Expected<void, std::string> UploadTheNewMark(GameHudContext& context, const GuildState& guild)
+Core::Expected<void, std::string> UploadTheNewMark(Hud::GameHudContext& context, const GuildState& guild)
 {
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x5f16a0: la marca nueva sin la tabla de las marcas"));
@@ -611,24 +611,24 @@ Core::Expected<void, std::string> UploadTheNewMark(GameHudContext& context, cons
     return {};
 }
 
-void DrawTheButton(GameHudContext& context, const UI::OldButton& button)
+void DrawTheButton(Hud::GameHudContext& context, const Ui::OldButton& button)
 {
-    const UI::OldWindowDrawContext buttons{.sprites = context.sprites,
+    const Ui::OldWindowDrawContext buttons{.sprites = context.sprites,
                                            .text = context.text,
                                            .dcFont = context.hud.dcFont,
                                            .textColors = context.hud.textColors};
-    UI::DrawTheOldButton(buttons, button, UI::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
+    Ui::DrawTheOldButton(buttons, button, Ui::OldWindowDrawView{.mouseX = context.mouse.x, .mouseY = context.mouse.y});
 }
 
 // 0x6563e0, la página 0: sin gremio (+0x368 en 0xff), la pregunta (el 181) con Crear a la vista y Cambiar la marca
 // apagado; con gremio, su nombre y el puntaje (0x78aba3c) centrados, Crear apagado y la marca a la vista. Los dos
 // botones debajo, y el botón de cerrar con su ayuda (el 1002) con el mouse encima.
-Core::Expected<void, std::string> DrawTheQuestion(GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheQuestion(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                   std::int32_t y)
 {
     context.hud.textColors = PageColors;
-    UI::OldButton& create = ButtonOf(guild, SecondGuildCreateButton);
-    UI::OldButton& mark = ButtonOf(guild, SecondGuildMarkButton);
+    Ui::OldButton& create = ButtonOf(guild, SecondGuildCreateButton);
+    Ui::OldButton& mark = ButtonOf(guild, SecondGuildMarkButton);
     const std::int32_t left = x + PageLeft;
     std::int32_t top = y + PageTop;
     if (context.world.Hero().guildStatus == NoGuildStatus)
@@ -637,8 +637,8 @@ Core::Expected<void, std::string> DrawTheQuestion(GameHudContext& context, Guild
         if (!question.HasValue())
             return Core::Unexpected(std::move(question).Error());
         DrawText(context, left, top, question.Value());
-        create.base.state = UI::ShownWindow;
-        mark.base.state = UI::DisabledWindow;
+        create.base.state = Ui::ShownWindow;
+        mark.base.state = Ui::DisabledWindow;
     }
     else
     {
@@ -646,8 +646,8 @@ Core::Expected<void, std::string> DrawTheQuestion(GameHudContext& context, Guild
         if (!line.HasValue())
             return Core::Unexpected(std::move(line).Error());
         DrawInTheBox(context, left, top, line.Value());
-        create.base.state = UI::DisabledWindow;
-        mark.base.state = UI::ShownWindow;
+        create.base.state = Ui::DisabledWindow;
+        mark.base.state = Ui::ShownWindow;
     }
     top += FirstButtonBelow;
     create.base.x = x + ButtonsLeft;
@@ -656,50 +656,51 @@ Core::Expected<void, std::string> DrawTheQuestion(GameHudContext& context, Guild
     mark.base.x = x + ButtonsLeft;
     mark.base.y = top + SecondButtonBelow;
     DrawTheButton(context, mark);
-    if (!WindowDrawing::DrawTheCloseButton(context, x, y))
+    if (!Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
         return {};
     auto help = TextOf(context.texts, CloseHelpText, "0x6565ba");
     if (!help.HasValue())
         return Core::Unexpected(std::move(help).Error());
-    WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
+    Hud::WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     return {};
 }
 
 // 0x655130, la página 1: la caja del nombre, "nombre" en negrita, el EDIT (a la vista, el fondo en 0, EM_LIMITTEXT 8,
 // en (x + 0x3f, y + 0x3c), el foco sin cambiar lo elegido y su dibujo), la marca nueva (sin quad), el editor y
 // Regreso y Próximo.
-Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheName(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
-    WindowDrawing::Quad(sprites, NameFieldSlot, static_cast<float>(x + PageLeft + 0x21),
-                        static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu, NameFieldDv);
+    Hud::WindowDrawing::Quad(sprites, NameFieldSlot, static_cast<float>(x + PageLeft + 0x21),
+                             static_cast<float>(y + PageTop - 4), NameFieldWidth, NameFieldHeight, NameFieldDu,
+                             NameFieldDv);
     SelectFont(context, FontKind::Bold);
     context.hud.textColors = PageColors;
     auto name = TextOf(context.texts, NameText, "0x6551b7");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
-    UI::ChatInputState& input = context.world.Runtime().chat.input;
-    UI::OldEdit& field = input.dialogEdit;
-    UI::ShowTheDialogField(input, ShownField);
+    Chat::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::OldEdit& field = input.dialogEdit;
+    Chat::ShowTheDialogField(input, ShownField);
     field.filter = 0;
     field.backgroundColor = 0;
-    UI::LimitTheEdit(field, GuildNameLimit, context.arrowHeld);
+    Ui::LimitTheEdit(field, GuildNameLimit, context.arrowHeld);
     field.base.width = FieldWidth;
     field.base.height = FieldHeight;
     field.base.x = x + PageLeft + FieldLeft;
     field.base.y = y + PageTop;
     // 0x655232: la vtable + 0x30 (0x4682a0), el foco y el id del EDIT (7) en 0x5762ec0 (la lista que toma las flechas).
-    UI::FocusTheDialogField(input);
+    Chat::FocusTheDialogField(input);
     context.world.Runtime().ui.focusedList = field.base.id;
     // 0x65523d: la vtable + 0x14 del EDIT (0x468320), con el cursor si tiene el foco.
-    UI::OldDraw::DrawTheOldEdit(UI::OldWindowDrawContext{.sprites = context.sprites,
+    Ui::OldDraw::DrawTheOldEdit(Ui::OldWindowDrawContext{.sprites = context.sprites,
                                                          .text = context.text,
                                                          .dcFont = context.hud.dcFont,
                                                          .textColors = context.hud.textColors,
                                                          .arrowHeld = context.arrowHeld},
-                                field, input.focus == UI::ChatFocus::Dialog);
+                                field, input.focus == Chat::ChatFocus::Dialog);
     if (auto uploaded = UploadTheNewMark(context, guild); !uploaded.HasValue())
         return uploaded;
     if (auto editor = DrawTheMarkEditor(context, guild, x, y); !editor.HasValue())
@@ -711,7 +712,7 @@ Core::Expected<void, std::string> DrawTheName(GameHudContext& context, GuildStat
 
 // 0x655c70, la página 2: "nombre" en negrita y, en el mismo lugar, el gremio del héroe con el puntaje centrado
 // (Q-C1288); la fuente normal, la marca nueva (sin quad), el editor y los dos botones.
-Core::Expected<void, std::string> DrawTheMark(GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheMark(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                               std::int32_t y)
 {
     SelectFont(context, FontKind::Bold);
@@ -736,28 +737,28 @@ Core::Expected<void, std::string> DrawTheMark(GameHudContext& context, GuildStat
 
 // 0x655ac0, la página 3: la fuente normal, el fondo de los textos en 0, el marco del nombre con "nombre : <nombre>"
 // centrado, el marco de la marca con la marca nueva de 48 y los dos botones.
-Core::Expected<void, std::string> DrawTheConfirmation(GameHudContext& context, GuildState& guild, std::int32_t x,
+Core::Expected<void, std::string> DrawTheConfirmation(Hud::GameHudContext& context, GuildState& guild, std::int32_t x,
                                                       std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
     SelectFont(context, FontKind::Normal);
     context.hud.textColors.background = 0;
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41), NameBoxWidth,
-                                NameBoxHeight, false);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + PageLeft), static_cast<float>(y + 0x41),
+                                     NameBoxWidth, NameBoxHeight, false);
     auto name = TextOf(context.texts, NameText, "0x655b2a");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawInTheBox(context, x + PageLeft, y + 0x47,
                  std::format("{} : {}", name.Value(), NameOf(guild.table[CreatingIndex].guildName)));
-    WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
-                                MarkBoxSide, false);
+    Hud::WindowDrawing::DrawTheFrame(sprites, static_cast<float>(x + 0x45), static_cast<float>(y + 0x68), MarkBoxSide,
+                                     MarkBoxSide, false);
     if (context.guildMarks == nullptr)
         return Core::Unexpected(std::string("0x655b98: la marca nueva sin la tabla de las marcas"));
     auto slot = context.guildMarks->Upload(guild, CreatingGuildIndex, true);
     if (!slot.HasValue())
         return Core::Unexpected(std::move(slot).Error());
-    WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
-                        MarkSide, MarkSide, 1.0f, 1.0f);
+    Hud::WindowDrawing::Quad(sprites, slot.Value().value, static_cast<float>(x + 0x48), static_cast<float>(y + 0x6b),
+                             MarkSide, MarkSide, 1.0f, 1.0f);
     DrawTheButton(context, ButtonOf(guild, SecondGuildBackButton));
     DrawTheButton(context, ButtonOf(guild, SecondGuildNextButton));
     return {};
@@ -768,12 +769,12 @@ Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStep
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    const UI::OldWindowBase& base = guild.secondWindow.base;
+    const Ui::OldWindowBase& base = guild.secondWindow.base;
     if (!PassesTheGuildWindowGate(base, runtime.ui, context.mouseX, context.mouseY))
         return {};
-    if (UI::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
+    if (Chat::MouseInRect(context.mouseX, context.mouseY, base.x, base.y, base.width, MouseHeight, TopLeftRect))
         runtime.ui.mouseOnUi = 1;
-    const UI::OldWindowGlobals globals = OldWindowGlobalsOf(runtime);
+    const Ui::OldWindowGlobals globals = Hud::OldWindowGlobalsOf(runtime);
     switch (guild.createStep)
     {
     case QuestionPage:
@@ -790,12 +791,12 @@ Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStep
     }
 }
 
-void LendTheSecondGuildStepTo(UI::PanelContext& panels, const SecondGuildStepContext& context)
+void LendTheSecondGuildStepTo(Ui::PanelContext& panels, const SecondGuildStepContext& context)
 {
     panels.secondGuildStep = [context]() { return StepTheSecondGuildWindow(context); };
 }
 
-Core::Expected<void, std::string> DrawTheSecondGuildWindow(GameHudContext& context)
+Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
@@ -815,7 +816,7 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(GameHudContext& conte
     Render::SpriteBatch& sprites = context.sprites;
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Opaque);
-    WindowDrawing::DrawTheWindowBack(sprites, x, y);
+    Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
     sprites.SetBlend(BlendMode::Alpha);
     context.hud.textColors = TitleColors;
     SelectFont(context, FontKind::Bold);
@@ -829,7 +830,7 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(GameHudContext& conte
     auto text = TextOf(context.texts, title, "0x656f89");
     if (!text.HasValue())
         return Core::Unexpected(std::move(text).Error());
-    WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, text.Value());
+    Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, text.Value());
     switch (guild.createStep)
     {
     case QuestionPage:
@@ -844,4 +845,4 @@ Core::Expected<void, std::string> DrawTheSecondGuildWindow(GameHudContext& conte
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Guild

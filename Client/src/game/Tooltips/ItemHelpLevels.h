@@ -7,12 +7,16 @@
 #include <cstdint>
 #include <span>
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // La tabla por nivel de la ayuda del ítem (06 § HUD y ventanas, "La ayuda del ítem"): 0x5afc00 la llena en 0x787a15c
 // (14 niveles de 0x44 bytes, 17 dwords cada uno) y la guarda para el ítem de 0x6c9334. La leen la cola de 0x5b0550 (el
 // ancho de la caja y qué columnas dibuja) y 0x5af9b0 (una columna en los renglones).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
-struct GameHudContext;
 
 inline constexpr std::size_t ItemHelpLevelCount = 14;
 inline constexpr std::size_t ItemHelpColumnCount = 17;
@@ -58,6 +62,6 @@ struct ItemHelpLevels
 // nivel) · requisito · 3 (4 la energía) / 100 + 20, en 32 bits con signo; y +0x3a tal cual. Después, con el registro
 // propio abierto (3.848 rand() al cerrarlo si queda sin accesos, uno por nivel), si cumple los requisitos (los stats
 // más lo de los ítems, en 16 bits, y el nivel).
-void FillTheItemHelpLevels(GameHudContext& context, std::int32_t item,
+void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item,
                            std::span<const std::byte, Tables::ItemRecordSize> record);
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

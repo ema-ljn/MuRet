@@ -97,7 +97,7 @@ protected:
         m_online = std::make_unique<LoggedInSession>(m_applier.get());
         ASSERT_NO_FATAL_FAILURE(m_online->LogIn());
         ReceiveEntry();
-        ASSERT_EQ(m_online->session.State(), App::SessionState::InWorld);
+        ASSERT_EQ(m_online->session.State(), Session::SessionState::InWorld);
         m_online->socket.sent.clear();
     }
 
@@ -304,7 +304,7 @@ protected:
     std::unique_ptr<Models::ClothWorld> m_cloth = std::make_unique<Models::ClothWorld>();
     std::unique_ptr<Kernel::WorldState> m_world = std::make_unique<Kernel::WorldState>();
     std::unique_ptr<Session::ModuleStates> m_states = std::make_unique<Session::ModuleStates>();
-    std::unique_ptr<Scenes::SelectionState> m_selection = std::make_unique<Scenes::SelectionState>(*m_world);
+    std::unique_ptr<FrontEnd::SelectionState> m_selection = std::make_unique<FrontEnd::SelectionState>(*m_world);
     std::unique_ptr<Assets::GameModels> m_models = std::make_unique<Assets::GameModels>();
     Camera::GameCamera m_camera;
     Camera::GameCameraInput m_cameraInput;

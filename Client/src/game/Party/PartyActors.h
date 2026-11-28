@@ -8,7 +8,7 @@
 // Los miembros de la party en el viewport (CL9 hito 7, fase 2): el +0x1c y el +0x20 de cada lugar de 0x77f3cd0, que
 // escriben el picking del frame (0x59e700 y 0x59e3b0) y la lista de la derecha (0x5e4140), y que leen las barras del
 // HUD (0x5a89b0) y la lista dibujada (0x5f130a). Contrato: 06 § Lo social en pantalla. *Estático*.
-namespace Client::UI
+namespace Client::Ui
 {
 class PanelRegistry;
 }
@@ -20,19 +20,23 @@ struct ActorState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct FramePickingContext;
+} // namespace Client::Hud
+
+namespace Client::Party
+{
 
 // Los lugares de 0x77f3cd0 hasta la cuenta (0x78aba48, con signo: ninguno con 0 o menos).
-[[nodiscard]] std::span<const PartySlot> PartyMembers(const Kernel::WorldRuntime& runtime);
+[[nodiscard]] std::span<const Social::PartySlot> PartyMembers(const Kernel::WorldRuntime& runtime);
 
 // 0x59e680(personaje), y el mismo lazo en línea del Teleport Ally (0x5926ca..0x592766): con party (0x78aba48 sobre 0,
 // con signo), si algún lugar de 0x77f3cd0 (de a 0x24, hasta la cuenta) da 0 en strncmp(lugar, +0x1d9, n), con n el
 // largo del nombre o 1 si está vacío: el lugar empieza con el nombre (con el nombre vacío, el lugar vacío). Sin rand().
 [[nodiscard]] bool IsInTheParty(const Kernel::WorldState& world, const Kernel::ActorState& actor);
 // Lo mismo sobre los lugares que da PartyMembers (el dibujo de los efectos, 0x50f9ee).
-[[nodiscard]] bool IsInTheParty(std::span<const PartySlot> members, const Kernel::ActorState& actor);
+[[nodiscard]] bool IsInTheParty(std::span<const Social::PartySlot> members, const Kernel::ActorState& actor);
 
 // 0x59e890..0x59e948 (en 0x59e700) y 0x59e439..0x59e4ed (en 0x59e3b0), con el personaje `index`, que el que llama ya
 // eligió: el primer lugar de la party (hasta 0x78aba48) con +0x1c en −2 cuyo nombre es el suyo (strncmp con el mayor
@@ -55,5 +59,5 @@ void FindThePartyInTheViewport(Kernel::WorldState& world);
 // skill de su lugar (+0x425; el cierre gasta los 3.848 rand() de 0x40b4d0 si deja la cuenta en 0): con 0xf, 0x10 o 0x1a
 // a 0x1c y el mouse en [x − 3, x + 50] × [y, y + 19], el elegido (0x6c8e30) es ese personaje y devuelve true. Uno en −1
 // también ocupa su renglón; −2 y −3, no. Todos quedan en −2. La última que acierta gana.
-[[nodiscard]] bool PickFromThePartyList(const FramePickingContext& context, UI::PanelRegistry& panels);
-} // namespace Client::Scenes
+[[nodiscard]] bool PickFromThePartyList(const Hud::FramePickingContext& context, Ui::PanelRegistry& panels);
+} // namespace Client::Party

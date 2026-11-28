@@ -81,13 +81,13 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         // escondidas sin anotarlas (0x4906a0 con 1 y 0, Q-C572) y la de amigos suelta (0x4914e0).
         Kernel::WorldRuntime& runtime = resources.world.Runtime();
         runtime.RequestSound(Sound::ChaosSound, std::nullopt, true);
-        if (auto hidden = UI::HideTheOldWindows(runtime.oldWindows, 1, 0, OldWindowGlobalsOf(runtime));
+        if (auto hidden = Ui::HideTheOldWindows(runtime.oldWindows, 1, 0, Hud::OldWindowGlobalsOf(runtime));
             !hidden.HasValue())
             return hidden;
-        if (auto dropped = UI::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); !dropped.HasValue())
+        if (auto dropped = Ui::DropTheFriendsWindow(runtime.oldWindows, runtime.ui.pressedButton); !dropped.HasValue())
             return dropped;
         // 4c7b34..4c7b53: mismas escrituras de ResetTheCommands, sin volver a crear el objeto.
-        UI::ResetTheCommands(runtime.panels.delegated);
+        Ui::ResetTheCommands(runtime.panels.delegated);
         if (auto dressed = DressTransitionHero(PublishedHero(resources), resources); !dressed.HasValue())
             return dressed;
         // 4c7b68: apagar los ayudantes del héroe después de publicar su equipo.
@@ -216,8 +216,9 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::Movement::Telepo
                                                 IWorldTransitionPublisher& publisher)
 {
     // 0x4c7523: 0x5be150 va antes de leer/mover al héroe, también con el gate0 de Teleport.
-    const InventoryServices inventory = InventoryServicesOf(resources);
-    if (auto returned = ReturnTheCursorItem({resources.world, resources.cloth.random, inventory}); !returned.HasValue())
+    const Items::InventoryServices inventory = Items::InventoryServicesOf(resources);
+    if (auto returned = Items::ReturnTheCursorItem({resources.world, resources.cloth.random, inventory});
+        !returned.HasValue())
         return returned;
     auto& hero = PublishedHero(resources);
     WriteHeroCells(hero, reply, resources);
@@ -238,7 +239,7 @@ Core::Expected<void, std::string> ApplyTeleport(const Protocol::Movement::Telepo
         return finished;
     // 0x4c830c..0x4c831c: con el gate (pkt[3]) en algo, 0x65dc30, el cartel con el nombre del mapa.
     auto& runtime = resources.world.Runtime();
-    ShowTheMapBanner(runtime.hud.mapBanner, runtime.map);
+    Hud::ShowTheMapBanner(runtime.hud.mapBanner, runtime.map);
     return {};
 }
 Core::Expected<void, std::string> ApplyRegen(const Protocol::Movement::Regen& reply, std::uint16_t playerKey,
@@ -263,7 +264,7 @@ Core::Expected<void, std::string> ApplyRegen(const Protocol::Movement::Regen& re
                            ? 1
                            : 0;
     // 0x4c5048..0x4c504e: 0x65dc30, el cartel con el nombre del mapa, antes de cerrar las ventanas (0x657a90).
-    ShowTheMapBanner(world.Runtime().hud.mapBanner, world.Runtime().map);
+    Hud::ShowTheMapBanner(world.Runtime().hud.mapBanner, world.Runtime().map);
     if (auto closed = CloseTransitionWindows(resources); !closed.HasValue())
         return closed;
     return {};

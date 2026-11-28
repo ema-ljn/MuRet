@@ -265,7 +265,7 @@ protected:
     Client::Models::ClothWorld m_cloth{.random = Client::Crt::CrtRandom(0x1234)};
     Client::Kernel::WorldState m_world;
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SelectionState m_selection{m_world};
+    Client::FrontEnd::SelectionState m_selection{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;
     Client::Assets::GameModels m_models;

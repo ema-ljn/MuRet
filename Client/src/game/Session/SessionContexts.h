@@ -8,13 +8,33 @@ namespace Client::App
 class ServerSession;
 }
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 struct CastleReceiveContext;
+} // namespace Client::CastleSiege
+
+namespace Client::Chat
+{
 struct ChatReceiveContext;
+} // namespace Client::Chat
+
+namespace Client::Events
+{
 struct EventPacketContext;
+} // namespace Client::Events
+
+namespace Client::Guild
+{
 struct GuildReceiveContext;
+} // namespace Client::Guild
+
+namespace Client::Items
+{
 struct InventoryServices;
+} // namespace Client::Items
+
+namespace Client::Scenes
+{
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
@@ -30,22 +50,22 @@ namespace Client::Session
 
 // 0x6d5edc is the slot chosen from the list. The guild's window that the 01 of the Guild Master opens (0x4e345c) sends
 // through the session's GameServer.
-[[nodiscard]] Scenes::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& resources,
-                                                       App::ServerSession& session);
+[[nodiscard]] Chat::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& resources,
+                                                     App::ServerSession& session);
 
 // What the guild's packets send goes through the session's GameServer, also the C1 18 of the war's gesture (0x576a60).
-[[nodiscard]] Scenes::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources,
-                                                         App::ServerSession& session);
+[[nodiscard]] Guild::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources,
+                                                        App::ServerSession& session);
 
 // What the castle's packets send goes through the session's GameServer.
-[[nodiscard]] Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources,
-                                                           App::ServerSession& session);
+[[nodiscard]] CastleSiege::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources,
+                                                                App::ServerSession& session);
 
-// GetTickCount is the session's clock in ms (App::TickCountMs), 0 without a clock. What the events send goes through
+// GetTickCount is the session's clock in ms (Kernel::TickCountMs), 0 without a clock. What the events send goes through
 // the session's GameServer.
-[[nodiscard]] Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources,
+[[nodiscard]] Events::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources,
                                                         App::ServerSession& session,
-                                                        const Scenes::InventoryServices& inventory);
+                                                        const Items::InventoryServices& inventory);
 
 // The 0x3d of a reply, and what a map change asks for, go to the session that applies it.
 class SessionPublisher final : public Scenes::IWorldEntryPublisher, public Scenes::IWorldTransitionPublisher

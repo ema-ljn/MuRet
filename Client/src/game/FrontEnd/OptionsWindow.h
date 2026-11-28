@@ -19,7 +19,7 @@
 // las arma 0x644120 (desde 0x65f300 y 0x65f4b0, cada vez que se arma la UI), las ubica 0x644520, las
 // abre 0x644640, las atiende 0x644730 y las dibuja 0x644860. De toda la pantalla, como la de Esc, con
 // un marco de 30 líneas (op2_back1 arriba), tres casillas, dos deslizadores y el botón de cerrar.
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // Lo que guardan: los globales que 0x6446e0 lee al armarlas y que 0x644730 escribe.
 struct OptionsSettings
@@ -66,19 +66,19 @@ void ApplyOption(OptionsSettings& settings, const OptionsEvent& event);
 // El marco, las casillas, el botón y los deslizadores, en píxeles.
 struct OptionsWindowLayout
 {
-    Rect frame;
-    std::array<Rect, 3> checks{};
-    Rect close;
-    std::array<Point, 2> sliders{};
+    Ui::Rect frame;
+    std::array<Ui::Rect, 3> checks{};
+    Ui::Rect close;
+    std::array<Ui::Point, 2> sliders{};
 };
 
 // 0x644120 y 0x644520 con líneas de `lineHeight` (el alto del buffer de op1_back3).
 [[nodiscard]] OptionsWindowLayout LayoutOptionsWindow(Core::PixelSize screen, int lineHeight);
 
-class OptionsWindow final : public NewUiWindow
+class OptionsWindow final : public Ui::NewUiWindow
 {
 public:
-    OptionsWindow(TextureSizes sizes, const Tables::TextTable* texts);
+    OptionsWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
     // 0x644120: las casillas, el botón y los deslizadores (el volumen hasta 9, el brillo hasta 4), y
     // 0x6446e0 con `settings`. Cerrada.
@@ -89,16 +89,16 @@ public:
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // De toda la pantalla (0x669c70(W, H, −1, 0)).
-    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
+    [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
-    [[nodiscard]] const Button& Check(std::size_t index) const;
-    [[nodiscard]] const Button& CloseButton() const;
-    [[nodiscard]] const Slider& SliderAt(std::size_t index) const;
+    [[nodiscard]] const Ui::Button& Check(std::size_t index) const;
+    [[nodiscard]] const Ui::Button& CloseButton() const;
+    [[nodiscard]] const Ui::Slider& SliderAt(std::size_t index) const;
 
     // Las casillas y el botón (0x63c490) y, con el foco, 0x644730 con los `elapsedMs` del paso:
     // compara los deslizadores con `current`, los globales.
     std::optional<OptionsEvent> Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
-                                     const OptionsSettings& current, NewUiTurn turn = {});
+                                     const OptionsSettings& current, Ui::NewUiTurn turn = {});
     // 0x66a050 y 0x644860: el fondo, el marco, los textos con los valores de `current` (los
     // globales, no los deslizadores), los deslizadores y, al final (0x66a090), las casillas y el botón.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen,
@@ -109,12 +109,12 @@ private:
     // la perilla en el lugar de su valor, y el original lo llama solo al armarlas.
     void Place(Core::PixelSize screen);
 
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     const Tables::TextTable* m_texts = nullptr;
-    std::array<Button, 3> m_checks;
-    Button m_close;
-    std::array<Slider, 2> m_sliders;
+    std::array<Ui::Button, 3> m_checks;
+    Ui::Button m_close;
+    std::array<Ui::Slider, 2> m_sliders;
     OptionsWindowLayout m_layout;
     bool m_open = false;
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-// Client::UI::ServerListWindow: la ventana de la lista (0x6451d0, 0x645520, 0x6456c0, 0x645860,
+// Client::FrontEnd::ServerListWindow: la ventana de la lista (0x6451d0, 0x645520, 0x6456c0, 0x645860,
 // 0x645e10, en el paso, y 0x6463b0; CL5.5). 21 botones de grupo en dos columnas de 10 y uno abajo
 // al medio, y los de servidor del grupo elegido en el medio: 20, uno por número, donde el original
 // tiene 16 (Q-C63). Alrededor, el marco de server_deco_all, y abajo la caja con la descripción del
@@ -33,6 +33,15 @@
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::DescriptionBoxImages;
+using Client::FrontEnd::DescriptionHeight;
+using Client::FrontEnd::GroupServers;
+using Client::FrontEnd::LayoutServerList;
+using Client::FrontEnd::LayoutServerListFrame;
+using Client::FrontEnd::ServerClick;
+using Client::FrontEnd::ServerListFrame;
+using Client::FrontEnd::ServerListLayout;
+using Client::FrontEnd::ServerListWindow;
 using Client::Input::InputState;
 using Client::Protocol::Session::ServerEntry;
 using Client::Render::TextureSlot;
@@ -41,16 +50,7 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Render::Text::TextStyle;
 using Client::Tests::ClickAt;
-using Client::UI::DescriptionBoxImages;
-using Client::UI::DescriptionHeight;
-using Client::UI::GroupServers;
-using Client::UI::LayoutServerList;
-using Client::UI::LayoutServerListFrame;
-using Client::UI::Rect;
-using Client::UI::ServerClick;
-using Client::UI::ServerListFrame;
-using Client::UI::ServerListLayout;
-using Client::UI::ServerListWindow;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
@@ -62,7 +62,7 @@ constexpr int Description = 52;
 // Los buffers de las texturas del laboratorio, para las UV; el tamaño de cada botón es del
 // binario, no de la textura. server_deco_all (0xf) mide 159 × 95, server_ex03 (0x17) 4 × 4 y
 // server_ex01 (0x18) 512 × 12.
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0xc, {128, 128}},
                                             {0xd, {256, 128}},

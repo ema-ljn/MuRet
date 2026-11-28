@@ -115,12 +115,13 @@
 // está en GoldenCharacterDrawing.
 namespace
 {
-using Client::App::SessionState;
 using Client::Assets::SelectionTextureSet;
 using Client::Assets::WindowTextureSet;
 using Client::Core::PixelSize;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::FrontEnd::CharacterSlotHeight;
+using Client::FrontEnd::CharacterSlots;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Models::ActionInfo;
@@ -130,10 +131,9 @@ using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
 using Client::Render::TextureSlot;
 using Client::Scenes::CharacterSelectScene;
-using Client::Scenes::CharacterSlotHeight;
-using Client::Scenes::CharacterSlots;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
+using Client::Session::SessionState;
 using Client::Tables::GameData;
 using Client::Tests::CharacterEntryFields;
 using Client::Tests::FakeTextureStore;
@@ -195,12 +195,12 @@ public:
         {
             return &m_body;
         }
-        if (m_withRaven && model.Value() == Client::Scenes::DarkSpiritModel)
+        if (m_withRaven && model.Value() == Client::Pets::DarkSpiritModel)
         {
             return &m_body;
         }
         if (m_withHelpers &&
-            (model.Value() == Client::Scenes::UniriaModel || model.Value() == Client::Scenes::DinorantModel))
+            (model.Value() == Client::Pets::UniriaModel || model.Value() == Client::Pets::DinorantModel))
         {
             return &m_body;
         }
@@ -256,7 +256,7 @@ std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
     return {{0, "char0001"}, {3, "char0002", 1, static_cast<std::uint8_t>(locked ? 0x01 : 0x00)}};
 }
 
-void RetainLoginTerrain(Client::Scenes::SelectionState& selection)
+void RetainLoginTerrain(Client::FrontEnd::SelectionState& selection)
 {
     constexpr std::uint8_t LoginMap = 55;
     auto terrain = Client::Terrain::LoadWorldTerrain(Client::Tests::RepoDataDir(), LoginMap);
@@ -278,7 +278,7 @@ public:
 struct Harness
 {
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
-                     Client::Scenes::SelectionState* selectionState = nullptr,
+                     Client::FrontEnd::SelectionState* selectionState = nullptr,
                      Client::Kernel::WorldState* worldState = nullptr,
                      Client::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true,
                      const Client::Scenes::WorldEntryResources* worldEntry = nullptr)
@@ -486,7 +486,7 @@ struct Harness
     LoggedInSession online;
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput cameraInput;
-    Client::Scenes::SelectionState* selection;
+    Client::FrontEnd::SelectionState* selection;
     Client::Models::ClothWorld* sharedRandom;
     RecordingFrameTarget target;
     InputState input;
@@ -1178,7 +1178,7 @@ Client::Terrain::TerrainPolygon SelectionPolygon()
 TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
@@ -1205,7 +1205,7 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
 TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1232,7 +1232,7 @@ TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheList)
 TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResetsOnlyEightOwnLevels)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     auto& own = world.OwnCharacter();
     own.byte6a = 3;
@@ -1294,7 +1294,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
     for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
     {
         auto world = std::make_unique<Client::Kernel::WorldState>();
-        Client::Scenes::SelectionState selection(*world);
+        Client::FrontEnd::SelectionState selection(*world);
         Client::Models::ClothWorld cloth;
         ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
         FlatModels models;
@@ -1354,7 +1354,7 @@ TEST(CharacterSelectSceneTest, TheFirstStepClosesEitherSiegeWeaponBetweenInvento
 TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccountNotice)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1374,19 +1374,19 @@ TEST(CharacterSelectSceneTest, TheFirstStepEmptiesTheMessagesAndWritesTheAccount
     EXPECT_FALSE(runtime.chat.input.otherInput);
     EXPECT_EQ(runtime.social.moneyField, 0);
     EXPECT_TRUE(runtime.ui.chatOpen);
-    const Client::UI::MessageAreaState& area = runtime.chat.area;
-    ASSERT_EQ(area.count, static_cast<std::int32_t>(Client::UI::MessageAreaRows));
+    const Client::Ui::MessageAreaState& area = runtime.chat.area;
+    ASSERT_EQ(area.count, static_cast<std::int32_t>(Client::Ui::MessageAreaRows));
     EXPECT_EQ(area.rows[3].text, "");
     EXPECT_EQ(area.rows.back().name, "");
     EXPECT_EQ(area.rows.back().text, "General 1, Gladiador 2");
-    EXPECT_EQ(area.rows.back().type, Client::UI::SystemMessage);
+    EXPECT_EQ(area.rows.back().type, Client::Ui::SystemMessage);
 }
 
 // Con pkt[5] en 0, solo las entradas vacías.
 TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1402,7 +1402,7 @@ TEST(CharacterSelectSceneTest, WithoutNumbersThereIsNoAccountNotice)
 TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBodyReadsItemBmd)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth, false);
@@ -1419,7 +1419,7 @@ TEST(CharacterSelectSceneTest, TheFirstSelectionEmptiesTheEquipmentBeforeTheBody
 TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreviewStep)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1437,7 +1437,7 @@ TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreview
 TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnceUnderANotice)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -1463,7 +1463,7 @@ TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnc
 TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeTheNextList)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     selection.PreviewActor().headTurn.angles = {17.0f, 23.0f};
     selection.PreviewActor().headTurn.target = {61.0f, 83.0f};
@@ -1480,7 +1480,7 @@ TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeT
 TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCounter)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1508,7 +1508,7 @@ TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCou
 TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReused)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1523,7 +1523,7 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
     ASSERT_FALSE(tested.scene->Failure());
     const auto particles = world.Particles().All();
     ASSERT_TRUE(particles[0].alive);
-    EXPECT_EQ(particles[0].type, Client::World::SparkParticle);
+    EXPECT_EQ(particles[0].type, Client::Particles::SparkParticle);
     EXPECT_EQ(particles[0].life, 9) << "nace con10 y634315 la mueve en el mismo paso";
     world.Actors()[4].flags78 |= 0x1000;
     for (int step = 0; step < 12; ++step)
@@ -1532,8 +1532,8 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
         ASSERT_FALSE(tested.scene->Failure());
     }
     EXPECT_FALSE(world.Particles().Any());
-    const auto reused = world.Particles().Create(Client::World::SparkParticle, {}, {}, {},
-                                                 Client::World::RavenSparkSubtype, 1.0f, 0.0f, cloth.random);
+    const auto reused = world.Particles().Create(Client::Particles::SparkParticle, {}, {}, {},
+                                                 Client::Particles::RavenSparkSubtype, 1.0f, 0.0f, cloth.random);
     ASSERT_TRUE(reused.has_value());
     EXPECT_EQ(*reused, 0u);
 }
@@ -1544,7 +1544,7 @@ TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReus
 TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1553,7 +1553,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
     auto& helpers = world.Helpers();
     helpers[0].horse.alpha = 0.5f;
     helpers[1].alive = true;
-    helpers[1].type = Client::Scenes::UniriaModel;
+    helpers[1].type = Client::Pets::UniriaModel;
     helpers[1].rider = 0;
     ASSERT_FALSE(world.Actors()[0].alive);
 
@@ -1572,7 +1572,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperRunsItsBodyWithoutTheGameGuard)
 TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1588,7 +1588,7 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
     ASSERT_FALSE(tested.scene->Failure()) << *tested.scene->Failure();
     auto& uniria = world.Helpers()[1];
     uniria.alive = true;
-    uniria.type = Client::Scenes::UniriaModel;
+    uniria.type = Client::Pets::UniriaModel;
     uniria.rider = 0;
     uniria.scale = 0.9f;
     uniria.horse.alpha = 1.0f;
@@ -1606,7 +1606,7 @@ TEST(CharacterSelectSceneTest, TheSelectionDrawsTheUniriaOfItsCharacter)
 TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePool)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1618,8 +1618,8 @@ TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePoo
     helpers[1].rider = 0;
     auto& spark = world.Particles().All()[0];
     spark.alive = true;
-    spark.type = Client::World::SparkParticle;
-    spark.subtype = Client::World::RavenSparkSubtype;
+    spark.type = Client::Particles::SparkParticle;
+    spark.subtype = Client::Particles::RavenSparkSubtype;
     spark.life = 7;
     constexpr std::uint32_t Seed = 16;
     cloth.random = Client::Crt::CrtRandom(Seed);
@@ -1640,7 +1640,7 @@ TEST(CharacterSelectSceneTest, ASelectionHelperFailureKeepsItsPrefixBeforeThePoo
 TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -1649,8 +1649,8 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
     for (std::size_t slot = 0; slot < 3; ++slot)
     {
         particles[slot].alive = true;
-        particles[slot].type = Client::World::SparkParticle;
-        particles[slot].subtype = Client::World::RavenSparkSubtype;
+        particles[slot].type = Client::Particles::SparkParticle;
+        particles[slot].subtype = Client::Particles::RavenSparkSubtype;
         particles[slot].life = 5;
     }
     particles[1].type = 0xbeef;
@@ -1680,7 +1680,7 @@ TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClot
 TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
@@ -1702,7 +1702,7 @@ TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWi
 {
     constexpr std::uint8_t DeletedSlot = 1;
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({{DeletedSlot, "char0001"}}));
@@ -1806,7 +1806,7 @@ TEST(CharacterSelectSceneTest, AnIdenticalCreationRestartsItsVisualWhenPollIsFol
     constexpr int AnimationSteps = 5;
     constexpr auto StepTime = std::chrono::milliseconds{40};
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
@@ -2155,7 +2155,7 @@ TEST(CharacterSelectSceneTest, TheClassesFollowTheList)
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWithClasses(2));
     tested.ClickAt(CreateButton);
-    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 2);
+    const Client::FrontEnd::CreateWindowLayout layout = Client::FrontEnd::LayoutCreateWindow(PixelSize{640, 480}, 2);
     tested.ClickAt({static_cast<float>(layout.classes[2].x + 5), static_cast<float>(layout.classes[2].y + 5)});
     tested.ClickAt({static_cast<float>(layout.classes[4].x + 5), static_cast<float>(layout.classes[4].y + 5)});
     tested.Type("char0003");
@@ -2174,7 +2174,7 @@ TEST(CharacterSelectSceneTest, UnderANoticeTheWindowLetsGoOfTheMouse)
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.ClickAt(CreateButton);
-    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1);
+    const Client::FrontEnd::CreateWindowLayout layout = Client::FrontEnd::LayoutCreateWindow(PixelSize{640, 480}, 1);
     Client::Tests::MoveMouse(tested.input, layout.ok.x + 5, layout.ok.y + 5);
     tested.Step();
     tested.Tap(Key::Enter);
@@ -2347,11 +2347,11 @@ TEST(CharacterSelectSceneTest, TheWindowDrawsThePreviewInItsOwnPass)
     const std::vector<FrameEvent> events = tested.Frame();
     const std::vector<FrameEvent> passes = ModelPasses(events);
     ASSERT_EQ(passes.size(), 2u);
-    const Client::Render::Pass3D expected =
-        Client::Render::MakePass3D(PixelSize{640, 480},
-                                   Client::Scenes::PreviewViewport(
-                                       Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1).box, PixelSize{640, 480}),
-                                   Client::Scenes::PreviewCamera());
+    const Client::Render::Pass3D expected = Client::Render::MakePass3D(
+        PixelSize{640, 480},
+        Client::FrontEnd::PreviewViewport(Client::FrontEnd::LayoutCreateWindow(PixelSize{640, 480}, 1).box,
+                                          PixelSize{640, 480}),
+        Client::FrontEnd::PreviewCamera());
     ASSERT_TRUE(passes[1].pass.has_value());
     EXPECT_EQ(passes[1].pass->viewport, expected.viewport);
     EXPECT_EQ(passes[1].pass->view, expected.view);
@@ -2388,7 +2388,7 @@ TEST(CharacterSelectSceneTest, ThePreviewFollowsTheClass)
     ASSERT_FALSE(knight[1].modelVertices.empty());
     const float knightSpread = spread(knight[1]);
 
-    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 2);
+    const Client::FrontEnd::CreateWindowLayout layout = Client::FrontEnd::LayoutCreateWindow(PixelSize{640, 480}, 2);
     tested.ClickAt({static_cast<float>(layout.classes[2].x + 5), static_cast<float>(layout.classes[2].y + 5)});
 
     const std::vector<FrameEvent> elf = ModelPasses(tested.Frame());
@@ -2455,7 +2455,7 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
         return passes.size() == 2 && !passes[1].modelVertices.empty() ? passes[1].modelVertices[0].position
                                                                       : glm::vec3(0.0f);
     };
-    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1);
+    const Client::FrontEnd::CreateWindowLayout layout = Client::FrontEnd::LayoutCreateWindow(PixelSize{640, 480}, 1);
     Harness opened;
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(opened, 0));
     ASSERT_NO_FATAL_FAILURE(WriteNewFace(opened, 1));
@@ -2495,7 +2495,7 @@ std::vector<CharacterEntryFields> TwoWingedCharacters()
 TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2514,7 +2514,7 @@ TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeF
 TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastFrameHeld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
-    Client::Scenes::SelectionState selection(*world);
+    Client::FrontEnd::SelectionState selection(*world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, world.get(), &cloth);
@@ -2547,7 +2547,7 @@ TEST(CharacterSelectSceneTest, AListReceivedBeforeSceneEntryDoesNotLeaveTheLastF
 TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2589,7 +2589,7 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
     using Client::Models::OriginalFrameTime;
     constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
     auto world = std::make_unique<Client::Kernel::WorldState>();
-    Client::Scenes::SelectionState selection(*world);
+    Client::FrontEnd::SelectionState selection(*world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, world.get(), &cloth);
@@ -2627,7 +2627,7 @@ TEST(CharacterSelectSceneTest, TheShadowsOfTheListPlaceTheSharedShadowModel)
 TEST(CharacterSelectSceneTest, TheListRunsTheTailOfTheGameWithTheLightOfSceneFour)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2666,7 +2666,7 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 {
     using Client::Models::OriginalFrameTime;
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2707,7 +2707,7 @@ TEST(CharacterSelectSceneTest, TheHeroOfTheListClosesTheOwnRecordForItsColor)
 TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2720,14 +2720,14 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
     lord.equipment[4] = 3;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({lord}));
     ASSERT_TRUE(world.Actors()[4].darkSpirit.has_value());
-    ASSERT_FALSE(world.PoseCarry().models.contains(Client::Scenes::DarkSpiritModel));
+    ASSERT_FALSE(world.PoseCarry().models.contains(Client::Pets::DarkSpiritModel));
     // Nace en el centro de la celda (0, 0), fuera de la vista, y vuela hacia su dueño: acá ya llegó.
     world.Actors()[4].darkSpirit->position = world.Actors()[4].position + glm::vec3(0.0f, 0.0f, 250.0f);
 
     static_cast<void>(tested.Frame());
 
     ASSERT_FALSE(tested.scene->Failure().has_value()) << *tested.scene->Failure();
-    EXPECT_TRUE(world.PoseCarry().models.contains(Client::Scenes::DarkSpiritModel));
+    EXPECT_TRUE(world.PoseCarry().models.contains(Client::Pets::DarkSpiritModel));
     EXPECT_FALSE(world.Actors()[4].darkSpirit->pose.empty());
 }
 
@@ -2737,7 +2737,7 @@ TEST(CharacterSelectSceneTest, TheRavenOfALordInTheListIsDrawnAfterHim)
 TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -2771,7 +2771,7 @@ TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPos
 TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNormals)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, false, false, &selection, &world, &cloth);
@@ -2827,7 +2827,7 @@ TEST(CharacterSelectSceneTest, ThePreviewPosesInItsModelAndLightsItsUnscaledNorm
 TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNativeFrames)
 {
     Client::Kernel::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::FrontEnd::SelectionState selection(world);
     Client::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection, &world, &cloth);
@@ -2846,10 +2846,10 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
     EXPECT_EQ(world.Actors()[0].light, glm::vec3(0.0f));
     const auto chaseLights = [&world]
     {
-        std::vector<const Client::World::Particle*> found;
+        std::vector<const Client::Particles::Particle*> found;
         for (const auto& particle : world.Particles().All())
         {
-            if (particle.alive && particle.type == Client::World::ChaseLightParticle)
+            if (particle.alive && particle.type == Client::Particles::ChaseLightParticle)
                 found.push_back(&particle);
         }
         return found;
@@ -2858,11 +2858,11 @@ TEST(CharacterSelectSceneTest, TheChosenOneGlowsAndRaisesItsTwoChaseLightsOnNati
     ASSERT_EQ(lights.size(), 2u);
     EXPECT_EQ(lights[0]->subtype, 0);
     EXPECT_EQ(lights[1]->subtype, 1);
-    EXPECT_EQ(lights[1]->texture, Client::World::ChaseLightImpactTexture);
+    EXPECT_EQ(lights[1]->texture, Client::Particles::ChaseLightImpactTexture);
     for (const auto* light : lights)
     {
         EXPECT_EQ(light->light, glm::vec3(std::bit_cast<float>(0x3e19999au)));
-        EXPECT_EQ(light->typedOwner, Client::World::ParticleOwner{});
+        EXPECT_EQ(light->typedOwner, Client::Particles::ParticleOwner{});
     }
     const auto cellX = static_cast<std::uint8_t>(chosen.position.x / 100.0f);
     const auto cellY = static_cast<std::uint8_t>(chosen.position.y / 100.0f);
@@ -2924,7 +2924,7 @@ TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
     {
         const auto line = tested.store.Find(TextureSlot{0x72d});
         EXPECT_TRUE(line.has_value());
-        return Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 10, line ? line->texture.textureHeight : 1);
+        return Client::FrontEnd::LayoutEscapeWindow(PixelSize{640, 480}, 10, line ? line->texture.textureHeight : 1);
     };
     Client::Models::ClothWorld joinedCloth;
     Harness joined(true, false, false, nullptr, nullptr, &joinedCloth);
@@ -2932,8 +2932,8 @@ TEST(CharacterSelectSceneTest, TheEscapeWindowAsksToJoinAnotherServer)
     Client::Models::ClothWorld stayedCloth;
     Harness stayed(true, false, false, nullptr, nullptr, &stayedCloth);
     ASSERT_NO_FATAL_FAILURE(openTheWindow(stayed));
-    const Client::UI::EscapeWindowLayout layout = layoutOf(joined);
-    const Client::UI::Rect server = layout.buttons[1];
+    const Client::FrontEnd::EscapeWindowLayout layout = layoutOf(joined);
+    const Client::Ui::Rect server = layout.buttons[1];
 
     joined.ClickAt({static_cast<float>(server.x + 5), static_cast<float>(server.y + 5)});
     stayed.ClickAt({static_cast<float>(layout.frame.x + 2), static_cast<float>(layout.frame.y + 2)});
@@ -2968,11 +2968,13 @@ TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
     const auto line = tested.store.Find(TextureSlot{0x72d});
     ASSERT_TRUE(line.has_value());
     const int lineHeight = line->texture.textureHeight;
-    const Client::UI::EscapeWindowLayout escape = Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 10, lineHeight);
-    const Client::UI::OptionsWindowLayout options = Client::UI::LayoutOptionsWindow(PixelSize{640, 480}, lineHeight);
+    const Client::FrontEnd::EscapeWindowLayout escape =
+        Client::FrontEnd::LayoutEscapeWindow(PixelSize{640, 480}, 10, lineHeight);
+    const Client::FrontEnd::OptionsWindowLayout options =
+        Client::FrontEnd::LayoutOptionsWindow(PixelSize{640, 480}, lineHeight);
 
     tested.Tap(Key::Escape);
-    const Client::UI::Rect button = escape.buttons[2];
+    const Client::Ui::Rect button = escape.buttons[2];
     tested.ClickAt({static_cast<float>(button.x + 5), static_cast<float>(button.y + 5)});
     // Las tres casillas y el botón de cerrar, de op1_b_all como los de la de Esc, que ya no se dibujan.
     std::vector<FrameEvent> frame = tested.Frame();
@@ -2982,7 +2984,7 @@ TEST(CharacterSelectSceneTest, TheOptionsOpenFromTheEscapeWindow)
     EXPECT_EQ(tested.scene->Next(), std::nullopt);
 
     ASSERT_EQ(world.Runtime().ui.volume, 5);
-    const Client::UI::Point volume = options.sliders[0];
+    const Client::Ui::Point volume = options.sliders[0];
     tested.ClickAt({static_cast<float>(volume.x + 90), static_cast<float>(volume.y + 5)});
     EXPECT_EQ(world.Runtime().ui.volume, 6);
 

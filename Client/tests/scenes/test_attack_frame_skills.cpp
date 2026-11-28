@@ -42,17 +42,17 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::StepTheFrameSkill: los casos de 0x4f97b0 por la habilidad de +0x38e (0x4f9899..0x4fab5c, la tabla de
+// Client::Skills::StepTheFrameSkill: los casos de 0x4f97b0 por la habilidad de +0x38e (0x4f9899..0x4fab5c, la tabla de
 // 0x4fb10c), y 0x4f8f5b de la cola de 0x4f5b70. 06, "Las habilidades de los frames del ataque".
 namespace
 {
 using Client::Actors::CharacterStepContext;
+using Client::Combat::StepTheAttack;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Scenes::JointState;
-using Client::Scenes::StepTheAttack;
-using Client::Scenes::StepTheFrameSkill;
+using Client::Skills::StepTheFrameSkill;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
@@ -164,16 +164,17 @@ struct FrameWorld
     CrtRandom random{Seed};
     Client::Models::Skeleton skeleton = SkeletonWithBones();
     std::vector<std::int32_t> sounds;
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     bool withParticles = true;
     std::vector<JointState> joints = std::vector<JointState>(16);
     bool withJoints = true;
 };
 
-std::vector<const Client::World::Particle*> AliveOf(const Client::World::Particles& particles, std::int32_t type)
+std::vector<const Client::Particles::Particle*> AliveOf(const Client::Particles::Particles& particles,
+                                                        std::int32_t type)
 {
-    std::vector<const Client::World::Particle*> found;
-    for (const Client::World::Particle& particle : particles.All())
+    std::vector<const Client::Particles::Particle*> found;
+    for (const Client::Particles::Particle& particle : particles.All())
     {
         if (particle.alive && particle.type == type)
             found.push_back(&particle);
@@ -311,9 +312,9 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cGoOutEveryStep)
                 EXPECT_EQ(joint->angles, glm::vec3(static_cast<float>(pitch), 0.0f, 90.0f));
                 EXPECT_EQ(joint->ownerContext, nullptr);
             }
-            const auto flames = AliveOf(tested.particles, Client::World::FireParticle);
+            const auto flames = AliveOf(tested.particles, Client::Particles::FireParticle);
             ASSERT_EQ(flames.size(), 4u);
-            for (const Client::World::Particle* flame : flames)
+            for (const Client::Particles::Particle* flame : flames)
             {
                 EXPECT_EQ(flame->subtype, 2);
                 EXPECT_EQ(flame->position, point);
@@ -576,7 +577,7 @@ TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
         auto effects = tested.world.Map().effects.Effects();
         if (full)
         {
-            for (Client::World::ModelEffect& effect : effects)
+            for (Client::Effects::ModelEffect& effect : effects)
                 effect.alive = true;
         }
 
@@ -596,7 +597,7 @@ TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
                 const int offset = expected.Next() % 60 - 30;
                 point[axis] = static_cast<float>(static_cast<double>(offset) + static_cast<double>(point[axis]));
             }
-            const Client::World::ModelEffect& effect = effects[rock];
+            const Client::Effects::ModelEffect& effect = effects[rock];
             ASSERT_TRUE(effect.alive);
             EXPECT_EQ(effect.type, 0x10f);
             EXPECT_EQ(effect.subtype, HandModel);
@@ -616,7 +617,7 @@ TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
 {
     const auto emitters = [](const FrameWorld& tested)
     {
-        std::vector<const Client::World::ModelEffect*> found;
+        std::vector<const Client::Effects::ModelEffect*> found;
         for (const auto& effect : tested.world.Map().effects.Effects())
         {
             if (effect.alive)
@@ -972,9 +973,9 @@ TEST(AttackFrameSkillsTest, TheSpinOf38ThrowsFiveWaves)
     EXPECT_TRUE(stepped.Value());
     std::vector<float> headings;
     std::vector<std::uint16_t> counts;
-    for (const Client::World::ModelEffect& effect : tested.world.Map().effects.Effects())
+    for (const Client::Effects::ModelEffect& effect : tested.world.Map().effects.Effects())
     {
-        if (!effect.alive || effect.type != Client::World::MagicEffect)
+        if (!effect.alive || effect.type != Client::Effects::MagicEffect)
             continue;
         EXPECT_EQ(effect.subtype, 2);
         EXPECT_EQ(effect.ownerContext, &hero);

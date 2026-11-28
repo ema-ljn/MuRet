@@ -14,7 +14,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::PersonalShop
 {
 namespace
 {
@@ -38,16 +38,16 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     if (actor.byte88 != PlayerKind)
         return;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    PersonalShopState& shops = runtime.social.personalShop;
+    Social::PersonalShopState& shops = runtime.social.personalShop;
     const auto found = shops.titles.find(index);
     if (found == shops.titles.end())
     {
         // 0x451326..0x451382: el cartel nuevo (0x4524e0), con la clave & 0x7fff y el lugar en (−1, −1).
-        shops.titles.emplace(index, ShopTitle{.key = key & StoredKeyMask,
-                                              .name = Actors::ChatNameOf(actor),
-                                              .title = std::string(title),
-                                              .x = Unplaced,
-                                              .y = Unplaced});
+        shops.titles.emplace(index, Social::ShopTitle{.key = key & StoredKeyMask,
+                                                      .name = Actors::ChatNameOf(actor),
+                                                      .title = std::string(title),
+                                                      .x = Unplaced,
+                                                      .y = Unplaced});
     }
     else if (found->second.key == key)
     {
@@ -67,35 +67,35 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     runtime.hud.dcFont = Render::Text::FontKind::Normal;
 }
 
-void RemoveShopTitle(PersonalShopState& shops, std::size_t index)
+void RemoveShopTitle(Social::PersonalShopState& shops, std::size_t index)
 {
     shops.titles.erase(index);
 }
 
-bool HasShopTitle(const PersonalShopState& shops, std::size_t index)
+bool HasShopTitle(const Social::PersonalShopState& shops, std::size_t index)
 {
     return shops.titles.contains(index);
 }
 
-void HideShopTitle(PersonalShopState& shops, std::size_t index)
+void HideShopTitle(Social::PersonalShopState& shops, std::size_t index)
 {
     if (const auto found = shops.titles.find(index); found != shops.titles.end())
         found->second.visible = false;
 }
 
-void ShowShopTitle(PersonalShopState& shops, std::size_t index)
+void ShowShopTitle(Social::PersonalShopState& shops, std::size_t index)
 {
     if (const auto found = shops.titles.find(index); found != shops.titles.end())
         found->second.visible = true;
 }
 
-bool ShopTitleShown(const PersonalShopState& shops, std::size_t index)
+bool ShopTitleShown(const Social::PersonalShopState& shops, std::size_t index)
 {
     const auto found = shops.titles.find(index);
     return found != shops.titles.end() && found->second.visible;
 }
 
-std::optional<std::size_t> ShopTitleWithKey(const PersonalShopState& shops, std::int32_t key)
+std::optional<std::size_t> ShopTitleWithKey(const Social::PersonalShopState& shops, std::int32_t key)
 {
     for (const auto& [index, shop] : shops.titles)
     {
@@ -107,7 +107,7 @@ std::optional<std::size_t> ShopTitleWithKey(const PersonalShopState& shops, std:
 
 void CheckTheShopKeys(Kernel::WorldState& world)
 {
-    PersonalShopState& shops = world.Runtime().social.personalShop;
+    Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     const auto actors = world.Actors();
     for (auto shop = shops.titles.begin(); shop != shops.titles.end();)
     {
@@ -122,7 +122,7 @@ void CheckTheShopKeys(Kernel::WorldState& world)
 void KeepTheHeroShopTitle(Kernel::WorldState& world)
 {
     const std::int32_t heroKey = KeyOf(world.Hero());
-    PersonalShopState& shops = world.Runtime().social.personalShop;
+    Social::PersonalShopState& shops = world.Runtime().social.personalShop;
     for (auto shop = shops.titles.begin(); shop != shops.titles.end();)
     {
         if (shop->second.key == heroKey)
@@ -131,4 +131,4 @@ void KeepTheHeroShopTitle(Kernel::WorldState& world)
             shop = shops.titles.erase(shop);
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::PersonalShop

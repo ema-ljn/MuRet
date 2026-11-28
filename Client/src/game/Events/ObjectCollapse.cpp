@@ -23,7 +23,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Events
 {
 namespace
 {
@@ -96,7 +96,7 @@ Result CreateParticle(const ObjectCollapseContext& context, std::int32_t type, c
 }
 
 // 0x405630 en los mapas 18 a 23: devuelve 1 siempre, así que 0x5ff960 no sigue con ningún objeto.
-Result StepChaosCastleCollapse(World::WorldObject& object, const ObjectCollapseContext& context)
+Result StepChaosCastleCollapse(WorldObjects::WorldObject& object, const ObjectCollapseContext& context)
 {
     Kernel::WorldRuntime& runtime = context.runtime;
     ObjectCollapse& collapse = runtime.events.objectCollapse;
@@ -117,8 +117,8 @@ Result StepChaosCastleCollapse(World::WorldObject& object, const ObjectCollapseC
         const glm::vec3 stone{
             F32((static_cast<double>(spread) - StoneBack) + static_cast<double>(object.transform.position.x)),
             object.transform.position.y, context.heroZ};
-        if (auto created = CreateParticle(context, World::ChaosCastleFallingStone, stone, object.transform.angles,
-                                          glm::vec3(1.0f), StoneScale, step.stoneAt);
+        if (auto created = CreateParticle(context, Events::ChaosCastle::ChaosCastleFallingStone, stone,
+                                          object.transform.angles, glm::vec3(1.0f), StoneScale, step.stoneAt);
             !created.HasValue())
             return created;
         const int shake = context.random.Next() % ShakeSpan - ShakeSpan;
@@ -130,7 +130,7 @@ Result StepChaosCastleCollapse(World::WorldObject& object, const ObjectCollapseC
     if (counter <= 0)
     {
         // 0x405715..0x40572c: el objeto oculto, el área siguiente y el pedido borrado.
-        object.state.hiddenMesh = World::HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         runtime.chaosCastleArea = step.next;
         ResetTheObjectCollapse(collapse);
         return {};
@@ -144,7 +144,7 @@ Result StepChaosCastleCollapse(World::WorldObject& object, const ObjectCollapseC
 }
 
 // 0x5ffa24..0x5ffb59: el objeto del tipo pedido (la puerta de Blood Castle, 0x24).
-Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& context)
+Result FellTheObject(WorldObjects::WorldObject& object, const ObjectCollapseContext& context)
 {
     ObjectCollapse& collapse = context.runtime.events.objectCollapse;
     float& angle = object.transform.angles.x;
@@ -176,7 +176,7 @@ Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& co
                 const int spreadY = context.random.Next() % DustSpreadY;
                 dust.y =
                     F32(static_cast<double>(object.transform.position.y) - (static_cast<double>(spreadY) + DustBackY));
-                if (auto created = CreateParticle(context, World::DustParticle, dust, object.transform.angles,
+                if (auto created = CreateParticle(context, Particles::DustParticle, dust, object.transform.angles,
                                                   object.light, DustScale, "0x5ffb21");
                     !created.HasValue())
                     return created;
@@ -186,7 +186,7 @@ Result FellTheObject(World::WorldObject& object, const ObjectCollapseContext& co
     if (collapse.counter != 0)
         return {};
     // 0x5ffb36..0x5ffb54: caída, el pedido borrado y el paso abierto.
-    object.state.hiddenMesh = World::HiddenObject;
+    object.state.hiddenMesh = WorldObjects::HiddenObject;
     angle = FallenAngle;
     ResetTheObjectCollapse(collapse);
     return Terrain::MarkTheTerrainArea(context.attributes, GatePassage, GateAttribute, false, "0x5ffb54");
@@ -210,7 +210,7 @@ void CountDownTheObjectCollapse(Kernel::WorldRuntime& runtime)
     counter = static_cast<std::int32_t>(static_cast<std::uint32_t>(counter) - 1U);
 }
 
-Result CollapseTheObject(World::WorldObject& object, const ObjectCollapseContext& context)
+Result CollapseTheObject(WorldObjects::WorldObject& object, const ObjectCollapseContext& context)
 {
     if (!ObjectCollapseActive(context.runtime))
         return {};
@@ -229,4 +229,4 @@ Result CollapseTheObject(World::WorldObject& object, const ObjectCollapseContext
         return {};
     return FellTheObject(object, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Events

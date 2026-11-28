@@ -71,7 +71,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -295,7 +295,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> mesh
         return Core::Unexpected<std::string>("0x50bb96: falta la tela persistente del lugar del personaje");
     // objeto + 0x190: la del lugar, en sus telas.
     Actors::Drawing::CharacterCloth& worn = frame.pass.cloths[frame.slot];
-    MonsterMeshCloth& cloth = worn.OnTheMesh();
+    Actors::Drawing::MonsterMeshCloth& cloth = worn.OnTheMesh();
     const Models::ClothBody body{.bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
     if (!frame.originalFrame)
     {
@@ -704,7 +704,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-                if (auto made = CreateFaunaJoint(frame.pass.joints, request, frame.random); !made.HasValue())
+                if (auto made = Joints::CreateFaunaJoint(frame.pass.joints, request, frame.random); !made.HasValue())
                     return Core::Unexpected(std::format("0x50c492: {}", made.Error()));
             }
             previous = point;
@@ -722,8 +722,8 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
         if (frame.pass.particles == nullptr)
             return Core::Unexpected<std::string>("0x50c3e0: falta el arreglo de las partículas (0x53fe70)");
         const auto created = frame.pass.particles->CreateChecked(
-            World::FireParticle, PointOnTheBone(frame, SparkBone, glm::vec3(0.0f)), actor.angles, glm::vec3(1.0f), 0,
-            SparkScale, frame.worldClock, frame.random);
+            Particles::FireParticle, PointOnTheBone(frame, SparkBone, glm::vec3(0.0f)), actor.angles, glm::vec3(1.0f),
+            0, SparkScale, frame.worldClock, frame.random);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x50c3e0: la partícula 0x5d9/0 del +0x376 0x4b falla con el error {}",
                                                 static_cast<int>(created.Error())));
@@ -1196,7 +1196,7 @@ Result DrawTheFairy(MonsterFrame& frame)
     constexpr std::int32_t FairyJoint = 0x618;
     constexpr std::int32_t FairySubtype = 6;
     constexpr float Width = 20.0f;
-    const auto created = CreateFaunaJoint(
+    const auto created = Joints::CreateFaunaJoint(
         frame.pass.joints, {FairyJoint, from, point, angles, FairySubtype, nullptr, Width, -1, 0, 0, -1}, frame.random);
     if (!created.HasValue())
         return Core::Unexpected(std::format("0x5108a9: {}", created.Error()));
@@ -1367,13 +1367,13 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     // +0x36c (Q-C352): el efecto 0x140 (Scenes/GuildMarkEffects) con el hueso 20 del cuerpo recién posado. Solo en un
     // frame del original: entre frames, el personaje es una copia y las tablas, las del mundo.
     if (actor.byte88 == PlayerKind && !IsBloodCastle(frame.map) && !IsChaosCastle(frame.map) &&
-        frame.map != CastleMap && frame.originalFrame && GuildMarkIsDue(actor, frame.worldClock))
+        frame.map != CastleMap && frame.originalFrame && Effects::GuildMarkIsDue(actor, frame.worldClock))
     {
         if (pass.particles == nullptr)
             return Core::Unexpected<std::string>("0x510f4d: el efecto 0x140 pide las partículas del frame");
-        const glm::vec3 point = ActorBonePoint(actor, GuildMarkBone, glm::vec3(0.0f), frame.world);
-        if (auto raised = RaiseTheGuildMark(actor, point, frame.world.Map().effects, *pass.particles, frame.random,
-                                            frame.worldClock);
+        const glm::vec3 point = Effects::ActorBonePoint(actor, Effects::GuildMarkBone, glm::vec3(0.0f), frame.world);
+        if (auto raised = Effects::RaiseTheGuildMark(actor, point, frame.world.Map().effects, *pass.particles,
+                                                     frame.random, frame.worldClock);
             !raised.HasValue())
             return Core::Unexpected(std::format("0x510f4d: {}", raised.Error()));
     }
@@ -1464,4 +1464,4 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
         return clothed;
     return DrawTheTail(frame, terrainLight);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

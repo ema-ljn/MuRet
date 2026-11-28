@@ -26,7 +26,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::UI
+namespace Client::FrontEnd
 {
 namespace
 {
@@ -114,20 +114,20 @@ CreditsLayout LayoutCredits(Core::PixelSize screen)
     const auto decoBottom =
         static_cast<int>(static_cast<double>(screen.height) * static_cast<double>(DecoHeightFactor));
     layout.deco =
-        Rect{.x = screen.width - DecoWidth, .y = decoBottom - DecoHeight, .width = DecoWidth, .height = DecoHeight};
-    layout.close =
-        Rect{.x = layout.deco.x + CloseLeft, .y = layout.deco.y + CloseTop, .width = CloseWidth, .height = CloseHeight};
+        Ui::Rect{.x = screen.width - DecoWidth, .y = decoBottom - DecoHeight, .width = DecoWidth, .height = DecoHeight};
+    layout.close = Ui::Rect{
+        .x = layout.deco.x + CloseLeft, .y = layout.deco.y + CloseTop, .width = CloseWidth, .height = CloseHeight};
     return layout;
 }
 
-CreditsWindow::CreditsWindow(TextureSizes sizes, std::span<const Tables::CreditEntry> credits)
+CreditsWindow::CreditsWindow(Ui::TextureSizes sizes, std::span<const Tables::CreditEntry> credits)
     : m_sizes(std::move(sizes)), m_credits(credits), m_close(CloseSlot, CloseWidth, CloseHeight)
 {
 }
 
 void CreditsWindow::Arm()
 {
-    m_close = Button(CloseSlot, CloseWidth, CloseHeight);
+    m_close = Ui::Button(CloseSlot, CloseWidth, CloseHeight);
     m_barAlphas.fill(Opaque);
     m_illustrationState = 0;
     m_open = false;
@@ -161,13 +161,13 @@ bool CreditsWindow::IsOpen() const
     return m_open;
 }
 
-Rect CreditsWindow::Bounds(Core::PixelSize screen) const
+Ui::Rect CreditsWindow::Bounds(Core::PixelSize screen) const
 {
-    return Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
+    return Ui::Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height};
 }
 
 CreditsStep CreditsWindow::Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs,
-                                NewUiTurn turn)
+                                Ui::NewUiTurn turn)
 {
     CreditsStep step;
     if (!m_open)
@@ -175,8 +175,8 @@ CreditsStep CreditsWindow::Step(const Input::InputState& input, Core::PixelSize 
         return step;
     }
     m_layout = LayoutCredits(screen);
-    m_close.MoveTo(Point{m_layout.close.x, m_layout.close.y});
-    const bool clicked = m_close.Step(input, MouseOfTheTurn(turn, input, screen), turn.buttonClicked);
+    m_close.MoveTo(Ui::Point{m_layout.close.x, m_layout.close.y});
+    const bool clicked = m_close.Step(input, Ui::MouseOfTheTurn(turn, input, screen), turn.buttonClicked);
     if (!turn.logic)
     {
         return step;
@@ -207,7 +207,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
         return;
     }
     m_layout = LayoutCredits(screen);
-    m_close.MoveTo(Point{m_layout.close.x, m_layout.close.y});
+    m_close.MoveTo(Ui::Point{m_layout.close.x, m_layout.close.y});
     sprites.SetBlend(Render::BlendMode::Alpha);
     // 0x66a050: la base de 0x669c70 con el alfa en 0xff (0x63f13b).
     sprites.Image(Render::UiImage{.slot = std::nullopt,
@@ -221,20 +221,20 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     for (std::uint16_t half = 0; half < 2; ++half)
     {
         const Render::TextureSlot slot{static_cast<std::uint16_t>(FirstIllustrationSlot.value + half)};
-        Render::UiImage image = PixelImage(slot,
-                                           Rect{.x = IllustrationSize * half,
-                                                .y = IllustrationTop,
-                                                .width = IllustrationSize,
-                                                .height = IllustrationSize},
-                                           m_sizes(slot));
+        Render::UiImage image = Ui::PixelImage(slot,
+                                               Ui::Rect{.x = IllustrationSize * half,
+                                                        .y = IllustrationTop,
+                                                        .width = IllustrationSize,
+                                                        .height = IllustrationSize},
+                                               m_sizes(slot));
         image.scaleX = m_layout.scaleX;
         image.scaleY = m_layout.scaleY;
         image.color.alpha = AlphaOf(m_illustrationAlpha);
         sprites.Image(image);
     }
-    sprites.Image(PixelImage(DecoSlot, m_layout.deco, m_sizes(DecoSlot)));
-    Render::UiImage logo = PixelImage(
-        LogoSlot, Rect{.x = LogoLeft, .y = LogoTop, .width = LogoWidth, .height = LogoHeight}, m_sizes(LogoSlot));
+    sprites.Image(Ui::PixelImage(DecoSlot, m_layout.deco, m_sizes(DecoSlot)));
+    Render::UiImage logo = Ui::PixelImage(
+        LogoSlot, Ui::Rect{.x = LogoLeft, .y = LogoTop, .width = LogoWidth, .height = LogoHeight}, m_sizes(LogoSlot));
     logo.scaleX = m_layout.scaleX;
     logo.scaleY = m_layout.scaleY;
     sprites.Image(logo);
@@ -257,7 +257,7 @@ void CreditsWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawe
     sprites.Image(m_close.Image(m_sizes));
 }
 
-const Button& CreditsWindow::CloseButton() const
+const Ui::Button& CreditsWindow::CloseButton() const
 {
     return m_close;
 }
@@ -498,4 +498,4 @@ void CreditsWindow::DrawTexts(Render::Frame::ITextDrawer& text, Core::PixelSize 
         DrawCentered(text, columns.lefts[i], NamesTop, columns.width, textAt(m_names[i]), NameStyle, screen);
     }
 }
-} // namespace Client::UI
+} // namespace Client::FrontEnd

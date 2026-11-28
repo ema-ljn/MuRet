@@ -30,7 +30,7 @@
 //
 // Un clic en un grupo no vuelve a pedir la lista: el original manda otro F4 02 (Q-C82). Y todo se
 // atiende en el paso (Q-C81).
-namespace Client::UI
+namespace Client::FrontEnd
 {
 // El ancho de la ventana (0x6451d0): dos columnas de botones de grupo, una de servidor y 56.
 inline constexpr int ServerListWidth = 465;
@@ -67,14 +67,14 @@ struct ServerClick
 // Dónde va cada cosa, en píxeles con la y desde arriba.
 struct ServerListLayout
 {
-    Rect window;
-    std::array<Rect, GroupButtonCount> groupButtons{};
+    Ui::Rect window;
+    std::array<Ui::Rect, GroupButtonCount> groupButtons{};
     // Los 20 lugares de servidor del grupo, para `serverCount` servidores.
-    std::array<Rect, ServersPerGroup> serverButtons{};
+    std::array<Ui::Rect, ServersPerGroup> serverButtons{};
     // La barra de la carga de cada uno, de su ancho entero (160).
-    std::array<Rect, ServersPerGroup> loadBars{};
+    std::array<Ui::Rect, ServersPerGroup> loadBars{};
     // La caja de la descripción, centrada abajo de la ventana (0x645520).
-    Rect description;
+    Ui::Rect description;
 };
 
 // Las cuatro piezas de server_deco_all que van alrededor de los botones de grupo (0x6451d0,
@@ -106,33 +106,33 @@ struct ServerListFrame
 // del 10, (1, 2) arriba a la derecha del elegido de la izquierda y (23, 2) arriba a la izquierda
 // del de la derecha.
 [[nodiscard]] ServerListFrame LayoutServerListFrame(const ServerListLayout& layout, std::size_t groupButtons,
-                                                    std::optional<std::size_t> selected, const TextureSizes& sizes);
+                                                    std::optional<std::size_t> selected, const Ui::TextureSizes& sizes);
 
 // Las cinco imágenes de la caja de 0x66a1c0 en `box`, en el orden de 0x66a960: el fondo de
 // server_ex03 en (3, 3), repetido; el borde de arriba y el de abajo de server_ex01; y los lados de
 // server_ex02, el de la izquierda repetido y el de la derecha estirado (06 § La lista de
 // servidores).
-[[nodiscard]] std::array<Render::UiImage, 5> DescriptionBoxImages(Rect box, const TextureSizes& sizes);
+[[nodiscard]] std::array<Render::UiImage, 5> DescriptionBoxImages(Ui::Rect box, const Ui::TextureSizes& sizes);
 
-class ServerListWindow final : public NewUiWindow
+class ServerListWindow final : public Ui::NewUiWindow
 {
 public:
     // `texts` puede ser nullptr (sin Text.bmd: los botones salen sin rótulo) y tiene que vivir lo
     // que la ventana.
-    ServerListWindow(TextureSizes sizes, const Tables::TextTable* texts);
+    ServerListWindow(Ui::TextureSizes sizes, const Tables::TextTable* texts);
 
     // Abre con la lista ya agrupada (GroupServers), sin grupo elegido.
     void Open(ServerGroups groups);
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     // La ventana (`window` de LayoutServerList).
-    [[nodiscard]] Rect Bounds(Core::PixelSize screen) const override;
+    [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
     // El botón de grupo elegido, desde 0.
     [[nodiscard]] std::optional<std::size_t> Selected() const;
 
     // 0x645e10 en el paso, con el foco: un clic en un grupo lo elige; uno en un servidor dice qué
     // pasó. Sin el foco, solo los botones.
-    std::optional<ServerClick> Step(const Input::InputState& input, Core::PixelSize screen, NewUiTurn turn = {});
+    std::optional<ServerClick> Step(const Input::InputState& input, Core::PixelSize screen, Ui::NewUiTurn turn = {});
     // Los renglones de la descripción del grupo elegido, vacío sin él.
     [[nodiscard]] const std::vector<std::string>& Description() const;
 
@@ -157,14 +157,14 @@ private:
                                             Core::PixelSize screen, std::uint32_t textColor) const;
     void DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, std::uint32_t color) const;
 
-    TextureSizes m_sizes;
+    Ui::TextureSizes m_sizes;
     const Tables::TextTable* m_texts;
     bool m_open = false;
     ServerGroups m_groups;
     std::optional<std::size_t> m_selected;
-    std::vector<Button> m_groupButtons;
-    std::vector<Button> m_serverButtons;
+    std::vector<Ui::Button> m_groupButtons;
+    std::vector<Ui::Button> m_serverButtons;
     std::vector<std::string> m_description;
     ServerListLayout m_layout;
 };
-} // namespace Client::UI
+} // namespace Client::FrontEnd

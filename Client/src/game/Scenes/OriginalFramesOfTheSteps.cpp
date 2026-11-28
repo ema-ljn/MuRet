@@ -18,7 +18,7 @@ int OriginalFramesOfTheSteps::FramesAtDraw(Models::OriginalFramePace pace)
         m_carry = Core::Duration::zero();
         return 1;
     }
-    m_carry += App::LogicStep * static_cast<std::int64_t>(newSteps);
+    m_carry += Kernel::LogicStep * static_cast<std::int64_t>(newSteps);
     if (newSteps == 0 || m_carry < Models::OriginalFrameTime)
         return 0;
     m_carry -= Models::OriginalFrameTime;
@@ -33,6 +33,6 @@ bool OriginalFramesOfTheSteps::NextDrawIsAnOriginalFrame(Models::OriginalFramePa
         return true;
     const std::uint64_t newSteps = m_steps - m_stepsAtTheLastDraw;
     return newSteps != 0 &&
-           m_carry + (App::LogicStep * static_cast<std::int64_t>(newSteps)) >= Models::OriginalFrameTime;
+           m_carry + (Kernel::LogicStep * static_cast<std::int64_t>(newSteps)) >= Models::OriginalFrameTime;
 }
 } // namespace Client::Scenes

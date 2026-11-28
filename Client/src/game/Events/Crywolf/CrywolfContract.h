@@ -23,7 +23,7 @@ class WorldState;
 // tiene Crywolf: el oráculo es el ASM del cliente. Lo que llena la ventana (0x723a44, sus dos renglones y 0x723be0) es
 // 0x435b00, desde el BD 03 (0x4e1010, Scenes/EventPackets), el clic en un altar (0x567b00, dentro de 0x5650c0) y los
 // botones de la misma ventana; su dibujo es 0x436240 (Scenes/CrywolfInterfaceDrawing).
-namespace Client::Scenes
+namespace Client::Events::Crywolf
 {
 
 // Los mensajes de 0x435b00: el texto 1950 + n de Text.bmd ([0x774bf04 + 300 · n]).
@@ -104,7 +104,7 @@ enum class AltarClick : std::uint8_t
 // con una elfa, el altar contratado (0x4365a0, el nibble alto en 1) da 0x435b00(0x34); sin contratos (el nibble bajo
 // en 0), 0x435b00(0x35); con contratos, 0x435b00(0x38, 0, clave, altar) y 0x435b00(0x39, 1, clave, −1), con la clave
 // +0x1f4 del blanco con signo. La llama la llegada a un NPC con Crywolf activo (0x5650c0 con +0x379 en 2,
-// Scenes::TalkToTheNpc), antes del C1 30.
+// Npc::TalkToTheNpc), antes del C1 30.
 [[nodiscard]] Core::Expected<AltarClick, std::string> ClickTheCrywolfAltar(Kernel::WorldRuntime& runtime,
                                                                            const Tables::TextTable* texts,
                                                                            const Kernel::ActorState& hero,
@@ -117,4 +117,4 @@ enum class AltarClick : std::uint8_t
 // camina ni adónde: también el clic en el suelo, el D3 y los caminos de los otros personajes (Q-C1351). Con 0x6c8e54 en
 // −1 (sin NPC elegido) el original lee el registro −1, fuera de la tabla (Q-C1350): MuRet lo toma sin altar.
 [[nodiscard]] bool CrywolfAltarGoal(const Kernel::WorldState& world);
-} // namespace Client::Scenes
+} // namespace Client::Events::Crywolf

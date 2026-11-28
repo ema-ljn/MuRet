@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -600,4 +600,4 @@ Core::Expected<void, ParticleError> StepEffectParticle(Particle& particle, Crt::
     return StepTheSpark(particle, random, ownerStates);
 }
 
-} // namespace Client::World
+} // namespace Client::Particles

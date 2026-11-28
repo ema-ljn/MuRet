@@ -111,7 +111,7 @@ protected:
 
     void ChooseClass(std::uint8_t characterClass)
     {
-        const auto layout = Client::UI::LayoutCreateWindow({640, 480}, characterClass);
+        const auto layout = Client::FrontEnd::LayoutCreateWindow({640, 480}, characterClass);
         Client::Tests::ClickAt(m_input, layout.classes[characterClass].x + 5, layout.classes[characterClass].y + 5);
         ASSERT_NO_FATAL_FAILURE(Step());
         ASSERT_EQ(m_scene->PreviewActor().characterClass, characterClass);
@@ -156,10 +156,10 @@ protected:
     Client::Models::ClothWorld m_cloth;
     Client::Kernel::WorldState m_world;
     Client::Session::ModuleStates m_states;
-    Client::Scenes::SelectionState m_selection{m_world};
+    Client::FrontEnd::SelectionState m_selection{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
     Client::Tables::GameData m_data;
     Client::Tests::RecordingFrameTarget m_target;
     std::unique_ptr<Client::Scenes::CharacterSelectScene> m_scene;

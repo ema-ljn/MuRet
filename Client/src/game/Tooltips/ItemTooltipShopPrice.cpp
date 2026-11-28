@@ -22,7 +22,7 @@
 
 // 0x5b2f7f..0x5b3716 del cuerpo del ítem (CL9 hito 7, fase 6a; 06 § Las tiendas personales, "El dibujo"): el precio de
 // la tienda personal. Los textos son los de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -51,12 +51,12 @@ std::int32_t PriceColor(std::int32_t price)
 
 // 0x5b2f99..0x5b2ff3: el precio del lugar en el mapa del modo (0x6c931c): 1 el de la propia (0x7245e4), 2 el de la de
 // otro (0x7245e0), con map::find por lower_bound (0x5f8260). Sin mapa todavía, con otro modo o sin el lugar, nada.
-std::optional<std::int32_t> PriceAt(const PersonalShopState& shops, std::int32_t place)
+std::optional<std::int32_t> PriceAt(const Social::PersonalShopState& shops, std::int32_t place)
 {
-    if (!shops.pricesBuilt || (shops.mode != OwnShopView && shops.mode != OtherShopView))
+    if (!shops.pricesBuilt || (shops.mode != Social::OwnShopView && shops.mode != Social::OtherShopView))
         return std::nullopt;
     const std::map<std::int32_t, std::int32_t>& prices =
-        shops.mode == OwnShopView ? shops.ownPrices : shops.otherPrices;
+        shops.mode == Social::OwnShopView ? shops.ownPrices : shops.otherPrices;
     const auto found = prices.find(place);
     if (found == prices.end())
         return std::nullopt;
@@ -64,20 +64,20 @@ std::optional<std::int32_t> PriceAt(const PersonalShopState& shops, std::int32_t
 }
 } // namespace
 
-Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& context, TooltipWriter& lines,
+Core::Expected<void, std::string> WriteThePersonalShopPrice(Hud::GameHudContext& context, TooltipWriter& lines,
                                                             const Kernel::ItemState& item)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // 0x5b2f7f: solo con el ítem de la grilla de la tienda personal bajo el mouse (0x78abaa4, 0x5c4110).
     if (runtime.ui.shopGridHovered == 0)
         return {};
-    const PersonalShopState& shops = runtime.social.personalShop;
+    const Social::PersonalShopState& shops = runtime.social.personalShop;
     const std::int32_t place = item.gridColumn + item.gridRow * ShopColumns + FirstShopPlace;
     const std::optional<std::int32_t> found = PriceAt(shops, place);
     if (!found)
     {
         // 0x5b3697..0x5b3714: con la propia, el 1101 en rojo y en negrita, y un "\n".
-        if (shops.mode != OwnShopView)
+        if (shops.mode != Social::OwnShopView)
             return {};
         lines.At("0x5b36a0");
         lines.PrintText(NoPriceText);
@@ -91,7 +91,7 @@ Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& cont
     // color del precio, en negrita, y un "\n".
     const std::int32_t price = *found;
     lines.At("0x5b30bd");
-    lines.PrintText(PriceText, std::string_view(FormatZen(static_cast<std::uint32_t>(price))));
+    lines.PrintText(PriceText, std::string_view(Ui::FormatZen(static_cast<std::uint32_t>(price))));
     lines.Color(PriceColor(price));
     lines.Bold(1);
     lines.Next();
@@ -107,7 +107,7 @@ Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& cont
     }
     // 0x5b360e..0x5b367e: sin signo, el zen que no alcanza; solo mirando la de otro, el 423 en rojo y en negrita, y un
     // "\n".
-    if (zen >= static_cast<std::uint32_t>(price) || shops.mode != OtherShopView)
+    if (zen >= static_cast<std::uint32_t>(price) || shops.mode != Social::OtherShopView)
         return {};
     lines.At("0x5b362e");
     lines.PrintText(NotEnoughZenText);
@@ -117,4 +117,4 @@ Core::Expected<void, std::string> WriteThePersonalShopPrice(GameHudContext& cont
     lines.NewLine();
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

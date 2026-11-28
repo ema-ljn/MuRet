@@ -43,7 +43,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -86,7 +86,7 @@ bool HoldsTheElfWeapon(const Kernel::ActorState& published)
 // 0x57e1c4..0x57e21e (el límite en la x87), 0x57f044..0x57f092 y 0x5809a2..0x5809e7 (el límite guardado en un float,
 // [ebp−0x34]): la distancia del héroe al centro de la celda 0x77e1ba8/0x77e1bac contra el alcance · 100. Menor, igual
 // o desordenado (C0 o C3) está en alcance.
-bool InReach(const Kernel::ActorState& hero, const GameMovementState& state, bool storedLimit)
+bool InReach(const Kernel::ActorState& hero, const Movement::GameMovementState& state, bool storedLimit)
 {
     const auto targetX = std::bit_cast<std::int32_t>(state.targetX);
     const auto targetY = std::bit_cast<std::int32_t>(state.targetY);
@@ -138,7 +138,7 @@ private:
     Core::Expected<bool, std::string> PassesTheHead();
     Core::Expected<bool, std::string> Attackable() const
     {
-        return IsAttackable(m_world, m_context.controlDown);
+        return Hero::IsAttackable(m_world, m_context.controlDown);
     }
     Kernel::ActorState& Published() const
     {
@@ -160,7 +160,7 @@ private:
     const HeroSkillContext& m_context;
     Kernel::WorldState& m_world;
     Kernel::WorldRuntime& m_runtime;
-    GameMovementState& m_state;
+    Movement::GameMovementState& m_state;
 };
 
 Core::Expected<Kernel::ActorState*, std::string> ElfBranch::ActorAt(std::int32_t index, std::string_view where) const
@@ -254,11 +254,11 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
 {
     if (!IsPlayer(m_hero) || !HoldsTheElfWeapon(Published()))
         return {};
-    static const InventoryServices NoServices{};
-    const auto arrows = CheckTheArrows(
-        InventoryMoveContext{.world = m_world,
-                             .random = m_context.random,
-                             .services = m_context.inventory != nullptr ? *m_context.inventory : NoServices});
+    static const Items::InventoryServices NoServices{};
+    const auto arrows = Items::CheckTheArrows(
+        Items::InventoryMoveContext{.world = m_world,
+                                    .random = m_context.random,
+                                    .services = m_context.inventory != nullptr ? *m_context.inventory : NoServices});
     if (!arrows.HasValue())
         return Core::Unexpected(arrows.Error());
     if (!arrows.Value() || !InReach(m_hero, m_state, false))
@@ -270,7 +270,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     if (m_state.weaponSkill.target != -1)
     {
         const auto chosen =
-            ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
+            Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), m_state.weaponSkill.target, m_context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
         key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(chosen.Value()) & 0xffffu);
@@ -289,7 +289,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     }
     // 0x57ef5f..0x57ef71: 0x4f4a10. La flecha de 0x53e2b0 (0x57ef77..0x57f002) es de quien no es un jugador, que
     // 0x57e156 ya dejó afuera.
-    return SetActorAttack(m_hero, CombatContextOf(m_context));
+    return Combat::SetActorAttack(m_hero, CombatContextOf(m_context));
 }
 
 // 0x4eac00(X, Y, x, y, +0x3e8, distancia) desde la celda lógica del héroe (la Y y la X, 8 rand()). Con camino, +0x378
@@ -309,7 +309,7 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
     const auto path =
         Pathfinding::PathFinder(terrain.attributes->cells)
             .Find({start.x, start.y}, {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)},
-                  CrywolfAltarGoal(m_world), distance);
+                  Events::Crywolf::CrywolfAltarGoal(m_world), distance);
     if (!path)
         return {};
     m_hero.path = *path;
@@ -325,7 +325,8 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
     const std::int32_t chosen = m_runtime.selectedTargets[2];
     // 0x57f008..0x57f03e.
     if (chosen != -1)
-        m_state.weaponSkill = WeaponSkillRequest{.active = 1, .slot = Published().skillIndex, .target = chosen};
+        m_state.weaponSkill =
+            Movement::WeaponSkillRequest{.active = 1, .slot = Published().skillIndex, .target = chosen};
     if (!InReach(m_hero, m_state, true))
     {
         // 0x57f098..0x57f15e: el camino hasta un jugador elegido (+0x88 en 1), con las 0x1a a 0x1c o atacable.
@@ -481,7 +482,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
             SkillDelayContext{.world = m_world, .random = m_context.random, .skills = m_context.skills});
         !delayed.HasValue())
         return delayed;
-    const auto key = ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
+    const auto key = Hero::ChosenKeyOf(m_world, SlotOf(m_world, m_hero), chosen, m_context.controlDown);
     if (!key.HasValue())
         return Core::Unexpected(key.Error());
     m_hero.skillTarget4c = chosen;
@@ -522,4 +523,4 @@ Core::Expected<void, std::string> UseTheElfSkill(Kernel::ActorState& hero, std::
 {
     return ElfBranch(hero, skill, context).Use();
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

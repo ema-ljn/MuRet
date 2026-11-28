@@ -41,8 +41,8 @@ constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 struct Remains
 {
     Client::Models::Skeleton skeleton;
-    Client::World::ModelEffects effects;
-    Client::Scenes::ActorEffectHooks hooks;
+    Client::Effects::ModelEffects effects;
+    Client::Effects::ActorEffectHooks hooks;
     Client::Terrain::GroundMarkTable marks{};
     CrtRandom random{Seed};
 
@@ -133,7 +133,7 @@ TEST(ActorRemainsTest, TheIceMonsterOfDeviasBreaksIntoTenIceShards)
     EXPECT_FALSE(actor.alive);
     EXPECT_EQ(remains->LiveEffects(), 10u);
     EXPECT_EQ(remains->LiveMarks(), 0u);
-    auto expected = std::make_unique<Client::World::ModelEffects>();
+    auto expected = std::make_unique<Client::Effects::ModelEffects>();
     CrtRandom draws(Seed);
     for (int shard = 0; shard < 10; ++shard)
         ASSERT_TRUE(expected->CreateIceShard(actor.position, actor.angles, actor.light, draws).has_value());
@@ -144,7 +144,7 @@ TEST(ActorRemainsTest, TheIceMonsterOfDeviasBreaksIntoTenIceShards)
         SCOPED_TRACE(slot);
         const auto& shard = remains->effects.Effects()[slot];
         const auto& wanted = expected->Effects()[slot];
-        EXPECT_EQ(shard.type, Client::World::IceShardEffect);
+        EXPECT_EQ(shard.type, Client::Effects::IceShardEffect);
         EXPECT_EQ(shard.subtype, 0);
         EXPECT_EQ(shard.transform.position, (glm::vec3{12345.0f, 6789.0f, 200.0f}));
         EXPECT_EQ(shard.light, actor.light);

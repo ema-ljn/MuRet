@@ -98,7 +98,7 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
         return Core::Unexpected(std::string("0x4eac00: no current walls for another player's path"));
     Pathfinding::PathFinder finder(attributes->cells);
     // 0x4eac0a..0x4eac41: with a Crywolf altar at 0x6c8e54, the A* flag also on another character's path.
-    const auto path = finder.Find({x, y}, {targetX, targetY}, Scenes::CrywolfAltarGoal(resources.world));
+    const auto path = finder.Find({x, y}, {targetX, targetY}, Events::Crywolf::CrywolfAltarGoal(resources.world));
     if (!path)
         return {};
     actor.path = *path;
@@ -108,6 +108,6 @@ Core::Expected<void, std::string> WalkToTheTarget(Kernel::ActorState& actor, std
 
 bool IsHiddenName(const Protocol::FrontEnd::NameBytes& name)
 {
-    return UI::ContainsLikeTheOriginal(NameText(name), HiddenName);
+    return FrontEnd::ContainsLikeTheOriginal(NameText(name), HiddenName);
 }
 } // namespace Client::Actors

@@ -9,7 +9,7 @@ namespace Client::Render
 {
 class ModelBatch;
 }
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct ObjectModelStepState;
 }
@@ -23,7 +23,7 @@ namespace Client::Actors::Drawing
 struct DrawnObject;
 } // namespace Client::Actors::Drawing
 
-namespace Client::Scenes
+namespace Client::MapScripts::Crywolf
 {
 
 // 0x430ae1/0x430b0f: RenderMesh de malla 0 con 0x44 y 0x240, textura−1 y el estado del objeto.
@@ -32,5 +32,5 @@ namespace Client::Scenes
                                                                        const Models::IModelLibrary& models,
                                                                        Actors::Drawing::DrawnObject& object,
                                                                        Core::Duration frameClock,
-                                                                       World::ObjectModelStepState* modelState);
-} // namespace Client::Scenes
+                                                                       WorldObjects::ObjectModelStepState* modelState);
+} // namespace Client::MapScripts::Crywolf

@@ -21,7 +21,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::MapScripts::Dungeon
 {
 namespace
 {
@@ -51,17 +51,18 @@ std::optional<float> LostTowerScroll(float worldClock)
     return F32(static_cast<double>(negated % ScrollPeriod) * Thousandth);
 }
 
-Core::Expected<void, std::string> Fire(const WorldObject& object, const glm::vec3& offset, Crt::CrtRandom& random,
-                                       const ObjectStepGlobals& globals, const char* address)
+Core::Expected<void, std::string> Fire(const WorldObjects::WorldObject& object, const glm::vec3& offset,
+                                       Crt::CrtRandom& random, const WorldObjects::ObjectStepGlobals& globals,
+                                       const char* address)
 {
-    if (auto emitted = EmitObjectFire(0, object, offset, random, globals); !emitted.HasValue())
+    if (auto emitted = WorldObjects::EmitObjectFire(0, object, offset, random, globals); !emitted.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, emitted.Error()));
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Crt::CrtRandom& random,
-                                                    const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
+                                                    const WorldObjects::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -82,7 +83,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Crt::Cr
     case 0x27:
     case 0x28:
     case 0x33:
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     case 0x29:
         return Fire(object, glm::vec3(0.0f, -30.0f, 240.0f), random, globals, "0x605043");
@@ -99,7 +100,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Crt::Cr
             static_cast<void>(globals.effects->CreateFallingStone(object.transform.position, object.transform.angles,
                                                                   object.light, random));
         }
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     }
     default:
@@ -107,8 +108,8 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObject& object, Crt::Cr
     }
 }
 
-Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Crt::CrtRandom& random,
-                                                      const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepLostTowerObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
+                                                      const WorldObjects::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -133,7 +134,7 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Crt::
         return {};
     case 0x18:
     {
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         constexpr int JetMask = 63;
         if ((random.Next() & JetMask) != 0)
             return {};
@@ -145,7 +146,7 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Crt::
         return {};
     }
     case 0x19:
-        object.state.hiddenMesh = HiddenObject;
+        object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     case 0x26:
     case 0x27:
@@ -155,13 +156,14 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Crt::
     }
 }
 
-Core::Expected<void, std::string> StepArenaObject(WorldObject& object, const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepArenaObject(WorldObjects::WorldObject& object,
+                                                  const WorldObjects::ObjectStepGlobals& globals)
 {
     constexpr std::int16_t ScrollingObject = 0x15;
     constexpr std::int16_t HiddenType = 0x26;
     if (object.type == HiddenType)
     {
-        object.state.hiddenMesh = HiddenObject; // 0x60550f.
+        object.state.hiddenMesh = WorldObjects::HiddenObject; // 0x60550f.
         return {};
     }
     if (object.type != ScrollingObject)
@@ -176,7 +178,8 @@ Core::Expected<void, std::string> StepArenaObject(WorldObject& object, const Obj
     return {};
 }
 
-Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectStepGlobals& globals)
+Core::Expected<void, std::string> KickObject(WorldObjects::WorldObject& object,
+                                             const WorldObjects::ObjectStepGlobals& globals)
 {
     if (globals.heroPosition == nullptr || globals.heroAction == nullptr)
         return Core::Unexpected(std::string("0x52f556: la patada 0x52f550 lee la posición y la acción del héroe "
@@ -226,4 +229,4 @@ Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectSt
             F32(static_cast<double>(object.copiedAngles[axis]) + static_cast<double>(object.transform.angles[axis]));
     return {};
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Dungeon

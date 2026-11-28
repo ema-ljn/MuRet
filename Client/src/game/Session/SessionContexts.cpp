@@ -39,10 +39,10 @@ Scenes::WorldEntryResources WithTheSession(const Scenes::WorldEntryResources& re
     return bound;
 }
 
-Scenes::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
+Chat::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
 {
     const Protocol::FrontEnd::CharacterEntry* chosen = session.ChosenCharacter();
-    return Scenes::ChatReceiveContext{
+    return Chat::ChatReceiveContext{
         .world = resources.world,
         .random = resources.cloth.random,
         .measure = resources.textMeasure,
@@ -56,29 +56,30 @@ Scenes::ChatReceiveContext ChatContextOf(const Scenes::WorldEntryResources& reso
         .worldEntry = &resources};
 }
 
-Scenes::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
+Guild::GuildReceiveContext GuildContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
 {
     const std::uint32_t now =
         resources.clock != nullptr
             ? static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(resources.clock->Now()).count())
             : 0U;
-    return Scenes::GuildReceiveContext{.world = resources.world,
-                                       .random = resources.cloth.random,
-                                       .measure = resources.textMeasure,
-                                       .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
-                                       .texts = resources.texts,
-                                       .playerKey = session.PlayerIndex(),
-                                       .now = now,
-                                       .send = [&session](Protocol::Outgoing packet)
-                                       { session.SendGuildPacket(std::move(packet)); },
-                                       .models = &resources.models,
-                                       .worldEntry = &resources};
+    return Guild::GuildReceiveContext{.world = resources.world,
+                                      .random = resources.cloth.random,
+                                      .measure = resources.textMeasure,
+                                      .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
+                                      .texts = resources.texts,
+                                      .playerKey = session.PlayerIndex(),
+                                      .now = now,
+                                      .send = [&session](Protocol::Outgoing packet)
+                                      { session.SendGuildPacket(std::move(packet)); },
+                                      .models = &resources.models,
+                                      .worldEntry = &resources};
 }
 
-Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session)
+CastleSiege::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& resources,
+                                                  App::ServerSession& session)
 {
-    return Scenes::CastleReceiveContext{
+    return CastleSiege::CastleReceiveContext{
         .world = resources.world,
         .random = resources.cloth.random,
         .log = resources.log,
@@ -87,23 +88,23 @@ Scenes::CastleReceiveContext CastleContextOf(const Scenes::WorldEntryResources& 
         .texts = resources.texts,
         .send = [&session](Protocol::Outgoing packet) { session.SendCastlePacket(std::move(packet)); },
         .dataRoot = resources.dataRoot,
-        .tick = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
+        .tick = resources.clock != nullptr ? Kernel::TickCountMs(resources.clock->Now()) : 0U,
         .entryResources = &resources,
         .terrain = Scenes::WritableTerrainOf(resources),
         .faunaModels = Scenes::FaunaModelsOf(resources)};
 }
 
-Scenes::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session,
-                                          const Scenes::InventoryServices& inventory)
+Events::EventPacketContext EventContextOf(const Scenes::WorldEntryResources& resources, App::ServerSession& session,
+                                          const Items::InventoryServices& inventory)
 {
-    return Scenes::EventPacketContext{
+    return Events::EventPacketContext{
         .world = resources.world,
         .random = resources.cloth.random,
         .texts = resources.texts,
         .items = resources.items,
         .measure = resources.textMeasure,
         .screen = resources.screen ? resources.screen() : ScreenWithoutAWindow,
-        .tickCount = resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0U,
+        .tickCount = resources.clock != nullptr ? Kernel::TickCountMs(resources.clock->Now()) : 0U,
         .playerSkeleton = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId),
         .models = &resources.models,
         .sendWindowClose = [&session] { session.SendWindowClose(); },

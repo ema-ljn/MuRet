@@ -19,19 +19,19 @@
 #include <limits>
 #include <optional>
 #include <string>
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
 using Math::F32;
-bool HasRoom(const World::ModelEffects& effects)
+bool HasRoom(const Effects::ModelEffects& effects)
 {
     return std::any_of(effects.Effects().begin(), effects.Effects().end(), [](const auto& e) { return !e.alive; });
 }
 } // namespace
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateCrywolfDeathSpirit(const Kernel::ModelEffectArguments& args, World::ModelEffects& effects,
-                         World::Particles* particles, Crt::CrtRandom& random, float clock)
+CreateCrywolfDeathSpirit(const Kernel::ModelEffectArguments& args, Effects::ModelEffects& effects,
+                         Particles::Particles* particles, Crt::CrtRandom& random, float clock)
 {
     const auto slot = effects.Begin(args);
     if (!slot)
@@ -75,8 +75,8 @@ CreateCrywolfDeathSpirit(const Kernel::ModelEffectArguments& args, World::ModelE
     }
     return slot;
 }
-Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, Crt::CrtRandom& random,
-                                                         const World::ModelEffectStepServices& services,
+Core::Expected<void, std::string> StepCrywolfDeathSpirit(Effects::ModelEffect& e, Crt::CrtRandom& random,
+                                                         const Effects::ModelEffectStepServices& services,
                                                          std::optional<glm::vec3> point)
 {
     if (e.subtype == 1)
@@ -123,16 +123,16 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(World::ModelEffect& e, 
             e.transform.position[axis] = F32(static_cast<double>((*point)[axis]) + e.transform.position[axis]);
         if (services.effects == nullptr)
             return Core::Unexpected(std::string("0x52720c: falta el pool de la estela104/0"));
-        static_cast<void>(World::CreateSpiritTrail({.type = 0x104,
-                                                    .position = e.transform.position,
-                                                    .angles = e.transform.angles,
-                                                    .light = e.light,
-                                                    .owner = &e},
-                                                   *services.effects));
+        static_cast<void>(Effects::CreateSpiritTrail({.type = 0x104,
+                                                      .position = e.transform.position,
+                                                      .angles = e.transform.angles,
+                                                      .light = e.light,
+                                                      .owner = &e},
+                                                     *services.effects));
     }
     e.turnDirection = F32(static_cast<double>(e.turnDirection) + static_cast<double>(.1f));
     if (services.sound)
         services.sound(Audio::SoundId{0x1ca});
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

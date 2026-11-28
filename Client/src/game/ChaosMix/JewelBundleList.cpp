@@ -33,7 +33,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::ChaosMix
 {
 namespace
 {
@@ -116,13 +116,13 @@ float F32(std::int32_t value)
     return static_cast<float>(value);
 }
 
-std::int32_t Count(const JewelBundleList& list)
+std::int32_t Count(const Npc::JewelBundleList& list)
 {
     return static_cast<std::int32_t>(list.rows.size());
 }
 
 // 0x4839c0, la vtable + 0x58: elige `row`, sin pasarse de la cuenta.
-void Select(JewelBundleList& list, std::int32_t row)
+void Select(Npc::JewelBundleList& list, std::int32_t row)
 {
     list.selection = row;
     if (Count(list) < list.selection)
@@ -130,7 +130,7 @@ void Select(JewelBundleList& list, std::int32_t row)
 }
 
 // 0x4839f0, la vtable + 0x5c: con un elegido, `step` más arriba, sin pasarse de la cuenta. Sin filas, ninguno.
-void SelectNext(JewelBundleList& list, std::int32_t step)
+void SelectNext(Npc::JewelBundleList& list, std::int32_t step)
 {
     if (list.rows.empty())
     {
@@ -145,7 +145,7 @@ void SelectNext(JewelBundleList& list, std::int32_t step)
 }
 
 // 0x483a50, la vtable + 0x60: con un elegido, `step` más abajo, hasta el 1. Sin filas, ninguno.
-void SelectPrevious(JewelBundleList& list, std::int32_t step)
+void SelectPrevious(Npc::JewelBundleList& list, std::int32_t step)
 {
     if (list.rows.empty())
     {
@@ -161,7 +161,7 @@ void SelectPrevious(JewelBundleList& list, std::int32_t step)
 
 // 0x4833e0, la vtable + 0x34: el primero que se ve baja `rows` (sube con negativo), entre 0 y la cuenta menos los que
 // se ven. Con menos filas que las que se ven (sin signo), nada.
-void Scroll(JewelBundleList& list, std::int32_t rows)
+void Scroll(Npc::JewelBundleList& list, std::int32_t rows)
 {
     if (static_cast<std::uint32_t>(Count(list)) < static_cast<std::uint32_t>(list.shownRows))
         return;
@@ -176,20 +176,20 @@ void Scroll(JewelBundleList& list, std::int32_t rows)
 }
 
 // 0x46f2c0, la vtable + 0x98: la y del renglón `row` desde el primero que se ve, de abajo hacia arriba.
-std::int32_t RowY(const JewelBundleList& list, std::int32_t row)
+std::int32_t RowY(const Npc::JewelBundleList& list, std::int32_t row)
 {
     const std::int32_t shown = list.shownRows < Count(list) ? list.shownRows : Count(list);
     return (shown - row) * RowHeight - list.height - RowsBottom + list.y;
 }
 
 // 0x46f1a0 y 0x46f020: el ancho de un renglón, ftol(ancho − ancho del cursor + 1).
-double RowWidth(const JewelBundleList& list)
+double RowWidth(const Npc::JewelBundleList& list)
 {
     return static_cast<double>(list.width) - static_cast<double>(list.thumbWidth) + 1.0;
 }
 
 // 0x4834a0, la vtable + 0x28: un mensaje de la cola. El 9 y el 0xe no le llegan a esta lista.
-void HandleTheMessage(JewelBundleList& list, std::int32_t message)
+void HandleTheMessage(Npc::JewelBundleList& list, std::int32_t message)
 {
     // +0xbc es 1 (el constructor).
     if ((message != NextMessage && message != PreviousMessage) || list.rows.empty())
@@ -217,7 +217,7 @@ bool ReadTheKey(const Input::InputState& input, Key key)
 
 // 0x483bc0: una flecha del teclado abajo. En 0 manda el mensaje y empieza la cuenta, hasta 5 la sube y desde 6 manda
 // en cada paso.
-void RepeatTheKey(JewelBundleList& list, std::int32_t message)
+void RepeatTheKey(Npc::JewelBundleList& list, std::int32_t message)
 {
     if (list.keyRepeat == 0)
     {
@@ -232,7 +232,8 @@ void RepeatTheKey(JewelBundleList& list, std::int32_t message)
 
 // 0x483bc0: una flecha o la pista con el botón apretado. En 0 corre (las flechas, con el sonido) y empieza la cuenta,
 // hasta 15 la sube (la lista no tiene padre, +0x44 en 0) y desde 16 corre en cada paso.
-void Repeat(JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int32_t& counter, std::int32_t rows, bool sound)
+void Repeat(Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int32_t& counter, std::int32_t rows,
+            bool sound)
 {
     if (counter == 0)
     {
@@ -249,10 +250,10 @@ void Repeat(JewelBundleList& list, Kernel::WorldRuntime& runtime, std::int32_t& 
 
 // 0x483bc0 con el clic sobre la lista: las flechas de la barra y, con más filas que las que se ven (o tantas), el
 // cursor y la pista. El cursor no se agarra: 0x402af0 dejó el mouse agarrado por la lista (07 Q-C1151).
-void PressTheBar(const GameUiContext& context, JewelBundleList& list, Kernel::WorldRuntime& runtime)
+void PressTheBar(const Hud::GameUiContext& context, Npc::JewelBundleList& list, Kernel::WorldRuntime& runtime)
 {
     const auto in = [&](std::int32_t x, std::int32_t y, std::int32_t width, std::int32_t height)
-    { return UI::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
+    { return Chat::MouseInRect(context.mouseX, context.mouseY, x, y, width, height, TopLeftRect); };
     const std::int32_t inset = list.barMode == 1 ? BarModeInset : 0;
     const std::int32_t margin = list.barMode != 1 ? BarModeInset : 0;
     const std::int32_t arrowX = list.x + inset - ArrowInset + list.width;
@@ -278,16 +279,16 @@ void PressTheBar(const GameUiContext& context, JewelBundleList& list, Kernel::Wo
 // 0x4845d0 (la vtable + 0x74) y el renglón de 0x483bc0 con 0x46f1a0 (la vtable + 0x88), desde el primero que se ve
 // hasta `shownRows` renglones o el final (0x5762ebc es siempre 0). El clic elige y da vuelta +0; el doble clic
 // izquierdo elige y devuelve la fila para 0x402a90 si su nivel no es 0xff y su casilla está en [1, 0x3f].
-std::optional<JewelBundleList::Row> HoverTheRows(const GameUiContext& context, JewelBundleList& list, bool& click,
-                                                 bool& rightReleased)
+std::optional<Npc::JewelBundleList::Row> HoverTheRows(const Hud::GameUiContext& context, Npc::JewelBundleList& list,
+                                                      bool& click, bool& rightReleased)
 {
-    std::optional<JewelBundleList::Row> asked{};
+    std::optional<Npc::JewelBundleList::Row> asked{};
     const std::int32_t width = Truncate(RowWidth(list));
     auto at = static_cast<std::size_t>(list.scroll);
     for (std::int32_t row = 0; row < list.shownRows && at < list.rows.size(); ++row, ++at)
     {
-        if (!UI::MouseInRect(context.mouseX, context.mouseY, list.x, RowY(list, row) - RowRise, width, RowHeight,
-                             TopLeftRect))
+        if (!Chat::MouseInRect(context.mouseX, context.mouseY, list.x, RowY(list, row) - RowRise, width, RowHeight,
+                               TopLeftRect))
             continue;
         if (click)
         {
@@ -300,7 +301,7 @@ std::optional<JewelBundleList::Row> HoverTheRows(const GameUiContext& context, J
         {
             Select(list, list.scroll + 1 + row);
             // El elegido acaba de quedar en una fila: 0x46f27e no lee el final.
-            const std::optional<JewelBundleList::Row> chosen = ChosenBundle(list);
+            const std::optional<Npc::JewelBundleList::Row> chosen = ChosenBundle(list);
             if (chosen && chosen->level != 0xff && chosen->cell > 0 && chosen->cell < AskedCells)
                 asked = chosen;
             rightReleased = false;
@@ -330,7 +331,7 @@ void Quad(Render::SpriteBatch& sprites, float x, float y, float width, float hei
 // 0x491960(índice, alfa).
 void Palette(Render::SpriteBatch& sprites, std::int32_t index, float alpha)
 {
-    if (const std::optional<Color> color = UI::OldWindowPalette(index, alpha))
+    if (const std::optional<Color> color = Ui::OldWindowPalette(index, alpha))
         sprites.SetColor(*color);
 }
 
@@ -344,16 +345,16 @@ void WhiteWithTexture(Render::SpriteBatch& sprites)
 // 0x46ebe0, la vtable + 0x7c: el fondo, la barra (0x484490, que guarda para el paso), las flechas (dadas vuelta con
 // el clic sobre ellas, 0x7d366d4) y la pista con el cursor; con menos filas que las que se ven, el cursor ocupa la
 // pista.
-void DrawTheFrame(Render::SpriteBatch& sprites, JewelBundleList& list, bool click, UI::Point mouse)
+void DrawTheFrame(Render::SpriteBatch& sprites, Npc::JewelBundleList& list, bool click, Ui::Point mouse)
 {
     const auto in = [&](std::int32_t x, std::int32_t y)
-    { return UI::MouseInRect(mouse.x, mouse.y, x, y, ArrowSize, ArrowSize, TopLeftRect); };
+    { return Chat::MouseInRect(mouse.x, mouse.y, x, y, ArrowSize, ArrowSize, TopLeftRect); };
     sprites.SetBlend(Render::BlendMode::Alpha);
     Palette(sprites, FramePalette, FrameAlpha);
     sprites.ColorQuad(F32(list.x - 1), F32(list.y - list.height - 1), F32(list.width + 1), F32(list.height + 2));
     WhiteWithTexture(sprites);
-    const UI::OldListBar bar =
-        UI::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows, Count(list), list.scroll);
+    const Chat::OldListBar bar =
+        Chat::PlaceTheListBar(list.y, list.height, list.barMode, list.shownRows, Count(list), list.scroll);
     list.barTop = bar.barTop;
     list.barBottom = bar.barBottom;
     list.thumbY = bar.thumbY;
@@ -397,8 +398,9 @@ void DrawTheFrame(Render::SpriteBatch& sprites, JewelBundleList& list, bool clic
 
 // 0x46f020, la vtable + 0x80: el renglón `row` desde el primero que se ve, con el velo del elegido, y su texto con
 // 0x465950 en la fuente del DC. Deja la mezcla apagada (0x620980).
-Core::Expected<void, std::string> DrawTheRow(GameHudContext& context, const JewelBundleList& list, std::int32_t row,
-                                             const JewelBundleList::Row& entry, std::uint8_t kind)
+Core::Expected<void, std::string> DrawTheRow(Hud::GameHudContext& context, const Npc::JewelBundleList& list,
+                                             std::int32_t row, const Npc::JewelBundleList::Row& entry,
+                                             std::uint8_t kind)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
@@ -415,7 +417,7 @@ Core::Expected<void, std::string> DrawTheRow(GameHudContext& context, const Jewe
     sprites.EnableTexture();
     hud.textColors.background = 0;
     const std::size_t index = kind == 0 ? BlessName : SoulName;
-    const std::optional<std::string_view> name = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> name = Ui::TextAt(context.texts, index);
     if (!name)
         return Core::Unexpected(std::format("0x46f152: sin el texto {} de Text.bmd", index));
     std::string text = std::format("{},  {}", *name, (static_cast<std::int8_t>(entry.level) + 1) * JewelsPerLevel);
@@ -429,7 +431,7 @@ Core::Expected<void, std::string> DrawTheRow(GameHudContext& context, const Jewe
 }
 } // namespace
 
-void ClearTheBundles(JewelBundleList& list)
+void ClearTheBundles(Npc::JewelBundleList& list)
 {
     list.rows.clear();
     // 0x483610 (+0x48) con 0 sobre ninguna fila.
@@ -437,13 +439,13 @@ void ClearTheBundles(JewelBundleList& list)
     list.scroll = 0;
 }
 
-void AddTheBundle(JewelBundleList& list, std::int32_t cell, std::uint8_t level)
+void AddTheBundle(Npc::JewelBundleList& list, std::int32_t cell, std::uint8_t level)
 {
     if (cell < 0 || cell > LastCell)
         return;
-    if (std::ranges::any_of(list.rows, [cell](const JewelBundleList::Row& row) { return row.cell == cell; }))
+    if (std::ranges::any_of(list.rows, [cell](const Npc::JewelBundleList::Row& row) { return row.cell == cell; }))
         return;
-    list.rows.push_back(JewelBundleList::Row{.flag = 0, .cell = cell, .level = level});
+    list.rows.push_back(Npc::JewelBundleList::Row{.flag = 0, .cell = cell, .level = level});
     // 0x4842b0 (+0x6c) recorta a 150 filas (+0xfc): con las casillas de [0, 0x40] sin repetir, nunca pasa de 65.
     Select(list, 0);
     if (list.shownRows < Count(list))
@@ -451,10 +453,10 @@ void AddTheBundle(JewelBundleList& list, std::int32_t cell, std::uint8_t level)
     if (list.shownRows <= Count(list) && Count(list) - list.scroll < list.shownRows)
         list.scroll = Count(list) - list.shownRows;
     // 0x46e4c0: el sort de la STL con 0x46e4a0 (la casilla, menor); las casillas no se repiten.
-    std::ranges::sort(list.rows, {}, &JewelBundleList::Row::cell);
+    std::ranges::sort(list.rows, {}, &Npc::JewelBundleList::Row::cell);
 }
 
-std::optional<JewelBundleList::Row> ChosenBundle(JewelBundleList& list)
+std::optional<Npc::JewelBundleList::Row> ChosenBundle(Npc::JewelBundleList& list)
 {
     if (list.rows.empty())
     {
@@ -466,11 +468,11 @@ std::optional<JewelBundleList::Row> ChosenBundle(JewelBundleList& list)
     return list.rows[static_cast<std::size_t>(list.selection - 1)];
 }
 
-BundleListStep StepTheBundleList(const GameUiContext& context)
+BundleListStep StepTheBundleList(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::GameUiState& ui = runtime.ui;
-    JewelBundleList& list = runtime.npcWindows.jewels.bundles;
+    Ui::GameUiState& ui = runtime.ui;
+    Npc::JewelBundleList& list = runtime.npcWindows.jewels.bundles;
     bool& click = runtime.movement.pendingClick;
     ui.capture = list.id;
     // 0x45aa8c..0x45aab1: la cola, en orden. La vtable + 0x24 (0x45abc0) solo atiende el 8, y la + 0x1c (0x403160)
@@ -482,7 +484,7 @@ BundleListStep StepTheBundleList(const GameUiContext& context)
         HandleTheMessage(list, message);
     }
     const bool over =
-        UI::MouseInRect(context.mouseX, context.mouseY, list.x, list.y, list.width, list.height, BottomLeftRect);
+        Chat::MouseInRect(context.mouseX, context.mouseY, list.x, list.y, list.width, list.height, BottomLeftRect);
     // 0x45aad0..0x45abb3: con el mouse agarrado por ella misma, la lista siempre sigue. Con el izquierdo abajo,
     // 0x490aa0 sobre el administrador (0x5763514) no la encuentra: no está registrada ahí (*inferido*, como el
     // registro del chat).
@@ -528,14 +530,14 @@ BundleListStep StepTheBundleList(const GameUiContext& context)
     return result;
 }
 
-Core::Expected<void, std::string> DrawTheBundleList(GameHudContext& context, std::int32_t x, std::int32_t y)
+Core::Expected<void, std::string> DrawTheBundleList(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     // Un dibujo intermedio de MuRet no escribe la esquina ni la barra que lee el paso: dibuja una copia.
-    JewelBundleList projected{};
+    Npc::JewelBundleList projected{};
     if (context.projecting)
         projected = runtime.npcWindows.jewels.bundles;
-    JewelBundleList& list = context.projecting ? projected : runtime.npcWindows.jewels.bundles;
+    Npc::JewelBundleList& list = context.projecting ? projected : runtime.npcWindows.jewels.bundles;
     // 0x45a9d0(x, y).
     list.x = x;
     list.y = y;
@@ -553,4 +555,4 @@ Core::Expected<void, std::string> DrawTheBundleList(GameHudContext& context, std
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::ChaosMix

@@ -70,7 +70,7 @@ struct ClientConfig
     std::optional<std::filesystem::path> dataPath;
     // [Server] Host y Port. Vacío si no está ninguno de los dos; con uno solo, el otro queda en su
     // valor por defecto (host vacío, puerto DefaultConnectPort).
-    std::optional<ServerAddress> server;
+    std::optional<Session::ServerAddress> server;
     // [Video] Width y Height, de 1 a MaxWindowSize; 640 × 480 por defecto (la tabla de la CL3.4 en
     // el plan de la CL3). Para abrir la ventana tienen que ser una resolución que valga
     // (App/Resolution.h): eso lo mira main.cpp, con los modos del monitor, después de SDL_Init.
@@ -79,7 +79,7 @@ struct ClientConfig
     // [Video] VSync. Vacío: lo decide Resolve (paso 4), según el Pacing.
     std::optional<Platform::VSyncMode> vsync;
     // [Video] Pacing.
-    PacingMode pacing = PacingMode::Decoupled;
+    Kernel::PacingMode pacing = Kernel::PacingMode::Decoupled;
     // [Video] MaxFps, 0 o de MinFpsLimit a MaxFpsLimit: el tope de FPS del modo normal (el FpsCap
     // de MuMain), que solo se usa con VSync off (EffectiveMaxFps). 0, el valor por defecto, es sin
     // tope, como MuMain.

@@ -48,11 +48,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Network::Delivery;
 using Client::Network::Xor32Decode;
-using Client::Scenes::GameUiContext;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
 
@@ -110,7 +110,7 @@ CrtRandom Advanced(CrtRandom random, int count)
 class PetTrainer
 {
 public:
-    explicit PetTrainer(std::int32_t map, std::int32_t mode = Client::Scenes::TrainerRecoveryMode)
+    explicit PetTrainer(std::int32_t map, std::int32_t mode = Client::PetTrainer::TrainerRecoveryMode)
     {
         auto& runtime = world->Runtime();
         runtime.map = map;
@@ -129,7 +129,7 @@ public:
         };
     }
 
-    [[nodiscard]] Client::Scenes::NpcWindowSender Sender()
+    [[nodiscard]] Client::Npc::NpcWindowSender Sender()
     {
         return [this](Client::Protocol::Outgoing packet)
         {
@@ -141,7 +141,7 @@ public:
     // El registro como lo arma el paso de la UI, con los cables de las ventanas de los NPC.
     template <typename Body> void WithThePanels(Body body)
     {
-        Client::Scenes::GamePanels panels(*world, random);
+        Client::Hud::GamePanels panels(*world, random);
         panels.LendTheNpcWindows(*world, random, services, Sender());
         body(panels.Registry());
     }
@@ -153,16 +153,16 @@ public:
         movement.leftHeld = click;
         Client::Core::Expected<void, std::string> stepped{};
         WithThePanels(
-            [&](Client::UI::PanelRegistry& panels)
+            [&](Client::Ui::PanelRegistry& panels)
             {
-                stepped = Client::Scenes::StepTheTrainer(GameUiContext{.world = *world,
-                                                                       .random = random,
-                                                                       .input = input,
-                                                                       .mouseX = x,
-                                                                       .mouseY = y,
-                                                                       .inventory = &services,
-                                                                       .sendNpcWindow = Sender()},
-                                                         panels);
+                stepped = Client::PetTrainer::StepTheTrainer(GameUiContext{.world = *world,
+                                                                           .random = random,
+                                                                           .input = input,
+                                                                           .mouseX = x,
+                                                                           .mouseY = y,
+                                                                           .inventory = &services,
+                                                                           .sendNpcWindow = Sender()},
+                                                             panels);
             });
         return stepped;
     }
@@ -201,15 +201,15 @@ public:
     // durabilidad.
     [[nodiscard]] std::uint32_t PriceOf(const ItemState& pet) const
     {
-        const std::uint16_t maximum = Client::Scenes::MaxDurability(pet, *items.Record(pet.id), 0);
+        const std::uint16_t maximum = Client::Items::MaxDurability(pet, *items.Record(pet.id), 0);
         if (pet.durability >= maximum)
             return 0;
-        const Client::Scenes::PetPriceLevels levels{.raven = world->Runtime().pets[Client::Kernel::RavenPetStats].level,
-                                                    .horse =
-                                                        world->Runtime().pets[Client::Kernel::DarkHorsePetStats].level};
-        const auto price = Client::Scenes::ItemPrice(pet, items, Client::Scenes::RepairPriceMode, levels);
+        const Client::Items::PetPriceLevels levels{.raven = world->Runtime().pets[Client::Kernel::RavenPetStats].level,
+                                                   .horse =
+                                                       world->Runtime().pets[Client::Kernel::DarkHorsePetStats].level};
+        const auto price = Client::Items::ItemPrice(pet, items, Client::Items::RepairPriceMode, levels);
         const auto gold =
-            static_cast<std::uint32_t>(Client::Scenes::RepairPriceOf(price.Value(), pet.durability, maximum, 0).gold);
+            static_cast<std::uint32_t>(Client::Items::RepairPriceOf(price.Value(), pet.durability, maximum, 0).gold);
         return pet.durability == 0 ? gold * 2 : gold;
     }
 
@@ -227,7 +227,7 @@ public:
     CrtRandom random{0x2468u};
     Client::Input::InputState input{};
     Client::Tables::ItemTable items = SyntheticItems();
-    Client::Scenes::InventoryServices services{};
+    Client::Items::InventoryServices services{};
     std::vector<Client::Protocol::Outgoing> sent;
     std::vector<std::pair<std::size_t, std::int32_t>> messages;
 };
@@ -408,12 +408,12 @@ TEST(PetTrainerTest, TheFirstMenuButtonGoesToTheRecovery)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerMenuMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerMenuMode);
         const CrtRandom expected = trainer.random;
         const auto stepped = trainer.Step(ButtonX + 0x77, MenuY + 0x15);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
-        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerRecoveryMode);
+        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerRecoveryMode);
         EXPECT_EQ(trainer.Runtime().ui.mouseOnUi, 1);
         EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
         EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
@@ -427,19 +427,19 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerMenuMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerMenuMode);
         const CrtRandom expected = Advanced(trainer.random, PanelOpen);
         const auto stepped = trainer.Step(ButtonX, MenuY + MenuStep);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
         auto& runtime = trainer.Runtime();
-        EXPECT_EQ(runtime.panels.delegated.trainer, Client::Scenes::TrainerBoxMode);
+        EXPECT_EQ(runtime.panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         EXPECT_EQ(runtime.panels.inventory, 1);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
         EXPECT_FALSE(runtime.movement.pendingClick);
         EXPECT_TRUE(trainer.sent.empty());
-        trainer.WithThePanels([](Client::UI::PanelRegistry& panels)
-                              { EXPECT_TRUE(panels.IsOpen(Client::UI::TrainerPanel)); });
+        trainer.WithThePanels([](Client::Ui::PanelRegistry& panels)
+                              { EXPECT_TRUE(panels.IsOpen(Client::Ui::TrainerPanel)); });
     }
 }
 
@@ -447,12 +447,12 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
 // quedó escrito.
 TEST(PetTrainerTest, TheDarkLordInventoryStillCuts)
 {
-    PetTrainer trainer(2, Client::Scenes::TrainerMenuMode);
+    PetTrainer trainer(2, Client::PetTrainer::TrainerMenuMode);
     trainer.world->Hero().characterClass = DarkLord;
     const auto stepped = trainer.Step(ButtonX, MenuY + MenuStep);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x65c039"), std::string::npos);
-    EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerBoxMode);
+    EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
 }
 
 // 0x44b57b..0x44b5a8 recorre tres botones: el tercero, que el dibujo no muestra, solo gasta el clic (Q-C957).
@@ -460,11 +460,11 @@ TEST(PetTrainerTest, TheHiddenThirdMenuButtonOnlyEatsTheClick)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerMenuMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerMenuMode);
         const CrtRandom expected = trainer.random;
         ASSERT_TRUE(trainer.Step(ButtonX, MenuY + 2 * MenuStep).HasValue());
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
-        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerMenuMode);
+        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
         EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
         EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
         EXPECT_TRUE(trainer.sent.empty());
@@ -479,16 +479,16 @@ TEST(PetTrainerTest, TheMenuCloseButtonClosesUnlessTheBoxHasItems)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerMenuMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerMenuMode);
         trainer.Put(7, Bless, 1);
         ASSERT_TRUE(trainer.Step(CloseX, CloseY).HasValue());
         EXPECT_TRUE(trainer.sent.empty());
         ASSERT_EQ(trainer.messages.size(), 1u);
         EXPECT_EQ(trainer.messages[0], (std::pair<std::size_t, std::int32_t>{BoxNotEmptyText, 2}));
-        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerMenuMode);
+        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
         EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
 
-        trainer.Runtime().npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
+        trainer.Runtime().npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
         const CrtRandom expected = trainer.random;
         ASSERT_TRUE(trainer.Step(CloseX + 0x17, CloseY + 0x17).HasValue());
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
@@ -506,7 +506,7 @@ TEST(PetTrainerTest, TheBoxScanFindsTheHorseMixAndComparesTheZen)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerBoxMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerBoxMode);
         trainer.FillTheHorseMix();
         trainer.world->OwnCharacter().zen = 5'000'000;
         const CrtRandom expected = Advanced(trainer.random, Own);
@@ -523,7 +523,7 @@ TEST(PetTrainerTest, TheBoxScanFindsTheHorseMixAndComparesTheZen)
         EXPECT_EQ(runtime.panels.delegated.field724584, 1);
         EXPECT_EQ(runtime.npcWindows.trainerZenShort, 1);
         EXPECT_EQ(runtime.ui.mouseOnUi, 1);
-        EXPECT_EQ(Client::Scenes::TrainerMixPrice(1), 5'000'000u);
+        EXPECT_EQ(Client::PetTrainer::TrainerMixPrice(1), 5'000'000u);
     }
 }
 
@@ -532,7 +532,7 @@ TEST(PetTrainerTest, TheBoxScanFindsTheRavenMix)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerBoxMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerBoxMode);
         trainer.FillTheRavenMix();
         trainer.world->OwnCharacter().zen = 999'999;
         const CrtRandom expected = Advanced(trainer.random, Own);
@@ -544,8 +544,8 @@ TEST(PetTrainerTest, TheBoxScanFindsTheRavenMix)
         trainer.world->OwnCharacter().zen = 0x80000000u;
         ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
         EXPECT_EQ(trainer.Runtime().npcWindows.trainerZenShort, 0);
-        EXPECT_EQ(Client::Scenes::TrainerMixPrice(2), 1'000'000u);
-        EXPECT_EQ(Client::Scenes::TrainerMixPrice(0), 0u);
+        EXPECT_EQ(Client::PetTrainer::TrainerMixPrice(2), 1'000'000u);
+        EXPECT_EQ(Client::PetTrainer::TrainerMixPrice(0), 0u);
     }
 }
 
@@ -553,7 +553,7 @@ TEST(PetTrainerTest, TheBoxScanFindsTheRavenMix)
 // sin abrir el registro propio; la joya de la vida y los demás tipos no cuentan.
 TEST(PetTrainerTest, TheBoxScanNeedsTheExactJewels)
 {
-    PetTrainer trainer(0, Client::Scenes::TrainerBoxMode);
+    PetTrainer trainer(0, Client::PetTrainer::TrainerBoxMode);
     auto& runtime = trainer.Runtime();
     const CrtRandom unchanged = trainer.random;
     // Una del alma de más.
@@ -565,20 +565,20 @@ TEST(PetTrainerTest, TheBoxScanNeedsTheExactJewels)
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
     EXPECT_EQ(runtime.npcWindows.trainerZenShort, 0);
     // El espíritu de nivel 2.
-    runtime.npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
+    runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     runtime.npcWindows.trainerBox[0].scalar1Low = 2u << 3;
     ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
     // La joya del caos con +0x3c en 0.
-    runtime.npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
+    runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     runtime.npcWindows.trainerBox[12].occupied = 0;
     ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
     EXPECT_EQ(trainer.random.State(), unchanged.State());
     // La de la vida y una espada no cambian nada: sigue la del caballo.
-    runtime.npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
+    runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     trainer.Put(20, Life, 3);
     trainer.Put(25, 0x0001, 1);
@@ -594,7 +594,7 @@ TEST(PetTrainerTest, TheMixButtonSendsTheMixOfThePreviousStep)
     {
         for (const auto& [kind, code] : {std::pair<int, int>{1, 0x0d}, std::pair<int, int>{2, 0x0e}})
         {
-            PetTrainer trainer(map, Client::Scenes::TrainerBoxMode);
+            PetTrainer trainer(map, Client::PetTrainer::TrainerBoxMode);
             trainer.world->OwnCharacter().zen = 0;
             trainer.Runtime().panels.delegated.field724584 = static_cast<std::uint8_t>(kind);
             trainer.Runtime().npcWindows.trainerZenShort = 1;
@@ -608,7 +608,7 @@ TEST(PetTrainerTest, TheMixButtonSendsTheMixOfThePreviousStep)
             EXPECT_FALSE(trainer.Runtime().movement.pendingClick);
             EXPECT_FALSE(trainer.Runtime().movement.leftHeld);
             EXPECT_EQ(trainer.Runtime().panels.delegated.field724584, 0);
-            EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerBoxMode);
+            EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         }
     }
 }
@@ -618,7 +618,7 @@ TEST(PetTrainerTest, TheMixButtonWithoutAMixOnlyEatsTheClick)
 {
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{3}})
     {
-        PetTrainer trainer(2, Client::Scenes::TrainerBoxMode);
+        PetTrainer trainer(2, Client::PetTrainer::TrainerBoxMode);
         trainer.Runtime().panels.delegated.field724584 = kind;
         ASSERT_TRUE(trainer.Step(MixX, MixY).HasValue());
         EXPECT_TRUE(trainer.sent.empty());
@@ -632,7 +632,7 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerBoxMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerBoxMode);
         auto& runtime = trainer.Runtime();
         runtime.panels.inventory = 1;
         trainer.Put(3, Bless, 1);
@@ -641,11 +641,11 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
         EXPECT_TRUE(trainer.sent.empty());
         ASSERT_EQ(trainer.messages.size(), 1u);
         EXPECT_EQ(trainer.messages[0], (std::pair<std::size_t, std::int32_t>{BoxNotEmptyText, 2}));
-        EXPECT_EQ(runtime.panels.delegated.trainer, Client::Scenes::TrainerBoxMode);
+        EXPECT_EQ(runtime.panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
         EXPECT_EQ(runtime.panels.inventory, 1);
         EXPECT_FALSE(runtime.movement.pendingClick);
 
-        runtime.npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
+        runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
         runtime.lastSoundId = Client::Audio::SoundId{0};
         const auto closed = trainer.Step(BoxCloseX + 0x17, BoxCloseY + 0x17);
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
@@ -671,15 +671,15 @@ TEST(PetTrainerTest, OpeningThePanelStartsTheMenuWithAnEmptyBox)
         runtime.panels.character = 1;
         const CrtRandom expected = Advanced(trainer.random, PanelOpen);
         trainer.WithThePanels(
-            [](Client::UI::PanelRegistry& panels)
+            [](Client::Ui::PanelRegistry& panels)
             {
-                const auto opened = panels.Open(Client::UI::TrainerPanel);
+                const auto opened = panels.Open(Client::Ui::TrainerPanel);
                 ASSERT_TRUE(opened.HasValue()) << opened.Error();
                 EXPECT_TRUE(opened.Value());
             });
         EXPECT_EQ(trainer.random.State(), expected.State()) << map;
-        EXPECT_EQ(runtime.panels.delegated.trainer, Client::Scenes::TrainerMenuMode);
-        EXPECT_FALSE(Client::Scenes::TrainerBoxHasItems(*trainer.world));
+        EXPECT_EQ(runtime.panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
+        EXPECT_FALSE(Client::PetTrainer::TrainerBoxHasItems(*trainer.world));
         EXPECT_EQ(runtime.panels.character, 0);
         EXPECT_EQ(runtime.panels.inventory, 0);
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1c});
@@ -692,16 +692,16 @@ TEST(PetTrainerTest, ClosingAllPanelsKeepsTheTrainerWithItemsInTheBox)
 {
     for (const std::int32_t map : Maps)
     {
-        PetTrainer trainer(map, Client::Scenes::TrainerMenuMode);
+        PetTrainer trainer(map, Client::PetTrainer::TrainerMenuMode);
         trainer.Put(31, Chaos, 1);
-        trainer.WithThePanels([](Client::UI::PanelRegistry& panels) { ASSERT_TRUE(panels.CloseAll().HasValue()); });
-        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::Scenes::TrainerMenuMode);
+        trainer.WithThePanels([](Client::Ui::PanelRegistry& panels) { ASSERT_TRUE(panels.CloseAll().HasValue()); });
+        EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerMenuMode);
         ASSERT_EQ(trainer.messages.size(), 1u);
         EXPECT_EQ(trainer.messages[0].first, BoxNotEmptyText);
         EXPECT_TRUE(trainer.sent.empty());
 
-        trainer.Runtime().npcWindows.trainerBox = Client::Scenes::EmptyTrainerBox();
-        trainer.WithThePanels([](Client::UI::PanelRegistry& panels) { ASSERT_TRUE(panels.CloseAll().HasValue()); });
+        trainer.Runtime().npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
+        trainer.WithThePanels([](Client::Ui::PanelRegistry& panels) { ASSERT_TRUE(panels.CloseAll().HasValue()); });
         EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, 0);
         ASSERT_EQ(trainer.sent.size(), 1u);
         EXPECT_TRUE(SameBytes(trainer.sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x31})));

@@ -42,11 +42,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
 using Client::Tests::RecordedText;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -159,7 +159,7 @@ protected:
                                .items = &m_items,
                                .mouse = {.x = x, .y = y},
                                .leftDown = leftDown};
-        return Client::Scenes::DrawTheTrainer(context);
+        return Client::PetTrainer::DrawTheTrainer(context);
     }
 
     void Restart()

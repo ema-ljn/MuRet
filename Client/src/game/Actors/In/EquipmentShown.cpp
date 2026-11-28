@@ -53,7 +53,7 @@ Core::Expected<void, std::string> ShowInTheHand(Kernel::ActorState& actor, std::
                                                 const IViewportHooks& hooks)
 {
     Kernel::ActorItemPart& part = actor.hands[hand];
-    if (item.type == Scenes::NoInventoryItem)
+    if (item.type == Items::NoInventoryItem)
     {
         part.model = Kernel::NoItemModel;
         part.flags1b = 0;
@@ -73,7 +73,7 @@ Core::Expected<void, std::string> ShowInTheHand(Kernel::ActorState& actor, std::
 void ShowOnTheBody(Kernel::ActorState& actor, std::size_t index, const ShownItem& item)
 {
     Kernel::ActorItemPart& part = actor.body[index];
-    if (item.type == Scenes::NoInventoryItem)
+    if (item.type == Items::NoInventoryItem)
     {
         part.model = Kernel::ClassPartModel(static_cast<Kernel::BodyPart>(index), actor.characterClass);
         part.level = 0;
@@ -96,7 +96,7 @@ Core::Expected<void, std::string> ShowThePet(Kernel::WorldState& world, std::siz
     constexpr std::uint16_t GuardianAngelHelper = 0x1c12;
     constexpr std::uint16_t UniriaHelper = 0xc6;
     constexpr std::uint16_t DinorantHelper = 0x110;
-    if (item.type == Scenes::NoInventoryItem)
+    if (item.type == Items::NoInventoryItem)
     {
         actor.pet.model = Kernel::NoItemModel;
         actor.previousHad1c15 = false;
@@ -150,7 +150,7 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::Eq
     constexpr int SlotShift = 4;
     constexpr std::uint8_t ExcellentMask = 0x3f;
     const std::uint8_t placeAndLevel = ByteOf(bytes, 1);
-    const ShownItem item{.type = Scenes::InventoryItemType(shown.item),
+    const ShownItem item{.type = Items::InventoryItemType(shown.item),
                          .level = ShownLevelOf(placeAndLevel & LevelMask),
                          .excellent = static_cast<std::uint8_t>(ByteOf(bytes, 3) & ExcellentMask),
                          .ancient = ByteOf(bytes, 4)};
@@ -171,7 +171,7 @@ Core::Expected<void, std::string> ApplyEquipmentShown(const Protocol::Actors::Eq
     else if (place == WingsPlace)
     {
         // 0x4c86e4..0x4c870c.
-        if (item.type == Scenes::NoInventoryItem)
+        if (item.type == Items::NoInventoryItem)
         {
             actor.wings.model = Kernel::NoItemModel;
         }

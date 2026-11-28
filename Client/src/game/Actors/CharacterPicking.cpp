@@ -133,7 +133,7 @@ std::int32_t PickTheCharacter(Kernel::WorldState& world, const Terrain::WorldTer
             continue;
         // 0x59e86a..0x59e948: a player looks for its place in the party before the other conditions.
         if (actor.byte88 == PlayerKind)
-            Scenes::MatchThePartyMembers(world, slot);
+            Party::MatchThePartyMembers(world, slot);
         // Without a segment (before the first drawing) there is no box to touch.
         if (!ray)
             continue;
@@ -149,7 +149,7 @@ std::int32_t PickTheCharacter(Kernel::WorldState& world, const Terrain::WorldTer
         picked = static_cast<std::int32_t>(slot);
     }
     // 0x59ea9b..0x59eb66.
-    Scenes::MarkTheMissingMembers(world);
+    Party::MarkTheMissingMembers(world);
     return picked;
 }
 } // namespace Client::Actors

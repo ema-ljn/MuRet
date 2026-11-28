@@ -18,11 +18,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::MonsterCreationContext;
-using Client::Scenes::MonsterCreationOf;
-using Client::Scenes::MonsterStep;
-using Client::Scenes::MonsterStepKind;
-using Client::Scenes::ResolveMonsterSteps;
+using Client::Monsters::MonsterCreationContext;
+using Client::Monsters::MonsterCreationOf;
+using Client::Monsters::MonsterStep;
+using Client::Monsters::MonsterStepKind;
+using Client::Monsters::ResolveMonsterSteps;
 
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
@@ -61,7 +61,7 @@ using Client::Math::Bits;
 TEST(MonsterKindsTest, EveryCaseCreatesOnceAfterItsLoads)
 {
     std::set<std::uint32_t> cases;
-    auto check = [](const Client::Scenes::MonsterKind& kind)
+    auto check = [](const Client::Monsters::MonsterKind& kind)
     {
         std::size_t creates = 0;
         for (const MonsterStep& step : kind.steps)
@@ -73,7 +73,7 @@ TEST(MonsterKindsTest, EveryCaseCreatesOnceAfterItsLoads)
         }
         EXPECT_EQ(creates, 1u) << "el tipo " << kind.type;
     };
-    for (const auto& kind : Client::Scenes::MainMonsterKinds())
+    for (const auto& kind : Client::Monsters::MainMonsterKinds())
     {
         EXPECT_GE(kind.type, 0);
         EXPECT_LE(kind.type, 301);
@@ -82,8 +82,8 @@ TEST(MonsterKindsTest, EveryCaseCreatesOnceAfterItsLoads)
             cases.insert(kind.address);
     }
     EXPECT_EQ(cases.size(), 124u);
-    check(Client::Scenes::DefaultMonsterKind());
-    for (const auto& event : Client::Scenes::EventMonsterKinds())
+    check(Client::Monsters::DefaultMonsterKind());
+    for (const auto& event : Client::Monsters::EventMonsterKinds())
         check(event.kind);
 }
 
@@ -288,7 +288,7 @@ TEST(MonsterKindsTest, TypeSixtyEightAsksForMonster50)
 // 0x5140c0: la cola.
 TEST(MonsterKindsTest, TheTailLevelsBloodCastleAndClassifiesTheObject)
 {
-    using Client::Scenes::MonsterTailOf;
+    using Client::Monsters::MonsterTailOf;
     EXPECT_FALSE(MonsterTailOf(0x54, DevilSquare).clearsLevel);
     EXPECT_TRUE(MonsterTailOf(0x54, 10).clearsLevel);
     EXPECT_EQ(MonsterTailOf(0x54, 10).scaleSteps, 0);
@@ -304,6 +304,6 @@ TEST(MonsterKindsTest, TheTailLevelsBloodCastleAndClassifiesTheObject)
     EXPECT_EQ(MonsterTailOf(111, Lorencia).objectClass, 2);
     EXPECT_EQ(MonsterTailOf(99, Lorencia).objectClass, 2);
     const float expected = static_cast<float>(2.0 * static_cast<double>(0.05f) + 1.25);
-    EXPECT_EQ(Client::Scenes::AddTailScale(1.25f, 2), expected);
+    EXPECT_EQ(Client::Monsters::AddTailScale(1.25f, 2), expected);
 }
 } // namespace

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace Client::Scenes
+namespace Client::CastleSiege
 {
 Core::Expected<Data::Textures::Texture, std::string> PaintTheCastleFlag(std::span<const std::uint8_t, 64> mark,
                                                                         int width, int height)
@@ -63,4 +63,4 @@ Core::Expected<Data::Textures::Texture, std::string> PaintTheCastleFlag(std::spa
     }
     return image;
 }
-} // namespace Client::Scenes
+} // namespace Client::CastleSiege

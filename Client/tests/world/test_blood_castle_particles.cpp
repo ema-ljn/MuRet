@@ -22,10 +22,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Render::TextureEnvMode;
 using Client::Tests::RecordedParticleDraw;
-using Client::World::Particle;
-using Client::World::Particles;
 
 constexpr std::int32_t Spark = 0x6ab;
 constexpr std::int32_t Flame = 0x6ac;
@@ -55,16 +55,16 @@ Particle Created(std::int32_t type, std::int32_t subtype, CrtRandom& random)
 // La antorcha comparte la familia de la llama con 6ac/1 de los fragmentos del asedio y 6ac/2 del joint 0x632/6.
 TEST(BloodCastleParticlesTest, TheTorchAndSharedFlameSubtypesBelongToTheFamily)
 {
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 0));
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Spark, 1));
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 0));
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 1));
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Flame, 2));
-    EXPECT_TRUE(Client::World::IsBloodCastleParticle(Cloud, 6));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Spark, 2));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Flame, 3));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Cloud, 8));
-    EXPECT_FALSE(Client::World::IsBloodCastleParticle(Orbit, 4));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Spark, 0));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Spark, 1));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Flame, 0));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Flame, 1));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Flame, 2));
+    EXPECT_TRUE(Client::Particles::IsBloodCastleParticle(Cloud, 6));
+    EXPECT_FALSE(Client::Particles::IsBloodCastleParticle(Spark, 2));
+    EXPECT_FALSE(Client::Particles::IsBloodCastleParticle(Flame, 3));
+    EXPECT_FALSE(Client::Particles::IsBloodCastleParticle(Cloud, 8));
+    EXPECT_FALSE(Client::Particles::IsBloodCastleParticle(Orbit, 4));
 }
 
 // 0x5436fe..0x543832: la vida del primer rand(), el giro en 0 y cuatro rand() más; el subtipo 0 con 0,02f + 0,5
@@ -164,8 +164,8 @@ TEST(BloodCastleParticlesTest, TheBrightFlameLightIsLifeTimesEightHundredthsMinu
         plain.subtype = 0;
         CrtRandom random(23);
         CrtRandom plainRandom(23);
-        Client::World::StepBloodCastleParticle(p, random);
-        Client::World::StepBloodCastleParticle(plain, plainRandom);
+        Client::Particles::StepBloodCastleParticle(p, random);
+        Client::Particles::StepBloodCastleParticle(plain, plainRandom);
         EXPECT_EQ(p.light, glm::vec3(F32(static_cast<double>(life) * Bits(0x3da3d70au) - 1.0)));
         EXPECT_EQ(p.light.x < 0.0f, life <= 12);
         EXPECT_EQ(p.position, plain.position);
@@ -209,7 +209,7 @@ TEST(BloodCastleParticlesTest, TheSparkDriftsRisesAndGrowsBySubtype)
         p.position = {10.5f, 20.25f, 30.125f};
         p.velocity = {1.5f, -2.25f, 0.7f};
         CrtRandom random(5);
-        Client::World::StepBloodCastleParticle(p, random);
+        Client::Particles::StepBloodCastleParticle(p, random);
         const double drag = Bits(0x3f733333u);
         EXPECT_EQ(p.position, glm::vec3(F32(1.5 + 10.5), F32(20.25 - 2.25), F32(30.125 + static_cast<double>(0.7f))));
         EXPECT_EQ(p.velocity.x, F32(1.5 * drag));
@@ -238,7 +238,7 @@ TEST(BloodCastleParticlesTest, TheFlameAndTheSmokeJitterAndTurnWithFourDraws)
         p.position = {10.5f, 20.25f, 30.125f};
         p.velocity = {1.5f, 0.0f, 0.7f};
         CrtRandom random(23);
-        Client::World::StepBloodCastleParticle(p, random);
+        Client::Particles::StepBloodCastleParticle(p, random);
         CrtRandom draws(23);
         const int dx = (draws.Next() & 3) - 2;
         const int dy = (draws.Next() & 3) - 2;
@@ -264,7 +264,7 @@ TEST(BloodCastleParticlesTest, TheTorchOrbitLivesFortyStepsAndRisesWithFive)
     Particles particles;
     CrtRandom random(29);
     const float clock = 1000.0f;
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     const glm::vec3 light{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f4ccccdu)};
     const float scale = std::bit_cast<float>(0x3e428f5cu);
     const auto made =
@@ -308,9 +308,9 @@ TEST(BloodCastleParticlesTest, TheTorchOrbitShrinksFasterAndFadesFromThirty)
         p.light = {1.0f, 0.5f, 0.25f};
         CrtRandom random(3);
         const float clock = 0.0f;
-        Client::World::PortableParticleTrigonometry trigonometry;
-        ASSERT_TRUE(
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
+        Client::Particles::PortableParticleTrigonometry trigonometry;
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry)
+                        .HasValue());
         const double argument = (static_cast<double>(life - 1) + 17.0) * Bits(0x3dcccccdu);
         const auto sine = Client::Math::Detail::SineProductPC53(argument, 40.0f);
         const auto cosine = Client::Math::Detail::CosineProductPC53(argument, 40.0f);
@@ -378,9 +378,9 @@ TEST(BloodCastleParticlesTest, TheBrightFlameIsCreatedSteppedAndDrawnWithAdd)
                                               std::bit_cast<float>(0x40400000u), clock, random);
     ASSERT_TRUE(made.HasValue());
     ASSERT_EQ(made.Value(), std::optional<std::size_t>(0));
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     ASSERT_TRUE(
-        Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
+        Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
     Particle p = particles.All()[0];
     ASSERT_TRUE(p.alive);
     EXPECT_EQ(p.life, 23);

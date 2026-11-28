@@ -40,14 +40,14 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Events::EventMapKind;
+using Client::Events::EventMapObject;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::EventMapKind;
-using Client::Scenes::EventMapObject;
-using Client::Scenes::GameHudContext;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -185,7 +185,7 @@ TEST_F(EventDrawingTest, TheEventTimeDrawsNothingWithoutTimeOrPastTenMinutes)
         world->Runtime().events.timeValue = time;
         const std::uint32_t before = random.State();
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheEventTime(context);
+        const auto drawn = Client::Events::DrawTheEventTime(context);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(text.texts.empty());
         EXPECT_EQ(random.State(), before);
@@ -223,11 +223,11 @@ TEST_F(EventDrawingTest, TheEventTimeDrawsTwiceCenteredOnTheWorld)
             world->Runtime().events.timeValue = probe.time;
             world->Runtime().events.timeKind = 0;
             CrtRandom expected = random;
-            const std::int32_t width = Client::Scenes::GamePanels(*world, expected).Registry().WorldWidth();
+            const std::int32_t width = Client::Hud::GamePanels(*world, expected).Registry().WorldWidth();
             const int half = width / 2;
 
             GameHudContext context = Context();
-            const auto drawn = Client::Scenes::DrawTheEventTime(context);
+            const auto drawn = Client::Events::DrawTheEventTime(context);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
             ASSERT_EQ(text.texts.size(), 2u);
@@ -262,7 +262,7 @@ TEST_F(EventDrawingTest, TheStartKindDrawsTheSecondsInTheLastMinuteColor)
         Restart();
         world->Runtime().events.timeValue = time;
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheEventTime(context);
+        const auto drawn = Client::Events::DrawTheEventTime(context);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ASSERT_EQ(text.texts.size(), 2u);
         EXPECT_EQ(text.texts[0].text, time == 30 ? "arranca en 30" : "arranca en 5");
@@ -279,7 +279,7 @@ TEST_F(EventDrawingTest, AnEventTimeLongerThanItsStackBufferCuts)
     texts = Client::Tests::MakeTextTable(longTexts);
     world->Runtime().events.timeValue = 70;
     GameHudContext context = Context();
-    const auto drawn = Client::Scenes::DrawTheEventTime(context);
+    const auto drawn = Client::Events::DrawTheEventTime(context);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x5a7f9b"), std::string::npos) << drawn.Error();
     EXPECT_TRUE(text.texts.empty());
@@ -321,7 +321,7 @@ TEST_F(EventDrawingTest, TheCastleTimeDrawsNothingOutsideItsMaps)
         sprites.SetColor(Color{0.25f, 0.5f, 0.75f, 1.0f});
         EventMapObject event = Castle(probe.kind, probe.state, 100, 10, 41);
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+        const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(text.texts.empty());
         ExpectColor(ColorNow(sprites), Color{0.25f, 0.5f, 0.75f, 1.0f});
@@ -354,7 +354,7 @@ TEST_F(EventDrawingTest, TheCastleColorsAreSetBeforeTheStateIsRead)
         sprites.SetBlend(BlendMode::Opaque);
         EventMapObject event = Castle(probe.kind, probe.state, probe.remaining, 10, 41);
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+        const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(text.texts.empty());
         EXPECT_EQ(sprites.Blend(), BlendMode::Alpha);
@@ -381,7 +381,7 @@ TEST_F(EventDrawingTest, BloodCastleDrawsThePointsTheTitleAndTheTime)
             world->Runtime().map = map;
             EventMapObject event = Castle(EventMapKind::BloodCastle, state, 125, 40, 12);
             GameHudContext context = Context();
-            const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+            const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
             ASSERT_EQ(text.texts.size(), 3u);
@@ -429,7 +429,7 @@ TEST_F(EventDrawingTest, TheCastleTimeWithoutATargetAndItsMinutes)
         world->Runtime().map = 13;
         EventMapObject event = Castle(EventMapKind::BloodCastle, 1, probe.remaining, 0xffff, 3);
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+        const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ASSERT_EQ(text.texts.size(), 2u);
         EXPECT_EQ(text.texts[0].text, "queda");
@@ -461,7 +461,7 @@ TEST_F(EventDrawingTest, ChaosCastleDrawsItsPointsAndPicksTheTrapArea)
             world->Runtime().chaosCastleArea = 0xff;
             EventMapObject event = Castle(EventMapKind::ChaosCastle, 7, 1000, 70, probe.kills);
             GameHudContext context = Context();
-            const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+            const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
             ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
             ASSERT_EQ(text.texts.size(), 3u);
             EXPECT_EQ(text.texts[0].text, "rivales ( " + std::to_string(probe.kills) + "/70 )");
@@ -480,7 +480,7 @@ TEST_F(EventDrawingTest, AnIntermediateChaosCastleDrawDoesNotWriteTheArea)
     world->Runtime().map = 18;
     EventMapObject event = Castle(EventMapKind::ChaosCastle, 6, 1000, 70, 45);
     GameHudContext context = Context(true);
-    const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, false);
+    const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, false);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(text.texts.size(), 3u);
     EXPECT_EQ(world->Runtime().chaosCastleArea, 0xff);
@@ -494,7 +494,7 @@ TEST_F(EventDrawingTest, ACastleClockOutsideTheFtolProfileCuts)
     world->Runtime().map = 11;
     EventMapObject event = Castle(EventMapKind::BloodCastle, 1, 100, 0xffff, 0);
     GameHudContext context = Context();
-    const auto drawn = Client::Scenes::DrawTheCastleTimeAndPoints(context, event, true);
+    const auto drawn = Client::Events::DrawTheCastleTimeAndPoints(context, event, true);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x40bc96"), std::string::npos) << drawn.Error();
 }
@@ -535,7 +535,7 @@ TEST_F(EventDrawingTest, TheDevilSquareRankingDrawsTheTitlesAndTheRows)
     PutRecord(event, 1, "Primerito", 900, 80, 9);
     PutRecord(event, 2, "Segundon01", 700, 70, 8);
     GameHudContext context = Context();
-    const auto drawn = Client::Scenes::DrawTheEventBoxText(context, event);
+    const auto drawn = Client::Events::DrawTheEventBoxText(context, event);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     struct Expected
@@ -599,7 +599,7 @@ TEST_F(EventDrawingTest, ADevilSquareRankingPastItsRecordsCuts)
     event.kind = EventMapKind::DevilSquare;
     event.field24 = 12;
     GameHudContext context = Context();
-    const auto drawn = Client::Scenes::DrawTheEventBoxText(context, event);
+    const auto drawn = Client::Events::DrawTheEventBoxText(context, event);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x40bf1b"), std::string::npos) << drawn.Error();
 }
@@ -619,7 +619,7 @@ TEST_F(EventDrawingTest, TheBloodCastleResultDrawsWonAndLost)
         event.field2c[(0x3c - 0x2c) / 4] = 4500;
         event.field2c[(0x40 - 0x2c) / 4] = 20000;
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheEventBoxText(context, event);
+        const auto drawn = Client::Events::DrawTheEventBoxText(context, event);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
         struct Expected
@@ -667,7 +667,7 @@ TEST_F(EventDrawingTest, TheChaosCastleResultDrawsWonAndLost)
         event.field2c[(0x3c - 0x2c) / 4] = 9000;
         event.field2c[(0x40 - 0x2c) / 4] = 4;
         GameHudContext context = Context();
-        const auto drawn = Client::Scenes::DrawTheEventBoxText(context, event);
+        const auto drawn = Client::Events::DrawTheEventBoxText(context, event);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
         const std::vector<std::string_view> lines =

@@ -13,9 +13,9 @@
 namespace
 {
 using Client::App::Credentials;
-using Client::App::SessionFailure;
-using Client::App::SessionState;
 using Client::Platform::Resolution;
+using Client::Session::SessionFailure;
+using Client::Session::SessionState;
 
 // La cuenta y la clave sintéticas de los fixtures de mu-client (MuClientNetFixtures.h). Sin la
 // clave, los largos difieren: cada campo dice el suyo.

@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 Core::Expected<std::vector<Data::Textures::LoadedTexture>, std::string>
 LoadKalimaTextures(const std::filesystem::path& dataRoot)
@@ -19,4 +19,4 @@ LoadKalimaTextures(const std::filesystem::path& dataRoot)
         return Core::Unexpected(Data::Textures::Describe(loaded.Error()));
     return std::move(loaded).Value();
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

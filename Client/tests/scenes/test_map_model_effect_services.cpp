@@ -14,10 +14,10 @@ namespace
 {
 TEST(MapModelEffectServicesTest, NoriaCopiesTheLightBeforeMutatingItsSourceAndConsumesThreeDraws)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     Client::Crt::CrtRandom random(1);
-    Client::Scenes::MapModelEffectServices services(effects, random);
-    Client::World::WorldObject source;
+    Client::WorldObjects::MapModelEffectServices services(effects, random);
+    Client::WorldObjects::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     const glm::vec3 position(100.0f, 200.0f, 300.0f);
     ASSERT_TRUE(services.CreateModelEffect({322, position, 0.0f, 0}, source));
@@ -31,10 +31,10 @@ TEST(MapModelEffectServicesTest, NoriaCopiesTheLightBeforeMutatingItsSourceAndCo
 }
 TEST(MapModelEffectServicesTest, TheLastTowerTypePreservesTheSourceAndUsesNoRandom)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     Client::Crt::CrtRandom random(1);
-    Client::Scenes::MapModelEffectServices services(effects, random);
-    Client::World::WorldObject source;
+    Client::WorldObjects::MapModelEffectServices services(effects, random);
+    Client::WorldObjects::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     ASSERT_TRUE(services.CreateModelEffect({324, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(source.light, glm::vec3(0.2f, 0.4f, 0.6f));
@@ -43,12 +43,12 @@ TEST(MapModelEffectServicesTest, TheLastTowerTypePreservesTheSourceAndUsesNoRand
 }
 TEST(MapModelEffectServicesTest, AFullPhysicalPoolSkipsMutationAndRandomWithoutFailingTheBinder)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     for (auto& effect : effects.Effects())
         effect.alive = true;
     Client::Crt::CrtRandom random(1);
-    Client::Scenes::MapModelEffectServices services(effects, random);
-    Client::World::WorldObject source;
+    Client::WorldObjects::MapModelEffectServices services(effects, random);
+    Client::WorldObjects::WorldObject source;
     source.light = {0.2f, 0.4f, 0.6f};
     ASSERT_TRUE(services.CreateModelEffect({322, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(source.light, glm::vec3(0.2f, 0.4f, 0.6f));
@@ -56,7 +56,7 @@ TEST(MapModelEffectServicesTest, AFullPhysicalPoolSkipsMutationAndRandomWithoutF
 }
 TEST(MapModelEffectServicesTest, ReusingASlotRetainsFieldsThatTheNativeCreatorDoesNotWrite)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     auto& slot = effects.Effects()[0];
     slot.turnPending = 17.0f;
     slot.turnDirection = 19.0f;
@@ -64,8 +64,8 @@ TEST(MapModelEffectServicesTest, ReusingASlotRetainsFieldsThatTheNativeCreatorDo
     slot.animation.previousAction = 7;
     slot.seen = true;
     Client::Crt::CrtRandom random(1);
-    Client::Scenes::MapModelEffectServices services(effects, random);
-    Client::World::WorldObject source;
+    Client::WorldObjects::MapModelEffectServices services(effects, random);
+    Client::WorldObjects::WorldObject source;
     ASSERT_TRUE(services.CreateModelEffect({324, source.transform.position, 0.0f, 0}, source));
     EXPECT_EQ(slot.turnPending, 17.0f);
     EXPECT_EQ(slot.turnDirection, 19.0f);
@@ -73,7 +73,7 @@ TEST(MapModelEffectServicesTest, ReusingASlotRetainsFieldsThatTheNativeCreatorDo
     EXPECT_EQ(slot.animation.previousAction, 7);
     EXPECT_TRUE(slot.seen);
     slot.alive = false;
-    ASSERT_TRUE(effects.Create(Client::World::TeleportEffect, {}, {}, {}, 0.0f).has_value());
+    ASSERT_TRUE(effects.Create(Client::Effects::TeleportEffect, {}, {}, {}, 0.0f).has_value());
     EXPECT_EQ(slot.turnPending, 17.0f);
     EXPECT_EQ(slot.turnDirection, 19.0f);
     EXPECT_EQ(slot.reference, 23.0f);

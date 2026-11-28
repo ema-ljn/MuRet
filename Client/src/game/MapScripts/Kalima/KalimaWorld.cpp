@@ -26,7 +26,7 @@
 #include <optional>
 #include <string>
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 namespace
 {
@@ -368,4 +368,4 @@ std::int32_t KalimaWorld::Map() const
 {
     return m_storage->map;
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

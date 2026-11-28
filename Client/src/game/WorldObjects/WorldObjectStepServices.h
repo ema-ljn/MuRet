@@ -18,7 +18,7 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct ObjectStepGlobals;
 struct WorldObject;
@@ -72,4 +72,4 @@ struct WorldObject;
 // con +0x58 en −2. Sin sonido. Sin el buffer dinámico, la luz corta después de su rand().
 [[nodiscard]] Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::CrtRandom& random,
                                                                   const ObjectStepGlobals& globals);
-} // namespace Client::World
+} // namespace Client::WorldObjects

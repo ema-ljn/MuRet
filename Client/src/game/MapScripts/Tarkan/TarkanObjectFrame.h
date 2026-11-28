@@ -4,15 +4,19 @@
 
 #include <string>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 struct WorldObject;
 }
-// 0x602ed0 con el mapa 8 (0x603a3e, la tabla 0x6045f8), después del rand() común de 0x602ef4. Contrato:
-// 06 § Los objetos de Tarkan.
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 struct GameObjectPass;
+} // namespace Client::WorldObjects
+
+// 0x602ed0 con el mapa 8 (0x603a3e, la tabla 0x6045f8), después del rand() común de 0x602ef4. Contrato:
+// 06 § Los objetos de Tarkan.
+namespace Client::MapScripts::Tarkan
+{
 
 // Con el reloj del mundo T y s = sin(fase · 0,002f) · 0,3f + 0,7f en la x87 (L, s guardada en float):
 // - el 0: un sprite 0x5c6 (Spark03) en el hueso 6 del buffer global de la pose, de escala L · 5 y luz
@@ -29,6 +33,6 @@ struct GameObjectPass;
 // Los humos van al pool compartido de las partículas (0x53fe70) con el reloj prestado, sin dueño; uno lleno
 // no es error. Sin pool, sin sprites o sin la tabla de efectos corta con su dirección, después de lo que ya
 // hizo.
-[[nodiscard]] Core::Expected<void, std::string> StepTarkanObjectFrame(World::WorldObject& object,
-                                                                      const GameObjectPass& pass);
-} // namespace Client::Scenes
+[[nodiscard]] Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObject& object,
+                                                                      const WorldObjects::GameObjectPass& pass);
+} // namespace Client::MapScripts::Tarkan

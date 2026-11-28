@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::World
+namespace Client::CastleSiege
 {
 namespace
 {
@@ -154,4 +154,4 @@ Core::Expected<void, std::string> EmitTheCastleBattle(const CastleSiegePrelude& 
         return row;
     return EmitTheSingleArrow(prelude, y);
 }
-} // namespace Client::World
+} // namespace Client::CastleSiege

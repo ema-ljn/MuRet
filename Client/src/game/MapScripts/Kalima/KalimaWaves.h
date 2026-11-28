@@ -5,7 +5,7 @@
 #include <cstdint>
 
 // 06 § El paso de ondas de Kalima: proyección de los slots nativos 0/1 de 0x41dbe0.
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
 inline constexpr std::size_t KalimaWaveSide = 256;
 inline constexpr std::size_t KalimaWaveCellCount = KalimaWaveSide * KalimaWaveSide;
@@ -21,4 +21,4 @@ struct KalimaWaveState
 // Acepta todos los patrones DWORD; actualiza el interior seleccionado desde el plano opuesto.
 // Conserva fuente, bordes y selector. No reserva memoria ni adapta selectores raw nativos.
 void UpdateKalimaWaves(KalimaWaveState& state);
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

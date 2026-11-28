@@ -32,6 +32,7 @@
 // abre una: los tests abren la caja de mensaje a mano, con textos inventados.
 namespace
 {
+using Client::Chat::ChatFocus;
 using Client::Core::PixelSize;
 using Client::Render::BlendMode;
 using Client::Render::Color;
@@ -43,17 +44,16 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
-using Client::UI::ChatFocus;
-using Client::UI::OldMessage;
-using Client::UI::OldWindow;
-using Client::UI::OldWindowDrawContext;
-using Client::UI::OldWindowDrawView;
-using Client::UI::OldWindowGlobals;
-using Client::UI::OldWindowManager;
-using Client::UI::OldWindowMeasure;
-using Client::UI::OldWindowRequest;
-using Client::UI::OldWindowStepView;
-using Client::UI::OldWindowTexts;
+using Client::Ui::OldMessage;
+using Client::Ui::OldWindow;
+using Client::Ui::OldWindowDrawContext;
+using Client::Ui::OldWindowDrawView;
+using Client::Ui::OldWindowGlobals;
+using Client::Ui::OldWindowManager;
+using Client::Ui::OldWindowMeasure;
+using Client::Ui::OldWindowRequest;
+using Client::Ui::OldWindowStepView;
+using Client::Ui::OldWindowTexts;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr std::uint8_t EscapeKey = 0x1b;
@@ -96,7 +96,7 @@ protected:
     std::int32_t Open(std::int32_t kind, std::string_view text, std::int32_t x = -1, std::int32_t y = -1,
                       std::int32_t aux = 0, std::int32_t flags = 0)
     {
-        const auto opened = Client::UI::CreateTheOldWindow(
+        const auto opened = Client::Ui::CreateTheOldWindow(
             m_manager, OldWindowRequest{.kind = kind, .x = x, .y = y, .data = text, .aux = aux, .flags = flags}, Texts,
             OldWindowMeasure{.measure = m_text, .dcFont = FontKind::Normal, .screen = Screen640});
         EXPECT_TRUE(opened.HasValue()) << opened.Error();
@@ -110,9 +110,9 @@ protected:
         m_mouseOnUi = 0;
         const OldWindowStepView view{
             .mouseX = x, .mouseY = y, .keyEdge = [this](std::uint8_t key) { return m_keys.erase(key) > 0; }};
-        if (auto list = Client::UI::StepTheWindowList(m_manager, Globals(), view); !list.HasValue())
+        if (auto list = Client::Ui::StepTheWindowList(m_manager, Globals(), view); !list.HasValue())
             return list;
-        return Client::UI::StepTheOldWindows(m_manager, Globals(), view);
+        return Client::Ui::StepTheOldWindows(m_manager, Globals(), view);
     }
 
     // El WndProc: WM_LBUTTONDOWN y WM_LBUTTONUP.
@@ -139,9 +139,9 @@ protected:
         const OldWindowDrawContext context{
             .sprites = m_sprites, .text = m_text, .dcFont = m_dcFont, .textColors = m_colors};
         const OldWindowDrawView view{.mouseX = x, .mouseY = y, .leftClick = m_leftClick, .friendsOpen = friendsOpen};
-        const auto windows = Client::UI::DrawTheOldWindows(m_manager, context, view);
+        const auto windows = Client::Ui::DrawTheOldWindows(m_manager, context, view);
         ASSERT_TRUE(windows.HasValue()) << windows.Error();
-        const auto list = Client::UI::DrawTheWindowList(m_manager, context, view);
+        const auto list = Client::Ui::DrawTheWindowList(m_manager, context, view);
         ASSERT_TRUE(list.HasValue()) << list.Error();
     }
 
@@ -171,11 +171,11 @@ protected:
 // 0x48f78f..0x48f7c6: el registro de ventanas es una inserción única, incluso si el contador vuelve a un ID vivo.
 TEST_F(OldWindowsTest, ARepeatedIdKeepsTheFirstRegisteredWindow)
 {
-    const std::int32_t original = Open(Client::UI::FrameCase, "primera", 20, 30);
+    const std::int32_t original = Open(Client::Ui::FrameCase, "primera", 20, 30);
     ASSERT_NE(original, 0);
     m_manager.lastId = original - 1;
 
-    EXPECT_EQ(Open(Client::UI::FrameCase, "segunda", 100, 120), original);
+    EXPECT_EQ(Open(Client::Ui::FrameCase, "segunda", 100, 120), original);
 
     ASSERT_EQ(m_manager.windows.size(), 1u);
     EXPECT_EQ(Window(original).frame.title, std::optional<std::string>("primera"));
@@ -187,13 +187,13 @@ TEST_F(OldWindowsTest, ARepeatedIdKeepsTheFirstRegisteredWindow)
 // La inserción fallida no vuelve a asentar el objeto anterior: 0x48f82d usa el objeto nuevo que quedó sin registro.
 TEST_F(OldWindowsTest, ARepeatedIdDoesNotRepositionTheFirstWindowsButtons)
 {
-    const std::int32_t original = Open(Client::UI::QuestionCase, "primera", 20, 30);
+    const std::int32_t original = Open(Client::Ui::QuestionCase, "primera", 20, 30);
     const std::int32_t buttonId = Window(original).box.buttons.front().base.id;
     const std::int32_t buttonX = Window(original).box.buttons.front().base.x;
     Window(original).base.x = 200;
     m_manager.lastId = original - 1;
 
-    EXPECT_EQ(Open(Client::UI::NoticeCase, "segunda", 300, 120), original);
+    EXPECT_EQ(Open(Client::Ui::NoticeCase, "segunda", 300, 120), original);
 
     EXPECT_EQ(Window(original).box.buttons.front().base.id, buttonId);
     EXPECT_EQ(Window(original).box.buttons.front().base.x, buttonX);
@@ -203,10 +203,10 @@ TEST_F(OldWindowsTest, ARepeatedIdDoesNotRepositionTheFirstWindowsButtons)
 
 TEST_F(OldWindowsTest, DestroyingAQuestionReleasesItsSecondButton)
 {
-    const std::int32_t box = Open(Client::UI::QuestionCase, "pregunta");
+    const std::int32_t box = Open(Client::Ui::QuestionCase, "pregunta");
     m_pressedButton = Window(box).box.buttons[1].base.id;
 
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, box, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(m_manager, box, m_pressedButton).HasValue());
 
     EXPECT_EQ(m_pressedButton, 0);
 }
@@ -214,9 +214,9 @@ TEST_F(OldWindowsTest, DestroyingAQuestionReleasesItsSecondButton)
 // 0x459ef0 incrementa un DWORD; 0x48f6f2 usa SETC para ordenar sus claves como uint32, también tras el bit de signo.
 TEST_F(OldWindowsTest, WindowIdsKeepTheirUnsignedOrderAcrossTheSignBit)
 {
-    const std::int32_t first = Open(Client::UI::FrameCase, "primera");
+    const std::int32_t first = Open(Client::Ui::FrameCase, "primera");
     m_manager.lastId = std::numeric_limits<std::int32_t>::max();
-    const std::int32_t wrapped = Open(Client::UI::FrameCase, "segunda", 20, 30);
+    const std::int32_t wrapped = Open(Client::Ui::FrameCase, "segunda", 20, 30);
 
     EXPECT_EQ(wrapped, std::numeric_limits<std::int32_t>::min());
     ASSERT_EQ(m_manager.windows.size(), 2u);
@@ -229,7 +229,7 @@ TEST_F(OldWindowsTest, WindowIdsWrapFromAllBitsSetToZero)
 {
     m_manager.lastId = -1;
 
-    EXPECT_EQ(Open(Client::UI::FrameCase, "cero"), 0);
+    EXPECT_EQ(Open(Client::Ui::FrameCase, "cero"), 0);
 
     EXPECT_EQ(m_manager.lastId, 0);
     ASSERT_EQ(m_manager.windows.size(), 1u);
@@ -241,18 +241,18 @@ TEST_F(OldWindowsTest, WindowIdsWrapFromAllBitsSetToZero)
 // (0x49, 0x28) de su área de adentro (x + 5, y + 0x15), que 0x4a3a50 ubica al final.
 TEST_F(OldWindowsTest, AQuestionBoxTakesTheNextIdsAndPlacesItsButtonsInsideIt)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
 
-    EXPECT_EQ(id, Client::UI::WindowListId + 1);
-    EXPECT_EQ(m_manager.lastId, Client::UI::WindowListId + 3);
+    EXPECT_EQ(id, Client::Ui::WindowListId + 1);
+    EXPECT_EQ(m_manager.lastId, Client::Ui::WindowListId + 3);
     const OldWindow& box = Window(id);
-    EXPECT_EQ(box.kind, Client::UI::OldWindowKind::MessageBox);
+    EXPECT_EQ(box.kind, Client::Ui::OldWindowKind::MessageBox);
     EXPECT_EQ(box.base.x, 0);
     EXPECT_EQ(box.base.y, BoxY);
     EXPECT_EQ(box.base.width, 0x96);
     EXPECT_EQ(box.base.height, 100);
     EXPECT_EQ(box.base.flags, 0xb);
-    EXPECT_EQ(box.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(box.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(box.frame.title, "Pregunta");
     EXPECT_EQ(box.box.lines[0], "Hola");
     EXPECT_EQ(box.box.lines[1], "");
@@ -280,11 +280,11 @@ TEST_F(OldWindowsTest, AQuestionBoxTakesTheNextIdsAndPlacesItsButtonsInsideIt)
 TEST_F(OldWindowsTest, TheBoxTextIsWrappedInTwoLines)
 {
     constexpr std::string_view Text = "una pregunta inventada que no entra en un solo renglon de la caja";
-    const auto expected = Client::UI::WrapByWidth(Text, m_text, FontKind::Normal, Screen640, 0x7d, 2, 0);
+    const auto expected = Client::Chat::WrapByWidth(Text, m_text, FontKind::Normal, Screen640, 0x7d, 2, 0);
     ASSERT_TRUE(expected.HasValue()) << expected.Error();
     ASSERT_EQ(expected.Value().lines.size(), 2u);
 
-    const std::int32_t id = Open(Client::UI::NoticeCase, Text);
+    const std::int32_t id = Open(Client::Ui::NoticeCase, Text);
 
     EXPECT_EQ(Window(id).box.lines[0], expected.Value().lines[0]);
     EXPECT_EQ(Window(id).box.lines[1], expected.Value().lines[1]);
@@ -294,7 +294,7 @@ TEST_F(OldWindowsTest, TheBoxTextIsWrappedInTwoLines)
 // y queda como lo dejó 0x45ad80: sin padre, en (0, 0) de 0x46 × 0x14 (Q-C570).
 TEST_F(OldWindowsTest, ANoticeBoxHasOneButtonAndAGhostAtTheOrigin)
 {
-    const std::int32_t id = Open(Client::UI::NoticeCase, "Listo", 100, 50);
+    const std::int32_t id = Open(Client::Ui::NoticeCase, "Listo", 100, 50);
 
     const OldWindow& box = Window(id);
     EXPECT_EQ(box.base.x, 100);
@@ -317,7 +317,7 @@ TEST_F(OldWindowsTest, ANoticeBoxHasOneButtonAndAGhostAtTheOrigin)
 // al soltarlo, con su comando a nadie (Q-C570).
 TEST_F(OldWindowsTest, TheGhostButtonTakesTheMouseAtTheTopLeft)
 {
-    const std::int32_t id = Open(Client::UI::NoticeCase, "Listo", 100, 50);
+    const std::int32_t id = Open(Client::Ui::NoticeCase, "Listo", 100, 50);
     const std::int32_t ghost = id + 2;
 
     ASSERT_TRUE(Step(10, 10).HasValue());
@@ -344,8 +344,8 @@ TEST_F(OldWindowsTest, TheGhostButtonTakesTheMouseAtTheTopLeft)
 // final del mismo paso, suena otra vez y le da el foco a la de abajo.
 TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
 {
-    const std::int32_t owner = Open(Client::UI::FrameCase, "Dueño", 300, 20);
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Seguro?", -1, -1, owner);
+    const std::int32_t owner = Open(Client::Ui::FrameCase, "Dueño", 300, 20);
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Seguro?", -1, -1, owner);
     const auto& yes = Window(id).box.buttons[0].base;
     const std::int32_t x = yes.x + 4;
     const std::int32_t y = yes.y + 4;
@@ -377,8 +377,8 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
 // "No" avisa con 0.
 TEST_F(OldWindowsTest, ClickingNoAnswersZero)
 {
-    const std::int32_t owner = Open(Client::UI::FrameCase, "Dueño", 300, 20);
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Seguro?", -1, -1, owner);
+    const std::int32_t owner = Open(Client::Ui::FrameCase, "Dueño", 300, 20);
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Seguro?", -1, -1, owner);
     const auto& no = Window(id).box.buttons[1].base;
 
     Press();
@@ -394,7 +394,7 @@ TEST_F(OldWindowsTest, ClickingNoAnswersZero)
 // Soltado fuera del botón: 0x45b200 suelta todo, el izquierdo y los dos flancos.
 TEST_F(OldWindowsTest, ReleasingAwayFromTheButtonDropsThePress)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Seguro?");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Seguro?");
     const auto& yes = Window(id).box.buttons[0].base;
 
     Press();
@@ -412,8 +412,8 @@ TEST_F(OldWindowsTest, ReleasingAwayFromTheButtonDropsThePress)
 // Enter (0x553520(0xd)) solo lo lee la caja del final de la lista: se manda el 10 con 1 y se cierra al paso siguiente.
 TEST_F(OldWindowsTest, EnterAnswersOnlyTheBoxOnTop)
 {
-    const std::int32_t below = Open(Client::UI::QuestionCase, "Abajo", 0, 0, 0, Client::UI::KeepPlaceFlag);
-    const std::int32_t top = Open(Client::UI::QuestionCase, "Arriba", 300, 0, 0, Client::UI::KeepPlaceFlag);
+    const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
+    const std::int32_t top = Open(Client::Ui::QuestionCase, "Arriba", 300, 0, 0, Client::Ui::KeepPlaceFlag);
     m_keys = {EnterKey};
 
     ASSERT_TRUE(Step(639, 479).HasValue());
@@ -430,10 +430,10 @@ TEST_F(OldWindowsTest, EnterAnswersOnlyTheBoxOnTop)
 // quedar justo encima de la de id más chico (Q-C571).
 TEST_F(OldWindowsTest, TheCascadeSkipsTheFirstWindowAfterMoving)
 {
-    const std::int32_t first = Open(Client::UI::FrameCase, "Uno", 20, 20, 0, Client::UI::KeepPlaceFlag);
-    const std::int32_t second = Open(Client::UI::FrameCase, "Dos", 0, 0, 0, Client::UI::KeepPlaceFlag);
+    const std::int32_t first = Open(Client::Ui::FrameCase, "Uno", 20, 20, 0, Client::Ui::KeepPlaceFlag);
+    const std::int32_t second = Open(Client::Ui::FrameCase, "Dos", 0, 0, 0, Client::Ui::KeepPlaceFlag);
 
-    const std::int32_t third = Open(Client::UI::FrameCase, "Tres", 0, 0);
+    const std::int32_t third = Open(Client::Ui::FrameCase, "Tres", 0, 0);
 
     EXPECT_EQ(Window(second).base.x, 0);
     EXPECT_EQ(Window(third).base.x, Window(first).base.x);
@@ -443,10 +443,10 @@ TEST_F(OldWindowsTest, TheCascadeSkipsTheFirstWindowAfterMoving)
 // Sin el salteo, la cascada corre 20 cada vez que encuentra una en su lugar.
 TEST_F(OldWindowsTest, TheCascadeMovesTwentyPerWindowInItsPlace)
 {
-    static_cast<void>(Open(Client::UI::FrameCase, "Uno", 0, 0, 0, Client::UI::KeepPlaceFlag));
-    static_cast<void>(Open(Client::UI::FrameCase, "Dos", 20, 20, 0, Client::UI::KeepPlaceFlag));
+    static_cast<void>(Open(Client::Ui::FrameCase, "Uno", 0, 0, 0, Client::Ui::KeepPlaceFlag));
+    static_cast<void>(Open(Client::Ui::FrameCase, "Dos", 20, 20, 0, Client::Ui::KeepPlaceFlag));
 
-    const std::int32_t third = Open(Client::UI::FrameCase, "Tres", 0, 0);
+    const std::int32_t third = Open(Client::Ui::FrameCase, "Tres", 0, 0);
 
     EXPECT_EQ(Window(third).base.x, 40);
     EXPECT_EQ(Window(third).base.y, 40);
@@ -455,24 +455,24 @@ TEST_F(OldWindowsTest, TheCascadeMovesTwentyPerWindowInItsPlace)
 // 0x5762ebc: con una caja modal, la fábrica no arma otra (y no gasta ids); se libera con la caja.
 TEST_F(OldWindowsTest, AModalBoxBlocksAnotherModalUntilItGoes)
 {
-    const std::int32_t modal = Open(Client::UI::ModalNoticeCase, "Espera");
+    const std::int32_t modal = Open(Client::Ui::ModalNoticeCase, "Espera");
     ASSERT_EQ(m_manager.modal, modal);
     EXPECT_TRUE(m_manager.boxes.empty());
     const std::int32_t lastId = m_manager.lastId;
 
-    EXPECT_EQ(Open(Client::UI::ModalQuestionCase, "Otra"), 0);
+    EXPECT_EQ(Open(Client::Ui::ModalQuestionCase, "Otra"), 0);
     EXPECT_EQ(m_manager.lastId, lastId);
     EXPECT_EQ(m_manager.order.size(), 1u);
 
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, modal, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(m_manager, modal, m_pressedButton).HasValue());
     EXPECT_EQ(m_manager.modal, 0);
-    EXPECT_NE(Open(Client::UI::ModalQuestionCase, "Otra"), 0);
+    EXPECT_NE(Open(Client::Ui::ModalQuestionCase, "Otra"), 0);
 }
 
 // Los casos de la CL9.4 cortan con la dirección de la fábrica.
 TEST_F(OldWindowsTest, TheFriendsCasesOfTheFactoryAreACut)
 {
-    const auto opened = Client::UI::CreateTheOldWindow(
+    const auto opened = Client::Ui::CreateTheOldWindow(
         m_manager, OldWindowRequest{.kind = 3, .x = -1, .y = -1, .data = "", .aux = 0, .flags = 0}, Texts,
         OldWindowMeasure{.measure = m_text, .dcFont = FontKind::Normal, .screen = Screen640});
     ASSERT_FALSE(opened.HasValue());
@@ -482,17 +482,17 @@ TEST_F(OldWindowsTest, TheFriendsCasesOfTheFactoryAreACut)
 // 0x48ee98..0x48ee9b compara sin signo con10: tanto11 como−1 salen con0 antes de construir o gastar IDs.
 TEST_F(OldWindowsTest, UnknownFactoryKindsReturnZeroWithoutChangingTheManager)
 {
-    const std::int32_t existing = Open(Client::UI::NoticeCase, "ya abierta", 0, 0, 0, Client::UI::KeepPlaceFlag);
+    const std::int32_t existing = Open(Client::Ui::NoticeCase, "ya abierta", 0, 0, 0, Client::Ui::KeepPlaceFlag);
     const std::int32_t lastId = m_manager.lastId;
     const std::int32_t pressedButton = Window(existing).box.buttons.front().base.id;
     m_manager.focus = existing;
     m_pressedButton = pressedButton;
-    Client::UI::PostToTheManager(m_manager, Client::UI::RaiseMessage, existing, 0);
+    Client::Ui::PostToTheManager(m_manager, Client::Ui::RaiseMessage, existing, 0);
 
     for (const std::int32_t kind : {11, -1})
     {
         SCOPED_TRACE(kind);
-        const auto opened = Client::UI::CreateTheOldWindow(
+        const auto opened = Client::Ui::CreateTheOldWindow(
             m_manager, OldWindowRequest{.kind = kind, .x = -1, .y = -1, .data = "desconocido"}, Texts,
             OldWindowMeasure{.measure = m_text, .dcFont = FontKind::Normal, .screen = Screen640});
 
@@ -510,15 +510,15 @@ TEST_F(OldWindowsTest, UnknownFactoryKindsReturnZeroWithoutChangingTheManager)
         EXPECT_EQ(m_pressedButton, pressedButton);
         ASSERT_EQ(m_manager.queue.size(), 1u);
         EXPECT_EQ(m_manager.queue.front(),
-                  (OldMessage{.type = Client::UI::RaiseMessage, .a = existing, .b = 0, .text = {}}));
+                  (OldMessage{.type = Client::Ui::RaiseMessage, .a = existing, .b = 0, .text = {}}));
     }
 }
 
 // 0x4904bc: Esc cierra la del final de la lista, a la vista; suena y el foco va a la que queda.
 TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
 {
-    const std::int32_t below = Open(Client::UI::QuestionCase, "Abajo", 0, 0, 0, Client::UI::KeepPlaceFlag);
-    const std::int32_t top = Open(Client::UI::QuestionCase, "Arriba", 300, 0, 0, Client::UI::KeepPlaceFlag);
+    const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
+    const std::int32_t top = Open(Client::Ui::QuestionCase, "Arriba", 300, 0, 0, Client::Ui::KeepPlaceFlag);
     m_keys = {EscapeKey};
 
     ASSERT_TRUE(Step(639, 479).HasValue());
@@ -533,13 +533,13 @@ TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
 // administrador que suba la de arriba y vacía la lista.
 TEST_F(OldWindowsTest, F6HidesTheWindowsAndShowsThemAgain)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
     m_focus = ChatFocus::Message;
     m_manager.focus = id;
 
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
-    EXPECT_EQ(Window(id).base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Window(id).base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(m_manager.hidden, (std::list<std::int32_t>{id}));
     EXPECT_EQ(m_manager.hiddenByF6, 1);
     EXPECT_EQ(m_manager.focus, 0);
@@ -547,7 +547,7 @@ TEST_F(OldWindowsTest, F6HidesTheWindowsAndShowsThemAgain)
 
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
-    EXPECT_EQ(Window(id).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Window(id).base.state, Client::Ui::ShownWindow);
     EXPECT_TRUE(m_manager.hidden.empty());
     EXPECT_EQ(m_manager.hiddenByF6, 0);
     EXPECT_EQ(m_manager.focus, id);
@@ -561,21 +561,21 @@ TEST_F(OldWindowsTest, AFirstF6WithNothingShownLeavesF6Stuck)
     ASSERT_TRUE(Step(639, 479).HasValue());
     ASSERT_EQ(m_manager.hiddenByF6, 1);
 
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
     EXPECT_TRUE(m_keys.empty());
-    EXPECT_EQ(Window(id).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Window(id).base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(m_manager.hiddenByF6, 1);
 }
 
 // Una escondida por F6 que se suelta antes del segundo F6 deja la cuenta corta: 0x491080 abre la de amigos (Q-C448).
 TEST_F(OldWindowsTest, ASecondF6WithAWindowGoneOpensTheFriendsWindow)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, id, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(m_manager, id, m_pressedButton).HasValue());
 
     m_keys = {F6Key};
     const auto stepped = Step(639, 479);
@@ -595,10 +595,10 @@ TEST_F(OldWindowsTest, ShowingAgainWithAWindowGoneRunsTheFriendsOpening)
         ++opened;
         return {};
     };
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
-    ASSERT_TRUE(Client::UI::HideTheOldWindows(m_manager, 1, 1, Globals(), &view).HasValue());
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, id, m_pressedButton).HasValue());
-    ASSERT_TRUE(Client::UI::HideTheOldWindows(m_manager, 0, 1, Globals(), &view).HasValue());
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
+    ASSERT_TRUE(Client::Ui::HideTheOldWindows(m_manager, 1, 1, Globals(), &view).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(m_manager, id, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::HideTheOldWindows(m_manager, 0, 1, Globals(), &view).HasValue());
     EXPECT_EQ(opened, 1);
     EXPECT_TRUE(m_manager.hidden.empty());
 }
@@ -607,27 +607,27 @@ TEST_F(OldWindowsTest, ShowingAgainWithAWindowGoneRunsTheFriendsOpening)
 // queda.
 TEST_F(OldWindowsTest, HidingWithoutFriendsDoesNotNoteTheWindows)
 {
-    const std::int32_t box = Open(Client::UI::QuestionCase, "Hola");
-    const std::int32_t modal = Open(Client::UI::ModalNoticeCase, "Espera", 300, 0);
+    const std::int32_t box = Open(Client::Ui::QuestionCase, "Hola");
+    const std::int32_t modal = Open(Client::Ui::ModalNoticeCase, "Espera", 300, 0);
 
-    ASSERT_TRUE(Client::UI::HideTheOldWindows(m_manager, 1, 0, Globals()).HasValue());
-    EXPECT_EQ(Window(box).base.state, Client::UI::HiddenWindow);
-    EXPECT_EQ(Window(modal).base.state, Client::UI::ShownWindow);
+    ASSERT_TRUE(Client::Ui::HideTheOldWindows(m_manager, 1, 0, Globals()).HasValue());
+    EXPECT_EQ(Window(box).base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(Window(modal).base.state, Client::Ui::ShownWindow);
     EXPECT_TRUE(m_manager.hidden.empty());
 
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
     m_keys = {F6Key};
     ASSERT_TRUE(Step(639, 479).HasValue());
-    EXPECT_EQ(Window(box).base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(Window(box).base.state, Client::Ui::HiddenWindow);
 }
 
 // De arriba hacia abajo: con dos cajas una sobre otra, el mouse es de la de arriba; el apretón sobre la de abajo, donde
 // no la tapa la otra, la sube.
 TEST_F(OldWindowsTest, TheMouseGoesToTheTopWindowAndAPressRaisesTheOneBelow)
 {
-    const std::int32_t below = Open(Client::UI::QuestionCase, "Abajo", 0, 0, 0, Client::UI::KeepPlaceFlag);
-    const std::int32_t top = Open(Client::UI::QuestionCase, "Arriba", 100, 0, 0, Client::UI::KeepPlaceFlag);
+    const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
+    const std::int32_t top = Open(Client::Ui::QuestionCase, "Arriba", 100, 0, 0, Client::Ui::KeepPlaceFlag);
 
     ASSERT_TRUE(Step(120, 2).HasValue());
     EXPECT_EQ(m_hovered, top);
@@ -643,12 +643,12 @@ TEST_F(OldWindowsTest, TheMouseGoesToTheTopWindowAndAPressRaisesTheOneBelow)
 // soltado, la deja.
 TEST_F(OldWindowsTest, TheTitleBarDragsTheBox)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola", 100, 100);
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola", 100, 100);
 
     Press();
     ASSERT_TRUE(Step(110, 105).HasValue());
     EXPECT_EQ(m_capture, id);
-    EXPECT_EQ(Window(id).base.state, Client::UI::DraggedWindow);
+    EXPECT_EQ(Window(id).base.state, Client::Ui::DraggedWindow);
 
     m_leftClick = false;
     ASSERT_TRUE(Step(130, 95).HasValue());
@@ -661,19 +661,19 @@ TEST_F(OldWindowsTest, TheTitleBarDragsTheBox)
     Release();
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(m_capture, 0);
-    EXPECT_EQ(Window(id).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Window(id).base.state, Client::Ui::ShownWindow);
 }
 
 // 0x491960: los colores con ftol(alfa · 255), y el 3 con ftol(alfa · 179).
 TEST(OldWindowPaletteTest, TheShadowTakesLessAlpha)
 {
-    EXPECT_EQ(Client::UI::OldWindowPalette(0, 1.0f),
+    EXPECT_EQ(Client::Ui::OldWindowPalette(0, 1.0f),
               (Color{.red = 146.0f / 255.0f, .green = 134.0f / 255.0f, .blue = 121.0f / 255.0f, .alpha = 1.0f}));
-    EXPECT_EQ(Client::UI::OldWindowPalette(3, 1.0f),
+    EXPECT_EQ(Client::Ui::OldWindowPalette(3, 1.0f),
               (Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = 179.0f / 255.0f}));
-    EXPECT_FLOAT_EQ(Client::UI::OldWindowPalette(2, 0.5f)->alpha, 127.0f / 255.0f);
-    EXPECT_FALSE(Client::UI::OldWindowPalette(19, 1.0f).has_value());
-    EXPECT_FALSE(Client::UI::OldWindowPalette(-1, 1.0f).has_value());
+    EXPECT_FLOAT_EQ(Client::Ui::OldWindowPalette(2, 0.5f)->alpha, 127.0f / 255.0f);
+    EXPECT_FALSE(Client::Ui::OldWindowPalette(19, 1.0f).has_value());
+    EXPECT_FALSE(Client::Ui::OldWindowPalette(-1, 1.0f).has_value());
 }
 
 struct ExpectedCommand
@@ -690,7 +690,7 @@ struct ExpectedCommand
 // ventanas, oculta, no pone nada.
 TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
 {
-    static_cast<void>(Open(Client::UI::QuestionCase, "Hola"));
+    static_cast<void>(Open(Client::Ui::QuestionCase, "Hola"));
 
     Draw();
 
@@ -698,15 +698,15 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
     const std::vector<ExpectedCommand> expected{
         {std::nullopt, BlendMode::Alpha, false, 1},   // la sombra
         {TextMarkerSlot, BlendMode::Alpha, false, 1}, // "Hola"
-        {TextureSlot{Client::UI::WindowButtonSlot}, BlendMode::Alpha, true, 1},
+        {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, true, 1},
         {TextMarkerSlot, BlendMode::Alpha, true, 1}, // "Si"
-        {TextureSlot{Client::UI::WindowButtonSlot}, BlendMode::Alpha, true, 1},
+        {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, true, 1},
         {TextMarkerSlot, BlendMode::Alpha, true, 1}, // "No"
-        {TextureSlot{Client::UI::WindowTitleSlot}, BlendMode::Opaque, false, 1},
+        {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, false, 1},
         {std::nullopt, BlendMode::Opaque, false, 6 + 16}, // los filos y el borde
         {std::nullopt, BlendMode::Alpha, false, 1},       // la raya
         {TextMarkerSlot, BlendMode::Alpha, false, 1},     // "Pregunta"
-        {TextureSlot{Client::UI::WindowTitleButtonsSlot}, BlendMode::Alpha, false, 1},
+        {TextureSlot{Client::Ui::WindowTitleButtonsSlot}, BlendMode::Alpha, false, 1},
     };
     ASSERT_EQ(commands.size(), expected.size());
     for (std::size_t i = 0; i < expected.size(); ++i)
@@ -777,7 +777,7 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
 // Con el mouse y el clic sobre el botón apretado: 0,6, un píxel adentro y el texto uno más abajo y a la derecha.
 TEST_F(OldWindowsTest, ThePressedButtonSinksOnePixel)
 {
-    const std::int32_t id = Open(Client::UI::QuestionCase, "Hola");
+    const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
     Window(id).box.buttons[0].pressed = 1;
     m_leftClick = true;
 
@@ -798,7 +798,7 @@ TEST_F(OldWindowsTest, ThePressedButtonSinksOnePixel)
 // mezcla opaca del final.
 TEST_F(OldWindowsTest, TheTopWindowWithTheFriendsWindowOpenIsNotDimmed)
 {
-    static_cast<void>(Open(Client::UI::QuestionCase, "Hola"));
+    static_cast<void>(Open(Client::Ui::QuestionCase, "Hola"));
 
     Draw(true);
 
@@ -814,15 +814,15 @@ TEST_F(OldWindowsTest, TheTopWindowWithTheFriendsWindowOpenIsNotDimmed)
 TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
 {
     constexpr std::uint8_t F5Key = 0x74;
-    const std::int32_t first = Open(Client::UI::QuestionCase, "Uno");
-    const std::int32_t second = Open(Client::UI::QuestionCase, "Dos");
+    const std::int32_t first = Open(Client::Ui::QuestionCase, "Uno");
+    const std::int32_t second = Open(Client::Ui::QuestionCase, "Dos");
     OldWindow& list = m_manager.windowList;
     list.list.chats = {first, second};
     list.list.cursor = 2;
     list.list.rowHeight = 14.0f;
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());
-    EXPECT_EQ(list.base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(list.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(list.list.armed, 1);
     EXPECT_EQ(list.base.height, 36);
     EXPECT_EQ(list.base.y, 0x1b3 - 36);
@@ -836,7 +836,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(list.list.cursor, 0u);
     m_keys.insert(EnterKey);
     ASSERT_TRUE(Step(0, 0).HasValue());
-    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(list.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(list.list.armed, 0);
     EXPECT_EQ(m_manager.order.back(), first);
 
@@ -849,8 +849,8 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     ASSERT_TRUE(Step(0x250, 0x1b3 - 5).HasValue());
     EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
     EXPECT_EQ(m_mouseOnUi, 1);
-    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
-    EXPECT_EQ(Window(first).base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(list.base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(Window(first).base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(m_manager.order.front(), first);
 
     // La primera, oculta, se sube.
@@ -860,7 +860,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     m_leftHeld = true;
     ASSERT_TRUE(Step(0x250, 0x1b3 - 5).HasValue());
     EXPECT_EQ(m_manager.order.back(), first);
-    EXPECT_EQ(Window(first).base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Window(first).base.state, Client::Ui::ShownWindow);
     EXPECT_FALSE(m_leftHeld);
 
     // El borde de arriba da el final: ninguna, y la lista se oculta igual.
@@ -869,7 +869,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     Release();
     ASSERT_TRUE(Step(0x250, 0x1b3 - 36).HasValue());
     EXPECT_EQ(list.list.cursor, 2u);
-    EXPECT_EQ(list.base.state, Client::UI::HiddenWindow);
+    EXPECT_EQ(list.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(m_manager.order.back(), first);
 
     // Fuera de los renglones y sin F5, el elegido va al final; al soltar un chat (0x4a4b30), también.
@@ -879,7 +879,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(list.list.cursor, 2u);
     list.list.cursor = 0;
-    ASSERT_TRUE(Client::UI::DestroyTheOldWindow(m_manager, first, m_pressedButton).HasValue());
+    ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(m_manager, first, m_pressedButton).HasValue());
     EXPECT_EQ(list.list.chats.size(), 1u);
     EXPECT_EQ(list.list.cursor, 1u);
 

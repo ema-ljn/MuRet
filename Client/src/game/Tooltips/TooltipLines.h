@@ -9,7 +9,7 @@
 // (0x5b2aa0, 0x5b8150, 0x5b90b0), la ventana del set (0x40e850), su cartel (0x40eca0) y las ayudas de F1 (0x5b0550), y
 // que dibuja 0x5af090. Nadie los vuelve a poner en 0 entre un frame y otro: cada cuerpo limpia lo suyo y lo que no
 // escribe queda del anterior.
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 // 0x78793c8: 30 renglones de 100 bytes, hasta 0x7879f80 (donde empieza el ítem del cursor).
 inline constexpr std::size_t TooltipLineCount = 30;
@@ -61,4 +61,4 @@ struct TooltipLines
             line.clear();
     }
 };
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

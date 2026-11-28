@@ -29,7 +29,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Chat
 {
 namespace
 {
@@ -86,7 +86,7 @@ Core::Expected<std::string, std::string> GuildLine(char open, char close, std::s
     line.push_back(close);
     if (text)
     {
-        const std::optional<std::string_view> found = UI::TextAt(texts, *text);
+        const std::optional<std::string_view> found = Ui::TextAt(texts, *text);
         if (!found)
             return Core::Unexpected(std::string(where) + ": el texto " + std::to_string(*text) +
                                     " de Text.bmd no está");
@@ -120,10 +120,10 @@ std::string ReadAt(const GuildBytes& bytes, std::size_t at)
 // en +0x18 si tiene nombre, +0x65 = +0x374 y el gremio (+0xd) con el puesto en +0x36; sin gremio, los dos vacíos y
 // +0x65 en 0.
 Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const Kernel::ActorState& owner,
-                                               const GuildState& guild, const Tables::TextTable* texts,
-                                               const PersonalShopState& shops, std::size_t ownerIndex)
+                                               const Guild::GuildState& guild, const Tables::TextTable* texts,
+                                               const Social::PersonalShopState& shops, std::size_t ownerIndex)
 {
-    bubble.shopTitle = ShortShopTitle(shops, ownerIndex);
+    bubble.shopTitle = PersonalShop::ShortShopTitle(shops, ownerIndex);
     GuildBytes bytes{};
     if (auto title = PutAt(bytes, ShopTitleAt, bubble.shopTitle, "0x556e60"); !title.HasValue())
         return title;
@@ -135,9 +135,9 @@ Core::Expected<void, std::string> FillTheGuild(ChatBubble& bubble, const Kernel:
         bubble.guildPost.clear();
         return {};
     }
-    if (static_cast<std::size_t>(index) >= GuildTableSize)
+    if (static_cast<std::size_t>(index) >= Guild::GuildTableSize)
         return Core::Unexpected(std::string("0x556e95: el índice del gremio cae fuera de la tabla (0x787aa48)"));
-    const GuildTableEntry& entry = guild.table[static_cast<std::size_t>(index)];
+    const Guild::GuildTableEntry& entry = guild.table[static_cast<std::size_t>(index)];
     const bool master = owner.guildStatus == MasterStatus;
     const std::string_view unionName = NameOf(entry.unionName);
     // 0x557010: sin alianza, +0x18 en 0.
@@ -194,7 +194,7 @@ void PutTheLine(ChatBubble& bubble, std::string_view text, std::int32_t steps)
 {
     if (text.size() >= ChatBubbleSplitBytes)
     {
-        UI::HalvedText halves = UI::SplitInHalf(text);
+        Ui::HalvedText halves = Ui::SplitInHalf(text);
         bubble.line1 = std::move(halves.tail);
         bubble.line2 = std::move(halves.head);
         bubble.time1 = steps;
@@ -271,9 +271,9 @@ Core::Expected<void, std::string> AddChatBubble(Kernel::WorldState& world, const
     {
         steps = ChatBubbleLogSteps;
         // vtable + 0x94 del registro: 0x45bb20(nombre de la entrada, texto, 3, 0).
-        UI::MessageSink sink = MessageSinkOf(runtime, measure.measure, measure.screen);
-        auto sound = UI::AddToTheLog(sink.log, sink.modes, sink.measure, bubble->name, text, UI::ChatMessage, 0,
-                                     sink.noticeSound);
+        Ui::MessageSink sink = MessageSinkOf(runtime, measure.measure, measure.screen);
+        auto sound = Chat::AddToTheLog(sink.log, sink.modes, sink.measure, bubble->name, text, Ui::ChatMessage, 0,
+                                       sink.noticeSound);
         if (!sound.HasValue())
             return Core::Unexpected(sound.Error());
         if (sound.Value())
@@ -323,11 +323,11 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         }
         // 0x5576a0..0x5576c9: con el globo a la vista (+time1 > 0) el cartel de la tienda del dueño se esconde
         // (0x451720, que con el dueño en NULL no encuentra nada); con un dueño y +time1 en 0, se muestra (0x4516d0).
-        PersonalShopState& shops = runtime.social.personalShop;
+        Social::PersonalShopState& shops = runtime.social.personalShop;
         if (bubble.time1 > 0 && bubble.owner)
-            HideShopTitle(shops, *bubble.owner);
+            PersonalShop::HideShopTitle(shops, *bubble.owner);
         if (bubble.owner && bubble.time1 == 0)
-            ShowShopTitle(shops, *bubble.owner);
+            PersonalShop::ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: el ancho y el alto pasan a 640 × 480 con una división sin signo.
@@ -347,10 +347,10 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         // 0x5577a2..0x55780d: el derecho se gasta, el nombre va al EDIT del susurro (0x4694c0(0, 0, 1, nombre), con
         // 0x6c7b8c en 1) y con strcpy al buffer y su largo, y suena el 0x19. Sigue con los otros globos.
         runtime.ui.rightClick = false;
-        UI::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
-        UI::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
-        runtime.RequestSound(UI::ChatButtonSound);
+        Chat::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
+        Chat::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
+        runtime.RequestSound(Chat::ChatButtonSound);
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Chat

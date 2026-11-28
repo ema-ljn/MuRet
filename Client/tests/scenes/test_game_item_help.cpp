@@ -43,16 +43,16 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::Color;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::ItemHelpLevels;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TextMarkerSlot;
+using Client::Tooltips::ItemHelpLevels;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr Client::Core::PixelSize Screen800{800, 600};
@@ -225,7 +225,7 @@ protected:
         m_sprites.Begin(Screen640);
         Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.map = GetParam();
-        runtime.panels.overlayMode = Client::UI::ItemHelpMode;
+        runtime.panels.overlayMode = Client::Ui::ItemHelpMode;
         m_world->Hero().characterClass = 0;
         Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
         own.level = 10;
@@ -261,7 +261,7 @@ protected:
         m_text.texts.clear();
         m_sprites.Begin(m_sprites.Screen());
         GameHudContext context = Context();
-        return Client::Scenes::DrawTheOverlays(context);
+        return Client::Hud::DrawTheOverlays(context);
     }
 
     [[nodiscard]] Client::Kernel::HudState& Hud()
@@ -305,30 +305,30 @@ TEST_P(GameItemHelpTest, TheTableHasEachLevel)
     ASSERT_TRUE(Help(Sword).HasValue());
     const ItemHelpLevels& levels = Levels();
     EXPECT_EQ(levels.item, Sword);
-    using Client::Scenes::ItemHelpRow;
+    using Client::Tooltips::ItemHelpRow;
     const ItemHelpRow& first = levels.rows[0];
-    EXPECT_EQ(first[Client::Scenes::ItemHelpLevel], 0);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpMinDamage], 10);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpMaxDamage], 15);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpStrength], 44);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpAgility], 38);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpEnergy], 28);
-    EXPECT_EQ(first[Client::Scenes::ItemHelpUsable], 1);
-    EXPECT_EQ(levels.rows[9][Client::Scenes::ItemHelpMinDamage], 37);
-    EXPECT_EQ(levels.rows[10][Client::Scenes::ItemHelpMinDamage], 41);
-    EXPECT_EQ(levels.rows[11][Client::Scenes::ItemHelpMinDamage], 46);
-    EXPECT_EQ(levels.rows[12][Client::Scenes::ItemHelpMinDamage], 52);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpLevel], 0);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpMinDamage], 10);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpMaxDamage], 15);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpStrength], 44);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpAgility], 38);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpEnergy], 28);
+    EXPECT_EQ(first[Client::Tooltips::ItemHelpUsable], 1);
+    EXPECT_EQ(levels.rows[9][Client::Tooltips::ItemHelpMinDamage], 37);
+    EXPECT_EQ(levels.rows[10][Client::Tooltips::ItemHelpMinDamage], 41);
+    EXPECT_EQ(levels.rows[11][Client::Tooltips::ItemHelpMinDamage], 46);
+    EXPECT_EQ(levels.rows[12][Client::Tooltips::ItemHelpMinDamage], 52);
     const ItemHelpRow& last = levels.rows[13];
-    EXPECT_EQ(last[Client::Scenes::ItemHelpLevel], 13);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpMinDamage], 59);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpMaxDamage], 64);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpStrength], 90);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpAgility], 73);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpEnergy], 43);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpLevel], 13);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpMinDamage], 59);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpMaxDamage], 64);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpStrength], 90);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpAgility], 73);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpEnergy], 43);
     // La fuerza pide 54 en el nivel 3 y 58 en el 4.
-    EXPECT_EQ(levels.rows[3][Client::Scenes::ItemHelpUsable], 1);
-    EXPECT_EQ(levels.rows[4][Client::Scenes::ItemHelpUsable], 0);
-    EXPECT_EQ(last[Client::Scenes::ItemHelpUsable], 0);
+    EXPECT_EQ(levels.rows[3][Client::Tooltips::ItemHelpUsable], 1);
+    EXPECT_EQ(levels.rows[4][Client::Tooltips::ItemHelpUsable], 0);
+    EXPECT_EQ(last[Client::Tooltips::ItemHelpUsable], 0);
     // Las columnas que nadie escribe.
     EXPECT_EQ(first[11], 0);
     EXPECT_EQ(first[12], 0);
@@ -341,21 +341,21 @@ TEST_P(GameItemHelpTest, TheTableHasEachLevel)
 TEST_P(GameItemHelpTest, TheMagicTheDefenseAndTheWrappedRequirements)
 {
     ASSERT_TRUE(Help(Staff).HasValue());
-    EXPECT_EQ(Levels().rows[0][Client::Scenes::ItemHelpMagic], 6);
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpMagic], 30 + 26);
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpScepterMagic], 0);
+    EXPECT_EQ(Levels().rows[0][Client::Tooltips::ItemHelpMagic], 6);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpMagic], 30 + 26);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpScepterMagic], 0);
     ASSERT_TRUE(Help(Scepter).HasValue());
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpMagic], 0);
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpScepterMagic], 30);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpMagic], 0);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpScepterMagic], 30);
     ASSERT_TRUE(Help(Shield).HasValue());
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpDefense], 18);
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpDefenseRate], 57);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpDefense], 18);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpDefenseRate], 57);
     ASSERT_TRUE(Help(Armor).HasValue());
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpDefense], 54);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpDefense], 54);
     // 65.535 · 65.535 · 3 envuelve a −393.213: / 100 + 20.
     ASSERT_TRUE(Help(Heavy).HasValue());
-    EXPECT_EQ(Levels().rows[0][Client::Scenes::ItemHelpStrength], -3912);
-    EXPECT_EQ(Levels().rows[0][Client::Scenes::ItemHelpUsable], 1);
+    EXPECT_EQ(Levels().rows[0][Client::Tooltips::ItemHelpStrength], -3912);
+    EXPECT_EQ(Levels().rows[0][Client::Tooltips::ItemHelpUsable], 1);
 }
 
 // 0x5afc09 y 0x5aff9b..0x5b04c3: la tabla se llena una vez por ítem, con 14 cierres del registro propio; con el
@@ -370,7 +370,7 @@ TEST_P(GameItemHelpTest, TheTableFillsOncePerItem)
     m_world->OwnCharacter().strength = 1000;
     ASSERT_TRUE(Help(Sword).HasValue());
     EXPECT_EQ(m_random.State(), expected.State());
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpUsable], 0);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpUsable], 0);
 
     ASSERT_TRUE(Help(Shield).HasValue());
     expected.Discard(FillRandoms);
@@ -380,7 +380,7 @@ TEST_P(GameItemHelpTest, TheTableFillsOncePerItem)
     m_world->Runtime().ownRecordDepth = 1;
     ASSERT_TRUE(Help(Sword).HasValue());
     EXPECT_EQ(m_random.State(), expected.State());
-    EXPECT_EQ(Levels().rows[13][Client::Scenes::ItemHelpUsable], 1);
+    EXPECT_EQ(Levels().rows[13][Client::Tooltips::ItemHelpUsable], 1);
 }
 
 // 0x5b09b0..0x5b0dea: "\n", el 160 en azul y negrita, el nombre en negrita, "\n", " ", "\n", 46 espacios, 13 " ",
@@ -389,7 +389,7 @@ TEST_P(GameItemHelpTest, TheBoxHasTheTitleTheNameAndTheBlankRows)
 {
     ASSERT_TRUE(Help(Sword).HasValue());
     EXPECT_EQ(Hud().durabilityWarning, 1);
-    const Client::Scenes::TooltipLines& lines = Hud().tooltip;
+    const Client::Tooltips::TooltipLines& lines = Hud().tooltip;
     // Los renglones de abajo de las columnas quedan como los dejó la caja.
     for (std::size_t line = 14; line <= 19; ++line)
         EXPECT_EQ(lines.text[line], " ") << line;
@@ -534,11 +534,11 @@ TEST_P(GameItemHelpTest, AScrollHasOneRowInItsLevelColumns)
 TEST_P(GameItemHelpTest, ASetItemListsItsPieces)
 {
     ASSERT_TRUE(Help(SetArmor).HasValue());
-    const Client::Scenes::TooltipLines& lines = Hud().tooltip;
+    const Client::Tooltips::TooltipLines& lines = Hud().tooltip;
     EXPECT_EQ(lines.text[20], "Conjunto Gris  Grupo Mezcla:(Nivel+2)");
     EXPECT_EQ(lines.text[21], "Otro  Grupo Mezcla:(Nivel+1)");
-    EXPECT_EQ(lines.colors[20], Client::Scenes::TooltipGreen);
-    EXPECT_EQ(lines.colors[21], Client::Scenes::TooltipGreen);
+    EXPECT_EQ(lines.colors[20], Client::Tooltips::TooltipGreen);
+    EXPECT_EQ(lines.colors[21], Client::Tooltips::TooltipGreen);
     EXPECT_EQ(lines.text[22], "\n");
     EXPECT_EQ(m_text.texts[3].text, "Conjunto Gris  Grupo Mezcla:(Nivel+2)");
     const std::vector<Color> colors = TextColorsOf(m_sprites);

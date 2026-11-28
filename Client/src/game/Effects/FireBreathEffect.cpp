@@ -24,7 +24,7 @@
 #include <string>
 
 // Cotejado con el PE c32bbd5f: 0x51f5fe (el alta del 0x6ac), 0x52c7f0 (su paso) y 0x51fef0.
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -76,7 +76,7 @@ Core::Expected<void, std::string> SparkAndBlast(const glm::vec3& position, const
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheFireBreath(World::ModelEffect& effect, const HighEffectContext& context)
+Core::Expected<void, std::string> BeginTheFireBreath(Effects::ModelEffect& effect, const HighEffectContext& context)
 {
     constexpr std::int32_t Life = 10;              // 0x51f5fe
     constexpr float Push = -30.0f;                 // 0x51f61c, +0xd0
@@ -115,7 +115,7 @@ Core::Expected<void, std::string> BeginTheFireBreath(World::ModelEffect& effect,
     return {};
 }
 
-Core::Expected<void, std::string> StepTheFireBreath(World::ModelEffect& effect, float luminosity,
+Core::Expected<void, std::string> StepTheFireBreath(Effects::ModelEffect& effect, float luminosity,
                                                     const HighEffectStepContext& context)
 {
     constexpr double Half = Math::HalfAsDouble;                                     // 0x6b882c
@@ -133,8 +133,8 @@ Core::Expected<void, std::string> StepTheFireBreath(World::ModelEffect& effect, 
     const double lum = D(luminosity);
     const float half = F32(lum * Half);
     const glm::vec3 color{half, half, F32(lum * Blue)};
-    if (auto lit = World::AddDynamicLight(context.services.lighting, effect.transform.position, color, LightRadius,
-                                          "0x52c820");
+    if (auto lit = WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color,
+                                                 LightRadius, "0x52c820");
         !lit.HasValue())
         return lit;
     const glm::vec3& angles = effect.transform.angles;
@@ -156,4 +156,4 @@ Core::Expected<void, std::string> StepTheFireBreath(World::ModelEffect& effect, 
         return SparkAndBlast(effect.transform.position, context);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

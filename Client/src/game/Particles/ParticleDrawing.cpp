@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <functional>
 #include <optional>
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -332,4 +332,4 @@ Core::Expected<void, ParticleDrawingFailure> DrawParticlesChecked(Particles& par
     }
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

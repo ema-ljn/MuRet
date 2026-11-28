@@ -28,7 +28,7 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Social
 {
 
 struct SocialRequestContext
@@ -50,18 +50,18 @@ struct SocialRequestContext
 // comando 1 de la ventana de comandos): con la tienda personal propia o ajena abiertas (0x5af560) o sin el mundo
 // cargado (0x7d3a101), nada; si no, el C1 05 36 con su clave en C3 y el aviso armado con el nombre del primero vivo
 // con esa clave (0x5110d0), con el 1.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 SendATradeRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
 // El 40 al personaje `index` y el aviso 476 (0x56f6d1..0x56fd88 y 0x570638..0x570d22 de /party; 0x407352..0x40798d del
 // comando 3): sin el mundo cargado (0x7d3a101), nada; si no, 0x78aba4c = su clave (MOVSX), el C1 05 40 en C3 y el
 // aviso con el 1.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 SendAPartyRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
 // 0x5110d0(clave), 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso `text` con el nombre del primero vivo
 // con la clave (los comandos del gremio de la ventana de comandos, 0x4089cd y los otros tres).
-[[nodiscard]] Core::Expected<UI::ChatCommandNotice, std::string>
+[[nodiscard]] Core::Expected<Chat::ChatCommandNotice, std::string>
 NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where);
 
 // 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
@@ -101,7 +101,7 @@ struct CellDistance
 // 400 vivo, al lado y enfrente (sin ninguno, 1). Al lado de una tienda personal (0x451810), el aviso 493 con el 2 y 1.
 // Con la tienda personal propia o ajena abierta (0x5af560) o sin el mundo cargado (0x7d3a101), 1. Si no, el C1 05 36
 // con su clave y el aviso 475 con el nombre del primero vivo con esa clave (0x5110d0), con el 1, y 1.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context);
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context);
 
 // A quién le pide algo un comando del chat: el elegido (0x6c8e30, sin mirar si está vivo) si es alguien a quien pedirle
 // (CanBeAsked) y está al lado (NextToTheHero, sus accesos); sin elegido, el primero de los 400 vivo, alguien a quien
@@ -119,7 +119,7 @@ struct CellDistance
 // lugar de 0x77f3cd0 con el nombre del héroe), el aviso 257 con el 1. Si no, el elegido o el de enfrente, como
 // /trade pero sin la tienda ni 0x5af560; con el mundo cargado, 0x78aba4c = su clave (MOVSX), el C1 05 40 y el aviso
 // 476. Devuelve 1 siempre.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context);
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context);
 
 // 0x574c0c..0x57694d (/purchase fuera de Chaos Castle): con la tienda de NPC (0x10000), el almacén (0x40), el comercio
 // (0x20), la caja del caos (0x100) o el entrenador (0x8000) abiertos (en ese orden, hasta el primero; 0x10000 y 0x20
@@ -128,6 +128,6 @@ struct CellDistance
 // strlen y strcmp leen en el segundo buffer de sscanf: no vacío, el 3F 05 a cada uno de los 400 vivo con ese nombre
 // (strcmp con +0x1d9, sin mirar el tipo ni si es el héroe) y 1; vacío, al primero de los 400 vivo, alguien a quien
 // pedirle y enfrente (sin mirar si está al lado), y 1. Sin valor (la pila sin inicializar, 07 Q-C967), el error.
-[[nodiscard]] Core::Expected<UI::ChatCommandOutcome, std::string>
+[[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 RequestTheShopItems(const SocialRequestContext& context, std::optional<std::string_view> name);
-} // namespace Client::Scenes
+} // namespace Client::Social

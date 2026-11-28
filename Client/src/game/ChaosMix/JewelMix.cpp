@@ -30,7 +30,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::ChaosMix
 {
 namespace
 {
@@ -123,13 +123,14 @@ constexpr std::int32_t ResultTop = 170;
 constexpr std::int32_t ResultBottom = 195;
 
 // x en [left, right] e y en [top, bottom], con los bordes: los FCOM de los floats con el mouse entero.
-bool Within(const GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top, std::int32_t bottom)
+bool Within(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
+            std::int32_t bottom)
 {
     return context.mouseX >= left && context.mouseX <= right && context.mouseY >= top && context.mouseY <= bottom;
 }
 
 // Lo mismo con los bordes en float (0x625d17..0x625d59 y 0x625f4d..0x625f96).
-bool WithinFloat(const GameUiContext& context, float left, float right, float top, float bottom)
+bool WithinFloat(const Hud::GameUiContext& context, float left, float right, float top, float bottom)
 {
     const auto x = static_cast<float>(context.mouseX);
     const auto y = static_cast<float>(context.mouseY);
@@ -143,14 +144,14 @@ void LeaveTheMouseTime(Kernel::WorldRuntime& runtime)
 }
 
 // El diálogo que espera pasa a abierto (0x6236f0(0) y los MOV de 0x625a49, 0x625cbc y 0x6284ce).
-void CloseTheDialog(UI::DialogState& dialogs)
+void CloseTheDialog(Ui::DialogState& dialogs)
 {
     dialogs.current = dialogs.pending;
     dialogs.pending = 0;
 }
 
 // Abrir `id` como lo hacen 0x625a5f..0x625a97 y 0x6284e3: esperando si hay uno abierto.
-void OpenAfter(UI::DialogState& dialogs, std::int32_t id)
+void OpenAfter(Ui::DialogState& dialogs, std::int32_t id)
 {
     if (dialogs.current != 0)
         dialogs.pending = id;
@@ -165,7 +166,8 @@ Core::Expected<void, std::string> Send(const JewelMixSender& send, Protocol::Out
     return send(std::move(packet));
 }
 
-Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet, std::string_view what)
+Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet,
+                                       std::string_view what)
 {
     return Send(context.sendNpcWindow, std::move(packet), what);
 }
@@ -175,22 +177,22 @@ Core::Expected<void, std::string> CloseTheJewelMix(Kernel::WorldState& world, co
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     ResetTheJewelMix(runtime.npcWindows);
-    UI::PushDialog(runtime.dialogs, 0);
+    Ui::PushDialog(runtime.dialogs, 0);
     return Send(send, Protocol::Session::WriteWindowClose(), "0x402f91: el C1 03 31");
 }
 
-Core::Expected<void, std::string> CloseTheJewelMix(const GameUiContext& context)
+Core::Expected<void, std::string> CloseTheJewelMix(const Hud::GameUiContext& context)
 {
     return CloseTheJewelMix(context.world, context.sendNpcWindow);
 }
 
-Core::Expected<void, std::string> ReturnToTheChoice(const GameUiContext& context)
+Core::Expected<void, std::string> ReturnToTheChoice(const Hud::GameUiContext& context)
 {
     return ReturnToTheJewelChoice(context.world, context.sendNpcWindow);
 }
 
 // 0x402cf0: el precio.
-void PriceTheMix(JewelMixState& jewels)
+void PriceTheMix(Npc::JewelMixState& jewels)
 {
     if (jewels.mode != MixMode)
         jewels.price = UnmixPrice;
@@ -202,7 +204,7 @@ void PriceTheMix(JewelMixState& jewels)
 // en cuanto la cuenta (un byte) llega a 0x6c62e1 con signo; al deshacer mira el paquete de la casilla 0x6c62d8.
 Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
 {
-    JewelMixState& jewels = world.Runtime().npcWindows.jewels;
+    Npc::JewelMixState& jewels = world.Runtime().npcWindows.jewels;
     const auto& cells = world.Inventory().cells;
     jewels.field6e57a0 = 0;
     jewels.counted = 0;
@@ -255,7 +257,7 @@ Core::Expected<bool, std::string> CheckTheJewels(Kernel::WorldState& world)
 }
 
 // 0x402b70: si alcanza; si no, el aviso (2 y 4) y la vuelta de 0x402e50.
-Core::Expected<bool, std::string> AskForTheJewels(const GameUiContext& context)
+Core::Expected<bool, std::string> AskForTheJewels(const Hud::GameUiContext& context)
 {
     auto enough = CheckTheJewels(context.world);
     if (!enough.HasValue() || enough.Value())
@@ -265,13 +267,13 @@ Core::Expected<bool, std::string> AskForTheJewels(const GameUiContext& context)
     if (refusal == MissingJewels || refusal == NoBundle)
     {
         const std::size_t index = refusal == MissingJewels ? MissingJewelsText : NoBundleText;
-        const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+        const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
         if (!text)
             return Core::Unexpected(std::format("0x402b9f: sin el texto {} de Text.bmd", index));
         if (context.measure == nullptr)
             return Core::Unexpected(std::format("0x402b9f: el mensaje del texto {} sin medidor", index));
         // 0x555190(0x6e57a4, texto, 2): el nombre es una cadena vacía de la .bss.
-        if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, *text, UI::ErrorMessage);
+        if (auto added = Chat::AddGameMessage(runtime, *context.measure, context.screen, {}, *text, Ui::ErrorMessage);
             !added.HasValue())
             return Core::Unexpected(std::move(added).Error());
     }
@@ -281,10 +283,10 @@ Core::Expected<bool, std::string> AskForTheJewels(const GameUiContext& context)
 }
 
 // 0x4029e0: una vez, y sin un "no" pendiente, el BC.
-Core::Expected<void, std::string> SendTheJewelMix(const GameUiContext& context)
+Core::Expected<void, std::string> SendTheJewelMix(const Hud::GameUiContext& context)
 {
-    NpcWindowState& windows = context.world.Runtime().npcWindows;
-    JewelMixState& jewels = windows.jewels;
+    Npc::NpcWindowState& windows = context.world.Runtime().npcWindows;
+    Npc::JewelMixState& jewels = windows.jewels;
     if (windows.field6e5798 == 1 || jewels.refusal != 0)
         return {};
     windows.field6e5798 = 1;
@@ -303,17 +305,17 @@ Core::Expected<void, std::string> SendTheJewelMix(const GameUiContext& context)
 }
 
 // 0x625cbc..0x625ce5: cierra y abre el 0xa3 con su texto.
-Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
+Core::Expected<void, std::string> AskTheQuestion(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const JewelMixState& jewels = runtime.npcWindows.jewels;
+    const Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
     CloseTheDialog(runtime.dialogs);
-    const UI::DialogTextArguments arguments{.jewelMode = jewels.mode,
+    const Ui::DialogTextArguments arguments{.jewelMode = jewels.mode,
                                             .jewelKind = jewels.kind,
                                             .jewelCount = jewels.counted,
                                             .jewelLevel = jewels.level,
                                             .jewelPrice = jewels.price};
-    if (auto opened = UI::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 0, 0, UI::ServerTimeDialog,
+    if (auto opened = Ui::OpenTextDialog(runtime.dialogBox, runtime.dialogs, context.texts, 0, 0, Ui::ServerTimeDialog,
                                          nullptr, &arguments);
         !opened.HasValue())
         return opened;
@@ -325,7 +327,7 @@ Core::Expected<void, std::string> AskTheQuestion(const GameUiContext& context)
 // joya elegida (0x181e con 0, 0x181f con 1) y su nivel (0x46e940).
 void FillTheBundles(Kernel::WorldState& world)
 {
-    JewelMixState& jewels = world.Runtime().npcWindows.jewels;
+    Npc::JewelMixState& jewels = world.Runtime().npcWindows.jewels;
     ClearTheBundles(jewels.bundles);
     const auto& cells = world.Inventory().cells;
     for (std::size_t cell = 0; cell < cells.size(); ++cell)
@@ -340,9 +342,10 @@ void FillTheBundles(Kernel::WorldState& world)
 
 // 0x402a90(casilla, nivel): los guarda en 0x6c62d8 y 0x6c62dc y pregunta con 0x402b70; si alcanza, cierra y abre el
 // 0xa3 con su texto, como el 0xa2 (0x402aad..0x402acf).
-Core::Expected<void, std::string> AskForTheBundle(const GameUiContext& context, std::int32_t cell, std::int32_t level)
+Core::Expected<void, std::string> AskForTheBundle(const Hud::GameUiContext& context, std::int32_t cell,
+                                                  std::int32_t level)
 {
-    JewelMixState& jewels = context.world.Runtime().npcWindows.jewels;
+    Npc::JewelMixState& jewels = context.world.Runtime().npcWindows.jewels;
     jewels.cell = cell;
     jewels.level = level;
     auto enough = AskForTheJewels(context);
@@ -355,9 +358,9 @@ Core::Expected<void, std::string> AskForTheBundle(const GameUiContext& context, 
 } // namespace
 
 // 0x402e10: todo a su valor de arranque.
-void ResetTheJewelMix(NpcWindowState& windows)
+void ResetTheJewelMix(Npc::NpcWindowState& windows)
 {
-    JewelMixState& jewels = windows.jewels;
+    Npc::JewelMixState& jewels = windows.jewels;
     jewels.mode = MixMode;
     windows.field6e5798 = 0;
     jewels.refusal = 0;
@@ -373,22 +376,22 @@ void ResetTheJewelMix(NpcWindowState& windows)
 Core::Expected<void, std::string> ReturnToTheJewelChoice(Kernel::WorldState& world, const JewelMixSender& send)
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
-    NpcWindowState& windows = runtime.npcWindows;
+    Npc::NpcWindowState& windows = runtime.npcWindows;
     if (windows.field6e5798 == 1)
         windows.field6e5798 = 0;
-    UI::PushDialog(runtime.dialogs, 0);
+    Ui::PushDialog(runtime.dialogs, 0);
     windows.jewels.refusal = 0;
     windows.jewels.kind = Unchosen;
     if (windows.jewels.mode == MixMode)
-        UI::PushDialog(runtime.dialogs, ChoiceDialog);
+        Ui::PushDialog(runtime.dialogs, ChoiceDialog);
     else if (windows.jewels.mode == UnmixMode)
-        UI::PushDialog(runtime.dialogs, UnmixDialog);
+        Ui::PushDialog(runtime.dialogs, UnmixDialog);
     else
         return CloseTheJewelMix(world, send);
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelMenu(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
@@ -413,10 +416,10 @@ Core::Expected<void, std::string> StepTheJewelMenu(const GameUiContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelChoice(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    JewelMixState& jewels = runtime.npcWindows.jewels;
+    Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
     bool& click = runtime.movement.pendingClick;
     if (!click)
         return {};
@@ -465,10 +468,10 @@ Core::Expected<void, std::string> StepTheJewelChoice(const GameUiContext& contex
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelUnmix(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    JewelMixState& jewels = runtime.npcWindows.jewels;
+    Npc::JewelMixState& jewels = runtime.npcWindows.jewels;
     bool& click = runtime.movement.pendingClick;
     // 0x625d0c: el clic, leído antes de las joyas (DL).
     const bool clicked = click;
@@ -483,14 +486,15 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
         FillTheBundles(context.world);
         if (jewels.bundles.rows.empty())
         {
-            const std::optional<std::string_view> text = UI::TextAt(context.texts, NoBundleText);
+            const std::optional<std::string_view> text = Ui::TextAt(context.texts, NoBundleText);
             if (!text)
                 return Core::Unexpected(std::format("0x625d9a: sin el texto {} de Text.bmd", NoBundleText));
             if (context.measure == nullptr)
                 return Core::Unexpected(std::format("0x625da4: el mensaje del texto {} sin medidor", NoBundleText));
             // 0x555190(0x7d3a158, texto, 2): el nombre es una cadena de la .bss que solo lee este PUSH (*inferido*:
             // vacía).
-            if (auto added = AddGameMessage(runtime, *context.measure, context.screen, {}, *text, UI::ErrorMessage);
+            if (auto added =
+                    Chat::AddGameMessage(runtime, *context.measure, context.screen, {}, *text, Ui::ErrorMessage);
                 !added.HasValue())
                 return Core::Unexpected(std::move(added).Error());
             if (auto back = ReturnToTheChoice(context); !back.HasValue())
@@ -518,7 +522,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
     if (WithinFloat(context, UnmixOkLeft, UnmixOkRight, top, top + UnmixButtonHeight) && click)
     {
         click = false;
-        if (const std::optional<JewelBundleList::Row> chosen = ChosenBundle(jewels.bundles))
+        if (const std::optional<Npc::JewelBundleList::Row> chosen = ChosenBundle(jewels.bundles))
         {
             if (auto asked = AskForTheBundle(context, chosen->cell, static_cast<std::int8_t>(chosen->level));
                 !asked.HasValue())
@@ -531,7 +535,7 @@ Core::Expected<void, std::string> StepTheJewelUnmix(const GameUiContext& context
     return {};
 }
 
-Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& context)
+Core::Expected<void, std::string> StepTheJewelResult(const Hud::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     bool& click = runtime.movement.pendingClick;
@@ -543,7 +547,7 @@ Core::Expected<void, std::string> StepTheJewelResult(const GameUiContext& contex
     return ReturnToTheChoice(context);
 }
 
-Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context, bool yes)
+Core::Expected<void, std::string> AnswerTheJewelMix(const Hud::GameUiContext& context, bool yes)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     runtime.social.trade.warningByte = yes ? YesAnswer : NoAnswer;
@@ -555,4 +559,4 @@ Core::Expected<void, std::string> AnswerTheJewelMix(const GameUiContext& context
     OpenAfter(runtime.dialogs, WaitingDialog);
     return SendTheJewelMix(context);
 }
-} // namespace Client::Scenes
+} // namespace Client::ChaosMix

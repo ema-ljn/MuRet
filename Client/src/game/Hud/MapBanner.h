@@ -20,7 +20,7 @@ namespace Client::Render
 class ITextureStore;
 }
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 // +0x18, un int en el original (de 0 a 3).
 enum class MapBannerState : std::uint8_t
@@ -85,4 +85,4 @@ inline constexpr float MapBannerWidth = 166.0f;
 inline constexpr float MapBannerHeight = 90.0f;
 inline constexpr float MapBannerDu = 0.6484375f;
 inline constexpr float MapBannerDv = 0.703125f;
-} // namespace Client::Scenes
+} // namespace Client::Hud

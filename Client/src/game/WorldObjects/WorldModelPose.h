@@ -22,7 +22,7 @@ struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 
 // 4eb860 con flags (0, 1): conserva los huesos dummy y publica la pose global y la key del modelo en `faunaModels`;
@@ -30,4 +30,4 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<void, std::string>
 PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                const Models::Skeleton& skeleton, float frame, const glm::vec3& angles);
-} // namespace Client::Scenes
+} // namespace Client::WorldObjects

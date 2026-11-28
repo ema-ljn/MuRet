@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -30,4 +30,4 @@ std::optional<std::uint8_t> RelativeTargetCell(float x, float y, std::int32_t ta
     const auto right = static_cast<std::uint8_t>(low(*cellX) - low(*cellTargetX) + NibbleBias);
     return static_cast<std::uint8_t>(right | high);
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

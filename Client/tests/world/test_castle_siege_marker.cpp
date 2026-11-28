@@ -13,17 +13,17 @@ TEST(CastleSiegeMarkerTest, WarUsesTheWholeCrownFlagsAndScrollsTheMarkerWithoutR
 {
     bool war = true;
     std::uint32_t flags = 0;
-    Client::World::ObjectStepGlobals globals;
+    Client::WorldObjects::ObjectStepGlobals globals;
     globals.siegeActive = &war;
     globals.siegeCrownFlags = &flags;
     globals.worldClock = 12345.5f;
     Client::Crt::CrtRandom random(7);
-    Client::World::WorldObject object;
+    Client::WorldObjects::WorldObject object;
     object.type = 0x42;
     for (const std::uint32_t value : {0u, 0x20000u, 0x20001u})
     {
         flags = value;
-        const auto stepped = Client::World::StepCastleSiegeObject(object, random, globals);
+        const auto stepped = Client::CastleSiege::StepCastleSiegeObject(object, random, globals);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(object.state.hiddenMesh, value == 0x20000 ? -2 : -1);
         EXPECT_EQ(object.state.uv.y, static_cast<float>(static_cast<double>(globals.worldClock) *
@@ -32,7 +32,7 @@ TEST(CastleSiegeMarkerTest, WarUsesTheWholeCrownFlagsAndScrollsTheMarkerWithoutR
     }
     war = false;
     object.state.uv.y = 12.0f;
-    ASSERT_TRUE(Client::World::StepCastleSiegeObject(object, random, globals).HasValue());
+    ASSERT_TRUE(Client::CastleSiege::StepCastleSiegeObject(object, random, globals).HasValue());
     EXPECT_EQ(object.state.hiddenMesh, -2);
     EXPECT_EQ(object.state.uv.y, 12.0f);
 }

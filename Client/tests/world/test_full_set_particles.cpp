@@ -20,11 +20,11 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::ParticleError;
-using Client::World::ParticleOwner;
-using Client::World::ParticleOwnerKind;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::ParticleError;
+using Client::Particles::ParticleOwner;
+using Client::Particles::ParticleOwnerKind;
+using Client::Particles::Particles;
 
 constexpr std::int32_t Mist = 0x6f1;
 constexpr std::int32_t BootsSubtype = 3;
@@ -77,19 +77,20 @@ protected:
         ASSERT_EQ(*made.Value(), 0u);
     }
 
-    auto Step(Particles& pool, CrtRandom& random, const Client::World::ParticleActorActions& actions)
+    auto Step(Particles& pool, CrtRandom& random, const Client::Particles::ParticleActorActions& actions)
     {
-        return Client::World::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, actions);
+        return Client::Particles::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {},
+                                                       actions);
     }
 
     // El paso con el resolvedor del estado del dueño (el de un efecto con modelo) y sin el de los personajes.
-    auto StepWithStates(Particles& pool, CrtRandom& random, const Client::World::ParticleOwnerStates& states)
+    auto StepWithStates(Particles& pool, CrtRandom& random, const Client::Particles::ParticleOwnerStates& states)
     {
-        return Client::World::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, {}, {},
-                                                   nullptr, {}, {}, {}, states);
+        return Client::Particles::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, {},
+                                                       {}, nullptr, {}, {}, {}, states);
     }
 
-    static Client::World::ParticleActorActions ActionOf(const std::uint8_t& action)
+    static Client::Particles::ParticleActorActions ActionOf(const std::uint8_t& action)
     {
         return [&action](std::uint64_t identity) -> std::optional<std::uint8_t>
         {
@@ -100,7 +101,7 @@ protected:
     }
 
     float m_clock = 1000.0f;
-    Client::World::PortableParticleTrigonometry m_trig;
+    Client::Particles::PortableParticleTrigonometry m_trig;
 };
 } // namespace
 
@@ -177,7 +178,7 @@ TEST(FullSetParticlesTest, TheBootsMistShrinksSlowsItsRiseAndFadesForTwelveSteps
     for (int step = 1; step <= 12; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
         static_cast<void>(draws.Next());
         static_cast<void>(draws.Next());
         --expected.life;
@@ -327,12 +328,12 @@ TEST_F(FullSetOrbitTest, TheSetOrbitReadsTheActionOfItsModelEffectOwner)
     for (const Case& probe : cases)
     {
         SCOPED_TRACE(static_cast<int>(probe.action));
-        const Client::World::ParticleOwnerStates states =
-            [&probe](const ParticleOwner& owner) -> std::optional<Client::World::ParticleOwnerState>
+        const Client::Particles::ParticleOwnerStates states =
+            [&probe](const ParticleOwner& owner) -> std::optional<Client::Particles::ParticleOwnerState>
         {
             if (owner != DecalOwner)
                 return std::nullopt;
-            return Client::World::ParticleOwnerState{probe.alive, {}, std::nullopt, probe.action};
+            return Client::Particles::ParticleOwnerState{probe.alive, {}, std::nullopt, probe.action};
         };
         Particles set;
         CrtRandom setRandom(1);
@@ -363,17 +364,17 @@ TEST_F(FullSetOrbitTest, TheSetOrbitReadsTheActionOfItsModelEffectOwner)
     for (const ParticleOwner owner : {DecalOwner, ParticleOwner{ParticleOwnerKind::ModelEffect, 6}})
     {
         const bool resolver = owner == DecalOwner;
-        const Client::World::ParticleOwnerStates states =
-            [](const ParticleOwner& asked) -> std::optional<Client::World::ParticleOwnerState>
+        const Client::Particles::ParticleOwnerStates states =
+            [](const ParticleOwner& asked) -> std::optional<Client::Particles::ParticleOwnerState>
         {
             if (asked != DecalOwner)
                 return std::nullopt;
-            return Client::World::ParticleOwnerState{true, {}, std::nullopt, 0};
+            return Client::Particles::ParticleOwnerState{true, {}, std::nullopt, 0};
         };
         Particles set;
         CrtRandom random(1);
         Create(set, 0, owner, random);
-        const auto missing = StepWithStates(set, random, resolver ? Client::World::ParticleOwnerStates{} : states);
+        const auto missing = StepWithStates(set, random, resolver ? Client::Particles::ParticleOwnerStates{} : states);
         ASSERT_FALSE(missing.HasValue());
         EXPECT_EQ(missing.Error(), ParticleError::MissingOwner);
     }
@@ -397,7 +398,7 @@ TEST_F(FullSetOrbitTest, TheSetOrbitWithoutAnActorOwnerIsMissingItsOwner)
         CrtRandom random(1);
         Create(set, 0, probe.owner, random);
         const auto stepped =
-            Step(set, random, probe.resolver ? ActionOf(action) : Client::World::ParticleActorActions{});
+            Step(set, random, probe.resolver ? ActionOf(action) : Client::Particles::ParticleActorActions{});
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_EQ(stepped.Error(), ParticleError::MissingOwner);
     }

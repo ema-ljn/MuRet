@@ -74,8 +74,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHudContext;
 using Client::Kernel::ItemState;
-using Client::Scenes::GameHudContext;
 using Client::Scenes::WorldEntryResources;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -505,7 +505,7 @@ constexpr auto ShopItems = std::to_array<ShopItem>({
 // Los siete bytes del ítem como los arma el GameServer, lo que 0x54b3a0 deshace: el tipo (grupo · 512 + índice) en el
 // byte 0, su bit 8 en el 0x80 del byte 3 y los bits 9 a 12 arriba del byte 5; el nivel, la skill, la suerte y los dos
 // bits de abajo de la opción en el byte 1, y su bit 2 en el 0x40 del byte 3.
-std::array<std::byte, Client::Scenes::InventoryItemBytes::extent> ItemBytes(const ShopItem& entry)
+std::array<std::byte, Client::Items::InventoryItemBytes::extent> ItemBytes(const ShopItem& entry)
 {
     const auto type = static_cast<std::uint16_t>(entry.group * 512 + entry.index);
     const auto byte1 = static_cast<std::uint8_t>((entry.level << 3) | (entry.skill != 0 ? 0x80 : 0) |
@@ -582,7 +582,7 @@ protected:
         const std::vector<char> npcFile = read("Local\\NpcName(Eng).txt");
         auto npcs = Client::Tables::LoadNpcNames(std::as_bytes(std::span(npcFile)));
         ASSERT_TRUE(npcs.HasValue());
-        m_world.Runtime().npcNames = Client::Scenes::NpcNameTableOf(npcs.Value());
+        m_world.Runtime().npcNames = Client::Monsters::NpcNameTableOf(npcs.Value());
 
         m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         m_world.OwnCharacter().ClearEquipmentForEntry();
@@ -649,8 +649,7 @@ protected:
             cell.occupied = 0;
         }
         const auto bytes = ItemBytes(entry);
-        auto placed =
-            Client::Scenes::PlaceInTheNpcGrid(grid, 0, Client::Scenes::InventoryItemBytes(bytes), Resources());
+        auto placed = Client::Items::PlaceInTheNpcGrid(grid, 0, Client::Items::InventoryItemBytes(bytes), Resources());
         if (!placed.HasValue())
             return Client::Core::Unexpected(std::move(placed).Error());
         return grid[0];
@@ -658,30 +657,30 @@ protected:
 
     // El mouse sobre `place`/`index` con la tienda abierta, dos frames: 0x5f7bc0 con el registro propio abierto
     // alrededor. El caballo y el cuervo piden la mascota en el primero (0x4229d4) y se dibujan en el segundo.
-    Client::Core::Expected<void, std::string> Hover(Client::UI::HoveredItem::Place place, std::uint8_t fromTheShop)
+    Client::Core::Expected<void, std::string> Hover(Client::Ui::HoveredItem::Place place, std::uint8_t fromTheShop)
     {
         Client::Kernel::WorldRuntime& runtime = m_world.Runtime();
         runtime.panels.npcShop = 1;
-        Client::UI::GameUiState& ui = runtime.ui;
+        Client::Ui::GameUiState& ui = runtime.ui;
         for (int frame = 0; frame < 2; ++frame)
         {
-            ui.hoveredItem = Client::UI::HoveredItem{.place = place, .index = 0};
+            ui.hoveredItem = Client::Ui::HoveredItem{.place = place, .index = 0};
             ui.field78aba27 = fromTheShop;
             ui.skillTooltipX = 320;
             ui.skillTooltipY = 300;
             GameHudContext context = Context();
-            if (auto drawn = Client::Scenes::DrawTheTooltips(context); !drawn.HasValue())
+            if (auto drawn = Client::Tooltips::DrawTheTooltips(context); !drawn.HasValue())
                 return drawn;
         }
         return {};
     }
 
     Client::Kernel::WorldState m_world;
-    Client::Scenes::SelectionState m_selection{m_world};
+    Client::FrontEnd::SelectionState m_selection{m_world};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;
     Client::Models::ClothWorld m_cloth{.random = CrtRandom(0x1357)};
-    Client::Scenes::SingleModelLibrary m_models;
+    Client::FrontEnd::SingleModelLibrary m_models;
     std::optional<Client::Tables::ItemTable> m_items;
     std::optional<Client::Tables::TextTable> m_texts;
     std::optional<Client::Tables::SkillTable> m_skills;
@@ -694,7 +693,7 @@ protected:
     bool m_projecting = false;
     Client::Render::SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};
-    Client::UI::Point m_mouse{};
+    Client::Ui::Point m_mouse{};
 };
 
 TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromTheInventory)
@@ -730,9 +729,9 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
             continue;
         }
         const std::optional<std::string_view> cut = KnownCut(entry);
-        check(which.str(), "en la tienda", Hover(Client::UI::HoveredItem::Place::NpcGridCell, 1), cut);
+        check(which.str(), "en la tienda", Hover(Client::Ui::HoveredItem::Place::NpcGridCell, 1), cut);
         m_world.Inventory().cells[0] = placed.Value();
-        check(which.str(), "en el inventario", Hover(Client::UI::HoveredItem::Place::InventoryCell, 0), cut);
+        check(which.str(), "en el inventario", Hover(Client::Ui::HoveredItem::Place::InventoryCell, 0), cut);
     }
     EXPECT_EQ(failed, 0) << failures.str();
     EXPECT_EQ(m_world.Runtime().ownRecordDepth, 0);
@@ -743,7 +742,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsTooltipFromTheGridAndFromThe
                                            { return item.group == 13 && item.index == 10 && item.level == 1; });
     ASSERT_NE(ring, ShopItems.end());
     ASSERT_TRUE(Placed(*ring).HasValue());
-    ASSERT_TRUE(Hover(Client::UI::HoveredItem::Place::NpcGridCell, 1).HasValue());
+    ASSERT_TRUE(Hover(Client::Ui::HoveredItem::Place::NpcGridCell, 1).HasValue());
     const auto& text = m_world.Runtime().hud.tooltip.text;
     EXPECT_NE(std::ranges::find(text, std::string("Giant Anillo de transformacion")), text.end());
 }
@@ -759,7 +758,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     Client::Render::ModelBatch batch;
     Client::Kernel::PoseBuffer poseCarry;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     special.random = &m_random;
     special.worldClock = 4321.0f;
@@ -772,7 +771,7 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
     std::size_t joints = 0;
     itemContext.createJoint = [&joints](const Client::Kernel::JointRequest& request)
     {
-        EXPECT_EQ(request.ownerContext, Client::Scenes::UiItemLocalObject());
+        EXPECT_EQ(request.ownerContext, Client::Items::UiItemLocalObject());
         ++joints;
         return Client::Core::Expected<void, std::string>{};
     };
@@ -791,17 +790,17 @@ TEST_F(GoldenShopTooltipsTest, EveryShopItemDrawsItsModelInTheShopGrid)
             ++failed;
             continue;
         }
-        auto pass = Client::Scenes::MakeUiItemPass(Screen640);
+        auto pass = Client::Items::MakeUiItemPass(Screen640);
         ASSERT_TRUE(pass.HasValue()) << pass.Error();
         batch.Begin(Client::Render::Pass3D{});
         sprites.Clear();
-        Client::Scenes::UiItemResources resources{
+        Client::Items::UiItemResources resources{
             .batch = batch, .models = models, .poseCarry = poseCarry, .itemContext = itemContext, .pass = pass.Value()};
         GameHudContext context = Context();
         context.uiItems = &resources;
-        Client::Scenes::GamePanels panels(m_world, m_random);
-        const auto drawn = Client::Scenes::DrawTheGridItems(context, panels.Registry());
-        Client::Scenes::CloseUiItemPass(resources);
+        Client::Hud::GamePanels panels(m_world, m_random);
+        const auto drawn = Client::Hud::DrawTheGridItems(context, panels.Registry());
+        Client::Items::CloseUiItemPass(resources);
         if (!drawn.HasValue())
         {
             failures << which.str() << " en la grilla: " << drawn.Error() << "\n";

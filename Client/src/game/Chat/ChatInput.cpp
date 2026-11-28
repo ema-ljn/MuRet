@@ -13,7 +13,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Chat
 {
 namespace
 {
@@ -26,7 +26,7 @@ constexpr std::size_t GetTextLimit = 0xff;
 // 0x467ee0: SetText solo con menos de 0x100 bytes.
 constexpr std::size_t SetTextLimit = 0x100;
 
-TextField& FieldOf(ChatInputState& input, ChatFocus focus)
+Ui::TextField& FieldOf(ChatInputState& input, ChatFocus focus)
 {
     return focus == ChatFocus::Whisper ? input.whisper.text : input.message.text;
 }
@@ -37,14 +37,14 @@ std::int32_t LengthOf(const ChatBuffer& buffer)
 }
 
 // 0x467ec0, la vtable + 0x50: WM_GETTEXT, hasta `limit` bytes y el '\0'.
-void GetTextInto(ChatBuffer& buffer, const TextField& field)
+void GetTextInto(ChatBuffer& buffer, const Ui::TextField& field)
 {
     const std::string_view value = field.Value();
     CopyIntoTheBuffer(buffer, value.substr(0, std::min(value.size(), GetTextLimit)));
 }
 
 // 0x467ee0, la vtable + 0x4c.
-void SetTextOf(TextField& field, std::string_view text)
+void SetTextOf(Ui::TextField& field, std::string_view text)
 {
     const std::string_view value = text.substr(0, text.find('\0'));
     if (value.size() < SetTextLimit)
@@ -57,7 +57,7 @@ void SetFocusOn(ChatInputState& input, ChatFocus focus, std::int32_t* focusedLis
     input.focus = focus;
     // 0x4682f1..0x4682f7: tomar el foco mueve también la lista de las flechas, aunque el control sea un EDIT.
     if (focusedList != nullptr)
-        if (const OldEdit* edit = ChatEditWithFocus(input); edit != nullptr)
+        if (const Ui::OldEdit* edit = ChatEditWithFocus(input); edit != nullptr)
             *focusedList = edit->base.id;
 }
 
@@ -70,7 +70,7 @@ void CopyTheName(ChatBuffer& target, const ChatBuffer& source)
 }
 } // namespace
 
-OldEdit* ChatEditWithFocus(ChatInputState& input)
+Ui::OldEdit* ChatEditWithFocus(ChatInputState& input)
 {
     switch (input.focus)
     {
@@ -313,22 +313,22 @@ bool PressTabInTheChat(ChatInputState& input, bool chatOpen, std::int32_t* focus
 
 void TypeInTheChat(ChatInputState& input, std::string_view typed)
 {
-    OldEdit* edit = ChatEditWithFocus(input);
+    Ui::OldEdit* edit = ChatEditWithFocus(input);
     if (edit == nullptr || typed.empty())
         return;
-    SetTheEditComposition(*edit, {}, 0, 0);
-    TypeInTheEdit(*edit, typed);
+    Ui::SetTheEditComposition(*edit, {}, 0, 0);
+    Ui::TypeInTheEdit(*edit, typed);
 }
 
 void BackspaceInTheChat(ChatInputState& input)
 {
-    OldEdit* edit = ChatEditWithFocus(input);
+    Ui::OldEdit* edit = ChatEditWithFocus(input);
     if (edit == nullptr)
         return;
     edit->draws = 0;
     if (!edit->compositionText.empty())
         return;
-    BackspaceInTheEdit(*edit);
+    Ui::BackspaceInTheEdit(*edit);
 }
 
 bool StepTheWhisperName(ChatInputState& input, std::int32_t direction, std::int32_t* focusedList)
@@ -353,4 +353,4 @@ void PutTheWhisperName(ChatInputState& input, std::string_view name)
     CopyIntoTheBuffer(input.whisperBuffer, name);
     input.whisperLength = LengthOf(input.whisperBuffer);
 }
-} // namespace Client::UI
+} // namespace Client::Chat

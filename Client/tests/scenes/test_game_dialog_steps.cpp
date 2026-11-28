@@ -62,9 +62,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameUiContext;
 using Client::Input::InputState;
 using Client::Kernel::WorldState;
-using Client::Scenes::GameUiContext;
 
 class DialogPlayback final : public Client::Audio::IPlayback
 {
@@ -122,7 +122,7 @@ struct Request
     std::string text;
 };
 
-class RecordingRequests final : public Client::Scenes::IGameUiRequests
+class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
     void SendOptionData(const Client::Protocol::Player::OptionBody& body) override
@@ -204,7 +204,7 @@ public:
     {
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
-        runtime.dialogs.current = Client::UI::EscapeMenuDialog;
+        runtime.dialogs.current = Client::Ui::EscapeMenuDialog;
         // Las teclas del elegido: el lugar 0 con la tecla 3 y el 2 con la 0; los demás sin tecla.
         auto& keys = world.OwnCharacter().skillKeys[ChosenSlot];
         keys.fill(0xff);
@@ -217,19 +217,19 @@ public:
 
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y)
     {
-        return Client::Scenes::StepTheGameDialogs(GameUiContext{.world = world,
-                                                                .random = random,
-                                                                .input = input,
-                                                                .mouseX = x,
-                                                                .mouseY = y,
-                                                                .measure = &letters,
-                                                                .texts = &texts,
-                                                                .chosenSlot = std::uint8_t{ChosenSlot},
-                                                                .requests = &requests});
+        return Client::Hud::StepTheGameDialogs(GameUiContext{.world = world,
+                                                             .random = random,
+                                                             .input = input,
+                                                             .mouseX = x,
+                                                             .mouseY = y,
+                                                             .measure = &letters,
+                                                             .texts = &texts,
+                                                             .chosenSlot = std::uint8_t{ChosenSlot},
+                                                             .requests = &requests});
     }
     Client::Core::Expected<void, std::string> Click(std::int32_t x, std::int32_t y)
     {
-        Client::Scenes::LatchTheLeftButton(world.Runtime().movement, true, true);
+        Client::Hud::LatchTheLeftButton(world.Runtime().movement, true, true);
         return Dialogs(x, y);
     }
 
@@ -255,7 +255,7 @@ TEST(GameDialogStepsTest, TheOptionBodyCarriesTheKeysTheFlagsTheSlotsAndTheChatW
     runtime.chat.log.alpha = 0.5f;
     const CrtRandom expected = Advanced(tested.random, OptionDataRandoms);
 
-    const auto body = Client::Scenes::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
+    const auto body = Client::Hud::Dialogs::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
 
     ASSERT_TRUE(body.HasValue()) << body.Error();
     EXPECT_EQ(tested.random.State(), expected.State());
@@ -281,7 +281,7 @@ TEST(GameDialogStepsTest, TheChatWindowLosesItsRowsWithoutPlaceAndTruncatesTheAl
     runtime.chat.log.rows = 9;
     runtime.chat.log.alpha = static_cast<float>(7.0 * static_cast<double>(0.1f));
 
-    const auto body = Client::Scenes::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
+    const auto body = Client::Hud::Dialogs::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
 
     ASSERT_TRUE(body.HasValue()) << body.Error();
     EXPECT_EQ(body.Value()[14], 0x06);
@@ -291,11 +291,11 @@ TEST(GameDialogStepsTest, TheChatWindowLosesItsRowsWithoutPlaceAndTruncatesTheAl
 TEST(GameDialogStepsTest, TheOptionBodyCutsWithoutAChosenSlotOrWithAKeyOutsideTheStack)
 {
     SteppingDialogs tested(Lorencia);
-    const auto unchosen = Client::Scenes::OptionBodyOf(tested.world, tested.random, std::nullopt);
+    const auto unchosen = Client::Hud::Dialogs::OptionBodyOf(tested.world, tested.random, std::nullopt);
     ASSERT_FALSE(unchosen.HasValue());
     EXPECT_NE(unchosen.Error().find("0x61c2c6"), std::string::npos);
     tested.world.OwnCharacter().skillKeys[ChosenSlot][5] = 24;
-    const auto outside = Client::Scenes::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
+    const auto outside = Client::Hud::Dialogs::OptionBodyOf(tested.world, tested.random, std::uint8_t{ChosenSlot});
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x61c2e8"), std::string::npos);
 }
@@ -367,7 +367,7 @@ TEST(GameDialogStepsTest, TheChaosBoxKeepsThePlayerInTheGame)
         EXPECT_EQ(tested.random.State(), expected.State());
         EXPECT_EQ(tested.requests.Kinds(), (std::vector<std::string>{"log", "F3 30", "Macro.txt"}));
         EXPECT_FALSE(runtime.ui.logoutRequested);
-        EXPECT_TRUE(std::ranges::any_of(runtime.chat.area.rows, [](const Client::UI::MessageAreaRow& row)
+        EXPECT_TRUE(std::ranges::any_of(runtime.chat.area.rows, [](const Client::Ui::MessageAreaRow& row)
                                         { return row.text == "caja abierta" && row.type == 2; }));
         EXPECT_EQ(runtime.dialogs.current, 0);
     }
@@ -378,7 +378,7 @@ TEST(GameDialogStepsTest, TheOptionsButtonOpensTheOptions)
 {
     SteppingDialogs tested(Lorencia);
     ASSERT_TRUE(tested.Click(MenuX, OptionsY).HasValue());
-    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::UI::OptionsDialog);
+    EXPECT_EQ(tested.world.Runtime().dialogs.current, Client::Ui::OptionsDialog);
     EXPECT_EQ(tested.world.Runtime().dialogs.pending, 0);
     EXPECT_TRUE(tested.requests.requests.empty());
 }
@@ -388,7 +388,7 @@ TEST(GameDialogStepsTest, TheOptionRowsToggleTheirSettings)
 {
     SteppingDialogs tested(Devias);
     auto& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::OptionsDialog;
+    runtime.dialogs.current = Client::Ui::OptionsDialog;
     ASSERT_TRUE(tested.Click(0x104, 0x3c).HasValue());
     EXPECT_FALSE(runtime.ui.autoAttack);
     ASSERT_TRUE(tested.Click(0x17b, 0x5a + 0x15).HasValue());
@@ -413,7 +413,7 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
     {
         SteppingDialogs tested(Lorencia);
         auto& runtime = tested.world.Runtime();
-        runtime.dialogs.current = options ? Client::UI::OptionsDialog : 0x72;
+        runtime.dialogs.current = options ? Client::Ui::OptionsDialog : 0x72;
         runtime.dialogs.pending = 0x8b;
         DialogPlayback playback;
         int sounds = 0;
@@ -421,7 +421,7 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
         {
             ++sounds;
             EXPECT_EQ(id, Client::Audio::SoundId{0x19});
-            EXPECT_EQ(runtime.dialogs.current, options ? Client::UI::OptionsDialog : 0x8b);
+            EXPECT_EQ(runtime.dialogs.current, options ? Client::Ui::OptionsDialog : 0x8b);
             EXPECT_EQ(runtime.dialogs.pending, options ? 0x8b : 0);
             EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
             EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
@@ -471,12 +471,12 @@ TEST(GameDialogStepsTest, GoingBackLeavesTheMenuWaitingBehindTheOptions)
 {
     SteppingDialogs tested(Lorencia);
     auto& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::OptionsDialog;
+    runtime.dialogs.current = Client::Ui::OptionsDialog;
     ASSERT_TRUE(tested.Click(0x110, 0x1e).HasValue());
-    EXPECT_EQ(runtime.dialogs.current, Client::UI::OptionsDialog);
-    EXPECT_EQ(runtime.dialogs.pending, Client::UI::EscapeMenuDialog);
+    EXPECT_EQ(runtime.dialogs.current, Client::Ui::OptionsDialog);
+    EXPECT_EQ(runtime.dialogs.pending, Client::Ui::EscapeMenuDialog);
     ASSERT_TRUE(tested.Click(0x110, 0xe8).HasValue());
-    EXPECT_EQ(runtime.dialogs.current, Client::UI::EscapeMenuDialog);
+    EXPECT_EQ(runtime.dialogs.current, Client::Ui::EscapeMenuDialog);
 }
 
 // 0x62568a: el clic en la barra la agarra y vuelve a prender el clic; la rueda suma y resta entre 0 y 9.
@@ -484,7 +484,7 @@ TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
 {
     SteppingDialogs tested(Devias);
     auto& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::OptionsDialog;
+    runtime.dialogs.current = Client::Ui::OptionsDialog;
     runtime.ui.volumeBarX = 0x140;
     runtime.ui.volumeBarY = 0x7f;
 
@@ -525,7 +525,7 @@ TEST(GameDialogStepsTest, TheGlowBoxesKeepTheClick)
 {
     SteppingDialogs tested(Lorencia);
     auto& runtime = tested.world.Runtime();
-    runtime.dialogs.current = Client::UI::OptionsDialog;
+    runtime.dialogs.current = Client::Ui::OptionsDialog;
     ASSERT_TRUE(tested.Click(0x10e + 0x14 + 0x12, 0xda).HasValue());
     EXPECT_EQ(runtime.ui.glowDetail, 1);
     EXPECT_TRUE(runtime.movement.pendingClick);
@@ -548,7 +548,7 @@ TEST(GameDialogStepsTest, TheGenericOkClosesWithItsButtonOrEnter)
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_FALSE(runtime.movement.pendingClick);
 
-    runtime.dialogs.current = Client::UI::DisconnectDialog;
+    runtime.dialogs.current = Client::Ui::DisconnectDialog;
     runtime.ui.enterPressed = true;
     ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
     EXPECT_FALSE(runtime.ui.enterPressed);
@@ -562,7 +562,7 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     SteppingDialogs tested(Lorencia);
     auto& runtime = tested.world.Runtime();
     runtime.dialogs.current = 0;
-    Client::UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, "aviso");
+    Client::Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, "aviso");
     ASSERT_TRUE(tested.Dialogs(0x47 + 0xd5, 0x8c + 0x3c).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x8a);
     EXPECT_EQ(runtime.dialogBox.buttons[0].state, 2);
@@ -570,7 +570,7 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     EXPECT_EQ(runtime.dialogs.current, 0);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 
-    Client::UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, "aviso");
+    Client::Ui::OpenMessageBox(runtime.dialogBox, runtime.dialogs, "aviso");
     runtime.ui.enterPressed = true;
     ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
@@ -646,7 +646,7 @@ TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
     {
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
-            tested->world.Runtime().panels.delegated.quest = Client::Scenes::QuestListWindow;
+            tested->world.Runtime().panels.delegated.quest = Client::Quests::QuestListWindow;
             tested->world.Runtime().panels.trade = 1;
             tested->requests.onGamePacket = [&tested]
             {
@@ -677,9 +677,9 @@ TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
         }
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
-            Client::Scenes::PersonalShopState& shop = tested->world.Runtime().social.personalShop;
+            Client::Social::PersonalShopState& shop = tested->world.Runtime().social.personalShop;
             tested->world.Runtime().panels.personalShop = 1;
-            shop.mode = Client::Scenes::OtherShopView;
+            shop.mode = Client::Social::OtherShopView;
             shop.ownerKey = 0x1234;
             shop.ownerName[0] = std::byte{'C'};
             shop.ownerName[1] = std::byte{'e'};
@@ -690,7 +690,7 @@ TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
             expected.resize(0x10);
             EXPECT_EQ(tested->requests.requests[0].bytes, expected);
             EXPECT_EQ(tested->world.Runtime().panels.personalShop, 0);
-            EXPECT_EQ(shop.mode, Client::Scenes::NoShopView);
+            EXPECT_EQ(shop.mode, Client::Social::NoShopView);
             EXPECT_EQ(shop.ownerKey, 0);
         }
     }
@@ -744,7 +744,7 @@ protected:
     {
         Client::Kernel::WorldRuntime& runtime = Runtime();
         runtime.dialogs.current = 0x7f;
-        Client::Scenes::GuildState& guild = runtime.guild;
+        Client::Guild::GuildState& guild = runtime.guild;
         guild.warOn = 0;
         guild.rivalIndex = 2;
         guild.rival = {'T', 'e', 'r', 'o', 's', '\0', '\0', '\0', '\0'};
@@ -791,7 +791,7 @@ protected:
     // 0x4c1800: sin guerra ni rival; +0x374 en 1 para el gremio del héroe y en 0 para los demás.
     void ExpectTheWarCleared()
     {
-        const Client::Scenes::GuildState& guild = Runtime().guild;
+        const Client::Guild::GuildState& guild = Runtime().guild;
         EXPECT_EQ(guild.warOn, 0);
         EXPECT_EQ(guild.rivalIndex, -1);
         EXPECT_EQ(guild.rival[0], '\0');
@@ -946,7 +946,7 @@ TEST_P(MoneyOkTest, MoreThanTheOwnMoneyOpensTheOtherWarning)
 // hacia el que espera.
 TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
 {
-    Client::Scenes::TradeState& trade = Runtime().social.trade;
+    Client::Social::TradeState& trade = Runtime().social.trade;
     trade.ownOk = 1;
     trade.ownMoney = 200;
     Runtime().dialogs.pending = 0x77;
@@ -979,7 +979,7 @@ TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// Sin el comercio, el zen va al almacén (0x6270ed, Scenes::MoveTheWarehouseMoney, CL9 hito 6): meter más zen que el
+// Sin el comercio, el zen va al almacén (0x6270ed, Npc::MoveTheWarehouseMoney, CL9 hito 6): meter más zen que el
 // del inventario abre el 0x74 sin mandar nada, después del rand() de IsOpen y con el registro propio abierto y cerrado;
 // los campos vuelven como con el comercio.
 TEST_P(MoneyOkTest, WithoutTheTradeTheMoneyGoesToTheWarehouse)
@@ -1018,21 +1018,21 @@ protected:
         auto& slot = runtime.guild.members[KickedSlot];
         std::ranges::copy(std::string_view("Tala"), slot.name.begin());
         runtime.guild.kickMember = KickedSlot;
-        Client::UI::ChatInputState& input = runtime.chat.input;
-        Client::UI::CopyIntoTheBuffer(input.messageBuffer, "hola que tal");
+        Client::Chat::ChatInputState& input = runtime.chat.input;
+        Client::Chat::CopyIntoTheBuffer(input.messageBuffer, "hola que tal");
         input.messageLength = 12;
-        Client::UI::ShowTheNumberField(input, 0);
-        Client::UI::FocusTheNumberField(input);
+        Client::Chat::ShowTheNumberField(input, 0);
+        Client::Chat::FocusTheNumberField(input);
         input.numberField.filter = 9;
         input.numberField.text.SetLimit(7);
-        Client::UI::TypeInTheChat(input, "1234567");
+        Client::Chat::TypeInTheChat(input, "1234567");
     }
 
     Client::Kernel::WorldRuntime& Runtime()
     {
         return m_tested->world.Runtime();
     }
-    Client::UI::ChatInputState& Input()
+    Client::Chat::ChatInputState& Input()
     {
         return Runtime().chat.input;
     }
@@ -1082,7 +1082,7 @@ TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
     EXPECT_EQ(Input().messageLength, 0);
     EXPECT_EQ(Input().numberField.text.Value(), "");
     EXPECT_EQ(Input().numberField.base.state, 0);
-    EXPECT_EQ(Input().focus, Client::UI::ChatFocus::NumberField);
+    EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::NumberField);
 }
 
 // El maestro que disuelve (0x64de93 deja 0x6d5e2c en 0): el nombre del lugar 0. Fuera de los 40 del sí angosto, nada.
@@ -1118,13 +1118,13 @@ TEST_P(LeaveNumberTest, NoClearsTheBufferButNotTheEdit)
     EXPECT_EQ(m_tested->random.State(), CrtRandom().State());
 
     Runtime().dialogs.current = LeaveDialog;
-    Client::UI::CopyIntoTheBuffer(Input().messageBuffer, "otra");
+    Client::Chat::CopyIntoTheBuffer(Input().messageBuffer, "otra");
     m_tested->input.Apply(
         Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
     ASSERT_TRUE(m_tested->Dialogs(0, 0).HasValue());
     EXPECT_TRUE(m_tested->requests.requests.empty());
     EXPECT_EQ(Runtime().dialogs.current, 0);
-    EXPECT_EQ(Client::UI::CStringOf(Input().messageBuffer), "");
+    EXPECT_EQ(Client::Chat::CStringOf(Input().messageBuffer), "");
 }
 
 // 0x62a91c: 0x6d5e2c en −1 (el de la .data) lee antes de 0x787a5e8 (Q-C1296), y sin quien mande corta.
@@ -1139,17 +1139,16 @@ TEST_P(LeaveNumberTest, WithoutAMemberOrRequestsItCuts)
     // El cut deja el EDIT ya vacío (GetText y SetText(0) van antes del nombre).
     EXPECT_EQ(Input().numberField.text.Value(), "");
     Runtime().guild.kickMember = KickedSlot;
-    Client::Scenes::LatchTheLeftButton(Runtime().movement, true, true);
-    const auto withoutRequests =
-        Client::Scenes::StepTheGameDialogs(GameUiContext{.world = m_tested->world,
-                                                         .random = m_tested->random,
-                                                         .input = m_tested->input,
-                                                         .mouseX = YesX,
-                                                         .mouseY = ButtonY,
-                                                         .measure = &m_tested->letters,
-                                                         .texts = &m_tested->texts,
-                                                         .chosenSlot = std::uint8_t{ChosenSlot},
-                                                         .requests = nullptr});
+    Client::Hud::LatchTheLeftButton(Runtime().movement, true, true);
+    const auto withoutRequests = Client::Hud::StepTheGameDialogs(GameUiContext{.world = m_tested->world,
+                                                                               .random = m_tested->random,
+                                                                               .input = m_tested->input,
+                                                                               .mouseX = YesX,
+                                                                               .mouseY = ButtonY,
+                                                                               .measure = &m_tested->letters,
+                                                                               .texts = &m_tested->texts,
+                                                                               .chosenSlot = std::uint8_t{ChosenSlot},
+                                                                               .requests = nullptr});
     ASSERT_FALSE(withoutRequests.HasValue());
     EXPECT_NE(withoutRequests.Error().find("0x62a878"), std::string::npos) << withoutRequests.Error();
 }
@@ -1180,12 +1179,12 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
     auto& runtime = tested->world.Runtime();
     runtime.dialogTable = AnswersTable();
-    tested->texts = Client::Tests::MakeTextTable({{Client::UI::NoAnswersText, "nada mas"}});
+    tested->texts = Client::Tests::MakeTextTable({{Client::Ui::NoAnswersText, "nada mas"}});
     runtime.dialogs.current = 0;
     ASSERT_TRUE(
-        Client::UI::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, &tested->texts, 3)
+        Client::Ui::OpenTheAnswersDialog(runtime.dialogBox, runtime.dialogs, &runtime.dialogTable, &tested->texts, 3)
             .HasValue());
-    ASSERT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+    ASSERT_EQ(runtime.dialogs.current, Client::Ui::AnswersDialog);
     ASSERT_EQ(runtime.dialogBox.lineCount, 1);
     ASSERT_EQ(runtime.dialogBox.answerCount, 2);
 
@@ -1195,7 +1194,7 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     {
         SCOPED_TRACE(std::format("{} {}", x, y));
         ASSERT_TRUE(tested->Click(x, y).HasValue());
-        EXPECT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+        EXPECT_EQ(runtime.dialogs.current, Client::Ui::AnswersDialog);
         EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
         EXPECT_TRUE(runtime.movement.pendingClick);
         runtime.movement.pendingClick = false;
@@ -1211,19 +1210,19 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_EQ(runtime.movement.mouseUpdateTime, 0);
     EXPECT_EQ(runtime.movement.mouseUpdateTimeMax, 6);
-    EXPECT_EQ(runtime.dialogs.current, Client::UI::AnswersDialog);
+    EXPECT_EQ(runtime.dialogs.current, Client::Ui::AnswersDialog);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 5);
-    EXPECT_EQ(Client::UI::DialogAnswer(runtime.dialogBox, 0), "1) nada mas");
+    EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) nada mas");
 
     // La cuenta 0 de Dialog.bmd deja elegir la primera (máx(0, 1)), que vuelve al 3; con otro esperando, el 3 espera.
-    runtime.dialogs.pending = Client::UI::MessageBoxDialog;
+    runtime.dialogs.pending = Client::Ui::MessageBoxDialog;
     ASSERT_TRUE(tested->Click(0x13f, 131 + 9).HasValue());
-    EXPECT_EQ(runtime.dialogs.current, Client::UI::MessageBoxDialog);
-    EXPECT_EQ(runtime.dialogs.pending, Client::UI::AnswersDialog);
+    EXPECT_EQ(runtime.dialogs.current, Client::Ui::MessageBoxDialog);
+    EXPECT_EQ(runtime.dialogs.pending, Client::Ui::AnswersDialog);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
 
     // La segunda del 3 no lleva a ninguno: cierra.
-    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogs.current = Client::Ui::AnswersDialog;
     runtime.dialogs.pending = 0;
     ASSERT_TRUE(tested->Click(0x13f, 150).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0);
@@ -1235,7 +1234,7 @@ TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
 {
     const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
     auto& runtime = tested->world.Runtime();
-    runtime.dialogs.current = Client::UI::AnswersDialog;
+    runtime.dialogs.current = Client::Ui::AnswersDialog;
     runtime.dialogBox.answerCount = 1;
     const auto stepped = tested->Click(0x13f, ((7 - 1) * 0x12) / 2 + 0x4c);
     ASSERT_FALSE(stepped.HasValue());
@@ -1249,8 +1248,8 @@ void OpenTheWarning(Client::Kernel::WorldRuntime& runtime, std::int32_t id = 0x9
 {
     runtime.dialogs.current = id;
     runtime.dialogs.pending = 0;
-    runtime.dialogBox.buttons = {Client::UI::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
-                                 Client::UI::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
+    runtime.dialogBox.buttons = {Client::Ui::DialogButton{1, 0x15, 0x5a, 0x46, 0x15},
+                                 Client::Ui::DialogButton{3, 0x78, 0x5a, 0x46, 0x15}};
     runtime.social.trade.warningKind = 3;
     runtime.social.trade.warningByte = 0xff;
 }
@@ -1302,12 +1301,12 @@ TEST(GameDialogStepsTest, TheLowPriceWarningAnswersLikeTheWarning)
 {
     SteppingDialogs tested(Devias);
     auto& runtime = tested.world.Runtime();
-    OpenTheWarning(runtime, Client::UI::MoneyTextDialog);
+    OpenTheWarning(runtime, Client::Ui::MoneyTextDialog);
     ASSERT_TRUE(tested.Click(0x15 + 0xd5 + 0x46, 0x5a + 0x64).HasValue());
     EXPECT_EQ(runtime.social.trade.warningByte, 1);
     EXPECT_EQ(runtime.dialogs.current, 0);
 
-    OpenTheWarning(runtime, Client::UI::MoneyTextDialog);
+    OpenTheWarning(runtime, Client::Ui::MoneyTextDialog);
     tested.input.Apply(
         Client::Input::InputEvent{.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Escape});
     ASSERT_TRUE(tested.Dialogs(0, 0).HasValue());
@@ -1334,9 +1333,9 @@ TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)
 {
     SteppingDialogs tested(Lorencia);
     auto& runtime = tested.world.Runtime();
-    for (const Client::Scenes::DialogRoute& route : Client::Scenes::DialogRoutes())
+    for (const Client::Hud::Dialogs::DialogRoute& route : Client::Hud::Dialogs::DialogRoutes())
     {
-        if (route.step != Client::Scenes::DialogStep::Cut)
+        if (route.step != Client::Hud::Dialogs::DialogStep::Cut)
             continue;
         runtime.dialogs.current = route.id;
         const auto stepped = tested.Dialogs(0, 0);
@@ -1344,7 +1343,7 @@ TEST(GameDialogStepsTest, TheOtherWavesDialogsAreCut)
         EXPECT_NE(stepped.Error().find(route.address), std::string::npos) << stepped.Error();
         EXPECT_NE(stepped.Error().find(route.wave), std::string::npos) << stepped.Error();
     }
-    EXPECT_EQ(Client::Scenes::DialogRouteOf(0x40).step, Client::Scenes::DialogStep::GenericOk);
+    EXPECT_EQ(Client::Hud::Dialogs::DialogRouteOf(0x40).step, Client::Hud::Dialogs::DialogStep::GenericOk);
 }
 } // namespace
 

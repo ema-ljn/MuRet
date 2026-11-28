@@ -154,8 +154,8 @@ Core::Expected<void, std::string> CreateTheRaven(Kernel::ActorState& actor, cons
         *terrain.heights, *terrain.attributes, static_cast<float>(actor.cellX) * CellSize + Center,
         static_cast<float>(actor.cellY) * CellSize + Center, resources.camera.fixedHeight);
     actor.darkSpirit =
-        CreateDarkSpirit(actor.cellX, actor.cellY, height, resources.cloth.random,
-                         {actor.cellXAccesses, actor.cellYAccesses, resources.cloth.openCounterAccesses});
+        Pets::CreateDarkSpirit(actor.cellX, actor.cellY, height, resources.cloth.random,
+                               {actor.cellXAccesses, actor.cellYAccesses, resources.cloth.openCounterAccesses});
     return {};
 }
 } // namespace
@@ -183,11 +183,11 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
         item.alive = false;
     KillOtherActors(resources.world, static_cast<std::int32_t>(playerKey));
     // 0x4c4e86..0x4c4e8d y 0x4c77eb..0x4c77f2: 0x451590 deja solo el cartel de la tienda del héroe.
-    KeepTheHeroShopTitle(resources.world);
+    PersonalShop::KeepTheHeroShopTitle(resources.world);
 }
 void CreateTransitionArrival(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {
-    static_cast<void>(resources.world.Map().effects.Create(Kernel::ModelEffectArguments{.type = World::ArrivalEffect,
+    static_cast<void>(resources.world.Map().effects.Create(Kernel::ModelEffectArguments{.type = Effects::ArrivalEffect,
                                                                                         .position = actor.position,
                                                                                         .angles = actor.angles,
                                                                                         .light = actor.light,
@@ -198,7 +198,7 @@ void CreateTransitionArrival(Kernel::ActorState& actor, const WorldEntryResource
 Core::Expected<void, std::string> StartTheTeleportAction(Kernel::ActorState& actor,
                                                          const WorldEntryResources& resources)
 {
-    RefreshCombatActionSpeeds(resources);
+    Combat::RefreshCombatActionSpeeds(resources);
     const auto stop = TransitionStopContext(actor, resources);
     if (!stop.HasValue())
         return Core::Unexpected(stop.Error());
@@ -211,7 +211,7 @@ Core::Expected<void, std::string> StartTheTeleportAction(Kernel::ActorState& act
     actor.byte80 = 3;
     actor.alphaTarget = 1.0f;
     static_cast<void>(
-        resources.world.Map().effects.Create(World::TeleportEffect, actor.position, actor.angles, actor.light, 0.0f));
+        resources.world.Map().effects.Create(Effects::TeleportEffect, actor.position, actor.angles, actor.light, 0.0f));
     constexpr Audio::SoundId TeleportSound = Sound::MagicSound;
     resources.world.Runtime().RequestSound(TeleportSound);
     return {};
@@ -232,13 +232,13 @@ Core::Expected<void, std::string> AddTheWelcomeLine(const WorldEntryResources& r
     std::string line(*name);
     line += *welcome;
     const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-    return AddGameMessage(runtime, *resources.textMeasure, screen, {}, line, UI::SystemMessage);
+    return Chat::AddGameMessage(runtime, *resources.textMeasure, screen, {}, line, Ui::SystemMessage);
 }
 
 Core::Expected<void, std::string> CloseTransitionWindows(const WorldEntryResources& resources)
 {
-    GamePanels panels(resources.world, resources.cloth.random);
-    LendTheCastlePanelServices(panels, resources);
+    Hud::GamePanels panels(resources.world, resources.cloth.random);
+    CastleSiege::LendTheCastlePanelServices(panels, resources);
     return panels.Registry().CloseAll();
 }
 } // namespace Client::Scenes

@@ -10,7 +10,7 @@ namespace Client::Models
 {
 struct Skeleton;
 }
-namespace Client::Scenes
+namespace Client::Fauna
 {
 struct FaunaStepContext;
 [[nodiscard]] double FaunaHeight(const FaunaStepContext& context, float x, float y);
@@ -21,4 +21,4 @@ void SteerFauna(FaunaObject& object, std::size_t index, std::span<FaunaObject> p
 void SetFaunaAction(FaunaObject& object, const Models::Skeleton& skeleton, std::uint8_t action);
 void AdvanceFaunaAnimation(FaunaObject& object, const Models::Skeleton& skeleton, float speed);
 void FinalizeFauna(FaunaObject& object);
-} // namespace Client::Scenes
+} // namespace Client::Fauna

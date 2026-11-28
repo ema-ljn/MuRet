@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Fauna
 {
 namespace
 {
@@ -444,4 +444,4 @@ BirdStepResult StepBirds(std::span<BirdRecord> birds, IBirdStepServices& service
     return result;
 }
 
-} // namespace Client::World
+} // namespace Client::Fauna

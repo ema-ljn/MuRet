@@ -72,23 +72,23 @@ struct BeamWorld
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind);
     }
 
     Client::Core::Expected<void, std::string> Step(float worldClock = 0.0f)
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, &particles, worldClock, &sprites, lighting.get(),
+        return Client::Joints::StepJoints(joints, random, nullptr, &particles, worldClock, &sprites, lighting.get(),
                                           [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); });
     }
 
     ActorState actor;
-    Client::World::ModelEffect effect;
+    Client::Effects::ModelEffect effect;
     glm::vec3 start{1300.0f, 1000.0f, 100.0f};
     glm::vec3 target{1300.0f, 1300.0f, 100.0f};
     std::vector<JointState> joints = std::vector<JointState>(4);
     CrtRandom random{Seed};
-    Client::World::Particles particles;
-    Client::World::FrameSprites sprites;
+    Client::Particles::Particles particles;
+    Client::Particles::FrameSprites sprites;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     std::vector<std::int32_t> sounds;
 };
@@ -195,10 +195,10 @@ TEST(BeamJointsTest, TheRedFollowersLeaveTheirLightning)
         EXPECT_EQ(joint.position, glm::vec3(10.0f, 20.0f, 30.0f));
         const glm::vec3 glow{std::bit_cast<float>(light[0]), std::bit_cast<float>(light[1]),
                              std::bit_cast<float>(light[1])};
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         ASSERT_TRUE(twin->CreateChecked(0x5d5, joint.position, joint.angles, glow, 4, 1.0f, clock, replay).HasValue());
-        const Client::World::Particle& made = tested.particles.All()[0];
-        const Client::World::Particle& expected = twin->All()[0];
+        const Client::Particles::Particle& made = tested.particles.All()[0];
+        const Client::Particles::Particle& expected = twin->All()[0];
         ASSERT_TRUE(made.alive);
         EXPECT_EQ(made.type, 0x5d5);
         EXPECT_EQ(made.subtype, 4);
@@ -313,7 +313,7 @@ TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
     // CrtRandom.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const JointState& joint = tested.joints[0];
-    auto twin = std::make_unique<Client::World::Particles>();
+    auto twin = std::make_unique<Client::Particles::Particles>();
     ASSERT_TRUE(
         twin->CreateChecked(0x5d5, joint.position, joint.angles, joint.light, 1, 1.0f, 0.0f, replay).HasValue());
     static_cast<void>(replay.Next());
@@ -324,8 +324,8 @@ TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
     for (std::size_t slot = 0; slot < 2; ++slot)
     {
         SCOPED_TRACE(slot);
-        const Client::World::Particle& made = tested.particles.All()[slot];
-        const Client::World::Particle& expected = twin->All()[slot];
+        const Client::Particles::Particle& made = tested.particles.All()[slot];
+        const Client::Particles::Particle& expected = twin->All()[slot];
         ASSERT_TRUE(made.alive);
         EXPECT_EQ(made.type, expected.type);
         EXPECT_EQ(made.subtype, expected.subtype);

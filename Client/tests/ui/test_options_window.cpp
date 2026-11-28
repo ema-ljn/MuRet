@@ -15,28 +15,28 @@
 
 #include <optional>
 
-// Client::UI::OptionsWindow: las opciones del login y de la selección (+0x7e8: 0x644120, 0x644520,
+// Client::FrontEnd::OptionsWindow: las opciones del login y de la selección (+0x7e8: 0x644120, 0x644520,
 // 0x644640, 0x644730 y 0x644860; CL8, hito 8). Todo en píxeles.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::LayoutOptionsWindow;
+using Client::FrontEnd::OptionsEvent;
+using Client::FrontEnd::OptionsSettings;
+using Client::FrontEnd::OptionsWindow;
+using Client::FrontEnd::OptionsWindowLayout;
 using Client::Input::InputState;
 using Client::Input::Key;
-using Client::UI::LayoutOptionsWindow;
-using Client::UI::NewUiTurn;
-using Client::UI::OptionsEvent;
-using Client::UI::OptionsSettings;
-using Client::UI::OptionsWindow;
-using Client::UI::OptionsWindowLayout;
-using Client::UI::Point;
-using Client::UI::Rect;
+using Client::Ui::NewUiTurn;
+using Client::Ui::Point;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
-// Un paso de la lógica: 40 ms (App::LogicStep).
+// Un paso de la lógica: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 
 // Los buffers del laboratorio: op1_back3 de 5 × 8 sube en 8 × 8.
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x72a, {128, 128}},
                                             {0x72c, {256, 64}},
@@ -111,7 +111,7 @@ TEST(OptionsWindowTest, EachCheckWritesItsGlobal)
 
     const std::optional<OptionsEvent> attack = ClickOn(window, input, window.Check(0).Area(), current);
     EXPECT_EQ(attack, (OptionsEvent{.kind = OptionsEvent::Kind::AutoAttack, .value = 0}));
-    Client::UI::ApplyOption(current, *attack);
+    Client::FrontEnd::ApplyOption(current, *attack);
     EXPECT_FALSE(current.autoAttack);
 
     EXPECT_EQ(ClickOn(window, input, window.Check(1).Area(), current),
@@ -176,7 +176,7 @@ TEST(OptionsWindowTest, TheVolumeSliderWritesANewValue)
 
     const std::optional<OptionsEvent> volume = StepOnce(window, input, current);
     EXPECT_EQ(volume, (OptionsEvent{.kind = OptionsEvent::Kind::Volume, .value = 6}));
-    Client::UI::ApplyOption(current, *volume);
+    Client::FrontEnd::ApplyOption(current, *volume);
     EXPECT_EQ(current.volume, 6);
 
     // Todavía apretado: el mismo valor no escribe nada, y Esc no se lee.
@@ -196,7 +196,7 @@ TEST(OptionsWindowTest, TheGlowSliderWritesItsByte)
 
     const std::optional<OptionsEvent> glow = StepOnce(window, input, current);
     EXPECT_EQ(glow, (OptionsEvent{.kind = OptionsEvent::Kind::GlowDetail, .value = 3}));
-    Client::UI::ApplyOption(current, *glow);
+    Client::FrontEnd::ApplyOption(current, *glow);
     EXPECT_EQ(current.glowDetail, 3);
 }
 

@@ -36,7 +36,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -250,17 +250,17 @@ constexpr Render::Text::TextColors RavenHudColors{.text = 0xffdcdcdcu, .backgrou
 using Math::F32;
 using Math::Truncate;
 
-Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
+Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
 }
 
 // Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
-Models::LogicalAccess OwnAccess(GameHudContext& context)
+Models::LogicalAccess OwnAccess(Hud::GameHudContext& context)
 {
     return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
@@ -283,43 +283,43 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-void SetColors(GameHudContext& context, Render::Text::TextColors colors)
+void SetColors(Hud::GameHudContext& context, Render::Text::TextColors colors)
 {
     context.hud.textColors = colors;
 }
 
 // 0x554340(x, y, texto): la ayuda, que deja la fuente normal en el DC y los colores −1 y 0.
-void DrawHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
+void DrawHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
-    UI::DrawHelp(context.sprites, context.text, x, y, help);
-    WindowDrawing::SelectFont(context, FontKind::Normal);
+    Ui::DrawHelp(context.sprites, context.text, x, y, help);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     SetColors(context, Render::Text::TextColors{.text = 0xffffffffu, .background = 0});
 }
 
 // 0x2000000 (el personaje) no saca rand().
-std::int32_t WindowLeftOf(UI::PanelRegistry& panels)
+std::int32_t WindowLeftOf(Ui::PanelRegistry& panels)
 {
-    return panels.IsOpen(UI::CharacterPanel) ? WindowBesideTheCharacter : WindowLeft;
+    return panels.IsOpen(Ui::CharacterPanel) ? WindowBesideTheCharacter : WindowLeft;
 }
 
 // "No tiene" de la pestaña (0x424f4d..0x424fb7 y 0x4241c3..0x424215): la grande en negrita (0x576355c), en negro una
 // vez y en rojo un punto más arriba y a la izquierda, centrada con 0x623690.
-void DrawTheMissingPet(GameHudContext& context, std::int32_t left, std::string_view text)
+void DrawTheMissingPet(Hud::GameHudContext& context, std::int32_t left, std::string_view text)
 {
-    WindowDrawing::SelectFont(context, FontKind::BigBold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::BigBold);
     SetColors(context, MissingShadowColors);
-    WindowDrawing::DrawCenteredText(context, left + MissingShadowLeft, MissingShadowTop, text);
+    Hud::WindowDrawing::DrawCenteredText(context, left + MissingShadowLeft, MissingShadowTop, text);
     context.hud.textColors.text = MissingColor;
-    WindowDrawing::DrawCenteredText(context, left + MissingLeft, MissingTop, text);
+    Hud::WindowDrawing::DrawCenteredText(context, left + MissingLeft, MissingTop, text);
 }
 
 // 0x4249a0: el botón de la mascota y, con 0x723911 en 2, el marco de la ventana. Devuelve el 0x723911 que leen los que
 // siguen. Un dibujo intermedio de MuRet no escribe el 0 del personaje cerrado (lo vuelve a escribir el paso, 0x424230),
 // pero lo devuelve igual.
-Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    if (!panels.IsOpen(UI::CharacterPanel))
+    if (!panels.IsOpen(Ui::CharacterPanel))
     {
         if (!context.projecting)
             runtime.panels.delegated.pet = 0;
@@ -329,20 +329,20 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& 
     const std::uint8_t pet = runtime.panels.delegated.pet;
     Quad(sprites, pet == PetWindowOpen ? PetButtonOpenSlot : PetButtonSlot, PetButtonX, PetButtonY, PetButtonSize,
          PetButtonSize, 0.0f, 0.0f, PetButtonUv, PetButtonUv);
-    const UI::Point mouse = context.mouse;
+    const Ui::Point mouse = context.mouse;
     if (mouse.x >= PetButtonLeft && mouse.x < PetButtonRight && mouse.y >= PetButtonTop && mouse.y < PetButtonBottom)
     {
         auto help = TextOf(context, PetText, "0x424a3f");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        WindowDrawing::SelectFont(context, FontKind::Normal);
+        Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
         SetColors(context, HelpColors);
         DrawHelp(context, PetButtonLeft, PetButtonHelpY, Crt::Sprintf("%s", help.Value()));
     }
     if (runtime.panels.delegated.pet != PetWindowOpen)
         return runtime.panels.delegated.pet;
     const std::int32_t left = WindowLeftOf(panels);
-    WindowDrawing::DrawTheWindowBack(sprites, left, 0);
+    Hud::WindowDrawing::DrawTheWindowBack(sprites, left, 0);
     // 0x424ac9..0x424b34 y 0x424b3d..0x424ba6: primero la que no está elegida, después la elegida, con 0x723910 leído
     // en cada vuelta.
     const auto tabX = [left](std::uint8_t tab) { return F32(static_cast<double>(tab * TabStep + left) + TabLeft); };
@@ -374,12 +374,12 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& 
     sprites.SetBlend(BlendMode::Alpha);
     // 0x424cc8..0x424d8a: el botón de cerrar en (x + 25, 395) y, con el mouse encima, la ayuda en (_ftol(x + 25), 382)
     // con la fuente normal y los colores −1 y 0xff000000.
-    if (WindowDrawing::DrawTheCloseButton(context, left, 0))
+    if (Hud::WindowDrawing::DrawTheCloseButton(context, left, 0))
     {
         auto help = TextOf(context, CloseHelpText, "0x424d66");
         if (!help.HasValue())
             return Core::Unexpected(std::move(help).Error());
-        WindowDrawing::DrawTheCloseHelp(context, left, 0, help.Value());
+        Hud::WindowDrawing::DrawTheCloseHelp(context, left, 0, help.Value());
     }
     sprites.SetColor(White);
     auto title = TextOf(context, PetText, "0x424dfb");
@@ -388,30 +388,30 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(GameHudContext& 
     auto horse = TextOf(context, DarkHorseText, "0x424e0b");
     if (!horse.HasValue())
         return Core::Unexpected(std::move(horse).Error());
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, NameColors);
-    WindowDrawing::DrawTitle(context, left + TitleLeft, TitleTop, title.Value());
-    WindowDrawing::DrawCenteredText(context, left + HorseTabNameLeft, TabNameTop, horse.Value());
-    WindowDrawing::DrawCenteredText(context, left + RavenTabNameLeft, TabNameTop, title.Value());
+    Hud::WindowDrawing::DrawTitle(context, left + TitleLeft, TitleTop, title.Value());
+    Hud::WindowDrawing::DrawCenteredText(context, left + HorseTabNameLeft, TabNameTop, horse.Value());
+    Hud::WindowDrawing::DrawCenteredText(context, left + RavenTabNameLeft, TabNameTop, title.Value());
     return runtime.panels.delegated.pet;
 }
 
 // 0x4149b0(tipo, x, y, datos, órdenes): los datos de una mascota, el caballo (tipo 1, sin órdenes, desde 0x424e40) o
 // el cuervo (el +0x444 del objeto, que solo escribe 0x4167b0 en 0, con las órdenes, desde 0x416670).
-Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int32_t type, std::int32_t x,
+Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std::int32_t type, std::int32_t x,
                                                std::int32_t y, const Kernel::PetStats& stats, bool commands)
 {
     Kernel::WorldState& world = context.world;
     const Kernel::OwnCharacterRecord& own = world.OwnCharacter();
     Render::SpriteBatch& sprites = context.sprites;
-    const std::int32_t lineBox = WindowDrawing::BoxWidth(context, LineBox);
+    const std::int32_t lineBox = Hud::WindowDrawing::BoxWidth(context, LineBox);
     const std::int32_t lineLeft = x + LineLeft;
     // fild y; fst [ebp − 0x20]; fadd 100: la suma sale del entero, y el float de y queda para las órdenes.
     const auto floatY = static_cast<float>(y);
     float top = F32(static_cast<double>(y) + StatsTop);
     const auto drawLine = [&](std::string_view text)
     {
-        WindowDrawing::DrawClipped(context, lineLeft, Truncate(top), text, lineBox);
+        Hud::WindowDrawing::DrawClipped(context, lineLeft, Truncate(top), text, lineBox);
         top = F32(static_cast<double>(top) + StatsStep);
     };
     const auto format = [&](std::size_t index, std::string_view where) { return TextOf(context, index, where); };
@@ -420,16 +420,16 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     if (!level.HasValue())
         return Core::Unexpected(std::move(level).Error());
     context.hud.textColors.text = LevelColor;
-    WindowDrawing::DrawInBox(context, x + LevelLeft, Truncate(top),
-                             Crt::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
-                             WindowDrawing::BoxWidth(context, LevelBox));
+    Hud::WindowDrawing::DrawInBox(context, x + LevelLeft, Truncate(top),
+                                  Crt::Sprintf(level.Value(), static_cast<std::uint32_t>(stats.level)),
+                                  Hud::WindowDrawing::BoxWidth(context, LevelBox));
     top = F32(static_cast<double>(top) + FirstStep);
 
     auto life = format(LifeText, "0x414a55");
     if (!life.HasValue())
         return Core::Unexpected(std::move(life).Error());
     SetColors(context, LineColors);
-    WindowDrawing::DrawClipped(
+    Hud::WindowDrawing::DrawClipped(
         context, lineLeft, Truncate(top),
         Crt::Sprintf(life.Value(), static_cast<std::uint32_t>(stats.durability), std::uint32_t{MaxDurability}),
         lineBox);
@@ -531,8 +531,8 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
     if (!commandsTitle.HasValue())
         return Core::Unexpected(std::move(commandsTitle).Error());
     SetColors(context, CommandsTitleColors);
-    WindowDrawing::DrawInBox(context, x + LevelLeft, y + CommandsTitleTop, commandsTitle.Value(),
-                             WindowDrawing::BoxWidth(context, LevelBox));
+    Hud::WindowDrawing::DrawInBox(context, x + LevelLeft, y + CommandsTitleTop, commandsTitle.Value(),
+                                  Hud::WindowDrawing::BoxWidth(context, LevelBox));
     const float commandX = F32(static_cast<double>(x) + CommandsLeft);
     SetColors(context, LineColors);
     for (std::size_t command = 0; command < CommandTops.size(); ++command)
@@ -543,8 +543,8 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
         const float commandY = F32(static_cast<double>(floatY) + CommandTops[command]);
         Quad(sprites, CommandsSlot, commandX, commandY, CommandWidth, CommandHeight,
              CommandDu * static_cast<float>(command), 0.0f, CommandDu, CommandDv);
-        WindowDrawing::DrawText(context, Truncate(static_cast<double>(commandX)) + CommandTextLeft,
-                                Truncate(static_cast<double>(commandY)) + CommandTextTop, text.Value());
+        Hud::WindowDrawing::DrawText(context, Truncate(static_cast<double>(commandX)) + CommandTextLeft,
+                                     Truncate(static_cast<double>(commandY)) + CommandTextTop, text.Value());
     }
     // 0x4157b4..0x415858: la ayuda de la primera orden con el mouse encima, y sale.
     const auto mouseX = static_cast<double>(static_cast<float>(context.mouse.x));
@@ -570,7 +570,7 @@ Core::Expected<void, std::string> DrawTheStats(GameHudContext& context, std::int
 }
 
 // 0x424e40(héroe): la pestaña del caballo.
-Core::Expected<void, std::string> DrawTheHorseTab(GameHudContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> DrawTheHorseTab(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const Kernel::ActorState& hero)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -593,14 +593,14 @@ Core::Expected<void, std::string> DrawTheHorseTab(GameHudContext& context, UI::P
          static_cast<float>(StatsBackTop), StatsBackWidth, StatsBackHeight, 0.0f, 0.0f, StatsBackDu, StatsBackDv);
     sprites.SetBlend(BlendMode::Alpha);
     sprites.SetColor(White);
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, NameColors);
-    WindowDrawing::DrawCenteredText(context, left + HorseNameLeft, PetNameTop, horse.Value());
+    Hud::WindowDrawing::DrawCenteredText(context, left + HorseNameLeft, PetNameTop, horse.Value());
     return DrawTheStats(context, 1, left, 0, runtime.pets[Kernel::DarkHorsePetStats], false);
 }
 
 // 0x416670, thiscall sobre el cuervo: la pestaña del cuervo.
-Core::Expected<void, std::string> DrawTheRavenTab(GameHudContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> DrawTheRavenTab(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const DarkSpirit& raven)
 {
     const std::int32_t left = WindowLeftOf(panels);
@@ -614,9 +614,9 @@ Core::Expected<void, std::string> DrawTheRavenTab(GameHudContext& context, UI::P
     auto name = TextOf(context, DarkRavenText, "0x416767");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, NameColors);
-    WindowDrawing::DrawTitle(context, left + TitleLeft, PetNameTop, name.Value());
+    Hud::WindowDrawing::DrawTitle(context, left + TitleLeft, PetNameTop, name.Value());
     // 0x41677d..0x41679b: los 0x14 bytes de +0x448 y el tipo de +0x444 (0, Q-C1041).
     const Kernel::PetStats stats{.experience = raven.experience,
                                  .nextExperience = raven.nextExperience,
@@ -630,12 +630,12 @@ Core::Expected<void, std::string> DrawTheRavenTab(GameHudContext& context, UI::P
 }
 
 // La vtable + 0xc del cuervo (0x4182e0 → 0x418460): su cartel arriba a la derecha, con o sin la ventana.
-Core::Expected<void, std::string> DrawTheRavenHud(GameHudContext& context, UI::PanelRegistry& panels,
+Core::Expected<void, std::string> DrawTheRavenHud(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const Kernel::ActorState& hero, const DarkSpirit& raven)
 {
     Render::SpriteBatch& sprites = context.sprites;
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
-    WindowDrawing::SelectFont(context, FontKind::Bold);
+    Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, RavenHudColors);
     float offset = context.hud.partyCount > 0 ? PartyOffset : 0.0f;
     // 0x4184ac: la mascota del héroe de [0x743a170], con signo.
@@ -663,7 +663,7 @@ Core::Expected<void, std::string> DrawTheRavenHud(GameHudContext& context, UI::P
         context.text.Draw(at, RavenNameTop, name.Value(),
                           Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors});
     }
-    UI::DrawGauge(sprites, x, RavenGaugeTop, RavenGaugeWidth, RavenGaugeHeight, static_cast<float>(fill), false, true);
+    Ui::DrawGauge(sprites, x, RavenGaugeTop, RavenGaugeWidth, RavenGaugeHeight, static_cast<float>(fill), false, true);
     sprites.SetColor(White);
     const std::int32_t iconWidth = panels.WorldWidth();
     const float iconX =
@@ -685,7 +685,7 @@ Core::Expected<void, std::string> DrawTheRavenHud(GameHudContext& context, UI::P
 }
 } // namespace
 
-Core::Expected<void, std::string> DrawThePetWindow(GameHudContext& context, UI::PanelRegistry& panels)
+Core::Expected<void, std::string> DrawThePetWindow(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -718,4 +718,4 @@ Core::Expected<void, std::string> DrawThePetWindow(GameHudContext& context, UI::
         return DrawTheRavenHud(context, panels, hero, *hero.darkSpirit);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

@@ -73,9 +73,9 @@ FinishTheTransformed(std::size_t index, const Protocol::Actors::TransformedRecor
         // follows it on its way; neither draws a rand(). With the table full, nothing.
         if (auto circle = hooks.CreateTheMagicCircle(actor); !circle.HasValue())
             return Core::Unexpected(std::format("0x4c965c: {}", circle.Error()));
-        const World::ParticleOwner owner{World::ParticleOwnerKind::Actor, index};
-        if (auto bolt = world.Particles().CreateOwnedChecked(World::LightningParticle, actor.position, actor.angles,
-                                                             actor.light, World::LightningFollowSubtype, 1.0f, 0.0f,
+        const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::Actor, index};
+        if (auto bolt = world.Particles().CreateOwnedChecked(Particles::LightningParticle, actor.position, actor.angles,
+                                                             actor.light, Particles::LightningFollowSubtype, 1.0f, 0.0f,
                                                              random, 0, owner);
             !bolt.HasValue())
             return Core::Unexpected(

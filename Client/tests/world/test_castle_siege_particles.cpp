@@ -24,9 +24,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Tests::RecordedParticleDraw;
-using Client::World::Particle;
-using Client::World::Particles;
 
 using Client::Math::D;
 using Client::Math::F32;
@@ -51,8 +51,8 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallAddsSixTenthsToItsScaleAndFallsFast
     const glm::vec3 position(6799.0f, 13792.0f, 60.0f);
     const float scale = std::bit_cast<float>(0x3fc7ae14u);
     const auto created =
-        particles->CreateChecked(Client::World::KalimaWaterfallLast, position, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
-                                 Client::World::BrazierFallSubtype, scale, 0.0f, random);
+        particles->CreateChecked(Client::Particles::KalimaWaterfallLast, position, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
+                                 Client::Particles::BrazierFallSubtype, scale, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& fall = particles->All()[*created.Value()];
@@ -66,10 +66,10 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallAddsSixTenthsToItsScaleAndFallsFast
     EXPECT_EQ(random.State(), draws.State());
 
     // Los demás subtipos del 0x6f4 que no salen de los mapas portados siguen sin alta.
-    EXPECT_FALSE(
-        particles
-            ->CreateChecked(Client::World::KalimaWaterfallLast, position, {}, glm::vec3(1.0f), 5, scale, 0.0f, random)
-            .HasValue());
+    EXPECT_FALSE(particles
+                     ->CreateChecked(Client::Particles::KalimaWaterfallLast, position, {}, glm::vec3(1.0f), 5, scale,
+                                     0.0f, random)
+                     .HasValue());
     EXPECT_EQ(random.State(), draws.State());
 }
 
@@ -80,9 +80,9 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChanges
 {
     auto particles = std::make_unique<Particles>();
     CrtRandom random(31);
-    const auto created =
-        particles->CreateChecked(Client::World::KalimaWaterfallLast, {6799.0f, 13792.0f, 60.0f}, {0.0f, 0.0f, 45.0f},
-                                 glm::vec3(1.0f), Client::World::BrazierFallSubtype, 1.5f, 0.0f, random);
+    const auto created = particles->CreateChecked(Client::Particles::KalimaWaterfallLast, {6799.0f, 13792.0f, 60.0f},
+                                                  {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
+                                                  Client::Particles::BrazierFallSubtype, 1.5f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& fall = particles->All()[*created.Value()];
@@ -91,12 +91,12 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChanges
     constexpr double Brighten = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu));
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u));
     const float clock = 2500.0f;
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     constexpr int Steps = 30;
     for (int step = 1; step <= Steps; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trigonometry)
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trigonometry)
                         .HasValue());
         expected.life -= 1;
         const glm::vec3 turned =
@@ -124,9 +124,9 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChanges
 // la imagen por la escala, la luz y el giro de +0x44, sin leer el subtipo ni pedir otra mezcla.
 TEST(CastleSiegeParticlesTest, TheSparkAndTheFallDrawTheCommonBillboard)
 {
-    for (const auto& [type, subtype] :
-         {std::pair<std::int32_t, std::int32_t>{Client::World::CrywolfFanta, 0},
-          std::pair<std::int32_t, std::int32_t>{Client::World::KalimaWaterfallLast, Client::World::BrazierFallSubtype}})
+    for (const auto& [type, subtype] : {std::pair<std::int32_t, std::int32_t>{Client::Particles::CrywolfFanta, 0},
+                                        std::pair<std::int32_t, std::int32_t>{Client::Particles::KalimaWaterfallLast,
+                                                                              Client::Particles::BrazierFallSubtype}})
     {
         SCOPED_TRACE(type);
         Particle particle;

@@ -10,7 +10,7 @@
 // el 0x3d de 06 § La entrada al mundo). Un servidor ocupado y un login
 // rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar. La orden de cerrar el juego
 // tampoco es una falla: no tiene aviso (Q-C106).
-namespace Client::App
+namespace Client::Session
 {
 enum class SessionState : std::uint8_t
 {
@@ -46,4 +46,4 @@ enum class SessionFailure : std::uint8_t
     ApplicationFailed,  // el consumidor síncrono no pudo aplicar una recepción
     NoReply,            // un estado Waiting* pasó ReplyTimeout sin su respuesta (CL4.5)
 };
-} // namespace Client::App
+} // namespace Client::Session

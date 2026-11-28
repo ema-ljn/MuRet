@@ -44,9 +44,9 @@ std::vector<int> StepsPerOriginalFrame(double fps, int draws, Count count = Coun
                                                                            : jitter * 0);
         owed += elapsed;
         clock += elapsed;
-        while (owed >= Client::App::LogicStep)
+        while (owed >= Client::Kernel::LogicStep)
         {
-            owed -= Client::App::LogicStep;
+            owed -= Client::Kernel::LogicStep;
             frames.Step();
             ++stepsSinceTheLast;
         }
@@ -169,9 +169,9 @@ TEST(OriginalFramesOfTheStepsTest, TheQuestionBeforeTheDrawIsWhatTheDrawCounts)
             for (int draw = 0; draw < static_cast<int>(fps * 10.0); ++draw)
             {
                 owed += drawTime;
-                while (owed >= Client::App::LogicStep)
+                while (owed >= Client::Kernel::LogicStep)
                 {
-                    owed -= Client::App::LogicStep;
+                    owed -= Client::Kernel::LogicStep;
                     frames.Step();
                 }
                 const bool asked = frames.NextDrawIsAnOriginalFrame(pace);

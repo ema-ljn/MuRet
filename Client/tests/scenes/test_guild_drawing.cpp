@@ -40,18 +40,18 @@
 #include <utility>
 #include <vector>
 
-// Scenes::DrawTheWarScore y DrawThePanelDialog (CL9 hito 8, fase 2): el marcador de la guerra de gremios (0x5a7640) y
+// Guild::DrawTheWarScore y DrawThePanelDialog (CL9 hito 8, fase 2): el marcador de la guerra de gremios (0x5a7640) y
 // el diálogo de los paneles (0x660830), contra su ASM, en Lorencia (0), en Devias (2) y en Arena (6, la del fútbol de
 // la guerra). Los nombres y los textos son inventados.
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Guild::GuildMarkTextures;
+using Client::Hud::GameHudContext;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Render::SpriteVertex;
-using Client::Scenes::GameHudContext;
-using Client::Scenes::GuildMarkTextures;
 
 constexpr std::uint32_t Seed = 7;
 constexpr Client::Core::PixelSize Screen640{640, 480};
@@ -145,7 +145,7 @@ protected:
     {
         m_sprites.Begin(Screen640);
         Runtime().map = GetParam();
-        Client::Scenes::GuildState& guild = Runtime().guild;
+        Client::Guild::GuildState& guild = Runtime().guild;
         guild.tableCount = 6;
         guild.table[HeroGuild].key = 30;
         Fill(guild.table[HeroGuild].guildName, "Horneros");
@@ -184,8 +184,8 @@ protected:
                                .sprites = m_sprites,
                                .text = m_text,
                                .guildMarks = withMarks ? &m_marks : nullptr};
-        Client::Scenes::GamePanels panels(*m_world, m_random);
-        return Client::Scenes::DrawTheWarScore(context, panels.Registry());
+        Client::Hud::GamePanels panels(*m_world, m_random);
+        return Client::Guild::DrawTheWarScore(context, panels.Registry());
     }
 
     Client::Core::Expected<void, std::string> EventSummary()
@@ -203,10 +203,10 @@ protected:
                                .sprites = m_sprites,
                                .text = m_text,
                                .texts = &m_texts};
-        return Client::Scenes::DrawTheEventTimeAndOutcome(context);
+        return Client::Guild::DrawTheEventTimeAndOutcome(context);
     }
 
-    Client::UI::PanelDialogState& PanelDialog()
+    Client::Ui::PanelDialogState& PanelDialog()
     {
         return Runtime().panels.delegated.panelDialog;
     }
@@ -214,14 +214,14 @@ protected:
     void Open(std::vector<std::string> lines, std::uint32_t flags, std::int32_t placed)
     {
         m_lines = std::move(lines);
-        const auto opened = Client::UI::OpenThePanelDialog(
+        const auto opened = Client::Ui::OpenThePanelDialog(
             PanelDialog(),
-            Client::UI::PanelDialogRequest{.lines = m_lines,
+            Client::Ui::PanelDialogRequest{.lines = m_lines,
                                            .flags = flags,
-                                           .owner = Client::UI::PanelDialogOwner::Relationship,
+                                           .owner = Client::Ui::PanelDialogOwner::Relationship,
                                            .placed = placed},
             m_text, Client::Render::Text::FontKind::Normal, 1000);
-        ASSERT_EQ(opened, Client::UI::PanelDialogOpening::Opened);
+        ASSERT_EQ(opened, Client::Ui::PanelDialogOpening::Opened);
     }
 
     Client::Core::Expected<void, std::string> Dialog(bool withTexts = true, std::uint32_t tick = 0,
@@ -242,7 +242,7 @@ protected:
                                .text = m_text,
                                .texts = withTexts ? &m_texts : nullptr,
                                .tickCount = tick};
-        return Client::Scenes::DrawThePanelDialog(context, PanelDialog());
+        return Client::Guild::DrawThePanelDialog(context, PanelDialog());
     }
 
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
@@ -378,7 +378,7 @@ TEST_P(GuildDrawingTest, TheScoreDrawsBothMarksScoresAndNames)
 // llamada a 0x5bb8d0 consulta la tienda y el comercio: 2 rand().
 TEST_P(GuildDrawingTest, TheTeamSwapsTheColorsAndAnUnknownRivalShowsTheFirstMark)
 {
-    Client::Scenes::GuildState& guild = Runtime().guild;
+    Client::Guild::GuildState& guild = Runtime().guild;
     guild.warOn = 1;
     guild.warTeam = 1;
     Fill(guild.rival, "Benteveo");
@@ -469,7 +469,7 @@ TEST_P(GuildDrawingTest, SoccerFollowsTheWarAndDoesNotSearchTheLastGuild)
 // botones en y = 104 + 30 + 9 = 143, en 0x104 y 0x14a, con sus textos. No saca rand().
 TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
 {
-    Open({"Una alianza", "con Teros"}, Client::UI::PanelDialogConfirm, 0);
+    Open({"Una alianza", "con Teros"}, Client::Ui::PanelDialogConfirm, 0);
     ASSERT_EQ(PanelDialog().height, 93);
     Runtime().hud.dcFont = Client::Render::Text::FontKind::Bold;
     ASSERT_TRUE(Dialog().HasValue());
@@ -493,8 +493,8 @@ TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
     EXPECT_NEAR(quads[2].third.v, 0.625f, 1e-7f);
     EXPECT_EQ(quads[5].slot, Marker);
     EXPECT_EQ(quads[6].slot, Marker);
-    ExpectQuadAt(quads[7], Client::UI::WindowButtonSlot, 260.0f, 143.0f, 50.0f, 18.0f);
-    ExpectQuadAt(quads[9], Client::UI::WindowButtonSlot, 330.0f, 143.0f, 50.0f, 18.0f);
+    ExpectQuadAt(quads[7], Client::Ui::WindowButtonSlot, 260.0f, 143.0f, 50.0f, 18.0f);
+    ExpectQuadAt(quads[9], Client::Ui::WindowButtonSlot, 330.0f, 143.0f, 50.0f, 18.0f);
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 4u);
     EXPECT_EQ(texts[0].text, "Una alianza");
@@ -511,8 +511,8 @@ TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
     }
     EXPECT_EQ(texts[2].text, "Va");
     EXPECT_EQ(texts[3].text, "Ni ahi");
-    EXPECT_EQ(PanelDialog().buttons[Client::UI::PanelOkButton].label, "Dale");
-    EXPECT_EQ(PanelDialog().buttons[Client::UI::PanelConfirmButton].base.y, 143);
+    EXPECT_EQ(PanelDialog().buttons[Client::Ui::PanelOkButton].label, "Dale");
+    EXPECT_EQ(PanelDialog().buttons[Client::Ui::PanelConfirmButton].base.y, 143);
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Opaque);
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -521,7 +521,7 @@ TEST_P(GuildDrawingTest, ThePanelDialogDrawsItsBoxLinesAndButtons)
 // solo, en 0x127 e y = 30 + 15 + 9 = 54.
 TEST_P(GuildDrawingTest, AtTheTopWithOneButton)
 {
-    Open({"Listo"}, Client::UI::PanelDialogOk, 1);
+    Open({"Listo"}, Client::Ui::PanelDialogOk, 1);
     ASSERT_TRUE(Dialog().HasValue());
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
     ASSERT_EQ(quads.size(), 7u);
@@ -530,7 +530,7 @@ TEST_P(GuildDrawingTest, AtTheTopWithOneButton)
     ExpectQuadAt(quads[2], 0xfb, 214.0f, 55.0f, 213.0f, 28.0f);
     EXPECT_NEAR(quads[2].third.v, 0.4375f, 1e-7f);
     ExpectQuadAt(quads[3], 0xfc, 214.0f, 83.0f, 213.0f, 5.0f);
-    ExpectQuadAt(quads[5], Client::UI::WindowButtonSlot, 295.0f, 54.0f, 50.0f, 18.0f);
+    ExpectQuadAt(quads[5], Client::Ui::WindowButtonSlot, 295.0f, 54.0f, 50.0f, 18.0f);
     ASSERT_EQ(m_text.texts.size(), 2u);
     EXPECT_EQ(m_text.texts[0].y, 30);
     EXPECT_EQ(m_text.texts[1].text, "Dale");
@@ -541,7 +541,7 @@ TEST_P(GuildDrawingTest, ThePanelDialogNeedsItsButtonTexts)
 {
     ASSERT_TRUE(Dialog().HasValue());
     EXPECT_TRUE(QuadsOf(m_sprites).empty());
-    Open({"Che"}, Client::UI::PanelDialogConfirm, 0);
+    Open({"Che"}, Client::Ui::PanelDialogConfirm, 0);
     auto cut = Dialog(false);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x65ff12"), std::string::npos);
@@ -549,7 +549,7 @@ TEST_P(GuildDrawingTest, ThePanelDialogNeedsItsButtonTexts)
 
 TEST_P(GuildDrawingTest, ThePanelTimerDrawsItsNativeProgressAndUpdatesElapsedSecondsWithoutClamping)
 {
-    Open({"Uno", "Dos"}, Client::UI::PanelDialogConfirm | Client::UI::PanelDialogTimed, 0);
+    Open({"Uno", "Dos"}, Client::Ui::PanelDialogConfirm | Client::Ui::PanelDialogTimed, 0);
     ASSERT_TRUE(Dialog(true, 3500).HasValue());
     const auto quads = QuadsOf(m_sprites);
     const auto back = std::find_if(quads.begin(), quads.end(), [](const DrawnQuad& q) { return q.slot == 0x667; });
@@ -573,7 +573,7 @@ TEST_P(GuildDrawingTest, ThePanelTimerDrawsItsNativeProgressAndUpdatesElapsedSec
 
 TEST_P(GuildDrawingTest, ProjectingThePanelTimerPreservesItsPublishedElapsedSeconds)
 {
-    Open({}, Client::UI::PanelDialogTimed, 0);
+    Open({}, Client::Ui::PanelDialogTimed, 0);
     PanelDialog().elapsedSeconds = 99;
     ASSERT_TRUE(Dialog(true, 3500, true).HasValue());
     EXPECT_EQ(PanelDialog().elapsedSeconds, 99u);

@@ -43,7 +43,7 @@ Client::Core::Expected<std::optional<std::size_t>, std::string> CreateSwordTrail
     glm::vec3 angles{0.0f, 0.0f, 45.0f};
     CrtRandom random(9);
     const JointRequest request{0x610, first, second, angles, 4, owner, width, key, skill, 0, -1};
-    auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
     EXPECT_EQ(random.State(), CrtRandom(9).State());
     return created;
 }
@@ -67,7 +67,7 @@ TEST(HangingJointsTest, TheSwordBeamWalksNineJitteredSamplesTowardItsTarget)
     CrtRandom random(23);
     const JointRequest request{0x614, first, second, angles, 10, nullptr, Width, -1, 0, 0, -1};
 
-    const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+    const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
 
     ASSERT_TRUE(created.HasValue()) << created.Error();
     const JointState& joint = joints[0];
@@ -121,16 +121,16 @@ TEST(HangingJointsTest, TheSwordBeamStepsLikeTheFlareBeam)
         glm::vec3 angles{};
         CrtRandom random(41);
         const JointRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(sword, request, random).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(sword, request, random).HasValue());
         std::array<JointState, 1> flare = sword;
         flare[0].subtype = 14;
         CrtRandom other = random;
-        Client::World::Particles swordParticles;
-        Client::World::Particles flareParticles;
-        Client::World::FrameSprites sprites;
+        Client::Particles::Particles swordParticles;
+        Client::Particles::Particles flareParticles;
+        Client::Particles::FrameSprites sprites;
 
-        const auto stepped = Client::Scenes::StepJoints(sword, random, nullptr, &swordParticles, 0.0f, &sprites);
-        const auto reference = Client::Scenes::StepJoints(flare, other, nullptr, &flareParticles, 0.0f, &sprites);
+        const auto stepped = Client::Joints::StepJoints(sword, random, nullptr, &swordParticles, 0.0f, &sprites);
+        const auto reference = Client::Joints::StepJoints(flare, other, nullptr, &flareParticles, 0.0f, &sprites);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_TRUE(reference.HasValue()) << reference.Error();
@@ -161,7 +161,7 @@ TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoi
         CrtRandom random(5);
         const JointRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
 
-        const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
+        const auto created = Client::Joints::CreateFaunaJoint(joints, request, random);
 
         ASSERT_TRUE(created.HasValue()) << created.Error();
         EXPECT_EQ(random.State(), CrtRandom(5).State());
@@ -192,10 +192,10 @@ TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
     glm::vec3 angles{};
     CrtRandom random(5);
     const JointRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
-    ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
+    ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     actor.effectOrigin = {430.0f, 600.0f, 90.0f};
 
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
     const JointState& joint = joints[0];
     EXPECT_TRUE(joint.alive);
@@ -207,7 +207,7 @@ TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
 
     actor.alive = false;
     actor.effectOrigin = {};
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, 11);
     EXPECT_EQ(joint.count, 1);
@@ -311,7 +311,7 @@ TEST(HangingJointsTest, TheSwordTrailWalksFromTheTrailOriginToTheCharacterAndDie
         append(target);
         CrtRandom random(5);
 
-        ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+        ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
         EXPECT_EQ(random.State(), CrtRandom(5).State());
         EXPECT_FALSE(joint.alive);
@@ -340,7 +340,7 @@ TEST(HangingJointsTest, TheSwordTrailOfADeadCharacterRisesFromItsTargetAndAnOwne
     actor.alive = false;
     CrtRandom random(5);
 
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
 
     const JointState& joint = joints[0];
     const glm::vec3 risen{second.x, second.y, F32(D(second.z) + 50.0)};
@@ -354,7 +354,7 @@ TEST(HangingJointsTest, TheSwordTrailOfADeadCharacterRisesFromItsTargetAndAnOwne
     std::array<JointState, 1> ownerless{};
     ASSERT_TRUE(CreateSwordTrail(ownerless, {1000.0f, 2000.0f, 150.0f}, second, nullptr, 21.5f, -1, 0).HasValue());
     EXPECT_EQ(ownerless[0].targetPosition, second);
-    const auto stepped = Client::Scenes::StepJoints(ownerless, random);
+    const auto stepped = Client::Joints::StepJoints(ownerless, random);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x537d49"), std::string::npos) << stepped.Error();
 }

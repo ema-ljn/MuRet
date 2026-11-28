@@ -13,10 +13,10 @@ namespace
 {
 TEST(FaunaEffectsTest, LightningCreationPreservesUnwrittenScratchAndInitializesC2SubtypeThree)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     effects.Effects()[0].seen = true;
     effects.Effects()[0].reference = 91;
-    auto created = Client::Scenes::CreateFaunaLightning(effects, {10, 20, 30});
+    auto created = Client::Fauna::CreateFaunaLightning(effects, {10, 20, 30});
     ASSERT_TRUE(created);
     const auto& effect = effects.Effects()[*created];
     EXPECT_TRUE(effect.alive);
@@ -32,13 +32,13 @@ TEST(FaunaEffectsTest, LightningCreationPreservesUnwrittenScratchAndInitializesC
 }
 TEST(FaunaEffectsTest, AFullPoolDoesNotModifyAnySlot)
 {
-    Client::World::ModelEffects effects;
+    Client::Effects::ModelEffects effects;
     for (auto& effect : effects.Effects())
     {
         effect.alive = true;
         effect.life = 17;
     }
-    EXPECT_FALSE(Client::Scenes::CreateFaunaLightning(effects, {10, 20, 30}));
+    EXPECT_FALSE(Client::Fauna::CreateFaunaLightning(effects, {10, 20, 30}));
     for (const auto& effect : effects.Effects())
         EXPECT_EQ(effect.life, 17);
 }
@@ -48,10 +48,10 @@ namespace
 {
 TEST(FaunaEffectsTest, LightningFireUsesTwoCreationDrawsAndItsSpecificRotationAndScaleStep)
 {
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     Client::Crt::CrtRandom random;
-    const auto created =
-        particles.CreateChecked(Client::World::FireParticle, {10, 20, 30}, {0, 0, 0}, {1, 1, 1}, 8, .75f, 0, random);
+    const auto created = particles.CreateChecked(Client::Particles::FireParticle, {10, 20, 30}, {0, 0, 0}, {1, 1, 1}, 8,
+                                                 .75f, 0, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value());
     Client::Crt::CrtRandom expected;
@@ -62,12 +62,12 @@ TEST(FaunaEffectsTest, LightningFireUsesTwoCreationDrawsAndItsSpecificRotationAn
     EXPECT_EQ(particle.life, 24);
     EXPECT_FLOAT_EQ(particle.scale, .75f);
     EXPECT_FLOAT_EQ(particle.rotation, rotation);
-    ASSERT_FALSE(Client::World::StepParticles(particles, random));
+    ASSERT_FALSE(Client::Particles::StepParticles(particles, random));
     EXPECT_EQ(particle.life, 23);
     EXPECT_FLOAT_EQ(particle.scale, static_cast<float>(static_cast<double>(.75f) * .95f));
     EXPECT_FLOAT_EQ(particle.rotation, rotation + 5);
-    const auto shape =
-        Client::World::ParticleDrawParametersOf(particle, {40, 20}, Client::World::ParticleDrawKind::RotatedFire);
+    const auto shape = Client::Particles::ParticleDrawParametersOf(particle, {40, 20},
+                                                                   Client::Particles::ParticleDrawKind::RotatedFire);
     EXPECT_FLOAT_EQ(shape.width, 10);
     EXPECT_FLOAT_EQ(shape.rotation, rotation + 5);
     EXPECT_EQ(shape.uvSize, glm::vec2(.25f, 1));
@@ -78,14 +78,14 @@ namespace
 {
 TEST(FaunaEffectsTest, ARealLightningStepPublishesItsLightParticleSpriteAndSharedRandomPrefix)
 {
-    Client::World::ModelEffects effects;
-    ASSERT_TRUE(Client::Scenes::CreateFaunaLightning(effects, {1000, 1000, 300}));
-    Client::World::Particles particles;
-    Client::World::FrameSprites sprites;
+    Client::Effects::ModelEffects effects;
+    ASSERT_TRUE(Client::Fauna::CreateFaunaLightning(effects, {1000, 1000, 300}));
+    Client::Particles::Particles particles;
+    Client::Particles::FrameSprites sprites;
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::Models::ClothWorld cloth;
     const auto result =
-        Client::Scenes::StepFaunaLightning(effects.Effects()[0], 0, nullptr, particles, sprites, *lighting, cloth);
+        Client::Fauna::StepFaunaLightning(effects.Effects()[0], 0, nullptr, particles, sprites, *lighting, cloth);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(effects.Effects()[0].life, 79);
     EXPECT_EQ(effects.Effects()[0].transform.position, glm::vec3(1000, 988, 300));
@@ -108,17 +108,17 @@ namespace
 {
 TEST(FaunaEffectsTest, AFullParticlePoolAndAnOpenCounterKeepTheirNativeRandomSkips)
 {
-    Client::World::ModelEffects effects;
-    ASSERT_TRUE(Client::Scenes::CreateFaunaLightning(effects, {1000, 1000, 300}));
-    Client::World::Particles particles;
+    Client::Effects::ModelEffects effects;
+    ASSERT_TRUE(Client::Fauna::CreateFaunaLightning(effects, {1000, 1000, 300}));
+    Client::Particles::Particles particles;
     for (auto& particle : particles.All())
         particle.alive = true;
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     auto lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     Client::Models::ClothWorld cloth;
     cloth.openCounterAccesses = 1;
     ASSERT_TRUE(
-        Client::Scenes::StepFaunaLightning(effects.Effects()[0], 7, nullptr, particles, sprites, *lighting, cloth)
+        Client::Fauna::StepFaunaLightning(effects.Effects()[0], 7, nullptr, particles, sprites, *lighting, cloth)
             .HasValue());
     Client::Crt::CrtRandom expected;
     static_cast<void>(expected.Next());

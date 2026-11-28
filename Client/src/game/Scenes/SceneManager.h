@@ -35,7 +35,7 @@ namespace Client::Scenes
 // tiene esa escena.
 using SceneFactory = std::function<std::unique_ptr<IScene>(SceneId)>;
 
-class SceneManager final : public App::ILoopClient
+class SceneManager final : public Scenes::ILoopClient
 {
 public:
     // `pollNetwork` corre en cada Poll: main.cpp propaga Online::Poll y, sin servidor, devuelve

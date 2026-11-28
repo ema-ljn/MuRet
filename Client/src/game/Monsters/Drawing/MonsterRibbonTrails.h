@@ -19,7 +19,7 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 
 // 441260→42fa40 y 426d90: cintas de armas propias de los monstruos, sobre la pose compartida.
@@ -29,4 +29,4 @@ EmitEarlyMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* 
 [[nodiscard]] Core::Expected<void, std::string>
 EmitLateMonsterRibbonTrails(Kernel::ActorState& actor, const Models::Skeleton* skeleton,
                             const Actors::CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

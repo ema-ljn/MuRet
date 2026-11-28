@@ -4,7 +4,7 @@
 
 // Los avisos del juego (06 § HUD y ventanas, "Los diálogos del juego"): 0x7d3a10c es el abierto (0: ninguno) y
 // 0x7d3a110 el que espera. Los atiende 0x623e70 en cada paso y los dibuja 0x62db60 en cada frame (hito 6).
-namespace Client::UI
+namespace Client::Ui
 {
 // 0x623ea8: el menú de Esc.
 inline constexpr std::int32_t EscapeMenuDialog = 0x6e;
@@ -52,4 +52,4 @@ inline void PushDialog(DialogState& dialogs, std::int32_t id)
     }
     dialogs.current = id;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

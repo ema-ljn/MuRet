@@ -35,13 +35,21 @@ struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
+{
+class KalimaWorld;
+} // namespace Client::MapScripts::Kalima
+
+namespace Client::Particles
+{
+class Particles;
+class FrameSprites;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 struct ModelEffect;
 class ModelEffects;
-class Particles;
-class KalimaWorld;
-class FrameSprites;
 // 0x5192a3 y 0x5212e7: alta y cuerpo de la estela compartida por Crywolf y el terremoto.
 inline constexpr std::int16_t SpiritTrailEffect = 0x104;
 [[nodiscard]] std::optional<std::size_t> CreateSpiritTrail(const Kernel::ModelEffectArguments&, ModelEffects&);
@@ -55,7 +63,7 @@ inline constexpr std::int16_t SpiritTrailEffect = 0x104;
 struct ModelEffectStepServices
 {
     std::function<double(float, float)> terrainHeight{};
-    FrameSprites* sprites = nullptr;
+    Particles::FrameSprites* sprites = nullptr;
     ModelEffects* effects = nullptr;
     Terrain::TerrainLighting* lighting = nullptr;
     std::function<std::uint32_t()> systemTime{};
@@ -84,7 +92,8 @@ struct ModelEffectStepServices
 // (escala · 0,3f) y la chispa 0x5c6/2 con otro (0x52be64). El /1 y el /2, con la vida par, el joint 0x614/3 del punto a
 // la posición (0x52bcc4, 0x52bd80) y, el /1 con la vida impar, la chispa (0x52bd02); después los dos, el sprite con
 // escala · 0,2f. Sin la tabla de sprites o de efectos, o sin el servicio de joints cuando lo pide, corta.
-[[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Particles& particles,
+[[nodiscard]] Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect,
+                                                                     Particles::Particles& particles,
                                                                      Crt::CrtRandom& random,
                                                                      const ModelEffectStepServices& services);
 // 0x5208c5..0x52091a: la luz local del paso, del primer rand(): ((r & 3) + 7) · 0,1f (0x6b87b8); con menos de 5 de
@@ -123,7 +132,7 @@ struct ModelEffectStepServices
 // (0x52531d) saltan, caen sobre el terreno y se inclinan; uno de cada diez pasos corta en 0x5252e6, donde el polvo
 // 5f3/0 va en un local sin escribir (Q-C1176).
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles& particles, float worldClock,
-                    Crt::CrtRandom& random, KalimaWorld* kalima = nullptr,
+StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton, Particles::Particles& particles,
+                    float worldClock, Crt::CrtRandom& random, MapScripts::Kalima::KalimaWorld* kalima = nullptr,
                     const ModelEffectStepServices& services = {});
-} // namespace Client::World
+} // namespace Client::Effects

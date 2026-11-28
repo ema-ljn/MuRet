@@ -30,10 +30,20 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
+namespace Client::Effects
+{
+class ModelEffects;
+} // namespace Client::Effects
+
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
 // Los objetos de un mundo (CL7.2): los del .obj como los arma 0x606660, su paso de 0x604ab0 y lo que
 // 0x6002e0 hace con cada uno. Contrato: 06 § El mundo del login; vectores del código real en
 // Client/tests/vectors/world55/objects.txt (scripts/login/make_world55_vectors.py).
-namespace Client::World
+namespace Client::WorldObjects
 {
 // La escena en que se crea: los casos del farol y del dueño del dragón de 0x606660 solo corren en el
 // login (2) y la selección (4). Los casos por mapa no dependen de la escena.
@@ -187,8 +197,6 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton);
 
 struct ObjectModelStepState;
-class Particles;
-class ModelEffects;
 
 // Lo que 0x604ab0 lee afuera del objeto en el juego (CL7, hito 3).
 struct ObjectStepGlobals
@@ -199,7 +207,7 @@ struct ObjectStepGlobals
     float worldClock = 0.0f;
     // 0x7b4ccc4 y 0x743a198: los destinos durables del paso; no se fabrican buffers locales.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
-    Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // Las puertas consultan al héroe publicado y el modo editor, antes de mover o sonar.
     const glm::vec3* heroPosition = nullptr;
     bool editorMode = false;
@@ -210,7 +218,7 @@ struct ObjectStepGlobals
     ObjectModelStepState* modelState = nullptr;
     // 0x518cf0: la tabla de los efectos con modelo, donde el 0x34 del 1 suelta la piedra 0xda y el 0x18 del 4
     // el chorro 0x5de; el chorro abre y cierra el registro propio (0x7681eb4) con su cuenta de accesos.
-    ModelEffects* effects = nullptr;
+    Effects::ModelEffects* effects = nullptr;
     std::uint8_t* ownRecordDepth = nullptr;
     // +0x111 del héroe (0x743a170): la acción que mira la patada de 0x52f550 en el 0x26 y el 0x27 del 4.
     const std::uint8_t* heroAction = nullptr;
@@ -302,4 +310,4 @@ inline constexpr std::int16_t Waterspout = 0x69;
 // El orden del dibujo de 0x6046a0: los sectores por x y después por y (0x7d325d0 + (x · 16 + y) ·
 // 0x10) y, en cada uno, el orden en que se crearon. Devuelve los índices de `objects`.
 [[nodiscard]] std::vector<std::size_t> DrawOrder(std::span<const WorldObject> objects);
-} // namespace Client::World
+} // namespace Client::WorldObjects

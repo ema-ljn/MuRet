@@ -8,10 +8,10 @@
 // 0x554d20 y 0x555030 (CL8 hito 3; Q-C453): la lista de los que susurraron. Los nombres son inventados.
 namespace
 {
-using Client::UI::ClearTheWhisperSenders;
-using Client::UI::RememberTheWhisperSender;
-using Client::UI::WhisperSenderAt;
-using Client::UI::WhisperSenders;
+using Client::Chat::ClearTheWhisperSenders;
+using Client::Chat::RememberTheWhisperSender;
+using Client::Chat::WhisperSenderAt;
+using Client::Chat::WhisperSenders;
 
 TEST(WhisperSendersTest, RemembersEachSenderOnceBelowLevelTen)
 {

@@ -17,7 +17,7 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels,
                                                  const Kernel::ActorState& actor, const Models::Skeleton& skeleton,
@@ -57,4 +57,4 @@ Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, Asse
     return {};
 }
 
-} // namespace Client::Scenes
+} // namespace Client::WorldObjects

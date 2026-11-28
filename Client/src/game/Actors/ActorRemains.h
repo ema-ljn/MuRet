@@ -17,7 +17,7 @@ namespace Client::Models
 struct Skeleton;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Effects
 {
 class ModelEffects;
 }
@@ -44,7 +44,7 @@ struct ActorRemainsContext
     const Models::Skeleton* skeleton = nullptr;
     float modelScale = 0.0f;
     glm::vec3 modelOrigin{};
-    World::ModelEffects& effects;
+    Effects::ModelEffects& effects;
     Crt::CrtRandom& random;
     // nullptr: the first blood mark stops at 0x52e96c.
     Terrain::GroundMarkTable* marks = nullptr;

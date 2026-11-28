@@ -11,7 +11,7 @@
 
 // Los globales del comercio, la party y el duelo (CL9 hito 7, 04 § El comercio, § La party y § El duelo), en la .bss
 // salvo los que dicen otra cosa. Los escriben los paquetes (Scenes/SocialEvents) y los leen sus ventanas.
-namespace Client::Scenes
+namespace Client::Social
 {
 // 0x78a5a20 y 0x78a92a8: las dos grillas del comercio, 8 × 4 de 0x48 bytes; 0x77f3dc8, la copia de 0x5bc5e0, 32 más.
 inline constexpr std::size_t TradeGridCells = 0x20;
@@ -123,7 +123,7 @@ struct DuelState
 
 // Un cartel del mapa de 0x7245c8 (el objeto de 100 bytes de 0x4521d0, que arma 0x4524e0): la clave (+0x40), el nombre
 // del personaje (+0, de +0x1d9) y el título (+0x10). Las dos líneas del título (+0x20 y +0x30, 0x452f80) y las medidas
-// (+0x50, 0x4531b0, y +0x58, el texto 1104) salen de estos dos textos (Scenes::MeasureTheShopSign), y el lugar
+// (+0x50, 0x4531b0, y +0x58, el texto 1104) salen de estos dos textos (PersonalShop::MeasureTheShopSign), y el lugar
 // (+0x48, 0x4527d0) lo vuelve a poner el dibujo (0x451d60) en cada frame antes de leerlo (Scenes/ShopSigns).
 struct ShopTitle
 {
@@ -161,7 +161,7 @@ struct PersonalShopState
     // +0x10 de 0x7245c8 (0 desde 0x450f20): la cuenta del dibujo de los carteles, de 0 a 7 (0x451c3e).
     std::int32_t signBlink = 0;
     // +0x14 de 0x7245c8 (1 desde 0x450f20): los carteles se dibujan. Lo escriben "/ver puestos" y su par (0x4516a0 y
-    // 0x4516b0 desde 0x56d722 y 0x56d776, UI::RunTheChatCommand) y lo lee el dibujo (0x4516c0).
+    // 0x4516b0 desde 0x56d722 y 0x56d776, Chat::RunTheChatCommand) y lo lee el dibujo (0x4516c0).
     std::uint8_t signsShown = 1;
     // 0x78aba50: la tienda propia abierta (el 3F 02 con 1; el 3F 03 del héroe la apaga).
     std::uint8_t ownOpen = 0;
@@ -218,4 +218,4 @@ struct SocialState
     std::uint8_t moneyField = 0;
     std::int32_t typedMoney = 0;
 };
-} // namespace Client::Scenes
+} // namespace Client::Social

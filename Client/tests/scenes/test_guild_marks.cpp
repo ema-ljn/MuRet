@@ -17,14 +17,14 @@
 #include <optional>
 #include <string>
 
-// Scenes::PaintTheGuildMark y GuildMarkTextures (CL9 hito 8, fase 2): los píxeles de 0x5f16a0 con su paleta y la
+// Guild::PaintTheGuildMark y GuildMarkTextures (CL9 hito 8, fase 2): los píxeles de 0x5f16a0 con su paleta y la
 // subida de cada marca a su slot.
 namespace
 {
-using Client::Scenes::GuildMarkTextures;
-using Client::Scenes::GuildState;
+using Client::Guild::GuildMarkTextures;
+using Client::Guild::GuildState;
 
-std::array<std::uint8_t, 4> PixelAt(const Client::Scenes::GuildMarkImage& image, std::size_t pixel)
+std::array<std::uint8_t, 4> PixelAt(const Client::Guild::GuildMarkImage& image, std::size_t pixel)
 {
     return {image[pixel * 4], image[pixel * 4 + 1], image[pixel * 4 + 2], image[pixel * 4 + 3]};
 }
@@ -37,8 +37,8 @@ TEST(GuildMarksTest, ThePaletteIsTheOneOfTheOriginal)
     auto& mark = guild->table[5].mark;
     for (std::size_t i = 0; i < mark.size(); ++i)
         mark[i] = static_cast<std::uint8_t>(i % 16);
-    const auto half = Client::Scenes::PaintTheGuildMark(*guild, 5, false);
-    const auto clear = Client::Scenes::PaintTheGuildMark(*guild, 5, true);
+    const auto half = Client::Guild::PaintTheGuildMark(*guild, 5, false);
+    const auto clear = Client::Guild::PaintTheGuildMark(*guild, 5, true);
     ASSERT_TRUE(half.HasValue());
     ASSERT_TRUE(clear.HasValue());
     EXPECT_EQ(PixelAt(half.Value(), 0), (std::array<std::uint8_t, 4>{0, 0, 0, 0x80}));
@@ -72,11 +72,11 @@ TEST(GuildMarksTest, ThePaletteIsTheOneOfTheOriginal)
 TEST(GuildMarksTest, OutsideTheTableOrThePaletteIsCut)
 {
     auto guild = std::make_unique<GuildState>();
-    EXPECT_FALSE(Client::Scenes::PaintTheGuildMark(*guild, -1, true).HasValue());
-    EXPECT_FALSE(Client::Scenes::PaintTheGuildMark(*guild, 2000, true).HasValue());
-    EXPECT_TRUE(Client::Scenes::PaintTheGuildMark(*guild, 1999, true).HasValue());
+    EXPECT_FALSE(Client::Guild::PaintTheGuildMark(*guild, -1, true).HasValue());
+    EXPECT_FALSE(Client::Guild::PaintTheGuildMark(*guild, 2000, true).HasValue());
+    EXPECT_TRUE(Client::Guild::PaintTheGuildMark(*guild, 1999, true).HasValue());
     guild->table[1].mark[63] = 16;
-    EXPECT_FALSE(Client::Scenes::PaintTheGuildMark(*guild, 1, true).HasValue());
+    EXPECT_FALSE(Client::Guild::PaintTheGuildMark(*guild, 1, true).HasValue());
 }
 
 // Cada (índice, fondo) en su slot, de 8 × 8 en RGBA con GL_NEAREST y GL_CLAMP; la misma imagen no sube otra vez, una
@@ -138,11 +138,11 @@ TEST(GuildMarksTest, EachUnionRowHasItsOwnSlot)
     auto guild = std::make_unique<GuildState>();
     Client::Tests::FakeTextureStore store;
     GuildMarkTextures marks(store);
-    auto& creating = guild->table[static_cast<std::size_t>(Client::Scenes::CreatingGuildIndex)].mark;
+    auto& creating = guild->table[static_cast<std::size_t>(Client::Guild::CreatingGuildIndex)].mark;
     creating.fill(4);
-    const auto first = marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 0);
+    const auto first = marks.UploadToTheUnionRow(*guild, Client::Guild::CreatingGuildIndex, true, 0);
     creating.fill(8);
-    const auto last = marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 5);
+    const auto last = marks.UploadToTheUnionRow(*guild, Client::Guild::CreatingGuildIndex, true, 5);
     ASSERT_TRUE(first.HasValue()) << first.Error();
     ASSERT_TRUE(last.HasValue()) << last.Error();
     EXPECT_EQ(first.Value().value, Client::Render::FirstGuildUnionMarkTextureSlot.value);
@@ -158,8 +158,8 @@ TEST(GuildMarksTest, EachUnionRowHasItsOwnSlot)
     EXPECT_EQ(green->texture.pixels[1], 0xff);
     EXPECT_EQ(red->sampling.filter, Client::Data::Textures::Filter::Nearest);
 
-    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, 6).HasValue());
-    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Scenes::CreatingGuildIndex, true, -1).HasValue());
+    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Guild::CreatingGuildIndex, true, 6).HasValue());
+    EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, Client::Guild::CreatingGuildIndex, true, -1).HasValue());
     EXPECT_FALSE(marks.UploadToTheUnionRow(*guild, 2000, true, 0).HasValue());
     EXPECT_EQ(store.loadCalls, 2);
 }

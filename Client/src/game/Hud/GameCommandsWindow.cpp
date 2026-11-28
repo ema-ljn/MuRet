@@ -51,7 +51,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -132,7 +132,7 @@ constexpr float CheckUv = 0.625f;
 constexpr std::size_t TitleText = 938;
 constexpr std::size_t CloseHelpText = 927;
 // 0x40a998: la tabla 0x40aca4, el nombre de los comandos del 1 al 11.
-constexpr std::array<std::size_t, UI::CommandCount - 1> CommandTexts{943,  1124, 944, 945, 946, 1352,
+constexpr std::array<std::size_t, Ui::CommandCount - 1> CommandTexts{943,  1124, 944, 945, 946, 1352,
                                                                      1321, 1322, 947, 948, 949};
 // 0x40a853: el "D" (0x6c6358) que sprintf pone en el texto 927, en un buffer de 100 bytes de la pila (EBP − 0x6c).
 constexpr std::string_view CloseKey = "D";
@@ -157,7 +157,7 @@ constexpr std::uint8_t NotMemberState = 0xfe;
 Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& context, std::size_t index,
                                                      std::string_view where)
 {
-    const std::optional<std::string_view> text = UI::TextAt(context.texts, index);
+    const std::optional<std::string_view> text = Ui::TextAt(context.texts, index);
     if (!text)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, index));
     return *text;
@@ -214,14 +214,14 @@ constexpr std::int32_t CommandReach = 2;
 constexpr std::size_t PersonalShopText = 493;
 constexpr std::size_t NotTheLeaderText = 257;
 
-void ResetTheStates(UI::CommandsWindowState& window)
+void ResetTheStates(Ui::CommandsWindowState& window)
 {
-    window.states.fill(UI::CommandReady);
+    window.states.fill(Ui::CommandReady);
 }
 
 // 0x406af0..0x406afa y 0x4072ae..0x4072bb: la ventana se cierra (+4), sin destino (+8) ni comando (+0x20); después
 // 0x4072be pone los doce estados en 1.
-void CloseAfterTheCommand(UI::DelegatedPanels& delegated)
+void CloseAfterTheCommand(Ui::DelegatedPanels& delegated)
 {
     delegated.commands = 0;
     delegated.commandsWindow.target = -1;
@@ -231,7 +231,7 @@ void CloseAfterTheCommand(UI::DelegatedPanels& delegated)
 
 // 0x4061b7..0x406344: lo que puede el comando elegido con el personaje elegido, en su estado (+0x14 + comando): 1 se
 // puede, 0 no, 0xff el otro no es el maestro de un gremio, 0xfe el héroe tampoco. El 9 queda siempre en 0.
-Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, UI::CommandsWindowState& window,
+Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, Ui::CommandsWindowState& window,
                                                std::size_t index)
 {
     const Kernel::ActorState& target = world.Actors()[index];
@@ -244,17 +244,17 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
     case PartyCommand:
     case FollowCommand:
         // 0x4061d3..0x406275: invitarlo si no está en la party; seguirlo si está.
-        states[PartyCommand] = UI::CommandReady;
+        states[PartyCommand] = Ui::CommandReady;
         states[FollowCommand] = 0;
-        if (IsInTheParty(world, index))
+        if (Social::IsInTheParty(world, index))
         {
             states[PartyCommand] = 0;
-            states[FollowCommand] = UI::CommandReady;
+            states[FollowCommand] = Ui::CommandReady;
         }
         return {};
     case GuildCommand:
         // 0x40627a..0x4062b1: el héroe sin gremio (+0x1f2 negativo) y el otro maestro del suyo.
-        states[GuildCommand] = UI::CommandReady;
+        states[GuildCommand] = Ui::CommandReady;
         if (static_cast<std::int16_t>(hero.word1f2) >= 0)
             states[GuildCommand] = 0;
         else if (static_cast<std::int16_t>(target.word1f2) < 0 || target.guildStatus != GuildMaster)
@@ -271,11 +271,11 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
             // 0x4062d7..0x4062f5: el +4 de la entrada del gremio del héroe (0x787aa4c, sin mirar el −1: Q-C1281): ya
             // con alianza, 0; si no, 1.
             const auto guildIndex = static_cast<std::int16_t>(hero.word1f2);
-            const std::optional<char> unionByte = UnionByteAt(world.Runtime().guild, guildIndex);
+            const std::optional<char> unionByte = Guild::UnionByteAt(world.Runtime().guild, guildIndex);
             if (!unionByte)
                 return Core::Unexpected(
                     std::format("0x4062e4: el gremio {} del héroe cae fuera de la tabla", guildIndex));
-            states[AllianceCommand] = *unionByte != '\0' ? 0 : UI::CommandReady;
+            states[AllianceCommand] = *unionByte != '\0' ? 0 : Ui::CommandReady;
         }
         return {};
     case HostilityCommand:
@@ -288,7 +288,7 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
         else if (target.guildStatus != GuildMaster)
             states[command] = NotMasterState;
         else
-            states[command] = UI::CommandReady;
+            states[command] = Ui::CommandReady;
         return {};
     }
     default:
@@ -298,7 +298,7 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
 }
 
 // 0x555190("", texto, tipo) o el texto ya armado, en los mensajes, con la entrada del chat.
-Core::Expected<void, std::string> Notify(const GameChatContext& chat, const UI::ChatCommandNotice& notice,
+Core::Expected<void, std::string> Notify(const Chat::GameChatContext& chat, const Chat::ChatCommandNotice& notice,
                                          std::string_view where)
 {
     if (chat.measure == nullptr)
@@ -310,18 +310,18 @@ Core::Expected<void, std::string> Notify(const GameChatContext& chat, const UI::
     }
     else
     {
-        const auto found = UI::TextAt(chat.texts, notice.text);
+        const auto found = Ui::TextAt(chat.texts, notice.text);
         if (!found)
             return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, notice.text));
         text = std::string(*found);
     }
-    return AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, "", text, notice.type);
+    return Chat::AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, "", text, notice.type);
 }
 
-Core::Expected<void, std::string> NotifyAll(const GameChatContext& chat, const UI::ChatCommandOutcome& outcome,
+Core::Expected<void, std::string> NotifyAll(const Chat::GameChatContext& chat, const Chat::ChatCommandOutcome& outcome,
                                             std::string_view where)
 {
-    for (const UI::ChatCommandNotice& notice : outcome.notices)
+    for (const Chat::ChatCommandNotice& notice : outcome.notices)
     {
         if (auto added = Notify(chat, notice, where); !added.HasValue())
             return added;
@@ -329,7 +329,7 @@ Core::Expected<void, std::string> NotifyAll(const GameChatContext& chat, const U
     return {};
 }
 
-Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                       Protocol::Outgoing packet, std::uint16_t key, std::size_t text,
                                                       std::string_view where)
 {
@@ -338,9 +338,9 @@ Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& conte
     if (chat.texts == nullptr)
         return Core::Unexpected(std::format("{}: el aviso {} sin Text.bmd", where, text));
     chat.send(std::move(packet));
-    const SocialRequestContext requests{
+    const Social::SocialRequestContext requests{
         .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
-    auto notice = NoticeWithTheName(requests, text, key, where);
+    auto notice = Social::NoticeWithTheName(requests, text, key, where);
     if (!notice.HasValue())
         return Core::Unexpected(std::move(notice).Error());
     return Notify(chat, notice.Value(), where);
@@ -348,10 +348,10 @@ Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& conte
 
 // Un aviso de Text.bmd y el comando en −1 (+0x20): el nivel (0x40646a), la tienda (0x4064aa), la party (0x407326) y el
 // duelo (0x4085a5).
-Core::Expected<void, std::string> Refuse(const GameChatContext& chat, UI::CommandsWindowState& window, std::size_t text,
-                                         std::int32_t type, std::string_view where)
+Core::Expected<void, std::string> Refuse(const Chat::GameChatContext& chat, Ui::CommandsWindowState& window,
+                                         std::size_t text, std::int32_t type, std::string_view where)
 {
-    if (auto added = Notify(chat, UI::ChatCommandNotice{.text = text, .type = type}, where); !added.HasValue())
+    if (auto added = Notify(chat, Chat::ChatCommandNotice{.text = text, .type = type}, where); !added.HasValue())
         return added;
     window.chosen = -1;
     return {};
@@ -359,24 +359,24 @@ Core::Expected<void, std::string> Refuse(const GameChatContext& chat, UI::Comman
 
 // 0x40638d..0x406afd, el comando 1 (texto 943): el nivel del registro propio (+0xe, con su acceso) contra 0x6c8dc8;
 // el otro con tienda personal (0x451810); el 36 con su aviso; la ventana se cierra.
-Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
-    UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     std::uint16_t level = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = world.OwnCharacter().level;
     }
-    if (level < UI::DefaultTradeLevel)
-        return Refuse(chat, delegated.commandsWindow, UI::TradeLevelText, UI::SystemMessage, "0x406476");
-    if (HasShopTitle(runtime.social.personalShop, index))
-        return Refuse(chat, delegated.commandsWindow, PersonalShopText, UI::ErrorMessage, "0x4064b6");
-    const SocialRequestContext requests{
+    if (level < Chat::DefaultTradeLevel)
+        return Refuse(chat, delegated.commandsWindow, Chat::TradeLevelText, Ui::SystemMessage, "0x406476");
+    if (PersonalShop::HasShopTitle(runtime.social.personalShop, index))
+        return Refuse(chat, delegated.commandsWindow, PersonalShopText, Ui::ErrorMessage, "0x4064b6");
+    const Social::SocialRequestContext requests{
         .world = world, .random = context.random, .texts = *chat.texts, .send = chat.send};
-    auto sent = SendATradeRequest(requests, index, "0x4064f0");
+    auto sent = Social::SendATradeRequest(requests, index, "0x4064f0");
     if (!sent.HasValue())
         return Core::Unexpected(sent.Error());
     if (auto added = NotifyAll(chat, sent.Value(), "0x406ae5"); !added.HasValue())
@@ -387,14 +387,14 @@ Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, co
 
 // 0x406b02..0x4072be, el comando 2 (texto 1124): el C1 10 3F 05 con la clave y el nombre del otro, en C3, y la ventana
 // se cierra. Lo que contesta el servidor (el 3F 05 que llega) no tiene handler (08 P-C208 b).
-Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                    std::size_t index)
 {
     const Kernel::ActorState& target = context.world.Actors()[index];
-    const SocialRequestContext requests{
+    const Social::SocialRequestContext requests{
         .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
-    if (auto sent =
-            SendInC3(requests, Protocol::PersonalShop::WriteShopItemsRequest(target.key, target.name), "0x406b02");
+    if (auto sent = Social::SendInC3(requests, Protocol::PersonalShop::WriteShopItemsRequest(target.key, target.name),
+                                     "0x406b02");
         !sent.HasValue())
         return sent;
     CloseAfterTheCommand(context.world.Runtime().panels.delegated);
@@ -403,15 +403,15 @@ Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context,
 
 // 0x4072df..0x4079a5, el comando 3 (texto 944): con otro líder, el aviso 257; si no, el 40 con su aviso. La ventana
 // queda.
-Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
-    UI::CommandsWindowState& window = context.world.Runtime().panels.delegated.commandsWindow;
-    if (AnotherLeadsTheParty(context.world))
-        return Refuse(chat, window, NotTheLeaderText, UI::SystemMessage, "0x407332");
-    const SocialRequestContext requests{
+    Ui::CommandsWindowState& window = context.world.Runtime().panels.delegated.commandsWindow;
+    if (Social::AnotherLeadsTheParty(context.world))
+        return Refuse(chat, window, NotTheLeaderText, Ui::SystemMessage, "0x407332");
+    const Social::SocialRequestContext requests{
         .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
-    auto sent = SendAPartyRequest(requests, index, "0x40736b");
+    auto sent = Social::SendAPartyRequest(requests, index, "0x40736b");
     if (!sent.HasValue())
         return Core::Unexpected(sent.Error());
     return NotifyAll(chat, sent.Value(), "0x40798d");
@@ -420,42 +420,42 @@ Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, co
 // 0x40a04e..0x40a0e0, el comando 4 (texto 945): con 0x6c7b8c en 1 (.data), el nombre al EDIT del susurro
 // (0x4694c0(0, 0, 1, nombre)), el campo elegido en 0 (0x77f3b70), el foco al del mensaje (0x469370(0)) y
 // SendMessage(WM_CHAR, Enter) a la ventana del juego, que corre el Enter del WndProc en el acto. La ventana queda.
-Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                   std::size_t index)
 {
-    UI::ChatInputState& input = context.world.Runtime().chat.input;
-    UI::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
-    input.field = UI::MessageField;
-    UI::FocusTheChatField(input, UI::MessageField, &context.world.Runtime().ui.focusedList);
-    return PressEnterInTheGame(chat);
+    Chat::ChatInputState& input = context.world.Runtime().chat.input;
+    Chat::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
+    input.field = Chat::MessageField;
+    Chat::FocusTheChatField(input, Chat::MessageField, &context.world.Runtime().ui.focusedList);
+    return Chat::PressEnterInTheGame(chat);
 }
 
 // 0x4079a6..0x4085d0, el comando 11 (texto 949): sin duelo, el AA con la clave y el nombre del otro; con el duelo (1) y
 // el otro de rival (strcmp con 0x78abae0), el AB; si no, el aviso 915 con el 2. La ventana queda.
-Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& target = context.world.Actors()[index];
-    const SocialRequestContext requests{
+    const Social::SocialRequestContext requests{
         .world = context.world, .random = context.random, .texts = *chat.texts, .send = chat.send};
     const std::uint8_t active = runtime.social.duel.active;
     if (active == 0)
-        return SendInC3(requests, Protocol::Social::WriteDuelStart(target.key, target.name), "0x4079b3");
-    if (active == 1 && IsTheDuelRival(context.world, index))
-        return SendInC3(requests, Protocol::Social::WriteDuelEnd(), "0x408141");
-    return Refuse(chat, runtime.panels.delegated.commandsWindow, UI::DuelBusyText, UI::ErrorMessage, "0x4085b1");
+        return Social::SendInC3(requests, Protocol::Social::WriteDuelStart(target.key, target.name), "0x4079b3");
+    if (active == 1 && Social::IsTheDuelRival(context.world, index))
+        return Social::SendInC3(requests, Protocol::Social::WriteDuelEnd(), "0x408141");
+    return Refuse(chat, runtime.panels.delegated.commandsWindow, Chat::DuelBusyText, Ui::ErrorMessage, "0x4085b1");
 }
 
 // 0x4085d1..0x408a23, el comando 5: el héroe ya en un gremio (+0x368 distinto de 0xff), el aviso 255 y el
 // comando en −1; sin el mundo cargado (0x7d3a101), nada; si no, 0x78aba40 = la clave del otro (MOVSX), el C1 05 50 en
 // claro y el aviso 477 con su nombre. La ventana queda.
-Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (context.world.Hero().guildStatus != NoGuildStatus)
-        return Refuse(chat, runtime.panels.delegated.commandsWindow, InAGuildText, UI::SystemMessage, "0x4085ec");
+        return Refuse(chat, runtime.panels.delegated.commandsWindow, InAGuildText, Ui::SystemMessage, "0x4085ec");
     if (!runtime.drawingEnabled)
         return {};
     const std::uint16_t key = context.world.Actors()[index].key;
@@ -465,14 +465,14 @@ Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context
 
 // 0x408a24..0x409065, el comando 6: con el otro maestro (+0x368 en 0x80), el C1 07 E5 01 01
 // con su clave y el aviso 1358 con su nombre; si no, el 1385 (0xff, sin gremio) o el 507, y el comando en −1.
-Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     const Kernel::ActorState& target = context.world.Actors()[index];
     if (target.guildStatus != GuildMaster)
         return Refuse(chat, runtime.panels.delegated.commandsWindow,
-                      target.guildStatus == NoGuildStatus ? NoGuildText : NotAMasterText, UI::SystemMessage,
+                      target.guildStatus == NoGuildStatus ? NoGuildText : NotAMasterText, Ui::SystemMessage,
                       "0x409046");
     return SendTheGuildRequest(context, chat,
                                Protocol::Guild::WriteRelationshipRequest(UnionRelation, MakeRelation, target.key),
@@ -480,7 +480,7 @@ Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context
 }
 
 // 0x409066..0x409662, el comando 7: el C1 07 E5 02 01 con la clave del otro y el aviso 1359 con su nombre.
-Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context, const GameChatContext& chat,
+Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
     const std::uint16_t key = context.world.Actors()[index].key;
@@ -491,7 +491,7 @@ Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context
 
 // La animación 0xb7 del héroe (0x4ea030(héroe, 0xb7), con el modelo de su tipo) y el C1 05 18 con la dirección del
 // héroe y la acción 0x92: el comando 8 (0x409663) y /rivaloff (0x57106e y 0x5729e1).
-Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& chat, std::string_view animation,
+Core::Expected<void, std::string> PlayTheEndOfAHostility(const Chat::GameChatContext& chat, std::string_view animation,
                                                          std::string_view action)
 {
     Kernel::ActorState& hero = chat.world.Hero();
@@ -514,8 +514,8 @@ Core::Expected<void, std::string> PlayTheEndOfAHostility(const GameChatContext& 
 
 // 0x409663..0x40a04d, el comando 8: la animación 0xb7 del héroe y el C1 05 18 (PlayTheEndOfAHostility), el C1 07 E5 02
 // 02 con la clave del otro y el aviso 1360 con su nombre.
-Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context, const GameChatContext& chat,
-                                                            std::size_t index)
+Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context,
+                                                            const Chat::GameChatContext& chat, std::size_t index)
 {
     if (auto played = PlayTheEndOfAHostility(chat, "0x40966f", "0x4096f0"); !played.HasValue())
         return played;
@@ -532,7 +532,7 @@ Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext&
 Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::CommandsWindowState& window = runtime.panels.delegated.commandsWindow;
+    Ui::CommandsWindowState& window = runtime.panels.delegated.commandsWindow;
     ResetTheStates(window);
     const std::int32_t chosen = runtime.selectedTargets[2];
     if (window.chosen == -1 || chosen < 0)
@@ -541,8 +541,8 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
         return Core::Unexpected(std::format("0x4060a4: el elegido {} lee fuera de los personajes", chosen));
     const auto index = static_cast<std::size_t>(chosen);
     window.target = -1;
-    const CellDistance distance = CellDistanceToTheHero(context.world, context.random, index);
-    if (CanBeAsked(context.world, index) && distance.x <= CommandReach && distance.y <= CommandReach)
+    const Social::CellDistance distance = Social::CellDistanceToTheHero(context.world, context.random, index);
+    if (Social::CanBeAsked(context.world, index) && distance.x <= CommandReach && distance.y <= CommandReach)
         window.target = chosen;
     if (auto states = SetTheStates(context.world, window, index); !states.HasValue())
         return states;
@@ -565,7 +565,7 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
     }
     if (context.chat == nullptr || context.chat->texts == nullptr)
         return Core::Unexpected(std::format("0x406386: el comando {} sin la entrada del chat ni Text.bmd", command));
-    const GameChatContext& chat = *context.chat;
+    const Chat::GameChatContext& chat = *context.chat;
     switch (command)
     {
     case TradeCommand:
@@ -631,7 +631,7 @@ Core::Expected<std::string_view, std::string> CloseHelpOf(const GameHudContext& 
 }
 
 // 0x40abdb..0x40ac2e: el texto del aviso del comando elegido, o 0.
-std::size_t NoticeOf(const UI::CommandsWindowState& window)
+std::size_t NoticeOf(const Ui::CommandsWindowState& window)
 {
     const auto chosen = static_cast<std::size_t>(window.chosen);
     const std::uint8_t state = window.states[chosen];
@@ -662,10 +662,10 @@ std::size_t NoticeOf(const UI::CommandsWindowState& window)
 Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     if (delegated.commands == 0)
         return {};
-    GameMovementState& movement = runtime.movement;
+    Movement::GameMovementState& movement = runtime.movement;
     const std::int32_t x = runtime.hud.commandsX;
     const std::int32_t y = runtime.hud.commandsY;
     const std::int32_t mouseX = context.mouseX;
@@ -677,7 +677,7 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     // 0x40a49e..0x40a51d: el 0 no se elige; el clic se gasta en el primero que lo toma.
     const std::int32_t left = Truncate(ButtonsLeftOf(x));
     std::int32_t top = Truncate(static_cast<double>(y) + ButtonsTop);
-    for (std::int32_t command = 0; command < static_cast<std::int32_t>(UI::CommandCount); ++command)
+    for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
     {
         if (command != 0 && mouseX > left && mouseX < left + ButtonHitWidth && mouseY > top &&
             mouseY < top + ButtonHitHeight && movement.pendingClick)
@@ -696,17 +696,17 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
     runtime.RequestSound(SecondCloseSound);
     movement.mouseUpdateTime = 0;
     movement.mouseUpdateTimeMax = CloseMouseUpdateTimeMax;
-    UI::ResetTheCommands(delegated);
+    Ui::ResetTheCommands(delegated);
     return {};
 }
 
 Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const UI::DelegatedPanels& delegated = runtime.panels.delegated;
+    const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     if (delegated.commands == 0)
         return {};
-    const UI::CommandsWindowState& window = delegated.commandsWindow;
+    const Ui::CommandsWindowState& window = delegated.commandsWindow;
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
     hud.commandsX = WindowLeft;
@@ -726,7 +726,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     // 0x40a6f9..0x40a78c: los once botones, la y sumada en float también por el 0.
     const auto buttonsLeft = static_cast<float>(ButtonsLeftOf(x));
     auto top = static_cast<float>(static_cast<double>(y) + ButtonsTop);
-    for (std::int32_t command = 0; command < static_cast<std::int32_t>(UI::CommandCount); ++command)
+    for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
     {
         if (command != 0)
         {
@@ -748,9 +748,9 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     // casilla.
     hud.textColors = NameColors;
     top = static_cast<float>(static_cast<double>(y) + ButtonsTop);
-    const UI::Point mouse = context.mouse;
+    const Ui::Point mouse = context.mouse;
     const bool click = runtime.movement.pendingClick;
-    for (std::int32_t command = 0; command < static_cast<std::int32_t>(UI::CommandCount); ++command)
+    for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
     {
         if (command != 0)
         {
@@ -792,7 +792,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     {
         if (static_cast<std::size_t>(chosen) >= context.world.Actors().size())
             return Core::Unexpected(std::format("0x40aa8d: el elegido {} lee fuera de los personajes", chosen));
-        if (CanBeAsked(context.world, static_cast<std::size_t>(chosen)))
+        if (Social::CanBeAsked(context.world, static_cast<std::size_t>(chosen)))
         {
             WindowDrawing::Quad(sprites, NameCardSlot, F32(static_cast<double>(mouse.x) + NameCardOffset),
                                 F32(static_cast<double>(mouse.y) + NameCardOffset), NameCardWidth, NameCardHeight, 1.0f,
@@ -804,10 +804,10 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
             bool ready = false;
             if (window.target == chosen && window.chosen != -1)
             {
-                if (window.chosen < 0 || window.chosen >= static_cast<std::int32_t>(UI::CommandCount))
+                if (window.chosen < 0 || window.chosen >= static_cast<std::int32_t>(Ui::CommandCount))
                     return Core::Unexpected(
                         std::format("0x40ab87: el comando {} lee fuera de los doce estados", window.chosen));
-                ready = window.states[static_cast<std::size_t>(window.chosen)] == UI::CommandReady;
+                ready = window.states[static_cast<std::size_t>(window.chosen)] == Ui::CommandReady;
             }
             sprites.SetColor(ready ? White : NotReady);
             hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = NameCardBack};
@@ -817,7 +817,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     std::size_t notice = 0;
     if (window.chosen != -1)
     {
-        if (window.chosen < 0 || window.chosen >= static_cast<std::int32_t>(UI::CommandCount))
+        if (window.chosen < 0 || window.chosen >= static_cast<std::int32_t>(Ui::CommandCount))
             return Core::Unexpected(
                 std::format("0x40abe5: el comando {} lee fuera de los doce estados", window.chosen));
         notice = NoticeOf(window);
@@ -839,61 +839,63 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
 // 0x573f85..0x574bd5: con gremio (+0x368 del héroe distinto de 0xff), el aviso 255 con el 1; si no, el elegido o el de
 // enfrente (TheOneToAsk, 0x573fbb y 0x574587); sin él o sin el mundo cargado (0x7d3a101), nada. Con él, 0x78aba40 = su
 // clave (MOVSX), el C1 05 50 en claro y el aviso 477 con su nombre, con el 1. Devuelve 1.
-Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildJoin(const GameChatContext& chat)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAGuildJoin(const Chat::GameChatContext& chat)
 {
     Kernel::WorldState& world = chat.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     if (world.Hero().guildStatus != NoGuildStatus)
-        return UI::ChatCommandOutcome{.handled = true, .notices = {{InAGuildText, UI::SystemMessage}}};
+        return Chat::ChatCommandOutcome{.handled = true, .notices = {{InAGuildText, Ui::SystemMessage}}};
     if (chat.texts == nullptr)
         return Core::Unexpected(std::string("0x573fbb: /guild sin Text.bmd"));
-    const SocialRequestContext requests{.world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
-    auto found = TheOneToAsk(requests, "0x573fbb");
+    const Social::SocialRequestContext requests{
+        .world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
+    auto found = Social::TheOneToAsk(requests, "0x573fbb");
     if (!found.HasValue())
         return Core::Unexpected(found.Error());
     if (!found.Value() || !runtime.drawingEnabled)
-        return UI::ChatCommandOutcome{.handled = true, .notices = {}};
+        return Chat::ChatCommandOutcome{.handled = true, .notices = {}};
     const std::uint16_t key = world.Actors()[*found.Value()].key;
     runtime.guild.requester = static_cast<std::int16_t>(key);
     if (!chat.send)
         return Core::Unexpected(std::string("0x574179: el C1 05 50 de /guild sin el cable"));
     chat.send(Protocol::Guild::WriteJoinRequest(key));
-    auto notice = NoticeWithTheName(requests, GuildAskedText, key, "0x574511");
+    auto notice = Social::NoticeWithTheName(requests, GuildAskedText, key, "0x574511");
     if (!notice.HasValue())
         return Core::Unexpected(std::move(notice).Error());
-    return UI::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
+    return Chat::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
 }
 
 // 0x570d7e..0x573f48: sin gremio (+0x368 del héroe en 0xff), el aviso 1355 con el 1; si no, el elegido o el de enfrente
 // (TheOneToAsk, 0x570db4 y 0x572679), sin mirar su gremio ni el mundo cargado; sin él, nada. Con él, la alianza (C1 07
 // E5 01 01 y el aviso 1358), la rivalidad (E5 02 01 y el 1359) o su fin (la animación 0xb7 y el C1 05 18 del comando 8,
 // E5 02 02 y el 1360), con su clave y el nombre del primero vivo con ella, con el 1. Devuelve 1.
-Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildRelation(const GameChatContext& chat,
-                                                                          UI::GuildRelationCommand command)
+Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAGuildRelation(const Chat::GameChatContext& chat,
+                                                                            Chat::GuildRelationCommand command)
 {
     Kernel::WorldState& world = chat.world;
     if (world.Hero().guildStatus == NoGuildStatus)
-        return UI::ChatCommandOutcome{.handled = true, .notices = {{HeroWithoutAGuildText, UI::SystemMessage}}};
+        return Chat::ChatCommandOutcome{.handled = true, .notices = {{HeroWithoutAGuildText, Ui::SystemMessage}}};
     if (chat.texts == nullptr)
         return Core::Unexpected(std::string("0x570db4: /union, /rival o /rivaloff sin Text.bmd"));
-    const SocialRequestContext requests{.world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
-    auto found = TheOneToAsk(requests, "0x570db4");
+    const Social::SocialRequestContext requests{
+        .world = world, .random = chat.random, .texts = *chat.texts, .send = chat.send};
+    auto found = Social::TheOneToAsk(requests, "0x570db4");
     if (!found.HasValue())
         return Core::Unexpected(found.Error());
     if (!found.Value())
-        return UI::ChatCommandOutcome{.handled = true, .notices = {}};
+        return Chat::ChatCommandOutcome{.handled = true, .notices = {}};
     const std::uint16_t key = world.Actors()[*found.Value()].key;
     std::uint8_t relation = RivalRelation;
     std::uint8_t change = MakeRelation;
     std::size_t text = HostilityAskedText;
     std::string_view where = "0x571a4e";
-    if (command == UI::GuildRelationCommand::Union)
+    if (command == Chat::GuildRelationCommand::Union)
     {
         relation = UnionRelation;
         text = AllianceAskedText;
         where = "0x572063";
     }
-    else if (command == UI::GuildRelationCommand::RivalOff)
+    else if (command == Chat::GuildRelationCommand::RivalOff)
     {
         if (auto played = PlayTheEndOfAHostility(chat, "0x571079", "0x5710fa"); !played.HasValue())
             return Core::Unexpected(std::move(played).Error());
@@ -904,9 +906,9 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAGuildRelation(const 
     if (!chat.send)
         return Core::Unexpected(std::format("{}: el E5 sin el cable", where));
     chat.send(Protocol::Guild::WriteRelationshipRequest(relation, change, key));
-    auto notice = NoticeWithTheName(requests, text, key, where);
+    auto notice = Social::NoticeWithTheName(requests, text, key, where);
     if (!notice.HasValue())
         return Core::Unexpected(std::move(notice).Error());
-    return UI::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
+    return Chat::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

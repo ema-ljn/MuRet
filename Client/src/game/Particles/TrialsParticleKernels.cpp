@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -118,4 +118,4 @@ Core::Expected<void, ParticleError> StepTrialsParticle(Particle& particle, const
     StepSplash(particle);
     return {};
 }
-} // namespace Client::World
+} // namespace Client::Particles

@@ -23,7 +23,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::World
+namespace Client::WorldObjects
 {
 namespace
 {
@@ -182,7 +182,8 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
         if ((random.Next() & 1) == 0)
         {
             const int subtype = random.Next() & 3;
-            const auto emitted = EmitParticle(globals, position, angles, light, FireParticle, subtype, random);
+            const auto emitted =
+                EmitParticle(globals, position, angles, light, Particles::FireParticle, subtype, random);
             if (!emitted.HasValue())
             {
                 return emitted;
@@ -192,8 +193,8 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
     }
     if ((fireClass == 1 || fireClass == 2) && (random.Next() & 1) == 0)
     {
-        return EmitParticle(globals, position, angles, objectLight, BreathParticle,
-                            fireClass == 1 ? 0 : WorldSmokeSubtype, random);
+        return EmitParticle(globals, position, angles, objectLight, Particles::BreathParticle,
+                            fireClass == 1 ? 0 : Particles::WorldSmokeSubtype, random);
     }
     return {};
 }
@@ -464,4 +465,4 @@ Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::Cr
         return {};
     }
 }
-} // namespace Client::World
+} // namespace Client::WorldObjects

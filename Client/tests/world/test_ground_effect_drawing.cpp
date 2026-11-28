@@ -29,15 +29,15 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Data::Terrain::TerrainHeights;
+using Client::Effects::DrawGroundEffectCase;
+using Client::Effects::GroundEffectResources;
+using Client::Effects::ModelEffect;
 using Client::Render::Color;
 using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::ModelStateOperation;
 using Client::Render::TextureSlot;
-using Client::Terrain::DrawGroundEffectCase;
-using Client::Terrain::GroundEffectResources;
-using Client::World::ModelEffect;
 constexpr std::size_t RingVertices = 12u * 6u;
 constexpr std::size_t BothRings = 2u * RingVertices;
 
@@ -53,7 +53,7 @@ std::vector<Client::Render::ModelDrawCommand> GeometryCommands(const ModelBatch&
     return commands;
 }
 
-ModelEffect Effect(std::int16_t type = Client::World::ArrivalEffect)
+ModelEffect Effect(std::int16_t type = Client::Effects::ArrivalEffect)
 {
     ModelEffect effect;
     effect.type = type;
@@ -488,7 +488,7 @@ TEST(GroundEffectDrawingTest, Type6ebSkipsTheMissingSpecialOwnerAndKeepsTheSubty
 TEST(GroundEffectDrawingTest, AnUnlistedModelHasNoGroundCase)
 {
     const auto heights = std::make_unique<TerrainHeights>();
-    ModelEffect effect = Effect(Client::World::DragonEffect);
+    ModelEffect effect = Effect(Client::Effects::DragonEffect);
     CrtRandom random;
     const Drawn drawn = Draw(effect, *heights, random);
     EXPECT_FALSE(drawn.error.has_value());

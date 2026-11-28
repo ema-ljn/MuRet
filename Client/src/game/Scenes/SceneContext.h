@@ -32,12 +32,16 @@ namespace Client::Session
 struct ModuleStates;
 } // namespace Client::Session
 
+namespace Client::FrontEnd
+{
+class SelectionState;
+} // namespace Client::FrontEnd
+
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
 // GameData.h.
 namespace Client::Scenes
 {
-class SelectionState;
 struct WorldEntryResources;
 
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
@@ -60,7 +64,7 @@ struct SceneContext
     const Input::InputState* input = nullptr;
     // El ritmo del bucle (App/PacingMode.h): en Faithful, lo que el original corre una vez por frame
     // dibujado (la tela y el brillo del cetro) corre uno por dibujo (OriginalFramePaceOf).
-    App::PacingMode pacing = App::PacingMode::Decoupled;
+    Kernel::PacingMode pacing = Kernel::PacingMode::Decoupled;
     // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
     Camera::GameCamera* camera = nullptr;
     // Entradas de 0x635ae0, no réplica completa del actor Hero. SelectionState publica la posición
@@ -70,7 +74,7 @@ struct SceneContext
     // La selección sobre los cinco primeros registros del pool durable (WorldState) y las tablas del
     // mundo vigentes (CL7.3 B). main es dueño de los dos y viven más que todas las escenas; conserva
     // las tablas del login después de su Leave.
-    SelectionState* selection = nullptr;
+    FrontEnd::SelectionState* selection = nullptr;
     // Lo que WinMain deja en cero y dura hasta el cierre (WorldState.h): el registro propio y los
     // globales de la espera de la entrada al mundo (WorldRuntime). Es el mismo que presta `selection`.
     // nullptr en los tests que no lo miran: la selección entra sin preparar el registro propio, y la
@@ -91,9 +95,9 @@ struct SceneContext
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.
-[[nodiscard]] constexpr Models::OriginalFramePace OriginalFramePaceOf(App::PacingMode pacing)
+[[nodiscard]] constexpr Models::OriginalFramePace OriginalFramePaceOf(Kernel::PacingMode pacing)
 {
-    return pacing == App::PacingMode::Faithful ? Models::OriginalFramePace::OncePerDraw
-                                               : Models::OriginalFramePace::ByTheClock;
+    return pacing == Kernel::PacingMode::Faithful ? Models::OriginalFramePace::OncePerDraw
+                                                  : Models::OriginalFramePace::ByTheClock;
 }
 } // namespace Client::Scenes

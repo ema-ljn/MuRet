@@ -6,7 +6,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 struct Particle;
 
@@ -38,4 +38,4 @@ void CreateFenrirSpark(Particle& particle, Crt::CrtRandom& random);
 // 0x5453d3..0x5453f7 y 0x545343..0x545363, después de la vida y el movimiento comunes: la luz por 0,952381f
 // (0x6ba264) y +0x38 −0,001f, sin la escala; muere como la del arco.
 void StepFenrirSpark(Particle& particle);
-} // namespace Client::World
+} // namespace Client::Particles

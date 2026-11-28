@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-// A message a module writes on the screen. The chat implements it (Scenes::ChatMessages).
+// A message a module writes on the screen. The chat implements it (Chat::ChatMessages).
 namespace Client::Kernel
 {
 class IOnScreenMessages

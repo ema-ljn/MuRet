@@ -4,12 +4,16 @@
 
 #include <string>
 
+namespace Client::Hud
+{
+struct GameHudContext;
+} // namespace Client::Hud
+
 // Los diálogos del juego en el dibujo (06 § HUD y ventanas, "Los diálogos del juego", CL8 hito 6): 0x62db60, que la
 // pasada 2D llama en la escena 5 (0x637696) entre el pedido de duelo y los tooltips. Dibuja el diálogo abierto
 // (0x7d3a10c) con su marco y sus textos en 640 × 480, con el estado de GL que dejan sus primitivas.
-namespace Client::Scenes
+namespace Client::Hud::Dialogs
 {
-struct GameHudContext;
 
 // 0x62db60: siempre deja la mezcla sin mezcla (0x620980), el color en blanco, los colores del texto en (−1, 0) y la
 // fuente normal en el DC, y termina con la mezcla normal (0x620a00(1), 0x63140b). Con el diálogo abierto:
@@ -48,4 +52,4 @@ struct GameHudContext;
 // Los demás cortan con la ola que los trae, como su paso. En un dibujo intermedio de MuRet, la esquina de la barra y
 // el clic no se escriben. Sin Text.bmd, o sin uno de sus textos, corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheGameDialogs(GameHudContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud::Dialogs

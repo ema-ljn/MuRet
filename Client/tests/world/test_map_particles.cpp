@@ -19,8 +19,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 constexpr std::int32_t Drop = 0x607;
 
 using Client::Math::Bits;
@@ -53,7 +53,7 @@ TEST(MapParticlesTest, ExpiringDropStillIncrementsItsFrameAndConsumesThreeOrdere
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true, .type = Drop, .subtype = 0, .scale = 0.25f, .life = 1};
     CrtRandom random(7); // Viento:61,17422; ejes:15215,7040,15521 -> 5,-10,11.
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
     EXPECT_EQ(Bits(particle.field48), 1u);
@@ -69,10 +69,10 @@ TEST(MapParticlesTest, DropFrameIncrementWrapsTheRawWord)
     particle =
         Particle{.alive = true, .type = Drop, .subtype = 0, .life = 2, .field48 = std::bit_cast<float>(0x7fffffffu)};
     CrtRandom random(7);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.field48), 0x80000000u);
     particle.field48 = std::bit_cast<float>(0xffffffffu);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(Bits(particle.field48), 0u);
 }
 
@@ -89,7 +89,7 @@ TEST(MapParticlesTest, DropMovesBeforeItsRandomWalkAndKeepsTheThreeAxisScalesUnc
                         .moves = true,
                         .velocity = {4, 5, 6}};
     CrtRandom random(7);
-    Client::World::StepParticles(particles, random);
+    Client::Particles::StepParticles(particles, random);
     EXPECT_EQ(particle.position, glm::vec3(100.875f, 211.25f, 299.125f));
     EXPECT_EQ(particle.velocity, glm::vec3(4, 5, 6));
     EXPECT_EQ(particle.scale, -0.25f);
@@ -149,10 +149,10 @@ TEST(MapParticlesTest, UnsupportedStepBindingsKeepTheCommonPrefixAndStopBeforeTh
     {
         std::int32_t type;
         std::int32_t subtype;
-        Client::World::ParticleError error;
+        Client::Particles::ParticleError error;
     };
-    constexpr std::array cases{Case{0x123456, 0, Client::World::ParticleError::UnsupportedType},
-                               Case{0x5ad, 5, Client::World::ParticleError::UnsupportedSubtype}};
+    constexpr std::array cases{Case{0x123456, 0, Client::Particles::ParticleError::UnsupportedType},
+                               Case{0x5ad, 5, Client::Particles::ParticleError::UnsupportedSubtype}};
     for (const Case& value : cases)
     {
         SCOPED_TRACE(value.type);
@@ -176,7 +176,7 @@ TEST(MapParticlesTest, UnsupportedStepBindingsKeepTheCommonPrefixAndStopBeforeTh
                             .velocity = {4, 5, 6}};
         slots[2] = Particle{.alive = true, .type = 0x5d9, .scale = 3, .position = {1000, 2000, 3000}, .life = 7};
         CrtRandom random(7);
-        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_EQ(stepped.Error(), value.error);
         EXPECT_EQ(slots[0].life, 151);
@@ -223,9 +223,9 @@ TEST(MapParticlesTest, MissingMapKeepsEarlierAndCurrentEffectsButLeavesTheLaterS
                             .velocity = {4, 5, 6}};
         slots[2] = Particle{.alive = true, .type = 0x5d9, .scale = 3, .position = {1000, 2000, 3000}, .life = 7};
         CrtRandom random(7);
-        const auto stepped = Client::World::StepParticlesChecked(particles, random);
+        const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
         ASSERT_FALSE(stepped.HasValue());
-        EXPECT_EQ(stepped.Error(), Client::World::ParticleError::MissingMap);
+        EXPECT_EQ(stepped.Error(), Client::Particles::ParticleError::MissingMap);
         EXPECT_EQ(slots[0].life, 151);
         EXPECT_EQ(slots[0].position, glm::vec3(11, 22, 34));
         EXPECT_EQ(slots[0].field38, 0x3f0a3d71u);
@@ -261,7 +261,7 @@ TEST(MapParticlesTest, TwoDropsReceiveTheirSixAxisDrawsInPoolOrderAfterTheWind)
                         .life = 3,
                         .field48 = std::bit_cast<float>(8u)};
     CrtRandom random(7);
-    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
     // CRT R3..8=15215,7040,15521 / 6516,30152,11794; pasos=5,-10,11 / 6,2,24.
     EXPECT_EQ(slots[0].position, glm::vec3(103.125f, 193.75f, 306.875f));

@@ -22,6 +22,10 @@ struct ActorState;
 namespace Client::Scenes
 {
 struct GameProjection;
+} // namespace Client::Scenes
+
+namespace Client::Hud
+{
 
 // 0x42a2b0(o): con el tipo 0x1a8 (el 278 de 0x42d4a1) y +0x93 debajo de 5 sin signo, encola (push_back) la posición
 // con la z en +0x18 + +0x138 + 100 (0x6b86b4), en la x87 y con el FSTP en float, y +0x93. Con otro, nada.
@@ -32,6 +36,6 @@ void QueueTheHealthBar(const Kernel::ActorState& actor, std::deque<Kernel::Queue
 // con cada uno, dibuja la mitad redondeada para arriba; el resto queda para el frame siguiente, delante de los
 // nuevos. Sin `projection`, una cola con algo corta.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHealthBar>& queue,
-                                                                  const GameProjection* projection,
+                                                                  const Scenes::GameProjection* projection,
                                                                   Render::SpriteBatch& sprites);
-} // namespace Client::Scenes
+} // namespace Client::Hud

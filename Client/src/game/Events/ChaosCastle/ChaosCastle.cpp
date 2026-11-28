@@ -17,7 +17,7 @@
 #include <format>
 #include <string>
 
-namespace Client::World
+namespace Client::Events::ChaosCastle
 {
 namespace
 {
@@ -151,7 +151,7 @@ Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t co
     return 0;
 }
 
-void StepChaosCastleSeenObject(WorldObject& object, std::int32_t& selector, std::int32_t& count,
+void StepChaosCastleSeenObject(WorldObjects::WorldObject& object, std::int32_t& selector, std::int32_t& count,
                                std::uint8_t& trapArmed)
 {
     if (object.type != TrapObject)
@@ -178,4 +178,4 @@ float ChaosCastlePoseAlpha(std::int32_t map, std::uint8_t heroByte1a1, float alp
         return alpha;
     return F32(static_cast<double>(alpha) - static_cast<double>(Fade));
 }
-} // namespace Client::World
+} // namespace Client::Events::ChaosCastle

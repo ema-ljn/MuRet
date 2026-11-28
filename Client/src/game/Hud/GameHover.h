@@ -39,13 +39,17 @@ struct HudState;
 namespace Client::Scenes
 {
 struct GameDrawTailState;
+} // namespace Client::Scenes
+
+namespace Client::Hud
+{
 struct GameHudContext;
 
 struct GameHoverContext
 {
     Kernel::WorldState& world;
     // Los ítems del piso (0x77f46d0, 1000 de 0x220 bytes) del dibujo de este frame.
-    const GameDrawTailState& tail;
+    const Scenes::GameDrawTailState& tail;
     // El rand() del frame, para el ancho del mundo (0x5bb8d0) del nombre de un monstruo.
     Crt::CrtRandom& random;
     // 0x6c8e28 (el ítem del piso), 0x6c8e2c (el NPC), 0x6c8e30 (el personaje), 0x6c8e34 y 0x6c8e38, como los dejó el
@@ -80,4 +84,4 @@ struct GameHoverContext
 // (0x5ba790 con 0). Después Alt: el flanco (0x553520(0x12)) invierte 0x78abb38, y con él prendido o Alt abajo, el
 // nombre de cada ítem del piso vivo y a la vista que no es el elegido, en su proyección (0x5ba790 con 1).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hud

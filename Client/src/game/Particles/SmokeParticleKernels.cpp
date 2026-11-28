@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -498,4 +498,4 @@ Core::Expected<void, ParticleError> StepSmokeParticle(Particle& particle, Crt::C
     }
 }
 
-} // namespace Client::World
+} // namespace Client::Particles

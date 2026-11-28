@@ -1960,15 +1960,15 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
 {
     DrawnCharacter character;
     character.appearance = Client::Kernel::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::Actors::Drawing::HdkMaceModel};
     character.object.position = {1000.0f, 2000.0f, 300.0f};
     character.object.angles = {0.0f, 0.0f, 90.0f};
     character.object.scale = 1.5f;
     Client::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
-    Client::World::FrameSprites sprites;
+    Client::Particles::FrameSprites sprites;
     character.clothWorld = &world;
     character.sprites = &sprites;
-    OneModel models(Client::World::HdkMaceModel);
+    OneModel models(Client::Actors::Drawing::HdkMaceModel);
     BoneKey& key = models.ItemSkeleton().bones[0].actions[0][0];
     key.position = {5.0f, 10.0f, 20.0f};
     key.rotation = Client::Math::AngleQuaternion({0.3f, 0.0f, 0.0f});
@@ -1980,14 +1980,14 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     std::vector<Client::Math::BoneTransform> mace(1);
     ASSERT_TRUE(Client::Models::PoseAttached(models.ItemSkeleton(), Client::Models::AnimationState{}, root, mace));
     ASSERT_NE(mace.front(), root);
-    Client::World::FrameSprites expected;
+    Client::Particles::FrameSprites expected;
     Client::Crt::CrtRandom random(7);
-    Client::World::CreateScepterGlow(expected, Client::Math::OriginalMatrixOf(mace.front()), 1.5f,
-                                     character.object.position, random);
-    for (std::size_t k = 0; k <= Client::World::ScepterSpriteCount; ++k)
+    Client::Actors::Drawing::CreateScepterGlow(expected, Client::Math::OriginalMatrixOf(mace.front()), 1.5f,
+                                               character.object.position, random);
+    for (std::size_t k = 0; k <= Client::Actors::Drawing::ScepterSpriteCount; ++k)
     {
-        const Client::World::Sprite& got = sprites.Sprites()[k];
-        const Client::World::Sprite& want = expected.Sprites()[k];
+        const Client::Particles::Sprite& got = sprites.Sprites()[k];
+        const Client::Particles::Sprite& want = expected.Sprites()[k];
         EXPECT_EQ(got.alive, want.alive) << k;
         EXPECT_EQ(got.texture, want.texture) << k;
         EXPECT_EQ(got.scale, want.scale) << k;
@@ -1997,29 +1997,29 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     EXPECT_EQ(world.random.State(), random.State()) << "seis rand() de la tela";
 }
 
-// With the sceptre's draw (World::ScepterGlowCarry), two MuRet frames in the same original frame ask for the same five
-// sprites and draw the six rand() calls only once.
+// With the sceptre's draw (Actors::Drawing::ScepterGlowCarry), two MuRet frames in the same original frame ask for the
+// same five sprites and draw the six rand() calls only once.
 TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
 {
     DrawnCharacter character;
     character.appearance = Client::Kernel::ClassAppearance(0, 0);
-    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
+    character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::Actors::Drawing::HdkMaceModel};
     Client::Models::ClothWorld world{.random = Client::Crt::CrtRandom(7)};
-    Client::World::ScepterGlowCarry carry;
+    Client::Actors::Drawing::ScepterGlowCarry carry;
     character.clothWorld = &world;
     character.scepter = &carry;
-    const OneModel models(Client::World::HdkMaceModel);
-    Client::World::FrameSprites first;
+    const OneModel models(Client::Actors::Drawing::HdkMaceModel);
+    Client::Particles::FrameSprites first;
     character.sprites = &first;
     (void)Drawn(models, character);
     const std::uint32_t afterTheFirst = world.random.State();
 
-    Client::World::FrameSprites second;
+    Client::Particles::FrameSprites second;
     character.sprites = &second;
     (void)Drawn(models, character);
 
     EXPECT_EQ(world.random.State(), afterTheFirst);
-    for (std::size_t k = 0; k < Client::World::ScepterSpriteCount; ++k)
+    for (std::size_t k = 0; k < Client::Actors::Drawing::ScepterSpriteCount; ++k)
     {
         EXPECT_TRUE(second.Sprites()[k].alive) << k;
         EXPECT_EQ(second.Sprites()[k].scale, first.Sprites()[k].scale) << k;
@@ -2031,27 +2031,27 @@ TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
 // none and draws no rand(); and another item does not have that case.
 TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
 {
-    const OneModel mace(Client::World::HdkMaceModel);
+    const OneModel mace(Client::Actors::Drawing::HdkMaceModel);
     {
         DrawnCharacter character;
         character.appearance = Client::Kernel::ClassAppearance(0, 0);
-        character.appearance.leftHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
+        character.appearance.leftHand = Client::Kernel::WornItem{.model = Client::Actors::Drawing::HdkMaceModel};
         Client::Models::ClothWorld world;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         character.clothWorld = &world;
         character.sprites = &sprites;
         (void)Drawn(mace, character);
-        EXPECT_TRUE(sprites.Sprites()[Client::World::ScepterSpriteCount - 1].alive) << "la izquierda";
+        EXPECT_TRUE(sprites.Sprites()[Client::Actors::Drawing::ScepterSpriteCount - 1].alive) << "la izquierda";
     }
     {
         DrawnCharacter character;
         character.appearance = Client::Kernel::ClassAppearance(0, 0);
-        character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::World::HdkMaceModel};
+        character.appearance.rightHand = Client::Kernel::WornItem{.model = Client::Actors::Drawing::HdkMaceModel};
         Client::Models::ClothWorld world;
         character.clothWorld = &world;
         (void)Drawn(mace, character);
         EXPECT_EQ(world.random.State(), Client::Crt::CrtRandom().State()) << "sin la tabla";
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         character.clothWorld = nullptr;
         character.sprites = &sprites;
         (void)Drawn(mace, character);
@@ -2063,7 +2063,7 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         character.appearance = Client::Kernel::ClassAppearance(0, 0);
         character.appearance.rightHand = Client::Kernel::WornItem{.model = 0x212};
         Client::Models::ClothWorld world;
-        Client::World::FrameSprites sprites;
+        Client::Particles::FrameSprites sprites;
         character.clothWorld = &world;
         character.sprites = &sprites;
         (void)Drawn(sword, character);

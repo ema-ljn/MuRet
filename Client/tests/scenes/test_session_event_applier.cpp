@@ -82,11 +82,11 @@ struct Applier
 
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     std::optional<Client::Scenes::SceneId> scene;
@@ -114,7 +114,7 @@ TEST(SessionEventApplierTest, TheLevelUpWireReachesTheWorldThroughTheRealSession
     EXPECT_EQ(own.nextExperience, 173680400u);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x98});
     EXPECT_EQ(tested->world.DrawTail().joints.front().ownerContext, &tested->world.Actors()[7]);
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::LoggedIn);
 }
 
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
@@ -161,7 +161,7 @@ TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
     EXPECT_EQ(tested.world.Inventory().secondCells[2].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 
@@ -202,7 +202,7 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     EXPECT_NE(result.Error().find("EncTerrain1.att"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.OwnCharacter().zen, 1234u);
     EXPECT_EQ(tested.world.Runtime().map, 0);
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::Idle);
 }
 
 // El F1 02 con 1 cifrado va a la vuelta de 0x4c2710: deja la orden de la escena 4 y el mundo en −1, y
@@ -232,7 +232,7 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(tested.world.Runtime().map, -1);
     EXPECT_FALSE(tested.world.Runtime().drawingEnabled);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 
@@ -247,7 +247,7 @@ TEST(SessionEventApplierTest, TheDamageWireReachesItsActorThroughTheRealSession)
     online.socket.reads = {Client::Tests::Bytes({0xc1, 8, 0xd7, 0, 42, 0, 50, 0})};
     ASSERT_TRUE(online.session.Poll().HasValue());
     EXPECT_EQ(other.damage, 50);
-    EXPECT_EQ(online.session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(online.session.State(), Client::Session::SessionState::LoggedIn);
 }
 
 // The routed rows (Session/Route.h) take their parts from the applier's world: the 14 through the real session lets go
@@ -261,13 +261,13 @@ TEST(SessionEventApplierTest, TheLeaveWireLetsGoOfAnotherThroughTheRealSession)
     auto& other = tested->world.Actors()[8];
     other.alive = true;
     other.key = 0x45;
-    tested->world.Runtime().oldWindows.chatRooms.orders.push_back(
-        Client::UI::ChatRoomOrder{.kind = Client::UI::ChatRoomOrder::Kind::Ping, .room = 0x0304, .text = {}});
+    tested->world.Runtime().oldWindows.chatRooms.orders.push_back(Client::Messenger::ChatRoomOrder{
+        .kind = Client::Messenger::ChatRoomOrder::Kind::Ping, .room = 0x0304, .text = {}});
     online.socket.reads = {Client::Tests::Bytes({0xc1, 6, 0x14, 1, 0x80, 0x45})};
     ASSERT_TRUE(online.session.Poll().HasValue());
     EXPECT_FALSE(other.alive);
     EXPECT_TRUE(tested->world.Runtime().oldWindows.chatRooms.orders.empty());
-    EXPECT_NE(online.session.State(), Client::App::SessionState::Failed);
+    EXPECT_NE(online.session.State(), Client::Session::SessionState::Failed);
 }
 // The skills reach their appliers through the real session, in wire order: the F3 11 without Skill.bmd stops at the
 // count and fails the session.
@@ -411,7 +411,7 @@ TEST(SessionEventApplierTest, ATeleportTakesOneSlotOfThePacketRing)
     ASSERT_EQ(ring.count, 1);
     EXPECT_EQ(ring.sizes[0], 8);
     EXPECT_TRUE(Client::Tests::SameBytes(std::span(ring.slots[0]).first(teleport.size()), teleport));
-    EXPECT_EQ(online->session.State(), Client::App::SessionState::LoggedIn);
+    EXPECT_EQ(online->session.State(), Client::Session::SessionState::LoggedIn);
 }
 
 TEST(SessionEventApplierTest, ThePacketRingNeedsTheModulesStates)
@@ -574,7 +574,7 @@ TEST(SessionEventApplierTest, TheMapSwitchReconnectsWhenTheMacrosCannotBeSaved)
     online.socket.reads = {std::move(wire)};
     static_cast<void>(online.session.Poll());
 
-    ASSERT_EQ(online.session.State(), Client::App::SessionState::ConnectingGameServer);
+    ASSERT_EQ(online.session.State(), Client::Session::SessionState::ConnectingGameServer);
     ASSERT_EQ(online.socket.connects.size(), previous + 1u);
     EXPECT_EQ(online.socket.connects.back().host, "10.0.0.3");
     EXPECT_EQ(online.socket.connects.back().port, 55919);

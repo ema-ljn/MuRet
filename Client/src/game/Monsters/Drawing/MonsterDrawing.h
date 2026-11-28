@@ -28,7 +28,7 @@ class WorldState;
 
 // Los monstruos y los NPC en el dibujo del juego (0x50ba30 con un tipo que no es el 0x20a, CL9 hito 2). Contrato: 06
 // § El dibujo del juego, "El dibujo de los monstruos y los NPC".
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 
 // 0x50c671, 0x50c71b y 0x50c8ce: los +0x376 con pases de brillo de 0x60b130 (0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e a 0x53,
@@ -83,4 +83,4 @@ namespace Client::Scenes
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                 std::size_t slot, const Actors::Drawing::GameCharacterPass& pass, bool originalFrame);
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

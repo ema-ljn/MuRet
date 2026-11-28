@@ -14,17 +14,17 @@
 #include <glm/ext/vector_float2.hpp>
 #include <cstdint>
 #include <functional>
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
-using Phase = World::ParticleDrawingPhase;
-using Result = World::IParticleDrawingServices::Result;
+using Phase = Particles::ParticleDrawingPhase;
+using Result = Particles::IParticleDrawingServices::Result;
 Result Checked(Render::IParticleDrawBackend::Result result, Phase phase)
 {
     if (!result.HasValue())
         return Core::Unexpected(
-            World::ParticleDrawingError{World::ParticleError::MissingDrawingService, phase, result.Error()});
+            Particles::ParticleDrawingError{Particles::ParticleError::MissingDrawingService, phase, result.Error()});
     return {};
 }
 } // namespace
@@ -34,27 +34,27 @@ ParticleDrawServices::ParticleDrawServices(std::reference_wrapper<const Models::
     : m_models(models), m_backend(backend), m_view(view)
 {
 }
-Core::Expected<glm::vec2, World::ParticleError> ParticleDrawServices::Dimensions(std::int32_t image)
+Core::Expected<glm::vec2, Particles::ParticleError> ParticleDrawServices::Dimensions(std::int32_t image)
 {
     const auto metadata = m_models.get().TextureMetadataOf(static_cast<std::uint32_t>(image));
     if (!metadata)
-        return Core::Unexpected(World::ParticleError::MissingTextureSize);
+        return Core::Unexpected(Particles::ParticleError::MissingTextureSize);
     return metadata->size;
 }
-Core::Expected<std::uint8_t, World::ParticleError> ParticleDrawServices::MaterialFlag(std::int32_t type)
+Core::Expected<std::uint8_t, Particles::ParticleError> ParticleDrawServices::MaterialFlag(std::int32_t type)
 {
     const auto metadata = m_models.get().TextureMetadataOf(static_cast<std::uint32_t>(type));
     if (!metadata)
-        return Core::Unexpected(World::ParticleError::MissingMaterialFlag);
+        return Core::Unexpected(Particles::ParticleError::MissingMaterialFlag);
     return metadata->components;
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Material(std::uint8_t rawFlag)
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Material(std::uint8_t rawFlag)
 {
     if (rawFlag == 3)
         return Checked(m_backend.get().Additive(), Phase::Material);
     return Checked(m_backend.get().AlphaInheritDepth(), Phase::Material);
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Subtractive()
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Subtractive()
 {
     const auto prefix = Checked(m_backend.get().SubtractivePrefix(), Phase::SubtractivePrefix);
     if (!prefix.HasValue())
@@ -67,7 +67,7 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Subtractive()
         return second;
     return Checked(m_backend.get().SubtractiveTail(), Phase::SubtractiveTail);
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Blended()
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Blended()
 {
     const auto prefix = Checked(m_backend.get().BlendedPrefix(), Phase::BlendedPrefix);
     if (!prefix.HasValue())
@@ -80,15 +80,15 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Blended()
         return second;
     return Checked(m_backend.get().BlendedTail(), Phase::BlendedTail);
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
 {
     return Checked(m_backend.get().Type620850(), Phase::Type620850);
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
 {
     return Checked(m_backend.get().Type620870(), Phase::Type620870);
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
+Particles::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
 {
     const auto changed = Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
     if (changed.HasValue())
@@ -99,7 +99,7 @@ bool ParticleDrawServices::HasOpenTextureEnvOverride() const
 {
     return m_textureEnvOverride;
 }
-World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
+Particles::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
 {
     const auto bound = Checked(m_backend.get().BindTexture(request.selector), Phase::Bind);
     if (!bound.HasValue())
@@ -113,7 +113,7 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::
     const auto metadata = m_models.get().TextureMetadataOf(static_cast<std::uint32_t>(request.selector));
     if (!metadata)
         return Core::Unexpected(
-            World::ParticleDrawingError{World::ParticleError::MissingColorFlag, Phase::ColorFlag, {}});
+            Particles::ParticleDrawingError{Particles::ParticleError::MissingColorFlag, Phase::ColorFlag, {}});
     Result colored;
     if (metadata->components == 3)
         colored = Checked(m_backend.get().Color3(request.light.get()), Phase::Color);
@@ -136,4 +136,4 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::
     }
     return Checked(m_backend.get().End(), Phase::End);
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

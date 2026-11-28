@@ -194,8 +194,8 @@ Result SampleParticles(Kernel::ActorState& actor, const Trail& trail, const glm:
     if (context.particles == nullptr)
         return Core::Unexpected(std::string("0x4fd585: faltan las partículas de la estela del 0x194"));
     const auto created =
-        context.particles->CreateChecked(World::BlueTrailFireParticle, point, actor.angles, LightOf(trail),
-                                         World::BlueTrailFireSubtype, 1.0f, context.worldClock, context.random);
+        context.particles->CreateChecked(Particles::BlueTrailFireParticle, point, actor.angles, LightOf(trail),
+                                         Particles::BlueTrailFireSubtype, 1.0f, context.worldClock, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::string("0x4fd585: falló el alta de la partícula 0x5dc/12 de la estela"));
     return {};
@@ -216,7 +216,7 @@ Result SampleRibbon(Kernel::ActorState& actor, const Trail& trail, const Models:
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
         if (auto posed =
-                Scenes::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+                WorldObjects::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
             !posed.HasValue())
             return posed;
         const auto& bones = context.world.PoseCarry().bones;

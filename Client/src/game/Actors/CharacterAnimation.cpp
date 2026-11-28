@@ -49,7 +49,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::Chara
         const Models::Skeleton* pet = models.SkeletonOf(Models::ModelId{*appearance.pet});
         if (pet != nullptr && !pet->actions.empty())
         {
-            Models::AdvanceByTime(animation.pet, pet->actions[0], Models::PetKeysPerOriginalFrame, App::LogicStep);
+            Models::AdvanceByTime(animation.pet, pet->actions[0], Models::PetKeysPerOriginalFrame, Kernel::LogicStep);
         }
     }
     if (appearance.wings)
@@ -58,7 +58,7 @@ void StepCharacterAttachments(CharacterAnimation& animation, const Kernel::Chara
         if (wings != nullptr && !wings->actions.empty())
         {
             Models::AdvanceByTime(animation.wings, wings->actions[0], WingKeysPerOriginalFrame(animation.body.action),
-                                  App::LogicStep);
+                                  Kernel::LogicStep);
         }
     }
 }

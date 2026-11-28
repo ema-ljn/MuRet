@@ -100,12 +100,8 @@
 namespace
 {
 using Client::App::Credentials;
-using Client::App::ServerAddress;
 using Client::App::ServerSession;
-using Client::App::SessionFailure;
 using Client::App::SessionSettings;
-using Client::App::SessionState;
-using Client::App::TickCountMs;
 using Client::Assets::CreditIllustrationSets;
 using Client::Assets::LoginTextureSet;
 using Client::Assets::TextureBufferSize;
@@ -113,8 +109,13 @@ using Client::Assets::WindowTextureSet;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::PixelSize;
+using Client::FrontEnd::LayoutLogin;
+using Client::FrontEnd::LayoutServerList;
+using Client::FrontEnd::LoginLayout;
+using Client::FrontEnd::ServerListLayout;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Kernel::TickCountMs;
 using Client::Network::Connection;
 using Client::Network::IdentityObfuscation;
 using Client::Network::PacketSerials;
@@ -128,6 +129,9 @@ using Client::Render::TextureSlot;
 using Client::Scenes::LoginScene;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
+using Client::Session::ServerAddress;
+using Client::Session::SessionFailure;
+using Client::Session::SessionState;
 using Client::Tables::GameData;
 using Client::Tables::LoadGameData;
 using Client::Tests::AddressReply;
@@ -149,12 +153,8 @@ using Client::Tests::ServerListWithLoads;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteTextTable;
 using Client::Tests::WriteTextureSet;
-using Client::UI::LayoutLogin;
-using Client::UI::LayoutNotice;
-using Client::UI::LayoutServerList;
-using Client::UI::LoginLayout;
-using Client::UI::Rect;
-using Client::UI::ServerListLayout;
+using Client::Ui::LayoutNotice;
+using Client::Ui::Rect;
 
 using Kind = FrameEvent::Kind;
 
@@ -341,7 +341,7 @@ struct Harness
         EXPECT_TRUE(line.has_value());
         const TextureBufferSize buffer =
             line ? TextureBufferSize{line->texture.textureWidth, line->texture.textureHeight} : TextureBufferSize{};
-        return LayoutServerList(PixelSize{640, 480}, Client::UI::DescriptionHeight(buffer), count);
+        return LayoutServerList(PixelSize{640, 480}, Client::FrontEnd::DescriptionHeight(buffer), count);
     }
 
     // Un clic en el centro de `rect`, en un paso.
@@ -489,7 +489,7 @@ struct Harness
     Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
     GameData data;
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     RecordingFrameTarget target;
     InputState input;
     Client::Models::ClothWorld cloth;
@@ -569,7 +569,7 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 {
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerListOf({{400, 100}})));
-    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const Client::Ui::MenuBarLayout bar = Client::Ui::LayoutMenuBar(PixelSize{640, 480});
     const float height = tested.BufferHeight(CreditSlot);
 
     tested.HoverOn(bar.credit);
@@ -608,7 +608,7 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
 {
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
-    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const Client::Ui::MenuBarLayout bar = Client::Ui::LayoutMenuBar(PixelSize{640, 480});
     const float height = tested.BufferHeight(CreditSlot);
 
     tested.HoverOn(bar.credit);
@@ -635,7 +635,7 @@ TEST(LoginSceneSessionTest, TheCreditsCoverTheLogin)
         CreditFile({{.kind = 1, .text = "Parte"}, {.kind = 3, .text = "Alguien"}, {.kind = 0, .text = ""}});
     Harness tested(false, nullptr, credits);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
-    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const Client::Ui::MenuBarLayout bar = Client::Ui::LayoutMenuBar(PixelSize{640, 480});
     const std::vector<std::byte> notice = Client::Tests::Bytes({0xC1, 0x04, 0xF4, 0x06});
     const std::size_t sent = tested.socket.sent.size();
 
@@ -664,10 +664,12 @@ TEST(LoginSceneSessionTest, TheOptionsOpenFromTheEscapeWindow)
 {
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
-    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const Client::Ui::MenuBarLayout bar = Client::Ui::LayoutMenuBar(PixelSize{640, 480});
     const auto line = static_cast<int>(tested.BufferHeight(TextureSlot{0x72d}));
-    const Client::UI::EscapeWindowLayout escape = Client::UI::LayoutEscapeWindow(PixelSize{640, 480}, 6, line);
-    const Client::UI::OptionsWindowLayout options = Client::UI::LayoutOptionsWindow(PixelSize{640, 480}, line);
+    const Client::FrontEnd::EscapeWindowLayout escape =
+        Client::FrontEnd::LayoutEscapeWindow(PixelSize{640, 480}, 6, line);
+    const Client::FrontEnd::OptionsWindowLayout options =
+        Client::FrontEnd::LayoutOptionsWindow(PixelSize{640, 480}, line);
     const std::size_t sent = tested.socket.sent.size();
 
     const float height = tested.BufferHeight(OptionsCheckSlot);
@@ -784,8 +786,8 @@ TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
     for (const char* texture : {"Interface/accept_box01.OZJ", "World56/TileGrass01.OZJ", "Object8/drop01.OZJ"})
         Client::Tests::WriteSceneFile(root, texture,
                                       Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
-    const Client::UI::MessageAreaState& area = world.Runtime().chat.area;
-    const auto row = [&area](std::int32_t back) -> const Client::UI::MessageAreaRow&
+    const Client::Ui::MessageAreaState& area = world.Runtime().chat.area;
+    const auto row = [&area](std::int32_t back) -> const Client::Ui::MessageAreaRow&
     { return area.rows[static_cast<std::size_t>(area.count - back)]; };
 
     tested.models.Set(Client::Tables::PlayerSkeletonModel, Client::Data::Models::Model{},
@@ -808,7 +810,7 @@ TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
     EXPECT_EQ(row(2).text, "conectando");
     EXPECT_EQ(row(1).text, "espere");
     EXPECT_EQ(row(1).name, "");
-    EXPECT_EQ(row(1).type, Client::UI::SystemMessage);
+    EXPECT_EQ(row(1).type, Client::Ui::SystemMessage);
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
     tested.Step();

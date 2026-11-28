@@ -7,9 +7,9 @@
 #include <cmath>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::MapScripts::Kalima
 {
-void MoveKalimaObject(WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction)
+void MoveKalimaObject(WorldObjects::WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction)
 {
     constexpr double Trigger = static_cast<double>(0.1f), Radius = 50;
     constexpr double Repulsion = static_cast<double>(-0.6f), Damping = static_cast<double>(0.6f);
@@ -44,4 +44,4 @@ void MoveKalimaObject(WorldObject& object, const glm::vec3& heroPosition, std::u
         object.transform.angles[axis] =
             f32(static_cast<double>(object.copiedAngles[axis]) + object.transform.angles[axis]);
 }
-} // namespace Client::World
+} // namespace Client::MapScripts::Kalima

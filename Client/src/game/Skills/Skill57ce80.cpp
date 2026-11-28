@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -53,4 +53,4 @@ Core::Expected<bool, std::string> AimTheHeroSkill(Kernel::ActorState& hero, cons
     hero.attackPosition = point;
     return true;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

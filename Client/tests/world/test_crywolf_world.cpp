@@ -42,12 +42,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
 using Client::Terrain::TerrainLighting;
-using Client::World::ObjectStepGlobals;
-using Client::World::Particle;
-using Client::World::Particles;
-using Client::World::StepWorldObjectChecked;
-using Client::World::WorldObject;
+using Client::WorldObjects::ObjectStepGlobals;
+using Client::WorldObjects::StepWorldObjectChecked;
+using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CrywolfMap = 34;
 constexpr std::int16_t Hidden = -2;
@@ -90,25 +90,25 @@ std::uint32_t SeedWhere(int modulus, int remainder, bool match = true)
 }
 
 // La trigonometría portable, con la cuenta de las llamadas: la 60f/10 la pide al nacer y no en el paso.
-class CountingTrigonometry final : public Client::World::IParticleTrigonometry
+class CountingTrigonometry final : public Client::Particles::IParticleTrigonometry
 {
 public:
     mutable int calls = 0;
-    Client::Core::Expected<double, Client::World::ParticleError> SineProductPC53(double argument,
-                                                                                 float multiplier) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> SineProductPC53(double argument,
+                                                                                     float multiplier) const override
     {
         ++calls;
         return m_inner.SineProductPC53(argument, multiplier);
     }
-    Client::Core::Expected<double, Client::World::ParticleError> CosineProductPC53(double argument,
-                                                                                   float multiplier) const override
+    Client::Core::Expected<double, Client::Particles::ParticleError> CosineProductPC53(double argument,
+                                                                                       float multiplier) const override
     {
         ++calls;
         return m_inner.CosineProductPC53(argument, multiplier);
     }
 
 private:
-    Client::World::PortableParticleTrigonometry m_inner;
+    Client::Particles::PortableParticleTrigonometry m_inner;
 };
 
 // Los campos que deja el paso; la comparación entre gemelos ignora el tipo y el subtipo.
@@ -144,13 +144,13 @@ void ExpectTheSameStepAs(const Particle& particle, std::int32_t twinType, std::i
     CrtRandom random(31);
     CrtRandom twinRandom(31);
     const float clock = 2500.0f;
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     for (int step = 0; step < steps; ++step)
     {
         SCOPED_TRACE(step);
         ASSERT_TRUE(
-            Client::World::StepParticlesChecked(*own, random, std::cref(clock), nullptr, trigonometry).HasValue());
-        ASSERT_TRUE(Client::World::StepParticlesChecked(*twins, twinRandom, std::cref(clock), nullptr, trigonometry)
+            Client::Particles::StepParticlesChecked(*own, random, std::cref(clock), nullptr, trigonometry).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(*twins, twinRandom, std::cref(clock), nullptr, trigonometry)
                         .HasValue());
         ExpectSameStep(own->All()[0], twins->All()[0]);
     }
@@ -247,8 +247,8 @@ TEST(CrywolfParticlesTest, TheChimneySmokeIsBornWithThreeDrawsAndStepsAsTheWorld
     CrtRandom random(11);
     CrtRandom draws(11);
     const auto created =
-        particles->CreateChecked(Client::World::BreathParticle, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 30.0f},
-                                 glm::vec3(1.0f), Client::World::CrywolfSmokeSubtype, 1.25f, 0.0f, random);
+        particles->CreateChecked(Client::Particles::BreathParticle, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 30.0f},
+                                 glm::vec3(1.0f), Client::Particles::CrywolfSmokeSubtype, 1.25f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& smoke = particles->All()[*created.Value()];
@@ -260,7 +260,7 @@ TEST(CrywolfParticlesTest, TheChimneySmokeIsBornWithThreeDrawsAndStepsAsTheWorld
     EXPECT_EQ(smoke.rotation, static_cast<float>(turn));
     EXPECT_EQ(smoke.verticalSpeed, F32(static_cast<double>(rise) * D(std::bit_cast<float>(0x3dcccccdu))));
     EXPECT_EQ(random.State(), draws.State());
-    ExpectTheSameStepAs(smoke, Client::World::BreathParticle, 2, 4);
+    ExpectTheSameStepAs(smoke, Client::Particles::BreathParticle, 2, 4);
 }
 
 // 0x54330a..0x5433f4: la 622/9 saca siete rand() en el orden de la 622/8, pero su escala multiplica la del
@@ -271,9 +271,9 @@ TEST(CrywolfParticlesTest, TheMistCloudScalesItsArgumentAndStepsAsTheCloudEight)
     CrtRandom random(13);
     CrtRandom draws(13);
     const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
-    const auto created = particles->CreateChecked(Client::World::CloudParticle, position, {0.0f, 0.0f, 90.0f},
-                                                  glm::vec3(0.02f, 0.03f, 0.02f), Client::World::CrywolfCloudSubtype,
-                                                  1.25f, 0.0f, random);
+    const auto created = particles->CreateChecked(Client::Particles::CloudParticle, position, {0.0f, 0.0f, 90.0f},
+                                                  glm::vec3(0.02f, 0.03f, 0.02f),
+                                                  Client::Particles::CrywolfCloudSubtype, 1.25f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& cloud = particles->All()[*created.Value()];
@@ -297,7 +297,7 @@ TEST(CrywolfParticlesTest, TheMistCloudScalesItsArgumentAndStepsAsTheCloudEight)
     EXPECT_EQ(cloud.rotationFactor, F32(static_cast<double>(r7) * Hundredth));
     EXPECT_EQ(cloud.velocity, glm::vec3(0.0f));
     EXPECT_EQ(random.State(), draws.State());
-    ExpectTheSameStepAs(cloud, Client::World::CloudParticle, 8, 4);
+    ExpectTheSameStepAs(cloud, Client::Particles::CloudParticle, 8, 4);
 }
 
 // 0x543152..0x543178 y 0x54719f..0x5471b2: la burbuja 698/0 nace con vida 32 y la escala (rand() % 170 + 1) ·
@@ -309,7 +309,7 @@ TEST(CrywolfParticlesTest, TheBubbleLivesThirtyTwoStepsAcrossEightFrames)
     CrtRandom random(17);
     CrtRandom draws(17);
     const auto created =
-        particles->CreateChecked(Client::World::BubbleParticle, {1050.0f, 2075.0f, 310.0f}, {12.0f, 0.0f, 0.0f},
+        particles->CreateChecked(Client::Particles::BubbleParticle, {1050.0f, 2075.0f, 310.0f}, {12.0f, 0.0f, 0.0f},
                                  glm::vec3(0.3f, 0.4f, 0.2f), 0, 1.0f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
@@ -320,20 +320,21 @@ TEST(CrywolfParticlesTest, TheBubbleLivesThirtyTwoStepsAcrossEightFrames)
     for (int step = 1; step <= 32; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random).HasValue());
         EXPECT_EQ(bubble.life, 32 - step);
         EXPECT_EQ(std::bit_cast<std::int32_t>(bubble.field48), step / 4);
         EXPECT_EQ(bubble.alive, step < 32);
     }
-    EXPECT_FALSE(particles->CreateChecked(Client::World::BubbleParticle, {}, {}, {}, 1, 1.0f, 0.0f, random).HasValue());
+    EXPECT_FALSE(
+        particles->CreateChecked(Client::Particles::BubbleParticle, {}, {}, {}, 1, 1.0f, 0.0f, random).HasValue());
 
     Particle drawn = bubble;
     drawn.angles.x = 12.0f;
     for (const std::int32_t frame : {3, 9})
     {
         drawn.field48 = std::bit_cast<float>(frame);
-        const auto shape =
-            Client::World::ParticleDrawParametersOf(drawn, {64.0f, 32.0f}, Client::World::ParticleDrawKind::Bubble);
+        const auto shape = Client::Particles::ParticleDrawParametersOf(drawn, {64.0f, 32.0f},
+                                                                       Client::Particles::ParticleDrawKind::Bubble);
         EXPECT_EQ(shape.width, 64.0f);
         EXPECT_EQ(shape.height, 4.0f);
         EXPECT_EQ(shape.rotation, 12.0f);
@@ -354,8 +355,9 @@ TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
     CrtRandom draws(37);
     const glm::vec3 position(12550.0f, 4250.0f, 220.0f);
     const glm::vec3 light(0.5f, 0.3f, 0.1f);
-    const auto created = particles->CreateChecked(Client::World::BreathParticle, position, {0.0f, 0.0f, 90.0f}, light,
-                                                  Client::World::CrywolfRisingSmokeSubtype, 1.25f, 0.0f, random);
+    const auto created =
+        particles->CreateChecked(Client::Particles::BreathParticle, position, {0.0f, 0.0f, 90.0f}, light,
+                                 Client::Particles::CrywolfRisingSmokeSubtype, 1.25f, 0.0f, random);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& smoke = particles->All()[*created.Value()];
@@ -380,7 +382,7 @@ TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
     for (int step = 1; step <= 12; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random).HasValue());
         expected.life -= 1;
         const glm::vec3 turned =
             Client::Math::OriginalVectorRotate(expected.velocity, Client::Math::OriginalAngleMatrix(expected.angles));
@@ -413,7 +415,7 @@ TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
     const auto billboard = Client::Tests::DrawOneParticle(drawn, glm::vec2(64.0f, 32.0f), std::uint8_t{3});
     ASSERT_TRUE(billboard.HasValue());
     ASSERT_TRUE(billboard.Value().has_value());
-    EXPECT_EQ(billboard.Value()->texture, Client::World::BreathParticle);
+    EXPECT_EQ(billboard.Value()->texture, Client::Particles::BreathParticle);
     EXPECT_EQ(billboard.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Additive);
     EXPECT_EQ(billboard.Value()->width, F32(64.0 * D(drawn.scale)));
     EXPECT_EQ(billboard.Value()->height, F32(32.0 * D(drawn.scale)));
@@ -425,25 +427,25 @@ TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
 // con la /5, queda con vida 20; el paso es el de la 6ed (0x547a40).
 TEST(CrywolfParticlesTest, TheTorchSparkIsAShortFanta)
 {
-    for (const std::int32_t subtype : {0, Client::World::ShortFantaSubtype})
+    for (const std::int32_t subtype : {0, Client::Particles::ShortFantaSubtype})
     {
         SCOPED_TRACE(subtype);
         auto particles = std::make_unique<Particles>();
         CrtRandom random(19);
         CrtRandom draws(19);
         const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
-        const auto created = particles->CreateChecked(Client::World::CrywolfFanta, position, {0.0f, 0.0f, 90.0f},
+        const auto created = particles->CreateChecked(Client::Particles::CrywolfFanta, position, {0.0f, 0.0f, 90.0f},
                                                       glm::vec3(1.0f), subtype, 1.25f, 0.0f, random);
         ASSERT_TRUE(created.HasValue());
         ASSERT_TRUE(created.Value().has_value());
         const Particle& spark = particles->All()[*created.Value()];
-        EXPECT_EQ(spark.life, subtype == Client::World::ShortFantaSubtype ? 20 : 24);
+        EXPECT_EQ(spark.life, subtype == Client::Particles::ShortFantaSubtype ? 20 : 24);
         EXPECT_EQ(spark.velocity.x, F32(static_cast<double>(draws.Next() % 10 - 5) * D(0.4f)));
         EXPECT_EQ(spark.velocity.y, 0.0f);
         EXPECT_EQ(spark.velocity.z, F32(static_cast<double>(draws.Next() % 10 + 5) * D(0.2f)));
         EXPECT_EQ(spark.start, position);
         EXPECT_EQ(random.State(), draws.State());
-        ExpectTheSameStepAs(spark, Client::World::KalimaFanta, 0, 6);
+        ExpectTheSameStepAs(spark, Client::Particles::KalimaFanta, 0, 6);
     }
 }
 
@@ -460,9 +462,9 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
     const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
     const glm::vec3 light(0.25f, 0.5f, 0.75f);
     const float scale = std::bit_cast<float>(0x3e428f5cu);
-    const auto created =
-        particles->CreateChecked(Client::World::OrbitParticle, position, {0.0f, 0.0f, 90.0f}, light,
-                                 Client::World::AnchoredOrbitSubtype, scale, std::cref(clock), random, 0, trigonometry);
+    const auto created = particles->CreateChecked(Client::Particles::OrbitParticle, position, {0.0f, 0.0f, 90.0f},
+                                                  light, Client::Particles::AnchoredOrbitSubtype, scale,
+                                                  std::cref(clock), random, 0, trigonometry);
     ASSERT_TRUE(created.HasValue());
     ASSERT_TRUE(created.Value().has_value());
     const Particle& orb = particles->All()[*created.Value()];
@@ -479,7 +481,7 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
     EXPECT_EQ(orb.angles, glm::vec3(0.0f));
     EXPECT_EQ(random.State(), draws.State());
     const double argument = (60.0 + static_cast<double>(phase)) * D(std::bit_cast<float>(0x3dcccccdu));
-    const Client::World::PortableParticleTrigonometry portable;
+    const Client::Particles::PortableParticleTrigonometry portable;
     const glm::vec3 start(F32(portable.SineProductPC53(argument, 40.0f).Value() + D(position.x)),
                           F32(D(position.y) - portable.CosineProductPC53(argument, 40.0f).Value()), position.z);
     EXPECT_EQ(orb.start, start);
@@ -491,7 +493,7 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
     for (int step = 1; step <= 45; ++step)
     {
         SCOPED_TRACE(step);
-        ASSERT_TRUE(Client::World::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trigonometry)
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(*particles, random, std::cref(clock), nullptr, trigonometry)
                         .HasValue());
         expected.life -= 1;
         expected.position = {start.x, start.y, F32(D(expected.verticalSpeed) + D(expected.position.z))};
@@ -515,16 +517,16 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
 // tienen el paso común.
 TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
     const glm::vec3 angles(0.0f, 0.0f, 90.0f);
     const glm::vec3 light(0.37f);
-    const auto slot = effects->CreateFadingDecal(position, angles, light, Client::World::CrywolfDecalSubtype, 4);
+    const auto slot = effects->CreateFadingDecal(position, angles, light, Client::Effects::CrywolfDecalSubtype, 4);
     ASSERT_TRUE(slot.has_value());
-    Client::World::ModelEffect& decal = effects->Effects()[*slot];
+    Client::Effects::ModelEffect& decal = effects->Effects()[*slot];
     EXPECT_TRUE(decal.alive);
-    EXPECT_EQ(decal.type, Client::World::FadingDecalEffect);
-    EXPECT_EQ(decal.subtype, Client::World::CrywolfDecalSubtype);
+    EXPECT_EQ(decal.type, Client::Effects::FadingDecalEffect);
+    EXPECT_EQ(decal.subtype, Client::Effects::CrywolfDecalSubtype);
     EXPECT_EQ(decal.life, 20);
     EXPECT_EQ(decal.transform.scale, 0.5f);
     EXPECT_EQ(decal.transform.position, position);
@@ -543,7 +545,7 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     {
         const int life = decal.life;
         SCOPED_TRACE(life);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(decal, nullptr, *particles, 2500.0f, random).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(decal, nullptr, *particles, 2500.0f, random).HasValue());
         static_cast<void>(draws.Next());
         if (life > 5 && life < 10)
         {
@@ -561,8 +563,8 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
         if (!particle.alive)
             continue;
         ++orbs;
-        EXPECT_EQ(particle.type, Client::World::OrbitParticle);
-        EXPECT_EQ(particle.subtype, Client::World::AnchoredOrbitSubtype);
+        EXPECT_EQ(particle.type, Client::Particles::OrbitParticle);
+        EXPECT_EQ(particle.subtype, Client::Particles::AnchoredOrbitSubtype);
         EXPECT_EQ(particle.light, light);
         EXPECT_EQ(particle.start.z, position.z);
     }
@@ -574,26 +576,27 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
-        auto table = std::make_unique<Client::World::ModelEffects>();
+        auto table = std::make_unique<Client::Effects::ModelEffects>();
         static_cast<void>(table->CreateFadingDecal(position, angles, light, 4, 4));
         const auto made = table->CreateFadingDecal(position, angles, light, subtype, 4);
         ASSERT_EQ(made, std::optional<std::size_t>(1));
-        Client::World::ModelEffect& owner = table->Effects()[*made];
+        Client::Effects::ModelEffect& owner = table->Effects()[*made];
         owner.life = 8;
-        const Client::World::ModelEffect before = owner;
-        const Client::World::ModelEffectStepServices services{.effects = table.get()};
+        const Client::Effects::ModelEffect before = owner;
+        const Client::Effects::ModelEffectStepServices services{.effects = table.get()};
         auto spawned = std::make_unique<Particles>();
         CrtRandom orbRandom(29);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
-                        .HasValue());
-        constexpr Client::World::ParticleOwner DecalOwner{Client::World::ParticleOwnerKind::ModelEffect, 1};
+        ASSERT_TRUE(
+            Client::Effects::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
+                .HasValue());
+        constexpr Client::Particles::ParticleOwner DecalOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 1};
         // El rand() de la luz y los cuatro de 0x542f83, 0x542fab, 0x542fc6 y 0x542fe5; los valores, de orbit.py
         // (0x542ed0..0x54304a en una x87 aparte) y no de CreateChecked.
         EXPECT_EQ(orbRandom.State(), 0x3309f4f0u);
         EXPECT_EQ(orbRandom.State(), Client::Tests::AfterDraws(29, 5).State());
         const Particle& orb = spawned->All()[0];
         ASSERT_TRUE(orb.alive);
-        EXPECT_EQ(orb.type, Client::World::OrbitParticle);
+        EXPECT_EQ(orb.type, Client::Particles::OrbitParticle);
         EXPECT_EQ(orb.subtype, 0);
         EXPECT_EQ(orb.typedOwner, DecalOwner);
         EXPECT_EQ(orb.light, light);
@@ -610,16 +613,16 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
         auto full = std::make_unique<Particles>();
         for (Particle& particle : full->All())
             particle.alive = true;
-        Client::World::ModelEffect again = before;
+        Client::Effects::ModelEffect again = before;
         CrtRandom fullRandom(29);
-        auto fullTable = std::make_unique<Client::World::ModelEffects>();
+        auto fullTable = std::make_unique<Client::Effects::ModelEffects>();
         static_cast<void>(fullTable->CreateFadingDecal(position, angles, light, 4, 4));
         const auto fullMade = fullTable->CreateFadingDecal(position, angles, light, subtype, 4);
         ASSERT_TRUE(fullMade.has_value());
         fullTable->Effects()[*fullMade].life = 8;
-        const Client::World::ModelEffectStepServices fullServices{.effects = fullTable.get()};
-        ASSERT_TRUE(Client::World::StepGameModelEffect(fullTable->Effects()[*fullMade], nullptr, *full, 2500.0f,
-                                                       fullRandom, nullptr, fullServices)
+        const Client::Effects::ModelEffectStepServices fullServices{.effects = fullTable.get()};
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(fullTable->Effects()[*fullMade], nullptr, *full, 2500.0f,
+                                                         fullRandom, nullptr, fullServices)
                         .HasValue());
         EXPECT_EQ(fullRandom.State(), Client::Tests::AfterDraws(29, 1).State());
 
@@ -627,24 +630,24 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
             continue;
         // Con la tabla de partículas llena la órbita no nace y el dueño no hace falta: sin la tabla de efectos el /2 y
         // el /7 siguen como el original, con sólo el rand() de la luz.
-        Client::World::ModelEffect unowned = before;
+        Client::Effects::ModelEffect unowned = before;
         CrtRandom unownedRandom(29);
-        ASSERT_TRUE(Client::World::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
         EXPECT_EQ(unownedRandom.State(), 0x0085526cu); // 29 · 214013 + 2531011
         EXPECT_EQ(unownedRandom.State(), Client::Tests::AfterDraws(29, 1).State());
         CrtRandom loneRandom(29);
-        const auto lone = Client::World::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
+        const auto lone = Client::Effects::StepGameModelEffect(again, nullptr, *spawned, 2500.0f, loneRandom);
         ASSERT_FALSE(lone.HasValue());
         EXPECT_NE(lone.Error().find("0x52b977"), std::string::npos) << lone.Error();
     }
     for (const std::int32_t subtype : {1, 4})
     {
-        Client::World::ModelEffect quiet = effects->Effects()[*first];
+        Client::Effects::ModelEffect quiet = effects->Effects()[*first];
         quiet.subtype = subtype;
         quiet.life = 8;
         CrtRandom quietRandom(29);
         auto none = std::make_unique<Particles>();
-        ASSERT_TRUE(Client::World::StepGameModelEffect(quiet, nullptr, *none, 2500.0f, quietRandom).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameModelEffect(quiet, nullptr, *none, 2500.0f, quietRandom).HasValue());
         EXPECT_EQ(quietRandom.State(), Client::Tests::AfterDraws(29, 1).State());
         EXPECT_FALSE(none->All()[0].alive);
     }
@@ -654,7 +657,7 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 // 0,5, sin rand(); llena, nada. Sin la tabla de efectos corta. Fuera de la vida 6..9 no suelta la órbita.
 TEST(CrywolfDecalTest, TheTrailDecalLeavesAFadingDecalEachStep)
 {
-    auto effects = std::make_unique<Client::World::ModelEffects>();
+    auto effects = std::make_unique<Client::Effects::ModelEffects>();
     const glm::vec3 position(12550.0f, 4250.0f, 170.0f);
     const glm::vec3 angles(0.0f, 0.0f, 90.0f);
     const glm::vec3 light(0.37f);
@@ -662,14 +665,14 @@ TEST(CrywolfDecalTest, TheTrailDecalLeavesAFadingDecalEachStep)
     ASSERT_TRUE(slot.has_value());
     auto particles = std::make_unique<Particles>();
     CrtRandom random(29);
-    const Client::World::ModelEffectStepServices services{.effects = effects.get()};
-    Client::World::ModelEffect& trail = effects->Effects()[*slot];
-    ASSERT_TRUE(
-        Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services).HasValue());
+    const Client::Effects::ModelEffectStepServices services{.effects = effects.get()};
+    Client::Effects::ModelEffect& trail = effects->Effects()[*slot];
+    ASSERT_TRUE(Client::Effects::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services)
+                    .HasValue());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(29, 1).State());
-    const Client::World::ModelEffect& faded = effects->Effects()[1];
+    const Client::Effects::ModelEffect& faded = effects->Effects()[1];
     ASSERT_TRUE(faded.alive);
-    EXPECT_EQ(faded.type, Client::World::FadingDecalEffect);
+    EXPECT_EQ(faded.type, Client::Effects::FadingDecalEffect);
     EXPECT_EQ(faded.subtype, 1);
     EXPECT_EQ(faded.life, 20);
     EXPECT_EQ(faded.transform.scale, 0.5f);
@@ -680,10 +683,10 @@ TEST(CrywolfDecalTest, TheTrailDecalLeavesAFadingDecalEachStep)
     EXPECT_FALSE(particles->All()[0].alive);
     for (auto& effect : effects->Effects())
         effect.alive = true;
-    ASSERT_TRUE(
-        Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random, nullptr, services)
+                    .HasValue());
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(29, 2).State());
-    const auto cut = Client::World::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random);
+    const auto cut = Client::Effects::StepGameModelEffect(trail, nullptr, *particles, 2500.0f, random);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52b8cf"), std::string::npos) << cut.Error();
 }
@@ -698,11 +701,11 @@ struct Water
     Client::Terrain::TerrainView view;
     float clock = 2500.0f;
     CrtRandom random{1};
-    Client::World::CrywolfWaterContext context{.heroZ = 245.5f,
-                                               .heroAngles = {0.0f, 0.0f, 135.0f},
-                                               .random = nullptr,
-                                               .particles = nullptr,
-                                               .worldClock = std::cref(clock)};
+    Client::MapScripts::Crywolf::CrywolfWaterContext context{.heroZ = 245.5f,
+                                                             .heroAngles = {0.0f, 0.0f, 135.0f},
+                                                             .random = nullptr,
+                                                             .particles = nullptr,
+                                                             .worldClock = std::cref(clock)};
 
     explicit Water(std::uint32_t seed) : random(seed)
     {
@@ -760,7 +763,8 @@ TEST(CrywolfWaterTest, EachWaterRequestDrawsOnceAndSometimesReleasesABubble)
             const std::uint32_t seed = SeedWhere(50, 0, bubble);
             Water water(seed);
             water.Cell(40, 120, c.layer1, c.layer2, c.alpha);
-            ASSERT_TRUE(Client::World::StepCrywolfWaterCell(water.view, 40, 120, water.context).HasValue());
+            ASSERT_TRUE(
+                Client::MapScripts::Crywolf::StepCrywolfWaterCell(water.view, 40, 120, water.context).HasValue());
             CrtRandom draws(seed);
             std::vector<std::pair<glm::vec3, float>> expected;
             for (int request = 0; request < c.requests; ++request)
@@ -776,7 +780,7 @@ TEST(CrywolfWaterTest, EachWaterRequestDrawsOnceAndSometimesReleasesABubble)
                 if (!particle.alive)
                     continue;
                 ASSERT_LT(alive, expected.size());
-                EXPECT_EQ(particle.type, Client::World::BubbleParticle);
+                EXPECT_EQ(particle.type, Client::Particles::BubbleParticle);
                 EXPECT_EQ(particle.subtype, 0);
                 EXPECT_EQ(particle.position, expected[alive].first);
                 EXPECT_EQ(particle.scale, expected[alive].second);
@@ -804,7 +808,7 @@ TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
     {
         Water water(seed);
         water.view.mapping = nullptr;
-        const auto cut = Client::World::StepCrywolfWaterCell(water.view, 40, 120, water.context);
+        const auto cut = Client::MapScripts::Crywolf::StepCrywolfWaterCell(water.view, 40, 120, water.context);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0x5fa830"), std::string::npos) << cut.Error();
     }
@@ -812,7 +816,7 @@ TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
         Water water(seed);
         water.Cell(40, 120, 5, 0, 0.0f);
         water.context.random = nullptr;
-        const auto cut = Client::World::StepCrywolfWaterCell(water.view, 40, 120, water.context);
+        const auto cut = Client::MapScripts::Crywolf::StepCrywolfWaterCell(water.view, 40, 120, water.context);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0x5fa6ab"), std::string::npos) << cut.Error();
     }
@@ -820,7 +824,7 @@ TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
         Water water(seed);
         water.Cell(40, 120, 5, 0, 0.0f);
         water.context.particles = nullptr;
-        const auto cut = Client::World::StepCrywolfWaterCell(water.view, 40, 120, water.context);
+        const auto cut = Client::MapScripts::Crywolf::StepCrywolfWaterCell(water.view, 40, 120, water.context);
         ASSERT_FALSE(cut.HasValue());
         EXPECT_NE(cut.Error().find("0x5fa731"), std::string::npos) << cut.Error();
         EXPECT_EQ(water.random.State(), Client::Tests::AfterDraws(seed, 3).State());
@@ -830,6 +834,6 @@ TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
         Water water(SeedWhere(50, 0, false));
         water.Cell(40, 120, 5, 0, 0.0f);
         water.context.particles = nullptr;
-        EXPECT_TRUE(Client::World::StepCrywolfWaterCell(water.view, 40, 120, water.context).HasValue());
+        EXPECT_TRUE(Client::MapScripts::Crywolf::StepCrywolfWaterCell(water.view, 40, 120, water.context).HasValue());
     }
 }

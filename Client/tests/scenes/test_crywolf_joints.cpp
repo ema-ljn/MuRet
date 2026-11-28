@@ -31,7 +31,7 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     CrtRandom random(7);
     glm::vec3 position{100, 200, 300};
     glm::vec3 angles{};
-    const auto created = Client::Scenes::CreateFaunaJoint(
+    const auto created = Client::Joints::CreateFaunaJoint(
         joints, Client::Kernel::JointRequest{0x615, position, position, angles, 7, nullptr, 60, -1, 0, 0, -1}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
@@ -44,7 +44,7 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     EXPECT_FALSE(joint.tailEnabled);
     EXPECT_EQ(joint.texture, 0x614);
     EXPECT_EQ(random.State(), 0xc40e66b9u);
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joint.life, 19);
     EXPECT_EQ(joint.count, 49);
@@ -69,7 +69,7 @@ TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
     glm::vec3 angles{};
     for (const std::int32_t subtype : {1, 2})
     {
-        const auto created = Client::Scenes::CreateFaunaJoint(
+        const auto created = Client::Joints::CreateFaunaJoint(
             joints, Client::Kernel::JointRequest{0x615, position, position, angles, subtype, nullptr, 55, -1, 0, 0, -1},
             subtype == 1 ? random : twin);
         ASSERT_TRUE(created.HasValue()) << created.Error();
@@ -89,10 +89,10 @@ TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
     std::array<JointState, 1> chaos{joints[1]};
     chaos[0].position = alone[0].position;
     chaos[0].pathIncrement = alone[0].pathIncrement;
-    auto sprites = std::make_unique<Client::World::FrameSprites>();
-    auto particles = std::make_unique<Client::World::Particles>();
-    ASSERT_TRUE(Client::Scenes::StepJoints(alone, random).HasValue());
-    ASSERT_TRUE(Client::Scenes::StepJoints(chaos, twin, nullptr, particles.get(), 0, sprites.get()).HasValue());
+    auto sprites = std::make_unique<Client::Particles::FrameSprites>();
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    ASSERT_TRUE(Client::Joints::StepJoints(alone, random).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(chaos, twin, nullptr, particles.get(), 0, sprites.get()).HasValue());
     EXPECT_EQ(alone[0].life, 19);
     EXPECT_EQ(alone[0].position, position);
     EXPECT_EQ(alone[0].points[5][0].z, 1100.0f - 45 * 16.0f);
@@ -114,7 +114,7 @@ TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompl
     CrtRandom random(7);
     glm::vec3 origin{};
     glm::vec3 angles{};
-    const auto created = Client::Scenes::CreateFaunaJoint(
+    const auto created = Client::Joints::CreateFaunaJoint(
         joints, Client::Kernel::JointRequest{0x614, origin, origin, angles, 17, nullptr, 10, -1, 0, 0, -1}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
@@ -126,7 +126,7 @@ TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompl
     EXPECT_EQ(joint.life, 10);
     EXPECT_EQ(joint.maximumCount, 50);
     EXPECT_EQ(random.State(), 0x003d7aaeu);
-    const auto stepped = Client::Scenes::StepJoints(joints, random);
+    const auto stepped = Client::Joints::StepJoints(joints, random);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joint.life, 9);
     EXPECT_EQ(joint.count, 2);
@@ -145,7 +145,7 @@ TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTh
     glm::vec3 angles{};
     for (const std::int32_t subtype : {2, 3})
     {
-        const auto created = Client::Scenes::CreateFaunaJoint(
+        const auto created = Client::Joints::CreateFaunaJoint(
             joints, Client::Kernel::JointRequest{0x618, origin, origin, angles, subtype, &actor, 30, -1, 0, 0, -1},
             random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
@@ -160,8 +160,8 @@ TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTh
     EXPECT_EQ(random.State(), 7u);
     actor.effectOrigin = {10, 20, 30};
     actor.bonePoint4c = {40, 50, 60};
-    auto particles = std::make_unique<Client::World::Particles>();
-    const auto stepped = Client::Scenes::StepJoints(joints, random, nullptr, particles.get());
+    auto particles = std::make_unique<Client::Particles::Particles>();
+    const auto stepped = Client::Joints::StepJoints(joints, random, nullptr, particles.get());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(joints[0].position, actor.effectOrigin);
     EXPECT_EQ(joints[1].position, actor.bonePoint4c);
@@ -177,7 +177,7 @@ TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTh
     EXPECT_EQ(particles->All()[1].position, actor.bonePoint4c);
     EXPECT_EQ(random.State(), 7u);
     actor.alive = false;
-    ASSERT_TRUE(Client::Scenes::StepJoints(joints, random, nullptr, particles.get()).HasValue());
+    ASSERT_TRUE(Client::Joints::StepJoints(joints, random, nullptr, particles.get()).HasValue());
     EXPECT_FALSE(joints[0].alive);
     EXPECT_FALSE(joints[1].alive);
     EXPECT_EQ(joints[0].life, 999999998);

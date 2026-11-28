@@ -20,9 +20,9 @@
 // ventanas, "Las cartas y el chat con un amigo"). Los nombres y los textos son inventados.
 namespace
 {
-using Client::UI::LetterModel;
-using Client::UI::OldWindow;
-using Client::UI::OldWindowTexts;
+using Client::Messenger::LetterModel;
+using Client::Ui::OldWindow;
+using Client::Ui::OldWindowTexts;
 
 // 10 columnas por letra, para contar los renglones de 0x459c70 a mano.
 class TenWide final : public Client::Render::Text::ITextMeasure
@@ -47,9 +47,9 @@ std::vector<std::uint16_t> IndicesOf(const LetterModel& model)
 TEST(LetterModelTest, ALetterEntersOnceWithItsTextsCut)
 {
     LetterModel model;
-    Client::UI::AddALetter(model, 4, "Calandriaaaa", std::string(0x30, 's'), "2026/11/13 extra", "10:20:30 y algo mas",
-                           0);
-    Client::UI::AddALetter(model, 4, "Otro", "Otro", "", "", 1);
+    Client::Messenger::AddALetter(model, 4, "Calandriaaaa", std::string(0x30, 's'), "2026/11/13 extra",
+                                  "10:20:30 y algo mas", 0);
+    Client::Messenger::AddALetter(model, 4, "Otro", "Otro", "", "", 1);
     ASSERT_EQ(model.letters.size(), 1u);
     EXPECT_EQ(model.letters[0].name, "Calandriaa");
     EXPECT_EQ(model.letters[0].subject, std::string(0x20, 's'));
@@ -62,20 +62,20 @@ TEST(LetterModelTest, ALetterEntersOnceWithItsTextsCut)
 TEST(LetterModelTest, TheSortKeepsItsModeAndComparesWithSign)
 {
     LetterModel model;
-    Client::UI::AddALetter(model, 1, "Tero", "a", "2026/11/14", "08:00", 0);
-    Client::UI::AddALetter(model, 2, "Tero", "b", "2026/11/13", "09:00", 0);
-    Client::UI::AddALetter(model, 3, "Tero", "c", "2026/11/13", "07:00", 0);
-    Client::UI::SortTheLetters(model, Client::UI::ByDateLetters);
+    Client::Messenger::AddALetter(model, 1, "Tero", "a", "2026/11/14", "08:00", 0);
+    Client::Messenger::AddALetter(model, 2, "Tero", "b", "2026/11/13", "09:00", 0);
+    Client::Messenger::AddALetter(model, 3, "Tero", "c", "2026/11/13", "07:00", 0);
+    Client::Messenger::SortTheLetters(model, Client::Messenger::ByDateLetters);
     EXPECT_EQ(IndicesOf(model), (std::vector<std::uint16_t>{3, 2, 1}));
-    Client::UI::AddALetter(model, 4, "Tero", "d", "2026/11/12", "07:00", 0);
-    Client::UI::SortTheLetters(model, Client::UI::SameLetters);
-    EXPECT_EQ(model.sortMode, Client::UI::ByDateLetters);
+    Client::Messenger::AddALetter(model, 4, "Tero", "d", "2026/11/12", "07:00", 0);
+    Client::Messenger::SortTheLetters(model, Client::Messenger::SameLetters);
+    EXPECT_EQ(model.sortMode, Client::Messenger::ByDateLetters);
     EXPECT_EQ(IndicesOf(model), (std::vector<std::uint16_t>{4, 3, 2, 1}));
     bool same = false;
-    EXPECT_TRUE(Client::UI::TextComesAfter("b", "a", &same));
+    EXPECT_TRUE(Client::Messenger::TextComesAfter("b", "a", &same));
     EXPECT_FALSE(same);
-    EXPECT_FALSE(Client::UI::TextComesAfter("\xe1", "a"));
-    EXPECT_FALSE(Client::UI::TextComesAfter("ab", "abc", &same));
+    EXPECT_FALSE(Client::Messenger::TextComesAfter("\xe1", "a"));
+    EXPECT_FALSE(Client::Messenger::TextComesAfter("ab", "abc", &same));
     EXPECT_TRUE(same);
 }
 
@@ -83,26 +83,26 @@ TEST(LetterModelTest, TheSortKeepsItsModeAndComparesWithSign)
 TEST(LetterModelTest, TheCopyOfALetterIsKeptOnce)
 {
     LetterModel model;
-    Client::UI::KeepTheLetter(model, 7, {std::byte{1}});
-    Client::UI::KeepTheLetter(model, 7, {std::byte{2}});
-    ASSERT_NE(Client::UI::KeptLetter(model, 7), nullptr);
-    EXPECT_EQ(*Client::UI::KeptLetter(model, 7), std::vector<std::byte>{std::byte{1}});
-    Client::UI::AddALetter(model, 7, "Tero", "a", "", "", 0);
-    Client::UI::ClearTheLetters(model);
+    Client::Messenger::KeepTheLetter(model, 7, {std::byte{1}});
+    Client::Messenger::KeepTheLetter(model, 7, {std::byte{2}});
+    ASSERT_NE(Client::Messenger::KeptLetter(model, 7), nullptr);
+    EXPECT_EQ(*Client::Messenger::KeptLetter(model, 7), std::vector<std::byte>{std::byte{1}});
+    Client::Messenger::AddALetter(model, 7, "Tero", "a", "", "", 0);
+    Client::Messenger::ClearTheLetters(model);
     EXPECT_TRUE(model.letters.empty());
-    EXPECT_EQ(Client::UI::KeptLetter(model, 7), nullptr);
+    EXPECT_EQ(Client::Messenger::KeptLetter(model, 7), nullptr);
 }
 
 // 0x49e280: desde el cursor, el primero libre, con vuelta después de 0xff; con los 0x100 ocupados, ninguno.
 TEST(ChatRoomsTest, ASlotIsTakenFromTheCursorUntilNoneIsLeft)
 {
-    Client::UI::ChatRooms rooms;
+    Client::Messenger::ChatRooms rooms;
     rooms.cursor = 0xff;
-    EXPECT_EQ(Client::UI::TakeAChatSlot(rooms, 10), std::optional<std::uint8_t>(std::uint8_t{0xff}));
-    EXPECT_EQ(Client::UI::TakeAChatSlot(rooms, 11), std::optional<std::uint8_t>(std::uint8_t{0}));
+    EXPECT_EQ(Client::Messenger::TakeAChatSlot(rooms, 10), std::optional<std::uint8_t>(std::uint8_t{0xff}));
+    EXPECT_EQ(Client::Messenger::TakeAChatSlot(rooms, 11), std::optional<std::uint8_t>(std::uint8_t{0}));
     for (std::uint32_t room = 12; room < 12 + 0xfe; ++room)
-        ASSERT_TRUE(Client::UI::TakeAChatSlot(rooms, room).has_value());
-    EXPECT_EQ(Client::UI::TakeAChatSlot(rooms, 999), std::nullopt);
+        ASSERT_TRUE(Client::Messenger::TakeAChatSlot(rooms, room).has_value());
+    EXPECT_EQ(Client::Messenger::TakeAChatSlot(rooms, 999), std::nullopt);
     EXPECT_EQ(rooms.slots.at(0xff), 10u);
 }
 
@@ -111,39 +111,41 @@ TEST(ChatRoomsTest, ASlotIsTakenFromTheCursorUntilNoneIsLeft)
 TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
 {
     const OldWindowTexts texts{.notice = {}, .question = {}, .yes = {}, .no = {}, .lookup = [](std::size_t index) {
-                                   return index == Client::UI::ChatClosedText ? std::string("[x] ") : std::string();
+                                   return index == Client::Messenger::ChatClosedText ? std::string("[x] ")
+                                                                                     : std::string();
                                }};
     OldWindow chat;
-    chat.kind = Client::UI::OldWindowKind::ChatWindow;
+    chat.kind = Client::Ui::OldWindowKind::ChatWindow;
     chat.frame.title = "Chat Tordo";
-    chat.chat.members.push_back(Client::UI::FriendEntry{.selected = 0, .name = "Heroico", .flag = 0, .state = 0});
+    chat.chat.members.push_back(
+        Client::Messenger::FriendEntry{.selected = 0, .name = "Heroico", .flag = 0, .state = 0});
     std::int32_t kind = -1;
-    EXPECT_EQ(Client::UI::ChatFriend(chat, "Heroico", kind), "");
+    EXPECT_EQ(Client::Messenger::ChatFriend(chat, "Heroico", kind), "");
     EXPECT_EQ(kind, 0);
-    chat.chat.members.push_back(Client::UI::FriendEntry{.selected = 0, .name = "Tordo", .flag = 1, .state = 0});
-    EXPECT_EQ(Client::UI::ChatFriend(chat, "Heroico", kind), "Tordo");
+    chat.chat.members.push_back(Client::Messenger::FriendEntry{.selected = 0, .name = "Tordo", .flag = 1, .state = 0});
+    EXPECT_EQ(Client::Messenger::ChatFriend(chat, "Heroico", kind), "Tordo");
     EXPECT_EQ(kind, 1);
-    chat.chat.members.push_back(Client::UI::FriendEntry{.selected = 0, .name = "Zorzal", .flag = 2, .state = 0});
-    EXPECT_EQ(Client::UI::ChatFriend(chat, "Heroico", kind), "");
+    chat.chat.members.push_back(Client::Messenger::FriendEntry{.selected = 0, .name = "Zorzal", .flag = 2, .state = 0});
+    EXPECT_EQ(Client::Messenger::ChatFriend(chat, "Heroico", kind), "");
     EXPECT_EQ(kind, 2);
 
-    Client::UI::CloseTheChat(chat, 1, texts);
+    Client::Messenger::CloseTheChat(chat, 1, texts);
     EXPECT_EQ(chat.frame.title, std::optional<std::string>("[x] Chat Tordo"));
     EXPECT_EQ(chat.chat.edit.closed, 1);
     EXPECT_EQ(chat.chat.edit.base.state, 0);
-    Client::UI::CloseTheChat(chat, 1, texts);
+    Client::Messenger::CloseTheChat(chat, 1, texts);
     EXPECT_EQ(chat.frame.title, std::optional<std::string>("[x] Chat Tordo"));
-    Client::UI::CloseTheChat(chat, 0, texts);
+    Client::Messenger::CloseTheChat(chat, 0, texts);
     EXPECT_EQ(chat.frame.title, std::optional<std::string>("Chat Tordo"));
     EXPECT_EQ(chat.chat.edit.closed, 0);
     EXPECT_EQ(chat.chat.edit.base.state, 0);
 
     // 0x493f80: el renglón lleva el nombre del miembro con ese número (0x461530); con 0xff, ninguno. Con menos de 20
     // bytes no hace falta medir; con el nombre y el texto vacíos, 0x45f6f0 no agrega nada.
-    Client::UI::OldWindowManager manager;
-    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 1, "hola", 3, 0, nullptr).HasValue());
-    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 0xff, "aviso", 1, 0, nullptr).HasValue());
-    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 0xff, "", 1, 0, nullptr).HasValue());
+    Client::Ui::OldWindowManager manager;
+    ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 1, "hola", 3, 0, nullptr).HasValue());
+    ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 0xff, "aviso", 1, 0, nullptr).HasValue());
+    ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 0xff, "", 1, 0, nullptr).HasValue());
     ASSERT_EQ(chat.chat.lineRows.size(), 2u);
     EXPECT_EQ(chat.chat.lineRows[0].name, "Tordo");
     EXPECT_EQ(chat.chat.lineRows[1].name, "");
@@ -153,7 +155,7 @@ TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
     EXPECT_EQ(chat.chat.lines.fixedCountValue, 2);
     // Uno largo sin la medida corta.
     const auto unmeasured =
-        Client::UI::AddAChatLine(manager, chat, 1, "un texto inventado bastante largo", 3, 0, nullptr);
+        Client::Messenger::AddAChatLine(manager, chat, 1, "un texto inventado bastante largo", 3, 0, nullptr);
     ASSERT_FALSE(unmeasured.HasValue());
     EXPECT_NE(unmeasured.Error().find("0x4601a8"), std::string::npos);
 }
@@ -165,25 +167,26 @@ TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
 TEST(ChatWindowTest, TheTextThatDoesNotFitIsLeftOut)
 {
     const TenWide letters;
-    const Client::UI::OldWindowMeasure measure{.measure = letters,
+    const Client::Ui::OldWindowMeasure measure{.measure = letters,
                                                .dcFont = Client::Render::Text::FontKind::Normal,
                                                .screen = Client::Core::PixelSize{640, 480}};
-    Client::UI::OldWindowManager manager;
+    Client::Ui::OldWindowManager manager;
 
     OldWindow chat;
-    chat.kind = Client::UI::OldWindowKind::ChatWindow;
+    chat.kind = Client::Ui::OldWindowKind::ChatWindow;
     chat.chat.lines.base.width = 0x1e + 40;
-    ASSERT_TRUE(Client::UI::AddAChatLine(manager, chat, 0xff, std::string(100, 'W'), 1, 0, &measure).HasValue());
+    ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 0xff, std::string(100, 'W'), 1, 0, &measure).HasValue());
     ASSERT_EQ(chat.chat.wrappedRows.size(), 10u);
     EXPECT_EQ(chat.chat.wrappedRows.back().text, "WWW");
     EXPECT_EQ(chat.chat.wrappedRows.front().text, "WWWW");
     EXPECT_EQ(chat.chat.lines.fixedCountValue, 10);
 
     OldWindow read;
-    read.kind = Client::UI::OldWindowKind::LetterReadWindow;
+    read.kind = Client::Ui::OldWindowKind::LetterReadWindow;
     read.letter.lines.base.width = 0x1e + 40;
-    ASSERT_TRUE(
-        Client::UI::SetTheLetter(manager, read, Client::UI::LetterEntry{}, std::string(400, 'W'), &measure).HasValue());
+    ASSERT_TRUE(Client::Messenger::SetTheLetter(manager, read, Client::Messenger::LetterEntry{}, std::string(400, 'W'),
+                                                &measure)
+                    .HasValue());
     ASSERT_EQ(read.letter.wrappedRows.size(), 0x50u);
     EXPECT_EQ(read.letter.wrappedRows.back(), "WWWW");
     EXPECT_EQ(read.letter.lines.fixedCountValue, 0x50);

@@ -20,7 +20,7 @@ struct ActorState;
 // reloj del mensaje del nombre (0x4fcd65..0x4fce15) y, al terminar la animación del 0x20a que giró, a 0x4fc8c0. Los
 // tres hablan con 0x557170(nombre, texto, personaje, 0, −1): el globo del chat sin color. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Lo que dicen los NPC".
-namespace Client::Scenes
+namespace Client::Monsters
 {
 
 // strcmp(+0x1d9, 0x6c88b0) en 0x4fcda2: "황금의 궁수" (el tipo 236). Los 10 bytes del nombre y +0x1e3 contra los 11
@@ -51,4 +51,4 @@ namespace Client::Scenes
 // sale en cualquier mapa. Las acciones van con 0x4ea030 y las de Player.bmd.
 [[nodiscard]] Core::Expected<void, std::string> FinishTheTurnedNpc(Kernel::ActorState& actor, std::size_t slot,
                                                                    const Actors::CharacterStepContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Monsters

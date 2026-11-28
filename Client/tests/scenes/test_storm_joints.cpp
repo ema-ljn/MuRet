@@ -65,19 +65,19 @@ struct Storm
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random);
+        return Client::Joints::CreateFaunaJoint(joints, request, random);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(
+        return Client::Joints::StepJoints(
             joints, random, nullptr, &particles, 0.0f, nullptr, nullptr, [this](Client::Audio::SoundId sound)
             { sounds.push_back(sound.Value()); }, [this](float, float) { return ground; });
     }
 
     std::vector<JointState> joints = std::vector<JointState>(8);
     CrtRandom random{Seed};
-    Client::World::Particles particles;
+    Client::Particles::Particles particles;
     double ground = -1000.0;
     std::vector<std::int32_t> sounds;
 };
@@ -169,7 +169,7 @@ TEST(StormJointsTest, TheBoltHitsTheGround)
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(twinJoints, request, replay).HasValue());
+        ASSERT_TRUE(Client::Joints::CreateFaunaJoint(twinJoints, request, replay).HasValue());
         const JointState& spark = storm->joints[0];
         ASSERT_TRUE(spark.alive);
         EXPECT_EQ(spark.type, 0x614);
@@ -181,7 +181,7 @@ TEST(StormJointsTest, TheBoltHitsTheGround)
         EXPECT_EQ(spark.speed, twinJoints[0].speed);
         EXPECT_EQ(spark.life, twinJoints[0].life);
 
-        auto twin = std::make_unique<Client::World::Particles>();
+        auto twin = std::make_unique<Client::Particles::Particles>();
         const glm::vec3 flame{moved.x, moved.y, std::bit_cast<float>(0x449eb225u)};
         ASSERT_TRUE(twin->CreateChecked(0x6ac, flame, bolt.angles, bolt.light, 2, 3.0f, 0.0f, replay).HasValue());
         const auto& made = storm->particles.All()[0];
@@ -235,7 +235,7 @@ TEST(StormJointsTest, TheBoltBlazesInItsFirstTenSteps)
         }
         EXPECT_EQ(storm.sounds, std::vector<std::int32_t>{0x40});
         const auto& all = storm.particles.All();
-        const auto blaze = std::ranges::find_if(all, [](const Client::World::Particle& particle)
+        const auto blaze = std::ranges::find_if(all, [](const Client::Particles::Particle& particle)
                                                 { return particle.alive && particle.type == 0x5ee; });
         ASSERT_NE(blaze, all.end());
         EXPECT_EQ(blaze->subtype, 0);
@@ -288,22 +288,22 @@ struct FallingStar
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, Client::Kernel::JointOwnerKind::ModelEffect);
     }
 
     Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
                                                    Client::Kernel::WorldState* world = nullptr)
     {
-        return Client::Scenes::StepJoints(
+        return Client::Joints::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
             {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    Client::World::ModelEffect owner{};
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
+    Client::Effects::ModelEffect owner{};
     glm::vec3 start{1000.0f, 2000.0f, 1500.0f};
     glm::vec3 angles{90.0f, 0.0f, 0.0f};
     double ground = 200.0;
@@ -411,8 +411,8 @@ TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
         if (key == 0)
         {
             ASSERT_EQ(waves, 1);
-            const Client::World::ModelEffect& wave = star.effects->Effects()[0];
-            EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+            const Client::Effects::ModelEffect& wave = star.effects->Effects()[0];
+            EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
             EXPECT_EQ(wave.subtype, 4);
             EXPECT_EQ(wave.transform.position, joint.position);
             EXPECT_EQ(wave.transform.angles, joint.angles);
@@ -465,7 +465,7 @@ TEST(StormJointsTest, TheFallingStarWaveNeedsTheEffectTable)
 
     FallingStar full;
     full.ground = 5000.0;
-    for (Client::World::ModelEffect& effect : full.effects->Effects())
+    for (Client::Effects::ModelEffect& effect : full.effects->Effects())
         effect.alive = true;
     ASSERT_TRUE(full.Create().HasValue());
     const CrtRandom before = full.random;
@@ -499,18 +499,18 @@ struct Falling
                                                    .skill = 0,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
+        return Client::Joints::CreateFaunaJoint(joints, request, random, kind);
     }
 
     Client::Core::Expected<void, std::string> Step(const Client::Models::IModelLibrary* models = nullptr,
                                                    Client::Kernel::WorldState* world = nullptr)
     {
-        return Client::Scenes::StepJoints(
+        return Client::Joints::StepJoints(
             joints, random, nullptr, nullptr, 0.0f, sprites.get(), nullptr, {}, [this](float, float) { return ground; },
             {}, {}, effects.get(), nullptr, world, nullptr, models);
     }
 
-    const Client::World::Sprite* LiveSprite() const
+    const Client::Particles::Sprite* LiveSprite() const
     {
         const auto all = sprites->Sprites();
         const auto live = std::ranges::find_if(all, [](const auto& sprite) { return sprite.alive; });
@@ -519,8 +519,8 @@ struct Falling
 
     std::vector<JointState> joints = std::vector<JointState>(2);
     CrtRandom random{Seed};
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
+    std::unique_ptr<Client::Effects::ModelEffects> effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Kernel::ActorState target{};
     glm::vec3 start{1500.0f, 1600.0f, 1220.0f};
     glm::vec3 angles{0.0f, 0.0f, 135.0f};
@@ -650,7 +650,7 @@ TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
         EXPECT_TRUE(joint.tailEnabled);
         const auto rotation = static_cast<float>(expected.Next() % 360);
         EXPECT_EQ(falling.random.State(), expected.State());
-        const Client::World::Sprite* sprite = falling.LiveSprite();
+        const Client::Particles::Sprite* sprite = falling.LiveSprite();
         ASSERT_NE(sprite, nullptr);
         EXPECT_EQ(sprite->texture, subtype < 2 ? 0x60f : 0x5fe);
         EXPECT_EQ(sprite->scale, subtype < 2 ? 1.0f : std::bit_cast<float>(0x3fcccccdu));
@@ -689,8 +689,8 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
         if (subtype >= 2)
         {
             ASSERT_EQ(waves, 1);
-            const Client::World::ModelEffect& wave = falling.effects->Effects()[0];
-            EXPECT_EQ(wave.type, Client::World::ShockWaveEffect);
+            const Client::Effects::ModelEffect& wave = falling.effects->Effects()[0];
+            EXPECT_EQ(wave.type, Client::Effects::ShockWaveEffect);
             EXPECT_EQ(wave.subtype, 4);
             EXPECT_EQ(wave.transform.position, joint.position);
             EXPECT_EQ(wave.light,
@@ -751,18 +751,18 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         const auto stepped = owned.Step(&models, world.get());
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        auto twin = std::make_unique<Client::World::ModelEffects>();
+        auto twin = std::make_unique<Client::Effects::ModelEffects>();
         std::size_t shells = 0;
         for (std::size_t corner = 0; corner < 90; ++corner)
         {
             if (expected.Next() % 8 != 0)
                 continue;
-            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
-                                                        .position = posed[corner % 3],
-                                                        .angles = glm::vec3(0.0f),
-                                                        .light = glm::vec3(1.0f),
-                                                        .subtype = subtype},
-                                                       *twin, expected)
+            ASSERT_TRUE(Client::Effects::CreateSkinShell({.type = Client::Effects::SkinShellEffect,
+                                                          .position = posed[corner % 3],
+                                                          .angles = glm::vec3(0.0f),
+                                                          .light = glm::vec3(1.0f),
+                                                          .subtype = subtype},
+                                                         *twin, expected)
                             .has_value());
             ++shells;
         }
@@ -771,10 +771,10 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         ASSERT_GT(shells, 0U);
         for (std::size_t slot = 0; slot < shells; ++slot)
         {
-            const Client::World::ModelEffect& shell = owned.effects->Effects()[slot];
-            const Client::World::ModelEffect& replica = twin->Effects()[slot];
+            const Client::Effects::ModelEffect& shell = owned.effects->Effects()[slot];
+            const Client::Effects::ModelEffect& replica = twin->Effects()[slot];
             EXPECT_TRUE(shell.alive);
-            EXPECT_EQ(shell.type, Client::World::SkinShellEffect);
+            EXPECT_EQ(shell.type, Client::Effects::SkinShellEffect);
             EXPECT_EQ(shell.subtype, subtype);
             EXPECT_EQ(shell.transform.position, replica.transform.position);
             EXPECT_EQ(shell.velocity, replica.velocity);
@@ -842,7 +842,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
         const auto stepped = owned.Step(&models, world.get());
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        auto twin = std::make_unique<Client::World::ModelEffects>();
+        auto twin = std::make_unique<Client::Effects::ModelEffects>();
         std::size_t shells = 0;
         for (std::size_t corner = 0; corner < 90; ++corner)
         {
@@ -851,12 +851,12 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
             const std::array<std::uint32_t, 3>& bits = probe.posed[corner % 3];
             const glm::vec3 vertex{std::bit_cast<float>(bits[0]), std::bit_cast<float>(bits[1]),
                                    std::bit_cast<float>(bits[2])};
-            ASSERT_TRUE(Client::World::CreateSkinShell({.type = Client::World::SkinShellEffect,
-                                                        .position = vertex,
-                                                        .angles = glm::vec3(0.0f),
-                                                        .light = glm::vec3(1.0f),
-                                                        .subtype = 0},
-                                                       *twin, expected)
+            ASSERT_TRUE(Client::Effects::CreateSkinShell({.type = Client::Effects::SkinShellEffect,
+                                                          .position = vertex,
+                                                          .angles = glm::vec3(0.0f),
+                                                          .light = glm::vec3(1.0f),
+                                                          .subtype = 0},
+                                                         *twin, expected)
                             .has_value());
             ++shells;
         }
@@ -866,7 +866,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
         for (std::size_t slot = 0; slot < shells; ++slot)
         {
             SCOPED_TRACE(slot);
-            const Client::World::ModelEffect& shell = owned.effects->Effects()[slot];
+            const Client::Effects::ModelEffect& shell = owned.effects->Effects()[slot];
             EXPECT_TRUE(shell.alive);
             EXPECT_EQ(shell.transform.position, twin->Effects()[slot].transform.position);
         }
@@ -880,7 +880,7 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
 TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
 {
     Falling blast;
-    Client::World::ModelEffect effect{};
+    Client::Effects::ModelEffect effect{};
     effect.alive = true;
     effect.transform.position = {700.0f, 800.0f, 260.0f};
     effect.transform.angles = {-30.0f, 0.0f, 45.0f};
@@ -916,7 +916,7 @@ TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
 TEST(StormJointsTest, TheBlastJointFollowsItsEffect)
 {
     Falling blast;
-    Client::World::ModelEffect effect{};
+    Client::Effects::ModelEffect effect{};
     effect.alive = true;
     blast.start = {700.0f, 800.0f, 260.0f};
     ASSERT_TRUE(blast.Create(4, &effect, Client::Kernel::JointOwnerKind::ModelEffect, 40.0f, 0x32).HasValue());

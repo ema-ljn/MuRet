@@ -59,7 +59,7 @@ Core::Expected<void, std::string> ReceiveTradeRequest(const Protocol::Social::Tr
                                                       App::ServerSession& session,
                                                       const Scenes::WorldEntryResources& resources)
 {
-    auto reply = Scenes::ApplyTradeRequest(request, resources);
+    auto reply = Social::ApplyTradeRequest(request, resources);
     if (!reply.HasValue())
         return Core::Unexpected(std::move(reply).Error());
     if (std::optional<Protocol::Outgoing>& answer = reply.Value())
@@ -71,8 +71,8 @@ Core::Expected<void, std::string> ReceiveEventPacket(const Protocol::Events::Eve
                                                      App::ServerSession& session,
                                                      const Scenes::WorldEntryResources& resources)
 {
-    const Scenes::InventoryServices inventory = Scenes::InventoryServicesOf(resources);
-    auto applied = Scenes::ApplyEventPacket(packet, EventContextOf(resources, session, inventory));
+    const Items::InventoryServices inventory = Items::InventoryServicesOf(resources);
+    auto applied = Events::ApplyEventPacket(packet, EventContextOf(resources, session, inventory));
     if (!applied.HasValue())
         return Core::Unexpected(std::move(applied).Error());
     if (const std::optional<std::string>& discarded = applied.Value().discarded)
@@ -88,13 +88,13 @@ void PickUpWhenShort::Unreadable(App::ServerSession& session, const Network::Pac
         if (const auto zen = Protocol::Items::ReadShortZenPickUp(packet); zen.HasValue())
         {
             session.Log().Debug("el 22 con el zen llegó corto: se aplica el zen, sin el sonido (07 Q-C1240)");
-            Deliver<&Scenes::ApplyShortZenPickUp>(session, zen.Value());
+            Deliver<&Items::ApplyShortZenPickUp>(session, zen.Value());
             return;
         }
     }
     session.IgnoreUnreadable(what);
     if (error == Network::ProtocolError::TooShort)
-        Released<&Scenes::ApplyShortPickUpResult>(session);
+        Released<&Items::ApplyShortPickUpResult>(session);
 }
 
 void DropWhenShort::Unreadable(App::ServerSession& session, const Network::Packet& packet, Network::ProtocolError error,
@@ -104,7 +104,7 @@ void DropWhenShort::Unreadable(App::ServerSession& session, const Network::Packe
     if (error != Network::ProtocolError::TooShort)
         return;
     if (const auto unread = Protocol::Items::ReadShortDropResult(packet); unread.HasValue())
-        Deliver<&Scenes::ApplyShortDropResult>(session, unread.Value());
+        Deliver<&Items::ApplyShortDropResult>(session, unread.Value());
 }
 
 void StatFruitWhenShort::Unreadable(App::ServerSession& session, const Network::Packet&, Network::ProtocolError error,
@@ -112,14 +112,15 @@ void StatFruitWhenShort::Unreadable(App::ServerSession& session, const Network::
 {
     session.IgnoreUnreadable(what);
     if (error == Network::ProtocolError::TooShort)
-        Released<&Scenes::ApplyShortStatFruit>(session);
+        Released<&Items::ApplyShortStatFruit>(session);
 }
 
 Core::Expected<void, std::string> ReceiveShopItemList(const Protocol::PersonalShop::ShopItemList& list,
                                                       App::ServerSession& session,
                                                       const Scenes::WorldEntryResources& resources)
 {
-    return Scenes::ApplyShopItemList(list, WithTheSession(resources, session), [&session](Protocol::Outgoing outgoing)
-                                     { session.SendGamePacket(std::move(outgoing)); });
+    return PersonalShop::ApplyShopItemList(list, WithTheSession(resources, session),
+                                           [&session](Protocol::Outgoing outgoing)
+                                           { session.SendGamePacket(std::move(outgoing)); });
 }
 } // namespace Client::Session

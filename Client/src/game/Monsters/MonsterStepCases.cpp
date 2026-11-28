@@ -25,7 +25,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -92,7 +92,7 @@ Core::Expected<void, std::string> StepTheGate(Kernel::ActorState& actor, const C
 } // namespace
 
 Core::Expected<void, std::string> QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts,
-                                                   WorldTextQueue& queue)
+                                                   Hud::WorldTextQueue& queue)
 {
     constexpr std::size_t LevelText = 1176; // 0x77133fc
     if (texts == nullptr)
@@ -112,7 +112,7 @@ Core::Expected<void, std::string> QueueTheGateName(const Kernel::ActorState& act
         return Core::Unexpected(std::format("0x4fd67c: el nombre del 0xc5 con su nivel ocupa {} bytes y se pasa del "
                                             "buffer de 100",
                                             text.size() + 1));
-    QueueWorldText(queue, text, actor.position);
+    Hud::QueueWorldText(queue, text, actor.position);
     return {};
 }
 
@@ -215,4 +215,4 @@ Core::Expected<void, std::string> StepTheCastleObject(Kernel::ActorState& actor,
         return {};
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

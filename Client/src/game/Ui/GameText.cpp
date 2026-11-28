@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Client::UI
+namespace Client::Ui
 {
 namespace
 {
@@ -100,4 +100,4 @@ std::vector<std::string> SplitIntoLines(std::string_view text, std::size_t maxLi
     }
     return lines;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

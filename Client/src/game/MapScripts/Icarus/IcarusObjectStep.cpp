@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::MapScripts::Icarus
 {
 namespace
 {
@@ -108,15 +108,15 @@ Core::Expected<std::int32_t, std::string> Selector(std::int32_t count, const Ica
     const double level = static_cast<double>(Quarter(random.Next()) + LightBase) * LightStep;
     const float redGreen = F32(level * LightRedGreen);
     const glm::vec3 light{redGreen, redGreen, F32(level * LightBlue)};
-    if (auto lit =
-            World::AddDynamicLight(services.lighting, glm::vec3(lightX, hero.y, 0.0f), light, LightRadius, "0x605e0a");
+    if (auto lit = WorldObjects::AddDynamicLight(services.lighting, glm::vec3(lightX, hero.y, 0.0f), light, LightRadius,
+                                                 "0x605e0a");
         !lit.HasValue())
         return Core::Unexpected(lit.Error());
     // 0x605e49: 0x518cf0(0xbb, héroe, 0, color, 0, 0, −1, 0, 0, 0, 0), la nube.
     if (services.effects == nullptr)
         return Core::Unexpected(std::string("0x605e49: falta la tabla de efectos para el 0xbb de Icarus"));
     static_cast<void>(
-        services.effects->CreateIcarusEffect(World::IcarusCloudEffect, hero, glm::vec3(0.0f), light, random));
+        services.effects->CreateIcarusEffect(Effects::IcarusCloudEffect, hero, glm::vec3(0.0f), light, random));
     std::int32_t selector = 0;
     if (count != 0)
         selector = random.Next() % count;
@@ -167,12 +167,12 @@ Core::Expected<std::int32_t, std::string> StepIcarusObjectPrelude(std::int32_t c
     const glm::vec3 position{x, y, F32(D(hero.z) - FlareDrop)};
     if (services.effects == nullptr)
         return Core::Unexpected(std::string("0x6062d9: falta la tabla de efectos para el 0x5ac de Icarus"));
-    static_cast<void>(services.effects->CreateIcarusEffect(World::IcarusFlareEffect, position, glm::vec3(0.0f),
+    static_cast<void>(services.effects->CreateIcarusEffect(Effects::IcarusFlareEffect, position, glm::vec3(0.0f),
                                                            glm::vec3(1.0f), random));
     return selector;
 }
 
-Core::Expected<void, std::string> StepIcarusSeenObject(World::WorldObject& object, std::int32_t selector,
+Core::Expected<void, std::string> StepIcarusSeenObject(WorldObjects::WorldObject& object, std::int32_t selector,
                                                        std::int32_t& count, const IcarusObjectServices& services)
 {
     ++count;
@@ -204,4 +204,4 @@ Core::Expected<void, std::string> StepIcarusSeenObject(World::WorldObject& objec
     }
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::Icarus

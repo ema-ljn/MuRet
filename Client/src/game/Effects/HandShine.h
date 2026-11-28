@@ -15,7 +15,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::World
+namespace Client::Particles
 {
 class Particles;
 }
@@ -26,8 +26,8 @@ struct ActorState;
 } // namespace Client::Kernel
 
 // El brillo de la mano de la skill que pega a varios (CL9 hito 2, el 1A): 0x53d810 y 0x53fdb0 sobre la 5fd de
-// World::Particles (06, "La skill que pega a varios").
-namespace Client::Scenes
+// Particles::Particles (06, "La skill que pega a varios").
+namespace Client::Effects
 {
 
 // 0x53fdb0 con la 5fd: el punto (0, 0, 0) de un hueso en el mundo, 0x4ec110 con Translate en 1 sobre los huesos propios
@@ -38,8 +38,8 @@ namespace Client::Scenes
 [[nodiscard]] glm::vec3 HandShinePoint(std::span<const Kernel::ActorState> actors, std::size_t hero, std::size_t owner,
                                        std::int32_t subtype);
 
-// El resolvedor del paso de la 5fd (World::ParticleActorHands): HandShinePoint del lugar del pool entre `actors`, que
-// tienen que vivir más que él; nullopt fuera del pool.
+// El resolvedor del paso de la 5fd (Particles::ParticleActorHands): HandShinePoint del lugar del pool entre `actors`,
+// que tienen que vivir más que él; nullopt fuera del pool.
 [[nodiscard]] std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>
 ParticleActorHandsAmong(std::span<const Kernel::ActorState> actors, std::size_t hero);
 
@@ -49,5 +49,6 @@ ParticleActorHandsAmong(std::span<const Kernel::ActorState> actors, std::size_t 
 // (HandShinePoint); con el pool lleno no nace y no hay más. Sin rand().
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::ActorState> actors,
                                                                   std::size_t hero, std::size_t slot,
-                                                                  World::Particles& particles, Crt::CrtRandom& random);
-} // namespace Client::Scenes
+                                                                  Particles::Particles& particles,
+                                                                  Crt::CrtRandom& random);
+} // namespace Client::Effects

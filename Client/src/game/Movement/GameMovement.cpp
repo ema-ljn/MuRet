@@ -70,7 +70,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Movement
 {
 namespace
 {
@@ -79,9 +79,9 @@ constexpr std::uint32_t MovementLockedFlag = 0x20;
 // 0x56b785: lo que SendMove deja en 0x6c8dcc al cerrar la ventana de los eventos.
 constexpr std::int32_t EventWindowUpdateTimeMax = 6;
 // 0x56b397..0x56b4d6: las ventanas que cierra caminar, en este orden.
-constexpr std::array<UI::PanelId, 9> PanelsClosedByWalking{
-    UI::TradePanel, UI::WarehousePanel, UI::SecondGuildPanel, UI::ChaosBoxPanel, UI::QuestPanel,
-    UI::Panel2000,  UI::NpcShopPanel,   UI::CastleSiegePanel, UI::EventNpcPanel};
+constexpr std::array<Ui::PanelId, 9> PanelsClosedByWalking{
+    Ui::TradePanel, Ui::WarehousePanel, Ui::SecondGuildPanel, Ui::ChaosBoxPanel, Ui::QuestPanel,
+    Ui::Panel2000,  Ui::NpcShopPanel,   Ui::CastleSiegePanel, Ui::EventNpcPanel};
 constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
 constexpr float MinimumWalkingAlpha = 0.7f;
 constexpr float HoldSecondsPerMillisecond = 0.001f;
@@ -119,7 +119,7 @@ Core::Expected<Actors::ActorStopContext, std::string> StopContextForActor(const 
     }
 
     return Actors::ActorStopContext{.runtime = context.world.Runtime(),
-                                    .scene = SceneId::Game,
+                                    .scene = Scenes::SceneId::Game,
                                     .playerSkeleton = *playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
@@ -146,11 +146,11 @@ Core::Expected<void, std::string> CloseTheClickRecord(const HeroMovementContext&
     const bool weaponOnTheLeft = (left >= 0 && left < 0x600) || (left >= 0xa00 && left < 0xc00);
     if (context.world.Runtime().cursorItemCount <= 0 && right == -1 && weaponOnTheLeft)
     {
-        static const InventoryServices NoServices{};
-        return MoveTheLeftWeaponToTheRight(
-            InventoryMoveContext{.world = context.world,
-                                 .random = context.random,
-                                 .services = context.inventory != nullptr ? *context.inventory : NoServices});
+        static const Items::InventoryServices NoServices{};
+        return Items::MoveTheLeftWeaponToTheRight(
+            Items::InventoryMoveContext{.world = context.world,
+                                        .random = context.random,
+                                        .services = context.inventory != nullptr ? *context.inventory : NoServices});
     }
     return {};
 }
@@ -225,8 +225,8 @@ Core::Expected<void, std::string> LeaveTheEventWindow(const HeroMovementContext&
     if (auto sent = context.sendEventWindowLeave(); !sent.HasValue())
         return sent;
     // 0x56b6a9..0x56b72a.
-    if (runtime.panels.field78abb00 == SerialNumberWindow)
-        CloseTheSerialEntry(runtime);
+    if (runtime.panels.field78abb00 == Events::SerialNumberWindow)
+        Events::CloseTheSerialEntry(runtime);
     runtime.panels.field78abb00 = 0;
     // 0x56b77f: SetCursorPos mueve el cursor de Windows; queda pedido para la plataforma.
     const auto [x, y] =
@@ -242,15 +242,15 @@ Core::Expected<void, std::string> SendThePath(Kernel::ActorState& hero, Pathfind
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     panels.LendTheSession(context.world, context.random, context.sendGamePacket, context.sendWindowClose);
     // 0x56b3d2, 0x56b41e y 0x56b48a: el almacén, la caja del caos y la tienda del NPC se cierran por 0x657ab0, que
-    // vacía sus grillas y manda lo suyo (UI::PanelContext::npcWindowClosing).
+    // vacía sus grillas y manda lo suyo (Ui::PanelContext::npcWindowClosing).
     panels.LendTheNpcWindows(context.world, context.random,
-                             context.inventory != nullptr ? *context.inventory : InventoryServices{},
+                             context.inventory != nullptr ? *context.inventory : Items::InventoryServices{},
                              context.sendNpcWindow);
     // 0x56acf7: con el NPC de la caja abierto (0x8000), nada.
-    if (panels.Registry().IsOpen(UI::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
+    if (panels.Registry().IsOpen(Ui::TrainerPanel) || (hero.flags78 & MovementLockedFlag) != 0)
         return {};
     const auto maximum = Protocol::Movement::WalkUpdateTimeMax(hero.path.count);
     if (!maximum.HasValue())
@@ -266,11 +266,11 @@ Core::Expected<void, std::string> SendThePath(Kernel::ActorState& hero, Pathfind
         !sent.HasValue())
         return sent;
     // 0x56b387: con el aviso de la desconexión (0x70) el héroe no camina.
-    if (runtime.dialogs.current != UI::DisconnectDialog)
+    if (runtime.dialogs.current != Ui::DisconnectDialog)
         hero.movement = 1;
     // 0x56b397..0x56b4d6: cada una abierta se cierra; las del comercio y la tienda de NPC sacan un rand() aunque
     // estén cerradas.
-    for (const UI::PanelId id : PanelsClosedByWalking)
+    for (const Ui::PanelId id : PanelsClosedByWalking)
     {
         if (!panels.Registry().IsOpen(id))
             continue;
@@ -320,7 +320,7 @@ Core::Expected<void, std::string> UseGroundClick(Kernel::ActorState& hero, const
     const auto startX = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
     // 0x4eac0a..0x4eac41: con un altar de Crywolf en 0x6c8e54, también el clic en el suelo pone en 0 la meta.
     const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
+                          .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world));
     if (!path)
     {
         state.mouseUpdateTime = 0;
@@ -344,23 +344,23 @@ bool AutoAttacksHere(const Kernel::WorldRuntime& runtime)
 
 // Lo que necesita 0x5650c0 desde MoveHero (0x59b2d2 y 0x59d670): el esqueleto del jugador va aparte, y los modelos
 // base siguen disponibles para acciones de héroes transformados.
-HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
+Hero::HeroArrivalContext ArrivalContextOf(const HeroMovementContext& context)
 {
-    return HeroArrivalContext{.combat = {.world = context.world,
-                                         .random = context.random,
-                                         .playerSkeleton = context.playerSkeleton,
-                                         .models = context.models,
-                                         .items = context.items,
-                                         .terrain = context.terrain,
-                                         .dynamicLighting = context.dynamicLighting,
-                                         .faunaModels = context.faunaModels},
-                              .sendWalk = context.sendWalk,
-                              .sendAttack = context.sendAttack,
-                              .skills = context.skills,
-                              .tickCount = [ticks = context.input.ticksMs] { return ticks; },
-                              .inventory = context.inventory,
-                              .controlDown = context.input.controlDown,
-                              .sendSkill = context.sendSkill};
+    return Hero::HeroArrivalContext{.combat = {.world = context.world,
+                                               .random = context.random,
+                                               .playerSkeleton = context.playerSkeleton,
+                                               .models = context.models,
+                                               .items = context.items,
+                                               .terrain = context.terrain,
+                                               .dynamicLighting = context.dynamicLighting,
+                                               .faunaModels = context.faunaModels},
+                                    .sendWalk = context.sendWalk,
+                                    .sendAttack = context.sendAttack,
+                                    .skills = context.skills,
+                                    .tickCount = [ticks = context.input.ticksMs] { return ticks; },
+                                    .inventory = context.inventory,
+                                    .controlDown = context.input.controlDown,
+                                    .sendSkill = context.sendSkill};
 }
 
 // Las manos del registro propio (+0xb6c y +0xbb4, MOVSX), en un acceso.
@@ -442,7 +442,7 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
     // 0x59d653: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41): sin distancia, con un altar
     // elegido la meta en el TerrainWall queda en 0.
     const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                          .Find({startX, startY}, target, CrywolfAltarGoal(context.world));
+                          .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world));
     if (path)
     {
         hero.path = *path;
@@ -460,16 +460,16 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
         }
     }
     // 0x59d65f..0x59d678.
-    static const InventoryServices NoServices{};
-    const auto arrows = CheckTheArrows(
-        InventoryMoveContext{.world = context.world,
-                             .random = context.random,
-                             .services = context.inventory != nullptr ? *context.inventory : NoServices});
+    static const Items::InventoryServices NoServices{};
+    const auto arrows = Items::CheckTheArrows(
+        Items::InventoryMoveContext{.world = context.world,
+                                    .random = context.random,
+                                    .services = context.inventory != nullptr ? *context.inventory : NoServices});
     if (!arrows.HasValue())
         return Core::Unexpected(arrows.Error());
     if (!arrows.Value())
         return MoveHeroEnd::Leave;
-    if (auto arrived = InteractOnArrival(hero, ArrivalContextOf(context)); !arrived.HasValue())
+    if (auto arrived = Hero::InteractOnArrival(hero, ArrivalContextOf(context)); !arrived.HasValue())
         return Core::Unexpected(arrived.Error());
     return MoveHeroEnd::Continue;
 }
@@ -480,18 +480,18 @@ Core::Expected<MoveHeroEnd, std::string> AttackTheChosen(Kernel::ActorState& her
 // (hito 3) y el 4 y el 5 cortan.
 Core::Expected<void, std::string> ArriveAtTheTarget(Kernel::ActorState& hero, const HeroMovementContext& context)
 {
-    if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(NpcTalkMovement))
-        return TalkToTheNpc(hero, context);
+    if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(Npc::NpcTalkMovement))
+        return Npc::TalkToTheNpc(hero, context);
     if (static_cast<std::int8_t>(hero.movementType) == static_cast<std::int8_t>(PickUpMovement))
     {
-        static const InventoryServices NoServices{};
-        return PickUpTheFloorItem(
-            InventoryMoveContext{.world = context.world,
-                                 .random = context.random,
-                                 .services = context.inventory != nullptr ? *context.inventory : NoServices},
+        static const Items::InventoryServices NoServices{};
+        return Items::PickUpTheFloorItem(
+            Items::InventoryMoveContext{.world = context.world,
+                                        .random = context.random,
+                                        .services = context.inventory != nullptr ? *context.inventory : NoServices},
             hero.position, Terrain::TerrainOrEmpty(context.terrain), context.fixedHeight);
     }
-    return InteractOnArrival(hero, ArrivalContextOf(context));
+    return Hero::InteractOnArrival(hero, ArrivalContextOf(context));
 }
 
 // 0x59daaf..0x59dc59 (CL9 hito 2): +0x379 en 2 salvo con el bit 0x10000000 de +0x7c; el NPC en 0x6c8ebc, su celda
@@ -505,8 +505,8 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
     GameMovementState& state = runtime.movement;
     if (npc < 0 || static_cast<std::size_t>(npc) >= context.world.Actors().size())
         return Core::Unexpected(std::format("0x59dad9: el NPC elegido {} está fuera de la tabla de personajes", npc));
-    if ((hero.flags7c & NpcTalkBlockedFlag) != NpcTalkBlockedFlag)
-        hero.movementType = NpcTalkMovement;
+    if ((hero.flags7c & Npc::NpcTalkBlockedFlag) != Npc::NpcTalkBlockedFlag)
+        hero.movementType = Npc::NpcTalkMovement;
     state.attackTarget = npc;
     const Kernel::ActorState& target = context.world.Actors()[static_cast<std::size_t>(npc)];
     const auto x = Math::OriginalFtolLow(static_cast<double>(target.position.x) * CellReciprocal);
@@ -529,7 +529,7 @@ Core::Expected<void, std::string> WalkToTheNpc(Kernel::ActorState& hero, const H
     // 0x4eac0a..0x4eac41: con Crywolf activo (0x435a00 y el mapa 34) y el altar recién elegido en 0x6c8e54
     // (0x204..0x208), el A* (0x4ead70) pone en 0 el word de su celda y el camino llega hasta el altar.
     if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                              .Find({startX, startY}, goal, CrywolfAltarGoal(context.world)))
+                              .Find({startX, startY}, goal, Events::Crywolf::CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;
         return SendThePath(hero, goal, context);
@@ -545,7 +545,7 @@ Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, c
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GameMovementState& state = runtime.movement;
-    if (index < 0 || index >= FloorItemCount)
+    if (index < 0 || index >= Items::FloorItemCount)
         return Core::Unexpected(std::format("0x59dc82: el ítem del piso {} está fuera de la tabla 0x77f46c8", index));
     hero.movementType = PickUpMovement;
     runtime.floor.chosen = index;
@@ -567,16 +567,16 @@ Core::Expected<void, std::string> WalkToTheFloorItem(Kernel::ActorState& hero, c
     // 0x59ddbc: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41, Q-C1351): con un altar todavía en
     // 0x6c8e54, la celda del ítem queda en 0 en TerrainWall.
     if (const auto path = Pathfinding::PathFinder(terrain.attributes->cells)
-                              .Find({startX, startY}, target, CrywolfAltarGoal(context.world)))
+                              .Find({startX, startY}, target, Events::Crywolf::CrywolfAltarGoal(context.world)))
     {
         hero.path = *path;
         return SendThePath(hero, target, context);
     }
-    static const InventoryServices NoServices{};
-    auto picked = PickUpTheFloorItem(
-        InventoryMoveContext{.world = context.world,
-                             .random = context.random,
-                             .services = context.inventory != nullptr ? *context.inventory : NoServices},
+    static const Items::InventoryServices NoServices{};
+    auto picked = Items::PickUpTheFloorItem(
+        Items::InventoryMoveContext{.world = context.world,
+                                    .random = context.random,
+                                    .services = context.inventory != nullptr ? *context.inventory : NoServices},
         hero.position, Terrain::TerrainOrEmpty(context.terrain), context.fixedHeight);
     hero.movementType = 0;
     return picked;
@@ -623,7 +623,7 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
                 bool attacks = false;
                 if (hero.safeZone == 0)
                 {
-                    const auto attackable = IsAttackable(context.world, context.input.controlDown);
+                    const auto attackable = Hero::IsAttackable(context.world, context.input.controlDown);
                     if (!attackable.HasValue())
                         return Core::Unexpected(attackable.Error());
                     attacks = attackable.Value();
@@ -639,9 +639,9 @@ Core::Expected<MoveHeroEnd, std::string> ProcessInput(Kernel::ActorState& hero, 
                 bool toTheNpc = false;
                 if (!attacks && runtime.selectedTargets[1] != -1)
                 {
-                    GamePanels panels(context.world, context.random);
+                    Hud::GamePanels panels(context.world, context.random);
                     toTheNpc =
-                        !panels.Registry().IsOpen(UI::NpcShopPanel) && !panels.Registry().IsOpen(UI::WarehousePanel);
+                        !panels.Registry().IsOpen(Ui::NpcShopPanel) && !panels.Registry().IsOpen(Ui::WarehousePanel);
                 }
                 if (attacks)
                 {
@@ -756,9 +756,9 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
     // sigue en 0x59b036.
     if (runtime.oldWindows.letter != 0 && runtime.ui.rightClick)
     {
-        if (UI::OldWindow* box = UI::FindTheOldWindow(runtime.oldWindows, runtime.oldWindows.letter); box != nullptr)
+        if (Ui::OldWindow* box = Ui::FindTheOldWindow(runtime.oldWindows, runtime.oldWindows.letter); box != nullptr)
         {
-            if (box->kind != UI::OldWindowKind::AddFriendBox)
+            if (box->kind != Ui::OldWindowKind::AddFriendBox)
                 return Core::Unexpected(std::string("0x59b00f: +0xf0 es una ventana que no es la caja de agregar un "
                                                     "amigo: su +0xb4 no es el EDIT"));
             const std::int32_t named = runtime.selectedTargets[2];
@@ -769,11 +769,11 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
                                 "lo que hay ahí depende del heap (VM)",
                                 named));
             constexpr std::size_t SetTextLimit = 0x100;
-            UI::OldEdit& edit = box->add.edit;
+            Ui::OldEdit& edit = box->add.edit;
             const std::string name = Actors::ChatNameOf(world.Actors()[static_cast<std::size_t>(named)]);
             if (name.size() < SetTextLimit)
                 edit.text.SetText(name);
-            UI::Steps::FocusTheEdit(runtime.oldWindows, edit, OldWindowGlobalsOf(runtime));
+            Ui::Steps::FocusTheEdit(runtime.oldWindows, edit, Hud::OldWindowGlobalsOf(runtime));
             edit.text.Deselect();
         }
     }
@@ -795,20 +795,20 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
     using Maps::LastChaosCastleMap;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return {};
-    UI::ChatInputState& input = runtime.chat.input;
-    UI::ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
+    Chat::ChatInputState& input = runtime.chat.input;
+    Chat::ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     // 0x59b0a7..0x59b0ca: 0x4694c0(0, 0, 1, lugar) con 0x6c7b8c en 1, antes de las copias: el EDIT del susurro toma lo
     // que había en el lugar de ahora del historial (0x77f31cc + 0x6c8ea8 · 0x100), no el nombre nuevo (Q-C804).
-    UI::SetTheChatFields(input, std::nullopt, UI::CStringOf(slot));
+    Chat::SetTheChatFields(input, std::nullopt, Chat::CStringOf(slot));
     // 0x59b0cf..0x59b16b: strcpy del nombre (+0x1d9) al buffer del susurro (0x7798cf8), del buffer al lugar, el buffer
     // en 0 entero (0x100 bytes) y otra vez del lugar al buffer; 0x59b17a, su largo (0x7758594).
-    UI::CopyIntoTheBuffer(input.whisperBuffer, Actors::ChatNameOf(target));
-    UI::CopyIntoTheBuffer(slot, UI::CStringOf(input.whisperBuffer));
+    Chat::CopyIntoTheBuffer(input.whisperBuffer, Actors::ChatNameOf(target));
+    Chat::CopyIntoTheBuffer(slot, Chat::CStringOf(input.whisperBuffer));
     input.whisperBuffer.fill('\0');
-    UI::CopyIntoTheBuffer(input.whisperBuffer, UI::CStringOf(slot));
-    input.whisperLength = static_cast<std::int32_t>(UI::CStringOf(input.whisperBuffer).size());
+    Chat::CopyIntoTheBuffer(input.whisperBuffer, Chat::CStringOf(slot));
+    input.whisperLength = static_cast<std::int32_t>(Chat::CStringOf(input.whisperBuffer).size());
     // 0x59b180: el sonido 0x19.
-    runtime.RequestSound(UI::ChatButtonSound);
+    runtime.RequestSound(Chat::ChatButtonSound);
     return {};
 }
 
@@ -819,9 +819,9 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::ActorState& hero = context.world.Hero();
     // En el juego, StepTheDialogs ya lo hizo en este paso: acá no cambia nada.
-    LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
+    Hud::LatchTheLeftButton(runtime.movement, context.input.leftPressed, context.input.leftDown);
     // 0x59ae24: 0x4033d0, el recorrido de la cámara (Scenes/CameraTour.h).
-    if (CameraTourRunning(runtime.events.cameraTour))
+    if (Events::Crywolf::CameraTourRunning(runtime.events.cameraTour))
     {
         const auto& terrain = Terrain::TerrainOrEmpty(context.terrain);
         const auto stop =
@@ -842,7 +842,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     if (auto named = NameTheChosen(context.world); !named.HasValue())
         return named;
     // 0x59b188: el ancho del mundo, con sus consultas (2 rand() con el inventario abierto); la mitad, con signo.
-    GamePanels panels(context.world, context.random);
+    Hud::GamePanels panels(context.world, context.random);
     const std::int32_t center = panels.Registry().WorldWidth() / 2;
     const bool keepsTheHead = AutoAttacksHere(runtime) && runtime.selectedTargets[4] != -1;
     if (auto head = UpdateTheHead(hero, context.input, center, keepsTheHead); !head.HasValue())
@@ -852,7 +852,7 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
         // 0x59b357: IsOpen(0x40000) no saca rand().
         const auto facing = StepHeroFacing({.hero = hero,
                                             .movement = runtime.movement,
-                                            .secondGuildOpen = panels.Registry().IsOpen(UI::SecondGuildPanel),
+                                            .secondGuildOpen = panels.Registry().IsOpen(Ui::SecondGuildPanel),
                                             .mouseOnUi = runtime.ui.mouseOnUi,
                                             .mouseX = context.input.mouseX,
                                             .mouseY = context.input.mouseY,
@@ -882,26 +882,26 @@ Core::Expected<void, std::string> StepHeroMovement(const HeroMovementContext& co
     if (input.Value() == MoveHeroEnd::Leave)
         return {};
     // 0x59e255: 0x57cfc0, usar la skill (CL9 hito 4).
-    if (auto used =
-            UseTheHeroSkill(hero, HeroSkillContext{.world = context.world,
-                                                   .random = context.random,
-                                                   .skills = context.skills,
-                                                   .playerSkeleton = context.playerSkeleton,
-                                                   .items = context.items,
-                                                   .models = context.models,
-                                                   .tickCount = [ticks = context.input.ticksMs] { return ticks; },
-                                                   .inventory = context.inventory,
-                                                   .worldTime = context.input.worldTime,
-                                                   .controlDown = context.input.controlDown,
-                                                   .pickTerrainPoint = context.pickTerrainPoint,
-                                                   .send = context.sendSkill,
-                                                   .playerKey = context.playerKey,
-                                                   .terrain = context.terrain,
-                                                   .dynamicLighting = context.dynamicLighting,
-                                                   .faunaModels = context.faunaModels});
+    if (auto used = Skills::UseTheHeroSkill(
+            hero, Skills::HeroSkillContext{.world = context.world,
+                                           .random = context.random,
+                                           .skills = context.skills,
+                                           .playerSkeleton = context.playerSkeleton,
+                                           .items = context.items,
+                                           .models = context.models,
+                                           .tickCount = [ticks = context.input.ticksMs] { return ticks; },
+                                           .inventory = context.inventory,
+                                           .worldTime = context.input.worldTime,
+                                           .controlDown = context.input.controlDown,
+                                           .pickTerrainPoint = context.pickTerrainPoint,
+                                           .send = context.sendSkill,
+                                           .playerKey = context.playerKey,
+                                           .terrain = context.terrain,
+                                           .dynamicLighting = context.dynamicLighting,
+                                           .faunaModels = context.faunaModels});
         !used.HasValue())
         return used;
     PublishHeroLayer(hero, runtime, Terrain::TerrainOrEmpty(context.terrain));
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Movement

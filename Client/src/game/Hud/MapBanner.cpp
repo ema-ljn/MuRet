@@ -16,7 +16,7 @@
 #include <string_view>
 #include <utility>
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 namespace
 {
@@ -188,4 +188,4 @@ MapBannerQuad MapBannerQuadOf(std::int32_t worldWidth, float rx, float ry)
     const double y = static_cast<double>(ry) * BannerTop;
     return {.x = static_cast<float>(x), .y = static_cast<float>(y)};
 }
-} // namespace Client::Scenes
+} // namespace Client::Hud

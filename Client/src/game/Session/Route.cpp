@@ -16,29 +16,29 @@
 
 namespace Client::Session::Detail
 {
-Scenes::ChatReceiveContext RoutedPart<const Scenes::ChatReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
-                                                                             App::ServerSession& session)
+Chat::ChatReceiveContext RoutedPart<const Chat::ChatReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
+                                                                         App::ServerSession& session)
 {
     return ChatContextOf(world, session);
 }
 
-Scenes::GuildReceiveContext RoutedPart<const Scenes::GuildReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
-                                                                               App::ServerSession& session)
+Guild::GuildReceiveContext RoutedPart<const Guild::GuildReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
+                                                                             App::ServerSession& session)
 {
     return GuildContextOf(world, session);
 }
 
-Scenes::CastleReceiveContext
-RoutedPart<const Scenes::CastleReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
-                                                    App::ServerSession& session)
+CastleSiege::CastleReceiveContext
+RoutedPart<const CastleSiege::CastleReceiveContext&>::Of(const Scenes::WorldEntryResources& world,
+                                                         App::ServerSession& session)
 {
     return CastleContextOf(world, session);
 }
 
-Scenes::ActorCombatContext RoutedPart<const Scenes::ActorCombatContext&>::Of(const Scenes::WorldEntryResources& world,
+Combat::ActorCombatContext RoutedPart<const Combat::ActorCombatContext&>::Of(const Scenes::WorldEntryResources& world,
                                                                              App::ServerSession&)
 {
-    return Scenes::CombatContextOf(world);
+    return Combat::CombatContextOf(world);
 }
 
 Actors::ActionSender RoutedPart<const Actors::ActionSender&>::Of(const Scenes::WorldEntryResources&,
@@ -47,7 +47,7 @@ Actors::ActionSender RoutedPart<const Actors::ActionSender&>::Of(const Scenes::W
     return [&session](std::uint8_t direction, std::uint8_t action) { session.SendAction(direction, action); };
 }
 
-Scenes::GamePacketSender RoutedPart<const Scenes::GamePacketSender&>::Of(const Scenes::WorldEntryResources&,
+Social::GamePacketSender RoutedPart<const Social::GamePacketSender&>::Of(const Scenes::WorldEntryResources&,
                                                                          App::ServerSession& session)
 {
     return [&session](Protocol::Outgoing packet) { session.SendGamePacket(std::move(packet)); };

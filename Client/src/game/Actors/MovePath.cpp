@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace Client::GameLogic
+namespace Client::Actors
 {
 namespace
 {
@@ -154,4 +154,4 @@ bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects
     }
     return false;
 }
-} // namespace Client::GameLogic
+} // namespace Client::Actors

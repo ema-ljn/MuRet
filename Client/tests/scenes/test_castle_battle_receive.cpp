@@ -44,11 +44,11 @@
 namespace
 {
 namespace Battle = Client::Protocol::CastleSiege;
+using Client::CastleSiege::CastleReceiveContext;
+using Client::CastleSiege::SwitchHolderHalf;
+using Client::CastleSiege::SwitchHoldersSize;
 using Client::Crt::CrtRandom;
 using Client::Kernel::WorldState;
-using Client::Scenes::CastleReceiveContext;
-using Client::UI::SwitchHolderHalf;
-using Client::UI::SwitchHoldersSize;
 
 constexpr std::uint32_t Seed = 4242;
 constexpr std::size_t PhantomRecord = 400;
@@ -94,11 +94,11 @@ protected:
 
     void Apply(const Battle::CastleBattlePacket& packet)
     {
-        const auto applied = Client::Scenes::ApplyCastleBattlePacket(packet, Context());
+        const auto applied = Client::CastleSiege::ApplyCastleBattlePacket(packet, Context());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
     }
 
-    [[nodiscard]] Client::UI::CastleSiegeState& Castle()
+    [[nodiscard]] Client::CastleSiege::CastleSiegeState& Castle()
     {
         return m_world->Runtime().castleSiege;
     }
@@ -198,7 +198,7 @@ TEST_P(CastleBattleReceiveTest, HuntZoneInfoAndEntryWithZeroOpenTheFailureDialog
     Apply(Battle::HuntZoneInfo{.mode = 0});
     auto& dialog = m_world->Runtime().panels.delegated.panelDialog;
     EXPECT_EQ(dialog.lines[0], "denegado");
-    EXPECT_EQ(dialog.flags, Client::UI::PanelDialogOk);
+    EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogOk);
     EXPECT_EQ(Castle().huntZone.fee, 5u);
     EXPECT_EQ(Castle().huntZone.mode, 0);
     Apply(Battle::HuntZoneEntryResult{.result = 0});
@@ -293,12 +293,12 @@ TEST_P(CastleBattleReceiveTest, SwitchHolderUpdatesItsHalfWithTheLastByteInZero)
 TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte)
 {
     auto& runtime = m_world->Runtime();
-    Client::Scenes::ForgetTheSwitchHolder(runtime, 0x013d);
+    Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x013d);
     EXPECT_FALSE(runtime.castleSiege.castleSiegeInfo.has_value());
 
     Apply(Holder(0x013d, 0x10));
     Apply(Holder(0x0002, 0x60));
-    Client::Scenes::ForgetTheSwitchHolder(runtime, 0x0777);
+    Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x0777);
     const auto& holders = *runtime.castleSiege.castleSiegeInfo;
     EXPECT_EQ(holders.at(3), 0x13);
     for (const std::size_t at : {std::size_t{4}, std::size_t{5}, std::size_t{6}})
@@ -308,9 +308,9 @@ TEST_P(CastleBattleReceiveTest, ForgetTheSwitchHolderClearsTheKeyAndTheShownByte
     }
     EXPECT_EQ(holders.at(SwitchHolderHalf + 7), 0x67);
     // Con el bit de arriba, la clave entera no es 0x13d.
-    Client::Scenes::ForgetTheSwitchHolder(runtime, 0x813d);
+    Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x813d);
     EXPECT_EQ(holders.at(6), 0x16);
-    Client::Scenes::ForgetTheSwitchHolder(runtime, 0x013d);
+    Client::CastleSiege::ForgetTheSwitchHolder(runtime, 0x013d);
     for (const std::size_t at : {std::size_t{4}, std::size_t{5}, std::size_t{6}})
         EXPECT_EQ(holders.at(at), 0) << at;
     EXPECT_EQ(holders.at(7), 0x17);
@@ -338,8 +338,8 @@ TEST_P(CastleBattleReceiveTest, CrownRegistrationKeepsUnsignedDurationWrapAndThe
         Apply(Battle::CrownRegistration{.result = 0, .elapsed = elapsed});
         const auto& dialog = m_world->Runtime().panels.delegated.panelDialog;
         EXPECT_EQ(dialog.timerMs, duration);
-        EXPECT_EQ(dialog.owner, Client::UI::PanelDialogOwner::CastleCrownRegistration);
-        EXPECT_EQ(dialog.flags, Client::UI::PanelDialogTimed);
+        EXPECT_EQ(dialog.owner, Client::Ui::PanelDialogOwner::CastleCrownRegistration);
+        EXPECT_EQ(dialog.flags, Client::Ui::PanelDialogTimed);
         EXPECT_EQ(dialog.placed, 0);
     }
     Apply(Battle::CrownRegistration{.result = 255});

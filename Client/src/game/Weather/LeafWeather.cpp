@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <system_error>
 
-namespace Client::World
+namespace Client::Weather
 {
 namespace
 {
@@ -75,4 +75,4 @@ void ApplyWeather(const Protocol::Weather::Weather& received, LeafWeather& weath
     else if (mode == 1)
         weather.target = static_cast<std::int32_t>(received.code & WeatherIntensityMask) * TargetPerIntensity;
 }
-} // namespace Client::World
+} // namespace Client::Weather

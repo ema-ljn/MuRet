@@ -17,7 +17,7 @@
 // 0x5b6a3c..0x5b79bc del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): la durabilidad, el daño de las
 // flechas, las resistencias y los requisitos contra el registro propio. Los textos son los de Text.bmd (la dirección
 // − 0x76bd1dc, sobre 300).
-namespace Client::Scenes
+namespace Client::Tooltips
 {
 namespace
 {
@@ -131,7 +131,7 @@ void WriteTheDurability(Frame& frame)
         lines.Line(TooltipWhite, RingText, durability);
     else if (ReadsTheMaximum(frame, type))
     {
-        const std::uint16_t maximum = MaxDurability(frame.item, frame.record, frame.level);
+        const std::uint16_t maximum = Items::MaxDurability(frame.item, frame.record, frame.level);
         lines.Line(TooltipWhite, DurabilityText, durability, static_cast<std::int32_t>(maximum));
     }
 }
@@ -165,7 +165,7 @@ void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, s
 {
     TooltipWriter& lines = frame.lines;
     lines.PrintText(text, static_cast<std::int32_t>(required));
-    GameHudContext& context = frame.context;
+    Hud::GameHudContext& context = frame.context;
     const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const Kernel::OwnCharacterRecord& own = context.world.OwnCharacter();
     std::uint16_t have = own.*stat;
@@ -217,4 +217,4 @@ Core::Expected<void, std::string> WriteTheRequirements(ItemTooltipFrame& frame)
     WriteTheRequirementLines(frame);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Tooltips

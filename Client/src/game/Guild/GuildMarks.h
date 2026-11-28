@@ -15,7 +15,7 @@
 // slot 0x22 (Interface\guild.tga, que 0x61b33c sube con 0x63bd00 en GL_NEAREST y GL_CLAMP) y la vuelve a subir con
 // glTexImage2D; lo que la llama dibuja enseguida un quad con el slot 0x22. MuRet dibuja los lotes después de armarlos:
 // cada marca va a su slot (Render::FirstGuildMarkTextureSlot) y el quad usa ese.
-namespace Client::Scenes
+namespace Client::Guild
 {
 struct GuildState;
 
@@ -86,4 +86,4 @@ private:
     // Lo subido a cada slot.
     std::map<std::uint16_t, GuildMarkImage> m_uploaded;
 };
-} // namespace Client::Scenes
+} // namespace Client::Guild

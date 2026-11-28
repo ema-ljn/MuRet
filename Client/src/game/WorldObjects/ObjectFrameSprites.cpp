@@ -25,7 +25,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::WorldObjects
 {
 namespace
 {
@@ -147,7 +147,7 @@ Core::Expected<glm::vec3, std::string> ObjectBonePoint(const GameObjectPass& pas
     return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
 }
 
-Core::Expected<void, std::string> StepMerchantAnimalFrame(const World::WorldObject& object, int commonRandom,
+Core::Expected<void, std::string> StepMerchantAnimalFrame(const WorldObjects::WorldObject& object, int commonRandom,
                                                           const GameObjectPass& pass, bool posed)
 {
     static_cast<void>(object);
@@ -198,7 +198,7 @@ std::int16_t PosedKey(const Models::Skeleton& skeleton, const Models::AnimationS
 }
 
 // 0x6031f7..0x603242.
-Core::Expected<void, std::string> SwitchDeviasAction(World::WorldObject& object, const GameObjectPass& pass,
+Core::Expected<void, std::string> SwitchDeviasAction(WorldObjects::WorldObject& object, const GameObjectPass& pass,
                                                      const Models::Skeleton* skeleton, bool posed)
 {
     if (skeleton == nullptr || skeleton->actions.empty())
@@ -228,7 +228,7 @@ Core::Expected<void, std::string> SwitchDeviasAction(World::WorldObject& object,
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDeviasObjectFrame(World::WorldObject& object, int commonRandom,
+Core::Expected<void, std::string> StepDeviasObjectFrame(WorldObjects::WorldObject& object, int commonRandom,
                                                         const GameObjectPass& pass, const Models::Skeleton* skeleton,
                                                         bool posed)
 {
@@ -239,7 +239,7 @@ Core::Expected<void, std::string> StepDeviasObjectFrame(World::WorldObject& obje
     return {};
 }
 
-Core::Expected<void, std::string> StepLostTowerObjectFrame(const World::WorldObject& object, int commonRandom,
+Core::Expected<void, std::string> StepLostTowerObjectFrame(const WorldObjects::WorldObject& object, int commonRandom,
                                                            const GameObjectPass& pass, bool posed)
 {
     const float light = FrameLight(commonRandom);
@@ -274,7 +274,7 @@ Core::Expected<void, std::string> StepLostTowerObjectFrame(const World::WorldObj
     return StepArenaObjectFrame(object, commonRandom, pass, posed);
 }
 
-Core::Expected<void, std::string> StepArenaObjectFrame(const World::WorldObject& object, int commonRandom,
+Core::Expected<void, std::string> StepArenaObjectFrame(const WorldObjects::WorldObject& object, int commonRandom,
                                                        const GameObjectPass& pass, bool posed)
 {
     constexpr std::int16_t GlowingObject = 9;
@@ -288,4 +288,4 @@ Core::Expected<void, std::string> StepArenaObjectFrame(const World::WorldObject&
     return CreateSprite(pass, GlowTexture, point.Value(), F32(static_cast<double>(light) * GlowSize), EmberLight(light),
                         0.0f, "0x603a2f");
 }
-} // namespace Client::Scenes
+} // namespace Client::WorldObjects

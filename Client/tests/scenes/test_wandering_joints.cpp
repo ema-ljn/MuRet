@@ -29,10 +29,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Effects::ModelEffect;
 using Client::Kernel::ActorState;
 using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
-using Client::World::ModelEffect;
 
 constexpr std::uint32_t Seed = 0x60fu;
 
@@ -78,13 +78,13 @@ struct Pool
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, cloth->random,
+        return Client::Joints::CreateFaunaJoint(joints, request, cloth->random,
                                                 arrowOwned ? JointOwnerKind::ModelEffect : JointOwnerKind::Actor);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(
+        return Client::Joints::StepJoints(
             joints, cloth->random, cloth.get(), particles.get(), 0, sprites.get(), nullptr,
             [this](Client::Audio::SoundId sound) { sounds.push_back(sound.Value()); }, {}, {},
             [this](ModelEffect& hit) -> Client::Core::Expected<void, std::string>
@@ -96,15 +96,15 @@ struct Pool
 
     std::vector<JointState> joints = std::vector<JointState>(4);
     std::unique_ptr<Client::Models::ClothWorld> cloth = std::make_unique<Client::Models::ClothWorld>();
-    std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
+    std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
+    std::unique_ptr<Client::Particles::FrameSprites> sprites = std::make_unique<Client::Particles::FrameSprites>();
     ModelEffect arrow{};
     ActorState actor{};
     std::vector<std::int32_t> sounds;
     std::vector<glm::vec3> hits;
 };
 
-std::size_t LiveSprites(Client::World::FrameSprites& sprites)
+std::size_t LiveSprites(Client::Particles::FrameSprites& sprites)
 {
     return static_cast<std::size_t>(
         std::ranges::count_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }));
@@ -358,7 +358,7 @@ TEST(WanderingJointsTest, TheArrowHitNeedsItsService)
     Pool pool;
     ASSERT_TRUE(pool.Create(0xb, 1).HasValue());
 
-    const auto stepped = Client::Scenes::StepJoints(pool.joints, pool.cloth->random, pool.cloth.get(),
+    const auto stepped = Client::Joints::StepJoints(pool.joints, pool.cloth->random, pool.cloth.get(),
                                                     pool.particles.get(), 0, pool.sprites.get());
 
     ASSERT_FALSE(stepped.HasValue());

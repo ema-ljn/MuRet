@@ -26,13 +26,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Hud::GameHoverContext;
 using Client::Kernel::ActorState;
 using Client::Kernel::HudState;
 using Client::Kernel::WorldState;
 using Client::Render::BlendMode;
 using Client::Render::SpriteBatch;
 using Client::Scenes::GameDrawTailState;
-using Client::Scenes::GameHoverContext;
 using Client::Tests::RecordingTextDrawer;
 
 constexpr std::uint32_t Seed = 0x13572468u;
@@ -92,10 +92,10 @@ protected:
                                  .sprites = m_sprites,
                                  .text = m_text,
                                  .projecting = projecting};
-        return Client::Scenes::DrawTheHover(context);
+        return Client::Hud::DrawTheHover(context);
     }
 
-    [[nodiscard]] Client::Scenes::ChatBubbleTable& Bubbles()
+    [[nodiscard]] Client::Chat::ChatBubbleTable& Bubbles()
     {
         return m_world->Runtime().chat.bubbles;
     }
@@ -130,7 +130,7 @@ TEST_F(GameHoverTest, AnNpcGetsItsNameAloneInABubble)
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Bubbles()[0].owner, Guard);
     EXPECT_EQ(Bubbles()[0].name, "Guardia");
-    EXPECT_EQ(Bubbles()[0].nameTime, Client::Scenes::ChatBubbleNewNameSteps);
+    EXPECT_EQ(Bubbles()[0].nameTime, Client::Chat::ChatBubbleNewNameSteps);
     EXPECT_TRUE(Bubbles()[0].line1.empty());
     EXPECT_TRUE(m_text.texts.empty());
 }

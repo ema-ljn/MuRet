@@ -7,7 +7,7 @@
 // arreglo es un caso con sus pasos en el orden del ASM, y `address` dice dónde está cada uno. Un caso que cambia con
 // el mapa o con el rand() lleva la condición en el paso (MonsterStepWhen). Los nombres son los bytes CP949 de la
 // .data del original (la dirección va en `extra`), y los de los huesos, los del std::string que arma el creador.
-namespace Client::Scenes
+namespace Client::Monsters
 {
 namespace
 {
@@ -2281,4 +2281,4 @@ std::span<const EventMonsterKind> EventMonsterKinds() noexcept
 {
     return EventKinds;
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters

@@ -128,17 +128,17 @@ protected:
 
     void OpenFriends()
     {
-        const Client::UI::OldWindowStepView view{
+        const Client::Ui::OldWindowStepView view{
             .mouseX = 639, .mouseY = 479, .texts = &m_texts, .measure = &m_measure};
-        const auto opened = Client::UI::OpenTheFriendsWindow(
-            m_world->Runtime().oldWindows, Client::UI::FriendsWindowX, Client::UI::FriendsWindowY,
-            Client::Scenes::OldWindowGlobalsOf(m_world->Runtime()), view);
+        const auto opened = Client::Messenger::OpenTheFriendsWindow(
+            m_world->Runtime().oldWindows, Client::Messenger::FriendsWindowX, Client::Messenger::FriendsWindowY,
+            Client::Hud::OldWindowGlobalsOf(m_world->Runtime()), view);
         ASSERT_TRUE(opened.HasValue()) << opened.Error();
         ASSERT_TRUE(opened.Value());
-        Friends().base.state = Client::UI::DraggedWindow;
+        Friends().base.state = Client::Ui::DraggedWindow;
     }
 
-    Client::UI::OldWindow& Friends()
+    Client::Ui::OldWindow& Friends()
     {
         auto& manager = m_world->Runtime().oldWindows;
         return manager.windows.at(manager.friends);
@@ -147,18 +147,18 @@ protected:
     void QueueName()
     {
         Friends().tabs[0].base.queue.push_back(
-            Client::UI::OldMessage{.type = Client::UI::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
+            Client::Ui::OldMessage{.type = Client::Ui::NameMessage, .a = 0, .b = 1, .text = "Tordo"});
     }
 
     void DoubleClickTheFriendRow()
     {
-        Client::UI::AddAFriend(m_world->Runtime().oldWindows.friendModel, "Tero", 0, 0xff);
-        Client::UI::RefreshTheFriendTab(m_world->Runtime().oldWindows);
-        Client::UI::OldList& list = Friends().tabs[0].tab.list;
-        Client::UI::SelectInTheList(list, 1, 1);
+        Client::Messenger::AddAFriend(m_world->Runtime().oldWindows.friendModel, "Tero", 0, 0xff);
+        Client::Messenger::RefreshTheFriendTab(m_world->Runtime().oldWindows);
+        Client::Ui::OldList& list = Friends().tabs[0].tab.list;
+        Client::Ui::SelectInTheList(list, 1, 1);
         m_input.Apply({.kind = Client::Input::InputEvent::Kind::Motion,
                        .x = static_cast<float>(list.base.x + 1),
-                       .y = static_cast<float>(Client::UI::ListRowY(list, 1, 0) - 2)});
+                       .y = static_cast<float>(Client::Ui::ListRowY(list, 1, 0) - 2)});
         m_input.Apply({.kind = Client::Input::InputEvent::Kind::ButtonUp, .button = Client::Input::MouseButton::Left});
         m_input.Apply(
             {.kind = Client::Input::InputEvent::Kind::ButtonDoubleClick, .button = Client::Input::MouseButton::Left});
@@ -171,8 +171,8 @@ protected:
     Client::Input::InputState m_input;
     SceneClipboard m_clipboard;
     LetterMeasure m_letters;
-    const Client::UI::OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
-    const Client::UI::OldWindowMeasure m_measure{
+    const Client::Ui::OldWindowTexts m_texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
+    const Client::Ui::OldWindowMeasure m_measure{
         .measure = m_letters, .dcFont = Client::Render::Text::FontKind::Normal, .screen = {640, 480}};
     Client::Tables::SkillTable m_skills{std::vector<std::byte>(Client::Tables::SkillTableSize)};
     std::unique_ptr<Client::Kernel::WorldState> m_world;
@@ -212,7 +212,7 @@ TEST_F(GameSceneOldWindowsTest, TwoIntermediateDrawingsKeepThePendingPacketUntil
         ASSERT_TRUE(m_online.session.Poll().HasValue());
         EXPECT_TRUE(m_online.socket.sent.empty());
         ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
-        EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::NameMessage);
+        EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::NameMessage);
         EXPECT_EQ(m_world->Runtime().oldWindows.lastId, lastId);
     }
 
@@ -221,7 +221,7 @@ TEST_F(GameSceneOldWindowsTest, TwoIntermediateDrawingsKeepThePendingPacketUntil
     ASSERT_TRUE(m_online.session.Poll().HasValue());
     // 0x4a2f70 no pasa a la pestaña mientras el marco está arrastrado; este primer paso termina el arrastre.
     EXPECT_TRUE(m_online.socket.sent.empty());
-    EXPECT_EQ(Friends().base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Friends().base.state, Client::Ui::ShownWindow);
     ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
     const auto expected =
         Client::Tests::Bytes({0xc1, 0x0d, 0xc1, 0x1c, 0xcf, 0x0f, 0xf4, 0xe8, 0xcb, 0x63, 0x9d, 0x2b, 0x62});
@@ -240,10 +240,10 @@ TEST_F(GameSceneOldWindowsTest, IntermediateDeleteDrawingsKeepTheRuntimeFocusIds
     ASSERT_NO_FATAL_FAILURE(Render());
     ASSERT_NO_FATAL_FAILURE(OpenFriends());
     auto& runtime = m_world->Runtime();
-    Client::UI::AddAFriend(runtime.oldWindows.friendModel, "Tero", 0, 1);
-    Client::UI::RefreshTheFriendTab(runtime.oldWindows);
-    Client::UI::SelectInTheList(Friends().tabs[0].tab.list, 1, 1);
-    Client::UI::PostToTheWindow(runtime.oldWindows, Friends().tabs[0].base.id, Client::UI::CommandMessage, 2, 0);
+    Client::Messenger::AddAFriend(runtime.oldWindows.friendModel, "Tero", 0, 1);
+    Client::Messenger::RefreshTheFriendTab(runtime.oldWindows);
+    Client::Ui::SelectInTheList(Friends().tabs[0].tab.list, 1, 1);
+    Client::Ui::PostToTheWindow(runtime.oldWindows, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 2, 0);
     const std::int32_t lastId = runtime.oldWindows.lastId;
     const std::int32_t focusedList = runtime.ui.focusedList;
     constexpr std::uint8_t EnterKey = 0x0d;
@@ -259,10 +259,10 @@ TEST_F(GameSceneOldWindowsTest, IntermediateDeleteDrawingsKeepTheRuntimeFocusIds
         EXPECT_EQ(runtime.oldWindows.modal, 0);
         EXPECT_EQ(runtime.oldWindows.focusedEdit, 0);
         EXPECT_EQ(runtime.ui.focusedList, focusedList);
-        EXPECT_EQ(runtime.chat.input.focus, Client::UI::ChatFocus::Game);
+        EXPECT_EQ(runtime.chat.input.focus, Client::Chat::ChatFocus::Game);
         EXPECT_EQ(runtime.ui.keyLatches[EnterKey], 0);
         ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
-        EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::CommandMessage);
+        EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::CommandMessage);
     }
 }
 
@@ -272,12 +272,12 @@ TEST_F(GameSceneOldWindowsTest, OrderedInputEventsEditTheFocusedOldWindowThrough
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     auto& manager = m_world->Runtime().oldWindows;
-    Client::UI::PostToTheWindow(manager, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1, 0);
+    Client::Ui::PostToTheWindow(manager, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1, 0);
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     ASSERT_NE(manager.letter, 0);
-    Client::UI::OldEdit& edit = manager.windows.at(manager.letter).add.edit;
-    ASSERT_EQ(m_world->Runtime().chat.input.focus, Client::UI::ChatFocus::OldWindow);
+    Client::Ui::OldEdit& edit = manager.windows.at(manager.letter).add.edit;
+    ASSERT_EQ(m_world->Runtime().chat.input.focus, Client::Chat::ChatFocus::OldWindow);
 
     m_input.Apply({.kind = Client::Input::InputEvent::Kind::Text, .text = "ac"});
     m_input.Apply({.kind = Client::Input::InputEvent::Kind::KeyDown, .key = Client::Input::Key::Left});
@@ -303,7 +303,7 @@ TEST_F(GameSceneOldWindowsTest, ClipboardInputUsesTheSceneContextForTheFocusedOl
 {
     ASSERT_NO_FATAL_FAILURE(OpenFriends());
     m_scene->Step(m_input);
-    Client::UI::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1,
+    Client::Ui::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1,
                                 0);
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
@@ -327,7 +327,7 @@ TEST_F(GameSceneOldWindowsTest, FocusLostCancelsPreeditInTheFollowingSceneStep)
 {
     ASSERT_NO_FATAL_FAILURE(OpenFriends());
     m_scene->Step(m_input);
-    Client::UI::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::UI::CommandMessage, 1,
+    Client::Ui::PostToTheWindow(m_world->Runtime().oldWindows, Friends().tabs[0].base.id, Client::Ui::CommandMessage, 1,
                                 0);
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
@@ -396,7 +396,7 @@ TEST_F(GameSceneOldWindowsTest, DraggedFriendsConsumeTheDoubleClickOnTheNextStep
     m_scene->Step(m_input);
 
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
-    EXPECT_EQ(Friends().base.state, Client::UI::ShownWindow);
+    EXPECT_EQ(Friends().base.state, Client::Ui::ShownWindow);
     EXPECT_TRUE(m_world->Runtime().ui.doubleClick);
     EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
     m_input.ConsumeEdges();
@@ -404,7 +404,7 @@ TEST_F(GameSceneOldWindowsTest, DraggedFriendsConsumeTheDoubleClickOnTheNextStep
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
     EXPECT_FALSE(m_world->Runtime().ui.doubleClick);
     ASSERT_EQ(Friends().tabs[0].base.queue.size(), 1u);
-    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::UI::ChosenRowMessage);
+    EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::ChosenRowMessage);
     // RunSteps sólo llama ConsumeEdges tras el primer subpaso: entre el segundo y el tercero tampoco hay mensajes.
     m_scene->Step(m_input);
     ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
@@ -416,7 +416,7 @@ TEST_F(GameSceneOldWindowsTest, DraggedFriendsConsumeTheDoubleClickOnTheNextStep
 TEST_F(GameSceneOldWindowsTest, AConsumedDoubleClickIsNotRepublishedWithoutANewMessage)
 {
     ASSERT_NO_FATAL_FAILURE(OpenFriends());
-    Friends().base.state = Client::UI::ShownWindow;
+    Friends().base.state = Client::Ui::ShownWindow;
     DoubleClickTheFriendRow();
 
     m_scene->Step(m_input);

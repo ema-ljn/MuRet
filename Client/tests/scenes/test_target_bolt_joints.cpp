@@ -62,13 +62,13 @@ struct BoltWorld
                                                    .skill = skill,
                                                    .skillSerial = 0,
                                                    .target = -1};
-        return Client::Scenes::CreateFaunaJoint(joints, request, random,
+        return Client::Joints::CreateFaunaJoint(joints, request, random,
                                                 owned ? JointOwnerKind::Actor : JointOwnerKind::ByType);
     }
 
     Client::Core::Expected<void, std::string> Step()
     {
-        return Client::Scenes::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr, lighting.get());
+        return Client::Joints::StepJoints(joints, random, nullptr, nullptr, 0.0f, nullptr, lighting.get());
     }
 
     ActorState target;
@@ -235,7 +235,7 @@ TEST(TargetBoltJointsTest, TheBoltBrakesOnlyWithinSeventy)
         const glm::vec3 color{F32(luminosity * D(std::bit_cast<float>(0x3ecccccdu))), F32(luminosity),
                               F32(luminosity * D(std::bit_cast<float>(0x3f4ccccdu)))};
         auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::World::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
+        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(lit.get(), joint.position, color, 2, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
         const auto dark = std::make_unique<Client::Terrain::TerrainLighting>();
         EXPECT_FALSE(lit->cells == dark->cells);

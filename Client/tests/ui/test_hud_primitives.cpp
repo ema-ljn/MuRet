@@ -80,7 +80,7 @@ TEST(HudPrimitivesTest, TheNumberIsTheAgOfTheTrace)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen1024);
-    const float end = Client::UI::DrawNumber(sprites, 571.0f, 467.0f, 17749, 9.0f, 10.0f);
+    const float end = Client::Ui::DrawNumber(sprites, 571.0f, 467.0f, 17749, 9.0f, 10.0f);
 
     constexpr std::array<std::array<float, 3>, 5> Trace{{{877.600037f, 892.000061f, 0.0625f},
                                                          {887.679993f, 902.080017f, 0.4375f},
@@ -98,7 +98,7 @@ TEST(HudPrimitivesTest, TheNumberIsTheAgOfTheTrace)
         EXPECT_EQ(corners.third.v, 0.5f);
     }
     ASSERT_EQ(sprites.Commands().size(), 1u);
-    EXPECT_EQ(sprites.Commands()[0].texture, Client::UI::DigitsSlot);
+    EXPECT_EQ(sprites.Commands()[0].texture, Client::Ui::DigitsSlot);
     // La x del final: el avance es 9 · 0,7f guardado en float (6,2999997), sumado en float cifra a cifra.
     const auto advance = static_cast<float>(9.0 * static_cast<double>(0.7f));
     float at = 548.5f;
@@ -112,7 +112,7 @@ TEST(HudPrimitivesTest, TheMinusIsTheDigitMinusThree)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen640);
-    static_cast<void>(Client::UI::DrawNumber(sprites, 100.0f, 50.0f, -12, 8.0f, 9.0f));
+    static_cast<void>(Client::Ui::DrawNumber(sprites, 100.0f, 50.0f, -12, 8.0f, 9.0f));
 
     ASSERT_EQ(sprites.Vertices().size(), 18u);
     EXPECT_EQ(CornersOf(sprites, 0).first.u, -0.1875f);
@@ -127,7 +127,7 @@ TEST(HudPrimitivesTest, TheGaugeIsTheHelperOfTheTrace)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen1024);
-    Client::UI::DrawGauge(sprites, 575.0f, 16.0f, 50.0f, 2.0f, 48.0f, false, true);
+    Client::Ui::DrawGauge(sprites, 575.0f, 16.0f, 50.0f, 2.0f, 48.0f, false, true);
 
     ASSERT_EQ(sprites.Vertices().size(), 24u);
     ExpectRectangle(sprites, 0, {921.600037f, 740.799988f, 1008.000061f, 731.200012f}, TraceTolerance);
@@ -156,7 +156,7 @@ TEST(HudPrimitivesTest, TheRedGaugeHasItsColors)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen640);
-    Client::UI::DrawGauge(sprites, 10.0f, 10.0f, 50.0f, 2.0f, 25.0f, true, false);
+    Client::Ui::DrawGauge(sprites, 10.0f, 10.0f, 50.0f, 2.0f, 25.0f, true, false);
 
     ASSERT_EQ(sprites.Vertices().size(), 24u);
     EXPECT_EQ(sprites.Vertices()[6].color, (Color{0.2f, 0.0f, 0.0f, 1.0f}));
@@ -172,16 +172,16 @@ TEST(HudPrimitivesTest, TheGaugeStaysOnTheScreen)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen640);
-    Client::UI::DrawGauge(sprites, -5.0f, 430.0f, 50.0f, 2.0f, 0.0f, false, true);
+    Client::Ui::DrawGauge(sprites, -5.0f, 430.0f, 50.0f, 2.0f, 0.0f, false, true);
     // El marco (el quad 1) está en (x, y).
     ExpectRectangle(sprites, 1, {0.0f, 480.0f - 426.0f, 54.0f, 480.0f - 432.0f});
 
     sprites.Begin(Screen640);
-    Client::UI::DrawGauge(sprites, 600.0f, -3.0f, 50.0f, 2.0f, 0.0f, false, true);
+    Client::Ui::DrawGauge(sprites, 600.0f, -3.0f, 50.0f, 2.0f, 0.0f, false, true);
     ExpectRectangle(sprites, 1, {585.0f, 480.0f, 639.0f, 474.0f});
 
     sprites.Begin(Screen640);
-    Client::UI::DrawGauge(sprites, 600.0f, 430.0f, 50.0f, 2.0f, 0.0f, false, false);
+    Client::Ui::DrawGauge(sprites, 600.0f, 430.0f, 50.0f, 2.0f, 0.0f, false, false);
     ExpectRectangle(sprites, 1, {600.0f, 50.0f, 654.0f, 44.0f});
 }
 
@@ -194,7 +194,7 @@ TEST(HudPrimitivesTest, TheHelpHasItsFrameAndGivesTheBlendBack)
     Client::Tests::RecordingTextDrawer text(sprites);
     sprites.SetBlend(BlendMode::Additive);
 
-    Client::UI::DrawHelp(sprites, text, 100, 200, "abcd");
+    Client::Ui::DrawHelp(sprites, text, 100, 200, "abcd");
 
     ASSERT_EQ(sprites.Vertices().size(), 6u * 6);
     ExpectRectangle(sprites, 0, {98.0f, 283.0f, 126.0f, 282.0f});
@@ -232,7 +232,7 @@ TEST(HudPrimitivesTest, TheHelpMeasuresInPixels)
     sprites.Begin(Screen1024);
     Client::Tests::RecordingTextDrawer text(sprites);
 
-    Client::UI::DrawHelp(sprites, text, 100, 200, "abcd");
+    Client::Ui::DrawHelp(sprites, text, 100, 200, "abcd");
 
     // El fondo: (99, 198, 15 + 2, 13 / 1,6 + 2), escalado.
     const Corners background = CornersOf(sprites, 4);

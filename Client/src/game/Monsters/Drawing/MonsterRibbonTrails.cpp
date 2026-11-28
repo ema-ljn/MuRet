@@ -21,7 +21,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Monsters::Drawing
 {
 namespace
 {
@@ -72,7 +72,8 @@ Core::Expected<void, std::string> EmitSamples(Kernel::ActorState& actor, const M
     const float frameStep = F32(static_cast<double>(speed) * SampleStep);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed = PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+        if (auto posed =
+                WorldObjects::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
             !posed.HasValue())
             return posed;
         for (std::size_t legIndex = 0; legIndex < legs.size(); ++legIndex)
@@ -198,4 +199,4 @@ Core::Expected<void, std::string> EmitLateMonsterRibbonTrails(Kernel::ActorState
         return Core::Unexpected(std::string("estela del monstruo: falta el esqueleto"));
     return EmitLate(actor, *skeleton, context);
 }
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::MapScripts::LandOfTrials
 {
 namespace
 {
@@ -36,8 +36,9 @@ constexpr float ShinyScale = std::bit_cast<float>(0x3f99999au);
 constexpr float ShinyGrey = std::bit_cast<float>(0x3e99999au);
 constexpr int FullTurn = Math::FullTurn;
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::WorldObject& object, std::int32_t type,
-                                       std::int32_t subtype, std::string_view address)
+Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
+                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
+                                       std::string_view address)
 {
     if (pass.particles == nullptr)
     {
@@ -56,10 +57,10 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, const World::
 }
 
 // 0x440263..0x440346.
-Core::Expected<void, std::string> Sprites(const GameObjectPass& pass)
+Core::Expected<void, std::string> Sprites(const WorldObjects::GameObjectPass& pass)
 {
     // 0x4ec110(0x68b18ac, (0, −10, 0), salida, 0).
-    const auto point = ObjectBonePoint(pass, SpriteBone, glm::vec3(0.0f, -10.0f, 0.0f));
+    const auto point = WorldObjects::ObjectBonePoint(pass, SpriteBone, glm::vec3(0.0f, -10.0f, 0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     // 0x44028f..0x4402d7: el reloj por 0,002f (0x6b89bc), FSIN, por 0,35f (0x6b8bc4), más 0,65f (0x6b8bc0),
@@ -86,8 +87,8 @@ Core::Expected<void, std::string> Sprites(const GameObjectPass& pass)
 }
 } // namespace
 
-Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const World::WorldObject& object,
-                                                              const GameObjectPass& pass)
+Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects::WorldObject& object,
+                                                              const WorldObjects::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
     {
@@ -100,11 +101,11 @@ Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const World::World
         // en ECX.
         if (pass.random->Next() % EmitChance != 0)
             return {};
-        return Emit(pass, object, World::WaterfallSplashFirst, World::TrialsSplashSubtype, "0x440392");
+        return Emit(pass, object, Particles::WaterfallSplashFirst, Particles::TrialsSplashSubtype, "0x440392");
     case 0x35:
         if (pass.random->Next() % EmitChance != 0)
             return {};
-        return Emit(pass, object, World::BreathParticle, World::TrialsSmokeSubtype, "0x440254");
+        return Emit(pass, object, Particles::BreathParticle, Particles::TrialsSmokeSubtype, "0x440254");
     case 0x31:
         return Sprites(pass);
     default:
@@ -112,7 +113,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const World::World
     }
 }
 
-Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(const World::WorldObject& object,
+Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(const WorldObjects::WorldObject& object,
                                                                             const glm::vec3& color, float worldClock)
 {
     // 0x6b8ac4 (0,0012f) para el 0x1b y el 0x36, 0x6b8bc8 (0,0009f) para el 0x34; 0x6b882c (0,5f) y
@@ -156,4 +157,4 @@ Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(cons
         body.color[axis] = static_cast<float>(level * static_cast<double>(color[axis]));
     return std::optional(body);
 }
-} // namespace Client::Scenes
+} // namespace Client::MapScripts::LandOfTrials

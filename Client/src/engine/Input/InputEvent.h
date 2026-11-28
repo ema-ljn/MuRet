@@ -41,7 +41,7 @@ struct InputEvent
     float wheel = 0.0f;
     // In framebuffer pixels: Platform multiplies the window's by its density. Unclamped (Q-C47): the original has two
     // positions. The new UI's (0x640940) clamps it to the window size in unscaled pixels (+0x28 and +0x2c, which
-    // 0x4ba84a passes from [0x6d5d60] and [0x6d5d64]); UI::MouseInPixels does that. The WndProc's scales it to 640 x
+    // 0x4ba84a passes from [0x6d5d60] and [0x6d5d64]); Ui::MouseInPixels does that. The WndProc's scales it to 640 x
     // 480 unclamped (0x4b358f..0x4b35c8), left for CL8. With the mouse captured SDL can give negatives or values past
     // the edge.
     float x = 0.0f;

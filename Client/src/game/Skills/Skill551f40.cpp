@@ -13,7 +13,7 @@
 #include <format>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Skills
 {
 namespace
 {
@@ -39,4 +39,4 @@ Core::Expected<std::int32_t, std::string> SkillEnergyRequirement(std::uint8_t sk
     const auto level = std::to_integer<std::int32_t>((*record)[LevelOffset]);
     return level * energy * EnergyFactor / EnergyDivisor + EnergyBase;
 }
-} // namespace Client::Scenes
+} // namespace Client::Skills

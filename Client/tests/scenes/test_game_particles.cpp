@@ -48,13 +48,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particle;
-using Client::World::Particles;
-using Client::World::WorldObject;
+using Client::Particles::Particle;
+using Client::Particles::Particles;
+using Client::WorldObjects::WorldObject;
 WorldObject Fountain()
 {
     WorldObject object;
-    object.type = Client::World::Waterspout;
+    object.type = Client::WorldObjects::Waterspout;
     object.transform.angles = {11.0f, 22.0f, 33.0f};
     object.light = {0.2f, 0.4f, 0.6f};
     object.state.light = 0.25f;
@@ -65,8 +65,8 @@ Particle Smoke()
 {
     Particle p;
     p.alive = true;
-    p.type = Client::World::BreathParticle;
-    p.texture = Client::World::BreathParticle;
+    p.type = Client::Particles::BreathParticle;
+    p.texture = Client::Particles::BreathParticle;
     p.life = 16;
     p.moves = true;
     p.scale = 0.5f;
@@ -91,7 +91,8 @@ public:
     }
     std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
-        if (selector != Client::World::BreathParticle && selector != Client::World::DustParticle && selector != 0x999)
+        if (selector != Client::Particles::BreathParticle && selector != Client::Particles::DustParticle &&
+            selector != 0x999)
         {
             return std::nullopt;
         }
@@ -102,8 +103,8 @@ public:
     }
     std::optional<Client::Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override
     {
-        return selector == Client::World::BreathParticle
-                   ? std::optional(Client::Render::TextureSlot{Client::World::BreathParticle})
+        return selector == Client::Particles::BreathParticle
+                   ? std::optional(Client::Render::TextureSlot{Client::Particles::BreathParticle})
                    : std::nullopt;
     }
 };
@@ -155,7 +156,7 @@ TEST(GameParticlesTest, WaterspoutInterleavesOffsetsPoseReadsAndConstructorRando
         return glm::vec3(100.0f, 200.0f, 300.0f) + offset;
     };
     const float clock = 1234.0f;
-    const auto result = Client::Scenes::StepGameWaterspoutFrame(object, particles, random, clock, point);
+    const auto result = Client::Effects::StepGameWaterspoutFrame(object, particles, random, clock, point);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(bones, (std::vector<std::size_t>{1, 4}));
     EXPECT_EQ(offsets, (std::vector<glm::vec3>{{-9.0f, -20.0f, 6.0f}, {5.0f, -80.0f, -3.0f}}));
@@ -168,8 +169,8 @@ TEST(GameParticlesTest, WaterspoutInterleavesOffsetsPoseReadsAndConstructorRando
     {
         const Particle& p = particles.All()[i];
         EXPECT_TRUE(p.alive);
-        EXPECT_EQ(p.type, Client::World::BreathParticle);
-        EXPECT_EQ(p.texture, Client::World::BreathParticle);
+        EXPECT_EQ(p.type, Client::Particles::BreathParticle);
+        EXPECT_EQ(p.texture, Client::Particles::BreathParticle);
         EXPECT_EQ(p.subtype, 0);
         EXPECT_EQ(p.owner, 0u);
         EXPECT_EQ(p.life, 16);
@@ -190,13 +191,13 @@ TEST(GameParticlesTest, OddGuardNeedsNoPoseAndInvalidClockStopsBeforeTheGuard)
     Particles particles;
     CrtRandom random(1);
     const float clock = 1234.0f;
-    ASSERT_TRUE(Client::Scenes::StepGameWaterspoutFrame(object, particles, random, clock, {}).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameWaterspoutFrame(object, particles, random, clock, {}).HasValue());
     EXPECT_FALSE(particles.Any());
     EXPECT_EQ(random.State(), 0x29e2c0u);
     object.state.uv.y = 0.5f;
     const float infinity = std::numeric_limits<float>::infinity();
     const std::uint32_t before = random.State();
-    const auto failed = Client::Scenes::StepGameWaterspoutFrame(object, particles, random, infinity, {});
+    const auto failed = Client::Effects::StepGameWaterspoutFrame(object, particles, random, infinity, {});
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x60301e"), std::string::npos);
     EXPECT_EQ(object.state.light, 1.0f);
@@ -220,14 +221,14 @@ TEST(GameParticlesTest, FullPoolConsumesBothOffsetsButNoConstructorRandoms)
         bones.push_back(bone);
         return offset;
     };
-    ASSERT_TRUE(Client::Scenes::StepGameWaterspoutFrame(object, particles, random, clock, point).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameWaterspoutFrame(object, particles, random, clock, point).HasValue());
     EXPECT_EQ(random.State(), 0xa2974c77u);
     EXPECT_EQ(bones, (std::vector<std::size_t>{1, 4}));
     particles.All().back().alive = false;
     CrtRandom oneFree(0);
-    ASSERT_TRUE(Client::Scenes::StepGameWaterspoutFrame(object, particles, oneFree, clock, point).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameWaterspoutFrame(object, particles, oneFree, clock, point).HasValue());
     EXPECT_TRUE(particles.All().back().alive);
-    EXPECT_EQ(particles.All().back().type, Client::World::BreathParticle);
+    EXPECT_EQ(particles.All().back().type, Client::Particles::BreathParticle);
     EXPECT_EQ(oneFree.State(), 0x20ad96a9u); // Solo la primera alcanza a crearse: siete sorteos.
 }
 
@@ -243,7 +244,7 @@ TEST(GameParticlesTest, EachConstructorReadsTheLiveClockAfterItsBoneCallback)
         clock = bone == 1 ? 2000.0f : 4000.0f;
         return offset;
     };
-    ASSERT_TRUE(Client::Scenes::StepGameWaterspoutFrame(object, particles, random, clock, point).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameWaterspoutFrame(object, particles, random, clock, point).HasValue());
     EXPECT_EQ(std::bit_cast<std::uint32_t>(object.state.uv.y), 0xbe6f9db3u);
     EXPECT_EQ(particles.All()[0].rotation, 200.0f);
     EXPECT_EQ(particles.All()[1].rotation, 40.0f);
@@ -263,7 +264,7 @@ TEST(GameParticlesTest, SecondBoneFailureKeepsTheFirstParticleAndTheRandomPrefix
         }
         return offset;
     };
-    const auto failed = Client::Scenes::StepGameWaterspoutFrame(object, particles, random, clock, point);
+    const auto failed = Client::Effects::StepGameWaterspoutFrame(object, particles, random, clock, point);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x603121"), std::string::npos);
     EXPECT_EQ(random.State(), 0x20ad96a9u);
@@ -277,7 +278,7 @@ TEST(GameParticlesTest, StepConsumesWindEvenWhenEmptyAndMovesTheLastDeadTick)
     CrtRandom random;
     CrtRandom expected;
     constexpr std::int32_t Map = 0;
-    ASSERT_TRUE(Client::Scenes::StepGameParticles(particles, random, Map).HasValue());
+    ASSERT_TRUE(Client::Effects::StepGameParticles(particles, random, Map).HasValue());
     static_cast<void>(expected.Next());
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
@@ -286,7 +287,7 @@ TEST(GameParticlesTest, StepConsumesWindEvenWhenEmptyAndMovesTheLastDeadTick)
     for (int tick = 0; tick < 16; ++tick)
     {
         const float previousZ = particles.All()[0].position.z;
-        ASSERT_TRUE(Client::Scenes::StepGameParticles(particles, random, Map).HasValue());
+        ASSERT_TRUE(Client::Effects::StepGameParticles(particles, random, Map).HasValue());
         EXPECT_GT(particles.All()[0].position.z, previousZ);
         EXPECT_EQ(particles.All()[0].alive, tick < 15);
         static_cast<void>(expected.Next());
@@ -306,7 +307,7 @@ TEST(GameParticlesTest, UnsupportedStepKeepsWindAndTheAlreadyAdvancedSlots)
     particles.All()[2] = Smoke();
     CrtRandom random;
     const std::int32_t map = 2;
-    const auto failed = Client::Scenes::StepGameParticles(particles, random, map);
+    const auto failed = Client::Effects::StepGameParticles(particles, random, map);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x637128"), std::string::npos);
     EXPECT_EQ(particles.All()[0].life, 15);
@@ -322,19 +323,19 @@ TEST(GameParticlesTest, UnsupportedStepKeepsWindAndTheAlreadyAdvancedSlots)
 TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
 {
     const SmokeTextures textures;
-    const auto heights = Client::Scenes::ParticleTextureHeightsOf(textures);
-    EXPECT_EQ(heights(Client::World::DustParticle), std::optional<float>(16.0f));
+    const auto heights = Client::Effects::ParticleTextureHeightsOf(textures);
+    EXPECT_EQ(heights(Client::Particles::DustParticle), std::optional<float>(16.0f));
     EXPECT_EQ(heights(0x5f4), std::nullopt);
 
     Particles particles;
     Particle& dust = particles.All()[0];
     dust = Smoke();
-    dust.type = dust.texture = Client::World::DustParticle;
+    dust.type = dust.texture = Client::Particles::DustParticle;
     dust.moves = false;
     CrtRandom random;
     const std::int32_t map = 0;
     const float clock = 0.0f;
-    const auto stepped = Client::Scenes::StepGameParticles(
+    const auto stepped = Client::Effects::StepGameParticles(
         particles, random, map, [](float, float) { return 100.0; }, clock, {}, {}, heights);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(dust.life, 15);
@@ -344,7 +345,7 @@ TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
     EXPECT_EQ(dust.position.y, 20.0f);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(dust.position.z), 0x42d147aeu);
 
-    const auto blind = Client::Scenes::StepGameParticles(particles, random, map, [](float, float) { return 100.0; });
+    const auto blind = Client::Effects::StepGameParticles(particles, random, map, [](float, float) { return 100.0; });
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }
@@ -358,16 +359,16 @@ TEST(GameParticlesTest, TheFallingShineLeavesItsFlareInTheFrameSprites)
     ASSERT_TRUE(particles.CreateChecked(0x5fc, {10, 20, 30}, {}, glm::vec3(1.0f), 2, 0.6f, 0.0f, random).HasValue());
     const std::int32_t map = 0;
     const float clock = 0.0f;
-    auto sprites = std::make_unique<Client::World::FrameSprites>();
-    const auto stepped = Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {},
-                                                           {}, {}, {}, sprites.get());
+    auto sprites = std::make_unique<Client::Particles::FrameSprites>();
+    const auto stepped = Client::Effects::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {},
+                                                            {}, {}, {}, sprites.get());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(sprites->Sprites()[0].alive);
     EXPECT_EQ(sprites->Sprites()[0].texture, 0x5ac);
     EXPECT_EQ(sprites->Sprites()[0].position, particles.All()[0].position);
 
     const auto blind =
-        Client::Scenes::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {}, {}, {}, {});
+        Client::Effects::StepGameParticles(particles, random, map, {}, clock, {}, {}, {}, nullptr, {}, {}, {}, {});
     ASSERT_FALSE(blind.HasValue());
     EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }
@@ -382,7 +383,7 @@ TEST(GameParticlesTest, DrawUsesModeZeroAndEyeCoordinatesWithoutKillingParticles
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto view = Client::Math::OriginalAngleMatrix(glm::vec3(0.0f));
-    const auto drawn = Client::Scenes::DrawGameParticles(batch, particles, textures, view, 0.0f);
+    const auto drawn = Client::Effects::DrawGameParticles(batch, particles, textures, view, 0.0f);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_EQ(batch.Vertices().size(), 12u);
     EXPECT_EQ(batch.Vertices()[0].position, glm::vec3(2.0f, 16.0f, 1000.0f));
@@ -404,7 +405,7 @@ TEST(GameParticlesTest, DrawFailureKeepsTheGeometryAndReportsAddressAndSlot)
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto view = Client::Math::OriginalAngleMatrix(glm::vec3(0.0f));
-    const auto failed = Client::Scenes::DrawGameParticles(batch, particles, textures, view, 0.0f);
+    const auto failed = Client::Effects::DrawGameParticles(batch, particles, textures, view, 0.0f);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x637558"), std::string::npos);
     EXPECT_NE(failed.Error().find("lugar 1"), std::string::npos);
@@ -423,9 +424,10 @@ TEST(GameParticlesTest, TheGameObjectPassEmitsFromThePosedBoneMatrixAfterItsComm
     CrtRandom random(2);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::Scenes::DrawGameWorldObjects(
+    const auto drawn = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::Scenes::GameObjectPass{.map = 0, .random = &random, .worldClock = 1234.0f, .particles = &particles});
+        Client::WorldObjects::GameObjectPass{
+            .map = 0, .random = &random, .worldClock = 1234.0f, .particles = &particles});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_TRUE(particles.All()[0].alive);
     ASSERT_TRUE(particles.All()[1].alive);
@@ -454,9 +456,9 @@ TEST(GameParticlesTest, AnUnwrittenBoneStopsWithoutInventingItsRetainedPose)
     CrtRandom random(2);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto failed = Client::Scenes::DrawGameWorldObjects(
+    const auto failed = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::Scenes::GameObjectPass{.map = 0, .random = &random, .particles = &particles});
+        Client::WorldObjects::GameObjectPass{.map = 0, .random = &random, .particles = &particles});
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x603121"), std::string::npos);
     EXPECT_TRUE(particles.All()[0].alive);
@@ -477,9 +479,9 @@ TEST(GameParticlesTest, AnIntermediateObjectDrawDoesNotEmitOrConsumeRandom)
     CrtRandom random(2);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawGameWorldObjects(
+    ASSERT_TRUE(Client::WorldObjects::DrawGameWorldObjects(
                     batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-                    Client::Scenes::GameObjectPass{
+                    Client::WorldObjects::GameObjectPass{
                         .map = 0, .originalFrame = false, .random = &random, .particles = &particles})
                     .HasValue());
     EXPECT_FALSE(particles.Any());
@@ -508,14 +510,15 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
         CrtRandom random(2);
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        const auto result = Client::Scenes::DrawGameWorldObjects(
+        const auto result = Client::WorldObjects::DrawGameWorldObjects(
             batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-            Client::Scenes::GameObjectPass{.map = 0,
-                                           .random = &random,
-                                           .particles = &particles,
-                                           .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
-                                           { return Client::Actors::Drawing::PublishPose(carry, models, drawn, true); },
-                                           .retainedPose = &carry});
+            Client::WorldObjects::GameObjectPass{
+                .map = 0,
+                .random = &random,
+                .particles = &particles,
+                .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
+                { return Client::Actors::Drawing::PublishPose(carry, models, drawn, true); },
+                .retainedPose = &carry});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         CrtRandom expected(2);
         static_cast<void>(expected.Next()); // Común del objeto, antes del guard de la fuente.
@@ -559,9 +562,9 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
         CrtRandom random(2);
         Client::Render::ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        const auto result = Client::Scenes::DrawGameWorldObjects(
+        const auto result = Client::WorldObjects::DrawGameWorldObjects(
             batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-            Client::Scenes::GameObjectPass{
+            Client::WorldObjects::GameObjectPass{
                 .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
         if (missingSecondBone)
         {
@@ -588,9 +591,10 @@ TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInste
     CrtRandom random(2);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto result = Client::Scenes::DrawGameWorldObjects(
+    const auto result = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::Scenes::GameObjectPass{.map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
+        Client::WorldObjects::GameObjectPass{
+            .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x6030a5"), std::string::npos);
     EXPECT_FALSE(particles.Any());
@@ -625,7 +629,7 @@ TEST(GameParticlesTest, LaterAmbientSlotReadsTheCallerClockChangedByTerrainHeigh
     };
     CrtRandom random(7);
     const std::int32_t map = 24;
-    const auto stepped = Client::Scenes::StepGameParticles(particles, random, map, height, clock);
+    const auto stepped = Client::Effects::StepGameParticles(particles, random, map, height, clock);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(heightCalls, 1);
     EXPECT_EQ(clock, 1.0f);
@@ -651,8 +655,8 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
     actor.bodyPose[34][3] = glm::vec3(1, 2, 3);
     Client::Actors::NameABone(world->Runtime(), 7, "Monster82_LHand", 34);
     Client::Actors::NameABone(world->Runtime(), 8, "Monster82_RHand", 34);
-    const auto states = Client::Scenes::ParticleOwnerStatesOf(*world);
-    const auto state = states({Client::World::ParticleOwnerKind::Actor, 7});
+    const auto states = Client::Effects::ParticleOwnerStatesOf(*world);
+    const auto state = states({Client::Particles::ParticleOwnerKind::Actor, 7});
     ASSERT_TRUE(state.has_value());
     EXPECT_TRUE(state->alive);
     EXPECT_EQ(state->position, actor.position);
@@ -672,13 +676,13 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
 TEST(GameParticlesTest, TheOwnerStateOfAModelEffectReadsItsAction)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
-    Client::World::ModelEffect& effect = world->Map().effects.Effects()[4];
+    Client::Effects::ModelEffect& effect = world->Map().effects.Effects()[4];
     effect.alive = true;
     effect.transform.position = {300, 400, 50};
     effect.start = {1, 2, 3};
     effect.animation.action = 0x21;
-    const auto states = Client::Scenes::ParticleOwnerStatesOf(*world);
-    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::ModelEffect, 4};
+    const auto states = Client::Effects::ParticleOwnerStatesOf(*world);
+    const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::ModelEffect, 4};
     const auto state = states(owner);
     ASSERT_TRUE(state.has_value());
     EXPECT_TRUE(state->alive);
@@ -691,5 +695,5 @@ TEST(GameParticlesTest, TheOwnerStateOfAModelEffectReadsItsAction)
     EXPECT_FALSE(dead->alive);
     EXPECT_EQ(dead->action, 0x21);
     const auto size = world->Map().effects.Effects().size();
-    EXPECT_FALSE(states({Client::World::ParticleOwnerKind::ModelEffect, size}).has_value());
+    EXPECT_FALSE(states({Client::Particles::ParticleOwnerKind::ModelEffect, size}).has_value());
 }

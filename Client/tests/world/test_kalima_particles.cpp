@@ -16,7 +16,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::Particles;
+using Client::Particles::Particles;
 struct Creation
 {
     std::int32_t type;
@@ -64,8 +64,8 @@ TEST(KalimaParticlesTest, AmbientSevenLoadsLiveClockAndStillRunsItsCaseOnTheDyin
     p.light = {0.3f, 0.8f, 1};
     float clock = 0;
     CrtRandom random(7);
-    Client::World::PortableParticleTrigonometry trig;
-    const auto result = Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
+    Client::Particles::PortableParticleTrigonometry trig;
+    const auto result = Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig);
     ASSERT_TRUE(result.HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.life, 0);
@@ -96,7 +96,7 @@ TEST(KalimaParticlesTest, MistUsesSceneAndSixDrawsThenMovesWithPreviousVelocity)
 {
     Particles particles;
     CrtRandom random(7);
-    const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 0x100000042ull};
+    const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::Actor, 0x100000042ull};
     const auto made = particles.CreateKalimaChecked(0x6f1, {100, 200, 300}, {}, {}, 0, 99, 0, random, 5, owner);
     ASSERT_TRUE(made.HasValue());
     auto& p = particles.All()[0];
@@ -108,7 +108,7 @@ TEST(KalimaParticlesTest, MistUsesSceneAndSixDrawsThenMovesWithPreviousVelocity)
     EXPECT_EQ(p.light, glm::vec3(0.4f));
     EXPECT_EQ(p.typedOwner, owner);
     EXPECT_EQ(random.State(), 0x9974714du);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_EQ(p.position, glm::vec3(90, 191, 311));
     EXPECT_EQ(p.velocity, glm::vec3(-0.3f, -0.6f, -4.9f));
     EXPECT_FLOAT_EQ(p.scale, 1.03f);
@@ -146,12 +146,12 @@ TEST(KalimaParticlesTest, AllNineReachableLifecyclesExpireWithTheNativeRandomBud
     ASSERT_TRUE(particles.CreateKalimaChecked(0x6f1, {}, {}, {}, 0, 1, 0, random, 5).HasValue());
     ASSERT_TRUE(particles.CreateKalimaChecked(0x6f4, {}, {}, {0.3f, 0.3f, 0.3f}, 1, 1, 0, random, 5).HasValue());
     float clock = 0;
-    Client::World::PortableParticleTrigonometry trigonometry;
+    Client::Particles::PortableParticleTrigonometry trigonometry;
     for (int tick = 0; tick < 50; ++tick)
     {
         clock = static_cast<float>(tick);
-        ASSERT_TRUE(
-            Client::World::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trigonometry)
+                        .HasValue());
     }
     EXPECT_FALSE(particles.Any());
     // 31 sorteos de creación; 22 de5ac/6,60 de6f1,40 de6f4/1;100 de viento.
@@ -168,7 +168,7 @@ TEST(KalimaParticlesTest, FlareSixUsesTheNativeDriftBitsAfterWindAndAsymmetricSp
     p.life = 20;
     p.scale = 1.0f;
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepParticlesChecked(particles, random).HasValue());
+    ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
     EXPECT_EQ(std::bit_cast<std::uint32_t>(p.position.x), 0x3d2a64c4u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(p.position.y), 0x3bf27bb4u);
     EXPECT_EQ(p.position.z, 2.5f);
@@ -191,13 +191,13 @@ TEST(KalimaParticlesTest, AbsentMistSceneRetainsTheInitializeAndThreeDrawPrefix)
     p.field38 = 0x1234u;
     p.rotationFactor = 111;
     p.field64 = {123, 456};
-    p.typedOwner = {Client::World::ParticleOwnerKind::WorldObject, 0x100000042ull};
+    p.typedOwner = {Client::Particles::ParticleOwnerKind::WorldObject, 0x100000042ull};
     particles.All()[1].life = 211;
     const glm::vec3 position{100, 200, 300}, angles{10, 20, 30}, light{0.3f, 0.8f, 1};
     CrtRandom random(7);
     const auto made = particles.CreateChecked(0x6f1, position, angles, light, 0, 7.0f, 99.0f, random, 0x12345678u);
     ASSERT_FALSE(made.HasValue());
-    EXPECT_EQ(made.Error(), Client::World::ParticleError::MissingScene);
+    EXPECT_EQ(made.Error(), Client::Particles::ParticleError::MissingScene);
     EXPECT_TRUE(p.alive);
     EXPECT_TRUE(p.moves);
     EXPECT_EQ(p.type, 0x6f1);
@@ -212,7 +212,7 @@ TEST(KalimaParticlesTest, AbsentMistSceneRetainsTheInitializeAndThreeDrawPrefix)
     EXPECT_EQ(p.angles, angles);
     EXPECT_EQ(p.light, light);
     EXPECT_EQ(p.owner, 0x12345678u);
-    EXPECT_EQ(p.typedOwner.kind, Client::World::ParticleOwnerKind::None);
+    EXPECT_EQ(p.typedOwner.kind, Client::Particles::ParticleOwnerKind::None);
     EXPECT_EQ(p.verticalSpeed, 0);
     EXPECT_EQ(p.field48, 0);
     EXPECT_EQ(p.field38, 0x1234u);
@@ -265,7 +265,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareIsCreatedLikeTheSixthAndItsTrailWithoutD
 // escala en 0,1f o menos se apaga.
 TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
 {
-    Client::World::Particle p;
+    Client::Particles::Particle p;
     p.alive = true;
     p.type = p.texture = 0x5ac;
     p.subtype = 0;
@@ -275,7 +275,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
     CrtRandom random(7);
     CrtRandom draws(7);
     const glm::vec2 wind{0.25f, -0.5f};
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
     const double walk = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
     auto x = static_cast<float>((draws.Next() % 2001 - 1000) * walk);
     double y = (draws.Next() % 2001 - 1000) * walk;
@@ -293,11 +293,11 @@ TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
     EXPECT_EQ(random.State(), draws.State());
 
     p.scale = 0.15f;
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
     EXPECT_EQ(p.scale, static_cast<float>(static_cast<double>(0.15f) - static_cast<double>(0.05f)));
     EXPECT_GT(p.scale, 0.1f);
     EXPECT_TRUE(p.alive);
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.life, -1);
 }
@@ -305,7 +305,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
 // 0x5449e1..0x544a11: la estela 5ac/1 multiplica la luz por 0,9f y la escala por 0,95f, sin rand().
 TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
 {
-    Client::World::Particle p;
+    Client::Particles::Particle p;
     p.alive = true;
     p.type = p.texture = 0x5ac;
     p.subtype = 1;
@@ -313,7 +313,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
     p.scale = 3.0f;
     p.light = {0.3f, 0.6f, 0.9f};
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     const double fade = static_cast<double>(std::bit_cast<float>(0x3f666666u));
     EXPECT_EQ(p.light, glm::vec3(static_cast<float>(static_cast<double>(0.3f) * fade),
                                  static_cast<float>(static_cast<double>(0.6f) * fade),
@@ -342,7 +342,7 @@ TEST(KalimaParticlesTest, TheAidaWispTrailLivesFortyTimesItsScaleWithoutDraws)
 // apagarlo: lo apaga la resta del paso siguiente. Sin rand().
 TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
 {
-    Client::World::Particle p;
+    Client::Particles::Particle p;
     p.alive = true;
     p.type = p.texture = 0x5ac;
     p.subtype = 9;
@@ -350,7 +350,7 @@ TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
     p.scale = 0.5f;
     p.light = {0.1f, 0.1f, 0.25f};
     CrtRandom random(7);
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     const double shrink = static_cast<double>(std::bit_cast<float>(0x3c343958u));
     const double grow = static_cast<double>(std::bit_cast<float>(0x3f866666u));
     const double dim = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
@@ -363,13 +363,13 @@ TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
 
     p.life = 74;
     const glm::vec3 before = p.light;
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     EXPECT_EQ(p.light.x, static_cast<float>(static_cast<double>(before.x) * dim));
     EXPECT_EQ(p.life, 74);
 
     // 0x544ba2: compara la resta de la x87 sin redondear; 0,011f menos 0,011f es 0 y no queda encima.
     p.scale = std::bit_cast<float>(0x3c343958u);
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     EXPECT_EQ(p.scale, 0.0f);
     EXPECT_EQ(p.life, 0);
     EXPECT_TRUE(p.alive);
@@ -377,7 +377,7 @@ TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
     p.alive = false;
     p.life = 90;
     p.scale = 0.5f;
-    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     EXPECT_EQ(p.life, 0);
 }
 
@@ -392,7 +392,7 @@ TEST(KalimaParticlesTest, TheAidaWispTrailDiesWhenTheCommonLifeRunsOut)
     int steps = 0;
     while (trail.All()[0].alive && steps < 100)
     {
-        ASSERT_TRUE(Client::World::StepParticlesChecked(trail, random).HasValue());
+        ASSERT_TRUE(Client::Particles::StepParticlesChecked(trail, random).HasValue());
         ++steps;
     }
     EXPECT_FALSE(trail.All()[0].alive);

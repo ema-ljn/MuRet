@@ -21,7 +21,7 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
-namespace Client::UI
+namespace Client::CastleSiege
 {
 struct CastleData;
 }
@@ -31,12 +31,12 @@ class WorldState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameUiContext;
-} // namespace Client::Scenes
+} // namespace Client::Hud
 
-namespace Client::Scenes::CastleUi
+namespace Client::CastleSiege::CastleUi
 {
 inline constexpr std::uint8_t Master = 0x80;
 inline constexpr std::int32_t Disabled = 6;
@@ -51,19 +51,19 @@ inline constexpr std::uint32_t TextBase = 0x76bd1dc;
 }
 
 [[nodiscard]] Core::Expected<std::string, std::string> Text(const Tables::TextTable* texts, std::uint32_t address);
-[[nodiscard]] Core::Expected<void, std::string> Send(const GameUiContext& context, Protocol::Outgoing packet);
-[[nodiscard]] Core::Expected<std::uint32_t, std::string> Popup(const GameUiContext& context,
+[[nodiscard]] Core::Expected<void, std::string> Send(const Hud::GameUiContext& context, Protocol::Outgoing packet);
+[[nodiscard]] Core::Expected<std::uint32_t, std::string> Popup(const Hud::GameUiContext& context,
                                                                std::span<const std::string> lines,
-                                                               UI::PanelDialogOwner owner, std::uint32_t flags,
+                                                               Ui::PanelDialogOwner owner, std::uint32_t flags,
                                                                std::int32_t placed = 0);
-[[nodiscard]] Core::Expected<std::uint32_t, std::string> PopupAt(const GameUiContext& context,
+[[nodiscard]] Core::Expected<std::uint32_t, std::string> PopupAt(const Hud::GameUiContext& context,
                                                                  std::initializer_list<std::uint32_t> addresses,
-                                                                 UI::PanelDialogOwner owner, std::uint32_t flags,
+                                                                 Ui::PanelDialogOwner owner, std::uint32_t flags,
                                                                  std::int32_t placed = 0);
 [[nodiscard]] Core::Expected<void, std::string> CancelPopup(Kernel::WorldState& world, const CastleSender& send);
 [[nodiscard]] Core::Expected<void, std::string> FailurePopup(const CastleReceiveContext& context,
                                                              std::uint32_t address);
-[[nodiscard]] CastleSender SenderOf(const GameUiContext& context);
+[[nodiscard]] CastleSender SenderOf(const Hud::GameUiContext& context);
 void ConsumeClick(Kernel::WorldRuntime& runtime);
 [[nodiscard]] std::uint32_t CountMarks(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
 [[nodiscard]] std::int32_t FirstMark(Kernel::WorldState& world, Crt::CrtRandom& random, std::uint8_t& depth);
@@ -71,7 +71,7 @@ void ConsumeClick(Kernel::WorldRuntime& runtime);
 [[nodiscard]] Core::Expected<std::pair<std::string_view, std::string_view>, std::string>
 GuildNames(const Kernel::WorldState& world);
 [[nodiscard]] Core::Expected<bool, std::string> HeroCanEditTaxes(const Kernel::WorldState& world);
-[[nodiscard]] std::int32_t DefenseLevel(const UI::CastleData& data, std::uint32_t at);
-[[nodiscard]] std::int32_t RecoveryLevel(const UI::CastleData& data, std::uint32_t at);
-[[nodiscard]] std::int32_t NpcCost(const UI::CastleData& data, std::uint32_t at);
-} // namespace Client::Scenes::CastleUi
+[[nodiscard]] std::int32_t DefenseLevel(const CastleSiege::CastleData& data, std::uint32_t at);
+[[nodiscard]] std::int32_t RecoveryLevel(const CastleSiege::CastleData& data, std::uint32_t at);
+[[nodiscard]] std::int32_t NpcCost(const CastleSiege::CastleData& data, std::uint32_t at);
+} // namespace Client::CastleSiege::CastleUi

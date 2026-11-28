@@ -20,7 +20,7 @@
 // El 0x61c/2..6 (alta 0x534444..0x53463b, paso 0x53b6a0..0x53b7ec): suben acelerando con la velocidad (+0x9d8) que
 // crece en vz, que a su vez crece en vx (de a 0,5 con menos de 15 de vida). La /4 (la skill 0x49, 0x504b33) suelta en
 // cada paso un 0x62b/6 y los sprites 0x5ac y 0x5fd; la /2 suelta el efecto 0xf6/6 cada cinco vidas.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -33,7 +33,7 @@ bool IsInferno(std::int32_t type, std::int32_t subtype)
     return type == InfernoJoint && subtype >= 2 && subtype <= 6; // 0x534432..0x53443e y 0x53b6a0..0x53b6ac
 }
 
-void CreateInfernoJoint(JointState& joint, const Kernel::JointRequest& request)
+void CreateInfernoJoint(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x534444..0x53448c: lo común de la /2..6.
     constexpr float Speed = 8;                                  // 0x41000000
@@ -95,7 +95,8 @@ void CreateInfernoJoint(JointState& joint, const Kernel::JointRequest& request)
     joint.pathIncrement = joint.position;
 }
 
-Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepInfernoJoint(Scenes::JointState& joint,
+                                                   const JointKernels::StepServices& services)
 {
     // 0x53b6b2..0x53b6ec: la velocidad suma vz; vz suma 0,5 con menos de 15 de vida y si no vx.
     const std::int32_t life = joint.life;
@@ -124,16 +125,16 @@ Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const Join
         if (services.effects == nullptr || services.random == nullptr)
             return Core::Unexpected(
                 std::string("0x53b760: el joint 0x61c/2 pide la tabla de efectos (0x518cf0) y el RNG para el 0xf6/6"));
-        const auto made = World::CreateBlastModelEffect(*services.effects,
-                                                        {.type = InfernoBurst,
-                                                         .position = joint.pathIncrement,
-                                                         .angles = joint.bendAngles,
-                                                         .light = joint.light,
-                                                         .subtype = BurstSubtype,
-                                                         .owner = nullptr,
-                                                         .key = BurstKey},
-                                                        World::ModelEffectOwner{}, *services.random,
-                                                        World::BlastEffectServices{.hero = services.hero});
+        const auto made = Effects::CreateBlastModelEffect(*services.effects,
+                                                          {.type = InfernoBurst,
+                                                           .position = joint.pathIncrement,
+                                                           .angles = joint.bendAngles,
+                                                           .light = joint.light,
+                                                           .subtype = BurstSubtype,
+                                                           .owner = nullptr,
+                                                           .key = BurstKey},
+                                                          Effects::ModelEffectOwner{}, *services.random,
+                                                          Effects::BlastEffectServices{.hero = services.hero});
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x53b760: {}", made.Error()));
         return {};
@@ -170,4 +171,4 @@ Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const Join
         services.sprites->Create(Flare, joint.position, FlareScale, glow, F32(D(services.worldClock) * Tenth), 0));
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

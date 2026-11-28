@@ -18,11 +18,15 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
-// (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
-namespace Client::Scenes
+namespace Client::Items
 {
 struct InventoryServices;
+} // namespace Client::Items
+
+// CL9 hito 3: pegar. Si el personaje elegido se puede atacar (0x558bb0), el freno de 300 ms entre acciones
+// (0x576791c) y lo que hace el héroe al llegar al final del camino (0x5650c0), con el ataque del caso 3.
+namespace Client::Hero
+{
 
 // 0x558bb0: si el personaje elegido (0x6c8e30, selectedTargets[2]) se puede atacar. Falso con un ítem en el cursor
 // ([0x7879fbc] > 0, con signo) o sin elegido; verdadero en Chaos Castle (18 a 23) con otro que el héroe. Un monstruo
@@ -61,7 +65,7 @@ ChosenKeyOf(const Kernel::WorldState& world, std::size_t attacker, std::int32_t 
 // paso) y del D7 de pegar. Son best-effort como el socket original: que el transporte esté cerrado no corta la llegada.
 struct HeroArrivalContext
 {
-    ActorCombatContext combat;
+    Combat::ActorCombatContext combat;
     std::function<void(std::span<const Protocol::Movement::Cell>, Protocol::Movement::Cell, float)> sendWalk{};
     std::function<void(std::uint16_t key, std::uint8_t action, std::uint8_t direction)> sendAttack{};
     // CL9 hito 4, fase 2c: lo que piden las skills del caso 5 (0x56601f), como en HeroSkillContext: Skill.bmd
@@ -69,7 +73,7 @@ struct HeroArrivalContext
     // de 0x561c50, Ctrl (0x558eb0) y lo que mandan por send() (los C3 con sus dos rand() ya sacados; vacío, no sale).
     const Tables::SkillTable* skills = nullptr;
     std::function<std::uint32_t()> tickCount{};
-    const InventoryServices* inventory = nullptr;
+    const Items::InventoryServices* inventory = nullptr;
     bool controlDown = false;
     std::function<void(Protocol::Outgoing)> sendSkill{};
 };
@@ -89,4 +93,4 @@ struct HeroArrivalContext
 // dirección.
 [[nodiscard]] Core::Expected<void, std::string> InteractOnArrival(Kernel::ActorState& hero,
                                                                   const HeroArrivalContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Hero

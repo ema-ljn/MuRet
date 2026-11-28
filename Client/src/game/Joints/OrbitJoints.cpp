@@ -23,7 +23,7 @@
 // cola común, que se corren con lo que se mueve su personaje dueño. La /0xe y la /0xf dan vueltas alrededor de su
 // destino con un radio (la velocidad) que crece, en sentidos opuestos; las pide el paso del efecto 0x60f (0x52b408 y
 // 0x52b42b, con él de dueño), que MuRet no crea.
-namespace Client::Scenes::JointFamilies
+namespace Client::Joints::JointFamilies
 {
 namespace
 {
@@ -32,7 +32,7 @@ using Math::F32;
 
 constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0,01f
 
-Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const Kernel::JointRequest& request)
+Core::Expected<void, std::string> CreateTheColumn(Scenes::JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x5337fa..0x533855: sin la cola común, la luz en 0,1f, vida 60, el destino y el ancho; después, mientras sea
     // menor que los puntos (20), la z + 50 y un tramo con la matriz de los ángulos del alta (0x530afa, [ebp−0x54]).
@@ -54,7 +54,7 @@ Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const Kerne
     return {};
 }
 
-void CreateTheWhirl(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
+void CreateTheWhirl(Scenes::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x534132..0x5341f7: la mezcla 4, el ancho, la textura 0x613; vz (rand() % 150) · 0,01f, vy rand() % 500 − 250,
     // velocidad 30 y la luz (0,2f; 0,4f; 0,8f). Con el ancho de más de 10 (fcomp y test ah,0x41: ni menor, ni igual, ni
@@ -85,7 +85,7 @@ void CreateTheWhirl(JointState& joint, const Kernel::JointRequest& request, Crt:
 // 0x53a5c7..0x53a6ae: con el personaje dueño, lo que se movió desde el paso anterior (el destino menos su posición, en
 // float) se resta de los cuatro puntos de los tramos cuenta − 1..0 y el destino pasa a ser su posición. La luz: con
 // vida de menos de 20, por 0,9090909f; de menos de 40, en 0,25; si no, por 1,04f. Sin dueño, nada.
-Core::Expected<void, std::string> StepTheColumn(JointState& joint)
+Core::Expected<void, std::string> StepTheColumn(Scenes::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return {};
@@ -121,7 +121,7 @@ Core::Expected<void, std::string> StepTheColumn(JointState& joint)
 // 0x53b18a..0x53b234: con dueño (que no lee), el giro a = vy · 0,1f (la /0xf, por −1) retenido en la x87: la x es
 // FCOS(a) · velocidad + la x del destino y la y, la y del destino − FSIN(a) · velocidad; la z + vz. Con vida de menos
 // de 20, la velocidad + 5; el ancho + 1, vy + 4 y vz + (rand() % 200 + 200) · 0,01f. Sin dueño, nada.
-Core::Expected<void, std::string> StepTheWhirl(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepTheWhirl(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.ownerContext == nullptr)
         return {};
@@ -157,7 +157,7 @@ bool IsOrbit(std::int32_t type, std::int32_t subtype)
            (subtype == ColumnSubtype || subtype == WhirlSubtype || subtype == MirroredWhirlSubtype);
 }
 
-Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const Kernel::JointRequest& request,
+Core::Expected<void, std::string> CreateOrbitJoint(Scenes::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const Kern
     return {};
 }
 
-Core::Expected<void, std::string> StepOrbitJoint(JointState& joint, const JointKernels::StepServices& services)
+Core::Expected<void, std::string> StepOrbitJoint(Scenes::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.subtype == ColumnSubtype)
     {
@@ -195,4 +195,4 @@ Core::Expected<void, std::string> StepOrbitJoint(JointState& joint, const JointK
             joint.light[axis] = F32(D(joint.light[axis]) * Fading);
     return {};
 }
-} // namespace Client::Scenes::JointFamilies
+} // namespace Client::Joints::JointFamilies

@@ -26,7 +26,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Scenes
+namespace Client::Pets
 {
 namespace
 {
@@ -321,7 +321,7 @@ Core::Expected<void, std::string> SparkleTheGuardianAngel(const Kernel::HelperSt
         const int z = (random.Next() % SparkSpread) - SparkCentre;
         const glm::vec3 place(Shifted(x, helper.position.x), Shifted(y, helper.position.y),
                               Shifted(z, helper.position.z));
-        if (auto emitted = EmitHelperParticle(context, World::FairySparkParticle, GuardianSparkSubtype, place,
+        if (auto emitted = EmitHelperParticle(context, Particles::FairySparkParticle, GuardianSparkSubtype, place,
                                               helper.angles, light, "0x444fe7");
             !emitted.HasValue())
         {
@@ -379,4 +379,4 @@ void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& 
         helper.velocity.z = F32(static_cast<double>(helper.velocity.z) - FlightClimb);
     }
 }
-} // namespace Client::Scenes
+} // namespace Client::Pets

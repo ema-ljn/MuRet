@@ -38,14 +38,14 @@
 // falso: 6 columnas por letra. Los nombres, los títulos y los textos (el 1104 también) son inventados.
 namespace
 {
+using Client::Chat::ChatBubble;
+using Client::Chat::ChatBubbleDrawContext;
 using Client::Core::PixelSize;
 using Client::Kernel::ActorState;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::ChatBubble;
-using Client::Scenes::ChatBubbleDrawContext;
 using Client::Scenes::GameProjection;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
@@ -112,7 +112,7 @@ protected:
         return bubble;
     }
 
-    Client::Core::Expected<void, std::string> Draw(bool projecting = false, Client::UI::Point mouse = {}, int blink = 0,
+    Client::Core::Expected<void, std::string> Draw(bool projecting = false, Client::Ui::Point mouse = {}, int blink = 0,
                                                    bool withProjection = true)
     {
         ChatBubbleDrawContext context{.world = *m_world,
@@ -128,7 +128,7 @@ protected:
                                       .blink = blink,
                                       .projecting = projecting,
                                       .texts = m_withTexts ? &m_texts : nullptr};
-        return Client::Scenes::DrawTheChatBubbles(context);
+        return Client::Chat::DrawTheChatBubbles(context);
     }
 
     [[nodiscard]] ChatBubble& Bubbles(std::size_t index)
@@ -163,7 +163,7 @@ TEST_F(ChatBubbleDrawTest, TheMeasureTakesTheWidestShownText)
     bubble.line2 = "una linea larga";
     const auto measure = [&](int step)
     {
-        const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, step, nullptr);
+        const auto measured = Client::Chat::MeasureTheChatBubble(bubble, m_text, step, nullptr);
         ASSERT_TRUE(measured.HasValue()) << measured.Error();
     };
 
@@ -190,18 +190,18 @@ TEST_F(ChatBubbleDrawTest, AShopTitleWidensTheMeasureByOneRow)
     bubble.name = "Tero";
     bubble.shopTitle = "Vendo cosas";
 
-    ASSERT_TRUE(Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step640, &m_texts).HasValue());
+    ASSERT_TRUE(Client::Chat::MeasureTheChatBubble(bubble, m_text, Step640, &m_texts).HasValue());
     EXPECT_EQ(bubble.width, 11 * 6 + ShopHeaderWidth);
     EXPECT_EQ(bubble.height, 6 * Step640);
 
     // Un nombre más ancho que los dos queda.
     bubble.name = "Un nombre bastante largo";
-    ASSERT_TRUE(Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step1024, &m_texts).HasValue());
+    ASSERT_TRUE(Client::Chat::MeasureTheChatBubble(bubble, m_text, Step1024, &m_texts).HasValue());
     EXPECT_EQ(bubble.width, 24 * 6 + 3);
     EXPECT_EQ(bubble.height, 6 * Step1024);
 
     bubble.name = "Tero";
-    const auto measured = Client::Scenes::MeasureTheChatBubble(bubble, m_text, Step640, nullptr);
+    const auto measured = Client::Chat::MeasureTheChatBubble(bubble, m_text, Step640, nullptr);
     ASSERT_FALSE(measured.HasValue());
     EXPECT_NE(measured.Error().find("0x555a0f"), std::string::npos);
     EXPECT_EQ(bubble.width, 27);
@@ -434,14 +434,14 @@ TEST_F(ChatBubbleDrawTest, TheMouseSwapsTheColorsOfAnotherName)
     Bubble(0, 4, "Tero", "hola");
     m_world->Runtime().ui.chatOpen = true;
     m_world->Actors()[0].safeZone = 1;
-    const Client::UI::Point inside{210, 100};
+    const Client::Ui::Point inside{210, 100};
 
     ASSERT_TRUE(Draw(false, inside, 2).HasValue());
     ASSERT_EQ(Texts().size(), 2u);
     EXPECT_EQ(Texts()[0].style.colors, (TextColors{.text = 0x96503214u, .background = 0xfff0ff96u}));
     EXPECT_EQ(Texts()[1].style.colors.text, 0xffc8dce6u);
 
-    const auto nameColors = [&](Client::UI::Point mouse, int blink)
+    const auto nameColors = [&](Client::Ui::Point mouse, int blink)
     {
         m_text.texts.clear();
         const auto drawn = Draw(false, mouse, blink);
@@ -450,7 +450,7 @@ TEST_F(ChatBubbleDrawTest, TheMouseSwapsTheColorsOfAnotherName)
     };
     const TextColors plain{.text = 0xfff0ff96u, .background = 0x96503214u};
     EXPECT_EQ(nameColors(inside, 3), plain);
-    EXPECT_EQ(nameColors(Client::UI::Point{207 + 27, 100}, 0), plain);
+    EXPECT_EQ(nameColors(Client::Ui::Point{207 + 27, 100}, 0), plain);
     m_world->Runtime().ui.chatOpen = false;
     EXPECT_EQ(nameColors(inside, 0), plain);
     m_world->Runtime().ui.chatOpen = true;
@@ -531,16 +531,16 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     runtime.ui.chatOpen = true;
     runtime.ui.rightClick = true;
     m_world->Actors()[0].safeZone = 1;
-    const Client::Scenes::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
-    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+    const Client::Chat::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
+    ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
     EXPECT_TRUE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "");
+    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "");
 
     ASSERT_TRUE(Draw().HasValue());
-    ASSERT_TRUE(Client::Scenes::StepTheChatBubbles(*m_world, input).HasValue());
+    ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
     EXPECT_FALSE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::UI::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
+    EXPECT_EQ(Client::Chat::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
@@ -551,8 +551,8 @@ TEST_F(ChatBubbleDrawTest, ABubbleOfAShopOwnerHasItsTitleAbove)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
     Bubble(0, 4, "Tero", "hola").shopTitle = "Vendo cosas";
-    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
-    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo cosas y mas cosas"};
+    Client::Social::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Social::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo cosas y mas cosas"};
 
     ASSERT_TRUE(Draw().HasValue());
 
@@ -594,8 +594,8 @@ TEST_F(ChatBubbleDrawTest, TheShopTitleColorsComeFromTheSignAndTheOwner)
 {
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
     Bubble(0, 4, "Tero", "hola").shopTitle = "Vendo";
-    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
-    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
+    Client::Social::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Social::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
     struct Case
     {
         bool hovered = false;
@@ -673,8 +673,8 @@ TEST_F(ChatBubbleDrawTest, TheTitleRowsFollowTheSignAndNotTheBubble)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
     Bubble(0, 4, "Tero", "hola");
-    Client::Scenes::PersonalShopState& shops = m_world->Runtime().social.personalShop;
-    shops.titles[4] = Client::Scenes::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
+    Client::Social::PersonalShopState& shops = m_world->Runtime().social.personalShop;
+    shops.titles[4] = Client::Social::ShopTitle{.key = 0x0444, .name = "Tero", .title = "Vendo"};
 
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Bubbles(0).width, 27);

@@ -8,7 +8,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace Client::World
+namespace Client::Particles
 {
 namespace
 {
@@ -79,4 +79,4 @@ void StepFenrirSpark(Particle& particle)
         particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * Fade);
     CountDown(particle);
 }
-} // namespace Client::World
+} // namespace Client::Particles

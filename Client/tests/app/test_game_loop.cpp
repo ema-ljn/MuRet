@@ -37,11 +37,11 @@ namespace
 {
 using namespace std::chrono_literals;
 using Client::App::GameLoop;
-using Client::App::PacingMode;
 using Client::Core::Duration;
 using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
+using Client::Kernel::PacingMode;
 using Client::Platform::WindowState;
 using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;

@@ -33,7 +33,7 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ItemState;
 using Client::Kernel::WorldState;
-using Client::Scenes::NpcWindowState;
+using Client::Npc::NpcWindowState;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::uint32_t Seed = 0x13572468u;
@@ -159,7 +159,7 @@ protected:
 
     [[nodiscard]] std::int32_t Kind()
     {
-        auto kind = Client::Scenes::ChaosMixKind(*m_world, m_random, &m_items);
+        auto kind = Client::ChaosMix::ChaosMixKind(*m_world, m_random, &m_items);
         EXPECT_TRUE(kind.HasValue()) << kind.Error();
         return kind.HasValue() ? kind.Value() : 0x7fff;
     }
@@ -185,20 +185,20 @@ CrtRandom Advanced(CrtRandom random, int count)
 TEST_F(ChaosMixTest, TheBoxIsWorthItsItemsOnlyWithAChaosJewel)
 {
     Put({Item(Sword), Item(Bless), Item(Soul), Item(Life), Item(Creation)});
-    const Client::Scenes::PetPriceLevels pets{};
-    auto none = Client::Scenes::ChaosBoxValue(Npc().chaosBox, &m_items, pets);
+    const Client::Items::PetPriceLevels pets{};
+    auto none = Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, &m_items, pets);
     ASSERT_TRUE(none.HasValue()) << none.Error();
     EXPECT_EQ(none.Value(), 0);
     Put({Item(Chaos)});
-    auto value = Client::Scenes::ChaosBoxValue(Npc().chaosBox, &m_items, pets);
+    auto value = Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, &m_items, pets);
     ASSERT_TRUE(value.HasValue()) << value.Error();
     EXPECT_EQ(value.Value(), 300'000 + 100'000 + 70'000 + 450'000 + 450'000 + 40'000);
     // +0x3c en 0 (la huella de un ítem) no cuenta.
     ItemState footprint = Item(Sword);
     footprint.occupied = 0;
     Put({footprint});
-    EXPECT_EQ(Client::Scenes::ChaosBoxValue(Npc().chaosBox, &m_items, pets).Value(), value.Value());
-    EXPECT_FALSE(Client::Scenes::ChaosBoxValue(Npc().chaosBox, nullptr, pets).HasValue());
+    EXPECT_EQ(Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, &m_items, pets).Value(), value.Value());
+    EXPECT_FALSE(Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, nullptr, pets).HasValue());
 }
 
 // 0x5fdac0..0x5fdb8a: el ojo y la llave del mismo nivel con la joya del caos son el 2 con el nivel + 1; distintos, el
@@ -385,7 +385,7 @@ TEST_F(ChaosMixTest, TheFenrirMixes)
 // 0x5fd4b0: el modo 0 no deja el 1, el 1 solo deja el 1 y los demás dejan todo.
 TEST(ChaosMixKindForModeTest, TheModeFiltersTheChaosWeapon)
 {
-    using Client::Scenes::ChaosMixKindForMode;
+    using Client::ChaosMix::ChaosMixKindForMode;
     EXPECT_EQ(ChaosMixKindForMode(1, 0), 0);
     EXPECT_EQ(ChaosMixKindForMode(3, 0), 3);
     EXPECT_EQ(ChaosMixKindForMode(1, 1), 1);
@@ -402,21 +402,21 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
     auto npc = std::make_unique<NpcWindowState>();
     npc->chaosBoxValue = 250'000;
     npc->mixKind = 1;
-    auto quote = Client::Scenes::MixQuoteOf(*npc);
+    auto quote = Client::ChaosMix::MixQuoteOf(*npc);
     ASSERT_TRUE(quote.HasValue()) << quote.Error();
     EXPECT_EQ(quote.Value().rate, 12);
     EXPECT_EQ(quote.Value().price, 120'000u);
     EXPECT_EQ(quote.Value().priceText, "120,000");
     npc->chaosBoxValue = 3'000'000;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 100);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().priceText, "1,000,000");
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 100);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().priceText, "1,000,000");
 
     // El −0x18 deja el precio de lo que vale con la chance en 0.
     npc->mixKind = -0x18;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 0);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().price, 1'000'000u);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 0);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 1'000'000u);
     npc->mixKind = -2;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().priceText, "0");
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().priceText, "0");
 
     npc->mixKind = 2;
     constexpr std::array<std::int32_t, 7> Rates{60, 75, 70, 65, 60, 55, 50};
@@ -425,7 +425,7 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
     {
         SCOPED_TRACE(level);
         npc->mixLevel = level;
-        auto ticket = Client::Scenes::MixQuoteOf(*npc);
+        auto ticket = Client::ChaosMix::MixQuoteOf(*npc);
         ASSERT_TRUE(ticket.HasValue()) << ticket.Error();
         EXPECT_EQ(ticket.Value().rate, Rates[static_cast<std::size_t>(level - 1)]);
         EXPECT_EQ(ticket.Value().price, Prices[static_cast<std::size_t>(level - 1)]);
@@ -433,33 +433,33 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
     // Las tasas que manda el 30 con el resultado 3 pisan las de la .data.
     npc->chaosRates = {10, 20, 30, 40, 50, 60};
     npc->mixLevel = 3;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 20);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 20);
 
     npc->mixKind = 8;
     npc->mixLevel = 9;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 80);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().price, 850'000u);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 80);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 850'000u);
 
     npc->mixKind = 4;
     npc->mixLuck = 1;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 70);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().priceText, "4,000,000");
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 70);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().priceText, "4,000,000");
     npc->mixKind = 0x17;
     npc->mixLuck = 0;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 45);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().price, 8'000'000u);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 45);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 8'000'000u);
 
     npc->mixKind = 0x1c;
     npc->mixExcellentValue = 300'000;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 30);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 30);
     npc->mixExcellentValue = 1'000'000;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 79);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().price, 10'000'000u);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 79);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 10'000'000u);
 
     npc->mixKind = 0x18;
     npc->mixWingRate = 33;
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().rate, 33);
-    EXPECT_EQ(Client::Scenes::MixQuoteOf(*npc).Value().price, 5'000'000u);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 33);
+    EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 5'000'000u);
 }
 
 // 0x5fd200 y la tabla de 0x5febd4: el lugar que pide cada tipo en el inventario de 8 × 8; 0x5feb88: lo que hace el
@@ -469,8 +469,8 @@ TEST(MixRoomTest, TheRoomAndTheButton)
     auto npc = std::make_unique<NpcWindowState>();
     npc->mixWidth = 2;
     npc->mixHeight = 3;
-    using Client::Scenes::MixButtonAction;
-    using Client::Scenes::MixRoomFor;
+    using Client::ChaosMix::MixButtonAction;
+    using Client::ChaosMix::MixRoomFor;
     EXPECT_EQ(MixRoomFor(*npc, 1).width, 5);
     EXPECT_EQ(MixRoomFor(*npc, 7).height, 4);
     EXPECT_EQ(MixRoomFor(*npc, 8).width, 2);
@@ -482,19 +482,19 @@ TEST(MixRoomTest, TheRoomAndTheButton)
     std::array<ItemState, Client::Kernel::InventoryCellCount> cells{};
     for (ItemState& cell : cells)
         cell.id = 0x0002;
-    EXPECT_FALSE(Client::Scenes::HasRoomFor(cells, 8, 8, 1, 1));
-    EXPECT_TRUE(Client::Scenes::HasRoomFor(cells, 8, 8, 1, 0));
+    EXPECT_FALSE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 1, 1));
+    EXPECT_TRUE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 1, 0));
     // Un hueco de 2 × 3 abajo a la derecha.
     for (std::size_t row = 5; row < 8; ++row)
     {
         for (std::size_t column = 6; column < 8; ++column)
             cells[row * 8 + column].id = 0xffff;
     }
-    EXPECT_TRUE(Client::Scenes::HasRoomFor(cells, 8, 8, 2, 3));
-    EXPECT_FALSE(Client::Scenes::HasRoomFor(cells, 8, 8, 3, 2));
-    EXPECT_FALSE(Client::Scenes::HasRoomFor(cells, 8, 8, 5, 4));
+    EXPECT_TRUE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 2, 3));
+    EXPECT_FALSE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 3, 2));
+    EXPECT_FALSE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 5, 4));
 
-    using Client::Scenes::MixButtonActionFor;
+    using Client::ChaosMix::MixButtonActionFor;
     EXPECT_EQ(MixButtonActionFor(-0x18), MixButtonAction::LevelTooLow);
     EXPECT_EQ(MixButtonActionFor(-8), MixButtonAction::NotTheSame);
     EXPECT_EQ(MixButtonActionFor(-2), MixButtonAction::NotTheSame);
@@ -516,7 +516,7 @@ TEST(MixQuoteTest, HighInvitationsReadTheNativeDataAfterTheRates)
     {
         npc->mixLevel = 8 + static_cast<std::int32_t>(i);
         SCOPED_TRACE(npc->mixLevel);
-        const auto quote = Client::Scenes::MixQuoteOf(*npc);
+        const auto quote = Client::ChaosMix::MixQuoteOf(*npc);
         ASSERT_TRUE(quote.HasValue()) << quote.Error();
         EXPECT_EQ(quote.Value().rate, Rates[i]);
         EXPECT_EQ(quote.Value().price, 1'600'000u);
@@ -526,8 +526,8 @@ TEST(MixQuoteTest, HighInvitationsReadTheNativeDataAfterTheRates)
 
 TEST(MixQuoteTest, ThousandsAndTax)
 {
-    using Client::Scenes::TaxedPriceText;
-    using Client::Scenes::ThousandsText;
+    using Client::ChaosMix::TaxedPriceText;
+    using Client::ChaosMix::ThousandsText;
     EXPECT_EQ(ThousandsText(0), "0");
     EXPECT_EQ(ThousandsText(999), "999");
     EXPECT_EQ(ThousandsText(1000), "1,000");

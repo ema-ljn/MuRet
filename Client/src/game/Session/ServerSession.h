@@ -180,7 +180,7 @@ struct KeepaliveSpeeds
 // la cuenta o del AutoLogin.
 struct SessionSettings
 {
-    ServerAddress connectServer; // de la config o de /u /p (CL3.4)
+    Session::ServerAddress connectServer; // de la config o de /u /p (CL3.4)
     // El ejecutable que suma la respuesta al 03 del GS: el nombre que 0x4ad270 saca de la línea de
     // comandos (Protocol::Session::MainCheckFileName), relativo a la carpeta actual como el
     // CreateFileA de 0x4aec13. Vacío, o si no se abre, la suma va en 0, como en 0x4aec28.
@@ -224,7 +224,7 @@ public:
     // de aplicación se devuelve también en los Poll siguientes, hasta Start, sin timer ni keepalive.
     Core::Expected<void, std::string> Poll();
 
-    [[nodiscard]] SessionState State() const;
+    [[nodiscard]] Session::SessionState State() const;
 
     // El store del 0x3d de la respuesta del F3 03 (0x4c4854, fila 9 de la tabla de 0x4c3940 en 06):
     // pasa a InWorld. Lo llama el sink desde el ApplyWorld de un F3 03, después de cargar el mapa y
@@ -360,14 +360,14 @@ public:
     void SubmitCredentials(const Credentials& credentials);
 
     // Por qué falló; std::nullopt si no está en Failed.
-    [[nodiscard]] std::optional<SessionFailure> Failure() const;
+    [[nodiscard]] std::optional<Session::SessionFailure> Failure() const;
 
     // La dirección que dio el F4 03, desde que llegó hasta el próximo Start.
-    [[nodiscard]] std::optional<ServerAddress> GameServer() const;
+    [[nodiscard]] std::optional<Session::ServerAddress> GameServer() const;
 
     // El resultado del último F1 01, aceptado o no, desde que llegó hasta el próximo Start o el
     // próximo SubmitCredentials. Con WaitingCredentials, el rechazado: el aviso de la escena de
-    // login (UI::NoticeOfLoginResult).
+    // login (Ui::NoticeOfLoginResult).
     [[nodiscard]] std::optional<std::uint8_t> LoginResult() const;
 
     // Las velocidades de los keepalives que siguen. Hasta que se llame, las de un KeepaliveSpeeds
@@ -460,15 +460,15 @@ private:
     void SendKeepalive(Core::Duration now);
 
     // Abre la conexión a `address`, que cierra la que hubiera, con `keys` o sin claves.
-    void Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys);
+    void Connect(const Session::ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys);
     // Cierra la conexión, si no estaba cerrada, y pasa a Failed.
-    void Fail(SessionFailure failure);
+    void Fail(Session::SessionFailure failure);
     // Conserva el primer diagnóstico y corta el lote con la generación existente.
     bool CheckApplication(Core::Expected<void, std::string> applied);
     // No encola mensajes de juego en el socket del ConnectServer ni en una conexión cerrada.
     [[nodiscard]] Core::Expected<void, std::string> SendWorldPacket(Protocol::Outgoing outgoing);
     // Pasa a `state` desde ahora, para el tope de los Waiting*; no reinicia el timer global.
-    void SetState(SessionState state);
+    void SetState(Session::SessionState state);
 
     // Si el estado es de los que hablan con el ConnectServer.
     [[nodiscard]] bool WithConnectServer() const;
@@ -484,12 +484,12 @@ private:
     std::uint32_t m_starts = 0;
     Protocol::Dispatcher m_connectServer;
     Protocol::Dispatcher m_gameServer;
-    SessionState m_state = SessionState::Idle;
+    Session::SessionState m_state = Session::SessionState::Idle;
     Core::Duration m_stateSince{}; // desde cuándo está en m_state
-    std::optional<SessionFailure> m_failure;
+    std::optional<Session::SessionFailure> m_failure;
     std::vector<Protocol::Session::ServerEntry> m_serverList;
     std::optional<std::uint16_t> m_chosenServer;
-    std::optional<ServerAddress> m_gameServerAddress;
+    std::optional<Session::ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     std::uint16_t m_playerIndex = 0;
     // [0x5767928] distinto de 0: 0x641cf5 lo pone en 1 al mandar el login y 0x4c2f46, 0x642810 lo vuelven a 0 (aquí,

@@ -135,11 +135,11 @@ struct Game
     }
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
-    Client::Scenes::SelectionState selection{world};
+    Client::FrontEnd::SelectionState selection{world};
     Client::Camera::GameCamera camera;
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
-    Client::Scenes::SingleModelLibrary models;
+    Client::FrontEnd::SingleModelLibrary models;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tables::ItemSetTables sets =
         Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Tables::ItemSetTypeTableSize),
@@ -222,7 +222,7 @@ protected:
         return game->world.Actors()[2];
     }
 
-    Client::Scenes::SocialRequestContext Context()
+    Client::Social::SocialRequestContext Context()
     {
         return {.world = game->world,
                 .random = m_random,
@@ -255,12 +255,12 @@ protected:
 TEST_P(SocialRequestsTest, TradeAsksTheChosenNextToTheHero)
 {
     Choose(1);
-    const auto outcome = Client::Scenes::RequestATrade(Context());
+    const auto outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     ASSERT_EQ(outcome.Value().notices.size(), 1U);
     EXPECT_EQ(outcome.Value().notices[0].text, Client::Tests::ChatTradeRequestedText);
-    EXPECT_EQ(outcome.Value().notices[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(outcome.Value().notices[0].type, Client::Ui::SystemMessage);
     EXPECT_EQ(outcome.Value().notices[0].formatted, "pediste comerciar con Brezal");
     ASSERT_EQ(m_sent.size(), 1U);
     ExpectSent(0, {0xc1, 5, 0x36, 0x04, 0x56});
@@ -274,7 +274,7 @@ TEST_P(SocialRequestsTest, TradeAsksTheChosenNextToTheHero)
 TEST_P(SocialRequestsTest, WithoutAChosenTheTradeGoesToTheOneInFront)
 {
     Choose(-1);
-    auto outcome = Client::Scenes::RequestATrade(Context());
+    auto outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     ASSERT_EQ(m_sent.size(), 1U);
@@ -283,7 +283,7 @@ TEST_P(SocialRequestsTest, WithoutAChosenTheTradeGoesToTheOneInFront)
 
     Near().angles.z = Front;
     m_random = CrtRandom(Seed);
-    outcome = Client::Scenes::RequestATrade(Context());
+    outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_TRUE(outcome.Value().notices.empty());
@@ -296,7 +296,7 @@ TEST_P(SocialRequestsTest, WithoutAChosenTheTradeGoesToTheOneInFront)
 TEST_P(SocialRequestsTest, AFarChosenOrAnOpenShopSendsNoTrade)
 {
     Choose(2);
-    auto outcome = Client::Scenes::RequestATrade(Context());
+    auto outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 2 * CellRandoms).State());
@@ -304,14 +304,14 @@ TEST_P(SocialRequestsTest, AFarChosenOrAnOpenShopSendsNoTrade)
     Choose(1);
     game->world.Runtime().panels.personalShop = 1;
     m_random = CrtRandom(Seed);
-    outcome = Client::Scenes::RequestATrade(Context());
+    outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
 
     game->world.Runtime().panels.personalShop = 0;
     game->world.Runtime().drawingEnabled = false;
-    outcome = Client::Scenes::RequestATrade(Context());
+    outcome = Client::Social::RequestATrade(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().notices.empty());
     EXPECT_TRUE(m_sent.empty());
@@ -321,7 +321,7 @@ TEST_P(SocialRequestsTest, AFarChosenOrAnOpenShopSendsNoTrade)
 TEST_P(SocialRequestsTest, PartyInvitesTheChosenAndKeepsItsKey)
 {
     Choose(1);
-    const auto outcome = Client::Scenes::RequestAParty(Context());
+    const auto outcome = Client::Social::RequestAParty(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     ASSERT_EQ(outcome.Value().notices.size(), 1U);
@@ -339,16 +339,16 @@ TEST_P(SocialRequestsTest, OnlyTheLeaderInvites)
     runtime.hud.partyCount = 2;
     Name(runtime.social.party.slots[0].name, "Zorzal");
     Name(runtime.social.party.slots[1].name, "Tejon");
-    auto outcome = Client::Scenes::RequestAParty(Context());
+    auto outcome = Client::Social::RequestAParty(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_EQ(outcome.Value().notices,
-              (std::vector<Client::UI::ChatCommandNotice>{
-                  {.text = Client::Tests::ChatNotTheLeaderText, .type = Client::UI::SystemMessage}}));
+              (std::vector<Client::Chat::ChatCommandNotice>{
+                  {.text = Client::Tests::ChatNotTheLeaderText, .type = Client::Ui::SystemMessage}}));
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 
     Name(runtime.social.party.slots[0].name, "Tejon");
-    outcome = Client::Scenes::RequestAParty(Context());
+    outcome = Client::Social::RequestAParty(Context());
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_EQ(m_sent.size(), 1U);
 }
@@ -357,15 +357,15 @@ TEST_P(SocialRequestsTest, OnlyTheLeaderInvites)
 TEST_P(SocialRequestsTest, TheDuelChallengesWithTheName)
 {
     Choose(1);
-    ASSERT_TRUE(Client::Scenes::RequestADuel(Context()).HasValue());
+    ASSERT_TRUE(Client::Social::RequestADuel(Context()).HasValue());
     ExpectSent(0, {0xc1, 0x0f, 0xaa, 0x04, 0x56, 'B', 'r', 'e', 'z', 'a', 'l', 0, 0, 0, 0});
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms + C3Randoms).State());
 
     Choose(-1);
-    ASSERT_TRUE(Client::Scenes::RequestADuel(Context()).HasValue());
+    ASSERT_TRUE(Client::Social::RequestADuel(Context()).HasValue());
     EXPECT_EQ(m_sent.size(), 2U);
     Near().angles.z = Front;
-    ASSERT_TRUE(Client::Scenes::RequestADuel(Context()).HasValue());
+    ASSERT_TRUE(Client::Social::RequestADuel(Context()).HasValue());
     EXPECT_EQ(m_sent.size(), 2U);
 }
 
@@ -379,7 +379,7 @@ TEST_P(SocialRequestsTest, PurchaseAsksTheChosenWithoutTheCells)
 {
     Choose(2);
     Far().alive = false;
-    auto outcome = Client::Scenes::RequestTheShopItems(Context(), std::nullopt);
+    auto outcome = Client::Social::RequestTheShopItems(Context(), std::nullopt);
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_TRUE(outcome.Value().notices.empty());
@@ -390,7 +390,7 @@ TEST_P(SocialRequestsTest, PurchaseAsksTheChosenWithoutTheCells)
 
     Choose(0);
     m_random = CrtRandom(Seed);
-    outcome = Client::Scenes::RequestTheShopItems(Context(), "Tejon");
+    outcome = Client::Social::RequestTheShopItems(Context(), "Tejon");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_EQ(m_sent.size(), 1U);
@@ -407,12 +407,12 @@ TEST_P(SocialRequestsTest, PurchaseStopsWithAnOpenPanel)
     {
         open = 1;
         m_random = CrtRandom(Seed);
-        const auto outcome = Client::Scenes::RequestTheShopItems(Context(), "Brezal");
+        const auto outcome = Client::Social::RequestTheShopItems(Context(), "Brezal");
         open = 0;
         ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
         EXPECT_FALSE(outcome.Value().handled);
-        EXPECT_EQ(outcome.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{
-                                               {Client::UI::ShopTrainerText, Client::UI::SystemMessage}}));
+        EXPECT_EQ(outcome.Value().notices, (std::vector<Client::Chat::ChatCommandNotice>{
+                                               {Client::Chat::ShopTrainerText, Client::Ui::SystemMessage}}));
         EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, randoms).State());
     };
     blocked(panels.npcShop, 1);
@@ -421,7 +421,7 @@ TEST_P(SocialRequestsTest, PurchaseStopsWithAnOpenPanel)
     blocked(panels.chaosBox, 2);
     panels.delegated.trainer = 1;
     m_random = CrtRandom(Seed);
-    const auto trainer = Client::Scenes::RequestTheShopItems(Context(), "Brezal");
+    const auto trainer = Client::Social::RequestTheShopItems(Context(), "Brezal");
     ASSERT_TRUE(trainer.HasValue()) << trainer.Error();
     EXPECT_FALSE(trainer.Value().handled);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
@@ -434,7 +434,7 @@ TEST_P(SocialRequestsTest, PurchaseAsksEveryoneWithTheName)
 {
     Choose(-1);
     Name(Near().name, "Zorzal");
-    auto outcome = Client::Scenes::RequestTheShopItems(Context(), "Zorzal");
+    auto outcome = Client::Social::RequestTheShopItems(Context(), "Zorzal");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     ASSERT_EQ(m_sent.size(), 2U);
@@ -444,20 +444,20 @@ TEST_P(SocialRequestsTest, PurchaseAsksEveryoneWithTheName)
 
     Near().alive = false;
     m_sent.clear();
-    outcome = Client::Scenes::RequestTheShopItems(Context(), "Zorzal");
+    outcome = Client::Social::RequestTheShopItems(Context(), "Zorzal");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     ASSERT_EQ(m_sent.size(), 1U);
     ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x04, 0x57, 'Z', 'o', 'r', 'z', 'a', 'l', 0, 0, 0, 0});
 
     m_sent.clear();
-    outcome = Client::Scenes::RequestTheShopItems(Context(), "Tejon");
+    outcome = Client::Social::RequestTheShopItems(Context(), "Tejon");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     ASSERT_EQ(m_sent.size(), 1U);
     ExpectSent(0, {0xc1, 0x10, 0x3f, 0x05, 0x00, 0x21, 'T', 'e', 'j', 'o', 'n', 0, 0, 0, 0, 0});
 
     m_sent.clear();
     m_random = CrtRandom(Seed);
-    outcome = Client::Scenes::RequestTheShopItems(Context(), "Nadie");
+    outcome = Client::Social::RequestTheShopItems(Context(), "Nadie");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     EXPECT_TRUE(m_sent.empty());
@@ -470,7 +470,7 @@ TEST_P(SocialRequestsTest, PurchaseWithAnEmptyNameAsksTheOneInFront)
 {
     Choose(-1);
     Near().angles.z = Front;
-    auto outcome = Client::Scenes::RequestTheShopItems(Context(), "");
+    auto outcome = Client::Social::RequestTheShopItems(Context(), "");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_TRUE(outcome.Value().handled);
     ASSERT_EQ(m_sent.size(), 1U);
@@ -479,12 +479,12 @@ TEST_P(SocialRequestsTest, PurchaseWithAnEmptyNameAsksTheOneInFront)
 
     Far().angles.z = Front;
     m_random = CrtRandom(Seed);
-    outcome = Client::Scenes::RequestTheShopItems(Context(), "");
+    outcome = Client::Social::RequestTheShopItems(Context(), "");
     ASSERT_TRUE(outcome.HasValue()) << outcome.Error();
     EXPECT_EQ(m_sent.size(), 1U);
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
 
-    const auto unknown = Client::Scenes::RequestTheShopItems(Context(), std::nullopt);
+    const auto unknown = Client::Social::RequestTheShopItems(Context(), std::nullopt);
     ASSERT_FALSE(unknown.HasValue());
     EXPECT_NE(unknown.Error().find("Q-C967"), std::string::npos) << unknown.Error();
 }
@@ -510,14 +510,14 @@ protected:
         if (HasFatalFailure())
             return;
         std::map<std::size_t, std::string> texts = Client::Tests::ChatTexts();
-        texts[Client::UI::TradeLevelText] = "nivel bajo";
-        texts[Client::UI::DuelBusyText] = "otro duelo";
+        texts[Client::Chat::TradeLevelText] = "nivel bajo";
+        texts[Client::Chat::DuelBusyText] = "otro duelo";
         m_texts = Client::Tests::MakeTextTable(texts);
         game->world.OwnCharacter().level = 50;
         game->world.Runtime().panels.delegated.commands = 1;
     }
 
-    Client::Scenes::GameChatContext ChatContext()
+    Client::Chat::GameChatContext ChatContext()
     {
         return {.world = game->world,
                 .random = m_random,
@@ -534,12 +534,12 @@ protected:
         Choose(chosen);
         runtime.ui.rightClick = true;
         runtime.ui.rightDown = true;
-        const Client::Scenes::GameChatContext chat = ChatContext();
-        return Client::Scenes::StepTheCommandsWindow(Client::Scenes::GameUiContext{
+        const Client::Chat::GameChatContext chat = ChatContext();
+        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 
-    Client::UI::CommandsWindowState& Window()
+    Client::Ui::CommandsWindowState& Window()
     {
         return game->world.Runtime().panels.delegated.commandsWindow;
     }
@@ -591,9 +591,9 @@ TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
 
     game->world.OwnCharacter().level = 6;
-    Client::Scenes::AddShopTitle(game->world, NearKey, 1, "Arcos");
+    Client::PersonalShop::AddShopTitle(game->world, NearKey, 1, "Arcos");
     ASSERT_TRUE(RightClick(1, 1).HasValue());
-    EXPECT_EQ(game->world.Runtime().chat.log.entries.front().type, Client::UI::ErrorMessage);
+    EXPECT_EQ(game->world.Runtime().chat.log.entries.front().type, Client::Ui::ErrorMessage);
     EXPECT_EQ(Window().chosen, -1);
     EXPECT_TRUE(m_sent.empty());
 }
@@ -640,7 +640,7 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 
     ASSERT_TRUE(RightClick(11, 1).HasValue());
     ExpectSent(0, {0xc1, 0x0f, 0xaa, 0x04, 0x56, 'B', 'r', 'e', 'z', 'a', 'l', 0, 0, 0, 0});
-    Client::Scenes::DuelState& duel = game->world.Runtime().social.duel;
+    Client::Social::DuelState& duel = game->world.Runtime().social.duel;
     duel.active = 1;
     Name(duel.rivalName, "Brezal");
     ASSERT_TRUE(RightClick(11, 1).HasValue());
@@ -706,9 +706,9 @@ protected:
         Choose(chosen);
         runtime.ui.rightClick = true;
         runtime.ui.rightDown = true;
-        Client::Scenes::GameChatContext chat = ChatContext();
+        Client::Chat::GameChatContext chat = ChatContext();
         chat.models = &m_models;
-        return Client::Scenes::StepTheCommandsWindow(Client::Scenes::GameUiContext{
+        return Client::Hud::StepTheCommandsWindow(Client::Hud::GameUiContext{
             .world = game->world, .random = m_random, .input = m_input, .mouseX = 10, .mouseY = 10, .chat = &chat});
     }
 
@@ -814,11 +814,11 @@ TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
 TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
 {
     Choose(1);
-    auto asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    auto asked = Client::Hud::RequestAGuildJoin(ChatContext());
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     EXPECT_TRUE(asked.Value().handled);
     ASSERT_EQ(asked.Value().notices.size(), 1U);
-    EXPECT_EQ(asked.Value().notices[0].type, Client::UI::SystemMessage);
+    EXPECT_EQ(asked.Value().notices[0].type, Client::Ui::SystemMessage);
     EXPECT_EQ(asked.Value().notices[0].formatted, "pediste el gremio a Brezal");
     ASSERT_EQ(m_sent.size(), 1U);
     ExpectSentInTheClear(0, {0xc1, 0x05, 0x50, 0x04, 0x56});
@@ -828,14 +828,14 @@ TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
     Choose(-1);
     game->world.Runtime().guild.requester = 0;
     m_random = CrtRandom(Seed);
-    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    asked = Client::Hud::RequestAGuildJoin(ChatContext());
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     ASSERT_EQ(m_sent.size(), 2U);
     ExpectSentInTheClear(1, {0xc1, 0x05, 0x50, 0x04, 0x56});
     EXPECT_EQ(game->world.Runtime().guild.requester, 0x0456);
 
     game->world.Runtime().drawingEnabled = false;
-    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    asked = Client::Hud::RequestAGuildJoin(ChatContext());
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     EXPECT_TRUE(asked.Value().handled);
     EXPECT_TRUE(asked.Value().notices.empty());
@@ -843,9 +843,9 @@ TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
 
     Hero().guildStatus = 0x00;
     m_random = CrtRandom(Seed);
-    asked = Client::Scenes::RequestAGuildJoin(ChatContext());
+    asked = Client::Hud::RequestAGuildJoin(ChatContext());
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
-    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{255, Client::UI::SystemMessage}}));
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::Chat::ChatCommandNotice>{{255, Client::Ui::SystemMessage}}));
     EXPECT_EQ(m_sent.size(), 2U);
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
@@ -855,16 +855,16 @@ TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
 // E5 02 02 y el 1360. Sin los modelos, /rivaloff corta antes de mandar nada.
 TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
 {
-    using Client::UI::GuildRelationCommand;
+    using Client::Chat::GuildRelationCommand;
     Choose(1);
-    auto asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    auto asked = Client::Hud::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
-    EXPECT_EQ(asked.Value().notices, (std::vector<Client::UI::ChatCommandNotice>{{1355, Client::UI::SystemMessage}}));
+    EXPECT_EQ(asked.Value().notices, (std::vector<Client::Chat::ChatCommandNotice>{{1355, Client::Ui::SystemMessage}}));
     EXPECT_TRUE(m_sent.empty());
 
     Hero().guildStatus = 0x00;
     Hero().word1f2 = 3;
-    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
+    asked = Client::Hud::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Union);
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     ASSERT_EQ(asked.Value().notices.size(), 1U);
     EXPECT_EQ(asked.Value().notices[0].formatted, "alianza con Brezal");
@@ -872,22 +872,22 @@ TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
     ExpectSentInTheClear(0, {0xc1, 0x07, 0xe5, 0x01, 0x01, 0x04, 0x56});
 
     Choose(-1);
-    asked = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Rival);
+    asked = Client::Hud::RequestAGuildRelation(ChatContext(), GuildRelationCommand::Rival);
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     EXPECT_EQ(asked.Value().notices[0].formatted, "rivales con Brezal");
     ASSERT_EQ(m_sent.size(), 2U);
     ExpectSentInTheClear(1, {0xc1, 0x07, 0xe5, 0x02, 0x01, 0x04, 0x56});
 
-    const auto cut = Client::Scenes::RequestAGuildRelation(ChatContext(), GuildRelationCommand::RivalOff);
+    const auto cut = Client::Hud::RequestAGuildRelation(ChatContext(), GuildRelationCommand::RivalOff);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x571079"), std::string::npos) << cut.Error();
     EXPECT_EQ(m_sent.size(), 2U);
 
     Choose(1);
     m_random = CrtRandom(Seed);
-    Client::Scenes::GameChatContext chat = ChatContext();
+    Client::Chat::GameChatContext chat = ChatContext();
     chat.models = &m_models;
-    asked = Client::Scenes::RequestAGuildRelation(chat, GuildRelationCommand::RivalOff);
+    asked = Client::Hud::RequestAGuildRelation(chat, GuildRelationCommand::RivalOff);
     ASSERT_TRUE(asked.HasValue()) << asked.Error();
     EXPECT_EQ(asked.Value().notices[0].formatted, "fin con Brezal");
     EXPECT_EQ(Hero().animation.action, 0xb7);

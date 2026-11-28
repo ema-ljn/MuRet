@@ -17,23 +17,23 @@
 #include <cstddef>
 #include <optional>
 
-// Client::UI::EscapeWindow: la ventana de Esc del login y de la selección (+0x3d0: 0x6478c0, 0x647c00,
+// Client::FrontEnd::EscapeWindow: la ventana de Esc del login y de la selección (+0x3d0: 0x6478c0, 0x647c00,
 // 0x647cd0, 0x647d40 y 0x647ed0; CL8, hito 8). Todo en píxeles.
 namespace
 {
 using Client::Core::PixelSize;
+using Client::FrontEnd::EscapeWindow;
+using Client::FrontEnd::EscapeWindowEvent;
+using Client::FrontEnd::EscapeWindowLayout;
+using Client::FrontEnd::LayoutEscapeWindow;
 using Client::Input::InputState;
 using Client::Input::Key;
-using Client::UI::EscapeWindow;
-using Client::UI::EscapeWindowEvent;
-using Client::UI::EscapeWindowLayout;
-using Client::UI::LayoutEscapeWindow;
-using Client::UI::NewUiMode;
-using Client::UI::NewUiTurn;
-using Client::UI::Rect;
+using Client::Ui::NewUiMode;
+using Client::Ui::NewUiTurn;
+using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
-// Un paso de la lógica: 40 ms (App::LogicStep).
+// Un paso de la lógica: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 constexpr std::size_t ExitButton = 0;
 constexpr std::size_t ServerButton = 1;
@@ -41,7 +41,7 @@ constexpr std::size_t OptionsButton = 2;
 constexpr std::size_t CloseButton = 3;
 
 // Los buffers del laboratorio: op1_back3 de 5 × 8 sube en 8 × 8.
-Client::UI::TextureSizes LabSizes()
+Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x72a, {128, 128}},
                                             {0x72b, {256, 64}},
@@ -104,7 +104,7 @@ TEST(EscapeWindowTest, TheSelectionFrameHasTen)
 // piedra y los lados repiten su textura (0x647370).
 TEST(EscapeWindowTest, TheFrameIsFiveImages)
 {
-    const auto images = Client::UI::EscapeFrameImages(Rect{213, 162, 213, 155}, LabSizes());
+    const auto images = Client::FrontEnd::EscapeFrameImages(Rect{213, 162, 213, 155}, LabSizes());
 
     EXPECT_EQ(images[0].slot, Client::Render::TextureSlot{0x72a});
     EXPECT_EQ(images[0].x, 216);

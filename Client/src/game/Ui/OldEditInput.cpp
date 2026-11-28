@@ -13,7 +13,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::UI
+namespace Client::Ui
 {
 void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Platform::IClipboard* clipboard,
                        const Render::Text::ITextMeasure* measure, const std::function<void(std::int32_t)>& focusNext)
@@ -130,4 +130,4 @@ void SetTheEditComposition(OldEdit& edit, std::string_view text, std::int32_t st
     edit.compositionStart = text.empty() ? 0 : start;
     edit.compositionLength = text.empty() ? 0 : length;
 }
-} // namespace Client::UI
+} // namespace Client::Ui

@@ -28,7 +28,7 @@
 #include <string_view>
 
 // Cotejado con el PE c32bbd5f: 0x510ef0 (el llamador), 0x51e0cb (el alta del 0x140) y 0x529f0c (su paso).
-namespace Client::Scenes
+namespace Client::Effects
 {
 namespace
 {
@@ -44,21 +44,21 @@ double MarkHeight(const glm::vec3& bonePoint, const Kernel::ActorState& owner)
 
 // El lugar del 0x140 en la tabla de los efectos con modelo, que sus chispas guardan de dueño (+0x40): el ebx que
 // empujan 0x529f5b y 0x52a134.
-Core::Expected<World::ParticleOwner, std::string>
-MarkAsOwner(const World::ModelEffect& effect, const HighEffectStepContext& context, std::string_view address)
+Core::Expected<Particles::ParticleOwner, std::string>
+MarkAsOwner(const Effects::ModelEffect& effect, const HighEffectStepContext& context, std::string_view address)
 {
     const auto pool = context.world.Map().effects.Effects();
     const auto found =
-        std::ranges::find_if(pool, [&](const World::ModelEffect& candidate) { return &candidate == &effect; });
+        std::ranges::find_if(pool, [&](const Effects::ModelEffect& candidate) { return &candidate == &effect; });
     if (found == pool.end())
         return Core::Unexpected(std::format("{}: el 0x140 fuera de su pool durable", address));
-    return World::ParticleOwner{World::ParticleOwnerKind::ModelEffect,
-                                static_cast<std::uint64_t>(found - pool.begin())};
+    return Particles::ParticleOwner{Particles::ParticleOwnerKind::ModelEffect,
+                                    static_cast<std::uint64_t>(found - pool.begin())};
 }
 
 // 0x52a0c2..0x52a16e: la chispa 0x5c5/5 de la vida 40..59, con el 5 que 0x5208a0 dejó en edi (0x5208df) de divisor y
 // de subtipo, y la marca de dueño (0x52a134: push ebx), cuya posición lee al nacer (0x5403ad) para su partida.
-Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> SparkTheMark(const Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int FullTurn = Math::FullTurn;         // 0x168
     constexpr int RadiusSpan = 26, RadiusShift = 13; // 0x1a y 0xd
@@ -84,7 +84,7 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
     const auto owner = MarkAsOwner(effect, context, "0x52a134");
     if (!owner.HasValue())
         return Core::Unexpected(owner.Error());
-    World::PortableParticleTrigonometry trigonometry;
+    Particles::PortableParticleTrigonometry trigonometry;
     const auto made = context.world.Particles().CreateTowardChecked(
         Spark, point, effect.transform.angles, effect.light, SparkSubtype, SparkScale, std::cref(context.worldClock),
         context.random, trigonometry, owner.Value(), position);
@@ -95,9 +95,9 @@ Core::Expected<void, std::string> SparkTheMark(const World::ModelEffect& effect,
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, std::size_t slot,
+Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect, std::size_t slot,
                                                     const Kernel::ActorState& owner, const glm::vec3& bonePoint,
-                                                    World::Particles& particles, Crt::CrtRandom& random,
+                                                    Particles::Particles& particles, Crt::CrtRandom& random,
                                                     float worldClock)
 {
     constexpr float Tilt = 45.0f; // 0x42340000
@@ -117,8 +117,8 @@ Core::Expected<void, std::string> BeginTheGuildMark(World::ModelEffect& effect, 
     constexpr int FullTurn = Math::FullTurn, RadiusSpan = 20, RadiusBase = 15; // 0x168, 0x14 y 0xf
     constexpr std::int32_t Spark = 0x5c6, SparkSubtype = 4;
     constexpr float SparkScale = std::bit_cast<float>(0x3f19999au); // 0,6f
-    World::PortableParticleTrigonometry trigonometry;
-    const World::ParticleOwner sparkOwner{World::ParticleOwnerKind::ModelEffect, slot};
+    Particles::PortableParticleTrigonometry trigonometry;
+    const Particles::ParticleOwner sparkOwner{Particles::ParticleOwnerKind::ModelEffect, slot};
     for (int spark = 0; spark < Sparks; ++spark)
     {
         const float turn = static_cast<float>(random.Next() % FullTurn);
@@ -158,7 +158,7 @@ bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock)
 }
 
 Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint,
-                                                    World::ModelEffects& effects, World::Particles& particles,
+                                                    Effects::ModelEffects& effects, Particles::Particles& particles,
                                                     Crt::CrtRandom& random, float worldClock)
 {
     if (!GuildMarkIsDue(actor, worldClock))
@@ -177,7 +177,7 @@ Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, c
     return {};
 }
 
-Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, const HighEffectStepContext& context)
+Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
     if (owner == nullptr)
@@ -237,4 +237,4 @@ Core::Expected<void, std::string> StepTheGuildMark(World::ModelEffect& effect, c
         return SparkTheMark(effect, context);
     return {};
 }
-} // namespace Client::Scenes
+} // namespace Client::Effects

@@ -10,7 +10,7 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::World
+namespace Client::Particles
 {
 // 0x51fe10: los veinte intentos de chispa y, con el segundo argumento distinto de cero, la explosión.
 // Devuelve si se creó la explosión: sólo en ese caso el caller publica el sonido 0x40 de 0x542a7c.
@@ -22,4 +22,4 @@ namespace Client::World
 // Cada intento consume sus dos sorteos antes de buscar slot; un pool lleno no frena la ráfaga.
 [[nodiscard]] Core::Expected<void, ParticleError> CreatePushBurst(Particles& particles, const glm::vec3& position,
                                                                   Crt::CrtRandom& random);
-} // namespace Client::World
+} // namespace Client::Particles

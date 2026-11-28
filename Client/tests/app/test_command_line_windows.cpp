@@ -17,7 +17,7 @@ namespace
 {
 using Client::App::CommandLine;
 using Client::App::CommandLineExit;
-using Client::App::ServerAddress;
+using Client::Session::ServerAddress;
 using Client::Tests::Contains;
 using Client::Tests::ExitOf;
 using Client::Tests::Parsed;

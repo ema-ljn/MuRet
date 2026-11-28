@@ -50,8 +50,8 @@ public:
     std::function<void()> onStartConnect;
 
     // Lo que pasó.
-    std::vector<std::byte> sent;              // todo lo que tomó Send, en orden
-    std::vector<App::ServerAddress> connects; // el host y el puerto de cada StartConnect
+    std::vector<std::byte> sent;                  // todo lo que tomó Send, en orden
+    std::vector<Session::ServerAddress> connects; // el host y el puerto de cada StartConnect
     // Intentos de Send, incluidos los que fallan o no toman bytes.
     std::size_t sendAttempts = 0;
     int closes = 0; // cada Close(), y cada StartConnect con uno abierto

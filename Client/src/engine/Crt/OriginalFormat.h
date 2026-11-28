@@ -12,7 +12,7 @@
 #include <variant>
 
 // The original's sprintf and wsprintfA with their arguments as they are, for the Text.bmd texts the original uses as
-// formats. Unlike UI::PlaceArguments it looks at each argument's type: a text is passed by its address (g_GlobalText,
+// formats. Unlike Ui::PlaceArguments it looks at each argument's type: a text is passed by its address (g_GlobalText,
 // 0x76bd1dc + index · 300), and a "%d" that takes it prints that address, as the original does with texts 853 and 868
 // of the Spanish Data.
 namespace Client::Crt

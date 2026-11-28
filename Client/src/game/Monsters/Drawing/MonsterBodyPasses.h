@@ -29,11 +29,15 @@ namespace Client::Models
 struct ClothWorld;
 } // namespace Client::Models
 
-namespace Client::World
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Effects
 {
 class ModelEffects;
-class Particles;
-} // namespace Client::World
+} // namespace Client::Effects
 
 namespace Client::Kernel
 {
@@ -48,6 +52,10 @@ class IEffectHooks;
 namespace Client::Scenes
 {
 struct JointState;
+} // namespace Client::Scenes
+
+namespace Client::Monsters::Drawing
+{
 
 // Lo que 0x4ef0c0 (RenderBody) y 0x4ecc30 (RenderMesh) reciben después de las banderas: el alpha, el blendMesh, su
 // luz, la U, la V, la malla oculta (solo RenderBody) y la textura (−1: la de cada malla; si no, ese slot).
@@ -119,18 +127,18 @@ struct MonsterBodyFrame
     // 0x7d325c8, el temblor de la cámara (GameCharacterPass::cameraShake). nullptr: corta si un caso lo escribe.
     float* cameraShake = nullptr;
     // 4ee770 consume el mismo pool de518cf0 que el resto del frame.
-    World::ModelEffects* effects = nullptr;
+    Effects::ModelEffects* effects = nullptr;
     // Who creates the stones and shells of 0x4ee770 (GameCharacterPass::effectHooks). nullptr: they stop.
     const Actors::IEffectHooks* effectHooks = nullptr;
     // Las partículas del frame (0x53fe70), para los 0x607/2 de 0x4ee770 al morir los 0x191..0x197 (0x43ed6c).
-    World::Particles* particles = nullptr;
+    Particles::Particles* particles = nullptr;
     // 0x5f93c0, la altura del terreno que piden las altas de los pedazos de Kundun al caer (0x51e26e). Vacía, esas
     // altas cortan.
     std::function<double(float, float)> terrainHeight{};
     // 0x530860: la tabla de joints (0x74a8d78, WorldState::DrawTail), para los rayos de Kundun al morir (0x43f20d),
     // que sólo la tocan en un frame del original; entre frames, la copia proyectada (GameCharacterPass::joints).
     // Vacía: corta ahí.
-    std::span<JointState> joints{};
+    std::span<Scenes::JointState> joints{};
 };
 
 // 0x41ed10(id, objeto, 0) en un frame del original: lo anota para CL10.
@@ -138,4 +146,4 @@ void RequestBodySound(MonsterBodyFrame& frame, Audio::SoundId sound);
 
 // 0x7d3a0f0: el contador de pasos lógicos, con los 4 rand() de su cierre si no hay otro acceso abierto.
 [[nodiscard]] std::int32_t ReadLogicSteps(MonsterBodyFrame& frame);
-} // namespace Client::Scenes
+} // namespace Client::Monsters::Drawing

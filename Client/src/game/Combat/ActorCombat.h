@@ -39,6 +39,10 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 struct WorldEntryResources;
+} // namespace Client::Scenes
+
+namespace Client::Combat
+{
 
 // La tabla de sonidos de un modelo (ModelSounds, de 0x612c80), para los tests: sin ella, la de
 // WorldRuntime::modelSounds, que escribe el alta de cada monstruo (0x612d90 desde 0x5141e0, MonsterSounds.h).
@@ -65,7 +69,7 @@ struct ActorCombatContext
     // The models a creation loads (Assets::AssetsState::fauna). nullptr: readers find no model, writers stop.
     Assets::FaunaModels* faunaModels = nullptr;
 };
-[[nodiscard]] ActorCombatContext CombatContextOf(const WorldEntryResources& resources);
+[[nodiscard]] ActorCombatContext CombatContextOf(const Scenes::WorldEntryResources& resources);
 
 // 0x4f4a10, SetPlayerAttack: la acción de pegar según el modelo, las armas y la montura, el sonido con el frame en 0
 // (en WorldRuntime::lastSoundId, para la CL10) y +0x38f + 1. La llaman el ataque del héroe al llegar (0x5650c0) y las
@@ -77,4 +81,4 @@ struct ActorCombatContext
 // sonido (lastSoundId) y el frame en 0,001.
 [[nodiscard]] Core::Expected<void, std::string> SetActorDie(Kernel::ActorState& actor,
                                                             const ActorCombatContext& context);
-} // namespace Client::Scenes
+} // namespace Client::Combat

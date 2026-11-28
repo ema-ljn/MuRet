@@ -9,12 +9,12 @@
 // Las primitivas que comparten las ventanas del paso que son marco (CL8 hito 6, 08 P-C92): la party (0x5f0be0) y los
 // comandos (0x40a650). En 640 × 480, con el estado de GL que dejan y los globales de los textos (0x6c8e5c, 0x6c8e64,
 // la fuente del DC y 0x77f31b8/0x77f31bc) en HudState.
-namespace Client::Scenes
+namespace Client::Hud
 {
 struct GameHudContext;
 }
 
-namespace Client::Scenes::WindowDrawing
+namespace Client::Hud::WindowDrawing
 {
 // 0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa, con el color y la
 // mezcla que haya.
@@ -73,4 +73,4 @@ void DrawCenteredText(GameHudContext& context, std::int32_t x, std::int32_t y, s
 // Lo que sigue con el mouse sobre el botón de cerrar: la fuente normal, los colores −1 y 0xff000000 y la ayuda
 // (0x554340) en (_ftol(x + 25), _ftol(y + 395) − 13), que deja la fuente normal y los colores −1 y 0.
 void DrawTheCloseHelp(GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help);
-} // namespace Client::Scenes::WindowDrawing
+} // namespace Client::Hud::WindowDrawing

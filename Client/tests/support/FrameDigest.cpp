@@ -309,14 +309,14 @@ std::uint64_t StateOf(const Kernel::WorldState& world)
     writer.Add(own.life);
     writer.Add(own.mana);
     writer.Add(own.zen);
-    const UI::PanelState& panels = runtime.panels;
+    const Ui::PanelState& panels = runtime.panels;
     for (const std::uint8_t open : {panels.inventory, panels.character, panels.party, panels.warehouse, panels.chaosBox,
                                     panels.personalShop, panels.npcShop, panels.trade, panels.eventNpc})
     {
         writer.Add(open);
     }
     writer.Add(static_cast<std::uint64_t>(runtime.chat.log.entries.size()));
-    for (const UI::ChatEntry& entry : runtime.chat.log.entries)
+    for (const Chat::ChatEntry& entry : runtime.chat.log.entries)
     {
         writer.Add(std::string_view{entry.name});
         writer.Add(std::string_view{entry.text});

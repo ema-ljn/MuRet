@@ -11,10 +11,9 @@
 #include <string>
 #include <string_view>
 
-// Las cartas y el chat con un amigo del juego (CL9 hito 10; 04 § Las cartas y el chat con un amigo, y 06 § HUD y
-// ventanas): los paquetes C5..C8 (0x4dc840..0x4dcd90), el CA y el CB (0x4dce10 y 0x4dd020) y lo que llega por la
-// conexión de una sala (0x4e2a60), sobre el administrador de las ventanas viejas y los modelos de [0x576351c] y
-// [0x5763520].
+// The game's letters and chat with a friend (CL9 milestone 10; 04 § Las cartas y el chat con un amigo, and 06 § HUD y
+// ventanas): packets C5..C8 (0x4dc840..0x4dcd90), the CA and the CB (0x4dce10 and 0x4dd020) and what arrives through a
+// room's connection (0x4e2a60), over the old windows' manager and the models at [0x576351c] and [0x5763520].
 namespace Client::Messenger
 {
 struct ChatRooms;
@@ -28,54 +27,55 @@ struct ChatReceiveContext;
 namespace Client::Messenger
 {
 
-// 0x4dc840: 0, 2, 3, 4, 6 y 7, la ventana de escribir (si viene) sin el envío pendiente (+0x778 = 0, Q-C1001) y una
-// caja con el texto 1053, 1061, 1064, 1065, 1068 o 423; 1, la ventana se cierra (el 4) y el texto 1046 con el costo
-// (1000) al chat.
+// 0x4dc840: 0, 2, 3, 4, 6 and 7, the writing window (if given) without the pending send (+0x778 = 0, Q-C1001) and a
+// box with text 1053, 1061, 1064, 1065, 1068 or 423; 1, the window closes (the 4) and text 1046 with the cost (1000)
+// to the chat.
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyLetterSendResult(const Protocol::Messenger::LetterSendResult& result, const Chat::ChatReceiveContext& context);
 
-// 0x4dc9e0: con el tipo 0 o 1, la carta al modelo y el orden por la fecha (2); con el 2, el sonido 0x29, la marca de
-// carta nueva (0x4a6420), el texto 1062 al chat, la carta como no leída y el orden que estaba (−1); después, la pestaña
-// de las cartas (0x4a0960) y, con el tope de 0x5767970 alcanzado, el texto 1073.
+// 0x4dc9e0: with type 0 or 1, the letter to the model and the order by date (2); with 2, sound 0x29, the new-letter
+// mark (0x4a6420), text 1062 to the chat, the letter as unread and the order it had (−1); then, the letters tab
+// (0x4a0960) and, with 0x5767970's limit reached, text 1073.
 [[nodiscard]] Core::Expected<void, std::string> ApplyLetterRow(const Protocol::Messenger::LetterRow& row,
                                                                const Chat::ChatReceiveContext& context);
 
-// 0x4dcb70: la copia del paquete (0x4a03c0), la carta como leída (+0x134 = 1), la pestaña, la ventana de leer (el 6
-// con el texto 1054 y el asunto, en (100, 100) o donde la dejó la anterior), el cuerpo (0x499cb0), la ventana en +0x94
-// (0x491720) y el retrato (la clase, el equipo, la acción, el ángulo y el zoom) salvo la carta de "webzen"; el 0xe a la
-// ventana.
+// 0x4dcb70: the packet's copy (0x4a03c0), the letter as read (+0x134 = 1), the tab, the read window (the 6 with text
+// 1054 and the subject, at (100, 100) or where the previous one left it), the body (0x499cb0), the window at +0x94
+// (0x491720) and the portrait (class, gear, action, angle and zoom) except for the "webzen" letter; the 0xe to the
+// window.
 [[nodiscard]] Core::Expected<void, std::string> ApplyLetterRead(const Protocol::Messenger::LetterRead& letter,
                                                                 const Chat::ChatReceiveContext& context);
 
-// 0x4dccbd..0x4dccd2: _strnicmp(nombre, "webzen", 10) == 0. 0x6a3450 pasa 'A'..'Z' a minúscula y corta en el primer 0
-// de cualquiera de los dos: el nombre tiene que ser "webzen", con mayúsculas o no.
+// 0x4dccbd..0x4dccd2: _strnicmp(name, "webzen", 10) == 0. 0x6a3450 lowercases 'A'..'Z' and stops at the first 0 of
+// either: the name has to be "webzen", in capitals or not.
 [[nodiscard]] bool LetterFromWebzen(std::string_view name);
 
-// 0x4dcd90: 0, la caja con el texto 1055; 1, la carta fuera del modelo y su copia (0x49ee20 y 0x4a0500). Después, la
-// pestaña.
+// 0x4dcd90: 0, the box with text 1055; 1, the letter out of the model and its copy (0x49ee20 and 0x4a0500). Then, the
+// tab.
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyLetterDeleteResult(const Protocol::Messenger::LetterDeleteResult& result, const Chat::ChatReceiveContext& context);
 
-// 0x4dce10: 0 y 2, el amigo fuera de los pedidos (0x4a6bc0) y la caja 1069 o 1070; 1, según el tipo, el chat que pedí
-// (el 1), el que ya estaba con el amigo (sale de su sala) o uno minimizado y al fondo (el 2), y la sala (0x493530).
+// 0x4dce10: 0 and 2, the friend out of the requests (0x4a6bc0) and box 1069 or 1070; 1, by type, the chat I asked for
+// (the 1), the one already open with the friend (it leaves its room) or a minimized one at the back (the 2), and the
+// room (0x493530).
 [[nodiscard]] Core::Expected<void, std::string> ApplyRoomAnswer(const Protocol::Messenger::RoomAnswer& answer,
                                                                 const Chat::ChatReceiveContext& context);
 
-// 0x4dd020: el resultado de invitar en el chat de la ventana: 0, el texto 1056; 1, el invitado y el 1057; 3, el 1074.
+// 0x4dd020, in the window's chat: 0, text 1056; 1, the invited one and the 1057; 3, the 1074.
 [[nodiscard]] Core::Expected<void, std::string> ApplyInviteResult(const Protocol::Messenger::InviteResult& result,
                                                                   const Chat::ChatReceiveContext& context);
 
-// 0x4e2a60: lo que llega por la conexión de la sala del chat `window` (00, 01, 02, 04 y 0D; App::ChatRoomPacket). Uno
-// más corto que lo que lee su handler no hace nada (Q-C1011).
+// 0x4e2a60: what arrives through the room connection of chat `window` (00, 01, 02, 04 and 0D; App::ChatRoomPacket).
+// One shorter than what its handler reads does nothing (Q-C1011).
 [[nodiscard]] Core::Expected<void, std::string> ApplyRoomPacket(std::int32_t window, const Network::Packet& packet,
                                                                 const Chat::ChatReceiveContext& context);
 
-// El cierre de la conexión de una sala (App::ChatRoomClosed): abierta, el FD_CLOSE de 0x49e480, el 402 al chat; sin
-// abrir, la sala se olvida y su lugar queda tomado (Q-C1005).
+// The close of a room's connection (App::ChatRoomClosed): open, 0x49e480's FD_CLOSE, the 402 to the chat; not opened,
+// the room is forgotten and its slot stays taken (Q-C1005).
 [[nodiscard]] Core::Expected<void, std::string> ApplyChatRoomClosed(const App::ChatRoomClosed& closed,
                                                                     const Chat::ChatReceiveContext& context);
 
-// Lo que las ventanas dejaron para las salas (Messenger::ChatRooms::orders), en orden: el C1 04, el C1 03 01 y el
-// cierre, o el C1 03 05. Sin las conexiones, se descarta.
+// What the windows left for the rooms (Messenger::ChatRooms::orders), in order: the C1 04, the C1 03 01 and the close,
+// or the C1 03 05. Without the connections, it is discarded.
 void FlushTheChatRoomOrders(Messenger::ChatRooms& rooms, App::IChatRoomLinks* links);
 } // namespace Client::Messenger

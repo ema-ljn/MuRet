@@ -14,9 +14,9 @@
 #include <string>
 #include <string_view>
 
-// Lo que hacen el comercio, la party y el duelo que llegan (CL9 hito 7; 04 § El comercio, § La party y § El duelo):
-// los casos del dispatcher 0x4e2b10 y sus funciones, sobre los globales de SocialState. Lo que corta lo dice con la
-// dirección y la ola.
+// What the incoming trade, party and duel do (CL9 milestone 7; 04 § El comercio, § La party and § El duelo): the cases
+// of dispatcher 0x4e2b10 and their functions, over SocialState's globals. What fails says so with the address and the
+// wave.
 namespace Client::Core
 {
 class Log;
@@ -46,131 +46,133 @@ namespace Client::Social
 {
 struct TradeState;
 
-// Un paquete que sale (Protocol::Outgoing), como lo manda la sesión.
 using GamePacketSender = std::function<void(Protocol::Outgoing)>;
 
-// 0x4d4af0 con el 36 cifrado. Sin la tienda personal (0x800) ni la ajena (0x20000) abiertas, que no sacan rand():
-// 0x78aba26 en 0, el nombre en 0x78aba1c, el diálogo 0x78 (0x6236f0) y, con un ítem en el cursor, 0x5be150. Con alguna
-// abierta, el C1 04 37 00 que devuelve para mandar en claro, sin tocar nada.
+// 0x4d4af0 with the encrypted 36. With neither the personal shop (0x800) nor another's (0x20000) open, which take no
+// rand(): 0x78aba26 at 0, the name in 0x78aba1c, dialog 0x78 (0x6236f0) and, with an item on the cursor, 0x5be150.
+// With either open, the C1 04 37 00 it returns to send in the clear, touching nothing.
 [[nodiscard]] Core::Expected<std::optional<Protocol::Outgoing>, std::string>
 ApplyTradeRequest(const Protocol::Social::TradeRequest& request, const Scenes::WorldEntryResources& resources);
 
-// 0x4d4b22..0x4d5238, el 36 en claro: el aviso C1 06 F1 03 00 36 en C3, con sus dos rand() (el relleno y el serial).
+// 0x4d4b22..0x4d5238, the 36 in the clear: the warning C1 06 F1 03 00 36 in C3, with its two rand() (the padding and
+// the serial).
 [[nodiscard]] Protocol::Outgoing ApplyClearTradeRequest(Crt::CrtRandom& random);
 
-// 0x4d5570: 0 el texto 492 y 2 el 493 (tipo 2); con 1, Open(0x20), el pedido de SetCursorPos, los zen y los OK en 0,
-// 0x5bbdf0 si 0x78abaa5 está en 0 y el nombre cambió (strcmp), y el nombre, el gremio y el nivel del otro.
+// 0x4d5570: 0 text 492 and 2 text 493 (type 2); with 1, Open(0x20), the SetCursorPos request, the zen and the OKs at
+// 0, 0x5bbdf0 if 0x78abaa5 is at 0 and the name changed (strcmp), and the other's name, guild and level.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeResponse(const Protocol::Social::TradeResponse& response,
                                                                    const Scenes::WorldEntryResources& resources);
 
-// 0x4e3d6a: 0x5bd750(lugar, 0x78a5a20, 8) (con 0x5bc5e0 antes y 0x5bc470 después) y el sonido 0x1d. Un lugar desde 32
-// (que no sea 0xff), una huella que pasa la grilla o un undécimo ítem igual a su copia (Q-C961) llevan al original
-// fuera de la grilla o de la pila: se descarta el paquete entero, sin sonido, con un aviso en el log (Q-C200).
+// 0x4e3d6a: 0x5bd750(slot, 0x78a5a20, 8) (with 0x5bc5e0 before and 0x5bc470 after) and sound 0x1d. A slot from 32
+// (other than 0xff), a footprint that runs past the grid or an eleventh item equal to its copy (Q-C961) take the
+// original outside the grid or the stack: the whole packet is discarded, without sound, with a warning in the log
+// (Q-C200).
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemRemoved(const Protocol::Social::TradeItemRemoved& removed,
                                                                       const Scenes::WorldEntryResources& resources);
 
-// 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, lugar, ítem, 1), con 0x5bc470 al final, y el sonido 0x1d. Una huella que pasa la
-// casilla 31 (Q-C200) se descarta antes de escribir y de los rand() de 0x54bf40; un duodécimo ítem igual a su copia
-// (0x5bc545, Q-C961), después de ponerlo en una copia del comercio, que se tira con los rand() que sacó. Los dos, sin
-// sonido y con un aviso en el log. El undécimo se pierde de la lista y en su lugar se compara el 1 de la cuenta.
+// 0x4e3d99: 0x5bc740(0x78a5a20, 8, 4, slot, item, 1), with 0x5bc470 at the end, and sound 0x1d. A footprint that runs
+// past cell 31 (Q-C200) is discarded before writing and before 0x54bf40's rand(); a twelfth item equal to its copy
+// (0x5bc545, Q-C961), after putting it in a copy of the trade, which is thrown away with the rand() it took. Both
+// without sound and with a warning in the log. The eleventh drops out of the list and the count's 1 is compared in its
+// place.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeItemAdded(const Protocol::Social::TradeItemAdded& added,
                                                                     const Scenes::WorldEntryResources& resources);
 
-// 0x4e3dd0: 0x78abab8 con el zen mandado (0x57678ac) si lo aceptó, o 0.
+// 0x4e3dd0: 0x78abab8 with the sent zen (0x57678ac) if it accepted it, or 0.
 void ApplyTradeMoneyResult(const Protocol::Social::TradeMoneyResult& result, Kernel::WorldState& world);
 
-// 0x4e3df3: el zen del otro en 0x78abab4.
+// 0x4e3df3: the other's zen into 0x78abab4.
 void ApplyTradeOtherMoney(const Protocol::Social::TradeOtherMoney& money, Kernel::WorldState& world);
 
-// 0x4e3e0a: 0 apaga el OK del otro, 1 lo prende y 2 apaga el propio; siempre el sonido 0x19.
+// 0x4e3e0a: 0 turns the other's OK off, 1 turns it on and 2 turns the own off; always sound 0x19.
 void ApplyTradeOkState(const Protocol::Social::TradeOkState& state, Kernel::WorldState& world);
 
-// 0x4d57f0: con la traba 0x78abb39, lo guarda para 0x4d1400 (una vez); si no, los textos 494 (con 0x5bc5e0 en cada
-// ítem del otro), 495 y 496 (con el diálogo 0), la cuenta del cursor en 0, el cierre del diálogo 0x73 y
-// Close(0x20, 1), sin el 3D.
+// 0x4d57f0: with the lock 0x78abb39, stores it for 0x4d1400 (once); otherwise texts 494 (with 0x5bc5e0 on each of the
+// other's items), 495 and 496 (with dialog 0), the cursor's count at 0, the closing of dialog 0x73 and Close(0x20, 1),
+// without the 3D.
 [[nodiscard]] Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::TradeResult& result,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x5bc107..0x5bc13f, la cola de 0x5bbe10 (desde 0x633f20, al entrar a la selección, antes de cualquier comercio):
-// 0x78abaa5 en 0 y las 32 entradas de las dos grillas (0x78a5a20 y 0x78a92a8) y de la copia (0x77f3dc8) con el tipo en
-// −1 y +0x3c en 0. Sin rand().
+// 0x5bc107..0x5bc13f, the tail of 0x5bbe10 (from 0x633f20, on entering the selection, before any trade): 0x78abaa5 at
+// 0 and the 32 entries of the two grids (0x78a5a20 and 0x78a92a8) and of the copy (0x77f3dc8) with the type at −1 and
+// +0x3c at 0. No rand().
 void ClearTheTradeForSelection(TradeState& trade);
 
-// 0x657fb5..0x6584a4, el cierre del comercio dentro de 0x657ab0: con `aux` en 0, el C1 03 3D en C3 (dos rand() antes
-// de mandarlo por `send`; sin él corta); después las 32 casillas de 0x78a92a8 y de 0x78a5a20 vacías (tipo −1 y +0x3c
-// en 0), con 0x5bbdf0 en cada vuelta si 0x78abaa5 está en 1.
+// 0x657fb5..0x6584a4, the trade's close inside 0x657ab0: with `aux` at 0, the C1 03 3D in C3 (two rand() before
+// sending it through `send`; without it, fails); then the 32 cells of 0x78a92a8 and 0x78a5a20 emptied (type −1 and
+// +0x3c at 0), with 0x5bbdf0 on each pass if 0x78abaa5 is at 1.
 [[nodiscard]] Core::Expected<void, std::string> CloseTheTradeGrids(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                    bool aux, const GamePacketSender& send);
 
-// 0x5bc300(a, b): 2 con otro tipo; 0 con otro +9; si no, el nivel ((+4 >> 3) & 0xf), el bit 7 de +4, las
-// excelentes (+0x1b & 0x3f), la cuenta de opciones (+0x2a), la opción de 0x50 a 0x53 (+0x2b, el valor en +0x33) y la
-// durabilidad (+0x1a), en ese orden: −1 si `a` tiene menos, 1 si tiene más, 0 si todo es igual.
+// 0x5bc300(a, b): 2 with another type; 0 with another +9; otherwise the level ((+4 >> 3) & 0xf), bit 7 of +4, the
+// excellents (+0x1b & 0x3f), the option count (+0x2a), the option from 0x50 to 0x53 (+0x2b, the value at +0x33) and
+// the durability (+0x1a), in that order: −1 if `a` has less, 1 if more, 0 if all equal.
 [[nodiscard]] std::int32_t CompareTradeItems(const Kernel::ItemState& a, const Kernel::ItemState& b);
 
-// 0x4e3f41: la clave del que invita en 0x78aba4c y el diálogo 0x77.
+// 0x4e3f41: the inviter's key into 0x78aba4c and dialog 0x77.
 void ApplyPartyRequest(const Protocol::Party::PartyRequest& request, Kernel::WorldState& world);
 
-// 0x4e3f6f: los textos 497 a 501 y 535 (tipo 2) para 0 a 5, y el diálogo 0 siempre.
+// 0x4e3f6f: texts 497 to 501 and 535 (type 2) for 0 to 5, and dialog 0 always.
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyPartyRequestResult(const Protocol::Party::PartyRequestResult& result,
                         const Scenes::WorldEntryResources& resources);
 
-// 0x4d67e0: la cuenta en 0x78aba48 y cada miembro en su lugar de 0x77f3cd0, con 0 en +0xa. Con más de cinco el
-// original escribe pasado el arreglo (Q-C960): se descarta el paquete entero, con un aviso en `log`.
+// 0x4d67e0: the count into 0x78aba48 and each member in its slot of 0x77f3cd0, with 0 at +0xa. With more than five
+// the original writes past the array (Q-C960): the whole packet is discarded, with a warning in `log`.
 void ApplyPartyList(const Protocol::Party::PartyList& list, Kernel::WorldState& world, Core::Log& log);
 
-// 0x4e409b: la cuenta en 0, el texto 502 (tipo 2) y, con 0x6c8e50 en 0 o más, 0x6c8e50 en −1.
+// 0x4e409b: the count at 0, text 502 (type 2) and, with 0x6c8e50 at 0 or more, 0x6c8e50 at −1.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPartyLeft(const Protocol::Party::PartyLeft&,
                                                                const Scenes::WorldEntryResources& resources);
 
-// 0x4e4174: por cada byte, +0x18 del lugar del nibble alto con el bajo (hasta 10). Con un lugar de 5 o más el original
-// escribe pasado el arreglo (Q-C960): se descarta el paquete entero, con un aviso en `log`.
+// 0x4e4174: for each byte, +0x18 of the high nibble's slot with the low one (up to 10). With a slot of 5 or more the
+// original writes past the array (Q-C960): the whole packet is discarded, with a warning in `log`.
 void ApplyPartyLife(const Protocol::Party::PartyLife& life, Kernel::WorldState& world, Core::Log& log);
 
-// 0x4dac90: con el resultado, el duelo en curso, la clave, el nombre, el texto 912 con el nombre (tipo 2) y el sonido
-// 0x8d; sin él, el nombre y el texto 913.
+// 0x4dac90: with the result, the duel on, the key, the name, text 912 with the name (type 2) and sound 0x8d; without
+// it, the name and text 913.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDuelStart(const Protocol::Social::DuelStart& start,
                                                                const Scenes::WorldEntryResources& resources);
 
-// 0x4e4d10: el duelo terminado, la clave, el nombre, el texto 914 (tipo 2) y, con el tiempo del F3 22 del tipo 2
-// (0x5767814), el tiempo en 0 (0x5767816): 0x5a7eb0 deja de dibujarlo.
+// 0x4e4d10: the duel ended, the key, the name, text 914 (type 2) and, with the F3 22's time of type 2 (0x5767814),
+// the time at 0 (0x5767816): 0x5a7eb0 stops drawing it.
 [[nodiscard]] Core::Expected<void, std::string> ApplyDuelEnd(const Protocol::Social::DuelEnd& end,
                                                              const Scenes::WorldEntryResources& resources);
 
-// 0x4e4d75: con el diálogo 0x9a abierto, nada; si no, la clave, el nombre, el pedido (0x78abad9) y el sonido 0x8c.
+// 0x4e4d75: with dialog 0x9a open, nothing; otherwise the key, the name, the request (0x78abad9) and sound 0x8c.
 void ApplyDuelRequest(const Protocol::Social::DuelRequest& request, Kernel::WorldState& world);
 
-// 0x4e4dd1: los puntos según cuál de las dos claves es la del rival; con ninguna, nada.
+// 0x4e4dd1: the scores by which of the two keys is the rival's; with neither, nothing.
 void ApplyDuelScore(const Protocol::Social::DuelScore& score, Kernel::WorldState& world);
 
-// 0x4dae80 (3F 00): por cada entrada, el personaje de la clave (0x5110d0); del 0 al 399, AddShopTitle con la clave, el
-// personaje y el título.
+// 0x4dae80 (3F 00): for each entry, the key's character (0x5110d0); from 0 to 399, AddShopTitle with the key, the
+// character and the title.
 void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, Kernel::WorldState& world);
 
-// 0x4db700 (3F 02): con 1, 0x78aba50 en 1 y AddShopTitle del héroe publicado (0x743a170) con su clave (MOVSX de +0x1f4)
-// y el título propio (0x78aba64); si no, solo el log "Fault ReceiveCreatePersonalShop" (0x6c84d0).
+// 0x4db700 (3F 02): with 1, 0x78aba50 at 1 and AddShopTitle of the published hero (0x743a170) with its key (MOVSX of
+// +0x1f4) and the own title (0x78aba64); otherwise only the log "Fault ReceiveCreatePersonalShop" (0x6c84d0).
 void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, Kernel::WorldState& world);
 
-// 0x4e4ea5 (3F 03): con 1, el personaje de la clave; del 0 al 399, si es el héroe publicado 0x78aba50 en 0, y su cartel
-// sale del mapa (0x451430). Con otro resultado, solo el log (0x6c8504).
+// 0x4e4ea5 (3F 03): with 1, the key's character; from 0 to 399, if it is the published hero, 0x78aba50 at 0, and its
+// sign leaves the map (0x451430). With another result, only the log (0x6c8504).
 void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, Kernel::WorldState& world);
 
-// 0x4e4f5d (3F 08): el nombre en 10 bytes terminados en el 11 y sprintf(Text[1122], nombre) con el tipo 1 y el nombre
-// vacío de 0x5767a8c. MuRet no usa el texto como formato más allá de un %s: con 0x70 bytes o más, corta.
+// 0x4e4f5d (3F 08): the name in 10 bytes terminated at the 11th and sprintf(Text[1122], name) with type 1 and
+// 0x5767a8c's empty name. MuRet does not use the text as a format beyond one %s: with 0x70 bytes or more, it fails.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::ShopNotice& notice,
                                                                 const Scenes::WorldEntryResources& resources);
 
-// 0x4dafe0 (3F 10): el personaje de la clave; del 0 al 399 y con el nombre igual (strncmp de 10 con +0x1d9),
-// AddShopTitle con el título.
+// 0x4dafe0 (3F 10): the key's character; from 0 to 399 and with the same name (strncmp of 10 with +0x1d9),
+// AddShopTitle with the title.
 void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, Kernel::WorldState& world);
 
-// 0x4e4fcc (3F 12): con 0x6c931c en 2, Close(0x800, 0), Close(0x20000, 0) y el texto 1126 con el tipo 2.
+// 0x4e4fcc (3F 12): with 0x6c931c at 2, Close(0x800, 0), Close(0x20000, 0) and text 1126 with type 2.
 [[nodiscard]] Core::Expected<void, std::string> ApplyShopOwnerLeft(const Protocol::PersonalShop::ShopOwnerLeft&,
                                                                    const Scenes::WorldEntryResources& resources,
                                                                    const GamePacketSender& send);
 
-// 0x555190("", el texto `text` de Text.bmd, `type`): los avisos de los paquetes sociales, con el buffer vacío de la
-// .bss como nombre (08 P-C72).
+// 0x555190("", Text.bmd text `text`, `type`): the social packets' notices, with the empty .bss buffer as the name
+// (08 P-C72).
 [[nodiscard]] Core::Expected<void, std::string> AddSocialNotice(const Scenes::WorldEntryResources& resources,
                                                                 std::size_t text, std::int32_t type,
                                                                 std::string_view where);

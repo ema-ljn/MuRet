@@ -36,10 +36,10 @@
 #include <utility>
 #include <vector>
 
-// La ventana del personaje en el paso de la UI (CL8 hito 5; 06 § HUD y ventanas, "La ventana del personaje"): abrirla
-// con la C (0x65c94b..0x65ca72, con 0x550d10), su paso (0x5e4510, los botones de puntos y el de cerrar) y el pedido
-// del caballo oscuro (0x424130 → 0x424230). Las cuentas de rand() salen del ASM y del modelo de la CRT; ninguna de una
-// corrida del original. Cada caso corre en Lorencia y en Devias.
+// The character window in the UI step (CL8 milestone 5; 06 § HUD y ventanas, "La ventana del personaje"): opening it
+// with C (0x65c94b..0x65ca72, with 0x550d10), its step (0x5e4510, the point buttons and the close one) and the dark
+// horse's request (0x424130 → 0x424230). The rand() counts come from the ASM and the CRT model; none from a run of the
+// original. Each case runs in Lorencia and in Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,22 +52,22 @@ using Client::Models::OwnRecordCloseRandoms;
 using Client::Protocol::Outgoing;
 using Client::Tests::SameBytes;
 
-// 0x5a05e5..0x5a10e2: el registro propio de la barra de skills; 0x5a343e..0x5a3587: las consultas del comercio y de
-// la tienda de NPC de Q, W y E; 0x5a5511: IsOpen(0), que con el personaje (0x2000000) pasa por las dos antes.
+// 0x5a05e5..0x5a10e2: the skill bar's own record; 0x5a343e..0x5a3587: the trade and NPC shop queries of Q, W and E;
+// 0x5a5511: IsOpen(0), which with the character (0x2000000) goes through both before.
 constexpr int BaseStepRandoms = OwnRecordCloseRandoms + 2 + 2;
-// Open(0x2000000): CanOpen consulta la tienda de NPC y el comercio, y la máscara de 0x657ab0 los dos de nuevo.
+// Open(0x2000000): CanOpen queries the NPC shop and the trade, and 0x657ab0's mask the two again.
 constexpr int OpenRandoms = 4;
-// La cola de 0x550d10 (0x5512bf..0x5513b1): el rand() del IDIV y los dos % 100. Los 33 cierres de 0x40e1b0 quedan
-// dentro del acceso de 0x65c9a4 y no sacan nada.
+// 0x550d10's tail (0x5512bf..0x5513b1): the IDIV's rand() and the two % 100. The 33 closes of 0x40e1b0 stay inside
+// the access of 0x65c9a4 and draw nothing.
 constexpr int TailRandoms = 3;
-// Los dos mapas de los tests de mundo: Lorencia y Devias.
+// Lorencia and Devias.
 constexpr std::array<std::int32_t, 2> Maps{0, 2};
-// Donde 0x5ee2e0 pone la ventana en cada frame (0x78aba14 y 0x78aba18).
+// Where 0x5ee2e0 places the window each frame (0x78aba14 and 0x78aba18).
 constexpr std::int32_t WindowX = 0x1c2;
 constexpr std::int32_t WindowY = 0;
-// Un tipo vacío del equipo: −1 en el WORD del tipo.
+// −1 in the type's WORD.
 constexpr std::uint16_t EmptyType = 0xffff;
-// La clase del Dark Lord (+0x1d4 & 7) y una que no lo es.
+// The Dark Lord's class (+0x1d4 & 7) and one that is not.
 constexpr std::uint8_t DarkLordClass = 4;
 constexpr std::uint8_t KnightClass = 1;
 
@@ -78,7 +78,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Item.bmd sin nada: 0x550d10 no suma nada de un lugar vacío.
+// An Item.bmd with nothing: 0x550d10 adds nothing from an empty slot.
 Client::Tables::ItemTable EmptyItems()
 {
     const std::vector<std::byte> encrypted = Client::Tests::EncryptRecords(
@@ -86,7 +86,6 @@ Client::Tables::ItemTable EmptyItems()
     return Client::Tables::ItemTable(std::span<const std::byte>(encrypted));
 }
 
-// Los conjuntos sin ningún tipo ni opción.
 Client::Tables::ItemSetTables EmptySets()
 {
     return Client::Tests::ItemSetTablesFrom(
@@ -94,8 +93,8 @@ Client::Tables::ItemSetTables EmptySets()
         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
-// El paso de la UI con lo que la ventana del personaje lee: las tablas de 0x550d10, lo que dejó el último 0x505820,
-// el equipo vacío (la durabilidad en 0, que 0x550cf0 encuentra) y lo que sale por send().
+// The UI step with what the character window reads: 0x550d10's tables, what the last 0x505820 left, the empty
+// equipment (the durability at 0, which 0x550cf0 finds) and what goes out through send().
 class SteppingCharacter
 {
 public:
@@ -139,7 +138,7 @@ public:
     {
         Client::Kernel::LatchTheLeftButton(world.Runtime().mouse, true, true);
     }
-    // La ventana ya abierta, con el pedido del caballo hecho (0x723911 en 1).
+    // The window already open, with the horse's request done (0x723911 at 1).
     void OpenTheWindow()
     {
         world.Runtime().panels.character = 1;
@@ -172,8 +171,8 @@ Outgoing DarkHorseRequest()
                                                         Client::Protocol::Pets::PetSlot});
 }
 
-// 0x65c94b..0x65ca72: la C abre el personaje, pone en 0 lo de los tooltips del set y corre 0x550d10 con el registro
-// propio abierto alrededor; el A9 sale en el paso siguiente.
+// 0x65c94b..0x65ca72: C opens the character, zeroes the set tooltips' state and runs 0x550d10 with the own record
+// open around it; the A9 goes out in the next step.
 TEST(GameCharacterWindowTest, TheLetterCOpensTheCharacterAndRecalculatesTheOwnStats)
 {
     for (const std::int32_t map : Maps)
@@ -196,7 +195,7 @@ TEST(GameCharacterWindowTest, TheLetterCOpensTheCharacterAndRecalculatesTheOwnSt
         EXPECT_EQ(sets.byte9305, 0);
         EXPECT_EQ(sets.byte9306, 0);
         EXPECT_EQ(sets.names[1][0], '\0');
-        // La cola de 0x550d10 corrió: +0xef8 es una resta de WORD en 0.
+        // 0x550d10's tail ran: +0xef8 is a WORD subtraction at 0.
         EXPECT_EQ(tested.world.OwnCharacter().wordef8, 0);
         EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
         EXPECT_EQ(tested.world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
@@ -204,7 +203,8 @@ TEST(GameCharacterWindowTest, TheLetterCOpensTheCharacterAndRecalculatesTheOwnSt
     }
 }
 
-// 0x550cf0: con la durabilidad de los doce lugares fuera de 0, 0x550d10 no corre; el acceso se abre y se cierra igual.
+// 0x550cf0: with the durability of the twelve slots other than 0, 0x550d10 does not run; the access opens and closes
+// anyway.
 TEST(GameCharacterWindowTest, WithEveryPlaceWornTheOpeningSkipsTheRecalculation)
 {
     for (const std::int32_t map : Maps)
@@ -221,7 +221,7 @@ TEST(GameCharacterWindowTest, WithEveryPlaceWornTheOpeningSkipsTheRecalculation)
     }
 }
 
-// Sin ItemSetType.bmd e ItemSetOption.bmd, 0x550d10 corta en 0x40e1b0, con el acceso cerrado.
+// Without ItemSetType.bmd and ItemSetOption.bmd, 0x550d10 stops at 0x40e1b0, with the access closed.
 TEST(GameCharacterWindowTest, WithoutTheSetTablesTheOpeningIsTheCutOf0x40e1b0)
 {
     for (const std::int32_t map : Maps)
@@ -236,8 +236,8 @@ TEST(GameCharacterWindowTest, WithoutTheSetTablesTheOpeningIsTheCutOf0x40e1b0)
     }
 }
 
-// 0x424230: el A9 01 00 08 sale una vez por apertura, en el paso que sigue al que la abre; cerrar el personaje pone
-// 0x723911 en 0 en el paso siguiente, y la próxima apertura lo pide de nuevo.
+// 0x424230: the A9 01 00 08 goes out once per opening, in the step after the one that opens it; closing the character
+// sets 0x723911 to 0 in the next step, and the next opening asks for it again.
 TEST(GameCharacterWindowTest, TheDarkHorseIsAskedOncePerOpening)
 {
     for (const std::int32_t map : Maps)
@@ -274,8 +274,8 @@ TEST(GameCharacterWindowTest, TheDarkHorseIsAskedOncePerOpening)
     }
 }
 
-// 0x5e4583..0x5e4a5a: con el personaje abierto, cada paso abre y cierra el registro propio (3.848 rand()) aunque no
-// haya puntos; el mouse sobre la ventana es de la UI.
+// 0x5e4583..0x5e4a5a: with the character open, each step opens and closes the own record (3848 rand()) even without
+// points; the mouse over the window belongs to the UI.
 TEST(GameCharacterWindowTest, TheOpenWindowOpensTheOwnRecordInEachStep)
 {
     for (const std::int32_t map : Maps)
@@ -293,8 +293,8 @@ TEST(GameCharacterWindowTest, TheOpenWindowOpensTheOwnRecordInEachStep)
     }
 }
 
-// 0x5e4638..0x5e4a54: con puntos (+0x68), el clic en el botón i manda F3 06 i y suena 0x19. Sin el Dark Lord son
-// cuatro botones: el quinto no manda nada.
+// 0x5e4638..0x5e4a54: with points (+0x68), the click on button i sends F3 06 i and sounds 0x19. Without the Dark Lord
+// there are four buttons: the fifth sends nothing.
 TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
 {
     for (const std::int32_t map : Maps)
@@ -327,7 +327,7 @@ TEST(GameCharacterWindowTest, TheStatButtonsSendTheirPoint)
     }
 }
 
-// 0x5e461b: sin puntos, los botones no miran el clic.
+// 0x5e461b: without points, the buttons do not look at the click.
 TEST(GameCharacterWindowTest, WithoutPointsTheStatButtonsDoNothing)
 {
     for (const std::int32_t map : Maps)
@@ -341,8 +341,8 @@ TEST(GameCharacterWindowTest, WithoutPointsTheStatButtonsDoNothing)
     }
 }
 
-// 0x5e4c3f..0x5e4ca9: el botón de cerrar toma el clic, pone el contador del mouse en 0 con su tope en 6 y cierra el
-// personaje.
+// 0x5e4c3f..0x5e4ca9: the close button takes the click, sets the mouse counter to 0 with its limit at 6 and closes
+// the character.
 TEST(GameCharacterWindowTest, TheCloseButtonClosesTheCharacter)
 {
     for (const std::int32_t map : Maps)
@@ -359,9 +359,10 @@ TEST(GameCharacterWindowTest, TheCloseButtonClosesTheCharacter)
     }
 }
 
-// 0x424230 y 0x659fd9 (CL9 hito 4): el botón de la mascota la abre (0x723911 en 2) y pide el cuervo y el caballo; con
-// la ventana abierta, a 0x104 del personaje, el clic en la otra pestaña la elige, el de la elegida (más arriba) solo se
-// come, y el botón de cerrar la cierra, con lo que el paso siguiente vuelve a pedir el caballo. Sin rand() de más.
+// 0x424230 and 0x659fd9 (CL9 milestone 4): the pet button opens it (0x723911 at 2) and asks for the raven and the
+// horse; with the window open, at 0x104 from the character, the click on the other tab chooses it, the one on the
+// chosen one (higher) is only swallowed, and the close button closes it, so the next step asks for the horse again.
+// No extra rand().
 TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
 {
     constexpr std::int32_t Left = 0x104;
@@ -379,7 +380,7 @@ TEST(GameCharacterWindowTest, ThePetWindowOpensChoosesItsTabAndCloses)
         EXPECT_TRUE(SamePacket(tested.sent[1], DarkHorseRequest()));
 
         tested.Click();
-        // IsOpen(0) (0x5a5511) para en la mascota (0x400) antes de la tienda de NPC (0x10000): un rand() menos.
+        // IsOpen(0) (0x5a5511) stops at the pet (0x400) before the NPC shop (0x10000): one rand() fewer.
         const CrtRandom expected = Advanced(tested.random, BaseStepRandoms - 1 + OwnRecordCloseRandoms);
         ASSERT_TRUE(tested.Step(Left + 15 + 45, 67).HasValue());
         EXPECT_EQ(runtime.petTab, 1);

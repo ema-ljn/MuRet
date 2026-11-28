@@ -48,10 +48,10 @@
 
 #include <gtest/gtest.h>
 
-// Hablarle a un NPC (CL9 hito 2): el clic de MoveHero sobre el NPC elegido (0x59da75..0x59dc59) y la llegada
-// (0x5650c0 con +0x379 en 2, 0x5674c8..0x5695b3) con el C1 30. Textos y claves inventados; el mundo en Lorencia y, en
-// los casos de todos los mapas, también en Devias (fuera de Crywolf, 0x5674d2 y 0x567b00, el mapa no cambia nada). El
-// terreno es uno sin paredes, el mismo en los dos.
+// Talking to an NPC (CL9 milestone 2): MoveHero's click on the chosen NPC (0x59da75..0x59dc59) and the arrival
+// (0x5650c0 with +0x379 at 2, 0x5674c8..0x5695b3) with the C1 30. Texts and keys made up; the world in Lorencia and,
+// in the all-maps cases, also in Devias (outside Crywolf, 0x5674d2 and 0x567b00, the map changes nothing). The terrain
+// has no walls, the same in both.
 namespace
 {
 const Client::Session::HeroMovementHooks MovementHooks{};
@@ -65,14 +65,14 @@ constexpr std::uint16_t TalkingWord = 0xf0;
 constexpr std::uint16_t NpcKey = 0x8123;
 constexpr std::size_t LevelText = 663;
 constexpr std::size_t FlagText = 1830;
-// El registro propio (0x40b4d0) y un C3 (el relleno y el serial).
+// The own record (0x40b4d0) and a C3 (the padding and the serial).
 constexpr int OwnRecordRandoms = 3848;
 constexpr int C3Randoms = 2;
-// Lo que saca el paso antes del clic (los dos cierres del contador de 0x6c8c10 y el registro del clic) y después del
-// D3 (el comercio y la tienda de NPC de 0x56b397.., el registro propio y Skill.bmd del prefijo de la acción).
+// What the step draws before the click (the two closes of the counter at 0x6c8c10 and the click's record) and after
+// the D3 (the trade and the NPC shop of 0x56b397.., the own record and Skill.bmd of the action's prefix).
 constexpr int BeforeTheClickRandoms = 8 + OwnRecordRandoms;
 constexpr int AfterTheWalkRandoms = 2 + OwnRecordRandoms + 60;
-// Lorencia y Devias.
+// Lorencia and Devias.
 constexpr std::array<std::uint8_t, 2> TalkMaps{0, 2};
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -99,7 +99,7 @@ public:
     {
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
-        // Las misiones ya tienen la clase: sin el A0.
+        // The quests already have the class: no A0.
         runtime.quest.characterClass = 0;
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
         terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -157,7 +157,7 @@ public:
         return context;
     }
 
-    // Un clic con el NPC elegido (0x6c8e2c) y la ventana de MouseUpdateTime vencida.
+    // A click with the chosen NPC (0x6c8e2c) and the MouseUpdateTime window expired.
     Client::Core::Expected<void, std::string> Click()
     {
         world.Runtime().selectedTargets[1] = static_cast<std::int32_t>(NpcSlot);
@@ -174,7 +174,7 @@ public:
         return Client::Movement::StepHeroMovement(context);
     }
 
-    // La llegada con el NPC en 0x6c8e54 y el héroe caminando (+0x378 en 1).
+    // The arrival with the NPC in 0x6c8e54 and the hero walking (+0x378 at 1).
     Client::Core::Expected<void, std::string> Arrive()
     {
         world.Runtime().chosenNpc.index = static_cast<std::int32_t>(NpcSlot);
@@ -200,7 +200,7 @@ public:
     std::vector<std::string> events;
 };
 
-// Lo que saca 0x4f2250 al parar al héroe del fixture, desde `start`, sobre un gemelo.
+// What 0x4f2250 draws when stopping the fixture's hero, from `start`, on a twin.
 CrtRandom AfterTheStop(const CrtRandom& start)
 {
     const auto twin = std::make_unique<TalkingHero>();
@@ -216,8 +216,8 @@ CrtRandom AfterTheStop(const CrtRandom& start)
     return twin->random;
 }
 
-// 0x59da75..0x59dc45: el clic va hasta la celda del NPC, con +0x379 en 2 y el NPC, su tipo y su ángulo guardados; la
-// tienda de NPC saca su rand() antes de las celdas del héroe.
+// 0x59da75..0x59dc45: the click walks to the NPC's cell, with +0x379 at 2 and the NPC, its type and its angle stored;
+// the NPC shop draws its rand() before the hero's cells.
 TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
 {
     for (const std::uint8_t map : TalkMaps)
@@ -242,12 +242,12 @@ TEST(NpcTalkTest, AClickOnTheChosenNpcWalksToItsCell)
         EXPECT_EQ(chosen.angle, 0x42b40000u);
         EXPECT_EQ(movement.targetX, 185u);
         EXPECT_EQ(movement.targetY, 115u);
-        // 0x59dc48: sigue en 0x59e248, que suma MouseUpdateTime.
+        // 0x59dc48: goes on at 0x59e248, which adds to MouseUpdateTime.
         EXPECT_EQ(mouse.updateTime, 1);
     }
 }
 
-// 0x59dab8: con el bit 0x10000000 de +0x7c el clic camina igual, pero +0x379 queda como estaba.
+// 0x59dab8: with bit 0x10000000 of +0x7c the click walks anyway, but +0x379 stays as it was.
 TEST(NpcTalkTest, TheBlockingFlagWalksWithoutTheTalk)
 {
     const auto tested = std::make_unique<TalkingHero>();
@@ -259,7 +259,7 @@ TEST(NpcTalkTest, TheBlockingFlagWalksWithoutTheTalk)
     EXPECT_EQ(tested->world.Runtime().chosenNpc.index, 7);
 }
 
-// 0x59da82..0x59daa9: con la tienda de NPC o el almacén abiertos, el clic sigue en el terreno.
+// 0x59da82..0x59daa9: with the NPC shop or the warehouse open, the click goes on to the ground.
 TEST(NpcTalkTest, TheShopOrTheWarehouseSendTheClickToTheGround)
 {
     for (const bool shop : {true, false})
@@ -276,7 +276,7 @@ TEST(NpcTalkTest, TheShopOrTheWarehouseSendTheClickToTheGround)
     }
 }
 
-// 0x59dc4d: sin camino (el NPC en la celda del héroe), la llegada es en el lugar y le habla.
+// 0x59dc4d: without a path (the NPC on the hero's cell), the arrival is in place and talks to it.
 TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
 {
     const auto tested = std::make_unique<TalkingHero>();
@@ -290,7 +290,7 @@ TEST(NpcTalkTest, WithoutAPathTheHeroTalksInPlace)
     EXPECT_EQ(tested->Hero().movementType, Client::Movement::NpcTalkMovement);
 }
 
-// 0x59b2f7: el héroe camina hasta el NPC y, al terminar el camino, 0x5650c0 con +0x379 en 2 le habla.
+// 0x59b2f7: the hero walks to the NPC and, when the path ends, 0x5650c0 with +0x379 at 2 talks to it.
 TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
 {
     for (const std::uint8_t map : TalkMaps)
@@ -314,7 +314,7 @@ TEST(NpcTalkTest, TheHeroTalksWhenItArrives)
     }
 }
 
-// 0x59dc32: un NPC fuera del mapa corta.
+// 0x59dc32: an NPC outside the map cuts.
 TEST(NpcTalkTest, AnNpcOutsideTheMapIsCut)
 {
     const auto tested = std::make_unique<TalkingHero>();
@@ -324,9 +324,9 @@ TEST(NpcTalkTest, AnNpcOutsideTheMapIsCut)
     EXPECT_NE(clicked.Error().find("0x59dc32"), std::string::npos) << clicked.Error();
 }
 
-// 0x4eac0a..0x4eac41 desde 0x59dc32: con Crywolf activo, el altar recién elegido (0x59db1f) le pone la bandera al A*,
-// que pone en 0 el word de su celda (0x4eae0d) aunque sea pared: el camino llega a la celda del altar. Con la etapa 2
-// la meta queda y el clic va al más cercano.
+// 0x4eac0a..0x4eac41 from 0x59dc32: with Crywolf active, the altar just chosen (0x59db1f) sets the A* flag, which
+// zeroes its cell's word (0x4eae0d) even if it is a wall: the path reaches the altar's cell. With stage 2 the goal
+// stays and the click goes to the nearest.
 TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
 {
     for (const std::uint8_t stage : {std::uint8_t{2}, std::uint8_t{3}, std::uint8_t{4}})
@@ -348,7 +348,7 @@ TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
         if (stage == 2)
         {
             EXPECT_EQ(walls[altar], 0x06);
-            // El más cercano de 0x4eb0f4..0x4eb3fc: el primero con la heurística 4 es la diagonal de arriba.
+            // The nearest of 0x4eb0f4..0x4eb3fc: the first with heuristic 4 is the upper diagonal.
             EXPECT_EQ(last, (Client::Pathfinding::PathCell{184, 114}));
         }
         else
@@ -359,9 +359,9 @@ TEST(NpcTalkTest, TheWalkToACrywolfAltarClearsItsCell)
     }
 }
 
-// 0x59e21f → 0x4eac00 (Q-C1351): el clic en el suelo también lleva la bandera si 0x6c8e54 todavía tiene un altar (un
-// camino a un altar que el clic cortó). En el 34 con la etapa 4 la celda de pared del clic queda en 0 y el camino
-// llega; en Lorencia y Devias, el más cercano.
+// 0x59e21f → 0x4eac00 (Q-C1351): the ground click also carries the flag if 0x6c8e54 still has an altar (a path to an
+// altar that the click cut). On map 34 with stage 4 the click's wall cell goes to 0 and the path arrives; in Lorencia
+// and Devias, the nearest.
 TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -402,9 +402,9 @@ TEST(NpcTalkTest, AGroundClickWithAChosenAltarAlsoClearsItsCell)
     }
 }
 
-// 0x59ddbc → 0x4eac00 (Q-C1351): el camino hasta un ítem del piso (0x59dc5e, hito 5) también lleva la bandera si
-// 0x6c8e54 todavía tiene un altar. En el 34 con la etapa 4 la celda de pared del ítem queda en 0 y el camino llega; en
-// Lorencia y Devias, el más cercano.
+// 0x59ddbc → 0x4eac00 (Q-C1351): the path to a floor item (0x59dc5e, milestone 5) also carries the flag if 0x6c8e54
+// still has an altar. On map 34 with stage 4 the item's wall cell goes to 0 and the path arrives; in Lorencia and
+// Devias, the nearest.
 TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
 {
     constexpr std::int32_t FloorItem = 3;
@@ -446,8 +446,8 @@ TEST(NpcTalkTest, TheWalkToAFloorItemWithAChosenAltarAlsoClearsItsCell)
     }
 }
 
-// 0x5674c8..0x5695b3: parar al héroe, el registro propio, el C3 30 con la clave y 0x6c8e54 en −1; el máximo de
-// MouseUpdateTime en 12 y las banderas de los paneles en 0.
+// 0x5674c8..0x5695b3: stopping the hero, the own record, the C3 30 with the key and 0x6c8e54 at −1; MouseUpdateTime's
+// maximum at 12 and the panel flags at 0.
 TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)
 {
     for (const std::uint8_t map : TalkMaps)
@@ -472,7 +472,7 @@ TEST(NpcTalkTest, TheArrivalStopsTheHeroAndSendsTheTalk)
     }
 }
 
-// 0x5674f4 y 0x56751b: sin NPC elegido solo para; con un +0x376 de menos de 0xcd, 0x6c8e54 en −1 sin el registro.
+// 0x5674f4 and 0x56751b: with no chosen NPC it only stops; with a +0x376 below 0xcd, 0x6c8e54 at −1 without the record.
 TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
 {
     {
@@ -510,7 +510,7 @@ TEST(NpcTalkTest, WithoutANpcOrWithAnotherWordTheArrivalOnlyStops)
     }
 }
 
-// 0x567618: el 0xee no le habla a un héroe de menos de nivel 10: el aviso con el sprintf y 0x6c8e54 queda.
+// 0x567618: the 0xee does not talk to a hero below level 10: the warning with the sprintf, and 0x6c8e54 stays.
 TEST(NpcTalkTest, TheLevelLimitedNpcNeedsLevelTen)
 {
     for (const std::uint16_t level : {std::uint16_t{9}, std::uint16_t{10}})
@@ -534,7 +534,8 @@ TEST(NpcTalkTest, TheLevelLimitedNpcNeedsLevelTen)
     }
 }
 
-// 0x567aaf..0x567ae5: el 0x101 con el bit 0x2000000 de +0x78 del héroe da el aviso de error, sin el 30 ni 0x6eeda8.
+// 0x567aaf..0x567ae5: the 0x101 with bit 0x2000000 of the hero's +0x78 gives the error warning, without the 30 or
+// 0x6eeda8.
 TEST(NpcTalkTest, TheFlagLimitedNpcRefusesTheFlaggedHero)
 {
     const auto tested = std::make_unique<TalkingHero>();
@@ -548,7 +549,7 @@ TEST(NpcTalkTest, TheFlagLimitedNpcRefusesTheFlaggedHero)
     EXPECT_EQ(tested->world.Runtime().byte6eeda8, 1);
 }
 
-// 0x567652..0x56766b y 0x569586: 0x78abb09 con 0xf3, 0xf6 y 0xfb; 0x6eeda8 con 0xe5.
+// 0x567652..0x56766b and 0x569586: 0x78abb09 with 0xf3, 0xf6 and 0xfb; 0x6eeda8 with 0xe5.
 TEST(NpcTalkTest, SomeWordsLeaveTheirFlags)
 {
     for (const std::uint16_t word : std::to_array<std::uint16_t>({0xf3, 0xf6, 0xfb, 0xe5, 0xcd}))
@@ -564,8 +565,8 @@ TEST(NpcTalkTest, SomeWordsLeaveTheirFlags)
     }
 }
 
-// 0x567672..0x567a85: la ventana de las misiones se cierra con el C1 03 31 y, sin la clase en las misiones, va el A0
-// antes del 30, cada C3 con sus dos rand().
+// 0x567672..0x567a85: the quest window closes with the C1 03 31 and, without the class in the quests, the A0 goes
+// before the 30, each C3 with its two rand().
 TEST(NpcTalkTest, TheQuestWindowClosesAndTheQuestListGoesFirst)
 {
     for (const std::uint8_t map : TalkMaps)
@@ -584,9 +585,9 @@ TEST(NpcTalkTest, TheQuestWindowClosesAndTheQuestListGoesFirst)
     }
 }
 
-// 0x5674d2 y 0x567b00..0x5688fd: con Crywolf activo el héroe no se para; frente a un altar, una elfa no habla (lo que
-// muestra, abajo) y los demás sí. En el 34 sin el evento, un altar no habla, pero 0x6c8e54 vuelve a −1; en Lorencia y
-// en Devias, con cualquier etapa, un modelo de altar es un NPC más.
+// 0x5674d2 and 0x567b00..0x5688fd: with Crywolf active the hero does not stop; at an altar, an elf does not talk (what
+// it shows, below) and the others do. On map 34 without the event, an altar does not talk, but 0x6c8e54 returns to −1;
+// in Lorencia and Devias, at any stage, an altar model is just another NPC.
 TEST(NpcTalkTest, CrywolfAltarsTalkOnlyWhenTheyCan)
 {
     struct Case
@@ -624,9 +625,9 @@ TEST(NpcTalkTest, CrywolfAltarsTalkOnlyWhenTheyCan)
     }
 }
 
-// 0x567b4c..0x567c23 (CL9 hito 11): una elfa frente a un altar, con Crywolf activo, no manda el C1 30: con el altar
-// contratado, 0x435b00(0x34); sin contratos, 0x435b00(0x35); si no, 0x435b00(0x38) con los contratos que quedan y la
-// pregunta 0x39 con la clave del altar. Las tres siguen en 0x569573 (0x6eeda8 por el +0x376 y 0x6c8e54 en −1).
+// 0x567b4c..0x567c23 (CL9 milestone 11): an elf at an altar, with Crywolf active, does not send the C1 30: with the
+// altar contracted, 0x435b00(0x34); with no contracts, 0x435b00(0x35); otherwise, 0x435b00(0x38) with the contracts
+// left and question 0x39 with the altar's key. All three go on at 0x569573 (0x6eeda8 by the +0x376 and 0x6c8e54 at −1).
 TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
 {
     struct Case
@@ -673,12 +674,11 @@ TEST(NpcTalkTest, AnElfAtACrywolfAltarSeesItsStateInsteadOfTalking)
     }
 }
 
-// El camino hasta un altar de Crywolf con el Data del repo (0x59dc32 → 0x4eac00 → 0x4ead70), en Lorencia, Devias y
-// Crywolf, con la etapa 4 en los tres. El altar está en una celda que el .att tiene de pared (0x04, sola entre celdas
-// libres), con el 0x02 de personaje (0x509165), y la elfa cuatro celdas al este. Solo en el 34 la bandera (0x4eac41)
-// pone en 0 la celda del altar: el A* exacto llega a ella y la llegada (0x567b00) muestra la oferta del contrato. En el
-// 0 y el 2 el exacto falla en la meta (0x4eae38), el más cercano para en la diagonal de arriba y la llegada le habla
-// con el C1 30.
+// The path to a Crywolf altar with the repo's Data (0x59dc32 → 0x4eac00 → 0x4ead70), in Lorencia, Devias and Crywolf,
+// with stage 4 in all three. The altar is on a cell the .att has as a wall (0x04, alone among free cells), with the
+// character's 0x02 (0x509165), and the elf four cells east. Only on map 34 does the flag (0x4eac41) zero the altar's
+// cell: the exact A* reaches it and the arrival (0x567b00) shows the contract offer. On maps 0 and 2 the exact one
+// fails at the goal (0x4eae38), the nearest stops at the upper diagonal and the arrival talks to it with the C1 30.
 class NpcTalkDataTest : public Client::Tests::GoldenDataTest
 {
 };
@@ -736,7 +736,7 @@ TEST_F(NpcTalkDataTest, OnlyInCrywolfTheWalkReachesTheAltarCell)
         else
         {
             EXPECT_EQ(walls[cell], Client::Pathfinding::BlockedWallBit | Client::Pathfinding::CharacterWallBit);
-            // El más cercano: la diagonal de arriba, como en TheWalkToACrywolfAltarClearsItsCell.
+            // The nearest: the upper diagonal, as in TheWalkToACrywolfAltarClearsItsCell.
             EXPECT_EQ(last, (Client::Pathfinding::PathCell{static_cast<std::uint8_t>(probe.altarX + 1),
                                                            static_cast<std::uint8_t>(probe.altarY - 1)}));
         }

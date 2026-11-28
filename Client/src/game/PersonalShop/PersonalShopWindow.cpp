@@ -50,16 +50,16 @@ namespace
 {
 namespace Shop = Protocol::PersonalShop;
 
-// El relleno y el serial de un C3 (0x69fd70 y el cierre de 0x40b3f0 o de 0x40b0a0).
+// The padding and the serial of a C3 (0x69fd70 and the close of 0x40b3f0 or of 0x40b0a0).
 constexpr std::uint32_t C3Randoms = 2;
-// 0x5eba84 y 0x5ebb2a: el diálogo del título y del precio.
+// 0x5eba84 and 0x5ebb2a: the title and price dialog.
 constexpr std::int32_t ShopDialogId = 0x91;
-// 0x5ebab3 y 0x5ebb5c: el largo del campo (0x6c8e78) del título y del precio.
+// 0x5ebab3 and 0x5ebb5c: the field length (0x6c8e78) of the title and the price.
 constexpr std::int32_t TitleFieldLimit = 0x1c;
 constexpr std::int32_t PriceFieldLimit = 8;
-// 0x5ebac3..0x5ebb1e y 0x5ebb68..0x5ebbbb: el EDIT de [0x5763504] de cada modo. +0x4c en 0xc (el fondo negro del
-// dibujo, 8, y un 4 que la subclase no mira) o 9 (además, solo cifras), el tope (la vtable + 0x3c), el tamaño (+ 8) y
-// el lugar (0x45a9d0).
+// 0x5ebac3..0x5ebb1e and 0x5ebb68..0x5ebbbb: the EDIT of [0x5763504] in each mode. +0x4c at 0xc (the draw's black
+// background, 8, and a 4 the subclass does not look at) or 9 (also, digits only), the cap (the vtable + 0x3c), the
+// size (+ 8) and the position (0x45a9d0).
 constexpr std::int32_t TitleEditFilter = 0xc;
 constexpr std::int32_t PriceEditFilter = 9;
 constexpr std::size_t TitleEditLimit = 0x1c;
@@ -70,29 +70,29 @@ constexpr std::int32_t ShopEditHeight = 0xa;
 constexpr std::int32_t TitleEditX = 0xfd;
 constexpr std::int32_t PriceEditX = 0x125;
 constexpr std::int32_t ShopEditY = 0x8a;
-// 0x626112..0x626145 y 0x626200..0x626227: el OK y el cancelar del 0x91, de 0xff a 0x133 y de 0x14a a 0x17e en x, y de
-// 0xa0 a 0xb0 en y, con los bordes (jl y jg).
+// 0x626112..0x626145 and 0x626200..0x626227: the 0x91's OK and cancel, from 0xff to 0x133 and from 0x14a to 0x17e in
+// x, and from 0xa0 to 0xb0 in y, with the edges (jl and jg).
 constexpr std::int32_t ShopOkLeft = 0xff;
 constexpr std::int32_t ShopOkRight = 0x133;
 constexpr std::int32_t ShopCancelLeft = 0x14a;
 constexpr std::int32_t ShopCancelRight = 0x17e;
 constexpr std::int32_t ShopButtonTop = 0xa0;
 constexpr std::int32_t ShopButtonBottom = 0xb0;
-// 0x6261cc: el título que 0x5ebbd0 no deja (0x770fe14), del tipo 1.
+// 0x6261cc: the title that 0x5ebbd0 rejects (0x770fe14), of type 1.
 constexpr std::size_t BadTitleText = 1130;
-// 0x471701 y 0x6260d1: la caja de confirmación.
+// 0x471701 and 0x6260d1
 constexpr std::int32_t ConfirmDialog = 0x9c;
-// 0x4717a8: un pedazo se corta al pasar de 24 bytes.
+// 0x4717a8: a piece is cut when it passes 24 bytes.
 constexpr std::size_t ConfirmLineBytes = 0x18;
-// 0x47179d: un byte de 0x80 o más cuenta como dos.
+// 0x47179d: a byte of 0x80 or more counts as two.
 constexpr unsigned char DoubleByteMark = 0x80;
-// 0x471969..0x471972: la altura de un renglón es el paso de la letra + 2.
+// 0x471969..0x471972: a row's height is the letter step + 2.
 constexpr std::int32_t ConfirmLineGap = 2;
-// 0x6b86c8 (120,0f), 0x6b86d0 (20,0f) y 0x6b885c (36,0f): los botones van de h + 140 a h + 156.
+// 0x6b86c8 (120.0f), 0x6b86d0 (20.0f) and 0x6b885c (36.0f): the buttons go from h + 140 to h + 156.
 constexpr double ConfirmBoxTop = 120.0;
 constexpr double ConfirmButtonTop = 20.0;
 constexpr double ConfirmButtonBottom = 36.0;
-// 0x471989..0x471a2f y 0x471a66..0x471a9e: las x de los botones, con los bordes.
+// 0x471989..0x471a2f and 0x471a66..0x471a9e: the buttons' x, with the edges.
 constexpr std::int32_t YesLeft = 0xff;
 constexpr std::int32_t YesRight = 0x133;
 constexpr std::int32_t NoLeft = 0x14a;
@@ -103,40 +103,40 @@ constexpr std::int32_t TwoButtons = 2;
 constexpr std::int32_t OneButton = 1;
 constexpr std::int32_t Yes = 1;
 constexpr std::int32_t No = 2;
-// 0x6c932e: sin respuesta.
+// 0x6c932e
 constexpr std::uint8_t NoAnswer = 0xff;
 
-// 0x5ea324..0x5ea32e: la esquina de la ventana.
+// 0x5ea324..0x5ea32e
 constexpr std::int32_t ShopWindowX = 0x104;
 constexpr std::int32_t ShopWindowY = 0;
-// 0x5ea31e..0x5ea35d: el botón de abrir, en x absolutas.
+// 0x5ea31e..0x5ea35d: the open button, in absolute x.
 constexpr std::int32_t OpenButtonLeft = 0x122;
 constexpr std::int32_t OpenButtonRight = 0x15a;
 constexpr std::int32_t FootButtonTop = 0x18c;
 constexpr std::int32_t FootButtonBottom = 0x1a4;
-// 0x5eaa54..0x5eaa6a: el de cerrar, desde la x de la ventana.
+// 0x5eaa54..0x5eaa6a: the close one, from the window's x.
 constexpr std::int32_t CloseButtonLeft = 0x69;
 constexpr std::int32_t CloseButtonWidth = 0x38;
-// 0x5eafc8..0x5eaff9: el título.
+// 0x5eafc8..0x5eaff9
 constexpr std::int32_t TitleBoxLeft = 0x14;
 constexpr std::int32_t TitleBoxWidth = 0x96;
 constexpr std::int32_t TitleBoxTop = 0x41;
 constexpr std::int32_t TitleBoxHeight = 0x18;
-// 0x5ea37a..0x5ea3d5: las 32 casillas de 0x78ab0b8, de 8 columnas, y su lugar desde 0x4c.
+// 0x5ea37a..0x5ea3d5: the 32 cells of 0x78ab0b8, of 8 columns, and their slot from 0x4c.
 constexpr std::int32_t ShopColumns = 8;
-// 0x5eaa3b: el texto 1119 (0x770f130), con el tipo 2; 0x5ea9c8: el 1131 (0x770ff40) de la caja.
+// 0x5eaa3b: text 1119 (0x770f130), with type 2; 0x5ea9c8: the box's 1131 (0x770ff40).
 constexpr std::size_t MissingPriceText = 1119;
 constexpr std::size_t OpenShopText = 1131;
 constexpr std::int32_t ErrorType = 2;
 
-// 0x5c5181, 0x5dc7e9 y 0x5d8dee..: los avisos que esperan respuesta.
+// 0x5c5181, 0x5dc7e9 and 0x5d8dee..: the warnings that wait for an answer.
 constexpr std::int32_t BuyWarningKind = 5;
 constexpr std::int32_t PriceWarningKind = 6;
 constexpr std::int32_t TradeWarningKind = 3;
-// 0x5dc7d5..0x5dc7df: el aviso del precio menor que el valor, 0x633300(2, 1132, 0x99).
+// 0x5dc7d5..0x5dc7df: the warning of the price below the value, 0x633300(2, 1132, 0x99).
 constexpr std::int32_t PriceWarningLines = 2;
 constexpr std::int32_t PriceWarningText = 1132;
-// 0x5dc7ab: 0x54d0f0 con el modo 2.
+// 0x5dc7ab: 0x54d0f0 with mode 2.
 constexpr std::int32_t PriceValueMode = 2;
 
 const Items::InventoryServices& ServicesOf(const Hud::GameUiContext& context)
@@ -151,7 +151,7 @@ bool InRect(const Hud::GameUiContext& context, std::int32_t left, std::int32_t t
     return context.mouseX >= left && context.mouseX < right && context.mouseY >= top && context.mouseY < bottom;
 }
 
-// Los dos rand() del C3 y el paquete por el cable. Sin el cable, el error con `where`.
+// The C3's two rand() and the packet through the wire. Without the wire, the error with `where`.
 Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Protocol::Outgoing outgoing,
                                            std::string_view where)
 {
@@ -162,8 +162,7 @@ Core::Expected<void, std::string> SendInC3(const Hud::GameUiContext& context, Pr
     return {};
 }
 
-// Los 36 bytes de 0x78aba64 que copia el MOVSD × 9. MuRet guarda el título como texto: detrás del terminador van
-// ceros (Q-C965).
+// The 36 bytes of 0x78aba64 that the MOVSD × 9 copies. MuRet keeps the title as text: zeros follow its end (Q-C965).
 std::array<std::byte, Shop::TitleSize> TitleBytes(const std::string& title)
 {
     std::array<std::byte, Shop::TitleSize> bytes{};
@@ -173,7 +172,7 @@ std::array<std::byte, Shop::TitleSize> TitleBytes(const std::string& title)
     return bytes;
 }
 
-// 0x5f8110(modo): el mapa de la propia (1) o de la de otro (2); con otro modo o sin armar, ninguno.
+// 0x5f8110(mode): the own one's map (1) or the other's (2); with another mode or not built, none.
 std::map<std::int32_t, std::int32_t>* PricesOf(Social::PersonalShopState& shops)
 {
     if (!shops.pricesBuilt)
@@ -185,7 +184,7 @@ std::map<std::int32_t, std::int32_t>* PricesOf(Social::PersonalShopState& shops)
     return nullptr;
 }
 
-// 0x5ea37f..0x5ea3f4: cada ítem de la grilla con su precio de más de 0, alguno y el título.
+// 0x5ea37f..0x5ea3f4: each grid item with its price above 0, at least one, and the title.
 bool TheShopIsReady(Kernel::WorldState& world)
 {
     Social::PersonalShopState& shops = world.Runtime().social.personalShop;
@@ -206,12 +205,12 @@ bool TheShopIsReady(Kernel::WorldState& world)
     }
     if (empty)
         return false;
-    // 0x5ea3e5..0x5ea3f4: strlen del título.
+    // 0x5ea3e5..0x5ea3f4: the title's strlen.
     const std::string& title = shops.ownTitle;
     return !title.empty() && title.front() != '\0';
 }
 
-// 0x5ea3a3..0x5eaa4f: el botón de abrir.
+// 0x5ea3a3..0x5eaa4f
 Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -219,7 +218,7 @@ Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& c
     runtime.mouse.pendingClick = false;
     if (!TheShopIsReady(context.world))
     {
-        // 0x5eaa3b: 0x555190 con el nombre de 0x78abb7c, que nadie escribe (*inferido*, 08 P-C72).
+        // 0x5eaa3b: 0x555190 with the name of 0x78abb7c, which nobody writes (*inferred*, 08 P-C72).
         const Items::InventoryServices& services = ServicesOf(context);
         if (!services.systemMessage)
             return Core::Unexpected(std::string("0x5eaa47: 0x555190 con el texto 1119 sin el chat"));
@@ -235,8 +234,8 @@ Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& c
             return Core::Unexpected(std::move(closed).Error());
         return {};
     }
-    // 0x5ea9b8..0x5eaa34: la caja 0x9c con el texto 1131 (un std::string con su copia) y dos botones; lo que devuelve
-    // 0x4716e0 no se mira.
+    // 0x5ea9b8..0x5eaa34: the 0x9c box with text 1131 (a std::string with its copy) and two buttons; what 0x4716e0
+    // returns is not checked.
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x5ea9c8: el texto 1131 sin Text.bmd"));
     const auto text = context.texts->Text(OpenShopText);
@@ -247,14 +246,14 @@ Core::Expected<void, std::string> PressTheOpenButton(const Hud::GameUiContext& c
     return {};
 }
 
-// 0x5dc807.. y 0x5da5ac..: el precio escrito al lugar del ítem.
+// 0x5dc807.. and 0x5da5ac..: the typed price to the item's slot.
 Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
                                               const Items::InventoryMoveContext& moves)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Social::PersonalShopState& shops = runtime.social.personalShop;
     Social::SocialState& social = runtime.social;
-    // 0x5dc807..0x5dcd38: con la tienda abierta, el C1 04 3F 03.
+    // 0x5dc807..0x5dcd38: with the shop open, the C1 04 3F 03.
     if (shops.ownOpen != 0)
     {
         if (auto sent = SendInC3(context, Shop::WriteCloseShop(), "0x5dc81c"); !sent.HasValue())
@@ -262,7 +261,7 @@ Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
     }
     const auto slot = static_cast<std::uint8_t>(runtime.slot78a6758 & 0xff);
     const auto price = static_cast<std::uint32_t>(social.typedMoney);
-    // 0x5dcd3d..0x5dcd45: con un ítem en el cursor, el 3F 01, el 24 y el precio en el lugar de destino.
+    // 0x5dcd3d..0x5dcd45: with an item on the cursor, the 3F 01, the 24 and the price at the target slot.
     std::int32_t place = runtime.slot78a6758;
     if (runtime.cursorItemCount > 0)
     {
@@ -279,14 +278,14 @@ Core::Expected<void, std::string> SetThePrice(const Hud::GameUiContext& context,
     }
     else if (auto sent = SendInC3(context, Shop::WriteSetPrice(slot, price), "0x5de30d"); !sent.HasValue())
         return sent;
-    // 0x5de297.. y 0x5dc701..: 0x5f7f90(lugar, precio) en el mapa del modo.
+    // 0x5de297.. and 0x5dc701..: 0x5f7f90(slot, price) in the mode's map.
     if (auto* prices = PricesOf(shops); prices != nullptr)
         (*prices)[place] = social.typedMoney;
     social.typedMoney = 0;
     return {};
 }
 
-// 0x5dc79e..0x5deac0: la respuesta del diálogo del precio.
+// 0x5dc79e..0x5deac0
 Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext& context,
                                                        const Items::InventoryMoveContext& moves)
 {
@@ -299,13 +298,13 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext&
         trade.warningByte = NoAnswer;
         if (moves.services.items == nullptr)
             return Core::Unexpected(std::string("0x5dc7c3: 0x54d0f0 sin Item.bmd"));
-        // 0x5dc7c3: el valor del ítem de 0x78a59c8; el cuervo y el caballo, sin los niveles de 0x723968, cortan.
+        // 0x5dc7c3: the value of 0x78a59c8's item; the raven and the horse, without 0x723968's levels, stop.
         auto value = Items::ItemPrice(runtime.dialogItem, *moves.services.items, PriceValueMode, std::nullopt);
         if (!value.HasValue())
             return Core::Unexpected(std::move(value).Error());
         if (static_cast<std::uint32_t>(runtime.social.typedMoney) < value.Value())
         {
-            // 0x5dc7d5: 0x633300(2, 1132, 0x99), con el zen tipeado escrito por 0x5b1130.
+            // 0x5dc7d5: 0x633300(2, 1132, 0x99), with the typed zen written by 0x5b1130.
             auto warned = Ui::OpenTheMoneyTextDialog(
                 runtime.dialogBox, runtime.dialogs, context.texts, PriceWarningLines, PriceWarningText,
                 Ui::FormatZen(static_cast<std::uint32_t>(runtime.social.typedMoney)));
@@ -329,7 +328,7 @@ Core::Expected<bool, std::string> AnswerThePriceDialog(const Hud::GameUiContext&
     return false;
 }
 
-// 0x5d8e00..0x5dc790: el aviso `kind` (de 1 a 6) con su respuesta.
+// 0x5d8e00..0x5dc790: the warning `kind` (from 1 to 6) with its answer.
 Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& context,
                                                    const Items::InventoryMoveContext& moves, std::int32_t kind)
 {
@@ -348,8 +347,8 @@ Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& con
     case 1:
     case 2:
     case 4:
-        // La venta (0x5d8e0d y 0x5d931f), la mezcla (0x5d934f) y el del panel 0x2000 (0x5d9b82), de las ventanas de NPC
-        // (CL9 hito 6).
+        // The sale (0x5d8e0d and 0x5d931f), the mix (0x5d934f) and the 0x2000 panel's (0x5d9b82), from the NPC windows
+        // (CL9 milestone 6).
         if (auto answered = Npc::AnswerTheNpcWarning(context, kind); !answered.HasValue())
             return Core::Unexpected(std::move(answered).Error());
         return false;
@@ -360,7 +359,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& con
             clear();
             return false;
         }
-        // 0x5d966b..0x5d9b74: el OK propio da vuelta, 0x78abaa5 en 1 y el C1 04 3C con el nuevo, en C3.
+        // 0x5d966b..0x5d9b74: the own OK flips, 0x78abaa5 at 1 and the C1 04 3C with the new one, in C3.
         clear();
         trade.ownOk = trade.ownOk == 0 ? 1 : 0;
         trade.changed = 1;
@@ -374,7 +373,7 @@ Core::Expected<bool, std::string> AnswerTheWarning(const Hud::GameUiContext& con
         clear();
         if (answer == No)
             return false;
-        // 0x5d9c82..0x5da58d: con la clave del dueño (su WORD bajo), el 3F 06.
+        // 0x5d9c82..0x5da58d: with the owner's key (its low WORD), the 3F 06.
         const Social::PersonalShopState& shops = runtime.social.personalShop;
         if (shops.ownerKey == 0)
             return false;
@@ -412,8 +411,8 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
     Chat::ResetTheTextBuffers(runtime.chat.input, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
-    // Con 0x6c7b8c en 1: la vtable + 4 con 0 (a la vista), +0x4c, la + 0x44 con (0, 0, 0, 0) (el fondo), el tope, el
-    // tamaño y el lugar. El foco y el dibujo son del dibujo del 0x91 (0x6305c9).
+    // With 0x6c7b8c at 1: the vtable + 4 with 0 (in view), +0x4c, the + 0x44 with (0, 0, 0, 0) (the background), the
+    // cap, the size and the position. The focus and the drawing belong to the 0x91's draw (0x6305c9).
     const bool price = mode == ShopPriceMode;
     Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
     edit.base.state = Ui::ShownWindow;
@@ -438,9 +437,9 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
         return context.mouseX >= left && context.mouseY >= ShopButtonTop && context.mouseX <= right &&
                context.mouseY <= ShopButtonBottom;
     };
-    // 0x626102..0x6261f7: el OK con el clic lee el EDIT (la vtable + 0x50, hasta 0xff bytes, y su largo a 0x7758590) y
-    // con el título lo guarda si 0x5ebbd0 lo deja (si no, el 1130 del tipo 1 con el nombre de 0x7d3a15c, una cadena
-    // vacía de la .bss); con el precio, el atoi a 0x77f3b6c.
+    // 0x626102..0x6261f7: the OK with the click reads the EDIT (the vtable + 0x50, up to 0xff bytes, and its length to
+    // 0x7758590) and with the title keeps it if 0x5ebbd0 allows it (otherwise, the 1130 of type 1 with the name of
+    // 0x7d3a15c, an empty .bss string); with the price, the atoi to 0x77f3b6c.
     std::int32_t pressed = -1;
     if (click && in(ShopOkLeft, ShopOkRight))
     {
@@ -471,14 +470,14 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
         else if (shops.dialogMode == ShopPriceMode)
             social.typedMoney = Chat::AtoiLikeTheCrt(typed);
     }
-    // 0x6261f7..0x626230: el cancelar, con el clic que quede.
+    // 0x6261f7..0x626230: the cancel, with the click that remains.
     if (click && in(ShopCancelLeft, ShopCancelRight))
     {
         click = false;
         pressed = 0;
     }
-    // 0x626232..0x626293: Enter (0x5763588) vale como el OK, sin leer el EDIT (lo leyó el WndProc); si no, sin botón
-    // nada, y el cancelar responde 2.
+    // 0x626232..0x626293: Enter (0x5763588) counts as the OK, without reading the EDIT (the WndProc read it);
+    // otherwise, without a button nothing, and the cancel answers 2.
     bool ok = pressed == 1;
     if (runtime.ui.enterPressed)
     {
@@ -487,15 +486,15 @@ Core::Expected<void, std::string> StepTheShopDialog(const Hud::GameUiContext& co
     }
     else if (pressed < 0)
         return {};
-    // 0x626251..0x626291: el OK responde 1 con un título no vacío (0x78aba64) o un precio mayor que 0 (con signo);
-    // si no, 2. 0x6c932e es la respuesta que miran el paso de la ventana (0x5ea2f1) y el del precio (0x5dc79e).
+    // 0x626251..0x626291: the OK answers 1 with a non-empty title (0x78aba64) or a price above 0 (signed);
+    // otherwise, 2. 0x6c932e is the answer that the window's step (0x5ea2f1) and the price's (0x5dc79e) look at.
     Social::TradeState& trade = social.trade;
     trade.warningByte = static_cast<std::uint8_t>(No);
     if (ok && ((shops.dialogMode == ShopTitleMode && !shops.ownTitle.empty()) ||
                (shops.dialogMode == ShopPriceMode && social.typedMoney > 0)))
         trade.warningByte = static_cast<std::uint8_t>(Yes);
-    // 0x62629a..0x6262d0: los campos de texto vacíos (0x553570(0), con el EDIT), el campo del chat cerrado, el foco a
-    // la ventana del juego y el diálogo que espera abierto.
+    // 0x62629a..0x6262d0: the text fields emptied (0x553570(0), with the EDIT), the chat field closed, the focus to the
+    // game's window and the pending dialog open.
     Chat::ResetTheTextBuffers(input, false);
     runtime.ui.chatOpen = false;
     input.focus = Chat::ChatFocus::Game;
@@ -515,7 +514,7 @@ bool OpenTheConfirmBox(Social::ConfirmBoxState& box, Ui::DialogState& dialogs, s
     box.id = id;
     box.type = type;
     box.lines.clear();
-    // 0x471777..0x4718fc: `start` y `length` son esi y edi.
+    // 0x471777..0x4718fc: `start` and `length` are esi and edi.
     std::size_t start = 0;
     std::size_t length = 0;
     while (start + length < text.size())
@@ -538,7 +537,7 @@ Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& co
     if (runtime.dialogs.current != ConfirmDialog || !click)
         return {};
     const Social::ConfirmBoxState& box = runtime.social.confirmBox;
-    // 0x471956..0x471978: el alto, entero, y su float.
+    // 0x471956..0x471978: the height, integer, and its float.
     const auto lines = static_cast<std::int32_t>(box.lines.size());
     const std::int32_t height = (Render::Text::FontStepFor(context.screen.width) + ConfirmLineGap) * lines;
     const auto top = static_cast<double>(static_cast<float>(static_cast<double>(height) + ConfirmBoxTop));
@@ -555,7 +554,7 @@ Core::Expected<void, std::string> StepTheConfirmBox(const Hud::GameUiContext& co
             if (auto answered = AnswerTheConfirmBox(context, id, Yes); !answered.HasValue())
                 return answered;
         }
-        // 0x4719f5: el otro botón, sin volver a mirar el clic.
+        // 0x4719f5: the other button, without looking at the click again.
         if (pressed(NoLeft, NoRight))
         {
             click = false;
@@ -582,13 +581,13 @@ Core::Expected<void, std::string> AnswerTheConfirmBox(const Hud::GameUiContext& 
         const std::string& title = runtime.social.personalShop.ownTitle;
         if (auto sent = SendInC3(context, Shop::WriteOpenShop(TitleBytes(title)), "0x62378b"); !sent.HasValue())
             return sent;
-        // 0x623daa: 0x657a90, con lo que cierra mandando lo suyo (el 3D, el 3F 07 y el 31).
+        // 0x623daa: 0x657a90, with what closes sending its own (the 3D, the 3F 07 and the 31).
         Hud::GamePanels panels(context.world, context.random);
         panels.LendTheSession(context.world, context.random, context.requests);
         if (auto closed = panels.Registry().CloseAll(); !closed.HasValue())
             return closed;
     }
-    // 0x623daf..0x623dc7 y 0x623ddd..0x623ded.
+    // 0x623daf..0x623dc7 and 0x623ddd..0x623ded.
     runtime.dialogs.current = runtime.dialogs.pending;
     runtime.dialogs.pending = 0;
     return {};
@@ -618,7 +617,7 @@ Core::Expected<void, std::string> StepThePersonalShopWindow(const Hud::GameUiCon
         if (auto pressed = PressTheOpenButton(context, panels); !pressed.HasValue())
             return pressed;
     }
-    // 0x5eaa54..0x5eafb2: el de cerrar gasta el clic aunque la tienda esté cerrada.
+    // 0x5eaa54..0x5eafb2: the close button spends the click even if the shop is closed.
     const std::int32_t x = shops.windowX;
     if (InRect(context, x + CloseButtonLeft, FootButtonTop, x + CloseButtonLeft + CloseButtonWidth, FootButtonBottom) &&
         click)

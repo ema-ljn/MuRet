@@ -12,8 +12,8 @@
 #include <string>
 #include <string_view>
 
-// 0x5b45f5..0x5b58e9 del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): las líneas de algunos tipos, el
-// daño y los stats. Los textos son los de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// 0x5b45f5..0x5b58e9 of the item body (06 § Los tooltips, "El cuerpo del ítem"): some types' lines, the damage and
+// the stats. The texts are the Text.bmd ones (the address − 0x76bd1dc, over 300).
 namespace Client::Tooltips
 {
 namespace
@@ -25,8 +25,8 @@ bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
     return type >= first && type <= last;
 }
 
-// 0x1a13 (0x5b45fb..0x5b4c07), el ítem de la misión del ángel: el 730 y el 815, el daño y los stats fijos de su nivel
-// (0 a 2), el 87, el 94 y las cuatro opciones de su nivel (con el maná de la skill 0x16 o 0x18 en los niveles 1 y 2).
+// 0x1a13 (0x5b45fb..0x5b4c07), the angel quest's item: 730 and 815, the damage and the fixed stats of its level (0 to
+// 2), 87, 94 and the four options of its level (with the mana of skill 0x16 or 0x18 at levels 1 and 2).
 constexpr std::uint16_t AngelQuestItem = 0x1a13;
 constexpr std::size_t QuestText = 730;
 constexpr std::size_t AngelText = 815;
@@ -53,8 +53,8 @@ struct AngelLevel
 constexpr std::array<AngelLevel, 3> AngelLevels{{{DamageFormatText, 0x6b, 0x6e, 0x14, 0x84, 0x20},
                                                  {OneHandedText, 0x6e, 0x78, 0x23, 0x17d, 0x95},
                                                  {TwoHandedText, 0x78, 0x8c, 0x23, 0x8c, 0x15e}}};
-// El nivel 0: el 79 (0x35) en negrita, el 631 y el 632 (2). Los niveles 1 y 2: el maná de la skill 0x16 con el 84 o
-// de la 0x18 con el 86, el 629 y el 630 (2). Después, el 628, el 633 (7), el 634 y el 635.
+// Level 0: 79 (0x35) in bold, 631 and 632 (2). Levels 1 and 2: the mana of skill 0x16 with 84 or of 0x18 with 86, 629
+// and 630 (2). Then, 628, 633 (7), 634 and 635.
 constexpr std::size_t MagicDamageText = 79;
 constexpr std::int32_t AngelMagicDamage = 0x35;
 constexpr std::size_t MagicLevelText = 631;
@@ -72,7 +72,7 @@ constexpr std::int32_t AngelMagicSpeed = 7;
 constexpr std::size_t LifeAfterKillText = 634;
 constexpr std::size_t ManaAfterKillText = 635;
 
-// 0x5b4c0d..0x5b4f8d: las misiones (0x1c17 a 0x1c1a), el 0x1c0c, el anillo 0x1a14 y el 0x1c13.
+// 0x5b4c0d..0x5b4f8d: the quests (0x1c17 to 0x1c1a), 0x1c0c, the ring 0x1a14 and 0x1c13.
 constexpr std::int32_t FirstQuest = 0x1c17;
 constexpr std::int32_t LastQuest = 0x1c1a;
 constexpr std::size_t NoWarehouseText = 731;
@@ -89,9 +89,9 @@ constexpr std::uint16_t EventInvitation = 0x1c13;
 constexpr std::size_t RightClickText = 638;
 constexpr std::size_t EventTimeText = 639;
 
-// 0x5b4f93..0x5b556b: el daño. 0xf0..0xff (los báculos y los libros) con el 42; las tres skills sin daño (0x1e05,
-// 0x1e0e y 0x1e0f) sin renglón; los pergaminos de 0x1e00 a 0x1fff con el +0x21 de su entrada de Skill.bmd
-// (0x54bf10); los demás con el 40 + Item.bmd+0x1e (una o dos manos).
+// 0x5b4f93..0x5b556b: the damage. 0xf0..0xff (the staffs and the books) with 42; the three skills without damage
+// (0x1e05, 0x1e0e and 0x1e0f) without a line; the scrolls from 0x1e00 to 0x1fff with the +0x21 of their Skill.bmd
+// entry (0x54bf10); the rest with 40 + Item.bmd+0x1e (one or two hands).
 constexpr std::int32_t StaffMask = 0xfff0;
 constexpr std::int32_t Staffs = 0xf0;
 constexpr std::array<std::int32_t, 3> SkillsWithoutDamage{0x1e05, 0x1e0e, 0x1e0f};
@@ -123,7 +123,7 @@ constexpr std::array<std::size_t, 2> KalimaTicketTexts{1652, 1653};
 constexpr std::size_t ChaosText = 571;
 constexpr std::int32_t DarkLordHeartLevel = 13;
 
-// 0x5b4a91..0x5b4c07: las opciones del nivel del 0x1a13.
+// 0x5b4a91..0x5b4c07: the options of 0x1a13's level.
 Core::Expected<void, std::string> WriteTheAngelOptions(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> WriteTheAngelQuestItem(Frame& frame)
     return WriteTheAngelOptions(frame);
 }
 
-// Lo que no se puede guardar, comerciar ni tirar (0x5b4c58..0x5b4cdd y 0x5b4d82..0x5b4e07).
+// What cannot be stored, traded or dropped (0x5b4c58..0x5b4cdd and 0x5b4d82..0x5b4e07).
 void WriteTheLocks(TooltipWriter& lines)
 {
     lines.Line(TooltipRed, NoWarehouseText);
@@ -209,7 +209,7 @@ void WriteTheOtherKinds(Frame& frame)
     }
     else if (type == WarriorRing)
     {
-        // La tabla de 0x5b810c: el 926 en los niveles 0 y 3; en el 1 y el 2, el nivel desde el que se tira y los tres.
+        // The table at 0x5b810c: 926 at levels 0 and 3; at 1 and 2, the level from which it is dropped and the three.
         if (frame.level == 0 || frame.level == 3)
             lines.Line(TooltipRed, NoRepairText);
         else if (frame.level == 1 || frame.level == 2)
@@ -225,7 +225,7 @@ void WriteTheOtherKinds(Frame& frame)
     }
 }
 
-// 0x54bf10: la skill de un pergamino, el tipo − 0x1dff, salvo 0x1e10, 0x1e11 y 0x1e12, que son 0x26, 0x27 y 0x28.
+// 0x54bf10: a scroll's skill, the type − 0x1dff, except 0x1e10, 0x1e11 and 0x1e12, which are 0x26, 0x27 and 0x28.
 std::int32_t ScrollSkillOf(std::int32_t type)
 {
     constexpr std::int32_t FirstRenumbered = 0x1e10;
@@ -236,7 +236,8 @@ std::int32_t ScrollSkillOf(std::int32_t type)
     return type - ScrollSkillBase;
 }
 
-// 0x5b4f93..0x5b556b. El renglón queda escrito; con el mínimo en 0 o en las skills sin daño, el que sigue baja uno.
+// 0x5b4f93..0x5b556b. The line stays written; with the minimum at 0 or in the skills without damage, the next one goes
+// down one.
 Core::Expected<void, std::string> WriteTheDamage(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -276,8 +277,8 @@ Core::Expected<void, std::string> WriteTheDamage(Frame& frame)
         lines.Back();
     return {};
 }
-// 0x5b556c..0x5b5770: la defensa (azul en las armaduras excelentes), la resistencia, la tasa de defensa (azul con
-// alguna excelente), las velocidades de Item.bmd y el 2011 de las pociones de asedio.
+// 0x5b556c..0x5b5770: the defense (blue in the excellent armors), the resistance, the defense rate (blue with some
+// excellent option), Item.bmd's speeds and 2011 of the siege potions.
 void WriteTheDefenses(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -314,7 +315,7 @@ void WriteTheDefenses(Frame& frame)
     }
 }
 
-// 0x5b5771..0x5b58e4: el 0x1c0b, con sus textos del nivel 7 o 14 (o el 571), el 733 y, en el 13, el 731.
+// 0x5b5771..0x5b58e4: 0x1c0b, with its texts of level 7 or 14 (or 571), 733 and, at 13, 731.
 void WriteTheLuckyBox(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;

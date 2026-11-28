@@ -34,64 +34,64 @@ namespace Client::Hud
 class IGameUiRequests;
 } // namespace Client::Hud
 
-// Los amigos del juego (CL9 hito 9; 04 § Los amigos y 06 § HUD y ventanas, "Los amigos"): abrir la ventana desde el
-// panel 1 (0x491080) y los paquetes C0..C4 (0x4dc010..0x4dc720) sobre el administrador de las ventanas viejas y el
-// modelo de [0x5763518].
+// The game's friends (CL9 milestone 9; 04 § Los amigos and 06 § HUD y ventanas, "Los amigos"): opening the window
+// from panel 1 (0x491080) and the packets C0..C4 (0x4dc010..0x4dc720) over the old windows' manager and the model at
+// [0x5763518].
 namespace Client::Messenger
 {
 
-// Los textos de Text.bmd de las ventanas viejas: los de la caja (228, 991, 1037 y 1038) y los demás por su índice.
+// The old windows' Text.bmd texts: the box's (228, 991, 1037 and 1038) and the others by their index.
 [[nodiscard]] Ui::OldWindowTexts OldWindowTextsOf(const Tables::TextTable* texts);
 
-// El paquete de lo que pide una ventana de amigos (Protocol/Friends, y Protocol/FriendChat y Protocol/Letters del
-// hito 10).
+// The packet for what a friends window asks for (Protocol/Messenger/Friends, and Protocol/Messenger/FriendChat and
+// Protocol/Messenger/Letters from milestone 10).
 [[nodiscard]] Protocol::Outgoing FriendPacketOf(const Ui::FriendSend& send);
 
-// OldWindowStepView::send del juego: el paquete por la sesión. La carta (C2 C5) sale cifrada como C4
-// (0x4992fe..0x499416, Q-C1002): antes, un rand() del relleno (0x4992fe) y el serial por la tabla de protección
-// (0x5767913), como el C3 F1 02 (0x62449a..0x6244f2). Los demás salen en claro, sin rand().
+// The game's OldWindowStepView::send: the packet through the session. The letter (C2 C5) goes out encrypted as C4
+// (0x4992fe..0x499416, Q-C1002): before, a rand() for the padding (0x4992fe) and the serial through the protection
+// table (0x5767913), like the C3 F1 02 (0x62449a..0x6244f2). The others go out in clear, without rand().
 void SendAFriendPacket(Hud::IGameUiRequests& requests, Crt::CrtRandom& random, const Ui::FriendSend& send);
 
-// Lo que 0x491080 lee del juego.
+// What 0x491080 reads from the game.
 struct FriendsOpenContext
 {
     Kernel::WorldState& world;
-    // El rand() de la CRT: lo saca el cierre del registro propio (3.848).
+    // The CRT's rand(): the own record's close draws it (3848).
     Crt::CrtRandom& random;
-    // Con qué se mide el mensaje del nivel; sin medidor, el mensaje corta.
+    // What the level message is measured with; without a measurer, the message cuts.
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
     const Tables::TextTable* texts = nullptr;
 };
 
-// 0x491080(0x186, 0x106): 0x490830, el nivel (+0xe) con el registro propio abierto (3.848 rand() al cerrarlo); con
-// menos de 6, el texto 1067 (0x555190 con el tipo 1, si no está entre los últimos: 0x45db70 con 1); si no,
-// Messenger::OpenTheFriendsWindow y, si la armó y las dos colas del cartel están quietas (0x46b7d0), el texto 1244 al
-// cartel.
+// 0x491080(0x186, 0x106): 0x490830, the level (+0xe) with the own record open (3848 rand() on closing it); below 6,
+// text 1067 (0x555190 with type 1, if it is not among the last ones: 0x45db70 with 1); otherwise,
+// Messenger::OpenTheFriendsWindow and, if it built it and both banner queues are idle (0x46b7d0), text 1244 to the
+// banner.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheFriends(const FriendsOpenContext& context,
                                                                const Ui::OldWindowGlobals& globals,
                                                                const Ui::OldWindowStepView& view);
 
-// 0x4dc010: la lista entera (vacía y llena, por nombre y por estado), la pestaña, 0x4918d0(1), el tope de las cartas
-// (0x5767970) y, con cartas, el texto 1072 con cuántas y el tope.
+// 0x4dc010: the whole list (emptied and filled, by name and by state), the tab, 0x4918d0(1), the letter limit
+// (0x5767970) and, with letters, text 1072 with how many and the limit.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFriendList(const Protocol::Messenger::FriendList& list,
                                                                 const Chat::ChatReceiveContext& context);
 
-// 0x4dc3d0: el resultado de agregar. 1, el texto 1075 y el amigo a la lista; 0, 3, 4, 5 y 6, una caja (0x48ee60(10))
-// con el texto 1047 (con el nombre), 1048, 1049 (con el nombre), 1050 o 1068.
+// 0x4dc3d0: 1, text 1075 and the friend to the list; 0, 3, 4, 5 and 6, a box (0x48ee60(10)) with text 1047 (with the
+// name), 1048, 1049 (with the name), 1050 or 1068.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFriendAddResult(const Protocol::Messenger::FriendAddResult& result,
                                                                      const Chat::ChatReceiveContext& context);
 
-// 0x4dc5b0: "<nombre><1051>" en una caja de dos botones (0x48ee60(9), dueño −1) que guarda el nombre (0x4a4440), y el
-// sonido 0x2a.
+// 0x4dc5b0: "<name><1051>" in a two-button box (0x48ee60(9), owner −1) that stores the name (0x4a4440), and sound
+// 0x2a.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFriendRequest(const Protocol::Messenger::FriendRequest& request,
                                                                    const Chat::ChatReceiveContext& context);
 
-// 0x4dc690: 0, la caja con el texto 1052; 1, el amigo fuera de la lista.
+// 0x4dc690: 0, the box with text 1052; 1, the friend out of the list.
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyFriendDeleteResult(const Protocol::Messenger::FriendDeleteResult& result, const Chat::ChatReceiveContext& context);
 
-// 0x4dc720: con 0xfc, todos fuera de línea y 0x4918d0(0); si no, el estado del amigo.
+// 0x4dc720: with 0xfc, all offline and 0x4918d0(0); otherwise, the friend's state.
 [[nodiscard]] Core::Expected<void, std::string> ApplyFriendState(const Protocol::Messenger::FriendState& state,
                                                                  const Chat::ChatReceiveContext& context);
 } // namespace Client::Messenger

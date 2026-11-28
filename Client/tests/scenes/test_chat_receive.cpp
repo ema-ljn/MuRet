@@ -50,8 +50,8 @@
 #include <utility>
 #include <vector>
 
-// El chat que llega (CL8 hito 3; 04 § El chat que llega): 0x4c6070, 0x4e33fc, 0x4e34ea, 0x4e366f, 0x4c65b0 y
-// 0x4dd570 sobre el mundo. Los nombres y los textos son inventados.
+// The incoming chat (CL8 milestone 3; 04 § El chat que llega): 0x4c6070, 0x4e33fc, 0x4e34ea, 0x4e366f, 0x4c65b0 and
+// 0x4dd570 on the world. The names and the texts are made up.
 namespace
 {
 using Client::Chat::ChatReceiveContext;
@@ -113,7 +113,7 @@ protected:
                                   .chosenSlot = std::uint8_t{1}};
     }
 
-    // Un jugador vivo y a la vista en `index`.
+    // A live player in view at `index`.
     ActorState& Player(std::size_t index, std::string_view name)
     {
         ActorState& actor = m_world->Actors()[index];
@@ -131,7 +131,7 @@ protected:
         return m_world->Runtime();
     }
 
-    // El estado del rand() después de `count` más desde la semilla.
+    // The rand() state after `count` more from the seed.
     [[nodiscard]] static std::uint32_t After(std::uint32_t count)
     {
         CrtRandom expected(Seed);
@@ -144,7 +144,7 @@ protected:
     LetterMeasure m_letters;
 };
 
-// 0x4c6386: el chat normal va a un globo (0x557560 con 0) y al chat (el tipo 3), con 60 bytes desde pkt[0xd].
+// 0x4c6386: the normal chat goes to a bubble (0x557560 with 0) and to the chat (type 3), with 60 bytes from pkt[0xd].
 TEST_F(ChatReceiveTest, AChatGoesToABubbleAndToTheChat)
 {
     Player(7, "Zorzal");
@@ -178,7 +178,7 @@ TEST_F(ChatReceiveTest, AtTheLoginTheChatOnlyAsksForTheListAgain)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4c62ef..0x4c6380: ~ al chat de la party, @@ al aviso del gremio, @ al gremio; sin la marca.
+// 0x4c62ef..0x4c6380: ~ to the party chat, @@ to the guild notice, @ to the guild; without the mark.
 TEST_F(ChatReceiveTest, TheMarksPickTheChannel)
 {
     ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "~vamos"), Context()).HasValue());
@@ -193,14 +193,14 @@ TEST_F(ChatReceiveTest, TheMarksPickTheChannel)
     EXPECT_EQ(entries[1].text, "reunion");
     EXPECT_EQ(entries[0].type, Client::Ui::GuildMessage);
     EXPECT_EQ(entries[0].text, "listos");
-    // Nadie habla con ese nombre: ningún globo.
+    // Nobody with that name speaks: no bubble.
     EXPECT_FALSE(Runtime().chat.bubbles[0].owner.has_value());
 }
 
-// 0x4c62f6, 0x4c6334 y 0x4c6386: 59 bytes después de ~, 58 después de @@ y 60 sin marca.
+// 0x4c62f6, 0x4c6334 and 0x4c6386: 59 bytes after ~, 58 after @@ and 60 without a mark.
 TEST_F(ChatReceiveTest, EachBranchCopiesItsOwnByteCount)
 {
-    // De a un punto por letra, el registro no corta ningún texto en dos.
+    // At one point per letter, the log splits no text in two.
     m_letters.width = 1;
     ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "~" + std::string(59, 'p')), Context()).HasValue());
     ASSERT_TRUE(Client::Chat::ApplyChat(SpokenBy<Chat>("Tero", "@@" + std::string(58, 'g')), Context()).HasValue());
@@ -215,7 +215,7 @@ TEST_F(ChatReceiveTest, EachBranchCopiesItsOwnByteCount)
     EXPECT_EQ(std::count(all.begin(), all.end(), 'n'), 60);
 }
 
-// 0x4c6352: # solo al globo, que con el modo 1 también va al registro y dura 1.000 pasos.
+// 0x4c6352: # only to the bubble, which with mode 1 also goes to the log and lasts 1000 steps.
 TEST_F(ChatReceiveTest, AShoutOnlyMakesALongBubble)
 {
     Player(3, "Calandria");
@@ -228,7 +228,7 @@ TEST_F(ChatReceiveTest, AShoutOnlyMakesALongBubble)
     EXPECT_EQ(Runtime().chat.area.count, 0);
 }
 
-// 0x4e34ea: el registro propio se abre una vez (3.848 rand() al cerrarlo) y, con nivel 9, el emisor queda anotado.
+// 0x4e34ea: the own record opens once (3848 rand() on closing it) and, with level 9, the sender is noted.
 TEST_F(ChatReceiveTest, AWhisperClosesTheOwnRecordAndRemembersTheSender)
 {
     m_world->OwnCharacter().level = 9;
@@ -243,7 +243,7 @@ TEST_F(ChatReceiveTest, AWhisperClosesTheOwnRecordAndRemembersTheSender)
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "psst");
 }
 
-// Con nivel 10 no lo anota; con el registro ya abierto, el cierre no saca nada.
+// With level 10 it does not note it; with the record already open, the close draws nothing.
 TEST_F(ChatReceiveTest, AWhisperAtLevelTenWithTheRecordOpenTakesNoRandoms)
 {
     m_world->OwnCharacter().level = 10;
@@ -254,7 +254,7 @@ TEST_F(ChatReceiveTest, AWhisperAtLevelTenWithTheRecordOpenTakesNoRandoms)
     EXPECT_EQ(Client::Chat::WhisperSenderAt(Runtime().chat.whisperSenders, 0), "");
 }
 
-// 0x4e34f1: con 0x77f3b98, nada: ni el registro propio.
+// 0x4e34f1: with 0x77f3b98, nothing: not even the own record.
 TEST_F(ChatReceiveTest, BlockedWhispersDoNothing)
 {
     Runtime().chat.whisperBlocked = true;
@@ -264,7 +264,7 @@ TEST_F(ChatReceiveTest, BlockedWhispersDoNothing)
     EXPECT_TRUE(Runtime().chat.log.entries.empty());
 }
 
-// 0x4e366f: solo el 0; el texto 482 sin Text.bmd corta.
+// 0x4e366f: only the 0; the text 482 without Text.bmd stops.
 TEST_F(ChatReceiveTest, OnlyAFailedWhisperIsReported)
 {
     EXPECT_TRUE(Client::Chat::ApplyWhisperResult(WhisperResult{1}, Context()).HasValue());
@@ -272,7 +272,7 @@ TEST_F(ChatReceiveTest, OnlyAFailedWhisperIsReported)
     EXPECT_FALSE(Client::Chat::ApplyWhisperResult(WhisperResult{0}, Context()).HasValue());
 }
 
-// 0x4e33fc: el globo del que tiene la clave; una clave desde 0x8000 no la tiene nadie (MOVSX).
+// 0x4e33fc: the bubble of the one with the key; a key from 0x8000 belongs to nobody (MOVSX).
 TEST_F(ChatReceiveTest, AKeyChatFindsTheSpeakerByItsKey)
 {
     Player(12, "Hornero").key = 0x1234;
@@ -287,9 +287,9 @@ TEST_F(ChatReceiveTest, AKeyChatFindsTheSpeakerByItsKey)
     EXPECT_FALSE(Runtime().chat.bubbles[1].owner.has_value());
 }
 
-// 0x4e341d y 0x4e3450: con el héroe en 0x80 y el que habla con el nombre de 0x6c8404, sin globo, la ventana 2 del
-// gremio (0x6599a0(0x40000, 0): las consultas de la tienda de NPC y del comercio en 0x661b90 y las dos de 0x657ab0), el
-// campo del alta prendido, el del chat cerrado, los buffers vacíos, la cuenta de Tab en 0 y el héroe en el 1999.
+// 0x4e341d and 0x4e3450: with the hero at 0x80 and the speaker with the name of 0x6c8404, without a bubble, the guild's
+// window 2 (0x6599a0(0x40000, 0): the NPC shop and trade queries at 0x661b90 and the two of 0x657ab0), the sign-up
+// field on, the chat's closed, the buffers empty, the Tab count at 0 and the hero at the 1999.
 TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
 {
     ActorState& master = Player(20, "");
@@ -319,7 +319,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
     EXPECT_EQ(m_random.State(), After(4));
 }
 
-// 0x4e345c → 0x6599a0: abrir el gremio cierra también Senior, Hunt y los tres controles de batalla.
+// 0x4e345c → 0x6599a0: opening the guild also closes Senior, Hunt and the three battle controls.
 TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
 {
     Client::FrontEnd::ClearSelectionInventory(*m_world, m_random);
@@ -345,7 +345,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         auto context = Context();
         context.guildSend = [&](Client::Protocol::Outgoing packet)
         {
-            // Senior baja el flag antes del 31; Hunt y las armas después; puerta limpia también su clave antes.
+            // Senior lowers the flag before the 31; Hunt and the weapons after; the gate also clears its key before.
             EXPECT_EQ(delegated.castleSiegeList, 0);
             EXPECT_EQ(delegated.secondCastleSiege, kind == 1 ? 1 : 0);
             EXPECT_EQ(delegated.siegeWeapon, kind == 2 ? 1 : kind == 3 ? 2 : 0);
@@ -357,7 +357,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
             sent.push_back(std::move(packet));
         };
         auto expected = m_random;
-        expected.Discard(4); // Los mismos accesos protegidos que al abrir el gremio sin otra ventana.
+        expected.Discard(4); // The same protected accesses as opening the guild without another window.
 
         auto result = Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
 
@@ -376,7 +376,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
         EXPECT_EQ(m_random.State(), expected.State());
     }
 
-    // 0x659933→0x661b90: incluso occupied=0 bloquea CanOpen si el WORD de la caja del Senior no es 0xffff.
+    // 0x659933→0x661b90: even occupied=0 blocks CanOpen if the WORD of the Senior's box is not 0xffff.
     auto& delegated = Runtime().panels.delegated;
     delegated = {};
     delegated.castleSiegeList = 1;
@@ -398,7 +398,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterUsesTheSharedCastleAndBattleClosers)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x659889..0x659894: CanOpen rechaza el almacén antes de los cierres. 0x4e3461 continúa sin mirar el retorno.
+// 0x659889..0x659894: CanOpen rejects the warehouse before the closes. 0x4e3461 goes on without looking at the return.
 TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefusesTheGuild)
 {
     ActorState& master = Player(20, "");
@@ -432,7 +432,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     context.worldEntry = &resources;
     context.guildSend = [&](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); };
     auto expected = m_random;
-    expected.Discard(2); // Sólo las consultas protegidas de la tienda del NPC y del comercio.
+    expected.Discard(2); // Only the protected queries of the NPC shop and the trade.
 
     auto result = Client::Chat::ApplyKeyChat(KeyChat{.key = 0x0042, .text = "hola"}, context);
 
@@ -449,7 +449,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x4e3492: el héroe con gremio lo conserva.
+// 0x4e3492: the hero with a guild keeps it.
 TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
 {
     ActorState& master = Player(20, "");
@@ -466,7 +466,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheHerosGuild)
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 1);
 }
 
-// 0x4c65b0: el 0 al aviso centrado; el 1 al chat fuera de la selección.
+// 0x4c65b0: the 0 to the centered notice; the 1 to the chat outside the selection.
 TEST_F(ChatReceiveTest, NoticesGoToTheCenterOrToTheChat)
 {
     ASSERT_TRUE(Client::Chat::ApplyNotice(Notice{.type = 0, .text = "atencion"}, Context()).HasValue());
@@ -479,8 +479,8 @@ TEST_F(ChatReceiveTest, NoticesGoToTheCenterOrToTheChat)
     EXPECT_FALSE(Runtime().chat.selectionNotice.has_value());
 }
 
-// 0x4c6634..0x4c665f: el 2 va al área de los avisos con el 483 (0x554610 con 1) y su texto, sin el 483, a la lista del
-// aviso de la ventana del gremio (0x651680: adelante, renglón por renglón).
+// 0x4c6634..0x4c665f: the 2 goes to the notices' area with the 483 (0x554610 with 1) and its text, without the 483, to
+// the list of the guild window's notice (0x651680: in front, line by line).
 TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
 {
     auto table = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes({{483, "Gremio: %s"}}));
@@ -502,7 +502,7 @@ TEST_F(ChatReceiveTest, TheGuildNoticeGoesToTheAreaAndToTheGuildWindow)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4c65f9: en la selección, el primer 1 va a la franja de la barra y los demás al chat.
+// 0x4c65f9: in the selection, the first 1 goes to the bar's strip and the others to the chat.
 TEST_F(ChatReceiveTest, TheFirstSystemNoticeInTheSelectionGoesToTheBar)
 {
     const ChatReceiveContext selection = Context(SceneId::CharacterSelect);
@@ -514,8 +514,8 @@ TEST_F(ChatReceiveTest, TheFirstSystemNoticeInTheSelectionGoesToTheBar)
     EXPECT_EQ(Runtime().chat.log.entries[0].text, "segundo");
 }
 
-// 0x4c6669..0x4c66b3: el cartel (10 a 15) solo encola en el juego, con texto y de 1 a 30 repeticiones: 0x46b720(pkt[4],
-// pkt[6..7], texto, tipo − 10, pkt[0xc] · 0,1f, pkt[8..0xb]), sin rand().
+// 0x4c6669..0x4c66b3: the banner (10 to 15) only queues in the game, with text and from 1 to 30 repeats:
+// 0x46b720(pkt[4], pkt[6..7], text, type − 10, pkt[0xc] · 0.1f, pkt[8..0xb]), without rand().
 TEST_F(ChatReceiveTest, TheSlideNoticeQueuesOnlyInTheGame)
 {
     const auto& slides = m_world->Runtime().hud.slides;
@@ -549,11 +549,11 @@ TEST_F(ChatReceiveTest, TheSlideNoticeQueuesOnlyInTheGame)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4dd570: 3.848 rand() al cerrar el registro, las teclas del elegido y lo demás después.
+// 0x4dd570: 3848 rand() on closing the record, the selected one's keys and the rest after.
 TEST_F(ChatReceiveTest, TheOptionDataFillsTheKeysAndTheOptions)
 {
     Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
-    own.words6c[0] = 0x00110a00u; // las skills 0x00, 0x0a, 0x11 y 0x00 en +0x6c..+0x6f
+    own.words6c[0] = 0x00110a00u; // the skills 0x00, 0x0a, 0x11 and 0x00 at +0x6c..+0x6f
     OptionData data;
     data.skillKeys.fill(0xff);
     data.skillKeys[2] = 0x11;
@@ -582,7 +582,7 @@ TEST_F(ChatReceiveTest, TheOptionDataFillsTheKeysAndTheOptions)
     EXPECT_EQ(Runtime().chat.log.alpha, 0.7f);
 }
 
-// Sin renglones, el registro sale de su ventana y los renglones quedan.
+// Without lines, the log leaves its window and the lines stay.
 TEST_F(ChatReceiveTest, ZeroRowsTakeTheLogOutOfItsWindow)
 {
     Runtime().ui.chatModes.placement = 1;
@@ -597,7 +597,7 @@ TEST_F(ChatReceiveTest, ZeroRowsTakeTheLogOutOfItsWindow)
     EXPECT_TRUE(Runtime().chat.slidesOn);
 }
 
-// 0x4dd645: sin elegido corta antes de abrir el registro: ningún rand().
+// 0x4dd645: without a selected one it stops before opening the record: no rand().
 TEST_F(ChatReceiveTest, TheOptionDataWithoutAChosenSlotIsCutBeforeTheRecord)
 {
     ChatReceiveContext context = Context();

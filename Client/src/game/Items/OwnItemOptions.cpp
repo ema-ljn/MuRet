@@ -49,7 +49,7 @@ void ApplyOwnItemOptionPercent(std::span<std::byte, 2> destination, std::uint32_
         if (options.optionBytes[index] != selector)
             continue;
         const std::uint32_t previous = ReadOptionDestination(destination);
-        // IMUL low32 signed y división truncada: no signed16 ni producto ampliado.
+        // IMUL low32 signed and truncated division: neither signed16 nor a widened product.
         const std::uint32_t product = previous * (factor & 0xffffu);
         const std::int32_t adjustment = std::bit_cast<std::int32_t>(product) / PercentScale;
         WriteOptionDestination(destination, previous + static_cast<std::uint32_t>(adjustment));

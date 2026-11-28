@@ -14,9 +14,9 @@
 #include <string_view>
 #include <utility>
 
-// El registro del chat (0x576350c), el área vieja (0x77d9868) y su entrada 0x555190 (CL8 hito 3; 06 § El chat).
-// Los textos son inventados; las cuentas, las del ASM: 0x45bb20, 0x459c70, 0x45bfe0, 0x47a050, 0x45d8c0, 0x45dc40,
-// 0x45ddc0, 0x45de20 y 0x45db70.
+// The chat log (0x576350c), the old area (0x77d9868) and its entry point 0x555190 (CL8 milestone 3; 06 § El chat).
+// The texts are invented; the arithmetic is the ASM's: 0x45bb20, 0x459c70, 0x45bfe0, 0x47a050, 0x45d8c0, 0x45dc40,
+// 0x45ddc0, 0x45de20 and 0x45db70.
 namespace
 {
 using Client::Chat::ChatEntry;
@@ -28,7 +28,7 @@ using Client::Render::Text::FontKind;
 using Client::Render::Text::ITextMeasure;
 using Client::Render::Text::TextExtent;
 
-// Como el rasterizador falso: 6 columnas por letra y 13 filas.
+// Like the fake rasterizer: 6 columns per letter and 13 rows.
 class LetterMeasure final : public ITextMeasure
 {
 public:
@@ -43,7 +43,7 @@ private:
     int m_letter;
 };
 
-// Mide siempre lo mismo, para la división por cero de 0x459d21.
+// Always measures the same, for 0x459d21's division by zero.
 class FixedMeasure final : public ITextMeasure
 {
 public:
@@ -91,8 +91,8 @@ TEST_F(ChatLogTest, AShortMessageGoesInFrontWithItsTypeAndNoAge)
     EXPECT_EQ(m_log.scroll, 0);
 }
 
-// 0x459c70: 40 letras miden 240 > 180; 180 / 6 = 30 letras, que miden 180 (dentro de ±4). La segunda mitad, sin
-// nombre, queda adelante de la primera.
+// 0x459c70: 40 letters measure 240 > 180; 180 / 6 = 30 letters, which measure 180 (within ±4). The second half,
+// without the name, goes before the first.
 TEST_F(ChatLogTest, ALongMessageIsCutInTwoAt180AndTheSecondHalfLosesTheName)
 {
     const std::string text(40, 'a');
@@ -103,7 +103,7 @@ TEST_F(ChatLogTest, ALongMessageIsCutInTwoAt180AndTheSecondHalfLosesTheName)
     EXPECT_EQ(m_log.entries[1], Entry("Ana", std::string(30, 'a'), 0));
 }
 
-// ~len(nombre) + ~len(texto) − 2 < 0x14: 19 bytes entran enteros aunque midan más de 180.
+// ~len(name) + ~len(text) − 2 < 0x14: 19 bytes go in whole even if they measure more than 180.
 TEST_F(ChatLogTest, NineteenBytesBetweenNameAndTextAreNeverCut)
 {
     const LetterMeasure wide(20);
@@ -115,7 +115,7 @@ TEST_F(ChatLogTest, NineteenBytesBetweenNameAndTextAreNeverCut)
     EXPECT_EQ(m_log.entries[0].text, std::string(16, 'b'));
 }
 
-// 0x459d21: un texto largo que mide menos de un punto por letra divide por cero en el original.
+// 0x459d21: a long text that measures less than a point per letter divides by zero in the original.
 TEST_F(ChatLogTest, ATextOfLettersNarrowerThanAPointIsTheOriginalsDivisionByZero)
 {
     const FixedMeasure fixed;
@@ -135,7 +135,7 @@ TEST_F(ChatLogTest, NormalChatIsDroppedWithoutF2)
     EXPECT_EQ(m_log.entries[0].type, 1);
 }
 
-// 0x45dc40, 0x45ddc0 y el 0x26 de 0x45bb20 con el filtro puesto y 0x77f3b78.
+// 0x45dc40, 0x45ddc0 and 0x45bb20's 0x26 with the filter set and 0x77f3b78.
 TEST_F(ChatLogTest, TheFilterLetsInOnlyNormalChatWithOneOfItsWordsAndRings)
 {
     EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter dragon alas"), Client::Chat::FilterOnText);
@@ -147,7 +147,7 @@ TEST_F(ChatLogTest, TheFilterLetsInOnlyNormalChatWithOneOfItsWordsAndRings)
     const auto rung = Client::Chat::AddToTheLog(m_log, m_modes, Measure(), "Ana", "compro alas", 3, 0, true);
     ASSERT_TRUE(rung.HasValue()) << rung.Error();
     EXPECT_EQ(rung.Value(), std::optional{Client::Chat::ChatFilterSound});
-    // Los otros tipos no pasan por el filtro.
+    // The other types do not go through the filter.
     Add("Ana", "vendo escudo", 0);
     EXPECT_EQ(m_log.entries.size(), 2u);
 
@@ -155,7 +155,7 @@ TEST_F(ChatLogTest, TheFilterLetsInOnlyNormalChatWithOneOfItsWordsAndRings)
     EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter"), std::nullopt);
 }
 
-// La suma de los largos de todas las palabras tiene que quedar por debajo de 31; la primera que no entra corta todo.
+// The lengths of all the words must add up to less than 31; the first one that does not fit cuts them all.
 TEST_F(ChatLogTest, TheFilterWordsMustAddUpToLessThan31Bytes)
 {
     EXPECT_EQ(Client::Chat::SetTheChatFilter(m_log, "/filter " + std::string(31, 'x')), std::nullopt);
@@ -167,7 +167,7 @@ TEST_F(ChatLogTest, TheFilterWordsMustAddUpToLessThan31Bytes)
     EXPECT_TRUE(m_log.filter[1].empty());
 }
 
-// Los dos vacíos, con el registro fuera de su ventana y sin correr: todas las entradas suben su edad.
+// Both empty, with the log outside its window and not scrolled: every entry ages.
 TEST_F(ChatLogTest, AnEmptyMessageAgesTheLogOnlyOutsideItsWindowAndUnscrolled)
 {
     Add("Ana", "hola", 0);
@@ -180,7 +180,7 @@ TEST_F(ChatLogTest, AnEmptyMessageAgesTheLogOnlyOutsideItsWindowAndUnscrolled)
     EXPECT_EQ(m_log.entries.size(), 1u);
 }
 
-// 0x47a050: de 150 en adelante saca los de atrás.
+// 0x47a050: from 150 on it drops the oldest.
 TEST_F(ChatLogTest, TheLogKeeps150)
 {
     for (int i = 0; i < 151; ++i)
@@ -188,7 +188,7 @@ TEST_F(ChatLogTest, TheLogKeeps150)
     EXPECT_EQ(m_log.entries.size(), 150u);
 }
 
-// 0x45bfe0 con −6, sin correr y fuera de su ventana: cuenta renglones con sus edades hasta 6.
+// 0x45bfe0 with −6, not scrolled and outside its window: counts rows with their ages up to 6.
 TEST_F(ChatLogTest, TheAgedScrollCountsRowsWithTheirAges)
 {
     for (int i = 0; i < 20; ++i)
@@ -197,7 +197,7 @@ TEST_F(ChatLogTest, TheAgedScrollCountsRowsWithTheirAges)
 
     Client::Chat::ScrollTheLog(m_log, m_modes, -6);
 
-    // 1, 2, 2 + 1 + 3 = 6: el tercero.
+    // 1, 2, 2 + 1 + 3 = 6: the third.
     EXPECT_EQ(m_log.scroll, 3);
 }
 
@@ -213,7 +213,7 @@ TEST_F(ChatLogTest, ScrollingStopsAtTheOldestRows)
     EXPECT_EQ(m_log.scroll, 0);
 }
 
-// 0x45d8c0, F4 y el segundo botón: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6).
+// 0x45d8c0, F4 and the second button: (0, 6) → (1, 3) → (1, 6) → (1, 30) → (0, 6).
 TEST_F(ChatLogTest, F4CyclesTheSizes)
 {
     Client::Chat::CycleTheLogSize(m_log, m_modes);
@@ -228,7 +228,7 @@ TEST_F(ChatLogTest, F4CyclesTheSizes)
     EXPECT_EQ(m_log.rows, 6);
 }
 
-// 0x45db70: entre los primeros n, uno con los mismos 16 primeros bytes o con edad.
+// 0x45db70: among the first n, one with the same first 16 bytes or with an age.
 TEST_F(ChatLogTest, SaidRecentlyLooksAtTheFirst16BytesOrAnAge)
 {
     Add("Ana", "abcdefghijklmnopXYZ", 0);
@@ -238,7 +238,7 @@ TEST_F(ChatLogTest, SaidRecentlyLooksAtTheFirst16BytesOrAnAge)
     EXPECT_TRUE(Client::Chat::SaidRecently(m_log, "otra cosa", 1));
 }
 
-// Un nombre de 11 bytes no tiene '\0' y se lee seguido del texto.
+// An 11-byte name has no '\0' and reads on into the text.
 TEST_F(ChatLogTest, AnElevenByteNameRunsIntoTheText)
 {
     Add("Abcdefghijkl", "hola", 0);
@@ -246,7 +246,7 @@ TEST_F(ChatLogTest, AnElevenByteNameRunsIntoTheText)
     EXPECT_EQ(Client::Chat::NameOf(m_log.entries[0]), "Abcdefghijkhola");
 }
 
-// 0x555190: con el nombre vacío o un tipo de sistema, también al área vieja; el chat de otros, no.
+// 0x555190: with an empty name or a system type, also to the old area; other people's chat, not.
 TEST(MessageLogTest, TheOldAreaTakesOnlyNamelessOrSystemMessages)
 {
     const LetterMeasure letters;
@@ -269,7 +269,7 @@ TEST(MessageLogTest, TheOldAreaTakesOnlyNamelessOrSystemMessages)
     EXPECT_EQ(area.clock, Client::Ui::MessageClockSteps);
 }
 
-// 0x5554b0: 151 pasos desde 150 hasta el mensaje vacío.
+// 0x5554b0: 151 steps from 150 to the empty message.
 TEST(MessageLogTest, TheClockAddsAnEmptyMessageEvery151Steps)
 {
     const LetterMeasure letters;

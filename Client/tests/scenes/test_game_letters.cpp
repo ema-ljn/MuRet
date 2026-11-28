@@ -55,10 +55,10 @@
 #include <utility>
 #include <vector>
 
-// El chat con un amigo y las cartas del juego (CL9 hito 10; 04 § Las cartas y el chat con un amigo): los botones 3 y 4
-// de la pestaña de amigos (0x49d0b0), el chat (0x4944c0), la de escribir (0x498820), la pestaña de las cartas
-// (0x4a11b0), la de leer (0x49a1f0) y los paquetes C5..C8, CA y CB (0x4dc840..0x4dd020), byte a byte. Los nombres y los
-// textos son inventados.
+// The chat with a friend and the game's letters (CL9 milestone 10; 04 § Las cartas y el chat con un amigo): buttons 3
+// and 4 of the friends tab (0x49d0b0), the chat (0x4944c0), the write window (0x498820), the letters tab (0x4a11b0),
+// the read window (0x49a1f0) and the C5..C8, CA and CB packets (0x4dc840..0x4dd020), byte by byte. The names and texts
+// are made up.
 namespace
 {
 using Client::Chat::ChatReceiveContext;
@@ -78,7 +78,7 @@ using Client::Ui::PortraitCallKind;
 constexpr std::uint32_t Seed = 9191;
 constexpr std::string_view Hero = "Yaguarete";
 
-// La clave del XOR32 (0x6b8648), escrita de nuevo para no comparar el código consigo mismo.
+// The XOR32 key (0x6b8648), written again so the code is not compared with itself.
 constexpr std::array<int, 32> Xor32Key{0xe7, 0x6d, 0x3a, 0x89, 0xbc, 0xb2, 0x9f, 0x73, 0x23, 0xa8, 0xfe,
                                        0xb6, 0x49, 0x5d, 0x39, 0x5d, 0x8a, 0xcb, 0x63, 0x8d, 0xea, 0x7d,
                                        0x2b, 0x5f, 0xc3, 0xb1, 0xe9, 0x83, 0x29, 0x51, 0xe8, 0x56};
@@ -109,7 +109,7 @@ std::vector<std::byte> BytesOf(const Outgoing& sent)
     return {sent.packet.Bytes().begin(), sent.packet.Bytes().end()};
 }
 
-// El XOR de 3 bytes del chat (0x6c82e4), por el lugar.
+// The chat's 3-byte XOR (0x6c82e4), by position.
 std::vector<std::byte> ChatTextOf(std::string_view text, std::size_t size)
 {
     constexpr std::array<int, 3> Key{0xfc, 0xcf, 0xab};
@@ -126,7 +126,6 @@ std::vector<std::byte> Joined(std::vector<std::byte> head, const std::vector<std
     return head;
 }
 
-// Las conexiones de las salas (App::IChatRoomLinks), anotadas en orden.
 class FakeRooms final : public Client::App::IChatRoomLinks
 {
 public:
@@ -240,8 +239,8 @@ protected:
                                   .rooms = &m_rooms};
     }
 
-    // Lo que el juego le da al paso (Scenes/GameUi), con un retrato de prueba: arma el personaje (+0x68c en 1) con el
-    // zoom de 0,8 y no saca rand().
+    // What the game gives the step (Hud/GameUi), with a test portrait: it builds the character (+0x68c at 1) with zoom
+    // 0.8 and draws no rand().
     [[nodiscard]] Client::Ui::OldWindowStepView View(std::int32_t x = 639, std::int32_t y = 479)
     {
         Client::Ui::OldWindowStepView view{.mouseX = x,
@@ -265,8 +264,8 @@ protected:
             }
             return {};
         };
-        // Solo anota la copia. El del juego (Hud::LendTheGameHooks) la lee con ReadLetterCopy, que también lee la
-        // de una carta de 1000 (LettersTest.TheCopyOfAThousandLetterLetterReadsAgain), y la da a ApplyLetterRead.
+        // Only records the copy. The game's (Hud::LendTheGameHooks) reads it with ReadLetterCopy, which also reads a
+        // 1000-letter letter's (LettersTest.TheCopyOfAThousandLetterLetterReadsAgain), and gives it to ApplyLetterRead.
         view.replayLetter = [this](const std::vector<std::byte>& copy) -> Client::Core::Expected<void, std::string>
         {
             m_replayed.push_back(copy);
@@ -286,7 +285,7 @@ protected:
         return Client::Ui::StepTheOldWindows(Manager(), Globals(), View(x, y));
     }
 
-    // La de amigos con tres: dos en línea y uno fuera.
+    // Three friends: two online and one offline.
     void OpenTheFriendsWithThree()
     {
         auto opened = Client::Messenger::OpenTheFriendsWindow(Manager(), Client::Messenger::FriendsWindowX,
@@ -308,8 +307,8 @@ protected:
         }
     }
 
-    // El chat con Tordo en la sala 0x0304 (el botón 3 y el CA con 1), con el héroe y Tordo de miembros. Las llamadas a
-    // las salas quedan vacías. Da el id del chat, o 0.
+    // The chat with Tordo in room 0x0304 (button 3 and the CA with 1), with the hero and Tordo as members. The calls to
+    // the rooms are cleared. Returns the chat id, or 0.
     [[nodiscard]] std::int32_t JoinARoomWithTordo()
     {
         OpenTheFriendsWithThree();
@@ -390,11 +389,11 @@ protected:
     std::int32_t m_pressedButton = 0;
 };
 
-// El botón 3 con un amigo en línea: C1 0D CA con su nombre, y queda pedido (+0x158): otro 3 no vuelve a mandar. El CA
-// con 1 y el tipo 0 arma el chat (0x48ee60(1)), lo suma a +0xb4, toma un lugar (0x49e280), abre la conexión de la sala
-// (0x49de50) y manda por ella el C1 10 00 con la sala y el ticket (0x493530). Con los miembros, el botón 1 muestra la
-// lista de invitar (sin el amigo ni los de fuera de línea) y el 2, con el EDIT con el foco y el chat abierto, manda el
-// C1 14 CB con la sala y la ventana. Nada de esto saca rand().
+// Button 3 with a friend online: C1 0D CA with their name, and it stays requested (+0x158): another 3 does not send
+// again. The CA with 1 and type 0 builds the chat (0x48ee60(1)), adds it to +0xb4, takes a slot (0x49e280), opens the
+// room's connection (0x49de50) and sends through it the C1 10 00 with the room and the ticket (0x493530). With the
+// members, button 1 shows the invite list (without the friend or the offline ones) and the 2, with the EDIT focused
+// and the chat open, sends the C1 14 CB with the room and the window. None of this draws rand().
 TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
 {
     OpenTheFriendsWithThree();
@@ -452,14 +451,14 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(chat->chat.mode, 2);
     ASSERT_EQ(chat->chat.invitable.size(), 1u);
     EXPECT_EQ(chat->chat.invitable[0].name, "Calandria");
-    // El 6 (subir el chat, 0x49541c) le da el foco al EDIT, como cada clic sobre la ventana: invitar no mira el foco
-    // sino +0xb4 del EDIT (0x49455e), que solo prende el chat cerrado.
+    // The 6 (raise the chat, 0x49541c) gives the focus to the EDIT, like every click on the window: inviting does not
+    // look at the focus but at the EDIT's +0xb4 (0x49455e), which only the closed chat sets.
     Client::Ui::PostToTheWindow(Manager(), chatId, Client::Ui::RaisedMessage, 0, 0);
     ASSERT_TRUE(Step().HasValue());
     EXPECT_EQ(Runtime().chat.input.focus, Client::Chat::ChatFocus::OldWindow);
     EXPECT_EQ(Manager().focusedEdit, chat->chat.edit.base.id);
-    // 0x461f00 sobre el renglón de Calandria (13 de alto, 3 más arriba que su y): el clic lo elige y el doble clic es
-    // el 0xd al chat, que 0x4944d9 vuelve el 10 con 2.
+    // 0x461f00 on Calandria's row (13 high, 3 above its y): the click chooses it and the double click is the 0xd to the
+    // chat, which 0x4944d9 turns into the 10 with 2.
     chat = &Manager().windows.at(chatId);
     const std::int32_t rowX = chat->chat.invite.base.x + 4;
     const std::int32_t rowY = Client::Ui::ListRowY(chat->chat.invite, chat->chat.invitable.size(), 0) + 3;
@@ -491,10 +490,10 @@ TEST_F(GameLettersTest, AChatWithAFriendInvitesAnother)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// Enter en el chat (0x4944c0 con el 7) deja el C1 04 para la sala, que sale cuando Scenes vacía las órdenes; el mismo
-// texto otra vez no sale. El timer 1002 (0x4a6550) deja el C1 03 05. El FD_CLOSE de la sala (0x49e480) le da al chat
-// el 402 de nadie y la sala sigue anotada. Soltar el chat (0x493160 → 0x493a70) manda el C1 03 01 y cierra la conexión
-// (0x49dfd0), con el lugar libre. Nada saca rand().
+// Enter in the chat (0x4944c0 with the 7) leaves the C1 04 for the room, which goes out when Scenes empties the
+// orders; the same text again does not go out. The timer 1002 (0x4a6550) leaves the C1 03 05. The room's FD_CLOSE
+// (0x49e480) gives the chat the 402 of nobody and the room stays recorded. Releasing the chat (0x493160 → 0x493a70)
+// sends the C1 03 01 and closes the connection (0x49dfd0), with the slot free. Nothing draws rand().
 TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
 {
     const std::int32_t chatId = JoinARoomWithTordo();
@@ -541,9 +540,9 @@ TEST_F(GameLettersTest, TheChatRoomCarriesTheMessagesThePingAndTheLeave)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// Los handlers de 0x4e2a60 leen cada paquete de la sala por su lugar, sin mirar su largo: uno más corto que lo que lee
-// su handler (Q-C1011) no hace nada ni corta, uno por opcode. Los textos que terminan adentro del paquete se leen
-// aunque el paquete sea más corto que el lugar fijo: el nombre del 01 y el texto del 0D.
+// 0x4e2a60's handlers read each room packet by position, without looking at its length: one shorter than what its
+// handler reads (Q-C1011) does nothing and does not cut, one per opcode. The texts that end inside the packet are read
+// even if the packet is shorter than the fixed position: the 01's name and the 0D's text.
 TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)
 {
     const std::int32_t chatId = JoinARoomWithTordo();
@@ -563,8 +562,8 @@ TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)
     const std::size_t windows = Manager().windows.size();
     const std::size_t members = chat.chat.members.size();
     const std::size_t logged = Runtime().chat.log.entries.size();
-    // 00 sin pkt[3]; 01 con el nombre sin su '\0'; 02 con dos miembros y medio; 04 con 10 bytes de largo y 2 de texto;
-    // 0D sin el '\0' antes del fin.
+    // 00 without pkt[3]; 01 with the name without its '\0'; 02 with two and a half members; 04 with 10 bytes of length
+    // and 2 of text; 0D without the '\0' before the end.
     ASSERT_TRUE(apply(Bytes({0xc1, 0, 0x00})));
     ASSERT_TRUE(apply(Joined(Bytes({0xc1, 0, 0x01, 0x00, 0x05}), Bytes({'T', 'e', 'r'}))));
     auto list = Bytes({0xc1, 0, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02});
@@ -579,7 +578,7 @@ TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)
     EXPECT_EQ(Runtime().chat.log.entries.size(), logged);
     EXPECT_TRUE(chat.chat.lineRows.empty());
 
-    // Con el '\0' adentro: Tero entra, con el 1059 detrás de su nombre (3 miembros), y el 0D va al chat del juego.
+    // With the '\0' inside: Tero joins, with the 1059 after his name (3 members), and the 0D goes to the game's chat.
     auto tero = Bytes({0xc1, 0, 0x01, 0x00, 0x05});
     Append(tero, "Tero", 5);
     ASSERT_TRUE(apply(tero));
@@ -592,9 +591,9 @@ TEST_F(GameLettersTest, AShortRoomPacketDoesNothing)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// El CA con 1 y el tipo 1 sobre el chat que ya está con el amigo (0x4a6430): 0x493a70 manda el C1 03 01 y cierra la
-// sala vieja en el momento, y después 0x493530 abre la nueva y manda el C1 10 00. Con el mismo número de sala, la nueva
-// es otra conexión y queda anotada con el chat.
+// The CA with 1 and type 1 on the chat already open with the friend (0x4a6430): 0x493a70 sends the C1 03 01 and closes
+// the old room at once, and then 0x493530 opens the new one and sends the C1 10 00. With the same room number, the new
+// one is another connection and stays recorded with the chat.
 TEST_F(GameLettersTest, ACallToTheSameRoomLeavesItBeforeJoiningAgain)
 {
     const std::int32_t chatId = JoinARoomWithTordo();
@@ -623,9 +622,9 @@ TEST_F(GameLettersTest, ACallToTheSameRoomLeavesItBeforeJoiningAgain)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// El chat cerrado (0x495630(1): +0xb4 del EDIT en 1, con menos de 2 miembros después de Enter o con el amigo fuera de
-// línea): Enter va al EDIT de Windows de una línea (0x467c83), sin el 7 ni el C1 04, y el texto queda; el 10 y 2 no
-// invita (0x49455e). Abierto otra vez (0x495630(0)), los dos vuelven.
+// The closed chat (0x495630(1): the EDIT's +0xb4 at 1, with fewer than 2 members after Enter or with the friend
+// offline): Enter goes to the single-line Windows EDIT (0x467c83), without the 7 or the C1 04, and the text stays; the
+// 10 and 2 does not invite (0x49455e). Opened again (0x495630(0)), both come back.
 TEST_F(GameLettersTest, AClosedChatNeitherSaysNorInvites)
 {
     const std::int32_t chatId = JoinARoomWithTordo();
@@ -666,8 +665,9 @@ TEST_F(GameLettersTest, AClosedChatNeitherSaysNorInvites)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// El connect que falla (0x49de50 no anota la sala): la sala se olvida, el lugar de 0x49e280 queda tomado (Q-C1005) y
-// Enter ya no manda nada. Las ventanas del primer paso del juego (0x48ea50) sueltan los chats, que salen de sus salas.
+// The connect that fails (0x49de50 does not record the room): the room is forgotten, the 0x49e280 slot stays taken
+// (Q-C1005) and Enter no longer sends anything. The windows of the game's first step (0x48ea50) release the chats,
+// which leave their rooms.
 TEST_F(GameLettersTest, ARoomThatDoesNotConnectIsForgottenAndTheResetLeavesTheRooms)
 {
     std::int32_t chatId = JoinARoomWithTordo();
@@ -697,8 +697,8 @@ TEST_F(GameLettersTest, ARoomThatDoesNotConnectIsForgottenAndTheResetLeavesTheRo
     EXPECT_EQ(m_rooms.calls[1].kind, "close");
 }
 
-// 0x4dc720: el amigo fuera de línea cierra su chat (el 995 adelante y el EDIT apagado) y de vuelta en línea lo abre;
-// con 0xfc todos los chats reciben el 402 y se cierran (0x4a75c0).
+// 0x4dc720: the friend going offline closes their chat (the 995 in front and the EDIT off) and back online opens it;
+// with 0xfc every chat gets the 402 and closes (0x4a75c0).
 TEST_F(GameLettersTest, TheFriendStateClosesAndOpensItsChat)
 {
     OpenTheFriendsWithThree();
@@ -737,10 +737,10 @@ TEST_F(GameLettersTest, TheFriendStateClosesAndOpensItsChat)
     EXPECT_EQ(chat->frame.title, std::optional<std::string>("[cerrado] Chat: Tordo"));
 }
 
-// El botón 4 arma la de escribir (0x48ee60(7) en (100, 100), el retrato armado, copiado del héroe y con la acción
-// 0x7a) con el nombre del elegido, y la cola 0x49dc37 le manda el 8 y el 9. El botón 1 manda el C2 C5 con el cuerpo de
-// "\r\n" a "\n", la dirección (90 / 6, con el zoom en 0) y la acción (0x7a − 0x78). Al juego, la carta le saca un
-// rand() y el serial (Q-C1002); abrir la ventana, ninguno.
+// Button 4 builds the write window (0x48ee60(7) at (100, 100), the portrait built, copied from the hero and with action
+// 0x7a) with the chosen one's name, and the queue 0x49dc37 sends it the 8 and the 9. Button 1 sends the C2 C5 with the
+// body from "\r\n" to "\n", the direction (90 / 6, with the zoom at 0) and the action (0x7a − 0x78). The letter takes
+// one rand() and the serial from the game (Q-C1002); opening the window, none.
 TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
 {
     OpenTheFriendsWithThree();
@@ -752,8 +752,8 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     OldWindow* write = FirstOfKind(OldWindowKind::LetterWriteWindow);
     ASSERT_NE(write, nullptr);
     EXPECT_EQ(m_random.State(), After(0));
-    // Los cuatro de 0x497f50 (el ángulo con el personaje armado). Los dos pasos de 0x49dc37 van con 1: 0x45aa80 sale
-    // después de la cola, sin 0x497970.
+    // 0x497f50's four (the angle with the character built). The two steps of 0x49dc37 go with 1: 0x45aa80 goes out
+    // after the queue, without 0x497970.
     EXPECT_EQ(m_portraitCalls,
               (std::vector<PortraitCallKind>{PortraitCallKind::Build, PortraitCallKind::CopyTheHero,
                                              PortraitCallKind::SetAction, PortraitCallKind::SetAngle}));
@@ -797,7 +797,7 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
         requests, m_random, FriendSend{.kind = FriendSendKind::LetterRead, .value = 0, .name = {}, .index = 7});
     EXPECT_EQ(m_random.State(), before);
 
-    // 0x4dc840 con 1: el 4 a la de escribir y el 1046 con el costo al chat.
+    // 0x4dc840 with 1: the 4 to the write window and the 1046 with the cost to the chat.
     ASSERT_TRUE(
         Client::Messenger::ApplyLetterSendResult(
             Client::Protocol::Messenger::LetterSendResult{.result = 1, .window = static_cast<std::uint32_t>(writeId)},
@@ -808,10 +808,10 @@ TEST_F(GameLettersTest, WritingALetterSendsItByteByByte)
     EXPECT_EQ(Runtime().chat.log.entries.back().text, "Carta mandada, costo 1000");
 }
 
-// 0x49817a..0x498192: Tab pasa el foco de para al asunto, al cuerpo y otra vez a para (0x467d07 y 0x4682a0(1): la
-// lista de las flechas en él y el cursor al final). 0x467710 no destruye el EDIT: al cerrar la de escribir, el que
-// tenía el foco queda huérfano con su texto hasta que otro lo toma (0x4983e0 en la de escribir que sigue). Y 0x48eae6
-// vacía también el mapa de las cartas que esperan el C7.
+// 0x49817a..0x498192: Tab moves the focus from To to Subject, to Body and back to To (0x467d07 and 0x4682a0(1): the
+// arrows' list in it and the cursor at the end). 0x467710 does not destroy the EDIT: when the write window closes, the
+// one that had the focus stays orphaned with its text until another takes it (0x4983e0 in the next write window). And
+// 0x48eae6 also empties the map of the letters waiting for the C7.
 TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
 {
     OpenTheFriendsWithThree();
@@ -828,7 +828,7 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     EXPECT_EQ(write->letter.to.next, subject);
     EXPECT_EQ(write->letter.subject.next, text);
     EXPECT_EQ(write->letter.text.next, to);
-    // 0x4983e0: con el nombre puesto, el foco en el asunto.
+    // 0x4983e0: with the name set, the focus on the subject.
     ASSERT_EQ(Manager().focusedEdit, subject);
 
     write->letter.text.text.SetText("Linea uno");
@@ -857,7 +857,7 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     Client::Messenger::TypeInTheOldEdit(Manager(), "udos");
     EXPECT_EQ(Manager().orphanedEdit->text.Value(), "Saludos");
 
-    // Otra de escribir le saca el foco al huérfano.
+    // Another write window takes the focus from the orphan.
     ChooseTheFriend("Calandria");
     Client::Ui::PostToTheWindow(Manager(), friendTab, Client::Ui::CommandMessage, 4, 0);
     ASSERT_TRUE(Step().HasValue());
@@ -873,7 +873,7 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     EXPECT_TRUE(Manager().letterWindows.empty());
 }
 
-// 0x4dccbd: _strnicmp(nombre, "webzen", 10), sin importar las mayúsculas; otro nombre que empieza igual no lo es.
+// 0x4dccbd: _strnicmp(name, "webzen", 10), case-insensitive; another name that starts the same is not.
 TEST(GameLettersWebzenTest, OnlyWebzenWithAnyCaseIsTheBlankPortrait)
 {
     EXPECT_TRUE(Client::Messenger::LetterFromWebzen("webzen"));
@@ -885,7 +885,7 @@ TEST(GameLettersWebzenTest, OnlyWebzenWithAnyCaseIsTheBlankPortrait)
     EXPECT_TRUE(Client::Messenger::LetterFromWebzen(std::string_view("Webzen\0xy", 9)));
 }
 
-// Sin el retrato del juego (P-C212), abrir la de escribir corta.
+// Without the game's portrait (P-C212), opening the write window stops.
 TEST_F(GameLettersTest, WithoutThePortraitTheWriteWindowIsACut)
 {
     OpenTheFriendsWithThree();
@@ -898,7 +898,7 @@ TEST_F(GameLettersTest, WithoutThePortraitTheWriteWindowIsACut)
     EXPECT_NE(stepped.Error().find("P-C212"), std::string::npos);
 }
 
-// 0x4dc840: con un error, la caja con su texto y la de escribir sin el envío pendiente (+0x778 = 0).
+// 0x4dc840: with an error, the box with its text and the write window without the pending send (+0x778 = 0).
 TEST_F(GameLettersTest, AFailedSendOpensItsBox)
 {
     ASSERT_TRUE(Client::Messenger::ApplyLetterSendResult(
@@ -909,8 +909,8 @@ TEST_F(GameLettersTest, AFailedSendOpensItsBox)
     EXPECT_EQ(box->box.lines[0], "no existe");
 }
 
-// 0x4dc9e0 con el tipo 2, la pestaña de las cartas (0x4a11b0 con el 10 y 2: C1 06 C7, y 0x491570 la anota), el C7
-// (0x4dcb70: la copia, leída, y sin el retrato del juego, el corte P-C212) y el borrado (0x4dcd90).
+// 0x4dc9e0 with type 2, the letters tab (0x4a11b0 with the 10 and 2: C1 06 C7, and 0x491570 records it), the C7
+// (0x4dcb70: the copy, read, and without the game's portrait, the P-C212 stop) and the deletion (0x4dcd90).
 TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
 {
     OpenTheFriendsWithThree();
@@ -964,9 +964,10 @@ TEST_F(GameLettersTest, AnArrivingLetterIsReadAndDeleted)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// La de leer (0x48ee60(6) con 0x4999d0 y 0x499cb0): el cuerpo partido por '\n' sin los vacíos; el 2 pregunta con el
-// 1017, el sí manda C1 06 C8 y la cierra; el 1 responde con la de escribir (el remitente y "Re: asunto", sin el 8 y el
-// 9); el 5 lee la que sigue (la elige en la pestaña, se cierra, deja su lugar y suelta la suya).
+// The read window (0x48ee60(6) with 0x4999d0 and 0x499cb0): the body split by '\n' without the empty ones; the 2 asks
+// with the 1017, the yes sends C1 06 C8 and closes it; the 1 replies with the write window (the sender and "Re: " with
+// the subject, without the 8 and the 9); the 5 reads the next one (chooses it in the tab, closes, leaves its slot and
+// releases its own).
 TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
 {
     OpenTheFriendsWithThree();
@@ -1006,7 +1007,7 @@ TEST_F(GameLettersTest, TheReadWindowDeletesRepliesAndGoesOn)
     ASSERT_TRUE(Client::Ui::DestroyTheOldWindow(Manager(), question->base.id, m_pressedButton).HasValue());
     Manager().modal = 0;
 
-    // El sí: el C8 y el 4, que el administrador atiende en el mismo paso (la ventana suelta su carta, 0x4916b0).
+    // The yes: the C8 and the 4, which the manager handles in the same step (the window releases its letter, 0x4916b0).
     Client::Ui::PostToTheWindow(Manager(), readId, Client::Ui::AnswerMessage, 0, 1);
     ASSERT_TRUE(Step().HasValue());
     ASSERT_EQ(m_sent.size(), 1u);
@@ -1046,10 +1047,10 @@ class GameLettersMapsTest : public GameLettersTest, public ::testing::WithParamI
 {
 };
 
-// Los dibujos del hito 10 no leen el mapa: en Lorencia y en Devias, el chat que armó el CA y que cerró el 0xfc
-// (0x4a75c0: el 995 adelante del título y el 402 de renglón; 0x493fc0) y su renglón en la lista de F5 (0x4a5750: el
-// amigo, sin el 995 ni el 994) se dibujan igual, como los dibuja el juego (0x490390 y la lista de 0x637680), sin sacar
-// rand().
+// Milestone 10's drawings do not read the map: in Lorencia and in Devias, the chat that the CA built and the 0xfc
+// closed (0x4a75c0: the 995 in front of the title and the 402 as a row; 0x493fc0) and its row in the F5 list (0x4a5750:
+// the friend, without the 995 or the 994) are drawn the same, as the game draws them (0x490390 and the list at
+// 0x637680), without drawing rand().
 TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
 {
     Runtime().map = GetParam();
@@ -1088,8 +1089,7 @@ TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
     const Client::Tests::RecordedText* line = drawn("se fue todo el mundo");
     ASSERT_NE(line, nullptr);
     EXPECT_EQ(line->x, chat.chat.lines.base.x + 8);
-    // El renglón de F5 es el último texto: el amigo en x + 2 de la lista, 3 más abajo que (renglón + 4) · 1 sobre su
-    // borde de abajo.
+    // The F5 row is the last text: the friend at the list's x + 2, 3 lower than (row + 4) · 1 above its bottom edge.
     ASSERT_FALSE(text.texts.empty());
     const OldWindow& windowList = Manager().windowList;
     EXPECT_EQ(text.texts.back().text, "Tordo");
@@ -1098,11 +1098,11 @@ TEST_P(GameLettersMapsTest, TheChatAndItsRowInTheWindowListAreDrawnInEveryMap)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// El C1 04 de la sala con 100 bytes de Tordo (0x4dd3d0 → 0x493f80 → 0x45f6f0): 0x45fea0 lo parte en el ancho de los
-// renglones menos 0x1e (240 − 30, con letras de 2) con la sangría de "Tordo" más 5; el primer pedazo con el nombre y el
-// segundo sin él, adelante (0x460130). El dibujo (0x45f9c0) los muestra del más nuevo al más viejo: el segundo abajo.
-// Una carta con un renglón largo (0x464ae0 → 0x465450) se parte igual, sin sangría. Igual en Lorencia y en Devias, sin
-// sacar rand().
+// The room's C1 04 with 100 bytes from Tordo (0x4dd3d0 → 0x493f80 → 0x45f6f0): 0x45fea0 splits it at the rows' width
+// minus 0x1e (240 − 30, with letters of 2) with the indent of "Tordo" plus 5; the first piece with the name and the
+// second without it, ahead (0x460130). The draw (0x45f9c0) shows them from newest to oldest: the second below. A letter
+// with a long row (0x464ae0 → 0x465450) splits the same, without indent. Same in Lorencia and in Devias, without
+// drawing rand().
 TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
 {
     Runtime().map = GetParam();
@@ -1158,7 +1158,7 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
     EXPECT_EQ(second->x, chat.chat.lines.base.x + 8);
     EXPECT_EQ(first->y, second->y - 13);
     EXPECT_EQ(name->y, first->y);
-    // El dibujo mide "Tordo: " con su texto (6 por letra), no con la medida del paquete.
+    // The draw measures "Tordo: " with its text (6 per letter), not with the packet's measure.
     EXPECT_EQ(first->x, chat.chat.lines.base.x + 8 + 42);
 
     auto view = View();
@@ -1182,7 +1182,7 @@ TEST_P(GameLettersMapsTest, TheLongLinesOfAChatAndOfALetterAreWrappedInEveryMap)
     const auto set =
         Client::Messenger::SetTheLetter(Manager(), read, entry, "Hola\n" + std::string(Long), &m_oldMeasure);
     ASSERT_TRUE(set.HasValue()) << set.Error();
-    // 360 de adentro − 0x78 del retrato: 240, y 210 para partir (105 letras de 2).
+    // 360 inside − 0x78 of the portrait: 240, and 210 to split (105 letters of 2).
     ASSERT_EQ(read.letter.lines.base.width, 240);
     EXPECT_EQ(read.letter.wrappedRows,
               (std::deque<std::string>{std::string(Long.substr(105)), std::string(Long.substr(0, 105)), "Hola"}));

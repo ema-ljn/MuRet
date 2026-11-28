@@ -26,8 +26,8 @@
 #include <string_view>
 #include <vector>
 
-// Los comandos del chat (0x56c440; CL8 hito 3): las compuertas, /move, /filter, /1../0 y los cortes. Los textos son
-// inventados (support/ChatTexts.h).
+// The chat commands (0x56c440; CL8 milestone 3): the gates, /move, /filter, /1../0 and the stops. The texts are
+// invented (support/ChatTexts.h).
 namespace
 {
 using Client::Chat::ChatCommandContext;
@@ -67,8 +67,8 @@ protected:
     std::uint8_t setLabel = 0;
 };
 
-// Una tabla de `count` registros de `Size` bytes con `name` en los lugares de `named` y `flag` en el byte `at` de
-// cada uno, cifrada con XOR3 como la lee RecordTable.
+// A table of `count` records of `Size` bytes with `name` in the `named` slots and `flag` in byte `at` of each,
+// encrypted with XOR3 as RecordTable reads it.
 template <std::size_t Size>
 Client::Data::Tables::RecordTable<Size> TableWith(std::size_t count, std::span<const std::size_t> named,
                                                   std::string_view name, std::size_t at, std::byte flag,
@@ -101,7 +101,8 @@ TEST_F(Commands, AnythingElseIsNotACommand)
     EXPECT_FALSE(outcome.Value().sound);
 }
 
-// Cada comando social empieza con el aviso de Chaos Castle (y sale como chat); afuera, lo que sigue es de su ola.
+// Every social command starts with the Chaos Castle notice (and goes out as chat); outside, the rest belongs to its
+// wave.
 TEST_F(Commands, TheSocialCommandsStopInChaosCastle)
 {
     map = 18;
@@ -117,15 +118,15 @@ TEST_F(Commands, TheSocialCommandsStopInChaosCastle)
     const auto trade = Client::Chat::RunTheChatCommand(Context(), "/comerciar", false);
     ASSERT_FALSE(trade.HasValue());
     EXPECT_NE(trade.Error().find("0x56c5d0"), std::string::npos);
-    // Con el almacén abierto, el comercio no se mira.
+    // With the warehouse open, trade is not checked.
     warehouseOpen = true;
     const auto skipped = Client::Chat::RunTheChatCommand(Context(), "/comerciar", false);
     ASSERT_TRUE(skipped.HasValue());
     EXPECT_FALSE(skipped.Value().handled);
 }
 
-// 0x56c5d0..0x56c690: /trade lee el nivel del registro propio; por debajo de 0x6c8dc8 (6), el aviso 478 y 1. Con él,
-// el pedido (Social::RequestATrade) da la salida; sin pedido, corta.
+// 0x56c5d0..0x56c690: /trade reads the level from the own record; below 0x6c8dc8 (6), notice 478 and 1. With it, the
+// request (Social::RequestATrade) gives the outcome; without a request, it stops.
 TEST_F(Commands, TradeNeedsTheLevel)
 {
     std::uint16_t level = 5;
@@ -159,8 +160,8 @@ TEST_F(Commands, TradeNeedsTheLevel)
     EXPECT_EQ(reads, 3);
 }
 
-// 0x5766ce..0x576890: /personalshop. Con el entrenador abierto, el aviso 1121 y sale como chat; por debajo del 6, el
-// 1123 armado con el 6 y 1; desde el 6, Open(0x800) y 1. Cada vez que llega al nivel lo lee una vez.
+// 0x5766ce..0x576890: /personalshop. With the trainer open, notice 1121 and it goes out as chat; below 6, 1123 built
+// with 6 and 1; from 6, Open(0x800) and 1. Each time it reaches the level it reads it once.
 TEST_F(Commands, PersonalShopNeedsTheLevel)
 {
     std::uint16_t level = 5;
@@ -203,8 +204,8 @@ TEST_F(Commands, PersonalShopNeedsTheLevel)
     EXPECT_EQ(reads, 3);
 }
 
-// 0x574bd6..0x57694d: /purchase (o el 1118) en cualquier lugar del texto. En Chaos Castle, el aviso 1150 y sale como
-// chat; fuera, sscanf("%s %s") y el pedido recibe la segunda palabra, o nada si no la hay (la pila sin inicializar).
+// 0x574bd6..0x57694d: /purchase (or 1118) anywhere in the text. In Chaos Castle, notice 1150 and it goes out as chat;
+// outside, sscanf("%s %s") and the request gets the second word, or nothing if there is none (the uninitialized stack).
 TEST_F(Commands, PurchaseScansTheNameForTheRequest)
 {
     std::vector<std::optional<std::string>> names;
@@ -227,7 +228,7 @@ TEST_F(Commands, PurchaseScansTheNameForTheRequest)
     }
     EXPECT_EQ(names,
               (std::vector<std::optional<std::string>>{std::nullopt, "Brezal", "Zorzal", "/adquirir", std::nullopt}));
-    // Una primera palabra de 0x48 bytes pisa el buffer del nombre: MuRet no lo modela.
+    // A first word of 0x48 bytes overruns the name buffer: MuRet does not model it.
     const auto overflow = Client::Chat::RunTheChatCommand(context, std::string(0x48, 'a') + "/purchase", false);
     ASSERT_FALSE(overflow.HasValue());
     EXPECT_NE(overflow.Error().find("0x574c92"), std::string::npos);
@@ -241,7 +242,8 @@ TEST_F(Commands, PurchaseScansTheNameForTheRequest)
     EXPECT_EQ(names.size(), 5U);
 }
 
-// 0x56f109..0x56f13f: /party (o /pt) en Chaos Castle avisa 1150 y sale como chat; fuera, el pedido da la salida.
+// 0x56f109..0x56f13f: /party (or /pt) in Chaos Castle gives notice 1150 and goes out as chat; outside, the request
+// gives the outcome.
 TEST_F(Commands, PartyAsksOutsideChaosCastle)
 {
     int asked = 0;
@@ -263,8 +265,9 @@ TEST_F(Commands, PartyAsksOutsideChaosCastle)
               (std::vector<ChatCommandNotice>{{Client::Chat::ChaosCastleCommandText, Client::Ui::SystemMessage}}));
 }
 
-// 0x56d816 y 0x56ea5f: con el duelo en curso, /duelstart avisa 915 y sigue la cadena; /duelend manda el AB y sigue.
-// Sin duelo, /duelend solo sigue y /duelstart pide el duelo (Social::RequestADuel) y también sigue.
+// 0x56d816 and 0x56ea5f: with a duel in progress, /duelstart gives notice 915 and the chain goes on; /duelend sends the
+// AB and goes on. Without a duel, /duelend only goes on and /duelstart requests the duel (Social::RequestADuel) and
+// goes on too.
 TEST_F(Commands, TheDuelCommandsGoOnAsChat)
 {
     int ended = 0;
@@ -310,9 +313,9 @@ TEST_F(Commands, TheDuelCommandsGoOnAsChat)
     EXPECT_NE(guild.Error().find("0x573f85"), std::string::npos);
 }
 
-// 0x573f49 y 0x570d48: en Chaos Castle, el aviso 1150 y 0; fuera, /guild pide entrar (Hud::RequestAGuildJoin) y
-// /union, /rival y /rivaloff (o sus textos 1354, 1356 y 1357; _stricmp con el literal) el E5 de cada uno
-// (Hud::RequestAGuildRelation). Un texto que solo coincide con el 1357 es el fin de la rivalidad.
+// 0x573f49 and 0x570d48: in Chaos Castle, notice 1150 and 0; outside, /guild asks to join (Hud::RequestAGuildJoin) and
+// /union, /rival and /rivaloff (or their texts 1354, 1356 and 1357; _stricmp with the literal) each one's E5
+// (Hud::RequestAGuildRelation). A text that matches only 1357 ends the rivalry.
 TEST_F(Commands, TheGuildCommandsAskTheScene)
 {
     int joins = 0;
@@ -351,9 +354,10 @@ TEST_F(Commands, TheGuildCommandsAskTheScene)
     }
 }
 
-// 0x56d624: /move abre la ventana y sigue como chat.
-// 0x56d6ee..0x56d796: "/ver puestos" prende los carteles (0x4516a0) con el aviso 1138 del tipo 1 y su par los apaga
-// (0x4516b0) con el 1139 del tipo 2, también en Chaos Castle; la cadena sigue y sale como chat. Sin el mapa, corta.
+// 0x56d624: /move opens the window and goes on as chat.
+// 0x56d6ee..0x56d796: "/ver puestos" turns the signs on (0x4516a0) with notice 1138 of type 1 and its pair turns them
+// off (0x4516b0) with 1139 of type 2, also in Chaos Castle; the chain goes on and it goes out as chat. Without the
+// map, it stops.
 TEST_F(Commands, TheSignCommandsTurnTheShopSignsOnAndOff)
 {
     for (const std::int32_t where : {0, 2, 18})
@@ -391,7 +395,7 @@ TEST_F(Commands, MoveOpensTheWindowAndGoesOn)
     EXPECT_EQ(overlayMode, Client::Ui::MoveOverlayMode);
 }
 
-// 0x56efdc: "/N " guarda lo que sigue en su macro y suena; un comando que una macro no puede guardar sale como chat.
+// 0x56efdc: "/N " stores the rest in its macro and plays a sound; a command a macro cannot store goes out as chat.
 TEST_F(Commands, TheNumbersKeepTheMacros)
 {
     const auto first = Client::Chat::RunTheChatCommand(Context(), "/1 hola", false);
@@ -411,7 +415,7 @@ TEST_F(Commands, TheNumbersKeepTheMacros)
     EXPECT_FALSE(Client::Chat::IsAForbiddenMacro(texts, "/3 /mover"));
 }
 
-// Desde una macro (o con la salida pedida), solo la cola de los nombres: "/1 x" no cambia nada.
+// From a macro (or with the logout requested), only the names tail: "/1 x" changes nothing.
 TEST_F(Commands, FromAMacroOnlyTheNamesAreLookedAt)
 {
     const auto outcome = Client::Chat::RunTheChatCommand(Context(), "/1 x", true);
@@ -425,7 +429,7 @@ TEST_F(Commands, FromAMacroOnlyTheNamesAreLookedAt)
     EXPECT_TRUE(logout.Value().notices.empty());
 }
 
-// 0x56f02e: /filter (el texto 753 o el literal) pone las palabras y avisa con el 755.
+// 0x56f02e: /filter (text 753 or the literal) sets the words and warns with 755.
 TEST_F(Commands, TheFilterCommandSetsTheWordsAndWarns)
 {
     const auto outcome = Client::Chat::RunTheChatCommand(Context(), "/filtro uno", false);
@@ -436,8 +440,8 @@ TEST_F(Commands, TheFilterCommandSetsTheWordsAndWarns)
     EXPECT_EQ(log.filter[0], "uno");
 }
 
-// 0x576894..0x576952: "/" y el nombre de un ítem (con +0x24) apaga el cartel del conjunto, abre la ayuda del ítem (el
-// modo 3 con el ítem en 0x77f3b0c), suena y no manda nada.
+// 0x576894..0x576952: "/" and an item's name (with +0x24) turns the set label off, opens the item's help (mode 3 with
+// the item in 0x77f3b0c), plays a sound and sends nothing.
 TEST_F(Commands, AnItemNameOpensItsHelp)
 {
     constexpr std::array<std::size_t, 1> Named{7};
@@ -454,8 +458,9 @@ TEST_F(Commands, AnItemNameOpensItsHelp)
     EXPECT_EQ(setLabel, 0);
 }
 
-// 0x40ebd0: "/" y el nombre de un conjunto usado prende su cartel (+0x9305 en su índice + 1) y pone 0x77f3b08 en 0;
-// otro texto con "/" lo apaga si hay algún conjunto usado, y uno sin "/" no lo toca. Nunca es un comando (0x576912).
+// 0x40ebd0: "/" and the name of a used set turns its label on (+0x9305 at its index + 1) and sets 0x77f3b08 to 0;
+// another text with "/" turns it off if some set is used, and one without "/" leaves it. It is never a command
+// (0x576912).
 TEST(SetCommands, TheNameOfASetShowsItsLabel)
 {
     std::vector<std::byte> plain(Client::Tables::ItemSetOptionTableSize, std::byte{0xff});

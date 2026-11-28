@@ -10,35 +10,35 @@
 #include <map>
 #include <string>
 
-// La marca de un gremio como textura (CL9 hito 8, fase 2; 06 § El gremio en pantalla): 0x5f16a0(índice, fondo) pinta
-// los 64 nibbles de la entrada `índice` de la tabla (0x787aa48 + 0x16) con su paleta en el buffer de la textura del
-// slot 0x22 (Interface\guild.tga, que 0x61b33c sube con 0x63bd00 en GL_NEAREST y GL_CLAMP) y la vuelve a subir con
-// glTexImage2D; lo que la llama dibuja enseguida un quad con el slot 0x22. MuRet dibuja los lotes después de armarlos:
-// cada marca va a su slot (Render::FirstGuildMarkTextureSlot) y el quad usa ese.
+// A guild's mark as a texture (CL9 milestone 8, phase 2; 06 § El gremio en pantalla): 0x5f16a0(index, background)
+// paints the 64 nibbles of the table's entry `index` (0x787aa48 + 0x16) with its palette into the texture buffer of
+// slot 0x22 (Interface\guild.tga, which 0x61b33c uploads with 0x63bd00 in GL_NEAREST and GL_CLAMP) and uploads it again
+// with glTexImage2D; its caller draws a quad with slot 0x22 right away. MuRet draws the batches after building them:
+// each mark goes to its own slot (Render::FirstGuildMarkTextureSlot) and the quad uses that one.
 namespace Client::Guild
 {
 struct GuildState;
 
-// Interface\guild.tga es de 8 × 8 y 32 bits (el encabezado del OZT, *estático*): 0x5f16a0 recorre su alto y su ancho
-// (0x7d3a928 y 0x7d3a92c en float, con _ftol) y sube con el formato interno de sus componentes (4) en GL_RGBA.
+// Interface\guild.tga is 8 × 8 and 32 bits (the OZT header, *static*): 0x5f16a0 walks its height and width (0x7d3a928
+// and 0x7d3a92c in float, with _ftol) and uploads with its components' internal format (4) in GL_RGBA.
 inline constexpr std::size_t GuildMarkSide = 8;
 inline constexpr std::size_t GuildMarkBytes = GuildMarkSide * GuildMarkSide * 4;
 using GuildMarkImage = std::array<std::uint8_t, GuildMarkBytes>;
 
-// Los píxeles de 0x5f16a0: la paleta de 0x77f3d84..0x77f3dc0 (cada DWORD 0xAABBGGRR, en memoria R, G, B y A), con el
-// 0 negro y alfa 0x80, o 0 con `clearBackground` (el segundo argumento distinto de 0); los nibbles en orden, fila por
-// fila. Corta con un índice fuera de la tabla (0x787aa5e + índice · 0x58 leería otra memoria) o con un nibble de más de
-// 15 (leería después de la paleta); los que escribe el 66 (0x447b90) van de 0 a 15.
+// 0x5f16a0's pixels: the palette at 0x77f3d84..0x77f3dc0 (each DWORD 0xAABBGGRR, in memory R, G, B and A), with 0
+// black and alpha 0x80, or 0 with `clearBackground` (the second argument other than 0); the nibbles in order, row by
+// row. It stops with an index outside the table (0x787aa5e + index · 0x58 would read other memory) or with a nibble
+// above 15 (it would read past the palette); those the 66 writes (0x447b90) go from 0 to 15.
 [[nodiscard]] Core::Expected<GuildMarkImage, std::string> PaintTheGuildMark(const GuildState& guild, std::int32_t index,
                                                                             bool clearBackground);
 
-// 0x5f1bb0(x, y, w, h, color), el cuadrado de un color del editor de la marca: llena el buffer del 0x22 (los 8 × 8 que
-// recorre con el alto y el ancho de la textura) con el color de la paleta (0x77f3d84, la que dejó el último 0x5f16a0)
-// o, con el 0, de negro (0xff000000) con las dos diagonales grises (0xff808080: 0x5f1c83..0x5f1ca6, de a 9 y de a 7
-// píxeles desde el 0 y el 7). Corta con un color de más de 15, que leería después de la paleta.
+// 0x5f1bb0(x, y, w, h, color), a color's square in the mark editor: fills the 0x22's buffer (the 8 × 8 it walks with
+// the texture's height and width) with the palette color (0x77f3d84, the one the last 0x5f16a0 left) or, with 0,
+// black (0xff000000) with the two gray diagonals (0xff808080: 0x5f1c83..0x5f1ca6, in steps of 9 and 7 pixels from 0
+// and 7). It stops with a color above 15, which would read past the palette.
 [[nodiscard]] Core::Expected<GuildMarkImage, std::string> PaintTheSwatch(std::int32_t color);
 
-// 0x5f16a0 para los que dibujan: pinta la marca y da el slot donde quedó, para el quad que sigue.
+// 0x5f16a0 for the drawers: paints the mark and gives the slot where it landed, for the quad that follows.
 class IGuildMarks
 {
 public:
@@ -46,18 +46,18 @@ public:
 
     [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string>
     Upload(const GuildState& guild, std::int32_t index, bool clearBackground) = 0;
-    // 0x5f1bb0: pinta el cuadrado del color y da su slot (Render::FirstGuildSwatchTextureSlot + color).
+    // 0x5f1bb0: paints the color's square and gives its slot (Render::FirstGuildSwatchTextureSlot + color).
     [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string> UploadSwatch(std::int32_t color) = 0;
-    // 0x5f16a0 desde el renglón `row` de la lista de la alianza (0x46e09f): pinta la marca como Upload, pero la sube al
-    // slot del renglón (Render::FirstGuildUnionMarkTextureSlot + row), así cada renglón del lote ve la suya (P-C289).
-    // Corta con un renglón fuera de los 6.
+    // 0x5f16a0 from row `row` of the union list (0x46e09f): paints the mark like Upload, but uploads it to the row's
+    // slot (Render::FirstGuildUnionMarkTextureSlot + row), so each row of the batch sees its own (P-C289). It stops
+    // with a row outside the 6.
     [[nodiscard]] virtual Core::Expected<Render::TextureSlot, std::string>
     UploadToTheUnionRow(const GuildState& guild, std::int32_t index, bool clearBackground, std::int32_t row) = 0;
 };
 
-// Las marcas en la tabla de la escena: el slot de (índice, fondo) en Render::FirstGuildMarkTextureSlot, en
-// GL_NEAREST y GL_CLAMP como el 0x22. Sube solo si los píxeles cambiaron desde la última vez (el original sube en cada
-// llamada la misma imagen: lo que se ve es igual). Suelta sus slots al morir. Vive lo que la tabla.
+// The marks in the scene's table: the slot of (index, background) in Render::FirstGuildMarkTextureSlot, in GL_NEAREST
+// and GL_CLAMP like 0x22. It uploads only if the pixels changed since the last time (the original uploads the same
+// image on every call: what is seen is the same). It releases its slots when it dies. It lives as long as the table.
 class GuildMarkTextures final : public IGuildMarks
 {
 public:
@@ -75,15 +75,13 @@ public:
     [[nodiscard]] Core::Expected<Render::TextureSlot, std::string>
     UploadToTheUnionRow(const GuildState& guild, std::int32_t index, bool clearBackground, std::int32_t row) override;
 
-    // El slot de (índice, fondo).
     [[nodiscard]] static Render::TextureSlot SlotOf(std::int32_t index, bool clearBackground);
 
 private:
-    // Sube `image` al slot si cambió desde la última vez.
+    // Uploads `image` to the slot if it changed since the last time.
     [[nodiscard]] Core::Expected<void, std::string> Load(Render::TextureSlot slot, const GuildMarkImage& image);
 
     Render::ITextureStore* m_store;
-    // Lo subido a cada slot.
     std::map<std::uint16_t, GuildMarkImage> m_uploaded;
 };
 } // namespace Client::Guild

@@ -42,10 +42,10 @@
 #include <utility>
 #include <vector>
 
-// Las tiendas personales que llegan (CL9 hito 7, fase 3): los lectores del 3F y los carteles del mapa de 0x7245c8
-// (0x4511f0, 0x451430, 0x451630, 0x451810, 0x451fe0, 0x4516d0 y 0x451720), contra el ASM de 0x4dae80, 0x4db700,
-// 0x4dafe0 y los casos 3, 8 y 0x12 de 0x4e2b10. El GameServer 0.97 no tiene el 3F: los paquetes salen del cliente.
-// Nombres, títulos y textos inventados; cada caso en Lorencia y en Devias.
+// The incoming personal shops (CL9 milestone 7, phase 3): the 3F readers and the signs of 0x7245c8's map (0x4511f0,
+// 0x451430, 0x451630, 0x451810, 0x451fe0, 0x4516d0 and 0x451720), against the ASM of 0x4dae80, 0x4db700, 0x4dafe0 and
+// cases 3, 8 and 0x12 of 0x4e2b10. GameServer 0.97 has no 3F: the packets come from the client. Names, titles and
+// texts are made up; each case in Lorencia and in Devias.
 namespace
 {
 using Client::Kernel::WorldState;
@@ -157,8 +157,8 @@ protected:
     LetterMeasure m_letters;
 };
 
-// 0x4dae80: el 3F 00 llega en C2 (el subcódigo en pkt[4]); la cuenta en pkt[5] y las entradas de 0x26 bytes, la clave
-// en big-endian y 36 bytes de título. Sin las entradas que dice, TooShort.
+// 0x4dae80: the 3F 00 arrives in C2 (the subcode in pkt[4]); the count in pkt[5] and the 0x26-byte entries, the key in
+// big-endian and 36 bytes of title. Without the entries it states, TooShort.
 TEST_P(PersonalShopsTest, TheTitlesListReadsItsEntries)
 {
     std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x00, 0x3f, 0x00, 0x02});
@@ -178,10 +178,10 @@ TEST_P(PersonalShopsTest, TheTitlesListReadsItsEntries)
     EXPECT_FALSE(Shop::ReadShopTitles(PacketOf(bytes)).HasValue());
 }
 
-// Las listas (fase 4): 0x4db890 lee el resultado en pkt[5], la clave en pkt[6..7] (BE), el título en pkt[0x12..0x35],
-// la cuenta en pkt[0x36] y las entradas de 0xc bytes desde pkt[0x37] (el lugar, el ítem y el precio LE con signo); el
-// 0x13 (0x4dbb40) lo mismo sin la clave ni el título. 0x4db120 lee pkt[4] y pkt[5]; 0x4dbcb0, pkt[4] y con 1 el ítem de
-// pkt[7..0xd] y el lugar de pkt[0xe]. Sin el resultado 1, las listas solo leen pkt[5].
+// The lists (phase 4): 0x4db890 reads the result in pkt[5], the key in pkt[6..7] (BE), the title in pkt[0x12..0x35],
+// the count in pkt[0x36] and the 0xc-byte entries from pkt[0x37] (the slot, the item and the signed LE price); the 0x13
+// (0x4dbb40) the same without the key or the title. 0x4db120 reads pkt[4] and pkt[5]; 0x4dbcb0, pkt[4] and with 1 the
+// item from pkt[7..0xd] and the slot from pkt[0xe]. Without result 1, the lists only read pkt[5].
 TEST_P(PersonalShopsTest, TheItemListsReadTheirEntries)
 {
     std::vector<std::byte> bytes = Bytes({0xc2, 0x00, 0x00, 0x3f, 0x05, 0x01, 0x02, 0x34});
@@ -232,9 +232,9 @@ TEST_P(PersonalShopsTest, TheItemListsReadTheirEntries)
     EXPECT_EQ(failed.Value().result, 7);
 }
 
-// 0x4dae80 y 0x4511f0: un cartel por jugador de la clave (el monstruo, +0x88 en 2, solo va al log; una clave sin nadie,
-// nada), con el nombre de +0x1d9; el DC queda en la normal de las líneas (0x4531f7). 0x451810 lo ve; 0x451770 también,
-// a la vista.
+// 0x4dae80 and 0x4511f0: a sign per player of the key (the monster, +0x88 at 2, only goes to the log; a key with
+// nobody, nothing), with the name from +0x1d9; the DC is left on the lines' Normal font (0x4531f7). 0x451810 sees it;
+// so does 0x451770, on view.
 TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
 {
     m_world->Runtime().hud.dcFont = Client::Render::Text::FontKind::BigBold;
@@ -252,16 +252,16 @@ TEST_P(PersonalShopsTest, TheTitlesGoToThePlayersOfTheirKeys)
     EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Monster));
     EXPECT_TRUE(Client::PersonalShop::ShopTitleShown(Shops(), Seller));
 
-    // Otro 3F 00 con la misma clave cambia el título; 0x451430 lo saca.
+    // Another 3F 00 with the same key changes the title; 0x451430 removes it.
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Escudos"}}}, *m_world);
     EXPECT_EQ(Shops().titles.at(Seller).title, "Escudos");
     Client::PersonalShop::RemoveShopTitle(Shops(), Seller);
     EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
 }
 
-// Abrir la propia y ver la de otro. 0x4db700: con 1, 0x78aba50 en 1 y el cartel del héroe con el título propio
-// (0x78aba64); con otro resultado, nada. 0x4dafe0: el cartel de otro solo con su nombre (strncmp de 10). 0x4e4ea5:
-// con 1, la tienda del héroe se apaga y su cartel sale.
+// 0x4db700: with 1, 0x78aba50 at 1 and the hero's sign with the own title (0x78aba64); with another result, nothing.
+// 0x4dafe0: another's sign only with its name (strncmp of 10). 0x4e4ea5: with 1, the hero's shop turns off and its
+// sign goes.
 TEST_P(PersonalShopsTest, TheOwnShopOpensAndAnotherShopShowsItsTitle)
 {
     Shops().ownTitle = "Pociones";
@@ -294,8 +294,8 @@ TEST_P(PersonalShopsTest, TheOwnShopOpensAndAnotherShopShowsItsTitle)
     EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
 }
 
-// 0x4511f0 con otra clave para el mismo personaje: solo el log. 0x451fe0: con la clave cambiada o sin ser jugador,
-// el cartel sale. 0x4ca7f0: el que sale del viewport se lleva el suyo.
+// 0x4511f0 with another key for the same character: only the log. 0x451fe0: with the key changed or not a player, the
+// sign goes. 0x4ca7f0: the one leaving the viewport takes its own with it.
 TEST_P(PersonalShopsTest, StaleTitlesLeave)
 {
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}, {BuyerKey, "Joyas"}}}, *m_world);
@@ -316,9 +316,9 @@ TEST_P(PersonalShopsTest, StaleTitlesLeave)
     EXPECT_FALSE(Client::PersonalShop::HasShopTitle(Shops(), Buyer));
 }
 
-// 0x4524e0: el alta guarda la clave con & 0x7fff y el lugar en (−1, −1); 0x4511f0 con la misma clave también vuelve el
-// lugar a (−1, −1) (0x4527d0). Con una clave desde 0x8000 (MOVSX, 0x8001 es −32.767), la guardada es 1: la
-// actualización no la iguala y solo va al log, y 0x451fe0 saca el cartel (07 Q-C969).
+// 0x4524e0: the creation stores the key with & 0x7fff and the place at (−1, −1); 0x4511f0 with the same key also puts
+// the place back to (−1, −1) (0x4527d0). With a key from 0x8000 (MOVSX, 0x8001 is −32767), the stored one is 1: the
+// update does not match it and only goes to the log, and 0x451fe0 removes the sign (07 Q-C969).
 TEST_P(PersonalShopsTest, TheStoredKeyLosesItsHighBitAndAnUpdateUnplacesTheSign)
 {
     Client::PersonalShop::AddShopTitle(*m_world, SellerKey, Seller, "Arcos");
@@ -346,8 +346,8 @@ TEST_P(PersonalShopsTest, TheStoredKeyLosesItsHighBitAndAnUpdateUnplacesTheSign)
     EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Seller));
 }
 
-// 0x451590, detrás de cada 0x510f70 de la clave del jugador (la carga del mapa, el F3 04 y el 1C): solo queda el cartel
-// con la clave del héroe publicado.
+// 0x451590, after each 0x510f70 of the player's key (the map load, the F3 04 and the 1C): only the sign with the
+// published hero's key stays.
 TEST_P(PersonalShopsTest, ALoadKeepsOnlyTheHeroTitle)
 {
     Shops().ownTitle = "Pociones";
@@ -359,8 +359,8 @@ TEST_P(PersonalShopsTest, ALoadKeepsOnlyTheHeroTitle)
     EXPECT_TRUE(Client::PersonalShop::HasShopTitle(Shops(), Hero));
 }
 
-// 0x5576a0..0x5576c9: con el globo de su dueño a la vista, el cartel se esconde (0x451720) y deja de contar para el
-// nombre bajo el mouse (0x451770); sin el globo, vuelve (0x4516d0).
+// 0x5576a0..0x5576c9: with its owner's bubble on view, the sign hides (0x451720) and stops counting for the name under
+// the mouse (0x451770); without the bubble, it comes back (0x4516d0).
 TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
 {
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos"}}}, *m_world);
@@ -376,8 +376,8 @@ TEST_P(PersonalShopsTest, ABubbleHidesTheTitle)
     EXPECT_TRUE(Client::PersonalShop::ShopTitleShown(Shops(), Seller));
 }
 
-// 0x556dd0: el globo nuevo de un dueño con cartel (0x451810) lleva su título corto (0x4518b0): con más de 14 bytes,
-// los primeros 12 y ".."; sin cartel, el título del globo queda vacío.
+// 0x556dd0: the new bubble of an owner with a sign (0x451810) carries its short title (0x4518b0): with more than 14
+// bytes, the first 12 and ".."; without a sign, the bubble's title stays empty.
 TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerTakesTheShortTitle)
 {
     Client::Social::ApplyShopTitles(Shop::ShopTitles{{{SellerKey, "Arcos y flechas finas"}}}, *m_world);
@@ -404,8 +404,8 @@ TEST_P(PersonalShopsTest, TheBubbleOfAShopOwnerTakesTheShortTitle)
     EXPECT_EQ(bubbleOf(Buyer)->shopTitle, "");
 }
 
-// 0x4e4f5d (3F 08): sprintf(Text[1122], nombre) con el tipo 1. 0x4e4fcc (3F 12): con 0x6c931c en 2, los cierres y el
-// texto 1126 con el tipo 2; si no, nada.
+// 0x4e4f5d (3F 08): sprintf(Text[1122], name) with type 1. 0x4e4fcc (3F 12): with 0x6c931c at 2, the closes and text
+// 1126 with type 2; otherwise, nothing.
 TEST_P(PersonalShopsTest, TheNoticesGoToTheMessages)
 {
     Shop::ShopNotice notice{};

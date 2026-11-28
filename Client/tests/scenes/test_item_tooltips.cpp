@@ -45,9 +45,9 @@
 #include <utility>
 #include <vector>
 
-// El cuerpo del tooltip de un ítem (0x5b2aa0), CL8 hito 5, con Text.bmd, Item.bmd, Skill.bmd y los conjuntos
-// inventados, el texto falso de RecordingTextDrawer (13 de alto) y 640 × 480, donde ry es 1. Cada prueba abre el
-// registro propio alrededor como 0x5f7bc0: su cierre gasta 3.848 rand().
+// The body of an item's tooltip (0x5b2aa0), CL8 milestone 5, with invented Text.bmd, Item.bmd, Skill.bmd and sets,
+// the fake text of RecordingTextDrawer (13 high) and 640 × 480, where ry is 1. Each test opens the own record around
+// it like 0x5f7bc0: its close spends 3848 rand().
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -59,13 +59,13 @@ using Client::Render::SpriteBatch;
 using Client::Tooltips::TooltipLines;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
-// Un acceso de Skill.bmd que cierra en 0 (0x3c bytes) y el IsOpen(0x10000) del precio (un byte protegido).
+// A Skill.bmd access that closes at 0 (0x3c bytes) and the price's IsOpen(0x10000) (a protected byte).
 constexpr int SkillAccess = 60;
 constexpr int NpcShopQuery = 1;
-// Lo que había en las negritas antes del cuerpo: ningún cuerpo las limpia.
+// What was in the bolds before the body: no body clears them.
 constexpr std::int32_t StaleBold = 7;
 
-// Los tipos inventados.
+// Invented types.
 constexpr std::uint16_t Weapon = 0x0005;
 constexpr std::uint16_t SetArmor = 0x1005;
 constexpr std::uint16_t Wing = 0x1801;
@@ -73,14 +73,14 @@ constexpr std::uint16_t Jewel = 0x1c0d;
 constexpr std::uint16_t BlueBox = 0x1a25;
 constexpr std::uint16_t Ticket = 0x1c14;
 constexpr std::uint16_t Pet = 0x1a04;
-// El de Chaos Castle (0x5b63b7): el tipo es el del original, como el 0x1c0d de la gema.
+// The Chaos Castle one (0x5b63b7): the type is the original's, like the gem's 0x1c0d.
 constexpr std::uint16_t ChaosCastleArmor = 0x1a1d;
 constexpr std::uint16_t LostMap = 0x1c1c;
 constexpr std::uint8_t ArmorSet = 3;
 constexpr std::uint8_t BlueBoxSkill = 0x4c;
 constexpr std::uint16_t BlueBoxMana = 85;
 
-// Las clases del héroe: & 7, y la evolución en >> 3.
+// The hero's classes: & 7, and the evolution at >> 3.
 constexpr std::uint8_t Wizard = 0;
 constexpr std::uint8_t Knight = 1;
 constexpr std::uint8_t SecondElf = 2 | (1 << 3);
@@ -140,7 +140,7 @@ Client::Tables::TextTable Texts()
                                          {1928, "Coste %d"}});
 }
 
-// Un registro de Item.bmd en claro.
+// An Item.bmd record in clear.
 class ItemRecords
 {
 public:
@@ -177,19 +177,19 @@ private:
 Client::Tables::ItemTable Items()
 {
     return ItemRecords()
-        // Un arma de una mano para las clases B y D, con su velocidad y su durabilidad.
+        // A one-handed weapon for classes B and D, with its speed and its durability.
         .Named(Weapon, "Hoja Gris")
         .Byte(Weapon, 0x2b, 20)
         .Byte(Weapon, 0x2d, 22)
         .Byte(Weapon, 0x25, 3)
         .Byte(Weapon, 0x46, 1)
         .Byte(Weapon, 0x48, 1)
-        // Una armadura de conjunto de la clase B, con el stat del conjunto 2.
+        // A set armor of class B, with set stat 2.
         .Named(SetArmor, "Coraza")
         .Byte(SetArmor, 0x2d, 40)
         .Byte(SetArmor, 0x44, 2)
         .Byte(SetArmor, 0x46, 1)
-        // Un ala de las clases A y C (la C desde su evolución 1).
+        // A wing of classes A and C (C from its evolution 1).
         .Named(Wing, "Ala Leve")
         .Byte(Wing, 0x2d, 50)
         .Byte(Wing, 0x45, 1)
@@ -199,14 +199,14 @@ Client::Tables::ItemTable Items()
         .Named(BlueBox, "Caja Azul")
         .Named(Ticket, "Boleto")
         .Named(Pet, "Mascota")
-        // Con la clase A marcada: el cuerpo no escribe las clases del 0x1a1d (0x5b79c7).
+        // With class A marked: the body does not write the classes of 0x1a1d (0x5b79c7).
         .Named(LostMap, "Mapa")
         .Named(ChaosCastleArmor, "Armadura")
         .Byte(ChaosCastleArmor, 0x45, 1)
         .Table();
 }
 
-// Skill.bmd en claro, con el maná (+0x22) de la skill de la caja azul.
+// Skill.bmd in clear, with the mana (+0x22) of the blue box's skill.
 Client::Tables::SkillTable Skills()
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -218,8 +218,8 @@ Client::Tables::SkillTable Skills()
     return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
-// ItemSetType.bmd con el conjunto 3 en la pieza 1 de la armadura, e ItemSetOption.bmd con el conjunto 3: dos pares
-// (el segundo con una sola opción) y una opción del conjunto completo; todo lo demás sin usar (0xff).
+// ItemSetType.bmd with set 3 in the armor's piece 1, and ItemSetOption.bmd with set 3: two pairs (the second with a
+// single option) and one full-set option; everything else unused (0xff).
 Client::Tables::ItemSetTables Sets()
 {
     std::vector<std::byte> types(Client::Tables::ItemSetTypeTableSize);
@@ -289,7 +289,7 @@ protected:
                               .mouse = mouse};
     }
 
-    // 0x5f7bc0: el cuerpo con el registro propio abierto alrededor.
+    // 0x5f7bc0: the body with the own record open around it.
     Client::Core::Expected<void, std::string> Draw(ItemState item, std::int32_t x = 320, std::int32_t y = 300,
                                                    std::uint8_t grid = 0)
     {
@@ -339,7 +339,7 @@ protected:
         return from;
     }
 
-    // Lo que dibujó la caja, sin los "\n".
+    // What the box drew, without the "\n".
     std::vector<std::string> DrawnTexts() const
     {
         std::vector<std::string> drawn;
@@ -362,7 +362,7 @@ protected:
     Client::Ui::Point mouse{};
 };
 
-// El arma +9 excelente con dos opciones: el 0x50 (con su valor) y el 0x5f (sin argumentos).
+// The excellent +9 weapon with two options: 0x50 (with its value) and 0x5f (without arguments).
 ItemState ExcellentWeapon()
 {
     ItemState item;
@@ -388,7 +388,7 @@ TEST_F(ItemTooltipsTest, AnExcellentWeaponListsItsLinesForAKnightOfItsClass)
     const auto drawn = Draw(ExcellentWeapon());
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // 0x5b1ba0: 22 + 4 · 1 + 5 · 2 de los niveles + 15 de la excelente.
+    // 0x5b1ba0: 22 + 4 · 1 + 5 · 2 from the levels + 15 from the excellent.
     ExpectLines({{"\n", 0, StaleBold},
                  {"Brillante Hoja Gris +9", 4, 1},
                  {"\n", 0, StaleBold},
@@ -409,7 +409,7 @@ TEST_F(ItemTooltipsTest, AnExcellentWeaponListsItsLinesForAKnightOfItsClass)
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(world.Runtime().movement.skillDepths[0], 0);
-    // La caja dibuja los renglones que no son "\n", hasta el primero vacío.
+    // The box draws the lines that are not "\n", up to the first empty one.
     EXPECT_EQ(DrawnTexts(),
               (std::vector<std::string>{"Brillante Hoja Gris +9", "Golpe: 20 ~ 28", "Ritmo 20", "Vida util 25/51",
                                         "Fuerza pedida 60", "Agilidad pedida 50", "Faltan 15", "Si: Clase B",
@@ -424,7 +424,7 @@ TEST_F(ItemTooltipsTest, TheSameWeaponMarksTheClassesAndTheStrengthOfAWizard)
     const auto drawn = Draw(ExcellentWeapon());
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // Su clase no lo usa (Item.bmd+0x45 en 0): lo que no cumple va en el color 5.
+    // Its class does not use it (Item.bmd+0x45 at 0): what it does not meet goes in color 5.
     ExpectLines({{"\n", 0, StaleBold},
                  {"Brillante Hoja Gris +9", 4, 1},
                  {"\n", 0, StaleBold},
@@ -466,7 +466,7 @@ TEST_F(ItemTooltipsTest, ASetArmorListsTheStatAndTheOptionsOfItsSet)
     const std::string_view name = "Conjunto Gris";
     for (std::size_t i = 0; i < name.size(); ++i)
         state.names[0][i] = name[i];
-    // El héroe lleva puestas las dos opciones del primer par, en ese orden.
+    // The hero wears the two options of the first pair, in that order.
     state.list.count9348 = 2;
     state.list.entries[0] = {0, 0, 0};
     state.list.entries[1] = {1, 0, 0};
@@ -481,8 +481,8 @@ TEST_F(ItemTooltipsTest, ASetArmorListsTheStatAndTheOptionsOfItsSet)
     const auto drawn = Draw(item);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // El nombre lleva el del conjunto delante (0x40cf30) y el 9; la durabilidad, 20 más por el conjunto. El stat del
-    // conjunto (0x40dd80) y los renglones de 0x40eee0 no escriben la negrita.
+    // The name carries the set's in front (0x40cf30) and 9; the durability, 20 more for the set. The set's stat
+    // (0x40dd80) and the lines of 0x40eee0 do not write the bold.
     ExpectLines({{"\n", 0, StaleBold},         {"Conjunto Gris Coraza", 9, 1},
                  {"\n", 0, StaleBold},         {"Aguante 30", 0, 0},
                  {"Vida util 40/60", 0, 0},    {"Fuerza pedida 50", 0, 0},
@@ -512,8 +512,8 @@ TEST_F(ItemTooltipsTest, AWingOfASecondClassShowsItsBonusesAndItsLevel)
     const auto drawn = Draw(item);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // Las alas muestran siempre la durabilidad: 50 + 3 de los niveles. La clase C pide la evolución 1 (el byte 2: el
-    // nombre es el 15 + 5 · 2 + 2).
+    // The wings always show the durability: 50 + 3 from the levels. Class C asks for evolution 1 (byte 2: the name is
+    // 15 + 5 · 2 + 2).
     ExpectLines({{"\n", 0, StaleBold},
                  {"Ala Leve +3", 1, 1},
                  {"\n", 0, StaleBold},
@@ -550,20 +550,20 @@ TEST_F(ItemTooltipsTest, AJewelHasItsNoteAndNoDurability)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x5b63b7..0x5b69e7: el 0x1a1d escribe la tabla de Chaos Castle de 0x6ba598, la de la clase del héroe, con el
-// renglón de su nivel en el 8. Los textos son los de Text.bmd; los formatos, los de 0x6c9b80 y 0x6c9b98.
+// 0x5b63b7..0x5b69e7: 0x1a1d writes the Chaos Castle table of 0x6ba598, the one of the hero's class, with its level's
+// line in color 8. The texts are the Text.bmd ones; the formats, those of 0x6c9b80 and 0x6c9b98.
 constexpr std::string_view ChaosCastleHeader = "Chaos Castle Nivel    Minimo      Valor    ";
 constexpr std::array<std::string_view, 6> ChaosCastleRows{
     "        1              15~ 49      25,000", "        2              50~119      80,000",
     "        3             120~179     150,000", "        4             180~239     250,000",
     "        5             240~299     400,000", "        6             300~400     650,000"};
-// Las clases 3 y 4 leen desde la séptima fila: los mismos precios.
+// Classes 3 and 4 read from the seventh row: the same prices.
 constexpr std::array<std::string_view, 6> ChaosCastleRowsOfClasses3And4{
     "        1              15~ 29      25,000", "        2              30~ 99      80,000",
     "        3             100~159     150,000", "        4             160~219     250,000",
     "        5             220~279     400,000", "        6             280~400     650,000"};
 constexpr std::int32_t HighlightedRow = 8;
-// El renglón de la cabecera de la tabla: después del "\n", el nombre y su "\n".
+// The table's header line: after the "\n", the name and its "\n".
 constexpr std::size_t ChaosCastleHeaderLine = 3;
 constexpr std::size_t FirstChaosCastleRow = ChaosCastleHeaderLine + 1;
 
@@ -575,8 +575,8 @@ ItemState ChaosCastleItem()
     return item;
 }
 
-// El cuerpo entero: la tabla, el "\n" (sin color ni negrita), el 1157 en el 7 sin escribir la negrita y el "\n" de
-// 0x5b7da7. Sin la durabilidad (0x5b6ab5) ni las clases.
+// The whole body: the table, the "\n" (without color or bold), 1157 in color 7 without writing the bold and the "\n" of
+// 0x5b7da7. Without the durability (0x5b6ab5) or the classes.
 std::vector<Line> ChaosCastleLines(const std::array<std::string_view, 6>& rows, std::optional<std::size_t> highlighted)
 {
     std::vector<Line> lines{{"\n", 0, StaleBold}, {"Armadura", 0, 1}, {"\n", 0, StaleBold}};
@@ -602,7 +602,7 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorListsTheLevelsAndMarksTheOneOfTheHer
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x5b63c0..0x5b63d0: la clase del héroe (+0x1d4 & 7), sin la evolución.
+// 0x5b63c0..0x5b63d0: the hero's class (+0x1d4 & 7), without the evolution.
 TEST_F(ItemTooltipsTest, TheChaosCastleArmorReadsItsOwnTableForClasses3And4)
 {
     world.OwnCharacter().level = 110;
@@ -617,18 +617,19 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorReadsItsOwnTableForClasses3And4)
     }
 }
 
-// 0x437d49..0x4381e0: el Mapa perdido (0x1c1c) en 0x437c90, que 0x5b6a2f llama con el renglón y guarda el que devuelve
-// en 0x78abb30 sin tocar 0x78abb34: sus "\n" no son medios renglones. Abre el registro propio para leer el nivel (+0xe)
-// y lo cierra; la cabecera "%s %s       %s    " (0x6c7468) con el 58, el 368 y el 935, en el 0 y sin negrita; las siete
-// filas de Kalima de 0x6b8b18 (el máximo escrito hasta 400, JLE) con "        %d             %3d~%3d     " (0x6c7444),
-// la del nivel del mapa en el 8; un "\n" sin color ni negrita; el 1184 en el 7, sin escribir la negrita; y, con el
-// nivel propio por debajo del mínimo de la primera fila (JGE), otro "\n" y el 1123 con ese mínimo en el 5.
+// 0x437d49..0x4381e0: the Lost Map (0x1c1c) in 0x437c90, which 0x5b6a2f calls with the line and keeps the one it
+// returns in 0x78abb30 without touching 0x78abb34: its "\n" are not half lines. It opens the own record to read the
+// level (+0xe) and closes it; the header "%s %s       %s    " (0x6c7468) with 58, 368 and 935, in color 0 and without
+// bold; Kalima's seven rows from 0x6b8b18 (the maximum written up to 400, JLE) with
+// "        %d             %3d~%3d     " (0x6c7444), the map level's one in color 8; a "\n" without color or bold;
+// 1184 in color 7, without writing the bold; and, with the own level below the first row's minimum (JGE), another
+// "\n" and 1123 with that minimum in color 5.
 constexpr std::string_view KalimaHeader = "Kalima Nivel       Minimo    ";
 constexpr std::array<std::string_view, 7> KalimaRows{
     "        1              40~400     ", "        2             131~400     ", "        3             181~400     ",
     "        4             231~400     ", "        5             281~400     ", "        6             331~400     ",
     "        7             350~400     "};
-// 0x437d14..0x437d26: las clases 3 y 4 (+0x1d4 & 7) leen desde la octava fila ([EBP − 4] en 7).
+// 0x437d14..0x437d26: classes 3 and 4 (+0x1d4 & 7) read from the eighth row ([EBP − 4] at 7).
 constexpr std::array<std::string_view, 7> KalimaRowsOfClasses3And4{
     "        1              20~400     ", "        2             111~400     ", "        3             161~400     ",
     "        4             211~400     ", "        5             261~400     ", "        6             311~400     ",
@@ -642,9 +643,9 @@ ItemState LostMapItem(std::int32_t level)
     return item;
 }
 
-// El cuerpo entero. El nombre, de 0x5b42cd: "%s +%d" (0x6c9a68) con el nombre y el nivel, en dorado ([EBP − 0x1c] en
-// 3). Después, las líneas de 0x437c90 y el "\n" de 0x5b7da7, sin la durabilidad (0x5b6ab5) ni las clases. Medios
-// renglones solo el del principio, el de después del nombre y el último.
+// The whole body. The name, from 0x5b42cd: "%s +%d" (0x6c9a68) with the name and the level, in gold ([EBP − 0x1c] at
+// 3). Then, the lines of 0x437c90 and the "\n" of 0x5b7da7, without the durability (0x5b6ab5) or the classes. Half
+// lines: only the first one, the one after the name and the last.
 std::vector<Line> KalimaLines(const std::array<std::string_view, 7>& rows, std::int32_t mapLevel,
                               std::optional<std::string> warning)
 {
@@ -678,8 +679,8 @@ TEST_F(ItemTooltipsTest, TheLostMapListsTheKalimasAndMarksTheOneOfItsLevel)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x43818b..0x4381d8: con el nivel propio por debajo del mínimo de la primera fila de su tabla (40, o 20 con las clases
-// 3 y 4), el "\n" y el 1123 con ese mínimo en el 5; en el mínimo, no.
+// 0x43818b..0x4381d8: with the own level below the minimum of its table's first row (40, or 20 with classes 3 and 4),
+// the "\n" and 1123 with that minimum in color 5; at the minimum, no.
 TEST_F(ItemTooltipsTest, TheLostMapWarnsBelowTheFirstKalima)
 {
     world.OwnCharacter().level = 39;
@@ -696,7 +697,7 @@ TEST_F(ItemTooltipsTest, TheLostMapWarnsBelowTheFirstKalima)
     ExpectLines(KalimaLines(KalimaRowsOfClasses3And4, 7, "Desde el nivel 20"), 3);
 }
 
-// 0x4380fd: el nivel del mapa contra el número de la fila; con 0 no marca ninguna.
+// 0x4380fd: the map's level against the row number; with 0 it marks none.
 TEST_F(ItemTooltipsTest, TheLostMapOfLevelZeroMarksNoRow)
 {
     world.OwnCharacter().level = 100;
@@ -704,7 +705,7 @@ TEST_F(ItemTooltipsTest, TheLostMapOfLevelZeroMarksNoRow)
     ExpectLines(KalimaLines(KalimaRows, 0, std::nullopt), 3);
 }
 
-// 0x5b690a..0x5b691d: el nivel contra el mínimo y el máximo, los dos incluidos; fuera de la tabla, ninguno.
+// 0x5b690a..0x5b691d: the level against the minimum and the maximum, both included; outside the table, none.
 TEST_F(ItemTooltipsTest, TheChaosCastleArmorMarksTheRowOfTheLevelWithItsEdges)
 {
     struct LevelCase
@@ -727,8 +728,8 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorMarksTheRowOfTheLevelWithItsEdges)
     }
 }
 
-// 0x5b63d7..0x5b6871: abre el registro propio para leer el nivel (+0xe) y lo cierra. Sin el acceso de 0x5f7bc0
-// alrededor, el cierre del 0x1a1d deja la cuenta en 0 y gasta sus 3.848 rand().
+// 0x5b63d7..0x5b6871: opens the own record to read the level (+0xe) and closes it. Without the access of 0x5f7bc0
+// around it, the close of 0x1a1d leaves the count at 0 and spends its 3848 rand().
 TEST_F(ItemTooltipsTest, TheChaosCastleArmorOpensTheOwnRecordForTheLevel)
 {
     world.OwnCharacter().level = 110;
@@ -745,9 +746,9 @@ TEST_F(ItemTooltipsTest, TheChaosCastleArmorOpensTheOwnRecordForTheLevel)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x5b3824..0x5b3852: el boleto (0x1c0c) de nivel 2, sprintf(renglón, "%s" (0x6c99e4), 0x6c9350 + D+0x1a · 100): el
-// premio por la durabilidad del ítem, no por Item.bmd+0x2d como 0x5b1c70. El 7 es "뮤 머그컵", con sus bytes EUC-KR.
-// Desde el 10 lee la .data que sigue a los diez premios, que MuRet no tiene: corta.
+// 0x5b3824..0x5b3852: the level 2 ticket (0x1c0c), sprintf(line, "%s" (0x6c99e4), 0x6c9350 + D+0x1a · 100): the prize
+// by the item's durability, not by Item.bmd+0x2d like 0x5b1c70. 7 is "뮤 머그컵", with its EUC-KR bytes. From 10 it
+// reads the .data that follows the ten prizes, which MuRet does not have: it cuts.
 TEST_F(ItemTooltipsTest, TheTicketOfLevelTwoNamesThePrizeOfItsDurability)
 {
     ItemState ticket;
@@ -766,9 +767,9 @@ TEST_F(ItemTooltipsTest, TheTicketOfLevelTwoNamesThePrizeOfItsDurability)
     EXPECT_NE(outside.Error().find("0x5b3835"), std::string::npos) << outside.Error();
 }
 
-// 0x5b41d0..0x5b421a: el título del anillo de transformación (0x1a0a): el monstruo del nivel en 0x6c9338 y el primer
-// registro de 0x7681eb8 con ese tipo (corta en el primero), "%s %s" con su nombre y el 103. Sin ninguno (el 14 del
-// nivel 2), salta a 0x5b459d sin escribir el renglón, que 0x5b2aa0 vació al empezar.
+// 0x5b41d0..0x5b421a: the title of the transformation ring (0x1a0a): the level's monster in 0x6c9338 and the first
+// record of 0x7681eb8 with that type (it cuts at the first), "%s %s" with its name and 103. With none (level 2's 14),
+// it jumps to 0x5b459d without writing the line, which 0x5b2aa0 emptied at the start.
 TEST_F(ItemTooltipsTest, TheTransformationRingNamesItsFirstMonster)
 {
     Client::Monsters::NpcNameTable& names = world.Runtime().npcNames;
@@ -816,13 +817,13 @@ TEST_F(ItemTooltipsTest, TheBoxGoesAboveTheItemOrBelowItWithoutRoom)
     item.id = Jewel;
 
     ASSERT_TRUE(Draw(item, 320, 300).HasValue());
-    // 0x5b8043: (5 − 3) · 13 + 3 · 13 / 2 = 45 arriba de y; el nombre va medio renglón (6,5 · 1,1) más abajo.
+    // 0x5b8043: (5 − 3) · 13 + 3 · 13 / 2 = 45 above y; the name goes half a line (6.5 · 1.1) lower.
     ASSERT_FALSE(text.texts.empty());
     EXPECT_EQ(text.texts[0].y, 300 - 45 + 7);
 
     text.texts.clear();
     ASSERT_TRUE(Draw(item, 320, 20).HasValue());
-    // Sin lugar arriba: debajo, a su alto de Item.bmd (2) por 20.
+    // No room above: below, at its Item.bmd height (2) times 20.
     ASSERT_FALSE(text.texts.empty());
     EXPECT_EQ(text.texts[0].y, 20 + 2 * 20 + 7);
 }
@@ -864,9 +865,9 @@ TEST_F(ItemTooltipsTest, TheTicketKeepsItsTooltipWithTheNpcShopOpen)
     EXPECT_EQ(Lines().text[1], "Boleto +1");
 }
 
-// 0x5b2d23..0x5b2e41: desde la grilla de la tienda de NPC (0x78aba27), el 1620 con el precio de 0x54d0f0 en el modo 0
-// con el impuesto (0x5b1200: 3 %, 64 bits y división con signo) y sin él, con el color del nombre y sin escribir la
-// negrita, y un "\n" detrás. En Lorencia, Devias y Noria.
+// 0x5b2d23..0x5b2e41: from the NPC shop grid (0x78aba27), 1620 with the price of 0x54d0f0 in mode 0 with the tax
+// (0x5b1200: 3 %, 64 bits and signed division) and without it, with the name's color and without writing the bold, and
+// a "\n" after. In Lorencia, Devias and Noria.
 TEST_F(ItemTooltipsTest, TheNpcShopGridShowsTheBuyingPriceWithTheTax)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -898,8 +899,8 @@ TEST_F(ItemTooltipsTest, TheNpcShopGridShowsTheBuyingPriceWithTheTax)
     }
 }
 
-// 0x5b2e46..0x5b2f34: desde el inventario con la tienda abierta, el 63 con el precio de venta (el modo 1); sin el
-// impuesto. El precio de 1.000 o más lleva las comas de 0x5b1130.
+// 0x5b2e46..0x5b2f34: from the inventory with the shop open, 63 with the sell price (mode 1); without the tax. A price
+// of 1000 or more carries the commas of 0x5b1130.
 TEST_F(ItemTooltipsTest, TheInventoryShowsTheSellingPriceWithTheShopOpen)
 {
     world.Runtime().panels.npcShop = 1;
@@ -918,8 +919,8 @@ TEST_F(ItemTooltipsTest, TheInventoryShowsTheSellingPriceWithTheShopOpen)
     EXPECT_EQ(Lines().text[2], "\n");
 }
 
-// 0x5b2d03: la caja de la suerte (0x1c0b) no muestra precio con la tienda abierta: el tooltip y los rand() son los
-// mismos que con la tienda cerrada (el IsOpen(0x10000) saca el suyo igual).
+// 0x5b2d03: the lucky box (0x1c0b) shows no price with the shop open: the tooltip and the rand() are the same as with
+// the shop closed (the IsOpen(0x10000) draws its own anyway).
 TEST_F(ItemTooltipsTest, TheLuckyBoxHasNoPriceInTheShop)
 {
     ItemState box;
@@ -938,8 +939,8 @@ TEST_F(ItemTooltipsTest, TheLuckyBoxHasNoPriceInTheShop)
     EXPECT_EQ(Lines().text, closedLines);
 }
 
-// 0x5b2b0d..0x5b2b17: con el 0x1a04, 0x422990 (Scenes/PetTooltip.h) es todo el tooltip. La primera vez pide su A9 y no
-// dibuja nada, con los renglones ya limpios.
+// 0x5b2b0d..0x5b2b17: with 0x1a04, 0x422990 (Tooltips/PetTooltip.h) is the whole tooltip. The first time it requests
+// its A9 and draws nothing, with the lines already clear.
 TEST_F(ItemTooltipsTest, ThePetTooltipTakesOverAfterClearingTheLines)
 {
     Lines().text[4] = "viejo";
@@ -968,7 +969,7 @@ TEST_F(ItemTooltipsTest, TheEmptyItemDrawsNothing)
 
 TEST_F(ItemTooltipsTest, ALineBeyondTheThirtiethCuts)
 {
-    // Nueve opciones 0x54, de dos renglones cada una.
+    // Nine 0x54 options, of two lines each.
     ItemState item = ExcellentWeapon();
     item.optionCount = 9;
     for (std::size_t i = 0; i < 9; ++i)
@@ -991,8 +992,8 @@ TEST_F(ItemTooltipsTest, EveryItemReadsItemSetTypeForItsSetOptions)
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x40ef05"), std::string::npos) << drawn.Error();
 }
-// El precio de la tienda personal (0x5b2f7f..0x5b3716, CL9 hito 7, fase 6a) en Lorencia (0) y Devias (2): con el byte
-// de las dos tiendas (0x7d5370f, sin rand()), el ítem de su grilla bajo el mouse (0x78abaa4) y los mapas armados.
+// The personal shop's price (0x5b2f7f..0x5b3716, CL9 milestone 7, phase 6a) in Lorencia (0) and Devias (2): with the
+// byte of the two shops (0x7d5370f, without rand()), its grid's item under the mouse (0x78abaa4) and the maps built.
 class PersonalShopPriceTest : public ItemTooltipsTest, public ::testing::WithParamInterface<std::uint8_t>
 {
 protected:
@@ -1001,7 +1002,7 @@ protected:
         world.Runtime().map = GetParam();
     }
 
-    // La gema en la casilla (2, 1) de la grilla, con la tienda en `mode` (0x6c931c) y el mouse sobre ella.
+    // The gem in cell (2, 1) of the grid, with the shop in `mode` (0x6c931c) and the mouse over it.
     ItemState OnTheShop(std::int32_t mode)
     {
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -1016,10 +1017,9 @@ protected:
         return item;
     }
 
-    // El lugar de la casilla (2, 1): 2 + 1 · 8 + 0x4c.
+    // Cell (2, 1): 2 + 1 · 8 + 0x4c.
     static constexpr std::int32_t Place = 2 + 8 + 0x4c;
 
-    // El cuerpo sin el registro propio abierto alrededor.
     Client::Core::Expected<void, std::string> DrawWithTheRecordClosed(ItemState& item)
     {
         GameHudContext context = Context();
@@ -1028,8 +1028,8 @@ protected:
     }
 };
 
-// La propia: el 63 con el precio de su lugar, dorado desde un millón y en negrita, y un "\n". El zen no alcanza, pero
-// el 423 es solo de la de otro. Sin rand() con el registro abierto alrededor.
+// The own one: 63 with its place's price, gold from one million and in bold, and a "\n". The zen is not enough, but
+// 423 is only another's. No rand() with the record open around.
 TEST_P(PersonalShopPriceTest, TheOwnShopShowsThePriceOfTheCell)
 {
     const ItemState item = OnTheShop(Client::Social::OwnShopView);
@@ -1052,7 +1052,7 @@ TEST_P(PersonalShopPriceTest, TheOwnShopShowsThePriceOfTheCell)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// La de otro con menos zen (sin signo): el precio en rojo desde diez millones y el 423 en rojo y en negrita.
+// Another's with less zen (unsigned): the price in red from ten million and 423 in red and bold.
 TEST_P(PersonalShopPriceTest, TheOtherShopWarnsWithoutEnoughZen)
 {
     const ItemState item = OnTheShop(Client::Social::OtherShopView);
@@ -1074,7 +1074,7 @@ TEST_P(PersonalShopPriceTest, TheOtherShopWarnsWithoutEnoughZen)
                 5);
 }
 
-// Con el zen justo no avisa; el verde desde cien mil, y debajo, sin color.
+// With just enough zen it does not warn; green from a hundred thousand, and below, without color.
 TEST_P(PersonalShopPriceTest, TheOtherShopWithEnoughZenOnlyShowsThePrice)
 {
     const ItemState item = OnTheShop(Client::Social::OtherShopView);
@@ -1093,7 +1093,8 @@ TEST_P(PersonalShopPriceTest, TheOtherShopWithEnoughZenOnlyShowsThePrice)
     EXPECT_EQ(Lines().text[3], "Gema Uno");
 }
 
-// Un precio negativo sale sin signo (0x5b3005, DIV) y sin color (0x5b30e4, JL), y el zen siempre es menos.
+// A negative price comes out without its sign (0x5b3005, DIV) and without color (0x5b30e4, JL), and the zen is always
+// less.
 TEST_P(PersonalShopPriceTest, ANegativePriceIsWrittenWithoutItsSign)
 {
     const ItemState item = OnTheShop(Client::Social::OtherShopView);
@@ -1106,7 +1107,7 @@ TEST_P(PersonalShopPriceTest, ANegativePriceIsWrittenWithoutItsSign)
     EXPECT_EQ(Lines().text[3], "Te falta zen");
 }
 
-// Sin precio en su lugar: la propia escribe el 1101 en rojo y en negrita; la de otro, nada.
+// Without a price in its place: the own one writes 1101 in red and bold; another's, nothing.
 TEST_P(PersonalShopPriceTest, WithoutAPriceOnlyTheOwnShopSaysSo)
 {
     ItemState item = OnTheShop(Client::Social::OwnShopView);
@@ -1126,7 +1127,7 @@ TEST_P(PersonalShopPriceTest, WithoutAPriceOnlyTheOwnShopSaysSo)
     ASSERT_TRUE(Draw(item).HasValue());
     EXPECT_EQ(Lines().text[1], "Gema Uno");
 
-    // Antes del primer Open, sin los mapas (0x5b2fba), la propia también lo dice.
+    // Before the first Open, without the maps (0x5b2fba), the own one also says so.
     item = OnTheShop(Client::Social::OwnShopView);
     world.Runtime().social.personalShop.pricesBuilt = false;
     world.Runtime().social.personalShop.ownPrices = {{Place, 5}};
@@ -1134,7 +1135,7 @@ TEST_P(PersonalShopPriceTest, WithoutAPriceOnlyTheOwnShopSaysSo)
     EXPECT_EQ(Lines().text[1], "Sin precio");
 }
 
-// Sin el ítem de la grilla bajo el mouse (desde el inventario, 0x5b2f86) o sin la tienda, no hay precio.
+// Without the grid's item under the mouse (from the inventory, 0x5b2f86) or without the shop, there is no price.
 TEST_P(PersonalShopPriceTest, OnlyTheShopGridHasAPrice)
 {
     ItemState item = OnTheShop(Client::Social::OwnShopView);
@@ -1149,8 +1150,8 @@ TEST_P(PersonalShopPriceTest, OnlyTheShopGridHasAPrice)
     EXPECT_EQ(Lines().text[1], "Gema Uno");
 }
 
-// Con precio, el zen se lee con el acceso del registro propio abierto y cerrado: sin el registro abierto alrededor, su
-// cierre saca los 3.848 rand() de más; sin precio, no lo abre.
+// With a price, the zen is read with the own record's access opened and closed: without the record open around, its
+// close draws the extra 3848 rand(); without a price, it does not open it.
 TEST_P(PersonalShopPriceTest, ThePriceOpensTheOwnRecord)
 {
     ItemState item = OnTheShop(Client::Social::OtherShopView);
@@ -1178,7 +1179,7 @@ TEST_F(ItemTooltipsTest, TheRepairTooltipOfAFullWeaponHasNoPrice)
     const auto drawn = Repair(item);
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // 0x5b8150: el precio "0" y el nombre en el color del nombre y en negrita; no limpia los colores.
+    // 0x5b8150: the price "0" and the name in the name's color and in bold; it does not clear the colors.
     ExpectLines({{"\n", 0, StaleBold},
                  {"Reparar: 0", 4, 1},
                  {"\n", 0, StaleBold},
@@ -1189,7 +1190,7 @@ TEST_F(ItemTooltipsTest, TheRepairTooltipOfAFullWeaponHasNoPrice)
                 4);
     EXPECT_EQ(world.Runtime().panels.repairMode, 1);
     EXPECT_EQ(random.State(), expected.State());
-    // (3 · 13 + 4 · 13 / 2) · 480 / 480 = 65 arriba de y, y el precio medio renglón más abajo.
+    // (3 · 13 + 4 · 13 / 2) · 480 / 480 = 65 above y, and the price half a line lower.
     ASSERT_FALSE(text.texts.empty());
     EXPECT_EQ(text.texts[0].text, "Reparar: 0");
     EXPECT_EQ(text.texts[0].y, 300 - 65 + 7);
@@ -1202,8 +1203,8 @@ TEST_F(ItemTooltipsTest, TheRepairTooltipOfADamagedWeaponHasItsPrice)
     const auto drawn = Repair(ExcellentWeapon());
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // 0x5b838d: 0x54d0f0(ítem, 2) da 229.300, y 0x5b13e0 cobra 3 · 229.300^(3/4) · (1 − 25 / 51) + 1 = 16.055,
-    // redondeado a 100.
+    // 0x5b838d: 0x54d0f0(item, 2) gives 229300, and 0x5b13e0 charges 3 · 229300^(3/4) · (1 − 25 / 51) + 1 = 16055,
+    // rounded to 100.
     ExpectLines({{"\n", 0, StaleBold},
                  {"Reparar: 16,000", 4, 1},
                  {"\n", 0, StaleBold},
@@ -1218,7 +1219,7 @@ TEST_F(ItemTooltipsTest, TheRepairTooltipOfADamagedWeaponHasItsPrice)
 
 TEST_F(ItemTooltipsTest, TheRepairPriceOfADamagedWeaponReadsTheSelfRepairFlag)
 {
-    // Con el byte bajo de [0x78abb10] en 1, 0x5b13e0 suma 0,05f · 16.055.
+    // With the low byte of [0x78abb10] at 1, 0x5b13e0 adds 0.05f · 16055.
     world.Runtime().field78abb10 = 0x101;
 
     ASSERT_TRUE(Repair(ExcellentWeapon()).HasValue());

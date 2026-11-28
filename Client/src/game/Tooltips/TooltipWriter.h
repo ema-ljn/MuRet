@@ -9,58 +9,58 @@
 #include <string>
 #include <string_view>
 
-// Lo que los cuerpos de los tooltips (06 § Los tooltips, CL8 hito 5) hacen con TooltipLines: sprintf en el renglón
-// TooltipLines::next (0x78abb30), su color y su negrita, subir el renglón y los "\n" que suben también los medios
-// (0x78abb34). El primer error (un texto que Text.bmd no tiene, o un renglón fuera de los 30, donde el original
-// escribe sobre el ítem del cursor, 0x7879f80) queda guardado y lo que sigue no escribe nada: quien escribe lo mira
-// antes de lo que tiene efectos fuera de los renglones (un acceso protegido, la caja).
+// What the tooltip bodies (06 § Los tooltips, CL8 milestone 5) do with TooltipLines: sprintf on line
+// TooltipLines::next (0x78abb30), its color and its bold, advancing the line and the "\n" that also advance the halves
+// (0x78abb34). The first error (a text Text.bmd does not have, or a line outside the 30, where the original writes
+// over the cursor's item, 0x7879f80) is kept and what follows writes nothing: the caller checks it before anything
+// with effects outside the lines (a protected access, the box).
 namespace Client::Tooltips
 {
 class TooltipWriter
 {
 public:
-    // El renglón que sigue es TooltipLines::next (0x78abb30), como en los cuerpos del ítem y de reparar.
+    // The next line is TooltipLines::next (0x78abb30), as in the item and repair bodies.
     TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts);
-    // El renglón que sigue es `next`: el cuerpo de la skill (0x5b90b0) y la ayuda de los comandos (0x421c10) cuentan
-    // en un registro (EBX) y no tocan 0x78abb30 ni 0x78abb34.
+    // The next line is `next`: the skill body (0x5b90b0) and the commands' help (0x421c10) count in a register (EBX)
+    // and do not touch 0x78abb30 or 0x78abb34.
     TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts, std::int32_t& next);
 
-    // Las mascotas cuentan también los medios renglones en un local (0x422990).
+    // The pets also count the half lines in a local (0x422990).
     TooltipWriter(TooltipLines& lines, const Tables::TextTable* texts, std::int32_t& next, std::int32_t& halves);
 
-    // La dirección de lo que se escribe, para el error.
+    // The address of what is written, for the error.
     void At(std::string_view where);
     [[nodiscard]] bool Failed() const;
     [[nodiscard]] const std::string& Error() const;
-    // Guarda el error si todavía no hay uno.
+    // Keeps the error if there is none yet.
     void Fail(std::string error);
 
-    // El texto `index` de Text.bmd; sin él, vacío y el error.
+    // Text.bmd's text `index`; without it, empty and the error.
     [[nodiscard]] std::string_view Text(std::size_t index);
 
-    // sprintf(renglón, formato, ...): el renglón que sigue, con el formato de Crt::Sprintf (Q-C590).
+    // sprintf(line, format, ...): the next line, with the format of Crt::Sprintf (Q-C590).
     template <typename... Arguments> void Print(std::string_view format, Arguments... arguments)
     {
         if (std::string* line = Current(); line != nullptr)
             *line = Crt::Sprintf(format, arguments...);
     }
-    // Lo mismo con el texto `index` de Text.bmd como formato.
+    // The same with Text.bmd's text `index` as the format.
     template <typename... Arguments> void PrintText(std::size_t index, Arguments... arguments)
     {
         const std::string_view format = Text(index);
         Print(format, arguments...);
     }
-    // El color y la negrita del renglón que sigue.
+    // The next line's color and bold.
     void Color(std::int32_t color);
     void Bold(std::int32_t bold);
-    // El renglón que sigue sube o baja uno.
+    // The next line moves up or down by one.
     void Next();
     void Back();
-    // Un medio renglón más (0x78abb34).
+    // One more half line (0x78abb34).
     void AddHalf();
-    // "\n" en el renglón que sigue, que sube, y un medio más.
+    // "\n" on the next line, which advances, and one more half.
     void NewLine();
-    // Lo más común: el texto `index` como formato, el color, la negrita en 0 y el renglón que sube.
+    // The most common: text `index` as the format, the color, the bold at 0 and the line that advances.
     template <typename... Arguments> void Line(std::int32_t color, std::size_t index, Arguments... arguments)
     {
         PrintText(index, arguments...);
@@ -69,8 +69,8 @@ public:
         Next();
     }
 
-    // El renglón que sigue, o nullptr con el error si está fuera de los 30: para quien escribe en él con su propio
-    // sprintf (0x40d530).
+    // The next line, or nullptr with the error if it is outside the 30: for whoever writes on it with their own sprintf
+    // (0x40d530).
     [[nodiscard]] std::string* Current();
 
     [[nodiscard]] std::int32_t Count() const;

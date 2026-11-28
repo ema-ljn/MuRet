@@ -39,26 +39,26 @@ namespace Client::Npc
 {
 namespace
 {
-// 0x5674c8: el máximo de MouseUpdateTime (0x6c8dcc) al llegar.
+// 0x5674c8: the maximum of MouseUpdateTime (0x6c8dcc) on arrival.
 constexpr std::int32_t ArrivalMouseUpdateTimeMax = 12;
-// 0x56751b: los +0x376 de menos de 0xcd no son NPC que hablen.
+// 0x56751b: a +0x376 below 0xcd is not an NPC that talks.
 constexpr std::uint16_t FirstTalkingNpc = 0xcd;
-// 0x56760d..0x567616: el NPC 0xee no le habla a un héroe de menos de nivel 10 ([0x7681eb0] + 0xe).
+// 0x56760d..0x567616: NPC 0xee does not talk to a hero below level 10 ([0x7681eb0] + 0xe).
 constexpr std::uint16_t LevelLimitedNpc = 0xee;
 constexpr std::int32_t LevelLimit = 10;
-// 0x567618: el texto 663 de Text.bmd (0x76edad0), formato del sprintf con el 10, de tipo 1 (0x567631).
+// 0x567618: Text.bmd text 663 (0x76edad0), the sprintf format with the 10, of type 1 (0x567631).
 constexpr std::size_t LevelLimitText = 663;
-// 0x567652..0x56766b: los NPC que ponen 0x78abb09 en 1.
+// 0x567652..0x56766b: the NPCs that set 0x78abb09 to 1.
 constexpr std::uint16_t FirstFlaggedNpc = 0xf3;
 constexpr std::uint16_t SecondFlaggedNpc = 0xf6;
 constexpr std::uint16_t ThirdFlaggedNpc = 0xfb;
-// 0x567aaf..0x567ac9: el NPC 0x101 con el bit 0x2000000 de +0x78 del héroe da el texto 1830 (0x7743264), de tipo 2.
+// 0x567aaf..0x567ac9: NPC 0x101 with bit 0x2000000 of the hero's +0x78 gives text 1830 (0x7743264), of type 2.
 constexpr std::uint16_t FlagLimitedNpc = 0x101;
 constexpr std::uint32_t FlagLimitedHeroFlag = 0x2000000;
 constexpr std::size_t FlagLimitText = 1830;
-// 0x569586: el NPC que pone 0x6eeda8 en 1.
+// 0x569586: the NPC that sets 0x6eeda8 to 1.
 constexpr std::uint16_t QuestDialogNpc = 0xe5;
-// 0x567b36..0x567b46 y 0x5688f0..0x5688fd: los modelos (+2, con signo) de los altares de Crywolf.
+// 0x567b36..0x567b46 and 0x5688f0..0x5688fd: the models (+2, signed) of the Crywolf altars.
 constexpr std::int16_t FirstCrywolfAltar = 0x204;
 constexpr std::int16_t LastCrywolfAltar = 0x208;
 // 0x4303c0: the map 34.
@@ -70,8 +70,8 @@ bool IsACrywolfAltar(const Kernel::ActorState& npc)
     return model >= FirstCrywolfAltar && model <= LastCrywolfAltar;
 }
 
-// Un C3 de la llegada: el rand() del relleno (0x567788, 0x56923b) y el serial (0x5767913) por la tabla de
-// protección, que se vuelve a cifrar con otro al cerrarse.
+// An arrival C3: the padding rand() (0x567788, 0x56923b) and the serial (0x5767913) through the protection table,
+// which is encrypted again with another on closing.
 void DrawTheC3Randoms(Crt::CrtRandom& random)
 {
     static_cast<void>(random.Next());
@@ -81,7 +81,7 @@ void DrawTheC3Randoms(Crt::CrtRandom& random)
     }
 }
 
-// 0x567c2d.., 0x568288.., 0x568908.. y 0x568f54..: C1 05 30 claveH claveL, la clave (+0x1f4) del NPC con MOVSX.
+// 0x567c2d.., 0x568288.., 0x568908.. and 0x568f54..: C1 05 30 keyH keyL, the NPC's key (+0x1f4) with MOVSX.
 Core::Expected<void, std::string> SendTheTalk(const Movement::HeroMovementContext& context,
                                               const Kernel::ActorState& npc, std::string_view where)
 {
@@ -92,7 +92,7 @@ Core::Expected<void, std::string> SendTheTalk(const Movement::HeroMovementContex
     return {};
 }
 
-// 0x555190("", texto, tipo) con los nombres vacíos de la .bss (0x77f3bf0 y 0x77f3bf4, que nadie escribe).
+// 0x555190("", text, type) with the empty .bss names (0x77f3bf0 and 0x77f3bf4, which nobody writes).
 Core::Expected<void, std::string> SayIt(const Movement::HeroMovementContext& context, std::string_view text,
                                         std::int32_t type, std::string_view where)
 {
@@ -146,8 +146,8 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Kernel::MouseState& mouse = runtime.mouse;
     mouse.updateTimeMax = ArrivalMouseUpdateTimeMax;
-    // 0x5674d2..0x5674ed: fuera de Crywolf activo (0x435a00 && 0x4303c0), 0x4f2250 y +0x378 en 0 (en la llegada de
-    // MoveHero el héroe ya está parado: 0x4f2250 vuelve a elegir la acción y saca su sufijo de rand()).
+    // 0x5674d2..0x5674ed: outside an active Crywolf (0x435a00 && 0x4303c0), 0x4f2250 and +0x378 at 0 (on MoveHero's
+    // arrival the hero is already stopped: 0x4f2250 picks the action again and spends its rand() suffix).
     const bool crywolf = Events::Crywolf::InTheCrywolfDefense(runtime);
     if (!crywolf)
     {
@@ -159,7 +159,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
             return Core::Unexpected(stopped.Error());
         hero.movement = 0;
     }
-    // 0x5674f4: sin NPC elegido, nada más (0x56ab0c).
+    // 0x5674f4: with no chosen NPC, nothing more (0x56ab0c).
     if (runtime.chosenNpc.index == -1)
         return {};
     if (runtime.chosenNpc.index < 0 ||
@@ -167,19 +167,19 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
         return Core::Unexpected(
             std::format("0x567502: el NPC elegido {} está fuera de la tabla de personajes", runtime.chosenNpc.index));
     const Kernel::ActorState& npc = context.world.Actors()[static_cast<std::size_t>(runtime.chosenNpc.index)];
-    // 0x56751b: un +0x376 de menos de 0xcd va derecho a 0x569599 (0x6c8e54 en −1, sin tocar 0x6eeda8).
+    // 0x56751b: a +0x376 below 0xcd goes straight to 0x569599 (0x6c8e54 at −1, without touching 0x6eeda8).
     if (npc.word376 < FirstTalkingNpc)
     {
         runtime.chosenNpc.index = -1;
         return {};
     }
-    // 0x567521..0x5675ed: el nivel (+0xe, sin signo) del registro propio, abierto y cerrado por la tabla.
+    // 0x567521..0x5675ed: the level (+0xe, unsigned) of the own record, opened and closed through the table.
     std::int32_t level = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         level = context.world.OwnCharacter().level;
     }
-    // 0x567618..0x567651: el aviso y la salida, sin poner 0x6c8e54 en −1.
+    // 0x567618..0x567651: the warning and the exit, without setting 0x6c8e54 to −1.
     if (npc.word376 == LevelLimitedNpc && level < LevelLimit)
     {
         auto format = TextOf(context, LevelLimitText, "0x567618");
@@ -191,7 +191,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
     runtime.panels.field78abb09 =
         (word == FirstFlaggedNpc || word == SecondFlaggedNpc || word == ThirdFlaggedNpc) ? 1 : 0;
     runtime.panels.repairMode = 0;
-    // 0x567672..0x567697: la ventana de las misiones (el panel 8) se cierra con 0x65cae0(8, 0), que manda el C1 03 31.
+    // 0x567672..0x567697: the quest window (panel 8) closes with 0x65cae0(8, 0), which sends the C1 03 31.
     {
         Hud::GamePanels panels(context.world, context.random);
         panels.LendTheWindowClose(context.sendWindowClose);
@@ -201,7 +201,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
                 return Core::Unexpected(std::move(closed).Error());
         }
     }
-    // 0x56769c..0x567a85: el C3 A0 si las misiones todavía no tienen la clase ([0x710148] + 4 en 0xff).
+    // 0x56769c..0x567a85: the C3 A0 if the quests do not have the class yet ([0x710148] + 4 at 0xff).
     if (runtime.quest.characterClass == Quests::QuestClassUnknown)
     {
         if (!context.requestQuestList)
@@ -209,7 +209,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
         DrawTheC3Randoms(context.random);
         context.requestQuestList();
     }
-    // 0x567a9b..0x567aff: el 0x101 con el bit 0x2000000 del héroe ([0x743a170] + 0x78, el mismo que llega).
+    // 0x567a9b..0x567aff: the 0x101 with the hero's bit 0x2000000 ([0x743a170] + 0x78, the same one that arrives).
     if (word == FlagLimitedNpc && (hero.flags78 & FlagLimitedHeroFlag) == FlagLimitedHeroFlag)
     {
         auto text = TextOf(context, FlagLimitText, "0x567ad3");
@@ -222,8 +222,9 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
     }
     if (crywolf)
     {
-        // 0x567b00..0x567c23 (CL9 hito 11): el clic en un altar. Con una elfa, 0x4365a0 y 0x435b00 muestran el estado
-        // del altar y siguen en 0x569573, sin el C1 30; sin elfa, el C1 30 de 0x567c2d; otro blanco, el de 0x568288.
+        // 0x567b00..0x567c23 (CL9 milestone 11): the click on an altar. With an elf, 0x4365a0 and 0x435b00 show the
+        // altar's state and go on at 0x569573, without the C1 30; without an elf, the C1 30 of 0x567c2d; another
+        // target, 0x568288's.
         const auto click = Events::Crywolf::ClickTheCrywolfAltar(runtime, context.texts, hero, npc);
         if (!click.HasValue())
             return Core::Unexpected(click.Error());
@@ -236,7 +237,7 @@ Core::Expected<void, std::string> TalkToTheNpc(Kernel::ActorState& hero, const M
     }
     else if (runtime.map == CrywolfMap)
     {
-        // 0x5688ca..0x5688fd: en el 34 sin el evento, un altar no habla.
+        // 0x5688ca..0x5688fd: on map 34 without the event, an altar does not talk.
         if (!IsACrywolfAltar(npc))
         {
             if (auto sent = SendTheTalk(context, npc, "0x568908"); !sent.HasValue())

@@ -51,11 +51,11 @@
 #include <utility>
 #include <vector>
 
-// La ventana del gremio (CL9 hito 8, fases 4 y 5): 0x64f3e0 con su paso (0x45aa80(0) y 0x651840) y su dibujo
-// (0x651c20): el marco, el título, el gremio con el puntaje o los textos sin gremio, el botón de cerrar, las pestañas y
-// el pedido de la alianza (E9); y las tres pestañas con sus pasos (0x64fc00, 0x650350 y 0x650c10), sus dibujos
-// (0x64fdf0, 0x6507d0 y 0x651400) y sus listas. En Lorencia (0) y en Devias (2). Los gremios, los nombres y los textos
-// son inventados.
+// The guild window (CL9 milestone 8, phases 4 and 5): 0x64f3e0 with its step (0x45aa80(0) and 0x651840) and its draw
+// (0x651c20): the frame, the title, the guild with the score or the texts without a guild, the close button, the tabs
+// and the union request (E9); and the three tabs with their steps (0x64fc00, 0x650350 and 0x650c10), their draws
+// (0x64fdf0, 0x6507d0 and 0x651400) and their lists. In Lorencia (0) and Devias (2). The guilds, the names and the
+// texts are invented.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -103,7 +103,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads del lote, sin los marcadores de los textos.
+// The batch's quads, without the text markers.
 std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -136,7 +136,7 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
     EXPECT_NEAR(quad.third.y, 480.0f - y - height, Tolerance);
 }
 
-// Cuántos quads del lote van con `slot` en (x, y) de w × h.
+// How many quads of the batch go with `slot` at (x, y), w × h.
 std::size_t CountQuadsAt(const std::vector<DrawnQuad>& quads, int slot, float x, float y, float width, float height)
 {
     constexpr float Tolerance = 1e-3f;
@@ -151,7 +151,7 @@ std::size_t CountQuadsAt(const std::vector<DrawnQuad>& quads, int slot, float x,
                                                   }));
 }
 
-// El lugar del primer texto `text` desde `from`, o el final.
+// The position of the first text `text` from `from`, or the end.
 std::size_t FindText(const std::vector<Client::Tests::RecordedText>& texts, std::string_view text, std::size_t from = 0)
 {
     for (std::size_t at = from; at < texts.size(); ++at)
@@ -265,7 +265,7 @@ protected:
         return Runtime().guild;
     }
 
-    // El héroe en el gremio 3 ("Talas", 17 puntos), con o sin alianza.
+    // The hero in guild 3 ("Talas", 17 points), with or without a union.
     void JoinTheGuild(std::string_view alliance)
     {
         Hero().guildStatus = MemberStatus;
@@ -303,7 +303,7 @@ protected:
                                                   .texts = &m_texts});
     }
 
-    // Un miembro del 52: en la tabla de 0x787a5e8 (en el orden del paquete) y en la lista (0x6517a0).
+    // A member of the 52: in 0x787a5e8's table (in the packet's order) and in the list (0x6517a0).
     void AddMember(std::string_view name, std::uint8_t status, std::uint8_t server = 0)
     {
         Client::Guild::GuildMemberSlot& slot = Guild().members[static_cast<std::size_t>(Guild().memberCount)];
@@ -314,7 +314,7 @@ protected:
         Client::Guild::AddTheGuildMember(*m_world, slot);
     }
 
-    // Un gremio de la alianza del E9 (0x6517e0), con la marca de un solo color.
+    // A guild of the E9's union (0x6517e0), with a single-color mark.
     void AddUnion(std::string_view name, std::uint8_t number, std::uint8_t color)
     {
         std::array<std::uint8_t, Client::Guild::GuildMarkNibbles> mark{};
@@ -322,7 +322,7 @@ protected:
         Client::Guild::AddTheUnion(Guild().window, mark, name, number);
     }
 
-    // El aviso del 0D tipo 2 (0x651680).
+    // The notice of the 0D type 2 (0x651680).
     void AddNotice(std::string_view text)
     {
         ASSERT_TRUE(
@@ -334,13 +334,13 @@ protected:
         return std::string(Client::Guild::GuildTextOf(Guild().window.members.at(at).slot.name));
     }
 
-    // 0x45b200: el flanco sobre el botón y, el cuadro que sigue, soltarlo encima.
+    // 0x45b200: the edge over the button and, the next frame, the release over it.
     Client::Core::Expected<void, std::string> Click(std::size_t button)
     {
         return ClickOn(Guild().window.memberButtons.at(button));
     }
 
-    // Lo mismo sobre +0x42c, +0x64c o +0x6d4.
+    // The same on +0x42c, +0x64c or +0x6d4.
     Client::Core::Expected<void, std::string> ClickTheTabButton(std::size_t button)
     {
         return ClickOn(Guild().window.tabButtons.at(button));
@@ -383,7 +383,7 @@ protected:
         return Client::Guild::DrawTheGuildWindow(context);
     }
 
-    // 0x6605b0 por el registro (LendThePanelDialogStepTo), con la respuesta de LendTheGuildTo.
+    // 0x6605b0 through the registry (LendThePanelDialogStepTo), with LendTheGuildTo's answer.
     Client::Core::Expected<void, std::string> StepTheDialog()
     {
         Client::Ui::PanelContext panels{.random = m_random, .dialogs = Runtime().dialogs};
@@ -392,7 +392,7 @@ protected:
         return panels.panelDialogStep();
     }
 
-    // Un clic en (x, y) del paso del diálogo: el flanco y el soltado en dos cuadros.
+    // A click at (x, y) of the dialog's step: the edge and the release in two frames.
     Client::Core::Expected<void, std::string> ClickTheDialogAt(std::int32_t x, std::int32_t y)
     {
         m_mouseX = x;
@@ -416,7 +416,7 @@ protected:
         return ClickTheDialogAt(target.base.x + target.base.width / 2, target.base.y + target.base.height / 2);
     }
 
-    // 0x660830 (el último de 0x6579e0).
+    // 0x660830 (the last of 0x6579e0).
     Client::Core::Expected<void, std::string> DrawTheDialog()
     {
         Client::Kernel::WorldRuntime& runtime = Runtime();
@@ -437,7 +437,7 @@ protected:
         return Client::Guild::DrawThePanelDialog(context, runtime.panels.delegated.panelDialog);
     }
 
-    // El maestro elige a `name` (con su cargo) y aprieta el botón del cargo.
+    // The master chooses `name` (with its position) and presses the position button.
     void OpenThePositionsFor(std::string_view name, std::uint8_t status)
     {
         JoinTheGuild("");
@@ -447,7 +447,7 @@ protected:
         ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     }
 
-    // El mouse sobre la pestaña `tab` del paso (0x34 × 0x10 en x + 0xf, 0x43 y 0x77, y + 0x4b).
+    // The mouse over the step's tab `tab` (0x34 × 0x10 at x + 0xf, 0x43 and 0x77, y + 0x4b).
     void PointAtTheTab(std::int32_t tab)
     {
         constexpr std::array<std::int32_t, 3> Lefts{0xf, 0x43, 0x77};
@@ -469,9 +469,9 @@ protected:
     std::int32_t m_mouseY = 300;
 };
 
-// 0x651c20 con el héroe sin gremio (+0x368 en 0xff): el fondo, el título en negrita y los textos 185 a 187 en la
-// normal, de a 0xf, y el botón de cerrar; ni el puntaje ni las pestañas. El paso tampoco llega a las pestañas. Sin
-// rand().
+// 0x651c20 with the hero without a guild (+0x368 at 0xff): the background, the title in bold and texts 185 to 187 in
+// the normal font, every 0xf, and the close button; neither the score nor the tabs. The step does not reach the tabs
+// either. No rand().
 TEST_P(GuildWindowTest, WithoutAGuildItShowsTheThreeTextsAndNoTabs)
 {
     ASSERT_TRUE(Step().HasValue());
@@ -503,10 +503,10 @@ TEST_P(GuildWindowTest, WithoutAGuildItShowsTheThreeTextsAndNoTabs)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con gremio: "%s ( Score:%d )" en 0xff64ffc8 bajo el título, las rayas bajo las pestañas 0 y 2 (sin textura), las
-// tres pestañas (la 1, la elegida desde 0x64f3e0, blanca y 2 más alta y más arriba; las otras en 0,6) con sus textos
-// en y + 0x4b + 4 (la elegida, uno más arriba). La de los miembros (0x6507d0), sin miembros y sin ser maestro, no
-// dibuja nada.
+// With a guild: "%s ( Score:%d )" in 0xff64ffc8 under the title, the lines under tabs 0 and 2 (without a texture), the
+// three tabs (1, chosen since 0x64f3e0, white and 2 taller and higher; the others at 0.6) with their texts at
+// y + 0x4b + 4 (the chosen one, one higher). The members one (0x6507d0), without members and without being master,
+// draws nothing.
 TEST_P(GuildWindowTest, WithAGuildItDrawsTheScoreAndTheTabs)
 {
     JoinTheGuild("");
@@ -536,7 +536,7 @@ TEST_P(GuildWindowTest, WithAGuildItDrawsTheScoreAndTheTabs)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Con +0x368 puesto y +0x1f2 en −1, el nombre sale del byte 9 del miembro 74 (Q-C1281); fuera de la tabla, corta.
+// With +0x368 set and +0x1f2 at −1, the name comes from byte 9 of member 74 (Q-C1281); outside the table, it stops.
 TEST_P(GuildWindowTest, TheHerosGuildNameReadsBeforeTheTable)
 {
     JoinTheGuild("");
@@ -551,8 +551,8 @@ TEST_P(GuildWindowTest, TheHerosGuildNameReadsBeforeTheTable)
     EXPECT_NE(cut.Error().find("0x651da0"), std::string::npos) << cut.Error();
 }
 
-// 0x651895..0x6518e3: el clic en el botón de cerrar lo consume, deja 0x6c8dcc en 6 y cierra (0x6522f0: la pestaña 1 y
-// el sonido 0x1c, después del 0x19 del clic).
+// 0x651895..0x6518e3: the click on the close button consumes it, leaves 0x6c8dcc at 6 and closes (0x6522f0: tab 1
+// and sound 0x1c, after the click's 0x19).
 TEST_P(GuildWindowTest, TheCloseButtonClosesTheWindow)
 {
     Guild().window.tab = 2;
@@ -568,9 +568,9 @@ TEST_P(GuildWindowTest, TheCloseButtonClosesTheWindow)
     EXPECT_EQ(Runtime().ui.mouseOnUi, 1);
 }
 
-// 0x651907..0x651bb5: con el izquierdo abajo, la pestaña bajo el mouse. La de la alianza pide la lista (C1 03 E9 en
-// claro) solo la primera vez y solo con alianza; después, el paso de la pestaña (0x650c10 y 0x64fc00, que sin ser
-// maestro y sin el botón no hacen más que la lista).
+// 0x651907..0x651bb5: with the left button down, the tab under the mouse. The union one asks for the list (C1 03 E9 in
+// the clear) only the first time and only with a union; then, the tab's step (0x650c10 and 0x64fc00, which without
+// being master and without the button do nothing but the list).
 TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
 {
     JoinTheGuild("Ceibo");
@@ -597,7 +597,6 @@ TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
     EXPECT_EQ(Guild().window.tab, 2);
     EXPECT_EQ(m_sent.size(), 1U);
 
-    // Sin el izquierdo abajo, la pestaña no cambia.
     Runtime().mouse.leftHeld = false;
     PointAtTheTab(1);
     static_cast<void>(Step());
@@ -605,7 +604,7 @@ TEST_P(GuildWindowTest, TheTabsSwitchAndTheUnionTabAsksForTheListOnce)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// Sin alianza, la pestaña cambia y no sale el E9.
+// Without a union, the tab changes and no E9 goes out.
 TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabSendsNothing)
 {
     JoinTheGuild("");
@@ -617,8 +616,9 @@ TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabSendsNothing)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x6517a0 → 0x46c930: cada miembro entra adelante; con la lista vacía, +0x130 mira si es el héroe. Al final, elegido
-// el último del deque (el primero que entró) y el corrimiento hasta el final. 0x6517d0 la vacía, elige 0 y corre a 0.
+// 0x6517a0 → 0x46c930: each member enters at the front; with the list empty, +0x130 checks whether it is the hero. At
+// the end, the last of the deque (the first to enter) chosen and the scroll to the end. 0x6517d0 empties it, chooses 0
+// and scrolls to 0.
 TEST_P(GuildWindowTest, TheMemberListPutsEachNewMemberFirst)
 {
     Hero().name = {std::byte{'S'}, std::byte{'a'}, std::byte{'u'}, std::byte{'c'}, std::byte{'e'}};
@@ -642,8 +642,8 @@ TEST_P(GuildWindowTest, TheMemberListPutsEachNewMemberFirst)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x650350 con 20 miembros (18 renglones): entraron con el corrimiento al final (2). PgDn corre 18 hacia el principio y
-// PgUp vuelve, acotados a [0, 2]. Cada flanco, una vez.
+// 0x650350 with 20 members (18 rows): they entered with the scroll at the end (2). PgDn scrolls 18 toward the start
+// and PgUp goes back, clamped to [0, 2]. Each edge, once.
 TEST_P(GuildWindowTest, PageUpAndPageDownScrollTheMemberList)
 {
     JoinTheGuild("");
@@ -663,8 +663,8 @@ TEST_P(GuildWindowTest, PageUpAndPageDownScrollTheMemberList)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x46d3a0: el clic sobre un renglón (de 0xd desde su y − 3) lo elige (corrimiento + renglón + 1), invierte +0 de su
-// elemento y gasta el clic. El renglón 0 es el de abajo: con tres, en y (3 − 0) · 13 − 0xeb − 10 + 0x159 = 139.
+// 0x46d3a0: the click on a row (0xd high from its y − 3) chooses it (scroll + row + 1), flips +0 of its element and
+// spends the click. Row 0 is the bottom one: with three, at y (3 − 0) · 13 − 0xeb − 10 + 0x159 = 139.
 TEST_P(GuildWindowTest, ClickingAMemberRowChoosesAndTogglesIt)
 {
     JoinTheGuild("");
@@ -680,7 +680,7 @@ TEST_P(GuildWindowTest, ClickingAMemberRowChoosesAndTogglesIt)
     EXPECT_EQ(Guild().window.members[0].toggled, 1);
     EXPECT_EQ(Guild().window.members[1].toggled, 0);
 
-    // El renglón 1, 13 más arriba.
+    // Row 1, 13 higher.
     m_mouseY -= 13;
     Runtime().mouse.pendingClick = true;
     ASSERT_TRUE(Step().HasValue());
@@ -689,8 +689,9 @@ TEST_P(GuildWindowTest, ClickingAMemberRowChoosesAndTogglesIt)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6504dc..0x650652 y 0x64def0: el maestro quita el cargo al elegido (0x20): el diálogo con Confirmar y Cancelar y el
-// nombre en 0x7d535a8; Confirmar manda C1 0F E1 03 00 y el nombre con el XOR32, y C1 03 52 en claro.
+// 0x6504dc..0x650652 and 0x64def0: the master removes the chosen one's position (0x20): the dialog with Confirm and
+// Cancel and the name in 0x7d535a8; Confirm sends C1 0F E1 03 00 and the name with the XOR32, and C1 03 52 in the
+// clear.
 TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
 {
     JoinTheGuild("");
@@ -728,8 +729,8 @@ TEST_P(GuildWindowTest, TheMasterDismissesTheChosenMember)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x650658..0x6507b5 y 0x64e550: echar al elegido busca su lugar en 0x787a5e8 (0x64faa0) y abre el diálogo; Confirmar
-// abre el diálogo 0x7d del juego con ese lugar en 0x6d5e2c. A un 0x00 no se le quita el cargo.
+// 0x650658..0x6507b5 and 0x64e550: kicking the chosen one looks up its slot in 0x787a5e8 (0x64faa0) and opens the
+// dialog; Confirm opens the game's dialog 0x7d with that slot in 0x6d5e2c. A 0x00 cannot have its position removed.
 TEST_P(GuildWindowTest, TheMasterKicksTheChosenMember)
 {
     JoinTheGuild("");
@@ -757,9 +758,9 @@ TEST_P(GuildWindowTest, TheMasterKicksTheChosenMember)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6503cf..0x6504d4: el cargo al elegido guarda su puesto y su nombre y abre el diálogo de los paneles vacío (0xd5 ×
-// 0x2b, sin botones ni dueño) con los ganchos de la ventana de los cargos (0x6602b0), con lo que da en +0x428. Sin ser
-// maestro, los botones no hacen nada. El que se abre después vuelve sin ganchos (0x660090).
+// 0x6503cf..0x6504d4: the position button on the chosen one stores its rank and its name and opens the empty panels'
+// dialog (0xd5 × 0x2b, without buttons or owner) with the positions window's hooks (0x6602b0), with what it gives in
+// +0x428. Without being master, the buttons do nothing. The one opened after comes back without hooks (0x660090).
 TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
 {
     JoinTheGuild("");
@@ -784,7 +785,7 @@ TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
     EXPECT_EQ(dialog.height, 0x2b);
     EXPECT_TRUE(m_sent.empty());
 
-    // Cerrar no borra los ganchos; abrir otro, sí.
+    // Closing does not clear the hooks; opening another one does.
     ASSERT_TRUE(Client::Ui::CloseThePanelDialog(dialog).HasValue());
     EXPECT_EQ(dialog.hooks, Client::Ui::PanelDialogHooks::GuildPositions);
     ASSERT_TRUE(Click(Client::Guild::GuildDismissButton).HasValue());
@@ -793,7 +794,7 @@ TEST_P(GuildWindowTest, TheAssignButtonOpensThePositionsWindow)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6600f9, el aviso del diálogo ocupado (0x6d69a8 en EUC-KR, los bytes de main.exe).
+// 0x6600f9, the busy dialog's notice (0x6d69a8 in EUC-KR, main.exe's bytes).
 std::string BusyNotice()
 {
     constexpr std::array<std::uint8_t, 26> Binary{0xc0, 0xcc, 0xb9, 0xcc, 0x20, 0xc6, 0xcb, 0xbe, 0xf7,
@@ -805,9 +806,9 @@ std::string BusyNotice()
     return text;
 }
 
-// 0x657930 da el paso del diálogo y después el de la ventana: con el de quitar el cargo abierto, el clic en echar llega
-// a 0x6507ad, y 0x6600d0 (0x6600f7..0x66011d) da el aviso de 0x6d69a8 en el chat (0x555190 con el tipo 1), deja el
-// abierto como estaba y devuelve 0, que va a +0x428. Sin cortar y sin rand().
+// 0x657930 gives the dialog's step and then the window's: with the remove-position one open, the click on kick
+// reaches 0x6507ad, and 0x6600d0 (0x6600f7..0x66011d) gives the notice of 0x6d69a8 in the chat (0x555190 with type 1),
+// leaves the open one as it was and returns 0, which goes to +0x428. Without stopping and without rand().
 TEST_P(GuildWindowTest, ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice)
 {
     JoinTheGuild("");
@@ -820,7 +821,7 @@ TEST_P(GuildWindowTest, ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice)
     ASSERT_TRUE(Runtime().chat.log.entries.empty());
     Guild().kickIndex = 7;
 
-    // 0x6507ad: el lugar de 0x64faa0 va a 0x7d536c8 antes de 0x6600d0.
+    // 0x6507ad: 0x64faa0's slot goes to 0x7d536c8 before 0x6600d0.
     const auto clicked = Click(Client::Guild::GuildKickButton);
     ASSERT_TRUE(clicked.HasValue()) << clicked.Error();
     ASSERT_EQ(Runtime().chat.log.entries.size(), 1U);
@@ -836,9 +837,9 @@ TEST_P(GuildWindowTest, ASecondMasterButtonWithTheDialogOpenGetsTheBusyNotice)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6504b6..0x6504d4 con otro abierto: 0x6600d0 da el aviso y 0 (a +0x428), y 0x6602b0 le pone igual los ganchos de
-// la ventana de los cargos al abierto. Su paso y su dibujo pasan a ser los de los cargos (Aceptar manda el E1 y el 52)
-// y su cierre responde a quien lo abrió (0x64def0 con Cancelar, 0x10: nada).
+// 0x6504b6..0x6504d4 with another one open: 0x6600d0 gives the notice and 0 (to +0x428), and 0x6602b0 still sets the
+// positions window's hooks on the open one. Its step and draw become the positions' (Accept sends the E1 and the 52)
+// and its closing answers whoever opened it (0x64def0 with Cancel, 0x10: nothing).
 TEST_P(GuildWindowTest, TheAssignButtonHooksThePositionsOntoTheOpenDialog)
 {
     JoinTheGuild("");
@@ -872,9 +873,9 @@ TEST_P(GuildWindowTest, TheAssignButtonHooksThePositionsOntoTheOpenDialog)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x64f1c0: la caja de 0x96 en (0xd6, 0x37), que deja la esquina para el paso; las dos cajas de 170 × 20 en
-// (x + 0x14, y + 0x13) y (x + 0x14, y + 0x27), rellena (0x621aa0) la del cargo elegido; los textos centrados en 170
-// desde x + 0x14, con la fuente y los colores que había; y los dos botones en y + 0x75. Sin rand().
+// 0x64f1c0: the 0x96 box at (0xd6, 0x37), which leaves the corner for the step; the two 170 × 20 boxes at
+// (x + 0x14, y + 0x13) and (x + 0x14, y + 0x27), the chosen position's filled (0x621aa0); the texts centered in 170
+// from x + 0x14, with the font and colors that were set; and the two buttons at y + 0x75. No rand().
 TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
 {
     OpenThePositionsFor("Sauce", MemberStatus);
@@ -889,7 +890,7 @@ TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
     EXPECT_EQ(CountQuadsAt(quads, 0xfb, 214.0f, 60.0f, 213.0f, 40.0f), 1U);
     EXPECT_EQ(CountQuadsAt(quads, 0xfb, 214.0f, 180.0f, 213.0f, 20.0f), 1U);
     EXPECT_EQ(CountQuadsAt(quads, 0xfc, 214.0f, 200.0f, 213.0f, 5.0f), 1U);
-    // La del ayudante (0x40, el que deja 0x64f3e0), rellena; la del guerrero, no.
+    // The assistant's (0x40, the one 0x64f3e0 leaves), filled; the warrior's, not.
     EXPECT_EQ(CountQuadsAt(quads, NoTexture, 234.0f, 74.0f, 170.0f, 20.0f), 1U);
     EXPECT_EQ(CountQuadsAt(quads, 0x117, 234.0f, 74.0f, 170.0f, 2.0f), 1U);
     EXPECT_EQ(CountQuadsAt(quads, 0x104, 234.0f, 74.0f, 2.0f, 20.0f), 1U);
@@ -923,7 +924,7 @@ TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
     EXPECT_EQ(Guild().positions.buttons[Client::Guild::GuildPositionsCancelButton].base.x, 214 + 0x6e);
     EXPECT_EQ(Guild().positions.buttons[Client::Guild::GuildPositionsOkButton].base.y, 55 + 0x75);
 
-    // Con el guerrero elegido, la rellena es la de abajo y el texto dice el 1302.
+    // With the warrior chosen, the filled one is the bottom one and the text says 1302.
     Guild().positions.choice = Client::Guild::BattleMasterChoice;
     m_text.texts.clear();
     m_sprites.Begin(Screen640);
@@ -935,13 +936,13 @@ TEST_P(GuildWindowTest, ThePositionsWindowDrawsItsBoxesAndTexts)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x64e600: con el flanco del clic, las cajas eligen el cargo (0x40 o 0x20) desde la esquina del último dibujo;
-// Aceptar manda C1 0F E1 01 (el elegido sin cargo), el cargo y los 10 bytes de 0x7d535a8, y C1 03 52, y cierra el
-// diálogo. Sin rand().
+// 0x64e600: with the click's edge, the boxes choose the position (0x40 or 0x20) from the last draw's corner; Accept
+// sends C1 0F E1 01 (the chosen one without a position), the position and the 10 bytes of 0x7d535a8, and C1 03 52,
+// and closes the dialog. No rand().
 TEST_P(GuildWindowTest, ThePositionsWindowAppointsAMember)
 {
     OpenThePositionsFor("Sauce", MemberStatus);
-    // Antes del primer dibujo la esquina es la de 0x64f3e0, (0, 0).
+    // Before the first draw the corner is 0x64f3e0's, (0, 0).
     ASSERT_TRUE(ClickTheDialogAt(0x14 + 2, 0x29 + 2).HasValue());
     EXPECT_EQ(Guild().positions.choice, Client::Guild::BattleMasterChoice);
     ASSERT_TRUE(DrawTheDialog().HasValue());
@@ -965,8 +966,9 @@ TEST_P(GuildWindowTest, ThePositionsWindowAppointsAMember)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x64eb53: con el elegido con cargo (0x7d535b4 distinto de 0), el E1 va con 2; los 10 bytes son los de 0x7d535a8
-// después del strcpy (lo que sigue al 0 queda del nombre de antes, Q-C1292). Cancelar (0x7d53640) cierra sin mandar.
+// 0x64eb53: with the chosen one holding a position (0x7d535b4 other than 0), the E1 goes with 2; the 10 bytes are
+// those of 0x7d535a8 after the strcpy (what follows the 0 stays from the previous name, Q-C1292). Cancel (0x7d53640)
+// closes without sending.
 TEST_P(GuildWindowTest, ThePositionsWindowChangesAPositionOrCancels)
 {
     Fill(Guild().chosenName, "Algarrobo");
@@ -988,10 +990,10 @@ TEST_P(GuildWindowTest, ThePositionsWindowChangesAPositionOrCancels)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x64fdf0 sin ser maestro: el marco de 53 con la marca de 48 del gremio del héroe (0x5f16a0(3, 1)), el marco de 140 ×
-// 62 con el gremio, el puntaje, los miembros (el 1310) y quién escribió el aviso en cajas de 140 desde x + 0x1e, de a
-// 0xd desde y + 0xb2; el título del aviso en y + 0xfa en una de 136; la lista del aviso de 0x88 × 0x50 colgada de
-// y + 0x154, su renglón (el elegido, en negro) y el marco de 140 × 95; el botón +0x42c con el 189. Sin rand().
+// 0x64fdf0 without being master: the 53 frame with the 48 mark of the hero's guild (0x5f16a0(3, 1)), the 140 × 62
+// frame with the guild, the score, the members (1310) and who wrote the notice in boxes of 140 from x + 0x1e, every
+// 0xd from y + 0xb2; the notice title at y + 0xfa in one of 136; the notice list, 0x88 × 0x50, hanging from
+// y + 0x154, its row (the chosen one, in black) and the 140 × 95 frame; the +0x42c button with 189. No rand().
 TEST_P(GuildWindowTest, TheNoticeTabDrawsTheGuildAndItsNotice)
 {
     JoinTheGuild("");
@@ -1042,9 +1044,9 @@ TEST_P(GuildWindowTest, TheNoticeTabDrawsTheGuildAndItsNotice)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6500e8: el maestro abre su registro (0x57630c8) para el tope de miembros y al cerrarlo saca sus rand(): el nivel /
-// 10, o con la clase 4 (+0xb & 7) el liderazgo / 10 más el nivel / 10, hasta 0x50. Sin quien escribió el aviso, el
-// 1361; el botón, con el 188.
+// 0x6500e8: the master opens its record (0x57630c8) for the member limit and when closing it draws its rand(): level
+// / 10, or with class 4 (+0xb & 7) leadership / 10 plus level / 10, up to 0x50. Without whoever wrote the notice,
+// 1361; the button, with 188.
 TEST_P(GuildWindowTest, TheMastersNoticeTabShowsTheMemberCapAndClosesTheRecord)
 {
     JoinTheGuild("");
@@ -1072,10 +1074,10 @@ TEST_P(GuildWindowTest, TheMastersNoticeTabShowsTheMemberCapAndClosesTheRecord)
     EXPECT_EQ(Draws(m_random), 2 * Client::Models::OwnRecordCloseRandoms);
 }
 
-// 0x6507d0 con el maestro: la lista de los miembros (0x47a810 con 0x46cb20 y 0x46d050): los encabezados 1389, 1307 y
-// 1022 en y − alto − 0xc; cada renglón con su nombre en x + 8, el puesto en su color (el 0x20, 0xc8 y 0x64 con alfa
-// 0x7f) y su texto centrado en 0x46 desde x + 8 + 0x2d, y el servidor + 1 en 0xff00c4ff; el elegido en negro. Después,
-// los tres botones.
+// 0x6507d0 with the master: the member list (0x47a810 with 0x46cb20 and 0x46d050): headers 1389, 1307 and 1022 at
+// y − height − 0xc; each row with its name at x + 8, the rank in its color (0x20, 0xc8 and 0x64 with alpha 0x7f) and
+// its text centered in 0x46 from x + 8 + 0x2d, and the server + 1 in 0xff00c4ff; the chosen one in black. Then, the
+// three buttons.
 TEST_P(GuildWindowTest, TheMembersTabDrawsTheRowsAndTheMasterButtons)
 {
     JoinTheGuild("");
@@ -1138,8 +1140,8 @@ TEST_P(GuildWindowTest, TheMembersTabDrawsTheRowsAndTheMasterButtons)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x651400 sin alianza (+4 de la entrada del héroe vacía): los textos 1257 a 1267 en x + 0x19 desde y + 0x6a; desde el
-// sexto, en blanco sobre 0xff0000cc, que queda.
+// 0x651400 without a union (+4 of the hero's entry empty): texts 1257 to 1267 at x + 0x19 from y + 0x6a; from the
+// sixth, in white on 0xff0000cc, which stays.
 TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabExplainsIt)
 {
     JoinTheGuild("");
@@ -1165,11 +1167,10 @@ TEST_P(GuildWindowTest, WithoutAnAllianceTheUnionTabExplainsIt)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x651400 con alianza: la lista +0x2f8 de 0xa0 × 0x50 en x + 0xf, colgada de y + 0x6e más el alto de la lista del
-// aviso, que es el 100 de 0x45a210 hasta el primer dibujo de la pestaña 0 (Q-C1293); cada renglón (0x46dfa0) con la
-// marca de 8 × 8 por la entrada 1999 (que después vuelve a la del gremio del héroe, Q-C1294), el nombre en x + 0x10 y
-// el número a la derecha de x + 0x8e. El maestro de la alianza ve +0x6d4 (1422) y +0x64c con el 1324; el otro maestro,
-// +0x64c con el 1325 y +0x6d4 apagado.
+// 0x651400 with a union: list +0x2f8, 0xa0 × 0x50, at x + 0xf, hanging from y + 0x6e plus the notice list's height,
+// which is 0x45a210's 100 until tab 0's first draw (Q-C1293); each row (0x46dfa0) with the 8 × 8 mark through entry
+// 1999 (which then goes back to the hero's guild's, Q-C1294), the name at x + 0x10 and the number right of x + 0x8e.
+// The union master sees +0x6d4 (1422) and +0x64c with 1324; the other master, +0x64c with 1325 and +0x6d4 off.
 TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
 {
     JoinTheGuild("Talas");
@@ -1208,8 +1209,8 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     EXPECT_EQ(texts[ombues + 1].text, "12");
     EXPECT_EQ(texts[ombues + 1].x, WindowX + 0xf + 4 + 0x8a - 12);
 
-    // P-C289: cada renglón con su slot y su marca (Ombues, el 2 gris, en el 0; Talas, el 1 negro, en el 1); nada en el
-    // de (1999, 1).
+    // P-C289: each row with its slot and its mark (Ombues, gray 2, in 0; Talas, black 1, in 1); nothing in the one of
+    // (1999, 1).
     const std::vector<DrawnQuad> quads = QuadsOf(m_sprites);
     const int firstRow = Client::Render::FirstGuildUnionMarkTextureSlot.value;
     EXPECT_EQ(CountQuadsAt(quads, firstRow + 1, static_cast<float>(WindowX + 0xf + 4), static_cast<float>(talasY), 8.0f,
@@ -1236,14 +1237,14 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
 
     EXPECT_EQ(Draws(m_random), 0);
 
-    // Después de la pestaña 0 (que, con el maestro, abre y cierra el registro propio), la lista cuelga del alto 0x50.
+    // After tab 0 (which, with the master, opens and closes the own record), the list hangs from height 0x50.
     Guild().window.tab = 0;
     ASSERT_TRUE(Draw().HasValue());
     Guild().window.tab = 2;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(list.base.y, 0x6e + 0x50);
 
-    // Con otra alianza: +0x64c con el 1325 y +0x6d4 apagado, sin dibujarlo.
+    // With another union: +0x64c with 1325 and +0x6d4 off, not drawn.
     Fill(Guild().table[InTheGuild].unionName, "Ceibo");
     m_text.texts.clear();
     ASSERT_TRUE(Draw().HasValue());
@@ -1254,7 +1255,7 @@ TEST_P(GuildWindowTest, TheUnionTabListsTheGuildsAndTheMasterButtons)
     EXPECT_EQ(Draws(m_random), Client::Models::OwnRecordCloseRandoms);
 }
 
-// 0x64fc00: el maestro del gremio que es el de la alianza (+0xd igual a +4) recibe el aviso 1270 con OK y sin función.
+// 0x64fc00: the master of the guild that is the union's (+0xd equal to +4) gets notice 1270 with OK and no function.
 TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheGuild)
 {
     JoinTheGuild("Talas");
@@ -1272,8 +1273,8 @@ TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheGuild)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x64fce7 y 0x64de90: el otro maestro abre el diálogo de disolver (1363 a 1366, Confirmar); Confirmar abre el diálogo
-// 0x7d del juego con el lugar 0 en 0x6d5e2c, el campo del chat cerrado y un solo campo para Tab. Cancelar, nada.
+// 0x64fce7 and 0x64de90: the other master opens the disband dialog (1363 to 1366, Confirm); Confirm opens the game's
+// dialog 0x7d with slot 0 in 0x6d5e2c, the chat field closed and a single field for Tab. Cancel, nothing.
 TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
 {
     JoinTheGuild("");
@@ -1304,9 +1305,9 @@ TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x64fce7..0x64fd8f: los renglones de disolver son lugares de 0x32 bytes seguidos. El 1364 en español (54 bytes) sigue
-// en el de abajo y el strcpy del 1365 le pisa la cola: el renglón 2 son sus 50 primeros bytes y el 1365 (Q-C1366). Un
-// texto que pasa del cuarto lugar corta.
+// 0x64fce7..0x64fd8f: the disband rows are contiguous 0x32-byte slots. 1364 in Spanish (54 bytes) runs into the one
+// below and 1365's strcpy overwrites its tail: row 2 is its first 50 bytes and 1365 (Q-C1366). A text past the fourth
+// slot stops.
 TEST_P(GuildWindowTest, ALongDisbandLineRunsIntoTheNextOne)
 {
     const std::string spanish = "Todos los elementos del Baul del gremio desaparecieron";
@@ -1331,7 +1332,7 @@ TEST_P(GuildWindowTest, ALongDisbandLineRunsIntoTheNextOne)
     EXPECT_NE(cut.Error().find("0x64fd8f"), std::string::npos);
 }
 
-// 0x64fd9c: el que no es maestro sale: su lugar en 0x787a5e8 (0x64faa0 con su nombre) en 0x6d5e2c y el diálogo 0x7d.
+// 0x64fd9c: one who is not master leaves: its slot in 0x787a5e8 (0x64faa0 with its name) in 0x6d5e2c and dialog 0x7d.
 TEST_P(GuildWindowTest, AMemberLeavesTheGuildThroughTheNumberDialog)
 {
     JoinTheGuild("");
@@ -1347,7 +1348,7 @@ TEST_P(GuildWindowTest, AMemberLeavesTheGuildThroughTheNumberDialog)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x650d22: el maestro de la alianza no la deja (1271, OK).
+// 0x650d22: the union master does not leave it (1271, OK).
 TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheAlliance)
 {
     JoinTheGuild("Talas");
@@ -1361,8 +1362,8 @@ TEST_P(GuildWindowTest, TheAllianceMasterCannotLeaveTheAlliance)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x650d35..0x651290: el otro maestro manda C1 07 E5 01 02 con su clave (+0x1f5 y +0x1f4) con el XOR32 y avisa el 1387
-// en el chat (0x555190 con el tipo 1).
+// 0x650d35..0x651290: the other master sends C1 07 E5 01 02 with its key (+0x1f5 and +0x1f4) with the XOR32 and gives
+// notice 1387 in the chat (0x555190 with type 1).
 TEST_P(GuildWindowTest, AMasterLeavesTheAlliance)
 {
     JoinTheGuild("Ceibo");
@@ -1380,9 +1381,9 @@ TEST_P(GuildWindowTest, AMasterLeavesTheAlliance)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x6512a2..0x6513e0 y 0x650830: +0x6d4 sobre otro gremio de la alianza copia su nombre a 0x7d535a8 (strcpy: lo de
-// después del 0 queda del nombre de antes, Q-C1292) y abre el diálogo del 1423 y el 1369; Confirmar manda C1 0C EB 01 y
-// los 8 bytes de 0x7d535a8 con el XOR32. Sobre el gremio propio, nada.
+// 0x6512a2..0x6513e0 and 0x650830: +0x6d4 on another guild of the union copies its name to 0x7d535a8 (strcpy: what is
+// past the 0 stays from the previous name, Q-C1292) and opens the dialog of 1423 and 1369; Confirm sends C1 0C EB 01
+// and the 8 bytes of 0x7d535a8 with the XOR32. On the own guild, nothing.
 TEST_P(GuildWindowTest, TheAllianceMasterKicksAGuildOutOfIt)
 {
     JoinTheGuild("Talas");
@@ -1421,7 +1422,7 @@ TEST_P(GuildWindowTest, TheAllianceMasterKicksAGuildOutOfIt)
     EXPECT_EQ(Draws(m_random), 0);
 }
 
-// 0x650c5a y 0x650c7b: sin ser maestro, o sin alianza, los botones de la pestaña no hacen nada.
+// 0x650c5a and 0x650c7b: without being master, or without a union, the tab's buttons do nothing.
 TEST_P(GuildWindowTest, OnlyAMasterWithAnAllianceHasTheUnionButtons)
 {
     JoinTheGuild("Talas");
@@ -1437,9 +1438,9 @@ TEST_P(GuildWindowTest, OnlyAMasterWithAnAllianceHasTheUnionButtons)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x651680: el aviso cortado en renglones de 0x6e (0x459c70), cada uno adelante (0x46bca0), que lo corre hasta el
-// final (la cuenta menos los renglones), y al final corrido otro tanto para el otro lado (+0x34 con la cuenta menos los
-// renglones): el corrimiento 0, con lo último que entró en el renglón de abajo. 0x651790 la vacía.
+// 0x651680: the notice cut into rows of 0x6e (0x459c70), each at the front (0x46bca0), which scrolls it to the end
+// (the count minus the rows), and at the end scrolled as much the other way (+0x34 with the count minus the rows):
+// scroll 0, with the last one in on the bottom row. 0x651790 empties it.
 TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
 {
     for (int notice = 1; notice <= 8; ++notice)
@@ -1472,7 +1473,8 @@ TEST_P(GuildWindowTest, TheNoticeLinesGoFirstAndTheLastOnesStayInView)
     EXPECT_EQ(window.noticeList.scroll, 0);
 }
 
-// 0x6517e0 → 0x46d900: sin nombre, nada; el nombre con strncpy de 8 y el número, adelante. 0x651830 la vacía.
+// 0x6517e0 → 0x46d900: without a name, nothing; the name with strncpy of 8 and the number, at the front. 0x651830
+// empties it.
 TEST_P(GuildWindowTest, TheUnionListPutsEachGuildFirst)
 {
     AddUnion("", 1, 1);

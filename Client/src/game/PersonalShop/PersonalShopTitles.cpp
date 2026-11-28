@@ -18,11 +18,11 @@ namespace Client::PersonalShop
 {
 namespace
 {
-// +0x88 de un jugador.
+// +0x88 of a player.
 constexpr std::uint8_t PlayerKind = 1;
-// 0x4524ef: el alta guarda la clave con & 0x7fff en +0x40.
+// 0x4524ef: the add stores the key with & 0x7fff at +0x40.
 constexpr std::int32_t StoredKeyMask = 0x7fff;
-// 0x451348..0x451351 y 0x4512ef..0x4512fe: el lugar que el alta y la actualización le dan a 0x4527d0.
+// 0x451348..0x451351 and 0x4512ef..0x4512fe: the position that the add and the update give 0x4527d0.
 constexpr std::int32_t Unplaced = -1;
 
 std::int32_t KeyOf(const Kernel::ActorState& actor)
@@ -34,7 +34,7 @@ std::int32_t KeyOf(const Kernel::ActorState& actor)
 void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index, std::string_view title)
 {
     const Kernel::ActorState& actor = world.Actors()[index];
-    // 0x45122a: "AddShopTitle: there is NOT player" al log, nada más.
+    // 0x45122a: "AddShopTitle: there is NOT player" to the log, nothing else.
     if (actor.byte88 != PlayerKind)
         return;
     Kernel::WorldRuntime& runtime = world.Runtime();
@@ -42,7 +42,7 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     const auto found = shops.titles.find(index);
     if (found == shops.titles.end())
     {
-        // 0x451326..0x451382: el cartel nuevo (0x4524e0), con la clave & 0x7fff y el lugar en (−1, −1).
+        // 0x451326..0x451382: the new sign (0x4524e0), with the key & 0x7fff and the position at (−1, −1).
         shops.titles.emplace(index, Social::ShopTitle{.key = key & StoredKeyMask,
                                                       .name = Actors::ChatNameOf(actor),
                                                       .title = std::string(title),
@@ -51,8 +51,8 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     }
     else if (found->second.key == key)
     {
-        // 0x4512d1..0x451301: la clave guardada (0x452530, ya con & 0x7fff) contra la entera, que desde 0x8000 no se
-        // iguala nunca (07 Q-C969); el nombre y el título nuevos (0x452540) y el lugar en (−1, −1) (0x4527d0).
+        // 0x4512d1..0x451301: the stored key (0x452530, already with & 0x7fff) against the whole one, which from 0x8000
+        // never matches (07 Q-C969); the new name and title (0x452540) and the position at (−1, −1) (0x4527d0).
         found->second.name = Actors::ChatNameOf(actor);
         found->second.title = std::string(title);
         found->second.x = Unplaced;
@@ -60,10 +60,10 @@ void AddShopTitle(Kernel::WorldState& world, std::int32_t key, std::size_t index
     }
     else
     {
-        // 0x451308: "AddShopTitle: player key value is different" al log, nada más.
+        // 0x451308: "AddShopTitle: player key value is different" to the log, nothing else.
         return;
     }
-    // 0x4531f7: después del nombre en negrita, las líneas con la normal, que queda.
+    // 0x4531f7: after the name in bold, the lines with the normal font, which stays.
     runtime.hud.dcFont = Render::Text::FontKind::Normal;
 }
 

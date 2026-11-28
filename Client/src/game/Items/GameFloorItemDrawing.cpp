@@ -107,8 +107,8 @@ Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, Kernel::FloorI
 {
     if (!(item.alpha > VisibleAlpha))
         return {};
-    // 0x60cf70 → 0x4ebc80: la caja del picking (+0x13c) desde la posición de este cuerpo, que en el último (el del
-    // ítem, después del agua) es la que lee 0x59e2e0.
+    // 0x60cf70 → 0x4ebc80: the picking box (+0x13c) from this body's position, which in the last one (the item's, after
+    // the water) is the one 0x59e2e0 reads.
     item.pickBox = {item.position + item.boundingMin, item.position + item.boundingMax};
     const auto* model = context.models.Find(Models::ModelId{object.model});
     if (!model)

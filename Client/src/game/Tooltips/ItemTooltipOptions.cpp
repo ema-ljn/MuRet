@@ -21,33 +21,33 @@
 #include <string>
 #include <string_view>
 
-// 0x5b79bd..0x5b801a del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): las clases (0x5af590), lo que
-// suma cada tipo, el stat del conjunto (0x40dd80), las opciones (0x5b2320), las cajas y las opciones del conjunto
-// (0x40eee0). Los textos son los de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// 0x5b79bd..0x5b801a of the item body (06 § Los tooltips, "El cuerpo del ítem"): the classes (0x5af590), what each
+// type adds, the set's stat (0x40dd80), the options (0x5b2320), the boxes and the set's options (0x40eee0). The texts
+// are the Text.bmd ones (the address − 0x76bd1dc, over 300).
 namespace Client::Tooltips
 {
 namespace
 {
 using Frame = ItemTooltipFrame;
 
-// 0x5af590: Item.bmd+0x45..+0x49, la evolución + 1 de cada clase que lo usa (0, ninguna).
+// 0x5af590: Item.bmd+0x45..+0x49, the evolution + 1 of each class that uses it (0, none).
 constexpr std::size_t FirstClassByte = 0x45;
 constexpr std::size_t ClassCount = 5;
 constexpr std::uint8_t EvolutionShift = 3;
 constexpr std::size_t MagicGladiatorByte = 0x48;
-// 0x5af590: el 60 con el nombre de la clase es "no la usa" y el 61, "la usa"; los nombres van del 15 + 5 · el byte
-// + la clase, y del 20 + la clase sin la evolución; el 23, el de MG.
+// 0x5af590: 60 with the class name is "cannot use it" and 61, "can use it"; the names go from 15 + 5 · the byte + the
+// class, and from 20 + the class without the evolution; 23, MG's.
 constexpr std::size_t CannotText = 60;
 constexpr std::size_t CanText = 61;
 constexpr std::size_t FirstClassNameText = 15;
 constexpr std::size_t PlainClassNameText = 20;
 constexpr std::size_t ClassNameStep = 5;
 constexpr std::size_t MagicGladiatorText = 23;
-// 0x5af5e9 y 0x5af5f0: los colores de N + 2 y N + 3 en 0.
+// 0x5af5e9 and 0x5af5f0: the colors of N + 2 and N + 3 at 0.
 constexpr std::int32_t FirstClearedAhead = 2;
 constexpr std::int32_t LastClearedAhead = 3;
 
-// 0x5b79df..0x5b7c37: lo que suma cada tipo, con su nivel desde 5 en los guantes y las botas.
+// 0x5b79df..0x5b7c37: what each type adds, with its level from 5 in the gloves and the boots.
 constexpr std::int32_t FirstGloves = 0x1400;
 constexpr std::int32_t FirstBoots = 0x1600;
 constexpr std::int32_t BootsEnd = 0x1800;
@@ -62,7 +62,7 @@ constexpr std::int32_t FirstWand = 0x408;
 constexpr std::int32_t LastWand = 0x40e;
 constexpr std::size_t WandText = 1234;
 
-// 0x40dd80 y 0x40dca0: D+0x1c, (>> 2) & 3, por 5 en el 950 + Item.bmd+0x44 − 1; el 1165 en las joyas y los anillos.
+// 0x40dd80 and 0x40dca0: D+0x1c, (>> 2) & 3, times 5 in 950 + Item.bmd+0x44 − 1; 1165 in the jewels and the rings.
 constexpr std::size_t SetStatByte = 0x44;
 constexpr std::size_t FirstSetStatText = 950;
 constexpr std::int32_t SetStatKinds = 4;
@@ -71,11 +71,10 @@ constexpr std::size_t SetRingText = 1165;
 constexpr std::array<std::array<std::int32_t, 2>, 3> SetRingRanges{
     {{0x1a08, 0x1a09}, {0x1a0c, 0x1a0d}, {0x1a15, 0x1a1b}}};
 
-// 0x5b7c45..0x5b7c5d: 0x551c70 con la skill del byte D+0x2b + 7 (el contador de las resistencias, [EBP+0x14], queda
-// en 7).
+// 0x5b7c45..0x5b7c5d: 0x551c70 with the skill of byte D+0x2b + 7 (the resistance counter, [EBP+0x14], stays at 7).
 constexpr std::size_t LastOptionSlot = 7;
 
-// 0x5b2320(tipo, renglón, opción, valor, maná): la tabla de 0x5b2a00 y 0x5b2938.
+// 0x5b2320(type, line, option, value, mana): the table of 0x5b2a00 and 0x5b2938.
 enum class OptionArgument : std::uint8_t
 {
     None,
@@ -109,12 +108,12 @@ constexpr std::array<OptionText, 49> OptionTexts{{
     {0x94, 577, OptionArgument::Value},  {0x96, 959, OptionArgument::Value}, {0xb0, 1087, OptionArgument::Value},
     {0xb1, 1088, OptionArgument::Value},
 }};
-// 0x5b255b: la 0x55 no escribe nada en los ítems de misión de 0x1a0e a 0x1a12.
+// 0x5b255b: 0x55 writes nothing on the quest items from 0x1a0e to 0x1a12.
 constexpr std::uint8_t LuckOption = 0x55;
 constexpr std::int32_t FirstQuestItem = 0x1a0e;
 constexpr std::int32_t LastQuestItem = 0x1a12;
 
-// 0x5b7ccc..0x5b7d8f: el renglón de más de algunas opciones.
+// 0x5b7ccc..0x5b7d8f: the extra line of some options.
 constexpr std::uint8_t LifeOption = 0x54;
 constexpr std::size_t LifeText = 94;
 constexpr std::uint8_t ShieldSkillOption = 0x31;
@@ -124,7 +123,7 @@ constexpr std::size_t FireScreamText = 1201;
 constexpr std::uint8_t AddDefenseOption = 0x50;
 constexpr std::size_t AddDefenseText = 89;
 
-// 0x5b7de1..0x5b800d: las cajas.
+// 0x5b7de1..0x5b800d: the boxes.
 constexpr std::int32_t FirstBox = 0x1a20;
 constexpr std::int32_t SecondBox = 0x1a21;
 constexpr std::int32_t ThirdBox = 0x1a22;
@@ -160,7 +159,7 @@ constexpr std::uint8_t FullSetActive = 0xd;
 constexpr std::size_t SetTitleText = 1089;
 constexpr std::size_t SetTailText = 159;
 
-// 0x5af5e4..0x5af5f0: los colores de N + 2 y N + 3 en 0, aunque no escriba esos renglones.
+// 0x5af5e4..0x5af5f0: the colors of N + 2 and N + 3 at 0, even if it does not write those lines.
 void ClearTheColorsAhead(TooltipWriter& lines)
 {
     if (lines.Failed())
@@ -177,15 +176,14 @@ void ClearTheColorsAhead(TooltipWriter& lines)
     written.colors[static_cast<std::size_t>(next + FirstClearedAhead)] = TooltipWhite;
 }
 
-// Un byte de las clases del registro de Item.bmd.
 std::uint8_t ClassByte(std::span<const std::byte, Tables::ItemRecordSize> record, std::size_t offset)
 {
     return std::to_integer<std::uint8_t>(record[offset]);
 }
 } // namespace
 
-// 0x5af590(registro), de los dos que la llaman (ItemTooltipParts.h). `other` es el color de lo que el héroe no cumple:
-// 2 si su clase lo usa (Item.bmd+0x45 + clase distinto de 0) y 5 si no.
+// 0x5af590(record), of the two that call it (ItemTooltipParts.h). `other` is the color of what the hero does not
+// meet: 2 if their class uses it (Item.bmd+0x45 + class non-zero) and 5 if not.
 void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& lines,
                          std::span<const std::byte, Tables::ItemRecordSize> record)
 {
@@ -212,7 +210,7 @@ void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& line
         return;
     if (heroClass == Kernel::CharacterClass::MagicGladiator)
     {
-        // 0x5af60c..0x5af6e9: el MG solo mira su byte, con cualquier cantidad de clases.
+        // 0x5af60c..0x5af6e9: MG only looks at its byte, with any number of classes.
         lines.NewLine();
         const std::uint8_t mg = ClassByte(record, MagicGladiatorByte);
         if (mg != 0 && heroEvolution >= mg - 1)
@@ -242,7 +240,7 @@ void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& line
     };
     if (count <= 2)
     {
-        // 0x5af72f..0x5af8ce: una o dos clases, cada una con su nombre; en blanco si el héroe cumple alguna.
+        // 0x5af72f..0x5af8ce: one or two classes, each with its name; in white if the hero meets any.
         const bool any = fits(0) || (count == 2 && fits(1));
         for (std::size_t entry = 0; entry < count; ++entry)
         {
@@ -253,7 +251,7 @@ void WriteTheItemClasses(const Hud::GameHudContext& context, TooltipWriter& line
         }
         return;
     }
-    // 0x5af8d3..0x5af92d: con tres o cuatro, las que no lo usan.
+    // 0x5af8d3..0x5af92d: with three or four, the ones that do not use it.
     for (std::size_t i = 0; i < ClassCount; ++i)
     {
         if (ClassByte(record, FirstClassByte + i) != 0)
@@ -283,7 +281,7 @@ Core::Expected<void, std::string> WriteAnOption(Hud::GameHudContext& context, To
         break;
     case OptionArgument::Mana:
     {
-        // Con un error ya guardado en el escritor, ese error, sin abrir el acceso.
+        // With an error already in the writer, that error, without opening the access.
         if (lines.Failed())
             return Core::Unexpected(lines.Error());
         const auto entry = ReadTheSkillEntry(context, tag, "0x5b2356");
@@ -298,7 +296,7 @@ Core::Expected<void, std::string> WriteAnOption(Hud::GameHudContext& context, To
 
 namespace
 {
-// Un renglón azul y en negrita después de un "\n" (el 78 y el 93 van sin argumentos).
+// A blue bold line after a "\n" (78 and 93 go without arguments).
 template <typename... Arguments> void WriteABonus(TooltipWriter& lines, std::size_t text, Arguments... arguments)
 {
     lines.NewLine();
@@ -327,7 +325,7 @@ void WriteTheBonuses(Frame& frame)
         lines.NewLine();
 }
 
-// 0x40dd80(ítem, N), un thiscall sobre [0x6eed3c], con 0x40dca0: sin negrita.
+// 0x40dd80(item, N), a thiscall on [0x6eed3c], with 0x40dca0: without bold.
 void WriteTheSetStat(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -352,7 +350,7 @@ void WriteTheSetStat(Frame& frame)
     lines.Next();
 }
 
-// 0x5b7c62..0x5b7d9f: cada opción en azul, con el renglón de más de algunas.
+// 0x5b7c62..0x5b7d9f: each option in blue, with the extra line of some.
 Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -383,7 +381,7 @@ Core::Expected<void, std::string> WriteTheOptionLines(Frame& frame)
     return {};
 }
 
-// 0x5b7de1..0x5b800d: las cajas, sin negrita salvo el primer renglón de la azul.
+// 0x5b7de1..0x5b800d: the boxes, without bold except the blue one's first line.
 Core::Expected<void, std::string> WriteTheBoxes(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -404,7 +402,7 @@ Core::Expected<void, std::string> WriteTheBoxes(Frame& frame)
         gold(FifthBoxText);
     else if (type == BlueBox)
     {
-        // 0x5b7e49..0x5b7e8b: 0x5b2320(0, renglón, 0x4c, 0, 0), y el renglón suma también un medio.
+        // 0x5b7e49..0x5b7e8b: 0x5b2320(0, line, 0x4c, 0, 0), and the line also adds a half.
         if (auto written = WriteAnOption(frame.context, frame.lines, 0, BlueBoxOption, 0); !written.HasValue())
             return written;
         lines.Color(TooltipBlue);
@@ -435,8 +433,8 @@ std::string_view UpToTheZero(std::span<const char> bytes)
     return {bytes.data(), static_cast<std::size_t>(end - bytes.begin())};
 }
 
-// Un renglón de 0x40eee0: la opción con su valor (0x40d530), en azul si es la que sigue de la lista del registro
-// propio y el conjunto la tiene puesta; si no, en gris.
+// A line of 0x40eee0: the option with its value (0x40d530), in blue if it is the next one in the own record's list and
+// the set has it worn; otherwise, in gray.
 Core::Expected<void, std::string> WriteASetOption(Frame& frame, std::uint8_t option, std::uint8_t value,
                                                   std::size_t slot, std::uint8_t active, std::uint8_t& start)
 {
@@ -463,8 +461,8 @@ Core::Expected<void, std::string> WriteASetOption(Frame& frame, std::uint8_t opt
     return {};
 }
 
-// 0x40eee0(ítem, N), un thiscall sobre [0x6eed3c]: con un conjunto en uso, su título y sus opciones, en azul las que
-// tiene puestas el héroe (la lista de +0x934c, desde la clase del conjunto: +0x9308 o +0x9328) y en gris las demás.
+// 0x40eee0(item, N), a thiscall on [0x6eed3c]: with a set in use, its title and its options, in blue the ones the hero
+// has worn (the list at +0x934c, from the set's class: +0x9308 or +0x9328) and in gray the rest.
 Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -477,8 +475,8 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     if (context.setTypes == nullptr || context.setOptions == nullptr)
         return Core::Unexpected(std::string("0x40ef05: las opciones del conjunto sin ItemSetType.bmd ni "
                                             "ItemSetOption.bmd"));
-    // 0x40eefe..0x40ef05: el byte & 3 − 1 del tipo; con & 3 en 0, el byte 3 del tipo anterior, y en el tipo 0 el byte
-    // alto de la vtable de +0 (0x6b8824, 0x40f2c8): 0.
+    // 0x40eefe..0x40ef05: the type's byte & 3 − 1; with & 3 at 0, byte 3 of the previous type, and at type 0 the high
+    // byte of the vtable at +0 (0x6b8824, 0x40f2c8): 0.
     const auto kind = static_cast<std::size_t>(item.flags1c & SetKindMask);
     std::uint8_t set = 0;
     if (kind != 0 || item.id != 0)
@@ -504,8 +502,8 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
             sets.byte9306 = 0;
         return {};
     }
-    // 0x40ef48..0x40f005: la clase del conjunto. strlen del nombre del registro, que sigue por sus opciones si el
-    // nombre no tiene su 0, y de los dos nombres de +0x9308 y +0x9328.
+    // 0x40ef48..0x40f005: the set's class. strlen of the record's name, which runs into its options if the name lacks
+    // its 0, and of the two names at +0x9308 and +0x9328.
     const auto zero = std::ranges::find(record, std::byte{0});
     if (zero == record.end())
         return Core::Unexpected(std::format("0x40ef68: el registro del conjunto {} no tiene un 0 (strlen sigue por el "
@@ -522,7 +520,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     const std::string_view first = UpToTheZero(sets.names[0]);
     const std::string_view second = UpToTheZero(sets.names[1]);
     const Player::ItemSetOptionList& list = sets.list;
-    // strncmp(a, b, strlen(a)) da 0 si b empieza con a.
+    // strncmp(a, b, strlen(a)) gives 0 if b starts with a.
     auto active = static_cast<std::uint8_t>(list.count9348 - sets.byte9307);
     std::uint8_t start = 0;
     if (second.starts_with(name) && std::string_view(name).starts_with(second))
@@ -532,7 +530,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     }
     else if (!first.starts_with(name) && !std::string_view(name).starts_with(first))
         active = 0;
-    // 0x40f009..0x40f090: sin negritas ni medios.
+    // 0x40f009..0x40f090: without bold or halves.
     lines.Print("\n");
     lines.Next();
     lines.Print("%s %s", lines.Text(SetTitleText), lines.Text(SetTailText));
@@ -542,7 +540,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
     lines.Next();
     lines.Print("\n");
     lines.Next();
-    // 0x40f0c0..0x40f255: después del sexto par la segunda opción queda la de ese par (Q-C592).
+    // 0x40f0c0..0x40f255: after the sixth pair the second option stays that pair's (Q-C592).
     std::uint8_t secondOption = NoSet;
     std::uint8_t secondValue = NoSet;
     for (std::size_t slot = 0; slot < SetSlots; ++slot)
@@ -587,7 +585,7 @@ Core::Expected<void, std::string> WriteTheSetOptions(Frame& frame)
                 return written;
         }
     }
-    // 0x40f25b..0x40f292: dos "\n" sin medios; devuelve N + 2.
+    // 0x40f25b..0x40f292: two "\n" without halves; returns N + 2.
     lines.Print("\n");
     lines.Next();
     lines.Print("\n");

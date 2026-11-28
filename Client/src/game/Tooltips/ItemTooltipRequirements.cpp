@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <string>
 
-// 0x5b6a3c..0x5b79bc del cuerpo del ítem (06 § Los tooltips, "El cuerpo del ítem"): la durabilidad, el daño de las
-// flechas, las resistencias y los requisitos contra el registro propio. Los textos son los de Text.bmd (la dirección
-// − 0x76bd1dc, sobre 300).
+// 0x5b6a3c..0x5b79bc of the item body (06 § Los tooltips, "El cuerpo del ítem"): the durability, the arrows' damage,
+// the resistances and the requirements against the own record. The texts are the Text.bmd ones (the address −
+// 0x76bd1dc, over 300).
 namespace Client::Tooltips
 {
 namespace
@@ -29,15 +29,15 @@ bool InRange(std::int32_t type, std::int32_t first, std::int32_t last)
     return type >= first && type <= last;
 }
 
-// 0x5b6a3c..0x5b6a85: la durabilidad va con Item.bmd+0x2d o +0x2e en las armas y armaduras (hasta 0x17ff) y de 0x1a00
-// a 0x1bff, y siempre en las alas (0x1800 a 0x1806); los demás, con la durabilidad del ítem distinta de 0.
+// 0x5b6a3c..0x5b6a85: the durability goes with Item.bmd+0x2d or +0x2e in the weapons and armors (up to 0x17ff) and
+// from 0x1a00 to 0x1bff, and always in the wings (0x1800 to 0x1806); the others, with the item's durability non-zero.
 constexpr std::size_t DurabilityByte = 0x2d;
 constexpr std::size_t StaffDurabilityByte = 0x2e;
 constexpr std::int32_t FirstWing = 0x1800;
 constexpr std::int32_t LastWing = 0x1806;
 constexpr std::int32_t FirstMisc = 0x1a00;
 constexpr std::int32_t PotionsStart = 0x1c00;
-// 0x5b6a85..0x5b6ae6: los que no la muestran.
+// 0x5b6a85..0x5b6ae6: the ones that do not show it.
 constexpr std::int32_t FirstQuestOnly = 0x1a0e;
 constexpr std::int32_t LastQuestOnly = 0x1a13;
 constexpr std::uint16_t WarriorRing = 0x1a14;
@@ -61,15 +61,15 @@ constexpr std::size_t LifeText = 70;
 constexpr std::uint16_t TransformationRing = 0x1a0a;
 constexpr std::size_t RingText = 95;
 constexpr std::size_t DurabilityText = 71;
-// 0x5b6c80..0x5b6d03: las flechas y los virotes con nivel.
+// 0x5b6c80..0x5b6d03: the arrows and the bolts with a level.
 constexpr std::size_t AddDamageText = 577;
 constexpr std::size_t ExtraDamageText = 88;
-// 0x5b6d09..0x5b6d6b: Item.bmd+0x4a a +0x50, los siete elementos (48 a 54) con el 72 y el nivel + 1.
+// 0x5b6d09..0x5b6d6b: Item.bmd+0x4a to +0x50, the seven elements (48 to 54) with 72 and the level + 1.
 constexpr std::size_t FirstResistanceByte = 0x4a;
 constexpr std::size_t ResistanceCount = 7;
 constexpr std::size_t FirstElementText = 48;
 constexpr std::size_t ResistanceText = 72;
-// 0x5b6d6d..0x5b79bc: los requisitos; el 74 con lo que falta.
+// 0x5b6d6d..0x5b79bc: the requirements; 74 with what is missing.
 constexpr std::size_t LevelText = 76;
 constexpr std::uint16_t MonarchCrest = 0x1a0e;
 constexpr std::size_t StrengthText = 73;
@@ -79,7 +79,7 @@ constexpr std::size_t EnergyText = 77;
 constexpr std::size_t LeadershipText = 698;
 constexpr std::size_t MissingText = 74;
 
-// Si muestra la durabilidad (0x5b6a3c..0x5b6ae6).
+// 0x5b6a3c..0x5b6ae6
 bool ShowsTheDurability(const Frame& frame, std::int32_t type)
 {
     const bool recorded = RecordByte(frame, DurabilityByte) != 0 || RecordByte(frame, StaffDurabilityByte) != 0;
@@ -158,8 +158,8 @@ void WriteTheResistances(Frame& frame)
     }
 }
 
-// Un requisito: el texto con lo que pide, y con el registro propio abierto (0x4e79a0 y 0x40f370, o el mismo código
-// en línea), en rojo con el 74 y lo que falta si el stat no llega.
+// A requirement: the text with what it asks for and, with the own record open (0x4e79a0 and 0x40f370, or the same
+// code inline), in red with 74 and what is missing if the stat falls short.
 void WriteARequirement(Frame& frame, std::size_t text, std::uint16_t required, std::uint16_t Own::*stat,
                        std::uint16_t Own::*bonus)
 {

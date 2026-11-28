@@ -23,99 +23,99 @@ struct OwnInventory;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// Las funciones del objeto de las misiones [0x710148] (QuestState) que no dibujan: el estado que llega en el A0, el
-// A1 y el A2, las condiciones de quest.bmd, los ítems pedidos y la apertura de la ventana. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", y Q-C840 a Q-C845 en 07.
+// The functions of the quest object [0x710148] (QuestState) that do not draw: the state arriving in the A0, the A1 and
+// the A2, the quest.bmd conditions, the requested items and the window's opening. Contract:
+// Client/docs/research/06-render-escenas-y-ui.md, "Las misiones", and Q-C840 to Q-C845 in 07.
 namespace Client::Quests
 {
 
-// Lo que leen las funciones que abren el registro propio o muestran un diálogo.
+// What the functions that open the own record or show a dialog read.
 struct QuestContext
 {
     Kernel::WorldState& world;
-    // El rand() de la CRT: los cierres del registro propio (3.848 cada uno que lo deja en 0).
+    // The CRT rand(): the own record's closes (3848 for each one that leaves it at 0).
     Crt::CrtRandom& random;
-    // Text.bmd: el 609 de las respuestas vacías de 0x419710. nullptr: un diálogo sin respuestas corta.
+    // Text.bmd: the 609 of 0x419710's empty answers. nullptr: a dialog without answers cuts.
     const Tables::TextTable* texts = nullptr;
 };
 
-// +0x2d + clase + 0x14 · pedido del registro (0x418f58, 0x418fe3, 0x4194ef, 0x419b68 y, en el dibujo de la ventana,
-// 0x41b8b9): la marca de la clase & 7 de +4, que no se recorta. Una clase 5, 6 o 7 lee los diálogos del mismo pedido,
-// y la 0xff de antes del primer A0 (0x41cb60 y 0x4c2480) lee 0xff bytes después de la primera marca: otro pedido o una
-// condición (*estático*). Los dos bytes de relleno de +0x166, que MuRet no guarda, no se alcanzan con ninguna clase
-// (0x14 · pedido + 7 + clase no da 0x140 ni 0x141).
+// +0x2d + class + 0x14 · request of the record (0x418f58, 0x418fe3, 0x4194ef, 0x419b68 and, in the window's drawing,
+// 0x41b8b9): the mark of +4's class & 7, which is not clipped. A class 5, 6 or 7 reads the dialogs of the same
+// request, and the 0xff before the first A0 (0x41cb60 and 0x4c2480) reads 0xff bytes after the first mark: another
+// request or a condition (*static*). The two padding bytes at +0x166, which MuRet does not keep, are not reached with
+// any class (0x14 · request + 7 + class gives neither 0x140 nor 0x141).
 [[nodiscard]] std::uint8_t QuestClassFlagOf(const Tables::QuestRecord& quest, std::size_t entry,
                                             std::uint8_t characterClass);
 
-// 0x4195c0(índice) (y 0x419560 con un índice): el byte índice / 4 (división con signo) corrido 2 · ((índice − índice /
-// 4) & 0xf) bits, & 3, del objeto de `runtime.quest`. El SHR de 8 bits da 0 con una cuenta de 8 o más: solo las
-// misiones 0 a 3 se leen donde las escribe el GS (Q-C841). Del 200 al 255 lee los campos que siguen a los 50 bytes
-// (+0x2137e a +0x2138b, con la ventana de +0x21383 en `runtime.panels`): la 255 de la vuelta de Q-C842 lee el byte alto
-// del zen de +0x21388, 0 con el quest.bmd real. Un índice negativo o desde 256 da 0 en MuRet.
+// 0x4195c0(index) (and 0x419560 with an index): the byte index / 4 (signed division) shifted 2 · ((index − index / 4)
+// & 0xf) bits, & 3, of the `runtime.quest` object. The 8-bit SHR gives 0 with a count of 8 or more: only quests 0 to 3
+// are read where the GS writes them (Q-C841). From 200 to 255 it reads the fields that follow the 50 bytes (+0x2137e to
+// +0x2138b, with the window of +0x21383 in `runtime.panels`): the 255 of Q-C842's wraparound reads the high byte of the
+// zen at +0x21388, 0 with the real quest.bmd. A negative index or one from 256 gives 0 in MuRet.
 [[nodiscard]] std::uint8_t QuestStateOf(const Kernel::WorldRuntime& runtime, std::int32_t index);
 
-// 0x419560(−1): el estado de la misión en curso (+0x2137e, sin signo) en +0x21386.
+// 0x419560(−1): the state of the current quest (+0x2137e, unsigned) in +0x21386.
 void ReadTheCurrentQuestState(Kernel::WorldRuntime& runtime);
 
-// 0x558410(tipo, cuenta, nivel): las 64 casillas del inventario con ese tipo (el short de +0, con signo), ocupadas
-// (+0x3c > 0) y, si el nivel no es −1, con ((+4 >> 3) & 0xf) igual. 0 si llega a la cuenta; si no, cuántos faltan.
+// 0x558410(type, count, level): the 64 inventory cells with that type (the short at +0, signed), occupied (+0x3c > 0)
+// and, if the level is not −1, with an equal ((+4 >> 3) & 0xf). 0 if it reaches the count; otherwise, how many are
+// missing.
 [[nodiscard]] std::int32_t MissingQuestItems(const Kernel::OwnInventory& inventory, std::int32_t type,
                                              std::int32_t count, std::int32_t level);
 
-// 0x4ddad0 → 0x418e20(pkt + 4, pkt[3], clase del héroe): la clase (& 7 y >> 3) en +4 y +5, +0x2138d en 1 y 0x6eeda8 en
-// 0 (la clase llega como un byte sin signo: nunca es −1); los 50 bytes de estado en 0 y `count` bytes del paquete
-// encima; la primera misión de las `count` que no está terminada en +0x2137e y +0x2137f; y +0x390 del héroe en 1 si la
-// misión 3 está terminada. `bytes` son los que trae el paquete después de pkt[3]: el original copia `count` aunque el
-// paquete sea más corto (el GS 0.97 manda la cuenta sin los bytes, Q-C840); lo que falta va en 0 (P-C171). Una cuenta
-// de más de 50 sigue por los campos del objeto (+0x2137e.., también el +0x2138d de recién y la esquina) hasta su final,
-// +0x21398, como el original; lo que pasaría de él no se escribe (Q-C1126). Devuelve cuántos bytes quedaron afuera.
+// 0x4ddad0 → 0x418e20(pkt + 4, pkt[3], hero class): the class (& 7 and >> 3) in +4 and +5, +0x2138d at 1 and 0x6eeda8
+// at 0 (the class arrives as an unsigned byte: it is never −1); the 50 state bytes at 0 and `count` packet bytes on
+// top; the first of the `count` quests that is not done in +0x2137e and +0x2137f; and the hero's +0x390 at 1 if quest 3
+// is done. `bytes` are those the packet carries after pkt[3]: the original copies `count` even if the packet is
+// shorter (the GS 0.97 sends the count without the bytes, Q-C840); what is missing goes at 0 (P-C171). A count over 50
+// goes on through the object's fields (+0x2137e.., also the +0x2138d just set and the corner) up to its end, +0x21398,
+// as the original does; what would go past it is not written (Q-C1126). Returns how many bytes were left out.
 [[nodiscard]] std::size_t ApplyTheQuestList(Kernel::WorldState& world, std::uint8_t count,
                                             std::span<const std::uint8_t> bytes);
 
-// 0x418ee0(índice, estado), del A1 y del A2: +0x2137e = índice, +0x2137f = el mayor, el byte índice >> 2 entero con
-// `state` (el GS manda el byte con las cuatro misiones, Q-C843) y +0x390 del héroe según la misión 3. Desde la misión
-// 200 el byte es uno de los campos que siguen a los 50 (también +0x2137e y +0x2137f de recién, Q-C1126).
+// 0x418ee0(index, state), from the A1 and the A2: +0x2137e = index, +0x2137f = the greater, the whole byte index >> 2
+// with `state` (the GS sends the byte with the four quests, Q-C843) and the hero's +0x390 by quest 3. From quest 200 on
+// the byte is one of the fields that follow the 50 (also the +0x2137e and +0x2137f just set, Q-C1126).
 void SetTheQuestState(Kernel::WorldState& world, std::uint8_t index, std::uint8_t state);
 
-// Si `error` es el de un registro fuera de los 200 de +0xc (Q-C842): el original sigue leyendo después del objeto,
-// memoria que MuRet no modela. Los paquetes que llegan ahí (el A1 y el A2) lo descartan con un aviso.
+// Whether `error` is the one of a record outside the 200 at +0xc (Q-C842): the original keeps reading past the object,
+// memory MuRet does not model. The packets that get there (the A1 and the A2) discard it with a warning.
 [[nodiscard]] bool ReadsAQuestOutsideTheRecords(std::string_view error);
 
-// 0x418f40(registro, lugar): el diálogo `slot` (0 a 3) del primer pedido con la marca de la clase de +4. Sin ninguno,
-// −−+0x2137e, 0x419600(0xff) y +0x21384. Un registro fuera de los 200 corta (0 − 1 es 255, Q-C842).
+// 0x418f40(record, slot): dialog `slot` (0 to 3) of the first request with +4's class mark. Without any, −−+0x2137e,
+// 0x419600(0xff) and +0x21384. A record outside the 200 cuts (0 − 1 is 255, Q-C842).
 [[nodiscard]] Core::Expected<std::int16_t, std::string> QuestDialogOf(const QuestContext& context, std::size_t record,
                                                                       std::size_t slot);
 
-// 0x4194c0(registro): falso (y el diálogo de faltan ítems, 0x418f40(registro, 1), en +0x21384) si a algún pedido de
-// ítems de la clase le faltan.
+// 0x4194c0(record): false (and the missing-items dialog, 0x418f40(record, 1), in +0x21384) if any of the class's item
+// requests is short.
 [[nodiscard]] Core::Expected<bool, std::string> HasTheQuestItems(const QuestContext& context, std::size_t record);
 
-// 0x418fb0(registro, conZen): para cada pedido de la clase, cada condición enlazada (+1 igual al +6 del pedido, o
-// 0xff): la misión pedida terminada; el nivel mínimo y el máximo con el registro propio abierto y cerrado una vez cada
-// uno; y el zen: sin `checkZen` solo lo guarda en +0x21388; con él, lo lee con el registro abierto, lo guarda y lo
-// compara. La primera que no se cumple deja su diálogo en +0x21384 y 5 en +0x21386, y da falso.
+// 0x418fb0(record, withZen): for each request of the class, each linked condition (+1 equal to the request's +6, or
+// 0xff): the required quest done; the minimum and maximum level with the own record opened and closed once each; and
+// the zen: without `checkZen` it only stores it in +0x21388; with it, it reads it with the record open, stores it and
+// compares it. The first one not met leaves its dialog in +0x21384 and 5 in +0x21386, and gives false.
 [[nodiscard]] Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& context, std::size_t record,
                                                                         bool checkZen);
 
-// 0x419600(estado): la clase de nuevo si +0x2138d (el chequeo de la clase contra −1 nunca da, Q-C844); con 0xff el
-// estado de la misión en curso (0x419560(−1)), si no `state` en +0x21386; y el diálogo de ese estado. Devuelve
-// +0x21386.
+// 0x419600(state): the class again if +0x2138d (the class check against −1 never matches, Q-C844); with 0xff the state
+// of the current quest (0x419560(−1)), otherwise `state` in +0x21386; and that state's dialog. Returns +0x21386.
 [[nodiscard]] Core::Expected<std::uint8_t, std::string> RefreshTheQuest(const QuestContext& context,
                                                                         std::uint8_t state);
 
-// 0x419b10: con +0x21386 en 1, verdadero si hay algún pedido de ítems de la clase y a ninguno le faltan. Corta con la
-// misión en curso fuera de los 200 registros (Q-C842) o más de 16 pedidos.
+// 0x419b10: with +0x21386 at 1, true if there is some item request of the class and none is short. Cuts with the
+// current quest outside the 200 records (Q-C842) or more than 16 requests.
 [[nodiscard]] Core::Expected<bool, std::string> CanCompleteTheQuest(const Kernel::WorldState& world);
 
-// 0x4198b0(misión): la misión (−1: la que está), 0x78abb00 en 0, la ventana en 1 (el diálogo con el NPC),
-// 0x419600(0xff) y 0x419710 con +0x21384.
+// 0x4198b0(quest): the quest (−1: the current one), 0x78abb00 at 0, the window at 1 (the NPC dialog), 0x419600(0xff)
+// and 0x419710 with +0x21384.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheQuestDialog(const QuestContext& context, std::int32_t quest);
 
-// 0x419840(misión), de 0x6599a0(8): +0x21380 y +0x21381 en 0, la ventana en 2 (la lista), y 0x419600(0xff) y 0x419710
-// con la más alta (+0x2137f) en +0x2137e, que después vuelve a la de antes.
+// 0x419840(quest), from 0x6599a0(8): +0x21380 and +0x21381 at 0, the window at 2 (the list), and 0x419600(0xff) and
+// 0x419710 with the highest (+0x2137f) in +0x2137e, which then returns to the previous one.
 [[nodiscard]] Core::Expected<void, std::string> OpenTheQuestList(const QuestContext& context, std::int32_t quest);
 
-// 0x4c2480 (0x4c268a..0x4c26d2), la vuelta a la selección: +4 en 0xff (el A0 se vuelve a pedir, Q-C215), +0x21381,
-// +0x21384, la ventana, +0x21382, +0x2137e y +0x2137f en 0, los 50 bytes de estado y +6..+8 en 0 (+9 queda).
+// 0x4c2480 (0x4c268a..0x4c26d2), the return to selection: +4 at 0xff (the A0 is requested again, Q-C215), +0x21381,
+// +0x21384, the window, +0x21382, +0x2137e and +0x2137f at 0, the 50 state bytes and +6..+8 at 0 (+9 stays).
 void ResetTheQuests(QuestState& quest, std::uint8_t& window);
 } // namespace Client::Quests

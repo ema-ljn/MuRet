@@ -24,10 +24,10 @@
 #include <utility>
 #include <vector>
 
-// La caja del caos (CL9 hito 6, fase 3; 06 § La caja del caos): lo que vale (0x5fd120), el tipo de la mezcla
-// (0x5fd4f0 y el modo de 0x5fd4b0), el lugar que pide y lo que hace su botón (0x5fe9a2..0x5fea04), la chance y el
-// precio del dibujo (0x5fedac..0x5ff0c2) y los miles de 0x5b1130 y 0x5b12f0. Los ítems de Item.bmd son inventados,
-// con precio fijo (+0x40) para que 0x54d0f0 sea fácil de seguir.
+// The chaos box (CL9 milestone 6, phase 3; 06 § La caja del caos): what it is worth (0x5fd120), the mix kind (0x5fd4f0
+// and 0x5fd4b0's mode), the room it asks for and what its button does (0x5fe9a2..0x5fea04), the drawing's rate and
+// price (0x5fedac..0x5ff0c2) and the thousands of 0x5b1130 and 0x5b12f0. The Item.bmd items are made up, with a fixed
+// price (+0x40) so that 0x54d0f0 is easy to follow.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -105,7 +105,7 @@ ItemState Item(std::uint16_t type, std::uint32_t level = 0)
     return ItemState{.id = type, .scalar1Low = level << 3, .occupied = 1};
 }
 
-// Una opción: su marca (D+0x2b) y su valor (D+0x33).
+// An option: its mark (D+0x2b) and its value (D+0x33).
 struct Option
 {
     std::uint8_t tag = 0;
@@ -144,7 +144,7 @@ protected:
         m_next = 0;
     }
 
-    // Uno detrás del otro, en casillas sueltas: 0x5fd4f0 solo mira el tipo y +0x3c de cada una.
+    // One after the other, in separate cells: 0x5fd4f0 only looks at each one's type and +0x3c.
     void Put(std::initializer_list<ItemState> items)
     {
         for (const ItemState& item : items)
@@ -181,7 +181,8 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// 0x5fd120: la espada vale lo de 0x54d0f0 en el modo 0 (su precio fijo), las joyas lo suyo, y sin la del caos, 0.
+// 0x5fd120: the sword is worth 0x54d0f0's value in mode 0 (its fixed price), the jewels their own, and without the
+// chaos one, 0.
 TEST_F(ChaosMixTest, TheBoxIsWorthItsItemsOnlyWithAChaosJewel)
 {
     Put({Item(Sword), Item(Bless), Item(Soul), Item(Life), Item(Creation)});
@@ -193,7 +194,7 @@ TEST_F(ChaosMixTest, TheBoxIsWorthItsItemsOnlyWithAChaosJewel)
     auto value = Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, &m_items, pets);
     ASSERT_TRUE(value.HasValue()) << value.Error();
     EXPECT_EQ(value.Value(), 300'000 + 100'000 + 70'000 + 450'000 + 450'000 + 40'000);
-    // +0x3c en 0 (la huella de un ítem) no cuenta.
+    // +0x3c at 0 (an item's footprint) does not count.
     ItemState footprint = Item(Sword);
     footprint.occupied = 0;
     Put({footprint});
@@ -201,8 +202,8 @@ TEST_F(ChaosMixTest, TheBoxIsWorthItsItemsOnlyWithAChaosJewel)
     EXPECT_FALSE(Client::ChaosMix::ChaosBoxValue(Npc().chaosBox, nullptr, pets).HasValue());
 }
 
-// 0x5fdac0..0x5fdb8a: el ojo y la llave del mismo nivel con la joya del caos son el 2 con el nivel + 1; distintos, el
-// −2. El pergamino y el hueso, el 8 y el −8. El ancho y el alto más grandes vuelven a 1 antes de contar.
+// 0x5fdac0..0x5fdb8a: the eye and the key of the same level with the chaos jewel are the 2 with level + 1; different,
+// the −2. The scroll and the bone, the 8 and the −8. The larger width and height go back to 1 before counting.
 TEST_F(ChaosMixTest, TheTicketsNeedTheSameLevel)
 {
     Put({Item(Eye, 3), Item(Key, 3), Item(Chaos)});
@@ -220,15 +221,15 @@ TEST_F(ChaosMixTest, TheTicketsNeedTheSameLevel)
     Clear();
     Put({Item(Scroll, 2), Item(Bone, 1), Item(Chaos)});
     EXPECT_EQ(Kind(), -8);
-    // Sin la joya del caos no es ninguno.
+    // Without the chaos jewel it is none.
     Clear();
     Put({Item(Eye, 3), Item(Key, 3), Item(Bless)});
     EXPECT_EQ(Kind(), 0);
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x5fe3c7..0x5fe4e4: un ítem de nivel 9 a 12 con 1 a 4 joyas de Bless y de Soul y la del caos: el 3, el 4, el 0x16 y
-// el 0x17. La suerte (0x54) del ítem de nivel queda en 0x7d2dc9c. Con otra cuenta, la cola o nada.
+// 0x5fe3c7..0x5fe4e4: an item of level 9 to 12 with 1 to 4 Bless and Soul jewels and the chaos one: the 3, the 4, the
+// 0x16 and the 0x17. The leveled item's luck (0x54) stays in 0x7d2dc9c. With another count, the tail or nothing.
 TEST_F(ChaosMixTest, TheUpgradesNeedTheirJewels)
 {
     Put({WithOptions(Item(Sword, 9), {{0x54, 0}}), Item(Bless), Item(Soul), Item(Chaos)});
@@ -254,14 +255,14 @@ TEST_F(ChaosMixTest, TheUpgradesNeedTheirJewels)
     PutTimes(Item(Bless), 4);
     PutTimes(Item(Soul), 4);
     EXPECT_EQ(Kind(), 0x17);
-    // Un +10 con una sola de cada una: ni el 3 ni el 4.
+    // A +10 with just one of each: neither the 3 nor the 4.
     Clear();
     Put({Item(Sword, 10), Item(Bless), Item(Soul), Item(Chaos)});
     EXPECT_EQ(Kind(), 0);
 }
 
-// 0x5fe559..0x5fe5b5: solo joyas de Bless, el 0xf; solo de Soul, el 0x10; 5 y 5 con la del caos y la del guardián, el
-// 0x11.
+// 0x5fe559..0x5fe5b5: only Bless jewels, the 0xf; only Soul, the 0x10; 5 and 5 with the chaos and the guardian ones,
+// the 0x11.
 TEST_F(ChaosMixTest, OnlyBlessOrOnlySoulArePotions)
 {
     PutTimes(Item(Bless), 3);
@@ -278,9 +279,9 @@ TEST_F(ChaosMixTest, OnlyBlessOrOnlySoulArePotions)
     EXPECT_EQ(Kind(), 0);
 }
 
-// 0x5fe4e9..0x5fe558: ítems de nivel 4 o más con una opción de 0x50 a 0x53 y la joya del caos, y nada más que no sea
-// joya: el 1 (el arma del caos), o el 11 con un bastón 0x406, 0x806 o 0xa07. El valor de los excelentes (0x7d2dc88)
-// suma su 0x54d0f0 en el modo 1.
+// 0x5fe4e9..0x5fe558: items of level 4 or more with an option from 0x50 to 0x53 and the chaos jewel, and nothing else
+// but jewels: the 1 (the chaos weapon), or the 11 with a staff 0x406, 0x806 or 0xa07. The excellents' value
+// (0x7d2dc88) adds its 0x54d0f0 in mode 1.
 TEST_F(ChaosMixTest, TheChaosWeaponNeedsAnOptionAndAChaosJewel)
 {
     Put({WithOptions(Item(Sword, 4), {{0x51, 1}}), Item(Chaos), Item(Bless)});
@@ -289,14 +290,14 @@ TEST_F(ChaosMixTest, TheChaosWeaponNeedsAnOptionAndAChaosJewel)
     Clear();
     Put({WithOptions(Item(Staff, 5), {{0x50, 1}}), Item(Chaos)});
     EXPECT_EQ(Kind(), 11);
-    // Un ítem sin la opción cuenta en los otros y no hay mezcla.
+    // An item without the option counts among the others and there is no mix.
     Clear();
     Put({WithOptions(Item(Sword, 4), {{0x51, 1}}), Item(Armor, 4), Item(Chaos)});
     EXPECT_EQ(Kind(), 0);
 }
 
-// 0x5fdc31..0x5fe3c6: las alas, la pluma de nivel 0, la joya del caos y lo demás excelente son el 7, con la chance de
-// 0x54d0f0 en el modo 0: 300.000 / 40.000 + 8.000.000 / 4.000.000 = 9. La opción 0x55 de las alas vale su valor · 4.
+// 0x5fdc31..0x5fe3c6: the wings, the level-0 feather, the chaos jewel and the rest excellent are the 7, with the rate
+// from 0x54d0f0 in mode 0: 300000 / 40000 + 8000000 / 4000000 = 9. The wings' option 0x55 is worth its value · 4.
 TEST_F(ChaosMixTest, TheWingsRateComesFromThePrices)
 {
     Put({WithOptions(Item(Wings), {{0x55, 3}}), Item(Feather), Item(Chaos), Excellent(Item(Sword, 4))});
@@ -306,14 +307,14 @@ TEST_F(ChaosMixTest, TheWingsRateComesFromThePrices)
     EXPECT_EQ(Npc().mixWidth, 3);
     EXPECT_EQ(Npc().mixHeight, 3);
     EXPECT_EQ(m_random.State(), Seed);
-    // Sin el excelente, no.
+    // Without the excellent, no.
     Clear();
     Put({Item(Wings), Item(Feather), Item(Chaos), Item(Sword, 4)});
     EXPECT_EQ(Kind(), 0);
 }
 
-// 0x5fdc6f..0x5fe12e: con la pluma de nivel 1, el nivel del héroe (+0xe del registro propio, abierto y cerrado:
-// 3.848 rand()): con menos de 10, el −0x18; desde 10, el 0x18 con la chance de las alas.
+// 0x5fdc6f..0x5fe12e: with the level-1 feather, the hero's level (+0xe of the own record, opened and closed: 3848
+// rand()): below 10, the −0x18; from 10, the 0x18 with the wings' rate.
 TEST_F(ChaosMixTest, TheCapeAsksForTheHeroLevel)
 {
     for (const std::uint16_t level : {std::uint16_t{9}, std::uint16_t{10}})
@@ -329,8 +330,8 @@ TEST_F(ChaosMixTest, TheCapeAsksForTheHeroLevel)
     }
 }
 
-// 0x5fe3c7..0x5fe4e4: diez Uniria enteras (durabilidad 255) con la joya del caos, el 5; la de la creación con la del
-// caos, el 6. Una Uniria gastada no cuenta.
+// 0x5fe3c7..0x5fe4e4: ten whole Uniria (durability 255) with the chaos jewel, the 5; the creation jewel with the chaos
+// one, the 6. A worn Uniria does not count.
 TEST_F(ChaosMixTest, TheUniriaAndTheFruit)
 {
     ItemState full = Item(Uniria);
@@ -349,8 +350,8 @@ TEST_F(ChaosMixTest, TheUniriaAndTheFruit)
     EXPECT_EQ(Kind(), 6);
 }
 
-// 0x5fdb8f..0x5fdc30: las mezclas de Fenrir (el 0x19, el 0x1a, el 0x1b) y la capa del 0x1c, 3 con un arma con opción y
-// 4 con una armadura.
+// 0x5fdb8f..0x5fdc30: the Fenrir mixes (0x19, 0x1a, 0x1b) and the 0x1c's cape, 3 with a weapon with an option and 4
+// with an armor.
 TEST_F(ChaosMixTest, TheFenrirMixes)
 {
     ItemState horn = Item(Horn);
@@ -382,7 +383,7 @@ TEST_F(ChaosMixTest, TheFenrirMixes)
     EXPECT_EQ(Npc().mixCapeKind, 4);
 }
 
-// 0x5fd4b0: el modo 0 no deja el 1, el 1 solo deja el 1 y los demás dejan todo.
+// 0x5fd4b0: mode 0 does not allow the 1, mode 1 only allows the 1 and the others allow everything.
 TEST(ChaosMixKindForModeTest, TheModeFiltersTheChaosWeapon)
 {
     using Client::ChaosMix::ChaosMixKindForMode;
@@ -395,8 +396,8 @@ TEST(ChaosMixKindForModeTest, TheModeFiltersTheChaosWeapon)
     EXPECT_EQ(ChaosMixKindForMode(-0x18, 2), -0x18);
 }
 
-// 0x5fedac..0x5ff0c2: sin caso propio, lo que vale / 20.000 (tope 100) y · 10.000; el 2 con la tasa de su nivel (60
-// el 1, las de 0x6c9da8 del 2 al 7) y su tabla de precios; desde el nivel 8 lee los dwords de la .data contigua.
+// 0x5fedac..0x5ff0c2: without its own case, the worth / 20000 (capped at 100) and · 10000; the 2 with its level's rate
+// (60 for 1, 0x6c9da8's from 2 to 7) and its price table; from level 8 it reads the dwords of the adjacent .data.
 TEST(MixQuoteTest, TheQuoteFollowsTheKind)
 {
     auto npc = std::make_unique<NpcWindowState>();
@@ -411,7 +412,7 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 100);
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().priceText, "1,000,000");
 
-    // El −0x18 deja el precio de lo que vale con la chance en 0.
+    // The −0x18 leaves the price from the worth with the rate at 0.
     npc->mixKind = -0x18;
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 0);
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 1'000'000u);
@@ -430,7 +431,7 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
         EXPECT_EQ(ticket.Value().rate, Rates[static_cast<std::size_t>(level - 1)]);
         EXPECT_EQ(ticket.Value().price, Prices[static_cast<std::size_t>(level - 1)]);
     }
-    // Las tasas que manda el 30 con el resultado 3 pisan las de la .data.
+    // The rates the 30 sends with result 3 override the .data ones.
     npc->chaosRates = {10, 20, 30, 40, 50, 60};
     npc->mixLevel = 3;
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().rate, 20);
@@ -462,8 +463,7 @@ TEST(MixQuoteTest, TheQuoteFollowsTheKind)
     EXPECT_EQ(Client::ChaosMix::MixQuoteOf(*npc).Value().price, 5'000'000u);
 }
 
-// 0x5fd200 y la tabla de 0x5febd4: el lugar que pide cada tipo en el inventario de 8 × 8; 0x5feb88: lo que hace el
-// botón.
+// 0x5fd200 and 0x5febd4's table: the room each kind asks for in the 8 × 8 inventory; 0x5feb88: what the button does.
 TEST(MixRoomTest, TheRoomAndTheButton)
 {
     auto npc = std::make_unique<NpcWindowState>();
@@ -484,7 +484,7 @@ TEST(MixRoomTest, TheRoomAndTheButton)
         cell.id = 0x0002;
     EXPECT_FALSE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 1, 1));
     EXPECT_TRUE(Client::ChaosMix::HasRoomFor(cells, 8, 8, 1, 0));
-    // Un hueco de 2 × 3 abajo a la derecha.
+    // A 2 × 3 hole at the bottom right.
     for (std::size_t row = 5; row < 8; ++row)
     {
         for (std::size_t column = 6; column < 8; ++column)
@@ -505,8 +505,8 @@ TEST(MixRoomTest, TheRoomAndTheButton)
     EXPECT_EQ(MixButtonActionFor(-1), MixButtonAction::Nothing);
 }
 
-// 0x5b1130 y 0x5b12f0: los miles sin signo y el impuesto (con signo, en 64 bits) sumado al precio.
-// 0x5fee3a lee dwords después de las tasas. El nivel del ojo tiene cuatro bits: mixLevel llega a 16.
+// 0x5b1130 and 0x5b12f0: the thousands unsigned and the tax (signed, in 64 bits) added to the price.
+// 0x5fee3a reads dwords after the rates. The eye's level has four bits: mixLevel reaches 16.
 TEST(MixQuoteTest, HighInvitationsReadTheNativeDataAfterTheRates)
 {
     auto npc = std::make_unique<NpcWindowState>();

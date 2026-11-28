@@ -44,13 +44,13 @@ using Render::Text::FontKind;
 using Render::Text::TextColors;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// 0x41baea: el botón de terminar sin todos los ítems; 0x41bb5c: con el clic encima.
+// 0x41baea: the finish button without all the items; 0x41bb5c: with the click over it.
 constexpr Render::Color MissingItemsGrey{0.3f, 0.3f, 0.3f, 1.0f};
 constexpr Render::Color PressedGrey{0.4f, 0.4f, 0.4f, 1.0f};
-// 0x41c83e..0x41c848: las pestañas 1 y 2.
+// 0x41c83e..0x41c848: tabs 1 and 2.
 constexpr Render::Color DisabledTabRed{1.0f, 0.3f, 0.2f, 1.0f};
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// The Text.bmd texts (the address − 0x76bd1dc, over 300).
 constexpr std::size_t ZenLabelText = 198;           // 0x76cb9e4
 constexpr std::size_t FinishText = 699;             // 0x76f0500
 constexpr std::size_t StateNotStartedText = 930;    // 0x77013b4
@@ -58,18 +58,18 @@ constexpr std::size_t StateInProgressText = 931;    // 0x77014e0
 constexpr std::size_t StateDoneText = 932;          // 0x770160c
 constexpr std::size_t ListCloseHelpText = 927;      // 0x7701030
 constexpr std::size_t DialogCloseHelpText = 1002;   // 0x7706814
-constexpr std::size_t FirstTabText = 1140;          // 0x77109cc (también la ayuda del botón del personaje)
+constexpr std::size_t FirstTabText = 1140;          // 0x77109cc (also the character button's help)
 constexpr std::size_t SecondTabTitleText = 1145;    // 0x7710fa8
 constexpr std::size_t ThirdTabTitleText = 1146;     // 0x77110d4
 constexpr std::size_t ThirdTabCountText = 868;      // 0x76fcb0c
 constexpr std::size_t ThirdTabHeaderText = 869;     // 0x76fcc38
 constexpr std::size_t ThirdTabFirstLineText = 877;  // 0x76fd598
 constexpr std::size_t ThirdTabSecondLineText = 878; // 0x76fd6c4
-// 0x6c64e8: la letra de la ventana, y 0x6c64e0: el título de la pestaña 0.
+// 0x6c64e8: the window's letter, and 0x6c64e0: tab 0's title.
 constexpr std::string_view QuestKey = "T";
 constexpr std::string_view QuestTitle = "Quest";
 
-// 0x6c8e5c y 0x6c8e64.
+// 0x6c8e5c and 0x6c8e64.
 constexpr std::uint32_t BodyText = 0xffd2e6ffu;
 constexpr std::uint32_t AnswerText = 0xff67bfdfu;
 constexpr std::uint32_t HoveredAnswerText = 0xff0000ffu;
@@ -81,8 +81,8 @@ constexpr TextColors TabTitleColors{.text = 0xffe6e6e6u, .background = 0xff14141
 constexpr TextColors HelpColors{.text = 0xffffffffu, .background = 0xff000000u};
 constexpr TextColors AfterHelpColors{.text = 0xffffffffu, .background = 0};
 
-// Interface\ (0x61ae60): el fondo de la ventana, la línea, el botón de terminar, el fondo del zen, las pestañas y los
-// dos botones de las misiones de la ventana del personaje.
+// Interface\ (0x61ae60): the window background, the line, the finish button, the zen background, the tabs and the two
+// quest buttons of the character window.
 constexpr std::uint16_t WindowTopSlot = 0x104;
 constexpr std::uint16_t LineSlot = 0x117;
 constexpr std::uint16_t FinishSlot = 0xf0;
@@ -91,12 +91,12 @@ constexpr std::uint16_t TabSlot = 0x646;
 constexpr std::uint16_t QuestButtonOpenSlot = 0x103;
 constexpr std::uint16_t QuestButtonClosedSlot = 0x102;
 
-// 0x41b680: el texto y las respuestas.
+// 0x41b680: the text and the answers.
 constexpr std::int32_t TextCenter = 0x64;
 constexpr std::int32_t TextTop = 0x42;
 constexpr std::int32_t TextTopWithoutTheQuest = 0xfa;
 constexpr std::int32_t AnswerHalfWidth = 0x6a;
-// 0x41b810: los ítems pedidos.
+// 0x41b810: the requested items.
 constexpr float ItemsTop = 235.0f;
 constexpr float NamedItemsTop = 240.0f;
 constexpr double ItemStep = 25.0;
@@ -105,21 +105,21 @@ constexpr float ItemLeft = 480.0f;
 constexpr float ItemSize = 20.0f;
 constexpr std::int32_t ItemGroupSize = 0x200;
 constexpr std::uint8_t ItemEntry = 1;
-// 0x41ca7e..0x41cb44: el botón de las misiones de la ventana del personaje.
+// 0x41ca7e..0x41cb44: the quest button of the character window.
 constexpr float QuestButtonX = 505.0f;
 constexpr std::int32_t QuestButtonLeft = 0x1f9;
 constexpr std::int32_t QuestButtonRight = 0x211;
 constexpr std::int32_t QuestButtonTop = 0x18b;
 constexpr std::int32_t QuestButtonSize = 0x18;
 constexpr std::int32_t HelpAbove = 0xd;
-// 0x41bedc y 0x41c322: la caja del nombre de la misión.
+// 0x41bedc and 0x41c322: the quest name's box.
 constexpr std::uint32_t QuestNameBox = 150;
 constexpr std::int32_t TitleLeft = 0x23;
 constexpr std::int32_t TitleTop = 0xc;
 constexpr std::int32_t QuestNameOffset = 0x16;
-// 0x41be06..0x41be25: el NPC de la misión 2 con el héroe de clase 3 o 4 y 0x6eeda8.
+// 0x41be06..0x41be25: the NPC of quest 2 with a class 3 or 4 hero and 0x6eeda8.
 constexpr std::size_t SpecialNpcQuest = 2;
-// 0x41c3a7..0x41c414: el estado, centrado en (x + 0x5f, y + 0x131).
+// 0x41c3a7..0x41c414: the state, centered at (x + 0x5f, y + 0x131).
 constexpr std::int32_t StateCenter = 0x5f;
 constexpr std::int32_t StateTop = 0x131;
 
@@ -164,7 +164,7 @@ Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestStat
     return &quest.records[record];
 }
 
-// 0x5ee220(x, y, 1): el fondo y la línea de 190 × 10 en y + 225 (0x6ba640).
+// 0x5ee220(x, y, 1): the background and the 190 × 10 line at y + 225 (0x6ba640).
 void DrawTheWindowBackWithTheLine(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y)
 {
     Hud::WindowDrawing::DrawTheWindowBack(sprites, x, y);
@@ -172,8 +172,8 @@ void DrawTheWindowBackWithTheLine(Render::SpriteBatch& sprites, std::int32_t x, 
          0.7421875f, 0.625f);
 }
 
-// 0x554340 con la fuente normal y los colores −1 y 0xff000000 que le ponen antes; la deja con la normal, en blanco y
-// sin fondo.
+// 0x554340 with the normal font and the colors −1 and 0xff000000 set before it; it leaves the normal font, white and
+// no background.
 void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
     Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
@@ -183,10 +183,10 @@ void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, s
     context.hud.textColors = AfterHelpColors;
 }
 
-// 0x5b1c70(tipo, nivel, buffer) desde 0x41b924 (Items::ItemNameOf, la del hito 5), con el buffer de la pila
-// ([EBP − 0x7c]) sin iniciar: si 0x5b1c70 no escribe nada (el 0x1c17 o el 0x1c18 con un nivel distinto de 0 y 1, y los
-// demás niveles sin nombre), "%s x %d" lo lee igual y MuRet corta (Q-C874). El tipo, grupo · 0x200 + índice, pasa los
-// 0xffff con un grupo de 128 o más y lee fuera de Item.bmd.
+// 0x5b1c70(type, level, buffer) from 0x41b924 (Items::ItemNameOf, the milestone 5 one), with the stack buffer
+// ([EBP − 0x7c]) uninitialized: if 0x5b1c70 writes nothing (the 0x1c17 or the 0x1c18 with a level other than 0 and 1,
+// and the other unnamed levels), "%s x %d" reads it anyway and MuRet cuts (Q-C874). The type, group · 0x200 + index,
+// goes past 0xffff with a group of 128 or more and reads outside Item.bmd.
 Core::Expected<std::string, std::string> QuestItemNameOf(const Hud::GameHudContext& context, std::int32_t type,
                                                          std::int32_t level)
 {
@@ -207,10 +207,10 @@ Core::Expected<std::string, std::string> QuestItemNameOf(const Hud::GameHudConte
     return Items::ItemNameOf(context.items, context.texts, names, item, level);
 }
 
-// 0x41b810(estado, conNombres): los ítems pedidos a la clase en la misión en curso, desde y = 235 (o 240 con los
-// nombres) cada 25. Con los nombres, en negrita y sin fondo, "%s x %d" en (0x1fe, y) en color por si faltan
-// (0x558410); sin ellos, el ítem en la caja (480, y) de 20 × 20 (0x5e1480 con el nivel << 3). Falso si la ventana está
-// cerrada, si el estado no es `state` o si falta alguno.
+// 0x41b810(state, withNames): the items the class is asked for in the current quest, from y = 235 (or 240 with the
+// names) every 25. With the names, in bold and without background, "%s x %d" at (0x1fe, y) colored by whether they
+// are missing (0x558410); without them, the item in the box (480, y) of 20 × 20 (0x5e1480 with the level << 3). False
+// if the window is closed, if the state is not `state` or if one is missing.
 Core::Expected<bool, std::string> DrawTheAskedItems(Hud::GameHudContext& context, std::uint8_t state, bool withNames)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -229,7 +229,7 @@ Core::Expected<bool, std::string> DrawTheAskedItems(Hud::GameHudContext& context
     if (!read.HasValue())
         return Core::Unexpected(read.Error());
     const Tables::QuestRecord& record = *read.Value();
-    // 0x41b88e y 0x41b9af: la cuenta con signo, leída en cada vuelta; más de 16 seguiría en las condiciones.
+    // 0x41b88e and 0x41b9af: the signed count, read on every turn; more than 16 would go on into the conditions.
     if (record.entryCount > static_cast<std::int16_t>(Tables::QuestEntryCount))
         return Core::Unexpected(std::format("0x41b8b0: {} pedidos pasan los 16 del registro", record.entryCount));
     for (std::int16_t e = 0; e < record.entryCount; ++e)
@@ -269,9 +269,9 @@ Core::Expected<bool, std::string> DrawTheAskedItems(Hud::GameHudContext& context
     return result;
 }
 
-// 0x41b680(conRespuestas): los renglones del diálogo centrados en x + 0x64 desde ((7 − respuestas − renglones) · 0x12)
-// / 2 + 0x42, con la fuente que haya; con las respuestas, en negrita, cada una que no está vacía en su renglón, en rojo
-// la del mouse a no más de 0x6a de x + 0x6a (Q-C871).
+// 0x41b680(withAnswers): the dialog lines centered at x + 0x64 from ((7 − answers − lines) · 0x12) / 2 + 0x42, with
+// whatever font there is; with the answers, in bold, each non-empty one on its line, in red the one under the mouse no
+// more than 0x6a from x + 0x6a (Q-C871).
 void DrawTheQuestText(Hud::GameHudContext& context, bool withAnswers)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -293,7 +293,7 @@ void DrawTheQuestText(Hud::GameHudContext& context, bool withAnswers)
     {
         if (quest.currentState != QuestInProgress && runtime.panels.delegated.quest == QuestDialogWindow)
             top = TextTopWithoutTheQuest;
-        // 0x41b72e..0x41b74c: la división con signo, que trunca hacia el 0.
+        // 0x41b72e..0x41b74c: the signed division, which truncates toward 0.
         const std::int32_t hovered = (context.mouse.y - top) / Ui::DialogLineStep;
         Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
         const std::int64_t distance = static_cast<std::int64_t>(quest.x) + AnswerHalfWidth - context.mouse.x;
@@ -336,7 +336,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
             sprites.SetColor(MissingItemsGrey);
         else
             hud.textColors.text = BodyText;
-        // 0x41bb03..0x41bb84: el botón de terminar, con el mouse contra los float en la x87.
+        // 0x41bb03..0x41bb84: the finish button, with the mouse against the floats on the x87.
         const float button = F32(static_cast<double>(left) + 35.0);
         const auto mouseX = static_cast<double>(context.mouse.x);
         const auto mouseY = static_cast<double>(context.mouse.y);
@@ -362,7 +362,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
     }
     else if (quest.currentState == QuestAvailable)
     {
-        // 0x41bc0b..0x41bcca: el zen que pide la misión, como el del inventario.
+        // 0x41bc0b..0x41bcca: the zen the quest requires, like the inventory's.
         const float zenX = F32(static_cast<double>(x) + 50.0);
         const float zenY = F32(static_cast<double>(y) + static_cast<double>(367.7f));
         Quad(sprites, ZenSlot, zenX, zenY, 113.0f, 18.0f, 0.0f, 0.0f, 0.8828125f, 0.5625f);
@@ -376,7 +376,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
         hud.textColors.text = Ui::ZenColor(quest.zen);
         Hud::WindowDrawing::DrawText(context, textX + 10, textY, Ui::FormatZen(quest.zen));
     }
-    // 0x41bcd8..0x41bdbe: el botón de cerrar sin glColor antes; el color ya es el blanco.
+    // 0x41bcd8..0x41bdbe: the close button without a glColor before; the color is already white.
     if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto help = TextOf(context, DialogCloseHelpText, "0x41bd9f");
@@ -386,13 +386,13 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
     }
     Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors = TextColors{.text = NpcNameText, .background = 0};
-    // 0x41bde0..0x41be04: la clase entera del héroe (+0x1d4), sin el & 7.
+    // 0x41bde0..0x41be04: the hero's whole class (+0x1d4), without the & 7.
     const std::uint8_t heroClass = context.world.Hero().characterClass;
     const bool special = (heroClass == 4 || heroClass == 3) && runtime.byte6eeda8 != 0;
     const auto npcRecord = RecordOf(quest, special ? SpecialNpcQuest : quest.current, "0x41be7c");
     if (!npcRecord.HasValue())
         return Core::Unexpected(npcRecord.Error());
-    // 0x41be9e: 0x554180 con el NULL de 0x54ebb0 no dibuja y mide lstrlen(NULL), 0 caracteres.
+    // 0x41be9e: 0x554180 with the NULL of 0x54ebb0 does not draw and measures lstrlen(NULL), 0 characters.
     const std::optional<std::string> npc = Monsters::NpcNameOf(runtime.npcNames, npcRecord.Value()->npcType);
     if (npc)
         Hud::WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, *npc);
@@ -412,7 +412,7 @@ Core::Expected<void, std::string> DrawTheQuestDialog(Hud::GameHudContext& contex
     return {};
 }
 
-// 0x41c2a0, la pestaña 0.
+// 0x41c2a0, tab 0.
 Core::Expected<void, std::string> DrawTheFirstTab(Hud::GameHudContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -454,7 +454,7 @@ Core::Expected<void, std::string> DrawTheFirstTab(Hud::GameHudContext& context)
     return {};
 }
 
-// 0x41c420 y el principio de 0x41c4a0: el título de la pestaña en negrita.
+// 0x41c420 and the start of 0x41c4a0: the tab's title in bold.
 Core::Expected<void, std::string> DrawTheTabTitle(Hud::GameHudContext& context, std::size_t title,
                                                   std::string_view where)
 {
@@ -468,8 +468,8 @@ Core::Expected<void, std::string> DrawTheTabTitle(Hud::GameHudContext& context, 
     return {};
 }
 
-// 0x41c4a0, la pestaña 2: el encabezado (el 869 con 3 y los textos 1146 y 1140), dos renglones (877 y 878) y la cuenta
-// de +6 + pestaña (el 868), del 9F.
+// 0x41c4a0, tab 2: the header (869 with 3 and texts 1146 and 1140), two lines (877 and 878) and the count at +6 + tab
+// (868), from the 9F.
 Core::Expected<void, std::string> DrawTheThirdTab(Hud::GameHudContext& context)
 {
     const QuestState& quest = context.world.Runtime().quest;
@@ -497,7 +497,7 @@ Core::Expected<void, std::string> DrawTheThirdTab(Hud::GameHudContext& context)
     auto format = TextOf(context, ThirdTabCountText, "0x41c5c7");
     if (!format.HasValue())
         return Core::Unexpected(std::move(format).Error());
-    // 0x41c5c2: el byte +6 + pestaña, con la pestaña en 2.
+    // 0x41c5c2: the byte +6 + tab, with the tab at 2.
     const std::string count = std::to_string(quest.flags[quest.tab]);
     const std::array<std::string_view, 1> arguments{count};
     Hud::WindowDrawing::DrawCenteredText(context, quest.x + StateCenter, quest.y + StateTop,
@@ -518,7 +518,7 @@ Core::Expected<void, std::string> DrawTheQuestList(Hud::GameHudContext& context)
     DrawTheWindowBackWithTheLine(sprites, x, y);
     hud.textColors = TextColors{.text = BodyText, .background = 0};
     Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
-    // 0x41c670..0x41c7af: la línea de y + 250 (0x6b8920) y el marco de la lista, en y absolutas.
+    // 0x41c670..0x41c7af: the line at y + 250 (0x6b8920) and the list's frame, in absolute y.
     Quad(sprites, LineSlot, static_cast<float>(x), F32(static_cast<double>(y) + 250.0), 190.0f, 10.0f, 0.0f, 0.0f,
          0.7421875f, 0.625f);
     const float frameLeft = F32(static_cast<double>(x) + 10.0);
@@ -527,7 +527,7 @@ Core::Expected<void, std::string> DrawTheQuestList(Hud::GameHudContext& context)
     Quad(sprites, WindowTopSlot, frameLeft, 260.0f, 1.0f, 125.0f, 0.00390625f, 0.0f, 0.00390625f, 0.48828125f);
     Quad(sprites, WindowTopSlot, F32(static_cast<double>(frameLeft) + 170.0), 260.0f, 1.0f, 125.0f, 0.00390625f, 0.0f,
          0.00390625f, 0.48828125f);
-    // 0x41c7b4..0x41c8d1: las tres pestañas, de 49 cada 51 desde x + 20.
+    // 0x41c7b4..0x41c8d1: the three tabs, 49 wide every 51 from x + 20.
     const float tabsLeft = F32(static_cast<double>(x) + 20.0);
     Hud::WindowDrawing::SelectFont(context, FontKind::Normal);
     hud.textColors.background = 0;
@@ -552,7 +552,7 @@ Core::Expected<void, std::string> DrawTheQuestList(Hud::GameHudContext& context)
             context, Truncate(static_cast<double>(tab * 0x33) + static_cast<double>(tabsLeft) + 24.0),
             Truncate(static_cast<double>(top) + 5.0), text.Value());
     }
-    // 0x41c8dd..0x41c9e3: el blanco, el botón de cerrar y la ayuda, el texto 927 con "T".
+    // 0x41c8dd..0x41c9e3: the white, the close button and the help, text 927 with "T".
     if (Hud::WindowDrawing::DrawTheCloseButton(context, x, y))
     {
         auto format = TextOf(context, ListCloseHelpText, "0x41c9ab");
@@ -601,7 +601,7 @@ Core::Expected<void, std::string> DrawTheQuestWindow(Hud::GameHudContext& contex
     }
     if (!panels.IsOpen(Ui::CharacterPanel))
         return {};
-    // 0x41ca7e..0x41cacd: con el color y la mezcla que haya.
+    // 0x41ca7e..0x41cacd: with whatever color and blend there are.
     const std::int32_t top = quest.y + QuestButtonTop;
     Quad(context.sprites, window != 0 ? QuestButtonOpenSlot : QuestButtonClosedSlot, QuestButtonX,
          static_cast<float>(top), 24.0f, 24.0f, 0.0f, 0.0f, 0.75f, 0.75f);
@@ -626,7 +626,7 @@ Core::Expected<void, std::string> DrawTheQuestItems(Hud::GameHudContext& context
         drawn = DrawTheAskedItems(context, QuestInProgress, false);
     else if (quest.byte21380 != 0 && window == QuestListWindow)
     {
-        // 0x41ba02..0x41ba16: +0x21381 en 0 es el estado 1; en 1, el 2.
+        // 0x41ba02..0x41ba16: +0x21381 at 0 is state 1; at 1, state 2.
         if (quest.byte21381 == 0)
             drawn = DrawTheAskedItems(context, QuestInProgress, false);
         else if (quest.byte21381 == 1)

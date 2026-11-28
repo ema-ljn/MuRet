@@ -19,7 +19,7 @@ namespace
 {
 using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
-// Los bytes de Item.bmd que lee 0x5afc4d..0x5afc5f y las palabras de 0x5afdc9..0x5afec6.
+// The Item.bmd bytes that 0x5afc4d..0x5afc5f reads and the words of 0x5afdc9..0x5afec6.
 constexpr std::size_t MinDamageByte = 0x26;
 constexpr std::size_t MaxDamageByte = 0x27;
 constexpr std::size_t DefenseRateByte = 0x28;
@@ -33,21 +33,21 @@ constexpr std::size_t VitalityWord = 0x36;
 constexpr std::size_t LeadershipWord = 0x38;
 constexpr std::size_t RequiredLevelWord = 0x3a;
 
-// 0x5afc78..0x5afca7: 3 por nivel hasta el 9 y, del 10 al 13, lo de la tabla 0x5b04f4 (4, 4 + 5, 4 + 5 + 6 y
-// 4 + 5 + 6 + 7).
+// 0x5afc78..0x5afca7: 3 per level up to 9 and, from 10 to 13, the value from the table at 0x5b04f4 (4, 4 + 5, 4 + 5 +
+// 6 and 4 + 5 + 6 + 7).
 constexpr std::int32_t PerLevel = 3;
 constexpr std::int32_t LastPlainLevel = 9;
 constexpr std::int32_t FirstHighLevel = 10;
 constexpr std::array<std::int32_t, 4> HighLevelBonus{4, 9, 15, 22};
-// 0x5afd32: lo que suma cada nivel al poder, salvo en los cetros.
+// 0x5afd32: what each level adds to the power, except in the scepters.
 constexpr std::int32_t MagicPerLevel = 2;
-// 0x5afd1f..0x5afd30 y 0x5aff75..0x5aff87: de 0x408 a 0x40d el poder va en la columna 5.
+// 0x5afd1f..0x5afd30 and 0x5aff75..0x5aff87: from 0x408 to 0x40d the power goes in column 5.
 constexpr std::int32_t FirstScepter = 0x408;
 constexpr std::int32_t LastScepter = 0x40d;
-// 0x5afd47..0x5afd55: los escudos suman solo el nivel a la defensa.
+// 0x5afd47..0x5afd55: the shields add only the level to the defense.
 constexpr std::int32_t FirstShield = 0xc00;
 constexpr std::int32_t ShieldsEnd = 0xe00;
-// 0x5afdea..0x5afe0e: (nivel del ítem + 3 · nivel) · requisito · 3 (4 la energía) / 100 + 20.
+// 0x5afdea..0x5afe0e: (item level + 3 · level) · requirement · 3 (4 for energy) / 100 + 20.
 constexpr std::uint32_t RequirementFactor = 3;
 constexpr std::uint32_t EnergyFactor = 4;
 constexpr std::int32_t RequirementDivisor = 100;
@@ -64,7 +64,7 @@ std::uint16_t WordAt(Record record, std::size_t offset)
                                       (std::to_integer<std::uint16_t>(record[offset + 1]) << 8U));
 }
 
-// Un byte con el nivel: en 0 queda en 0.
+// A byte with the level; 0 stays 0.
 std::int32_t Leveled(std::int32_t value, std::int32_t level)
 {
     if (value <= 0)
@@ -75,7 +75,7 @@ std::int32_t Leveled(std::int32_t value, std::int32_t level)
     return value;
 }
 
-// Un requisito con el nivel, en 32 bits con signo (el imul y el lea envuelven); en 0 queda en 0.
+// A requirement with the level, in signed 32 bits (the imul and the lea wrap); 0 stays 0.
 std::int32_t Requirement(std::uint16_t required, std::uint16_t itemLevel, std::int32_t level, std::uint32_t factor)
 {
     if (required == 0)
@@ -90,7 +90,7 @@ bool IsScepter(std::int32_t item)
     return item >= FirstScepter && item <= LastScepter;
 }
 
-// 0x5afc44..0x5aff9a: los valores de un nivel.
+// 0x5afc44..0x5aff9a
 ItemHelpRow RowOf(std::int32_t item, Record record, std::int32_t level)
 {
     ItemHelpRow row{};
@@ -119,13 +119,13 @@ ItemHelpRow RowOf(std::int32_t item, Record record, std::int32_t level)
     return row;
 }
 
-// Un stat más lo que le suman los ítems, en 16 bits (el add de ax de 0x5b0259..0x5b02b1).
+// A stat plus what the items add, in 16 bits (the add of ax at 0x5b0259..0x5b02b1).
 std::int32_t WithBonus(std::uint16_t stat, std::uint16_t bonus)
 {
     return static_cast<std::uint16_t>(stat + bonus);
 }
 
-// 0x5b0251..0x5b02d8: con el registro propio abierto, 1 si cumple cada requisito (comparado con signo) y el nivel.
+// 0x5b0251..0x5b02d8: with the own record open, 1 if it meets each requirement (compared signed) and the level.
 std::int32_t UsableBy(const Kernel::OwnCharacterRecord& own, const ItemHelpRow& row)
 {
     const bool usable = row[ItemHelpStrength] <= WithBonus(own.strength, own.word2a) &&
@@ -141,7 +141,7 @@ std::int32_t UsableBy(const Kernel::OwnCharacterRecord& own, const ItemHelpRow& 
 void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item, Record record)
 {
     ItemHelpLevels& levels = context.hud.itemHelp;
-    // 0x5afc09..0x5afc1d: con el ítem de la tabla, nada.
+    // 0x5afc09..0x5afc1d
     if (levels.item == item)
         return;
     levels.item = item;
@@ -149,7 +149,7 @@ void FillTheItemHelpLevels(Hud::GameHudContext& context, std::int32_t item, Reco
     {
         ItemHelpRow& row = levels.rows[level];
         row = RowOf(item, record, static_cast<std::int32_t>(level));
-        // 0x5aff9b..0x5b04c3: el registro propio se abre y se cierra en cada nivel.
+        // 0x5aff9b..0x5b04c3: the own record opens and closes at each level.
         const Models::LogicalAccess access(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         row[ItemHelpUsable] = UsableBy(context.world.OwnCharacter(), row);
     }

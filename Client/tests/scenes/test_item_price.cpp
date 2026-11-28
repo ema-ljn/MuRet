@@ -19,9 +19,9 @@
 #include <utility>
 #include <vector>
 
-// El precio de un ítem (0x54d0f0) y el de repararlo (0x5b13e0), CL8 hito 5 (06 § El precio de un ítem). Lo que se
-// espera sale de las cuentas del ASM hechas a mano (y con un oráculo chico en Python, con la x87 en PC53 sobre
-// fracciones exactas), con registros de Item.bmd inventados y, al final, con el Item.bmd real del repo.
+// An item's price (0x54d0f0) and its repair price (0x5b13e0), CL8 milestone 5 (06 § El precio de un ítem). The
+// expected values come from the ASM's arithmetic done by hand (and with a small Python oracle, with the x87 in PC53
+// over exact fractions), with invented Item.bmd records and, at the end, with the repo's real Item.bmd.
 namespace
 {
 using Client::Items::ItemPrice;
@@ -33,7 +33,7 @@ constexpr std::int32_t ShopGrid = Client::Items::ShopGridPrice;
 constexpr std::int32_t Inventory = Client::Items::InventoryPrice;
 constexpr std::int32_t Repair = Client::Items::RepairPriceMode;
 
-// Los tipos inventados de esta prueba.
+// This test's invented types.
 constexpr std::uint16_t OneHanded = 0x0010;
 constexpr std::uint16_t TwoHanded = 0x0011;
 constexpr std::uint16_t Armor = 0x0e10;
@@ -54,7 +54,7 @@ struct Option
     std::uint8_t value = 0;
 };
 
-// Los registros de Item.bmd en claro, con los campos que lee 0x54d0f0.
+// The Item.bmd records in clear, with the fields 0x54d0f0 reads.
 class PriceRecords
 {
 public:
@@ -66,14 +66,14 @@ public:
         return *this;
     }
 
-    // +0x20: el nivel del ítem.
+    // +0x20
     PriceRecords& Level(std::uint16_t type, std::uint16_t level)
     {
         Byte(type, 0x20, static_cast<std::uint8_t>(level & 0xff));
         return Byte(type, 0x21, static_cast<std::uint8_t>(level >> 8));
     }
 
-    // +0x40: el precio fijo.
+    // +0x40
     PriceRecords& Fixed(std::uint16_t type, std::int32_t price)
     {
         const auto bits = static_cast<std::uint32_t>(price);
@@ -141,7 +141,7 @@ ItemState Item(std::uint16_t type, std::uint32_t level = 0, std::uint8_t durabil
     return item;
 }
 
-// Las opciones como bytes de D+0x2b..D+0x3b, con su cuenta aparte: la etiqueta 8 pisa el valor 0.
+// The options as bytes of D+0x2b..D+0x3b, with their count apart: tag 8 overwrites value 0.
 ItemState RawItem(std::uint16_t type, std::uint8_t durability, std::uint8_t count, std::vector<std::uint8_t> bytes)
 {
     ItemState item = Item(type, 0, durability);
@@ -151,7 +151,7 @@ ItemState RawItem(std::uint16_t type, std::uint8_t durability, std::uint8_t coun
     return item;
 }
 
-// El arma +9 excelente del tooltip: 0x50 con 4 y 0x5f.
+// The tooltip's excellent +9 weapon: 0x50 with 4 and 0x5f.
 ItemState ExcellentWeapon(std::uint8_t durability = 25)
 {
     ItemState item = Item(0x0005, 9, durability, {{.tag = 0x50, .value = 4}, {.tag = 0x5f}});
@@ -179,7 +179,7 @@ protected:
     Client::Tables::ItemTable items = Items();
 };
 
-// Lo que pasa de 2^31 vuelve como el dword bajo: −x es 2^32 − x.
+// What passes 2^31 comes back as the low dword: −x is 2^32 − x.
 constexpr std::uint32_t LowDword(std::int64_t value)
 {
     return static_cast<std::uint32_t>(static_cast<std::uint64_t>(value));
@@ -188,23 +188,23 @@ constexpr std::uint32_t LowDword(std::int64_t value)
 TEST_F(ItemPriceTest, TheEmptyItemIsFreeAndATypeOutsideItemBmdCuts)
 {
     EXPECT_EQ(Price(Item(0xffff), ShopGrid), 0u);
-    // 0x54d10e: movsx del tipo y [0x7758550] + tipo · 0x54, sin mirar el rango.
+    // 0x54d10e: movsx of the type and [0x7758550] + type · 0x54, without checking the range.
     EXPECT_NE(Cut(Item(0x2000), ShopGrid).find("0x54d133"), std::string::npos);
     EXPECT_NE(Cut(Item(0x8000), ShopGrid).find("0x54d133"), std::string::npos);
 }
 
 TEST_F(ItemPriceTest, AFixedPriceIsRoundedAndDividedByThreeOutsideModeZero)
 {
-    // 0x54d13a..0x54d1b1: a 100 desde 1.000 y a 10 desde 100; los otros modos, por 3 antes.
+    // 0x54d13a..0x54d1b1: to 100 from 1000 and to 10 from 100; the other modes, / 3 before.
     EXPECT_EQ(Price(Item(0x1e00), ShopGrid), 17000u);
-    EXPECT_EQ(Price(Item(0x1e00), Repair), 5600u); // 5.666
+    EXPECT_EQ(Price(Item(0x1e00), Repair), 5600u); // 5666
     EXPECT_EQ(Price(Item(0x1e01), ShopGrid), 1200u);
     EXPECT_EQ(Price(Item(0x1e01), Inventory), 410u); // 411
     EXPECT_EQ(Price(Item(0x1e02), ShopGrid), 120u);
     EXPECT_EQ(Price(Item(0x1e02), Repair), 41u);
     EXPECT_EQ(Price(Item(0x1e03), ShopGrid), 99u);
     EXPECT_EQ(Price(Item(0x1e03), Repair), 33u);
-    // Uno negativo sale por 0x54dc5e sin redondear: −500 y −500 / 3 = −166; −7 / 3 = −2.
+    // A negative one exits through 0x54dc5e without rounding: −500 and −500 / 3 = −166; −7 / 3 = −2.
     EXPECT_EQ(Price(Item(0x1e04), ShopGrid), LowDword(-500));
     EXPECT_EQ(Price(Item(0x1e04), Repair), LowDword(-166));
     EXPECT_EQ(Price(Item(0x1e05), ShopGrid), LowDword(-7));
@@ -213,24 +213,24 @@ TEST_F(ItemPriceTest, AFixedPriceIsRoundedAndDividedByThreeOutsideModeZero)
 
 TEST_F(ItemPriceTest, BoltsAndArrowsGoByTheirDurability)
 {
-    // 0x54d26a: 200 · 100 / 255 = 78; 200 · 1.400 / 255 = 1.098; 200 · 2.200 / 255 = 1.725.
+    // 0x54d26a: 200 · 100 / 255 = 78; 200 · 1400 / 255 = 1098; 200 · 2200 / 255 = 1725.
     EXPECT_EQ(Price(Item(0x807, 0, 200), ShopGrid), 78u);
     EXPECT_EQ(Price(Item(0x807, 1, 200), ShopGrid), 1000u);
     EXPECT_EQ(Price(Item(0x807, 2, 200), ShopGrid), 1700u);
-    // Desde el nivel 3, EBX es la dirección del ítem (Q-C735).
+    // From level 3, EBX is the item's address (Q-C735).
     EXPECT_NE(Cut(Item(0x807, 3, 200), ShopGrid).find("0x54d283"), std::string::npos);
-    // Sin la durabilidad de Item.bmd no multiplica: 0, aunque sea de nivel 3.
+    // Without Item.bmd's durability it does not multiply: 0, even at level 3.
     EXPECT_EQ(Price(Item(0x80f, 3, 200), ShopGrid), 0u);
 }
 
 TEST_F(ItemPriceTest, JewelBundlesAndNamedTypesHaveTheirPrices)
 {
-    // 0x402d60: (5 · nivel + 5) · 18.000.000 y (nivel + 1) · 60.000.000.
+    // 0x402d60: (5 · level + 5) · 18000000 and (level + 1) · 60000000.
     EXPECT_EQ(Price(Item(0x181e), ShopGrid), 90'000'000u);
     EXPECT_EQ(Price(Item(0x181e, 15), ShopGrid), 1'440'000'000u);
     EXPECT_EQ(Price(Item(0x181f, 2), Repair), 60'000'000u);
     // 0x54d2b1..0x54d63a.
-    // Un struct y no un std::pair, que MSVC avisa (C4242) al armarlo con un int.
+    // A struct and not a std::pair, which MSVC warns about (C4242) when built with an int.
     struct NamedPrice
     {
         std::uint16_t type = 0;
@@ -246,7 +246,7 @@ TEST_F(ItemPriceTest, JewelBundlesAndNamedTypesHaveTheirPrices)
     for (const NamedPrice& named : constants)
         EXPECT_EQ(Price(Item(named.type), ShopGrid), named.price) << named.type;
     EXPECT_EQ(Price(Item(0x1c0d), Repair), 3'000'000u);
-    // Los de los niveles 0 y 1; con otro, 0.
+    // Levels 0 and 1's; with another, 0.
     EXPECT_EQ(Price(Item(0x1a0e, 0), ShopGrid), 180'000u);
     EXPECT_EQ(Price(Item(0x1a0e, 1), ShopGrid), 7'500'000u);
     EXPECT_EQ(Price(Item(0x1a0e, 2), ShopGrid), 0u);
@@ -261,20 +261,20 @@ TEST_F(ItemPriceTest, JewelBundlesAndNamedTypesHaveTheirPrices)
 TEST_F(ItemPriceTest, TheDinorantAddsItsOptions)
 {
     EXPECT_EQ(Price(Item(0x1a03), ShopGrid), 960'000u);
-    // 0x61 y 0x67 suman 300.000 cada una; 0x62 no.
+    // 0x61 and 0x67 add 300000 each; 0x62 does not.
     EXPECT_EQ(Price(Item(0x1a03, 0, 0, {{.tag = 0x61}, {.tag = 0x67}, {.tag = 0x62}}), ShopGrid), 1'560'000u);
     EXPECT_EQ(Price(Item(0x1a03, 0, 0, {{.tag = 0x68}}), Repair), 420'000u);
 }
 
 TEST_F(ItemPriceTest, TheEventItemsGoByTheirLevelOrTheirDurability)
 {
-    // 0x1a10: la tabla del nivel 1 al 7, por 3; con 0 o con 8, 0.
+    // 0x1a10: the table from level 1 to 7, times 3; with 0 or 8, 0.
     EXPECT_EQ(Price(Item(0x1a10, 0), ShopGrid), 0u);
     EXPECT_EQ(Price(Item(0x1a10, 1), ShopGrid), 15'000u);
     EXPECT_EQ(Price(Item(0x1a11, 3), ShopGrid), 30'000u);
     EXPECT_EQ(Price(Item(0x1a10, 7), ShopGrid), 75'000u);
     EXPECT_EQ(Price(Item(0x1a10, 8), ShopGrid), 0u);
-    // 0x1a12: (5 · nivel + 45) · 4.000 por 3, salvo el nivel 1 (50.000 por 3).
+    // 0x1a12: (5 · level + 45) · 4000 times 3, except level 1 (50000 times 3).
     EXPECT_EQ(Price(Item(0x1a12, 0), ShopGrid), 540'000u);
     EXPECT_EQ(Price(Item(0x1a12, 1), ShopGrid), 150'000u);
     EXPECT_EQ(Price(Item(0x1a12, 2), ShopGrid), 660'000u);
@@ -291,20 +291,20 @@ TEST_F(ItemPriceTest, TheEventItemsGoByTheirLevelOrTheirDurability)
     EXPECT_EQ(Price(Item(0x1c07, 0, 10), ShopGrid), 9'000'000u);
     EXPECT_EQ(Price(Item(0x1c07, 1, 10), ShopGrid), 4'500'000u);
     EXPECT_EQ(Price(Item(0x1c07, 2, 10), ShopGrid), 0u);
-    // 0x1c09 solo tiene precio propio en el nivel 1; en el 0 va por su +0x3c (30): 10 · 900 / 12 = 750.
+    // 0x1c09 only has its own price at level 1; at 0 it goes by its +0x3c (30): 10 · 900 / 12 = 750.
     EXPECT_EQ(Price(Item(0x1c09, 1), ShopGrid), 1'000u);
     EXPECT_EQ(Price(Item(0x1c09, 0), ShopGrid), 750u);
 }
 
 TEST_F(ItemPriceTest, PotionsReturnTheirPriceByTenWithoutTheModeAtTheEnd)
 {
-    // 10 · 10² / 12 = 83, por 3 de durabilidad = 249, / 10 · 10.
+    // 10 · 10² / 12 = 83, times 3 of durability = 249, / 10 · 10.
     EXPECT_EQ(Price(Item(Potion, 0, 3), ShopGrid), 240u);
-    // El modo divide antes del / 10: 249 / 3 = 83.
+    // The mode divides before the / 10: 249 / 3 = 83.
     EXPECT_EQ(Price(Item(Potion, 0, 3), Repair), 80u);
-    // Por 2^2: 996.
+    // Times 2^2: 996.
     EXPECT_EQ(Price(Item(Potion, 2, 3), ShopGrid), 990u);
-    // 54.187 · 2^15 · 255 / 10 = 45.277.790.208: su dword bajo por 10, en 32 bits.
+    // 54187 · 2^15 · 255 / 10 = 45277790208: its low dword times 10, in 32 bits.
     EXPECT_EQ(Price(Item(LastPotion, 15, 255), ShopGrid), 1'806'336'000u);
 }
 
@@ -316,7 +316,7 @@ TEST_F(ItemPriceTest, TheWizardRingAndTheSpiritComeAfterThePotionValue)
     EXPECT_EQ(Price(Item(0x1a1f, 0), ShopGrid), 30'000'000u);
     EXPECT_EQ(Price(Item(0x1a1f, 1), ShopGrid), 15'000'000u);
     EXPECT_EQ(Price(Item(0x1a1f, 2), ShopGrid), 0u);
-    // Con un +0x3c, el anillo va por él (0x54d647 antes de 0x54d6ef).
+    // With a +0x3c, the ring goes by it (0x54d647 before 0x54d6ef).
     PriceRecords records;
     records.Byte(0x1a14, PotionValueAt, 30);
     const Client::Tables::ItemTable withValue = records.Table();
@@ -327,34 +327,34 @@ TEST_F(ItemPriceTest, TheWizardRingAndTheSpiritComeAfterThePotionValue)
 
 TEST_F(ItemPriceTest, HelpersScrollsAndLateWingsAreCubes)
 {
-    // 0x54d963: b³ + 100 con b = 25 (+0x20) + 3 · nivel.
+    // 0x54d963: b³ + 100 with b = 25 (+0x20) + 3 · level.
     EXPECT_EQ(Price(Item(Helper), ShopGrid), 15'700u);
-    // b = 25 + 6 + 25 (la 0x56): 175.716, por 3 + 1 y por 1 + 1 con las dos 0x55.
+    // b = 25 + 6 + 25 (the 0x56): 175716, times 3 + 1 and times 1 + 1 with the two 0x55.
     EXPECT_EQ(
         Price(Item(Helper, 2, 0, {{.tag = 0x55, .value = 3}, {.tag = 0x56}, {.tag = 0x55, .value = 1}}), ShopGrid),
         1'405'700u);
     EXPECT_EQ(Price(Item(LateWing, 1), ShopGrid), 12'200u);
     EXPECT_EQ(Price(Item(Scroll), ShopGrid), 1'100u);
-    // El ángel no se divide por el modo (0x54da45).
+    // The angel is not divided by the mode (0x54da45).
     EXPECT_EQ(Price(Item(0x1a00), Repair), 12'200u);
     EXPECT_EQ(Price(Item(0x1a00), ShopGrid), 12'200u);
-    // La capa es del grupo 13: va por acá y no por la cuenta de las alas que la nombra (Q-C737). b = 180 + 9.
+    // The cape is group 13's: it goes this way and not by the wings' formula that names it (Q-C737). b = 180 + 9.
     EXPECT_EQ(Price(Item(0x1a1e, 3), ShopGrid), 6'751'300u);
 }
 
 TEST_F(ItemPriceTest, WeaponsAndArmorsGoByTheirLevel)
 {
-    // b = 30: 70 · 900 / 8 + 100 = 7.975; las de una mano de los grupos 0 a 6, al 80 %.
+    // b = 30: 70 · 900 / 8 + 100 = 7975; the one-handed ones of groups 0 to 6, at 80 %.
     EXPECT_EQ(Price(Item(OneHanded), ShopGrid), 6'300u);
     EXPECT_EQ(Price(Item(TwoHanded), ShopGrid), 7'900u);
     EXPECT_EQ(Price(Item(Armor), ShopGrid), 7'900u);
     EXPECT_EQ(Price(Item(Armor, 4), ShopGrid), 18'100u);
-    // Desde el 5, lo de la tabla de 0x54dc68: 4 ... 245 en el 13; el 14 y el 15 no suman.
+    // From 5, the value from the table at 0x54dc68: 4 ... 245 at 13; 14 and 15 add nothing.
     EXPECT_EQ(Price(Item(Armor, 5), ShopGrid), 26'800u);
     EXPECT_EQ(Price(Item(Armor, 13), ShopGrid), 4'362'900u);
     EXPECT_EQ(Price(Item(Armor, 14), ShopGrid), 72'600u);
     EXPECT_EQ(Price(Item(Armor, 15), ShopGrid), 80'900u);
-    // Una opción de 0x56 a 0x63 suma 25 a b y dobla el precio: 36.021 · 2.
+    // An option from 0x56 to 0x63 adds 25 to b and doubles the price: 36021 · 2.
     EXPECT_EQ(Price(Item(Armor, 0, 0, {{.tag = 0x57}}), ShopGrid), 72'000u);
 }
 
@@ -362,10 +362,10 @@ TEST_F(ItemPriceTest, EachOptionChangesThePriceOfAnArmor)
 {
     const auto with = [this](std::uint8_t tag, std::uint8_t value = 0)
     { return Price(Item(Armor, 0, 0, {{.tag = tag, .value = value}}), ShopGrid); };
-    // 7.975 + el dword bajo de 7.975 · 1,5f.
+    // 7975 + the low dword of 7975 · 1.5f.
     EXPECT_EQ(with(0x12), 19'900u);
     EXPECT_EQ(with(0x38), 19'900u);
-    // Los escalones, por los doubles de 0x6ba420..0x6ba408: + 4.785, 11.165, 22.330 y 44.660.
+    // The steps, by the doubles at 0x6ba420..0x6ba408: + 4785, 11165, 22330 and 44660.
     EXPECT_EQ(with(0x51, 4), 12'700u);
     EXPECT_EQ(with(0x51, 8), 19'100u);
     EXPECT_EQ(with(0x51, 12), 30'300u);
@@ -376,7 +376,7 @@ TEST_F(ItemPriceTest, EachOptionChangesThePriceOfAnArmor)
     EXPECT_EQ(with(0x52, 15), 30'300u);
     EXPECT_EQ(with(0x52, 20), 52'600u);
     EXPECT_EQ(with(0x52, 4), 7'900u);
-    // Fuera de las alas, el valor de la 0x55 no va por 4.
+    // Outside the wings, the 0x55's value is not times 4.
     EXPECT_EQ(with(0x55, 4), 12'700u);
     EXPECT_EQ(with(0x54), 9'900u);
     EXPECT_EQ(with(0x66), 9'900u);
@@ -386,9 +386,9 @@ TEST_F(ItemPriceTest, EachOptionChangesThePriceOfAnArmor)
 
 TEST_F(ItemPriceTest, EarlyWingsUseTheirOwnFormula)
 {
-    // 0x54d7b8: (b + 40) · b² · 11 + 40.000.000, sin el 80 %.
+    // 0x54d7b8: (b + 40) · b² · 11 + 40000000, without the 80 %.
     EXPECT_EQ(Price(Item(EarlyWing), ShopGrid), 55'400'000u);
-    // En las alas, el valor de la 0x55 va por 4: 1 es el escalón de 4 (0,6) y 4 el de 16 (5,6).
+    // In the wings, the 0x55's value goes times 4: 1 is the step of 4 (0.6) and 4 the one of 16 (5.6).
     EXPECT_EQ(Price(Item(EarlyWing, 0, 0, {{.tag = 0x55, .value = 1}}), ShopGrid), 88'640'000u);
     EXPECT_EQ(Price(Item(EarlyWing, 0, 0, {{.tag = 0x55, .value = 4}}), ShopGrid), 365'640'000u);
     EXPECT_EQ(Price(Item(EarlyWing, 0, 0, {{.tag = 0x50, .value = 4}}), ShopGrid), 88'640'000u);
@@ -396,37 +396,37 @@ TEST_F(ItemPriceTest, EarlyWingsUseTheirOwnFormula)
 
 TEST_F(ItemPriceTest, ThePriceIsCappedAtThreeBillionBeforeTheMode)
 {
-    // b = 2.080: 2.147.400.192, doblado.
+    // b = 2080: 2147400192, doubled.
     EXPECT_EQ(Price(Item(TallWing, 0, 0, {{.tag = 0x6e}}), ShopGrid), 3'000'000'000u);
     EXPECT_EQ(Price(Item(TallWing, 0, 0, {{.tag = 0x6e}}), Repair), 1'000'000'000u);
-    // Con nueve opciones (0x6e y ocho 0x52 con 20: la novena etiqueta es el valor de la primera), 2^53 no se pasa.
+    // With nine options (0x6e and eight 0x52 with 20: the ninth tag is the first one's value), 2^53 is not exceeded.
     std::vector<std::uint8_t> bytes{0x6e, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52};
     bytes.insert(bytes.end(), 8, std::uint8_t{20});
     EXPECT_EQ(Price(RawItem(TallWing, 0, 9, bytes), ShopGrid), 3'000'000'000u);
-    // Con diez, la décima etiqueta es el valor de la segunda (20, una 0x14) y multiplica un precio de más de 53 bits.
+    // With ten, the tenth tag is the second one's value (20, a 0x14) and multiplies a price of more than 53 bits.
     EXPECT_NE(Cut(RawItem(TallWing, 0, 10, bytes), ShopGrid).find("0x54d862"), std::string::npos);
 }
 
 TEST_F(ItemPriceTest, AWrappedNegativePriceIsNeitherCappedNorRounded)
 {
-    // b = 822: la cuenta en 32 bits da −2.143.098.904.
+    // b = 822: the calculation in 32 bits gives −2143098904.
     EXPECT_EQ(Price(Item(WrappedWing), ShopGrid), LowDword(-2'143'098'904));
     EXPECT_EQ(Price(Item(WrappedWing), Repair), LowDword(-714'366'301));
 }
 
 TEST_F(ItemPriceTest, TheSkillOptionAddsOnlyTheLowDword)
 {
-    // b = 490: 1.439.783.000, doblado: 2.879.566.000. Por 1,5 da 4.319.349.000, y suma solo su dword bajo,
-    // 24.381.704 (Q-C736): 2.903.947.704, debajo del tope.
+    // b = 490: 1439783000, doubled: 2879566000. Times 1.5 it gives 4319349000, and it adds only its low dword, 24381704
+    // (Q-C736): 2903947704, below the cap.
     EXPECT_EQ(Price(Item(SkillWing, 0, 0, {{.tag = 0x6e}, {.tag = 0x12}}), ShopGrid), 2'903'947'700u);
 }
 
 TEST_F(ItemPriceTest, AnOptionReadBeyondTheItemCuts)
 {
-    // 0x54d1dc: la etiqueta 17 es D+0x3c.
+    // 0x54d1dc: tag 17 is D+0x3c.
     EXPECT_NE(Cut(RawItem(Armor, 0, 18, std::vector<std::uint8_t>(17, std::uint8_t{0x19})), ShopGrid).find("0x54d1dc"),
               std::string::npos);
-    // La décima etiqueta (el valor de la segunda) pide un valor en D+0x3c.
+    // The tenth tag (the second one's value) asks for a value in D+0x3c.
     const auto tenth = [](std::uint8_t tag)
     {
         std::vector<std::uint8_t> bytes(17, std::uint8_t{0});
@@ -443,7 +443,7 @@ TEST_F(ItemPriceTest, AnOptionReadBeyondTheItemCuts)
 
 TEST_F(ItemPriceTest, TheLateHelpersOverrideThePriceAfterTheMode)
 {
-    // 0x54da69..0x54db12: 50, 100, 1.000 y 10.000 por la durabilidad, 30.000 y 50.000, sin el / 3.
+    // 0x54da69..0x54db12: 50, 100, 1000 and 10000 times the durability, 30000 and 50000, without the / 3.
     const std::vector<std::uint32_t> prices{350, 700, 7'000, 70'000, 30'000, 50'000};
     for (std::uint16_t i = 0; i < prices.size(); ++i)
         EXPECT_EQ(Price(Item(static_cast<std::uint16_t>(0x1a20 + i), 0, 7), Repair), prices[i]) << i;
@@ -453,31 +453,31 @@ TEST_F(ItemPriceTest, ThePetsReadTheirLevels)
 {
     const PetPriceLevels pets{.raven = 3, .horse = 7};
     EXPECT_EQ(Price(Item(0x1a04), ShopGrid, pets), 14'000'000u);
-    // Después del modo: no se divide.
+    // After the mode: it is not divided.
     EXPECT_EQ(Price(Item(0x1a05), Repair, pets), 3'000'000u);
-    // 65.535 · 2.000.000 en 32 bits: 2.220.981.120.
+    // 65535 · 2000000 in 32 bits: 2220981120.
     EXPECT_EQ(Price(Item(0x1a04), ShopGrid, PetPriceLevels{.raven = 0, .horse = 65535}), 2'220'981'100u);
     EXPECT_NE(Cut(Item(0x1a04), ShopGrid).find("0x54db28"), std::string::npos);
 }
 
 TEST_F(ItemPriceTest, TheInventoryModeDiscountsTheMissingDurability)
 {
-    // 687.986 / 3 = 229.328; (1 − 25 / 51) · 229.328 · 0,6f = 70.147,2: 159.181.
+    // 687986 / 3 = 229328; (1 − 25 / 51) · 229328 · 0.6f = 70147.2: 159181.
     EXPECT_EQ(Price(ExcellentWeapon(), Inventory), 159'100u);
     EXPECT_EQ(Price(ExcellentWeapon(), Repair), 229'300u);
     EXPECT_EQ(Price(ExcellentWeapon(), ShopGrid), 687'900u);
-    // El 0x1a1f calcula y no descuenta.
+    // 0x1a1f calculates and does not discount.
     EXPECT_EQ(Price(Item(0x1a1f, 0, 3), Inventory), 10'000'000u);
 }
 
 TEST_F(ItemPriceTest, AZeroMaximumDurabilityDiscountsNothingOrCuts)
 {
-    // Un ala tardía de b = 20 sin durabilidad: 8.100 / 3 = 2.700. 0 / 0 es NaN y el _ftol da 0.
+    // A late wing with b = 20 and no durability: 8100 / 3 = 2700. 0 / 0 is NaN and _ftol gives 0.
     EXPECT_EQ(Price(Item(LateWing), Inventory), 2'700u);
     EXPECT_NE(Cut(Item(LateWing, 0, 5), Inventory).find("0x54dc04"), std::string::npos);
-    // Del 0x1c00 en adelante no se descuenta: el pergamino no llega a la FIDIV.
+    // From 0x1c00 on there is no discount: the scroll does not reach the FIDIV.
     EXPECT_EQ(Price(Item(Scroll, 0, 5), Inventory), 360u);
-    // Ocho 0x55 con 255: el precio por 256^8 es 0 en 64 bits, y −infinito · 0 es NaN.
+    // Eight 0x55 with 255: the price times 256^8 is 0 in 64 bits, and −infinity · 0 is NaN.
     std::vector<std::uint8_t> bytes(8, std::uint8_t{0x55});
     bytes.insert(bytes.end(), 8, std::uint8_t{255});
     EXPECT_EQ(Price(RawItem(ZeroHelper, 5, 8, bytes), Inventory), 0u);
@@ -487,20 +487,20 @@ TEST_F(ItemPriceTest, AZeroMaximumDurabilityDiscountsNothingOrCuts)
 
 TEST_F(ItemPriceTest, ADurabilityAboveItsMaximumSkipsTheRounding)
 {
-    // (1 − 60 / 51) · 229.328 · 0,6f = −24.281,8: resta 2^32 − 24.281 y el precio queda negativo, sin redondear
-    // (Q-C736).
+    // (1 − 60 / 51) · 229328 · 0.6f = −24281.8: it subtracts 2^32 − 24281 and the price stays negative, without
+    // rounding (Q-C736).
     EXPECT_EQ(Price(ExcellentWeapon(60), Inventory), 253'609u);
 }
 
 TEST_F(ItemPriceTest, AHugeHelperPriceWrapsAndCutsInTheDiscount)
 {
-    // Nueve 0x55 (la novena etiqueta es el valor de la primera, 0x55 = 85) y ocho valores 251: el producto en
-    // 64 bits es negativo y no tiene tope.
+    // Nine 0x55 (the ninth tag is the first one's value, 0x55 = 85) and eight values 251: the product in 64 bits is
+    // negative and has no cap.
     std::vector<std::uint8_t> bytes(9, std::uint8_t{0x55});
     bytes.insert(bytes.end(), 8, std::uint8_t{251});
     EXPECT_EQ(Price(RawItem(Helper, 100, 9, bytes), ShopGrid), 3'869'114'368u);
     EXPECT_NE(Cut(RawItem(Helper, 100, 9, bytes), Inventory).find("0x54dbf9"), std::string::npos);
-    // Con 250, positivo: el tope, / 3 y el descuento.
+    // With 250, positive: the cap, / 3 and the discount.
     bytes.assign(9, 0x55);
     bytes.insert(bytes.end(), 8, std::uint8_t{250});
     EXPECT_EQ(Price(RawItem(Helper, 100, 9, bytes), ShopGrid), 3'000'000'000u);
@@ -509,15 +509,15 @@ TEST_F(ItemPriceTest, AHugeHelperPriceWrapsAndCutsInTheDiscount)
 
 TEST(RepairPriceTest, AWornWeaponPaysForWhatItLacks)
 {
-    // 3 · 229.300^(3/4) · (26 / 51 en float) + 1 = 16.027,1.
+    // 3 · 229300^(3/4) · (26 / 51 in float) + 1 = 16027.1.
     auto repair = RepairPriceOf(229'300, 25, 51, 0);
     EXPECT_EQ(repair.gold, 16'000);
     EXPECT_EQ(repair.text, "16,000");
-    // [0x78abb10] en 1 suma el 5 %; solo cuenta su byte bajo.
+    // [0x78abb10] at 1 adds 5 %; only its low byte counts.
     EXPECT_EQ(RepairPriceOf(229'300, 25, 51, 1).text, "16,800");
     EXPECT_EQ(RepairPriceOf(229'300, 25, 51, 0x101).text, "16,800");
     EXPECT_EQ(RepairPriceOf(229'300, 25, 51, 0x100).text, "16,000");
-    // Sin durabilidad, por 1,4f.
+    // Without durability, times 1.4f.
     EXPECT_EQ(RepairPriceOf(229'300, 0, 51, 0).gold, 44'000);
 }
 
@@ -530,17 +530,16 @@ TEST(RepairPriceTest, NothingMissingCostsNothing)
         EXPECT_EQ(repair.gold, 0) << durability << "/" << maximum;
         EXPECT_EQ(repair.text, "0");
     }
-    // Un precio de 0 cuesta 1.
     EXPECT_EQ(RepairPriceOf(0, 1, 2, 0).text, "1");
     EXPECT_EQ(RepairPriceOf(0, 0, 2, 0).text, "1");
 }
 
 TEST(RepairPriceTest, ThePriceIsCappedAndANegativeOneIsZero)
 {
-    // 400.000.000 por 1,4f y por 1 + 255 · 0,05f.
+    // 400000000 times 1.4f and times 1 + 255 · 0.05f.
     EXPECT_EQ(RepairPriceOf(1'000'000'000, 0, 255, 255).text, "163,341,600");
     EXPECT_EQ(RepairPriceOf(400'000'000, 0, 255, 255).text, "163,341,600");
-    // Con signo, es menos que el tope: la FSQRT da NaN y el _ftol, 0.
+    // Signed, it is less than the cap: FSQRT gives NaN and _ftol, 0.
     EXPECT_EQ(RepairPriceOf(0x80000000u, 1, 2, 0).text, "0");
     EXPECT_EQ(RepairPriceOf(0xffffffffu, 1, 2, 0).text, "0");
 }
@@ -553,7 +552,7 @@ TEST(RepairPriceTest, TheGoldIsRoundedAndGroupedByThousands)
     EXPECT_EQ(RepairPriceOf(5'000'000, 1, 2, 0).text, "158,600");
 }
 
-// Con el Item.bmd del repo (Client/assets/Data).
+// The repo's Item.bmd (Client/assets/Data).
 class GoldenItemPriceTest : public Client::Tests::GoldenDataTest
 {
 protected:
@@ -581,14 +580,14 @@ protected:
 
 TEST_F(GoldenItemPriceTest, TheRealItemsHaveTheirPrices)
 {
-    // Kris: +0x20 6, de una mano: (46 · 36 / 8 + 100) · 0,8 = 245.
+    // Kris: +0x20 6, one-handed: (46 · 36 / 8 + 100) · 0.8 = 245.
     EXPECT_EQ(Price(Item(0x0000), ShopGrid), 240u);
-    // Orb of Twisting Slash: +0x40 29.000.
+    // Orb of Twisting Slash: +0x40 29000.
     EXPECT_EQ(Price(Item(0x1807), ShopGrid), 29'000u);
     EXPECT_EQ(Price(Item(0x1807), Inventory), 9'600u);
-    // Healing Potion (+0x3c 20) por 5: 333 · 5.
+    // Healing Potion (+0x3c 20) times 5: 333 · 5.
     EXPECT_EQ(Price(Item(0x1c02, 0, 5), ShopGrid), 1'660u);
-    // Wings of Elf (+0x20 100), y +7 con la 0x50 en 8 (1,4).
+    // Wings of Elf (+0x20 100), and +7 with the 0x50 at 8 (1.4).
     EXPECT_EQ(Price(Item(0x1800), ShopGrid), 55'400'000u);
     EXPECT_EQ(Price(Item(0x1800, 7, 0, {{.tag = 0x50, .value = 8}}), Repair), 66'890'000u);
     EXPECT_EQ(Price(Item(0x1c0d), ShopGrid), 9'000'000u);
@@ -599,7 +598,7 @@ TEST_F(GoldenItemPriceTest, TheRealItemsHaveTheirPrices)
 
 TEST_F(GoldenItemPriceTest, ARealSwordPaysItsRepair)
 {
-    // Legendary Sword +9 excelente con la skill y la 0x57, con 30 de 83 de durabilidad.
+    // Legendary Sword +9 excellent with the skill and the 0x57, with 30 of 83 durability.
     ItemState sword = Item(0x000b, 9, 30, {{.tag = 0x12}, {.tag = 0x57}});
     sword.flags1b = 0x04;
     const std::uint32_t price = Price(sword, Repair);

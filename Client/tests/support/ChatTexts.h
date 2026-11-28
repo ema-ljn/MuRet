@@ -7,9 +7,9 @@
 #include <map>
 #include <string>
 
-// Un Text.bmd inventado para la entrada del chat (CL8 hito 3): los comandos que compara 0x56c440, los emotes de
-// 0x576eb0 y los avisos de la entrada, todos con textos que no aparecen en lo que dicen los tests. Un texto vacío lo
-// encuentra 0x576960 en cualquier mensaje, como en el original.
+// A made-up Text.bmd for the chat input (CL8 milestone 3): the commands 0x56c440 compares, the emotes of 0x576eb0 and
+// the input's notices, all with texts that do not appear in what the tests say. 0x576960 finds an empty text in any
+// message, as in the original.
 namespace Client::Tests
 {
 inline constexpr std::size_t ChatFilteredText = 570;
@@ -18,12 +18,12 @@ inline constexpr std::size_t ChatWhisperOnCommandText = 265;
 inline constexpr std::size_t ChatWhisperOffNoticeText = 267;
 inline constexpr std::size_t ChatWhisperOnNoticeText = 268;
 inline constexpr std::size_t ChatWhisperDeniedText = 479;
-// Los avisos de los pedidos a otro (0x56c440, CL9 hito 7): el 475 y el 476 son formatos de sprintf con el nombre.
+// The notices of the requests to another (0x56c440, CL9 milestone 7): 475 and 476 are sprintf formats with the name.
 inline constexpr std::size_t ChatTradeRequestedText = 475;
 inline constexpr std::size_t ChatPartyRequestedText = 476;
 inline constexpr std::size_t ChatPersonalShopText = 493;
 inline constexpr std::size_t ChatNotTheLeaderText = 257;
-// El título de la tienda personal que 0x5ebbd0 no deja (0x4b55fd y 0x626241).
+// The personal shop title that 0x5ebbd0 does not allow (0x4b55fd and 0x626241).
 inline constexpr std::size_t ChatBadShopTitleText = 1130;
 
 inline std::map<std::size_t, std::string> ChatTexts()

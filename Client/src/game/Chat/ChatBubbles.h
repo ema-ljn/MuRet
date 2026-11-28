@@ -11,10 +11,10 @@
 #include <string>
 #include <string_view>
 
-// Los globos sobre las cabezas (CL8 hito 3; 06 § El chat, "Los globos"): la tabla de la .bss en 0x77e1be0, 100
-// entradas de 0x294 bytes, que llenan los mensajes que llegan (0x557170, por el 00 y el 01, y 0x557560 por nombre), que
-// el paso del juego envejece (0x557650, 0x6370f9) y que el HUD dibuja (0x5a9050, el 12). El hover de los personajes
-// del hito 6 usa la misma tabla. Los textos se guardan hasta su '\0', como los leen strcpy y strlen.
+// The bubbles above the heads (CL8 milestone 3; 06 § El chat, "Los globos"): the .bss table at 0x77e1be0, 100 entries
+// of 0x294 bytes, filled by the incoming messages (0x557170, for the 00 and the 01, and 0x557560 by name), aged by the
+// game step (0x557650, 0x6370f9) and drawn by the HUD (0x5a9050, the 12). Milestone 6's character hover uses the same
+// table. The texts are stored up to their '\0', as strcpy and strlen read them.
 namespace Client::Tables
 {
 class TextTable;
@@ -30,10 +30,10 @@ namespace Client::Chat
 {
 
 inline constexpr std::size_t ChatBubbleCount = 100;
-// 0x557170: con 20 bytes o más, el texto va en dos renglones (0x5549a0).
+// 0x557170: with 20 bytes or more, the text goes in two lines (0x5549a0).
 inline constexpr std::size_t ChatBubbleSplitBytes = 20;
-// 0x557170: cuánto dura un renglón del modo 0 (2 · largo + 0xa0 pasos) y uno del 1 (1.000); el nombre solo, con el
-// texto vacío, 100 pasos en una entrada nueva y 10 en la del mismo personaje.
+// 0x557170: how long a mode-0 line lasts (2 · length + 0xa0 steps) and a mode-1 one (1000); the name alone, with the
+// text empty, 100 steps in a new entry and 10 in the same character's.
 inline constexpr std::int32_t ChatBubbleLogSteps = 1000;
 inline constexpr std::int32_t ChatBubbleBaseSteps = 0xa0;
 inline constexpr std::int32_t ChatBubbleNewNameSteps = 100;
@@ -41,29 +41,29 @@ inline constexpr std::int32_t ChatBubbleNameSteps = 10;
 
 struct ChatBubble
 {
-    // +0: el nombre, strcpy del de quien habla.
+    // +0: the name, strcpy of the speaker's.
     std::string name;
-    // +0x18 y +0x36: la alianza ("<%s>", con el texto de +0x370) y el gremio con el puesto ("[%s] %s"), que escribe
-    // 0x556dd0 con la tabla de los gremios (CL9 hito 8). Sin gremio, vacíos; sin alianza, +0x18 vacío.
+    // +0x18 and +0x36: the alliance ("<%s>", with the text of +0x370) and the guild with the post ("[%s] %s"), which
+    // 0x556dd0 writes with the guild table (CL9 milestone 8). Without a guild, empty; without an alliance, +0x18 empty.
     std::string guild;
     std::string guildPost;
-    // +0x54: el título corto de la tienda personal de quien habla (0x4518b0, CL9 hito 7). Sin tienda, vacío.
+    // +0x54: the speaker's personal shop short title (0x4518b0, CL9 milestone 7). Without a shop, empty.
     std::string shopTitle;
-    // +0x64: el color, el PK de quien habla (+0x375) o 0 con +0x88 en 4.
+    // +0x64: the color, the speaker's PK (+0x375) or 0 with +0x88 at 4.
     std::uint8_t color = 0;
-    // +0x65: con gremio, el +0x374 de quien habla; sin él, 0.
+    // +0x65: with a guild, the speaker's +0x374; without one, 0.
     std::uint8_t guildByte = 0;
-    // +0x68: cuántos pasos se ve el nombre solo.
+    // +0x68: how many steps the name alone shows.
     std::int32_t nameTime = 0;
-    // +0x6c y +0x16c: los renglones, el de abajo y el de arriba, de 0x100 bytes.
+    // +0x6c and +0x16c: the lines, the lower and the upper, of 0x100 bytes.
     std::string line1;
     std::string line2;
-    // +0x26c y +0x270: cuántos pasos se ve cada uno.
+    // +0x26c and +0x270: how many steps each one shows.
     std::int32_t time1 = 0;
     std::int32_t time2 = 0;
-    // +0x274: de quién es, como lugar del pool. Vacío, el NULL de la .bss.
+    // +0x274: whose it is, as a pool slot. Empty, the .bss NULL.
     std::optional<std::size_t> owner{};
-    // +0x278, +0x27c, +0x280 y +0x284: dónde quedó y cuánto mide en el último dibujo (0x5a9050, 0x555840).
+    // +0x278, +0x27c, +0x280 and +0x284: where it ended up and how big it is in the last draw (0x5a9050, 0x555840).
     std::int32_t x = 0;
     std::int32_t y = 0;
     std::int32_t width = 0;
@@ -72,54 +72,54 @@ struct ChatBubble
 
 using ChatBubbleTable = std::array<ChatBubble, ChatBubbleCount>;
 
-// El modo de 0x557170: 0 el chat (el globo dura según el largo) y 1 también al registro del chat (1.000 pasos).
-// Ningún llamador de MuRet pasa otro: el original toma de duración un puntero (el texto o el personaje).
+// 0x557170's mode: 0 the chat (the bubble lasts by the length) and 1 also to the chat log (1000 steps). No MuRet
+// caller passes another: the original takes a pointer as the duration (the text or the character).
 enum class ChatBubbleMode : std::uint8_t
 {
     Chat = 0,
     Log = 1,
 };
 
-// Lo que mide el registro del chat en el modo 1 (0x45bb20) y los textos del gremio del globo (0x556dd0).
+// What the chat log measures in mode 1 (0x45bb20) and the bubble's guild texts (0x556dd0).
 struct ChatBubbleMeasure
 {
     const Render::Text::ITextMeasure& measure;
     Core::PixelSize screen{};
-    // Text.bmd: los puestos del gremio y de la alianza. Sin él, un personaje con gremio corta.
+    // Text.bmd: the guild and alliance posts. Without it, a character with a guild stops.
     const Tables::TextTable* texts = nullptr;
 };
 
-// 0x557170(nombre, texto, personaje, modo, color): con el personaje vivo y a la vista (+0x16c), la entrada que ya es
-// suya o la primera libre (el nombre y los dos renglones sin tiempo); sin ninguna, nada. Copia el nombre, el color (sin
-// él, el PK, o 0 con +0x88 en 4) y el gremio y la tienda (0x556dd0). Con el texto vacío solo prende el nombre. En la
-// entrada suya, el renglón vivo sube al de arriba. Con 20 bytes o más, el texto se corta en dos (0x5549a0): la cabeza
-// arriba y la cola abajo, con el mismo tiempo. El modo 1 lo agrega también al registro (0x45bb20 con el tipo 3) y el
-// sonido que pida queda en WorldRuntime::lastSoundId. El gremio sale de WorldRuntime::guild (CL9 hito 8); con cartel
-// de tienda, el globo lleva su título corto (0x4518b0).
+// 0x557170(name, text, character, mode, color): with the character alive and in view (+0x16c), the entry that is
+// already its own or the first free one (the name and the two lines without time); without any, nothing. It copies the
+// name, the color (without it, the PK, or 0 with +0x88 at 4) and the guild and the shop (0x556dd0). With the text empty
+// it only lights the name. In its own entry, the live line moves to the upper one. With 20 bytes or more, the text is
+// split in two (0x5549a0): the head above and the tail below, with the same time. Mode 1 also adds it to the log
+// (0x45bb20 with type 3) and the sound it asks for stays in WorldRuntime::lastSoundId. The guild comes from
+// WorldRuntime::guild (CL9 milestone 8); with a shop sign, the bubble carries its short title (0x4518b0).
 [[nodiscard]] Core::Expected<void, std::string>
 AddChatBubble(Kernel::WorldState& world, const ChatBubbleMeasure& measure, std::string_view name, std::string_view text,
               std::size_t owner, ChatBubbleMode mode, std::optional<std::uint8_t> color = std::nullopt);
 
-// 0x557560(nombre, texto, modo): el primer personaje vivo con +0x88 en 1 y ese nombre (strcmp de +0x1d9) y, si no
-// hay, el primero con +0x88 en 2; con uno, 0x557170 sin color. Sin ninguno, nada.
+// 0x557560(name, text, mode): the first live character with +0x88 at 1 and that name (strcmp of +0x1d9) and, if
+// there is none, the first one with +0x88 at 2; with one, 0x557170 without a color. Without any, nothing.
 [[nodiscard]] Core::Expected<void, std::string> AddChatBubbleByName(Kernel::WorldState& world,
                                                                     const ChatBubbleMeasure& measure,
                                                                     std::string_view name, std::string_view text,
                                                                     ChatBubbleMode mode);
 
-// Lo que lee 0x557650 del paso.
+// What 0x557650 reads from the step.
 struct ChatBubbleStepInput
 {
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
+    // 0x7d3682c and 0x7d36828: the mouse in 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
     Core::PixelSize screen{};
 };
 
-// 0x557650, en cada paso del juego (0x6370f9, después de los ayudantes y antes de MoveHero, también en la espera):
-// baja los tres relojes de cada entrada y los pone en 0 si su personaje murió o no se ve; las tiendas (0x451720,
-// 0x4516d0) no tienen ninguna. El clic derecho sobre un globo ajeno con el campo del chat abierto en la zona segura
-// pone su nombre en el EDIT y en el buffer del susurro (0x7798cf8) y suena el 0x19.
+// 0x557650, in each game step (0x6370f9, after the helpers and before MoveHero, also while waiting): it lowers each
+// entry's three clocks and sets them to 0 if its character died or is not visible; the shops (0x451720, 0x4516d0)
+// have none. A right click on someone else's bubble with the chat field open in the safe zone puts its name in the EDIT
+// and in the whisper buffer (0x7798cf8) and the 0x19 sounds.
 [[nodiscard]] Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world,
                                                                    const ChatBubbleStepInput& input);
 } // namespace Client::Chat

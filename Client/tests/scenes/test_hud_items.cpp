@@ -14,8 +14,8 @@
 #include <string>
 #include <string_view>
 
-// Lo que el HUD lee de los ítems (CL8 hito 2): las ranuras rápidas (0x558110 y 0x558490), las flechas del
-// inventario (0x557d80), la durabilidad máxima (0x5b1ba0) y el nombre de Item.bmd.
+// What the HUD reads from the items (CL8 milestone 2): the quick slots (0x558110 and 0x558490), the inventory's
+// arrows (0x557d80), the maximum durability (0x5b1ba0) and the Item.bmd name.
 namespace
 {
 using Client::Items::CountQuickSlotItems;
@@ -30,7 +30,7 @@ using Client::Kernel::ItemState;
 using Cells = std::array<ItemState, InventoryCellCount>;
 using Record = std::array<std::byte, Client::Tables::ItemRecordSize>;
 
-// La casilla (fila · 8 + columna) con `type`, `count` en D+0x1a, el nivel en D+4 (bits 3 a 6) y +0x3c en 1.
+// The cell (row · 8 + column) with `type`, `count` in D+0x1a, the level in D+4 (bits 3 to 6) and +0x3c at 1.
 void Put(Cells& cells, std::size_t row, std::size_t column, std::uint16_t type, std::uint8_t count = 1,
          std::uint32_t level = 0)
 {
@@ -55,8 +55,8 @@ std::int32_t Counted(const QuickSlots& slots, const Cells& cells, int slot)
     return counted.HasValue() ? counted.Value() : -1;
 }
 
-// 0x5582c8..0x558376: los tipos de arriba abajo y, en cada uno, las columnas de la 7 a la 0 y las filas de la 7 a
-// la 0. La 0x1c03 gana a la 0x1c00 aunque esté antes en la grilla; en la misma columna, la fila de abajo.
+// 0x5582c8..0x558376: the types from top to bottom and, in each one, columns 7 to 0 and rows 7 to 0. The 0x1c03 beats
+// the 0x1c00 even though it is earlier in the grid; in the same column, the lower row.
 TEST(HudItemsTest, TheQuickSlotWalksTheTypesDownAndTheGridFromTheLastColumn)
 {
     Cells cells{};
@@ -69,7 +69,7 @@ TEST(HudItemsTest, TheQuickSlotWalksTheTypesDownAndTheGridFromTheLastColumn)
     Put(cells, 0, 6, 0x1c03);
     EXPECT_EQ(Found(slots, cells, 0), 6u) << "la columna 6 va antes que la 1";
 
-    // Una casilla con +0x3c en 0 no cuenta.
+    // A cell with +0x3c at 0 does not count.
     for (ItemState& item : cells)
     {
         if (item.id == 0x1c03)
@@ -80,8 +80,7 @@ TEST(HudItemsTest, TheQuickSlotWalksTheTypesDownAndTheGridFromTheLastColumn)
     EXPECT_EQ(Found(slots, cells, 0), std::nullopt);
 }
 
-// Los rangos de cada ranura: la de vida y la de maná se cruzan, y la 2 cae en el antídoto con un tipo que no es
-// de ningún rango.
+// Each slot's ranges: the life one and the mana one cross, and slot 2 falls into the antidote with a type of no range.
 TEST(HudItemsTest, EachSlotPicksItsRange)
 {
     Cells cells{};
@@ -93,15 +92,15 @@ TEST(HudItemsTest, EachSlotPicksItsRange)
     EXPECT_EQ(Found(slots, cells, 0), 1u);
     EXPECT_EQ(Found(slots, cells, 1), 0u);
     EXPECT_EQ(Found(slots, cells, 2), 2u);
-    // Con un tipo de otro rango, la 0 y la 1 vuelven al suyo.
+    // With a type from another range, 0 and 1 go back to their own.
     slots.types = {0x1234, 0x1234, 0x1c00};
     EXPECT_EQ(Found(slots, cells, 0), 0u);
     EXPECT_EQ(Found(slots, cells, 1), 1u);
     EXPECT_EQ(Found(slots, cells, 2), 0u);
 }
 
-// 0x1c07, 0x1c0a y 0x1c14 piden el nivel de la ranura ((D+4 >> 3) & 0xf); con el pedido trabado (0x576794c), el
-// 0x1c0a no se busca.
+// 0x1c07, 0x1c0a and 0x1c14 ask for the slot's level ((D+4 >> 3) & 0xf); with the request locked (0x576794c), the
+// 0x1c0a is not searched.
 TEST(HudItemsTest, TheLevelledTypesAskForTheLevelOfTheSlot)
 {
     Cells cells{};
@@ -121,7 +120,7 @@ TEST(HudItemsTest, TheLevelledTypesAskForTheLevelOfTheSlot)
     EXPECT_EQ(Found(slots, cells, 0, true), 3u);
 }
 
-// Un 0x1c14 con nivel deja el rango en locales sin inicializar (0x558191 y 0x5584ec): el error, con la dirección.
+// A 0x1c14 with a level leaves the range in uninitialized locals (0x558191 and 0x5584ec): the error, with the address.
 TEST(HudItemsTest, ALevelled1c14HasNoRange)
 {
     const Cells cells{};
@@ -136,8 +135,9 @@ TEST(HudItemsTest, ALevelled1c14HasNoRange)
     EXPECT_NE(counted.Error().find("0x558490"), std::string::npos) << counted.Error();
 }
 
-// 0x558119..0x558141 (CL9 hito 4): las skills piden las pociones de maná con 3 (0x1c04 a 0x1c06) y las de vida con 4
-// (0x1c00 a 0x1c03), sin mirar las ranuras, su nivel ni 0x576794c; con 5 el rango sale de locales sin inicializar.
+// 0x558119..0x558141 (CL9 milestone 4): the skills ask for the mana potions with 3 (0x1c04 to 0x1c06) and the life
+// ones with 4 (0x1c00 to 0x1c03), without looking at the slots, their level or 0x576794c; with 5 the range comes from
+// uninitialized locals.
 TEST(HudItemsTest, TheSkillsAskForTheManaAndLifePotionsWith3And4)
 {
     Cells cells{};
@@ -149,7 +149,7 @@ TEST(HudItemsTest, TheSkillsAskForTheManaAndLifePotionsWith3And4)
     QuickSlots slots;
     slots.types = {0x1c14, 0x1c0a, 0x1c08};
     slots.levels = {3, 3, 3};
-    // La 0x1c05 gana a la 0x1c04 y la 0x1c02 a la 0x1c00, aunque estén después en la grilla.
+    // 0x1c05 beats 0x1c04 and 0x1c02 beats 0x1c00, even though they are later in the grid.
     EXPECT_EQ(Found(slots, cells, Client::Items::ManaPotionSlot, true), 7u * 8u + 1u);
     EXPECT_EQ(Found(slots, cells, Client::Items::LifePotionSlot, true), 1u * 8u + 6u);
     cells[7 * 8 + 1].occupied = 0;
@@ -162,7 +162,7 @@ TEST(HudItemsTest, TheSkillsAskForTheManaAndLifePotionsWith3And4)
     EXPECT_NE(fifth.Error().find("0x558110(5)"), std::string::npos) << fifth.Error();
 }
 
-// 0x558490: las pociones suman D+0x1a en todo su rango; 0x1c09, 0x1c0a y 0x1c14 cuentan casillas.
+// 0x558490: the potions add up D+0x1a over their whole range; 0x1c09, 0x1c0a and 0x1c14 count cells.
 TEST(HudItemsTest, TheCountAddsThePotionsAndCountsTheOthers)
 {
     Cells cells{};
@@ -180,8 +180,8 @@ TEST(HudItemsTest, TheCountAddsThePotionsAndCountsTheOthers)
     EXPECT_EQ(Counted(slots, cells, 2), 2);
 }
 
-// 0x557d80: solo el elfo (clase & 7 en 2); el arco de la izquierda pide flechas (0x80f) y la ballesta de la derecha
-// virotes (0x807), y cuenta casillas.
+// 0x557d80: only the elf (class & 7 at 2); the left bow asks for arrows (0x80f) and the right crossbow for bolts
+// (0x807), and it counts cells.
 TEST(HudItemsTest, TheAmmoIsTheElfsArrowsOrBolts)
 {
     Cells cells{};
@@ -197,8 +197,8 @@ TEST(HudItemsTest, TheAmmoIsTheElfsArrowsOrBolts)
     EXPECT_EQ(CountTheAmmo(1, 0, 0x800, cells), 0);
 }
 
-// 0x5b1ba0: la durabilidad de Item.bmd (+0x2d, o +0x2e en los báculos) más 1, 2, 3, 4, 5 o 6 por nivel, y 20 por
-// ancestral o 15 por excelente.
+// 0x5b1ba0: Item.bmd's durability (+0x2d, or +0x2e for the staffs) plus 1, 2, 3, 4, 5 or 6 per level, and 20 for
+// ancient or 15 for excellent.
 TEST(HudItemsTest, TheMaxDurabilityGrowsWithTheLevelAndTheOptions)
 {
     Record record{};
@@ -229,7 +229,7 @@ TEST(HudItemsTest, TheMaxDurabilityGrowsWithTheLevelAndTheOptions)
     }
 }
 
-// El "%s" de Item.bmd: hasta el primer '\0', o los 0x54 bytes.
+// Item.bmd's "%s": up to the first '\0', or the 0x54 bytes.
 TEST(HudItemsTest, TheNameStopsAtTheFirstZero)
 {
     Record record{};

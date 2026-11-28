@@ -32,10 +32,10 @@
 #include <utility>
 #include <vector>
 
-// El dibujo de los globos (CL8 hito 3; 06 § El chat, "Los globos"): 0x5a9050, 0x555840 y 0x555b00 con TextOut distinto
-// de 1. La proyección de los tests deja la x de la pantalla en el centro menos la x del dueño y la y en el centro más
-// la altura del globo (el techo más la z más 60) menos 300, con el ojo siempre a 1. El texto mide como el rasterizador
-// falso: 6 columnas por letra. Los nombres, los títulos y los textos (el 1104 también) son inventados.
+// The bubbles' drawing (CL8 milestone 3; 06 § El chat, "Los globos"): 0x5a9050, 0x555840 and 0x555b00 with TextOut
+// other than 1. The tests' projection leaves the screen x at the center minus the owner's x and the y at the center
+// plus the bubble's height (the top plus the z plus 60) minus 300, with the eye always at 1. The text measures like
+// the fake rasterizer: 6 columns per letter. The names, the titles and the texts (the 1104 too) are made up.
 namespace
 {
 using Client::Chat::ChatBubble;
@@ -52,11 +52,11 @@ using Client::Tests::RecordingTextDrawer;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
-// FontStepFor: 12 en 640 y 14 en 1024.
+// FontStepFor: 12 at 640 and 14 at 1024.
 constexpr int Step640 = 12;
 constexpr int Step1024 = 14;
 constexpr float PlayerTop = 120.0f;
-// El texto 1104, la cabeza del título de una tienda: 8 letras, 48 columnas.
+// The text 1104, the head of a shop's title: 8 letters, 48 columns.
 constexpr std::string_view ShopHeader = "[Puesto]";
 constexpr int ShopHeaderWidth = 48;
 
@@ -101,7 +101,6 @@ protected:
         return actor;
     }
 
-    // El globo `index` de `owner`, con su nombre y un renglón vivo.
     ChatBubble& Bubble(std::size_t index, std::size_t owner, std::string name, std::string line)
     {
         ChatBubble& bubble = m_world->Runtime().chat.bubbles[index];
@@ -154,7 +153,7 @@ protected:
     bool m_withTexts = true;
 };
 
-// 0x555840: el nombre con 3 más, el gremio y el puesto, y los renglones que tienen tiempo; el alto, cinco pasos.
+// 0x555840: the name with 3 more, the guild and the post, and the lines that have time; the height, five steps.
 TEST_F(ChatBubbleDrawTest, TheMeasureTakesTheWidestShownText)
 {
     ChatBubble bubble;
@@ -182,8 +181,8 @@ TEST_F(ChatBubbleDrawTest, TheMeasureTakesTheWidestShownText)
     EXPECT_EQ(bubble.height, 5 * Step1024);
 }
 
-// 0x5559c2..0x555a62: con el título corto de una tienda (+0x54), el ancho es al menos el del título más el del texto
-// 1104, en negrita, y el alto suma un renglón. Sin Text.bmd corta, después de escribir el tamaño de siempre.
+// 0x5559c2..0x555a62: with a shop's short title (+0x54), the width is at least the title's plus the text 1104's, in
+// bold, and the height adds a line. Without Text.bmd it stops, after writing the usual size.
 TEST_F(ChatBubbleDrawTest, AShopTitleWidensTheMeasureByOneRow)
 {
     ChatBubble bubble;
@@ -194,7 +193,7 @@ TEST_F(ChatBubbleDrawTest, AShopTitleWidensTheMeasureByOneRow)
     EXPECT_EQ(bubble.width, 11 * 6 + ShopHeaderWidth);
     EXPECT_EQ(bubble.height, 6 * Step640);
 
-    // Un nombre más ancho que los dos queda.
+    // A name wider than both stays.
     bubble.name = "Un nombre bastante largo";
     ASSERT_TRUE(Client::Chat::MeasureTheChatBubble(bubble, m_text, Step1024, &m_texts).HasValue());
     EXPECT_EQ(bubble.width, 24 * 6 + 3);
@@ -208,8 +207,8 @@ TEST_F(ChatBubbleDrawTest, AShopTitleWidensTheMeasureByOneRow)
     EXPECT_EQ(bubble.height, 60);
 }
 
-// 0x5a9050: centrado sobre el techo del dueño más 60, 0x24 más arriba, y dibujado en píxeles: el nombre y el renglón,
-// un paso más abajo, con la fuente normal en el DC y 0x77f3b66 prendido.
+// 0x5a9050: centered above the owner's top plus 60, 0x24 higher, and drawn in pixels: the name and the line, one step
+// lower, with the normal font in the DC and 0x77f3b66 set.
 TEST_F(ChatBubbleDrawTest, TheBubbleGoesCenteredAboveItsOwner)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
@@ -242,8 +241,7 @@ TEST_F(ChatBubbleDrawTest, TheBubbleGoesCenteredAboveItsOwner)
     EXPECT_EQ(m_sprites.Commands().back().blend, Client::Render::BlendMode::Alpha);
 }
 
-// En 1024 × 768 el globo se ubica en 640 × 480 (la mitad de 27 · 640 / 1024 es 8) y se dibuja en píxeles, con el paso
-// de 14.
+// At 1024 × 768 the bubble is placed in 640 × 480 (half of 27 · 640 / 1024 is 8) and drawn in pixels, step 14.
 TEST_F(ChatBubbleDrawTest, OnAWiderScreenItIsDrawnInPixels)
 {
     UseTheScreen(Screen1024);
@@ -253,7 +251,7 @@ TEST_F(ChatBubbleDrawTest, OnAWiderScreenItIsDrawnInPixels)
     const auto drawn = Draw();
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // (512 − 100) · 640 / 1024 = 257 y (384 − 110) · 480 / 768 = 171.
+    // (512 − 100) · 640 / 1024 = 257 and (384 − 110) · 480 / 768 = 171.
     EXPECT_EQ(Bubbles(0).x, 249);
     EXPECT_EQ(Bubbles(0).y, 135);
     EXPECT_EQ(Bubbles(0).height, 5 * Step1024);
@@ -264,8 +262,8 @@ TEST_F(ChatBubbleDrawTest, OnAWiderScreenItIsDrawnInPixels)
     EXPECT_EQ(Texts()[1].y, 216 + Step1024);
 }
 
-// 0x5a910d: el primero de un par que se pisa sube arriba del otro si su y está antes de la mitad del otro, y si no,
-// baja debajo. El otro, ya sin pisarse, queda donde estaba.
+// 0x5a910d: the first of an overlapping pair goes up above the other if its y is before the other's middle, and if
+// not, goes down below it. The other, no longer overlapped, stays where it was.
 TEST_F(ChatBubbleDrawTest, AnOverlappingBubbleMovesAboveOrBelowTheOther)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -277,14 +275,14 @@ TEST_F(ChatBubbleDrawTest, AnOverlappingBubbleMovesAboveOrBelowTheOther)
     EXPECT_EQ(Bubbles(0).y, 94 - 60);
     EXPECT_EQ(Bubbles(1).y, 94);
 
-    // El segundo 40 más arriba: el primero (94) queda en su mitad de abajo y baja a 54 + 60.
+    // The second one 40 higher: the first (94) is in its lower half and goes down to 54 + 60.
     m_world->Actors()[5].position.z = -30.0f;
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(Bubbles(1).y, 54);
     EXPECT_EQ(Bubbles(0).y, 114);
 }
 
-// 0x5a9216: una x o una y negativa va a 0 y una que pasa de W o H menos el tamaño va contra el borde.
+// 0x5a9216: a negative x or y goes to 0 and one past W or H minus the size goes against the edge.
 TEST_F(ChatBubbleDrawTest, TheEdgesKeepTheBubbleOnTheScreen)
 {
     Actor(4, "Tero", glm::vec3(-400.0f, 0.0f, 10.0f));
@@ -298,8 +296,8 @@ TEST_F(ChatBubbleDrawTest, TheEdgesKeepTheBubbleOnTheScreen)
     EXPECT_EQ(Bubbles(1).y, 0);
 }
 
-// Q-C522: el borde compara la x de 640 × 480 con W menos el ancho en píxeles. En 1024 × 768 una x de 690 no se corre,
-// y 0x554000 pone la caja contra el borde de la pantalla.
+// Q-C522: the edge compares the 640 × 480 x with W minus the width in pixels. At 1024 × 768 an x of 690 does not
+// move, and 0x554000 puts the box against the screen's edge.
 TEST_F(ChatBubbleDrawTest, TheEdgeComparesDesignXWithPixels)
 {
     UseTheScreen(Screen1024);
@@ -316,8 +314,8 @@ TEST_F(ChatBubbleDrawTest, TheEdgeComparesDesignXWithPixels)
     EXPECT_EQ(quad[0].x, 1024.0f - 27.0f);
 }
 
-// 0x5565ef..0x5566d2: el nombre con el color de +0x64, y el de adelante y el fondo del globo propio, del mismo
-// gremio (+0x1f2, también sin gremio los dos) o por +0x370 del dueño (0x513270 y 0x5132a0).
+// 0x5565ef..0x5566d2: the name with the color of +0x64, and the prefix and the background of the own bubble, of the
+// same guild (+0x1f2, also both without a guild) or by the owner's +0x370 (0x513270 and 0x5132a0).
 TEST_F(ChatBubbleDrawTest, TheColorsComeFromTheOwner)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -387,8 +385,8 @@ TEST_F(ChatBubbleDrawTest, TheColorsComeFromTheOwner)
     }
 }
 
-// 0x5567ff..0x556cd2: el gremio y el puesto con su cx de adelante, el nombre, y los dos renglones con el fondo de +0x65
-// y la mitad del alfa con menos de 10 pasos; los colores del último quedan en 0x6c8e5c y 0x6c8e64.
+// 0x5567ff..0x556cd2: the guild and the post with their prefix cx, the name, and the two lines with the background of
+// +0x65 and half the alpha with fewer than 10 steps; the last one's colors stay in 0x6c8e5c and 0x6c8e64.
 TEST_F(ChatBubbleDrawTest, TheLinesComeInTheirOrderAndColors)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -415,7 +413,7 @@ TEST_F(ChatBubbleDrawTest, TheLinesComeInTheirOrderAndColors)
     EXPECT_EQ(Texts()[4].style.colors, (TextColors{.text = 0xffc8dce6u, .background = 0x9600321eu}));
     EXPECT_EQ(m_textColors, (TextColors{.text = 0xffc8dce6u, .background = 0x9600321eu}));
 
-    // Sin el de arriba, solo el de abajo; con +0x65 en otro valor, el tercer fondo.
+    // Without the upper one, only the lower one; with +0x65 at another value, the third background.
     m_text.texts.clear();
     bubble.time2 = 0;
     bubble.time1 = 9;
@@ -426,8 +424,8 @@ TEST_F(ChatBubbleDrawTest, TheLinesComeInTheirOrderAndColors)
     EXPECT_EQ(Texts()[3].style.colors, (TextColors{.text = 0x80c8dce6u, .background = 0x96000032u}));
 }
 
-// 0x5566d7..0x5567f4: con el mouse encima, el campo del chat abierto, el héroe en la zona segura y otro nombre, el
-// texto y el fondo se cambian en 3 de cada 6 dibujos del área; los renglones no.
+// 0x5566d7..0x5567f4: with the mouse over it, the chat field open, the hero in the safe zone and another name, the
+// text and the background swap in 3 of every 6 draws of the area; the lines do not.
 TEST_F(ChatBubbleDrawTest, TheMouseSwapsTheColorsOfAnotherName)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -458,8 +456,8 @@ TEST_F(ChatBubbleDrawTest, TheMouseSwapsTheColorsOfAnotherName)
     EXPECT_EQ(nameColors(inside, 0), plain);
 }
 
-// 0x555b18 y 0x555b2a..0x555bda: el dueño con el bit 0x10000000 de +0x7c, o de otro bando en el asedio, no tiene
-// globo, pero el lugar se calcula igual.
+// 0x555b18 and 0x555b2a..0x555bda: the owner with the bit 0x10000000 of +0x7c, or of another side in the siege, has
+// no bubble, but the place is computed anyway.
 TEST_F(ChatBubbleDrawTest, SomeOwnersHaveNoBubble)
 {
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -482,7 +480,7 @@ TEST_F(ChatBubbleDrawTest, SomeOwnersHaveNoBubble)
     EXPECT_EQ(Texts().size(), 2u);
 }
 
-// Un dibujo intermedio de MuRet dibuja igual, pero no escribe la tabla: el clic del paso lee la del último frame.
+// An intermediate MuRet draw draws the same, but does not write the table: the step's click reads the last frame's.
 TEST_F(ChatBubbleDrawTest, AnIntermediateDrawLeavesTheTableAlone)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -496,7 +494,7 @@ TEST_F(ChatBubbleDrawTest, AnIntermediateDrawLeavesTheTableAlone)
     EXPECT_EQ(Bubbles(0).width, 0);
 }
 
-// Sin la proyección del pase del mundo, un globo vivo corta; sin globos vivos no hace falta.
+// Without the world pass's projection, a live bubble stops; without live bubbles it is not needed.
 TEST_F(ChatBubbleDrawTest, WithoutTheProjectionALiveBubbleIsCut)
 {
     ASSERT_TRUE(Draw(false, {}, 0, false).HasValue());
@@ -509,7 +507,7 @@ TEST_F(ChatBubbleDrawTest, WithoutTheProjectionALiveBubbleIsCut)
     EXPECT_NE(drawn.Error().find("0x5a90be"), std::string::npos);
 }
 
-// 0x5a90b2: un globo vivo sin dueño (+0x288, que solo escribe 0x557430, sin quien la llame) corta.
+// 0x5a90b2: a live bubble without an owner (+0x288, which only 0x557430 writes, with no caller) stops.
 TEST_F(ChatBubbleDrawTest, ABubbleWithoutOwnerIsCut)
 {
     Bubbles(3).nameTime = 5;
@@ -520,8 +518,8 @@ TEST_F(ChatBubbleDrawTest, ABubbleWithoutOwnerIsCut)
     EXPECT_NE(drawn.Error().find("0x5a90b2"), std::string::npos);
 }
 
-// 0x557650 lee dónde quedó el globo: antes del dibujo el derecho no lo toca; después, el derecho sobre uno ajeno
-// llega al susurro (0x5577a2).
+// 0x557650 reads where the bubble ended up: before the draw the right click does not touch it; after it, the right
+// click on someone else's reaches the whisper (0x5577a2).
 TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
 {
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 0.0f, 10.0f));
@@ -544,9 +542,9 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
-// 0x5563a4..0x5565ef: con el cartel del dueño, el texto 1104 (como lo de adelante, de su ancho) y el título corto a su
-// derecha, en negrita y dos renglones más arriba, con los colores de 0x451af0, 0x451b50 y 0x451bb0; los demás
-// renglones, uno más arriba (Q-C978), y el DC en la normal.
+// 0x5563a4..0x5565ef: with the owner's sign, the text 1104 (as the prefix, of its width) and the short title to its
+// right, in bold and two lines higher, with the colors of 0x451af0, 0x451b50 and 0x451bb0; the other lines, one
+// higher (Q-C978), and the DC in the normal font.
 TEST_F(ChatBubbleDrawTest, ABubbleOfAShopOwnerHasItsTitleAbove)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
@@ -556,7 +554,7 @@ TEST_F(ChatBubbleDrawTest, ABubbleOfAShopOwnerHasItsTitleAbove)
 
     ASSERT_TRUE(Draw().HasValue());
 
-    // x: 320 − 100 − 114 / 2; y: 94, como sin tienda; 72 de alto.
+    // x: 320 − 100 − 114 / 2; y: 94, as without a shop; 72 high.
     EXPECT_EQ(Bubbles(0).x, 163);
     EXPECT_EQ(Bubbles(0).y, 94);
     EXPECT_EQ(Bubbles(0).width, 114);
@@ -588,8 +586,8 @@ TEST_F(ChatBubbleDrawTest, ABubbleOfAShopOwnerHasItsTitleAbove)
     EXPECT_EQ(m_dcFont, FontKind::Normal);
 }
 
-// 0x451af0, 0x451b50 y 0x451bb0: +0x60 del cartel (0x4517c0) cambia los colores; +0x370 en 2 u 8 va como el PK 6, y el
-// PK 4 y el 5 tienen los suyos.
+// 0x451af0, 0x451b50 and 0x451bb0: the sign's +0x60 (0x4517c0) changes the colors; +0x370 at 2 or 8 goes like PK 6,
+// and PK 4 and 5 have their own.
 TEST_F(ChatBubbleDrawTest, TheShopTitleColorsComeFromTheSignAndTheOwner)
 {
     ActorState& owner = Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));
@@ -666,9 +664,9 @@ TEST_F(ChatBubbleDrawTest, TheShopTitleColorsComeFromTheSignAndTheOwner)
     }
 }
 
-// El dibujo mira el cartel (0x451810) y no +0x54: un globo de antes del cartel no tiene título pero dibuja el texto
-// 1104 y un título vacío con el ancho del globo menos el del texto, negativo en uno angosto (Q-C978); un título sin
-// cartel ensancha la medida y no se dibuja. Sin Text.bmd, el dibujo con cartel corta.
+// The draw looks at the sign (0x451810) and not at +0x54: a bubble from before the sign has no title but draws the
+// text 1104 and an empty title with the bubble's width minus the text's, negative in a narrow one (Q-C978); a title
+// without a sign widens the measurement and is not drawn. Without Text.bmd, the draw with a sign stops.
 TEST_F(ChatBubbleDrawTest, TheTitleRowsFollowTheSignAndNotTheBubble)
 {
     Actor(4, "Tero", glm::vec3(100.0f, 7.0f, 10.0f));

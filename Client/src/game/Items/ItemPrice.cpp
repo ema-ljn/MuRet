@@ -25,17 +25,17 @@ namespace
 using Record = std::span<const std::byte, Tables::ItemRecordSize>;
 
 constexpr std::uint16_t NoItem = 0xffff;
-// D+0x2b: la primera opción.
+// D+0x2b: the first option.
 constexpr std::size_t OptionsAt = 0x2b;
-// Lo que lee de Item.bmd: el precio fijo (+0x40, un dword con signo), el nivel del ítem (+0x20, un word), el byte
-// +0x1e (1 en las armas de dos manos del archivo del repo), la durabilidad (+0x2d) y el valor de las pociones (+0x3c).
+// What it reads from Item.bmd: the fixed price (+0x40, a signed dword), the item level (+0x20, a word), the byte +0x1e
+// (1 in the two-handed weapons of the repo's file), the durability (+0x2d) and the potions' value (+0x3c).
 constexpr std::size_t FixedPriceAt = 0x40;
 constexpr std::size_t ItemLevelAt = 0x20;
 constexpr std::size_t TwoHandedAt = 0x1e;
 constexpr std::size_t DurabilityAt = 0x2d;
 constexpr std::size_t PotionValueAt = 0x3c;
 
-// 0x54d1b2..0x54d1d3: el grupo (el tipo / 512, con signo) y el nivel ((D+4 >> 3) & 0xf).
+// 0x54d1b2..0x54d1d3: the group (the type / 512, signed) and the level ((D+4 >> 3) & 0xf).
 constexpr std::int32_t GroupSize = 512;
 constexpr std::uint32_t LevelShift = 3;
 constexpr std::uint32_t LevelMask = 0xf;
@@ -44,18 +44,17 @@ constexpr std::int32_t HelperGroup = 13;
 constexpr std::int32_t ScrollGroup = 15;
 constexpr std::int32_t LastWeaponGroup = 6;
 
-// 0x54d1dc..0x54d20b: la base, el nivel de Item.bmd + 3 por nivel, + 25 con alguna opción de 0x56 a 0x63.
+// 0x54d1dc..0x54d20b: the base, Item.bmd's level + 3 per level, + 25 with any option from 0x56 to 0x63.
 constexpr std::int32_t BasePerLevel = 3;
 constexpr std::uint8_t FirstExcellentTag = 0x56;
 constexpr std::uint8_t LastExcellentTag = 0x63;
 constexpr std::int32_t ExcellentBase = 25;
 
-// 0x54da1d..0x54da2b: el tope de los casos que pasan por ahí.
+// 0x54da1d..0x54da2b: the cap of the cases that go through there.
 constexpr std::int64_t PriceCap = 3'000'000'000;
-// 0x54d145, 0x54d6cf y 0x54da51: lo que dividen los modos distintos de 0.
+// 0x54d145, 0x54d6cf and 0x54da51: what the modes other than 0 divide by.
 constexpr std::int64_t ModeDivisor = 3;
 
-// Los tipos con caso propio.
 constexpr std::uint16_t Bolts = 0x807;
 constexpr std::uint16_t Arrows = 0x80f;
 constexpr std::uint16_t BlessBundle = 0x181e;
@@ -86,7 +85,7 @@ struct ConstantPrice
     std::int64_t price = 0;
 };
 
-// 0x54d2b1..0x54d63a: los precios fijos, que van por 0x54da30 (sin tope).
+// 0x54d2b1..0x54d63a: the fixed prices, which go through 0x54da30 (no cap).
 constexpr std::array<ConstantPrice, 11> ConstantPrices{{{.type = 0x1c0d, .price = 9'000'000},
                                                         {.type = 0x1c0e, .price = 6'000'000},
                                                         {.type = 0x180f, .price = 810'000},
@@ -105,71 +104,71 @@ struct FirstLevelsPrice
     std::array<std::int64_t, 2> prices{};
 };
 
-// Los de los niveles 0 y 1 (por 0x54da30); con otro nivel, 0 y a 0x54da38. 0x1a14 y 0x1a1f van después de las
-// pociones (0x54d6ef y 0x54d714).
+// Those of levels 0 and 1 (through 0x54da30); with another level, 0 and to 0x54da38. 0x1a14 and 0x1a1f come after
+// the potions (0x54d6ef and 0x54d714).
 constexpr std::array<FirstLevelsPrice, 3> FirstLevelsPrices{{{.type = 0x1a0e, .prices = {180'000, 7'500'000}},
                                                              {.type = 0x1a07, .prices = {1'500'000, 1'200'000}},
                                                              {.type = 0x1a0b, .prices = {100'000, 2'400'000}}}};
 constexpr FirstLevelsPrice WizardRingPrices{.type = WizardRing, .prices = {30'000, 0}};
 constexpr FirstLevelsPrice SpiritPrices{.type = Spirit, .prices = {30'000'000, 15'000'000}};
 
-// 0x54d21b..0x54d265: los virotes y las flechas, por nivel.
+// 0x54d21b..0x54d265: the bolts and the arrows, by level.
 constexpr std::array<std::int32_t, 3> BoltPrices{100, 1'400, 2'200};
 constexpr std::array<std::int32_t, 3> ArrowPrices{70, 1'200, 2'000};
-// 0x402d60: los paquetes de joyas, (5 · nivel + 5) · 18.000.000 y (nivel + 1) · 60.000.000.
+// 0x402d60: the jewel bundles, (5 · level + 5) · 18000000 and (level + 1) · 60000000.
 constexpr std::int32_t BlessBundleStep = 18'000'000;
 constexpr std::int32_t BlessBundleLevels = 5;
 constexpr std::int32_t SoulBundleStep = 60'000'000;
-// 0x54d340..0x54d37a: el Dinorant, 960.000 y 300.000 por cada opción 0x61, 0x67 o 0x68.
+// 0x54d340..0x54d37a: the Dinorant, 960000 and 300000 for each option 0x61, 0x67 or 0x68.
 constexpr std::int64_t DinorantPrice = 960'000;
 constexpr std::int64_t DinorantOptionPrice = 300'000;
 constexpr std::array<std::uint8_t, 3> DinorantOptions{0x61, 0x67, 0x68};
-// 0x54d9c4..0x54da0e: el pergamino y el hueso, por nivel de 1 a 7, por 3.
+// 0x54d9c4..0x54da0e: the scroll and the bone, by level from 1 to 7, times 3.
 constexpr std::array<std::int64_t, 7> ArchangelPrices{5'000, 7'000, 10'000, 13'000, 16'000, 20'000, 25'000};
 constexpr std::int64_t TripledPrice = 3;
-// 0x54d3b3..0x54d3d8: la capa, (5 · nivel + 45) · 4.000, o 50.000 en el nivel 1, por 3.
+// 0x54d3b3..0x54d3d8: the cloak, (5 · level + 45) · 4000, or 50000 at level 1, times 3.
 constexpr std::int32_t CloakLevels = 5;
 constexpr std::int32_t CloakBase = 45;
 constexpr std::int32_t CloakStep = 4'000;
 constexpr std::int64_t CloakFirstLevelPrice = 50'000;
-// 0x54d3f5..0x54d46e y 0x54d59f..0x54d5e8: los que van por la durabilidad (D+0x1a).
+// 0x54d3f5..0x54d46e and 0x54d59f..0x54d5e8: the ones priced by the durability (D+0x1a).
 constexpr std::int64_t KundunPerUnit = 30'000;
 constexpr std::int64_t RenaPrice = 9'000;
 constexpr std::int32_t RenaUnitLevel = 3;
 constexpr std::int64_t RenaPerUnit = 3'900;
 constexpr std::array<std::int64_t, 2> SiegePotionPerUnit{900'000, 450'000};
 constexpr std::int64_t AlePrice = 1'000;
-// 0x54d47b..0x54d546: los del Devil Square, por nivel hasta el 4.
+// 0x54d47b..0x54d546: the Devil Square ones, by level up to 4.
 constexpr std::array<std::int64_t, 5> DevilPrices{30'000, 15'000, 21'000, 30'000, 45'000};
 constexpr std::array<std::int64_t, 5> InvitationPrices{120'000, 60'000, 84'000, 120'000, 180'000};
 
-// 0x54d64d..0x54d66a: el valor de +0x3c, 10 · v² / 12. 0x54d694..0x54d6ee: el de las pociones por 2^nivel y por la
-// durabilidad, y el redondeo a 10 en 32 bits.
+// 0x54d64d..0x54d66a: the value of +0x3c, 10 · v² / 12. 0x54d694..0x54d6ee: the potions' one times 2^level and times
+// the durability, and the rounding to 10 in 32 bits.
 constexpr std::int32_t PotionScale = 10;
 constexpr std::int32_t PotionDivisor = 12;
 constexpr std::int64_t PotionRound = 10;
 
-// 0x54d762..0x54d79f: lo que suma a la base cada nivel del 5 al 13 (la tabla de 0x54dc68).
+// 0x54d762..0x54d79f: what each level from 5 to 13 adds to the base (the table at 0x54dc68).
 constexpr std::int32_t FirstStepLevel = 5;
 constexpr std::array<std::int32_t, 9> LevelSteps{4, 10, 25, 45, 65, 95, 135, 185, 245};
-// 0x54d7b8..0x54d7df: (b + 40) · b², por 11 más 40.000.000 en las alas, o / 8 + 100.
+// 0x54d7b8..0x54d7df: (b + 40) · b², times 11 plus 40000000 for the wings, or / 8 + 100.
 constexpr std::uint32_t CubeOffset = 40;
 constexpr std::uint32_t WingFactor = 11;
 constexpr std::uint32_t WingBase = 40'000'000;
 constexpr std::int32_t GearDivisor = 8;
 constexpr std::int32_t GearBase = 100;
-// 0x54d803..0x54d814: las armas de una mano, al 80 %.
+// 0x54d803..0x54d814: the one-handed weapons, at 80 %.
 constexpr std::int64_t OneHandedPercent = 80;
 constexpr std::int64_t Percent = 100;
-// 0x54d963..0x54d96b: los ayudantes, los pergaminos y las alas de después de 0x1806, b³ + 100.
+// 0x54d963..0x54d96b: the helpers, the scrolls and the wings after 0x1806, b³ + 100.
 constexpr std::uint32_t HelperBase = 100;
 
-// Las opciones de las armas y las armaduras (la tabla de 0x54dca4 sobre la opción − 0x12).
+// The weapon and armor options (the table at 0x54dca4 over the option − 0x12).
 constexpr std::uint8_t ExtraOption = 0x55;
 constexpr std::uint8_t StepByFiveOption = 0x52;
 constexpr std::uint8_t ShiftOfExtraOption = 2;
-// 0x6b8b94 (1,5f), 0x6ba400 (0,25) y 0x6ba420..0x6ba408: los cuatro doubles de los escalones, uno por encima de 0,6,
-// 1,4, 2,8 y 5,6.
+// 0x6b8b94 (1.5f), 0x6ba400 (0.25) and 0x6ba420..0x6ba408: the four step doubles, each just above 0.6, 1.4, 2.8 and
+// 5.6.
 constexpr float SkillFactor = 1.5f;
 constexpr double QuarterFactor = 0.25;
 constexpr std::array<double, 4> StepFactors{0x1.3333333333334p-1, 0x1.6666666666667p+0, 0x1.6666666666667p+1,
@@ -177,31 +176,31 @@ constexpr std::array<double, 4> StepFactors{0x1.3333333333334p-1, 0x1.6666666666
 constexpr std::uint32_t StepOfFour = 4;
 constexpr std::uint32_t StepOfFive = 5;
 
-// 0x422930: el nivel del caballo por 2.000.000 y el del cuervo por 1.000.000, en 32 bits.
+// 0x422930: the horse's level times 2000000 and the raven's times 1000000, in 32 bits.
 constexpr std::uint32_t HorsePricePerLevel = 2'000'000;
 constexpr std::uint32_t RavenPricePerLevel = 1'000'000;
 
-// 0x54da69..0x54db10: los que pisan el precio después del modo.
+// 0x54da69..0x54db10: the ones that overwrite the price after the mode.
 constexpr std::uint16_t FirstOverridden = 0x1a20;
 constexpr std::uint16_t LastOverridden = 0x1a25;
 constexpr std::array<std::int64_t, 4> PerUnitOverrides{50, 100, 1'000, 10'000};
 constexpr std::array<std::int64_t, 2> FixedOverrides{30'000, 50'000};
 
-// 0x54dbea..0x54dc04: la durabilidad que falta, por el precio y por 0,6f (0x6b8a20).
+// 0x54dbea..0x54dc04: the missing durability, times the price and times 0.6f (0x6b8a20).
 constexpr float DurabilityShare = 0.6f;
 
-// 0x54dc17..0x54dc5c: el redondeo, a 100 desde 1.000 y a 10 desde 100.
+// 0x54dc17..0x54dc5c: the rounding, to 100 from 1000 and to 10 from 100.
 constexpr std::int64_t HundredsFrom = 1'000;
 constexpr std::int64_t TensFrom = 100;
 constexpr std::int64_t Hundred = 100;
 constexpr std::int64_t Ten = 10;
 
-// 0x54da42..0x54da4f: el ángel y el diablito no se dividen por el modo.
+// 0x54da42..0x54da4f: the angel and the imp are not divided by the mode.
 constexpr std::uint16_t Angel = 0x1a00;
 constexpr std::uint16_t Imp = 0x1a01;
 
-// 0x5b13e0: el tope (0x17d78400, con signo), 3,0f (0x6b86b8), 1,4f sin durabilidad (0x6ba610), el byte bajo de
-// [0x78abb10] por 0,05f (0x6b8a48) y el redondeo de 0x5b1464..0x5b14a3.
+// 0x5b13e0: the cap (0x17d78400, signed), 3.0f (0x6b86b8), 1.4f without durability (0x6ba610), the low byte of
+// [0x78abb10] times 0.05f (0x6b8a48) and the rounding of 0x5b1464..0x5b14a3.
 constexpr std::int32_t RepairPriceCap = 400'000'000;
 constexpr float RepairRootFactor = 3.0f;
 constexpr float BrokenFactor = 1.4f;
@@ -211,21 +210,21 @@ constexpr std::int32_t RepairHundredsFrom = 1'000;
 constexpr std::int32_t RepairTensFrom = 100;
 constexpr std::int32_t RepairHundred = 100;
 constexpr std::int32_t RepairTen = 10;
-// 0x5b14a5..0x5b14dd: los grupos de los miles.
+// 0x5b14a5..0x5b14dd: the thousands groups.
 constexpr std::uint32_t Thousand = 1'000;
 constexpr std::uint32_t Million = 1'000'000;
 constexpr std::uint32_t Billion = 1'000'000'000;
 
-// FILD qword sobre un entero de hasta 53 bits es el mismo double: con la x87 en PC53 (ADR 0012), el producto
-// redondeado una vez es el de la x87. Con uno más grande, la x87 multiplica el entero exacto y un double no.
+// FILD qword over an integer of up to 53 bits is the same double: with the x87 at PC53 (ADR 0012), the product rounded
+// once is the x87's. With a larger one, the x87 multiplies the exact integer and a double does not.
 constexpr std::int64_t ExactInADouble = std::int64_t{1} << 53;
 
 struct TypePrice
 {
     std::int64_t value = 0;
-    // Si sale por 0x54da1d, que le pone el tope; si no, por 0x54da30 o 0x54da38.
+    // Whether it leaves through 0x54da1d, which applies the cap; otherwise, through 0x54da30 or 0x54da38.
     bool capped = false;
-    // Las pociones devuelven en 0x54d6ee, sin el tope, el modo ni el redondeo del final.
+    // The potions return at 0x54d6ee, without the cap, the mode or the final rounding.
     std::optional<std::uint32_t> returned{};
 };
 
@@ -239,13 +238,13 @@ TypePrice Capped(std::int64_t value)
     return TypePrice{.value = value, .capped = true};
 }
 
-// __allmul (0x6a1da0): el producto de 64 bits, módulo 2^64.
+// __allmul (0x6a1da0): the 64-bit product, modulo 2^64.
 std::int64_t AllMul(std::int64_t left, std::int64_t right)
 {
     return static_cast<std::int64_t>(static_cast<std::uint64_t>(left) * static_cast<std::uint64_t>(right));
 }
 
-// __alldiv (0x6a0150): la división con signo de 64 bits, hacia el 0. Los divisores son constantes positivas.
+// __alldiv (0x6a0150): the signed 64-bit division, toward 0. The divisors are positive constants.
 std::int64_t AllDiv(std::int64_t dividend, std::int64_t divisor)
 {
     return dividend / divisor;
@@ -274,7 +273,7 @@ std::int32_t WordAt(Record record, std::size_t offset)
     return static_cast<std::int32_t>(ByteAt(record, offset) | (ByteAt(record, offset + 1) << 8));
 }
 
-// D+0x2b + offset: las opciones desde +0x2b y sus valores desde +0x33. MuRet tiene los bytes del ítem hasta +0x3b.
+// D+0x2b + offset: the options from +0x2b and their values from +0x33. MuRet has the item's bytes up to +0x3b.
 Core::Expected<std::uint8_t, std::string> OptionByte(const Kernel::ItemState& item, std::size_t offset,
                                                      std::string_view address)
 {
@@ -291,7 +290,7 @@ Core::Expected<std::uint8_t, std::string> OptionValue(const Kernel::ItemState& i
     return OptionByte(item, Kernel::ItemOptionValueOffset + index, address);
 }
 
-// 0x54dc17..0x54dc5c (y 0x54d14e..0x54d1b1): el dword bajo, redondeado con las cuentas de 64 bits.
+// 0x54dc17..0x54dc5c (and 0x54d14e..0x54d1b1): the low dword, rounded with the 64-bit arithmetic.
 std::uint32_t RoundThePrice(std::int64_t price)
 {
     if (price < 0)
@@ -303,7 +302,7 @@ std::uint32_t RoundThePrice(std::int64_t price)
     return LowDword(price);
 }
 
-// La multiplicación de la x87 sobre un entero de 64 bits (FILD qword) en PC53.
+// The x87's multiplication of a 64-bit integer (FILD qword) at PC53.
 Core::Expected<double, std::string> TimesInX87(std::int64_t price, double factor, std::string_view address)
 {
     if (price > ExactInADouble || price < -ExactInADouble)
@@ -313,7 +312,7 @@ Core::Expected<double, std::string> TimesInX87(std::int64_t price, double factor
     return static_cast<double>(price) * factor;
 }
 
-// 0x69fd3c sobre un producto acotado: un entero de hasta 53 bits por 5,6 o menos entra en 64 bits.
+// 0x69fd3c on a bounded product: an integer of up to 53 bits times 5.6 or less fits in 64 bits.
 std::int64_t Ftol64(double value)
 {
     return static_cast<std::int64_t>(value);
@@ -340,8 +339,8 @@ Core::Expected<std::int32_t, std::string> BaseOf(const Kernel::ItemState& item, 
     return excellent ? base + ExcellentBase : base;
 }
 
-// 0x54d21b..0x54d28a: la durabilidad por el precio del nivel, sobre la de Item.bmd. Desde el nivel 3, EBX queda con
-// la dirección del ítem (0x54d23b y 0x54d267) y el precio sale de ella (Q-C735).
+// 0x54d21b..0x54d28a: the durability times the level's price, over Item.bmd's. From level 3, EBX keeps the item's
+// address (0x54d23b and 0x54d267) and the price comes from it (Q-C735).
 Core::Expected<TypePrice, std::string> AmmoPrice(const Kernel::ItemState& item, Record record, std::int32_t level)
 {
     const std::uint8_t full = ByteAt(record, DurabilityAt);
@@ -356,7 +355,7 @@ Core::Expected<TypePrice, std::string> AmmoPrice(const Kernel::ItemState& item, 
     return Capped(std::int64_t{item.durability * prices[static_cast<std::size_t>(level)] / full});
 }
 
-// 0x402d60 (con 0x402b30 en 2 o 3).
+// 0x402d60 (with 0x402b30 at 2 or 3).
 TypePrice BundlePrice(const Kernel::ItemState& item, std::int32_t level)
 {
     if (item.id == BlessBundle)
@@ -422,7 +421,7 @@ std::optional<TypePrice> DurabilityPrice(const Kernel::ItemState& item, std::int
     return std::nullopt;
 }
 
-// 0x54d2b1..0x54d63a: los tipos con precio propio, antes de mirar +0x3c.
+// 0x54d2b1..0x54d63a: the types with their own price, before looking at +0x3c.
 std::optional<TypePrice> NamedTypePrice(const Kernel::ItemState& item, std::int32_t level)
 {
     for (const ConstantPrice& entry : ConstantPrices)
@@ -437,14 +436,14 @@ std::optional<TypePrice> NamedTypePrice(const Kernel::ItemState& item, std::int3
     return DurabilityPrice(item, level);
 }
 
-// 0x54d64d..0x54d6ee: el valor de +0x3c; de 0x1c00 a 0x1c08, por 2^nivel y por la durabilidad, y vuelve.
+// 0x54d64d..0x54d6ee: the value of +0x3c; from 0x1c00 to 0x1c08, times 2^level and times the durability, and returns.
 TypePrice PotionPrice(const Kernel::ItemState& item, Record record, std::int32_t mode, std::int32_t level)
 {
     const std::int32_t value = ByteAt(record, PotionValueAt);
     const std::int64_t base = value * value * PotionScale / PotionDivisor;
     if (item.id < FirstPotion || item.id > LastPotion)
         return Capped(base);
-    // pow(2.0, nivel) de 0x6a1b80 y 0x69fd3c: exacto.
+    // 0x6a1b80's pow(2.0, level) and 0x69fd3c: exact.
     std::int64_t price = level > 0 ? AllMul(std::int64_t{1} << level, base) : base;
     price = AllMul(item.durability, price);
     if (mode != 0)
@@ -453,7 +452,7 @@ TypePrice PotionPrice(const Kernel::ItemState& item, Record record, std::int32_t
     return TypePrice{.returned = tenths * static_cast<std::uint32_t>(PotionRound)};
 }
 
-// 0x54d963..0x54d9c2: b³ + 100, por el valor + 1 de cada opción 0x55.
+// 0x54d963..0x54d9c2: b³ + 100, times the value + 1 of each option 0x55.
 Core::Expected<TypePrice, std::string> HelperPrice(const Kernel::ItemState& item, std::int32_t base)
 {
     const auto side = static_cast<std::uint32_t>(base);
@@ -473,15 +472,15 @@ Core::Expected<TypePrice, std::string> HelperPrice(const Kernel::ItemState& item
     return Capped(price);
 }
 
-// Una opción de las armas y las armaduras (0x54d838..0x54d958, la tabla de 0x54dca4): lo que hace con el precio.
+// A weapon or armor option (0x54d838..0x54d958, the table at 0x54dca4): what it does to the price.
 enum class OptionEffect
 {
     None,
-    Skill,      // 0x12..0x18 y 0x38: suma el dword bajo de P · 1,5f
-    Step,       // 0x50, 0x51, 0x53 y 0x55: suma P por el escalón del valor 4, 8, 12 o 16
-    StepByFive, // 0x52: lo mismo con 5, 10, 15 o 20
-    Quarter,    // 0x54 y 0x64..0x68: suma P · 0,25
-    Double,     // 0x56..0x63 y 0x6e: P · 2
+    Skill,      // 0x12..0x18 and 0x38: adds the low dword of P · 1.5f
+    Step,       // 0x50, 0x51, 0x53 and 0x55: adds P times the value's step of 4, 8, 12 or 16
+    StepByFive, // 0x52: the same with 5, 10, 15 or 20
+    Quarter,    // 0x54 and 0x64..0x68: adds P · 0.25
+    Double,     // 0x56..0x63 and 0x6e: P · 2
 };
 
 OptionEffect EffectOf(std::uint8_t tag)
@@ -499,7 +498,7 @@ OptionEffect EffectOf(std::uint8_t tag)
     return OptionEffect::None;
 }
 
-// Las tablas de 0x54dd18, 0x54dd3c y 0x54dd60: el escalón de un valor, o ninguno.
+// The tables at 0x54dd18, 0x54dd3c and 0x54dd60: a value's step, or none.
 std::optional<std::size_t> StepOf(std::uint32_t value, std::uint32_t unit)
 {
     if (value < unit || value % unit != 0 || value / unit > StepFactors.size())
@@ -507,7 +506,7 @@ std::optional<std::size_t> StepOf(std::uint32_t value, std::uint32_t unit)
     return static_cast<std::size_t>(value / unit - 1);
 }
 
-// 0x54d87d..0x54d8f3: el escalón. En las alas hasta 0x1806, el valor de la 0x55 va por 4 (0x54d898).
+// 0x54d87d..0x54d8f3: the step. In the wings up to 0x1806, the value of 0x55 goes by 4 (0x54d898).
 Core::Expected<std::optional<std::size_t>, std::string>
 StepOfTheOption(const Kernel::ItemState& item, std::size_t index, std::uint8_t tag, bool earlyWing)
 {
@@ -540,7 +539,7 @@ Core::Expected<std::int64_t, std::string> AddTheOption(const Kernel::ItemState& 
         return AllMul(price, 2);
     case OptionEffect::Skill:
     {
-        // 0x54d870: ADD ESI, EAX y ADC EDI, 0: solo el dword bajo del _ftol, sin signo (Q-C736).
+        // 0x54d870: ADD ESI, EAX and ADC EDI, 0: only the _ftol's low dword, unsigned (Q-C736).
         auto product = TimesInX87(price, static_cast<double>(SkillFactor), "0x54d862");
         if (!product.HasValue())
             return Core::Unexpected(std::move(product).Error());
@@ -568,7 +567,7 @@ Core::Expected<std::int64_t, std::string> AddTheOption(const Kernel::ItemState& 
     return price + Ftol64(product.Value());
 }
 
-// 0x54d762..0x54d95e: las armas, las armaduras, las alas hasta 0x1806 y lo demás sin caso.
+// 0x54d762..0x54d95e: the weapons, the armors, the wings up to 0x1806 and the rest without a case.
 Core::Expected<TypePrice, std::string> GearPrice(const Kernel::ItemState& item, Record record, std::int32_t group,
                                                  std::int32_t level, std::int32_t base)
 {
@@ -577,7 +576,7 @@ Core::Expected<TypePrice, std::string> GearPrice(const Kernel::ItemState& item, 
     const auto side = static_cast<std::uint32_t>(base);
     const std::uint32_t cube = (side + CubeOffset) * side * side;
     const bool earlyWing = group == WingGroup && item.id <= LastEarlyWing;
-    // 0x54d7b1: la capa es del grupo 13 y nunca llega acá (Q-C737).
+    // 0x54d7b1: the cape is in group 13 and never gets here (Q-C737).
     const std::int32_t value = earlyWing || item.id == CapeOfLord
                                    ? static_cast<std::int32_t>(cube * WingFactor + WingBase)
                                    : static_cast<std::int32_t>(cube) / GearDivisor + GearBase;
@@ -604,7 +603,7 @@ std::optional<TypePrice> LatePrice(const Kernel::ItemState& item, std::int32_t l
     return std::nullopt;
 }
 
-// 0x54d1b2..0x54da1a: el precio de cada tipo, antes del tope y del modo.
+// 0x54d1b2..0x54da1a: each type's price, before the cap and the mode.
 Core::Expected<TypePrice, std::string> PriceByType(const Kernel::ItemState& item, Record record, std::int32_t mode,
                                                    std::int32_t level)
 {
@@ -640,7 +639,7 @@ std::int64_t Overridden(const Kernel::ItemState& item, std::int64_t price)
     return FixedOverrides[index - PerUnitOverrides.size()];
 }
 
-// 0x54db15..0x54db3a: 0x422930(1) con el caballo y 0x422930(0) con el cuervo.
+// 0x54db15..0x54db3a: 0x422930(1) with the horse and 0x422930(0) with the raven.
 Core::Expected<std::int64_t, std::string> PetPrice(const Kernel::ItemState& item,
                                                    const std::optional<PetPriceLevels>& pets, std::int64_t price)
 {
@@ -653,7 +652,7 @@ Core::Expected<std::int64_t, std::string> PetPrice(const Kernel::ItemState& item
     return std::int64_t{PetBasePrice(item.id, *pets)};
 }
 
-// 0x54db3d..0x54dbc0: los que descuentan la durabilidad, solo en el modo 1.
+// 0x54db3d..0x54dbc0: only in mode 1.
 bool DiscountsTheDurability(std::uint16_t type, std::int32_t mode)
 {
     const auto in = [type](std::uint16_t first, std::uint16_t last) { return type >= first && type <= last; };
@@ -664,7 +663,7 @@ bool DiscountsTheDurability(std::uint16_t type, std::int32_t mode)
     return mode == InventoryPrice && !in(FirstOverridden, LastOverridden);
 }
 
-// 0x54dbc2..0x54dc14: P − el dword bajo de _ftol((1 − durabilidad / máxima) · P · 0,6f), salvo en el 0x1a1f.
+// 0x54dbc2..0x54dc14: P − the low dword of _ftol((1 − durability / maximum) · P · 0.6f), except for 0x1a1f.
 Core::Expected<std::int64_t, std::string> DiscountTheDurability(const Kernel::ItemState& item, Record record,
                                                                 std::int32_t level, std::int64_t price)
 {
@@ -673,8 +672,8 @@ Core::Expected<std::int64_t, std::string> DiscountTheDurability(const Kernel::It
         return price;
     if (maximum == 0)
     {
-        // FIDIV por 0, enmascarada: un NaN (0 / 0, o −infinito por un precio en 0) da 0 en el _ftol (Q-C186); un
-        // infinito no se observó (P-C34).
+        // FIDIV by 0, masked: a NaN (0 / 0, or −infinity from a price at 0) gives 0 in the _ftol (Q-C186); an infinity
+        // was not observed (P-C34).
         if (item.durability == 0 || price == 0)
             return price;
         return Core::Unexpected(std::format("0x54dc04: el precio del {:#x} con la durabilidad máxima en 0 llega "
@@ -689,8 +688,8 @@ Core::Expected<std::int64_t, std::string> DiscountTheDurability(const Kernel::It
     return price - std::int64_t{LowDword(Ftol64(discount))};
 }
 
-// 0x5b13f2..0x5b143f: 3 · p^(3/4) · (1 − durabilidad / máxima, en float) + 1, por 1,4f sin durabilidad; 0 si no
-// falta nada (o con la máxima en 0: la FIDIV da +infinito o NaN, que no pasan el > 0).
+// 0x5b13f2..0x5b143f: 3 · p^(3/4) · (1 − durability / maximum, in float) + 1, times 1.4f without durability; 0 if
+// nothing is missing (or with the maximum at 0: the FIDIV gives +infinity or NaN, which do not pass the > 0).
 double RepairFee(std::int32_t price, std::int32_t durability, std::int32_t maxDurability)
 {
     if (maxDurability == 0)
@@ -698,7 +697,7 @@ double RepairFee(std::int32_t price, std::int32_t durability, std::int32_t maxDu
     const double missing = 1.0 - static_cast<double>(durability) / static_cast<double>(maxDurability);
     if (!(missing > 0.0))
         return 0.0;
-    // Un precio negativo da NaN en la FSQRT, y el _ftol de 0x5b145d lo deja en 0.
+    // A negative price gives NaN in the FSQRT, and 0x5b145d's _ftol leaves it at 0.
     const double root = std::sqrt(static_cast<double>(price));
     double fee = root * std::sqrt(root);
     fee *= static_cast<double>(RepairRootFactor);
@@ -709,7 +708,7 @@ double RepairFee(std::int32_t price, std::int32_t durability, std::int32_t maxDu
     return fee;
 }
 
-// 0x5b14a5..0x5b1566: los miles con "%d,%03d" y sus hermanos, en divisiones sin signo.
+// 0x5b14a5..0x5b1566: the thousands with "%d,%03d" and its siblings, in unsigned divisions.
 std::string GoldText(std::uint32_t gold)
 {
     const std::uint32_t units = gold % Thousand;
@@ -739,7 +738,7 @@ Core::Expected<std::uint32_t, std::string> ItemPrice(const Kernel::ItemState& it
     const auto record = type < 0 ? std::nullopt : items.Record(static_cast<std::size_t>(type));
     if (!record)
         return Core::Unexpected(std::format("0x54d133: el tipo {:#x} lee fuera de Item.bmd", item.id));
-    // 0x54d133..0x54d1b1: con precio fijo, sale con él (por 3 en los modos distintos de 0), redondeado.
+    // 0x54d133..0x54d1b1: with a fixed price, it leaves with it (divided by 3 in the modes other than 0), rounded.
     if (const std::int32_t fixed = DwordAt(*record, FixedPriceAt); fixed != 0)
         return RoundThePrice(mode != 0 ? AllDiv(fixed, ModeDivisor) : fixed);
     const std::int32_t level = LevelOf(item);
@@ -750,7 +749,7 @@ Core::Expected<std::uint32_t, std::string> ItemPrice(const Kernel::ItemState& it
     if (byType.returned)
         return *byType.returned;
     std::int64_t price = byType.capped && byType.value >= PriceCap ? PriceCap : byType.value;
-    // 0x54da38..0x54da66: el modo, salvo el ángel y el diablito.
+    // 0x54da38..0x54da66: the mode, except for the angel and the imp.
     if (mode != 0 && item.id != Angel && item.id != Imp)
         price = AllDiv(price, ModeDivisor);
     auto pet = PetPrice(item, pets, Overridden(item, price));
@@ -770,16 +769,16 @@ Core::Expected<std::uint32_t, std::string> ItemPrice(const Kernel::ItemState& it
 RepairPrice RepairPriceOf(std::uint32_t price, std::int32_t durability, std::int32_t maxDurability,
                           std::int32_t field78abb10)
 {
-    // 0x5b13e3..0x5b13ef: el tope, con signo.
+    // 0x5b13e3..0x5b13ef: the cap, signed.
     const auto capped = std::min(static_cast<std::int32_t>(price), RepairPriceCap);
     const double fee = RepairFee(capped, durability, maxDurability);
-    // 0x5b1441..0x5b145d: + [0x78abb10] (su byte bajo) · fee · 0,05f, y el _ftol.
+    // 0x5b1441..0x5b145d: + [0x78abb10] (its low byte) · fee · 0.05f, and the _ftol.
     const auto selfRepair = static_cast<double>(field78abb10 & SelfRepairMask);
     double total = selfRepair * fee;
     total *= static_cast<double>(SelfRepairShare);
     total += fee;
     std::int32_t gold = Math::FtolLow(total);
-    // 0x5b1464..0x5b14a3: a 100 desde 1.000 y a 10 desde 100, con signo.
+    // 0x5b1464..0x5b14a3: to 100 from 1000 and to 10 from 100, signed.
     if (gold >= RepairHundredsFrom)
         gold = gold / RepairHundred * RepairHundred;
     else if (gold >= RepairTensFrom)

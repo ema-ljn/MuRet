@@ -31,11 +31,11 @@
 #include <utility>
 #include <vector>
 
-// La vtable de las ventanas de los casos 1, 2, 6 y 7 de 0x48ee60 (CL9 hito 10): el chat con un amigo (0x6b9dc8), leer
-// una carta (0x6b9c58) y escribirla (0x6b9bfc); la pestaña de las cartas (0x4a11b0) y los botones 3 y 4 de la de los
-// amigos (0x49d0b0). Los dibujos (0x493fc0, 0x499d60, 0x498480 y los renglones de F5, 0x4a5750) están en
-// UI/LetterWindowsDraw, y el de la pestaña de las cartas (0x4a0a30), en UI/FriendWindowsDraw; el del retrato (0x497c10)
-// es de Scenes (P-C212).
+// The vtable of the windows of cases 1, 2, 6 and 7 of 0x48ee60 (CL9 milestone 10): the chat with a friend
+// (0x6b9dc8), reading a letter (0x6b9c58) and writing it (0x6b9bfc); the letters tab (0x4a11b0) and buttons 3 and 4
+// of the friends tab (0x49d0b0). The drawings (0x493fc0, 0x499d60, 0x498480 and F5's rows, 0x4a5750) are in
+// Messenger/LetterWindowsDraw, and the letters tab's (0x4a0a30), in Messenger/FriendWindowsDraw; the portrait's
+// (0x497c10) is in Messenger/LetterPortrait (P-C212).
 namespace Client::Messenger
 {
 namespace
@@ -43,7 +43,7 @@ namespace
 using Ui::OldDraw::RatioX;
 using Ui::OldDraw::Truncate;
 
-// Los mensajes de la cola (06 § Las ventanas viejas).
+// The queue's messages (06 § Las ventanas viejas).
 constexpr std::int32_t RaisedType = 6;
 constexpr std::int32_t EnterType = 7;
 constexpr std::int32_t PlaceType = 8;
@@ -52,7 +52,7 @@ constexpr std::int32_t CommandType = 10;
 constexpr std::int32_t AnswerType = 12;
 constexpr std::int32_t ChosenRowType = 13;
 constexpr std::int32_t ToTheEndType = 14;
-// Los estados de 0x45a9b0.
+// 0x45a9b0's states.
 constexpr std::int32_t HiddenState = 3;
 // 0x41ed10.
 constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
@@ -78,10 +78,10 @@ constexpr std::size_t ReplyText = 1016;
 constexpr std::size_t ReallyDeleteLettersText = 1017;
 constexpr std::size_t NoneCheckedText = 1031;
 constexpr std::size_t WriteTitleText = 1071;
-// 0x49d0b0 y 0x4a11b0: sprintf(1071, 1000), el costo de una carta.
+// 0x49d0b0 and 0x4a11b0: sprintf(1071, 1000).
 constexpr std::int32_t LetterCost = 1000;
 
-// Lo que pone 0x493220 (el chat), 0x4999d0 (leer) y 0x497f50 (escribir).
+// What 0x493220 (the chat), 0x4999d0 (read) and 0x497f50 (write) set.
 constexpr std::int32_t WindowPlace = 0x32;
 constexpr std::int32_t ChatWidth = 0xfa;
 constexpr std::int32_t ChatHeight = 0xaa;
@@ -89,9 +89,9 @@ constexpr std::int32_t ChatMinHeight = 0x96;
 constexpr std::int32_t ChatEditFilter = 4;
 constexpr std::size_t ChatEditLimit = 100;
 constexpr std::int32_t ChatInvitesWidth = 0x14a;
-// 0x494d1a: el chat que crece no pasa del borde derecho de 640.
+// 0x494d1a: a growing chat does not pass 640's right edge.
 constexpr std::int32_t ScreenWidth = 0x280;
-// +0x4c de las de las cartas: 0x1b (sin la esquina para el tamaño ni el botón de estirar).
+// +0x4c of the letter windows: 0x1b (without the resize corner or the stretch button).
 constexpr std::int32_t LetterFlags = 0x1b;
 constexpr std::int32_t ReadHeight = 0xb6;
 constexpr std::int32_t WriteHeight = 0xd8;
@@ -102,25 +102,25 @@ constexpr std::int32_t WriteMinHeight = 0x96;
 constexpr std::size_t ToLimit = 10;
 constexpr std::size_t SubjectLimit = 0x20;
 constexpr std::size_t BodyLimit = 1000;
-// 0x497f50: la acción 0x7a y el ángulo 90 (0x42b40000).
+// 0x497f50: action 0x7a and angle 90 (0x42b40000).
 constexpr std::int32_t WritePortraitAction = Protocol::Movement::FacingAction;
 constexpr float WritePortraitAngle = 90.0f;
-// El 4 de la ventana de escribir y su 5: la acción del retrato, una para atrás y una para adelante (0x497910).
+// The writing window's 4 and its 5: the portrait's action, one back and one forward (0x497910).
 constexpr std::int32_t PreviousAction = -1;
 constexpr std::int32_t NextAction = 1;
-// 0x4a2070: el alto de los encabezados de la lista de las cartas y el ancho de la marca de todas.
+// 0x4a2070: the height of the letter list's headers and the width of the all mark.
 constexpr std::int32_t HeaderHeight = 0x13;
 constexpr std::int32_t LetterMarkColumn = 0xa;
-// 0x460130 y 0x465450: con menos de 20 bytes, el renglón entero; si no, partido en el ancho de la lista menos 0x1e, en
-// hasta 10 (el chat, con la sangría del nombre más 5) o 0x50 (una carta).
+// 0x460130 and 0x465450: under 20 bytes, the whole line; otherwise, split at the list's width minus 0x1e, into up to
+// 10 (the chat, with the name's indent plus 5) or 0x50 (a letter).
 constexpr std::size_t ShortLine = 0x14;
 constexpr std::int32_t WrapInset = 0x1e;
 constexpr std::int32_t NameGap = 5;
 constexpr std::int32_t ChatWrapLines = 10;
 constexpr std::int32_t LetterWrapLines = 0x50;
-// 0x464ae0: strncpy 0x3e9 de cada renglón de una carta.
+// 0x464ae0: strncpy 0x3e9 of each line of a letter.
 constexpr std::size_t LetterLineBytes = 0x3e9;
-// 0x461600: hasta 3 nombres y después "...".
+// 0x461600: up to 3 names and then "...".
 constexpr std::int32_t TitleNames = 3;
 constexpr std::string_view TitleSeparator = ", ";
 constexpr std::string_view TitleMore = "...";
@@ -163,7 +163,7 @@ Core::Expected<std::int32_t, std::string> CreateFromAStep(Ui::OldWindowManager& 
     return Ui::CreateTheOldWindow(manager, request, *view.texts, *view.measure, &globals, &view);
 }
 
-// 0x45aa50 sobre un EDIT o una lista: el mensaje, y su vtable + 0x28 (0x45a640 o 0x47a9d0) y 0x45abc0.
+// 0x45aa50 over an EDIT or a list: the message, and its vtable + 0x28 (0x45a640 or 0x47a9d0) and 0x45abc0.
 void PostToTheEdit(Ui::OldWindowManager& manager, Ui::OldEdit& edit, std::int32_t type)
 {
     edit.base.queue.push_back(Ui::OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
@@ -175,7 +175,8 @@ void PostToTheEdit(Ui::OldWindowManager& manager, Ui::OldEdit& edit, std::int32_
     }
 }
 
-// 0x45aa50 sobre el retrato: su vtable + 0x28 (0x45a640) da 0 y queda 0x45abc0; la + 0x1c (0x403160) no hace nada.
+// 0x45aa50 over the portrait: its vtable + 0x28 (0x45a640) returns 0 and 0x45abc0 remains; the + 0x1c (0x403160)
+// does nothing.
 void PostToTheBase(Ui::OldWindowManager& manager, Ui::OldWindowBase& base, std::int32_t type)
 {
     base.queue.push_back(Ui::OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
@@ -187,17 +188,17 @@ void PostToTheBase(Ui::OldWindowManager& manager, Ui::OldWindowBase& base, std::
     }
 }
 
-// +0x48 en 2 (0x497aa0): el retrato que se gira con el mouse.
+// +0x48 at 2 (0x497aa0): the portrait being turned with the mouse.
 constexpr std::int32_t TurnedPortrait = 2;
-// 0x497a00: el ícono de la ayuda, 16 × 16 en (x + 1; y + alto − 0x11).
+// 0x497a00: the help icon, 16 × 16 at (x + 1; y + height − 0x11).
 constexpr std::int32_t HelpIconSide = 0x10;
 constexpr std::int32_t HelpIconBottom = 0x11;
-// 0x6b89e4, 0x6b8830 y 0x6b8a38: la rueda por 0,02 y el zoom entre 0,8 y 1,1 (0x3f4ccccd y 0x3f8ccccd).
+// 0x6b89e4, 0x6b8830 and 0x6b8a38: the wheel times 0.02 and the zoom between 0.8 and 1.1 (0x3f4ccccd and 0x3f8ccccd).
 constexpr float WheelZoomStep = 0.02f;
 constexpr float NearestZoom = 1.1f;
 constexpr float FarthestZoom = 0.8f;
 
-// 0x497a71..0x497b4b: el clic, el clic derecho o la rueda sobre el retrato.
+// 0x497a71..0x497b4b: the click, the right click or the wheel over the portrait.
 void HandleThePortraitPointer(Ui::OldPortraitPart& portrait, const Ui::OldWindowGlobals& globals,
                               const Ui::OldWindowStepView& view)
 {
@@ -207,8 +208,8 @@ void HandleThePortraitPointer(Ui::OldPortraitPart& portrait, const Ui::OldWindow
         portrait.help = 0;
         if (base.state != Ui::ShownWindow || globals.capture != 0)
             return;
-        // 0x497a9b..0x497ac0: lo agarra, lo pone a girar (la vtable + 4 con 2), guarda la X y SetCapture (MuRet no
-        // tiene la ventana de Windows).
+        // 0x497a9b..0x497ac0: grabs it, sets it turning (the vtable + 4 with 2), stores X and SetCapture (MuRet has no
+        // Windows window).
         globals.capture = base.id;
         base.state = TurnedPortrait;
         portrait.dragX = static_cast<float>(view.mouseX);
@@ -224,7 +225,8 @@ void HandleThePortraitPointer(Ui::OldPortraitPart& portrait, const Ui::OldWindow
     if (globals.wheel == 0)
         return;
     portrait.help = 0;
-    // 0x497b01..0x497b41: la cuenta en la x87, guardada en float; los topes se comparan con la de la pila.
+    // 0x497b01..0x497b41: the computation in the x87, stored as float; the limits are compared with the one on the x87
+    // stack.
     const double zoom =
         static_cast<double>(globals.wheel) * static_cast<double>(WheelZoomStep) + static_cast<double>(portrait.zoom);
     portrait.zoom = static_cast<float>(zoom);
@@ -235,20 +237,20 @@ void HandleThePortraitPointer(Ui::OldPortraitPart& portrait, const Ui::OldWindow
     globals.wheel = 0;
 }
 
-// 0x497970 (la vtable + 0x20 del retrato) después de la cola y de 0x45aa80: siempre devuelve 1.
+// 0x497970 (the portrait's vtable + 0x20) after the queue and 0x45aa80: always returns 1.
 Core::Expected<void, std::string> StepThePortraitMouse(Ui::OldPortraitPart& portrait,
                                                        const Ui::OldWindowGlobals& globals,
                                                        const Ui::OldWindowStepView& view, std::string_view where)
 {
     Ui::OldWindowBase& base = portrait.base;
-    // 0x497973..0x4979a0: en blanco, solo el mouse sobre la UI.
+    // 0x497973..0x4979a0: blank, only the mouse over the UI.
     if (portrait.blank == 1)
     {
         if (Ui::Steps::MouseIn(view, base.x, base.y, base.width, base.height, 1))
             globals.mouseOnUi = 1;
         return {};
     }
-    // 0x4979a7..0x4979bd: siguiendo al héroe, con 0x78abaac en 1, la vtable + 0x3c.
+    // 0x4979a7..0x4979bd: following the hero, with 0x78abaac at 1, the vtable + 0x3c.
     if (portrait.follow == 1 && view.field78abaac == 1)
     {
         if (auto copied = CallThePortrait(&view, portrait, Ui::PortraitCallKind::CopyTheHero, where);
@@ -272,7 +274,7 @@ Core::Expected<void, std::string> StepThePortraitMouse(Ui::OldPortraitPart& port
         }
         return {};
     }
-    // 0x4979df..0x497a44: a la vista, el ícono de la ayuda la prende o la apaga con el clic.
+    // 0x4979df..0x497a44: on view, the help icon turns it on or off with the click.
     const bool onTheIcon =
         base.state == Ui::ShownWindow &&
         Ui::Steps::MouseIn(view, base.x + 1, base.y + base.height - HelpIconBottom, HelpIconSide, HelpIconSide, 1);
@@ -292,7 +294,7 @@ Core::Expected<void, std::string> StepThePortraitMouse(Ui::OldPortraitPart& port
         globals.mouseOnUi = 1;
         HandleThePortraitPointer(portrait, globals, view);
     }
-    // 0x497b51..0x497bb6: girándolo, el clic lo gira con lo que corrió el mouse; sin clic, lo suelta.
+    // 0x497b51..0x497bb6: while turning, the click turns it by what the mouse moved; without a click, it lets go.
     if (base.state != TurnedPortrait)
         return {};
     if (globals.leftClick)
@@ -310,8 +312,8 @@ Core::Expected<void, std::string> StepThePortraitMouse(Ui::OldPortraitPart& port
     return {};
 }
 
-// 0x45aa80 sobre el retrato (la vtable + 0x18): la cola (0x45a640 da 0 y atiende 0x45abc0), la vtable + 0x1c
-// (0x403160, nada), el mouse y la vtable + 0x20 (0x497970).
+// 0x45aa80 over the portrait (the vtable + 0x18): the queue (0x45a640 returns 0 and 0x45abc0 handles it), the
+// vtable + 0x1c (0x403160, nothing), the mouse and the vtable + 0x20 (0x497970).
 Core::Expected<void, std::string> StepThePortrait(Ui::OldWindowManager& manager, Ui::OldPortraitPart& portrait,
                                                   std::int32_t arg, const Ui::OldWindowGlobals& globals,
                                                   const Ui::OldWindowStepView& view, std::string_view where)
@@ -347,18 +349,18 @@ void PostToTheList(Ui::OldWindowManager& manager, Ui::OldList& list, std::size_t
     DrainTheList(manager, list, size);
 }
 
-// strncpy(destino, texto, n) sobre un búfer en 0: hasta el primer '\0' y a lo sumo n bytes.
+// strncpy(dest, text, n) over a zeroed buffer: up to the first '\0' and at most n bytes.
 std::string Bounded(std::string_view text, std::size_t bytes)
 {
     return std::string(text.substr(0, std::min(text.find('\0'), bytes)));
 }
 
-// 0x460130, la vtable + 0x98 de los renglones del chat (0x45fea0 se la pasa con el nombre en +4 y el texto en +0xf de
-// cada renglón): con menos de 20 bytes entre el nombre y el texto (sin signo, 0x46019a), el renglón entero adelante de
-// `wrappedRows`; si no, el texto partido en hasta 10 renglones del ancho de la lista menos 0x1e, el primero con
-// sangría ftol((cx del nombre + 5) / rx) (GetTextExtentPointA del nombre solo, sin ": ", sobre el DC); el primero, con
-// el nombre, y los demás sin él (0x460318 borra su primer byte) van adelante si no están vacíos. Con texto de más
-// (0x459c70 da 11), 0x460308 lee el renglón 11 fuera de sus diez búferes, desde EBP − 0x14 (el this): MuRet lo descarta
+// 0x460130, the vtable + 0x98 of the chat's lines (0x45fea0 passes it with the name at +4 and the text at +0xf of each
+// line): with under 20 bytes between the name and the text (unsigned, 0x46019a), the whole line at the front of
+// `wrappedRows`; otherwise, the text split into up to 10 lines of the list's width minus 0x1e, the first with indent
+// ftol((name cx + 5) / rx) (GetTextExtentPointA of the name alone, without ": ", over the DC); the first, with the
+// name, and the others without it (0x460318 clears their first byte) go to the front if not empty. With too much text
+// (0x459c70 returns 11), 0x460308 reads line 11 outside its ten buffers, from EBP − 0x14 (the this): MuRet discards it
 // (Q-C1012).
 Core::Expected<void, std::string> WrapAChatLine(Ui::OldChatPart& chat, const Ui::ChatLine& line,
                                                 const Ui::OldWindowMeasure* measure)
@@ -372,7 +374,7 @@ Core::Expected<void, std::string> WrapAChatLine(Ui::OldChatPart& chat, const Ui:
     if (measure == nullptr)
         return Cut("0x4601a8: partir un renglón del chat sin la medida");
     const Render::Text::TextExtent name = measure->measure.Measure(measure->dcFont, line.name);
-    // FILD de cx + 5, FDIV del float y _ftol.
+    // FILD of cx + 5, FDIV of the float and _ftol.
     const std::int32_t indent = Truncate(static_cast<double>(name.width + NameGap) / RatioX(measure->screen));
     auto wrapped = Chat::WrapByWidth(line.text, measure->measure, measure->dcFont, measure->screen,
                                      chat.lines.base.width - WrapInset, ChatWrapLines, indent);
@@ -398,10 +400,10 @@ Core::Expected<void, std::string> WrapAChatLine(Ui::OldChatPart& chat, const Ui:
     return {};
 }
 
-// 0x465450, la vtable + 0x98 del cuerpo de una carta (desde 0x465270 con el texto en +4): con menos de 20 bytes
-// (0x465475), el renglón entero adelante; si no, partido en hasta 0x50 del ancho de la lista menos 0x1e, sin sangría,
-// en el búfer global 0x575de34, y cada uno que no esté vacío adelante. Con texto de más (0x51), el original lee el que
-// sobra después del búfer (0x5762e34): MuRet lo descarta (Q-C1012).
+// 0x465450, the vtable + 0x98 of a letter's body (from 0x465270 with the text at +4): under 20 bytes (0x465475), the
+// whole line at the front; otherwise, split into up to 0x50 of the list's width minus 0x1e, without indent, in the
+// global buffer 0x575de34, and each non-empty one at the front. With too much text (0x51), the original reads the
+// extra one past the buffer (0x5762e34): MuRet discards it (Q-C1012).
 Core::Expected<void, std::string> WrapALetterLine(Ui::OldLetterPart& letter, const std::string& line,
                                                   const Ui::OldWindowMeasure* measure)
 {
@@ -428,10 +430,10 @@ Core::Expected<void, std::string> WrapALetterLine(Ui::OldLetterPart& letter, con
     return {};
 }
 
-// 0x45fea0 y 0x465270, la vtable + 0x90 de los renglones del chat y del cuerpo de una carta: el 9 de 0x45abc0 contra el
-// padre (sin mirar el mensaje), vacía el segundo deque (0x472db0 y 0x473ac0) y le pasa a la vtable + 0x98 cada renglón
-// del primero de atrás para adelante (de [+0x90] a [+0x80] del original: del más viejo al más nuevo, que en MuRet es
-// `lineRows` de adelante para atrás). +0xf8 es el tamaño del segundo deque.
+// 0x45fea0 and 0x465270, the vtable + 0x90 of the chat's lines and a letter's body: 0x45abc0's 9 against the parent
+// (without checking the message), empties the second deque (0x472db0 and 0x473ac0) and passes each line of the first,
+// back to front, to the vtable + 0x98 (from [+0x90] to [+0x80] in the original: oldest to newest, which in MuRet is
+// `lineRows` front to back). +0xf8 is the second deque's size.
 Core::Expected<void, std::string> RewrapTheLines(Ui::OldWindowManager& manager, Ui::OldChatPart& chat,
                                                  const Ui::OldWindowMeasure* measure)
 {
@@ -464,9 +466,9 @@ Core::Expected<void, std::string> RewrapTheLines(Ui::OldWindowManager& manager, 
     return done;
 }
 
-// La cola de los renglones del chat (0x479240) y del cuerpo de una carta (0x47c150): como DrainTheList, pero el 9 corre
-// antes la vtable + 0x90, así que los renglones se cuentan con el alto ya medido. Las dos leen +0xa8 (el tamaño del
-// primer deque, `lineRows`) y la cuenta, +0xf8.
+// The queue of the chat's lines (0x479240) and a letter's body (0x47c150): like DrainTheList, but the 9 runs the
+// vtable + 0x90 first, so the lines are counted with the height already measured. Both read +0xa8 (the first deque's
+// size, `lineRows`) and the count, +0xf8.
 template <typename Part>
 Core::Expected<void, std::string> DrainTheWrappedList(Ui::OldWindowManager& manager, Part& part,
                                                       const Ui::OldWindowMeasure* measure)
@@ -495,7 +497,7 @@ Core::Expected<void, std::string> PostToTheWrappedList(Ui::OldWindowManager& man
     return DrainTheWrappedList(manager, part, measure);
 }
 
-// El mouse de 0x45aa80 sobre una lista de una de estas ventanas, después de su cola, con su renglón (la vtable + 0x88).
+// 0x45aa80's mouse over a list of one of these windows, after its queue, with its row (the vtable + 0x88).
 void StepTheListMouseAfterTheQueue(Ui::OldWindowManager& manager, Ui::OldList& list, std::size_t size, std::int32_t arg,
                                    const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view,
                                    const Ui::OldListRowHover& hover)
@@ -519,8 +521,8 @@ void StepTheListMouseAfterTheQueue(Ui::OldWindowManager& manager, Ui::OldList& l
     static_cast<void>(Ui::StepTheListMouse(list, size, listGlobals, listView, hover));
 }
 
-// 0x45aa80 sobre la lista de los miembros o la de invitar del chat (0x460970): la cola y el mouse, con el renglón de
-// 0x461f00 (el clic elige, el doble clic es el 0xd al chat y el derecho, el susurro).
+// 0x45aa80 over the chat's members list or invite list (0x460970): the queue and the mouse, with 0x461f00's row (the
+// click chooses, the double click is the 0xd to the chat and the right one, the whisper).
 void StepAFriendList(Ui::OldWindowManager& manager, Ui::OldList& list, std::deque<FriendEntry>& friends,
                      std::int32_t arg, const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view)
 {
@@ -531,8 +533,8 @@ void StepAFriendList(Ui::OldWindowManager& manager, Ui::OldList& list, std::dequ
                                   });
 }
 
-// 0x45aa80 sobre los renglones del chat o del cuerpo de una carta: su cola (DrainTheWrappedList) y el mouse, que
-// recorre los renglones que se ven del segundo deque.
+// 0x45aa80 over the chat's lines or a letter's body: its queue (DrainTheWrappedList) and the mouse, which goes over the
+// visible lines of the second deque.
 template <typename Part>
 Core::Expected<void, std::string> StepTheWrappedList(Ui::OldWindowManager& manager, Part& part, std::int32_t arg,
                                                      const Ui::OldWindowGlobals& globals,
@@ -540,7 +542,8 @@ Core::Expected<void, std::string> StepTheWrappedList(Ui::OldWindowManager& manag
 {
     if (auto drained = DrainTheWrappedList(manager, part, view.measure); !drained.HasValue())
         return drained;
-    // 0x45f3e0 y 0x4647d0, la vtable + 0x88 de los renglones del chat y del cuerpo: dan 1 sin mirar el mouse.
+    // 0x45f3e0 and 0x4647d0, the vtable + 0x88 of the chat's lines and the body: they return 1 without checking the
+    // mouse.
     StepTheListMouseAfterTheQueue(manager, part.lines, part.wrappedRows.size(), arg, globals, view,
                                   [](std::int32_t, std::size_t) { return 1; });
     return {};
@@ -554,8 +557,8 @@ Ui::OldList MakeTheList(Ui::OldWindowManager& manager)
     return list;
 }
 
-// 0x45f240 y 0x464620: lo que cambian de la lista base (0x45e2e0): sin las flechas (+0xbc en 0), la cuenta en +0xf8
-// (+0xc8 en 1) y, la del cuerpo de una carta, lo de abajo a la vista al cambiar los renglones (+0x128 en 1).
+// 0x45f240 and 0x464620: what they change from the base list (0x45e2e0): no arrows (+0xbc at 0), the count at +0xf8
+// (+0xc8 at 1) and, a letter body's, the bottom kept in view when the lines change (+0x128 at 1).
 Ui::OldList MakeTheWrappedList(Ui::OldWindowManager& manager, std::int32_t keepBottom)
 {
     Ui::OldList list = MakeTheList(manager);
@@ -565,10 +568,11 @@ Ui::OldList MakeTheWrappedList(Ui::OldWindowManager& manager, std::int32_t keepB
     return list;
 }
 
-// El EDIT del chat y los tres de la de escribir: el fondo en 0 (la vtable + 0x44 con cuatro 0, en 0x4932e5, 0x498032,
-// 0x4980b2 y 0x49814d), transparente como el de agregar un amigo, y el CP1252 del XP como los demás EDIT.
-// 0x459e30(texto, corte, NULL, 0x20), en 0x49a6d0 y 0x4a1cd4: copia de a un carácter de _mbclen (0x6a01fa: de a un
-// byte con la página 1252 del CRT, 12-codificacion) mientras el corte no pase de 0x20 bytes, hasta el primer 0.
+// The chat's EDIT and the writing window's three: the background at 0 (the vtable + 0x44 with four 0s, at 0x4932e5,
+// 0x498032, 0x4980b2 and 0x49814d), transparent like the add-a-friend one, and XP's CP1252 like the other EDITs.
+// 0x459e30(text, cut, NULL, 0x20), at 0x49a6d0 and 0x4a1cd4: copies one _mbclen character at a time (0x6a01fa: one
+// byte at a time with the CRT's code page 1252, 12-codificacion) while the cut does not pass 0x20 bytes, up to the
+// first 0.
 std::string CutTheSubject(std::string_view text)
 {
     const std::size_t end = std::min(text.find('\0'), text.size());
@@ -609,8 +613,8 @@ void SetUpTheButton(Ui::OldButton& button, std::int32_t parent, std::int32_t com
     button.base.height = height;
 }
 
-// 0x461600: "<994>" y, de atrás para adelante, los miembros que no son el héroe separados con ", "; al tercero, "...",
-// aunque no haya más (Q-C1004).
+// 0x461600: "<994>" and, back to front, the members who are not the hero separated with ", "; at the third, "...",
+// even if there are no more (Q-C1004).
 std::string ChatTitle(const Ui::OldWindow& chat, const Ui::OldWindowTexts& texts, std::string_view hero)
 {
     std::string title = texts.At(ChatTitleText);
@@ -632,8 +636,8 @@ std::string ChatTitle(const Ui::OldWindow& chat, const Ui::OldWindowTexts& texts
     return title;
 }
 
-// La vtable + 0x10 de la lista de renglones (+0x2a0): ancha con menos de 3 miembros, o más angosta (por la de los
-// miembros) con 3 o más; con la de invitar a la vista, 0xa0 menos (0x493c90, 0x493e90 y 0x4944c0).
+// The vtable + 0x10 of the lines list (+0x2a0): wide with under 3 members, or narrower (for the members list) with 3
+// or more; with the invite list on view, 0xa0 less (0x493c90, 0x493e90 and 0x4944c0).
 void SizeTheLines(Ui::OldWindow& chat, bool withMembers)
 {
     const std::int32_t cut = chat.chat.mode < 2 ? (withMembers ? -0x50 : 0) : -0xa0;
@@ -663,7 +667,7 @@ Core::Expected<std::int32_t, std::string> OpenTheWriteWindow(Ui::OldWindowManage
         globals, view, where);
 }
 
-// 0x4a177a: con la ventana armada, el 8 y el 9 con 0x45aa50.
+// 0x4a177a: with the window built, the 8 and the 9 with 0x45aa50.
 Core::Expected<void, std::string> PlaceTheNewWindow(Ui::OldWindowManager& manager, std::int32_t id,
                                                     const Ui::OldWindowGlobals& globals,
                                                     const Ui::OldWindowStepView& view)
@@ -676,7 +680,7 @@ Core::Expected<void, std::string> PlaceTheNewWindow(Ui::OldWindowManager& manage
     return Ui::Steps::PostAndStep(manager, *window, SizeType, globals, view);
 }
 
-// 0x4983e0 y 0x498420: el nombre (o el asunto) al EDIT, el foco al que sigue y +0x77c.
+// 0x4983e0 and 0x498420: the name (or the subject) to the EDIT, the focus to the next one and +0x77c.
 void PutTheName(Ui::OldWindowManager& manager, Ui::OldWindow& write, std::string_view name,
                 const Ui::OldWindowGlobals& globals)
 {
@@ -693,23 +697,24 @@ void PutTheSubject(Ui::OldWindowManager& manager, Ui::OldWindow& write, std::str
     write.letter.prepared = 2;
 }
 
-// 0x498820 con el 10 y 1 (0x4988b2..0x499590): los tres EDIT, el filtro, el cuerpo con "\r\n" pasado a "\n", y el C5.
+// 0x498820 with the 10 and 1 (0x4988b2..0x499590): the three EDITs, the filter, the body with "\r\n" turned into
+// "\n", and the C5.
 Core::Expected<void, std::string> SendTheLetter(Ui::OldWindowManager& manager, Ui::OldWindow& write,
                                                 const Ui::OldWindowGlobals& globals, const Ui::OldWindowStepView& view)
 {
     Ui::OldLetterPart& letter = write.letter;
     if (letter.sending != 0)
         return {};
-    // La vtable + 0x50 (GetWindowText) con 0xb, 0x21 y 0x3e9 (0x49893f): hasta 10, 0x20 y 1000 bytes.
+    // The vtable + 0x50 (GetWindowText) with 0xb, 0x21 and 0x3e9 (0x49893f): up to 10, 0x20 and 1000 bytes.
     std::string to(letter.to.text.Value().substr(0, ToLimit));
     std::string subject(letter.subject.text.Value().substr(0, SubjectLimit));
     std::string body(letter.text.text.Value().substr(0, BodyLimit));
-    // 0x498948 y 0x498982: 0x622b40 con 0 sobre el asunto y el cuerpo; si salta, el texto 570.
+    // 0x498948 and 0x498982: 0x622b40 with 0 over the subject and the body; if it trips, text 570.
     if (view.badWord && view.badWord(subject))
         subject = TextOf(view, FilteredText);
     if (view.badWord && view.badWord(body))
         body = TextOf(view, FilteredText);
-    // 0x4989b6..0x498a10: sin nombre, sin asunto o sin cuerpo, la caja modal (8) y el foco a ese EDIT.
+    // 0x4989b6..0x498a10: without a name, subject or body, the modal box (8) and the focus to that EDIT.
     const auto missing = [&](std::size_t text, Ui::OldEdit& edit,
                              std::int32_t field) -> Core::Expected<void, std::string>
     {
@@ -730,8 +735,8 @@ Core::Expected<void, std::string> SendTheLetter(Ui::OldWindowManager& manager, U
         return missing(NoSubjectText, letter.subject, 1);
     if (body.empty())
         return missing(NoBodyText, letter.text, 2);
-    // 0x498a30..0x498a99: '\r' sale como '\n' y se come el que sigue; "\r\n\r\n" deja un espacio en medio (Q-C1003).
-    // Corta con más de 1000 de cada lado y copia hasta el '\0' inclusive.
+    // 0x498a30..0x498a99: '\r' goes out as '\n' and eats the next one; "\r\n\r\n" leaves a space in between (Q-C1003).
+    // It cuts at more than 1000 on either side and copies up to the '\0' inclusive.
     std::string converted;
     std::size_t from = 0;
     std::size_t into = 0;
@@ -763,8 +768,8 @@ Core::Expected<void, std::string> SendTheLetter(Ui::OldWindowManager& manager, U
     if (converted.size() > BodyLimit)
         converted.resize(BodyLimit);
     letter.sending = 1;
-    // 0x498ad0..0x498b27: la dirección y la acción del retrato. Las cuentas van en el x87, sin redondear a float entre
-    // una y otra, y ftol trunca.
+    // 0x498ad0..0x498b27: the portrait's direction and action. The computations run in the x87, without rounding to
+    // float between them, and ftol truncates.
     constexpr float AngleStep = 1.0f / 6.0f;
     constexpr float ZoomScale = 100.0f;
     constexpr float ZoomBase = 80.0f;
@@ -790,7 +795,8 @@ Core::Expected<void, std::string> SendTheLetter(Ui::OldWindowManager& manager, U
                 "0x498820(1)");
 }
 
-// 0x499840, la vtable + 0x4c de la de escribir: sin asunto ni cuerpo, 1 (se cierra); si no, la caja 5 con el 1009.
+// 0x499840, the writing window's vtable + 0x4c: without subject or body, 1 (it closes); otherwise, box 5 with the
+// 1009.
 Core::Expected<bool, std::string> MayCloseTheLetter(Ui::OldWindowManager& manager, Ui::OldWindow& write,
                                                     const Ui::OldWindowGlobals& globals,
                                                     const Ui::OldWindowStepView& view)
@@ -812,7 +818,7 @@ Core::Expected<bool, std::string> MayCloseTheLetter(Ui::OldWindowManager& manage
     return false;
 }
 
-// 0x498820, la vtable + 0x28 de la de escribir. Da 0.
+// 0x498820, the writing window's vtable + 0x28. Returns 0.
 Core::Expected<void, std::string> HandleTheWriteMessage(Ui::OldWindowManager& manager, Ui::OldWindow& write,
                                                         const Ui::OldWindowGlobals& globals,
                                                         const Ui::OldWindowStepView& view)
@@ -821,7 +827,7 @@ Core::Expected<void, std::string> HandleTheWriteMessage(Ui::OldWindowManager& ma
     Ui::OldLetterPart& letter = write.letter;
     if (message.type == RaisedType)
     {
-        // 0x4996e3: el foco al EDIT de +0x77c, que vuelve a 0 (Q-C1006).
+        // 0x4996e3: the focus to the EDIT at +0x77c, which goes back to 0 (Q-C1006).
         Ui::OldEdit& edit = letter.prepared == 2 ? letter.text : letter.prepared == 1 ? letter.subject : letter.to;
         if (letter.prepared == 0 || letter.prepared == 1 || letter.prepared == 2)
         {
@@ -860,8 +866,8 @@ Core::Expected<void, std::string> HandleTheWriteMessage(Ui::OldWindowManager& ma
     }
 }
 
-// 0x4944c0 con el 7: el texto del EDIT, el filtro y, distinto del último y no vacío, el mensaje por la conexión de la
-// sala; el EDIT vacío y, con menos de 2 miembros, 0x495630(1).
+// 0x4944c0 with the 7: the EDIT's text, the filter and, if different from the last and not empty, the message through
+// the room's connection; the EDIT emptied and, with under 2 members, 0x495630(1).
 Core::Expected<void, std::string> SayInTheChat(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
                                                const Ui::OldWindowStepView& view)
 {
@@ -872,7 +878,8 @@ Core::Expected<void, std::string> SayInTheChat(Ui::OldWindowManager& manager, Ui
     if (text.substr(0, 0xff) != std::string_view(part.lastText).substr(0, 0xff))
     {
         part.lastText = text.substr(0, 0xff);
-        // 0x493510: sin la conexión de la sala (0x49e420 da 0), no manda nada; con ella, el C1 04 (Scenes lo saca).
+        // 0x493510: without the room's connection (0x49e420 returns 0), it sends nothing; with it, the C1 04
+        // (FlushTheChatRoomOrders takes it out).
         if (!text.empty() && FindTheChatRoom(manager.chatRooms, part.room) != nullptr)
             manager.chatRooms.orders.push_back(
                 ChatRoomOrder{.kind = ChatRoomOrder::Kind::Message, .room = part.room, .text = text});
@@ -887,14 +894,14 @@ Core::Expected<void, std::string> SayInTheChat(Ui::OldWindowManager& manager, Ui
     return {};
 }
 
-// 0x4944c0 con el 10 y 1: muestra u oculta la lista de invitar.
+// 0x4944c0 with the 10 and 1: shows or hides the invite list.
 Core::Expected<void, std::string> ToggleTheInvites(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
                                                    const Ui::OldWindowGlobals& globals,
                                                    const Ui::OldWindowStepView& view)
 {
     Ui::OldChatPart& part = chat.chat;
     Ui::OldFrame& frame = chat.frame;
-    // 0x494c4b..0x494c5d y 0x494d6a..0x494d76: el ancho máximo, ftol(540 / rx (+ 80 con la lista de invitar)).
+    // 0x494c4b..0x494c5d and 0x494d6a..0x494d76: the maximum width, ftol(540 / rx (+ 80 with the invite list)).
     constexpr double MaxWidthBase = 540.0;
     constexpr double MaxWidthWithInvites = 80.0;
     const double rx = view.measure != nullptr ? RatioX(view.measure->screen) : 1.0;
@@ -909,7 +916,7 @@ Core::Expected<void, std::string> ToggleTheInvites(Ui::OldWindowManager& manager
         SizeTheBase(part.lines.base, 3, -0xa0, -0x10);
         part.users.base.placeX = 0x9b;
         part.inviteButton.base.placeX = 0x86;
-        // 0x494cce..0x494cf8: el 9 a los renglones y el 8 al botón de mandar (+0x6e8) y a la lista de invitar (+0x5a0).
+        // 0x494cce..0x494cf8: the 9 to the lines and the 8 to the send button (+0x6e8) and the invite list (+0x5a0).
         if (auto posted = PostToTheWrappedList(manager, part, SizeType, view.measure); !posted.HasValue())
             return posted;
         Ui::Steps::PostAndSettle(manager, part.sendButton, PlaceType);
@@ -931,7 +938,7 @@ Core::Expected<void, std::string> ToggleTheInvites(Ui::OldWindowManager& manager
         SizeTheLines(chat, part.members.size() >= 3);
         part.users.base.placeX = 0x4b;
         part.inviteButton.base.placeX = 0x36;
-        // 0x494df6..0x494e20: los mismos tres que al mostrarla; sin la vtable + 0x30 de la ventana.
+        // 0x494df6..0x494e20: the same three as when showing it; without the window's vtable + 0x30.
         if (auto posted = PostToTheWrappedList(manager, part, SizeType, view.measure); !posted.HasValue())
             return posted;
         Ui::Steps::PostAndSettle(manager, part.sendButton, PlaceType);
@@ -941,7 +948,7 @@ Core::Expected<void, std::string> ToggleTheInvites(Ui::OldWindowManager& manager
     return {};
 }
 
-// 0x4944c0 con el 10 y 2: el elegido de la lista de invitar, con 2..0x1d miembros, al C1 CB.
+// 0x4944c0 with the 10 and 2: the invite list's chosen one, with 2..0x1d members, to the C1 CB.
 Core::Expected<void, std::string> InviteTheChosen(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
                                                   const Ui::OldWindowStepView& view)
 {
@@ -968,13 +975,13 @@ Core::Expected<void, std::string> InviteTheChosen(Ui::OldWindowManager& manager,
                 "0x4944c0(10, 2)");
 }
 
-// 0x4944c0, la vtable + 0x28 del chat. Da 0.
+// 0x4944c0, the chat's vtable + 0x28. Returns 0.
 Core::Expected<void, std::string> HandleTheChatMessage(Ui::OldWindowManager& manager, Ui::OldWindow& chat,
                                                        const Ui::OldWindowGlobals& globals,
                                                        const Ui::OldWindowStepView& view)
 {
     Ui::OldMessage& message = chat.base.current;
-    // 0x4944d9: el doble clic en la lista de invitar es el 10 con 2.
+    // 0x4944d9: a double click on the invite list is the 10 with 2.
     if (message.type == ChosenRowType && message.a == chat.chat.invite.base.id)
     {
         globals.RequestSound(ButtonSound);
@@ -993,14 +1000,14 @@ Core::Expected<void, std::string> HandleTheChatMessage(Ui::OldWindowManager& man
         return {};
     if (message.a == 1)
         return ToggleTheInvites(manager, chat, globals, view);
-    // 0x4944c0 con el 2 (0x49455e): con el chat abierto (la vtable + 0x5c del EDIT, +0xb4, da 0).
+    // 0x4944c0 with the 2 (0x49455e): with the chat open (the EDIT's vtable + 0x5c, +0xb4, returns 0).
     if (message.a == 2 && chat.chat.edit.closed == 0)
         return InviteTheChosen(manager, chat, view);
     return {};
 }
 
-// 0x4a09d0: la marca de todas las de la copia (la vtable + 0x48 de la lista, 0x47f200) y del modelo (0x4a0270), y
-// +0x414.
+// 0x4a09d0: the mark of all the letters of the copy (the list's vtable + 0x48, 0x47f200) and of the model (0x4a0270),
+// and +0x414.
 void CheckAllTheLetters(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::int32_t checked)
 {
     for (LetterEntry& letter : tab.tab.letters)
@@ -1010,7 +1017,7 @@ void CheckAllTheLetters(Ui::OldWindowManager& manager, Ui::OldWindow& tab, std::
     tab.tab.allChecked = checked;
 }
 
-// La pestaña de las cartas que está en la de amigos.
+// The friends window's letters tab.
 Ui::OldWindow* TheLettersTab(Ui::OldWindowManager& manager)
 {
     Ui::OldWindow* friends = Ui::FindTheOldWindow(manager, manager.friends);
@@ -1019,22 +1026,23 @@ Ui::OldWindow* TheLettersTab(Ui::OldWindowManager& manager)
     return &friends->tabs[LettersTabNumber];
 }
 
-// 0x491570: la carta en el mapa de las ventanas de leer (+0x94 de [0x5763514]) con la ventana en 0, si no estaba; da
-// si ya estaba.
+// 0x491570: the letter into the read windows' map (+0x94 of [0x5763514]) with the window at 0, if it was not there;
+// returns whether it was.
 bool ReserveTheLetterWindow(Ui::OldWindowManager& manager, std::uint16_t index)
 {
     return !manager.letterWindows.try_emplace(index, 0).second;
 }
 
-// 0x491780: la ventana de leer anotada para la carta, o 0.
+// 0x491780: the read window noted for the letter, or 0.
 std::int32_t LetterWindowOf(const Ui::OldWindowManager& manager, std::uint16_t index)
 {
     const auto found = manager.letterWindows.find(index);
     return found != manager.letterWindows.end() ? found->second : 0;
 }
 
-// 0x4a17b9 y 0x49a839: 0x491570 la anota (con la ventana en 0) si no estaba; si estaba, 0x491780 da su ventana, que
-// sube (con 0, nada: el C7 todavía no llegó). Si no, la copia de 0x4a04a0 vuelve a 0x4dcb70 o sale el C1 06 C7.
+// 0x4a17b9 and 0x49a839: 0x491570 notes it (with the window at 0) if it was not there; if it was, 0x491780 gives its
+// window, which is raised (with 0, nothing: the C7 has not arrived yet). Otherwise, 0x4a04a0's copy goes back to
+// 0x4dcb70 or the C1 06 C7 goes out.
 Core::Expected<void, std::string> ReadTheLetter(Ui::OldWindowManager& manager, std::uint16_t index,
                                                 const Ui::OldWindowStepView& view, std::string_view where)
 {
@@ -1064,7 +1072,7 @@ Core::Expected<void, std::string> ReadTheLetter(Ui::OldWindowManager& manager, s
                 where);
 }
 
-// 0x4a0600: el lugar de la carta en el modelo, desde 1; 0 si no está.
+// 0x4a0600: the letter's place in the model, from 1; 0 if absent.
 std::int32_t PlaceOfTheLetter(const LetterModel& model, std::uint16_t index)
 {
     std::int32_t place = 0;
@@ -1077,8 +1085,8 @@ std::int32_t PlaceOfTheLetter(const LetterModel& model, std::uint16_t index)
     return 0;
 }
 
-// 0x49ff50 y 0x4a0070: el número de la carta que sigue a (o que está antes de) la `index` en el modelo; 0 si no está
-// o no hay otra. Una carta con el número 0 cuenta como ninguna (Q-C1007).
+// 0x49ff50 and 0x4a0070: the number of the letter after (or before) `index` in the model; 0 if absent or there is no
+// other. A letter with number 0 counts as none (Q-C1007).
 std::uint16_t NeighbourOfTheLetter(const LetterModel& model, std::uint16_t index, bool next)
 {
     const auto found = std::ranges::find(model.letters, index, &LetterEntry::index);
@@ -1092,8 +1100,8 @@ std::uint16_t NeighbourOfTheLetter(const LetterModel& model, std::uint16_t index
     return found != model.letters.begin() ? std::prev(found)->index : std::uint16_t{0};
 }
 
-// 0x4a0a10 con 0x4a0600 sobre la pestaña de las cartas, si la de amigos está: la lista elige esa carta (la vtable +
-// 0x58, 0x47f5b0, como 0x47aef0).
+// 0x4a0a10 with 0x4a0600 over the letters tab, if the friends window exists: the list chooses that letter (the
+// vtable + 0x58, 0x47f5b0, like 0x47aef0).
 void ChooseTheLetterInTheTab(Ui::OldWindowManager& manager, std::uint16_t index)
 {
     Ui::OldWindow* tab = TheLettersTab(manager);
@@ -1102,9 +1110,9 @@ void ChooseTheLetterInTheTab(Ui::OldWindowManager& manager, std::uint16_t index)
     Ui::SelectInTheList(tab->tab.list, tab->tab.letters.size(), PlaceOfTheLetter(manager.letterModel, index));
 }
 
-// 0x49a7a4 y 0x49ac6c, el 10 con 5 y con 6 de la de leer: con otra carta, la elige en la pestaña, se cierra, suelta la
-// suya (0x4916b0), deja su lugar a la que viene (0x5762f0c y 0x5762f10) y lee la otra; sin otra, la pestaña elige la
-// suya.
+// 0x49a7a4 and 0x49ac6c, the read window's 10 with 5 and with 6: with another letter, it chooses it in the tab,
+// closes, releases its own (0x4916b0), leaves its place to the incoming one (0x5762f0c and 0x5762f10) and reads the
+// other; without another, the tab chooses its own.
 Core::Expected<void, std::string> ReadTheNeighbour(Ui::OldWindowManager& manager, Ui::OldWindow& read, bool next,
                                                    const Ui::OldWindowStepView& view, std::string_view where)
 {
@@ -1123,7 +1131,7 @@ Core::Expected<void, std::string> ReadTheNeighbour(Ui::OldWindowManager& manager
     return ReadTheLetter(manager, other, view, where);
 }
 
-// 0x49a1f0, la vtable + 0x28 de la de leer. Da 0.
+// 0x49a1f0, the read window's vtable + 0x28. Returns 0.
 Core::Expected<void, std::string> HandleTheReadMessage(Ui::OldWindowManager& manager, Ui::OldWindow& read,
                                                        const Ui::OldWindowGlobals& globals,
                                                        const Ui::OldWindowStepView& view)
@@ -1132,7 +1140,7 @@ Core::Expected<void, std::string> HandleTheReadMessage(Ui::OldWindowManager& man
     const LetterEntry& entry = read.letter.entry;
     if (message.type == AnswerType)
     {
-        // 0x49a22b: el sí de la pregunta del 1017: C1 06 C8 con la carta (0x49a3ab) y el 4 a sí misma.
+        // 0x49a22b: the yes to the 1017 question: C1 06 C8 with the letter (0x49a3ab) and the 4 to itself.
         if (message.b != 1)
             return {};
         if (auto sent = Send(view,
@@ -1157,8 +1165,8 @@ Core::Expected<void, std::string> HandleTheReadMessage(Ui::OldWindowManager& man
     {
     case 1:
     {
-        // 0x49a625: responder: la de escribir (sin el 8 y el 9) con el remitente y sprintf(1016, asunto) cortado en
-        // 0x20 por 0x459e30.
+        // 0x49a625: reply: the writing window (without the 8 and the 9) with the sender and sprintf(1016, subject) cut
+        // at 0x20 by 0x459e30.
         auto opened = OpenTheWriteWindow(manager, globals, view, "0x49a1f0(1)");
         if (!opened.HasValue())
             return Core::Unexpected(std::move(opened).Error());
@@ -1173,7 +1181,7 @@ Core::Expected<void, std::string> HandleTheReadMessage(Ui::OldWindowManager& man
     }
     case 2:
     {
-        // 0x49a702: la pregunta del 1017, con ella misma de dueña.
+        // 0x49a702: the 1017 question, with itself as owner.
         auto created = CreateFromAStep(manager,
                                        Ui::OldWindowRequest{.kind = Ui::ModalQuestionCase,
                                                             .x = -1,
@@ -1218,7 +1226,8 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     const std::int32_t id = base.id;
     if (request.kind == ChatCase || request.kind == CalledChatCase)
     {
-        // 0x48eee4: el marco, el EDIT, los renglones, los miembros, un botón, los de invitar y otro botón; +0xb0 en 1.
+        // 0x48eee4: the frame, the EDIT, the lines, the members, a button, the invite list and another button; +0xb0
+        // at 1.
         window.kind = OldWindowKind::ChatWindow;
         OldChatPart& chat = window.chat;
         chat.edit = Messenger::MakeTheEdit(manager, Messenger::ChatEditLimit);
@@ -1262,7 +1271,7 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     letter.portrait.base = MakeTheBase(manager);
     if (request.kind == LetterReadCase)
     {
-        // 0x48f41f: el marco, el retrato (+0xb0), +0x774 en 2, la lista del cuerpo (+0x8b0) y cinco botones.
+        // 0x48f41f: the frame, the portrait (+0xb0), +0x774 at 2, the body list (+0x8b0) and five buttons.
         window.kind = OldWindowKind::LetterReadWindow;
         letter.portraitMode = Messenger::ReadPortraitMode;
         letter.lines = Messenger::MakeTheWrappedList(manager, 1);
@@ -1298,12 +1307,12 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
         window.frame.maxHeight = 0;
         return window;
     }
-    // 0x48f4ee: el marco, el retrato (+0xb4), los tres EDIT y cuatro botones.
+    // 0x48f4ee: the frame, the portrait (+0xb4), the three EDITs and four buttons.
     window.kind = OldWindowKind::LetterWriteWindow;
     letter.to = Messenger::MakeTheEdit(manager, Messenger::ToLimit);
     letter.subject = Messenger::MakeTheEdit(manager, Messenger::SubjectLimit);
     letter.text = Messenger::MakeTheEdit(manager, Messenger::BodyLimit);
-    // 0x49817a..0x498192: Tab pasa del nombre al asunto, al cuerpo y otra vez al nombre.
+    // 0x49817a..0x498192: Tab goes from the name to the subject, to the body and back to the name.
     letter.to.next = letter.subject.base.id;
     letter.subject.next = letter.text.base.id;
     letter.text.next = letter.to.base.id;
@@ -1319,7 +1328,7 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     window.frame.minWidth = Messenger::ChatWidth;
     window.frame.minHeight = Messenger::WriteMinHeight;
     base.flags = Messenger::LetterFlags;
-    // GetTextExtentPointA del 1000 con la fuente del DC ([0x57634f4]) y 0x497fd3..0x497fe2: ftol(cx / rx + 0,5).
+    // GetTextExtentPointA of the 1000 with the DC's font ([0x57634f4]) and 0x497fd3..0x497fe2: ftol(cx / rx + 0.5).
     constexpr double HalfPixel = 0.5;
     const std::int32_t toWidth = OldDraw::Truncate(
         static_cast<double>(measure.measure.Measure(measure.dcFont, texts.At(Messenger::ToText)).width) /
@@ -1331,7 +1340,7 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
     letter.subject.base.width = 0xee;
     letter.subject.base.height = 0xe;
     Messenger::PlaceTheBase(letter.subject.base, id, 0, toWidth, 0x12);
-    // 0x4980ef: la vtable + 0x38 con 1 (+0xc4) antes de 0xee × 0x87 y de crearlo (0x467fe0).
+    // 0x4980ef: the vtable + 0x38 with 1 (+0xc4) before 0xee × 0x87 and creating it (0x467fe0).
     letter.text.base.width = 0xee;
     letter.text.base.height = 0x87;
     MakeTheEditMultiline(letter.text, measure.measure, measure.dcFont, measure.screen);
@@ -1340,8 +1349,8 @@ Core::Expected<OldWindow, std::string> MakeTheLetterKind(OldWindowManager& manag
         Messenger::SetUpTheButton(letter.buttons[at], id, Messenger::WriteButtonCommands[at],
                                   texts.At(Messenger::WriteButtonTexts[at]), 2, Messenger::WriteButtonX[at], 0x10, 0x32,
                                   0xe);
-    // El EDIT del nombre +0x30(0): el foco, que MuRet le da después de armarla (Steps::FocusTheChatEdit con el 7);
-    // +0x77c en 0 y +0x9c en 1.
+    // The name EDIT's +0x30(0): the focus, which MuRet gives it after building the window (Steps::FocusTheChatEdit with
+    // the 7); +0x77c at 0 and +0x9c at 1.
     letter.prepared = 0;
     window.frame.editField = 1;
     if (auto built = Messenger::CallThePortrait(view, letter.portrait, PortraitCallKind::Build, "0x497f50");
@@ -1394,8 +1403,8 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
 {
     if (window.kind == OldWindowKind::ChatWindow)
     {
-        // 0x495450: con el ancho cambiado desde el paso anterior (+0x774), el EDIT a lo que queda al lado de los
-        // botones; después los botones, las listas y el EDIT.
+        // 0x495450: with the width changed since the previous step (+0x774), the EDIT to what is left beside the
+        // buttons; then the buttons, the lists and the EDIT.
         OldChatPart& chat = window.chat;
         if (chat.aux != 0 && chat.aux != window.base.width)
         {
@@ -1418,14 +1427,14 @@ Core::Expected<void, std::string> StepTheLetterKindsChildren(OldWindowManager& m
     OldLetterPart& letter = window.letter;
     if (window.kind == OldWindowKind::LetterReadWindow)
     {
-        // 0x49b180: la lista del cuerpo, los cinco botones y el retrato.
+        // 0x49b180: the body list, the five buttons and the portrait.
         if (auto stepped = Messenger::StepTheWrappedList(manager, letter, arg, globals, view); !stepped.HasValue())
             return stepped;
         for (OldButton& button : letter.buttons)
             Steps::StepTheButton(manager, button, arg, globals, view);
         return Messenger::StepThePortrait(manager, letter.portrait, arg, globals, view, "0x49b180");
     }
-    // 0x499780: los tres EDIT, los dos primeros botones y, con +0xb0 en 1, los otros dos y el retrato.
+    // 0x499780: the three EDITs, the first two buttons and, with +0xb0 at 1, the other two and the portrait.
     Steps::StepTheEdit(manager, letter.to, arg, globals, view);
     Steps::StepTheEdit(manager, letter.subject, arg, globals, view);
     Steps::StepTheEdit(manager, letter.text, arg, globals, view);
@@ -1443,8 +1452,8 @@ Core::Expected<void, std::string> SettleTheLetterKinds(OldWindowManager& manager
 {
     if (window.kind == OldWindowKind::ChatWindow)
     {
-        // 0x493410: el 8 a los seis hijos; el 9 dos veces a los renglones, a los miembros y a los de invitar; el 0xe a
-        // los miembros y a los de invitar; +0x9c en 1 y la lista de los miembros a 0x5762ec0.
+        // 0x493410: the 8 to the six children; the 9 twice to the lines, the members and the invite list; the 0xe to
+        // the members and the invite list; +0x9c at 1 and the members list to 0x5762ec0.
         OldChatPart& chat = window.chat;
         if (auto posted = Messenger::PostToTheWrappedList(manager, chat, Messenger::PlaceType, view.measure);
             !posted.HasValue())
@@ -1473,7 +1482,7 @@ Core::Expected<void, std::string> SettleTheLetterKinds(OldWindowManager& manager
     OldLetterPart& letter = window.letter;
     if (window.kind == OldWindowKind::LetterReadWindow)
     {
-        // 0x499c00: el 8 a la lista, a los cinco botones y al retrato; el 9 dos veces a la lista y al retrato.
+        // 0x499c00: the 8 to the list, the five buttons and the portrait; the 9 twice to the list and the portrait.
         if (auto posted = Messenger::PostToTheWrappedList(manager, letter, Messenger::PlaceType, view.measure);
             !posted.HasValue())
             return posted;
@@ -1489,7 +1498,7 @@ Core::Expected<void, std::string> SettleTheLetterKinds(OldWindowManager& manager
         Messenger::PostToTheBase(manager, letter.portrait.base, Messenger::SizeType);
         return {};
     }
-    // 0x498350: el 8 a los tres EDIT, a los cuatro botones y al retrato.
+    // 0x498350: the 8 to the three EDITs, the four buttons and the portrait.
     Messenger::PostToTheEdit(manager, letter.to, Messenger::PlaceType);
     Messenger::PostToTheEdit(manager, letter.subject, Messenger::PlaceType);
     Messenger::PostToTheEdit(manager, letter.text, Messenger::PlaceType);
@@ -1519,8 +1528,8 @@ Core::Expected<void, std::string> ForgetTheLetterKind(OldWindowManager& manager,
 {
     if (window.kind == OldWindowKind::ChatWindow)
         return Messenger::LeaveTheChatRoom(manager, window);
-    // 0x4916b0 con +0x77c: el número de la carta. Los dos bytes de relleno quedan en 0 (*estático*: 0x4dcac9 y
-    // 0x4dcaf5 lo leen con MOVZX y 0x49ec59 lo copia en un dword).
+    // 0x4916b0 with +0x77c: the letter's number. The two padding bytes stay at 0 (*static*: 0x4dcac9 and 0x4dcaf5 read
+    // it with MOVZX and 0x49ec59 copies it into a dword).
     if (window.kind == OldWindowKind::LetterReadWindow)
         manager.letterWindows.erase(window.letter.entry.index);
     return {};
@@ -1531,7 +1540,7 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
                                                              const OldWindowStepView& view)
 {
     OldMessage& message = tab.base.current;
-    // 0x4a11c8: el doble clic sobre una carta es leerla.
+    // 0x4a11c8: a double click on a letter reads it.
     if (message.type == Messenger::ChosenRowType)
     {
         globals.RequestSound(Messenger::ButtonSound);
@@ -1540,7 +1549,7 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
     }
     if (message.type == Messenger::AnswerType)
     {
-        // "¿Borrar las marcadas?" con sí: un C1 C8 por cada una (0x4a1349..0x4a17a6).
+        // "Delete the checked ones?" with yes: one C1 C8 for each (0x4a1349..0x4a17a6).
         if (message.b != 1)
             return {};
         for (const Messenger::LetterEntry& letter : tab.tab.letters)
@@ -1576,7 +1585,7 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
     }
     case 2:
     {
-        // 0x4a17b9: 0x4a08c0, la elegida.
+        // 0x4a17b9: 0x4a08c0, the chosen one.
         const Messenger::LetterEntry* selected = Messenger::SelectedLetter(tab);
         if (selected == nullptr)
             return {};
@@ -1631,10 +1640,10 @@ Core::Expected<void, std::string> HandleTheLettersTabMessage(OldWindowManager& m
 void AfterTheLettersTabMove(OldWindowManager& manager, OldWindow& tab, const OldWindowGlobals& globals,
                             const OldWindowStepView& view)
 {
-    // 0x4a2070: con el izquierdo apretado ([0x7d36874]), sobre los encabezados (0x13 de alto): la marca (0xa de ancho)
-    // marca o desmarca todas (0x4a09d0) salvo con una caja modal; cada columna (+0x130..+0x13c de la lista; la primera
-    // sin la marca) ordena por su modo (0x49f870) si no es el de ahora, y copia el modelo (0x4a0960). Fuera de los
-    // encabezados el botón sigue apretado.
+    // 0x4a2070: with the left button held ([0x7d36874]), over the headers (0x13 high): the mark (0xa wide) checks or
+    // unchecks all (0x4a09d0) except with a modal box; each column (+0x130..+0x13c of the list; the first without the
+    // mark) sorts by its mode (0x49f870) if it is not the current one, and copies the model (0x4a0960). Outside the
+    // headers the button stays held.
     if (!globals.leftHeld)
         return;
     const OldList& list = tab.tab.list;
@@ -1673,9 +1682,9 @@ void AfterTheLettersTabMove(OldWindowManager& manager, OldWindow& tab, const Old
 
 void RefreshTheLetters(OldWindowManager& manager, OldWindow& tab)
 {
-    // 0x4a0960: el número de la elegida (la vtable + 0x68 y + 0x64 de la lista; −1 sin ninguna), +0x1f0 en 1, la copia
-    // del modelo (0x49f500) que da el lugar de esa carta (desde 1; 0 si no está), elegida con la vtable + 0x58, la
-    // vista arriba (+0x34 con 0) y 0x4a09d0(0).
+    // 0x4a0960: the chosen one's number (the list's vtable + 0x68 and + 0x64; −1 without one), +0x1f0 at 1, the copy of
+    // the model (0x49f500) that gives that letter's place (from 1; 0 if absent), chosen with the vtable + 0x58, the
+    // view at the top (+0x34 with 0) and 0x4a09d0(0).
     std::optional<std::uint16_t> chosen;
     if (const Messenger::LetterEntry* selected = Messenger::SelectedLetter(tab); selected != nullptr)
         chosen = selected->index;
@@ -1710,7 +1719,7 @@ Core::Expected<void, std::string> ChatWithTheFriend(OldWindowManager& manager, s
     }
     if (open == -1)
         return {};
-    // 0x49dba4: la vtable + 4 con 3 (oculta) y el 1 al administrador, que la muestra y la sube.
+    // 0x49dba4: the vtable + 4 with 3 (hidden) and the 1 to the manager, which shows it and raises it.
     if (OldWindow* chat = FindTheOldWindow(manager, open); chat != nullptr)
         chat->base.state = Messenger::HiddenState;
     PostToTheManager(manager, RaiseMessage, open, 0);
@@ -1726,7 +1735,7 @@ Core::Expected<std::int32_t, std::string> WriteToTheFriend(OldWindowManager& man
     if (!opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
     const std::int32_t id = opened.Value();
-    // 0x49cad0: el nombre del elegido, si hay, a la que armó (0x490a00).
+    // 0x49cad0: the chosen one's name, if any, to the one it built (0x490a00).
     if (OldWindow* write = id != 0 ? FindTheOldWindow(manager, id) : nullptr; write != nullptr && selected != nullptr)
         Messenger::PutTheName(manager, *write, Messenger::FriendName(selected->name), globals);
     return id;
@@ -1741,7 +1750,8 @@ std::int32_t FindTheChatWith(Ui::OldWindowManager& manager, std::string_view nam
     for (const std::int32_t id : manager.windowList.list.chats)
     {
         const Ui::OldWindow* chat = Ui::FindTheOldWindow(manager, id);
-        // El original le pide el amigo a lo que dé 0x490a00 sin mirar: una que ya no está no queda en +0xb4 (0x4a4b30).
+        // The original asks whatever 0x490a00 gives for the friend without checking: one that no longer exists does not
+        // stay in +0xb4 (0x4a4b30).
         if (chat == nullptr)
             continue;
         std::int32_t kind = 0;
@@ -1828,8 +1838,8 @@ Core::Expected<void, std::string> AddAChatLine(Ui::OldWindowManager& manager, Ui
             }
         }
     }
-    // 0x45f6f0: el nombre (strncpy 0xb) y el texto (strncpy 0x100) al primer deque si alguno no está vacío, y la vtable
-    // + 0x90.
+    // 0x45f6f0: the name (strncpy 0xb) and the text (strncpy 0x100) to the first deque if either is not empty, and the
+    // vtable + 0x90.
     Ui::ChatLine line{
         .name = std::move(name), .text = Bounded(text, Chat::ChatTextBytes), .kind = kind, .extra = extra};
     if (line.name.empty() && line.text.empty())
@@ -1853,9 +1863,8 @@ Core::Expected<std::int32_t, std::string> AddAChatMember(Ui::OldWindowManager& m
     }
     else
     {
-        // 0x493d8e: 0x460e70, la vtable + 0x94 de la lista de los miembros: adelante (0x461052..0x461071); con más que
-        // los renglones, uno más corrido, acotado; con alguno, el primero elegido y el corrimiento en 0
-        // (0x4610c9..0x4610de).
+        // 0x493d8e: 0x460e70, the members list's vtable + 0x94: at the front (0x461052..0x461071); with more than the
+        // rows, scrolled one more, clamped; with any, the first chosen and the scroll at 0 (0x4610c9..0x4610de).
         members.push_front(FriendEntry{.selected = 0, .name = FriendName(name), .flag = index, .state = state});
         Ui::OldList& list = chat.chat.users;
         const auto count = static_cast<std::int32_t>(members.size());
@@ -1924,7 +1933,7 @@ void FillTheInvites(Ui::OldWindowManager& manager, Ui::OldWindow& chat, std::str
         }
         invitable.erase(invitable.begin() + static_cast<std::ptrdiff_t>(at));
     }
-    // 0x4944a1..0x4944a7: la vtable + 0x34 de la lista con 0 (0x47a910), que acota el corrimiento.
+    // 0x4944a1..0x4944a7: the list's vtable + 0x34 with 0 (0x47a910), which clamps the scroll.
     Ui::ScrollTheList(chat.chat.invite, invitable.size(), 0);
 }
 
@@ -1932,7 +1941,7 @@ void CloseTheChat(Ui::OldWindow& chat, std::int32_t closed, const Ui::OldWindowT
 {
     const std::string prefix = texts.At(ChatClosedText);
     std::string title = chat.frame.title.value_or(std::string());
-    // La vtable + 0x58 del EDIT (0x495653 y 0x4956e1): +0xb4 en 1 o en 0. El estado del EDIT (+0x48) no cambia.
+    // The EDIT's vtable + 0x58 (0x495653 and 0x4956e1): +0xb4 at 1 or at 0. The EDIT's state (+0x48) does not change.
     if (closed != 1)
     {
         chat.chat.edit.closed = 0;
@@ -1983,8 +1992,8 @@ Core::Expected<void, std::string> SetTheLetter(Ui::OldWindowManager& manager, Ui
 {
     Ui::OldLetterPart& letter = read.letter;
     letter.entry = entry;
-    // strtok(copia, "\n") (0x6c6484): los renglones vacíos no quedan; cada uno a la vtable + 0x94 de la lista
-    // (0x464ae0): strncpy 0x3e9 al primer deque, la vtable + 0x58 con 0 (0x47c670, la elección en 0) y la + 0x90.
+    // strtok(copy, "\n") (0x6c6484): empty lines do not stay; each one to the list's vtable + 0x94 (0x464ae0): strncpy
+    // 0x3e9 to the first deque, the vtable + 0x58 with 0 (0x47c670, the choice at 0) and the + 0x90.
     body = body.substr(0, body.find('\0'));
     std::size_t from = 0;
     while (from < body.size())
@@ -2004,7 +2013,8 @@ Core::Expected<void, std::string> SetTheLetter(Ui::OldWindowManager& manager, Ui
 
 Core::Expected<void, std::string> LeaveTheChatRoom(Ui::OldWindowManager& manager, const Ui::OldWindow& chat)
 {
-    // 0x493510: sin la conexión de la sala no manda el C1 03 01; con ella, la salida y 0x49dfd0, que la cierra.
+    // 0x493510: without the room's connection it does not send the C1 03 01; with it, the leave and 0x49dfd0, which
+    // closes it.
     if (FindTheChatRoom(manager.chatRooms, chat.chat.room) != nullptr)
         manager.chatRooms.orders.push_back(
             ChatRoomOrder{.kind = ChatRoomOrder::Kind::Leave, .room = chat.chat.room, .text = {}});
@@ -2020,8 +2030,8 @@ Core::Expected<void, std::string> SettleTheLetterKindsForTheDraw(Ui::OldWindowMa
         return {};
     if (window.kind == Ui::OldWindowKind::ChatWindow)
     {
-        // 0x493fd7..0x49408d: el 8 a los renglones, a los miembros, a los de invitar, a los dos botones y al EDIT; el 9
-        // a las tres listas.
+        // 0x493fd7..0x49408d: the 8 to the lines, the members, the invite list, the two buttons and the EDIT; the 9 to
+        // the three lists.
         Ui::OldChatPart& chat = window.chat;
         if (auto posted = PostToTheWrappedList(manager, chat, PlaceType, &measure); !posted.HasValue())
             return posted;
@@ -2041,8 +2051,8 @@ Core::Expected<void, std::string> SettleTheLetterKindsForTheDraw(Ui::OldWindowMa
     Ui::OldLetterPart& letter = window.letter;
     if (window.kind == Ui::OldWindowKind::LetterReadWindow)
     {
-        // 0x499d94..0x499e30: el 8 a la lista del cuerpo, a los cinco botones y al retrato; el 9 a la lista y al
-        // retrato.
+        // 0x499d94..0x499e30: the 8 to the body list, the five buttons and the portrait; the 9 to the list and the
+        // portrait.
         if (auto posted = PostToTheWrappedList(manager, letter, PlaceType, &measure); !posted.HasValue())
             return posted;
         for (Ui::OldButton& button : letter.buttons)
@@ -2057,8 +2067,9 @@ Core::Expected<void, std::string> SettleTheLetterKindsForTheDraw(Ui::OldWindowMa
     }
     if (window.kind != Ui::OldWindowKind::LetterWriteWindow || letter.buttons.size() != WriteButtonTexts.size())
         return {};
-    // 0x4984af..0x498532: el 8 a los botones +0xa44 y +0xacc, a los tres EDIT, a los botones +0xb54 y +0xbdc y al
-    // retrato (+0xb4). Sin el 9, ni cambiando de tamaño.
+    // 0x4984af..0x498532: the 8 to buttons +0xa44 and +0xacc, the three EDITs, buttons +0xb54 and +0xbdc and the
+    // portrait
+    // (+0xb4). No 9, not even while resizing.
     Ui::Steps::PostAndSettle(manager, letter.buttons[0], PlaceType);
     Ui::Steps::PostAndSettle(manager, letter.buttons[1], PlaceType);
     PostToTheEdit(manager, letter.to, PlaceType);

@@ -72,9 +72,8 @@
 #include <utility>
 #include <vector>
 
-// El F3 10 (0x4c55a0) y lo que hace con cada entrada (0x5bc740), con el Item.bmd real de la carpeta de datos:
-// 06, "El F3 10, el inventario". Los bytes de los ítems son sintéticos; del cable salen solo los cinco
-// lugares (04, "El F3 10").
+// F3 10 (0x4c55a0) and what it does with each entry (0x5bc740), with the real Item.bmd of the data folder:
+// 06, "El F3 10, el inventario". The item bytes are synthetic; only the five slots come from the wire (04, "El F3 10").
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -90,16 +89,16 @@ using Client::Tests::AfterDraws;
 
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::size_t PublishedSlot = 42;
-// Un cierre del registro propio que lo deja sin accesos, el sufijo de 0x4f2250 y la cola de 0x550d10.
+// A close of the own record that leaves it with no accesses, the suffix of 0x4f2250 and the tail of 0x550d10.
 constexpr int OwnRecordClose = 0xf08;
 constexpr int StopRandom = 1;
 constexpr int TailRandoms = 3;
-// Lo que gasta un lugar del equipo con el registro cerrado: su cierre en línea y 0x512a30 adentro.
+// What an equipment slot spends with the record closed: its inline close and 0x512a30 inside.
 constexpr int EquipmentEntry = OwnRecordClose + StopRandom + TailRandoms;
 
-// Los tipos de Item.bmd que usan las pruebas, con su ancho y su alto ahí: Kris (1 por 2), Short Sword (1 por
-// 3), Small Shield (2 por 2), Guardian Helm (2 por 2), Apple, Jewel of Bless, Gaurdian Angel, Dark Horse, Dark
-// Raven y Wizard's Ring (1 por 1) y Horn of Doom (2 por 2).
+// The Item.bmd types the tests use, with their width and height there: Kris (1 by 2), Short Sword (1 by 3), Small
+// Shield (2 by 2), Guardian Helm (2 by 2), Apple, Jewel of Bless, Gaurdian Angel, Dark Horse, Dark Raven and Wizard's
+// Ring (1 by 1) and Horn of Doom (2 by 2).
 constexpr std::uint16_t Kris = 0x000;
 constexpr std::uint16_t ShortSword = 0x001;
 constexpr std::uint16_t SmallShield = 0xc00;
@@ -114,8 +113,8 @@ constexpr std::uint16_t HornOfDoom = 0x1a25;
 
 constexpr std::uint8_t ChaosCastleMap = 18;
 
-// Los siete bytes de un ítem del F3 10 para `type` (0x54b3a0 al revés): el bit 8 en el 0x80 del byte 3 y
-// los bits 9 a 12 arriba del byte 5. El byte 6 y los cuatro de abajo del 5 no los lee nadie.
+// The seven bytes of an F3 10 item for `type` (0x54b3a0 reversed): bit 8 in the 0x80 of byte 3 and bits 9 to 12 at the
+// top of byte 5. Nobody reads byte 6 or the four low bits of byte 5.
 std::array<std::byte, Client::Protocol::Items::InventoryItemDataSize>
 ItemBytes(std::uint16_t type, std::uint8_t byte1 = 0, std::uint8_t durability = 20, std::uint8_t byte3 = 0,
           std::uint8_t byte4 = 0)
@@ -140,7 +139,7 @@ InventoryList ListOf(std::initializer_list<InventoryEntry> entries)
     return InventoryList{.items = std::vector<InventoryEntry>(entries)};
 }
 
-// Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
+// The set tables with no set: 0x40e1b0 walks the equipment and applies nothing.
 Client::Tables::ItemSetTables NoSets()
 {
     return Client::Tests::ItemSetTablesFrom(
@@ -148,11 +147,11 @@ Client::Tables::ItemSetTables NoSets()
         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
-// Lo que dura la sesión, con Player.bmd, sin conjuntos y el Item.bmd que pase la prueba.
+// Lives for the session, with Player.bmd, no sets and the Item.bmd the test passes.
 struct Stage
 {
 private:
-    // Dos mundos simultáneos exceden la pila de 1 MiB del runner Windows.
+    // Two simultaneous worlds exceed the 1 MiB stack of the Windows runner.
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 
 public:
@@ -180,7 +179,7 @@ public:
                                    .states = &states};
     }
 
-    // El héroe publicado en PublishedSlot, un jugador sin armas en el mapa 0.
+    // The hero published at PublishedSlot: an unarmed player on map 0.
     ActorState& PublishedHero()
     {
         world.Runtime().map = 0;
@@ -208,7 +207,7 @@ public:
     Client::Tables::ItemSetTables sets = NoSets();
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
-    // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
+    // The welcome line of F3 03 and of the map-changing 1C (0x4c4b60 and 0x4c7c4e).
     Client::Tests::LetterMeasure letters;
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({});
 };
@@ -233,7 +232,7 @@ protected:
         return Stage(m_dataRoot, &*m_items);
     }
 
-    // En el heap: WorldState pesa más de 600 KB y algunas pruebas tienen dos etapas.
+    // On the heap: WorldState weighs over 600 KB and some tests have two stages.
     [[nodiscard]] std::unique_ptr<Stage> FreshOnTheHeap() const
     {
         return std::make_unique<Stage>(m_dataRoot, &*m_items);
@@ -247,7 +246,7 @@ std::uint16_t ModelOf(std::uint16_t type)
     return static_cast<std::uint16_t>(type + Client::Tables::FirstItemModel);
 }
 
-// 0x54b3a0: el byte 0, el bit 0x80 del byte 3 como bit 8 y los cuatro de arriba del byte 5 como bits 9 a 12.
+// 0x54b3a0: byte 0, bit 0x80 of byte 3 as bit 8 and the top four bits of byte 5 as bits 9 to 12.
 TEST(InventoryItemTypeTest, TakesByte0TheTopBitOfByte3AndTheTopNibbleOfByte5)
 {
     const std::array<std::byte, 7> bytes{std::byte{0x12}, std::byte{0xff}, std::byte{0xff}, std::byte{0x80},
@@ -262,7 +261,7 @@ TEST(InventoryItemTypeTest, TakesByte0TheTopBitOfByte3AndTheTopNibbleOfByte5)
     }
 }
 
-// 0x5bc75d: el tipo 0x1fff vuelve sin tocar nada, ni el registro ni el azar.
+// 0x5bc75d: type 0x1fff returns without touching anything, neither the record nor the random.
 TEST_F(InventoryReplyTest, TheType1fffTouchesNothing)
 {
     Stage tested = Fresh();
@@ -282,8 +281,8 @@ TEST_F(InventoryReplyTest, TheType1fffTouchesNothing)
     EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x4c55a0 con la cantidad en 0: la inicialización común igual vacía el equipo y las dos grillas, con un
-// cierre del registro. El equipo deja el dword de +4 y la durabilidad (Q-C203), y el héroe no cambia.
+// 0x4c55a0 with the count at 0: the common initialization still empties the equipment and both grids, with one record
+// close. The equipment keeps the dword at +4 and the durability (Q-C203), and the hero does not change.
 TEST_F(InventoryReplyTest, ACountOfZeroStillEmpties)
 {
     Stage tested = Fresh();
@@ -322,9 +321,8 @@ TEST_F(InventoryReplyTest, ACountOfZeroStillEmpties)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
 }
 
-// 0x5bc840..0x5bc886: un lugar del equipo con los bytes del ítem, 0x54bf40 y 0x512a30 sobre el héroe
-// publicado. Lo de adentro anida en el acceso en línea: gasta el sufijo de 0x4f2250, la cola de 0x550d10 y
-// un cierre.
+// 0x5bc840..0x5bc886: an equipment slot with the item bytes, 0x54bf40 and 0x512a30 over the published hero. What is
+// inside nests in the inline access: it spends the suffix of 0x4f2250, the tail of 0x550d10 and one close.
 TEST_F(InventoryReplyTest, AnEquipmentSlotDressesThePublishedHero)
 {
     Stage tested = Fresh();
@@ -347,14 +345,14 @@ TEST_F(InventoryReplyTest, AnEquipmentSlotDressesThePublishedHero)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, OwnRecordClose + EquipmentEntry).State());
 }
 
-// Q-C203: el vaciado común deja la durabilidad. Con un lugar del equipo en el mismo F3 10, el 0x550d10 de
-// 0x512a30 lee Item.bmd con el tipo −1 del lugar vaciado (Q-C184), y MuRet corta ahí con el registro cerrado.
+// Q-C203: the common emptying keeps the durability. With an equipment slot in the same F3 10, the 0x550d10 of 0x512a30
+// reads Item.bmd with the emptied slot's type −1 (Q-C184), and MuRet cuts there with the record closed.
 TEST_F(InventoryReplyTest, AnEmptiedSlotKeepsItsDurabilityUntilQC184)
 {
     Stage tested = Fresh();
     tested.PublishedHero();
     tested.world.OwnCharacter().equipment[5].durability = 10;
-    tested.world.OwnCharacter().equipment[5].flags1c = 4; // Bono no nulo: Q-C184 sigue necesitando el prefijo.
+    tested.world.OwnCharacter().equipment[5].flags1c = 4; // Non-zero bonus: Q-C184 still needs the prefix.
 
     const auto applied = ApplyInventory(ListOf({Entry(0, Kris)}), tested.Resources());
 
@@ -366,7 +364,7 @@ TEST_F(InventoryReplyTest, AnEmptiedSlotKeepsItsDurabilityUntilQC184)
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x4c5e78..0x4c5e9f no mira si un lugar se repite: cada entrada corre entera, y la última queda.
+// 0x4c5e78..0x4c5e9f does not check whether a slot repeats: each entry runs whole, and the last one stays.
 TEST_F(InventoryReplyTest, RepeatedSlotsApplyEach)
 {
     Stage tested = Fresh();
@@ -378,7 +376,7 @@ TEST_F(InventoryReplyTest, RepeatedSlotsApplyEach)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested.world.OwnCharacter().equipment[0].id, ShortSword);
     EXPECT_EQ(hero.hands[0].model, ModelOf(ShortSword));
-    // La manzana pisa solo la casilla de arriba a la izquierda del escudo; las otras tres quedan.
+    // The apple overwrites only the shield's top-left cell; the other three stay.
     EXPECT_EQ(tested.Cell(0).id, Apple);
     EXPECT_EQ(tested.Cell(0).occupied, 1u);
     EXPECT_EQ(tested.Cell(1).id, SmallShield);
@@ -387,8 +385,8 @@ TEST_F(InventoryReplyTest, RepeatedSlotsApplyEach)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, 3 * OwnRecordClose + 2 * EquipmentEntry).State());
 }
 
-// 0x5bcc1a..0x5bcd05: desde el lugar 12, el ancho y el alto de Item.bmd en casillas de 8 columnas; todas
-// con la columna y la fila del origen, ocupada solo la de arriba a la izquierda. 0x54bf40 corre en cada una.
+// 0x5bcc1a..0x5bcd05: from slot 12, Item.bmd's width and height in cells of 8 columns; all with the origin's column and
+// row, only the top-left one occupied. 0x54bf40 runs in each one.
 TEST_F(InventoryReplyTest, TheGridTakesTheWidthAndHeightOfItemBmd)
 {
     Stage tested = Fresh();
@@ -414,7 +412,7 @@ TEST_F(InventoryReplyTest, TheGridTakesTheWidthAndHeightOfItemBmd)
     EXPECT_EQ(tested.Cell(25).id, 0);
 }
 
-// Q-C201: sin tope por columna, un ítem que pasa de la última sigue en la fila de abajo.
+// Q-C201: with no per-column limit, an item past the last column continues on the row below.
 TEST_F(InventoryReplyTest, AnItemPastTheLastColumnContinuesOnTheNextRow)
 {
     Stage tested = Fresh();
@@ -430,8 +428,8 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastColumnContinuesOnTheNextRow)
     }
 }
 
-// Q-C200: sin tope por casilla, el original escribe después de la última, fuera de la grilla. MuRet escribe
-// las de adentro, con su 0x54bf40, y corta en la primera de afuera.
+// Q-C200: with no per-cell limit, the original writes past the last cell, outside the grid. MuRet writes the ones
+// inside, with their 0x54bf40, and cuts at the first one outside.
 TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
 {
     const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
@@ -444,7 +442,7 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
     EXPECT_NE(placed.Error().find("0x78a9bb0"), std::string::npos) << placed.Error();
     EXPECT_EQ(tested.Cell(63).id, SmallShield);
     EXPECT_EQ(tested.Cell(63).occupied, 1u);
-    // Corta antes del registro: no lo abre ni lo cierra.
+    // It cuts before the record: it neither opens nor closes it.
     EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
 
     Stage second = Fresh();
@@ -455,7 +453,7 @@ TEST_F(InventoryReplyTest, AnItemPastTheLastCellIsAnExplicitFrontier)
     EXPECT_NE(beyond.Error().find("0x78ab0b8"), std::string::npos) << beyond.Error();
 }
 
-// 0x5bcf99..0x5bd085: desde el lugar 76, la segunda grilla, con el mismo cálculo.
+// 0x5bcf99..0x5bd085: the second grid, with the same calculation.
 TEST_F(InventoryReplyTest, TheSecondGridStartsAtSlot76)
 {
     Stage tested = Fresh();
@@ -473,8 +471,8 @@ TEST_F(InventoryReplyTest, TheSecondGridStartsAtSlot76)
     EXPECT_EQ(tested.Cell(11).id, 0);
 }
 
-// 0x5bcd0b: después de una grilla, con [0x78a6758] en menos de 12 abre y cierra el registro (un cierre), y
-// con 12 o más no lo toca. Los WORD +0x3e y +0x42 en 0 no llaman a 0x54fe10.
+// 0x5bcd0b: after a grid, with [0x78a6758] below 12 it opens and closes the record (one close), and with 12 or more it
+// does not touch it. The WORDs +0x3e and +0x42 at 0 do not call 0x54fe10.
 TEST_F(InventoryReplyTest, AfterTheGridTheRecordClosesOnlyWithSlot78a6758BelowTwelve)
 {
     const std::unique_ptr<Stage> closingOnHeap = FreshOnTheHeap();
@@ -493,7 +491,7 @@ TEST_F(InventoryReplyTest, AfterTheGridTheRecordClosesOnlyWithSlot78a6758BelowTw
     EXPECT_EQ(closing.world.OwnCharacter().attackSpeed, Untouched);
 }
 
-// 0x5bcdd9 y 0x5bcdf0: 0x54fe10 una vez por cada WORD, +0x3e y +0x42, que no sea 0, con el registro abierto.
+// 0x5bcdd9 and 0x5bcdf0: 0x54fe10 once for each non-zero WORD, +0x3e and +0x42, with the record open.
 TEST_F(InventoryReplyTest, EachNonZeroWord3eOr42RunsTheSpeeds)
 {
     Stage tested = Fresh();
@@ -504,14 +502,14 @@ TEST_F(InventoryReplyTest, EachNonZeroWord3eOr42RunsTheSpeeds)
 
     ASSERT_TRUE(Client::Items::PlaceInventoryItem(12, ItemBytes(Apple), tested.Resources()).HasValue());
 
-    // Clase 0: agilidad / 20 y agilidad / 10, más 20 por el bit 0x01 de +0x3c (0x54fe10).
+    // Class 0: agility / 20 and agility / 10, plus 20 for bit 0x01 of +0x3c (0x54fe10).
     EXPECT_EQ(own.attackSpeed, 100 / 20 + 20);
     EXPECT_EQ(own.magicSpeed, 100 / 10 + 20);
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, OwnRecordClose).State());
 }
 
-// Q-C202: en la grilla 0x54bf40 corre con el registro cerrado, y la familia tardía de las armas con el bit
-// 0x10 de B3 lee su nivel, que el último cierre dejó en rand() & 0xff. Abierto, es el nivel.
+// Q-C202: in the grid 0x54bf40 runs with the record closed, and the late weapon family with bit 0x10 of B3 reads its
+// level, which the last close left at rand() & 0xff. Open, it is the level.
 TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
 {
     const std::unique_ptr<Stage> closedOnHeap = FreshOnTheHeap();
@@ -541,9 +539,9 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
     EXPECT_EQ(held.world.Runtime().ownRecordDepth, 1);
 }
 
-// 0x4225d0 desde 0x54cc5c: el Dark Horse agrega la opción 0x96 con 5 + la agilidad / 20 + 2 · el nivel del
-// caballo ([0x72397c]). En la grilla, 0x54bf40 corre con el registro cerrado: 0x4225d0 lo abre y lo cierra (3.848
-// rand()), y después lo vuelve a abrir y cerrar la cola de la grilla.
+// 0x4225d0 from 0x54cc5c: the Dark Horse adds option 0x96 with 5 + agility / 20 + 2 · the horse's level ([0x72397c]).
+// In the grid, 0x54bf40 runs with the record closed: 0x4225d0 opens and closes it (3848 rand()), and then the grid's
+// tail opens and closes it again.
 TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
 {
     Stage grid = Fresh();
@@ -562,8 +560,8 @@ TEST_F(InventoryReplyTest, TheDarkHorseInTheGridAddsItsDefenseOption)
     EXPECT_EQ(grid.cloth.random.State(), AfterDraws(Seed, 2 * OwnRecordClose).State());
 }
 
-// En el equipo, 0x5bc740 ya tiene el registro abierto: 0x4225d0 no lo cierra y no saca rand(). Lo que siga
-// después de 0x54bf40 (el ayudante y el efecto del lugar 8) no cambia la opción.
+// In the equipment, 0x5bc740 already has the record open: 0x4225d0 does not close it and draws no rand(). What follows
+// 0x54bf40 (the helper and slot 8's effect) does not change the option.
 TEST_F(InventoryReplyTest, TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen)
 {
     Stage worn = Fresh();
@@ -584,9 +582,9 @@ TEST_F(InventoryReplyTest, TheWornDarkHorseGetsItsOptionWithTheRecordAlreadyOpen
     EXPECT_EQ(worn.world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x4225f2..0x422602: una 0x96 desde la segunda opción recibe el valor nuevo y la cantidad no cambia; una en la
-// primera no cuenta y se agrega otra al final (Q-C415). Con el registro abierto, sin rand(); el valor va en un
-// byte: (65.535 / 20 = 3.276) + 2 · 200 + 5 = 3.681, que deja 97.
+// 0x4225f2..0x422602: a 0x96 from the second option on gets the new value and the count does not change; one in the
+// first does not count and another is added at the end (Q-C415). With the record open, no rand(); the value goes in a
+// byte: (65535 / 20 = 3276) + 2 · 200 + 5 = 3681, which leaves 97.
 TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
 {
     Stage tested = Fresh();
@@ -620,10 +618,10 @@ TEST_F(InventoryReplyTest, TheDarkHorseOptionSkipsAnEarlierOneInTheFirstPlace)
     EXPECT_EQ(tested.cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x5bc8cc: fuera de los mapas 18 a 23, el Guardian Angel del lugar 8 se crea con 0x443fa0(0x1c12, héroe + 0x10,
-// héroe, 0, 0) en la tabla de 0x7d335d0, con los tres rand() de su lugar (0x443f21..0x443f8c) entre la cola de
-// 0x512a30 y el cierre del registro: los rand() 5 a 7 de la semilla (4.116, 25.814 y 28.931) lo corren
-// (4.116 % 512 − 256; 25.814 % 512 − 256; 28.931 % 128 + 128). Sin el efecto 0x61e, que no es del 0x1c12.
+// 0x5bc8cc: outside maps 18 to 23, slot 8's Guardian Angel is created with 0x443fa0(0x1c12, hero + 0x10, hero, 0, 0)
+// in the table at 0x7d335d0, with the three rand() of its slot (0x443f21..0x443f8c) between the tail of 0x512a30 and
+// the record close: the seed's rand() 5 to 7 (4116, 25814 and 28931) move it (4116 % 512 − 256; 25814 % 512 − 256;
+// 28931 % 128 + 128). Without the effect 0x61e, which is not the 0x1c12's.
 TEST_F(InventoryReplyTest, AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom)
 {
     Stage tested = Fresh();
@@ -643,7 +641,7 @@ TEST_F(InventoryReplyTest, AGuardianAngelOfSlot8IsCreatedWithTheSharedRandom)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, EquipmentEntry + 3).State());
 }
 
-// En los mapas 18 a 23 no se crea ninguna mascota, ni el cuervo.
+// On maps 18 to 23 no pet is created, not even the raven.
 TEST_F(InventoryReplyTest, InChaosCastleNeitherThePetNorTheRavenIsCreated)
 {
     Stage tested = Fresh();
@@ -657,8 +655,7 @@ TEST_F(InventoryReplyTest, InChaosCastleNeitherThePetNorTheRavenIsCreated)
     EXPECT_EQ(tested.world.OwnCharacter().equipment[1].id, DarkRaven);
 }
 
-// 0x4c5e4f..0x4c5e61: antes de las entradas, 0x443d40 con el héroe publicado apaga sus ayudantes; los de
-// otro jinete quedan.
+// 0x4c5e4f..0x4c5e61: before the entries, 0x443d40 with the published hero turns off its helpers; another rider's stay.
 TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
 {
     Stage tested = Fresh();
@@ -675,9 +672,9 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
     EXPECT_TRUE(helpers[1].alive);
 }
 
-// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante (el 0x14c con el 2). Fuera de
-// la zona segura (+0x3e2 del héroe en 0), 0x5bca46 crea el calco 0x61e/1 sobre el héroe, con él de dueño y sin rand();
-// en ella, no.
+// 0x5bc9d6..0x5bc9db: Horn of Doom copies +0x1b to +0x31b before creating the helper (the 0x14c with 2). Outside the
+// safe zone (the hero's +0x3e2 at 0), 0x5bca46 creates the decal 0x61e/1 over the hero, with him as owner and no
+// rand(); inside it, not.
 TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZone)
 {
     for (const std::uint8_t safeZone : {std::uint8_t{0}, std::uint8_t{1}})
@@ -713,10 +710,10 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bAndSummonsOutsideTheSafeZon
     }
 }
 
-// 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0 con el héroe publicado. Suelta el cuervo que tenía y,
-// fuera de los mapas 18 a 23, crea otro (0x4167b0) en el centro de su celda, 300 sobre el terreno, con los 12
-// rand() de los cierres de sus celdas y del contador. En Chaos Castle solo lo suelta, sin más rand() que los de
-// vestir con un escudo en el mismo lugar.
+// 0x5bca62: slot 1's Dark Raven calls 0x420cf0 with the published hero. It releases the raven it had and, outside maps
+// 18 to 23, creates another (0x4167b0) at the center of its cell, 300 above the terrain, with the 12 rand() of the
+// closes of its cells and of the counter. In Chaos Castle it only releases it, with no rand() beyond those of dressing
+// with a shield in the same slot.
 TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
 {
     constexpr int RavenRandoms = 3 * Client::Models::SmallLogicalCloseRandoms;
@@ -759,8 +756,8 @@ TEST_F(InventoryReplyTest, TheDarkRavenOfSlot1ReplacesTheRavenAt420cf0)
     EXPECT_EQ(chaos.cloth.random.State(), shielded.cloth.random.State());
 }
 
-// 0x5bca6c..0x5bcaa7: el Wizard's Ring de nivel 3 en el 11, o en el 10 con +0x360 fuera de 1 a 3, suelta la capa
-// (0x414340) y deja +0x360 en 4. De otro nivel, o en el 10 con +0x360 de 1 a 3, no lo toca.
+// 0x5bca6c..0x5bcaa7: a level 3 Wizard's Ring in slot 11, or in 10 with +0x360 outside 1 to 3, releases the layer
+// (0x414340) and leaves +0x360 at 4. At another level, or in 10 with +0x360 from 1 to 3, it does not touch it.
 TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
 {
     for (const int ring : {10, 11})
@@ -795,7 +792,7 @@ TEST_F(InventoryReplyTest, ALevelThreeWizardsRingLeavesTheLayerAtFour)
     EXPECT_EQ(bloodCastle.byte360, 2);
 }
 
-// Sin Item.bmd, la grilla corta donde lee el ancho (0x5bcc33) y el equipo en 0x54bf40, antes de 0x512a30.
+// Without Item.bmd, the grid cuts where it reads the width (0x5bcc33) and the equipment at 0x54bf40, before 0x512a30.
 TEST_F(InventoryReplyTest, WithoutItemBmdBothPathsStop)
 {
     Stage tested(m_dataRoot, nullptr);
@@ -812,8 +809,8 @@ TEST_F(InventoryReplyTest, WithoutItemBmdBothPathsStop)
     EXPECT_EQ(tested.world.Actors()[PublishedSlot].hands[0].model, Client::Kernel::NoItemModel);
 }
 
-// Q-C204: 0x5bc740 viste al héroe publicado (0x743a170), no al de WorldRuntime::heroSlot. Antes de la
-// respuesta del F3 03 es el registro 0 de WinMain, que no es un jugador: 0x512a30 no le hace nada.
+// Q-C204: 0x5bc740 dresses the published hero (0x743a170), not the one at WorldRuntime::heroSlot. Before the F3 03
+// reply it is WinMain's record 0, which is not a player: 0x512a30 does nothing to it.
 TEST_F(InventoryReplyTest, BeforeTheEntryTheEquipmentGoesToTheRecordOnly)
 {
     Stage tested = Fresh();
@@ -829,17 +826,16 @@ TEST_F(InventoryReplyTest, BeforeTheEntryTheEquipmentGoesToTheRecordOnly)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, 2 * OwnRecordClose).State());
 }
 
-// La respuesta del F3 03 del cable (la celda (133, 127) del mapa 0) y el F3 10 en el mismo segmento, con
-// cinco entradas en los lugares del cable (0, 12, 14, 17 y 23; 04, "El F3 10") y bytes sintéticos: en un
-// solo Poll la entrada publica al héroe y el F3 10 lo viste (P-C28 a). Lo de un frame de cero pasos espera
-// el frame del juego de la T8.
+// The wire's F3 03 reply (cell (133, 127) of map 0) and the F3 10 in the same segment, with five entries in the wire's
+// slots (0, 12, 14, 17 and 23; 04, "El F3 10") and synthetic bytes: in a single Poll the entry publishes the hero and
+// the F3 10 dresses him (P-C28 a). What a zero-step frame does waits for T8's game frame.
 TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
 {
     Stage tested = Fresh();
     Client::Scenes::SessionEventApplier applier(tested.Resources());
     Client::Tests::LoggedInSession online(&applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    // La respuesta del F3 03: la cabecera y la celda; el resto en 0 (el mapa 0 y la dirección 0).
+    // The F3 03 reply: the header and the cell; the rest at 0 (map 0 and direction 0).
     std::vector<std::byte> entry(0x34);
     const std::array head{std::byte{0xC1}, std::byte{0x34}, std::byte{0xF3},
                           std::byte{0x03}, std::byte{133},  std::byte{127}};
@@ -878,8 +874,8 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
     EXPECT_EQ(tested.Cell(20).id, GuardianHelm);
     EXPECT_EQ(tested.Cell(3).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ownRecordDepth, 0);
-    // La entrada con 0x512a30 entera (WorldEntryTest), y el F3 10 con todo cerrado: el cierre común, el del
-    // lugar 0 con lo de 0x512a30 adentro y uno por cada grilla (P-C42).
+    // The entry with 0x512a30 whole (WorldEntryTest), and the F3 10 with everything closed: the common close, slot 0's
+    // with what 0x512a30 does inside, and one per grid (P-C42).
     constexpr int GrassRandoms = 65536;
     constexpr int HeroRandom = 1;
     constexpr int ConstructionRandoms = 28;
@@ -891,9 +887,9 @@ TEST_F(InventoryReplyTest, TheFiveCableSlotsDressTheHeroInTheSamePoll)
     EXPECT_EQ(tested.cloth.random.State(), AfterDraws(Seed, TheEntry + TheInventory).State());
 }
 
-// 0x4d1400, el 24 cifrado con 0: suelta la traba, deja la cuenta del cursor en 0, pone el ítem en el lugar del paquete
-// (0x5bc740 con el último argumento en 0) y pide el sonido 0x1d. Con 0xff, 0x5be150 vuelve el ítem del cursor a su
-// lugar.
+// 0x4d1400, the 24 encrypted with 0: releases the lock, sets the cursor count to 0, puts the item in the packet's slot
+// (0x5bc740 with the last argument at 0) and requests sound 0x1d. With 0xff, 0x5be150 returns the cursor's item to its
+// slot.
 TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
 {
     const std::unique_ptr<Stage> testedOnHeap = FreshOnTheHeap();
@@ -932,8 +928,8 @@ TEST_F(InventoryReplyTest, TheItemMoveResultPlacesTheItemOrPutsItBack)
     EXPECT_EQ(refused.Cell(1).occupied, 1u);
 }
 
-// 0x4c5ec0 (28): 0x5bd750 con el lugar y, con pkt[4], el fin de la espera; desde el 0x4c, la grilla de la tienda.
-// 0x4d3cc0 (2A): la durabilidad del lugar del equipo, con su acceso al registro, o de toda la huella de la grilla.
+// 0x4c5ec0 (28): 0x5bd750 with the slot and, with pkt[4], the end of the wait; from 0x4c, the shop grid.
+// 0x4d3cc0 (2A): the durability of the equipment slot, with its record access, or of the grid's whole footprint.
 TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
 {
     Stage tested = Fresh();
@@ -968,7 +964,7 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_EQ(tested.Cell(6).id, EmptyOwnItemId);
     EXPECT_EQ(runtime.ui.field5767954, 0);
 
-    // Desde el 0x4c, sin mirar la tienda de otro (0x6c931c en −1): la grilla de la tienda (0x78ab0b8).
+    // From 0x4c, without looking at another's shop (0x6c931c at −1): the shop grid (0x78ab0b8).
     ASSERT_TRUE(Client::Items::PlaceInventoryItem(0x4c + 1, ItemBytes(Apple), tested.Resources()).HasValue());
     const auto shop = Client::Items::ApplyItemDelete(
         Client::Protocol::Items::ItemDelete{.slot = 0x4c + 1, .endsTheWait = 0}, tested.Resources());
@@ -976,9 +972,9 @@ TEST_F(InventoryReplyTest, TheDeleteAndTheDurabilityTouchTheirPlace)
     EXPECT_EQ(tested.world.Inventory().secondCells[1].id, EmptyOwnItemId);
 }
 
-// 0x4d3510 (26): cada uno con el registro propio abierto, 3.848 rand() al cerrarlo; 0xfe la vida máxima, 0xff la vida,
-// 0xfd el fin de la espera y otro lugar la poción: baja 1 y en 0 deja la casilla vacía. Fuera de la grilla, corta
-// después de abrir el registro, que se cierra igual. Con el registro ya abierto no gasta nada.
+// 0x4d3510 (26): each one with the own record open, 3848 rand() on closing it; 0xfe the max life, 0xff the life, 0xfd
+// the end of the wait and any other slot the potion: it drops by 1 and at 0 leaves the cell empty. Outside the grid, it
+// cuts after opening the record, which closes anyway. With the record already open it spends nothing.
 TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
 {
     const std::unique_ptr<Stage> tested = FreshOnTheHeap();
@@ -1028,8 +1024,8 @@ TEST_F(InventoryReplyTest, TheLifeRefillWritesTheRecordOrSpendsThePotion)
     EXPECT_EQ(world.OwnCharacter().life, 80);
 }
 
-// 0x4d3820 (27): 0xfe los máximos de maná y BP, 0xff los actuales y otro lugar el maná y la poción; el 0xfd es un lugar
-// más, fuera de la grilla, y corta después de escribir el maná.
+// 0x4d3820 (27): 0xfe the max mana and BP, 0xff the current ones and any other slot the mana and the potion; 0xfd is
+// one more slot, outside the grid, and cuts after writing the mana.
 TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
 {
     const std::unique_ptr<Stage> tested = FreshOnTheHeap();
@@ -1069,7 +1065,7 @@ TEST_F(InventoryReplyTest, TheManaRefillWritesTheManaAndTheBpOrSpendsThePotion)
     EXPECT_EQ(world.Runtime().ui.field5767954, 10);
 }
 
-// 0x4e316e: la clave de 16 bits sin máscara y los 17 bytes llegan al mismo 0x5139f0 que el viewport.
+// 0x4e316e: the 16-bit key with no mask and the 17 bytes reach the same 0x5139f0 as the viewport.
 TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhenTheirTypeMatches)
 {
     Stage tested = Fresh();
@@ -1078,8 +1074,8 @@ TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhe
     hero.byte3e3 = 1;
     Client::Protocol::Items::EquipmentChange change{.key = 0x9234};
     change.equipment[0] = std::byte{7};
-    change.equipment[4] = std::byte{3}; // Sin mascota ni ayudante.
-    // 0x5110d0 compara MOVSX del WORD de la clave: 0x9234 no coincide con un actor de clave 0x1234.
+    change.equipment[4] = std::byte{3}; // No pet or helper.
+    // 0x5110d0 compares the MOVSX of the key's WORD: 0x9234 does not match an actor with key 0x1234.
     ASSERT_TRUE(Client::Items::ApplyEquipmentChange(change, tested.Resources()).HasValue());
     EXPECT_EQ(hero.hands[0].model, Client::Kernel::NoItemModel);
     change.key = 0x1234;
@@ -1100,8 +1096,8 @@ TEST_F(InventoryReplyTest, TheEquipmentChangeUpdatesPlayersAndTheSentinelOnlyWhe
     EXPECT_EQ(sentinel.hands[0].model, 0x21b);
 }
 
-// 0x4e31a3 (F3 14): la cuenta del cursor en 0, el ítem en su lugar y el sonido 0x45. 0x4e316e (F3 13): sin un
-// jugador con la clave, 0x5139f0 no hace nada; con él, aplica los 17 bytes como el viewport.
+// 0x4e31a3 (F3 14): the cursor count at 0, the item in its slot and sound 0x45. 0x4e316e (F3 13): without a player
+// with the key, 0x5139f0 does nothing; with one, it applies the 17 bytes like the viewport.
 TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
 {
     Stage tested = Fresh();
@@ -1127,7 +1123,7 @@ TEST_F(InventoryReplyTest, TheItemPutAndTheEquipmentOfOthers)
 }
 } // namespace
 
-// Q-C102: mismos píxeles vacíos, pero dos llamadas a509340 añaden cuatro rand() que el modeloFFFF omite.
+// Q-C102: the same empty pixels, but two calls to 0x509340 add four rand() that model 0xffff skips.
 TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNativeRandoms)
 {
     for (const bool upgraded : {false, true})

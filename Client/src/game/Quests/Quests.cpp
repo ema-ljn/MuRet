@@ -24,17 +24,17 @@ namespace Client::Quests
 {
 namespace
 {
-// 0x418e81 y 0x418f19: +0x390 del héroe sigue a la misión 3.
+// 0x418e81 and 0x418f19: the hero's +0x390 follows quest 3.
 constexpr std::int32_t HeroFlagQuest = 3;
-// 0x4194e6: el tipo del ítem es grupo · 0x200 + índice.
+// 0x4194e6: the item's type is group · 0x200 + index.
 constexpr std::int32_t ItemGroupSize = 0x200;
-// 0x418fe3 y 0x419011: el enlace de una condición que vale para todos los pedidos.
+// 0x418fe3 and 0x419011: the link of a condition that applies to every request.
 constexpr std::uint8_t AnyEntry = 0xff;
-// 0x4194c0 y 0x419b10: los pedidos de ítems.
+// 0x4194c0 and 0x419b10: the item requests.
 constexpr std::uint8_t ItemEntry = 1;
-// 0x418f40: los cuatro diálogos de un pedido.
+// 0x418f40: a request's four dialogs.
 constexpr std::size_t DialogSlots = Tables::QuestDialogCount;
-// 0x558445: el nivel que no se mira.
+// 0x558445: the level that is not checked.
 constexpr std::int32_t AnyLevel = -1;
 
 QuestState& QuestOf(Kernel::WorldState& world)
@@ -47,7 +47,7 @@ Kernel::ActorState& HeroOf(Kernel::WorldState& world)
     return world.Hero();
 }
 
-// +0x390 del héroe: 0 y, con la misión 3 terminada, 1 (0x418e76..0x418e8d y 0x418f0e..0x418f25).
+// The hero's +0x390: 0 and, with quest 3 done, 1 (0x418e76..0x418e8d and 0x418f0e..0x418f25).
 void MarkTheHero(Kernel::WorldState& world)
 {
     Kernel::ActorState& hero = HeroOf(world);
@@ -56,7 +56,7 @@ void MarkTheHero(Kernel::WorldState& world)
         hero.byte390 = 1;
 }
 
-// Lo que dice RecordOf de un registro fuera de los 200 de +0xc: ReadsAQuestOutsideTheRecords lo busca.
+// What RecordOf says of a record outside the 200 at +0xc: ReadsAQuestOutsideTheRecords looks for it.
 constexpr std::string_view OutsideTheRecords = "fuera de los 200 registros de +0xc (Q-C842)";
 
 Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestState& quest, std::size_t record,
@@ -67,7 +67,7 @@ Core::Expected<const Tables::QuestRecord*, std::string> RecordOf(const QuestStat
     return &quest.records[record];
 }
 
-// El byte `index` (0 el menos significativo) de un campo como lo dejó 0x418d10.
+// The byte `index` (0 the least significant) of a field as 0x418d10 left it.
 std::uint8_t ByteOfValue(std::uint32_t value, std::size_t index)
 {
     return static_cast<std::uint8_t>((value >> (8 * index)) & 0xffu);
@@ -135,12 +135,12 @@ std::uint8_t ConditionByteOf(const Tables::QuestCondition& condition, std::size_
     }
 }
 
-// Los pedidos de `quest` que mira el original: los primeros entryCount (con signo; más de 16 seguiría en las
-// condiciones, que MuRet no lee: corta).
-// Desde +0x2134c, los 64 bytes que alcanza un índice de un byte (0x419560 con +0x2137e y 0x418ee0 con el del A1 y el
-// A2): los 50 de estado y los campos que siguen, con la ventana de +0x21383 en los paneles. Hasta el final del objeto
-// (+0x21398) siguen doce más (la pestaña, +0x2138d, el relleno y la esquina), que solo alcanza la copia del A0
-// (0x418e20).
+// The requests of `quest` that the original looks at: the first entryCount (signed; more than 16 would go on into the
+// conditions, which MuRet does not read: it cuts).
+// From +0x2134c, the 64 bytes that a one-byte index reaches (0x419560 with +0x2137e and 0x418ee0 with the A1's and the
+// A2's): the 50 state bytes and the fields that follow, with the window of +0x21383 in the panels. Up to the end of
+// the object (+0x21398) twelve more follow (the tab, +0x2138d, the padding and the corner), which only the A0's copy
+// (0x418e20) reaches.
 constexpr std::size_t QuestObjectBytes = 64;
 constexpr std::size_t QuestObjectEnd = 76;
 
@@ -180,15 +180,15 @@ std::uint8_t QuestObjectByteOf(const Kernel::WorldRuntime& runtime, std::size_t 
     }
 }
 
-// `value` con su byte `index` (0 el menos significativo) en `byte`.
+// `value` with its byte `index` (0 the least significant) set to `byte`.
 std::uint32_t WithByte(std::uint32_t value, std::size_t index, std::uint8_t byte)
 {
     const std::size_t shift = 8 * index;
     return (value & ~(0xffu << shift)) | (static_cast<std::uint32_t>(byte) << shift);
 }
 
-// La escritura de QuestObjectByteOf, hasta el final del objeto (Q-C1126): 0x418ee0 escribe el byte índice >> 2 y
-// 0x418e20 copia la cuenta del A0 desde +0x2134c. El relleno de +0x2138e y +0x2138f no lo lee nadie y no se guarda.
+// The write of QuestObjectByteOf, up to the end of the object (Q-C1126): 0x418ee0 writes the byte index >> 2 and
+// 0x418e20 copies the A0's count from +0x2134c. Nobody reads the padding at +0x2138e and +0x2138f and it is not kept.
 void SetQuestObjectByte(Kernel::WorldRuntime& runtime, std::size_t index, std::uint8_t value)
 {
     QuestState& quest = runtime.quest;
@@ -294,12 +294,12 @@ std::uint8_t QuestClassFlagOf(const Tables::QuestRecord& quest, std::size_t entr
 
 std::uint8_t QuestStateOf(const Kernel::WorldRuntime& runtime, std::int32_t index)
 {
-    // 0x41957e..0x419588: CDQ, AND 3 y SAR 2, la división con signo.
+    // 0x41957e..0x419588: CDQ, AND 3 and SAR 2, the signed division.
     const std::int32_t byteIndex = index / 4;
     if (byteIndex < 0 || static_cast<std::size_t>(byteIndex) >= QuestObjectBytes)
         return 0;
     const std::uint8_t value = QuestObjectByteOf(runtime, static_cast<std::size_t>(byteIndex));
-    // 0x41958b..0x41959a: SHL CL,1 sobre el byte bajo de la resta; SHR AL,CL toma CL & 0x1f.
+    // 0x41958b..0x41959a: SHL CL,1 over the low byte of the subtraction; SHR AL,CL takes CL & 0x1f.
     const auto shift = static_cast<std::uint32_t>(((static_cast<std::uint32_t>(index - byteIndex) & 0xfu) << 1));
     const std::uint32_t shifted = shift >= 8 ? 0u : (static_cast<std::uint32_t>(value) >> shift);
     return static_cast<std::uint8_t>(shifted & 3u);
@@ -307,7 +307,7 @@ std::uint8_t QuestStateOf(const Kernel::WorldRuntime& runtime, std::int32_t inde
 
 void ReadTheCurrentQuestState(Kernel::WorldRuntime& runtime)
 {
-    // 0x41956f..0x41957c: el índice sin signo y SHR 2.
+    // 0x41956f..0x41957c: the index unsigned and SHR 2.
     runtime.quest.currentState = QuestStateOf(runtime, runtime.quest.current);
 }
 
@@ -333,18 +333,18 @@ std::size_t ApplyTheQuestList(Kernel::WorldState& world, std::uint8_t count, std
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     QuestState& quest = runtime.quest;
-    // 0x418e2e..0x418e47: la clase del héroe, sin signo.
+    // 0x418e2e..0x418e47: the hero's class, unsigned.
     const std::uint8_t heroClass = HeroOf(world).characterClass;
     quest.refreshClass = 1;
     runtime.byte6eeda8 = 0;
     quest.characterClass = static_cast<std::uint8_t>(heroClass & 7u);
     quest.evolution = static_cast<std::uint8_t>(heroClass >> 3);
-    // 0x418e4b..0x418e75: los 50 en 0 y `count` del paquete encima, que desde el 51 pisan los campos que siguen
-    // (también el +0x2138d de recién) hasta el final del objeto; lo que pasa de él no se escribe (Q-C1126).
+    // 0x418e4b..0x418e75: the 50 at 0 and the packet's `count` on top, which from the 51st overwrite the fields that
+    // follow (also the +0x2138d just set) up to the end of the object; what goes past it is not written (Q-C1126).
     quest.states.fill(0);
     for (std::size_t i = 0; i < std::min<std::size_t>(count, QuestObjectEnd); ++i)
         SetQuestObjectByte(runtime, i, i < bytes.size() ? bytes[i] : 0);
-    // 0x418e77..0x418eaa: la primera que no está terminada, con lo que dejó la copia.
+    // 0x418e77..0x418eaa: the first one that is not done, with what the copy left.
     std::int32_t first = 0;
     while (first < count && QuestStateOf(runtime, first) == QuestDone)
         ++first;
@@ -358,11 +358,11 @@ void SetTheQuestState(Kernel::WorldState& world, std::uint8_t index, std::uint8_
 {
     Kernel::WorldRuntime& runtime = world.Runtime();
     QuestState& quest = runtime.quest;
-    // 0x418ef1..0x418f04: el mayor con signo entre el índice y +0x2137f.
+    // 0x418ef1..0x418f04: the signed maximum of the index and +0x2137f.
     quest.current = index;
     quest.reached = std::max(quest.reached, index);
-    // 0x418f12: el byte índice >> 2 (de 0 a 63, dentro del objeto): desde la misión 200, uno de los campos que siguen
-    // a los 50, también +0x2137e y +0x2137f de recién (Q-C1126).
+    // 0x418f12: the byte index >> 2 (0 to 63, inside the object): from quest 200 on, one of the fields that follow the
+    // 50, also the +0x2137e and +0x2137f just set (Q-C1126).
     SetQuestObjectByte(runtime, static_cast<std::size_t>(index >> 2u), state);
     MarkTheHero(world);
 }
@@ -385,7 +385,7 @@ Core::Expected<std::int16_t, std::string> QuestDialogOf(const QuestContext& cont
         if (QuestClassFlagOf(current, e, quest.characterClass) != 0)
             return current.entries[e].dialogs[slot];
     }
-    // 0x418f7a..0x418f93: la anterior (un byte: 0 − 1 es 255) y otra vez 0x419600(0xff).
+    // 0x418f7a..0x418f93: the previous one (a byte: 0 − 1 is 255) and 0x419600(0xff) again.
     --quest.current;
     const auto refreshed = RefreshTheQuest(context, 0xff);
     if (!refreshed.HasValue())
@@ -451,11 +451,11 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
             const Tables::QuestCondition& condition = current.conditions[static_cast<std::size_t>(c)];
             if (condition.link != entry.condition && condition.link != AnyEntry)
                 continue;
-            // 0x41902b..0x419044: la misión pedida, sin signo (0xffff es ninguna).
+            // 0x41902b..0x419044: the required quest, unsigned (0xffff is none).
             if (static_cast<std::uint16_t>(condition.needQuest) != 0xffffu &&
                 QuestStateOf(runtime, static_cast<std::uint16_t>(condition.needQuest)) != QuestDone)
                 return fail(condition);
-            // 0x41904a..0x41922a: el nivel con el registro propio abierto; el mínimo se compara sin signo (JA).
+            // 0x41904a..0x41922a: the level with the own record open; the minimum is compared unsigned (JA).
             if (condition.minLevel != 0)
             {
                 std::uint16_t level = 0;
@@ -467,7 +467,7 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
                 if (condition.minLevel > level)
                     return fail(condition);
             }
-            // 0x419235..0x419313: el máximo, con otra apertura (JC: el máximo por debajo del nivel).
+            // 0x419235..0x419313: the maximum, with another opening (JC: the maximum below the level).
             if (condition.maxLevel != 0)
             {
                 std::uint16_t level = 0;
@@ -479,7 +479,7 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
                 if (condition.maxLevel < level)
                     return fail(condition);
             }
-            // 0x41931c..0x419407: el zen.
+            // 0x41931c..0x419407: the zen.
             if (condition.zen != 0)
             {
                 if (!checkZen)
@@ -505,7 +505,7 @@ Core::Expected<bool, std::string> CheckTheQuestConditions(const QuestContext& co
 Core::Expected<std::uint8_t, std::string> RefreshTheQuest(const QuestContext& context, std::uint8_t state)
 {
     QuestState& quest = QuestOf(context.world);
-    // 0x419606..0x41964b: el MOV AL y el CMP EAX,−1 nunca dan igual (Q-C844).
+    // 0x419606..0x41964b: the MOV AL and the CMP EAX,−1 are never equal (Q-C844).
     if (quest.refreshClass != 0)
     {
         const std::uint8_t heroClass = HeroOf(context.world).characterClass;
@@ -575,7 +575,7 @@ Core::Expected<bool, std::string> CanCompleteTheQuest(const Kernel::WorldState& 
     const auto entries = EntryCountOf(current, "0x419b10");
     if (!entries.HasValue())
         return Core::Unexpected(entries.Error());
-    // 0x419b93: la marca se pone antes de contar, con el primer pedido de ítems de la clase.
+    // 0x419b93: the mark is set before counting, with the class's first item request.
     bool any = false;
     for (std::size_t e = 0; e < entries.Value(); ++e)
     {

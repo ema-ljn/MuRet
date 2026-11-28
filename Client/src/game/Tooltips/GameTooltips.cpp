@@ -47,31 +47,31 @@ namespace
 using Render::BlendMode;
 using Render::Color;
 
-// 0x6ba26c: 0,90909088, el renglón de la caja es 1,1 veces su alto.
+// 0x6ba26c: the box line is 1.1 times its height.
 constexpr float LineHeightInverse = 0.90909088f;
-// 0x6b8830: lo que baja cada renglón, en renglones.
+// 0x6b8830: how far each line moves down, in lines.
 constexpr float LineAdvance = 1.1f;
-// 0x6b8a44 y 0x6b8818: el margen del ancho y lo que se le resta a la caja del texto.
+// 0x6b8a44 and 0x6b8818: the width margin and what is subtracted from the text box.
 constexpr double WidthMargin = 4.0;
 constexpr double TextBoxMargin = 2.0;
-// 0x3f4ccccd: el alfa del fondo de la caja.
+// Bits 0x3f4ccccd.
 constexpr float BackgroundAlpha = 0.8f;
-// 0x5af36f: el modo de 0x467060 que usan todos los cuerpos, centrado en la caja, y el de 0x5af9b0, contra el borde.
+// 0x5af36f: the 0x467060 mode that all the bodies use, centered in the box, and the one of 0x5af9b0, against the edge.
 constexpr std::int32_t LeftAlignedMode = 1;
 constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t RightAlignedMode = 3;
-// 0x40e850: la ventana del set, con 0x78 de ancho, en (x + 0x5f, y + 0x28) del inventario, con el fondo 0x64.
+// 0x40e850: the set window, 0x78 wide, at (x + 0x5f, y + 0x28) of the inventory, with background 0x64.
 constexpr std::int32_t SetWindowWidth = 0x78;
 constexpr std::int32_t SetWindowDx = 0x5f;
 constexpr std::int32_t SetWindowDy = 0x28;
 constexpr std::uint32_t SetWindowBackground = 0x64;
-// 0x40eb2b: una opción de 0xa5 o más sin la marca de la clase va en rojo.
+// 0x40eb2b: an option of 0xa5 or more without the class mark goes in red.
 constexpr std::uint8_t RedSetOption = 0xa5;
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): "%s %s" y "%s %s %s" del conjunto los llevan detrás
-// del nombre (0x770ce08 y 0x76c8c30).
+// The Text.bmd texts (the address − 0x76bd1dc, over 300): the set's "%s %s" and "%s %s %s" carry them after the name
+// (0x770ce08 and 0x76c8c30).
 constexpr std::size_t SetTitleText = 1089;
 constexpr std::size_t SetLabelTailText = 159;
-// 0x40d530: los textos de las opciones de un conjunto.
+// 0x40d530: the texts of a set's options.
 constexpr std::size_t FirstStatOptionText = 950;
 constexpr std::size_t MagicDamageOptionText = 632;
 constexpr std::size_t SecondOptionBase = 949;
@@ -86,9 +86,9 @@ constexpr std::uint8_t IgnoreDefenseOption = 0x15;
 constexpr std::uint8_t ShieldDefenseOption = 0x16;
 constexpr std::uint8_t TwoHandedOption = 0x17;
 constexpr std::uint8_t LastSetOption = 0x23;
-// ItemSetOption.bmd (05, Las tablas de los conjuntos): +0x20 los seis pares de opciones, +0x2c sus valores, +0x38 y
-// +0x3a los dos extras con sus valores, +0x3c las piezas + 1 (0xff sin usar), +0x3d las cinco del conjunto completo y
-// +0x42 sus valores.
+// ItemSetOption.bmd (05, Las tablas de los conjuntos): +0x20 the six option pairs, +0x2c their values, +0x38 and +0x3a
+// the two extras with their values, +0x3c the pieces + 1 (0xff unused), +0x3d the full set's five and +0x42 their
+// values.
 constexpr std::size_t SetPairOptions = 0x20;
 constexpr std::size_t SetPairValues = 0x2c;
 constexpr std::size_t SetPairCount = 6;
@@ -100,7 +100,7 @@ constexpr std::size_t SetFullValues = 0x3a;
 constexpr std::size_t SetLabelSlots = 13;
 constexpr std::size_t SetUsedByte = 0x3c;
 constexpr std::uint8_t NoSetOption = 0xff;
-// 0x40e850 escribe tres "\n" y 0x40eca0 cuatro renglones antes de las opciones.
+// 0x40e850 writes three "\n" and 0x40eca0 four lines before the options.
 constexpr std::size_t SetWindowFirstLine = 3;
 constexpr std::size_t SetLabelFirstLine = 4;
 
@@ -119,7 +119,7 @@ std::string_view TextOrEmpty(std::span<const char> bytes)
     return {bytes.data(), size};
 }
 
-// El nombre de un registro como lo lee sprintf("%s"): hasta su '\0', dentro del registro.
+// A record's name as sprintf("%s") reads it: up to its '\0', inside the record.
 std::string NameOf(std::span<const std::byte, Tables::ItemSetOptionRecordSize> record)
 {
     std::string name;
@@ -141,7 +141,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
     return *text;
 }
 
-// glColor3f del switch de 0x5af368 (la tabla de 0x5af4f4); con un color de más de 10, el que haya.
+// glColor3f of the switch at 0x5af368 (the table at 0x5af4f4); with a color above 10, whatever is there.
 void SetLineColor(Render::SpriteBatch& sprites, std::int32_t color)
 {
     const auto rgb = [&sprites](float red, float green, float blue)
@@ -178,7 +178,7 @@ void SetLineColor(Render::SpriteBatch& sprites, std::int32_t color)
     }
 }
 
-// 0x5af3d7..0x5af42c: el texto en −1 (0x5af359) y el fondo de los colores 5, 7, 8 y 9.
+// 0x5af3d7..0x5af42c: the text at −1 (0x5af359) and the background of colors 5, 7, 8 and 9.
 Render::Text::TextColors LineColors(std::int32_t color)
 {
     switch (color)
@@ -196,12 +196,12 @@ Render::Text::TextColors LineColors(std::int32_t color)
     }
 }
 
-// 0x465950(x, y, texto, caja, 0, modo, 0, 0x280) → 0x467060: una caja de `boxPixels` columnas que empieza en
-// _ftol(x · rx), con el fondo (0x6c8e64) en toda ella (ITextDrawer::DrawColumns, como el título del inventario,
-// Q-C710). El modo 1 (0x467102..0x467119) pone el texto en la columna 0 de una caja de `boxPixels` justas: contra su
-// borde izquierdo; el 2 (0x46711b..0x467132), en la columna (caja − cx) / 2, con la caja de
-// Render::Text::CenterInBox; el 3 (0x467134..0x467144), en la columna caja − cx de una caja de `boxPixels` justas:
-// contra su borde derecho. Devuelve lo que baja: cy / ry, la mitad si empieza con '\n'.
+// 0x465950(x, y, text, box, 0, mode, 0, 0x280) → 0x467060: a box of `boxPixels` columns starting at _ftol(x · rx),
+// with the background (0x6c8e64) over all of it (ITextDrawer::DrawColumns, like the inventory title, Q-C710). Mode 1
+// (0x467102..0x467119) puts the text at column 0 of a box of exactly `boxPixels`: against its left edge; mode 2
+// (0x46711b..0x467132), at column (box − cx) / 2, with the box of Render::Text::CenterInBox; mode 3
+// (0x467134..0x467144), at column box − cx of a box of exactly `boxPixels`: against its right edge. Returns how far it
+// moves down: cy / ry, half if it starts with '\n'.
 double DrawLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text,
                 std::int32_t boxPixels, std::int32_t mode)
 {
@@ -223,7 +223,7 @@ double DrawLine(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, st
     return !text.empty() && text.front() == '\n' ? rows / 2.0 : rows;
 }
 
-// Los renglones "\n" y el título "%s %s" de la ventana del set (0x40e94b.. y 0x40ea9e..).
+// The "\n" lines and the "%s %s" title of the set window (0x40e94b.. and 0x40ea9e..).
 void WriteNewLine(TooltipLines& lines, std::size_t& next)
 {
     lines.text[next] = "\n";
@@ -240,8 +240,8 @@ void WriteSetTitle(TooltipLines& lines, std::size_t& next, std::string_view name
     ++next;
 }
 
-// 0x40e850(x, y), un thiscall sobre [0x6eed3c]: con +0x9304 y alguna opción en la lista, los conjuntos puestos con sus
-// opciones, y +0x9304 de vuelta en 0.
+// 0x40e850(x, y), a thiscall on [0x6eed3c]: with +0x9304 and some option in the list, the worn sets with their
+// options, and +0x9304 back at 0.
 Core::Expected<void, std::string> DrawTheSetWindow(Hud::GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Player::ItemSetState& sets = context.world.ItemSets();
@@ -282,7 +282,7 @@ Core::Expected<void, std::string> DrawTheSetWindow(Hud::GameHudContext& context,
         }
         else if (pieces != 0)
         {
-            // 0x40e9c5..0x40ea64: con +0x9307, el título de la otra clase a +0x9307 del final de cada una.
+            // 0x40e9c5..0x40ea64: with +0x9307, the other class's title at +0x9307 from the end of each one.
             if (first > 0 && first - pieces == i)
             {
                 WriteNewLine(lines, next);
@@ -311,8 +311,7 @@ Core::Expected<void, std::string> DrawTheSetWindow(Hud::GameHudContext& context,
     return {};
 }
 
-// El ítem de 0x78abaa8: la casilla de la grilla (la del inventario, las del comercio o la de las tiendas personales)
-// o el lugar del equipo.
+// The item of 0x78abaa8: the grid cell (the inventory's, the trade's or the personal shops') or the equipment slot.
 Kernel::ItemState* HoveredItemOf(Kernel::WorldState& world)
 {
     const Ui::HoveredItem& hovered = world.Runtime().ui.hoveredItem;
@@ -365,7 +364,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context
     const Core::PixelSize screen = sprites.Screen();
     const double rx = Render::ScaleX(1.0f, screen);
     const double ry = Render::ScaleY(1.0f, screen);
-    // 0x5af0c5..0x5af139: la medida, hasta el primer renglón vacío.
+    // 0x5af0c5..0x5af139: the measure, up to the first empty line.
     float widest = 0.0f;
     std::int32_t full = 0;
     std::int32_t half = 0;
@@ -404,7 +403,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context
         left = Truncate(right - static_cast<double>(width) - 1.0);
     if (frame == 1)
     {
-        // 0x5af1f5..0x5af2da: los cuatro bordes y el fondo, sin textura.
+        // 0x5af1f5..0x5af2da: the four edges and the background, without texture.
         sprites.SetColor(Color{0.0f, 0.0f, 0.0f, 1.0f});
         const auto top = static_cast<float>(static_cast<double>(y) - 1.0);
         const auto edge = static_cast<float>(static_cast<double>(left) - 1.0);
@@ -419,7 +418,7 @@ Core::Expected<void, std::string> DrawTheTooltipBox(Hud::GameHudContext& context
         sprites.ColorQuad(static_cast<float>(left), static_cast<float>(y), width, height);
         sprites.EnableTexture();
     }
-    // 0x5af2e0..0x5af4c5: los renglones.
+    // 0x5af2e0..0x5af4c5: the lines.
     const auto textX = static_cast<float>(left + 1);
     auto textY = static_cast<float>(y);
     const std::int32_t boxPixels = Truncate((static_cast<double>(width) - TextBoxMargin) * rx);
@@ -495,7 +494,7 @@ Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context)
         const bool overTheInventory = context.mouse.x >= context.hud.inventoryX && context.mouse.x < 0x280 &&
                                       context.mouse.y >= context.hud.inventoryY && context.mouse.y < 0x1e0;
         const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
-        // El tooltip del caballo le escribe su opción (0x4225d0): un dibujo intermedio lo hace sobre una copia.
+        // The horse's tooltip writes its option (0x4225d0): an intermediate drawing does it on a copy.
         Kernel::ItemState projected = *hovered;
         Kernel::ItemState& item = context.projecting ? projected : *hovered;
         const ItemTooltipContext body{
@@ -504,8 +503,8 @@ Core::Expected<void, std::string> DrawTheTooltips(Hud::GameHudContext& context)
         if (!drawn.HasValue())
             return drawn;
     }
-    // 0x5f7dfe: con 0x78abb14 en 1 (lo escriben las ventanas de la CL9.3 y la CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0,
-    // 0x5fe610 y 0x5c5181), el ítem del cursor en (0x109, 0x78). MuRet no lo escribe: queda en 0.
+    // 0x5f7dfe: with 0x78abb14 at 1 (written by the windows of CL9.3 and CL9.4: 0x5d8d50, 0x5e74f0, 0x5ecde0, 0x5fe610
+    // and 0x5c5181), the cursor's item at (0x109, 0x78). MuRet does not write it: it stays at 0.
     if (ui.skillTooltip != -1)
     {
         if (auto drawn = DrawTheSkillTooltip(context, ui.skillTooltipX, ui.skillTooltipY, ui.skillTooltip, 0);
@@ -546,14 +545,14 @@ Core::Expected<void, std::string> DrawTheSetLabel(Hud::GameHudContext& context)
     const auto tail = TextOf(context, SetLabelTailText, "0x40ed21");
     if (!tail.HasValue())
         return Core::Unexpected(tail.Error());
-    // 0x40ed06..0x40ed64: las negritas de estos cuatro no las escribe (quedan las del anterior).
+    // 0x40ed06..0x40ed64: it does not write the bold of these four (the previous ones' stays).
     lines.text[0] = "\n";
     lines.text[1] = Crt::Sprintf("%s %s %s", std::string_view(NameOf(set)), title.Value(), tail.Value());
     lines.colors[1] = TooltipGold;
     lines.text[2] = "\n";
     lines.text[3] = "\n";
     std::size_t next = SetLabelFirstLine;
-    // 0x40ed11 y 0x40ed15: la segunda opción y su valor empiezan en 0xff, y después del sexto par quedan las de ese par
+    // 0x40ed11 and 0x40ed15: the second option and its value start at 0xff, and after the sixth pair that pair's remain
     // (Q-C592).
     std::uint8_t secondOption = NoSetOption;
     std::uint8_t secondValue = NoSetOption;

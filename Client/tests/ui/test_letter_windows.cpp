@@ -16,15 +16,15 @@
 #include <string_view>
 #include <vector>
 
-// Las cartas de [0x576351c], las salas de [0x5763520] y lo que el chat con un amigo guarda (CL9 hito 10; 06 § HUD y
-// ventanas, "Las cartas y el chat con un amigo"). Los nombres y los textos son inventados.
+// The letters at [0x576351c], the rooms at [0x5763520] and what the chat with a friend keeps (CL9 milestone 10; 06 §
+// HUD y ventanas, "Las cartas y el chat con un amigo"). The names and texts are made up.
 namespace
 {
 using Client::Messenger::LetterModel;
 using Client::Ui::OldWindow;
 using Client::Ui::OldWindowTexts;
 
-// 10 columnas por letra, para contar los renglones de 0x459c70 a mano.
+// 10 columns per letter, to count 0x459c70's rows by hand.
 class TenWide final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -43,7 +43,7 @@ std::vector<std::uint16_t> IndicesOf(const LetterModel& model)
     return indices;
 }
 
-// 0x49eb60: una carta con un número que ya está no entra; los textos se cortan en 10, 0x20, 0x10 y 0x10.
+// 0x49eb60: a letter with a number already present does not enter; the texts are cut at 10, 0x20, 0x10 and 0x10.
 TEST(LetterModelTest, ALetterEntersOnceWithItsTextsCut)
 {
     LetterModel model;
@@ -58,7 +58,8 @@ TEST(LetterModelTest, ALetterEntersOnceWithItsTextsCut)
     EXPECT_EQ(model.letters[0].type, 0);
 }
 
-// 0x49f870 con 2 (0x49f7f0: la fecha y, con la fecha igual, la hora) y −1 (el que estaba); 0x49c190 compara con signo.
+// 0x49f870 with 2 (0x49f7f0: the date and, with the same date, the time) and −1 (the previous one); 0x49c190 compares
+// signed.
 TEST(LetterModelTest, TheSortKeepsItsModeAndComparesWithSign)
 {
     LetterModel model;
@@ -79,7 +80,7 @@ TEST(LetterModelTest, TheSortKeepsItsModeAndComparesWithSign)
     EXPECT_TRUE(same);
 }
 
-// 0x4a03c0 no pisa una copia; 0x4a0500 la suelta y 0x49f260 suelta todo.
+// 0x4a03c0 does not overwrite a copy; 0x4a0500 releases it and 0x49f260 releases everything.
 TEST(LetterModelTest, TheCopyOfALetterIsKeptOnce)
 {
     LetterModel model;
@@ -93,7 +94,7 @@ TEST(LetterModelTest, TheCopyOfALetterIsKeptOnce)
     EXPECT_EQ(Client::Messenger::KeptLetter(model, 7), nullptr);
 }
 
-// 0x49e280: desde el cursor, el primero libre, con vuelta después de 0xff; con los 0x100 ocupados, ninguno.
+// 0x49e280: from the cursor, the first free one, wrapping after 0xff; with the 0x100 taken, none.
 TEST(ChatRoomsTest, ASlotIsTakenFromTheCursorUntilNoneIsLeft)
 {
     Client::Messenger::ChatRooms rooms;
@@ -106,8 +107,9 @@ TEST(ChatRoomsTest, ASlotIsTakenFromTheCursorUntilNoneIsLeft)
     EXPECT_EQ(rooms.slots.at(0xff), 10u);
 }
 
-// 0x495530: el amigo del chat es el primer miembro que no es el héroe, con menos de 3; con 3 o más, la sala; 0x495630
-// pone y saca el 995 adelante del título y la marca +0xb4 del EDIT (la vtable + 0x58), sin tocar su estado.
+// 0x495530: the chat's friend is the first member that is not the hero, with fewer than 3; with 3 or more, the room;
+// 0x495630 puts and removes the 995 in front of the title and the EDIT's +0xb4 mark (the vtable + 0x58), without
+// touching its state.
 TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
 {
     const OldWindowTexts texts{.notice = {}, .question = {}, .yes = {}, .no = {}, .lookup = [](std::size_t index) {
@@ -140,8 +142,8 @@ TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
     EXPECT_EQ(chat.chat.edit.closed, 0);
     EXPECT_EQ(chat.chat.edit.base.state, 0);
 
-    // 0x493f80: el renglón lleva el nombre del miembro con ese número (0x461530); con 0xff, ninguno. Con menos de 20
-    // bytes no hace falta medir; con el nombre y el texto vacíos, 0x45f6f0 no agrega nada.
+    // 0x493f80: the row carries the name of the member with that number (0x461530); with 0xff, none. With fewer than 20
+    // bytes there is no need to measure; with the name and the text empty, 0x45f6f0 adds nothing.
     Client::Ui::OldWindowManager manager;
     ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 1, "hola", 3, 0, nullptr).HasValue());
     ASSERT_TRUE(Client::Messenger::AddAChatLine(manager, chat, 0xff, "aviso", 1, 0, nullptr).HasValue());
@@ -153,17 +155,17 @@ TEST(ChatWindowTest, TheFriendOfAChatAndItsClosedTitle)
     EXPECT_EQ(chat.chat.wrappedRows[0].text, "aviso");
     EXPECT_EQ(chat.chat.wrappedRows[1].text, "hola");
     EXPECT_EQ(chat.chat.lines.fixedCountValue, 2);
-    // Uno largo sin la medida corta.
+    // A long one without the measure stops.
     const auto unmeasured =
         Client::Messenger::AddAChatLine(manager, chat, 1, "un texto inventado bastante largo", 3, 0, nullptr);
     ASSERT_FALSE(unmeasured.HasValue());
     EXPECT_NE(unmeasured.Error().find("0x4601a8"), std::string::npos);
 }
 
-// Q-C1012: con texto de más, 0x459c70 da uno más que los renglones que pidió. 0x460308 lee el 11 desde EBP − 0x14 y
-// 0x465450 el 0x51 después de 0x5762e34; MuRet usa los que pidió y descarta el que sobra. Con 40 de ancho (la lista
-// menos 0x1e) y 10 columnas por letra: el primer renglón del chat lleva la sangría de 5 (sin nombre) y entran 3; los
-// demás, 4.
+// Q-C1012: with too much text, 0x459c70 gives one more than the rows it asked for. 0x460308 reads the 11 from EBP −
+// 0x14 and 0x465450 the 0x51 after 0x5762e34; MuRet uses the ones it asked for and drops the extra one. With 40 wide
+// (the list minus 0x1e) and 10 columns per letter: the chat's first row carries the indent of 5 (no name) and 3 fit;
+// the others, 4.
 TEST(ChatWindowTest, TheTextThatDoesNotFitIsLeftOut)
 {
     const TenWide letters;

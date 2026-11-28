@@ -25,8 +25,8 @@
 #include <string_view>
 #include <utility>
 
-// Los globos (CL8 hito 3; 06 § El chat, "Los globos"): 0x557170, 0x557560 y 0x557650. Los nombres y los textos son
-// inventados.
+// The bubbles (CL8 milestone 3; 06 § El chat, "Los globos"): 0x557170, 0x557560 and 0x557650. The names and the texts
+// are made up.
 namespace
 {
 using Client::Chat::ChatBubbleMeasure;
@@ -79,7 +79,7 @@ protected:
     LetterMeasure m_letters;
 };
 
-// 0x557286: el segundo mensaje del mismo personaje sube el renglón vivo al de arriba.
+// 0x557286: the same character's second message moves the live line up to the upper one.
 TEST_F(ChatBubblesTest, TheSameSpeakerKeepsItsEntryAndMovesTheLineUp)
 {
     Speaker(4, "Tordo");
@@ -93,7 +93,7 @@ TEST_F(ChatBubblesTest, TheSameSpeakerKeepsItsEntryAndMovesTheLineUp)
     EXPECT_FALSE(Bubbles()[1].owner.has_value());
 }
 
-// 0x5572ee: con 20 bytes o más, la cabeza arriba (+0x16c) y la cola abajo (+0x6c), con el mismo tiempo.
+// 0x5572ee: with 20 bytes or more, the head above (+0x16c) and the tail below (+0x6c), with the same time.
 TEST_F(ChatBubblesTest, ALongTextGoesInTwoLines)
 {
     Speaker(4, "Tordo");
@@ -106,7 +106,7 @@ TEST_F(ChatBubblesTest, ALongTextGoesInTwoLines)
     EXPECT_EQ(Bubbles()[0].time2, Bubbles()[0].time1);
 }
 
-// Con el texto vacío, solo el nombre: 100 pasos en una entrada nueva y 10 en la suya.
+// With the text empty, only the name: 100 steps in a new entry and 10 in its own.
 TEST_F(ChatBubblesTest, AnEmptyTextOnlyShowsTheName)
 {
     Speaker(4, "Tordo");
@@ -117,7 +117,7 @@ TEST_F(ChatBubblesTest, AnEmptyTextOnlyShowsTheName)
     EXPECT_EQ(Bubbles()[0].nameTime, 10);
 }
 
-// 0x557170: sin estar vivo o a la vista, nada; +0x88 en 4 da el color 0.
+// 0x557170: without being alive or in view, nothing; +0x88 at 4 gives the color 0.
 TEST_F(ChatBubblesTest, OnlyLivingSeenSpeakersGetABubble)
 {
     Speaker(4, "Tordo").seen = false;
@@ -130,7 +130,7 @@ TEST_F(ChatBubblesTest, OnlyLivingSeenSpeakersGetABubble)
     EXPECT_EQ(Bubbles()[0].color, 0);
 }
 
-// 0x557560: primero los de +0x88 en 1 y después los de 2.
+// 0x557560: first the ones with +0x88 at 1 and then the ones at 2.
 TEST_F(ChatBubblesTest, ByNamePrefersPlayers)
 {
     Speaker(2, "Gemelo", 2);
@@ -140,7 +140,7 @@ TEST_F(ChatBubblesTest, ByNamePrefersPlayers)
     EXPECT_EQ(Bubbles()[0].owner, std::optional<std::size_t>(9));
 }
 
-// Un Text.bmd inventado con los puestos de 0x556dd0.
+// A made-up Text.bmd with 0x556dd0's posts.
 Client::Tables::TextTable GuildPosts()
 {
     const std::map<std::size_t, std::string> texts{{1295, "aliado"},     {1296, "jefe aliado"}, {1297, "rival"},
@@ -160,8 +160,8 @@ void NameTheGuild(WorldState& world, std::size_t index, std::string_view unionNa
     std::copy(guildName.begin(), guildName.end(), entry.guildName.begin());
 }
 
-// 0x556e95..0x557139: la alianza por +0x370 (con +0x368 en 0x80, el texto del jefe), +0x65 = +0x374 y el gremio con el
-// puesto de +0x368.
+// 0x556e95..0x557139: the alliance by +0x370 (with +0x368 at 0x80, the leader's text), +0x65 = +0x374 and the guild
+// with the post of +0x368.
 TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
 {
     const Client::Tables::TextTable texts = GuildPosts();
@@ -179,7 +179,7 @@ TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
         {2, 0x80, "<Ceibos> jefe rival", "[Horneros] jefe"},
         {2, 0x40, "<Ceibos> rival", "[Horneros] segundo"},
         {8, 0x20, "<Ceibos> ocho", "[Horneros] guerrero"},
-        // 0x556eb4: con 1, "<%s> %s" y después el default, "<%s>".
+        // 0x556eb4: with 1, "<%s> %s" and then the default, "<%s>".
         {1, 0x80, "<Ceibos>", "[Horneros] jefe"},
         {0, 0xff, "<Ceibos>", "[Horneros]"},
     };
@@ -201,7 +201,7 @@ TEST_F(ChatBubblesTest, ASpeakerWithAGuildShowsTheUnionAndThePost)
     }
 }
 
-// 0x556ea5 y 0x55701e: sin alianza, +0x18 vacío; sin gremio otra vez, los dos vacíos y +0x65 en 0.
+// 0x556ea5 and 0x55701e: without an alliance, +0x18 empty; without a guild again, both empty and +0x65 at 0.
 TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
 {
     const Client::Tables::TextTable texts = GuildPosts();
@@ -224,8 +224,8 @@ TEST_F(ChatBubblesTest, WithoutAUnionOrAGuildTheLinesAreEmpty)
     EXPECT_EQ(Bubbles()[0].guildByte, 0);
 }
 
-// Sin Text.bmd corta; fuera de la tabla, también. Un renglón que llega al color (+0x64, 0x2e bytes desde +0x36) corta
-// (Q-C1283).
+// Without Text.bmd it stops; outside the table, too. A line that reaches the color (+0x64, 0x2e bytes from +0x36)
+// stops (Q-C1283).
 TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
 {
     NameTheGuild(*m_world, 3, "", "Horneros");
@@ -248,9 +248,9 @@ TEST_F(ChatBubblesTest, AGuildLineWithoutItsTextOrPastTheColorIsCut)
     EXPECT_FALSE(Client::Chat::AddChatBubble(*m_world, measure, "Tordo", "hola", 4, ChatBubbleMode::Chat).HasValue());
 }
 
-// 0x557024 (Q-C1283): "[%s] %s" va a +0x36 sin tope. Con 8 letras y un puesto de 19 bytes (el 1300 de Text.bmd,
-// "Maestro del gremio "), 30 bytes: su cero cae en +0x54 y el título de la tienda queda vacío. Con el 1301 (32 bytes),
-// la cola queda como título. Con menos, el título no cambia. En Lorencia y en Devias.
+// 0x557024 (Q-C1283): "[%s] %s" goes to +0x36 without a limit. With 8 letters and a 19-byte post (Text.bmd's 1300,
+// "Maestro del gremio "), 30 bytes: its zero falls at +0x54 and the shop title ends up empty. With the 1301 (32
+// bytes), the tail stays as the title. With fewer, the title does not change. In Lorencia and in Devias.
 TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
 {
     const auto texts = Client::Tables::LoadTextTable(Client::Tests::TextTableBytes(
@@ -290,7 +290,7 @@ TEST_F(ChatBubblesTest, ALongGuildLineSpillsIntoTheShopTitle)
     }
 }
 
-// 0x557650: los relojes bajan y, con el dueño muerto, quedan en 0.
+// 0x557650: the clocks go down and, with the owner dead, stay at 0.
 TEST_F(ChatBubblesTest, TheStepAgesTheBubblesAndForgetsTheDead)
 {
     Speaker(4, "Tordo");
@@ -307,8 +307,8 @@ TEST_F(ChatBubblesTest, TheStepAgesTheBubblesAndForgetsTheDead)
     EXPECT_EQ(Bubbles()[1].owner, std::optional<std::size_t>(6));
 }
 
-// 0x5577a2: con el campo del chat abierto, en la zona segura, el derecho sobre el globo de otro con +0x376 en 0xff
-// pone su nombre en el EDIT y en el buffer del susurro, gasta el derecho y suena.
+// 0x5577a2: with the chat field open, in the safe zone, the right click on another's bubble with +0x376 at 0xff puts
+// its name in the EDIT and in the whisper buffer, spends the right click and sounds.
 TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
 {
     Speaker(4, "Tordo").word376 = 0xff;
@@ -332,7 +332,6 @@ TEST_F(ChatBubblesTest, TheRightClickOnABubbleWhispersToItsOwner)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
-// Con las 100 ocupadas, un personaje nuevo no tiene globo.
 TEST_F(ChatBubblesTest, AFullTableTakesNoNewSpeaker)
 {
     for (auto& bubble : Bubbles())

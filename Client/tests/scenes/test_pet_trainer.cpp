@@ -40,11 +40,11 @@
 #include <utility>
 #include <vector>
 
-// El entrenador de las mascotas (CL9 hito 6): el menú (0x44b540), la recuperación (0x44b910) con el 34 de recuperar el
-// caballo o el cuervo byte a byte, la caja (0x44d010, 0x44ae10) con el 86 de sus dos mezclas, el 31 de cerrar, abrirlo
-// por el registro (0x65be8b) y los rand() del registro propio, del C3 y de los bytes protegidos de los paneles. El
-// GameServer 0.97 no tiene al entrenador (NpcTalk no atiende su clase): los tests recorren Lorencia (0), Devias (2) y
-// Noria (3). Los ítems son inventados.
+// The pet trainer (CL9 milestone 6): the menu (0x44b540), the recovery (0x44b910) with the 34 that recovers the horse
+// or the raven byte by byte, the box (0x44d010, 0x44ae10) with the 86 of its two mixes, the closing 31, opening it
+// through the registry (0x65be8b) and the rand() of the own record, of the C3 and of the panels' protected bytes.
+// GameServer 0.97 does not have the trainer (NpcTalk does not handle its class): the tests go through Lorencia (0),
+// Devias (2) and Noria (3). The items are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -65,25 +65,25 @@ constexpr std::size_t HorseSlot = 8;
 constexpr std::size_t RavenSlot = 1;
 constexpr std::uint8_t PetDurability = 255;
 constexpr std::uint32_t PlentyOfZen = 2'000'000'000;
-// Los botones (0x103, 0x96 + 0x3c · i) y el de cerrar (0x189, 0x109), en su esquina.
+// The buttons (0x103, 0x96 + 0x3c · i) and the close one (0x189, 0x109), at their corner.
 constexpr std::int32_t ButtonX = 0x103;
 constexpr std::int32_t HorseY = 0x96;
 constexpr std::int32_t RavenY = 0x96 + 0x3c;
 constexpr std::int32_t CloseX = 0x189;
 constexpr std::int32_t CloseY = 0x109;
-// Los del menú (0xb4 + 0x1e · i), y el de mezclar (0x14f, 0x12c) y el de cerrar (0x118, 0x18b) de la caja.
+// The menu's (0xb4 + 0x1e · i), and the box's mix (0x14f, 0x12c) and close (0x118, 0x18b) buttons.
 constexpr std::int32_t MenuY = 0xb4;
 constexpr std::int32_t MenuStep = 0x1e;
 constexpr std::int32_t MixX = 0x14f;
 constexpr std::int32_t MixY = 0x12c;
 constexpr std::int32_t BoxCloseX = 0x118;
 constexpr std::int32_t BoxCloseY = 0x18b;
-// Lo que pide 0x6599a0 para abrir el inventario o el entrenador: los bytes protegidos de la tienda y del comercio en
-// CanOpen y en CloseByMask.
+// What 0x6599a0 asks to open the inventory or the trainer: the shop's and the trade's protected bytes in CanOpen and
+// in CloseByMask.
 constexpr int PanelOpen = 4;
 constexpr std::size_t BoxNotEmptyText = 1211;
 constexpr std::uint8_t DarkLord = 4;
-// Lo que cuenta 0x44ae10: las joyas y el espíritu (nivel 0 el del caballo, 1 el del cuervo).
+// What 0x44ae10 counts: the jewels and the spirit (level 0 the horse's, 1 the raven's).
 constexpr std::uint16_t Bless = 0x1c0d;
 constexpr std::uint16_t Soul = 0x1c0e;
 constexpr std::uint16_t Creation = 0x1c16;
@@ -138,7 +138,7 @@ public:
         };
     }
 
-    // El registro como lo arma el paso de la UI, con los cables de las ventanas de los NPC.
+    // The registry as the UI step builds it, with the NPC windows' wiring.
     template <typename Body> void WithThePanels(Body body)
     {
         Client::Hud::GamePanels panels(*world, random);
@@ -167,7 +167,7 @@ public:
         return stepped;
     }
 
-    // La caja con `count` ítems de `type` (nivel `level`) desde la casilla `first`; devuelve la siguiente libre.
+    // The box with `count` items of `type` (level `level`) from cell `first`; returns the next free one.
     std::size_t Put(std::size_t first, std::uint16_t type, int count, std::uint32_t level = 0)
     {
         auto& box = world->Runtime().npcWindows.trainerBox;
@@ -176,8 +176,7 @@ public:
         return first;
     }
 
-    // Lo que deja la mezcla del caballo (0x44aeb1): el espíritu de nivel 0, 5 de bendición, 5 del alma, una de la
-    // creación y una del caos.
+    // What makes the horse mix (0x44aeb1): the level-0 spirit, 5 bless, 5 soul, one creation and one chaos.
     void FillTheHorseMix()
     {
         std::size_t next = Put(0, Spirit, 1, 0);
@@ -187,7 +186,7 @@ public:
         Put(next, Chaos, 1);
     }
 
-    // La del cuervo (0x44aed9): el espíritu de nivel 1 con 2, 2, 1 y 1.
+    // The raven's (0x44aed9): the level-1 spirit with 2, 2, 1 and 1.
     void FillTheRavenMix()
     {
         std::size_t next = Put(0, Chaos, 1);
@@ -197,8 +196,8 @@ public:
         Put(next, Creation, 1);
     }
 
-    // Lo que cuesta recuperar `pet` como lo cuentan 0x54d0f0 y 0x5b13e0 (con 0x78abb10 en 0), y el doble sin
-    // durabilidad.
+    // What recovering `pet` costs as 0x54d0f0 and 0x5b13e0 count it (with 0x78abb10 at 0), and double without
+    // durability.
     [[nodiscard]] std::uint32_t PriceOf(const ItemState& pet) const
     {
         const std::uint16_t maximum = Client::Items::MaxDurability(pet, *items.Record(pet.id), 0);
@@ -232,8 +231,8 @@ public:
     std::vector<std::pair<std::size_t, std::int32_t>> messages;
 };
 
-// 0x44b9e4..0x44c62e con el botón 0: el caballo del lugar 8, el 34 en C3 y el 31 en claro. Los rand(): el cierre del
-// registro de 0x44b190 al contar, el de su texto y el del paso, y los dos del C3.
+// 0x44b9e4..0x44c62e with button 0: the horse in slot 8, the 34 in C3 and the 31 in the clear. The rand(): 0x44b190's
+// record close when counting, its text's and the step's, and the C3's two.
 TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer)
 {
     for (const std::int32_t map : Maps)
@@ -243,7 +242,8 @@ TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer
         trainer.world->OwnCharacter().equipment[HorseSlot] = horse;
         trainer.Runtime().petTooltipQuery = {.key = 0x12345678, .type = Horse, .scalar = 0x3f};
         trainer.Runtime().pets[0].experience = 987;
-        // El nivel 3 vale 6.000.000 (0x54db28) y recuperarlo, 3 · √p · ∜p · (1 − 100 / 255) + 1, a 100: 221.000 (0x48).
+        // Level 3 is worth 6000000 (0x54db28) and recovering it, 3 · √p · ∜p · (1 − 100 / 255) + 1, at 100: 221000
+        // (0x48).
         const std::uint32_t price = trainer.PriceOf(horse);
         ASSERT_EQ(price, 221'000u);
         const CrtRandom expected = Advanced(trainer.random, 3 * Own + C3);
@@ -271,7 +271,7 @@ TEST(PetTrainerTest, TheHorseButtonSendsTheRepairOfThePetSlotAndClosesTheTrainer
     }
 }
 
-// El botón 1: el cuervo del lugar 1, sin durabilidad (el precio doble, 0x44b36d).
+// Button 1: the raven in slot 1, without durability (the price doubled, 0x44b36d).
 TEST(PetTrainerTest, TheRavenButtonSendsTheLeftHandAndPaysDoubleWithoutDurability)
 {
     for (const std::int32_t map : Maps)
@@ -292,7 +292,7 @@ TEST(PetTrainerTest, TheRavenButtonSendsTheLeftHandAndPaysDoubleWithoutDurabilit
     }
 }
 
-// 0x44ba75: el zen (sin signo) menor que el precio no manda nada ni cierra; el clic ya se gastó.
+// 0x44ba75: zen (unsigned) below the price sends nothing and does not close; the click is already spent.
 TEST(PetTrainerTest, WithoutEnoughZenNothingIsSent)
 {
     for (const std::int32_t map : Maps)
@@ -311,7 +311,7 @@ TEST(PetTrainerTest, WithoutEnoughZenNothingIsSent)
     }
 }
 
-// 0x44b2b3..0x44b2a5: sin el caballo en el lugar 8 (aunque esté el cuervo), −1: un cierre en 0x44b190 y el del paso.
+// 0x44b2b3..0x44b2a5: without the horse in slot 8 (even with the raven), −1: one close in 0x44b190 and the step's.
 TEST(PetTrainerTest, WithoutThePetTheButtonOnlySpendsTheRecordCloses)
 {
     for (const std::int32_t map : Maps)
@@ -328,8 +328,8 @@ TEST(PetTrainerTest, WithoutThePetTheButtonOnlySpendsTheRecordCloses)
     }
 }
 
-// 0x44b3be..0x44b4ba: con la durabilidad entera el precio es 0, que alcanza: sale el 34 con 0, sin el segundo cierre de
-// 0x44b190.
+// 0x44b3be..0x44b4ba: with full durability the price is 0, which is enough: the 34 goes out with 0, without 0x44b190's
+// second close.
 TEST(PetTrainerTest, AFullPetSendsAZeroPrice)
 {
     for (const std::int32_t map : Maps)
@@ -348,7 +348,7 @@ TEST(PetTrainerTest, AFullPetSendsAZeroPrice)
     }
 }
 
-// 0x44b99c..0x44b9ce: el botón de cerrar, sin el registro propio ni rand().
+// 0x44b99c..0x44b9ce: the close button, without the own record or rand().
 TEST(PetTrainerTest, TheCloseButtonClosesWithTheClearWindowClose)
 {
     for (const std::int32_t map : Maps)
@@ -367,7 +367,8 @@ TEST(PetTrainerTest, TheCloseButtonClosesWithTheClearWindowClose)
     }
 }
 
-// Sin clic, o fuera de los bordes (x = 0x17b, y = 0x96 + 0x16), nada; el mouse en la ventana es de la UI.
+// Without a click, or outside the edges (x = 0x17b, y = 0x96 + 0x16), nothing; the mouse in the window belongs to the
+// UI.
 TEST(PetTrainerTest, WithoutTheClickOrOutsideTheButtonsNothingHappens)
 {
     PetTrainer trainer(0);
@@ -386,7 +387,7 @@ TEST(PetTrainerTest, WithoutTheClickOrOutsideTheButtonsNothingHappens)
     EXPECT_EQ(trainer.Runtime().ui.mouseOnUi, 0);
 }
 
-// 0x44b4e0: con 0, 4 o fuera de 1..3 no hace nada, ni el mouse de la UI.
+// 0x44b4e0: with 0, 4 or outside 1..3 it does nothing, not even the UI's mouse.
 TEST(PetTrainerTest, TheIdleModesDoNothing)
 {
     for (const std::int32_t mode : {0, 4, 5, -1})
@@ -403,7 +404,7 @@ TEST(PetTrainerTest, TheIdleModesDoNothing)
     }
 }
 
-// 0x44b5e3..0x44b5f2: el botón 0 del menú pasa al modo 2 (0x449960), sin rand() ni paquetes.
+// 0x44b5e3..0x44b5f2: menu button 0 goes to mode 2 (0x449960), without rand() or packets.
 TEST(PetTrainerTest, TheFirstMenuButtonGoesToTheRecovery)
 {
     for (const std::int32_t map : Maps)
@@ -421,8 +422,8 @@ TEST(PetTrainerTest, TheFirstMenuButtonGoesToTheRecovery)
     }
 }
 
-// 0x44b5f4..0x44b605: el botón 1 pasa al modo 3 y abre el inventario (0x449970), que no cierra al entrenador
-// (0x65c009): los 4 rand() de la tienda y del comercio, y los sonidos del registro (0x1c el último, CL10).
+// 0x44b5f4..0x44b605: button 1 goes to mode 3 and opens the inventory (0x449970), which does not close the trainer
+// (0x65c009): the shop's and the trade's 4 rand(), and the registry's sounds (0x1c the last, CL10).
 TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
 {
     for (const std::int32_t map : Maps)
@@ -443,8 +444,8 @@ TEST(PetTrainerTest, TheSecondMenuButtonOpensTheBoxWithTheInventory)
     }
 }
 
-// Con el Dark Lord, abrir el inventario pide su mascota (C1 A9, 0x65c039), que el registro todavía corta: el modo 3 ya
-// quedó escrito.
+// With the Dark Lord, opening the inventory asks for its pet (C1 A9, 0x65c039), where the registry still fails: mode 3
+// is already written.
 TEST(PetTrainerTest, TheDarkLordInventoryStillCuts)
 {
     PetTrainer trainer(2, Client::PetTrainer::TrainerMenuMode);
@@ -455,7 +456,7 @@ TEST(PetTrainerTest, TheDarkLordInventoryStillCuts)
     EXPECT_EQ(trainer.Runtime().panels.delegated.trainer, Client::PetTrainer::TrainerBoxMode);
 }
 
-// 0x44b57b..0x44b5a8 recorre tres botones: el tercero, que el dibujo no muestra, solo gasta el clic (Q-C957).
+// 0x44b57b..0x44b5a8 walks three buttons: the third, which the drawing does not show, only spends the click (Q-C957).
 TEST(PetTrainerTest, TheHiddenThirdMenuButtonOnlyEatsTheClick)
 {
     for (const std::int32_t map : Maps)
@@ -468,13 +469,14 @@ TEST(PetTrainerTest, TheHiddenThirdMenuButtonOnlyEatsTheClick)
         EXPECT_FALSE(trainer.Runtime().mouse.pendingClick);
         EXPECT_FALSE(trainer.Runtime().mouse.leftHeld);
         EXPECT_TRUE(trainer.sent.empty());
-        // Debajo (0xb4 + 0x3c + 0x16) no hay botón: el clic sigue.
+        // Below (0xb4 + 0x3c + 0x16) there is no button: the click stays.
         ASSERT_TRUE(trainer.Step(ButtonX, MenuY + 2 * MenuStep + 0x16).HasValue());
         EXPECT_TRUE(trainer.Runtime().mouse.pendingClick);
     }
 }
 
-// 0x44b5aa..0x44b5dc: el botón de cerrar del menú, con el 31 en claro; con algo en la caja, el 1211 y sigue abierto.
+// 0x44b5aa..0x44b5dc: the menu's close button, with the 31 in the clear; with something in the box, the 1211 and it
+// stays open.
 TEST(PetTrainerTest, TheMenuCloseButtonClosesUnlessTheBoxHasItems)
 {
     for (const std::int32_t map : Maps)
@@ -500,8 +502,8 @@ TEST(PetTrainerTest, TheMenuCloseButtonClosesUnlessTheBoxHasItems)
     }
 }
 
-// 0x44ae10 al final de cada paso del modo 3: la mezcla del caballo (1) con el registro propio abierto y cerrado, y
-// 0x724585 en 1 con el zen por debajo de 5.000.000 (Q-C956).
+// 0x44ae10 at the end of each mode-3 step: the horse mix (1) with the own record opened and closed, and 0x724585 at 1
+// with the zen below 5000000 (Q-C956).
 TEST(PetTrainerTest, TheBoxScanFindsTheHorseMixAndComparesTheZen)
 {
     for (const std::int32_t map : Maps)
@@ -527,7 +529,7 @@ TEST(PetTrainerTest, TheBoxScanFindsTheHorseMixAndComparesTheZen)
     }
 }
 
-// La del cuervo (2), a 1.000.000; el zen se compara sin signo.
+// The raven's (2), at 1000000; the zen is compared unsigned.
 TEST(PetTrainerTest, TheBoxScanFindsTheRavenMix)
 {
     for (const std::int32_t map : Maps)
@@ -549,14 +551,14 @@ TEST(PetTrainerTest, TheBoxScanFindsTheRavenMix)
     }
 }
 
-// 0x44ae40..0x44af00: una joya de más o de menos, el espíritu de otro nivel o una casilla con +0x3c en 0 no mezclan,
-// sin abrir el registro propio; la joya de la vida y los demás tipos no cuentan.
+// 0x44ae40..0x44af00: one jewel too many or too few, a spirit of another level or a cell with +0x3c at 0 do not mix,
+// without opening the own record; the jewel of life and the other types do not count.
 TEST(PetTrainerTest, TheBoxScanNeedsTheExactJewels)
 {
     PetTrainer trainer(0, Client::PetTrainer::TrainerBoxMode);
     auto& runtime = trainer.Runtime();
     const CrtRandom unchanged = trainer.random;
-    // Una del alma de más.
+    // One soul too many.
     trainer.FillTheHorseMix();
     trainer.Put(20, Soul, 1);
     runtime.panels.delegated.field724584 = 9;
@@ -564,20 +566,20 @@ TEST(PetTrainerTest, TheBoxScanNeedsTheExactJewels)
     ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
     EXPECT_EQ(runtime.npcWindows.trainerZenShort, 0);
-    // El espíritu de nivel 2.
+    // The level-2 spirit.
     runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     runtime.npcWindows.trainerBox[0].scalar1Low = 2u << 3;
     ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
-    // La joya del caos con +0x3c en 0.
+    // The chaos jewel with +0x3c at 0.
     runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     runtime.npcWindows.trainerBox[12].occupied = 0;
     ASSERT_TRUE(trainer.Step(0, 0, false).HasValue());
     EXPECT_EQ(runtime.panels.delegated.field724584, 0);
     EXPECT_EQ(trainer.random.State(), unchanged.State());
-    // La de la vida y una espada no cambian nada: sigue la del caballo.
+    // The life jewel and a sword change nothing: the horse's stays.
     runtime.npcWindows.trainerBox = Client::Npc::EmptyTrainerBox();
     trainer.FillTheHorseMix();
     trainer.Put(20, Life, 3);
@@ -586,8 +588,8 @@ TEST(PetTrainerTest, TheBoxScanNeedsTheExactJewels)
     EXPECT_EQ(runtime.panels.delegated.field724584, 1);
 }
 
-// 0x44d063..0x44d608: el botón de mezclar manda el 86 de la mezcla que dejó el paso anterior (0x724584), con el XOR32 y
-// en claro, sin mirar el zen ni 0x724585 (Q-C956); después, 0x44ae10 la vuelve a contar con la caja de ahora.
+// 0x44d063..0x44d608: the mix button sends the 86 of the mix the previous step left (0x724584), with the XOR32 and in
+// the clear, without checking the zen or 0x724585 (Q-C956); then 0x44ae10 counts it again with the current box.
 TEST(PetTrainerTest, TheMixButtonSendsTheMixOfThePreviousStep)
 {
     for (const std::int32_t map : Maps)
@@ -613,7 +615,7 @@ TEST(PetTrainerTest, TheMixButtonSendsTheMixOfThePreviousStep)
     }
 }
 
-// Sin mezcla (0x724584 en 0 u otro valor), el botón gasta el clic y no manda nada.
+// Without a mix (0x724584 at 0 or another value), the button spends the click and sends nothing.
 TEST(PetTrainerTest, TheMixButtonWithoutAMixOnlyEatsTheClick)
 {
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{3}})
@@ -626,8 +628,8 @@ TEST(PetTrainerTest, TheMixButtonWithoutAMixOnlyEatsTheClick)
     }
 }
 
-// 0x44d61c..0x44d661: el botón de cerrar de la caja cierra el panel por el registro (0x65cae0(0x8000)): el 31 de
-// 0x4499b0 y el inventario, sin rand(); con algo en la caja, el 1211 de 0x658de3 y los dos siguen abiertos.
+// 0x44d61c..0x44d661: the box's close button closes the panel through the registry (0x65cae0(0x8000)): 0x4499b0's 31
+// and the inventory, without rand(); with something in the box, 0x658de3's 1211 and both stay open.
 TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
 {
     for (const std::int32_t map : Maps)
@@ -659,8 +661,8 @@ TEST(PetTrainerTest, TheBoxCloseButtonClosesThePanelAndTheInventory)
     }
 }
 
-// 0x65be77..0x65be93: abrir el panel 0x8000 cierra lo demás (los 4 rand() de la tienda y del comercio) y llama a
-// 0x449940(1): el menú, con la caja vacía, sin abrir el inventario.
+// 0x65be77..0x65be93: opening panel 0x8000 closes the rest (the shop's and the trade's 4 rand()) and calls
+// 0x449940(1): the menu, with the box empty, without opening the inventory.
 TEST(PetTrainerTest, OpeningThePanelStartsTheMenuWithAnEmptyBox)
 {
     for (const std::int32_t map : Maps)
@@ -687,7 +689,8 @@ TEST(PetTrainerTest, OpeningThePanelStartsTheMenuWithAnEmptyBox)
     }
 }
 
-// 0x658dda..0x658dfd: cerrar todo con algo en la caja deja al entrenador con el 1211; vacía, 0x4499b0 y su 31.
+// 0x658dda..0x658dfd: closing everything with something in the box keeps the trainer with the 1211; empty, 0x4499b0
+// and its 31.
 TEST(PetTrainerTest, ClosingAllPanelsKeepsTheTrainerWithItemsInTheBox)
 {
     for (const std::int32_t map : Maps)

@@ -72,8 +72,8 @@
 #include <utility>
 #include <vector>
 
-// Los pedidos a otro de los comandos del chat (0x56c440: /trade, /duelstart y /party; CL9 hito 7, fase 2) con los
-// jugadores que trae el 0x12 (hito 1), en Lorencia (0) y Devias (2). Los nombres son inventados.
+// The chat commands' requests to another player (0x56c440: /trade, /duelstart and /party; CL9 milestone 7, phase 2)
+// with the players that the 0x12 brings (milestone 1), in Lorencia (0) and Devias (2). The names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -86,10 +86,10 @@ constexpr std::uint16_t HeroKey = 33;
 constexpr std::uint16_t NearKey = 0x0456;
 constexpr std::uint16_t FarKey = 0x0457;
 constexpr std::size_t Chosen = 2;
-// Cada celda que se compara cierra su entrada con 4 rand(); el C3, 2.
+// Each compared cell closes its entry with 4 rand(); the C3, 2.
 constexpr int CellRandoms = 4;
 constexpr int C3Randoms = 2;
-// Dos direcciones opuestas: (0 + 22,5) / 45 + 1 = 1,5 y (180 + 22,5) / 45 + 1 = 5,5.
+// Two opposite directions: (0 + 22.5) / 45 + 1 = 1.5 and (180 + 22.5) / 45 + 1 = 5.5.
 constexpr float Front = 0.0f;
 constexpr float Back = 180.0f;
 
@@ -104,7 +104,6 @@ void Name(std::span<std::byte> name, std::string_view text)
         name[at] = at < text.size() ? static_cast<std::byte>(text[at]) : std::byte{0};
 }
 
-// El mundo del juego, en el heap.
 struct Game
 {
     Game()
@@ -163,7 +162,7 @@ protected:
         TwoPlayersArrive();
     }
 
-    // La primera fila libre de cuatro celdas desde (100, 100).
+    // The first free row of four cells from (100, 100).
     [[nodiscard]] std::array<std::uint8_t, 2> FreeRow() const
     {
         const auto& cells = game->states.terrain.current.attributes->cells;
@@ -180,7 +179,7 @@ protected:
         return {};
     }
 
-    // El héroe en la primera celda; el 0x12 trae a Brezal al lado y a Zorzal tres más allá.
+    // The hero in the first cell; the 0x12 brings Brezal next to it and Zorzal three further.
     void TwoPlayersArrive()
     {
         const auto [x, y] = FreeRow();
@@ -235,7 +234,7 @@ protected:
         game->world.Runtime().selectedTargets[Chosen] = index;
     }
 
-    // El paquete en claro, sin el XOR32, y que va en C3.
+    // The packet in clear, without the XOR32, and that it goes in C3.
     void ExpectSent(std::size_t at, std::initializer_list<int> bytes)
     {
         ASSERT_LT(at, m_sent.size());
@@ -250,8 +249,8 @@ protected:
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
-// 0x56c68b..0x56cdfc: el elegido al lado recibe el C1 05 36 con su clave (en C3) y el aviso 475 lleva su nombre. Las
-// cuatro celdas cierran sus entradas (16 rand()) y el C3 saca 2.
+// 0x56c68b..0x56cdfc: the chosen one next to the hero receives the C1 05 36 with its key (in C3) and warning 475
+// carries its name. The four cells close their entries (16 rand()) and the C3 draws 2.
 TEST_P(SocialRequestsTest, TradeAsksTheChosenNextToTheHero)
 {
     Choose(1);
@@ -269,8 +268,8 @@ TEST_P(SocialRequestsTest, TradeAsksTheChosenNextToTheHero)
     EXPECT_EQ(game->world.Actors()[0].cellYAccesses, 0);
 }
 
-// 0x56ce17..0x56cfc6: sin elegido, el primero de los 400 al lado y enfrente (direcciones a 4). Mirando para el mismo
-// lado no hay a quién: Brezal lee sus cuatro celdas y Zorzal, lejos en la x, solo dos.
+// 0x56ce17..0x56cfc6: without a chosen one, the first of the 400 next to the hero and facing it (directions 4 apart).
+// Facing the same way there is nobody: Brezal reads its four cells and Zorzal, far in x, only two.
 TEST_P(SocialRequestsTest, WithoutAChosenTheTradeGoesToTheOneInFront)
 {
     Choose(-1);
@@ -291,8 +290,8 @@ TEST_P(SocialRequestsTest, WithoutAChosenTheTradeGoesToTheOneInFront)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 6 * CellRandoms).State());
 }
 
-// 0x56c730, 0x56c7cf y 0x56c7dc: el elegido lejos (solo las x), con la tienda personal abierta o sin el mundo cargado,
-// /trade devuelve 1 sin mandar nada.
+// 0x56c730, 0x56c7cf and 0x56c7dc: with the chosen one far away (only the x), the personal shop open or the world not
+// loaded, /trade returns 1 without sending anything.
 TEST_P(SocialRequestsTest, AFarChosenOrAnOpenShopSendsNoTrade)
 {
     Choose(2);
@@ -317,7 +316,7 @@ TEST_P(SocialRequestsTest, AFarChosenOrAnOpenShopSendsNoTrade)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x56f1b1..0x56fd88: el C1 05 40 al elegido, 0x78aba4c con su clave y el aviso 476 con su nombre.
+// 0x56f1b1..0x56fd88: the C1 05 40 to the chosen one, 0x78aba4c with its key and warning 476 with its name.
 TEST_P(SocialRequestsTest, PartyInvitesTheChosenAndKeepsItsKey)
 {
     Choose(1);
@@ -331,7 +330,7 @@ TEST_P(SocialRequestsTest, PartyInvitesTheChosenAndKeepsItsKey)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms + C3Randoms).State());
 }
 
-// 0x56f13f..0x56f1b0: en una party de otro líder, el aviso 257 y nada más (ni las celdas).
+// 0x56f13f..0x56f1b0: in a party with another leader, warning 257 and nothing else (not even the cells).
 TEST_P(SocialRequestsTest, OnlyTheLeaderInvites)
 {
     Choose(1);
@@ -353,7 +352,8 @@ TEST_P(SocialRequestsTest, OnlyTheLeaderInvites)
     EXPECT_EQ(m_sent.size(), 1U);
 }
 
-// 0x56d823..0x56e9ec: el AA lleva la clave y los diez bytes del nombre, al elegido o al de enfrente, sin aviso.
+// 0x56d823..0x56e9ec: the AA carries the key and the name's ten bytes, to the chosen one or the one in front, without a
+// warning.
 TEST_P(SocialRequestsTest, TheDuelChallengesWithTheName)
 {
     Choose(1);
@@ -369,12 +369,12 @@ TEST_P(SocialRequestsTest, TheDuelChallengesWithTheName)
     EXPECT_EQ(m_sent.size(), 2U);
 }
 
-// /purchase (0x574c0c..0x57694d): las consultas de 0x10000 y de 0x20 sacan un rand() cada una (las de 0x40, 0x100 y
-// 0x8000, ninguno) y el pedido no lee celdas.
+// /purchase (0x574c0c..0x57694d): the queries of 0x10000 and 0x20 draw one rand() each (those of 0x40, 0x100 and
+// 0x8000, none) and the request reads no cells.
 constexpr int PurchasePanelRandoms = 2;
 
-// 0x574c97..0x57538b: el elegido recibe el C1 10 3F 05 con su clave y su nombre aunque esté lejos o muerto; el héroe
-// elegido no. Con o sin pedido, 1 y sin aviso.
+// 0x574c97..0x57538b: the chosen one receives the C1 10 3F 05 with its key and its name even if far away or dead; a
+// chosen hero does not. With or without a request, 1 and no warning.
 TEST_P(SocialRequestsTest, PurchaseAsksTheChosenWithoutTheCells)
 {
     Choose(2);
@@ -397,8 +397,8 @@ TEST_P(SocialRequestsTest, PurchaseAsksTheChosenWithoutTheCells)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
 }
 
-// 0x574c0c..0x574c78 y 0x5766a7: la tienda de NPC, el almacén, el comercio, la caja del caos o el entrenador abiertos
-// dan el aviso 1121 y sale como chat. Las consultas paran en la primera abierta.
+// 0x574c0c..0x574c78 and 0x5766a7: an open NPC shop, storage, trade, chaos box or trainer gives warning 1121 and it
+// goes out as chat. The queries stop at the first open one.
 TEST_P(SocialRequestsTest, PurchaseStopsWithAnOpenPanel)
 {
     Choose(1);
@@ -428,8 +428,8 @@ TEST_P(SocialRequestsTest, PurchaseStopsWithAnOpenPanel)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x575501..0x575e7f: sin elegido, el 3F 05 va a cada uno vivo con el nombre escrito (el héroe también) y el muerto
-// no lo recibe (07 Q-C967).
+// 0x575501..0x575e7f: without a chosen one, the 3F 05 goes to every living one with the typed name (the hero too) and
+// the dead one does not get it (07 Q-C967).
 TEST_P(SocialRequestsTest, PurchaseAsksEveryoneWithTheName)
 {
     Choose(-1);
@@ -464,8 +464,8 @@ TEST_P(SocialRequestsTest, PurchaseAsksEveryoneWithTheName)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, PurchasePanelRandoms).State());
 }
 
-// 0x575daf..0x575e66: con el buffer vacío, el primero vivo que mira al héroe, aunque esté lejos. Sin valor (sscanf no
-// lo llenó), el error.
+// 0x575daf..0x575e66: with the buffer empty, the first living one facing the hero, even if far away. Without a value
+// (sscanf did not fill it), the error.
 TEST_P(SocialRequestsTest, PurchaseWithAnEmptyNameAsksTheOneInFront)
 {
     Choose(-1);
@@ -499,8 +499,8 @@ public:
     }
 };
 
-// La ventana de comandos (0x406050 desde 0x40a499, CL9 hito 7, fase 3): el comando elegido sobre el personaje elegido
-// con el clic derecho, en el paso de la ventana abierta.
+// The commands window (0x406050 from 0x40a499, CL9 milestone 7, phase 3): the chosen command on the character chosen
+// with the right click, in the open window's step.
 class CommandsWindowTest : public SocialRequestsTest
 {
 protected:
@@ -526,7 +526,7 @@ protected:
                 .send = [this](Client::Protocol::Outgoing packet) { m_sent.push_back(std::move(packet)); }};
     }
 
-    // El paso de la ventana con el mouse lejos de ella, el comando y el elegido, y el clic derecho.
+    // The window's step with the mouse away from it, the command and the chosen one, and the right click.
     Client::Core::Expected<void, std::string> RightClick(std::int32_t command, std::int32_t chosen)
     {
         Client::Kernel::WorldRuntime& runtime = game->world.Runtime();
@@ -554,9 +554,9 @@ protected:
     Client::Input::InputState m_input;
 };
 
-// 0x406097..0x4061aa: el destino (+8) es el elegido a dos celdas o menos (Brezal al lado; Zorzal a tres, no), después
-// de leer las cuatro celdas. 0x40638d..0x406afd (el 1): el nivel del registro propio con su acceso, el 36 en C3 con el
-// aviso 475, y la ventana cerrada con los estados en 1.
+// 0x406097..0x4061aa: the target (+8) is the chosen one two cells away or less (Brezal next to it; Zorzal at three,
+// no), after reading the four cells. 0x40638d..0x406afd (the 1): the own record's level with its access, the 36 in C3
+// with warning 475, and the window closed with the states at 1.
 TEST_P(CommandsWindowTest, TheTradeCommandAsksTheChosenAndClosesTheWindow)
 {
     ASSERT_TRUE(RightClick(1, 2).HasValue());
@@ -580,8 +580,8 @@ TEST_P(CommandsWindowTest, TheTradeCommandAsksTheChosenAndClosesTheWindow)
         Client::Tests::AfterDraws(Seed, 4 * CellRandoms + Client::Models::OwnRecordCloseRandoms + C3Randoms).State());
 }
 
-// 0x40646a y 0x4064aa: sin el nivel de 0x6c8dc8, el aviso 478; con la tienda personal del otro, el 493 con el 2. Los
-// dos dejan el comando en −1 y la ventana abierta, sin paquete.
+// 0x40646a and 0x4064aa: without 0x6c8dc8's level, warning 478; with the other's personal shop, 493 with the 2. Both
+// leave the command at −1 and the window open, without a packet.
 TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
 {
     game->world.OwnCharacter().level = 5;
@@ -598,7 +598,7 @@ TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x406b02 (el 2): el C1 10 3F 05 con la clave y el nombre, en C3, y la ventana cerrada.
+// 0x406b02 (the 2): the C1 10 3F 05 with the key and the name, in C3, and the window closed.
 TEST_P(CommandsWindowTest, TheShopCommandAsksForTheItems)
 {
     ASSERT_TRUE(RightClick(2, 1).HasValue());
@@ -606,8 +606,8 @@ TEST_P(CommandsWindowTest, TheShopCommandAsksForTheItems)
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 0);
 }
 
-// 0x4061d3..0x406275 y 0x4072df (el 3 y el 10): fuera de la party, el 3 invita (el 40 y el aviso 476, la ventana
-// queda) y el 10 no se puede; en la party, al revés, y el 10 lo sigue (0x6c8e50).
+// 0x4061d3..0x406275 and 0x4072df (the 3 and the 10): outside the party, the 3 invites (the 40 and warning 476, the
+// window stays) and the 10 is not allowed; in the party, the reverse, and the 10 follows them (0x6c8e50).
 TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
 {
     ASSERT_TRUE(RightClick(10, 1).HasValue());
@@ -630,8 +630,8 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
     EXPECT_EQ(runtime.movement.followTarget, 1);
 }
 
-// 0x40a04e (el 4): el nombre al EDIT del susurro y el Enter del WndProc, que abre el chat. 0x4079a6 (el 11): sin duelo
-// el AA; con el rival, el AB; con otro, el aviso 915.
+// 0x40a04e (the 4): the name to the whisper EDIT and the WndProc's Enter, which opens the chat. 0x4079a6 (the 11):
+// without a duel the AA; with the rival, the AB; with another, warning 915.
 TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 {
     ASSERT_TRUE(RightClick(4, 1).HasValue());
@@ -652,7 +652,7 @@ TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
     EXPECT_EQ(m_sent.size(), 2U);
 }
 
-// Player.bmd para todos los tipos: la animación del comando 8 (0x4ea030).
+// Player.bmd for every type: command 8's animation (0x4ea030).
 class CommandModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -671,7 +671,7 @@ public:
     Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
-// Los comandos del gremio (del 5 al 8, CL9 hito 8): sus avisos inventados y el cable en claro (el XOR32 en línea).
+// The guild commands (5 to 8, CL9 milestone 8): their made-up warnings and the cable in clear (the XOR32 inline).
 class GuildCommandsTest : public CommandsWindowTest
 {
 protected:
@@ -723,9 +723,9 @@ protected:
     CommandModels m_models;
 };
 
-// 0x40627a..0x4062b1 y 0x4085d1..0x408a23 (el 5): el héroe sin gremio pide entrar al del maestro elegido: 0x78aba40 con
-// su clave, C1 05 50 04 56 en claro y el aviso 477 con su nombre; sin rand() más que los de las cuatro celdas. Con el
-// héroe en un gremio (+0x368 distinto de 0xff, +0x1f2 todavía negativo), el aviso 255 y el comando en −1.
+// 0x40627a..0x4062b1 and 0x4085d1..0x408a23 (the 5): the hero without a guild asks to join the chosen master's:
+// 0x78aba40 with its key, C1 05 50 04 56 in clear and warning 477 with its name; no rand() but the four cells'. With
+// the hero in a guild (+0x368 other than 0xff, +0x1f2 still negative), warning 255 and the command at −1.
 TEST_P(GuildCommandsTest, TheGuildCommandAsksToJoin)
 {
     ASSERT_TRUE(RightClick(7, 1).HasValue());
@@ -753,8 +753,9 @@ TEST_P(GuildCommandsTest, TheGuildCommandAsksToJoin)
     EXPECT_EQ(m_sent.size(), 1U);
 }
 
-// 0x4062b6..0x4062f9 y 0x408a24..0x409065 (el 6): con los dos maestros, el estado sale del +4 de la entrada del gremio
-// del héroe en la tabla: sin alianza, C1 07 E5 01 01 04 56 y el aviso 1358; ya con alianza, el estado en 0 y nada.
+// 0x4062b6..0x4062f9 and 0x408a24..0x409065 (the 6): with both masters, the state comes from +4 of the hero guild's
+// entry in the table: without an alliance, C1 07 E5 01 01 04 56 and warning 1358; already allied, the state at 0 and
+// nothing.
 TEST_P(GuildCommandsTest, TheAllianceCommandReadsTheGuildTable)
 {
     Hero().guildStatus = 0x80;
@@ -776,8 +777,9 @@ TEST_P(GuildCommandsTest, TheAllianceCommandReadsTheGuildTable)
     EXPECT_EQ(m_sent.size(), 1U);
 }
 
-// 0x409066 (el 7): C1 07 E5 02 01 y el aviso 1359. 0x409663 (el 8): la animación 0xb7 del héroe, el C1 05 18 con su
-// dirección y la acción 0x92, C1 07 E5 02 02 y el aviso 1360. Sin los modelos, el 8 corta antes de mandar nada.
+// 0x409066 (the 7): C1 07 E5 02 01 and warning 1359. 0x409663 (the 8): the hero's animation 0xb7, the C1 05 18 with
+// its direction and action 0x92, C1 07 E5 02 02 and warning 1360. Without the models, the 8 cuts before sending
+// anything.
 TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
 {
     Hero().guildStatus = 0x80;
@@ -808,9 +810,10 @@ TEST_P(GuildCommandsTest, TheHostilityCommandsSendTheirRequests)
     EXPECT_EQ(m_random.State(), Client::Tests::AfterDraws(Seed, 4 * CellRandoms).State());
 }
 
-// 0x573f85..0x574bd5 (/guild): sin gremio, el elegido al lado: 0x78aba40 con su clave, C1 05 50 04 56 en claro, el
-// aviso 477 con su nombre y solo los rand() de las cuatro celdas. Sin elegido, el de enfrente (Brezal mira al héroe).
-// Sin el mundo cargado, nada. Con gremio, el aviso 255 sin mirar a nadie.
+// 0x573f85..0x574bd5 (/guild): without a guild, the chosen one next to the hero: 0x78aba40 with its key,
+// C1 05 50 04 56 in clear, warning 477 with its name and only the four cells' rand(). Without a chosen one, the one in
+// front (Brezal faces the hero). Without the world loaded, nothing. With a guild, warning 255 without looking at
+// anyone.
 TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
 {
     Choose(1);
@@ -850,9 +853,9 @@ TEST_P(GuildCommandsTest, TheGuildChatCommandAsksTheChosenOrTheOneInFront)
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
-// 0x570d7e..0x573f48 (/union, /rival y /rivaloff): sin gremio, el aviso 1355. Con él, al elegido o al de enfrente sin
-// mirar su gremio: C1 07 E5 01 01 y el 1358, E5 02 01 y el 1359, y la animación 0xb7, el C1 05 18 con la acción 0x92,
-// E5 02 02 y el 1360. Sin los modelos, /rivaloff corta antes de mandar nada.
+// 0x570d7e..0x573f48 (/union, /rival and /rivaloff): without a guild, warning 1355. With one, to the chosen one or the
+// one in front without checking its guild: C1 07 E5 01 01 and 1358, E5 02 01 and 1359, and animation 0xb7, the
+// C1 05 18 with action 0x92, E5 02 02 and 1360. Without the models, /rivaloff cuts before sending anything.
 TEST_P(GuildCommandsTest, TheRelationChatCommandsSendTheirRequests)
 {
     using Client::Chat::GuildRelationCommand;

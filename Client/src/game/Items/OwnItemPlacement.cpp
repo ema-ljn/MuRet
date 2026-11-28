@@ -49,20 +49,18 @@ constexpr std::uint32_t TypeHighNibbleMask = 0xf0;
 constexpr int TypeHighBitShift = 1;
 constexpr int TypeHighNibbleShift = 5;
 
-// El registro de Item.bmd (*[0x7758550] + tipo · 0x54): el ancho en +0x24 y el alto en +0x25 (0x5bcc38,
-// 0x5bcc4f).
+// The Item.bmd record (*[0x7758550] + type · 0x54), read at 0x5bcc38 and 0x5bcc4f.
 constexpr std::size_t ItemWidthOffset = 0x24;
 constexpr std::size_t ItemHeightOffset = 0x25;
 
-// 0x5bc8a0..0x5bc8ad y 0x420d1a..0x420d22: en los mapas 18 a 23 no crea mascotas ni cuervo.
+// 0x5bc8a0..0x5bc8ad and 0x420d1a..0x420d22: on maps 18 to 23 it creates no pets or raven.
 using Maps::IsChaosCastle;
-// Los lugares que 0x5bc740 mira después de 0x512a30 (0x5bc897, 0x5bca53, 0x5bca6c y 0x5bca71).
+// The slots 0x5bc740 checks after 0x512a30 (0x5bc897, 0x5bca53, 0x5bca6c and 0x5bca71).
 constexpr std::uint8_t LeftHandSlot = 1;
 constexpr std::uint8_t PetSlot = 8;
 constexpr std::uint8_t FirstRingSlot = 10;
 constexpr std::uint8_t SecondRingSlot = 11;
-// Item.bmd: Gaurdian Angel (0x1a00), Horn of Unilia (0x1a02), Horn of Dinorant (0x1a03), Dark Horse
-// (0x1a04), Dark Raven (0x1a05), Wizard's Ring (0x1a14) y Horn of Doom (0x1a25, el que viste a Fenrir).
+// Horn of Doom (0x1a25) is the one that dresses Fenrir.
 constexpr std::uint16_t GuardianAngel = 0x1a00;
 constexpr std::uint16_t HornOfUnilia = 0x1a02;
 constexpr std::uint16_t HornOfDinorant = 0x1a03;
@@ -70,8 +68,8 @@ constexpr std::uint16_t DarkHorse = 0x1a04;
 constexpr std::uint16_t DarkRaven = 0x1a05;
 constexpr std::uint16_t WizardsRing = 0x1a14;
 constexpr std::uint16_t HornOfDoom = 0x1a25;
-// Los ayudantes que crea 0x443fa0 con cada una (0x5bc8dc, 0x5bc94a, 0x5bc95d, 0x5bc9a0 y 0x5bc9ec..0x5bca07):
-// el de Fenrir, el 0x14a con el +0x1b del ítem en 1, el 0x14c con 2 y el 0x14b con otro.
+// The helpers 0x443fa0 creates with each one (0x5bc8dc, 0x5bc94a, 0x5bc95d, 0x5bc9a0 and 0x5bc9ec..0x5bca07):
+// Fenrir's, 0x14a with the item's +0x1b at 1, 0x14c with 2 and 0x14b with another.
 constexpr std::uint16_t GuardianAngelHelper = 0x1c12;
 constexpr std::uint16_t UniliaHelper = 0xc6;
 constexpr std::uint16_t DinorantHelper = 0x110;
@@ -80,20 +78,20 @@ constexpr std::uint16_t FenrirSecondHelper = 0x14c;
 constexpr std::uint16_t FenrirOtherHelper = 0x14b;
 constexpr std::uint8_t FenrirFirstKind = 1;
 constexpr std::uint8_t FenrirSecondKind = 2;
-// 0x5bca8d..0x5bca93: D+4 & ~7 en 0x18, el nivel 3.
+// 0x5bca8d..0x5bca93: D+4 & ~7 at 0x18, level 3.
 constexpr std::uint32_t LevelBitsMask = ~std::uint32_t{7};
 constexpr std::uint32_t LevelThreeBits = 0x18;
-// +0x360 del héroe: con 1 a 3 el anillo del lugar 10 no se mira (0x5bca76..0x5bca82); el de nivel 3 lo deja en 4.
+// The hero's +0x360: with 1 to 3, slot 10's ring is not checked (0x5bca76..0x5bca82); the level 3 one sets it to 4.
 constexpr std::uint8_t FirstRingLayer = 1;
 constexpr std::uint8_t LastRingLayer = 3;
 constexpr std::uint8_t WizardsRingLayer = 4;
-// 0x4225d0, que 0x54bf40 llama en 0x54cc5c y solo hace algo con el Dark Horse: la opción 0x96 (0x4225f2) con
-// 5 + la agilidad del registro propio (+0x1a) / 20 + 2 · el nivel del caballo ([0x72397c]).
+// 0x4225d0, which 0x54bf40 calls at 0x54cc5c and only does something with the Dark Horse: option 0x96 (0x4225f2)
+// with 5 + the own record's agility (+0x1a) / 20 + 2 · the horse's level ([0x72397c]).
 constexpr std::uint8_t DarkHorseOption = 0x96;
 constexpr std::uint32_t AgilityDivisor = 20;
 constexpr std::uint32_t HorseLevelFactor = 2;
 constexpr std::uint32_t DarkHorseOptionBase = 5;
-// Los 24 bits de arriba de los escalares que 0x5bc740 pone en la pila con el byte de abajo de los datos.
+// The upper 24 bits of the scalars 0x5bc740 pushes with the data's low byte.
 constexpr std::uint32_t UpperBits = ~std::uint32_t{0xff};
 
 std::uint32_t Byte(InventoryItemBytes bytes, std::size_t index)
@@ -117,7 +115,7 @@ ItemRecordOf(std::uint16_t type, const Scenes::WorldEntryResources& resources, s
 }
 } // namespace
 
-// 0x4225ec..0x422606: el lazo que busca la 0x96.
+// 0x4225ec..0x422606: the loop that looks for 0x96.
 std::uint8_t DarkHorseOptionPlace(const ItemState& item)
 {
     for (std::uint8_t index = 0; index < item.optionCount; ++index)
@@ -133,11 +131,11 @@ void AddTheDarkHorseOption(ItemState& item, const Scenes::WorldEntryResources& r
     AddTheDarkHorseOption(item, resources.world, resources.world.Runtime().ownRecordDepth, resources.cloth.random);
 }
 
-// 0x4225d0(item) desde 0x54cc5c, con el Dark Horse (0x4225dc). Busca la opción 0x96 desde la primera; en la
-// primera no la toma (0x422600: con el índice en 0 sigue como si no estuviera, Q-C415). Con ella, le reescribe
-// el valor; sin ella, la agrega al final. El valor, con el registro propio abierto (0x40b240/0x40ad90 y 0x40b440,
-// y lo cierra 0x40b4d0, con sus 3.848 rand() si queda sin accesos): (+0x1a / 20 con signo, sobre el word sin
-// signo) + 2 · el byte de abajo de [0x72397c] + 5, en un byte. El tag va después de cerrar (0x42281c, 0x42291c).
+// 0x4225d0(item) from 0x54cc5c, with the Dark Horse (0x4225dc). It looks for option 0x96 from the first; at the first
+// it does not take it (0x422600: with the index at 0 it goes on as if it were absent, Q-C415). With it, it rewrites
+// its value; without it, it appends it at the end. The value, with the own record open (0x40b240/0x40ad90 and
+// 0x40b440, and 0x40b4d0 closes it, with its 3848 rand() if left with no accesses): (+0x1a / 20 signed, over the
+// unsigned word) + 2 · the low byte of [0x72397c] + 5, in one byte. The tag goes after closing (0x42281c, 0x42291c).
 void AddTheDarkHorseOption(ItemState& item, const Kernel::WorldState& world, std::uint8_t& ownRecordDepth,
                            Crt::CrtRandom& random)
 {
@@ -145,7 +143,7 @@ void AddTheDarkHorseOption(ItemState& item, const Kernel::WorldState& world, std
     const bool found = index != item.optionCount;
     {
         const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
-        // OptionTag corta con diagnóstico si el índice se pasa de las nueve que guarda ItemState.
+        // OptionTag stops with a diagnostic if the index goes past the nine ItemState keeps.
         static_cast<void>(item.OptionTag(index));
         const std::uint32_t agility = world.OwnCharacter().agility;
         const auto level = static_cast<std::uint8_t>(world.Runtime().pets[Kernel::DarkHorsePetStats].level);
@@ -161,9 +159,9 @@ void AddTheDarkHorseOption(ItemState& item, const Kernel::WorldState& world, std
 
 namespace
 {
-// 0x54bf40(item, B1, B3, B4) desde 0x5bc740. contextWord es [0x7681eb0] + 0xe, el nivel del registro
-// propio, que solo vale con el registro abierto: cerrado, el último cierre dejó rand() & 0xff en cada byte
-// (Q-C125), y MuRet no lo tiene (Q-C202).
+// 0x54bf40(item, B1, B3, B4) from 0x5bc740. contextWord is [0x7681eb0] + 0xe, the own record's level, which is only
+// valid with the record open: closed, the last close left rand() & 0xff in each byte (Q-C125), and MuRet does not
+// have it (Q-C202).
 Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, Kernel::ItemInitializationScalars scalars,
                                                           const Scenes::WorldEntryResources& resources,
                                                           std::string_view where)
@@ -185,7 +183,7 @@ Core::Expected<void, std::string> InitializeInventoryItem(ItemState& item, Kerne
     return {};
 }
 
-// 0x5bc840..0x5bc873: lo que escribe en un lugar del equipo antes de 0x54bf40.
+// 0x5bc840..0x5bc873: what it writes in an equipment slot before 0x54bf40.
 void WriteEquipmentFields(ItemState& item, std::uint16_t type, InventoryItemBytes bytes)
 {
     item.durability = static_cast<std::uint8_t>(Byte(bytes, 2));
@@ -195,8 +193,8 @@ void WriteEquipmentFields(ItemState& item, std::uint16_t type, InventoryItemByte
     item.occupied = 1;
 }
 
-// 0x5bc8b3..0x5bca0c: el ayudante de cada mascota del lugar 8; el Horn of Doom elige el de Fenrir por el
-// +0x1b del ítem (0x5bc9d6..0x5bca07). Las demás no crean nada.
+// 0x5bc8b3..0x5bca0c: the helper of each pet of slot 8; Horn of Doom picks Fenrir's by the item's +0x1b
+// (0x5bc9d6..0x5bca07). The others create nothing.
 std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 {
     switch (item.id)
@@ -220,7 +218,7 @@ std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
     }
 }
 
-// 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
+// 0x5bc88b..0x5bcaa7, with the hero it rereads from 0x743a170: what it creates or releases after dressing it.
 Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item,
                                                    const Scenes::WorldEntryResources& resources)
 {
@@ -233,7 +231,7 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     {
         if (type == HornOfDoom)
         {
-            // 0x5bc9d6..0x5bc9db: el byte +0x1b del ítem a +0x31b, el de la mascota, antes de crearla.
+            // 0x5bc9d6..0x5bc9db: the item's byte +0x1b to +0x31b, the pet's, before creating it.
             hero.pet.flags1b = item.flags1b;
         }
         const std::optional<std::uint16_t> helper = HelperOfThePet(item);
@@ -241,16 +239,16 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
         {
             return {};
         }
-        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0), con el rand() compartido: el 0x1c12 saca tres para su lugar
-        // (0x443f21..0x443f8c), entre la cola de 0x512a30 y el cierre del registro de 0x5bcaae.
+        // 0x443fa0(helper, hero + 0x10, hero, 0, 0), with the shared rand(): 0x1c12 draws three for its place
+        // (0x443f21..0x443f8c), between 0x512a30's tail and 0x5bcaae's record close.
         if (auto created = Pets::CreateHelper(world, *helper, hero.position, runtime.hero, &resources.cloth.random);
             !created.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
         }
-        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0(0x61e, héroe + 0x10,
-        // héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0) crea el calco en el héroe, aunque 0x443fa0 no haya
-        // creado nada. Sin rand(); con la tabla llena, ninguno.
+        // 0x5bc967..0x5bca46: other than 0x1c12, with the published hero's +0x3e2 at 0, 0x518cf0(0x61e, hero + 0x10,
+        // hero + 0x1c, hero + 0xf4, 1, hero, −1, 0, 0, 0, 0) creates the decal on the hero, even if 0x443fa0 created
+        // nothing. No rand(); with the table full, none.
         if (type != GuardianAngel && hero.safeZone == 0)
         {
             static_cast<void>(world.Map().effects.CreatePetSummon(hero.position, hero.angles, hero.light, &hero));
@@ -259,15 +257,15 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     }
     if (slot == LeftHandSlot && type == DarkRaven)
     {
-        // 0x5bca62: 0x420cf0 suelta el cuervo de +0x430 (0x421d60) y, fuera de los mapas 18 a 23, lo crea de nuevo.
+        // 0x5bca62: 0x420cf0 releases the raven of +0x430 (0x421d60) and, outside maps 18 to 23, creates it again.
         if (auto raven = Scenes::ReplaceTheRaven(hero, resources); !raven.HasValue())
         {
             return Core::Unexpected(std::format("0x5bc740 (0x5bca62), {}", raven.Error()));
         }
         return {};
     }
-    // 0x5bca6c..0x5bcaa7: el lugar 11, o el 10 con +0x360 fuera de 1 a 3, con el Wizard's Ring de nivel 3: 0x414340
-    // suelta la capa de +0x364 y +0x360 queda en 4.
+    // 0x5bca6c..0x5bcaa7: slot 11, or 10 with +0x360 outside 1 to 3, with the level 3 Wizard's Ring: 0x414340 releases
+    // the layer at +0x364 and +0x360 stays at 4.
     const bool ring = slot == SecondRingSlot ||
                       (slot == FirstRingSlot && (hero.byte360 < FirstRingLayer || hero.byte360 > LastRingLayer));
     if (ring && type == WizardsRing && (item.scalar1Low & LevelBitsMask) == LevelThreeBits)
@@ -278,8 +276,8 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
     return {};
 }
 
-// 0x5bc77f..0x5bcc0c: un lugar del equipo, con el registro abierto en línea durante todo el camino y el
-// cierre en línea de 0x5bcaae (el lazo de 0x40b4d0, con su rand() en 0x5bcbd5).
+// 0x5bc77f..0x5bcc0c: an equipment slot, with the record opened inline for the whole path and 0x5bcaae's inline close
+// (0x40b4d0's loop, with its rand() at 0x5bcbd5).
 Core::Expected<Actors::ActorStopResult, std::string> PlaceInEquipment(std::uint8_t slot, std::uint16_t type,
                                                                       InventoryItemBytes bytes,
                                                                       const Scenes::WorldEntryResources& resources)
@@ -289,8 +287,8 @@ Core::Expected<Actors::ActorStopResult, std::string> PlaceInEquipment(std::uint8
     const Models::LogicalAccess access(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
     ItemState& item = world.OwnCharacter().equipment[slot];
     WriteEquipmentFields(item, type, bytes);
-    // 0x5bc866..0x5bc86b: B1 y B4 con los 24 bits de arriba de [0x7681eb4], que 0x54bf40 no lee, y B3 con
-    // los de lugar · 9, que con el lugar de 0 a 11 son 0.
+    // 0x5bc866..0x5bc86b: B1 and B4 with the upper 24 bits of [0x7681eb4], which 0x54bf40 does not read, and B3 with
+    // those of slot · 9, which with the slot from 0 to 11 are 0.
     const Kernel::ItemInitializationScalars scalars{
         .b1 = Byte(bytes, 1), .b3 = ((slot * 9u) & UpperBits) | Byte(bytes, 3), .b4 = Byte(bytes, 4)};
     if (auto initialized = InitializeInventoryItem(item, scalars, resources, "0x5bc740 (0x5bc87a)");
@@ -337,15 +335,15 @@ Core::Expected<Actors::ActorStopResult, std::string> PlaceInEquipment(std::uint8
     return dressed.Value();
 }
 
-// Lo que cada camino deja en los 24 bits de arriba de B1, B3 y B4 de 0x54bf40: un registro que el original reusa.
+// What each path leaves in the upper 24 bits of 0x54bf40's B1, B3 and B4: a register the original reuses.
 enum class GridScalars : std::uint8_t
 {
-    // 0x5bcc9c, 0x5bccd5 (las dos grillas del inventario): B1 y B3 con los de fila · 8 + origen, B4 con los del tipo.
+    // 0x5bcc9c, 0x5bccd5 (the two inventory grids): B1 and B3 with those of row · 8 + origin, B4 with the type's.
     Inventory,
-    // 0x5bc1ee..0x5bc223 (0x5bc150, la grilla de 0x78a7070): B1 y B4 con los de la fila del lugar, que no pasa de 31,
-    // y B3 con los del tipo.
+    // 0x5bc1ee..0x5bc223 (0x5bc150, the grid at 0x78a7070): B1 and B4 with those of the slot's row, which does not go
+    // past 31, and B3 with the type's.
     NpcGrid,
-    // 0x5bd378..0x5bd3c7 (0x5bc740 fuera de 0x78a9bb0): B1 y B3 con los de casilla · 9, B4 con los del tipo.
+    // 0x5bd378..0x5bd3c7 (0x5bc740 outside 0x78a9bb0): B1 and B3 with those of cell · 9, B4 with the type's.
     Generic,
 };
 
@@ -369,10 +367,9 @@ Kernel::ItemInitializationScalars ScalarsOf(GridScalars kind, std::int32_t rowBa
     return {.b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = typeUpper | Byte(bytes, 4)};
 }
 
-// Una grilla de `columns` por fila desde `origin`: la columna y la fila son las del origen (% 8 y / 8 fijos, con
-// signo, en los tres caminos). Cada casilla es fila · columnas + origen + columna, sin tope: un ítem que pasa de la
-// última columna sigue en la fila de abajo (Q-C201), y uno que pasa de la última casilla escribe fuera de la grilla
-// (Q-C200).
+// A grid of `columns` per row from `origin`: the column and the row are the origin's (% 8 and / 8 fixed, signed, on
+// all three paths). Each cell is row · columns + origin + column, unbounded: an item that goes past the last column
+// continues on the row below (Q-C201), and one that goes past the last cell writes outside the grid (Q-C200).
 Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::int32_t columns, std::int32_t origin,
                                               std::uint16_t type, InventoryItemBytes bytes, GridScalars kind,
                                               const Scenes::WorldEntryResources& resources, std::string_view where)
@@ -418,9 +415,9 @@ Core::Expected<void, std::string> PlaceInGrid(std::span<ItemState> cells, std::i
     return {};
 }
 
-// 0x5bcd0b..0x5bcf94 y 0x5bd08b..0x5bd302: con [0x78a6758] en menos de 12, abre el registro propio en línea,
-// llama a 0x54fe10 una vez por cada WORD, +0x3e y +0x42, que no sea 0 (0x5bcdd9 y 0x5bcdf0), y lo cierra
-// con 0x40b4d0 (0x5bcf8f). 0x54fe10 lee el ítem del cursor con sus globales (HeldItemOf).
+// 0x5bcd0b..0x5bcf94 and 0x5bd08b..0x5bd302: with [0x78a6758] under 12, it opens the own record inline, calls
+// 0x54fe10 once for each WORD, +0x3e and +0x42, that is not 0 (0x5bcdd9 and 0x5bcdf0), and closes it with 0x40b4d0
+// (0x5bcf8f). 0x54fe10 reads the cursor item with its globals (HeldItemOf).
 Core::Expected<void, std::string> UpdateTheSpeedsAfterTheGrid(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
@@ -460,8 +457,8 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
         return Core::Unexpected(record.Error());
     const auto width = std::to_integer<std::int32_t>(record.Value()[ItemWidthOffset]);
     const auto height = std::to_integer<std::int32_t>(record.Value()[ItemHeightOffset]);
-    // 0x5bd352..0x5bd36d: la columna y la fila del origen (% 8 y / 8 con signo; el origen no es negativo), con 8 aunque
-    // la grilla tenga otras columnas.
+    // 0x5bd352..0x5bd36d: the origin's column and row (% 8 and / 8 signed; the origin is not negative), with 8 even if
+    // the grid has other columns.
     const auto column = static_cast<std::uint8_t>(origin & 7);
     const auto row = static_cast<std::uint8_t>(origin >> 3);
     for (std::int32_t y = 0; y < height; ++y)
@@ -483,8 +480,8 @@ Core::Expected<void, std::string> PlaceItemInOtherGrid(std::span<ItemState> cell
             item.id = type;
             item.flags1b = static_cast<std::uint8_t>(Byte(bytes, 3));
             item.occupied = y == 0 && x == 0 ? 1u : 0u;
-            // 0x5bd376..0x5bd3c5: B1 y B3 con los 24 bits de arriba de casilla · 9 (lo que queda en EAX del índice,
-            // 0x5bd378), y B4 con los del tipo (0x5bd384).
+            // 0x5bd376..0x5bd3c5: B1 and B3 with the upper 24 bits of cell · 9 (what the index leaves in EAX,
+            // 0x5bd378), and B4 with the type's (0x5bd384).
             const auto upper = static_cast<std::uint32_t>(cell * 9) & UpperBits;
             const Kernel::ItemInitializationScalars scalars{
                 .b1 = upper | Byte(bytes, 1), .b3 = upper | Byte(bytes, 3), .b4 = (type & UpperBits) | Byte(bytes, 4)};

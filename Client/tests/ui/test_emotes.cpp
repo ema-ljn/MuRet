@@ -15,9 +15,9 @@
 #include <string_view>
 #include <vector>
 
-// Chat::FindTheEmote: la búsqueda de 0x576eb0 (06 § El chat, "El emote"). La tabla esperada sale del ASM
-// (0x576ede..0x577f88, los 22 casos por su bloque); los textos de Text.bmd son los inventados de ChatTexts ("#e270" y
-// así), que no se contienen entre ellos.
+// Chat::FindTheEmote: 0x576eb0's search (06 § El chat, "El emote"). The expected table comes from the ASM
+// (0x576ede..0x577f88, the 22 cases by their block); the Text.bmd texts are ChatTexts' invented ones ("#e270" and so
+// on), which do not contain one another.
 namespace
 {
 using Client::Actors::EmoteCase;
@@ -29,7 +29,7 @@ const Client::Tables::TextTable& Texts()
     return texts;
 }
 
-// Un disparador: un texto de Text.bmd (por su índice) o un literal del binario (por su dirección), con su caso.
+// A trigger: a Text.bmd text (by its index) or a literal of the binary (by its address), with its case.
 struct Trigger
 {
     std::string name;
@@ -37,7 +37,7 @@ struct Trigger
     EmoteCase expected;
 };
 
-// Los 95, en el orden en que 0x576eb0 los prueba.
+// The 95, in the order 0x576eb0 tries them.
 std::vector<Trigger> OriginalOrder()
 {
     std::vector<Trigger> rows;
@@ -92,7 +92,7 @@ class EveryTrigger : public ::testing::TestWithParam<Trigger>
 {
 };
 
-// Cada uno, solo en una frase, da su caso.
+// Each one, alone in a sentence, gives its case.
 TEST_P(EveryTrigger, FindsItsCase)
 {
     const Trigger& trigger = GetParam();
@@ -109,7 +109,7 @@ TEST(EmotesTest, TheTableHasTheNinetyFiveTriggers)
     EXPECT_EQ(OriginalOrder().size(), Client::Chat::EmoteTriggerCount);
 }
 
-// El primero en el orden gana, aunque esté más adelante en lo dicho o tenga un índice mayor.
+// The first in the order wins, even if it comes later in what is said or has a higher index.
 TEST(EmotesTest, TheEarlierTriggerWins)
 {
     const std::vector<Trigger> rows = OriginalOrder();
@@ -125,7 +125,7 @@ TEST(EmotesTest, TheEarlierTriggerWins)
     }
 }
 
-// 0x577780, 0x577b7c y 0x577f78: el 291, el 317 y el 348 se prueban después de todos, también del 783 y "hustle".
+// 0x577780, 0x577b7c and 0x577f78: 291, 317 and 348 are tried after all the others, also after 783 and "hustle".
 TEST(EmotesTest, TheLonelyTextsGoLast)
 {
     EXPECT_EQ(FindTheEmote(Texts(), "#e291 #e347"), (EmoteCase{0xc0, 0x94}));
@@ -135,7 +135,7 @@ TEST(EmotesTest, TheLonelyTextsGoLast)
     EXPECT_EQ(FindTheEmote(Texts(), "#e348 #e317"), (EmoteCase{0xbf, 0x9b}));
 }
 
-// El ';' y el '^^' de 0x6c90e0 y 0x6c9118, que el corte de la CL8 no miraba.
+// The ';' and the '^^' of 0x6c90e0 and 0x6c9118.
 TEST(EmotesTest, TheSemicolonAndTheSmileAreEmotes)
 {
     EXPECT_EQ(FindTheEmote(Texts(), "bueno;"), (EmoteCase{0xa9, 0x8b}));
@@ -147,11 +147,11 @@ TEST(EmotesTest, NothingFoundIsEmpty)
 {
     EXPECT_EQ(FindTheEmote(Texts(), "hola, que tal"), std::nullopt);
     EXPECT_EQ(FindTheEmote(Texts(), ""), std::nullopt);
-    // Medio literal no alcanza, y las mayúsculas cuentan.
+    // Half a literal is not enough, and case matters.
     EXPECT_EQ(FindTheEmote(Texts(), "^ ^ T-T HUSTLE \xa4\xd0"), std::nullopt);
 }
 
-// Un texto que Text.bmd no tiene queda vacío, y 0x576960 encuentra el vacío en cualquier mensaje (Q-C117).
+// A text Text.bmd does not have stays empty, and 0x576960 finds the empty one in any message (Q-C117).
 TEST(EmotesTest, AMissingTextIsFoundInAnyMessage)
 {
     std::map<std::size_t, std::string> texts = Client::Tests::ChatTexts();

@@ -28,19 +28,19 @@ namespace Client::Social
 {
 namespace
 {
-// 0x5ece12..0x5ed4c6: los botones del pie, de 0x18 × 0x18 en y + 0x186.
+// 0x5ece12..0x5ed4c6: the foot buttons, 0x18 × 0x18 at y + 0x186.
 constexpr std::int32_t ButtonTop = 0x186;
 constexpr std::int32_t ButtonSize = 0x18;
 constexpr std::int32_t MoneyButtonLeft = 0x1a;
 constexpr std::int32_t OkButtonLeft = 0x61;
 constexpr std::int32_t CancelButtonLeft = 0x89;
 constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
-// 0x5ece66..0x5ece9a: el diálogo del zen y lo que deja.
+// 0x5ece66..0x5ece9a: the zen dialog and what it leaves.
 constexpr std::int32_t MoneyDialog = 0x73;
 constexpr std::int32_t MoneyFieldLimit = 8;
 constexpr std::int32_t MoneyFieldCount = 1;
 constexpr std::int32_t MoneyButtonMark = 2;
-// 0x5ecf5b..0x5ecf71: el aviso del OK con la grilla del otro cambiada.
+// 0x5ecf5b..0x5ecf71: the OK's warning with the other's grid changed.
 constexpr std::int32_t ChangedWarningKind = 3;
 constexpr std::uint8_t ChangedWarningByte = 0xff;
 constexpr std::int32_t ChangedWarningLines = 4;
@@ -48,19 +48,19 @@ constexpr std::int32_t ChangedWarningText = 0x173;
 constexpr std::int32_t ChangedWarningDialog = 0x94;
 // 0x5ed92c..0x5ed936.
 constexpr std::int32_t ButtonMouseUpdateTimeMax = 6;
-// 0x5ebcdf..0x5ebcf8: la caja del pedido de duelo.
+// 0x5ebcdf..0x5ebcf8: the duel request box.
 constexpr std::int32_t DuelBoxLeft = 0xd5;
 constexpr std::int32_t DuelBoxRight = 0x1aa;
 constexpr std::int32_t DuelBoxTop = 0x6e;
 constexpr std::int32_t DuelBoxBottom = 0x118;
-// 0x5ebd01..0x5ebd2b y 0x5ec522..: sí y no.
+// 0x5ebd01..0x5ebd2b and 0x5ec522..: yes and no.
 constexpr std::int32_t DuelYesLeft = 0xed;
 constexpr std::int32_t DuelYesRight = 0x133;
 constexpr std::int32_t DuelNoLeft = 0x14c;
 constexpr std::int32_t DuelNoRight = 0x192;
 constexpr std::int32_t DuelButtonTop = 0xfa;
 constexpr std::int32_t DuelButtonBottom = 0x10f;
-// El relleno y el serial de un C3 (rand() en 0x5ed19a o 0x5ec1e4, y 0x40b3f0 al cerrar la entrada del serial).
+// A C3's padding and serial (rand() at 0x5ed19a or 0x5ec1e4, and 0x40b3f0 when closing the serial's entry).
 constexpr std::uint32_t C3Randoms = 2;
 
 bool InRange(const Hud::GameUiContext& context, std::int32_t left, std::int32_t right, std::int32_t top,

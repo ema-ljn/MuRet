@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-// 0x5b1c70, el nombre de un ítem, con el anillo de transformación (0x1a0a): los monstruos de 0x7681eb8 (NpcName.txt).
+// 0x5b1c70, an item's name, with the transformation ring (0x1a0a): the monsters of 0x7681eb8 (NpcName.txt).
 namespace
 {
 using Client::Monsters::NpcName;
@@ -25,7 +25,7 @@ using Client::Monsters::NpcNameTable;
 
 constexpr std::uint16_t TransformationRing = 0x1a0a;
 constexpr std::uint16_t EventTicket = 0x1c0c;
-// Item.bmd+0x2d, el byte que 0x5b1d54 lee del registro.
+// The Item.bmd byte that 0x5b1d54 reads from the record.
 constexpr std::size_t PrizeOffset = 0x2d;
 
 NpcName Record(std::uint16_t type, std::string_view name)
@@ -41,7 +41,7 @@ class ItemNamesTest : public ::testing::Test
 protected:
     ItemNamesTest()
     {
-        // El 7 dos veces: 0x5b21a6 no corta en el primero.
+        // 7 twice: 0x5b21a6 does not cut at the first one.
         table[3] = Record(7, "Gigante A");
         table[4] = Record(2, "Dragon");
         table[10] = Record(7, "Gigante B");
@@ -56,8 +56,8 @@ protected:
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{103, "Anillo"}});
 };
 
-// 0x5b21a6..0x5b21ef: el monstruo del nivel en 0x6c9338 (2, 7, 14, 8, 9 y 41 del 0 al 5) y, por cada registro de
-// 0x7681eb8 con ese tipo, sprintf(buffer, "%s %s", su nombre, el 103): queda el último.
+// 0x5b21a6..0x5b21ef: the level's monster in 0x6c9338 (2, 7, 14, 8, 9 and 41 from 0 to 5) and, for each record of
+// 0x7681eb8 with that type, sprintf(buffer, "%s %s", its name, the 103): the last one stays.
 TEST_F(ItemNamesTest, TheTransformationRingTakesTheLastMonsterOfItsLevel)
 {
     const auto giant = Name(1);
@@ -68,10 +68,10 @@ TEST_F(ItemNamesTest, TheTransformationRingTakesTheLastMonsterOfItsLevel)
     EXPECT_EQ(dragon.Value(), "Dragon Anillo");
 }
 
-// Sin un registro del monstruo (el 14 del nivel 2) no escribe el buffer: vacío, como los demás que ItemNameOf no
-// escribe. Del 6 al 10, 0x6c9338 lee los bytes de la tabla que sigue (0x6c9350): del 6 al 9 no entran en 16 bits y el
-// del 10 es 0xc7b1, que la tabla no tiene. Del 11 al 15, el 0, el tipo de los registros vacíos de la tabla: queda el
-// último, con el nombre vacío.
+// Without a record of the monster (level 2's 14) it does not write the buffer: empty, like the others ItemNameOf does
+// not write. From 6 to 10, 0x6c9338 reads the bytes of the next table (0x6c9350): 6 to 9 do not fit in 16 bits and
+// 10's is 0xc7b1, which the table does not have. From 11 to 15, 0, the type of the table's empty records: the last one
+// stays, with an empty name.
 TEST_F(ItemNamesTest, TheTransformationRingWithoutItsMonsterLeavesTheBuffer)
 {
     for (const std::int32_t level : {2, 6, 7, 10})
@@ -85,8 +85,8 @@ TEST_F(ItemNamesTest, TheTransformationRingWithoutItsMonsterLeavesTheBuffer)
     EXPECT_EQ(empty.Value(), " Anillo");
 }
 
-// 0x5b1d52..0x5b1d6e: el 0x1c0c de nivel 2 (el boleto), sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + Item.bmd+0x2d ·
-// 100): el premio de los diez de 100 bytes de la .data, en coreano (EUC-KR), con sus bytes tal cual. El 4 es "256M 램".
+// 0x5b1d52..0x5b1d6e: the level 2 0x1c0c (the ticket), sprintf(buffer, "%s" (0x6c98f0), 0x6c9350 + Item.bmd+0x2d ·
+// 100): the prize among the ten 100-byte ones of the .data, in Korean (EUC-KR), with its bytes as is. 4 is "256M 램".
 TEST(ItemNamesTicketTest, TheTicketOfLevelTwoNamesThePrizeOfItsRecord)
 {
     const Client::Tables::ItemTable items =
@@ -96,7 +96,7 @@ TEST(ItemNamesTicketTest, TheTicketOfLevelTwoNamesThePrizeOfItsRecord)
     EXPECT_EQ(name.Value(), "256M \xb7\xa5");
 }
 
-// 0x6c9350..0x6c9737: los diez premios con los largos de la .data del c32bbd5f (hasta su '\0'), y el 0 entero.
+// 0x6c9350..0x6c9737: the ten prizes with the lengths of c32bbd5f's .data (up to its '\0'), and 0 whole.
 TEST(ItemNamesTicketTest, TheTenPrizesAreTheBytesOfTheData)
 {
     constexpr std::array<std::size_t, 10> Lengths{18, 14, 12, 30, 7, 17, 16, 9, 8, 20};
@@ -113,8 +113,8 @@ TEST(ItemNamesTicketTest, TheTenPrizesAreTheBytesOfTheData)
     EXPECT_FALSE(Client::Items::EventTicketPrizeOf(10).has_value());
 }
 
-// Desde el 10, 0x6c9350 + i · 100 lee la .data que sigue a los diez (strings de formato y globales que el juego
-// cambia), que MuRet no tiene: corta. Sin Item.bmd, también.
+// From 10, 0x6c9350 + i · 100 reads the .data that follows the ten (format strings and globals the game changes),
+// which MuRet does not have: it cuts. Without Item.bmd, too.
 TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
 {
     const Client::Tables::ItemTable items =
@@ -127,7 +127,7 @@ TEST(ItemNamesTicketTest, TheTicketPrizeOutsideTheTenCuts)
     EXPECT_NE(unloaded.Error().find("0x5b1c76"), std::string::npos) << unloaded.Error();
 }
 
-// Sin la tabla de 0x7681eb8, corta.
+// Without the 0x7681eb8 table, it cuts.
 TEST_F(ItemNamesTest, TheTransformationRingNeedsTheMonsterTable)
 {
     const auto name = Client::Items::ItemNameOf(nullptr, &texts, nullptr, TransformationRing, 1);

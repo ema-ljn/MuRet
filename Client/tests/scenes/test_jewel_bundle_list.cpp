@@ -34,10 +34,10 @@
 
 #include <gtest/gtest.h>
 
-// La lista de 0x6e5660 (CL9 hito 6, fase 5): agregar (0x46e940), vaciar (0x482f80) y el elegido (0x483aa0); su paso
-// (0x402af0 → 0x45aa80 → 0x483bc0) con las flechas del teclado y su cola, la rueda, las flechas y la pista de la barra,
-// el clic y el doble clic sobre una fila; y su dibujo (0x4832e0 con 0x46ebe0 y 0x46f020). Ninguno saca rand().
-// Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3).
+// 0x6e5660's list (CL9 milestone 6, phase 5): adding (0x46e940), emptying (0x482f80) and the chosen one (0x483aa0); its
+// step (0x402af0 → 0x45aa80 → 0x483bc0) with the keyboard arrows and its queue, the wheel, the bar's arrows and track,
+// the click and the double click on a row; and its drawing (0x4832e0 with 0x46ebe0 and 0x46f020). None takes rand().
+// Made-up texts; the world in Lorencia (0), Devias (2) and Noria (3).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -47,11 +47,11 @@ using Client::Kernel::WorldState;
 using Client::Npc::JewelBundleList;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
-// 0x62f734: la esquina que pone el dibujo del 0xa4, (0xe4, 0x6d + 0xf0).
+// 0x62f734: the corner the 0xa4's drawing sets, (0xe4, 0x6d + 0xf0).
 constexpr std::int32_t ListX = 0xe4;
 constexpr std::int32_t ListY = 0x6d + 0xf0;
-// 0x46f2c0 con 8 a la vista: la fila i en y = (8 − i) · 13 + 230, y el mouse la toma desde 3 más arriba, en x de 0xe4
-// a 0xe4 + 168.
+// 0x46f2c0 with 8 visible: row i at y = (8 − i) · 13 + 230, and the mouse takes it from 3 higher, at x from 0xe4 to
+// 0xe4 + 168.
 constexpr std::int32_t RowX = 300;
 constexpr std::int32_t OutsideX = 100;
 constexpr std::int32_t OutsideY = 100;
@@ -75,7 +75,7 @@ public:
         list.y = ListY;
     }
 
-    // `count` filas desde la casilla 1, con el nivel de la casilla % 16, y la barra como la deja el dibujo.
+    // `count` rows from cell 1, with level cell % 16, and the bar as the drawing leaves it.
     void Fill(std::int32_t count)
     {
         JewelBundleList& list = List();
@@ -97,7 +97,7 @@ public:
         list.thumbHeight = bar.thumbHeight;
     }
 
-    // Sin el clic.
+    // Without the click.
     Client::ChaosMix::BundleListStep Step(std::int32_t x, std::int32_t y)
     {
         world->Runtime().mouse.pendingClick = false;
@@ -141,9 +141,9 @@ public:
     Client::Input::InputState input;
 };
 
-// 0x46e940: solo las casillas de 0 a 0x40 que no están; cada una deja el elegido en 0, la última a la vista y las
-// filas por casilla. 0x482f80 las vacía con el elegido y el primero que se ve en 0; 0x483aa0 da la fila elegida, o
-// ninguna sin elegido o sin filas (y entonces el elegido en 0).
+// 0x46e940: only cells 0 to 0x40 not there yet; each leaves the chosen one at 0, the last in view and the rows by
+// cell. 0x482f80 empties them with the chosen one and the first visible one at 0; 0x483aa0 gives the chosen row, or
+// none without a chosen one or without rows (and then the chosen one at 0).
 TEST(JewelBundleListTest, AddingSortsByCellAndKeepsTheLastInView)
 {
     JewelBundleList list;
@@ -183,8 +183,8 @@ TEST(JewelBundleListTest, AddingSortsByCellAndKeepsTheLastInView)
     EXPECT_EQ(list.selection, 0);
 }
 
-// 0x45aa80 y 0x483bc0, en los tres mapas: con el mouse sobre la lista es la de abajo (sin otra), de la UI, y la rueda
-// corre de a 3 hasta los bordes; 0x402af0 deja 0x5762eb4 en 0. Fuera de ella, nada de eso.
+// 0x45aa80 and 0x483bc0, on the three maps: with the mouse over the list it is the UI's bottom one (with no other), and
+// the wheel scrolls 3 at a time up to the edges; 0x402af0 leaves 0x5762eb4 at 0. Outside it, none of that.
 TEST(JewelBundleListTest, TheWheelScrollsOverTheList)
 {
     for (const std::int32_t map : Maps)
@@ -224,9 +224,9 @@ TEST(JewelBundleListTest, TheWheelScrollsOverTheList)
     }
 }
 
-// 0x483bc0, en los tres mapas: con el clic sobre la lista, el foco del teclado; las flechas de la barra (x en
-// [395, 408), y en [240, 253) y [336, 349)) corren de a una con el sonido 0x19, cuentan hasta 15 con el clic y
-// corren en cada paso desde 16; la pista arriba y abajo del cursor corre 8, sin sonido. El clic queda.
+// 0x483bc0, on the three maps: the click over the list takes the keyboard focus; the bar's arrows (x in [395, 408), y
+// in [240, 253) and [336, 349)) scroll one at a time with sound 0x19, count up to 15 with the click and scroll on
+// every step from 16; the track above and below the thumb scrolls 8, without sound. The click stays.
 TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
 {
     for (const std::int32_t map : Maps)
@@ -275,7 +275,7 @@ TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
         EXPECT_EQ(list.scroll, 4);
         EXPECT_FALSE(runtime.Runtime().lastSoundId.has_value());
 
-        // El cursor no se agarra (07 Q-C1151): el clic sobre él no corre nada.
+        // The thumb is not grabbed (07 Q-C1151): the click on it scrolls nothing.
         tested.PlaceTheBar();
         static_cast<void>(tested.Step(400, 300));
         static_cast<void>(tested.Click(400, static_cast<std::int32_t>(list.thumbY) + 1));
@@ -284,10 +284,10 @@ TEST(JewelBundleListTest, TheBarArrowsAndTheTrackScroll)
     }
 }
 
-// 0x483bc0 y 0x4834a0, en los tres mapas: con el foco, Arriba manda el 0xf (el siguiente) y Abajo el 0x10 (el
-// anterior, hasta el 1), que atiende el paso siguiente; repiten desde el sexto paso. El elegido queda a la vista. Sin
-// elegido no eligen, y con más filas que las que se ven el primero que se ve vuelve a 0 (07 Q-C1153). Sin el foco,
-// nada.
+// 0x483bc0 and 0x4834a0, on the three maps: with the focus, Up sends 0xf (next) and Down 0x10 (previous, down to 1),
+// handled by the next step; they repeat from the sixth step. The chosen one stays in view. Without a chosen one they do
+// not choose, and with more rows than visible the first visible one goes back to 0 (07 Q-C1153). Without the focus,
+// nothing.
 TEST(JewelBundleListTest, TheArrowKeysMoveTheChoiceOnTheNextStep)
 {
     for (const std::int32_t map : Maps)
@@ -343,8 +343,8 @@ TEST(JewelBundleListTest, TheArrowKeysMoveTheChoiceOnTheNextStep)
     }
 }
 
-// 0x46f1a0, en los tres mapas: el clic sobre una fila la elige (el primero que se ve + 1 + la fila), da vuelta su +0
-// y se apaga; el doble clic la elige, se apaga y devuelve la fila para 0x402a90, salvo la casilla 0 (07 Q-C1152).
+// 0x46f1a0, on the three maps: the click on a row chooses it (the first visible + 1 + the row), flips its +0 and is
+// cleared; the double click chooses it, is cleared and returns the row for 0x402a90, except cell 0 (07 Q-C1152).
 TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheDoubleClick)
 {
     for (const std::int32_t map : Maps)
@@ -354,7 +354,7 @@ TEST(JewelBundleListTest, TheRowsTakeTheClickAndTheDoubleClick)
         JewelBundleList& list = tested.List();
         for (const std::int32_t cell : {0, 7, 9})
             Client::ChaosMix::AddTheBundle(list, cell, static_cast<std::uint8_t>(cell));
-        // Con 3 filas, la fila i en y = (3 − i) · 13 + 230.
+        // With 3 rows, row i at y = (3 − i) · 13 + 230.
         const std::int32_t secondRowY = 2 * 13 + 230 - 2;
         auto& runtime = tested.world->Runtime();
         auto stepped = tested.Click(RowX, secondRowY);
@@ -411,7 +411,7 @@ public:
         return Client::ChaosMix::DrawTheBundleList(context, ListX, ListY);
     }
 
-    // El quad `index` del lote, sin las marcas de los textos: su primer vértice (arriba a la izquierda) y el tercero.
+    // Quad `index` of the batch, without the texts' marks: its first vertex (top left) and the third.
     [[nodiscard]] std::vector<std::pair<Client::Render::SpriteVertex, Client::Render::SpriteVertex>> Quads() const
     {
         std::vector<std::pair<Client::Render::SpriteVertex, Client::Render::SpriteVertex>> quads;
@@ -455,11 +455,11 @@ public:
     Client::Tables::TextTable texts = Client::Tests::MakeTextTable({{1806, "bendicion"}, {1807, "alma"}});
 };
 
-// 0x4832e0, en los tres mapas: el fondo negro de 0,4 un punto más grande, las dos flechas de win_scrollbar (0x649),
-// las dos líneas de la pista con el 2 de la paleta y el cursor en tres quads; con 3 filas (menos que 8) el cursor
-// ocupa la pista. Las filas de abajo hacia arriba, "%s,  %d" con el nombre de la joya y (nivel + 1) · 10 en x + 6,
-// el elegido con su velo de 0,5 y el texto en negro, los demás en 0xffc8dce6, en la fuente normal. Deja la barra
-// para el paso, y la mezcla apagada.
+// 0x4832e0, on the three maps: the black background of 0.4 one point bigger, the two win_scrollbar arrows (0x649), the
+// two track lines with palette 2 and the thumb in three quads; with 3 rows (fewer than 8) the thumb fills the track.
+// The rows from bottom to top, "%s,  %d" with the jewel's name and (level + 1) · 10 at x + 6, the chosen one with its
+// 0.5 veil and the text in black, the others in 0xffc8dce6, in the normal font. Leaves the bar for the step, and
+// blending off.
 TEST(JewelBundleListTest, TheListDrawsItsFrameBarAndRows)
 {
     for (const std::int32_t map : Maps)
@@ -502,7 +502,7 @@ TEST(JewelBundleListTest, TheListDrawsItsFrameBarAndRows)
         EXPECT_FLOAT_EQ(480.0f - quads[5].first.y, 252.0f);
         EXPECT_FLOAT_EQ(480.0f - quads[7].first.y, 336.0f);
         EXPECT_FLOAT_EQ(quads[7].first.v, 0.0625f);
-        // El velo de la fila 1 (el elegido 2), en (0xe4, 256 − 3).
+        // Row 1's veil (the chosen 2), at (0xe4, 256 − 3).
         EXPECT_FLOAT_EQ(quads[8].first.x, 228.0f);
         EXPECT_FLOAT_EQ(480.0f - quads[8].first.y, 253.0f);
         EXPECT_FLOAT_EQ(quads[8].first.color.alpha, 0.5f);
@@ -526,9 +526,9 @@ TEST(JewelBundleListTest, TheListDrawsItsFrameBarAndRows)
     }
 }
 
-// 0x46ebe0 y 0x4832e0, en los tres mapas: con el clic sobre una flecha, dada vuelta (las UV de abajo hacia arriba);
-// con más filas que las que se ven, el cursor es el de la barra y la bendición dice 1806. Un dibujo intermedio no
-// escribe la esquina ni la barra. Sin Text.bmd, corta en el texto de la joya.
+// 0x46ebe0 and 0x4832e0, on the three maps: with the click on an arrow, flipped (the UVs from bottom to top); with more
+// rows than visible, the thumb is the bar's and the bless says 1806. An intermediate draw writes neither the corner
+// nor the bar. Without Text.bmd, it fails at the jewel's text.
 TEST(JewelBundleListTest, ThePressedArrowFlipsAndAnIntermediateDrawWritesNothing)
 {
     for (const std::int32_t map : Maps)
@@ -551,7 +551,7 @@ TEST(JewelBundleListTest, ThePressedArrowFlipsAndAnIntermediateDrawWritesNothing
         EXPECT_FLOAT_EQ(quads[2].first.v, 0.5f);
         EXPECT_FLOAT_EQ(quads[2].second.u, 0.0f);
         EXPECT_FLOAT_EQ(quads[2].second.v, 0.09375f);
-        // El cursor de 8/12 de la pista, arriba con el primero que se ve en 4 (el último).
+        // The thumb at 8/12 of the track, at the top with the first visible one at 4 (the last).
         EXPECT_NEAR(480.0f - quads[5].first.y, 252.0f, 1e-3);
         ASSERT_EQ(tested.text.texts.size(), 8u);
         EXPECT_EQ(tested.text.texts[0].text, "bendicion,  10");

@@ -12,12 +12,12 @@
 #include <string>
 #include <string_view>
 
-// Los pedidos a otro jugador de los comandos del chat (CL9 hito 7, fases 2 y 5; 06 § Lo social en pantalla): /trade
-// (0x56c68b..0x56d623), /duelstart sin duelo (0x56d823..0x56e9ec), /party (0x56f13f..0x570d47) y /purchase
-// (0x574c0c..0x57694d) de 0x56c440. Cada uno
-// busca al otro: el elegido (0x6c8e30) o, sin él, el primero de los 400 que está enfrente del héroe. Cada celda que
-// compara abre y cierra su entrada protegida (0x40b570 y 0x40b800, o lo mismo en línea), con los cuatro rand() de su
-// cierre; el paquete va en C3, con los dos del relleno y del serial. *Estático*.
+// The chat commands' requests to another player (CL9 milestone 7, phases 2 and 5; 06 § Lo social en pantalla): /trade
+// (0x56c68b..0x56d623), /duelstart without a duel (0x56d823..0x56e9ec), /party (0x56f13f..0x570d47) and /purchase
+// (0x574c0c..0x57694d) of 0x56c440. Each one looks for the other: the chosen one (0x6c8e30) or, without it, the first
+// of the 400 in front of the hero. Each cell it compares opens and closes its protected entry (0x40b570 and 0x40b800,
+// or the same inline), with its close's four rand(); the packet goes in C3, with the padding's and the serial's two.
+// *Static*.
 namespace Client::Crt
 {
 class CrtRandom;
@@ -35,48 +35,48 @@ struct SocialRequestContext
 {
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    // Text.bmd: el 475 y el 476 (sprintf con el nombre), el 493 (la tienda personal) y el 257 (no es el líder).
+    // Text.bmd: 475 and 476 (sprintf with the name), 493 (the personal shop) and 257 (not the leader).
     const Tables::TextTable& texts;
-    // El cable (App::ServerSession). Vacío, el pedido que llega a mandarse es el error.
+    // The wire (App::ServerSession). Empty, a request that gets to be sent is the error.
     std::function<void(Protocol::Outgoing)> send{};
 };
 
-// 0x69fd70 (el relleno) y el serial de un C3 (0x40ae60 con el cierre de 0x40b0a0 o de 0x40b3f0): sus dos rand() y el
-// paquete al cable. Sin el cable, el error con `where`.
+// 0x69fd70 (the padding) and a C3's serial (0x40ae60 with the close of 0x40b0a0 or 0x40b3f0): their two rand() and
+// the packet to the wire. Without the wire, the error with `where`.
 [[nodiscard]] Core::Expected<void, std::string> SendInC3(const SocialRequestContext& context,
                                                          Protocol::Outgoing outgoing, std::string_view where);
 
-// El 36 al personaje `index` y el aviso 475 (0x56c7c8..0x56cdfc y 0x56cffe..0x56d60e de /trade; 0x4064d6..0x406aea del
-// comando 1 de la ventana de comandos): con la tienda personal propia o ajena abiertas (0x5af560) o sin el mundo
-// cargado (0x7d3a101), nada; si no, el C1 05 36 con su clave en C3 y el aviso armado con el nombre del primero vivo
-// con esa clave (0x5110d0), con el 1.
+// The 36 to character `index` and notice 475 (0x56c7c8..0x56cdfc and 0x56cffe..0x56d60e of /trade;
+// 0x4064d6..0x406aea of command 1 of the command window): with the own or another's personal shop open (0x5af560) or
+// without the world loaded (0x7d3a101), nothing; otherwise the C1 05 36 with its key in C3 and the notice built with
+// the name of the first one alive with that key (0x5110d0), with 1.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 SendATradeRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
-// El 40 al personaje `index` y el aviso 476 (0x56f6d1..0x56fd88 y 0x570638..0x570d22 de /party; 0x407352..0x40798d del
-// comando 3): sin el mundo cargado (0x7d3a101), nada; si no, 0x78aba4c = su clave (MOVSX), el C1 05 40 en C3 y el
-// aviso con el 1.
+// The 40 to character `index` and notice 476 (0x56f6d1..0x56fd88 and 0x570638..0x570d22 of /party;
+// 0x407352..0x40798d of command 3): without the world loaded (0x7d3a101), nothing; otherwise 0x78aba4c = its key
+// (MOVSX), the C1 05 40 in C3 and the notice with 1.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 SendAPartyRequest(const SocialRequestContext& context, std::size_t index, std::string_view where);
 
-// 0x5110d0(clave), 0x69fd9b(buffer, texto, nombre) y 0x555190 con el 1: el aviso `text` con el nombre del primero vivo
-// con la clave (los comandos del gremio de la ventana de comandos, 0x4089cd y los otros tres).
+// 0x5110d0(key), 0x69fd9b(buffer, text, name) and 0x555190 with 1: notice `text` with the name of the first one alive
+// with the key (the command window's guild commands, 0x4089cd and the other three).
 [[nodiscard]] Core::Expected<Chat::ChatCommandNotice, std::string>
 NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::uint16_t key, std::string_view where);
 
-// 0x56f13f..0x56f1b0 y 0x4072df..0x407324: con party (0x78aba48 sobre 0), el primer lugar de 0x77f3cd0 no es el héroe
-// (strcmp con +0x1d9).
+// 0x56f13f..0x56f1b0 and 0x4072df..0x407324: with a party (0x78aba48 above 0), the first slot of 0x77f3cd0 is not the
+// hero (strcmp with +0x1d9).
 [[nodiscard]] bool AnotherLeadsTheParty(const Kernel::WorldState& world);
 
-// 0x4061ef..0x40625f: el personaje está en la party (strcmp de su +0x1d9 con el nombre de cada uno de los 0x78aba48
-// lugares de 0x77f3cd0, de 0x24 bytes).
+// 0x4061ef..0x40625f: the character is in the party (strcmp of its +0x1d9 with the name of each of the 0x78aba48 slots
+// of 0x77f3cd0, 0x24 bytes each).
 [[nodiscard]] bool IsInTheParty(const Kernel::WorldState& world, std::size_t index);
 
-// 0x408101..0x40813b: strcmp del +0x1d9 del personaje con el nombre del rival del duelo (0x78abae0).
+// 0x408101..0x40813b: strcmp of the character's +0x1d9 with the duel rival's name (0x78abae0).
 [[nodiscard]] bool IsTheDuelRival(const Kernel::WorldState& world, std::size_t index);
 
-// 0x4060c1..0x406169: la distancia en celdas del personaje al héroe publicado, leyendo las cuatro (x del otro, x del
-// héroe, y del otro, y del héroe) cada una en su acceso, con los rand() de su cierre, siempre las cuatro.
+// 0x4060c1..0x406169: the character's distance in cells to the published hero, reading the four (the other's x, the
+// hero's x, the other's y, the hero's y) each in its own access, with its close's rand(), always all four.
 struct CellDistance
 {
     std::int32_t x = 0;
@@ -84,50 +84,53 @@ struct CellDistance
 };
 [[nodiscard]] CellDistance CellDistanceToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
-// El otro al que se le puede pedir algo (0x56c6ab..0x56c6d6 y sus copias): un jugador (+0x88 en 1) que no es el héroe
-// publicado (0x743a170), del tipo 0x20a o con +0x3e3 distinto de 0. El elegido no mira si está vivo; el de enfrente,
-// sí (el byte de +0).
+// The other one that can be asked something (0x56c6ab..0x56c6d6 and its copies): a player (+0x88 at 1) who is not the
+// published hero (0x743a170), of type 0x20a or with +0x3e3 other than 0. The chosen one is not checked for being
+// alive; the one in front is (the byte at +0).
 [[nodiscard]] bool CanBeAsked(const Kernel::WorldState& world, std::size_t index);
 
-// 0x56c6dc..0x56c78a: la celda lógica del otro y la del héroe, cada x y cada y en su acceso (+0x41c del otro, la del
-// héroe, +0x420 del otro y la del héroe): a lo sumo 1 de distancia en las dos. Con la x lejos no lee las y.
+// 0x56c6dc..0x56c78a: the other's logical cell and the hero's, each x and each y in its own access (the other's
+// +0x41c, the hero's, the other's +0x420 and the hero's): at most 1 apart in both. With the x far it does not read the
+// y's.
 [[nodiscard]] bool NextToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index);
 
-// 0x56cf2f..0x56cfac: las direcciones de +0x24 (el _ftol de (ángulo + 22,5) / 45 + 1, & 0xff y por 8) del otro y del
-// héroe, a 4 de distancia: se miran. Fuera del _ftol, el error.
+// 0x56cf2f..0x56cfac: the directions from +0x24 (the _ftol of (angle + 22.5) / 45 + 1, & 0xff and remainder by 8) of
+// the other and the hero, 4 apart: they face each other. Outside the _ftol, the error.
 [[nodiscard]] Core::Expected<bool, std::string> FacesTheHero(const Kernel::WorldState& world, std::size_t index);
 
-// 0x56c68b..0x56d623 (/trade con el nivel). El elegido, si está y se le puede pedir (si no, 1), o el primero de los
-// 400 vivo, al lado y enfrente (sin ninguno, 1). Al lado de una tienda personal (0x451810), el aviso 493 con el 2 y 1.
-// Con la tienda personal propia o ajena abierta (0x5af560) o sin el mundo cargado (0x7d3a101), 1. Si no, el C1 05 36
-// con su clave y el aviso 475 con el nombre del primero vivo con esa clave (0x5110d0), con el 1, y 1.
+// 0x56c68b..0x56d623 (/trade with the level). The chosen one, if present and it can be asked (otherwise 1), or the
+// first of the 400 alive, adjacent and in front (with none, 1). Next to a personal shop (0x451810), notice 493 with 2
+// and 1. With the own or another's personal shop open (0x5af560) or without the world loaded (0x7d3a101), 1.
+// Otherwise the C1 05 36 with its key and notice 475 with the name of the first one alive with that key (0x5110d0),
+// with 1, and 1.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string> RequestATrade(const SocialRequestContext& context);
 
-// A quién le pide algo un comando del chat: el elegido (0x6c8e30, sin mirar si está vivo) si es alguien a quien pedirle
-// (CanBeAsked) y está al lado (NextToTheHero, sus accesos); sin elegido, el primero de los 400 vivo, alguien a quien
-// pedirle, al lado y enfrente (FacesTheHero), como los lazos de /duelstart (0x56e0b5), /guild (0x574587) y /union
-// (0x572679). Sin ninguno, sin valor; `where` es la dirección del elegido.
+// Whom a chat command asks: the chosen one (0x6c8e30, without checking whether alive) if it is someone to ask
+// (CanBeAsked) and adjacent (NextToTheHero, its accesses); without a chosen one, the first of the 400 alive, someone
+// to ask, adjacent and in front (FacesTheHero), like the loops of /duelstart (0x56e0b5), /guild (0x574587) and /union
+// (0x572679). With none, no value; `where` is the chosen one's address.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string> TheOneToAsk(const SocialRequestContext& context,
                                                                                   std::string_view where);
 
-// 0x56d823..0x56e9ec (/duelstart sin duelo): el elegido o el de enfrente, como /trade pero sin la tienda, sin
-// 0x5af560 ni 0x7d3a101 y sin aviso, y el C1 0F AA con su clave y su nombre. Con o sin él, la cadena sigue
-// (0x56e07c).
+// 0x56d823..0x56e9ec (/duelstart without a duel): the chosen one or the one in front, like /trade but without the
+// shop, without 0x5af560 or 0x7d3a101 and without a notice, and the C1 0F AA with its key and its name. With or
+// without it, the chain goes on (0x56e07c).
 [[nodiscard]] Core::Expected<void, std::string> RequestADuel(const SocialRequestContext& context);
 
-// 0x56f13f..0x570d47 (/party fuera de Chaos Castle): con party (0x78aba48 sobre 0) y otro líder (strcmp del primer
-// lugar de 0x77f3cd0 con el nombre del héroe), el aviso 257 con el 1. Si no, el elegido o el de enfrente, como
-// /trade pero sin la tienda ni 0x5af560; con el mundo cargado, 0x78aba4c = su clave (MOVSX), el C1 05 40 y el aviso
-// 476. Devuelve 1 siempre.
+// 0x56f13f..0x570d47 (/party outside Chaos Castle): with a party (0x78aba48 above 0) and another leader (strcmp of
+// 0x77f3cd0's first slot with the hero's name), notice 257 with 1. Otherwise the chosen one or the one in front, like
+// /trade but without the shop or 0x5af560; with the world loaded, 0x78aba4c = its key (MOVSX), the C1 05 40 and
+// notice 476. Always returns 1.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAParty(const SocialRequestContext& context);
 
-// 0x574c0c..0x57694d (/purchase fuera de Chaos Castle): con la tienda de NPC (0x10000), el almacén (0x40), el comercio
-// (0x20), la caja del caos (0x100) o el entrenador (0x8000) abiertos (en ese orden, hasta el primero; 0x10000 y 0x20
-// con su rand()), el aviso 1121 con el 1 y 0. Si no, el elegido (0x6c8e30): si se le puede pedir, sin mirar si está
-// vivo ni al lado, el C1 10 3F 05 con su clave y su nombre en C3; con o sin él, 1. Sin elegido, `name` es lo que
-// strlen y strcmp leen en el segundo buffer de sscanf: no vacío, el 3F 05 a cada uno de los 400 vivo con ese nombre
-// (strcmp con +0x1d9, sin mirar el tipo ni si es el héroe) y 1; vacío, al primero de los 400 vivo, alguien a quien
-// pedirle y enfrente (sin mirar si está al lado), y 1. Sin valor (la pila sin inicializar, 07 Q-C967), el error.
+// 0x574c0c..0x57694d (/purchase outside Chaos Castle): with the NPC shop (0x10000), the warehouse (0x40), the trade
+// (0x20), the chaos box (0x100) or the trainer (0x8000) open (in that order, up to the first; 0x10000 and 0x20 with
+// their rand()), notice 1121 with 1 and 0. Otherwise the chosen one (0x6c8e30): if it can be asked, without checking
+// whether alive or adjacent, the C1 10 3F 05 with its key and its name in C3; with or without it, 1. Without a chosen
+// one, `name` is what strlen and strcmp read in sscanf's second buffer: non-empty, the 3F 05 to each of the 400 alive
+// with that name (strcmp with +0x1d9, without checking the type or whether it is the hero) and 1; empty, to the first
+// of the 400 alive, someone to ask and in front (without checking whether adjacent), and 1. With no value (the
+// uninitialized stack, 07 Q-C967), the error.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 RequestTheShopItems(const SocialRequestContext& context, std::optional<std::string_view> name);
 } // namespace Client::Social

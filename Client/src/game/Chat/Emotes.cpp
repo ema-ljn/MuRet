@@ -15,7 +15,7 @@ using Actors::EmoteCase;
 
 namespace
 {
-// Los 22 casos, por la dirección de su bloque: la animación y la acción de 0x576a60(héroe, héroe, animación, acción).
+// The 22 cases, by their block's address: the animation and the action of 0x576a60(hero, hero, animation, action).
 constexpr EmoteCase Case57ca85{0x99, 0x83};
 constexpr EmoteCase Case57c686{0x9b, 0x84};
 constexpr EmoteCase Case57c2a2{0x9d, 0x85};
@@ -39,7 +39,7 @@ constexpr EmoteCase Case577796{0xbd, 0x99};
 constexpr EmoteCase Case577b92{0xbf, 0x9b};
 constexpr EmoteCase Case577f8e{0xbe, 0x9a};
 
-// Lo que se busca, en tramos: los textos `first`..`last` de Text.bmd uno por uno, o un literal del binario.
+// What is searched, in runs: the Text.bmd texts `first`..`last` one by one, or a literal of the binary.
 struct EmoteRun
 {
     std::size_t first = 0;
@@ -58,7 +58,7 @@ constexpr EmoteRun Literal(std::string_view literal, EmoteCase emote)
     return EmoteRun{.first = 0, .last = 0, .literal = literal, .emote = emote};
 }
 
-// 0x576ede..0x577f88, en orden. Los literales en CP949: A4 D0 es ㅠ, A4 CC ㅜ y A4 D1 ㅡ.
+// 0x576ede..0x577f88, in order. The literals in CP949: A4 D0 is ㅠ, A4 CC ㅜ and A4 D1 ㅡ.
 constexpr std::array<EmoteRun, 37> Runs{{
     Texts(270, 277, Case57ca85),
     Texts(278, 280, Case57c686),
@@ -94,7 +94,7 @@ constexpr std::array<EmoteRun, 37> Runs{{
     Texts(344, 347, Case578771),
     Texts(LastEmoteExtraText, LastEmoteExtraText, Case57838d),
     Literal("hustle", Case57838d), // 0x6c912c
-    // 0x577780, 0x577b7c y 0x577f78: solos, después de todos.
+    // 0x577780, 0x577b7c and 0x577f78: alone, after all the others.
     Texts(291, 291, Case577796),
     Texts(317, 317, Case577b92),
     Texts(LastEmoteText, LastEmoteText, Case577f8e),
@@ -109,7 +109,7 @@ constexpr std::size_t CountTheTriggers()
 }
 static_assert(CountTheTriggers() == EmoteTriggerCount);
 
-// 0x76d0e44 + (texto − 270) · 0x12c: el texto de Text.bmd, vacío si no lo tiene.
+// 0x76d0e44 + (text − 270) · 0x12c: the Text.bmd text, empty if it does not have it.
 using Tables::TextOr;
 } // namespace
 

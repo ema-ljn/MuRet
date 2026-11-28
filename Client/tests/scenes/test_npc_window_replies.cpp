@@ -59,9 +59,9 @@
 #include <utility>
 #include <vector>
 
-// Las ventanas de los NPC del lado de la escena (CL9 hito 6; 04 § Las ventanas de los NPC), sin actores de NPC: el
-// estado abierto lo pone el 30 como lo pone 0x4d1e00, y los paquetes que salen se miran byte a byte. Los ítems y los
-// textos son inventados.
+// The NPC windows on the scene side (CL9 milestone 6; 04 § Las ventanas de los NPC), without NPC actors: the 30 sets
+// the open state as 0x4d1e00 does, and the outgoing packets are checked byte by byte. The items and texts are made
+// up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -94,7 +94,7 @@ public:
 constexpr std::uint32_t Seed = 0x1357;
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
 constexpr std::size_t HeroSlot = 7;
-// Un arma de 1 por 3, un escudo de 2 por 2 y una joya de 1 por 1 (Item.bmd sintético).
+// A 1 by 3 weapon, a 2 by 2 shield and a 1 by 1 jewel (synthetic Item.bmd).
 constexpr std::uint16_t Sword = 0x0001;
 constexpr std::uint16_t Shield = 0x0c00;
 constexpr std::uint16_t Jewel = 0x1c0d;
@@ -112,7 +112,7 @@ public:
     }
 };
 
-// Los siete bytes de un ítem para `type`, como los arma el GameServer (0x54b3a0 al revés).
+// The seven bytes of an item for `type`, as the GameServer builds them (0x54b3a0 reversed).
 Npc::ItemData ItemBytes(std::uint16_t type, std::uint8_t durability = 20)
 {
     return {static_cast<std::byte>(type & 0xff),
@@ -164,7 +164,7 @@ struct Stage
         return resources;
     }
 
-    // El C1 del paquete `index` sin el XOR32, para compararlo byte a byte.
+    // The C1 of packet `index` without the XOR32, to compare it byte by byte.
     [[nodiscard]] Client::Network::Packet Plain(std::size_t index) const
     {
         return Xor32Decode(sent.at(index).packet);
@@ -201,7 +201,7 @@ protected:
                                             stage->Resources());
     }
 
-    // El registro como lo arma el paso de la UI, con los cables de las ventanas.
+    // The registry as the UI step builds it, with the windows' wiring.
     template <typename Body> void WithThePanels(Body body)
     {
         const WorldEntryResources resources = stage->Resources();
@@ -215,14 +215,14 @@ protected:
         return stage->world.Runtime().npcWindows;
     }
 
-    // En el heap: WorldState pesa unos 350 KB (la pila de MSVC es de 1 MB).
+    // On the heap: WorldState weighs about 350 KB (the MSVC stack is 1 MB).
     std::unique_ptr<Stage> stage = std::make_unique<Stage>();
 };
 
-// 0x4d1e00 con 0 (el default de 0x4d2881): cerrar todo saca los rand() del comercio y de la tienda (2);
-// 0x6599a0(0x10000) saca 9: su IsOpen, CanOpen (la tienda y el comercio), CloseByMask (el comercio), el inventario
-// adentro (IsOpen, CanOpen con 2 y CloseByMask con 2) y la escritura del byte protegido. Después, cada consulta de la
-// tienda abierta saca uno y da 1.
+// 0x4d1e00 with 0 (the default of 0x4d2881): closing everything draws the rand() of the trade and the shop (2);
+// 0x6599a0(0x10000) draws 9: its IsOpen, CanOpen (the shop and the trade), CloseByMask (the trade), the inventory
+// inside (IsOpen, CanOpen with 2 and CloseByMask with 2) and the write of the protected byte. Then each query of the
+// open shop draws one and gives 1.
 TEST_F(NpcWindowRepliesTest, TheDefaultOpensTheNpcShopWithTheRandomOfItsProtectedByte)
 {
     const CrtRandom expected = Advanced(stage->cloth.random, 2 + 9);
@@ -242,7 +242,7 @@ TEST_F(NpcWindowRepliesTest, TheDefaultOpensTheNpcShopWithTheRandomOfItsProtecte
     EXPECT_EQ(stage->cloth.random.State(), query.State());
 }
 
-// 0x4d25bc..0x4d25dd: modo de cierre antes del open, luego las tres consultas de Senior.
+// 0x4d25bc..0x4d25dd: close mode before the open, then Senior's three queries.
 TEST_F(NpcWindowRepliesTest, SeniorTalkWritesTheCloseModeBeforeOpeningAndRequestingItsData)
 {
     for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{255}})
@@ -281,8 +281,8 @@ TEST_F(NpcWindowRepliesTest, CastleGuardTalkClosesTheCurrentNpcBeforeRequestingC
     EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1c});
 }
 
-// 0x4d2532 y 0x4d253b: el almacén y la caja del caos, cada uno con el inventario. La caja manda el C1 04 BD 09 (con el
-// XOR32, en claro), abre el diálogo 0x8e y copia las tasas.
+// 0x4d2532 and 0x4d253b: the warehouse and the chaos box, each with the inventory. The box sends the C1 04 BD 09 (with
+// the XOR32, in the clear), opens dialog 0x8e and copies the rates.
 TEST_F(NpcWindowRepliesTest, TheWarehouseAndTheChaosBoxOpenWithTheInventory)
 {
     stage->world.Runtime().ui.field78abb20 = 5;
@@ -296,7 +296,7 @@ TEST_F(NpcWindowRepliesTest, TheWarehouseAndTheChaosBoxOpenWithTheInventory)
     Npc().chaosMixState = 2;
     const auto chaos = Talk(3);
     ASSERT_TRUE(chaos.HasValue()) << chaos.Error();
-    // Cerrar todo cerró el almacén con su C1 03 82; después, el BD 09.
+    // Closing everything closed the warehouse with its C1 03 82; then, the BD 09.
     ASSERT_EQ(stage->sent.size(), 2u);
     EXPECT_TRUE(SameBytes(stage->sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x82})));
     EXPECT_EQ(stage->sent[1].delivery, Delivery::Clear);
@@ -308,8 +308,8 @@ TEST_F(NpcWindowRepliesTest, TheWarehouseAndTheChaosBoxOpenWithTheInventory)
     EXPECT_EQ(Npc().chaosRates, (std::array<std::int32_t, 6>{10, 20, 30, 40, 0, 0}));
 }
 
-// 0x4d2591: el 7 abre el entrenador (0x8000): cerrar todo (2 rand()) y 0x6599a0(0x8000) con CanOpen y CloseByMask (la
-// tienda y el comercio, 4), 0x449940(1) con la caja vacía y sin el inventario.
+// 0x4d2591: the 7 opens the trainer (0x8000): closing everything (2 rand()) and 0x6599a0(0x8000) with CanOpen and
+// CloseByMask (the shop and the trade, 4), 0x449940(1) with the box empty and without the inventory.
 TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
 {
     auto& runtime = stage->world.Runtime();
@@ -326,7 +326,7 @@ TEST_F(NpcWindowRepliesTest, TheTrainerOpensItsMenuWithoutTheInventory)
     EXPECT_TRUE(stage->sent.empty());
 }
 
-// 0x4d257c, 0x65b240: el resultado 5 abre 0x2000 y permite que el paso siguiente atienda su casilla.
+// 0x4d257c, 0x65b240: result 5 opens 0x2000 and lets the next step handle its checkbox.
 TEST_F(NpcWindowRepliesTest, TheFifthTalkResultOpensPanel2000WithoutTheInventory)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -345,7 +345,7 @@ TEST_F(NpcWindowRepliesTest, TheFifthTalkResultOpensPanel2000WithoutTheInventory
     }
 }
 
-// Con cada ventana abierta (y el inventario), el mundo es de 260 (0x5bb8e3..0x5bb9a3).
+// With each window open (and the inventory), the world is 260 wide (0x5bb8e3..0x5bb9a3).
 TEST_F(NpcWindowRepliesTest, TheWorldIs260WideWithEachWindowOpen)
 {
     for (const std::uint8_t result : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{3}})
@@ -356,13 +356,13 @@ TEST_F(NpcWindowRepliesTest, TheWorldIs260WideWithEachWindowOpen)
     }
 }
 
-// 0x657ab0(0x10000): el byte en 0 (un rand()), el C1 03 31 en claro y la grilla vacía; después, el inventario.
+// 0x657ab0(0x10000): the byte at 0 (one rand()), the C1 03 31 in the clear and the grid empty; then, the inventory.
 TEST_F(NpcWindowRepliesTest, ClosingTheShopSends31AndEmptiesTheGrid)
 {
     ASSERT_TRUE(Talk(0).HasValue());
     Npc().grid[5].id = Jewel;
     Npc().grid[5].occupied = 1;
-    // Close: IsOpen (1), CloseByMask con su IsOpen (1) y la escritura (1); el inventario no saca.
+    // Close: IsOpen (1), CloseByMask with its IsOpen (1) and the write (1); the inventory draws none.
     const CrtRandom expected = Advanced(stage->cloth.random, 3);
     WithThePanels([](Client::Ui::PanelRegistry& panels)
                   { ASSERT_TRUE(panels.Close(Client::Ui::NpcShopPanel).HasValue()); });
@@ -375,8 +375,8 @@ TEST_F(NpcWindowRepliesTest, ClosingTheShopSends31AndEmptiesTheGrid)
     EXPECT_EQ(Npc().grid[5].occupied, 0);
 }
 
-// 0x65852b: con la traba del 24, el almacén no cierra y CloseByMask da 0, pero cierra lo demás; 0x658741: con algo en
-// la caja del caos, el texto 593 y 0.
+// 0x65852b: with the 24's lock, the warehouse does not close and CloseByMask gives 0, but it closes the rest;
+// 0x658741: with something in the chaos box, text 593 and 0.
 TEST_F(NpcWindowRepliesTest, TheLockAndAFullChaosBoxKeepTheirWindowsOpen)
 {
     ASSERT_TRUE(Talk(2).HasValue());
@@ -414,8 +414,8 @@ TEST_F(NpcWindowRepliesTest, TheLockAndAFullChaosBoxKeepTheirWindowsOpen)
     EXPECT_TRUE(SameBytes(stage->sent[0].packet.Bytes(), Bytes({0xc1, 0x03, 0x87})));
 }
 
-// 0x4c5f60: la lista de la tienda va a 0x78a7070 con 0x5bc150 (8 por fila desde el lugar) y la de la caja del caos a
-// 0x7d2d380 con 0x5bc740(.., 8, 4, ..), con 0x7d2dc80 en 2.
+// 0x4c5f60: the shop's list goes to 0x78a7070 with 0x5bc150 (8 per row from the slot) and the chaos box's to
+// 0x7d2d380 with 0x5bc740(.., 8, 4, ..), with 0x7d2dc80 at 2.
 TEST_F(NpcWindowRepliesTest, TheListFillsTheShopGridAndTheChaosBox)
 {
     Npc().grid[40].id = Jewel;
@@ -445,9 +445,9 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheShopGridAndTheChaosBox)
     EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x44});
 }
 
-// El 31 con la grilla 5 (0x4c5fb4..0x4c6042): el aviso 1208 de tipo 2, los sonidos, la caja del entrenador vacía y
-// cada ítem con 0x44ad70(lugar, datos, 0), la cola de 0x5bc740 con el registro propio abierto (3.848 rand() por
-// ítem). 0x7d2dc80 queda como estaba.
+// The 31 with grid 5 (0x4c5fb4..0x4c6042): warning 1208 of type 2, the sounds, the trainer box empty and each item
+// with 0x44ad70(slot, data, 0), 0x5bc740's tail with the own record open (3848 rand() per item). 0x7d2dc80 stays as
+// it was.
 TEST_F(NpcWindowRepliesTest, TheListFillsTheTrainerBoxWithTheTailOfEachItem)
 {
     Npc().trainerBox[30].id = Jewel;
@@ -478,7 +478,7 @@ TEST_F(NpcWindowRepliesTest, TheListFillsTheTrainerBoxWithTheTailOfEachItem)
     EXPECT_TRUE(entry.name.empty());
 }
 
-// El 32: el ítem comprado en su lugar del inventario, el sonido 0x1d y 0x5767950 en 0; con 0xff, solo 0x5767950.
+// The 32: the bought item in its inventory slot, sound 0x1d and 0x5767950 at 0; with 0xff, only 0x5767950.
 TEST_F(NpcWindowRepliesTest, ABoughtItemGoesToItsInventoryPlace)
 {
     Npc().buyLock = 1;
@@ -492,8 +492,8 @@ TEST_F(NpcWindowRepliesTest, ABoughtItemGoesToItsInventoryPlace)
     EXPECT_EQ(Npc().buyLock, 0);
 }
 
-// El 33 y el 34: el zen nuevo en +0xecc con el registro propio abierto; el 34, también 0x550d10 adentro; el 81, los dos
-// zen (+0xed0 y +0xecc).
+// The 33 and the 34: the new zen in +0xecc with the own record open; the 34, also 0x550d10 inside; the 81, both zen
+// (+0xed0 and +0xecc).
 TEST_F(NpcWindowRepliesTest, SellRepairAndTheWarehouseMoneyWriteTheZen)
 {
     stage->world.Runtime().cursorItemCount = 1;
@@ -520,8 +520,8 @@ TEST_F(NpcWindowRepliesTest, SellRepairAndTheWarehouseMoneyWriteTheZen)
     EXPECT_EQ(stage->world.OwnCharacter().zen, 700u);
 }
 
-// Guardar y sacar zen del almacén: el 83 con 0xc, con la traba y lo que esperaba en −1, manda 0x4e6f80(tipo, zen), C1
-// 08 81 con el XOR32 y en claro, y deja la traba y 0x78abb1c en 1.
+// Storing and taking zen from the warehouse: the 83 with 0xc, with the lock and the pending one at −1, sends
+// 0x4e6f80(type, zen), C1 08 81 with the XOR32 and in the clear, and leaves the lock and 0x78abb1c at 1.
 TEST_F(NpcWindowRepliesTest, StoringAndTakingZenSends81WhenThePasswordIsAccepted)
 {
     for (const std::uint8_t type : {std::uint8_t{0}, std::uint8_t{1}})
@@ -535,7 +535,7 @@ TEST_F(NpcWindowRepliesTest, StoringAndTakingZenSends81WhenThePasswordIsAccepted
         EXPECT_TRUE(SameBytes(stage->Plain(0).Bytes(), Bytes({0xc1, 0x08, 0x81, type, 0x45, 0x23, 0x01, 0x00})));
         EXPECT_EQ(Npc().warehouseLocked, 1);
         EXPECT_EQ(Npc().field78abb1c, 1);
-        // Otra vez, con 0x78abb1c en 1, no manda nada.
+        // Again, with 0x78abb1c at 1, it sends nothing.
         ASSERT_TRUE(Client::Npc::ApplyWarehouseState({.state = 0xc}, stage->Resources()).HasValue());
         EXPECT_EQ(stage->sent.size(), 1u);
     }
@@ -543,9 +543,9 @@ TEST_F(NpcWindowRepliesTest, StoringAndTakingZenSends81WhenThePasswordIsAccepted
     EXPECT_EQ(stage->world.Runtime().dialogs.current, 0x86);
 }
 
-// El 83 con 0xc y un ítem esperando (0x4e47b0..0x4e47c6): 0x449d80 con los cuatro valores guardados, el C1 0E 24 del
-// ítem del cursor con el XOR32 y en C3 (dos rand()), y la traba del 24 (0x78abb39) prendida. Con la traba ya prendida,
-// 0x449d80 no manda nada, pero el 83 deja igual 0x6c932f y 0x78abb1c en 1.
+// The 83 with 0xc and an item waiting (0x4e47b0..0x4e47c6): 0x449d80 with the four stored values, the cursor item's
+// C1 0E 24 with the XOR32 and in C3 (two rand()), and the 24's lock (0x78abb39) on. With the lock already on,
+// 0x449d80 sends nothing, but the 83 still leaves 0x6c932f and 0x78abb1c at 1.
 TEST_F(NpcWindowRepliesTest, TakingAnItemSends24WhenThePasswordIsAccepted)
 {
     for (const bool alreadyMoving : {false, true})
@@ -576,7 +576,7 @@ TEST_F(NpcWindowRepliesTest, TakingAnItemSends24WhenThePasswordIsAccepted)
     }
 }
 
-// Q-C200: las respuestas de red no escriben parcialmente ni cierran la sesión por una huella fuera de la grilla.
+// Q-C200: the network replies neither write partially nor close the session over a footprint outside the grid.
 TEST_F(NpcWindowRepliesTest, ListsDiscardOnlyTheEntryPastTheGrid)
 {
     for (const std::uint8_t grid : std::array<std::uint8_t, 3>{0, 3, 5})
@@ -598,7 +598,8 @@ TEST_F(NpcWindowRepliesTest, ListsDiscardOnlyTheEntryPastTheGrid)
     }
 }
 
-// Q-C201 conserva el índice lineal nativo: pasar la columna 7 sigue en la fila de abajo, mientras no salga del arreglo.
+// Q-C201 keeps the native linear index: going past column 7 continues on the row below, as long as it stays inside
+// the array.
 TEST_F(NpcWindowRepliesTest, ListsPreserveTheNativeCarryAcrossRows)
 {
     for (const std::uint8_t grid : std::array<std::uint8_t, 3>{0, 3, 5})
@@ -676,7 +677,7 @@ TEST_F(NpcWindowRepliesTest, MixResultsDiscardAnItemWhoseHeightExceedsTheBox)
     }
 }
 
-// El 86 con 1 (0x4da2c5): el texto 595, la caja vacía y el ítem nuevo en el lugar 0, con 0x7d2dc80 en 2.
+// The 86 with 1 (0x4da2c5): text 595, the box empty and the new item in slot 0, with 0x7d2dc80 at 2.
 TEST_F(NpcWindowRepliesTest, ASuccessfulMixLeavesTheNewItemInTheChaosBox)
 {
     Npc().chaosBox[20].id = Jewel;
@@ -693,7 +694,7 @@ TEST_F(NpcWindowRepliesTest, ASuccessfulMixLeavesTheNewItemInTheChaosBox)
     EXPECT_EQ(Npc().chaosMixState, 0);
 }
 
-// 0x4d2899/0x4d28a4, 0x4c5f7f/0x4c5f8a, 0x4c5fcb/0x4c5fd6 y 0x4da31b/0x4da326.
+// 0x4d2899/0x4d28a4, 0x4c5f7f/0x4c5f8a, 0x4c5fcb/0x4c5fd6 and 0x4da31b/0x4da326.
 TEST_F(NpcWindowRepliesTest, NativeSoundPairsReachPlaybackInOrderWithoutAnOriginOrLoop)
 {
     NpcPlayback playback;
@@ -717,8 +718,8 @@ TEST_F(NpcWindowRepliesTest, NativeSoundPairsReachPlaybackInOrderWithoutAnOrigin
     stage->world.Runtime().sounds = nullptr;
 }
 
-// El 86 con 100 (0x4da373): la caja del entrenador vacía y el ítem en su lugar 0 con 0x44ad70(0, datos, 1), sin la cola
-// (sin rand()), sin sonido y con 0x7d2dc80 como estaba.
+// The 86 with 100 (0x4da373): the trainer box empty and the item in its slot 0 with 0x44ad70(0, data, 1), without the
+// tail (no rand()), without sound and with 0x7d2dc80 as it was.
 TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
 {
     Npc().trainerBox[20].id = Jewel;
@@ -736,9 +737,9 @@ TEST_F(NpcWindowRepliesTest, TheTrainerMixLeavesItsItemInTheTrainerBox)
     EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0});
 }
 
-// El 24 con 2, 3 y 5 (0x4d1cf6.., 0x4d1d20.. y 0x4d1d4a..): 0x5bc740 con el último argumento en 0 en la grilla del
-// almacén (8 por fila), en la caja del caos y en la del entrenador, y la cola de 0x5bd405 con el registro propio
-// abierto; después, el sonido 0x1d.
+// The 24 with 2, 3 and 5 (0x4d1cf6.., 0x4d1d20.. and 0x4d1d4a..): 0x5bc740 with the last argument at 0 in the
+// warehouse grid (8 per row), in the chaos box and in the trainer's, and 0x5bd405's tail with the own record open;
+// then, sound 0x1d.
 TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
 {
     stage->world.Runtime().cursorItemCount = 1;
@@ -767,7 +768,7 @@ TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
     EXPECT_EQ(Npc().chaosBox[1].occupied, 1);
     EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 
-    // El 24 con 5 (0x4d1d4a..0x4d1d55): 0x44ad70(lugar, datos, 0) en la caja del entrenador, con la cola.
+    // The 24 with 5 (0x4d1d4a..0x4d1d55): 0x44ad70(slot, data, 0) in the trainer box, with the tail.
     stage->world.Runtime().lastSoundId = Client::Audio::SoundId{0};
     const CrtRandom placed = Advanced(stage->cloth.random, Own);
     const auto trainer =
@@ -780,7 +781,7 @@ TEST_F(NpcWindowRepliesTest, TheItemMoveResultPlacesInTheOtherGrids)
     EXPECT_EQ(stage->world.Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
 }
 
-// 0x4d28a9..0x4d28f6: x = (260 · mx / 640) · ancho / 640, y = alto · my / 480.
+// 0x4d28a9..0x4d28f6: x = (260 · mx / 640) · width / 640, y = height · my / 480.
 TEST(NpcTalkCursorWarpTest, MovesTheCursorIntoTheWorldOf260)
 {
     const auto warp = Client::Npc::NpcTalkCursorWarp(320, 240, 1280, 960);
@@ -790,8 +791,8 @@ TEST(NpcTalkCursorWarpTest, MovesTheCursorIntoTheWorldOf260)
     EXPECT_EQ(small.x, (259 * 800) / 640);
     EXPECT_EQ(small.y, (600 * 479) / 480);
 }
-// 0x4d2577/0x4d258e, TalkResult 4/6: ambos NPC de eventos tienen ventana y el inventario,
-// con los dos rand de CloseAll y ocho de Open, sin enviar un paquete nuevo al entrar.
+// 0x4d2577/0x4d258e, TalkResult 4/6: both event NPCs have a window and the inventory, with CloseAll's two rand() and
+// Open's eight, without sending a new packet on entering.
 TEST_F(NpcWindowRepliesTest, BothEventTalkResultsOpenTheirNativeWindowWithTheInventory)
 {
     for (const std::uint8_t result : {std::uint8_t{4}, std::uint8_t{6}})

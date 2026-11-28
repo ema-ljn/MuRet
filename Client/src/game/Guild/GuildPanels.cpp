@@ -31,20 +31,20 @@ namespace Client::Guild
 {
 namespace
 {
-// 0x6522f0 y 0x6570b0: 0x41ed10(0x1c, 0, 0). Queda en WorldRuntime::lastSoundId (CL10).
+// 0x6522f0 and 0x6570b0: 0x41ed10(0x1c, 0, 0). It stays in WorldRuntime::lastSoundId (CL10).
 constexpr Audio::SoundId GuildCloseSound = Sound::CreateWindowSound;
-// 0x6522f0: la pestaña a la que vuelve.
+// 0x6522f0: the tab it goes back to.
 constexpr std::int32_t FirstGuildTab = 1;
 // 0x6570b0: C1 04 54 00.
 constexpr std::uint8_t ClosedMasterAnswer = 0;
-// 0x653c69..0x6545de: el resultado del E6 que manda el E5 aceptado y el rechazado.
+// 0x653c69..0x6545de: the result of the E6 that the accepted and the refused E5 send.
 constexpr std::uint8_t RelationshipAccepted = 1;
 constexpr std::uint8_t RelationshipRefused = 0;
-// 0x64dfc7: el tipo del E1 que quita el cargo.
+// 0x64dfc7: the type of the E1 that removes the position.
 constexpr std::uint8_t DismissType = 3;
-// 0x64e55e: el diálogo del juego que pide el número para echar a un miembro.
+// 0x64e55e: the game dialog that asks for the number to kick a member.
 constexpr std::int32_t KickDialogId = 0x7d;
-// 0x64dec9: la cuenta de Tab (0x6c8e6c) con el diálogo 0x7d.
+// 0x64dec9: the Tab count (0x6c8e6c) with dialog 0x7d.
 constexpr std::int32_t NumberDialogFields = 1;
 
 Core::Expected<void, std::string> Send(const GuildSender& send, Protocol::Outgoing packet, const char* where)
@@ -99,7 +99,8 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     {
     case Ui::PanelDialogOwner::GuildJoin:
     {
-        // 0x4d6b83: 8 acepta; lo demás (Cancelar, Esc, el reloj) rechaza. La clave, de 0x78aba40 (SAR 8 y el byte).
+        // 0x4d6b83: 8 accepts; anything else (Cancel, Esc, the clock) refuses. The key, from 0x78aba40 (SAR 8 and the
+        // byte).
         const auto key = static_cast<std::uint16_t>(guild.requester);
         if (auto sent = Send(send, Protocol::Guild::WriteJoinAnswer(reason == Ui::PanelAnswerConfirm, key), "0x4d6b60");
             !sent.HasValue())
@@ -108,7 +109,7 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     }
     case Ui::PanelDialogOwner::Relationship:
     {
-        // 0x653c23 y 0x654289: solo Confirmar y Cancelar mandan; con lo demás, nada.
+        // 0x653c23 and 0x654289: only Confirm and Cancel send; with anything else, nothing.
         if (reason != Ui::PanelAnswerConfirm && reason != Ui::PanelAnswerCancel)
             return true;
         const std::uint8_t result = reason == Ui::PanelAnswerConfirm ? RelationshipAccepted : RelationshipRefused;
@@ -122,8 +123,8 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     }
     case Ui::PanelDialogOwner::GuildDismiss:
     {
-        // 0x64df13: con 8, C1 0F E1 03 00 y el nombre de 0x7d535a8 (10 bytes), y C1 03 52 (0x64e38b); con lo demás,
-        // nada.
+        // 0x64df13: with 8, C1 0F E1 03 00 and the name from 0x7d535a8 (10 bytes), and C1 03 52 (0x64e38b); with
+        // anything else, nothing.
         if (reason != Ui::PanelAnswerConfirm)
             return true;
         Protocol::FrontEnd::NameBytes name{};
@@ -138,9 +139,9 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     }
     case Ui::PanelDialogOwner::GuildKick:
     {
-        // 0x64e553: con 8, el diálogo 0x7d del juego (0x7d3a10c), que pide el número del maestro y manda el C1 53
-        // (0x62a878), con el lugar del miembro de 0x7d536c8 en 0x6d5e2c. A diferencia de 0x64de90, no toca los
-        // campos del chat.
+        // 0x64e553: with 8, the game's dialog 0x7d (0x7d3a10c), which asks for the master's number and sends the C1 53
+        // (0x62a878), with the member's slot from 0x7d536c8 in 0x6d5e2c. Unlike 0x64de90, it does not touch the chat
+        // fields.
         if (reason != Ui::PanelAnswerConfirm)
             return true;
         Kernel::WorldRuntime& runtime = world.Runtime();
@@ -150,9 +151,9 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     }
     case Ui::PanelDialogOwner::GuildDisband:
     {
-        // 0x64de93: con 8, 0x6d5e2c en 0 (el lugar 0 de 0x787a5e8: el maestro, si el 52 lo manda primero, *inferido*)
-        // y el diálogo 0x7d con 0x553570(0), el campo del chat cerrado (0x6c8e68) y la cuenta de Tab (0x6c8e6c) en 1.
-        // 0x6c8e78 y 0x77f31c0 son de la entrada sin EDIT, que MuRet no tiene.
+        // 0x64de93: with 8, 0x6d5e2c at 0 (slot 0 of 0x787a5e8: the master, if the 52 sends it first, *inferred*) and
+        // dialog 0x7d with 0x553570(0), the chat field closed (0x6c8e68) and the Tab count (0x6c8e6c) at 1. 0x6c8e78
+        // and 0x77f31c0 belong to the input without an EDIT, which MuRet does not have.
         if (reason != Ui::PanelAnswerConfirm)
             return true;
         Kernel::WorldRuntime& runtime = world.Runtime();
@@ -165,8 +166,8 @@ Core::Expected<bool, std::string> AnswerThePanelDialog(Kernel::WorldState& world
     }
     case Ui::PanelDialogOwner::UnionKick:
     {
-        // 0x650858: con 8, C1 0C EB 01 y los 8 bytes de 0x7d535a8 (el nombre que dejó el botón +0x6d4); con lo demás,
-        // nada.
+        // 0x650858: with 8, C1 0C EB 01 and the 8 bytes from 0x7d535a8 (the name the +0x6d4 button left); with anything
+        // else, nothing.
         if (reason != Ui::PanelAnswerConfirm)
             return true;
         Protocol::Guild::GuildName name{};
@@ -222,9 +223,9 @@ Core::Expected<void, std::string> CloseTheSecondGuildWindow(Kernel::WorldState& 
     runtime.RequestSound(GuildCloseSound); // 0x41ed10 (CL10)
     guild.createKind = 0;
     guild.createStep = 0;
-    // 0x657117: 0x77f3b68, el campo del alta, en 0 (el EDIT queda como estaba: Q-C1291).
+    // 0x657117: 0x77f3b68, the creation field, at 0 (the EDIT stays as it was: Q-C1291).
     runtime.chat.input.dialogFieldOn = false;
-    // 0x654f50: el abierto es +0x2a0 o +0x2a4.
+    // 0x654f50: the open one is +0x2a0 or +0x2a4.
     const std::uint32_t open = Ui::PanelDialogHandle(delegated.panelDialog);
     if (open == guild.secondWindow.dialog2a0 || open == guild.secondWindow.dialog2a4)
     {
@@ -256,7 +257,7 @@ void LendThePanelDialogStepTo(Ui::PanelContext& context, Kernel::WorldState& wor
         if (auto stepped = Ui::StepThePanelDialog(dialog, globals, mouseX, mouseY, now, context.panelDialogAnswer);
             !stepped.HasValue())
             return stepped;
-        // 0x660623: abierto y con +8, el paso propio después del mouse sobre la caja (StepThePanelDialog no hizo más).
+        // 0x660623: open and with +8, its own step after the mouse over the box (StepThePanelDialog did nothing more).
         if (Ui::PanelDialogHandle(dialog) == 0 || dialog.hooks != Ui::PanelDialogHooks::GuildPositions)
             return {};
         return StepTheGuildPositions(world, send, mouseX, mouseY, context.panelDialogAnswer);

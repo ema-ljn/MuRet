@@ -28,8 +28,8 @@
 #include <string_view>
 #include <vector>
 
-// Scenes/GameSocialSteps (CL9 hito 7): los botones de la ventana del comercio (0x5ecde0) y el pedido de duelo
-// (0x5ebca0), contra su ASM. Los nombres son inventados.
+// Social/GameSocialSteps (CL9 milestone 7): the trade window's buttons (0x5ecde0) and the duel request (0x5ebca0),
+// against their ASM. The names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -80,7 +80,6 @@ public:
     std::vector<Sent> guild;
 };
 
-// Cada caso en Lorencia y en Devias.
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 
@@ -124,7 +123,7 @@ protected:
         return Client::Social::StepTheDuelRequest(Context(x, y));
     }
 
-    // Los rand() desde Seed.
+    // The rand() calls since Seed.
     int Draws() const
     {
         CrtRandom reference(Seed);
@@ -141,12 +140,12 @@ protected:
     CrtRandom m_random{Seed};
     Client::Input::InputState m_input;
     RecordingRequests m_requests;
-    // 0x173..0x176, el aviso del OK con la grilla del otro cambiada (inventados).
+    // 0x173..0x176, the OK warning with the other's grid changed (made up).
     Client::Tables::TextTable m_texts = Client::Tests::MakeTextTable(
         {{0x173, "el otro cambio"}, {0x174, "sus objetos"}, {0x175, "mira bien"}, {0x176, "antes del OK"}});
 };
 
-// Con el comercio cerrado, solo su IsOpen (el rand() del byte protegido).
+// Only its IsOpen (the protected byte's rand()).
 TEST_P(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
 {
     Runtime().panels.trade = 0;
@@ -156,7 +155,7 @@ TEST_P(GameSocialStepsTest, AClosedTradeOnlyDrawsItsQuery)
     EXPECT_TRUE(Runtime().mouse.pendingClick);
 }
 
-// 0x5ecf2d..0x5ed476: el OK da vuelta el propio, prende 0x78abaa5 y manda el C1 04 3C con el nuevo en C3.
+// 0x5ecf2d..0x5ed476: the OK flips the own one, sets 0x78abaa5 and sends the C1 04 3C with the new one in C3.
 TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
 {
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61, 0x186).HasValue());
@@ -170,15 +169,14 @@ TEST_P(GameSocialStepsTest, TheOkButtonTogglesTheOwnOk)
     EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
 
-    // Con 0x78abaa5 prendido y el OK propio en 1, lo apaga.
     ASSERT_TRUE(StepTheTrade(0x104 + 0x61 + 0x17, 0x186 + 0x17).HasValue());
     EXPECT_EQ(trade.ownOk, 0);
     ASSERT_EQ(m_requests.sent.size(), 2u);
     EXPECT_EQ(m_requests.sent[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x3c, 0x00}));
 }
 
-// 0x5ecf57..0x5ecf80: con la grilla del otro cambiada (0x78abaa5) y el OK propio apagado, el aviso 0x633300(4, 0x173,
-// 0x94) y nada sale.
+// 0x5ecf57..0x5ecf80: with the other's grid changed (0x78abaa5) and the own OK off, the warning 0x633300(4, 0x173,
+// 0x94) and nothing goes out.
 TEST_P(GameSocialStepsTest, AChangedGridWarnsInsteadOfOk)
 {
     Runtime().social.trade.changed = 1;
@@ -190,8 +188,8 @@ TEST_P(GameSocialStepsTest, AChangedGridWarnsInsteadOfOk)
     EXPECT_EQ(Runtime().dialogs.current, 0x94);
 }
 
-// 0x5ece9a..0x5ecf1b: la espera del OK baja de a uno y, mientras no llega a 0, el OK no se mira; un ítem en el cursor
-// tampoco lo deja.
+// 0x5ece9a..0x5ecf1b: the OK wait drops by one and, until it reaches 0, the OK is not checked; an item on the cursor
+// blocks it too.
 TEST_P(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
 {
     Runtime().social.trade.okWait = 2;
@@ -208,7 +206,7 @@ TEST_P(GameSocialStepsTest, TheOkWaitsAndSkipsTheCursorItem)
     EXPECT_EQ(m_requests.sent.size(), 1u);
 }
 
-// 0x5ece4c..0x5eceae: el zen abre el diálogo 0x73 con su campo.
+// 0x5ece4c..0x5eceae: dialog 0x73 opens with its field.
 TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
 {
     Runtime().ui.chatOpen = true;
@@ -225,7 +223,7 @@ TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
     EXPECT_TRUE(m_requests.sent.empty());
 }
 
-// 0x5ed4cc..0x5ed936: cancelar apaga 0x78abaa5 y manda el C1 03 3D en C3; la ventana la cierra el 3D del GS.
+// 0x5ed4cc..0x5ed936: cancel clears 0x78abaa5 and sends the C1 03 3D in C3; the GS's 3D closes the window.
 TEST_P(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
 {
     Runtime().social.trade.changed = 1;
@@ -239,8 +237,8 @@ TEST_P(GameSocialStepsTest, TheCancelButtonSendsTheCancel)
     EXPECT_EQ(Runtime().panels.trade, 1);
 }
 
-// 0x5ebca0: sin el pedido nada; con él, el mouse sobre la caja es de la UI, y sí o no mandan el AC con la clave y el
-// nombre del rival en C3 y bajan el pedido, sin gastar el clic.
+// 0x5ebca0: without the request nothing; with it, the mouse over the box belongs to the UI, and yes or no send the AC
+// with the rival's key and name in C3 and lower the request, without spending the click.
 TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
 {
     ASSERT_TRUE(StepTheDuel(0xed, 0xfa).HasValue());
@@ -273,9 +271,8 @@ TEST_P(GameSocialStepsTest, TheDuelRequestAnswersYesOrNo)
     EXPECT_EQ(Draws(), 4);
 }
 
-// 0x65c039..0x65c946 (CL9 hito 7): con la sesión prestada (LendTheSession), un Dark Lord que abre el inventario, como
-// lo abren el comercio y las tiendas, manda los dos A9 de la mascota en claro: el cuervo de la mano izquierda y el
-// caballo de su lugar.
+// 0x65c039..0x65c946 (CL9 milestone 7): with the lent session (LendTheSession), a Dark Lord opening the inventory, as
+// the trade and the shops open it, sends the two pet A9 in clear: the left hand's raven and the horse from its slot.
 TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
 {
     Runtime().panels.trade = 0;
@@ -292,9 +289,9 @@ TEST_P(GameSocialStepsTest, ADarkLordOpeningTheInventoryAsksForBothPets)
     EXPECT_EQ(m_requests.sent[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x06, 0xa9, 0x01, 0x00, 0x08}));
 }
 
-// 0x657b50 y 0x657b73 (CL9 hito 8): con la sesión prestada (LendTheSession, la de Esc, caminar, el gate, la muerte, el
-// comercio, las tiendas y los eventos), cerrar las dos ventanas del gremio llama a sus cierres: la primera (0x6522f0)
-// sin envíos y la segunda (0x6570b0) con el C1 04 54 00 en claro por SendGuildPacket, y el sonido 0x1c.
+// 0x657b50 and 0x657b73 (CL9 milestone 8): with the lent session (LendTheSession), closing the two guild windows calls
+// their closes: the first (0x6522f0) without sends and the second (0x6570b0) with the C1 04 54 00 in clear through
+// SendGuildPacket, and sound 0x1c.
 TEST_P(GameSocialStepsTest, TheSessionClosesBothGuildWindows)
 {
     Client::Ui::DelegatedPanels& delegated = Runtime().panels.delegated;

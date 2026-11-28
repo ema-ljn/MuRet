@@ -56,12 +56,12 @@
 #include <utility>
 #include <vector>
 
-// La ventana de la tienda personal (CL9 hito 7, fase 5, 08 P-C208 b) en Lorencia (0) y Devias (2), contra el ASM: los
-// botones de 0x5ea290 (el 3F 02, el 3F 03, el aviso 1119, la caja 0x9c y el diálogo del título), la caja 0x9c
-// (0x4716e0, 0x471930 y 0x623750), el clic y el clic derecho sobre las grillas con una tienda abierta (0x5c5110 y
-// 0x5c5242), soltar en la grilla de la tienda (0x5ca250 con 0x78ab0b8 y 4) y de ella al inventario (0x5cc2cf), y las
-// respuestas de los avisos que mira 0x5d8d50 (el precio, la compra y el OK del comercio). Los títulos, los nombres y
-// los ítems son inventados.
+// The personal shop's window (CL9 milestone 7, phase 5, 08 P-C208 b) in Lorencia (0) and Devias (2), against the
+// ASM: the buttons of 0x5ea290 (the 3F 02, the 3F 03, warning 1119, the 0x9c box and the title dialog), the 0x9c box
+// (0x4716e0, 0x471930 and 0x623750), the click and the right click on the grids with a shop open (0x5c5110 and
+// 0x5c5242), dropping on the shop's grid (0x5ca250 with 0x78ab0b8 and 4) and from it to the inventory (0x5cc2cf), and
+// the answers to the warnings that 0x5d8d50 checks (the price, the purchase and the trade OK). The titles, names and
+// items are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -69,12 +69,12 @@ using Client::Kernel::EmptyOwnItemId;
 using Client::Kernel::ItemState;
 
 constexpr std::uint32_t Seed = 0x5a0e;
-// Un bastón de 1 × 3, una poción de 1 × 1 y uno que no se comercia (0x1c17), de 1 × 1.
+// A 1 × 3 staff, a 1 × 1 potion and one that cannot be traded (0x1c17), 1 × 1.
 constexpr std::uint16_t StaffType = 0x0a05;
 constexpr std::uint16_t PotionType = 0x1c00;
 constexpr std::uint16_t UntradableType = 0x1c17;
-// La ventana del inventario en (0x1c2, 0), con su grilla en (x + 15, y + 200), y la de la tienda en (0x104, 0), con la
-// suya en (x + 15, y + 0x6e).
+// The inventory window at (0x1c2, 0), with its grid at (x + 15, y + 200), and the shop's at (0x104, 0), with its grid
+// at (x + 15, y + 0x6e).
 constexpr std::int32_t InventoryX = 0x1c2;
 constexpr std::int32_t InventoryGridLeft = InventoryX + 15;
 constexpr std::int32_t InventoryGridTop = 200;
@@ -82,29 +82,29 @@ constexpr std::int32_t ShopX = 0x104;
 constexpr std::int32_t ShopGridLeft = ShopX + 15;
 constexpr std::int32_t ShopGridTop = 0x6e;
 constexpr std::int32_t Cell = 20;
-// El bastón en la casilla (1, 2) del inventario (lugar 12 + 17) y la poción en la (3, 0) de la tienda (lugar 0x4f).
+// The staff in inventory cell (1, 2) (slot 12 + 17) and the potion in shop cell (3, 0) (slot 0x4f).
 constexpr std::size_t StaffCell = 17;
 constexpr std::size_t PotionCell = 3;
-// Los botones del pie de la ventana: abrir (0x122..0x15a) y cerrar (x + 0x69..x + 0xa1), en y 0x18c..0x1a4; el título
-// en (x + 0x14..x + 0xaa, y + 0x41..y + 0x59).
+// The window's foot buttons: open (0x122..0x15a) and close (x + 0x69..x + 0xa1), at y 0x18c..0x1a4; the title at
+// (x + 0x14..x + 0xaa, y + 0x41..y + 0x59).
 constexpr std::int32_t OpenButtonX = 0x122;
 constexpr std::int32_t CloseButtonX = ShopX + 0x69;
 constexpr std::int32_t FootButtonY = 0x18c;
 constexpr std::int32_t TitleBoxX = ShopX + 0x14;
 constexpr std::int32_t TitleBoxY = 0x41;
-// Un lugar sin nada: abajo a la izquierda, fuera de las dos ventanas.
+// A place with nothing: bottom left, outside both windows.
 constexpr std::int32_t NowhereX = 10;
 constexpr std::int32_t NowhereY = 300;
-// Los textos de Text.bmd que usa: la pregunta de la compra (1100), el aviso sin precio (1119), la pregunta de abrir
-// (1131, de 47 bytes: dos renglones) y el precio bajo (1132, con el %s del precio, y 1133).
+// The Text.bmd texts it uses: the purchase question (1100), the missing-price warning (1119), the open question (1131,
+// of 47 bytes: two rows) and the low price (1132, with the price's %s, and 1133).
 constexpr std::size_t BuyText = 1100;
 constexpr std::size_t MissingPriceText = 1119;
 constexpr std::size_t OpenShopText = 1131;
 constexpr std::size_t LowPriceText = 1132;
 constexpr std::size_t LowPriceQuestionText = 1133;
-// El título que 0x5ebbd0 no deja (0x6261cc).
+// The title that 0x5ebbd0 rejects (0x6261cc).
 constexpr std::size_t BadTitleText = 1130;
-// El OK y el cancelar del 0x91 (0x626112..0x626227): de 0xff a 0x133 y de 0x14a a 0x17e en x, de 0xa0 a 0xb0 en y.
+// The 0x91's OK and cancel (0x626112..0x626227): x from 0xff to 0x133 and from 0x14a to 0x17e, y from 0xa0 to 0xb0.
 constexpr std::int32_t ShopOkLeft = 0xff;
 constexpr std::int32_t ShopOkRight = 0x133;
 constexpr std::int32_t ShopCancelLeft = 0x14a;
@@ -112,18 +112,18 @@ constexpr std::int32_t ShopCancelRight = 0x17e;
 constexpr std::int32_t ShopButtonTop = 0xa0;
 constexpr std::int32_t ShopButtonBottom = 0xb0;
 
-// El paso con el inventario y una tienda abiertos, el registro propio abierto (sin los 3.848 de sus cierres) y nada
-// bajo el mouse: los 12 de test_game_inventory_step.cpp con la ventana sola menos uno, porque la búsqueda de cualquier
-// panel abierto (0x5a5511, de 0x1 hacia arriba) se detiene en 0x800 (las dos tiendas comparten su estado) después de
-// 0x20 y antes de 0x10000. Medido: la ventana de la tienda, su grilla y las respuestas no sacan más.
+// The step with the inventory and a shop open, the own record open (without the 3848 of its closes) and nothing under
+// the mouse: the 12 of test_game_inventory_step.cpp with the window alone minus one, because the search for any open
+// panel (0x5a5511, from 0x1 upward) stops at 0x800 (both shops share their state) after 0x20 and before 0x10000.
+// Measured: the shop's window, its grid and the answers draw no more.
 constexpr int QuietStepRandoms = 11;
-// IsOpen(0x20) del paso del ítem del cursor (0x5deb11), con un ítem en el cursor.
+// IsOpen(0x20) of the cursor item's step (0x5deb11), with an item on the cursor.
 constexpr int CursorQueryRandoms = 1;
-// El relleno y el serial de un C3.
+// The padding and the serial of a C3.
 constexpr int C3Randoms = 2;
-// El paso de los diálogos sin Esc (0x623e70): la consulta de la ventana de amigos (0x623e9b) no saca.
+// The dialogs' step without Esc (0x623e70): the friends window's query (0x623e9b) draws none.
 constexpr int DialogStepRandoms = 0;
-// 0x657a90 consulta cada panel: 0x20 y 0x10000 sacan uno cada uno.
+// 0x657a90 queries each panel: 0x20 and 0x10000 draw one each.
 constexpr int CloseAllRandoms = 2;
 
 constexpr std::uint8_t U8(std::size_t value)
@@ -156,7 +156,7 @@ Sent PlainOf(const Client::Protocol::Outgoing& outgoing)
     return sent;
 }
 
-// Lo que sale por el cable de la UI (IGameUiRequests::SendGamePacket), en la misma lista que lo de InventoryServices.
+// What goes out through the UI's wire (IGameUiRequests::SendGamePacket), in the same list as InventoryServices'.
 class RecordingRequests final : public Client::Hud::IGameUiRequests
 {
 public:
@@ -182,7 +182,7 @@ private:
     std::vector<Sent>& m_sent;
 };
 
-// Los rand() que se sacaron desde `from` hasta `to` (hasta 100.000).
+// The rand() drawn from `from` to `to` (up to 100000).
 int Drawn(CrtRandom from, const CrtRandom& to)
 {
     for (int count = 0; count <= 100'000; ++count)
@@ -194,7 +194,7 @@ int Drawn(CrtRandom from, const CrtRandom& to)
     return -1;
 }
 
-// GetTextExtentPointA: 6 columnas por letra y 13 de alto.
+// GetTextExtentPointA: 6 columns per letter and 13 high.
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -205,7 +205,7 @@ public:
     }
 };
 
-// El mundo del juego, en el heap.
+// The game's world, on the heap.
 struct ShopWorld
 {
     Client::Kernel::WorldState world;
@@ -229,11 +229,11 @@ protected:
         runtime.panels.inventory = 1;
         runtime.hud.inventoryX = InventoryX;
         runtime.hud.inventoryY = 0;
-        // La esquina del registro del chat fuera de las ventanas, como en test_trade_grids.cpp.
+        // The chat log's corner outside the windows, as in test_trade_grids.cpp.
         runtime.hud.chatFrame.x = -10;
         runtime.hud.chatFrame.y = 0x65;
         runtime.ownRecordDepth = 1;
-        // La esquina de la ventana, que deja su dibujo (0x5f306e) antes del primer paso.
+        // The window's corner, which its draw (0x5f306e) leaves before the first step.
         runtime.social.personalShop.windowX = ShopX;
         runtime.social.personalShop.windowY = 0;
         services.items = &shop->items;
@@ -271,7 +271,7 @@ protected:
         return shop->world.Inventory().cells;
     }
 
-    // Open(0x800) u Open(0x20000), como el botón del pie o el 3F 05.
+    // Open(0x800) or Open(0x20000), like the foot button or the 3F 05.
     void OpenTheShop(Client::Ui::PanelId id)
     {
         Client::Hud::GamePanels panels(shop->world, random);
@@ -282,8 +282,8 @@ protected:
         sent.clear();
     }
 
-    // El ítem `type` de nivel `level` y `height` casillas de alto en la casilla `index` de una grilla de 8 columnas:
-    // la copia en cada casilla de su huella, con su columna y su fila, y +0x3c en 1 solo en la de arriba.
+    // The item `type` of level `level` and `height` cells tall in cell `index` of an 8-column grid: the copy in each
+    // cell of its footprint, with its column and row, and +0x3c at 1 only in the top one.
     static void Place(std::span<ItemState> cells, std::size_t index, std::uint16_t type, std::uint32_t level,
                       std::size_t height)
     {
@@ -300,7 +300,7 @@ protected:
         }
     }
 
-    // Un paso de la UI con el mouse en (x, y) y, si `click`, el flanco del clic; con `rightClick`, el del derecho.
+    // A UI step with the mouse at (x, y) and, if `click`, the click's edge; with `rightClick`, the right one's.
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y, bool click, bool rightClick = false)
     {
         if (click)
@@ -311,7 +311,7 @@ protected:
         return Client::Hud::StepTheGameUi(Context(x, y));
     }
 
-    // El paso de los diálogos (0x623e70) con el mouse en (x, y) y el clic.
+    // The dialogs' step (0x623e70) with the mouse at (x, y) and the click.
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y, bool click)
     {
         if (click)
@@ -337,20 +337,19 @@ protected:
                                           }};
     }
 
-    // Los rand() del último paso.
     [[nodiscard]] int DrawnByTheStep() const
     {
         return Drawn(mark, random);
     }
 
-    // La x y la y del centro de la casilla (column, row) de una grilla desde (left, top).
+    // The x and the y of the center of cell (column, row) of a grid from (left, top).
     static std::int32_t CenterOf(std::int32_t corner, std::size_t place)
     {
         return corner + static_cast<std::int32_t>(place) * Cell + Cell / 2;
     }
 
-    // Lo que deja el paso del diálogo 0x91 (0x6260f6) con el precio escrito y el OK: el diálogo cerrado, 0x77f3b6c con
-    // el precio y 0x6c932e en 1.
+    // What the 0x91 dialog's step (0x6260f6) leaves with the price typed and the OK: the dialog closed, 0x77f3b6c with
+    // the price and 0x6c932e at 1.
     void ThePriceIsTyped(std::int32_t price)
     {
         Runtime().dialogs.current = 0;
@@ -358,7 +357,7 @@ protected:
         Runtime().social.trade.warningByte = 1;
     }
 
-    // El valor del ítem (0x54d0f0 con el modo 2).
+    // The item's value (0x54d0f0 with mode 2).
     [[nodiscard]] std::uint32_t ValueOf(const ItemState& item) const
     {
         const auto value = Client::Items::ItemPrice(item, shop->items, 2, std::nullopt);
@@ -386,9 +385,10 @@ std::vector<std::uint8_t> OpenShopBytes(std::string_view title)
 
 const std::vector<std::uint8_t> CloseShopBytes{0xc1, 0x04, 0x3f, 0x03};
 
-// 0x5ea290: la esquina en cada paso; el botón de abrir sin los precios, sin ítems o sin título da el aviso 1119 del
-// tipo 2 y gasta el clic; con todo, la caja 0x9c con el 1000, los dos renglones del texto 1131 y dos botones. El sí
-// (0x471930 → 0x623750) manda el C1 28 3F 02 con el título y los ceros detrás, en C3, y cierra los paneles (0x657a90).
+// 0x5ea290: the corner on each step; the open button without the prices, without items or without a title gives
+// warning 1119 of type 2 and spends the click; with everything, the 0x9c box with the 1000, the two rows of text 1131
+// and two buttons. The yes (0x471930 → 0x623750) sends the C1 28 3F 02 with the title and the zeros behind, in C3, and
+// closes the panels (0x657a90).
 TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -399,7 +399,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(Shops().windowX, ShopX);
     EXPECT_EQ(Shops().windowY, 0);
 
-    // Sin ítems, con un ítem sin precio, con un precio de 0 y sin título: el aviso.
+    // Without items, with an item without a price, with a price of 0 and without a title: the warning.
     const auto press = [this] { return Step(OpenButtonX, FootButtonY, true); };
     stepped = press();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -423,7 +423,7 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_TRUE(sent.empty());
 
-    // Con el título: la caja.
+    // With the title: the box.
     Shops().ownTitle = "Puesto Sur";
     stepped = press();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -436,13 +436,13 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_EQ(box.lines, (std::vector<std::string>{"abrir la tienda con estos", " precios y este titulo"}));
     EXPECT_TRUE(sent.empty());
 
-    // Fuera de los botones, sin el clic, nada.
+    // Outside the buttons, without the click, nothing.
     stepped = Dialogs(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), DialogStepRandoms);
     EXPECT_EQ(Runtime().dialogs.current, 0x9c);
 
-    // El sí: y de h + 140 a h + 156 con h = 2 · (el paso de la letra + 2), x de 0xff a 0x133.
+    // The yes: y from h + 140 to h + 156 with h = 2 · (the letter step + 2), x from 0xff to 0x133.
     const std::int32_t height = 2 * (Client::Render::Text::FontStepFor(640) + 2);
     stepped = Dialogs(0xff, height + 140, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -457,8 +457,8 @@ TEST_P(PersonalShopWindowTest, TheOpenButtonAsksAndOpensTheShop)
     EXPECT_FALSE(Runtime().mouse.pendingClick);
 }
 
-// Con la tienda abierta (0x78aba50): cerrar manda el C1 04 3F 03 en C3; abrir manda el 3F 02 otra vez sin la caja y
-// cierra el inventario (0x65cae0(0x4000000)), que se lleva la tienda (0x11d9e0).
+// With the shop open (0x78aba50): close sends the C1 04 3F 03 in C3; open sends the 3F 02 again without the box and
+// closes the inventory (0x65cae0(0x4000000)), which takes the shop with it (0x11d9e0).
 TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -475,7 +475,7 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     EXPECT_TRUE(sent[0].encrypted);
     EXPECT_FALSE(Runtime().mouse.pendingClick);
 
-    // Cerrada, el botón de cerrar solo gasta el clic.
+    // Closed, the close button only spends the click.
     sent.clear();
     Shops().ownOpen = 0;
     stepped = Step(CloseButtonX + 0x37, FootButtonY + 0x17, true);
@@ -486,8 +486,8 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     Shops().ownOpen = 1;
     stepped = Step(OpenButtonX + 0x37, FootButtonY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    // El C3, el cierre del inventario (0x11d9e0 consulta 0x20 y 0x10000, como 0x657a90) y la búsqueda de 0x5a5511, que
-    // sin la tienda llega a 0x10000.
+    // The C3, the inventory close (0x11d9e0 queries 0x20 and 0x10000, like 0x657a90) and 0x5a5511's search, which
+    // without the shop reaches 0x10000.
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms + C3Randoms + CloseAllRandoms + 1);
     ASSERT_EQ(sent.size(), 1U);
     EXPECT_EQ(sent[0].bytes, OpenShopBytes("Puesto Sur"));
@@ -497,8 +497,8 @@ TEST_P(PersonalShopWindowTest, WithTheShopOpenTheButtonsSendAtOnce)
     EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
 }
 
-// 0x5eafc8..0x5eb00b: el título (sin gastar el clic) abre el diálogo 0x91 en el modo 1, con el campo de 0x1c, sin el
-// zen y sin el chat; respondido (0x6c932e en 1 o 2), el paso siguiente lo borra (0x5ea2f1).
+// 0x5eafc8..0x5eb00b: the title (without spending the click) opens dialog 0x91 in mode 1, with the 0x1c field, without
+// the zen and without the chat; answered (0x6c932e at 1 or 2), the next step clears it (0x5ea2f1).
 TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -514,7 +514,7 @@ TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_TRUE(sent.empty());
 
-    // El cancelar del 0x91 deja la respuesta en 2 y lo cierra.
+    // The 0x91's cancel leaves the answer at 2 and closes it.
     stepped = Dialogs(ShopCancelLeft, ShopButtonTop, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Runtime().dialogs.current, 0);
@@ -525,8 +525,8 @@ TEST_P(PersonalShopWindowTest, TheTitleBoxOpensTheTitleDialog)
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
 }
 
-// 0x5eba70(1): el EDIT de [0x5763504] a la vista con +0x4c en 0xc, el fondo en 0, el tope de 0x1c, 0x85 × 10 en
-// (0xfd, 0x8a), y vacío; con el precio, +0x4c en 9 (solo cifras), el tope de 8 y 0x3c × 10 en (0x125, 0x8a).
+// 0x5eba70(1): the EDIT of [0x5763504] in view with +0x4c at 0xc, the background at 0, the cap of 0x1c, 0x85 × 10 at
+// (0xfd, 0x8a), and empty; with the price, +0x4c at 9 (digits only), the cap of 8 and 0x3c × 10 at (0x125, 0x8a).
 TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
 {
     Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
@@ -555,9 +555,9 @@ TEST_P(PersonalShopWindowTest, TheShopDialogSetsUpItsEdit)
     EXPECT_EQ(edit.text.Value(), "12345678");
 }
 
-// 0x6260f6: el OK con el clic (en el borde de abajo a la derecha) gasta el clic, lee el EDIT y guarda el título; la
-// respuesta es 1, los campos de texto quedan vacíos (el EDIT también), el foco vuelve al juego y el diálogo se cierra.
-// Sin rand().
+// 0x6260f6: the OK with the click (on the bottom-right edge) spends the click, reads the EDIT and keeps the title; the
+// answer is 1, the text fields stay empty (the EDIT too), the focus goes back to the game and the dialog closes. No
+// rand().
 TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
@@ -577,7 +577,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkKeepsTheTitle)
     EXPECT_TRUE(sent.empty());
 }
 
-// Con el precio, el OK guarda el atoi del EDIT en 0x77f3b6c: mayor que 0 responde 1, y 0 responde 2.
+// With the price, the OK keeps the EDIT's atoi in 0x77f3b6c: above 0 answers 1, and 0 answers 2.
 TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
 {
     for (const auto& [typed, price, answer] :
@@ -594,7 +594,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogOkReadsThePrice)
     }
 }
 
-// El cancelar gasta el clic y responde 2 sin leer el EDIT; fuera de los dos botones, ni el clic ni el diálogo cambian.
+// The cancel spends the click and answers 2 without reading the EDIT; outside both buttons, neither the click nor the
+// dialog change.
 TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
@@ -616,7 +617,7 @@ TEST_P(PersonalShopWindowTest, TheShopDialogCancelAnswersNo)
     EXPECT_EQ(Runtime().chat.input.dialogEdit.text.Value(), "");
 }
 
-// Enter (0x5763588) vale como el OK sin leer el EDIT: el título lo guardó el WndProc (0x4b55db). Sin título, 2.
+// Enter (0x5763588) counts as the OK without reading the EDIT: the WndProc (0x4b55db) kept the title. No title, 2.
 TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
 {
     for (const auto& [title, answer] : {std::pair<std::string_view, std::uint8_t>{"Del Enter", std::uint8_t{1}},
@@ -635,8 +636,8 @@ TEST_P(PersonalShopWindowTest, EnterAnswersTheShopDialog)
     }
 }
 
-// 0x6261c5..0x6261f2: un título que 0x5ebbd0 no deja (dos blancos al final) no se guarda: el aviso 1130 del tipo 1
-// sin nombre, y la respuesta 2 con el título vacío.
+// 0x6261c5..0x6261f2: a title that 0x5ebbd0 rejects (two blanks at the end) is not kept: warning 1130 of type 1
+// without a name, and answer 2 with the title empty.
 TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
 {
     Client::PersonalShop::OpenTheShopDialog(Runtime(), Client::PersonalShop::ShopTitleMode);
@@ -657,8 +658,8 @@ TEST_P(PersonalShopWindowTest, TheShopDialogRefusesABadTitle)
                                     }));
 }
 
-// 0x5c5110 con la propia: el clic levanta el ítem de cualquiera de las dos grillas (el lugar + 12 o + 0x4c) sin el
-// sonido ni el comercio, y borra el ítem bajo el mouse; 0x78abaa4 marca la grilla de la tienda.
+// 0x5c5110 with the own shop: the click picks up the item from either grid (the slot + 12 or + 0x4c) without the sound
+// or the trade, and clears the item under the mouse; 0x78abaa4 marks the shop's grid.
 TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -666,7 +667,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     Place(ShopCells(), PotionCell, PotionType, 0, 1);
     Runtime().lastSoundId = Client::Audio::SoundId{0};
 
-    // El mouse sobre la poción de la tienda, sin el clic: 0x78abaa4 en 1 y 0x5aed40 con 0 y el lugar.
+    // The mouse over the shop's potion, without the click: 0x78abaa4 at 1 and 0x5aed40 with 0 and the slot.
     const std::int32_t potionX = CenterOf(ShopGridLeft, PotionCell);
     const std::int32_t potionY = CenterOf(ShopGridTop, 0);
     auto stepped = Step(potionX, potionY, false);
@@ -678,7 +679,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_EQ(Runtime().ui.field78abb28, 0);
     EXPECT_EQ(Runtime().ui.field78abb2c, 0x4c + static_cast<std::int32_t>(PotionCell));
 
-    // El bastón desde la casilla de abajo de su huella: el lugar de arriba (12 + 17).
+    // The staff from the bottom cell of its footprint: the top slot (12 + 17).
     const std::int32_t staffX = CenterOf(InventoryGridLeft, 1);
     const std::int32_t staffY = CenterOf(InventoryGridTop, 4);
     stepped = Step(staffX, staffY, true);
@@ -697,7 +698,7 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_FALSE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
-    // La poción de la tienda, con el cursor vacío otra vez.
+    // The shop's potion, with the cursor empty again.
     Runtime().cursorItemCount = 0;
     stepped = Step(potionX, potionY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -708,9 +709,9 @@ TEST_P(PersonalShopWindowTest, TheClickPicksUpFromBothGridsWithTheOwnShop)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x5c5110 con la de otro: el clic sobre su ítem lo copia a 0x78a59c8 con su lugar y abre el 0x94 con el texto 1100,
-// que espera el aviso 5; el sí (0x5d9c82) manda el C1 11 3F 06 con la clave del dueño, su nombre y el lugar en C3. El
-// no y el sí sin la clave solo lo borran. Uno del inventario se levanta.
+// 0x5c5110 with another's: the click on their item copies it to 0x78a59c8 with its slot and opens the 0x94 with text
+// 1100, which waits for warning 5; the yes (0x5d9c82) sends the C1 11 3F 06 with the owner's key, their name and the
+// slot in C3. The no and the yes without the key only clear it. One from the inventory is picked up.
 TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
 {
     OpenTheShop(Client::Ui::OtherShopPanel);
@@ -732,7 +733,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::None);
     EXPECT_FALSE(Runtime().mouse.pendingClick);
 
-    // El 0x94 (0x6282dc, CL9.3) deja la respuesta y se cierra. Sin respuesta todavía, el aviso sigue esperando.
+    // The 0x94 (0x6282dc, CL9.3) leaves the answer and closes. With no answer yet, the warning keeps waiting.
     Runtime().dialogs.current = 0;
     stepped = Step(NowhereX, NowhereY, false);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -751,7 +752,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     EXPECT_EQ(Runtime().social.trade.warningKind, 0);
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
 
-    // El no, y el sí sin la clave: nada.
+    // The no, and the yes without the key: nothing.
     sent.clear();
     for (const auto& [answer, key] : {std::pair<std::uint8_t, std::uint16_t>{std::uint8_t{2}, std::uint16_t{0x0456}},
                                       std::pair<std::uint8_t, std::uint16_t>{std::uint8_t{1}, std::uint16_t{0}}})
@@ -767,7 +768,7 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     }
     EXPECT_TRUE(sent.empty());
 
-    // Del inventario, se levanta.
+    // From the inventory, it is picked up.
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     stepped = Step(CenterOf(InventoryGridLeft, 1), CenterOf(InventoryGridTop, 2), true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -776,8 +777,9 @@ TEST_P(PersonalShopWindowTest, TheOtherShopAsksBeforeBuying)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// 0x5c5242: el clic derecho copia el ítem a 0x78a59c8 y pone su lugar + 0x4c en 0x78a6758 con cualquier grilla; con la
-// propia y su grilla abre el diálogo del precio (0x5eba70(2): el campo de 8 y el zen). El ítem bajo el mouse queda.
+// 0x5c5242: the right click copies the item to 0x78a59c8 and puts its slot + 0x4c in 0x78a6758 with any grid; with
+// the own shop and its grid it opens the price dialog (0x5eba70(2): the 8 field and the zen). The item under the mouse
+// stays.
 TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -797,7 +799,7 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
     EXPECT_EQ(Runtime().ui.hoveredItem.place, Client::Ui::HoveredItem::Place::ShopCell);
     EXPECT_EQ(ShopCells()[PotionCell].id, PotionType);
 
-    // Sobre el bastón del inventario: el lugar con 0x4c igual (0x5c526a), sin diálogo.
+    // Over the inventory's staff: the slot with 0x4c all the same (0x5c526a), without a dialog.
     Runtime().dialogs.current = 0;
     Shops().dialogMode = 0;
     stepped = Step(CenterOf(InventoryGridLeft, 1), CenterOf(InventoryGridTop, 3), false, true);
@@ -810,10 +812,10 @@ TEST_P(PersonalShopWindowTest, TheRightClickOpensThePriceDialog)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x5d5046 desde el inventario: soltar el bastón en la tienda propia lo copia a 0x78a59c8 y abre el diálogo del precio
-// con el destino en 0x77f3cc8. El precio escrito (0x5dc79e) no menor que su valor: el C1 09 3F 01 con el lugar de
-// origen y el precio, el 24 de la grilla 0 a la 4 y el precio en el mapa en el destino; menor, el aviso 0x99 con el
-// precio, y su no vuelve al diálogo del precio. El no del diálogo vuelve el bastón a su lugar.
+// 0x5d5046 from the inventory: dropping the staff on the own shop copies it to 0x78a59c8 and opens the price dialog
+// with the target in 0x77f3cc8. The typed price (0x5dc79e) not below its value: the C1 09 3F 01 with the source slot
+// and the price, the 24 from grid 0 to 4 and the price in the map at the target; below, warning 0x99 with the price,
+// and its no goes back to the price dialog. The dialog's no returns the staff to its slot.
 TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -822,7 +824,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(Runtime().cursorItem.id, StaffType);
 
-    // Sin el clic, las marcas de la huella en la grilla de la tienda.
+    // Without the click, the footprint marks on the shop's grid.
     const std::int32_t dropX = CenterOf(ShopGridLeft, 2);
     const std::int32_t dropY = CenterOf(ShopGridTop, 1);
     stepped = Step(dropX, dropY, false);
@@ -841,8 +843,8 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_EQ(Runtime().cursorItemCount, 1);
     EXPECT_TRUE(sent.empty());
 
-    // El precio, menor que el valor: el aviso 0x99 (0x5dc7d5) con el precio escrito por 0x5b1130 en el primer renglón y
-    // el 1133 en el segundo, y el aviso 6 esperando la respuesta.
+    // The price, below the value: warning 0x99 (0x5dc7d5) with the price written by 0x5b1130 in the first row and the
+    // 1133 in the second, and warning 6 waiting for the answer.
     const std::uint32_t value = ValueOf(Runtime().dialogItem);
     ASSERT_GT(value, 0U);
     ThePriceIsTyped(static_cast<std::int32_t>(value - 1));
@@ -857,7 +859,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_EQ(Shops().dialogMode, 0);
     EXPECT_TRUE(sent.empty());
 
-    // El no del 0x99 (su paso lo cierra y deja 2): el diálogo del precio otra vez.
+    // The 0x99's no (its step closes it and leaves 2): the price dialog again.
     Runtime().dialogs.current = 0;
     Runtime().social.trade.warningByte = 2;
     stepped = Step(NowhereX, NowhereY, false);
@@ -866,7 +868,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_EQ(Shops().dialogMode, Client::PersonalShop::ShopPriceMode);
     EXPECT_TRUE(sent.empty());
 
-    // El precio igual al valor, con la tienda abierta: el 3F 03, el 3F 01 y el 24.
+    // The price equal to the value, with the shop open: the 3F 03, the 3F 01 and the 24.
     Shops().dialogMode = Client::PersonalShop::ShopPriceMode;
     Shops().ownOpen = 1;
     ThePriceIsTyped(static_cast<std::int32_t>(value));
@@ -887,7 +889,7 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_EQ(Shops().dialogMode, 0);
     EXPECT_EQ(Runtime().social.trade.warningByte, 0xff);
 
-    // El no del diálogo: 0x5be150 vuelve el bastón.
+    // The dialog's no: 0x5be150 returns the staff.
     sent.clear();
     Runtime().ui.field78abb39 = 0;
     Shops().dialogMode = Client::PersonalShop::ShopPriceMode;
@@ -901,8 +903,8 @@ TEST_P(PersonalShopWindowTest, DroppingOnTheShopAsksForThePrice)
     EXPECT_TRUE(sent.empty());
 }
 
-// El aviso 6 (0x5dc7e9, el del precio bajo) con su respuesta: el no abre el diálogo del precio otra vez; el sí pone el
-// precio (sin ítem en el cursor, el 3F 01 y el precio en el lugar de 0x78a6758).
+// Warning 6 (0x5dc7e9, the low price one) with its answer: the no opens the price dialog again; the yes sets the price
+// (without an item on the cursor, the 3F 01 and the price at 0x78a6758's slot).
 TEST_P(PersonalShopWindowTest, TheLowPriceWarningAnswers)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -930,8 +932,8 @@ TEST_P(PersonalShopWindowTest, TheLowPriceWarningAnswers)
     EXPECT_EQ(Runtime().social.typedMoney, 0);
 }
 
-// Desde la grilla de la tienda (0x5d5098 y 0x5cc2cf): al mismo lugar, 0x5be150; a otro de la tienda, con la tienda
-// abierta, el 3F 03 y el 24 de la 4 a la 4; al inventario, el 3F 03 y el 24 de la 4 a la 0 con el lugar + 12.
+// From the shop's grid (0x5d5098 and 0x5cc2cf): to the same slot, 0x5be150; to another of the shop, with the shop
+// open, the 3F 03 and the 24 from 4 to 4; to the inventory, the 3F 03 and the 24 from 4 to 0 with the slot + 12.
 TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -943,7 +945,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(Runtime().cursorGrid, Client::Kernel::CursorGrid::PersonalShop);
 
-    // Al mismo lugar.
+    // To the same slot.
     stepped = Step(potionX, potionY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(DrawnByTheStep(), QuietStepRandoms + CursorQueryRandoms);
@@ -952,7 +954,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x1d});
     EXPECT_TRUE(sent.empty());
 
-    // A la casilla (6, 1) de la tienda.
+    // To the shop's cell (6, 1).
     stepped = Step(potionX, potionY, true);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     stepped = Step(CenterOf(ShopGridLeft, 6), CenterOf(ShopGridTop, 1), true);
@@ -964,7 +966,7 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
                                                         0x00, 0x00, 0xe0, 0x00, 0x04, U8(0x4c + 14)}));
     EXPECT_EQ(Runtime().itemMoveTarget, 0x4c + 14);
 
-    // Al inventario, a la casilla (0, 0).
+    // To the inventory, to cell (0, 0).
     sent.clear();
     Runtime().ui.field78abb39 = 0;
     stepped = Step(CenterOf(InventoryGridLeft, 0), CenterOf(InventoryGridTop, 0), true);
@@ -977,8 +979,8 @@ TEST_P(PersonalShopWindowTest, MovingOutOfTheShopGridClosesTheShop)
     EXPECT_EQ(Runtime().itemMoveTarget, 12);
 }
 
-// Soltar en la grilla de la tienda lo que no se comercia (0x5cf3c9) o mirando la de otro (0x5d506b) no hace nada más
-// que gastar el clic dentro de la grilla.
+// Dropping on the shop's grid what cannot be traded (0x5cf3c9) or while looking at another's (0x5d506b) does nothing
+// but spend the click inside the grid.
 TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -1002,9 +1004,9 @@ TEST_P(PersonalShopWindowTest, SomeDropsOnTheShopDoNothing)
     EXPECT_TRUE(sent.empty());
 }
 
-// Los avisos de 0x78abb14 van antes del ítem del cursor: el 3 (0x5d966b) con el sí da vuelta el OK propio y manda el
-// C1 04 3C con el nuevo en C3; sin respuesta el paso termina sin soltar el ítem; los de las ventanas de NPC los atiende
-// Npc::AnswerTheNpcWarning (hito 6).
+// The 0x78abb14 warnings go before the cursor item: the 3 (0x5d966b) with yes flips the own OK and sends the C1 04 3C
+// with the new one in C3; without an answer the step ends without dropping the item; the NPC windows' ones are handled
+// by Npc::AnswerTheNpcWarning (milestone 6).
 TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
 {
     OpenTheShop(Client::Ui::PersonalShopPanel);
@@ -1020,7 +1022,7 @@ TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
     EXPECT_EQ(trade.changed, 1);
     EXPECT_EQ(trade.warningKind, 0);
 
-    // Sin respuesta, el bastón del cursor no se suelta en el inventario.
+    // Without an answer, the cursor's staff is not dropped in the inventory.
     sent.clear();
     Place(InventoryCells(), StaffCell, StaffType, 2, 3);
     stepped = Step(CenterOf(InventoryGridLeft, 1), CenterOf(InventoryGridTop, 2), true);
@@ -1035,8 +1037,8 @@ TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
     EXPECT_TRUE(Runtime().mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
-    // El 1 con el no vuelve el ítem. Con el sí, el 1 manda el C1 04 33 (0x5d8e0d), el 2 el C1 04 86 (0x5d934f) y el 4
-    // abre el teclado del almacén (0x5d9b82), sin paquete.
+    // The 1 with no returns the item. With yes, the 1 sends the C1 04 33 (0x5d8e0d), the 2 the C1 04 86 (0x5d934f) and
+    // the 4 opens the warehouse keypad (0x5d9b82), without a packet.
     trade.warningKind = 1;
     trade.warningByte = 2;
     stepped = Step(NowhereX, NowhereY, false);
@@ -1064,9 +1066,9 @@ TEST_P(PersonalShopWindowTest, TheWarningsAnswerBeforeTheCursorItem)
 
 INSTANTIATE_TEST_SUITE_P(LorenciaAndDevias, PersonalShopWindowTest, ::testing::Values(0, 2));
 
-// 0x4716e0: los renglones se cortan al pasar de 24 bytes (un byte de 0x80 o más cuenta dos, sin mirar el que sigue) o
-// en el final justo; el pedazo que termina con un byte de 0x80 o más pasado del final se pierde (07 Q-C966). Con el
-// 0x9c abierto, falso; con un tipo fuera de 1..2, falso con el diálogo pedido.
+// 0x4716e0: the rows are cut when they pass 24 bytes (a byte of 0x80 or more counts two, without looking at the next
+// one) or at the exact end; the piece that ends with a byte of 0x80 or more past the end is lost (07 Q-C966). With the
+// 0x9c open, false; with a type outside 1..2, false with the dialog requested.
 TEST(ConfirmBoxTest, TheTextIsCutIntoRows)
 {
     Client::Social::ConfirmBoxState box;
@@ -1079,26 +1081,26 @@ TEST(ConfirmBoxTest, TheTextIsCutIntoRows)
     EXPECT_FALSE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 8, "otro", 2));
     EXPECT_EQ(box.id, 7);
 
-    // Un byte alto en el 25: el pedazo llega a 26, con el byte que lo sigue.
+    // A high byte at the 25th: the piece reaches 26, with the byte that follows it.
     dialogs = {};
     const std::string wide = std::string(24, 'b') + "\xb0\xa1" + "cc";
     ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 1, wide, 2));
     EXPECT_EQ(box.lines, (std::vector<std::string>{std::string(24, 'b') + "\xb0\xa1", "cc"}));
 
-    // Uno alto en el último byte: el pedazo se pierde.
+    // A high one in the last byte: the piece is lost.
     dialogs = {};
     ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 1, std::string("dd") + "\xb0", 2));
     EXPECT_TRUE(box.lines.empty());
 
-    // El tipo 3: el diálogo pedido y nada más.
+    // Type 3: the dialog requested and nothing else.
     dialogs = {};
     EXPECT_FALSE(Client::PersonalShop::OpenTheConfirmBox(box, dialogs, 9, "x", 3));
     EXPECT_EQ(dialogs.current, 0x9c);
     EXPECT_EQ(box.id, 1);
 }
 
-// 0x471930 con un botón (0x127..0x15b) y el no de dos (0x14a..0x17e), con los bordes: el 1000 con el 2 solo vuelve al
-// diálogo que esperaba; con otro id, 0x623750 no hace nada y la caja queda.
+// 0x471930 with one button (0x127..0x15b) and the no of two (0x14a..0x17e), with the edges: the 1000 with the 2 only
+// goes back to the dialog that was waiting; with another id, 0x623750 does nothing and the box stays.
 TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -1115,7 +1117,7 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     };
     const std::int32_t row = Client::Render::Text::FontStepFor(640) + 2;
 
-    // Dos botones, el no en el borde de abajo: el diálogo que esperaba (0x7d3a110) vuelve.
+    // Two buttons, the no on the bottom edge: the dialog that was waiting (0x7d3a110) comes back.
     ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs,
                                                         Client::PersonalShop::OpenShopConfirm, "pregunta", 2));
     runtime.dialogs.pending = 0x8c;
@@ -1126,14 +1128,14 @@ TEST(ConfirmBoxTest, TheButtonsAnswerTheBox)
     EXPECT_FALSE(runtime.mouse.pendingClick);
     EXPECT_TRUE(sent.empty());
 
-    // Un botón, otro id: el clic se gasta y la caja queda.
+    // One button, another id: the click is spent and the box stays.
     runtime.dialogs = {};
     ASSERT_TRUE(Client::PersonalShop::OpenTheConfirmBox(runtime.social.confirmBox, runtime.dialogs, 5, "aviso", 1));
     stepped = step(0x14a, row + 140);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(runtime.dialogs.current, 0x9c);
     EXPECT_FALSE(runtime.mouse.pendingClick);
-    // Fuera del botón (y + 157), el clic queda.
+    // Outside the button (y + 157), the click stays.
     stepped = step(0x14a, row + 157);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_TRUE(runtime.mouse.pendingClick);

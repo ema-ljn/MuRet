@@ -83,8 +83,8 @@
 #include <utility>
 #include <vector>
 
-// El personaje del retrato de las cartas (CL9 hito 10, P-C212): 0x4961d0, 0x4977d0 con 0x513100, 0x497810 con 0x5139f0,
-// 0x496530 con sus dos copias y 0x495a20, con los rand() en el orden del ASM, en Lorencia (0) y Devias (2).
+// The letters' portrait character (CL9 milestone 10, P-C212): 0x4961d0, 0x4977d0 with 0x513100, 0x497810 with
+// 0x5139f0, 0x496530 with its two copies and 0x495a20, with rand() in the ASM's order, in Lorencia (0) and Devias (2).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -97,9 +97,9 @@ using Client::Tables::PlayerSkeletonModel;
 using Client::Tests::AfterDraws;
 
 constexpr std::uint32_t Seed = 0x1e77e5;
-// 0x4961d0 desde cero: las dos entradas del personaje (4 + 4), la celda del héroe (4 + 4) y 0x511290 (28).
+// 0x4961d0 from scratch: the character's two entries (4 + 4), the hero's cell (4 + 4) and 0x511290 (28).
 constexpr int BuildDraws = 44;
-// El cierre del registro propio (0x40b4d0 y sus copias en línea): un rand() por byte.
+// The own record's close (0x40b4d0 and its inline copies): one rand() per byte.
 constexpr int OwnRecordDraws = 0xf08;
 constexpr std::uint8_t HeroX = 0x88;
 constexpr std::uint8_t HeroY = 0x82;
@@ -107,7 +107,7 @@ constexpr std::uint8_t DarkKnight = 1 << 5;
 
 using Equipment = std::array<std::byte, Client::Protocol::FrontEnd::EquipmentSize>;
 
-// Sin nada: las manos 0xfff, las alas de b[4] en 3 con b[8] & 7 en 0 y la mascota de b[4] en 3 con b[9] & 1 en 0.
+// Nothing worn: hands 0xfff, the wings of b[4] at 3 with b[8] & 7 at 0 and the pet of b[4] at 3 with b[9] & 1 at 0.
 Equipment NothingWorn()
 {
     Equipment equipment{};
@@ -120,7 +120,7 @@ Equipment NothingWorn()
     return equipment;
 }
 
-// Cuántos rand() hay de `from` a `to` (hasta 20.000).
+// How many rand() there are from `from` to `to` (up to 20000).
 int DrawsBetween(CrtRandom from, const CrtRandom& to)
 {
     for (int draws = 0; draws < 20000; ++draws)
@@ -132,8 +132,8 @@ int DrawsBetween(CrtRandom from, const CrtRandom& to)
     return -1;
 }
 
-// Lo que dibuja el retrato: Player.bmd con un hueso y una key en cada acción, el caballo oscuro (0xbf) con sus siete
-// acciones de 10 keys en un hueso, y un triángulo para el caballo, la sombra (0x20b) y la armadura del Dark Knight.
+// What the portrait draws: Player.bmd with one bone and one key per action, the dark horse (0xbf) with its seven
+// actions of 10 keys on one bone, and a triangle for the horse, the shadow (0x20b) and the Dark Knight's armor.
 class PortraitModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -187,7 +187,7 @@ private:
     std::array<Client::Render::TextureSlot, 1> m_textures{Client::Render::TextureSlot{0x300}};
 };
 
-// El mundo del juego, en el heap: WorldState pesa unos 350 KB.
+// The game's world, on the heap: WorldState weighs about 350 KB.
 struct Game
 {
     Game()
@@ -234,7 +234,7 @@ struct Game
     Client::Camera::GameCameraInput input;
     Client::Models::ClothWorld cloth{.random = CrtRandom(Seed)};
     Client::FrontEnd::SingleModelLibrary models;
-    // Con `drawable`, los modelos de lo que dibuja el retrato en vez de los de arriba.
+    // With `drawable`, the models of what the portrait draws instead of the ones above.
     bool drawable = false;
     PortraitModels drawn;
     Client::Tables::ItemTable items = Client::Tests::ItemsMarking({});
@@ -260,7 +260,7 @@ protected:
         return game;
     }
 
-    // 0x4961d0 y, como 0x4977d0 desde la carta, la clase del héroe.
+    // 0x4961d0 and, like 0x4977d0 from the letter, the hero's class.
     std::unique_ptr<Game> Built(std::uint8_t map)
     {
         auto game = Load(map);
@@ -270,8 +270,8 @@ protected:
         return game;
     }
 
-    // El retrato armado con los modelos que dibuja (PortraitModels) y el caballo del héroe (0x1c16): 0x496530 le arma
-    // el caballo oscuro vivo (0x497810).
+    // The portrait built with the models it draws (PortraitModels) and the hero's horse (0x1c16): 0x496530 builds the
+    // live dark horse for it (0x497810).
     std::unique_ptr<Game> Riding(std::uint8_t map)
     {
         auto game = Load(map);
@@ -288,8 +288,8 @@ protected:
     }
 };
 
-// 0x4961d0: borra el ayudante y el personaje, arma un 0x20a en la celda del héroe con 0x511290 y lo esconde en
-// (−300, −300, −300). Desde cero, 44 rand().
+// 0x4961d0: deletes the helper and the character, builds a 0x20a in the hero's cell with 0x511290 and hides it at
+// (−300, −300, −300).
 TEST_F(LetterPortraitTest, BuildingDrawsFortyFourAndHidesTheCharacter)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -317,8 +317,8 @@ TEST_F(LetterPortraitTest, BuildingDrawsFortyFourAndHidesTheCharacter)
     }
 }
 
-// 0x513100: la parte 0 mira la suya, pero las partes 1 a 4 miran el word de la siguiente (Q-C1024). Con la armadura
-// base en los pantalones, la armadura pasa a la de la clase entera aunque ella no sea la base.
+// 0x513100: part 0 looks at its own, but parts 1 to 4 look at the next one's word (Q-C1024). With the base armor in the
+// pants, the armor becomes the whole class's even though it is not the base.
 TEST_F(LetterPortraitTest, TheClassPartsReadTheWordOfTheNextPart)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -326,7 +326,7 @@ TEST_F(LetterPortraitTest, TheClassPartsReadTheWordOfTheNextPart)
         SCOPED_TRACE(map);
         auto game = Built(map);
         ActorState& actor = game->portrait.actor;
-        // La acción 0x30 está entre 0x22 y 0x97: sin 0x4f2250.
+        // Action 0x30 is between 0x22 and 0x97: without 0x4f2250.
         actor.animation.action = 0x30;
         constexpr std::uint8_t Base = DarkKnight & 7;
         actor.body[0].model = ClassPartModel(BodyPart::Helm, Base);
@@ -346,15 +346,15 @@ TEST_F(LetterPortraitTest, TheClassPartsReadTheWordOfTheNextPart)
         EXPECT_EQ(actor.body[1].model, ClassPartModel(BodyPart::Armor, DarkKnight));
         EXPECT_EQ(actor.body[1].level, 0);
         EXPECT_EQ(actor.body[1].flags1b, 0);
-        // Los pantalones con la armadura base quedan: su comparación leyó los guantes.
+        // The pants with the base armor stay: their comparison read the gloves.
         EXPECT_EQ(actor.body[2].model, ClassPartModel(BodyPart::Armor, Base));
         EXPECT_EQ(game->cloth.random.State(), before.State());
     }
 }
 
-// 0x497810 con 0x5139f0(0, equipo, personaje, ayudante): el Unilia arma el ayudante propio y el caballo oscuro, que
-// va después, ya lo encuentra vivo y no lo toca (Q-C1026); la mascota queda la del caballo. +0x688 es 0,9 · 0,7 entre
-// la escala del héroe.
+// 0x497810 with 0x5139f0(0, equipment, character, helper): the Unilia builds its own helper and the dark horse, which
+// comes after, finds it already alive and does not touch it (Q-C1026); the pet stays the horse's. +0x688 is 0.9 · 0.7
+// divided by the hero's scale.
 TEST_F(LetterPortraitTest, DressingKeepsTheFirstHelperOnly)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -362,7 +362,7 @@ TEST_F(LetterPortraitTest, DressingKeepsTheFirstHelperOnly)
         SCOPED_TRACE(map);
         auto game = Built(map);
         Equipment equipment = NothingWorn();
-        // b[4] & 3 en 2 (Unilia, alas en 3 con b[8] & 7 en 0) y b[11] & 1 (el caballo oscuro).
+        // b[4] & 3 at 2 (Unilia, wings at 3 with b[8] & 7 at 0) and b[11] & 1 (the dark horse).
         equipment[4] = std::byte{0xfe};
         equipment[11] = std::byte{0xf1};
         const auto resources = game->Resources();
@@ -381,12 +381,12 @@ TEST_F(LetterPortraitTest, DressingKeepsTheFirstHelperOnly)
     }
 }
 
-// 0x49784a..0x497869: con alas y la acción pasada de 0x82, la zona segura.
+// 0x49784a..0x497869: with wings and the action past 0x82, the safe zone.
 TEST_F(LetterPortraitTest, DressingWithWingsAndAFlyingActionMarksTheSafeZone)
 {
     auto game = Built(0);
     Equipment equipment = NothingWorn();
-    // Las alas 0x1a12 (b[4] con los bits 2 y 3 en 0) y sin mascota (b[4] & 3 en 3).
+    // The wings 0x1a12 (b[4] with bits 2 and 3 at 0) and no pet (b[4] & 3 at 3).
     equipment[4] = std::byte{0xf3};
     const auto resources = game->Resources();
     ASSERT_TRUE(Client::Messenger::DressThePortrait(game->portrait, equipment, 0x83, resources).HasValue());
@@ -396,8 +396,8 @@ TEST_F(LetterPortraitTest, DressingWithWingsAndAFlyingActionMarksTheSafeZone)
     EXPECT_EQ(game->portrait.actor.safeZone, 0);
 }
 
-// 0x496530 con +0x3e3 del héroe en 0: la clase (0x513100), la cabeza y el cuerpo del héroe tal cual, y 0x495a20 con la
-// última acción (la 0 no está en la lista: la 0x7a). Sin nada distinto, ningún rand().
+// 0x496530 with the hero's +0x3e3 at 0: the class (0x513100), the hero's head and body as they are, and 0x495a20 with
+// the last action (0 is not in the list: the 0x7a). With nothing different, no rand().
 TEST_F(LetterPortraitTest, CopyingTheHeroTakesTheBodyAsItIs)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -422,7 +422,7 @@ TEST_F(LetterPortraitTest, CopyingTheHeroTakesTheBodyAsItIs)
         EXPECT_EQ(actor.body[1].level, 9);
         EXPECT_EQ(game->portrait.shownAction, 0x7a);
         EXPECT_EQ(action, 0x83);
-        // El gemelo hace lo mismo a mano: la clase con 0x4977d0, la copia y 0x495a20(0x7a, 0).
+        // The twin does the same by hand: the class with 0x4977d0, the copy and 0x495a20(0x7a, 0).
         const auto twinResources = twin->Resources();
         ASSERT_TRUE(Client::Messenger::SetThePortraitClass(twin->portrait, DarkKnight, twinResources).HasValue());
         twin->portrait.actor.head = hero.head;
@@ -438,8 +438,8 @@ TEST_F(LetterPortraitTest, CopyingTheHeroTakesTheBodyAsItIs)
     }
 }
 
-// 0x496530 con +0x3e3 del héroe distinto de 0: compara con el registro propio (un acceso) y copia las alas de él
-// (otro), con los 3.848 rand() de cada cierre antes de 0x495a20.
+// 0x496530 with the hero's +0x3e3 other than 0: compares with the own record (one access) and copies the wings from
+// it (another), with the 3848 rand() of each close before 0x495a20.
 TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -450,7 +450,7 @@ TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
         for (Game* world : {game.get(), twin.get()})
         {
             world->Hero().byte3e3 = 1;
-            // El cuerpo como el de la clase: la cabeza y las cinco partes ya coinciden.
+            // The body like the class's: the head and the five parts already match.
             ASSERT_TRUE(
                 Client::Messenger::SetThePortraitClass(world->portrait, DarkKnight, world->Resources()).HasValue());
             for (std::size_t part = 0; part < world->portrait.actor.body.size(); ++part)
@@ -477,8 +477,8 @@ TEST_F(LetterPortraitTest, CopyingATransformedHeroReadsTheOwnRecord)
     }
 }
 
-// La cola de 0x496530 con la mascota distinta: 0x495a20(0x7a, 0), +0x6a4 en 0x7a y el ayudante de nuevo por la
-// mascota (0x1c16: el 0xbf), con su alpha en 0 y +0x688 con la escala del propio personaje.
+// 0x496530's tail with a different pet: 0x495a20(0x7a, 0), +0x6a4 at 0x7a and the helper again by the pet (0x1c16:
+// the 0xbf), with its alpha at 0 and +0x688 with the character's own scale.
 TEST_F(LetterPortraitTest, ANewPetRebuildsTheHelper)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -502,8 +502,8 @@ TEST_F(LetterPortraitTest, ANewPetRebuildsTheHelper)
     }
 }
 
-// 0x495a20: los gestos (0x6c7b14) a pie, adelante desde 0x7a la 0x83 con la animación 0x99; atrás, la 0x78
-// (0x495b00..0x495b33): 0x4f4a10 con el mundo en 0 y, después, +0x381 en 1, el frame en 0 y el blanco en 0xffff.
+// 0x495a20: the gestures (0x6c7b14) on foot, forward from 0x7a the 0x83 with animation 0x99; backward, the 0x78
+// (0x495b00..0x495b33): 0x4f4a10 with the world at 0 and, after, +0x381 at 1, the frame at 0 and the target at 0xffff.
 TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -522,7 +522,7 @@ TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
         ASSERT_TRUE(previous.HasValue()) << previous.Error();
         EXPECT_EQ(previous.Value(), 0x78);
         EXPECT_EQ(game->portrait.shownAction, 0x78);
-        // El 1 de 0x495b19, y el paso de 0x495daf (0x4fd5f0, 0x4fdb9a..0x4fdbd4) lo sube a 2.
+        // The 1 of 0x495b19, and 0x495daf's step (0x4fd5f0, 0x4fdb9a..0x4fdbd4) raises it to 2.
         EXPECT_EQ(game->portrait.actor.byte381, 2);
         EXPECT_EQ(game->portrait.actor.animation.frame, 0.0f);
         EXPECT_EQ(game->portrait.actor.attackTarget, 0xffff);
@@ -530,7 +530,7 @@ TEST_F(LetterPortraitTest, TurningWalksTheGestureList)
     }
 }
 
-// 0x495a20 con un ayudante montado vivo: la lista corta (0x6c7b08), de 0x7a a 0x7c (0x4f37c0).
+// 0x495a20 with a live ridden helper: the short list (0x6c7b08), from 0x7a to 0x7c (0x4f37c0).
 TEST_F(LetterPortraitTest, ARiddenHelperUsesTheShortList)
 {
     auto game = Built(2);
@@ -546,7 +546,7 @@ TEST_F(LetterPortraitTest, ARiddenHelperUsesTheShortList)
     EXPECT_EQ(walking.Value(), 0x94);
 }
 
-// 0x497890: los ángulos del personaje en (−20, 5, 60).
+// 0x497890: the character's angles at (−20, 5, 60).
 TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
 {
     auto game = Built(0);
@@ -556,8 +556,8 @@ TEST_F(LetterPortraitTest, TurningThePortraitSetsItsAngles)
     EXPECT_EQ(game->portrait.actor.angles.z, 60.0f);
 }
 
-// 0x495760: el viewport de 0x620d10 (la y de GL desde abajo, 141 de alto) escalado y truncado, y la vista que lleva el
-// personaje a 10.000 adelante de la cámara: el centro del retrato queda en el medio del viewport.
+// 0x495760: 0x620d10's viewport (GL's y from the bottom, 141 high) scaled and truncated, and the view that puts the
+// character 10000 ahead of the camera: the portrait's center lands in the middle of the viewport.
 TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
 {
     auto game = Built(0);
@@ -571,13 +571,13 @@ TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
     EXPECT_EQ(small.viewport, glm::ivec4(100, 480 - 50 - 141, 0x77, 141));
     const auto large = Client::Messenger::PortraitPass({1280, 960}, base, actor);
     EXPECT_EQ(large.viewport, glm::ivec4(200, 960 - 100 - 282, 0x77 * 2, 282));
-    // El personaje, 75 por encima de sus pies, cae en el centro de la imagen.
+    // The character, 75 above its feet, lands at the image's center.
     const glm::vec4 eye = small.view * glm::vec4(actor.position.x, actor.position.y, actor.position.z + 75.0f, 1.0f);
     const glm::vec4 clip = small.projection * eye;
     EXPECT_NEAR(clip.x / clip.w, 0.0f, 1e-4f);
     EXPECT_NEAR(clip.y / clip.w, 0.0f, 1e-4f);
     EXPECT_LT(eye.z, -9999.0f);
-    // Con el caballo oscuro, 50 más abajo.
+    // With the dark horse, 50 lower.
     actor.pet.model = 0x1c16;
     const auto riding = Client::Messenger::PortraitPass({640, 480}, base, actor);
     const glm::vec4 lifted =
@@ -585,8 +585,8 @@ TEST_F(LetterPortraitTest, ThePortraitPassLooksAtTheCharacterFromAfar)
     EXPECT_NEAR(lifted.y, eye.y, 1e-3f);
 }
 
-// 0x497c10 y 0x495760 antes del dibujo: con el frame por debajo de +0x6a8 y quieto, una acción fuera de 0x7a..0x82
-// vuelve a la 0x7a sin sacar el rand() % 4; el pase pone los ángulos, la escala por el zoom, las luces y +0x3e4.
+// 0x497c10 and 0x495760 before the draw: with the frame below +0x6a8 and still, an action outside 0x7a..0x82 goes back
+// to 0x7a without drawing the rand() % 4; the pass sets the angles, the scale by the zoom, the lights and +0x3e4.
 TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -615,16 +615,16 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheCharacter)
         EXPECT_EQ(portrait.actor.safeZone, 0);
         EXPECT_EQ(portrait.actor.byte3e4, 1);
 
-        // Sin pasar la marca, +0x6a8 sigue al frame.
+        // Without passing the mark, +0x6a8 follows the frame.
         portrait.actor.animation.frame = 7.5f;
         ASSERT_TRUE(Client::Messenger::PrepareThePortraitDraw(portrait, part, {640, 480}, resources).HasValue());
         EXPECT_EQ(portrait.frameMark, 7);
     }
 }
 
-// 0x495796: 0x444010(ayudante, 1) después de 0x4fd5f0 y 0x505de0, con el mundo en 0: el caballo sigue al personaje
-// aunque su celda (la de (−300, −300) por 0,01, con el byte bajo) sea segura, con sus rand() después de los del
-// personaje. Es lo mismo que el paso sin el caballo y 0x444010(ayudante, 1) a mano después.
+// 0x495796: 0x444010(helper, 1) after 0x4fd5f0 and 0x505de0, with the world at 0: the horse follows the character even
+// though its cell (that of (−300, −300) by 0.01, with the low byte) is safe, with its rand() after the character's.
+// It is the same as the step without the horse and 0x444010(helper, 1) by hand after.
 TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -681,9 +681,9 @@ TEST_F(LetterPortraitTest, PreparingTheDrawStepsTheLiveHelperAfterTheCharacter)
     }
 }
 
-// Lo que el dibujo del juego le presta al retrato (LetterPortraitDraw): el lote 2D en 640 × 480 con el texto falso (6
-// columnas por letra, 13 de alto) y los textos 997 a 999 inventados, el lote de los modelos, la luz del terreno en
-// (0,25; 0,5; 0,75) y los sprites del frame. Anota los cierres de los dos lotes, con los vértices del de los modelos.
+// What the game's draw lends the portrait (LetterPortraitDraw): the 2D batch at 640 × 480 with the fake text (6
+// columns per letter, 13 high) and made-up texts 997 to 999, the models' batch, the terrain light at (0.25, 0.5, 0.75)
+// and the frame's sprites. Records the closes of both batches, with the vertices of the models' one.
 class PortraitDrawing
 {
 public:
@@ -699,7 +699,7 @@ public:
     PortraitDrawing& operator=(PortraitDrawing&&) = delete;
     ~PortraitDrawing() = default;
 
-    // Con `cloth` de rand() del frame: el del juego o, entre frames, su copia.
+    // With `cloth` of the frame's rand(): the game's or, between frames, its copy.
     Client::Messenger::LetterPortraitDraw Draw(Client::Models::ClothWorld& cloth, bool originalFrame)
     {
         Client::Kernel::WorldRuntime& runtime = m_game.world.Runtime();
@@ -756,8 +756,8 @@ struct SpriteQuad
     float v = 0.0f;
 };
 
-// Los quads del lote 2D con `slot` (o sin textura), en 640 × 480 con la y hacia abajo y con la u y la v de su esquina
-// de abajo a la derecha.
+// The 2D batch's quads with `slot` (or without texture), at 640 × 480 with y down and with the u and v of their
+// bottom-right corner.
 std::vector<SpriteQuad> QuadsOf(const Client::Render::SpriteBatch& sprites,
                                 std::optional<Client::Render::TextureSlot> slot)
 {
@@ -782,9 +782,9 @@ std::vector<SpriteQuad> QuadsOf(const Client::Render::SpriteBatch& sprites,
     return quads;
 }
 
-// 0x4958e2..0x495a0c: cierra el 2D, empieza el pase del retrato con la profundidad borrada, dibuja el caballo
-// (0x445260(ayudante, 1): visto, con la escala 0x3f3ae148 y su rand() % 30 + 70) y después el personaje (0x50ba30, sin
-// la sombra), y cierra el pase. Los rand(), los de 0x445260 y después los de 0x50ba30.
+// 0x4958e2..0x495a0c: closes the 2D, starts the portrait pass with the depth cleared, draws the horse
+// (0x445260(helper, 1): seen, with scale 0x3f3ae148 and its rand() % 30 + 70) and then the character (0x50ba30,
+// without the shadow), and closes the pass. The rand(): 0x445260's and then 0x50ba30's.
 TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOverACleanDepth)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -822,7 +822,7 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
         EXPECT_TRUE(game->portrait.helper.seen);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(game->portrait.helper.scale), 0x3f3ae148u);
 
-        // A mano: 0x445260(ayudante, 1) saca uno; 0x50ba30, los suyos.
+        // By hand: 0x445260(helper, 1) draws one; 0x50ba30, its own.
         PortraitDrawing manual(*twin);
         const Client::Messenger::LetterPortraitDraw draw = manual.Draw(twin->cloth, true);
         manual.models.Begin(pass.Value());
@@ -846,8 +846,9 @@ TEST_F(LetterPortraitTest, ThePortraitModelDrawsTheHelperAndThenTheCharacterOver
     }
 }
 
-// 0x497c1b..0x497ca2: el retrato en blanco (+0x6c0 en 1, la carta de "webzen"), el cuadro negro de 119 × 141 y el logo
-// (0x653) de 80 × 62 en (x + 0x14; y + 0x26) con la v en 0,76171875. Sin el personaje, sin pase y sin rand().
+// 0x497c1b..0x497ca2: the blank portrait (+0x6c0 at 1, the "webzen" letter), the black box of 119 × 141 and the logo
+// (0x653) of 80 × 62 at (x + 0x14, y + 0x26) with v at 0.76171875. Without the character, without pass and without
+// rand().
 TEST_F(LetterPortraitTest, ABlankPortraitIsABlackBoxWithTheLogo)
 {
     auto game = Load(0);
@@ -879,10 +880,10 @@ TEST_F(LetterPortraitTest, ABlankPortraitIsABlackBoxWithTheLogo)
     EXPECT_EQ(game->cloth.random.State(), before.State());
 }
 
-// 0x497c10 entera en Lorencia y Devias: el paso (PrepareThePortraitDraw), el modelo y, con +0x4c & 1, el ícono de la
-// ayuda (0x651) de 16 × 16 en (x + 1; y + alto − 0x11); con la ayuda a la vista, gris (0,6) de 15 × 15 en
-// (x + 2; y + alto − 0x10) con la u y la v en 0,9375 y los textos 997 a 999 en la caja de 0x5af090 con el modo 1:
-// centrada en x + ancho / 2, desde y + alto − (13 + 2) · 3 y cada uno contra el borde izquierdo.
+// The whole 0x497c10 in Lorencia and Devias: the step (PrepareThePortraitDraw), the model and, with +0x4c & 1, the
+// help icon (0x651) of 16 × 16 at (x + 1, y + height − 0x11); with the help in view, gray (0.6) of 15 × 15 at (x + 2,
+// y + height − 0x10) with u and v at 0.9375 and texts 997 to 999 in 0x5af090's box with mode 1: centered at x + width
+// / 2, from y + height − (13 + 2) · 3 and each against the left edge.
 TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -933,7 +934,7 @@ TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
             EXPECT_EQ(texts[0].text, "Arrastrar gira");
             EXPECT_EQ(texts[1].text, "Rueda acerca");
             EXPECT_EQ(texts[2].text, "Clic vuelve");
-            // La caja: 14 letras · 6 + 4 = 88 de ancho, centrada en 100 + 59: desde 115, y el texto desde 116.
+            // The box: 14 letters · 6 + 4 = 88 wide, centered at 100 + 59: from 115, and the text from 116.
             EXPECT_EQ(texts[0].x, 116);
             EXPECT_EQ(texts[0].y, 50 + 0x8d - (13 + 2) * 3);
             for (const auto& text : texts)
@@ -946,8 +947,8 @@ TEST_F(LetterPortraitTest, TheWholePortraitDrawsTheModelAndThenItsHelp)
     }
 }
 
-// Un dibujo intermedio de MuRet dibuja una copia del retrato con la copia del rand() del frame: el personaje, el
-// caballo y su marca quedan como los dejó el último frame del original, y el rand() del juego no se mueve.
+// An intermediate MuRet draw draws a copy of the portrait with the copy of the frame's rand(): the character, the horse
+// and its mark stay as the original's last frame left them, and the game's rand() does not move.
 TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeftIt)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -978,8 +979,8 @@ TEST_F(LetterPortraitTest, AnIntermediateDrawLeavesThePortraitAsTheLastFrameLeft
     }
 }
 
-// Las ventanas de las cartas con el gancho del juego (LetterPortraitHook): los textos, la medida de 2 por carácter y el
-// paso de las ventanas viejas.
+// The letter windows with the game's hook (LetterPortraitHook): the texts, the measure of 2 per character and the old
+// windows' step.
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -1009,7 +1010,7 @@ protected:
         return view;
     }
 
-    // 0x48ee60(7) en (100, 100): la de escribir con su retrato (0x497f50).
+    // 0x48ee60(7) at (100, 100): the write window with its portrait (0x497f50).
     Client::Ui::OldWindow* OpenTheWriteWindow(Game& game, const Client::Scenes::WorldEntryResources& resources)
     {
         auto view = View(game, resources);
@@ -1038,9 +1039,8 @@ protected:
                                               .screen = Client::Core::PixelSize{640, 480}};
 };
 
-// 0x497f50 de punta a punta: el retrato armado (0x4961d0), el héroe copiado (0x496530, con la clase por 0x513100),
-// la acción 0x7a (0x4978f0) y el ángulo 90 (0x497890), con los rand() de cada uno en ese orden. Abrir la ventana no
-// saca otros.
+// 0x497f50 end to end: the portrait built (0x4961d0), the hero copied (0x496530, with the class by 0x513100), action
+// 0x7a (0x4978f0) and angle 90 (0x497890), with each one's rand() in that order. Opening the window draws no others.
 TEST_F(LetterPortraitWindowsTest, OpeningTheWriteWindowCopiesTheHero)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -1074,9 +1074,9 @@ TEST_F(LetterPortraitWindowsTest, OpeningTheWriteWindowCopiesTheHero)
     }
 }
 
-// El C7 de punta a punta (0x4dcb70): la de leer arma su retrato (0x4999d0) y lo viste con la clase de pkt[8] (0x20: la
-// 1), el equipo (el Unilia, 0xc6) y la acción 2 + 0x78; la dirección 0x4f da el ángulo 15 · 6 y el zoom
-// ((1 · 5 + 0x28) · 2) · 0,01. Los rand(): 0x4961d0, 0x513100, 0x5139f0 y 0x495a20, en ese orden.
+// The C7 end to end (0x4dcb70): the read window builds its portrait (0x4999d0) and dresses it with pkt[8]'s class
+// (0x20: the 1), the equipment (the Unilia, 0xc6) and action 2 + 0x78; direction 0x4f gives angle 15 · 6 and zoom
+// ((1 · 5 + 0x28) · 2) · 0.01. The rand(): 0x4961d0, 0x513100, 0x5139f0 and 0x495a20, in that order.
 TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -1134,9 +1134,9 @@ TEST_F(LetterPortraitWindowsTest, ReceivingALetterDressesThePortrait)
     }
 }
 
-// 0x497970 en el paso de las ventanas viejas: con 0x78abaac en 1 le vuelve a copiar el héroe (sin nada distinto, sin
-// rand()) y +0x360; la rueda lo acerca hasta 1,1; el clic lo agarra y el clic siguiente lo gira con lo que corrió el
-// mouse; sin clic, lo suelta.
+// 0x497970 in the old windows' step: with 0x78abaac at 1 it copies the hero again (with nothing different, no rand())
+// and +0x360; the wheel brings it closer up to 1.1; the click grabs it and the next click turns it by how far the mouse
+// moved; without a click, it lets go.
 TEST_F(LetterPortraitWindowsTest, TheStepFollowsZoomsAndTurns)
 {
     auto game = Load(2);
@@ -1172,7 +1172,7 @@ TEST_F(LetterPortraitWindowsTest, TheStepFollowsZoomsAndTurns)
     EXPECT_EQ(part.base.state, Client::Ui::ShownWindow);
     EXPECT_EQ(globals.capture, 0);
 
-    // El clic derecho vuelve al ángulo y al zoom de partida.
+    // The right click goes back to the starting angle and zoom.
     globals.rightClick = true;
     ASSERT_TRUE(Client::Ui::StepTheOldWindows(manager, globals, view).HasValue());
     EXPECT_EQ(part.angle, 90.0f);

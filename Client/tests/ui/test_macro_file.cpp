@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-// Data\Macro.txt (0x61c1c0 y 0x61c170; CL8 hito 3). Las macros son inventadas.
+// Data\Macro.txt (0x61c1c0 and 0x61c170; CL8 milestone 3). The macros are invented.
 namespace
 {
 using Client::Chat::MacroCount;
@@ -35,7 +35,7 @@ TEST(MacroFileTest, EachWordGoesToItsMacroInOrder)
         EXPECT_EQ(macros.Value()[macro], "");
 }
 
-// Q-C449: "%s" corta en el espacio, y lo que queda corre las macros que siguen. Las de más de diez no se leen.
+// Q-C449: "%s" stops at the space, and the rest shifts the macros that follow. Those past ten are not read.
 TEST(MacroFileTest, AMacroWithSpacesComesBackSplit)
 {
     const auto macros = ReadTheMacros(BytesOf("a b\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\n"));
@@ -46,7 +46,7 @@ TEST(MacroFileTest, AMacroWithSpacesComesBackSplit)
     EXPECT_EQ(macros.Value()[9], "j");
 }
 
-// Los bytes de 0x80 en adelante no son blancos en el locale "C"; el Ctrl-Z del modo texto termina el archivo.
+// Bytes from 0x80 on are not whitespace in the "C" locale; the text mode's Ctrl-Z ends the file.
 TEST(MacroFileTest, TheTextModeEndsAtCtrlZ)
 {
     const auto macros = ReadTheMacros(BytesOf("\xe1\xa0x\x1ay z"));
@@ -62,7 +62,7 @@ TEST(MacroFileTest, AnEmptyFileLeavesThemEmpty)
     EXPECT_EQ(macros.Value(), Macros{});
 }
 
-// Q-C531: una palabra de 0x100 bytes o más no entra en su lugar.
+// Q-C531: a word of 0x100 bytes or more does not fit in its slot.
 TEST(MacroFileTest, AWordThatOverflowsItsSlotIsTheError)
 {
     const std::string fits(MacroSlotBytes - 1, 'x');
@@ -73,7 +73,7 @@ TEST(MacroFileTest, AWordThatOverflowsItsSlotIsTheError)
     EXPECT_NE(macros.Error().find("0x61c1c0"), std::string::npos);
 }
 
-// 0x61c170: cada una con "%s\n" en modo texto, aun vacía; con espacios, tal cual.
+// 0x61c170: each one with "%s\n" in text mode, even when empty; with spaces, as is.
 TEST(MacroFileTest, TheWrittenFileHasOneLinePerMacro)
 {
     Macros macros{};

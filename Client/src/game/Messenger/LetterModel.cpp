@@ -20,14 +20,14 @@ signed char SignedChar(char value)
     return static_cast<signed char>(value);
 }
 
-// strncpy de `size` hasta el primer '\0'.
+// strncpy of `size` up to the first '\0'.
 std::string Cut(std::string_view text, std::size_t size)
 {
     const std::string_view cut = text.substr(0, text.find('\0'));
     return std::string(cut.substr(0, size));
 }
 
-// 0x49f7a0: una leída (1) antes que una sin leer (0).
+// 0x49f7a0: a read one (1) before an unread one (0).
 bool ReadComesFirst(const LetterEntry& a, const LetterEntry& b)
 {
     return a.type == 1 && b.type == 0;
@@ -39,7 +39,7 @@ bool SenderComesFirst(const LetterEntry& a, const LetterEntry& b)
     return TextComesAfter(a.name, b.name);
 }
 
-// 0x49f7f0: la fecha de b contra la de a y, con el principio igual, la hora.
+// 0x49f7f0: b's date against a's and, with the same start, the time.
 bool DateComesFirst(const LetterEntry& a, const LetterEntry& b)
 {
     bool same = false;
@@ -104,7 +104,7 @@ void SortTheLetters(LetterModel& model, std::int32_t mode)
 {
     if (mode != SameLetters)
         model.sortMode = mode;
-    // 0x49f888: con un modo de más de 3 (sin signo), nada.
+    // 0x49f888: with a mode above 3 (unsigned), nothing.
     switch (model.sortMode)
     {
     case ByTypeLetters:

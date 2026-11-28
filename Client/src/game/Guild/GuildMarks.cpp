@@ -20,7 +20,7 @@ namespace Client::Guild
 {
 namespace
 {
-// 0x5f16e2..0x5f17c6: los 16 DWORD de la paleta, 0xAABBGGRR. El 0 lo arma 0x5f16d0..0x5f170f: (fondo ? 0 : 0x80) << 24.
+// 0x5f16e2..0x5f17c6: the palette's 16 DWORDs, 0xAABBGGRR. 0x5f16d0..0x5f170f builds 0: (background ? 0 : 0x80) << 24.
 constexpr std::array<std::uint32_t, 16> Palette{
     0x00000000u, 0xff000000u, 0xff808080u, 0xffffffffu, 0xff0000ffu, 0xff0080ffu, 0xff00ffffu, 0xff00ff80u,
     0xff00ff00u, 0xff80ff00u, 0xffffff00u, 0xffff8000u, 0xffff0000u, 0xffff0080u, 0xffff00ffu, 0xff8000ffu,
@@ -30,7 +30,7 @@ constexpr std::uint32_t AlphaShift = 24u;
 constexpr std::size_t Channels = 4;
 constexpr std::uint32_t ByteMask = 0xffu;
 
-// 0x5f1c66 y 0x5f1c88..0x5f1ca6: el negro del 0 y sus diagonales grises.
+// 0x5f1c66 and 0x5f1c88..0x5f1ca6: 0's black and its gray diagonals.
 constexpr std::uint32_t SwatchBlack = 0xff000000u;
 constexpr std::uint32_t SwatchGray = 0xff808080u;
 

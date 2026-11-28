@@ -27,9 +27,9 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes: las funciones del objeto de las misiones [0x710148] que no dibujan (0x4195c0, 0x418e20, 0x418ee0,
-// 0x418f40, 0x418fb0, 0x4194c0, 0x419600, 0x419b10, 0x4198b0, 0x419840 y 0x558410). Las misiones, los diálogos y los
-// textos son inventados.
+// Client::Quests: the functions of the quest object [0x710148] that do not draw (0x4195c0, 0x418e20, 0x418ee0,
+// 0x418f40, 0x418fb0, 0x4194c0, 0x419600, 0x419b10, 0x4198b0, 0x419840 and 0x558410). The quests, dialogs and texts
+// are made up.
 namespace
 {
 using Client::Quests::QuestContext;
@@ -37,9 +37,9 @@ using Client::Quests::QuestState;
 using Client::Quests::QuestStateOf;
 
 constexpr std::uint32_t Seed = 0x5eed;
-// Un registro propio que se cierra hasta 0 gasta 3.848 rand() (0x40b4d0).
+// An own record closed down to 0 spends 3848 rand() (0x40b4d0).
 constexpr int OwnRecordClose = 0xf08;
-// El pergamino inventado de la misión 0: grupo 14, índice 23.
+// Quest 0's made-up scroll.
 constexpr std::int32_t ScrollType = 14 * 0x200 + 23;
 
 void PutText(std::array<char, Client::Tables::DialogTextSize>& text, std::string_view value)
@@ -54,7 +54,7 @@ struct Quests
         world.Runtime().hero = 3;
         Hero().alive = true;
         Hero().characterClass = 0;
-        // La misión 0: un pedido de ítems para la clase 0 con la condición 0 (nivel 10 a 0 y 1.000 de zen).
+        // Quest 0: an item request for class 0 with condition 0 (level 10 to 0 and 1000 zen).
         Client::Tables::QuestRecord& first = Quest().records[0];
         first.entryCount = 1;
         first.conditionCount = 1;
@@ -75,7 +75,7 @@ struct Quests
         condition.minLevel = 10;
         condition.zen = 1000;
         condition.failDialog = 20;
-        // La misión 1: un pedido para la clase 1 nada más.
+        // Quest 1: a request for class 1 and nothing else.
         Client::Tables::QuestRecord& second = Quest().records[1];
         second.entryCount = 1;
         second.entries[0].classes = {0, 1, 0, 0, 0};
@@ -124,22 +124,22 @@ TEST(Quests, TheStateOfAQuestIsReadShiftedLikeTheOriginal)
 {
     const auto runtime = std::make_unique<Client::Kernel::WorldRuntime>();
     QuestState& quest = runtime->quest;
-    // Byte 0: las misiones 0 a 3 donde las escribe el GS (2 bits cada una, la 0 abajo).
+    // Byte 0: quests 0 to 3 where the GS writes them (2 bits each, quest 0 at the bottom).
     quest.states[0] = 0b10'01'11'00;
     quest.states[1] = 0b11'00'00'10;
     EXPECT_EQ(QuestStateOf(*runtime, 0), 0);
     EXPECT_EQ(QuestStateOf(*runtime, 1), 3);
     EXPECT_EQ(QuestStateOf(*runtime, 2), 1);
     EXPECT_EQ(QuestStateOf(*runtime, 3), 2);
-    // Q-C841: la 4 lee el byte 1 corrido (4 − 1) · 2 = 6 bits; desde la 5, la cuenta llega a 8 y da 0.
+    // Q-C841: quest 4 reads byte 1 shifted (4 − 1) · 2 = 6 bits; from quest 5, the count reaches 8 and gives 0.
     EXPECT_EQ(QuestStateOf(*runtime, 4), 3);
     EXPECT_EQ(QuestStateOf(*runtime, 5), 0);
     EXPECT_EQ(QuestStateOf(*runtime, 8), 0);
-    // −1: el byte 0 (la división con signo) corrido 30 bits; fuera de los 64 bytes, 0.
+    // −1: byte 0 (the signed division) shifted 30 bits; outside the 64 bytes, 0.
     EXPECT_EQ(QuestStateOf(*runtime, -1), 0);
     EXPECT_EQ(QuestStateOf(*runtime, 200), 0);
     EXPECT_EQ(QuestStateOf(*runtime, -5), 0);
-    // La 236 lee el relleno de +0x21387 (el byte 59) corrido (236 − 59) & 0xf · 2 = 2 bits.
+    // Quest 236 reads the padding at +0x21387 (byte 59) shifted (236 − 59) & 0xf · 2 = 2 bits.
     quest.byte21387 = 0b0000'1100;
     EXPECT_EQ(QuestStateOf(*runtime, 236), 3);
 
@@ -160,7 +160,7 @@ TEST(Quests, MissingItemsCountTheOccupiedCellsOfTheTypeAndLevel)
     EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType, 2, -1), 0);
     EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType, 1, 0), 0);
     EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType + 1, 3, -1), 3);
-    // Una cuenta de 0 sin ninguno da 0; con uno, también (llega a la cuenta).
+    // A count of 0 with none gives 0; with one, too (it reaches the count).
     EXPECT_EQ(Client::Quests::MissingQuestItems(inventory, ScrollType + 1, 0, -1), 0);
 }
 
@@ -181,7 +181,7 @@ TEST(Quests, TheListOfTheA0CopiesTheStatesAndFindsTheFirstUnfinished)
     EXPECT_EQ(quest.states[0], 0b00'00'10'10);
     EXPECT_EQ(quest.states[1], 0x40);
     EXPECT_TRUE(std::ranges::all_of(std::span(quest.states).subspan(2), [](std::uint8_t b) { return b == 0; }));
-    // La cuenta de bytes es también la de misiones que mira: las dos primeras están terminadas.
+    // The byte count is also the count of quests it looks at: the first two are done.
     EXPECT_EQ(quest.current, 2);
     EXPECT_EQ(quest.reached, 2);
     EXPECT_EQ(tested->Hero().byte390, 0);
@@ -191,27 +191,27 @@ TEST(Quests, TheThirdQuestDoneMarksTheHeroAndAShortA0IsFilledWithZeros)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    // Q-C840 y P-C171: la cuenta pide 3 bytes y el paquete trae 1; lo que falta va en 0.
+    // Q-C840 and P-C171: the count asks for 3 bytes and the packet carries 1; what is missing goes at 0.
     const std::array<std::uint8_t, 1> bytes{0b10'10'10'10};
     EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 3, bytes), 0u);
     EXPECT_EQ(quest.states[0], 0b10'10'10'10);
     EXPECT_EQ(quest.states[1], 0);
     EXPECT_EQ(quest.states[2], 0);
-    // Las tres que mira están terminadas: la primera sin terminar es la cuenta.
+    // The three it looks at are done: the first one not done is the count.
     EXPECT_EQ(quest.current, 3);
     EXPECT_EQ(tested->Hero().byte390, 1);
 }
 
-// Q-C1126: la copia del A0 (0x418e20) sigue después de los 50 bytes por los campos del objeto hasta su final
-// (+0x21398): +0x2137e.., la ventana de +0x21383, el diálogo, el zen, la pestaña, +0x2138d (también el 1 de recién) y
-// la esquina. Después, la primera sin terminar (con lo que dejó la copia) en +0x2137e y +0x2137f. Lo que pasa del
-// objeto no se escribe y se cuenta.
+// Q-C1126: the A0's copy (0x418e20) goes on past the 50 bytes through the object's fields up to its end (+0x21398):
+// +0x2137e.., the window of +0x21383, the dialog, the zen, the tab, +0x2138d (also the 1 just set) and the corner.
+// Then, the first one not done (with what the copy left) in +0x2137e and +0x2137f. What goes past the object is not
+// written and is counted.
 TEST(Quests, AnA0OfMoreThanFiftyBytesWritesTheObjectUpToItsEnd)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
     std::vector<std::uint8_t> bytes(80, 0);
-    // 0xaa: las misiones 0 a 4 terminadas (Q-C841) y la 5 no.
+    // 0xaa: quests 0 to 4 done (Q-C841) and 5 not.
     std::fill_n(bytes.begin(), 50, std::uint8_t{0xaa});
     for (std::size_t i = 50; i < bytes.size(); ++i)
         bytes[i] = static_cast<std::uint8_t>(i);
@@ -232,7 +232,7 @@ TEST(Quests, AnA0OfMoreThanFiftyBytesWritesTheObjectUpToItsEnd)
     EXPECT_EQ(quest.x, 0x47464544);
     EXPECT_EQ(quest.y, 0x4b4a4948);
     EXPECT_EQ(tested->Hero().byte390, 1);
-    // Hasta el final justo, nada afuera.
+    // Up to the exact end, nothing outside.
     EXPECT_EQ(Client::Quests::ApplyTheQuestList(tested->world, 76, bytes), 0u);
 }
 
@@ -242,7 +242,7 @@ TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
     QuestState& quest = tested->Quest();
     quest.reached = 9;
     quest.states[1] = 0xff;
-    // Q-C843: el byte entero de las cuatro misiones, no los dos bits de la 5.
+    // Q-C843: the whole byte of the four quests, not quest 5's two bits.
     Client::Quests::SetTheQuestState(tested->world, 5, 0x04);
     EXPECT_EQ(quest.current, 5);
     EXPECT_EQ(quest.reached, 9);
@@ -254,9 +254,9 @@ TEST(Quests, TheA1WritesTheWholeByteAndKeepsTheHighest)
     EXPECT_EQ(tested->Hero().byte390, 1);
 }
 
-// Q-C1126: desde la misión 200, 0x418ee0 escribe el estado en los campos que siguen a los 50 bytes, después de poner
-// +0x2137e y +0x2137f: la 201 pisa la misión en curso de recién, la 204 la más alta, la 222 la ventana y la 255 el byte
-// alto del zen.
+// Q-C1126: from quest 200 on, 0x418ee0 writes the state in the fields that follow the 50 bytes, after setting
+// +0x2137e and +0x2137f: 201 overwrites the current quest just set, 204 the highest, 222 the window and 255 the zen's
+// high byte.
 TEST(Quests, TheA1PastTheTwoHundredWritesTheFieldsThatFollow)
 {
     auto tested = MakeQuests();
@@ -286,7 +286,7 @@ TEST(Quests, AnAvailableQuestChecksItsConditionsWithTheOwnRecordOpen)
     ASSERT_TRUE(refreshed.HasValue());
     EXPECT_EQ(refreshed.Value(), Client::Quests::QuestAvailable);
     EXPECT_EQ(quest.dialog, 10);
-    // Sin el zen: lo guarda sin abrir el registro. El nivel mínimo, con un acceso que lo cierra.
+    // Without the zen: it stores it without opening the record. The minimum level, with an access that closes it.
     EXPECT_EQ(quest.zen, 1000u);
     EXPECT_EQ(tested->random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose).State());
 }
@@ -318,14 +318,14 @@ TEST(Quests, TheZenIsReadWithTheRecordOpenOnlyWhenAsked)
     EXPECT_EQ(quest.zen, 1000u);
     EXPECT_EQ(quest.dialog, 20);
     EXPECT_EQ(quest.currentState, Client::Quests::QuestConditionFailed);
-    // El mínimo, el máximo y el zen: tres accesos que cierran el registro.
+    // The minimum, the maximum and the zen: three accesses that close the record.
     EXPECT_EQ(tested->random.State(), Client::Tests::AfterDraws(Seed, 3 * OwnRecordClose).State());
 
     tested->world.OwnCharacter().zen = 1000;
     const auto passed = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, true);
     ASSERT_TRUE(passed.HasValue());
     EXPECT_TRUE(passed.Value());
-    // El máximo se compara sin signo: 31 lo pasa.
+    // The maximum is compared unsigned: 31 exceeds it.
     tested->world.OwnCharacter().level = 31;
     const auto over = Client::Quests::CheckTheQuestConditions(tested->Context(), 0, false);
     ASSERT_TRUE(over.HasValue());
@@ -370,7 +370,7 @@ TEST(Quests, AQuestInProgressShowsWhetherTheItemsAreThere)
     const auto complete = Client::Quests::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(complete.HasValue());
     EXPECT_TRUE(complete.Value());
-    // Sin pedidos de ítems de la clase, no.
+    // Without item requests for the class, no.
     quest.records[0].entries[0].kind = 0;
     const auto noItems = Client::Quests::CanCompleteTheQuest(tested->world);
     ASSERT_TRUE(noItems.HasValue());
@@ -395,15 +395,15 @@ TEST(Quests, WithoutAnEntryForTheClassTheQuestGoesBackOne)
     quest.characterClass = 0;
     quest.current = 1;
     quest.states[0] = 0b00'10;
-    // La misión 1 no tiene pedido de la clase 0: −−+0x2137e y 0x419600(0xff) con la 0, terminada.
+    // Quest 1 has no request for class 0: −−+0x2137e and 0x419600(0xff) with quest 0, done.
     const auto refreshed = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
     ASSERT_TRUE(refreshed.HasValue());
     EXPECT_EQ(quest.current, 0);
     EXPECT_EQ(quest.dialog, 13);
     EXPECT_EQ(quest.currentState, Client::Quests::QuestDone);
 
-    // Q-C842: desde la 0, la anterior es la 255. Su estado es el byte alto del zen de +0x21388 (byte 63 desde
-    // +0x2134c, sin correr): con 0, ningún caso, y el diálogo queda.
+    // Q-C842: from quest 0, the previous one is 255. Its state is the zen's high byte at +0x21388 (byte 63 from
+    // +0x2134c, unshifted): with 0, no case, and the dialog stays.
     quest.characterClass = 1;
     quest.current = 0;
     const auto wrapped = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
@@ -411,7 +411,7 @@ TEST(Quests, WithoutAnEntryForTheClassTheQuestGoesBackOne)
     EXPECT_EQ(wrapped.Value(), Client::Quests::QuestNotStarted);
     EXPECT_EQ(quest.current, 255);
     EXPECT_EQ(quest.dialog, 13);
-    // Con un zen desde 0x2000000, la 255 está terminada y su registro está fuera de los 200: corta.
+    // With a zen from 0x2000000, quest 255 is done and its record is outside the 200: it cuts.
     quest.zen = 0x02000000;
     quest.current = 0;
     const auto outside = Client::Quests::RefreshTheQuest(tested->Context(), Client::Quests::QuestDone);
@@ -423,7 +423,8 @@ TEST(Quests, AClassPastTheFiveFlagsReadsTheBytesThatFollow)
 {
     auto tested = MakeQuests();
     QuestState& quest = tested->Quest();
-    // La clase 5 lee el byte bajo del primer diálogo (10); la 6, el alto (0): sin pedido, vuelve a la 255.
+    // Class 5 reads the low byte of the first dialog (10); class 6, the high one (0): with no request, it goes back to
+    // 255.
     quest.characterClass = 5;
     const auto low = Client::Quests::QuestDialogOf(tested->Context(), 0, 3);
     ASSERT_TRUE(low.HasValue());
@@ -431,7 +432,7 @@ TEST(Quests, AClassPastTheFiveFlagsReadsTheBytesThatFollow)
     quest.characterClass = 6;
     ASSERT_TRUE(Client::Quests::QuestDialogOf(tested->Context(), 0, 3).HasValue());
     EXPECT_EQ(quest.current, 255);
-    // La 0xff de antes del primer A0 lee +0x2d + 0xff: el grupo del ítem del pedido 13.
+    // The 0xff before the first A0 reads +0x2d + 0xff: the item group of request 13.
     quest.current = 0;
     quest.characterClass = Client::Quests::QuestClassUnknown;
     quest.records[0].entries[13].itemGroup = 1;
@@ -481,7 +482,7 @@ TEST(Quests, ADialogWithoutAnswersShowsTheCloseText)
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     quest.characterClass = 0;
     ASSERT_TRUE(Client::Quests::OpenTheQuestDialog(tested->Context(), 0).HasValue());
-    // Estado 0: ningún caso; +0x21384 queda como estaba (0), y el 0 no tiene texto ni respuestas.
+    // State 0: no case; +0x21384 stays as it was (0), and dialog 0 has no text or answers.
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 0);
     EXPECT_EQ(runtime.dialogBox.answerCount, 1);
     EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
@@ -501,7 +502,7 @@ TEST(Quests, TheListShowsTheHighestAndGoesBackToTheCurrent)
     EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestListWindow);
     EXPECT_EQ(quest.byte21380, 0);
     EXPECT_EQ(quest.byte21381, 0);
-    // La 1 leída con el corrimiento de 2 bits: terminada, el diálogo 33.
+    // Quest 1 read with the 2-bit shift: done, dialog 33.
     EXPECT_EQ(quest.dialog, 33);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 33);
     EXPECT_EQ(quest.current, 0);

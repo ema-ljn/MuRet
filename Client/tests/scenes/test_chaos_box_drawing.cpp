@@ -32,9 +32,9 @@
 #include <utility>
 #include <vector>
 
-// El dibujo de la caja del caos (0x5febf0, CL9 hito 6, fase 3; 06 § La caja del caos), en (0x104, 0) de 640 × 480:
-// la ventana, la grilla, el título del modo con el impuesto, el nombre, la chance y el precio de la mezcla, los avisos
-// y el botón de mezclar. Los textos son inventados y miden 6 columnas por letra. No saca rand().
+// The chaos box drawing (0x5febf0, CL9 milestone 6, phase 3; 06 § La caja del caos), at (0x104, 0) in 640 × 480: the
+// window, the grid, the mode's title with the tax, the mix's name, rate and price, the warnings and the mix button.
+// The texts are made up and measure 6 columns per letter. It takes no rand().
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -51,7 +51,7 @@ constexpr std::uint32_t Seed = 0x0c4a05u;
 constexpr std::int32_t Left = 0x104;
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
-// 0x5ff6f0: el botón de mezclar, de 44 × 32 en (Left + 75, 300).
+// 0x5ff6f0: the mix button, 44 × 32 at (Left + 75, 300).
 constexpr std::int32_t ButtonX = Left + 75;
 constexpr std::int32_t ButtonY = 300;
 
@@ -67,7 +67,7 @@ std::map<std::size_t, std::string> ChaosTexts()
             {1863, "lobo"},      {1921, "cuerno"},      {1923, "fenrir"}};
 }
 
-// Los slots de los quads del lote, en orden (NoTexture sin textura, Marker si es la marca de un texto).
+// The slots of the batch's quads, in order (NoTexture without a texture, Marker for a text's mark).
 std::vector<int> SlotsOf(const SpriteBatch& sprites)
 {
     std::vector<int> slots;
@@ -90,7 +90,7 @@ struct Corner
     float y = 0.0f;
 };
 
-// La esquina de arriba a la izquierda del quad `index` con `slot`, en 640 × 480.
+// The top-left corner of quad `index` with `slot`, in 640 × 480.
 std::optional<Corner> CornerOf(const SpriteBatch& sprites, int slot, std::size_t index = 0)
 {
     const auto vertices = sprites.Vertices();
@@ -152,7 +152,7 @@ protected:
         return Client::ChaosMix::DrawTheChaosBox(context, panels.Registry());
     }
 
-    // Lo que se dibujó desde el renglón del nombre, sin el título.
+    // What was drawn from the name's row on, without the title.
     [[nodiscard]] std::vector<RecordedText> Lines() const
     {
         std::vector<RecordedText> lines;
@@ -189,10 +189,10 @@ void ExpectLine(const RecordedText& line, std::int32_t y, const std::string& tex
     EXPECT_EQ(line.style.font, FontKind::Bold) << text;
 }
 
-// 0x5febf0 con el 3 y la suerte, el modo 0 y el impuesto en 3, en Lorencia, Devias y Noria (la del duende del caos):
-// la ventana (0x104 y 0x105), las 32 casillas (0x115 vacías, 0x116 con la espada), el título 735 y la tasa en la caja
-// de 120 columnas, el nombre 604 en celeste, la chance 50 + 25, el precio de 2.000.000 con el impuesto (2.060.000),
-// la joya del caos, los tres avisos del 3 y el botón 0x124. Deja el precio en 0x7d2dca0, y la esquina en (0x104, 0).
+// 0x5febf0 with the 3 and luck, mode 0 and tax at 3, in Lorencia, Devias and Noria (the chaos goblin's): the window
+// (0x104 and 0x105), the 32 cells (0x115 empty, 0x116 with the sword), title 735 and the rate in the 120-column box,
+// name 604 in light blue, rate 50 + 25, price 2000000 with the tax (2060000), the chaos jewel, the 3's three warnings
+// and button 0x124. Leaves the price in 0x7d2dca0 and the corner at (0x104, 0).
 TEST_F(ChaosBoxDrawingTest, TheUpgradeShowsItsNameRateAndTaxedPrice)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -258,8 +258,8 @@ TEST_F(ChaosBoxDrawingTest, TheUpgradeShowsItsNameRateAndTaxedPrice)
     }
 }
 
-// 0x5ff6f0..0x5ff816: con el mouse sobre el botón (x87: [x, x + 44) × [y, y + 32)), el botón apretado (0x125) si el
-// izquierdo está abajo, y la ayuda 591 con la fuente normal en (x, y − 13). Fuera, nada más.
+// 0x5ff6f0..0x5ff816: with the mouse over the button (x87: [x, x + 44) × [y, y + 32)), the pressed button (0x125) if
+// the left is down, and help 591 in the normal font at (x, y − 13). Outside, nothing more.
 TEST_F(ChaosBoxDrawingTest, TheMixButtonPressesAndShowsItsHelp)
 {
     Npc().mixKind = 0;
@@ -291,9 +291,9 @@ TEST_F(ChaosBoxDrawingTest, TheMixButtonPressesAndShowsItsHelp)
     }
 }
 
-// 0x5ff0c5..0x5ff2cd y 0x5ff2f2..0x5ff3e4: sin mezcla (EDI 0) el nombre 601 en rojo, la chance 0 y el precio "0"; en
-// el modo 1, los avisos 588 (con el 591), 589 y 590 y el título 736. El 0xb se muestra como las alas (614, celeste).
-// El 2 con 0x7d2dc9d suma "+ n%" en celeste sobre el mismo buffer.
+// 0x5ff0c5..0x5ff2cd and 0x5ff2f2..0x5ff3e4: without a mix (EDI 0) name 601 in red, rate 0 and price "0"; in mode 1,
+// warnings 588 (with 591), 589 and 590 and title 736. The 0xb shows as the wings (614, light blue). The 2 with
+// 0x7d2dc9d appends "+ n%" in light blue to the same buffer.
 TEST_F(ChaosBoxDrawingTest, TheNameAndRateFollowTheKind)
 {
     Npc().mixKind = 0;
@@ -329,9 +329,9 @@ TEST_F(ChaosBoxDrawingTest, TheNameAndRateFollowTheKind)
     ExpectLine(lines[2], 0x5a, "zen 100,000 (100,000)", 0xffffe6d2u);
 }
 
-// 0x5ff109..0x5ff280: los nombres armados (0x18 con el 1172, 0x16 con el 664 y el tipo − 10, el 0xf con "%s %s" y el
-// 1412, el 0x1c con "%s %s %s" y la capa) y el precio de las pociones (1636, con el 590 abajo dibujado antes); el 5
-// con los avisos 610 y 611.
+// 0x5ff109..0x5ff280: the built names (0x18 with 1172, 0x16 with 664 and the type − 10, 0xf with "%s %s" and 1412,
+// 0x1c with "%s %s %s" and the cape) and the potions' price (1636, with 590 below drawn first); the 5 with warnings 610
+// and 611.
 TEST_F(ChaosBoxDrawingTest, TheBuiltNamesAndThePotionPrice)
 {
     Npc().mixKind = 0x18;
@@ -374,8 +374,8 @@ TEST_F(ChaosBoxDrawingTest, TheBuiltNamesAndThePotionPrice)
     EXPECT_EQ(lines[6].text, "falla dos");
 }
 
-// 0x5fecaa..0x5fece7 y 0x5feda3: el modo 2 en adelante pone el título 583 en 0xc sin la tasa; con la mezcla pedida
-// (0x7d2dc80 en 2), el precio en 0 y nada más que la ventana, la grilla y el título. Cerrada, nada.
+// 0x5fecaa..0x5fece7 and 0x5feda3: mode 2 onward sets title 583 at 0xc without the rate; with the mix requested
+// (0x7d2dc80 at 2), the price at 0 and nothing but the window, the grid and the title. Closed, nothing.
 TEST_F(ChaosBoxDrawingTest, TheOtherModesAndTheRequestedMix)
 {
     Npc().chaosMixMode = 2;
@@ -396,8 +396,8 @@ TEST_F(ChaosBoxDrawingTest, TheOtherModesAndTheRequestedMix)
     EXPECT_EQ(Runtime().ui.npcWindowX, 7);
 }
 
-// 0x5fee3a: el 2 de nivel 8 lee el primer dword del formato de 0x6c9dc0 y sigue dibujando;
-// sin Text.bmd, el error conserva la dirección del título.
+// 0x5fee3a: the level-8 2 reads the first dword of 0x6c9dc0's format and keeps drawing; without Text.bmd, the error
+// keeps the title's address.
 TEST_F(ChaosBoxDrawingTest, TheNativeDataPastTheRatesStillDrawsItsQuote)
 {
     Npc().mixKind = 2;

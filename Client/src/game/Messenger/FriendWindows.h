@@ -10,9 +10,9 @@
 #include <string>
 #include <string_view>
 
-// La ventana de amigos (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): lo que el juego y los paquetes C0..C4 le
-// piden al administrador de las ventanas viejas. La ventana, sus pestañas y la caja de agregar un amigo son clases
-// del administrador (OldWindowKind) y corren por su paso (UI/OldWindows); acá está lo que se llama de afuera.
+// The friends window (CL9 milestone 9; 06 § HUD y ventanas, "Los amigos"): what the game and packets C0..C4 ask of
+// the old windows' manager. The window, its tabs and the add-a-friend box are classes of the manager (OldWindowKind)
+// and run through its step (Ui/OldWindows); here is what is called from outside.
 namespace Client::Render::Text
 {
 class ITextMeasure;
@@ -29,48 +29,48 @@ struct OldWindowDrawView;
 
 namespace Client::Messenger
 {
-// La x y la y de la primera vez (0x6599a0 con el panel 1, 0x659f3d, y 0x4906a0).
+// The x and y of the first time (0x6599a0 with panel 1, 0x659f3d, and 0x4906a0).
 inline constexpr std::int32_t FriendsWindowX = 0x186;
 inline constexpr std::int32_t FriendsWindowY = 0x106;
-// +0xb0 de la de amigos, que es también el lugar en OldWindow::tabs: los amigos, las cartas y las ventanas.
+// +0xb0 of the friends window, which is also the place in OldWindow::tabs: friends, letters and windows.
 inline constexpr std::int32_t FriendTabNumber = 0;
 inline constexpr std::int32_t LettersTabNumber = 1;
 inline constexpr std::int32_t WindowsTabNumber = 2;
 inline constexpr std::size_t FriendsTabCount = 3;
-// 0x491080: el nivel que hace falta (+0xe del registro propio) y el texto si no se tiene.
+// 0x491080: the level needed (+0xe of the own record) and the text without it.
 inline constexpr std::uint16_t FriendsLevel = 6;
 inline constexpr std::size_t FriendsLevelText = 1067;
-// 0x491080: el cartel de ayuda de Text.bmd (0x77183ac) en la cola normal (tipo 2), a 2,5 y en 0xffc8dce6.
+// 0x491080: the Text.bmd help banner (0x77183ac) in the normal queue (type 2), at 2.5 and in 0xffc8dce6.
 inline constexpr std::size_t FriendsHelpText = 1244;
 
-// 0x491080 desde el nivel: con la de amigos oculta (3), la muestra (0x490670) con los sonidos 0x19 y 0x1c; a la vista
-// (0), la suelta (0x4914e0); con otro estado, nada; sin ella, la arma (0x48ee60(3)) en (x, y) la primera vez o donde
-// estaba, la sube, anota las ventanas (0x4914f0) y, si estaba, le devuelve el tamaño y lo estirado, la acomoda y corre
-// un paso entero de las ventanas (0x490490). Devuelve si la armó: entonces 0x491080 pone el cartel de ayuda (0x46b720)
-// si las colas están quietas.
+// 0x491080 after the level: with the friends window hidden (3), it shows it (0x490670) with sounds 0x19 and 0x1c;
+// shown (0), it releases it (0x4914e0); with another state, nothing; without it, it builds it (0x48ee60(3)) at (x, y)
+// the first time or where it was, raises it, notes the windows (0x4914f0) and, if it existed, gives it back its size
+// and stretch, settles it and runs a whole step of the windows (0x490490). Returns whether it built it: then 0x491080
+// puts up the help banner (0x46b720) if the queues are idle.
 [[nodiscard]] Core::Expected<bool, std::string> OpenTheFriendsWindow(Ui::OldWindowManager& manager, std::int32_t x,
                                                                      std::int32_t y,
                                                                      const Ui::OldWindowGlobals& globals,
                                                                      const Ui::OldWindowStepView& view);
 
-// 0x49ddd0 sobre la pestaña de amigos (+0xb8) de la ventana, si está: copia el modelo a la lista (0x49bd60) y deja
-// elegido al último con el nombre del que estaba elegido.
+// 0x49ddd0 over the window's friends tab (+0xb8), if there is one: copies the model to the list (0x49bd60) and leaves
+// chosen the last one with the name of the one that was chosen.
 void RefreshTheFriendTab(Ui::OldWindowManager& manager);
 
-// 0x4918d0: +0xe8 y el título, 990 con la lista o 1066 sin ella; cambia el de la ventana si está.
+// 0x4918d0: +0xe8 and the title, 990 with the list or 1066 without it; changes the window's if it exists.
 void MarkTheFriendList(Ui::OldWindowManager& manager, std::int32_t received, const Ui::OldWindowTexts& texts);
 
-// 0x4a4440: el nombre del que pidió ser amigo, en la caja del C2.
+// 0x4a4440: the name of the one who asked to be a friend, in the C2's box.
 void RememberTheFriendRequest(Ui::OldWindowManager& manager, std::int32_t box, std::string_view name);
 
-// El EDIT de las ventanas viejas con el foco (SetFocus de 0x4682a0): lo que escribe el jugador (WM_CHAR), el borrar
-// y Enter, que la subclase 0x467b10 le manda a su padre como el 7 si la lista de ventanas no está armada (+0x150).
+// The old windows' EDIT with the focus (SetFocus of 0x4682a0): what the player types (WM_CHAR), delete and Enter,
+// which the subclass 0x467b10 sends to its parent as the 7 if the window list is not armed (+0x150).
 [[nodiscard]] bool HasAnOldEditFocused(const Ui::OldWindowManager& manager, Chat::ChatFocus focus);
 void TypeInTheOldEdit(Ui::OldWindowManager& manager, std::string_view typed);
 void BackspaceInTheOldEdit(Ui::OldWindowManager& manager);
-// Con +0xc4 en 1, las flechas, Inicio, Fin, RePág, AvPág, el borrar y el pegar son los del EDIT de varios renglones
-// (UI/OldEditLines.h, con `measure` para los renglones). Tab pasa el foco al EDIT de +0x98 (0x467d07) y deja en él la
-// lista de las flechas (`focusedList`, 0x5762ec0).
+// With +0xc4 at 1, the arrows, Home, End, PgUp, PgDn, delete and paste are the multiline EDIT's (Ui/OldEditLines.h,
+// with `measure` for the lines). Tab passes the focus to the EDIT at +0x98 (0x467d07) and leaves the arrows' list on
+// it (`focusedList`, 0x5762ec0).
 void ApplyKeyToTheOldEdit(Ui::OldWindowManager& manager, Ui::OldEditKey key, bool shift, bool ctrl,
                           Platform::IClipboard* clipboard = nullptr,
                           const Render::Text::ITextMeasure* measure = nullptr, std::int32_t* focusedList = nullptr);
@@ -78,9 +78,9 @@ void SetTheOldEditComposition(Ui::OldWindowManager& manager, std::string_view te
                               std::int32_t length);
 void PressEnterInTheOldEdit(Ui::OldWindowManager& manager);
 
-// Lo que el dibujo de la ventana de amigos (0x4a2620), de sus pestañas (0x49cc20 y 0x49e7f0) y de la caja de agregar
-// (0x4a3750) hace antes de dibujar: arrastradas o cambiando de tamaño, vuelven a ubicar y medir a sus hijas (el 8 y el
-// 9 con 0x45aa50), y la de amigos les pasa el estado. El dibujo en sí está en UI/FriendWindowsDraw.
+// What the drawing of the friends window (0x4a2620), its tabs (0x49cc20 and 0x49e7f0) and the add box (0x4a3750) does
+// before drawing: dragged or resizing, they place and measure their children again (the 8 and the 9 with 0x45aa50),
+// and the friends window passes them the state. The drawing itself is in Messenger/FriendWindowsDraw.
 [[nodiscard]] Core::Expected<void, std::string>
 SettleTheFriendsForTheDraw(Ui::OldWindowManager& manager, Ui::OldWindow& window, const Ui::OldWindowDrawView& view);
 } // namespace Client::Messenger

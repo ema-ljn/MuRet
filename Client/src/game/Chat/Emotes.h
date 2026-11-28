@@ -7,20 +7,20 @@
 #include <optional>
 #include <string_view>
 
-// La búsqueda de los emotes en lo dicho (CL9 hito 1; 06 § El chat, "El emote"): 0x576eb0 hasta el salto a su caso.
-// Lo que hace cada caso es Actors::DoTheEmote. *Estático*.
+// The search for emotes in what was said (CL9 milestone 1; 06 § El chat, "El emote"): 0x576eb0 up to the jump to its
+// case. What each case does is Actors::DoTheEmote. *Static*.
 namespace Client::Chat
 {
-// 0x576eb0: los textos de Text.bmd que busca, del 270 al 348 y el 783.
+// 0x576eb0: the Text.bmd texts it searches, from 270 to 348 and the 783.
 inline constexpr std::size_t FirstEmoteText = 270;
 inline constexpr std::size_t LastEmoteText = 348;
 inline constexpr std::size_t LastEmoteExtraText = 783;
-// Los 95 que busca: los 80 de Text.bmd y los 15 literales del binario.
+// The 95 it searches: the 80 of Text.bmd and the 15 literals of the binary.
 inline constexpr std::size_t EmoteTriggerCount = 95;
 
-// 0x576eb0, la búsqueda (0x576ede..0x577f88): los 95 en el orden del original, cada uno con 0x576960(lo dicho, texto,
-// 0); el primero que está decide el caso. Los 15 literales (0x6c90e0..0x6c912c) se comparan en CP949 tal cual. El 291,
-// el 317 y el 348 se prueban al final, cada uno solo. Un texto que Text.bmd no tiene queda vacío, y un texto vacío
-// 0x576960 lo encuentra en cualquier mensaje, como el original con sus textos en cero. Sin ninguno, vacío.
+// 0x576eb0, the search (0x576ede..0x577f88): the 95 in the original's order, each with 0x576960(what was said, text,
+// 0); the first one present decides the case. The 15 literals (0x6c90e0..0x6c912c) are compared in CP949 as is. The
+// 291, the 317 and the 348 are tried at the end, each alone. A text Text.bmd does not have stays empty, and 0x576960
+// finds an empty text in any message, like the original with its texts zeroed. Without any, empty.
 [[nodiscard]] std::optional<Actors::EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::string_view said);
 } // namespace Client::Chat

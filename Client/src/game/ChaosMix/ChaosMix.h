@@ -9,10 +9,10 @@
 #include <span>
 #include <string>
 
-// La caja del caos (CL9 hito 6, fase 3; 06 § La caja del caos): lo que vale (0x5fd120), el tipo de la mezcla
-// (0x5fd4f0 y el modo de 0x5fd4b0), lo que la mezcla pide de lugar en el inventario (0x5fd200) y la chance y el precio
-// que calcula su dibujo (0x5febf0). Las llama 0x5d8d50 con la caja abierta (0x5d8db6..0x5d8dda), el botón de mezclar
-// (0x5fe690) y el dibujo. Los globales quedan en NpcWindowState.
+// The chaos box (CL9 milestone 6, phase 3; 06 § La caja del caos): what it is worth (0x5fd120), the mix kind
+// (0x5fd4f0 and the mode of 0x5fd4b0), the inventory room the mix asks for (0x5fd200) and the chance and price its
+// drawing computes (0x5febf0). Called by 0x5d8d50 with the box open (0x5d8db6..0x5d8dda), the mix button (0x5fe690)
+// and the drawing. The globals stay in NpcWindowState.
 namespace Client::Crt
 {
 class CrtRandom;
@@ -31,39 +31,39 @@ struct NpcWindowState;
 namespace Client::ChaosMix
 {
 
-// 0x5fd120(grilla, columnas, filas): la suma de lo que vale cada ítem con tipo y +0x3c (0x54d0f0 en el modo 0, con
-// los precios fijos de las joyas: 100.000 la de Bless 0x1c0d, 70.000 la de Soul 0x1c0e, 40.000 la del caos 0x180f y
-// 450.000 la de la vida 0x1c10 y la de la creación 0x1c16), en el int que da la vuelta. Sin una joya del caos, 0.
-// `pets` son los niveles de las mascotas que lee 0x54d0f0 con el 0x1a04 y el 0x1a05.
+// 0x5fd120(grid, columns, rows): the sum of what each item with a type and +0x3c is worth (0x54d0f0 in mode 0, with
+// the jewels' fixed prices: 100000 for Bless 0x1c0d, 70000 for Soul 0x1c0e, 40000 for Chaos 0x180f and 450000 for
+// Life 0x1c10 and Creation 0x1c16), in the int that wraps around. Without a chaos jewel, 0. `pets` are the pet levels
+// that 0x54d0f0 reads with the 0x1a04 and the 0x1a05.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosBoxValue(std::span<const Kernel::ItemState> grid,
                                                                       const Tables::ItemTable* items,
                                                                       const Items::PetPriceLevels& pets);
 
-// 0x5fd4f0(0x7d2d380, 8, 4): cuenta lo que hay en la caja y devuelve el tipo de la mezcla (0 sin ninguna; negativo
-// el error que avisa el botón de mezclar). Deja en `npc` los anchos y altos más grandes (0x6c9da0, 0x6c9da4), el
-// valor de los excelentes (0x7d2dc88), la suerte (0x7d2dc9c), la opción de las alas (0x7d2dc90) y, según el tipo, el
-// nivel (0x7d2dc8c), la capa (0x7d2dc84) y la chance de las alas (0x7d2dc94). Las alas de segundo nivel (y la capa
-// 0x18) abren el registro propio para leer el nivel (+0xe): 3.848 rand() al cerrarlo sin otros accesos.
+// 0x5fd4f0(0x7d2d380, 8, 4): counts what is in the box and returns the mix kind (0 with none; negative the error that
+// the mix button warns about). Leaves in `npc` the largest widths and heights (0x6c9da0, 0x6c9da4), the excellents'
+// value (0x7d2dc88), luck (0x7d2dc9c), the wings' option (0x7d2dc90) and, by kind, the level (0x7d2dc8c), the cape
+// (0x7d2dc84) and the wings' chance (0x7d2dc94). The second-level wings (and the 0x18 cape) open the own record to
+// read the level (+0xe): 3848 rand() on closing it without other accesses.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> ChaosMixKind(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                      const Tables::ItemTable* items);
 
-// 0x5fd4b0: el tipo de 0x5fd4f0 filtrado por el modo de la caja (0x7d3a114): en el 0, la mezcla 1 (el arma del caos)
-// da 0; en el 1, solo la 1; en los demás, cualquiera.
+// 0x5fd4b0: the kind of 0x5fd4f0 filtered by the box mode (0x7d3a114): in mode 0, mix 1 (the chaos weapon) gives 0;
+// in mode 1, only mix 1; in the others, any.
 [[nodiscard]] std::int32_t ChaosMixKindForMode(std::int32_t kind, std::int32_t mode);
 
-// 0x5d8db6..0x5d8dda: con la caja abierta, en cada paso de 0x5d8d50, lo que vale la caja (0x7d2d378) y el tipo de la
-// mezcla (0x7d2dc98).
+// 0x5d8db6..0x5d8dda: with the box open, in each step of 0x5d8d50, what the box is worth (0x7d2d378) and the mix kind
+// (0x7d2dc98).
 [[nodiscard]] Core::Expected<void, std::string> ScanTheChaosBox(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                 const Tables::ItemTable* items);
 
-// 0x5fd200(grilla, columnas, filas, ancho, alto): si hay un lugar de ancho × alto con todas las casillas sin tipo
-// (0xffff). Con el alto en 0 o menos, sí.
+// 0x5fd200(grid, columns, rows, width, height): whether there is a width × height place with every cell typeless
+// (0xffff). With the height at 0 or less, yes.
 [[nodiscard]] bool HasRoomFor(std::span<const Kernel::ItemState> grid, std::int32_t columns, std::int32_t rows,
                               std::int32_t width, std::int32_t height);
 
-// Lo que el botón de mezclar pide de lugar para el tipo `kind` (0x5fe9bd..0x5fea04): 5 × 4 para el arma del caos, las
-// alas y la capa del 0x0b; 2 × 2, 1 × 1 o 3 × 3 para otras; los anchos y altos más grandes de la caja (0x6c9da0 y
-// 0x6c9da4) para el resto.
+// The room the mix button asks for for kind `kind` (0x5fe9bd..0x5fea04): 5 × 4 for the chaos weapon, the wings and the
+// 0x0b's cape; 2 × 2, 1 × 1 or 3 × 3 for others; the box's largest widths and heights (0x6c9da0 and 0x6c9da4) for the
+// rest.
 struct MixRoom
 {
     std::int32_t width = 0;
@@ -71,28 +71,28 @@ struct MixRoom
 };
 [[nodiscard]] MixRoom MixRoomFor(const Npc::NpcWindowState& npc, std::int32_t kind);
 
-// Lo que el botón de mezclar hace con el tipo `kind` (0x5fe9a2..0x5fe9b6, la tabla de 0x5feb88).
+// What the mix button does with kind `kind` (0x5fe9a2..0x5fe9b6, the table at 0x5feb88).
 enum class MixButtonAction
 {
-    LevelTooLow,  // −0x18: el texto 1171 con 10.
-    NotTheSame,   // −8 y −2: el texto 600.
-    NothingToMix, // 0: el 580 con el 591.
-    Mix,          // los que mezclan: el lugar y el diálogo 0x98.
-    Nothing,      // los demás: solo el sonido.
+    LevelTooLow,  // −0x18: text 1171 with 10.
+    NotTheSame,   // −8 and −2: text 600.
+    NothingToMix, // 0: 580 with 591.
+    Mix,          // those that mix: the room and dialog 0x98.
+    Nothing,      // the others: only the sound.
 };
 [[nodiscard]] MixButtonAction MixButtonActionFor(std::int32_t kind);
 
-// 0x5fedac..0x5ff0c2: la chance (ESI) y el precio (0x7d2dca0) que el dibujo calcula del tipo de la mezcla, con el
-// texto del precio de 0x5b1130. Sin un caso propio, la chance es lo que vale la caja / 20.000 (tope 100) y el precio
-// la chance · 10.000.
+// 0x5fedac..0x5ff0c2: the chance (ESI) and the price (0x7d2dca0) that the drawing computes from the mix kind, with the
+// price text of 0x5b1130. Without a case of its own, the chance is what the box is worth / 20000 (capped at 100) and
+// the price the chance · 10000.
 struct MixQuote
 {
     std::int32_t rate = 0;
     std::uint32_t price = 0;
     std::string priceText;
 };
-// Los DWORD vivos después del formato de 0x6c9dc0 que también alcanza la tasa del 2 (Q-C942).
-// Los valores por defecto son los de .data; el dibujo presta los globales del mundo en curso.
+// The live DWORDs after the format at 0x6c9dc0 that the 2's rate also reaches (Q-C942). The defaults are those of
+// .data; the drawing lends the current world's globals.
 struct MixQuoteData
 {
     std::int32_t glowDetail = 4; // 0x6c9dcc.
@@ -105,10 +105,10 @@ struct MixQuoteData
 [[nodiscard]] Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
                                                                const MixQuoteData& data = {});
 
-// 0x5b1130(n, buffer): n sin signo con los miles separados por comas ("%d,%03d" y sus hermanos).
+// 0x5b1130(n, buffer): n unsigned with the thousands separated by commas ("%d,%03d" and its siblings).
 [[nodiscard]] std::string ThousandsText(std::uint32_t value);
 
-// 0x5b12f0(precio, buffer): el precio más el impuesto del castillo (0x78aba34 · precio / 100, en 64 bits con signo),
-// con los miles separados por comas.
+// 0x5b12f0(price, buffer): the price plus the castle tax (0x78aba34 · price / 100, in signed 64 bits), with the
+// thousands separated by commas.
 [[nodiscard]] std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate);
 } // namespace Client::ChaosMix

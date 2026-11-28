@@ -87,14 +87,14 @@ TEST(OwnItemOptionsTest, RereadsCountAndFutureTagsAfterAliasedAdds)
     const std::uint16_t id = 1;
     const std::uint8_t durability = 1;
     std::array<std::uint8_t, 20> storage{2, 0, 0};
-    // Destino sobre count y primer tag: 0002 + 255 -> 0101; count baja a 1.
+    // Destination over count and the first tag: 0002 + 255 -> 0101; count drops to 1.
     storage[9] = 255;
-    storage[10] = 7; // un count congelado procesaría indebidamente esta segunda suma.
+    storage[10] = 7; // A frozen count would wrongly process this second add.
     OwnItemOptionsView options{id, durability, storage[0], std::span(storage).subspan(1)};
     AddOwnItemOptionValues(std::as_writable_bytes(std::span(storage)).first<2>(), 0, options);
     EXPECT_EQ(storage[0], 1);
     EXPECT_EQ(storage[1], 1);
-    // Destino sobre tags 0/1; la primera suma cambia el siguiente tag de 0 a 1.
+    // Destination over tags 0/1; the first add changes the next tag from 0 to 1.
     storage.fill(0);
     storage[0] = 2;
     storage[1] = 1;
@@ -111,14 +111,14 @@ TEST(OwnItemOptionsTest, RereadsCountAndFutureTagsAfterAliasedPercent)
     const std::uint8_t durability = 0;
     std::array<std::uint8_t, 20> storage{2, 1, 1, 1};
     OwnItemOptionsView options{id, durability, storage[0], std::span(storage).subspan(1)};
-    // 0x0102 se duplica a 0x0204; count sube de 2 a 4 y el primer tag pasa a 2.
+    // 0x0102 doubles to 0x0204; count rises from 2 to 4 and the first tag becomes 2.
     ApplyOwnItemOptionPercent(std::as_writable_bytes(std::span(storage)).first<2>(), 1, options, 100);
-    EXPECT_EQ(storage[0], 16); // el tercer match está fuera del count inicial: 0408 -> 0810.
+    EXPECT_EQ(storage[0], 16); // The third match is outside the initial count: 0408 -> 0810.
     EXPECT_EQ(storage[1], 8);
     storage.fill(0);
     storage[0] = 2;
     storage[1] = 1;
-    // 0x0001 + 25600% -> 0x0101; el siguiente tag pasa a coincidir también.
+    // 0x0001 + 25600% -> 0x0101; the next tag also starts matching.
     ApplyOwnItemOptionPercent(std::as_writable_bytes(std::span(storage)).subspan<1, 2>(), 1, options, 25600);
     EXPECT_EQ(storage[1], 1);
     EXPECT_EQ(storage[2], 2); // 257 + 65792 = 66049 -> 513
@@ -141,7 +141,7 @@ TEST(OwnItemOptionsTest, DoesNotClampHighUnsignedCountsOrSeparateOverlappingTagV
     item.durability = 1;
     item.optionCount = 9;
     item.optionBytes[0] = 0x90;
-    item.optionBytes[8] = 0x90; // tag8 y valor0 son el mismo byte del productor.
+    item.optionBytes[8] = 0x90; // tag8 and value0 are the same byte of the producer.
     item.optionBytes[16] = 3;
     destination = {std::byte{0}, std::byte{0}};
     AddOwnItemOptionValues(destination, 0x90, Options(item));
@@ -158,16 +158,16 @@ TEST(OwnItemOptionsTest, RereadsDurabilityAndDoesNotRecheckSentinelAfterWrites)
     std::uint8_t count = 2;
     std::array<std::uint8_t, 10> bytes{0x90, 0x90, 0, 0, 0, 0, 0, 0, 1, 7};
     OwnItemOptionsView options{id, durability, count, bytes};
-    // Primera suma produce ffff; el sentinel sólo se consulta antes del bucle.
+    // The first add produces ffff; the sentinel is only checked before the loop.
     AddOwnItemOptionValues(std::as_writable_bytes(std::span(&id, 1)).first<2>(), 0x90, options);
     EXPECT_EQ(id, 6);
     std::array<std::uint8_t, 2> destination{0xff, 0};
     OwnItemOptionsView disabledAfterFirst{id, destination[0], count, bytes};
     AddOwnItemOptionValues(std::as_writable_bytes(std::span(destination)), 0x90, disabledAfterFirst);
     EXPECT_EQ(destination[0], 0);
-    EXPECT_EQ(destination[1], 1); // primera suma apaga durability; segunda no suma 7.
+    EXPECT_EQ(destination[1], 1); // The first add turns durability off; the second does not add 7.
     id = 0x7fff;
     ApplyOwnItemOptionPercent(std::as_writable_bytes(std::span(&id, 1)).first<2>(), 0x90, options, 100);
-    EXPECT_EQ(id, 0xfffc); // 32767 -> 65534 -> 65532, wrap en cada store.
+    EXPECT_EQ(id, 0xfffc); // 32767 -> 65534 -> 65532, wrapping at each store.
 }
 } // namespace

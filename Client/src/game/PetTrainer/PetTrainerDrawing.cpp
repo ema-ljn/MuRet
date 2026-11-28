@@ -45,15 +45,15 @@ using Render::Text::FontKind;
 using Render::Text::TextColors;
 
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// 0x724580 en 4: nada (*estático*: nadie lo escribe así).
+// 0x724580 at 4: nothing (*static*: nobody writes it that way).
 constexpr std::int32_t IdleMode = 4;
 
-// Los textos de Text.bmd (0x76bd1dc + 300 · n).
+// The Text.bmd texts (0x76bd1dc + 300 · n).
 constexpr std::size_t CloseHelpText = 1002;   // 0x7706814
 constexpr std::size_t HorseText = 1187;       // 0x77140e0
 constexpr std::size_t MenuText = 1202;        // 0x7715274
 constexpr std::size_t NameText = 1203;        // 0x77153a0
-constexpr std::size_t FirstButtonText = 1204; // 0x77154cc, y 1205 el segundo
+constexpr std::size_t FirstButtonText = 1204; // 0x77154cc, and 1205 the second
 constexpr std::size_t BoxTitleText = 1205;    // 0x77155f8
 constexpr std::size_t MixText = 1212;         // 0x7715e2c
 constexpr std::size_t NoMixText = 1213;       // 0x7715f58
@@ -70,13 +70,13 @@ constexpr std::size_t JewelSecondText = 587;  // 0x76e81c0
 constexpr std::size_t PriceText = 1622;       // 0x7733ea4
 constexpr std::size_t TaxText = 1623;         // 0x7733fd0
 
-// Los buffers de la pila hasta lo que sigue: [EBP − 0x68] de 0x44b610 y 0x44d680 y [EBP − 0x84] de 0x44c850 (0x64
-// bytes hasta el local de 0x44c850 [EBP − 0x20]), [EBP − 0x64] de 0x44b190 (hasta el EBP guardado) y [EBP − 0x1a8]
-// del impuesto de 0x44d680 (0x100 hasta el precio con impuesto).
+// The stack buffers up to what follows: [EBP − 0x68] of 0x44b610 and 0x44d680 and [EBP − 0x84] of 0x44c850 (0x64
+// bytes up to 0x44c850's local [EBP − 0x20]), [EBP − 0x64] of 0x44b190 (up to the saved EBP) and [EBP − 0x1a8] of
+// 0x44d680's tax (0x100 up to the taxed price).
 constexpr std::size_t LineRoom = 0x64;
 constexpr std::size_t TaxRoom = 0x100;
 
-// 0x44b619..0x44b72f y 0x44c85c..0x44c96e: el fondo de los modos 1 y 2.
+// 0x44b619..0x44b72f and 0x44c85c..0x44c96e: the background of modes 1 and 2.
 constexpr std::uint16_t BackSlot = 0xfb;
 constexpr std::uint16_t LineSlot = 0xfc;
 constexpr std::uint16_t ButtonSlot = 0xf0;
@@ -95,20 +95,20 @@ constexpr float ButtonLeft = 259.0f;
 constexpr float ButtonWidth = 120.0f;
 constexpr float ButtonHeight = 22.0f;
 constexpr float ButtonDv = 1.0f;
-// 0x44b6e8..0x44b72f: los del menú en 180 + 30 · i (0x6b86bc y 0x6b8858); 0x44c923..0x44c96e: los de recuperar en
+// 0x44b6e8..0x44b72f: the menu's at 180 + 30 · i (0x6b86bc and 0x6b8858); 0x44c923..0x44c96e: the recovery's at
 // 0x96 + 0x3c · i.
 constexpr float MenuButtonTop = 180.0f;
 constexpr float MenuButtonStep = 30.0f;
 constexpr std::int32_t RecoveryButtonTop = 0x96;
 constexpr std::int32_t RecoveryButtonStep = 0x3c;
-// Los textos: el título y lo centrado en 0x13f.
+// The texts: the title and what is centered on 0x13f.
 constexpr std::int32_t TitleLeft = 0xda;
 constexpr std::int32_t TitleTop = 0x64;
 constexpr std::uint32_t TitleBoxDesignWidth = 203;
 constexpr std::int32_t CenterX = 0x13f;
 constexpr std::int32_t MenuTextTop = 0x78;
 constexpr std::int32_t NameTop = 0x8c;
-// 0x44b7ff..0x44b867: los rótulos del menú en 0xb9 + 0x1e · i, en gruesa con el mouse en [0x103, 0x17b) × [y − 5,
+// 0x44b7ff..0x44b867: the menu's labels at 0xb9 + 0x1e · i, in bold with the mouse in [0x103, 0x17b) × [y − 5,
 // y + 0x11).
 constexpr std::int32_t MenuLabelTop = 0xb9;
 constexpr std::int32_t MenuLabelStep = 0x1e;
@@ -117,11 +117,11 @@ constexpr std::int32_t HoverLeft = 0x103;
 constexpr std::int32_t HoverRight = 0x17b;
 constexpr std::int32_t HoverAbove = 5;
 constexpr std::int32_t HoverBelow = 0x11;
-// 0x44ca3a..0x44ca6c: los de recuperar, con el mouse en [y, y + 0x16); el rótulo 5 más abajo y el precio 0x1e.
+// 0x44ca3a..0x44ca6c: the recovery's, with the mouse in [y, y + 0x16); the label 5 lower and the price 0x1e.
 constexpr std::int32_t RecoveryHoverHeight = 0x16;
 constexpr std::int32_t RecoveryLabelBelow = 5;
 constexpr std::int32_t PriceBelow = 0x1e;
-// El botón de cerrar de los modos 1 y 2 (0x44b869, 0x44cf54) y su ayuda en [0x18a, 0x1a2) × [0x109, 0x121).
+// The close button of modes 1 and 2 (0x44b869, 0x44cf54) and its help in [0x18a, 0x1a2) × [0x109, 0x121).
 constexpr std::uint16_t CloseSlot = 0x118;
 constexpr float SmallCloseLeft = 394.0f;
 constexpr float SmallCloseTop = 265.0f;
@@ -133,7 +133,7 @@ constexpr std::int32_t SmallHelpTop = 0x109;
 constexpr std::int32_t SmallHelpBottom = 0x121;
 constexpr std::int32_t SmallHelpY = 0xfc;
 
-// 0x44d6a5..0x44db26: la caja.
+// 0x44d6a5..0x44db26: the box.
 constexpr std::int32_t BoxLeft = 0x104;
 constexpr std::int32_t BoxTop = 0;
 constexpr float GridLeft = 275.0f;
@@ -167,15 +167,15 @@ constexpr std::int32_t BoxTitleTop = 8;
 constexpr std::int32_t BoxTaxTop = 0x14;
 constexpr std::int32_t BoxCenterX = 0x163;
 constexpr std::int32_t BoxNameTop = 0x32;
-// [EBP − 4]: 65 con una mezcla de 0..2 (50 con otra, que corta); 15 por renglón (0x6b87bc) y 120 más antes de los
-// avisos (0x6b86c8).
+// [EBP − 4]: 65 with a mix of 0..2 (50 with another, which fails); 15 per line (0x6b87bc) and 120 more before the
+// warnings (0x6b86c8).
 constexpr float LinesAfterName = 65.0f;
 constexpr float LineStep = 15.0f;
 constexpr float WarningsGap = 120.0f;
-// 0x44d96a: la chance de una mezcla.
+// 0x44d96a: a mix's rate.
 constexpr std::int32_t MixRate = 0x3c;
 
-// 0x6c8e5c y 0x6c8e64 (el texto y el fondo).
+// 0x6c8e5c and 0x6c8e64 (the text and the background).
 constexpr TextColors TitleColors{.text = 0, .background = 0xc8c8c8c8u};
 constexpr TextColors MenuTextColors{.text = 0xc8c8c8c8u, .background = 0};
 constexpr TextColors RecoveryTextColors{.text = 0xffc8c8c8u, .background = 0};
@@ -197,7 +197,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
     return *text;
 }
 
-// Lo que sprintf deja en un buffer de `room` bytes de la pila, si entra con su cero.
+// What sprintf leaves in a stack buffer of `room` bytes, if it fits with its zero.
 Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room, std::string_view where)
 {
     if (text.size() >= room)
@@ -206,14 +206,14 @@ Core::Expected<std::string, std::string> Fits(std::string text, std::size_t room
     return text;
 }
 
-// x en [left, right) e y en [top, bottom) con el mouse entero (los CMP del original).
+// x in [left, right) and y in [top, bottom) with the integer mouse (the original's CMPs).
 bool MouseIn(const Hud::GameHudContext& context, std::int32_t left, std::int32_t right, std::int32_t top,
              std::int32_t bottom)
 {
     return context.mouse.x >= left && context.mouse.x < right && context.mouse.y >= top && context.mouse.y < bottom;
 }
 
-// Los FCOM del modo 3 contra los floats de la .rdata: lo mismo con el mouse pasado a la x87.
+// Mode 3's FCOMs against the .rdata floats: the same with the mouse moved to the x87.
 bool MouseInFloats(const Hud::GameHudContext& context, float left, float right, float top, float bottom)
 {
     const auto x = static_cast<double>(context.mouse.x);
@@ -222,9 +222,9 @@ bool MouseInFloats(const Hud::GameHudContext& context, float left, float right, 
            y < static_cast<double>(bottom);
 }
 
-// 0x554340 con la fuente normal. Antes de llamarla el entrenador escribe el blanco sobre 0xff000000 (0x44b8ec, 0x44cfde
-// y 0x44db97) o sobre 0x80282828 (0x44d825), que 0x554340 pisa en 0x55450f con el blanco sobre transparente antes de
-// escribir: no se ven. Deja la normal y ese blanco.
+// 0x554340 with the normal font. Before calling it the trainer writes white on 0xff000000 (0x44b8ec, 0x44cfde and
+// 0x44db97) or on 0x80282828 (0x44d825), which 0x554340 overwrites at 0x55450f with white on transparent before
+// writing: they are never seen. Leaves the normal font and that white.
 void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
     SelectFont(context, FontKind::Normal);
@@ -232,8 +232,8 @@ void DrawTheHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, s
     context.hud.textColors = TextColors{.text = 0xffffffffu, .background = 0};
 }
 
-// 0x44b619..0x44b72f y 0x44c85c..0x44c96e: sin mezcla, el blanco, cinco tiras de 0xfb, las dos líneas de 0xfc y los
-// marcos de los botones.
+// 0x44b619..0x44b72f and 0x44c85c..0x44c96e: without blending, white, five strips of 0xfb, the two lines of 0xfc and
+// the buttons' frames.
 void DrawTheSmallBack(Hud::GameHudContext& context, const std::array<float, 2>& buttons)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -248,7 +248,7 @@ void DrawTheSmallBack(Hud::GameHudContext& context, const std::array<float, 2>& 
         Quad(sprites, ButtonSlot, ButtonLeft, top, ButtonWidth, ButtonHeight, BackDu, ButtonDv);
 }
 
-// 0x44b731..0x44b78f: el título en gruesa, negro sobre gris, en la caja de 203 · W / 640, y la mezcla normal.
+// 0x44b731..0x44b78f: the title in bold, black on gray, in the box of 203 · W / 640, and the normal blend.
 Core::Expected<void, std::string> DrawTheSmallTitle(Hud::GameHudContext& context, std::string_view where)
 {
     auto title = TextOf(context, TitleText, where);
@@ -262,7 +262,7 @@ Core::Expected<void, std::string> DrawTheSmallTitle(Hud::GameHudContext& context
     return {};
 }
 
-// 0x44b7a1..0x44b7c3 y 0x44c9df..0x44ca08: sprintf del texto 1203 con el nombre del héroe.
+// 0x44b7a1..0x44b7c3 and 0x44c9df..0x44ca08: sprintf of text 1203 with the hero's name.
 Core::Expected<std::string, std::string> TheNameLine(const Hud::GameHudContext& context, std::string_view where)
 {
     auto format = TextOf(context, NameText, where);
@@ -272,7 +272,7 @@ Core::Expected<std::string, std::string> TheNameLine(const Hud::GameHudContext& 
     return Fits(Crt::Sprintf(format.Value(), name), LineRoom, where);
 }
 
-// 0x44b869..0x44b8fb y 0x44cf54..0x44cfe8: el botón de cerrar y su ayuda.
+// 0x44b869..0x44b8fb and 0x44cf54..0x44cfe8: the close button and its help.
 Core::Expected<void, std::string> DrawTheSmallClose(Hud::GameHudContext& context, std::string_view where)
 {
     Quad(context.sprites, CloseSlot, SmallCloseLeft, SmallCloseTop, CloseSize, CloseSize, CloseUv, CloseUv);
@@ -285,7 +285,7 @@ Core::Expected<void, std::string> DrawTheSmallClose(Hud::GameHudContext& context
     return {};
 }
 
-// 0x44b610: el menú.
+// 0x44b610
 Core::Expected<void, std::string> DrawTheMenu(Hud::GameHudContext& context)
 {
     DrawTheSmallBack(context, {MenuButtonTop, MenuButtonTop + MenuButtonStep});
@@ -314,7 +314,7 @@ Core::Expected<void, std::string> DrawTheMenu(Hud::GameHudContext& context)
     return DrawTheSmallClose(context, "0x44b8f6");
 }
 
-// El renglón del precio que deja 0x44b190 en el buffer de quien llama.
+// The price line 0x44b190 leaves in the caller's buffer.
 Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext& context, const PetRecoveryQuote& quote)
 {
     switch (quote.line)
@@ -322,7 +322,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext&
     case PetQuoteLine::NoPet:
     case PetQuoteLine::Full:
     {
-        // 0x44b248 y 0x44b4ba: sprintf del texto, sin argumentos, en el buffer de quien llama.
+        // 0x44b248 and 0x44b4ba: sprintf of the text, without arguments, into the caller's buffer.
         auto format = TextOf(context, quote.line == PetQuoteLine::NoPet ? NoPetText : FullText, "0x44b24e");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
@@ -331,7 +331,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext&
     case PetQuoteLine::Short:
     case PetQuoteLine::Cost:
     {
-        // 0x44b459..0x44b4ae: sprintf en [EBP − 0x64] de 0x44b190 con el buffer de quien llama (la cifra) y la copia.
+        // 0x44b459..0x44b4ae: sprintf into 0x44b190's [EBP − 0x64] with the caller's buffer (the figure) and the copy.
         auto format = TextOf(context, quote.line == PetQuoteLine::Short ? ShortText : CostText, "0x44b46e");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
@@ -341,7 +341,7 @@ Core::Expected<std::string, std::string> ThePriceLine(const Hud::GameHudContext&
     return Core::Unexpected(std::string("0x44b190: un renglón sin caso"));
 }
 
-// 0x44c850: recuperar el caballo o el cuervo.
+// 0x44c850: recovering the horse or the raven.
 Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
 {
     DrawTheSmallBack(
@@ -349,7 +349,7 @@ Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
     if (auto title = DrawTheSmallTitle(context, "0x44c9c1"); !title.HasValue())
         return title;
     context.hud.textColors = RecoveryTextColors;
-    // 0x44ca08: el nombre queda en el buffer y nadie lo dibuja (Q-C959); 0x44b190 escribe encima.
+    // 0x44ca08: the name stays in the buffer and nobody draws it (Q-C959); 0x44b190 writes over it.
     if (auto name = TheNameLine(context, "0x44ca08"); !name.HasValue())
         return Core::Unexpected(name.Error());
     auto recovery = TextOf(context, RecoveryText, "0x44ca1a");
@@ -362,7 +362,7 @@ Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
         const std::int32_t top = RecoveryButtonTop + RecoveryButtonStep * static_cast<std::int32_t>(button);
         const bool hovered = MouseIn(context, HoverLeft, HoverRight, top, top + RecoveryHoverHeight);
         SelectFont(context, hovered ? FontKind::Bold : FontKind::Normal);
-        // 0x44ca98: 0x44b190(botón + 1, buffer).
+        // 0x44ca98: 0x44b190(button + 1, buffer).
         auto quote = QuoteThePetRecovery(PetQuoteContext{.world = context.world,
                                                          .random = context.random,
                                                          .ownRecordDepth = context.ownRecordDepth,
@@ -387,7 +387,7 @@ Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
         if (!line.HasValue())
             return Core::Unexpected(std::move(line).Error());
         {
-            // 0x44caf5..0x44cf1d: el zen (sin signo) contra el precio, con el registro propio abierto.
+            // 0x44caf5..0x44cf1d: the zen (unsigned) against the price, with the own record open.
             const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
             if (context.world.OwnCharacter().zen < priced.price)
                 context.hud.textColors = ShortColors;
@@ -398,7 +398,7 @@ Core::Expected<void, std::string> DrawTheRecovery(Hud::GameHudContext& context)
     return DrawTheSmallClose(context, "0x44cfe8");
 }
 
-// 0x44d76d..0x44d834: el botón de mezclar, apretado con el botón abajo, y su ayuda con el mouse encima.
+// 0x44d76d..0x44d834: the mix button, pressed with the button down, and its help with the mouse over it.
 Core::Expected<void, std::string> DrawTheMixButton(Hud::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -414,7 +414,7 @@ Core::Expected<void, std::string> DrawTheMixButton(Hud::GameHudContext& context)
     return {};
 }
 
-// 0x44d8e9..0x44d9fd: el nombre de la mezcla y desde dónde siguen los renglones.
+// 0x44d8e9..0x44d9fd: the mix's name and where the lines continue from.
 Core::Expected<float, std::string> DrawTheMixName(Hud::GameHudContext& context, std::uint8_t kind, std::string_view mix)
 {
     if (kind == 0)
@@ -430,7 +430,7 @@ Core::Expected<float, std::string> DrawTheMixName(Hud::GameHudContext& context, 
         return LinesAfterName;
     }
     context.hud.textColors.text = KindColor;
-    // 0x44d91a..0x44d93d y 0x44d974..0x44d997: "%s %s" (0x6c6350) con la mascota y el 1212.
+    // 0x44d91a..0x44d93d and 0x44d974..0x44d997: "%s %s" (0x6c6350) with the pet and 1212.
     auto pet = TextOf(context, kind == 1 ? HorseText : RavenText, "0x44d92d");
     if (!pet.HasValue())
         return Core::Unexpected(pet.Error());
@@ -441,19 +441,19 @@ Core::Expected<float, std::string> DrawTheMixName(Hud::GameHudContext& context, 
     return LinesAfterName;
 }
 
-// 0x44d680: la caja.
+// 0x44d680
 Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
 {
     Render::SpriteBatch& sprites = context.sprites;
     Kernel::HudState& hud = context.hud;
     const Npc::NpcWindowState& npc = context.world.Runtime().npcWindows;
     const std::uint8_t kind = context.world.Runtime().panels.delegated.field724584;
-    // 0x44d913: con otra mezcla no hay nombre, y el precio lee 0x6b8c68 de más y [EBP − 0x88] sin escribir.
+    // 0x44d913: with another mix there is no name, and the price reads past 0x6b8c68 and [EBP − 0x88] unwritten.
     if (kind > 2)
         return Core::Unexpected(
             std::format("0x44da59: la mezcla {} lee 0x6b8c68 fuera de la tabla y la cifra sin escribir", kind));
     sprites.SetColor(White);
-    // 0x44d6ac: 0x5ee220(0x104, 0, 0) y la grilla (0x5e3660).
+    // 0x44d6ac: 0x5ee220(0x104, 0, 0) and the grid (0x5e3660).
     Hud::WindowDrawing::DrawTheWindowBack(sprites, BoxLeft, BoxTop);
     Hud::DrawTheGridBoxes(sprites, GridLeft, GridTop, npc.trainerBox, GridColumns, GridRows);
     sprites.SetColor(White);
@@ -482,7 +482,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
     if (!top.HasValue())
         return Core::Unexpected(top.Error());
     float y = top.Value();
-    // 0x44da04..0x44da30: la chance, 60 con una mezcla.
+    // 0x44da04..0x44da30: the rate, 60 with a mix.
     hud.textColors.text = BoxTitleColors.text;
     auto rateFormat = TextOf(context, RateText, "0x44da19");
     if (!rateFormat.HasValue())
@@ -494,7 +494,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
     y = static_cast<float>(static_cast<double>(y) + static_cast<double>(LineStep));
     if (kind != 0)
     {
-        // 0x44da4d..0x44da97: el precio con impuesto (0x5b12f0) y el de 0x5b1130.
+        // 0x44da4d..0x44da97: the taxed price (0x5b12f0) and 0x5b1130's.
         const std::uint32_t price = TrainerMixPrice(kind);
         auto priceFormat = TextOf(context, PriceText, "0x44da80");
         if (!priceFormat.HasValue())
@@ -507,7 +507,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
             return Core::Unexpected(line.Error());
         DrawCenteredText(context, BoxCenterX, Truncate(static_cast<double>(y)), line.Value());
     }
-    // 0x44da9f..0x44daf4: los avisos, 135 más abajo, con el 1212.
+    // 0x44da9f..0x44daf4: the warnings, 135 lower, with 1212.
     y = static_cast<float>(static_cast<double>(y) + static_cast<double>(LineStep) + static_cast<double>(WarningsGap));
     auto jewelFormat = TextOf(context, JewelText, "0x44dabf");
     auto second = TextOf(context, JewelSecondText, "0x44daf4");
@@ -521,7 +521,7 @@ Core::Expected<void, std::string> DrawTheBox(Hud::GameHudContext& context)
     DrawCenteredText(context, BoxCenterX, Truncate(static_cast<double>(y)), jewel.Value());
     DrawCenteredText(context, BoxCenterX, Truncate(static_cast<double>(y) + static_cast<double>(LineStep)),
                      second.Value());
-    // 0x44daf9..0x44dba1: el botón de cerrar (con el color que haya) y su ayuda.
+    // 0x44daf9..0x44dba1: the close button (with whatever color is set) and its help.
     Quad(sprites, CloseSlot, BoxCloseLeft, BoxCloseTop, CloseSize, CloseSize, CloseUv, CloseUv);
     if (!MouseInFloats(context, BoxCloseLeft, BoxCloseLeft + CloseSize, BoxCloseTop, BoxCloseTop + CloseSize))
         return {};

@@ -17,14 +17,14 @@ namespace Client::Render::Frame
 class ITextDrawer;
 }
 
-// El dibujo del registro del chat (CL8 hito 3; 06 § El chat): 0x479080, su vtable + 0x14, que el HUD llama en el
-// juego (0x5a7320, paso 17). Arma el marco con la barra (0x45c460, solo con el registro en su ventana), los renglones
-// (0x45cbb0) y los botones (0x45d420), todo en 640 × 480.
+// The chat log's drawing (CL8 milestone 3; 06 § El chat): 0x479080, its vtable + 0x14, which the HUD calls in the
+// game (0x5a7320, step 17). It builds the frame with the bar (0x45c460, only with the log in its window), the lines
+// (0x45cbb0) and the buttons (0x45d420), all in 640 × 480.
 namespace Client::Chat
 {
-// Los slots de Interface\ que carga 0x61ccb0: el fondo del marco (Message_box2.jpg), el agarre (nis_rsframe), los
-// lados (nis_vframe), el cursor (nis_bar), la pista (nis_back), las flechas (nis_btnarrow) y los botones (nis_btnchat,
-// nis_btnsize y nis_btnalpha). La pista la pisa SwordEff.jpg en la misma función (Q-C463).
+// The Interface\ slots that 0x61ccb0 loads: the frame's background (Message_box2.jpg), the grip (nis_rsframe), the
+// sides (nis_vframe), the thumb (nis_bar), the track (nis_back), the arrows (nis_btnarrow) and the buttons
+// (nis_btnchat, nis_btnsize and nis_btnalpha). SwordEff.jpg overwrites the track in the same function (Q-C463).
 inline constexpr std::uint16_t ChatFrameSlot = 0xfc;
 inline constexpr std::uint16_t ChatGripSlot = 0x63d;
 inline constexpr std::uint16_t ChatSideSlot = 0x63e;
@@ -35,35 +35,34 @@ inline constexpr std::uint16_t ChatShowButtonSlot = 0x642;
 inline constexpr std::uint16_t ChatSizeButtonSlot = 0x643;
 inline constexpr std::uint16_t ChatAlphaButtonSlot = 0x644;
 
-// Lo que el dibujo usa y deja: el lote, los textos, la fuente del DC (0x57634f4) y los colores de 0x465950.
+// What the draw uses and leaves: the batch, the texts, the DC's font (0x57634f4) and the colors of 0x465950.
 struct ChatLogDrawContext
 {
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     Render::Text::FontKind& dcFont;
-    // 0x6c8e5c y 0x6c8e64.
+    // 0x6c8e5c and 0x6c8e64.
     Render::Text::TextColors& textColors;
 };
 
-// Lo que el dibujo lee del juego.
 struct ChatLogDrawView
 {
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
+    // 0x7d3682c and 0x7d36828: the mouse in 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
-    // 0x7d36874: el izquierdo abajo.
+    // 0x7d36874: the left button down.
     bool leftDown = false;
-    // 0x6c8e68: el campo del chat abierto.
+    // 0x6c8e68: the chat field open.
     bool chatOpen = false;
-    // 0x723c05: con 3 o 4, los renglones bajan 0x75.
+    // 0x723c05: with 3 or 4, the lines go down 0x75.
     std::uint8_t crywolfStage = 0;
-    // Text.bmd, para el título del filtro (754) y las ayudas de los botones (750, 751 y 752).
+    // Text.bmd, for the filter's title (754) and the buttons' helps (750, 751 and 752).
     const Tables::TextTable* texts = nullptr;
 };
 
-// 0x479080: el marco (y la barra, 0x47a230), desde el primero que se ve hasta `rows` renglones o el final, y los
-// botones. Escribe en `frame` el alto, la barra, el parpadeo, la transparencia de los botones y, en Crywolf con la
-// lista en x = 0xba, la y (0x12f).
+// 0x479080: the frame (and the bar, 0x47a230), from the first visible one up to `rows` lines or the end, and the
+// buttons. It writes in `frame` the height, the bar, the blink, the buttons' transparency and, in Crywolf with the
+// list at x = 0xba, the y (0x12f).
 void DrawTheChatLog(const ChatLogState& log, ChatLogFrame& frame, ChatModes modes, const ChatLogDrawContext& context,
                     const ChatLogDrawView& view);
 } // namespace Client::Chat

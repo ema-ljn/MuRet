@@ -66,8 +66,8 @@ Core::Expected<void, std::string> AddTheEmptyMessages(Kernel::WorldRuntime& runt
 {
     if (measure == nullptr)
         return {};
-    // Dos textos vacíos no se miden con otra pantalla que la de 640 × 480: ": " no llega a los 256 de 0x555190 ni a
-    // los 20 bytes del corte de 0x45bb20.
+    // Two empty texts are not measured with a screen other than 640 × 480: ": " reaches neither 0x555190's 256 nor the
+    // 20 bytes of 0x45bb20's split.
     for (std::size_t i = 0; i < Ui::MessageAreaRows; ++i)
     {
         if (auto added = AddGameMessage(runtime, *measure, Core::PixelSize{640, 480}, {}, {}, 0); !added.HasValue())
@@ -85,8 +85,8 @@ StepTheMessageClocks(Kernel::WorldRuntime& runtime, const Render::Text::ITextMea
         return Core::Unexpected(sound.Error());
     if (sound.Value())
         runtime.RequestSound(Audio::SoundId{*sound.Value()});
-    // 0x637d2c y 0x637d44: el freno del chat y el de las macros, de a uno por paso (el 0x637cfd de PrintScreen, entre
-    // los relojes y los frenos, no los mira).
+    // 0x637d2c and 0x637d44: the chat brake and the macros' one, by one per step (PrintScreen's 0x637cfd, between the
+    // clocks and the brakes, does not look at them).
     if (runtime.chat.input.brake > 0)
         --runtime.chat.input.brake;
     if (runtime.hud.macroTime > 0)

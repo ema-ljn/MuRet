@@ -50,9 +50,10 @@
 #include <utility>
 #include <vector>
 
-// Scenes/PersonalShopLists (CL9 hito 7, fase 4): abrir y cerrar las tiendas personales (0x6599a0 con 0x800 y 0x20000,
-// 0x5eb020) y las listas del 3F (0x4db120, 0x4db890, 0x4dbcb0 y 0x4dbb40), contra el ASM. El GameServer 0.97 no tiene
-// el 3F: los paquetes salen del cliente. Nombres, títulos y textos inventados; cada caso en Lorencia y en Devias.
+// PersonalShop/PersonalShopLists (CL9 milestone 7, phase 4): opening and closing the personal shops (0x6599a0 with
+// 0x800 and 0x20000, 0x5eb020) and the 3F lists (0x4db120, 0x4db890, 0x4dbcb0 and 0x4dbb40), against the ASM.
+// GameServer 0.97 has no 3F: the packets come from the client. Names, titles and texts made up; each case in Lorencia
+// and in Devias.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -66,11 +67,11 @@ constexpr std::size_t Hero = 0;
 constexpr std::size_t Seller = 7;
 constexpr std::uint16_t HeroKey = 0x0101;
 constexpr std::uint16_t SellerKey = 0x0234;
-// Un tipo de Item.bmd de 1 por 2 y otro de 1 por 1 (sintéticos).
+// An Item.bmd type of 1 by 2 and another of 1 by 1 (synthetic).
 constexpr std::uint16_t TallType = 0x001;
 constexpr std::uint16_t SmallType = 0x003;
 constexpr std::uint8_t FirstShopSlot = 0x4c;
-// Las consultas de los bytes protegidos de 0x10000 y 0x20 (un rand() cada una) y el relleno y el serial de un C3.
+// The queries of the protected bytes of 0x10000 and 0x20 (one rand() each) and the padding and serial of a C3.
 constexpr std::uint32_t C3Randoms = 2;
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
@@ -122,19 +123,19 @@ protected:
         world.Runtime().hero = Hero;
         Place(Hero, HeroKey, "Tejon");
         Place(Seller, SellerKey, "Brezal");
-        // 0x5be150 viste al héroe al final (0x512a30), que lee las acciones de Player.bmd.
+        // 0x5be150 dresses the hero at the end (0x512a30), which reads Player.bmd's actions.
         m_models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         world.OwnCharacter().ClearEquipmentForEntry();
-        // El registro propio abierto alrededor de todo: 0x5bc740 con el último argumento en 0 lo abre y lo cierra en
-        // cada ítem (3.848 rand() si queda sin accesos), y acá solo cuentan los paneles y los envíos.
+        // The own record open around everything: 0x5bc740 with the last argument at 0 opens and closes it on each item
+        // (3848 rand() if left without accesses), and here only the panels and the sends count.
         world.Runtime().ownRecordDepth = 1;
-        // El inventario abierto (0x7d53717), como lo pide Open(0x800) (0x6598a0).
+        // The inventory open (0x7d53717), as Open(0x800) requires (0x6598a0).
         world.Runtime().panels.inventory = 1;
         for (ItemState& cell : world.Inventory().cells)
             cell.id = Client::Kernel::EmptyOwnItemId;
         for (ItemState& cell : world.Inventory().secondCells)
             cell.id = Client::Kernel::EmptyOwnItemId;
-        // 0x78a6758 fuera del equipo: 0x5bc740 no abre el registro por las velocidades.
+        // 0x78a6758 outside the equipment: 0x5bc740 does not open the record for the speeds.
         world.Runtime().slot78a6758 = FirstShopSlot;
     }
 
@@ -174,7 +175,7 @@ protected:
         return m_world->Runtime().social.personalShop;
     }
 
-    // Open o Close de un panel como lo llama el original (0x6599a0 y 0x65cae0), con el cable.
+    // Open or Close of a panel as the original calls it (0x6599a0 and 0x65cae0), with the wire.
     void OpenPanel(Client::Ui::PanelId id)
     {
         Client::Hud::GamePanels panels(*m_world, m_cloth.random);
@@ -191,7 +192,6 @@ protected:
         ASSERT_TRUE(closed.HasValue()) << closed.Error();
     }
 
-    // Los rand() desde `before`.
     void ExpectDraws(const CrtRandom& before, std::uint32_t draws)
     {
         CrtRandom expected = before;
@@ -216,19 +216,18 @@ protected:
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
-// Abrir la propia, el precio que no se puso, cerrarla y mirar la de otro: comprar, la lista que se renueva y cerrarla.
 TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
 {
     WorldState& world = *m_world;
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
     Client::Social::PersonalShopState& shops = Shops();
-    // Un ítem propio en la primera casilla de la tienda (el lugar 0x4c) y el cartel del héroe (3F 02).
+    // An own item in the shop's first cell (slot 0x4c) and the hero's sign (3F 02).
     ASSERT_TRUE(Client::Items::PlaceInventoryItem(FirstShopSlot, ItemBytes(SmallType), Resources()).HasValue());
     shops.titles[Hero] = Client::Social::ShopTitle{.key = HeroKey, .name = "Tejon", .title = "Mi puesto"};
 
-    // 0x6599a0(0x800): CanOpen consulta 0x10000 y 0x20 (0x6598a0) y CloseByMask, con todo menos la tienda, el
-    // inventario y los amigos, los consulta otra vez (0x657ab0). Open(0x4000000) ya está abierto. 0x6c931c en −1: sin
-    // el F3 10.
+    // 0x6599a0(0x800): CanOpen queries 0x10000 and 0x20 (0x6598a0) and CloseByMask, with everything but the shop, the
+    // inventory and the friends, queries them again (0x657ab0). Open(0x4000000) is already open. 0x6c931c at −1: no
+    // F3 10.
     CrtRandom before = m_cloth.random;
     OpenPanel(Client::Ui::PersonalShopPanel);
     ExpectDraws(before, 4);
@@ -238,7 +237,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_TRUE(shops.pricesBuilt);
     EXPECT_TRUE(m_sent.empty());
 
-    // 0x4db120 (3F 01) con 1: nada. Con 0 y 0x6c931c en 1: el lugar sale del mapa propio y el F3 10 en C3.
+    // 0x4db120 (3F 01) with 1: nothing. With 0 and 0x6c931c at 1: the slot leaves the own map and the F3 10 in C3.
     shops.ownPrices[FirstShopSlot] = 500;
     before = m_cloth.random;
     ASSERT_TRUE(
@@ -252,7 +251,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(PlainBytes(m_sent[0]), (std::vector<std::uint8_t>{0xc1, 0x04, 0xf3, 0x10}));
     EXPECT_EQ(m_sent[0].delivery, Client::Network::Delivery::Encrypted);
 
-    // 0x65cae0(0x800): 0x5eb020 con 0x6c931c en 1 solo lo vuelve a −1; sin rand().
+    // 0x65cae0(0x800): 0x5eb020 with 0x6c931c at 1 only sets it back to −1; no rand().
     before = m_cloth.random;
     ClosePanel(Client::Ui::PersonalShopPanel);
     ExpectDraws(before, 0);
@@ -260,9 +259,9 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(shops.mode, Client::Social::NoShopView);
     EXPECT_EQ(runtime.panels.inventory, 1);
 
-    // 0x4db890 (3F 05) del vendedor, con dos ítems. Close(0x4000000): sus compañeros (0x657ab0 con 0x11d9e0, que
-    // consulta 0x10000 y 0x20) y el inventario; Open(0x20000): CanOpen y CloseByMask (cuatro consultas) y
-    // Open(0x4000000) con las suyas (otras cuatro). 0x6c931c en −1: sin el F3 10.
+    // 0x4db890 (3F 05) from the seller, with two items. Close(0x4000000): its companions (0x657ab0 with 0x11d9e0, which
+    // queries 0x10000 and 0x20) and the inventory; Open(0x20000): CanOpen and CloseByMask (four queries) and
+    // Open(0x4000000) with its own (four more). 0x6c931c at −1: no F3 10.
     Shop::ShopItemList list{};
     list.result = Shop::ListedResult;
     list.key = SellerKey;
@@ -293,8 +292,8 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(shops.ownerName[0], std::byte{'B'});
     EXPECT_EQ(shops.ownerName[5], std::byte{'l'});
 
-    // 0x4dbcb0 (3F 06) con 1 y 0x6c931c en 2: el lugar elegido (0x78a6758) sale del mapa y de la grilla y lo comprado
-    // va a su lugar del inventario (12 + 5).
+    // 0x4dbcb0 (3F 06) with 1 and 0x6c931c at 2: the chosen slot (0x78a6758) leaves the map and the grid and the bought
+    // item goes to its inventory slot (12 + 5).
     runtime.slot78a6758 = FirstShopSlot + 3;
     before = m_cloth.random;
     const auto bought = Client::PersonalShop::ApplyShopPurchase(
@@ -305,7 +304,7 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(world.Inventory().cells[5].id, SmallType);
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 9, 1500}}));
 
-    // 0x4dbb40 (3F 0x13): la grilla y el mapa de nuevo, sin mirar el precio.
+    // 0x4dbb40 (3F 0x13): the grid and the map again, without looking at the price.
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
                                     .entries = {{.slot = FirstShopSlot + 1, .item = ItemBytes(SmallType), .price = 0}}};
     ASSERT_TRUE(Client::PersonalShop::ApplyShopRefresh(refresh, Resources()).HasValue());
@@ -313,8 +312,8 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(grid[1].id, SmallType);
     EXPECT_EQ(shops.otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot + 1, 0}}));
 
-    // 0x65cae0(0x20000): 0x5eb020 con 0x6c931c en 2 devuelve la grilla propia y el título del cartel del héroe, y manda
-    // el 3F 07 con la clave y el nombre del dueño en C3.
+    // 0x65cae0(0x20000): 0x5eb020 with 0x6c931c at 2 restores the own grid and the hero's sign's title, and sends the
+    // 3F 07 with the owner's key and name in C3.
     before = m_cloth.random;
     ClosePanel(Client::Ui::OtherShopPanel);
     ExpectDraws(before, C3Randoms);
@@ -330,10 +329,10 @@ TEST_P(PersonalShopListsTest, OpenTheOwnShopAndViewAnother)
     EXPECT_EQ(m_sent[1].delivery, Client::Network::Delivery::Encrypted);
 }
 
-// 0x4db890: un precio de 0 o menos cierra las dos y sale sin la copia del dueño; con 3, el texto 1120 con el tipo 2.
+// 0x4db890: a price of 0 or less closes both and leaves without the owner's copy; with 3, text 1120 with type 2.
 TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
 {
-    // Un ítem propio en la casilla 5 de la tienda: 0x5eb020 devuelve la grilla de la copia al cerrar.
+    // An own item in the shop's cell 5: 0x5eb020 restores the grid from the copy on closing.
     ASSERT_TRUE(Client::Items::PlaceInventoryItem(FirstShopSlot + 5, ItemBytes(SmallType), Resources()).HasValue());
     Shop::ShopItemList list{};
     list.result = Shop::ListedResult;
@@ -343,14 +342,14 @@ TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
                     {.slot = FirstShopSlot + 4, .item = ItemBytes(SmallType), .price = 300}};
     const auto closed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
-    // Lo puesto antes del precio en 0 se va con la grilla de la copia.
+    // What was placed before the price at 0 goes away with the copy's grid.
     const auto& grid = m_world->Inventory().secondCells;
     EXPECT_EQ(grid[0].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(grid[5].id, SmallType);
     EXPECT_EQ(Shops().otherPrices, (std::map<std::int32_t, std::int32_t>{{FirstShopSlot, 100}}));
     EXPECT_EQ(m_world->Runtime().panels.personalShop, 0);
     EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
-    // El dueño nunca se copió: 0x5eb020 no manda el 3F 07.
+    // The owner was never copied: 0x5eb020 does not send the 3F 07.
     EXPECT_TRUE(m_sent.empty());
 
     list.result = 3;
@@ -361,8 +360,8 @@ TEST_P(PersonalShopListsTest, ABadListClosesTheShopOrSaysIt)
     EXPECT_EQ(entries.front().type, Client::Ui::ErrorMessage);
 }
 
-// 07 Q-C962: strncpy(0x78aba64, pkt + 0x12, 0x24) no termina un título de 36 bytes sin un 0, y el original lo sigue
-// con lo que haya en la .bss desde 0x78aba88. MuRet se queda con los 36.
+// 07 Q-C962: strncpy(0x78aba64, pkt + 0x12, 0x24) does not terminate a 36-byte title without a 0, and the original
+// follows it with whatever is in the .bss from 0x78aba88. MuRet keeps the 36.
 TEST_P(PersonalShopListsTest, AFullTitleKeepsItsThirtySixBytes)
 {
     Shop::ShopItemList list{};
@@ -375,7 +374,7 @@ TEST_P(PersonalShopListsTest, AFullTitleKeepsItsThirtySixBytes)
     EXPECT_EQ(Shops().ownTitle, std::string(Shop::TitleSize, 'x'));
 }
 
-// 0x4dbcb0: 6 avisa y cierra; 7 y 8 avisan y vuelven el ítem del cursor; otro solo lo vuelve.
+// 0x4dbcb0: 6 warns and closes; 7 and 8 warn and return the cursor item; another only returns it.
 TEST_P(PersonalShopListsTest, TheFailedPurchasesSayWhy)
 {
     const auto& entries = m_world->Runtime().chat.log.entries;
@@ -391,8 +390,8 @@ TEST_P(PersonalShopListsTest, TheFailedPurchasesSayWhy)
     EXPECT_EQ(entries.front().type, Client::Ui::ErrorMessage);
 }
 
-// 0x4dbb40 fuera de 0x6c931c en 2 y 0x4db120 fuera de 1 no tocan nada; antes del primer Open, los mapas no existen y
-// el 3F 05 pone los ítems sin los precios (Open(0x20000) no abre con el comercio abierto).
+// 0x4dbb40 outside 0x6c931c at 2 and 0x4db120 outside 1 touch nothing; before the first Open, the maps do not exist and
+// the 3F 05 places the items without the prices (Open(0x20000) does not open with the trade open).
 TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
 {
     const Shop::ShopRefresh refresh{.result = Shop::ListedResult,
@@ -407,7 +406,7 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
     list.result = Shop::ListedResult;
     list.key = SellerKey;
     list.entries = {{.slot = FirstShopSlot + 6, .item = ItemBytes(SmallType), .price = 70}};
-    // Con el comercio abierto (y el inventario cerrado), CanOpen no deja abrir 0x20000.
+    // With the trade open (and the inventory closed), CanOpen does not let 0x20000 open.
     m_world->Runtime().panels.inventory = 0;
     const auto listed = Client::PersonalShop::ApplyShopItemList(list, Resources(), Sender());
     ASSERT_TRUE(listed.HasValue()) << listed.Error();
@@ -418,8 +417,8 @@ TEST_P(PersonalShopListsTest, WithoutTheMapsThePricesAreLost)
     EXPECT_EQ(Shops().ownerKey, SellerKey);
 }
 
-// 0x4c5ec0 (28) desde el 0x4c: con 0x6c931c en 2, la copia de la grilla propia; si no, el ítem del cursor levantado de
-// esa casilla vuelve antes (0x5be150 con 0x78ab0b8) y la casilla queda vacía.
+// 0x4c5ec0 (28) from the 0x4c: with 0x6c931c at 2, the copy of the own grid; otherwise, the cursor item lifted from
+// that cell goes back first (0x5be150 with 0x78ab0b8) and the cell stays empty.
 TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
 {
     WorldState& world = *m_world;
@@ -437,7 +436,7 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     EXPECT_EQ(shops.ownGridBackup[10].id, Client::Kernel::EmptyOwnItemId);
     EXPECT_EQ(shops.ownGridBackup[18].id, Client::Kernel::EmptyOwnItemId);
 
-    // Levantado de la casilla 4 de la tienda: vuelve (0x5be3eb) y el 28 la vacía.
+    // Lifted from the shop's cell 4: it goes back (0x5be3eb) and the 28 empties it.
     shops.mode = Client::Social::NoShopView;
     runtime.cursorItem.id = SmallType;
     runtime.cursorItem.gridColumn = 4;
@@ -453,12 +452,12 @@ TEST_P(PersonalShopListsTest, TheDeleteOfAShopSlotLooksAtTheMode)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x1d});
 }
 
-// 0x5be150 con la grilla de la tienda (0x5be3eb, desde el lugar − 0x4c) y la propia del comercio (0x5be191).
+// 0x5be150 with the shop's grid (0x5be3eb, from the slot − 0x4c) and the trade's own one (0x5be191).
 TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
 {
     WorldState& world = *m_world;
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
-    // Los servicios guardan referencias a los recursos: que vivan toda la prueba.
+    // The services keep references to the resources: they must live the whole test.
     const Client::Scenes::WorldEntryResources resources = Resources();
     const auto services = Client::Items::InventoryServicesOf(resources);
     const Client::Items::InventoryMoveContext context{.world = world, .random = m_cloth.random, .services = services};
@@ -489,10 +488,10 @@ TEST_P(PersonalShopListsTest, TheCursorItemGoesBackToItsGrid)
     EXPECT_EQ(trade.ownGrid[9].occupied, 0u);
 }
 
-// 0x5bc740 con 0x78a9bb0 escribe la huella sin tope (Q-C200): un 3F 05 con un ítem de 1 por 2 en la última fila de la
-// grilla de la tienda se descarta entero, antes de cerrar o abrir nada y sin rand(); lo de detrás de un precio de 0 no
-// cuenta. Lo mismo un 3F 06 que pasa la casilla 63 del inventario y un 3F 0x13 que pasa la 31 de la tienda, o que
-// empieza en el lugar 116.
+// 0x5bc740 with 0x78a9bb0 writes the footprint without bound (Q-C200): a 3F 05 with a 1 by 2 item in the shop grid's
+// last row is dropped whole, before closing or opening anything and without rand(); what is behind a price of 0 does
+// not count. The same for a 3F 06 that passes inventory cell 63 and a 3F 0x13 that passes the shop's cell 31, or that
+// starts at slot 116.
 TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
 {
     WorldState& world = *m_world;
@@ -517,8 +516,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     EXPECT_NE(m_sink.lines.back().find("casilla 36"), std::string::npos) << m_sink.lines.back();
     EXPECT_NE(m_sink.lines.back().find("Q-C200"), std::string::npos) << m_sink.lines.back();
 
-    // Detrás de un precio de 0 no se pone: la lista se aplica (los Open y Close de los paneles sacan sus rand()) y
-    // cierra las dos.
+    // Nothing is placed behind a price of 0: the list applies (the panels' Open and Close draw rand()) and closes both.
     std::size_t warnings = m_sink.lines.size();
     list.entries[0].price = 0;
     before = m_cloth.random;
@@ -527,7 +525,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     EXPECT_NE(m_cloth.random.State(), before.State());
     EXPECT_EQ(Shops().mode, Client::Social::NoShopView);
 
-    // 3F 06 a la casilla 60 del inventario (el lugar 72): la 68 pasa las 64. Ni el mapa se vacía.
+    // 3F 06 to inventory cell 60 (slot 72): the 68 passes the 64. Not even the map is emptied.
     Shops().pricesBuilt = true;
     Shops().otherPrices = {{FirstShopSlot + 3, 5}};
     before = m_cloth.random;
@@ -540,7 +538,7 @@ TEST_P(PersonalShopListsTest, AnEntryPastItsGridDiscardsThePacket)
     EXPECT_NE(m_sink.lines.back().find("3F 06"), std::string::npos) << m_sink.lines.back();
     EXPECT_NE(m_sink.lines.back().find("0x78a9bb0"), std::string::npos) << m_sink.lines.back();
 
-    // 3F 0x13 con la de otro a la vista: ni la grilla ni el mapa se vacían.
+    // 3F 0x13 with the other's in view: neither the grid nor the map is emptied.
     Shops().mode = Client::Social::OtherShopView;
     world.Inventory().secondCells[1].id = SmallType;
     for (const std::uint8_t slot : {static_cast<std::uint8_t>(FirstShopSlot + 31), std::uint8_t{116}})

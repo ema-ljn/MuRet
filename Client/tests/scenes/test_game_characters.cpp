@@ -92,7 +92,7 @@ TEST(GameCharactersTest, WithoutASeenCharacterThePassOpensTheGates)
 }
 
 // 0x510e40..0x510e73: the hero with +0x1d8 & 4 is not drawn even if it is alive and seen; in scene 5 it is left with
-// +0x13c at 1,000 and +0x148, +0x158 and +0x168 at 1. Another with that bit is not the hero and stops.
+// +0x13c at 1000 and +0x148, +0x158 and +0x168 at 1. Another with that bit is not the hero and stops.
 TEST(GameCharactersTest, TheHeroWithControlBitFourIsNotDrawn)
 {
     auto actors = std::make_unique<std::array<ActorState, 400>>();
@@ -463,7 +463,7 @@ TEST_F(UnarmedGameCharacterTest, TheHeroClosesItsOwnRecordBeforeTheBodyAndTheTwo
         std::uint8_t handDepth;
         std::uint32_t random;
     };
-    // 0x50ccb5..0x50d219: 3,848 rand calls of the own record; then 0x50db57 and the two closes of +0x38e.
+    // 0x50ccb5..0x50d219: 3848 rand calls of the own record; then 0x50db57 and the two closes of +0x38e.
     constexpr std::array cases{Case{0, 0, 0x059c5342}, Case{1, 0, 0x18be873a}, Case{0, 1, 0x46d18088},
                                Case{1, 1, 0x0029e2c0}, Case{255, 255, 0x0029e2c0}};
     m_world->Runtime().hero = 7;

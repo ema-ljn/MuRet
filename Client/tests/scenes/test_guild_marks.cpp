@@ -17,8 +17,8 @@
 #include <optional>
 #include <string>
 
-// Guild::PaintTheGuildMark y GuildMarkTextures (CL9 hito 8, fase 2): los píxeles de 0x5f16a0 con su paleta y la
-// subida de cada marca a su slot.
+// Guild::PaintTheGuildMark and GuildMarkTextures (CL9 milestone 8, phase 2): 0x5f16a0's pixels with its palette and
+// the upload of each mark to its slot.
 namespace
 {
 using Client::Guild::GuildMarkTextures;
@@ -29,8 +29,8 @@ std::array<std::uint8_t, 4> PixelAt(const Client::Guild::GuildMarkImage& image, 
     return {image[pixel * 4], image[pixel * 4 + 1], image[pixel * 4 + 2], image[pixel * 4 + 3]};
 }
 
-// 0x5f16e2..0x5f17c6: el 0 negro con alfa 0x80, o transparente con el segundo argumento; los demás, cada DWORD
-// 0xAABBGGRR en memoria como R, G, B y A. Los nibbles en orden, fila por fila.
+// 0x5f16e2..0x5f17c6: 0 black with alpha 0x80, or clear with the second argument; the others, each DWORD 0xAABBGGRR
+// in memory as R, G, B and A. The nibbles in order, row by row.
 TEST(GuildMarksTest, ThePaletteIsTheOneOfTheOriginal)
 {
     auto guild = std::make_unique<GuildState>();
@@ -68,7 +68,7 @@ TEST(GuildMarksTest, ThePaletteIsTheOneOfTheOriginal)
     }
 }
 
-// 0x5f17de: un índice fuera de la tabla leería otra memoria; un nibble de 16 o más, después de la paleta.
+// 0x5f17de: an index outside the table would read other memory; a nibble of 16 or more, past the palette.
 TEST(GuildMarksTest, OutsideTheTableOrThePaletteIsCut)
 {
     auto guild = std::make_unique<GuildState>();
@@ -79,8 +79,8 @@ TEST(GuildMarksTest, OutsideTheTableOrThePaletteIsCut)
     EXPECT_FALSE(Client::Guild::PaintTheGuildMark(*guild, 1, true).HasValue());
 }
 
-// Cada (índice, fondo) en su slot, de 8 × 8 en RGBA con GL_NEAREST y GL_CLAMP; la misma imagen no sube otra vez, una
-// cambiada sí. Al morir suelta sus slots.
+// Each (index, background) in its slot, 8 × 8 RGBA with GL_NEAREST and GL_CLAMP; the same image is not uploaded again,
+// a changed one is. When it dies it releases its slots.
 TEST(GuildMarksTest, EachMarkGoesToItsSlotAndIsReleased)
 {
     auto guild = std::make_unique<GuildState>();
@@ -116,7 +116,7 @@ TEST(GuildMarksTest, EachMarkGoesToItsSlotAndIsReleased)
     EXPECT_EQ(store.released.size(), 2u);
 }
 
-// La tabla falsa que no sube: el error dice la marca.
+// The fake table that does not upload: the error names the mark.
 TEST(GuildMarksTest, AFailedUploadIsCut)
 {
     auto guild = std::make_unique<GuildState>();
@@ -130,9 +130,9 @@ TEST(GuildMarksTest, AFailedUploadIsCut)
     EXPECT_EQ(store.loadCalls, 2);
 }
 
-// P-C289: la marca de cada renglón de la alianza (0x5f16a0(1999, 1) desde 0x46e09f) va al slot de su renglón, después
-// de los colores, con los píxeles de la entrada; dos renglones con marcas distintas quedan cada uno con la suya. Un
-// renglón fuera de los 6 de la lista, o un índice fuera de la tabla, corta.
+// P-C289: each union row's mark (0x5f16a0(1999, 1) from 0x46e09f) goes to its row's slot, after the colors, with the
+// entry's pixels; two rows with different marks each keep their own. A row outside the list's 6, or an index outside
+// the table, stops.
 TEST(GuildMarksTest, EachUnionRowHasItsOwnSlot)
 {
     auto guild = std::make_unique<GuildState>();

@@ -6,10 +6,9 @@
 
 namespace Client::Items
 {
-// Vista prestada de World::ItemState: {id, durability, optionCount, optionBytes}.
-// optionBytes conserva el solapamiento tag8/valor0 del productor canónico 54bf40.
-// Cada lectura alcanzada debe caber en el slice, también si count cambia por alias;
-// no se limita artificialmente a las nueve opciones del productor ordinario.
+// A borrowed view of Kernel::ItemState. optionBytes keeps the tag8/value0 overlap of the canonical producer 0x54bf40.
+// Every reached read must fit in the slice, also if count changes through aliasing; it is not artificially limited
+// to the ordinary producer's nine options.
 struct OwnItemOptionsView
 {
     const std::uint16_t& id;
@@ -17,8 +16,8 @@ struct OwnItemOptionsView
     const std::uint8_t& count;
     std::span<const std::uint8_t> optionBytes;
 };
-// Destino word little endian prestado, incluso desalineado o solapado con la fuente.
-// Contratos cerrados 0054e540 / 0054e590: frame estable, sin escritores concurrentes.
+// A borrowed little-endian word destination, even misaligned or overlapping the source.
+// Closed contracts 0x54e540 / 0x54e590: stable frame, no concurrent writers.
 void AddOwnItemOptionValues(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options);
 void ApplyOwnItemOptionPercent(std::span<std::byte, 2> destination, std::uint32_t selector, OwnItemOptionsView options,
                                std::uint32_t factor);

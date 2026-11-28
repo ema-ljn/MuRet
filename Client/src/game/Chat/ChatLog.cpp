@@ -24,16 +24,16 @@ namespace
 constexpr std::int32_t SystemType = 1;
 constexpr std::int32_t ErrorType = 2;
 constexpr std::int32_t ChatType = 3;
-// 0x45bb20: con menos de 0x14 bytes entre el nombre y el texto, sin cortar.
+// 0x45bb20: with fewer than 0x14 bytes between the name and the text, without splitting.
 constexpr std::size_t ShortMessage = 0x14;
-// 0x45bfe0: n = −6, el corrimiento por las edades, que busca 6 renglones.
+// 0x45bfe0: n = −6, the scroll by the ages, which looks for 6 lines.
 constexpr std::int32_t AgedScroll = -6;
 constexpr std::int32_t AgedRows = 6;
-// 0x459c70: un renglón entra si mide entre el ancho − 4 y el ancho + 4.
+// 0x459c70: a line fits if it measures between the width − 4 and the width + 4.
 constexpr double WrapSlack = 4.0;
 // 0x45db70: strncmp de 0x10.
 constexpr std::size_t RecentBytes = 0x10;
-// 0x45d8c0: los tamaños.
+// 0x45d8c0
 constexpr std::int32_t SmallRows = 3;
 constexpr std::int32_t NormalRows = 6;
 constexpr std::int32_t LargeRows = 0x1e;
@@ -49,19 +49,19 @@ std::string Bounded(std::string_view text, std::size_t bytes)
     return std::string(CString(text).substr(0, bytes));
 }
 
-// _ftol (0x69fd3c): trunca hacia el 0.
+// _ftol (0x69fd3c): truncates toward 0.
 int Truncate(double value)
 {
     return static_cast<int>(value);
 }
 
-// rx (0x5762ea8): W / 640 en float. Sin pantalla, 1.
+// rx (0x5762ea8): W / 640 in float. Without a screen, 1.
 double RatioX(Core::PixelSize screen)
 {
     return screen.width > 0 ? static_cast<double>(Render::ScaleX(1.0f, screen)) : 1.0;
 }
 
-// strtok(…, " "): las palabras separadas por espacios, sin las vacías.
+// strtok(…, " "): the words separated by spaces, without the empty ones.
 std::vector<std::string_view> Words(std::string_view text)
 {
     std::vector<std::string_view> words;
@@ -80,7 +80,7 @@ std::vector<std::string_view> Words(std::string_view text)
     return words;
 }
 
-// La entrada que arma 0x45bb20 en 0x575d270 y copia a la lista.
+// The entry 0x45bb20 builds at 0x575d270 and copies to the list.
 ChatEntry MakeEntry(std::string_view name, std::string_view text, std::int32_t type, std::int32_t param)
 {
     return ChatEntry{.blink = 0,
@@ -139,8 +139,8 @@ std::size_t FirstShownInTheLog(const ChatLogState& log, ChatModes modes)
 
 std::size_t SelectedInTheLog(const ChatLogState& log, ChatModes modes)
 {
-    // 0x45c190 también vuelve la elección a 0 con la lista vacía; nadie lo llama así (0x45d760 lo pide con una
-    // elección, que no pasa de los que se ven).
+    // 0x45c190 also sets the selection back to 0 with the list empty; nobody calls it like that (0x45d760 asks for it
+    // with a selection, which does not go past the visible ones).
     if (log.entries.empty() || log.selection == 0)
         return log.entries.size();
     std::int32_t row = 1;
@@ -164,7 +164,7 @@ void ScrollTheLog(ChatLogState& log, ChatModes modes, std::int32_t lines)
         return;
     if (modes.placement == 0 && log.scroll == 0 && lines == AgedScroll)
     {
-        // 0x45c04f..0x45c0dc: la suma va sin signo, como el int + uint del original.
+        // 0x45c04f..0x45c0dc: the sum is unsigned, like the original's int + uint.
         std::int32_t shown = 1;
         std::uint32_t oldest = 0;
         std::uint32_t taken = 0;
@@ -190,7 +190,7 @@ void ScrollTheLog(ChatLogState& log, ChatModes modes, std::int32_t lines)
         log.scroll = 0;
         return;
     }
-    // Puede quedar negativo: con escondidos, los que se ven pueden ser menos que los renglones.
+    // It can end up negative: with hidden ones, the visible ones can be fewer than the lines.
     const std::int32_t visible = VisibleInTheLog(log, modes);
     if (visible - log.rows < log.scroll)
         log.scroll = visible - log.rows;
@@ -217,7 +217,7 @@ void TrimTheLog(ChatLogState& log, ChatModes modes)
 void ClearTheLog(ChatLogState& log, ChatModes modes)
 {
     log.entries.clear();
-    // 0x4793b0(0): el parpadeo de las que quedan, ninguna.
+    // 0x4793b0(0): the blink of the remaining ones, none.
     SelectInTheLog(log, modes, 0);
     log.scroll = 0;
 }
@@ -262,8 +262,8 @@ Core::Expected<WrappedText, std::string> WrapByWidth(std::string_view text, cons
         while (step != 0)
         {
             step = Truncate((static_cast<double>(step) + 1.0) * 0.5);
-            // GetTextExtentPointA de los primeros `count` bytes. Más allá del '\0' el original mide lo que sigue en
-            // el búfer del que llama; MuRet mide ceros (*inferido*: los búferes de los textos empiezan en 0).
+            // GetTextExtentPointA of the first `count` bytes. Past the '\0' the original measures what follows in the
+            // caller's buffer; MuRet measures zeros (*inferred*: the texts' buffers start at 0).
             std::string head(rest.substr(0, static_cast<std::size_t>(std::clamp(count, 0, length))));
             if (count > length)
                 head.append(static_cast<std::size_t>(count - length), '\0');
@@ -282,7 +282,7 @@ Core::Expected<WrappedText, std::string> WrapByWidth(std::string_view text, cons
             }
             break;
         }
-        // 0x459dbb..0x459dd7: _mbclen de a un byte, hasta `count` si es positivo.
+        // 0x459dbb..0x459dd7: _mbclen one byte at a time, up to `count` if positive.
         const std::size_t bytes = count > 0 ? static_cast<std::size_t>(count) : 0;
         out = std::string(rest.substr(0, std::min(bytes, rest.size())));
         rest = rest.substr(std::min(bytes, rest.size()));
@@ -329,7 +329,7 @@ AddToTheLog(ChatLogState& log, ChatModes modes, const ChatMeasure& measure, std:
         }
         if (!lines[1].empty())
         {
-            // 0x45bd3f: el segundo sin nombre, adelante del primero.
+            // 0x45bd3f: the second one without a name, in front of the first.
             entry.name.clear();
             entry.text = Bounded(lines[1], ChatTextBytes);
             log.entries.push_front(entry);
@@ -387,7 +387,7 @@ std::optional<std::size_t> SetTheChatFilter(ChatLogState& log, std::string_view 
     const std::vector<std::string_view> words = Words(command);
     for (std::size_t slot = 0; slot < ChatFilterWords; ++slot)
     {
-        // La primera palabra es el comando.
+        // The first word is the command.
         if (slot + 1 >= words.size())
         {
             log.filter[slot].clear();

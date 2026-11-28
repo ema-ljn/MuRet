@@ -38,8 +38,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes::Apply* de los 9F y A0..A3 (0x4ddaa0, 0x4ddad0, 0x4ddb00, 0x4ddb40 y 0x4ddb80). Los textos son
-// inventados.
+// Client::Quests::Apply* of the 9F and A0..A3 (0x4ddaa0, 0x4ddad0, 0x4ddb00, 0x4ddb40 and 0x4ddb80). The texts are
+// made up.
 namespace
 {
 namespace Quest = Client::Protocol::Quests;
@@ -52,14 +52,14 @@ struct Replies
     Replies()
     {
         world.Runtime().hero = 7;
-        // 0x4ea030 y 0x4f2250 leen las acciones de Player.bmd (los jugadores de 0x513100).
+        // 0x4ea030 and 0x4f2250 read the Player.bmd actions (the players of 0x513100).
         models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         Hero().alive = true;
         Hero().key = HeroKey;
         Other().alive = true;
         Other().key = OtherKey;
         cloth.random = Client::Crt::CrtRandom(Seed);
-        // La misión 1, un ítem para la clase 0: el diálogo 40 antes de aceptar y el 41 en curso sin el ítem.
+        // Quest 1, an item for class 0: dialog 40 before accepting and 41 in progress without the item.
         auto& record = world.Runtime().quest.records[1];
         record.entryCount = 1;
         record.entries[0].kind = 1;
@@ -121,7 +121,7 @@ TEST(QuestRepliesTest, TheFlagWritesOnlyTheFirstFour)
     EXPECT_EQ(flags, (std::array<std::uint8_t, 4>{0, 0, 0, 0x41}));
 }
 
-// El A0 deja el estado que lee la ventana: la clase, la primera sin terminar y +0x2138d para la próxima apertura.
+// The A0 leaves the state the window reads: the class, the first one not done and +0x2138d for the next opening.
 TEST(QuestRepliesTest, TheListSetsTheStateTheWindowReads)
 {
     auto tested = MakeReplies();
@@ -136,8 +136,8 @@ TEST(QuestRepliesTest, TheListSetsTheStateTheWindowReads)
     EXPECT_EQ(tested->world.Runtime().panels.delegated.quest, 0);
 }
 
-// Q-C1126: un A0 con más bytes que el objeto (hasta +0x21398) escribe lo que cae adentro y descarta el resto con un
-// aviso, sin cortar.
+// Q-C1126: an A0 with more bytes than the object (up to +0x21398) writes what falls inside and discards the rest with
+// a warning, without cutting.
 TEST(QuestRepliesTest, AnA0PastTheObjectDiscardsTheRestWithAWarning)
 {
     auto tested = MakeReplies();
@@ -151,7 +151,7 @@ TEST(QuestRepliesTest, AnA0PastTheObjectDiscardsTheRestWithAWarning)
     EXPECT_NE(tested->sink.lines[0].find("Q-C1126"), std::string::npos) << tested->sink.lines[0];
 }
 
-// 0x4ddb00: el A1 cierra todo (las misiones abiertas mandan el C1 03 31) y abre el diálogo de la misión.
+// 0x4ddb00: the A1 closes everything (the open quests send the C1 03 31) and opens the quest's dialog.
 TEST(QuestRepliesTest, TheStateClosesTheListAndOpensTheDialog)
 {
     auto tested = MakeReplies();
@@ -169,7 +169,7 @@ TEST(QuestRepliesTest, TheStateClosesTheListAndOpensTheDialog)
     EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) Cerrar");
 }
 
-// 0x4ddb40: con pkt[4] distinto de 0, nada; con 0, como el A1 con pkt[5].
+// 0x4ddb40: with pkt[4] other than 0, nothing; with 0, like the A1 with pkt[5].
 TEST(QuestRepliesTest, TheSetQuestResultActsOnlyOnZero)
 {
     auto tested = MakeReplies();
@@ -183,13 +183,14 @@ TEST(QuestRepliesTest, TheSetQuestResultActsOnlyOnZero)
     EXPECT_EQ(runtime.quest.states[0], 0b01'00);
     EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
     EXPECT_EQ(tested->windowCloses, 0);
-    // 0x657a90 cierra con los dos bytes protegidos de 0x6594a3 y 0x6597f9: un rand() cada uno.
+    // 0x657a90 closes with the two protected bytes of 0x6594a3 and 0x6597f9: one rand() each.
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, 2).State());
 }
 
-// Q-C842 desde el A1 y el A2 (resultado 0): la misión 0 en curso sin pedido para la clase baja a la 255, y con el byte
-// alto del zen en 1 la 255 está en curso: su registro está fuera de los 200. El original lee después del objeto; MuRet
-// descarta lo que falta del diálogo con un aviso, sin cortar la sesión, y queda lo escrito hasta ahí.
+// Q-C842 from the A1 and the A2 (result 0): quest 0 in progress with no request for the class drops to 255, and with
+// the zen's high byte at 1 quest 255 is in progress: its record is outside the 200. The original reads past the
+// object; MuRet discards what is missing from the dialog with a warning, without cutting the session, and what was
+// written so far stays.
 TEST(QuestRepliesTest, AQuestOutsideTheRecordsIsDiscardedFromThePacket)
 {
     for (const bool fromSetQuest : {false, true})
@@ -211,8 +212,8 @@ TEST(QuestRepliesTest, AQuestOutsideTheRecordsIsDiscardedFromThePacket)
     }
 }
 
-// Q-C1126: el A1 de la misión 210 escribe su estado en +0x21380 (el byte 52) y abre el diálogo de esa misión, que se
-// lee en 0 (el corrimiento de 28 bits): sin registro que leer, sin cortar.
+// Q-C1126: the A1 of quest 210 writes its state in +0x21380 (byte 52) and opens that quest's dialog, which reads as 0
+// (the 28-bit shift): no record to read, without cutting.
 TEST(QuestRepliesTest, AnA1PastTheTwoHundredWritesTheObject)
 {
     auto tested = MakeReplies();
@@ -225,9 +226,8 @@ TEST(QuestRepliesTest, AnA1PastTheTwoHundredWritesTheObject)
     EXPECT_EQ(runtime.panels.delegated.quest, Client::Quests::QuestDialogWindow);
 }
 
-// Los joints del premio que deja una respuesta, en orden desde el lugar `first`: quince 60f/0 en la posición del
-// personaje con él de dueño, el ancho 40 y la key 2 y, con `falling`, cada uno seguido del 60f/0xa desde 200 más
-// arriba.
+// The prize joints that a reply leaves, in order from slot `first`: fifteen 0x60f/0 at the character's position with
+// it as owner, width 40 and key 2 and, with `falling`, each followed by the 0x60f/0xa from 200 higher.
 void ExpectThePrizeSparkles(const Replies& tested, const Client::Kernel::ActorState& owner, bool falling,
                             std::size_t first = 0)
 {
@@ -253,7 +253,7 @@ void ExpectThePrizeSparkles(const Replies& tested, const Client::Kernel::ActorSt
     EXPECT_FALSE(joints[first + count].alive);
 }
 
-// El calco 0x61e/0 de 0x518cf0 en el lugar `slot`, con el personaje de dueño.
+// The decal 0x61e/0 of 0x518cf0 in slot `slot`, with the character as owner.
 void ExpectTheDecal(const Replies& tested, const Client::Kernel::ActorState& owner, std::size_t slot = 0)
 {
     const auto& decal = tested.world.Map().effects.Effects()[slot];
@@ -264,8 +264,8 @@ void ExpectTheDecal(const Replies& tested, const Client::Kernel::ActorState& own
     EXPECT_EQ(decal.ownerContext, &owner);
 }
 
-// 0x4ddbd5..0x4dde65: 0xc8 suma pkt[6] a los puntos del héroe con el registro propio abierto; después, quince 60f/0
-// (tres rand() cada uno: el ancho 40 pasa de 10), el calco 0x61e/0 y el sonido 0x65, sin la acción.
+// 0x4ddbd5..0x4dde65: 0xc8 adds pkt[6] to the hero's points with the own record open; then fifteen 0x60f/0 (three
+// rand() each: width 40 is over 10), the decal 0x61e/0 and sound 0x65, without the action.
 TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
 {
     auto tested = MakeReplies();
@@ -283,8 +283,9 @@ TEST(QuestRepliesTest, ThePointsPrizeAddsToTheHeroAndSparkles)
     EXPECT_EQ(tested->Hero().animation.action, 0x22);
 }
 
-// 0xca de otro personaje: sin el registro propio; treinta joints (noventa rand()), el calco, 0x513100 (que con otro
-// tipo que el 0x20a no hace nada), la acción 0xb8 por el modelo del personaje (que acá no está: nada) y el 0x66.
+// 0xca of another character: without the own record; thirty joints (ninety rand()), the decal, 0x513100 (which does
+// nothing with a type other than 0x20a), action 0xb8 through the character's model (which is not here: nothing) and
+// the 0x66.
 TEST(QuestRepliesTest, ThePointsOfAnotherCharacterLeaveTheRecord)
 {
     auto tested = MakeReplies();
@@ -308,8 +309,8 @@ TEST(QuestRepliesTest, TheClassPointsOfTheHeroAlsoOpenTheRecord)
     EXPECT_EQ(tested->cloth.random.State(), Client::Tests::AfterDraws(Seed, OwnRecordClose + 30 * 3).State());
 }
 
-// 0x4dde7b..0x4ddf72: la clase ((v & 0x10) | (v >> 4)) >> 1 en el personaje y, si es el héroe, en +0xb del registro.
-// Los joints de la segunda respuesta siguen en el pool después de los de la primera.
+// 0x4dde7b..0x4ddf72: the class ((v & 0x10) | (v >> 4)) >> 1 in the character and, if it is the hero, in +0xb of the
+// record. The second reply's joints follow the first's in the pool.
 TEST(QuestRepliesTest, TheClassChangeWritesTheActorAndTheHeroRecord)
 {
     auto tested = MakeReplies();
@@ -330,8 +331,8 @@ TEST(QuestRepliesTest, TheClassChangeWritesTheActorAndTheHeroRecord)
     ExpectTheDecal(*tested, tested->Hero(), 1);
 }
 
-// Sin nadie con la clave, 0x5110d0 da el 400: la clase va a su +0x1d4, como en el original (Q-C1125), y los joints y
-// el calco lo llevan de dueño.
+// With nobody holding the key, 0x5110d0 gives the 400: the class goes to its +0x1d4, as in the original (Q-C1125), and
+// the joints and the decal take it as owner.
 TEST(QuestRepliesTest, AnUnknownKeyWritesTheSpareActor)
 {
     auto tested = MakeReplies();
@@ -343,9 +344,9 @@ TEST(QuestRepliesTest, AnUnknownKeyWritesTheSpareActor)
     ExpectThePrizeSparkles(*tested, tested->world.Actors()[400], true);
 }
 
-// 0x4ddb80 con un jugador: después de los joints y el calco, 0x513100 viste la clase nueva (el casco base de la clase 1
-// pasa al de la 9) y 0x4ea030 pone la acción 0xb8 (Player.bmd la tiene). Con la acción 0x22, 0x513100 no llama a
-// 0x4f2250: sólo los rand() del registro y de los joints. El 0x66 otra vez al final.
+// 0x4ddb80 with a player: after the joints and the decal, 0x513100 dresses the new class (class 1's base helm becomes
+// class 9's) and 0x4ea030 sets action 0xb8 (Player.bmd has it). With action 0x22, 0x513100 does not call 0x4f2250:
+// only the rand() of the record and the joints. The 0x66 again at the end.
 TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
 {
     auto tested = MakeReplies();
@@ -363,7 +364,7 @@ TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
     EXPECT_EQ(hero.characterClass, 9);
     EXPECT_EQ(hero.body[0].model, 0x2218);
     EXPECT_EQ(hero.body[0].level, 0);
-    // Q-C1024: la armadura compara los pantalones, que no son la armadura base.
+    // Q-C1024: the armor compares the pants, which are not the base armor.
     EXPECT_EQ(hero.body[1].model, 0x221b);
     EXPECT_EQ(hero.animation.action, 0xb8);
     EXPECT_EQ(hero.animation.previousAction, 0x22);
@@ -373,8 +374,8 @@ TEST(QuestRepliesTest, TheClassChangeDressesAPlayerAndSetsTheAction)
     ExpectTheDecal(*tested, hero);
 }
 
-// Sin Player.bmd, un jugador corta antes de 0x513100 (en 0x4de140), con la clase, los joints y el calco ya escritos y
-// la ropa sin tocar.
+// Without Player.bmd, a player cuts before 0x513100 (at 0x4de140), with the class, the joints and the decal already
+// written and the clothes untouched.
 TEST(QuestRepliesTest, AClassPrizeWithoutPlayerBmdCutsBeforeTheClothes)
 {
     auto tested = MakeReplies();
@@ -394,7 +395,8 @@ TEST(QuestRepliesTest, AClassPrizeWithoutPlayerBmdCutsBeforeTheClothes)
     ExpectTheDecal(*tested, hero);
 }
 
-// 0x530860 con el pool de joints lleno no crea ni saca rand(), y las vueltas siguen: el calco y el sonido igual.
+// 0x530860 with the joint pool full neither creates nor draws rand(), and the turns go on: the decal and the sound
+// anyway.
 TEST(QuestRepliesTest, AFullJointPoolSkipsOnlyTheSparkles)
 {
     auto tested = MakeReplies();

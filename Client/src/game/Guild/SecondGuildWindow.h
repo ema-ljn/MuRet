@@ -29,49 +29,50 @@ namespace Client::Hud
 struct GameHudContext;
 } // namespace Client::Hud
 
-// La ventana 2 del gremio, [0x7d536f4] (0x654900, vtable 0x6baa9c; CL9 hito 8, fase 3; 06 § El gremio): el alta de un
-// gremio en páginas. La abren el 54 (0x4e4279) y el 01 del Guild Master (0x4e3450); el registro la pasa con
-// 0x45aa80(0) (la vtable + 0x18, que llama a la + 0x20, 0x656df0) y la dibuja con la + 0x14 (0x656e70). La página es
-// 0x7d536ec (GuildState::createStep): 0, la pregunta (0x6563e0 y 0x655d70); 1, el nombre y la marca (0x655130 y
-// 0x654f80); 2, la marca sola (0x655c70 y 0x655c10, a la que solo llega 0x6538e0, sin referencias: Q-C1288); 3, la
-// confirmación (0x655ac0 y 0x6552b0), que manda el C1 55. El gremio nuevo es la entrada 1999 de la tabla (0x78a5970):
-// el nombre en +0xd (0x78a597d) y la marca en +0x16 (0x78a5986).
+// Guild window 2, [0x7d536f4] (0x654900, vtable 0x6baa9c; CL9 milestone 8, phase 3; 06 § El gremio): a guild's
+// creation in pages. The 54 (0x4e4279) and the Guild Master's 01 (0x4e3450) open it; the registry steps it with
+// 0x45aa80(0) (the vtable + 0x18, which calls + 0x20, 0x656df0) and draws it with + 0x14 (0x656e70). The page is
+// 0x7d536ec (GuildState::createStep): 0, the question (0x6563e0 and 0x655d70); 1, the name and the mark (0x655130
+// and 0x654f80); 2, the mark alone (0x655c70 and 0x655c10, which only 0x6538e0 reaches, without references:
+// Q-C1288); 3, the confirmation (0x655ac0 and 0x6552b0), which sends the C1 55. The new guild is the table's entry
+// 1999 (0x78a5970): the name at +0xd (0x78a597d) and the mark at +0x16 (0x78a5986).
 namespace Client::Guild
 {
 
 struct SecondGuildStepContext
 {
     Kernel::WorldState& world;
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
+    // 0x7d3682c and 0x7d36828: the mouse in 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
-    // GetTickCount() del paso: el reloj del diálogo que abre el botón de la marca (0x6600d0).
+    // The step's GetTickCount(): the clock of the dialog the mark button opens (0x6600d0).
     std::uint32_t now = 0;
-    // La pantalla del aviso del diálogo ocupado (0x6600f9: 0x555190 corta y mide en ella).
+    // The screen for the busy dialog's notice (0x6600f9: 0x555190 cuts and measures in it).
     Core::PixelSize screen{};
-    // Con qué mide 0x6600d0 sus renglones; sin medidor, el botón de la marca corta.
+    // What 0x6600d0 measures its rows with; without it, the mark button stops.
     const Render::Text::ITextMeasure* measure = nullptr;
-    // Text.bmd: el 1269 del botón de la marca, y el 457 y el 458 que mira 0x622c70. Sin él, lo que los lee corta.
+    // Text.bmd: the mark button's 1269, and the 457 and 458 that 0x622c70 checks. Without it, whatever reads them
+    // stops.
     const Tables::TextTable* texts = nullptr;
-    // FilterName.bmd y Filter.bmd, las palabras que mira 0x622c70.
+    // FilterName.bmd and Filter.bmd, the words 0x622c70 checks.
     std::span<const std::string> filterName{};
     std::span<const std::string> filter{};
-    // Lo que manda (el 54, el 55): el GameServer de la sesión. Sin él, lo que manda corta.
+    // What it sends (the 54, the 55): the session's GameServer. Without it, whatever sends stops.
     GuildSender send{};
 };
 
-// 0x45aa80(0) y 0x656df0: la cola vacía (nadie le manda mensajes: los botones mandan su comando a la ventana del id de
-// su padre con 0x490b40, y la ventana 2 no está en el administrador, *inferido*); con el mouse sobre ella (0xbe × 0x5a)
-// y otra ventana bajo el mouse o agarrándolo, nada. Si no, el mouse sobre la ventana de 0xbe × 0x1b1 prende 0x775857c
-// y la página da su paso.
+// 0x45aa80(0) and 0x656df0: the empty queue (nobody sends it messages: the buttons send their command to the window
+// with their parent's id with 0x490b40, and window 2 is not in the manager, *inferred*); with the mouse over it
+// (0xbe × 0x5a) and another window under the mouse or grabbing it, nothing. Otherwise, the mouse over the 0xbe × 0x1b1
+// window turns 0x775857c on and the page takes its step.
 [[nodiscard]] Core::Expected<void, std::string> StepTheSecondGuildWindow(const SecondGuildStepContext& context);
 
-// 0x657930 (0x657959): el paso de arriba en el registro, con lo que el paso de la UI le da. `context` se copia; lo que
-// mira (el mundo, el medidor, Text.bmd y los filtros) tiene que vivir más que el contexto del registro.
+// 0x657930 (0x657959): the step above in the registry, with what the UI step gives it. `context` is copied; what it
+// looks at (the world, the measurer, Text.bmd and the filters) must outlive the registry's context.
 void LendTheSecondGuildStepTo(Ui::PanelContext& panels, const SecondGuildStepContext& context);
 
-// 0x656e70: glColor3f(1, 1, 1), el fondo de la ventana (0x104 y 0x105) sin mezcla, la mezcla, el título en negrita
-// (0x554180 en (x + 0x23, y + 0xc) con la caja de 120 · W / 640, los colores 0xffdcdcdc sobre 0xff141414: el 180, el
-// 1303, el 1304 o el 228 según la página) y el dibujo de la página.
+// 0x656e70: glColor3f(1, 1, 1), the window's background (0x104 and 0x105) without blending, blending, the title in
+// bold (0x554180 at (x + 0x23, y + 0xc) with a box of 120 · W / 640, colors 0xffdcdcdc on 0xff141414: 180, 1303, 1304
+// or 228 depending on the page) and the page's draw.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheSecondGuildWindow(Hud::GameHudContext& context);
 } // namespace Client::Guild

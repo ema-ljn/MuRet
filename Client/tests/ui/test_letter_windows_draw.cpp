@@ -34,12 +34,12 @@
 #include <tuple>
 #include <vector>
 
-// El dibujo del chat con un amigo y de las ventanas de una carta (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el
-// chat con un amigo"): 0x493fc0 con sus renglones (0x45f9c0, 0x460550), los miembros y los de invitar (0x47a810 con
-// 0x461cd0) y sus rayas (0x491ba0). El chat queda en (100, 80), de 250 × 170: el área de adentro en (105, 101) de
-// 240 × 144, los renglones con el borde de abajo en 229 y 128 de alto, el EDIT en (107, 233) y el botón de invitar en
-// (291, 231). La de leer (0x499d60, con el cuerpo 0x464d90 y 0x465770) también, de 370 × 182 con el retrato: el área de
-// adentro de 360 × 156 y el cuerpo con el borde de abajo en 237, de 240 × 120. Los nombres y los textos son inventados.
+// The drawing of the chat with a friend and of a letter's windows (CL9 milestone 10; 06 § HUD y ventanas, "Las cartas
+// y el chat con un amigo"): 0x493fc0 with its rows (0x45f9c0, 0x460550), the members and the invitees (0x47a810 with
+// 0x461cd0) and their lines (0x491ba0). The chat sits at (100, 80), 250 × 170: the inner area at (105, 101) of 240 ×
+// 144, the rows with the bottom edge at 229 and 128 high, the EDIT at (107, 233) and the invite button at (291, 231).
+// The read window (0x499d60, with the body 0x464d90 and 0x465770) too, 370 × 182 with the portrait: the inner area of
+// 360 × 156 and the body with the bottom edge at 237, of 240 × 120. The names and texts are made up.
 namespace
 {
 using Client::Chat::ChatFocus;
@@ -86,8 +86,8 @@ public:
     }
 };
 
-// Cada texto es "t<índice>", salvo el formato del renglón de arriba de la de leer (1014) y los rótulos de la de
-// escribir (1000 y 1005), de anchos distintos.
+// Each text is "t<index>", except the format of the read window's top row (1014) and the write window's labels (1000
+// and 1005), of different widths.
 std::string TextOf(std::size_t index)
 {
     if (index == 1014)
@@ -99,7 +99,7 @@ std::string TextOf(std::size_t index)
     return "t" + std::to_string(index);
 }
 
-// Un quad en 640 × 480 con la y hacia abajo.
+// A quad at 640 × 480 with y down.
 struct Box
 {
     float left = 0.0f;
@@ -128,14 +128,14 @@ struct ExpectedCommand
     std::size_t quads;
 };
 
-// Un miembro de la sala: un agregado y no un std::pair (C4244 con un literal int en un std::uint8_t).
+// A room member: an aggregate and not a std::pair (C4244 with an int literal in a std::uint8_t).
 struct NewMember
 {
     std::string name;
     std::uint8_t index = 0;
 };
 
-// Un renglón del chat: quién (0xff, nadie), el texto y el tipo.
+// A chat row: who (0xff, nobody), the text and the kind.
 struct NewLine
 {
     std::uint8_t speaker = 0xff;
@@ -143,7 +143,7 @@ struct NewLine
     std::int32_t kind = 0;
 };
 
-// Un texto: lo que dice, dónde y sus colores.
+// A text: what it says, where and its colors.
 using ExpectedText = std::tuple<std::string, int, int, TextColors>;
 
 class LetterWindowsDrawTest : public ::testing::Test
@@ -173,7 +173,7 @@ protected:
                                 .mouseUpdateTimeMax = &m_mouseUpdateTimeMax};
     }
 
-    // El paso con un retrato de prueba que arma el personaje sin sacar rand().
+    // The step with a test portrait that builds the character without drawing rand().
     OldWindowStepView StepView()
     {
         OldWindowStepView view{.mouseX = 639,
@@ -197,7 +197,7 @@ protected:
         return view;
     }
 
-    // 0x48ee60 con el 1 en (100, 80): el héroe y los miembros (0x493c90) y los renglones (0x493f80).
+    // 0x48ee60 with the 1 at (100, 80): the hero and the members (0x493c90) and the rows (0x493f80).
     OldWindow& OpenAChat(const std::vector<NewMember>& members, const std::vector<NewLine>& lines)
     {
         const OldWindowGlobals globals = Globals();
@@ -230,7 +230,7 @@ protected:
         return m_manager.windows.at(m_chat);
     }
 
-    // 0x48ee60 con el 6 en (100, 80) y la carta (0x499cb0) con su cuerpo.
+    // 0x48ee60 with the 6 at (100, 80) and the letter (0x499cb0) with its body.
     OldWindow& OpenALetter(std::string_view body)
     {
         const OldWindowGlobals globals = Globals();
@@ -261,7 +261,7 @@ protected:
         return m_manager.windows.at(m_letter);
     }
 
-    // 0x48ee60 con el 7 en (100, 80): el retrato de prueba lo arma y 0x497f50 deja +0xb0 en 1.
+    // 0x48ee60 with the 7 at (100, 80): the test portrait builds it and 0x497f50 leaves +0xb0 at 1.
     OldWindow& OpenAWrite()
     {
         const OldWindowGlobals globals = Globals();
@@ -276,7 +276,7 @@ protected:
         return Letter();
     }
 
-    // El paso de las ventanas, con la cola del administrador.
+    // The windows' step, with the manager's queue.
     void Step()
     {
         const auto stepped = Client::Ui::StepTheOldWindows(m_manager, Globals(), StepView());
@@ -288,7 +288,7 @@ protected:
         return OldWindowDrawContext{.sprites = m_sprites, .text = m_text, .dcFont = m_dcFont, .textColors = m_colors};
     }
 
-    // 0x490390 con la ventana de amigos abierta.
+    // 0x490390 with the friends window open.
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0)
     {
         const OldWindowDrawView view{.mouseX = x,
@@ -368,15 +368,15 @@ protected:
     std::int32_t m_mouseUpdateTimeMax = 6;
     std::int32_t m_focusedEdit = 0;
     std::int32_t m_placement = 0;
-    // La vtable + 0x14 del retrato que da el juego; vacía, el retrato a la vista corta.
+    // The portrait's vtable + 0x14 that the game gives; empty, the portrait in view stops.
     std::function<Client::Core::Expected<void, std::string>(OldPortraitPart&)> m_portrait;
     FontKind m_dcFont = FontKind::Bold;
     TextColors m_colors{};
 };
 
-// Con dos miembros (el héroe y un amigo) y sin la lista de invitar: la sombra del marco, la barra de los renglones,
-// los renglones de abajo hacia arriba (el último abajo: el del sistema sin nombre y el del amigo con el suyo), la raya
-// del 2 y el negro de abajo, el botón de invitar y el EDIT sin mezcla (0x45b2e0 la saca), y el marco.
+// With two members (the hero and a friend) and without the invite list: the frame's shadow, the rows' bar, the rows
+// from bottom to top (the last at the bottom: the system one without a name and the friend's with theirs), the line
+// of the 2 and the black below, the invite button and the EDIT without blend (0x45b2e0 removes it), and the frame.
 TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {{1, "hola che", 3}, {0xff, "se sumo alguien", 1}});
@@ -395,33 +395,32 @@ TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     ExpectCommands({
-        {std::nullopt, BlendMode::Alpha, 1},   // la sombra del marco
-        {ScrollbarSlot, BlendMode::Alpha, 2},  // las flechas de los renglones
-        {std::nullopt, BlendMode::Alpha, 2},   // los filos de la pista
-        {ScrollbarSlot, BlendMode::Alpha, 3},  // el cursor
-        {TextMarkerSlot, BlendMode::Alpha, 3}, // "se sumo alguien", "Tordo: " y "hola che"
-        {std::nullopt, BlendMode::Alpha, 2},   // la raya y el negro de abajo
+        {std::nullopt, BlendMode::Alpha, 1},   // the frame's shadow
+        {ScrollbarSlot, BlendMode::Alpha, 2},  // the rows' arrows
+        {std::nullopt, BlendMode::Alpha, 2},   // the track's edges
+        {ScrollbarSlot, BlendMode::Alpha, 3},  // the thumb
+        {TextMarkerSlot, BlendMode::Alpha, 3}, // "se sumo alguien", "Tordo: " and "hola che"
+        {std::nullopt, BlendMode::Alpha, 2},   // the line and the black below
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t993"
-        {std::nullopt, BlendMode::Opaque, 1},  // el bitmap del EDIT, sin mezcla; el cursor vacío queda recortado
+        {std::nullopt, BlendMode::Opaque, 1},  // the EDIT's bitmap, without blend; the empty caret stays clipped
         {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1},
     });
-    // 0x45fac0: las flechas en (x + w − 12, y − h − 1) y (x + w − 12, y − 12).
+    // 0x45fac0: the arrows at (x + w − 12, y − h − 1) and (x + w − 12, y − 12).
     ExpectBox(QuadOf(1, 0), 333.0f, 100.0f, 346.0f, 113.0f);
     ExpectBox(QuadOf(1, 1), 333.0f, 217.0f, 346.0f, 230.0f);
-    // 0x4941ae..0x494281: la raya del 2 en (105, 144 + 101 − 16) de 240 × 1 y el 7 en (105, 230) de 240 × 15.
+    // 0x4941ae..0x494281: the line of the 2 at (105, 144 + 101 − 16) of 240 × 1 and the 7 at (105, 230) of 240 × 15.
     ExpectBox(QuadOf(5, 0), 105.0f, 229.0f, 345.0f, 230.0f);
     EXPECT_EQ(VertexOf(5, 0).color, PaletteOf(2));
     ExpectBox(QuadOf(5, 1), 105.0f, 230.0f, 345.0f, 245.0f);
     EXPECT_EQ(VertexOf(5, 1).color, PaletteOf(7));
     ExpectBox(QuadOf(6), 291.0f, 231.0f, 344.0f, 244.0f);
-    // El EDIT, en su lugar.
     EXPECT_FLOAT_EQ(QuadOf(8).left, 107.0f);
     EXPECT_FLOAT_EQ(QuadOf(8).top, 233.0f);
 
-    // 0x460550: el renglón 0 en y − 0x10 y el 1, 13 más arriba; el nombre en x + 8 con ": " y el texto después de su
-    // ancho (7 letras de 6); el sistema (1) en 0xff46a5d2, el nombre de un miembro (3) en 0xffefdccd y su texto en
-    // 0xffc8dce6, todos sin fondo.
+    // 0x460550: row 0 at y − 0x10 and row 1, 13 higher; the name at x + 8 with ": " and the text after its width (7
+    // letters of 6); the system (1) in 0xff46a5d2, a member's name (3) in 0xffefdccd and their text in 0xffc8dce6, all
+    // without background.
     ExpectTexts(0, {
                        {"se sumo alguien", 113, 213, TextColors{.text = 0xff46a5d2u, .background = 0}},
                        {"Tordo: ", 113, 200, TextColors{.text = 0xffefdccdu, .background = 0}},
@@ -430,9 +429,9 @@ TEST_F(LetterWindowsDrawTest, TheChatDrawsItsLinesItsBottomItsButtonAndItsEdit)
     EXPECT_EQ(m_dcFont, FontKind::Normal);
 }
 
-// Con la lista de invitar (+0xb0 en 2, el 10 con 1 de 0x4944c0): los renglones 0xa0 más angostos, los miembros y los
-// de invitar con sus barras y la franja del elegido, la raya de 0x491ba0 a 0xa0 del borde derecho (con la mezcla
-// normal) y la de 0x50, y el botón de mandar la invitación después del EDIT.
+// With the invite list (+0xb0 at 2, the 10 with 1 of 0x4944c0): the rows 0xa0 narrower, the members and the invitees
+// with their bars and the chosen one's stripe, 0x491ba0's line at 0xa0 from the right edge (with the normal blend)
+// and the 0x50 one, and the send-invitation button after the EDIT.
 TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendButton)
 {
     Client::Messenger::AddAFriend(m_manager.friendModel, "Zorzal", 0, 3);
@@ -443,7 +442,7 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
     const OldChatPart& part = Chat().chat;
     ASSERT_EQ(part.mode, 2);
     ASSERT_EQ(part.invitable.size(), 2u);
-    // 0x4944c0 la hace 0x50 más ancha: el área de adentro, de 320.
+    // 0x4944c0 makes it 0x50 wider: the inner area, 320.
     ASSERT_EQ(Chat().base.width, 0x14a);
     ASSERT_EQ(part.lines.base.width, 160);
     ASSERT_EQ(part.users.base.x, 270);
@@ -453,41 +452,42 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
 
     ExpectCommands({
         {std::nullopt, BlendMode::Alpha, 1},
-        {ScrollbarSlot, BlendMode::Alpha, 2}, // los renglones, sin ninguno
+        {ScrollbarSlot, BlendMode::Alpha, 2}, // the rows, with none
         {std::nullopt, BlendMode::Alpha, 2},
-        {ScrollbarSlot, BlendMode::Alpha, 5}, // su cursor y las flechas de los miembros
+        {ScrollbarSlot, BlendMode::Alpha, 5}, // its thumb and the members' arrows
         {std::nullopt, BlendMode::Alpha, 2},
         {ScrollbarSlot, BlendMode::Alpha, 3},
-        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo", el último que entró, adelante (0x460e70)
-        {std::nullopt, BlendMode::Alpha, 1},   // la franja de "Heroico", el último del deque (el 0xe de 0x4944c0)
+        {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo", the last one in, first (0x460e70)
+        {std::nullopt, BlendMode::Alpha, 1},   // the stripe of "Heroico", the deque's last (the 0xe of 0x4944c0)
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {ScrollbarSlot, BlendMode::Opaque, 2}, // los de invitar: 0x461cd0 deja la mezcla opaca
+        {ScrollbarSlot, BlendMode::Opaque, 2}, // the invitees: 0x461cd0 leaves the opaque blend
         {std::nullopt, BlendMode::Opaque, 2},
         {ScrollbarSlot, BlendMode::Opaque, 3},
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {std::nullopt, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {std::nullopt, BlendMode::Alpha, 8}, // las dos rayas, la de abajo y el negro
+        {std::nullopt, BlendMode::Alpha, 8}, // the two lines, the bottom one and the black
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t996"
-        {std::nullopt, BlendMode::Opaque, 1},  // el EDIT, sin el foco
+        {std::nullopt, BlendMode::Opaque, 1},  // the EDIT, without the focus
         {ButtonSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t993"
         {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1},
     });
-    // 0x491ba0(105 + 320 − 0xa0, 101, 144 − 16): los filos del 2 en x y x + 4 y el medio del 1 en x + 1 de 3.
+    // 0x491ba0(105 + 320 − 0xa0, 101, 144 − 16): the edges of the 2 at x and x + 4 and the middle of the 1 at x + 1
+    // of 3.
     ExpectBox(QuadOf(15, 0), 265.0f, 101.0f, 266.0f, 229.0f);
     EXPECT_EQ(VertexOf(15, 0).color, PaletteOf(2));
     ExpectBox(QuadOf(15, 1), 269.0f, 101.0f, 270.0f, 229.0f);
     ExpectBox(QuadOf(15, 2), 266.0f, 101.0f, 269.0f, 229.0f);
     EXPECT_EQ(VertexOf(15, 2).color, PaletteOf(1));
-    // Y a 0x50 del borde, y la raya de abajo de todo el ancho.
+    // And at 0x50 from the edge, and the bottom line of the whole width.
     ExpectBox(QuadOf(15, 3), 345.0f, 101.0f, 346.0f, 229.0f);
     ExpectBox(QuadOf(15, 5), 346.0f, 101.0f, 349.0f, 229.0f);
     ExpectBox(QuadOf(15, 6), 105.0f, 229.0f, 425.0f, 230.0f);
-    // El botón de mandar en x + w − 0x4a, 0xe sobre el borde de abajo.
+    // The send button at x + w − 0x4a, 0xe above the bottom edge.
     ExpectBox(QuadOf(19), 351.0f, 231.0f, 424.0f, 244.0f);
-    // 0x461cd0: los miembros desde x + 3, del primero del deque abajo; sin +0x130, sin el lugar.
+    // 0x461cd0: the members from x + 3, the deque's first at the bottom; without +0x130, without the location.
     ExpectTexts(0, {
                        {"Tordo", 273, 117, TextColors{.text = Dim, .background = 0}},
                        {"Heroico", 273, 104, TextColors{.text = 0xff000000u, .background = 0}},
@@ -496,8 +496,8 @@ TEST_F(LetterWindowsDrawTest, TheInvitesShowTheMembersTheirSeparatorsAndTheSendB
                    });
 }
 
-// Con tres miembros los renglones se hacen 0x50 más angostos y se ven los miembros con la raya de 0x50; sin la de
-// invitar, ni ella ni su raya ni el botón de mandar.
+// With three members the rows get 0x50 narrower and the members show with the 0x50 line; without the invite list,
+// neither it nor its line nor the send button.
 TEST_F(LetterWindowsDrawTest, ThreeMembersShowTheMembersWithoutTheInvites)
 {
     OpenAChat({{"Tordo", 1}, {"Zorzal", 2}}, {});
@@ -512,20 +512,20 @@ TEST_F(LetterWindowsDrawTest, ThreeMembersShowTheMembersWithoutTheInvites)
         {ScrollbarSlot, BlendMode::Alpha, 5},
         {std::nullopt, BlendMode::Alpha, 2},
         {ScrollbarSlot, BlendMode::Alpha, 3},
-        // 0x460e70 (0x4610c9..0x4610de) elige el primero en cada alta: la franja de "Zorzal", el último que entró.
+        // 0x460e70 (0x4610c9..0x4610de) chooses the first on each add: the stripe of "Zorzal", the last one in.
         {std::nullopt, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 2},
-        {std::nullopt, BlendMode::Opaque, 3}, // la raya de 0x50 sin mezcla (la deja 0x461cd0)
-        {std::nullopt, BlendMode::Alpha, 2},  // la de abajo y el negro
+        {std::nullopt, BlendMode::Opaque, 3}, // the 0x50 line without blend (0x461cd0 leaves it)
+        {std::nullopt, BlendMode::Alpha, 2},  // the bottom one and the black
     });
     ExpectBox(QuadOf(9, 0), 265.0f, 101.0f, 266.0f, 229.0f);
     EXPECT_EQ(Chat().chat.users.selection, 1);
     EXPECT_EQ(Chat().chat.members.front().name, "Zorzal");
 }
 
-// 0x460550: los colores del nombre y del texto por el tipo (+0x110), sin caso para 6 o más (quedan los de antes); con
-// 0x6c7a88 en 1, un fondo negro del texto queda en 0, y el del nombre no.
+// 0x460550: the name and text colors by the kind (+0x110), with no case for 6 or more (the previous ones stay); with
+// 0x6c7a88 at 1, a text's black background stays at 0, and the name's does not.
 TEST_F(LetterWindowsDrawTest, TheChatRowColorsGoByTheKind)
 {
     OpenAChat({{"Tordo", 1}}, {{1, "a", 7}, {1, "b", 5}, {1, "c", 4}, {1, "d", 2}, {1, "e", 0}});
@@ -545,11 +545,11 @@ TEST_F(LetterWindowsDrawTest, TheChatRowColorsGoByTheKind)
                        {"b", 155, 174, TextColors{.text = 0xff000000u, .background = 0x96ff00u}},
                    });
 
-    // El 7 primero (el último renglón): sus colores son los que haya.
+    // The 7 first (the last row): its colors are whatever there are.
     m_sprites.Begin(Screen640);
     m_text.texts.clear();
     m_colors = TextColors{.text = 0xff123456u, .background = 0xff000000u};
-    // Solo el primero que llegó, que es el último del segundo deque.
+    // Only the first that arrived, which is the second deque's last.
     std::deque<Client::Ui::ChatLine>& wrapped = Chat().chat.wrappedRows;
     wrapped.erase(wrapped.begin(), wrapped.end() - 1);
     Chat().chat.lines.fixedCountValue = 1;
@@ -560,7 +560,7 @@ TEST_F(LetterWindowsDrawTest, TheChatRowColorsGoByTheKind)
                    });
 }
 
-// En 800 × 600 el ancho del nombre es ftol(cx / rx): 7 letras de 6 sobre 1,25.
+// At 800 × 600 the name's width is ftol(cx / rx): 7 letters of 6 over 1.25.
 TEST_F(LetterWindowsDrawTest, TheNameWidthIsIn640)
 {
     OpenAChat({{"Tordo", 1}}, {{1, "hola", 3}});
@@ -574,8 +574,8 @@ TEST_F(LetterWindowsDrawTest, TheNameWidthIsIn640)
                    });
 }
 
-// Con más renglones que los que entran y la lista corrida, el primero que se ve es el del corrimiento contando desde el
-// último (el deque de 0x460130 tiene el último primero).
+// With more rows than fit and the list scrolled, the first one shown is the scroll's counting from the last
+// (0x460130's deque has the last first).
 TEST_F(LetterWindowsDrawTest, TheScrolledLinesStartFromTheLast)
 {
     std::vector<NewLine> lines;
@@ -596,10 +596,10 @@ TEST_F(LetterWindowsDrawTest, TheScrolledLinesStartFromTheLast)
               std::string(1, static_cast<char>('j' - (rows - 1))));
 }
 
-// 0x45f6f0 → 0x45fea0 → 0x460130: con 20 bytes o más entre el nombre y el texto, el texto se parte en el ancho de los
-// renglones menos 0x1e (240 − 30) con la sangría ftol((cx de "Tordo" + 5) / rx) = 35 en el primero: 29 letras de 6 y el
-// resto. El primero va con el nombre y el segundo sin él, adelante: el dibujo pone el segundo abajo y el primero, con
-// "Tordo: " (42 de ancho, no 35), arriba.
+// 0x45f6f0 → 0x45fea0 → 0x460130: with 20 bytes or more between the name and the text, the text splits at the rows'
+// width minus 0x1e (240 − 30) with the indent ftol((cx of "Tordo" + 5) / rx) = 35 on the first: 29 letters of 6 and
+// the rest. The first goes with the name and the second without it, ahead: the draw puts the second below and the
+// first, with "Tordo: " (42 wide, not 35), above.
 TEST_F(LetterWindowsDrawTest, ALongChatLineIsWrappedWithTheIndentOfTheName)
 {
     constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
@@ -621,7 +621,8 @@ TEST_F(LetterWindowsDrawTest, ALongChatLineIsWrappedWithTheIndentOfTheName)
                    });
 }
 
-// En 800 × 600 (rx = 1,25) la sangría es ftol(35 / 1,25) = 28 y 0x459c70 mide en 640: el primero se lleva 38 letras.
+// At 800 × 600 (rx = 1.25) the indent is ftol(35 / 1.25) = 28 and 0x459c70 measures in 640: the first takes 38
+// letters.
 TEST_F(LetterWindowsDrawTest, TheWrappingMeasuresIn640)
 {
     constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
@@ -632,8 +633,8 @@ TEST_F(LetterWindowsDrawTest, TheWrappingMeasuresIn640)
     EXPECT_EQ(part.wrappedRows[1].text, Said.substr(0, 38));
 }
 
-// El tercer miembro (0x493c90) angosta los renglones 0x50 y les manda el 9 (0x479240), que primero los vuelve a partir
-// (0x45fea0, en 160 − 30): 16, 21, 21 y 4 letras, y después cuenta los renglones con el alto ya medido.
+// The third member (0x493c90) narrows the rows by 0x50 and sends them the 9 (0x479240), which first splits them again
+// (0x45fea0, at 160 − 30): 16, 21, 21 and 4 letters, and then counts the rows with the height already measured.
 TEST_F(LetterWindowsDrawTest, TheThirdMemberNarrowsTheLinesAndWrapsThemAgain)
 {
     constexpr std::string_view Said = "el asado del domingo se hace en la casa de la abuela con todos";
@@ -653,9 +654,9 @@ TEST_F(LetterWindowsDrawTest, TheThirdMemberNarrowsTheLinesAndWrapsThemAgain)
     EXPECT_EQ(part.lines.fixedCountValue, 5);
 }
 
-// 0x460308: un texto que no entra en 10 renglones hace que el original lea el que sobra fuera de su búfer de la pila
-// (Q-C1012); MuRet deja los 10 y descarta el que sobra. 0x45f6f0 guarda hasta 0x100 bytes, que con 3 miembros (la
-// lista más angosta) no entran.
+// 0x460308: a text that does not fit in 10 rows makes the original read the extra one outside its stack buffer
+// (Q-C1012); MuRet keeps the 10 and drops the extra one. 0x45f6f0 keeps up to 0x100 bytes, which with 3 members (the
+// narrower list) do not fit.
 TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsKeepsTen)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}, {"Zorzal", 2}}, {});
@@ -671,8 +672,8 @@ TEST_F(LetterWindowsDrawTest, AChatLineInMoreThanTenRowsKeepsTen)
     EXPECT_EQ(chat.chat.lines.fixedCountValue, 10);
 }
 
-// Arrastrado (el estado en 4), el dibujo (0x493fc0, sin el marco) vuelve a ubicar a sus hijas con el 8 antes de
-// dibujarlas; cambiando de tamaño (1), también el 9 a las tres listas.
+// Dragged (state at 4), the draw (0x493fc0, without the frame) places its children again with the 8 before drawing
+// them; resizing (1), also the 9 to the three lists.
 TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {});
@@ -691,7 +692,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     EXPECT_EQ(part.inviteButton.base.x, 301);
     EXPECT_EQ(part.sendButton.base.y, 251);
     EXPECT_EQ(part.edit.base.x, 117);
-    // El 9 no: el alto de los renglones queda.
+    // Not the 9: the rows' height stays.
     EXPECT_EQ(part.lines.base.height, 128);
 
     chat.base.height += 26;
@@ -704,11 +705,11 @@ TEST_F(LetterWindowsDrawTest, TheDraggedChatPlacesItsChildrenBeforeTheDraw)
     EXPECT_EQ(part.lines.base.y, 275);
 }
 
-// La de leer con tres renglones: el cuerpo de arriba hacia abajo (el primero arriba: 0x465450 los tiene del último al
-// primero), en x + 10 y en 0xffc8dce6; sin mezcla después de ellos (0x465770 la saca), la raya del costado del retrato
-// (0x78 antes del borde derecho), la de los botones y su negro hasta él, la raya y el negro de arriba y el 1014 con los
-// colores del último renglón; los cinco botones. Al final del marco, la vtable + 0x54 (0x49a1d0) corta en el dibujo
-// del retrato sin el juego.
+// The read window with three rows: the body from top to bottom (the first at the top: 0x465450 has them from last to
+// first), at x + 10 and in 0xffc8dce6; without blend after them (0x465770 removes it), the line beside the portrait
+// (0x78 before the right edge), the buttons' one and its black up to it, the top line and black and the 1014 with the
+// last row's colors; the five buttons. At the end of the frame, the vtable + 0x54 (0x49a1d0) stops in the portrait's
+// draw without the game.
 TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntilThePortrait)
 {
     OldWindow& read = OpenALetter("linea uno\nlinea dos\nlinea tres");
@@ -731,8 +732,8 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
     std::vector<ExpectedCommand> expected{
         {std::nullopt, BlendMode::Alpha, 1},    {ScrollbarSlot, BlendMode::Alpha, 2},
         {std::nullopt, BlendMode::Alpha, 2},    {ScrollbarSlot, BlendMode::Alpha, 3},
-        {TextMarkerSlot, BlendMode::Alpha, 3}, // los tres renglones
-        {std::nullopt, BlendMode::Opaque, 5},  // las rayas y los negros, sin mezcla
+        {TextMarkerSlot, BlendMode::Alpha, 3}, // the three rows
+        {std::nullopt, BlendMode::Opaque, 5},  // the lines and the blacks, without blend
         {TextMarkerSlot, BlendMode::Opaque, 1},
     };
     for (std::size_t button = 0; button < 5; ++button)
@@ -742,8 +743,8 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
     }
     expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1});
     ExpectCommands(expected);
-    // 0x499e44..0x49a0f4: la raya del costado en (105 + 360 − 0x78, 156 + 101 − 19) de 1 × 19, la de los botones en
-    // y + h − 20 de 360 − 120 y el negro de 18 debajo; arriba, la raya en y + 0xe y el negro de 14.
+    // 0x499e44..0x49a0f4: the side line at (105 + 360 − 0x78, 156 + 101 − 19) of 1 × 19, the buttons' one at y + h − 20
+    // of 360 − 120 and the black of 18 below; above, the line at y + 0xe and the black of 14.
     ExpectBox(QuadOf(5, 0), 345.0f, 238.0f, 346.0f, 257.0f);
     EXPECT_EQ(VertexOf(5, 0).color, PaletteOf(2));
     ExpectBox(QuadOf(5, 1), 105.0f, 237.0f, 345.0f, 238.0f);
@@ -753,14 +754,14 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
     EXPECT_EQ(VertexOf(5, 3).color, PaletteOf(2));
     ExpectBox(QuadOf(5, 4), 105.0f, 101.0f, 465.0f, 115.0f);
     EXPECT_EQ(VertexOf(5, 4).color, PaletteOf(7));
-    // Los botones en su orden: +0x9e0, +0xa68, +0xaf0, +0xb78 y +0xc00.
+    // The buttons in their order: +0x9e0, +0xa68, +0xaf0, +0xb78 and +0xc00.
     ExpectBox(QuadOf(7), 107.0f, 241.0f, 157.0f, 255.0f);
     ExpectBox(QuadOf(9), 158.0f, 241.0f, 208.0f, 255.0f);
     ExpectBox(QuadOf(11), 291.0f, 241.0f, 341.0f, 255.0f);
     ExpectBox(QuadOf(13), 209.0f, 241.0f, 249.0f, 255.0f);
     ExpectBox(QuadOf(15), 250.0f, 241.0f, 290.0f, 255.0f);
 
-    // 0x465710 (= 0x461c70): (3 − renglón) · 13 − 120 − 10 + 237.
+    // 0x465710 (= 0x461c70): (3 − row) · 13 − 120 − 10 + 237.
     const TextColors dim{.text = Dim, .background = 0};
     ExpectTexts(0, {
                        {"linea tres", 115, 146, dim},
@@ -771,8 +772,8 @@ TEST_F(LetterWindowsDrawTest, TheReadWindowDrawsItsBodyItsBarsAndItsButtonsUntil
                    });
 }
 
-// Con +0x774 en menos de 2 (nadie lo pone así en el original), la raya y el negro de los botones son de todo el ancho
-// y la vtable + 0x54 no dibuja nada. Sin renglones, todo sigue con la mezcla normal.
+// With +0x774 below 2 (nobody sets it so in the original), the buttons' line and black span the whole width and the
+// vtable + 0x54 draws nothing. Without rows, everything continues with the normal blend.
 TEST_F(LetterWindowsDrawTest, WithoutThePortraitModeTheBarsAreWholeAndNothingIsCut)
 {
     OldWindow& read = OpenALetter("");
@@ -793,8 +794,8 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitModeTheBarsAreWholeAndNothingIsC
     EXPECT_EQ(Client::Messenger::DrawTheLetterPortrait(read, OldWindowDrawView{}).HasValue(), true);
 }
 
-// Con el juego, la vtable + 0x54 de las dos le pasa su retrato (+0xb0 la de leer, +0xb4 la de escribir) a la vtable
-// + 0x14 (0x497c10) al final del marco, después de los botones, y su error es el del dibujo.
+// With the game, both windows' vtable + 0x54 passes their portrait (+0xb0 the read one, +0xb4 the write one) to the
+// vtable + 0x14 (0x497c10) at the end of the frame, after the buttons, and its error is the draw's.
 TEST_F(LetterWindowsDrawTest, WithTheGameBothLetterWindowsDrawTheirPortraitLast)
 {
     OldWindow& read = OpenALetter("hola");
@@ -825,8 +826,8 @@ TEST_F(LetterWindowsDrawTest, WithTheGameBothLetterWindowsDrawTheirPortraitLast)
     EXPECT_TRUE(drawnParts[0] == &read.letter.portrait || drawnParts[0] == &write.letter.portrait);
 }
 
-// Arrastrada y cambiando de tamaño, 0x499d60 vuelve a ubicar la lista, los botones y el retrato (el 8) y a medir la
-// lista y el retrato (el 9).
+// Dragged and resizing, 0x499d60 places the list, the buttons and the portrait again (the 8) and measures the list and
+// the portrait again (the 9).
 TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
 {
     OldWindow& read = OpenALetter("hola");
@@ -843,15 +844,16 @@ TEST_F(LetterWindowsDrawTest, TheDraggedReadWindowPlacesItsChildren)
     EXPECT_EQ(letter.lines.base.height, 133);
     EXPECT_EQ(letter.buttons[4].base.x, 260);
     EXPECT_EQ(letter.buttons[4].base.y, 254);
-    // El retrato: 0x77 desde el borde derecho, 0xf abajo, y 0xf menos alto que el área de adentro.
+    // The portrait: 0x77 from the right edge, 0xf down, and 0xf shorter than the inner area.
     EXPECT_EQ(letter.portrait.base.x, 115 + 360 - 0x77);
     EXPECT_EQ(letter.portrait.base.height, 169 - 0xf);
 }
 
-// La de escribir con el retrato (+0xb0 en 1): con la mezcla normal, arriba el negro de 29 con las rayas en y + 0xe y
-// y + 0x1d, abajo el negro de 19 y su raya; el 1000 y el 1005 alineados a la derecha en el ancho del 1000, en
-// 0xffc8dce6 con el fondo que había; los tres EDIT (el del cuerpo con su barra, que termina sin mezcla) y los cuatro
-// botones. Al final del marco, la vtable + 0x54 (0x498800) corta en el dibujo del retrato sin el juego.
+// The write window with the portrait (+0xb0 at 1): with the normal blend, above the black of 29 with the lines at
+// y + 0xe and y + 0x1d, below the black of 19 and its line; the 1000 and the 1005 right-aligned in the 1000's width, in
+// 0xffc8dce6 with the background there was; the three EDITs (the body's with its bar, which ends without blend) and
+// the four buttons. At the end of the frame, the vtable + 0x54 (0x498800) stops in the portrait's draw without the
+// game.
 TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsButtonsUntilThePortrait)
 {
     OldWindow& write = OpenAWrite();
@@ -869,12 +871,12 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
     EXPECT_NE(drawn.Error().find("sin el juego"), std::string::npos);
 
     std::vector<ExpectedCommand> expected{
-        {std::nullopt, BlendMode::Alpha, 6},   // la sombra, los negros y las rayas
-        {TextMarkerSlot, BlendMode::Alpha, 2}, // el 1000 y el 1005
-        {std::nullopt, BlendMode::Alpha, 3},   // los fondos de los tres EDIT
-        {ScrollbarSlot, BlendMode::Alpha, 2},  // las flechas del cuerpo
-        {std::nullopt, BlendMode::Alpha, 2},   // los costados de su barra
-        {ScrollbarSlot, BlendMode::Opaque, 3}, // la barra, sin mezcla
+        {std::nullopt, BlendMode::Alpha, 6},   // the shadow, the blacks and the lines
+        {TextMarkerSlot, BlendMode::Alpha, 2}, // the 1000 and the 1005
+        {std::nullopt, BlendMode::Alpha, 3},   // the three EDITs' backgrounds
+        {ScrollbarSlot, BlendMode::Alpha, 2},  // the body's arrows
+        {std::nullopt, BlendMode::Alpha, 2},   // its bar's sides
+        {ScrollbarSlot, BlendMode::Opaque, 3}, // the bar, without blend
     };
     for (std::size_t button = 0; button < 4; ++button)
     {
@@ -883,7 +885,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
     }
     expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, 1});
     ExpectCommands(expected);
-    // El área de adentro: (105, 101), 360 × 190.
+    // The inner area: (105, 101), 360 × 190.
     ExpectBox(QuadOf(0, 1), 105.0f, 101.0f, 465.0f, 130.0f);
     EXPECT_EQ(VertexOf(0, 1).color, PaletteOf(7));
     ExpectBox(QuadOf(0, 2), 105.0f, 115.0f, 465.0f, 116.0f);
@@ -894,14 +896,14 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
     EXPECT_EQ(VertexOf(0, 4).color, PaletteOf(7));
     ExpectBox(QuadOf(0, 5), 105.0f, 272.0f, 465.0f, 273.0f);
     EXPECT_EQ(VertexOf(0, 5).color, PaletteOf(2));
-    // Los botones en su orden: +0xa44, +0xacc, +0xb54 y +0xbdc, en x + 0xc, 0x3f, 0xfa y 0x12d del área de adentro y
-    // 0x10 sobre su borde de abajo.
+    // The buttons in their order: +0xa44, +0xacc, +0xb54 and +0xbdc, at x + 0xc, 0x3f, 0xfa and 0x12d of the inner area
+    // and 0x10 above its bottom edge.
     ExpectBox(QuadOf(6), 117.0f, 275.0f, 167.0f, 289.0f);
     ExpectBox(QuadOf(8), 168.0f, 275.0f, 218.0f, 289.0f);
     ExpectBox(QuadOf(10), 355.0f, 275.0f, 405.0f, 289.0f);
     ExpectBox(QuadOf(12), 406.0f, 275.0f, 456.0f, 289.0f);
 
-    // 0x467060 con el modo 3: la caja es la del 1000 (12 letras), y el 1005 empieza 8 letras antes de su columna 0.
+    // 0x467060 with mode 3: the box is the 1000's (12 letters), and the 1005 starts 8 letters before its column 0.
     const TextColors labels{.text = Dim, .background = 0x00abcdefu};
     ExpectTexts(0, {
                        {"Destinatario", 108, 104, labels},
@@ -915,7 +917,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowDrawsItsBarsItsLabelsItsEditsAndItsB
     EXPECT_EQ(m_text.texts[1].columns, 72);
 }
 
-// Sin el retrato (+0xb0 en 0), los botones +0xb54 y +0xbdc no se dibujan y la vtable + 0x54 no dibuja nada.
+// Without the portrait (+0xb0 at 0), the buttons +0xb54 and +0xbdc are not drawn and the vtable + 0x54 draws nothing.
 TEST_F(LetterWindowsDrawTest, WithoutThePortraitTheWriteWindowDrawsTwoButtons)
 {
     OldWindow& write = OpenAWrite();
@@ -939,7 +941,6 @@ TEST_F(LetterWindowsDrawTest, WithoutThePortraitTheWriteWindowDrawsTwoButtons)
     ExpectCommands(expected);
 }
 
-// Con el foco en el EDIT del asunto y texto en los tres: cada uno con su texto, y el cursor solo en el del foco.
 TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret)
 {
     OldWindow& write = OpenAWrite();
@@ -951,7 +952,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
 
     static_cast<void>(Draw());
 
-    // El texto de cada EDIT, a 3 del borde (el margen del EDIT de XP, 06 § El EDIT).
+    // Each EDIT's text, 3 from the edge (the XP EDIT's margin, 06 § El EDIT).
     ASSERT_GE(m_text.texts.size(), 5u);
     EXPECT_EQ(m_text.texts[2].text, "Tordo");
     EXPECT_EQ(m_text.texts[2].x, letter.to.base.x + 3);
@@ -961,7 +962,7 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
     EXPECT_EQ(m_text.texts[3].y, letter.subject.base.y);
     EXPECT_EQ(m_text.texts[4].text, "Hay asado");
     EXPECT_EQ(m_text.texts[4].y, letter.text.base.y);
-    // El bitmap de cada uno y su texto. Con el cursor al final del asunto, el recorte del bitmap lo deja afuera.
+    // The bitmap of each and its text. With the caret at the end of the subject, the bitmap's clip leaves it out.
     ExpectCommands({
         {std::nullopt, BlendMode::Alpha, 6},
         {TextMarkerSlot, BlendMode::Alpha, 2},
@@ -978,8 +979,8 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
     EXPECT_EQ(letter.subject.draws, 1);
     EXPECT_EQ(letter.to.draws, 1);
 
-    // Con el cursor en el medio, la columna después del ancho de "As" invierte el texto (el fondo del EDIT sobre
-    // 0xffc8c8c8), como en la caja de agregar un amigo.
+    // With the caret in the middle, the column after the width of "As" inverts the text (the EDIT's background over
+    // 0xffc8c8c8), as in the add-friend box.
     letter.subject.text.SetCursor(2);
     letter.subject.draws = 0;
     m_text.texts.clear();
@@ -993,8 +994,8 @@ TEST_F(LetterWindowsDrawTest, TheWriteWindowEditsShowTheirTextAndTheFocusedCaret
     EXPECT_EQ(caret->style.colors, (TextColors{.text = letter.subject.backgroundColor, .background = 0xffc8c8c8u}));
 }
 
-// Arrastrada y cambiando de tamaño, 0x498480 vuelve a ubicar los botones, los EDIT y el retrato (el 8), pero no los
-// mide (no manda el 9): el EDIT del cuerpo queda con su alto.
+// Dragged and resizing, 0x498480 places the buttons, the EDITs and the portrait again (the 8), but does not measure
+// them (does not send the 9): the body EDIT keeps its height.
 TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizingThem)
 {
     OldWindow& write = OpenAWrite();
@@ -1014,7 +1015,7 @@ TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizin
     EXPECT_EQ(letter.subject.base.y, 80 + 20 + 0x15 + 0x12);
     EXPECT_EQ(letter.text.base.y, 80 + 20 + 0x15 + 0x21);
     EXPECT_EQ(letter.text.base.height, bodyHeight);
-    // Los botones, a 0x10 del borde de abajo del área de adentro, que bajó 13 más.
+    // The buttons, at 0x10 from the inner area's bottom edge, which went 13 lower.
     EXPECT_EQ(letter.buttons[0].base.x, 127);
     EXPECT_EQ(letter.buttons[0].base.y, 275 + 20 + 13);
     EXPECT_EQ(letter.buttons[3].base.x, 416);
@@ -1022,10 +1023,10 @@ TEST_F(LetterWindowsDrawTest, TheDraggedWriteWindowPlacesItsChildrenWithoutSizin
     EXPECT_EQ(letter.portrait.base.height, portraitHeight);
 }
 
-// F5 con tres chats: el primero espera un mensaje, el segundo (con tres miembros) es el elegido y el tercero está
-// minimizado. 0x4a5490: el fondo del 3 y el borde del 15 con el parpadeo, de 17 · 2 sobre el borde de abajo (0x1b3);
-// 0x4a5750, de abajo hacia arriba: la franja del 0x11 o del 0x10, el amigo del título en negro con el alfa del
-// parpadeo y, con más de dos miembros, la marca de win_mark.tga en rojo.
+// F5 with three chats: the first waits for a message, the second (with three members) is the chosen one and the third
+// is minimized. 0x4a5490: the background of the 3 and the border of the 15 with the blink, 17 · 2 above the bottom
+// edge (0x1b3); 0x4a5750, from bottom to top: the stripe of the 0x11 or the 0x10, the title's friend in black with the
+// blink's alpha and, with more than two members, the win_mark.tga mark in red.
 TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMarks)
 {
     const std::int32_t first = OpenAChat({{"Tordo", 1}}, {}).base.id;
@@ -1045,15 +1046,15 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
 
     const TextureSlot mark{0x64c};
     ExpectCommands({
-        {std::nullopt, BlendMode::Alpha, 6},   // el fondo, los cuatro bordes y la franja del primero
+        {std::nullopt, BlendMode::Alpha, 6},   // the background, the four borders and the first one's stripe
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "Tordo"
-        {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
+        {std::nullopt, BlendMode::Alpha, 1},   // the chosen one's stripe
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "Zorzal"
         {mark, BlendMode::Alpha, 1},
     });
-    // El renglón mide 13 ("0"), y con el margen 17: 34 de alto desde 0x1b3 − 34, en x = 0x246 de 0x34.
+    // The row measures 13 ("0"), and with the margin 17: 34 high from 0x1b3 − 34, at x = 0x246, 0x34 wide.
     ExpectBox(QuadOf(0, 0), 582.0f, 401.0f, 634.0f, 435.0f);
-    // El 3 es el de la sombra: su alfa es el parpadeo · 179.
+    // The 3 is the shadow's: its alpha is the blink · 179.
     EXPECT_EQ(VertexOf(0, 0).color, PaletteOf(3));
     EXPECT_LT(VertexOf(0, 0).color.alpha, 1.0f);
     ExpectBox(QuadOf(0, 1), 582.0f, 401.0f, 634.0f, 402.0f);
@@ -1061,26 +1062,26 @@ TEST_F(LetterWindowsDrawTest, TheWindowListDrawsTheChatsWithTheirBandsAndTheirMa
     ExpectBox(QuadOf(0, 2), 582.0f, 401.0f, 583.0f, 435.0f);
     ExpectBox(QuadOf(0, 3), 633.0f, 401.0f, 634.0f, 435.0f);
     ExpectBox(QuadOf(0, 4), 582.0f, 435.0f, 634.0f, 436.0f);
-    // La franja: x + 1, 1 más abajo que el renglón, de w − 2 × (13 + 3).
+    // The stripe: x + 1, 1 lower than the row, of w − 2 × (13 + 3).
     ExpectBox(QuadOf(0, 5), 583.0f, 419.0f, 633.0f, 435.0f);
     EXPECT_EQ(VertexOf(0, 5).color, PaletteOf(0x11));
     ExpectBox(QuadOf(2), 583.0f, 402.0f, 633.0f, 418.0f);
     EXPECT_EQ(VertexOf(2).color, PaletteOf(0x10));
-    // La marca, de 4 × 6 en x + w − 7 y 5 más abajo que el renglón, en rojo.
+    // The mark, 4 × 6 at x + w − 7 and 5 lower than the row, in red.
     ExpectBox(QuadOf(4), 627.0f, 406.0f, 631.0f, 412.0f);
     EXPECT_EQ(VertexOf(4).color, (Color{.red = 1.0f, .green = 0.0f, .blue = 0.0f, .alpha = 1.0f}));
     EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).u, 0.5f);
     EXPECT_FLOAT_EQ(VertexOf(4, 0, 2).v, 0.75f);
 
-    // strtok(",") del título: "t994" y los amigos de atrás para adelante (0x460e70 los agrega adelante: el primero que
-    // entró, Zorzal); lo que sigue al 994, en x + 2 y 3 más abajo.
+    // strtok(",") of the title: "t994" and the friends from back to front (0x460e70 adds them at the front: the first
+    // one in, Zorzal); what follows the 994, at x + 2 and 3 lower.
     const TextColors black{.text = 0xff000000u, .background = 0};
     ExpectTexts(0, {{"Tordo", 584, 421, black}, {"Zorzal", 584, 404, black}});
     EXPECT_EQ(m_text.texts.size(), 2u);
 }
 
-// Sin elegido ni esperando, el texto en 0xc8dce6 con el alfa del parpadeo (ftol(0,5 · 255)); un chat cerrado (el 995
-// adelante) muestra al amigo igual, y uno sin amigos en el título, el 995.
+// Without a chosen or waiting one, the text in 0xc8dce6 with the blink's alpha (ftol(0.5 · 255)); a closed chat (the
+// 995 in front) shows the friend the same, and one without friends in the title, the 995.
 TEST_F(LetterWindowsDrawTest, TheWindowListShowsTheClosedChatsAndTheEmptyOnes)
 {
     OldWindow& closed = OpenAChat({{"Tordo", 1}}, {});
@@ -1096,11 +1097,11 @@ TEST_F(LetterWindowsDrawTest, TheWindowListShowsTheClosedChatsAndTheEmptyOnes)
 
     const TextColors faded{.text = 0x7fc8dce6u, .background = 0};
     ExpectTexts(0, {{"Tordo", 584, 421, faded}, {"t995", 584, 404, faded}});
-    // El fondo y el borde con el alfa del parpadeo.
+    // The background and the border with the blink's alpha.
     EXPECT_EQ(VertexOf(0, 1).color, *Client::Ui::OldWindowPalette(15, 0.5f));
 }
 
-// Oculta, o con todos los chats minimizados, la lista no dibuja nada más que lo del marco.
+// Hidden, or with every chat minimized, the list draws nothing beyond the frame's.
 TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
 {
     OldWindow& chat = OpenAChat({{"Tordo", 1}}, {});
@@ -1114,10 +1115,10 @@ TEST_F(LetterWindowsDrawTest, TheWindowListWithoutChatsToShowDrawsNothing)
     EXPECT_TRUE(m_sprites.Commands().empty());
     EXPECT_TRUE(m_text.texts.empty());
 }
-// 0x4a5120 sin la de amigos: con un chat que espera, una carta nueva y una sin leer, el hombre en (0x246 + 4, 0x1b3 +
-// 2) de 25 × 14 y la carta en (0x246 + 0x21, 0x1b3 + 5) de 15 × 9, los dos en los 12 primeros dibujos de cada 24. La
-// carta nueva parpadea en el 11 de cada 24: el sexto parpadeo (el dibujo 131) la apaga; después la carta queda fija
-// mientras haya una sin leer. Sin rand().
+// 0x4a5120 without the friends window: with a waiting chat, a new letter and an unread one, the man at (0x246 + 4,
+// 0x1b3 + 2) of 25 × 14 and the letter at (0x246 + 0x21, 0x1b3 + 5) of 15 × 9, both in the first 12 draws of every 24.
+// The new letter blinks at the 11 of every 24: the sixth blink (draw 131) turns it off; then the letter stays steady
+// while there is an unread one. No rand().
 TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntilTheSixthBlink)
 {
     Client::Ui::OldWindowListPart& list = m_manager.windowList.list;
@@ -1139,19 +1140,19 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
     EXPECT_EQ(list.barBlink, 1);
     EXPECT_EQ(list.letterBlinks, 0);
 
-    // Los dibujos 1..130: cinco parpadeos (en el 11, 35, 59, 83 y 107), y la carta nueva sigue.
+    // Draws 1..130: five blinks (at 11, 35, 59, 83 and 107), and the new letter stays.
     for (int draw = 1; draw < 131; ++draw)
         Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     EXPECT_EQ(list.barBlink, 131);
     EXPECT_EQ(list.letterBlinks, 5);
     EXPECT_EQ(list.newLetter, 1);
-    // El 131 (131 % 24 = 11): el sexto la apaga y vuelve a 0.
+    // The 131 (131 % 24 = 11): the sixth turns it off and goes back to 0.
     Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     EXPECT_EQ(list.barBlink, 132);
     EXPECT_EQ(list.letterBlinks, 0);
     EXPECT_EQ(list.newLetter, 0);
 
-    // Apagado (el 12 de cada 24): sin el hombre, y la carta fija por la que no se leyó.
+    // Off (the 12 of every 24): without the man, and the letter steady for the unread one.
     list.barBlink = 12;
     m_sprites.Begin(Screen640);
     Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
@@ -1160,7 +1161,7 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
     ExpectBox(QuadOf(0), 615.0f, 440.0f, 630.0f, 449.0f);
     EXPECT_EQ(list.barBlink, 13);
 
-    // Leída, nada; con la carta nueva y apagado, tampoco.
+    // Read, nothing; with the new letter and off, neither.
     m_manager.letterModel.letters.front().type = 1;
     m_sprites.Begin(Screen640);
     Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
@@ -1172,9 +1173,10 @@ TEST_F(LetterWindowsDrawTest, TheBarIconsBlinkTheWaitingChatAndTheNewLetterUntil
     EXPECT_EQ(list.letterBlinks, 0);
 }
 
-// 0x4a5120 con la de amigos abierta: el botón apretado (win_push.jpg) en (0x246, 0x1b3) de 0x34 × 0x12 con w / 64 y
-// h / 32, el hombre en (x + 7, y + 3) desde v = 0,4375 y la carta en (x + 0x24, y + 7). Sin ninguna sin leer, la carta
-// nueva se apaga (0x4a6420(0)) y la carta se dibuja igual en ese dibujo; en el siguiente, solo con una sin leer.
+// 0x4a5120 with the friends window open: the pressed button (win_push.jpg) at (0x246, 0x1b3) of 0x34 × 0x12 with
+// w / 64 and h / 32, the man at (x + 7, y + 3) from v = 0.4375 and the letter at (x + 0x24, y + 7). With none unread,
+// the new letter turns off (0x4a6420(0)) and the letter is drawn anyway in that draw; in the next, only with an unread
+// one.
 TEST_F(LetterWindowsDrawTest, WithTheFriendsWindowTheBarIconsGoOverThePushedButton)
 {
     const auto opened = Client::Messenger::OpenTheFriendsWindow(
@@ -1201,7 +1203,7 @@ TEST_F(LetterWindowsDrawTest, WithTheFriendsWindowTheBarIconsGoOverThePushedButt
     EXPECT_EQ(list.newLetter, 0);
     EXPECT_EQ(list.barBlink, 1);
 
-    // Sin carta nueva: sin ninguna sin leer, solo el botón y el hombre; con una, también la carta.
+    // Without a new letter: with none unread, only the button and the man; with one, also the letter.
     m_sprites.Begin(Screen640);
     Client::Messenger::DrawTheFriendBarIcons(m_manager, m_sprites);
     ExpectCommands({{TextureSlot{0x64f}, BlendMode::Alpha, 1}, {TextureSlot{0x64e}, BlendMode::Alpha, 1}});

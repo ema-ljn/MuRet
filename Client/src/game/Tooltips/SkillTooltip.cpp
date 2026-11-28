@@ -42,64 +42,64 @@ namespace
 using Kernel::BaseClassOf;
 using Kernel::CharacterClass;
 
-// 0x421c1a..0x421c3d: los lugares de los cuatro comandos del cuervo, con el Dark Lord.
+// 0x421c1a..0x421c3d: the slots of the raven's four commands, with the Dark Lord.
 constexpr std::int32_t FirstCommand = 0x78;
 constexpr std::int32_t CommandCount = 4;
-// 0x421c60 y 0x421cb5..0x421cca: el nombre (1219 a 1222) y la ayuda (1223 a 1226) de cada comando.
+// 0x421c60 and 0x421cb5..0x421cca: each command's name (1219 to 1222) and help (1223 to 1226).
 constexpr std::size_t CommandNameText = 1219;
 constexpr std::size_t CommandHelpText = 1223;
-// 0x421cd9..0x421ce1: ESI (los renglones) y EBX (los medios) en 4.
+// 0x421cd9..0x421ce1: ESI (the lines) and EBX (the halves) at 4.
 constexpr std::int32_t CommandLines = 4;
 constexpr std::int32_t CommandHalves = 4;
-// 0x5ba6df..0x5ba6ed: los tres "\n" de la skill (los renglones 0 y 2 y el último) son medios renglones.
+// 0x5ba6df..0x5ba6ed: the skill's three "\n" (lines 0 and 2 and the last) are half lines.
 constexpr std::int32_t SkillHalves = 3;
-// 0x5af090: sin ancho, el modo 2 y el marco.
+// 0x5af090: no width, mode 2 and the frame.
 constexpr std::int32_t CenteredMode = 2;
 constexpr std::int32_t WithFrame = 1;
 
-// 0x6c9c38, 0x6c9c40, 0x6c9c44 y 0x6c6484: "\n"; 0x6c9c34 y 0x6c9c3c: "%s".
+// 0x6c9c38, 0x6c9c40, 0x6c9c44 and 0x6c6484: "\n"; 0x6c9c34 and 0x6c9c3c: "%s".
 constexpr std::string_view NewLineFormat = "\n";
 constexpr std::string_view TextFormat = "%s";
 
-// Las skills que el tooltip mira, por lo que hace con ellas.
-// 0x5b93ec: la del Wizard con la absorción (578, 880 y 881).
+// The skills the tooltip looks at, by what it does with them.
+// 0x5b93ec: the Wizard's with the absorption (578, 880 and 881).
 constexpr std::uint8_t AbsorbSkill = 0x10;
-// 0x5b9810..0x5b9819: las de la elfa con su renglón de la energía (171, 172 y 173).
+// 0x5b9810..0x5b9819: the elf's with their energy line (171, 172 and 173).
 constexpr std::uint8_t HealSkill = 0x1a;
 constexpr std::uint8_t DefenseSkill = 0x1b;
 constexpr std::uint8_t AttackSkill = 0x1c;
-// 0x5b9996: la del Dark Knight con el texto 96.
+// 0x5b9996: the Dark Knight's with text 96.
 constexpr std::uint8_t NotMountedSkill = 0x2f;
-// 0x5b9239: la que cambia de nombre con la opción 0x42 en la derecha.
+// 0x5b9239: the one that changes name with option 0x42 on the right.
 constexpr std::uint8_t ForceSkill = 0x3c;
-// 0x5ba73c, el caso 1: la de las clases 1 a 4 con el texto 1237 en vez del daño.
+// 0x5ba73c, case 1: the one of classes 1 to 4 with text 1237 instead of the damage.
 constexpr std::uint8_t PetSkill = Tables::EarthshakeSkill;
-// 0x5ba3e0: la del Dark Lord con el texto 1185 sin party.
+// 0x5ba3e0: the Dark Lord's with text 1185 without a party.
 constexpr std::uint8_t PartySkill = 0x3f;
-// 0x5b958d y 0x5ba42a: la del daño de los stats (0x552470) y las dos notas.
+// 0x5b958d and 0x5ba42a: the stat damage one (0x552470) and the two notes.
 constexpr std::uint8_t StatDamageSkill = 0x4c;
-// 0x5b94cf..0x5b94e1: con el cuarto argumento en una de estas, el Wizard no escribe la magia.
+// 0x5b94cf..0x5b94e1: with the fourth argument at one of these, the Wizard does not write the magic.
 constexpr std::int32_t FirstSiegeSkill = 0x43;
 constexpr std::int32_t LastSiegeSkill = 0x45;
-// 0x5ba73c, el caso 0: las de las clases 1 a 4 sin renglón de daño (de 6 a 0x4c; fuera de ese rango, el caso 2).
+// 0x5ba73c, case 0: the ones of classes 1 to 4 without a damage line (from 6 to 0x4c; outside that range, case 2).
 constexpr std::array<std::uint8_t, 26> NoDamageSkills{0x06, 0x0f, 0x10, 0x12, 0x1a, 0x1b, 0x1c, 0x1e, 0x1f,
                                                       0x20, 0x21, 0x22, 0x23, 0x24, 0x30, 0x35, 0x3f, 0x40,
                                                       0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x4b, 0x4c};
-// 0x5b99e7..0x5b99fd: las del combo del Dark Knight, de nivel 220 o más.
+// 0x5b99e7..0x5b99fd: the Dark Knight's combo ones, of level 220 or more.
 constexpr std::uint8_t FirstComboSkill = 0x13;
 constexpr std::uint8_t LastComboSkill = 0x17;
 constexpr std::array<std::uint8_t, 3> OtherComboSkills{0x29, 0x2a, 0x2b};
 constexpr std::uint16_t ComboLevel = 220;
-// 0x5b99d1: el +0x390 del héroe en 1.
+// 0x5b99d1: the hero's +0x390 at 1.
 constexpr std::uint8_t ComboQuestDone = 1;
 
-// 0x5b9249: la derecha sin ítem; 0x5b926f: la opción de la onda.
+// 0x5b9249: the right hand without an item; 0x5b926f: the wave's option.
 constexpr std::uint16_t NoModel = 0xffff;
 constexpr std::uint8_t ForceWaveOption = 0x42;
-// [EBP−0x148]: el buffer del nombre, de 256 bytes.
+// [EBP−0x148]
 constexpr std::size_t NameBufferBytes = 0x100;
 
-// Los textos, (dirección − 0x76bd1dc) / 300.
+// The texts, (address − 0x76bd1dc) / 300.
 constexpr std::size_t MagicDamageText = 170;     // 0x76c9914
 constexpr std::size_t HealText = 171;            // 0x76c9a40
 constexpr std::size_t DefenseText = 172;         // 0x76c9b6c
@@ -124,8 +124,8 @@ constexpr std::size_t KillCountText = 1483;      // 0x7729bc0
 constexpr std::size_t FirstStatNoteText = 1926;  // 0x774a2e4
 constexpr std::size_t SecondStatNoteText = 1927; // 0x774a410
 
-// Skill.bmd: el byte +0x21 (el daño), el +0x30 (el atributo, 0xff sin él), el +0x31 (de dónde viene: 2, de otra
-// skill, la del +0x32; 1, de la guerra de guilds, con el +0x33).
+// Skill.bmd: byte +0x21 (the damage), +0x30 (the attribute, 0xff without one), +0x31 (where it comes from: 2, from
+// another skill, the one at +0x32; 1, from the guild war, with +0x33).
 constexpr std::size_t DamageByte = Tables::SkillRecordLayout::Damage;
 constexpr std::size_t AttributeByte = Tables::SkillRecordLayout::Attribute;
 constexpr std::uint8_t NoAttribute = 0xff;
@@ -135,7 +135,7 @@ constexpr std::uint8_t GuildWarOrigin = 1;
 constexpr std::size_t GiverByte = Tables::SkillRecordLayout::Giver;
 constexpr std::size_t KillCountByte = Tables::SkillRecordLayout::KillCount;
 
-// 0x5b9403..0x5b949c: los floats de la absorción.
+// 0x5b9403..0x5b949c: the absorption floats.
 constexpr float AbsorbManaFactor = 0.02f;    // 0x6b8b90
 constexpr float AbsorbAgilityFactor = 0.02f; // 0x6b89e4
 constexpr float AbsorbEnergyFactor = 0.005f; // 0x6ba32c
@@ -143,11 +143,11 @@ constexpr float AbsorbBase = 10.0f;          // 0x6b87a8
 constexpr float TimeEnergyFactor = 0.025f;   // 0x6ba1fc
 constexpr float TimeBase = 60.0f;            // 0x6b86cc
 
-// 0x5b97b1: el máximo del daño de los stats.
+// 0x5b97b1: the stat damage's maximum.
 constexpr std::uint32_t StatDamageSpread = 0x1e;
 
-// Lo que comparten los tramos de 0x5b90b0: la skill ([EBP−8]), la clase ([EBP−0x10]), el cuarto argumento, los
-// stats con lo de los ítems (DI, SI, BX, [EBP−4] y [EBP−0x14]), los daños y lo que dejó 0x551c70.
+// What the parts of 0x5b90b0 share: the skill ([EBP−8]), the class ([EBP−0x10]), the fourth argument, the stats with
+// the items' (DI, SI, BX, [EBP−4] and [EBP−0x14]), the damages and what 0x551c70 left.
 struct SkillFrame
 {
     Hud::GameHudContext& context;
@@ -162,12 +162,12 @@ struct SkillFrame
     std::uint32_t vitality = 0;
     std::uint32_t energy = 0;
     std::uint32_t leadership = 0;
-    // [EBP−0x3c] y [EBP−0x38]: 0x5513d0.
+    // [EBP−0x3c] and [EBP−0x38]: 0x5513d0.
     Player::OwnMagicDamage magic{};
-    // [EBP−0x1c] y [EBP−0x24]: 0x5516e0 más 0x5b8b80.
+    // [EBP−0x1c] and [EBP−0x24]: 0x5516e0 plus 0x5b8b80.
     std::int32_t damageMin = 0;
     std::int32_t damageMax = 0;
-    // El nombre, el maná ([EBP−0x2c]), el alcance ([EBP−0x48]) y la stamina ([EBP−0x30]).
+    // The name, the mana ([EBP−0x2c]), the range ([EBP−0x48]) and the stamina ([EBP−0x30]).
     SkillEntryFields entry{};
 };
 
@@ -178,7 +178,7 @@ Core::Expected<void, std::string> Checked(const TooltipWriter& lines)
     return {};
 }
 
-// 0x5b93b0..0x5b93db: un stat más lo que le suman los ítems, en 16 bits.
+// 0x5b93b0..0x5b93db: a stat plus what the items add, in 16 bits.
 std::uint32_t StatOf(std::uint16_t base, std::uint16_t items)
 {
     return static_cast<std::uint16_t>(base + items);
@@ -189,7 +189,7 @@ std::int32_t Wrapped(std::uint32_t value)
     return static_cast<std::int32_t>(value);
 }
 
-// La entrada `skill` de Skill.bmd, sin abrir su acceso.
+// Without opening the entry's access.
 Core::Expected<std::span<const std::byte, Tables::SkillRecordSize>, std::string>
 SkillEntryOf(const Hud::GameHudContext& context, std::uint32_t skill, std::string_view where)
 {
@@ -206,7 +206,7 @@ std::uint8_t EntryByte(std::span<const std::byte, Tables::SkillRecordSize> entry
     return std::to_integer<std::uint8_t>(entry[offset]);
 }
 
-// 0x552470 y 0x5519f0: un byte de la entrada `skill`, con su acceso (60 rand() si su cuenta vuelve a 0).
+// 0x552470 and 0x5519f0: a byte of entry `skill`, with its access (60 rand() if its count returns to 0).
 Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(Hud::GameHudContext& context, std::uint8_t skill,
                                                            std::size_t offset, std::string_view where)
 {
@@ -218,8 +218,8 @@ Core::Expected<std::uint8_t, std::string> ReadTheEntryByte(Hud::GameHudContext& 
     return EntryByte(entry.Value(), offset);
 }
 
-// La caja arriba de y, con cy del primer carácter del renglón 0 (GetTextExtentPointA sobre la fuente del DC) y la
-// altura ((renglones − medios) · cy + medios · cy / 2) / ry por _ftol.
+// The box above y, with cy of the first character of line 0 (GetTextExtentPointA on the DC's font) and the height
+// ((lines − halves) · cy + halves · cy / 2) / ry by _ftol.
 Core::Expected<void, std::string> DrawTheBoxAbove(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   std::int32_t count, std::int32_t halves, std::string_view where)
 {
@@ -235,9 +235,9 @@ Core::Expected<void, std::string> DrawTheBoxAbove(Hud::GameHudContext& context, 
     return DrawTheTooltipBox(context, x, top, count, 0, CenteredMode, WithFrame);
 }
 
-// 0x421c10(x, y, lugar), cdecl: con un lugar de 0x78 a 0x7b y el Dark Lord, el nombre del comando en azul y negrita,
-// dos "\n" y su ayuda, y la caja; devuelve 1. Solo escribe el color del renglón 1 y el color y la negrita del 0: los
-// otros quedan como estaban (Q-C720).
+// 0x421c10(x, y, slot), cdecl: with a slot from 0x78 to 0x7b and the Dark Lord, the command's name in blue and bold,
+// two "\n" and its help, and the box; returns 1. It only writes line 1's color and line 0's color and bold: the others
+// stay as they were (Q-C720).
 Core::Expected<bool, std::string> DrawTheCommandTooltip(Hud::GameHudContext& context, std::int32_t x, std::int32_t y,
                                                         std::int32_t slot, CharacterClass heroClass)
 {
@@ -266,7 +266,7 @@ Core::Expected<bool, std::string> DrawTheCommandTooltip(Hud::GameHudContext& con
     return true;
 }
 
-// 0x5b9239..0x5b93a9: "\n", el nombre en azul y negrita (el 1200 con la 0x3c y la opción 0x42 en la derecha) y "\n".
+// 0x5b9239..0x5b93a9: "\n", the name in blue and bold (1200 with 0x3c and option 0x42 on the right) and "\n".
 Core::Expected<void, std::string> WriteTheName(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -305,7 +305,7 @@ Core::Expected<void, std::string> WriteTheName(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b93f7..0x5b94c0: la absorción del Wizard, con la x87 en 53 bits: el 880 se calcula primero y el 881 al final.
+// 0x5b93f7..0x5b94c0: the Wizard's absorption, with the x87 at 53 bits: 880 is computed first and 881 last.
 Core::Expected<void, std::string> WriteTheAbsorption(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -332,7 +332,7 @@ Core::Expected<void, std::string> WriteTheAbsorption(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b93de..0x5b957e: el daño según la clase.
+// 0x5b93de..0x5b957e: the damage by class.
 Core::Expected<void, std::string> WriteTheDamage(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -340,7 +340,7 @@ Core::Expected<void, std::string> WriteTheDamage(SkillFrame& frame)
     {
         if (frame.skill == AbsorbSkill)
             return WriteTheAbsorption(frame);
-        // Q-C722: el que llama desde el asedio pasa la skill de asedio en el cuarto argumento.
+        // Q-C722: the caller from the siege passes the siege skill in the fourth argument.
         if (frame.siegeSkill >= FirstSiegeSkill && frame.siegeSkill <= LastSiegeSkill)
             return {};
         lines.At("0x5b956a");
@@ -363,8 +363,8 @@ Core::Expected<void, std::string> WriteTheDamage(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b958a..0x5b97ea: con la 0x4c, el byte +0x21 de su entrada (0x552470, con su acceso) más los stats de la clase, y
-// ese daño hasta 30 más; las clases 5 a 7 muestran el de la skill.
+// 0x5b958a..0x5b97ea: with 0x4c, the +0x21 byte of its entry (0x552470, with its access) plus the class's stats, and
+// that damage up to 30 more; classes 5 to 7 show the skill's.
 Core::Expected<void, std::string> WriteTheStatDamage(SkillFrame& frame)
 {
     if (frame.skill != StatDamageSkill)
@@ -393,7 +393,7 @@ Core::Expected<void, std::string> WriteTheStatDamage(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b97ed..0x5b98d4: lo de la energía en las tres de la elfa.
+// 0x5b97ed..0x5b98d4: the energy lines in the elf's three.
 Core::Expected<void, std::string> WriteTheElfLines(SkillFrame& frame)
 {
     if (frame.heroClass != CharacterClass::Elf)
@@ -410,7 +410,7 @@ Core::Expected<void, std::string> WriteTheElfLines(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b98d7..0x5b9976: el alcance (si no es 0), el maná y la stamina (si es más de 0), de 0x551c70.
+// 0x5b98d7..0x5b9976: the range (if not 0), the mana and the stamina (if above 0), from 0x551c70.
 Core::Expected<void, std::string> WriteTheCosts(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -435,8 +435,8 @@ bool IsComboSkill(std::uint8_t skill)
            std::ranges::find(OtherComboSkills, skill) != OtherComboSkills.end();
 }
 
-// 0x5b9977..0x5b9a2c: el Dark Knight, el 96 con la 0x2f y el combo (99) con el +0x390 del héroe en 1, nivel 220 o
-// más y una skill del combo.
+// 0x5b9977..0x5b9a2c: the Dark Knight, 96 with 0x2f and the combo (99) with the hero's +0x390 at 1, level 220 or more
+// and a combo skill.
 Core::Expected<void, std::string> WriteTheKnightLines(SkillFrame& frame)
 {
     if (frame.heroClass != CharacterClass::DarkKnight)
@@ -455,8 +455,8 @@ Core::Expected<void, std::string> WriteTheKnightLines(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b9a2d..0x5b9a8d: el atributo de la skill (0x5519f0, el byte +0x30 con su acceso); sin 0xff, su texto (1080 +
-// atributo) como formato y sin argumentos, en azul.
+// 0x5b9a2d..0x5b9a8d: the skill's attribute (0x5519f0, byte +0x30 with its access); without 0xff, its text (1080 +
+// attribute) as the format and without arguments, in blue.
 Core::Expected<void, std::string> WriteTheAttribute(SkillFrame& frame)
 {
     if (auto checked = Checked(frame.lines); !checked.HasValue())
@@ -472,8 +472,8 @@ Core::Expected<void, std::string> WriteTheAttribute(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b9c94..0x5b9f58: la skill que la dio, con su nombre (sprintf "%s" del principio de su entrada) y su byte +0x21,
-// con el acceso de su entrada adentro del de la skill.
+// 0x5b9c94..0x5b9f58: the skill that gave it, with its name (sprintf "%s" of the start of its entry) and its byte
+// +0x21, with its entry's access inside the skill's.
 Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t giver)
 {
     Hud::GameHudContext& context = frame.context;
@@ -502,7 +502,7 @@ Core::Expected<void, std::string> WriteTheGiver(SkillFrame& frame, std::uint8_t 
     return Checked(lines);
 }
 
-// 0x5b9a8e..0x5ba3c4: el acceso en línea de la entrada de la skill y lo que dice su +0x31.
+// 0x5b9a8e..0x5ba3c4: the inline access of the skill's entry and what its +0x31 says.
 Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
 {
     if (auto checked = Checked(frame.lines); !checked.HasValue())
@@ -530,8 +530,8 @@ Core::Expected<void, std::string> WriteTheOrigin(SkillFrame& frame)
     return Checked(frame.lines);
 }
 
-// 0x5ba3c4..0x5ba4d2: la 0x3f del Dark Lord sin party, las dos notas de la 0x4c y el "\n" del final, sin color ni
-// negrita.
+// 0x5ba3c4..0x5ba4d2: the Dark Lord's 0x3f without a party, the two notes of 0x4c and the final "\n", without color or
+// bold.
 Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
 {
     TooltipWriter& lines = frame.lines;
@@ -553,7 +553,7 @@ Core::Expected<void, std::string> WriteTheTail(SkillFrame& frame)
     return Checked(lines);
 }
 
-// 0x5b91a1..0x5ba4d2, con el registro propio abierto: los daños, la entrada y los tramos.
+// 0x5b91a1..0x5ba4d2, with the own record open: the damages, the entry and the parts.
 Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, TooltipWriter& lines,
                                                 const Kernel::ActorState& hero, CharacterClass heroClass,
                                                 std::int32_t slot, std::int32_t siegeSkill)
@@ -565,7 +565,7 @@ Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, To
     if (!skill)
         return Core::Unexpected(std::format("0x5b91af: el byte +0x6c + {} del registro propio no está en MuRet", slot));
     std::uint8_t& depth = runtime.movement.skillDepths[*skill];
-    // Un dibujo intermedio no deja las marcas de la lista de los conjuntos: trabaja sobre una copia.
+    // An intermediate drawing does not leave the marks of the set list: it works on a copy.
     Player::ItemSetOptionList projected = world.ItemSets().list;
     Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
     auto magic = Player::MagicDamageOf(own, *skill, context.skills, depth, context.random, setOptions);
@@ -574,7 +574,7 @@ Core::Expected<void, std::string> WriteTheSkill(Hud::GameHudContext& context, To
     auto damage = Player::SkillDamageOf(*skill, context.skills, depth, context.random, setOptions);
     if (!damage.HasValue())
         return Core::Unexpected(damage.Error());
-    // 0x5b91ee: adentro del registro propio, su acceso no saca nada.
+    // 0x5b91ee: inside the own record, its access draws nothing.
     const Player::OwnAttackDamage attack =
         Player::AttackDamageOf(own, heroClass, Player::HeldItemOf(runtime), context.ownRecordDepth, context.random);
     auto entry = ReadTheSkillEntry(context, *skill, "0x551c70");
@@ -626,11 +626,11 @@ Core::Expected<void, std::string> DrawTheSkillTooltip(Hud::GameHudContext& conte
         return Core::Unexpected(command.Error());
     if (command.Value())
         return {};
-    // EBX: el renglón que sigue, desde 0. 0x78abb30 y 0x78abb34 quedan como estaban.
+    // EBX: the next line, from 0. 0x78abb30 and 0x78abb34 stay as they were.
     std::int32_t count = 0;
     TooltipWriter lines(context.hud.tooltip, context.texts, count);
     {
-        // 0x5b90e6..0x5ba6b3: el registro propio, abierto hasta después del último renglón.
+        // 0x5b90e6..0x5ba6b3: the own record, open until after the last line.
         const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (auto written = WriteTheSkill(context, lines, hero, heroClass, slot, siegeSkill); !written.HasValue())
             return written;

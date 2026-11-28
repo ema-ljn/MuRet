@@ -41,12 +41,12 @@
 #include <tuple>
 #include <vector>
 
-// El dibujo de la ventana de amigos (CL9 hito 9; 06 § HUD y ventanas, "Los amigos"): 0x4a2620 con los encabezados
-// (0x4a2460), el botón del estado (0x463090), la pestaña de amigos (0x49cc20), la de las cartas (0x4a0a30, CL9 hito 10)
-// o la de ventanas (0x49e7f0) con su lista (0x47a810, la barra 0x461890 y los renglones 0x461cd0, 0x4641f0 y 0x462a60),
-// y la caja de agregar (0x4a3750) con su EDIT (0x468320). La ventana de amigos queda en (0x186, 0x106), de 250 × 170:
-// el área de adentro en (395, 283) de 240 × 144, las pestañas en (395, 304) de 240 × 125 y sus listas con el borde de
-// abajo en 407, de 86 de alto. Los nombres y los textos son inventados.
+// The friends window's draw (CL9 milestone 9; 06 § HUD y ventanas, "Los amigos"): 0x4a2620 with the headers
+// (0x4a2460), the state button (0x463090), the friends tab (0x49cc20), the letters tab (0x4a0a30, CL9 milestone 10)
+// or the windows tab (0x49e7f0) with its list (0x47a810, the bar 0x461890 and the rows 0x461cd0, 0x4641f0 and
+// 0x462a60), and the add box (0x4a3750) with its EDIT (0x468320). The friends window sits at (0x186, 0x106), 250 ×
+// 170: the inner area at (395, 283) of 240 × 144, the tabs at (395, 304) of 240 × 125 and their lists with the bottom
+// edge at 407, 86 high. The names and texts are made up.
 namespace
 {
 using Client::Chat::ChatFocus;
@@ -135,14 +135,12 @@ private:
     }
 };
 
-// Cada texto es "t<índice>".
 std::string TextOf(std::size_t index)
 {
     return "t" + std::to_string(index);
 }
 
-// Un quad en 640 × 480 con la y hacia abajo: el vértice 0 es el de arriba a la izquierda y el 2 el de abajo a la
-// derecha.
+// A quad at 640 × 480 with y down: vertex 0 is the top-left one and 2 the bottom-right one.
 struct Box
 {
     float left = 0.0f;
@@ -159,7 +157,7 @@ void ExpectBox(const Box& box, float left, float top, float right, float bottom)
     EXPECT_NEAR(box.bottom, bottom, 1e-4f);
 }
 
-// El color de 0x491960 con el alfa en 1.
+// 0x491960's color with alpha at 1.
 Color PaletteOf(std::int32_t index)
 {
     return *Client::Ui::OldWindowPalette(index, 1.0f);
@@ -172,15 +170,15 @@ struct ExpectedCommand
     std::size_t quads;
 };
 
-// Un amigo del modelo: un agregado y no un std::pair, que con un literal int en el estado convertiría a std::uint8_t
-// adentro de <utility> (C4244 con /WX en MSVC).
+// A model friend: an aggregate and not a std::pair, which with an int literal in the state would convert to
+// std::uint8_t inside <utility> (C4244 with /WX in MSVC).
 struct NewFriend
 {
     std::string name;
     std::uint8_t state = 0;
 };
 
-// Un texto: lo que dice, dónde y de qué color.
+// A text: what it says, where and in which color.
 using ExpectedText = std::tuple<std::string, int, int, std::uint32_t>;
 
 class FriendWindowsDrawTest : public ::testing::Test
@@ -232,7 +230,7 @@ protected:
                                  }};
     }
 
-    // 0x491080 la primera vez, con los amigos en el modelo y copiados a la pestaña (0x49ddd0).
+    // 0x491080 the first time, with the friends in the model and copied to the tab (0x49ddd0).
     void OpenFriends(const std::vector<NewFriend>& friends = {})
     {
         const auto opened = Client::Messenger::OpenTheFriendsWindow(
@@ -258,7 +256,7 @@ protected:
         return OldWindowDrawContext{.sprites = m_sprites, .text = m_text, .dcFont = m_dcFont, .textColors = m_colors};
     }
 
-    // 0x490390 con la ventana de amigos abierta.
+    // 0x490390 with the friends window open.
     Client::Core::Expected<void, std::string> Draw(std::int32_t x = 0, std::int32_t y = 0)
     {
         const OldWindowGlobals globals = Globals();
@@ -353,10 +351,10 @@ protected:
     TextColors m_colors{};
 };
 
-// La pestaña de amigos con dos amigos y el segundo elegido, dibujada por 0x4a2620 antes del marco: el negro de abajo,
-// la barra de la lista sin mezcla (0x49cc20 la deja), los renglones de abajo hacia arriba (el elegido con su franja y
-// en negro), los cuatro botones, la franja de las columnas con sus rayas y sus títulos; después la franja negra de
-// los encabezados, los tres encabezados, sus títulos, el del estado y su casilla.
+// The friends tab with two friends and the second chosen, drawn by 0x4a2620 before the frame: the black below, the
+// list's bar without blend (0x49cc20 leaves it), the rows from bottom to top (the chosen one with its stripe and in
+// black), the four buttons, the columns' stripe with its lines and titles; then the headers' black stripe, the three
+// headers, their titles, the state's and its checkbox.
 TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
 {
     OpenFriends({{"Zorzal", 2}, {"Hornero", 0xff}});
@@ -367,13 +365,13 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
 
     const TextureSlot button{Client::Ui::WindowButtonSlot};
     ExpectCommands({
-        {std::nullopt, BlendMode::Alpha, 2},   // la sombra del marco y el negro debajo de la lista
-        {ScrollbarSlot, BlendMode::Opaque, 2}, // las flechas
-        {std::nullopt, BlendMode::Opaque, 2},  // los filos de la pista
-        {ScrollbarSlot, BlendMode::Opaque, 3}, // el cursor
-        {TextMarkerSlot, BlendMode::Alpha, 2}, // "Zorzal" y su lugar
-        {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
-        {TextMarkerSlot, BlendMode::Alpha, 2}, // "Hornero" y su lugar
+        {std::nullopt, BlendMode::Alpha, 2},   // the frame's shadow and the black under the list
+        {ScrollbarSlot, BlendMode::Opaque, 2}, // the arrows
+        {std::nullopt, BlendMode::Opaque, 2},  // the track's edges
+        {ScrollbarSlot, BlendMode::Opaque, 3}, // the thumb
+        {TextMarkerSlot, BlendMode::Alpha, 2}, // "Zorzal" and its location
+        {std::nullopt, BlendMode::Alpha, 1},   // the chosen one's stripe
+        {TextMarkerSlot, BlendMode::Alpha, 2}, // "Hornero" and its location
         {button, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {button, BlendMode::Alpha, 1},
@@ -382,25 +380,25 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
         {TextMarkerSlot, BlendMode::Alpha, 1},
         {button, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {std::nullopt, BlendMode::Alpha, 5},   // las rayas, la franja de las columnas, la raya del medio y su marca
-        {TextMarkerSlot, BlendMode::Alpha, 2}, // los títulos de las columnas
-        {std::nullopt, BlendMode::Alpha, 14},  // la franja de los encabezados, los tres y la raya
-        {TextMarkerSlot, BlendMode::Alpha, 4}, // los tres títulos y el del estado
-        {std::nullopt, BlendMode::Opaque, 4},  // la casilla
-        // El marco sigue con la mezcla normal que dejó 0x463090.
+        {std::nullopt, BlendMode::Alpha, 5},   // the lines, the columns' stripe, the middle line and its mark
+        {TextMarkerSlot, BlendMode::Alpha, 2}, // the column titles
+        {std::nullopt, BlendMode::Alpha, 14},  // the headers' stripe, the three and the line
+        {TextMarkerSlot, BlendMode::Alpha, 4}, // the three titles and the state's
+        {std::nullopt, BlendMode::Opaque, 4},  // the checkbox
+        // The frame continues with the normal blend that 0x463090 left.
         {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Alpha, 1},
     });
 
-    // 0x49cc20: el 7 en (395, 304 + 86 + 0x12) de 240 × (125 − 86 − 18).
+    // 0x49cc20: the 7 at (395, 304 + 86 + 0x12) of 240 × (125 − 86 − 18).
     ExpectBox(QuadOf(0, 1), 395.0f, 408.0f, 635.0f, 429.0f);
     EXPECT_EQ(VertexOf(0, 1).color, PaletteOf(7));
-    // 0x461890: las flechas de 13 × 13 en (x + w − 12, y − h − 1) y (x + w − 12, y − 12).
+    // 0x461890: the 13 × 13 arrows at (x + w − 12, y − h − 1) and (x + w − 12, y − 12).
     ExpectBox(QuadOf(1, 0), 623.0f, 320.0f, 636.0f, 333.0f);
     EXPECT_FLOAT_EQ(VertexOf(1, 0).u, 0.0f);
     EXPECT_FLOAT_EQ(VertexOf(1, 0).v, 0.09375f);
     ExpectBox(QuadOf(1, 1), 623.0f, 395.0f, 636.0f, 408.0f);
     EXPECT_FLOAT_EQ(VertexOf(1, 1).v, 0.5f);
-    // Con menos amigos que renglones, el cursor es toda la pista, con sus puntas de 1.
+    // With fewer friends than rows, the thumb is the whole track, with its ends of 1.
     ExpectBox(QuadOf(2, 0), 623.0f, 333.0f, 624.0f, 395.0f);
     ExpectBox(QuadOf(2, 1), 635.0f, 333.0f, 636.0f, 395.0f);
     EXPECT_EQ(VertexOf(2).color, PaletteOf(2));
@@ -409,13 +407,13 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
     ExpectBox(QuadOf(3, 1), 624.0f, 333.0f, 635.0f, 334.0f);
     ExpectBox(QuadOf(3, 2), 624.0f, 394.0f, 635.0f, 395.0f);
     EXPECT_FLOAT_EQ(VertexOf(3, 2).v, 0.0625f);
-    // 0x461cd0: la franja del elegido, 3 más arriba que su renglón, de w − 13 + 1 × 13, en 0,7 porque 0x491080 le
-    // dio las flechas del teclado a la lista de amigos.
+    // 0x461cd0: the chosen one's stripe, 3 above its row, of w − 13 + 1 × 13, at 0.7 because 0x491080 gave the keyboard
+    // arrows to the friend list.
     EXPECT_EQ(m_focusedList, FriendList().base.id);
     ExpectBox(QuadOf(5), 395.0f, 321.0f, 623.0f, 334.0f);
     EXPECT_FLOAT_EQ(VertexOf(5).color.alpha, 0.7f);
-    // 0x49cc20: la raya del 2 en y + 0x10, la franja del 5 de 16, la raya sobre los botones, la del medio en x + 68 (el
-    // ancho de la columna del nombre) de 125 − 22 − 17 y su marca del 14, de 10, en y + 3.
+    // 0x49cc20: the line of the 2 at y + 0x10, the stripe of the 5 of 16, the line over the buttons, the middle one at
+    // x + 68 (the name column's width) of 125 − 22 − 17 and its mark of the 14, of 10, at y + 3.
     ExpectBox(QuadOf(15, 0), 395.0f, 320.0f, 635.0f, 321.0f);
     ExpectBox(QuadOf(15, 1), 395.0f, 304.0f, 635.0f, 320.0f);
     EXPECT_EQ(VertexOf(15, 1).color, PaletteOf(5));
@@ -424,9 +422,9 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
     EXPECT_EQ(VertexOf(15, 3).color, PaletteOf(2));
     ExpectBox(QuadOf(15, 4), 463.0f, 307.0f, 464.0f, 317.0f);
     EXPECT_EQ(VertexOf(15, 4).color, PaletteOf(14));
-    // 0x4a2620: el 7 de 20 en (395, 283); 0x4a2460(395, 285, 0x35, 0x13, 3, 0): el de la vista con sus filos de
-    // arriba, la izquierda y la derecha y el relleno del 5, los otros con los de arriba, la derecha y abajo, 1 más
-    // abajo, y el relleno del 6; la raya del 2 desde x + 0x9f, 0x12 debajo.
+    // 0x4a2620: the 7 of 20 at (395, 283); 0x4a2460(395, 285, 0x35, 0x13, 3, 0): the view's with its top, left and
+    // right edges and the fill of the 5, the others with the top, right and bottom ones, 1 lower, and the fill of the
+    // 6; the line of the 2 from x + 0x9f, 0x12 below.
     ExpectBox(QuadOf(17, 0), 395.0f, 283.0f, 635.0f, 303.0f);
     ExpectBox(QuadOf(17, 1), 395.0f, 285.0f, 448.0f, 286.0f);
     ExpectBox(QuadOf(17, 2), 394.0f, 285.0f, 395.0f, 304.0f);
@@ -440,23 +438,23 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
     EXPECT_EQ(VertexOf(17, 8).color, PaletteOf(6));
     ExpectBox(QuadOf(17, 9), 501.0f, 286.0f, 554.0f, 287.0f);
     ExpectBox(QuadOf(17, 13), 554.0f, 303.0f, 635.0f, 304.0f);
-    // 0x463090: la casilla de 9 × 9 del 0, 14 + 1 a la izquierda del texto del estado y 1 más arriba.
+    // 0x463090: the 9 × 9 checkbox of the 0, 14 + 1 left of the state text and 1 higher.
     ExpectBox(QuadOf(19, 0), 588.0f, 287.0f, 597.0f, 288.0f);
     ExpectBox(QuadOf(19, 1), 588.0f, 295.0f, 597.0f, 296.0f);
     ExpectBox(QuadOf(19, 2), 588.0f, 287.0f, 589.0f, 296.0f);
     ExpectBox(QuadOf(19, 3), 596.0f, 287.0f, 597.0f, 296.0f);
     EXPECT_EQ(VertexOf(19).color, PaletteOf(0));
 
-    // Los renglones de abajo hacia arriba: el primero del deque abajo. El lugar, 4 después de la columna del nombre:
-    // el servidor 2 con el formato 1042 y fuera de línea con el 1039.
+    // The rows from bottom to top: the deque's first at the bottom. The location, 4 after the name column: server 2
+    // with format 1042 and offline with the 1039.
     ExpectTexts(0, {
                        {"Zorzal", 398, 337, Dim},
                        {"t1042", 470, 337, Dim},
                        {"Hornero", 398, 324, Black},
                        {"t1039", 470, 324, Black},
                    });
-    // Los títulos de las columnas en (x + 4, y + 3), el del orden en blanco; los de los encabezados centrados en su
-    // lugar ((52 − 30 + 0,5) · 0,5 y (24 − 13 + 0,5) · 0,5), el de la vista en blanco; el del estado contra el borde.
+    // The column titles at (x + 4, y + 3), the sort one in white; the headers' centered in their place ((52 − 30 + 0.5)
+    // · 0.5 and (24 − 13 + 0.5) · 0.5), the view's in white; the state's against the edge.
     ExpectTexts(8, {
                        {"t1021", 399, 307, White},
                        {"t1022", 467, 307, Dim},
@@ -469,8 +467,8 @@ TEST_F(FriendWindowsDrawTest, TheFriendTabIsDrawnLikeTheOriginal)
     EXPECT_EQ(m_dcFont, FontKind::Normal);
 }
 
-// 0x49cf3c..0x49d099: el título de la columna bajo el mouse y el del orden van en blanco, y después de cada uno el
-// color vuelve a 0xffc8dce6.
+// 0x49cf3c..0x49d099: the column title under the mouse and the sort one go in white, and after each the color goes
+// back to 0xffc8dce6.
 TEST_F(FriendWindowsDrawTest, TheColumnTitleUnderTheMouseAndTheSortedOneAreWhite)
 {
     OpenFriends({{"Zorzal", 2}});
@@ -478,12 +476,12 @@ TEST_F(FriendWindowsDrawTest, TheColumnTitleUnderTheMouseAndTheSortedOneAreWhite
 
     ASSERT_TRUE(Draw(400, 310).HasValue());
 
-    // El renglón y su lugar, los cuatro botones y los dos títulos.
+    // The row and its location, the four buttons and the two titles.
     ExpectTexts(6, {{"t1021", 399, 307, White}, {"t1022", 467, 307, White}});
 }
 
-// Con la lista corrida y el clic sobre la flecha de arriba: la flecha dada vuelta y el cursor de la barra en su lugar
-// (+0x110 y +0x118 de 0x47b9c0), con sus puntas.
+// With the list scrolled and the click on the top arrow: the arrow flipped and the bar's thumb in its place (+0x110
+// and +0x118 of 0x47b9c0), with its ends.
 TEST_F(FriendWindowsDrawTest, TheBarArrowTurnsOverWithTheClickAndTheThumbFollowsTheScroll)
 {
     OpenFriends({{"Ana", 0},
@@ -501,7 +499,7 @@ TEST_F(FriendWindowsDrawTest, TheBarArrowTurnsOverWithTheClickAndTheThumbFollows
 
     ASSERT_TRUE(Draw(625, 322).HasValue());
 
-    // La de arriba desde (0,8125, 0,90625) con −0,8125 × −0,40625; la de abajo, sin el mouse, como siempre.
+    // The top one from (0.8125, 0.90625) with −0.8125 × −0.40625; the bottom one, without the mouse, as always.
     EXPECT_FLOAT_EQ(VertexOf(1, 0, 0).u, 0.8125f);
     EXPECT_FLOAT_EQ(VertexOf(1, 0, 0).v, 0.90625f);
     EXPECT_FLOAT_EQ(VertexOf(1, 0, 2).u, 0.0f);
@@ -513,13 +511,13 @@ TEST_F(FriendWindowsDrawTest, TheBarArrowTurnsOverWithTheClickAndTheThumbFollows
     ExpectBox(QuadOf(3, 0), 624.0f, list.thumbY, 635.0f, list.thumbY + list.thumbHeight);
     ExpectBox(QuadOf(3, 1), 624.0f, list.thumbY, 635.0f, list.thumbY + 1.0f);
     ExpectBox(QuadOf(3, 2), 624.0f, list.thumbY + list.thumbHeight - 1.0f, 635.0f, list.thumbY + list.thumbHeight);
-    // Seis renglones desde el tercero del deque.
+    // Six rows from the deque's third.
     ASSERT_GE(m_text.texts.size(), 12u);
     EXPECT_EQ(m_text.texts[0].text, Friends().tabs[0].tab.friends[2].name);
     EXPECT_EQ(m_text.texts[10].text, Friends().tabs[0].tab.friends[7].name);
 }
 
-// Con +0xe0 en 1 (salió de línea), la casilla lleva la marca de win_check.tga (0x64a) de 5 × 5 en (x + 2, y + 2).
+// With +0xe0 at 1 (went offline), the checkbox carries win_check.tga's mark (0x64a) of 5 × 5 at (x + 2, y + 2).
 TEST_F(FriendWindowsDrawTest, TheStateBoxIsMarkedOffline)
 {
     OpenFriends();
@@ -537,9 +535,9 @@ TEST_F(FriendWindowsDrawTest, TheStateBoxIsMarkedOffline)
     EXPECT_FLOAT_EQ(VertexOf(at, 0, 2).u, 0.625f);
 }
 
-// 0x49e7f0: la pestaña de las ventanas no vuelve a la mezcla opaca después del negro, dibuja el título de cada caja en
-// x + 8, su botón, las rayas sin la del medio y el título 1026 en (x + 8, y + 3). La franja del elegido va en 0,3:
-// las flechas del teclado son de la lista de amigos.
+// 0x49e7f0: the windows tab does not go back to the opaque blend after the black, draws each box's title at x + 8,
+// its button, the lines without the middle one and title 1026 at (x + 8, y + 3). The chosen one's stripe goes at 0.3:
+// the keyboard arrows belong to the friend list.
 TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
 {
     OpenFriends();
@@ -555,20 +553,20 @@ TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
     ASSERT_TRUE(Draw().HasValue());
 
     ExpectCommands({
-        {std::nullopt, BlendMode::Alpha, 2}, // la sombra y el negro debajo de la lista
+        {std::nullopt, BlendMode::Alpha, 2}, // the shadow and the black under the list
         {ScrollbarSlot, BlendMode::Alpha, 2},
         {std::nullopt, BlendMode::Alpha, 2},
         {ScrollbarSlot, BlendMode::Alpha, 3},
-        {std::nullopt, BlendMode::Alpha, 1},   // la franja del elegido
+        {std::nullopt, BlendMode::Alpha, 1},   // the chosen one's stripe
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "aviso uno"
         {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 1},
-        {std::nullopt, BlendMode::Alpha, 3},   // las dos rayas y la franja de la columna
+        {std::nullopt, BlendMode::Alpha, 3},   // the two lines and the column's stripe
         {TextMarkerSlot, BlendMode::Alpha, 1}, // "t1026"
         {std::nullopt, BlendMode::Alpha, 14},
     });
     EXPECT_FLOAT_EQ(VertexOf(4).color.alpha, 0.3f);
-    // El encabezado de la vista es el tercero: sus filos desde 501 y el relleno del 5.
+    // The view's header is the third: its edges from 501 and the fill of the 5.
     ExpectBox(QuadOf(10, 9), 501.0f, 285.0f, 554.0f, 286.0f);
     ExpectBox(QuadOf(10, 12), 501.0f, 286.0f, 553.0f, 304.0f);
     EXPECT_EQ(VertexOf(10, 12).color, PaletteOf(5));
@@ -581,7 +579,7 @@ TEST_F(FriendWindowsDrawTest, TheWindowsTabDrawsTheBoxTitles)
                    });
 }
 
-// Sin el foco en la de la vista, el título del encabezado bajo el mouse (+0xb4) también va en blanco.
+// Without the focus on the view's, the header title under the mouse (+0xb4) also goes in white.
 TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
 {
     OpenFriends();
@@ -596,8 +594,8 @@ TEST_F(FriendWindowsDrawTest, TheHeaderUnderTheMouseIsWhite)
                    });
 }
 
-// 0x4a2620 llama 0x45aa50: el paso con 1 atiende la cola funcional antes de recolocar; no difiere el comando. El 4
-// (0x49dbd4) abre la de escribir una carta en el mismo dibujo.
+// 0x4a2620 calls 0x45aa50: the step with 1 handles the functional queue before repositioning; it does not defer the
+// command. The 4 (0x49dbd4) opens the write-a-letter window in the same draw.
 TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuringDrawing)
 {
     m_withStepContext = true;
@@ -609,13 +607,14 @@ TEST_F(FriendWindowsDrawTest, MovingTheWindowProcessesThePendingTabCommandDuring
 
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_TRUE(Friends().tabs[0].base.queue.empty());
-    // 0x497f50: el retrato de la de escribir, con el gancho del juego también en el dibujo.
+    // 0x497f50: the write window's portrait, with the game's hook also in the draw.
     EXPECT_FALSE(m_portraitCalls.empty());
     EXPECT_TRUE(std::ranges::any_of(m_manager.windows, [](const auto& entry)
                                     { return entry.second.kind == Client::Ui::OldWindowKind::LetterWriteWindow; }));
 }
 
-// 0x49d422 y 0x49d118: Name y Answer conservan orden, envían durante la pasada real y no vuelven al paso siguiente.
+// 0x49d422 and 0x49d118: Name and Answer keep their order, send during the real pass and do not come back on the next
+// step.
 TEST_F(FriendWindowsDrawTest, DrawingSendsPendingNamesAndDeleteAnswersInOrderOnce)
 {
     m_withStepContext = true;
@@ -636,7 +635,7 @@ TEST_F(FriendWindowsDrawTest, DrawingSendsPendingNamesAndDeleteAnswersInOrderOnc
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// 0x4a43eb consulta Enter incluso con arg1: la pregunta recién creada responde y la pestaña manda C3 en Draw.
+// 0x4a43eb checks Enter even with arg1: the just-created question answers and the tab sends C3 in Draw.
 TEST_F(FriendWindowsDrawTest, DrawingADeleteCommandReadsEnterAndKeepsTheManagersClosePending)
 {
     m_withStepContext = true;
@@ -660,7 +659,7 @@ TEST_F(FriendWindowsDrawTest, DrawingADeleteCommandReadsEnterAndKeepsTheManagers
     EXPECT_EQ(m_sent.size(), 1u);
 }
 
-// 0x490390 avanza la lista después de dibujar: Command1 agrega la caja; el caret vacío queda recortado por el bitmap.
+// 0x490390 advances the list after drawing: Command1 adds the box; the empty caret stays clipped by the bitmap.
 TEST_F(FriendWindowsDrawTest, DrawingAnAddCommandClipsTheNewEmptyEditCaretInTheSamePass)
 {
     m_withStepContext = true;
@@ -695,11 +694,11 @@ TEST_F(FriendWindowsDrawTest, AFunctionalDrawMessageWithoutStepServicesIsAnExpli
     EXPECT_EQ(Friends().tabs[0].base.queue.front().type, Client::Ui::CommandMessage);
 }
 
-// La pestaña de las cartas (0x4a0a30, CL9 hito 10) con dos cartas, la primera marcada y sin leer, la segunda leída y
-// elegida, todas marcadas y el orden por la fecha: el negro de abajo, la barra de la lista sin mezcla, los renglones
-// (0x4641f0) de abajo hacia arriba con su casilla, su sobre y sus tres textos en cajas, la franja de las columnas con
-// sus tres rayas y sus marcas, la casilla de todas y el sobre, los títulos (el del orden en blanco) y los cuatro
-// botones; después, lo de la ventana de amigos.
+// The letters tab (0x4a0a30, CL9 milestone 10) with two letters, the first marked and unread, the second read and
+// chosen, all marked and sorted by date: the black below, the list's bar without blend, the rows (0x4641f0) from bottom
+// to top with their checkbox, envelope and three texts in boxes, the columns' stripe with its three lines and marks,
+// the all checkbox and the envelope, the titles (the sort one in white) and the four buttons; then, the friends
+// window's.
 TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
 {
     OpenFriends();
@@ -713,7 +712,7 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     Client::Ui::SelectInTheList(tab.tab.list, 2, 2);
     m_manager.letterModel.sortMode = Client::Messenger::ByDateLetters;
     Friends().friends.currentTab = Client::Messenger::LettersTabNumber;
-    // 0x463190: la columna de la marca de 0x19 y las de los textos de 5 letras, + 8.
+    // 0x463190: the mark column of 0x19 and the text ones of 5 letters, + 8.
     ASSERT_EQ(tab.tab.list.headers, 0x19);
     ASSERT_EQ(tab.tab.list.nameWidth, 38);
     ASSERT_EQ(tab.tab.list.placeWidth, 38);
@@ -725,23 +724,23 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     const TextureSlot button{Client::Ui::WindowButtonSlot};
     const TextureSlot mail{0x64b};
     std::vector<ExpectedCommand> expected{
-        {std::nullopt, BlendMode::Alpha, 2},   // la sombra del marco y el negro debajo de la lista
-        {ScrollbarSlot, BlendMode::Opaque, 2}, // la barra
+        {std::nullopt, BlendMode::Alpha, 2},   // the frame's shadow and the black under the list
+        {ScrollbarSlot, BlendMode::Opaque, 2}, // the bar
         {std::nullopt, BlendMode::Opaque, 2},
         {ScrollbarSlot, BlendMode::Opaque, 3},
-        {std::nullopt, BlendMode::Opaque, 4}, // "Tordo": la casilla, marcada, el sobre y los textos
+        {std::nullopt, BlendMode::Opaque, 4}, // "Tordo": the checkbox, marked, the envelope and the texts
         {CheckSlot, BlendMode::Alpha, 1},
         {mail, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 3},
-        {std::nullopt, BlendMode::Alpha, 1}, // "Calandria", elegida: la franja
+        {std::nullopt, BlendMode::Alpha, 1}, // "Calandria", chosen: the stripe
         {std::nullopt, BlendMode::Opaque, 4},
         {mail, BlendMode::Alpha, 1},
         {TextMarkerSlot, BlendMode::Alpha, 3},
-        {std::nullopt, BlendMode::Alpha, 9},  // la franja de las columnas, las tres rayas y las tres marcas
-        {std::nullopt, BlendMode::Opaque, 4}, // la casilla de todas, marcada, y el sobre
+        {std::nullopt, BlendMode::Alpha, 9},  // the columns' stripe, the three lines and the three marks
+        {std::nullopt, BlendMode::Opaque, 4}, // the all checkbox, marked, and the envelope
         {CheckSlot, BlendMode::Alpha, 1},
         {mail, BlendMode::Alpha, 1},
-        {TextMarkerSlot, BlendMode::Alpha, 3}, // los títulos de las columnas
+        {TextMarkerSlot, BlendMode::Alpha, 3}, // the column titles
     };
     for (std::size_t at = 0; at < 4; ++at)
     {
@@ -754,10 +753,10 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     expected.push_back({TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Alpha, 1});
     ExpectCommands(expected);
 
-    // 0x4a0ac1: el 7 en (395, 304 + 86 + 0x12) de 240 × (125 − 86 − 18).
+    // 0x4a0ac1: the 7 at (395, 304 + 86 + 0x12) of 240 × (125 − 86 − 18).
     ExpectBox(QuadOf(0, 1), 395.0f, 408.0f, 635.0f, 429.0f);
-    // 0x4641f0: la casilla en (x + 1, y − 1) y el sobre de 13 × 9 en (x + 0xb, y − 1); el de la leída, de 13 × 10 en
-    // y − 2 y desde 0,28125 de la textura.
+    // 0x4641f0: the checkbox at (x + 1, y − 1) and the 13 × 9 envelope at (x + 0xb, y − 1); the read one's, 13 × 10 at
+    // y − 2 and from 0.28125 of the texture.
     ExpectBox(QuadOf(4, 0), 396.0f, 336.0f, 405.0f, 337.0f);
     ExpectBox(QuadOf(6), 406.0f, 336.0f, 419.0f, 345.0f);
     EXPECT_FLOAT_EQ(VertexOf(6, 0, 0).v, 0.0f);
@@ -768,8 +767,8 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     ExpectBox(QuadOf(10), 406.0f, 322.0f, 419.0f, 332.0f);
     EXPECT_FLOAT_EQ(VertexOf(10, 0, 0).v, 0.28125f);
     EXPECT_FLOAT_EQ(VertexOf(10, 0, 2).v, 0.59375f);
-    // 0x4a0c53..0x4a0e70: las rayas en x + 0x19, x + 0x19 + 38 y x + 0x19 + 76, de 125 − 22 − 17 desde y + 0x11, y sus
-    // marcas del 14, de 10, en y + 3.
+    // 0x4a0c53..0x4a0e70: the lines at x + 0x19, x + 0x19 + 38 and x + 0x19 + 76, of 125 − 22 − 17 from y + 0x11, and
+    // their marks of the 14, of 10, at y + 3.
     ExpectBox(QuadOf(12, 3), 420.0f, 321.0f, 421.0f, 407.0f);
     ExpectBox(QuadOf(12, 4), 458.0f, 321.0f, 459.0f, 407.0f);
     ExpectBox(QuadOf(12, 5), 496.0f, 321.0f, 497.0f, 407.0f);
@@ -777,12 +776,12 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     ExpectBox(QuadOf(12, 6), 420.0f, 307.0f, 421.0f, 317.0f);
     ExpectBox(QuadOf(12, 8), 496.0f, 307.0f, 497.0f, 317.0f);
     EXPECT_EQ(VertexOf(12, 6).color, PaletteOf(14));
-    // 0x4a0e91..0x4a0efd: la casilla de todas en (x + 1, y + 3) y el sobre en (x + 0xb, y + 3).
+    // 0x4a0e91..0x4a0efd: the all checkbox at (x + 1, y + 3) and the envelope at (x + 0xb, y + 3).
     ExpectBox(QuadOf(13, 0), 396.0f, 307.0f, 405.0f, 308.0f);
     ExpectBox(QuadOf(15), 406.0f, 307.0f, 419.0f, 316.0f);
 
-    // El nombre 4 después de la marca en una caja de 38 − 4, la fecha sin "20" centrada en la de 38 (48 columnas, desde
-    // la 5) y el asunto 4 después de la fecha, en lo que queda hasta la barra: 240 − 13 − 101 − 4.
+    // The name 4 after the mark in a box of 38 − 4, the date without "20" centered in the 38 one (48 columns, from the
+    // 5th) and the subject 4 after the date, in what is left up to the bar: 240 − 13 − 101 − 4.
     ExpectTexts(0, {
                        {"Tordo", 424, 337, Dim},
                        {"26/11/13", 458, 337, Dim},
@@ -804,8 +803,8 @@ TEST_F(FriendWindowsDrawTest, TheLettersTabIsDrawnLikeTheOriginal)
     }
 }
 
-// En 800 × 600 las cajas de los textos de un renglón van en píxeles: ftol(38 · 1,25 − 4), ftol(38 · 1,25) y
-// ftol(122 · 1,25). El título bajo el mouse va en blanco.
+// At 800 × 600 the one-row text boxes go in pixels: ftol(38 · 1.25 − 4), ftol(38 · 1.25) and ftol(122 · 1.25). The
+// title under the mouse goes in white.
 TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
 {
     OpenFriends();
@@ -821,17 +820,17 @@ TEST_F(FriendWindowsDrawTest, TheLetterBoxesAreInPixels)
 
     ASSERT_GE(m_text.texts.size(), 6u);
     EXPECT_EQ(m_text.texts[0].columns, 43);
-    // (47 − 48) / 2 trunca hacia el 0: la fecha desde su columna 0, con sus 48.
+    // (47 − 48) / 2 truncates toward 0: the date from its column 0, with its 48.
     EXPECT_EQ(m_text.texts[1].firstColumn, 0);
     EXPECT_EQ(m_text.texts[1].columns, 48);
     EXPECT_EQ(m_text.texts[2].columns, 152);
-    // El mouse en (500, 310): sobre la columna del asunto, desde x + 0x19 + 76 de 38 × 0x13.
+    // The mouse at (500, 310): over the subject column, from x + 0x19 + 76 of 38 × 0x13.
     ExpectTexts(3, {{"t1028", 424, 307, Dim}, {"t1029", 462, 307, Dim}, {"t1030", 500, 307, White}});
 }
 
-// La caja de agregar (0x4a3750): los dos botones y, con la mezcla normal, el EDIT (0x468320): con +0x4c & 8 el negro
-// de w × el alto de "1", el bitmap de 1,5 + 1,5 + cx de ancho con el fondo en 0, el texto y, con el foco, el cursor
-// en la columna después del texto. Termina sin mezcla, y la barra del título del marco sale así.
+// The add box (0x4a3750): the two buttons and, with the normal blend, the EDIT (0x468320): with +0x4c & 8 the black of
+// w × the height of "1", the bitmap of 1.5 + 1.5 + cx wide with the background at 0, the text and, with the focus,
+// the caret in the column after the text. Ends without blend, and the frame's title bar comes out like that.
 TEST_F(FriendWindowsDrawTest, TheAddBoxDrawsItsEditWithTheCaret)
 {
     OpenFriends();
@@ -1180,8 +1179,8 @@ TEST_F(FriendWindowsDrawTest, TheEditHidesSelectionWhenUnfocusedButKeepsItInTheM
     EXPECT_EQ(m_sprites.Vertices().size(), 12u);
 }
 
-// 0x4684bc..0x4684e4: el cursor se ve con el foco de Windows y +0x80 % 24 < 12; oculto (la vtable + 4 con el estado
-// 3), el EDIT no dibuja ni cuenta.
+// 0x4684bc..0x4684e4: the caret shows with the Windows focus and +0x80 % 24 < 12; hidden (the vtable + 4 with state
+// 3), the EDIT neither draws nor counts.
 TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
 {
     OldEdit edit;
@@ -1195,7 +1194,7 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
 
     edit.draws = 11;
     Client::Ui::OldDraw::DrawTheOldEdit(Context(), edit, true);
-    // El bitmap, los dos tramos de texto y la columna de caret.
+    // The bitmap, the two text spans and the caret column.
     EXPECT_EQ(quads(), 4u);
     EXPECT_EQ(edit.draws, 12);
 
@@ -1216,9 +1215,9 @@ TEST_F(FriendWindowsDrawTest, TheEditCaretBlinksAndAHiddenEditDrawsNothing)
     EXPECT_EQ(edit.draws, 25);
 }
 
-// 0x46854d: el WM_GETTEXT de GetWindowTextA pasa por la subclase (0x467b10), que con una flecha abajo pone +0x80 en 0
-// después de que el dibujo eligió el cursor; el INC lo deja en 1, y el cursor queda prendido mientras siga abajo.
-// Oculto, el EDIT sale antes (IsWindowVisible) y no cuenta.
+// 0x46854d: GetWindowTextA's WM_GETTEXT goes through the subclass (0x467b10), which with an arrow held sets +0x80 to 0
+// after the draw chose the caret; the INC leaves it at 1, and the caret stays on while it is held. Hidden, the EDIT
+// leaves earlier (IsWindowVisible) and does not count.
 TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
 {
     OldEdit edit;
@@ -1227,7 +1226,7 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
     edit.base.width = 80;
     edit.base.height = 14;
     edit.text.Type("ab");
-    // El cursor al principio: al final del texto quedaría fuera del bitmap.
+    // The caret at the start: at the end of the text it would be outside the bitmap.
     edit.text.SetCursor(0);
     const auto caretDrawn = [this]
     {
@@ -1239,7 +1238,7 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
 
     edit.draws = 13;
     Client::Ui::OldDraw::DrawTheOldEdit(held, edit, true);
-    // El bitmap y el texto: el cursor se eligió con 13.
+    // The bitmap and the text: the caret was chosen with 13.
     EXPECT_FALSE(caretDrawn());
     EXPECT_EQ(edit.draws, 1);
 
@@ -1249,7 +1248,7 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
     EXPECT_TRUE(caretDrawn());
     EXPECT_EQ(edit.draws, 1);
 
-    // Sin el foco el WM_GETTEXT llega igual.
+    // Without the focus the WM_GETTEXT arrives the same.
     edit.draws = 20;
     Client::Ui::OldDraw::DrawTheOldEdit(held, edit, false);
     EXPECT_EQ(edit.draws, 1);
@@ -1260,8 +1259,9 @@ TEST_F(FriendWindowsDrawTest, AHeldArrowKeepsTheEditCaretOn)
     EXPECT_EQ(edit.draws, 20);
 }
 
-// 0x468584..0x4685ec, el EDIT con ES_PASSWORD (el número del diálogo 0x7d, CL9 hito 8): el texto es un '*' por byte,
-// el bitmap mide los '*' en la negrita y el DC queda con la normal; el cursor, al final de los '*'.
+// 0x468584..0x4685ec, the EDIT with ES_PASSWORD (the dialog's number 0x7d, CL9 milestone 8): the text is one '*' per
+// byte, the bitmap measures the '*' in the bold font and the DC stays with the normal one; the caret, at the end of
+// the '*'.
 TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
 {
     OldEdit edit = Client::Chat::NumberFieldEdit();
@@ -1282,8 +1282,8 @@ TEST_F(FriendWindowsDrawTest, AMaskedEditDrawsStarsAndLeavesTheNormalFont)
     EXPECT_EQ(m_text.texts[0].columns, 24);
     EXPECT_EQ(m_text.texts[0].style.font, FontKind::Normal);
     EXPECT_EQ(edit.text.Value(), "4321");
-    // El bitmap (ftol(1,5 + 1,5 + 24) = 27 de ancho, medido con los '*' en la negrita) y las 24 columnas del texto 3
-    // más adentro. El cursor, en la columna 3 + 24 + 1 de la normal, queda fuera del bitmap: no se dibuja.
+    // The bitmap (ftol(1.5 + 1.5 + 24) = 27 wide, measured with the '*' in bold) and the text's 24 columns 3 further
+    // in. The caret, at column 3 + 24 + 1 of the normal font, is outside the bitmap: it is not drawn.
     const std::span<const SpriteVertex> vertices = m_sprites.Vertices();
     ASSERT_EQ(vertices.size(), 2u * 6u);
     EXPECT_FLOAT_EQ(vertices[0].x, 243.0f);

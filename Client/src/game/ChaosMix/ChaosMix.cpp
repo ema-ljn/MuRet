@@ -26,15 +26,14 @@ namespace Client::ChaosMix
 {
 namespace
 {
-// El tipo vacío de las grillas.
 constexpr std::uint16_t NoItem = 0xffff;
-// 0x5fd165..0x5fd1a3: los precios fijos de 0x5fd120.
+// 0x5fd165..0x5fd1a3: the fixed prices of 0x5fd120.
 constexpr std::int32_t BlessValue = 100'000;
 constexpr std::int32_t SoulValue = 70'000;
 constexpr std::int32_t ChaosValue = 40'000;
 constexpr std::int32_t LifeValue = 450'000;
 constexpr std::int32_t CreationValue = 450'000;
-// Los tipos que cuenta 0x5fd4f0.
+// The types that 0x5fd4f0 counts.
 constexpr std::int32_t Bless = 0x1c0d;
 constexpr std::int32_t Soul = 0x1c0e;
 constexpr std::int32_t Life = 0x1c10;
@@ -59,46 +58,46 @@ constexpr std::int32_t LastFirstWings = 0x1802;
 constexpr std::int32_t FirstSpecialWings = 0x1803;
 constexpr std::int32_t LastSpecialWings = 0x1806;
 constexpr std::int32_t WeaponsEnd = 0xc00;
-// Las opciones excelentes que cuentan (0x50 a 0x53), las de las alas (0x50, 0x51 y 0x55) y la suerte (0x54).
+// The excellent options that count (0x50 to 0x53), the wings' (0x50, 0x51 and 0x55) and luck (0x54).
 constexpr std::uint8_t ExcellentOptionFrom = 0x50;
 constexpr std::uint8_t ExcellentOptionTo = 0x53;
 constexpr std::uint8_t LastWingValueOption = 0x51;
 constexpr std::uint8_t WingTimesFourOption = 0x55;
 constexpr std::uint8_t LuckOption = 0x54;
-// 0x5fd681: el tope de 0x7d2dc88.
+// 0x5fd681: the cap of 0x7d2dc88.
 constexpr std::int32_t MaxExcellentValue = 1'000'000;
-// El nivel de los ítems (D+4 >> 3 & 0xf) desde el que cuentan las opciones.
+// The item level (D+4 >> 3 & 0xf) from which the options count.
 constexpr std::int32_t ExcellentFromLevel = 4;
 constexpr std::int32_t FirstCountedLevel = 9;
 constexpr std::int32_t LastCountedLevel = 12;
-// 0x5fdf1a: el nivel del registro propio que piden las alas del 0x18.
+// 0x5fdf1a: the own record's level that the 0x18's wings require.
 constexpr std::uint16_t CapeHeroLevel = 10;
-// 0x5fe30d..0x5fe33a: las divisiones de la chance de las alas y su tope.
+// 0x5fe30d..0x5fe33a: the divisions of the wings' chance and its cap.
 constexpr std::uint32_t ExcellentRateDivisor = 40'000;
 constexpr std::uint32_t WingsRateDivisor = 4'000'000;
 constexpr std::int32_t MaxWingRate = 90;
 
-// Los tipos de mezcla que devuelve 0x5fd4f0.
+// The mix kinds that 0x5fd4f0 returns.
 constexpr std::int32_t ChaosWeaponMix = 1;
 
 struct Tally
 {
     std::int32_t total = 0;                // [EBP − 0xb0]
     std::int32_t chaos = 0;                // [EBP − 0xac], 0x180f
-    std::int32_t plainExcellent = 0;       // [EBP − 0xa8], los de la cola con 0x50..0x53
+    std::int32_t plainExcellent = 0;       // [EBP − 0xa8], those of the tail with 0x50..0x53
     std::int32_t eye = 0;                  // [EBP − 0xa4], 0x1c11
     std::int32_t key = 0;                  // [EBP − 0xa0], 0x1c12
     std::array<std::int32_t, 4> byLevel{}; // [EBP − 0x9c..−0x90], niveles 9 a 12
     std::int32_t bless = 0;                // [EBP − 0x8c]
     std::int32_t soul = 0;                 // [EBP − 0x88]
-    std::int32_t fullUniria = 0;           // [EBP − 0x84], 0x1a02 con la durabilidad en 0xff
+    std::int32_t fullUniria = 0;           // [EBP − 0x84], 0x1a02 with the durability at 0xff
     std::int32_t others = 0;               // [EBP − 0x80]
     std::int32_t creation = 0;             // [EBP − 0x7c], 0x1c16
     std::int32_t feather = 0;              // [EBP − 0x78], 0x1a0e
     std::int32_t wings = 0;                // [EBP − 0x74], 0x1800..0x1802
     std::int32_t excellent = 0;            // [EBP − 0x70]
     std::int32_t excellentSpecial = 0;     // [EBP − 0x6c], 0x1803..0x1806 excelentes
-    std::int32_t excellentStaffs = 0;      // [EBP − 0x68], 0x406, 0x806 y 0xa07
+    std::int32_t excellentStaffs = 0;      // [EBP − 0x68], 0x406, 0x806 and 0xa07
     std::int32_t scroll = 0;               // [EBP − 0x64], 0x1a10
     std::int32_t bone = 0;                 // [EBP − 0x60], 0x1a11
     std::int32_t guardian = 0;             // [EBP − 0x50], 0x1c1f
@@ -107,7 +106,7 @@ struct Tally
     std::int32_t item1a22 = 0;             // [EBP − 0x44]
     std::int32_t item1a23 = 0;             // [EBP − 0x40]
     std::int32_t item1a24 = 0;             // [EBP − 0x3c]
-    std::int32_t plainFenrir = 0;          // [EBP − 0x38], 0x1a25 sin excelente
+    std::int32_t plainFenrir = 0;          // [EBP − 0x38], 0x1a25 without excellent
     std::int32_t life = 0;                 // [EBP − 0x34], 0x1c10
     std::int32_t excellentWeapons = 0;     // [EBP − 0x30]
     std::int32_t excellentArmors = 0;      // [EBP − 0x2c]
@@ -117,7 +116,7 @@ struct Tally
     std::uint16_t scrollLevel = 0;         // [EBP − 0x1e]
     std::uint16_t boneLevel = 0;           // [EBP − 0x1c]
     std::uint16_t featherLevel = 0;        // [EBP − 0x16]
-    std::uint32_t excellentPrices = 0;     // [EBP − 0xc8], 0x54d0f0 en el modo 0
+    std::uint32_t excellentPrices = 0;     // [EBP − 0xc8], 0x54d0f0 in mode 0
     std::uint32_t wingsPrice = 0;          // [EBP − 0xc4]
 };
 
@@ -133,11 +132,11 @@ bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 
 std::int32_t LevelOf(const Kernel::ItemState& item)
 {
-    // 0x5fd612..0x5fd61b: SAR y AND 0xf.
+    // 0x5fd612..0x5fd61b: SAR and AND 0xf.
     return static_cast<std::int32_t>((item.scalar1Low >> 3u) & 0xfu);
 }
 
-// D+0x2b + offset: las opciones desde +0x2b y sus valores desde +0x33. MuRet tiene hasta +0x3b.
+// D+0x2b + offset: the options from +0x2b and their values from +0x33. MuRet has up to +0x3b.
 Core::Expected<std::uint8_t, std::string> OptionByte(const Kernel::ItemState& item, std::size_t offset,
                                                      std::string_view address)
 {
@@ -162,8 +161,8 @@ Core::Expected<std::uint32_t, std::string> PriceOf(const Kernel::ItemState& item
     return price.Value();
 }
 
-// 0x5fd63c..0x5fd6b1 (y 0x5fd9eb..0x5fda2c): si alguna opción es excelente (0x50 a 0x53); `each` corre con la
-// primera.
+// 0x5fd63c..0x5fd6b1 (and 0x5fd9eb..0x5fda2c): whether some option is excellent (0x50 to 0x53); `each` runs with the
+// first.
 template <typename Found>
 Core::Expected<bool, std::string> WithTheFirstExcellent(const Kernel::ItemState& item, std::string_view address,
                                                         Found&& each)
@@ -183,7 +182,7 @@ Core::Expected<bool, std::string> WithTheFirstExcellent(const Kernel::ItemState&
     return found;
 }
 
-// 0x5fd9c3..0x5fda7b: lo que no tiene un caso propio.
+// 0x5fd9c3..0x5fda7b: what has no case of its own.
 Core::Expected<void, std::string> CountTheRest(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                std::int32_t level, bool& checksLuck, const Tables::ItemTable* items,
                                                const Kernel::WorldRuntime& runtime)
@@ -208,7 +207,7 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, Npc::NpcWindowState
     }
     if (!found)
         ++tally.others;
-    // 0x5fda31..0x5fda7b: con excelente (+0x1b & 0x3f) y nivel 4 o más.
+    // 0x5fda31..0x5fda7b: with excellent (+0x1b & 0x3f) and level 4 or more.
     if ((item.flags1b & 0x3fu) == 0 || level < ExcellentFromLevel)
         return {};
     if (InRange(type, FirstSpecialWings, LastSpecialWings))
@@ -224,8 +223,8 @@ Core::Expected<void, std::string> CountTheRest(Tally& tally, Npc::NpcWindowState
     return {};
 }
 
-// 0x5fd7f7..0x5fda99: las alas de primer nivel, con su precio y la opción de las alas. Después mira la suerte sin
-// mirar [EBP − 8], en la variable local [EBP − 0x11] (y en 0x7d2dc9c si el nivel la prendió).
+// 0x5fd7f7..0x5fda99: the first-level wings, with their price and the wings' option. Then it checks luck without
+// looking at [EBP − 8], in the local variable [EBP − 0x11] (and in 0x7d2dc9c if the level turned it on).
 Core::Expected<void, std::string> CountTheWings(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                 const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
@@ -253,7 +252,7 @@ Core::Expected<void, std::string> CountTheWings(Tally& tally, Npc::NpcWindowStat
     return {};
 }
 
-// 0x5fd725..0x5fd9be: el caso de cada tipo. Devuelve falso para lo que sigue en 0x5fd9c3.
+// 0x5fd725..0x5fd9be: each type's case. Returns false for what goes on at 0x5fd9c3.
 bool CountByType(Tally& tally, const Kernel::ItemState& item, std::int32_t level)
 {
     const auto word = static_cast<std::uint16_t>(level);
@@ -263,7 +262,7 @@ bool CountByType(Tally& tally, const Kernel::ItemState& item, std::int32_t level
         ++tally.item1a23;
         return true;
     case Item1a1e:
-        // [EBP − 0x54]: nadie lo lee.
+        // [EBP − 0x54]: nobody reads it.
         return true;
     case Item1a20:
         if (item.durability == 0x14)
@@ -331,12 +330,12 @@ bool CountByType(Tally& tally, const Kernel::ItemState& item, std::int32_t level
     }
 }
 
-// Una casilla con tipo y +0x3c (0x5fd5bd..0x5fd7b7).
+// A cell with a type and +0x3c (0x5fd5bd..0x5fd7b7).
 Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState& npc, const Kernel::ItemState& item,
                                                const Tables::ItemTable* items, const Kernel::WorldRuntime& runtime)
 {
     ++tally.total;
-    // 0x5fd5ca..0x5fd60d: el ancho y el alto más grandes.
+    // 0x5fd5ca..0x5fd60d: the largest width and height.
     auto footprint = Items::ItemFootprintOf(items, item.id, "0x5fd5ef");
     if (!footprint.HasValue())
         return Core::Unexpected(footprint.Error());
@@ -346,14 +345,14 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState
         npc.mixHeight = footprint.Value().height;
     const std::int32_t level = LevelOf(item);
     const std::int32_t type = Signed(item.id);
-    // [EBP − 8], [EBP − 0x10] y [EBP − 0xb8]: si mira la suerte, si también la escribe en 0x7d2dc9c por el nivel y
-    // dónde la escribe (0x7d2dc9c, o la variable local de las alas).
+    // [EBP − 8], [EBP − 0x10] and [EBP − 0xb8]: whether it checks luck, whether it also writes it in 0x7d2dc9c by the
+    // level and where it writes it (0x7d2dc9c, or the wings' local variable).
     bool checksLuck = false;
     bool luckByLevel = false;
     bool luckIsGlobal = true;
     if (type < FirstWings && level >= ExcellentFromLevel)
     {
-        // 0x5fd631..0x5fd6b1: la primera opción excelente: el arma o la armadura y su precio en el modo 1.
+        // 0x5fd631..0x5fd6b1: the first excellent option: the weapon or the armor and its price in mode 1.
         auto excellent =
             WithTheFirstExcellent(item, "0x5fd63c",
                                   [&]() -> Core::Expected<void, std::string>
@@ -381,7 +380,7 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState
         // 0x5fd6e5..0x5fd700.
         ++tally.notExcellent;
     }
-    // 0x5fd6b9..0x5fd722: los niveles 9 a 12 de lo que está debajo de 0x1807 y del 0x1a1e.
+    // 0x5fd6b9..0x5fd722: levels 9 to 12 of what is below 0x1807 and of the 0x1a1e.
     if ((type < 0x1807 || type == Item1a1e) && InRange(level, FirstCountedLevel, LastCountedLevel))
     {
         ++tally.byLevel[static_cast<std::size_t>(level - FirstCountedLevel)];
@@ -401,7 +400,7 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState
         if (auto rest = CountTheRest(tally, npc, item, level, checksLuck, items, runtime); !rest.HasValue())
             return rest;
     }
-    // 0x5fd785..0x5fd7b7: la suerte.
+    // 0x5fd785..0x5fd7b7: luck.
     if (!checksLuck)
         return {};
     for (std::size_t i = 0; i < item.optionCount; ++i)
@@ -417,7 +416,7 @@ Core::Expected<void, std::string> CountTheItem(Tally& tally, Npc::NpcWindowState
     return {};
 }
 
-// 0x5fdac0..0x5fdc30: los que se deciden por la cuenta total.
+// 0x5fdac0..0x5fdc30: those decided by the total count.
 std::optional<std::int32_t> KindByTotal(const Tally& t, Npc::NpcWindowState& npc)
 {
     if (t.total == 3)
@@ -468,7 +467,7 @@ std::optional<std::int32_t> KindByTotal(const Tally& t, Npc::NpcWindowState& npc
     return std::nullopt;
 }
 
-// 0x5fe30d..0x5fe33a y 0x5fe386..0x5fe3b1.
+// 0x5fe30d..0x5fe33a and 0x5fe386..0x5fe3b1.
 void RateTheWings(const Tally& t, Npc::NpcWindowState& npc)
 {
     const std::uint32_t rate = t.excellentPrices / ExcellentRateDivisor + t.wingsPrice / WingsRateDivisor;
@@ -476,7 +475,7 @@ void RateTheWings(const Tally& t, Npc::NpcWindowState& npc)
     npc.mixWingRate = signedRate < MaxWingRate ? signedRate : MaxWingRate;
 }
 
-// 0x5fe3c7..0x5fe5be: las joyas, la fruta, Uniria y la cola.
+// 0x5fe3c7..0x5fe5be: the jewels, the fruit, Uniria and the tail.
 std::int32_t KindOfTheRest(const Tally& t)
 {
     struct Jewels
@@ -498,7 +497,7 @@ std::int32_t KindOfTheRest(const Tally& t)
             break;
         if (t.byLevel[upgrade.level] == 1 && t.bless == upgrade.count && t.soul == upgrade.count)
             return upgrade.kind;
-        // 0x5fe3da..: sigue en 0x5fe4e9 sin mirar la joya del caos otra vez.
+        // 0x5fe3da..: goes on at 0x5fe4e9 without looking at the chaos jewel again.
         checkTheTail = true;
     }
     if (!decided && t.total == 11 && t.fullUniria == 10 && t.chaos == 1)
@@ -589,14 +588,14 @@ Core::Expected<std::int32_t, std::string> ChaosMixKind(Kernel::WorldState& world
     }
     if (const std::optional<std::int32_t> kind = KindByTotal(tally, npc))
         return *kind;
-    // 0x5fdc31..0x5fe3c6: las alas de segundo nivel (0x1a0e de nivel 0) y la capa (0x1a0e de nivel 1).
+    // 0x5fdc31..0x5fe3c6: the second-level wings (0x1a0e of level 0) and the cape (0x1a0e of level 1).
     const bool wingsAndFeather = tally.wings == 1 && tally.excellentSpecial == 0 && tally.feather == 1;
     const bool everythingElseExcellent = tally.chaos == 1 && tally.total == tally.excellent + 3;
     if (wingsAndFeather && tally.featherLevel == 1)
     {
         if (everythingElseExcellent)
         {
-            // 0x5fdc6f..0x5fe12e: el nivel del registro propio, abierto y cerrado.
+            // 0x5fdc6f..0x5fe12e: the own record's level, opened and closed.
             std::uint16_t level = 0;
             {
                 const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
@@ -671,7 +670,7 @@ bool HasRoomFor(std::span<const Kernel::ItemState> grid, std::int32_t columns, s
 
 MixRoom MixRoomFor(const Npc::NpcWindowState& npc, std::int32_t kind)
 {
-    // La tabla de 0x5febd4 con kind − 1 (0..0x1b) y sus casos de 0x5febc0.
+    // The table at 0x5febd4 with kind − 1 (0..0x1b) and its cases at 0x5febc0.
     switch (kind)
     {
     case 1:
@@ -697,7 +696,7 @@ MixRoom MixRoomFor(const Npc::NpcWindowState& npc, std::int32_t kind)
 
 MixButtonAction MixButtonActionFor(std::int32_t kind)
 {
-    // La tabla de 0x5feb88 con kind + 0x18 (0..0x34) y sus casos de 0x5feb74.
+    // The table at 0x5feb88 with kind + 0x18 (0..0x34) and its cases at 0x5feb74.
     switch (kind)
     {
     case -0x18:
@@ -751,7 +750,7 @@ std::string ThousandsText(std::uint32_t value)
 
 std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate)
 {
-    // 0x5b12f3..0x5b1314: __allmul(impuesto con signo, precio sin signo) y __alldiv por 100; el dword bajo.
+    // 0x5b12f3..0x5b1314: __allmul(signed tax, unsigned price) and __alldiv by 100; the low dword.
     const std::int64_t product = static_cast<std::int64_t>(taxRate) * static_cast<std::int64_t>(price);
     const auto tax = static_cast<std::uint32_t>(static_cast<std::uint64_t>(product / 100));
     return ThousandsText(price + tax);
@@ -759,7 +758,7 @@ std::string TaxedPriceText(std::uint32_t price, std::int32_t taxRate)
 
 Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc, const MixQuoteData& data)
 {
-    // 0x5fedac..0x5fede8: la chance de lo que vale la caja (/ 20.000 con signo, tope 100) y su precio.
+    // 0x5fedac..0x5fede8: the chance from what the box is worth (/ 20000 signed, capped at 100) and its price.
     std::int32_t rate = npc.chaosBoxValue / 20'000;
     if (rate > 100)
         rate = 100;
@@ -770,7 +769,7 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
     switch (npc.mixKind)
     {
     case -0x18:
-        // 0x5ff0a0: la chance en 0 y el texto del precio de antes.
+        // 0x5ff0a0: the chance at 0 and the previous price text.
         result.rate = 0;
         return result;
     case -8:
@@ -779,7 +778,7 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
         return quote(0, 0);
     case 2:
     {
-        // 0x5fee23..0x5fee88: la chance de la tasa del nivel (0x6c9da0 + 4 · nivel) y el precio de la tabla.
+        // 0x5fee23..0x5fee88: the chance of the level's rate (0x6c9da0 + 4 · level) and the table's price.
         if (npc.mixLevel <= 0)
             return result;
         std::int32_t chance = 60;
@@ -790,8 +789,8 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
                 chance = npc.chaosRates[static_cast<std::size_t>(at)];
             else
             {
-                // 0x6c9dc0..0x6c9de0: tres DWORD del formato y seis globales vivos, cargados con signo.
-                // LevelOf tiene cuatro bits: el nivel de la mezcla llega a 16.
+                // 0x6c9dc0..0x6c9de0: three DWORDs of the format and six live globals, loaded signed. LevelOf has four
+                // bits: the mix level reaches 16.
                 const std::array<std::int32_t, 9> ratesPastTheTable{0x2b207325,
                                                                     0x25642520,
                                                                     0x25,
@@ -852,7 +851,7 @@ Core::Expected<MixQuote, std::string> MixQuoteOf(const Npc::NpcWindowState& npc,
         return quote(30, 10'000'000);
     case 0x1c:
     {
-        // 0x5fef82..0x5fefa8: lo que valen los excelentes · 100 / 1.000.000, con signo, tope 79.
+        // 0x5fef82..0x5fefa8: what the excellents are worth · 100 / 1000000, signed, capped at 79.
         const auto scaled = static_cast<std::int32_t>(static_cast<std::uint32_t>(npc.mixExcellentValue) * 100u);
         const std::int32_t chance = scaled / 1'000'000;
         return quote(chance > 79 ? 79 : chance, 10'000'000);

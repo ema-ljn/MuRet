@@ -30,9 +30,9 @@
 #include <string_view>
 #include <vector>
 
-// Los tooltips (0x5f7bc0), su caja (0x5af090), la ventana del set (0x40e850) y el cartel de un conjunto (0x40eca0),
-// CL8 hito 5, con textos y conjuntos inventados y el texto falso de RecordingTextDrawer (6 columnas por letra, 13 de
-// alto) en 640 × 480, donde rx y ry son 1.
+// The tooltips (0x5f7bc0), their box (0x5af090), the set window (0x40e850) and a set's label (0x40eca0), CL8
+// milestone 5, with invented texts and sets and the fake text of RecordingTextDrawer (6 columns per letter, 13 high) at
+// 640 × 480, where rx and ry are 1.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -46,7 +46,7 @@ using Client::Tooltips::TooltipLines;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint8_t None = 0xff;
 
-// Los textos de formato de las opciones de un conjunto (0x40d530) y del título (1089 y 159), inventados.
+// The format texts of a set's options (0x40d530) and of the title (1089 and 159), invented.
 Client::Tables::TextTable Texts()
 {
     return Client::Tests::MakeTextTable({{159, "fin"},
@@ -58,7 +58,7 @@ Client::Tables::TextTable Texts()
                                          {1089, "Set"}});
 }
 
-// ItemSetOption.bmd en claro, los 64 sin usar (0xff), como el archivo real.
+// ItemSetOption.bmd in clear, the 64 unused (0xff), like the real file.
 class SetOptions
 {
 public:
@@ -148,7 +148,7 @@ struct Quad
     float bottom = 0.0f;
 };
 
-// Los quads sin textura (los bordes y el fondo de 0x621aa0), con su color.
+// The untextured quads (the edges and the background of 0x621aa0), with their color.
 std::vector<Quad> ColorQuadsOf(const SpriteBatch& sprites)
 {
     std::vector<Quad> quads;
@@ -160,7 +160,7 @@ std::vector<Quad> ColorQuadsOf(const SpriteBatch& sprites)
         for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
         {
             const std::size_t first = command.firstVertex + quad * 6;
-            // En píxeles de GL, con la y hacia arriba: la esquina 0 es la de arriba a la izquierda.
+            // In GL pixels, with y upward: corner 0 is the top-left one.
             quads.push_back(Quad{.color = vertices[first].color,
                                  .left = vertices[first].x,
                                  .top = 480.0f - vertices[first].y,
@@ -171,7 +171,7 @@ std::vector<Quad> ColorQuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// El color de la marca de cada texto: el glColor3f que había al dibujarlo.
+// The color of each text's mark: the glColor3f there was when drawing it.
 std::vector<Color> TextColorsOf(const SpriteBatch& sprites)
 {
     std::vector<Color> colors;
@@ -202,7 +202,7 @@ void ExpectQuad(const Quad& quad, float left, float top, float width, float heig
     EXPECT_FLOAT_EQ(quad.bottom, top + height);
 }
 
-// 0x5af090: tres renglones ("\n", uno dorado en negrita y uno azul) en (320, 100) con el marco.
+// 0x5af090: three lines ("\n", a gold bold one and a blue one) at (320, 100) with the frame.
 TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
 {
     Tooltips tested;
@@ -217,7 +217,7 @@ TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
     const auto drawn = Client::Tooltips::DrawTheTooltipBox(context, 320, 100, 3, 0, 2, 1);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
-    // El ancho, 18 / rx + 4 = 22, centrado en 320: desde 309. El alto, (13 · 0,5 + 2 · 13) / 0,90909088.
+    // The width, 18 / rx + 4 = 22, centered on 320: from 309. The height, (13 · 0.5 + 2 · 13) / 0.90909088.
     const float height = static_cast<float>(32.5 / static_cast<double>(0.90909088f));
     const std::vector<Quad> quads = ColorQuadsOf(tested.sprites);
     ASSERT_EQ(quads.size(), 5u);
@@ -230,8 +230,8 @@ TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
         ExpectColor(quads[i].color, 0.0f, 0.0f, 0.0f);
     ExpectColor(quads[4].color, 0.0f, 0.0f, 0.0f, 0.8f);
 
-    // El "\n" baja 6,5 · 1,1; cada texto va en la caja de 20 columnas desde 310 (0x467060 con el modo 2), corrido
-    // (20 − 18) / 2, y baja 13 · 1,1.
+    // The "\n" moves down 6.5 · 1.1; each text goes in the box of 20 columns from 310 (0x467060 with mode 2), shifted
+    // (20 − 18) / 2, and moves down 13 · 1.1.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
     EXPECT_EQ(texts[0].text, "Uno");
@@ -256,7 +256,7 @@ TEST(GameTooltipsTest, TheBoxMeasuresFramesAndCentersEachLine)
     EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
 }
 
-// 0x5af0c5: el primer renglón vacío corta la caja; 0x5af3d7: el 9 es verde sobre rojo, y el 5 lleva fondo azul.
+// 0x5af0c5: the first empty line cuts the box; 0x5af3d7: 9 is green on red, and 5 has a blue background.
 TEST(GameTooltipsTest, AnEmptyLineEndsTheBoxAndSomeColorsCarryABackground)
 {
     Tooltips tested;
@@ -273,8 +273,8 @@ TEST(GameTooltipsTest, AnEmptyLineEndsTheBoxAndSomeColorsCarryABackground)
     EXPECT_EQ(texts[0].style.colors.text, 0xff00ff00u);
     EXPECT_EQ(texts[0].style.colors.background, 0xffc83c3cu);
     EXPECT_EQ(texts[1].style.colors.background, 0xff0000a0u);
-    // Sin marco, ningún quad sin textura; contra el borde izquierdo, la caja empieza en 0 y el texto en 1. El fondo
-    // llena las 26 columnas de la caja, también las de los costados del texto (P-C145).
+    // Without a frame, no untextured quad; against the left edge, the box starts at 0 and the text at 1. The background
+    // fills the box's 26 columns, also those beside the text (P-C145).
     EXPECT_TRUE(ColorQuadsOf(tested.sprites).empty());
     EXPECT_EQ(texts[0].x, 1);
     EXPECT_EQ(texts[0].firstColumn, -(26 - 18) / 2);
@@ -284,8 +284,8 @@ TEST(GameTooltipsTest, AnEmptyLineEndsTheBoxAndSomeColorsCarryABackground)
     EXPECT_EQ(texts[1].columns, 26);
 }
 
-// 0x5af090 con el modo 3, el de las columnas de la ayuda del ítem (0x5af9b0): cada texto contra el borde derecho de la
-// caja (0x467134..0x467144), en la columna caja − cx de una caja de 20 columnas justas, con el fondo en toda ella.
+// 0x5af090 with mode 3, the one of the item help's columns (0x5af9b0): each text against the box's right edge
+// (0x467134..0x467144), at column box − cx of a box of exactly 20 columns, with the background over all of it.
 TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
 {
     Tooltips tested;
@@ -296,7 +296,7 @@ TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
     lines.colors[1] = Client::Tooltips::TooltipWhiteOnRed;
     GameHudContext context = tested.Context();
     ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 3, 0).HasValue());
-    // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas.
+    // The width, 18 + 4, centered on 100: from 89, and the texts from 90 in 20 columns.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
     EXPECT_EQ(texts[0].x, 90);
@@ -317,8 +317,8 @@ TEST(GameTooltipsTest, TheModeThreePutsEachLineAgainstTheRightEdge)
     EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
 }
 
-// 0x5af090 con el modo 1, el de la ayuda del retrato de las cartas (0x497f3f): cada texto contra el borde izquierdo de
-// la caja (0x467102..0x467119), en la columna 0 de una caja de 20 columnas justas, con el marco.
+// 0x5af090 with mode 1, the one of the cards' portrait help (0x497f3f): each text against the box's left edge
+// (0x467102..0x467119), at column 0 of a box of exactly 20 columns, with the frame.
 TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
 {
     Tooltips tested;
@@ -328,7 +328,7 @@ TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
     lines.colors[1] = Client::Tooltips::TooltipWhiteOnRed;
     GameHudContext context = tested.Context();
     ASSERT_TRUE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 1, 1).HasValue());
-    // El ancho, 18 + 4, centrado en 100: desde 89, y los textos desde 90 en 20 columnas, en la primera.
+    // The width, 18 + 4, centered on 100: from 89, and the texts from 90 in 20 columns, at the first one.
     const auto& texts = tested.text.texts;
     ASSERT_EQ(texts.size(), 2u);
     EXPECT_EQ(texts[0].x, 90);
@@ -344,13 +344,13 @@ TEST(GameTooltipsTest, TheModeOnePutsEachLineAgainstTheLeftEdge)
     ASSERT_EQ(quads.size(), 5u);
     ExpectQuad(quads[4], 89.0f, 50.0f, 22.0f, quads[4].bottom - 50.0f);
     EXPECT_EQ(tested.sprites.Blend(), BlendMode::Opaque);
-    // Otro modo corta antes de dibujar.
+    // Another mode cuts before drawing.
     EXPECT_FALSE(Client::Tooltips::DrawTheTooltipBox(context, 100, 50, 2, 0, 4, 1).HasValue());
 }
 
-// En 800 × 600 (rx = 1,25) la caja del texto es de píxeles y la x, la de 640 × 480 sin pasar por la pantalla: con
-// "Uno" (18 píxeles) en x 320, la caja mide 18 / 1,25 + 4 = 18,4 desde 310 y el texto va desde 311, en una caja de
-// _ftol(16,4 · 1,25) = 20 columnas. Con el modo 3, el texto en la columna 20 − 18.
+// At 800 × 600 (rx = 1.25) the text box is in pixels and x is the 640 × 480 one without going through the screen: with
+// "Uno" (18 pixels) at x 320, the box measures 18 / 1.25 + 4 = 18.4 from 310 and the text goes from 311, in a box of
+// _ftol(16.4 · 1.25) = 20 columns. With mode 3, the text at column 20 − 18.
 TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
 {
     for (const std::int32_t mode : {2, 3})
@@ -372,7 +372,7 @@ TEST(GameTooltipsTest, TheTextBoxIsInPixelsAtAnotherResolution)
     }
 }
 
-// 0x40d530: la opción elige el texto de formato; con una de más de 0x23 el renglón queda.
+// 0x40d530: the option picks the format text; with one above 0x23 the line stays.
 TEST(GameTooltipsTest, ASetOptionPicksItsFormatText)
 {
     const Client::Tables::TextTable texts = Texts();
@@ -390,8 +390,8 @@ TEST(GameTooltipsTest, ASetOptionPicksItsFormatText)
     EXPECT_FALSE(Client::Tooltips::WriteTheSetOption(nullptr, line, 2, 9).HasValue());
 }
 
-// 0x40e850 desde 0x5f7bc0: con el inventario abierto y +0x9304, el conjunto puesto y sus opciones; una de 0xa5 o más
-// sin la marca va en rojo y no escribe su texto. Después, +0x9304 en 0.
+// 0x40e850 from 0x5f7bc0: with the inventory open and +0x9304, the worn set and its options; one of 0xa5 or more
+// without the mark goes in red and does not write its text. Then, +0x9304 at 0.
 TEST(GameTooltipsTest, TheSetWindowListsTheWornSetAndTurnsItselfOff)
 {
     Tooltips tested;
@@ -421,12 +421,12 @@ TEST(GameTooltipsTest, TheSetWindowListsTheWornSetAndTurnsItselfOff)
     EXPECT_EQ(lines.text[5], "");
     EXPECT_EQ(lines.colors[5], Client::Tooltips::TooltipRed);
     EXPECT_EQ(sets.byte9304, 0);
-    // El renglón vacío corta la caja: salen el título y la opción.
+    // The empty line cuts the box: the title and the option come out.
     ASSERT_EQ(tested.text.texts.size(), 2u);
     EXPECT_EQ(tested.text.texts[0].text, "Alfa Set");
 }
 
-// Un dibujo intermedio de MuRet dibuja la ventana pero no apaga +0x9304.
+// A MuRet intermediate drawing draws the window but does not turn off +0x9304.
 TEST(GameTooltipsTest, AProjectedFrameKeepsTheSetWindowOn)
 {
     Tooltips tested;
@@ -442,7 +442,7 @@ TEST(GameTooltipsTest, AProjectedFrameKeepsTheSetWindowOn)
     EXPECT_EQ(tested.Lines().text[4], "B Set");
 }
 
-// 0x40eca0: el nombre con el 1089 y el 159, los pares, los extras y el conjunto completo, en ese orden.
+// 0x40eca0: the name with 1089 and 159, the pairs, the extras and the full set, in that order.
 TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
 {
     SetOptions options;
@@ -459,7 +459,7 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     Tooltips tested(&tables.options);
     tested.world.ItemSets().byte9305 = 2;
     tested.Lines().colors[25] = 4;
-    // Q-C596: la negrita que dejó un cuerpo anterior en el título queda.
+    // Q-C596: the bold that a previous body left on the title stays.
     tested.Lines().bold[1] = 1;
     GameHudContext context = tested.Context();
     const auto drawn = Client::Tooltips::DrawTheSetLabel(context);
@@ -474,11 +474,11 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     EXPECT_EQ(lines.colors[1], Client::Tooltips::TooltipGold);
     EXPECT_EQ(lines.colors[4], Client::Tooltips::TooltipBlue);
     EXPECT_EQ(lines.colors[7], Client::Tooltips::TooltipBlue);
-    // Limpia 20 colores de los 30: el 25 queda.
+    // It clears 20 colors of the 30: 25 stays.
     EXPECT_EQ(lines.colors[25], 4);
     EXPECT_EQ(lines.bold[1], 1);
     EXPECT_EQ(tested.world.ItemSets().byte9305, 2);
-    // La caja va arriba a la izquierda: el ancho mayor ("Agilidad +20", 72) + 4, contra el 0.
+    // The box goes top left: the widest ("Agilidad +20", 72) + 4, against 0.
     ASSERT_FALSE(tested.text.texts.empty());
     EXPECT_EQ(tested.text.texts[0].text, "Beta Set fin");
     EXPECT_EQ(tested.text.texts[0].x, 1);
@@ -486,8 +486,8 @@ TEST(GameTooltipsTest, TheSetLabelListsTheOptionsOfTheSet)
     EXPECT_EQ(tested.text.texts[0].columns, 74);
 }
 
-// 0x40ed11..0x40ee15 (Q-C592): después del sexto par la segunda opción queda la de ese par, y sale otra vez en cada
-// uno de los siete lugares que siguen.
+// 0x40ed11..0x40ee15 (Q-C592): after the sixth pair the second option stays that pair's, and comes out again in each
+// of the seven places that follow.
 TEST(GameTooltipsTest, TheSecondOptionOfTheSixthPairRepeatsInTheSetLabel)
 {
     SetOptions options;
@@ -504,7 +504,7 @@ TEST(GameTooltipsTest, TheSecondOptionOfTheSixthPairRepeatsInTheSetLabel)
     EXPECT_EQ(lines.text[13], "\n");
 }
 
-// 0x40ecf3: un conjunto sin usar apaga el cartel sin dibujar nada.
+// 0x40ecf3: an unused set turns the label off without drawing anything.
 TEST(GameTooltipsTest, AnUnusedSetTurnsTheLabelOff)
 {
     const Client::Tables::ItemSetTables tables = SetOptions().Tables();
@@ -516,7 +516,7 @@ TEST(GameTooltipsTest, AnUnusedSetTurnsTheLabelOff)
     EXPECT_TRUE(tested.text.texts.empty());
 }
 
-// 0x5f7bc0: con el modo de reparar en 2, vuelve a 1 (fuera de un dibujo intermedio) y apaga 0x77f3b66.
+// 0x5f7bc0: with the repair mode at 2, it goes back to 1 (outside an intermediate drawing) and turns off 0x77f3b66.
 TEST(GameTooltipsTest, TheTooltipsResetTheRepairModeAndTheDurabilityWarning)
 {
     Tooltips tested;

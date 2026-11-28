@@ -63,24 +63,24 @@ using Render::BlendMode;
 using Render::Text::FontKind;
 
 constexpr Render::Color White{.red = 1.0f, .green = 1.0f, .blue = 1.0f, .alpha = 1.0f};
-// 0x65202d y 0x6520fe: la pestaña que no está elegida, en 0,6.
+// 0x65202d and 0x6520fe: the tab that is not chosen, at 0.6.
 constexpr Render::Color DimTab{.red = 0.6f, .green = 0.6f, .blue = 0.6f, .alpha = 1.0f};
-// 0x651f22: glColor4ub(0x92, 0x90, 0x8d, 0xff), las rayas bajo las pestañas que no están elegidas.
+// 0x651f22: glColor4ub(0x92, 0x90, 0x8d, 0xff), the lines under the tabs that are not chosen.
 constexpr Render::Color TabLine{
     .red = 146.0f / 255.0f, .green = 144.0f / 255.0f, .blue = 141.0f / 255.0f, .alpha = 1.0f};
 
-// 0x651840: el rectángulo del mouse de la UI, 0xbe (+0x58) × 0x1b1, con el modo 1.
+// 0x651840: the UI's mouse rectangle, 0xbe (+0x58) × 0x1b1, with mode 1.
 constexpr std::int32_t MouseHeight = 0x1b1;
 constexpr std::int32_t TopLeftRect = 1;
-// 0x651895..0x6518e3: el botón de cerrar, lo que deja en 0x6c8dcc y su sonido (CL10).
+// 0x651895..0x6518e3: the close button, what it leaves in 0x6c8dcc and its sound (CL10).
 constexpr std::int32_t CloseLeft = 0x19;
 constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
 constexpr Audio::SoundId ClickSound = Sound::ButtonClickSound;
-// +0x368 del héroe sin gremio (0x511290).
+// The hero's +0x368 without a guild (0x511290).
 constexpr std::uint8_t NoGuildStatus = 0xff;
-// Las pestañas: el paso las mira de a 0x34 desde x + 0xf (0x651913..0x65199d) y el dibujo las pone de a 0x36.
+// The tabs: the step checks them every 0x34 from x + 0xf (0x651913..0x65199d) and the draw places them every 0x36.
 constexpr std::int32_t TabCount = 3;
 constexpr std::int32_t MembersTab = 1;
 constexpr std::int32_t UnionTab = 2;
@@ -94,67 +94,66 @@ constexpr std::int32_t TabTop = 0x4b;
 constexpr std::int32_t TabLineTop = 0x5b;
 constexpr float TabLineWidth = 54.0f;
 constexpr float TabLineHeight = 1.0f;
-// 0x652092: Interface\..., el 0x646 de 52 × (16 + 2 la elegida), du 0,75 y dv 0,9375, 2 más arriba la elegida.
+// 0x652092: Interface\..., 0x646, 52 × (16 + 2 the chosen one), du 0.75 and dv 0.9375, the chosen one 2 higher.
 constexpr std::uint16_t TabSlot = 0x646;
 constexpr float TabWidth = 52.0f;
 constexpr float TabHeight = 16.0f;
 constexpr float TabDu = 0.75f;
 constexpr float TabDv = 0.9375f;
 constexpr std::int32_t ChosenTabRise = 2;
-// 0x6520c8: el texto de la pestaña en y + 4, uno más arriba la elegida, centrado en _ftol(rx · 52) (0x6ba060).
+// 0x6520c8: the tab's text at y + 4, the chosen one's one higher, centered in _ftol(rx · 52) (0x6ba060).
 constexpr std::int32_t TabTextBelow = 4;
 constexpr double TabTextBox = 52.0;
 constexpr std::array<std::size_t, TabCount> TabTexts{946, 1330, 1352};
-// 0x651cd2..0x651d5d y 0x651d73..0x651dd6: el título y el gremio con el puntaje, en negrita sobre el fondo 0.
+// 0x651cd2..0x651d5d and 0x651d73..0x651dd6: the title and the guild with the score, in bold on background 0.
 constexpr std::size_t TitleText = 180;
 constexpr std::int32_t TitleLeft = 0x23;
 constexpr std::int32_t TitleTop = 0xc;
 constexpr std::int32_t ScoreTop = 0x35;
 constexpr Render::Text::TextColors TitleColors{.text = 0xffdcdcdcu, .background = 0};
 constexpr std::uint32_t ScoreColor = 0xff64ffc8u;
-// 0x651dfa..0x651e4f: sin gremio, los textos 185, 186 y 187 en la normal, de a 0xf desde (x + 0x14, y + 0x32).
+// 0x651dfa..0x651e4f: without a guild, texts 185, 186 and 187 in the normal font, every 0xf from (x + 0x14, y + 0x32).
 constexpr std::array<std::size_t, 3> NoGuildTexts{185, 186, 187};
 constexpr std::int32_t NoGuildLeft = 0x14;
 constexpr std::int32_t NoGuildTop = 0x32;
 constexpr std::int32_t NoGuildStep = 0xf;
 constexpr std::uint32_t NoGuildColor = 0xffe6e6e6u;
-// 0x651ee6: la ayuda del botón de cerrar.
+// 0x651ee6: the close button's help.
 constexpr std::size_t CloseHelpText = 220;
-// 0x650350: PgUp y PgDn (0x553520) y el maestro (+0x368 en 0x80) con sus dos cargos, 0x40 y 0x20.
+// 0x650350: PgUp and PgDn (0x553520) and the master (+0x368 at 0x80) with its two positions, 0x40 and 0x20.
 constexpr std::uint8_t PageUpKey = 0x21;
 constexpr std::uint8_t PageDownKey = 0x22;
 constexpr std::uint8_t MasterStatus = 0x80;
 constexpr std::uint8_t AssistantStatus = 0x40;
 constexpr std::uint8_t BattleMasterStatus = 0x20;
-// 0x650594..0x650716: el renglón 0 con el nombre (sprintf con el 1367) y el 1 (strcpy del 1368 o del 1369), de a 0x40,
-// con Confirmar y Cancelar (4).
+// 0x650594..0x650716: row 0 with the name (sprintf with 1367) and row 1 (strcpy of 1368 or 1369), 0x40 each, with
+// Confirm and Cancel (4).
 constexpr std::size_t ChosenNameText = 1367;
 constexpr std::size_t DismissText = 1368;
 constexpr std::size_t KickText = 1369;
-// 0x46d3a0: el renglón de la lista, de 0xd desde la y del renglón − 3, con el ancho _ftol(ancho − cursor + 1).
+// 0x46d3a0: the list's row, 0xd high from the row's y − 3, with width _ftol(width − thumb + 1).
 constexpr std::int32_t MemberRowAbove = 3;
 constexpr std::int32_t MemberRowHeight = 0xd;
-// 0x46cab0: el corrimiento hasta el final.
+// 0x46cab0: the scroll to the end.
 constexpr std::int32_t ScrollToTheEnd = -10000;
-// 0x64fc00: el maestro de la alianza (1270, OK), el diálogo de disolver el gremio (1363 a 1366, de a 0x32, con
-// Confirmar) y el diálogo 0x7d del juego que pide el número (0x64fdb0) con la cuenta de Tab (0x6c8e6c) en 1.
+// 0x64fc00: the union master (1270, OK), the dialog to disband the guild (1363 to 1366, 0x32 each, with Confirm) and
+// the game's dialog 0x7d that asks for the number (0x64fdb0) with the Tab count (0x6c8e6c) at 1.
 constexpr std::size_t UnionMasterText = 1270;
 constexpr std::array<std::size_t, 4> DisbandTexts{1363, 1364, 1365, 1366};
-// 0x64fce7..0x64fd8f: los cuatro renglones son lugares de 0x32 bytes seguidos de la pila (ebp−0xfc, −0xca, −0x98 y
-// −0x66).
+// 0x64fce7..0x64fd8f: the four rows are contiguous 0x32-byte slots on the stack (ebp−0xfc, −0xca, −0x98 and −0x66).
 constexpr std::size_t DisbandSlot = 0x32;
 constexpr std::int32_t NumberDialog = 0x7d;
 constexpr std::int32_t NumberDialogFields = 1;
-// 0x650c10: el maestro de la alianza (1271), C1 07 E5 01 02 (romper la alianza) con el aviso 1387 del tipo 1, y el
-// diálogo de echar a un gremio de ella (1423 con el nombre y 1369).
+// 0x650c10: the union master (1271), C1 07 E5 01 02 (break the union) with notice 1387 of type 1, and the dialog to
+// kick a guild out of it (1423 with the name and 1369).
 constexpr std::size_t UnionMasterLeaveText = 1271;
 constexpr std::uint8_t UnionRelation = 1;
 constexpr std::uint8_t BreakRequest = 2;
 constexpr std::size_t UnionLeftText = 1387;
 constexpr std::int32_t UnionLeftType = 1;
 constexpr std::size_t UnionKickText = 1423;
-// 0x64e600: el mouse de la UI sobre 0xd5 × 0xfa desde la esquina, las dos cajas de 0xaa × 0x14 en x + 0x14 (y + 0x13
-// y y + 0x29) y el tipo del E1: 1 sin cargo, 2 con uno.
+// 0x64e600: the UI's mouse over 0xd5 × 0xfa from the corner, the two 0xaa × 0x14 boxes at x + 0x14 (y + 0x13 and
+// y + 0x29) and the E1's type: 1 without a position, 2 with one.
 constexpr std::int32_t PositionsMouseWidth = 0xd5;
 constexpr std::int32_t PositionsMouseHeight = 0xfa;
 constexpr std::int32_t PositionsChoiceLeft = 0x14;
@@ -177,7 +176,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
     return *text;
 }
 
-// 0x5542f0(x, y, texto, _ftol(rx · 52), 2, 0): el texto centrado en la caja (0x467060 en el modo 2), sin medir.
+// 0x5542f0(x, y, text, _ftol(rx · 52), 2, 0): the text centered in the box (0x467060 in mode 2), without measuring.
 void DrawInTheTabBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view text)
 {
     const auto rx = static_cast<double>(Render::ScaleX(1.0f, context.sprites.Screen()));
@@ -190,8 +189,8 @@ void DrawInTheTabBox(Hud::GameHudContext& context, std::int32_t x, std::int32_t 
                              -placed.textColumn, placed.width);
 }
 
-// 0x6519ad..0x651ba4: la primera vez que se elige la pestaña de la alianza, con alianza (+4 de la entrada del gremio
-// del héroe, sin mirar el −1: Q-C1281), C1 03 E9 en claro por el socket (0x6c82a0) y +0x84 en 1.
+// 0x6519ad..0x651ba4: the first time the union tab is chosen, with a union (+4 of the hero's guild entry, without
+// checking −1: Q-C1281), C1 03 E9 in the clear through the socket (0x6c82a0) and +0x84 at 1.
 Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -211,9 +210,9 @@ Core::Expected<void, std::string> AskForTheUnionList(const GuildWindowStepContex
     return {};
 }
 
-// 0x46d3a0, la vtable + 0x88 de la lista de los miembros (0x46c3d0 la del aviso y 0x46e1e0 la de la alianza, iguales
-// salvo el tamaño del elemento y la y del renglón de la alianza, que es su + 0xa0): el mouse sobre el renglón con el
-// clic lo elige (corrimiento + renglón + 1, la + 0x58), invierte +0 de su elemento y gasta el clic. Siempre 1.
+// 0x46d3a0, the vtable + 0x88 of the member list (0x46c3d0 the notice one's and 0x46e1e0 the union one's, the same
+// except for the element size and the union row's y, which is its + 0xa0): the mouse over the row with the click
+// chooses it (scroll + row + 1, the + 0x58), flips +0 of its element and spends the click. Always 1.
 template <typename Row>
 std::int32_t HoverTheRow(const GuildWindowStepContext& context, Ui::OldList& list, std::vector<Row>& rows,
                          std::int32_t row, std::size_t at)
@@ -234,8 +233,9 @@ std::int32_t HoverTheRow(const GuildWindowStepContext& context, Ui::OldList& lis
     return 1;
 }
 
-// 0x650378, 0x64fc14 y 0x650c3c: 0x5762eb4 con el id de la lista, su vtable + 0x18 (0x45aa80(0): la cola, vacía
-// porque nadie le manda mensajes, el mouse y 0x47b0f0 o sus iguales 0x480e00 y 0x4824d0) y 0x5762eb4 en 0.
+// 0x650378, 0x64fc14 and 0x650c3c: 0x5762eb4 with the list's id, its vtable + 0x18 (0x45aa80(0): the queue, empty
+// because nobody sends it messages, the mouse and 0x47b0f0 or its equivalents 0x480e00 and 0x4824d0) and 0x5762eb4 at
+// 0.
 template <typename Row>
 void StepTheGuildList(const GuildWindowStepContext& context, Ui::OldList& list, std::vector<Row>& rows)
 {
@@ -264,9 +264,9 @@ void StepTheGuildList(const GuildWindowStepContext& context, Ui::OldList& list, 
     runtime.ui.capture = 0;
 }
 
-// 0x46c930, 0x46bca0 y 0x46d900 después de armar el elemento: adelante, con más de +0xfc saca del final (0x47b7e0 y sus
-// iguales 0x4814f0 y 0x482bc0), elige 0, uno más de corrimiento con más que los renglones, lo acota, 1 si es el único,
-// y al final el último (la cuenta) con el corrimiento hasta el final (−10.000).
+// 0x46c930, 0x46bca0 and 0x46d900 after building the element: at the front, with more than +0xfc it drops from the
+// end (0x47b7e0 and its equivalents 0x4814f0 and 0x482bc0), chooses 0, one more of scroll with more than the rows,
+// clamps it, 1 if it is the only one, and at the end the last (the count) with the scroll to the end (−10000).
 template <typename Row> void PutFirst(Ui::OldList& list, std::vector<Row>& rows, Row row)
 {
     rows.insert(rows.begin(), std::move(row));
@@ -287,7 +287,7 @@ template <typename Row> void PutFirst(Ui::OldList& list, std::vector<Row>& rows,
     }
 }
 
-// 0x47a410 y sus iguales 0x480260 y 0x4818b0: la vacía, elige 0 y vuelve el corrimiento a 0.
+// 0x47a410 and its equivalents 0x480260 and 0x4818b0: empties it, chooses 0 and puts the scroll back to 0.
 template <typename Row> void ClearTheGuildList(Ui::OldList& list, std::vector<Row>& rows)
 {
     rows.clear();
@@ -295,7 +295,7 @@ template <typename Row> void ClearTheGuildList(Ui::OldList& list, std::vector<Ro
     list.scroll = 0;
 }
 
-// 0x64faa0: el lugar de `name` entre los 0x78aba38 miembros de 0x787a5e8 (strcmp), o −1.
+// 0x64faa0: the slot of `name` among the 0x78aba38 members of 0x787a5e8 (strcmp), or −1.
 Core::Expected<std::int32_t, std::string> FindTheMember(const GuildState& guild, std::string_view name)
 {
     for (std::int32_t index = 0; index < guild.memberCount; ++index)
@@ -308,8 +308,8 @@ Core::Expected<std::int32_t, std::string> FindTheMember(const GuildState& guild,
     return -1;
 }
 
-// 0x6505cb..0x65062c, 0x6504a9 y 0x6513a0: strcpy del nombre a 0x7d535a8 (12 bytes hasta 0x7d535b4): el nombre y su
-// 0; lo que sigue queda del nombre de antes, y el E1 (10 bytes) y el EB (8) lo mandan (Q-C1292).
+// 0x6505cb..0x65062c, 0x6504a9 and 0x6513a0: strcpy of the name to 0x7d535a8 (12 bytes up to 0x7d535b4): the name
+// and its 0; the rest stays from the previous name, and the E1 (10 bytes) and the EB (8) send it (Q-C1292).
 void ChooseTheMember(GuildState& guild, std::string_view name)
 {
     std::size_t index = 0;
@@ -318,9 +318,9 @@ void ChooseTheMember(GuildState& guild, std::string_view name)
     guild.chosenName[index] = '\0';
 }
 
-// 0x6600d0(renglones, cuántos, paso, banderas, función, 0) con lo que da en +0x428. Con otro abierto (0x657930 da el
-// paso del diálogo y después el de la ventana: un clic en otro botón del maestro llega igual), el aviso de 0x6d69a8 y
-// +0x428 en 0.
+// 0x6600d0(rows, count, step, flags, function, 0) with what it gives in +0x428. With another one open (0x657930 gives
+// the dialog's step and then the window's: a click on another master button still arrives), the notice of 0x6d69a8
+// and +0x428 at 0.
 Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContext& context,
                                                      std::span<const std::string> lines, std::uint32_t flags,
                                                      Ui::PanelDialogOwner owner, std::string_view where)
@@ -337,7 +337,7 @@ Core::Expected<void, std::string> OpenTheGuildDialog(const GuildWindowStepContex
     return {};
 }
 
-// Un diálogo de un renglón con OK y sin dueño (0x6600d0(texto, 1, 0x32, 1, 0, 0)).
+// A one-row dialog with OK and no owner (0x6600d0(text, 1, 0x32, 1, 0, 0)).
 Core::Expected<void, std::string> TellTheMaster(const GuildWindowStepContext& context, std::size_t text,
                                                 std::string_view where)
 {
@@ -348,7 +348,7 @@ Core::Expected<void, std::string> TellTheMaster(const GuildWindowStepContext& co
     return OpenTheGuildDialog(context, lines, Ui::PanelDialogOk, Ui::PanelDialogOwner::None, where);
 }
 
-// 0x650648 y 0x6507ad: 0x6600d0(renglones, 2, 0x40, 4, función, 0), con lo que da en +0x428.
+// 0x650648 and 0x6507ad: 0x6600d0(rows, 2, 0x40, 4, function, 0), with what it gives in +0x428.
 Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext& context, std::string_view name,
                                                     std::size_t text, Ui::PanelDialogOwner owner)
 {
@@ -365,7 +365,7 @@ Core::Expected<void, std::string> AskAboutTheMember(const GuildWindowStepContext
     return OpenTheGuildDialog(context, lines, Ui::PanelDialogConfirm, owner, "0x650648");
 }
 
-// 0x6503bd..0x6507bb: los tres botones del maestro, uno detrás del otro.
+// 0x6503bd..0x6507bb: the master's three buttons, one after the other.
 Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -385,10 +385,10 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
         {
             guild.chosenStatus = member->status;
             ChooseTheMember(guild, GuildTextOf(member->name));
-            // 0x6504b6: 0x6600d0 sin renglones ni botones (0xd5 × 0x2b) con lo que da en +0x428, y 0x6602b0 con el paso
-            // y el dibujo de la ventana de los cargos. Con otro abierto, 0x6600d0 da 0 (con el aviso) y 0x6504d4 le
-            // pone los ganchos igual al abierto: su paso y su dibujo pasan a ser los de los cargos, y su respuesta
-            // sigue (Q-C1306).
+            // 0x6504b6: 0x6600d0 without rows or buttons (0xd5 × 0x2b) with what it gives in +0x428, and 0x6602b0 with
+            // the positions window's step and draw. With another one open, 0x6600d0 gives 0 (with the notice) and
+            // 0x6504d4 still sets the hooks on the open one: its step and draw become the positions', and its answer
+            // stays (Q-C1306).
             if (auto opened = OpenTheGuildDialog(context, {}, 0, Ui::PanelDialogOwner::None, "0x6504b6");
                 !opened.HasValue())
                 return opened;
@@ -424,7 +424,7 @@ Core::Expected<void, std::string> StepTheMasterButtons(const GuildWindowStepCont
     return {};
 }
 
-// 0x650350: la pestaña de los miembros.
+// 0x650350: the members tab.
 Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext& context)
 {
     if (!context.keyEdge)
@@ -442,7 +442,7 @@ Core::Expected<void, std::string> StepTheMembersTab(const GuildWindowStepContext
     return StepTheMasterButtons(context);
 }
 
-// El gremio (+0xd) y la alianza (+4) de la entrada del héroe (+0x1f2), sin mirar el −1 (Q-C1281).
+// The guild (+0xd) and the union (+4) of the hero's entry (+0x1f2), without checking −1 (Q-C1281).
 struct HeroGuildNames
 {
     std::string_view guild;
@@ -460,9 +460,9 @@ Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(Kernel::WorldState&
     return HeroGuildNames{.guild = *name, .alliance = *alliance};
 }
 
-// 0x64fdb0..0x64fddf y 0x64de99..0x64ded4: el diálogo 0x7d del juego (0x7d3a10c), 0x553570(0), el campo del chat
-// cerrado (0x6c8e68) y un solo campo para Tab (0x6c8e6c). 0x6c8e78 (el tope de la entrada sin EDIT, de [0x7d3a0a4]) y
-// 0x77f31c0 (sus marcas) son de la entrada sin EDIT, que MuRet no tiene.
+// 0x64fdb0..0x64fddf and 0x64de99..0x64ded4: the game's dialog 0x7d (0x7d3a10c), 0x553570(0), the chat field closed
+// (0x6c8e68) and a single field for Tab (0x6c8e6c). 0x6c8e78 (the limit of the input without an EDIT, from
+// [0x7d3a0a4]) and 0x77f31c0 (its marks) belong to the input without an EDIT, which MuRet does not have.
 void OpenTheNumberDialog(Kernel::WorldRuntime& runtime)
 {
     runtime.dialogs.current = NumberDialog;
@@ -471,9 +471,10 @@ void OpenTheNumberDialog(Kernel::WorldRuntime& runtime)
     runtime.chat.input.fieldCount = NumberDialogFields;
 }
 
-// 0x64fce7..0x64fd8f: strcpy de 1363 a 1366 en sus lugares de 0x32 bytes, uno detrás del otro. Un texto de 0x32 bytes
-// o más sigue en el lugar de abajo y el strcpy siguiente le pisa la cola con su 0: el renglón queda sin su 0 y 0x6600d0
-// lo copia hasta el 0 del de abajo (1364 en español: Q-C1366). Pasar del cuarto lugar pisaría otros locales: corta.
+// 0x64fce7..0x64fd8f: strcpy of 1363 to 1366 into their 0x32-byte slots, one after the other. A text of 0x32 bytes or
+// more runs into the slot below and the next strcpy overwrites its tail with its 0: the row is left without its 0 and
+// 0x6600d0 copies it up to the 0 of the one below (1364 in Spanish: Q-C1366). Past the fourth slot it would overwrite
+// other locals: it stops.
 Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string> DisbandLines(const Tables::TextTable* texts)
 {
     std::array<char, DisbandSlot * DisbandTexts.size()> stack{};
@@ -499,7 +500,7 @@ Core::Expected<std::array<std::string, DisbandTexts.size()>, std::string> Disban
     return lines;
 }
 
-// 0x64fc00: la pestaña 0.
+// 0x64fc00: tab 0.
 Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -523,7 +524,7 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
         return OpenTheGuildDialog(context, lines.Value(), Ui::PanelDialogConfirm, Ui::PanelDialogOwner::GuildDisband,
                                   "0x64fcd5");
     }
-    // 0x64fd9c: 0x64faa0 con el nombre del héroe (+0x1d9).
+    // 0x64fd9c: 0x64faa0 with the hero's name (+0x1d9).
     auto index = FindTheMember(guild, Actors::HeroNameOf(hero));
     if (!index.HasValue())
         return Core::Unexpected(std::move(index).Error());
@@ -532,7 +533,7 @@ Core::Expected<void, std::string> StepTheNoticeTab(const GuildWindowStepContext&
     return {};
 }
 
-// 0x650c10: la pestaña de la alianza.
+// 0x650c10: the union tab.
 Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -560,7 +561,7 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
             if (!context.send)
                 return Core::Unexpected(std::string("0x650d35: el C1 07 E5 de salir de la alianza sin el cable"));
             context.send(Protocol::Guild::WriteRelationshipRequest(UnionRelation, BreakRequest, hero.key));
-            // 0x651277..0x651290: sprintf con el 1387 sin argumentos (Q-C1367) y 0x555190("", texto, 1).
+            // 0x651277..0x651290: sprintf with 1387 without arguments (Q-C1367) and 0x555190("", text, 1).
             auto format = TextOf(context.texts, UnionLeftText, "0x65127a");
             if (!format.HasValue())
                 return Core::Unexpected(std::move(format).Error());
@@ -592,7 +593,7 @@ Core::Expected<void, std::string> StepTheUnionTab(const GuildWindowStepContext& 
     return OpenTheGuildDialog(context, lines, Ui::PanelDialogConfirm, Ui::PanelDialogOwner::UnionKick, "0x6513d8");
 }
 
-// 0x651bbf..0x651c05: el paso de la pestaña.
+// 0x651bbf..0x651c05: the tab's step.
 Core::Expected<void, std::string> StepTheTab(const GuildWindowStepContext& context, std::int32_t tab)
 {
     switch (tab)
@@ -608,8 +609,8 @@ Core::Expected<void, std::string> StepTheTab(const GuildWindowStepContext& conte
     }
 }
 
-// 0x651f1c..0x652275: las rayas de 0x621aa0 bajo las pestañas que no están elegidas, 0x459ec0, la negrita en blanco
-// sobre 0 y cada pestaña: blanca la elegida (2 más alta y más arriba) y en 0,6 las otras, con su texto.
+// 0x651f1c..0x652275: 0x621aa0's lines under the tabs that are not chosen, 0x459ec0, bold in white on 0 and each tab:
+// the chosen one white (2 taller and higher) and the others at 0.6, with their text.
 Core::Expected<void, std::string> DrawTheTabs(Hud::GameHudContext& context, std::int32_t tab, std::int32_t x,
                                               std::int32_t y)
 {
@@ -622,7 +623,7 @@ Core::Expected<void, std::string> DrawTheTabs(Hud::GameHudContext& context, std:
         sprites.ColorQuad(static_cast<float>(x + TabLeft + index * TabStep), static_cast<float>(y + TabLineTop),
                           TabLineWidth, TabLineHeight);
     }
-    // 0x459ec0: glColor4f(1, 1, 1, 1) y la textura.
+    // 0x459ec0: glColor4f(1, 1, 1, 1) and the texture.
     sprites.SetColor(White);
     sprites.EnableTexture();
     SelectFont(context, FontKind::Bold);
@@ -686,7 +687,7 @@ Core::Expected<void, std::string> StepTheGuildWindow(const GuildWindowStepContex
         runtime.mouse.updateTime = 0;
         runtime.mouse.updateTimeMax = CloseMouseUpdateTimeMax;
         runtime.RequestSound(ClickSound); // 0x41ed10 (CL10)
-        // 0x6518e3: la vtable + 0x2c, 0x6522f0. El paso sigue con la ventana cerrada.
+        // 0x6518e3: the vtable + 0x2c, 0x6522f0. The step goes on with the window closed.
         if (auto closed = CloseTheGuildWindow(context.world, context.send); !closed.HasValue())
             return closed;
     }
@@ -732,7 +733,7 @@ void AddTheGuildMember(Kernel::WorldState& world, const GuildMemberSlot& slot)
     const std::string_view name = GuildTextOf(slot.name);
     if (Ui::ListCount(list, window.members.size()) == 0)
     {
-        // 0x46c955: strcmp con el nombre del héroe (+0x1d9, diez bytes y lo que sigue: *inferido*, hasta el primer 0).
+        // 0x46c955: strcmp with the hero's name (+0x1d9, ten bytes and what follows: *inferred*, up to the first 0).
         const auto& heroName = world.Hero().name;
         std::string hero;
         for (const std::byte letter : heroName)
@@ -768,7 +769,7 @@ Core::Expected<void, std::string> AddTheGuildNotice(GuildWindowState& window, co
     Ui::OldList& list = window.noticeList;
     for (const std::string& line : wrapped.Value().lines)
     {
-        // 0x46bca0: sin texto o vacío, nada; strcpy a 0x575d234 (+0 de 0x575d230 nadie lo escribe: 0).
+        // 0x46bca0: with no text or an empty one, nothing; strcpy to 0x575d234 (nobody writes +0 of 0x575d230: 0).
         if (line.empty())
             continue;
         PutFirst(list, window.notice, GuildNoticeRow{.toggled = 0, .text = line});
@@ -790,7 +791,7 @@ void AddTheUnion(GuildWindowState& window, const std::array<std::uint8_t, GuildM
         return;
     GuildUnionRow row{};
     row.mark = mark;
-    // 0x46d93d: strncpy(+0x44, nombre, 8) y +0x4c en 0.
+    // 0x46d93d: strncpy(+0x44, name, 8) and +0x4c at 0.
     constexpr std::size_t NameCopy = 8;
     for (std::size_t index = 0; index < NameCopy && index < name.size() && name[index] != '\0'; ++index)
         row.name[index] = name[index];
@@ -814,7 +815,7 @@ Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& worl
     if (Chat::MouseInRect(mouseX, mouseY, positions.x, positions.y, PositionsMouseWidth, PositionsMouseHeight,
                           TopLeftRect))
         runtime.ui.mouseOnUi = 1;
-    // 0x64e64e: con el flanco del clic (0x7d366d4, que no gasta), las dos cajas eligen el cargo.
+    // 0x64e64e: with the click's edge (0x7d366d4, which it does not spend), the two boxes choose the position.
     if (runtime.mouse.pendingClick)
     {
         if (Chat::MouseInRect(mouseX, mouseY, positions.x + PositionsChoiceLeft, positions.y + AssistantChoiceTop,
@@ -827,8 +828,8 @@ Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& worl
     Ui::PanelDialogState& dialog = runtime.panels.delegated.panelDialog;
     if (Ui::ClickTheButton(positions.buttons[GuildPositionsOkButton], globals, mouseX, mouseY))
     {
-        // 0x64e6cc: sin cargo (0x7d535b4 en 0), C1 0F E1 01; con uno, 02; con el elegido y los 10 bytes de 0x7d535a8,
-        // por el socket (0x6c82a0). Después C1 03 52 (0x64efca) y 0x6603c0.
+        // 0x64e6cc: without a position (0x7d535b4 at 0), C1 0F E1 01; with one, 02; with the chosen one and the 10
+        // bytes of 0x7d535a8, through the socket (0x6c82a0). Then C1 03 52 (0x64efca) and 0x6603c0.
         if (!send)
             return Core::Unexpected(std::string("0x64e6cc: el E1 de la ventana de los cargos sin el cable"));
         const std::uint8_t type = guild.chosenStatus == 0 ? AppointType : ChangeType;
@@ -840,7 +841,7 @@ Core::Expected<void, std::string> StepTheGuildPositions(Kernel::WorldState& worl
         if (auto cancelled = Ui::CancelThePanelDialog(dialog, answer); !cancelled.HasValue())
             return cancelled;
     }
-    // 0x64f196: el otro botón cancela (cerrado, 0x6603c0 no hace nada).
+    // 0x64f196: the other button cancels (closed, 0x6603c0 does nothing).
     if (Ui::ClickTheButton(positions.buttons[GuildPositionsCancelButton], globals, mouseX, mouseY))
         return Ui::CancelThePanelDialog(dialog, answer);
     return {};
@@ -906,7 +907,7 @@ Core::Expected<void, std::string> DrawTheGuildWindow(Hud::GameHudContext& contex
         return {};
     if (auto tabs = DrawTheTabs(context, window.tab, x, y); !tabs.HasValue())
         return tabs;
-    // 0x652291..0x6522c0: el dibujo de la pestaña.
+    // 0x652291..0x6522c0: the tab's draw.
     return DrawTheGuildTab(context, window.tab);
 }
 } // namespace Client::Guild

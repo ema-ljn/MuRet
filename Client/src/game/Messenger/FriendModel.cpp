@@ -12,7 +12,7 @@ namespace Client::Messenger
 {
 namespace
 {
-// Los char de MSVC son con signo: los de Latin-1 desde 0x80 van antes que los ASCII en 0x49c190.
+// MSVC chars are signed: Latin-1 ones from 0x80 sort before the ASCII ones in 0x49c190.
 std::int32_t SignedChar(char value)
 {
     return static_cast<std::int32_t>(static_cast<signed char>(value));

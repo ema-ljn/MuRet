@@ -26,7 +26,7 @@ bool Between(std::int16_t type, std::int16_t first, std::int16_t end)
 }
 } // namespace
 
-// 607fb0..608348: ninguna rama consume RNG ni pone la velocidad en cero.
+// 0x607fb0..0x608348: no branch consumes the RNG or sets the speed to zero.
 void SettleFloorItem(Kernel::FloorItemState& item)
 {
     const auto type = item.type;

@@ -57,9 +57,9 @@ using Maps::IsChaosCastle;
 using Maps::LastBloodCastleMap;
 constexpr std::uint8_t ChargedSkill = Tables::NovaSkill;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
-constexpr std::size_t PartyOffset =
-    Tables::SkillRecordLayout::Origin;    // Skill.bmd: with 2, the skill asks for 0x200 in +0x78
-constexpr std::size_t WeaponHands = 2;    // 0x57d74c: +0xb6c and +0xbb4
+// Skill.bmd: with 2, the skill asks for 0x200 in +0x78.
+constexpr std::size_t PartyOffset = Tables::SkillRecordLayout::Origin;
+constexpr std::size_t WeaponHands = 2; // 0x57d74c: +0xb6c and +0xbb4
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {

@@ -25,6 +25,7 @@
 #include "Ui/PanelDialog.h"
 #include "Ui/PanelRegistry.h"
 #include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <algorithm>
 #include <array>
@@ -433,9 +434,9 @@ Core::Expected<void, std::string> ApplyCreateResult(const CreateResult& result, 
     // window 2 closed (0x65cae0) and the buttons (0x77f3b10 and 0x6c8dcc).
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     constexpr std::size_t ClearedBytes = 10;
-    std::fill_n(runtime.chat.input.messageBuffer.begin(), ClearedBytes, '\0');
+    std::fill_n(runtime.chatInput.messageBuffer.begin(), ClearedBytes, '\0');
     static_cast<void>(NoEditFieldLimit);
-    runtime.chat.input.messageLength = 0;
+    runtime.chatInput.messageLength = 0;
     auto closed = CloseThePanel(context, Ui::SecondGuildPanel);
     if (!closed.HasValue())
         return Core::Unexpected(closed.Error());

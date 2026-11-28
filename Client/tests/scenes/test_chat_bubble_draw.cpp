@@ -44,11 +44,11 @@ using Client::Chat::ChatBubble;
 using Client::Chat::ChatBubbleDrawContext;
 using Client::Core::PixelSize;
 using Client::Kernel::ActorState;
+using Client::Kernel::GameProjection;
 using Client::Kernel::WorldState;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::TextColors;
-using Client::Scenes::GameProjection;
 using Client::Tests::RecordedText;
 using Client::Tests::RecordingTextDrawer;
 
@@ -534,13 +534,13 @@ TEST_F(ChatBubbleDrawTest, TheRightClickOnADrawnBubbleReachesTheWhisper)
     const Client::Chat::ChatBubbleStepInput input{.mouseX = 210, .mouseY = 100, .screen = Screen640};
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
     EXPECT_TRUE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Ui::CStringOf(runtime.chat.input.whisperBuffer), "");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chatInput.whisperBuffer), "");
 
     ASSERT_TRUE(Draw().HasValue());
     ASSERT_TRUE(Client::Chat::StepTheChatBubbles(*m_world, input).HasValue());
 
     EXPECT_FALSE(runtime.ui.rightClick);
-    EXPECT_EQ(Client::Ui::CStringOf(runtime.chat.input.whisperBuffer), "Tero");
+    EXPECT_EQ(Client::Ui::CStringOf(runtime.chatInput.whisperBuffer), "Tero");
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 

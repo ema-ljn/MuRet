@@ -571,7 +571,7 @@ protected:
     Client::Ui::Point mouse{};
     bool leftDown = false;
     bool controlDown = false;
-    const Client::Scenes::GameProjection* projection = nullptr;
+    const Client::Kernel::GameProjection* projection = nullptr;
     Client::Tables::GameData data;
 };
 
@@ -1073,7 +1073,7 @@ TEST_F(GameHudTest, TheTwelfthChildDrawsTheChatBubbles)
     EXPECT_NE(cut.Error().find("0x5a90be"), std::string::npos) << cut.Error();
 
     // The view leaves the eye at (x, y, 1): the owner at the origin goes to the center.
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;
@@ -1101,7 +1101,7 @@ TEST_F(GameHudTest, TheThirteenthChildDrawsTheShopSigns)
     const std::optional<std::string_view> header = data.text->Text(1104);
     ASSERT_TRUE(header.has_value());
     const int headerWidth = static_cast<int>(header->size()) * 6;
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;
@@ -1159,7 +1159,7 @@ TEST_F(GameHudTest, TheFifthChildDrawsHalfTheHealthBars)
     EXPECT_NE(cut.Error().find("0x42a529"), std::string::npos) << cut.Error();
     EXPECT_EQ(bars.size(), 3u);
 
-    Client::Scenes::GameProjection flat;
+    Client::Kernel::GameProjection flat;
     flat.view = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
     flat.horizontalScale = 1.0f;
     flat.verticalScale = 1.0f;

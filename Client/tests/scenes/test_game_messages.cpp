@@ -7,6 +7,7 @@
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
 #include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -112,15 +113,15 @@ TEST(GameMessagesTest, TheBrakesGoDownOnePerStep)
 {
     WorldRuntime runtime;
     const LetterMeasure letters;
-    runtime.chat.input.brake = 2;
+    runtime.chatInput.brake = 2;
     runtime.hud.macroTime = 1;
 
     ASSERT_TRUE(Client::Chat::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
-    EXPECT_EQ(runtime.chat.input.brake, 1);
+    EXPECT_EQ(runtime.chatInput.brake, 1);
     EXPECT_EQ(runtime.hud.macroTime, 0);
     ASSERT_TRUE(Client::Chat::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
     ASSERT_TRUE(Client::Chat::StepTheMessageClocks(runtime, letters, Screen640).HasValue());
-    EXPECT_EQ(runtime.chat.input.brake, 0);
+    EXPECT_EQ(runtime.chatInput.brake, 0);
     EXPECT_EQ(runtime.hud.macroTime, 0);
 }
 } // namespace

@@ -722,8 +722,8 @@ game/Joints/FireTrailJoints.cpp	58	game/Joints	game/Joints	high	joints (ribbons 
 game/Joints/FlareJoints.cpp	122	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own; Effects reach them through a Kernel port (AR4.3)
 game/Items/FloorItemActions.cpp	197	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/FloorItemActions.h	50	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
-game/Items/FloorItemNames.cpp	463	game/Items	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to Hud (3 vs 1 own)
-game/Items/FloorItemNames.h	25	game/Items	game/Items	medium	inventory grids, cursor item, floor items, item names/prices, UI item 3D; include graph pulls to Hud (3 vs 1 own)
+game/Items/FloorItemNames.cpp	463	game/Items	game/Tooltips	high	a floor item's name, set and skill lines, drawn like a tooltip with the tooltips' parts
+game/Items/FloorItemNames.h	25	game/Items	game/Tooltips	high	a floor item's name, set and skill lines, drawn like a tooltip with the tooltips' parts
 game/Items/FloorItemPackets.cpp	528	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Items/FloorItemPackets.h	105	game/Items	game/Items	high	inventory grids, cursor item, floor items, item names/prices, UI item 3D
 game/Actors/FullSetScan.cpp	154	game/Actors	game/Actors	medium	actor record/pool, creation, equipment, flags, per-actor step, viewport packets 0x12/0x14/...; include graph pulls to Fr
@@ -803,8 +803,8 @@ game/Party/GamePartyWindow.cpp	546	game/Party	game/Party	high	the party (2026-11
 game/Party/GamePartyWindow.h	46	game/Party	game/Party	high	the party (2026-11-21 review)
 game/Pets/GamePetWindow.cpp	728	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
 game/Pets/GamePetWindow.h	31	game/Pets	game/Pets	medium	Dark Lord raven/horse, helper table (addr.), A7/A8/A9, pet window; include graph pulls to OwnCharacter (3 vs 1 own)
-game/Scenes/GameProjection.cpp	108	game/Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
-game/Scenes/GameProjection.h	48	game/Scenes	game/Scenes	high	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail
+game/Scenes/GameProjection.cpp	108	game/Scenes	game/Kernel	high	the screen projection (addr.) that the names, the bubbles, the bars and the picking use, below their users
+game/Scenes/GameProjection.h	48	game/Scenes	game/Kernel	high	the screen projection (addr.) that the names, the bubbles, the bars and the picking use, below their users
 game/Actors/Drawing/GameRibbonCreation.cpp	91	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (2 vs 
 game/Actors/Drawing/GameRibbonCreation.h	31	game/Actors/Drawing	game/Actors/Drawing	medium	(addr.) player draw: body, cloth, hanging items, item glows, weapon trails; include graph pulls to MonsterRender (2 vs 
 game/Scenes/GameScene.cpp	1418	game/Scenes	game/Scenes	medium	scene 5: logic/draw cycle, projection, the (addr.)..(addr.) draw tail; include graph pulls to Assets (8 vs 7 own)

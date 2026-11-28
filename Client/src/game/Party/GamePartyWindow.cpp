@@ -483,7 +483,7 @@ Core::Expected<void, std::string> DrawThePartyLife(Ui::GameHudContext& context)
         const glm::vec3 above{
             actor.position.x, actor.position.y,
             F32(static_cast<double>(actor.boundsTop) + static_cast<double>(actor.position.z) + AboveTheHead)};
-        const auto projected = Scenes::ProjectGamePoint(*context.projection, above);
+        const auto projected = Kernel::ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         const std::int32_t x = projected.Value().x - LifeLeft;

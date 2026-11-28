@@ -27,7 +27,6 @@
 #include "Ui/PanelTimerFrame.h"
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
-#include "Chat/ChatRuntime.h"
 #include "Events/EventGlobals.h"
 #include "Ui/GameUiState.h"
 
@@ -487,8 +486,8 @@ Core::Expected<void, std::string> DrawThePanelDialog(Ui::GameHudContext& context
              0.5625f);
         y = F32(static_cast<double>(y) + 7.0);
         auto& runtime = context.world.Runtime();
-        Ui::OldEdit projected = runtime.chat.input.dialogEdit;
-        auto& edit = context.projecting ? projected : runtime.chat.input.dialogEdit;
+        Ui::OldEdit projected = runtime.chatInput.dialogEdit;
+        auto& edit = context.projecting ? projected : runtime.chatInput.dialogEdit;
         edit.base.state = Ui::ShownWindow;
         edit.filter = dialog.inputFilter;
         edit.backgroundColor = 0;
@@ -499,7 +498,7 @@ Core::Expected<void, std::string> DrawThePanelDialog(Ui::GameHudContext& context
         edit.base.y = static_cast<std::int32_t>(y);
         if (!context.projecting)
         {
-            Ui::FocusTheDialogField(runtime.chat.input);
+            Ui::FocusTheDialogField(runtime.chatInput);
             runtime.ui.focusedList = edit.base.id;
         }
         Ui::OldDraw::DrawTheOldEdit({.sprites = sprites,

@@ -29,7 +29,6 @@
 #include "Ui/OldWindowDraw.h"
 #include "Ui/OldWindowDrawParts.h"
 #include "Ui/PanelRegistry.h"
-#include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 
 #include <array>
@@ -237,7 +236,7 @@ Result StepTheSerialNumber(const Ui::GameUiContext& context)
     }
     else
     {
-        auto pieces = SerialPiecesOf(runtime.chat.input.dialogEdit);
+        auto pieces = SerialPiecesOf(runtime.chatInput.dialogEdit);
         if (!pieces.HasValue())
             return Core::Unexpected(std::move(pieces).Error());
         if (auto sent = Send(context, Protocol::Events::WriteSerialNumber(pieces.Value()), "0x5e7184");
@@ -275,13 +274,13 @@ Result StepTheCloseButton(const Ui::GameUiContext& context, Ui::PanelRegistry& p
     runtime.panels.field78abb00 = 0;
     if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
         return Core::Unexpected(std::move(closed).Error());
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     // 0x5e749c..0x5e74b6.
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.events.serialEntry = false;
     // 0x5e74bf: SetFocus([0x5763544]), with 0x6c7b8c at 1. 0x553570 (0x5535bd) already emptied the EDIT's text.
-    runtime.chat.input.focus = Ui::ChatFocus::Game;
+    runtime.chatInput.focus = Ui::ChatFocus::Game;
     return {};
 }
 
@@ -302,7 +301,7 @@ void DrawTheSerialEdit(Ui::GameHudContext& context, Ui::OldEdit& edit, bool focu
 void DrawTheSerialField(Ui::GameHudContext& context, std::int32_t left, std::int32_t top)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Ui::OldEdit copy = input.dialogEdit;
     Ui::OldEdit& edit = context.projecting ? copy : input.dialogEdit;
     edit.base.state = Ui::ShownWindow;
@@ -518,17 +517,17 @@ Result DrawTheCount(Ui::GameHudContext& context, std::int32_t window, std::size_
 void OpenTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
     runtime.events.serial = {};
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.ui.chatOpen = false;
     ForgetTheMoneyField(runtime.social);
     runtime.social.dialogFieldLimit = SerialFieldLimit;
-    runtime.chat.input.fieldCount = 1;
+    runtime.chatInput.fieldCount = 1;
     runtime.events.serialEntry = true;
 }
 
 void CloseTheSerialEntry(Kernel::WorldRuntime& runtime)
 {
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     input.field = Ui::MessageField;
     input.messageBuffer.fill('\0');
     input.messageLength = 0;

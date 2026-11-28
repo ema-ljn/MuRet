@@ -349,8 +349,8 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         // 0x5577a2..0x55780d: the right click is spent, the name goes to the whisper EDIT (0x4694c0(0, 0, 1, name),
         // with 0x6c7b8c at 1) and with strcpy to the buffer and its length, and 0x19 sounds. Then the other bubbles.
         runtime.ui.rightClick = false;
-        Ui::SetTheChatFields(runtime.chat.input, std::nullopt, CString(bubble.name));
-        Ui::PutTheWhisperName(runtime.chat.input, CString(bubble.name));
+        Ui::SetTheChatFields(runtime.chatInput, std::nullopt, CString(bubble.name));
+        Ui::PutTheWhisperName(runtime.chatInput, CString(bubble.name));
         runtime.RequestSound(Ui::ChatButtonSound);
     }
     return {};

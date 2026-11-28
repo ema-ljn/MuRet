@@ -160,7 +160,7 @@ Core::Expected<void, std::string> TalkToTheGuildMaster(const ChatReceiveContext&
     panels.LendTheGuild(world, context.guildSend);
     if (auto opened = panels.Registry().Open(Ui::SecondGuildPanel); !opened.HasValue())
         return Core::Unexpected(std::move(opened).Error());
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     input.dialogFieldOn = true;
     runtime.ui.chatOpen = false;
     Ui::ResetTheTextBuffers(input, false);

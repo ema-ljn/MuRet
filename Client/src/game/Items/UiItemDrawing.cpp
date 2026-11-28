@@ -632,7 +632,7 @@ Core::Expected<glm::ivec2, std::string> UiItemAnchor(std::int32_t type, std::uin
     return glm::ivec2(*pixelX, *pixelY);
 }
 
-Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call, const Scenes::UnprojectedPoint& anchor,
+Core::Expected<UiItemPlacement, std::string> PlaceUiItem(const UiItemCall& call, const Kernel::UnprojectedPoint& anchor,
                                                          bool hovered, bool always, float worldClock,
                                                          const Tables::ItemTable* items, glm::vec3& angles)
 {
@@ -686,7 +686,7 @@ Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, f
     made.pass.projection = Math::RoundedPerspective(glm::radians(FieldOfView), aspect, NearPlane, farPlane);
     made.pass.view = glm::mat4(1.0f);
     made.pass.farPlane = farPlane;
-    auto projection = Scenes::MakeGameProjection(made.pass, FieldOfView);
+    auto projection = Kernel::MakeGameProjection(made.pass, FieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());
     made.projection = projection.Value();

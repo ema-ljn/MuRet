@@ -44,6 +44,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 #include "Ui/PanelRegistry.h"
 #include "CastleSiege/CastleSiegeState.h"
 #include "Movement/GameMovementState.h"
@@ -609,7 +610,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     dialog.opened = 77;
     dialog.owner = Client::Ui::PanelDialogOwner::GuildJoin;
     dialog.timerMs = 777;
-    runtime.chat.input.dialogFieldOn = true;
+    runtime.chatInput.dialogFieldOn = true;
     tested->world.OwnCharacter().word3e = 55;
     auto resources = tested->Resources();
     std::size_t closes = 0;
@@ -644,7 +645,7 @@ TEST(ReturnToSelectionWithoutDataTest, TheTwoClosesObserveTheirOwnNativeResetChe
     EXPECT_EQ(runtime.pets[1].level, 0);
     EXPECT_EQ(dialog.opened, 0u);
     EXPECT_EQ(dialog.timerMs, 777u);
-    EXPECT_TRUE(runtime.chat.input.dialogFieldOn); // 0x660090 calls no callback and does no EDIT cleanup.
+    EXPECT_TRUE(runtime.chatInput.dialogFieldOn); // 0x660090 calls no callback and does no EDIT cleanup.
 }
 
 class ResetLetterMeasure final : public Client::Render::Text::ITextMeasure

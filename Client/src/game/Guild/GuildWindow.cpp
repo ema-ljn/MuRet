@@ -40,7 +40,6 @@
 #include "Crt/SprintfFormat.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>
@@ -467,9 +466,9 @@ Core::Expected<HeroGuildNames, std::string> HeroGuildNamesOf(Kernel::WorldState&
 void OpenTheNumberDialog(Kernel::WorldRuntime& runtime)
 {
     runtime.dialogs.current = NumberDialog;
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.ui.chatOpen = false;
-    runtime.chat.input.fieldCount = NumberDialogFields;
+    runtime.chatInput.fieldCount = NumberDialogFields;
 }
 
 // 0x64fce7..0x64fd8f: strcpy of 1363 to 1366 into their 0x32-byte slots, one after the other. A text of 0x32 bytes or

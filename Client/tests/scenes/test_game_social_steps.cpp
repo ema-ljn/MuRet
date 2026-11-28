@@ -18,7 +18,6 @@
 #include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
 #include "support/SceneDataFiles.h"
-#include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
@@ -215,7 +214,7 @@ TEST_P(GameSocialStepsTest, TheMoneyButtonOpensTheMoneyDialog)
     ASSERT_TRUE(StepTheTrade(0x104 + 0x1a, 0x186).HasValue());
     EXPECT_EQ(Runtime().dialogs.current, 0x73);
     EXPECT_EQ(Runtime().social.dialogFieldLimit, 8);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_FALSE(Runtime().ui.chatOpen);
     EXPECT_EQ(Runtime().social.moneyField, 1);
     EXPECT_EQ(Runtime().social.typedMoney, 0);

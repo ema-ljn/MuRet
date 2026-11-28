@@ -78,6 +78,7 @@ struct TooltipLines;
 
 namespace Client::Ui
 {
+struct ChatInputState;
 struct ChatLogFrame;
 struct DialogBoxState;
 struct DialogState;
@@ -173,6 +174,9 @@ public:
     // *(0x5763514), the old windows' manager, and [0x5763524]'s window list (milestone 7): WinMain builds them and
     // they last the whole game.
     Ui::OldWindowManager& oldWindows;
+    // The chat input (the EDITs of [0x57634f8], their buffers, the throttle and the macros), which every window that
+    // types uses.
+    Ui::ChatInputState& chatInput;
     Chat::ChatRuntime& chat;
     Movement::GameMovementState& movement;
     // [0x710148]: the quests' object (CL9 milestone 2). main.cpp copies quest.bmd's records (GameData::quests).

@@ -47,7 +47,7 @@ using Client::Crt::CrtRandom;
 using Client::Items::UiItemBox;
 using Client::Items::UiItemCall;
 using Client::Items::UiItemPlacement;
-using Client::Scenes::UnprojectedPoint;
+using Client::Kernel::UnprojectedPoint;
 
 float Bits(std::uint32_t bits)
 {
@@ -147,7 +147,7 @@ TEST(UiItemDrawingTest, TheUnprojectedPointFollowsThePixelsOfEachResolution)
         const auto pass = Client::Items::MakeUiItemPass(probe.screen);
         ASSERT_TRUE(pass.HasValue()) << pass.Error();
         const UnprojectedPoint point =
-            Client::Scenes::UnprojectGamePoint(pass.Value().projection, probe.pixel.x, probe.pixel.y);
+            Client::Kernel::UnprojectGamePoint(pass.Value().projection, probe.pixel.x, probe.pixel.y);
         EXPECT_FLOAT_EQ(point.camera.x, 0.0f);
         EXPECT_FLOAT_EQ(point.camera.y, 0.0f);
         EXPECT_FLOAT_EQ(point.camera.z, 0.0f);

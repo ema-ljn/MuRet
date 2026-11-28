@@ -47,7 +47,6 @@
 #include "Ui/OldWindows.h"
 #include "Ui/PanelRegistry.h"
 #include "Assets/FaunaModels.h"
-#include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -761,7 +760,7 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world, const
     using Maps::LastChaosCastleMap;
     if (runtime.map >= FirstChaosCastleMap && runtime.map <= LastChaosCastleMap)
         return {};
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Ui::ChatBuffer& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     // 0x59b0a7..0x59b0ca: 0x4694c0(0, 0, 1, slot) with 0x6c7b8c at 1, before the copies: the whisper EDIT takes what
     // was in the history's current slot (0x77f31cc + 0x6c8ea8 · 0x100), not the new name (Q-C804).

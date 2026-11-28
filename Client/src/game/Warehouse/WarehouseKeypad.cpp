@@ -26,7 +26,7 @@
 #include "Ui/Widget.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <algorithm>
 #include <array>
@@ -290,7 +290,7 @@ Core::Expected<void, std::string> Confirm(const Ui::GameUiContext& context, Ui::
         // 0x5e931c..0x5e9a88 (mode 1 and the modes outside 2..6): the type is the mode minus 1 (0x5e939a), the password
         // the atoi of the typed digits (0x5e9491) and the number, the first ten bytes of the chat message buffer
         // (0x7798bf8, 0x5e95b1..0x5e95d2; Q-C924).
-        const auto chat = std::as_bytes(std::span(runtime.chat.input.messageBuffer));
+        const auto chat = std::as_bytes(std::span(runtime.chatInput.messageBuffer));
         Protocol::Npc::WarehouseNumber number{};
         std::ranges::copy_n(chat.begin(), static_cast<std::ptrdiff_t>(number.size()), number.begin());
         const auto type = static_cast<std::uint8_t>((mode - 1) & 0xff);

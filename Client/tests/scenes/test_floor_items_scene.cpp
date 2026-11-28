@@ -773,7 +773,7 @@ protected:
     Expected<void, std::string> Draw(const FloorItemState& item, bool atTheItem = false)
     {
         Client::Ui::GameHudContext context = Context();
-        return Client::Items::DrawTheFloorItemName(context, item, atTheItem);
+        return Client::Tooltips::DrawTheFloorItemName(context, item, atTheItem);
     }
 
     [[nodiscard]] static FloorItemState Item(std::uint16_t type, std::int32_t value, std::uint8_t excellent = 0)

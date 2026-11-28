@@ -127,9 +127,9 @@ struct Game
 
 // A test projection: the eye at (x − 10000, y − 10000, −1000), with no turn or height, with the scales at −0.01: 10
 // world units per point from the center of 640 × 480.
-Client::Scenes::GameProjection TestProjection()
+Client::Kernel::GameProjection TestProjection()
 {
-    return Client::Scenes::GameProjection{
+    return Client::Kernel::GameProjection{
         .view = {1.0f, 0.0f, 0.0f, -10000.0f, 0.0f, 1.0f, 0.0f, -10000.0f, 0.0f, 0.0f, 0.0f, -1000.0f},
         .horizontalScale = -0.01f,
         .verticalScale = -0.01f,
@@ -286,7 +286,7 @@ protected:
     std::unique_ptr<Game> game;
     CrtRandom m_random{Seed};
     std::optional<Client::Audio::SoundId> m_sound{};
-    std::optional<Client::Scenes::GameProjection> m_projection = TestProjection();
+    std::optional<Client::Kernel::GameProjection> m_projection = TestProjection();
     SpriteBatch m_sprites;
     Client::Tests::RecordingTextDrawer m_text{m_sprites};
     Client::Ui::Point m_mouse{};
@@ -312,7 +312,7 @@ TEST_P(PartyLifeTest, TheMembersInTheViewportShowTheirLifeOverTheirHeads)
     // Zorzal (7 tenths) and Brezal (10 of 0xa): shadow, border, background and the tenths.
     ASSERT_EQ(quads.size(), (3U + 7U) + (3U + 10U));
     const ActorState& zorzal = game->world.Actors()[2];
-    const auto above = Client::Scenes::ProjectGamePoint(
+    const auto above = Client::Kernel::ProjectGamePoint(
         TestProjection(), {zorzal.position.x, zorzal.position.y, zorzal.boundsTop + zorzal.position.z + 100.0f});
     ASSERT_TRUE(above.HasValue());
     const auto x = static_cast<float>(above.Value().x - 19);
@@ -340,7 +340,7 @@ TEST_P(PartyLifeTest, TheMouseOverABarShowsTheTenths)
     ThePartyArrives();
     Pick();
     const ActorState& brezal = game->world.Actors()[1];
-    const auto above = Client::Scenes::ProjectGamePoint(
+    const auto above = Client::Kernel::ProjectGamePoint(
         TestProjection(), {brezal.position.x, brezal.position.y, brezal.boundsTop + brezal.position.z + 100.0f});
     ASSERT_TRUE(above.HasValue());
     const int x = above.Value().x - 19;

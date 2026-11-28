@@ -33,13 +33,9 @@ namespace Client::Kernel
 {
 class WorldState;
 struct CrywolfInterface;
+struct GameProjection;
 struct HudState;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct GameProjection;
-} // namespace Client::Scenes
 
 // What the HUD's children and the windows they draw read and write in a frame (06 § HUD y ventanas, CL8 milestone 2).
 namespace Client::Ui
@@ -82,7 +78,7 @@ struct GameHudContext
     bool projecting = false;
     // 0x6203c0 of this frame's world pass, which the bubbles read (0x5a9050 → 0x6205b0). Without it, a live bubble
     // stops.
-    const Scenes::GameProjection* projection = nullptr;
+    const Kernel::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // Text.bmd, Item.bmd and Skill.bmd; without one, whatever reads it stops with an error.

@@ -57,6 +57,7 @@
 #include "Tables/GameData.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Chat/GameMessages.h"
+#include "Chat/ChatInput.h"
 #include "Hud/GamePanels.h"
 #include "Session/WorldEntry.h"
 #include "Protocol/Outgoing.h"
@@ -471,8 +472,8 @@ bool CharacterSelectScene::PrepareTheCharacters()
     // the list's two pkt[5] numbers (0x5767958 and 0x576795c, 0x4c20a0) is not 0, 1240 with them, as system and without
     // a name (nobody writes the name at 0x7d3a17c). Emptying the fields (0x553570) belongs to the chat input.
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    runtime.chat.input.dialogFieldOn = false;
-    runtime.chat.input.otherInput = false;
+    runtime.chatInput.dialogFieldOn = false;
+    runtime.chatInput.otherInput = false;
     runtime.social.moneyField = 0;
     runtime.ui.chatOpen = true;
     if (auto emptied = Chat::AddTheEmptyMessages(runtime, m_context.textMeasure); !emptied.HasValue())
@@ -1414,7 +1415,7 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
     std::array<std::optional<FrontEnd::BalloonHead>, FrontEnd::BalloonCount> heads{};
     if (m_context.world != nullptr)
     {
-        const auto projection = MakeGameProjection(pass, fieldOfView);
+        const auto projection = Kernel::MakeGameProjection(pass, fieldOfView);
         for (std::size_t slot = 0; slot < FrontEnd::BalloonCount; ++slot)
         {
             if (!m_balloons.IsShown(slot))
@@ -1431,7 +1432,7 @@ void CharacterSelectScene::DrawTheBalloons(Render::Frame::SceneCanvas& canvas, c
             const glm::vec3 head{actor.position.x, actor.position.y,
                                  static_cast<float>(static_cast<double>(actor.position.z) +
                                                     static_cast<double>(FrontEnd::BalloonHeadHeight))};
-            const auto point = ProjectGamePoint(projection.Value(), head);
+            const auto point = Kernel::ProjectGamePoint(projection.Value(), head);
             if (!point.HasValue())
             {
                 m_failure = "0x63ca76 → " + point.Error();

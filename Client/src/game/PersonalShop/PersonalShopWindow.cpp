@@ -30,7 +30,6 @@
 #include "Ui/OldWindowBase.h"
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
-#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>
@@ -410,12 +409,12 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
     runtime.social.personalShop.dialogMode = mode;
     runtime.ui.chatOpen = false;
     runtime.social.moneyField = mode == ShopPriceMode ? 1 : 0;
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     runtime.social.dialogFieldLimit = mode == ShopPriceMode ? PriceFieldLimit : TitleFieldLimit;
     // With 0x6c7b8c at 1: the vtable + 4 with 0 (in view), +0x4c, the + 0x44 with (0, 0, 0, 0) (the background), the
     // cap, the size and the position. The focus and the drawing belong to the 0x91's draw (0x6305c9).
     const bool price = mode == ShopPriceMode;
-    Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+    Ui::OldEdit& edit = runtime.chatInput.dialogEdit;
     edit.base.state = Ui::ShownWindow;
     edit.filter = price ? PriceEditFilter : TitleEditFilter;
     edit.backgroundColor = 0;
@@ -429,7 +428,7 @@ void OpenTheShopDialog(Kernel::WorldRuntime& runtime, std::int32_t mode)
 Core::Expected<void, std::string> StepTheShopDialog(const Ui::GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Social::PersonalShopState& shops = runtime.social.personalShop;
     Social::SocialState& social = runtime.social;
     bool& click = runtime.mouse.pendingClick;

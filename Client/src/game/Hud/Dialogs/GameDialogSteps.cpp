@@ -301,7 +301,7 @@ Core::Expected<void, std::string> SaveTheOptions(const Ui::GameUiContext& contex
     if (!body.HasValue())
         return Core::Unexpected(std::move(body).Error());
     requests.Value()->SendOptionData(body.Value());
-    return requests.Value()->SaveMacros(Tables::WrittenMacros(context.world.Runtime().chat.input.macros));
+    return requests.Value()->SaveMacros(Tables::WrittenMacros(context.world.Runtime().chatInput.macros));
 }
 
 // 0x659290(0x100), without rand().
@@ -694,9 +694,9 @@ Core::Expected<void, std::string> StepTheMoneyOk(const Ui::GameUiContext& contex
         else if (auto moved = Npc::MoveTheWarehouseMoney(context); !moved.HasValue())
             return moved;
     }
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     social.dialogFieldLimit = ClosedDialogFieldLimit;
-    runtime.chat.input.fieldCount = Ui::ChatFieldCount;
+    runtime.chatInput.fieldCount = Ui::ChatFieldCount;
     social.moneyField = 0;
     runtime.ui.chatOpen = false;
     PressTheButton(runtime);
@@ -982,7 +982,7 @@ Core::Expected<void, std::string> SendTheLeave(const Ui::GameUiContext& context)
     if (!requests.HasValue())
         return Core::Unexpected(std::move(requests).Error());
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     Ui::ReadTheNumberField(input, input.messageBuffer);
     Ui::ClearTheNumberField(input);
     // 0x62a91c: 0x6d5e2c is −1 in the .data and 0x64faa0 sets it (−1 without the name): outside the 80 slots, the
@@ -1028,10 +1028,10 @@ Core::Expected<void, std::string> SendTheWarehouseConfirmation(const Ui::GameUiC
                                                      0xffff);
     Protocol::Npc::WarehouseNumber number{};
     for (std::size_t index = 0; index < number.size(); ++index)
-        number[index] = static_cast<std::byte>(runtime.chat.input.messageBuffer[index]);
+        number[index] = static_cast<std::byte>(runtime.chatInput.messageBuffer[index]);
     context.random.Discard(C3Randoms);
     requests.Value()->SendGamePacket(Protocol::Npc::WriteWarehousePassword(1, password, number));
-    ClearTheTypedNumber(context.world.Runtime().chat.input);
+    ClearTheTypedNumber(context.world.Runtime().chatInput);
     return {};
 }
 
@@ -1076,7 +1076,7 @@ Core::Expected<void, std::string> StepTheYesNo(const Ui::GameUiContext& context,
             std::format("0x62c560: el no del diálogo {:#x} ({}) es {} (08 P-C363)", id, other->address, other->owner));
     // 0x62c567: 0x7d's no clears 0x7798bf8's number, but not the EDIT (Q-C1295).
     if (id == LeaveNumberDialog || id == 0x95)
-        ClearTheTypedNumber(runtime.chat.input);
+        ClearTheTypedNumber(runtime.chatInput);
     // 0x62c5c2: 0x7f's no sends the C1 04 61 00 and leaves the guild without war or rival (0x4c1800, which it calls
     // twice at 0x62c854 and 0x62c86a; the second changes nothing).
     if (id == Ui::IgnoredOverChaosCastle)

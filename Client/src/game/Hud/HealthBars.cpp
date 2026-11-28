@@ -53,7 +53,7 @@ void QueueTheHealthBar(const Kernel::ActorState& actor, std::deque<Kernel::Queue
 }
 
 Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHealthBar>& queue,
-                                                    const Scenes::GameProjection* projection,
+                                                    const Kernel::GameProjection* projection,
                                                     Render::SpriteBatch& sprites)
 {
     // 0x42a4d6..0x42a4e0 and 0x42a645..0x42a64d: the count is read again after each pop_front.
@@ -63,7 +63,7 @@ Core::Expected<void, std::string> DrawTheHealthBars(std::deque<Kernel::QueuedHea
         if (projection == nullptr)
             return Core::Unexpected(
                 std::string("0x42a529: la barra de vida no tiene la proyección del pase del mundo"));
-        const auto projected = Scenes::ProjectGamePoint(*projection, bar.position);
+        const auto projected = Kernel::ProjectGamePoint(*projection, bar.position);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         const glm::ivec2 point = projected.Value();

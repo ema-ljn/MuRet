@@ -24,7 +24,6 @@
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
-#include "Chat/ChatRuntime.h"
 #include "Social/SocialState.h"
 #include "Ui/GameUiState.h"
 
@@ -458,7 +457,7 @@ Core::Expected<void, std::string> SeniorTaxes(const Ui::GameUiContext& context)
         // Shared EDIT plumbing: the answer reads it before CloseThePanelDialog clears it.
         dialog.closeField = [&runtime]()
         {
-            auto& input = runtime.chat.input;
+            auto& input = runtime.chatInput;
             input.dialogEdit.text.Clear();
             input.dialogEdit.compositionText.clear();
             input.dialogEdit.compositionStart = 0;

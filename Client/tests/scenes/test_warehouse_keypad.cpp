@@ -29,7 +29,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
-#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -512,7 +512,7 @@ TEST_P(WarehouseKeypadTest, UnlockingSends83WithTheChatBuffer)
 {
     Runtime().ui.field78abb20 = 1;
     constexpr std::string_view Chat = "hola mundo, chau";
-    std::ranges::copy(Chat, Runtime().chat.input.messageBuffer.begin());
+    std::ranges::copy(Chat, Runtime().chatInput.messageBuffer.begin());
     PressDigits("4821");
     const CrtRandom expected = Advanced(m_random, C3);
 

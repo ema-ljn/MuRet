@@ -638,7 +638,7 @@ TEST_P(CommandsWindowTest, ThePartyCommandsInviteOrFollow)
 TEST_P(CommandsWindowTest, TheWhisperAndTheDuelCommands)
 {
     ASSERT_TRUE(RightClick(4, 1).HasValue());
-    EXPECT_EQ(game->world.Runtime().chat.input.whisper.text.Value(), "Brezal");
+    EXPECT_EQ(game->world.Runtime().chatInput.whisper.text.Value(), "Brezal");
     EXPECT_TRUE(game->world.Runtime().ui.chatOpen);
 
     ASSERT_TRUE(RightClick(11, 1).HasValue());

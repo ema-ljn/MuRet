@@ -1542,7 +1542,7 @@ std::optional<JewelDrawing> JewelDrawingOf(std::int32_t id)
 // 0x5762ec0. An intermediate pass works on a copy and does not move the focus.
 template <typename Setup> void DrawTheDialogEdit(Frame& frame, Setup setup)
 {
-    Ui::ChatInputState& input = frame.runtime.chat.input;
+    Ui::ChatInputState& input = frame.runtime.chatInput;
     Ui::OldEdit copy = input.dialogEdit;
     Ui::OldEdit& edit = frame.context.projecting ? copy : input.dialogEdit;
     setup(edit);
@@ -1633,7 +1633,7 @@ void DrawTheYesNoBox(Frame& frame)
 void DrawTheNumberBox(Frame& frame)
 {
     Quad(frame, MessageBoxSlot, BoxLeft, BoxTop, BoxWidth, GenericBoxHeight, MessageBoxDu, 1.0f);
-    Ui::ChatInputState& input = frame.runtime.chat.input;
+    Ui::ChatInputState& input = frame.runtime.chatInput;
     Ui::OldEdit& field = input.numberField;
     Ui::ShowTheNumberField(input, ShownField);
     field.filter = NumberFieldFilter;

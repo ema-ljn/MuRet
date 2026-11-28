@@ -175,7 +175,7 @@ protected:
 
     Client::Ui::ChatInputState& Input()
     {
-        return world.Runtime().chat.input;
+        return world.Runtime().chatInput;
     }
 
     Client::Ui::OldEdit& FocusAnOldEdit()

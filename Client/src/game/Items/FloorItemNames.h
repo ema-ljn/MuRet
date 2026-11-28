@@ -16,7 +16,7 @@ struct GameHudContext;
 
 // A floor item's name (CL9 milestone 5; 06 § Los ítems del piso): 0x5ba790, called by the hover with the picked one
 // (0x5bbd62) and by Alt with the others (0x5bbdd2). *Static*, read in the ASM.
-namespace Client::Items
+namespace Client::Tooltips
 {
 
 // 0x5ba790(index, object, +8, +0x1f, +0x20, atTheItem): the normal font and the colors (0xffffffff, 0xff000000); the
@@ -30,4 +30,4 @@ namespace Client::Items
 // what was left on its stack (07 Q-C1242).
 [[nodiscard]] Core::Expected<void, std::string>
 DrawTheFloorItemName(Ui::GameHudContext& context, const Kernel::FloorItemState& item, bool atTheItem);
-} // namespace Client::Items
+} // namespace Client::Tooltips

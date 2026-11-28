@@ -685,7 +685,7 @@ TEST(GameDialogDrawingTest, TheLeaveNumberDrawsItsEditAndTheNarrowButtons)
         Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x7d;
         runtime.ui.focusedList = -3;
-        Client::Ui::ChatInputState& input = runtime.chat.input;
+        Client::Ui::ChatInputState& input = runtime.chatInput;
         input.numberField.text.Type("12");
         tested->mouse = {0x16a, 0x76};
 
@@ -766,7 +766,7 @@ TEST(GameDialogDrawingTest, AHeldArrowLightsTheDialogCaretAtOnce)
         auto tested = std::make_unique<DrawingDialogs>(Lorencia);
         Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
         runtime.dialogs.current = dialog;
-        Client::Ui::ChatInputState& input = runtime.chat.input;
+        Client::Ui::ChatInputState& input = runtime.chatInput;
         Client::Ui::OldEdit& edit = dialog == 0x7d ? input.numberField : input.dialogEdit;
         // The caret at the start: at the end of the text it would be outside the bitmap.
         edit.text.Type("12");
@@ -927,10 +927,10 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x73;
             runtime.social.trade.field78abacc = mark;
-            Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+            Client::Ui::OldEdit& edit = runtime.chatInput.dialogEdit;
             edit.text.SetText("150");
             edit.base.state = Client::Ui::HiddenWindow;
-            runtime.chat.input.focus = Client::Ui::ChatFocus::Game;
+            runtime.chatInput.focus = Client::Ui::ChatFocus::Game;
             tested->mouse = {0x11c, 0x76};
 
             ASSERT_TRUE(tested->Draw().HasValue());
@@ -941,7 +941,7 @@ TEST(GameDialogDrawingTest, TheMoneyDialogDrawsItsFrameItsEditAndItsText)
             EXPECT_EQ(edit.base.width, 0x46);
             EXPECT_EQ(edit.base.height, 0xe);
             EXPECT_EQ(edit.draws, 1);
-            EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
             EXPECT_EQ(runtime.ui.focusedList, Client::Ui::DialogFieldId);
 
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -977,13 +977,13 @@ TEST(GameDialogDrawingTest, TheProjectingPassLeavesTheDialogEdit)
     auto tested = std::make_unique<DrawingDialogs>(Lorencia);
     Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
     runtime.dialogs.current = 0x73;
-    Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+    Client::Ui::OldEdit& edit = runtime.chatInput.dialogEdit;
     edit.base.state = Client::Ui::HiddenWindow;
-    runtime.chat.input.focus = Client::Ui::ChatFocus::Game;
+    runtime.chatInput.focus = Client::Ui::ChatFocus::Game;
     ASSERT_TRUE(tested->Draw(true).HasValue());
     EXPECT_EQ(edit.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(edit.draws, 0);
-    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Game);
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Game);
 }
 
 // 0x91 (0x6304f2..0x630813): the frame (0xfc at (213, 100), 0xfb at 105 and 145, 0xfc at 185), the EDIT that 0x5eba70
@@ -1004,7 +1004,7 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
             runtime.social.personalShop.dialogMode = mode;
-            Client::Ui::OldEdit& edit = runtime.chat.input.dialogEdit;
+            Client::Ui::OldEdit& edit = runtime.chatInput.dialogEdit;
             edit.base.state = Client::Ui::ShownWindow;
             edit.filter = 0xc;
             edit.backgroundColor = 0;
@@ -1013,11 +1013,11 @@ TEST(GameDialogDrawingTest, TheShopDialogDrawsItsBoxItsEditAndItsButtons)
             edit.base.width = 0x85;
             edit.base.height = 0xa;
             edit.text.SetText("Puesto");
-            runtime.chat.input.focus = Client::Ui::ChatFocus::Game;
+            runtime.chatInput.focus = Client::Ui::ChatFocus::Game;
             tested->mouse = {0x133, 0xb0};
 
             ASSERT_TRUE(tested->Draw().HasValue());
-            EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
+            EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
             EXPECT_EQ(runtime.ui.focusedList, Client::Ui::DialogFieldId);
             EXPECT_EQ(edit.base.x, 0xfd);
             EXPECT_EQ(edit.draws, 1);
@@ -1077,7 +1077,7 @@ TEST(GameDialogDrawingTest, TheShopDialogLightsTheButtonUnderTheMouse)
             auto tested = std::make_unique<DrawingDialogs>(map);
             Client::Kernel::WorldRuntime& runtime = tested->world.Runtime();
             runtime.dialogs.current = 0x91;
-            runtime.chat.input.dialogEdit.base.state = Client::Ui::ShownWindow;
+            runtime.chatInput.dialogEdit.base.state = Client::Ui::ShownWindow;
             tested->mouse = mouse;
             ASSERT_TRUE(tested->Draw().HasValue());
             const std::vector<DrawnQuad> quads = QuadsOf(tested->sprites);
@@ -2223,7 +2223,7 @@ TEST(GameDialogDrawingTest, TheWarehouseConfirmationDrawsItsNumberEditAndBothIns
         auto tested = std::make_unique<DrawingDialogs>(map);
         auto& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x95;
-        runtime.chat.input.numberField.text.Type("12");
+        runtime.chatInput.numberField.text.Type("12");
         tested->texts = Client::Tests::MakeTextTable({{443, "clave"}, {444, "confirmo"}});
         const auto before = tested->random;
         const auto drawn = tested->Draw();
@@ -2232,9 +2232,9 @@ TEST(GameDialogDrawingTest, TheWarehouseConfirmationDrawsItsNumberEditAndBothIns
         EXPECT_EQ(tested->text.texts[1].y, 69);
         EXPECT_EQ(tested->text.texts[2].y, 81);
         EXPECT_EQ(tested->text.texts[1].style.colors.text, 0xff0000ffu);
-        EXPECT_EQ(runtime.chat.input.numberField.base.x, 243);
-        EXPECT_EQ(runtime.chat.input.numberField.base.y, 98);
-        EXPECT_EQ(runtime.chat.input.numberField.draws, 1);
+        EXPECT_EQ(runtime.chatInput.numberField.base.x, 243);
+        EXPECT_EQ(runtime.chatInput.numberField.base.y, 98);
+        EXPECT_EQ(runtime.chatInput.numberField.draws, 1);
         EXPECT_EQ(runtime.ui.focusedList, Client::Ui::NumberFieldId);
         const auto quads = QuadsOf(tested->sprites);
         ASSERT_EQ(quads.size(), 5u);

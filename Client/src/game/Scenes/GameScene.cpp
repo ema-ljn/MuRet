@@ -333,7 +333,7 @@ void GameScene::StepEntry()
         if (m_context.world != nullptr)
         {
             Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-            Ui::ChatInputState& input = runtime.chat.input;
+            Ui::ChatInputState& input = runtime.chatInput;
             Ui::ResetTheTextBuffers(input, true);
             runtime.ui.chatOpen = false;
             input.otherInput = false;
@@ -850,7 +850,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(Render::Frame::SceneCa
         return drawn;
     // 0x6203c0 of the world pass: the projection the HUD bubbles read (0x5a9050 → 0x6205b0). Without it, it stops only
     // if there is a live bubble.
-    const auto projection = MakeGameProjection(pass, camera.fieldOfView);
+    const auto projection = Kernel::MakeGameProjection(pass, camera.fieldOfView);
     return DrawTheInterface(canvas, projection.HasValue() ? &projection.Value() : nullptr);
 }
 
@@ -1390,7 +1390,7 @@ bool GameScene::WantsTextInput() const
     // [0x5763504] (milestone 11 and CL9 milestone 8) or that of [0x5763508] (CL9 milestone 8). The one with the Windows
     // focus receives the WM_CHAR.
     const Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    const Ui::ChatFocus focus = runtime.chat.input.focus;
+    const Ui::ChatFocus focus = runtime.chatInput.focus;
     return runtime.ui.chatOpen || focus == Ui::ChatFocus::OldWindow || focus == Ui::ChatFocus::Dialog ||
            focus == Ui::ChatFocus::NumberField;
 }

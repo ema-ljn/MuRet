@@ -17,7 +17,6 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -92,9 +91,9 @@ void PressTheMoneyButton(const Ui::GameUiContext& context)
     SocialState& social = runtime.social;
     runtime.mouse.pendingClick = false;
     Ui::PushDialog(runtime.dialogs, MoneyDialog);
-    Ui::ResetTheTextBuffers(runtime.chat.input, false);
+    Ui::ResetTheTextBuffers(runtime.chatInput, false);
     social.dialogFieldLimit = MoneyFieldLimit;
-    runtime.chat.input.fieldCount = MoneyFieldCount;
+    runtime.chatInput.fieldCount = MoneyFieldCount;
     runtime.ui.chatOpen = false;
     social.moneyField = 1;
     social.typedMoney = 0;

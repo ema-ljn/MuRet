@@ -354,7 +354,7 @@ Core::Expected<void, std::string> DrawTheChatBubbles(ChatBubbleDrawContext& cont
         const glm::vec3 above{owner.position.x, owner.position.y,
                               static_cast<float>(static_cast<double>(owner.boundsTop) +
                                                  static_cast<double>(owner.position.z) + AboveTheTop)};
-        const auto projected = Scenes::ProjectGamePoint(*context.projection, above);
+        const auto projected = Kernel::ProjectGamePoint(*context.projection, above);
         if (!projected.HasValue())
             return Core::Unexpected(projected.Error());
         if (auto measured = MeasureTheChatBubble(bubble, context.text, fontStep, context.texts); !measured.HasValue())

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Chat/ChatBubbles.h"
-#include "Chat/ChatInput.h"
 #include "Chat/ChatLog.h"
 #include "Chat/WhisperSenders.h"
 #include "Ui/MessageArea.h"
@@ -36,7 +35,5 @@ struct ChatRuntime
     std::optional<std::string> selectionNotice{};
     // 0x6c7a8c (.data 1): Slide.bmd's banners on. The F3 30's bit 0x10 turns it off (0x4dd7fa).
     bool slidesOn = true;
-    // The chat input (the EDITs of [0x57634f8], their buffers, the throttle and the macros).
-    Ui::ChatInputState input{};
 };
 } // namespace Client::Chat

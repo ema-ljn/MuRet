@@ -280,15 +280,15 @@ TEST(GameUiTest, TheUnownedClickLeavesAnOpenDialogField)
         const auto owned = std::make_unique<SteppingUi>();
         SteppingUi& tested = *owned;
         Client::Kernel::WorldRuntime& runtime = tested.world.Runtime();
-        runtime.chat.input.otherInput = field == 0;
-        runtime.chat.input.dialogFieldOn = field == 1;
+        runtime.chatInput.otherInput = field == 0;
+        runtime.chatInput.dialogFieldOn = field == 1;
         runtime.social.moneyField = field == 2 ? 1 : 0;
-        runtime.chat.input.focus = Client::Ui::ChatFocus::Dialog;
+        runtime.chatInput.focus = Client::Ui::ChatFocus::Dialog;
         tested.Ui().focusedList = Client::Ui::DialogFieldId;
         tested.Click();
         ASSERT_TRUE(tested.Step(320, 240).HasValue());
         EXPECT_EQ(tested.Ui().focusedList, Client::Ui::DialogFieldId);
-        EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
+        EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
     }
 }
 
@@ -794,7 +794,7 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
         if (blocked == 0)
             runtime.ui.chatOpen = true;
         else if (blocked == 1)
-            runtime.chat.input.dialogFieldOn = true;
+            runtime.chatInput.dialogFieldOn = true;
         else if (blocked == 2)
         {
             field.opened = 1;
@@ -805,7 +805,7 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
             constexpr std::array Focuses{Client::Ui::ChatFocus::Message, Client::Ui::ChatFocus::Whisper,
                                          Client::Ui::ChatFocus::OldWindow, Client::Ui::ChatFocus::Dialog,
                                          Client::Ui::ChatFocus::NumberField};
-            runtime.chat.input.focus = Focuses[static_cast<std::size_t>(blocked - 3)];
+            runtime.chatInput.focus = Focuses[static_cast<std::size_t>(blocked - 3)];
         }
         Press(tested->input, Key::Tab);
         GameUiContext context{.world = tested->world, .random = tested->random, .input = tested->input};
@@ -815,8 +815,8 @@ TEST(GameUiTest, TheSiegeTabWaitsForTheCanonicalTextInputGateWithoutConsumingIts
         EXPECT_EQ(runtime.ui.keyLatches[9], 0);
 
         runtime.ui.chatOpen = false;
-        runtime.chat.input.dialogFieldOn = false;
-        runtime.chat.input.focus = Client::Ui::ChatFocus::Game;
+        runtime.chatInput.dialogFieldOn = false;
+        runtime.chatInput.focus = Client::Ui::ChatFocus::Game;
         field.opened = 0;
         EXPECT_FALSE(Client::Hud::GameTextInputBusy(runtime));
         ASSERT_TRUE(Client::CastleSiege::StepTheBattlePanel(context).HasValue());
@@ -1089,7 +1089,7 @@ TEST(GameUiTest, PageUpAndPageDownScrollTheChatLog)
 TEST(GameUiTest, TheArrowsWalkTheHistoryOrTheWhisperNames)
 {
     SteppingUi tested;
-    auto& input = tested.world.Runtime().chat.input;
+    auto& input = tested.world.Runtime().chatInput;
     Client::Ui::ShowTheChatFields(input, 0);
     Client::Ui::RememberTheMessage(input, "dicho");
     Press(tested.input, Key::Up);
@@ -1110,7 +1110,7 @@ TEST(GameUiTest, TheDigitsWithTheChatOpenDoNotPickASkill)
 {
     SteppingUi tested;
     tested.Ui().chatOpen = true;
-    Client::Ui::ShowTheChatFields(tested.world.Runtime().chat.input, 0);
+    Client::Ui::ShowTheChatFields(tested.world.Runtime().chatInput, 0);
     Press(tested.input, Key::Digit1);
     const auto stepped = tested.Step(320, 100);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -1135,7 +1135,7 @@ TEST(GameUiTest, TheFunctionKeysChangeTheChatModes)
 
     Press(tested.input, Key::F3);
     ASSERT_TRUE(keys().HasValue());
-    EXPECT_FALSE(tested.world.Runtime().chat.input.whisperMode);
+    EXPECT_FALSE(tested.world.Runtime().chatInput.whisperMode);
     // The latch: the F2 that is still down does not change again.
     EXPECT_FALSE(tested.Ui().chatModes.showChat);
 
@@ -1214,7 +1214,7 @@ public:
 TEST(GameUiTest, AltAndADigitSayTheMacro)
 {
     SteppingUi tested;
-    tested.world.Runtime().chat.input.macros[0] = "uno";
+    tested.world.Runtime().chatInput.macros[0] = "uno";
     Press(tested.input, Key::AltLeft);
     Press(tested.input, Key::Digit1);
     const auto alone = tested.Step(320, 100);
@@ -1309,11 +1309,11 @@ TEST(GameUiTest, TheUnownedClickTakesTheFocusFromTheOldWindows)
     auto& runtime = tested.world.Runtime();
     const std::int32_t box = OpenABox(tested.world, 0, 0);
     runtime.oldWindows.focus = box;
-    runtime.chat.input.focus = Client::Ui::ChatFocus::Message;
+    runtime.chatInput.focus = Client::Ui::ChatFocus::Message;
     tested.Click();
     ASSERT_TRUE(tested.Step(320, 240).HasValue());
     EXPECT_EQ(runtime.oldWindows.focus, 0);
-    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Game);
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Game);
 }
 
 // Q-C446: 0x623e70 reads Esc with the friends window (panel 1) closed, and opens the menu; with it open, it reaches
@@ -1355,10 +1355,10 @@ TEST(GameUiTest, F5IsReadOnlyWithTheKeyboardInTheGame)
     SteppingUi tested;
     auto& runtime = tested.world.Runtime();
     Press(tested.input, Key::F5);
-    runtime.chat.input.focus = Client::Ui::ChatFocus::Message;
+    runtime.chatInput.focus = Client::Ui::ChatFocus::Message;
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(tested.Ui().keyLatches[0x74], 0);
-    runtime.chat.input.focus = Client::Ui::ChatFocus::Game;
+    runtime.chatInput.focus = Client::Ui::ChatFocus::Game;
     ASSERT_TRUE(tested.Step(320, 100).HasValue());
     EXPECT_EQ(tested.Ui().keyLatches[0x74], 1);
 }

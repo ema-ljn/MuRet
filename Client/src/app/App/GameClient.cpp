@@ -29,7 +29,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Tables/GameData.h"
 #include "Ui/SlideBanner.h"
-#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 #include "Quests/QuestState.h"
 #include "Ui/GameUiState.h"
 
@@ -156,7 +156,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
         runtime.SetSoundVolume(static_cast<std::uint8_t>(runtime.ui.volume));
     }
     // 0x61ee30 → 0x61c1c0: Data\Macro.txt in 0x77f1db0.
-    runtime.chat.input.macros = data.macros;
+    runtime.chatInput.macros = data.macros;
     // 0x61ec8f: 0x448440 keeps movereq.bmd in the list of 0x723c68.
     runtime.moves = data.moves;
     // 0x61eb69 and 0x61eb7c: Dialog.bmd in 0x7688ac0, quest.bmd in the records of [0x710148].

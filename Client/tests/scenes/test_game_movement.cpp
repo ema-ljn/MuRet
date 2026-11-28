@@ -32,7 +32,6 @@
 #include "Npc/NpcWindowState.h"
 #include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include <glm/ext/vector_float2.hpp>
@@ -287,7 +286,7 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         if (window == 3)
         {
             // What the open entry leaves: a half-typed number, the focus on the EDIT and a stored whisper.
-            Client::Ui::ChatInputState& input = out.tested->world.Runtime().chat.input;
+            Client::Ui::ChatInputState& input = out.tested->world.Runtime().chatInput;
             input.dialogEdit.text.SetText("AB12");
             input.focus = Client::Ui::ChatFocus::Dialog;
             input.field = 1;
@@ -342,12 +341,12 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         EXPECT_EQ(serial.sent, (std::vector<std::string>{"D3", "97"}));
         EXPECT_EQ(runtime.panels.field78abb00, 0);
         EXPECT_TRUE(runtime.movement.cursorWarpRequest.has_value());
-        EXPECT_EQ(runtime.chat.input.field, Client::Ui::MessageField);
-        EXPECT_EQ(runtime.chat.input.dialogEdit.text.Value(), "");
-        EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'w');
-        EXPECT_EQ(runtime.chat.input.messageBuffer[0], '\0');
-        EXPECT_EQ(runtime.chat.input.messageLength, 0);
-        EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
+        EXPECT_EQ(runtime.chatInput.field, Client::Ui::MessageField);
+        EXPECT_EQ(runtime.chatInput.dialogEdit.text.Value(), "");
+        EXPECT_EQ(runtime.chatInput.whisperBuffer[0], 'w');
+        EXPECT_EQ(runtime.chatInput.messageBuffer[0], '\0');
+        EXPECT_EQ(runtime.chatInput.messageLength, 0);
+        EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
         EXPECT_FALSE(runtime.ui.chatOpen);
         EXPECT_FALSE(runtime.events.serialEntry);
     }
@@ -669,7 +668,7 @@ std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
     chosen.alive = true;
     chosen.word376 = 0xff;
     NameTheActor(chosen, "Rival01");
-    auto& input = runtime.chat.input;
+    auto& input = runtime.chatInput;
     input.whisperBuffer.fill('x');
     auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
     slot.fill('y');
@@ -689,7 +688,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
         const auto result = StepHeroMovement(tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         const auto& runtime = tested->world.Runtime();
-        const auto& input = runtime.chat.input;
+        const auto& input = runtime.chatInput;
         const auto& slot = input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)];
         EXPECT_FALSE(runtime.ui.rightClick);
         EXPECT_EQ(Client::Ui::CStringOf(input.whisperBuffer), "Rival01");
@@ -713,7 +712,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
         const auto tested = AHeroRightClickingTheChosen(18);
         const auto result = StepHeroMovement(tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        const auto& input = tested->world.Runtime().chat.input;
+        const auto& input = tested->world.Runtime().chatInput;
         EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
         EXPECT_EQ(Client::Ui::CStringOf(input.whisperNames[static_cast<std::size_t>(input.whisperNameAt)]), "Viejo07");
         EXPECT_EQ(input.whisperBuffer[0], 'x');
@@ -725,7 +724,7 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
         const auto result = StepHeroMovement(tested->Context());
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
-        EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
+        EXPECT_EQ(tested->world.Runtime().chatInput.whisperBuffer[0], 'x');
         EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
     }
 }
@@ -740,7 +739,7 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
     const auto result = StepHeroMovement(tested->Context());
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_FALSE(tested->world.Runtime().ui.rightClick);
-    EXPECT_EQ(tested->world.Runtime().chat.input.whisperBuffer[0], 'x');
+    EXPECT_EQ(tested->world.Runtime().chatInput.whisperBuffer[0], 'x');
     EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
 }
 
@@ -777,9 +776,9 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdi
     EXPECT_EQ(edit.text.Value(), "Rival01");
     EXPECT_EQ(edit.text.Cursor(), 7u);
     EXPECT_FALSE(edit.text.HasSelection());
-    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::OldWindow);
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::OldWindow);
     EXPECT_EQ(runtime.oldWindows.focusedEdit, AddBoxEditId);
-    EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'x');
+    EXPECT_EQ(runtime.chatInput.whisperBuffer[0], 'x');
 }
 
 // 0x59b003..0x59b020: without checking −1, a right click with no chosen one reads the name of record −1, before the

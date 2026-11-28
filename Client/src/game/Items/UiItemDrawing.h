@@ -106,7 +106,7 @@ struct UiItemPlacement
 // 0, 1 or 2 does not write them and keeps the previous item's. With the models from 0x212 to 0xe11 it reads the byte
 // +0x1e (two hands) of its Item.bmd record; without it, it stops.
 [[nodiscard]] Core::Expected<UiItemPlacement, std::string>
-PlaceUiItem(const UiItemCall& call, const Scenes::UnprojectedPoint& anchor, bool hovered, bool always, float worldClock,
+PlaceUiItem(const UiItemCall& call, const Kernel::UnprojectedPoint& anchor, bool hovered, bool always, float worldClock,
             const Tables::ItemTable* items, glm::vec3& angles);
 
 // 0x5ac120's 3D pass: the 1° projection, W / H, 20 and 2000 on the whole screen (0x620d10 and 0x6203c0) and the view
@@ -116,7 +116,7 @@ PlaceUiItem(const UiItemCall& call, const Scenes::UnprojectedPoint& anchor, bool
 struct UiItemPass
 {
     Render::Pass3D pass{};
-    Scenes::GameProjection projection{};
+    Kernel::GameProjection projection{};
 };
 
 [[nodiscard]] Core::Expected<UiItemPass, std::string> MakeUiItemPass(Core::PixelSize screen, float farPlane = 2000.0f);

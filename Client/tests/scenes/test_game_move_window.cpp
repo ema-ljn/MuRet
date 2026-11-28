@@ -24,7 +24,7 @@
 #include "support/ChatTexts.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
-#include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 
 #include <gtest/gtest.h>
 
@@ -220,7 +220,7 @@ TEST_F(GameMoveWindowTest, AClickOnAnAllowedDestinationSaysIt)
     EXPECT_EQ(Mode(), 0);
     EXPECT_FALSE(m_world->Runtime().mouse.leftHeld);
     EXPECT_FALSE(m_world->Runtime().mouse.pendingClick);
-    EXPECT_EQ(m_world->Runtime().chat.input.lastSaid, "/mover Campo");
+    EXPECT_EQ(m_world->Runtime().chatInput.lastSaid, "/mover Campo");
     EXPECT_EQ(m_random.State(), Advanced(OwnRecordRandoms).State());
 }
 

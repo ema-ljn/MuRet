@@ -284,8 +284,8 @@ Core::Expected<void, std::string> DrawUiItem(Ui::GameHudContext& context, const 
         return {};
     }
     Items::UiItemResources& resources = *context.uiItems;
-    const Scenes::UnprojectedPoint point =
-        Scenes::UnprojectGamePoint(resources.pass.projection, anchor.Value().x, anchor.Value().y);
+    const Kernel::UnprojectedPoint point =
+        Kernel::UnprojectGamePoint(resources.pass.projection, anchor.Value().x, anchor.Value().y);
     auto placement =
         Items::PlaceUiItem(*call, point, hovered, always, context.worldClock, context.items, context.hud.uiItemAngles);
     if (!placement.HasValue())

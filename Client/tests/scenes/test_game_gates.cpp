@@ -22,6 +22,7 @@
 #include "support/PlayerActors.h"
 #include "Movement/GameMovementState.h"
 #include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 #include "Items/HudItems.h"
 #include "Ui/GameUiState.h"
 
@@ -289,7 +290,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
         runtime.ui.chatModes.placement = 1;
         runtime.chat.log.rows = 9;
         runtime.chat.log.alpha = 0.5f;
-        runtime.chat.input.macros[0] = "uno";
+        runtime.chatInput.macros[0] = "uno";
         std::vector<Client::Protocol::Outgoing> options;
         std::string macros;
         tested.context.saveOptionsAndMacros = [&]() -> Client::Core::Expected<void, std::string>
@@ -305,7 +306,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
             if (!body.HasValue())
                 return Client::Core::Unexpected(std::move(body).Error());
             options.push_back(Client::Protocol::Player::WriteOptionData(body.Value()));
-            macros = Client::Tables::WrittenMacros(runtime.chat.input.macros);
+            macros = Client::Tables::WrittenMacros(runtime.chatInput.macros);
             // 0x61c210 opens/closes inside 0x599ef0's access: the inner close does not consume 3848 rand().
             EXPECT_EQ(runtime.ownRecordDepth, 1);
             EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());

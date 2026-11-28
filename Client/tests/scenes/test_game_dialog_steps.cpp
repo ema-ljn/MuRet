@@ -213,8 +213,8 @@ public:
         keys[0] = 3;
         keys[2] = 0;
         world.OwnCharacter().words6c[0] = 0x44332211u;
-        runtime.chat.input.macros[0] = "hola";
-        runtime.chat.input.macros[3] = "chau";
+        runtime.chatInput.macros[0] = "hola";
+        runtime.chatInput.macros[3] = "chau";
     }
 
     Client::Core::Expected<void, std::string> Dialogs(std::int32_t x, std::int32_t y)
@@ -879,7 +879,7 @@ protected:
         runtime.panels.trade = 1;
         runtime.social.dialogFieldLimit = 8;
         runtime.social.moneyField = 1;
-        runtime.chat.input.fieldCount = 1;
+        runtime.chatInput.fieldCount = 1;
         m_tested->world.OwnCharacter().zen = 1000;
     }
 
@@ -901,7 +901,7 @@ protected:
         Client::Kernel::WorldRuntime& runtime = Runtime();
         EXPECT_FALSE(runtime.ui.enterPressed);
         EXPECT_EQ(runtime.social.dialogFieldLimit, 0x2a);
-        EXPECT_EQ(runtime.chat.input.fieldCount, 2);
+        EXPECT_EQ(runtime.chatInput.fieldCount, 2);
         EXPECT_EQ(runtime.social.moneyField, 0);
         EXPECT_FALSE(runtime.ui.chatOpen);
         EXPECT_EQ(runtime.mouse.updateTimeMax, 6);
@@ -1022,7 +1022,7 @@ protected:
         auto& slot = runtime.guild.members[KickedSlot];
         std::ranges::copy(std::string_view("Tala"), slot.name.begin());
         runtime.guild.kickMember = KickedSlot;
-        Client::Ui::ChatInputState& input = runtime.chat.input;
+        Client::Ui::ChatInputState& input = runtime.chatInput;
         Client::Ui::CopyIntoTheBuffer(input.messageBuffer, "hola que tal");
         input.messageLength = 12;
         Client::Ui::ShowTheNumberField(input, 0);
@@ -1038,7 +1038,7 @@ protected:
     }
     Client::Ui::ChatInputState& Input()
     {
-        return Runtime().chat.input;
+        return Runtime().chatInput;
     }
 
     // The C1 17 53 of Protocol::Guild::WriteLeave with the name and the ten bytes, as it goes out (with the XOR32).
@@ -1360,9 +1360,9 @@ TEST(GameDialogStepsTest, TheWarehouseConfirmationSendsItsPasswordRequestAndBoth
         auto tested = std::make_unique<SteppingDialogs>(Devias);
         auto& runtime = tested->world.Runtime();
         runtime.dialogs.current = 0x95;
-        runtime.chat.input.messageBuffer[0] = '1';
-        runtime.chat.input.messageBuffer[1] = '2';
-        runtime.chat.input.messageLength = 2;
+        runtime.chatInput.messageBuffer[0] = '1';
+        runtime.chatInput.messageBuffer[1] = '2';
+        runtime.chatInput.messageLength = 2;
         runtime.npcWindows.typedNumber = {'4', '3', '2', '1'};
         const auto before = tested->random;
         const auto stepped = tested->Click(accept ? 0x143 : 0x175, 0x62);
@@ -1376,14 +1376,14 @@ TEST(GameDialogStepsTest, TheWarehouseConfirmationSendsItsPasswordRequestAndBoth
             expected.resize(0x10);
             EXPECT_EQ(tested->requests.requests[0].bytes, expected);
             EXPECT_EQ(tested->requests.requests[0].kind, "C3");
-            EXPECT_EQ(runtime.chat.input.messageLength, 0);
-            EXPECT_EQ(runtime.chat.input.messageBuffer[0], 0);
+            EXPECT_EQ(runtime.chatInput.messageLength, 0);
+            EXPECT_EQ(runtime.chatInput.messageBuffer[0], 0);
         }
         else
         {
             EXPECT_TRUE(tested->requests.requests.empty());
-            EXPECT_EQ(runtime.chat.input.messageLength, 0);
-            EXPECT_EQ(runtime.chat.input.messageBuffer[0], 0);
+            EXPECT_EQ(runtime.chatInput.messageLength, 0);
+            EXPECT_EQ(runtime.chatInput.messageBuffer[0], 0);
         }
     }
 }

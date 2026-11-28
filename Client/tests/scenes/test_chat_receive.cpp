@@ -307,7 +307,7 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeyChatOpensTheSecondGuildWindow)
     ActorState& hero = m_world->Hero();
     hero.guildStatus = 0x80;
     hero.word1f2 = 0xffff;
-    Client::Ui::ChatInputState& input = Runtime().chat.input;
+    Client::Ui::ChatInputState& input = Runtime().chatInput;
     Runtime().ui.chatOpen = true;
     input.fieldCount = 2;
     Client::Ui::CopyIntoTheBuffer(input.messageBuffer, "algo");
@@ -449,9 +449,9 @@ TEST_F(ChatReceiveTest, TheGuildMasterKeepsTheWarehouseWhenTheNativeGuardRefuses
     EXPECT_EQ(Runtime().npcWindows.grid[0].id, 3);
     EXPECT_EQ(Runtime().npcWindows.grid[0].occupied, 1u);
     EXPECT_EQ(Runtime().panels.delegated.secondGuild, 0);
-    EXPECT_TRUE(Runtime().chat.input.dialogFieldOn);
+    EXPECT_TRUE(Runtime().chatInput.dialogFieldOn);
     EXPECT_FALSE(Runtime().ui.chatOpen);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 0);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 0);
     EXPECT_EQ(m_random.State(), expected.State());
 }
 

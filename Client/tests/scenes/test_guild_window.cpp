@@ -34,6 +34,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 #include "Chat/ChatRuntime.h"
+#include "Chat/ChatInput.h"
 #include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
@@ -1302,7 +1303,7 @@ TEST_P(GuildWindowTest, TheMasterDisbandsTheGuildThroughTheNumberDialog)
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
     EXPECT_EQ(Guild().kickMember, 0);
     EXPECT_FALSE(Runtime().ui.chatOpen);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_TRUE(m_sent.empty());
     EXPECT_EQ(Draws(m_random), 0);
 }
@@ -1345,7 +1346,7 @@ TEST_P(GuildWindowTest, AMemberLeavesTheGuildThroughTheNumberDialog)
     ASSERT_TRUE(ClickTheTabButton(Client::Guild::GuildLeaveButton).HasValue());
     EXPECT_EQ(Guild().kickMember, 1);
     EXPECT_EQ(Runtime().dialogs.current, 0x7d);
-    EXPECT_EQ(Runtime().chat.input.fieldCount, 1);
+    EXPECT_EQ(Runtime().chatInput.fieldCount, 1);
     EXPECT_EQ(Runtime().panels.delegated.panelDialog.opened, 0U);
     EXPECT_TRUE(m_sent.empty());
 }

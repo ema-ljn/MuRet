@@ -6,6 +6,7 @@
 #include "Actors/MovementSpeed.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatInput.h"
 #include "Chat/ChatLog.h"
 #include "Chat/ChatRuntime.h"
 #include "Effects/ModelEffects.h"
@@ -68,6 +69,7 @@ struct RuntimeStates
     Ui::GameUiState ui{};
     Npc::NpcWindowState npcWindows{};
     Ui::OldWindowManager oldWindows{};
+    Ui::ChatInputState chatInput{};
     Chat::ChatRuntime chat{};
     Movement::GameMovementState movement{};
     Quests::QuestState quest{};
@@ -159,9 +161,10 @@ RuntimeModules::RuntimeModules(std::unique_ptr<Session::RuntimeStates> states)
     : m_states(std::move(states)), itemRender(m_states->itemRender), panels(m_states->panels),
       dialogs(m_states->dialogs), castleSiege(m_states->castleSiege), guild(m_states->guild),
       dialogBox(m_states->dialogBox), ui(m_states->ui), npcWindows(m_states->npcWindows),
-      oldWindows(m_states->oldWindows), chat(m_states->chat), movement(m_states->movement), quest(m_states->quest),
-      eventObject(m_states->eventObject), events(m_states->events), movementSpeed(m_states->movementSpeed),
-      fullSetScan(m_states->fullSetScan), social(m_states->social), leafWeather(m_states->leafWeather)
+      oldWindows(m_states->oldWindows), chatInput(m_states->chatInput), chat(m_states->chat),
+      movement(m_states->movement), quest(m_states->quest), eventObject(m_states->eventObject),
+      events(m_states->events), movementSpeed(m_states->movementSpeed), fullSetScan(m_states->fullSetScan),
+      social(m_states->social), leafWeather(m_states->leafWeather)
 {
 }
 

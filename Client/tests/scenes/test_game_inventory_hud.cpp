@@ -285,7 +285,7 @@ protected:
             return {};
         }
         const auto point =
-            Client::Scenes::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
+            Client::Kernel::UnprojectGamePoint(pass.Value().projection, anchor.Value().x, anchor.Value().y);
         const auto placed =
             Client::Items::PlaceUiItem(*call, point, always, always, worldClock, &data.items->table, angles);
         if (!placed.HasValue())

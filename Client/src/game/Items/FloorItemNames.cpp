@@ -29,7 +29,7 @@
 #include <string>
 #include <string_view>
 
-namespace Client::Items
+namespace Client::Tooltips
 {
 namespace
 {
@@ -108,7 +108,7 @@ Name RecordNameOf(const NameFrame& frame, std::int32_t type)
     const auto record = frame.context.items->Record(static_cast<std::size_t>(type));
     if (!record)
         return Core::Unexpected(std::format("0x5ba790: el tipo {:#x} lee fuera de Item.bmd", type));
-    return ItemRecordName(*record);
+    return Items::ItemRecordName(*record);
 }
 
 Name ModelName(const NameFrame& frame)
@@ -252,7 +252,7 @@ Name ByLevel(const NameFrame& frame, const std::array<std::size_t, Count>& texts
 // With none, it jumps to 0x5bb811 without writing the buffer (0x5bb30f).
 Name TransformationRingName(const NameFrame& frame)
 {
-    const std::optional<std::uint32_t> monster = TransformationMonsterOf(frame.level);
+    const std::optional<std::uint32_t> monster = Items::TransformationMonsterOf(frame.level);
     if (!monster)
         return Core::Unexpected(std::format("0x5bb2ed: el nivel {} del anillo de transformación lee 0x6c9338 fuera de "
                                             "lo que MuRet tiene de la .data",
@@ -456,4 +456,4 @@ Core::Expected<void, std::string> DrawTheFloorItemName(Ui::GameHudContext& conte
     hud.textColors = EndColors;
     return {};
 }
-} // namespace Client::Items
+} // namespace Client::Tooltips

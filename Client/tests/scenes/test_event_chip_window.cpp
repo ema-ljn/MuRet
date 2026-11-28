@@ -35,7 +35,6 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
-#include "Chat/ChatRuntime.h"
 #include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
@@ -354,7 +353,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         SCOPED_TRACE(map);
         Reset(map);
         Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-        Runtime().chat.input.dialogEdit.text.SetText("AB12CD34EF56");
+        Runtime().chatInput.dialogEdit.text.SetText("AB12CD34EF56");
         Runtime().mouse.releasedClick = true;
         Runtime().mouse.leftHeld = true;
         const std::uint32_t before = random.State();
@@ -368,7 +367,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonSendsTheNumber)
         EXPECT_FALSE(Runtime().mouse.releasedClick);
         EXPECT_EQ(random.State(), before);
 
-        Runtime().chat.input.dialogEdit.text.SetText("Q7X");
+        Runtime().chatInput.dialogEdit.text.SetText("Q7X");
         Runtime().mouse.releasedClick = true;
         ASSERT_TRUE(Step(485 + 119, 290 + 21).HasValue());
         ASSERT_EQ(sent.size(), 2u);
@@ -394,7 +393,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
         item.occupied = 1;
     }
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-    Runtime().chat.input.dialogEdit.text.SetText("AB12");
+    Runtime().chatInput.dialogEdit.text.SetText("AB12");
     Runtime().mouse.releasedClick = true;
     Runtime().mouse.leftHeld = true;
     ASSERT_TRUE(Step(500, 300).HasValue());
@@ -405,7 +404,7 @@ TEST_F(EventChipWindowTest, TheSerialButtonWarnsWithAFullInventory)
 
     Reset(0);
     Runtime().panels.field78abb00 = Client::Events::SerialNumberWindow;
-    Runtime().chat.input.dialogEdit.text.SetText("ABCDEFGHIJKLM");
+    Runtime().chatInput.dialogEdit.text.SetText("ABCDEFGHIJKLM");
     Runtime().mouse.releasedClick = true;
     const auto cut = Step(500, 300);
     ASSERT_FALSE(cut.HasValue());
@@ -430,7 +429,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonLeavesTheWindow)
             Runtime().hud.inventoryX = 0x1c2;
             Runtime().hud.inventoryY = 0;
             Runtime().events.serialEntry = window == Client::Events::SerialNumberWindow;
-            Client::Ui::ChatInputState& chat = Runtime().chat.input;
+            Client::Ui::ChatInputState& chat = Runtime().chatInput;
             chat.focus = Client::Ui::ChatFocus::Dialog;
             chat.dialogEdit.text.SetText("AB12");
             chat.messageBuffer[0] = 'm';
@@ -488,7 +487,7 @@ TEST_F(EventChipWindowTest, TheCloseButtonDrawsTheInventoryCloseRandoms)
 // the focus.
 TEST_F(EventChipWindowTest, TheSerialEntryOpensAndCloses)
 {
-    Client::Ui::ChatInputState& chat = Runtime().chat.input;
+    Client::Ui::ChatInputState& chat = Runtime().chatInput;
     Runtime().events.serial[0] = std::byte{0x41};
     Runtime().ui.chatOpen = true;
     chat.messageBuffer[0] = 'm';
@@ -698,8 +697,8 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     for (std::size_t at = 0; at < result.size(); ++at)
         Runtime().events.serial[at] = static_cast<std::byte>(result[at]);
     ASSERT_TRUE(Draw({0, 0}, true).HasValue());
-    EXPECT_EQ(Runtime().chat.input.focus, Client::Ui::ChatFocus::Game);
-    EXPECT_EQ(Runtime().chat.input.dialogEdit.filter, 0);
+    EXPECT_EQ(Runtime().chatInput.focus, Client::Ui::ChatFocus::Game);
+    EXPECT_EQ(Runtime().chatInput.dialogEdit.filter, 0);
 
     sprites.Begin(Screen640);
     text.texts.clear();
@@ -707,8 +706,8 @@ TEST_F(EventChipWindowTest, TheSerialWindowDrawsTheEntry)
     const auto drawn = Draw({0, 0});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     EXPECT_EQ(random.State(), before);
-    const Client::Ui::OldEdit& edit = Runtime().chat.input.dialogEdit;
-    EXPECT_EQ(Runtime().chat.input.focus, Client::Ui::ChatFocus::Dialog);
+    const Client::Ui::OldEdit& edit = Runtime().chatInput.dialogEdit;
+    EXPECT_EQ(Runtime().chatInput.focus, Client::Ui::ChatFocus::Dialog);
     EXPECT_EQ(Runtime().ui.focusedList, Client::Ui::DialogFieldId);
     EXPECT_EQ(edit.filter, Client::Ui::UppercaseLettersAndDigitsEdit);
     EXPECT_EQ(edit.backgroundColor, 0u);

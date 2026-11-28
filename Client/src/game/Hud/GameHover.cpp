@@ -86,7 +86,7 @@ Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::
     if (context.names == nullptr)
         return Core::Unexpected(
             std::format("{}: el nombre del ítem {} del piso (0x5ba790) sin sus tablas", where, index));
-    return Items::DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
+    return Tooltips::DrawTheFloorItemName(*context.names, items[static_cast<std::size_t>(index)], atTheItem);
 }
 
 // 0x5bbd6a..0x5bbde7: Alt.

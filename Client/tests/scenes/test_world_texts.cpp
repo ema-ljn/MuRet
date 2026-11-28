@@ -25,12 +25,12 @@ namespace
 {
 using Client::Core::PixelSize;
 using Client::Hud::WorldTextDrawContext;
+using Client::Kernel::GameProjection;
 using Client::Kernel::HudState;
 using Client::Kernel::WorldText;
 using Client::Kernel::WorldTextQueue;
 using Client::Render::SpriteBatch;
 using Client::Render::Text::FontKind;
-using Client::Scenes::GameProjection;
 using Client::Tests::RecordingTextDrawer;
 
 constexpr PixelSize Screen640{640, 480};

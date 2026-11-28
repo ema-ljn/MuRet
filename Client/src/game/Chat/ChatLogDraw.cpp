@@ -445,7 +445,7 @@ void DrawTheButtons(const Ui::ChatLogState& log, Ui::ChatLogFrame& frame, Ui::Ch
     {
         const std::array<float, 3> xs{ButtonsX, second, third};
         const auto index = static_cast<std::size_t>(hover - 1);
-        const std::string_view help = Ui::TextAt(view.texts, ChatButtonHelpTexts[index]).value_or("");
+        const std::string_view help = Ui::TextAt(view.texts, Ui::ChatButtonHelpTexts[index]).value_or("");
         // 0x554340 leaves the text white on a transparent background.
         Ui::DrawHelp(sprites, context.text, Truncate(static_cast<double>(xs[index]) - static_cast<double>(HelpLeft)),
                      Truncate(static_cast<double>(ButtonsY) - static_cast<double>(HelpRise)), help);

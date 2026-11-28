@@ -38,7 +38,6 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>
@@ -337,7 +336,7 @@ Core::Expected<void, std::string> StepTheQuestion(const SecondGuildStepContext& 
     {
         guild.createKind = NewGuild;
         guild.createStep = NamePage;
-        runtime.chat.input.dialogFieldOn = true;
+        runtime.chatInput.dialogFieldOn = true;
         if (auto sent = Send(context.send, Protocol::Guild::WriteMasterAnswer(CreateAnswer), "0x655dcb");
             !sent.HasValue())
             return sent;
@@ -385,7 +384,7 @@ Core::Expected<void, std::string> StepTheName(const SecondGuildStepContext& cont
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     GuildState& guild = runtime.guild;
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     const Ui::OldWindowBase& base = guild.secondWindow.base;
     StepTheMarkEditor(context.world, base.x, base.y, context.mouseX, context.mouseY);
     if (Ui::ClickTheButton(ButtonOf(guild, SecondGuildNextButton), globals, context.mouseX, context.mouseY))
@@ -684,7 +683,7 @@ Core::Expected<void, std::string> DrawTheName(Ui::GameHudContext& context, Guild
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
     DrawText(context, x + PageLeft, y + PageTop, name.Value());
-    Ui::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::ChatInputState& input = context.world.Runtime().chatInput;
     Ui::OldEdit& field = input.dialogEdit;
     Ui::ShowTheDialogField(input, ShownField);
     field.filter = 0;

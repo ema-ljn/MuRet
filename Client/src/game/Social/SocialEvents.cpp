@@ -33,7 +33,6 @@
 #include "Kernel/ItemState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 #include "Events/EventGlobals.h"
 #include "Models/Cloth.h"
 
@@ -649,9 +648,9 @@ Core::Expected<void, std::string> ApplyTradeResult(const Protocol::Social::Trade
     if (runtime.dialogs.current == MoneyDialog)
     {
         Ui::PushDialog(runtime.dialogs, 0);
-        Ui::ResetTheTextBuffers(runtime.chat.input, false);
+        Ui::ResetTheTextBuffers(runtime.chatInput, false);
         runtime.social.dialogFieldLimit = ClosedDialogFieldLimit;
-        runtime.chat.input.fieldCount = Ui::ChatFieldCount;
+        runtime.chatInput.fieldCount = Ui::ChatFieldCount;
         runtime.social.moneyField = 0;
         runtime.ui.chatOpen = false;
     }

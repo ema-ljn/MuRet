@@ -384,11 +384,11 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
                                    .texts = &m_texts};
     const auto drawn = Client::Guild::DrawThePanelDialog(hud, dialog);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Dialog);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.x, 290);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.width, 70);
-    EXPECT_EQ(runtime.chat.input.dialogEdit.filter, 1);
-    runtime.chat.input.dialogEdit.text.SetText("16909060");
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Dialog);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.x, 290);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.width, 70);
+    EXPECT_EQ(runtime.chatInput.dialogEdit.filter, 1);
+    runtime.chatInput.dialogEdit.text.SetText("16909060");
     const Client::Chat::GameChatContext chat{
         .world = *m_world, .random = m_random, .send = [this](Client::Protocol::Outgoing packet) {
             m_requests.sent.push_back(std::move(packet));
@@ -399,9 +399,9 @@ TEST_F(CastleWindowsTest, SeniorMoneyRunsFromItsButtonThroughTheSharedEditAndEnt
     EXPECT_TRUE(SameBytes(Client::Network::Xor32Decode(m_requests.sent[0].packet).Bytes(),
                           Bytes({0xc1, 8, 0xb2, 0x10, 4, 3, 2, 1})));
     EXPECT_EQ(dialog.opened, 0u);
-    EXPECT_TRUE(runtime.chat.input.dialogEdit.text.Value().empty());
-    EXPECT_EQ(runtime.chat.input.dialogEdit.base.state, Client::Ui::HiddenWindow);
-    EXPECT_EQ(runtime.chat.input.focus, Client::Ui::ChatFocus::Game);
+    EXPECT_TRUE(runtime.chatInput.dialogEdit.text.Value().empty());
+    EXPECT_EQ(runtime.chatInput.dialogEdit.base.state, Client::Ui::HiddenWindow);
+    EXPECT_EQ(runtime.chatInput.focus, Client::Ui::ChatFocus::Game);
     ExpectRandoms(0);
 }
 TEST_F(CastleWindowsTest, RegisteringAMarkUsesTheFirstMatchingSlotEvenWithZeroDurabilityAndWithoutMasterStatus)

@@ -42,7 +42,6 @@
 #include "Ui/Widget.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
-#include "Chat/ChatRuntime.h"
 
 #include <array>
 #include <cstddef>
@@ -424,7 +423,7 @@ Core::Expected<void, std::string> CommandAParty(const Ui::GameUiContext& context
 Core::Expected<void, std::string> CommandAWhisper(const Ui::GameUiContext& context, const Chat::GameChatContext& chat,
                                                   std::size_t index)
 {
-    Ui::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::ChatInputState& input = context.world.Runtime().chatInput;
     Ui::SetTheChatFields(input, std::nullopt, Actors::ChatNameOf(context.world.Actors()[index]));
     input.field = Ui::MessageField;
     Ui::FocusTheChatField(input, Ui::MessageField, &context.world.Runtime().ui.focusedList);

@@ -595,7 +595,7 @@ void DrawTheChatInput(Frame& frame)
 {
     Ui::GameHudContext& context = frame.context;
     Kernel::HudState& hud = context.hud;
-    const Ui::ChatInputState& input = frame.runtime.chat.input;
+    const Ui::ChatInputState& input = frame.runtime.chatInput;
     context.sprites.SetColor(White);
     hud.dcFont = Render::Text::FontKind::Normal;
     if (!frame.runtime.ui.chatOpen && !input.otherInput)
@@ -608,8 +608,8 @@ void DrawTheChatInput(Frame& frame)
     {
         Ui::OldEdit messageCopy;
         Ui::OldEdit whisperCopy;
-        Ui::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chat.input.message;
-        Ui::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chat.input.whisper;
+        Ui::OldEdit& message = context.projecting ? (messageCopy = input.message) : frame.runtime.chatInput.message;
+        Ui::OldEdit& whisper = context.projecting ? (whisperCopy = input.whisper) : frame.runtime.chatInput.whisper;
         DrawTheChatEdit(frame, message, input.focus == Ui::ChatFocus::Message);
         DrawTheChatEdit(frame, whisper, input.focus == Ui::ChatFocus::Whisper);
     }

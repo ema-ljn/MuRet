@@ -266,7 +266,7 @@ Core::Expected<Chat::ChatCommandOutcome, std::string> RunTheCommand(const GameCh
         .logoutRequested = runtime.ui.logoutRequested,
         .warehouseOpen = panels.Registry().IsOpen(Ui::WarehousePanel),
         .log = runtime.chat.log,
-        .macros = runtime.chat.input.macros,
+        .macros = runtime.chatInput.macros,
         .overlayMode = runtime.panels.overlayMode,
         .helpItem = runtime.panels.helpItem,
         .setLabel = &context.world.ItemSets().byte9305,
@@ -357,7 +357,7 @@ std::int32_t AtoiLikeTheCrt(std::string_view text)
 Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, std::string_view said)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     const Kernel::ActorState& hero = context.world.Hero();
     if (input.brake > BrakeLimit)
         return {};
@@ -410,7 +410,7 @@ namespace
 Core::Expected<bool, std::string> MayWhisper(const GameChatContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    const Ui::ChatInputState& input = runtime.chat.input;
+    const Ui::ChatInputState& input = runtime.chatInput;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         if (context.world.OwnCharacter().level >= WhisperLevel)
@@ -438,7 +438,7 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
     if (!allowed.Value())
         return {};
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     const Kernel::ActorState& hero = context.world.Hero();
     if (!Ui::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord))
     {
@@ -458,7 +458,7 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
 // (everything except a command that handled it).
 Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context)
 {
-    Ui::ChatInputState& input = context.world.Runtime().chat.input;
+    Ui::ChatInputState& input = context.world.Runtime().chatInput;
     auto command = RunTheCommand(context, Ui::CStringOf(input.messageBuffer), false);
     if (!command.HasValue())
         return Core::Unexpected(command.Error());
@@ -487,7 +487,7 @@ Core::Expected<bool, std::string> SayWhatWasTyped(const GameChatContext& context
 Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& context, std::string_view typed)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     constexpr std::string_view Keys{"\t\r\b", 3};
     std::string_view rest = typed;
     while (!rest.empty())
@@ -571,7 +571,7 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
                                                    std::span<const Input::TextInputEvent> events)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     for (const Input::TextInputEvent& event : events)
     {
         if (event.kind == Input::TextInputEvent::Kind::Text)
@@ -628,7 +628,7 @@ Core::Expected<void, std::string> PressEnterInTheGame(const GameChatContext& con
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
-    Ui::ChatInputState& input = runtime.chat.input;
+    Ui::ChatInputState& input = runtime.chatInput;
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x4b50c0..0x4b5106: in Chaos Castle outside the safe zone, nothing; if not, 0x5763588 at 1, the Enter the dialogs
     // read (0x6263df and 0x62da58). The scene is 5; with 0x77f3b68, the guild sign-up field (CL9 milestone 8), nothing
@@ -752,7 +752,7 @@ Core::Expected<void, std::string> SayTheMacros(const GameChatContext& context,
     {
         if (!pressed[macro])
             continue;
-        const std::string text = runtime.chat.input.macros[macro];
+        const std::string text = runtime.chatInput.macros[macro];
         auto command = RunTheCommand(context, text, true);
         if (!command.HasValue())
             return Core::Unexpected(command.Error());

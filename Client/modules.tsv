@@ -34,7 +34,7 @@ game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the 
 game/Skills	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Combat;game/Effects;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Joints;game/Monsters;game/Movement;game/Particles;game/Party;game/Player	the hero's skills and their replies
 game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Guild;game/Items;game/Joints;game/Particles;game/Player;game/Social	combat
 game/Items	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
-game/Tooltips	game	9		*layer<9;game/Actors;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips
+game/Tooltips	game	9		*layer<9;game/Actors;game/Items;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips
 game/Npc	game	9		*layer<9;game/Actors;game/Chat;game/Events;game/Events/Crywolf;game/Movement;game/Player;game/Quests;game/Social	NPC talk and the generic NPC windows
 game/Quests	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Monsters;game/Movement;game/Player	quests
 game/ChaosMix	game	9		*layer<9;game/Chat;game/Items;game/Movement;game/Player;game/Social	the Chaos Goblin machine and jewel mixes

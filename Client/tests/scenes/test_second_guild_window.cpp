@@ -198,7 +198,7 @@ protected:
 
     Client::Ui::ChatInputState& Input()
     {
-        return Runtime().chat.input;
+        return Runtime().chatInput;
     }
 
     Client::Guild::GuildSender Sender()

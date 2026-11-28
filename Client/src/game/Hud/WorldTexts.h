@@ -20,13 +20,9 @@ class ITextDrawer;
 } // namespace Client::Render::Frame
 namespace Client::Kernel
 {
+struct GameProjection;
 struct HudState;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct GameProjection;
-} // namespace Client::Scenes
 
 namespace Client::Hud
 {
@@ -36,7 +32,7 @@ struct WorldTextDrawContext
     // 0x723c18. In a MuRet intermediate draw the queue is read without emptying it: the original's frame empties it.
     Kernel::WorldTextQueue& queue;
     // 0x6203c0 of this frame's world pass, the one 0x6205b0 reads. Without it, an entry in the queue stops.
-    const Scenes::GameProjection* projection = nullptr;
+    const Kernel::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     // The DC's font, 0x6c8e5c and 0x6c8e64 (the last text's stay) and 0x77f31b8 and 0x77f31bc (0x554180).

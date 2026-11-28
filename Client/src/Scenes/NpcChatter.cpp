@@ -1,5 +1,6 @@
 #include "Scenes/NpcChatter.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
@@ -90,7 +91,7 @@ Core::Expected<void, std::string> Say(const Kernel::ActorState& actor, std::size
     if (context.textMeasure == nullptr)
         return Core::Unexpected(std::format("{:#x}: el globo del lugar {} no tiene medidor", address, slot));
     return AddChatBubble(context.world, ChatBubbleMeasure{.measure = *context.textMeasure, .screen = context.screen},
-                         ChatNameOf(actor), *text, slot, ChatBubbleMode::Chat);
+                         Actors::ChatNameOf(actor), *text, slot, ChatBubbleMode::Chat);
 }
 } // namespace
 

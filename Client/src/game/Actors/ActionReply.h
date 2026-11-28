@@ -11,6 +11,16 @@ namespace Client::Protocol::Movement
 struct Action;
 }
 
+namespace Client::Models
+{
+struct Skeleton;
+} // namespace Client::Models
+
+namespace Client::Kernel
+{
+struct ActorState;
+} // namespace Client::Kernel
+
 namespace Client::Scenes
 {
 struct WorldEntryResources;
@@ -41,4 +51,15 @@ namespace Client::Actors
 // (+0x1d4 & 7 at 2) from 0x80 to 0x91. Outside the table, the action itself. The letters' portrait
 // (0x495b56..0x495da1) has the same one from 0x80 to 0x94.
 [[nodiscard]] std::uint8_t TableAnimationOf(std::uint8_t characterClass, std::uint8_t action);
+
+// The skeleton of model `model` as 0x4ea030 reads it (0x5769ad8 + model · 0xe0): first those 0x612d90 and 0x612270 load
+// (Assets::AssetsState::fauna, with the map's library behind it), then those of `resources.models`.
+[[nodiscard]] const Models::Skeleton* MonsterSkeletonOf(const Scenes::WorldEntryResources& resources,
+                                                        std::uint16_t model);
+
+// 0x4ea030(character, action) with the skeleton of MonsterSkeletonOf. A model that is not there is the original's
+// record at 0 (+0x26, no actions): it sets nothing and is not an error. `address` is for the caller.
+[[nodiscard]] Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
+                                                                 std::uint32_t address,
+                                                                 const Scenes::WorldEntryResources& resources);
 } // namespace Client::Actors

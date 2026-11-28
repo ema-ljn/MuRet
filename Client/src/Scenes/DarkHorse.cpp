@@ -1,4 +1,5 @@
 #include "Scenes/DarkHorse.h"
+#include "Kernel/HelperTable.h"
 
 #include "Models/Animation.h"
 #include "Models/Pose.h"
@@ -45,7 +46,7 @@ DarkHorseGait DarkHorseGaitOf(std::uint8_t riderAction)
     }
 }
 
-void FadeInDarkHorse(DarkHorse& horse)
+void FadeInDarkHorse(Kernel::DarkHorse& horse)
 {
     // En la x87 (0x4e9a0c..0x4e9a1e): un solo redondeo a float, al final.
     horse.alpha = static_cast<float>(
@@ -53,7 +54,7 @@ void FadeInDarkHorse(DarkHorse& horse)
         static_cast<double>(horse.alpha));
 }
 
-void TakeTheRidersGait(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction)
+void TakeTheRidersGait(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
     const DarkHorseGait gait = DarkHorseGaitOf(riderAction);
     Models::SetAction(horse.animation, skeleton, gait.action);
@@ -65,7 +66,7 @@ void TakeTheRidersGait(DarkHorse& horse, const Models::Skeleton& skeleton, std::
     horse.speed = gait.speed;
 }
 
-void AdvanceDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, Models::AnimationScene scene)
+void AdvanceDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, Models::AnimationScene scene)
 {
     if (horse.animation.action < skeleton.actions.size())
     {
@@ -74,7 +75,8 @@ void AdvanceDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, Models
     }
 }
 
-void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction, bool riderInSafeCell)
+void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction,
+                   bool riderInSafeCell)
 {
     FadeInDarkHorse(horse);
     if (riderInSafeCell)
@@ -89,12 +91,12 @@ void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint
     AdvanceDarkHorse(horse, skeleton);
 }
 
-void StepDarkHorse(DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction)
+void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
     StepDarkHorse(horse, skeleton, riderAction, false);
 }
 
-Actors::Drawing::DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Models::Skeleton* skeleton,
+Actors::Drawing::DrawnObject DrawnDarkHorse(const Kernel::DarkHorse& horse, const Models::Skeleton* skeleton,
                                             const Models::ObjectTransform& place, float scale, float stepAlpha)
 {
     Actors::Drawing::DrawnObject drawn;

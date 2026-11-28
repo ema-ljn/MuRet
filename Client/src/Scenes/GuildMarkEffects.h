@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Tables/PlayerBones.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -35,7 +36,7 @@ struct HighEffectStepContext;
 inline constexpr std::int16_t GuildMarkEffect = 0x140;
 
 // El hueso del dueño que la marca sigue: 0x4ec110(modelo del dueño, +0x120 + 0x3c0, (0, 0, 0), punto, 1).
-inline constexpr std::size_t GuildMarkBone = 20;
+inline constexpr std::size_t GuildMarkBone = static_cast<std::size_t>(Tables::PlayerHeadBone);
 
 // 0x51e0cb..0x51e233, después del prefijo de 0x518cf0 en `slot`: el alpha en 0, la z de los ángulos en 45, la x y la y
 // del punto del hueso 20 del dueño (`bonePoint`) y la z ((punto + z del dueño) − z del dueño) + 60, vida 130, escala

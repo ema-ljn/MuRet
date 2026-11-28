@@ -4,10 +4,11 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/MonsterCreation.h"
+#include "Actors/ActionReply.h"
 #include "Sound/MonsterSounds.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -28,7 +29,7 @@ constexpr std::uint16_t Uniria = 0x1c14;
 constexpr std::uint16_t Dinorant = 0x1c15;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 constexpr std::uint16_t Fenrir = 0x1c37;
-constexpr std::uint8_t PlayerShockAction = 0xc2;
+constexpr std::uint8_t PlayerShockAction = Tables::ShockAction;
 constexpr std::uint8_t MonsterShockAction = 5;
 bool IgnoresShock(const Kernel::ActorState& actor, std::uint16_t damage)
 {
@@ -141,7 +142,7 @@ Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::
         // not Player.bmd); a model that is not there is the record without actions and sets nothing.
         if (actor.animation.action < 3 || actor.animation.action > 4)
         {
-            if (auto set = Scenes::SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
+            if (auto set = SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
                 return set;
         }
     }

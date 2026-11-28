@@ -4,7 +4,7 @@
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/HelperTable.h"
+#include "Kernel/HelperTable.h"
 #include "Player/ItemSetState.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Scenes/FaunaState.h"
@@ -90,8 +90,8 @@ public:
     [[nodiscard]] Player::ItemSetState& ItemSets();
     [[nodiscard]] const Player::ItemSetState& ItemSets() const;
     // The game's helpers (0x7d335d0): each rider's dark horse.
-    [[nodiscard]] Scenes::HelperTable& Helpers();
-    [[nodiscard]] const Scenes::HelperTable& Helpers() const;
+    [[nodiscard]] HelperTable& Helpers();
+    [[nodiscard]] const HelperTable& Helpers() const;
     // 0x743a198 and its wind: one pool for the login, the selection and the game, on the heap because of its size.
     [[nodiscard]] World::Particles& Particles();
     [[nodiscard]] const World::Particles& Particles() const;
@@ -139,7 +139,7 @@ private:
     std::unique_ptr<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>> m_actorCloths =
         std::make_unique<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>>();
     Player::ItemSetState m_itemSets;
-    Scenes::HelperTable m_helpers{};
+    HelperTable m_helpers{};
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
     Actors::PlayerActionSpeeds m_actionSpeeds;
     Scenes::FaunaState m_fauna;

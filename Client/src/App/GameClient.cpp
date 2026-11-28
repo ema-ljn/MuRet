@@ -96,6 +96,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                        std::optional<GameClientServer> server)
     : m_data(data), m_devices(devices), m_sounds(devices.playback), m_options(std::move(options)),
       m_cloth{.random = Crt::CrtRandom(m_options.crtSeed)}, m_selection(m_world),
+      m_onScreenMessages(m_world.Runtime(), devices.textMeasure, devices.screen),
       m_worldEntry{.world = m_world,
                    .selection = m_selection,
                    .dataRoot = m_options.dataRoot,
@@ -113,7 +114,9 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                    .scene = [this] { return m_manager.Current(); },
                    .texts = data.text ? &*data.text : nullptr,
                    .skills = data.skills ? &*data.skills : nullptr,
-                   .states = &m_states},
+                   .states = &m_states,
+                   .characterStepHooks = &m_characterStepHooks,
+                   .onScreenMessages = &m_onScreenMessages},
       m_eventApplier(m_worldEntry),
       m_online(server ? std::make_unique<Online>(*server, devices.clock, devices.log, m_eventApplier) : nullptr),
       m_context{.dataRoot = m_options.dataRoot,

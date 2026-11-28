@@ -1,8 +1,10 @@
 #include "Scenes/HelperTable.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -81,7 +83,7 @@ constexpr float HiddenAlpha = 0.0f;
 // 0x44403e: con el +0x88 del jinete distinto de 1, la escena 5 lo apaga.
 constexpr std::uint8_t RiderShown = 1;
 // Las acciones del jinete (+0x111) y del caballo que miran el polvo, el aliento y el efecto.
-constexpr std::uint8_t GallopingRiderAction = 0x4b;
+constexpr std::uint8_t GallopingRiderAction = Tables::HorseWalkAction;
 constexpr std::uint8_t DustHorseAction = 1;
 constexpr std::uint8_t EffectHorseAction = 3;
 // 0x444196: en el mapa 10 el polvo es otro; 0x4445a9: en el 7 el aliento es la gota 607.
@@ -153,7 +155,8 @@ std::optional<std::size_t> IcarusDustBone(float frame)
 // 0x44419f..0x4443d1, el galope en el mapa 10, sin mirar Kalima ni +0x78 del jinete: (rand() & 63) − 32 para la z del
 // desplazamiento (120; 0; z) antes de mirar el frame, el punto del hueso, la onda 0x6eb/1 corrida (rand() & 15) − 8
 // en x y en y, y las 5f2 (PuffTheIcarusDust).
-Core::Expected<void, std::string> RaiseTheIcarusDust(const HelperState& helper, const HelperStepContext& context)
+Core::Expected<void, std::string> RaiseTheIcarusDust(const Kernel::HelperState& helper,
+                                                     const HelperStepContext& context)
 {
     constexpr float Reach = 120.0f;                                                 // 0x44419f
     constexpr double Drop = static_cast<double>(std::bit_cast<float>(0x42000000u)); // 0x6b883c: 32.
@@ -183,7 +186,7 @@ Core::Expected<void, std::string> RaiseTheIcarusDust(const HelperState& helper, 
 // 0x44416b..0x4444ef con la acción 0x4b del jinete, después de 0x4ea030(1): el polvo. Fuera del 10, con rand() % 2 en
 // 0, fuera de Kalima y sin el 0x4000 del jinete (0x44440a..0x444412: sin jinete, nada; 0x443fa0 siempre le da uno),
 // el polvo alrededor del caballo (ScatterTheDust: el 10 de 0x4444c0 no llega).
-Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> RaiseTheDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                const HelperStepContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -205,7 +208,7 @@ Core::Expected<void, std::string> RaiseTheDust(const HelperState& helper, const 
 
 // 0x44453f..0x4445de: el aliento, con la acción del caballo distinta de 1 y sin el 0x4000 del jinete: con rand() % 3
 // en 0, el punto del hueso 27 del buffer global y la 5f2, o la gota 607 en el 7, con la luz del caballo.
-Core::Expected<void, std::string> Breathe(const HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> Breathe(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                           const HelperStepContext& context)
 {
     if (helper.horse.animation.action == DustHorseAction || (rider.flags78 & RiderWithoutDust) != 0)
@@ -284,7 +287,7 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
 // después del giro y antes del alta. Siempre, dentro de la ventana, el temblor de la cámara ((rand() % 3) − 3) · 0,7f.
 // Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2 (que abre y cierra el
 // registro propio, 3.848 rand() con la profundidad en 0), y la cuenta en 0xfd.
-Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const HelperStepContext& context)
+Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, const HelperStepContext& context)
 {
     ++helper.horse.effectCount;
     World::ModelEffects& effects = context.world.Map().effects;
@@ -341,7 +344,7 @@ Core::Expected<void, std::string> ShakeTheEarth(HelperState& helper, const Helpe
 // guardado en float. En cada vuelta, tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1) iguales,
 // con el caballo (su HelperState) de dueño: nacen con su luz (+0xf4) y, con el ancho en 40, el paso no lo vuelve a
 // leer. Tres rand() por joint; con el pool lleno, ninguno.
-Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const HelperStepContext& context)
+Core::Expected<void, std::string> RaiseTheOrbits(Kernel::HelperState& helper, const HelperStepContext& context)
 {
     constexpr int Turns = 4;                                                            // 0x4446c7
     constexpr int JointsPerTurn = 3;                                                    // 0x444705
@@ -382,7 +385,7 @@ Core::Expected<void, std::string> RaiseTheOrbits(HelperState& helper, const Help
 }
 
 // 0x4440b8..0x444766, el cuerpo del 0xbf.
-Core::Expected<void, std::string> StepTheDarkHorse(HelperState& helper, Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepTheDarkHorse(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                                    const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     const auto safe = InTheRidersSafeCell(context, rider, "0x4440db");
@@ -448,7 +451,7 @@ bool HasItsBody(std::uint16_t type)
     return type == DarkHorseModel || type == RiderlessHelper || IsRidingHelper(type);
 }
 
-Core::Expected<void, std::string> StepTheBody(HelperState& helper, Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepTheBody(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                               const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
     if (helper.type == DarkHorseModel)
@@ -467,7 +470,7 @@ Core::Expected<void, std::string> StepTheBody(HelperState& helper, Kernel::Actor
 }
 
 // 0x444010(lugar, 0) con un lugar vivo, en la escena 4 o en la 5, con su jinete (+0x108).
-Core::Expected<void, std::string> StepHelper(HelperState& helper, Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                              const HelperStepContext& context)
 {
     // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
@@ -508,7 +511,7 @@ Core::Expected<void, std::string> StepHelper(HelperState& helper, Kernel::ActorS
 
 // 0x4452db..0x445309: con el segundo argumento en 0, 1,6 en la escena 2 y 1 en la 4; en las demás, los Fenrir se
 // quedan con la de 0x443d70 (0,9) y los demás van a 1.
-float DrawScaleOf(const HelperState& helper, SceneId scene)
+float DrawScaleOf(const Kernel::HelperState& helper, SceneId scene)
 {
     if (scene == SceneId::Login)
     {
@@ -524,7 +527,7 @@ float DrawScaleOf(const HelperState& helper, SceneId scene)
 // Lo que se dibuja de un ayudante que no es el caballo: su lugar, sus ángulos y su escala, la animación entre dos
 // pasos, el blendMesh con su luz en 1, la U y la V en 0, sin malla oculta, el color de 0x5ffce0 con la luz por
 // vértice (la del terreno más la de +0xf4, el 3 de 0x443d70) y su alpha.
-Actors::Drawing::DrawnObject DrawnHelper(const HelperState& helper, const Models::Skeleton* skeleton,
+Actors::Drawing::DrawnObject DrawnHelper(const Kernel::HelperState& helper, const Models::Skeleton* skeleton,
                                          const glm::vec3& terrainLight, float stepAlpha)
 {
     Actors::Drawing::DrawnObject drawn;
@@ -576,7 +579,7 @@ glm::vec3 FenrirBonePoint(std::span<const Math::BoneTransform> bones, std::size_
 
 // 0x60277b..0x602e7d, después de 0x5ffdf0: el cuerpo y su sombra, la chispa de la acción 4, los sprites, los rayos y
 // los calcos. Pide todo antes de sacar el primer rand().
-Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const HelperDrawContext& context)
+Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     if (context.effects == nullptr || context.particles == nullptr || context.sprites == nullptr ||
         !context.systemTime || !context.globalPose)
@@ -681,7 +684,7 @@ Core::Expected<void, std::string> DrawTheFenrir(HelperState& helper, const Helpe
 }
 
 // 0x6002e0 con el ayudante, ya posado por 0x5ffdf0.
-Core::Expected<void, std::string> DrawTheBody(HelperState& helper, const HelperDrawContext& context)
+Core::Expected<void, std::string> DrawTheBody(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
     if (helper.type == DarkHorseModel)
@@ -739,7 +742,7 @@ bool HiddenInTheSiege(const Kernel::WorldState& world, std::size_t rider)
 // 0x6002e0 con 10 (0x60033c..0x600435), con el ayudante ya posado por 0x5ffdf0 como lo posa el camino de su tipo: no
 // llega al caso del tipo, así que el Fenrir no pide sus efectos ni saca sus rand(), y ninguno lee la luz del terreno,
 // que 0x60039d pisa con el blanco. El 0x1c12 conserva su blendMesh, que el 0x4000 no mira.
-Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const HelperDrawContext& context)
+Core::Expected<void, std::string> DrawTheShell(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     Actors::Drawing::DrawnObject drawn;
     if (helper.type == DarkHorseModel)
@@ -767,7 +770,7 @@ Core::Expected<void, std::string> DrawTheShell(HelperState& helper, const Helper
 
 // 0x445260(lugar, `always`) con un lugar vivo y su jinete (+0x108). Con `always` (el retrato de las cartas), visto sin
 // el trapecio (0x4452a4) y con la escala de 0x4452d2.
-Core::Expected<void, std::string> DrawHelper(HelperState& helper, const Kernel::ActorState& rider, bool always,
+Core::Expected<void, std::string> DrawHelper(Kernel::HelperState& helper, const Kernel::ActorState& rider, bool always,
                                              const HelperDrawContext& context)
 {
     Kernel::WorldState& world = context.world;
@@ -823,9 +826,9 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const Kernel::
 }
 } // namespace
 
-Core::Expected<bool, std::string> ConstructHelper(HelperState& helper, std::uint16_t type, const glm::vec3& position,
-                                                  const Kernel::ActorState& rider, std::size_t riderSlot,
-                                                  std::int32_t map, Crt::CrtRandom* random)
+Core::Expected<bool, std::string> ConstructHelper(Kernel::HelperState& helper, std::uint16_t type,
+                                                  const glm::vec3& position, const Kernel::ActorState& rider,
+                                                  std::size_t riderSlot, std::int32_t map, Crt::CrtRandom* random)
 {
     // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
     if (IsChaosCastle(map))
@@ -890,7 +893,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(Kernel::Wor
     {
         return Core::Unexpected(std::format("0x443d70: el constructor del ayudante {:#x} no está portado", type));
     }
-    HelperTable& helpers = world.Helpers();
+    Kernel::HelperTable& helpers = world.Helpers();
     for (std::size_t slot = 0; slot < helpers.size(); ++slot)
     {
         auto built = ConstructHelper(helpers[slot], type, position, riding, rider, map, random);
@@ -906,20 +909,9 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateHelper(Kernel::Wor
     return std::optional<std::size_t>{};
 }
 
-void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider)
-{
-    for (HelperState& helper : helpers)
-    {
-        if (helper.alive && helper.rider == rider)
-        {
-            helper.alive = false;
-        }
-    }
-}
-
 Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
 {
-    for (HelperState& helper : context.world.Helpers())
+    for (Kernel::HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)
         {
@@ -933,7 +925,7 @@ Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
     return {};
 }
 
-Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& helper, Kernel::ActorState& rider,
+Core::Expected<void, std::string> StepTheHelperOutsideTheTable(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                                                const HelperStepContext& context)
 {
     // 0x444021: sin el byte vivo, nada.
@@ -946,7 +938,8 @@ Core::Expected<void, std::string> StepTheHelperOutsideTheTable(HelperState& help
     return StepHelper(helper, rider, anywhere);
 }
 
-Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(HelperState& helper, const Kernel::ActorState& rider,
+Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(Kernel::HelperState& helper,
+                                                               const Kernel::ActorState& rider,
                                                                const HelperDrawContext& context)
 {
     // 0x44526b: sin el byte vivo, nada.
@@ -979,13 +972,13 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
                                       context.systemTime,
                                       context.globalPose,
                                       context.trapezoid};
-    for (HelperState& helper : context.world.Helpers())
+    for (Kernel::HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)
         {
             continue;
         }
-        HelperState projectedHelper = helper;
+        Kernel::HelperState projectedHelper = helper;
         const Kernel::ActorState& rider = context.world.Actors()[helper.rider];
         auto drawn = context.originalFrame ? DrawHelper(helper, rider, false, context)
                                            : DrawHelper(projectedHelper, rider, false, projected);
@@ -994,6 +987,42 @@ Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
             return drawn;
         }
     }
+    return {};
+}
+
+TableHelpers::TableHelpers(Kernel::WorldState& world, Crt::CrtRandom* random) : m_world(world), m_random(random) {}
+
+void TableHelpers::TurnOffTheHelpersOf(std::size_t rider) const
+{
+    Kernel::TurnOffHelpersOf(m_world.Helpers(), rider);
+}
+
+Core::Expected<void, std::string> TableHelpers::CreateTheHelper(std::uint16_t type, const glm::vec3& position,
+                                                                std::size_t rider) const
+{
+    const auto created = CreateHelper(m_world, type, position, rider, m_random);
+    if (!created.HasValue())
+        return Core::Unexpected(created.Error());
+    return {};
+}
+
+OwnHelper::OwnHelper(Kernel::HelperState& helper, const Kernel::ActorState& rider, const Kernel::WorldState& world,
+                     Crt::CrtRandom* random)
+    : m_helper(helper), m_rider(rider), m_world(world), m_random(random)
+{
+}
+
+void OwnHelper::TurnOffTheHelpersOf(std::size_t /*rider*/) const
+{
+    m_helper.alive = false;
+}
+
+Core::Expected<void, std::string> OwnHelper::CreateTheHelper(std::uint16_t type, const glm::vec3& position,
+                                                             std::size_t rider) const
+{
+    const auto built = ConstructHelper(m_helper, type, position, m_rider, rider, m_world.Runtime().map, m_random);
+    if (!built.HasValue())
+        return Core::Unexpected(built.Error());
     return {};
 }
 } // namespace Client::Scenes

@@ -1,4 +1,5 @@
 #include "Session/WorldTransitions.h"
+#include "Kernel/HelperTable.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -90,7 +91,7 @@ Core::Expected<void, std::string> ChangeTeleportMap(std::uint8_t map, std::uint1
         if (auto dressed = DressTransitionHero(PublishedHero(resources), resources); !dressed.HasValue())
             return dressed;
         // 4c7b68: apagar los ayudantes del héroe después de publicar su equipo.
-        TurnOffHelpersOf(resources.world.Helpers(), runtime.hero);
+        Kernel::TurnOffHelpersOf(resources.world.Helpers(), runtime.hero);
     }
     if (!IsChaosCastle(loadedMap))
     {

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Math/Angles.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/LogicalAccess.h"
@@ -438,11 +439,10 @@ Core::Expected<void, std::string> StepTheSkill2f(Kernel::ActorState& actor, std:
 Core::Expected<void, std::string> StepTheSkill34(Kernel::ActorState& actor, std::uint8_t, std::size_t,
                                                  const Actors::CharacterStepContext& context)
 {
-    constexpr std::uint8_t FirstAction = 0x22;
-    constexpr std::uint8_t LastAction = 0x97;
     constexpr std::int16_t HeldKey = 4;
     const std::uint8_t action = ActionOf(actor);
-    if (IsPlayer(actor) && action >= FirstAction && action <= LastAction && FrameOf(actor) >= FifthFrame)
+    if (IsPlayer(actor) && action >= Tables::FirstBusyAction && action <= Tables::LastBusyAction &&
+        FrameOf(actor) >= FifthFrame)
     {
         actor.animation.previousKey = HeldKey;
         actor.animation.frame = FifthFrame;

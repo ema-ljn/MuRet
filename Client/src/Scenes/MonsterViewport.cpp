@@ -1,5 +1,7 @@
 #include "Scenes/MonsterViewport.h"
+#include "Scenes/HelperTable.h"
 
+#include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
@@ -59,7 +61,7 @@ Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, s
                                                     std::optional<std::int32_t> sound,
                                                     const WorldEntryResources& resources)
 {
-    if (auto set = SetMonsterAction(actor, 1, address, resources); !set.HasValue())
+    if (auto set = Actors::SetMonsterAction(actor, 1, address, resources); !set.HasValue())
         return set;
     actor.animation.previousAction = 1;
     actor.alpha = 1.0f;
@@ -384,7 +386,8 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     Actors::WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
     // 0x4e0e16..0x4e0e1f: 0x5139f0 con el lugar de 0x5110d0 y el equipo de +7.
-    if (auto set = Actors::ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources);
+    if (auto set = Actors::ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources,
+                                             TableHelpers(world, &resources.cloth.random));
         !set.HasValue())
         return set;
     // 0x4e0e24..0x4e0e52: "   " (0x6c8648) y +0x1e3 en 0.

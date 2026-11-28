@@ -1,4 +1,5 @@
 #include "Scenes/InventoryReply.h"
+#include "Kernel/HelperTable.h"
 
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
@@ -79,11 +80,11 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Kernel::EmptyOwnItemId;
+using Client::Kernel::HelperState;
 using Client::Kernel::ItemState;
 using Client::Protocol::Items::InventoryEntry;
 using Client::Protocol::Items::InventoryList;
 using Client::Scenes::ApplyInventory;
-using Client::Scenes::HelperState;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::AfterDraws;
 

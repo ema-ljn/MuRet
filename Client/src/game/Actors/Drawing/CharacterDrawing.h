@@ -40,6 +40,11 @@ struct ObjectModelStepState;
 struct FishEffectRequest;
 } // namespace Client::World
 
+namespace Client::Models
+{
+struct SkinningBuffers;
+} // namespace Client::Models
+
 // A character's drawing in the ModelBatch, like 0x50ba30 in the selection: the posed Player.bmd body, the parts with
 // that pose's matrices (0x60cf70), what hangs from its bone (0x509340, Actors/Attachment.h) and each part's glow passes
 // by its level (0x60b3d0, Models/ItemGlow.h), each mesh with its texture and the blend of 0x4ecc30. Contract:
@@ -64,7 +69,7 @@ struct DrawnCharacter
     // the own record's bits it used for its parts.
     std::optional<glm::vec3> hangingLight{};
     // +0x174 and the shadow guards of 0x50bc05..0x50bcbd (CastsShadow, GameCharacters.h). `object.position` already has
-    // the z of the shadow's floor (0x50bc77..0x50bcbd, ShadowGroundOf in MonsterDrawing.h).
+    // the z of the shadow's floor (0x50bc77..0x50bcbd, ShadowGroundOf in GameCharacters.h).
     float alpha = 1.0f;
     bool castsShadow = true;
     bool safeZone = false;
@@ -109,6 +114,9 @@ struct DrawnCharacter
     std::function<std::span<const Math::BoneTransform>(std::uint16_t)> poseBones{};
     // Publishes the box after drawing the parts and outlines, before the character's body.
     std::function<void(const glm::vec3&)> onPartBox{};
+    // What the draw poses and skins into, kept by whoever draws the character from frame to frame. Without them, each
+    // draw uses buffers of its own.
+    Models::SkinningBuffers* drawBuffers = nullptr;
 };
 
 // 0x50db57 separates the parts and the cloth from what hangs with a rand and a new light. Both paths reuse the same
@@ -232,6 +240,12 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary
                                                                 const DrawnObject& object,
                                                                 std::span<const Math::BoneTransform> bones,
                                                                 float boneScale = 1.0f);
+
+// SkinObjectMeshes into `buffers`, which keep their capacity from one model to the next: the meshes are valid until the
+// next use of `buffers`.
+[[nodiscard]] std::span<Models::SkinnedMesh>
+SkinObjectMeshesInto(Models::SkinnedMeshes& buffers, const Models::IModelLibrary& models, const DrawnObject& object,
+                     std::span<const Math::BoneTransform> bones, float boneScale = 1.0f);
 
 // The scratch of 0x5ffdf0 with the second argument at 0 (0x602e90 of a world object at 0x604a47, of an effect at
 // 0x52da99, of a helper at 0x44532e or of the raven at 0x41834e) when nobody published it: 0x4eb860 with the flag at 1

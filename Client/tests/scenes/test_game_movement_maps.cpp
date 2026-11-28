@@ -17,6 +17,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorsState.h"
 #include "Actors/CharacterStep.h"
+#include "Session/CharacterStepHooks.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameMovementState.h"
 #include "Session/MapLoad.h"
@@ -58,6 +59,7 @@
 // presta 205 acciones sin geometría. El picker presta una celda explícita: no valida rayos ni GL.
 namespace
 {
+const Client::Session::CharacterStepHooks StepHooks{};
 using Client::Core::Expected;
 using Client::Kernel::ActorState;
 using Client::Pathfinding::PathCell;
@@ -413,7 +415,8 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
                                                          .particles = particles.get(),
                                                          .trapezoid = &m_trapezoid,
                                                          .faunaModels = &m_faunaModels,
-                                                         .reportedCell = &m_reportedCell});
+                                                         .reportedCell = &m_reportedCell,
+                                                         .hooks = &StepHooks});
     // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Hero().safeZone, 1);

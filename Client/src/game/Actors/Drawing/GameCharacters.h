@@ -10,6 +10,8 @@
 #include "Scenes/GameDrawTail.h"
 #include "Actors/ActorPickingBox.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -30,6 +32,7 @@ namespace Client::Models
 {
 struct ClothWorld;
 class IModelLibrary;
+struct SkinningBuffers;
 } // namespace Client::Models
 
 namespace Client::Terrain
@@ -68,6 +71,7 @@ struct FaunaDrawCarry;
 namespace Client::Actors::Drawing
 {
 class CharacterCloth;
+class ICharacterDrawHooks;
 struct DrawnCharacter;
 struct ItemDrawContext;
 
@@ -119,12 +123,17 @@ struct GameCharacterPass
     // The models a creation loaded for the monsters and NPCs (Assets::AssetsState::fauna), where their pose leaves
     // its key. nullptr: no monster or NPC is drawn.
     Assets::FaunaModels* faunaModels = nullptr;
+    // What the characters' draw poses and skins into, one character after another, kept by the frame's owner. Without
+    // them, each character's draw uses buffers of its own.
+    Models::SkinningBuffers* drawBuffers = nullptr;
+    // What the draw asks of other modules (Session::CharacterDrawHooks). nullptr: a monster or an NPC stops.
+    const ICharacterDrawHooks* hooks = nullptr;
 };
 
 // The ordinary player's body, its terrain light and the hero's override, reusing DrawCharacter, then what hangs with
 // DrawGameHanging (0x50db57..0x50e9fa): the weapon on the back, the wings, Helper02 and the hands; the player's effects
 // with DrawGameCharacterEffects (0x50ea20..0x510ab6) and the raven with DrawGameRaven (0x420df0). Monsters and NPCs (a
-// type other than the 0x20a) go through DrawGameMonster (Scenes/MonsterDrawing.h), with their model from
+// type other than the 0x20a) go through GameCharacterPass::hooks (DrawTheMonster), with their model from
 // GameCharacterPass::faunaModels. What is not ported yet stops with its address: the cases by +0x376 and by type, those
 // of 0x509340 with joints or particles and what the effects create. Between original frames, what hangs and the effects
 // are drawn on a copy of the character and of the rand(): nothing advances or is spent.
@@ -155,6 +164,35 @@ DrawCharacterOutsideThePool(Render::ModelBatch& batch, const Models::IModelLibra
 DrawCharacterTail(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                   Kernel::ActorState& actor, std::size_t slot, const DrawnCharacter& character,
                   const GameCharacterPass& pass, const FullSetScan& scan, bool originalFrame);
+
+// 0x50ba9e..0x50bae0: the +0x376 that 0x50ba30 sends to the cloth on the mesh (0x50bae7, the table of 0x510adc over
+// 0x510ad4): 0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 and 0x8f. With any type, the 0x20a too.
+[[nodiscard]] bool WearsClothOnTheMesh(std::uint16_t monster);
+
+// 0x50bf45..0x50c904: what 0x50ba30 adds to the body by the +0x376, with any type (the 0x20a too): the shine passes of
+// 0x50c671 (0x26, 0x2b, 0x34, 0x3b, 0x43 and 0x4e to 0x53), the sprites and particles of the 0x45 (0x50bf98), the 0x46
+// (0x50c0fb), the cloths of the 0x47, the 0x4a and the 0x12d (0x50c59f), the 0x49 and the 0x4b (0x50c36b), the 0x4d
+// (0x50c177), the shine of the 0x35 and the 0x36 (0x50c71b), the weapons hung by the 0x2a (0x50c762) and by the 0x84 to
+// 0x86 (0x50c83b) and the shine of the 0x87 (0x50c8ce). With one of them, it stops with its address. A monster's draw
+// (Scenes::DrawGameMonster) draws the ported ones before and calls this with the others; the 0x20a's path stops with
+// all of them.
+[[nodiscard]] Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster);
+
+// 0x50db57..0x50dc58 without its rand(): the light of what hangs (+0x3b4). With +0x375 from 6, (1, 0.1, 0.1).
+// Otherwise the terrain's (that of 0x50cc55, or 0.4 in scene 4) plus its own (+0xf4), and in Blood Castle (maps 10 to
+// 17: map − 9 between 1 and 8) with the +0x376 in 0x56..0x59, 0x5c..0x5f, 0x73..0x76, 0x79..0x7c, 0x7f..0x82 or
+// 0x8a..0x8f, if (map − 9) / 3 (signed) is not 0, (that quotient · 0.5, 0.1, 0.1).
+[[nodiscard]] glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terrainLight,
+                                       std::int32_t map);
+
+// The shadow's floor in 0x50ba30: 0x50bc77..0x50bcbd with a player (the 0x20a, after its shadow's guards and before
+// 0x60cf70 at 0x50bcec) and 0x50be15..0x50be52 with a monster or an NPC. In Blood Castle (maps 0xb to 0x11), with
+// +0x1a1 of the object and dying (+0x389), the terrain height (0x5f93c0 on the terrain of `pass`, or an empty one, with
+// its fixed height) stored as a float, unless the terrain is at the z or above (the fcom with `test ah, 1`: with the z
+// or the height NaN it writes it too). Otherwise the z of `actor`. Without the heights, it stops at `address` (the
+// call to 0x5f93c0).
+[[nodiscard]] Core::Expected<float, std::string>
+ShadowGroundOf(const GameCharacterPass& pass, const Kernel::ActorState& actor, std::int32_t map, std::uint32_t address);
 
 // The shadow guards of 0x50ba30 that look at the object and the map (0x50bbff..0x50bc71, DrawnCharacter::castsShadow):
 // the alpha (+0x174) from 0.5 (not with NaN), without +0x3e4 (the cards' portrait) and outside map 10, Kalima (24 to

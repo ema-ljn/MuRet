@@ -1,5 +1,6 @@
 #include "Models/IModelLibrary.h"
 #include "Actors/CharacterStep.h"
+#include "Session/CharacterStepHooks.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
@@ -29,6 +30,7 @@
 
 namespace
 {
+const Client::Session::CharacterStepHooks StepHooks{};
 class RibbonModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -90,7 +92,8 @@ TEST(WeaponTrailPipelineTest, TheWholeBodyRunsEveryProducerBeforeAndAfterTheUnco
         Client::Crt::CrtRandom random{123};
 
         const auto stepped = Client::Actors::StepCharacter(
-            actor, {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels});
+            actor,
+            {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels, .hooks = &StepHooks});
 
         // 1b1 alcanza después el sprite de un helper CL11; la estela ya tiene ambas tandas.
         if (probe.type == 0x1b1)
@@ -147,7 +150,8 @@ TEST(WeaponTrailPipelineTest, TheKalimaWeaponTrailReturnsThroughTheCharacterStep
                                                                    .random = random,
                                                                    .terrain = &terrain,
                                                                    .particles = &world->Particles(),
-                                                                   .faunaModels = &faunaModels});
+                                                                   .faunaModels = &faunaModels,
+                                                                   .hooks = &StepHooks});
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const auto& ribbon = world->DrawTail().ribbons[0];
@@ -198,7 +202,8 @@ TEST(WeaponTrailPipelineTest, AdvancingAgainUsesThePublishedActionForItsSpeed)
     Client::Crt::CrtRandom random{123};
 
     const auto stepped = Client::Actors::StepCharacter(
-        actor, {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels});
+        actor,
+        {.world = *world, .random = random, .terrain = &terrain, .faunaModels = &faunaModels, .hooks = &StepHooks});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(actor.animation.action, 0);

@@ -1,4 +1,5 @@
 #include "Models/IModelLibrary.h"
+#include "Kernel/HelperTable.h"
 #include "Scenes/HelperTable.h"
 
 #include "Core/Expected.h"
@@ -70,6 +71,9 @@ using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Kernel::ActorPoolSize;
 using Client::Kernel::ActorState;
+using Client::Kernel::HelperCount;
+using Client::Kernel::HelperState;
+using Client::Kernel::TurnOffHelpersOf;
 using Client::Kernel::WorldState;
 using Client::Math::RoundedCos;
 using Client::Math::RoundedSin;
@@ -87,15 +91,12 @@ using Client::Scenes::DinorantModel;
 using Client::Scenes::DrawHelpers;
 using Client::Scenes::DrawTheHelperOutsideTheTable;
 using Client::Scenes::GuardianAngelModel;
-using Client::Scenes::HelperCount;
 using Client::Scenes::HelperDrawContext;
-using Client::Scenes::HelperState;
 using Client::Scenes::HelperStepContext;
 using Client::Scenes::JointState;
 using Client::Scenes::SceneId;
 using Client::Scenes::StepHelpers;
 using Client::Scenes::StepTheHelperOutsideTheTable;
-using Client::Scenes::TurnOffHelpersOf;
 using Client::Scenes::UniriaModel;
 using Client::Terrain::TerrainPolygon;
 
@@ -2711,6 +2712,66 @@ TEST(HelperTableTest, TheFenrirLeavesItsDecalsInTheWindowsOfItsStrikes)
             EXPECT_EQ(decals, expected);
             EXPECT_EQ(world.LiveSprites().size(), 8u);
         }
+    }
+}
+
+// The port the character set and the viewport reach the table through (Actors::IHelperHooks): 0x443d40 on the riders'
+// helpers, and 0x443fa0 in the world's table with the port's rand(), as CreateHelper does it.
+TEST(HelperTableTest, TheTablesPortTurnsOffAndCreatesInTheWorldsTable)
+{
+    HelperWorld tested;
+    auto& helpers = tested.world.Helpers();
+    helpers[1] = HelperState{.alive = true, .type = DarkHorseModel, .rider = HeroSlot};
+    helpers[2] = HelperState{.alive = true, .type = DarkHorseModel, .rider = OtherSlot};
+    const Client::Scenes::TableHelpers port(tested.world, &tested.random);
+
+    port.TurnOffTheHelpersOf(HeroSlot);
+
+    EXPECT_FALSE(helpers[1].alive);
+    EXPECT_TRUE(helpers[2].alive);
+    const glm::vec3 place{1234.0f, 5678.0f, 90.0f};
+    ASSERT_TRUE(port.CreateTheHelper(GuardianAngelModel, place, HeroSlot).HasValue());
+    HelperWorld twin;
+    ASSERT_TRUE(CreateHelper(twin.world, GuardianAngelModel, place, HeroSlot, &twin.random).HasValue());
+    EXPECT_TRUE(tested.Horse().alive);
+    EXPECT_EQ(tested.Horse().type, GuardianAngelModel);
+    EXPECT_EQ(tested.Horse().rider, HeroSlot);
+    EXPECT_EQ(tested.Horse().position, twin.Horse().position);
+    EXPECT_EQ(tested.random.State(), twin.random.State());
+    EXPECT_NE(tested.random.State(), CrtRandom(QuietSeed).State());
+    const auto unknown = port.CreateTheHelper(0xbe, place, HeroSlot);
+    ASSERT_FALSE(unknown.HasValue());
+    EXPECT_NE(unknown.Error().find("0x443d70"), std::string::npos) << unknown.Error();
+}
+
+// A character outside the pool (the letters' portrait): the port turns its own helper off instead of 0x443d40 and
+// builds on it with 0x443d70 on the world's map (nothing in Chaos Castle), without touching the table.
+TEST(HelperTableTest, TheOwnHelpersPortTurnsOffAndBuildsOnlyItsHelper)
+{
+    for (const std::int32_t map : {0, 18})
+    {
+        SCOPED_TRACE(map);
+        HelperWorld tested(map);
+        const ActorState rider = tested.Rider();
+        HelperState helper{.alive = true, .type = UniriaModel};
+        tested.world.Helpers()[0] = HelperState{.alive = true, .type = UniriaModel, .rider = ActorPoolSize};
+        const Client::Scenes::OwnHelper port(helper, rider, tested.world, &tested.random);
+
+        port.TurnOffTheHelpersOf(ActorPoolSize);
+
+        EXPECT_FALSE(helper.alive);
+        EXPECT_TRUE(tested.Horse().alive);
+        ASSERT_TRUE(port.CreateTheHelper(DarkHorseModel, rider.position, ActorPoolSize).HasValue());
+        HelperState expected;
+        const auto built =
+            ConstructHelper(expected, DarkHorseModel, rider.position, rider, ActorPoolSize, map, nullptr);
+        ASSERT_TRUE(built.HasValue()) << built.Error();
+        EXPECT_EQ(helper.alive, built.Value());
+        EXPECT_EQ(helper.type, built.Value() ? DarkHorseModel : UniriaModel);
+        EXPECT_EQ(helper.position, expected.position);
+        EXPECT_EQ(helper.angles, expected.angles);
+        EXPECT_EQ(tested.Horse().type, UniriaModel);
+        EXPECT_TRUE(tested.Horse().alive);
     }
 }
 } // namespace

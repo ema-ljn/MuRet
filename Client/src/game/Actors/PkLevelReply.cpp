@@ -1,12 +1,11 @@
 #include "Actors/PkLevelReply.h"
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
-#include "Core/PixelSize.h"
 #include "Protocol/Player/PkLevel.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/ChatBubbles.h"
-#include "Scenes/GameMessages.h"
+#include "Kernel/IOnScreenMessages.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldState.h"
 #include "UI/GameText.h"
@@ -110,11 +109,10 @@ Core::Expected<void, std::string> ApplyPkLevel(const Protocol::Player::PkLevel& 
     default:
         return {};
     }
-    if (resources.textMeasure == nullptr)
-        return Core::Unexpected(std::string("0x4d3bf6: 0x555190 sin el medidor de los textos"));
+    if (resources.onScreenMessages == nullptr)
+        return Core::Unexpected(std::string("0x4d3bf6: 0x555190 without the on-screen messages"));
     // 0x4d3bd7..0x4d3bf6: 0x5110d0(key) again, and 0x555190(+0x1d9 of that character, text, type).
-    const std::string name = Scenes::ChatNameOf(world.Actors()[Kernel::ActorWithKey(world, packet.key)]);
-    const Core::PixelSize screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480};
-    return Scenes::AddGameMessage(world.Runtime(), *resources.textMeasure, screen, name, text, type);
+    const std::string name = ChatNameOf(world.Actors()[Kernel::ActorWithKey(world, packet.key)]);
+    return resources.onScreenMessages->Add(name, text, type);
 }
 } // namespace Client::Actors

@@ -7,7 +7,6 @@
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
 #include "Tables/AddedEmotes.h"
-#include "UI/Emotes.h"
 
 #include <cstdint>
 #include <format>
@@ -67,13 +66,12 @@ Core::Expected<void, std::string> PlayAndSend(std::uint8_t animation, std::uint8
 }
 } // namespace
 
-Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
-                                               const EmoteContext& context)
+Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, EmoteCase emote, const EmoteContext& context)
 {
     return PlayTheAnimation(actor, AnimationFor(actor, emote.animation), emote.action, context);
 }
 
-Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context)
+Core::Expected<void, std::string> DoTheEmote(EmoteCase emote, const EmoteContext& context)
 {
     return PlayAndSend(AnimationFor(context.hero, emote.animation), emote.action, context);
 }

@@ -1,4 +1,5 @@
 #include "Scenes/EventPackets.h"
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -6,11 +7,14 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/DialogTable.h"
 #include "Tables/TextTable.h"
+#include "Tables/PlayerActions.h"
 #include "Maps/MapId.h"
 #include "Protocol/Events/Events.h"
 #include "Protocol/Movement/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Models/Animation.h"
+#include "Models/IModelLibrary.h"
+#include "Models/ModelId.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/ChatBubbles.h"
@@ -250,7 +254,7 @@ constexpr std::uint8_t ContractFailed = 0;
 constexpr std::uint8_t ContractSigned = 1;
 constexpr std::int32_t ContractLevel = 0x15e;
 constexpr std::int32_t FirstAltarKey = 0x13c;
-constexpr std::uint8_t SittingAction = 0xca;
+using Tables::SittingAction;
 // 0x4303c0: the map 0x22, which the BD 04 tests with the started stage (0x4359f0).
 using Maps::CrywolfMap;
 // 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).
@@ -660,8 +664,8 @@ private:
             return Core::Unexpected(std::move(text).Error());
         if (m_context.measure == nullptr)
             return Core::Unexpected(std::string("0x4d6b4d: sin el medidor de los mensajes (0x555190)"));
-        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen, ChatNameOf(m_world.Actors()[owner]),
-                              text.Value(), UI::SystemMessage);
+        return AddGameMessage(m_runtime, *m_context.measure, m_context.screen,
+                              Actors::ChatNameOf(m_world.Actors()[owner]), text.Value(), UI::SystemMessage);
     }
 
     // ----- 90 (0x4e4870).

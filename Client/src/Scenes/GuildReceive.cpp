@@ -1,4 +1,5 @@
 #include "Scenes/GuildReceive.h"
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -19,7 +20,6 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/Dialogs.h"
-#include "UI/Emotes.h"
 #include "UI/GameText.h"
 #include "UI/MessageArea.h"
 #include "UI/PanelDialog.h"
@@ -286,7 +286,7 @@ Core::Expected<void, std::string> Gesture(const GuildReceiveContext& context, st
     }
     Kernel::ActorState& hero = HeroOf(context);
     const Actors::EmoteContext emote{.hero = hero, .models = *context.models, .send = send};
-    if (auto played = Actors::PlayTheEmote(hero, UI::EmoteCase{animation, action}, emote); !played.HasValue())
+    if (auto played = Actors::PlayTheEmote(hero, Actors::EmoteCase{animation, action}, emote); !played.HasValue())
         return Core::Unexpected(played.Error());
     return Actors::SendTheAction(hero.angles.z, action, send, where);
 }
@@ -319,8 +319,8 @@ Core::Expected<void, std::string> ApplyJoinRequest(const JoinRequest& request, c
     if (index >= ActorCount)
         return {};
     guild.requester = request.key;
-    auto first =
-        Formatted(context, JoinRequestText, HeroNameOf(context.world.Actors()[index]), JoinLineBytes, "0x4d7514");
+    auto first = Formatted(context, JoinRequestText, Actors::HeroNameOf(context.world.Actors()[index]), JoinLineBytes,
+                           "0x4d7514");
     if (!first.HasValue())
         return Core::Unexpected(first.Error());
     auto second = Formatted(context, JoinQuestionText, {}, JoinLineBytes, "0x4d7524");
@@ -757,7 +757,8 @@ Core::Expected<void, std::string> ApplyRelationshipRequest(const RelationshipReq
         detail = request.request == 1 ? UnionJoinText : UnionOtherText;
     else
         detail = request.request == 1 ? RivalJoinText : RivalOtherText;
-    auto first = Formatted(context, asked, HeroNameOf(context.world.Actors()[index]), RelationLineBytes, "0x656cd2");
+    auto first =
+        Formatted(context, asked, Actors::HeroNameOf(context.world.Actors()[index]), RelationLineBytes, "0x656cd2");
     if (!first.HasValue())
         return Core::Unexpected(first.Error());
     // 0x656d91: el segundo sin argumento; un %s del texto queda escrito (Q-C1368).

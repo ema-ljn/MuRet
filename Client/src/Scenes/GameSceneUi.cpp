@@ -568,7 +568,9 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                     .worldModels = m_worldModelsMap ? &m_worldModels : nullptr,
                     .fixedHeight = CameraState().fixedHeight,
                     .terrain = &MapTerrain(),
-                    .faunaModels = &LoadedFaunaModels()},
+                    .faunaModels = &LoadedFaunaModels(),
+                    .drawBuffers = &m_characterBuffers,
+                    .hooks = &m_characterDrawHooks},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
             { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },

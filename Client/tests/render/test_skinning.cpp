@@ -11,6 +11,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <span>
 #include <vector>
 
 // 0x4ebc80, one bone per vertex and no weights.
@@ -26,6 +27,7 @@ using Client::Models::SkinMesh;
 using Client::Models::SkinMeshAroundBones;
 using Client::Models::SkinMeshInWorld;
 using Client::Models::SkinnedMesh;
+using Client::Models::SkinnedMeshes;
 
 constexpr float Tolerance = 1e-4f;
 
@@ -239,5 +241,32 @@ TEST(SkinningTest, ReusesItsBuffers)
     ASSERT_EQ(skinned.positions.size(), 1u);
     ASSERT_EQ(skinned.normals.size(), 1u);
     ExpectNear(skinned.positions[0], {2, 2, 3});
+}
+
+// After a model of three skinned meshes, Reset hands out the two of a smaller one emptied, and the third keeps its
+// buffers for later: what the small model skins there matches what it skins into fresh meshes.
+TEST(SkinningTest, ASmallModelAfterABigOneSeesOnlyItsOwnMeshes)
+{
+    Mesh small = TwoVertexMesh();
+    small.vertices.pop_back();
+    small.normals.pop_back();
+    SkinnedMeshes reused;
+    for (SkinnedMesh& mesh : reused.Reset(3))
+        ASSERT_TRUE(SkinMesh(TwoVertexMesh(), TwoBones(), ObjectTransform{}, mesh));
+
+    const std::span<SkinnedMesh> meshes = reused.Reset(2);
+
+    ASSERT_EQ(meshes.size(), 2u);
+    for (const SkinnedMesh& mesh : meshes)
+    {
+        EXPECT_TRUE(mesh.positions.empty());
+        EXPECT_TRUE(mesh.normals.empty());
+    }
+    SkinnedMesh fresh;
+    ASSERT_TRUE(SkinMesh(small, TwoBones(), ObjectTransform{}, fresh));
+    ASSERT_TRUE(SkinMesh(small, TwoBones(), ObjectTransform{}, meshes[0]));
+    EXPECT_EQ(meshes[0].positions, fresh.positions);
+    EXPECT_EQ(meshes[0].normals, fresh.normals);
+    EXPECT_GE(reused.Reset(3)[2].positions.capacity(), 2u);
 }
 } // namespace

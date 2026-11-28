@@ -12,7 +12,6 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Tables/AddedEmotes.h"
-#include "UI/Emotes.h"
 
 #include "support/Bytes.h"
 #include "support/PlayerActors.h"
@@ -31,11 +30,11 @@
 // Los valores salen del ASM (0x576a84..0x576e97 y los casos), no de una corrida.
 namespace
 {
+using Client::Actors::EmoteCase;
 using Client::Actors::EmoteContext;
 using Client::Kernel::ActorState;
 using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-using Client::UI::EmoteCase;
 
 constexpr std::uint8_t ElfClass = 2;
 // Un tipo que no es jugador, como el de un transformado (0x45), con sus acciones.

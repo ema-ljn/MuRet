@@ -53,7 +53,7 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
     return AddChatBubble(
         context.world,
         ChatBubbleMeasure{.measure = context.text, .screen = context.sprites.Screen(), .texts = context.texts},
-        ChatNameOf(actor), "", static_cast<std::size_t>(index), ChatBubbleMode::Chat);
+        Actors::ChatNameOf(actor), "", static_cast<std::size_t>(index), ChatBubbleMode::Chat);
 }
 
 // 0x5bbc9e..0x5bbd2f: el personaje elegido.
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     // 0x5bbcf1..0x5bbcf9: 0x5bb8d0, con sus consultas, y la mitad con CDQ y SAR, hacia el 0.
     const std::int32_t worldWidth = GamePanels(context.world, context.random).Registry().WorldWidth();
     DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
-                    ChatNameOf(actor));
+                    Actors::ChatNameOf(actor));
     return {};
 }
 

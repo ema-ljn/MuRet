@@ -25,6 +25,7 @@
 #include "World/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
+#include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
 
@@ -247,7 +248,8 @@ protected:
                 .poseCarry = &m_carry,
                 .joints = m_joints,
                 .terrain = &m_terrain,
-                .faunaModels = &m_faunaModels};
+                .faunaModels = &m_faunaModels,
+                .hooks = &m_drawHooks};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -277,6 +279,7 @@ protected:
     Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
+    Client::Session::CharacterDrawHooks m_drawHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;

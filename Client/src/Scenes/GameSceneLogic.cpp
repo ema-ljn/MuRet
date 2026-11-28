@@ -18,6 +18,7 @@
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 
+#include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "Core/Expected.h"
@@ -101,6 +102,7 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
     auto& runtime = m_context.world->Runtime();
     const Models::Skeleton* player =
         m_models != nullptr ? m_models->SkeletonOf(Tables::PlayerSkeletonModelId) : nullptr;
+    const Session::CharacterStepHooks hooks{};
     if (auto stepped = Actors::StepCharacters(Actors::CharacterStepContext{
             .world = *m_context.world,
             .random = m_context.cloth->random,
@@ -140,7 +142,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .trapezoid = &m_context.states->camera.trapezoid,
             .dynamicLighting = &DynamicLight().Lighting(),
             .faunaModels = &LoadedFaunaModels(),
-            .reportedCell = &m_context.states->actors.reportedCell});
+            .reportedCell = &m_context.states->actors.reportedCell,
+            .hooks = &hooks});
         !stepped.HasValue())
     {
         return stepped;

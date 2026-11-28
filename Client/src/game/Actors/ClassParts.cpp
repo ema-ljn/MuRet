@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
+#include "Tables/PlayerActions.h"
 #include "Kernel/CharacterAppearance.h"
 #include "Actors/ActorActions.h"
 #include "Actors/ActorEquipment.h"
@@ -17,10 +18,10 @@ namespace Client::Actors
 namespace
 {
 // 0x51311c..0x51312e: 0x4f2250 only with the action outside both windows.
-constexpr std::uint8_t FirstBusyAction = 0x22;
-constexpr std::uint8_t LastBusyAction = 0x97;
-constexpr std::uint8_t FirstEmoteAction = 0xc5;
-constexpr std::uint8_t LastEmoteAction = 0xcc;
+using Tables::FirstBusyAction;
+using Tables::FirstEmoteAction;
+using Tables::LastBusyAction;
+using Tables::LastEmoteAction;
 
 // 0x513146..0x51324d: the part compared with the base model of each round's part. The helmet's is its own (+0x218);
 // the others, the next one: +0x258 with the armor, +0x278 with the pants, +0x298 with the gloves and the right hand

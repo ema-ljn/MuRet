@@ -1,5 +1,6 @@
 #include "Scenes/SocialRequests.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Protocol/Social/Duel.h"
@@ -117,7 +118,7 @@ Core::Expected<UI::ChatCommandNotice, std::string> NamedNotice(const SocialReque
     const auto format = UI::TextAt(&context.texts, text);
     if (!format)
         return Core::Unexpected(std::format("{}: sin el texto {} de Text.bmd", where, text));
-    const std::string name = ChatNameOf(context.world.Actors()[ActorWithTheSameKey(context.world, key)]);
+    const std::string name = Actors::ChatNameOf(context.world.Actors()[ActorWithTheSameKey(context.world, key)]);
     return UI::ChatCommandNotice{.text = text, .type = UI::SystemMessage, .formatted = Crt::Sprintf(*format, name)};
 }
 
@@ -192,13 +193,14 @@ NoticeWithTheName(const SocialRequestContext& context, std::size_t text, std::ui
 bool AnotherLeadsTheParty(const Kernel::WorldState& world)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    return runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(world.Hero());
+    return runtime.hud.partyCount > 0 &&
+           NameUntilZero(runtime.social.party.slots[0].name) != Actors::ChatNameOf(world.Hero());
 }
 
 bool IsInTheParty(const Kernel::WorldState& world, std::size_t index)
 {
     const Kernel::WorldRuntime& runtime = world.Runtime();
-    const std::string name = ChatNameOf(world.Actors()[index]);
+    const std::string name = Actors::ChatNameOf(world.Actors()[index]);
     for (std::int32_t member = 0; member < runtime.hud.partyCount; ++member)
     {
         const auto slot = static_cast<std::size_t>(member);
@@ -212,7 +214,7 @@ bool IsInTheParty(const Kernel::WorldState& world, std::size_t index)
 
 bool IsTheDuelRival(const Kernel::WorldState& world, std::size_t index)
 {
-    return ChatNameOf(world.Actors()[index]) == NameUntilZero(world.Runtime().social.duel.rivalName);
+    return Actors::ChatNameOf(world.Actors()[index]) == NameUntilZero(world.Runtime().social.duel.rivalName);
 }
 
 CellDistance CellDistanceToTheHero(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t index)
@@ -334,7 +336,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestAParty(const SocialRe
     const Kernel::ActorState& hero = context.world.Hero();
     // 0x56f13f..0x56f1b0.
     // strcmp: el nombre del héroe sigue en +0x1e3 si llena los diez bytes.
-    if (runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != ChatNameOf(hero))
+    if (runtime.hud.partyCount > 0 && NameUntilZero(runtime.social.party.slots[0].name) != Actors::ChatNameOf(hero))
         return Handled({UI::ChatCommandNotice{.text = NotTheLeaderText, .type = UI::SystemMessage}});
     auto chosen = TheChosen(context.world, "0x56f1b1");
     if (!chosen.HasValue())
@@ -389,7 +391,7 @@ Core::Expected<UI::ChatCommandOutcome, std::string> RequestTheShopItems(const So
         // 0x575529..0x575e77: a cada uno de los 400 vivo con ese nombre, uno por uno (07 Q-C967).
         for (std::size_t index = 0; index < SearchedActors; ++index)
         {
-            if (!actors[index].alive || ChatNameOf(actors[index]) != *name)
+            if (!actors[index].alive || Actors::ChatNameOf(actors[index]) != *name)
                 continue;
             if (auto sent = SendTheShopRequest(context, index, "0x575570"); !sent.HasValue())
                 return Core::Unexpected(sent.Error());

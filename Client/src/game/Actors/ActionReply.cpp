@@ -6,6 +6,7 @@
 #include "Tables/AddedEmotes.h"
 #include "Tables/PlayerModels.h"
 #include "Protocol/Movement/Movement.h"
+#include "Protocol/Combat/Combat.h"
 #include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Models/Skeleton.h"
@@ -13,7 +14,6 @@
 #include "Actors/ActorActions.h"
 #include "Scenes/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -47,10 +47,10 @@ constexpr std::uint8_t ShieldAction = 0x12;
 constexpr std::uint8_t ShieldAnimation = 0x98;
 constexpr Audio::SoundId ShieldSound{0x6f};
 // 0x4cb820: 0x78 and 0x79 go to 0x4f4a10 (Strike).
-constexpr std::uint8_t FirstStrikeAction = 0x78;
+constexpr std::uint8_t FirstStrikeAction = Protocol::Combat::AttackAction;
 constexpr std::uint8_t LastStrikeAction = 0x79;
 // 0x4cb812: 0x7a and 0x7b go to 0x4f2250.
-constexpr std::uint8_t FirstStopAction = 0x7a;
+constexpr std::uint8_t FirstStopAction = Protocol::Movement::FacingAction;
 constexpr std::uint8_t LastStopAction = 0x7b;
 // 0x4cbc92: 0x7e sets 5.
 constexpr std::uint8_t SalutedAction = 0x7e;
@@ -126,7 +126,7 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     const ActorStopContext context{
         .runtime = resources.world.Runtime(),
         .scene = Scenes::SceneId::Game,
@@ -199,7 +199,7 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
         Models::SetAction(actor.animation, *player, AnimationOf(actor, action, addedEmotes));
     }
-    else if (auto set = Scenes::SetMonsterAction(actor, AnimationOf(actor, action, addedEmotes), 0x4cbcdd, resources);
+    else if (auto set = SetMonsterAction(actor, AnimationOf(actor, action, addedEmotes), 0x4cbcdd, resources);
              !set.HasValue())
     {
         return set;
@@ -207,6 +207,25 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     // 0x4cb864: 0x41ed10(0x6f, 0, 0).
     if (action == ShieldAction)
         resources.world.Runtime().RequestSound(ShieldSound);
+    return {};
+}
+
+const Models::Skeleton* MonsterSkeletonOf(const Scenes::WorldEntryResources& resources, std::uint16_t model)
+{
+    if (const auto* skeleton =
+            Assets::FaunaModelsOrEmpty(Scenes::FaunaModelsOf(resources)).SkeletonOf(Models::ModelId{model}))
+        return skeleton;
+    return resources.models.SkeletonOf(Models::ModelId{model});
+}
+
+Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
+                                                   [[maybe_unused]] std::uint32_t address,
+                                                   const Scenes::WorldEntryResources& resources)
+{
+    // The record of 0x5769ad8 + type · 0xe0 always exists: that of a model that was not loaded (a .bmd missing from Npc
+    // or Object35, which 0x60da30 skips) has +0x26 at 0, and 0x4ea030 leaves without setting anything (0x4ea056).
+    if (const auto* skeleton = MonsterSkeletonOf(resources, actor.type))
+        Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 } // namespace Client::Actors

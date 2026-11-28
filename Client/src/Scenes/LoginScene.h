@@ -19,7 +19,7 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/CharacterHead.h"
-#include "Scenes/DarkHorse.h"
+#include "Kernel/HelperTable.h"
 #include "Actors/FullSetScan.h"
 #include "Tables/GameData.h"
 #include "Scenes/IScene.h"
@@ -185,13 +185,13 @@ private:
     void StepTheScene(const Input::InputState& input, bool connecting);
     // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
     // lo dejó el dibujo anterior (antes de este paso).
-    void BreatheTheHorse(const DarkHorse& drawn);
+    void BreatheTheHorse(const Kernel::DarkHorse& drawn);
     // Dónde queda `offset` en el hueso `bone` del buffer global de la pose (0x68b181c) al llegar al paso:
     // lo dejó el último modelo posado sin buffer propio en el dibujo anterior que tiene ese hueso y no es
     // dummy (LastPosedBonePoint), en el mundo: el dragón (0x52d620) va después del caballo (0x4453b0), pero
     // su hueso 27 es dummy, y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
     [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
-                                            const DarkHorse& drawnHorse) const;
+                                            const Kernel::DarkHorse& drawnHorse) const;
     void DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
     void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
@@ -314,7 +314,7 @@ private:
     std::optional<Assets::SceneTextures> m_logoTextures;
     LoginRoutes m_routes;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
-    DarkHorse m_horse;
+    Kernel::DarkHorse m_horse;
     // La tela del Dark Lord (0x50ba30), entre frames.
     Actors::Drawing::CharacterCloth m_characterCloth;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.

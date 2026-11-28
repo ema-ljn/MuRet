@@ -1,5 +1,6 @@
 #include "Scenes/GameChat.h"
 
+#include "Actors/ActorName.h"
 #include "Input/Key.h"
 #include "Input/TextInputEvent.h"
 
@@ -222,7 +223,7 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         return {};
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x576eb0: los emotes sin Text.bmd"));
-    const std::optional<UI::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
+    const std::optional<Actors::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
     const Tables::AddedEmote* added =
         emote ? nullptr : UI::FindTheAddedEmote(context.world.Runtime().addedEmotes, said);
     if (!emote && added == nullptr)
@@ -366,7 +367,7 @@ Core::Expected<void, std::string> SayInTheChat(const GameChatContext& context, s
         return {};
     input.lastSaid = std::string(said);
     input.brake = BrakeSteps;
-    if (UI::ContainsLikeTheOriginal(HeroNameOf(hero), WebzenWord) &&
+    if (UI::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord) &&
         std::ranges::none_of(WebzenPrefixes, [said](std::string_view prefix) { return said.starts_with(prefix); }))
         return {};
     if (hero.dying == 0)
@@ -441,7 +442,7 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     UI::ChatInputState& input = runtime.chat.input;
     const Kernel::ActorState& hero = context.world.Hero();
-    if (!UI::ContainsLikeTheOriginal(HeroNameOf(hero), WebzenWord))
+    if (!UI::ContainsLikeTheOriginal(Actors::HeroNameOf(hero), WebzenWord))
     {
         std::array<std::byte, Protocol::Chat::ChatNameSize> target{};
         std::transform(input.whisperBuffer.begin(), input.whisperBuffer.begin() + Protocol::Chat::ChatNameSize,
@@ -452,7 +453,7 @@ Core::Expected<void, std::string> WhisperIt(const GameChatContext& context, std:
         const std::string_view sent(input.whisperBuffer.data(), Protocol::Chat::ChatNameSize);
         runtime.chat.lastWhisperTarget = std::string(sent.substr(0, sent.find('\0')));
     }
-    return AddMessage(context, HeroNameOf(hero), said, UI::WhisperMessage, "0x4b8839");
+    return AddMessage(context, Actors::HeroNameOf(hero), said, UI::WhisperMessage, "0x4b8839");
 }
 
 // 0x4b5624..0x4b883e: lo escrito, con el campo ya leído. Devuelve si sigue en 0x4b8841 (todo menos un comando que

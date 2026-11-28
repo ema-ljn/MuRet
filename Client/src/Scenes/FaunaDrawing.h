@@ -48,6 +48,8 @@ struct FaunaDrawCarry
     std::vector<Math::BoneTransform> bones;
     std::vector<Models::SkinnedMesh> meshes;
     std::map<std::uint16_t, Models::ObjectTransform> models;
+    // One mesh skinned before it goes over the head of `meshes`, kept for its capacity.
+    Models::SkinnedMesh skinned;
 };
 [[nodiscard]] Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry,
                                                                  const Models::IModelLibrary& models,

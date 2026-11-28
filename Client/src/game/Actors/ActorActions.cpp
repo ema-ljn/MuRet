@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemTable.h"
+#include "Tables/PlayerActions.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Kernel/CharacterClass.h"
 #include "Maps/MapId.h"
@@ -58,7 +59,7 @@ constexpr std::uint8_t FenrirBothHandsStand = 0x77;
 constexpr std::uint8_t FenrirRightHandStand = 0x78;
 constexpr std::uint8_t FenrirLeftHandStand = 0x79;
 constexpr std::uint8_t MarkedSpecialStand = 0x8a;
-constexpr std::uint8_t SittingAction = 0xca;
+using Tables::SittingAction;
 constexpr std::uint8_t DefaultModelStandAction = 0;
 constexpr std::uint8_t WallStandAction = 7;
 

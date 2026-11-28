@@ -12,6 +12,7 @@
 #include "Audio/MusicPlayer.h"
 #include "Audio/Playback.h"
 #include "App/ServerAddress.h"
+#include "Session/CharacterStepHooks.h"
 #include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
@@ -52,6 +53,7 @@
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Actors/FullSetScan.h"
+#include "Actors/Drawing/GameCharacterEffects.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameDrawTail.h"
@@ -873,6 +875,7 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
+    const Session::CharacterStepHooks hooks{};
     return Actors::StepCharacters(
         {.world = CharacterWorld(),
          .random = cloth.random,
@@ -888,7 +891,8 @@ Core::Expected<void, std::string> LoginScene::StepTheCharacters()
          { CharacterWorld().Runtime().RequestSound(sound, origin); },
          .trapezoid = &SharedTerrainPolygon(),
          .dynamicLighting = &DynamicLight().Lighting(),
-         .faunaModels = &States().assets.fauna});
+         .faunaModels = &States().assets.fauna,
+         .hooks = &hooks});
 }
 
 void LoginScene::StepTheWorld()
@@ -938,7 +942,7 @@ void LoginScene::StepTheWorld()
     {
         // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
         // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
-        const DarkHorse drawn = m_horse;
+        const Kernel::DarkHorse drawn = m_horse;
         StepDarkHorse(m_horse, *horse, CharacterWorld().Actors()[LoginActorSlot].animation.action);
         BreatheTheHorse(drawn);
     }
@@ -1108,7 +1112,7 @@ Core::Expected<void, std::string> LoginScene::StepTheParticles()
     return {};
 }
 
-void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
+void LoginScene::BreatheTheHorse(const Kernel::DarkHorse& drawn)
 {
     // Con el jinete (+0x108), sin su 0x4000 (+0x78; el del login no lo tiene) y la acción del caballo
     // distinta de 1, rand() % 3 en 0: el 0x5f2 en el hueso 27 del buffer global con (50; −4; 0), con los
@@ -1135,7 +1139,8 @@ void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
                                               LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
 }
 
-glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset, const DarkHorse& drawnHorse) const
+glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
+                                      const Kernel::DarkHorse& drawnHorse) const
 {
     if (!m_drawnSinceEntering)
     {
@@ -1995,15 +2000,15 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
 void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
 {
     DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
-    if (!DarkSpiritSeen(spirit, SharedTerrainPolygon()))
+    if (!Actors::Drawing::DarkSpiritSeen(spirit, SharedTerrainPolygon()))
     {
-        MissTheView(spirit);
+        Actors::Drawing::MissTheView(spirit);
         return;
     }
     const Models::Skeleton* skeleton = m_models.SkeletonOf(Models::ModelId{DarkSpiritModel});
     const glm::vec3 light = TerrainLightAt(spirit.position);
     const Terrain::WorldTerrain* terrain = m_terrain.Terrain();
-    Actors::Drawing::DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
+    Actors::Drawing::DrawnObject drawn = Actors::Drawing::DrawnDarkSpirit(spirit, skeleton, light, alpha);
     if (carry != nullptr)
     {
         if (auto result = PublishFaunaPose(*carry, m_models, drawn, true); !result.HasValue())
@@ -2021,7 +2026,8 @@ void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, F
                                     m_world ? m_world->map : 0);
     if (carry != nullptr)
         carry->models[drawn.model].position = {drawn.transform.position.x, drawn.transform.position.y, ground};
-    spirit.pose = Actors::Drawing::PosedWorldBones(m_models, DrawnDarkSpirit(spirit, skeleton, light, 0.0f));
+    spirit.pose =
+        Actors::Drawing::PosedWorldBones(m_models, Actors::Drawing::DrawnDarkSpirit(spirit, skeleton, light, 0.0f));
 }
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a

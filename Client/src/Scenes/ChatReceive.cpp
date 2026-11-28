@@ -1,5 +1,6 @@
 #include "Scenes/ChatReceive.h"
 
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 #include "Core/Expected.h"
 #include "Protocol/Chat/Messages.h"
@@ -213,7 +214,7 @@ Core::Expected<void, std::string> ApplyKeyChat(const Protocol::Chat::KeyChat& ch
         return Core::Unexpected(measure.Error());
     return AddChatBubble(
         world, ChatBubbleMeasure{.measure = *measure.Value(), .screen = context.screen, .texts = context.texts},
-        ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
+        Actors::ChatNameOf(speaker), CString(chat.text), index, ChatBubbleMode::Chat);
 }
 
 Core::Expected<void, std::string> ApplyWhisper(const Protocol::Chat::Whisper& whisper,

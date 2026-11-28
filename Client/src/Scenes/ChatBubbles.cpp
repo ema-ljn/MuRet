@@ -1,5 +1,6 @@
 #include "Scenes/ChatBubbles.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Kernel/ActorState.h"
@@ -205,14 +206,6 @@ void PutTheLine(ChatBubble& bubble, std::string_view text, std::int32_t steps)
 }
 } // namespace
 
-std::string ChatNameOf(const Kernel::ActorState& actor)
-{
-    std::string name(HeroNameOf(actor));
-    if (name.size() == actor.name.size() && actor.byte1e3 != 0)
-        name.push_back(static_cast<char>(actor.byte1e3));
-    return name;
-}
-
 Core::Expected<void, std::string> AddChatBubble(Kernel::WorldState& world, const ChatBubbleMeasure& measure,
                                                 std::string_view name, std::string_view text, std::size_t owner,
                                                 ChatBubbleMode mode, std::optional<std::uint8_t> color)
@@ -302,7 +295,7 @@ Core::Expected<void, std::string> AddChatBubbleByName(Kernel::WorldState& world,
         for (std::size_t index = 0; index < Searched; ++index)
         {
             const Kernel::ActorState& actor = actors[index];
-            if (actor.alive && actor.byte88 == kind && ChatNameOf(actor) == name)
+            if (actor.alive && actor.byte88 == kind && Actors::ChatNameOf(actor) == name)
                 return AddChatBubble(world, measure, name, text, index, mode);
         }
     }
@@ -348,7 +341,7 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
             continue;
         if (!runtime.ui.chatOpen || hero.safeZone == 0)
             continue;
-        if (CString(bubble.name) == ChatNameOf(hero) || !runtime.ui.rightClick || !bubble.owner ||
+        if (CString(bubble.name) == Actors::ChatNameOf(hero) || !runtime.ui.rightClick || !bubble.owner ||
             actors[*bubble.owner].word376 != WhisperableWord376)
             continue;
         // 0x5577a2..0x55780d: el derecho se gasta, el nombre va al EDIT del susurro (0x4694c0(0, 0, 1, nombre), con

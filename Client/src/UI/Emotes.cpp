@@ -2,6 +2,7 @@
 
 #include "Tables/AddedEmotes.h"
 #include "Tables/TextTable.h"
+#include "Actors/Emote.h"
 #include "UI/NameChecks.h"
 
 #include <algorithm>
@@ -14,6 +15,8 @@
 
 namespace Client::UI
 {
+using Actors::EmoteCase;
+
 namespace
 {
 // Los 22 casos, por la dirección de su bloque: la animación y la acción de 0x576a60(héroe, héroe, animación, acción).

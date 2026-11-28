@@ -22,6 +22,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
+#include "Models/SkinningBuffers.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Assets/FaunaModels.h"
@@ -44,6 +45,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>
 
@@ -226,7 +228,9 @@ protected:
                 .poseCarry = &m_carry,
                 .joints = m_joints,
                 .terrain = &m_terrain,
-                .faunaModels = &m_faunaModels};
+                .faunaModels = &m_faunaModels,
+                .drawBuffers = &m_buffers,
+                .hooks = &m_drawHooks};
     }
 
     Client::Core::Expected<void, std::string> Draw(const GameCharacterPass& pass)
@@ -249,11 +253,13 @@ protected:
     Client::Assets::FaunaModels m_faunaModels;
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
+    Client::Session::CharacterDrawHooks m_drawHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
     Client::Scenes::FaunaDrawCarry m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
+    Client::Models::SkinningBuffers m_buffers;
     Client::Render::ModelBatch m_batch;
 };
 
@@ -292,6 +298,53 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
     EXPECT_EQ(spider.bodyPose.size(), 48u);
     // El de 0x50db57 y los dos de +0x38e en el lazo de las manos (0x50e288), sin ninguna mano.
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
+}
+
+// The buffers the frame's owner lends keep what a bigger model skinned: a monster of one mesh drawn in the buffers of
+// one of two draws its body and its shadow as it draws them with buffers of its own.
+TEST_F(MonsterDrawingTest, AMonsterDrawnInTheBuffersOfABiggerOneDrawsAsWithItsOwn)
+{
+    Monster(7, Spider, 3);
+    MonsterModels bigger;
+    bigger.AddMesh();
+    m_faunaModels.Bind(&bigger);
+    ASSERT_TRUE(Draw(Pass()).HasValue());
+    m_faunaModels.Bind(&m_models);
+    m_batch.Begin(Client::Render::Pass3D{});
+
+    const auto reused = Draw(Pass());
+
+    ASSERT_TRUE(reused.HasValue()) << reused.Error();
+    const std::vector<Client::Render::ModelVertex> drawn(m_batch.Vertices().begin(), m_batch.Vertices().end());
+    ASSERT_EQ(drawn.size(), 6u);
+    GameCharacterPass own = Pass();
+    own.drawBuffers = nullptr;
+    m_batch.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Draw(own).HasValue());
+    ASSERT_EQ(m_batch.Vertices().size(), drawn.size());
+    for (std::size_t vertex = 0; vertex < drawn.size(); ++vertex)
+    {
+        EXPECT_EQ(m_batch.Vertices()[vertex].position, drawn[vertex].position) << vertex;
+        EXPECT_EQ(m_batch.Vertices()[vertex].uv, drawn[vertex].uv) << vertex;
+        ExpectColor(m_batch.Vertices()[vertex], drawn[vertex].color.red, drawn[vertex].color.green,
+                    drawn[vertex].color.blue, drawn[vertex].color.alpha);
+    }
+}
+
+// 0x50ba30 is another module's (Session::CharacterDrawHooks): a pass without its hooks stops at the first monster,
+// before any vertex or random.
+TEST_F(MonsterDrawingTest, AMonsterWithoutTheDrawHooksStopsBeforeDrawing)
+{
+    Monster(7, Spider, 3);
+    GameCharacterPass pass = Pass();
+    pass.hooks = nullptr;
+
+    const auto result = Draw(pass);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x50ba30"), std::string::npos) << result.Error();
+    EXPECT_TRUE(m_batch.Vertices().empty());
+    EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(0));
 }
 
 // 0x50be15..0x50be52: después del cuerpo, en Blood Castle (0xb a 0x11), el que muere empujado (+0x1a1 y +0x389) baja a
@@ -2045,25 +2098,25 @@ TEST(MonsterHangingLight, BloodCastleKeepersRedAndOrdinaryLight)
     const glm::vec3 terrain{0.2f, 0.4f, 0.6f};
     actor.word376 = 0x57;
     // El mapa 15: (15 − 9) / 3 = 2, por 0,5.
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 15), glm::vec3(1.0f, 0.1f, 0.1f));
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 15), glm::vec3(1.0f, 0.1f, 0.1f));
     // El 10 (el 1 de Blood Castle): el cociente da 0 y queda la del terreno.
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 10), terrain + actor.light);
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 10), terrain + actor.light);
     // Lorencia y Devias: la del terreno más la propia.
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 0), terrain + actor.light);
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 2), terrain + actor.light);
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 0), terrain + actor.light);
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 2), terrain + actor.light);
     actor.word376 = 0x5a;
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 15), terrain + actor.light);
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 15), terrain + actor.light);
     actor.pk = 6;
-    EXPECT_EQ(Client::Scenes::HangingLightOf(actor, terrain, 0), glm::vec3(1.0f, 0.1f, 0.1f));
+    EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 0), glm::vec3(1.0f, 0.1f, 0.1f));
 }
 
 TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
 {
-    EXPECT_TRUE(Client::Scenes::CheckMonsterDecorations(3).HasValue());
-    EXPECT_TRUE(Client::Scenes::CheckMonsterDecorations(0xffff).HasValue());
-    EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x45).Error().find("0x50bf98"), std::string::npos);
-    EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x50).Error().find("0x50c671"), std::string::npos);
-    EXPECT_NE(Client::Scenes::CheckMonsterDecorations(0x85).Error().find("0x50c83b"), std::string::npos);
+    EXPECT_TRUE(Client::Actors::Drawing::CheckMonsterDecorations(3).HasValue());
+    EXPECT_TRUE(Client::Actors::Drawing::CheckMonsterDecorations(0xffff).HasValue());
+    EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x45).Error().find("0x50bf98"), std::string::npos);
+    EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x50).Error().find("0x50c671"), std::string::npos);
+    EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x85).Error().find("0x50c83b"), std::string::npos);
     // El camino del 0x20a corta también con los pases de brillo, que DrawGameMonster dibuja.
     constexpr std::array<std::uint16_t, 10> Shining{0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e, 0x53, 0x35, 0x36, 0x87};
     for (const std::uint16_t shining : Shining)
@@ -2071,8 +2124,8 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     constexpr std::array<std::uint16_t, 7> Others{0x45, 0x46, 0x4d, 0x54, 0x2a, 0x86, 0x88};
     for (const std::uint16_t other : Others)
         EXPECT_FALSE(Client::Scenes::MonsterShines(other)) << other;
-    EXPECT_TRUE(Client::Scenes::WearsClothOnTheMesh(0x8f));
-    EXPECT_FALSE(Client::Scenes::WearsClothOnTheMesh(0x58));
+    EXPECT_TRUE(Client::Actors::Drawing::WearsClothOnTheMesh(0x8f));
+    EXPECT_FALSE(Client::Actors::Drawing::WearsClothOnTheMesh(0x58));
 }
 } // namespace
 

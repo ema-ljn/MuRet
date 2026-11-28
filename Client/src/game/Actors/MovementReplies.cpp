@@ -17,7 +17,7 @@
 #include "Scenes/CrywolfContract.h"
 #include "Scenes/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/MonsterCreation.h"
+#include "Actors/ActionReply.h"
 #include "Scenes/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -72,7 +72,7 @@ Core::Expected<ActorStopContext, std::string> StopContext(const Kernel::ActorSta
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = skeleton != nullptr ? skeleton : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     return ActorStopContext{
         .runtime = resources.world.Runtime(),
         .scene = Scenes::SceneId::Game,

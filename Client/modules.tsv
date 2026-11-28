@@ -31,7 +31,7 @@ game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Events/Crywolf;game/Guil
 game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Pets;game/Player;game/WorldObjects	monsters and their drawing
 game/Pets	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
 game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the player's path, gates, speed
-game/Skills	game	9		*layer<9;game/Chat;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Particles;game/Party;game/Player	the hero's skills and their replies
+game/Skills	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Joints;game/Monsters;game/Particles;game/Party;game/Player	the hero's skills and their replies
 game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Particles;game/Player	combat
 game/Items	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
 game/Tooltips	game	9		*layer<9;game/Actors;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips

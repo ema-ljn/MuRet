@@ -11,7 +11,7 @@
 #include "Input/Key.h"
 #include "Scenes/IScene.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "support/FakeClock.h"
 #include "support/RecordingClient.h"

@@ -4,7 +4,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Actors/ActionSend.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Audio/SoundId.h"
 
 #include <cstdint>

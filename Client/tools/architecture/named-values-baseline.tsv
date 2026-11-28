@@ -253,7 +253,6 @@ skill	game/Combat/ActorCombat.cpp	FirstActionSkill	0x32
 skill	game/Combat/ActorCombat.cpp	FirstKalimaSkill	0x1
 skill	game/Combat/ActorCombat.cpp	KalimaSkill	0x11
 skill	game/Combat/ActorCombat.cpp	UsedSkill	0xff
-skill	game/Combat/AttackStep.cpp	FlaggedSkill	0x18
 skill	game/Combat/CombatReplies.cpp	FirstPushSkill	0x28
 skill	game/Combat/CombatReplies.cpp	SecondPushSkill	0x3b
 skill	game/Effects/ArrowEffects.cpp	PiercingSkill	0x34
@@ -270,6 +269,7 @@ skill	game/Pets/GamePetWindow.cpp	HorseSkill	0x3e
 skill	game/Skills/AttackFrameSkills.cpp	ThrowSkill	0x37
 skill	game/Skills/AttackSkillCases.cpp	DarkLordSkill	0x117
 skill	game/Skills/AttackSkillCases.cpp	FlameSkill	0x5
+skill	game/Skills/AttackStep.cpp	FlaggedSkill	0x18
 skill	game/Skills/HeroSkills.cpp	ChargedSkill	0x28
 skill	game/Skills/HeroSkills.cpp	ReleasedChargedSkill	0x3a
 skill	game/Skills/HeroSkillsElf.cpp	ShotSkill	0x34

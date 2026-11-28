@@ -25,7 +25,7 @@
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Party/PartyActors.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Social/SocialState.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/WorldMap.h"

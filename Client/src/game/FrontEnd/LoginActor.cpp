@@ -10,7 +10,7 @@
 #include "Kernel/ActorState.h"
 #include "Pets/DarkSpirit.h"
 #include "FrontEnd/LoginModels.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 

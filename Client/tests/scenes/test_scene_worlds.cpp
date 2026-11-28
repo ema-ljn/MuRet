@@ -1,7 +1,7 @@
 #include "Scenes/SceneWorlds.h"
 
 #include "Maps/WorldFolder.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "support/ScenePrinters.h"
 
 #include <gtest/gtest.h>

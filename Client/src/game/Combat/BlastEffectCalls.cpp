@@ -7,7 +7,7 @@
 #include "Kernel/ModelEffectArguments.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"

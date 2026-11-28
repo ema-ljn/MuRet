@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <algorithm>
 #include <array>

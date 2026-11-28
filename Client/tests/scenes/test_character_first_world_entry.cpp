@@ -21,7 +21,7 @@
 #include "Kernel/OwnInventory.h"
 #include "Session/SessionEventApplier.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

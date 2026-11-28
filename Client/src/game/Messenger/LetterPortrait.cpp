@@ -33,7 +33,7 @@
 #include "Tooltips/GameTooltips.h"
 #include "Pets/HelperTable.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Tooltips/TooltipLines.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

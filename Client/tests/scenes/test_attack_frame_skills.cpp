@@ -10,7 +10,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Combat/AttackStep.h"
+#include "Skills/AttackStep.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"

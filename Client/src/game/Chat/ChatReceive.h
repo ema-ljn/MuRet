@@ -7,7 +7,7 @@
 #include "Protocol/Player/OptionData.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Guild/GuildPanels.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <cstdint>
 #include <functional>

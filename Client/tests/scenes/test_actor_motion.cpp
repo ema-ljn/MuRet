@@ -11,7 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorWalk.h"
 #include "Actors/PlayerActionSpeeds.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/PlayerActors.h"

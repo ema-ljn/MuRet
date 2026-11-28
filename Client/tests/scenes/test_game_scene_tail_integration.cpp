@@ -24,7 +24,7 @@
 #include "Core/Log.h"
 #include "Tables/SkillTable.h"
 #include "Core/ILogSink.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneContext.h"
 #include "Models/Cloth.h"
 #include "Render/TextureSlot.h"

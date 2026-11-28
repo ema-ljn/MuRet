@@ -9,7 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Particles/Particles.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/ParticleOwner.h"

@@ -33,7 +33,7 @@
 #include "Tables/GameData.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Assets/SceneTextures.h"
 #include "Assets/TextureSets.h"
 #include "Kernel/WorldRuntime.h"

@@ -6,7 +6,7 @@
 #include "Render/ModelBatch.h"
 #include "Math/HalfLifeMath.h"
 #include "Kernel/HelperTable.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <glm/ext/vector_float3.hpp>
 

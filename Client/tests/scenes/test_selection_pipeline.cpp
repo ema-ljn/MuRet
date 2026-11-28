@@ -29,7 +29,7 @@
 #include "FrontEnd/LoginModels.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Session/WorldEntry.h"

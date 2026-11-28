@@ -13,7 +13,7 @@
 #include "Models/LogicalAccess.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"

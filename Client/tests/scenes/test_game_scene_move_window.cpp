@@ -16,7 +16,7 @@
 #include "Session/MapLoad.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/PanelRegistry.h"

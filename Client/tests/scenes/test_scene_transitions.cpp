@@ -1,6 +1,6 @@
 #include "Scenes/SceneTransitions.h"
 
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "support/ScenePrinters.h"
 
 #include <gtest/gtest.h>

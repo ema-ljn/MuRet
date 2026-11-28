@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Audio/SoundId.h"
 
 #include <cstddef>

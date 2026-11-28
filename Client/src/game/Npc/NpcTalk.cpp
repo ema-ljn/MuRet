@@ -16,7 +16,7 @@
 #include "Hud/GamePanels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Quests/QuestState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/GameText.h"

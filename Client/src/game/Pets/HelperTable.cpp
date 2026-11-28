@@ -24,7 +24,7 @@
 #include "Pets/HelperStepParts.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Pets/PetHelperSteps.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Events/ChaosCastle/ChaosCastle.h"

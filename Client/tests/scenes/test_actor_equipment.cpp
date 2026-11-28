@@ -11,7 +11,7 @@
 #include "Actors/FullSetScan.h"
 #include "Player/ItemSetState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/ItemState.h"
 #include "support/ItemSetFiles.h"

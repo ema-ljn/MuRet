@@ -6,7 +6,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Math/Ftol.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"

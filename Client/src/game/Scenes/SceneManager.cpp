@@ -6,7 +6,7 @@
 #include "Input/InputState.h"
 #include "Render/Frame/IFrameTarget.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneTransitions.h"
 
 #include <format>

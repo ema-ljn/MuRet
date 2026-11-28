@@ -20,7 +20,7 @@
 #include "Protocol/Outgoing.h"
 #include "Ui/PanelDialog.h"
 #include "Quests/Quests.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "CastleSiege/SiegeBattleUi.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"

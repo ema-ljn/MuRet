@@ -8,7 +8,7 @@
 #include "Protocol/Outgoing.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Terrain/GroundMarks.h"
 #include "Terrain/TerrainCulling.h"
 #include "Audio/SoundId.h"

@@ -21,7 +21,7 @@
 #include "Chat/ChatReceive.h"
 #include "Messenger/GameFriends.h"
 #include "Hud/GameUi.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatInput.h"

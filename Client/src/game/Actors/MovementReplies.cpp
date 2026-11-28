@@ -19,7 +19,7 @@
 #include "Combat/DamageNumbers.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/ActionReply.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

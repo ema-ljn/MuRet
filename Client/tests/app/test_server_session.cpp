@@ -41,7 +41,7 @@
 #include "Protocol/Session/Login.h"
 #include "Protocol/Session/ServerList.h"
 #include "Scenes/IScene.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Tables/DialogTable.h"
 

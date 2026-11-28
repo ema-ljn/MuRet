@@ -18,7 +18,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Player/OwnStatHelpers.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"

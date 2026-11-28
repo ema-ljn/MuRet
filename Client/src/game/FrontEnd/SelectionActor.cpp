@@ -13,7 +13,7 @@
 #include "FrontEnd/CharacterSlots.h"
 #include "Pets/DarkSpirit.h"
 #include "Pets/HelperTable.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"

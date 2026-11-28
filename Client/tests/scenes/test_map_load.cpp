@@ -15,7 +15,7 @@
 #include "Pets/DarkHorse.h"
 #include "Events/EventMapObject.h"
 #include "Pets/HelperTable.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

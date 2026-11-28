@@ -29,7 +29,7 @@
 #include "Items/FloorItemPackets.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Movement/GameMovementState.h"
 #include "Movement/GameGates.h"
 #include "Movement/GameHeroFacing.h"

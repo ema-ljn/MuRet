@@ -26,7 +26,7 @@
 #include "Monsters/MonsterCreation.h"
 #include "Player/OwnStatHelpers.h"
 #include "PersonalShop/PersonalShopTitles.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

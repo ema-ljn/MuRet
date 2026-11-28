@@ -16,6 +16,7 @@ from mutools.adapters.storage import LocalFileStore
 from mutools.app.actions import ActionEdit, ActionExport, export_action, import_action, remove_action
 from mutools.app.documents import EditResult, parse_json
 from mutools.app.edits import apply_operations, build, set_value
+from mutools.app.emotes import EmoteEdit, EmoteTable, add_emote, list_emotes, remove_emote
 from mutools.app.folders import (
     DiffResult,
     DumpResult,
@@ -44,6 +45,7 @@ from mutools.app.queries import (
 from mutools.app.workspace import WorkspaceResult, workspace_init
 from mutools.core.errors import ErrorCode, MutoolsError
 from mutools.core.findings import Finding, Severity
+from mutools.core.formats.emote_table import CHAT_ENCODING, LOOP, ONCE, ORIGINAL_KEYS_PER_STEP, AddedEmote
 from mutools.core.json_types import JsonObject
 from mutools.core.patch import Change, outlined, parse_patch
 
@@ -146,6 +148,9 @@ OUTPUT_TYPES: Final[dict[str, Any]] = {
     "action remove": ActionData,
     "gltf export": GltfExport,
     "gltf import": GltfImportData,
+    "emote list": EmoteTable,
+    "emote add": EmoteEdit,
+    "emote remove": EmoteEdit,
     "roundtrip": RoundtripResult,
     "tui": TuiData,
     "web": WebData,
@@ -171,6 +176,9 @@ EXAMPLES: Final = {
     "gltf export": "mutools gltf export ~/mu/Data/player/Player.bmd --output player.glb --part "
     "~/mu/Data/player/ArmorMale01.bmd --action 194",
     "gltf import": "mutools gltf import ~/mu/Data/player/Player.bmd player.glb --animation '194 Action 194' --dry-run",
+    "emote list": "mutools emote list ~/mu/Data",
+    "emote add": "mutools emote add ~/mu/Data 205 --trigger wave --trigger /wave --dry-run",
+    "emote remove": "mutools emote remove ~/mu/Data 205",
     "roundtrip": "mutools roundtrip ~/mu/Data",
     "tui": "mutools tui ~/mu/Data",
     "web": "mutools web ~/mu/Data",
@@ -199,6 +207,13 @@ NdjsonOption = Annotated[bool, typer.Option("--ndjson", help="One JSON line per 
 OutputOption = Annotated[Path, typer.Option("--output", help="The file to write", show_default=False)]
 ModelArgument = Annotated[Path, typer.Argument(help="A model .bmd file", show_default=False)]
 ActionArgument = Annotated[int, typer.Argument(min=0, help="An action's number, from 0, as in /actions/N")]
+DataArgument = Annotated[Path, typer.Argument(help="The game's Data folder", show_default=False)]
+EmoteActionArgument = Annotated[
+    int, typer.Argument(min=0, help="The action of player/Player.bmd the emote plays, from 205 to 255")
+]
+ChatEncodingOption = Annotated[
+    str, typer.Option("--encoding", help="Read and write the triggers in this encoding, the one the chat sends")
+]
 
 app = typer.Typer(add_completion=False, context_settings={"help_option_names": []})
 workspace_app = typer.Typer(context_settings={"help_option_names": []})
@@ -210,6 +225,13 @@ app.add_typer(
     gltf_app,
     name="gltf",
     help="A model as a glTF binary file (.glb) for Blender, and an animation from one back into the model as an action",
+)
+emote_app = typer.Typer(context_settings={"help_option_names": []})
+app.add_typer(
+    emote_app,
+    name="emote",
+    help="MuRet's own emotes, which the original does not have: the rows of Data/MuRet/Emotes.txt, each an action "
+    "added to player/Player.bmd after its 205 that MuRet's client plays when the chat has one of its triggers",
 )
 
 
@@ -637,6 +659,73 @@ def gltf_import_command(
         shown.next_offset,
     )
     return Outcome("gltf import", data, GltfImportData, warnings=result.warnings)
+
+
+@emote_app.command(
+    "list",
+    help="The emotes of Data/MuRet/Emotes.txt, in the order the chat tries them after the original's 95 triggers; "
+    "exists says whether the file is there",
+)
+def emote_list_command(data: DataArgument, encoding: ChatEncodingOption = CHAT_ENCODING) -> Outcome:
+    with about(data):
+        listed = list_emotes(STORE, expanded(data), encoding)
+    return Outcome("emote list", listed.result, EmoteTable, warnings=listed.warnings)
+
+
+@emote_app.command(
+    "add",
+    help="Add an emote to Data/MuRet/Emotes.txt, or change an action's with --replace: the action, which "
+    "player/Player.bmd must have, plays at --keys-per-step when the chat has a trigger anywhere in what is said, as "
+    "the original's emotes do, and is sent to the server as theirs are. emotes counts the rows the file has now",
+)
+def emote_add_command(  # noqa: PLR0913, PLR0917  Typer takes each flag as a parameter.
+    data: DataArgument,
+    action: EmoteActionArgument,
+    trigger: Annotated[
+        list[str],
+        typer.Option(
+            "--trigger",
+            help="A word that starts the emote; repeat it for more, such as wave and /wave",
+            show_default=False,
+        ),
+    ],
+    elf_action: Annotated[
+        int | None,
+        typer.Option("--elf-action", min=0, help="The action an elf plays instead (default: the same action)"),
+    ] = None,
+    keys_per_step: Annotated[
+        float,
+        typer.Option("--keys-per-step", help="How fast it plays: the action's keys a step, above 0 and at most 10"),
+    ] = ORIGINAL_KEYS_PER_STEP,
+    once: Annotated[
+        bool, typer.Option("--once", help="Play it once and hold its last key instead of in a loop")
+    ] = False,
+    replace: Annotated[bool, typer.Option("--replace", help="Change the emote of an action that has one")] = False,
+    encoding: ChatEncodingOption = CHAT_ENCODING,
+    dry_run: DryRunOption = False,
+) -> Outcome:
+    emote = AddedEmote(
+        action, action if elf_action is None else elf_action, keys_per_step, ONCE if once else LOOP, tuple(trigger)
+    )
+    with about(data):
+        added = add_emote(STORE, expanded(data), emote, replace_row=replace, encoding=encoding, dry_run=dry_run)
+    return Outcome("emote add", added.result, EmoteEdit, warnings=added.warnings)
+
+
+@emote_app.command(
+    "remove",
+    help="Take an action's emote out of Data/MuRet/Emotes.txt; the action stays in player/Player.bmd. emotes counts "
+    "the rows the file has now",
+)
+def emote_remove_command(
+    data: DataArgument,
+    action: EmoteActionArgument,
+    encoding: ChatEncodingOption = CHAT_ENCODING,
+    dry_run: DryRunOption = False,
+) -> Outcome:
+    with about(data):
+        result = remove_emote(STORE, expanded(data), action, encoding=encoding, dry_run=dry_run)
+    return Outcome("emote remove", result, EmoteEdit)
 
 
 @app.command("roundtrip", help="Decode and encode every .bmd of a folder and report any file that changes")

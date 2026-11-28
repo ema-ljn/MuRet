@@ -35,7 +35,13 @@ GLOBAL_OPTIONS: Final[list[JsonValue]] = [
     {"name": "--version", "help": "The tool's version"},
 ]
 
-_TYPE_NAMES: Final[dict[Any, str]] = {Path: "path", int: "integer", str: "string", bool: "boolean"}
+_TYPE_NAMES: Final[dict[Any, str]] = {
+    Path: "path",
+    int: "integer",
+    float: "number",
+    str: "string",
+    bool: "boolean",
+}
 
 
 def _type_name(annotation: Any) -> str:

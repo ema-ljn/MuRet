@@ -19,6 +19,9 @@ COMMANDS = {
     "action remove",
     "gltf export",
     "gltf import",
+    "emote list",
+    "emote add",
+    "emote remove",
     "roundtrip",
 }
 

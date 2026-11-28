@@ -11,6 +11,7 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
+#include "Tables/AddedEmotes.h"
 #include "UI/Emotes.h"
 
 #include "support/Bytes.h"
@@ -229,5 +230,34 @@ TEST_F(EmoteTest, TheAnimationUsesTheModelOfTheActorType)
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4ea030"), std::string::npos);
     EXPECT_TRUE(m_sent.empty());
+}
+// MuRet's added emote goes the way of a case: with the hero standing, its action and two equal C1 18.
+TEST_F(EmoteTest, AnAddedEmoteAnimatesAndSendsItsActionTwice)
+{
+    m_models.player.actions.resize(210);
+    m_hero->animation.action = 1;
+    m_hero->angles.z = 100.0f;
+    const Client::Tables::AddedEmote wave{
+        .action = 205, .elfAction = 207, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave"}};
+
+    ASSERT_TRUE(Client::Actors::DoTheAddedEmote(wave, Context()).HasValue());
+
+    EXPECT_EQ(m_hero->animation.action, 205);
+    ExpectSent(2, 3, 205);
+}
+
+// An elf takes the row's elfAction, and the C1 18 still carries the action.
+TEST_F(EmoteTest, AnElfTakesTheAddedEmotesElfAction)
+{
+    m_models.player.actions.resize(210);
+    m_hero->characterClass = ElfClass;
+    m_hero->animation.action = 1;
+    const Client::Tables::AddedEmote wave{
+        .action = 205, .elfAction = 207, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave"}};
+
+    ASSERT_TRUE(Client::Actors::DoTheAddedEmote(wave, Context()).HasValue());
+
+    EXPECT_EQ(m_hero->animation.action, 207);
+    ExpectSent(2, 1, 205);
 }
 } // namespace

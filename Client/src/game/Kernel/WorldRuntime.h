@@ -4,6 +4,7 @@
 #include "Audio/Playback.h"
 #include "Audio/SoundId.h"
 #include "Kernel/ISoundRequests.h"
+#include "Tables/AddedEmotes.h"
 #include "Tables/MonsterSkillTable.h"
 #include "Tables/DialogTable.h"
 #include "Tables/MoveRequirements.h"
@@ -411,6 +412,8 @@ struct WorldRuntime
     // 0x41be2c) and the creation's tail (0x5140c0) copies to the name. main.cpp copies GameData::npcNames into them
     // (0x61ed05); without the file they stay at 0.
     Scenes::NpcNameTable npcNames = Scenes::NpcNameTable(Tables::NpcNameCount);
+    // MuRet's own emotes (GameData::addedEmotes): the chat looks for their triggers and an action reply for the elf's.
+    std::vector<Tables::AddedEmote> addedEmotes{};
     // 0x6eeda8: the A0 sets it to 0 and reaching an NPC (0x569593) to 1 if it is 0xe5. The quests' dialog drawing
     // (0x41ba20) reads it with class 3 or 4.
     std::uint8_t byte6eeda8 = 0;

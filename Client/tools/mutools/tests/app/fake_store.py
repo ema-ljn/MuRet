@@ -36,6 +36,10 @@ class FakeStore:
         self.files[path] = data
         self.writes += 1
 
+    def make_folder(self, folder: Path) -> None:
+        if self.is_reference(folder):
+            raise MutoolsError(ErrorCode.REFERENCE_READ_ONLY, f"{folder} is read-only")
+
     def copy(self, source: Path, destination: Path) -> None:
         if self.is_reference(destination):
             raise MutoolsError(ErrorCode.REFERENCE_READ_ONLY, f"{destination} is read-only")

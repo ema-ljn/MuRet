@@ -227,6 +227,45 @@ TEST(GameDataTest, ReadsTheMoveRequirements)
     EXPECT_NE(shortFile.Error().find("Local\\movereq.bmd"), std::string::npos) << shortFile.Error();
 }
 
+// MuRet's Data\MuRet\Emotes.txt, in any case: without it, no added emotes and no error.
+TEST(GameDataTest, ReadsTheAddedEmotes)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
+
+    const auto without = LoadGameData(folder.Path());
+    ASSERT_TRUE(without.HasValue()) << without.Error();
+    EXPECT_TRUE(without.Value().addedEmotes.empty());
+
+    const std::string emotes = "MuRet emotes 1\n205\t205\t0.32\tloop\twave\n";
+    WriteSceneFile(folder.Path(), "muret/EMOTES.txt", std::as_bytes(std::span(emotes)));
+    const auto data = LoadGameData(folder.Path());
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_EQ(data.Value().addedEmotes.size(), 1u);
+    EXPECT_EQ(data.Value().addedEmotes[0].action, 205);
+}
+
+TEST(GameDataTest, AMalformedAddedEmotesFileIsNamed)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    Client::Tests::WriteEmptySkillFile(folder.Path());
+    const std::string emotes = "MuRet emotes 1\n204\t204\t0.32\tloop\twave\n";
+    WriteSceneFile(folder.Path(), "MuRet/Emotes.txt", std::as_bytes(std::span(emotes)));
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("MuRet\\Emotes.txt: line 2"), std::string::npos) << data.Error();
+}
+
 // 0x61ed05 → 0x54e7f0: NpcName(Eng).txt case-insensitive; without it, the empty table and no error. main.cpp copies
 // the records to the start of WorldRuntime::npcNames' 512 (NpcNameTableOf), where 0x54ebb0 looks for them. One the
 // original would not finish reading is named. The names are made up.

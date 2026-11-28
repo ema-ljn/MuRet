@@ -1,6 +1,6 @@
 ---
 name: muret-bmd
-description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone, action (an animation, to copy, add or remove, or to take to Blender and back as a .glb) or version (K16), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND or OUT_OF_RANGE.
+description: Use when opening, inspecting, searching, translating or editing a MU `.bmd` file - a table (Text.bmd, item.bmd, skill.bmd, Gate.bmd, Dialog.bmd, quest.bmd, movereq.bmd and the other tables under `Data` and `Data/Local`) or a 3D model (its meshes, texture names, bones and actions, in `Data/Item`, `Data/player`, `Data/skill`, `Data/NPC` and the `Object` folders) - when a task names `mutools`, a game text, item, skill, gate, dialog or quest by its number or name, or a model's texture, bone, action (an animation, to copy, add or remove, or to take to Blender and back as a .glb) or version (K16), or a new emote that plays an added action of Player.bmd (`mutools emote`, Data/MuRet/Emotes.txt), or when `mutools` answers with an error code such as REFERENCE_READ_ONLY, TEST_FAILED, INVALID_VALUE or STALE_FILE or a finding such as TEXTURE_NOT_FOUND, OUT_OF_RANGE or TRIGGER_TAKEN.
 ---
 
 # Editing .bmd files with mutools
@@ -143,6 +143,13 @@ list cut to one item:
   wrote (by name, or by its number from 0) and adds it after the last action, or over action N with `--at N`; over an
   action, a key that comes back as it was keeps its stored numbers, so exporting and importing without changes
   writes nothing (`changed: false`). Export needs `mutools[gltf]`; without it, `USAGE` says how to add it.
+- **A new emote is a row of `Data/MuRet/Emotes.txt`,** MuRet's own file, which only MuRet's client reads. First put
+  the action into `player/Player.bmd` (`gltf import` or `action import`: the first new one is 205), then `emote add
+  DATA 205 --trigger wave --trigger /wave`, where DATA is the `Data` folder. The client plays it when what is said
+  holds a trigger, anywhere and with the same capitals, at `--keys-per-step` (0.32 by default, the original's emotes'
+  speed), in a loop or `--once`, and an elf plays `--elf-action` (the same action by default). The original's 95
+  triggers are tried first: a trigger that holds one (`Thanks` holds `T`, text 279 of `Local/Text.bmd`) is written
+  with a `TRIGGER_TAKEN` warning, because saying it plays the original's emote. Choose another trigger.
 - **`raw_0x...` are bytes the client does not use.** They show only when they are not zero. Leave them as they are.
 - **The version is the cipher, and only `build` changes it.** 12 is K16 (encrypted) and any other is plain: write 10,
   as 1,142 of the game's 1,146 plain models do. An edited model keeps its version. `set` and `apply` refuse
@@ -201,6 +208,9 @@ reports none of those, and `TEXTURE_ELSEWHERE` is only for a name you write.
 | Take out the last action | `action remove FILE N --limit 1` | `actions`: how many are left |
 | Take a model to Blender | `gltf export FILE --output M.glb` | `joints`, `meshes`, `animations`, `untextured`, `size` |
 | Bring an animation back from Blender | `gltf import FILE M.glb --animation NAME --limit 1` | `animation`, `keys`, `action`, `changed` |
+| Make an added action an emote | `emote add DATA N --trigger WORD` (repeat `--trigger`) | `changed`, `emotes`, and `warnings`: `TRIGGER_TAKEN` |
+| The emotes MuRet added | `emote list DATA` | `exists`, `emotes: [{action, elf_action, keys_per_step, plays, triggers}]` |
+| Take an emote out | `emote remove DATA N` | `emotes`: how many are left |
 | Check a file or a folder | `validate PATH` | `files: [{path, findings}]`, `checked`, `skipped` |
 | What changed since the reference | `diff REFERENCE_FILE FILE` | `changes: [{pointer, old, new}]`, `total` |
 
@@ -450,6 +460,19 @@ mutools gltf import $WORK/NPC/BloodCastle01.bmd $TMP/gate.glb --at 0 --limit 1
 mutools gltf import $WORK/NPC/BloodCastle01.bmd $TMP/gate.glb --animation '000 Action 0' --dry-run --limit 1
 ```
 
+Give `player/Player.bmd` a new action and make it an emote. Here the action is a copy of action 194; for a new
+movement it comes from Blender with `gltf import`. `emote add` takes the `Data` folder, and a second call with the
+same row writes nothing.
+
+<!-- recipe: add-an-emote -->
+```bash
+mutools action export $WORK/player/Player.bmd 194 --output $TMP/wave.json
+mutools action import $WORK/player/Player.bmd $TMP/wave.json --limit 1
+mutools emote add $WORK 205 --trigger wave --trigger /wave
+mutools emote list $WORK
+mutools emote remove $WORK 205
+```
+
 Make a working copy from somewhere that is not the repo, and check that a change to the tool keeps every file
 byte-exact.
 
@@ -494,8 +517,8 @@ is not `null`, is the next command to run or the flag to use.
 
 | Code | Exit | The way out |
 | --- | ---: | --- |
-| `USAGE` | 2 | `mutools <command> --help`; on `action remove`, an action that is not the last needs `--yes`; on `gltf import`, a `.glb` with several animations needs `--animation` (its message names the first and the last) |
-| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it); on `action import`, the action file is for another skeleton (`error.pointer` is its first bone that differs), and on `gltf import` the `.glb` is (a bone with no joint of its name under the same parent) |
+| `USAGE` | 2 | `mutools <command> --help`; on `action remove`, an action that is not the last needs `--yes`; on `gltf import`, a `.glb` with several animations needs `--animation` (its message names the first and the last); on `emote add`, an action that has an emote needs `--replace` to change it |
+| `INVALID_VALUE` | 2 | The value does not fit: a text takes a string, a number field a number inside its size, a hex field exactly its bytes, a patch is a list, `--field` a name `schema` lists; in a model, two lists that must agree do not, or the pointer is `/version` (only `build` changes it); on `action import`, the action file is for another skeleton (`error.pointer` is its first bone that differs), and on `gltf import` the `.glb` is (a bone with no joint of its name under the same parent); on `emote add`, `player/Player.bmd` does not have the action (add it first, as `error.suggestion` says) or the row breaks a rule of the client's (`error.pointer` names the part) |
 | `TEXT_TOO_LONG` | 2 | Shorten the text; the message gives its size and the field's in bytes |
 | `NOT_ENCODABLE` | 2 | Replace the character the file's encoding does not have |
 | `FILE_NOT_FOUND` | 20 | Check the path; names keep the case they have on disk, and the gates are in `Data`, not `Data/Local` |

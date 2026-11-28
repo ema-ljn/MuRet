@@ -3,6 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Kernel/CharacterClass.h"
+#include "Tables/AddedEmotes.h"
 #include "Tables/PlayerModels.h"
 #include "Protocol/Movement/Movement.h"
 #include "Models/Animation.h"
@@ -25,7 +26,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <span>
 #include <string>
+#include <vector>
 
 namespace Client::Actors
 {
@@ -99,13 +102,18 @@ constexpr std::array<TableAnimation, LastTableAction - FirstTableAction + 1> Ani
     Both(0xbf),   // 0x9b, 0x4cbcc8
 }};
 
-// The animation 0x4cb750 passes to 0x4ea030 (0x4cbcdb: any other, the action itself).
-std::uint8_t AnimationOf(const Kernel::ActorState& actor, std::uint8_t action)
+// The animation 0x4cb750 passes to 0x4ea030 (0x4cbcdb: any other, the action itself). MuRet's added emotes give an elf
+// their elfAction.
+std::uint8_t AnimationOf(const Kernel::ActorState& actor, std::uint8_t action,
+                         std::span<const Tables::AddedEmote> addedEmotes)
 {
     if (action == ShieldAction)
         return ShieldAnimation;
     if (action == SalutedAction)
         return SalutedAnimation;
+    const Tables::AddedEmote* added = Tables::FindAddedEmote(addedEmotes, action);
+    if (added != nullptr && Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf)
+        return added->elfAction;
     return TableAnimationOf(actor.characterClass, action);
 }
 
@@ -183,14 +191,15 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
     // 0x4ea030 reads the actions of the character's model (0x5769ad8 + type · 0xe0): for a monster or an NPC, the one
     // its creation loaded; a model that is not there is the record without actions and sets nothing (0x4ea056).
     // Without Player.bmd, the player is a contract guard.
+    const std::vector<Tables::AddedEmote>& addedEmotes = resources.world.Runtime().addedEmotes;
     if (actor.type == Tables::PlayerSkeletonModel)
     {
         const auto* player = resources.models.SkeletonOf(Tables::PlayerSkeletonModelId);
         if (player == nullptr)
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
-        Models::SetAction(actor.animation, *player, AnimationOf(actor, action));
+        Models::SetAction(actor.animation, *player, AnimationOf(actor, action, addedEmotes));
     }
-    else if (auto set = Scenes::SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources);
+    else if (auto set = Scenes::SetMonsterAction(actor, AnimationOf(actor, action, addedEmotes), 0x4cbcdd, resources);
              !set.HasValue())
     {
         return set;

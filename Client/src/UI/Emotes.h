@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Tables/AddedEmotes.h"
 #include "Tables/TextTable.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
 
 // La búsqueda de los emotes en lo dicho (CL9 hito 1; 06 § El chat, "El emote"): 0x576eb0 hasta el salto a su caso.
@@ -32,4 +34,8 @@ struct EmoteCase
 // el 317 y el 348 se prueban al final, cada uno solo. Un texto que Text.bmd no tiene queda vacío, y un texto vacío
 // 0x576960 lo encuentra en cualquier mensaje, como el original con sus textos en cero. Sin ninguno, vacío.
 [[nodiscard]] std::optional<EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::string_view said);
+
+// MuRet's, after the 95 found none: the first added emote with a trigger in what was said, compared as 0x576960 does.
+[[nodiscard]] const Tables::AddedEmote* FindTheAddedEmote(std::span<const Tables::AddedEmote> emotes,
+                                                          std::string_view said);
 } // namespace Client::UI

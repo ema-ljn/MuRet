@@ -27,7 +27,7 @@ can look inside one, change a text or an item, and get a file the client reads, 
 - **Non-goal:** importing from or exporting to OBJ, or meshes from Blender. Stage 9 takes a model's skeleton and
   actions to Blender as glTF and brings animations back as actions.
 - **Non-goal:** touching the client (`Client/src`), its build or its tests. The tool stands alone under
-  `Client/tools/mutools/`.
+  `Client/tools/mutools/`. Stage 10 is the one exception: the new emotes need MuRet's client to read their file.
 - **It would be a failure:** a file read and written without changes that is not byte-identical to the original; an
   edited file that the client reads differently from what the tool showed; or silently changing the reference data in
   `Client/assets/Data`.
@@ -498,6 +498,22 @@ Stage 9, stage C of the action editor: `mutools gltf export` writes a model as a
   `blender` that run Blender's own importer and exporter through `bpy` (Python 3.13, about 1 GB, left out of CI):
   every action comes back as it was, and a turn made in Blender comes back on that key of that bone only.
 
+### New emotes
+
+Stage 10, stage D of the action editor: `mutools emote add`, `list` and `remove` write `Data/MuRet/Emotes.txt`, a file
+of MuRet's own, and MuRet's client plays its rows as new emotes. The plan, with every decision, is
+[`2026-11-28-added-emotes.md`](../plans/2026-11-28-added-emotes.md).
+
+- **Nothing of the original changes.** The action goes into `player/Player.bmd` after its 205 (stage A's `action
+  import` or stage C's `gltf import`), the server gets the same `C1 05 18 [direction] [action]` as for the original's
+  emotes, and the original's 95 triggers are tried first, as they were.
+- **The file is text,** `MuRet emotes 1` and one tab-separated row per emote: the action (205 to 255), the elf's action,
+  the keys per step, `loop` or `once`, and the triggers in the chat's encoding. mutools reads it with the client's
+  rules, and refuses to write what the client would not read.
+- **A trigger the original takes is a warning,** `TRIGGER_TAKEN`: the chat finds the original's first, so saying it
+  plays the original's emote. mutools compares it with texts 270 to 348 and 783 of the folder's `Local/Text.bmd` and
+  the 15 strings of `main.exe`, byte for byte as 0x576960 does.
+
 ### AI friendliness
 
 Three parts: the CLI above, a skill that teaches it, and tests that keep both honest.
@@ -583,6 +599,9 @@ leaves its own checks green, and the workflow lands with the first code PR.
    [`2026-11-27-mutools-action-editing.md`](../plans/2026-11-27-mutools-action-editing.md).
 9. **The Blender bridge:** `mutools gltf export` and `import`, stage C of the action editor; see "The Blender bridge"
    above. Its plan is [`2026-11-28-mutools-gltf-bridge.md`](../plans/2026-11-28-mutools-gltf-bridge.md).
+10. **New emotes:** `mutools emote add`, `list` and `remove`, and MuRet's client reading their file, stage D of the
+    action editor; see "New emotes" above. Its plan is
+    [`2026-11-28-added-emotes.md`](../plans/2026-11-28-added-emotes.md).
 
 Each stage ends with the round trip over its files passing.
 

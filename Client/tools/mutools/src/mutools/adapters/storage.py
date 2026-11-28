@@ -130,6 +130,10 @@ class LocalFileStore:
         finally:
             temporary.unlink(missing_ok=True)
 
+    def make_folder(self, folder: Path) -> None:
+        self._check_writable(folder)
+        folder.mkdir(exist_ok=True)
+
     def copy(self, source: Path, destination: Path) -> None:
         if reference_root(destination) is not None:
             raise MutoolsError(

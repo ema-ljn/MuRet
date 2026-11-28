@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Tables/AddedEmotes.h"
 #include "Tables/GateTable.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -92,6 +93,8 @@ struct GameData
     // NpcName(%s).txt: the records 0x54e7f0 leaves at 0x7681eb8, which main.cpp copies to the start of
     // WorldRuntime::npcNames. Empty if missing, like when fopen fails.
     std::vector<NpcNameRecord> npcNames;
+    // MuRet's Data\MuRet\Emotes.txt, which GameClient copies to WorldRuntime::addedEmotes. Empty if missing.
+    std::vector<AddedEmote> addedEmotes;
 };
 
 // WinMain's work before scene 1: Text.bmd at 0x4b9b9f (0x61ee30 and 0x5495e0), before the fonts (the face is its
@@ -108,7 +111,8 @@ struct GameData
 // Q-C1127, an error below one record or with over 10 answers in a Dialog.bmd record), movereq.bmd before the set
 // tables like 0x61ccb0 (0x448440 returns 0 and nobody checks; a name without its end is an error), MonsterSkill.bmd
 // after them (0x61ecdf; the .bss table; a type outside [0, 0xffff] is an error) and NpcName(Eng).txt (0x61ed05; over
-// 1 MiB, or what the original would not load without overwriting something, Tables::LoadNpcNames, is an error).
+// 1 MiB, or what the original would not load without overwriting something, Tables::LoadNpcNames, is an error). Last,
+// MuRet's own emotes (AddedEmotesFile), empty if missing and an error naming the file if unreadable or malformed.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 
 // 0x61c170: fopen("wt") of Data\Macro.txt, which creates or empties it, and `content` (UI::WrittenMacros). The macros'

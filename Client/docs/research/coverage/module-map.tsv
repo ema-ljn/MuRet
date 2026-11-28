@@ -127,6 +127,8 @@ engine/Data/Models/Bmd.h	75	engine/Data/Models	engine/Data/Models	high	engine or
 engine/Data/Models/Model.h	105	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.cpp	106	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
 engine/Data/Models/ModelFiles.h	68	engine/Data/Models	engine/Data/Models	high	engine or protocol layer, no game state
+game/Tables/AddedEmotes.cpp	134	game/Tables	game/Tables	high	MuRet's own emote table (Data/MuRet/Emotes.txt), read once with the other data files
+game/Tables/AddedEmotes.h	40	game/Tables	game/Tables	high	MuRet's own emote table (Data/MuRet/Emotes.txt), read once with the other data files
 game/Tables/ModelLoadCalls.cpp	51	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/ModelLoadCalls.h	18	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)
 game/Tables/ModelTextureCalls.cpp	240	game/Tables	game/Tables	high	which file main.exe loads into which slot is MU's content, not the engine's (item vocabulary)

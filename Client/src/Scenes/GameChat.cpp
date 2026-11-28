@@ -23,6 +23,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SocialRequests.h"
 #include "Scenes/SocialState.h"
+#include "Tables/AddedEmotes.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "UI/ChatCommands.h"
@@ -222,7 +223,9 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
     if (context.texts == nullptr)
         return Core::Unexpected(std::string("0x576eb0: los emotes sin Text.bmd"));
     const std::optional<UI::EmoteCase> emote = UI::FindTheEmote(*context.texts, said);
-    if (!emote)
+    const Tables::AddedEmote* added =
+        emote ? nullptr : UI::FindTheAddedEmote(context.world.Runtime().addedEmotes, said);
+    if (!emote && added == nullptr)
         return {};
     // 0x576abf→0x4ea030 lee el arreglo global: los modelos cargados por el viewport también están disponibles.
     // Fauna conserva esos recursos por separado y puede existir antes de ligar los modelos del primer dibujo.
@@ -237,7 +240,8 @@ Core::Expected<void, std::string> DoTheEmotes(const GameChatContext& context, st
         if (context.send)
             context.send(Protocol::Movement::WriteAction(direction, action));
     };
-    return Actors::DoTheEmote(*emote, Actors::EmoteContext{.hero = hero, .models = *models, .send = send});
+    const Actors::EmoteContext emoteContext{.hero = hero, .models = *models, .send = send};
+    return emote ? Actors::DoTheEmote(*emote, emoteContext) : Actors::DoTheAddedEmote(*added, emoteContext);
 }
 
 // Los pedidos a otro de 0x56c440 (RunTheCommand ya miró Text.bmd).

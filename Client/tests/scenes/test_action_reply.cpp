@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -650,6 +651,23 @@ TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
         m_states.assets.fauna.Bind(nullptr);
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Other().animation.action, 11);
+    }
+}
+// MuRet's added emotes: an elf takes the row's elfAction, the others the action itself.
+TEST_F(ActionReplyTest, AnElfTakesTheElfActionOfAnAddedEmote)
+{
+    m_models.player.actions.resize(210);
+    m_world->Runtime().addedEmotes = {
+        {.action = 205, .elfAction = 207, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave"}}};
+    for (const auto& [characterClass, played] : {std::pair<std::uint8_t, std::uint8_t>{0, 205}, {ElfClass, 207}})
+    {
+        SCOPED_TRACE(int{characterClass});
+        Other().characterClass = characterClass;
+        Other().animation.action = 0;
+
+        ASSERT_TRUE(Apply(1, 205).HasValue());
+
+        EXPECT_EQ(Other().animation.action, played);
     }
 }
 } // namespace

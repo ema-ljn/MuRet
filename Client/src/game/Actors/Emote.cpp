@@ -6,6 +6,7 @@
 #include "Models/IModelLibrary.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
+#include "Tables/AddedEmotes.h"
 #include "UI/Emotes.h"
 
 #include <cstdint>
@@ -29,16 +30,19 @@ bool IsStanding(std::uint8_t action)
     return (action >= FirstStandAction && action <= LastStandAction) || action == MarkedSpecialStand;
 }
 
+bool IsElf(const Kernel::ActorState& actor)
+{
+    return Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf;
+}
+
 std::uint8_t AnimationFor(const Kernel::ActorState& actor, std::uint8_t animation)
 {
-    const bool elf = Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf;
     const bool shared = animation >= FirstSharedAnimation && animation <= LastSharedAnimation;
-    return elf && !shared ? static_cast<std::uint8_t>(animation + 1) : animation;
+    return IsElf(actor) && !shared ? static_cast<std::uint8_t>(animation + 1) : animation;
 }
-} // namespace
 
-Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
-                                               const EmoteContext& context)
+Core::Expected<bool, std::string> PlayTheAnimation(Kernel::ActorState& actor, std::uint8_t animation,
+                                                   std::uint8_t action, const EmoteContext& context)
 {
     if (!IsStanding(actor.animation.action))
         return false;
@@ -47,18 +51,35 @@ Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::Em
     if (skeleton == nullptr)
         return Core::Unexpected(
             std::format("0x576abf: el emote sin las acciones del modelo {:#x} del personaje (0x4ea030)", actor.type));
-    Models::SetAction(actor.animation, *skeleton, AnimationFor(actor, emote.animation));
+    Models::SetAction(actor.animation, *skeleton, animation);
     // 0x576ac7..0x576e97: C1 05 18 with the direction of [0x743a170] + 0x24 and the action, XOR32 inline.
-    if (auto sent = SendTheAction(context.hero.angles.z, emote.action, context.send, "0x576b3e"); !sent.HasValue())
+    if (auto sent = SendTheAction(context.hero.angles.z, action, context.send, "0x576b3e"); !sent.HasValue())
         return Core::Unexpected(sent.Error());
     return true;
 }
 
-Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context)
+Core::Expected<void, std::string> PlayAndSend(std::uint8_t animation, std::uint8_t action, const EmoteContext& context)
 {
-    if (auto played = PlayTheEmote(context.hero, emote, context); !played.HasValue())
+    if (auto played = PlayTheAnimation(context.hero, animation, action, context); !played.HasValue())
         return Core::Unexpected(played.Error());
     // The case's C1 05 18 (0x5777aa..0x577b75 in 0x577796, the same in the other 21), with the ESI of 0x576ed4.
-    return SendTheAction(context.hero.angles.z, emote.action, context.send, "0x577823");
+    return SendTheAction(context.hero.angles.z, action, context.send, "0x577823");
+}
+} // namespace
+
+Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
+                                               const EmoteContext& context)
+{
+    return PlayTheAnimation(actor, AnimationFor(actor, emote.animation), emote.action, context);
+}
+
+Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context)
+{
+    return PlayAndSend(AnimationFor(context.hero, emote.animation), emote.action, context);
+}
+
+Core::Expected<void, std::string> DoTheAddedEmote(const Tables::AddedEmote& emote, const EmoteContext& context)
+{
+    return PlayAndSend(IsElf(context.hero) ? emote.elfAction : emote.action, emote.action, context);
 }
 } // namespace Client::Actors

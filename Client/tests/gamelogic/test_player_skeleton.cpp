@@ -4,12 +4,14 @@
 #include "Tables/PlayerActions.h"
 #include "Tables/PlayerModels.h"
 #include "Models/Skeleton.h"
+#include "Tables/AddedEmotes.h"
 #include "support/SyntheticModels.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace
 {
@@ -85,5 +87,41 @@ TEST(PlayerSkeletonTest, KeepsTheErrors)
     model.bones[1].parent = 2;
 
     EXPECT_FALSE(MakePlayerSkeleton(model).HasValue());
+}
+
+// MuRet's added emotes set the speed and the repeat of the actions the model has, and the others are left out.
+TEST(PlayerSkeletonTest, AddedEmotesSetTheirActions)
+{
+    const std::vector<Client::Tables::AddedEmote> emotes{
+        {.action = 205, .elfAction = 205, .keysPerStep = 0.5f, .repeats = false, .triggers = {"sit"}},
+        {.action = 240, .elfAction = 240, .keysPerStep = 0.4f, .repeats = true, .triggers = {"far"}},
+    };
+
+    const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(206), emotes);
+
+    ASSERT_TRUE(skeleton.HasValue());
+    ASSERT_EQ(skeleton.Value().actions.size(), 206u);
+    EXPECT_EQ(skeleton.Value().actions[205].speed, 0.5f);
+    EXPECT_FALSE(skeleton.Value().actions[205].repeats);
+}
+
+// An added elf action plays at its row's speed; an original one keeps the original's, and a row's own action its own.
+TEST(PlayerSkeletonTest, AnAddedElfActionTakesItsRowsSpeed)
+{
+    const auto original = MakePlayerSkeleton(PlayerLikeModel(209));
+    ASSERT_TRUE(original.HasValue());
+    const std::vector<Client::Tables::AddedEmote> emotes{
+        {.action = 205, .elfAction = 206, .keysPerStep = 0.5f, .repeats = false, .triggers = {"a"}},
+        {.action = 207, .elfAction = 205, .keysPerStep = 0.25f, .repeats = true, .triggers = {"b"}},
+        {.action = 208, .elfAction = 3, .keysPerStep = 0.25f, .repeats = true, .triggers = {"c"}},
+    };
+
+    const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(209), emotes);
+
+    ASSERT_TRUE(skeleton.HasValue());
+    EXPECT_EQ(skeleton.Value().actions[206].speed, 0.5f);
+    EXPECT_FALSE(skeleton.Value().actions[206].repeats);
+    EXPECT_EQ(skeleton.Value().actions[205].speed, 0.5f);
+    EXPECT_EQ(skeleton.Value().actions[3].speed, original.Value().actions[3].speed);
 }
 } // namespace

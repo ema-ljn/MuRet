@@ -18,8 +18,8 @@
 #include <numeric>
 #include <vector>
 
-// Client::Kernel::FaithfulPacer y el modo Faithful de GameLoop: el ritmo de 0x637700 con el reloj de
-// 64 ticks por segundo. Los números son los del modelo del lab (labs/cl3.0-bucle/jefe).
+// Client::Kernel::FaithfulPacer and GameLoop's Faithful mode: the pacing of 0x637700 with the 64-ticks-per-second
+// clock. The numbers are those of the lab model (labs/cl3.0-bucle/jefe).
 namespace
 {
 using namespace std::chrono_literals;
@@ -33,17 +33,16 @@ using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;
 
-// En la grilla de 15,625 ms nunca se mide 40: con una espera de 32 a 46 ms pasarían los mismos
-// tests, y esto la fija.
+// On the 15.625 ms grid 40 is never measured: with a wait of 32 to 46 ms the same tests would pass, and this pins it.
 static_assert(FaithfulWaitMs == 40);
 
-// Un FakeClock en t = 0, un cliente con dibujos de 0 ms y el bucle en el modo fiel.
+// A FakeClock at t = 0, a client with 0 ms drawings and the loop in faithful mode.
 struct FaithfulLoop
 {
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Faithful};
-    // Vacío: estos tests no miran el input.
+    // Empty: these tests do not look at the input.
     Client::Input::InputState input;
 
     std::vector<int> StepsPerFrame(int frames, const WindowState& state = WindowState{})
@@ -70,13 +69,13 @@ TEST(FaithfulPacerTest, TickCountMsFollowsTheGrid)
     {
         EXPECT_EQ(TickCountMs(static_cast<std::int64_t>(tick) * FaithfulTick), expected[tick]) << "tick " << tick;
     }
-    // Entre dos ticks lee el anterior.
+    // Between two ticks it reads the earlier one.
     EXPECT_EQ(TickCountMs(FaithfulTick - 1ns), 0u);
 }
 
-// Debajo de 0, que ningún IClock da y solo llega llamando directo, como acá, la grilla sigue la
-// misma cuenta, floor(tick × 15,625): el tick -1 lee -16 y no -15 (duration_cast truncaría hacia
-// 0 y la espejaría), y de un tick al siguiente siempre hay 15 o 16 ms, también cruzando el 0.
+// Below 0, which no IClock gives and only comes from calling directly, as here, the grid follows the same count,
+// floor(tick × 15.625): tick -1 reads -16 and not -15 (duration_cast would truncate toward 0 and mirror it), and
+// from one tick to the next there are always 15 or 16 ms, also crossing 0.
 TEST(FaithfulPacerTest, TickCountMsFollowsTheGridBelowZero)
 {
     const std::vector<std::int32_t> expected{-63, -47, -32, -16, 0, 15, 31, 46, 62};
@@ -85,12 +84,12 @@ TEST(FaithfulPacerTest, TickCountMsFollowsTheGridBelowZero)
         const std::int64_t tick = static_cast<std::int64_t>(i) - 4;
         EXPECT_EQ(TickCountMs(tick * FaithfulTick), static_cast<std::uint32_t>(expected[i])) << "tick " << tick;
     }
-    // Entre dos ticks lee el anterior, también debajo de 0.
+    // Between two ticks it reads the earlier one, also below 0.
     EXPECT_EQ(TickCountMs(-1ns), static_cast<std::uint32_t>(-16));
     EXPECT_EQ(TickCountMs(-FaithfulTick - 1ns), static_cast<std::uint32_t>(-32));
 }
 
-// Cada frame espera 3 ticks: 64 frames son 192 ticks, 3 s justos (21,33 FPS).
+// Each frame waits 3 ticks: 64 frames are 192 ticks, exactly 3 s (21.33 FPS).
 TEST(FaithfulPacerTest, SixtyFourFramesEveryThreeSeconds)
 {
     FaithfulLoop faithful;
@@ -98,11 +97,11 @@ TEST(FaithfulPacerTest, SixtyFourFramesEveryThreeSeconds)
 
     EXPECT_EQ(faithful.clock.Now(), 3s);
     EXPECT_EQ(faithful.clock.Now(), 192 * FaithfulTick);
-    // 3 sueños por frame, cada uno de un tick: de borde a borde.
+    // 3 sleeps per frame, each of one tick: edge to edge.
     const auto sleeps = faithful.clock.Sleeps();
     EXPECT_EQ(sleeps.size(), 192u);
     EXPECT_TRUE(std::all_of(sleeps.begin(), sleeps.end(), [](auto sleep) { return sleep == FaithfulTick; }));
-    // Los 75 pasos de 3 s a 25 por segundo, más el del valor inicial: 74 corridos y 80 ms.
+    // The 75 steps of 3 s at 25 per second, plus the one of the initial value: 74 run and 80 ms.
     EXPECT_EQ(faithful.loop.Stats().steps, 74u);
     EXPECT_EQ(faithful.loop.Stats().accumulated, 80ms);
     EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 2);
@@ -116,7 +115,7 @@ TEST(FaithfulPacerTest, SeventyFiveStepsEverySixtyFourFrames)
     const std::vector<int> firstThirteen{1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2};
     EXPECT_EQ(std::vector<int>(steps.begin(), steps.begin() + 13), firstThirteen);
 
-    // Desde el frame 2 (el índice 1): el primero corre el paso del valor inicial.
+    // From frame 2 (index 1): the first one runs the initial value's step.
     for (std::size_t first = 1; first + 64 <= steps.size(); ++first)
     {
         const auto begin = steps.begin() + static_cast<std::ptrdiff_t>(first);
@@ -128,7 +127,7 @@ TEST(FaithfulPacerTest, SeventyFiveStepsEverySixtyFourFrames)
         const int six = Sum(steps, first, 6);
         EXPECT_TRUE(six == 7 || six == 8) << six << " desde el frame " << first + 1;
     }
-    // Los frames 31 a 36.
+    // Frames 31 to 36.
     const std::vector<int> thirtyOneToThirtySix{2, 1, 1, 1, 1, 2};
     EXPECT_EQ(std::vector<int>(steps.begin() + 30, steps.begin() + 36), thirtyOneToThirtySix);
 }
@@ -144,7 +143,7 @@ TEST(FaithfulPacerTest, EachFrameMeasuresThreeTicks)
     }
 }
 
-// Un dibujo que ya pasó los 40 ms no espera: suma lo que midió GetTickCount, de a ticks.
+// A drawing already past 40 ms does not wait: it adds what GetTickCount measured, in ticks.
 TEST(FaithfulPacerTest, ADrawLongerThanTheWaitAddsItWhole)
 {
     FaithfulLoop faithful;
@@ -158,8 +157,8 @@ TEST(FaithfulPacerTest, ADrawLongerThanTheWaitAddsItWhole)
     EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 3);
 }
 
-// La medición empieza después de los pasos (0x63852b): lo que tardan se pierde. Midiendo desde
-// antes de los pasos serían 64 frames y 74 pasos, no 61 y 71.
+// The measurement starts after the steps (0x63852b): their time is lost. Measuring from before the steps would give
+// 64 frames and 74 steps, not 61 and 71.
 TEST(FaithfulPacerTest, TimeSpentInStepsIsNotAccumulated)
 {
     FaithfulLoop faithful;
@@ -177,7 +176,7 @@ TEST(FaithfulPacerTest, TimeSpentInStepsIsNotAccumulated)
     EXPECT_EQ(faithful.clock.Now(), 3'015'625us);
 }
 
-// El original no tiene tope: un breakpoint de 10 s son 250 pasos seguidos.
+// The original has no cap: a 10 s breakpoint is 250 steps in a row.
 TEST(FaithfulPacerTest, HasNoCap)
 {
     FaithfulLoop faithful;
@@ -190,7 +189,7 @@ TEST(FaithfulPacerTest, HasNoCap)
     EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 250);
 }
 
-// Minimizada, la espera de GetTickCount sigue: sin ella el acumulador no suma.
+// Minimized, the GetTickCount wait goes on: without it the accumulator does not grow.
 TEST(FaithfulPacerTest, MinimizedKeepsTheWait)
 {
     FaithfulLoop faithful;
@@ -204,7 +203,7 @@ TEST(FaithfulPacerTest, MinimizedKeepsTheWait)
     EXPECT_TRUE(faithful.client.alphas.empty());
 }
 
-// Con el frame retenido (Q-C85), como minimizada: la espera de GetTickCount sigue y no dibuja.
+// With the frame held (Q-C85), like minimized: the GetTickCount wait goes on and it does not draw.
 TEST(FaithfulPacerTest, AHeldFrameKeepsTheWait)
 {
     FaithfulLoop faithful;
@@ -220,8 +219,8 @@ TEST(FaithfulPacerTest, AHeldFrameKeepsTheWait)
     EXPECT_EQ(faithful.client.alphas.size(), 1u);
 }
 
-// Como en Decoupled, el frame retenido se mira después de los pasos: el del primer frame lo prende
-// y ese frame ya no se dibuja.
+// As in Decoupled, the held frame is checked after the steps: the first frame's step turns it on and that frame is
+// no longer drawn.
 TEST(FaithfulPacerTest, AHoldFromAStepSkipsThatFramesDrawing)
 {
     FaithfulLoop faithful;
@@ -232,7 +231,7 @@ TEST(FaithfulPacerTest, AHoldFromAStepSkipsThatFramesDrawing)
     EXPECT_EQ(faithful.client.calls, (std::vector<LoopCall>{LoopCall::Poll, LoopCall::Step}));
 }
 
-// El dibujo del modo fiel no se interpola: el estado después de los pasos.
+// The faithful mode drawing is not interpolated: the state after the steps.
 TEST(FaithfulPacerTest, DrawsWithAlphaZero)
 {
     FaithfulLoop faithful;
@@ -245,10 +244,9 @@ TEST(FaithfulPacerTest, DrawsWithAlphaZero)
     }
 }
 
-// La vuelta del DWORD (49,7 días) no cambia nada: la resta da la vuelta igual que la hora.
-// Arranca 67 ticks antes del primero que lee 0 después de la vuelta, el 274.877.907, y en un
-// múltiplo de 8 ticks (125 ms justos), así que cada frame mide lo mismo que desde 0 (como el lab,
-// labs/cl3.0-bucle/jefe).
+// The DWORD wrap (49.7 days) changes nothing: the subtraction wraps the same as the time. It starts 67 ticks before
+// the first one that reads 0 after the wrap, 274877907, and at a multiple of 8 ticks (exactly 125 ms), so each frame
+// measures the same as from 0 (like the lab, labs/cl3.0-bucle/jefe).
 TEST(FaithfulPacerTest, TheGetTickCountWrapChangesNothing)
 {
     const auto start = 274'877'840 * FaithfulTick;
@@ -261,32 +259,32 @@ TEST(FaithfulPacerTest, TheGetTickCountWrapChangesNothing)
     EXPECT_EQ(nearTheWrap.loop.Stats().accumulated, 80ms);
 }
 
-// La comparación de la espera es con signo (JGE en 0x638616): si el reloj vuelve durante el
-// dibujo, la resta da negativa y la espera sigue hasta 40 ms después del inicio. Sin signo, la
-// resta daría la vuelta, la espera saldría enseguida y sumaría -31.
+// The wait comparison is signed (JGE at 0x638616): if the clock goes back during the drawing, the subtraction is
+// negative and the wait goes on until 40 ms after the start. Unsigned, the subtraction would wrap, the wait would
+// exit at once and add -31.
 TEST(FaithfulPacerTest, AClockThatGoesBackKeepsWaiting)
 {
     FaithfulLoop faithful;
-    faithful.clock.Advance(10 * FaithfulTick); // el inicio lee 156
-    faithful.client.renderCost = -20ms;        // termina en el tick 8, que lee 125
+    faithful.clock.Advance(10 * FaithfulTick); // the start reads 156
+    faithful.client.renderCost = -20ms;        // ends at tick 8, which reads 125
 
     EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
-    EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 47); // el tick 13 lee 203
+    EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 47); // tick 13 reads 203
     EXPECT_EQ(faithful.clock.Now(), 13 * FaithfulTick);
 }
 
-// El acumulador suma como el ADD de x86: un dibujo de INT32_MAX ms lo hace dar la vuelta, sin UB,
-// y queda negativo: como el original, no corre pasos hasta que vuelva a 40.
+// The accumulator adds like x86's ADD: a drawing of INT32_MAX ms makes it wrap, without UB, and it ends negative:
+// like the original, it runs no steps until it is back at 40.
 TEST(FaithfulPacerTest, TheAccumulatorWrapsLikeTheAdd)
 {
     FaithfulLoop faithful;
     ASSERT_EQ(faithful.StepsPerFrame(2), (std::vector<int>{1, 1}));
     faithful.client.renderCost = std::chrono::milliseconds{std::numeric_limits<std::int32_t>::max()};
 
-    // El frame 3 corre su paso y deja 13; el dibujo va del tick 6 (93 ms) a 2.147.483.734 ms.
+    // Frame 3 runs its step and leaves 13; the drawing goes from tick 6 (93 ms) to 2147483734 ms.
     EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
     EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 2'147'483'641);
-    // 13 + 2.147.483.641 = 2.147.483.654, que en int32 es 2.147.483.654 - 2^32.
+    // 13 + 2147483641 = 2147483654, which in int32 is 2147483654 - 2^32.
     EXPECT_EQ(faithful.loop.Stats().accumulated, std::chrono::milliseconds{-2'147'483'642});
 
     faithful.client.renderCost = 0ms;

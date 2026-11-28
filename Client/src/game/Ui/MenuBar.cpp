@@ -17,8 +17,8 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x641000: los botones, de server_menu_b_all (slot 0x10) y server_credit_b_all (0x11), y el
-// adorno de deco.tga (0x12), de 189 × 103 con su punto en (105, 59).
+// 0x641000: the buttons, from server_menu_b_all (slot 0x10) and server_credit_b_all (0x11), and the deco.tga ornament
+// (0x12), 189 × 103 with its point at (105, 59).
 constexpr Render::TextureSlot MenuSlot{0x10};
 constexpr Render::TextureSlot CreditSlot{0x11};
 constexpr Render::TextureSlot OrnamentSlot{0x12};
@@ -28,15 +28,15 @@ constexpr int OrnamentWidth = 189;
 constexpr int OrnamentHeight = 103;
 constexpr Point OrnamentPoint{105, 59};
 
-// 0x65f300: x = 30, el ancho es W − 2 · 30, y la y sale de −11 menos el alto por el float
-// 0xbf71eb85 (0x6baae0), un poco más chico que 0,945 en valor absoluto, menos el alto de la barra.
+// 0x65f300: x = 30, the width is W − 2 · 30, and the y is −11 minus the height times the float 0xbf71eb85 (0x6baae0),
+// slightly smaller than 0.945 in absolute value, minus the bar's height.
 constexpr int BarLeft = 30;
 constexpr int BarBottomOffset = -11;
 constexpr float HeightFactor = -0.945f;
 static_assert(std::bit_cast<std::uint32_t>(HeightFactor) == 0xbf71eb85U, "el float de 0x6baae0");
 
-// fild y fmul con el float: la x87 no redondea el producto a float, y un double lo guarda exacto
-// (un int de menos de 2^29 por los 24 bits del float). _ftol trunca hacia el 0, como el cast.
+// fild and fmul with the float: the x87 does not round the product to float, and a double holds it exactly (an int
+// below 2^29 times the float's 24 bits). _ftol truncates toward 0, like the cast.
 int HeightTerm(int height)
 {
     return static_cast<int>(static_cast<double>(height) * static_cast<double>(HeightFactor));

@@ -37,64 +37,59 @@ namespace Client::FrontEnd
 class SelectionState;
 } // namespace Client::FrontEnd
 
-// Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
-// con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
-// GameData.h.
+// What the scenes share. main.cpp builds it and it outlives the SceneManager; the tests, with a FakeTextureStore
+// (support/). What was read before the first scene goes apart, in GameData.h.
 namespace Client::Scenes
 {
 struct WorldEntryResources;
 
-// De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
-// log y el reloj del bucle (CL6.4).
+// Where they read from (the client's Data\), where they upload their textures (Render::ITextureStore), the log and
+// the loop's clock.
 struct SceneContext
 {
     std::filesystem::path dataRoot;
     Render::ITextureStore& textures;
     Core::Log& log;
-    // El de SceneManager: lo que el original lee de DAT_05767b88 en la lógica, como la acción del
-    // personaje del login (0x634c60). nullptr sin bucle (los tests que no lo miran): la escena hace como
-    // si no lo hubiera.
+    // SceneManager's: what the original reads from DAT_05767b88 in the logic, like the login character's action
+    // (0x634c60). nullptr without a loop (the tests that do not look at it): the scene acts as if there were none.
     Core::IClock* clock = nullptr;
-    // Lo global de la tela (Render/Models/Cloth.h): el viento base, el contador de pasos de lógica y el
-    // rand() de la CRT, que las escenas 2, 4 y 5 avanzan en cada paso (0x637700). nullptr sin bucle: los
-    // personajes van sin tela.
+    // The cloth's globals (Models/Cloth.h): the base wind, the logic step counter and the CRT's rand(), which scenes 2,
+    // 4 and 5 advance on each step (0x637700). nullptr without a loop: the characters go without cloth.
     Models::ClothWorld* cloth = nullptr;
-    // El teclado y el mouse del bucle, los de cada paso: lo que el original lee en el dibujo de los
-    // globales del WndProc, como el cursor (0x5ac2d0, UI/GameCursor.h). nullptr sin bucle: sin cursor.
+    // The loop's keyboard and mouse, those of each step: what the original reads in the draw from the WndProc's
+    // globals, like the cursor (0x5ac2d0, Ui/GameCursor.h). nullptr without a loop: no cursor.
     const Input::InputState* input = nullptr;
-    // El ritmo del bucle (App/PacingMode.h): en Faithful, lo que el original corre una vez por frame
-    // dibujado (la tela y el brillo del cetro) corre uno por dibujo (OriginalFramePaceOf).
+    // The loop's pacing (Kernel/PacingMode.h): in Faithful, what the original runs once per drawn frame (the cloth and
+    // the scepter's glow) runs once per draw (OriginalFramePaceOf).
     Kernel::PacingMode pacing = Kernel::PacingMode::Decoupled;
-    // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
+    // 0x635ae0's global state: it lives in main and survives the scene changes.
     Camera::GameCamera* camera = nullptr;
-    // Entradas de 0x635ae0, no réplica completa del actor Hero. SelectionState publica la posición
-    // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
-    // L1 aportará XYZ de la respuesta para el juego.
+    // 0x635ae0's inputs, not a full copy of the Hero actor. SelectionState publishes the position each reception
+    // builds; the selection draw writes Hero Z = 163 after the camera. L1 will bring the reply's XYZ for the game.
     Camera::GameCameraInput* cameraInput = nullptr;
-    // La selección sobre los cinco primeros registros del pool durable (WorldState) y las tablas del
-    // mundo vigentes (CL7.3 B). main es dueño de los dos y viven más que todas las escenas; conserva
-    // las tablas del login después de su Leave.
+    // The selection on the durable pool's first five records (WorldState) and the current world tables. main owns both
+    // and they outlive all the scenes; it keeps the login's tables after its Leave.
     FrontEnd::SelectionState* selection = nullptr;
-    // Lo que WinMain deja en cero y dura hasta el cierre (WorldState.h): el registro propio y los
-    // globales de la espera de la entrada al mundo (WorldRuntime). Es el mismo que presta `selection`.
-    // nullptr en los tests que no lo miran: la selección entra sin preparar el registro propio, y la
-    // carga del mundo y el juego no entran (su Enter da el error), porque la espera vive ahí.
+    // What WinMain zeroes and lasts until closing (WorldState.h): the own record and the globals of the world entry
+    // wait (WorldRuntime). It is the same one `selection` lends. nullptr in the tests that do not look at it: the
+    // selection enters without preparing the own record, and the world loading and the game do not enter (their Enter
+    // gives the error), because the wait lives there.
     Kernel::WorldState* world = nullptr;
-    // El GetTextExtentPointA del DC de los textos (0x57634f4) fuera del dibujo: el mouse sobre los nombres del
-    // registro del chat (0x45dec0) y los cortes de los mensajes. nullptr sin bucle: no mide.
+    // The GetTextExtentPointA of the texts' DC (0x57634f4) outside the draw: the mouse over the chat record's names
+    // (0x45dec0) and the messages' cuts. nullptr without a loop: it does not measure.
     const Render::Text::ITextMeasure* textMeasure = nullptr;
-    // Los de las respuestas del mundo (SessionEventApplier), que main arma una vez: el juego los usa para levantar,
-    // soltar y equipar (InventoryServicesOf). nullptr en los tests que no lo miran: lo que necesita vestir al héroe,
-    // el cuervo o los mensajes corta.
+    // Those of the world replies (SessionEventApplier), which main builds once: the game uses them to pick up, drop and
+    // equip (InventoryServicesOf). nullptr in the tests that do not look at it: what needs to dress the hero, the raven
+    // or the messages stops.
     const WorldEntryResources* worldEntry = nullptr;
-    // Portapapeles del hilo principal para los EDIT; nullptr en tests que no editan texto.
+    // The main thread's clipboard for the EDITs; nullptr in tests that do not edit text.
     Platform::IClipboard* clipboard = nullptr;
     // What each module owns of the original's globals, beside `world` (ADR 0029). nullptr in the tests that do not
     // look at it: the selection and the game do not enter, as without `world`.
     Session::ModuleStates* states = nullptr;
 };
 
-// Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.
+// How the cloth and the scepter count the original's frames with the pace `pacing`.
 [[nodiscard]] constexpr Models::OriginalFramePace OriginalFramePaceOf(Kernel::PacingMode pacing)
 {
     return pacing == Kernel::PacingMode::Faithful ? Models::OriginalFramePace::OncePerDraw

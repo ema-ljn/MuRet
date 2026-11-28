@@ -22,14 +22,14 @@ struct ActorState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// El lugar 2 que 0x6349a0 construye con 0x517270 y equipa antes de crear su cuervo.
+// Slot 2, which 0x6349a0 builds with 0x517270 and equips before creating its raven.
 namespace Client::FrontEnd
 {
 
 inline constexpr std::size_t LoginActorSlot = 2;
 
-// Adaptador de presentación para tests de UI/modelos sin WorldState ni tablas del terreno.
-// No simula 0x511290 ni sus rand(): main siempre usa ConstructLoginActor.
+// Presentation adapter for UI/model tests without WorldState or terrain tables.
+// It does not simulate 0x511290 or its rand(): main always uses ConstructLoginActor.
 void PrepareLoginPresentationActor(Kernel::ActorState& actor, const Models::Skeleton& skeleton);
 
 [[nodiscard]] Core::Expected<void, std::string>

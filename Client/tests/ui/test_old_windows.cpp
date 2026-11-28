@@ -27,9 +27,9 @@
 #include <string_view>
 #include <vector>
 
-// Las ventanas viejas (CL8 hito 7; 06 § HUD y ventanas, "Las ventanas viejas"): la fábrica 0x48ee60, el paso 0x490490
-// con los botones (0x45b200) y el marco (0x492ac0), los mensajes de 0x490b70 y el dibujo de 0x492500. En la CL8 nadie
-// abre una: los tests abren la caja de mensaje a mano, con textos inventados.
+// The old windows (CL8 milestone 7; 06 § HUD y ventanas, "Las ventanas viejas"): the factory 0x48ee60, the step
+// 0x490490 with the buttons (0x45b200) and the frame (0x492ac0), the messages of 0x490b70 and the drawing of 0x492500.
+// Nothing in CL8 opens one: the tests open the message box by hand, with invented texts.
 namespace
 {
 using Client::Chat::ChatFocus;
@@ -59,9 +59,9 @@ constexpr PixelSize Screen640{640, 480};
 constexpr std::uint8_t EscapeKey = 0x1b;
 constexpr std::uint8_t F6Key = 0x75;
 constexpr std::uint8_t EnterKey = 0x0d;
-// La caja con sus valores por omisión (0x48ee60 con −1 y −1): en (0, 0x14c), de 0x96 × 100.
+// The box with its defaults (0x48ee60 with −1 and −1): at (0, 0x14c), 0x96 × 100.
 constexpr std::int32_t BoxY = 0x14c;
-// 0x41ed10(0x19): el sonido de los botones.
+// 0x41ed10(0x19)
 constexpr std::int32_t ButtonSound = 0x19;
 
 const OldWindowTexts Texts{.notice = "Aviso", .question = "Pregunta", .yes = "Si", .no = "No"};
@@ -103,7 +103,7 @@ protected:
         return opened.HasValue() ? opened.Value() : -1;
     }
 
-    // Un paso como el del juego: 0x636e2f (0x5762eb8 en 0), la lista de ventanas (0x636e3c) y 0x490490.
+    // A step like the game's: 0x636e2f (0x5762eb8 at 0), the window list (0x636e3c) and 0x490490.
     Client::Core::Expected<void, std::string> Step(std::int32_t x, std::int32_t y)
     {
         m_hovered = 0;
@@ -115,7 +115,7 @@ protected:
         return Client::Ui::StepTheOldWindows(m_manager, Globals(), view);
     }
 
-    // El WndProc: WM_LBUTTONDOWN y WM_LBUTTONUP.
+    // The WndProc's WM_LBUTTONDOWN and WM_LBUTTONUP.
     void Press()
     {
         m_leftHeld = true;
@@ -168,7 +168,7 @@ protected:
     TextColors m_colors{};
 };
 
-// 0x48f78f..0x48f7c6: el registro de ventanas es una inserción única, incluso si el contador vuelve a un ID vivo.
+// 0x48f78f..0x48f7c6: the window registry is a unique insert, even if the counter comes back to a live ID.
 TEST_F(OldWindowsTest, ARepeatedIdKeepsTheFirstRegisteredWindow)
 {
     const std::int32_t original = Open(Client::Ui::FrameCase, "primera", 20, 30);
@@ -184,7 +184,7 @@ TEST_F(OldWindowsTest, ARepeatedIdKeepsTheFirstRegisteredWindow)
     EXPECT_EQ(m_manager.order, (std::list<std::int32_t>{original, original}));
 }
 
-// La inserción fallida no vuelve a asentar el objeto anterior: 0x48f82d usa el objeto nuevo que quedó sin registro.
+// The failed insert does not reseat the previous object: 0x48f82d uses the new object left unregistered.
 TEST_F(OldWindowsTest, ARepeatedIdDoesNotRepositionTheFirstWindowsButtons)
 {
     const std::int32_t original = Open(Client::Ui::QuestionCase, "primera", 20, 30);
@@ -211,7 +211,7 @@ TEST_F(OldWindowsTest, DestroyingAQuestionReleasesItsSecondButton)
     EXPECT_EQ(m_pressedButton, 0);
 }
 
-// 0x459ef0 incrementa un DWORD; 0x48f6f2 usa SETC para ordenar sus claves como uint32, también tras el bit de signo.
+// 0x459ef0 increments a DWORD; 0x48f6f2 uses SETC to order its keys as uint32, also past the sign bit.
 TEST_F(OldWindowsTest, WindowIdsKeepTheirUnsignedOrderAcrossTheSignBit)
 {
     const std::int32_t first = Open(Client::Ui::FrameCase, "primera");
@@ -224,7 +224,7 @@ TEST_F(OldWindowsTest, WindowIdsKeepTheirUnsignedOrderAcrossTheSignBit)
     EXPECT_EQ(m_manager.windows.rbegin()->first, wrapped);
 }
 
-// 0x459ef0: el contador conserva el wrap de 32 bits; 0 sigue siendo el valor centinela para los consumidores.
+// 0x459ef0: the counter keeps the 32-bit wrap; 0 stays the sentinel value for the consumers.
 TEST_F(OldWindowsTest, WindowIdsWrapFromAllBitsSetToZero)
 {
     m_manager.lastId = -1;
@@ -236,9 +236,9 @@ TEST_F(OldWindowsTest, WindowIdsWrapFromAllBitsSetToZero)
     EXPECT_TRUE(m_manager.windows.contains(0));
 }
 
-// 0x48ee60 caso 9: el marco (0x491ca0) y los dos botones (0x45ad80) toman los ids que siguen al de la lista de
-// ventanas; 0x4a38f0 le da el título 991, el texto cortado en 2 renglones de 0x7d y los botones en (0x12, 0x28) y
-// (0x49, 0x28) de su área de adentro (x + 5, y + 0x15), que 0x4a3a50 ubica al final.
+// 0x48ee60 case 9: the frame (0x491ca0) and the two buttons (0x45ad80) take the ids after the window list's;
+// 0x4a38f0 gives it title 991, the text wrapped in 2 lines of 0x7d and the buttons at (0x12, 0x28) and (0x49, 0x28)
+// of its inner area (x + 5, y + 0x15), which 0x4a3a50 places at the end.
 TEST_F(OldWindowsTest, AQuestionBoxTakesTheNextIdsAndPlacesItsButtonsInsideIt)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
@@ -276,7 +276,7 @@ TEST_F(OldWindowsTest, AQuestionBoxTakesTheNextIdsAndPlacesItsButtonsInsideIt)
     EXPECT_EQ(m_manager.modal, 0);
 }
 
-// El texto se corta con 0x459c70 a 0x7d en la fuente del DC, como el registro del chat.
+// 0x459c70 wraps the text at 0x7d in the DC's font, like the chat log.
 TEST_F(OldWindowsTest, TheBoxTextIsWrappedInTwoLines)
 {
     constexpr std::string_view Text = "una pregunta inventada que no entra en un solo renglon de la caja";
@@ -290,8 +290,8 @@ TEST_F(OldWindowsTest, TheBoxTextIsWrappedInTwoLines)
     EXPECT_EQ(Window(id).box.lines[1], expected.Value().lines[1]);
 }
 
-// Con un solo botón (0x48ee60 caso 10), el primero lleva el título 228 en (0x2d, 0x28); el segundo no lo arma 0x4a38f0
-// y queda como lo dejó 0x45ad80: sin padre, en (0, 0) de 0x46 × 0x14 (Q-C570).
+// With one button (0x48ee60 case 10), the first has title 228 at (0x2d, 0x28); 0x4a38f0 does not set up the second,
+// which stays as 0x45ad80 left it: no parent, at (0, 0), 0x46 × 0x14 (Q-C570).
 TEST_F(OldWindowsTest, ANoticeBoxHasOneButtonAndAGhostAtTheOrigin)
 {
     const std::int32_t id = Open(Client::Ui::NoticeCase, "Listo", 100, 50);
@@ -313,8 +313,8 @@ TEST_F(OldWindowsTest, ANoticeBoxHasOneButtonAndAGhostAtTheOrigin)
     EXPECT_FALSE(ghost.label.has_value());
 }
 
-// 0x4a43c0 corre el paso de los dos botones: el que no se usa toma el mouse arriba a la izquierda, se aprieta y suena
-// al soltarlo, con su comando a nadie (Q-C570).
+// 0x4a43c0 runs the step of both buttons: the unused one takes the mouse at the top left, is pressed and sounds on
+// release, with its command to nobody (Q-C570).
 TEST_F(OldWindowsTest, TheGhostButtonTakesTheMouseAtTheTopLeft)
 {
     const std::int32_t id = Open(Client::Ui::NoticeCase, "Listo", 100, 50);
@@ -339,9 +339,9 @@ TEST_F(OldWindowsTest, TheGhostButtonTakesTheMouseAtTheTopLeft)
     EXPECT_TRUE(Window(id).base.queue.empty());
 }
 
-// El clic en "Si": el apretón lo marca (0x5762ec4); el soltado le manda el 10 a la caja y suena; en el paso
-// siguiente la caja le avisa al dueño (el 12 con su id y 1) y le pide al administrador que la cierre, que la suelta al
-// final del mismo paso, suena otra vez y le da el foco a la de abajo.
+// The click on "Si": the press marks it (0x5762ec4); the release sends 10 to the box and sounds; on the next step the
+// box tells the owner (12 with its id and 1) and asks the manager to close it, which frees it at the end of the same
+// step, sounds again and gives the focus to the one below.
 TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
 {
     const std::int32_t owner = Open(Client::Ui::FrameCase, "Dueño", 300, 20);
@@ -354,7 +354,7 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
     ASSERT_TRUE(Step(x, y).HasValue());
     EXPECT_EQ(m_hovered, id + 1);
     EXPECT_EQ(m_pressedButton, id + 1);
-    // El apretón sobre el botón sube a su padre (0x45aa80 → 0x490b70 con el 1).
+    // The press on the button goes up to its parent (0x45aa80 → 0x490b70 with 1).
     EXPECT_EQ(m_manager.focus, id);
 
     Release();
@@ -368,13 +368,12 @@ TEST_F(OldWindowsTest, ClickingYesAnswersTheOwnerAndClosesTheBoxOneStepLater)
     EXPECT_EQ(m_manager.order, (std::list<std::int32_t>{owner}));
     EXPECT_TRUE(m_manager.boxes.empty());
     EXPECT_EQ(m_sound, Client::Audio::SoundId{ButtonSound});
-    // El dueño, más abajo en la lista, corre su paso después de la caja: atiende el 12 en el mismo paso.
+    // The owner, lower in the list, runs its step after the box: it handles the 12 in the same step.
     EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 1, .text = {}}));
-    // 0x490b70 con el 4: la nueva del final de la lista recibe el 6.
+    // 0x490b70 with 4: the new last one of the list receives the 6.
     EXPECT_EQ(Window(owner).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0, .text = {}}));
 }
 
-// "No" avisa con 0.
 TEST_F(OldWindowsTest, ClickingNoAnswersZero)
 {
     const std::int32_t owner = Open(Client::Ui::FrameCase, "Dueño", 300, 20);
@@ -391,7 +390,7 @@ TEST_F(OldWindowsTest, ClickingNoAnswersZero)
     EXPECT_EQ(Window(owner).base.current, (OldMessage{.type = 12, .a = id, .b = 0, .text = {}}));
 }
 
-// Soltado fuera del botón: 0x45b200 suelta todo, el izquierdo y los dos flancos.
+// Released off the button: 0x45b200 drops everything, the left button and both edges.
 TEST_F(OldWindowsTest, ReleasingAwayFromTheButtonDropsThePress)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Seguro?");
@@ -409,7 +408,7 @@ TEST_F(OldWindowsTest, ReleasingAwayFromTheButtonDropsThePress)
     EXPECT_TRUE(Window(id).base.queue.empty());
 }
 
-// Enter (0x553520(0xd)) solo lo lee la caja del final de la lista: se manda el 10 con 1 y se cierra al paso siguiente.
+// Enter (0x553520(0xd)) is read only by the box at the end of the list: it sends 10 with 1 and closes on the next step.
 TEST_F(OldWindowsTest, EnterAnswersOnlyTheBoxOnTop)
 {
     const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
@@ -426,8 +425,8 @@ TEST_F(OldWindowsTest, EnterAnswersOnlyTheBoxOnTop)
     EXPECT_TRUE(m_manager.windows.contains(below));
 }
 
-// 0x48f606..0x48f6b8: al correrse, la vuelta sigue desde el primero del mapa, que el ++ saltea; una ventana nueva puede
-// quedar justo encima de la de id más chico (Q-C571).
+// 0x48f606..0x48f6b8: after moving, the loop goes on from the map's first, which the ++ skips; a new window can land
+// right over the one with the smallest id (Q-C571).
 TEST_F(OldWindowsTest, TheCascadeSkipsTheFirstWindowAfterMoving)
 {
     const std::int32_t first = Open(Client::Ui::FrameCase, "Uno", 20, 20, 0, Client::Ui::KeepPlaceFlag);
@@ -440,7 +439,7 @@ TEST_F(OldWindowsTest, TheCascadeSkipsTheFirstWindowAfterMoving)
     EXPECT_EQ(Window(third).base.y, Window(first).base.y);
 }
 
-// Sin el salteo, la cascada corre 20 cada vez que encuentra una en su lugar.
+// Without the skip, the cascade moves 20 each time it finds one in its place.
 TEST_F(OldWindowsTest, TheCascadeMovesTwentyPerWindowInItsPlace)
 {
     static_cast<void>(Open(Client::Ui::FrameCase, "Uno", 0, 0, 0, Client::Ui::KeepPlaceFlag));
@@ -452,7 +451,7 @@ TEST_F(OldWindowsTest, TheCascadeMovesTwentyPerWindowInItsPlace)
     EXPECT_EQ(Window(third).base.y, 40);
 }
 
-// 0x5762ebc: con una caja modal, la fábrica no arma otra (y no gasta ids); se libera con la caja.
+// 0x5762ebc: with a modal box, the factory builds no other (and spends no ids); it is freed with the box.
 TEST_F(OldWindowsTest, AModalBoxBlocksAnotherModalUntilItGoes)
 {
     const std::int32_t modal = Open(Client::Ui::ModalNoticeCase, "Espera");
@@ -469,7 +468,7 @@ TEST_F(OldWindowsTest, AModalBoxBlocksAnotherModalUntilItGoes)
     EXPECT_NE(Open(Client::Ui::ModalQuestionCase, "Otra"), 0);
 }
 
-// Los casos de la CL9.4 cortan con la dirección de la fábrica.
+// The CL9.4 cases stop with the factory's address.
 TEST_F(OldWindowsTest, TheFriendsCasesOfTheFactoryAreACut)
 {
     const auto opened = Client::Ui::CreateTheOldWindow(
@@ -479,7 +478,7 @@ TEST_F(OldWindowsTest, TheFriendsCasesOfTheFactoryAreACut)
     EXPECT_NE(opened.Error().find("0x48ee60"), std::string::npos);
 }
 
-// 0x48ee98..0x48ee9b compara sin signo con10: tanto11 como−1 salen con0 antes de construir o gastar IDs.
+// 0x48ee98..0x48ee9b compares unsigned with 10: both 11 and −1 return 0 before building or spending IDs.
 TEST_F(OldWindowsTest, UnknownFactoryKindsReturnZeroWithoutChangingTheManager)
 {
     const std::int32_t existing = Open(Client::Ui::NoticeCase, "ya abierta", 0, 0, 0, Client::Ui::KeepPlaceFlag);
@@ -514,7 +513,7 @@ TEST_F(OldWindowsTest, UnknownFactoryKindsReturnZeroWithoutChangingTheManager)
     }
 }
 
-// 0x4904bc: Esc cierra la del final de la lista, a la vista; suena y el foco va a la que queda.
+// 0x4904bc: Esc closes the last one of the list, in view; it sounds and the focus goes to the one left.
 TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
 {
     const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
@@ -529,8 +528,8 @@ TEST_F(OldWindowsTest, EscapeClosesTheLastWindow)
     EXPECT_EQ(Window(below).base.queue.front(), (OldMessage{.type = 6, .a = 0, .b = 0, .text = {}}));
 }
 
-// F6 (0x490561): el primero esconde las que están a la vista y las anota; el segundo las muestra, le pide al
-// administrador que suba la de arriba y vacía la lista.
+// F6 (0x490561): the first hides the shown ones and notes them; the second shows them, asks the manager to raise the
+// top one and empties the list.
 TEST_F(OldWindowsTest, F6HidesTheWindowsAndShowsThemAgain)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
@@ -553,8 +552,8 @@ TEST_F(OldWindowsTest, F6HidesTheWindowsAndShowsThemAgain)
     EXPECT_EQ(m_manager.focus, id);
 }
 
-// F6 sin ventanas a la vista pone +0xa8 en 1 con la lista vacía: desde ahí F6 no hace nada más, y una caja que se abre
-// después no se esconde (Q-C573).
+// F6 with no window shown sets +0xa8 to 1 with the list empty: from then on F6 does nothing more, and a box opened
+// later is not hidden (Q-C573).
 TEST_F(OldWindowsTest, AFirstF6WithNothingShownLeavesF6Stuck)
 {
     m_keys = {F6Key};
@@ -569,7 +568,7 @@ TEST_F(OldWindowsTest, AFirstF6WithNothingShownLeavesF6Stuck)
     EXPECT_EQ(m_manager.hiddenByF6, 1);
 }
 
-// Una escondida por F6 que se suelta antes del segundo F6 deja la cuenta corta: 0x491080 abre la de amigos (Q-C448).
+// One hidden by F6 and freed before the second F6 leaves the count short: 0x491080 opens the friends window (Q-C448).
 TEST_F(OldWindowsTest, ASecondF6WithAWindowGoneOpensTheFriendsWindow)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
@@ -584,8 +583,8 @@ TEST_F(OldWindowsTest, ASecondF6WithAWindowGoneOpensTheFriendsWindow)
     EXPECT_NE(stepped.Error().find("0x491080"), std::string::npos);
 }
 
-// Con el juego (CL9 hito 9), el segundo F6 abre la de amigos con 0x491080 en vez de mostrar la que ya no está
-// (Q-C448).
+// With the game (CL9 milestone 9), the second F6 opens the friends window with 0x491080 instead of showing the one
+// that is gone (Q-C448).
 TEST_F(OldWindowsTest, ShowingAgainWithAWindowGoneRunsTheFriendsOpening)
 {
     int opened = 0;
@@ -603,8 +602,8 @@ TEST_F(OldWindowsTest, ShowingAgainWithAWindowGoneRunsTheFriendsOpening)
     EXPECT_TRUE(m_manager.hidden.empty());
 }
 
-// 0x4906a0(1, 0), el de Chaos Castle: las esconde sin anotarlas, y F6 ya no las vuelve a mostrar (Q-C572); la modal
-// queda.
+// 0x4906a0(1, 0), the Chaos Castle one: it hides them without noting them, and F6 no longer shows them again
+// (Q-C572); the modal one stays.
 TEST_F(OldWindowsTest, HidingWithoutFriendsDoesNotNoteTheWindows)
 {
     const std::int32_t box = Open(Client::Ui::QuestionCase, "Hola");
@@ -622,8 +621,8 @@ TEST_F(OldWindowsTest, HidingWithoutFriendsDoesNotNoteTheWindows)
     EXPECT_EQ(Window(box).base.state, Client::Ui::HiddenWindow);
 }
 
-// De arriba hacia abajo: con dos cajas una sobre otra, el mouse es de la de arriba; el apretón sobre la de abajo, donde
-// no la tapa la otra, la sube.
+// Top to bottom: with two boxes one over the other, the mouse belongs to the top one; a press on the lower one, where
+// the other does not cover it, raises it.
 TEST_F(OldWindowsTest, TheMouseGoesToTheTopWindowAndAPressRaisesTheOneBelow)
 {
     const std::int32_t below = Open(Client::Ui::QuestionCase, "Abajo", 0, 0, 0, Client::Ui::KeepPlaceFlag);
@@ -639,8 +638,8 @@ TEST_F(OldWindowsTest, TheMouseGoesToTheTopWindowAndAPressRaisesTheOneBelow)
     EXPECT_EQ(m_manager.focus, below);
 }
 
-// 0x492ac0: el apretón en la barra del título agarra el mouse (0x5762eb4) y arrastra la caja, acotada a la pantalla;
-// soltado, la deja.
+// 0x492ac0: a press on the title bar captures the mouse (0x5762eb4) and drags the box, clamped to the screen; on
+// release, it leaves it.
 TEST_F(OldWindowsTest, TheTitleBarDragsTheBox)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola", 100, 100);
@@ -664,7 +663,7 @@ TEST_F(OldWindowsTest, TheTitleBarDragsTheBox)
     EXPECT_EQ(Window(id).base.state, Client::Ui::ShownWindow);
 }
 
-// 0x491960: los colores con ftol(alfa · 255), y el 3 con ftol(alfa · 179).
+// 0x491960: the colors with ftol(alpha · 255), and 3 with ftol(alpha · 179).
 TEST(OldWindowPaletteTest, TheShadowTakesLessAlpha)
 {
     EXPECT_EQ(Client::Ui::OldWindowPalette(0, 1.0f),
@@ -684,10 +683,9 @@ struct ExpectedCommand
     std::size_t quads;
 };
 
-// La caja de 0x48ee60 caso 9 en (0, 0x14c), dibujada por 0x492500 sin el mouse encima y sin la ventana de amigos: la
-// sombra, el texto y los botones (0x4a3a90 y 0x45b2e0), todo el marco en gris (0,5; la barra del título, sin mezcla
-// porque el botón dejó 0x620980), los filos 10..13, el borde (0x492180), la raya, el título y la cruz. La lista de
-// ventanas, oculta, no pone nada.
+// 0x48ee60 case 9's box at (0, 0x14c), drawn by 0x492500 with no mouse over it and no friends window: shadow, text,
+// buttons (0x4a3a90 and 0x45b2e0), the whole frame in gray (0.5; the title bar unblended because the button left
+// 0x620980), edges 10..13, border (0x492180), line, title and cross. The hidden window list adds nothing.
 TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
 {
     static_cast<void>(Open(Client::Ui::QuestionCase, "Hola"));
@@ -696,15 +694,15 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
 
     const std::span<const DrawCommand> commands = m_sprites.Commands();
     const std::vector<ExpectedCommand> expected{
-        {std::nullopt, BlendMode::Alpha, false, 1},   // la sombra
+        {std::nullopt, BlendMode::Alpha, false, 1},   // the shadow
         {TextMarkerSlot, BlendMode::Alpha, false, 1}, // "Hola"
         {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, true, 1},
         {TextMarkerSlot, BlendMode::Alpha, true, 1}, // "Si"
         {TextureSlot{Client::Ui::WindowButtonSlot}, BlendMode::Alpha, true, 1},
         {TextMarkerSlot, BlendMode::Alpha, true, 1}, // "No"
         {TextureSlot{Client::Ui::WindowTitleSlot}, BlendMode::Opaque, false, 1},
-        {std::nullopt, BlendMode::Opaque, false, 6 + 16}, // los filos y el borde
-        {std::nullopt, BlendMode::Alpha, false, 1},       // la raya
+        {std::nullopt, BlendMode::Opaque, false, 6 + 16}, // the edges and the border
+        {std::nullopt, BlendMode::Alpha, false, 1},       // the line
         {TextMarkerSlot, BlendMode::Alpha, false, 1},     // "Pregunta"
         {TextureSlot{Client::Ui::WindowTitleButtonsSlot}, BlendMode::Alpha, false, 1},
     };
@@ -719,31 +717,31 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
     }
 
     const std::span<const SpriteVertex> vertices = m_sprites.Vertices();
-    // La sombra: (x, y + 5) de w × (h − 10), negra con 179.
+    // The shadow: (x, y + 5), w × (h − 10), black with 179.
     EXPECT_NEAR(vertices[0].x, 0.0f, 1e-4f);
     EXPECT_NEAR(vertices[0].y, 480.0f - 337.0f, 1e-4f);
     EXPECT_NEAR(vertices[2].x, 150.0f, 1e-4f);
     EXPECT_NEAR(vertices[2].y, 480.0f - 427.0f, 1e-4f);
     EXPECT_FLOAT_EQ(vertices[0].color.alpha, 179.0f / 255.0f);
-    // El botón "Si" en (0x17, 0x189) de 0x32 × 0x14, en 0,8.
+    // The "Si" button at (0x17, 0x189), 0x32 × 0x14, at 0.8.
     const SpriteVertex& yes = vertices[commands[2].firstVertex];
     EXPECT_NEAR(yes.x, 23.0f, 1e-4f);
     EXPECT_NEAR(yes.y, 480.0f - 393.0f, 1e-4f);
     EXPECT_NEAR(vertices[commands[2].firstVertex + 2].x, 73.0f, 1e-4f);
     EXPECT_FLOAT_EQ(yes.color.red, 0.8f);
-    // La barra del título en (x + 6, y + 5) de w − 12 × 15, en 0,5.
+    // The title bar at (x + 6, y + 5), w − 12 × 15, at 0.5.
     const SpriteVertex& bar = vertices[commands[6].firstVertex];
     EXPECT_NEAR(bar.x, 6.0f, 1e-4f);
     EXPECT_NEAR(bar.y, 480.0f - 337.0f, 1e-4f);
     EXPECT_NEAR(vertices[commands[6].firstVertex + 2].x, 144.0f, 1e-4f);
     EXPECT_NEAR(vertices[commands[6].firstVertex + 2].y, 480.0f - 352.0f, 1e-4f);
     EXPECT_FLOAT_EQ(bar.color.red, 0.5f);
-    // El primer filo, el 10 en lugar del 8 (no es la de arriba con la de amigos).
+    // The first edge, 10 instead of 8 (it is not the top one with the friends window).
     const SpriteVertex& edge = vertices[commands[7].firstVertex];
     EXPECT_NEAR(edge.x, 5.0f, 1e-4f);
     EXPECT_NEAR(edge.y, 480.0f - 337.0f, 1e-4f);
     EXPECT_FLOAT_EQ(edge.color.red, 83.0f / 255.0f);
-    // La cruz, 9 × 9 en (x + w − 16, y + 8), en 0,8.
+    // The cross, 9 × 9 at (x + w − 16, y + 8), at 0.8.
     const SpriteVertex& close = vertices[commands[10].firstVertex];
     EXPECT_NEAR(close.x, 134.0f, 1e-4f);
     EXPECT_NEAR(close.y, 480.0f - 340.0f, 1e-4f);
@@ -755,7 +753,7 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
     EXPECT_EQ(m_text.texts[0].y, BoxY + 0x1d);
     EXPECT_EQ(m_text.texts[0].style.font, FontKind::Normal);
     EXPECT_EQ(m_text.texts[0].style.colors, (TextColors{.text = 0xffffffffu, .background = 0}));
-    // ((0x32 − 12) + 0,5) · 0,5 + x y ((0x14 − 13) + 0,5) · 0,5 + y + 1.
+    // ((0x32 − 12) + 0.5) · 0.5 + x and ((0x14 − 13) + 0.5) · 0.5 + y + 1.
     EXPECT_EQ(m_text.texts[1].text, "Si");
     EXPECT_EQ(m_text.texts[1].x, 42);
     EXPECT_EQ(m_text.texts[1].y, 397);
@@ -770,11 +768,11 @@ TEST_F(OldWindowsTest, TheBoxIsDrawnLikeTheOriginal)
     EXPECT_EQ(m_dcFont, FontKind::Normal);
     EXPECT_EQ(m_sprites.Blend(), BlendMode::Opaque);
     EXPECT_EQ(m_manager.drawn, 1);
-    // 0x4a5490: la lista de ventanas mide su renglón con "0" la primera vez.
+    // 0x4a5490: the window list measures its row with "0" the first time.
     EXPECT_FLOAT_EQ(m_manager.windowList.list.rowHeight, 13.0f);
 }
 
-// Con el mouse y el clic sobre el botón apretado: 0,6, un píxel adentro y el texto uno más abajo y a la derecha.
+// With the mouse and the click on the pressed button: 0.6, one pixel inside and the text one lower and to the right.
 TEST_F(OldWindowsTest, ThePressedButtonSinksOnePixel)
 {
     const std::int32_t id = Open(Client::Ui::QuestionCase, "Hola");
@@ -794,8 +792,8 @@ TEST_F(OldWindowsTest, ThePressedButtonSinksOnePixel)
     EXPECT_EQ(m_text.texts[1].y, 398);
 }
 
-// La de arriba con la ventana de amigos abierta (0x659290(1)) va sin gris: los filos 8 y 9, el título claro y sin la
-// mezcla opaca del final.
+// The top one with the friends window open (0x659290(1)) is not dimmed: edges 8 and 9, the light title and no final
+// opaque blend.
 TEST_F(OldWindowsTest, TheTopWindowWithTheFriendsWindowOpenIsNotDimmed)
 {
     static_cast<void>(Open(Client::Ui::QuestionCase, "Hola"));
@@ -808,9 +806,9 @@ TEST_F(OldWindowsTest, TheTopWindowWithTheFriendsWindowOpenIsNotDimmed)
     EXPECT_FLOAT_EQ(m_sprites.Vertices()[commands[7].firstVertex].color.red, 153.0f / 255.0f);
     EXPECT_EQ(m_text.texts[3].style.colors.text, 0xffc8dce6u);
 }
-// P-C215: F5 con dos chats (dos cajas como chats): 0x4a5be0 la muestra y elige el que no es la de arriba, después el
-// que sigue con vuelta; Enter sube el elegido (0x4a4e20); el mouse sobre los renglones (0x4a4eb0) los elige de abajo
-// hacia arriba y el soltado minimiza la de arriba o sube otra. En el borde de arriba, ninguno (Q-C1008).
+// P-C215: F5 with two chats (two boxes as chats): 0x4a5be0 shows the list and chooses the one not on top, then the
+// next with wraparound; Enter raises the chosen one (0x4a4e20); the mouse over the rows (0x4a4eb0) chooses them bottom
+// up and the release minimizes the top one or raises another. At the top edge, none (Q-C1008).
 TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
 {
     constexpr std::uint8_t F5Key = 0x74;
@@ -840,8 +838,8 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(list.list.armed, 0);
     EXPECT_EQ(m_manager.order.back(), first);
 
-    // Oculta, F5 saltea la de arriba (ahora la primera). El mouse en el renglón de abajo es el primero: es la de arriba
-    // y se minimiza.
+    // Hidden, F5 skips the top one (now the first). The mouse on the bottom row is the first: it is the top one and is
+    // minimized.
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());
     EXPECT_EQ(list.list.cursor, 1u);
@@ -853,7 +851,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(Window(first).base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(m_manager.order.front(), first);
 
-    // La primera, oculta, se sube.
+    // The first, hidden, is raised.
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());
     Release();
@@ -863,7 +861,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(Window(first).base.state, Client::Ui::ShownWindow);
     EXPECT_FALSE(m_leftHeld);
 
-    // El borde de arriba da el final: ninguna, y la lista se oculta igual.
+    // The top edge gives the end: none, and the list hides anyway.
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());
     Release();
@@ -872,7 +870,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(list.base.state, Client::Ui::HiddenWindow);
     EXPECT_EQ(m_manager.order.back(), first);
 
-    // Fuera de los renglones y sin F5, el elegido va al final; al soltar un chat (0x4a4b30), también.
+    // Off the rows and without F5, the chosen one goes to the end; on freeing a chat (0x4a4b30), too.
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());
     list.list.armed = 0;
@@ -883,7 +881,7 @@ TEST_F(OldWindowsTest, F5ShowsTheChatsAndChoosesOne)
     EXPECT_EQ(list.list.chats.size(), 1u);
     EXPECT_EQ(list.list.cursor, 1u);
 
-    // Con el foco en la entrada del chat, F5 no se lee; en el EDIT de una ventana vieja, sí (0x467d3b).
+    // With the focus on the chat input, F5 is not read; in an old window's EDIT, it is (0x467d3b).
     m_focus = ChatFocus::Message;
     m_keys.insert(F5Key);
     ASSERT_TRUE(Step(0, 0).HasValue());

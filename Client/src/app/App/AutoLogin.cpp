@@ -53,7 +53,7 @@ void AutoLogin::Choose()
 {
     if (!m_round.chose)
     {
-        // Una lista vacía no llega a ChoosingServer: la sesión falla con EmptyServerList.
+        // An empty list does not reach ChoosingServer: the session fails with EmptyServerList.
         if (m_session.ServerList().empty())
         {
             return;

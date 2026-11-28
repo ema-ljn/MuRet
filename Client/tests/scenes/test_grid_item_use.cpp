@@ -35,9 +35,9 @@
 #include <utility>
 #include <vector>
 
-// El clic derecho sobre el ítem de la grilla desde 0x5c7bc6 y la joya sobre un ítem (0x5d82a8), CL9 hito 5, fase 2:
-// los libros y las esferas, la fruta, el 0x1a0b, el resto y las tres joyas, con el C1 06 26 byte a byte y la cuenta de
-// rand(). Los ítems, sus lugares, los stats y los textos son inventados.
+// The right click on the grid item from 0x5c7bc6 and the jewel on an item (0x5d82a8), CL9 milestone 5, phase 2: the
+// books and orbs, the fruit, the 0x1a0b, the rest and the three jewels, with the C1 06 26 byte by byte and the rand()
+// count. The items, their slots, the stats and the texts are made up.
 namespace
 {
 using Client::Core::Expected;
@@ -53,7 +53,7 @@ using Client::Tests::SameBytes;
 namespace Scenes = Client::Scenes;
 
 constexpr int Own = Client::Models::OwnRecordCloseRandoms;
-// Los dos rand() del envío en C3: el relleno y el serial.
+// The two rand() of the C3 send: the padding and the serial.
 constexpr int SendRandoms = 2;
 constexpr std::int32_t Left = 0x1c2 + 15;
 constexpr std::int32_t Top = 200;
@@ -61,18 +61,18 @@ constexpr std::uint8_t Kind = 3;
 
 constexpr std::uint16_t Sword = 0x0001;           // 1 × 3
 constexpr std::uint16_t Bolts = 0x0807;           // 1 × 1
-constexpr std::uint16_t Wings = 0x1806;           // 1 × 1 acá: el último tipo de la joya
-constexpr std::uint16_t Orb180f = 0x180f;         // fuera de las esferas
+constexpr std::uint16_t Wings = 0x1806;           // 1 × 1 here: the jewel's last type
+constexpr std::uint16_t Orb180f = 0x180f;         // outside the orbs
 constexpr std::uint16_t Item1a0b = 0x1a0b;        // 1 × 1
 constexpr std::uint16_t Fruit = 0x1a0f;           // 1 × 1
-constexpr std::uint16_t Item1a1e = 0x1a1e;        // 1 × 1, el otro que acepta la joya
-constexpr std::uint16_t Item1a25 = 0x1a25;        // 1 × 1, el del diálogo 0xa9
+constexpr std::uint16_t Item1a1e = 0x1a1e;        // 1 × 1, the other one that takes the jewel
+constexpr std::uint16_t Item1a25 = 0x1a25;        // 1 × 1, the one of dialog 0xa9
 constexpr std::uint16_t Potion = 0x1c00;          // 1 × 1
 constexpr std::uint16_t JewelOfBless = 0x1c0d;    // 1 × 1
 constexpr std::uint16_t JewelOfSoul = 0x1c0e;     // 1 × 1
 constexpr std::uint16_t JewelOfLife = 0x1c10;     // 1 × 1
 constexpr std::uint16_t JewelOfCreation = 0x1c16; // 1 × 1
-// Los libros y las esferas: los bordes de los tres tramos y el 0x1814 del medio.
+// The books and orbs: the edges of the three ranges and the 0x1814 in the middle.
 constexpr std::array<std::uint16_t, 7> SkillItems{0x1e00, 0x1fff, 0x1807, 0x180e, 0x1810, 0x1814, 0x1818};
 constexpr std::uint16_t RequiredLevel = 50;
 constexpr std::size_t RequiredLevelOffset = 0x3a;
@@ -129,7 +129,7 @@ protected:
         return InventoryMoveContext{.world = world, .random = random, .services = services};
     }
 
-    // El ítem `type` desde la casilla (column, row), como lo deja 0x5bc740: la copia en cada casilla, con el origen.
+    // The item `type` from cell (column, row), as 0x5bc740 leaves it: the copy in each cell, with the origin.
     void Put(std::uint16_t type, std::uint8_t column, std::uint8_t row, std::uint32_t scalar1Low = 0)
     {
         const auto footprint = Client::Items::ItemFootprintOf(&items, type, "Put");
@@ -172,7 +172,7 @@ protected:
         return Client::Items::UseTheLaterGridItem(Moves(), panels.Registry(), InventoryGrid(), Index(column, row));
     }
 
-    // El C1 06 26 que salió, descifrado.
+    // The C1 06 26 that went out, decrypted.
     [[nodiscard]] std::vector<std::byte> SentBytes(std::size_t which) const
     {
         const auto packet = Client::Protocol::Items::WriteUseItem(sent.at(which));
@@ -187,8 +187,7 @@ protected:
         return from;
     }
 
-    // Los stats con los que se usan los libros: el nivel justo, la energía y la fuerza justas con lo que suman los
-    // ítems.
+    // The stats the books are used with: the exact level, and the exact energy and strength with what the items add.
     void Qualify()
     {
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
@@ -219,10 +218,9 @@ protected:
     std::vector<UseItem> sent;
 };
 
-// 0x5c8fb9..0x5c991b: cada libro y cada esfera con el nivel de Item.bmd (+0x3a), la energía (+0x1e y +0x30 contra el
-// +0x22 del ítem) y la fuerza (+0x18 y +0x2a contra el +0x1e) manda el C1 06 26 con la casilla de arriba a la
-// izquierda + 12, 0 y [0x78abb26]: el rand() del comercio, los dos del envío y después los 3.848 del cierre del
-// registro propio.
+// 0x5c8fb9..0x5c991b: each book and each orb with Item.bmd's level (+0x3a), the energy (+0x1e and +0x30 against the
+// item's +0x22) and the strength (+0x18 and +0x2a against the +0x1e) sends the C1 06 26 with the top left cell + 12, 0
+// and [0x78abb26]: the trade's rand(), the two of the send and then the 3848 of the own record's close.
 TEST_F(GridItemUseTest, EachBookAndOrbWithItsRequirementsSendsTheUseByteByByte)
 {
     Qualify();
@@ -247,8 +245,8 @@ TEST_F(GridItemUseTest, EachBookAndOrbWithItsRequirementsSendsTheUseByteByByte)
     }
 }
 
-// 0x5c90ca..0x5c90e3: tres JC sobre WORD. Con un punto de menos en el nivel, la energía o la fuerza no hay aviso ni
-// envío: solo el cierre del registro. La suma de 16 bits envuelve: 0xfff0 de energía con 0x20 de los ítems da 0x10.
+// 0x5c90ca..0x5c90e3: three JC on WORD. With one point short in level, energy or strength there is no warning or send:
+// only the record's close. The 16-bit sum wraps: 0xfff0 of energy with 0x20 from the items gives 0x10.
 TEST_F(GridItemUseTest, ABookWithoutItsLevelEnergyOrStrengthDoesNothing)
 {
     Put(0x1e00, 0, 0);
@@ -277,8 +275,8 @@ TEST_F(GridItemUseTest, ABookWithoutItsLevelEnergyOrStrengthDoesNothing)
         });
 }
 
-// Las consultas en línea (0x5c90e9..0x5c912b): con el almacén abierto, el aviso 474 del tipo 2 sin consultar el
-// comercio; con 0x5767954 en más de 0, nada, después del rand() del comercio.
+// The inline queries (0x5c90e9..0x5c912b): with the warehouse open, the warning 474 of type 2 without querying the
+// trade; with 0x5767954 above 0, nothing, after the trade's rand().
 TEST_F(GridItemUseTest, ABookWithTheWarehouseOpenOrTheWaitWarnsOrWaits)
 {
     Qualify();
@@ -300,9 +298,9 @@ TEST_F(GridItemUseTest, ABookWithTheWarehouseOpenOrTheWaitWarnsOrWaits)
     EXPECT_EQ(world.Runtime().ui.field5767954, 3);
 }
 
-// 0x5c8e37..0x5c8fb8: una espada (sobre su casilla del medio) y el 0x180f no son de ningún caso: la copia al cursor
-// y, sin el almacén ni 0x7d368a1, el cursor en ceros. Sin rand() (IsOpen(0x40) no
-// saca) y la grilla como estaba. Con el almacén abierto, corta (hito 6).
+// 0x5c8e37..0x5c8fb8: a sword (over its middle cell) and the 0x180f belong to no case: the copy to the cursor and,
+// without the warehouse or 0x7d368a1, the cursor at zeros. No rand() (IsOpen(0x40) draws none) and the grid as it was.
+// With the warehouse open, it stops (milestone 6).
 TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
 {
     Put(Sword, 1, 1, 3u << 3);
@@ -330,7 +328,7 @@ TEST_F(GridItemUseTest, AnyOtherItemLeavesTheCursorEmptyWithoutTheWarehouse)
     EXPECT_EQ(Cell(4, 4).id, Orb180f);
 }
 
-// 0x5c9e10 busca columnas y filas descendentes; 0x5c8e8f conserva la copia hasta el envío en 0x5ca250.
+// 0x5c9e10 searches columns and rows in descending order; 0x5c8e8f keeps the copy until the send at 0x5ca250.
 TEST_F(GridItemUseTest, ARightClickWithTheWarehouseMovesToTheLastFreeFootprintWithoutALeftClick)
 {
     auto& runtime = world.Runtime();
@@ -382,7 +380,8 @@ TEST_F(GridItemUseTest, AFullWarehouseKeepsTheRightClickedItemInTheInventory)
     EXPECT_EQ(Cell(1, 3).id, Sword);
 }
 
-// El destino vuelve al inventario; la contraseña se pide después de sacar el ítem, sin enviar el 24 antes.
+// The target goes back to the inventory; the password is asked for after taking the item out, without sending the 24
+// before.
 TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPassword)
 {
     auto& runtime = world.Runtime();
@@ -448,9 +447,9 @@ TEST_F(GridItemUseTest, ARightClickFromTheWarehouseWithdrawsOrWaitsForItsPasswor
     }
 }
 
-// 0x5c7c10..0x5c8447: la fruta abre y cierra el registro propio para el nivel (3.848 rand()) y, con menos de 10, avisa
-// con el 749 (0x632e30: el 0x8a). Desde el 10 la guarda en 0x78a59c8 con su casilla, lo abre y lo cierra otra vez
-// (otros 3.848) para el equipo y la clase: con algo puesto, el 1909.
+// 0x5c7c10..0x5c8447: the fruit opens and closes the own record for the level (3848 rand()) and, below 10, warns with
+// the 749 (0x632e30: the 0x8a). From 10 it keeps it at 0x78a59c8 with its cell, opens and closes it again (another
+// 3848) for the equipment and the class: with something equipped, the 1909.
 TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
 {
     Put(Fruit, 6, 3, 1u << 3);
@@ -476,9 +475,9 @@ TEST_F(GridItemUseTest, TheFruitAsksTheLevelAndThenTheEmptyEquipment)
     EXPECT_TRUE(sent.empty());
 }
 
-// 0x5c83ad..0x5c83f3: sin equipo, la fruta de nivel 4 (el dword +4 entero en 0x20) sin la clase 4 avisa con el 1905;
-// con la clase 4, o con otro bit en el dword (Q-C1244), sigue al diálogo 0x96 con el nombre de la fruta. Un nivel
-// 0 también.
+// 0x5c83ad..0x5c83f3: with no equipment, the level 4 fruit (the whole dword +4 at 0x20) without class 4 warns with the
+// 1905; with class 4, or with another bit in the dword (Q-C1244), it goes on to dialog 0x96 with the fruit's name. A
+// level 0 too.
 TEST_F(GridItemUseTest, TheFourthFruitIsForTheFourthClassAndTheDialogReceivesItsItem)
 {
     world.OwnCharacter().level = 200;
@@ -516,8 +515,8 @@ TEST_F(GridItemUseTest, TheFourthFruitComparesTheWholeClassByte)
     EXPECT_EQ(Client::Ui::DialogRow(world.Runtime().dialogBox, 0), "solo una clase");
 }
 
-// 0x5c8448..0x5c8473: el 0x1a0b de nivel 0 se usa; el de nivel 1 no con el héroe maestro del gremio (+0x368 en 0x80);
-// el de nivel 2, nunca. El uso es el de la grilla: dos rand(), sin el registro propio.
+// 0x5c8448..0x5c8473: the level 0 0x1a0b is used; the level 1 one is not with the hero as guild master (+0x368 at
+// 0x80); the level 2 one, never. The use is the grid's: two rand(), without the own record.
 TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
 {
     Put(Item1a0b, 7, 0);
@@ -543,9 +542,9 @@ TEST_F(GridItemUseTest, The1a0bOfLevelZeroOrOneIsUsed)
     use(2, 0, false);
 }
 
-// 0x5c67f3..0x5c685f: el 0x1a1d mira la tienda de NPC (con su rand()), el almacén, el comercio (con el suyo), 0x1000 y
-// 0x4000, y con la primera abierta no hace nada (0x5c9b0b). Con todas cerradas, y siempre con el 0x1c13 y el 0x1a12,
-// el 91 corta (hito 11).
+// 0x5c67f3..0x5c685f: the 0x1a1d looks at the NPC shop (with its rand()), the warehouse, the trade (with its own),
+// 0x1000 and 0x4000, and with the first open it does nothing (0x5c9b0b). With all closed, and always with the 0x1c13
+// and the 0x1a12, the 91 stops (milestone 11).
 TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
 {
     Client::Hud::GamePanels panels(world, random);
@@ -597,8 +596,9 @@ TEST_F(GridItemUseTest, TheTicket1a1dLooksAtTheShopFirst)
     EXPECT_FALSE(Client::Items::IsAnEventTicket(0x1a1e));
 }
 
-// 0x5a3296..0x5a32c9 y 0x5d8c9a: el sonido lee la casilla lugar − 12 después del envío. Con un lugar del equipo o más
-// allá de la grilla, el original lee la memoria de al lado; el paquete ya salió y MuRet no la lee: sin sonido ni corte.
+// 0x5a3296..0x5a32c9 and 0x5d8c9a: the sound reads the cell slot − 12 after the send. With an equipment slot or past
+// the grid, the original reads the memory next to it; the packet already went out and MuRet does not read it: no
+// sound and no stop.
 TEST_F(GridItemUseTest, AUseFromOutsideTheGridSendsWithoutTheSound)
 {
     for (const std::int32_t slot : {3, 12 + static_cast<std::int32_t>(Client::Kernel::InventoryCellCount)})
@@ -619,7 +619,7 @@ TEST_F(GridItemUseTest, AUseFromOutsideTheGridSendsWithoutTheSound)
     }
 }
 
-// La joya del cursor sobre un ítem de la grilla (0x5ca250 → 0x5d82a8), con el clic y el inventario abierto.
+// The cursor jewel over a grid item (0x5ca250 → 0x5d82a8), with the click and the inventory open.
 class JewelTest : public GridItemUseTest
 {
 protected:
@@ -652,9 +652,9 @@ protected:
     static constexpr std::int32_t JewelCell = 5;
 };
 
-// 0x5d82a8..0x5d8cd3: sobre la casilla del medio de una espada de nivel 3, la joya de bendición manda el C1 06 26 con
-// su lugar ([0x78a6758]), el del origen de la espada (0x77f3cc8) y [0x78abb26]: dos rand(); da verdadero. El sonido
-// lee la casilla de la joya, vacía.
+// 0x5d82a8..0x5d8cd3: over the middle cell of a level 3 sword, the jewel of bless sends the C1 06 26 with its slot
+// ([0x78a6758]), the one of the sword's origin (0x77f3cc8) and [0x78abb26]: two rand(); it returns true. The sound
+// reads the jewel's cell, empty.
 TEST_F(JewelTest, TheBlessOnASwordSendsItsPlaceAndTheSwordsByteByByte)
 {
     Put(Sword, 2, 1, 3u << 3);
@@ -671,8 +671,8 @@ TEST_F(JewelTest, TheBlessOnASwordSendsItsPlaceAndTheSwordsByteByByte)
     EXPECT_FALSE(world.Runtime().lastSoundId.has_value());
 }
 
-// 0x5d82d4..0x5d8316: hasta 0x1806 y el 0x1a1e, sin los virotes ni las flechas; la de bendición hasta el nivel 5, la
-// del alma hasta el 8 y la de la vida en cualquiera. Lo que no va da verdadero sin rand() ni envío.
+// 0x5d82d4..0x5d8316: up to 0x1806 and the 0x1a1e, without the bolts or the arrows; bless up to level 5, soul up to 8
+// and life on any. What does not go returns true without rand() or send.
 TEST_F(JewelTest, EachJewelGoesOnItsTypesAndLevels)
 {
     struct Case
@@ -701,9 +701,9 @@ TEST_F(JewelTest, EachJewelGoesOnItsTypesAndLevels)
     }
 }
 
-// 0x5d8324..0x5d8372: la de bendición sobre el 0x1a25 sin la durabilidad 0xff guarda la casilla de la joya y el
-// destino (0x7d3a0dc y 0x7d3a0e0) y abre el diálogo 0xa9 con el texto 1865, sin envío, aunque tenga nivel 6
-// (Q-C1246); con 0xff, como cualquier tipo de más de 0x1806, nada.
+// 0x5d8324..0x5d8372: the bless on the 0x1a25 without durability 0xff keeps the jewel's cell and the target (0x7d3a0dc
+// and 0x7d3a0e0) and opens dialog 0xa9 with text 1865, without a send, even at level 6 (Q-C1246); with 0xff, like any
+// type above 0x1806, nothing.
 TEST_F(JewelTest, TheBlessOnThe1a25OpensItsDialog)
 {
     Put(Item1a25, 6, 6, 6u << 3);
@@ -725,8 +725,8 @@ TEST_F(JewelTest, TheBlessOnThe1a25OpensItsDialog)
     EXPECT_TRUE(sent.empty());
 }
 
-// Las consultas en línea (0x5d838c..0x5d83d7): con el almacén abierto, el destino queda en 0x77f3cc8 y avisa con el
-// 474. La joya de la creación, o el inventario cerrado, no entran: da falso.
+// The inline queries (0x5d838c..0x5d83d7): with the warehouse open, the target stays at 0x77f3cc8 and it warns with
+// the 474. The jewel of creation, or the closed inventory, do not enter: it returns false.
 TEST_F(JewelTest, TheWarehouseWarnsAndCreationOrAClosedInventoryDoNotEnter)
 {
     Put(Sword, 0, 0, 0);

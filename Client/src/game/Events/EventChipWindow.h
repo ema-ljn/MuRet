@@ -5,12 +5,12 @@
 #include <cstdint>
 #include <string>
 
-// CL9 hito 11, fase 4: la ventana de 0x78abb00 (06 § La ventana de los chips), que abre el 94 (0x4dd8a0) con su tipo
-// + 1 en la esquina del inventario (0x1c2, 0): con 1 la Rena y con 2 la piedra (el ítem 0x1c15 de nivel 0 o 1, que
-// el botón registra con el C1 05 95), con 3 la entrada del número de serie (un EDIT y el C1 12 9D) y con 4 el pedido
-// del número del Muto (el C1 04 98 01); el botón de cerrar manda el C1 03 97. Todo *estático*: el GS 0.97 atiende el
-// 95, el 97 y el 98, pero no el 9D, que sale del ASM. MuRet tiene 0x6c7b8c (.data) en 1: lo que el original hace con
-// él en 0 (la entrada sin EDIT, 0x553ae0) no se alcanza.
+// CL9 milestone 11, phase 4: the window of 0x78abb00 (06 § La ventana de los chips), which 94 (0x4dd8a0) opens with its
+// type + 1 at the inventory's corner (0x1c2, 0): 1 the Rena and 2 the stone (item 0x1c15 of level 0 or 1, which the
+// button registers with C1 05 95), 3 the serial number entry (an EDIT and C1 12 9D) and 4 the Muto number request
+// (C1 04 98 01); the close button sends C1 03 97. All *static*: GS 0.97 serves 95, 97 and 98, but not 9D, which comes
+// from the ASM. MuRet has 0x6c7b8c (.data) at 1: what the original does with it at 0 (the entry without an EDIT,
+// 0x553ae0) is not reached.
 namespace Client::Ui
 {
 class PanelRegistry;
@@ -30,49 +30,49 @@ struct GameUiContext;
 namespace Client::Events
 {
 
-// 0x78abb00: lo que abre el 94 con el tipo + 1.
+// 0x78abb00: what 94 opens with the type + 1.
 inline constexpr std::int32_t RenaChipWindow = 1;
 inline constexpr std::int32_t StoneChipWindow = 2;
 inline constexpr std::int32_t SerialNumberWindow = 3;
 inline constexpr std::int32_t MutoNumberWindow = 4;
 
-// 0x4dd8ce..0x4dd920, el 94 con el tipo 2: los 0x40 bytes del 9D (0x78ab078) en cero, 0x553570(0), el campo del chat
-// cerrado (0x6c8e68), el modo del zen (0x77f3b6a), el zen escrito (0x77f3b6c) y 0x78abacc en 0 (SocialState), el largo
-// del campo del diálogo (0x6c8e78) en 0xc, Tab con un solo campo (0x6c8e6c en 1) y 0x77f3b6b en 1.
+// 0x4dd8ce..0x4dd920, 94 with type 2: the 0x40 bytes of 9D (0x78ab078) zeroed, 0x553570(0), the chat field closed
+// (0x6c8e68), the zen mode (0x77f3b6a), the typed zen (0x77f3b6c) and 0x78abacc at 0 (SocialState), the dialog field's
+// length (0x6c8e78) at 0xc, Tab with a single field (0x6c8e6c at 1) and 0x77f3b6b at 1.
 void OpenTheSerialEntry(Kernel::WorldRuntime& runtime);
 
-// 0x56b6a9..0x56b72a, SendMove con 0x78abb00 en 3 después del 97: el campo elegido en 0, los buffers de 0x7798bf8 en
-// cero con sus largos salvo el del susurro (el segundo, 0x7798cf8), los EDIT de [0x5763504] y [0x5763508] vacíos (la
-// vtable + 0x4c con 0), el chat cerrado y el modo del zen, el zen escrito y 0x78abacc en 0, con 0x77f3b6b en 0. No toca
-// el foco: el EDIT lo sigue teniendo. 0x6c8e74 (−1), las marcas de 0x77f31c0 y los otros ocho buffers no los tiene
-// MuRet.
+// 0x56b6a9..0x56b72a, SendMove with 0x78abb00 at 3 after 97: the chosen field at 0, the buffers of 0x7798bf8 zeroed
+// with their lengths except the whisper's (the second, 0x7798cf8), the EDITs of [0x5763504] and [0x5763508] emptied
+// (vtable + 0x4c with 0), the chat closed and the zen mode, the typed zen and 0x78abacc at 0, with 0x77f3b6b at 0.
+// Leaves the focus alone: the EDIT keeps it. MuRet does not have 0x6c8e74 (−1), the marks of 0x77f31c0 or the other
+// eight buffers.
 void CloseTheSerialEntry(Kernel::WorldRuntime& runtime);
 
-// 0x5e6520, desde 0x5ee1ec después del ítem del cursor, con 0x78abb00 distinto de 0. El mouse sobre la ventana es de la
-// UI (0x775857c). Con el soltado (0x7d366ec) sobre el botón: con 4, el C1 04 98 01; con 1, 2 u otro que no sea 3, la
-// casilla del 0x1c15 de nivel 1 (con 2) o 0 y, si hay, el C1 05 95; con 3, sin casillas libres (0x558740(−1, −1)) el
-// aviso 896 y si no el C1 12 9D con el texto del EDIT, y el izquierdo suelto (0x7d36874). Después, el clic (0x7d366d4)
-// en el botón de cerrar (0x19, 0x18b de la esquina del inventario, 24 × 24): el 97, 0x78abb00 en 0, el inventario
-// cerrado (0x65cae0, con sus rand()), 0x553570(0), el chat cerrado, el modo del zen, el zen escrito, 0x78abacc y
-// 0x77f3b6b en 0 y el foco a la ventana del juego. Al final apaga el soltado. Los paquetes salen con el send() del paso
-// (context.chat).
+// 0x5e6520, from 0x5ee1ec after the cursor item, with 0x78abb00 other than 0. The mouse over the window belongs to the
+// UI (0x775857c). With the release (0x7d366ec) over the button: with 4, C1 04 98 01; with 1, 2 or another that is not
+// 3, the slot of 0x1c15 of level 1 (with 2) or 0 and, if there is one, C1 05 95; with 3, without free slots
+// (0x558740(−1, −1)) notice 896 and otherwise C1 12 9D with the EDIT's text, and the left button released (0x7d36874).
+// Then the click (0x7d366d4) on the close button (0x19, 0x18b from the inventory's corner, 24 × 24): 97, 0x78abb00 at
+// 0, the inventory closed (0x65cae0, with its rand()), 0x553570(0), the chat closed, the zen mode, the typed zen,
+// 0x78abacc and 0x77f3b6b at 0 and the focus to the game window. At the end it clears the release. The packets go out
+// through the step's send() (context.chat).
 [[nodiscard]] Core::Expected<void, std::string> StepTheEventChipWindow(const Hud::GameUiContext& context,
                                                                        Ui::PanelRegistry& panels);
 
-// 0x5f6550, desde 0x5f75d0 después de los NPC de evento: la esquina del inventario en (0x1c2, 0), el fondo, el título
-// (el nombre del NPC 236 de NpcName(%s).txt, 0x54ebb0), el botón de su tipo (el 4 en y 220 con 903; los otros, salvo
-// el 3, en 231 con 243 u 818, en blanco con la fuente negrita si hay ítems y en gris si no), y con 3 la entrada: los
-// textos 893, 894, 916 y 917, el marco 0x10f y el EDIT de [0x5763504] reconfigurado en cada frame (+0x4c en 2, su
-// fondo en 0, el tope en 12, 150 × 14 en (495, 265), el foco y su dibujo 0x468320) y el botón 895. Con el botón
-// apretado (0x7d366d4) y el soltado (0x7d366ec), el dibujo los apaga con el izquierdo (0x7d36874). Después el botón de
-// cerrar con su ayuda (1002), los textos de cada tipo (700..703; 882..885; 891, 892, 897 y 898 con el resultado del 9D
-// en negrita, que titila con el reloj; 900, 706, 901 y 902), y salvo con 3, los rótulos (245 o 819 y 246 u 820) con
-// "x%d" de la cuenta de ítems y de 0x78abb04 en la fuente grande. No saca rand(). Un dibujo intermedio no escribe el
-// foco, el EDIT ni el clic.
+// 0x5f6550, from 0x5f75d0 after the event NPCs: the inventory's corner at (0x1c2, 0), the background, the title (the
+// name of NPC 236 of NpcName(%s).txt, 0x54ebb0), its type's button (window 4's at y 220 with 903; the others, except 3,
+// at 231 with 243 or 818, in white with the bold font if there are items and in gray if not), and with 3 the entry:
+// texts 893, 894, 916 and 917, frame 0x10f and the EDIT of [0x5763504] reconfigured every frame (+0x4c at 2, its
+// background at 0, the limit at 12, 150 × 14 at (495, 265), the focus and its drawing 0x468320) and button 895. With
+// the button pressed (0x7d366d4) and the release (0x7d366ec), the drawing clears them with the left button (0x7d36874).
+// Then the close button with its help (1002), each type's texts (700..703; 882..885; 891, 892, 897 and 898 with the 9D
+// result in bold, blinking with the clock; 900, 706, 901 and 902), and except with 3, the labels (245 or 819 and 246 or
+// 820) with "x%d" of the item count and of 0x78abb04 in the big font. No rand(). An intermediate drawing does not write
+// the focus, the EDIT or the click.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipWindow(Hud::GameHudContext& context);
 
-// 0x5f70a0, desde el 3D de la UI (0x5ac1da) con 0x78abb00 en otro valor que 0 y 3: el modelo del 0x1c15 (de nivel 0, o
-// 0xf en +4 con 2 y 4; con 5, el tipo 0) del tamaño de Item.bmd, en (540, 298) salvo con 4 y en (540, 333), con los
-// rand() de 0x5e1480. Después 0x5ac120 no dibuja las grillas, el ítem del cursor ni las ranuras rápidas.
+// 0x5f70a0, from the UI's 3D (0x5ac1da) with 0x78abb00 other than 0 and 3: the model of 0x1c15 (level 0, or 0xf in +4
+// with 2 and 4; with 5, type 0) at Item.bmd's size, at (540, 298) except with 4 and at (540, 333), with the rand() of
+// 0x5e1480. Then 0x5ac120 does not draw the grids, the cursor item or the quick slots.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheEventChipItems(Hud::GameHudContext& context);
 } // namespace Client::Events

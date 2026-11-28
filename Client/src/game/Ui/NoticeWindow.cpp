@@ -31,9 +31,9 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x6429b0: la caja (message_back, slot 0x727), el OK (message_ok_b_all, 0x724) y el cancelar
-// (loding_cancel_b_all, 0x725), de tres cuadros, y la caja del código (delete_secret_number,
-// 0x728); los cuatro los sube 0x61ccb0, la carga de todo el juego.
+// 0x6429b0: the box (message_back, slot 0x727), the OK (message_ok_b_all, 0x724) and the cancel (loding_cancel_b_all,
+// 0x725), of three frames, and the code box (delete_secret_number, 0x728); all four uploaded by 0x61ccb0, the whole
+// game's load.
 constexpr Render::TextureSlot BoxSlot{0x727};
 constexpr Render::TextureSlot OkSlot{0x724};
 constexpr Render::TextureSlot CancelSlot{0x725};
@@ -43,14 +43,13 @@ constexpr int BoxHeight = 113;
 constexpr int ButtonWidth = 54;
 constexpr int ButtonHeight = 30;
 constexpr int ButtonTop = 72;
-// 0x642bf0, la x de los botones de cada tipo.
+// 0x642bf0: the buttons' x for each kind.
 constexpr int OkLeft = 149;
 constexpr int OkCancelOkLeft = 98;
 constexpr int OkCancelCancelLeft = 200;
 constexpr int CodeOkLeft = 209;
 constexpr int CodeCancelLeft = 264;
-// La caja del código, de 171 × 23, en (+32, +76), y el EDIT de 0x6436c0 en (+42, +84): ES_PASSWORD,
-// solo dígitos, EM_LIMITTEXT(7).
+// The 171 × 23 code box at (+32, +76), and 0x6436c0's EDIT at (+42, +84): ES_PASSWORD, digits only, EM_LIMITTEXT(7).
 constexpr int CodeBoxLeft = 32;
 constexpr int CodeBoxTop = 76;
 constexpr int CodeBoxWidth = 171;
@@ -58,11 +57,11 @@ constexpr int CodeBoxHeight = 23;
 constexpr int CodeLeft = 42;
 constexpr int CodeTop = 84;
 constexpr std::size_t CodeDigits = 7;
-// La base de 0x6429b0, con el slot -1: negra con alfa 0x80.
+// 0x6429b0's base, with slot -1: black with alpha 0x80.
 constexpr float BaseAlpha = 128.0f / 255.0f;
-// 0x642bf0: una línea al medio de la caja, en y + 38 (el modo 2 de 0x467060); dos, a la izquierda,
-// en (+25, +32) y (+25, +51). Con DAT_05763560 en blanco, sin fondo. 0x643100 parte un texto solo
-// en dos renglones de menos de 52 bytes (0x632c90).
+// 0x642bf0: one line centered in the box, at y + 38 (0x467060's mode 2); two, on the left, at (+25, +32) and (+25,
+// +51). With DAT_05763560 in white, no background. 0x643100 splits a single text into two rows under 52 bytes
+// (0x632c90).
 constexpr int OneLineTop = 38;
 constexpr int TwoLinesLeft = 25;
 constexpr int FirstLineTop = 32;
@@ -77,7 +76,7 @@ Rect ButtonAt(const Rect& box, int left)
     return Rect{.x = box.x + left, .y = box.y + ButtonTop, .width = ButtonWidth, .height = ButtonHeight};
 }
 
-// 0x467b10 con [+0x4c] en 1: del 0 al 9.
+// 0x467b10 with [+0x4c] at 1: 0 to 9.
 bool IsDigit(char byte)
 {
     return byte >= '0' && byte <= '9';
@@ -104,7 +103,7 @@ void NoticeWindow::Open(NoticeId notice, std::string_view argument)
     m_argument = argument;
     m_ok = Button(OkSlot, ButtonWidth, ButtonHeight);
     m_cancel = Button(CancelSlot, ButtonWidth, ButtonHeight);
-    // 0x553570(1) en 0x6436c0: el código se vacía al abrir.
+    // 0x553570(1) in 0x6436c0: the code empties on opening.
     m_code.Clear();
 }
 
@@ -179,8 +178,8 @@ std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, Core:
     }
     if (cancel || escape)
     {
-        // 0x6436a0: el id en −1 y cierra; el campo del código se esconde y se vacía (el original lo
-        // deja con el foco: Q-C116, no se reproduce).
+        // 0x6436a0: the id at −1 and closes; the code field hides and empties (the original leaves it with the focus:
+        // Q-C116, not reproduced).
         Close();
         m_code.Clear();
     }
@@ -226,7 +225,7 @@ void NoticeWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
                         .color = Render::Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f, .alpha = BaseAlpha}});
     const Rect& box = m_layout.box;
     sprites.Image(PixelImage(BoxSlot, box, m_sizes(BoxSlot)));
-    // 0x642f00: la caja, los renglones, la caja del código y su campo, y los botones.
+    // 0x642f00: the box, the rows, the code box and its field, and the buttons.
     if (const std::optional<NoticeTexts> texts = TextsOf(*m_notice))
     {
         const std::optional<std::string_view> first = TextAt(m_texts, texts->first);
@@ -234,7 +233,7 @@ void NoticeWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
         {
             if (first && !first->empty())
             {
-                // Solo el 0x5e es un formato, con el nombre del elegido (sprintf en 0x6431b0).
+                // Only the 0x5e is a format, with the chosen one's name (sprintf in 0x6431b0).
                 const std::string_view argument = m_argument;
                 const std::string placed = *m_notice == ConfirmDeletionNotice
                                                ? PlaceArguments(*first, std::span(&argument, 1))
@@ -242,8 +241,8 @@ void NoticeWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer
                 const std::vector<std::string> lines = SplitIntoLines(placed, MaxLines, LineBytes);
                 if (lines.size() == 1)
                 {
-                    // 0x642f44..0x642f95: 0x467060 en el modo 2, la caja de 352 desde la x de la caja pasada a
-                    // 640 × 480, con el texto en (352 − cx) / 2 en píxeles.
+                    // 0x642f44..0x642f95: 0x467060 in mode 2, the 352 box from the box's x in 640 × 480, with the text
+                    // at (352 − cx) / 2 in pixels.
                     const Render::Text::CenteredInBox centered =
                         Render::Text::CenterInBox(text, NoticeStyle.font, lines[0], BoxWidth);
                     text.DrawColumns(Render::Text::DesignX(box.x, screen),

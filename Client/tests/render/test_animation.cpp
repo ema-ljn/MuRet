@@ -12,8 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::Models: el avance de la animación (0x4ec200), el cambio de acción (0x4ea030), la
-// mascota y las alas por tiempo (Q-C20) y la copia del render.
+// Client::Models: the animation advance (0x4ec200), the action change (0x4ea030), the pet and the wings by time
+// (Q-C20) and the render copy.
 namespace
 {
 using Client::App::FixedStep;
@@ -38,13 +38,12 @@ using namespace std::chrono_literals;
 constexpr AnimationScene Other = AnimationScene::Other;
 constexpr float Tolerance = 1e-4f;
 
-// Una acción que repite, de `keys` keys, como las de Player.bmd.
+// Like the actions of Player.bmd.
 ActionInfo Repeating(std::int16_t keys, float speed = 0.0f)
 {
     return ActionInfo{true, speed, keys, false};
 }
 
-// Avanza `steps` pasos con la velocidad de la acción.
 void Steps(AnimationState& state, const ActionInfo& action, int steps, AnimationScene scene = Other)
 {
     for (int k = 0; k < steps; ++k)
@@ -53,7 +52,6 @@ void Steps(AnimationState& state, const ActionInfo& action, int steps, Animation
     }
 }
 
-// frame += velocidad, por paso.
 TEST(AnimationTest, AdvancesBySpeedPerStep)
 {
     AnimationState state{3, 1.0f, 3, 0};
@@ -64,7 +62,7 @@ TEST(AnimationTest, AdvancesBySpeedPerStep)
     EXPECT_FLOAT_EQ(state.frame, 1.26f);
 }
 
-// Al pasar la última key vuelve con el módulo de las keys, con la parte fraccionaria, y termina.
+// Past the last key it wraps modulo the keys, keeping the fractional part, and ends.
 TEST(AnimationTest, WrapsModuloTheKeys)
 {
     AnimationState state{3, 6.9f, 3, 6};
@@ -75,7 +73,7 @@ TEST(AnimationTest, WrapsModuloTheKeys)
     EXPECT_NEAR(state.frame, 0.16f, Tolerance);
 }
 
-// Con lock_positions, el módulo es de las keys menos 1: la última key es la misma que la 0.
+// With lock_positions, the modulo is the keys minus 1: the last key is the same as key 0.
 TEST(AnimationTest, WrapsModuloKeysMinusOneWithLockPositions)
 {
     AnimationState state{3, 5.9f, 3, 5};
@@ -86,7 +84,7 @@ TEST(AnimationTest, WrapsModuloKeysMinusOneWithLockPositions)
     EXPECT_NEAR(state.frame, 0.16f, Tolerance);
 }
 
-// Una que no repite se queda en las keys menos 0,01 (0x6b88d4), y termina.
+// One that does not repeat stays at the keys minus 0.01 (0x6b88d4), and ends.
 TEST(AnimationTest, HoldsJustBeforeTheLastKeyWithoutRepeat)
 {
     AnimationState state{68, 6.9f, 68, 6};
@@ -97,7 +95,7 @@ TEST(AnimationTest, HoldsJustBeforeTheLastKeyWithoutRepeat)
     EXPECT_FLOAT_EQ(state.frame, 7.0f - 0.01f);
 }
 
-// Con el frame en 0 o menos, le suma las keys menos 1.
+// With the frame at 0 or less, it adds the keys minus 1.
 TEST(AnimationTest, ANegativeFrameAddsKeysMinusOne)
 {
     AnimationState state{3, 0.1f, 3, 0};
@@ -107,9 +105,9 @@ TEST(AnimationTest, ANegativeFrameAddsKeysMinusOne)
     EXPECT_NEAR(state.frame, 6.0f - 0.2f, Tolerance);
 }
 
-// Q-C87: una acción a la que el original no le pone velocidad avanza con 0. En el frame 0, la regla de
-// arriba la pasa a la última key, y ahí se queda. La key entera no cambió al sumar, así que la
-// anterior es la que había: con t en 0, la pose muestra esa.
+// Q-C87: an action the original gives no speed advances by 0. At frame 0, the rule above moves it to the last key,
+// and it stays there. The whole key did not change on adding, so the previous one is the one it had: with t at 0, the
+// pose shows that one.
 TEST(AnimationTest, AnActionWithoutSpeedGoesToItsLastKeyAndStays)
 {
     AnimationState state{40, 0.0f, 12, 3};
@@ -121,8 +119,8 @@ TEST(AnimationTest, AnActionWithoutSpeedGoesToItsLastKeyAndStays)
     EXPECT_EQ(state.previousKey, 3);
 }
 
-// Con lock_positions (la acción 0 de Player.bmd, de tres keys, la única sin velocidad que la tiene),
-// la última key es el módulo: vuelve a 0 en cada avance, y en cada uno termina.
+// With lock_positions (action 0 of Player.bmd, of three keys, the only one without speed that has it), the last key
+// is the modulo: it goes back to 0 on each advance, and ends on each one.
 TEST(AnimationTest, AnActionWithoutSpeedAndWithLockStaysAtZero)
 {
     AnimationState state{0, 0.0f, 0, 0};
@@ -134,8 +132,8 @@ TEST(AnimationTest, AnActionWithoutSpeedAndWithLockStaysAtZero)
     }
 }
 
-// Con una velocidad negativa, la key entera se trunca hacia 0, como el __ftol del original: de 0,2 a
-// −0,3 no cambia, y la anterior queda la que había.
+// With a negative speed, the whole key truncates toward 0, like the original's __ftol: from 0.2 to −0.3 it does not
+// change, and the previous one stays as it was.
 TEST(AnimationTest, ANegativeSpeedTruncatesTowardZero)
 {
     AnimationState state{3, 0.2f, 1, 4};
@@ -147,8 +145,8 @@ TEST(AnimationTest, ANegativeSpeedTruncatesTowardZero)
     EXPECT_NEAR(state.frame, 6.0f - 0.3f, Tolerance);
 }
 
-// Un paso que cruza dos keys (con los multiplicadores de 0x4f9580 una velocidad llega a 2) guarda la
-// key de antes, no la que cruzó en el medio.
+// A step that crosses two keys (with 0x4f9580's multipliers a speed reaches 2) stores the key from before, not the
+// one it crossed in between.
 TEST(AnimationTest, CrossingTwoKeysStoresTheOldOne)
 {
     AnimationState state{3, 1.5f, 3, 0};
@@ -159,8 +157,8 @@ TEST(AnimationTest, CrossingTwoKeysStoresTheOldOne)
     EXPECT_FLOAT_EQ(state.frame, 3.5f);
 }
 
-// Cayendo justo en la cantidad de keys ya pasó la última: la que repite vuelve a 0 y la que no se
-// queda en las keys menos 0,01.
+// Landing exactly on the key count is already past the last one: a repeating action goes back to 0 and one that does
+// not stays at the keys minus 0.01.
 TEST(AnimationTest, LandingOnTheKeyCountIsPastTheLastKey)
 {
     AnimationState repeating{3, 6.75f, 3, 6};
@@ -173,8 +171,7 @@ TEST(AnimationTest, LandingOnTheKeyCountIsPastTheLastKey)
     EXPECT_FLOAT_EQ(holding.frame, 7.0f - 0.01f);
 }
 
-// El + 2 de la selección es solo de las acciones que repiten: una que no repite termina con el frame
-// real.
+// The selection's + 2 is only for the actions that repeat: one that does not repeat ends with the real frame.
 TEST(AnimationTest, TheSelectionDoesNotLookAheadWithoutRepeat)
 {
     AnimationState state{68, 4.9f, 68, 4};
@@ -183,7 +180,8 @@ TEST(AnimationTest, TheSelectionDoesNotLookAheadWithoutRepeat)
     EXPECT_NEAR(state.frame, 5.16f, Tolerance);
 }
 
-// Al cambiar la key entera, la vieja y su acción pasan a anteriores; sin cambiar, quedan las de antes.
+// When the whole key changes, the old one and its action become the previous ones; without a change, the earlier ones
+// stay.
 TEST(AnimationTest, StoresThePreviousKeyWhenItCrossesOne)
 {
     AnimationState state{3, 1.9f, 1, 4};
@@ -197,8 +195,8 @@ TEST(AnimationTest, StoresThePreviousKeyWhenItCrossesOne)
     EXPECT_EQ(state.previousKey, 1);
 }
 
-// Q-C21: en la selección, "terminó" sale con el frame + 2, dos keys antes, pero el frame sigue el
-// real y vuelve recién al pasar la última.
+// Q-C21: in the selection, "ended" comes from frame + 2, two keys early, but the frame follows the real one and wraps
+// only past the last key.
 TEST(AnimationTest, TheSelectionEndsTwoKeysEarlyButWrapsOnTheRealFrame)
 {
     AnimationState selection{3, 4.9f, 3, 4};
@@ -210,7 +208,7 @@ TEST(AnimationTest, TheSelectionEndsTwoKeysEarlyButWrapsOnTheRealFrame)
     EXPECT_NEAR(selection.frame, 5.16f, Tolerance);
 }
 
-// Con una key o ninguna, ni avanza ni termina.
+// With one key or none, it neither advances nor ends.
 TEST(AnimationTest, AnActionOfOneKeyDoesNotMove)
 {
     for (const std::int16_t keys : {std::int16_t{0}, std::int16_t{1}})
@@ -229,7 +227,6 @@ Skeleton ThreeActions()
     return skeleton;
 }
 
-// Otra acción vuelve el frame a 0; la misma no toca nada.
 TEST(AnimationTest, SetActionResetsOnlyForAnotherAction)
 {
     AnimationState state{1, 3.5f, 0, 2};
@@ -244,7 +241,7 @@ TEST(AnimationTest, SetActionResetsOnlyForAnotherAction)
     EXPECT_EQ(state.frame, 0.0f);
 }
 
-// La de antes y su key pasan a anteriores: la pose va de ahí a la key 0 de la nueva.
+// The old action and its key become the previous ones: the pose goes from there to the new one's key 0.
 TEST(AnimationTest, SetActionKeepsTheOldOneAsPrevious)
 {
     AnimationState state{1, 3.5f, 0, 2};
@@ -255,7 +252,6 @@ TEST(AnimationTest, SetActionKeepsTheOldOneAsPrevious)
     EXPECT_EQ(state.previousKey, 3);
 }
 
-// Una acción que el modelo no tiene no cambia nada.
 TEST(AnimationTest, SetActionIgnoresAnActionTheModelDoesNotHave)
 {
     AnimationState state{1, 3.5f, 0, 2};
@@ -267,8 +263,8 @@ TEST(AnimationTest, SetActionIgnoresAnActionTheModelDoesNotHave)
     EXPECT_EQ(state.previousAction, 0);
 }
 
-// La traza de la selección (06): la acción 3, de siete keys, a 0,26 por paso. Los frames de la tabla,
-// más 1 como los guarda el original, saltan 33, 33, 34 y 34 pasos.
+// The selection trace (06): action 3, of seven keys, at 0.26 per step. The table's frames, plus 1 as the original
+// stores them, jump 33, 33, 34 and 34 steps.
 TEST(AnimationTest, TheSelectionJumpsAreThoseOfTheTrace)
 {
     constexpr std::array<float, 5> Frames = {1.740f, 3.320f, 4.900f, 6.740f, 1.580f};
@@ -283,7 +279,7 @@ TEST(AnimationTest, TheSelectionJumpsAreThoseOfTheTrace)
     }
 }
 
-// La de Lorencia: la acción 1, de seis keys, a 0,28; el guardia salta 20, 19, 19 y 19 pasos.
+// Lorencia's: action 1, of six keys, at 0.28; the guard jumps 20, 19, 19 and 19 steps.
 TEST(AnimationTest, TheLorenciaJumpsAreThoseOfTheTrace)
 {
     constexpr std::array<float, 5> Frames = {0.681f, 0.281f, 5.601f, 4.921f, 4.241f};
@@ -298,7 +294,7 @@ TEST(AnimationTest, TheLorenciaJumpsAreThoseOfTheTrace)
     }
 }
 
-// Tres segundos de frames de `frameTime`: el cuerpo, con el paso fijo de la CL3.
+// The body, with the CL3 fixed step.
 AnimationState BodyAfterThreeSeconds(Duration frameTime)
 {
     const ActionInfo action = Repeating(7, 0.26f);
@@ -311,7 +307,7 @@ AnimationState BodyAfterThreeSeconds(Duration frameTime)
     return state;
 }
 
-// El cuerpo avanza por paso de 40 ms: las mismas keys por segundo a 21,33, 60 y 240 FPS.
+// The body advances per 40 ms step: the same keys per second at 21.33, 60 and 240 FPS.
 TEST(AnimationTest, TheBodyRunsTheSameKeysPerSecondAtEveryFrameRate)
 {
     const AnimationState original = BodyAfterThreeSeconds(OriginalFrameTime);
@@ -321,11 +317,10 @@ TEST(AnimationTest, TheBodyRunsTheSameKeysPerSecondAtEveryFrameRate)
         const AnimationState state = BodyAfterThreeSeconds(frameTime);
         EXPECT_FLOAT_EQ(state.frame, original.frame) << frameTime.count();
     }
-    // 75 pasos de 0,26: 19,5 keys, módulo 7.
+    // 75 steps of 0.26: 19.5 keys, modulo 7.
     EXPECT_NEAR(original.frame, 5.5f, 0.001f);
 }
 
-// Tres segundos de la mascota por tiempo, con frames de `frameTime`.
 TimedAnimation PetAfterThreeSeconds(Duration frameTime)
 {
     TimedAnimation pet;
@@ -336,18 +331,17 @@ TimedAnimation PetAfterThreeSeconds(Duration frameTime)
     return pet;
 }
 
-// Q-C20 corregido: la mascota da 0,5 keys cada 46,875 ms, 10,67 por segundo, a cualquier FPS.
+// Q-C20 corrected: the pet does 0.5 keys every 46.875 ms, 10.67 per second, at any FPS.
 TEST(AnimationTest, ThePetRunsByTimeAtEveryFrameRate)
 {
     for (const Duration frameTime : {OriginalFrameTime, Duration{16'666'667}, Duration{4'166'667}})
     {
         const TimedAnimation pet = PetAfterThreeSeconds(frameTime);
-        // 64 frames del original: 32 keys, módulo 7.
+        // 64 frames of the original: 32 keys, modulo 7.
         EXPECT_FLOAT_EQ(pet.state.frame, 4.0f) << frameTime.count();
     }
 }
 
-// Un tiempo negativo no hace retroceder nada.
 TEST(AnimationTest, ANegativeTimeCountsZero)
 {
     TimedAnimation pet;
@@ -358,8 +352,7 @@ TEST(AnimationTest, ANegativeTimeCountsZero)
     EXPECT_FLOAT_EQ(pet.state.frame, 0.5f);
 }
 
-// La copia del render con alpha 1 es un paso, y guarda la key que cruza como el paso. El estado no
-// se toca.
+// The render copy with alpha 1 is a step, and stores the key it crosses like the step. The state is not touched.
 TEST(AnimationTest, TheRenderCopyCrossesKeysLikeTheStep)
 {
     const AnimationState state{3, 1.9f, 3, 0};
@@ -376,9 +369,9 @@ TEST(AnimationTest, TheRenderCopyCrossesKeysLikeTheStep)
     EXPECT_EQ(state.frame, 1.9f);
 }
 
-// Lo que el original corre una vez por frame dibujado (la tela y el cetro), por el reloj (Q-C124 y Q-C20
-// corregidos): el primer dibujo corre uno; después, uno por cada 46,875 ms que pasaron, con lo que sobra
-// para el siguiente. Un reloj que vuelve no cuenta, y un salto de más de 64 corre 64 y descarta el resto.
+// What the original runs once per drawn frame (the cloth and the scepter), by the clock (Q-C124 and Q-C20
+// corrected): the first drawing runs one; after that, one per 46.875 ms passed, with the remainder for the next. A
+// clock that goes back does not count, and a jump of more than 64 runs 64 and drops the rest.
 TEST(AnimationTest, ByTheClockTheCarryCountsTheOriginalFramesThatPassed)
 {
     constexpr OriginalFramePace Clock = OriginalFramePace::ByTheClock;
@@ -387,16 +380,16 @@ TEST(AnimationTest, ByTheClockTheCarryCountsTheOriginalFramesThatPassed)
     EXPECT_EQ(carry.FramesAt(start, Clock), 1);
     EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime, Clock), 1);
     EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 20ms, Clock), 0);
-    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 50ms, Clock), 1); // sobran 3,125 ms
-    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 45ms, Clock), 0); // volvió 5 ms
-    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 89ms, Clock), 1); // 3,125 + 44 ms
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 50ms, Clock), 1); // 3.125 ms left over
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 45ms, Clock), 0); // went back 5 ms
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 89ms, Clock), 1); // 3.125 + 44 ms
     EXPECT_EQ(carry.FramesAt(100s, Clock), MaxOriginalFramesPerDraw);
     EXPECT_EQ(carry.FramesAt(100s + 40ms, Clock), 0) << "el salto descarta lo que sobró";
 }
 
-// En el modo fiel, uno por dibujo, como el original en cada frame dibujado. El frame del bucle fiel dura
-// uno del original, pero no justo 46,875 ms: por el reloj, un dibujo que llega antes que el primero
-// correría 0 y el siguiente 2. Tampoco pone al día lo que no se dibujó (el connect que retiene el frame).
+// In faithful mode, one per drawing, like the original on each drawn frame. The faithful loop's frame lasts one of
+// the original's, but not exactly 46.875 ms: by the clock, a drawing that comes before the first would run 0 and the
+// next 2. It does not catch up either on what was not drawn (the connect that holds the frame).
 TEST(AnimationTest, InTheFaithfulModeTheCarryIsOnePerDraw)
 {
     const Duration first = 3 * OriginalFrameTime + 300us;

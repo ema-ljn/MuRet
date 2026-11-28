@@ -10,39 +10,41 @@ namespace Client::Chat
 struct GameChatContext;
 } // namespace Client::Chat
 
-// La ventana de los comandos (D, CL8 hito 6, 08 P-C92): el objeto [0x6e592c], con su paso (0x40a450) y su dibujo
-// (0x40a650). Elegir un comando, el aviso que da, cerrarla y el cartel del personaje elegido (0x6c8e30, que deja el
-// picking desde el hito 1 de la CL9; 0x40aa80..0x40abd8) se portan, y lo que hace el comando elegido sobre él con el
-// clic derecho (0x406050 desde 0x406097, CL9 hito 7, fase 3): el comercio, la tienda personal, la party, el susurro,
-// seguir y el duelo; los cuatro del gremio cortan hacia el hito 8 (08 P-C209).
+// The commands window (D, CL8 milestone 6, 08 P-C92): the object [0x6e592c], with its step (0x40a450) and its drawing
+// (0x40a650). Choosing a command, the notice it gives, closing it and the chosen character's card (0x6c8e30, which the
+// picking leaves since CL9 milestone 1; 0x40aa80..0x40abd8) are ported, and what the chosen command does on them with
+// the right click (0x406050 from 0x406097, CL9 milestone 7, phase 3): the trade, the personal shop, the party, the
+// whisper, follow and the duel; the four guild ones stop toward milestone 8 (08 P-C209).
 namespace Client::Hud
 {
 struct GameHudContext;
 struct GameUiContext;
 
-// 0x40a450, desde 0x5ee140 con ECX = [0x6e592c]: con +4 en 1, el mouse sobre la ventana (de la esquina que dejó el
-// dibujo, 0xbe × 0x1b1) es de la UI (0x775857c); 0x406050 pone los doce estados en 1 y, con un comando elegido y un
-// personaje elegido, lee las cuatro celdas, elige el destino y los estados del comando y, con el clic derecho, lo corre
-// (con Text.bmd y el cable de `chat`; sin ellos, el comando corta); el clic sobre los botones del 1 al 11 (108 × 20, de
-// 28 en 28, sin los bordes) lo gasta, suelta el botón (0x7d36874) y elige el comando (+0x20); el clic en el botón de
-// cerrar la cierra sin Close: los dos sonidos, 0x77f3b10 en 0, 0x6c8dcc en 6 y ResetTheCommands. No saca rand().
+// 0x40a450, from 0x5ee140 with ECX = [0x6e592c]: with +4 at 1, the mouse over the window (from the corner the drawing
+// left, 0xbe × 0x1b1) belongs to the UI (0x775857c); 0x406050 sets the twelve states to 1 and, with a chosen command
+// and a chosen character, reads the four cells, chooses the target and the command's states and, with the right click,
+// runs it (with Text.bmd and the `chat` cable; without them, the command stops); the click on buttons 1 to 11
+// (108 × 20, every 28, edges excluded) spends it, releases the button (0x7d36874) and chooses the command (+0x20); the
+// click on the close button closes it without Close: the two sounds, 0x77f3b10 at 0, 0x6c8dcc at 6 and
+// ResetTheCommands. It draws no rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& context);
 
-// 0x40a650, desde 0x5f7440 (0x5f75fa): con +4 en 1, la esquina en (0x1c2, 0), el fondo (0x5ee220), el título (texto
-// 938), los once botones (Message_box, el elegido en gris), el botón de cerrar con su ayuda (el texto 927 con "D"), los
-// nombres de los comandos centrados con su casilla (0x463090), la fuente grande, el cartel del jugador elegido con su
-// nombre (0x40aa80..0x40abd8), el aviso del comando elegido según su estado y la mezcla sin alfa al final.
+// 0x40a650, from 0x5f7440 (0x5f75fa): with +4 at 1, the corner at (0x1c2, 0), the background (0x5ee220), the title
+// (text 938), the eleven buttons (Message_box, the chosen one in gray), the close button with its help (text 927 with
+// "D"), the commands' names centered with their checkbox (0x463090), the big font, the chosen player's card with their
+// name (0x40aa80..0x40abd8), the chosen command's notice by its state and the blend without alpha at the end.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context);
 
-// 0x573f85..0x574bd5 (/guild fuera de Chaos Castle, CL9 hito 8): con gremio, el aviso 255; si no, el elegido o el de
-// enfrente (Social::TheOneToAsk) y, con el mundo cargado, 0x78aba40 con su clave, el C1 05 50 por el cable de `chat` y
-// el aviso 477 con su nombre. Sin Text.bmd o sin el cable cuando hace falta, corta.
+// 0x573f85..0x574bd5 (/guild outside Chaos Castle, CL9 milestone 8): with a guild, notice 255; otherwise, the chosen
+// one or the one in front (Social::TheOneToAsk) and, with the world loaded, 0x78aba40 with their key, the C1 05 50
+// through the `chat` cable and notice 477 with their name. Without Text.bmd or without the cable when needed, it stops.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 RequestAGuildJoin(const Chat::GameChatContext& chat);
 
-// 0x570d7e..0x573f48 (/union, /rival y /rivaloff fuera de Chaos Castle, CL9 hito 8): sin gremio, el aviso 1355; si no,
-// el elegido o el de enfrente y el E5 de `command` (01 01, 02 01 o, después de la animación 0xb7 y el C1 05 18 del
-// comando 8, 02 02) con su aviso (1358, 1359 o 1360). Sin Text.bmd, sin el cable o sin los modelos (/rivaloff), corta.
+// 0x570d7e..0x573f48 (/union, /rival and /rivaloff outside Chaos Castle, CL9 milestone 8): without a guild, notice
+// 1355; otherwise, the chosen one or the one in front and `command`'s E5 (01 01, 02 01 or, after the 0xb7 animation and
+// command 8's C1 05 18, 02 02) with its notice (1358, 1359 or 1360). Without Text.bmd, without the cable or without the
+// models (/rivaloff), it stops.
 [[nodiscard]] Core::Expected<Chat::ChatCommandOutcome, std::string>
 RequestAGuildRelation(const Chat::GameChatContext& chat, Chat::GuildRelationCommand command);
 } // namespace Client::Hud

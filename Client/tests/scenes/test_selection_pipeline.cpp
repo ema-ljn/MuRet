@@ -71,8 +71,8 @@
 #include <utility>
 #include <vector>
 
-// CL7.3 B: el cable falso atraviesa la sesión, el callback de Poll de main y las escenas reales.
-// Sin un Step ni un Render entre recepciones, la fotografía de la UI no reemplaza los constructores.
+// CL7.3 B: the fake wire goes through the session, main's Poll callback and the real scenes. Without a Step or a
+// Render between receptions, the UI snapshot does not replace the constructors.
 namespace
 {
 using Client::FrontEnd::CharacterSlotHeight;
@@ -90,13 +90,13 @@ constexpr std::uint8_t PendingCreationSlot = 3;
 CharacterEntryFields WithoutPet(std::uint8_t slot)
 {
     CharacterEntryFields entry{.slot = slot};
-    // 04 § La selección de personaje: b4 & 3 == 3, con b9 & 1 == 0, es petNONE.
+    // 04 § La selección de personaje: b4 & 3 == 3, with b9 & 1 == 0, is petNONE.
     entry.equipment[4] = 3;
     return entry;
 }
 
-// Sin nada que cuelgue: sin mascota, sin alas (b4 >> 2 & 3 == 3, con b8 & 7 == 0) y con las manos vacías (0xfff:
-// b0 y b1 en 0xff, y los nibbles altos de b11 y b12).
+// Nothing hanging: no pet, no wings (b4 >> 2 & 3 == 3, with b8 & 7 == 0) and empty hands (0xfff: b0 and b1 at 0xff,
+// and the high nibbles of b11 and b12).
 CharacterEntryFields Bare(std::uint8_t slot)
 {
     CharacterEntryFields entry{.slot = slot};
@@ -111,7 +111,7 @@ CharacterEntryFields Bare(std::uint8_t slot)
 CharacterEntryFields WithHeightOffsetPet(std::uint8_t slot)
 {
     CharacterEntryFields entry{.slot = slot};
-    // 04 § La selección de personaje: el equipo que AppearanceOf decodifica como pet 0x1c15.
+    // 04 § La selección de personaje: the equipment AppearanceOf decodes as pet 0x1c15.
     entry.equipment[4] = 3;
     entry.equipment[9] = 1;
     return entry;
@@ -119,7 +119,7 @@ CharacterEntryFields WithHeightOffsetPet(std::uint8_t slot)
 
 std::vector<std::byte> CreatedReply(std::uint8_t slot)
 {
-    // 04 § La selección de personaje: F3/01 aceptado, nombre, slot, nivel 1 y clase 0.
+    // 04 § La selección de personaje: F3/01 accepted, name, slot, level 1 and class 0.
     auto bytes = Client::Tests::Bytes({0xc1, 0x13, 0xf3, 0x01, 0x01});
     const auto name = Client::Tests::NameBytes("char0003");
     bytes.insert(bytes.end(), name.begin(), name.end());
@@ -195,7 +195,7 @@ protected:
     Client::Tests::RecordingFrameTarget m_target;
     Client::Tables::GameData m_data;
     Client::FrontEnd::SingleModelLibrary m_models;
-    // Con las texturas de efectos de GameModels, que piden las partículas del mundo 54.
+    // With GameModels' effect textures, which the world 54 particles ask for.
     Client::Tests::WithEffectTextures m_library{m_models};
     Client::Camera::GameCamera m_camera;
     Client::Camera::GameCameraInput m_cameraInput;
@@ -215,13 +215,13 @@ protected:
                                                                                       .log = m_entryLog}};
     Client::Tests::LoggedInSession m_online{&m_applier};
     float m_loginConstructorHeight = 0.0f;
-    // Se destruye primero: Leave conserva las tablas antes de que desaparezcan el estado y el store.
+    // Destroyed first: Leave keeps the tables before the state and the store go away.
     std::optional<Client::Scenes::SceneManager> m_manager;
 };
 
 TEST_F(SelectionPipelineTest, AListBeforeSelectionEnterIsOutOfTurnAndTheRequestedListIsApplied)
 {
-    // Antes de Enter todavía no se pidió F3/00: la sesión no acepta esa respuesta.
+    // Before Enter F3/00 has not been asked for yet: the session does not accept that reply.
     m_online.socket.reads = {Client::Tests::CharacterListBytes({{0, "char0001"}})};
     m_manager->Poll();
     EXPECT_EQ(m_online.session.State(), SessionState::LoggedIn);
@@ -293,7 +293,7 @@ TEST_F(SelectionPipelineTest, MissingWorldTablesAbortTheManagerWithoutInventingA
     EXPECT_EQ(m_cameraInput.hero.z, 777.0f);
 }
 
-// 0x634851 dibuja los personajes. 0x63486f dibuja las cintas antes de las juntas de 0x634875.
+// 0x634851 draws the characters. 0x63486f draws the ribbons before 0x634875's joints.
 TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBeforeJoints)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
@@ -307,10 +307,10 @@ TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBef
     ribbon.count = 3;
     m_online.clock.Advance(Client::Models::OriginalFrameTime);
     m_manager->Step(Client::Input::InputState{});
-    // 0x6342f9 pasa por 0x5091d0. El preview de 0x634303 no vuelve a envejecer la cinta.
+    // 0x6342f9 goes through 0x5091d0. 0x634303's preview does not age the ribbon again.
     ASSERT_EQ(ribbon.life, 2);
     ASSERT_EQ(ribbon.count, 2);
-    // La escena publica la luz del personaje aunque su biblioteca no tenga mallas.
+    // The scene publishes the character's light even if its library has no meshes.
     m_models.Clear();
 
     auto& actor = m_world.Actors()[0];
@@ -355,7 +355,7 @@ TEST_F(SelectionPipelineTest, TheSelectorDrawsTheLiveRibbonAfterCharactersAndBef
     }
     EXPECT_EQ(selectors, (std::vector<std::uint16_t>{0x639, 0x60f}));
 
-    // Si la cinta corta, el personaje ya publicó su luz en este mismo dibujo.
+    // If the ribbon stops, the character has already published its light in this same draw.
     const glm::vec3 drawnLight = actor.drawnLight;
     actor.drawnLight = glm::vec3(-1.0f);
     ribbon.ownerEquipment = nullptr;
@@ -407,8 +407,8 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAStepSurvivesTheRealLog
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0), WithHeightOffsetPet(PreservedPetSlot)}));
-    // El historial observado por el dibujo precede a estos callbacks. No se finge haber pasado el
-    // cuerpo de helpers de la escena 4, todavía no portado: su corte se prueba por el manager abajo.
+    // The history observed by the draw comes before these callbacks. Passing through the body of scene 4's helpers, not
+    // ported yet, is not faked: its cut is tested through the manager below.
     m_state.DrawSelection(m_cameraInput);
     ASSERT_EQ(m_cameraInput.hero.z, CharacterSlotHeight);
     ASSERT_TRUE(m_state.Slots()[PreservedPetSlot].previousHad1c15);
@@ -451,7 +451,7 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAStepSurvivesTheRealLog
 
 TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsParticlesAndCloth)
 {
-    constexpr int SelectionItemResetRandoms = 3848; // 0x633f91 -> 0x5bc092, antes del reset parcial.
+    constexpr int SelectionItemResetRandoms = 3848; // 0x633f91 -> 0x5bc092, before the partial reset.
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0), WithHeightOffsetPet(PreservedPetSlot)}));
     auto& helpers = m_world.Helpers();
@@ -475,7 +475,7 @@ TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsPartic
     EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
     EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.0f);
     EXPECT_EQ(m_world.Actors()[0].animation.frame, animation.frame);
-    // Pasto de la carga del 54, cierre del vaciado de ítems y luego el reset parcial.
+    // The grass of the 54's load, the closing of the item emptying and then the partial reset.
     EXPECT_EQ(m_cloth.random.State(),
               Client::Tests::AfterDraws(Seed, 3904 + SelectionItemResetRandoms + 65536).State());
     EXPECT_EQ(m_cloth.logicSteps, Counter);
@@ -495,7 +495,7 @@ TEST_F(SelectionPipelineTest, ANewLoginPreservesAlreadyAppliedEventsAndTheConstr
     ASSERT_TRUE(m_state.Slots()[0].previousHad1c15);
     m_online.session.CreateCharacter("char0003", 0);
     m_online.socket.reads = {CreatedReply(PendingCreationSlot)};
-    // El handler aplica inmediatamente, incluso sin pasar por el callback del manager.
+    // The handler applies immediately, even without going through the manager's callback.
     static_cast<void>(m_online.session.Poll());
     ASSERT_EQ(m_online.session.State(), SessionState::ChoosingCharacter);
     ASSERT_EQ(m_online.session.Characters()->characters.size(), 2u);
@@ -520,7 +520,7 @@ TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneRe
     ASSERT_NO_FATAL_FAILURE(ReceiveList({}));
     for (int reception = 0; reception < 2; ++reception)
     {
-        // Cada respuesta tiene su pedido válido y aplica antes de consumir la vista UI.
+        // Each reply has its valid request and applies before the UI view is consumed.
         m_online.session.CreateCharacter("char0003", 0);
         ASSERT_EQ(m_online.session.State(), SessionState::WaitingCreateResult);
         m_online.socket.reads = {CreatedReply(0)};
@@ -544,10 +544,10 @@ TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneRe
     EXPECT_EQ(m_state.Slots()[0].revision, 2u);
 }
 
-// 0x633f20 deja el 54 como mundo en curso (06, "Al entrar"), en el WorldRuntime del pool durable. La
-// escena 3 corre con él: entrar al mundo no lo vuelve a −1 ni toca los registros de la selección. Y
-// deja armada la espera (06, "La entrada al mundo", pasos 1 y 2): el mundo cargado (0x633f30), el
-// nivel del elegido en el registro propio, el contador en 9.999.999 y la bandera de la escena 3.
+// 0x633f20 leaves the 54 as the current world (06, "Al entrar"), in the durable pool's WorldRuntime. Scene 3 runs with
+// it: entering the world does not set it back to −1 or touch the selection's records. And it leaves the wait set up
+// (06, "La entrada al mundo", steps 1 and 2): the world loaded (0x633f30), the chosen one's level in the own record,
+// the counter at 9999999 and scene 3's flag.
 TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheWorldLoading)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
@@ -604,8 +604,8 @@ std::vector<std::byte> UnplaceableInventory()
     return Client::Tests::Bytes({0xc2, 0x00, 0x0e, 0xf3, 0x10, 0x01, 0x0c, 0x00, 0x00, 0x14, 0x00, 0x00, 0xe0, 0x00});
 }
 
-// Un F3 10 con un ítem en la grilla (el lugar 12, Apple) sigue siendo trabajo: sin Item.bmd el aplicador
-// local corta en 0x5bc740, después de la inicialización común, sin acumularlo entre frames.
+// An F3 10 with an item in the grid (slot 12, Apple) is still work: without Item.bmd the local applier stops at
+// 0x5bc740, after the common initialization, without accumulating it between frames.
 TEST_F(SelectionPipelineTest, MixedCharacterThenWorldAppliesTheCharacterBeforeTheWorldFailure)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
@@ -638,23 +638,23 @@ TEST_F(SelectionPipelineTest, MixedWorldFailureBeforeCharacterPreventsTheCharact
     EXPECT_TRUE(m_target.frames.empty());
 }
 
-// 0x50ba30 con cada personaje de la lista, en 0x50c91e, una vez por frame del original: el dibujo de la
-// selección deja en WorldRuntime::fullSetScan lo de 0x505820 con el último, aunque MuRet no supiera qué
-// había (06, "El conjunto completo de 0x505820"). Uno sin equipo lleva las partes de la clase, que no son un
-// conjunto: [0x743a178] en 0 y [0x743a17c] en 1. Sin las acciones de Player.bmd sale antes (0x50ba87). Sin nada
-// que dibuje mallas: las manos FFF conservan1211 (Q-C102), así que también necesitan los huesos de sus anclajes.
+// 0x50ba30 with each character of the list, at 0x50c91e, once per original frame: the selection's draw leaves in
+// WorldRuntime::fullSetScan what 0x505820 leaves with the last one, even if MuRet did not know what was there (06, "El
+// conjunto completo de 0x505820"). One without equipment carries the class parts, which are not a set: [0x743a178] at
+// 0 and [0x743a17c] at 1. Without Player.bmd's actions it leaves early (0x50ba87). With nothing that draws meshes:
+// the FFF hands keep 0x1211 (Q-C102), so they also need their anchors' bones.
 TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter)
 {
     m_world.Runtime().fullSetScan = std::nullopt;
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({Bare(0)}));
     m_manager->Step(Client::Input::InputState{});
-    // El paso común ya necesitó el esqueleto: se retira solo para observar la guarda del dibujo.
+    // The common step already needed the skeleton: it is removed only to observe the draw's guard.
     m_models.Clear();
     m_manager->Render(0.0f);
     EXPECT_FALSE(m_world.Runtime().fullSetScan.has_value());
 
-    // Un frame del original más: el del dibujo sin el esqueleto se perdió.
+    // One more original frame: the one from the draw without the skeleton was lost.
     auto skeleton = Client::Tests::PlayerActionsSkeleton();
     for (auto& action : skeleton.actions)
         action.keyCount = 1;
@@ -675,9 +675,9 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
     EXPECT_EQ(m_world.Runtime().fullSetScan->byte743a17c, 1);
 }
 
-// 06 § Los globos: con la lista, 0x65f4b0 arma los globos (0x63ce70) y los pone al día (0x63cfb0), y 0x65fe00 los
-// dibuja antes de las ventanas (0x63cf80): uno por personaje, con el nombre, el rango (0xff: el 488) y la clase con el
-// nivel, centrados en la misma caja de 118 columnas, a 16 de distancia en 640 × 480.
+// 06 § Los globos: with the list, 0x65f4b0 builds the balloons (0x63ce70) and updates them (0x63cfb0), and 0x65fe00
+// draws them before the windows (0x63cf80): one per character, with the name, the rank (0xff: the 488) and the class
+// with the level, centered in the same 118-column box, 16 apart at 640 × 480.
 TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
@@ -689,7 +689,8 @@ TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
     ASSERT_NO_FATAL_FAILURE(ReceiveList({first, second}));
     m_manager->Step(Client::Input::InputState{});
     ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
-    // Sin las mallas: el esqueleto del test no tiene los huesos de la cola de 0x50ba30, y los globos no los miran.
+    // Without the meshes: the test's skeleton does not have 0x50ba30's tail bones, and the balloons do not look at
+    // them.
     m_models.Clear();
     m_manager->Render(0.0f);
     ASSERT_FALSE(m_manager->Failure().has_value()) << *m_manager->Failure();
@@ -707,7 +708,7 @@ TEST_F(SelectionPipelineTest, EachListedCharacterGetsItsBalloonBeforeTheWindows)
             return event.kind == Client::Tests::FrameEvent::Kind::Quad && event.texture && event.texture->value == slot;
         };
     };
-    // La barra empieza con su adorno (deco.tga, 0xe): las cajas (character_ex.tga, 0x13) y los renglones van antes.
+    // The bar starts with its ornament (deco.tga, 0xe): the boxes (character_ex.tga, 0x13) and the lines go before.
     const std::size_t bar = indexOf(quadOf(0xe));
     ASSERT_LT(bar, events.size());
     const auto boxes =

@@ -71,9 +71,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::LoginScene con su logo y su personaje (CL6.4): Logo03.bmd y la luz del mundo 56
-// sintéticos, y Player.bmd y las partes de una biblioteca a mano. La cuenta del logo, la luz del
-// terreno, la acción del personaje y el orden de 0x6350b0 (06 § El logo en el binario).
+// Client::Scenes::LoginScene with its logo and its character (CL6.4): synthetic Logo03.bmd and world 56 light, and
+// Player.bmd and the parts from a hand-made library. The logo's count, the terrain light, the character's action and
+// the order of 0x6350b0 (06 § El logo en el binario).
 namespace
 {
 using Client::Core::Log;
@@ -104,11 +104,11 @@ using Client::Tests::TemporaryFolder;
 using Kind = FrameEvent::Kind;
 
 constexpr float Rounding = 1e-4f;
-// Hasta las dos acciones de 0x634c60 (LoginModels.h).
+// Up to 0x634c60's two actions (LoginModels.h).
 constexpr std::size_t PlayerActions = 0x56;
 constexpr float RaisedHeight = 100.0f;
 
-// World56 con las alturas en 0 (plano: la sombra es 1) y la luz de light-256.jpg.
+// World56 with heights at 0 (flat: the shadow is 1) and the light of light-256.jpg.
 void WriteWorld56(const std::filesystem::path& root)
 {
     Client::Tests::WriteSceneFile(root, "World56/TerrainHeight.OZB",
@@ -117,8 +117,8 @@ void WriteWorld56(const std::filesystem::path& root)
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("light-256.jpg")));
 }
 
-// Un esqueleto de `bones` huesos sin padre con `actions` acciones de dos keys que avanzan una por paso:
-// en las dos de `raised`, cada hueso a 100 de altura; en las demás, en el origen.
+// A skeleton of `bones` parentless bones with `actions` two-key actions that advance one per step: in the two of
+// `raised`, each bone at height 100; in the others, at the origin.
 Skeleton RaisingSkeleton(std::size_t actions, std::size_t bones, std::array<std::size_t, 2> raised)
 {
     SkeletonBone bone;
@@ -136,9 +136,8 @@ Skeleton RaisingSkeleton(std::size_t actions, std::size_t bones, std::array<std:
     return skeleton;
 }
 
-// Player.bmd con 48 huesos y 0x56 acciones (las 0x54 y 0x55 alzan el hueso 0), una parte de un
-// triángulo para cualquier otro modelo, sin la sombra, y el caballo (0xbf) con sus siete acciones (la
-// 5 y la 6 lo alzan) y su textura en 0x3bc.
+// Player.bmd with 48 bones and 0x56 actions (0x54 and 0x55 raise bone 0), a one-triangle part for any other model,
+// without the shadow, and the horse (0xbf) with its seven actions (5 and 6 raise it) and its texture at 0x3bc.
 class LoginPlayer final : public IModelLibrary
 {
 public:
@@ -166,7 +165,7 @@ public:
         return model.Value() == Client::Pets::DarkHorseModel ? m_horseSlots : m_slots;
     }
 
-    // El hueso 0 del cuerpo, dummy: 0x4eb973 no lo escribe y queda el del buffer donde se posa.
+    // The body's bone 0, a dummy: 0x4eb973 does not write it and what the buffer it is posed in had stays.
     void RetainTheDummyRoot()
     {
         m_body.bones[0].dummy = true;
@@ -180,7 +179,7 @@ private:
     std::array<TextureSlot, 1> m_horseSlots{TextureSlot{0x3bc}};
 };
 
-// Seis píxeles por byte: los textos de los tests no llegan a los 256 del corte de 0x555190.
+// Six pixels per byte: the tests' texts do not reach the 256 where 0x555190 cuts.
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
 {
 public:
@@ -207,7 +206,7 @@ struct Harness
         }
     }
 
-    // Con `cloth`, lo global de la tela del bucle: el rand() de la CRT.
+    // With `cloth`, the loop's cloth globals: the CRT rand().
     LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr,
                      Client::Models::ClothWorld* cloth = nullptr, Client::Kernel::WorldState* world = nullptr)
     {
@@ -217,7 +216,6 @@ struct Harness
         return scene.emplace(context, data, models, nullptr, "0.0.0", seed);
     }
 
-    // El evento de los modelos del frame, después de un frame.
     FrameEvent ModelsOfAFrame()
     {
         Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
@@ -249,11 +247,10 @@ struct Harness
     InputState input;
 };
 
-// Los dos slots del logo con un mundo sin modelos: los que deja 0x60d530(0x41c) de 0x616ec0.
+// The logo's two slots with a world without models: those that 0x60d530(0x41c) of 0x616ec0 leaves.
 const TextureSlot LogoSlot{0x41c};
 const TextureSlot LogoSlot2{0x41d};
 
-// Si alguna línea del log tiene `text`.
 bool Logged(const RecordingSink& sink, std::string_view text)
 {
     return std::ranges::any_of(sink.lines,
@@ -272,7 +269,7 @@ void ExpectNear(const glm::vec3& actual, const glm::vec3& expected)
     EXPECT_NEAR(actual.z, expected.z, Rounding);
 }
 
-// La luz de light-256.jpg en (x, y), sin sombra: el terreno es plano.
+// The light of light-256.jpg at (x, y), without shadow: the terrain is flat.
 glm::vec3 WorldLightAt(const std::filesystem::path& root, const glm::vec3& position)
 {
     const auto lighting = Client::Terrain::LoadTerrainLighting(root, 55);
@@ -280,10 +277,9 @@ glm::vec3 WorldLightAt(const std::filesystem::path& root, const glm::vec3& posit
     return lighting.HasValue() ? Client::Terrain::LightAt(*lighting.Value(), position.x, position.y) : glm::vec3(0.0f);
 }
 
-// 0x6350b0: en el pase 3D, el personaje (0x510d00) y después el logo (0x6046a0), que es el último:
-// un tramo opaco con logo.jpg y el aditivo de su blendMesh con logo2.jpg. El Data del test no tiene
-// Object56: el mundo no carga ningún modelo y deja el próximo slot en 0x41c, donde sigue el logo
-// (Q-C92).
+// 0x6350b0: in the 3D pass, the character (0x510d00) and then the logo (0x6046a0), which is the last: an opaque
+// stretch with logo.jpg and the additive one of its blendMesh with logo2.jpg. The test's Data has no Object56: the
+// world loads no model and leaves the next slot at 0x41c, where the logo goes (Q-C92).
 TEST(LoginSceneModelsTest, TheCharacterGoesBeforeTheLogo)
 {
     Harness tested;
@@ -301,8 +297,8 @@ TEST(LoginSceneModelsTest, TheCharacterGoesBeforeTheLogo)
     EXPECT_EQ(models.modelCommands[count - 1].state.blend, ModelBlend::Additive);
 }
 
-// 0x50ba30 fuera de la escena 4: la luz del terreno en el lugar del personaje más su +0xf4 (0,3), por
-// el factor del nivel de la parte (las botas, +7, la primera).
+// 0x50ba30 outside scene 4: the terrain light at the character's place plus its +0xf4 (0.3), times the factor of the
+// part's level (the boots, +7, the first).
 TEST(LoginSceneModelsTest, TheCharacterTakesTheLightOfTheTerrain)
 {
     Harness tested;
@@ -318,7 +314,7 @@ TEST(LoginSceneModelsTest, TheCharacterTakesTheLightOfTheTerrain)
     ExpectNear(ColorOf(models.modelVertices[0]), (terrain + glm::vec3(LoginCharacterLight)) * factor);
 }
 
-// Sin la luz del mundo, el login entra igual, con un aviso en el log, y el personaje va con la suya.
+// Without the world light, the login enters anyway, with a log warning, and the character goes with its own.
 TEST(LoginSceneModelsTest, WithoutTheWorldLightTheCharacterGoesWithItsOwn)
 {
     Harness tested(true, false);
@@ -333,10 +329,10 @@ TEST(LoginSceneModelsTest, WithoutTheWorldLightTheCharacterGoesWithItsOwn)
     EXPECT_TRUE(Logged(tested.sink, "sin la luz del terreno"));
 }
 
-// Q-C105: el color del logo es 0,1 de la luz del terreno más la suya, y su blendMesh va además por
-// esa luz. 0x606560 solo corre los objetos que se dibujaron (+0x16c): el primer paso no escribe la
-// luz, que queda la de 0x606660 (+0xf4 en 0 y +0x68 en 1); desde el segundo, cuenta · 0,02, de 0 en
-// el 2 a 0,78 en el 41, y 1,5 desde el 42.
+// Q-C105: the logo's color is 0.1 of the terrain light plus its own, and its blendMesh also goes by that light.
+// 0x606560 only runs the objects that were drawn (+0x16c): the first step does not write the light, which stays as
+// 0x606660 left it (+0xf4 at 0 and +0x68 at 1); from the second, count · 0.02, from 0 at the 2nd to 0.78 at the
+// 41st, and 1.5 from the 42nd.
 TEST(LoginSceneModelsTest, TheLogoLightRisesAndThenJumps)
 {
     Harness tested;
@@ -361,8 +357,8 @@ TEST(LoginSceneModelsTest, TheLogoLightRisesAndThenJumps)
     }
 }
 
-// Mientras no se dibujó, el logo no cambia (0x606560 con +0x16c en 0), y las rutas siguen: a los diez
-// pasos sin dibujo, la luz es la de 0x606660; dibujado, el paso siguiente le da la cuenta, 9 · 0,02.
+// While it has not been drawn, the logo does not change (0x606560 with +0x16c at 0), and the routes go on: after ten
+// steps without a draw, the light is 0x606660's; once drawn, the next step gives it the count, 9 · 0.02.
 TEST(LoginSceneModelsTest, TheLogoDoesNotChangeUntilItIsDrawn)
 {
     Harness tested;
@@ -380,7 +376,6 @@ TEST(LoginSceneModelsTest, TheLogoDoesNotChangeUntilItIsDrawn)
     ExpectNear(ColorOf(after.modelVertices[after.modelVertices.size() - 6]), terrain + glm::vec3(9.0f * 0.02f));
 }
 
-// Al salir se sueltan las dos texturas del logo, como las demás de la escena.
 TEST(LoginSceneModelsTest, LeaveReleasesTheLogo)
 {
     Harness tested;
@@ -396,8 +391,8 @@ TEST(LoginSceneModelsTest, LeaveReleasesTheLogo)
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 
-// 0x60da30 saltea un modelo que no está y no se llama Monster, Player ni PlayerTest: sin Logo03.bmd,
-// el login entra, sin el logo.
+// 0x60da30 skips a model that is missing and is not named Monster, Player or PlayerTest: without Logo03.bmd, the
+// login enters, without the logo.
 TEST(LoginSceneModelsTest, WithoutLogo03TheLoginEntersWithoutIt)
 {
     Harness tested(false);
@@ -414,7 +409,7 @@ TEST(LoginSceneModelsTest, WithoutLogo03TheLoginEntersWithoutIt)
     EXPECT_FALSE(tested.store.Find(LogoSlot).has_value());
 }
 
-// 0x60d5f0 con su quinto argumento en 1: una textura del logo que falta corta la entrada.
+// 0x60d5f0 with its fifth argument at 1: a missing logo texture stops the entry.
 TEST(LoginSceneModelsTest, AMissingLogoTextureStopsTheLogin)
 {
     Harness tested(false);
@@ -426,7 +421,6 @@ TEST(LoginSceneModelsTest, AMissingLogoTextureStopsTheLogin)
     EXPECT_NE(entered.Error().find("logo2"), std::string::npos) << entered.Error();
 }
 
-// La semilla con la que el primer rand() % 6 da `remainder`.
 std::mt19937::result_type SeedWhoseFirstRollIs(int remainder)
 {
     for (std::mt19937::result_type seed = 0;; ++seed)
@@ -439,8 +433,8 @@ std::mt19937::result_type SeedWhoseFirstRollIs(int remainder)
     }
 }
 
-// La altura del primer vértice del personaje (el de las botas, del hueso 0): 580 en la acción de
-// parado, y 580 + 100 · 1,6 en la 0x54 o la 0x55.
+// The height of the character's first vertex (the boots', bone 0's): 580 in the standing action, and 580 + 100 · 1.6
+// in 0x54 or 0x55.
 float CharacterHeight(Harness& tested)
 {
     const FrameEvent models = tested.ModelsOfAFrame();
@@ -448,8 +442,8 @@ float CharacterHeight(Harness& tested)
     return models.modelVertices.empty() ? 0.0f : models.modelVertices[0].position.z;
 }
 
-// 0x634c60 con el reloj del bucle: en la ventana de cada 2.300 ms, el primer rand() % 6 en 1 pone la
-// 0x54; fuera de la ventana, o con otro resto, queda la de parado (0x4f2250 con el caballo).
+// 0x634c60 with the loop clock: in the window of every 2300 ms, the first rand() % 6 at 1 sets 0x54; outside the
+// window, or with another remainder, the standing one stays (0x4f2250 with the horse).
 TEST(LoginSceneModelsTest, TheCharacterChangesItsActionInItsWindow)
 {
     const float standing = LoginCharacterTransform().position.z;
@@ -480,17 +474,16 @@ TEST(LoginSceneModelsTest, TheCharacterChangesItsActionInItsWindow)
     }
 }
 
-// Con el bucle (lo global de la tela en el contexto), el gesto sale del rand() de la CRT, el del original
-// (0x634cca), y no de la semilla de la escena: con la misma CRT, dos semillas cuyo primer rand() % 6 da 1 y 0
-// hacen lo mismo, y según el estado de la CRT el gesto sale o no. Fuera de la ventana, nunca. Dónde cae ese
-// rand() entre los demás del paso no se fija acá: es P-C27 d.
+// With the loop (the cloth's globals in the context), the gesture comes from the CRT rand(), the original's
+// (0x634cca), and not from the scene's seed: with the same CRT, two seeds whose first rand() % 6 gives 1 and 0 do the
+// same, and depending on the CRT's state the gesture comes out or not. Outside the window, never. Where that rand()
+// falls among the step's others is not fixed here: it is P-C27 d.
 TEST(LoginSceneModelsTest, WithTheLoopTheGestureTakesTheRandOfTheCrt)
 {
     const float standing = LoginCharacterTransform().position.z;
     const float raised = standing + (RaisedHeight * LoginCharacterTransform().scale);
     const std::chrono::milliseconds inside{(3 * 2300) + 50};
     const std::chrono::milliseconds outside{(3 * 2300) + 500};
-    // La altura del personaje después de un paso con el reloj en `clock`, la semilla `seed` y la CRT en `crt`.
     const auto heightAfterAStep = [](std::chrono::milliseconds clock, std::mt19937::result_type seed, std::uint32_t crt)
     {
         Harness tested;
@@ -523,9 +516,9 @@ TEST(LoginSceneModelsTest, WithTheLoopTheGestureTakesTheRandOfTheCrt)
     EXPECT_LT(gestures, CrtStates) << "y con otro, no";
 }
 
-// 0x4fcd00: cuando la acción termina (0x4ec200 da la vuelta), 0x4fcb10 le pone la de parado otra vez
-// (0x4f2250, la 0x4a con el caballo). La 0x54 de la biblioteca tiene dos keys a una por paso: termina
-// en el segundo, y en el tercero el personaje ya está parado.
+// 0x4fcd00: when the action ends (0x4ec200 wraps around), 0x4fcb10 sets the standing one again (0x4f2250, 0x4a with
+// the horse). The library's 0x54 has two keys at one per step: it ends on the second, and on the third the character
+// is already standing.
 TEST(LoginSceneModelsTest, TheCharacterStandsAgainWhenItsGestureEnds)
 {
     const float standing = LoginCharacterTransform().position.z;
@@ -543,7 +536,7 @@ TEST(LoginSceneModelsTest, TheCharacterStandsAgainWhenItsGestureEnds)
     EXPECT_NEAR(CharacterHeight(tested), standing, Rounding);
 }
 
-// El tramo del caballo (su textura, 0x3bc) entre los del frame, o el final si no está.
+// The horse's stretch (its texture, 0x3bc) among the frame's, or the end if it is not there.
 std::size_t HorseCommand(const FrameEvent& models)
 {
     const auto horse =
@@ -552,8 +545,8 @@ std::size_t HorseCommand(const FrameEvent& models)
     return static_cast<std::size_t>(horse - models.modelCommands.begin());
 }
 
-// 0x6350b0: los personajes (0x510d00), los ayudantes (0x4453b0, el caballo) y los objetos (0x6046a0,
-// el logo). Después del primer paso, el caballo ya está, con la mezcla normal: su alpha es 0,1.
+// 0x6350b0: the characters (0x510d00), the helpers (0x4453b0, the horse) and the objects (0x6046a0, the logo). After
+// the first step, the horse is already there, with normal blending: its alpha is 0.1.
 TEST(LoginSceneModelsTest, TheHorseGoesBetweenTheCharacterAndTheLogo)
 {
     Harness tested;
@@ -570,9 +563,8 @@ TEST(LoginSceneModelsTest, TheHorseGoesBetweenTheCharacterAndTheLogo)
     EXPECT_EQ(models.modelCommands[0].state.texture, TextureSlot{0x300});
 }
 
-// 0x443d70 lo crea con el alpha en 0, y 0x5ffdf0 no dibuja nada por debajo de 0,01: antes del primer
-// paso no está. Después sube un décimo de lo que le falta en cada uno (0x4e9980), y desde el 44 pasa
-// 0,99 y va opaco.
+// 0x443d70 creates it with alpha at 0, and 0x5ffdf0 draws nothing below 0.01: before the first step it is not there.
+// Then it rises a tenth of what it lacks on each one (0x4e9980), and from the 44th it passes 0.99 and goes opaque.
 TEST(LoginSceneModelsTest, TheHorseFadesInStepByStep)
 {
     Harness tested;
@@ -598,8 +590,8 @@ TEST(LoginSceneModelsTest, TheHorseFadesInStepByStep)
     }
 }
 
-// 0x444010 en el mismo paso, después de que 0x634c60 le dio al jinete la 0x54: el caballo toma su 5,
-// que lo alza, en el lugar del jinete y con la escala 1,6 de 0x445260.
+// 0x444010 in the same step, after 0x634c60 gave the rider 0x54: the horse takes its 5, which raises it, at the
+// rider's place and with 0x445260's 1.6 scale.
 TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
 {
     const float standing = LoginCharacterTransform().position.z;
@@ -621,10 +613,10 @@ TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
     }
 }
 
-// El caballo ve la acción del jinete antes de que el jinete avance (0x445230 antes de 0x508f00): en el
-// paso en que termina el gesto (el segundo, fuera de la ventana), el jinete vuelve a la 0x4a después,
-// y el caballo sigue alzado. En el que sigue toma su 0 y avanza 0,3: la pose va un 30 % desde la key
-// del gesto hacia la de parado (0x4eb860 con la acción anterior).
+// The horse sees the rider's action before the rider advances (0x445230 before 0x508f00): on the step the gesture
+// ends (the second, outside the window), the rider goes back to 0x4a afterwards, and the horse stays raised. On the
+// next it takes its 0 and advances 0.3: the pose goes 30 % from the gesture's key toward the standing one (0x4eb860
+// with the previous action).
 TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
 {
     const float standing = LoginCharacterTransform().position.z;
@@ -651,7 +643,7 @@ TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
     EXPECT_GT(horseHeight(), standing);
 }
 
-// Cada entrada al login crea el caballo otra vez (0x6349a0): invisible hasta el primer paso.
+// Each login entry creates the horse again (0x6349a0): invisible until the first step.
 TEST(LoginSceneModelsTest, TheHorseIsCreatedAgainOnEachEntry)
 {
     Harness tested;
@@ -687,7 +679,7 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
     const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    // La biblioteca sintética de este fixture sólo presta cuerpo/caballo; el cuervo se prueba aparte.
+    // This fixture's synthetic library only lends body/horse; the raven is tested separately.
     for (auto& actor : world.Actors())
         actor.darkSpirit.reset();
     tested.Steps(1);
@@ -702,8 +694,8 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso. Con `cloth`, el flujo
-// global de la tela: la rama del 0x50ba30 con la tela y Player.bmd.
+// The login of the pose tests: world 56 with its files, without the raven, and one step. With `cloth`, the cloth's
+// global stream: the 0x50ba30 branch with the cloth and Player.bmd.
 void EnterTheLoginWithItsWorld(Harness& tested, Client::Kernel::WorldState& world,
                                Client::Models::ClothWorld* cloth = nullptr)
 {
@@ -726,11 +718,11 @@ void EnterTheLoginWithItsWorld(Harness& tested, Client::Kernel::WorldState& worl
     tested.Steps(1);
 }
 
-// 0x635206 → 0x510d00 → 0x50ba30 con el del login: la rama con la tela y Player.bmd mira las guardas de la sombra
-// (0x50bbff..0x50bc71, CastsShadow: el alpha desde 0,5 y sin +0x3e4; el mundo 56 es el mapa 55, con sombra) y, en un
-// frame del original, 0x60cf70 con el 0x20b (0x50bcec) le copia la escala y la posición del personaje
-// (WorldState::PlaceShadowModel), que la 0x632/0 y /1 leen al llegar al suelo. Con el alpha en 0,4 o con +0x3e4, no; un
-// dibujo intermedio tampoco.
+// 0x635206 → 0x510d00 → 0x50ba30 with the login's: the branch with the cloth and Player.bmd looks at the shadow guards
+// (0x50bbff..0x50bc71, CastsShadow: alpha from 0.5 and without +0x3e4; world 56 is map 55, with shadow) and, in a
+// frame of the original, 0x60cf70 with the 0x20b (0x50bcec) copies the character's scale and position to it
+// (WorldState::PlaceShadowModel), which 0x632/0 and /1 read on reaching the ground. With alpha at 0.4 or with +0x3e4,
+// no; an intermediate draw neither.
 TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
 {
     constexpr std::uint16_t Shadow = Client::Tables::PlayerShadowModel;
@@ -741,7 +733,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
     ASSERT_EQ(world->Runtime().map, 55);
     auto& actor = world->Actors()[Client::FrontEnd::LoginActorSlot];
     ASSERT_TRUE(actor.alive && actor.seen);
-    // Sin el cetro: su modelo no está en la biblioteca sintética y lo que cuelga cortaría en 0x50a169.
+    // Without the scepter: its model is not in the synthetic library and what hangs would stop at 0x50a169.
     for (auto& hand : actor.hands)
         hand.model = Client::Kernel::NoItemModel;
     const auto drawAt = [&tested](Client::Core::Duration clock)
@@ -776,7 +768,7 @@ TEST(LoginSceneModelsTest, TheRealBranchPlacesTheShadowModelBehindItsGuards)
     tested.scene->Leave();
 }
 
-// 0x634b45..0x634b5e: al entrar, 120 mensajes vacíos dejan vacía el área vieja.
+// 0x634b45..0x634b5e: on entering, 120 empty messages leave the old area empty.
 TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
 {
     Harness tested;
@@ -790,9 +782,10 @@ TEST(LoginSceneModelsTest, EnteringEmptiesTheOldMessageArea)
     EXPECT_EQ(world.Runtime().chat.area.count, static_cast<std::int32_t>(Client::Ui::MessageAreaRows));
 }
 
-// Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su
-// buffer de huesos (+0x120); 0x6001b0 posa ahí el cuerpo (0x600259). El cuerpo no llega al buffer global
-// (0x68b181c) ni en un frame del original ni en uno intermedio, y sólo el frame del original lo guarda en el propio.
+// Q-C410: 0x6349a0 builds the login's one with 0x517270 → 0x511290, which sets +0x11c to 1 (0x511bf7) and gives it
+// its bone buffer (+0x120); 0x6001b0 poses the body there (0x600259). The body does not reach the global buffer
+// (0x68b181c) in either a frame of the original or an intermediate one, and only the frame of the original stores it
+// in its own.
 TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
 {
     Client::Kernel::WorldState world;
@@ -806,7 +799,7 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     EXPECT_FALSE(world.PoseCarry().models.contains(Client::Tables::PlayerSkeletonModel));
     ASSERT_EQ(actor.bodyPose.size(), 48u);
     actor.bodyPose[0][3] = {7, 8, 9};
-    // Q-C412: 0x6001b0 deja su escala y su posición en el modelo compartido de Player.bmd.
+    // Q-C412: 0x6001b0 leaves its scale and position in Player.bmd's shared model.
     EXPECT_EQ(world.PlayerModel().scale, actor.scale);
     EXPECT_EQ(world.PlayerModel().origin, actor.position);
 
@@ -817,10 +810,10 @@ TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// El cuerpo arranca de sus huesos propios: el hueso 0 dummy conserva lo que dejó el dibujo anterior del personaje,
-// no lo que haya en el global. La bota es la primera parte: su vértice (0, 0, 0) del hueso 0 sale de (5; 10; 20) por
-// la escala 1,6 y más (10.603; 14.112; 580), a float en cada paso (0x4ebc80); con el global, (70; 110; 130), daría
-// (10.715; 14.288; 788).
+// The body starts from its own bones: dummy bone 0 keeps what the character's previous draw left, not whatever is in
+// the global. The boot is the first part: its vertex (0, 0, 0) of bone 0 comes out of (5, 10, 20) times the 1.6
+// scale plus (10603, 14112, 580), to float at each step (0x4ebc80); with the global, (70, 110, 130), it would give
+// (10715, 14288, 788).
 TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 {
     Client::Kernel::WorldState world;
@@ -836,7 +829,7 @@ TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
 
     const FrameEvent models = tested.ModelsOfAFrame();
 
-    // Con el mundo cargado, el pase no arranca por el personaje: las botas se buscan por su textura.
+    // With the world loaded, the pass does not start with the character: the boots are looked up by their texture.
     const auto boots =
         std::ranges::find(models.modelCommands, std::optional{TextureSlot{0x300}},
                           [](const Client::Render::ModelDrawCommand& command) { return command.state.texture; });
@@ -848,10 +841,11 @@ TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 
-// El meteoro en la escena del login: 0x6046a0 lo suelta en la tabla del mundo con el reloj del dibujo en la ventana
-// (ftol(reloj) % 8000 desde 7950), y el paso (0x634d18 → 0x52d220) lo avanza con el de los magos, después del dragón,
-// sin cortar: la estela 5f2/0x24 sigue al meteoro (su dueño, el lugar 1) en el paso de las partículas
-// (0x634d22 → 0x5446e0), y la 5f2/0x25 y el fuego 5d9/5 salen con ella. Antes, el login se paraba en 0x604427.
+// The meteor in the login scene: 0x6046a0 drops it into the world table with the draw clock in the window
+// (ftol(clock) % 8000 from 7950), and the step (0x634d18 → 0x52d220) advances it with the wizards' one, after the
+// dragon, without stopping: the 0x5f2/0x24 trail follows the meteor (its owner, slot 1) in the particles' step
+// (0x634d22 → 0x5446e0), and the 0x5f2/0x25 and the 0x5d9/5 fire come out with it. The login used to stop at
+// 0x604427.
 TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
 {
     constexpr std::int16_t MeteorMarker = 0x59;
@@ -920,10 +914,10 @@ TEST(LoginSceneModelsTest, TheLoginDropsTheMeteorOfTheObject89AndKeepsGoing)
     tested.scene->Leave();
 }
 
-// El login dibuja los joints del mundo (0x635217 → 0x53c6a0(0), después de los objetos y antes de los efectos) y los
-// avanza (0x634d1d → 0x53c670, entre los efectos y las partículas: la cola común le resta 1 a la vida, 0x53c3ba). Un
-// tramo del 0x60f armado a mano sale en el pase de los modelos, con su textura, y un rayo de Kundun (0x613/3, sin
-// dueño, ancho 50) pierde una vida en un paso.
+// The login draws the world's joints (0x635217 → 0x53c6a0(0), after the objects and before the effects) and advances
+// them (0x634d1d → 0x53c670, between the effects and the particles: the common tail takes 1 from the life,
+// 0x53c3ba). A hand-built stretch of the 0x60f comes out in the models' pass, with its texture, and a Kundun ray
+// (0x613/3, ownerless, width 50) loses one life in a step.
 TEST(LoginSceneModelsTest, TheLoginStepsAndDrawsTheJointsOfTheWorld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

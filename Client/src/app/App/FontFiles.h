@@ -9,34 +9,30 @@
 #include <string>
 #include <string_view>
 
-// De dónde sale la fuente del texto (CL5.3, pregunta 8 del plan de la CL5). El original pide las
-// cuatro de WinMain por nombre a GDI, con la cara del texto 0 de Text.bmd (y la del 18 para la
-// cuarta); FreeType necesita un archivo. Manda [Video] FontFile, y BoldFontFile si está; sin
-// FontFile, se busca la cara en la lista de fuentes del sistema, que solo Windows tiene
-// (Platform::Sdl::FindSystemFontFile). La cara es un texto del juego: no va a ningún mensaje, y la ruta
-// que devuelve la búsqueda tampoco, porque el nombre del archivo puede ser el de la cara.
+// The original asks GDI for WinMain's four fonts by name, with the face of text 0 of Text.bmd (and that of 18 for the
+// fourth); FreeType needs a file (CL5.3). [Video] FontFile wins, and BoldFontFile if present; without FontFile, the
+// face is looked up in the system font list, which only Windows has (Platform::Sdl::FindSystemFontFile). The face is
+// a game text: it goes into no message, nor does the path the search returns, since the file name can be the face's.
 namespace Client::App
 {
-// Los archivos para FreeTypeRasterizer::Open. Sin `bold`, la negrita se arma desde la normal.
+// For FreeTypeRasterizer::Open. Without `bold`, the bold is built from the regular one.
 struct FontFiles
 {
     std::filesystem::path regular;
     std::optional<std::filesystem::path> bold;
 };
 
-// Busca el archivo de una cara, la normal o la negrita, en las fuentes del sistema. Vacía donde no
-// hay lista (Linux).
+// Finds the file of a face, regular or bold, among the system fonts. Empty where there is no list (Linux).
 using SystemFontSearch = std::function<std::optional<std::filesystem::path>(std::string_view face, bool bold)>;
 
-// Los archivos de la config; sin FontFile, los que `search` encuentra para `face` (la negrita,
-// solo si BoldFontFile falta). Error, sin nombrar la cara, si no hay FontFile y la cara no se
-// encuentra, está vacía o no hay búsqueda: el mensaje nombra la clave.
+// The config's files; without FontFile, the ones `search` finds for `face` (the bold only if BoldFontFile is
+// missing). An error, without naming the face, if there is no FontFile and the face is not found, is empty or there
+// is no search: the message names the key.
 [[nodiscard]] Core::Expected<FontFiles, std::string> ChooseFontFiles(const ClientConfig& config, std::string_view face,
                                                                      const SystemFontSearch& search);
 
-// El error de FreeTypeRasterizer::Open con los archivos de ChooseFontFiles, para el log. Con
-// [Video] FontFile son los de la config, y sale `error` tal cual (nombra el archivo que dio el
-// jugador). Sin FontFile, la ruta salió de la búsqueda y su nombre puede ser el de la cara: sale
-// uno que nombra la clave y nada de `error`.
+// For the log, the error of FreeTypeRasterizer::Open with ChooseFontFiles' files. With [Video] FontFile they are the
+// config's, and `error` goes out as is (it names the file the player gave). Without FontFile, the path came from the
+// search and its name can be the face's: the message names the key and carries nothing of `error`.
 [[nodiscard]] std::string FontOpenError(const ClientConfig& config, std::string_view error);
 } // namespace Client::App

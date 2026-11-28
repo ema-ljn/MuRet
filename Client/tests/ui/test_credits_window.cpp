@@ -20,8 +20,8 @@
 #include <utility>
 #include <vector>
 
-// Client::FrontEnd::CreditsWindow: los créditos del login (+0x4578: 0x63f020, 0x63f3a0, 0x63f5a0, 0x63fbf0,
-// 0x63f630, 0x63ffe0, 0x6400b0, 0x63fe20 y 0x63f6b0; CL8, hito 8). Las tablas son inventadas.
+// Client::FrontEnd::CreditsWindow: the login's credits (+0x4578: 0x63f020, 0x63f3a0, 0x63f5a0, 0x63fbf0, 0x63f630,
+// 0x63ffe0, 0x6400b0, 0x63fe20 and 0x63f6b0; CL8, milestone 8). The tables are made up.
 namespace
 {
 using Client::Core::PixelSize;
@@ -37,9 +37,9 @@ using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen800{800, 600};
-// Un paso de la lógica: 40 ms (Kernel::LogicStep).
+// One logic step: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
-// A 40 ms, una barra se va o vuelve en 8 pasos (34 por paso) y los nombres se quedan 58 (2.320 ms).
+// At 40 ms, a bar leaves or returns in 8 steps (34 per step) and the names stay 58 (2320 ms).
 constexpr int BarSteps = 8;
 constexpr int NameSteps = 58;
 
@@ -48,14 +48,14 @@ CreditEntry Entry(std::uint8_t kind, std::string text)
     return CreditEntry{.kind = kind, .text = std::move(text)};
 }
 
-// Un título, un rol, dos nombres; otro título con un nombre, y el final.
+// A title, a role, two names; another title with one name, and the end.
 std::vector<CreditEntry> ShortTable()
 {
     return {Entry(1, "Parte"), Entry(2, "Rol"),  Entry(3, "Uno"), Entry(3, "Dos"),
             Entry(1, "Otra"),  Entry(3, "Tres"), Entry(0, "")};
 }
 
-// Un título, un rol y 300 nombres: 75 grupos de cuatro, sin final adentro.
+// A title, a role and 300 names: 75 groups of four, with no end inside.
 std::vector<CreditEntry> LongTable()
 {
     std::vector<CreditEntry> table{Entry(1, "Parte"), Entry(2, "Rol")};
@@ -85,7 +85,7 @@ CreditsStep StepOnce(CreditsWindow& window, InputState& input, PixelSize screen 
     return step;
 }
 
-// Los pasos `count` sin nada, sumando lo que pasó.
+// `count` steps with nothing, adding up what happened.
 CreditsStep StepMany(CreditsWindow& window, InputState& input, int count)
 {
     CreditsStep total;
@@ -101,8 +101,9 @@ CreditsStep StepMany(CreditsWindow& window, InputState& input, int count)
     return total;
 }
 
-// 0x63f3a0: W / 800 y H / 600 en float, y el adorno en (W − 189, _ftol(H · 0,878333f) − 103): con 600, el
-// producto en la x87 da 526,99999… y el adorno sube un píxel (Q-C500). El botón, a (122, 63) del adorno.
+// 0x63f3a0: W / 800 and H / 600 in float, and the ornament at (W − 189, _ftol(H · 0.878333f) − 103): with 600, the
+// product on the x87 gives 526.99999… and the ornament moves up a pixel (Q-C500). The button, at (122, 63) from the
+// ornament.
 TEST(CreditsWindowTest, TheDecoGoesByTheFloat)
 {
     const CreditsLayout big = LayoutCredits(Screen800);
@@ -118,8 +119,8 @@ TEST(CreditsWindowTest, TheDecoGoesByTheFloat)
     EXPECT_EQ(small.close, (Rect{573, 381, 54, 30}));
 }
 
-// 0x63fbf0: la primera ilustración (que se carga, transparente), los tres renglones apareciendo y el primer
-// grupo: el título, el rol y los nombres que siguen, hasta cuatro.
+// 0x63fbf0: the first illustration (which is loaded, transparent), the three lines appearing and the first group: the
+// title, the role and the names that follow, up to four.
 TEST(CreditsWindowTest, OpeningReadsTheFirstGroup)
 {
     const std::vector<CreditEntry> table = ShortTable();
@@ -143,7 +144,7 @@ TEST(CreditsWindowTest, OpeningReadsTheFirstGroup)
     }
 }
 
-// Con la tabla vacía (o un 0 al principio), 0x63ffe0 los cierra al abrirlos.
+// With the empty table (or a 0 at the start), 0x63ffe0 closes them on opening them.
 TEST(CreditsWindowTest, AnEmptyTableClosesThemAtOnce)
 {
     const std::vector<CreditEntry> table;
@@ -154,9 +155,9 @@ TEST(CreditsWindowTest, AnEmptyTableClosesThemAtOnce)
     EXPECT_FALSE(window.IsOpen());
 }
 
-// 0x6400b0: las barras se van a 34 por paso; a 0, el renglón se queda. Los nombres, 2,3 s; después se van
-// ellos, el rol si lo que sigue no es un nombre y el título si tampoco es un rol. Al volver la barra de los
-// nombres, el grupo que sigue: un título sin rol deja el rol de antes.
+// 0x6400b0: the bars leave at 34 per step; at 0, the line stays. The names, 2.3 s; then they leave, the role if what
+// follows is not a name and the title if it is not a role either. When the names bar returns, the next group: a title
+// without a role leaves the previous role.
 TEST(CreditsWindowTest, TheRowsComeAndGo)
 {
     const std::vector<CreditEntry> table = ShortTable();
@@ -190,14 +191,14 @@ TEST(CreditsWindowTest, TheRowsComeAndGo)
     EXPECT_EQ(window.NameIndices()[0], 5U);
     EXPECT_TRUE(window.IsOpen());
 
-    // El segundo grupo, entero: al volver la barra de los nombres, el final los cierra.
+    // The second group, whole: when the names bar returns, the end closes them.
     const CreditsStep last = StepMany(window, input, BarSteps + NameSteps + BarSteps);
     EXPECT_EQ(last.closes, 1);
     EXPECT_FALSE(window.IsOpen());
 }
 
-// Con más de cuatro nombres, el resto va en el grupo que sigue, con el mismo título y el mismo rol: solo se
-// va el renglón de los nombres.
+// With more than four names, the rest go in the next group, with the same title and the same role: only the names
+// line leaves.
 TEST(CreditsWindowTest, MoreNamesKeepTheTitleAndTheRole)
 {
     const std::vector<CreditEntry> table = LongTable();
@@ -214,8 +215,8 @@ TEST(CreditsWindowTest, MoreNamesKeepTheTitleAndTheRole)
     EXPECT_EQ(window.NextIndex(), 10U);
 }
 
-// 0x63fe20: la ilustración aparece a 5 por paso (51 pasos), se queda 22 s (551 pasos, que suman 22.040) y se
-// va a 5 por paso; en 0, la siguiente, que se carga.
+// 0x63fe20: the illustration appears at 5 per step (51 steps), stays 22 s (551 steps, which add up to 22040) and
+// leaves at 5 per step; at 0, the next one, which is loaded.
 TEST(CreditsWindowTest, TheIllustrationsTakeTurns)
 {
     const std::vector<CreditEntry> table = LongTable();
@@ -238,8 +239,8 @@ TEST(CreditsWindowTest, TheIllustrationsTakeTurns)
     EXPECT_EQ(window.IllustrationAlpha(), 0);
 }
 
-// 0x63f630: Esc cierra (0x63f9a0) y el paso sigue: las barras se mueven igual, la ilustración no (0x63f5a0
-// con 0 la dejó quieta).
+// 0x63f630: Esc closes (0x63f9a0) and the step goes on: the bars move anyway, the illustration does not (0x63f5a0
+// with 0 left it still).
 TEST(CreditsWindowTest, EscapeClosesThemAndTheRowsStillMove)
 {
     const std::vector<CreditEntry> table = ShortTable();
@@ -271,7 +272,7 @@ TEST(CreditsWindowTest, TheButtonClosesThem)
     EXPECT_FALSE(window.IsOpen());
 }
 
-// Un Esc en el paso en que la barra de los nombres vuelve con el final cierra dos veces: dos F4 06 (Q-C501).
+// An Esc on the step in which the names bar returns with the end closes twice: two F4 06 (Q-C501).
 TEST(CreditsWindowTest, EscapeAtTheEndClosesTwice)
 {
     const std::vector<CreditEntry> table{Entry(1, "Parte"), Entry(3, "Uno"), Entry(0, "")};
@@ -285,7 +286,7 @@ TEST(CreditsWindowTest, EscapeAtTheEndClosesTwice)
     EXPECT_FALSE(window.IsOpen());
 }
 
-// Sin el foco, 0x63f630 no corre: ni Esc ni las barras.
+// Without the focus, 0x63f630 does not run: neither Esc nor the bars.
 TEST(CreditsWindowTest, WithoutTheFocusNothingMoves)
 {
     const std::vector<CreditEntry> table = ShortTable();
@@ -299,8 +300,8 @@ TEST(CreditsWindowTest, WithoutTheFocusNothingMoves)
     EXPECT_TRUE(input.TakePress(Key::Escape));
 }
 
-// 0x63f6b0: el título a 20 y el rol a 46, centrados en todo el ancho; dos nombres a 72, en el segundo y el
-// tercer cuarto (160 y 320 de 640, de W / 4 de ancho), con su color.
+// 0x63f6b0: the title at 20 and the role at 46, centered across the whole width; two names at 72, in the second and
+// third quarters (160 and 320 of 640, W / 4 wide), with their color.
 TEST(CreditsWindowTest, TheTextsGoInColumns)
 {
     const std::vector<CreditEntry> table = ShortTable();
@@ -325,7 +326,7 @@ TEST(CreditsWindowTest, TheTextsGoInColumns)
     EXPECT_EQ(text.texts[3].text, "Dos");
     EXPECT_EQ(text.texts[3].x, 391);
 
-    // La base, las dos mitades, el adorno, el logo, los cuatro textos, las tres barras y el botón.
+    // The base, the two halves, the ornament, the logo, the four texts, the three bars and the button.
     std::size_t quads = 0;
     for (const auto& command : batch.Commands())
     {

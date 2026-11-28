@@ -24,8 +24,8 @@ namespace Client::Scenes
 {
 namespace
 {
-// El mosaico de 0x640c10 en 800 × 600: LSBg01 arriba a la izquierda (400 × 512), 02 arriba a la
-// derecha, 03 abajo a la izquierda (400 × 88, en y 512) y 04 abajo a la derecha.
+// 0x640c10's mosaic in 800 × 600: LSBg01 top left (400 × 512), 02 top right, 03 bottom left (400 × 88, at y = 512)
+// and 04 bottom right.
 struct Tile
 {
     std::uint16_t slot = 0;
@@ -58,10 +58,10 @@ Core::Expected<void, std::string> WorldLoadingScene::Enter()
                         "espera vive ahí y su cierre gasta rand()"));
     }
     Kernel::WorldRuntime& runtime = m_context.world->Runtime();
-    // 0x63571d: con la bandera levantada saltea el contador, la bandera y las texturas, y dibuja con el
-    // objeto del mosaico de la UI, que fuera de esta llamada es nulo (0x65ed2e, 0x635a87): 0x647650 lo
-    // leería en [8 + 0xa0]. La selección la baja siempre antes de pasar a la escena 3 y nadie más la
-    // escribe, así que el original no llega acá; MuRet tampoco debería.
+    // 0x63571d: with the flag up it skips the counter, the flag and the textures, and draws with the UI's mosaic
+    // object, which outside this call is null (0x65ed2e, 0x635a87): 0x647650 would read it at [8 + 0xa0]. The selection
+    // always lowers it before going to scene 3 and nobody else writes it, so the original does not get here; MuRet
+    // should not either.
     if (runtime.loadingOnceFlag != 0)
     {
         return Core::Unexpected(
@@ -69,12 +69,12 @@ Core::Expected<void, std::string> WorldLoadingScene::Enter()
                         "rama, que dibuja con el mosaico nulo (0x635a52)"));
     }
     {
-        // 0x635723..0x635963: abre el contador, escribe 0x98967f y lo cierra (0x412890).
+        // 0x635723..0x635963: opens the counter, writes 0x98967f and closes it (0x412890).
         const Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
                                            Models::SmallLogicalCloseRandoms);
         runtime.warpCounter = Kernel::WorldLoadingWait;
     }
-    // 0x635980, antes de las texturas.
+    // 0x635980, before the textures.
     runtime.loadingOnceFlag = 1;
     return m_textures.Load(m_context.dataRoot);
 }

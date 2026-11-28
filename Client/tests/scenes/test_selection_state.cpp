@@ -95,7 +95,7 @@ protected:
     Client::Camera::GameCameraInput m_input;
 };
 
-// Atrapa consultas con XY finales: sólo las esquinas de (50,50) dan 100.
+// Catches queries with final XY: only the corners of (50,50) give 100.
 TEST_F(SelectionStateTest, ConstructionReadsTheInitialCellBeforePlacingTheSlot)
 {
     auto terrain = TerrainOf(900.0f);
@@ -114,8 +114,8 @@ TEST_F(SelectionStateTest, ConstructionReadsTheInitialCellBeforePlacingTheSlot)
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
 }
 
-// 0x4c20b3..0x4c2101 (CL9 hito 8): la lista apaga la guerra y el rival y vuelve a marcar +0x374 de los vivos por el
-// gremio del héroe publicado, antes de construir los personajes (0x4c1800 en línea).
+// 0x4c20b3..0x4c2101 (CL9 milestone 8): the list turns off the war and the rival and marks +0x374 of the living again
+// by the published hero's guild, before building the characters (0x4c1800 inline).
 TEST_F(SelectionStateTest, TheListEndsTheWarAndMarksTheHerosGuild)
 {
     Client::Guild::GuildState& guild = m_world.Runtime().guild;
@@ -149,15 +149,15 @@ TEST_F(SelectionStateTest, TheListEndsTheWarAndMarksTheHerosGuild)
     EXPECT_EQ(gone.byte374, 2);
 }
 
-// 0x4c20a0 → 0x517270: el mismo registro 0x20a que avanza 0x508f00; el constructor
-// conserva los cuatro campos de cabeza que no escribe 0x511290.
+// 0x4c20a0 → 0x517270: the same record 0x20a that 0x508f00 advances; the constructor keeps the four head fields that
+// 0x511290 does not write.
 TEST_F(SelectionStateTest, TheListConstructsTheCompletePlayerAndKeepsItsHead)
 {
     auto& actor = m_world.Actors()[3];
     actor.headTurn.angles = {17.0f, 23.0f};
     actor.headTurn.target = {31.0f, 47.0f};
     CharacterEntry entry = Entry(3);
-    entry.classByte = 0x40; // Elf: 0x4f2250 elige la acción 2 sin armas.
+    entry.classByte = 0x40; // Elf: 0x4f2250 picks action 2 without weapons.
     entry.flags = 0x11;
 
     ASSERT_TRUE(Apply({List({entry})}).HasValue());
@@ -380,7 +380,7 @@ TEST_F(SelectionStateTest, TheHeightIsStoredAsFloatOnlyAfterAddingThePetOffset)
     terrain.heights->cells[0] = 1.00000107288360595703125f;
     m_state.RetainTerrain(55, std::move(terrain));
     ASSERT_TRUE(Apply({CharacterCreated{Entry()}}).HasValue());
-    // h=1+2^-20+2^-25; h+30 redondea a 31+2^-19. Redondear h primero daría 31.
+    // h=1+2^-20+2^-25; h+30 rounds to 31+2^-19. Rounding h first would give 31.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(m_state.Slots()[0].position.z), 0x41f80001u);
 }
 
@@ -404,8 +404,8 @@ TEST_F(SelectionStateTest, DrawingWritesAllFiveHeightsAndLeavesTheirPositionsAnd
     EXPECT_EQ(m_input.hero.z, 163.0f);
 }
 
-// Q-C213: después de un F1 02 con 1 el héroe publicado es el lugar que sorteó el juego. Uno de los cinco
-// lleva la cámara; fuera de ellos, la construcción no la mueve y el dibujo no le pone la Z de la selección.
+// Q-C213: after an F1 02 with 1 the published hero is the slot the game drew. One of the five carries the camera;
+// outside them, the construction does not move it and the draw does not give it the selection's Z.
 TEST_F(SelectionStateTest, TheCameraFollowsAHeroPublishedByTheGame)
 {
     m_world.Runtime().hero = 4;
@@ -459,8 +459,8 @@ TEST_F(SelectionStateTest, EnteringLoginClearsOnlyTheSecondSceneActorPet)
     EXPECT_EQ(m_state.Slots()[2].revision, 1u);
 }
 
-// 0x4c20a0 construye en chars[lugar]: los cinco lugares son los registros 0 a 4 del pool durable, sin
-// otra copia, y los demás registros no se tocan.
+// 0x4c20a0 builds in chars[slot]: the five slots are records 0 to 4 of the durable pool, without another copy, and
+// the other records are not touched.
 TEST_F(SelectionStateTest, TheFiveSlotsAreTheFirstRecordsOfTheDurablePool)
 {
     ASSERT_TRUE(Apply({List({Entry(0, true), Entry(4)})}).HasValue());
@@ -478,14 +478,14 @@ TEST_F(SelectionStateTest, TheFiveSlotsAreTheFirstRecordsOfTheDurablePool)
         EXPECT_EQ(actor.position.x, 0.0f);
         EXPECT_EQ(actor.position.z, 0.0f);
     }
-    // La creación sin equipo (Q-C103) deja en el registro el word318 que leerá el próximo constructor.
+    // The creation without equipment (Q-C103) leaves in the record the word318 the next constructor will read.
     ASSERT_TRUE(Apply({CharacterCreated{Entry()}}).HasValue());
     EXPECT_FALSE(m_world.Actors()[0].previousHad1c15);
     EXPECT_EQ(m_world.Actors()[0].revision, 2u);
 }
 
-// Quien llama a 0x61a560 escribe antes el mundo en curso (DAT_006c9dd0, 05 "La carpeta de cada
-// mapa"): las tablas lo dejan en el WorldRuntime del pool, no en una copia de la selección.
+// Whoever calls 0x61a560 first writes the current world (DAT_006c9dd0, 05 "La carpeta de cada mapa"): the tables
+// leave it in the pool's WorldRuntime, not in a copy of the selection.
 TEST_F(SelectionStateTest, TheTablesWriteTheLiveMapOfTheWorldState)
 {
     EXPECT_EQ(m_world.Runtime().map, 55);
@@ -586,7 +586,7 @@ TEST_F(SelectionStateTest, InitializationWaitsForAListAndReturnsLoadFailures)
     ASSERT_FALSE(initialized.HasValue());
     EXPECT_FALSE(initialized.Error().empty());
     EXPECT_FALSE(m_state.IsInitialized());
-    // 0x633f44 escribe el 54 en 0x6c9dd0 antes de la carga (0x61a560), que es la que falla.
+    // 0x633f44 writes the 54 into 0x6c9dd0 before the load (0x61a560), which is the one that fails.
     EXPECT_EQ(m_state.Map(), 54);
     ASSERT_TRUE(m_state.Failure().has_value());
     const std::array<CharacterEvent, 1> missing{CharacterCreated{Entry()}};
@@ -595,8 +595,8 @@ TEST_F(SelectionStateTest, InitializationWaitsForAListAndReturnsLoadFailures)
     EXPECT_EQ(*m_state.Failure(), initialized.Error());
 }
 
-// 0x633f30: el mundo cargado lo marca la carga del 54, antes de cargarlo (0x633f4e), y no la entrada a
-// la escena 4 (BeginSelection, 0x6342cb). Sin la lista no se carga ni se marca.
+// 0x633f30: the loaded world is marked by the 54's load, before loading it (0x633f4e), and not by entering scene 4
+// (BeginSelection, 0x6342cb). Without the list it is neither loaded nor marked.
 TEST_F(SelectionStateTest, TheWorld54LoadMarksTheLoadedWorld)
 {
     EXPECT_FALSE(m_world.Runtime().drawingEnabled);
@@ -605,7 +605,7 @@ TEST_F(SelectionStateTest, TheWorld54LoadMarksTheLoadedWorld)
     EXPECT_FALSE(m_world.Runtime().drawingEnabled);
     ASSERT_TRUE(Apply({List({})}).HasValue());
 
-    // La carpeta vacía hace fallar la carga, que va después de la marca.
+    // The empty folder makes the load fail, which comes after the mark.
     EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_terrain, m_input).HasValue());
 
     EXPECT_TRUE(m_world.Runtime().drawingEnabled);
@@ -659,7 +659,7 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     ASSERT_TRUE(state.IsInitialized());
     EXPECT_EQ(state.Map(), 54);
-    // 0x633f20 deja el 54 como mundo en curso del WorldState (06, "Al entrar").
+    // 0x633f20 leaves the 54 as the WorldState's current world (06, "Al entrar").
     EXPECT_EQ(world.Runtime().map, 54);
     EXPECT_EQ(input.map, 54u);
     EXPECT_EQ(input.hero.z, 987.0f);
@@ -690,7 +690,7 @@ TEST_F(GoldenSelectionStateTest, AnEmptyListLoads54WithoutInventingHeroConstruct
     EXPECT_EQ(state.Slots()[0].revision, 0u);
     EXPECT_EQ(state.Slots()[0].position.z, 0.0f);
     EXPECT_NE(input.cellAttribute, 0x40u);
-    // El atributo 0 del World55 del repo es 0x0c, distinto del 0x40 del login sintético.
+    // Attribute 0 of the repo's World55 is 0x0c, unlike the synthetic login's 0x40.
     EXPECT_EQ(input.cellAttribute, 0x0cu);
 }
 } // namespace

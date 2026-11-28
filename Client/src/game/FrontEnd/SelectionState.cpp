@@ -114,8 +114,8 @@ void SelectionState::BeginSelection()
 void SelectionState::EnterLogin()
 {
     m_scene = Terrain::CullingScene::Login;
-    // 0x517270 en escena 2 construye slot 2 con pet 1c16, sin tocar Hero ni el resto del pool: vivo
-    // (0x511290) y con el lugar de clave (0x5172a8).
+    // 0x517270 in scene 2 builds slot 2 with pet 0x1c16, without touching Hero or the rest of the pool: alive
+    // (0x511290) and with the key's slot (0x5172a8).
     Kernel::ActorState& login = m_world.Actors()[LoginActorSlot];
     login.previousHad1c15 = false;
     login.alive = true;
@@ -141,17 +141,17 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     {
         return {};
     }
-    // 0x633f20: cambia a 54 después de los constructores de F300; no reconstruye esos actores.
-    // Antes de cargarlo marca el mundo cargado (0x633f30): con eso corre y dibuja el juego que sigue
-    // (06, "La entrada al mundo", paso 1). Es esta carga y no la entrada a la escena 4, que la
-    // selección hace antes de tener la lista (0x6342cb).
+    // 0x633f20: switches to 54 after the F300 constructors; it does not rebuild those actors.
+    // Before loading it, it marks the world loaded (0x633f30): with that the game that follows runs and draws
+    // (06, "La entrada al mundo", step 1). It is this load and not the entry to scene 4, which the
+    // selection does before it has the list (0x6342cb).
     m_world.Runtime().drawingEnabled = true;
     constexpr std::uint8_t SelectionMap = Scenes::WorldOf(Kernel::SceneId::CharacterSelect)->map;
-    // 0x633f44: el 54 es el mundo en curso antes de 0x61a560, aunque la carga falle. El préstamo anterior
-    // deja de valer antes de que la carga pise el terreno del mundo.
+    // 0x633f44: 54 is the current world before 0x61a560, even if the load fails. The previous loan
+    // stops being valid before the load overwrites the world's terrain.
     BorrowTerrain(SelectionMap, nullptr);
-    // 0x61a560(54) → 0x6070a0: mata los efectos, las partículas y los demás pools antes de abrir los
-    // archivos (conserva +0x16c y el viento); sin 0x510f70 en la escena 4.
+    // 0x61a560(54) → 0x6070a0: kills the effects, the particles and the other pools before opening the
+    // files (it keeps +0x16c and the wind); without 0x510f70 in scene 4.
     const Scenes::MapLoadContext context{.dataRoot = dataRoot,
                                          .world = m_world,
                                          .terrain = terrain,
@@ -182,7 +182,7 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Fron
     const Terrain::WorldTerrain emptyTerrain;
     const Terrain::WorldTerrain* terrain = Terrain();
     Kernel::ActorState& slot = m_world.Actors()[entry.slot];
-    // 0x511290: consulta Height con XY 50/50, antes del XY final y del reset de 318.
+    // 0x511290: queries Height with XY 50/50, before the final XY and the reset of 318.
     const Actors::ActorConstructionContext construction{.terrain = terrain != nullptr ? *terrain : emptyTerrain,
                                                         .map = m_world.Runtime().map,
                                                         .scene = m_scene,
@@ -192,9 +192,9 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Fron
     {
         return built;
     }
-    // La cámara lee el héroe publicado (DAT_0743a170): el lugar 0 de WinMain hasta la primera entrada al
-    // mundo, y después de un F1 02 con 1, el lugar del juego, que la lista solo construye si cae entre los
-    // cinco (Q-C213).
+    // The camera reads the published hero (DAT_0743a170): slot 0 of WinMain until the first world
+    // entry, and after an F1 02 with 1, the game's slot, which the list only builds if it falls among the
+    // five (Q-C213).
     if (static_cast<std::size_t>(entry.slot) == m_world.Runtime().hero)
     {
         input.hero = slot.position;
@@ -214,8 +214,8 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
     {
         if (const auto* list = std::get_if<App::CharacterListReceived>(&event))
         {
-            // 0x4c20b3..0x4c2101: antes de los personajes, sin guerra ni rival (0x576796c, 0x6c82f0 y 0x5767804) y
-            // +0x374 de los 400 por el gremio del héroe publicado, como 0x4c1800 (CL9 hito 8).
+            // 0x4c20b3..0x4c2101: before the characters, no war and no rival (0x576796c, 0x6c82f0 and 0x5767804) and
+            // +0x374 of the 400 by the published hero's guild, like 0x4c1800 (CL9 milestone 8).
             Guild::ClearTheWar(m_world);
             for (const Protocol::FrontEnd::CharacterEntry& entry : list->list.characters)
             {
@@ -235,7 +235,7 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
                 return Fail(constructed.Error());
             }
         }
-        // F302 desactiva la vista; conserva XYZ y 318 del registro, sin constructor nuevo.
+        // F302 turns the view off; it keeps the record's XYZ and 318, without a new constructor.
     }
     RefreshCameraAttribute(input);
     return {};
@@ -248,7 +248,7 @@ void SelectionState::DrawSelection(Camera::GameCameraInput& input)
         slot.position.z = CharacterSlotHeight;
         slot.light = {};
     }
-    // Fuera de los cinco (un héroe del juego, Q-C213), su Z queda.
+    // Outside the five (a game hero, Q-C213), its Z stays.
     if (m_world.Runtime().hero < Kernel::SelectionActorCount)
     {
         input.hero.z = CharacterSlotHeight;

@@ -34,27 +34,27 @@ namespace Client::Hud
 {
 namespace
 {
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300): el título (0x7701738), las tres columnas
-// (0x7701864, 0x7701990 y 0x7701abc) y el renglón de abajo (0x7706814).
+// The Text.bmd texts (the address − 0x76bd1dc, over 300): the title (0x7701738), the three columns (0x7701864,
+// 0x7701990 and 0x7701abc) and the bottom row (0x7706814).
 constexpr std::size_t TitleText = 933;
 constexpr std::size_t NameColumnText = 934;
 constexpr std::size_t LevelColumnText = 935;
 constexpr std::size_t ZenColumnText = 936;
 constexpr std::size_t CloseText = 1002;
-// 0x448fe4..0x449050: el alto de más de la ventana, la y del título y la de las columnas.
+// 0x448fe4..0x449050
 constexpr std::int32_t ExtraHeight = 0x3c;
 constexpr std::int32_t TitleY = 5;
 constexpr std::int32_t ColumnY = 0x19;
-// 0x44864e y 0x4491d5: el primer renglón (el alto de uno más 0x1a; el texto, un píxel más abajo).
+// 0x44864e and 0x4491d5: the first row (one row's height plus 0x1a; the text, one pixel lower).
 constexpr std::int32_t FirstRowTop = 0x1a;
 constexpr std::int32_t FirstRowText = 0x1b;
-// 0x448780 y 0x449550: el PK desde el que no se mueve (+0x375 del héroe, sin signo).
+// 0x448780 and 0x449550: the PK from which it does not move (the hero's +0x375, unsigned).
 constexpr std::uint8_t OutlawPk = 6;
-// 0x6b8c64: 2/3 del nivel para las clases 3 y 4 (+0xb del registro propio, & 7).
+// 0x6b8c64: 2/3 of the level for classes 3 and 4 (+0xb of the own record, & 7).
 constexpr float LevelFactor = 0.6666666865348816f;
 constexpr Kernel::CharacterClass FirstScaledClass = Kernel::CharacterClass::MagicGladiator;
 constexpr Kernel::CharacterClass SecondScaledClass = Kernel::CharacterClass::DarkLord;
-// Los colores de 0x6c8e5c.
+// 0x6c8e5c's colors.
 constexpr std::uint32_t TitleColor = 0xff1accffu;
 constexpr std::uint32_t ColumnColor = 0xffffb27fu;
 constexpr std::uint32_t AllowedColor = 0xffffffffu;
@@ -65,8 +65,7 @@ constexpr Render::Color CloseBar{0.6f, 0.0f, 0.0f, 1.0f};
 constexpr Render::Color Highlight{0.8f, 0.8f, 0.1f, 0.6f};
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
-// 0x448fbd..0x449050 (y 0x4485a4..0x4485ed, solo el ancho): por el ancho de la pantalla (0x6d5d60); con otro, todo en
-// 0.
+// 0x448fbd..0x449050 (and 0x4485a4..0x4485ed, only the width): by the screen width (0x6d5d60); with another, all at 0.
 struct MoveColumns
 {
     std::int32_t width = 0;
@@ -92,7 +91,7 @@ MoveColumns ColumnsOf(std::int32_t screenWidth)
     }
 }
 
-// 0x4485f0..0x448603 y 0x449062..0x44907a: el paso de la letra (0x7758568) por 640 sobre el ancho, sin signo.
+// 0x4485f0..0x448603 and 0x449062..0x44907a: the font's step (0x7758568) times 640 over the width, unsigned.
 std::int32_t RowOf(Core::PixelSize screen)
 {
     const auto step = static_cast<std::uint32_t>(Render::Text::FontStepFor(screen.width));
@@ -101,16 +100,16 @@ std::int32_t RowOf(Core::PixelSize screen)
 
 struct MoveCheck
 {
-    // El nivel pedido, con los 2/3 de las clases 3 y 4.
+    // The required level, with the 2/3 of classes 3 and 4.
     std::int32_t level = 0;
     bool levelOk = false;
     bool zenOk = false;
-    // Los dos y el PK del héroe debajo de 6.
+    // The two, and the hero's PK below 6.
     bool allowed = false;
 };
 
-// 0x448657..0x448787 y 0x4491df..0x449559: con el registro propio abierto, su zen (+0xecc), su nivel (+0xe) y su
-// clase (+0xb); después de cerrarlo, las comparaciones (el nivel con signo, el zen sin signo).
+// 0x448657..0x448787 and 0x4491df..0x449559: with the own record open, its zen (+0xecc), level (+0xe) and class
+// (+0xb); after closing it, the comparisons (the level signed, the zen unsigned).
 MoveCheck CheckTheMove(Kernel::WorldState& world, std::uint8_t& ownRecordDepth, Crt::CrtRandom& random,
                        const Tables::MoveRequirement& move)
 {
@@ -123,7 +122,7 @@ MoveCheck CheckTheMove(Kernel::WorldState& world, std::uint8_t& ownRecordDepth, 
         money = record.zen;
         level = record.level;
         const Kernel::CharacterClass characterClass = Kernel::BaseClassOf(record.characterClass);
-        // 0x448707..0x448715: FILD, FMUL con el float y ftol.
+        // 0x448707..0x448715: FILD, FMUL by the float and ftol.
         if (characterClass == FirstScaledClass || characterClass == SecondScaledClass)
             check.level = static_cast<std::int32_t>(static_cast<double>(move.level) * static_cast<double>(LevelFactor));
     }
@@ -134,13 +133,13 @@ MoveCheck CheckTheMove(Kernel::WorldState& world, std::uint8_t& ownRecordDepth, 
     return check;
 }
 
-// 0x6a2081: _itoa con base 10, con signo.
+// 0x6a2081: _itoa with base 10, signed.
 std::string DecimalOf(std::int32_t value)
 {
     return std::to_string(value);
 }
 
-// 0x448ef8..0x448f0e y 0x448f70..0x448f81: la ventana cerrada, el botón y el flanco apagados.
+// 0x448ef8..0x448f0e and 0x448f70..0x448f81: the window closed, the button and the edge off.
 void CloseTheWindow(Kernel::WorldRuntime& runtime)
 {
     runtime.panels.overlayMode = 0;
@@ -180,7 +179,7 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
         if (check.allowed && x >= 3 && x < columns.width - 2 && y >= rowTop && y < rowTop + rowHeight &&
             runtime.mouse.leftHeld)
         {
-            // 0x4487d7..0x4488d3: el texto 260, un espacio y el nombre de +4.
+            // 0x4487d7..0x4488d3: text 260, a space and the name of +4.
             if (context.chat == nullptr)
                 return Core::Unexpected(
                     std::string("0x4487d7: el destino de la ventana /move sin la entrada del chat"));
@@ -191,12 +190,12 @@ Core::Expected<void, std::string> StepTheMoveWindow(const GameUiContext& context
             if (auto spoken = Chat::SayInTheChat(*context.chat, said); !spoken.HasValue())
                 return spoken;
             CloseTheWindow(runtime);
-            // 0x448f34..0x448f6e: el renglón de abajo ya no ve el botón.
+            // 0x448f34..0x448f6e: the bottom row no longer sees the button.
             return {};
         }
         rowTop += rowHeight;
     }
-    // 0x448f43..0x448f81: el renglón de abajo.
+    // 0x448f43..0x448f81: the bottom row.
     if (x >= 3 && x < columns.width - 2 && y >= bottom - rowHeight - 6 && y < bottom - 6 && runtime.mouse.leftHeld)
         CloseTheWindow(runtime);
     return {};
@@ -234,14 +233,14 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     const std::int32_t closeTop = height - rowHeight;
     const auto barWidth = static_cast<float>(columns.width - 5);
     const auto rowSize = static_cast<float>(rowHeight);
-    // 0x44906e..0x449121: el fondo, el renglón rojo de abajo y la mezcla otra vez (con la textura).
+    // 0x44906e..0x449121: the background, the red bottom row and the blend again (with the texture).
     sprites.SetColor(Shade);
     sprites.ColorQuad(1.0f, 1.0f, static_cast<float>(columns.width), static_cast<float>(height));
     sprites.SetColor(CloseBar);
     sprites.ColorQuad(3.0f, static_cast<float>(closeTop - 6), barWidth, rowSize);
     sprites.SetColor(White);
     sprites.SetBlend(Render::BlendMode::Alpha);
-    // 0x449126..0x4491bc: el título en negrita y las columnas con la normal, sin fondo.
+    // 0x449126..0x4491bc: the title in bold and the columns in the normal font, with no background.
     const std::int32_t middle = columns.width / 2;
     hud.dcFont = Render::Text::FontKind::Bold;
     hud.textColors = Render::Text::TextColors{.text = TitleColor, .background = 0};
@@ -258,7 +257,7 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
     for (const Tables::MoveRequirement& move : runtime.moves)
     {
         const MoveCheck check = CheckTheMove(world, context.ownRecordDepth, context.random, move);
-        // 0x44955b..0x4495ef: el resaltado bajo el mouse, si pasa y nadie agarró el mouse (0x5762eb4).
+        // 0x44955b..0x4495ef: the highlight under the mouse, if it passes and nobody grabbed the mouse (0x5762eb4).
         const bool hovered = mouseX >= 3 && mouseX < columns.width - 2 && mouseY >= y - 1 && mouseY < rowHeight - 1 + y;
         if (hovered && check.allowed && runtime.ui.capture == 0)
         {
@@ -267,7 +266,7 @@ Core::Expected<void, std::string> DrawTheMoveWindow(GameHudContext& context)
             sprites.SetColor(White);
             sprites.SetBlend(Render::BlendMode::Alpha);
         }
-        // 0x4495f2..0x4496c6: el nombre, el nivel y el zen, cada uno con su color.
+        // 0x4495f2..0x4496c6: the name, the level and the zen, each in its color.
         const std::uint32_t allowedColor = check.allowed ? AllowedColor : DeniedColor;
         hud.textColors.text = allowedColor;
         DrawHudCentered(context.text, screen, hud, columns.name, y, move.name);

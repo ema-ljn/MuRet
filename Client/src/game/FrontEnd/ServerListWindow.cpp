@@ -32,14 +32,13 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// 0x6451d0: los botones de grupo, de 108 × 26 con cha_bt (slot 0xc) y cuatro cuadros, el 3
-// marcado; los de servidor, de 193 × 26 con server_b2_all (0xd) y tres; la barra de la carga de
-// 160 × 4 con server_b2_loding (0xe).
+// 0x6451d0: the group buttons, 108 × 26 with cha_bt (slot 0xc) and four frames, the 3 checked; the server ones,
+// 193 × 26 with server_b2_all (0xd) and three; the load bar, 160 × 4 with server_b2_loding (0xe).
 constexpr Render::TextureSlot GroupButtonSlot{0xc};
 constexpr Render::TextureSlot ServerButtonSlot{0xd};
 constexpr Render::TextureSlot LoadBarSlot{0xe};
 constexpr Render::TextureSlot DescriptionLineSlot{0x19};
-// 0x6451d0: el marco, de server_deco_all; la caja, de server_ex03, server_ex01 y server_ex02.
+// 0x6451d0: the frame, from server_deco_all; the box, from server_ex03, server_ex01 and server_ex02.
 constexpr Render::TextureSlot FrameSlot{0xf};
 constexpr Render::TextureSlot BoxFillSlot{0x17};
 constexpr Render::TextureSlot BoxEdgeSlot{0x18};
@@ -50,28 +49,28 @@ constexpr int ServerButtonWidth = 193;
 constexpr int LoadBarWidth = 160;
 constexpr int LoadBarHeight = 4;
 
-// 0x6451d0: el alto es el de los 16 botones de servidor del original más uno de grupo, la caja y
-// 10; la caja, 10 líneas más 6 y 6.
+// 0x6451d0: the height is that of the original's 16 server buttons plus one group button, the box and 10; the box,
+// 10 lines plus 6 and 6.
 constexpr int OriginalServerButtons = 16;
 constexpr int BottomMargin = 10;
 constexpr int BoxLines = 10;
 constexpr int DescriptionPadding = 6 + 6;
-// 0x645520: 10 filas de grupos, la fila del 20 a 5 de la caja.
+// 0x645520: 10 rows of groups, the 20's row 5 from the box.
 constexpr int GroupRows = 10;
 constexpr int LastGroupGap = 5;
-// 0x6456c0: los de servidor, a 28 del borde de la columna de grupos; la barra en (+16, +19).
+// 0x6456c0: the server ones, 28 from the edge of the group column; the bar at (+16, +19).
 constexpr int ServerColumnGap = 28;
 constexpr int LoadBarLeft = 16;
 constexpr int LoadBarTop = 19;
 
-// 0x645e10: con menos de 100 se elige; con menos de 128, el aviso.
+// 0x645e10: under 100 it is chosen; under 128, the notice.
 constexpr std::uint8_t BusyLoad = 100;
 constexpr std::uint8_t FullLoad = 128;
-// 0x640580(carga, 100): la barra mide 160 · carga / 100, con la carga hasta 100.
+// 0x640580(load, 100): the bar is 160 · load / 100, with the load up to 100.
 constexpr unsigned MaxBarLoad = 100;
 
-// Los colores de los rótulos (0x645860), 0xAABBGGRR: gris claro, blanco con el mouse encima; el
-// servidor sin PvP, amarillo claro en todos.
+// The label colors (0x645860), 0xAABBGGRR: light gray, white with the mouse over it; the server without PvP, light
+// yellow in all.
 constexpr std::uint32_t LabelGray = 0xffe2e2e2;
 constexpr std::uint32_t LabelWhite = 0xffffffff;
 constexpr std::uint32_t NonPvpYellow = 0xff79ffff;
@@ -84,7 +83,7 @@ constexpr Ui::ButtonColors GroupColors{.normal = LabelGray,
 constexpr Ui::ButtonColors ServerColors{.normal = LabelGray, .pressed = LabelGray, .hover = LabelWhite};
 constexpr Ui::ButtonColors NonPvpColors{.normal = NonPvpYellow, .pressed = NonPvpYellow, .hover = NonPvpYellow};
 
-// Una pieza de server_deco_all (0x647260): su lugar en la textura, su tamaño y su punto.
+// A piece of server_deco_all (0x647260): its place in the texture, its size and its point.
 struct FramePiece
 {
     int u = 0;
@@ -98,23 +97,22 @@ constexpr FramePiece LeftCorner{.u = 0, .v = 0, .width = 68, .height = 95, .poin
 constexpr FramePiece RightCorner{.u = 68, .v = 0, .width = 68, .height = 95, .point = {60, 19}};
 constexpr FramePiece LeftMarker{.u = 136, .v = 0, .width = 23, .height = 29, .point = {1, 2}};
 constexpr FramePiece RightMarker{.u = 136, .v = 30, .width = 23, .height = 29, .point = {23, 2}};
-// 0x645c70: la de la derecha, con más de 10 botones de grupo; 0x645ca0: la marca, del lado del
-// elegido, y ninguna con el 20.
+// 0x645c70: the right one, with more than 10 group buttons; 0x645ca0: the mark, on the chosen one's side, and none
+// with the 20.
 constexpr std::size_t GroupsPerColumn = 10;
 constexpr std::size_t MarkedGroups = 2 * GroupsPerColumn;
 
-// 0x66a1c0 y 0x66a3d0: los bordes de arriba y de abajo miden 6, los lados 3, y el fondo empieza
-// en (3, 3) con 6 menos de ancho y de alto que la caja.
+// 0x66a1c0 and 0x66a3d0: the top and bottom edges are 6, the sides 3, and the fill starts at (3, 3), 6 narrower and
+// shorter than the box.
 constexpr int BoxEdgeHeight = 6;
 constexpr int BoxSideWidth = 3;
 constexpr int BoxFillInset = 3;
-// 0x6451d0: el lado de la derecha es el cuadro de 3 × 4 que empieza en la columna 3 de server_ex02.
+// 0x6451d0: the right side is the 3 × 4 frame that starts at column 3 of server_ex02.
 constexpr int RightSideColumn = 3;
 constexpr int RightSideRows = 4;
 
-// 0x6463b0: los renglones van en (+11, +12) de la caja, cada uno 20 más abajo, con la fuente
-// DAT_05763560, en blanco y sin fondo; los textos del grupo 20, en (90, 104), (90, 119) y (90, 134)
-// de 640 × 480.
+// 0x6463b0: the lines go at (+11, +12) from the box, each 20 lower, with the font DAT_05763560, in white and with no
+// background; the group 20 texts, at (90, 104), (90, 119) and (90, 134) of 640 × 480.
 constexpr int DescriptionLeft = 11;
 constexpr int DescriptionTop = 12;
 constexpr int DescriptionLineStep = 20;
@@ -123,11 +121,11 @@ constexpr std::uint32_t DescriptionColor = 0xffffffff;
 constexpr int GroupTwentyLeft = 90;
 constexpr int GroupTwentyTop = 104;
 constexpr int GroupTwentyStep = 15;
-// El grupo cuyo nombre, el texto 1829, compara 0x6463b0 con el del elegido.
+// The group whose name, text 1829, 0x6463b0 compares with the chosen one's.
 constexpr std::uint16_t GroupTwenty = 20;
 
-// La pieza con su punto en `at`: 0x6472e0(x, y, 3) resta el punto de +0x58 y +0x5c. Las que
-// empiezan en (0, 0) de la textura no tienen cuadros (0x647260 le da a 0x647050 una lista nula).
+// The piece with its point at `at`: 0x6472e0(x, y, 3) subtracts the point from +0x58 and +0x5c. Those that start at
+// (0, 0) of the texture have no frames (0x647260 gives 0x647050 a null list).
 Render::UiImage PlacePiece(const FramePiece& piece, Ui::Point at, const Ui::TextureSizes& sizes)
 {
     Render::UiImage image = Ui::PixelImage(
@@ -142,9 +140,8 @@ Render::UiImage PlacePiece(const FramePiece& piece, Ui::Point at, const Ui::Text
     return image;
 }
 
-// 0x645860 parte el texto 1717 + elegido, y el botón k del original es el lugar 4 + k. MuRet
-// muestra los grupos de todos los lugares (Q-C62), y el botón k puede ser otro lugar: la
-// descripción es la del lugar del grupo.
+// 0x645860 splits text 1717 + chosen, and the original's button k is slot 4 + k. MuRet shows the groups of every
+// slot (Q-C62), and button k can be another slot: the description is that of the group's slot.
 std::size_t DescriptionText(int slot)
 {
     return FirstDescriptionText + static_cast<std::size_t>(slot - FirstButtonSlot);
@@ -185,7 +182,7 @@ ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight,
                                              .width = GroupButtonWidth,
                                              .height = ButtonHeight};
 
-    // 0x6456c0: con 10 o más servidores (count · 26 >= 260), el primero sube.
+    // 0x6456c0: with 10 or more servers (count · 26 >= 260), the first moves up.
     const int count = static_cast<int>(std::min(serverCount, ServersPerGroup));
     int serverY = firstRow;
     if (count * ButtonHeight >= GroupRows * ButtonHeight)
@@ -202,7 +199,7 @@ ServerListLayout LayoutServerList(Core::PixelSize screen, int descriptionHeight,
             .x = serverX + LoadBarLeft, .y = buttonY + LoadBarTop, .width = LoadBarWidth, .height = LoadBarHeight};
     }
 
-    // 0x645679..0x6456a7: (x − (512 − 465) / 2, y + alto − la caja), con la división de C.
+    // 0x645679..0x6456a7: (x − (512 − 465) / 2, y + height − the box), with C division.
     layout.description = Ui::Rect{.x = x - (DescriptionWidth - ServerListWidth) / 2,
                                   .y = y + height - descriptionHeight,
                                   .width = DescriptionWidth,
@@ -238,11 +235,10 @@ ServerListFrame LayoutServerListFrame(const ServerListLayout& layout, std::size_
 
 std::array<Render::UiImage, 5> DescriptionBoxImages(Ui::Rect box, const Ui::TextureSizes& sizes)
 {
-    // 0x66a4e0: los lados miden las 10 líneas, el alto de la caja menos los dos bordes.
+    // 0x66a4e0: the sides span the 10 lines, the box height minus both edges.
     const int sideHeight = box.height - 2 * BoxEdgeHeight;
 
-    // El fondo, de 506 × (alto − 6), y el lado de la izquierda siguen a 0x647370 (+0x98 en 1) y
-    // repiten su textura.
+    // The fill, 506 × (height − 6), and the left side follow 0x647370 (+0x98 at 1) and repeat their texture.
     Render::UiImage fill = Ui::PixelImage(BoxFillSlot,
                                           Ui::Rect{.x = box.x + BoxFillInset,
                                                    .y = box.y + BoxFillInset,
@@ -266,9 +262,8 @@ std::array<Render::UiImage, 5> DescriptionBoxImages(Ui::Rect box, const Ui::Text
                        sizes(DescriptionLineSlot));
     left.resizedHeight = true;
 
-    // El de la derecha empieza en (3, 0) de server_ex02: tiene cuadros, y 0x647050 le pone +0x98
-    // en 0. Sus UV quedan en las 4 filas con que lo arma 0x6451d0, no en las del buffer, y se
-    // estira.
+    // The right one starts at (3, 0) of server_ex02: it has frames, and 0x647050 sets its +0x98 to 0. Its UVs stay on
+    // the 4 rows 0x6451d0 builds it with, not those of the buffer, and it stretches.
     Render::UiImage right = Ui::PixelImage(DescriptionLineSlot,
                                            Ui::Rect{.x = box.x + box.width - BoxSideWidth,
                                                     .y = box.y + BoxEdgeHeight,
@@ -342,7 +337,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
     const std::optional<Ui::Point> mouse = Ui::MouseOfTheTurn(turn, input, screen);
     if (!turn.logic)
     {
-        // Sin el foco, 0x669f40 atiende los botones y no corre 0x645e10.
+        // Without the focus, 0x669f40 handles the buttons and does not run 0x645e10.
         for (Ui::Button& button : m_groupButtons)
         {
             static_cast<void>(button.Step(input, mouse, turn.buttonClicked));
@@ -354,7 +349,7 @@ std::optional<ServerClick> ServerListWindow::Step(const Input::InputState& input
         return std::nullopt;
     }
 
-    // 0x645e10: el primer grupo con clic, entre los 21.
+    // 0x645e10: the first group clicked, among the 21.
     std::optional<std::size_t> clickedGroup;
     for (std::size_t i = 0; i < m_groupButtons.size(); ++i)
     {
@@ -399,7 +394,7 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDr
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
     DrawBoxAndDescription(sprites, text, screen);
-    // El color del texto queda en blanco, el de la descripción, hasta el primer rótulo (Q-C83).
+    // The text color stays white, the description's, up to the first label (Q-C83).
     const std::uint32_t lastLabel = DrawButtons(sprites, text, screen, DescriptionColor);
     DrawGroupTwentyTexts(text, lastLabel);
 }
@@ -407,7 +402,7 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDr
 void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                              Core::PixelSize screen) const
 {
-    // 1: la caja, abierta con un grupo elegido (0x645ba0).
+    // 1: the box, open with a group chosen (0x645ba0).
     if (m_selected)
     {
         for (const Render::UiImage& image : DescriptionBoxImages(m_layout.description, m_sizes))
@@ -416,8 +411,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Rende
         }
     }
 
-    // 2: por cada renglón, la pieza de arriba de la columna del mismo número, la marca y el
-    // renglón.
+    // 2: for each line, the top piece of the column with the same number, the mark and the line.
     const ServerListFrame frame = LayoutServerListFrame(m_layout, m_groupButtons.size(), m_selected, m_sizes);
     static_assert(DescriptionLines == std::tuple_size<decltype(ServerListFrame::corners)>::value,
                   "un renglón por columna");
@@ -432,7 +426,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Rende
         {
             sprites.Image(*frame.markers[line]);
         }
-        // 0x5542f0 no dibuja un texto vacío.
+        // 0x5542f0 does not draw an empty text.
         if (line < m_description.size() && !m_description[line].empty())
         {
             const int y = box.y + DescriptionTop + static_cast<int>(line) * DescriptionLineStep;
@@ -446,7 +440,7 @@ void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Rende
 std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text,
                                             Core::PixelSize screen, std::uint32_t textColor) const
 {
-    // 3: los botones con sus rótulos (0x66a090), primero los de grupo, y después las barras.
+    // 3: the buttons with their labels (0x66a090), first the group ones, then the bars.
     const auto drawButton = [&](const Ui::Button& button)
     {
         sprites.Image(button.Image(m_sizes));
@@ -468,8 +462,7 @@ std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render
     for (std::size_t i = 0; i < ShownServers(); ++i)
     {
         Render::UiImage bar = Ui::PixelImage(LoadBarSlot, m_layout.loadBars[i], m_sizes(LoadBarSlot));
-        // 0x640580 le cambia el ancho con 0x647370(ancho, 0, 1): la u de la derecha, sin medio
-        // téxel.
+        // 0x640580 changes its width with 0x647370(width, 0, 1): the right u, without the half texel.
         bar.width = BarWidth(group->servers[i].load);
         bar.resizedWidth = true;
         sprites.Image(bar);
@@ -479,8 +472,8 @@ std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Render
 
 void ServerListWindow::DrawGroupTwentyTexts(Render::Frame::ITextDrawer& text, std::uint32_t color) const
 {
-    // 4: con el grupo 20, sus tres textos, con el color del último rótulo (Q-C83). Uno vacío no
-    // deja nada en la pantalla, como en las otras ventanas.
+    // 4: with group 20, its three texts, in the last label's color (Q-C83). An empty one leaves nothing on screen, as
+    // in the other windows.
     if (!ShowsGroupTwentyTexts())
     {
         return;
@@ -499,7 +492,7 @@ void ServerListWindow::Select(std::size_t index)
 {
     m_selected = index;
     const ServerGroup& group = m_groups.groups[index];
-    // 0x645860: los dos renglones, vacíos sin el texto.
+    // 0x645860: the two lines, empty without the text.
     m_description.clear();
     if (const auto description = Ui::TextAt(m_texts, DescriptionText(group.slot)))
     {
@@ -548,7 +541,7 @@ std::size_t ServerListWindow::ShownServers() const
 
 bool ServerListWindow::ShowsGroupTwentyTexts() const
 {
-    // Sin elegido, el original compara el nombre del lugar 3, que no tiene: nunca da.
+    // With nothing chosen, the original compares the name of slot 3, which it does not have: it never matches.
     const ServerGroup* group = SelectedGroup();
     if (group == nullptr)
     {

@@ -17,9 +17,9 @@
 #include <string>
 #include <vector>
 
-// El cartel de Slide.bmd (CL8 hito 3): las colas de [0x5763528] (0x46b720, 0x46abf0, 0x46add0, 0x46a9c0), el sorteo
-// de 0x46b680 y el dibujo (0x46b090, 0x46a540, 0x46a850, 0x46a910). Los textos son inventados; el medidor de
-// RecordingTextDrawer da 6 columnas por letra y 13 filas.
+// The Slide.bmd banner (CL8 milestone 3): the queues of [0x5763528] (0x46b720, 0x46abf0, 0x46add0, 0x46a9c0), the
+// pick of 0x46b680 and the drawing (0x46b090, 0x46a540, 0x46a850, 0x46a910). The texts are invented; the
+// RecordingTextDrawer measure gives 6 columns per letter and 13 rows.
 namespace
 {
 using Client::Core::PixelSize;
@@ -34,7 +34,7 @@ using Client::Ui::SlideQueue;
 using Client::Ui::SlideStepContext;
 
 constexpr PixelSize Screen640{640, 480};
-// 640 / 6 · 1: los espacios que pone 0x46a9c0 delante de un texto con 6 columnas por espacio.
+// 640 / 6 · 1: the spaces 0x46a9c0 puts before a text, at 6 columns per space.
 constexpr std::size_t SpacesAt640 = 106;
 
 class SlideBannerTest : public ::testing::Test
@@ -74,7 +74,8 @@ protected:
     }
 };
 
-// 0x46b010: las dos colas en (0, 0x1ad), en el segundo 10, la normal con la fuente normal y la gruesa con la otra.
+// 0x46b010: both queues at (0, 0x1ad), at second 10, the normal one with the normal font and the bold one with the
+// other.
 TEST_F(SlideBannerTest, TheQueuesStartEmptyAtTheBottom)
 {
     EXPECT_EQ(m_banner.normal.y, 0x1ad);
@@ -85,8 +86,8 @@ TEST_F(SlideBannerTest, TheQueuesStartEmptyAtTheBottom)
     EXPECT_TRUE(m_banner.normal.text.empty());
 }
 
-// 0x46b720: de 0 a 2 a la normal y de 3 a 5 a la gruesa, con el tipo menos 1 o menos 4. El 1 de la cola (2 y 5)
-// entra con la clave 0; los otros, en el segundo más el salto de cada repetición.
+// 0x46b720: 0 to 2 to the normal one and 3 to 5 to the bold one, with the kind minus 1 or minus 4. The queue's 1 (2
+// and 5) enters with key 0; the others, at the second plus each repetition's gap.
 TEST_F(SlideBannerTest, KindsChooseTheQueueAndTheKey)
 {
     Client::Ui::QueueTheSlide(m_banner, 3, 4, "tres veces", 1, 2.0f, 0xff0000ffu);
@@ -107,7 +108,7 @@ TEST_F(SlideBannerTest, KindsChooseTheQueueAndTheKey)
     EXPECT_EQ(m_banner.bold.entries.begin()->second.kind, -1);
 }
 
-// 0x46b72f..0x46b749: sin texto, con más de 30 repeticiones o con un tipo fuera de 0..5, nada.
+// 0x46b72f..0x46b749: without text, with more than 30 repetitions or with a kind outside 0..5, nothing.
 TEST_F(SlideBannerTest, OutOfRangeRequestsQueueNothing)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "", 1, 0.0f, 0);
@@ -119,8 +120,8 @@ TEST_F(SlideBannerTest, OutOfRangeRequestsQueueNothing)
     EXPECT_TRUE(m_banner.bold.entries.empty());
 }
 
-// 0x46add0 y 0x46a9c0: una cola sin nada agrega su primera entrada con un ancho de pantalla de espacios adelante, la
-// velocidad por rx y el color; mientras pasa, no toma otra.
+// 0x46add0 and 0x46a9c0: an empty queue adds its first entry with a screen width of spaces in front, the speed by rx
+// and the color; while it passes, it takes no other.
 TEST_F(SlideBannerTest, AnIdleQueueTakesItsFirstEntry)
 {
     Client::Ui::QueueTheSlide(m_banner, 2, 0, "pasa", 1, 3.0f, 0xff112233u);
@@ -131,12 +132,12 @@ TEST_F(SlideBannerTest, AnIdleQueueTakesItsFirstEntry)
     EXPECT_EQ(m_banner.normal.color, 0xff112233u);
     EXPECT_EQ(m_banner.normal.maxSpeed, 3.0f);
     EXPECT_EQ(m_banner.normal.entries.size(), 1U);
-    // 0x46a510: con texto y el pedazo en 0 no está libre.
+    // 0x46a510: with text and the chunk at 0 it is not free.
     ASSERT_TRUE(Step(200));
     EXPECT_EQ(m_banner.normal.entries.size(), 1U);
 }
 
-// 0x46ada0: los segundos suben uno por paso con más de 1000 ms desde el último; la entrada espera su segundo.
+// 0x46ada0: the seconds go up one per step with more than 1000 ms since the last; the entry waits for its second.
 TEST_F(SlideBannerTest, AnEntryWaitsForItsSecond)
 {
     Client::Ui::QueueTheSlide(m_banner, 2, 2, "espera", 1, 0.0f, 0);
@@ -149,11 +150,11 @@ TEST_F(SlideBannerTest, AnEntryWaitsForItsSecond)
     ASSERT_TRUE(Step(2002));
     EXPECT_EQ(m_banner.normal.seconds, 12U);
     EXPECT_FALSE(m_banner.normal.text.empty());
-    // 0x46abc0: sin velocidad, 2,5.
+    // 0x46abc0: without speed, 2.5.
     EXPECT_EQ(m_banner.normal.maxSpeed, 2.5f);
 }
 
-// 0x46ae07: una entrada de tipo −1 con más de 60 segundos sale sin agregarse.
+// 0x46ae07: a kind −1 entry with more than 60 seconds leaves without being added.
 TEST_F(SlideBannerTest, AnOldExpiringEntryIsDropped)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "vieja", 0, 4.0f, 0);
@@ -166,7 +167,7 @@ TEST_F(SlideBannerTest, AnOldExpiringEntryIsDropped)
     EXPECT_EQ(m_banner.normal.maxSpeed, 4.0f);
 }
 
-// 0x46a9c0: lo que no entra en 0x400 bytes espera.
+// 0x46a9c0: what does not fit in 0x400 bytes waits.
 TEST_F(SlideBannerTest, ATextThatDoesNotFitWaits)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, std::string(1024 - SpacesAt640, 'x'), 2, 0.0f, 0);
@@ -177,7 +178,7 @@ TEST_F(SlideBannerTest, ATextThatDoesNotFitWaits)
     EXPECT_EQ(m_banner.normal.entries.size(), 1U);
 }
 
-// La gruesa pasa primero (0x46b7b0); sin medidor, la que tiene que agregar corta.
+// The bold one goes first (0x46b7b0); without a measure, the one that has to add stops.
 TEST_F(SlideBannerTest, WithoutAMeasureAddingIsCut)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "texto", 5, 0.0f, 0);
@@ -186,7 +187,7 @@ TEST_F(SlideBannerTest, WithoutAMeasureAddingIsCut)
         Client::Ui::StepTheSlides(m_banner, SlideStepContext{.measure = nullptr, .dcFont = m_dcFont}).HasValue());
 }
 
-// 0x46b680: el primer tramo con el nivel menor o igual que su tope; un rand() módulo la cuenta.
+// 0x46b680: the first band with the level less than or equal to its cap; one rand() modulo the count.
 TEST_F(SlideBannerTest, PickingDrawsOneRandomFromTheLevelGroup)
 {
     Client::Tables::SlideTable table;
@@ -203,21 +204,21 @@ TEST_F(SlideBannerTest, PickingDrawsOneRandomFromTheLevelGroup)
     const int first = expected.Next();
     ASSERT_TRUE(low.has_value());
     EXPECT_EQ(*low, first % 2 == 0 ? "bajo uno" : "bajo dos");
-    // Cuenta 0: sin rand().
+    // Count 0: no rand().
     EXPECT_FALSE(Client::Ui::PickASlide(m_banner, 16, random).has_value());
     EXPECT_EQ(random.State(), expected.State());
-    // Más que todos los topes: sin rand().
+    // More than all the caps: no rand().
     EXPECT_FALSE(Client::Ui::PickASlide(m_banner, 51, random).has_value());
     EXPECT_EQ(random.State(), expected.State());
-    // Un lugar que la lista no tiene: el rand() sale igual.
+    // A slot the list does not have: the rand() is drawn anyway.
     const std::optional<std::string> high = Client::Ui::PickASlide(m_banner, 40, random);
     const int second = expected.Next();
     EXPECT_EQ(high.has_value(), second % 3 == 0);
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x46a540: la opacidad sube de a 30; las franjas (0x621aa0) y el texto con el modo 6 en x + corrimiento, y después
-// corre (0x46a910). El alto de "Z" sube la y una vez.
+// 0x46a540: the opacity rises by 30; the bands (0x621aa0) and the text with mode 6 at x + scroll, and then it scrolls
+// (0x46a910). The height of "Z" raises the y once.
 TEST_F(SlideBannerTest, DrawingFadesInAndScrolls)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "hola", 2, 2.0f, 0xff112233u);
@@ -238,7 +239,7 @@ TEST_F(SlideBannerTest, DrawingFadesInAndScrolls)
     EXPECT_EQ(m_banner.normal.velocity, 1.0f);
     EXPECT_EQ(m_banner.normal.scroll, -1.0f);
     EXPECT_EQ(m_banner.drawn, 1);
-    // El pedazo de adelante: cuatro espacios.
+    // The chunk in front: four spaces.
     EXPECT_EQ(m_banner.normal.chunkBytes, 4U);
     EXPECT_EQ(m_banner.normal.chunkWidth, 4 * RecordingTextDrawer::LetterWidth);
 
@@ -248,7 +249,7 @@ TEST_F(SlideBannerTest, DrawingFadesInAndScrolls)
     EXPECT_EQ(m_banner.normal.scroll, -3.0f);
 }
 
-// 0x46a850: con el corrimiento pasado del pedazo, lo saca y suma su ancho.
+// 0x46a850: with the scroll past the chunk, it drops it and adds its width.
 TEST_F(SlideBannerTest, ThePassedChunkIsDropped)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "hola", 2, 2.0f, 0xffffffffu);
@@ -262,7 +263,7 @@ TEST_F(SlideBannerTest, ThePassedChunkIsDropped)
     EXPECT_EQ(m_text.texts.back().x, -1);
 }
 
-// 0x46a910: con el mouse sobre la franja frena de a 1.
+// 0x46a910: with the mouse over the band it slows by 1.
 TEST_F(SlideBannerTest, TheMouseOverTheBandSlowsIt)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "hola", 2, 2.0f, 0xffffffffu);
@@ -279,7 +280,8 @@ TEST_F(SlideBannerTest, TheMouseOverTheBandSlowsIt)
     EXPECT_EQ(m_banner.normal.velocity, 1.0f);
 }
 
-// 0x46b090: mientras pasa la gruesa, la normal se apaga dibujando; la gruesa espera a que la normal esté en 0.
+// 0x46b090: while the bold one passes, the normal one fades out while drawing; the bold one waits for the normal one
+// to reach 0.
 TEST_F(SlideBannerTest, TheBoldQueueWaitsForTheNormalToFade)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "normal", 2, 2.0f, 0xffffffffu);
@@ -301,7 +303,7 @@ TEST_F(SlideBannerTest, TheBoldQueueWaitsForTheNormalToFade)
     EXPECT_EQ(m_text.texts.back().style.font, FontKind::Bold);
 }
 
-// 0x46a540: con 0x6c7a8c apagado no dibuja ni toca nada.
+// 0x46a540: with 0x6c7a8c off it neither draws nor touches anything.
 TEST_F(SlideBannerTest, SlidesOffDrawNothing)
 {
     Client::Ui::QueueTheSlide(m_banner, 1, 0, "hola", 2, 2.0f, 0xffffffffu);
@@ -314,8 +316,8 @@ TEST_F(SlideBannerTest, SlidesOffDrawNothing)
     EXPECT_TRUE(m_sprites.Commands().empty());
 }
 
-// Q-C518: forzada a apagarse con el texto terminado, el corrimiento negativo y el pedazo viejo, el original escribe
-// fuera del buffer (strncpy con un largo negativo): corta.
+// Q-C518: forced to fade out with the text finished, the scroll negative and the chunk old, the original writes past
+// the buffer (strncpy with a negative length): it stops.
 TEST_F(SlideBannerTest, DroppingMoreThanIsLeftIsCut)
 {
     SlideQueue& normal = m_banner.normal;

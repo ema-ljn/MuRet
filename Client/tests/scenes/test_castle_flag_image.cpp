@@ -29,7 +29,7 @@ TEST(CastleFlagImageTest, TheOriginal64SquareHasTheMarkTheGrayFieldAndTheBorder)
     EXPECT_EQ(pixel(47, 47), (std::array<std::uint8_t, 4>{0, 0, 255, 255}));
     EXPECT_EQ(pixel(3, 10), (std::array<std::uint8_t, 4>{10, 10, 10, 255}));
     EXPECT_EQ(pixel(60, 54), (std::array<std::uint8_t, 4>{54, 54, 54, 255}));
-    // 0x5f1abb: las dos operaciones flotantes se suman antes del último _ftol.
+    // 0x5f1abb: the two floating-point operations are added before the last _ftol.
     EXPECT_EQ(pixel(0, 1), (std::array<std::uint8_t, 4>{53, 51, 0, 255}));
     EXPECT_EQ(pixel(2, 10), (std::array<std::uint8_t, 4>{76, 66, 0, 255}));
     EXPECT_EQ(pixel(0, 63), (std::array<std::uint8_t, 4>{211, 150, 0, 255}));

@@ -62,46 +62,46 @@ using Render::Text::FontKind;
 
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color Black{0.0f, 0.0f, 0.0f, 1.0f};
-// glColor3f(0,5; 0,5; 0,5): el botón del elegido (0x40a726) y el nombre con el clic (0x40a967).
+// The chosen one's button (0x40a726) and the name with the click (0x40a967).
 constexpr Color Gray{0.5f, 0.5f, 0.5f, 1.0f};
-// 0x40ab9a: el nombre junto al mouse sin el comando listo para él.
+// 0x40ab9a: the name next to the mouse without the command ready for it.
 constexpr Color NotReady{1.0f, 0.2f, 0.2f, 1.0f};
-// 0x40aad6..0x40ab19: Interface\CursorID_Wnd.jpg (0x65b) de 128 × 32 en el mouse + 5 (0x6b87f8).
+// 0x40aad6..0x40ab19: Interface\CursorID_Wnd.jpg (0x65b), 128 × 32 at the mouse + 5 (0x6b87f8).
 constexpr std::uint16_t NameCardSlot = 0x65b;
 constexpr double NameCardOffset = 5.0;
 constexpr float NameCardWidth = 128.0f;
 constexpr float NameCardHeight = 32.0f;
-// 0x40ab2e..0x40ab6b y 0x40abab..0x40abd3: los colores y los lugares de los dos nombres.
+// 0x40ab2e..0x40ab6b and 0x40abab..0x40abd3: the colors and the places of the two names.
 constexpr std::uint32_t ChosenNameColor = 0xff67bfdfu;
 constexpr std::uint32_t NameCardBack = 0x00141414u;
 constexpr std::int32_t ChosenNameTop = 0x2d;
 constexpr std::int32_t NameNextToMouseX = 0x45;
 constexpr std::int32_t NameNextToMouseY = 0xc;
-// glColor3f(1; 0,8; 0,2): el nombre del elegido o con el mouse encima, sin el clic (0x40a978).
+// The chosen or hovered name, without the click (0x40a978).
 constexpr Color Highlight{1.0f, 0.8f, 0.2f, 1.0f};
-// 0x491960(0, 1): glColor4ub(0x92, 0x86, 0x79, 0xff), el marco de la casilla (0x4630a5).
+// 0x491960(0, 1): the checkbox frame (0x4630a5).
 constexpr Color CheckboxFrame{static_cast<float>(0x92) / 255.0f, static_cast<float>(0x86) / 255.0f,
                               static_cast<float>(0x79) / 255.0f, 1.0f};
 
-// 0x40a668..0x40a676: la esquina que pone el dibujo.
+// 0x40a668..0x40a676: the corner the drawing sets.
 constexpr std::int32_t WindowLeft = 0x1c2;
 constexpr std::int32_t WindowTop = 0;
-// 0x40a463..0x40a48f: el mouse sobre la ventana, de 0xbe × 0x1b1 desde la esquina.
+// 0x40a463..0x40a48f: the mouse over the window, 0xbe × 0x1b1 from the corner.
 constexpr std::int32_t WindowWidth = 0xbe;
 constexpr std::int32_t WindowHeight = 0x1b1;
-// 0x40a51f..0x40a548: el botón de cerrar, de 0x18 × 0x18 en (0x19, 0x18b) de la esquina.
+// 0x40a51f..0x40a548: the close button, 0x18 × 0x18 at (0x19, 0x18b) from the corner.
 constexpr std::int32_t CloseLeft = 0x19;
 constexpr std::int32_t CloseTop = 0x18b;
 constexpr std::int32_t CloseSize = 0x18;
 // 0x40a573..0x40a57d.
 constexpr std::int32_t CloseMouseUpdateTimeMax = 6;
-// 0x40a553..0x40a56b: los dos sonidos del botón de cerrar.
+// 0x40a553..0x40a56b
 constexpr Audio::SoundId FirstCloseSound = Sound::ButtonClickSound;
 constexpr Audio::SoundId SecondCloseSound = Sound::CreateWindowSound;
 
-// Los botones: x + 95 (0x6b87e4) − 50 (0x6b86b0) e y + 53 (0x6b87e0), de 28 en 28 (0x6b880c). El paso los toca entre
-// los bordes, con 108 (0x6c) × 20 (0x14); el dibujo los pinta de 100 × 25 y les mira el mouse con 108 (0x6b87fc) ×
-// 20 (0x6b86d0).
+// The buttons: x + 95 (0x6b87e4) − 50 (0x6b86b0) and y + 53 (0x6b87e0), every 28 (0x6b880c). The step hits them
+// between the edges, with 108 (0x6c) × 20 (0x14); the drawing paints them 100 × 25 and checks their mouse with 108
+// (0x6b87fc) × 20 (0x6b86d0).
 constexpr double ButtonsRight = 95.0;
 constexpr double ButtonsBack = 50.0;
 constexpr double ButtonsTop = 53.0;
@@ -111,17 +111,17 @@ constexpr std::int32_t ButtonHitWidth = 0x6c;
 constexpr std::int32_t ButtonHitHeight = 0x14;
 constexpr float ButtonHoverWidth = 108.0f;
 constexpr float ButtonHoverHeight = 20.0f;
-// 0x40a74f..0x40a774: Interface\Message_box.jpg (0xf0) de 100 × 25 con du = 0,83203125.
+// 0x40a74f..0x40a774: Interface\Message_box.jpg (0xf0), 100 × 25 with du = 0.83203125.
 constexpr std::uint16_t ButtonSlot = 0xf0;
 constexpr float ButtonWidth = 100.0f;
 constexpr float ButtonHeight = 25.0f;
 constexpr float ButtonDu = 0.83203125f;
-// 0x40aa0f y 0x40aa06: el nombre, centrado en _ftol(x) + 0x32 y en _ftol(y) + 8; 0x40aa3a: la casilla en _ftol(x) −
-// 0x14.
+// 0x40aa0f and 0x40aa06: the name, centered at _ftol(x) + 0x32 and at _ftol(y) + 8; 0x40aa3a: the checkbox at
+// _ftol(x) − 0x14.
 constexpr std::int32_t NameCenter = 0x32;
 constexpr std::int32_t NameTop = 8;
 constexpr std::int32_t CheckboxBack = 0x14;
-// 0x463090: la casilla de 9 × 9 y la marca, Interface\win_check.tga (0x64a), de 5 × 5 en (x + 2, y + 2).
+// 0x463090: the 9 × 9 checkbox and the mark, Interface\win_check.tga (0x64a), 5 × 5 at (x + 2, y + 2).
 constexpr float CheckboxSize = 9.0f;
 constexpr std::int32_t CheckboxFar = 8;
 constexpr std::uint16_t CheckSlot = 0x64a;
@@ -129,28 +129,28 @@ constexpr std::int32_t CheckInset = 2;
 constexpr float CheckSize = 5.0f;
 constexpr float CheckUv = 0.625f;
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// Text.bmd texts: (the address − 0x76bd1dc) / 300.
 constexpr std::size_t TitleText = 938;
 constexpr std::size_t CloseHelpText = 927;
-// 0x40a998: la tabla 0x40aca4, el nombre de los comandos del 1 al 11.
+// 0x40a998: the table 0x40aca4, the names of commands 1 to 11.
 constexpr std::array<std::size_t, Ui::CommandCount - 1> CommandTexts{943,  1124, 944, 945, 946, 1352,
                                                                      1321, 1322, 947, 948, 949};
-// 0x40a853: el "D" (0x6c6358) que sprintf pone en el texto 927, en un buffer de 100 bytes de la pila (EBP − 0x6c).
+// 0x40a853: the "D" (0x6c6358) that sprintf puts in text 927, in a 100-byte stack buffer (EBP − 0x6c).
 constexpr std::string_view CloseKey = "D";
 constexpr std::size_t HelpBufferSize = 100;
-// 0x40a6c9..0x40a6f2: el título en (x + 0x23, y + 0xc).
+// 0x40a6c9..0x40a6f2: the title at (x + 0x23, y + 0xc).
 constexpr std::int32_t TitleLeft = 0x23;
 constexpr std::int32_t TitleTop = 0xc;
-// 0x40ac60..0x40ac7b: el aviso centrado en (x + 0x5f, y + 0x44).
+// 0x40ac60..0x40ac7b: the notice centered at (x + 0x5f, y + 0x44).
 constexpr std::int32_t NoticeCenter = 0x5f;
 constexpr std::int32_t NoticeTop = 0x44;
 
-// 0x6c8e5c y 0x6c8e64 del título (0x40a6b5) y de los nombres (0x40a89f).
+// 0x6c8e5c and 0x6c8e64 of the title (0x40a6b5) and of the names (0x40a89f).
 constexpr Render::Text::TextColors TitleColors{.text = 0xffffffffu, .background = 0xff141414u};
 constexpr Render::Text::TextColors NameColors{.text = 0xffffffffu, .background = 0x00141414u};
 
-// El aviso de 0x40abdb..0x40ac2e: con el estado del elegido en 0, el texto del comando 5, 6, 10 o 3; con 0xff o 0xfe,
-// los de esos estados.
+// 0x40abdb..0x40ac2e's notice: with the chosen one's state at 0, the text of command 5, 6, 10 or 3; with 0xff or
+// 0xfe, those of these states.
 constexpr std::uint8_t RefusedState = 0;
 constexpr std::uint8_t NotMasterState = 0xff;
 constexpr std::uint8_t NotMemberState = 0xfe;
@@ -167,13 +167,13 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
 using Math::F32;
 using Math::Truncate;
 
-// 0x40a4ad y 0x40a705: fild de la esquina, fadd de 95 y fsub de 50.
+// 0x40a4ad and 0x40a705: fild of the corner, fadd of 95 and fsub of 50.
 double ButtonsLeftOf(std::int32_t x)
 {
     return static_cast<double>(x) + ButtonsRight - ButtonsBack;
 }
 
-// 0x4061b7 y 0x4061c3: los estados que pone 0x406050 por comando antes del clic.
+// 0x4061b7 and 0x4061c3: the states 0x406050 sets per command before the click.
 constexpr std::size_t PartyCommand = 3;
 constexpr std::size_t WhisperCommand = 4;
 constexpr std::size_t GuildCommand = 5;
@@ -185,13 +185,12 @@ constexpr std::size_t FollowCommand = 10;
 constexpr std::size_t TradeCommand = 1;
 constexpr std::size_t ShopCommand = 2;
 constexpr std::size_t DuelCommand = 11;
-// 0x4062bb: +0x368 en 0x80, el maestro del gremio.
+// 0x4062bb: +0x368 at 0x80.
 constexpr std::uint8_t GuildMaster = 0x80;
-// +0x368 sin gremio.
+// +0x368 without a guild.
 constexpr std::uint8_t NoGuildStatus = 0xff;
-// Los avisos de los comandos del gremio (Text.bmd, la dirección − 0x76bd1dc, / 300): 0x76cfcb0 (255, ya en un gremio),
-// 0x76e00d8 (477, el pedido de entrar), 0x7720944 (1358, la alianza), 0x77228e8 (1385, el otro sin gremio), 0x76e2400
-// (507, el otro no es maestro), 0x7720a70 (1359, la rivalidad) y 0x7720b9c (1360, romperla).
+// The guild commands' Text.bmd notices: 0x76cfcb0 (255), 0x76e00d8 (477), 0x7720944 (1358), 0x77228e8 (1385),
+// 0x76e2400 (507), 0x7720a70 (1359) and 0x7720b9c (1360).
 constexpr std::size_t InAGuildText = 255;
 constexpr std::size_t GuildAskedText = 477;
 constexpr std::size_t AllianceAskedText = 1358;
@@ -199,19 +198,19 @@ constexpr std::size_t NoGuildText = 1385;
 constexpr std::size_t NotAMasterText = 507;
 constexpr std::size_t HostilityAskedText = 1359;
 constexpr std::size_t HostilityEndedText = 1360;
-// 0x570d8f: /union, /rival o /rivaloff con el héroe sin gremio (0x77205c0).
+// 0x570d8f: /union, /rival or /rivaloff with the hero without a guild (0x77205c0).
 constexpr std::size_t HeroWithoutAGuildText = 1355;
-// El E5: la relación (1, la alianza; 2, la rivalidad) y el pedido (1, armarla; 2, romperla).
+// The E5's relation and request.
 constexpr std::uint8_t UnionRelation = 1;
 constexpr std::uint8_t RivalRelation = 2;
 constexpr std::uint8_t MakeRelation = 1;
 constexpr std::uint8_t BreakRelation = 2;
-// 0x409669: la animación del héroe (0x4ea030) y 0x409817: la acción del C1 18 del comando 8.
+// 0x409669: the hero's animation (0x4ea030) and 0x409817: the action of command 8's C1 18.
 constexpr std::uint8_t EndOfHostilityAnimation = 0xb7;
 constexpr std::uint8_t EndOfHostilityAction = 0x92;
-// 0x406195 y 0x40619a: a lo sumo dos celdas en cada eje.
+// 0x406195 and 0x40619a: at most two cells on each axis.
 constexpr std::int32_t CommandReach = 2;
-// Los textos 0x76e1398 y 0x76cff08 (el 478 y el 915, UI::ChatCommands).
+// The texts 0x76e1398 and 0x76cff08 (478 and 915, Chat::ChatCommands).
 constexpr std::size_t PersonalShopText = 493;
 constexpr std::size_t NotTheLeaderText = 257;
 
@@ -220,8 +219,8 @@ void ResetTheStates(Ui::CommandsWindowState& window)
     window.states.fill(Ui::CommandReady);
 }
 
-// 0x406af0..0x406afa y 0x4072ae..0x4072bb: la ventana se cierra (+4), sin destino (+8) ni comando (+0x20); después
-// 0x4072be pone los doce estados en 1.
+// 0x406af0..0x406afa and 0x4072ae..0x4072bb: the window closes (+4), without target (+8) or command (+0x20); then
+// 0x4072be sets the twelve states to 1.
 void CloseAfterTheCommand(Ui::DelegatedPanels& delegated)
 {
     delegated.commands = 0;
@@ -230,21 +229,21 @@ void CloseAfterTheCommand(Ui::DelegatedPanels& delegated)
     ResetTheStates(delegated.commandsWindow);
 }
 
-// 0x4061b7..0x406344: lo que puede el comando elegido con el personaje elegido, en su estado (+0x14 + comando): 1 se
-// puede, 0 no, 0xff el otro no es el maestro de un gremio, 0xfe el héroe tampoco. El 9 queda siempre en 0.
+// 0x4061b7..0x406344: what the chosen command can do with the chosen character, in its state (+0x14 + command): 1 it
+// can, 0 not, 0xff the other is not a guild master, 0xfe nor is the hero. Command 9 always stays at 0.
 Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, Ui::CommandsWindowState& window,
                                                std::size_t index)
 {
     const Kernel::ActorState& target = world.Actors()[index];
     const Kernel::ActorState& hero = world.Hero();
-    // 0x4061b7: el 9 (texto 947, amigos) en 0; su caso (0x40a0e1) no se alcanza.
+    // 0x4061b7: 9 (text 947, friends) at 0; its case (0x40a0e1) is not reached.
     window.states[FriendCommand] = 0;
     auto& states = window.states;
     switch (static_cast<std::size_t>(window.chosen))
     {
     case PartyCommand:
     case FollowCommand:
-        // 0x4061d3..0x406275: invitarlo si no está en la party; seguirlo si está.
+        // 0x4061d3..0x406275: invite them if they are not in the party; follow them if they are.
         states[PartyCommand] = Ui::CommandReady;
         states[FollowCommand] = 0;
         if (Social::IsInTheParty(world, index))
@@ -254,7 +253,7 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
         }
         return {};
     case GuildCommand:
-        // 0x40627a..0x4062b1: el héroe sin gremio (+0x1f2 negativo) y el otro maestro del suyo.
+        // 0x40627a..0x4062b1: the hero without a guild (+0x1f2 negative) and the other the master of theirs.
         states[GuildCommand] = Ui::CommandReady;
         if (static_cast<std::int16_t>(hero.word1f2) >= 0)
             states[GuildCommand] = 0;
@@ -262,15 +261,15 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
             states[GuildCommand] = NotMasterState;
         return {};
     case AllianceCommand:
-        // 0x4062b6..0x4062f9: los dos maestros y, en la tabla de los gremios, el +4 del del héroe.
+        // 0x4062b6..0x4062f9: both masters and, in the guilds table, the +4 of the hero's.
         if (hero.guildStatus != GuildMaster)
             states[AllianceCommand] = NotMemberState;
         else if (target.guildStatus != GuildMaster)
             states[AllianceCommand] = NotMasterState;
         else
         {
-            // 0x4062d7..0x4062f5: el +4 de la entrada del gremio del héroe (0x787aa4c, sin mirar el −1: Q-C1281): ya
-            // con alianza, 0; si no, 1.
+            // 0x4062d7..0x4062f5: the +4 of the hero's guild entry (0x787aa4c, without checking −1: Q-C1281): with an
+            // alliance already, 0; otherwise, 1.
             const auto guildIndex = static_cast<std::int16_t>(hero.word1f2);
             const std::optional<char> unionByte = Guild::UnionByteAt(world.Runtime().guild, guildIndex);
             if (!unionByte)
@@ -282,7 +281,7 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
     case HostilityCommand:
     case CancelHostilityCommand:
     {
-        // 0x4062fb..0x406344: los dos maestros.
+        // 0x4062fb..0x406344: both masters.
         const std::size_t command = static_cast<std::size_t>(window.chosen);
         if (hero.guildStatus != GuildMaster)
             states[command] = NotMemberState;
@@ -293,12 +292,12 @@ Core::Expected<void, std::string> SetTheStates(const Kernel::WorldState& world, 
         return {};
     }
     default:
-        // 0x4061c6: el 1, el 2, el 4, el 9 y el 11 no tocan nada.
+        // 0x4061c6: 1, 2, 4, 9 and 11 touch nothing.
         return {};
     }
 }
 
-// 0x555190("", texto, tipo) o el texto ya armado, en los mensajes, con la entrada del chat.
+// 0x555190("", text, type) or the text already built, in the messages, with the chat input.
 Core::Expected<void, std::string> Notify(const Chat::GameChatContext& chat, const Chat::ChatCommandNotice& notice,
                                          std::string_view where)
 {
@@ -347,8 +346,8 @@ Core::Expected<void, std::string> SendTheGuildRequest(const GameUiContext& conte
     return Notify(chat, notice.Value(), where);
 }
 
-// Un aviso de Text.bmd y el comando en −1 (+0x20): el nivel (0x40646a), la tienda (0x4064aa), la party (0x407326) y el
-// duelo (0x4085a5).
+// A Text.bmd notice and the command at −1 (+0x20): the level (0x40646a), the shop (0x4064aa), the party (0x407326)
+// and the duel (0x4085a5).
 Core::Expected<void, std::string> Refuse(const Chat::GameChatContext& chat, Ui::CommandsWindowState& window,
                                          std::size_t text, std::int32_t type, std::string_view where)
 {
@@ -358,8 +357,8 @@ Core::Expected<void, std::string> Refuse(const Chat::GameChatContext& chat, Ui::
     return {};
 }
 
-// 0x40638d..0x406afd, el comando 1 (texto 943): el nivel del registro propio (+0xe, con su acceso) contra 0x6c8dc8;
-// el otro con tienda personal (0x451810); el 36 con su aviso; la ventana se cierra.
+// 0x40638d..0x406afd, command 1 (text 943): the own record's level (+0xe, with its access) against 0x6c8dc8; the
+// other with a personal shop (0x451810); the 36 with its notice; the window closes.
 Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
@@ -386,8 +385,8 @@ Core::Expected<void, std::string> CommandATrade(const GameUiContext& context, co
     return {};
 }
 
-// 0x406b02..0x4072be, el comando 2 (texto 1124): el C1 10 3F 05 con la clave y el nombre del otro, en C3, y la ventana
-// se cierra. Lo que contesta el servidor (el 3F 05 que llega) no tiene handler (08 P-C208 b).
+// 0x406b02..0x4072be, command 2 (text 1124): the C1 10 3F 05 with the other's key and name, in C3, and the window
+// closes. What the server answers (the incoming 3F 05) has no handler (08 P-C208 b).
 Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                    std::size_t index)
 {
@@ -402,8 +401,8 @@ Core::Expected<void, std::string> CommandAShopView(const GameUiContext& context,
     return {};
 }
 
-// 0x4072df..0x4079a5, el comando 3 (texto 944): con otro líder, el aviso 257; si no, el 40 con su aviso. La ventana
-// queda.
+// 0x4072df..0x4079a5, command 3 (text 944): with another leader, notice 257; otherwise, the 40 with its notice. The
+// window stays.
 Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                 std::size_t index)
 {
@@ -418,9 +417,9 @@ Core::Expected<void, std::string> CommandAParty(const GameUiContext& context, co
     return NotifyAll(chat, sent.Value(), "0x40798d");
 }
 
-// 0x40a04e..0x40a0e0, el comando 4 (texto 945): con 0x6c7b8c en 1 (.data), el nombre al EDIT del susurro
-// (0x4694c0(0, 0, 1, nombre)), el campo elegido en 0 (0x77f3b70), el foco al del mensaje (0x469370(0)) y
-// SendMessage(WM_CHAR, Enter) a la ventana del juego, que corre el Enter del WndProc en el acto. La ventana queda.
+// 0x40a04e..0x40a0e0, command 4 (text 945): with 0x6c7b8c at 1 (.data), the name to the whisper EDIT
+// (0x4694c0(0, 0, 1, name)), the chosen field at 0 (0x77f3b70), the focus to the message's (0x469370(0)) and
+// SendMessage(WM_CHAR, Enter) to the game window, which runs the WndProc's Enter right away. The window stays.
 Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                   std::size_t index)
 {
@@ -431,8 +430,8 @@ Core::Expected<void, std::string> CommandAWhisper(const GameUiContext& context, 
     return Chat::PressEnterInTheGame(chat);
 }
 
-// 0x4079a6..0x4085d0, el comando 11 (texto 949): sin duelo, el AA con la clave y el nombre del otro; con el duelo (1) y
-// el otro de rival (strcmp con 0x78abae0), el AB; si no, el aviso 915 con el 2. La ventana queda.
+// 0x4079a6..0x4085d0, command 11 (text 949): without a duel, the AA with the other's key and name; with the duel (1)
+// and the other as the rival (strcmp with 0x78abae0), the AB; otherwise, notice 915 with 2. The window stays.
 Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                std::size_t index)
 {
@@ -448,9 +447,9 @@ Core::Expected<void, std::string> CommandADuel(const GameUiContext& context, con
     return Refuse(chat, runtime.panels.delegated.commandsWindow, Chat::DuelBusyText, Ui::ErrorMessage, "0x4085b1");
 }
 
-// 0x4085d1..0x408a23, el comando 5: el héroe ya en un gremio (+0x368 distinto de 0xff), el aviso 255 y el
-// comando en −1; sin el mundo cargado (0x7d3a101), nada; si no, 0x78aba40 = la clave del otro (MOVSX), el C1 05 50 en
-// claro y el aviso 477 con su nombre. La ventana queda.
+// 0x4085d1..0x408a23, command 5: with the hero already in a guild (+0x368 other than 0xff), notice 255 and the command
+// at −1; without the world loaded (0x7d3a101), nothing; otherwise, 0x78aba40 = the other's key (MOVSX), the C1 05 50
+// in clear and notice 477 with their name. The window stays.
 Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
@@ -464,8 +463,8 @@ Core::Expected<void, std::string> CommandAGuildJoin(const GameUiContext& context
     return SendTheGuildRequest(context, chat, Protocol::Guild::WriteJoinRequest(key), key, GuildAskedText, "0x408626");
 }
 
-// 0x408a24..0x409065, el comando 6: con el otro maestro (+0x368 en 0x80), el C1 07 E5 01 01
-// con su clave y el aviso 1358 con su nombre; si no, el 1385 (0xff, sin gremio) o el 507, y el comando en −1.
+// 0x408a24..0x409065, command 6: with the other a master (+0x368 at 0x80), the C1 07 E5 01 01 with their key and
+// notice 1358 with their name; otherwise, 1385 (0xff, no guild) or 507, and the command at −1.
 Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
@@ -480,7 +479,7 @@ Core::Expected<void, std::string> CommandAnAlliance(const GameUiContext& context
                                target.key, AllianceAskedText, "0x408a32");
 }
 
-// 0x409066..0x409662, el comando 7: el C1 07 E5 02 01 con la clave del otro y el aviso 1359 con su nombre.
+// 0x409066..0x409662, command 7: the C1 07 E5 02 01 with the other's key and notice 1359 with their name.
 Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context, const Chat::GameChatContext& chat,
                                                     std::size_t index)
 {
@@ -490,8 +489,8 @@ Core::Expected<void, std::string> CommandAHostility(const GameUiContext& context
                                HostilityAskedText, "0x409066");
 }
 
-// La animación 0xb7 del héroe (0x4ea030(héroe, 0xb7), con el modelo de su tipo) y el C1 05 18 con la dirección del
-// héroe y la acción 0x92: el comando 8 (0x409663) y /rivaloff (0x57106e y 0x5729e1).
+// The hero's 0xb7 animation (0x4ea030(hero, 0xb7), with its type's model) and the C1 05 18 with the hero's direction
+// and action 0x92: command 8 (0x409663) and /rivaloff (0x57106e and 0x5729e1).
 Core::Expected<void, std::string> PlayTheEndOfAHostility(const Chat::GameChatContext& chat, std::string_view animation,
                                                          std::string_view action)
 {
@@ -513,8 +512,8 @@ Core::Expected<void, std::string> PlayTheEndOfAHostility(const Chat::GameChatCon
     return Actors::SendTheAction(hero.angles.z, EndOfHostilityAction, sendAction, action);
 }
 
-// 0x409663..0x40a04d, el comando 8: la animación 0xb7 del héroe y el C1 05 18 (PlayTheEndOfAHostility), el C1 07 E5 02
-// 02 con la clave del otro y el aviso 1360 con su nombre.
+// 0x409663..0x40a04d, command 8: the hero's 0xb7 animation and the C1 05 18 (PlayTheEndOfAHostility), the C1 07 E5 02
+// 02 with the other's key and notice 1360 with their name.
 Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext& context,
                                                             const Chat::GameChatContext& chat, std::size_t index)
 {
@@ -526,10 +525,10 @@ Core::Expected<void, std::string> CommandTheEndOfAHostility(const GameUiContext&
                                HostilityEndedText, "0x409a4c");
 }
 
-// 0x406050 (desde 0x40a499, con ECX = [0x6e592c]), en cada paso con la ventana abierta: los doce estados en 1 y, con un
-// comando elegido y un personaje elegido (0x6c8e30), la distancia al héroe (sus cuatro accesos), el destino (+8) si es
-// un jugador al que se le puede pedir algo a dos celdas o menos, los estados del comando y, con el clic derecho
-// (0x7d36880) y un destino, el comando si su estado es 1.
+// 0x406050 (from 0x40a499, with ECX = [0x6e592c]), every step with the window open: the twelve states at 1 and, with
+// a chosen command and a chosen character (0x6c8e30), the distance to the hero (its four accesses), the target (+8) if
+// it is a player who can be asked something within two cells, the command's states and, with the right click
+// (0x7d36880) and a target, the command if its state is 1.
 Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -547,7 +546,7 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
         window.target = chosen;
     if (auto states = SetTheStates(context.world, window, index); !states.HasValue())
         return states;
-    // 0x406348..0x406386: el clic derecho con un destino se gasta (con 0x7d3685c); el estado del comando, con signo.
+    // 0x406348..0x406386: the right click with a target is spent (with 0x7d3685c); the command's state, signed.
     if (!runtime.ui.rightClick || window.target < 0)
         return {};
     runtime.ui.rightClick = false;
@@ -560,7 +559,7 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
     const auto target = static_cast<std::size_t>(window.target);
     if (command == FollowCommand)
     {
-        // 0x40a3e0: 0x6c8e50 = el destino. La ventana queda.
+        // 0x40a3e0: 0x6c8e50 = the target. The window stays.
         runtime.movement.followTarget = window.target;
         return {};
     }
@@ -588,13 +587,13 @@ Core::Expected<void, std::string> RunTheCommand(const GameUiContext& context)
     case CancelHostilityCommand:
         return CommandTheEndOfAHostility(context, chat, target);
     default:
-        // 0x406380: el 0 no se elige; el 9 tiene el estado en 0.
+        // 0x406380: 0 is not chosen; 9 has its state at 0.
         return {};
     }
 }
 
-// 0x463090(x, y, marcada): el marco de la casilla con cuatro rectángulos sin textura, sin mezcla, y la marca con la
-// mezcla normal. Deja el color en blanco, la textura prendida y la mezcla normal.
+// 0x463090(x, y, checked): the checkbox frame with four untextured rectangles, without blend, and the mark with the
+// normal blend. It leaves the color white, the texture on and the normal blend.
 void DrawTheCheckbox(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y, bool checked)
 {
     sprites.SetBlend(BlendMode::Opaque);
@@ -605,7 +604,7 @@ void DrawTheCheckbox(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t 
     sprites.ColorQuad(left, static_cast<float>(y + CheckboxFar), CheckboxSize, 1.0f);
     sprites.ColorQuad(left, top, 1.0f, CheckboxSize);
     sprites.ColorQuad(static_cast<float>(x + CheckboxFar), top, 1.0f, CheckboxSize);
-    // 0x459ec0: glColor4f(1, 1, 1, 1) y glEnable(GL_TEXTURE_2D).
+    // 0x459ec0
     sprites.SetColor(White);
     sprites.EnableTexture();
     sprites.SetBlend(BlendMode::Alpha);
@@ -614,8 +613,8 @@ void DrawTheCheckbox(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t 
                             CheckSize, CheckSize, CheckUv, CheckUv);
 }
 
-// 0x40a840..0x40a875: sprintf(buffer, texto 927, "D"). MuRet no usa el texto como formato: sin '%' y con menos de 100
-// bytes, sprintf lo copia tal cual; con un '%' o más largo, corta (Q-C650).
+// 0x40a840..0x40a875: sprintf(buffer, text 927, "D"). MuRet does not use the text as the format: without '%' and
+// under 100 bytes, sprintf copies it as is; with a '%' or longer, it stops (Q-C650).
 Core::Expected<std::string_view, std::string> CloseHelpOf(const GameHudContext& context)
 {
     auto format = TextOf(context, CloseHelpText, "0x40a85b");
@@ -631,7 +630,7 @@ Core::Expected<std::string_view, std::string> CloseHelpOf(const GameHudContext& 
     return text;
 }
 
-// 0x40abdb..0x40ac2e: el texto del aviso del comando elegido, o 0.
+// 0x40abdb..0x40ac2e: the chosen command's notice text, or 0.
 std::size_t NoticeOf(const Ui::CommandsWindowState& window)
 {
     const auto chosen = static_cast<std::size_t>(window.chosen);
@@ -675,7 +674,7 @@ Core::Expected<void, std::string> StepTheCommandsWindow(const GameUiContext& con
         runtime.ui.mouseOnUi = 1;
     if (auto commanded = RunTheCommand(context); !commanded.HasValue())
         return commanded;
-    // 0x40a49e..0x40a51d: el 0 no se elige; el clic se gasta en el primero que lo toma.
+    // 0x40a49e..0x40a51d: 0 is not chosen; the click is spent on the first that takes it.
     const std::int32_t left = Truncate(ButtonsLeftOf(x));
     std::int32_t top = Truncate(static_cast<double>(y) + ButtonsTop);
     for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
@@ -724,7 +723,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     hud.textColors = TitleColors;
     WindowDrawing::DrawTitle(context, x + TitleLeft, y + TitleTop, title.Value());
 
-    // 0x40a6f9..0x40a78c: los once botones, la y sumada en float también por el 0.
+    // 0x40a6f9..0x40a78c: the eleven buttons, the y added in float also for 0.
     const auto buttonsLeft = static_cast<float>(ButtonsLeftOf(x));
     auto top = static_cast<float>(static_cast<double>(y) + ButtonsTop);
     for (std::int32_t command = 0; command < static_cast<std::int32_t>(Ui::CommandCount); ++command)
@@ -745,8 +744,7 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
         WindowDrawing::DrawTheCloseHelp(context, x, y, help.Value());
     }
 
-    // 0x40a89f..0x40aa56: los nombres, con la fuente y el color del elegido o del que tiene el mouse encima, y la
-    // casilla.
+    // 0x40a89f..0x40aa56: the names, with the font and color of the chosen or hovered one, and the checkbox.
     hud.textColors = NameColors;
     top = static_cast<float>(static_cast<double>(y) + ButtonsTop);
     const Ui::Point mouse = context.mouse;
@@ -784,11 +782,11 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
 
     sprites.SetColor(White);
     WindowDrawing::SelectFont(context, FontKind::BigBold);
-    // 0x40aa80..0x40abd8 (CL9 hito 7, fase 2): con un personaje elegido (0x6c8e30) que es un jugador (+0x88 en 1), no
-    // el héroe publicado y del tipo 0x20a o con +0x3e3, el cartel (Interface\CursorID_Wnd.jpg, 0x65b) de 128 × 32 en
-    // el mouse + 5, la mezcla normal y su nombre (+0x1d9) en la caja del título en (x + 0x23, y + 0x2d), en
-    // 0xff67bfdf sobre 0x141414; y otra vez centrado en (mouse x + 0x45, mouse y + 0xc), en blanco sobre 0x141414,
-    // con glColor blanco si el comando elegido es para él (+8) y está listo, o (1; 0,2; 0,2).
+    // 0x40aa80..0x40abd8 (CL9 milestone 7, phase 2): with a chosen character (0x6c8e30) that is a player (+0x88 at 1),
+    // not the published hero and of type 0x20a or with +0x3e3, the card (Interface\CursorID_Wnd.jpg, 0x65b) of 128 × 32
+    // at the mouse + 5, the normal blend and their name (+0x1d9) in the title box at (x + 0x23, y + 0x2d), in
+    // 0xff67bfdf over 0x141414; and again centered at (mouse x + 0x45, mouse y + 0xc), in white over 0x141414, with
+    // white glColor if the chosen command is for them (+8) and ready, or (1; 0.2; 0.2).
     if (const std::int32_t chosen = runtime.selectedTargets[2]; chosen >= 0)
     {
         if (static_cast<std::size_t>(chosen) >= context.world.Actors().size())
@@ -837,9 +835,10 @@ Core::Expected<void, std::string> DrawTheCommandsWindow(GameHudContext& context)
     sprites.SetBlend(BlendMode::Opaque);
     return {};
 }
-// 0x573f85..0x574bd5: con gremio (+0x368 del héroe distinto de 0xff), el aviso 255 con el 1; si no, el elegido o el de
-// enfrente (TheOneToAsk, 0x573fbb y 0x574587); sin él o sin el mundo cargado (0x7d3a101), nada. Con él, 0x78aba40 = su
-// clave (MOVSX), el C1 05 50 en claro y el aviso 477 con su nombre, con el 1. Devuelve 1.
+// 0x573f85..0x574bd5: with a guild (the hero's +0x368 other than 0xff), notice 255 with 1; otherwise, the chosen one
+// or the one in front (TheOneToAsk, 0x573fbb and 0x574587); without them or without the world loaded (0x7d3a101),
+// nothing. With them, 0x78aba40 = their key (MOVSX), the C1 05 50 in clear and notice 477 with their name, with 1. It
+// returns 1.
 Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAGuildJoin(const Chat::GameChatContext& chat)
 {
     Kernel::WorldState& world = chat.world;
@@ -866,10 +865,11 @@ Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAGuildJoin(const Ch
     return Chat::ChatCommandOutcome{.handled = true, .notices = {std::move(notice).Value()}};
 }
 
-// 0x570d7e..0x573f48: sin gremio (+0x368 del héroe en 0xff), el aviso 1355 con el 1; si no, el elegido o el de enfrente
-// (TheOneToAsk, 0x570db4 y 0x572679), sin mirar su gremio ni el mundo cargado; sin él, nada. Con él, la alianza (C1 07
-// E5 01 01 y el aviso 1358), la rivalidad (E5 02 01 y el 1359) o su fin (la animación 0xb7 y el C1 05 18 del comando 8,
-// E5 02 02 y el 1360), con su clave y el nombre del primero vivo con ella, con el 1. Devuelve 1.
+// 0x570d7e..0x573f48: without a guild (the hero's +0x368 at 0xff), notice 1355 with 1; otherwise, the chosen one or
+// the one in front (TheOneToAsk, 0x570db4 and 0x572679), without looking at their guild or the world loaded; without
+// them, nothing. With them, the alliance (C1 07 E5 01 01 and notice 1358), the rivalry (E5 02 01 and 1359) or its end
+// (the 0xb7 animation and command 8's C1 05 18, E5 02 02 and 1360), with their key and the name of the first live one
+// with it, with 1. It returns 1.
 Core::Expected<Chat::ChatCommandOutcome, std::string> RequestAGuildRelation(const Chat::GameChatContext& chat,
                                                                             Chat::GuildRelationCommand command)
 {

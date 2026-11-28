@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 
-// Client::Ui::Slider: el deslizador horizontal de las opciones (vtable 0x6ba9f8: 0x646640, 0x646830,
-// 0x646900, 0x646990, 0x646a50 y 0x646e90; CL8, hito 8). Todo en píxeles.
+// The options' horizontal slider (vtable 0x6ba9f8: 0x646640, 0x646830, 0x646900, 0x646990, 0x646a50 and 0x646e90;
+// CL8, milestone 8). All in pixels.
 namespace
 {
 using Client::Input::InputState;
@@ -21,14 +21,13 @@ using Client::Ui::Rect;
 using Client::Ui::Slider;
 using Client::Ui::SliderParts;
 
-// Las piezas de las opciones: la perilla de 13 × 13, la barra de 98 × 13 y el relleno en (3, 3, 95, 10):
-// la perilla recorre 85.
+// The options' parts: the 13 × 13 thumb, the 98 × 13 track and the fill at (3, 3, 95, 10): the thumb travels 85.
 constexpr SliderParts Parts{.thumb = {.slot = TextureSlot{0x732}, .width = 13, .height = 13},
                             .track = {.slot = TextureSlot{0x734}, .width = 98, .height = 13},
                             .fill = {.slot = TextureSlot{0x733}, .width = 4, .height = 7},
                             .fillArea = Rect{.x = 3, .y = 3, .width = 92, .height = 7}};
 constexpr Point Corner{100, 200};
-// Un paso de la lógica: 40 ms (Kernel::LogicStep).
+// Kernel::LogicStep
 constexpr double StepMs = 40.0;
 
 Slider OpenSlider(int max, int value)
@@ -46,7 +45,7 @@ int ThumbX(const Slider& slider)
     return slider.Thumb().Area().x;
 }
 
-// Un paso con el mouse donde lo dejó `input`; después, los flancos se borran como en GameLoop.
+// After the step the edges are cleared, as in GameLoop.
 void StepOnce(Slider& slider, InputState& input, Point mouse)
 {
     MoveMouse(input, mouse.x, mouse.y);
@@ -54,7 +53,7 @@ void StepOnce(Slider& slider, InputState& input, Point mouse)
     input.ConsumeEdges();
 }
 
-// 0x646830: x + 85 / máximo · valor, truncado.
+// 0x646830: x + 85 / max · value, truncated.
 TEST(SliderTest, TheThumbGoesWhereItsValueIs)
 {
     constexpr int Expected[] = {100, 109, 118, 128, 137, 147, 156, 166, 175, 185};
@@ -66,7 +65,7 @@ TEST(SliderTest, TheThumbGoesWhereItsValueIs)
     EXPECT_EQ(ThumbX(OpenSlider(4, 3)), 163);
 }
 
-// 0x6468e0 y 0x646f80: el máximo es 1 o más, y el valor queda entre 0 y el máximo.
+// 0x6468e0 and 0x646f80: the max is 1 or more, and the value stays between 0 and the max.
 TEST(SliderTest, TheValueStaysInsideTheRange)
 {
     Slider slider(Parts);
@@ -79,9 +78,9 @@ TEST(SliderTest, TheValueStaysInsideTheRange)
     EXPECT_EQ(slider.Value(), 0);
 }
 
-// 0x646a50: apretar al lado de la perilla la mueve un paso hacia ese lado; con el botón apretado, a los 500 ms
-// repite cada 50. A 40 ms: el 13.º paso suma 520 y el repetidor 40, y el 14.º mueve; después, uno de cada dos.
-// En el máximo, 0x646990 la pone al final del recorrido.
+// 0x646a50: pressing beside the thumb moves it one step toward that side; with the button held, after 500 ms it
+// repeats every 50. At 40 ms: the 13th step adds 520 and the repeater 40, and the 14th moves; then one in two. At the
+// max, 0x646990 puts it at the end of the travel.
 TEST(SliderTest, HoldingBesideTheThumbRepeats)
 {
     Slider slider = OpenSlider(9, 5);
@@ -109,7 +108,7 @@ TEST(SliderTest, HoldingBesideTheThumbRepeats)
     EXPECT_EQ(slider.Value(), 9);
     EXPECT_EQ(ThumbX(slider), 185);
 
-    // Al soltar, la perilla vuelve al lugar de su valor y deja de moverse.
+    // On release, the thumb goes back to its value's place and stops moving.
     ReleaseLeft(input);
     StepOnce(slider, input, Point{195, 205});
     EXPECT_FALSE(slider.Moving());
@@ -129,9 +128,9 @@ TEST(SliderTest, PressingLeftOfTheThumbStepsBack)
     EXPECT_TRUE(slider.Moving());
 }
 
-// Un apretón a la derecha de la perilla la mueve un paso y, si quedó debajo del mouse, la agarra en el mismo
-// apretón (Q-C503): desde ahí la arrastra. En 165, la perilla de 5 (147) pasa a 156 y queda debajo; con el mouse
-// en 180, va a 171, el 8.
+// A press to the right of the thumb moves it one step and, if it lands under the mouse, grabs it in the same press
+// (Q-C503): from there it drags it. At 165, the thumb of 5 (147) goes to 156 and lands under it; with the mouse at
+// 180, it goes to 171, the 8.
 TEST(SliderTest, AStepThatLandsUnderTheMouseGrabsTheThumb)
 {
     Slider slider = OpenSlider(9, 5);
@@ -147,8 +146,8 @@ TEST(SliderTest, AStepThatLandsUnderTheMouseGrabsTheThumb)
     EXPECT_EQ(slider.Value(), 8);
 }
 
-// Agarrada en x = 105, la perilla sigue al mouse hasta el final del recorrido, y el valor es el más cerca:
-// (45 + 4,72) / 9,44 da 5 y (85 + 4,72) / 9,44, 9.
+// Grabbed at x = 105, the thumb follows the mouse up to the end of the travel, and the value is the nearest:
+// (45 + 4.72) / 9.44 gives 5 and (85 + 4.72) / 9.44, 9.
 TEST(SliderTest, DraggingTheThumbRoundsToTheNearestValue)
 {
     Slider slider = OpenSlider(9, 0);
@@ -167,14 +166,14 @@ TEST(SliderTest, DraggingTheThumbRoundsToTheNearestValue)
     EXPECT_EQ(ThumbX(slider), 185);
     EXPECT_EQ(slider.Value(), 9);
 
-    // A la izquierda de donde se agarró, al principio.
+    // Left of where it was grabbed: at the start.
     StepOnce(slider, input, Point{50, 205});
     EXPECT_EQ(ThumbX(slider), 100);
     EXPECT_EQ(slider.Value(), 0);
 }
 
-// Un apretón y una soltada en el mismo paso: el deslizador se mueve en ese paso y la soltada queda para el
-// siguiente, como los dos frames del original (Q-C498).
+// A press and a release in the same step: the slider moves in that step and the release waits for the next, like the
+// original's two frames (Q-C498).
 TEST(SliderTest, AClickInOneStepReleasesInTheNext)
 {
     Slider slider = OpenSlider(9, 5);
@@ -189,7 +188,7 @@ TEST(SliderTest, AClickInOneStepReleasesInTheNext)
     EXPECT_EQ(slider.Value(), 6);
 }
 
-// Cerrado, 0x646a50 no corre.
+// Closed, 0x646a50 does not run.
 TEST(SliderTest, AClosedSliderDoesNotMove)
 {
     Slider slider = OpenSlider(9, 5);
@@ -203,8 +202,8 @@ TEST(SliderTest, AClosedSliderDoesNotMove)
     EXPECT_FALSE(slider.Moving());
 }
 
-// 0x640580: el relleno mide 92 · valor / máximo, en enteros; 0x646e90 dibuja la barra, el relleno a (3, 3)
-// con su ancho y su alto (las UV sin medio téxel) y la perilla.
+// 0x640580: the fill measures 92 · value / max, in integers; 0x646e90 draws the track, the fill at (3, 3) with its
+// width and height (the UVs without half a texel) and the thumb.
 TEST(SliderTest, TheFillFollowsTheValue)
 {
     EXPECT_EQ(OpenSlider(9, 0).FillWidth(), 0);

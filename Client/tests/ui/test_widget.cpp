@@ -11,7 +11,6 @@
 
 #include <limits>
 
-// Client::UI: el mouse de la UI y los rectángulos (CL5.5, la pregunta 12 del plan de la CL5).
 namespace
 {
 using Client::Assets::TextureBufferSize;
@@ -26,8 +25,8 @@ using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
-// El mouse llega en píxeles del framebuffer, con fracción; la UI usa el píxel, como el lParam del
-// WM_MOUSEMOVE del original.
+// The mouse arrives in framebuffer pixels, with a fraction; the UI uses the pixel, like the original's WM_MOUSEMOVE
+// lParam.
 TEST(WidgetTest, TheMouseIsTheWholePixel)
 {
     InputState input;
@@ -36,8 +35,8 @@ TEST(WidgetTest, TheMouseIsTheWholePixel)
     EXPECT_EQ(MouseInPixels(input, Screen640), (Point{12, 40}));
 }
 
-// 0x640940: la posición de la UI nueva queda adentro de la ventana, de 0 a W − 1 y de 0 a H − 1.
-// Con el mouse capturado SDL da negativos o más allá del borde.
+// 0x640940: the new UI's position stays inside the window, 0 to W − 1 and 0 to H − 1. With the mouse captured, SDL
+// gives negatives or values past the edge.
 TEST(WidgetTest, TheMouseIsClampedToTheWindow)
 {
     InputState input;
@@ -48,7 +47,6 @@ TEST(WidgetTest, TheMouseIsClampedToTheWindow)
     EXPECT_EQ(MouseInPixels(input, Screen640), (Point{639, 0}));
 }
 
-// Una posición que no es un número no puede ubicar nada: queda en 0.
 TEST(WidgetTest, ANanMouseIsZero)
 {
     InputState input;
@@ -59,8 +57,7 @@ TEST(WidgetTest, ANanMouseIsZero)
     EXPECT_EQ(MouseInPixels(input, Screen640), (Point{0, 479}));
 }
 
-// Como PtInRect: el borde de la izquierda y el de arriba son del rectángulo; el de la derecha y el
-// de abajo, no.
+// Like PtInRect: the left and top edges belong to the rectangle; the right and bottom ones do not.
 TEST(WidgetTest, ARectHasItsLeftAndTopEdges)
 {
     const Rect rect{.x = 10, .y = 20, .width = 5, .height = 3};
@@ -73,7 +70,6 @@ TEST(WidgetTest, ARectHasItsLeftAndTopEdges)
     EXPECT_FALSE(rect.Contains(Point{10, 19}));
 }
 
-// La imagen de una ventana va en píxeles (fx = fy = 1), con el buffer de su textura.
 TEST(WidgetTest, APixelImageHasItsSlotAndItsBuffer)
 {
     const auto image = PixelImage(TextureSlot{0x13}, Rect{.x = 155, .y = 156, .width = 329, .height = 245},

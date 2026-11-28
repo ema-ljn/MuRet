@@ -47,15 +47,14 @@
 #include <string_view>
 #include <vector>
 
-// Del login a la selección de punta a punta (CL5.4): el SceneManager con la LoginScene de verdad,
-// la ServerSession sobre sockets de verdad y los FakeServers de la CL4.4 en 127.0.0.1, todo en un
-// hilo, como test_server_session_loopback.cpp. La LoginScene conecta al entrar, el SceneManager
-// corre la sesión en cada Poll y, con el login aceptado, la escena pide la selección. La elección y
-// la cuenta las da el AutoLogin (CL5.5), como Main con --auto-login: la escena no abre sus
-// ventanas, porque nunca ve la sesión esperando.
+// From the login to the selection end to end (CL5.4): the SceneManager with the real LoginScene, the ServerSession on
+// real sockets and CL4.4's FakeServers on 127.0.0.1, all on one thread, like test_server_session_loopback.cpp. The
+// LoginScene connects on entering, the SceneManager runs the session on each Poll and, with the login accepted, the
+// scene asks for the selection. The choice and the account come from AutoLogin (CL5.5), like Main with --auto-login:
+// the scene does not open its windows, because it never sees the session waiting.
 //
-// Solo la cuenta y la clave sintéticas de MuClientNetFixtures.h, y ningún mensaje trae un byte de
-// lo que pasó por los sockets.
+// Only the synthetic account and password of MuClientNetFixtures.h, and no message carries a byte of what went
+// through the sockets.
 namespace
 {
 using Client::App::AutoLogin;
@@ -103,7 +102,7 @@ constexpr std::string_view Password = "pass0002";
 
 TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
 {
-    // En este orden: lo que tiene un socket muere antes que el NetworkInit.
+    // In this order: whatever holds a socket dies before the NetworkInit.
     const NetworkInit network;
     ASSERT_TRUE(network.IsReady()) << "WSAStartup: " << network.SystemError();
     FakeServers servers(GameServerKeys());
@@ -120,7 +119,7 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     ServerSession session(connection, clock, log, GameClientKeys(),
                           SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}},
                           eventSink);
-    // Como Main con --auto-login: después de la sesión, en el mismo pollNetwork (CL5.5).
+    // Like Main with --auto-login: after the session, in the same pollNetwork (CL5.5).
     AutoLogin autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log);
     TemporaryFolder folder{"login-scene-loopback"};
     WriteTextureSet(folder.Path(), LoginTextureSet);
@@ -175,7 +174,7 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     EXPECT_EQ(session.State(), SessionState::LoggedIn);
     EXPECT_EQ(manager.Current(), SceneId::CharacterSelect);
     EXPECT_EQ(built, (std::vector<SceneId>{SceneId::Login, SceneId::CharacterSelect}));
-    // El login soltó sus 21 al salir, y la sesión sigue: es de main.cpp, no de la escena.
+    // The login released its 21 on leaving, and the session goes on: it belongs to main.cpp, not to the scene.
     EXPECT_EQ(store.released.size(), LoginTextureSet.size() + WindowTextureSet.size());
     EXPECT_EQ(store.Size(), 0u);
     EXPECT_TRUE(std::ranges::none_of(

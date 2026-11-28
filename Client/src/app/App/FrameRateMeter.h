@@ -7,11 +7,10 @@
 #include <cstdint>
 #include <optional>
 
-// Lo que imprime --stats (CL3.2, paso 3 del plan): los FPS y los pasos por segundo, promediados de
-// a StatsInterval. Mide y no imprime: main lo escribe, y los tests lo miran sin salida.
+// What --stats prints (CL3.2): the FPS and the steps per second, averaged over StatsInterval. It measures and does
+// not print: main writes it, and the tests read it without output.
 namespace Client::App
 {
-// Cada cuánto da un promedio: 5 s, como lo pide el paso 3 de la CL3.2.
 inline constexpr Core::Duration StatsInterval = std::chrono::seconds{5};
 
 struct FrameRates
@@ -23,10 +22,10 @@ struct FrameRates
 class FrameRateMeter
 {
 public:
-    // `start`: el Now() desde el que cuenta el primer promedio, con FrameStats en 0.
+    // `start`: the Now() the first average counts from, with FrameStats at 0.
     explicit FrameRateMeter(Core::Duration start);
-    // Si desde el último promedio pasó StatsInterval o más, los frames y los pasos de ese tramo por
-    // segundo, y el próximo cuenta desde `now`. Si no, vacío (también si el reloj volvió).
+    // If StatsInterval or more passed since the last average, that stretch's frames and steps per second, and the next
+    // counts from `now`. Otherwise empty (also if the clock went back).
     [[nodiscard]] std::optional<FrameRates> Update(Core::Duration now, const FrameStats& stats);
 
 private:

@@ -12,9 +12,9 @@
 #include <optional>
 #include <vector>
 
-// Client::Ui::MenuBar: la barra de abajo del login (+0xe40: 0x641000, 0x65f300, 0x6410c0, 0x641440
-// y 0x6411b0). Dos botones de 54 × 30 con tres cuadros, el menú a la izquierda y los créditos a la
-// derecha, adentro del adorno de deco.tga. Todo en píxeles.
+// Client::Ui::MenuBar: the login's bottom bar (+0xe40: 0x641000, 0x65f300, 0x6410c0, 0x641440 and 0x6411b0). Two
+// 54 × 30 buttons with three frames, the menu on the left and the credits on the right, inside the deco.tga ornament.
+// All in pixels.
 namespace
 {
 using Client::Core::PixelSize;
@@ -27,8 +27,8 @@ using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
-// Las texturas del laboratorio: server_menu_b_all y server_credit_b_all miden 54 × 90 (tres cuadros
-// de 30), en buffers de 64 × 128, y deco.tga, 189 × 103, en uno de 256 × 128.
+// The lab's textures: server_menu_b_all and server_credit_b_all are 54 × 90 (three frames of 30), in 64 × 128
+// buffers, and deco.tga, 189 × 103, in a 256 × 128 one.
 Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x10, {64, 128}}, {0x11, {64, 128}}, {0x12, {256, 128}}});
@@ -51,7 +51,6 @@ std::optional<MenuBarClick> ClickOn(MenuBar& bar, const Rect& rect)
     return bar.Step(input, Screen640);
 }
 
-// La textura de cada quad del lote, en orden.
 std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 {
     std::vector<std::uint16_t> slots;
@@ -63,9 +62,8 @@ std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
     return slots;
 }
 
-// 0x65f300: y = −11 − (int) (H · −0,945f) − 30. En 640 × 480, −11 + 453 − 30 = 412; el menú en la
-// esquina, los créditos en 30 + 580 − 54 = 556 y el adorno con su punto (105, 59) en la esquina de
-// ellos.
+// 0x65f300: y = −11 − (int) (H · −0.945f) − 30. In 640 × 480, −11 + 453 − 30 = 412; the menu at the corner, the
+// credits at 30 + 580 − 54 = 556 and the ornament with its point (105, 59) at their corner.
 TEST(MenuBarTest, ItGoesAtTheBottomInPixels)
 {
     const MenuBarLayout layout = LayoutMenuBar(Screen640);
@@ -80,9 +78,9 @@ TEST(MenuBarTest, ItGoesAtTheBottomInPixels)
     EXPECT_EQ(large.ornament, (Rect{.x = 835, .y = 625, .width = 189, .height = 103}));
 }
 
-// El float de 0x6baae0 es un poco más chico que 0,945 en valor absoluto, y el producto no se
-// redondea a float: con 600, 600 · 0,94499999… = 566,99999… y _ftol da 566, así que la y es 525
-// (526 con 0,945 exacto o con el producto en float). Lo mismo con 800: 714 y no 715.
+// The float at 0x6baae0 is a bit smaller than 0.945 in absolute value, and the product is not rounded to float: with
+// 600, 600 · 0.94499999… = 566.99999… and _ftol gives 566, so the y is 525 (526 with an exact 0.945 or with the
+// product in float). Same with 800: 714 and not 715.
 TEST(MenuBarTest, TheHeightIsMultipliedInFullPrecision)
 {
     EXPECT_EQ(LayoutMenuBar(PixelSize{800, 600}).bar.y, 525);
@@ -91,8 +89,8 @@ TEST(MenuBarTest, TheHeightIsMultipliedInFullPrecision)
     EXPECT_EQ(LayoutMenuBar(PixelSize{1600, 1200}).bar.y, 1092);
 }
 
-// 0x641440: el adorno y después los dos botones, con la mezcla normal aunque el lote llegue con
-// la aditiva (Q-C80). Sin abrir no dibuja nada.
+// 0x641440: the ornament and then the two buttons, with the normal blend even if the batch arrives with the additive
+// one (Q-C80). Not open, it draws nothing.
 TEST(MenuBarTest, ItDrawsTheOrnamentAndThenTheButtons)
 {
     MenuBar bar(LabSizes());
@@ -111,14 +109,14 @@ TEST(MenuBarTest, ItDrawsTheOrnamentAndThenTheButtons)
     {
         EXPECT_EQ(command.blend, Client::Render::BlendMode::Alpha);
     }
-    // El adorno, sin cuadros: las UV a medio téxel de su esquina.
+    // The ornament, without frames: the UVs half a texel from its corner.
     const auto vertices = batch.Vertices();
     ASSERT_EQ(vertices.size(), 3u * 6u);
     EXPECT_FLOAT_EQ(vertices[0].u, 0.5f / 256.0f);
     EXPECT_FLOAT_EQ(vertices[0].v, 0.5f / 128.0f);
 }
 
-// Como los de servidor: el cuadro 0 normal, el 1 con el mouse encima y el 2 apretado.
+// Like the server ones: frame 0 normal, 1 hovered and 2 pressed.
 TEST(MenuBarTest, TheButtonsShowTheMouse)
 {
     MenuBar bar(LabSizes());
@@ -145,7 +143,7 @@ TEST(MenuBarTest, TheButtonsShowTheMouse)
     EXPECT_FLOAT_EQ(pressed.Vertices()[12].v, (60.0f + 0.5f) / 128.0f);
 }
 
-// 0x6411b0: el clic de cada botón. Uno en la barra, fuera de los botones, no es de ninguno.
+// 0x6411b0: each button's click. One on the bar, outside the buttons, belongs to none.
 TEST(MenuBarTest, AClickSaysWhichButton)
 {
     MenuBar bar(LabSizes());
@@ -157,7 +155,7 @@ TEST(MenuBarTest, AClickSaysWhichButton)
     EXPECT_TRUE(bar.IsOpen());
 }
 
-// Cerrada no atiende nada, y abrirla otra vez no le borra un botón apretado.
+// Opening it again does not clear a pressed button.
 TEST(MenuBarTest, AClosedBarDoesNothingAndOpeningAgainKeepsIt)
 {
     MenuBar bar(LabSizes());

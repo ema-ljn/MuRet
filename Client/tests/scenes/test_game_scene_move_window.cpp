@@ -42,10 +42,10 @@
 #include <span>
 #include <string_view>
 
-// La ventana /move por GameScene (CL8 hito 6; 06 § HUD y ventanas, "La ventana /move"): el clic en un destino arma el
-// texto 260 de Text.bmd, un espacio y el nombre (0x4487d7..0x4488d3), y lo manda por el chat. En el original el 260
-// se lee de la tabla global (0x4487e7: [0x76d028c], el 260 de la de 0x76bd1dc), que siempre está cargada; en MuRet
-// llega por el contexto que arma GameScene. El destino, el héroe y los textos son inventados.
+// The /move window through GameScene (CL8 milestone 6; 06 § HUD y ventanas, "La ventana /move"): clicking a
+// destination builds Text.bmd's text 260, a space and the name (0x4487d7..0x4488d3), and sends it through the chat.
+// In the original the 260 is read from the global table (0x4487e7: [0x76d028c], the 260 of 0x76bd1dc's), which is
+// always loaded; in MuRet it comes through the context GameScene builds. The destination, hero and texts are made up.
 namespace
 {
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
@@ -73,14 +73,14 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     Client::Models::ClothWorld cloth;
     const std::filesystem::path dataRoot = Client::Tests::RepoDataDir();
     const Client::Tables::TextTable texts = Client::Tests::MakeTextTable(Client::Tests::ChatTexts());
-    // Lorencia cargada: el paso sigue después de la UI (las hojas leen el terreno).
+    // Lorencia loaded: the step goes on after the UI (the leaves read the terrain).
     world->Runtime().map = 0;
     const auto map =
         Client::Scenes::LoadMap(0, {dataRoot, *world, states.terrain, Client::Kernel::SceneId::Game, 0, cloth.random});
     ASSERT_TRUE(map.HasValue()) << map.Error();
     world->Actors()[0].position = {13550.0f, 12550.0f, 0.0f};
     world->OwnCharacter().ClearEquipmentForEntry();
-    // El cuerpo del héroe (0x4f9580) pide el esqueleto de Player.bmd.
+    // The hero's body (0x4f9580) asks for Player.bmd's skeleton.
     Client::FrontEnd::SingleModelLibrary models;
     models.Set(Client::Tables::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
     LetterMeasure letters;
@@ -97,8 +97,8 @@ TEST(GameSceneMoveWindowTest, AClickOnADestinationSaysTheMoveTextOfTheScene)
     scene.Step(Client::Input::InputState{});
     ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
 
-    // La ventana abierta con un destino que pasa (nivel 10 y 100 de zen contra 20 y 500) en el primer renglón: x en
-    // [3, 188) e y en [40, 54) con 640 de ancho (test_game_move_window).
+    // The window open with a destination that passes (level 10 and 100 zen against 20 and 500) in the first row: x in
+    // [3, 188) and y in [40, 54) at 640 wide (test_game_move_window).
     Client::Kernel::WorldRuntime& runtime = world->Runtime();
     runtime.drawingEnabled = true;
     runtime.panels.overlayMode = Client::Ui::MoveOverlayMode;

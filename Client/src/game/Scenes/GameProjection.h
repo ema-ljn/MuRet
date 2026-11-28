@@ -10,8 +10,8 @@
 #include <cstdint>
 #include <string>
 
-// Caché de6203c0 y consumo6205b0. La proyección usa los escalares guardados, no multiplica una
-// matriz GLM ni redondea después de agregar el centro. Contrato estático P-C55(f), informe local.
+// The 0x6203c0 cache and the 0x6205b0 consumer. The projection uses the stored scalars; it does not multiply a GLM
+// matrix or round after adding the center. Static contract P-C55(f), local report.
 namespace Client::Scenes
 {
 struct GameProjection
@@ -25,24 +25,24 @@ struct GameProjection
     std::int32_t screenHeight = 0;
 };
 
-// Preparación matemática de los dos stores binary32 de6203c0. tan de la biblioteca no acredita
-// equivalencia de FPTAN para todos los argumentos; los escalares se pueden prestar explícitamente.
+// The math setup of 0x6203c0's two binary32 stores. The library's tan does not vouch for FPTAN equivalence for every
+// argument; the scalars can be lent explicitly.
 [[nodiscard]] Core::Expected<GameProjection, std::string> MakeGameProjection(const Render::Pass3D& pass,
                                                                              float fieldOfView);
 [[nodiscard]] Core::Expected<glm::ivec2, std::string> ProjectGamePoint(const GameProjection& projection,
                                                                        const glm::vec3& point);
 
-// 0x620480(x, y, salida, 0): lo que deja la vuelta atrás de un punto de 640 × 480.
+// 0x620480(x, y, output, 0): what the back-projection of a 640 × 480 point leaves.
 struct UnprojectedPoint
 {
-    // 0x7d36834: la cámara, la traslación de 0x7d366f0 cambiada de signo por la transpuesta de su giro (0x5fcc30).
+    // 0x7d36834: the camera, 0x7d366f0's translation negated, times the transpose of its rotation (0x5fcc30).
     glm::vec3 camera{};
-    // La salida: la cámara más el punto a 2.000 de la cámara, también por la transpuesta del giro.
+    // The output: the camera plus the point at 2000 from the camera, also times the transpose of the rotation.
     glm::vec3 point{};
 };
 
-// 0x620480 con el último argumento en 0: (x · W) / 640 y (y · H) / 480 sin signo (W y H, la pantalla), menos el centro
-// del caché; cada uno por su escala y por ±2.000 (0x6ba148 y 0x6ba768) en la x87, con el fstp en float, y −2.000 en la
-// z. El far del caché (0x6d5d44) es del último argumento en 1, que MuRet no usa.
+// 0x620480 with the last argument at 0: (x · W) / 640 and (y · H) / 480 unsigned (W and H, the screen), minus the
+// cache's center; each times its scale and ±2000 (0x6ba148 and 0x6ba768) on the x87, with the fstp to float, and
+// −2000 in z. The cache's far (0x6d5d44) belongs to the last argument at 1, which MuRet does not use.
 [[nodiscard]] UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32_t x, std::int32_t y);
 } // namespace Client::Scenes

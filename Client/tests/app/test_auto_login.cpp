@@ -34,11 +34,10 @@
 #include <string_view>
 #include <vector>
 
-// Client::App::AutoLogin (CL5.5): lo que la ServerSession de la CL4 hacía sola, ahora para Main
-// con --auto-login. Elige el primero de la lista, en el orden en que llegó (pregunta 9 del plan de
-// la CL4), y manda la cuenta y la clave del entorno (pregunta 7), una vez cada una: un servidor
-// ocupado o un login rechazado quedan para la UI. Sobre una sesión de verdad y un FakeSocket, con
-// la cuenta y la clave sintéticas.
+// Client::App::AutoLogin (CL5.5), for Main with --auto-login. It chooses the first of the list, in the order it
+// arrived (question 9 of the CL4 plan), and sends the account and the password from the environment (question 7),
+// once each: a busy server or a rejected login is left to the UI. On a real session and a FakeSocket, with a
+// synthetic account and password.
 namespace
 {
 using Client::App::AutoLogin;
@@ -90,7 +89,7 @@ struct Harness
     {
     }
 
-    // Lo de main.cpp en cada frame: la sesión y, después, el AutoLogin.
+    // What main.cpp does each frame: the session and then the AutoLogin.
     void Poll()
     {
         const auto polled = session.Poll();
@@ -101,7 +100,7 @@ struct Harness
         autoLogin.Poll();
     }
 
-    // Start, el saludo del CS y la lista `list`.
+    // Start, the CS hello and the list `list`.
     void ReachTheList(const ByteVector& list)
     {
         session.Start();
@@ -112,7 +111,7 @@ struct Harness
         Poll();
     }
 
-    // Y la dirección del GS, su Opened y su saludo.
+    // Then the GS address, its Opened and its hello.
     void ReachTheGameHello()
     {
         socket.reads = {AddressReply("10.0.0.2", 55901)};
@@ -162,8 +161,8 @@ struct Harness
     PacketSerials gameServerSends;
 };
 
-// El primero de la lista en el orden en que llegó (el 401, no el 400), y la cuenta y la clave en
-// cuanto el GS saluda: el F4 03 con 91 01 y el login, que se compara sin sus valores.
+// The first of the list in the order it arrived (401, not 400), and the account and the password as soon as the GS
+// says hello: the F4 03 with 91 01 and the login, compared without its values.
 TEST(AutoLoginTest, ChoosesTheFirstAndSubmitsTheEnvironment)
 {
     Harness tested;
@@ -188,7 +187,7 @@ TEST(AutoLoginTest, ChoosesTheFirstAndSubmitsTheEnvironment)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Mientras la sesión no espera nada, el AutoLogin no hace nada: sin Start, y conectando.
+// Without Start, and while connecting.
 TEST(AutoLoginTest, DoesNothingWhileTheSessionDoesNotWait)
 {
     Harness tested;
@@ -208,8 +207,8 @@ TEST(AutoLoginTest, DoesNothingWhileTheSessionDoesNotWait)
     EXPECT_TRUE(SameBytes(tested.socket.sent, PetInfoRequest()));
 }
 
-// Con el F4 05 la sesión vuelve a pedir la lista (Q-C71); el AutoLogin no elige otra vez el mismo,
-// que seguiría ocupado: la lista queda para la UI, con un aviso, uno solo.
+// With the F4 05 the session asks for the list again (Q-C71); the AutoLogin does not choose the same one again,
+// which would still be busy: the list is left to the UI, with one notice only.
 TEST(AutoLoginTest, ABusyServerIsNotChosenAgain)
 {
     Harness tested;
@@ -228,8 +227,7 @@ TEST(AutoLoginTest, ABusyServerIsNotChosenAgain)
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "--auto-login ya eligió"), 1u);
 }
 
-// Un login rechazado vuelve a WaitingCredentials (CL5.5): el AutoLogin no manda la misma cuenta y
-// la misma clave otra vez. Queda un aviso, uno solo, y la sesión espera a la UI.
+// A rejected login goes back to WaitingCredentials (CL5.5). One notice only, and the session waits for the UI.
 TEST(AutoLoginTest, ARejectedLoginIsNotSubmittedAgain)
 {
     Harness tested;
@@ -247,8 +245,7 @@ TEST(AutoLoginTest, ARejectedLoginIsNotSubmittedAgain)
     EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
-// Un Start nuevo (el cancelar de la cuenta, 0x642810) es otra vuelta: el AutoLogin elige y manda
-// otra vez.
+// A new Start (the account's cancel, 0x642810) is another round: the AutoLogin chooses and sends again.
 TEST(AutoLoginTest, AStartAgainIsANewRound)
 {
     Harness tested;

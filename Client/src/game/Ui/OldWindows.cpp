@@ -25,21 +25,21 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x459f00: el rectángulo desde arriba a la izquierda.
+// 0x459f00
 constexpr std::int32_t TopLeftRect = 1;
-// 0x41ed10(0x19, 0, 0): el sonido de los botones.
+// 0x41ed10(0x19, 0, 0)
 constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
-// 0x553520: Esc, F5, F6 y Enter.
+// 0x553520
 constexpr std::uint8_t EscapeKey = 0x1b;
 constexpr std::uint8_t F5Key = 0x74;
 constexpr std::uint8_t F6Key = 0x75;
 constexpr std::uint8_t EnterKey = 0x0d;
-// La pantalla de 640 × 480 que acotan el arrastre y el cambio de tamaño (0x492ac0) y la cascada (0x48ee60).
+// Bounds dragging and resizing (0x492ac0) and the cascade (0x48ee60).
 constexpr std::int32_t ScreenWidth = 0x280;
 constexpr std::int32_t ScreenHeight = 0x1e0;
-// 0x492ac0: los botones de la barra son de 9 × 9 en y + 8, la cruz en x + w − 0x10, el de estirar en x + w − 0x1b y
-// el de minimizar en el mismo lugar o, con el de estirar, en x + w − 0x26; las esquinas del tamaño, de 7 arriba a la
-// izquierda y de 10 abajo a la derecha, y la barra del arrastre, de 0x14 de alto.
+// 0x492ac0: the title bar buttons are 9 × 9 at y + 8, the cross at x + w − 0x10, the stretch one at x + w − 0x1b and
+// the minimize one at the same place or, with the stretch one, at x + w − 0x26; the resize corners, 7 at the top left
+// and 10 at the bottom right, and the drag bar, 0x14 tall.
 constexpr std::int32_t TitleButtonSize = 9;
 constexpr std::int32_t TitleButtonY = 8;
 constexpr std::int32_t CloseButtonX = 0x10;
@@ -49,20 +49,20 @@ constexpr std::int32_t MinimizeWithStretchX = 0x26;
 constexpr std::int32_t TopLeftGrip = 7;
 constexpr std::int32_t BottomRightGrip = 10;
 constexpr std::int32_t DragBarHeight = 0x14;
-// +0x84 del marco: la esquina agarrada.
+// The frame's +0x84: the grabbed corner.
 constexpr std::int32_t BottomRightCorner = 0x87;
 constexpr std::int32_t TopLeftCorner = 0x13b;
-// 0x48f890..0x48f8e0, la vtable + 0x3c..+0x48 del marco: el área de adentro empieza en (x + 5, y + 0x15) y mide
+// 0x48f890..0x48f8e0, the frame's vtable + 0x3c..+0x48: the client area starts at (x + 5, y + 0x15) and is
 // w − 10 × h − 0x1a.
 constexpr std::int32_t ClientLeft = 5;
 constexpr std::int32_t ClientTop = 0x15;
 constexpr std::int32_t ClientWidthCut = 10;
 constexpr std::int32_t ClientHeightCut = 0x1a;
-// 0x4930f0: estirada, la ventana va de y = 0 hasta la barra de abajo.
+// 0x4930f0: stretched, the window goes from y = 0 down to the bottom bar.
 constexpr std::int32_t StretchedHeight = 0x1b0;
-// 0x468d50: el mouse sobre el EDIT, 4 más arriba y 4 más abajo; las flechas de 13 × 13 en x + w − 0xf, y − 4 e
-// y + h − 9; la barra en x + w − 0xe; las cuentas corren solas después de 15 (como las de la lista); agarrado, el
-// estado en 2; el medio punto de la proporción (0x6b882c); 0x6c8dcc en 6.
+// 0x468d50: the mouse over the EDIT, 4 above and 4 below; the 13 × 13 arrows at x + w − 0xf, y − 4 and y + h − 9;
+// the bar at x + w − 0xe; the counters repeat on their own after 15 (like the list's); grabbed, state 2; the ratio's
+// half point (0x6b882c); 0x6c8dcc at 6.
 constexpr std::int32_t EditArrowRise = 4;
 constexpr std::int32_t EditMouseSlack = 8;
 constexpr std::int32_t EditArrowInset = 0xf;
@@ -73,24 +73,25 @@ constexpr std::int32_t EditRepeatSteps = 0xf;
 constexpr std::int32_t DraggedEdit = 2;
 constexpr double EditDragHalf = 0.5;
 constexpr std::int32_t EditMouseUpdateTimeMax = 6;
-// 0x48ee60: la cascada corre 20 cada vez; sin lugar, vuelve a (r + 1, r + 1) con r = y % 10, y con r = 9 no la arma.
+// 0x48ee60: the cascade shifts 20 each time; out of room, it goes back to (r + 1, r + 1) with r = y % 10, and with
+// r = 9 it does not build it.
 constexpr std::int32_t CascadeStep = 0x14;
 constexpr std::int32_t CascadeWrap = 10;
 constexpr std::int32_t CascadeGiveUp = 9;
-// 0x48ee60: la y por omisión.
+// 0x48ee60
 constexpr std::int32_t DefaultY = 0x14c;
-// 0x4920a0: el marco solo, en (0x32, 0x32) de 0xd5 × 0xaa.
+// 0x4920a0: the bare frame, at (0x32, 0x32), 0xd5 × 0xaa.
 constexpr std::int32_t FramePlace = 0x32;
 constexpr std::int32_t FrameWidth = 0xd5;
 constexpr std::int32_t FrameHeight = 0xaa;
-// 0x491ca0: todas las banderas y el mínimo de 100 × 100.
+// 0x491ca0: all the flags and the 100 × 100 minimum.
 constexpr std::int32_t AllFrameFlags = 0x3f;
-// 0x45ad80: el botón de 0x46 × 0x14.
+// 0x45ad80
 constexpr std::int32_t ButtonWidth = 0x46;
 constexpr std::int32_t ButtonHeight = 0x14;
-// 0x4a38f0: la caja en (0x32, 0x32) de 0x96 × 100, que no se achica de ahí, con la barra, el borde y el arrastre;
-// el texto en 2 renglones de 0x7d; los botones de 0x32 × 0x14 en (0x12, 0x28) y (0x49, 0x28) del área de adentro, o
-// el único en (0x2d, 0x28).
+// 0x4a38f0: the box at (0x32, 0x32), 0x96 × 100, which does not shrink below that, with the bar, the border and the
+// drag; the text in 2 lines of 0x7d; the 0x32 × 0x14 buttons at (0x12, 0x28) and (0x49, 0x28) of the client area, or
+// the single one at (0x2d, 0x28).
 constexpr std::int32_t BoxPlace = 0x32;
 constexpr std::int32_t BoxWidth = 0x96;
 constexpr std::int32_t BoxHeight = 100;
@@ -103,21 +104,21 @@ constexpr std::int32_t YesButtonX = 0x12;
 constexpr std::int32_t NoButtonX = 0x49;
 constexpr std::int32_t OnlyButtonX = 0x2d;
 constexpr std::int32_t BoxButtonsY = 0x28;
-// 0x4a3b80: los comandos de los dos botones.
+// 0x4a3b80
 constexpr std::int32_t YesCommand = 1;
 constexpr std::int32_t NoCommand = 2;
-// 0x4a48b0: la lista de ventanas, en (0x246, 0x1b3) de 0x34 de ancho.
+// 0x4a48b0: the window list, at (0x246, 0x1b3), 0x34 wide.
 constexpr std::int32_t WindowListX = 0x246;
 constexpr std::int32_t WindowListY = 0x1b3;
 constexpr std::int32_t WindowListWidth = 0x34;
-// 0x4a5e10: oculta, el parpadeo baja de a 0,25; 0x4a5be0: a la vista, sube.
+// 0x4a5e10: hidden, the blink drops by 0.25; 0x4a5be0: shown, it rises.
 constexpr float WindowListBlinkDown = -0.25f;
 constexpr float WindowListBlinkUp = 0.25f;
-// 0x6b8a44: lo que suman al alto del renglón (+0x100) 0x4a4eb0, 0x4a5be0 y 0x4a5490.
+// 0x6b8a44: what 0x4a4eb0, 0x4a5be0 and 0x4a5490 add to the row height (+0x100).
 constexpr double WindowListRowMargin = 4.0;
 
-// 0x45ae34..0x45ae47: el destructor de cada botón sólo libera su propia pulsación global.
-// El EDIT de `window` que tiene el foco (y no es ya el huérfano), o nullptr.
+// 0x45ae34..0x45ae47: each button's destructor only releases its own global press.
+// The EDIT of `window` that has the focus (and is not already the orphan), or nullptr.
 OldEdit* FocusedEditOf(const OldWindowManager& manager, OldWindow& window)
 {
     if (manager.focusedEditIsOrphan)
@@ -171,7 +172,7 @@ bool IsShowing(std::int32_t state)
 
 std::int32_t NextId(OldWindowManager& manager)
 {
-    // 0x459ef5: INC de un DWORD, incluido el cruce del bit de signo y el wrap a cero.
+    // 0x459ef5: INC of a DWORD, sign-bit crossing and wrap to zero included.
     manager.lastId = static_cast<std::int32_t>(static_cast<std::uint32_t>(manager.lastId) + 1u);
     return manager.lastId;
 }
@@ -204,7 +205,7 @@ OldWindow MakeTheFrame(OldWindowManager& manager)
     return window;
 }
 
-// 0x48ee60, casos 5, 8, 9 y 10: el marco, +0xb0 y +0xb4, los dos botones (0x45ad80) y la vtable 0x6b9cb4.
+// 0x48ee60, cases 5, 8, 9 and 10: the frame, +0xb0 and +0xb4, the two buttons (0x45ad80) and vtable 0x6b9cb4.
 OldWindow MakeTheMessageBox(OldWindowManager& manager, std::int32_t oneButton)
 {
     OldWindow window = MakeTheFrame(manager);
@@ -216,8 +217,8 @@ OldWindow MakeTheMessageBox(OldWindowManager& manager, std::int32_t oneButton)
     return window;
 }
 
-// La vtable + 0x3c..+0x48: 0x48f890..0x48f8e0 en el marco y sus derivadas; 0x48fb40..0x48fb70 en las pestañas de la
-// de amigos, sin borde ni barra.
+// vtable + 0x3c..+0x48: 0x48f890..0x48f8e0 in the frame and its derived ones; 0x48fb40..0x48fb70 in the friends
+// window's tabs, without border or bar.
 bool HasNoInsets(const OldWindow& window)
 {
     return window.kind == OldWindowKind::FriendTab || window.kind == OldWindowKind::WindowsTab ||
@@ -246,8 +247,8 @@ std::int32_t ClientHeight(const OldWindow& window)
 
 namespace
 {
-// El 9 de 0x45abc0 sobre el padre ya encontrado: el tamaño según +0x64 (0, el fijo si no es 0x0; 1, el ancho de adentro
-// del padre más +0x70; 2, el alto más +0x74; 3, los dos).
+// Message 9 of 0x45abc0 on the parent already found: the size by +0x64 (0, the fixed one unless it is 0x0; 1, the
+// parent's inner width plus +0x70; 2, the height plus +0x74; 3, both).
 void SizeAgainst(const OldWindow& p, OldWindowBase& base)
 {
     switch (base.sizeMode)
@@ -284,7 +285,7 @@ void SizeAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
         SizeAgainst(*parent, base);
 }
 
-// 0x45abc0, la vtable + 0x24 de todas: el 8 ubica y el 9 mide contra el área de adentro del padre.
+// 0x45abc0, vtable + 0x24 of all of them: message 8 places and 9 sizes against the parent's client area.
 void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
 {
     const std::int32_t type = base.current.type;
@@ -321,10 +322,10 @@ void PlaceAgainstTheParent(OldWindowManager& manager, OldWindowBase& base)
     SizeAgainst(p, base);
 }
 
-// 0x45aa80 desde la cola hasta el rectángulo: el mouse sobre la ventana la hace la de abajo si no hay otra (y nadie
-// agarró el mouse o lo agarró ella); a la vista, siendo la de abajo o la que agarró, con el izquierdo abajo le pide al
-// administrador que suba la de más arriba de su familia (0x490a00 por los padres hasta la que no tiene, y 0x490aa0).
-// Devuelve falso donde el original sale con 0 sin la vtable + 0x20.
+// 0x45aa80 from the queue to the rectangle: the mouse over the window makes it the hovered one if there is no other
+// (and nobody captured the mouse or it did); shown, being the hovered or the capturing one, with the left button down
+// it asks the manager to raise the topmost one of its family (0x490a00 up the parents to the one without one, and
+// 0x490aa0). Returns false where the original exits with 0 without vtable + 0x20.
 bool ClaimTheMouse(OldWindowManager& manager, const OldWindowBase& base, const OldWindowGlobals& globals,
                    const OldWindowStepView& view)
 {
@@ -362,8 +363,9 @@ bool ClaimTheMouse(OldWindowManager& manager, const OldWindowBase& base, const O
     return true;
 }
 
-// 0x45b200, la vtable + 0x20 del botón: el clic que empieza sobre él lo aprieta (0x5762ec4) y el soltado sobre él le
-// manda su comando al padre (0x490b40 con el 10) con el 0x19; el mouse fuera de él con el botón apretado suelta todo.
+// 0x45b200, the button's vtable + 0x20: a click that starts over it presses it (0x5762ec4) and the release over it
+// sends its command to the parent (0x490b40 with message 10) with sound 0x19; the mouse off it with the button held
+// releases everything.
 void StepTheButtonMouse(OldWindowManager& manager, OldButton& button, const OldWindowGlobals& globals,
                         const OldWindowStepView& view)
 {
@@ -397,8 +399,8 @@ void StepTheButtonMouse(OldWindowManager& manager, OldButton& button, const OldW
     button.pressed = 0;
 }
 
-// 0x45aa80 sobre un botón: la cola (0x45a640 da 0 y atiende 0x45abc0), la vtable + 0x1c (0x403160, nada), el mouse y
-// 0x45b200.
+// 0x45aa80 on a button: the queue (0x45a640 returns 0 and 0x45abc0 handles it), vtable + 0x1c (0x403160, nothing),
+// the mouse and 0x45b200.
 void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t arg, const OldWindowGlobals& globals,
                    const OldWindowStepView& view)
 {
@@ -416,21 +418,22 @@ void StepTheButton(OldWindowManager& manager, OldButton& button, std::int32_t ar
     StepTheButtonMouse(manager, button, globals, view);
 }
 
-// 0x468d50, la vtable + 0x20 del EDIT (de todos: el original no mira +0xc4). Con el mouse en (x, y − 4, w, h + 8)
-// y el clic con el EDIT quieto: las flechas de la barra (13 × 13 en x + w − 0xf, y − 4 e y + h − 9) corren un renglón,
-// con el 0x19 la primera vez, y con tantos renglones como +0xd0 o más, el cursor se agarra (el estado en 2) y la pista
-// pasa de a páginas, todo con las cuentas de la lista. En un EDIT de una línea, EM_SCROLL no hace nada pero el sonido
-// sale (Q-C1009); su cursor y su pista, sin 0x468970, son de 0 × 0. Después, el mouse es de la UI y el clic le da el
-// foco (la vtable + 0x30 con 1: EM_SETSEL(−2, −1), el cursor al final y nada elegido) y pone 0x77f3b10 en 0 y 0x6c8dcc
-// en 6. Agarrado, el mouse lleva el cursor: EM_LINESCROLL a 0 y al renglón de la proporción; sin el clic, lo suelta.
+// 0x468d50, the EDIT's vtable + 0x20 (all of them: the original does not look at +0xc4). With the mouse in
+// (x, y − 4, w, h + 8) and the click with the EDIT idle: the bar's arrows (13 × 13 at x + w − 0xf, y − 4 and
+// y + h − 9) scroll one line, with sound 0x19 the first time, and with as many lines as +0xd0 or more, the thumb is
+// grabbed (state 2) and the track scrolls by pages, all with the list's counters. In a one-line EDIT, EM_SCROLL does
+// nothing but the sound plays (Q-C1009); its thumb and track, without 0x468970, are 0 × 0. Then the mouse belongs to
+// the UI and the click gives it the focus (vtable + 0x30 with 1: EM_SETSEL(−2, −1), the caret at the end and nothing
+// selected) and sets 0x77f3b10 to 0 and 0x6c8dcc to 6. Grabbed, the mouse drags the thumb: EM_LINESCROLL to 0 and to
+// the ratio's line; without the click, it lets go.
 void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowGlobals& globals,
                       const OldWindowStepView& view)
 {
     OldWindowBase& base = edit.base;
-    // EM_GETLINECOUNT. Sin la medida (los tests que no la dan), un renglón.
+    // EM_GETLINECOUNT. Without the measure (tests that do not give one), one line.
     const auto lineCount = [&edit, &view]
     { return view.measure != nullptr ? EditLineCount(edit, view.measure->measure) : 1; };
-    // 0x468e1c y 0x468ff7: sin padre, o con el dibujo hecho (+0x40 del administrador en 1), la cuenta sube.
+    // 0x468e1c and 0x468ff7: without a parent, or with the drawing done (the manager's +0x40 at 1), the counter rises.
     const auto mayCount = [&manager, &base] { return base.parent == 0 || manager.drawn == 1; };
     const auto repeat = [&](std::int32_t& counter, std::int32_t code, bool sound)
     {
@@ -446,7 +449,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
         else if (mayCount())
             ++counter;
     };
-    // 0x468f9d: la pista, sin padre o con el dibujo hecho.
+    // 0x468f9d: the track, without a parent or with the drawing done.
     const auto trackMayRun = [&manager, &base] { return base.parent == 0 || manager.drawn != 0; };
     const std::int32_t barX = base.x + base.width - EditBarInset;
     if (MouseIn(view, base.x, base.y - EditArrowRise, base.width, base.height + EditMouseSlack, TopLeftRect))
@@ -497,7 +500,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
         globals.mouseOnUi = 1;
         if (globals.leftClick)
         {
-            // El foco deja de ser del EDIT de una caja ya destruida (el huérfano, CL9 hito 9).
+            // The focus stops belonging to the EDIT of an already destroyed box (the orphan, CL9 milestone 9).
             manager.orphanedEdit.reset();
             manager.focusedEditIsOrphan = false;
             globals.keyboardFocus = Chat::ChatFocus::OldWindow;
@@ -530,7 +533,7 @@ void StepTheEditMouse(OldWindowManager& manager, OldEdit& edit, const OldWindowG
     ScrollTheEditLines(edit, lines, line);
 }
 
-// 0x45aa80 sobre un EDIT: la cola (0x45abc0), el mouse y 0x468d50.
+// 0x45aa80 on an EDIT: the queue (0x45abc0), the mouse and 0x468d50.
 void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, const OldWindowGlobals& globals,
                  const OldWindowStepView& view)
 {
@@ -547,7 +550,8 @@ void StepTheEdit(OldWindowManager& manager, OldEdit& edit, std::int32_t arg, con
     StepTheEditMouse(manager, edit, globals, view);
 }
 
-// 0x45aa50 sobre un botón: el mensaje y su paso con 1 (0x45aa80), que atiende la cola y no llega al mouse.
+// 0x45aa50 on a button: the message and its step with 1 (0x45aa80), which handles the queue and does not reach the
+// mouse.
 void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t type)
 {
     button.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
@@ -559,9 +563,9 @@ void PostAndSettle(OldWindowManager& manager, OldButton& button, std::int32_t ty
     }
 }
 
-// La vtable + 0x30: 0x48faf0 (nada) en el marco y en la lista, y 0x4a3a50 en la caja: ubica los dos botones (el 8 y
-// su paso con 1) y pone 0x77f3708 en 1, que nadie lee (*estático*; MuRet no lo guarda). Las de amigos, en
-// UI/FriendWindows.
+// vtable + 0x30: 0x48faf0 (nothing) in the frame and the list, and 0x4a3a50 in the box: it places the two buttons
+// (message 8 and its step with 1) and sets 0x77f3708 to 1, which nobody reads (*static*; MuRet does not keep it). The
+// friends ones, in Messenger/FriendWindows.
 Core::Expected<void, std::string> SettleTheWindow(OldWindowManager& manager, OldWindow& window,
                                                   const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -574,7 +578,7 @@ Core::Expected<void, std::string> SettleTheWindow(OldWindowManager& manager, Old
     return {};
 }
 
-// 0x4930f0, la vtable + 0x38 del marco y de la caja: estira la ventana de y = 0 hasta la barra, o la vuelve.
+// 0x4930f0, vtable + 0x38 of the frame and the box: stretches the window from y = 0 to the bar, or restores it.
 Core::Expected<void, std::string> StretchTheWindow(OldWindowManager& manager, OldWindow& window,
                                                    const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -599,8 +603,8 @@ Core::Expected<void, std::string> StretchTheWindow(OldWindowManager& manager, Ol
     return {};
 }
 
-// 0x4a3b80, la vtable + 0x28 de la caja: el comando de un botón. El 1 (y el 2 con dos botones) le avisa al dueño
-// (el 12 con el id y 1 o 0) y le pide al administrador que la cierre. Siempre da 0: después corre 0x45abc0.
+// 0x4a3b80, the box's vtable + 0x28: a button's command. 1 (and 2 with two buttons) tells the owner (message 12 with
+// the id and 1 or 0) and asks the manager to close it. Always returns 0: 0x45abc0 runs after.
 Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWindow& window,
                                                const OldWindowStepView& view)
 {
@@ -609,7 +613,7 @@ Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWin
         return {};
     if (message.a != YesCommand && (message.a != NoCommand || window.box.oneButton != 0))
         return {};
-    // 0x4a3bde y 0x4a3fc8: la respuesta a un pedido de amistad (C1 0E C2, 1 o 0, y el nombre de +0x2b8).
+    // 0x4a3bde and 0x4a3fc8: the answer to a friend request (C1 0E C2, 1 or 0, and the name at +0x2b8).
     if (window.box.owner == -1)
     {
         if (!view.send)
@@ -624,9 +628,9 @@ Core::Expected<void, std::string> AnswerTheBox(OldWindowManager& manager, OldWin
     return {};
 }
 
-// La vtable + 0x1c: 0x48fb10 (nada) en el marco; 0x4a43c0 en la caja (Enter, siendo la del final de la lista, se
-// manda el 10 con 1; y el paso de los dos botones, también el del que no se usa), y 0x4a4e20 en la lista de ventanas
-// (con +0x150 en 1, Enter la oculta: sin entradas, sin subir ninguna). Las de amigos, en UI/FriendWindows.
+// vtable + 0x1c: 0x48fb10 (nothing) in the frame; 0x4a43c0 in the box (Enter, when it is the last of the list, sends
+// message 10 with 1; and the step of both buttons, also the unused one), and 0x4a4e20 in the window list (with +0x150
+// at 1, Enter hides it: with no entries, raising none). The friends ones, in Messenger/FriendWindows.
 Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldWindow& window, std::int32_t arg,
                                                  const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -642,8 +646,8 @@ Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldW
             StepTheButton(manager, button, arg, globals, view);
         return {};
     }
-    // 0x4a4e20, la vtable + 0x1c de la lista: con +0x150 en 1, Enter sube el elegido (si está y no es el final), la
-    // oculta y apaga +0x150.
+    // 0x4a4e20, the list's vtable + 0x1c: with +0x150 at 1, Enter raises the chosen one (if present and not the end),
+    // hides the list and clears +0x150.
     if (window.kind == OldWindowKind::WindowList && window.list.armed == 1 && view.keyEdge && view.keyEdge(EnterKey))
     {
         const OldWindowListPart& list = window.list;
@@ -655,9 +659,9 @@ Core::Expected<void, std::string> BeforeTheMouse(OldWindowManager& manager, OldW
     return {};
 }
 
-// 0x4a4eb0, la vtable + 0x58 de la lista, a la vista: el mouse sobre los renglones (de abajo hacia arriba, desde
-// +0x104) los elige y es de la UI; con el soltado, el foco al juego, el 0x19 y la ventana del renglón: la de arriba se
-// minimiza (y sigue a la vista la lista) y otra se sube. Fuera, sin F5, el elegido va al final.
+// 0x4a4eb0, the list's vtable + 0x58, shown: the mouse over the rows (bottom up, from +0x104) chooses them and belongs
+// to the UI; on release, the focus to the game, sound 0x19 and the row's window: the top one is minimized (and the
+// list stays shown) and another is raised. Outside, without F5, the chosen one goes to the end.
 Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manager, OldWindow& window,
                                                         const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -675,19 +679,19 @@ Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manage
     }
     list.armed = 0;
     manager.focus = window.base.id;
-    // 0x4a4f28..0x4a4f5a: trunc(tamaño − (mouse − (+0x104 − alto)) / (renglón + 4)), y el iterador avanza eso desde el
-    // principio, sin pasar el final.
+    // 0x4a4f28..0x4a4f5a: trunc(size − (mouse − (+0x104 − height)) / (row + 4)), and the iterator advances that from
+    // the start, without passing the end.
     const auto from = static_cast<double>(view.mouseY - list.bottom + height);
     const std::int32_t row = OldDraw::Truncate(static_cast<double>(size) - from / step);
     list.cursor = row > 0 ? std::min(static_cast<std::size_t>(row), size) : 0;
     if (globals.releasedClick && window.base.state == ShownWindow)
     {
-        // SetFocus([0x5763544]), como FocusTheGame.
+        // SetFocus([0x5763544]), like FocusTheGame.
         globals.keyboardFocus = Chat::ChatFocus::Game;
         globals.RequestSound(ButtonSound);
         globals.releasedClick = false;
-        // Con el elegido en el final (el borde de arriba, 0 de distancia), el original lee la ranura después del último
-        // (Q-C1008): MuRet no encuentra ninguna.
+        // With the chosen one at the end (the top edge, distance 0), the original reads the slot past the last one
+        // (Q-C1008): MuRet finds none.
         const std::int32_t id = list.cursor < size ? list.chats[list.cursor] : 0;
         if (OldWindow* chosen = id != 0 ? FindTheOldWindow(manager, id) : nullptr; chosen != nullptr)
         {
@@ -707,9 +711,9 @@ Core::Expected<void, std::string> StepTheWindowListRows(OldWindowManager& manage
     return {};
 }
 
-// La vtable + 0x58: 0x48fb20 y 0x4a4430 (nada) en el marco y en la caja, y 0x495520, 0x49b210 y 0x499830 (ret) en el
-// chat y en las de una carta; 0x4a4eb0 en la lista, que solo hace algo a la vista (sus renglones, P-C215). Las de
-// amigos, en UI/FriendWindows.
+// vtable + 0x58: 0x48fb20 and 0x4a4430 (nothing) in the frame and the box, and 0x495520, 0x49b210 and 0x499830 (ret)
+// in the chat and the letter ones; 0x4a4eb0 in the list, which only does something when shown (its rows, P-C215). The
+// friends ones, in Messenger/FriendWindows.
 Core::Expected<void, std::string> AfterTheMove(OldWindowManager& manager, OldWindow& window,
                                                const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -720,8 +724,8 @@ Core::Expected<void, std::string> AfterTheMove(OldWindowManager& manager, OldWin
     return {};
 }
 
-// El cambio de tamaño desde abajo a la derecha (0x492ac0, +0x84 en 0x87): acotado a la pantalla, al mínimo y al
-// máximo; el punto agarrado solo sigue al mouse si no se pasó.
+// 0x492ac0, +0x84 at 0x87: bounded by the screen, the minimum and the maximum; the grabbed point only follows the mouse
+// if it did not overshoot.
 void ResizeFromTheBottomRight(OldWindow& window, const OldWindowStepView& view)
 {
     OldWindowBase& base = window.base;
@@ -755,8 +759,8 @@ void ResizeFromTheBottomRight(OldWindow& window, const OldWindowStepView& view)
     frame.grabY = view.mouseY;
 }
 
-// El cambio de tamaño desde arriba a la izquierda (+0x84 en 0x13b): cada eje solo si no baja del mínimo ni sale de la
-// pantalla por arriba o por la izquierda; el punto agarrado sigue al mouse siempre.
+// +0x84 at 0x13b: each axis only if it does not go below the minimum or off the screen at the top or the left; the
+// grabbed point always follows the mouse.
 void ResizeFromTheTopLeft(OldWindow& window, const OldWindowStepView& view)
 {
     OldWindowBase& base = window.base;
@@ -779,9 +783,9 @@ void ResizeFromTheTopLeft(OldWindow& window, const OldWindowStepView& view)
     frame.grabY = view.mouseY;
 }
 
-// Un botón de la barra del título bajo el mouse (0x492ac0): con el soltado y el mouse sin dueño en la UI, el mensaje
-// al administrador; la cruz, solo si la ventana se deja cerrar (la vtable + 0x4c: 0x48f8f0, que da 1, o 0x499840 en la
-// de escribir una carta).
+// A title bar button under the mouse (0x492ac0): on release with the mouse unowned in the UI, the message to the
+// manager; the cross, only if the window can be closed (vtable + 0x4c: 0x48f8f0, which returns 1, or 0x499840 in the
+// letter-writing one).
 Core::Expected<void, std::string> PressTheTitleButton(OldWindowManager& manager, OldWindow& window, std::int32_t button,
                                                       std::int32_t message, const OldWindowGlobals& globals,
                                                       const OldWindowStepView& view)
@@ -803,7 +807,7 @@ Core::Expected<void, std::string> PressTheTitleButton(OldWindowManager& manager,
     return {};
 }
 
-// Agarrar el mouse para arrastrar (4) o para cambiar el tamaño (1) desde una esquina.
+// Captures the mouse to drag (4) or to resize (1) from a corner.
 void Grab(OldWindow& window, std::int32_t state, std::int32_t corner, const OldWindowGlobals& globals,
           const OldWindowStepView& view)
 {
@@ -819,8 +823,8 @@ void Grab(OldWindow& window, std::int32_t state, std::int32_t corner, const OldW
         window.frame.stretched = 0;
 }
 
-// 0x492ac0, la vtable + 0x20 de las tres: los botones de la barra, las esquinas y la barra del arrastre; después, el
-// arrastre y el cambio de tamaño con el izquierdo abajo, o soltarlos.
+// 0x492ac0, vtable + 0x20 of the three: the bar buttons, the corners and the drag bar; then dragging and resizing
+// with the left button down, or releasing them.
 Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, OldWindow& window,
                                                     const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -911,8 +915,8 @@ Core::Expected<void, std::string> StepTheFrameMouse(OldWindowManager& manager, O
     return AfterTheMove(manager, window, globals, view);
 }
 
-// 0x45aa80, la vtable + 0x18 de las tres: la cola (la vtable + 0x28 y, si da 0, 0x45abc0), la vtable + 0x1c, el
-// mouse y la vtable + 0x20 (0x492ac0).
+// 0x45aa80, vtable + 0x18 of the three: the queue (vtable + 0x28 and, if it returns 0, 0x45abc0), vtable + 0x1c, the
+// mouse and vtable + 0x20 (0x492ac0).
 Core::Expected<void, std::string> StepTheWindow(OldWindowManager& manager, OldWindow& window, std::int32_t arg,
                                                 const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -947,22 +951,22 @@ Core::Expected<void, std::string> StepTheWindow(OldWindowManager& manager, OldWi
     return StepTheFrameMouse(manager, window, globals, view);
 }
 
-// 0x490670(id, mostrar): el estado 0 o el 3.
+// 0x490670(id, show): state 0 or 3.
 void ShowTheWindow(OldWindowManager& manager, std::int32_t id, bool show)
 {
     if (OldWindow* window = FindTheOldWindow(manager, id); window != nullptr)
         window->base.state = show ? ShownWindow : HiddenWindow;
 }
 
-// SetFocus([0x5763544]). En el 1 de 0x490b70, antes, si el foco estaba en uno de los EDIT del chat (o en el del
-// diálogo de 0x5763504, hito 6) o la de arriba es un chat con un amigo (+0x9c en 1), 0x467360 guarda y apaga el modo
-// del IME, que MuRet no tiene; 0x4906a0 no lo llama.
+// SetFocus([0x5763544]). In message 1 of 0x490b70, before that, if the focus was on one of the chat's EDITs (or on the
+// one of the 0x5763504 dialog, milestone 6) or the top one is a chat with a friend (+0x9c at 1), 0x467360 saves and
+// turns off the IME mode, which MuRet does not have; 0x4906a0 does not call it.
 void FocusTheGame(const OldWindowGlobals& globals)
 {
     globals.keyboardFocus = Chat::ChatFocus::Game;
 }
 
-// El final del 2 y del 4 de 0x490b70: el foco a la nueva del final de la lista, o al juego.
+// The end of messages 2 and 4 of 0x490b70: the focus to the new last one of the list, or to the game.
 void FocusTheLast(OldWindowManager& manager, const OldWindowGlobals& globals)
 {
     if (manager.order.empty() || manager.order.back() == 0)
@@ -983,7 +987,7 @@ void FocusTheLast(OldWindowManager& manager, const OldWindowGlobals& globals)
     FocusTheGame(globals);
 }
 
-// 0x45aa50: el mensaje y el paso con 1.
+// 0x45aa50: the message and the step with 1.
 Core::Expected<void, std::string> PostAndStep(OldWindowManager& manager, OldWindow& window, std::int32_t type,
                                               const OldWindowGlobals& globals, const OldWindowStepView& view)
 {
@@ -991,7 +995,7 @@ Core::Expected<void, std::string> PostAndStep(OldWindowManager& manager, OldWind
     return StepTheWindow(manager, window, 1, globals, view);
 }
 
-// 0x490b70: los mensajes del administrador.
+// 0x490b70
 Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, const OldWindowGlobals& globals,
                                                    const OldWindowStepView& view)
 {
@@ -1002,12 +1006,12 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
     {
         if (id == 0 || FindTheOldWindow(manager, id) == nullptr)
             return {};
-        // 0x490bad..0x490c5a: sin EDIT propio (+0x9c), el foco del teclado a la ventana del juego.
+        // 0x490bad..0x490c5a: without its own EDIT (+0x9c), the keyboard focus to the game window.
         if (FindTheOldWindow(manager, id)->frame.editField == 0)
             FocusTheGame(globals);
         if (FindTheOldWindow(manager, id)->base.state == HiddenWindow)
             ShowTheWindow(manager, id, true);
-        // 0x490c7d..0x490cd8: la sube al final, salvo que ya esté ahí con el foco en otro lado.
+        // 0x490c7d..0x490cd8: raises it to the end, unless it is already there with the focus elsewhere.
         if (LastOldWindow(manager) != id || globals.keyboardFocus == Chat::ChatFocus::Game)
         {
             manager.order.remove(id);
@@ -1015,7 +1019,7 @@ Core::Expected<void, std::string> HandleTheMessage(OldWindowManager& manager, co
             PostToTheWindow(manager, id, RaisedMessage, 0, 0);
         }
         manager.focus = id;
-        // 0x4a60b0(id): deja de esperar en +0x118 de la lista de ventanas; 0x4a5e10.
+        // 0x4a60b0(id): stops waiting in the window list's +0x118; 0x4a5e10.
         std::deque<std::int32_t>& waiting = manager.windowList.list.waiting;
         waiting.erase(std::remove(waiting.begin(), waiting.end(), id), waiting.end());
         HideTheWindowList(manager.windowList);
@@ -1160,7 +1164,7 @@ Core::Expected<std::int32_t, std::string>
 CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, const OldWindowTexts& texts,
                    const OldWindowMeasure& measure, const OldWindowGlobals* globals, const OldWindowStepView* view)
 {
-    // 0x48ee93: con 0x6c7b8c en 0 no arma nada; está en 1 en la .data y nadie lo escribe.
+    // 0x48ee93: with 0x6c7b8c at 0 it builds nothing; it is 1 in .data and nobody writes it.
     OldWindow window;
     switch (request.kind)
     {
@@ -1169,7 +1173,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         break;
     case FriendsCase:
     {
-        // Una sola: con +0x48 da 0.
+        // Only one: with +0x48 set it returns 0.
         if (manager.friends != 0)
             return 0;
         if (globals == nullptr || view == nullptr)
@@ -1179,7 +1183,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
             return Core::Unexpected(std::move(made).Error());
         window = std::move(made).Value();
         manager.friends = window.base.id;
-        // +0xb0: con una carta nueva (+0x144 de la lista de ventanas), la pestaña de las cartas; si no, la de antes.
+        // +0xb0: with a new letter (the window list's +0x144), the letters tab; otherwise the previous one.
         window.friends.currentTab = manager.windowList.list.newLetter == 1 ? 1 : manager.lastTab;
         // 0x4a6420(0).
         manager.windowList.list.newLetter = 0;
@@ -1214,7 +1218,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
             return 0;
         const bool oneButton = request.kind == ModalNoticeCase || request.kind == NoticeCase;
         window = MakeTheMessageBox(manager, oneButton ? 1 : 0);
-        // 0x49e6e0(id, texto) sobre +0x4d0 de la ventana de amigos: la anota en su lista.
+        // 0x49e6e0(id, text) on the friends window's +0x4d0.
         Steps::AddTheWindowRow(manager, window.base.id, request.data);
         if (modal)
             manager.modal = window.base.id;
@@ -1227,8 +1231,8 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
     case LetterReadCase:
     case LetterWriteCase:
     {
-        // 0x48eee4, 0x48f41f y 0x48f4ee (la de escribir, sin una caja modal). Las cuatro se anotan en la pestaña de
-        // las ventanas de la de amigos (0x48f5cd).
+        // 0x48eee4, 0x48f41f and 0x48f4ee (the writing one, without a modal box). All four are listed in the friends
+        // window's windows tab (0x48f5cd).
         if (request.kind == LetterWriteCase && manager.modal != 0)
             return 0;
         auto made = Steps::MakeTheLetterKind(manager, request, texts, measure, view);
@@ -1239,12 +1243,12 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         break;
     }
     default:
-        // 0x48ee98..0x48ee9b: fuera de 0..10 (sin signo), retorna 0 sin construir ni consumir IDs.
+        // 0x48ee98..0x48ee9b: outside 0..10 (unsigned), returns 0 without building anything or using up ids.
         return 0;
     }
     std::int32_t x = request.x == -1 ? 0 : request.x;
     std::int32_t y = request.y == -1 ? DefaultY : request.y;
-    // La vtable + 0x2c: 0x4920a0 en el marco y 0x4a38f0 en la caja (0x4a2280 y 0x4a35a0, en Steps::MakeThe...).
+    // vtable + 0x2c: 0x4920a0 in the frame and 0x4a38f0 in the box (0x4a2280 and 0x4a35a0, in Steps::MakeThe...).
     OldWindowBase& base = window.base;
     if (window.kind == OldWindowKind::Frame)
     {
@@ -1296,8 +1300,8 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
         else
             setUp(box.buttons[0], YesCommand, texts.notice, OnlyButtonX);
     }
-    // 0x48f606..0x48f6b8: la cascada, por el mapa en el orden de los ids. Al correrse vuelve al primero y el ++ del
-    // final de la vuelta lo saltea (Q-C571).
+    // 0x48f606..0x48f6b8: the cascade, through the map in id order. On a shift it goes back to the first one and the ++
+    // at the end of the loop skips it (Q-C571).
     if ((request.flags & KeepPlaceFlag) == 0)
     {
         for (auto it = manager.windows.begin(); it != manager.windows.end(); ++it)
@@ -1314,7 +1318,7 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
                 const std::int32_t rest = y % CascadeWrap;
                 if (rest == CascadeGiveUp)
                 {
-                    // 0x48f700..0x48f70a destruye el objeto nuevo, incluido el global de cada botón (0x45adf0).
+                    // 0x48f700..0x48f70a destroys the new object, each button's global included (0x45adf0).
                     if (globals != nullptr)
                         ReleaseTheDestroyedButtons(window, globals->pressedButton);
                     return 0;
@@ -1329,8 +1333,8 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
     base.y = y;
     const std::int32_t id = base.id;
     const auto [registered, inserted] = manager.windows.try_emplace(id, std::move(window));
-    // 0x48f7b2 conserva el registro anterior sin destruir el nuevo; 0x48f82d asienta siempre el recién construido.
-    // Debe ser encontrable antes de asentar: la lista busca su pestaña en el segundo mapa (0x490a00).
+    // 0x48f7b2 keeps the previous entry without destroying the new one; 0x48f82d always settles the one just built. It
+    // must be findable before settling: the list looks up its tab in the second map (0x490a00).
     if (!inserted)
         manager.unregisteredWindows.push_back(std::move(window));
     OldWindow& placed = inserted ? registered->second : manager.unregisteredWindows.back();
@@ -1342,8 +1346,8 @@ CreateTheOldWindow(OldWindowManager& manager, const OldWindowRequest& request, c
     }
     else if (Steps::IsALetterKind(placed.kind))
     {
-        // 0x48f810..0x48f847: los chats a +0xb4 de la lista de ventanas (0x4a4990), la vtable + 0x30 y, en el 1, el
-        // foco al EDIT.
+        // 0x48f810..0x48f847: the chats to the window list's +0xb4 (0x4a4990), vtable + 0x30 and, in case 1, the focus
+        // to the EDIT.
         if (request.kind == ChatCase || request.kind == CalledChatCase)
             Messenger::AddTheChatToTheList(manager, id);
         if (globals == nullptr || view == nullptr)
@@ -1369,8 +1373,7 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
 {
     if (manager.modal != 0 && FindTheOldWindow(manager, manager.modal) == nullptr)
         manager.modal = 0;
-    // 0x4904bc: el flanco de Esc se lee siempre; cierra la del final de la lista si está a la vista y se deja cerrar
-    // (la vtable + 0x4c).
+    // 0x4904bc: the Esc edge is always read; it closes the last one of the list if shown and closable (vtable + 0x4c).
     if (view.keyEdge && view.keyEdge(EscapeKey) && !manager.order.empty() && manager.order.back() != 0)
     {
         OldWindow* last = FindTheOldWindow(manager, manager.order.back());
@@ -1383,21 +1386,22 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
                 PostToTheManager(manager, CloseMessage, LastOldWindow(manager), 0);
         }
     }
-    // 0x490538..0x49055c: F5 con el foco en la ventana del juego, 0x4a5be0(1) sobre la lista de ventanas. Con el foco
-    // en el EDIT de una ventana vieja, su subclase (0x467b10) lo lee igual con cada mensaje que le llega, menos WM_CHAR
-    // y los del IME (0x467d3b), antes del paso (*inferido*: acá, en el lugar del de la ventana del juego). Los dos EDIT
-    // de la entrada del chat tienen otra subclase, que no lo lee.
+    // 0x490538..0x49055c: F5 with the focus on the game window, 0x4a5be0(1) on the window list. With the focus on an
+    // old window's EDIT, its subclass (0x467b10) reads it too with every message it gets, except WM_CHAR and the IME
+    // ones (0x467d3b), before the step (*inferred*: here, in place of the game window's). The two EDITs of the chat
+    // input have another subclass, which does not read it.
     if ((globals.keyboardFocus == Chat::ChatFocus::Game || globals.keyboardFocus == Chat::ChatFocus::OldWindow) &&
         view.keyEdge && view.keyEdge(F5Key))
         ShowTheWindowList(manager, 1);
-    // 0x490561..0x4905a2: F6 esconde las ventanas, o las vuelve a mostrar si escondió alguna.
+    // 0x490561..0x4905a2: F6 hides the windows, or shows them again if it hid any.
     if (view.keyEdge && view.keyEdge(F6Key) && (manager.hiddenByF6 == 0 || !manager.hidden.empty()))
     {
         manager.hiddenByF6 = (manager.hiddenByF6 + 1) % 2;
         if (auto hidden = HideTheOldWindows(manager, manager.hiddenByF6, 1, globals, &view); !hidden.HasValue())
             return hidden;
     }
-    // 0x4905a2..0x4905bf: la de amigos oculta se suelta (0x4914e0); al volver a mostrar, 0x4906a0 la abre (Q-C448).
+    // 0x4905a2..0x4905bf: the hidden friends window is released (0x4914e0); on showing again, 0x4906a0 opens it
+    // (Q-C448).
     if (manager.friends != 0)
     {
         const OldWindow* friends = FindTheOldWindow(manager, manager.friends);
@@ -1407,7 +1411,7 @@ Core::Expected<void, std::string> StepTheOldWindows(OldWindowManager& manager, c
                 return dropped;
         }
     }
-    // 0x4905c4: de arriba hacia abajo, cada una a la vista corre su paso con 0 (solo las del primer mapa).
+    // 0x4905c4: top down, each shown one runs its step with 0 (only those of the first map).
     for (auto it = manager.order.rbegin(); it != manager.order.rend(); ++it)
     {
         OldWindow* window = FindTheOldWindow(manager, *it);
@@ -1434,7 +1438,7 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     {
         if (manager.modal != 0)
             return {};
-        // 0x49022a..0x490270: guarda el lugar de la ventana de amigos para la próxima.
+        // 0x49022a..0x490270: saves the friends window's place for the next one.
         if (const OldWindow* friends = FindTheOldWindow(manager, manager.friends); friends != nullptr)
             Steps::SaveTheFriendsPlace(manager, *friends);
         manager.friends = 0;
@@ -1444,15 +1448,15 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     const auto found = manager.windows.find(id);
     if (found == manager.windows.end())
         return {};
-    // El destructor del EDIT (0x467710) nunca llama a DestroyWindow: el EDIT nativo sobrevive al wrapper, con el foco
-    // si lo tenía. MuRet conserva solo el estado editable del que todavía tiene el foco: el de agregar un amigo, el del
-    // chat con un amigo y los tres de la de escribir una carta.
+    // The EDIT's destructor (0x467710) never calls DestroyWindow: the native EDIT outlives the wrapper, with the focus
+    // if it had it. MuRet keeps only the editable state of the one that still has the focus: the add-a-friend one, the
+    // friend chat one and the three of the letter-writing one.
     if (OldEdit* focused = FocusedEditOf(manager, found->second); focused != nullptr)
     {
         manager.orphanedEdit = *focused;
         manager.focusedEditIsOrphan = true;
     }
-    // 0x491840. El destructor del chat sale de la sala (0x493a70) y el de leer suelta su carta (0x4916b0).
+    // 0x491840. The chat's destructor leaves the room (0x493a70) and the reading one's releases its letter (0x4916b0).
     manager.boxes.remove(id);
     ReleaseTheDestroyedButtons(found->second, pressedButton);
     if (auto forgotten = Steps::ForgetTheLetterKind(manager, found->second); !forgotten.HasValue())
@@ -1461,9 +1465,9 @@ Core::Expected<void, std::string> DestroyTheOldWindow(OldWindowManager& manager,
     manager.order.remove(id);
     if (manager.order.empty())
         manager.focus = 0;
-    // 0x49e710(id) sobre la pestaña de las ventanas de la de amigos.
+    // 0x49e710(id) on the friends window's windows tab.
     Steps::ForgetTheWindowRow(manager, id);
-    // 0x4a4b30(id): sale de los chats de +0xb4 de la lista de ventanas y, si estaba, el elegido va al final.
+    // 0x4a4b30(id): leaves the window list's +0xb4 chats and, if it was there, the chosen one goes to the end.
     std::deque<std::int32_t>& chats = manager.windowList.list.chats;
     if (const auto chat = std::find(chats.begin(), chats.end(), id); chat != chats.end())
     {
@@ -1507,7 +1511,8 @@ Core::Expected<void, std::string> HideTheOldWindows(OldWindowManager& manager, s
         FocusTheGame(globals);
         return {};
     }
-    // 0x490608: quedó en la lista una que ya no está (la de amigos que soltó 0x4914e0, Q-C448): 0x491080 abre otra.
+    // 0x490608: the list still has one that is gone (the friends window 0x4914e0 released, Q-C448): 0x491080 opens
+    // another.
     const auto count = static_cast<std::int32_t>(manager.hidden.size());
     if (count != shown && count - shown >= 0)
     {
@@ -1537,11 +1542,10 @@ void ForgetTheHiddenWindows(OldWindowManager& manager)
 
 void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
 {
-    // 0x48ea5f..0x48eb43: +0x48 en 0, el mapa principal (soltando cada ventana con su destructor: el de leer saca su
-    // carta de +0x94; el del chat, 0x493160, sale de su sala con 0x493a70), el mapa de cartas (+0x94), la lista del
-    // orden, 0x4a4480 (los chats de +0xb4 y +0x118 de la lista de ventanas), lo que escondió F6 y las cajas. El segundo
-    // mapa +0x5c no se toca: conserva referencias obsoletas y las pestañas aún vivas de los objetos rechazados por el
-    // mapa principal.
+    // 0x48ea5f..0x48eb43: +0x48 to 0, the main map (releasing each window with its destructor: the reading one takes
+    // its letter out of +0x94; the chat's, 0x493160, leaves its room with 0x493a70), the letter map (+0x94), the order
+    // list, 0x4a4480 (the window list's +0xb4 chats and +0x118), what F6 hid and the boxes. The second map +0x5c is not
+    // touched: it keeps stale references and the still-live tabs of the objects the main map rejected.
     manager.friends = 0;
     for (const auto& [id, window] : manager.windows)
     {
@@ -1549,10 +1553,10 @@ void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
         static_cast<void>(Steps::ForgetTheLetterKind(manager, window));
     }
     manager.windows.clear();
-    // 0x48eae6..0x48eb07: el mapa de cartas (+0x94) entero, también las que se anotaron (0x491570) y esperan el C7.
+    // 0x48eae6..0x48eb07: the whole letter map (+0x94), also the ones registered (0x491570) that wait for the C7.
     manager.letterWindows.clear();
     manager.order.clear();
-    // 0x4a448e: el elegido al final antes de vaciar (el iterador queda en un bloque que se suelta; acá, en 0).
+    // 0x4a448e: the chosen one to the end before emptying (the iterator is left in a block that is freed; here, at 0).
     manager.windowList.list.chats.clear();
     manager.windowList.list.cursor = 0;
     manager.windowList.list.waiting.clear();
@@ -1564,11 +1568,11 @@ void ResetTheOldWindows(OldWindowManager& manager, std::int32_t& pressedButton)
     manager.titleText = 990;
     manager.letter = 0;
     manager.offlineSent = 0;
-    // El reinicio de la escena olvida el identificador lógico del EDIT anterior.
+    // The scene reset forgets the previous EDIT's logical id.
     manager.focusedEdit = 0;
     manager.focusedEditIsOrphan = false;
     manager.orphanedEdit.reset();
-    // 0x48eb7d: +0x48 ya está en 0, así que 0x4a23b0 sobre la de amigos no corre.
+    // 0x48eb7d: +0x48 is already 0, so 0x4a23b0 on the friends window does not run.
 }
 
 void SettleTheButtons(OldWindowManager& manager, OldWindow& box)
@@ -1587,7 +1591,7 @@ void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm)
     list.armed = arm;
     if (window.base.state == HiddenWindow)
     {
-        // 0x4a5c0f..0x4a5c6b: la vtable + 4 con 0; el alto suma y la y resta lo de los renglones.
+        // 0x4a5c0f..0x4a5c6b: vtable + 4 with 0; the height adds and the y subtracts what the rows take.
         window.base.state = ShownWindow;
         const double step = static_cast<double>(list.rowHeight) + WindowListRowMargin;
         const double rows = static_cast<double>(size) * step;
@@ -1596,7 +1600,7 @@ void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm)
         list.blinkStep = WindowListBlinkUp;
         if (arm != 1)
             return;
-        // 0x4a5c7b..0x4a5d2d: desde el principio, saltea los que son la de arriba (el final de +0x80).
+        // 0x4a5c7b..0x4a5d2d: from the start, skips the ones that are the top window (the end of +0x80).
         list.cursor = 0;
         if (size <= 1)
             return;
@@ -1610,7 +1614,7 @@ void ShowTheWindowList(OldWindowManager& manager, std::int32_t arm)
     }
     if (arm != 1)
         return;
-    // 0x4a5d37..0x4a5e00: el que sigue, con vuelta al principio.
+    // 0x4a5d37..0x4a5e00: the next one, wrapping to the start.
     if (list.cursor >= size)
     {
         list.cursor = 0;

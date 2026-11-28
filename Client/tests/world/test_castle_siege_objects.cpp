@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-// Los objetos de Castle Siege (el mapa 30) en el paso: 06 § Los objetos de Castle Siege.
+// The Castle Siege objects (map 30) in the step: 06 § Los objetos de Castle Siege.
 namespace
 {
 using Client::CastleSiege::CastleSiegePrelude;
@@ -68,8 +68,8 @@ struct Step
     }
 };
 
-// La luz de 0x42c8d4..0x42c904 con el rand() que la decide, independiente del port: L en la x87 y cada
-// canal guardado en float.
+// The light of 0x42c8d4..0x42c904 with the rand() that decides it, independent of the port: L on the x87 and each
+// channel stored as a float.
 std::unique_ptr<TerrainLighting> TorchLightOf(const WorldObject& object, int draw)
 {
     auto lighting = std::make_unique<TerrainLighting>();
@@ -82,7 +82,7 @@ std::unique_ptr<TerrainLighting> TorchLightOf(const WorldObject& object, int dra
 }
 } // namespace
 
-// 0x63741d..0x637466: la niebla negra solo dentro del rectángulo, con los bordes.
+// 0x63741d..0x637466.
 TEST(CastleSiegeObjectsTest, TheBlackFogCoversOnlyTheRectangleWithItsEdges)
 {
     using Client::CastleSiege::InTheCastleSiegeFog;
@@ -96,8 +96,8 @@ TEST(CastleSiegeObjectsTest, TheBlackFogCoversOnlyTheRectangleWithItsEdges)
     EXPECT_FALSE(InTheCastleSiegeFog({std::numeric_limits<float>::quiet_NaN(), 20000.0f, 0.0f}));
 }
 
-// 0x42b540: con la hora de la música en 0 o más de 1.800 s atrás, guarda timeGetTime() en float; siempre, el
-// sonido 0x1e2. Sin rand().
+// 0x42b540: with the music time at 0 or more than 1800 s back, it stores timeGetTime() as a float; always, sound
+// 0x1e2. No rand().
 TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheAmbientSound)
 {
     struct Case
@@ -128,7 +128,7 @@ TEST(CastleSiegeObjectsTest, ThePreludeRefreshesTheMusicTimeAndAlwaysAsksForTheA
     }
 }
 
-// 0x42b5fe: con el asedio, después del sonido, corta; sin los bindings, donde los pide el ASM.
+// 0x42b5fe: with the siege, after the sound, it stops; without the bindings, where the ASM asks for them.
 TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
 {
     float music = 0.0f;
@@ -153,8 +153,8 @@ TEST(CastleSiegeObjectsTest, ThePreludeStopsWithTheSiegeOnOrAMissingBinding)
     EXPECT_NE(clockless.Error().find("0x42b557"), std::string::npos) << clockless.Error();
 }
 
-// 0x42c8b1..0x42c904: sin el asedio, el 0 saca un rand() para su luz de radio 3 y queda en −2; el 0x35 queda en
-// −2 sin luz. Con el asedio es al revés.
+// 0x42c8b1..0x42c904: without the siege, the 0 takes a rand() for its radius 3 light and stays at −2; the 0x35 stays
+// at −2 without light. With the siege it is the reverse.
 TEST(CastleSiegeObjectsTest, TheTorchesLightTheTerrainOnlyOnTheirSideOfTheSiege)
 {
     for (const bool siege : {false, true})
@@ -187,8 +187,8 @@ TEST(CastleSiegeObjectsTest, TheTorchesLightTheTerrainOnlyOnTheirSideOfTheSiege)
     }
 }
 
-// 0x42c894..0x42c8a9 y 0x42c950: el 4 corre la U con el reloj y muestra todo; el lancero 0x19f se muestra sin el
-// asedio y se oculta con él; el 0x2a, el 0x34 y el 0x36, siempre ocultos. Sin rand().
+// 0x42c894..0x42c8a9 and 0x42c950: the 4 scrolls the U with the clock and shows everything; the spearman 0x19f shows
+// without the siege and hides with it; the 0x2a, the 0x34 and the 0x36, always hidden. No rand().
 TEST(CastleSiegeObjectsTest, TheScrollingWaterTheSpearmenAndTheHiddenMarkers)
 {
     Step step;
@@ -215,8 +215,8 @@ TEST(CastleSiegeObjectsTest, TheScrollingWaterTheSpearmenAndTheHiddenMarkers)
     EXPECT_EQ(random.State(), CrtRandom(3).State());
 }
 
-// 0x42c967..0x42c977: el 0x42 queda en −2 y, con el asedio, corta; sin el byte del asedio, corta antes de tocar
-// el objeto.
+// 0x42c967..0x42c977: the 0x42 stays at −2 and, with the siege, stops; without the siege byte, it stops before
+// touching the object.
 TEST(CastleSiegeObjectsTest, TheSiegeOnlyMarkerAndTheMissingSiegeByteStop)
 {
     Step step;
@@ -237,8 +237,8 @@ TEST(CastleSiegeObjectsTest, TheSiegeOnlyMarkerAndTheMissingSiegeByteStop)
     EXPECT_EQ(random.State(), CrtRandom(3).State());
 }
 
-// 0x42c500: el 0x51 y el 0x53 corren la V con el reloj y quedan con el blendMesh 1 y su luz en 1; después,
-// 0x42b480 como en la creación. Las puertas, con el asedio, cortan.
+// 0x42c500: the 0x51 and the 0x53 scroll the V with the clock and keep blendMesh 1 and its light at 1; then,
+// 0x42b480 as at creation. The gates, with the siege, stop.
 TEST(CastleSiegeObjectsTest, TheSeenFlowsScrollTheirVAndTheGatesStopWithTheSiege)
 {
     constexpr float Clock = 9876.25f;
@@ -267,8 +267,8 @@ TEST(CastleSiegeObjectsTest, TheSeenFlowsScrollTheirVAndTheGatesStopWithTheSiege
     }
 }
 
-// 0x51d73b y 0x52973e: el plano 0x135 nace con vida 100, la luz de las mallas en 0,3f y la partida en su
-// lugar; no muere y, con dueño, la z sube y baja (sin(T · 0,001f) + 1) · 200 sobre la partida.
+// 0x51d73b and 0x52973e: the plane 0x135 starts with life 100, the meshes' light at 0.3f and the start point at its
+// place; it does not die and, with an owner, z goes up and down (sin(T · 0.001f) + 1) · 200 over the start point.
 TEST(CastleSiegeObjectsTest, TheGatePlaneNeverDiesAndFloatsOnlyWithAnOwner)
 {
     for (const bool owner : {false, true})
@@ -289,7 +289,7 @@ TEST(CastleSiegeObjectsTest, TheGatePlaneNeverDiesAndFloatsOnlyWithAnOwner)
         constexpr float Clock = 4000.0f;
         plane.life = 3;
         ASSERT_TRUE(Client::Effects::StepGameModelEffect(plane, nullptr, *particles, Clock, random).HasValue());
-        // 0x52973e la repone en 100 y el paso común (StepModelEffect) la baja: nunca llega a 0.
+        // 0x52973e sets it back to 100 and the common step (StepModelEffect) lowers it: it never reaches 0.
         EXPECT_TRUE(plane.alive);
         EXPECT_EQ(plane.life, 99);
         EXPECT_EQ(random.State(), After(9, 1).State()) << "el sorteo común de 0x5208c5";

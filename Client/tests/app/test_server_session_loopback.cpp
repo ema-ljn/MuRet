@@ -40,16 +40,15 @@
 #include <string_view>
 #include <vector>
 
-// Client::App::ServerSession de punta a punta, con sockets de verdad (el plan de la CL4, CL4.4,
-// PR C): SystemSocket, Connection con FoxAnti y la sesión, contra los FakeServers en 127.0.0.1, que
-// siguen el guion del 04 con los bytes del cable y las claves sintéticas. Todo en un hilo: el test
-// consulta a los servidores y a la sesión en el mismo lazo, hasta 5 s reales (RetryUntil), y lo
-// que el sistema hace en el fondo no cambia el resultado, porque cada lado contesta lo que le
-// llegó. El reloj de la sesión es un FakeClock: da el tick del login, y el connect no vence. La
-// sesión espera la elección y la cuenta (CL5.5): las da el AutoLogin, como con --auto-login.
+// Client::App::ServerSession end to end, with real sockets (the CL4 plan, CL4.4): SystemSocket, Connection with
+// FoxAnti and the session, against the FakeServers on 127.0.0.1, which follow the 04 script with the wire bytes and
+// the synthetic keys. All on one thread: the test polls the servers and the session in the same loop, up to 5 real s
+// (RetryUntil), and what the system does in the background does not change the result, because each side answers
+// what reached it. The session's clock is a FakeClock: it gives the login tick, and the connect does not time out.
+// The session waits for the choice and the account (CL5.5): the AutoLogin gives them, as with --auto-login.
 //
-// Solo la cuenta y la clave sintéticas de MuClientNetFixtures.h; el login se compara con
-// SameBytesWithoutValues, y ningún mensaje trae un byte de lo que pasó por los sockets.
+// Only the synthetic account and password of MuClientNetFixtures.h; the login is compared with
+// SameBytesWithoutValues, and no message carries a byte of what went through the sockets.
 namespace
 {
 using Client::App::AutoLogin;
@@ -86,13 +85,13 @@ using Lines = std::vector<std::string>;
 
 constexpr std::string_view Loopback = "127.0.0.1";
 constexpr std::uint32_t PaddingSeed = 1;
-constexpr std::uint16_t LabServerCode = 400; // El servidor anunciado por FakeServers.
+constexpr std::uint16_t LabServerCode = 400; // The server FakeServers announces.
 
-// La cuenta y la clave sintéticas de los fixtures del login (MuClientNetFixtures.h).
+// The synthetic account and password of the login fixtures (MuClientNetFixtures.h).
 constexpr std::string_view Account = "user0001";
 constexpr std::string_view Password = "pass0002";
 
-// Las líneas del log de `level` o más graves.
+// The log lines of `level` or more severe.
 Lines LinesFrom(const RecordingSink& sink, LogLevel level)
 {
     Lines found;
@@ -106,8 +105,8 @@ Lines LinesFrom(const RecordingSink& sink, LogLevel level)
     return found;
 }
 
-// Los dos servidores falsos y una sesión que les habla por sockets de verdad, con el AutoLogin que
-// elige y manda la cuenta. En este orden: lo que tiene un socket muere antes que el NetworkInit.
+// The two fake servers and a session that talks to them over real sockets, with the AutoLogin that chooses and sends
+// the account. In this order: what holds a socket dies before the NetworkInit.
 struct LoopbackSession
 {
     explicit LoopbackSession(Client::Core::Duration idleTimeout = Client::Core::Duration::zero())
@@ -120,8 +119,8 @@ struct LoopbackSession
         clock.Advance(std::chrono::milliseconds{123456});
     }
 
-    // Elección manual sin enviar credenciales: PollUntil no consulta AutoLogin, que solo se usa
-    // en LogIn. El jugador deja abierto el formulario del login.
+    // Manual choice without sending credentials: PollUntil does not poll the AutoLogin, which only LogIn uses. The
+    // player leaves the login form open.
     [[nodiscard]] bool OpenLoginForm()
     {
         session.Start();
@@ -135,7 +134,7 @@ struct LoopbackSession
                session.State() == SessionState::WaitingCredentials;
     }
 
-    // Start, y los dos lados en el mismo lazo hasta LoggedIn o Failed.
+    // Start, then both sides in the same loop until LoggedIn or Failed.
     [[nodiscard]] bool LogIn()
     {
         session.Start();
@@ -149,7 +148,7 @@ struct LoopbackSession
             });
     }
 
-    // Los dos lados sin AutoLogin en el mismo lazo hasta `done` o una queja del servidor.
+    // Both sides without the AutoLogin in the same loop until `done` or a complaint from the server.
     template <typename Done> [[nodiscard]] bool PollUntil(Done done)
     {
         return RetryUntil(
@@ -175,8 +174,8 @@ struct LoopbackSession
     AutoLogin autoLogin;
 };
 
-// Control del doble: un cliente que deja de consultar no manda 0E, y el GS con plazo sintético
-// cierra de verdad el socket. El plazo es del test, no una medición del GS del laboratorio.
+// Control for the double: a client that stops polling sends no 0E, and the GS with a synthetic deadline really
+// closes the socket. The deadline is the test's, not a measurement of the lab's GS.
 TEST(ServerSessionLoopbackTest, AnIdleGameServerClosesWithoutKeepalives)
 {
     constexpr std::chrono::seconds IdleTimeout{30};
@@ -186,7 +185,7 @@ TEST(ServerSessionLoopbackTest, AnIdleGameServerClosesWithoutKeepalives)
     ASSERT_FALSE(tested.servers.SawLogin());
 
     tested.clock.Advance(IdleTimeout);
-    tested.servers.Poll(); // vence antes de que el cliente vuelva a consultar
+    tested.servers.Poll(); // expires before the client polls again
 
     EXPECT_TRUE(tested.servers.IdleExpired());
     EXPECT_EQ(tested.servers.Keepalives(), 0u);
@@ -196,8 +195,8 @@ TEST(ServerSessionLoopbackTest, AnIdleGameServerClosesWithoutKeepalives)
     EXPECT_EQ(tested.servers.Complaints(), Lines{});
 }
 
-// Dos minutos sin teclear: el mismo GS que vence en el control conserva la conexión gracias a
-// 0E cifrados. El login posterior tiene que continuar sus seriales, y recibe un 0E inmediato.
+// Two minutes without typing: the same GS that times out in the control keeps the connection thanks to encrypted
+// 0E. The later login must continue their serials, and gets an immediate 0E.
 TEST(ServerSessionLoopbackTest, KeepalivesPreserveTheLoginFormUntilCredentialsAreSubmitted)
 {
     constexpr std::chrono::seconds IdleTimeout{30};
@@ -230,10 +229,9 @@ TEST(ServerSessionLoopbackTest, KeepalivesPreserveTheLoginFormUntilCredentialsAr
     EXPECT_EQ(LinesFrom(tested.sink, LogLevel::Warning), Lines{});
 }
 
-// Del Start a LoggedIn: el CS con el A9, el saludo, la lista del laboratorio que FoxAnti pasa a
-// F4 06, la elección que FoxAnti pasa al código 0 y la dirección del GS falso; el GS con el
-// saludo, el login cifrado con el serial 0 y el resultado. Después, el GS recibe el primer
-// keepalive, con el serial 1 (CL4.5), y el CS ve que el cliente cortó.
+// From Start to LoggedIn: the CS with the A9, the hello, the lab list that FoxAnti turns into F4 06, the choice that
+// FoxAnti turns into code 0 and the fake GS's address; the GS with the hello, the login encrypted with serial 0 and
+// the result. Then the GS gets the first keepalive, with serial 1 (CL4.5), and the CS sees that the client hung up.
 TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
 {
     LoopbackSession tested;
@@ -274,8 +272,8 @@ TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
         { return line.find(Account) != std::string::npos || line.find(Password) != std::string::npos; }));
 }
 
-// Del login a la entrada (CL6.3): el F3 00 en claro, la lista del GS falso en claro y con el 0xAA
-// de FoxAnti, la elección del lugar 2 y el F3 03 con el nombre de ese, char0002.
+// From the login to the entry (CL6.3): the F3 00 in clear, the fake GS's list in clear and with FoxAnti's 0xAA, the
+// choice of slot 2 and the F3 03 with that one's name, char0002.
 TEST(ServerSessionLoopbackTest, FromLoginToEnterWorld)
 {
     LoopbackSession tested;

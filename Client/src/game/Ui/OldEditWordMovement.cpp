@@ -30,7 +30,7 @@ bool IsWordDelimiter(char character)
 
 std::size_t CursorAfterCtrlLeft(std::string_view text, std::size_t cursor)
 {
-    // EDIT distingue CR de LF y salta el espacio previo antes de buscar el límite hacia atrás.
+    // EDIT tells CR from LF and skips the preceding space before looking for the boundary backward.
     cursor = cursor > text.size() ? text.size() : cursor;
     while (cursor > 0 && IsLeftWordWhitespace(text[cursor - 1]))
         --cursor;
@@ -47,7 +47,7 @@ std::size_t CursorAfterCtrlLeft(std::string_view text, std::size_t cursor)
 
 std::size_t CursorAfterCtrlRight(std::string_view text, std::size_t cursor)
 {
-    // El recorrido hacia adelante trata CR/LF de otra manera que el recorrido inverso del EDIT.
+    // The forward walk treats CR/LF differently from the EDIT's backward walk.
     cursor = cursor > text.size() ? text.size() : cursor;
     if (cursor < text.size() && text[cursor] == '\n')
         return cursor + 1;

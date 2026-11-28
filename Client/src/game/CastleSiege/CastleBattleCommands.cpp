@@ -123,7 +123,7 @@ Core::Expected<void, std::string> CrownRegistration(const Battle::CrownRegistrat
     if (crown.result == 0 || crown.result == 2)
     {
         duration = crown.result == 0 ? 30000u - crown.elapsed : 3000u;
-        // 0x6602a0 precede a sprintf; conserva el cambio del reloj incluso si la fuente falta.
+        // 0x6602a0 comes before sprintf; the timer change stays even if the source is missing.
         context.world.Runtime().panels.delegated.panelDialog.timerMs = duration;
         const std::size_t textIndex = crown.result == 0 ? 1489 : 1491;
         auto label = Text(context, textIndex);
@@ -191,7 +191,7 @@ Core::Expected<void, std::string> CastleOwner(const Battle::CastleOwner& owner, 
 
 Core::Expected<void, std::string> WeaponFailure(const CastleReceiveContext& context, bool firing)
 {
-    // 0x6c8618 y 0x6c862c: literales EUC-KR del original, no índices de Text.bmd.
+    // 0x6c8618 and 0x6c862c: the original's EUC-KR literals, not Text.bmd indices.
     constexpr std::string_view OpenFailed = "\xb0\xf8\xbc\xba \xb9\xab\xb1\xe2 \xbc\xb1\xc5\xc3 \xbd\xc7\xc6\xd0";
     constexpr std::string_view FireFailed =
         "\xb0\xf8\xbc\xba\xb9\xab\xb1\xe2 \xb9\xdf\xbb\xe7 \xbd\xc7\xc6\xd0\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.";

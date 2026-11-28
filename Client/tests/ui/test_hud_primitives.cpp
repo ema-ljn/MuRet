@@ -15,9 +15,9 @@
 #include <span>
 #include <vector>
 
-// Las primitivas del HUD del juego (CL8 hito 2): las cifras de FontTest (0x6218f0), las barras chicas (0x5a6af0) y
-// la ayuda con marco (0x554340). Las cifras y la barra son las del frame 1 de Lorencia en 1024 × 768 (GLIntercept,
-// fuera del repo): el AG 17749 (líneas 124429..124469) y la barra del ayudante (124272..124299).
+// The game HUD's primitives (CL8 milestone 2): FontTest's digits (0x6218f0), the small gauges (0x5a6af0) and the
+// framed help (0x554340). The digits and the gauge are those of Lorencia's frame 1 in 1024 × 768 (GLIntercept,
+// outside the repo): the AG 17749 (lines 124429..124469) and the helper's gauge (124272..124299).
 namespace
 {
 using Client::Core::PixelSize;
@@ -31,7 +31,7 @@ constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
 constexpr float TraceTolerance = 2e-6f;
 
-// Las esquinas 0 y 2 del quad `index` (arriba a la izquierda y abajo a la derecha, con la y de GL).
+// Corners 0 and 2 of quad `index` (top left and bottom right, with GL's y).
 struct Corners
 {
     SpriteVertex first;
@@ -49,7 +49,7 @@ Corners CornersOf(const SpriteBatch& sprites, std::size_t index)
     return {vertices[index * 6], vertices[index * 6 + 2]};
 }
 
-// El tramo que tiene al quad `index`.
+// The command that holds quad `index`.
 std::optional<DrawCommand> CommandOf(const SpriteBatch& sprites, std::size_t index)
 {
     for (const DrawCommand& command : sprites.Commands())
@@ -61,7 +61,7 @@ std::optional<DrawCommand> CommandOf(const SpriteBatch& sprites, std::size_t ind
     return std::nullopt;
 }
 
-// El escalado de 0x621b60 deja restos de float aun en 640 × 480 (el 430 escalado es 430,00003): un poco de margen.
+// 0x621b60's scaling leaves float residue even in 640 × 480 (430 scaled is 430.00003): a little slack.
 constexpr float ScaleTolerance = 1e-4f;
 
 void ExpectRectangle(const SpriteBatch& sprites, std::size_t index, std::array<float, 4> expected,
@@ -75,7 +75,8 @@ void ExpectRectangle(const SpriteBatch& sprites, std::size_t index, std::array<f
     EXPECT_NEAR(corners.third.y, expected[3], tolerance);
 }
 
-// 0x6218f0(571, 467, 17749, 9, 10): la x corre 5 · 9 · 0,5 y cada cifra avanza 9 · 0,7 = 6,3, como la traza.
+// 0x6218f0(571, 467, 17749, 9, 10): the x shifts by 5 · 9 · 0.5 and each digit advances 9 · 0.7 = 6.3, as in the
+// trace.
 TEST(HudPrimitivesTest, TheNumberIsTheAgOfTheTrace)
 {
     SpriteBatch sprites;
@@ -99,7 +100,7 @@ TEST(HudPrimitivesTest, TheNumberIsTheAgOfTheTrace)
     }
     ASSERT_EQ(sprites.Commands().size(), 1u);
     EXPECT_EQ(sprites.Commands()[0].texture, Client::Ui::DigitsSlot);
-    // La x del final: el avance es 9 · 0,7f guardado en float (6,2999997), sumado en float cifra a cifra.
+    // The final x: the advance is 9 · 0.7f stored as float (6.2999997), summed in float digit by digit.
     const auto advance = static_cast<float>(9.0 * static_cast<double>(0.7f));
     float at = 548.5f;
     for (int i = 0; i < 5; ++i)
@@ -107,7 +108,7 @@ TEST(HudPrimitivesTest, TheNumberIsTheAgOfTheTrace)
     EXPECT_EQ(end, at);
 }
 
-// El '-' de un negativo es la cifra −3 del atlas (u = −0,1875), como en el original.
+// A negative's '-' is the atlas's digit −3 (u = −0.1875), as in the original.
 TEST(HudPrimitivesTest, TheMinusIsTheDigitMinusThree)
 {
     SpriteBatch sprites;
@@ -121,8 +122,8 @@ TEST(HudPrimitivesTest, TheMinusIsTheDigitMinusThree)
     EXPECT_EQ(CornersOf(sprites, 2).first.u, 0.125f);
 }
 
-// 0x5a6af0(575, 16, 50, 2, 48, verde, acotar) en 1024 × 768: la sombra, el marco aditivo, el fondo y lo lleno, con
-// los colores de la traza, y termina sin mezcla.
+// 0x5a6af0(575, 16, 50, 2, 48, green, clamp) in 1024 × 768: the shadow, the additive frame, the background and the
+// fill, with the trace's colors, and it ends without blending.
 TEST(HudPrimitivesTest, TheGaugeIsTheHelperOfTheTrace)
 {
     SpriteBatch sprites;
@@ -151,7 +152,7 @@ TEST(HudPrimitivesTest, TheGaugeIsTheHelperOfTheTrace)
     EXPECT_EQ(sprites.Blend(), BlendMode::Opaque);
 }
 
-// La roja de la vida del invocado: el marco (0,2; 0; 0), el fondo (50, 10, 0)/255 y lo lleno (200, 50, 0)/255.
+// The summon's red life gauge: the frame (0.2, 0, 0), the background (50, 10, 0)/255 and the fill (200, 50, 0)/255.
 TEST(HudPrimitivesTest, TheRedGaugeHasItsColors)
 {
     SpriteBatch sprites;
@@ -162,18 +163,18 @@ TEST(HudPrimitivesTest, TheRedGaugeHasItsColors)
     EXPECT_EQ(sprites.Vertices()[6].color, (Color{0.2f, 0.0f, 0.0f, 1.0f}));
     EXPECT_EQ(sprites.Vertices()[12].color, (Color{50.0f / 255.0f, 10.0f / 255.0f, 0.0f, 1.0f}));
     EXPECT_EQ(sprites.Vertices()[18].color, (Color{200.0f / 255.0f, 50.0f / 255.0f, 0.0f, 1.0f}));
-    // Lo lleno mide `fill` desde x + 2.
+    // The fill is `fill` wide from x + 2.
     ExpectRectangle(sprites, 3, {12.0f, 480.0f - 12.0f, 37.0f, 480.0f - 14.0f});
 }
 
-// Con `keepOnScreen`, la barra entra en (0..640, 0..433): lo negativo va a 0 y lo que pasa del borde queda a w + 5
-// (o h + 5) de él. Sin la bandera, queda donde se pidió.
+// With `keepOnScreen`, the gauge fits in (0..640, 0..433): a negative goes to 0 and what passes the edge ends w + 5
+// (or h + 5) from it. Without the flag, it stays where it was asked.
 TEST(HudPrimitivesTest, TheGaugeStaysOnTheScreen)
 {
     SpriteBatch sprites;
     sprites.Begin(Screen640);
     Client::Ui::DrawGauge(sprites, -5.0f, 430.0f, 50.0f, 2.0f, 0.0f, false, true);
-    // El marco (el quad 1) está en (x, y).
+    // The frame (quad 1) is at (x, y).
     ExpectRectangle(sprites, 1, {0.0f, 480.0f - 426.0f, 54.0f, 480.0f - 432.0f});
 
     sprites.Begin(Screen640);
@@ -185,8 +186,8 @@ TEST(HudPrimitivesTest, TheGaugeStaysOnTheScreen)
     ExpectRectangle(sprites, 1, {600.0f, 50.0f, 654.0f, 44.0f});
 }
 
-// 0x554340(100, 200, "abcd") en 640 × 480 con 6 × 13 por letra: el marco negro de un punto alrededor de (98, 197,
-// 28, 17), el fondo con alfa 0,8 en (99, 198, 26, 15), el texto blanco sobre transparente y la mezcla de antes.
+// 0x554340(100, 200, "abcd") in 640 × 480 with 6 × 13 per letter: the one-point black frame around (98, 197, 28, 17),
+// the background with alpha 0.8 at (99, 198, 26, 15), the white text on transparent and the previous blend.
 TEST(HudPrimitivesTest, TheHelpHasItsFrameAndGivesTheBlendBack)
 {
     SpriteBatch sprites;
@@ -210,7 +211,7 @@ TEST(HudPrimitivesTest, TheHelpHasItsFrameAndGivesTheBlendBack)
     EXPECT_EQ(background->blend, BlendMode::Alpha);
     EXPECT_EQ(background->texture, std::nullopt);
 
-    // El texto sale en blanco, con la textura prendida y el alpha test todavía apagado por los quads sin textura.
+    // The text comes out white, with the texture on and the alpha test still off from the untextured quads.
     ASSERT_EQ(text.texts.size(), 1u);
     EXPECT_EQ(text.texts[0].x, 100);
     EXPECT_EQ(text.texts[0].y, 200);
@@ -225,7 +226,7 @@ TEST(HudPrimitivesTest, TheHelpHasItsFrameAndGivesTheBlendBack)
     EXPECT_EQ(sprites.Blend(), BlendMode::Additive);
 }
 
-// El texto se mide en píxeles y el marco va en 640 × 480: en 1024 × 768, "abcd" mide 24 / 1,6 = 15.
+// The text is measured in pixels and the frame goes in 640 × 480: in 1024 × 768, "abcd" measures 24 / 1.6 = 15.
 TEST(HudPrimitivesTest, TheHelpMeasuresInPixels)
 {
     SpriteBatch sprites;
@@ -234,7 +235,7 @@ TEST(HudPrimitivesTest, TheHelpMeasuresInPixels)
 
     Client::Ui::DrawHelp(sprites, text, 100, 200, "abcd");
 
-    // El fondo: (99, 198, 15 + 2, 13 / 1,6 + 2), escalado.
+    // The background: (99, 198, 15 + 2, 13 / 1.6 + 2), scaled.
     const Corners background = CornersOf(sprites, 4);
     EXPECT_NEAR(background.first.x, 99.0f * 1.6f, 1e-4f);
     EXPECT_NEAR(background.third.x - background.first.x, 17.0f * 1.6f, 1e-4f);

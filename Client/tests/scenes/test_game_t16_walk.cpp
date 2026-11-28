@@ -72,7 +72,7 @@ protected:
         ASSERT_LE(pixel->y, 431);
         Client::Tests::MoveMouse(m_input, static_cast<int>(std::round(pixel->x)),
                                  static_cast<int>(std::round(pixel->y)));
-        // Publica el rayo real que consumirá MoveHero en el paso siguiente.
+        // Publishes the real ray that MoveHero consumes on the next step.
         ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
         ASSERT_TRUE(m_scene->MouseRay().has_value());
         Client::Tests::PressLeft(m_input);
@@ -88,7 +88,7 @@ protected:
         const auto steps = std::to_integer<unsigned int>(wire[5]) & 15u;
         ASSERT_EQ(wire.size(), 6u + (steps + 1u) / 2u);
         ASSERT_EQ(std::to_integer<std::size_t>(wire[1]), wire.size());
-        // Decodificador del fakeGS, independiente de WriteWalk/DirectionBetween productivos.
+        // The fakeGS decoder, independent of the production WriteWalk/DirectionBetween.
         constexpr std::array<int, 8> DeltaX{-1, 0, 1, 1, 1, 0, -1, -1};
         constexpr std::array<int, 8> DeltaY{-1, -1, -1, 0, 1, 1, 1, 0};
         int x = std::to_integer<int>(wire[3]);
@@ -133,7 +133,7 @@ protected:
                                                    packet.Bytes().size() == 4 && packet.Bytes()[3] == std::byte{0};
                                         }));
         Client::Tests::CharacterEntryFields entry{.slot = 0, .level = 400};
-        entry.equipment[4] = 3; // Sin mascota: no alcanza la frontera de helpers de selección.
+        entry.equipment[4] = 3; // No pet: it does not reach the boundary of the selection helpers.
         Receive(Client::Tests::CharacterListBytes({entry}), false);
         ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::ChoosingCharacter);
         Step();
@@ -147,10 +147,10 @@ protected:
         Draw();
         ASSERT_EQ(m_target.frames.size(), before + 1);
         EXPECT_TRUE(m_target.frames[before].presented);
-        EXPECT_EQ(m_target.frames[before].events.size(), 4u); // Mosaico real recién emitido.
+        EXPECT_EQ(m_target.frames[before].events.size(), 4u); // Real mosaic just emitted.
         Step();
         ASSERT_EQ(m_manager->Current(), Client::Kernel::SceneId::Game);
-        Step(); // GameScene pide F303 desde su primer paso, con la espera aún activa.
+        Step(); // GameScene asks for F303 from its first step, with the wait still active.
         const auto enter = Sent();
         EXPECT_TRUE(std::ranges::any_of(enter.packets,
                                         [](const auto& packet)
@@ -193,7 +193,7 @@ protected:
             << "target=" << m_world->Runtime().movement.targetX << "," << m_world->Runtime().movement.targetY
             << " hero=" << static_cast<int>(Hero().cellX) << "," << static_cast<int>(Hero().cellY)
             << " window=" << m_world->Runtime().mouse.updateTime << " max=" << m_world->Runtime().mouse.updateTimeMax;
-        // Oráculo literal de 04 § Caminar: los dos tramos elegidos son rectos sobre Data real.
+        // Literal oracle from 04 § Caminar: the two chosen stretches are straight on real Data.
         const auto expected = gate == 23 ? Client::Tests::Bytes({0xc1, 7, 0xd3, 215, 244, 0x52, 0x55})
                                          : Client::Tests::Bytes({0xc1, 8, 0xd3, 151, 6, 0x13, 0x11, 0x10});
         ASSERT_EQ(std::vector<std::byte>(walk->Bytes().begin(), walk->Bytes().end()), expected);
@@ -226,7 +226,7 @@ protected:
 
 TEST_F(GameT16Journey, RealClicksEchoesAndGateRectanglesTravelToNoriaAndBackBeforeReentry)
 {
-    // Gate 23 real: 213..217 × 246..247. El fakeGS elige una llegada cercana al gate 25 real.
+    // Real gate 23: 213..217 × 246..247. The fakeGS picks an arrival near the real gate 25.
     Teleport(0, 215, 244);
     ASSERT_EQ(m_online->session.State(), Client::Session::SessionState::InWorld);
     static_cast<void>(Sent());
@@ -276,7 +276,7 @@ protected:
             }
             else
             {
-                // MovePath fija XY al llegar; MoveHero ya no llama 508a80 y conserva la Z anterior.
+                // MovePath sets XY on arrival; MoveHero no longer calls 0x508a80 and keeps the previous Z.
                 EXPECT_FLOAT_EQ(Hero().position.z, previousHeight);
             }
             moved = moved || Hero().position != start;
@@ -302,26 +302,25 @@ protected:
     }
 };
 
-// En Lost Tower (World5) el 70..73 no tiene suelo (0x08 del .att); 205..208 × 87..90, al sur de la zona
-// segura, es suelo libre. En la Arena (World7), 62..65 × 47..50 es suelo libre fuera de la zona segura, con once
-// 0x15 (la V que corre) y cuatro 9 (el sprite del hueso 1) a menos de 1.500. En Atlans (World8), 226..229 ×
-// 103..106 es suelo libre fuera de la zona segura, con cinco 0x16 (las burbujas), siete 0x20 y cuatro 0x22 a menos
-// de 1.500 y 70 celdas con la capa 2 en el agua cerca. En Icarus (World11), 20..23 × 29..32 es el
-// bloque libre con más objetos cerca (76 a menos de 1.500), para que el paso por objeto (0x6063d0) y sus nubes corran.
-// En Aida (World34), 104..107 × 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y
-// 0x46 cerca. Land of Trials (World32) no tiene zona segura; 149..152 × 104..107 es suelo libre con ocho de sus tipos
-// con caso a menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces. Devil Square
-// (World10, también por el 32) no tiene zona segura; 122..125 × 174..177 es suelo libre con 38 del 2, que llueve. Los
-// Blood Castle (World12): 12..15 × 90..93 es suelo libre con cuatro 0xd (el sprite que pulsa) y cuatro 0x25 (las
-// antorchas) a menos de 1.500. En Castle Siege (World31), 65..68 × 130..133 es suelo libre (sin 0x04 ni 0x08 en el
-// .att) fuera de la niebla del 30, que queda apagada, y de la zona
-// segura: al final la cámara ve las antorchas 0 de (77, 133) y (67, 148)
-// y trece braseros 0x34 (los nueve de (60..61, 136..138), los tres de (59, 149..151) y el de (67, 137)), y el último
-// cuadro dibuja sus chispas 6ec/0 y sus caídas 6f4/6 (0x42c9f0). En Crywolf
-// (World35), con el estado 0 de la .bss, 128..131 × 30..33 es suelo libre (EncTerrain35.att, por
-// Data::Terrain::LoadTerrainAttributes) en la zona segura del fuerte; al final la cámara ve tres 0x29 (los sprites que
-// suben y bajan), cuatro 0x38 (los calcos 0x61d/3), 0x4a, 0x49 y los 0x52 ocultos. EncTerrain35.obj no trae ningún
-// 0x48: su humo 5f2/33 no sale con la Data del repo (CrywolfObjectServicesTest y CrywolfParticlesTest).
+// In Lost Tower (World5) 70..73 has no floor (0x08 of the .att); 205..208 × 87..90, south of the safe zone, is free
+// floor. In the Arena (World7), 62..65 × 47..50 is free floor outside the safe zone, with eleven 0x15 (the running V)
+// and four 9 (the bone 1 sprite) within 1500. In Atlans (World8), 226..229 × 103..106 is free floor outside the safe
+// zone, with five 0x16 (the bubbles), seven 0x20 and four 0x22 within 1500 and 70 cells with layer 2 in the water
+// nearby. In Icarus (World11), 20..23 × 29..32 is the free block with the most objects nearby (76 within 1500), so
+// that the per-object step (0x6063d0) and its clouds run. In Aida (World34), 104..107 × 165..168 is free floor
+// outside the safe zone, with 0x29 (the mesh 0 of 0x4255f3) and 0x46 nearby. Land of Trials (World32) has no safe
+// zone; 149..152 × 104..107 is free floor with eight of its types with a case within 1500, and the camera sees the 3
+// and the 0x35 that emit and the 0x34 that is drawn twice. Devil Square (World10, also via 32) has no safe zone;
+// 122..125 × 174..177 is free floor with 38 of the 2, which rains. The Blood Castles (World12): 12..15 × 90..93 is
+// free floor with four 0xd (the pulsing sprite) and four 0x25 (the torches) within 1500. In Castle Siege (World31),
+// 65..68 × 130..133 is free floor (no 0x04 or 0x08 in the .att) outside the fog of 30, which stays off, and outside
+// the safe zone: at the end the camera sees the 0 torches at (77, 133) and (67, 148) and thirteen 0x34 braziers (the
+// nine at (60..61, 136..138), the three at (59, 149..151) and the one at (67, 137)), and the last frame draws their
+// sparks 0x6ec/0 and their falls 0x6f4/6 (0x42c9f0). In Crywolf (World35), with state 0 of the .bss, 128..131 ×
+// 30..33 is free floor (EncTerrain35.att, via Data::Terrain::LoadTerrainAttributes) in the fort's safe zone; at the
+// end the camera sees three 0x29 (the sprites that go up and down), four 0x38 (the decals 0x61d/3), 0x4a, 0x49 and
+// the hidden 0x52. EncTerrain35.obj has no 0x48: its smoke 0x5f2/33 does not come out with the repo's Data
+// (CrywolfObjectServicesTest and CrywolfParticlesTest).
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
@@ -382,7 +381,7 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     }
     if (map == 30)
     {
-        // Las chispas de las antorchas (Effect\fantaF.jpg) y las caídas de los braseros (Effect\WATERFALL5.jpg).
+        // The torches' sparks (Effect\fantaF.jpg) and the braziers' falls (Effect\WATERFALL5.jpg).
         bool spark = false;
         bool fall = false;
         for (const auto& event : m_target.frames.back().events)
@@ -392,7 +391,7 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
                     spark |= command.state.texture->value == 0x6ec;
                     fall |= command.state.texture->value == 0x6f4;
                 }
-        // Fuera del rectángulo la niebla queda apagada en todos los tramos.
+        // Outside the rectangle the fog stays off on every stretch.
         for (const auto& event : m_target.frames.back().events)
             for (const auto& command : event.modelCommands)
                 EXPECT_FALSE(command.fog.has_value()) << command.firstVertex;
@@ -401,7 +400,7 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     }
 }
 
-// 0x42a760: la carga del 30 por el 1C manda el C1 04 B9 02 (XOR32) antes del F3 12 de 0x4c6e10.
+// 0x42a760: loading 30 through the 1C sends the C1 04 B9 02 (XOR32) before 0x4c6e10's F3 12.
 TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
 {
     static_cast<void>(Sent());
@@ -415,9 +414,9 @@ TEST_F(GameT16Journey, CastleSiegeAsksForItsStateBeforeConfirmingTheTeleport)
     EXPECT_EQ(sent.packets[1].Opcode(), Client::Network::Opcode{0xf3});
 }
 
-// 0x63741d..0x637490 y 0x6375ea..0x63763c (Q-C334, Q-C390): en Castle Siege, con el héroe en el rectángulo de la
-// niebla, todo el pase del mundo, también el pase en el ojo (0x6213e0), lleva la niebla negra lineal de 2.000 a
-// 2.700 de 0x42b0a0. 165 × 191 es suelo libre adentro, en el sudoeste, con el 0 y el 0x34 a más de 2.200.
+// 0x63741d..0x637490 and 0x6375ea..0x63763c (Q-C334, Q-C390): in Castle Siege, with the hero in the fog rectangle,
+// the whole world pass, the eye pass too (0x6213e0), carries 0x42b0a0's linear black fog from 2000 to 2700. 165 ×
+// 191 is free floor inside, in the southwest, with the 0 and the 0x34 more than 2200 away.
 TEST_F(GameT16Journey, CastleSiegeFogsTheWholeWorldPassInsideItsRectangle)
 {
     Teleport(30, 165, 191);
@@ -443,14 +442,14 @@ TEST_F(GameT16Journey, CastleSiegeFogsTheWholeWorldPassInsideItsRectangle)
             ++fogged;
         }
     }
-    // El pase del mundo y el pase en el ojo.
+    // The world pass and the eye pass.
     EXPECT_EQ(passes, 2u);
     EXPECT_GT(fogged, 0u);
 }
 
-// 0x635b3d, 0x5fb570 y 0x6371a0 (Q-C152): en la Arena, con "webzen" en el nombre del héroe, la cámara de
-// espectador: yaw −40, far 5.000 y D 3.200 desde el frame siguiente, sin leer la celda del héroe; el trapecio
-// es el propio, alrededor de (6.400; 15.400) con la z del héroe y girado −yaw. El cuadro es completo.
+// 0x635b3d, 0x5fb570 and 0x6371a0 (Q-C152): in the Arena, with "webzen" in the hero's name, the spectator camera:
+// yaw −40, far 5000 and D 3200 from the next frame, without reading the hero's cell; the trapezoid is its own, around
+// (6400; 15400) with the hero's z and rotated −yaw. The frame is complete.
 TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
 {
     Teleport(6, 62, 47);
@@ -480,16 +479,16 @@ TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
     EXPECT_EQ(m_states->camera.trapezoid.y, expected.Value().y);
 }
 
-// El Dungeon (World2) no tiene celdas con el bit 0x01 de la zona segura; los demás, sí.
+// The Dungeon (World2) has no cells with the safe zone bit 0x01; the others do.
 class GameT16SafeZoneWalk : public GameT16MapWalk
 {
 };
 TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvances)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    // La Arena (World7): 70..72 × 139 es suelo libre de la zona segura. Atlans (World8): la zona segura va de x 11
-    // a 34 e y 8 a 28; 13..15 × 17 es suelo libre. Tarkan (World9): la zona segura va de x
-    // 155 a 251 e y 28 a 97; 206..208 × 56 es suelo libre. Los Blood Castle (World12): 12..14 × 3.
+    // The Arena (World7): 70..72 × 139 is free floor of the safe zone. Atlans (World8): the safe zone goes from x 11 to
+    // 34 and y 8 to 28; 13..15 × 17 is free floor. Tarkan (World9): the safe zone goes from x 155 to 251 and y 28 to
+    // 97; 206..208 × 56 is free floor. The Blood Castles (World12): 12..14 × 3.
     constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 70, 13, 206};
     constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 139, 17, 56};
     const bool bloodCastle = map >= 11 && map <= 17;
@@ -528,11 +527,11 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
     RecordProperty("border_scope", "real outer wall/picking rejection; no fabricated traversable border");
 }
 
-// Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4c7b34 (los comandos, CL9.4).
-// El castillo, 23..44 × 75..108, es zona segura en el .att; 30..33 × 90..93 queda en el medio, con los veintidós 3
-// de las paredes a la vista. La trampa armada de la .data (0x6c634d) prende el primer 3 visto (0x4055b0), que en el
-// dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4; después el preludio
-// (0x405490) elige otros. Las nubes del 7 al 0xc que se ven sueltan sus 622 y se esconden.
+// Chaos Castle (World19 for 18 to 23) enters through the F3 04: the 1C stops at 0x4c7b34 (the commands, CL9.4). The
+// castle, 23..44 × 75..108, is safe zone in the .att; 30..33 × 90..93 is in the middle, with the twenty-two 3 of the
+// walls in view. The armed trap of the .data (0x6c634d) lights the first 3 seen (0x4055b0), which on the next drawing
+// releases its 0x615/2 from bone 1 (0x405d49) and lowers the count to 4; then the prelude (0x405490) chooses others.
+// The clouds from 7 to 0xc in view release their 0x622 and hide.
 class GameT16ChaosCastleWalk : public GameT16MapWalk
 {
 };
@@ -555,17 +554,18 @@ TEST_P(GameT16ChaosCastleWalk, RegenWalksInsideTheCastleAndTheArmedTrapFires)
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y + 3));
     EXPECT_EQ(m_world->Runtime().chaosCastleTrapArmed, 0);
-    // Un 3 que disparó baja +0x60 desde 10 en cada frame; el preludio vuelve a elegir alguno de los vistos.
+    // A 3 that fired lowers +0x60 from 10 each frame; the prelude picks one of the seen ones again.
     EXPECT_TRUE(std::ranges::any_of(
         m_world->Map().objects, [](const auto& object)
         { return object.alive && object.type == 3 && object.field60 >= 4 && object.field60 < 10; }));
-    // Las nubes vistas (6 a 0xc) sueltan sus 622 una vez y quedan escondidas.
+    // The seen clouds (6 to 0xc) release their 0x622 once and stay hidden.
     EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects,
                                     [](const auto& object) {
                                         return object.alive && object.seen && object.type >= 6 && object.type <= 0xc &&
                                                object.state.hiddenMesh == -2;
                                     }));
-    // El héroe va con el Angel (0x1f7) y su cromo: 0x609640 con 6 pasa la malla 0 con 0x46 por Chrome01 (0x5c0).
+    // The hero goes with the Angel (0x1f7) and its chrome: 0x609640 with 6 passes mesh 0 with 0x46 through Chrome01
+    // (0x5c0).
     ASSERT_FALSE(m_target.frames.empty());
     bool chrome = false;
     for (const auto& event : m_target.frames.back().events)

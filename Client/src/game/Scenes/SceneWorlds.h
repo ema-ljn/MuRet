@@ -6,9 +6,9 @@
 #include <array>
 #include <optional>
 
-// El mundo de cada escena como dato (CL5.4): el mapa que pone el original al entrar, que la escena
-// le pasa al pase 3D (IWorldView). Desde la CL7, el pase 3D dibuja cualquier mapa con él, con su
-// carpeta de Maps::WorldFolder: ninguna escena nombra un mundo en su código.
+// Each scene's world as data: the map the original sets on entering, which the scene passes to the 3D pass
+// (IWorldView). The 3D pass draws any map with it, with its Maps::WorldFolder folder: no scene names a world in its
+// code.
 namespace Client::Scenes
 {
 struct SceneWorldEntry
@@ -17,15 +17,13 @@ struct SceneWorldEntry
     Render::Frame::SceneWorld world;
 };
 
-// El login, el 55 (0x6349b2, en 0x6349a0: World56) y la selección, el 54 (0x633f44, en 0x633f20:
-// World55). Las demás no tienen uno fijo: la carga no dibuja un mundo, y el de la carga del mundo
-// y el del juego lo manda el servidor.
+// The login, the 55 (0x6349b2, in 0x6349a0: World56) and the selection, the 54 (0x633f44, in 0x633f20: World55). The
+// others have no fixed one: the loading draws no world, and the server sends the world loading's and the game's.
 inline constexpr std::array<SceneWorldEntry, 2> SceneWorlds = {{
     {.scene = Kernel::SceneId::Login, .world = {.map = 55}},
     {.scene = Kernel::SceneId::CharacterSelect, .world = {.map = 54}},
 }};
 
-// El mundo de `scene` en la tabla, o vacío.
 [[nodiscard]] constexpr std::optional<Render::Frame::SceneWorld> WorldOf(Kernel::SceneId scene)
 {
     for (const SceneWorldEntry& entry : SceneWorlds)

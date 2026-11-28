@@ -47,7 +47,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <chrono> // IWYU pragma: keep — los literales de chrono_literals no los ve include-cleaner.
+#include <chrono> // IWYU pragma: keep — include-cleaner does not see the chrono_literals literals.
 #include <initializer_list>
 #include <memory>
 #include <utility>
@@ -172,7 +172,7 @@ TEST_F(SharedGameCameraTest, IntermediateDrawsAndLogicStepsDoNotConsumeCameraFra
     selection.Leave();
 }
 
-// ADR0005: el primer dibujo de cada entrada cuenta un frame; el carry de otra entrada no se recupera.
+// ADR0005: each entry's first draw counts one frame; the carry of another entry is not recovered.
 TEST_F(SharedGameCameraTest, DecoupledReentryStartsOneFrameAndPreservesTheCameraState)
 {
     m_camera.zoom = 210.0f;
@@ -226,7 +226,7 @@ TEST_F(SharedGameCameraTest, TheGameOnlyWritesTheYawInItsFirstLogicStep)
     m_camera.distance = 3200.0f;
     m_camera.zoom = 210.0f;
     m_camera.fixedHeight = 1201.0f;
-    // El juego no entra sin la espera (el WorldState) ni el rand() que gastan sus cierres.
+    // The game does not enter without the wait (the WorldState) and the rand() its closures spend.
     Client::Models::ClothWorld cloth;
     Client::Kernel::WorldState world;
     auto context = Context();
@@ -253,7 +253,7 @@ TEST_F(SharedGameCameraTest, SelectionWaitsForTheListThenDrawsEvenWhenTheReceive
     m_cameraInput.hero = {17500.0f, 20000.0f, 165.0f};
     Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
-    // La sesión está esperando F3/00: no hay consumo del carry/cámara todavía.
+    // The session is waiting for F3/00: no carry or camera is consumed yet.
     for (auto clock : {0ns, std::chrono::duration_cast<Client::Core::Duration>(1s)})
     {
         selection.Render(m_target.BeginFrame(clock), 0.0f);
@@ -266,7 +266,7 @@ TEST_F(SharedGameCameraTest, SelectionWaitsForTheListThenDrawsEvenWhenTheReceive
     online.ReceiveTheList({});
     selection.Step(Client::Input::InputState{});
     EXPECT_EQ(m_cameraInput.hero.z, 165.0f);
-    // El primer dibujo llega más tarde que la última espera, sin recuperar ese tiempo.
+    // The first draw comes later than the last wait, without recovering that time.
     EXPECT_EQ(Frame(selection, 2s).farPlane, 3000.0f);
     EXPECT_EQ(m_camera.zoom, 200.0f);
     EXPECT_NE(m_camera.distance, 3200.0f);
@@ -286,7 +286,7 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     online.ReceiveTheList({{0, "char0001"}});
     ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
-    // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
+    // 0x5172c4/0x5172ca: 0x517270's writes to slot0, which Hero points to.
     EXPECT_EQ(m_cameraInput.hero.x, Client::FrontEnd::CharacterSlots[0].position.x);
     EXPECT_EQ(m_cameraInput.hero.y, Client::FrontEnd::CharacterSlots[0].position.y);
     EXPECT_EQ(Frame(selection, 0ns).farPlane, Client::Camera::SelectionCamera().farPlane);
@@ -297,7 +297,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
 {
     const auto expected =
         Client::Render::MakePass3D({640, 480}, Client::Camera::WorldViewport, Client::Camera::SelectionCamera());
-    // Z sintéticas para aislar el cálculo de cámara; ninguna representa la Z original del actor.
+    // Synthetic Z values to isolate the camera computation; none is the actor's original Z.
     for (float initialZ : {-10000.0f, 1000000.0f})
     {
         m_camera = {};
@@ -311,7 +311,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         online.ReceiveTheList({{0, "char0001"}});
         ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
         selection.Step(Client::Input::InputState{});
-        // Se aísla Z después de la construcción real, que ya escribió el XY de selección.
+        // Z is isolated after the real build, which already wrote the selection's XY.
         m_cameraInput.hero.z = initialZ;
         const auto drawn = Frame(selection, 0ns);
         EXPECT_EQ(drawn.view, expected.view);
@@ -342,7 +342,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     EXPECT_EQ(m_cameraInput.hero, Client::Camera::LoginHeroPosition);
     login.Leave();
 
-    // La misma lista vuelve a llegar: la igualdad visual no elimina esta construcción real.
+    // The same list arrives again: the visual equality does not skip this real build.
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     ASSERT_TRUE(selection.Enter().HasValue());
     EXPECT_TRUE(selection.HoldsTheLastFrame());
@@ -417,7 +417,7 @@ TEST_F(SharedGameCameraTest, TheFixedHeightIsSharedWithHeightQueriesAndTerrainVe
     static_cast<void>(StepGameCamera(m_camera, input));
     check(1201.0f);
 }
-// D grande permite observar el tope de 64; con D normal ya habría convergido antes.
+// A large D makes the cap of 64 observable; with a normal D it would have converged earlier.
 TEST_F(SharedGameCameraTest, ALongDrawUsesTheExistingOriginalFrameLimit)
 {
     m_camera.distance = 0x1p100f;

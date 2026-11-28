@@ -15,38 +15,39 @@
 #include <optional>
 #include <span>
 
-// Los créditos del login (+0x4578, vtable 0x6ba848; CL8, hito 8; 06 § Los créditos): los arma 0x63f020
-// (desde 0x65f300, al armar la UI del login), los ubica 0x63f3a0, los abre 0x63f5a0 (y 0x63fbf0 los
-// empieza), los atiende 0x63f630 y los dibuja 0x63f6b0. De toda la pantalla, negra y opaca, con dos
-// ilustraciones que se funden (0x63fe20), el adorno, el logo, tres renglones de texto de credit.bmd que
-// tres barras negras tapan y destapan (0x6400b0, 0x63ffe0) y el botón de cerrar. La ilustración y las
-// barras van en el espacio de 800 × 600 (W / 800 y H / 600 en float); el adorno y el botón, en píxeles.
+// The login's credits (+0x4578, vtable 0x6ba848; CL8, milestone 8; 06 § Los créditos): 0x63f020 builds them
+// (from 0x65f300, when building the login UI), 0x63f3a0 places them, 0x63f5a0 opens them (and 0x63fbf0
+// starts them), 0x63f630 handles them and 0x63f6b0 draws them. Full-screen, black and opaque, with two
+// illustrations that fade (0x63fe20), the ornament, the logo, three rows of text from credit.bmd that
+// three black bars cover and uncover (0x6400b0, 0x63ffe0) and the close button. The illustration and the
+// bars go in the 800 × 600 space (W / 800 and H / 600 as floats); the ornament and the button, in pixels.
 namespace Client::FrontEnd
 {
-// Lo que pasó al abrirlos o en un paso: cada cierre (0x63f9a0) y la ilustración que se cargó (0x63fc50).
+// What happened when opening them or in a step: each close (0x63f9a0) and the illustration that was loaded
+// (0x63fc50).
 struct CreditsStep
 {
-    // 0x63f9a0: 0x65f6c0, el C1 04 F4 06 al ConnectServer y la música (0x4acf60 con Mutheme.mp3 y
-    // 0x4acfd0 con main_theme.mp3). Un paso puede cerrarlos dos veces: con el botón o Esc, y otra al llegar
-    // al final de la tabla en el mismo paso.
+    // 0x63f9a0: 0x65f6c0, C1 04 F4 06 to the ConnectServer and the music (0x4acf60 with Mutheme.mp3 and
+    // 0x4acfd0 with main_theme.mp3). A step can close them twice: with the button or Esc, and again on
+    // reaching the end of the table in the same step.
     int closes = 0;
-    // 0x63ffe0: al terminar la tabla, suena el 0x19 antes del F4 06.
+    // 0x63ffe0: when the table ends, 0x19 sounds before F4 06.
     bool buttonClickSound = false;
-    // 0x63fc50 con +0x5c8: la escena sube Interface\im{n + 1}_1.jpg y _2.jpg en 0x6f8 y 0x6f9.
+    // 0x63fc50 with +0x5c8: the scene uploads Interface\im{n + 1}_1.jpg and _2.jpg into 0x6f8 and 0x6f9.
     std::optional<std::uint8_t> illustration;
 
     friend bool operator==(const CreditsStep&, const CreditsStep&) = default;
 };
 
-// Dónde va cada cosa, en píxeles salvo lo que se dice.
+// Where each thing goes, in pixels unless stated.
 struct CreditsLayout
 {
-    // W / 800 y H / 600, guardados en float (fild, fmul por el float de 0x6ba884 y 0x6ba880, fstp).
+    // W / 800 and H / 600, stored as floats (fild, fmul by the float of 0x6ba884 and 0x6ba880, fstp).
     float scaleX = 1.0f;
     float scaleY = 1.0f;
-    // 0x63f3a0: (W − 189, _ftol(H · 0,878333f) − 103), con el float de 0x6ba888.
+    // 0x63f3a0: (W − 189, _ftol(H · 0.878333f) − 103), with the float of 0x6ba888.
     Ui::Rect deco;
-    // A (122, 63) del adorno.
+    // At (122, 63) of the ornament.
     Ui::Rect close;
 };
 
@@ -55,35 +56,35 @@ struct CreditsLayout
 class CreditsWindow final : public Ui::NewUiWindow
 {
 public:
-    // `credits`: la tabla de credit.bmd (GameData), que tiene que vivir más que la ventana.
+    // `credits`: the credit.bmd table (GameData), which has to outlive the window.
     CreditsWindow(Ui::TextureSizes sizes, std::span<const Tables::CreditEntry> credits);
 
-    // 0x63f020: las barras opacas (0x647050 con alfa 0xff) y el botón; cerrada. No toca los índices de
-    // los renglones: en el original son de la ventana, que vive en la .bss del administrador.
+    // 0x63f020: the opaque bars (0x647050 with alpha 0xff) and the button; closed. It does not touch the
+    // rows' indices: in the original they belong to the window, which lives in the manager's .bss.
     void Arm();
 
-    // 0x63f5a0 con 1 y 0x63fbf0: la primera ilustración, los tres renglones en 1 y el primer grupo
-    // (0x63ffe0), que con la tabla vacía (o un 0 al principio) los vuelve a cerrar.
+    // 0x63f5a0 with 1 and 0x63fbf0: the first illustration, the three rows at 1 and the first group
+    // (0x63ffe0), which with an empty table (or a 0 at the start) closes them again.
     CreditsStep Open();
-    // 0x63f5a0 con 0: cerrada y la ilustración quieta (+0x5b8 en 0).
+    // 0x63f5a0 with 0: closed and the illustration still (+0x5b8 at 0).
     void Close() override;
     [[nodiscard]] bool IsOpen() const override;
     [[nodiscard]] Ui::Rect Bounds(Core::PixelSize screen) const override;
 
-    // El botón (0x63c490) y, con el foco, 0x63f630 con los `elapsedMs` del paso.
+    // The button (0x63c490) and, with the focus, 0x63f630 with the step's `elapsedMs`.
     CreditsStep Step(const Input::InputState& input, Core::PixelSize screen, double elapsedMs, Ui::NewUiTurn turn = {});
-    // 0x66a050 y 0x63f6b0.
+    // 0x66a050 and 0x63f6b0.
     void Draw(Render::SpriteBatch& sprites, Render::Frame::ITextDrawer& text, Core::PixelSize screen);
 
     [[nodiscard]] const Ui::Button& CloseButton() const;
-    // +0x5b8, +0x5c8 y el alfa de las dos ilustraciones (+0xa0 y +0x148).
+    // +0x5b8, +0x5c8 and the alpha of the two illustrations (+0xa0 and +0x148).
     [[nodiscard]] int IllustrationState() const;
     [[nodiscard]] std::uint8_t Illustration() const;
     [[nodiscard]] std::uint8_t IllustrationAlpha() const;
-    // +0x39c0..+0x39c8 y el alfa de las tres barras (+0x340, +0x3e8 y +0x490).
+    // +0x39c0..+0x39c8 and the alpha of the three bars (+0x340, +0x3e8 and +0x490).
     [[nodiscard]] int RowState(std::size_t row) const;
     [[nodiscard]] std::uint8_t BarAlpha(std::size_t row) const;
-    // +0x39a8, +0x39ac, +0x39b0.. y +0x39a4: los registros que se muestran; +0x39a0, el que sigue.
+    // +0x39a8, +0x39ac, +0x39b0.. and +0x39a4: the records shown; +0x39a0, the next one.
     [[nodiscard]] std::size_t TitleIndex() const;
     [[nodiscard]] std::size_t RoleIndex() const;
     [[nodiscard]] std::span<const std::size_t> NameIndices() const;
@@ -96,7 +97,7 @@ private:
     void LoadTheIllustration(CreditsStep& step);
     // 0x63ffe0.
     void NextGroup(CreditsStep& step);
-    // 0x6400b0 y 0x63fe20.
+    // 0x6400b0 and 0x63fe20.
     void StepRow(std::size_t row, double elapsedMs, CreditsStep& step);
     void StepIllustration(double elapsedMs, CreditsStep& step);
     [[nodiscard]] std::uint8_t KindAt(std::size_t index) const;

@@ -29,7 +29,7 @@ Core::Expected<ConnectProgress, SocketError> FakeSocket::StartConnect(std::strin
         Close();
     }
     connects.push_back(Session::ServerAddress{.host = std::string(host), .port = port});
-    // Como en SystemSocket, un nombre que no resuelve no llega a crear el socket.
+    // As in SystemSocket, a name that does not resolve never gets to create the socket.
     if (connectResult == SocketError::ResolveFailed)
     {
         return Finish();
@@ -141,7 +141,7 @@ int FakeSocket::LastSystemError() const
     return systemError;
 }
 
-// El connect termina como dice el guion, y el resultado queda guardado.
+// The connect ends as the script says, and the result is kept.
 Core::Expected<ConnectProgress, SocketError> FakeSocket::Finish()
 {
     if (connectResult)

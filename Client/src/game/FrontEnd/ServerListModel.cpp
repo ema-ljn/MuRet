@@ -16,29 +16,29 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// La tabla de 25 de 0x4c1860, en la pila: el lugar de g es 23 menos esto.
+// The table of 25 of 0x4c1860, on the stack: g's slot is 23 minus this.
 constexpr std::array<int, ServerGroupCount> SlotTable{0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 14, 20,
                                                       15, 16, 17, 18, 11, 12, 13, 19, 21, 22, 23, 24};
 constexpr int SlotBase = 23;
-// El grupo 12 va al lugar 24, y no al 3 de la tabla.
+// Group 12 goes to slot 24, not to the table's 3.
 constexpr std::uint16_t LastSlotGroup = 12;
 
 constexpr std::uint16_t CodesPerGroup = 20;
 
-// Los textos de los nombres (0x4c1860): 0x76e4aac + 300 · g es el 540 + g.
+// The name texts (0x4c1860): 0x76e4aac + 300 · g is 540 + g.
 constexpr std::size_t FirstGroupNameText = 540;
 constexpr std::size_t GroupTwelveText = 559;
 constexpr std::size_t GroupNineteenText = 552;
 constexpr std::size_t GroupTwentyText = 1829;
 
-// Los de la carga (0x645860): 0x230, 0x231 y 0x232.
+// The load ones (0x645860): 0x230, 0x231 and 0x232.
 constexpr std::size_t FullLoadText = 560;
 constexpr std::size_t BusyLoadText = 561;
 constexpr std::size_t FreeLoadText = 562;
 constexpr std::uint8_t BusyLoad = 100;
 constexpr std::uint8_t FullLoad = 128;
 
-// 0x447c70: el 1 y el 15, salvo en el lugar 4.
+// 0x447c70: 1 and 15, except in slot 4.
 constexpr int FirstNonPvpNumber = 1;
 constexpr int SecondNonPvpNumber = 15;
 constexpr int PvpSlot = 4;
@@ -67,7 +67,7 @@ std::optional<int> GroupSlot(std::uint16_t group)
 
 ServerGroups GroupServers(std::span<const Protocol::Session::ServerEntry> list)
 {
-    // Por lugar, para que salgan en el orden de la pantalla.
+    // By slot, so they come out in the screen's order.
     std::map<int, ServerGroup> bySlot;
     ServerGroups grouped;
     for (const Protocol::Session::ServerEntry& entry : list)

@@ -56,9 +56,9 @@
 #include <utility>
 #include <vector>
 
-// Los diálogos del juego en el paso (CL8 hito 6): el despacho de 0x623f78, el menú de Esc con sus salidas (el F3 30
-// de 0x61c210, Macro.txt y el C3 F1 02), las opciones (0x93), las cajas con botones y el OK genérico. Textos
-// inventados; el mundo, en Lorencia (0) y en Devias (2).
+// The game's dialogs in the step (CL8 milestone 6): the dispatch of 0x623f78, the Esc menu with its exits (the F3 30
+// of 0x61c210, Macro.txt and the C3 F1 02), the options (0x93), the boxes with buttons and the generic OK. Made-up
+// texts; the world in Lorencia (0) and in Devias (2).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -82,11 +82,11 @@ public:
     std::function<void(Client::Audio::SoundId)> onSound;
 };
 
-// 0x61c210: el registro propio abierto y cerrado.
+// 0x61c210: the own record opened and closed.
 constexpr int OptionDataRandoms = 3848;
-// El C3 F1 02: el relleno y el serial.
+// The C3 F1 02: the padding and the serial.
 constexpr int LogoutRandoms = 2;
-// 0x623fdf: la y de cada botón del menú, (6 + 3i) · 10, y una x adentro.
+// 0x623fdf: the y of each menu button, (6 + 3i) · 10, and an x inside.
 constexpr std::int32_t MenuX = 0x110;
 constexpr std::int32_t ExitGameY = 65;
 constexpr std::int32_t AnotherServerY = 95;
@@ -114,7 +114,6 @@ public:
     }
 };
 
-// Lo que piden los botones, en su orden.
 struct Request
 {
     std::string kind;
@@ -144,7 +143,7 @@ public:
             bytes.push_back(std::to_integer<std::uint8_t>(value));
         requests.push_back({"guild", std::move(bytes), {}});
     }
-    // El paquete como sale (sin el XOR32) y si va en C3.
+    // The packet as it goes out (without the XOR32) and whether it goes in C3.
     void SendGamePacket(Client::Protocol::Outgoing outgoing) override
     {
         if (onGamePacket)
@@ -205,7 +204,6 @@ public:
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
         runtime.map = map;
         runtime.dialogs.current = Client::Ui::EscapeMenuDialog;
-        // Las teclas del elegido: el lugar 0 con la tecla 3 y el 2 con la 0; los demás sin tecla.
         auto& keys = world.OwnCharacter().skillKeys[ChosenSlot];
         keys.fill(0xff);
         keys[0] = 3;
@@ -241,7 +239,7 @@ public:
     RecordingRequests requests;
 };
 
-// 0x61c210: [tecla] el byte de la skill de su lugar, [10] las banderas, [11..13] Q, W y E, [14] el registro.
+// 0x61c210: [key] the skill byte of its slot, [10] the flags, [11..13] Q, W and E, [14] the chat log.
 TEST(GameDialogStepsTest, TheOptionBodyCarriesTheKeysTheFlagsTheSlotsAndTheChatWindow)
 {
     SteppingDialogs tested(Lorencia);
@@ -272,7 +270,7 @@ TEST(GameDialogStepsTest, TheOptionBodyCarriesTheKeysTheFlagsTheSlotsAndTheChatW
     EXPECT_EQ(bytes[15], 0);
 }
 
-// Q-C551: el registro sin su lugar va con 0 renglones, y la transparencia 0,7 que dejó un F3 30 vuelve como 6.
+// Q-C551: the chat log without its place goes with 0 lines, and the 0.7 transparency an F3 30 left comes back as 6.
 TEST(GameDialogStepsTest, TheChatWindowLosesItsRowsWithoutPlaceAndTruncatesTheAlpha)
 {
     SteppingDialogs tested(Devias);
@@ -300,7 +298,7 @@ TEST(GameDialogStepsTest, TheOptionBodyCutsWithoutAChosenSlotOrWithAKeyOutsideTh
     EXPECT_NE(outside.Error().find("0x61c2e8"), std::string::npos);
 }
 
-// 0x624036: el log, el F3 30, Macro.txt y el C3 F1 02 con 0; 3.848 + 2 rand(), y el menú se cierra.
+// 0x624036: the log, the F3 30, Macro.txt and the C3 F1 02 with 0; 3848 + 2 rand(), and the menu closes.
 TEST(GameDialogStepsTest, ExitingTheGameSavesTheOptionsAndAsksToQuit)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -325,7 +323,7 @@ TEST(GameDialogStepsTest, ExitingTheGameSavesTheOptionsAndAsksToQuit)
     }
 }
 
-// 0x6247ee: otro servidor pide la salida antes de guardar las opciones.
+// 0x6247ee
 TEST(GameDialogStepsTest, AnotherServerAsksToLeaveBeforeSavingTheOptions)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -342,7 +340,7 @@ TEST(GameDialogStepsTest, AnotherServerAsksToLeaveBeforeSavingTheOptions)
     }
 }
 
-// 0x624eec: otro personaje guarda las opciones y pide la vuelta a la selección.
+// 0x624eec
 TEST(GameDialogStepsTest, AnotherCharacterSavesTheOptionsAndAsksForTheSelection)
 {
     SteppingDialogs tested(Devias);
@@ -352,7 +350,7 @@ TEST(GameDialogStepsTest, AnotherCharacterSavesTheOptionsAndAsksForTheSelection)
               std::vector<std::uint8_t>{Client::Protocol::Session::LogoutReturnsToSelection});
 }
 
-// Con la caja del caos abierta, el 592 de error en vez del F1 02, sin sus dos rand().
+// With the chaos box open, the error 592 instead of the F1 02, without its two rand().
 TEST(GameDialogStepsTest, TheChaosBoxKeepsThePlayerInTheGame)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -373,7 +371,7 @@ TEST(GameDialogStepsTest, TheChaosBoxKeepsThePlayerInTheGame)
     }
 }
 
-// 0x625538: las opciones reemplazan al menú.
+// 0x625538: the options replace the menu.
 TEST(GameDialogStepsTest, TheOptionsButtonOpensTheOptions)
 {
     SteppingDialogs tested(Lorencia);
@@ -383,7 +381,7 @@ TEST(GameDialogStepsTest, TheOptionsButtonOpensTheOptions)
     EXPECT_TRUE(tested.requests.requests.empty());
 }
 
-// 0x625563: las filas de las opciones cambian lo suyo con el clic.
+// 0x625563
 TEST(GameDialogStepsTest, TheOptionRowsToggleTheirSettings)
 {
     SteppingDialogs tested(Devias);
@@ -396,17 +394,17 @@ TEST(GameDialogStepsTest, TheOptionRowsToggleTheirSettings)
     ASSERT_TRUE(tested.Click(0x110, 0x96).HasValue());
     EXPECT_FALSE(runtime.chat.slidesOn);
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
-    // Fuera de las filas, nada.
+    // Outside the rows, nothing.
     ASSERT_TRUE(tested.Click(0x17c, 0x3c).HasValue());
     EXPECT_FALSE(runtime.ui.autoAttack);
-    // Cerrar pasa al que espera.
+    // Closing goes on to the pending one.
     runtime.dialogs.pending = 0x8b;
     ASSERT_TRUE(tested.Click(0x110, 0xe8).HasValue());
     EXPECT_EQ(runtime.dialogs.current, 0x8b);
     EXPECT_EQ(runtime.dialogs.pending, 0);
 }
 
-// 0x6258e7..0x6258fa frente a 0x628280..0x6282c3: las opciones suenan antes de cerrar; el OK, después.
+// 0x6258e7..0x6258fa versus 0x628280..0x6282c3: the options sound before closing; the OK, after.
 TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialogOrder)
 {
     for (const bool options : {true, false})
@@ -437,7 +435,7 @@ TEST(GameDialogStepsTest, OptionsAndGenericOkKeepTheirNativeSoundAndPendingDialo
     }
 }
 
-// 0x628299 destruye el audio sincrónicamente antes del intento de sonido de 0x6282c3.
+// 0x628299 destroys the audio synchronously before the sound attempt of 0x6282c3.
 TEST(GameDialogStepsTest, QuittingOkDialogsKeepTheCloseStateWithoutAnAudibleClick)
 {
     for (const std::int32_t id : {0x70, 0x6f, 0x1a, 0x1c})
@@ -466,7 +464,7 @@ TEST(GameDialogStepsTest, QuittingOkDialogsKeepTheCloseStateWithoutAnAudibleClic
     }
 }
 
-// Q-C550: volver deja el menú esperando y las opciones abiertas, hasta cerrarlas.
+// Q-C550: going back leaves the menu waiting and the options open, until they are closed.
 TEST(GameDialogStepsTest, GoingBackLeavesTheMenuWaitingBehindTheOptions)
 {
     SteppingDialogs tested(Lorencia);
@@ -479,7 +477,7 @@ TEST(GameDialogStepsTest, GoingBackLeavesTheMenuWaitingBehindTheOptions)
     EXPECT_EQ(runtime.dialogs.current, Client::Ui::EscapeMenuDialog);
 }
 
-// 0x62568a: el clic en la barra la agarra y vuelve a prender el clic; la rueda suma y resta entre 0 y 9.
+// 0x62568a: the click on the bar grabs it and turns the click back on; the wheel adds and subtracts between 0 and 9.
 TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
 {
     SteppingDialogs tested(Devias);
@@ -494,7 +492,7 @@ TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
     EXPECT_TRUE(runtime.mouse.pendingClick);
     EXPECT_EQ(runtime.ui.volumeRequest, -1045);
 
-    // Agarrada, el mouse fuera de su alto todavía la mueve; sin el clic, la suelta.
+    // Grabbed, the mouse outside its height still moves it; without the click, it lets go.
     ASSERT_TRUE(tested.Dialogs(0x140 + 0x31, 0x79).HasValue());
     EXPECT_EQ(runtime.ui.volume, 9);
     runtime.mouse.pendingClick = false;
@@ -510,7 +508,7 @@ TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
     ASSERT_TRUE(tested.Dialogs(0x110, 0x78).HasValue());
     EXPECT_EQ(runtime.ui.volume, 8);
     EXPECT_EQ(runtime.ui.volumeRequest, -193);
-    // Con el mouse fuera de la fila, la rueda queda.
+    // With the mouse outside the row, the wheel stays.
     runtime.ui.wheel = -1;
     ASSERT_TRUE(tested.Dialogs(0x110, 0x77).HasValue());
     EXPECT_EQ(runtime.ui.wheel, -1);
@@ -520,7 +518,7 @@ TEST(GameDialogStepsTest, TheVolumeBarAndTheWheelSetTheVolume)
     EXPECT_EQ(runtime.ui.volumeRequest, -10000);
 }
 
-// 0x625856: el brillo toma la casilla con el clic y no lo gasta ni suena.
+// 0x625856: the glow takes the box on click and neither spends the click nor sounds.
 TEST(GameDialogStepsTest, TheGlowBoxesKeepTheClick)
 {
     SteppingDialogs tested(Lorencia);
@@ -534,7 +532,8 @@ TEST(GameDialogStepsTest, TheGlowBoxesKeepTheClick)
     EXPECT_EQ(runtime.ui.glowDetail, 0);
 }
 
-// 0x6263df: el OK genérico cierra con su botón o con Enter, que se apaga; los que cierran el juego mandan WM_DESTROY.
+// 0x6263df: the generic OK closes with its button or with Enter, which turns off; the ones that close the game send
+// WM_DESTROY.
 TEST(GameDialogStepsTest, TheGenericOkClosesWithItsButtonOrEnter)
 {
     SteppingDialogs tested(Devias);
@@ -556,7 +555,7 @@ TEST(GameDialogStepsTest, TheGenericOkClosesWithItsButtonOrEnter)
     EXPECT_EQ(runtime.dialogs.current, 0);
 }
 
-// 0x62d756: las cajas con botones cierran con un botón o con Enter.
+// 0x62d756
 TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
 {
     SteppingDialogs tested(Lorencia);
@@ -577,8 +576,8 @@ TEST(GameDialogStepsTest, TheBoxesCloseWithAButtonOrEnter)
     EXPECT_FALSE(runtime.ui.enterPressed);
 }
 
-// 0x62a7f7 y 0x62bb1d: el sí de la invitación a la party (0x77) gasta el clic, manda el C1 05 41 01 con la clave de
-// 0x78aba4c en C3 (dos rand()) y cierra (0x62c4ac).
+// 0x62a7f7 and 0x62bb1d: the yes to the party invitation (0x77) spends the click, sends the C1 05 41 01 with the key
+// of 0x78aba4c in C3 (two rand()) and closes (0x62c4ac).
 TEST(GameDialogStepsTest, YesToThePartyInvitationSendsTheAnswerInC3)
 {
     SteppingDialogs tested(Lorencia);
@@ -597,7 +596,8 @@ TEST(GameDialogStepsTest, YesToThePartyInvitationSendsTheAnswerInC3)
     EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
 }
 
-// 0x62c50e y 0x62d4a2: el no del pedido de comercio (0x78) manda el C1 04 37 00 en claro, con el botón o con Esc.
+// 0x62c50e and 0x62d4a2: the no to the trade request (0x78) sends the C1 04 37 00 in clear, with the button or with
+// Esc.
 TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
 {
     SteppingDialogs tested(Lorencia);
@@ -618,21 +618,22 @@ TEST(GameDialogStepsTest, NoToTheTradeRequestSendsTheRefusalInClear)
     EXPECT_EQ(tested.requests.requests[1].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x00}));
     EXPECT_EQ(runtime.dialogs.current, 0);
 
-    // El sí, con la invitación esperando: el C1 04 37 01 y la invitación queda abierta, sin que el no la mire.
+    // The yes, with the invitation pending: the C1 04 37 01, and the invitation stays open without the no looking at
+    // it.
     runtime.dialogs.current = 0x78;
     runtime.dialogs.pending = 0x77;
     ASSERT_TRUE(tested.Click(0xea + 0x45, 0x62).HasValue());
     ASSERT_EQ(tested.requests.requests.size(), 3u);
     EXPECT_EQ(tested.requests.requests[2].bytes, (std::vector<std::uint8_t>{0xc1, 0x04, 0x37, 0x01}));
     EXPECT_EQ(runtime.dialogs.current, 0x77);
-    // Fuera de los botones, nada.
+    // Outside the buttons, nothing.
     ASSERT_TRUE(tested.Click(0xea + 0x46, 0x62).HasValue());
     EXPECT_EQ(tested.requests.requests.size(), 3u);
 }
 
-// 0x623f17 → 0x657880(0x1b): Esc sin diálogo cierra la ventana abierta más baja y manda lo suyo por la sesión: las
-// misiones (0x8) el C1 03 31 (0x419900), el comercio (0x20) el C1 03 3D en C3 (0x657fe1) y la tienda de otro (0x800,
-// el mismo byte que 0x20000) el C1 10 3F 07 con la clave y el nombre del dueño (0x5eb17f). Ninguno abre el menú.
+// 0x623f17 → 0x657880(0x1b): Esc with no dialog closes the lowest open window and sends its own through the session:
+// the quests (0x8) the C1 03 31 (0x419900), the trade (0x20) the C1 03 3D in C3 (0x657fe1) and another's shop (0x800,
+// the same byte as 0x20000) the C1 10 3F 07 with the owner's key and name (0x5eb17f). None opens the menu.
 TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
 {
     const auto escape = [](SteppingDialogs& tested)
@@ -696,8 +697,8 @@ TEST(GameDialogStepsTest, EscapeClosesTheLowestWindowWithWhatItSends)
     }
 }
 
-// 0x62c560: el sí del 0x78 con Esc y un diálogo de otro hito esperando lleva al tramo del no de ese diálogo, que corta
-// con su dirección y su hito (08 P-C363), después del C1 04 37 01. En Lorencia y en Devias.
+// 0x62c560: the yes of the 0x78 with Esc and a dialog of another milestone pending leads to that dialog's no stretch,
+// which stops with its address and its milestone (08 P-C363), after the C1 04 37 01. In Lorencia and in Devias.
 TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
 {
     struct OtherNo
@@ -708,8 +709,8 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
     };
     for (const std::int32_t map : {Lorencia, Devias})
     {
-        // El 0x7d no está: su no es del hito 8 (LeaveNumberTest.NoClearsTheBufferButNotTheEdit).
-        // Ni el 0x7f (WarRequestTest).
+        // The 0x7d is not here: its no is of milestone 8 (LeaveNumberTest.NoClearsTheBufferButNotTheEdit).
+        // Nor the 0x7f (WarRequestTest).
         for (const OtherNo& other : {OtherNo{0x71, "0x62c58f", "selección"}, OtherNo{0x76, "0x62c880", "no abre"}})
         {
             auto tested = std::make_unique<SteppingDialogs>(map);
@@ -730,9 +731,9 @@ TEST(GameDialogStepsTest, TheNoOfTheOtherHitosDialogsCutsWithItsOwner)
     }
 }
 
-// El pedido de guerra (0x7f, el 61 de 0x4e4382): el sí (0x62b39c) y el no (0x62c5c2), con los botones de 0x46 del 0x77.
-// El héroe (0) y el 5 son del gremio 1, el 6 del rival (2, marcado en 2 por el 62) y el 7 sin gremio. En Lorencia y en
-// Devias.
+// The war request (0x7f, the 61 of 0x4e4382): the yes (0x62b39c) and the no (0x62c5c2), with the 0x46 buttons of the
+// 0x77. The hero (0) and the 5 are of guild 1, the 6 of the rival (2, marked at 2 by the 62) and the 7 without a guild.
+// In Lorencia and in Devias.
 class WarRequestTest : public ::testing::TestWithParam<std::int32_t>
 {
 protected:
@@ -770,7 +771,7 @@ protected:
         return m_tested->world.Actors()[index].byte374;
     }
 
-    // El C1 04 61 de Protocol::Guild::WriteWarAnswer, como sale (con el XOR32).
+    // The C1 04 61 of Protocol::Guild::WriteWarAnswer, as it goes out (with the XOR32).
     static std::vector<std::uint8_t> AnswerBytes(bool accept)
     {
         const Client::Protocol::Outgoing packet = Client::Protocol::Guild::WriteWarAnswer(accept);
@@ -780,7 +781,7 @@ protected:
         return bytes;
     }
 
-    // 0x4c1800 no corrió: el rival y las marcas, como estaban.
+    // 0x4c1800 did not run: the rival and the marks, as they were.
     void ExpectTheRivalKept()
     {
         EXPECT_EQ(Runtime().guild.rivalIndex, 2);
@@ -788,7 +789,7 @@ protected:
         EXPECT_EQ(MarkOf(6), 2);
     }
 
-    // 0x4c1800: sin guerra ni rival; +0x374 en 1 para el gremio del héroe y en 0 para los demás.
+    // 0x4c1800: no war and no rival; +0x374 at 1 for the hero's guild and at 0 for the others.
     void ExpectTheWarCleared()
     {
         const Client::Guild::GuildState& guild = Runtime().guild;
@@ -805,8 +806,8 @@ protected:
     std::unique_ptr<SteppingDialogs> m_tested;
 };
 
-// 0x62b39c: el sí gasta el clic, manda el C1 04 61 01 con el XOR32 y en claro (sin rand()) y cierra (0x62c4ac), sin
-// tocar al rival: la guerra la empieza el 62 del GS.
+// 0x62b39c: the yes spends the click, sends the C1 04 61 01 with the XOR32 and in clear (no rand()) and closes
+// (0x62c4ac), without touching the rival: the GS's 62 starts the war.
 TEST_P(WarRequestTest, YesSendsTheAcceptanceAndKeepsTheRival)
 {
     ASSERT_TRUE(m_tested->Click(YesX, ButtonY).HasValue());
@@ -822,8 +823,8 @@ TEST_P(WarRequestTest, YesSendsTheAcceptanceAndKeepsTheRival)
     ExpectTheRivalKept();
 }
 
-// 0x62c5c2..0x62c87b: el no manda el C1 04 61 00 y llama dos veces a 0x4c1800; después, el cierre (0x62da70) con el
-// que espera.
+// 0x62c5c2..0x62c87b: the no sends the C1 04 61 00 and calls 0x4c1800 twice; then the close (0x62da70) with the
+// pending one.
 TEST_P(WarRequestTest, NoSendsTheRefusalAndClearsTheWar)
 {
     Runtime().dialogs.pending = 0x77;
@@ -839,7 +840,6 @@ TEST_P(WarRequestTest, NoSendsTheRefusalAndClearsTheWar)
     ExpectTheWarCleared();
 }
 
-// Esc es el no; fuera de los botones y sin Esc, nada.
 TEST_P(WarRequestTest, EscapeIsTheNoAndOutsideTheButtonsNothing)
 {
     ASSERT_TRUE(m_tested->Click(YesX + 0x46, ButtonY).HasValue());
@@ -858,13 +858,13 @@ TEST_P(WarRequestTest, EscapeIsTheNoAndOutsideTheButtonsNothing)
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, WarRequestTest, ::testing::Values(Lorencia, Devias));
 
-// El OK del 0x73 (0x626460), con Enter: el zen escrito para el comercio. Cada caso arranca de Seed en Lorencia y en
-// Devias, con el comercio abierto (el byte de 0x20, un rand() en IsOpen) y 1.000 de zen propio.
+// The OK of the 0x73 (0x626460), with Enter: the zen typed for the trade. Each case starts from Seed in Lorencia and in
+// Devias, with the trade open (the byte of 0x20, one rand() in IsOpen) and 1000 own zen.
 class MoneyOkTest : public ::testing::TestWithParam<std::int32_t>
 {
 protected:
     static constexpr std::uint32_t Seed = 0x0c0ffee5u;
-    // 0x40b4d0: el registro propio, al cerrarse.
+    // 0x40b4d0: the own record, on closing.
     static constexpr int OwnRecordRandoms = 3848;
 
     MoneyOkTest() : m_tested(std::make_unique<SteppingDialogs>(GetParam()))
@@ -891,7 +891,7 @@ protected:
         return m_tested->Dialogs(0, 0);
     }
 
-    // 0x628215..0x6282c3: lo que deja el OK en todos los casos.
+    // 0x628215..0x6282c3: what the OK leaves in every case.
     void ExpectTheDialogFieldsReset()
     {
         Client::Kernel::WorldRuntime& runtime = Runtime();
@@ -912,7 +912,7 @@ protected:
     std::unique_ptr<SteppingDialogs> m_tested;
 };
 
-// Más de 100.000.000 (con signo): el 0x75 en su lugar, sin mirar el comercio ni sacar rand().
+// More than 100000000 (signed): the 0x75 in its place, without looking at the trade or drawing rand().
 TEST_P(MoneyOkTest, TooMuchMoneyOpensTheWarning)
 {
     ASSERT_TRUE(Enter(100'000'001).HasValue());
@@ -923,8 +923,8 @@ TEST_P(MoneyOkTest, TooMuchMoneyOpensTheWarning)
     ExpectTheDialogFieldsReset();
 }
 
-// Más que el zen propio más el que ya está en el comercio (sin signo, así que también un negativo): el 0x74. El
-// registro propio se abre y se cierra (3.848 rand() después del de IsOpen).
+// More than the own zen plus what is already in the trade (unsigned, so also a negative): the 0x74. The own record
+// opens and closes (3848 rand() after the one of IsOpen).
 TEST_P(MoneyOkTest, MoreThanTheOwnMoneyOpensTheOtherWarning)
 {
     Runtime().social.trade.ownMoney = 200;
@@ -941,9 +941,9 @@ TEST_P(MoneyOkTest, MoreThanTheOwnMoneyOpensTheOtherWarning)
     }
 }
 
-// Con el zen: el OK propio se apaga con el C1 04 3C 00 en C3 (dos rand() antes del cierre del registro), 0x78abac8
-// en 0x96 con zen ya puesto, el zen en 0x57678ac y en el C1 08 3A 00 con el XOR32 y en claro, y el 0x73 se cierra
-// hacia el que espera.
+// With the zen: the own OK turns off with the C1 04 3C 00 in C3 (two rand() before the record's close), 0x78abac8 at
+// 0x96 with zen already set, the zen at 0x57678ac and in the C1 08 3A 00 with the XOR32 and in clear, and the 0x73
+// closes towards the pending one.
 TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
 {
     Client::Social::TradeState& trade = Runtime().social.trade;
@@ -965,7 +965,7 @@ TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
     EXPECT_EQ(Runtime().dialogs.pending, 0);
     ExpectTheDialogFieldsReset();
 
-    // Sin OK propio ni zen puesto: solo el 3A, y la espera queda.
+    // Without own OK or zen set: only the 3A, and the wait stays.
     trade.ownMoney = 0;
     trade.okWait = 3;
     Runtime().dialogs.current = 0x73;
@@ -979,9 +979,9 @@ TEST_P(MoneyOkTest, TheMoneyGoesInTheThreeA)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// Sin el comercio, el zen va al almacén (0x6270ed, Npc::MoveTheWarehouseMoney, CL9 hito 6): meter más zen que el
-// del inventario abre el 0x74 sin mandar nada, después del rand() de IsOpen y con el registro propio abierto y cerrado;
-// los campos vuelven como con el comercio.
+// Without the trade, the zen goes to the warehouse (0x6270ed, Npc::MoveTheWarehouseMoney, CL9 milestone 6): putting in
+// more zen than the inventory has opens the 0x74 without sending anything, after the rand() of IsOpen and with the own
+// record opened and closed; the fields come back as with the trade.
 TEST_P(MoneyOkTest, WithoutTheTradeTheMoneyGoesToTheWarehouse)
 {
     Runtime().panels.trade = 0;
@@ -997,16 +997,16 @@ TEST_P(MoneyOkTest, WithoutTheTradeTheMoneyGoesToTheWarehouse)
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, MoneyOkTest, ::testing::Values(Lorencia, Devias));
 
-// El diálogo 0x7d (CL9 hito 8): el número para echar a un miembro, disolver el gremio o salir de él. Cada caso arranca
-// en Lorencia y en Devias con el EDIT del número ([0x5763508]) a la vista, con el foco y "1234567" escrito (lo que deja
-// el dibujo, 0x630af0), el lugar 2 de 0x787a5e8 con un nombre inventado y 0x6d5e2c en 2 (0x64e553); el buffer
-// 0x7798bf8 trae un mensaje viejo del chat.
+// The dialog 0x7d (CL9 milestone 8): the number to kick a member, disband the guild or leave it. Each case starts in
+// Lorencia and in Devias with the number EDIT ([0x5763508]) visible, focused and with "1234567" typed (what the drawing
+// leaves, 0x630af0), slot 2 of 0x787a5e8 with a made-up name and 0x6d5e2c at 2 (0x64e553); the buffer 0x7798bf8 holds
+// an old chat message.
 class LeaveNumberTest : public ::testing::TestWithParam<std::int32_t>
 {
 protected:
     static constexpr std::int32_t LeaveDialog = 0x7d;
     static constexpr std::int32_t KickedSlot = 2;
-    // 0x630ba1 y 0x630c24: el sí en [0x143, 0x16b) y el no en [0x175, 0x19d), los dos en [0x62, 0x77).
+    // 0x630ba1 and 0x630c24: the yes in [0x143, 0x16b) and the no in [0x175, 0x19d), both in [0x62, 0x77).
     static constexpr std::int32_t YesX = 0x143;
     static constexpr std::int32_t NoX = 0x175;
     static constexpr std::int32_t ButtonY = 0x62;
@@ -1037,7 +1037,7 @@ protected:
         return Runtime().chat.input;
     }
 
-    // El C1 17 53 de Protocol::Guild::WriteLeave con el nombre y los diez bytes, como sale (con el XOR32).
+    // The C1 17 53 of Protocol::Guild::WriteLeave with the name and the ten bytes, as it goes out (with the XOR32).
     static std::vector<std::uint8_t> LeaveBytes(std::string_view name, std::string_view number)
     {
         Client::Protocol::FrontEnd::NameBytes characterName{};
@@ -1056,9 +1056,9 @@ protected:
     std::unique_ptr<SteppingDialogs> m_tested;
 };
 
-// 0x62a878..0x62b38d: GetText del EDIT a 0x7798bf8 (sus 7 dígitos y el '\0'; detrás queda lo del chat) y SetText(0);
-// el C1 17 53 con el nombre del lugar 2 y los diez bytes de 0x7798bf8, en claro y sin rand(); los diez bytes y el largo
-// en 0, y el cierre (0x62c4ac) con el 0x19. El EDIT sigue a la vista y con el foco (Q-C1295).
+// 0x62a878..0x62b38d: the EDIT's GetText to 0x7798bf8 (its 7 digits and the '\0'; the chat's stays behind) and
+// SetText(0); the C1 17 53 with the name of slot 2 and the ten bytes of 0x7798bf8, in clear and without rand(); the
+// ten bytes and the length at 0, and the close (0x62c4ac) with the 0x19. The EDIT stays visible and focused (Q-C1295).
 TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
 {
     ASSERT_TRUE(m_tested->Click(YesX, ButtonY).HasValue());
@@ -1075,7 +1075,7 @@ TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
     EXPECT_EQ(Runtime().dialogs.current, 0);
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x19});
     EXPECT_FALSE(Runtime().mouse.pendingClick);
-    // Los diez bytes y el largo en 0; lo de después, como estaba.
+    // The ten bytes and the length at 0; what comes after, as it was.
     for (std::size_t index = 0; index < 10; ++index)
         EXPECT_EQ(Input().messageBuffer[index], '\0') << index;
     EXPECT_EQ(Input().messageBuffer[10], 'a');
@@ -1085,7 +1085,8 @@ TEST_P(LeaveNumberTest, YesSendsTheLeaveWithTheTypedNumber)
     EXPECT_EQ(Input().focus, Client::Chat::ChatFocus::NumberField);
 }
 
-// El maestro que disuelve (0x64de93 deja 0x6d5e2c en 0): el nombre del lugar 0. Fuera de los 40 del sí angosto, nada.
+// The master who disbands (0x64de93 leaves 0x6d5e2c at 0): the name of slot 0. Outside the 40 of the narrow yes,
+// nothing.
 TEST_P(LeaveNumberTest, TheDisbandSendsTheFirstSlot)
 {
     std::ranges::copy(std::string_view("Ceibal"), Runtime().guild.members[0].name.begin());
@@ -1102,8 +1103,8 @@ TEST_P(LeaveNumberTest, TheDisbandSendsTheFirstSlot)
     EXPECT_EQ(Runtime().dialogs.current, 0);
 }
 
-// 0x62c567: el no (el botón o Esc) no manda nada; vacía los diez bytes y el largo, pero no el EDIT, y cierra
-// (0x62da7a) con el 0x19.
+// 0x62c567: the no (the button or Esc) sends nothing; it empties the ten bytes and the length, but not the EDIT, and
+// closes (0x62da7a) with the 0x19.
 TEST_P(LeaveNumberTest, NoClearsTheBufferButNotTheEdit)
 {
     ASSERT_TRUE(m_tested->Click(NoX, ButtonY).HasValue());
@@ -1127,7 +1128,7 @@ TEST_P(LeaveNumberTest, NoClearsTheBufferButNotTheEdit)
     EXPECT_EQ(Client::Chat::CStringOf(Input().messageBuffer), "");
 }
 
-// 0x62a91c: 0x6d5e2c en −1 (el de la .data) lee antes de 0x787a5e8 (Q-C1296), y sin quien mande corta.
+// 0x62a91c: 0x6d5e2c at −1 (the .data one) reads before 0x787a5e8 (Q-C1296), and without a sender it stops.
 TEST_P(LeaveNumberTest, WithoutAMemberOrRequestsItCuts)
 {
     Runtime().guild.kickMember = -1;
@@ -1136,7 +1137,7 @@ TEST_P(LeaveNumberTest, WithoutAMemberOrRequestsItCuts)
     EXPECT_NE(outside.Error().find("0x62a91c"), std::string::npos) << outside.Error();
     EXPECT_TRUE(m_tested->requests.requests.empty());
 
-    // El cut deja el EDIT ya vacío (GetText y SetText(0) van antes del nombre).
+    // The stop leaves the EDIT already empty (GetText and SetText(0) go before the name).
     EXPECT_EQ(Input().numberField.text.Value(), "");
     Runtime().guild.kickMember = KickedSlot;
     Client::Kernel::LatchTheLeftButton(Runtime().mouse, true, true);
@@ -1155,8 +1156,8 @@ TEST_P(LeaveNumberTest, WithoutAMemberOrRequestsItCuts)
 
 INSTANTIATE_TEST_SUITE_P(TwoMaps, LeaveNumberTest, ::testing::Values(Lorencia, Devias));
 
-// Dialog.bmd con el diálogo 3 (un renglón y dos respuestas: la primera lleva al 5 y la segunda a ninguno) y el 5, sin
-// respuestas, que lleva al 3.
+// Dialog.bmd with dialog 3 (one line and two answers: the first leads to 5 and the second to none) and 5, with no
+// answers, which leads to 3.
 Client::Tables::DialogTable AnswersTable()
 {
     Client::Tables::DialogTable table(Client::Tables::DialogCount);
@@ -1171,9 +1172,9 @@ Client::Tables::DialogTable AnswersTable()
     return table;
 }
 
-// 0x62d91d..0x62da57: con el texto del 3 en y = ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112, la primera respuesta va de 130 a
-// 147 y la segunda de 148 a 165, a no más de 0x6a de x = 0x13f. El clic en una pasa el que espera a abierto y, con un
-// diálogo siguiente, lo muestra; Enter no cierra el 0x8d.
+// 0x62d91d..0x62da57: with the text of 3 at y = ((7 − 2 − 1) · 0x12) / 2 + 0x4c = 112, the first answer goes from 130
+// to 147 and the second from 148 to 165, no more than 0x6a from x = 0x13f. The click on one moves the pending one to
+// open and, with a next dialog, shows it; Enter does not close the 0x8d.
 TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
 {
     const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
@@ -1202,7 +1203,7 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     EXPECT_TRUE(runtime.ui.enterPressed);
     EXPECT_FALSE(runtime.lastSoundId.has_value());
 
-    // La primera, en el borde de la derecha: el 5, sin respuestas ("1) " y el 609), queda abierto.
+    // The first, on the right edge: the 5, with no answers ("1) " and the 609), stays open.
     runtime.mouse.updateTime = 4;
     runtime.mouse.updateTimeMax = 12;
     ASSERT_TRUE(tested->Click(0x13f + 0x6a, 147).HasValue());
@@ -1214,14 +1215,15 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 5);
     EXPECT_EQ(Client::Ui::DialogAnswer(runtime.dialogBox, 0), "1) nada mas");
 
-    // La cuenta 0 de Dialog.bmd deja elegir la primera (máx(0, 1)), que vuelve al 3; con otro esperando, el 3 espera.
+    // Dialog.bmd's count 0 lets the first be chosen (max(0, 1)), which goes back to 3; with another pending, the 3
+    // waits.
     runtime.dialogs.pending = Client::Ui::MessageBoxDialog;
     ASSERT_TRUE(tested->Click(0x13f, 131 + 9).HasValue());
     EXPECT_EQ(runtime.dialogs.current, Client::Ui::MessageBoxDialog);
     EXPECT_EQ(runtime.dialogs.pending, Client::Ui::AnswersDialog);
     EXPECT_EQ(runtime.dialogBox.dialogIndex, 3);
 
-    // La segunda del 3 no lleva a ninguno: cierra.
+    // The second of 3 leads to none: it closes.
     runtime.dialogs.current = Client::Ui::AnswersDialog;
     runtime.dialogs.pending = 0;
     ASSERT_TRUE(tested->Click(0x13f, 150).HasValue());
@@ -1229,7 +1231,7 @@ TEST(GameDialogStepsTest, TheAnswersLeadToTheirNextDialog)
     EXPECT_EQ(runtime.dialogs.pending, 0);
 }
 
-// 0x62d9b8: una respuesta elegida sin el registro de Dialog.bmd corta.
+// 0x62d9b8
 TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
 {
     const auto tested = std::make_unique<SteppingDialogs>(Lorencia);
@@ -1241,9 +1243,9 @@ TEST(GameDialogStepsTest, AnAnswerWithoutItsDialogIsCut)
     EXPECT_NE(stepped.Error().find("0x62d9b8"), std::string::npos) << stepped.Error();
 }
 
-// Los tramos de otras olas cortan con su dirección; un id que no está en la tabla va al OK genérico.
-// 0x94 abierto por 0x633300(4, 0x173, 0x94), con los botones (1, 0x15, 0x5a, 0x46, 0x15) y (3, 0x78, 0x5a, 0x46, 0x15)
-// y el aviso 3 de 0x78abb14 (el comercio).
+// The stretches of other waves stop with their address; an id not in the table goes to the generic OK.
+// 0x94 opened by 0x633300(4, 0x173, 0x94), with the buttons (1, 0x15, 0x5a, 0x46, 0x15) and (3, 0x78, 0x5a, 0x46,
+// 0x15) and notice 3 of 0x78abb14 (the trade).
 void OpenTheWarning(Client::Kernel::WorldRuntime& runtime, std::int32_t id = 0x94)
 {
     runtime.dialogs.current = id;
@@ -1254,9 +1256,9 @@ void OpenTheWarning(Client::Kernel::WorldRuntime& runtime, std::int32_t id = 0x9
     runtime.social.trade.warningByte = 0xff;
 }
 
-// 0x6282dc..0x62a7e6: el primero ([0xea, 0x130] × [0xbe, 0xd3], con los bordes) responde 1 y el segundo ([0x14d,
-// 0x193]) 2, los dos con el cierre y el sonido; sin rand(). Con el mouse encima, el estado es 2 o 4, y el clic se
-// apaga siempre.
+// 0x6282dc..0x62a7e6: the first ([0xea, 0x130] × [0xbe, 0xd3], with the edges) answers 1 and the second ([0x14d,
+// 0x193]) 2, both with the close and the sound; no rand(). With the mouse over it, the state is 2 or 4, and the click
+// always turns off.
 TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -1283,7 +1285,7 @@ TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
         EXPECT_EQ(runtime.dialogs.pending, 0);
         EXPECT_EQ(runtime.dialogBox.buttons[1].state, 4);
 
-        // Un píxel afuera: el clic se gasta igual y no hay respuesta.
+        // One pixel outside: the click is spent anyway and there is no answer.
         OpenTheWarning(runtime);
         ASSERT_TRUE(tested.Click(0x78 + 0xd5 + 0x47, 0x5a + 0x64).HasValue());
         EXPECT_FALSE(runtime.mouse.pendingClick);
@@ -1296,7 +1298,7 @@ TEST(GameDialogStepsTest, TheWarningAnswersWithItsTwoButtons)
     }
 }
 
-// 0x62845d: el 0x99 del precio bajo va al mismo final que el 0x94: el primero responde 1 y Esc, 2.
+// 0x62845d: the low price 0x99 goes to the same end as the 0x94: the first answers 1 and Esc, 2.
 TEST(GameDialogStepsTest, TheLowPriceWarningAnswersLikeTheWarning)
 {
     SteppingDialogs tested(Devias);
@@ -1315,7 +1317,7 @@ TEST(GameDialogStepsTest, TheLowPriceWarningAnswersLikeTheWarning)
     EXPECT_EQ(tested.random.State(), CrtRandom().State());
 }
 
-// 0x628409..0x628435: Esc elige el segundo botón, 2.
+// 0x628409..0x628435: Esc picks the second button, 2.
 TEST(GameDialogStepsTest, EscapeAnswersNoToTheWarning)
 {
     SteppingDialogs tested(Lorencia);

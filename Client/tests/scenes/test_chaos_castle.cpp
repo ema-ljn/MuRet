@@ -33,10 +33,9 @@
 #include <string>
 #include <vector>
 
-// Chaos Castle (los mapas 18 a 23) sin sus paquetes: el preludio 0x405490, el paso 0x4055b0 de los vistos, el
-// caso 0x4059d0 de 0x602ed0, el alpha de 0x5ffdf0 y los dos joints que suelta, el meteoro 6ee/9 y la trampa
-// 615/2 (06 § Los objetos de Chaos Castle). Los valores esperados repiten las fórmulas del ASM con otro CrtRandom
-// de la misma semilla.
+// Chaos Castle (maps 18 to 23) without its packets: prelude 0x405490, step 0x4055b0 of the seen ones, case 0x4059d0 of
+// 0x602ed0, the alpha of 0x5ffdf0 and the two joints it releases, meteor 0x6ee/9 and trap 0x615/2 (06 § Los objetos
+// de Chaos Castle). The expected values repeat the ASM's formulas with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -53,7 +52,7 @@ constexpr std::uint8_t ChaosCastleMap = 18;
 using Client::Math::D;
 using Client::Math::F32;
 
-// La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
+// The first seed with which `condition` accepts the draws of a new CrtRandom.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& condition)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
@@ -66,7 +65,7 @@ std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& condition)
     return 1;
 }
 
-// La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
+// The global pose of 0x68b181c: bones without rotation, bone k at (10 · k, 100, 50).
 Client::Kernel::PoseBuffer Pose(std::size_t bones)
 {
     Client::Kernel::PoseBuffer pose;
@@ -90,7 +89,7 @@ WorldObject Object(std::int16_t type)
     return object;
 }
 
-// Lo que el caller copia de un pedido de joint: los argumentos se prestan sólo durante la llamada.
+// What the caller copies from a joint request: the arguments are lent only during the call.
 struct JointCall
 {
     std::int32_t type = 0;
@@ -147,7 +146,7 @@ std::vector<Client::Particles::Sprite> AliveSprites(Client::Particles::FrameSpri
     return alive;
 }
 
-// El 615/2 recién creado por la trampa, con los dos rand() de la creación ya sacados.
+// The 0x615/2 just created by the trap, with the creation's two rand() already drawn.
 struct TrapBolt
 {
     std::array<JointState, 1> joints{};
@@ -162,15 +161,15 @@ struct TrapBolt
     }
 };
 
-// La x, la y o la z corridas como en 0x5376c9..0x537759 y 0x5377d9..0x537816: fild del resto y fadd.
+// The x, y or z shifted as in 0x5376c9..0x537759 and 0x5377d9..0x537816: fild of the remainder and fadd.
 float Jittered(CrtRandom& draws, float axis)
 {
     return F32(static_cast<double>(draws.Next() % 20 - 10) + D(axis));
 }
 } // namespace
 
-// 0x405e00: rand() % 8 en cada celda; con 0 y el área en 0, 3 o 6, la piedra 0x5f6 en el primer rectángulo que
-// tiene la celda. Con el área 0xff de la .data, un solo rand() y nada más.
+// 0x405e00: rand() % 8 on each cell; with 0 and the area at 0, 3 or 6, the stone 0x5f6 in the first rectangle that
+// holds the cell. With the .data's area 0xff, a single rand() and nothing more.
 TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
 {
     const float clock = 0.0f;
@@ -191,22 +190,22 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     EXPECT_NE(cut.Error().find("0x405e1e"), std::string::npos) << cut.Error();
 }
 
-// 0x405e00 con el área 0 y una celda del primer rectángulo: con rand() % 8 en 0, la piedra 0x5f6/0 (0x405f24, que nace
-// como la 5f3/0 en 0x54271f) en (x · 100 + rand() % 30 − 15; y · 100 + rand() % 30 − 15; z del héroe), con ángulos en
-// 0, luz 1, escala 1,5 y sin dueño, y con rand() % 5 en 0 el temblor (rand() % 3 − 3) · 0,1f. Lo esperado sale de
-// castle.py (0x405e00 y 0x54271f en una x87 aparte), no de CreateChecked.
+// 0x405e00 with area 0 and a cell of the first rectangle: with rand() % 8 at 0, the stone 0x5f6/0 (0x405f24, born like
+// 0x5f3/0 at 0x54271f) at (x · 100 + rand() % 30 − 15, y · 100 + rand() % 30 − 15, hero z), with angles at 0, light
+// 1, scale 1.5 and no owner, and with rand() % 5 at 0 the shake (rand() % 3 − 3) · 0.1f. The expected values come from
+// castle.py (0x405e00 and 0x54271f in a separate x87), not from CreateChecked.
 struct CastleStone
 {
-    glm::vec3 position;  // después de los (rand() & 15) − 8 de 0x542726 y 0x542744
-    std::uint32_t scale; // ((rand() & 31) + 32) · 1,5 · 0,01f
-    float turn;          // el ángulo x, rand() % 360
+    glm::vec3 position;  // after the (rand() & 15) − 8 of 0x542726 and 0x542744
+    std::uint32_t scale; // ((rand() & 31) + 32) · 1.5 · 0.01f
+    float turn;          // the x angle, rand() % 360
 };
 
 struct CastleRow
 {
     std::uint32_t seed;
     std::uint32_t state;
-    std::uint32_t shake; // los bits de 0x7d325c8; 0 si no tembló
+    std::uint32_t shake; // the bits of 0x7d325c8; 0 if it did not shake
     std::array<CastleStone, 3> stones;
     std::size_t count;
 };
@@ -263,9 +262,9 @@ TEST(ChaosCastleTest, ACellOfTheAreaDropsItsStone)
     }
 }
 
-// 0x405e00 con el pool lleno: los dos rand() % 30 de la piedra ya salieron (son sus argumentos), 0x53fe70 no saca los
-// cuatro suyos y el rand() % 5 del temblor sigue (0x405f2c). Con la semilla 4, una piedra que no nace y el temblor en
-// −0,1f: 26 rand() (castle.py; con el pool vacío serían 29 y sin temblor).
+// 0x405e00 with the pool full: the stone's two rand() % 30 already came out (they are its arguments), 0x53fe70 does not
+// draw its four and the shake's rand() % 5 follows (0x405f2c). With seed 4, a stone that is not born and the shake at
+// −0.1f: 26 rand() (castle.py; with the pool empty it would be 29 and no shake).
 TEST(ChaosCastleTest, ACellOfTheAreaShakesWithAFullPool)
 {
     const float clock = 0.0f;
@@ -287,7 +286,7 @@ TEST(ChaosCastleTest, ACellOfTheAreaShakesWithAFullPool)
     EXPECT_TRUE(std::ranges::all_of(particles->All(), [](const Particle& particle) { return particle.type == 0; }));
 }
 
-// Fuera de los cuatro rectángulos del área no hay piedra, aunque el rand() % 8 dé 0.
+// Outside the area's four rectangles there is no stone, even if rand() % 8 gives 0.
 TEST(ChaosCastleTest, AnAreaCellOutsideItsRectanglesDropsNothing)
 {
     const float clock = 0.0f;
@@ -301,8 +300,8 @@ TEST(ChaosCastleTest, AnAreaCellOutsideItsRectanglesDropsNothing)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x405490: con rand() % 10 en 0 y la cuenta de los 3 vistos distinta de 0, el selector es rand() % cuenta, sin
-// meteoro.
+// 0x405490: with rand() % 10 at 0 and the count of the seen 3s other than 0, the selector is rand() % count, with no
+// meteor.
 TEST(ChaosCastleTest, ThePreludePicksTheSelectorAmongTheSeenTraps)
 {
     const std::uint32_t seed = SeedWhere([](CrtRandom& r) { return r.Next() % 10 == 0; });
@@ -319,9 +318,9 @@ TEST(ChaosCastleTest, ThePreludePicksTheSelectorAmongTheSeenTraps)
     EXPECT_TRUE(calls.empty());
 }
 
-// Sin el primer caso, con el héroe en la zona segura no saca el segundo rand(); fuera de ella, con otro rand() %
-// 10 en 0, el meteoro 6ee/9 en (x + rand() % 800 − 400; y + rand() % 800 − 400; z − 150) del héroe, con sus
-// ángulos y la escala rand() % 10 + 50.
+// Without the first case, with the hero in the safe zone it does not draw the second rand(); outside it, with another
+// rand() % 10 at 0, meteor 0x6ee/9 at (x + rand() % 800 − 400, y + rand() % 800 − 400, z − 150) of the hero, with its
+// angles and scale rand() % 10 + 50.
 TEST(ChaosCastleTest, ThePreludeThrowsAMeteorAroundTheHeroOutsideTheSafeZone)
 {
     const std::uint32_t seed = SeedWhere(
@@ -381,8 +380,8 @@ TEST(ChaosCastleTest, ThePreludeThrowsAMeteorAroundTheHeroOutsideTheSafeZone)
     EXPECT_NE(cut.Error().find("0x405597"), std::string::npos) << cut.Error();
 }
 
-// 0x4055b0: sólo el 3 cuenta. La trampa armada de la .data lo prende primero (+0x60 = 10, +0x8a = 1) y se
-// desarma; después, el selector baja con cada 3 y sólo el que lo deja en 0 queda con +0x8a.
+// 0x4055b0: only 3 counts. The .data's armed trap turns it on first (+0x60 = 10, +0x8a = 1) and disarms; then the
+// selector drops with each 3 and only the one that leaves it at 0 keeps +0x8a.
 TEST(ChaosCastleTest, TheSeenTrapsCountAndOnlyTheSelectedOneFires)
 {
     std::int32_t selector = 2;
@@ -421,7 +420,7 @@ TEST(ChaosCastleTest, TheSeenTrapsCountAndOnlyTheSelectedOneFires)
     EXPECT_EQ(fourth.field8a, 0);
 }
 
-// 0x5ffdff..0x5ffe24: con +0x1a1 del héroe, el alpha baja 0,15f sólo en 18..23.
+// 0x5ffdff..0x5ffe24: with the hero's +0x1a1, the alpha drops 0.15f only in 18..23.
 TEST(ChaosCastleTest, TheHerosFlagFadesTheObjectsOnlyInChaosCastle)
 {
     const float fade = std::bit_cast<float>(0x3e19999au);
@@ -432,7 +431,7 @@ TEST(ChaosCastleTest, TheHerosFlagFadesTheObjectsOnlyInChaosCastle)
     EXPECT_EQ(Client::Events::ChaosCastle::ChaosCastlePoseAlpha(24, 1, 1.0f), 1.0f);
 }
 
-// 0x405abb..0x405c5c: las nubes del 6 al 0xc la primera vez, con el objeto de dueño, y después +0x58 = −2.
+// 0x405abb..0x405c5c: the clouds from 6 to 0xc the first time, with the object as owner, and then +0x58 = −2.
 TEST(ChaosCastleTest, TheCloudObjectsReleaseTheirMistsOnce)
 {
     struct Case
@@ -481,7 +480,7 @@ TEST(ChaosCastleTest, TheCloudObjectsReleaseTheirMistsOnce)
     }
 }
 
-// 0x405c6e..0x405cbc y 0x405d88..0x405d95: lo que cada grupo hace con el área de 0x6c634c.
+// 0x405c6e..0x405cbc and 0x405d88..0x405d95: what each group does with the area of 0x6c634c.
 TEST(ChaosCastleTest, TheAreaShowsAndHidesItsObjects)
 {
     const auto shownWith = [](std::int16_t type, std::uint8_t area, std::int16_t before)
@@ -529,9 +528,9 @@ TEST(ChaosCastleTest, TheAreaShowsAndHidesItsObjects)
         EXPECT_EQ(shownWith(type, 8, Other), Other);
 }
 
-// 0x405cc5..0x405d82: el 3 con +0x8a toma el hueso 1 de la pose global; con +0x60 en 10, el 615/2 de ese punto a
-// ese punto (escala rand() % 10 + 60, los ángulos del objeto) y el sonido 0x9c + (rand() & 1). La cuenta baja
-// hasta 4 y entonces apaga +0x8a; después cae al área.
+// 0x405cc5..0x405d82: 3 with +0x8a takes bone 1 of the global pose; with +0x60 at 10, the 0x615/2 from that point to
+// that point (scale rand() % 10 + 60, the object's angles) and sound 0x9c + (rand() & 1). The count drops to 4 and then
+// clears +0x8a; then it falls to the area.
 TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
 {
     const auto pose = Pose(4);
@@ -586,7 +585,8 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// Escondido (+0x58 en −2) o sin +0x8a, no hay trampa. Sin pose, sin quien cree el joint o sin sonido, corta.
+// Hidden (+0x58 at −2) or without +0x8a, there is no trap. Without a pose, without someone to create the joint or
+// without sound, it stops.
 TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
 {
     const auto pose = Pose(4);
@@ -625,8 +625,8 @@ TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
     EXPECT_NE(withoutSound.Error().find("0x405d69"), std::string::npos) << withoutSound.Error();
 }
 
-// 0x5319ea, 0x531b0c..0x531bd2: el 615/2 toma la textura 0x614, el ancho, 50 puntos y vida 20; corre x e y
-// rand() % 10 − 5 y sube la z 800, con los ángulos en 0 y el destino en el segundo punto. Dos rand().
+// 0x5319ea, 0x531b0c..0x531bd2: the 0x615/2 takes texture 0x614, the width, 50 points and life 20; shifts x and y by
+// rand() % 10 − 5 and raises z by 800, with the angles at 0 and the target at the second point. Two rand().
 TEST(ChaosCastleTest, TheTrapBoltIsCreatedWithTwoDraws)
 {
     TrapBolt bolt(31);
@@ -652,9 +652,9 @@ TEST(ChaosCastleTest, TheTrapBoltIsCreatedWithTwoDraws)
     EXPECT_EQ(joint.count, 0);
 }
 
-// 0x53768f..0x5379ef: el 615/2 rehace sus 50 tramos desde +0x24: 45 que bajan 16 corridos, cuatro que avanzan un
-// quinto de lo que falta y el destino. Después dos sprites 0x5fd de 1,5 y la partícula 6ed/0 en el destino, con la
-// luz (x · 0,5; y · 0,6f; z), y la cola común con vida de más de 10.
+// 0x53768f..0x5379ef: the 0x615/2 rebuilds its 50 segments from +0x24: 45 that drop 16 shifted, four that advance a
+// fifth of what is left and the target. Then two 0x5fd sprites of 1.5 and particle 0x6ed/0 at the target, with the
+// light (x · 0.5, y · 0.6f, z), and the common tail with life over 10.
 TEST(ChaosCastleTest, TheTrapBoltFallsOnItsTargetAndSparks)
 {
     TrapBolt bolt(31);
@@ -701,8 +701,8 @@ TEST(ChaosCastleTest, TheTrapBoltFallsOnItsTargetAndSparks)
     EXPECT_TRUE(joint.tailEnabled);
     EXPECT_EQ(joint.position, target);
     EXPECT_EQ(joint.light, glm::vec3(1.0f));
-    // Con los ángulos en 0, el tercer punto del cuadro es (x; y; z − ancho / 2): el tramo n es el anteúltimo
-    // n-ésimo agregado.
+    // With the angles at 0, the frame's third point is (x, y, z − width / 2): segment n is the n-th added counting back
+    // from the last.
     const float half = F32(D(joint.width) * 0.5);
     for (std::size_t n = 0; n < 50; ++n)
     {
@@ -724,8 +724,8 @@ TEST(ChaosCastleTest, TheTrapBoltFallsOnItsTargetAndSparks)
     ExpectSameParticles(particles, expected);
 }
 
-// Con vida menor que 4 la luz se multiplica por 0,8333333f antes de los sprites; con 10 o menos no hay cola común.
-// Sin sprites o sin partículas corta antes de sacar rand().
+// With life under 4 the light is multiplied by 0.8333333f before the sprites; with 10 or less there is no common tail.
+// Without sprites or particles it stops before drawing rand().
 TEST(ChaosCastleTest, TheTrapBoltFadesAtTheEndAndNeedsItsPools)
 {
     TrapBolt bolt(31);
@@ -752,8 +752,8 @@ TEST(ChaosCastleTest, TheTrapBoltFadesAtTheEndAndNeedsItsPools)
     EXPECT_EQ(bare.random.State(), before.State());
 }
 
-// 0x53265e, 0x5333f6..0x533449: el meteoro 6ee/9 resta (+0x10 = 3), dibuja sólo la segunda cara, velocidad 10,
-// ángulos (−90; 0; 0), vida 20 y 15 puntos. Sin rand().
+// 0x53265e, 0x5333f6..0x533449: meteor 0x6ee/9 subtracts (+0x10 = 3), draws only the second face, speed 10, angles
+// (−90, 0, 0), life 20 and 15 points. No rand().
 TEST(ChaosCastleTest, TheMeteorIsCreatedWithoutDraws)
 {
     std::array<JointState, 1> joints{};
@@ -779,8 +779,8 @@ TEST(ChaosCastleTest, TheMeteorIsCreatedWithoutDraws)
     EXPECT_TRUE(joint.tailEnabled);
 }
 
-// 0x53590e y 0x538ea4..0x538f37: el avance común con la matriz de (−90; 0; 0); después x e y corridas
-// (rand() % 10) − 5,0f, la z sube la velocidad y la velocidad 1. Con vida menor que 10 la luz por 0,8695652f.
+// 0x53590e and 0x538ea4..0x538f37: the common advance with the matrix of (−90, 0, 0); then x and y shifted by
+// (rand() % 10) − 5.0f, z rises by the speed and the speed by 1. With life under 10 the light times 0.8695652f.
 TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
 {
     std::array<JointState, 1> joints{};

@@ -20,9 +20,9 @@
 #include <utility>
 #include <vector>
 
-// Las respuestas del diálogo del Castle Senior (CL9 hito 12; 04 § Castle Siege, las ventanas del castillo): lo que
-// mandan 0x6623e0, 0x662d50, 0x663440, 0x664370, 0x664ce0, 0x6653d0, 0x665ab0, 0x666b30 y 0x667a40, byte a byte. No
-// miran el mapa ni sacan rand().
+// The Castle Senior dialog's answers (CL9 milestone 12; 04 § Castle Siege, las ventanas del castillo): what
+// 0x6623e0, 0x662d50, 0x663440, 0x664370, 0x664ce0, 0x6653d0, 0x665ab0, 0x666b30 and 0x667a40 send, byte by byte.
+// They do not look at the map or take rand().
 namespace
 {
 using Client::CastleSiege::CastleAnswerContext;
@@ -41,7 +41,7 @@ protected:
                                    }};
     }
 
-    // Un registro de la zona: el tipo, el índice, la defensa, la recuperación, la vida máxima y +0x1a.
+    // A zone record: the type, the index, the defense, the recovery, the max life and +0x1a.
     void Record(std::uint32_t at, std::uint32_t type, std::uint32_t index, std::uint32_t defense,
                 std::uint32_t recovery, std::uint32_t maxLife, std::uint8_t alive)
     {
@@ -53,7 +53,7 @@ protected:
         m_data.bytes.at(at + 0x1a - Client::CastleSiege::CastleDataBase) = alive;
     }
 
-    // Los paquetes que salieron, en claro.
+    // The packets sent, in clear.
     [[nodiscard]] std::vector<std::vector<std::byte>> Sent()
     {
         std::vector<std::vector<std::byte>> clear;
@@ -94,7 +94,7 @@ protected:
     std::vector<Client::Protocol::Outgoing> m_sent;
 };
 
-// 0x6623e0: la puerta elegida desde 0x7d5c590; con +0x1a en 0 la compra (B2 05), si no la repara (B2 06).
+// 0x6623e0: the selected gate from 0x7d5c590; with +0x1a at 0 it buys it (B2 05), otherwise it repairs it (B2 06).
 TEST_F(CastleSeniorAnswersTest, TheGateAnswerBuysOrRepairsTheSelectedGate)
 {
     m_data.SetU32(Client::CastleSiege::SelectedGateAt, 1);
@@ -110,7 +110,7 @@ TEST_F(CastleSeniorAnswersTest, TheGateAnswerBuysOrRepairsTheSelectedGate)
     EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 0x0c, 0xb2, 6, 0x15, 1, 0, 0, 2, 0, 0, 0})));
 }
 
-// 0x664370: la estatua elegida desde 0x7d5c520. Una elegida en −1 cae en el registro anterior, dentro de la zona.
+// 0x664370: the selected statue from 0x7d5c520. A selection at −1 falls on the previous record, inside the zone.
 TEST_F(CastleSeniorAnswersTest, TheStatueAnswerReadsFrom0x7d5c520)
 {
     Record(0x7d5c520, 0x11b, 1, 0, 0, 400000, 1);
@@ -124,7 +124,7 @@ TEST_F(CastleSeniorAnswersTest, TheStatueAnswerReadsFrom0x7d5c520)
     EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 0x0c, 0xb2, 5, 0x1b, 1, 0, 0, 0, 0, 0, 0})));
 }
 
-// Una elegida cuyo registro sale de la zona no manda nada (Q-C1360).
+// Q-C1360.
 TEST_F(CastleSeniorAnswersTest, ASelectionOutsideTheZoneSendsNothing)
 {
     m_data.SetU32(Client::CastleSiege::SelectedGateAt, 8);
@@ -134,7 +134,7 @@ TEST_F(CastleSeniorAnswersTest, ASelectionOutsideTheZoneSendsNothing)
     EXPECT_TRUE(Warned("Q-C1360"));
 }
 
-// 0x660da0 y 0x660d20, las dos tablas de la vida.
+// 0x660da0 and 0x660d20.
 TEST(CastleLifeLevelsTest, LevelsAndMaxLivesFollowTheTables)
 {
     using Client::CastleSiege::LifeLevelOf;
@@ -162,7 +162,7 @@ TEST(CastleLifeLevelsTest, LevelsAndMaxLivesFollowTheTables)
     EXPECT_EQ(MaxLifeOfLevel(0x99, 0), -1);
 }
 
-// 0x662d50 y 0x664ce0: el B2 07 con 3 y la vida máxima del nivel siguiente.
+// 0x662d50 and 0x664ce0: B2 07 with 3 and the next level's max life.
 TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
 {
     Record(0x7d5c590, 0x115, 1, 0, 0, 500000, 1);
@@ -172,7 +172,7 @@ TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
     Record(0x7d5c520, 0x11b, 1, 0, 0, 750000, 1);
     Client::CastleSiege::AnswerTheStatueLifeDialog(8, Context());
     Client::CastleSiege::AnswerTheStatueLifeDialog(2, Context());
-    // Otro tipo: el nivel −1 + 1 y 0x660d20(tipo, 0) da −1.
+    // Another type: level −1 + 1 and 0x660d20(type, 0) gives −1.
     Record(0x7d5c520, 0x120, 1, 0, 0, 750000, 1);
     Client::CastleSiege::AnswerTheStatueLifeDialog(8, Context());
     const auto sent = Sent();
@@ -188,7 +188,7 @@ TEST_F(CastleSeniorAnswersTest, TheLifeAnswersSendTheNextLevel)
         SameBytes(sent[2], Bytes({0xc1, 0x14, 0xb2, 7, 0x1b, 1, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0x20, 0xd6, 0x13, 0})));
 }
 
-// 0x663440, 0x6653d0 y 0x665ab0: la defensa + 1 (kind 1) y la recuperación + 1 (kind 2; una puerta da 0 + 1).
+// 0x663440, 0x6653d0 and 0x665ab0: defense + 1 (kind 1) and recovery + 1 (kind 2; a gate gives 0 + 1).
 TEST_F(CastleSeniorAnswersTest, TheDefenseAndRecoveryAnswersSendTheNextLevel)
 {
     Record(0x7d5c590, 0x115, 1, 2, 0, 0, 1);
@@ -221,7 +221,7 @@ TEST_F(CastleSeniorAnswersTest, DefenseAndRecoveryIncrementWithDwordWrap)
     EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 0x14, 0xb2, 7, 0x1b, 1, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0})));
 }
 
-// 0x666b30: los dos impuestos que muestra la ventana, en dos B2 09 con el byte de arriba primero.
+// 0x666b30: the two taxes the window shows, in two B2 09 with the high byte first.
 TEST_F(CastleSeniorAnswersTest, TheTaxAnswerSendsBothTaxes)
 {
     m_data.SetU32(Client::CastleSiege::ChaosTaxAt, 3);
@@ -234,7 +234,7 @@ TEST_F(CastleSeniorAnswersTest, TheTaxAnswerSendsBothTaxes)
     EXPECT_TRUE(SameBytes(sent[1], Bytes({0xc1, 9, 0xb2, 9, 2, 1, 2, 3, 4})));
 }
 
-// 0x667a40: con la respuesta 2, sscanf("%u") del campo; sin número, el original manda basura de la pila (Q-C1363).
+// 0x667a40: with answer 2, sscanf("%u") of the field; without a number, the original sends stack garbage (Q-C1363).
 TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerScansTheField)
 {
     Client::CastleSiege::AnswerTheMoneyDialog(8, "5", Context());
@@ -251,8 +251,8 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerScansTheField)
     EXPECT_TRUE(Warned("Q-C1363"));
 }
 
-// La tabla original _pctype (6e2100 → 6e210a) marca SPACE sólo en09..0d/20 y DIGIT en30..39;
-// 6a990f acepta +/− antes del bucle decimal. Incluye NUL y todos los bytes Windows-1252 altos.
+// The original _pctype table (0x6e2100 → 0x6e210a) marks SPACE only at 09..0d/20 and DIGIT at 30..39;
+// 0x6a990f accepts +/− before the decimal loop. Includes NUL and all the high Windows-1252 bytes.
 TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerUsesTheOriginalCrtClassesForEveryInitialByte)
 {
     for (std::uint32_t first = 0; first < 256; ++first)
@@ -275,7 +275,7 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerUsesTheOriginalCrtClassesForEveryI
     }
 }
 
-// 6a9aa4/6a9aea sólo usan el DWORD bajo, sin saturación; 6a9b1f niega ese DWORD ya envuelto.
+// 0x6a9aa4/0x6a9aea use only the low DWORD, without saturation; 0x6a9b1f negates that already wrapped DWORD.
 TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerWrapsAt32BitsBeforeApplyingTheSign)
 {
     struct Case
@@ -302,7 +302,7 @@ TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerWrapsAt32BitsBeforeApplyingTheSign
     }
 }
 
-// El salto de blancos es anterior al signo. No hay un segundo salto ni conversión de un signo solo.
+// Skipping whitespace comes before the sign. There is no second skip and no conversion of a lone sign.
 TEST_F(CastleSeniorAnswersTest, TheMoneyAnswerDoesNotGuessTheDestinationWhenNoDigitWasAssigned)
 {
     for (const std::string_view field : {"", " \t\r\n", "+", "-", "+ 1", "-\t1", "++1", "--1", "zen"})

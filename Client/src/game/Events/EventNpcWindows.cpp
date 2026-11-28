@@ -44,35 +44,35 @@ namespace
 using Result = Core::Expected<void, std::string>;
 using Render::Text::FontKind;
 
-// La esquina de las ventanas de NPC de la derecha (0x78aba28 y 0x78aba2c).
+// The corner of the right-hand NPC windows (0x78aba28 and 0x78aba2c).
 constexpr std::int32_t WindowLeft = 0x104;
 constexpr std::int32_t WindowTop = 0;
-// Los botones: Interface\... 0xf0 de 140 de ancho (0x6b8ca8) desde x + 25 (0x6b8808), con du = 0,83203125.
+// The buttons: Interface\... 0xf0, 140 wide (0x6b8ca8) from x + 25 (0x6b8808), with du = 0.83203125.
 constexpr std::uint16_t ButtonSlot = 0xf0;
 constexpr double ButtonLeft = 25.0;
 constexpr float ButtonWidth = 140.0f;
 constexpr float ButtonDu = 0.83203125f;
-// Devil Square: desde y + 187 (0x6ba638), de a 40 (0x6b8bf4), de 35 de alto (0x6b8974); seis.
+// Devil Square: from y + 187 (0x6ba638), in steps of 40 (0x6b8bf4), 35 high (0x6b8974); six.
 constexpr double SquareTop = 187.0;
 constexpr double SquareStep = 40.0;
 constexpr float SquareHeight = 35.0f;
 constexpr std::size_t SquareCount = 6;
-// Blood Castle: desde y + 170 (0x6b899c), de a 35, de 30 de alto (0x41f00000 y 0x6b8858); siete.
+// Blood Castle: from y + 170 (0x6b899c), in steps of 35, 30 high (0x41f00000 and 0x6b8858); seven.
 constexpr double BridgeTop = 170.0;
 constexpr double BridgeStep = 35.0;
 constexpr float BridgeHeight = 30.0f;
 constexpr std::size_t BridgeCount = 7;
-// 0x5e598c y 0x5e6082: el paso mira la x entre 285 (0x6ba458) y 425 (0x6ba634), sin la esquina.
+// 0x5e598c and 0x5e6082: the step checks x between 285 (0x6ba458) and 425 (0x6ba634), without the corner.
 constexpr double StepLeft = 285.0;
 constexpr double StepRight = 425.0;
 
-// 0x6ba4c8 y 0x6ba4f8: {mínimo, máximo} de los seis cuadrados, y los del Magic Gladiator y del Dark Lord.
+// 0x6ba4c8 and 0x6ba4f8: {minimum, maximum} of the six squares, and those of the Magic Gladiator and the Dark Lord.
 using LevelRange = std::array<std::int32_t, 2>;
 constexpr std::array<LevelRange, SquareCount> SquareLevels{
     {{15, 130}, {131, 180}, {181, 230}, {231, 400}, {281, 330}, {331, 400}}};
 constexpr std::array<LevelRange, SquareCount> SquareLevelsOfTheSecondClasses{
     {{15, 110}, {111, 160}, {161, 210}, {211, 400}, {261, 310}, {311, 400}}};
-// 0x6ba528: los siete puentes y, siete después, los del Magic Gladiator y del Dark Lord.
+// 0x6ba528: the seven bridges and, seven later, those of the Magic Gladiator and the Dark Lord.
 constexpr std::array<LevelRange, BridgeCount * 2> BridgeLevels{{{15, 80},
                                                                 {81, 130},
                                                                 {131, 180},
@@ -87,8 +87,8 @@ constexpr std::array<LevelRange, BridgeCount * 2> BridgeLevels{{{15, 80},
                                                                 {211, 260},
                                                                 {261, 310},
                                                                 {311, 400}}};
-// La clase & 7 del Magic Gladiator y del Dark Lord.
-// 0x5f5c50 y 0x5f63a9: con un máximo de más de 10000, el texto sin máximo.
+// The class & 7 of the Magic Gladiator and the Dark Lord.
+// 0x5f5c50 and 0x5f63a9: with a maximum over 10000, the text without a maximum.
 constexpr std::int32_t OpenMaximum = 0x2710;
 
 constexpr std::size_t SquareText = 645;
@@ -99,14 +99,14 @@ constexpr std::size_t BridgeText = 847;
 constexpr std::size_t OpenBridgeText = 848;
 constexpr std::size_t BloodCastleTitle = 846;
 constexpr std::size_t BloodCastleStory = 832;
-// 0x5e5ab2, 0x5e5ae5 y 0x5e5b1d: muy alto, muy bajo y sin invitación; 0x5e6138: sin la capa.
+// 0x5e5ab2, 0x5e5ae5 and 0x5e5b1d: too high, too low and no invitation; 0x5e6138: no cloak.
 constexpr std::size_t TooHighText = 686;
 constexpr std::size_t TooLowText = 687;
 constexpr std::size_t NoInvitationText = 677;
 constexpr std::size_t NoCloakText = 854;
-// [ebp-0x68] y [ebp-0xa8]: 64 bytes para el renglón del botón.
+// [ebp-0x68] and [ebp-0xa8]: 64 bytes for the button's line.
 constexpr std::size_t RowBuffer = 0x40;
-// 0x5f64d2: 832 en a lo sumo 7 renglones de menos de 26 bytes.
+// 0x5f64d2: 832 in at most 7 lines of under 26 bytes.
 constexpr std::size_t StoryLines = 7;
 constexpr std::size_t StoryLineBytes = 0x1a;
 
@@ -120,19 +120,19 @@ constexpr Render::Color SquareColor{0.9f, 0.8f, 0.7f, 1.0f};
 constexpr Render::Color BridgeColor{0.7f, 0.7f, 0.9f, 1.0f};
 constexpr Render::Color ClosedBridgeColor{0.4f, 0.4f, 0.5f, 1.0f};
 
-// Las cajas de 0x554180 en 640 × 480: los renglones de Devil Square (0x74), los títulos y los de Blood Castle (0x78) y
-// los textos de abajo (0x82).
+// The 0x554180 boxes in 640 × 480: the Devil Square lines (0x74), the titles and the Blood Castle lines (0x78) and the
+// bottom texts (0x82).
 constexpr std::uint32_t SquareBox = 0x74;
 constexpr std::uint32_t TitleBox = 0x78;
 constexpr std::uint32_t StoryBox = 0x82;
 
-// La invitación de Devil Square (14/19) y la capa de Blood Castle (13/18).
+// Devil Square's invitation (14/19) and Blood Castle's cloak (13/18).
 constexpr std::uint16_t DevilsInvitation = 0x1c13;
 constexpr std::uint16_t CloakOfInvisibility = 0x1a12;
-// Lo que suman al lugar de la casilla 0x5e5c8f y 0x5e62d9.
+// What 0x5e5c8f and 0x5e62d9 add to the slot's place.
 constexpr std::int32_t SquarePlaceBias = 0x18;
 constexpr std::int32_t BridgePlaceBias = 0xc;
-// 0x5e611a: el puente 7 vale también con la capa de nivel 6.
+// 0x5e611a: bridge 7 also accepts the level 6 cloak.
 constexpr std::int32_t LastBridge = 7;
 constexpr std::int32_t LastBridgeSecondCloak = 6;
 
@@ -145,7 +145,7 @@ bool SecondClass(std::uint8_t characterClass)
     return kind == Kernel::CharacterClass::MagicGladiator || kind == Kernel::CharacterClass::DarkLord;
 }
 
-// left ≤ mouse < left + ancho y top ≤ mouse < top + alto en la x87, sin un ítem en el cursor (0x7879fbc).
+// left ≤ mouse < left + width and top ≤ mouse < top + height in the x87, without an item on the cursor (0x7879fbc).
 bool Hovered(const Hud::GameHudContext& context, float left, float top, float height)
 {
     const auto x = static_cast<double>(context.mouse.x);
@@ -164,7 +164,7 @@ Core::Expected<std::string_view, std::string> TextOf(const Tables::TextTable* te
     return *text;
 }
 
-// sprintf (0x69fd9b) de un texto de Text.bmd a los 64 bytes de la pila.
+// sprintf (0x69fd9b) of a Text.bmd text into the 64 stack bytes.
 Core::Expected<std::string, std::string> RowText(const Hud::GameHudContext& context, std::size_t index,
                                                  std::span<const Crt::FormatArgument> arguments, std::string_view where)
 {
@@ -180,7 +180,7 @@ Core::Expected<std::string, std::string> RowText(const Hud::GameHudContext& cont
     return text;
 }
 
-// El renglón de un botón: 646 (o 848) sin el máximo si pasa de 10000, o 645 (847) con los dos.
+// A button's line: 646 (or 848) without the maximum if it is over 10000, or 645 (847) with both.
 Core::Expected<std::string, std::string> ButtonText(const Hud::GameHudContext& context, std::size_t text,
                                                     std::size_t openText, std::int32_t number, const LevelRange& levels,
                                                     std::string_view where)
@@ -194,8 +194,8 @@ Core::Expected<std::string, std::string> ButtonText(const Hud::GameHudContext& c
     return RowText(context, text, arguments, where);
 }
 
-// 0x5f5cf9..0x5f5d52 y 0x5f6444..0x5f649d: glColor3f(1, 1, 1), el título en (x + 0x23, y + 0xc) con 0xffdcdcdc sobre
-// 0xff141414, la fuente normal, el texto blanco sobre 0 y la mezcla normal.
+// 0x5f5cf9..0x5f5d52 and 0x5f6444..0x5f649d: glColor3f(1, 1, 1), the title at (x + 0x23, y + 0xc) in 0xffdcdcdc over
+// 0xff141414, the normal font, white text over 0 and the normal blend.
 Result DrawTheTitle(Hud::GameHudContext& context, std::size_t index, std::string_view where)
 {
     context.sprites.SetColor(White);
@@ -230,7 +230,7 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
     {
         sprites.SetColor(Hovered(context, left, top, SquareHeight) ? White : SquareColor);
         Hud::WindowDrawing::Quad(sprites, ButtonSlot, left, top, ButtonWidth, SquareHeight, ButtonDu, 1.0f);
-        // 0x5f5a3f..0x5f5b2a: los niveles de la tabla y, con el registro propio abierto, los de la clase 3 o 4.
+        // 0x5f5a3f..0x5f5b2a: the table's levels and, with the own record open, those of class 3 or 4.
         LevelRange levels = SquareLevels[square];
         {
             const Models::LogicalAccess own(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -248,7 +248,7 @@ Result DrawTheDevilSquareWindow(Hud::GameHudContext& context)
     }
     if (auto title = DrawTheTitle(context, DevilSquareTitle, "0x5f5d52"); !title.HasValue())
         return title;
-    // 0x5f5d8a..0x5f5dd9: 670 a 675 en (x + 0x1e, y + 0x41), de a 20.
+    // 0x5f5d8a..0x5f5dd9: 670 to 675 at (x + 0x1e, y + 0x41), in steps of 20.
     for (std::size_t line = 0; line < SquareCount; ++line)
     {
         auto story = TextOf(context.texts, FirstSquareStory + line, "0x5f5dc2");
@@ -279,7 +279,7 @@ Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
     Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
-        // 0x5f5e68..0x5f5e98: la tabla por la clase del héroe (+0x1d4), y el nivel del registro propio (+0xe).
+        // 0x5f5e68..0x5f5e98: the table by the hero's class (+0x1d4), and the own record's level (+0xe).
         const Kernel::ActorState& hero = context.world.Hero();
         const std::size_t row = bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0);
         const LevelRange& levels = BridgeLevels[row];
@@ -315,7 +315,7 @@ Result DrawTheBloodCastleWindow(Hud::GameHudContext& context)
     return {};
 }
 
-// 0x632e30 con un texto de Text.bmd.
+// 0x632e30 with a Text.bmd text.
 Result MessageBoxOf(const Hud::GameUiContext& context, std::size_t index, std::string_view where)
 {
     auto text = TextOf(context.texts, index, where);
@@ -326,7 +326,6 @@ Result MessageBoxOf(const Hud::GameUiContext& context, std::size_t index, std::s
     return {};
 }
 
-// El send() del paso, por la sesión.
 Result Send(const Hud::GameUiContext& context, Protocol::Outgoing packet, std::string_view where)
 {
     if (context.chat == nullptr)
@@ -366,8 +365,8 @@ Result StepTheDevilSquareWindow(const Hud::GameUiContext& context, Ui::PanelRegi
     const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     const std::int32_t level = context.world.OwnCharacter().level;
     const LevelRange& levels = runtime.events.devilSquareLevels[square];
-    // 0x5e5a98..0x5e5af2: 0x65cae0(0x4000000, 0), 0x5be150 (sin ítem en el cursor, que ya se miró, no hace nada) y el
-    // aviso.
+    // 0x5e5a98..0x5e5af2: 0x65cae0(0x4000000, 0), 0x5be150 (without an item on the cursor, already checked, it does
+    // nothing) and the notice.
     if (level > levels[1] || level < levels[0])
     {
         if (auto closed = panels.Close(Ui::InventoryPanel); !closed.HasValue())
@@ -396,7 +395,7 @@ Result StepTheBloodCastleWindow(const Hud::GameUiContext& context)
     float top = F32(BridgeTop);
     for (std::size_t bridge = 0; bridge < BridgeCount; ++bridge)
     {
-        // 0x5e5f61..0x5e6080: cada puente abre y cierra el registro propio para su nivel antes de mirar el mouse.
+        // 0x5e5f61..0x5e6080: each bridge opens and closes the own record for its level before checking the mouse.
         const Kernel::ActorState& hero = context.world.Hero();
         const LevelRange& levels = BridgeLevels[bridge + (SecondClass(hero.characterClass) ? BridgeCount : 0)];
         bool open = true;

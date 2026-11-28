@@ -71,33 +71,33 @@ namespace
 namespace Events = Protocol::Events;
 using Applied = Core::Expected<void, std::string>;
 
-// Los nombres de los eventos que los formatos toman como argumento (un puntero a su registro de Text.bmd).
+// The event names the formats take as an argument (a pointer to their Text.bmd record).
 constexpr std::size_t BloodCastleName = 1146; // 0x77110d4
 constexpr std::size_t ChaosCastleName = 1147; // 0x7711200
 
-// Los avisos que comparten el 9A (0x4da780) y el AF 01 (0x4daa90).
+// The notices shared by 9A (0x4da780) and AF 01 (0x4daa90).
 constexpr std::size_t WrongCloakText = 854;      // 0x76fbaa4
 constexpr std::size_t EntryOverText = 852;       // 0x76fb84c: "...en% s ya ha terminado"
 constexpr std::size_t CapacityText = 853;        // 0x76fb978: "...permitido y% d"
 constexpr std::size_t TimesPerDayText = 867;     // 0x76fc9e0: "...más que% d por día."
 constexpr std::size_t TooStrongText = 686;       // 0x76ef5c4
 constexpr std::size_t TooWeakText = 687;         // 0x76ef6f0
-constexpr std::size_t ChaosCastleNoteText = 423; // 0x76dc190, el AF 01 con 7
-// 0x4da803 y 0x4da86b: el número que pasan al "% d" de 853, después del nombre.
+constexpr std::size_t ChaosCastleNoteText = 423; // 0x76dc190, AF 01 with 7
+// 0x4da803 and 0x4da86b: the number passed to the "% d" of 853, after the name.
 constexpr std::int32_t BloodCastleCapacity = 10;
 constexpr std::int32_t ChaosCastleCapacity = 100;
-// 0x4da828 y 0x4dab38: el de 867.
+// 0x4da828 and 0x4dab38: the one of 867.
 constexpr std::int32_t TimesPerDay = 6;
-// Los buffers de la pila de 0x4da780 y 0x4daa90: 0x64 bytes en [EBP − 0x64] y 0x80 en [EBP − 0x80] (el de 867).
+// The stack buffers of 0x4da780 and 0x4daa90: 0x64 bytes at [EBP − 0x64] and 0x80 at [EBP − 0x80] (the one of 867).
 constexpr std::size_t SmallStackBuffer = 0x64;
 constexpr std::size_t LargeStackBuffer = 0x80;
-// 0x4da8c0, 0x4e4570, 0x4da540 y 0x40bab0: 0x100 bytes.
+// 0x4da8c0, 0x4e4570, 0x4da540 and 0x40bab0: 0x100 bytes.
 constexpr std::size_t PageStackBuffer = 0x100;
 
-// 0x4e4894: los avisos del 90 con pkt[3] de 1 a 5 (la tabla 0x4e60ec).
+// 0x4e4894: the notices of 90 with pkt[3] from 1 to 5 (table 0x4e60ec).
 constexpr std::array<std::size_t, 5> DevilSquareEntryTexts{677, 678, 686, 687, 679};
 
-// 0x4da8c0: los avisos del 91.
+// 0x4da8c0: the notices of 91.
 constexpr std::uint8_t DevilSquareOpenTime = 1;
 constexpr std::uint8_t BloodCastleOpenTime = 2;
 constexpr std::uint8_t ChaosCastleOpenTime = 4;
@@ -105,78 +105,78 @@ constexpr std::size_t DevilSquareOpenText = 643;    // 0x76ec360
 constexpr std::size_t DevilSquareMinutesText = 644; // 0x76ec48c
 constexpr std::size_t CanEnterNowText = 850;        // 0x76fb5f4: "...en% s ahora"
 constexpr std::size_t CanEnterInText = 851;         // 0x76fb720: "...en% d minutos"
-constexpr std::size_t ChaosCastleOpenText = 1156;   // 0x7711c8c, el formato del segundo renglón
+constexpr std::size_t ChaosCastleOpenText = 1156;   // 0x7711c8c, the second line's format
 constexpr std::size_t ChaosCastleHoursText = 1164;  // 0x77125ec: "Cuando %d"
-// 0x4da9bc: el tercer argumento del formato de 1156.
+// 0x4da9bc: the third argument of the 1156 format.
 constexpr std::int32_t ChaosCastleOpenArgument = 100;
-// 0x4da9f0..0x4daa0a: la división por 60 de la palabra pkt[4]:pkt[6].
+// 0x4da9f0..0x4daa0a: the division by 60 of the word pkt[4]:pkt[6].
 constexpr std::int32_t MinutesPerHour = 60;
 
-// 0x4e4a86: los avisos del 9D con pkt[3] de 0 a 4 (0x76fe024 + 300 · n) y con 5.
+// 0x4e4a86: the notices of 9D with pkt[3] from 0 to 4 (0x76fe024 + 300 · n) and with 5.
 constexpr std::size_t FirstSerialText = 886;
 constexpr std::uint8_t LastIndexedSerialResult = 4;
 constexpr std::uint8_t SerialAlreadyRegistered = 5;
 constexpr std::size_t SerialAlreadyRegisteredText = 899; // 0x76fef60
 
-// 0x4e4ad4: los sonidos del 9E con la palabra de pkt[4] en 0, 1 y 2.
+// 0x4e4ad4: the sounds of 9E with the word of pkt[4] at 0, 1 and 2.
 constexpr std::array<Audio::SoundId, 3> EventSounds{Audio::SoundId{0x5b}, Audio::SoundId{0x5c}, Audio::SoundId{0x5d}};
 
-// 0x4e4a40: los diálogos del 99 con pkt[3] en 0 y 1.
+// 0x4e4a40: the dialogs of 99 with pkt[3] at 0 and 1.
 constexpr std::array<std::int32_t, 2> EventDialogs{0x8f, 0x90};
 
-// 0x4e3621..0x4e365e: el 0B con pkt[4] en 1 (la tormenta en 1 o 0) o en 3 (en 3 o 0).
+// 0x4e3621..0x4e365e: 0B with pkt[4] at 1 (the storm at 1 or 0) or at 3 (at 3 or 0).
 constexpr std::uint8_t StormEvent = 1;
 constexpr std::uint8_t StrongStormEvent = 3;
 constexpr std::int32_t Storm = 1;
 constexpr std::int32_t StrongStorm = 3;
 
-// 0x4dab90: el tipo de pkt[3].
+// 0x4dab90: the type of pkt[3].
 constexpr std::uint8_t AreaAttributes = 0;
 constexpr std::uint8_t CellAttributes = 1;
 
-// Los mapas de los eventos (0x6c9dd0).
+// The event maps (0x6c9dd0).
 using Maps::FirstBloodCastleMap;
 using Maps::FirstChaosCastleMap;
 using Maps::LastBloodCastleMap;
 using Maps::LastChaosCastleMap;
 
-// 0x4dac0b y 0x40c221: el derrumbe de Blood Castle (el atributo 8 del 46 y el 9B con 3).
+// 0x4dac0b and 0x40c221: the Blood Castle collapse (attribute 8 of 46 and 9B with 3).
 constexpr std::uint8_t BloodCastleGateAttribute = 8;
 constexpr std::int32_t BloodCastleCollapseType = 0x24;
 constexpr std::int32_t BloodCastleCollapseCounter = 0x14;
-// 0x404f2e: el de Chaos Castle.
+// 0x404f2e: Chaos Castle's.
 constexpr std::int32_t ChaosCastleCollapseType = 1;
 constexpr std::int32_t ChaosCastleCollapseCounter = 0x28;
 constexpr std::int32_t CollapseDelay = 1;
 
-// 0x40bd20, 0x40c0c0 y 0x404da0: el primer botón de la caja de los resultados y los diálogos.
+// 0x40bd20, 0x40c0c0 and 0x404da0: the first button of the results box and the dialogs.
 constexpr Ui::DialogButton DevilSquareResultButton{.state = 1, .x = 0x47, .y = 0x104, .width = 0x46, .height = 0x15};
 constexpr Ui::DialogButton CastleResultButton{.state = 1, .x = 0x47, .y = 0x82, .width = 0x46, .height = 0x15};
 constexpr std::int32_t DevilSquareResultDialog = 0x8b;
 constexpr std::int32_t BloodCastleResultDialog = 0x97;
 constexpr std::int32_t ChaosCastleResultDialog = 0x9b;
-// 0x40bd2a: Devil Square copia pkt[4] registros de 24 bytes si pkt[4] < 200.
+// 0x40bd2a: Devil Square copies pkt[4] records of 24 bytes if pkt[4] < 200.
 constexpr std::int32_t DevilSquareResultLimit = 200;
 constexpr std::size_t ResultRecordBytes = 24;
-// 0x40c0cb y 0x404dab: Blood Castle con pkt[4] en 0xff y Chaos Castle con 0xfe copian uno.
+// 0x40c0cb and 0x404dab: Blood Castle with pkt[4] at 0xff and Chaos Castle with 0xfe copy one.
 constexpr std::uint8_t BloodCastleResultCount = 0xff;
 constexpr std::uint8_t ChaosCastleResultCount = 0xfe;
 
-// 0x40ba80: el tiempo que dejan el 9B de Blood Castle y el de Chaos Castle en +0x14.
+// 0x40ba80: the time the Blood Castle and Chaos Castle 9B leave in +0x14.
 constexpr std::int32_t PlayTime = 0x384;
-// 0x5111a0(0xc0) y 0x41ed10(0x8b, 0, 1): la entrada a Blood Castle.
+// 0x5111a0(0xc0) and 0x41ed10(0x8b, 0, 1): the entry to Blood Castle.
 constexpr std::uint8_t GateAction = 0xc0;
 constexpr float GateAngle = 180.0f;
 constexpr Audio::SoundId BloodCastleMusic = Sound::BloodCastleSound;
-// 0x40c1ab..0x40c1c3: sin dueño (0xffff) o sin arma (0 o 0xff), nada.
+// 0x40c1ab..0x40c1c3: without an owner (0xffff) or without a weapon (0 or 0xff), nothing.
 constexpr std::uint16_t NoWeaponOwner = 0xffff;
 constexpr std::uint8_t NoWeapon = 0xff;
-// 0x40c1c9: la clave sin el bit alto.
+// 0x40c1c9: the key without the high bit.
 constexpr std::uint16_t KeyMask = 0x7fff;
-// 0x511150 y 0x5111a0 recorren los 400 primeros; sin la clave, 0x511150 da el 400.
+// 0x511150 and 0x5111a0 walk the first 400; without the key, 0x511150 gives 400.
 constexpr std::size_t ActorsSearched = 400;
 
-// 0x404e20: los casos de Chaos Castle (pkt[3] de 5 a 10).
+// 0x404e20: the Chaos Castle cases (pkt[3] from 5 to 10).
 constexpr std::uint8_t ChaosCastleStart = 5;
 constexpr std::uint8_t ChaosCastlePlay = 6;
 constexpr std::uint8_t ChaosCastleEnd = 7;
@@ -187,32 +187,32 @@ constexpr Audio::SoundId ChaosCastleMusic = Sound::ChaosCastleSound;
 constexpr Audio::SoundId ChaosCastleWaitMusic = Sound::ChaosSound;
 constexpr Audio::SoundId ChaosCastleEndSound{0x9f};
 constexpr Audio::SoundId ChaosCastleCollapseSound = Sound::WallFallSound;
-// 0x404e5a..0x404e75: el campo del chat abierto se cierra, y con los EDIT (0x6c7b8c en 1, como en MuRet) los
-// oculta 0x469450(3).
+// 0x404e5a..0x404e75: the open chat field closes, and with the EDITs (0x6c7b8c at 1, as in MuRet) 0x469450(3) hides
+// them.
 constexpr std::int32_t HideTheChatFields = 3;
-// 0x404e53: el área en 0xff; los casos 8, 9 y 10 esperan 0, 3 y 6 y dejan 1, 4 y 7 (0x405e00 la mueve).
+// 0x404e53: the area at 0xff; cases 8, 9 and 10 expect 0, 3 and 6 and leave 1, 4 and 7 (0x405e00 moves it).
 constexpr std::uint8_t NoChaosCastleArea = 0xff;
 constexpr std::uint8_t ChaosCastleTrapArmed = 1;
 
-// El atributo 8 de los derrumbes de Chaos Castle, en los rectángulos de 0x5f8750.
+// Attribute 8 of the Chaos Castle collapses, in the rectangles of 0x5f8750.
 constexpr std::uint8_t ChaosCastleCollapseAttribute = 8;
-// 0x404f41..0x404f83, 0x404fae..0x404fee y 0x405014..0x405054.
+// 0x404f41..0x404f83, 0x404fae..0x404fee and 0x405014..0x405054.
 constexpr std::array<std::array<Terrain::TerrainArea, 4>, 3> ChaosCastleCollapses{{
     {{{0x17, 0x4b, 0x16, 2}, {0x2b, 0x4d, 2, 0x20}, {0x17, 0x6b, 0x14, 2}, {0x17, 0x4d, 2, 0x1e}}},
     {{{0x19, 0x4d, 0x12, 2}, {0x29, 0x4f, 2, 0x1c}, {0x19, 0x69, 0x10, 2}, {0x19, 0x4f, 2, 0x1a}}},
     {{{0x1b, 0x4f, 0xe, 2}, {0x27, 0x51, 2, 0x18}, {0x1b, 0x67, 0xc, 2}, {0x1b, 0x51, 2, 0x16}}},
 }};
-// Lo que esperan en 0x6c634c los tres derrumbes, y lo que dejan.
+// What the three collapses expect in 0x6c634c, and what they leave.
 constexpr std::array<std::uint8_t, 3> ChaosCastleCollapseAreas{0, 3, 6};
 
-// 0x4dd8a0: el modo de 0x78abb00 (pkt[3] + 1) con los números del Muto y con el número de serie.
+// 0x4dd8a0: the mode of 0x78abb00 (pkt[3] + 1) with the Muto numbers and with the serial number.
 constexpr std::int32_t MutoWindow = 1;
 constexpr std::uint16_t NoMutoNumber = 0xffff;
 constexpr std::uint16_t NoChipCount = 0xffff;
 
-// 0x4d6990: el aviso del 47 con los dos buffers de 100 de la pila en cero, el prefijo de 0x10000 (620, 0x76ea86c) o
-// de 0x20000 (1089, 0x770ce08) con "%s " (0x6c844c y 0x6c8450), el tipo en los 13 bits bajos, lo que agregan 0x2000
-// (176, 0x76ca01c), 0x8000 (177, 0x76ca148) y 0x4000 (178, 0x76ca274) en ese orden, y "%s %s" (0x6c8454) con el 918
+// 0x4d6990: the notice of 47 with the two 100-byte stack buffers zeroed, the prefix of 0x10000 (620, 0x76ea86c) or of
+// 0x20000 (1089, 0x770ce08) with "%s " (0x6c844c and 0x6c8450), the type in the low 13 bits, what 0x2000 (176,
+// 0x76ca01c), 0x8000 (177, 0x76ca148) and 0x4000 (178, 0x76ca274) add in that order, and "%s %s" (0x6c8454) with 918
 // (0x77005a4).
 constexpr std::size_t ItemNoticeBuffer = 100;
 constexpr std::uint32_t ItemTypeMask = 0x1fff;
@@ -230,7 +230,7 @@ constexpr std::array<ItemSuffix, 3> ItemSuffixes{{{0x2000, 176}, {0x8000, 177}, 
 constexpr std::size_t ItemAcquiredText = 918;
 constexpr std::string_view ItemNoticeFormat = "%s %s";
 
-// 0x4e4547 y 0x4da540: los resultados del BC 00 y del BC 01.
+// 0x4e4547 and 0x4da540: the results of BC 00 and BC 01.
 constexpr std::size_t JewelMixText = 1801;       // 0x7741068
 constexpr std::size_t JewelUnmixText = 1800;     // 0x7740f3c
 constexpr std::size_t JewelToText = 1816;        // 0x77421fc
@@ -239,7 +239,7 @@ constexpr std::size_t JewelMissingText = 1817;   // 0x7742328
 constexpr std::size_t JewelNoZenText = 1811;     // 0x7741c20
 constexpr std::size_t JewelWrongItemText = 1812; // 0x7741d4c
 constexpr std::size_t JewelNoSpaceText = 1815;   // 0x77420d0
-// 0x6c8490 y 0x6c8498: "%s%s %s".
+// 0x6c8490 and 0x6c8498: "%s%s %s".
 constexpr std::string_view JewelFormat = "%s%s %s";
 constexpr std::int32_t JewelDialog = 0xa6;
 
@@ -247,10 +247,10 @@ constexpr std::int32_t JewelDialog = 0xa6;
 // one, in 0x6c73f8.
 constexpr std::int32_t CrywolfPeaceCounter = 0xb;
 constexpr std::int32_t CrywolfFightTime = 0x186;
-// 0x42ff3f..0x42ff75: los estados con su luz; otro deja el buffer sin escribir.
+// 0x42ff3f..0x42ff75: the states with their light; another leaves the buffer unwritten.
 constexpr std::uint8_t LastLitCrywolfState = Events::CrywolfWarState;
-// 0x4e1010: los resultados del BD 03, el nivel desde el que el 0 da 0x3a (0x4e1144), la primera clave de los altares
-// (0x4e11b7) y la acción de sentarse (0x4e11cc).
+// 0x4e1010: the BD 03 results, the level from which 0 gives 0x3a (0x4e1144), the first altar key (0x4e11b7) and the
+// sitting action (0x4e11cc).
 constexpr std::uint8_t ContractFailed = 0;
 constexpr std::uint8_t ContractSigned = 1;
 constexpr std::int32_t ContractLevel = 0x15e;
@@ -258,13 +258,13 @@ constexpr std::int32_t FirstAltarKey = 0x13c;
 using Tables::SittingAction;
 // 0x4303c0: the map 0x22, which the BD 04 tests with the started stage (0x4359f0).
 using Maps::CrywolfMap;
-// 0x437620: cinco lugares (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 y 0x7239f8..0x723a2e).
+// 0x437620: five places (0x6c73e4..0x6c73f4, 0x723a30..0x723a34 and 0x7239f8..0x723a2e).
 constexpr std::size_t CrywolfRankingPlaces = 5;
 
-// 0x4d9f59: el tanteador sin partido (pkt[0xc] en 0xff).
+// 0x4d9f59: the scoreboard with no match (pkt[0xc] at 0xff).
 constexpr std::uint8_t NoSoccerScore = 0xff;
 
-// 0x4da070: los comandos del F3 40.
+// 0x4da070: the F3 40 commands.
 constexpr std::uint8_t CommandEffect = 0;
 constexpr std::uint8_t CommandNotice = 1;
 constexpr std::uint8_t CommandSound = 2;
@@ -286,7 +286,7 @@ constexpr std::int32_t CastleNoticeDialog = 0xaa;
 constexpr std::size_t GuildNoticeText = 1826; // 0x7742db4
 constexpr std::size_t CommandTextBase = 1776; // 0x773f31c
 
-// 0x40bab0: la cuenta de 30 s.
+// 0x40bab0: the 30 s countdown.
 constexpr std::int32_t FirstCountdown = 1;
 constexpr std::int32_t LastCountdown = 14;
 constexpr std::uint32_t CountdownMs = 30000;
@@ -296,13 +296,13 @@ constexpr std::int32_t FirstBloodCastleCountdown = 4;
 constexpr std::int32_t LastBloodCastleCountdown = 7;
 constexpr std::int32_t FirstChaosCastleCountdown = 11;
 constexpr std::int32_t LastChaosCastleCountdown = 14;
-// 0x40bb31: 0x76f92cc + 300 · n, el texto 820 + n de Blood Castle.
+// 0x40bb31: 0x76f92cc + 300 · n, Blood Castle's text 820 + n.
 constexpr std::size_t BloodCastleCountdownBase = 820;
-// 0x40bb6b..0x40bb77: el 813 + n de Chaos Castle, con el 825 cambiado por el 828.
+// 0x40bb6b..0x40bb77: Chaos Castle's 813 + n, with 825 replaced by 828.
 constexpr std::size_t ChaosCastleCountdownBase = 0x32d;
 constexpr std::size_t ChaosCastleSkippedText = 0x339;
 constexpr std::size_t ChaosCastleReplacementText = 0x33c;
-// 0x40bba5: 0x76ebeb0 + 300 · n, el 639 + n de los demás.
+// 0x40bba5: 0x76ebeb0 + 300 · n, the others' 639 + n.
 constexpr std::size_t OtherCountdownBase = 639;
 
 class Applier
@@ -322,10 +322,11 @@ public:
     }
 
 private:
-    // ----- Lo que comparten los handlers.
+    // ----- What the handlers share.
 
-    // Donde el original lee o escribe fuera de sus tablas y sigue: lo de antes queda hecho, con sus rand(), y el resto
-    // del paquete no se aplica. No es un error de la sesión: va a EventPacketResult::discarded (Q-C174, Q-C778).
+    // Where the original reads or writes outside its tables and goes on: what came before stays done, with its rand(),
+    // and the rest of the packet is not applied. Not a session error: it goes to EventPacketResult::discarded (Q-C174,
+    // Q-C778).
     Applied Discard(std::string reason)
     {
         m_result.discarded = std::move(reason);
@@ -349,8 +350,8 @@ private:
         return Crt::FormatArgument{Crt::TextArgument{.index = index, .text = text.Value()}};
     }
 
-    // `function` con el formato `format` de Text.bmd en un buffer de `bufferBytes`: lo que no entra con su '\0'
-    // pisaría lo que sigue y corta.
+    // `function` with Text.bmd format `format` into a buffer of `bufferBytes`: what does not fit with its '\0' would
+    // overwrite what follows, and it stops.
     [[nodiscard]] Core::Expected<std::string, std::string> Format(Crt::FormatFunction function, std::string_view format,
                                                                   std::span<const Crt::FormatArgument> arguments,
                                                                   std::size_t bufferBytes, std::string_view where) const
@@ -382,7 +383,7 @@ private:
         Ui::OpenMessageBox(m_runtime.dialogBox, m_runtime.dialogs, text);
     }
 
-    // 0x632e30 con un registro de Text.bmd.
+    // 0x632e30 with a Text.bmd record.
     Applied MessageBoxOf(std::size_t index, std::string_view where)
     {
         auto text = Text(index, where);
@@ -392,7 +393,7 @@ private:
         return {};
     }
 
-    // sprintf o wsprintfA de un formato de Text.bmd y 0x632e30 con lo que salió.
+    // sprintf or wsprintfA of a Text.bmd format and 0x632e30 with the result.
     Applied FormattedMessageBox(Crt::FormatFunction function, std::size_t format,
                                 std::span<const Crt::FormatArgument> arguments, std::size_t bufferBytes,
                                 std::string_view where)
@@ -404,7 +405,7 @@ private:
         return {};
     }
 
-    // 0x555190(nombre, texto, 1) con uno de los nombres vacíos de la .bss (0x5767a54..0x5767a6c).
+    // 0x555190(name, text, 1) with one of the empty .bss names (0x5767a54..0x5767a6c).
     Applied Message(std::string_view text, std::string_view where)
     {
         if (m_context.measure == nullptr)
@@ -423,50 +424,50 @@ private:
                                                                        .texts = m_context.texts,
                                                                        .screen = m_context.screen,
                                                                        .now = m_context.tickCount});
-        // 0x657a90 alcanza también el almacén, la caja del caos, el entrenador y la tienda del NPC (0x657ab0).
+        // 0x657a90 also reaches the warehouse, the chaos box, the trainer and the NPC shop (0x657ab0).
         panels.LendTheNpcWindows(m_world, m_context.random,
                                  m_context.inventory != nullptr ? *m_context.inventory : Items::InventoryServices{},
                                  m_context.sendNpcWindow);
         return panels.Registry().CloseAll();
     }
 
-    // 0x41ed10: el tercer argumento de la llamada nativa pide la repetición.
+    // 0x41ed10: the native call's third argument asks for the loop.
     void Play(Audio::SoundId sound, bool loop = false)
     {
         m_result.sounds.push_back(sound);
         m_runtime.RequestSound(sound, std::nullopt, loop);
     }
 
-    // 0x41ee00: los eventos detienen la pista y la rebobinan.
+    // 0x41ee00: the events stop the track and rewind it.
     void Stop(Audio::SoundId sound)
     {
         m_result.stoppedSounds.push_back(sound);
         m_runtime.StopSound(sound, true);
     }
 
-    // 0x5ff930(mapa, tipo, cuenta, demora): el FILD de la demora la guarda como float.
+    // 0x5ff930(map, type, count, delay): the FILD of the delay stores it as a float.
     void RequestTheCollapse(std::int32_t map, std::int32_t type, std::int32_t counter, std::int32_t delay)
     {
         m_runtime.events.objectCollapse =
             ObjectCollapse{.map = map, .type = type, .counter = counter, .delay = static_cast<float>(delay)};
     }
 
-    // 0x5f8710 (OR) y 0x5f8730 (AND con el complemento) sobre el WORD (y << 8) + x de 0x7d0d348.
+    // 0x5f8710 (OR) and 0x5f8730 (AND with the complement) on the WORD (y << 8) + x of 0x7d0d348.
     Applied MarkTheCell(std::int32_t x, std::int32_t y, std::uint8_t attribute, bool add, std::string_view where)
     {
         return Terrain::MarkTheTerrainCell(Terrain::TerrainOrEmpty(m_context.terrain).attributes.get(), x, y, attribute,
                                            add, where);
     }
 
-    // 0x5f8750(x, y, ancho, alto, atributo, agregar).
+    // 0x5f8750(x, y, width, height, attribute, add).
     Applied MarkTheArea(const Terrain::TerrainArea& area, std::uint8_t attribute, bool add, std::string_view where)
     {
         return Terrain::MarkTheTerrainArea(Terrain::TerrainOrEmpty(m_context.terrain).attributes.get(), area, attribute,
                                            add, where);
     }
 
-    // 0x5111a0(acción): cada uno de los 400 primeros vivo que es un jugador (0x20a) con los ángulos en (0, 0, 180) y
-    // la acción por 0x4ea030 con el esqueleto de Player.bmd.
+    // 0x5111a0(action): each live one among the first 400 that is a player (0x20a), with the angles at (0, 0, 180) and
+    // the action by 0x4ea030 with the Player.bmd skeleton.
     Applied TurnThePlayersToTheGate(std::string_view where)
     {
         if (m_context.playerSkeleton == nullptr)
@@ -485,8 +486,8 @@ private:
         return {};
     }
 
-    // 0x511150(clave): +0x360 en 0 en los 400 primeros, y el último vivo con la clave (MOVSX contra la clave sin el
-    // bit alto), o el 400 sin ninguno (Q-C1326).
+    // 0x511150(key): +0x360 at 0 in the first 400, and the last live one with the key (MOVSX against the key without
+    // the high bit), or 400 if none (Q-C1326).
     std::size_t ClearTheWeaponsAndFind(std::uint16_t key)
     {
         const auto actors = m_world.Actors();
@@ -501,8 +502,8 @@ private:
         return found;
     }
 
-    // 0x40ba80(estado, 900, pkt[4], pkt[6], pkt[8]) y, con dueño y arma, el arma en +0x360 del dueño (0x40c1a7..
-    // 0x40c1fa; Chaos Castle no la mira).
+    // 0x40ba80(state, 900, pkt[4], pkt[6], pkt[8]) and, with an owner and a weapon, the weapon in the owner's +0x360
+    // (0x40c1a7..0x40c1fa; Chaos Castle ignores it).
     static void SetThePlayState(EventMapObject& event, std::uint8_t state, const Events::EventPlayState& packet)
     {
         event.field10 = state;
@@ -517,16 +518,16 @@ private:
         m_world.Actors()[owner].byte360 = packet.weapon;
     }
 
-    // Los botones de 0x7d368b8 en cero y el primero con `button`.
+    // The buttons of 0x7d368b8 zeroed and the first with `button`.
     void SetTheResultButtons(const Ui::DialogButton& button)
     {
         m_runtime.dialogBox.buttons = {};
         m_runtime.dialogBox.buttons[0] = button;
     }
 
-    // El rep movs de `count` registros de 24 bytes desde pkt[5] a +0x2c. Con menos bytes en el paquete (el original lee
-    // el buffer de la recepción) o más de 11 registros (pisa el heap, Q-C1324) no copia, descarta el resto del paquete
-    // y devuelve false.
+    // The rep movs of `count` 24-byte records from pkt[5] to +0x2c. With fewer bytes in the packet (the original reads
+    // the receive buffer) or more than 11 records (overwrites the heap, Q-C1324) it does not copy, drops the rest of
+    // the packet and returns false.
     [[nodiscard]] bool CopyTheResults(EventMapObject& event, const Events::EventResult& packet, std::size_t count,
                                       std::string_view where)
     {
@@ -559,8 +560,8 @@ private:
 
     // ----- 0B (0x4e3594).
 
-    // 0x4e3621..0x4e3663, después de la cola de 0x77f27b4 (la guarda la sesión): la tormenta (0x723c50) con pkt[4]
-    // en 1 o 3, y siempre los 40 pájaros apagados (0x4455c0).
+    // 0x4e3621..0x4e3663, after the 0x77f27b4 queue (the session keeps it): the storm (0x723c50) with pkt[4] at 1 or 3,
+    // and always the 40 birds off (0x4455c0).
     Applied On(const Events::EventState& packet)
     {
         if (packet.event == StormEvent)
@@ -578,7 +579,7 @@ private:
     {
         if (packet.type == CellAttributes)
         {
-            // 0x4dabba..0x4dabf5: cada celda con 0x5f8730 si pkt[5] no es 0 y con 0x5f8710 si es 0.
+            // 0x4dabba..0x4dabf5: each cell with 0x5f8730 if pkt[5] is not 0 and with 0x5f8710 if it is 0.
             for (const Events::AttributeCell& cell : packet.cells)
             {
                 if (auto marked = MarkTheCell(cell.x, cell.y, packet.attribute, packet.mode == 0, "0x4dabd0");
@@ -589,12 +590,12 @@ private:
         }
         if (packet.type != AreaAttributes)
             return {};
-        // 0x4dabfc..0x4dac18: en Blood Castle, el atributo 8 pide el derrumbe.
+        // 0x4dabfc..0x4dac18: in Blood Castle, attribute 8 requests the collapse.
         const std::int32_t map = m_runtime.map;
         if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap && packet.attribute == BloodCastleGateAttribute)
             RequestTheCollapse(map, BloodCastleCollapseType, 0, CollapseDelay);
-        // 0x4dac2c..0x4dac53: 0x5f8750(x1, y1, x2 − x1 + 1, y2 − y1 + 1, atributo, 1 − pkt[5]) con el byte de la resta:
-        // pkt[5] en 0 agrega y en 1 quita, pero en 2 (0xff) también agrega (Q-C1320).
+        // 0x4dac2c..0x4dac53: 0x5f8750(x1, y1, x2 − x1 + 1, y2 − y1 + 1, attribute, 1 − pkt[5]) with the subtraction's
+        // byte: pkt[5] at 0 adds and at 1 removes, but at 2 (0xff) it also adds (Q-C1320).
         const bool add = static_cast<std::uint8_t>(1 - packet.mode) != 0;
         for (const Events::AttributeArea& area : packet.areas)
         {
@@ -610,11 +611,11 @@ private:
 
     Applied On(const Events::ItemAcquired& packet)
     {
-        // 0x4d69ad..0x4d69d1: con la clave del héroe, nada.
+        // 0x4d69ad..0x4d69d1: with the hero's key, nothing.
         const std::size_t owner = Kernel::ActorWithKey(m_world, packet.key);
         if (owner == m_runtime.hero)
             return {};
-        // 0x4d6a09..0x4d6a3e: el prefijo, con sprintf en el primer buffer.
+        // 0x4d6a09..0x4d6a3e: the prefix, with sprintf into the first buffer.
         std::string line;
         const std::optional<std::size_t> prefix = (packet.item & FirstPrefixFlag) != 0 ? FirstPrefixText
                                                   : (packet.item & SecondPrefixFlag) != 0
@@ -632,7 +633,7 @@ private:
                 return Core::Unexpected(std::move(formatted).Error());
             line = std::move(formatted).Value();
         }
-        // 0x4d6a54: 0x5b1c70(tipo, pkt[0xc]) en el segundo buffer, en cero; donde no escribe nada queda vacío.
+        // 0x4d6a54: 0x5b1c70(type, pkt[0xc]) into the second buffer, zeroed; where it writes nothing it stays empty.
         auto name = Items::ItemNameOf(m_context.items, m_context.texts, &m_context.world.Runtime().npcNames,
                                       static_cast<std::uint16_t>(packet.item & ItemTypeMask), packet.level);
         if (!name.HasValue())
@@ -641,7 +642,7 @@ private:
             return Core::Unexpected(std::format("0x4d6a54: el nombre del ítem ocupa {} bytes con su '\\0' y el "
                                                 "buffer tiene {}",
                                                 name.Value().size() + 1, ItemNoticeBuffer));
-        // 0x4d6a59..0x4d6b1f: los strcat sobre el primer buffer.
+        // 0x4d6a59..0x4d6b1f: the strcat calls on the first buffer.
         line += name.Value();
         for (const ItemSuffix& suffix : ItemSuffixes)
         {
@@ -655,7 +656,8 @@ private:
         if (line.size() >= ItemNoticeBuffer)
             return Core::Unexpected(std::format("0x4d6b1f: el strcat ocupa {} bytes con su '\\0' y el buffer tiene {}",
                                                 line.size() + 1, ItemNoticeBuffer));
-        // 0x4d6b21..0x4d6b4d: sprintf(segundo buffer, "%s %s", el primero, 918) y 0x555190(+0x1d9 del dueño, texto, 1).
+        // 0x4d6b21..0x4d6b4d: sprintf(second buffer, "%s %s", the first, 918) and 0x555190(the owner's +0x1d9, text,
+        // 1).
         auto acquired = TextArgument(ItemAcquiredText, "0x4d6b36");
         if (!acquired.HasValue())
             return Core::Unexpected(std::move(acquired).Error());
@@ -683,7 +685,7 @@ private:
         return MessageBoxOf(DevilSquareEntryTexts[packet.result - 1U], "0x4e4894");
     }
 
-    // ----- 91 (0x4da8c0), con wsprintfA ([0x6b851c], P-C290).
+    // ----- 91 (0x4da8c0), with wsprintfA ([0x6b851c], P-C290).
 
     Applied On(const Events::EventOpenTime& packet)
     {
@@ -713,9 +715,9 @@ private:
         return {};
     }
 
-    // 0x4da98e..0x4daa75: la palabra pkt[4]:pkt[6]. Los textos van a los registros 1154 y 1155 de Text.bmd en la
-    // memoria (300 bytes cada uno) y de ahí 0x633300 los copia a la caja del 0x9a; MuRet se los pasa directo
-    // (único lector, 0x633300 con 0x482).
+    // 0x4da98e..0x4daa75: the word pkt[4]:pkt[6]. The texts go to Text.bmd records 1154 and 1155 in memory (300 bytes
+    // each) and from there 0x633300 copies them to the 0x9a box; MuRet passes them directly (only reader, 0x633300 with
+    // 0x482).
     Applied OpenTheChaosCastleTime(const Events::EventOpenTime& packet)
     {
         constexpr auto Wsprintf = Crt::FormatFunction::Wsprintf;
@@ -747,9 +749,9 @@ private:
         auto second = FormatText(Wsprintf, CanEnterInText, minuteArguments, PageStackBuffer, "0x4daa39");
         if (!second.HasValue())
             return Core::Unexpected(std::move(second).Error());
-        // 0x4daa3b..0x4daa73: el strcat del segundo sobre el registro 1154. Si no entra con su '\0', el original pisa
-        // el registro 1155 y abre el 0x9a igual: dentro del handler se descarta el resto del paquete, sin el 0x9a, y la
-        // sesión sigue con el aviso (Q-C1109; los textos no van al log, solo su largo).
+        // 0x4daa3b..0x4daa73: the strcat of the second onto record 1154. If it does not fit with its '\0', the original
+        // overwrites record 1155 and opens 0x9a anyway: inside the handler the rest of the packet is dropped, without
+        // 0x9a, and the session goes on with the notice (Q-C1109; the texts do not go to the log, only their length).
         std::string joined = std::move(first).Value() + second.Value();
         if (joined.size() >= Crt::TextRecordBytes)
             return Discard(std::format("0x4daa73: el strcat ocupa {} bytes con su '\\0' y pisa el registro 1155 de "
@@ -759,7 +761,7 @@ private:
         return Ui::OpenTheChaosCastleDialog(m_runtime.dialogBox, m_runtime.dialogs, texts);
     }
 
-    // ----- 92 (0x4e4930): con el objeto, 0x40ba60(pkt[3] + 1): +8 y GetTickCount en +0xc.
+    // ----- 92 (0x4e4930): with the object, 0x40ba60(pkt[3] + 1): +8 and GetTickCount in +0xc.
 
     Applied On(const Events::EventCountdown& packet)
     {
@@ -770,7 +772,7 @@ private:
         return {};
     }
 
-    // ----- 93 (0x4e4959 → 0x4e7360 → el método +0xc del objeto con (pkt[4], pkt[3], pkt + 5, pkt[3])).
+    // ----- 93 (0x4e4959 → 0x4e7360 → the object's method +0xc with (pkt[4], pkt[3], pkt + 5, pkt[3])).
 
     Applied On(const Events::EventResult& packet)
     {
@@ -781,7 +783,7 @@ private:
         {
         case EventMapKind::DevilSquare:
         {
-            // 0x40bd20: con pkt[4] < 200, el ranking de pkt[4] registros.
+            // 0x40bd20: with pkt[4] < 200, the ranking of pkt[4] records.
             if (std::int32_t{packet.count} >= DevilSquareResultLimit)
                 return {};
             SetTheResultButtons(DevilSquareResultButton);
@@ -793,10 +795,10 @@ private:
             return {};
         }
         case EventMapKind::BloodCastle:
-            // 0x40c0c0: solo con pkt[4] en 0xff, un registro y +0x24 = pkt[3].
+            // 0x40c0c0: only with pkt[4] at 0xff, one record and +0x24 = pkt[3].
             return ShowTheCastleResult(event, packet, BloodCastleResultCount, BloodCastleResultDialog, "0x40c12a");
         case EventMapKind::ChaosCastle:
-            // 0x404da0: ídem con 0xfe.
+            // 0x404da0: same with 0xfe.
             return ShowTheCastleResult(event, packet, ChaosCastleResultCount, ChaosCastleResultDialog, "0x404e0a");
         }
         return {};
@@ -832,8 +834,8 @@ private:
         }
         if (panels.field78abb00 != MutoWindow)
             return {};
-        // 0x4dd926..0x4dd949: los tres números si ninguno es 0xffff. Sin ellos, el original los lee del buffer de la
-        // recepción: se descartan, después del cierre (con sus rand()) y de 0x78abb00/04.
+        // 0x4dd926..0x4dd949: the three numbers if none is 0xffff. Without them, the original reads them from the
+        // receive buffer: they are dropped, after the close (with its rand()) and 0x78abb00/04.
         if (!packet.muto)
             return Discard("0x4dd92c: el 94 con el tipo 0 lee pkt[6..0xb], que el paquete no trae");
         const auto& numbers = *packet.muto;
@@ -843,7 +845,7 @@ private:
         return {};
     }
 
-    // ----- 95 (0x4e49d4): la palabra sin signo en 0x78abb04, salvo 0xffff.
+    // ----- 95 (0x4e49d4): the unsigned word in 0x78abb04, except 0xffff.
 
     Applied On(const Events::EventChipCount& packet)
     {
@@ -852,7 +854,7 @@ private:
         return {};
     }
 
-    // ----- 96 (0x4e49fb): los tres números si ninguno es 0xffff.
+    // ----- 96 (0x4e49fb): the three numbers if none is 0xffff.
 
     Applied On(const Events::MutoNumbers& packet)
     {
@@ -863,7 +865,7 @@ private:
         return {};
     }
 
-    // ----- 99 (0x4e4a40): 0x6236f0 con 0x8f o 0x90.
+    // ----- 99 (0x4e4a40): 0x6236f0 with 0x8f or 0x90.
 
     Applied On(const Events::EventDialog& packet)
     {
@@ -872,7 +874,7 @@ private:
         return {};
     }
 
-    // ----- 9A (0x4da780), con sprintf (0x69fd9b).
+    // ----- 9A (0x4da780), with sprintf (0x69fd9b).
 
     Applied On(const Events::BloodCastleEntryResult& packet)
     {
@@ -901,7 +903,7 @@ private:
         }
     }
 
-    // sprintf(buffer, 852, nombre): "% s" con la bandera del espacio, que %s no usa.
+    // sprintf(buffer, 852, name): "% s" with the space flag, which %s does not use.
     Applied EntryOverBox(std::size_t name, std::string_view where)
     {
         auto argument = TextArgument(name, where);
@@ -911,7 +913,7 @@ private:
         return FormattedMessageBox(Crt::FormatFunction::Sprintf, EntryOverText, arguments, SmallStackBuffer, where);
     }
 
-    // sprintf(buffer, 853, nombre, número): el "% d" toma el puntero al nombre e imprime su dirección (Q-C1321).
+    // sprintf(buffer, 853, name, number): the "% d" takes the pointer to the name and prints its address (Q-C1321).
     Applied CapacityBox(std::size_t name, std::int32_t capacity, std::string_view where)
     {
         auto argument = TextArgument(name, where);
@@ -927,7 +929,7 @@ private:
         return FormattedMessageBox(Crt::FormatFunction::Sprintf, TimesPerDayText, arguments, LargeStackBuffer, where);
     }
 
-    // ----- 9B (0x4e4999): con el objeto, su método +8.
+    // ----- 9B (0x4e4999): with the object, its method +8.
 
     Applied On(const Events::EventPlayState& packet)
     {
@@ -947,30 +949,30 @@ private:
         return {};
     }
 
-    // 0x40c140, por pkt[3] de 0 a 4 (la tabla 0x40c2b0).
+    // 0x40c140, by pkt[3] from 0 to 4 (table 0x40c2b0).
     Applied PlayBloodCastle(EventMapObject& event, const Events::EventPlayState& packet)
     {
         switch (packet.state)
         {
         case 0:
-            // 0x40c165..0x40c178, y sigue en el caso 1.
+            // 0x40c165..0x40c178, and falls through to case 1.
             if (auto turned = TurnThePlayersToTheGate("0x40c16a"); !turned.HasValue())
                 return turned;
             Play(BloodCastleMusic, true);
             [[fallthrough]];
         case 1:
         case 4:
-            // 0x40c180..0x40c1fa y 0x40c23c..0x40c2a1: +0x10 = pkt[3] + 1.
+            // 0x40c180..0x40c1fa and 0x40c23c..0x40c2a1: +0x10 = pkt[3] + 1.
             SetThePlayState(event, static_cast<std::uint8_t>(packet.state + 1), packet);
             GiveTheWeapon(packet);
             return {};
         case 2:
-            // 0x40c205: 0x40ba20 y la música apagada.
+            // 0x40c205: 0x40ba20 and the music off.
             ResetThePlayState(event);
             Stop(BloodCastleMusic);
             return {};
         case 3:
-            // 0x40c221: el derrumbe de la puerta.
+            // 0x40c221: the gate's collapse.
             RequestTheCollapse(m_runtime.map, BloodCastleCollapseType, BloodCastleCollapseCounter, CollapseDelay);
             return {};
         default:
@@ -978,14 +980,14 @@ private:
         }
     }
 
-    // 0x40ba20: +0x10 en 0 y +0x14..+0x20 en −1.
+    // 0x40ba20: +0x10 at 0 and +0x14..+0x20 at −1.
     static void ResetThePlayState(EventMapObject& event)
     {
         event.field10 = 0;
         event.field14 = {-1, -1, -1, -1};
     }
 
-    // 0x404e20, por pkt[3] de 5 a 10 (la tabla 0x405070).
+    // 0x404e20, by pkt[3] from 5 to 10 (table 0x405070).
     Applied PlayChaosCastle(EventMapObject& event, const Events::EventPlayState& packet)
     {
         switch (packet.state)
@@ -1032,8 +1034,8 @@ private:
         }
     }
 
-    // 0x404f1c, 0x404f88 y 0x404ff2: con el área esperada, la siguiente, el derrumbe y cuatro rectángulos con el
-    // atributo 8 (0x5f8750 con agregar en 1) y el sonido 0x61.
+    // 0x404f1c, 0x404f88 and 0x404ff2: with the expected area, the next one, the collapse and four rectangles with
+    // attribute 8 (0x5f8750 with add at 1) and sound 0x61.
     Applied CollapseChaosCastle(std::size_t step)
     {
         if (m_runtime.chaosCastleArea != ChaosCastleCollapseAreas[step])
@@ -1049,7 +1051,7 @@ private:
         return {};
     }
 
-    // ----- 9D (0x4e4a86): el aviso y los 0x40 bytes en 0x78ab078, con cualquier resultado.
+    // ----- 9D (0x4e4a86): the notice and the 0x40 bytes in 0x78ab078, with any result.
 
     Applied On(const Events::SerialResult& packet)
     {
@@ -1076,7 +1078,7 @@ private:
         return {};
     }
 
-    // ----- AF 01 (0x4e5032 → 0x4daa90), por pkt[4] de 1 a 7 (la tabla 0x4dab6c).
+    // ----- AF 01 (0x4e5032 → 0x4daa90), by pkt[4] from 1 to 7 (table 0x4dab6c).
 
     Applied On(const Events::ChaosCastleEntryResult& packet)
     {
@@ -1103,7 +1105,7 @@ private:
         }
     }
 
-    // ----- BC 00 (0x4e4547) y BC 01 (0x4da540).
+    // ----- BC 00 (0x4e4547) and BC 01 (0x4da540).
 
     Applied On(const Events::JewelMixResult& packet)
     {
@@ -1146,7 +1148,7 @@ private:
         }
     }
 
-    // sprintf(buffer de 0x100, "%s%s %s", título, 1816, 868), el mensaje y 0x402e50.
+    // sprintf(0x100 buffer, "%s%s %s", title, 1816, 868), the message and 0x402e50.
     Applied JewelMessage(std::size_t title, std::string_view where)
     {
         std::array<Crt::FormatArgument, 3> arguments{};
@@ -1176,7 +1178,7 @@ private:
         return CloseTheJewelWindow();
     }
 
-    // 0x4e45d9 y 0x4da5af: 0x6236f0(0) y 0x6236f0(0xa6).
+    // 0x4e45d9 and 0x4da5af: 0x6236f0(0) and 0x6236f0(0xa6).
     Applied OpenTheJewelDialog()
     {
         Ui::PushDialog(m_runtime.dialogs, 0);
@@ -1184,8 +1186,8 @@ private:
         return {};
     }
 
-    // 0x402e50 (Scenes/JewelMix.h): de vuelta a elegir la joya; con otro modo, 0x402eb0 cierra todo y manda el C1 03 31
-    // en claro por el send() de los paquetes de mundo. Sin él, ese envío corta.
+    // 0x402e50 (ChaosMix/JewelMix.h): back to choosing the jewel; with another mode, 0x402eb0 closes everything and
+    // sends C1 03 31 in the clear through the world packets' send(). Without it, that send stops.
     Applied CloseTheJewelWindow()
     {
         return ChaosMix::ReturnToTheJewelChoice(m_world,
@@ -1199,14 +1201,14 @@ private:
                                                 });
     }
 
-    // ----- BD 00 (0x4e5965): 0x42fe80(pkt[4], pkt[5]) y 0x4033b0(pkt[5]) sobre [0x6e5904].
+    // ----- BD 00 (0x4e5965): 0x42fe80(pkt[4], pkt[5]) and 0x4033b0(pkt[5]) on [0x6e5904].
 
     Applied On(const Events::CrywolfState& packet)
     {
-        // Con un estado de más de 2 (Q-C1328) el resto se descarta, también 0x4033b0.
+        // With a state above 2 (Q-C1328) the rest is dropped, 0x4033b0 too.
         if (auto changed = ChangeTheCrywolfState(packet.state, packet.stage); !changed.HasValue() || m_result.discarded)
             return changed;
-        // 0x4033b0: +0x154 del recorrido de la cámara, que con la 2 empieza (Scenes/CameraTour.h).
+        // 0x4033b0: +0x154 of the camera tour, which starts with 2 (Events/Crywolf/CameraTour.h).
         m_runtime.events.cameraTour.stage = packet.stage;
         return {};
     }
@@ -1226,7 +1228,7 @@ private:
             ui.byte723a3d = 0;
             if (stage == Events::CrywolfEndStage)
             {
-                // 0x42febf..0x42fef5: 0x6c73e4..0x6c73f4 en −1 y, salvo con el estado 2, el aviso.
+                // 0x42febf..0x42fef5: 0x6c73e4..0x6c73f4 at −1 and, except with state 2, the notice.
                 for (std::size_t index = 1; index < ui.dwords6c73e0.size(); ++index)
                     ui.dwords6c73e0[index] = -1;
                 if (state != Events::CrywolfWarState)
@@ -1250,10 +1252,10 @@ private:
         return ReloadTheCrywolfTerrain(state);
     }
 
-    // 0x42ff16..0x42ffe8: la luz y el .att del mapa en curso, sea cual sea (Q-C1340), con la carpeta "World%d" del
-    // mapa + 1 (0x6c7330, sin la guarda de 0x61a560): TerrainLight, TerrainLight1 o TerrainLight2 por el estado
-    // (0x6c72e8, 0x6c73fc y 0x6c72fc) y EncTerrain<mapa + 1>.att, <mapa · 10 + 0xb> o <mapa · 10 + 0xc> (0x6c7314).
-    // Ninguno de los dos mira lo que devuelve el cargador: un archivo que falta deja el aviso fatal y lo anterior.
+    // 0x42ff16..0x42ffe8: the light and the .att of the current map, whatever it is (Q-C1340), with the map's "World%d"
+    // folder + 1 (0x6c7330, without the guard of 0x61a560): TerrainLight, TerrainLight1 or TerrainLight2 by the state
+    // (0x6c72e8, 0x6c73fc and 0x6c72fc) and EncTerrain<map + 1>.att, <map · 10 + 0xb> or <map · 10 + 0xc> (0x6c7314).
+    // Neither checks what the loader returns: a missing file leaves the fatal notice and what was there before.
     Applied ReloadTheCrywolfTerrain(std::uint8_t state)
     {
         if (m_context.dataRoot.empty())
@@ -1275,7 +1277,7 @@ private:
         return Terrain::ReloadWorldTerrainAttributes(m_context.dataRoot, folder, number, terrain, fatal);
     }
 
-    // ----- BD 02 (0x4e5990 → 0x4e0fe0 → 0x430000): la luz y los cinco altares, en cualquier mapa y etapa.
+    // ----- BD 02 (0x4e5990 → 0x4e0fe0 → 0x430000): the light and the five altars, in any map and stage.
 
     Applied On(const Events::CrywolfAltars& packet)
     {
@@ -1285,8 +1287,8 @@ private:
         return {};
     }
 
-    // ----- BD 03 (0x4e59a5 → 0x4e1010): el resultado del contrato, en cualquier mapa; lo de 0x435b00 y 0x435ad0
-    // mira la etapa y el mapa.
+    // ----- BD 03 (0x4e59a5 → 0x4e1010): the contract result, in any map; 0x435b00 and 0x435ad0 check the stage and the
+    // map.
 
     Applied On(const Events::CrywolfContract& packet)
     {
@@ -1294,9 +1296,9 @@ private:
         Kernel::ActorState& hero = m_world.Hero();
         if (packet.result == ContractFailed)
         {
-            // 0x4e1050..0x4e106e: el héroe se para.
+            // 0x4e1050..0x4e106e: the hero stands up.
             hero.flags7c &= ~SittingFlag;
-            // 0x4e1071..0x4e1142: el nivel (+0xe) con el registro propio abierto.
+            // 0x4e1071..0x4e1142: the level (+0xe) with the own record open.
             std::int32_t level = 0;
             {
                 const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random,
@@ -1315,7 +1317,7 @@ private:
         }
         if (packet.result != ContractSigned)
             return {};
-        // 0x4e119b..0x4e11d9: los dos renglones, el altar de la clave, el héroe sentado y su acción 0xca.
+        // 0x4e119b..0x4e11d9: the two lines, the key's altar, the hero seated and its action 0xca.
         if (auto shown = Crywolf::ShowTheContractMessage(m_runtime, m_context.texts,
                                                          {.message = Crywolf::ContractSignedMessage});
             !shown.HasValue())
@@ -1324,14 +1326,14 @@ private:
                                                          {.message = Crywolf::ContractSignedSecondMessage, .line = 1});
             !shown.HasValue())
             return shown;
-        // 0x4e11b5..0x4e11c2: la clave − 0x13c sin tope (Q-C1347).
+        // 0x4e11b5..0x4e11c2: the key − 0x13c with no bound (Q-C1347).
         const std::int32_t altar = static_cast<std::int32_t>(packet.key) - FirstAltarKey;
         if (!Crywolf::SetTheAltar(m_runtime, altar, packet.value))
             return Discard(std::format("0x435aeb: el altar {} (la clave {:#x} − 0x13c) escribe fuera de "
                                        "0x6c73cc..0x6c73d0 (Q-C1347)",
                                        altar, packet.key));
         hero.flags7c |= SittingFlag;
-        // 0x4ea036..0x4ea054: las acciones del modelo del tipo del héroe (+2), Player.bmd o el del transformado.
+        // 0x4ea036..0x4ea054: the actions of the model of the hero's type (+2), Player.bmd or the transformed one's.
         const auto* skeleton =
             m_context.models != nullptr ? m_context.models->SkeletonOf(Models::ModelId{hero.type}) : nullptr;
         if (skeleton == nullptr)
@@ -1339,7 +1341,7 @@ private:
                                                 "{:#x}, que no está cargado",
                                                 hero.type));
         Models::SetAction(hero.animation, *skeleton, SittingAction);
-        // 0x4e11e1..0x4e15bd: el C1 05 18 con el rumbo del héroe (+0x24) y 0x82.
+        // 0x4e11e1..0x4e15bd: C1 05 18 with the hero's heading (+0x24) and 0x82.
         const auto direction = Protocol::Movement::DirectionFromAngle(hero.angles.z);
         if (!direction.HasValue())
             return Core::Unexpected(std::string("0x4e1275: el ángulo del héroe está fuera del perfil de ftol"));
@@ -1377,7 +1379,7 @@ private:
         return {};
     }
 
-    // ----- BD 04 (0x4e59ba → 0x435a20): con la etapa 4 en el 34, pkt[4], los minutos y GetTickCount.
+    // ----- BD 04 (0x4e59ba → 0x435a20): with stage 4 in 34, pkt[4], the minutes and GetTickCount.
 
     Applied On(const Events::CrywolfTimer& packet)
     {
@@ -1391,8 +1393,8 @@ private:
         return {};
     }
 
-    // ----- BD 05 (0x4e59eb → 0x435a70): con la etapa 3 o 4 en el 34, pkt[8] en 0x723bd8; la barra se prende con el
-    // dword en más de 0 y se apaga con 0 o menos (0x435a96..0x435ab5), y el dword va a 0x6c73d4 (0x436590).
+    // ----- BD 05 (0x4e59eb → 0x435a70): with stage 3 or 4 in 34, pkt[8] in 0x723bd8; the bar turns on with the dword
+    // above 0 and off with 0 or less (0x435a96..0x435ab5), and the dword goes to 0x6c73d4 (0x436590).
 
     Applied On(const Events::CrywolfBoss& packet)
     {
@@ -1412,7 +1414,7 @@ private:
         return {};
     }
 
-    // ----- BD 07 (0x4e5a09 → 0x437600): el rango y la experiencia, en cualquier mapa.
+    // ----- BD 07 (0x4e5a09 → 0x437600): the rank and the experience, in any map.
 
     Applied On(const Events::CrywolfRank& packet)
     {
@@ -1422,9 +1424,9 @@ private:
         return {};
     }
 
-    // ----- BD 08 (0x4e5a39 → 0x4e1680 → 0x437620 por registro): los puntos, la clase y el nombre del lugar, y la
-    // ventana de los resultados. El lugar es el byte del registro sin tope: con 5 o más escribe fuera de las tres
-    // tablas (Q-C1341), y MuRet descarta desde ese registro; los de antes quedan escritos.
+    // ----- BD 08 (0x4e5a39 → 0x4e1680 → 0x437620 per record): the place's points, class and name, and the results
+    // window. The place is the record's byte with no bound: with 5 or more it writes outside the three tables
+    // (Q-C1341), and MuRet drops from that record on; the earlier ones stay written.
 
     Applied On(const Events::CrywolfRanking& packet)
     {
@@ -1492,7 +1494,7 @@ private:
         m_runtime.guild.ourScore = packet.firstScore;
         m_runtime.guild.theirScore = packet.secondScore;
         const Kernel::ActorState& hero = m_world.Hero();
-        // 0x4d9f78/94: FILD directo, sin abrir las dos entradas protegidas.
+        // 0x4d9f78/94: FILD directly, without opening the two protected entries.
         return FireworkAt(std::bit_cast<std::int32_t>(hero.cellXLeft), std::bit_cast<std::int32_t>(hero.cellYLeft));
     }
 
@@ -1508,7 +1510,7 @@ private:
         return {};
     }
 
-    // ----- F3 40 (0x4da070), por pkt[4] de 0 a 0x31 (las tablas 0x4da24c y 0x4da224).
+    // ----- F3 40 (0x4da070), by pkt[4] from 0 to 0x31 (tables 0x4da24c and 0x4da224).
 
     Applied On(const Events::ServerCommand& packet)
     {
@@ -1530,7 +1532,7 @@ private:
         case CommandMessage:
             return MessageBoxOf(MessageBase + packet.value5, "0x4da183");
         case CommandDialog:
-            // 0x4da18f..0x4da195: 0x632f70(pkt[5]) sin tope; desde el 200 lee fuera de 0x7688ac0 (Q-C1325).
+            // 0x4da18f..0x4da195: 0x632f70(pkt[5]) with no bound; from 200 on it reads outside 0x7688ac0 (Q-C1325).
             if (packet.value5 >= Tables::DialogCount)
                 return Discard(std::format("0x4da195: el diálogo {} de 0x632f70 cae fuera de los 200 de 0x7688ac0 "
                                            "(Q-C1325)",
@@ -1570,7 +1572,7 @@ EventCountdownText(EventMapObject& event, std::uint32_t tickCount, const Tables:
     const std::int32_t kind = event.field08;
     if (kind < FirstCountdown || kind > LastCountdown)
         return std::optional<std::string>{};
-    // 0x40bad7..0x40baf1: la resta sin signo contra +0xc.
+    // 0x40bad7..0x40baf1: the unsigned subtraction against +0xc.
     const std::uint32_t elapsed = tickCount - static_cast<std::uint32_t>(event.field0c);
     if (elapsed > CountdownMs)
     {
@@ -1629,11 +1631,11 @@ void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime)
     ui.dwords723bdc = {};
     ui.dword7239f4 = -1;
     ui.dword6c73dc = 0x0a;
-    // 0x42fdf8: el NPC elegido de la llegada (0x6c8e54), que es de GameMovementState.
+    // 0x42fdf8: the arrival's chosen NPC (0x6c8e54), which belongs to GameMovementState.
     runtime.chosenNpc.index = -1;
     ui.dword6c73d8 = 1;
     ui.byte723bec = 0;
-    // 0x42fe0d: solo el primero de los seis.
+    // 0x42fe0d: only the first of the six.
     ui.dwords6c73e0[0] = -1;
     ui.byte723a3d = 0;
     ui.message = -1;
@@ -1643,7 +1645,7 @@ void ResetTheCrywolfInterface(Kernel::WorldRuntime& runtime)
     runtime.crywolf.state = Events::CrywolfPeaceState;
     runtime.crywolf.stage = Events::CrywolfNoStage;
     ui.light = 0;
-    // 0x42fe41: 0x6c8e2c, el segundo de los objetivos elegidos.
+    // 0x42fe41: 0x6c8e2c, the second of the chosen targets.
     runtime.selectedTargets[1] = -1;
 }
 } // namespace Client::Events

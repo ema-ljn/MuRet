@@ -15,8 +15,8 @@
 
 #include <optional>
 
-// Client::FrontEnd::OptionsWindow: las opciones del login y de la selección (+0x7e8: 0x644120, 0x644520,
-// 0x644640, 0x644730 y 0x644860; CL8, hito 8). Todo en píxeles.
+// Client::FrontEnd::OptionsWindow: the options of the login and the selection (+0x7e8: 0x644120, 0x644520, 0x644640,
+// 0x644730 and 0x644860; CL8, milestone 8). All in pixels.
 namespace
 {
 using Client::Core::PixelSize;
@@ -32,10 +32,10 @@ using Client::Ui::Point;
 using Client::Ui::Rect;
 
 constexpr PixelSize Screen640{640, 480};
-// Un paso de la lógica: 40 ms (Kernel::LogicStep).
+// One logic step: 40 ms (Kernel::LogicStep).
 constexpr double StepMs = 40.0;
 
-// Los buffers del laboratorio: op1_back3 de 5 × 8 sube en 8 × 8.
+// The lab's buffers: op1_back3, 5 × 8, is uploaded in 8 × 8.
 Client::Ui::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x72a, {128, 128}},
@@ -52,7 +52,7 @@ OptionsWindow OpenWindow(const OptionsSettings& settings)
     OptionsWindow window(LabSizes(), nullptr);
     window.Arm(settings);
     window.Open();
-    // Un paso sin nada la ubica (0x644520).
+    // A step with nothing places it (0x644520).
     const InputState nothing;
     static_cast<void>(window.Step(nothing, Screen640, 0.0, settings));
     return window;
@@ -71,8 +71,8 @@ std::optional<OptionsEvent> ClickOn(OptionsWindow& window, InputState& input, Re
     return StepOnce(window, input, current);
 }
 
-// 0x644520 con 30 líneas de 8: el marco de 213 × 348 al centro; las casillas a 52 del borde, una cada 41; el
-// volumen 48 abajo de la última más su alto, el brillo 61 más abajo, y el botón a 301 de arriba.
+// 0x644520 with 30 lines of 8: the 213 × 348 frame in the center; the checkboxes 52 from the edge, one every 41; the
+// volume 48 below the last plus its height, the glow 61 lower, and the button 301 from the top.
 TEST(OptionsWindowTest, TheFrameHasThirtyLines)
 {
     const OptionsWindowLayout layout = LayoutOptionsWindow(Screen640, 8);
@@ -86,7 +86,7 @@ TEST(OptionsWindowTest, TheFrameHasThirtyLines)
     EXPECT_EQ(layout.close, (Rect{265, 367, 108, 30}));
 }
 
-// 0x6446e0: las casillas y los deslizadores con los globales; el volumen hasta 9 y el brillo hasta 4.
+// 0x6446e0: the checkboxes and the sliders with the globals; the volume up to 9 and the glow up to 4.
 TEST(OptionsWindowTest, ArmingReadsTheGlobals)
 {
     const OptionsWindow window = OpenWindow(
@@ -102,7 +102,7 @@ TEST(OptionsWindowTest, ArmingReadsTheGlobals)
     EXPECT_TRUE(window.SliderAt(0).IsOpen());
 }
 
-// 0x644730: cada casilla que cambia escribe su global.
+// 0x644730
 TEST(OptionsWindowTest, EachCheckWritesItsGlobal)
 {
     OptionsSettings current;
@@ -121,7 +121,7 @@ TEST(OptionsWindowTest, EachCheckWritesItsGlobal)
     EXPECT_TRUE(window.IsOpen());
 }
 
-// La casilla termina el paso: un Esc del mismo paso queda para la escena (Q-C502).
+// The checkbox ends the step: an Esc of the same step is left for the scene (Q-C502).
 TEST(OptionsWindowTest, ACheckEndsTheStepBeforeEscape)
 {
     const OptionsSettings current;
@@ -134,7 +134,7 @@ TEST(OptionsWindowTest, ACheckEndsTheStepBeforeEscape)
     EXPECT_TRUE(window.IsOpen());
 }
 
-// El botón cierra sin sonido; Esc, con el 0x19 (de la CL10), y se lleva el apretón.
+// The button closes without sound; Esc, with 0x19 (from CL10), and takes the press.
 TEST(OptionsWindowTest, TheButtonAndEscapeClose)
 {
     const OptionsSettings current;
@@ -151,7 +151,7 @@ TEST(OptionsWindowTest, TheButtonAndEscapeClose)
     EXPECT_FALSE(input.TakePress(Key::Escape));
 }
 
-// Sin el foco, 0x644730 no corre: ni Esc ni los deslizadores.
+// Without the focus, 0x644730 does not run: neither Esc nor the sliders.
 TEST(OptionsWindowTest, WithoutTheFocusNothingHappens)
 {
     const OptionsSettings current;
@@ -164,8 +164,8 @@ TEST(OptionsWindowTest, WithoutTheFocusNothingHappens)
     EXPECT_TRUE(input.TakePress(Key::Escape));
 }
 
-// 0x6447d9: el deslizador que se mueve escribe su valor si es otro que el global, y termina el paso igual si
-// es el mismo. Apretar a la derecha de la perilla del volumen (5, en 312) lo sube a 6.
+// 0x6447d9: the slider that moves writes its value if it differs from the global, and ends the step anyway if it is
+// the same. Pressing right of the volume knob (5, at 312) raises it to 6.
 TEST(OptionsWindowTest, TheVolumeSliderWritesANewValue)
 {
     OptionsSettings current;
@@ -179,13 +179,13 @@ TEST(OptionsWindowTest, TheVolumeSliderWritesANewValue)
     Client::FrontEnd::ApplyOption(current, *volume);
     EXPECT_EQ(current.volume, 6);
 
-    // Todavía apretado: el mismo valor no escribe nada, y Esc no se lee.
+    // Still pressed: the same value writes nothing, and Esc is not read.
     Client::Tests::PressKey(input, Key::Escape);
     EXPECT_EQ(StepOnce(window, input, current), std::nullopt);
     EXPECT_TRUE(window.IsOpen());
 }
 
-// 0x64480a: el brillo, con la perilla en 4 (al final, 350): apretar a su izquierda lo baja a 3.
+// 0x64480a: the glow, with the knob at 4 (at the end, 350): pressing left of it lowers it to 3.
 TEST(OptionsWindowTest, TheGlowSliderWritesItsByte)
 {
     OptionsSettings current;
@@ -200,9 +200,9 @@ TEST(OptionsWindowTest, TheGlowSliderWritesItsByte)
     EXPECT_EQ(current.glowDetail, 3);
 }
 
-// 0x644860: el título centrado en el marco a 10 de arriba, los rótulos de las casillas 24 a la derecha y 4
-// abajo, los de los deslizadores 18 arriba con el valor de los globales 85 a la derecha (el brillo, 2 · d +
-// 5) y, al final, el rótulo del botón.
+// 0x644860: the title centered in the frame 10 from the top, the checkbox labels 24 to the right and 4 down, the
+// slider labels 18 up with the globals' value 85 to the right (the glow, 2 · d + 5) and, at the end, the button's
+// label.
 TEST(OptionsWindowTest, TheTextsShowTheGlobals)
 {
     const auto texts = Client::Tests::MakeTextTable({{385, "Titulo"},

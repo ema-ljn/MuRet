@@ -11,35 +11,35 @@ namespace Client::Kernel
 {
 namespace
 {
-// Un tick de GetTickCount como unidad de chrono: 1/64 s, los 15,625 ms de FaithfulTick.
+// A GetTickCount tick as a chrono unit: 1/64 s, FaithfulTick's 15.625 ms.
 using Tick = std::chrono::duration<std::int64_t, std::ratio<1, 64>>;
 static_assert(Tick{1} == FaithfulTick);
 
-// El tick en el que cae `now`: tira lo que pasó desde el último, como GetTickCount, que solo
-// cambia de tick en tick. floor redondea hacia abajo también con `now` negativo, que ningún IClock
-// da (ni el FakeClock baja de 0) y solo llega llamando a TickCountMs directo, como su test.
+// The tick `now` falls in: drops what passed since the last one, like GetTickCount, which only changes tick by tick.
+// floor rounds down also with a negative `now`, which no IClock gives (not even the FakeClock goes below 0) and only
+// comes from calling TickCountMs directly, like its test.
 Core::Duration TickStart(Core::Duration now)
 {
     return std::chrono::floor<Tick>(now);
 }
 
-// LogicStep en los ms enteros del original: el SUB EAX,0x28 de 0x638167.
+// LogicStep in the original's whole ms: the SUB EAX,0x28 of 0x638167.
 constexpr std::int32_t FaithfulStepMs =
     static_cast<std::int32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(LogicStep).count());
 } // namespace
 
 std::uint32_t TickCountMs(Core::Duration now)
 {
-    // floor y no duration_cast, que trunca hacia 0: con `now` negativo (TickStart dice cuándo) el
-    // tick -1 lee -16 y no -15, y la grilla sigue la misma cuenta, floor(tick × 15,625), a los dos
-    // lados del 0. El cast a 32 bits sin signo es la vuelta del DWORD: está definido, módulo 2^32.
+    // floor and not duration_cast, which truncates toward 0: with a negative `now` (TickStart says when) tick -1 reads
+    // -16 and not -15, and the grid follows the same count, floor(tick × 15.625), on both sides of 0. The cast to
+    // unsigned 32 bits is the DWORD wrap: it is defined, modulo 2^32.
     const auto milliseconds = std::chrono::floor<std::chrono::milliseconds>(TickStart(now));
     return static_cast<std::uint32_t>(milliseconds.count());
 }
 
 int FaithfulPacer::BeginFrame()
 {
-    // CMP [0x6d5ee4],0x28 en 0x637791 + JL en 0x637798: sin tope de pasos por frame.
+    // CMP [0x6d5ee4],0x28 at 0x637791 + JL at 0x637798: no cap on steps per frame.
     int steps = 0;
     while (m_accumulatedMs >= FaithfulStepMs)
     {
@@ -56,8 +56,8 @@ void FaithfulPacer::StartMeasure(Core::IClock& clock)
 
 void FaithfulPacer::EndFrame(Core::IClock& clock)
 {
-    // La espera de 0x6385fd..0x638624: la resta es de DWORD y la comparación, con signo. El
-    // original gira; MuRet duerme hasta el próximo tick, que es cuando GetTickCount cambia.
+    // The wait of 0x6385fd..0x638624: the subtraction is DWORD and the comparison, signed. The original spins; MuRet
+    // sleeps until the next tick, which is when GetTickCount changes.
     Core::Duration now = clock.Now();
     while (static_cast<std::int32_t>(TickCountMs(now) - m_startMs) < FaithfulWaitMs)
     {
@@ -65,8 +65,8 @@ void FaithfulPacer::EndFrame(Core::IClock& clock)
         now = clock.Now();
     }
     m_lastMeasuredMs = static_cast<std::int32_t>(TickCountMs(now) - m_startMs);
-    // El ADD de 0x638632, sin recortar: en x86 da la vuelta, así que se suma en 32 bits sin signo
-    // (definido, módulo 2^32) y vuelve a int32 con signo, sin el UB de desbordar un int.
+    // The ADD of 0x638632, without clamping: on x86 it wraps, so it adds in unsigned 32 bits (defined, modulo 2^32) and
+    // goes back to signed int32, without the UB of overflowing an int.
     m_accumulatedMs = static_cast<std::int32_t>(static_cast<std::uint32_t>(m_accumulatedMs) +
                                                 static_cast<std::uint32_t>(m_lastMeasuredMs));
 }

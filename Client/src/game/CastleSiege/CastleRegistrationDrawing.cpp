@@ -175,7 +175,7 @@ Core::Expected<void, std::string> RegistrationTabs(Hud::GameHudContext& context,
     for (std::int32_t tab = 0; tab < 3; ++tab)
         if (window.tab != tab)
             context.sprites.ColorQuad(static_cast<float>(Left + 15 + tab * 54), 105, 54, 1);
-    Ui::OldDraw::WhiteWithTexture(context.sprites); // 0x64dd27: 0x459ec0 después de los subrayados.
+    Ui::OldDraw::WhiteWithTexture(context.sprites); // 0x64dd27: 0x459ec0 after the underlines.
     return {};
 }
 } // namespace

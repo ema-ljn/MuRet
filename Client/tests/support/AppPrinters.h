@@ -1,6 +1,6 @@
 #pragma once
-// Lo que trae se usa sin nombrarlo: GoogleTest busca PrintTo por ADL, e include-cleaner no lo
-// ve. Por eso cada include de este header se queda.
+// What it brings in is used without naming it: GoogleTest finds PrintTo by ADL, and include-cleaner does not see it.
+// So every include of this header stays.
 // IWYU pragma: always_keep
 
 #include "Session/Credentials.h"
@@ -9,9 +9,9 @@
 
 #include <ostream>
 
-// Cómo imprime GoogleTest los tipos de Client::App y Client::Session en un mensaje, como NetworkPrinters.h. Las
-// Credentials salen con el largo de cada campo y nunca con el texto (pregunta 7 del plan de la
-// CL4): sin este PrintTo, GoogleTest vuelca los bytes del struct, y con SSO la clave va ahí.
+// How GoogleTest prints the Client::App and Client::Session types in a message, like NetworkPrinters.h. The
+// Credentials come out with each field's length and never with the text (question 7 of the CL4 plan): without this
+// PrintTo, GoogleTest dumps the struct's bytes, and with SSO the password is there.
 namespace Client::App
 {
 inline void PrintTo(const Credentials& credentials, std::ostream* out)

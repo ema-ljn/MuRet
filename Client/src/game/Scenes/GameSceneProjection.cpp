@@ -27,7 +27,7 @@ void GameScene::PrepareDrawProjection(int frames)
         m_projection = std::make_unique<GameSceneFrameProjection>();
     auto& world = *m_context.world;
     m_projection->tail = world.DrawTail();
-    // Las uniones del objeto local de la UI (0x1a18) mueren antes del dibujo siguiente del original (Q-C1821).
+    // The joints of the UI's local object (0x1a18) die before the original's next draw (Q-C1821).
     Items::HideUiItemJoints(m_projection->tail);
     m_projection->lighting = DynamicLight().Lighting();
     m_projection->modelState = world.Runtime().objectModelState;

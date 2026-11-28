@@ -163,7 +163,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
              { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); }, true,
              [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, Kernel::SceneId::Game,
              &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
-             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
+             // timeGetTime (0x6b8544), from the Fenrirs' decal 0x14e: the draw clock in ms.
              [systemTime = static_cast<std::uint32_t>(
                   std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
              { return systemTime; },
@@ -206,7 +206,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
             {
             case GameTailStage::WorldLeaves:
             case GameTailStage::EyeLeaves:
-                // 0x5307b2: el 0x66 del 34 solo se dibuja con el clima de Crywolf en 1.
+                // 0x5307b2: the 34's 0x66 is drawn only with the Crywolf weather at 1.
                 return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view, runtime.crywolf.weather);
             case GameTailStage::Joints:
                 return Joints::DrawJoints(canvas.models, tail.joints, mode, jointResources);
@@ -216,8 +216,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
             case GameTailStage::Ribbons:
                 return DrawRibbons(canvas.models, tail.ribbons);
             case GameTailStage::MarkSpritesSeen:
-                // Replay conserva la muestra anterior al primer ojo. El segundo549510 no la pisa:
-                // modo1 retiene sprites y modo2 consume esa misma tabla más los emitidos entre pases.
+                // Replay keeps the sample from before the first eye. The second 0x549510 does not overwrite it: mode 1
+                // keeps sprites and mode 2 consumes that same table plus the ones emitted between passes.
                 if (mode != 2)
                 {
                     if (frames > 0)
@@ -255,14 +255,14 @@ Core::Expected<void, std::string> GameScene::DrawKalimaWater(Render::Frame::Scen
 {
     auto* kalima = FrameKalima();
     if (kalima == nullptr)
-        return {}; // 4378a0, dueño ausente: el wrapper no entra en41cca0/41cf00.
+        return {}; // 0x4378a0, no owner: the wrapper does not enter 0x41cca0/0x41cf00.
     const float time = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
     Kernel::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
     context.readHeroX = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(true); };
     context.readHeroY = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(false); };
     if (auto updated = kalima->Update(context); !updated.HasValue())
         return updated;
-    // 41cf00 caller: argumentos apilados Y y después X, cada uno en su acceso lógico.
+    // 0x41cf00 caller: arguments pushed Y and then X, each in its own logical access.
     const auto y = ReadFrameHeroCell(false);
     const auto x = ReadFrameHeroCell(true);
     return kalima->Draw(canvas.models, x, y);

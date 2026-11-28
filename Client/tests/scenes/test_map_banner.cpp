@@ -12,15 +12,15 @@
 #include <cstdint>
 #include <string>
 
-// [0x5763534], el cartel con el nombre del mapa: la tabla de 0x65d080, el reinicio (0x65dc00), el disparo (0x65dc30)
-// y el fundido de cada dibujo (0x65dcd0).
+// [0x5763534], the banner with the map's name: the table of 0x65d080, the reset (0x65dc00), the trigger (0x65dc30) and
+// the fade of each drawing (0x65dcd0).
 namespace
 {
 using Client::Hud::MapBanner;
 using Client::Hud::MapBannerState;
 
-// 0x65d080: el mapa → Interface\*.tga; del 11 al 17 Blood Castle, del 18 al 23 Chaos Castle, del 24 al 29 y el 36
-// Kalima. El 5, el 32 y el 35 no están.
+// 0x65d080: the map → Interface\*.tga; 11 to 17 Blood Castle, 18 to 23 Chaos Castle, 24 to 29 and 36 Kalima. 5, 32 and
+// 35 are not there.
 TEST(MapBannerTest, TheTableHasTheImageOfEachMap)
 {
     const MapBanner banner = Client::Hud::MakeTheMapBanner();
@@ -40,8 +40,8 @@ TEST(MapBannerTest, TheTableHasTheImageOfEachMap)
     EXPECT_FALSE(banner.files.contains(35));
 }
 
-// 0x65dc00, en el primer paso de la escena 5 (0x63692b): apagado, sin mapa (+0x14 en −1), el reloj, la cuenta en 0 y
-// el alfa en 1.
+// 0x65dc00, on the first step of scene 5 (0x63692b): off, without a map (+0x14 at −1), the clock, the count at 0 and
+// the alpha at 1.
 TEST(MapBannerTest, TheResetLeavesItOffWithoutAMap)
 {
     MapBanner banner = Client::Hud::MakeTheMapBanner();
@@ -57,9 +57,9 @@ TEST(MapBannerTest, TheResetLeavesItOffWithoutAMap)
     EXPECT_EQ(banner.alpha, 1.0f);
 }
 
-// 0x65dc30: entra (1) con el alfa en 0,2 y la cuenta en 0; con un mapa distinto del de +0x14, pide su imagen al slot
-// 0x66a (0x63bd00) y lo guarda. Con el mismo, no la vuelve a pedir. Un mapa sin imagen la busca con el operator[] del
-// árbol, que lo mete vacío.
+// 0x65dc30: it enters (1) with the alpha at 0.2 and the count at 0; with a map other than the one at +0x14, it asks for
+// its image in slot 0x66a (0x63bd00) and keeps it. With the same one, it does not ask again. A map without an image
+// looks it up with the tree's operator[], which inserts it empty.
 TEST(MapBannerTest, ShowingAskForTheImageOfANewMapOnce)
 {
     MapBanner banner = Client::Hud::MakeTheMapBanner();
@@ -86,8 +86,9 @@ TEST(MapBannerTest, ShowingAskForTheImageOfANewMapOnce)
     EXPECT_EQ(banner.shownMap, 5);
 }
 
-// 0x65dcd0: entra de a 0,015 por dibujo hasta llegar a 1 (la suma en la x87, contra 1,0: JZ con C0 | C3); se queda
-// 5.000 ms de timeGetTime (JBE, sin signo) y sale de a 0,015 hasta 0, cuando se apaga. El reloj se guarda siempre.
+// 0x65dcd0: it fades in by 0.015 per drawing until it reaches 1 (the sum on the x87, against 1.0: JZ with C0 | C3); it
+// holds 5000 ms of timeGetTime (JBE, unsigned) and fades out by 0.015 down to 0, when it turns off. The clock is always
+// saved.
 TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
 {
     MapBanner banner = Client::Hud::MakeTheMapBanner();
@@ -101,7 +102,7 @@ TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
         Client::Hud::StepTheMapBanner(banner, now);
         ++steps;
     }
-    // De 0,2 a 1 de a 0,015: 0,2 + 54 · 0,015 = 1,01 es el primero que llega.
+    // From 0.2 to 1 by 0.015: 0.2 + 54 · 0.015 = 1.01 is the first that reaches it.
     EXPECT_EQ(steps, 54);
     EXPECT_EQ(banner.state, MapBannerState::Holding);
     EXPECT_EQ(banner.alpha, 1.0f);
@@ -127,10 +128,10 @@ TEST(MapBannerTest, ItFadesInHoldsFiveSecondsAndFadesOut)
     EXPECT_EQ(banner.alpha, 0.0f);
 }
 
-// 0x63bd00(imagen, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1): la imagen pendiente sube desde Data\ al slot 0x66a (el OZT del
-// nombre hasta el punto) y deja de estar pendiente; la de otro mapa la reemplaza en el mismo slot. Una de 24 bits no se
-// sube y no avisa (Q-C14, Q-C29): queda la de antes. Una que falta, o el nombre vacío de un mapa sin imagen, corta: el
-// original avisa "File not exist" y cierra (Q-C23).
+// 0x63bd00(image, 0x66a, GL_NEAREST, GL_CLAMP, 0, 1): the pending image is uploaded from Data\ to slot 0x66a (the OZT
+// of the name up to the dot) and stops being pending; another map's replaces it in the same slot. A 24-bit one is not
+// uploaded and does not warn (Q-C14, Q-C29): the earlier one stays. A missing one, or the empty name of a map without
+// an image, stops: the original warns "File not exist" and closes (Q-C23).
 TEST(MapBannerTest, TheImageGoesToItsSlotAndAMissingOneCuts)
 {
     const Client::Tests::TemporaryFolder data("map-banner");

@@ -17,7 +17,7 @@
 #include <optional>
 #include <vector>
 
-// Client::FrontEnd::SelectionBar: la barra de la selección (+0x7f50: 0x63e820, 0x63eb40, 0x63eb90 y 0x63ec00).
+// Client::FrontEnd::SelectionBar: the selection's bar (+0x7f50: 0x63e820, 0x63eb40, 0x63eb90 and 0x63ec00).
 namespace
 {
 using Client::Core::PixelSize;
@@ -46,9 +46,8 @@ std::optional<SelectionBarClick> StepOnce(SelectionBar& bar, InputState& input)
     return click;
 }
 
-// 0x65f4b0: la y es −ftol(H · −0,945f) − 54 (399 en 480 y 512 en 600: la x87 no redondea el
-// producto), el adorno en (W − 189, y − 46), la franja en (22, y + 33) y los botones en 22, 77,
-// W − 131 y W − 76.
+// 0x65f4b0: y is −ftol(H · −0.945f) − 54 (399 at 480 and 512 at 600: the x87 does not round the product), the
+// ornament at (W − 189, y − 46), the strip at (22, y + 33) and the buttons at 22, 77, W − 131 and W − 76.
 TEST(SelectionBarTest, TheLayoutFollowsTheScreen)
 {
     const SelectionBarLayout at640 = LayoutSelectionBar(Screen640);
@@ -68,8 +67,8 @@ TEST(SelectionBarTest, TheLayoutFollowsTheScreen)
     EXPECT_EQ(LayoutSelectionBar(PixelSize{1280, 1024}).bar.y, 913);
 }
 
-// 0x63eb40: crear sin lugar libre, y conectar y borrar sin elegido, van deshabilitados (el cuadro 3)
-// y sin clic; el menú, nunca.
+// 0x63eb40: create without a free slot, and connect and delete without a chosen one, are disabled (frame 3) and
+// without click; the menu, never.
 TEST(SelectionBarTest, TheButtonsFollowTheSlotsAndTheChoice)
 {
     SelectionBar bar(LabSizes(), nullptr);
@@ -96,8 +95,8 @@ TEST(SelectionBarTest, TheButtonsFollowTheSlotsAndTheChoice)
     EXPECT_EQ(StepOnce(bar, input), std::optional{SelectionBarClick::Delete});
 }
 
-// La barra tiene el mouse en su rectángulo, (22, y) de (W − 44) × 54, y nada más: el adorno de
-// arriba no. No se arrastra (el título no cuenta), y cerrada no lo tiene.
+// The bar has the mouse in its rectangle, (22, y) of (W − 44) × 54, and nothing else: the ornament above does not.
+// It is not dragged (the title does not count), and closed it does not have it.
 TEST(SelectionBarTest, TheBarHasTheMouseInItsRectangle)
 {
     SelectionBar bar(LabSizes(), nullptr);
@@ -111,7 +110,7 @@ TEST(SelectionBarTest, TheBarHasTheMouseInItsRectangle)
     EXPECT_FALSE(bar.Hit(WindowHit::Title, Point{22, 399}, Screen640));
 }
 
-// La textura de cada quad del lote, en orden: 0xffff sin textura.
+// 0xffff without a texture.
 std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 {
     std::vector<std::uint16_t> slots;
@@ -126,8 +125,8 @@ std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 constexpr std::uint16_t NoTexture = 0xffff;
 const std::uint16_t Marker = Client::Tests::TextMarkerSlot.value;
 
-// 0x63ec00: el adorno, la franja negra de alfa 0x8f encima, el texto 1710 en (W − 464, y + 40) con
-// 0xff27d9ff, y los cuatro botones: crear, menú, conectar y borrar.
+// 0x63ec00: the ornament, the black strip of alpha 0x8f on top, text 1710 at (W − 464, y + 40) with 0xff27d9ff, and
+// the four buttons: create, menu, connect and delete.
 TEST(SelectionBarTest, TheDrawGoesDecoStripTextAndButtons)
 {
     const auto texts = Client::Tests::MakeTextTable({{1710, "Synthetic"}, {436, "Blocked"}, {437, "Site"}});
@@ -146,8 +145,8 @@ TEST(SelectionBarTest, TheDrawGoesDecoStripTextAndButtons)
     EXPECT_EQ(text.texts[0].style.colors.text, 0xff27d9ffu);
     EXPECT_EQ(text.texts[0].style.colors.background, 0u);
     EXPECT_EQ(QuadSlots(batch), (std::vector<std::uint16_t>{0xe, NoTexture, Marker, 0xf, 0x10, 0x11, 0x12}));
-    // La franja: negra con el alfa 0x8f. El texto, con la textura y el blanco que vuelven a poner
-    // 0x620a00(1) y glColor4f.
+    // The strip: black with alpha 0x8f. The text, with the texture and the white that 0x620a00(1) and glColor4f set
+    // again.
     const auto vertices = batch.Vertices();
     ASSERT_GE(vertices.size(), 18u);
     EXPECT_FLOAT_EQ(vertices[6].color.alpha, 143.0f / 255.0f);
@@ -160,8 +159,8 @@ TEST(SelectionBarTest, TheDrawGoesDecoStripTextAndButtons)
     }
 }
 
-// 0x63ec45..0x63ecbf: el aviso del servidor (+0x511, el primer 0D con 1 en la selección) va antes del 1710, en
-// (x + 7, y + 40) de la barra, blanco sobre 0. El texto es inventado.
+// 0x63ec45..0x63ecbf: the server notice (+0x511, the first 0D with 1 in the selection) goes before 1710, at
+// (x + 7, y + 40) of the bar, white on 0. The text is made up.
 TEST(SelectionBarTest, TheServerNoticeGoesBeforeTheText)
 {
     const auto texts = Client::Tests::MakeTextTable({{1710, "Synthetic"}});
@@ -183,8 +182,8 @@ TEST(SelectionBarTest, TheServerNoticeGoesBeforeTheText)
     EXPECT_EQ(text.texts[1].text, "Synthetic");
 }
 
-// Con el +0x543, los textos 436 y 437 entre el 1710 y los botones, centrados en 320 de 640 × 480
-// (0x623690, con 6 columnas por letra del texto falso), en 330 y 348, en negro sobre 0x8000ffff.
+// With +0x543, texts 436 and 437 between 1710 and the buttons, centered at 320 of 640 × 480 (0x623690, with 6
+// columns per letter of the fake text), at 330 and 348, in black on 0x8000ffff.
 TEST(SelectionBarTest, ABlockedAccountShowsTheTwoTexts)
 {
     const auto texts = Client::Tests::MakeTextTable({{436, "Blocked"}, {437, "Site"}});

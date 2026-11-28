@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-// El derrumbe de los objetos (06 § El derrumbe de los objetos): 0x5ff960 en Blood Castle (la puerta 0x24 y los
-// objetos 9 y 10), 0x405630 en Chaos Castle y el recorrido de 0x606560 por los sectores.
+// The object collapse (06 § El derrumbe de los objetos): 0x5ff960 in Blood Castle (gate 0x24 and objects 9 and 10),
+// 0x405630 in Chaos Castle and the walk of 0x606560 through the sectors.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -108,8 +108,8 @@ protected:
     float m_shake = 0.0f;
 };
 
-// 0x5ff966..0x5ff997: los tres enteros en 0 o más y el mapa pedido igual al de ahora; la cuenta baja uno por paso,
-// también desde −1 (da la vuelta como un DEC de 32 bits).
+// 0x5ff966..0x5ff997: the three integers at 0 or more and the requested map equal to the current one; the count drops
+// by one per step, also from −1 (it wraps around like a 32-bit DEC).
 TEST_F(ObjectCollapseTest, TheRequestOnlyActsOnItsMap)
 {
     Runtime().map = FirstBloodCastle;
@@ -126,7 +126,7 @@ TEST_F(ObjectCollapseTest, TheRequestOnlyActsOnItsMap)
     Client::Events::CountDownTheObjectCollapse(Runtime());
     EXPECT_EQ(Request().counter, std::numeric_limits<std::int32_t>::max());
 
-    // Pedido para el 11 con el héroe en Lorencia o en Devias: ni la puerta ni los 9 y 10 se mueven.
+    // Requested for 11 with the hero in Lorencia or Devias: neither the gate nor 9 and 10 move.
     for (const std::int32_t map : {Lorencia, Devias})
     {
         SCOPED_TRACE(map);
@@ -145,8 +145,8 @@ TEST_F(ObjectCollapseTest, TheRequestOnlyActsOnItsMap)
     }
 }
 
-// 0x5ffa2c..0x5ffa7b: con la cuenta en 20, +0x1c en 35, +0x58 en −1 y el sonido 0x89; después el giro suma la
-// demora y la demora sube 1,5.
+// 0x5ffa2c..0x5ffa7b: with the count at 20, +0x1c at 35, +0x58 at −1 and sound 0x89; then the turn adds the delay and
+// the delay rises by 1.5.
 TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
 {
     Runtime().map = FirstBloodCastle;
@@ -159,7 +159,7 @@ TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x89});
     EXPECT_EQ(Request().delay, 2.5f);
 
-    // Cada objeto del tipo suma la demora del pedido, que es una sola: el segundo cae más rápido (Q-C1338).
+    // Each object of the type adds the request's delay, which is a single one: the second falls faster (Q-C1338).
     WorldObject second = Object(Gate);
     second.transform.angles.x = 10.0f;
     Runtime().lastSoundId = Client::Audio::SoundId{0};
@@ -171,8 +171,8 @@ TEST_F(ObjectCollapseTest, TheGateStartsFallingAtTwenty)
     EXPECT_EQ(m_random.State(), CrtRandom{7}.State());
 }
 
-// 0x5ffa94..0x5ffb2a: con el giro en 90 o más le resta la cuenta y la demora queda en 2; si da 80 justo, diez polvos
-// 5f3/0 con dos rand() cada uno, antes de su alta.
+// 0x5ffa94..0x5ffb2a: with the turn at 90 or more it subtracts the count and the delay stays at 2; if it gives exactly
+// 80, ten 0x5f3/0 dusts with two rand() each, before their creation.
 TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
 {
     Runtime().map = FourthBloodCastle;
@@ -214,7 +214,7 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
         EXPECT_EQ(got.velocity, want.velocity);
     }
 
-    // Con la cuenta en 9 da 81: sin polvo ni rand().
+    // With the count at 9 it gives 81: no dust and no rand().
     m_particles = std::make_unique<Client::Particles::Particles>();
     const std::uint32_t before = m_random.State();
     Request() = {.map = FourthBloodCastle, .type = Gate, .counter = 9, .delay = 5.0f};
@@ -224,7 +224,7 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
     EXPECT_EQ(AliveParticles(*m_particles), 0U);
     EXPECT_EQ(m_random.State(), before);
 
-    // Debajo de 90 no resta ni toca la demora; un NaN tampoco entra (FCOMP con C0).
+    // Below 90 it neither subtracts nor touches the delay; a NaN does not enter either (FCOMP with C0).
     Request() = {.map = FourthBloodCastle, .type = Gate, .counter = 9, .delay = 5.0f};
     gate.transform.angles.x = 84.0f;
     ASSERT_TRUE(Collapse(gate).HasValue());
@@ -236,7 +236,7 @@ TEST_F(ObjectCollapseTest, TheGateRaisesDustOnlyAtEightyExactly)
     EXPECT_EQ(Request().delay, 8.0f);
 }
 
-// Sin el pool, el polvo corta en 0x5ffb21 con el giro ya hecho.
+// Without the pool, the dust stops at 0x5ffb21 with the turn already done.
 TEST_F(ObjectCollapseTest, TheDustNeedsTheParticlePool)
 {
     Runtime().map = FirstBloodCastle;
@@ -251,8 +251,8 @@ TEST_F(ObjectCollapseTest, TheDustNeedsTheParticlePool)
     EXPECT_EQ(gate.transform.angles.x, 80.0f);
 }
 
-// 0x5ffb36..0x5ffb54: con la cuenta en 0 el objeto se oculta en 90, el pedido se borra y sale el atributo 8 de
-// (13..15, 70..75), con los demás bits como estaban.
+// 0x5ffb36..0x5ffb54: with the count at 0 the object hides at 90, the request is cleared and attribute 8 leaves
+// (13..15, 70..75), with the other bits as they were.
 TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
 {
     Runtime().map = FourthBloodCastle;
@@ -277,12 +277,11 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
             EXPECT_EQ(Cell(x, y), passage ? 0x0004 : 0x000c);
         }
     }
-    // Después del pedido borrado, el resto del recorrido ya no hace nada.
     WorldObject next = Object(Gate);
     ASSERT_TRUE(Collapse(next).HasValue());
     EXPECT_EQ(next.transform.angles.x, 0.0f);
 
-    // Sin el .att corta en 0x5ffb54, con el objeto caído y el pedido ya borrado.
+    // Without the .att it stops at 0x5ffb54, with the object fallen and the request already cleared.
     Request() = {.map = FourthBloodCastle, .type = Gate, .counter = 0, .delay = 1.0f};
     ObjectCollapseContext context = Context();
     context.attributes = nullptr;
@@ -294,8 +293,8 @@ TEST_F(ObjectCollapseTest, TheGateEndsAndOpensThePassage)
     EXPECT_EQ(Request().map, -1);
 }
 
-// 0x5ff9c2..0x5ffa1e: el 9 y el 10 se abren con la cuenta en 0, aunque el tipo pedido sea otro o el mismo; con otra
-// cuenta, nada. Otro tipo que no es el pedido, nada.
+// 0x5ff9c2..0x5ffa1e: 9 and 10 open with the count at 0, whether the requested type is another or the same; with
+// another count, nothing. Another type that is not the requested one, nothing.
 TEST_F(ObjectCollapseTest, TheNineAndTenOpenAtZero)
 {
     Runtime().map = FirstBloodCastle;
@@ -327,8 +326,8 @@ TEST_F(ObjectCollapseTest, TheNineAndTenOpenAtZero)
     EXPECT_EQ(Request().counter, 0);
 }
 
-// 0x405630, la caída: el área de 0x6c634c tiene que ser la del caso del tipo; z = +0x184 − (30 − cuenta) · demora y la
-// demora sube 0,4f. Otro área, un tipo del caso 3 o fuera de la tabla: nada, y tampoco el 9, el 10 ni la puerta.
+// 0x405630, the fall: the area of 0x6c634c has to be that of the type's case; z = +0x184 − (30 − count) · delay and the
+// delay rises 0.4f. Another area, a type of case 3 or outside the table: nothing, and neither 9, 10 nor the gate.
 TEST_F(ObjectCollapseTest, TheChaosCastleStepsSinkWithTheirArea)
 {
     struct Case
@@ -351,7 +350,6 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepsSinkWithTheirArea)
             EXPECT_EQ(Request().delay, static_cast<float>(2.0 + static_cast<double>(0.4f)));
             EXPECT_EQ(Runtime().chaosCastleArea, step.area);
 
-            // Con el área de otro caso, nada.
             Runtime().chaosCastleArea = static_cast<std::uint8_t>(step.area + 1);
             WorldObject still = Object(step.type);
             ASSERT_TRUE(Collapse(still).HasValue());
@@ -375,7 +373,8 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepsSinkWithTheirArea)
     }
 }
 
-// 0x405715..0x40572c: con la cuenta en 0 o menos, oculto, el área siguiente (1 → 2, 7 → 8, 4 → 5) y el pedido borrado.
+// 0x405715..0x40572c: with the count at 0 or less, hidden, the next area (1 → 2, 7 → 8, 4 → 5) and the request
+// cleared.
 TEST_F(ObjectCollapseTest, TheChaosCastleStepEndsInTheNextArea)
 {
     struct Case
@@ -400,9 +399,10 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStepEndsInTheNextArea)
     }
 }
 
-// 0x40567d..0x40570b (y sus copias): con la cuenta en 30 o más, un rand() y la piedra 5f6/0 (0x54271f, como la 5f3/0:
-// cuatro rand()) con los ángulos del objeto, luz 1, escala 1,5 y sin dueño, y el temblor (rand() % 3 − 3) · 0,1f.
-// Réplica en un pool gemelo con el mismo CrtRandom; con los 3.000 llenos, la piedra no saca nada y el temblor sigue.
+// 0x40567d..0x40570b (and its copies): with the count at 30 or more, one rand() and the stone 0x5f6/0 (0x54271f, like
+// 0x5f3/0: four rand()) with the object's angles, light 1, scale 1.5 and no owner, and the shake
+// (rand() % 3 − 3) · 0.1f. Replicated in a twin pool with the same CrtRandom; with the 3000 full, the stone draws
+// nothing and the shake follows.
 TEST_F(ObjectCollapseTest, TheChaosCastleStoneFallsWithItsShake)
 {
     struct Case
@@ -459,15 +459,15 @@ TEST_F(ObjectCollapseTest, TheChaosCastleStoneFallsWithItsShake)
         }
 }
 
-// 0x606560: en un sector que pasó, el paso y el derrumbe con cada vivo visto; en uno que no pasó, el derrumbe con cada
-// vivo y +0x16c en 0 para todos.
+// 0x606560: in a sector that passed, the step and the collapse with each live seen one; in one that did not pass, the
+// collapse with each live one and +0x16c at 0 for all.
 TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
 {
     std::vector<WorldObject> objects(5);
     for (std::size_t index = 0; index < objects.size(); ++index)
         objects[index].type = static_cast<std::int16_t>(index);
-    // 0 y 1: sector que pasó, uno visto y otro no. 2: sector que pasó, visto pero muerto. 3 y 4: sector que no pasó,
-    // vivo y muerto, con +0x16c viejo en el muerto.
+    // 0 and 1: sector that passed, one seen and the other not. 2: sector that passed, seen but dead. 3 and 4: sector
+    // that did not pass, alive and dead, with an old +0x16c on the dead one.
     objects[0].sectorPassed = true;
     objects[0].seen = true;
     objects[1].sectorPassed = true;
@@ -497,7 +497,7 @@ TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
     EXPECT_FALSE(objects[3].seen);
     EXPECT_FALSE(objects[4].seen);
 
-    // Sin el paso (ningún visto) el derrumbe sigue; el primer corte para el recorrido.
+    // Without the step (no seen one) the collapse goes on; the first cut stops the walk.
     collapsed.clear();
     const Client::WorldObjects::AfterObjectStep cutting =
         [&collapsed](WorldObject& object) -> Client::Core::Expected<void, std::string>
@@ -512,13 +512,13 @@ TEST_F(ObjectCollapseTest, TheWalkCollapsesTheObjectsOfSectorsThatDidNotPass)
     EXPECT_EQ(collapsed, (std::vector<std::int16_t>{0}));
 }
 
-// El recorrido con el derrumbe de verdad en el 11: la puerta cae con su sector afuera del dibujo y el 9 de un sector
-// visto se abre; el pedido se borra a mitad del recorrido y el 10 que viene después ya no se abre (Q-C1339).
+// The walk with the real collapse in 11: the gate falls with its sector outside the drawing and the 9 of a seen sector
+// opens; the request is cleared halfway through the walk and the 10 that comes after no longer opens (Q-C1339).
 TEST_F(ObjectCollapseTest, TheWalkResetsTheRequestHalfway)
 {
     Runtime().map = FirstBloodCastle;
     Request() = {.map = FirstBloodCastle, .type = Gate, .counter = 0, .delay = 1.0f};
-    // El 9 en el sector (0, 1), que pasó; la puerta y el 10 en el (0, 2), que no.
+    // The 9 in sector (0, 1), which passed; the gate and the 10 in (0, 2), which did not.
     std::vector<WorldObject> objects{Object(Gate), Object(10), Object(9)};
     objects[0].sectorY = 2;
     objects[1].sectorY = 2;

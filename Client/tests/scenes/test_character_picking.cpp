@@ -48,7 +48,7 @@ constexpr std::uint8_t Monsters = 0x22;
 constexpr std::uint8_t Npcs = 4;
 constexpr std::int32_t NoPick = -1;
 
-// A horizontal segment along X, at Y 1,000 and at height 60: it touches the box of whoever is at Y 1,000 (from −60 to
+// A horizontal segment along X, at Y 1000 and at height 60: it touches the box of whoever is at Y 1000 (from −60 to
 // 40 around the position, Q-C100).
 const TerrainPickingSegment Ray{.origin = {0.0f, 1000.0f, 60.0f}, .end = {20000.0f, 1000.0f, 60.0f}};
 
@@ -152,7 +152,6 @@ TEST(CharacterPickingTest, TheNearestBoxOnTheSegmentIsPicked)
     Place(world, 5, 1100.0f, Players);
     world.Actors()[5].byte42c = 0;
     Place(world, 6, 1200.0f, Monsters & 2);
-    // Off the segment: at Y 2,000.
     Place(world, 7, 600.0f, Players);
     world.Actors()[7].position.y = 2000.0f;
     Client::Actors::PublishPickingBox(
@@ -522,7 +521,7 @@ TEST(CharacterPickingTest, TheListOnTheRightPicksAMember)
     }
 }
 
-// 0x59efb9..0x59f509: the Dark Wizard opens the own record for its skill (the 3,848 rand() of the close) and picks the
+// 0x59efb9..0x59f509: the Dark Wizard opens the own record for its skill (the 3848 rand() of the close) and picks the
 // player of mask 1 at 0x6c8e30. With nobody picked before, 0x59ef07 already left 0x6c8e38 at −1.
 TEST(CharacterPickingTest, TheWizardPicksAPlayerAndDrawsTheOwnRecord)
 {

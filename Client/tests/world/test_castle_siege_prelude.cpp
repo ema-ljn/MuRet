@@ -60,7 +60,7 @@ protected:
     std::vector<ModelEffectArguments> m_emitted;
 };
 
-// Frame1: rand%10 (41), un cierre de4bytes delY; sin rangos, no hay emisiones.
+// Frame 1: rand%10 (41), a 4-byte close of Y; without ranges, there are no emissions.
 TEST_F(CastleSiegePreludeTest, WarContinuesAfterTheSoundAndReadsTheProtectedHeroY)
 {
     const auto result = Client::CastleSiege::StepCastleSiegePrelude(Prelude(1));
@@ -74,7 +74,7 @@ TEST_F(CastleSiegePreludeTest, WarContinuesAfterTheSoundAndReadsTheProtectedHero
     EXPECT_TRUE(m_emitted.empty());
 }
 
-// Frame20: dos accesos independientes alY y rand%3 antes de comprobar su rango.
+// Frame 20: two independent accesses to Y and rand%3 before checking its range.
 TEST_F(CastleSiegePreludeTest, TheRockFrameReadsYTwiceEvenOutsideEveryEmissionRange)
 {
     const auto result = Client::CastleSiege::StepCastleSiegePrelude(Prelude(20));
@@ -97,7 +97,7 @@ TEST_F(CastleSiegePreludeTest, AnOuterProtectedAccessPreventsBothInnerReencrypti
     expected.Discard(2);
     EXPECT_EQ(m_random.State(), expected.State());
 }
-// 42b613..42b693: aun cuando el cuarto sorteo suena, el quinto se consume antes del cierreY.
+// 0x42b613..0x42b693: even when the fourth draw sounds, the fifth is consumed before the Y close.
 TEST_F(CastleSiegePreludeTest, AllFiveBattleSoundDrawsRunIndependently)
 {
     m_random = CrtRandom(420);
@@ -108,7 +108,8 @@ TEST_F(CastleSiegePreludeTest, AllFiveBattleSoundDrawsRunIndependently)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// Traza estática con delegado sinRNG: 1piedra,4flechasdefila y1individual. No representa elRNGdelcallee518cf0.
+// Static trace with an RNG-free delegate: 1 rock, 4 row arrows and 1 single one. It does not model the RNG of the
+// callee 0x518cf0.
 TEST_F(CastleSiegePreludeTest, TheSixtiethFrameEmitsTheNativeArgumentsInOrder)
 {
     m_y = 100;
@@ -135,7 +136,7 @@ TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
          std::array<std::pair<std::int32_t, bool>, 4>{{{50, false}, {51, true}, {130, true}, {131, false}}})
     {
         m_y = y;
-        m_random = CrtRandom(1); // El sexto randelige12b.
+        m_random = CrtRandom(1); // The sixth rand picks 0x12b.
         m_emitted.clear();
         ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(20)).HasValue());
         EXPECT_EQ(std::ranges::any_of(m_emitted, [](const auto& args) { return args.type == 0x12b; }), emits) << y;
@@ -144,7 +145,7 @@ TEST_F(CastleSiegePreludeTest, BothRockFamiliesKeepTheirStrictLogicalYBounds)
          std::array<std::pair<std::int32_t, bool>, 4>{{{70, false}, {71, true}, {176, true}, {177, false}}})
     {
         m_y = y;
-        m_random = CrtRandom(2); // El sexto randelige12c.
+        m_random = CrtRandom(2); // The sixth rand picks 0x12c.
         m_emitted.clear();
         ASSERT_TRUE(Client::CastleSiege::StepCastleSiegePrelude(Prelude(20)).HasValue());
         EXPECT_EQ(std::ranges::any_of(m_emitted, [](const auto& args) { return args.type == 0x12c; }), emits) << y;

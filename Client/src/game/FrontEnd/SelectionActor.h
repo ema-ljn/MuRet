@@ -25,7 +25,7 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// 0x4c20a0/0x4c2290 → 0x517270 y el equipo de 0x5139f0. Contrato: 06, "Los personajes de la lista".
+// 0x4c20a0/0x4c2290 → 0x517270 and the equipment of 0x5139f0. Contract: 06, "Los personajes de la lista".
 namespace Client::FrontEnd
 {
 

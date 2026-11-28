@@ -10,10 +10,10 @@ namespace Client::Render
 class SpriteBatch;
 }
 
-// Los textos 3D del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): la cola de la .bss en 0x723c18,
-// un std::deque de entradas de 0x4c bytes (el texto en 64 y la posición en tres float), que llena 0x4381f0 desde el
-// cuerpo de los personajes (0x4fd603, el tipo 0xc5 con su nombre y +0x1d6, MonsterStepCases.h) y que vacía el dibujo,
-// 0x4383f0, lo primero de la pasada 2D (0x63764b). Nada de esto saca rand().
+// The game's 3D texts (CL8 milestone 6; 06 § HUD y ventanas, "La pasada 2D del juego"): the .bss queue at 0x723c18, a
+// std::deque of 0x4c-byte entries (the text in 64 and the position in three floats), filled by 0x4381f0 from the
+// characters' body (0x4fd603, type 0xc5 with its name and +0x1d6, Monsters/MonsterStepCases.h) and emptied by the
+// draw, 0x4383f0, the first thing of the 2D pass (0x63764b). None of this takes rand().
 namespace Client::Render::Frame
 {
 class ITextDrawer;
@@ -33,19 +33,19 @@ namespace Client::Hud
 
 struct WorldTextDrawContext
 {
-    // 0x723c18. En un dibujo intermedio de MuRet la cola se lee sin vaciarla: la vacía el frame del original.
+    // 0x723c18. In a MuRet intermediate draw the queue is read without emptying it: the original's frame empties it.
     Kernel::WorldTextQueue& queue;
-    // 0x6203c0 del pase del mundo de este frame, el que lee 0x6205b0. Sin ella, una entrada en la cola corta.
+    // 0x6203c0 of this frame's world pass, the one 0x6205b0 reads. Without it, an entry in the queue stops.
     const Scenes::GameProjection* projection = nullptr;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
-    // La fuente del DC, 0x6c8e5c y 0x6c8e64 (quedan los del último texto) y 0x77f31b8 y 0x77f31bc (0x554180).
+    // The DC's font, 0x6c8e5c and 0x6c8e64 (the last text's stay) and 0x77f31b8 and 0x77f31bc (0x554180).
     Kernel::HudState& hud;
     bool projecting = false;
 };
 
-// 0x4383f0: glColor3f(1, 1, 1) y, mientras la cola tenga entradas, la de adelante: su posición con la z 370 más arriba
-// (0x6b8b88) proyectada con 0x6205b0; con las dos coordenadas en 0 o más, la negrita en el DC, el fondo 0xff000064, el
-// texto 0xffc8e6ff y 0x623690, el texto centrado en la x. Después la saca de la cola, se haya dibujado o no.
+// 0x4383f0: glColor3f(1, 1, 1) and, while the queue has entries, the front one: its position with the z 370 higher
+// (0x6b8b88) projected with 0x6205b0; with both coordinates at 0 or more, the bold font in the DC, background
+// 0xff000064, text 0xffc8e6ff and 0x623690, the text centered on the x. Then it takes it off the queue, drawn or not.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& context);
 } // namespace Client::Hud

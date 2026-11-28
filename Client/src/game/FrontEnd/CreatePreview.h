@@ -40,37 +40,37 @@ namespace Client::Actors
 struct ActorConstructionContext;
 } // namespace Client::Actors
 
-// La vista previa de la ventana de crear (CL6.5; 06 § La ventana de crear y "La vista previa"): los
-// modelos que sube la selección (0x61ca30) y el objeto suelto 0x7437050, que 0x63e3e0 arma con el
-// NewFace de la clase y 0x63e460 dibuja en su propio viewport con su propia cámara (por 0x50ba30,
-// que con un modelo que no es el del personaje va a 0x602e90, sin sombra). *Estático*.
+// The create window's preview (CL6.5; 06 § La ventana de crear and "La vista previa"): the
+// models the selection uploads (0x61ca30) and the loose object 0x7437050, which 0x63e3e0 builds with the
+// class's NewFace and 0x63e460 draws in its own viewport with its own camera (through 0x50ba30,
+// which with a model that is not the character's goes to 0x602e90, without shadow). *Static*.
 namespace Client::FrontEnd
 {
-// Logo05 en el 0xa4 y NewFace01 a 05 en 0xa8 a 0xac (0x60da30 con "Data\Logo\"); sus texturas, de
-// Logo\ desde 0x60d530(0x6f8), las del 0xa4 con GL_LINEAR y las de los NewFace con GL_NEAREST, las dos
-// repitiendo (0x60d5f0, con el quinto argumento en 1).
+// Logo05 at 0xa4 and NewFace01 to 05 at 0xa8 to 0xac (0x60da30 with "Data\Logo\"); their textures, from
+// Logo\ from 0x60d530(0x6f8), those of 0xa4 with GL_LINEAR and those of the NewFace with GL_NEAREST, both
+// repeating (0x60d5f0, with the fifth argument at 1).
 inline constexpr std::uint16_t SelectionLogoModel = 0xa4;
 inline constexpr std::uint16_t FirstNewFaceModel = 0xa8;
 inline constexpr std::size_t NewFaceCount = 5;
 inline constexpr Render::TextureSlot SelectionModelsFirstSlot{0x6f8};
 
-// En el orden en que los lee y les da texturas 0x61ca30.
+// In the order 0x61ca30 reads them and gives them textures.
 [[nodiscard]] std::array<Data::Models::ModelFile, 1 + NewFaceCount> SelectionModelFiles();
 
-// Los seis modelos con su esqueleto y el slot de cada malla. La velocidad de las acciones 0 y 1 de
-// los NewFace es 0,3 (0x3e99999a, al final de 0x61ca30).
+// The six models with their skeleton and each mesh's slot. The speed of actions 0 and 1 of
+// the NewFace is 0.3 (0x3e99999a, at the end of 0x61ca30).
 class SelectionModels final : public Models::IModelLibrary
 {
 public:
-    // Lee los seis desde `dataRoot` y les da sus texturas siguiendo a `gameSlots` (la tabla de la
-    // carga, que es global en el original) desde 0x6f8, o una tabla vacía sin ella, y las sube. Uno
-    // que falta se saltea con una línea en el log; una textura que no carga corta, como el original,
-    // que se cierra. Recibe también los metadatos del slot temporal que ya reside en este backend.
+    // Reads the six from `dataRoot` and gives them their textures following `gameSlots` (the load's
+    // table, which is global in the original) from 0x6f8, or an empty table without it, and uploads them. A
+    // missing one is skipped with a log line; a texture that does not load stops, like the original,
+    // which closes. It also receives the metadata of the temporary slot that already lives in this backend.
     [[nodiscard]] Core::Expected<void, std::string>
     Load(const std::filesystem::path& dataRoot, Render::ITextureStore& textures, Core::Log& log,
          const Models::ModelTextureSlots* gameSlots,
          std::optional<Models::TextureMetadata> startupTexture = std::nullopt);
-    // 0x61cc50: suelta las texturas.
+    // 0x61cc50
     void Release();
 
     [[nodiscard]] const Data::Models::Model* Find(Models::ModelId model) const override;
@@ -80,47 +80,47 @@ public:
     [[nodiscard]] std::optional<Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
-    // Los slots que repartió Load, si cargó.
+    // The slots Load handed out, if it loaded.
     [[nodiscard]] const Models::ModelTextureSlots* TextureSlots() const;
 
 private:
     Assets::ModelTable m_models;
     std::optional<Models::ModelTextureSlots> m_slots;
     std::optional<Assets::SceneTextures> m_textures;
-    // La carga común deja este slot a la selección cuando entra.
+    // The common load leaves this slot to the selection when it enters.
     Render::ITextureStore* m_startupStore = nullptr;
     std::optional<Models::TextureMetadata> m_startupTexture;
 };
 
-// El objeto de la vista previa: la clase (+0x1d4, la de la ventana) y su animación.
+// The preview object: the class (+0x1d4, the window's) and its animation.
 using CreatePreview = Kernel::ActorState;
 
-// 0x63e3e0: el constructor completo, incluido el terreno y el rand() compartido.
+// 0x63e3e0: the full constructor, including the terrain and the shared rand().
 [[nodiscard]] Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
                                                                const Models::IModelLibrary& models,
                                                                const Actors::ActorConstructionContext& construction,
                                                                Models::ClothWorld& cloth);
 
-// Adaptador de presentación sin terreno; main usa RebuildPreview con el constructor completo.
+// Presentation adapter without terrain; main uses RebuildPreview with the full constructor.
 void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const Models::IModelLibrary& models);
 
-// Un paso de 0x63e430: 0x4f9580 lo avanza (la velocidad de la acción por 2 con los NewFace) y, si la
-// acción terminó, la 0. Corre además de 0x508ea0 desde la lógica de la escena: con la ventana arriba
-// avanza dos veces, y con un aviso, solo desde la escena.
+// One step of 0x63e430: 0x4f9580 advances it (the action speed times 2 with the NewFace) and, if the
+// action ended, action 0. It also runs besides 0x508ea0 from the scene logic: with the window up it
+// advances twice, and with a notice, only from the scene.
 void StepPreview(CreatePreview& preview, const Models::IModelLibrary& models);
 
-// 0x63e460: el corrimiento de la clase queda en el actor por cada frame original. La cámara lee
-// la posición anterior a ese corrimiento; los dibujos intermedios conservan la del último frame.
-// El color es 4,8 por vértice (0x6002e0).
+// 0x63e460: the class's offset stays on the actor for each original frame. The camera reads
+// the position before that offset; the intermediate draws keep the last frame's.
+// The color is 4.8 per vertex (0x6002e0).
 [[nodiscard]] Actors::Drawing::DrawnObject DrawnPreview(CreatePreview& preview, const Models::IModelLibrary& models,
                                                         float stepAlpha, int originalFrames = 1);
 
-// 0x6338a0(objeto, (10, −500, 48), (−90, 0, 0)) con el fov en 10 (0x63e460) y el near y el far de la
-// escena 4. La posición, la del objeto de antes del corrimiento de su clase.
+// 0x6338a0(object, (10, −500, 48), (−90, 0, 0)) with the fov at 10 (0x63e460) and the near and far of
+// scene 4. The position is the object's before its class's offset.
 [[nodiscard]] Render::Camera3D PreviewCamera();
 [[nodiscard]] Render::Camera3D PreviewCamera(const CreatePreview& preview);
 
-// 0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 / rx), ftol(335 / ry)), con (x, y) la esquina de la
-// caja de la ventana en píxeles.
+// 0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 / rx), ftol(335 / ry)), with (x, y) the window box's
+// corner in pixels.
 [[nodiscard]] Render::ViewportRect PreviewViewport(const Ui::Rect& box, Core::PixelSize screen);
 } // namespace Client::FrontEnd

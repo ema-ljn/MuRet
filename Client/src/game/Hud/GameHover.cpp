@@ -14,7 +14,7 @@
 #include "PersonalShop/PersonalShopTitles.h"
 #include "Social/SocialState.h"
 #include "Hud/HudText.h"
-#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer como ITextMeasure)
+#include "Render/Frame/ITextDrawer.h" // IWYU pragma: keep (ITextDrawer as ITextMeasure)
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/GameUiState.h"
@@ -35,16 +35,16 @@ namespace
 using Maps::IsChaosCastle;
 // 0x6c9ccc.
 constexpr std::string_view WebzenWord = "webzen";
-// +0x88 de un monstruo.
+// A monster's +0x88.
 constexpr std::uint8_t MonsterKind = 2;
-// 0x5bbcdd..0x5bbce7: el fondo y el texto del nombre de un monstruo.
+// 0x5bbcdd..0x5bbce7
 constexpr Render::Text::TextColors MonsterNameColors{.text = 0xffc8e6ffu, .background = 0xff000064u};
-// 0x5bbcdb: la y del nombre de un monstruo.
+// 0x5bbcdb
 constexpr std::int32_t MonsterNameTop = 10;
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr std::int32_t NoTarget = -1;
 
-// 0x557170(+0x1d9, 0x78abb3c o 0x78abb40, personaje, 0, −1): el nombre solo, con el texto vacío de la .bss.
+// 0x557170(+0x1d9, 0x78abb3c or 0x78abb40, character, 0, −1): the name alone, with the empty .bss text.
 Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int32_t index)
 {
     if (context.projecting)
@@ -56,27 +56,27 @@ Core::Expected<void, std::string> NameBubble(GameHoverContext& context, std::int
         Actors::ChatNameOf(actor), "", static_cast<std::size_t>(index), Chat::ChatBubbleMode::Chat);
 }
 
-// 0x5bbc9e..0x5bbd2f: el personaje elegido.
+// 0x5bbc9e..0x5bbd2f: the chosen character.
 Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::int32_t index)
 {
     const Kernel::ActorState& actor = context.world.Actors()[static_cast<std::size_t>(index)];
     if (actor.byte88 != MonsterKind)
     {
-        // 0x5bbd06..0x5bbd15: con el cartel de su tienda a la vista (0x451770), nada; si no, el globo del nombre.
+        // 0x5bbd06..0x5bbd15: with its shop's sign in view (0x451770), nothing; otherwise, the name bubble.
         if (PersonalShop::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
             return {};
         return NameBubble(context, index);
     }
-    // 0x5bbcbb..0x5bbcd4: GetTextExtentPointA del nombre, que no se usa.
+    // 0x5bbcbb..0x5bbcd4: GetTextExtentPointA of the name, which is not used.
     context.hud.textColors = MonsterNameColors;
-    // 0x5bbcf1..0x5bbcf9: 0x5bb8d0, con sus consultas, y la mitad con CDQ y SAR, hacia el 0.
+    // 0x5bbcf1..0x5bbcf9: 0x5bb8d0, with its queries, and the half with CDQ and SAR, toward 0.
     const std::int32_t worldWidth = GamePanels(context.world, context.random).Registry().WorldWidth();
     DrawHudCentered(context.text, context.sprites.Screen(), context.hud, worldWidth / 2, MonsterNameTop,
                     Actors::ChatNameOf(actor));
     return {};
 }
 
-// 0x5ba790 sobre la entrada `index` de 0x77f46c8.
+// 0x5ba790 on entry `index` of 0x77f46c8.
 Core::Expected<void, std::string> FloorItemName(GameHoverContext& context, std::int32_t index, bool atTheItem,
                                                 std::string_view where)
 {
@@ -99,8 +99,8 @@ Core::Expected<void, std::string> FloorItemNames(GameHoverContext& context)
     const auto& items = context.tail.floorItems;
     for (std::size_t index = 0; index < items.size(); ++index)
     {
-        // 0x5bbda7..0x5bbdbc: vivo (+0x44 de la entrada de 0x220 bytes en 0x77f46d0), a la vista (+0x1b0) y no el
-        // elegido.
+        // 0x5bbda7..0x5bbdbc: alive (+0x44 of the 0x220-byte entry at 0x77f46d0), in view (+0x1b0) and not the chosen
+        // one.
         if (!items[index].alive || !items[index].seen || static_cast<std::int32_t>(index) == context.targets[0])
             continue;
         if (auto named = FloorItemName(context, static_cast<std::int32_t>(index), true, "0x5bbdd2"); !named.HasValue())
@@ -139,7 +139,7 @@ Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context)
     }
     else if (floorItem != NoTarget)
     {
-        // 0x5bbd31..0x5bbd62: en el mouse.
+        // 0x5bbd31..0x5bbd62: at the mouse.
         if (auto named = FloorItemName(context, floorItem, false, "0x5bbd62"); !named.HasValue())
             return named;
     }

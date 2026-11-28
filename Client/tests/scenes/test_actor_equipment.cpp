@@ -218,7 +218,7 @@ TEST_F(ActorEquipmentTest, ANonPlayerIsLeftAsIs)
 }
 
 // +0x3e3 other than 0: after the hands and 0x4f2250 it closes the record (0x512bea..0x512cc6) and does not touch the
-// clothes, the head or the scale. The close that leaves the count at 0 draws 3,848 rand(), after that of 0x4f2250; if
+// clothes, the head or the scale. The close that leaves the count at 0 draws 3848 rand(), after that of 0x4f2250; if
 // the caller has it open, none.
 TEST_F(ActorEquipmentTest, WithByte3e3TheClothesStayAndTheRecordCloses)
 {

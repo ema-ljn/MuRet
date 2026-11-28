@@ -46,35 +46,35 @@ namespace
 {
 using Result = Core::Expected<void, std::string>;
 
-// 0x4033d0 y 0x4033f0: la etapa del recorrido y la que lo deshace.
+// 0x4033d0 and 0x4033f0: the tour's stage and the one that undoes it.
 constexpr std::int32_t TourStage = Protocol::Events::CrywolfSecondNoticeStage;
 constexpr std::int32_t UndoStage = Protocol::Events::CrywolfReadyStage;
 // 0x403400: 0x404c90(5000).
 constexpr std::int32_t TourDelay = 5000;
-// 0x403d60 y +0x14c en 0x403300: la primera clave del guion.
+// 0x403d60 and +0x14c at 0x403300: the script's first key.
 constexpr std::int32_t FirstTourActor = 10000;
-// 0x403912..0x403931 y 0x403770..0x403790: sin la clave entre los 400, queda el último registro mirado.
+// 0x403912..0x403931 and 0x403770..0x403790: without the key among the 400, the last record looked at stays.
 constexpr std::size_t LastRecord = 399;
-// 0x6b86b4 y 0x6b86b0: el centro de una celda.
+// 0x6b86b4 and 0x6b86b0: the center of a cell.
 constexpr double CellSize = Terrain::CellSizeAsDouble;
 constexpr double CellCenter = 50.0;
-// 0x6b86c0 (0,01f), con el que 0x403760 vuelve a la celda.
+// 0x6b86c0 (0.01f), with which 0x403760 goes back to the cell.
 constexpr double Hundredth = Math::HundredthAsDouble;
-// 0x6b86a8 (double), los grados de 0x4036d0.
+// 0x6b86a8 (double), the degrees of 0x4036d0.
 constexpr double Degrees = std::bit_cast<double>(0x404ca5ddb05cc3e9ull);
-// 0x6b869c, 0x6b86bc, 0x6b86b8 y 0x6b86c4.
+// 0x6b869c, 0x6b86bc, 0x6b86b8 and 0x6b86c4.
 constexpr double FullTurn = Math::FullTurnAsDouble;
 constexpr double HalfTurn = Math::HalfTurnAsDouble;
 constexpr float TurnStep = 3.0f;
 constexpr float LastActionFrame = 8.0f;
-// 0x403a82..0x403a9c y 0x403d40: el tope de +0x150.
+// 0x403a82..0x403a9c and 0x403d40: the cap of +0x150.
 constexpr std::int32_t LastLevel = 4;
-// 0x403ad0: el sonido del alta con las chispas.
+// 0x403ad0: the spawn sound with the sparks.
 constexpr Audio::SoundId ArrivalSound{0x243};
-// 0x4038b9, 0x403856 y 0x4039f0: las acciones de 0x4ea030 (quieto, caminar) y la que toma la velocidad.
+// 0x4038b9, 0x403856 and 0x4039f0: the actions of 0x4ea030 (stand, walk) and the one that takes the speed.
 constexpr std::uint8_t StandAction = 0;
 constexpr std::uint8_t WalkAction = 2;
-// Las velocidades de los tramos (0x43960000 y 0x42200000) y de las acciones (0xbf800000, 0x3e3851ec y 0x3e6872b0).
+// The speeds of the legs (0x43960000 and 0x42200000) and of the actions (0xbf800000, 0x3e3851ec and 0x3e6872b0).
 constexpr float FastLeg = 300.0f;
 constexpr float SlowLeg = 40.0f;
 constexpr float KeepSpeed = -1.0f;
@@ -88,8 +88,8 @@ float CellCenterOf(std::int32_t cell)
     return F32(static_cast<double>(cell) * CellSize + CellCenter);
 }
 
-// 0x404c90(período): con +0x37, +0x148 en ahora; vence con +0x148 + período <= ahora (con signo), y entonces +0x37 en
-// 1 y +0x140 uno más.
+// 0x404c90(period): with +0x37, +0x148 at now; it fires with +0x148 + period <= now (signed), and then +0x37 at 1 and
+// +0x140 one more.
 bool TourTimerFires(CameraTour& tour, std::uint32_t now, std::int32_t period)
 {
     if (tour.timerRestart)
@@ -105,8 +105,8 @@ bool TourTimerFires(CameraTour& tour, std::uint32_t now, std::int32_t period)
     return true;
 }
 
-// 0x5fc800: la suma de los cuadrados desde 0 en la x87 (PC53), su raíz y, si no es 0 (FCOM con C3, también NaN),
-// cada componente dividido y guardado en float.
+// 0x5fc800: the sum of the squares from 0 on the x87 (PC53), its root and, if it is not 0 (FCOM with C3, also NaN),
+// each component divided and stored in float.
 void Normalize(glm::vec3& vector)
 {
     double sum = 0.0;
@@ -119,7 +119,7 @@ void Normalize(glm::vec3& vector)
         vector[axis] = F32(static_cast<double>(vector[axis]) / length);
 }
 
-// 0x403d90(x, y, z, velocidad): el tramo siguiente, al centro de la celda; +0x140 en 0 y la etapa del guion una más.
+// 0x403d90(x, y, z, speed): the next leg, to the cell's center; +0x140 at 0 and the script stage one more.
 void HeadTo(CameraTour& tour, std::int32_t x, std::int32_t y, std::int32_t z, float speed)
 {
     tour.step = 0;
@@ -130,8 +130,8 @@ void HeadTo(CameraTour& tour, std::int32_t x, std::int32_t y, std::int32_t z, fl
     tour.target = {CellCenterOf(x), CellCenterOf(y), CellCenterOf(z)};
 }
 
-// 0x403430: con +0x34, en la etapa 0 del guion sale del héroe ([0x743a170] + 0x10) y pasa a la 1; el rumbo es destino −
-// salida (en float) y el largo su norma ((x² + y²) + z², en la x87).
+// 0x403430: with +0x34, at script stage 0 it leaves from the hero ([0x743a170] + 0x10) and goes to stage 1; the
+// heading is target − start (in float) and the length its norm ((x² + y²) + z², on the x87).
 void MeasureTheLeg(CameraTour& tour, const Kernel::ActorState& hero)
 {
     if (!tour.begin)
@@ -150,9 +150,10 @@ void MeasureTheLeg(CameraTour& tour, const Kernel::ActorState& hero)
     tour.distance = F32(std::sqrt((x * x + y * y) + z * z));
 }
 
-// 0x4034e0: con la cámara en camino, 0x403430, el rumbo normalizado y la posición en lo andado · rumbo + salida; lo
-// andado suma +0x74. Con la norma de lo andado (de antes) en el largo o más, llega: la posición y la salida en el
-// destino, +0x36 en 1, +0x35 y lo andado en 0. Devuelve si la cámara estaba en camino (el guion espera).
+// 0x4034e0: with the camera on its way, 0x403430, the normalized heading and the position at travelled · heading +
+// start; travelled adds +0x74. With the norm of travelled (from before) at the length or more, it arrives: the
+// position and the start at the target, +0x36 at 1, +0x35 and travelled at 0. It returns whether the camera was on
+// its way (the script waits).
 bool MoveTheCamera(CameraTour& tour, const Kernel::ActorState& hero)
 {
     if (!tour.moving)
@@ -167,7 +168,7 @@ bool MoveTheCamera(CameraTour& tour, const Kernel::ActorState& hero)
     tour.position = {F32(x + static_cast<double>(tour.start.x)), F32(y + static_cast<double>(tour.start.y)),
                      F32(z + static_cast<double>(tour.start.z))};
     tour.travelled = F32(static_cast<double>(tour.speed) + travelled);
-    // 0x403539..0x403559: (z² + y²) + x², y FCOMP con C0 (menor o NaN) sigue en camino.
+    // 0x403539..0x403559: (z² + y²) + x², and FCOMP with C0 (less or NaN) stays on its way.
     const double length = std::sqrt((z * z + y * y) + x * x);
     if (!(length >= static_cast<double>(tour.distance)))
         return true;
@@ -179,8 +180,8 @@ bool MoveTheCamera(CameraTour& tour, const Kernel::ActorState& hero)
     return true;
 }
 
-// El lugar de una clave del guion en +0x38 y +0x78 (clave − 10000). Las claves de los guiones van de 10000 a 0x272b.
-// El tope es una guarda de MuRet: 0x4037d7 y 0x403933 indexan sin mirar, y las claves de los guiones nunca lo alcanzan.
+// The slot of a script key in +0x38 and +0x78 (key − 10000). The scripts' keys go from 10000 to 0x272b. The cap is a
+// MuRet guard: 0x4037d7 and 0x403933 index without checking, and the scripts' keys never reach it.
 Core::Expected<std::size_t, std::string> SlotOf(std::int32_t key, const char* address)
 {
     constexpr std::int32_t ScriptSlots = 50;
@@ -190,7 +191,8 @@ Core::Expected<std::size_t, std::string> SlotOf(std::int32_t key, const char* ad
     return static_cast<std::size_t>(slot);
 }
 
-// 0x403912..0x403931 y 0x403770..0x403790: el primero vivo con la clave (MOVSX); sin él, el registro 399 (Q-C1349).
+// 0x403912..0x403931 and 0x403770..0x403790: the first alive one with the key (MOVSX); without it, record 399
+// (Q-C1349).
 Kernel::ActorState& ScriptActor(Kernel::WorldState& world, std::int32_t key)
 {
     auto actors = world.Actors();
@@ -202,8 +204,8 @@ Kernel::ActorState& ScriptActor(Kernel::WorldState& world, std::int32_t key)
     return actors[LastRecord];
 }
 
-// 0x403d10, la tabla del modelo de 0x4039f0 por tipo − 0x154; los demás tipos toman como modelo el dword de la bandera
-// de las chispas (0x403a93, [EBP + 0x1c]). Ningún guion los usa.
+// 0x403d10, the model table of 0x4039f0 by type − 0x154; the other types take as model the dword of the sparks flag
+// (0x403a93, [EBP + 0x1c]). No script uses them.
 std::uint16_t ScriptModelOf(std::int32_t type, bool sparks)
 {
     switch (type)
@@ -230,7 +232,8 @@ class TourScript
 public:
     TourScript(const CameraTourContext& context, CameraTour& tour) : m_context(context), m_tour(tour) {}
 
-    // 0x4035f0: con la cámara en camino (0x4034e0) nada más; si no, la etapa del guion (+0x144, la tabla 0x403644).
+    // 0x4035f0: with the camera on its way (0x4034e0) nothing more; otherwise, the script's stage (+0x144, the table
+    // 0x403644).
     Result Step()
     {
         Kernel::WorldState& world = m_context.world;
@@ -239,7 +242,7 @@ public:
         switch (m_tour.scriptStage)
         {
         case 0:
-            // 0x403e00: el primer tramo sale del héroe (0x403430 con la etapa 0).
+            // 0x403e00: the first leg leaves from the hero (0x403430 with stage 0).
             HeadTo(m_tour, 0x71, 0xe8, 0, FastLeg);
             --m_tour.scriptStage;
             return {};
@@ -271,10 +274,10 @@ private:
         static_cast<void>(TourTimerFires(m_tour, m_context.now, period));
     }
 
-    // 0x4039f0(tipo, x, y, ángulo, avanza, chispas, velocidad): el alta 0x5141e0 con la clave +0x14c, que sube uno; la
-    // clave en +0x1f4 (word), las manos (+0x2b8 y +0x2d8) en 0xffff, el ángulo en +0x24 y +0x174 en 0. Con la
-    // velocidad en 0 o más (FCOMP sin C0), la de la acción 2 del modelo de 0x403d10 (+0x30 → +0x24). Con las chispas,
-    // el sonido 0x243 y los joints y las partículas. Con avanza, +0x140 uno más.
+    // 0x4039f0(type, x, y, angle, advance, sparks, speed): the spawn 0x5141e0 with the key +0x14c, which goes up by
+    // one; the key at +0x1f4 (word), the hands (+0x2b8 and +0x2d8) at 0xffff, the angle at +0x24 and +0x174 at 0. With
+    // the speed at 0 or more (FCOMP without C0), that of action 2 of the model of 0x403d10 (+0x30 → +0x24). With the
+    // sparks, the sound 0x243 and the joints and particles. With advance, +0x140 one more.
     Result Create(std::int32_t type, std::int32_t x, std::int32_t y, float angle, bool advance, bool sparks,
                   float speed)
     {
@@ -323,10 +326,10 @@ private:
         return {};
     }
 
-    // 0x403760(clave, x, y, ángulo, velocidad): en la celda (ftol(ftol(posición) · 0,01f)), el centro de la celda,
-    // +0x38 en 1, 0x4ea030(0) y verdadero. Si no, mientras gira (+0x38), el ángulo a la celda (0x4036d0) contra +0x24,
-    // los dos truncados; con 3 o menos de diferencia, deja de girar. Con +0x38a, +0x386 con la velocidad,
-    // 0x4ea030(2) y 0x508a80; si no, +0x24 ± 3 y 0x4ea030(0). Falso.
+    // 0x403760(key, x, y, angle, speed): on the cell (ftol(ftol(position) · 0.01f)), the cell's center, +0x38 at 1,
+    // 0x4ea030(0) and true. Otherwise, while turning (+0x38), the angle to the cell (0x4036d0) against +0x24, both
+    // truncated; with 3 or less of difference, it stops turning. With +0x38a, +0x386 with the speed, 0x4ea030(2) and
+    // 0x508a80; otherwise, +0x24 ± 3 and 0x4ea030(0). False.
     Core::Expected<bool, std::string> Walk(std::int32_t key, std::int32_t x, std::int32_t y, float angle,
                                            std::uint16_t speed)
     {
@@ -351,7 +354,7 @@ private:
         {
             std::int32_t target = Math::FtolLow(AngleTo(actor, x, y));
             const std::int32_t current = Math::FtolLow(static_cast<double>(actor.angles.z));
-            // 0x403808..0x40381d: FILD del ángulo truncado − el pedido, FCOMP 180 sin C0 ni C3.
+            // 0x403808..0x40381d: FILD of the truncated angle − the requested one, FCOMP 180 without C0 or C3.
             if (static_cast<double>(target) - static_cast<double>(angle) > HalfTurn)
                 target -= static_cast<std::int32_t>(FullTurn);
             difference = target - current;
@@ -364,7 +367,7 @@ private:
         }
         else
         {
-            // 0x403836: sin girar, camina.
+            // 0x403836: not turning, it walks.
             actor.byte38a = 1;
             m_tour.turning[slot.Value()] = false;
         }
@@ -390,9 +393,9 @@ private:
         return false;
     }
 
-    // 0x4036d0(personaje, x, y, ángulo): (posición − centro de la celda), con la x del centro sin redondear (queda en
-    // la x87) y la y en float, z 0; normalizado (0x5fc800), acos de la y (0x69fc70) en grados y, con la x mayor que 0,
-    // 360 − eso. El ángulo pedido no se lee.
+    // 0x4036d0(character, x, y, angle): (position − cell center), with the center's x unrounded (it stays on the x87)
+    // and the y in float, z 0; normalized (0x5fc800), acos of the y (0x69fc70) in degrees and, with x greater than 0,
+    // 360 − that. The requested angle is not read.
     static double AngleTo(const Kernel::ActorState& actor, std::int32_t x, std::int32_t y)
     {
         const double centerX = static_cast<double>(x) * CellSize + CellCenter;
@@ -404,9 +407,9 @@ private:
         return toward.x > 0.0f ? FullTurn - angle : angle;
     }
 
-    // 0x403900(clave, acción, veces, efecto, avanza): mientras +0x78 no llega a las veces, con otra acción en +0x111,
-    // la pone (+0x114 en 0) y cuenta una vez; con el efecto crea el 0xed (0x518cf0). Falso. Con las veces,
-    // avanza pone +0x78 en 0 y +0x140 uno más; verdadero con +0x114 en 8 o más.
+    // 0x403900(key, action, times, effect, advance): while +0x78 does not reach the times, with another action in
+    // +0x111, it sets it (+0x114 at 0) and counts once; with the effect it creates the 0xed (0x518cf0). False. With the
+    // times, advance sets +0x78 to 0 and +0x140 one more; true with +0x114 at 8 or more.
     Core::Expected<bool, std::string> Act(std::int32_t key, std::uint8_t action, std::int32_t times, bool effect,
                                           bool advance)
     {
@@ -454,14 +457,14 @@ private:
         return Actors::SetMonsterAction(actor, action, address, *m_context.resources);
     }
 
-    // 0x403d40: +0x150 uno más, hasta 4.
+    // 0x403d40: +0x150 one more, up to 4.
     void RaiseTheLevel()
     {
         if (m_tour.level < LastLevel)
             ++m_tour.level;
     }
 
-    // 0x403e30: la barrera y los guardias en (0x72, 0xee) y la fila de la 0xe3; después, al (0x72, 0xdc).
+    // 0x403e30: the barrier and the guards at (0x72, 0xee) and the row of the 0xe3; then, to (0x72, 0xdc).
     Result TheBarrier()
     {
         if (!m_tour.arrived)
@@ -486,7 +489,7 @@ private:
             return {};
         case 4:
         {
-            // 0x403ec0..0x403f0b: los tres caminan antes de mirar si llegaron.
+            // 0x403ec0..0x403f0b: the three walk before checking whether they arrived.
             const auto first = Walk(10000, 0x72, 0xea, 0, 9);
             if (!first.HasValue())
                 return Core::Unexpected(first.Error());
@@ -540,7 +543,7 @@ private:
         case 0x1a:
         case 0x1c:
         {
-            // 0x404240..0x40426d: la fila de la 0xe3 en 0x6e, 0x70, 0x72 y 0x74, y 0x403d40.
+            // 0x404240..0x40426d: the row of the 0xe3 at 0x6e, 0x70, 0x72 and 0x74, and 0x403d40.
             const std::int32_t x = 0x6e + (m_tour.step - 0x16);
             if (auto created = Create(0x155, x, 0xe3, 0, true, true, KeepSpeed); !created.HasValue())
                 return created;
@@ -558,7 +561,7 @@ private:
         }
     }
 
-    // 0x4042c0: los defensores en las filas 0xf0..0xf4, que caminan a las de 0xd9..0xe7; después, al (0x72, 0xa0).
+    // 0x4042c0: the defenders in rows 0xf0..0xf4, who walk to those of 0xd9..0xe7; then, to (0x72, 0xa0).
     Result TheDefenders()
     {
         if (!m_tour.arrived)
@@ -591,7 +594,7 @@ private:
                                                     {0x155, 0x76, 0xf4}}};
             for (std::size_t index = 0; index < Spawns.size(); ++index)
             {
-                // El último avanza y lleva las chispas.
+                // The last one advances and carries the sparks.
                 const bool last = index + 1 == Spawns.size();
                 const Spawn& spawn = Spawns[index];
                 if (auto created = Create(spawn.type, spawn.x, spawn.y, 0, last, last, KeepSpeed); !created.HasValue())
@@ -623,7 +626,7 @@ private:
                  {0x2725, 0x74, 0xe5, 0xc}, {0x2726, 0x76, 0xe5, 0xc}, {0x2727, 0x6e, 0xe7, 0xc},
                  {0x2728, 0x70, 0xe7, 0xc}, {0x2729, 0x72, 0xe7, 0xc}, {0x272a, 0x74, 0xe7, 0xc},
                  {0x272b, 0x76, 0xe7, 0xc}}};
-            // Los 28 caminan antes de mirar si llegaron todos.
+            // The 28 walk before checking whether all arrived.
             bool all = true;
             for (const Goal& goal : Goals)
             {
@@ -652,8 +655,8 @@ private:
         }
     }
 
-    // 0x404830: borra los del guion (0x403d60) y vuelve a la clave 10000; los 27 de los altares, sin chispas; después,
-    // al (0x79, 0x4b). Dos de las altas avanzan: +0x140 pasa de 1 a 3.
+    // 0x404830: removes the script's ones (0x403d60) and goes back to key 10000; the 27 of the altars, without sparks;
+    // then, to (0x79, 0x4b). Two of the spawns advance: +0x140 goes from 1 to 3.
     Result TheAltars()
     {
         if (!m_tour.arrived)
@@ -699,8 +702,7 @@ private:
         return {};
     }
 
-    // 0x404bb0: los dos últimos de los altares cambian a la acción 3 con el 0xed; después, el fin: 0x403d60 y +0x158
-    // en 1.
+    // 0x404bb0: the last two of the altars change to action 3 with the 0xed; then, the end: 0x403d60 and +0x158 at 1.
     Result TheEnd()
     {
         if (!m_tour.arrived)
@@ -743,7 +745,7 @@ private:
 
 namespace Client::Effects
 {
-// 0x403ae7..0x403d02 y 0x4c98a0..0x4c9ac1: sortear el ancho aunque el pool esté lleno.
+// 0x403ae7..0x403d02 and 0x4c98a0..0x4c9ac1: the width is drawn even when the pool is full.
 Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor, Kernel::WorldState& world,
                                                       Crt::CrtRandom& random)
 {
@@ -815,8 +817,8 @@ Core::Expected<void, std::string> StepTheCameraTour(const CameraTourContext& con
     }
     if (!CameraTourRunning(tour))
         return {};
-    // 0x4035a3..0x4035da: la etapa es 2 (0x4033d0 lo pide), así que la rama de la 5 (0x403660) y la de otra
-    // (0x403d60 y 0x403300) no se alcanzan. Primero 0x403390.
+    // 0x4035a3..0x4035da: the stage is 2 (0x4033d0 asks for it), so the branch of 5 (0x403660) and the other one
+    // (0x403d60 and 0x403300) are not reached. First 0x403390.
     if (!context.releaseTheUi)
         return Core::Unexpected(std::string("0x4035d3: 0x403390 (0x5be150 y 0x657880(0x1b)) sin la UI del juego"));
     if (auto released = context.releaseTheUi(); !released.HasValue())

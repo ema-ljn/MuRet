@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-// Client::UI: el registro de paneles (CL8 hito 1; 06 § HUD y ventanas, "Los paneles"), contra el ASM de 0x659290,
-// 0x659860, 0x6599a0, 0x65cae0, 0x657ab0, 0x657880 y 0x5bb8d0. Lo que se mira es cuántos rand() saca cada camino:
-// solo las consultas del comercio (0x20) y de la tienda de NPC (0x10000) sacan uno.
+// The panel registry (CL8 milestone 1; 06 § HUD y ventanas, "Los paneles"), against the ASM of 0x659290, 0x659860,
+// 0x6599a0, 0x65cae0, 0x657ab0, 0x657880 and 0x5bb8d0. What is checked is how many rand() each path draws: only the
+// trade (0x20) and NPC shop (0x10000) queries draw one.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -22,7 +22,6 @@ using namespace Client::Ui;
 
 constexpr std::uint32_t Seed = 1;
 
-// Cuántos rand() sacó random desde Seed (hasta 20.000).
 int DrawsSince(const CrtRandom& random)
 {
     CrtRandom reference(Seed);
@@ -93,7 +92,7 @@ TEST(PanelRegistryTest, EachIdReadsItsOwnState)
     state.delegated.quest = 2;
     EXPECT_TRUE(tested.panels.IsOpen(QuestPanel));
     EXPECT_FALSE(tested.panels.IsOpen(ClosedPanel));
-    // 0x420cc0 compara 0x723911 con 2.
+    // 0x420cc0 compares 0x723911 with 2.
     state.delegated.pet = 1;
     EXPECT_FALSE(tested.panels.IsOpen(PetPanel));
     state.delegated.pet = 2;
@@ -106,13 +105,13 @@ TEST(PanelRegistryTest, AnyPanelStopsAtTheFirstOpenOne)
     EXPECT_FALSE(closed.panels.IsOpen(AnyPanel));
     EXPECT_EQ(DrawsSince(closed.random), 2);
 
-    // La party (4) está antes que el comercio (0x20): no llega a las consultas que sacan.
+    // The party (4) comes before the trade (0x20): it does not reach the queries that draw.
     Tested party;
     party.state.party = 1;
     EXPECT_TRUE(party.panels.IsOpen(AnyPanel));
     EXPECT_EQ(DrawsSince(party.random), 0);
 
-    // El inventario está después de los dos.
+    // The inventory comes after both.
     Tested inventory;
     inventory.state.inventory = 1;
     EXPECT_TRUE(inventory.panels.IsOpen(AnyPanel));
@@ -126,7 +125,7 @@ TEST(PanelRegistryTest, OpeningTheInventoryDrawsFourAndSoundsTwice)
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());
     EXPECT_EQ(tested.state.inventory, 1);
-    // CanOpen: 0x10000 y 0x20; la máscara de 0x657ab0: 0x20 y 0x10000.
+    // CanOpen: 0x10000 and 0x20; 0x657ab0's mask: 0x20 and 0x10000.
     EXPECT_EQ(DrawsSince(tested.random), 4);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
 }
@@ -145,7 +144,7 @@ TEST(PanelRegistryTest, ClosingTheInventoryDrawsTwoAndClearsItsGlobals)
     EXPECT_EQ(tested.state.field78abb04, 0);
     EXPECT_EQ(tested.state.field78abb09, 0);
     EXPECT_EQ(tested.state.repairMode, 0);
-    // 0x11d9e0 consulta el comercio y la tienda de NPC.
+    // 0x11d9e0 queries the trade and the NPC shop.
     EXPECT_EQ(DrawsSince(tested.random), 2);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
 }
@@ -202,7 +201,7 @@ TEST(PanelRegistryTest, CanOpenNeedsNoDialogOrThePanelFriendlyOne)
 
 TEST(PanelRegistryTest, CanOpenStopsAtTheFirstBlockingPanel)
 {
-    // La tienda de NPC es la primera consulta: no llega a la del comercio.
+    // The NPC shop is the first query: it does not reach the trade's.
     Tested tested;
     tested.state.npcShop = 1;
     EXPECT_FALSE(tested.panels.CanOpen(InventoryPanel));
@@ -265,7 +264,7 @@ TEST(PanelRegistryTest, TheMoveWindowOpensWithoutClosingTheOthers)
     ASSERT_TRUE(opened.HasValue()) << opened.Error();
     EXPECT_TRUE(opened.Value());
     EXPECT_EQ(tested.state.inventory, 1);
-    // Solo CanOpen.
+    // Only CanOpen.
     EXPECT_EQ(DrawsSince(tested.random), 2);
 }
 
@@ -292,9 +291,9 @@ TEST(PanelRegistryTest, TheInventoryKeepsTheCharacterOpen)
     EXPECT_EQ(tested.state.overlayMode, 0);
 }
 
-// 0x65c020..0x65c946 (CL9 hito 7): con un Dark Lord (+0x1d4 & 7 en 4), abrir el inventario lo prende y después pide
-// el cuervo y el caballo, los mismos A9 de la mascota (el gancho). Sin el gancho corta, ya con el inventario prendido.
-// Las otras clases no piden nada.
+// 0x65c020..0x65c946 (CL9 milestone 7): with a Dark Lord (+0x1d4 & 7 at 4), opening the inventory turns it on and
+// then asks for the raven and the horse, the same A9 as the pet (the hook). Without the hook it stops, with the
+// inventory already on. The other classes ask for nothing.
 TEST(PanelRegistryTest, TheDarkLordsInventoryAsksForBothPets)
 {
     Tested tested;
@@ -332,7 +331,8 @@ TEST(PanelRegistryTest, PanelsOfOtherWavesCutWhenTheyOpen)
     }
 }
 
-// 0x659c50..0x659c70 (CL9 hito 2): las misiones cierran todo menos el personaje y abren la lista con 0x419840(−1).
+// 0x659c50..0x659c70 (CL9 milestone 2): the quests close everything but the character and open the list with
+// 0x419840(−1).
 TEST(PanelRegistryTest, TheQuestsKeepTheCharacterOpenAndRunTheirHook)
 {
     Tested tested;
@@ -362,7 +362,7 @@ TEST(PanelRegistryTest, OpeningTheQuestsWithoutTheirObjectCuts)
     EXPECT_NE(opened.Error().find("0x419840"), std::string::npos) << opened.Error();
 }
 
-// 0x657b19..0x657b31: cerrar las misiones es 0x419900, que pone la ventana en 0 y manda el C1 03 31.
+// 0x657b19..0x657b31: closing the quests is 0x419900, which sets the window to 0 and sends the C1 03 31.
 TEST(PanelRegistryTest, ClosingTheQuestsSendsTheWindowClose)
 {
     Tested tested;
@@ -373,7 +373,7 @@ TEST(PanelRegistryTest, ClosingTheQuestsSendsTheWindowClose)
     ASSERT_TRUE(closed.HasValue()) << closed.Error();
     EXPECT_EQ(tested.state.delegated.quest, 0);
     EXPECT_EQ(sent, 1);
-    // Cerrada, la consulta da falso y no manda otro.
+    // Closed, the query gives false and sends no other.
     ASSERT_TRUE(tested.panels.CloseByMask(QuestPanel).HasValue());
     EXPECT_EQ(sent, 1);
 }
@@ -406,12 +406,12 @@ TEST(PanelRegistryTest, TheCharacterKeepsTheInventoryOpenAndRunsItsHook)
     EXPECT_EQ(tested.state.inventory, 1);
     EXPECT_EQ(tested.state.overlayMode, 0);
     EXPECT_EQ(hooks, 1);
-    // CanOpen: 0x10000 y 0x20; la máscara de 0x657ab0 (sin 0x4000000): 0x20 y 0x10000.
+    // CanOpen: 0x10000 and 0x20; 0x657ab0's mask (without 0x4000000): 0x20 and 0x10000.
     EXPECT_EQ(DrawsSince(tested.random), 4);
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c}));
 }
 
-// 0x659f3d: los amigos no cierran nada y corren 0x491080 (CL9 hito 9), que saca sus propios rand(); acá, los 2 de
+// 0x659f3d: the friends close nothing and run 0x491080 (CL9 milestone 9), which draws its own rand(); here, the 2 of
 // CanOpen.
 TEST(PanelRegistryTest, TheFriendsRunTheirHookWithoutClosingAnything)
 {
@@ -436,7 +436,7 @@ TEST(PanelRegistryTest, TheCharacterWithoutItsHookIsACut)
     const auto opened = tested.panels.Open(CharacterPanel);
     ASSERT_FALSE(opened.HasValue());
     EXPECT_NE(opened.Error().find("0x65c966"), std::string::npos) << opened.Error();
-    // 0x65c95f ya la abrió.
+    // 0x65c95f already opened it.
     EXPECT_EQ(tested.state.character, 1);
 }
 
@@ -451,9 +451,9 @@ TEST(PanelRegistryTest, AnErrorOfTheCharacterHookStopsBeforeTheSounds)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
-// 0x659fd9..0x65a8af (CL9 hito 4): la mascota, con el personaje abierto, cierra lo demás menos el personaje y los
-// amigos, pone 0x723911 en 2 (0x420cb0) y pide el cuervo y el caballo (el gancho); cerrarla, o cerrar el personaje, la
-// vuelve a 0 (0x420ca0). Sin el gancho, abrirla corta después de 0x420cb0.
+// 0x659fd9..0x65a8af (CL9 milestone 4): the pet, with the character open, closes the rest but the character and the
+// friends, sets 0x723911 to 2 (0x420cb0) and asks for the raven and the horse (the hook); closing it, or the
+// character, sets it back to 0 (0x420ca0). Without the hook, opening it stops after 0x420cb0.
 TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
 {
     Tested tested;
@@ -487,10 +487,9 @@ TEST(PanelRegistryTest, ThePetOpensBesideTheCharacterAndAsksForBothPets)
     EXPECT_EQ(unhooked.state.delegated.pet, 2);
 }
 
-// 0x659a82..0x659c44: la party cierra lo demás menos los amigos, pone la cuenta en 0 y pide la lista (el gancho) antes
-// de prenderse, y suena. Los únicos rand() son los de las consultas del comercio y de la tienda, en CanOpen y en lo
-// que cierra.
-// 0x65b240..0x65b260: cerrar la máscara antes de prender el panel y vaciar su aceptación; no abre inventario.
+// 0x659a82..0x659c44: the party closes the rest but the friends, sets the count to 0 and asks for the list (the hook)
+// before turning on, and sounds. The only rand() are the trade and shop queries, in CanOpen and in what it closes.
+// 0x65b240..0x65b260: close the mask before turning the panel on and clear its acceptance; no inventory opens.
 TEST(PanelRegistryTest, OpeningPanel2000ClosesItsMaskAndResetsAcceptance)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -513,7 +512,7 @@ TEST(PanelRegistryTest, OpeningPanel2000ClosesItsMaskAndResetsAcceptance)
     }
 }
 
-// 0x658be3..0x658bea: dos bytes, sin paquete ni sonido desde CloseByMask; Close añade sus sonidos comunes.
+// 0x658be3..0x658bea: two bytes, with no packet or sound from CloseByMask; Close adds its common sounds.
 TEST(PanelRegistryTest, ClosingPanel2000ClearsBothBytes)
 {
     Tested tested;
@@ -542,7 +541,7 @@ TEST(PanelRegistryTest, OpeningThePartyAsksForTheListBeforeItsByte)
     EXPECT_TRUE(tested.panels.IsOpen(PartyPanel));
     EXPECT_EQ(tested.panels.WorldWidth(), OnePanelWorldWidth);
 
-    // Abierta, Open no hace nada: ni pide la lista ni suena.
+    // Already open, Open does nothing: it neither asks for the list nor sounds.
     tested.sounds.clear();
     const auto again = tested.panels.Open(PartyPanel);
     ASSERT_TRUE(again.HasValue());
@@ -550,7 +549,7 @@ TEST(PanelRegistryTest, OpeningThePartyAsksForTheListBeforeItsByte)
     EXPECT_EQ(partyWhenAsked.size(), 1u);
     EXPECT_TRUE(tested.sounds.empty());
 
-    // Close(4) va por CloseByMask y suena.
+    // Close(4) goes through CloseByMask and sounds.
     const auto closed = tested.panels.Close(PartyPanel);
     ASSERT_TRUE(closed.HasValue());
     EXPECT_TRUE(closed.Value());
@@ -559,7 +558,7 @@ TEST(PanelRegistryTest, OpeningThePartyAsksForTheListBeforeItsByte)
     EXPECT_EQ(DrawsSince(tested.random), 4) << "las consultas del comercio y de la tienda de CanOpen y de CloseByMask";
 }
 
-// Sin el cable (el gancho), abrir la party corta donde el original arma el C1 03 42, sin prenderla.
+// Without the cable (the hook), opening the party stops where the original builds the C1 03 42, without turning it on.
 TEST(PanelRegistryTest, OpeningThePartyWithoutTheListRequestCuts)
 {
     Tested tested;
@@ -570,8 +569,8 @@ TEST(PanelRegistryTest, OpeningThePartyWithoutTheListRequestCuts)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
-// 0x659c7a..0x659e41: el gremio pide la lista (el gancho) antes de su byte; 0x65be98: la ventana 2 solo prende el suyo.
-// Los dos sacan los cuatro rand() de CanOpen y de CloseByMask; cerrarlos va por sus ganchos (0x6522f0 y 0x6570b0).
+// 0x659c7a..0x659e41: the guild asks for the list (the hook) before its byte; 0x65be98: window 2 only turns on its own.
+// Both draw the four rand() of CanOpen and CloseByMask; closing them goes through their hooks (0x6522f0 and 0x6570b0).
 TEST(PanelRegistryTest, TheGuildWindowsOpenWithTheirHooksAndCloseThroughThem)
 {
     Tested tested;
@@ -592,7 +591,7 @@ TEST(PanelRegistryTest, TheGuildWindowsOpenWithTheirHooksAndCloseThroughThem)
     EXPECT_EQ(tested.state.delegated.guild, 1);
     EXPECT_EQ(DrawsSince(tested.random), 4);
 
-    // Abrir la ventana 2 cierra el gremio por su gancho.
+    // Opening window 2 closes the guild through its hook.
     const auto second = tested.panels.Open(SecondGuildPanel);
     ASSERT_TRUE(second.HasValue()) << second.Error();
     EXPECT_TRUE(second.Value());
@@ -600,11 +599,11 @@ TEST(PanelRegistryTest, TheGuildWindowsOpenWithTheirHooksAndCloseThroughThem)
     EXPECT_EQ(tested.state.delegated.secondGuild, 1);
     EXPECT_EQ(DrawsSince(tested.random), 8);
 
-    // Sin el gancho de la ventana 2, cerrarla corta.
+    // Without window 2's hook, closing it stops.
     EXPECT_FALSE(tested.panels.Close(SecondGuildPanel).HasValue());
 }
 
-// 0x65a91c..0x65a934: los comandos prenden +4 de [0x6e592c]; en Chaos Castle CanOpen no los deja.
+// 0x65a91c..0x65a934: the commands turn on +4 of [0x6e592c]; in Chaos Castle CanOpen does not allow them.
 TEST(PanelRegistryTest, OpeningTheCommandsSetsTheirByte)
 {
     Tested tested;
@@ -625,7 +624,8 @@ TEST(PanelRegistryTest, OpeningTheCommandsSetsTheirByte)
     EXPECT_EQ(chaosCastle.state.delegated.commands, 0);
 }
 
-// 0x65897a..0x658999: cerrar los comandos (por Close, Esc o CloseAll) deja el objeto como lo deja la entrada al juego.
+// 0x65897a..0x658999: closing the commands (by Close, Esc or CloseAll) leaves the object as entering the game leaves
+// it.
 TEST(PanelRegistryTest, ClosingTheCommandsResetsTheirObject)
 {
     const auto arrange = [](Tested& tested)
@@ -700,8 +700,8 @@ TEST(PanelRegistryTest, CloseByMaskClosesTheOwnPanels)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
-// 0x658a04..0x658bc7 y 0x658bfa..0x658dbe: cerrar un NPC de evento manda el C1 03 31 (el gancho) y pone 0x7d53712 en
-// 0; 0x65cae0(0x1000) cierra después el inventario. Sin el gancho, corta con su dirección.
+// 0x658a04..0x658bc7 and 0x658bfa..0x658dbe: closing an event NPC sends the C1 03 31 (the hook) and sets 0x7d53712 to
+// 0; 0x65cae0(0x1000) then closes the inventory. Without the hook, it stops with its address.
 TEST(PanelRegistryTest, ClosingAnEventNpcSendsTheWindowClose)
 {
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{1}})
@@ -737,7 +737,7 @@ TEST(PanelRegistryTest, ClosingAnEventNpcSendsTheWindowClose)
 
 TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
 {
-    // El personaje es el primero: con el comercio abierto y sin sus grillas, corta en el comercio después de cerrarlo.
+    // The character is first: with the trade open and without its grids, it stops at the trade after closing it.
     Tested tested;
     tested.state.character = 1;
     tested.state.trade = 1;
@@ -749,9 +749,9 @@ TEST(PanelRegistryTest, CloseByMaskFollowsTheFixedOrder)
     EXPECT_EQ(tested.state.inventory, 1);
 }
 
-// 0x659e46..0x659f38: abrir el comercio cierra lo demás, abre el inventario (con sus sonidos) y escribe el byte
-// protegido: su IsOpen, el 0x10000 y el 0x20 de CanOpen, el 0x10000 del cierre, los cuatro del inventario y la
-// escritura (9).
+// 0x659e46..0x659f38: opening the trade closes the rest, opens the inventory (with its sounds) and writes the
+// protected byte: its IsOpen, the 0x10000 and the 0x20 of CanOpen, the 0x10000 of the close, the inventory's four and
+// the write (9).
 TEST(PanelRegistryTest, OpeningTheTradeOpensTheInventoryAndWritesTheProtectedByte)
 {
     Tested tested;
@@ -765,8 +765,8 @@ TEST(PanelRegistryTest, OpeningTheTradeOpensTheInventoryAndWritesTheProtectedByt
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x19, 0x1c, 0x19, 0x1c}));
 }
 
-// 0x65cb5b con el comercio: su IsOpen, el del cierre, el gancho (las grillas y, con aux en 0, el 3D) y la escritura del
-// byte en 0; después el inventario, con el mismo aux.
+// 0x65cb5b with the trade: its IsOpen, the close's, the hook (the grids and, with aux at 0, the 3D) and the write of
+// the byte at 0; then the inventory, with the same aux.
 TEST(PanelRegistryTest, ClosingTheTradeRunsItsHookBetweenTheQueryAndTheWrite)
 {
     for (const bool aux : {false, true})
@@ -811,7 +811,7 @@ TEST(PanelRegistryTest, EscapeClosesTheLowestOpenBit)
     EXPECT_TRUE(key.Value());
     EXPECT_EQ(tested.state.overlayMode, 0);
     EXPECT_EQ(tested.state.inventory, 1);
-    // Se queda en el 2: no llega al comercio.
+    // It stays at 2: it does not reach the trade.
     EXPECT_EQ(DrawsSince(tested.random), 0);
     EXPECT_EQ(tested.sounds.size(), 2u);
 }
@@ -836,7 +836,7 @@ TEST(PanelRegistryTest, OtherKeysGoOnlyToThePanelDialog)
     EXPECT_FALSE(key.Value());
     EXPECT_EQ(tested.state.inventory, 1);
 
-    // 0x657880: con el diálogo de los paneles abierto (sin quien lo abrió), el Esc lo cierra él y la ventana queda.
+    // 0x657880: with the panels' dialog open (without its opener), Esc closes it itself and the window stays.
     tested.state.delegated.panelDialog.opened = 1;
     const auto escape = tested.panels.PanelKey(0x1b);
     ASSERT_TRUE(escape.HasValue()) << escape.Error();
@@ -861,7 +861,7 @@ TEST(PanelRegistryTest, TheObjectPanelsStepDoesNotDraw)
     EXPECT_FALSE(tested.panels.StepTheObjectPanels().HasValue());
 }
 
-// 0x657930: con [0x7d536f4] abierta, su paso (0x657959) antes de mirar el gremio; sin el gancho, corta.
+// 0x657930: with [0x7d536f4] open, its step (0x657959) before looking at the guild; without the hook, it stops.
 TEST(PanelRegistryTest, TheObjectPanelsStepTheSecondGuildWindowFirst)
 {
     Tested tested;
@@ -880,7 +880,7 @@ TEST(PanelRegistryTest, TheObjectPanelsStepTheSecondGuildWindowFirst)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x657977"), std::string::npos) << cut.Error();
     EXPECT_EQ(steps, 2);
-    // 0x657959 y después 0x657977: la ventana 2 y la del gremio.
+    // 0x657959 and then 0x657977: window 2 and the guild's.
     std::string order;
     tested.context.secondGuildStep = [&order]() -> Client::Core::Expected<void, std::string>
     {
@@ -969,8 +969,8 @@ TEST(PanelRegistryTest, TheSiegeWeaponAndTheGateTakeOnePanel)
     gate.state.delegated.siegeGate = 1;
     EXPECT_EQ(gate.panels.WorldWidth(), OnePanelWorldWidth);
 }
-// 0x65b265 y 0x65b29b: cerrar los otros paneles, abrir el inventario antes del byte del evento,
-// y conservar el tipo de la ventana. Cada Open emite su pareja de sonidos.
+// 0x65b265 and 0x65b29b: close the other panels and open the inventory before the event byte, keeping the window's
+// kind. Each Open emits its pair of sounds.
 TEST(PanelRegistryTest, BothEventNpcsOpenTheInventoryBeforePublishingTheirKind)
 {
     for (const PanelId id : {EventNpcPanel, SecondEventNpcPanel})

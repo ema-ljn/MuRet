@@ -52,22 +52,23 @@
 #include <utility>
 #include <vector>
 
-// Datos, modelos, escena y aplicación reales. Sólo transporte, reloj y GPU son falsos declarados.
-// Todo pool grande vive en heap: también se ejecuta con el stack predeterminado de Windows.
+// Real data, models, scene and application. Only transport, clock and GPU are declared fakes.
+// Every large pool lives on the heap: it also runs with Windows' default stack.
 namespace Client::Tests::T16
 {
 inline constexpr std::uint8_t HomeX = 135;
 inline constexpr std::uint8_t HomeY = 125;
 inline constexpr auto FrameTime = std::chrono::milliseconds{47};
 
-// Fronteras de la transición real, no éxitos de kernels. ASM: 06/08, H2 T12–T16.
+// Boundaries of the real transition, not kernel successes. ASM: 06/08, H2 T12–T16.
 inline std::string_view TeleportBoundary(int map)
 {
     if (map == 5)
         return "Data\\World6\\TerrainHeight.OZB no está";
     if (map == 35)
         return "Data\\World36\\EncTerrain36.att no está";
-    // 4c7b34..4c7b68 ya rearma comandos, viste al héroe y apaga sus ayudantes al entrar/salir de18..23.
+    // 0x4c7b34..0x4c7b68 already rearms the commands, dresses the hero and turns its helpers off on entering/leaving
+    // 18..23.
     return {};
 }
 
@@ -82,7 +83,7 @@ protected:
         auto data = Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(data.HasValue()) << data.Error();
         m_data = std::move(data).Value();
-        // Mismos inicializadores de WinMain y del avance 1, sin inventar el offset BMD.
+        // The same initializers as WinMain and loading advance 1, without inventing the BMD offset.
         Actors::Drawing::InitializeGameItemRenderState(m_world->Runtime().itemRender, m_cloth->random);
         Scenes::LoadingScene loading(Context(), m_models.get());
         const auto entered = loading.Enter();
@@ -107,7 +108,7 @@ protected:
         Scenes::WorldEntryResources resources{*m_world,           *m_selection,  m_dataRoot, *m_cloth,
                                               m_camera,           m_cameraInput, *m_models,  &m_data->items->table,
                                               &*m_data->itemSets, m_log,         &m_clock};
-        // El renglón de bienvenida del F3 03 y del 1C que cambia de mapa (0x4c4b60 y 0x4c7c4e).
+        // The welcome line of the F3 03 and of the map-changing 1C (0x4c4b60 and 0x4c7c4e).
         resources.textMeasure = &m_letters;
         resources.texts = &*m_data->text;
         resources.states = m_states.get();
@@ -198,8 +199,8 @@ protected:
         return scene;
     }
 
-    // El panel del asedio de la clase 0 que arma el 30 (0x412140), oculto como lo deja Tab (0x40f6d0): a la vista, el
-    // HUD corta en su dibujo (0x40f850, el minimapa con los personajes, de la CL9.5; GameHudTest lo prueba).
+    // Class 0's siege panel that the 30 builds (0x412140), hidden as Tab leaves it (0x40f6d0): visible, the HUD stops
+    // in its draw (0x40f850, the minimap with the characters, from CL9.5; GameHudTest tests it).
     void HideTheSiegePanel()
     {
         if (m_world->Runtime().castleSiege.siegePanelKind == std::uint8_t{0})

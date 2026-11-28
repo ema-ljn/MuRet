@@ -30,13 +30,12 @@
 #include <utility>
 #include <vector>
 
-// XorRemapObfuscation contra el cable del laboratorio (support/WireCapture.h,
-// MU_CLIENT_WIRE_DIR): lo que contestaron el ConnectServer y el GameServer, cortado con el 0xAA
-// por paquete, y las traducciones de la lista, del F3 11 y del código de servidor que eligió el
-// cliente. Plan de la CL2, CL2.4, paso 4.
+// XorRemapObfuscation against the lab wire (support/WireCapture.h, MU_CLIENT_WIRE_DIR): what the ConnectServer and
+// the GameServer answered, cut with the 0xAA per packet, and the translations of the list, of the F3 11 and of the
+// server code the client chose. CL2 plan, CL2.4, step 4.
 //
-// El cable lleva el login del jugador: estos tests cuentan paquetes y comparan con
-// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
+// The wire carries the player's login: these tests count packets and compare with SameBytesWithoutValues. No
+// message prints a byte of the wire or of what was decrypted.
 namespace
 {
 using Client::App::LabXorRemapTables;
@@ -63,28 +62,28 @@ using Client::Tests::WireDirection;
 
 using ByteVector = std::vector<std::byte>;
 
-// El log que escribió el proxy del laboratorio.
+// Written by the lab's proxy.
 constexpr std::string_view CaptureFile = "muproxy.log";
 
-// Los puertos del proxy: delante del ConnectServer y del GameServer del laboratorio.
+// The proxy's ports, in front of the lab's ConnectServer and GameServer.
 constexpr std::uint16_t ConnectServerPort = 44405;
 constexpr std::uint16_t GameServerPort = 55901;
 
-// El XOR del laboratorio en lo que manda el GameServer.
+// The lab's XOR on what the GameServer sends.
 constexpr std::byte LabMask{0xAA};
 
-// Lo que dio cortar un sentido de una conexión con FoxAnti.
+// What cutting one direction of a connection with FoxAnti gave.
 struct Cut
 {
     std::vector<Packet> packets;
-    std::size_t masked = 0;   // cuántos llegaron con el 0xAA
-    std::size_t leftover = 0; // bytes que llegaron y no salieron en un paquete
-    bool failed = false;      // el corte se paró con un error
-    bool sameAsWire = true;   // cada paquete, con su máscara, es lo que pasó por el cable
+    std::size_t masked = 0;   // how many arrived with the 0xAA
+    std::size_t leftover = 0; // bytes that arrived and did not come out in a packet
+    bool failed = false;      // the cut stopped with an error
+    bool sameAsWire = true;   // each packet, with its mask, is what went through the wire
 };
 
-// Corta `reads` con un PacketReader con FoxAnti, un Feed por lectura. Cada paquete que sale se
-// compara con su lugar en el flujo del cable: igual si llegó en claro, o con el 0xAA en cada byte.
+// Cuts `reads` with a PacketReader with FoxAnti, one Feed per read. Each packet that comes out is compared with its
+// place in the wire stream: equal if it arrived in clear, or with the 0xAA on each byte.
 Cut CutWithXorRemap(const std::vector<std::span<const std::byte>>& reads)
 {
     const XorRemapObfuscation xorRemap{LabXorRemapTables()};
@@ -130,7 +129,6 @@ Cut CutWithXorRemap(const std::vector<std::span<const std::byte>>& reads)
     return cut;
 }
 
-// El mismo flujo, de a un byte por lectura.
 std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> stream)
 {
     std::vector<std::span<const std::byte>> reads;
@@ -141,7 +139,7 @@ std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> 
     return reads;
 }
 
-// Un C1/C2 con este opcode y este subcódigo, en el byte que le sigue.
+// A C1/C2 with this opcode and this subcode, in the byte that follows it.
 bool Is(const Packet& packet, PacketType type, std::uint8_t opcode, std::uint8_t subcode)
 {
     const std::span<const std::byte> bytes = packet.Bytes();
@@ -168,7 +166,7 @@ protected:
         ASSERT_TRUE(parsed.HasValue()) << CaptureFile << ": la línea " << parsed.Error().line << " no se entiende";
         m_connections = std::move(parsed).Value();
 
-        // Lo que contesta el servidor el cliente lo descifra con Dec2.dat.
+        // The client decrypts what the server answers with Dec2.dat.
         m_dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
         ASSERT_TRUE(m_dec2);
     }
@@ -177,9 +175,9 @@ protected:
     std::optional<DecryptionKey> m_dec2;
 };
 
-// Lo que contestaron los dos servidores, en las 72 conexiones: 3.033 paquetes sin bytes de más.
-// Los 144 del ConnectServer llegan en claro (la bienvenida y la lista o la dirección), y los 2.889
-// del GameServer, todos con el 0xAA, también los C3/C4.
+// What both servers answered, over the 72 connections: 3033 packets with no extra bytes. The ConnectServer's 144
+// arrive in clear (the welcome and the list or the address), and the GameServer's 2889 all with the 0xAA, the C3/C4
+// too.
 TEST_F(GoldenXorRemapObfuscation, CutsWhatBothServersAnswered)
 {
     std::size_t connectServer = 0;
@@ -209,8 +207,8 @@ TEST_F(GoldenXorRemapObfuscation, CutsWhatBothServersAnswered)
     EXPECT_EQ(masked, 2889u);
 }
 
-// De a un byte salen los mismos paquetes del GameServer: cada uno sigue con la máscara que eligió
-// su primer byte, aunque le lleguen los demás en otras lecturas.
+// One byte at a time gives the same GameServer packets: each one keeps the mask its first byte chose, even if the
+// rest arrive in other reads.
 TEST_F(GoldenXorRemapObfuscation, OneByteAtATimeGivesTheSamePackets)
 {
     for (std::size_t index = 0; index < m_connections.size(); ++index)
@@ -240,16 +238,16 @@ TEST_F(GoldenXorRemapObfuscation, OneByteAtATimeGivesTheSamePackets)
     }
 }
 
-// Las 72 listas F4 02 del ConnectServer pasan a la F4 06 de main.exe: un servidor, con el código 0
-// del laboratorio como 400, la carga copiada y el cuarto byte en 0.
+// The ConnectServer's 72 F4 02 lists become main.exe's F4 06: one server, with the lab's code 0 as 400, the load
+// copied and the fourth byte at 0.
 TEST_F(GoldenXorRemapObfuscation, TheLabServerListsBecomeTheOnesMainExeReads)
 {
     const XorRemapObfuscation xorRemap{LabXorRemapTables()};
     const ByteVector expectedStart = Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x01, 0x90, 0x01});
-    constexpr std::size_t ListSize = 11;      // la de main.exe, con su única entrada
-    constexpr std::size_t LabLoadByte = 8;    // la carga en la lista del laboratorio
-    constexpr std::size_t ListLoadByte = 9;   // y en la de main.exe, un byte más adelante
-    constexpr std::size_t LastEntryByte = 10; // el cuarto byte de la entrada, que sale en 0
+    constexpr std::size_t ListSize = 11;      // main.exe's, with its only entry
+    constexpr std::size_t LabLoadByte = 8;    // the load in the lab's list
+    constexpr std::size_t ListLoadByte = 9;   // and in main.exe's, one byte further on
+    constexpr std::size_t LastEntryByte = 10; // the entry's fourth byte, which comes out as 0
     std::size_t lists = 0;
     for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
@@ -281,13 +279,12 @@ TEST_F(GoldenXorRemapObfuscation, TheLabServerListsBecomeTheOnesMainExeReads)
     EXPECT_EQ(lists, 72u);
 }
 
-// Las 72 listas del ConnectServer llegan como F4 02, y así ReadServerList no las lee; con el
-// AfterCut de XorRemapObfuscation (CL2.4) pasan a F4 06 y se leen todas, con las entradas que dice
-// su cantidad.
+// The ConnectServer's 72 lists arrive as F4 02, which ReadServerList does not read; with XorRemapObfuscation's
+// AfterCut (CL2.4) they become F4 06 and are all read, with the entries their count says.
 TEST_F(GoldenXorRemapObfuscation, ReadServerListReadsTheListsOnlyAfterTheLayer)
 {
     const XorRemapObfuscation xorRemap{LabXorRemapTables()};
-    constexpr std::size_t ListCountOffset = 5; // la cantidad de servidores en la lista de main.exe
+    constexpr std::size_t ListCountOffset = 5; // the server count in main.exe's list
     std::size_t lists = 0;
     std::size_t rejectedAsTheyArrive = 0;
     std::size_t readWithTheirCount = 0;
@@ -326,14 +323,14 @@ TEST_F(GoldenXorRemapObfuscation, ReadServerListReadsTheListsOnlyAfterTheLayer)
     EXPECT_EQ(readWithTheirCount, 72u);
 }
 
-// Todo lo que contestó el GameServer pasa por las tres etapas de recepción sin un InvalidPacket:
-// el corte con el 0xAA, AfterCut, el descifrado de los C3/C4 con Dec2.dat, y BeforeDispatch. Los 7
-// F3 11, todos de 8 bytes, salen con un byte más y el 00 en pkt[5].
+// Everything the GameServer answered goes through the three receive stages without an InvalidPacket: the cut with
+// the 0xAA, AfterCut, the decryption of the C3/C4 with Dec2.dat, and BeforeDispatch. The 7 F3 11, all of 8 bytes,
+// come out one byte longer with the 00 at pkt[5].
 TEST_F(GoldenXorRemapObfuscation, EverythingTheGameServerAnsweredReachesTheDispatcher)
 {
     const XorRemapObfuscation xorRemap{LabXorRemapTables()};
-    constexpr std::size_t LabSkillListSize = 8; // los F3 11 del cable
-    constexpr std::size_t InsertedByte = 5;     // donde reset_queue mete el 00
+    constexpr std::size_t LabSkillListSize = 8; // the wire's F3 11
+    constexpr std::size_t InsertedByte = 5;     // where reset_queue puts the 00
     std::size_t dispatched = 0;
     std::size_t skillLists = 0;
     for (std::size_t index = 0; index < m_connections.size(); ++index)
@@ -382,8 +379,8 @@ TEST_F(GoldenXorRemapObfuscation, EverythingTheGameServerAnsweredReachesTheDispa
     EXPECT_EQ(skillLists, 7u);
 }
 
-// Los 8 F4 03 que mandó el cliente al ConnectServer son lo que da BeforeSend con el código 400 de
-// main.exe: el 0 que espera el laboratorio.
+// The client's 8 F4 03 to the ConnectServer are what BeforeSend gives with main.exe's code 400: the 0 the lab
+// expects.
 TEST_F(GoldenXorRemapObfuscation, TheChosenServerIsWhatTheOriginalClientSent)
 {
     const XorRemapObfuscation xorRemap{LabXorRemapTables()};

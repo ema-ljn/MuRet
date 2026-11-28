@@ -6,14 +6,14 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-// Los globales que escriben los paquetes de los eventos (CL9 hito 11, 04 § Los eventos) y que no son del objeto de
-// [0x723c60] (EventMapObject) ni de Crywolf (CrywolfGlobals). Arrancan como la .data y la .bss del original.
+// The globals the event packets write (CL9 milestone 11, 04 § Los eventos) that belong neither to the [0x723c60] object
+// (EventMapObject) nor to Crywolf (CrywolfGlobals). They start like the original's .data and .bss.
 namespace Client::Events
 {
-// 0x6c9dd8, 0x6c9dd4, 0x6c9ddc y 0x6c9de0 (.data −1, −1, −1 y −1,0f; 0x5ff910 los vuelve a poner así): el derrumbe de
-// objetos que pide 0x5ff930(mapa, tipo, cuenta, demora) y que hace 0x5ff960 con cada objeto vivo del paso (0x606560),
-// solo con los tres enteros en 0 o más y el mapa en curso igual. 0x606560 le resta uno a la cuenta al final de cada
-// paso, también en −1.
+// 0x6c9dd8, 0x6c9dd4, 0x6c9ddc and 0x6c9de0 (.data −1, −1, −1 and −1.0f; 0x5ff910 resets them): the object collapse
+// that 0x5ff930(map, type, count, delay) requests and 0x5ff960 performs on each live object of the step (0x606560),
+// only with the three integers at 0 or more and the same current map. 0x606560 subtracts one from the count at the
+// end of each step, also at −1.
 struct ObjectCollapse
 {
     std::int32_t map = -1;
@@ -22,21 +22,21 @@ struct ObjectCollapse
     float delay = -1.0f;
 };
 
-// 0x57678d0..0x57678e2 y 0x57678b4, 0x57678b8, 0x576796f (.bss 0): lo que deja el F3 23 (0x4d9f00), el tanteador de
-// Battle Soccer que leen 0x5a7640 (la guerra de gremios, hito 8) y 0x50ba30.
+// 0x57678d0..0x57678e2 and 0x57678b4, 0x57678b8, 0x576796f (.bss 0): what F3 23 (0x4d9f00) leaves, the Battle Soccer
+// scoreboard read by 0x5a7640 (the guild war, milestone 8) and 0x50ba30.
 struct SoccerScoreGlobals
 {
-    // 0x57678d0: los 8 bytes del paquete y un '\0' en el noveno (0x4d9f34).
+    // 0x57678d0: the packet's 8 bytes and a '\0' in the ninth (0x4d9f34).
     std::array<char, 9> firstName{};
-    // 0x57678d9: ídem (0x4d9f7e).
+    // 0x57678d9: same (0x4d9f7e).
     std::array<char, 9> secondName{};
-    // 0x57678b4 y 0x57678b8, de pkt[0xc] y pkt[0x15].
-    // Los tanteadores 0x57678b4/8 son GuildState::ourScore/theirScore, compartidos con la guerra.
-    // 0x576796f: pkt[0xc] distinto de 0xff.
+    // 0x57678b4 and 0x57678b8, from pkt[0xc] and pkt[0x15].
+    // The scoreboards 0x57678b4/8 are GuildState::ourScore/theirScore, shared with the war.
+    // 0x576796f: pkt[0xc] other than 0xff.
     bool active = false;
 };
 
-// 0x57678ec..0x5767905: resultado F3 24 (0x4deef0), mostrado por5a800e y borrado por0xa7.
+// 0x57678ec..0x5767905: the F3 24 result (0x4deef0), shown by 0x5a800e and cleared by 0xa7.
 struct GuildWarOutcomeState
 {
     std::uint8_t present = 0;
@@ -46,60 +46,58 @@ struct GuildWarOutcomeState
     std::uint16_t secondScore = 0;
 };
 
-// El recorrido de la cámara (CCameraMove, el objeto de 0x6e57a8 en [0x6e5904]) que arma 0x403250 entre los
-// inicializadores estáticos, con los valores de 0x403300 (que también le dan la vuelta a la selección, 0x4c26f2, y la
-// etapa 3). Los campos van en el orden del objeto (Scenes/CameraTour.h).
+// The camera tour (CCameraMove, the 0x6e57a8 object in [0x6e5904]) that 0x403250 builds among the static
+// initializers, with the values of 0x403300 (which also turn the selection around, 0x4c26f2, and stage 3). The fields
+// follow the object's order (Events/Crywolf/CameraTour.h).
 struct CameraTour
 {
-    // +0x4: dónde está la cámara del recorrido (0x4034e0), la que mira la cámara del juego con el recorrido andando
-    // (0x4034b0, desde 0x635ead).
+    // +0x4: where the tour camera is (0x4034e0), the one the game camera looks at while the tour runs (0x4034b0, from
+    // 0x635ead).
     glm::vec3 position{};
-    // +0x10: de dónde sale el tramo: el héroe en el primero (0x403430) y después el destino del anterior (0x40357c).
+    // +0x10: where the leg starts: the hero in the first (0x403430) and then the previous one's target (0x40357c).
     glm::vec3 start{};
-    // +0x1c: adónde va (0x403d90, el centro de la celda: · 100 + 50).
+    // +0x1c: where it goes (0x403d90, the cell's center: · 100 + 50).
     glm::vec3 target{};
-    // +0x28: el rumbo, destino − salida, que 0x4034e0 normaliza (0x5fc800) en cada paso.
+    // +0x28: the heading, target − start, which 0x4034e0 normalizes (0x5fc800) every step.
     glm::vec3 direction{};
-    // +0x34 (1): el tramo nuevo, que mide 0x403430 y apaga 0x4034e0.
+    // +0x34 (1): the new leg, which 0x403430 measures and 0x4034e0 clears.
     bool begin = true;
-    // +0x35: la cámara en camino (0x403d90); mientras tanto, el guion no corre.
+    // +0x35: the camera on its way (0x403d90); meanwhile the script does not run.
     bool moving = false;
-    // +0x36 (1): llegó; el guion de la etapa corre con esto y lo apaga al terminar (y 0x403d90 sale al tramo
-    // siguiente).
+    // +0x36 (1): arrived; the stage script runs with it and clears it when done (and 0x403d90 moves to the next leg).
     bool arrived = true;
-    // +0x37 (1), +0x148 y +0x140: el reloj de 0x404c90 (vuelve a empezar en la llamada que sigue a la que vence).
-    // +0x140 es también el paso del guion de la etapa: 0x404c90 lo avanza al vencer, 0x4039f0 y 0x403900 con su bandera
-    // y el guion al terminar un tramo; 0x403d90 lo vuelve a 0.
+    // +0x37 (1), +0x148 and +0x140: the clock of 0x404c90 (starts again on the call after the one that fires).
+    // +0x140 is also the stage script's step: 0x404c90 advances it when it fires, 0x4039f0 and 0x403900 with their flag
+    // and the script when a leg ends; 0x403d90 resets it to 0.
     bool timerRestart = true;
-    // +0x38: por personaje del guion (clave − 10000), si todavía gira hacia su celda (0x403760); 0x403300 los pone
-    // en 1.
+    // +0x38: per script character (key − 10000), whether it still turns toward its cell (0x403760); 0x403300 sets them
+    // to 1.
     std::array<bool, 50> turning = []
     {
         std::array<bool, 50> all{};
         all.fill(true);
         return all;
     }();
-    // +0x6a (1): la espera antes de empezar, que 0x4033f0 apaga a los 5.000 ms de timeGetTime con la etapa 2.
+    // +0x6a (1): the wait before starting, which 0x4033f0 clears after 5000 ms of timeGetTime with stage 2.
     bool waiting = true;
-    // +0x6c: lo que la cámara lleva andado en el tramo, de a +0x74 por paso; +0x70: el largo del tramo.
+    // +0x6c: how far the camera has gone in the leg, by +0x74 per step; +0x70: the leg's length.
     float travelled = 0.0f;
     float distance = 0.0f;
-    // +0x74 (100): lo que anda por paso, del 0x403d90.
+    // +0x74 (100): the distance per step, from 0x403d90.
     float speed = 100.0f;
-    // +0x78: por personaje del guion (clave − 10000), cuántas veces 0x403900 le cambió la acción.
+    // +0x78: per script character (key − 10000), how many times 0x403900 changed its action.
     std::array<std::int32_t, 50> actionCounts{};
     std::int32_t step = 0;
-    // +0x144: la etapa del guion (0x4035f0: 0 a 5), que suma 0x403d90.
+    // +0x144: the script stage (0x4035f0: 0 to 5), which 0x403d90 increments.
     std::int32_t scriptStage = 0;
     std::uint32_t timerStart = 0;
-    // +0x14c (10000): la clave del próximo personaje del guion; 0x403d60 borra de 10000 a esta − 1 (0x510ff0).
+    // +0x14c (10000): the key of the next script character; 0x403d60 deletes from 10000 to this − 1 (0x510ff0).
     std::int32_t nextActorKey = 10000;
-    // +0x150: lo que suma 0x403d40 hasta 4 (la etapa 1 del guion); la cámara del juego lo copia en 0x7d3a0ec
-    // (0x635ed8).
+    // +0x150: what 0x403d40 adds up to 4 (stage 1 of the script); the game camera copies it to 0x7d3a0ec (0x635ed8).
     std::int32_t level = 0;
-    // +0x154: la etapa de Crywolf que deja el BD 00 con 0x4033b0 (pkt[5]) después de 0x42fe80.
+    // +0x154: the Crywolf stage that BD 00 leaves with 0x4033b0 (pkt[5]) after 0x42fe80.
     std::int32_t stage = 0;
-    // +0x158: el recorrido cortado (Esc, 0x623edc) o terminado (0x404bc6).
+    // +0x158: the tour cut short (Esc, 0x623edc) or finished (0x404bc6).
     bool skipped = false;
 };
 
@@ -108,23 +106,23 @@ struct EventGlobals
     ObjectCollapse objectCollapse{};
     SoccerScoreGlobals soccer{};
     GuildWarOutcomeState guildWarOutcome{};
-    // 0x5767814 y 0x5767816 (.bss 0): el F3 22 (0x4e31f8), que lee 0x5a7eb0.
+    // 0x5767814 and 0x5767816 (.bss 0): F3 22 (0x4e31f8), read by 0x5a7eb0.
     std::uint8_t timeKind = 0;
     std::uint16_t timeValue = 0;
-    // 0x6c9328 (dword) y 0x6c932c (word), .data todo en 0xff: los tres números del Muto del 94 con el tipo 0 y del
-    // 96 (0x4dd8f0, 0x4e4a22), que lee la ventana de 0x78abb00.
+    // 0x6c9328 (dword) and 0x6c932c (word), .data all 0xff: the three Muto numbers of 94 with type 0 and of 96
+    // (0x4dd8f0, 0x4e4a22), read by the window of 0x78abb00.
     std::array<std::uint16_t, 3> mutoNumbers{0xffff, 0xffff, 0xffff};
-    // 0x78ab078 (.bss 0): los 0x40 bytes del 9D (0x4e4ab9), que 0x94 con el tipo 2 vacía (0x4dd8f5).
+    // 0x78ab078 (.bss 0): the 0x40 bytes of 9D (0x4e4ab9), which 0x94 with type 2 empties (0x4dd8f5).
     std::array<std::byte, 0x40> serial{};
-    // 0x77f3b6b (.bss 0): la entrada del número de serie, que prende el 94 con el tipo 2 (0x4dd919) y apagan
-    // SendMove (0x56b72a) y el botón de cerrar de su ventana (0x5e74b6); el 94 con otro tipo la deja como está. La lee
-    // el Enter del WndProc (0x4b5616 y 0x4b8888) y, con 0x6c7b8c en 0, sus teclas (Scenes/EventChipWindow.h).
+    // 0x77f3b6b (.bss 0): the serial number entry, set by 94 with type 2 (0x4dd919) and cleared by SendMove (0x56b72a)
+    // and its window's close button (0x5e74b6); 94 with another type leaves it as it is. Read by the WndProc's Enter
+    // (0x4b5616 and 0x4b8888) and, with 0x6c7b8c at 0, its keys (Events/EventChipWindow.h).
     bool serialEntry = false;
-    // El recorrido de la cámara ([0x6e5904], Scenes/CameraTour.h).
+    // The camera tour ([0x6e5904], Events/Crywolf/CameraTour.h).
     CameraTour cameraTour{};
-    // 0x78ab9cc (.bss 0): los niveles de los seis cuadrados de Devil Square, {mínimo, máximo}, que escribe el dibujo de
-    // su ventana (0x5f5a3f, con la tabla del Magic Gladiator y del Dark Lord por la clase del registro propio) y lee
-    // su paso al elegir uno (0x5e5a8b, Q-C1336).
+    // 0x78ab9cc (.bss 0): the levels of Devil Square's six squares, {minimum, maximum}, written by its window's drawing
+    // (0x5f5a3f, with the Magic Gladiator and Dark Lord table by the own record's class) and read by its step when one
+    // is chosen (0x5e5a8b, Q-C1336).
     std::array<std::array<std::int32_t, 2>, 6> devilSquareLevels{};
 };
 } // namespace Client::Events

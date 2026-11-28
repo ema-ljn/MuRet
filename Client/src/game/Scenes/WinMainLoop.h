@@ -17,19 +17,19 @@ struct WorldRuntime;
 class WorldState;
 } // namespace Client::Kernel
 
-// Los rand() de la vuelta de WinMain (P-C61, Q-C457, Q-C461), que no son de ninguna escena: cada vuelta sin
-// mensajes pendientes abre y cierra el contador protegido de 4 bytes 0x5763578 y el byte del foco 0x5763580 antes
-// del frame (0x63945d), y el frame, después de la escena (0x637700), vuelve a abrir y cerrar el contador. Con
-// la ventana minimizada el foco está en 0 y la vuelta va por otra rama (SetForegroundWindow, 0x576357c y
-// ShowWindow), que MuRet no modela; tampoco el rand() del foco que el WndProc saca por cada mensaje.
+// WinMain's turn rand()s (P-C61, Q-C457, Q-C461), which belong to no scene: each turn without pending messages opens
+// and closes the 4-byte protected counter 0x5763578 and the focus byte 0x5763580 before the frame (0x63945d), and the
+// frame, after the scene (0x637700), opens and closes the counter again. With the window minimized the focus is at 0
+// and the turn takes another branch (SetForegroundWindow, 0x576357c and ShowWindow), which MuRet does not model; nor
+// the focus rand() the WndProc takes per message.
 namespace Client::Scenes
 {
-// 0x5763578 y 0x5763574, en la .bss.
+// 0x5763578 and 0x5763574, in the .bss.
 struct WinMainCounters
 {
-    // Las vueltas: el contador que sube en cada una (0x4bbd35).
+    // The turns: the counter that rises on each one (0x4bbd35).
     std::int32_t loops = 0;
-    // Las rondas de 31 vueltas (0x4bbec6): con la ventana sin minimizar vuelve a 0 en la misma vuelta.
+    // The rounds of 31 turns (0x4bbec6): with the window not minimized it goes back to 0 in the same turn.
     std::int32_t rounds = 0;
 };
 
@@ -40,18 +40,18 @@ struct WinMainLoopState
     Models::OriginalFrameCarry frames;
 };
 
-// 0x4bbc57..0x4bdf6d y 0x4bdf76..0x4be02f: el contador y el foco, antes del frame. 5 rand(); en la vuelta 31,
-// con la ventana sin minimizar, 21, y los dos contadores en 0.
+// 0x4bbc57..0x4bdf6d and 0x4bdf76..0x4be02f: the counter and the focus, before the frame. 5 rand(); on turn 31, with
+// the window not minimized, 21, and both counters at 0.
 void StepTheWinMainLoop(WinMainCounters& counters, Crt::CrtRandom& random);
 
-// 0x63950d..0x63b066: 0x63945d abre y cierra el contador después de 0x637700 (4 rand()). Su rama de más de 31
-// (0x6395e7) no corre: WinMain lo vuelve a 0 en la vuelta 31.
+// 0x63950d..0x63b066: 0x63945d opens and closes the counter after 0x637700 (4 rand()). Its branch above 31
+// (0x6395e7) does not run: WinMain resets it to 0 on turn 31.
 void CloseTheFrameCounter(Crt::CrtRandom& random);
 
-// 0x638ae4..0x6391e4: en Devias, cada comparación del rectángulo abre y cierra la celda por su cuenta.
+// 0x638ae4..0x6391e4: in Devias, each comparison of the rectangle opens and closes the cell on its own.
 [[nodiscard]] bool InTheDeviasChurch(Kernel::ActorState& hero, Crt::CrtRandom& random);
 
-// 0x63869c..0x6388a8: el ambiente y las paradas de la escena del mundo preceden a la selección de música.
+// 0x63869c..0x6388a8: the world scene's ambience and stops precede the music selection.
 void StepWorldAmbience(Kernel::WorldRuntime& runtime, Crt::CrtRandom& random);
 
 // The end of a loop turn. 0x63b0b7: the tail of 0x63945d switches off the dialogs' Enter (0x5763588). Then, once per

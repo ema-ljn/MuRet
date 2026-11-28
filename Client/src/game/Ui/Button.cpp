@@ -25,7 +25,7 @@ namespace
 {
 constexpr int NormalFrame = 0;
 
-// +0xd8: lo que 0x63c490 le suma a la y del rótulo en 640 × 480 (0x3f000000 y 0x3fc00000).
+// +0xd8: what 0x63c490 adds to the label's y in 640 × 480 (0x3f000000 and 0x3fc00000).
 constexpr double LabelOffset = 0.5;
 constexpr double PressedLabelOffset = 1.5;
 } // namespace
@@ -92,8 +92,7 @@ bool Button::Step(const Input::InputState& input, std::optional<Point> mouse, co
     {
         onClick();
     }
-    // Un clic en uno que se marca lo da vuelta (+0xab), como 0x63c490; la ventana después marca
-    // el que quiera.
+    // A click on a checkable one flips it (+0xab), as 0x63c490 does; the window then checks whichever it wants.
     if (clicked && m_checkedFrame.has_value())
     {
         m_checked = !m_checked;
@@ -149,24 +148,24 @@ void Button::SetLabel(std::string label, ButtonColors colors)
 
 std::optional<std::uint32_t> Button::DrawLabel(Render::Frame::ITextDrawer& text, Core::PixelSize screen) const
 {
-    // Sin pantalla no hay proporción por la que dividir la y.
+    // Without a screen there is no ratio to divide the y by.
     if (m_label.empty() || screen.width <= 0 || screen.height <= 0)
     {
         return std::nullopt;
     }
     constexpr Render::Text::FontKind Font = Render::Text::FontKind::OtherFace12;
     const Render::Text::TextExtent extent = text.Measure(Font, m_label);
-    // 0x63c7bf..0x63c7c9: la caja, de _ftol(derecha − izquierda), en el modo 2 de 0x467060: el texto en la columna
-    // (ancho − cx) / 2, con la división de C.
+    // 0x63c7bf..0x63c7c9: the box, _ftol(right − left) wide, in 0x467060's mode 2: the text at column (width − cx) / 2,
+    // with C division.
     const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(m_area.width, extent.width);
-    // 0x63c7e1..0x63c80d: fild de h − cy, fmul por 0,5, fiadd de la y, fdiv por ry y fadd de +0xd8,
-    // en la x87 de 53 bits; _ftol trunca.
+    // 0x63c7e1..0x63c80d: fild of h − cy, fmul by 0.5, fiadd of the y, fdiv by ry and fadd of +0xd8, on the 53-bit x87;
+    // _ftol truncates.
     const double middle = static_cast<double>(m_area.height - extent.height) * 0.5 + static_cast<double>(m_area.y);
     const double ratioY = Render::ScaleY(1.0f, screen);
     const double offset = Pressed() ? PressedLabelOffset : LabelOffset;
     const int y = static_cast<int>(middle / ratioY + offset);
     const std::uint32_t color = LabelColor();
-    // 0x63c812..0x63c82c: la x del botón pasa a 640 × 480 (_ftol, fdiv por rx y _ftol), y la caja empieza ahí.
+    // 0x63c812..0x63c82c: the button's x goes to 640 × 480 (_ftol, fdiv by rx and _ftol), and the box starts there.
     text.DrawColumns(Render::Text::DesignX(m_area.x, screen), y, m_label,
                      Render::Text::TextStyle{Font, Render::Text::TextColors{color, 0}}, -placed.textColumn,
                      placed.width);
@@ -175,7 +174,7 @@ std::optional<std::uint32_t> Button::DrawLabel(Render::Frame::ITextDrawer& text,
 
 std::uint32_t Button::LabelColor() const
 {
-    // 0x63c490 elige el color con el mismo estado que el cuadro.
+    // 0x63c490 picks the color from the same state as the frame.
     if (!m_enabled)
     {
         return m_checked ? m_colors.checkedDisabled : m_colors.disabled;

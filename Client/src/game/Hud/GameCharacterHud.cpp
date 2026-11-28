@@ -37,8 +37,8 @@
 #include <string>
 #include <string_view>
 
-// 0x5ee2e0 (10.336 bytes) y el tramo de 0x5f7440 que le sigue, cotejados con el PE c32bbd5f: 06, "La ventana del
-// personaje".
+// 0x5ee2e0 (10336 bytes) and the range of 0x5f7440 that follows it, checked against the PE c32bbd5f: 06, "La ventana
+// del personaje".
 namespace Client::Hud
 {
 namespace
@@ -51,11 +51,11 @@ using Render::Text::FontKind;
 
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
-// La esquina que le pasa 0x5f7440 (0x5f7494).
+// The corner 0x5f7440 passes (0x5f7494).
 constexpr std::int32_t WindowX = 0x1c2;
 constexpr std::int32_t WindowY = 0;
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// Text.bmd texts: (the address − 0x76bd1dc) / 300.
 constexpr std::size_t FirstClassText = 20;
 constexpr std::size_t SpeedText = 64;
 constexpr std::size_t LevelText = 200;
@@ -82,8 +82,8 @@ constexpr std::size_t CreateText = 1412;
 constexpr std::size_t DecreaseText = 1903;
 constexpr std::size_t LettersText = 1907;
 
-// Los colores de 0x6c8e5c (el texto) y 0x6c8e64 (el fondo).
-// (−(word != 0) & 0x97d685) − 0x984021: naranja con algo sumado, celeste sin nada.
+// The colors of 0x6c8e5c (the text) and 0x6c8e64 (the background).
+// (−(word != 0) & 0x97d685) − 0x984021: orange with something added, light blue with nothing.
 constexpr std::uint32_t AddedStatColor = 0xffff9664u;
 constexpr std::uint32_t BaseStatColor = 0xff67bfdfu;
 constexpr std::uint32_t NameBackground = 0xff141414u;
@@ -94,14 +94,14 @@ constexpr std::uint32_t PointsLineColor = 0xffff9664u;
 constexpr std::uint32_t LevelUpBackground = 0xffc86e1eu;
 constexpr std::uint32_t LevelUpColor = 0xff000000u;
 
-// Los bits de +0x78 del héroe que suman al ataque y a la defensa (*inferido*: un buff).
+// The hero's +0x78 bits that add to attack and defense (*inferred*: a buff).
 constexpr std::uint32_t AgilityBonusFlag = 0x400;
 constexpr std::uint32_t LevelBonusFlag = 0x2000000;
 
-// Las cuatro armaduras de la clase 3 que cuentan como set sin casco (0x5efae2..0x5efb03).
+// The four class 3 armors that count as a set without a helm (0x5efae2..0x5efb03).
 constexpr std::int32_t GladiatorSetArmors[] = {0x100f, 0x1014, 0x1017, 0x1020};
 
-// Los sprintf de 0x5ee2e0 sobre un texto de Text.bmd (Q-C590).
+// 0x5ee2e0's sprintfs on a Text.bmd text (Q-C590).
 using Crt::Sprintf;
 
 using Math::F32;
@@ -121,7 +121,7 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
     return *text;
 }
 
-// 0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.
+// 0x621b60(slot, x, y, w, h, 0, 0, du, dv, 1, 1, 0): scaled in size and position, without alpha.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float du,
           float dv)
 {
@@ -139,7 +139,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-// El FILD del mouse contra la caja en float: left ≤ x < left + size, con la suma en la x87.
+// The mouse's FILD against the box in float: left ≤ x < left + size, with the sum on the x87.
 bool MouseInSquare(const GameHudContext& context, float left, float top, float size)
 {
     const auto x = static_cast<double>(static_cast<float>(context.mouse.x));
@@ -158,14 +158,14 @@ void SetColors(GameHudContext& context, std::uint32_t text, std::uint32_t backgr
     context.hud.textColors = Render::Text::TextColors{.text = text, .background = background};
 }
 
-// El ancho de 0x554180: (W · k) / 640, sin signo.
+// 0x554180's width: (W · k) / 640, unsigned.
 int BoxPixels(const GameHudContext& context, std::uint32_t designWidth)
 {
     const auto screenWidth = static_cast<std::uint32_t>(context.sprites.Screen().width);
     return static_cast<int>(screenWidth * designWidth / 640u);
 }
 
-// El cx de GetTextExtentPoint32A en 0x467060: un texto vacío mide "0" (0x4670ba..0x4670d0).
+// GetTextExtentPoint32A's cx in 0x467060: an empty text measures "0" (0x4670ba..0x4670d0).
 int MeasuredWidth(GameHudContext& context, std::string_view text)
 {
     return context.text.Measure(context.hud.dcFont, text.empty() ? std::string_view("0") : text).width;
@@ -176,17 +176,17 @@ Render::Text::TextStyle CurrentStyle(const GameHudContext& context)
     return Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors};
 }
 
-// 0x554180(x, y, texto, caja, 1, p6) → 0x467060 en el modo 2 (0x46711b..0x467132, Render::Text::CenterInBox):
-// (caja − cx) / 2 con la división de C, la caja de cx + 2 · eso columnas desde x y el texto corrido eso; más ancho que
-// la caja, se ve el centro. Vacío y sin caja, nada (0x467077..0x467082).
+// 0x554180(x, y, text, box, 1, p6) → 0x467060 in mode 2 (0x46711b..0x467132, Render::Text::CenterInBox): (box − cx) / 2
+// with C division, the box of cx + 2 · that columns from x and the text shifted by that; wider than the box, the
+// center shows. Empty and without a box, nothing (0x467077..0x467082).
 void DrawCentered(GameHudContext& context, int x, int y, std::string_view text, int box)
 {
     const Render::Text::CenteredInBox placed = Render::Text::CenterInBox(context.text, context.hud.dcFont, text, box);
     context.text.DrawColumns(x, y, text, CurrentStyle(context), -placed.textColumn, placed.width);
 }
 
-// 0x554180(x, y, texto, ancho, 0, 0) → 0x467060 en el modo 1 (0x467102..0x467119): con el ancho, la caja de ese
-// ancho desde x; si el texto es más ancho, se ve desde la columna cx − ancho.
+// 0x554180(x, y, text, width, 0, 0) → 0x467060 in mode 1 (0x467102..0x467119): with the width, the box of that width
+// from x; if the text is wider, it shows from column cx − width.
 void DrawFromLeft(GameHudContext& context, int x, int y, std::string_view text, int width)
 {
     if (width <= 0)
@@ -203,19 +203,19 @@ std::uint32_t StatColor(std::uint16_t added)
     return added != 0 ? AddedStatColor : BaseStatColor;
 }
 
-// La suma de un stat y lo que le agregan los ítems (add cx, ax): 16 bits que envuelven, y and 0xffff.
+// The sum of a stat and what the items add (add cx, ax): 16 bits that wrap, then and 0xffff.
 std::uint32_t StatPlus(std::uint16_t stat, std::uint16_t added)
 {
     return static_cast<std::uint16_t>(stat + added);
 }
 
-// El tipo de un ítem con signo, como lo lee el original (movsx).
+// Signed, as the original reads it (movsx).
 std::int32_t TypeOf(const Kernel::ItemState& item)
 {
     return static_cast<std::int16_t>(item.id);
 }
 
-// sprintf("%s", [0x7681eb0]): el nombre hasta su 0.
+// sprintf("%s", [0x7681eb0]): the name up to its 0.
 Core::Expected<std::string, std::string> NameOf(const Kernel::OwnCharacterRecord& own)
 {
     const auto end = std::ranges::find(own.name, std::byte{0});
@@ -228,19 +228,18 @@ Core::Expected<std::string, std::string> NameOf(const Kernel::OwnCharacterRecord
     return name;
 }
 
-// Lo que comparten los tramos de la ventana.
 struct Window
 {
     GameHudContext& context;
     const Kernel::OwnCharacterRecord& own;
     const Kernel::ActorState& hero;
-    // local_28: la clase del héroe.
+    // local_28
     CharacterClass heroClass = CharacterClass::DarkWizard;
     std::int32_t x = WindowX;
     std::int32_t y = WindowY;
 };
 
-// 0x5ee2e0..0x5ee7f0: el fondo, el nombre, la clase y el servidor, y los fondos de los stats.
+// 0x5ee2e0..0x5ee7f0: the background, the name, the class and the server, and the stats' backgrounds.
 Core::Expected<void, std::string> DrawTheHeader(Window& window)
 {
     GameHudContext& context = window.context;
@@ -255,7 +254,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     Quad(sprites, 0x105, left, F32(static_cast<double>(top) + 256.0), 190.0f, 177.0f, 0.7421875f, 0.69140625f);
     sprites.SetBlend(BlendMode::Alpha);
     SelectFont(context, FontKind::Bold);
-    // Acceso 1: el nombre y la clase del registro.
+    // Access 1: the record's name and class.
     std::string name;
     std::string className;
     {
@@ -263,9 +262,9 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
         auto own = NameOf(window.own);
         if (!own.HasValue())
             return Core::Unexpected(own.Error());
-        // sprintf("%s", nombre) lo copia tal cual.
+        // sprintf("%s", name) copies it as is.
         name = own.Value();
-        // 0x5ee48c..0x5ee4ab: el texto 20 + (+0xb >> 3) · 5 + (+0xb & 7).
+        // 0x5ee48c..0x5ee4ab: text 20 + (+0xb >> 3) · 5 + (+0xb & 7).
         const std::uint8_t recordClass = window.own.characterClass;
         auto classText = TextOf(context,
                                 FirstClassText + static_cast<std::size_t>(recordClass >> 3u) * 5u +
@@ -278,8 +277,8 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     context.hud.textColors.background = NameBackground;
     context.hud.textColors.text = PkNameColor(window.hero.pk);
     DrawCentered(context, x + 0x23, y + 0xc, name, BoxPixels(context, 120));
-    // 0x5ee629..0x5ee69c: [0x6d5ec4] es el lugar del grupo elegido y [0x6d5ecc] su número; el nombre del grupo, el de
-    // 0x7d36bb0 + 0x21e · lugar, que puso 0x4c1860.
+    // 0x5ee629..0x5ee69c: [0x6d5ec4] is the chosen group's slot and [0x6d5ecc] its number; the group's name is that of
+    // 0x7d36bb0 + 0x21e · slot, which 0x4c1860 set.
     if (!context.chosenServer)
         return Core::Unexpected(std::string("0x5ee629: sin el servidor elegido ([0x6d5ec4] y [0x6d5ecc] en −1)"));
     const std::uint16_t group = FrontEnd::GroupOf(*context.chosenServer);
@@ -288,7 +287,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
         return Core::Unexpected(std::format("0x5ee629: el grupo {} del servidor elegido no tiene lugar", group));
     const int number = FrontEnd::ServerNumber(*context.chosenServer);
     const bool nonPvp = FrontEnd::IsNonPvp(*slot, number);
-    // 0x447c70: el 460 sin PvP y el 461 si no, como el título de la cuenta.
+    // 0x447c70: 460 without PvP and 461 otherwise, like the account title.
     auto serverFormat = TextOf(context, FrontEnd::LoginTitleText(*slot, number), nonPvp ? "0x5ee668" : "0x5ee696");
     if (!serverFormat.HasValue())
         return Core::Unexpected(serverFormat.Error());
@@ -296,7 +295,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     if (!groupName.HasValue())
         return Core::Unexpected(groupName.Error());
     const std::string server = Sprintf(serverFormat.Value(), groupName.Value(), static_cast<std::int32_t>(number));
-    // 0x5ee6a1..0x5ee6bf: a = (float)(sin(T · 0,001f) + 1), en la x87.
+    // 0x5ee6a1..0x5ee6bf: a = (float)(sin(T · 0.001f) + 1), on the x87.
     const float alpha =
         F32(Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(0.001f)) + 1.0);
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, F32(2.0 - static_cast<double>(alpha))});
@@ -304,7 +303,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     sprites.SetColor(Color{1.0f, 1.0f, 1.0f, alpha});
     DrawCentered(context, x + 0x16, y + 0x16, server, BoxPixels(context, 150));
     sprites.SetColor(White);
-    // 0x5ee786..0x5ee7f0: [0x6c9330] botones y uno más de fondos, de 60 en 60.
+    // 0x5ee786..0x5ee7f0: [0x6c9330] buttons and one more of backgrounds, every 60.
     const std::int32_t backs = (window.heroClass == CharacterClass::DarkLord ? 5 : 4) + 1;
     const float backLeft = F32(static_cast<double>(left) + 19.0 - 6.0);
     const float backTop = F32(static_cast<double>(top) + 60.0 - 4.0);
@@ -314,7 +313,7 @@ Core::Expected<void, std::string> DrawTheHeader(Window& window)
     return {};
 }
 
-// 0x5ee7f0..0x5eee60: el nivel, la experiencia y el renglón de los puntos.
+// 0x5ee7f0..0x5eee60: the level, the experience and the points line.
 Core::Expected<void, std::string> DrawTheLevel(Window& window)
 {
     GameHudContext& context = window.context;
@@ -336,7 +335,7 @@ Core::Expected<void, std::string> DrawTheLevel(Window& window)
     SelectFont(context, FontKind::Bold);
     std::string text;
     {
-        // Acceso 2.
+        // Access 2.
         const auto access = OwnAccess(context);
         text = Sprintf(levelFormat.Value(), static_cast<std::uint32_t>(own.level));
     }
@@ -344,15 +343,15 @@ Core::Expected<void, std::string> DrawTheLevel(Window& window)
     DrawCentered(context, x + 0xe, y + 0x3c, text, BoxPixels(context, 82));
     SelectFont(context, FontKind::Normal);
     {
-        // Acceso 3.
+        // Access 3.
         const auto access = OwnAccess(context);
         text = Sprintf(experienceFormat.Value(), own.experience, own.nextExperience);
     }
     SetColors(context, LineColor, LineBackground);
     DrawFromLeft(context, x + 0x18, y + 0x50, text, BoxPixels(context, 145));
     {
-        // Acceso 4: wsprintfA ([0x6b851c]) con '%s %d/%d | %s %d/%d' de .rdata, que no es el sprintf del CRT. Antes
-        // del nivel 10, en 0; si no, +0x44 y +0x46 con signo y −+0x48 y −+0x4a sin signo.
+        // Access 4: wsprintfA ([0x6b851c]) with '%s %d/%d | %s %d/%d' from .rdata, which is not the CRT's sprintf.
+        // Before level 10, at 0; otherwise, +0x44 and +0x46 signed and −+0x48 and −+0x4a unsigned.
         const auto access = OwnAccess(context);
         constexpr std::uint16_t PointsFromLevel = 10;
         std::int32_t added = 0;
@@ -375,7 +374,7 @@ Core::Expected<void, std::string> DrawTheLevel(Window& window)
     return {};
 }
 
-// 0x5eee60..0x5efa0e: la fuerza, el daño y si el equipo es un set completo (el resultado).
+// 0x5eee60..0x5efa0e: the strength, the damage and whether the equipment is a full set (the result).
 Core::Expected<bool, std::string> DrawTheStrength(Window& window)
 {
     GameHudContext& context = window.context;
@@ -394,7 +393,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
         return Core::Unexpected(damageFormat.Error());
     std::string text;
     {
-        // Acceso 5: el color antes del sprintf.
+        // Access 5: the color before the sprintf.
         const auto access = OwnAccess(context);
         context.hud.textColors.text = StatColor(own.word2a);
         text = Sprintf(strengthFormat.Value(), StatPlus(own.strength, own.word2a));
@@ -403,13 +402,13 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
     DrawCentered(context, x + 0xe, y + 0x78, text, BoxPixels(context, 70));
     SelectFont(context, FontKind::Normal);
     {
-        // Acceso 6: solo toma el puntero al lugar 0 (+0xb6c), que lee la magia.
+        // Access 6: it only takes the pointer to slot 0 (+0xb6c), which the magic reads.
         const auto access = OwnAccess(context);
     }
     const Player::OwnAttackDamage attack = Player::AttackDamageOf(
         own, window.heroClass, Player::HeldItemOf(context.world.Runtime()), context.ownRecordDepth, context.random);
     {
-        // Acceso 7 (0x5ef450..0x5ef55f).
+        // Access 7 (0x5ef450..0x5ef55f).
         const auto access = OwnAccess(context);
         std::int32_t bonus = own.word4e;
         if ((hero.flags78 & AgilityBonusFlag) == AgilityBonusFlag)
@@ -434,8 +433,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
     }
     SetColors(context, attack.highlighted ? AddedStatColor : LineColor, LineBackground);
     DrawFromLeft(context, x + 0x18, y + 0x8c, text, BoxPixels(context, 130));
-    // 0x5ef62a..0x5ef8ac: los lugares 2 a 6, un acceso cada uno, hasta el primero vacío o roto; la clase 3 puede no
-    // tener casco.
+    // 0x5ef62a..0x5ef8ac: slots 2 to 6, one access each, up to the first empty or broken one; class 3 may have no helm.
     bool fullSet = true;
     constexpr std::size_t FirstArmorSlot = 2;
     constexpr std::size_t LastArmorSlot = 6;
@@ -454,8 +452,8 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
     if (!fullSet)
         return false;
     {
-        // Acceso 9 (0x5efa0e..0x5efc5f): los lugares 3 a 6 con el mismo tipo % 512 que el casco, o que la armadura
-        // en la clase 3, que tiene que ser una de cuatro.
+        // Access 9 (0x5efa0e..0x5efc5f): slots 3 to 6 with the same type % 512 as the helm, or as the armor in class 3,
+        // which has to be one of four.
         const auto access = OwnAccess(context);
         std::int32_t reference = 0;
         bool compare = true;
@@ -484,7 +482,7 @@ Core::Expected<bool, std::string> DrawTheStrength(Window& window)
     return fullSet;
 }
 
-// 0x5efc5f..0x5f0236: la agilidad, la defensa y la velocidad.
+// 0x5efc5f..0x5f0236: the agility, the defense and the speed.
 Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
 {
     GameHudContext& context = window.context;
@@ -506,7 +504,7 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
     SelectFont(context, FontKind::Bold);
     std::string text;
     {
-        // Acceso 10.
+        // Access 10.
         const auto access = OwnAccess(context);
         context.hud.textColors.text = StatColor(own.word2c);
         text = Sprintf(agilityFormat.Value(), StatPlus(own.agility, own.word2c));
@@ -514,7 +512,7 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
     context.hud.textColors.background = 0;
     DrawCentered(context, x + 0xe, y + 0xb4, text, BoxPixels(context, 70));
     SelectFont(context, FontKind::Normal);
-    // Acceso 11, con los dos renglones adentro.
+    // Access 11, with both lines inside.
     const auto access = OwnAccess(context);
     std::uint32_t defense = own.word62;
     if ((window.hero.flags78 & LevelBonusFlag) == LevelBonusFlag)
@@ -527,7 +525,7 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
         text = rate != 0 ? Sprintf(defenseFormat.Value(), defense, rate) : Sprintf(defenseFormat.Value(), defense);
     SetColors(context, LineColor, LineBackground);
     DrawFromLeft(context, x + 0x18, y + 200, text, BoxPixels(context, 130));
-    // 0x5f006f..0x5f007f: la clase del registro (+0xb), no la del héroe; la 0 lee la de la magia.
+    // 0x5f006f..0x5f007f: the record's class (+0xb), not the hero's; class 0 reads the magic one.
     const std::uint32_t speed =
         BaseClassOf(own.characterClass) == CharacterClass::DarkWizard ? own.magicSpeed : own.attackSpeed;
     text = Sprintf(speedFormat.Value(), speed);
@@ -535,7 +533,7 @@ Core::Expected<void, std::string> DrawTheAgility(Window& window, bool fullSet)
     return {};
 }
 
-// 0x5f04b1..0x5f0633, con el registro abierto: la magia de las clases 0 y 3, con el acceso 13 adentro del 12.
+// 0x5f04b1..0x5f0633, with the record open: the magic of classes 0 and 3, with access 13 inside access 12.
 Core::Expected<void, std::string> DrawTheMagic(Window& window)
 {
     GameHudContext& context = window.context;
@@ -546,12 +544,12 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     if (!skill)
         return Core::Unexpected(
             std::format("0x5f04cd: el byte +0x6c + {} del registro propio no está en MuRet", window.hero.skillIndex));
-    // Un dibujo intermedio no deja las marcas de la lista: trabaja sobre una copia.
+    // An intermediate drawing does not leave the list's marks: it works on a copy.
     Player::ItemSetOptionList projected = world.ItemSets().list;
     Player::ItemSetOptionList& setOptions = context.projecting ? projected : world.ItemSets().list;
     Player::OwnMagicDamage damage;
     {
-        // Acceso 13, adentro del 12: no saca nada al cerrarse.
+        // Access 13, inside access 12: it draws nothing when it closes.
         const auto access = OwnAccess(context);
         auto magic = Player::MagicDamageOf(own, *skill, context.skills, runtime.movement.skillDepths[*skill],
                                            context.random, setOptions);
@@ -568,8 +566,8 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
         min += 10;
         max += 10;
     }
-    // 0x5f054d..0x5f0571: con un báculo (0xa00 a 0xbff) o los tipos 0x1f, 0x17 y 0x15 en la derecha, el agregado de
-    // su byte +0x16 por lo que queda de su durabilidad (0x54ee00 sobre el byte +0x2e de Item.bmd, no el +0x2d).
+    // 0x5f054d..0x5f0571: with a staff (0xa00 to 0xbff) or types 0x1f, 0x17 and 0x15 in the right hand, the addition of
+    // its byte +0x16 by what is left of its durability (0x54ee00 on Item.bmd's byte +0x2e, not +0x2d).
     const Kernel::ItemState& right = own.equipment[0];
     const std::int32_t type = TypeOf(right);
     std::string text;
@@ -588,7 +586,7 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
         const float factor = Player::ItemDurabilityFactor(right.durability,
                                                           std::to_integer<std::uint8_t>((*record)[MagicDurabilityByte]),
                                                           right.scalar1Low, right.flags1b, right.flags1c);
-        // 0x5f05d1..0x5f05dd: (f − r · f) · max, en la x87.
+        // 0x5f05d1..0x5f05dd: (f − r · f) · max, on the x87.
         const std::int32_t bonus =
             Truncate((static_cast<double>(share) - static_cast<double>(factor) * static_cast<double>(share)) *
                      static_cast<double>(maxBefore));
@@ -605,8 +603,8 @@ Core::Expected<void, std::string> DrawTheMagic(Window& window)
     return {};
 }
 
-// 0x5f0236..0x5f0a6c: la vitalidad, la vida, la energía, el maná, la magia, el daño de la skill, los puntos para
-// repartir y las letras, todo con el acceso 12 abierto.
+// 0x5f0236..0x5f0a6c: the vitality, the life, the energy, the mana, the magic, the skill damage, the points to
+// distribute and the letters, all with access 12 open.
 Core::Expected<void, std::string> DrawTheVitality(Window& window)
 {
     GameHudContext& context = window.context;
@@ -653,8 +651,8 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
         if (auto magic = DrawTheMagic(window); !magic.HasValue())
             return magic;
     }
-    // 0x5f0633..0x5f06f2: el daño de la skill del Dark Knight y el Dark Lord por la energía; el de la clase 3, fijo y
-    // un renglón más abajo.
+    // 0x5f0633..0x5f06f2: the Dark Knight's and the Dark Lord's skill damage by energy; class 3's, fixed and one line
+    // lower.
     if (window.heroClass == CharacterClass::DarkKnight || window.heroClass == CharacterClass::MagicGladiator ||
         window.heroClass == CharacterClass::DarkLord)
     {
@@ -674,7 +672,7 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
     }
     if (own.levelUpPoints != 0)
     {
-        // 0x5f070b..0x5f0884: los puntos para repartir y un botón por stat, apretado con el botón abajo encima.
+        // 0x5f070b..0x5f0884: the points to distribute and one button per stat, pressed with the button down over it.
         auto format = TextOf(context, PointsText, "0x5f0732");
         if (!format.HasValue())
             return Core::Unexpected(format.Error());
@@ -691,8 +689,8 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
             Quad(context.sprites, pressed ? 0x121 : 0x120, left, top, 24.0f, 24.0f, 0.75f, 0.75f);
         }
     }
-    // 0x5f088a..0x5f0935: las letras de las barras. La primera, por +0x44 · 100 / +0x46 con signo; la segunda divide
-    // +0x48 · 100 por 1 (Q-C670), así que pasado 10 es siempre 40.
+    // 0x5f088a..0x5f0935: the bars' letters. The first, by +0x44 · 100 / +0x46 signed; the second divides +0x48 · 100
+    // by 1 (Q-C670), so past 10 it is always 40.
     std::int32_t first = 100;
     const auto added = static_cast<std::int16_t>(own.addedPoints);
     if (added > 10)
@@ -716,7 +714,7 @@ Core::Expected<void, std::string> DrawTheVitality(Window& window)
     return {};
 }
 
-// 0x5f0a6c..0x5f0b29: el mando del Dark Lord, +0x20 más +0x36, con el acceso 14 cerrado antes del sprintf.
+// 0x5f0a6c..0x5f0b29: the Dark Lord's command, +0x20 plus +0x36, with access 14 closed before the sprintf.
 Core::Expected<void, std::string> DrawTheCommand(Window& window)
 {
     GameHudContext& context = window.context;
@@ -737,7 +735,7 @@ Core::Expected<void, std::string> DrawTheCommand(Window& window)
     return {};
 }
 
-// 0x5f74a3..0x5f759a: el botón de cerrar en (x + 25, y + 395) y su ayuda con el mouse encima.
+// 0x5f74a3..0x5f759a: the close button at (x + 25, y + 395) and its help when hovered.
 Core::Expected<void, std::string> DrawTheCloseButton(GameHudContext& context)
 {
     context.sprites.SetColor(White);
@@ -751,7 +749,7 @@ Core::Expected<void, std::string> DrawTheCloseButton(GameHudContext& context)
     auto help = TextOf(context, CloseHelpText, "0x5f757b");
     if (!help.HasValue())
         return Core::Unexpected(help.Error());
-    // 0x554340 deja el texto en blanco sobre un fondo transparente.
+    // 0x554340 leaves the text white over a transparent background.
     Ui::DrawHelp(context.sprites, context.text, Truncate(left), Truncate(top) - 13, help.Value());
     SetColors(context, 0xffffffffu, 0);
     return {};

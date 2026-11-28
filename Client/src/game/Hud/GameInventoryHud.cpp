@@ -61,10 +61,10 @@ using Render::BlendMode;
 using Render::Color;
 
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// glColor3f(1; 0,9; 0,7) de las cifras de 0x5e3760.
+// glColor3f(1, 0.9, 0.7) of 0x5e3760's numbers.
 constexpr Color NumberColor{1.0f, 0.9f, 0.7f, 1.0f};
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// The Text.bmd texts (the address − 0x76bd1dc, over 300).
 constexpr std::size_t InventoryTitleText = 223;
 constexpr std::size_t ZenText = 224;
 constexpr std::size_t CloseHelpText = 225;
@@ -73,23 +73,23 @@ constexpr std::size_t OpenShopHelpText = 1125;
 constexpr std::size_t ShopOpenHelpText = 1127;
 constexpr std::size_t SetText = 989;
 
-// El comercio (0x5f3b40, 0x5f7610 y 0x5f7840): las grillas en la esquina más 15 (0x6b87bc) y 70 (0x6ba1b0) o 270
-// (0x6ba10c), de 8 × 4.
+// Trade (0x5f3b40, 0x5f7610 and 0x5f7840): the 8 × 4 grids at the corner plus 15 (0x6b87bc) and 70 (0x6ba1b0) or
+// 270 (0x6ba10c).
 constexpr double TradeGridLeft = 15.0;
 constexpr double OtherGridTop = 70.0;
 constexpr double OwnGridTop = 270.0;
 constexpr std::size_t TradeColumns = 8;
 constexpr std::size_t TradeRows = 4;
-// Las tiendas personales (0x5f3030, 0x5f7610 y 0x5f7840): la grilla 0x78ab0b8 en la esquina más 15 y 110 (0x6ba184),
-// de 8 × 4.
+// Personal shops (0x5f3030, 0x5f7610 and 0x5f7840): the 8 × 4 grid 0x78ab0b8 at the corner plus 15 and 110
+// (0x6ba184).
 constexpr double ShopGridLeft = 15.0;
 constexpr double ShopGridTop = 110.0;
 constexpr std::size_t ShopColumns = 8;
 constexpr std::size_t ShopRows = 4;
 
-// 0x449c00: la caja del entrenador ([0x724580]) en 3.
+// 0x449c00: [0x724580] at 3.
 constexpr std::int32_t TrainerWithBox = 3;
-// [0x7d536fc] + 0x18 en 3: la lista de Castle Siege va junto con el inventario.
+// [0x7d536fc] + 0x18 at 3.
 constexpr std::int32_t SiegeListWithInventory = 3;
 
 using Math::F32;
@@ -109,7 +109,7 @@ Core::Expected<std::string_view, std::string> TextOf(const GameHudContext& conte
     return *text;
 }
 
-// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.
+// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): scaled in size and position, no alpha.
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float du,
           float dv)
 {
@@ -127,7 +127,7 @@ void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, fl
                                       .alpha = 0.0f});
 }
 
-// (float) del mouse contra la caja en float: left ≤ x < left + size, con la suma en la x87.
+// The mouse as float against the float box: left ≤ x < left + size, with the sum on the x87.
 bool MouseInSquare(const GameHudContext& context, float left, float top, float size)
 {
     const auto x = static_cast<double>(static_cast<float>(context.mouse.x));
@@ -136,22 +136,22 @@ bool MouseInSquare(const GameHudContext& context, float left, float top, float s
            static_cast<double>(top) <= y && y < static_cast<double>(top) + static_cast<double>(size);
 }
 
-// SelectObject sobre el DC de los textos: la fuente con la que miden y dibujan los que siguen.
+// SelectObject on the text DC: the font the following texts measure and draw with.
 void SelectFont(GameHudContext& context, Render::Text::FontKind font)
 {
     context.hud.dcFont = font;
 }
 
-// 0x554180(x, y, texto, 0, 0, 0): el modo 1 sin tope, desde x, con la fuente y los colores que haya.
+// 0x554180(x, y, text, 0, 0, 0): mode 1 with no limit, from x, with whatever font and colors are set.
 void DrawText(GameHudContext& context, int x, int y, std::string_view text)
 {
     context.text.Draw(x, y, text,
                       Render::Text::TextStyle{.font = context.hud.dcFont, .colors = context.hud.textColors});
 }
 
-// 0x554180(x, y, texto, ancho, 1, p6) → 0x467060 con el modo 2: una caja de `boxPixels` píxeles que empieza en
-// _ftol(x · rx), con el texto en la columna (ancho − cx) / 2 de la división de C y el fondo en toda la caja, con la
-// fuente y los colores que haya (Render::Text::CenterInBox).
+// 0x554180(x, y, text, width, 1, p6) → 0x467060 with mode 2: a box of `boxPixels` pixels starting at _ftol(x · rx),
+// with the text at column (width − cx) / 2 by C division and the background over the whole box, with whatever font and
+// colors are set (Render::Text::CenterInBox).
 void DrawTextCenteredInBox(GameHudContext& context, int x, int y, std::string_view text, int boxPixels)
 {
     const Render::Text::CenteredInBox placed =
@@ -161,22 +161,22 @@ void DrawTextCenteredInBox(GameHudContext& context, int x, int y, std::string_vi
                              -placed.textColumn, placed.width);
 }
 
-// 0x623690(x, y, texto): centrado en x, con la fuente y los colores que haya.
+// 0x623690(x, y, text): centered at x, with whatever font and colors are set.
 void DrawTextCenteredAt(GameHudContext& context, int x, int y, std::string_view text)
 {
     const Render::Text::TextExtent extent = context.text.Measure(context.hud.dcFont, text);
     DrawText(context, Render::Text::CenteredAt(x, extent, context.sprites.Screen()), y, text);
 }
 
-// 0x554340 con la fuente normal y los colores blanco y negro que le ponen antes: la ayuda deja el texto en blanco
-// sobre un fondo transparente (0x6c8e5c en −1 y 0x6c8e64 en 0).
+// 0x554340 with the normal font and the white and black colors set before it: the help leaves the text white on a
+// transparent background (0x6c8e5c at −1 and 0x6c8e64 at 0).
 void DrawHelp(GameHudContext& context, int x, int y, std::string_view help)
 {
     Ui::DrawHelp(context.sprites, context.text, x, y, help);
     context.hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0};
 }
 
-// 0x5e22d0(ítem): el color del aviso del ítem (+0x44, que escribe 0x5aac20). Con otro valor, el que haya.
+// 0x5e22d0(item): the item's warning color (+0x44, written by 0x5aac20). With another value, whatever is set.
 void SetWarningColor(Render::SpriteBatch& sprites, const Kernel::ItemState& item)
 {
     switch (item.warning)
@@ -215,12 +215,12 @@ void SetWarningColor(Render::SpriteBatch& sprites, const Kernel::ItemState& item
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// El ítem 3D de la UI (0x5e1480 → 0x5e0720, Scenes/UiItemDrawing).
+// The UI 3D item (0x5e1480 → 0x5e0720, Items/UiItemDrawing).
 
-// Sin la biblioteca de los modelos, los rand() del dibujo en su orden: los de 0x607b60 (1 con 0x220 y 0xc19, 2 con
-// 0xc17 y 0xe20), los de 0x609640 (2 con 0xe21 y 0xe22) y el del pase del set (0x60cc29: con el set en 1 o 2, sin
-// excelente y con el pulso apagado, rand() % 100 en el +0xc0 del modelo; como DrawItemFromMeshes, solo en un frame
-// del original). El 0x1e1e cambia de modelo sin cambiar de cuenta.
+// Without the model library, the draw's rand() in their order: those of 0x607b60 (1 with 0x220 and 0xc19, 2 with
+// 0xc17 and 0xe20), those of 0x609640 (2 with 0xe21 and 0xe22) and the set pass's (0x60cc29: with the set at 1 or 2,
+// not excellent and the pulse off, rand() % 100 into the model's +0xc0; like DrawItemFromMeshes, only in a frame of
+// the original). The 0x1e1e changes model without changing the count.
 void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_t excellent, std::uint8_t set)
 {
     context.random.Discard(
@@ -233,7 +233,7 @@ void SpendUiItemRandoms(GameHudContext& context, std::int32_t model, std::uint8_
     if (showsExcellent || context.projecting)
         return;
     const std::uint32_t setKind = set & 3u;
-    // El pase del set de 0x60b3d0 (0x60cbff..0x60cc29), con el pulso de la x87 sin pasar por un float.
+    // The set pass of 0x60b3d0 (0x60cbff..0x60cc29), with the x87 pulse not going through a float.
     if ((setKind == 1 || setKind == 2) &&
         Models::SetPulseIsOff(Models::SetPulseAt(static_cast<double>(context.worldClock))))
         context.world.Runtime().itemRender.selections[static_cast<std::uint16_t>(model)] = context.random.Next() % 100;
@@ -261,7 +261,7 @@ Core::Expected<Items::UiItemBox, std::string> ItemSizeOf(const GameHudContext& c
 Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Items::UiItemBox& box, std::int32_t type,
                                              std::uint32_t level, std::uint8_t excellent, std::uint8_t set, bool always)
 {
-    // 0x5e1486..0x5e1d69: bajo el mouse, el punto de la caja y 0x620480 con él (sin efectos fuera de 0x7d36834).
+    // 0x5e1486..0x5e1d69: under the mouse, the box's point and 0x620480 with it (no effects outside 0x7d36834).
     const bool hovered = Items::UiItemHovered(box, context.mouse, context.world.Runtime().cursorItemCount, always);
     const auto anchor = Items::UiItemAnchor(type, level, box);
     if (!anchor.HasValue())
@@ -271,8 +271,8 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Item
         return {};
     if (context.uiItems == nullptr)
     {
-        // 0x60c3b6..0x60c598: con los modelos, el 0x1a18 cuelga 20 uniones de los huesos de su pose, que el paso
-        // siguiente usa con sus rand() (Q-C1821). Sin los modelos MuRet no tiene esos huesos.
+        // 0x60c3b6..0x60c598: with the models, the 0x1a18 hangs 20 joints from its pose's bones, which the next step
+        // uses with their rand() (Q-C1821). Without the models MuRet does not have those bones.
         constexpr std::int32_t WingsWithJoints = 0x1a18;
         if (call->model == WingsWithJoints)
             return Core::Unexpected(std::string("0x60c3b6: las uniones 0x614 y 0x613 (0x530860) del 0x1a18 en la UI "
@@ -293,9 +293,9 @@ Core::Expected<void, std::string> DrawUiItem(GameHudContext& context, const Item
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
-// La ventana (0x5f2340).
+// The window (0x5f2340).
 
-// 0x5ee220(x, y, línea): el fondo de 190 × 433 en dos texturas, y con `line` la línea del comercio en y + 225.
+// 0x5ee220(x, y, line): the 190 × 433 background in two textures and, with `line`, the trade line at y + 225.
 void DrawWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y, bool line)
 {
     const auto left = static_cast<float>(x);
@@ -306,9 +306,9 @@ void DrawWindowBack(Render::SpriteBatch& sprites, std::int32_t x, std::int32_t y
         Quad(sprites, 0x117, left, F32(static_cast<double>(top) + 225.0), 190.0f, 10.0f, 0.7421875f, 0.625f);
 }
 
-// 0x5e2460: los fondos de los doce lugares del equipo, cada uno con el color del aviso de su ítem, con el registro
-// propio abierto alrededor (3.848 rand() al cerrarlo sin otros accesos) y otro acceso adentro para la clase: el
-// casco no tiene fondo con la clase 3.
+// 0x5e2460: the backgrounds of the twelve equipment slots, each in its item's warning color, with the own record open
+// around them (3848 rand() when closing it without other accesses) and another access inside for the class: the
+// helmet has no background with class 3.
 void DrawTheEquipmentSlots(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -359,8 +359,8 @@ void DrawTheEquipmentSlots(GameHudContext& context, std::int32_t x, std::int32_t
 }
 } // namespace
 
-// 0x5e3660(x, y, grilla, columnas, filas): una casilla de 20 × 20 por lugar, con el color del aviso de lo que haya
-// (también de las vacías): Item_box (0x115) vacía, InventoryBox2 (0x116) con un tipo.
+// 0x5e3660(x, y, grid, columns, rows): a 20 × 20 box per slot, in the warning color of whatever is there (empty ones
+// too): Item_box (0x115) empty, InventoryBox2 (0x116) with a type.
 void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<const Kernel::ItemState> cells,
                       std::size_t columns, std::size_t rows)
 {
@@ -382,7 +382,7 @@ void DrawTheGridBoxes(Render::SpriteBatch& sprites, float x, float y, std::span<
 
 namespace
 {
-// Un botón de 24 × 24 al pie de la ventana y su ayuda con el mouse encima, en (_ftol(x), _ftol(y) − arriba).
+// A 24 × 24 button at the window's foot and its help with the mouse over it, at (_ftol(x), _ftol(y) − above).
 Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::uint16_t slot, float x, float y,
                                                  std::size_t help, int above, std::string_view where)
 {
@@ -398,8 +398,8 @@ Core::Expected<void, std::string> DrawFootButton(GameHudContext& context, std::u
     return {};
 }
 
-// 0x40e720(x, y), el método del objeto de los sets ([0x6eed3c]): el cartel de setitem y "[texto 989]" dos veces,
-// en negro y corrido un punto, y encima en dorado con alguna opción de set (+0x9348 o +0x9349) o en gris.
+// 0x40e720(x, y), the method of the sets object ([0x6eed3c]): the setitem label and "[text 989]" twice, in black and
+// shifted one point, and on top in gold with some set option (+0x9348 or +0x9349) or in grey.
 Core::Expected<void, std::string> DrawTheSetLabel(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -443,7 +443,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
     DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + 15.0), F32(static_cast<double>(y) + 200.0),
                      world.Inventory().cells, Kernel::InventoryColumns, Kernel::InventoryColumns);
     sprites.SetColor(White);
-    // 0x5f23e1..0x5f2441: el título con la fuente gruesa, en blanco sobre gris oscuro, centrado en 120 de 640.
+    // 0x5f23e1..0x5f2441: the title in the bold font, white on dark grey, centered in 120 of 640.
     SelectFont(context, Render::Text::FontKind::Bold);
     hud.textColors = Render::Text::TextColors{.text = 0xffffffffu, .background = 0xff141414u};
     auto title = TextOf(context, InventoryTitleText, "0x5f241c");
@@ -451,18 +451,18 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
         return Core::Unexpected(title.Error());
     const auto screenWidth = static_cast<std::uint32_t>(sprites.Screen().width);
     DrawTextCenteredInBox(context, x + 0x23, y + 0xc, title.Value(), static_cast<int>(screenWidth * 120u / 640u));
-    // 0x5f2441..0x5f2484: el fondo del zen.
+    // 0x5f2441..0x5f2484: the zen background.
     const float zenX = F32(static_cast<double>(x) + 50.0);
     const float zenY = F32(static_cast<double>(y) + static_cast<double>(367.7f));
     Quad(sprites, 0x10f, zenX, zenY, 113.0f, 18.0f, 0.8828125f, 0.5625f);
     SelectFont(context, Render::Text::FontKind::Bold);
     std::uint32_t zen = 0;
     {
-        // 0x5f249d..0x5f26a2: el zen de +0xecc, leído con el registro abierto.
+        // 0x5f249d..0x5f26a2: the zen of +0xecc, read with the record open.
         const auto own = OwnAccess(context);
         zen = world.OwnCharacter().zen;
     }
-    // 0x5f26a7..0x5f2751 y 0x5f2771..0x5f27ef: la misma cuenta que 0x5b1130 y 0x5b10f0, copiada.
+    // 0x5f26a7..0x5f2751 and 0x5f2771..0x5f27ef: the same computation as 0x5b1130 and 0x5b10f0, copied.
     const std::string amount = Ui::FormatZen(zen);
     hud.textColors = Render::Text::TextColors{.text = 0xff96dcffu, .background = 0xff282828u};
     const std::int32_t textY = Truncate(zenY) + 3;
@@ -473,7 +473,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
     DrawText(context, textX - 30, textY, zenLabel.Value());
     hud.textColors.text = Ui::ZenColor(zen);
     DrawText(context, textX + 10, textY, amount);
-    // 0x5f27ff..0x5f28f5: cerrar, sin el comercio y sin la caja del entrenador.
+    // 0x5f27ff..0x5f28f5: close, without the trade and without the trainer's box.
     const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     const float footY = F32(static_cast<double>(y) + 395.0);
     if (!panels.IsOpen(Ui::TradePanel) && delegated.trainer != TrainerWithBox)
@@ -485,11 +485,11 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
     }
     std::uint16_t level = 0;
     {
-        // 0x5f28f8..0x5f2bdc: el nivel de [0x7681eb0] + 0xe, leído con el registro abierto.
+        // 0x5f28f8..0x5f2bdc: the level at [0x7681eb0] + 0xe, read with the record open.
         const auto own = OwnAccess(context);
         level = world.OwnCharacter().level;
     }
-    // 0x5f2be1..0x5f2da9: reparar, sin ninguna otra ventana, sin 0x78abb00 y desde el nivel 50.
+    // 0x5f2be1..0x5f2da9: repair, with no other window, without 0x78abb00 and from level 50.
     if (!panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::NpcShopPanel) && !panels.IsOpen(Ui::WarehousePanel) &&
         !panels.IsOpen(Ui::ChaosBoxPanel) && !panels.IsOpen(Ui::CastleSiegeListPanel) &&
         !panels.IsOpen(Ui::EventNpcPanel) && !panels.IsOpen(Ui::SecondEventNpcPanel) &&
@@ -501,7 +501,7 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
             !repair.HasValue())
             return repair;
     }
-    // 0x5f2dac..0x5f3008: la tienda personal, con las mismas ventanas en otro orden y desde el nivel 6.
+    // 0x5f2dac..0x5f3008: the personal shop, with the same windows in another order and from level 6.
     const float shopX = F32(static_cast<double>(x) + 76.0);
     if (!panels.IsOpen(Ui::TradePanel) && !panels.IsOpen(Ui::NpcShopPanel) && delegated.trainer != TrainerWithBox &&
         !panels.IsOpen(Ui::WarehousePanel) && !panels.IsOpen(Ui::ChaosBoxPanel) &&
@@ -527,11 +527,11 @@ Core::Expected<void, std::string> DrawTheInventory(GameHudContext& context, Ui::
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
-// Los ítems 3D y las cifras de las grillas (0x5e3760).
+// The 3D items and the grids' numbers (0x5e3760).
 
-// 0x5e2fc0: los lugares del equipo en su orden y sus cajas: la esquina de la ventana (0x78a5a14 y 0x78a5a10) más los
-// floats de la tabla (fild, fadd y fstp; el 3, además, fsub de 10, 0x6b87a8). El 6, el 9, el 10 y el 11 van por
-// 0x5e2d00 con la esquina guardada en float antes de sumar: con estos enteros, lo mismo.
+// 0x5e2fc0: the equipment slots in their order and their boxes: the window's corner (0x78a5a14 and 0x78a5a10) plus
+// the table's floats (fild, fadd and fstp; the 3 also an fsub of 10, 0x6b87a8). The 6, 9, 10 and 11 go through
+// 0x5e2d00 with the corner stored as float before adding: with these integers, the same.
 struct EquipmentBox
 {
     std::size_t slot = 0;
@@ -557,8 +557,8 @@ constexpr std::array<EquipmentBox, 12> EquipmentBoxes{{
     {.slot = 11, .x = 115.0f, .y = 152.0f, .width = 20.0f, .height = 20.0f},
 }};
 
-// La grilla de la tienda y del almacén (0x78a7070): 8 × 15 desde la esquina de la ventana del NPC más 15 (0x6b87bc) y
-// 50 (0x6b86b0), con el fild, el fadd y el fstp.
+// The shop and warehouse grid (0x78a7070): 8 × 15 from the NPC window's corner plus 15 (0x6b87bc) and 50 (0x6b86b0),
+// with the fild, fadd and fstp.
 constexpr std::size_t NpcWindowGridColumns = 8;
 constexpr std::size_t NpcWindowGridRows = 15;
 
@@ -572,8 +572,8 @@ float NpcGridTop(const GameHudContext& context)
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowY) + 50.0);
 }
 
-// 0x5e3760(x, y, grilla, columnas, filas, 0): el ítem de cada casilla de arriba a la izquierda (+0x3c > 0), en la
-// casilla ((float)(20 · columna) + x, (float)(20 · fila) + y) con el fstp y del tamaño de Item.bmd.
+// 0x5e3760(x, y, grid, columns, rows, 0): each top-left cell's item (+0x3c > 0), in the cell
+// ((float)(20 · column) + x, (float)(20 · row) + y) with the fstp, of Item.bmd's size.
 Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, float x, float y,
                                                     std::span<const Kernel::ItemState> cells, std::size_t columns,
                                                     std::size_t rows)
@@ -600,9 +600,9 @@ Core::Expected<void, std::string> DrawTheGridModels(GameHudContext& context, flo
     return {};
 }
 
-// 0x5e3760(x, y, grilla, columnas, filas, 1): las pociones de 0x1c00 a 0x1c08 con la durabilidad en 2 o más la
-// muestran (9 × 10, 13 a la derecha); los demás, si 0x402b30 da 2 o más (los paquetes 0x181e y 0x181f), la cuenta
-// ((nivel + 1) · 5) · 2 (7 × 8, 14 a la derecha). En (1; 0,9; 0,7).
+// 0x5e3760(x, y, grid, columns, rows, 1): potions 0x1c00 to 0x1c08 with durability 2 or more show it (9 × 10, 13 to
+// the right); the others, if 0x402b30 gives 2 or more (the bundles 0x181e and 0x181f), the count ((level + 1) · 5) · 2
+// (7 × 8, 14 to the right). In (1, 0.9, 0.7).
 void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span<const Kernel::ItemState> cells,
                        std::size_t columns, std::size_t rows)
 {
@@ -618,7 +618,7 @@ void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span
             const float left = F32(static_cast<double>(static_cast<float>(column * 20)) + static_cast<double>(x));
             if (type < 0x1c00 || type > 0x1c08 || item.durability < 2)
             {
-                // 0x402b30: 2 con 0x181e y 3 con 0x181f; con los demás, menos de 2.
+                // 0x402b30: 2 with 0x181e and 3 with 0x181f; with the others, less than 2.
                 if (type != 0x181e && type != 0x181f)
                     continue;
                 sprites.SetColor(NumberColor);
@@ -632,8 +632,8 @@ void DrawTheGridCounts(Render::SpriteBatch& sprites, float x, float y, std::span
     }
 }
 
-// La grilla de la caja del caos (0x7d2d380): 8 × 4 desde la esquina de la ventana del NPC más 15 (0x6b87bc) y 110
-// (0x6ba184), con el fild, el fadd y el fstp.
+// The chaos box grid (0x7d2d380): 8 × 4 from the NPC window's corner plus 15 (0x6b87bc) and 110 (0x6ba184), with the
+// fild, fadd and fstp.
 constexpr std::size_t ChaosBoxGridColumns = 8;
 constexpr std::size_t ChaosBoxGridRows = 4;
 
@@ -647,8 +647,8 @@ float ChaosBoxGridTop(const GameHudContext& context)
     return F32(static_cast<double>(context.world.Runtime().ui.npcWindowY) + 110.0);
 }
 
-// 0x44ad40(cifras): con 0x724580 en 3, 0x5e3760(275.0, 110.0, 0x723c80, 8, 4, cifras), la caja del entrenador en su
-// lugar fijo (0x44ad59 y 0x44ad5e).
+// 0x44ad40(numbers): with 0x724580 at 3, 0x5e3760(275.0, 110.0, 0x723c80, 8, 4, numbers), the trainer's box at its
+// fixed place (0x44ad59 and 0x44ad5e).
 constexpr float TrainerBoxGridLeft = 275.0f;
 constexpr float TrainerBoxGridTop = 110.0f;
 } // namespace
@@ -660,9 +660,9 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
     const Ui::DelegatedPanels& delegated = runtime.panels.delegated;
     if (panels.IsOpen(Ui::InventoryPanel))
     {
-        // 0x5e2fc0: el equipo, con el registro propio abierto alrededor (los accesos de cada lugar, 0x4e79a0 y
-        // 0x40f370 o los de 0x5e2d00, quedan adentro y no sacan nada; el color de 0x5e22d0 de cada lugar lo pisa el
-        // dibujo del modelo). Cada uno con su tipo y +0x3c > 0, en su caja.
+        // 0x5e2fc0: the equipment, with the own record open around it (each slot's accesses, 0x4e79a0 and 0x40f370 or
+        // those of 0x5e2d00, stay inside and take nothing; the model's draw overwrites each slot's 0x5e22d0 color).
+        // Each with its type and +0x3c > 0, in its box.
         {
             const auto own = OwnAccess(context);
             const auto& equipment = world.OwnCharacter().equipment;
@@ -683,15 +683,15 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
                     return drawn;
             }
         }
-        // 0x5f7624: la grilla, en la esquina más 15 (0x6b87bc) y 200 (0x6b8928).
+        // 0x5f7624: the grid, at the corner plus 15 (0x6b87bc) and 200 (0x6b8928).
         if (auto grid = DrawTheGridModels(context, F32(static_cast<double>(context.hud.inventoryX) + 15.0),
                                           F32(static_cast<double>(context.hud.inventoryY) + 200.0),
                                           world.Inventory().cells, Kernel::InventoryColumns, Kernel::InventoryColumns);
             !grid.HasValue())
             return grid;
     }
-    // 0x5f769b y 0x5f7756: la tienda (con su rand()) y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 0) desde
-    // la esquina que dejó su dibujo (0x78aba28 y 0x78aba2c).
+    // 0x5f769b and 0x5f7756: the shop (with its rand()) and the warehouse, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15,
+    // 0) from the corner their draw left (0x78aba28 and 0x78aba2c).
     if (panels.IsOpen(Ui::NpcShopPanel))
     {
         if (auto shop = DrawTheGridModels(context, NpcGridLeft(context), NpcGridTop(context), runtime.npcWindows.grid,
@@ -701,7 +701,8 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
     }
     if (panels.IsOpen(Ui::TradePanel))
     {
-        // 0x5f76b4..0x5f7717: la grilla del otro (0x78a5a20) en la esquina más 15 y 70, y la propia (0x78a92a8) en 270.
+        // 0x5f76b4..0x5f7717: the other's grid (0x78a5a20) at the corner plus 15 and 70, and the own one (0x78a92a8) at
+        // 270.
         const Social::TradeState& trade = runtime.social.trade;
         const float left = F32(static_cast<double>(context.hud.tradeX) + TradeGridLeft);
         if (auto other = DrawTheGridModels(context, left, F32(static_cast<double>(context.hud.tradeY) + OtherGridTop),
@@ -720,7 +721,7 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
             !warehouse.HasValue())
             return warehouse;
     }
-    // 0x5f77c6: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0) desde la esquina que dejó su dibujo.
+    // 0x5f77c6: the chaos box, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 0) from the corner its draw left.
     if (panels.IsOpen(Ui::ChaosBoxPanel) ||
         (panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
          CastleSiege::HeroCanCraftAtTheCastle(context.world)))
@@ -730,11 +731,11 @@ Core::Expected<void, std::string> DrawTheGridItems(GameHudContext& context, Ui::
             !chaos.HasValue())
             return chaos;
     }
-    // 0x5f7772..0x5f7799: sin la caja, con la lista del asedio, el mismo dibujo si la marca del héroe lo pide.
+    // 0x5f7772..0x5f7799: without the box, with the siege list, the same draw if the hero's mark asks for it.
     if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
-        // 0x5f77f6..0x5f7821: la grilla de las tiendas personales (0x78ab0b8) en la esquina (0x78aba58 y 0x78aba5c) más
-        // 15 y 110.
+        // 0x5f77f6..0x5f7821: the personal shops' grid (0x78ab0b8) at the corner (0x78aba58 and 0x78aba5c) plus 15 and
+        // 110.
         const Social::PersonalShopState& shops = runtime.social.personalShop;
         if (auto shop = DrawTheGridModels(context, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
                                           F32(static_cast<double>(shops.windowY) + ShopGridTop),
@@ -753,7 +754,7 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui
 {
     Kernel::WorldState& world = context.world;
     const Ui::DelegatedPanels& delegated = world.Runtime().panels.delegated;
-    // 0x5f7849..0x5f78e4: sale sin ninguna grilla abierta, en este orden.
+    // 0x5f7849..0x5f78e4: returns with no grid open, in this order.
     bool any = panels.IsOpen(Ui::InventoryPanel) || panels.IsOpen(Ui::NpcShopPanel) ||
                panels.IsOpen(Ui::WarehousePanel) || panels.IsOpen(Ui::ChaosBoxPanel) || panels.IsOpen(Ui::TradePanel);
     if (!any && panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory)
@@ -767,13 +768,13 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui
         DrawTheGridCounts(context.sprites, F32(static_cast<double>(context.hud.inventoryX) + 15.0),
                           F32(static_cast<double>(context.hud.inventoryY) + 200.0), world.Inventory().cells,
                           Kernel::InventoryColumns, Kernel::InventoryColumns);
-    // 0x5f7973 y 0x5f7a2e: la tienda y el almacén, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 1).
+    // 0x5f7973 and 0x5f7a2e: the shop and the warehouse, 0x5e3760(x + 15, y + 50, 0x78a7070, 8, 15, 1).
     if (panels.IsOpen(Ui::NpcShopPanel))
         DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
                           NpcWindowGridColumns, NpcWindowGridRows);
     if (panels.IsOpen(Ui::TradePanel))
     {
-        // 0x5f798c..0x5f79f0: las dos grillas del comercio, como sus ítems.
+        // 0x5f798c..0x5f79f0: the trade's two grids, like their items.
         const Social::TradeState& trade = world.Runtime().social.trade;
         const float left = F32(static_cast<double>(context.hud.tradeX) + TradeGridLeft);
         DrawTheGridCounts(context.sprites, left, F32(static_cast<double>(context.hud.tradeY) + OtherGridTop),
@@ -784,7 +785,7 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui
     if (panels.IsOpen(Ui::WarehousePanel))
         DrawTheGridCounts(context.sprites, NpcGridLeft(context), NpcGridTop(context), world.Runtime().npcWindows.grid,
                           NpcWindowGridColumns, NpcWindowGridRows);
-    // 0x5f7a9e: la caja del caos, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 1).
+    // 0x5f7a9e: the chaos box, 0x5e3760(x + 15, y + 110, 0x7d2d380, 8, 4, 1).
     if (panels.IsOpen(Ui::ChaosBoxPanel) ||
         (panels.IsOpen(Ui::CastleSiegeListPanel) && delegated.castleSiegeListMode == SiegeListWithInventory &&
          CastleSiege::HeroCanCraftAtTheCastle(context.world)))
@@ -792,7 +793,7 @@ Core::Expected<void, std::string> DrawTheGridNumbers(GameHudContext& context, Ui
                           world.Runtime().npcWindows.chaosBox, ChaosBoxGridColumns, ChaosBoxGridRows);
     if (panels.IsOpen(Ui::PersonalShopPanel) || panels.IsOpen(Ui::OtherShopPanel))
     {
-        // 0x5f7ace..0x5f7af9: la grilla de las tiendas personales, como sus ítems.
+        // 0x5f7ace..0x5f7af9: the personal shops' grid, like its items.
         const Social::PersonalShopState& shops = world.Runtime().social.personalShop;
         DrawTheGridCounts(context.sprites, F32(static_cast<double>(shops.windowX) + ShopGridLeft),
                           F32(static_cast<double>(shops.windowY) + ShopGridTop), world.Inventory().secondCells,
@@ -812,7 +813,7 @@ Core::Expected<void, std::string> DrawTheCursorItem(GameHudContext& context)
         return {};
     const Kernel::ItemState& item = runtime.cursorItem;
     const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
-    // El tamaño de Item.bmd, centrado en el mouse: fild del mouse menos la mitad (0x6b882c), con el fstp.
+    // Item.bmd's size, centered on the mouse: fild of the mouse minus half (0x6b882c), with the fstp.
     auto box = ItemSizeOf(context, type, "0x5f7b34");
     if (!box.HasValue())
         return Core::Unexpected(box.Error());
@@ -831,15 +832,15 @@ DialogItemSource DialogItemOf(std::int32_t dialog, std::int32_t warningKind)
     constexpr std::int32_t FruitDialog = 0xa8;
     constexpr std::int32_t SaleWarning = 1;
     constexpr std::int32_t OtherShopWarning = 5;
-    // 0x633116..0x633144: CL en 1 con el 0x94 o el 0x98 y el aviso 1, o con el 0x96 o el 0xa8.
+    // 0x633116..0x633144: CL at 1 with 0x94 or 0x98 and warning 1, or with 0x96 or 0xa8.
     const bool shown = ((dialog == PriceDialog || dialog == SaleDialog) && warningKind == SaleWarning) ||
                        dialog == ItemDialog || dialog == FruitDialog;
-    // 0x633146..0x63315d: el 0x94 con el aviso 5 dibuja; con otro, el 0x99 dibuja; si no, CL.
+    // 0x633146..0x63315d: 0x94 with warning 5 draws; with another, 0x99 draws; otherwise, CL.
     const bool draws =
         dialog == PriceDialog ? warningKind == OtherShopWarning || shown : dialog == PriceBelowValueDialog || shown;
     if (!draws)
         return DialogItemSource::None;
-    // 0x6331fc..0x633220: con el aviso 5, el 0x96; el 0x96, el 0x99 y el 0xa8 van al ítem de los diálogos.
+    // 0x6331fc..0x633220: with warning 5, 0x96; 0x96, 0x99 and 0xa8 go to the dialogs' item.
     const std::int32_t chosen = warningKind == OtherShopWarning ? ItemDialog : dialog;
     if (chosen == ItemDialog || chosen == PriceBelowValueDialog || chosen == FruitDialog)
         return DialogItemSource::Dialog;
@@ -852,16 +853,16 @@ Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, flo
     const DialogItemSource source = DialogItemOf(runtime.dialogs.current, runtime.social.trade.warningKind);
     if (source == DialogItemSource::None)
         return {};
-    // 0x633222..0x633247 el del cursor y 0x633249..0x63326e el de los diálogos: el WORD con signo, el DWORD +4, el byte
-    // +0x1b y el DWORD +0x1c & 0xff.
+    // 0x633222..0x633247 the cursor's and 0x633249..0x63326e the dialogs': the signed WORD, the DWORD +4, the byte
+    // +0x1b and the DWORD +0x1c & 0xff.
     const Kernel::ItemState& item = source == DialogItemSource::Cursor ? runtime.cursorItem : runtime.dialogItem;
     const auto type = static_cast<std::int32_t>(static_cast<std::int16_t>(item.id));
     // 0x63326f..0x633283.
     constexpr Items::UiItemBox Box{.x = 245.0f, .y = 115.0f, .width = 40.0f, .height = 60.0f};
     if (context.uiItems == nullptr)
         return DrawUiItem(context, Box, type, item.scalar1Low, item.flags1b, item.flags1c, true);
-    // 0x633163..0x6331f7: el pase propio; 0x633288..0x633293, los dos glPopMatrix. El de 0x5ac120 vuelve a quedar para
-    // el próximo frame.
+    // 0x633163..0x6331f7: its own pass; 0x633288..0x633293, the two glPopMatrix. 0x5ac120's pass is put back for the
+    // next frame.
     Items::UiItemResources& resources = *context.uiItems;
     auto pass = Items::MakeUiItemPass(resources.pass.pass.screen, farPlane);
     if (!pass.HasValue())
@@ -877,10 +878,10 @@ Core::Expected<void, std::string> DrawTheDialogItem(GameHudContext& context, flo
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
-// La ventana del comercio (0x5f3b40).
+// The trade window (0x5f3b40).
 
-// Los textos: 0x76cdab4 (el título), 0x76cdbe0, 0x76cdd0c y 0x76cde38 (las ayudas del zen, del OK y de cerrar),
-// 0x76d811c y 0x76d8248 (el nivel y su formato) y 0x76d8374, 0x76d7d98, 0x76d7ec4 y 0x76d7ff0 (los renglones).
+// The texts: 0x76cdab4 (the title), 0x76cdbe0, 0x76cdd0c and 0x76cde38 (the zen, OK and close helps), 0x76d811c and
+// 0x76d8248 (the level and its format) and 0x76d8374, 0x76d7d98, 0x76d7ec4 and 0x76d7ff0 (the lines).
 constexpr std::size_t TradeTitleText = 226;
 constexpr std::size_t TradeMoneyHelpText = 227;
 constexpr std::size_t TradeOkHelpText = 228;
@@ -891,13 +892,13 @@ constexpr std::size_t TradeWarningText = 370;
 constexpr std::size_t TradeFirstLineText = 365;
 constexpr std::size_t TradeSecondLineText = 366;
 constexpr std::size_t TradeThirdLineText = 367;
-// 0x5f3b68: la esquina, que el dibujo pone.
+// 0x5f3b68: the corner, which the draw sets.
 constexpr std::int32_t TradeWindowX = 0x104;
 constexpr std::int32_t TradeWindowY = 0;
-// 0x5ee220 con 1: Interface\Trading_line.jpg (0x117) de 190 × 10 en y + 225 (0x6ba640).
+// 0x5ee220 with 1: Interface\Trading_line.jpg (0x117), 190 × 10 at y + 225 (0x6ba640).
 constexpr double TradingLineTop = 225.0;
-// Los botones de 24 × 24 (0x6b8800) con du = dv = 0,75: el OK del otro en (140, 185), el zen en (26, 390), el OK
-// propio en (97, 390) y cerrar en (137, 390). La ayuda va 13 arriba.
+// The 24 × 24 buttons (0x6b8800) with du = dv = 0.75: the other's OK at (140, 185), zen at (26, 390), the own OK at
+// (97, 390) and close at (137, 390). The help goes 13 above.
 constexpr float ButtonSize = 24.0f;
 constexpr float ButtonUv = 0.75f;
 constexpr double OtherOkLeft = 140.0;
@@ -907,26 +908,26 @@ constexpr double OwnOkLeft = 97.0;
 constexpr double CloseLeft = 137.0;
 constexpr double FootTop = 390.0;
 constexpr int HelpAbove = 13;
-// Interface\accept_box01.jpg y accept_box02.jpg (0x61ae60): el OK sin y con la marca.
+// Interface\accept_box01.jpg and accept_box02.jpg (0x61ae60): the OK without and with the mark.
 constexpr std::uint16_t OkOffSlot = 0x122;
 constexpr std::uint16_t OkOnSlot = 0x123;
-// Money_01 y Money_02, Item_Money y exit_01.
+// Money_01 and Money_02, Item_Money and exit_01.
 constexpr std::uint16_t MoneySlot = 0x110;
 constexpr std::uint16_t MoneyPressedSlot = 0x111;
 constexpr std::uint16_t MoneyBoxSlot = 0x10f;
 constexpr std::uint16_t CloseSlot = 0x118;
 constexpr std::uint16_t TradingLineSlot = 0x117;
-// Las cajas del zen: 113 × 18 con du = 0,8828125 y dv = 0,5625 en (50, 160) y (50, 360); el texto 30 a la izquierda
-// y la cifra 10 a la derecha, 2 abajo.
+// The zen boxes: 113 × 18 with du = 0.8828125 and dv = 0.5625 at (50, 160) and (50, 360); the text 30 to the left and
+// the amount 10 to the right, 2 down.
 constexpr double MoneyBoxLeft = 50.0;
 constexpr double OtherMoneyTop = 160.0;
 constexpr double OwnMoneyTop = 360.0;
-// La flecha (CursorSitDown, 9) de 15 × 24 desde v = 0,4, en (x + 140, y + 28 + sen(T · 0,01)), en (1; 0,86; 0,58).
+// The arrow (CursorSitDown, 9), 15 × 24 from v = 0.4, at (x + 140, y + 28 + sin(T · 0.01)), in (1, 0.86, 0.58).
 constexpr std::uint16_t ArrowSlot = 9;
 constexpr std::int32_t ArrowTop = 0x1c;
 constexpr float ArrowBob = 0.01f;
 constexpr Color ArrowColor{1.0f, 0.86f, 0.58f, 1.0f};
-// El aviso que late: el alfa de min(sen(T · 0,005) · 200 + 275, 255) sobre 0xd2.
+// The pulsing warning: the alpha of min(sin(T · 0.005) · 200 + 275, 255) on 0xd2.
 constexpr float WarningPulse = 0.005f;
 constexpr double WarningSwing = 200.0;
 constexpr double WarningBase = 275.0;
@@ -936,8 +937,8 @@ constexpr std::uint32_t WarningRed = 0xd2;
 using Render::Text::FontKind;
 using Render::Text::TextColors;
 
-// El color del aviso que late (0x5f4623..0x5f465c y 0x5f34fe..0x5f3543): el seno del reloj por 0,005 en la x87, por
-// 200 y más 275, recortado a 255, con _ftol en el alfa y 0xd2 de rojo.
+// The pulsing warning's color (0x5f4623..0x5f465c and 0x5f34fe..0x5f3543): the clock's sine times 0.005 on the x87,
+// times 200 plus 275, clamped to 255, with _ftol into the alpha and 0xd2 of red.
 std::uint32_t WarningPulseColor(float worldClock)
 {
     double alpha =
@@ -958,8 +959,8 @@ float TradePlace(std::int32_t corner, double offset)
     return F32(static_cast<double>(corner) + offset);
 }
 
-// 0x5f3e0b..0x5f3ecf y sus copias: con el mouse sobre el botón, la fuente normal y la ayuda en (_ftol(x), _ftol(y) −
-// 13), con los colores que haya.
+// 0x5f3e0b..0x5f3ecf and its copies: with the mouse over the button, the normal font and the help at
+// (_ftol(x), _ftol(y) − 13), with whatever colors are set.
 Core::Expected<void, std::string> TradeHelp(GameHudContext& context, float x, float y, std::size_t help,
                                             std::string_view where)
 {
@@ -971,7 +972,7 @@ Core::Expected<void, std::string> TradeHelp(GameHudContext& context, float x, fl
     return {};
 }
 
-// 0x5f40cd..0x5f428b: la caja del zen con "Zen" y la cifra en miles, del color de cuánto es.
+// 0x5f40cd..0x5f428b: the zen box with "Zen" and the amount in thousands, colored by how much it is.
 Core::Expected<void, std::string> DrawTradeMoney(GameHudContext& context, float x, float y, std::uint32_t zen)
 {
     Quad(context.sprites, MoneyBoxSlot, x, y, 113.0f, 18.0f, 0.8828125f, 0.5625f);
@@ -986,7 +987,7 @@ Core::Expected<void, std::string> DrawTradeMoney(GameHudContext& context, float 
     return {};
 }
 
-// 0x5f4507..0x5f4573: el piso del nivel del otro y su color.
+// 0x5f4507..0x5f4573: the floor of the other's level and its color.
 std::pair<std::int32_t, std::uint32_t> LevelBracket(std::int32_t level)
 {
     if (level >= 300)
@@ -1000,10 +1001,10 @@ std::pair<std::int32_t, std::uint32_t> LevelBracket(std::int32_t level)
     return {10, 0xff0000ffu};
 }
 
-// 0x5f3bf9..0x5f3c8a (CL9 hito 8): las 2000 entradas de la tabla de los gremios (0x787aa48, de 0x58 bytes) con la clave
-// distinta de −1 e igual a la del gremio del otro (0x6c9324, la que trae el 37) suben su marca (0x5f16a0(i, 0)), la
-// dibujan con el 0x22 en (x − 32, y + 40), de 32 × 32, y escriben el nombre (+0xd) en (x, y + 30) con 0x554240, que
-// llama a 0x465950 como 0x554180 sin la caja (*estático*), con la fuente y los colores que dejó lo de antes.
+// 0x5f3bf9..0x5f3c8a (CL9 milestone 8): the 2000 entries of the guild table (0x787aa48, 0x58 bytes each) whose key is
+// not −1 and equals the other's guild's (0x6c9324, the one the 37 brings) upload their mark (0x5f16a0(i, 0)), draw it
+// with 0x22 at (x − 32, y + 40), 32 × 32, and write the name (+0xd) at (x, y + 30) with 0x554240, which calls 0x465950
+// like 0x554180 without the box (*static*), with the font and colors left by what came before.
 Core::Expected<void, std::string> DrawTheOthersGuild(GameHudContext& context, std::int32_t x, std::int32_t y)
 {
     constexpr float MarkLeft = 32.0f;
@@ -1031,7 +1032,7 @@ Core::Expected<void, std::string> DrawTheOthersGuild(GameHudContext& context, st
     return {};
 }
 
-// El nombre del otro (0x78aba1c, diez bytes y el 0 que pone el 37), hasta el primer 0.
+// The other's name (0x78aba1c, ten bytes and the 0 the 37 sets), up to the first 0.
 std::string_view NameUntilZero(std::span<const std::byte> name)
 {
     const auto end = std::ranges::find(name, std::byte{0});
@@ -1051,11 +1052,11 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
     hud.tradeY = TradeWindowY;
     const std::int32_t x = hud.tradeX;
     const std::int32_t y = hud.tradeY;
-    // 0x5f3b78: 0x5ee220(x, y, 1), el fondo y la línea del comercio.
+    // 0x5f3b78: 0x5ee220(x, y, 1), the trade's background and line.
     WindowDrawing::DrawTheWindowBack(sprites, x, y);
     Quad(sprites, TradingLineSlot, static_cast<float>(x),
          F32(static_cast<double>(static_cast<float>(y)) + TradingLineTop), 190.0f, 10.0f, 0.7421875f, 0.625f);
-    // 0x5f3b7d..0x5f3bda: los fondos de las dos grillas (0x5e3660).
+    // 0x5f3b7d..0x5f3bda: the two grids' backgrounds (0x5e3660).
     const float gridLeft = TradePlace(x, TradeGridLeft);
     DrawTheGridBoxes(sprites, gridLeft, TradePlace(y, OtherGridTop), trade.otherGrid, TradeColumns, TradeRows);
     DrawTheGridBoxes(sprites, gridLeft, TradePlace(y, OwnGridTop), trade.ownGrid, TradeColumns, TradeRows);
@@ -1063,20 +1064,20 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
     if (auto guild = DrawTheOthersGuild(context, x, y); !guild.HasValue())
         return guild;
     sprites.SetColor(White);
-    // 0x5f3ca1..0x5f3cff: el título en negrita, centrado en 120 · W / 640.
+    // 0x5f3ca1..0x5f3cff: the title in bold, centered at 120 · W / 640.
     SelectFont(context, FontKind::Bold);
     hud.textColors = TextColors{.text = 0xffdcdcdcu, .background = 0xff141414u};
     auto title = TextOf(context, TradeTitleText, "0x5f3cf8");
     if (!title.HasValue())
         return Core::Unexpected(title.Error());
     WindowDrawing::DrawTitle(context, x + 0x23, y + 0xc, title.Value());
-    // 0x5f3d04..0x5f3d9e: el OK del otro, en rojo mientras 0x78abac4 está sobre 0.
+    // 0x5f3d04..0x5f3d9e: the other's OK, red while 0x78abac4 is above 0.
     const Color okColor = trade.field78abac4 > 0 ? Color{1.0f, 0.0f, 0.0f, 1.0f} : White;
     sprites.SetColor(okColor);
     TradeQuad(sprites, trade.otherOk == 0 ? OkOffSlot : OkOnSlot, TradePlace(x, OtherOkLeft),
               TradePlace(y, OtherOkTop));
     sprites.SetColor(White);
-    // 0x5f3da9..0x5f3ecf: el zen, Money_02 con el izquierdo abajo y su ayuda.
+    // 0x5f3da9..0x5f3ecf: zen, Money_02 with the left button down, and its help.
     hud.textColors = TextColors{.text = 0xffffffffu, .background = 0xff000000u};
     const float footY = TradePlace(y, FootTop);
     const float moneyX = TradePlace(x, MoneyButtonLeft);
@@ -1088,7 +1089,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
         if (auto help = TradeHelp(context, moneyX, footY, TradeMoneyHelpText, "0x5f3eb0"); !help.HasValue())
             return help;
     }
-    // 0x5f3ed3..0x5f3ff4: el OK propio, en rojo mientras espera (0x78abac8), y su ayuda.
+    // 0x5f3ed3..0x5f3ff4: the own OK, red while it waits (0x78abac8), and its help.
     const float okX = TradePlace(x, OwnOkLeft);
     sprites.SetColor(trade.okWait > 0 ? Color{1.0f, 0.0f, 0.0f, 1.0f} : White);
     TradeQuad(sprites, trade.ownOk == 0 ? OkOffSlot : OkOnSlot, okX, footY);
@@ -1098,7 +1099,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
         if (auto help = TradeHelp(context, okX, footY, TradeOkHelpText, "0x5f3fd5"); !help.HasValue())
             return help;
     }
-    // 0x5f3ff8..0x5f40c9: cerrar y su ayuda.
+    // 0x5f3ff8..0x5f40c9: close and its help.
     const float closeX = TradePlace(x, CloseLeft);
     TradeQuad(sprites, CloseSlot, closeX, footY);
     if (MouseInSquare(context, closeX, footY, ButtonSize))
@@ -1106,7 +1107,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
         if (auto help = TradeHelp(context, closeX, footY, TradeCloseHelpText, "0x5f40aa"); !help.HasValue())
             return help;
     }
-    // 0x5f40cd..0x5f442b: el zen del otro (0x78abab4) y el propio (0x78abab8), en negrita.
+    // 0x5f40cd..0x5f442b: the other's zen (0x78abab4) and the own (0x78abab8), in bold.
     hud.textColors = TextColors{.text = 0xff96dcffu, .background = 0x80282828u};
     const float moneyBoxX = TradePlace(x, MoneyBoxLeft);
     SelectFont(context, FontKind::Bold);
@@ -1116,11 +1117,11 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
     hud.textColors.text = 0xff96dcffu;
     if (auto own = DrawTradeMoney(context, moneyBoxX, TradePlace(y, OwnMoneyTop), trade.ownMoney); !own.HasValue())
         return own;
-    // 0x5f4430..0x5f447b: el nombre del otro (0x78aba1c), en la grande.
+    // 0x5f4430..0x5f447b: the other's name (0x78aba1c), in the big font.
     hud.textColors = TextColors{.text = 0xffffe6d2u, .background = 0x80282828u};
     SelectFont(context, FontKind::BigBold);
     DrawText(context, x + 0x14, y + 0x2d, NameUntilZero(trade.otherName));
-    // 0x5f4489..0x5f4505: la flecha que sube y baja junto al OK del otro.
+    // 0x5f4489..0x5f4505: the arrow that bobs next to the other's OK.
     sprites.SetColor(ArrowColor);
     const double bob = Math::RoundedSin(static_cast<double>(context.worldClock) * static_cast<double>(ArrowBob));
     sprites.Quad(Render::OriginalQuad{.slot = Render::TextureSlot{ArrowSlot},
@@ -1136,7 +1137,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
                                       .scalePosition = true,
                                       .alpha = 0.0f});
     sprites.SetColor(White);
-    // 0x5f4507..0x5f45d8: el nivel del otro (0x78abab0, con signo) por su piso, con el formato del texto 369.
+    // 0x5f4507..0x5f45d8: the other's level (0x78abab0, signed) by its floor, with text 369's format.
     const auto [floor, levelColor] = LevelBracket(static_cast<std::int32_t>(trade.otherLevel));
     hud.textColors.text = levelColor;
     auto levelFormat = TextOf(context, TradeLevelFormatText, "0x5f4577");
@@ -1149,12 +1150,12 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
         return Core::Unexpected(levelLabel.Error());
     DrawText(context, x + 0x8c, y + 0x2d, levelLabel.Value());
     DrawText(context, x + 0x8c, y + 0x37, level);
-    // 0x5f45dd..0x5f461e: el nombre del héroe publicado.
+    // 0x5f45dd..0x5f461e: the hero's published name.
     hud.textColors.text = 0xffffe6d2u;
     SelectFont(context, FontKind::Bold);
     const Kernel::ActorState& hero = context.world.Hero();
     DrawText(context, x + 0x14, y + 0xfa, Actors::HeroNameOf(hero));
-    // 0x5f4623..0x5f470b: el aviso que late y los tres renglones.
+    // 0x5f4623..0x5f470b: the pulsing warning and the three lines.
     hud.textColors.text = WarningPulseColor(context.worldClock);
     for (const auto& [text, left, top, where] :
          {std::tuple{TradeWarningText, 0x14, 0xb9, "0x5f4682"}, std::tuple{TradeFirstLineText, 0x2d, 0xb9, "0x5f46a8"},
@@ -1173,11 +1174,11 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, Ui
 namespace
 {
 // ---------------------------------------------------------------------------------------------------------------
-// La ventana de las tiendas personales (0x5f3030).
+// The personal shops window (0x5f3030).
 
-// Los textos: 0x770dd44 (el título), 0x770de70 y 0x76e621c (la propia abierta o cerrada), 0x770e0c8 (sin título),
-// 0x770e1f4, 0x770e320 y 0x770e44c (los botones), 0x770e578 y 0x770e6a4..0x770edac (los renglones de la propia y de la
-// de otro) y 0x77102c4 y 0x77103f0 (los dos que laten). El aviso que late es el del comercio (370).
+// The texts: 0x770dd44 (the title), 0x770de70 and 0x76e621c (the own shop open or closed), 0x770e0c8 (no title),
+// 0x770e1f4, 0x770e320 and 0x770e44c (the buttons), 0x770e578 and 0x770e6a4..0x770edac (the lines of the own shop and
+// of another's) and 0x77102c4 and 0x77103f0 (the two that pulse). The pulsing warning is the trade's (370).
 constexpr std::size_t ShopTitleText = 1102;
 constexpr std::size_t ShopOpenText = 1103;
 constexpr std::size_t ShopClosedText = 560;
@@ -1187,15 +1188,15 @@ constexpr std::size_t ShopOpenButtonText = 1107;
 constexpr std::size_t ShopCloseButtonText = 1108;
 constexpr std::size_t ShopSoldOutText = 1134;
 constexpr std::size_t ShopZenOnlyText = 1135;
-// 0x5f306e: la esquina, que el dibujo pone siempre.
+// 0x5f306e: the corner, which the draw always sets.
 constexpr std::int32_t ShopWindowX = 0x104;
 constexpr std::int32_t ShopWindowY = 0;
-// 0x5f30c5..0x5f30cf: el título, blanco grisáceo sobre casi negro; 0x5f32be, el del título de la tienda.
+// 0x5f30c5..0x5f30cf: the title, greyish white on almost black; 0x5f32be, the shop title's.
 constexpr TextColors ShopTitleColors{.text = 0xffdcdcdcu, .background = 0xff141414u};
 constexpr std::uint32_t ShopNameColor = 0xff0de90du;
-// 0x5f310f..0x5f318a: la franja de la propia, sin textura (0x621aa0), de 150 (0x43160000) de ancho en (x + 0x14,
-// y + 0x30) y del paso de la letra en 640 × 480 más 2 de alto: glColor4f(0,1; 0,8; 0,1; 0,6) con la tienda abierta y
-// (0,6; 0; 0; 0,8) si no. Su texto va 2 más abajo, en 0xbe000000 o en blanco.
+// 0x5f310f..0x5f318a: the own shop's strip, untextured (0x621aa0), 150 (0x43160000) wide at (x + 0x14, y + 0x30) and
+// the font's step in 640 × 480 plus 2 tall: glColor4f(0.1, 0.8, 0.1, 0.6) with the shop open and (0.6, 0, 0, 0.8)
+// otherwise. Its text goes 2 lower, in 0xbe000000 or in white.
 constexpr std::int32_t StatusLeft = 0x14;
 constexpr std::int32_t StatusTop = 0x30;
 constexpr std::int32_t StatusTextTop = 0x32;
@@ -1206,18 +1207,18 @@ constexpr Color OpenStatusColor{0.1f, 0.8f, 0.1f, 0.6f};
 constexpr Color ClosedStatusColor{0.6f, 0.0f, 0.0f, 0.8f};
 constexpr std::uint32_t OpenStatusText = 0xbe000000u;
 constexpr std::uint32_t ClosedStatusText = 0xffffffffu;
-// Las cajas de 0x554180: 150 · W / 640 la franja y el título, 52 · W / 640 los botones.
+// 0x554180's boxes: 150 · W / 640 the strip and the title, 52 · W / 640 the buttons.
 constexpr std::uint32_t StatusBox = 150;
 constexpr std::uint32_t ButtonBox = 52;
-// 0x5f3238..0x5f3278: Item_Money (0x10f) de 150 × 24 en (x + 20, y + 65) (0x6b86d0 y 0x6b8944), con du = 0,8828125 y
-// dv = 0,5625; el título de la tienda, en (x + 0x14, y + 0x48).
+// 0x5f3238..0x5f3278: Item_Money (0x10f), 150 × 24 at (x + 20, y + 65) (0x6b86d0 and 0x6b8944), with du = 0.8828125
+// and dv = 0.5625; the shop's title at (x + 0x14, y + 0x48).
 constexpr double ShopNameBoxLeft = 20.0;
 constexpr double ShopNameBoxTop = 65.0;
 constexpr std::int32_t ShopNameLeft = 0x14;
 constexpr std::int32_t ShopNameTop = 0x48;
-// 0x5f33ac..0x5f34f6: los botones, text_button (0x659) de 56 × 24 con du = 0,875 y dv = 0,75 en (x + 0x1e, y + 0x18c)
-// y (x + 0x69, y + 0x18c), con su texto 2 a la derecha y 7 abajo; 0xff19ccff, o gris el de cerrar con la tienda
-// cerrada (el neg y sbb de 0x5f34be..0x5f34cd).
+// 0x5f33ac..0x5f34f6: the buttons, text_button (0x659), 56 × 24 with du = 0.875 and dv = 0.75 at (x + 0x1e, y + 0x18c)
+// and (x + 0x69, y + 0x18c), with their text 2 to the right and 7 down; 0xff19ccff, or grey for close with the shop
+// closed (the neg and sbb of 0x5f34be..0x5f34cd).
 constexpr std::uint16_t TextButtonSlot = 0x659;
 constexpr float TextButtonWidth = 56.0f;
 constexpr float TextButtonHeight = 24.0f;
@@ -1230,8 +1231,8 @@ constexpr std::int32_t ButtonTextRight = 2;
 constexpr std::int32_t ButtonTextDown = 7;
 constexpr std::uint32_t ButtonTextColor = 0xff19ccffu;
 constexpr std::uint32_t DisabledButtonColor = 0xffaaaaaau;
-// 0x5f34fe..0x5f37df: el aviso que late en (x + 0x1e, y + 0xe6), sobre 0xff141414, y los renglones en x + 0x1e, en
-// 0xff96dcff: cinco de la propia o de la de otro y los dos últimos latiendo.
+// 0x5f34fe..0x5f37df: the pulsing warning at (x + 0x1e, y + 0xe6), on 0xff141414, and the lines at x + 0x1e, in
+// 0xff96dcff: five of the own shop or another's and the last two pulsing.
 constexpr std::int32_t LinesLeft = 0x1e;
 constexpr std::int32_t WarningTop = 0xe6;
 constexpr std::uint32_t LinesBackground = 0xff141414u;
@@ -1256,7 +1257,7 @@ constexpr std::array<ShopLine, 5> OtherShopLines{{{1110, 0xf5, "0x5f36e4"},
 constexpr std::array<ShopLine, 2> PulsingShopLines{
     {{ShopSoldOutText, 0x14a, "0x5f367d"}, {ShopZenOnlyText, 0x159, "0x5f36a7"}}};
 
-// 0x554180(x, y, texto, 0, 0, 0) con el texto `index`.
+// 0x554180(x, y, text, 0, 0, 0) with text `index`.
 Core::Expected<void, std::string> DrawShopText(GameHudContext& context, std::int32_t x, std::int32_t y,
                                                std::size_t index, std::string_view where)
 {
@@ -1267,7 +1268,7 @@ Core::Expected<void, std::string> DrawShopText(GameHudContext& context, std::int
     return {};
 }
 
-// 0x554180(x, y, texto, k · W / 640, 1, ·) con el texto `index`.
+// 0x554180(x, y, text, k · W / 640, 1, ·) with text `index`.
 Core::Expected<void, std::string> DrawShopBoxText(GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   std::size_t index, std::uint32_t box, std::string_view where)
 {
@@ -1278,8 +1279,8 @@ Core::Expected<void, std::string> DrawShopBoxText(GameHudContext& context, std::
     return {};
 }
 
-// 0x5f310f..0x5f3233, con la propia: la franja y, en la mezcla normal y sobre un fondo en 0, el 1103 o el 560 centrado
-// en 150 · W / 640. Termina sin mezcla.
+// 0x5f310f..0x5f3233, with the own shop: the strip and, in the normal blend and on a background at 0, 1103 or 560
+// centered in 150 · W / 640. Ends with no blend.
 Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -1302,10 +1303,10 @@ Core::Expected<void, std::string> DrawTheShopStatus(GameHudContext& context, std
     return {};
 }
 
-// 0x5f3238..0x5f3351: Item_Money y, en la mezcla normal, sobre un fondo en 0 y en verde, el título centrado en
-// 150 · W / 640. El texto va a un buffer de 48 bytes de la pila: el 1105 y encima, con strcpy, el de 0x78aba64 si tiene
-// algo o si se mira la de otro (vacío, entonces). MuRet guarda hasta 36 bytes (07 Q-C962): no pasa de los 48. Termina
-// sin mezcla.
+// 0x5f3238..0x5f3351: Item_Money and, in the normal blend, on a background at 0 and in green, the title centered in
+// 150 · W / 640. The text goes to a 48-byte stack buffer: 1105 and over it, with strcpy, 0x78aba64's if it has
+// something or if another's shop is viewed (empty, then). MuRet keeps up to 36 bytes (07 Q-C962): it does not go past
+// the 48. Ends with no blend.
 Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::int32_t x, std::int32_t y,
                                                   const Social::PersonalShopState& shops)
 {
@@ -1325,8 +1326,8 @@ Core::Expected<void, std::string> DrawTheShopName(GameHudContext& context, std::
     return {};
 }
 
-// 0x5f33ac..0x5f34f6, con la propia: los dos botones, sobre un fondo en 0: abrir (1107) o aplicar con la tienda abierta
-// (1106), y cerrar (1108), gris con la tienda cerrada. Sin mouse: no se iluminan.
+// 0x5f33ac..0x5f34f6, with the own shop: the two buttons, on a background at 0: open (1107) or apply with the shop
+// open (1106), and close (1108), grey with the shop closed. Without a mouse they do not light up.
 Core::Expected<void, std::string> DrawTheShopButtons(GameHudContext& context, std::int32_t x, std::int32_t y, bool open)
 {
     Render::SpriteBatch& sprites = context.sprites;
@@ -1346,8 +1347,8 @@ Core::Expected<void, std::string> DrawTheShopButtons(GameHudContext& context, st
                            "0x5f34f6");
 }
 
-// 0x5f34fe..0x5f37e2: el aviso que late, los cinco renglones de la propia o de la de otro (con otro 0x6c931c, ninguno)
-// y los dos últimos latiendo. Termina sin mezcla.
+// 0x5f34fe..0x5f37e2: the pulsing warning, the five lines of the own shop or another's (with another 0x6c931c, none)
+// and the last two pulsing. Ends with no blend.
 Core::Expected<void, std::string> DrawTheShopLines(GameHudContext& context, std::int32_t x, std::int32_t y,
                                                    std::int32_t mode)
 {
@@ -1390,7 +1391,7 @@ Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& cont
     shops.windowY = ShopWindowY;
     const std::int32_t x = shops.windowX;
     const std::int32_t y = shops.windowY;
-    // 0x5f307e..0x5f30f9: 0x5ee220(x, y, 0), en blanco, la negrita y el título centrado en 120 · W / 640.
+    // 0x5f307e..0x5f30f9: 0x5ee220(x, y, 0), in white, the bold font and the title centered at 120 · W / 640.
     DrawWindowBack(sprites, x, y, false);
     sprites.SetColor(White);
     SelectFont(context, FontKind::Bold);
@@ -1408,7 +1409,7 @@ Core::Expected<void, std::string> DrawThePersonalShopWindow(GameHudContext& cont
     }
     if (auto name = DrawTheShopName(context, x, y, shops); !name.HasValue())
         return name;
-    // 0x5f3356..0x5f339d: las casillas de la grilla (0x5e3660) y, en la mezcla normal, en blanco.
+    // 0x5f3356..0x5f339d: the grid's cells (0x5e3660) and, in the normal blend, in white.
     DrawTheGridBoxes(sprites, F32(static_cast<double>(x) + ShopGridLeft), F32(static_cast<double>(y) + ShopGridTop),
                      world.Inventory().secondCells, ShopColumns, ShopRows);
     sprites.SetBlend(BlendMode::Alpha);

@@ -12,8 +12,8 @@ namespace Client::Ui
 {
 namespace
 {
-// Una coordenada del mouse a un píxel de [0, size − 1]. La comparación va antes del cast: un NaN
-// no es mayor ni igual a nada, y un float fuera del rango de int no se puede pasar a int.
+// A mouse coordinate to a pixel in [0, size − 1]. The comparison goes before the cast: a NaN is neither greater than
+// nor equal to anything, and a float outside int's range cannot be converted to int.
 int ClampToPixel(float value, int size)
 {
     const int last = std::max(size - 1, 0);

@@ -72,7 +72,7 @@ Result KnockDownTheHero(const glm::vec3& point, float radius, const Scenes::Worl
             Actors::SetMonsterAction(hero, fenrir ? Actors::FenrirHitActionOf(hero) : Knockdown, 0x4295f0, resources);
         !set.HasValue())
         return set;
-    // 429724 pasa5d alwireaunquelaacciónlocaldelFenrirseeligecon4e9cd0.
+    // 0x429724 sends 0x5d to the wire even though the Fenrir's local action is picked with 0x4e9cd0.
     const auto direction = Actors::ActionDirection(hero.angles.z);
     if (!direction)
         return Core::Unexpected(std::string("4295f0: ángulodeacciónfuera de_ftol"));
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> ApplyTheSiegeWeaponFire(std::uint16_t key, std
                                                           const Scenes::WorldEntryResources& resources)
 {
     const auto slot = Kernel::ActorWithKey(resources.world, key);
-    // WorldState retiene el lugar400sentinela que5110d0 devuelve; no se fabricaactor0.
+    // WorldState keeps the sentinel slot 400 that 0x5110d0 returns; no actor 0 is made up.
     auto& actor = resources.world.Actors()[slot];
     if (auto set = Actors::SetMonsterAction(actor, 1, 0x44eec6, resources); !set.HasValue())
         return set;

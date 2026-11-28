@@ -41,7 +41,7 @@ void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Pla
     }
     if (!edit.compositionText.empty())
         return;
-    // CL9 hito 10: el EDIT de varios renglones (el cuerpo de la carta) mueve el cursor por renglones.
+    // CL9 milestone 10: the multiline EDIT (the letter body) moves the caret by rows.
     const bool lines = edit.multiline == 1 && measure != nullptr;
     const auto moveInTheLines = [&](EditCaretKey move)
     {
@@ -58,7 +58,7 @@ void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Pla
             BackspaceInTheEdit(edit);
         break;
     case OldEditKey::Delete:
-        // Ctrl+Delete borra hasta el final solo sin selección; con una, EDIT borra únicamente el rango elegido.
+        // Ctrl+Delete erases to the end only without a selection; with one, EDIT erases only the selected range.
         if (ctrl && !edit.text.HasSelection())
             edit.text.Select(edit.text.Cursor(), edit.text.Size());
         DeleteInTheEdit(edit);
@@ -83,7 +83,7 @@ void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Pla
             edit.text.MoveRight(shift);
         break;
     case OldEditKey::Home:
-        // Ctrl+Inicio y Ctrl+Fin van al principio y al final de todo el texto.
+        // Ctrl+Home and Ctrl+End go to the start and the end of the whole text.
         if (ctrl || !moveInTheLines(EditCaretKey::Home))
             edit.text.MoveHome(shift);
         break;
@@ -119,7 +119,7 @@ void ApplyKeyToTheEdit(OldEdit& edit, OldEditKey key, bool shift, bool ctrl, Pla
             PasteInTheEdit(edit, *pasted);
         break;
     case OldEditKey::CtrlA:
-        // El Ctrl+A del EDIT XP es no-op: no reemplaza ni mueve una selección existente.
+        // The XP EDIT's Ctrl+A is a no-op: it neither replaces nor moves an existing selection.
         break;
     }
 }

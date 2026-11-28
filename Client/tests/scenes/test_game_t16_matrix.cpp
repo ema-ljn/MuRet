@@ -15,15 +15,15 @@ class GameT16SceneMatrix : public Client::Tests::T16::SceneTest, public ::testin
 {
 };
 
-// La entrada se aplica en la sesión; no saltea mapas ni fabrica un terreno para pasar el paso.
-// Un corte se registra antes de reclamar recta/codo/borde/safeZone de esa fila.
+// The entry is applied in the session; it skips no maps and fakes no terrain to pass the step. A stop is recorded
+// before claiming straight/corner/edge/safeZone for that row.
 TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBoundary)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
     const bool kalima = (map >= 24 && map <= 29) || map == 36;
     const bool chaosCastle = map >= 18 && map <= 23;
-    // World25 tiene objetos hasta 12941/12209: Home queda fuera. 64,64 es la entrada poblada.
-    // World19:30,90 está dentro del castillo poblado y de la zona segura, como la caminata de los seis alias.
+    // World25 has objects up to 12941/12209: Home is outside. 64,64 is the populated entry. World19:30,90 is inside the
+    // populated castle and the safe zone, like the six aliases' walk.
     Teleport(map,
              kalima        ? 64
              : chaosCastle ? 30
@@ -73,8 +73,8 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     }
     if (kalima)
     {
-        // La 0x6f1 del objeto 40 sale con rand() % 4 en 0 (0x438c10): con los 3.848 rand() de 0x4eb620 al empezar cada
-        // frame (CL9 hito 4), la primera se ve en el tercero (KalimaLiveObjectsTest).
+        // Object 40's 0x6f1 comes out with rand() % 4 at 0 (0x438c10): with the 3848 rand() of 0x4eb620 at the start of
+        // each frame (CL9 milestone 4), the first one shows in the third (KalimaLiveObjectsTest).
         for (int frame = 1; frame < 3; ++frame)
         {
             ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
@@ -110,7 +110,8 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         EXPECT_TRUE(m_scene->MouseRay().has_value());
         if (chaosCastle)
         {
-            // 618970 y609640: el Angel deWorld19 y su cromo5c0 se dibujan en el frame real, no un mapa vacío.
+            // 0x618970 and 0x609640: World19's Angel and its chrome 0x5c0 are drawn in the real frame, not an empty
+            // map.
             ASSERT_NE(m_states->assets.fauna.Find(Client::Models::ModelId{0x1f7}), nullptr);
             EXPECT_EQ(Hero().byte88, 1);
             EXPECT_FALSE(m_world->Map().objects.empty());

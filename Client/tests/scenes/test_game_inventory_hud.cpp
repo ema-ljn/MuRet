@@ -55,9 +55,9 @@
 #include <utility>
 #include <vector>
 
-// El inventario en el HUD (CL8 hito 4): la ventana de 0x5f2340, los ítems de la UI (0x5e1480: sin los modelos, sus
-// rand(); con unos inventados, el pase de 0x5ac120), las cifras de 0x5f7840 y el ítem del cursor de 0x5f7b10. Los
-// ítems y el zen son inventados.
+// The inventory in the HUD (CL8 milestone 4): the window of 0x5f2340, the UI items (0x5e1480: without the models,
+// their rand(); with made-up ones, the pass of 0x5ac120), the numbers of 0x5f7840 and the cursor item of 0x5f7b10. The
+// items and the zen are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -72,12 +72,12 @@ using Client::Render::SpriteBatch;
 constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr int Own = OwnRecordCloseRandoms;
-// La ventana: los cierres de los lugares (0x5e2460), del zen y del nivel, la consulta del comercio del botón de
-// cerrar y las del comercio y la tienda de NPC de reparar y de la tienda personal.
+// The window: the closes of the slots (0x5e2460), of the zen and of the level, the close button's trade query and the
+// trade and NPC shop queries of repair and of the personal shop.
 constexpr int WindowDraws = 3 * Own + 5;
-// El HUD sin ventanas, como en GameHudTest.
+// The HUD with no windows, as in GameHudTest.
 constexpr int HudBaseDraws = 19 * Own + 2 * SmallLogicalCloseRandoms + 9;
-// El ancho del mundo (0x5bb8d0) con el inventario abierto: las consultas de la tienda y del comercio.
+// The world's width (0x5bb8d0) with the inventory open: the shop and trade queries.
 constexpr int WorldWidthDraws = 2;
 constexpr std::uint16_t DigitSlot = 1;
 
@@ -101,7 +101,7 @@ std::vector<std::uint16_t> SlotsOf(const SpriteBatch& sprites)
     return slots;
 }
 
-// El vértice 0 (arriba a la izquierda, con la y de GL hacia arriba) y el 2 del quad `index` con la textura `slot`.
+// Vertex 0 (top left, with GL's y going up) and vertex 2 of quad `index` with texture `slot`.
 struct Corners
 {
     Client::Render::SpriteVertex first;
@@ -127,8 +127,7 @@ std::optional<Corners> NthQuadOf(const SpriteBatch& sprites, std::uint16_t slot,
     return std::nullopt;
 }
 
-// Los modelos inventados del pase de la UI: un triángulo con el vértice 0 en el origen de su hueso, que cae en la
-// posición del objeto.
+// The UI pass's made-up models: a triangle with vertex 0 at its bone's origin, which falls on the object's position.
 class UiModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -173,7 +172,7 @@ protected:
         auto loaded = Client::Tables::LoadGameData(m_dataRoot);
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
         data = std::move(loaded).Value();
-        // Como lo deja la entrada al mundo y un F3 10 sin ítems.
+        // As world entry and an F3 10 with no items leave it.
         Client::Kernel::OwnCharacterRecord& own = world.OwnCharacter();
         own.ClearEquipmentForEntry();
         own.life = 100;
@@ -234,8 +233,8 @@ protected:
         return Client::Hud::DrawUiItem(context, Client::Items::UiItemBox{}, type, level, excellent, set, false);
     }
 
-    // Un ítem de `width` × `height` desde la casilla `origin`, como lo deja 0x5bc740: el tipo en todas y +0x3c en 1
-    // solo en la de arriba a la izquierda.
+    // An item of `width` × `height` from cell `origin`, as 0x5bc740 leaves it: the type in all of them and +0x3c at 1
+    // only in the top left one.
     void PutItem(std::size_t origin, std::uint16_t type, std::size_t width = 1, std::size_t height = 1,
                  std::uint8_t durability = 0, std::uint32_t level = 0)
     {
@@ -252,7 +251,7 @@ protected:
         }
     }
 
-    // El pase de la UI de `screen` con los modelos inventados; los dos fines de lote se anotan en `events`.
+    // The UI pass of `screen` with the made-up models; the two batch ends are noted in `events`.
     Client::Items::UiItemResources UiItems(Client::Core::PixelSize screen)
     {
         special.random = &random;
@@ -270,7 +269,7 @@ protected:
                                               .pass = pass.HasValue() ? pass.Value() : Client::Items::UiItemPass{}};
     }
 
-    // Dónde posa 0x5e0720 el ítem de la caja `box` en `screen`, con los ángulos de `angles`.
+    // Where 0x5e0720 poses the item of box `box` in `screen`, with the angles of `angles`.
     glm::vec3 PlacedAt(Client::Core::PixelSize screen, std::int32_t type, std::uint32_t level,
                        const Client::Items::UiItemBox& box, bool always, glm::vec3& angles)
     {
@@ -294,7 +293,6 @@ protected:
         return placed.Value().position;
     }
 
-    // La posición del vértice 0 de cada triángulo del lote de los modelos.
     std::vector<glm::vec3> TriangleOrigins() const
     {
         std::vector<glm::vec3> origins;
@@ -325,9 +323,9 @@ protected:
     std::vector<std::string> events;
 };
 
-// 0x5f2340 sin personaje ni party: la ventana en (0x1c2, 0), los doce fondos del equipo (el casco con la clase 0),
-// las 64 casillas vacías, el fondo del zen, cerrar y el cartel del set; reparar y la tienda personal no, con el
-// nivel en 0. Lo mismo en Lorencia y en Devias: la ventana no mira el mapa.
+// 0x5f2340 with no character or party: the window at (0x1c2, 0), the twelve equipment backgrounds (the helm with class
+// 0), the 64 empty cells, the zen background, close and the set banner; not repair or the personal shop, with the
+// level at 0. The same in Lorencia and in Devias: the window does not look at the map.
 TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorenciaAndDevias)
 {
     for (const std::int32_t map : {0, 2})
@@ -352,7 +350,7 @@ TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorencia
         EXPECT_EQ(world.Runtime().hud.inventoryX, 0x1c2);
         EXPECT_EQ(world.Runtime().hud.inventoryY, 0);
     }
-    // El fondo de arriba: 190 × 256 desde (450, 0); la primera casilla en (465, 200); el zen en (500; 367,7).
+    // The top background: 190 × 256 from (450, 0); the first cell at (465, 200); the zen at (500, 367.7).
     const auto back = NthQuadOf(sprites, 0x104);
     ASSERT_TRUE(back.has_value());
     EXPECT_FLOAT_EQ(back->first.x, 450.0f);
@@ -367,8 +365,8 @@ TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorencia
     ASSERT_TRUE(zen.has_value());
     EXPECT_FLOAT_EQ(zen->first.x, 500.0f);
     EXPECT_NEAR(zen->first.y, 480.0f - 367.7f, 1e-4f);
-    // El título (Text 223) en una caja de 120 desde 485, en negrita y en blanco sobre gris; "Zen" (224) en (470, 370)
-    // y la cifra en (510, 370), con su color; el cartel del set (989) dos veces, centrado en 546 y 545.
+    // The title (Text 223) in a box of 120 from 485, bold and white on gray; "Zen" (224) at (470, 370) and the number
+    // at (510, 370), with its color; the set banner (989) twice, centered at 546 and 545.
     ASSERT_EQ(text.texts.size(), 5u);
     const std::string title = TextAt(223);
     EXPECT_EQ(text.texts[0].text, title);
@@ -397,10 +395,10 @@ TEST_F(GameInventoryHudTest, TheWindowDrawsItsQuadsAndSpendsItsRandomsInLorencia
     EXPECT_EQ(text.texts[4].style.colors.text, 0xffffffffu);
 }
 
-// 0x5f240b..0x5f2459: el título va en el modo 2 en una caja de W · 120 / 640 píxeles desde x + 0x23, con el texto en
-// la columna (caja − cx) / 2 y el fondo en toda la caja (P-C70 b): 120 en 640 × 480, 192 en 1.024 × 768 y 300 en
-// 1.600 × 1.200, que TextCache parte en dos cajas (TextCacheTest.AModeTwoBoxPast256ColumnsGoesInBoxesOf256). Con la
-// party abierta, desde 0x104 + 0x23. Lo mismo en Lorencia y en Devias.
+// 0x5f240b..0x5f2459: the title goes in mode 2 in a box of W · 120 / 640 pixels from x + 0x23, with the text in column
+// (box − cx) / 2 and the background over the whole box (P-C70 b): 120 in 640 × 480, 192 in 1024 × 768 and 300 in
+// 1600 × 1200, which TextCache splits into two boxes (TextCacheTest.AModeTwoBoxPast256ColumnsGoesInBoxesOf256). With
+// the party open, from 0x104 + 0x23. The same in Lorencia and in Devias.
 TEST_F(GameInventoryHudTest, TheTitleFillsItsWholeBoxInThreeResolutions)
 {
     struct Case
@@ -440,7 +438,7 @@ TEST_F(GameInventoryHudTest, TheTitleFillsItsWholeBoxInThreeResolutions)
     }
 }
 
-// Con el personaje o la party abiertos, la ventana va en x = 0x104.
+// With the character or the party open, the window goes at x = 0x104.
 TEST_F(GameInventoryHudTest, TheWindowMovesLeftWithThePartyOpen)
 {
     world.Runtime().panels.party = 1;
@@ -453,7 +451,7 @@ TEST_F(GameInventoryHudTest, TheWindowMovesLeftWithThePartyOpen)
     EXPECT_FLOAT_EQ(back->first.x, 260.0f);
 }
 
-// 0x5f26a7..0x5f27ef: el zen con comas y su color por cuánto es.
+// 0x5f26a7..0x5f27ef: the zen's color goes by how much it is.
 TEST_F(GameInventoryHudTest, TheZenGetsItsCommasAndItsColor)
 {
     struct Case
@@ -482,8 +480,8 @@ TEST_F(GameInventoryHudTest, TheZenGetsItsCommasAndItsColor)
     }
 }
 
-// Reparar desde el nivel 50 (con 0x78abb0c, la otra textura) y la tienda personal desde el 6; el casco no tiene fondo
-// con la clase 3.
+// Repair from level 50 (with 0x78abb0c, the other texture) and the personal shop from 6; the helm has no background
+// with class 3.
 TEST_F(GameInventoryHudTest, TheFootButtonsFollowTheLevel)
 {
     struct Case
@@ -515,7 +513,7 @@ TEST_F(GameInventoryHudTest, TheFootButtonsFollowTheLevel)
     EXPECT_FALSE(NthQuadOf(sprites, 0x107).has_value());
 }
 
-// Con el mouse sobre cerrar, su ayuda (Text 225) en (_ftol(x + 20), _ftol(395) − 13).
+// With the mouse over close, its help (Text 225) at (_ftol(x + 20), _ftol(395) − 13).
 TEST_F(GameInventoryHudTest, TheCloseButtonShowsItsHelp)
 {
     mouse = {0x1c2 + 20 + 5, 395 + 5};
@@ -529,7 +527,7 @@ TEST_F(GameInventoryHudTest, TheCloseButtonShowsItsHelp)
     EXPECT_EQ(text.texts[3].style.font, Client::Render::Text::FontKind::Normal);
 }
 
-// Cada lugar del equipo y cada casilla toma el color del aviso de su ítem (0x5e22d0): el 8, roto, en rojo.
+// Each equipment slot and each cell takes the color of its item's warning (0x5e22d0): the 8, broken, in red.
 TEST_F(GameInventoryHudTest, TheSlotsTakeTheColorOfTheirWarning)
 {
     world.OwnCharacter().equipment[8].warning = 8;
@@ -545,10 +543,10 @@ TEST_F(GameInventoryHudTest, TheSlotsTakeTheColorOfTheirWarning)
     EXPECT_EQ(cell->color, (Color{0.6f, 0.7f, 1.0f, 1.0f}));
 }
 
-// 0x5f7610 con el inventario: el registro abierto alrededor del equipo, los rand() de 0x607b60 por el modelo (el 0xe
-// es el 0x220, uno; el 0xa05 y el 0xc0e, el 0xc17 y el 0xe20, dos; el 0xa07, el 0xc19, uno), los dos de 0x609640 del
-// 0xc0f (0xe21) y las consultas del comercio y de la tienda. Las casillas que no son la de arriba a la izquierda no
-// cuentan, y el 0x1a13 con el nivel en 3 no dibuja nada.
+// 0x5f7610 with the inventory: the record opened around the equipment, the rand() of 0x607b60 per model (the 0xe is
+// the 0x220, one; the 0xa05 and the 0xc0e, the 0xc17 and the 0xe20, two; the 0xa07, the 0xc19, one), the two of
+// 0x609640 of the 0xc0f (0xe21) and the trade and shop queries. Cells other than the top left one do not count, and
+// the 0x1a13 with the level at 3 draws nothing.
 TEST_F(GameInventoryHudTest, TheGridItemsSpendTheRandomsOfTheirModels)
 {
     PutItem(0, 0x000e, 1, 3);
@@ -568,8 +566,8 @@ TEST_F(GameInventoryHudTest, TheGridItemsSpendTheRandomsOfTheirModels)
     EXPECT_EQ(world.Runtime().ownRecordDepth, 0);
 }
 
-// El pase del set (0x60cc29): con el set en 1 o 2, sin excelente y con sin(0,001 · T) · 0,5 + 0,4 en 0,01 o menos, un
-// rand() % 100 en el +0xc0 del modelo.
+// The set pass (0x60cc29): with the set at 1 or 2, without excellent and with sin(0.001 · T) · 0.5 + 0.4 at 0.01 or
+// less, one rand() % 100 in the model's +0xc0.
 TEST_F(GameInventoryHudTest, TheSetPassDrawsItsRandomWhenThePulseIsOff)
 {
     worldClock = 4712.0f;
@@ -588,10 +586,9 @@ TEST_F(GameInventoryHudTest, TheSetPassDrawsItsRandomWhenThePulseIsOff)
     EXPECT_EQ(random.State(), before.State());
 }
 
-// Las alas 0x1806 (el modelo 0x1a18) cortan antes de sus uniones, con su dirección. Las grillas de la tienda, del
-// almacén y del entrenador (hito 6) y la del comercio (hito 7) ya no cortan.
-// Sin los modelos MuRet no tiene los huesos de las 20 uniones del 0x1a18 (0x60c3b6), que el paso siguiente usa con
-// sus rand(): sin ellos corta.
+// The wings 0x1806 (the model 0x1a18) stop before their joints, with their address. Without the models MuRet does not
+// have the bones of the 20 joints of the 0x1a18 (0x60c3b6), which the next step uses with their rand(): without them
+// it stops.
 TEST_F(GameInventoryHudTest, WithoutModelsTheWingsOfDarknessStopWithTheirAddress)
 {
     PutItem(0, 0x1806, 2, 2);
@@ -600,9 +597,9 @@ TEST_F(GameInventoryHudTest, WithoutModelsTheWingsOfDarknessStopWithTheirAddress
     EXPECT_NE(wings.Error().find("0x60c3b6"), std::string::npos) << wings.Error();
 }
 
-// 0x60c3b6..0x60c598 con los modelos: el 0x1806 (12,6, Wing of Darkness, el modelo 0x1a18 de la tienda de la Potion
-// Girl) cuelga de su objeto local, el de la pila de 0x5e0720, diez pares de uniones (0x614/0xe y 0x613/4) y diez
-// sprites 0x62b, sin rand() (07 Q-C1821).
+// 0x60c3b6..0x60c598 with the models: the 0x1806 (item (12, 6), Wing of Darkness, the model 0x1a18 of the Potion
+// Girl's shop) hangs from its local object, the one on the stack of 0x5e0720, ten pairs of joints (0x614/0xe and
+// 0x613/4) and ten sprites 0x62b, without rand() (07 Q-C1821).
 TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObject)
 {
     PutItem(0, 0x1806, 2, 2);
@@ -640,9 +637,9 @@ TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObje
     EXPECT_EQ(std::ranges::count_if(glow->Sprites(), [](const auto& sprite) { return sprite.alive; }), 10);
 }
 
-// 0x5f769b y 0x5f7756 (CL9 hito 6): la grilla de la tienda y la del almacén (0x78a7070, 8 × 15) van desde la esquina de
-// la ventana del NPC más (15, 50); la tienda con el rand() de su byte protegido. Un 0xc0e saca los dos de su modelo
-// en cualquiera de las dos.
+// 0x5f769b and 0x5f7756 (CL9 milestone 6): the shop grid and the warehouse grid (0x78a7070, 8 × 15) go from the NPC
+// window's corner plus (15, 50); the shop with the rand() of its protected byte. A 0xc0e draws the two of its model in
+// either.
 TEST_F(GameInventoryHudTest, TheShopAndWarehouseGridsSpendTheRandomsOfTheirItems)
 {
     world.Runtime().ui.npcWindowX = 0x104;
@@ -667,8 +664,8 @@ TEST_F(GameInventoryHudTest, TheShopAndWarehouseGridsSpendTheRandomsOfTheirItems
     }
 }
 
-// 0x5f7973 y 0x5f7a2e: las cifras de la tienda y del almacén, en la casilla (columna · 20 + x + 15, fila · 20 + y +
-// 50) de la esquina del NPC.
+// 0x5f7973 and 0x5f7a2e: the numbers of the shop and the warehouse, in the cell (column · 20 + x + 15, row · 20 + y +
+// 50) from the NPC corner.
 TEST_F(GameInventoryHudTest, TheShopAndWarehouseNumbersStartAtTheNpcCorner)
 {
     world.Runtime().panels.inventory = 0;
@@ -695,8 +692,8 @@ TEST_F(GameInventoryHudTest, TheShopAndWarehouseNumbersStartAtTheNpcCorner)
     }
 }
 
-// 0x5f7840: las pociones con 2 o más (9 × 10, 13 a la derecha) y los paquetes de joyas con ((nivel + 1) · 5) · 2
-// (7 × 8, 14 a la derecha), en (1; 0,9; 0,7) y con la mezcla de alfa.
+// 0x5f7840: the potions with 2 or more (9 × 10, 13 to the right) and the jewel bundles with ((level + 1) · 5) · 2
+// (7 × 8, 14 to the right), in (1, 0.9, 0.7) and with alpha blending.
 TEST_F(GameInventoryHudTest, TheNumbersShowThePotionsAndTheJewelBundles)
 {
     world.Runtime().hud.inventoryX = 0x1c2;
@@ -719,9 +716,9 @@ TEST_F(GameInventoryHudTest, TheNumbersShowThePotionsAndTheJewelBundles)
     EXPECT_FLOAT_EQ(thirty->third.y, 480.0f - 208.0f);
 }
 
-// 0x5f77c6 y 0x5f7a9e: con la caja del caos abierta (y el inventario cerrado), su grilla de 8 × 4 desde la esquina
-// de la ventana del NPC más (15, 110): los rand() de los modelos (el 0xe uno, el 0xc0e dos) después de las consultas
-// de la tienda y del comercio, y las cifras de la poción con 3. En Lorencia, Devias y Noria.
+// 0x5f77c6 and 0x5f7a9e: with the chaos box open (and the inventory closed), its 8 × 4 grid from the NPC window's
+// corner plus (15, 110): the models' rand() (the 0xe one, the 0xc0e two) after the shop and trade queries, and the
+// numbers of the potion with 3. In Lorencia, Devias and Noria.
 TEST_F(GameInventoryHudTest, TheChaosBoxGridDrawsFromTheNpcWindowCorner)
 {
     for (const std::int32_t map : {0, 2, 3})
@@ -755,8 +752,8 @@ TEST_F(GameInventoryHudTest, TheChaosBoxGridDrawsFromTheNpcWindowCorner)
     }
 }
 
-// 0x44ad40: con 0x724580 en 3, la caja del entrenador (0x723c80) en (275, 110), sin mirar la ventana del NPC, y sus
-// cifras (el 0x8000 abierto basta para 0x5f7840). En otro modo, nada.
+// 0x44ad40: with 0x724580 at 3, the trainer's box (0x723c80) at (275, 110), without looking at the NPC window, and its
+// numbers (the 0x8000 open is enough for 0x5f7840). In another mode, nothing.
 TEST_F(GameInventoryHudTest, TheTrainerBoxGridDrawsAtItsFixedCorner)
 {
     for (const std::int32_t map : {0, 2})
@@ -788,7 +785,7 @@ TEST_F(GameInventoryHudTest, TheTrainerBoxGridDrawsAtItsFixedCorner)
         EXPECT_FLOAT_EQ(three->third.y, 480.0f - 140.0f);
         EXPECT_FALSE(NthQuadOf(sprites, DigitSlot, 1).has_value());
 
-        // Con el modo 2, solo los rand() de los IsOpen de la tienda y del comercio.
+        // With mode 2, only the rand() of the shop and trade IsOpen.
         runtime.panels.delegated.trainer = 2;
         const CrtRandom protectedOnly = Advanced(random, 2);
         ASSERT_TRUE(GridItems().HasValue());
@@ -796,7 +793,7 @@ TEST_F(GameInventoryHudTest, TheTrainerBoxGridDrawsAtItsFixedCorner)
     }
 }
 
-// 0x5f7b10: el ítem del cursor saca los rand() de su modelo; sin ítem, nada.
+// 0x5f7b10: the cursor item draws the rand() of its model; without an item, nothing.
 TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
 {
     world.Runtime().cursorItem.id = 0x0c0e;
@@ -814,9 +811,9 @@ TEST_F(GameInventoryHudTest, TheCursorItemSpendsTheRandomsOfItsModel)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x633116..0x63315d y 0x6331fc..0x633220: 0x633110 dibuja el ítem del cursor con el 0x94 o el 0x98 y el aviso 1
-// (vender algo valioso), y el de los diálogos (0x78a59c8) con el 0x96, el 0xa8, el 0x99 y el 0x94 con el aviso 5, que
-// pasa por el 0x96. El 0x98 de la mezcla (aviso 2) y los otros avisos, nada.
+// 0x633116..0x63315d and 0x6331fc..0x633220: 0x633110 draws the cursor item with the 0x94 or the 0x98 and notice 1
+// (selling something valuable), and the dialogs' one (0x78a59c8) with the 0x96, the 0xa8, the 0x99 and the 0x94 with
+// notice 5, which goes through the 0x96. The mix's 0x98 (notice 2) and the other notices, nothing.
 TEST(DialogItemTest, TheDialogAndItsWarningChooseTheItem)
 {
     using Client::Hud::DialogItemOf;
@@ -837,9 +834,9 @@ TEST(DialogItemTest, TheDialogAndItsWarningChooseTheItem)
     EXPECT_EQ(DialogItemOf(0x97, 1), Source::None);
 }
 
-// 0x633110 sin modelos: los rand() de 0x5e0720 del ítem que elige (el 0x0c0e, el modelo 0xe20: dos en 0x607b60). Con
-// el diálogo de vender toma el ítem del cursor sin mirar 0x7879fbc; con el 0x99, el de los diálogos; con la mezcla,
-// nada.
+// 0x633110 without models: the rand() of 0x5e0720 of the item it chooses (the 0x0c0e, the model 0xe20: two in
+// 0x607b60). With the sell dialog it takes the cursor item without looking at 0x7879fbc; with the 0x99, the dialogs'
+// one; with the mix, nothing.
 TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
 {
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -872,9 +869,9 @@ TEST_F(GameInventoryHudTest, TheDialogItemSpendsTheRandomsOfTheItemItShows)
     EXPECT_EQ(random.State(), priced.State());
 }
 
-// 0x633110 con los modelos: su propio pase (la proyección de 1°, W / H, 20 y el far del mundo de 0x6d5d44, que el
-// ancla no usa) y 0x5e1480(245, 115, 40, 60, …, 1). La caja es fija: el 0x000e es de 1 × 3 en Item.bmd y va en la de
-// 40 × 60. El 2D de antes queda debajo y el pase de los ítems de la UI vuelve a su far de 2.000.
+// 0x633110 with the models: its own pass (the projection of 1°, W / H, 20 and the world's far of 0x6d5d44, which the
+// anchor does not use) and 0x5e1480(245, 115, 40, 60, …, 1). The box is fixed: the 0x000e is 1 × 3 in Item.bmd and
+// goes in the 40 × 60 one. The earlier 2D stays below and the UI items pass goes back to its far of 2000.
 TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
 {
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -906,9 +903,9 @@ TEST_F(GameInventoryHudTest, TheDialogItemDrawsInItsFixedBox)
     }
 }
 
-// 0x5ac1e9..0x5ac204: 0x5ac120 dibuja el ítem del cursor solo con 0x78abb14 en 0 y 0x78aba60 distinto de 2. Con el
-// diálogo de vender abierto (el aviso 1) o el del precio de la tienda propia (2), no lo dibuja: el de vender lo dibuja
-// 0x633110 en el diálogo. Con el HUD entero, los rand() del 0x0c0e no salen.
+// 0x5ac1e9..0x5ac204: 0x5ac120 draws the cursor item only with 0x78abb14 at 0 and 0x78aba60 other than 2. With the
+// sell dialog open (notice 1) or the own shop's price dialog (2), it does not draw it: 0x633110 draws the sell one in
+// the dialog. With the whole HUD, the rand() of the 0x0c0e do not come out.
 TEST_F(GameInventoryHudTest, TheCursorItemWaitsWhileItsDialogIsOpen)
 {
     Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -936,10 +933,9 @@ TEST_F(GameInventoryHudTest, TheCursorItemWaitsWhileItsDialogIsOpen)
     }
 }
 
-// El HUD entero con el inventario abierto, en Lorencia y en Devias: el estado base más la ventana, el cierre del
-// registro alrededor del equipo de 0x5e2fc0 y las dos consultas que el ancho del mundo (0x5bb8d0) hace con el
-// inventario abierto (la tienda y el comercio), en los avisos de durabilidad y en la party cerrada (0x5f0be0, que con
-// su IsOpen(4) en 0 salta a 0x5f12d0 y lo llama).
+// The base state plus the window, the record close around the equipment of 0x5e2fc0 and the two queries the world's
+// width (0x5bb8d0) makes with the inventory open (the shop and the trade), in the durability notices and in the closed
+// party (0x5f0be0, which with its IsOpen(4) at 0 jumps to 0x5f12d0 and calls it).
 TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenciaAndDevias)
 {
     for (const std::int32_t map : {0, 2})
@@ -959,10 +955,10 @@ TEST_F(GameInventoryHudTest, TheHudWithTheInventoryOpenSpendsItsRandomsInLorenci
     }
 }
 
-// 0x5f7610 con los modelos (P-C70): el equipo y la grilla en sus cajas, en Lorencia y en Devias, en 640 × 480 y en
-// 1.024 × 768. El primer ítem cierra el 2D y abre el pase de la UI, cada ítem va donde lo posa 0x5e0720 desde el
-// punto de su caja (el arma en (0x1c2 + 15, 89), de 40 × 60; la grilla desde (0x1c2 + 15, 200), cada uno del tamaño
-// de Item.bmd: 1 × 3, 2 × 3 y 1 × 4 casillas), y los rand() son los mismos que sin dibujar.
+// 0x5f7610 with the models (P-C70): the equipment and the grid in their boxes, in Lorencia and in Devias, in 640 × 480
+// and in 1024 × 768. The first item closes the 2D and opens the UI pass, each item goes where 0x5e0720 poses it from
+// its box's point (the weapon at (0x1c2 + 15, 89), of 40 × 60; the grid from (0x1c2 + 15, 200), each of Item.bmd's
+// size: 1 × 3, 2 × 3 and 1 × 4 cells), and the rand() are the same as without drawing.
 TEST_F(GameInventoryHudTest, TheGridItemsDrawInTheUiPassInTwoMapsAndTwoResolutions)
 {
     world.Runtime().hud.inventoryX = 0x1c2;
@@ -1012,8 +1008,8 @@ TEST_F(GameInventoryHudTest, TheGridItemsDrawInTheUiPassInTwoMapsAndTwoResolutio
     }
 }
 
-// 0x5f7b10 con los modelos: el ítem del cursor centrado en el mouse, a 0,07 de la cámara y girando con el reloj
-// (el último argumento de 0x5e1480 en 1).
+// 0x5f7b10 with the models: the cursor item centered on the mouse, at 0.07 from the camera and turning with the clock
+// (the last argument of 0x5e1480 at 1).
 TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
 {
     world.Runtime().cursorItem.id = 0x0c0e;
@@ -1042,10 +1038,10 @@ TEST_F(GameInventoryHudTest, TheCursorItemDrawsCenteredOnTheMouse)
     }
 }
 
-// CL9 hito 11, 0x5f70a0: los modelos de la ventana de 0x78abb00 con el tamaño de Item.bmd: el 0x1c15 (de nivel 0, o
-// con +4 en 0xf con 2 y 4; con 5, el tipo 0) en (540, 298) y en (540, 333), y con 4 solo el de abajo. Lo mismo, con
-// los mismos rand(), que esas llamadas a 0x5e1480 una por una. El brillo de la Rena deja publicada su malla sin luz
-// para los dibujos siguientes: cada caso dibuja una vez antes. En Lorencia y en Devias.
+// CL9 milestone 11, 0x5f70a0: the models of the window of 0x78abb00 with Item.bmd's size: the 0x1c15 (level 0, or with
+// +4 at 0xf with 2 and 4; with 5, type 0) at (540, 298) and at (540, 333), and with 4 only the lower one. The same,
+// with the same rand(), as those calls to 0x5e1480 one by one. Rena's glow leaves its unlit mesh published for the
+// following drawings: each case draws once before. In Lorencia and in Devias.
 TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
 {
     struct Case
@@ -1055,7 +1051,7 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
         std::uint32_t level;
         bool upper;
     };
-    // Un pase de la UI con `draw` y lo que dejó en el lote de los modelos.
+    // A UI pass with `draw` and what it left in the models' batch.
     const auto pass = [this](const auto& draw)
     {
         auto glow = std::make_unique<Client::Particles::FrameSprites>();
@@ -1111,8 +1107,8 @@ TEST_F(GameInventoryHudTest, TheChipWindowDrawsItsModels)
     }
 }
 
-// El HUD entero con el inventario abierto y los modelos, en Lorencia y en Devias: los mismos rand() que sin dibujar,
-// y el pase de la UI que abre el arma y cierra el final de 0x5ac120.
+// The whole HUD with the inventory open and the models: the same rand() as without drawing, and the UI pass that the
+// weapon opens and the end of 0x5ac120 closes.
 TEST_F(GameInventoryHudTest, TheHudDrawsTheUiItemsBetweenItsTwoDimensionalParts)
 {
     ItemState& weapon = world.OwnCharacter().equipment[0];

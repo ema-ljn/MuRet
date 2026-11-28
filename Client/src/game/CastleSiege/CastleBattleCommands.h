@@ -8,7 +8,7 @@
 
 namespace Client::CastleSiege
 {
-// Los B2 11..19/1D/1E del dispatcher, con sus mensajes, ventanas y efectos sobre el mismo mundo.
+// The dispatcher's B2 11..19/1D/1E, with their messages, windows and effects on the same world.
 [[nodiscard]] Core::Expected<void, std::string>
 ApplyCastleBattleCommand(const Protocol::CastleSiege::CastleBattlePacket& packet, const CastleReceiveContext& context);
 } // namespace Client::CastleSiege

@@ -157,9 +157,9 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
                 }
             }
             clock.Advance(std::chrono::milliseconds(47));
-            // Los dos pasos de 40 ms que el bucle corre antes del dibujo siguiente, que así es un frame del
-            // original (OriginalFramesOfTheSteps). La mariposa del arreglo no la creó 0x446120 y no tiene el
-            // modelo preparado, así que se apaga antes de que el paso la mueva.
+            // The two 40 ms steps the loop runs before the next draw, which is thus a frame of the original
+            // (OriginalFramesOfTheSteps). The test's butterfly was not created by 0x446120 and has no prepared model,
+            // so it is turned off before the step moves it.
             butterfly.active = 0;
             scene.Step(Client::Input::InputState{});
             scene.Step(Client::Input::InputState{});
@@ -209,7 +209,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
                                                   &*data.Value().itemSets,
                                                   log,
                                                   &clock};
-    // El renglón de bienvenida del F3 03 (0x4c4b60).
+    // The F3 03 welcome line (0x4c4b60).
     resources.textMeasure = &letters;
     resources.texts = &*data.Value().text;
     resources.states = &states;
@@ -247,7 +247,7 @@ TEST_P(CompleteWorldEntryTest, ARealWorldEntryRunsLogicBetweenCompleteFrames)
     ASSERT_EQ(target.frames.size(), 4u);
     for (const auto& frame : target.frames)
         EXPECT_TRUE(frame.presented);
-    // La espera de un gate retiene el dibujo, pero sigue la lógica posterior a MoveHero.
+    // A gate wait holds the draw, but the logic after MoveHero goes on.
     auto& arrival = world.Map().effects.Effects()[0];
     ASSERT_TRUE(arrival.alive);
     const auto life = arrival.life;

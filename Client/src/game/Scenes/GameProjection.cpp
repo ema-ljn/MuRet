@@ -39,7 +39,8 @@ Core::Expected<GameProjection, std::string> MakeGameProjection(const Render::Pas
     const auto height = pass.viewport.w;
     if (width < 2 || height < 2 || pass.screen.width <= 0 || pass.screen.height <= 0)
         return Core::Unexpected(std::string("0x6203c0: viewport o pantalla sin semilados positivos"));
-    constexpr float HalfDegree = std::bit_cast<float>(0x3c0efa33u); // 6ba70c; conserva sus bits, no π/360 recalculado.
+    constexpr float HalfDegree =
+        std::bit_cast<float>(0x3c0efa33u); // 0x6ba70c; it keeps its bits, not a recomputed π/360.
     const double tangent = Math::RoundedTan(static_cast<double>(fieldOfView) * HalfDegree);
     const float aspect = static_cast<float>(static_cast<double>(width) / height);
     GameProjection projection;
@@ -76,7 +77,7 @@ Core::Expected<glm::ivec2, std::string> ProjectGamePoint(const GameProjection& p
 
 UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32_t x, std::int32_t y)
 {
-    // 0x620486..0x6204b0: imul en 32 bits y la división sin signo por 640 y por 480 (mul por 0xcccccccd y 0x88888889).
+    // 0x620486..0x6204b0: 32-bit imul and the unsigned division by 640 and by 480 (mul by 0xcccccccd and 0x88888889).
     constexpr std::uint32_t VirtualWidth = 640;
     constexpr std::uint32_t VirtualHeight = 480;
     const std::uint32_t pixelX =
@@ -87,7 +88,7 @@ UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32
         VirtualHeight;
     const std::int32_t fromCenterX = WrappedSubtract(std::bit_cast<std::int32_t>(pixelX), projection.centerX);
     const std::int32_t fromCenterY = WrappedSubtract(std::bit_cast<std::int32_t>(pixelY), projection.centerY);
-    // 0x6204fe..0x620535: fild, fmul por la escala y por 0x6ba148 (2.000) o 0x6ba768 (−2.000), fstp.
+    // 0x6204fe..0x620535: fild, fmul by the scale and by 0x6ba148 (2000) or 0x6ba768 (−2000), fstp.
     constexpr float Far = 2000.0f;
     constexpr float NegativeFar = -2000.0f;
     const glm::vec3 eye{
@@ -95,7 +96,7 @@ UnprojectedPoint UnprojectGamePoint(const GameProjection& projection, std::int32
         static_cast<float>(static_cast<double>(fromCenterY) * projection.verticalScale *
                            static_cast<double>(NegativeFar)),
         NegativeFar};
-    // 0x620538..0x62057e: la cámara y el punto, cada uno con 0x5fcc30; la salida, la suma en la x87 con el fstp.
+    // 0x620538..0x62057e: the camera and the point, each with 0x5fcc30; the output, the sum on the x87 with the fstp.
     const Math::OriginalMatrix& view = projection.view;
     const glm::vec3 translation{-view[3], -view[7], -view[11]};
     UnprojectedPoint unprojected;

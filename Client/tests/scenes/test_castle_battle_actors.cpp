@@ -27,7 +27,7 @@ protected:
     }
 };
 
-// 42aea2 lee tabla+4, la alianza; guildName(+d) no decide el dueño.
+// 0x42aea2 reads table+4, the alliance; guildName(+d) does not decide the owner.
 TEST_F(CastleBattleActorsTest, TheOwnerMatchesTheUnionAndKeepsUnrelatedFlags)
 {
     m_guild->table[0].unionName = {'P', 'i', 'n', 'o', 's'};
@@ -71,7 +71,7 @@ TEST_F(CastleBattleActorsTest, EveryAliveSeenActorLosesItsLayerBeforeTheComparis
     }
 }
 
-// El alias−1 de787aa4c apunta al nombre del miembro74, no a una cadena vacía inventada.
+// The −1 alias of 0x787aa4c points to member 74's name, not to a made-up empty string.
 TEST_F(CastleBattleActorsTest, TheNegativeOneGuildIndexReadsTheMemberAlias)
 {
     auto& actor = (*m_actors)[0];

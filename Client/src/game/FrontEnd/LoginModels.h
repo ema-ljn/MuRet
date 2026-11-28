@@ -25,15 +25,15 @@
 #include <string_view>
 #include <vector>
 
-// Lo que el login dibuja en su pase 3D (CL6.4): el logo, un objeto del mundo (0x606660), y el
-// personaje de la escena 2 (0x517270(2, 4, …)), con lo que les cambia la lógica en cada paso
-// (0x634c60). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El login, al entrar", "El
-// logo en el binario" y "La luz del terreno en un punto", y el plan de la CL6 (CL6.4).
+// What the login draws in its 3D pass (CL6.4): the logo, a world object (0x606660), and the
+// scene 2 character (0x517270(2, 4, …)), with what the logic changes on them each step
+// (0x634c60). Contract: Client/docs/research/06-render-escenas-y-ui.md, "El login, al entrar", "El
+// logo en el binario" and "La luz del terreno en un punto", and the CL6 plan (CL6.4).
 namespace Client::FrontEnd
 {
-// Un objeto suelto del mundo, como lo arma 0x606660: el modelo, dónde va, lo que le pasa a
-// RenderBody (+0x64, +0x68, +0x6c, +0x70 y +0x58), su luz (+0xf4..+0xfc, la que se suma a la del
-// terreno) y cuánto avanza su animación en cada paso (+0xd8, con 0x4ec200 en 0x604ab0).
+// A loose world object, as 0x606660 builds it: the model, where it goes, what it passes to
+// RenderBody (+0x64, +0x68, +0x6c, +0x70 and +0x58), its light (+0xf4..+0xfc, the one added to the
+// terrain's) and how much its animation advances each step (+0xd8, with 0x4ec200 in 0x604ab0).
 struct ModelObject
 {
     std::uint16_t model = 0;
@@ -43,22 +43,22 @@ struct ModelObject
     float speed = 0.0f;
 };
 
-// El logo: Logo03.bmd en el 0xa2 (0x61c7c0: 0x60da30(0xa2, "Data\\Logo\\", "Logo", 3)), con sus
-// texturas de Logo\ por 0x60d5f0(0xa2, "Logo\\", 0x2901, 0x2601, 1): repitiendo y con GL_LINEAR.
+// The logo: Logo03.bmd at 0xa2 (0x61c7c0: 0x60da30(0xa2, "Data\\Logo\\", "Logo", 3)), with its
+// textures from Logo\ through 0x60d5f0(0xa2, "Logo\\", 0x2901, 0x2601, 1): repeating and with GL_LINEAR.
 inline constexpr std::uint16_t LoginLogoModel = 0xa2;
-// El 0x1c17 (Item\SpiritBill.bmd) que el personaje del login lleva en la mano izquierda: el ítem del
-// cuervo (06 § El cuervo).
+// The 0x1c17 (Item\SpiritBill.bmd) the login character holds in the left hand: the raven's item
+// (06 § El cuervo).
 inline constexpr std::uint16_t LoginRavenItem = 0x1c17;
 inline constexpr Data::Models::ModelFile LoginLogoFile{LoginLogoModel, "Logo\\", "Logo", 3};
 inline constexpr Data::Textures::Sampling LoginLogoSampling{Data::Textures::Filter::Linear,
                                                             Data::Textures::Wrap::Repeat};
 inline constexpr std::string_view LoginLogoTextureFolder = "Logo\\";
-// Sin un 0x60d530 antes: sus texturas van al próximo slot que dejó el mundo 55, 0x41c (0x61a0e8) más
-// las 57 nuevas de Object56\ (Q-C92; *inferido* hasta la captura de P-C15).
+// Without a 0x60d530 before: its textures go to the next slot world 55 left, 0x41c (0x61a0e8) plus
+// the 57 new ones of Object56\ (Q-C92; *inferred* until the capture of P-C15).
 inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 
-// Un modelo suelto con su esqueleto y el slot de cada malla, como los guarda la tabla del original para
-// el logo: lo que DrawObject pide de una biblioteca. Vacío, no tiene ninguno.
+// A loose model with its skeleton and each mesh's slot, as the original's table keeps them for the
+// logo: what DrawObject asks of a library. Empty, it has none.
 class SingleModelLibrary final : public Models::IModelLibrary
 {
 public:
@@ -76,61 +76,60 @@ private:
     Assets::LoadedModel m_loaded;
 };
 
-// 0x606660(0xa2, (10.680; 15.550; 1.710), (10, 0, 36), 1) y su caso en las escenas 2 y 4
-// (0x6068d5): la escala 2,2, el blendMesh en 1 (la malla de la textura 1 va aditiva) y sin luz por
-// vértice. La luz del blendMesh en 1 y la del objeto en 0 hasta que 0x604ab0 las escribe, y el
-// avance de 0,16 (0x3e23d70a) por paso.
+// 0x606660(0xa2, (10680; 15550; 1710), (10, 0, 36), 1) and its case in scenes 2 and 4
+// (0x6068d5): scale 2.2, blendMesh at 1 (the mesh of texture 1 goes additive) and no per-vertex
+// light. The blendMesh light at 1 and the object's at 0 until 0x604ab0 writes them, and the
+// advance of 0.16 (0x3e23d70a) per step.
 [[nodiscard]] ModelObject LoginLogo();
 
-// La cuenta (0x6d5e30) y la fase (0x7d3a0cc) de las rutas de la cámara, que lleva 0x633920 en cada
-// paso: la cuenta arranca en −1 (0x6349a0 al entrar y la .data).
+// The count (0x6d5e30) and the phase (0x7d3a0cc) of the camera routes, which 0x633920 keeps each
+// step: the count starts at −1 (0x6349a0 on entering and the .data).
 struct LoginRoutes
 {
     int count = -1;
     int phase = 0;
 };
 
-// 0x633920: la cuenta sube 1; con la fase en 0 y la cuenta en 40, la cuenta vuelve a 0 y la fase
-// pasa a 1, y con la fase en 1, cada 128 la cuenta vuelve a 0 (y la cámara elige otra ruta, que
-// 0x635ae0 pisa: SceneCameras.h). El paso a la fase 2 es del fundido, que no dibuja (Q-C66).
+// 0x633920: the count goes up by 1; with phase 0 and the count at 40, the count goes back to 0 and the phase
+// goes to 1, and with phase 1, every 128 the count goes back to 0 (and the camera picks another route, which
+// 0x635ae0 overwrites: SceneCameras.h). The step to phase 2 belongs to the fade, which does not draw (Q-C66).
 void AdvanceRoutes(LoginRoutes& routes);
 
-// 0x604ab0 con el 0xa2: con la fase en 0, la cuenta · 0,02 (0x6b8b90); con otra, 1,5 (0x6b8b94).
-// Va a la luz del objeto y a la del blendMesh (Q-C105). Corre antes que AdvanceRoutes en el mismo
-// paso, y solo con el logo ya dibujado: el primer paso no la escribe, y desde el segundo da
-// (paso − 2) · 0,02, 0,78 en el 41.
+// 0x604ab0 with the 0xa2: with phase 0, the count · 0.02 (0x6b8b90); with another, 1.5 (0x6b8b94).
+// It goes to the object's light and the blendMesh's (Q-C105). It runs before AdvanceRoutes in the same
+// step, and only with the logo already drawn: the first step does not write it, and from the second it gives
+// (step − 2) · 0.02, 0.78 at step 41.
 [[nodiscard]] float LoginLogoLight(const LoginRoutes& routes);
 
-// 0x5ffce0 con un objeto sin luz por vértice: el color del modelo es la luz del terreno en su lugar
-// por 0,1 (0x6b87b8) más la del objeto.
+// 0x5ffce0 with an object without per-vertex light: the model's color is the terrain light at its place
+// times 0.1 (0x6b87b8) plus the object's.
 [[nodiscard]] glm::vec3 UnlitObjectColor(const glm::vec3& terrainLight, const glm::vec3& objectLight);
 
-// El personaje de la escena 2 (0x517270(2, 4, 0, 0, 0, 0)): la clase 4, el casco, la armadura, los
-// pantalones, los guantes y las botas del juego 29 (0x102e a 0x182e) en +7, la maza 0x620 en +13 en
-// la derecha, el cuervo 0x1c17 en la izquierda, la capa 0x1c30 y el caballo oscuro 0x1c16 de
-// mascota, sin cabeza (0x512930 la deja en −1).
+// The scene 2 character (0x517270(2, 4, 0, 0, 0, 0)): class 4, the helm, armor, pants, gloves and boots
+// of set 29 (0x102e to 0x182e) at +7, the mace 0x620 at +13 in the right hand, the raven 0x1c17 in the
+// left, the cape 0x1c30 and the dark horse 0x1c16 as pet, without a head (0x512930 leaves it at −1).
 [[nodiscard]] Kernel::CharacterAppearance LoginCharacter();
 
-// 0x6349a0 después de 0x517270: (10.603; 14.112; 580), girado 188° en z y con la escala 1,6.
+// 0x6349a0 after 0x517270: (10603; 14112; 580), turned 188° in z and with scale 1.6.
 [[nodiscard]] Models::ObjectTransform LoginCharacterTransform();
 
-// Lo que el paso del cuervo (0x416a20) lee de su dueño en el login: el personaje en su lugar y sus
-// banderas (+0x78) en 0.
+// What the raven's step (0x416a20) reads from its owner at the login: the character at its place and its
+// flags (+0x78) at 0.
 [[nodiscard]] Pets::DarkSpiritOwner LoginRavenOwner();
 
-// La luz que 0x517270 le pone (+0xf4..+0xfc, 0x3e99999a): 0x50ba30, fuera de la escena 4, la suma a
-// la del terreno en su lugar.
+// The light 0x517270 gives it (+0xf4..+0xfc, 0x3e99999a): 0x50ba30, outside scene 4, adds it to the
+// terrain's at its place.
 inline constexpr float LoginCharacterLight = 0.3f;
 
-// La acción de parado que le da 0x4f2250 con el caballo oscuro de mascota (+0x318 en 0x1c16).
+// The standing action 0x4f2250 gives it with the dark horse as pet (+0x318 at 0x1c16).
 inline constexpr std::uint8_t LoginCharacterStandingAction = 0x4a;
 
-// 0x634c60 en cada paso: con el reloj del frame (DAT_05767b88, en ms) de 0 a 100 ms en cada 2.300
-// (ftol(T % 2300 · 0,01) en 0: el producto va en la x87, y 100 · 0,01 da 0,99999998, Q-C110),
-// rand() % 6 en 1 pone la 0x54 y en 2 la 0x55 (0x4ea030); con otro valor, o fuera de esa ventana,
-// ninguna, y fuera de la ventana no se tira. `random` hace de rand(): de 0 a 32.767.
+// 0x634c60 on each step: with the frame clock (DAT_05767b88, in ms) from 0 to 100 ms in each 2300
+// (ftol(T % 2300 · 0.01) at 0: the product goes on the x87, and 100 · 0.01 gives 0.99999998, Q-C110),
+// rand() % 6 at 1 sets 0x54 and at 2 0x55 (0x4ea030); with another value, or outside that window,
+// none, and outside the window it does not roll. `random` stands in for rand(): 0 to 32767.
 [[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random);
-// Con el rand() de la CRT (Render/Models/Cloth.h), el del original (0x634cca): el que usa el login con el
-// bucle.
+// With the CRT's rand() (Models/Cloth.h), the original's one (0x634cca): the one the login uses with the
+// loop.
 [[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Crt::CrtRandom& random);
 } // namespace Client::FrontEnd

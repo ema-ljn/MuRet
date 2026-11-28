@@ -41,8 +41,8 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::LoadingScene: la escena 1 (0x622e40, con su UI de 0x65eeb0 y sus frames de
-// 0x65f200), con un Data\ sintético y la tabla de texturas falsa.
+// Client::Scenes::LoadingScene: scene 1 (0x622e40, with its UI of 0x65eeb0 and its frames of 0x65f200), with a
+// synthetic Data\ and the fake texture table.
 namespace
 {
 using Client::Assets::LoadingTextureSet;
@@ -75,9 +75,9 @@ using Client::Tests::StoreCall;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteTextureSet;
 
-// Las cinco imágenes de 0x65eeb0 (0x647050 con el ancho, el alto y el slot, y 0x6472e0 con la x y
-// la y, en 800 × 600), en el orden en que las dibuja 0x65f200 (el bucle de 0x65f22f, de a 0xa8
-// bytes), y la barra (0x6402d0 y 0x6404b0).
+// The five images of 0x65eeb0 (0x647050 with the width, the height and the slot, and 0x6472e0 with x and y, at
+// 800 × 600), in the order 0x65f200 draws them (the loop of 0x65f22f, 0xa8 bytes at a time), and the bar (0x6402d0
+// and 0x6404b0).
 struct DesignImage
 {
     std::uint16_t slot = 0;
@@ -95,8 +95,8 @@ constexpr std::array<DesignImage, 5> Images = {{
 }};
 constexpr DesignImage Bar{0x723, 72, 482, 656, 15};
 
-// Las esquinas de un quad anotado: el fan (0, 1, 2) y (0, 2, 3) tiene la primera en el vértice
-// 0, la segunda en el 1, la tercera en el 2 y la cuarta en el 5.
+// The corners of a recorded quad: the fan (0, 1, 2) and (0, 2, 3) has the first at vertex 0, the second at 1, the
+// third at 2 and the fourth at 5.
 QuadCorners CornersOf(const FrameEvent& event)
 {
     QuadCorners corners{};
@@ -128,7 +128,6 @@ struct Harness
         WriteTextureSet(folder.Path(), LoadingTextureSet);
     }
 
-    // Un frame: BeginFrame, el Render de la escena y Present. Devuelve lo que se dibujó.
     std::vector<FrameEvent> Frame()
     {
         Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
@@ -137,7 +136,7 @@ struct Harness
         return target.frames.back().events;
     }
 
-    // La imagen de 0x65eeb0 con el tamaño del buffer de su textura, como la sube la tabla.
+    // The image of 0x65eeb0 with the size of its texture's buffer, as the table uploads it.
     UiImage Expected(const DesignImage& image, PixelSize screen) const
     {
         const auto loaded = store.Find(TextureSlot{image.slot});
@@ -166,7 +165,7 @@ struct Harness
     InputState input;
 };
 
-// 0x622e40 sube sus seis con su muestreo, en el orden de la tabla.
+// 0x622e40 uploads its six with their sampling, in the table's order.
 TEST(LoadingSceneTest, EnterLoadsItsSixTextures)
 {
     Harness tested;
@@ -196,8 +195,8 @@ TEST(LoadingSceneTest, AMissingTextureFailsWithItsName)
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 
-// 0x65f200: las cinco imágenes y la barra, cada una con la mezcla normal que dejó 0x622e40
-// (0x620a00(1), antes de 0x61ccb0), en 800 × 600 pasado a la pantalla por eje.
+// 0x65f200: the five images and the bar, each with the normal blending 0x622e40 left (0x620a00(1), before 0x61ccb0),
+// at 800 × 600 mapped to the screen per axis.
 TEST(LoadingSceneTest, DrawsTheFiveImagesAndTheBar)
 {
     for (const PixelSize screen : {PixelSize{640, 480}, PixelSize{1024, 768}})
@@ -222,8 +221,8 @@ TEST(LoadingSceneTest, DrawsTheFiveImagesAndTheBar)
     }
 }
 
-// 0x622e40 pone la mezcla normal (0x620a00(1)) antes de dibujar: con la aditiva en el lote (el
-// estado pasa de un frame al otro, Q-C75), las imágenes salen igual con la normal y el alpha test.
+// 0x622e40 sets the normal blending (0x620a00(1)) before drawing: with additive in the batch (the state carries from
+// one frame to the next, Q-C75), the images come out the same with normal and the alpha test.
 TEST(LoadingSceneTest, DrawsWithTheNormalBlendWhateverCameBefore)
 {
     Harness tested;
@@ -243,7 +242,7 @@ TEST(LoadingSceneTest, DrawsWithTheNormalBlendWhateverCameBefore)
     }
 }
 
-// En 640 × 480 el fondo de la izquierda empieza arriba en (600 − 60) · fy = 432, como dice el 06.
+// At 640 × 480 the left background starts at the top at (600 − 60) · fy = 432, as 06 says.
 TEST(LoadingSceneTest, TheLeftBackgroundStartsWhereTheResearchSays)
 {
     Harness tested;
@@ -255,10 +254,9 @@ TEST(LoadingSceneTest, TheLeftBackgroundStartsWhereTheResearchSays)
     EXPECT_EQ(corners[0].y, 432.0f);
 }
 
-// 0x640580(actual, 10): la barra mide 656 · actual / 10 (división entera sin signo) y su u llega a
-// ese ancho sobre el de la textura, sin medio téxel (0x647370(ancho, 0, 1)); la v de abajo, a
-// 15 / th, de 0x647370(0, 15, 2) en 0x6402d0. Un avance por paso, como un frame de 0x65f200 por
-// avance de 0x61ccb0.
+// 0x640580(current, 10): the bar measures 656 · current / 10 (unsigned integer division) and its u reaches that width
+// over the texture's, with no half texel (0x647370(width, 0, 1)); the bottom v, at 15 / th, from 0x647370(0, 15, 2)
+// at 0x6402d0. One advance per step, like one frame of 0x65f200 per advance of 0x61ccb0.
 TEST(LoadingSceneTest, TheBarGrowsWithEachAdvance)
 {
     Harness tested;
@@ -279,7 +277,7 @@ TEST(LoadingSceneTest, TheBarGrowsWithEachAdvance)
     }
 }
 
-// Once frames, del 0 al 10, y al paso siguiente pide el login (0x622f93).
+// Eleven frames, 0 to 10, and on the next step it asks for the login (0x622f93).
 TEST(LoadingSceneTest, GoesToTheLoginAfterTheLastAdvance)
 {
     Harness tested;
@@ -300,7 +298,7 @@ TEST(LoadingSceneTest, GoesToTheLoginAfterTheLastAdvance)
     EXPECT_FALSE(tested.scene.WantsTextInput());
 }
 
-// Como 0x63c150 con los seis slots, al final de 0x622e40.
+// Like 0x63c150 with the six slots, at the end of 0x622e40.
 TEST(LoadingSceneTest, LeaveReleasesItsSixSlots)
 {
     Harness tested;
@@ -311,9 +309,8 @@ TEST(LoadingSceneTest, LeaveReleasesItsSixSlots)
     EXPECT_EQ(tested.store.released, (std::vector<std::uint16_t>{0x71e, 0x71f, 0x720, 0x721, 0x722, 0x723}));
     EXPECT_EQ(tested.store.Size(), 0u);
 }
-// Con el SceneManager y el login de verdad: la carga suelta sus seis antes de que el login suba
-// sus 18 y las 3 de las ventanas, como 0x63c150 al final de 0x622e40, antes de que 0x634c60 llame a
-// 0x6349a0.
+// With the real SceneManager and login: the loading releases its six before the login uploads its 18 and the
+// windows' 3, like 0x63c150 at the end of 0x622e40, before 0x634c60 calls 0x6349a0.
 TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
 {
     TemporaryFolder folder{"loading-to-login"};
@@ -365,8 +362,8 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     }
     EXPECT_EQ(store.Size(), loginSlots);
 }
-// La carga lee los modelos en su avance 1 (0x61ccb0). Sin Player.bmd, que el original exige
-// (Q-C23), no sigue: la escena pide cerrar y el error nombra el archivo (CL6.3).
+// The loading reads the models in its advance 1 (0x61ccb0). Without Player.bmd, which the original requires (Q-C23),
+// it does not go on: the scene asks to close and the error names the file (CL6.3).
 TEST(LoadingSceneTest, AMissingPlayerFailsTheLoad)
 {
     TemporaryFolder folder{"loading-scene-models"};

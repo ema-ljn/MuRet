@@ -42,8 +42,8 @@ TEST(LoginActorTest, MapCleanupDropsTheRavenEvenOfSurvivingActors)
     EXPECT_TRUE(world.Actors()[400].darkSpirit);
 }
 
-// 0x510fd2: 0x414340 en los 400, vivos o no: la capa de los GM se suelta y +0x360 vuelve a 0; sin capa,
-// +0x360 queda como estaba.
+// 0x510fd2: 0x414340 on the 400, alive or not: the GM layer is released and +0x360 returns to 0; without a layer,
+// +0x360 stays as it was.
 TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
 {
     Client::Kernel::WorldState world;
@@ -63,7 +63,7 @@ TEST(LoginActorTest, MapCleanupReleasesTheGameMasterLayers)
     EXPECT_EQ(world.Actors()[400].byte360, 5);
 }
 
-// 0x510f99 (CL9 hito 2): 0x401040 saca los huesos con nombre de los que mueren; los del que sobrevive quedan.
+// 0x510f99 (CL9 milestone 2): 0x401040 removes the named bones of those that die; the survivor's stay.
 TEST(LoginActorTest, MapCleanupForgetsTheNamedBonesOfTheKilled)
 {
     const auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -139,7 +139,7 @@ TEST(LoginActorTest, OpenCellAndCounterAccessesKeepTheirBirthRandoms)
         actor, {.terrain = terrain, .map = 55, .scene = Client::Terrain::CullingScene::Login, .fixedHeight = 450.0f},
         runtime, cloth, skeleton);
     ASSERT_TRUE(built.HasValue()) << built.Error();
-    // Ni el personaje ni el cuervo cierran estas cuentas en cero: solo el sufijo de parado.
+    // Neither the character nor the raven brings these counts to zero: only the standing suffix.
     EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 1).State());
     EXPECT_EQ(actor.cellXAccesses, 1);
     EXPECT_EQ(actor.cellYAccesses, 1);

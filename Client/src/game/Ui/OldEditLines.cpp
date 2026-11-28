@@ -24,12 +24,12 @@ using OldDraw::RatioX;
 using OldDraw::RatioY;
 using OldDraw::Truncate;
 
-// 0x6c7af0: lo que mide 0x467fe0 para +0xd0.
+// 0x6c7af0: what 0x467fe0 measures for +0xd0.
 constexpr std::string_view LineSample = "1";
-// 0x6b95b4: −5, lo que 0x467fe0 le saca al ancho de la ventana (ftol(−5 · rx)).
+// 0x6b95b4: what 0x467fe0 takes off the window's width (ftol(−5 · rx)).
 constexpr double WindowSlack = -5.0;
-// SM_CXVSCROLL: el ancho de la barra de WS_VSCROLL, que se come el área del texto (*inferido*: el de Windows XP con
-// el tema clásico).
+// SM_CXVSCROLL: the WS_VSCROLL bar's width, which eats into the text area (*inferred*: Windows XP's with the classic
+// theme).
 constexpr std::int32_t WindowsBarWidth = 16;
 constexpr std::string_view LineBreak = "\r\n";
 constexpr char Space = ' ';
@@ -39,7 +39,7 @@ bool Fits(const Render::Text::ITextMeasure& measure, std::string_view text, std:
     return measure.Measure(EditFont, text).width <= width;
 }
 
-// Cuántas letras del principio de `text` entran en `width`, por bisección: el ancho crece con las letras.
+// How many leading letters of `text` fit in `width`, by bisection: the width grows with the letters.
 std::size_t FittingPrefix(const Render::Text::ITextMeasure& measure, std::string_view text, std::int32_t width)
 {
     std::size_t low = 0;
@@ -55,7 +55,7 @@ std::size_t FittingPrefix(const Render::Text::ITextMeasure& measure, std::string
     return low;
 }
 
-// Un párrafo (sin "\r\n") en renglones del ancho del área del texto.
+// A paragraph (without "\r\n") into rows as wide as the text area.
 void WrapTheParagraph(std::string_view paragraph, const Render::Text::ITextMeasure& measure, std::int32_t width,
                       std::vector<std::string_view>& lines)
 {
@@ -71,7 +71,7 @@ void WrapTheParagraph(std::string_view paragraph, const Render::Text::ITextMeasu
         std::size_t cut = 0;
         if (rest[fit] == Space)
         {
-            // Los espacios que no entran quedan en el renglón.
+            // The spaces that do not fit stay in the row.
             cut = rest.find_first_not_of(Space, fit);
             if (cut == std::string_view::npos)
             {
@@ -101,7 +101,8 @@ void MakeTheEditMultiline(OldEdit& edit, const Render::Text::ITextMeasure& measu
     const double rx = RatioX(screen);
     const double ry = RatioY(screen);
     edit.multiline = 1;
-    // FILD h, FMUL ry, FIDIV cy: con cy en 0 sería la división por 0 del original; la medida da siempre un alto.
+    // FILD h, FMUL ry, FIDIV cy: with cy at 0 it would be the original's division by 0; the measure always gives a
+    // height.
     const std::int32_t height = measure.Measure(dcFont, LineSample).height;
     edit.visibleLines = height != 0 ? Truncate(static_cast<double>(edit.base.height) * ry / height) : 0;
     const std::int32_t slack = Truncate(WindowSlack * rx);
@@ -198,7 +199,7 @@ void BackspaceInTheEdit(OldEdit& edit)
 {
     edit.draws = 0;
     edit.followCaret = true;
-    // El EDIT de Windows borra el "\r\n" entero que está antes del cursor.
+    // The Windows EDIT erases the whole "\r\n" before the caret.
     const std::string_view text = edit.text.Value();
     const std::size_t cursor = edit.text.Cursor();
     if (edit.multiline == 1 && !edit.text.HasSelection() && cursor >= LineBreak.size() &&
@@ -220,7 +221,7 @@ void DeleteInTheEdit(OldEdit& edit)
 void MoveTheEditCaret(OldEdit& edit, const Render::Text::ITextMeasure& measure, EditCaretKey key, bool shift)
 {
     const std::string_view text = edit.text.Value();
-    // Entre el '\r' y el '\n' de un fin de renglón.
+    // Between the '\r' and the '\n' of a line end.
     const auto insideABreak = [&edit, text]
     {
         const std::size_t at = edit.text.Cursor();
@@ -267,7 +268,7 @@ void MoveTheEditCaret(OldEdit& edit, const Render::Text::ITextMeasure& measure, 
         ScrollTheEditLines(edit, lineCount, step);
     if (target == caretLine)
         return;
-    // La letra del renglón de destino más cerca de la x del cursor.
+    // The target row's letter closest to the caret's x.
     const std::size_t column = edit.text.Cursor() - startOf(caretLine);
     const std::int32_t x = measure.Measure(EditFont, current.substr(0, std::min(column, current.size()))).width;
     const std::string_view line = lines[static_cast<std::size_t>(target)];
@@ -312,7 +313,7 @@ void PasteInTheEdit(OldEdit& edit, std::string_view utf8)
     if (!encoded.has_value())
         return;
     edit.text.InsertBytes(*encoded);
-    // Un tope que corta el "\r\n" por la mitad no deja el '\r' solo.
+    // A limit that cuts the "\r\n" in half does not leave the '\r' alone.
     const std::string_view text = edit.text.Value();
     const std::size_t cursor = edit.text.Cursor();
     if (cursor > 0 && text[cursor - 1] == '\r' && (cursor == text.size() || text[cursor] != '\n'))

@@ -208,9 +208,9 @@ TEST(MovementRepliesTest, OtherActorUsesTheLiveWallsAndKeepsLogicalPositionUntil
         EXPECT_FALSE(other.path.cells[index].x == 21 && other.path.cells[index].y == 21);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 8).State());
 }
-// 0x4c6b09 → 0x4eac00 (Q-C1351): con la etapa 4 en el 34 y un altar en 0x6c8e54 (el registro 9, aunque esté muerto),
-// el D3 de otro también lleva la bandera: la celda del blanco, con el 0x02 de otro personaje, queda en 0 y el camino
-// llega a ella. En Lorencia y Devias la meta queda y el camino va al más cercano.
+// 0x4c6b09 → 0x4eac00 (Q-C1351): with stage 4 on the 34 and an altar at 0x6c8e54 (record 9, even if dead), another's
+// D3 also carries the flag: the target's cell, with another character's 0x02, ends up at 0 and the path reaches it.
+// In Lorencia and Devias the goal stays and the path goes to the nearest.
 TEST(MovementRepliesTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAnotherWalk)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -359,12 +359,12 @@ TEST(MovementRepliesTest, ShockSoundClassesPreserveTheirDistinctRandomCounts)
         EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, characterClass == 4 ? 2 : 1).State());
     }
 }
-// 0x4cb30b..0x4cb3b0: el héroe 0x20a con +0x78 & 0x100 que recibe un golpe sin sacudida, después de restar la vida y
-// antes de los números. El que pega es el personaje del lugar [0x5767964] (WorldRuntime::lastAttacker); 0x4e93f0 da el
-// rumbo desde (1000, 1000) hasta el héroe en (1300, 1400): atan(4/3) · 57,2957763671875f + 90 = 143,1300994…, a menos
-// de 10 de su 140, así que 0x518cf0(0x109, +0x10 del héroe, (0, 0, rumbo + 180), +0xf4, 0, héroe, −1, 0, 0, 0, 0): el
-// escudo 0x109/0 con la z de los ángulos en 0x43a190a7 (calculado aparte del port), la vida 20 (0x51921a) y el héroe de
-// dueño, que su paso sigue en vivo. Sin rand(): sólo los 0xf08 del cierre del registro propio.
+// 0x4cb30b..0x4cb3b0: the 0x20a hero with +0x78 & 0x100 that takes a hit without a shake, after subtracting the life
+// and before the numbers. The striker is the character in slot [0x5767964] (WorldRuntime::lastAttacker); 0x4e93f0
+// gives the heading from (1000, 1000) to the hero at (1300, 1400): atan(4/3) · 57.2957763671875f + 90 =
+// 143.1300994…, less than 10 from its 140, so 0x518cf0(0x109, the hero's +0x10, (0, 0, heading + 180), +0xf4, 0,
+// hero, −1, 0, 0, 0, 0): the shield 0x109/0 with the angles' z at 0x43a190a7 (computed apart from the port), life 20
+// (0x51921a) and the hero as owner, which its step follows live. No rand(): only the own record close's 0xf08.
 namespace
 {
 constexpr std::uint32_t ShieldFlag = 0x100;
@@ -422,11 +422,11 @@ TEST(MovementRepliesTest, TheHeroShieldFacesTheStrikerAfterLifeAndBeforeNumbers)
     EXPECT_EQ(shield.tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
-// 0x4cb369..0x4cb376: a 10 o más de su rumbo (el 154 queda a 10,87) no sale nada, y sigue igual: los números y el
-// daño. Sin 0x20a, ni lo mira.
+// 0x4cb369..0x4cb376: at 10 or more from its heading (154 is 10.87 off) nothing comes out, and it goes on the same:
+// the numbers and the damage. Without 0x20a, it does not even look.
 TEST(MovementRepliesTest, TheHeroShieldNeedsTheStrikerFacingItAndTheBodyOfAPlayer)
 {
-    // En el heap: dos WorldState no entran en la pila de 1 MB de Windows.
+    // On the heap: two WorldState do not fit in Windows' 1 MB stack.
     const auto away =
         std::make_unique<ShieldReplies>(glm::vec3{1300.0f, 1400.0f, 80.0f}, glm::vec3{1000.0f, 1000.0f, 0.0f}, 154.0f);
     const auto missed = away->Hit();
@@ -442,17 +442,17 @@ TEST(MovementRepliesTest, TheHeroShieldNeedsTheStrikerFacingItAndTheBodyOfAPlaye
     EXPECT_EQ(transformed->Shields(), 0);
 }
 
-// Sin atacante: 0x4cb32f no mira nada, lee el lugar que diga [0x5767964]. El 19, el 69 y el 1A sin la fuente dejan el
-// 400, el lugar que sigue a los 400 de la tabla (el registro 401 que WinMain deja en cero, 0x4bafa6), y antes del
-// primero está el 0 de la .bss. Con el lugar 400 en (0, 0) y rumbo 0, el héroe en (0, −500) queda a rumbo 0 (0x4e93f0
-// sin x y con y negativa) y saca el escudo con la z en 180; en (500, 0) queda a 90 y no. Con la tabla de efectos llena,
-// nada.
+// Without an attacker: 0x4cb32f looks at nothing, it reads the slot [0x5767964] says. The 19, the 69 and the 1A
+// without the source leave 400, the slot that follows the table's 400 (record 401, which WinMain leaves at zero,
+// 0x4bafa6), and before the first there is the .bss 0. With slot 400 at (0, 0) and heading 0, the hero at (0, −500)
+// is at heading 0 (0x4e93f0 without x and with negative y) and brings out the shield with z at 180; at (500, 0) it is
+// at 90 and does not. With the effects table full, nothing.
 TEST(MovementRepliesTest, WithoutAStrikerTheHeroShieldReadsTheSlotLeftInTheGlobal)
 {
     constexpr glm::vec3 Below{0.0f, -500.0f, 0.0f};
     constexpr glm::vec3 Origin{};
     constexpr std::int32_t LooseSlot = 400;
-    // En el heap: cuatro WorldState no entran en la pila de 1 MB de Windows.
+    // On the heap: four WorldState do not fit in Windows' 1 MB stack.
     const auto loose = std::make_unique<ShieldReplies>(Below, Origin, 0.0f, LooseSlot);
     ASSERT_TRUE(loose->Hit().HasValue());
     ASSERT_EQ(loose->Shields(), 1);
@@ -505,9 +505,9 @@ TEST(MovementRepliesTest, JumpingActorAimsAtTheCellCornerWithoutMovingItsVisible
     EXPECT_FLOAT_EQ(other.angles.z, static_cast<float>(Client::Math::CreateAngle(2050.0f, 2150.0f, 3000.0f, 3100.0f)));
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(seed, 9).State());
 }
-// El 0x186 es el modelo de un monstruo (el tipo 71, Monster53.bmd): su D3 llega desde gObjMonster (CGMoveRecv del GS
-// 0.97) y 0x4f37c0 → 0x4ea030 lee las acciones del modelo que cargó su alta (Assets::AssetsState::fauna), no las de la
-// biblioteca del mapa, que no lo tiene. En Lorencia y en Devias.
+// The 0x186 is a monster's model (type 71, Monster53.bmd): its D3 comes from gObjMonster (the 0.97 GS's CGMoveRecv)
+// and 0x4f37c0 → 0x4ea030 reads the actions of the model its creation loaded (Assets::AssetsState::fauna), not those
+// of the map's library, which does not have it. In Lorencia and Devias.
 TEST(MovementRepliesTest, TheJumpingMonsterTakesTheActionsOfItsLoadedModel)
 {
     for (const std::int32_t map : {0, 2})

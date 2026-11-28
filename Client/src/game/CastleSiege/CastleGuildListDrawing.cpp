@@ -96,8 +96,8 @@ Core::Expected<std::int32_t, std::string> Row(Hud::GameHudContext& context,
         context.hud.textColors.text = 0xffc8dce6u;
     context.hud.textColors.background = 0;
     static_cast<void>(Ui::OldDraw::DrawText(Drawing(context), list.base.x + 6, y, name));
-    // 0x47057f/0x4705de/0x470627 y 0x471404/0x471465: modo4 de 0x465950, ancho0.
-    // El nombre anterior usa modo1; las demás columnas terminan en el ancla, incluso con rx fraccionario.
+    // 0x47057f/0x4705de/0x470627 and 0x471404/0x471465: mode 4 of 0x465950, width 0.
+    // The previous name uses mode 1; the other columns end at the anchor, even with a fractional rx.
     const auto drawEndingAt = [&](std::int32_t x, std::string_view text)
     {
         const auto left = Render::Text::EndingAt(list.base.x + x, context.text.Measure(context.hud.dcFont, text),

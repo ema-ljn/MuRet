@@ -26,7 +26,7 @@ bool IsSpace(char c)
     return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\v' || c == '\f';
 }
 
-// Los de ASCII: del 0x00 al 0x1F y el 0x7F. Un \0 cortaría el host en el c_str() de la CL4.
+// A \0 would cut the host in the CL4 c_str().
 bool IsControl(char c)
 {
     const auto byte = static_cast<unsigned char>(c);

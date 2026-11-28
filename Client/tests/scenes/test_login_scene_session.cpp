@@ -89,14 +89,13 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::LoginScene con la sesión y sus ventanas (CL5.5): la lista cuando la sesión espera
-// la elección, la cuenta cuando espera la cuenta y la clave, y los avisos de 06 § Los avisos. Sobre
-// una sesión de verdad y un FakeSocket que hace de los dos servidores, con un Data\ sintético, la
-// tabla de texturas falsa y el RecordingFrameTarget. Un "paso" es lo de GameLoop: la sesión, el
-// Step de la escena y ConsumeEdges.
+// Client::Scenes::LoginScene with the session and its windows (CL5.5): the list when the session waits for the
+// choice, the account when it waits for the account and password, and the notices of 06 § Los avisos. On a real
+// session and a FakeSocket that plays both servers, with a synthetic Data\, the fake texture table and the
+// RecordingFrameTarget. A "step" is what GameLoop does: the session, the scene's Step and ConsumeEdges.
 //
-// Los textos son inventados, y la cuenta y la clave son las sintéticas: el login se compara por
-// igualdad, sin imprimirlo.
+// The texts are made up, and the account and password are the synthetic ones: the login is compared for equality,
+// without printing it.
 namespace
 {
 using Client::App::Credentials;
@@ -163,8 +162,6 @@ constexpr std::string_view Password = "pass0002";
 constexpr std::string_view GameHost = "10.0.0.2";
 constexpr std::uint16_t GamePort = 55901;
 
-// Los slots de las ventanas: el botón de grupo y el marco de la lista, los dos botones y el adorno
-// de la barra, el fondo de la cuenta y la caja del aviso.
 constexpr TextureSlot GroupButtonSlot{0x0c};
 constexpr TextureSlot FrameSlot{0x0f};
 constexpr TextureSlot MenuSlot{0x10};
@@ -172,15 +169,14 @@ constexpr TextureSlot CreditSlot{0x11};
 constexpr TextureSlot OrnamentSlot{0x12};
 constexpr TextureSlot LoginBackgroundSlot{0x13};
 constexpr TextureSlot NoticeBoxSlot{0x727};
-// Los botones de la ventana de Esc (op1_b_all).
+// The Esc window's buttons (op1_b_all).
 constexpr TextureSlot EscapeButtonSlot{0x72f};
-// Las casillas de las opciones (op2_ch), el botón de cerrar los créditos (message_close_b_all) y la primera
-// mitad de su ilustración.
+// The option check boxes (op2_ch), the credits close button (message_close_b_all) and the first half of its
+// illustration.
 constexpr TextureSlot OptionsCheckSlot{0x731};
 constexpr TextureSlot CreditsCloseSlot{0x726};
 constexpr TextureSlot IllustrationSlot{0x6f8};
 
-// Textos inventados en los índices que usa el login.
 constexpr std::string_view ConnectFailedText = "no conecto";
 constexpr std::string_view EmptyAccountText = "falta la cuenta";
 constexpr std::string_view EmptyPasswordText = "falta la clave";
@@ -220,14 +216,14 @@ std::vector<std::byte> ServerListOf(std::initializer_list<ServerEntry> entries)
     return ServerListWithLoads(list);
 }
 
-// Un registro de credit.bmd: un struct y no un std::pair, que MSVC avisa (C4242) al armarlo con un int.
+// A credit.bmd record: a struct and not a std::pair, which MSVC warns about (C4242) when built with an int.
 struct CreditRecord
 {
     std::uint8_t kind = 0;
     std::string_view text;
 };
 
-// Un credit.bmd inventado con `records` (la clase y el texto) al principio, cifrado con el XOR3 (0x63ff30).
+// A made-up credit.bmd with `records` (class and text) at the start, encrypted with XOR3 (0x63ff30).
 std::vector<std::byte> CreditFile(std::initializer_list<CreditRecord> records)
 {
     std::vector<std::byte> file(Client::Tables::CreditFileSize);
@@ -267,9 +263,9 @@ public:
 
 struct Harness
 {
-    // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
-    // Con `world`, el chat del mundo y un medidor de seis píxeles por byte. Con `credits`, ese credit.bmd;
-    // sin él, la tabla de los créditos queda vacía.
+    // With `withTheCloth`, the cloth's globals in the context (the wind, the step counter and the rand()). With
+    // `world`, the world chat and a six-pixels-per-byte measurer. With `credits`, that credit.bmd; without it, the
+    // credits table stays empty.
     explicit Harness(bool withTheCloth = false, Client::Kernel::WorldState* world = nullptr,
                      std::span<const std::byte> credits = {})
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
@@ -303,7 +299,7 @@ struct Harness
                       data, models, &session, "0.0.0", FixedSeed);
     }
 
-    // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
+    // A GameLoop frame with one step: the session, the scene's step and the edges.
     void Step()
     {
         static_cast<void>(session.Poll());
@@ -311,7 +307,6 @@ struct Harness
         input.ConsumeEdges();
     }
 
-    // Un frame dibujado.
     std::vector<FrameEvent> Frame(Client::Core::Duration frameClock = std::chrono::milliseconds{40})
     {
         Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(frameClock);
@@ -320,7 +315,7 @@ struct Harness
         return target.frames.back().events;
     }
 
-    // Enter, el saludo del CS y la lista: la ventana de la lista está abierta.
+    // Enter, the CS hello and the list: the list window is open.
     void ReachTheList(const std::vector<std::byte>& list)
     {
         const auto entered = scene->Enter();
@@ -333,8 +328,8 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::ChoosingServer);
     }
 
-    // La ubicación de la lista de `count` servidores, con la caja de la descripción del buffer de
-    // server_ex02 (slot 0x19) que subió la escena.
+    // The layout of the list of `count` servers, with the description box of the server_ex02 buffer (slot 0x19) that
+    // the scene uploaded.
     [[nodiscard]] ServerListLayout ListLayout(std::size_t count) const
     {
         const auto line = store.Find(TextureSlot{0x19});
@@ -344,7 +339,6 @@ struct Harness
         return LayoutServerList(PixelSize{640, 480}, Client::FrontEnd::DescriptionHeight(buffer), count);
     }
 
-    // Un clic en el centro de `rect`, en un paso.
     void ClickOn(const Rect& rect)
     {
         Client::Tests::ClickAt(input, MiddleX(rect), MiddleY(rect));
@@ -363,8 +357,7 @@ struct Harness
         Step();
     }
 
-    // La lista del laboratorio (el 400, del grupo 20), su grupo y su servidor: la sesión espera la
-    // dirección.
+    // The lab's list (400, of group 20), its group and its server: the session waits for the address.
     void ChooseTheLabServer()
     {
         ASSERT_NO_FATAL_FAILURE(ReachTheList(ServerList({400})));
@@ -374,7 +367,7 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::WaitingServerAddress);
     }
 
-    // Y la dirección, el Opened del GS y su saludo: la ventana de la cuenta está abierta.
+    // And the address, the GS's Opened and its hello: the login window is open.
     void ReachTheLogin()
     {
         ASSERT_NO_FATAL_FAILURE(ChooseTheLabServer());
@@ -388,7 +381,7 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::WaitingCredentials);
     }
 
-    // La cuenta, Tab, la clave y Enter, un paso cada uno.
+    // The account, Tab, the password and Enter, one step each.
     void TypeTheCredentials()
     {
         Type(Account);
@@ -397,14 +390,12 @@ struct Harness
         Tap(Key::Enter);
     }
 
-    // Los quads de `slot` en `events`.
     [[nodiscard]] static std::size_t QuadsOf(const std::vector<FrameEvent>& events, TextureSlot slot)
     {
         return static_cast<std::size_t>(std::ranges::count_if(
             events, [slot](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == slot; }));
     }
 
-    // Las texturas de los quads de `events` que son de `slots`, en orden.
     [[nodiscard]] static std::vector<TextureSlot> QuadsAmong(const std::vector<FrameEvent>& events,
                                                              const std::vector<TextureSlot>& slots)
     {
@@ -419,7 +410,6 @@ struct Harness
         return found;
     }
 
-    // La v de arriba del primer quad de `slot`, o nada.
     [[nodiscard]] static std::optional<float> TopV(const std::vector<FrameEvent>& events, TextureSlot slot)
     {
         const auto quad = std::ranges::find_if(events, [slot](const FrameEvent& event)
@@ -431,7 +421,6 @@ struct Harness
         return quad->vertices[0].v;
     }
 
-    // El alto del buffer que subió la escena para `slot`.
     [[nodiscard]] float BufferHeight(TextureSlot slot) const
     {
         const auto found = store.Find(slot);
@@ -439,14 +428,12 @@ struct Harness
         return found ? static_cast<float>(found->texture.textureHeight) : 1.0f;
     }
 
-    // Un paso con el mouse en el medio de `rect`, sin apretar.
     void HoverOn(const Rect& rect)
     {
         Client::Tests::MoveMouse(input, MiddleX(rect), MiddleY(rect));
         Step();
     }
 
-    // Si algún texto de `events` es `text`.
     [[nodiscard]] static bool Drew(const std::vector<FrameEvent>& events, std::string_view text)
     {
         return std::ranges::any_of(events, [text](const FrameEvent& event)
@@ -497,9 +484,8 @@ struct Harness
     std::size_t gameServerStart = 0;
 };
 
-// Hasta que llega la lista no hay ventana; con la lista, la escena abre la suya (0x4c1860 la abre
-// con el F4 06), con un botón por grupo y el nombre del grupo, después de los textos del login y
-// con la mezcla normal.
+// Until the list arrives there is no window; with the list, the scene opens its own (0x4c1860 opens it with the
+// F4 06), with one button per group and the group's name, after the login's texts and with normal blending.
 TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
 {
     Harness tested;
@@ -517,8 +503,8 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     const auto firstWindowQuad = std::ranges::find_if(
         events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, los modelos (con el terreno), las dos arenas y los tres textos, y
-    // después la UI: sin grupo elegido, la pieza del marco de la izquierda y el botón.
+    // The backgrounds, the end of 2D, the models (with the terrain), the two sands and the three texts, and then the
+    // UI: with no group chosen, the left frame piece and the button.
     EXPECT_EQ(firstWindowQuad - events.begin(), 9);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
     const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
@@ -527,9 +513,9 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     EXPECT_EQ(button->texture, GroupButtonSlot);
 }
 
-// 0x4c1860 abre la barra de abajo después de la lista, así que va arriba de ella. Nada la cierra en
-// el login: sigue con la cuenta, debajo de su ventana, cuando se cancela y cuando vuelve la lista,
-// que la abre otra vez sin repetirla.
+// 0x4c1860 opens the bottom bar after the list, so it goes above it. Nothing closes it in the login: it stays with the
+// account, under its window, when it is cancelled and when the list comes back, which opens it again without
+// repeating it.
 TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
 {
     Harness tested;
@@ -559,12 +545,12 @@ TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
               (std::vector<TextureSlot>{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot}));
 }
 
-// La barra y la lista, por el administrador (Q-C84): la barra se abrió última, así que está arriba con el
-// foco, y con el mouse encima los créditos muestran el cuadro 1. Sin credit.bmd, su clic manda el F4 06 dos
-// veces: al abrirlos (0x641203) y al cerrarlos enseguida con la tabla vacía (0x63ffe0 → 0x63f9a0).
-// El del menú abre la de Esc (0x6411d8), de toda la pantalla, y Esc la cierra: el apretón lo toma ella y el
-// paso no la vuelve a abrir (Q-C45). Apretar en la lista la pasa arriba y atiende su clic. Con un aviso
-// abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
+// The bar and the list, through the manager (Q-C84): the bar opened last, so it is on top with the focus, and with the
+// mouse over it the credits show frame 1. Without credit.bmd, its click sends the F4 06 twice: on opening them
+// (0x641203) and on closing them right away with the empty table (0x63ffe0 → 0x63f9a0). The menu's opens the Esc one
+// (0x6411d8), full screen, and Esc closes it: it takes the press and the step does not open it again (Q-C45).
+// Pressing on the list brings it to the top and handles its click. With a notice open, the notice has the mouse, as
+// in the original, where it is full screen.
 TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 {
     Harness tested;
@@ -584,14 +570,14 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
     EXPECT_EQ(Harness::QuadsOf(frame, CreditsCloseSlot), 0u);
     EXPECT_EQ(Harness::QuadsOf(frame, EscapeButtonSlot), 0u);
     tested.ClickOn(bar.menu);
-    // En el login, el de otro servidor no se dibuja: tres botones.
+    // In the login, the other-server one is not drawn: three buttons.
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 3u);
     tested.Tap(Key::Escape);
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), EscapeButtonSlot), 0u);
     EXPECT_EQ(tested.socket.sent.size(), sent + notices.size());
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
 
-    // El 400 con carga 100: el aviso 0x63.
+    // 400 with load 100: notice 0x63.
     const ServerListLayout layout = tested.ListLayout(1);
     tested.ClickOn(layout.groupButtons[0]);
     tested.ClickOn(layout.serverButtons[0]);
@@ -600,10 +586,10 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
     EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), 0.5f / height);
 }
 
-// Y con la cuenta (Q-C84): la cuenta está arriba, pero el mouse lo tiene la primera desde arriba que lo
-// tiene adentro, y los créditos muestran el cuadro 1. El menú abre la de Esc arriba de la cuenta, sin
-// mandar nada ni cerrarla ni sacarle el teclado. Con la cuenta abierta, Esc cierra la de Esc y el paso no la
-// vuelve a abrir (0x634d59).
+// And with the account (Q-C84): the account is on top, but the mouse belongs to the first from the top that has it
+// inside, and the credits show frame 1. The menu opens the Esc one above the account, without sending anything,
+// closing it or taking its keyboard. With the account open, Esc closes the Esc one and the step does not open it
+// again (0x634d59).
 TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
 {
     Harness tested;
@@ -627,8 +613,8 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
 }
 
-// Los créditos (0x641203): el F4 06, la ilustración, el título y el botón, de toda la pantalla y arriba. Esc los
-// cierra (0x63f630 → 0x63f9a0) con otro F4 06 y se lleva el apretón: la de Esc no se abre (0x634d2c).
+// The credits (0x641203): the F4 06, the illustration, the title and the button, full screen and on top. Esc closes
+// them (0x63f630 → 0x63f9a0) with another F4 06 and takes the press: the Esc one does not open (0x634d2c).
 TEST(LoginSceneSessionTest, TheCreditsCoverTheLogin)
 {
     const std::vector<std::byte> credits =
@@ -657,9 +643,9 @@ TEST(LoginSceneSessionTest, TheCreditsCoverTheLogin)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
 }
 
-// Las opciones (0x647e75): el 2 de la de Esc la cierra y las abre arriba, con sus tres casillas y su botón de
-// op1_b_all. La del ataque automático (0x6c8e3c, prendido) se apaga con un clic: el cuadro 0. Esc las cierra y
-// la de Esc no vuelve a abrirse con el mismo apretón.
+// The options (0x647e75): the Esc one's 2 closes it and opens them on top, with their three check boxes and their
+// op1_b_all button. The auto attack one (0x6c8e3c, on) turns off with a click: frame 0. Esc closes them and the Esc
+// one does not open again with the same press.
 TEST(LoginSceneSessionTest, TheOptionsOpenFromTheEscapeWindow)
 {
     Harness tested;
@@ -691,8 +677,8 @@ TEST(LoginSceneSessionTest, TheOptionsOpenFromTheEscapeWindow)
     EXPECT_EQ(tested.socket.sent.size(), sent);
 }
 
-// El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el
-// 400, 90 01), y la lista se cierra.
+// The group and then the server: the scene passes the code to the session, which sends the F4 03 (400, 90 01), and
+// the list closes.
 TEST(LoginSceneSessionTest, ClickingAServerChoosesIt)
 {
     Harness tested;
@@ -711,8 +697,8 @@ TEST(LoginSceneSessionTest, ClickingAServerChoosesIt)
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), GroupButtonSlot), 0u);
 }
 
-// Un servidor con carga de 100 a 127: el aviso 0x63 con su texto, sin F4 03, y la lista queda
-// abajo; con el OK se cierra el aviso y sigue la lista.
+// A server with load 100 to 127: notice 0x63 with its text, no F4 03, and the list stays below; with OK the notice
+// closes and the list goes on.
 TEST(LoginSceneSessionTest, AFullServerShowsItsNotice)
 {
     Harness tested;
@@ -737,7 +723,7 @@ TEST(LoginSceneSessionTest, AFullServerShowsItsNotice)
     EXPECT_FALSE(tested.scene->WantsToQuit());
 }
 
-// Un servidor sin botón (el 420 es del grupo 21) no se muestra, y el log lo dice con la cuenta.
+// A server without a button (420 is of group 21) is not shown, and the log says so with the count.
 TEST(LoginSceneSessionTest, TheServersThatAreNotShownAreLogged)
 {
     Harness tested;
@@ -746,8 +732,8 @@ TEST(LoginSceneSessionTest, TheServersThatAreNotShownAreLogged)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "1 servidores de la lista no se muestran"));
 }
 
-// 0x4c1e20: con el saludo del GS se abre la cuenta, con el título del servidor elegido (el 461:
-// el grupo 20 va en el lugar 4, sin la marca de sin PvP) y el foco en la cuenta.
+// 0x4c1e20: with the GS hello the account opens, with the chosen server's title (461: group 20 goes in slot 4,
+// without the no-PvP mark) and the focus on the account.
 TEST(LoginSceneSessionTest, TheLoginWindowShowsWithTheGameServer)
 {
     Harness tested;
@@ -765,14 +751,14 @@ TEST(LoginSceneSessionTest, TheLoginWindowShowsWithTheGameServer)
     EXPECT_TRUE(Harness::Drew(events, "servidor Veinte-1"));
 }
 
-// El área de mensajes del login: el clic en un servidor deja el 470 y el 471 (0x64630f y 0x646320), la respuesta al F4
-// 03 el 481 con la dirección y el puerto en sus marcas (0x4e33d0) y el envío de la cuenta el 472 y el 473 (0x6427d9 y
-// 0x6427ea), todos como sistema y sin nombre.
+// The login's message area: clicking a server leaves 470 and 471 (0x64630f and 0x646320), the F4 03 reply 481 with
+// the address and port in its marks (0x4e33d0) and sending the account 472 and 473 (0x6427d9 and 0x6427ea), all as
+// system and without a name.
 TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
 {
     Client::Kernel::WorldState world;
     Harness tested(false, &world);
-    // El mundo 56 del login con un terreno plano, para que su personaje tenga dónde pararse (0x511b9f).
+    // The login's world 56 with a flat terrain, so its character has somewhere to stand (0x511b9f).
     const std::filesystem::path& root = tested.folder.Path();
     Client::Tests::WriteSceneFile(root, "World56/TerrainHeight.OZB",
                                   std::vector<std::byte>(Client::Data::Terrain::TerrainHeightsSize));
@@ -794,7 +780,7 @@ TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
                       Client::Tests::PlayerActionsSkeleton(), {});
     const auto entered = tested.scene->Enter();
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    // Sin el cuervo del personaje del login: esta biblioteca no lo tiene.
+    // Without the login character's raven: this library does not have it.
     for (auto& actor : world.Actors())
         actor.darkSpirit.reset();
     tested.socket.reads = {Hello()};
@@ -827,8 +813,8 @@ TEST(LoginSceneSessionTest, TheLoginWritesItsStepsInTheMessageArea)
     EXPECT_EQ(row(1).text, "espere otra vez");
 }
 
-// Lo tecleado va a la cuenta, Tab pasa a la clave y Enter manda: la sesión manda el login con la
-// cuenta y la clave tecleadas, sin que ninguna llegue al log.
+// What is typed goes to the account, Tab moves to the password and Enter sends: the session sends the login with the
+// typed account and password, with neither reaching the log.
 TEST(LoginSceneSessionTest, TypingAndEnterSubmitsTheLogin)
 {
     Harness tested;
@@ -844,15 +830,15 @@ TEST(LoginSceneSessionTest, TypingAndEnterSubmitsTheLogin)
     const std::span<const std::byte> login = received.packets[0].Bytes();
     const std::span<const std::byte> written = expected.Value().packet.Bytes();
     EXPECT_TRUE(Client::Tests::SameBytesWithoutValues(login, written));
-    // Por igualdad, para no imprimir el login si falla.
+    // By equality, so the login is not printed if it fails.
     EXPECT_TRUE(std::ranges::equal(login, written));
     EXPECT_FALSE(tested.LoggedTheCredentials());
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), LoginBackgroundSlot), 0u);
 }
 
-// Enter con la cuenta vacía: el aviso 0x64 con su texto, y nada sale. El Enter que lo cierra no le
-// llega a la cuenta, que se abre en ese paso con el foco en la cuenta (0x643560): con el segundo
-// Enter, el aviso se cierra y la cuenta queda abierta, sin otro aviso.
+// Enter with the account empty: notice 0x64 with its text, and nothing goes out. The Enter that closes it does not
+// reach the account, which opens in that step with the focus on the account (0x643560): with the second Enter, the
+// notice closes and the account stays open, with no other notice.
 TEST(LoginSceneSessionTest, AnEmptyAccountShowsItsNotice)
 {
     Harness tested;
@@ -885,8 +871,8 @@ TEST(LoginSceneSessionTest, AnEmptyAccountShowsItsNotice)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
 }
 
-// Con la cuenta y sin la clave: el aviso 0x65 con el texto 404, y su OK abre la cuenta con el foco
-// en la clave (0x643560), así que lo que se teclea después va a la clave.
+// With the account and without the password: notice 0x65 with text 404, and its OK opens the account with the focus
+// on the password (0x643560), so what is typed after goes to the password.
 TEST(LoginSceneSessionTest, AnEmptyPasswordShowsItsNotice)
 {
     Harness tested;
@@ -915,8 +901,8 @@ TEST(LoginSceneSessionTest, AnEmptyPasswordShowsItsNotice)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
 }
 
-// Un login rechazado con el 0: el aviso 0x15 (el texto 407); su OK abre otra vez la cuenta con el
-// foco en la clave, que quedó vacía, y la cuenta tecleada sigue (0x643560).
+// A login rejected with 0: notice 0x15 (text 407); its OK opens the account again with the focus on the password,
+// which was left empty, and the typed account stays (0x643560).
 TEST(LoginSceneSessionTest, ARejectedLoginShowsItsNotice)
 {
     Harness tested;
@@ -953,8 +939,8 @@ TEST(LoginSceneSessionTest, ARejectedLoginShowsItsNotice)
     EXPECT_EQ(tested.GameServerReads().packets.size(), 5u);
 }
 
-// El texto tecleado, solo con la cuenta arriba: ni con la lista, ni con un aviso que la tapa, ni
-// después de mandar. Main prende y apaga el de SDL con esto (CL5.5).
+// The typed text, only with the account on top: not with the list, nor with a notice covering it, nor after sending.
+// Main turns SDL's on and off with this (CL5.5).
 TEST(LoginSceneSessionTest, TheSceneWantsTheTextOnlyWithTheLogin)
 {
     Harness tested;
@@ -983,8 +969,8 @@ TEST(LoginSceneSessionTest, TheSceneWantsTheTextOnlyWithTheLogin)
     EXPECT_FALSE(tested.scene->WantsTextInput());
 }
 
-// Leave cierra las ventanas, como suelta sus texturas: la cuenta, con la clave tecleada, no queda
-// abierta ni pide el texto.
+// Leave closes the windows, as it releases its textures: the account, with the typed password, neither stays open
+// nor asks for the text.
 TEST(LoginSceneSessionTest, LeavingClosesTheLogin)
 {
     Harness tested;
@@ -997,8 +983,8 @@ TEST(LoginSceneSessionTest, LeavingClosesTheLogin)
     EXPECT_FALSE(tested.scene->WantsTextInput());
 }
 
-// Entrar otra vez empieza de cero: sin la lista, la barra ni el aviso de antes, que no se dibujan
-// hasta que la sesión los pida otra vez.
+// Entering again starts from scratch: without the list, the bar or the notice from before, which are not drawn until
+// the session asks for them again.
 TEST(LoginSceneSessionTest, EnteringAgainClosesTheWindows)
 {
     Harness tested;
@@ -1018,7 +1004,6 @@ TEST(LoginSceneSessionTest, EnteringAgainClosesTheWindows)
     EXPECT_EQ(Harness::QuadsOf(events, OrnamentSlot), 0u);
 }
 
-// Y con la cuenta abierta: entrar otra vez la cierra.
 TEST(LoginSceneSessionTest, EnteringAgainClosesTheLogin)
 {
     Harness tested;
@@ -1030,7 +1015,7 @@ TEST(LoginSceneSessionTest, EnteringAgainClosesTheLogin)
     EXPECT_FALSE(tested.scene->WantsTextInput());
 }
 
-// Un ConnectServer que rechaza la conexión: el aviso 0x70, con el texto 402 (0x4c1340).
+// A ConnectServer that refuses the connection: notice 0x70, with text 402 (0x4c1340).
 TEST(LoginSceneSessionTest, ARefusedConnectShowsText402)
 {
     Harness tested;
@@ -1045,12 +1030,11 @@ TEST(LoginSceneSessionTest, ARefusedConnectShowsText402)
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
 }
 
-// El connect al CS del original es bloqueante y corre antes del primer frame del login (0x6349eb
-// llama a 0x4c1340, que llama a connect en 0x4e8625): en la pantalla queda la carga hasta que
-// termina, y el primer frame del login ya trae el aviso (Q-C85). Acá el connect no bloquea, y la
-// escena retiene el último frame mientras conecta: el GameLoop no dibuja. Lo suelta cuando la
-// escena vio la falla, con el aviso abierto, no cuando la sesión falla: un frame dibujado entre el
-// Poll y el Step sería el login sin el aviso.
+// The original's connect to the CS is blocking and runs before the login's first frame (0x6349eb calls 0x4c1340,
+// which calls connect at 0x4e8625): the loading stays on screen until it ends, and the login's first frame already
+// brings the notice (Q-C85). Here the connect does not block, and the scene holds the last frame while it connects:
+// the GameLoop does not draw. It releases it when the scene saw the failure, with the notice open, not when the
+// session fails: a frame drawn between the Poll and the Step would be the login without the notice.
 TEST(LoginSceneSessionTest, AFailingConnectHoldsTheFrameUntilTheNotice)
 {
     Harness tested;
@@ -1075,10 +1059,9 @@ TEST(LoginSceneSessionTest, AFailingConnectHoldsTheFrameUntilTheNotice)
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
 }
 
-// Un connect que falla enseguida (un puerto cerrado en la misma máquina, un host que no resuelve)
-// sale en el primer Poll después de Enter, y en el modo normal ese frame puede no tener un paso
-// antes del dibujo. La escena todavía no vio la falla: retiene el frame hasta que su paso abre el
-// aviso, y el primer frame del login ya lo trae.
+// A connect that fails at once (a closed port on the same machine, a host that does not resolve) comes out on the
+// first Poll after Enter, and in normal mode that frame may have no step before the draw. The scene has not seen the
+// failure yet: it holds the frame until its step opens the notice, and the login's first frame already brings it.
 TEST(LoginSceneSessionTest, AConnectThatFailsAtOnceHoldsTheFrameUntilTheNotice)
 {
     Harness tested;
@@ -1094,8 +1077,8 @@ TEST(LoginSceneSessionTest, AConnectThatFailsAtOnceHoldsTheFrameUntilTheNotice)
     EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
 }
 
-// Lo mismo con el GS: el F4 03 lo abre en un Poll y la falla sale en el siguiente, sin un paso en
-// el medio (dos frames sin pasos). La escena no llegó a verla conectando, y retiene el frame igual.
+// The same with the GS: the F4 03 opens it in one Poll and the failure comes out in the next, with no step in between
+// (two frames without steps). The scene never saw it connecting, and holds the frame anyway.
 TEST(LoginSceneSessionTest, AGameServerConnectThatFailsBetweenStepsHoldsTheFrame)
 {
     Harness tested;
@@ -1115,8 +1098,8 @@ TEST(LoginSceneSessionTest, AGameServerConnectThatFailsBetweenStepsHoldsTheFrame
     EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
 }
 
-// Con el CS abierto el original sigue con el login y dibuja mientras espera el saludo: la escena
-// suelta el frame.
+// With the CS open the original goes on with the login and draws while it waits for the hello: the scene releases the
+// frame.
 TEST(LoginSceneSessionTest, AnOpenedConnectionDrawsTheLogin)
 {
     Harness tested;
@@ -1132,8 +1115,8 @@ TEST(LoginSceneSessionTest, AnOpenedConnectionDrawsTheLogin)
     EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
 }
 
-// El connect al GS también bloquea en el original (0x4e3396): con la dirección, en la pantalla
-// queda el último frame, ya sin la lista (la cerró el clic, 0x645e10), hasta que el GS abre.
+// The connect to the GS also blocks in the original (0x4e3396): with the address, the last frame stays on screen,
+// already without the list (the click closed it, 0x645e10), until the GS opens.
 TEST(LoginSceneSessionTest, TheGameServerConnectHoldsTheFrame)
 {
     Harness tested;
@@ -1154,8 +1137,8 @@ TEST(LoginSceneSessionTest, TheGameServerConnectHoldsTheFrame)
     EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
 }
 
-// Sin modelos del personaje ni .obj, solo el dueño del dragón y el logo consumen RNG al dibujar:
-// dos rand comunes por frame original. El tiempo conectado no debe producir 64 frames de catch-up.
+// Without character models or .obj, only the dragon's owner and the logo use RNG when drawing: two common rand per
+// original frame. The connected time must not produce 64 catch-up frames.
 TEST(LoginSceneSessionTest, ObjectEffectsResumeWithOneFrameAfterAHeldFrame)
 {
     Harness tested(true);
@@ -1195,7 +1178,7 @@ TEST(LoginSceneSessionTest, AConnectStartedByTheUiCannotAccumulateObjectFramesBe
     tested.clock.Advance(std::chrono::seconds{5});
     static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
-    // El connect ya terminó cuando llega el próximo Step; el evento ya descartó el tiempo retenido.
+    // The connect already ended when the next Step comes; the event already discarded the held time.
     tested.scene->Step(tested.input);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
     tested.cloth.random = Client::Crt::CrtRandom(4);
@@ -1215,7 +1198,7 @@ TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRu
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
     ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
     tested.scene->OnFrameHeld();
-    tested.scene->OnFrameHeld(); // El aviso repetido conserva el mismo reset, sin RNG ni efectos nuevos.
+    tested.scene->OnFrameHeld(); // The repeated notice keeps the same reset, with no RNG or new effects.
     tested.clock.Advance(std::chrono::seconds{5});
     static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
@@ -1226,8 +1209,8 @@ TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRu
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame para dueño del dragón y logo";
 }
 
-// Retener el frame hasta que Step abra la lista no representa un connect bloqueante:
-// conserva los 20 ms de fase y completa una sola ronda al llegar a 47 ms desde el último dibujo.
+// Holding the frame until Step opens the list does not stand for a blocking connect: it keeps the 20 ms of phase and
+// completes a single round on reaching 47 ms since the last draw.
 TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFramePhase)
 {
     Harness tested(true);
@@ -1255,9 +1238,8 @@ TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFram
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "la fase de 20 ms se conserva y completa 47 ms";
 }
 
-// El otro lado que cierra (el FD_CLOSE de 03): con la cuenta abierta, la cuenta se cierra y sale el
-// 0x70. El texto 3 que el original pone antes en el área de mensajes (0x555190) es del chat, que
-// llega con la CL8.
+// The other side closing (the FD_CLOSE of 03): with the account open, the account closes and 0x70 comes out. Text 3,
+// which the original puts in the message area first (0x555190), belongs to the chat, which comes with CL8.
 TEST(LoginSceneSessionTest, APeerCloseShowsTheConnectNotice)
 {
     Harness tested;
@@ -1273,11 +1255,10 @@ TEST(LoginSceneSessionTest, APeerCloseShowsTheConnectNotice)
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
 }
 
-// La orden del GS de cerrar el juego (F1 02 con 0, Q-C106), con la cuenta abierta y el cierre del
-// GS detrás: no es un GameServerLost, así que no sale el 0x70 y la cuenta queda como estaba, con
-// su título. El original no corre otro paso después del WM_DESTROY: el Esc de ese mismo paso no
-// cancela la cuenta ni vuelve a conectar. El juego lo cierra main.cpp, con la sesión, y no la
-// escena.
+// The GS's order to close the game (F1 02 with 0, Q-C106), with the account open and the GS close behind: it is not a
+// GameServerLost, so 0x70 does not come out and the account stays as it was, with its title. The original runs no
+// other step after the WM_DESTROY: the Esc of that same step neither cancels the account nor connects again.
+// main.cpp closes the game, with the session, not the scene.
 TEST(LoginSceneSessionTest, AQuitOrderLeavesTheLoginAsItWas)
 {
     Harness tested;
@@ -1297,7 +1278,7 @@ TEST(LoginSceneSessionTest, AQuitOrderLeavesTheLoginAsItWas)
     EXPECT_FALSE(tested.Logged(LogLevel::Info, "se cancela la cuenta"));
 }
 
-// El color de la primera malla del logo (la última en el lote, después del personaje), o ninguno.
+// The color of the logo's first mesh (the last in the batch, after the character), or none.
 std::optional<Client::Render::Color> LogoColorOf(const std::vector<FrameEvent>& events)
 {
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
@@ -1308,8 +1289,8 @@ std::optional<Client::Render::Color> LogoColorOf(const std::vector<FrameEvent>& 
     return models->modelVertices[models->modelVertices.size() - 6].color;
 }
 
-// Q-C106: tampoco el mundo del login avanza en el paso de la orden de cerrar: la luz del logo queda
-// como en el paso de antes, que sí la cambió.
+// Q-C106: the login world does not advance on the quit order's step either: the logo light stays as on the step
+// before, which did change it.
 TEST(LoginSceneSessionTest, AQuitOrderDoesNotMoveTheLoginWorld)
 {
     Harness tested;
@@ -1332,10 +1313,10 @@ TEST(LoginSceneSessionTest, AQuitOrderDoesNotMoveTheLoginWorld)
     EXPECT_FLOAT_EQ(after->red, lit->red);
 }
 
-// El connect del original bloquea dentro de un paso (Q-C85), y lo que tarda no entra al acumulador,
-// que mide desde después de los pasos (02): mientras conecta no corre ningún paso, y el mundo del login
-// no avanza. Con el CS de la entrada: la luz del logo, que ya se dibujó, queda como al entrar por más
-// pasos de MuRet que pasen conectando, y sigue cuando el CS abre.
+// The original's connect blocks inside a step (Q-C85), and what it takes does not go into the accumulator, which
+// measures from after the steps (02): while it connects no step runs, and the login world does not advance. With the
+// entry's CS: the logo light, already drawn, stays as on entering however many MuRet steps pass connecting, and goes
+// on when the CS opens.
 TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
 {
     Harness tested(true);
@@ -1345,7 +1326,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
     const std::optional<Client::Render::Color> entered = LogoColorOf(tested.Frame());
     ASSERT_TRUE(entered.has_value());
     const std::int32_t clothSteps = tested.cloth.logicSteps;
-    // Lo que sacó el último dibujo: el del test, porque en el bucle el frame queda retenido.
+    // What the last draw took: the test's, because in the loop the frame stays held.
     std::uint32_t random = tested.cloth.random.State();
 
     int connecting = 0;
@@ -1353,7 +1334,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
          tested.Step())
     {
         ++connecting;
-        // Ni la tela: el paso no la corre ni saca un rand() de la CRT.
+        // Nor the cloth: the step does not run it or take a CRT rand().
         EXPECT_EQ(tested.cloth.logicSteps, clothSteps) << connecting;
         EXPECT_EQ(tested.cloth.random.State(), random) << connecting;
         const std::optional<Client::Render::Color> waiting = LogoColorOf(tested.Frame());
@@ -1369,7 +1350,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
     EXPECT_NE(opened->red, entered->red);
 }
 
-// Lo mismo con el GS (0x4e3396): con la dirección, la luz queda como en el último paso antes de ella.
+// The same with the GS (0x4e3396): with the address, the light stays as on the last step before it.
 TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
 {
     Harness tested(true);
@@ -1381,7 +1362,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
     ASSERT_TRUE(before.has_value());
     tested.socket.pollsUntilConnected = 3;
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    // El paso que recibe la dirección todavía corre la tela: el connect empieza en él.
+    // The step that receives the address still runs the cloth: the connect starts in it.
     tested.Step();
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
     const std::int32_t clothSteps = tested.cloth.logicSteps;
@@ -1406,8 +1387,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
     EXPECT_NE(opened->red, before->red);
 }
 
-// El OK del 0x70 cierra el juego (Q-C69): la escena lo pide con WantsToQuit, con una línea en el
-// log.
+// The 0x70's OK closes the game (Q-C69): the scene asks for it with WantsToQuit, with a log line.
 TEST(LoginSceneSessionTest, OkOnTheConnectNoticeQuits)
 {
     Harness tested;
@@ -1424,8 +1404,7 @@ TEST(LoginSceneSessionTest, OkOnTheConnectNoticeQuits)
     EXPECT_EQ(Harness::QuadsOf(tested.Frame(), NoticeBoxSlot), 0u);
 }
 
-// Otra versión en el saludo del GS: el aviso 0x6f, con sus dos textos (0x4c1e20), y su OK también
-// cierra el juego.
+// Another version in the GS hello: notice 0x6f, with its two texts (0x4c1e20), and its OK also closes the game.
 TEST(LoginSceneSessionTest, AnotherVersionShowsItsNotice)
 {
     Harness tested;
@@ -1446,7 +1425,6 @@ TEST(LoginSceneSessionTest, AnotherVersionShowsItsNotice)
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
-// Entrar otra vez olvida el pedido de cerrar el juego.
 TEST(LoginSceneSessionTest, EnteringAgainForgetsTheQuit)
 {
     Harness tested;
@@ -1461,8 +1439,8 @@ TEST(LoginSceneSessionTest, EnteringAgainForgetsTheQuit)
     EXPECT_FALSE(tested.scene->WantsToQuit());
 }
 
-// Cancelar en la cuenta (0x642810): la sesión vuelve a empezar con el CS, y con su lista vuelve la
-// ventana de la lista.
+// Cancel in the account (0x642810): the session starts over with the CS, and with its list the list window comes
+// back.
 TEST(LoginSceneSessionTest, CancelGoesBackToTheList)
 {
     Harness tested;
@@ -1481,7 +1459,6 @@ TEST(LoginSceneSessionTest, CancelGoesBackToTheList)
     EXPECT_FALSE(tested.scene->WantsToQuit());
 }
 
-// Con el login aceptado, la selección, como en la CL5.4.
 TEST(LoginSceneSessionTest, LoggedInGoesToCharacterSelect)
 {
     Harness tested;
@@ -1496,8 +1473,8 @@ TEST(LoginSceneSessionTest, LoggedInGoesToCharacterSelect)
     EXPECT_EQ(tested.scene->Next(), SceneId::CharacterSelect);
 }
 
-// Las ventanas siguen la pantalla del último frame: en 1024 × 768 la cuenta va donde dice
-// LayoutLogin para 1024 × 768, y un clic en su cancelar, también.
+// The windows follow the last frame's screen: at 1024 × 768 the account goes where LayoutLogin says for 1024 × 768,
+// and so does a click on its cancel.
 TEST(LoginSceneSessionTest, TheWindowsFollowTheScreenOfTheLastFrame)
 {
     Harness tested;
@@ -1508,7 +1485,7 @@ TEST(LoginSceneSessionTest, TheWindowsFollowTheScreenOfTheLastFrame)
     const auto background =
         std::ranges::find_if(events, [](const FrameEvent& event) { return event.texture == LoginBackgroundSlot; });
     ASSERT_NE(background, events.end());
-    // La esquina de arriba a la izquierda, con la y desde abajo (UiImage).
+    // The top left corner, with y from the bottom (UiImage).
     EXPECT_EQ(background->vertices[0].x, static_cast<float>(layout.window.x));
     EXPECT_EQ(background->vertices[0].y, static_cast<float>(768 - layout.window.y));
 

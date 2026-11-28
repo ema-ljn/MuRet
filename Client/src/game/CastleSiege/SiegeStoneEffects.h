@@ -46,7 +46,7 @@ class Particles;
 
 namespace Client::CastleSiege
 {
-// 429ec0: sector original y primer objeto válido en orden de inserción; el quinto argumento nativo no se lee.
+// 0x429ec0: original sector and first valid object in insertion order; the fifth native argument is not read.
 [[nodiscard]] Core::Expected<bool, std::string> CollideTheSiegeObject(Effects::ModelEffect& projectile,
                                                                       std::span<Kernel::WorldObject> objects,
                                                                       float radius, float heightLimit, bool markOnly);
@@ -66,7 +66,7 @@ struct SiegeStoneStepServices
     std::function<Core::Expected<void, std::string>(float, float, std::int32_t, std::int32_t)> deform{};
     std::function<void(Audio::SoundId, const glm::vec3&)> sound{};
 };
-// 5208a0, 527c62..5290: vuelo/contacto nativo y epílogo, sin51fc80 genérico.
+// 0x5208a0, 0x527c62..5290: native flight/contact and epilogue, without the generic 0x51fc80.
 [[nodiscard]] Core::Expected<void, std::string> StepSiegeStone(Effects::ModelEffect& effect,
                                                                const Models::Skeleton* skeleton,
                                                                Particles::Particles& particles, Crt::CrtRandom& random,
@@ -76,7 +76,7 @@ inline constexpr std::int16_t SiegeStoneEffect = 0x12b;
 inline constexpr std::int16_t SiegeIceStoneEffect = 0x12c;
 
 [[nodiscard]] bool IsSiegeStoneEffect(std::int16_t type);
-// 0x51cfa4 y0x51d1f0, después del prefijo518cf0. Lleno es éxito siníndice y sinCRT.
+// 0x51cfa4 and 0x51d1f0, after the prefix 0x518cf0. Full is a success without an index and without CRT.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateSiegeStone(const Kernel::ModelEffectArguments& arguments, Effects::ModelEffects& effects,
                  const glm::vec3& heroPosition, Crt::CrtRandom& random);

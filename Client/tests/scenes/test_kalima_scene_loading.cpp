@@ -215,7 +215,8 @@ TEST(KalimaSceneTextureTest, MissingRequiredWaterFailsBeforeAnyPhysicalUpload)
 {
     Client::Tests::TemporaryFolder missing("kalima-missing-water");
     Client::Tests::WriteTextureSet(missing.Path(), Client::Terrain::KalimaWaterTextureSet(), std::uint16_t{0x24});
-    // 616ec0 pide drop01 con sexto 1 antes de llegar a water2: el fixture debe alcanzar esa segunda frontera.
+    // 0x616ec0 asks for drop01 with its sixth argument at 1 before reaching water2: the fixture must reach that second
+    // boundary.
     const auto drop = Client::Terrain::DropTexture();
     const std::array<Client::Data::Textures::TextureSetEntry, 1> prefix{{{drop.path, drop.slot, drop.sampling}}};
     Client::Tests::WriteTextureSet(missing.Path(), prefix);
@@ -239,7 +240,7 @@ TEST(KalimaSceneTextureTest, TheNativeOptionalAlphaWaterMayBeSkippedWhileTheRequ
     const std::array<Client::Data::Textures::TextureSetEntry, 2> entries{
         {{box.path, box.slot, box.sampling}, {drop.path, drop.slot, drop.sampling}}};
     Client::Tests::WriteTextureSet(folder.Path(), entries);
-    // Preparación del epílogo618dd1..618e40: este test sólo deja ausente water1, no 33 archivos ajenos.
+    // Setup of the 0x618dd1..0x618e40 epilogue: this test only leaves water1 missing, not 33 unrelated files.
     std::vector<Client::Data::Textures::TextureSetEntry> epilogue;
     const auto waters = Client::Terrain::CausticTextures(24);
     for (const auto& water : waters)

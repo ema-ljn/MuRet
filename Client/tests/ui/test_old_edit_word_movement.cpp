@@ -8,8 +8,8 @@
 #include <initializer_list>
 #include <string_view>
 
-// El EDIT de Windows XP clasifica por bytes y solo reconoce TAB, LF, CR y espacio; ver
-// Client/docs/research/11-edit-win32.md, «SetText y atajos». Vectores privados c32, session-02/edit-word-own-01.
+// The Windows XP EDIT classifies by bytes and only recognizes TAB, LF, CR and space; see
+// Client/docs/research/11-edit-win32.md, «SetText y atajos». Private vectors c32, session-02/edit-word-own-01.
 namespace
 {
 using Client::Ui::OldEditWordMovement::CursorAfterCtrlLeft;

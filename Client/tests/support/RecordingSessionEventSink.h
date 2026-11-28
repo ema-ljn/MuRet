@@ -16,7 +16,7 @@
 #include <variant>
 #include <vector>
 
-// Copia explícita de los argumentos prestados; el collector, no la sesión, conserva las recepciones.
+// Explicit copy of the borrowed arguments; the collector, not the session, keeps the receives.
 namespace Client::Tests
 {
 class RecordingSessionEventSink final : public App::ISessionEventSink
@@ -43,7 +43,7 @@ public:
         return onWorld ? onWorld(event, session) : Core::Expected<void, std::string>{};
     }
 
-    // La copia del dispatcher a la cola de 0x77f27b4: se guarda aparte, sin entrar en `world` ni en `trace`.
+    // The dispatcher's copy to the queue at 0x77f27b4: kept apart, without going into `world` or `trace`.
     Core::Expected<void, std::string> CopyToPacketRing(std::span<const std::byte> packet) override
     {
         packetCopies.emplace_back(packet.begin(), packet.end());

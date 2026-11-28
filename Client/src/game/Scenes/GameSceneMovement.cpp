@@ -46,8 +46,8 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
     const Ui::Point mouse = Ui::MouseIn640x480(input, m_screen);
     const auto ticks =
         m_context.clock ? std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count() : 0;
-    // El flanco del clic ya quedó en 0x7d366d4 al empezar el paso (StepTheDialogs), y la UI pudo usarlo: MoveHero
-    // no lo vuelve a prender.
+    // The click's edge is already at 0x7d366d4 when the step starts (StepTheDialogs), and the UI could use it: MoveHero
+    // does not set it again.
     Movement::HeroMovementContext context{
         .world = world,
         .random = m_context.cloth->random,
@@ -73,7 +73,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         auto body = Hud::Dialogs::OptionBodyOf(world, m_context.cloth->random, chosenSlot);
         if (!body.HasValue())
             return Core::Unexpected(std::move(body).Error());
-        // 0x61c210 no usa el retorno de send: aun si falla, 0x59ad45 sigue con Macro.txt.
+        // 0x61c210 ignores send's return: even if it fails, 0x59ad45 goes on with Macro.txt.
         if (m_session == nullptr)
             m_context.log.Warning("no se manda el F3 30: no hay servidor");
         else if (auto sent = m_session->SendOptionData(body.Value()); !sent.HasValue())
@@ -91,7 +91,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.requestGate = [&](std::uint8_t gate) { m_session->RequestGate(gate); };
     if (m_session)
         context.sendFacing = [&](std::uint8_t direction) { return m_session->SendFacing(direction); };
-    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3).
+    // The D7 to attack on arrival (0x5650c0).
     if (m_session)
         context.sendAttack = [&](std::uint16_t key, std::uint8_t action, std::uint8_t direction)
         { return m_session->SendAttack(key, action, direction); };
@@ -99,7 +99,7 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.sendElfCell = [&](std::uint8_t x, std::uint8_t y) { return m_session->SendElfCell(x, y); };
     if (m_session)
     {
-        // CL9 hito 11: el C1 03 97 va por la sesión; SetCursorPos queda pedido en GameMovementState::cursorWarpRequest.
+        // The C1 03 97 goes through the session; SetCursorPos stays requested in GameMovementState::cursorWarpRequest.
         context.sendEventWindowLeave = [&]() { return m_session->SendEventWindowLeave(); };
         context.sendWindowClose = [&]() { m_session->SendWindowClose(); };
         context.sendGamePacket = [&](Protocol::Outgoing outgoing) { m_session->SendGamePacket(std::move(outgoing)); };
@@ -109,9 +109,9 @@ Core::Expected<void, std::string> GameScene::StepTheHero(const Input::InputState
         context.sendAction = [&](std::uint8_t direction, std::uint8_t action)
         { m_session->SendAction(direction, action); };
     }
-    // 0x57ceea: la skill sin elegido apunta al terreno bajo el mouse: 0x5fc260(1), el barrido, y 0x5fac90, el reintento
-    // sobre la celda elegida; el punto es el que deja el barrido (0x7d366e0..0x7d366e8). *Inferido*: el mismo par que
-    // el clic (PickTerrainTarget) después de un PickTerrain del paso.
+    // 0x57ceea: the skill without a chosen target aims at the terrain under the mouse: 0x5fc260(1), the sweep, and
+    // 0x5fac90, the retry on the chosen cell; the point is the one the sweep leaves (0x7d366e0..0x7d366e8). *Inferred*:
+    // the same pair as the click (PickTerrainTarget) after a PickTerrain of the step.
     context.pickTerrainPoint = [&]() -> Core::Expected<std::optional<glm::vec3>, std::string>
     {
         if (!m_mouseRay)
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> GameScene::StepTheLeaves()
                                      &world.Particles()};
     context.cloudHero = &hero;
     context.movementSpeed = &world.Runtime().movementSpeed;
-    // 0x5304f6: el clima de Crywolf (0x5763358), que sortea 0x430510.
+    // 0x5304f6: the Crywolf weather (0x5763358), rolled by 0x430510.
     context.crywolfState = &world.Runtime().crywolf.weather;
     return Weather::StepGameLeaves(context);
 }

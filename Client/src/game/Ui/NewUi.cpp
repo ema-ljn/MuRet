@@ -17,12 +17,12 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x669df0 con 2: el título mide 26 de alto.
+// 0x669df0 with 2.
 constexpr int TitleHeight = 0x1a;
-// 0x65f720: lo que se pega, a menos de 10 de un borde o de una esquina.
+// 0x65f720: it sticks within 10 of an edge or a corner.
 constexpr int StickDistance = 10;
 
-// SetRect(x − 10, y − 10, x + 10, y + 10): el rectángulo de 20 × 20 alrededor de una esquina.
+// SetRect(x − 10, y − 10, x + 10, y + 10).
 Rect AroundCorner(Point corner)
 {
     return Rect{.x = corner.x - StickDistance,
@@ -31,7 +31,7 @@ Rect AroundCorner(Point corner)
                 .height = 2 * StickDistance};
 }
 
-// IntersectRect: la intersección no está vacía.
+// IntersectRect: the intersection is not empty.
 bool Intersect(const Rect& a, const Rect& b)
 {
     return std::max(a.x, b.x) < std::min(a.x + a.width, b.x + b.width) &&
@@ -169,9 +169,9 @@ void NewUi::Step(const Input::InputState& input, Core::PixelSize screen, const S
         return nullptr;
     };
 
-    // 0x65fc61: con el izquierdo apretado, la primera desde la cabeza con el mouse adentro pasa a la
-    // cabeza con el foco; afuera de todas, la cabeza pierde el foco. +0x8de9, que pone en 0 al
-    // soltarlo, no lo lee nadie del login ni de la selección.
+    // 0x65fc61: with the left button pressed, the first from the head with the mouse inside moves to the head with the
+    // focus; outside all of them, the head loses the focus. +0x8de9, which it zeroes on release, is read by nothing in
+    // login or selection.
     if (input.WasPressed(Input::MouseButton::Left))
     {
         if (NewUiWindow* pressed = underTheMouse())
@@ -184,8 +184,8 @@ void NewUi::Step(const Input::InputState& input, Core::PixelSize screen, const S
         }
     }
 
-    // 0x65fccb: la lista de este frame, con los botones de todas sin el mouse (0x669ed0 con 0), y
-    // con él los de la primera que lo tiene adentro.
+    // 0x65fccb: this frame's list, with every window's buttons without the mouse (0x669ed0 with 0), and with it those
+    // of the first that has it inside.
     std::vector<NewUiWindow*> snapshot;
     snapshot.reserve(m_entries.size());
     for (const Entry& entry : m_entries)
@@ -223,8 +223,7 @@ void NewUi::Step(const Input::InputState& input, Core::PixelSize screen, const S
 
     StickTheDragged(screen);
 
-    // 0x65fd8e: alguna con +0x10 entre 1 y 4 (el arrastre es el 2) o, desde la cabeza, la primera
-    // con el mouse adentro.
+    // 0x65fd8e: any with +0x10 between 1 and 4 (dragging is 2) or, from the head, the first with the mouse inside.
     for (const Entry& entry : m_entries)
     {
         if (entry.dragging)
@@ -245,7 +244,7 @@ void NewUi::Step(const Input::InputState& input, Core::PixelSize screen, const S
 
 void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, Core::PixelSize screen)
 {
-    // 0x669fb8: apretado en el título, empieza desde donde está.
+    // 0x669fb8: pressed on the title, it starts from where it is.
     if (input.WasPressed(Input::MouseButton::Left) && entry.window->Hit(WindowHit::Title, mouse, screen))
     {
         const Rect bounds = entry.window->Bounds(screen);
@@ -257,8 +256,7 @@ void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, Core
     {
         return;
     }
-    // 0x669ff0: suma lo que se movió el mouse; pegada (+0xe), no se mueve hasta que 0x65f720 la
-    // suelte.
+    // 0x669ff0: adds the mouse's movement; stuck (+0xe), it does not move until 0x65f720 lets it go.
     entry.dragAt.x += mouse.x - entry.dragFrom.x;
     entry.dragAt.y += mouse.y - entry.dragFrom.y;
     if (!entry.stuck)
@@ -270,7 +268,7 @@ void NewUi::Drag(Entry& entry, const Input::InputState& input, Point mouse, Core
 
 bool NewUi::StickAt(Entry& entry, Point at, Core::PixelSize screen)
 {
-    // 0x65fbb0: solo si queda algo adentro de la pantalla.
+    // 0x65fbb0: only if something stays inside the screen.
     const Rect bounds = entry.window->Bounds(screen);
     const Rect moved{.x = at.x, .y = at.y, .width = bounds.width, .height = bounds.height};
     if (!Intersect(Rect{.x = 0, .y = 0, .width = screen.width, .height = screen.height}, moved))
@@ -284,7 +282,7 @@ bool NewUi::StickAt(Entry& entry, Point at, Core::PixelSize screen)
 
 void NewUi::StickTheDragged(Core::PixelSize screen)
 {
-    // 0x65f720: solo la cabeza, y arrastrándose.
+    // 0x65f720: only the head, and while dragged.
     if (m_entries.empty() || !m_entries.front().dragging)
     {
         return;
@@ -297,8 +295,6 @@ void NewUi::StickTheDragged(Core::PixelSize screen)
     const Point at = head.dragAt;
     const int screenW = screen.width;
     const int screenH = screen.height;
-    // Las cuatro esquinas de donde va: arriba a la izquierda, arriba a la derecha, abajo a la
-    // izquierda y abajo a la derecha.
     const std::array<Rect, 4> corners{AroundCorner(at), AroundCorner(Point{at.x + w, at.y}),
                                       AroundCorner(Point{at.x, at.y + h}), AroundCorner(Point{at.x + w, at.y + h})};
     const auto place = [&](Point to)
@@ -307,7 +303,7 @@ void NewUi::StickTheDragged(Core::PixelSize screen)
         head.stuck = true;
     };
 
-    // Las esquinas de la pantalla y, si no, sus bordes (vtable + 8, sin 0x65fbb0).
+    // The screen's corners and, if not, its edges (vtable + 8, without 0x65fbb0).
     if (corners[0].Contains(Point{0, 0}))
     {
         place(Point{0, 0});
@@ -341,7 +337,6 @@ void NewUi::StickTheDragged(Core::PixelSize screen)
         place(Point{screenW - w, at.y});
     }
 
-    // Las otras abiertas, desde la segunda.
     for (std::size_t k = 1; k < m_entries.size(); ++k)
     {
         const NewUiWindow& other = *m_entries[k].window;
@@ -352,8 +347,8 @@ void NewUi::StickTheDragged(Core::PixelSize screen)
         const Rect v = other.Bounds(screen);
         const std::array<Point, 4> points{Point{v.x, v.y}, Point{v.x + v.width, v.y}, Point{v.x, v.y + v.height},
                                           Point{v.x + v.width, v.y + v.height}};
-        // 0x65f94a: una esquina de la otra cerca de una esquina distinta de esta pega las dos
-        // esquinas, y termina (la tabla de 0x65fb94).
+        // 0x65f94a: a corner of the other near a different corner of this one sticks the two corners, and it ends (the
+        // table at 0x65fb94).
         for (std::size_t i = 0; i < corners.size(); ++i)
         {
             for (std::size_t j = 0; j < points.size(); ++j)
@@ -370,9 +365,8 @@ void NewUi::StickTheDragged(Core::PixelSize screen)
                 return;
             }
         }
-        // 0x65f99d: si no, un borde. Con las dos superpuestas a lo ancho, arriba o abajo de la
-        // otra; si no, con las dos superpuestas a lo alto, a su derecha o a su izquierda. Sigue
-        // con las demás.
+        // 0x65f99d: otherwise, an edge. With the two overlapping in width, above or below the other; otherwise, with
+        // the two overlapping in height, to its right or left. Goes on with the rest.
         if (v.x < at.x + w - StickDistance && v.x + v.width > at.x + StickDistance)
         {
             const int bottom = v.y + v.height;

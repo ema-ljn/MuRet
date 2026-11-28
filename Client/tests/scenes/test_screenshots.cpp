@@ -34,9 +34,9 @@
 #include <string_view>
 #include <vector>
 
-// La captura de pantalla de Impr Pant (CL8 hito 6; 06 § La captura de pantalla): el flanco detrás del paso
-// (0x637cff), el nombre y el mensaje antes del dibujo y la lectura, el JPEG y el contador después. Los textos y los
-// nombres son inventados, y los archivos van a una carpeta temporal.
+// The Print Screen screenshot (CL8 milestone 6; 06 § La captura de pantalla): the edge after the step (0x637cff), the
+// name and the message before the draw and the read, the JPEG and the counter after. The texts and names are made up,
+// and the files go to a temporary folder.
 namespace
 {
 using Client::Core::LocalTime;
@@ -55,14 +55,14 @@ using Client::Tests::RecordingFrameTarget;
 using Client::Tests::TemporaryFolder;
 
 constexpr std::size_t ScreenshotText = 459;
-// El texto del grupo 0, el de los códigos 0 a 19 (FrontEnd::GroupNameText).
+// Group 0's text, that of codes 0 to 19 (FrontEnd::GroupNameText).
 constexpr std::size_t FirstGroupText = 540;
 constexpr std::uint16_t ServerOfTheFirstGroup = 3;
-// La captura de un lienzo chico; el chat mide con la pantalla de 640 × 480, la de sus cortes.
+// The capture of a small canvas; the chat measures with the 640 × 480 screen, the one its wraps use.
 constexpr Client::Core::PixelSize SmallScreen{.width = 8, .height = 6};
 constexpr Client::Core::PixelSize ChatScreen{.width = 640, .height = 480};
 
-// Tres píxeles por letra: los mensajes de los tests entran en un renglón del registro (Chat::ChatWrapWidth).
+// Three pixels per letter: the tests' messages fit in one chat log line (Chat::ChatWrapWidth).
 class LetterMeasure final : public ITextMeasure
 {
 public:
@@ -72,8 +72,8 @@ public:
     }
 };
 
-// glReadPixels de mentira: un gris de 0x80 del tamaño que piden. Anota cada lectura, con lo que tenía el registro del
-// chat y cuántos eventos tenía el frame que anota `target`, si hay uno.
+// Fake glReadPixels: a 0x80 grey of the requested size. It records each read, with what the chat log had and how many
+// events the frame `target` records had, if there is one.
 class FakeScreenReader final : public IScreenReader
 {
 public:
@@ -105,12 +105,12 @@ private:
     const RecordingFrameTarget* m_target;
 };
 
-// El mundo, la tabla, el reloj, la carpeta y el lienzo de una captura: el héroe "Rolo", el texto 459 "Guardada %s" y
-// el grupo "Grupo Uno".
+// The world, the table, the clock, the folder and the canvas of a screenshot: the hero "Rolo", text 459 "Guardada %s"
+// and the group "Grupo Uno".
 struct Shooting
 {
 private:
-    // El caso con dos capturas no debe reservar dos WorldState en la pila de Windows.
+    // The case with two screenshots must not reserve two WorldState on the Windows stack.
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
 
 public:
@@ -137,7 +137,7 @@ public:
                                       .folder = folder.Path()};
     }
 
-    // Un frame entero: antes del dibujo, el lienzo y después.
+    // A whole frame: before the draw, the canvas and after.
     [[nodiscard]] Client::Core::Expected<void, std::string> Frame(Screenshots& screenshots, bool shiftDown = false)
     {
         if (auto before = screenshots.BeforeTheDraw(Context(shiftDown)); !before.HasValue())
@@ -169,7 +169,7 @@ public:
     Client::Input::InputState input;
 };
 
-// 0x6381c7..0x638211: el mes, el día, la hora y el minuto con dos cifras, y el contador con cuatro.
+// 0x6381c7..0x638211: the month, the day, the hour and the minute with two digits, and the counter with four.
 TEST(ScreenshotsTest, TheNameHasTheDateTheTimeAndTheCounter)
 {
     EXPECT_EQ(ScreenshotFileName(LocalTime{.month = 3, .day = 7, .hour = 9, .minute = 5}, 42),
@@ -178,7 +178,7 @@ TEST(ScreenshotsTest, TheNameHasTheDateTheTimeAndTheCounter)
               "Screen(12_31-23_59)-9999.jpg");
 }
 
-// 0x638219..0x6382f7: el 459 con el nombre en su %s, y " [grupo / héroe]" detrás, aunque estén vacíos.
+// 0x638219..0x6382f7: 459 with the name in its %s, and " [group / hero]" after it, even if they are empty.
 TEST(ScreenshotsTest, TheMessageIsText459WithTheGroupAndTheHero)
 {
     EXPECT_EQ(ScreenshotMessage("Guardada %s", "Screen(03_07-09_05)-0000.jpg", "Grupo Uno", "Rolo"),
@@ -186,8 +186,8 @@ TEST(ScreenshotsTest, TheMessageIsText459WithTheGroupAndTheHero)
     EXPECT_EQ(ScreenshotMessage("", "x.jpg", "", ""), " [ / ]");
 }
 
-// 0x637cff: el flanco con su latch (0x77f36d4 + 4 · 0x2c) invierte el pedido una vez por apretón; un segundo apretón
-// antes del frame lo deshace (Q-C634).
+// 0x637cff: the edge with its latch (0x77f36d4 + 4 · 0x2c) toggles the request once per press; a second press before
+// the frame undoes it (Q-C634).
 TEST(ScreenshotsTest, PrintScreenTogglesTheRequestOncePerPress)
 {
     Shooting shooting;
@@ -209,8 +209,8 @@ TEST(ScreenshotsTest, PrintScreenTogglesTheRequestOncePerPress)
     EXPECT_FALSE(screenshots.State().requested);
 }
 
-// Q-C630: el apretón que llega con su soltada en el mismo frame (Impr Pant en Windows) es el flanco de ese paso, y el
-// paso siguiente, ya sin él, vuelve el latch a 0.
+// Q-C630: the press that arrives with its release in the same frame (Print Screen on Windows) is that step's edge,
+// and the next step, already without it, sets the latch back to 0.
 TEST(ScreenshotsTest, APressThatCameWithItsReleaseIsAnEdge)
 {
     Shooting shooting;
@@ -225,7 +225,6 @@ TEST(ScreenshotsTest, APressThatCameWithItsReleaseIsAnEdge)
     EXPECT_EQ(shooting.ui.keyLatches[0x2c], 0);
 }
 
-// Sin el pedido, el frame no lee la hora ni la pantalla, ni escribe nada.
 TEST(ScreenshotsTest, WithoutTheRequestTheFrameDoesNothing)
 {
     Shooting shooting;
@@ -238,8 +237,9 @@ TEST(ScreenshotsTest, WithoutTheRequestTheFrameDoesNothing)
     EXPECT_EQ(screenshots.State().counter, 0);
 }
 
-// 0x6381bb..0x6385da sin Shift: el mensaje entra antes del dibujo (sale en la captura), y después la lectura de la
-// pantalla del lienzo, el JPEG con el nombre en la carpeta, 0x7d368b0, el contador y el pedido apagado.
+// 0x6381bb..0x6385da without Shift: the message goes in before the draw (it shows in the screenshot), and then the
+// read of the canvas's screen, the JPEG with the name in the folder, 0x7d368b0, the counter and the request turned
+// off.
 TEST(ScreenshotsTest, TheFrameWritesTheJpegAfterTheMessage)
 {
     Shooting shooting;
@@ -265,7 +265,7 @@ TEST(ScreenshotsTest, TheFrameWritesTheJpegAfterTheMessage)
     EXPECT_EQ(shooting.timeReads, 1);
 }
 
-// 0x638303 y 0x6385af..0x6385d7: con Shift, el mensaje va después de la lectura y no sale en la captura.
+// 0x638303 and 0x6385af..0x6385d7: with Shift, the message goes after the read and does not show in the screenshot.
 TEST(ScreenshotsTest, WithShiftTheMessageGoesAfterTheRead)
 {
     Shooting shooting;
@@ -276,7 +276,7 @@ TEST(ScreenshotsTest, WithShiftTheMessageGoesAfterTheRead)
     EXPECT_EQ(shooting.Messages().size(), 1u);
 }
 
-// 0x6385aa → 0x6202e0: lo que juntó el lienzo llega a GL antes de leer, el 3D antes del 2D, como en el Present.
+// 0x6385aa → 0x6202e0: what the canvas gathered reaches GL before the read, the 3D before the 2D, as in the Present.
 TEST(ScreenshotsTest, TheCanvasIsFlushedBeforeTheRead)
 {
     Shooting shooting;
@@ -289,7 +289,7 @@ TEST(ScreenshotsTest, TheCanvasIsFlushedBeforeTheRead)
     EXPECT_EQ(events[1].kind, FrameEvent::Kind::Flush);
 }
 
-// 0x62034b: el contador da la vuelta en 10.000.
+// 0x62034b.
 TEST(ScreenshotsTest, TheCounterWrapsAtTenThousand)
 {
     Shooting shooting;
@@ -299,7 +299,8 @@ TEST(ScreenshotsTest, TheCounterWrapsAtTenThousand)
     EXPECT_EQ(screenshots.State().counter, 0);
 }
 
-// Q-C633: si el archivo no abre, 0x6202e0 no lo mira: el contador sube y el mensaje dice el nombre igual.
+// Q-C633: if the file does not open, 0x6202e0 does not check: the counter goes up and the message says the name
+// anyway.
 TEST(ScreenshotsTest, AFileThatDoesNotOpenStillCountsAndSaysSo)
 {
     Shooting shooting;
@@ -315,7 +316,7 @@ TEST(ScreenshotsTest, AFileThatDoesNotOpenStillCountsAndSaysSo)
     EXPECT_EQ(shooting.Messages().size(), 1u);
 }
 
-// Q-C632: sin servidor elegido, el grupo vacío; sin Text.bmd, el 459 también.
+// Q-C632: without a chosen server, the group is empty; without Text.bmd, 459 too.
 TEST(ScreenshotsTest, WithoutAChosenServerTheGroupIsEmpty)
 {
     Shooting shooting;
@@ -325,8 +326,8 @@ TEST(ScreenshotsTest, WithoutAChosenServerTheGroupIsEmpty)
     EXPECT_EQ(shooting.Messages(), (std::vector<std::string>{"Guardada Screen(03_07-09_05)-0000.jpg [ / Rolo]"}));
 }
 
-// P-C110: un frame que la escena retiene con la captura pedida corta en el paso o el dibujo que siguen; mientras
-// conecta, el pedido espera al próximo dibujo.
+// P-C110: a frame the scene holds with the screenshot requested stops in the step or the draw that follow; while it
+// connects, the request waits for the next draw.
 TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
 {
     {
@@ -352,7 +353,6 @@ TEST(ScreenshotsTest, AHeldFrameWithTheRequestCuts)
     EXPECT_TRUE(shooting.Messages().empty());
 }
 
-// Sin pedido, un frame retenido no corta nada.
 TEST(ScreenshotsTest, AHeldFrameWithoutTheRequestGoesOn)
 {
     Shooting shooting;

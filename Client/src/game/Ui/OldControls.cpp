@@ -16,37 +16,37 @@ namespace Client::Ui
 {
 namespace
 {
-// 0x459f00: el rectángulo común y el que cuelga de su borde de abajo (+0x78 de la lista, 0x47bb80).
+// 0x459f00: the common rectangle and the one hanging from its bottom edge (the list's +0x78, 0x47bb80).
 constexpr std::int32_t TopLeftRect = 1;
 constexpr std::int32_t BottomLeftRect = 2;
-// 0x47b0f0: las flechas de la barra, de 13 × 13; repiten desde 16 pasos con el botón apretado.
+// 0x47b0f0: the bar's 13 × 13 arrows; they repeat from 16 steps with the button pressed.
 constexpr std::int32_t ArrowSize = 0xd;
 constexpr std::int32_t RepeatSteps = 0xf;
-// 0x47b0f0: las flechas del teclado repiten desde 6 pasos.
+// 0x47b0f0: the arrow keys repeat from 6 steps.
 constexpr std::int32_t KeyRepeatSteps = 5;
-// 0x47b0f0: GetAsyncKeyState de las flechas de arriba y de abajo (las de los costados se leen y no se usan).
+// 0x47b0f0: GetAsyncKeyState of the up and down arrows (the side ones are read and not used).
 constexpr std::uint8_t UpKey = 0x26;
 constexpr std::uint8_t DownKey = 0x28;
 // 0x41ed10(0x19, 0, 0).
 constexpr Audio::SoundId ButtonSound = Sound::ButtonClickSound;
-// 0x47b0f0: el alto con el borde agarrado, de 40 en 40 píxeles y de 3 en 3 renglones.
+// 0x47b0f0: the height with the border grabbed, in steps of 40 pixels and of 3 rows.
 constexpr std::int32_t ResizeStep = 0x28;
 constexpr std::int32_t ResizeSlack = 5;
 constexpr std::int32_t MinRows = 3;
 constexpr std::int32_t MaxRows = 0x1e;
-// 0x47a9d0: el 9 cuenta los renglones con 1/13 (0x6b9bf4, float) y 0,5 (0x6b882c).
+// 0x47a9d0: the 9 counts the rows with 1/13 (0x6b9bf4, float) and 0.5 (0x6b882c).
 constexpr float RowsPerPixel = 1.0f / 13.0f;
 using Math::Half;
-// 0x47a9d0: el 0xe corre −1000 y elige el 1000.
+// 0x47a9d0: the 0xe scrolls −1000 and picks the 1000.
 constexpr std::int32_t FarAway = 1000;
-// 0x461c70: los renglones de 13, desde 10 sobre el borde de arriba del último.
+// 0x461c70: rows of 13, from 10 above the last one's top edge.
 constexpr std::int32_t RowHeight = 0xd;
 constexpr std::int32_t RowsTop = 10;
-// 0x47b9c0 y 0x47b0f0: el cursor no baja de 2 (0x6b8818) y la cuenta del arrastre suma 0,5 (0x6b882c).
+// 0x47b9c0 and 0x47b0f0: the thumb does not go below 2 (0x6b8818) and the drag's arithmetic adds 0.5 (0x6b882c).
 constexpr float MinThumb = 2.0f;
 constexpr double DragHalf = 0.5;
 
-// _ftol (0x69fd3c): trunca hacia el 0.
+// _ftol (0x69fd3c): toward 0.
 std::int32_t Truncate(double value)
 {
     return static_cast<std::int32_t>(value);
@@ -58,14 +58,14 @@ bool InRect(const OldListView& view, std::int32_t x, std::int32_t y, std::int32_
     return Chat::MouseInRect(view.mouseX, view.mouseY, x, y, width, height, mode);
 }
 
-// 0x459f70 sobre la misma lista.
+// 0x459f70 on the same list.
 void PostToItself(OldList& list, std::int32_t type)
 {
     list.base.queue.push_back(OldMessage{.type = type, .a = 0, .b = 0, .text = {}});
 }
 
-// 0x47b11f..0x47b1c8: con la lista que toma las flechas, una flecha apretada se manda su mensaje: al apretarla, a los
-// 6 pasos y desde ahí en cada paso. Soltar las dos vuelve la cuenta a 0.
+// 0x47b11f..0x47b1c8: with the list that takes the arrow keys, a pressed arrow sends its message: on press, at 6
+// steps and from then on each step. Releasing both resets the count to 0.
 void ReadTheArrows(OldList& list, const OldListGlobals& globals, const OldListView& view)
 {
     if (list.keyboard != 1 || globals.focusedList != list.base.id || !view.keyDown)
@@ -100,14 +100,14 @@ void ReadTheArrows(OldList& list, const OldListGlobals& globals, const OldListVi
         list.keyRepeat = 0;
 }
 
-// Las cuentas de una lista con padre solo suben con el administrador ya dibujado (0x47b2b0..0x47b2c2).
+// The counts of a list with a parent only go up once the manager has drawn (0x47b2b0..0x47b2c2).
 bool MayCount(const OldList& list, const OldListGlobals& globals)
 {
     return list.base.parent == 0 || globals.drawn;
 }
 
-// 0x47b277..0x47b2c3: una flecha de la barra. En 0 corre con el sonido y empieza la cuenta, hasta 15 la sube y desde
-// 16 corre en cada paso.
+// 0x47b277..0x47b2c3: a bar arrow. At 0 it scrolls with the sound and starts the count, up to 15 it raises it and from
+// 16 it scrolls each step.
 void RepeatTheArrow(OldList& list, std::size_t size, const OldListGlobals& globals, std::int32_t lines)
 {
     if (list.arrowRepeat == 0)
@@ -122,7 +122,7 @@ void RepeatTheArrow(OldList& list, std::size_t size, const OldListGlobals& globa
         ++list.arrowRepeat;
 }
 
-// 0x47b427..0x47b48c: la pista. Con padre y sin dibujo, nada; si no, como las flechas sin sonido.
+// 0x47b427..0x47b48c: the track. With a parent and no draw, nothing; otherwise, like the arrows without sound.
 void RepeatTheTrack(OldList& list, std::size_t size, const OldListGlobals& globals, std::int32_t lines)
 {
     if (!MayCount(list, globals))
@@ -138,13 +138,13 @@ void RepeatTheTrack(OldList& list, std::size_t size, const OldListGlobals& globa
         ++list.trackRepeat;
 }
 
-// 0x47b201..0x47b545: el clic sobre la lista, con ella quieta: el foco de las flechas, las dos flechas y, con tantos
-// como renglones o más, la barra y la pista.
+// 0x47b201..0x47b545: the click on the list, with it still: the arrow keys' focus, both arrows and, with as many as
+// the rows or more, the bar and the track.
 void PressTheBar(OldList& list, std::size_t size, const OldListGlobals& globals, const OldListView& view)
 {
     OldWindowBase& base = list.base;
     globals.focusedList = base.id;
-    // La vtable + 0x8c de las listas de la CL9.4 es 0x472120, que da 1 sin hacer nada.
+    // The CL9.4 lists' vtable + 0x8c is 0x472120, which returns 1 without doing anything.
     const std::int32_t inset = list.barMode == 1 ? 8 : 0;
     const std::int32_t margin = list.barMode != 1 ? 8 : 0;
     const std::int32_t arrowX = base.x + inset - 0x15 + base.width;
@@ -179,7 +179,7 @@ void PressTheBar(OldList& list, std::size_t size, const OldListGlobals& globals,
         RepeatTheTrack(list, size, globals, list.rows);
 }
 
-// La vtable + 4 (0x45a9b0) con 0 y soltar el mouse si lo tenía ella.
+// vtable + 4 (0x45a9b0) with 0, and release the mouse if it had it.
 void LetGo(OldList& list, const OldListGlobals& globals)
 {
     list.base.state = ShownWindow;
@@ -196,7 +196,7 @@ std::int32_t ListCount(const OldList& list, std::size_t size)
 void ScrollTheList(OldList& list, std::size_t size, std::int32_t lines)
 {
     const std::int32_t count = ListCount(list, size);
-    // CMP sin signo (JC).
+    // Unsigned CMP (JC).
     if (static_cast<std::uint32_t>(count) < static_cast<std::uint32_t>(list.rows))
         return;
     list.scroll -= lines;
@@ -269,7 +269,7 @@ void SelectThePrevious(OldList& list, std::size_t size, std::int32_t steps)
 
 std::optional<std::size_t> SelectedInTheList(OldList& list, std::size_t size)
 {
-    // 0x47afe3: sin elementos, la elección vuelve a 0.
+    // 0x47afe3
     if (size == 0)
     {
         list.selection = 0;
@@ -302,12 +302,12 @@ void HandleTheListMessage(OldList& list, std::size_t size)
     {
     case SizeMessage:
     {
-        // La vtable + 0x90 de las listas de la CL9.4 es 0x472130, un ret; la de los renglones del chat y de una carta
-        // (0x45fea0, 0x465270) la corre antes quien la llama (UI/LetterWindows, DrainTheWrappedList).
+        // The CL9.4 lists' vtable + 0x90 is 0x472130, a ret; that of the chat rows and of a letter (0x45fea0, 0x465270)
+        // is run before by the caller (Messenger/LetterWindows, DrainTheWrappedList).
         if (list.base.parent == 0)
             return;
         const std::int32_t before = list.rows;
-        // FILD del alto, FMUL y FSUB de los dos float en la x87 y _ftol.
+        // FILD of the height, FMUL and FSUB of the two floats on the x87, and _ftol.
         const double rows =
             static_cast<double>(list.base.height) * static_cast<double>(RowsPerPixel) - static_cast<double>(Half);
         SetTheListRows(list, size, Truncate(rows));
@@ -333,7 +333,7 @@ void HandleTheListMessage(OldList& list, std::size_t size)
             SelectThePrevious(list, size, 1);
         if (size <= static_cast<std::size_t>(list.rows < 0 ? 0 : list.rows))
             return;
-        // La vtable + 0x68 (0x472100) da +0xc4.
+        // vtable + 0x68 (0x472100) returns +0xc4.
         const std::int32_t selected = list.selection - 1;
         if (selected >= list.scroll + list.rows)
             ScrollTheList(list, size, list.scroll - (selected - list.rows + 1));
@@ -363,7 +363,7 @@ void PlaceTheListBar(OldList& list, std::size_t size)
     double ratio = 1.0;
     if (count > 0)
     {
-        // FILD de los renglones guardado en float y FDIVR con el FILD de la cuenta.
+        // FILD of the rows stored as float and FDIVR with the FILD of the count.
         const double shown = static_cast<double>(static_cast<float>(list.rows)) / static_cast<double>(count);
         if (shown < 1.0)
             ratio = shown;
@@ -428,7 +428,8 @@ bool StepTheListMouse(OldList& list, std::size_t size, const OldListGlobals& glo
         else
         {
             globals.mouseOnUi = 1;
-            // FILD, FSUB del float y FST: la cuenta sigue con el valor sin redondear y el cursor queda en float.
+            // FILD, FSUB of the float and FST: the arithmetic goes on with the unrounded value and the thumb stays as
+            // float.
             const double top = static_cast<double>(view.mouseY) - static_cast<double>(list.dragOffset);
             list.thumbY = static_cast<float>(top);
             const std::int32_t count = ListCount(list, size);
@@ -446,7 +447,7 @@ bool StepTheListMouse(OldList& list, std::size_t size, const OldListGlobals& glo
                 list.scroll = 0;
         }
     }
-    // 0x47b714..0x47b7c6: desde el primero que se ve (la vtable + 0x74), hasta los renglones o el final.
+    // 0x47b714..0x47b7c6: from the first shown (vtable + 0x74), up to the rows or the end.
     if (globals.modal != 0 || !hover)
         return handled;
     std::size_t at = FirstShownInTheList(list);
@@ -483,7 +484,7 @@ std::optional<char> FilteredByTheEdit(std::int32_t filter, char typed)
 
 void TypeInTheEdit(OldEdit& edit, std::string_view typed)
 {
-    // 0x467b9d: cada WM_CHAR pone +0x80 en 0 antes del filtro. ES_AUTOVSCROLL: el de varios renglones sigue al cursor.
+    // 0x467b9d: each WM_CHAR zeroes +0x80 before the filter. ES_AUTOVSCROLL: the multiline one follows the caret.
     edit.draws = 0;
     edit.followCaret = true;
     if ((edit.filter & (DigitsOnlyEdit | UppercaseLettersAndDigitsEdit)) == 0)

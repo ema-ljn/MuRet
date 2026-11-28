@@ -34,8 +34,8 @@ struct GameUiContext;
 struct GameHudContext;
 } // namespace Client::Hud
 
-// Las tres ventanas del castillo: 0x64d350, 0x6691c0 y 0x648a30, llamadas por 0x657930, y sus dibujos desde
-// 0x6579e0. Los flags abiertos y la pestaña de Senior siguen en DelegatedPanels, sin copias paralelas.
+// The three castle windows: 0x64d350, 0x6691c0 and 0x648a30, called by 0x657930, and their draws from 0x6579e0.
+// The open flags and Senior's tab stay in DelegatedPanels, without parallel copies.
 namespace Client::CastleSiege
 {
 
@@ -52,12 +52,12 @@ struct CastleWindowServices
 void LendTheCastleLifecycleTo(Ui::PanelContext& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
                               const CastleSender& send, CastleWindowServices services = {});
 void LendTheCastleWindowStepsTo(Ui::PanelContext& panels, const Hud::GameUiContext& context);
-// El mismo préstamo para callers que no reciben un paquete Castle ni tienen un log propio.
+// The same lending for callers that get no Castle packet and have no log of their own.
 void LendTheCastlePanelServices(Hud::GamePanels& panels, Kernel::WorldState& world, Crt::CrtRandom& random,
                                 const CastleSender& send, const Scenes::WorldEntryResources* entryResources,
                                 CastleWindowServices services = {});
 void LendTheCastlePanelServices(Hud::GamePanels& panels, const CastleReceiveContext& context);
-// Para los cierres de entrada, teleport, misiones, comercio y tiendas: conserva también sus transportes específicos.
+// For the closes of entry, teleport, quests, trade and shops: it also keeps their specific transports.
 void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntryResources& resources,
                                 const CastleSender& send = {});
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleWindow(const Hud::GameUiContext& context, Ui::PanelId id);
@@ -67,7 +67,7 @@ void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntr
                                                                             Ui::PanelDialogOwner owner,
                                                                             std::uint32_t reason);
 
-// 0x4e07f0 y 0x4e0860: B9 03/05 son también el guardia de la zona de caza. El lector H13 presta los campos leídos.
+// 0x4e07f0 and 0x4e0860: B9 03/05 are also the hunting zone guard. The H13 reader lends the fields it read.
 [[nodiscard]] Core::Expected<void, std::string> ApplyHuntInformation(std::uint8_t mode, std::uint8_t allowed,
                                                                      std::uint32_t fee, std::uint32_t max,
                                                                      std::uint32_t step,

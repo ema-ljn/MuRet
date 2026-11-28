@@ -154,7 +154,7 @@ CrtRandom After(CrtRandom random, std::int32_t count)
     return random;
 }
 
-// 0x412140: usa el par global que escribe 0x412120, no el puesto actual del actor.
+// 0x412140: uses the global pair 0x412120 writes, not the actor's current post.
 TEST_F(SiegeUiTest, TheGuildPostSelectsAndPreservesTheSamePanelObject)
 {
     auto& runtime = world->Runtime();
@@ -254,7 +254,7 @@ TEST_F(SiegeUiTest, TheWeaponChoiceAndConfirmationProduceTheLiteralB7Then31)
     ExpectPacket(1, Bytes({0xc1, 3, 0x31}), false);
     EXPECT_EQ(runtime.panels.delegated.siegeWeapon, 0);
     EXPECT_EQ(runtime.castleSiege.siegeBattleUi.weaponChoice, 0);
-    // 0x44e444..0x44e6a8: confirmar no consume el clic, a diferencia de escoger y cancelar.
+    // 0x44e444..0x44e6a8: confirming does not consume the click, unlike choosing and cancelling.
     EXPECT_TRUE(runtime.mouse.pendingClick);
 }
 
@@ -425,7 +425,7 @@ TEST_F(SiegeUiTest, TheClockUsesOneMinuteBorrowAndTheOriginalTickWrap)
                  vertex += 6)
                 if (sprites.Vertices()[vertex].u == -0.1875f)
                     ++minusSigns;
-    EXPECT_EQ(minusSigns, 4u); // −1 horas y −60 minutos, dos veces; no normaliza a −2:00.
+    EXPECT_EQ(minusSigns, 4u); // −1 hours and −60 minutes, twice; it does not normalize to −2:00.
     context.worldClock = 1000.5f;
     context.projecting = true;
     Client::CastleSiege::DrawTheBattleClock(context);
@@ -477,7 +477,7 @@ TEST_F(SiegeUiTest, TheCommanderWithoutSideBitsUsesTheMapOffsetAsItsFriendlyMask
     EXPECT_EQ(runtime.castleSiege.siegePanel.offsetY, 128);
 }
 
-// 0x411c12/0x411ce5/0x411db8: dv=0x3f100000. Los iconos del menú usan sus rectángulos completos.
+// 0x411c12/0x411ce5/0x411db8: dv=0x3f100000. The menu icons use their full rectangles.
 TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
 {
     auto& runtime = world->Runtime();
@@ -515,7 +515,7 @@ TEST_F(SiegeUiTest, TheCommandMenuUsesTheNativeAtlasRectangles)
     EXPECT_EQ(seen, (std::array<bool, 3>{true, true, true}));
 }
 
-// 0x410434..0x410478 y 0x4119a2..0x4119e6: un status sin caso conserva las tres métricas de la fila previa.
+// 0x410434..0x410478 and 0x4119a2..0x4119e6: a status without a case keeps the three metrics of the previous row.
 TEST_F(SiegeUiTest, TheStatusMetricsSurviveAnUnrecognizedFollowingStatus)
 {
     auto& runtime = world->Runtime();
@@ -571,11 +571,11 @@ TEST_F(SiegeUiTest, AFirstUnrecognizedStatusDoesNotInventUninitializedStackMetri
     const auto drawn = Client::CastleSiege::DrawTheBattlePanel(draw);
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("stack"), std::string::npos);
-    // El número y el parpadeo preceden al primer uso de las métricas no inicializadas.
+    // The number and the blink come before the first use of the uninitialized metrics.
     EXPECT_EQ(runtime.castleSiege.siegePanel.status[0][4], 1);
 }
 
-// 411c20/411cf3/411dc6: altura18; los tres fondos coinciden con las filas de entrada de410773.
+// 0x411c20/0x411cf3/0x411dc6: height 18; the three backgrounds match the input rows of 0x410773.
 TEST_F(SiegeUiTest, EveryCommanderMenuBackgroundUsesItsNativeEighteenPixelHeight)
 {
     auto& runtime = world->Runtime();
@@ -608,7 +608,7 @@ TEST_F(SiegeUiTest, EveryCommanderMenuBackgroundUsesItsNativeEighteenPixelHeight
     }
 }
 
-// 40f7ff..40f827: unordered pasa la primera prueba, y el C0 de la segunda pone alpha en1.
+// 0x40f7ff..0x40f827: unordered passes the first test, and the C0 of the second sets alpha to 1.
 TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
 {
     auto& runtime = world->Runtime();
@@ -629,7 +629,7 @@ TEST_F(SiegeUiTest, TheOpacityClickRestoresOneOnTheNativeUnorderedComparison)
     }
 }
 
-// 410261..410274: FISTP m64 deNaN deja su dword bajo en0, como OriginalFtolLow (Q-C186).
+// 0x410261..0x410274: FISTP m64 of NaN leaves its low dword at 0, like OriginalFtolLow (Q-C186).
 TEST_F(SiegeUiTest, TheOpacityPercentageUsesTheNativeFtolLowDwordForNan)
 {
     auto& runtime = world->Runtime();
@@ -677,7 +677,7 @@ TEST_F(SiegeUiTest, AnUnresolvedOpacityFtolKeepsTheBasePrefixAndReportsItsAddres
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// El preview inicializa ancho/alto, pero no el atlas que el loop lee de[ebp-20] (411aa0).
+// The preview initializes width/height, but not the atlas the loop reads from [ebp-20] (0x411aa0).
 TEST_F(SiegeUiTest, TheCommanderPreviewDoesNotInventTheFirstUnknownStatusAtlas)
 {
     auto& runtime = world->Runtime();

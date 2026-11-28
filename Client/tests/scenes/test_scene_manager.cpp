@@ -55,10 +55,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::SceneManager con escenas de prueba: la máquina de escenas del original
-// (DAT_006d5dc8 y sus ocho `mov`, 02 § Las cinco escenas y sus transiciones), con entrar, paso,
-// dibujo y salir, y la red en cada frame. Las escenas de verdad tienen sus tests
-// (test_loading_scene.cpp, test_login_scene.cpp).
+// Client::Scenes::SceneManager with test scenes: the original's scene machine (DAT_006d5dc8 and its eight `mov`,
+// 02 § Las cinco escenas y sus transiciones), with enter, step, draw and leave, and the network on each frame. The
+// real scenes have their own tests (test_loading_scene.cpp, test_login_scene.cpp).
 namespace
 {
 using Client::App::GameLoop;
@@ -85,7 +84,6 @@ using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
 using std::chrono::milliseconds;
 
-// Lo que vio el Render de una escena de prueba.
 struct SceneDraw
 {
     SceneId scene = SceneId::Loading;
@@ -94,36 +92,35 @@ struct SceneDraw
     bool frameOpen = false;
 };
 
-// Lo que comparten las escenas de prueba y el test: qué pasó, en orden, y cómo se porta cada una.
+// What the test scenes and the test share: what happened, in order, and how each one behaves.
 struct Stage
 {
     // "enter Loading", "step Loading", "leave Loading", "enter Login"…
     std::vector<std::string> journal;
-    // Adónde pide ir cada escena después de su paso; sin entrada, sigue en la que está.
+    // Where each scene asks to go after its step; with no entry, it stays in the current one.
     std::map<SceneId, SceneId> next;
-    // Las escenas que piden cerrar el juego (WantsToQuit).
+    // WantsToQuit.
     std::set<SceneId> quitting;
-    // Las escenas que piden el texto tecleado (WantsTextInput).
+    // WantsTextInput.
     std::set<SceneId> typing;
-    // Las escenas que retienen el último frame (HoldsTheLastFrame).
+    // HoldsTheLastFrame.
     std::set<SceneId> holding;
     std::map<SceneId, int> heldNotifications;
-    // Cuántas veces corrió PrepareFrame cada escena.
+    // How many times each scene ran PrepareFrame.
     std::map<SceneId, int> prepared;
-    // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
-    // Las escenas que fallan en su paso o en su dibujo (IScene::Failure), con el error.
+    // The scenes that fail in their step or their draw (IScene::Failure), with the error.
     std::map<SceneId, std::string> failingStep;
     std::map<SceneId, std::string> failingRender;
-    // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
+    // The slots each scene uploads on entering and releases on leaving, like its texture sets.
     std::map<SceneId, std::vector<std::uint16_t>> slots;
     FakeTextureStore textures;
-    // Los slots que el store ya había soltado cuando entró cada escena.
+    // The slots the store had already released when each scene entered.
     std::map<SceneId, std::vector<std::uint16_t>> releasedOnEnter;
     std::vector<SceneDraw> draws;
-    // Cuántas escenas armó la fábrica, de cada una.
+    // How many scenes the factory built, of each.
     std::map<SceneId, int> created;
-    // La escena para la que la fábrica no tiene nada.
+    // The scene the factory has nothing for.
     std::optional<SceneId> withoutScene;
     RecordingFrameTarget target;
 };
@@ -231,8 +228,8 @@ private:
     std::optional<std::string> m_failure;
 };
 
-// El SceneManager con las escenas de prueba, el reloj falso, el lienzo que anota y un log que
-// guarda. `polls` cuenta las veces que corrió pollNetwork.
+// The SceneManager with the test scenes, the fake clock, the recording canvas and a log that keeps its lines.
+// `polls` counts the times pollNetwork ran.
 struct Harness
 {
     Harness()
@@ -289,7 +286,6 @@ struct Harness
         };
     }
 
-    // Las líneas del log con el nivel `level`.
     [[nodiscard]] std::vector<std::string> Lines(LogLevel level) const
     {
         std::vector<std::string> lines;
@@ -309,15 +305,15 @@ struct Harness
     Log log;
     int polls = 0;
     std::optional<std::string> pollFailure;
-    // La escena que ordena la red en el próximo Poll (WorldRuntime::orderedScene en main.cpp).
+    // The scene the network orders on the next Poll (WorldRuntime::orderedScene in main.cpp).
     std::optional<SceneId> order;
-    // Los relojes con los que corrió afterSceneFrame (la vuelta de WinMain en main.cpp).
+    // The clocks afterSceneFrame ran with (WinMain's loop in main.cpp).
     std::vector<Duration> afterFrames;
-    // Cuántas líneas tenía el diario en cada afterSceneStep (los relojes de los mensajes en main.cpp), y su error.
+    // How many lines the journal had at each afterSceneStep (the message clocks in main.cpp), and its error.
     std::vector<std::size_t> afterSteps;
     std::optional<std::string> afterStepFailure;
-    // Cada beforeSceneDraw y afterSceneDraw (la captura de pantalla en main.cpp): cuál, si el frame estaba abierto,
-    // cuántas líneas tenía el diario y, el de después, la pantalla del lienzo; y sus errores.
+    // Each beforeSceneDraw and afterSceneDraw (the screenshot in main.cpp): which, whether the frame was open, how many
+    // lines the journal had and, for the after one, the canvas's screen; and their errors.
     struct DrawHook
     {
         bool after = false;
@@ -337,7 +333,7 @@ bool Contains(const std::string& text, const std::string& part)
     return text.find(part) != std::string::npos;
 }
 
-// Un error de aplicación corta todas las operaciones visibles del mismo frame.
+// An application error stops every visible operation of the same frame.
 TEST(SceneManagerTest, PollFailureStopsSceneOperationsAndPreservesTheFirstDiagnostic)
 {
     Harness tested;
@@ -361,7 +357,7 @@ TEST(SceneManagerTest, PollFailureStopsSceneOperationsAndPreservesTheFirstDiagno
     EXPECT_EQ(tested.manager.Failure(), "falló la aplicación");
 }
 
-// Poll es válido antes de Start; su error fatal no se confunde con un Enter que se puede reintentar.
+// Poll is valid before Start; its fatal error is not mistaken for an Enter that can be retried.
 TEST(SceneManagerTest, APollFailureBeforeStartCannotBeClearedByStart)
 {
     Stage stage;
@@ -451,8 +447,8 @@ TEST(SceneManagerTest, StartsInLoading)
     EXPECT_EQ(tested.manager.Failure(), std::nullopt);
 }
 
-// 0x622e40 termina la carga con la escena en 2 (0x622f93): la que sale se va antes de que entre la
-// otra, y el paso de la nueva es el del próximo Step.
+// 0x622e40 ends the loading with the scene at 2 (0x622f93): the one leaving goes before the other enters, and the
+// new one's step is the next Step's.
 TEST(SceneManagerTest, LoadingGoesToLogin)
 {
     Harness tested;
@@ -470,9 +466,9 @@ TEST(SceneManagerTest, LoadingGoesToLogin)
     EXPECT_TRUE(Contains(info.back(), "Login (2)")) << info.back();
 }
 
-// El login aceptado (0x634c60 lo ve en su paso con el estado en 0x14) va a la selección
-// (0x634dce). La LoginScene lo pide con la sesión en LoggedIn (test_login_scene.cpp); acá, la de
-// prueba lo pide cuando el test dice.
+// The accepted login (0x634c60 sees it in its step with the state at 0x14) goes to the selection (0x634dce). The
+// LoginScene asks for it with the session in LoggedIn (test_login_scene.cpp); here, the test scene asks for it when
+// the test says.
 TEST(SceneManagerTest, LoginGoesToCharacterSelectWhenLoggedIn)
 {
     Harness tested;
@@ -490,7 +486,7 @@ TEST(SceneManagerTest, LoginGoesToCharacterSelectWhenLoggedIn)
     EXPECT_EQ(tested.stage.journal[tested.stage.journal.size() - 2], "leave Login");
 }
 
-// De la carga al juego no hay ningún `mov`: un error en el log, una vez, y sigue en la carga.
+// There is no `mov` from the loading to the game: one error in the log, once, and it stays in the loading.
 TEST(SceneManagerTest, AnInvalidTransitionIsRejected)
 {
     Harness tested;
@@ -508,14 +504,14 @@ TEST(SceneManagerTest, AnInvalidTransitionIsRejected)
     EXPECT_TRUE(Contains(errors[0], "Game (5)")) << errors[0];
     EXPECT_EQ(tested.manager.Failure(), std::nullopt);
 
-    // El rechazo no deja nada trabado: un pedido que vale cambia de escena.
+    // The rejection leaves nothing stuck: a valid request changes the scene.
     tested.stage.next[SceneId::Loading] = SceneId::Login;
     tested.manager.Step(tested.input);
     EXPECT_EQ(tested.manager.Current(), SceneId::Login);
 }
 
-// El aviso es uno por pedido seguido: si la escena deja de pedir un paso y vuelve a pedir lo mismo,
-// o si la escena que sigue pide lo que se le rechazó a la anterior, el log lo dice otra vez.
+// The warning is one per consecutive request: if the scene stops asking for a step and asks for the same again, or if
+// the next scene asks for what the previous one was refused, the log says it again.
 TEST(SceneManagerTest, ARejectionIsLoggedAgainWhenTheRequestComesBack)
 {
     Harness tested;
@@ -540,8 +536,8 @@ TEST(SceneManagerTest, ARejectionIsLoggedAgainWhenTheRequestComesBack)
     EXPECT_TRUE(Contains(errors[2], "Game (5)")) << errors[2];
 }
 
-// Sin escena (antes de Start, o después de un Enter que falló) no hay de dónde ir: un pedido no
-// arma ninguna escena, no cambia nada y no avisa.
+// Without a scene (before Start, or after an Enter that failed) there is nowhere to go from: a request builds no
+// scene, changes nothing and does not warn.
 TEST(SceneManagerTest, ARequestWithoutASceneChangesNothing)
 {
     Harness tested;
@@ -560,9 +556,9 @@ TEST(SceneManagerTest, ARequestWithoutASceneChangesNothing)
     EXPECT_EQ(tested.Lines(LogLevel::Error).size(), 1u) << "solo el del Enter que falló";
 }
 
-// Start es la primera escena: con una ya entrada es un error, y la de ahora sigue, sin Leave ni
-// otra fábrica (si no, la de ahora se destruiría sin soltar sus texturas). Para cambiar está
-// Request.
+// Start is the first scene: with one already entered it is an error, and the current one stays, without Leave or
+// another factory (otherwise the current one would be destroyed without releasing its textures). Request is for
+// changing.
 TEST(SceneManagerTest, StartingAgainKeepsTheScene)
 {
     Harness tested;
@@ -581,7 +577,7 @@ TEST(SceneManagerTest, StartingAgainKeepsTheScene)
     EXPECT_EQ(tested.Lines(LogLevel::Error).size(), 1u);
 }
 
-// Después de un Start que falló, otro empieza de cero: si entra, ya no queda el error de antes.
+// After a Start that failed, another starts from scratch: if it enters, the earlier error is gone.
 TEST(SceneManagerTest, AStartAfterAFailedOneClearsTheFailure)
 {
     Harness tested;
@@ -596,8 +592,7 @@ TEST(SceneManagerTest, AStartAfterAFailedOneClearsTheFailure)
     EXPECT_EQ(tested.manager.Failure(), std::nullopt);
 }
 
-// Request, desde afuera de las escenas (la red de la CL6 y la CL9, con el F1 02 de 0x4c2710), sigue
-// la misma tabla.
+// Request, from outside the scenes (the network of CL6 and CL9, with the F1 02 of 0x4c2710), follows the same table.
 TEST(SceneManagerTest, ARequestFollowsTheSameTable)
 {
     Harness tested;
@@ -611,9 +606,9 @@ TEST(SceneManagerTest, ARequestFollowsTheSameTable)
     EXPECT_EQ(tested.manager.Current(), SceneId::Login);
 }
 
-// Un Enter que falla (una textura que falta) corta: el error queda en Failure, para que main.cpp
-// cierre, y en el log; la escena que falló suelta lo que alcanzó a subir (su Leave), y ya no hay
-// escena que pase ni que dibuje.
+// An Enter that fails (a missing texture) stops: the error stays in Failure, so main.cpp closes, and in the log; the
+// scene that failed releases what it managed to upload (its Leave), and there is no longer a scene that steps or
+// draws.
 TEST(SceneManagerTest, AFailedEnterStopsWithItsError)
 {
     Harness tested;
@@ -639,9 +634,9 @@ TEST(SceneManagerTest, AFailedEnterStopsWithItsError)
     EXPECT_TRUE(tested.stage.target.frames.empty());
 }
 
-// Una escena que corta en su dibujo (el juego en una etapa que MuRet no tiene, IScene::Failure): el
-// error queda en Failure y en el log una vez, el frame cortado no se presenta, retiene y nada vuelve a
-// correr; la escena sigue siendo la de ahora y hace su Leave al cerrar.
+// A scene that stops in its draw (the game at a stage MuRet lacks, IScene::Failure): the error stays in Failure and
+// in the log once, the stopped frame is not presented, it holds and nothing runs again; the scene stays the current
+// one and does its Leave on closing.
 TEST(SceneManagerTest, ARenderFailureStopsTheSceneWithoutPresenting)
 {
     Harness tested;
@@ -666,7 +661,7 @@ TEST(SceneManagerTest, ARenderFailureStopsTheSceneWithoutPresenting)
     EXPECT_EQ(tested.stage.target.frames.size(), 1u);
 }
 
-// Lo mismo en el paso: el pedido de otra escena de ese paso no se mira.
+// The same in the step: that step's request for another scene is not looked at.
 TEST(SceneManagerTest, AStepFailureStopsTheSceneBeforeItsRequest)
 {
     Harness tested;
@@ -684,15 +679,15 @@ TEST(SceneManagerTest, AStepFailureStopsTheSceneBeforeItsRequest)
     EXPECT_FALSE(tested.manager.TakeTheSceneChange());
 }
 
-// Lo de 0x637700 detrás del paso (afterSceneStep) corre después de un paso que salió bien, antes del pedido de la
-// escena; su error corta como el de un paso, y un paso que falló no lo corre.
+// The 0x637700 part after the step (afterSceneStep) runs after a step that went well, before the scene's request;
+// its error stops like a step's, and a step that failed does not run it.
 TEST(SceneManagerTest, AfterTheStepRunsBeforeTheRequestAndItsFailureStopsTheScene)
 {
     Harness tested;
     ASSERT_TRUE(tested.manager.Start(SceneId::Loading).HasValue());
     tested.stage.next[SceneId::Loading] = SceneId::Login;
     tested.manager.Step(tested.input);
-    // Después de "step Loading" y antes del Leave de la carga.
+    // After "step Loading" and before the loading's Leave.
     ASSERT_EQ(tested.afterSteps.size(), 1u);
     EXPECT_EQ(tested.stage.journal[tested.afterSteps[0] - 1], "step Loading");
     EXPECT_EQ(tested.manager.Current(), SceneId::Login);
@@ -704,8 +699,8 @@ TEST(SceneManagerTest, AfterTheStepRunsBeforeTheRequestAndItsFailureStopsTheScen
     EXPECT_EQ(tested.afterSteps.size(), 2u);
 }
 
-// Lo de 0x637700 alrededor del dibujo: beforeSceneDraw antes de BeginFrame y afterSceneDraw después del dibujo de la
-// escena, con su lienzo y el frame abierto, antes del Present.
+// The 0x637700 part around the draw: beforeSceneDraw before BeginFrame and afterSceneDraw after the scene's draw,
+// with its canvas and the frame open, before the Present.
 TEST(SceneManagerTest, TheDrawHooksRunAroundTheSceneDraw)
 {
     Harness tested;
@@ -724,8 +719,8 @@ TEST(SceneManagerTest, TheDrawHooksRunAroundTheSceneDraw)
     EXPECT_TRUE(tested.stage.target.frames[0].presented);
 }
 
-// Sus errores cortan como el del dibujo: el de antes, sin abrir el frame ni dibujar la escena; el de después, sin
-// presentarlo. Después nada vuelve a correr.
+// Their errors stop like the draw's: the before one, without opening the frame or drawing the scene; the after one,
+// without presenting it. Then nothing runs again.
 TEST(SceneManagerTest, ADrawHookFailureStopsTheSceneWithoutPresenting)
 {
     {
@@ -749,7 +744,7 @@ TEST(SceneManagerTest, ADrawHookFailureStopsTheSceneWithoutPresenting)
     EXPECT_EQ(tested.drawHooks.size(), 2u);
 }
 
-// Un error de Enter no corta la sesión independiente mientras el host decide reintentar.
+// An Enter error does not stop the independent session while the host decides to retry.
 TEST(SceneManagerTest, PollContinuesAfterFailedEnterAndAnEnterRetryStillSucceeds)
 {
     Harness tested;
@@ -827,8 +822,8 @@ TEST(SceneManagerTest, AFactoryWithoutTheSceneFails)
     EXPECT_TRUE(Contains(*tested.manager.Failure(), "Login (2)")) << *tested.manager.Failure();
 }
 
-// Como 0x63c150 al final de 0x622e40: los seis slots de la carga se sueltan antes de que suban los
-// 18 del login (Leave antes que el Enter que sigue).
+// Like 0x63c150 at the end of 0x622e40: the loading's six slots are released before the login's 18 are uploaded
+// (Leave before the next Enter).
 TEST(SceneManagerTest, LeavingReleasesTheTextures)
 {
     Harness tested;
@@ -849,7 +844,6 @@ TEST(SceneManagerTest, LeavingReleasesTheTextures)
     }
 }
 
-// Al cerrar, la escena de ahora suelta lo suyo, como al cambiar.
 TEST(SceneManagerTest, TheSceneLeavesWhenTheManagerCloses)
 {
     Harness tested;
@@ -864,8 +858,8 @@ TEST(SceneManagerTest, TheSceneLeavesWhenTheManagerCloses)
     EXPECT_EQ(tested.stage.textures.Size(), 0u);
 }
 
-// 4 a 4 (0x4c363f, con el F1 02 en la selección): se sale y se entra a una escena nueva, que sube
-// todo otra vez, como el original con 0x7d3a13f en 0 (0x4c38eb).
+// 4 to 4 (0x4c363f, with the F1 02 in the selection): it leaves and enters a new scene, which uploads everything
+// again, like the original with 0x7d3a13f at 0 (0x4c38eb).
 TEST(SceneManagerTest, ReentersTheSelectionFresh)
 {
     Harness tested;
@@ -880,8 +874,8 @@ TEST(SceneManagerTest, ReentersTheSelectionFresh)
                                                               "leave CharacterSelect", "enter CharacterSelect"}));
 }
 
-// La red corre en cada Poll, también antes de Start y con la ventana minimizada, que no dibuja:
-// el GameLoop llama a Poll una vez por frame (CL4.1), como 0x4e1d50 en cada vuelta del bucle.
+// The network runs on each Poll, also before Start and with the window minimized, which does not draw: the GameLoop
+// calls Poll once per frame (CL4.1), like 0x4e1d50 on each loop iteration.
 TEST(SceneManagerTest, PollsTheNetworkOncePerFrame)
 {
     Harness tested;
@@ -908,8 +902,6 @@ TEST(SceneManagerTest, PollsTheNetworkOncePerFrame)
     EXPECT_EQ(tested.stage.target.frames.size(), 10u) << "minimizada no dibuja";
 }
 
-// Cada Render es un frame: BeginFrame con el reloj, el Render de la escena con el frame abierto y
-// Present.
 TEST(SceneManagerTest, RendersBetweenBeginAndPresent)
 {
     Harness tested;
@@ -934,8 +926,8 @@ TEST(SceneManagerTest, RendersBetweenBeginAndPresent)
     EXPECT_TRUE(tested.stage.draws[1].frameOpen);
     EXPECT_EQ(tested.stage.draws[1].alpha, 0.5f);
 }
-// P-C61: el fin de cada vuelta corre afterSceneFrame con el reloj, con el frame dibujado o retenido (el original
-// corre el frame sin presentarlo), y no sin escena ni con un error.
+// P-C61: the end of each loop runs afterSceneFrame with the clock, with the frame drawn or held (the original runs
+// the frame without presenting it), and not without a scene or with an error.
 TEST(SceneManagerTest, FinishingTheLoopRunsAfterTheFrame)
 {
     Harness tested;
@@ -963,9 +955,8 @@ TEST(SceneManagerTest, FinishingTheLoopRunsAfterTheFrame)
     EXPECT_EQ(tested.afterFrames.size(), 2u);
 }
 
-// Una escena que pide cerrar el juego (el OK del aviso 0x70 del login, Q-C69): el SceneManager lo
-// dice, para que main.cpp corte el bucle con EXIT_SUCCESS. Sin escena, o con una que no lo pide,
-// no.
+// A scene that asks to quit the game (the OK of the login's 0x70 notice, Q-C69): the SceneManager says so, so
+// main.cpp ends the loop with EXIT_SUCCESS. Without a scene, or with one that does not ask, no.
 TEST(SceneManagerTest, SaysWhenTheSceneWantsToQuit)
 {
     Harness tested;
@@ -979,9 +970,8 @@ TEST(SceneManagerTest, SaysWhenTheSceneWantsToQuit)
     EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
 }
 
-// Una escena con un campo de texto abierto (la cuenta del login): el SceneManager lo dice, para que
-// main.cpp prenda el texto tecleado de SDL solo mientras tanto. Sin escena, o con una que no lo
-// pide, no.
+// A scene with a text field open (the login's account): the SceneManager says so, so main.cpp turns SDL's text input
+// on only meanwhile. Without a scene, or with one that does not ask, no.
 TEST(SceneManagerTest, SaysWhenTheSceneWantsTextInput)
 {
     Harness tested;
@@ -994,8 +984,8 @@ TEST(SceneManagerTest, SaysWhenTheSceneWantsTextInput)
     EXPECT_TRUE(tested.manager.WantsTextInput());
 }
 
-// Un paso que entró a otra escena lo dice una vez, para que el GameLoop no cuente lo que tardó la entrada
-// (GameLoop.h). Un paso sin cambio, o el Start, no.
+// A step that entered another scene says so once, so the GameLoop does not count how long the entry took
+// (GameLoop.h). A step without a change, or the Start, does not.
 TEST(SceneManagerTest, SaysOnceWhenAStepChangedTheScene)
 {
     Harness tested;
@@ -1012,9 +1002,8 @@ TEST(SceneManagerTest, SaysOnceWhenAStepChangedTheScene)
     EXPECT_FALSE(tested.manager.TakeTheSceneChange());
 }
 
-// Una escena que retiene el último frame (el login mientras conecta, Q-C85): el SceneManager lo
-// dice, para que el GameLoop no dibuje y en la pantalla quede el frame anterior. Sin escena, o con
-// una que no lo pide, no.
+// A scene that holds the last frame (the login while it connects, Q-C85): the SceneManager says so, so the GameLoop
+// does not draw and the previous frame stays on screen. Without a scene, or with one that does not ask, no.
 TEST(SceneManagerTest, SaysWhenTheSceneHoldsTheLastFrame)
 {
     Harness tested;
@@ -1026,7 +1015,7 @@ TEST(SceneManagerTest, SaysWhenTheSceneHoldsTheLastFrame)
 
     EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
 }
-// La consulta que impide el Render también avisa a la escena, incluso sin un Step intermedio.
+// The query that prevents the Render also notifies the scene, even without an intermediate Step.
 TEST(SceneManagerTest, OnlyAHeldFrameNotifiesTheCurrentScene)
 {
     Harness tested;
@@ -1045,9 +1034,8 @@ TEST(SceneManagerTest, OnlyAHeldFrameNotifiesTheCurrentScene)
     EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 2);
 }
 
-// 0x6371a0 lee lo que decide al empezar cada frame: PrepareFrame corre una vez por frame, la primera
-// vez que se pregunta, y preguntar otra vez o dibujar no lo vuelve a correr. Poll y Step empiezan
-// otro frame, y Render lo termina.
+// 0x6371a0 reads what it decides at the start of each frame: PrepareFrame runs once per frame, the first time it is
+// asked, and asking again or drawing does not run it again. Poll and Step start another frame, and Render ends it.
 TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
 {
     Harness tested;
@@ -1070,8 +1058,8 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
     EXPECT_EQ(tested.stage.prepared[SceneId::Loading], 4);
 }
 
-// Recursos completos para los dos tests de orquestación que ahora atraviesan productores.
-// Su mapa0 con pool vacío aisla el gate del dibujo; el caso inicial54 real vive en test_game_scene_wait.
+// Full resources for the two orchestration tests that go through producers. Their map 0 with an empty pool isolates
+// the draw's gate; the real initial 54 case lives in test_game_scene_wait.
 struct ManagerGameResources
 {
     Expected<void, std::string> Load(Client::Kernel::WorldState& world, Client::Terrain::TerrainState& terrain,
@@ -1083,7 +1071,7 @@ struct ManagerGameResources
         data = std::move(loadedData).Value();
         if (auto loadedModels = models.Load(dataRoot, textures, log); !loadedModels.HasValue())
             return loadedModels;
-        world.Runtime().map = 0; // El caller escribe el mundo antes de 61a560, que conserva el observado.
+        world.Runtime().map = 0; // The caller writes the world before 0x61a560, which keeps the observed one.
         return Client::Scenes::LoadMap(0, {dataRoot, world, terrain, SceneId::Game, 0, cloth.random});
     }
     std::filesystem::path dataRoot = Client::Tests::GoldenDir();
@@ -1101,8 +1089,8 @@ public:
     int calls = 0;
 };
 
-// 06, entrada pasos2..6: el mosaico se retiene con contador>30. Este fixture de orquestación
-// ya presta un mapa real: al publicar30 el frame completo se presenta, sin un error de recursos.
+// 06, entry steps 2..6: the mosaic is held with counter>30. This orchestration fixture lends a real map: on
+// publishing 30 the full frame is presented, with no resource error.
 TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
 {
     FakeTextureStore textures;
@@ -1115,7 +1103,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, states.terrain, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    // 0x633f30: la selección ya marcó el mundo cargado.
+    // 0x633f30: the selection already marked the world loaded.
     world.Runtime().drawingEnabled = true;
     const Client::Scenes::SceneContext context{.dataRoot = gameResources.dataRoot,
                                                .textures = textures,
@@ -1141,7 +1129,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
         },
         target, clock, nullptr, log);
     const InputState input;
-    // El dibujo de un frame del GameLoop, que puede no tener pasos: la red y el dibujo, si no retiene.
+    // The draw of a GameLoop frame, which may have no steps: the network and the draw, if it does not hold.
     const auto draw = [&]()
     {
         manager.Poll();
@@ -1177,8 +1165,8 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     EXPECT_FALSE(manager.HoldsTheLastFrame());
 }
 
-// El F1 02 con 1 escribe la escena 4 mientras se lee la red (0x4c363f): el Poll toma la orden y el paso que
-// sigue ya es el de la selección, que entra antes de su paso. La orden se toma una vez.
+// The F1 02 with 1 writes scene 4 while the network is read (0x4c363f): the Poll takes the order and the next step
+// is already the selection's, which enters before its step. The order is taken once.
 TEST(SceneManagerTest, ANetworkOrderEntersBeforeTheNextStep)
 {
     Harness tested;
@@ -1204,8 +1192,8 @@ TEST(SceneManagerTest, ANetworkOrderEntersBeforeTheNextStep)
     EXPECT_EQ(tested.stage.created[SceneId::CharacterSelect], 1);
 }
 
-// Q-C79: el original cambiaría de escena también en la carga; MuRet sigue la tabla, y la orden desde ahí es
-// un error en el log y la escena da su paso.
+// Q-C79: the original would change scenes in the loading too; MuRet follows the table, and the order from there is an
+// error in the log and the scene takes its step.
 TEST(SceneManagerTest, ANetworkOrderOutsideTheTableIsRejected)
 {
     Harness tested;
@@ -1224,7 +1212,7 @@ TEST(SceneManagerTest, ANetworkOrderOutsideTheTableIsRejected)
     EXPECT_EQ(tested.manager.Failure(), std::nullopt);
 }
 
-// Un Poll que falla no toma la orden: el error es terminal y no hay otro paso.
+// A Poll that fails does not take the order: the error is terminal and there is no other step.
 TEST(SceneManagerTest, AFailedPollDoesNotTakeTheOrder)
 {
     Harness tested;
@@ -1240,9 +1228,9 @@ TEST(SceneManagerTest, AFailedPollDoesNotTakeTheOrder)
     EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Game"}));
 }
 
-// La selección de la vuelta, sin la lista ni el 54: al entrar marca el mundo cargado (lo que hace 0x633f30 con
-// la lista) y, cuando el test elige, pasa a la escena 3 con PrepareSelectedActor, que baja la bandera de la
-// carga del mundo (0x633efe).
+// The selection of the return, without the list or the 54: on entering it marks the world loaded (what 0x633f30 does
+// with the list) and, when the test chooses, goes to scene 3 with PrepareSelectedActor, which lowers the world load
+// flag (0x633efe).
 class ChoosingSelection final : public IScene
 {
 public:
@@ -1297,9 +1285,9 @@ private:
     bool m_chosen = false;
 };
 
-// Vuelta a selección y nueva carga: conserva los cambios de escena y la segunda espera.
-// La selección visual es un doble explícito; al final ApplyWorldEntry real carga el mapa/actor
-// antes de permitir el nuevo frame. No se usa un fallo por terreno ausente como final esperado.
+// Back to selection and a new load: keeps the scene changes and the second wait. The visual selection is an explicit
+// double; at the end the real ApplyWorldEntry loads the map/actor before allowing the new frame. A missing-terrain
+// failure is not used as the expected end.
 TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
 {
     FakeTextureStore textures;
@@ -1315,7 +1303,7 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     ManagerGameResources gameResources;
     const auto loaded = gameResources.Load(world, states.terrain, cloth, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    // 0x633f30: la selección ya marcó el mundo cargado.
+    // 0x633f30: the selection already marked the world loaded.
     world.Runtime().drawingEnabled = true;
     const Client::Scenes::SceneContext context{.dataRoot = gameResources.dataRoot,
                                                .textures = textures,

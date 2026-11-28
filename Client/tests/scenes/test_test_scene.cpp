@@ -6,14 +6,14 @@
 
 #include <vector>
 
-// Client::Scenes::TestScene: el ciclo de 32 pasos y el fondo que sube y baja con él.
+// Client::Scenes::TestScene: the 32-step cycle and the background that rises and falls with it.
 namespace
 {
 using Client::Input::InputState;
 using Client::Scenes::TestScene;
 using Color = TestScene::Color;
 
-// Los extremos de TestScene.cpp: el azul oscuro del principio del ciclo y el claro de la mitad.
+// TestScene.cpp's extremes: the dark blue at the start of the cycle and the light one at the middle.
 constexpr Color Dark{0.08f, 0.10f, 0.18f};
 constexpr Color Light{0.20f, 0.35f, 0.60f};
 
@@ -45,7 +45,6 @@ TEST(TestSceneTest, StartsDark)
     ExpectColor(scene.Background(0.0f), Dark);
 }
 
-// A los 16 pasos, la mitad del ciclo, está en el claro; a los 32 vuelve al oscuro.
 TEST(TestSceneTest, IsLightHalfwayAndDarkAgainAfterACycle)
 {
     TestScene scene{[](const Color&) {}};
@@ -56,8 +55,6 @@ TEST(TestSceneTest, IsLightHalfwayAndDarkAgainAfterACycle)
     ExpectColor(scene.Background(0.0f), Dark);
 }
 
-// El alfa interpola entre el paso actual y el próximo: con 0,5 entre el paso 3 y el 4 queda en el
-// medio de los dos.
 TEST(TestSceneTest, TheAlphaIsBetweenThisStepAndTheNext)
 {
     TestScene scene{[](const Color&) {}};
@@ -70,8 +67,6 @@ TEST(TestSceneTest, TheAlphaIsBetweenThisStepAndTheNext)
     ExpectColor(halfway, Midpoint(now, next));
 }
 
-// La segunda mitad baja: a los 8 pasos (un cuarto) y a los 24 (tres cuartos) está en el medio de
-// los dos extremos, a la ida y a la vuelta.
 TEST(TestSceneTest, GoesUpInTheFirstHalfAndBackDownInTheSecond)
 {
     TestScene scene{[](const Color&) {}};
@@ -82,7 +77,6 @@ TEST(TestSceneTest, GoesUpInTheFirstHalfAndBackDownInTheSecond)
     ExpectColor(scene.Background(0.0f), Midpoint(Dark, Light));
 }
 
-// En el paso 31, el alfa que llega a 1 da el oscuro del paso 0: el ciclo vuelve sin salto.
 TEST(TestSceneTest, TheCycleWrapsWithoutAJump)
 {
     TestScene scene{[](const Color&) {}};
@@ -91,7 +85,6 @@ TEST(TestSceneTest, TheCycleWrapsWithoutAJump)
     ExpectColor(scene.Background(1.0f), Dark);
 }
 
-// Render presenta el fondo de su alfa, una vez por llamada.
 TEST(TestSceneTest, RenderPresentsTheBackground)
 {
     std::vector<Color> presented;
@@ -103,7 +96,7 @@ TEST(TestSceneTest, RenderPresentsTheBackground)
     ASSERT_EQ(presented.size(), 1u);
     ExpectColor(presented[0], scene.Background(0.25f));
 }
-// La escena de prueba no tiene red: Poll no avanza el ciclo ni presenta.
+// The test scene has no network.
 TEST(TestSceneTest, PollDoesNothing)
 {
     std::vector<Color> presented;

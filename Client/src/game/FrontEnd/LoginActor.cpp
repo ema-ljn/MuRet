@@ -88,7 +88,7 @@ Core::Expected<void, std::string> ConstructLoginActor(Kernel::ActorState& actor,
     actor.position = transform.position;
     actor.angles = transform.angles;
     actor.scale = transform.scale;
-    // 0x420d60, después del caballo: la celda lógica sigue en (0, 0), aunque el dueño ya está situado.
+    // 0x420d60, after the horse: the logical cell stays at (0, 0), even though the owner is already placed.
     constexpr float CellCentre = 50.0f;
     const double ground = Terrain::TerrainHeightAt(*construction.terrain.heights, *construction.terrain.attributes,
                                                    CellCentre, CellCentre, construction.fixedHeight);

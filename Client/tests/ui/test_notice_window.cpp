@@ -16,10 +16,9 @@
 
 #include <optional>
 
-// Client::Ui::NoticeWindow: el aviso de la UI nueva del tipo 2, con un OK (0x6429b0, 0x642bf0,
-// 0x642f00 y 0x642e30, en el paso; CL5.5). Oscurece la pantalla, muestra su caja con el texto por
-// índice y se cierra con OK, Enter o Esc. El nombre no es MessageBox: <windows.h> define una macro
-// con ese nombre.
+// Client::Ui::NoticeWindow: the new UI's type 2 notice, with an OK (0x6429b0, 0x642bf0, 0x642f00 and 0x642e30, in the
+// step; CL5.5). It darkens the screen, shows its box with the text by index and closes with OK, Enter or Esc. The
+// name is not MessageBox: <windows.h> defines a macro with that name.
 namespace
 {
 using Client::Core::PixelSize;
@@ -53,7 +52,7 @@ std::optional<NoticeId> StepOnce(NoticeWindow& window, InputState& input)
     return closed;
 }
 
-// La caja de 352 × 113 al medio, ((W − 352) / 2, (H − 113) / 2), y el OK de 54 × 30 en (+149, +72).
+// The 352 × 113 box in the middle, ((W − 352) / 2, (H − 113) / 2), and the 54 × 30 OK at (+149, +72).
 TEST(NoticeWindowTest, TheBoxIsCenteredWithItsOk)
 {
     const NoticeLayout layout = LayoutNotice(Screen640);
@@ -75,7 +74,7 @@ TEST(NoticeWindowTest, OkClosesIt)
     EXPECT_EQ(window.Notice(), std::nullopt);
 }
 
-// 0x642e30, el tipo 2: Enter o Esc son el OK.
+// 0x642e30, type 2.
 TEST(NoticeWindowTest, EnterOrEscClosesIt)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -89,7 +88,7 @@ TEST(NoticeWindowTest, EnterOrEscClosesIt)
     EXPECT_EQ(StepOnce(window, input), Some(0x65));
 }
 
-// Un clic en otro lado no lo cierra, y cerrado no hace nada.
+// Closed, it does nothing.
 TEST(NoticeWindowTest, OnlyItsOkClosesIt)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -104,9 +103,9 @@ TEST(NoticeWindowTest, OnlyItsOkClosesIt)
     EXPECT_TRUE(window.IsOpen());
 }
 
-// 0x6429b0: la base es una imagen sin textura (slot -1) de toda la pantalla, negra con alfa 0x80;
-// después la caja (message_back, slot 0x727) y el OK (0x724). El lote llega con la aditiva
-// (Q-C80): la ventana pone la normal.
+// 0x6429b0: the base is an untextured image (slot -1) of the whole screen, black with alpha 0x80; then the box
+// (message_back, slot 0x727) and the OK (0x724). The batch arrives with the additive blend (Q-C80): the window sets
+// the normal one.
 TEST(NoticeWindowTest, TheBaseDarkensTheScreen)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -133,9 +132,9 @@ TEST(NoticeWindowTest, TheBaseDarkensTheScreen)
     EXPECT_FLOAT_EQ(base[0].color.alpha, 128.0f / 255.0f);
 }
 
-// 0x642bf0: una línea va centrada en el ancho de la caja, en la y + 38, con la fuente
-// DAT_05763560 en blanco: 0x642f00 la pasa en el modo 2, en una caja de 352 desde la x de la caja.
-// "Synthetic" mide 9 · 6 = 54: el texto va en la columna (352 − 54) / 2 = 149.
+// 0x642bf0: one line goes centered in the box's width, at y + 38, with font DAT_05763560 in white: 0x642f00 passes it
+// in mode 2, in a 352-wide box from the box's x. "Synthetic" measures 9 · 6 = 54: the text goes at column
+// (352 − 54) / 2 = 149.
 TEST(NoticeWindowTest, OneLineIsCentered)
 {
     const auto texts = Client::Tests::MakeTextTable({{402, "Synthetic"}});
@@ -159,7 +158,7 @@ TEST(NoticeWindowTest, OneLineIsCentered)
     EXPECT_EQ(text.texts[0].style.colors.background, 0u);
 }
 
-// Dos líneas (el 0x6f, la versión: 405 y 406) van a la izquierda, en (+25, +32) y (+25, +51).
+// The 0x6f, the version: 405 and 406, at (+25, +32) and (+25, +51).
 TEST(NoticeWindowTest, TwoLinesGoOnTheLeft)
 {
     const auto texts = Client::Tests::MakeTextTable({{405, "First"}, {406, "Second"}});
@@ -180,7 +179,7 @@ TEST(NoticeWindowTest, TwoLinesGoOnTheLeft)
     EXPECT_EQ(text.texts[1].y, 234);
 }
 
-// El tipo 0 (el 0x5d, "Aguarde por favor..."): sin botones; Enter y Esc no lo cierran.
+// Type 0 (the 0x5d, "Aguarde por favor..."): no buttons; Enter and Esc do not close it.
 TEST(NoticeWindowTest, ANoButtonNoticeStaysOpen)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -197,8 +196,8 @@ TEST(NoticeWindowTest, ANoButtonNoticeStaysOpen)
     EXPECT_EQ(window.Layout().cancel, std::nullopt);
 }
 
-// El tipo 3 (el 0x5e): OK en (+98, +72) y cancelar en (+200, +72). OK o Enter lo dan; cancelar o
-// Esc lo cierran sin darlo (0x6436a0 pone el id en −1).
+// Type 3 (the 0x5e): OK at (+98, +72) and cancel at (+200, +72). OK or Enter confirm it; cancel or Esc close it
+// without confirming (0x6436a0 sets the id to −1).
 TEST(NoticeWindowTest, AnOkCancelNoticeCancelsWithEsc)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -225,8 +224,8 @@ TEST(NoticeWindowTest, AnOkCancelNoticeCancelsWithEsc)
     EXPECT_EQ(StepOnce(window, input), Some(0x5e));
 }
 
-// El tipo 4 (el 0x5f): la caja del código en (+32, +76), OK en (+209, +72) y cancelar en (+264, +72).
-// El campo toma solo dígitos, hasta 7, va enmascarado y se vacía al abrir (0x6436c0).
+// Type 4 (the 0x5f): the code box at (+32, +76), OK at (+209, +72) and cancel at (+264, +72). The field takes only
+// digits, up to 7, is masked and is emptied on opening (0x6436c0).
 TEST(NoticeWindowTest, TheCodeNoticeTakesUpToSevenDigits)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -244,7 +243,7 @@ TEST(NoticeWindowTest, TheCodeNoticeTakesUpToSevenDigits)
 
     TapKey(input, Key::Enter);
     EXPECT_EQ(StepOnce(window, input), Some(0x5f));
-    // Lo que se escribió queda hasta que se abre otro, para el pedido.
+    // What was typed stays until another opens, for the request.
     EXPECT_EQ(window.Code(), "1234567");
     window.Open(0x5f);
     EXPECT_EQ(window.Code(), "");
@@ -252,7 +251,7 @@ TEST(NoticeWindowTest, TheCodeNoticeTakesUpToSevenDigits)
     EXPECT_FALSE(window.WantsTextInput());
 }
 
-// El código se dibuja enmascarado, en la caja, en (+42, +84).
+// In the box, at (+42, +84).
 TEST(NoticeWindowTest, TheCodeIsDrawnMasked)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -272,8 +271,7 @@ TEST(NoticeWindowTest, TheCodeIsDrawnMasked)
     EXPECT_EQ(text.texts[0].y, 183 + 84);
 }
 
-// 0x643100 parte un texto solo en dos renglones de menos de 52 bytes (0x632c90): el 1654 va en dos,
-// a la izquierda.
+// 0x643100 splits a lone text into two lines shorter than 52 bytes (0x632c90): the 1654 goes in two, on the left.
 TEST(NoticeWindowTest, ALongTextSplitsInTwo)
 {
     const auto texts = Client::Tests::MakeTextTable({{1654, "Voce nao pode apagar o personagem que pertence a Guild"}});
@@ -293,7 +291,7 @@ TEST(NoticeWindowTest, ALongTextSplitsInTwo)
     EXPECT_EQ(text.texts[1].y, 234);
 }
 
-// El 0x5e arma su texto con el nombre del elegido (sprintf del 1712).
+// The 0x5e builds its text with the chosen one's name (sprintf of the 1712).
 TEST(NoticeWindowTest, TheConfirmationPlacesTheName)
 {
     const auto texts = Client::Tests::MakeTextTable({{1712, "Delete %s?"}});
@@ -309,8 +307,8 @@ TEST(NoticeWindowTest, TheConfirmationPlacesTheName)
     EXPECT_EQ(text.texts[0].text, "Delete char0001?");
 }
 
-// El código no se queda en la ventana: cancelar lo borra, y TakeCode lo da y lo borra (0x643740 vacía
-// el EDIT después de copiarlo).
+// The code does not stay in the window: cancel erases it, and TakeCode returns and erases it (0x643740 empties the
+// EDIT after copying it).
 TEST(NoticeWindowTest, TheCodeIsForgottenAfterCancelOrTake)
 {
     NoticeWindow window(LabSizes(), nullptr);
@@ -331,7 +329,7 @@ TEST(NoticeWindowTest, TheCodeIsForgottenAfterCancelOrTake)
     EXPECT_EQ(window.Code(), "");
 }
 
-// Solo el 0x5e pasa su texto por sprintf (0x6431b0): en los otros, un "%s" sale tal cual.
+// Only the 0x5e passes its text through sprintf (0x6431b0): in the others, a "%s" comes out as is.
 TEST(NoticeWindowTest, OnlyTheConfirmationIsAFormat)
 {
     const auto texts = Client::Tests::MakeTextTable({{1654, "Guild %s 100%"}});

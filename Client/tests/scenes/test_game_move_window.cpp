@@ -38,9 +38,9 @@
 #include <utility>
 #include <vector>
 
-// La ventana /move (CL8 hito 6; 06 § HUD y ventanas, "La ventana /move"): el paso 0x448580 y el dibujo 0x448fa0. Con
-// 640 de ancho: 190 de ventana, el paso de la letra 12, renglones de 14 desde la y 40 y el texto un píxel más abajo.
-// Los destinos y los textos son inventados; el texto mide 6 columnas por letra.
+// The /move window (CL8 milestone 6; 06 § HUD y ventanas, "La ventana /move"): the step 0x448580 and the drawing
+// 0x448fa0. With a width of 640: a 190 window, the letter step 12, lines of 14 from y 40 and the text one pixel lower.
+// The destinations and the texts are made up; the text measures 6 columns per letter.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -54,7 +54,7 @@ using Client::Render::SpriteVertex;
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed1234u;
-// 0x40b4d0: el registro propio, al cerrarse, por cada destino que mira.
+// 0x40b4d0: the own record, on closing, for each destination it looks at.
 constexpr std::uint32_t OwnRecordRandoms = 3848;
 constexpr std::uint32_t Allowed = 0xffffffffu;
 constexpr std::uint32_t Denied = 0xff1127a4u;
@@ -91,7 +91,7 @@ struct DrawnQuad
     SpriteVertex third{};
 };
 
-// Los quads sin textura del lote (los de 0x621aa0), en orden.
+// The batch's untextured quads (those of 0x621aa0), in order.
 std::vector<DrawnQuad> ColorQuadsOf(const SpriteBatch& sprites)
 {
     std::vector<DrawnQuad> quads;
@@ -118,7 +118,7 @@ protected:
         m_sprites.Begin(Screen640);
         Client::Kernel::WorldRuntime& runtime = m_world->Runtime();
         runtime.panels.overlayMode = Client::Ui::MoveOverlayMode;
-        // Tres destinos: el primero pasa; el segundo pide más nivel; el tercero, más zen.
+        // Three destinations: the first passes; the second asks for more level; the third, more zen.
         runtime.moves = {Destination(1, "Campo", 10, 100), Destination(2, "Bosque", 50, 100),
                          Destination(3, "Lago", 10, 1000)};
         Client::Kernel::OwnCharacterRecord& own = m_world->OwnCharacter();
@@ -173,7 +173,7 @@ protected:
         return m_world->Runtime().panels.overlayMode;
     }
 
-    // Lo que manda el chat con "/mover " y el nombre, con el nombre del héroe.
+    // What the chat sends with "/mover " and the name, with the hero's name.
     [[nodiscard]] bool Said(std::string_view text) const
     {
         const Client::Kernel::ActorState& hero = m_world->Hero();
@@ -192,8 +192,8 @@ protected:
     const Client::Tables::TextTable* m_drawnTexts = &m_texts;
 };
 
-// 0x448619..0x448633: el mouse sobre la ventana (0 < x ≤ 190, 0 < y ≤ 3 · 14 + 60) es de la UI. Sin el botón, cada
-// destino abre y cierra el registro propio y nada más.
+// 0x448619..0x448633: the mouse over the window (0 < x ≤ 190, 0 < y ≤ 3 · 14 + 60) belongs to the UI. Without the
+// button, each destination opens and closes the own record and nothing more.
 TEST_F(GameMoveWindowTest, TheMouseOverTheWindowIsOfTheUi)
 {
     Client::Ui::GameUiState& ui = m_world->Runtime().ui;
@@ -209,8 +209,8 @@ TEST_F(GameMoveWindowTest, TheMouseOverTheWindowIsOfTheUi)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x4487d7..0x448f0e: con el botón abajo sobre el primer renglón (40 a 53), "/mover Campo" como el chat de Enter, la
-// ventana cerrada y el botón y el flanco apagados. Solo abrió el registro del primero.
+// 0x4487d7..0x448f0e: with the button down on the first line (40 to 53), "/mover Campo" like the Enter chat, the window
+// closed and the button and the edge off. It only opened the first one's record.
 TEST_F(GameMoveWindowTest, AClickOnAnAllowedDestinationSaysIt)
 {
     HoldTheButton();
@@ -223,7 +223,7 @@ TEST_F(GameMoveWindowTest, AClickOnAnAllowedDestinationSaysIt)
     EXPECT_EQ(m_random.State(), Advanced(OwnRecordRandoms).State());
 }
 
-// El segundo renglón (54 a 67) pide nivel 50 y el héroe tiene 20: nada. Con la clase 3 o 4 pide 2/3 (33).
+// The second line (54 to 67) asks for level 50 and the hero has 20: nothing. With class 3 or 4 it asks for 2/3 (33).
 TEST_F(GameMoveWindowTest, TheLevelIsTwoThirdsForTheThirdAndFourthClasses)
 {
     HoldTheButton();
@@ -239,7 +239,7 @@ TEST_F(GameMoveWindowTest, TheLevelIsTwoThirdsForTheThirdAndFourthClasses)
     EXPECT_EQ(Mode(), 0);
 }
 
-// El zen se compara sin signo y el PK desde 6 no deja moverse; fuera de las columnas 3 a 187, tampoco.
+// The zen is compared unsigned and PK from 6 does not let the hero move; outside columns 3 to 187, neither.
 TEST_F(GameMoveWindowTest, TheZenThePkAndTheEdgesKeepTheWindow)
 {
     HoldTheButton();
@@ -255,7 +255,7 @@ TEST_F(GameMoveWindowTest, TheZenThePkAndTheEdgesKeepTheWindow)
     EXPECT_TRUE(Said("/mover Campo"));
 }
 
-// 0x448f43..0x448f81: el renglón de abajo (de 102 − 14 − 6 a 102 − 6) la cierra con el botón abajo.
+// 0x448f43..0x448f81: the bottom line (from 102 − 14 − 6 to 102 − 6) closes it with the button down.
 TEST_F(GameMoveWindowTest, TheBottomRowClosesTheWindow)
 {
     ASSERT_TRUE(Step(50, 90).HasValue());
@@ -270,7 +270,6 @@ TEST_F(GameMoveWindowTest, TheBottomRowClosesTheWindow)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// Sin la entrada del chat, el clic sobre un destino corta.
 TEST_F(GameMoveWindowTest, WithoutTheChatAClickCuts)
 {
     HoldTheButton();
@@ -279,9 +278,9 @@ TEST_F(GameMoveWindowTest, WithoutTheChatAClickCuts)
     EXPECT_NE(stepped.Error().find("0x4487d7"), std::string::npos) << stepped.Error();
 }
 
-// 0x448fa0: el fondo de 190 × 102 al 80 %, el renglón rojo en (3, 82) de 185 × 14, el resaltado del primero bajo el
-// mouse; el título en negrita centrado en 95 y las columnas en 45, 105 y 155; cada destino en su y (41, 55 y 69) con
-// sus colores; el 1002 en 83. Los tres registros propios y la mezcla apagada al final.
+// 0x448fa0: the 190 × 102 background at 80 %, the red line at (3, 82) of 185 × 14, the first one's highlight under the
+// mouse; the title in bold centered at 95 and the columns at 45, 105 and 155; each destination at its y (41, 55 and 69)
+// with its colors; the 1002 at 83. The three own records and blending off at the end.
 TEST_F(GameMoveWindowTest, TheWindowDrawsItsDestinations)
 {
     ASSERT_TRUE(Draw(50, 45).HasValue());
@@ -340,7 +339,8 @@ TEST_F(GameMoveWindowTest, TheWindowDrawsItsDestinations)
     EXPECT_EQ(m_world->Runtime().hud.dcFont, Client::Render::Text::FontKind::Normal);
 }
 
-// Sin el resaltado: un destino que no pasa, o alguien que agarró el mouse (0x5762eb4). El zen va con signo (_itoa).
+// Without the highlight: a destination that does not pass, or someone who grabbed the mouse (0x5762eb4). The zen goes
+// signed (_itoa).
 TEST_F(GameMoveWindowTest, TheHighlightNeedsAnAllowedRowAndAFreeMouse)
 {
     m_world->Runtime().moves[1].zen = 0x80000000u;
@@ -354,7 +354,7 @@ TEST_F(GameMoveWindowTest, TheHighlightNeedsAnAllowedRowAndAFreeMouse)
     EXPECT_EQ(ColorQuadsOf(m_sprites).size(), 2U);
 }
 
-// Sin destinos, el fondo de 60 de alto y el 1002 en 60 − 14 − 5; sin Text.bmd, corta.
+// With no destinations, the background 60 high and the 1002 at 60 − 14 − 5; without Text.bmd, it stops.
 TEST_F(GameMoveWindowTest, AnEmptyListDrawsTheFrameAndTheClose)
 {
     m_world->Runtime().moves.clear();

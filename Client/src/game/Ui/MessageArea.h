@@ -20,36 +20,35 @@ namespace Client::Render::Frame
 class ITextDrawer;
 }
 
-// El área de mensajes vieja y los avisos centrados (CL8 hito 3; 06 § El chat). Las dos tablas son de la .bss y las
-// tres escenas las dibujan (el login, la selección y el juego, 0x6350b0, 0x634680 y 0x6371a0); sus relojes corren en
-// cada paso, después del de la escena (0x637cf3 y 0x637cf8, dentro de 0x637700). Lo que el dibujo escribe y dura
-// (los anchos de los renglones, los contadores del parpadeo, la fuente del DC) va en MessageFrameState, que el
-// juego copia en sus dibujos intermedios.
+// The old message area and the centered notices (CL8 milestone 3; 06 § El chat). Both tables are in the .bss and all
+// three scenes draw them (login, selection and game, 0x6350b0, 0x634680 and 0x6371a0); their clocks run each step,
+// after the scene's (0x637cf3 and 0x637cf8, inside 0x637700). What the draw writes and lasts (the rows' widths, the
+// blink counters, the DC's font) goes in MessageFrameState, which the game copies in its intermediate draws.
 namespace Client::Ui
 {
-// Los tipos de mensaje de 0x555190 y 0x45bb20, por sus colores (0x5554e0 y 0x45cbb0) y por quién los manda.
+// The message types of 0x555190 and 0x45bb20, by their colors (0x5554e0 and 0x45cbb0) and by who sends them.
 inline constexpr std::int32_t WhisperMessage = 0;
 inline constexpr std::int32_t SystemMessage = 1;
 inline constexpr std::int32_t ErrorMessage = 2;
 inline constexpr std::int32_t ChatMessage = 3;
 inline constexpr std::int32_t PartyMessage = 4;
 inline constexpr std::int32_t GuildMessage = 5;
-// El "@@" del 00 (0x4c6230): ningún dibujo tiene su caso y sale con los colores del texto anterior.
+// The 00's "@@" (0x4c6230): no draw has its case and it comes out with the previous text's colors.
 inline constexpr std::int32_t GuildNoticeMessage = 6;
 
-// 0x77d9868: 120 renglones de 0x118 bytes, con el nombre en +0 (11 bytes), el texto en +0xb (0x101), el tipo en
-// +0x10c y el ancho que escribe el dibujo en +0x114.
+// 0x77d9868: 120 rows of 0x118 bytes, with the name at +0 (11 bytes), the text at +0xb (0x101), the type at +0x10c and
+// the width the draw writes at +0x114.
 inline constexpr std::size_t MessageAreaRows = 120;
-// Lo que entra sin pisar el campo que sigue, sin el '\0'. El original copia con strcpy, sin tope: un nombre de más
-// de 10 bytes sigue en el texto y uno de más de 0x100 en el tipo, que se escriben después. MuRet corta (Q-C462).
+// What fits without overwriting the next field, without the '\0'. The original copies with strcpy, unbounded: a name
+// over 10 bytes runs into the text and a text over 0x100 into the type, which are written after. MuRet cuts (Q-C462).
 inline constexpr std::size_t MessageNameBytes = 10;
 inline constexpr std::size_t MessageAreaTextBytes = 0x100;
-// 0x77985c0: 6 avisos de 0x108 bytes, el texto en +0 (0x104) y el color en el byte +0x104.
+// 0x77985c0: 6 notices of 0x108 bytes, the text at +0 (0x104) and the color in byte +0x104.
 inline constexpr std::size_t NoticeRows = 6;
 inline constexpr std::size_t NoticeTextBytes = 0x103;
-// 0x4b8841 (después de mandar) es el único que lo escribe, con el mismo 0x72 de la .data.
+// 0x4b8841 (after sending) is the only one that writes it, with the same 0x72 as the .data.
 inline constexpr std::int32_t FirstShownRow = 0x72;
-// Los relojes: 0x555190 deja 150 en 0x6c8eb8 y 0x554610 deja 300 en 0x6c8eb0; las .data traen 200 y 300.
+// 0x555190 leaves 150 in 0x6c8eb8 and 0x554610 leaves 300 in 0x6c8eb0; the .data holds 200 and 300.
 inline constexpr std::int32_t MessageClockSteps = 150;
 inline constexpr std::int32_t NoticeClockSteps = 300;
 
@@ -65,7 +64,7 @@ struct MessageAreaRow
 struct NoticeRow
 {
     std::string text;
-    // +0x104: distinto de 0, el aviso sale fijo en 0xffc8ff64; en 0, parpadea.
+    // +0x104: other than 0, the notice shows steady in 0xffc8ff64; at 0, it blinks.
     std::uint8_t highlighted = 0;
 
     friend bool operator==(const NoticeRow&, const NoticeRow&) = default;
@@ -74,66 +73,66 @@ struct NoticeRow
 struct MessageAreaState
 {
     std::array<MessageAreaRow, MessageAreaRows> rows{};
-    // 0x77f3b90: cuántos renglones hay; llega a 120 y después corre todo uno.
+    // 0x77f3b90: reaches 120 and then everything shifts by one.
     std::int32_t count = 0;
-    // 0x6c8eb4 (.data 0x72): el primero de los 6 que dibuja 0x5554e0. Siempre 0x72: los renglones nuevos no se ven
-    // hasta que la cuenta llega a 0x73.
+    // 0x6c8eb4 (.data 0x72): the first of the 6 that 0x5554e0 draws. Always 0x72: new rows do not show until the count
+    // reaches 0x73.
     std::int32_t firstShown = FirstShownRow;
-    // 0x6c8eb8 (.data 200): el reloj de 0x5554b0.
+    // 0x6c8eb8 (.data 200): 0x5554b0's clock.
     std::int32_t clock = 200;
     std::array<NoticeRow, NoticeRows> notices{};
     // 0x77f3b88.
     std::int32_t noticeCount = 0;
-    // 0x6c8eb0 (.data 300): el reloj de 0x5547e0.
+    // 0x6c8eb0 (.data 300): 0x5547e0's clock.
     std::int32_t noticeClock = NoticeClockSteps;
 };
 
-// Lo que escriben los dibujos y dura hasta el próximo frame (y el paso lo lee).
+// What the draws write and lasts until the next frame (and the step reads).
 struct MessageFrameState
 {
-    // +0x114 de cada renglón: el ancho en píxeles del texto que dibujó 0x5554e0. Lo lee el clic derecho del paso
-    // (0x59ff98). El corrimiento de 0x555190 no lo mueve: queda el del renglón que estaba.
+    // +0x114 of each row: the pixel width of the text 0x5554e0 drew. The step's right click reads it (0x59ff98).
+    // 0x555190's shift does not move it: the one of the row that was there stays.
     std::array<std::int32_t, MessageAreaRows> widths{};
-    // 0x77f3b94 y 0x77f3b8c: suben de a uno por dibujo del área y de los avisos.
+    // 0x77f3b94 and 0x77f3b8c: up by one per draw of the area and of the notices.
     std::int32_t areaBlink = 0;
     std::int32_t noticeBlink = 0;
 };
 
-// Lo que el dibujo del área lee del juego.
+// What the area's draw reads from the game.
 struct MessageAreaView
 {
-    // 0x7d3682c y 0x7d36828: el mouse en 640 × 480.
+    // 0x7d3682c and 0x7d36828, in 640 × 480.
     std::int32_t mouseX = 0;
     std::int32_t mouseY = 0;
-    // 0x6c8e68: el campo del chat abierto.
+    // 0x6c8e68
     bool chatOpen = false;
-    // +0x3e2 del héroe (0x743a170).
+    // The hero's +0x3e2 (0x743a170).
     bool heroSafeZone = false;
-    // +0x1d9 del héroe, hasta su '\0'.
+    // The hero's +0x1d9, up to its '\0'.
     std::string_view heroName;
-    // 0x6c8dd1 (.data 1): F2, el chat normal (el tipo 3) también en las áreas.
+    // 0x6c8dd1 (.data 1): F2, the normal chat (type 3) in the areas too.
     bool showChat = true;
-    // 0x723c05: con 3 o 4, los renglones bajan 0x89.
+    // 0x723c05: with 3 or 4, the rows go down 0x89.
     std::uint8_t crywolfStage = 0;
 };
 
-// El texto y la fuente que deja cada dibujo. `dcFont` es la del DC de los textos (0x57634f4): la eligen los
-// SelectObject y la usan los GetTextExtentPointA que no eligen otra, como 0x555190.
+// The text and the font each draw leaves. `dcFont` is the text DC's (0x57634f4): the SelectObject calls choose it and
+// the GetTextExtentPointA calls that choose no other use it, like 0x555190.
 struct MessageDrawContext
 {
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
     Render::Text::FontKind& dcFont;
-    // 0x6c8e5c y 0x6c8e64.
+    // 0x6c8e5c and 0x6c8e64.
     Render::Text::TextColors& textColors;
-    // 0x77f31b8 y 0x77f31bc: el tamaño del último texto, en 640 × 480.
+    // 0x77f31b8 and 0x77f31bc: the last text's size, in 640 × 480.
     std::int32_t& textWidth;
     std::int32_t& textHeight;
 };
 
-// 0x5549a0(texto, cola, cabeza, largo): corta `text` en el primer espacio desde la mitad menos 2 o en la mitad
-// más 2, lo primero que llegue; si el texto se acaba antes, todo va a la cola. La cola empieza con el espacio. Avanza
-// de a un byte (el _mbclen del original en una página de códigos de un byte).
+// 0x5549a0(text, tail, head, length): cuts `text` at the first space from half minus 2 or at half plus 2, whichever
+// comes first; if the text ends before, everything goes to the tail. The tail starts with the space. Advances one
+// byte at a time (the original's _mbclen on a single-byte code page).
 struct HalvedText
 {
     std::string head;
@@ -141,28 +140,29 @@ struct HalvedText
 };
 [[nodiscard]] HalvedText SplitInHalf(std::string_view text);
 
-// 0x555190 después de la lista nueva: con el nombre vacío o un tipo que no es 0, 3, 4, 5 ni 6, el renglón entra en la
-// tabla vieja. Mide "%s: %s" con la fuente del DC; desde 256 píxeles lo corta en dos (SplitInHalf): el nombre con la
-// cabeza y 10 espacios con la cola. Con la tabla llena corre todo un renglón antes de cada uno. Deja el reloj en 150.
+// 0x555190 after the new list: with the name empty or a type other than 0, 3, 4, 5 and 6, the row goes into the old
+// table. Measures "%s: %s" with the DC's font; from 256 pixels it cuts it in two (SplitInHalf): the name with the head
+// and 10 spaces with the tail. With the table full it shifts everything one row before each. Leaves the clock at 150.
 void AddToTheMessageArea(MessageAreaState& area, const Render::Text::ITextMeasure& measure,
                          Render::Text::FontKind dcFont, std::string_view name, std::string_view text,
                          std::int32_t type);
 
-// 0x554610(texto, color): elige la negrita en el DC, mide el texto y, desde 256 píxeles, lo corta en dos avisos.
-// Con 6 avisos corre uno antes de cada uno. Deja el reloj en 300.
+// 0x554610(text, color): selects the bold font in the DC, measures the text and, from 256 pixels, cuts it into two
+// notices. With 6 notices it shifts one before each. Leaves the clock at 300.
 void AddNotice(MessageAreaState& area, const Render::Text::ITextMeasure& measure, Render::Text::FontKind& dcFont,
                std::string_view text, std::uint8_t highlighted);
 
-// 0x5547e0, por paso: con el reloj en 0 o menos antes de bajarlo, un aviso vacío (que sube los demás) y 300.
+// 0x5547e0, per step: with the clock at 0 or less before lowering it, an empty notice (which raises the others) and
+// 300.
 void StepTheNoticeClock(MessageAreaState& area, const Render::Text::ITextMeasure& measure,
                         Render::Text::FontKind& dcFont);
 
-// 0x5554e0: el área vieja, 6 renglones desde firstShown en y = 0, 13, ..., 65 (x = 0), con la fuente normal.
+// 0x5554e0: 6 rows from firstShown at y = 0, 13, ..., 65 (x = 0), with the normal font.
 void DrawTheMessageArea(const MessageAreaState& area, MessageFrameState& frame, const MessageDrawContext& context,
                         const MessageAreaView& view);
 
-// 0x554810: los 6 avisos, centrados en 320, desde y = 300 (o 20 con el registro del chat en su ventana, 0x6c7a88
-// en 1), con la negrita y la mezcla normal.
+// 0x554810: the 6 notices, centered on 320, from y = 300 (or 20 with the chat log in its window, 0x6c7a88 at 1), with
+// the bold font and the normal blend.
 void DrawTheNotices(const MessageAreaState& area, MessageFrameState& frame, const MessageDrawContext& context,
                     std::int32_t chatPlacement);
 } // namespace Client::Ui

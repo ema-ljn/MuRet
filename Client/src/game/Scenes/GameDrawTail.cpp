@@ -210,7 +210,7 @@ void DamageGlyph(Render::ModelBatch& batch, const Math::OriginalMatrix& view, co
                  float height, const glm::vec3& light, float alpha, glm::vec2 uv, glm::vec2 extent)
 {
     auto state = batch.State();
-    state.texture = Render::TextureSlot{1}; // 0x621710: el atlas común de cifras/miss.
+    state.texture = Render::TextureSlot{1}; // 0x621710: the common digits/miss atlas.
     state.rawTextureName.reset();
     state.space = Render::ModelCoordinateSpace::Eye;
     batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
@@ -281,8 +281,8 @@ Core::Expected<void, std::string> DrawGameLeaves(Render::ModelBatch& batch, cons
         auto state = batch.State();
         state.texture = Render::TextureSlot{static_cast<std::uint16_t>(leaf.type)};
         state.rawTextureName.reset();
-        // 5306a0 llama621400 sin identidad propia. En el primer pase2 queda la vista activa y
-        // vuelve a transformar las coordenadas ya calculadas; el segundo pase llega bajo identidad.
+        // 0x5306a0 calls 0x621400 without its own identity. In the first pass, map 2 keeps the active view and
+        // transforms the already computed coordinates again; the second pass arrives under identity.
         state.space = Render::ModelCoordinateSpace::World;
         batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
         if (map == 2)
@@ -346,11 +346,11 @@ Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, cons
     if (auto drawn = Terrain::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
         return drawn;
     if (!rotating)
-        Opaque(batch); // 52d915 llama620980 sólo después del calco completo.
+        Opaque(batch); // 0x52d915 calls 0x620980 only after the whole decal.
     return {};
 }
 
-// 52d941: el guard de asedio devuelve toda la pasada, después del sprite y antes de sumar luz.
+// 0x52d941: the siege guard returns the whole pass, after the sprite and before adding light.
 Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect,
                                                         const ModelEffectDrawResources* resources)
 {
@@ -409,13 +409,13 @@ Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batc
     return false;
 }
 
-// 0x52d35b, 0x52d52b y 0x52d7f8: 0x4eb860 en el buffer global (0x68b181c) con Translate y padre en 0 (Q-C411):
-// la raíz gira con los ángulos del efecto, sin su escala ni su origen. Después, 0x60cf70 pasa la escala (+0xc) y
-// la posición (+0x10) al modelo (+0x68 y +0x6c) y llama a 0x4ebc80 con Translate en 1 (el undécimo argumento,
-// `push 1` en 0x52d3a1, 0x52d53a y 0x52d82f): cada vértice por el hueso, guardado en float, por la escala, en
-// float, y más el origen, en float (0x4ebdf8..0x4ebf02), como SkinMesh. Los sprites de 0x60b3d0 leen esos huesos
-// con 0x4ec110: con Translate en 0, más la posición del objeto (0x60be6e, 0x60c0e9); con 1, por la escala y más
-// el origen (0x60c44b).
+// 0x52d35b, 0x52d52b and 0x52d7f8: 0x4eb860 on the global buffer (0x68b181c) with Translate and parent at 0 (Q-C411):
+// the root turns with the effect's angles, without its scale or its origin. Then 0x60cf70 passes the scale (+0xc) and
+// the position (+0x10) to the model (+0x68 and +0x6c) and calls 0x4ebc80 with Translate at 1 (the eleventh argument,
+// `push 1` at 0x52d3a1, 0x52d53a and 0x52d82f): each vertex by the bone, stored in float, times the scale, in float,
+// and plus the origin, in float (0x4ebdf8..0x4ebf02), like SkinMesh. 0x60b3d0's sprites read those bones with
+// 0x4ec110: with Translate at 0, plus the object's position (0x60be6e, 0x60c0e9); with 1, times the scale and plus
+// the origin (0x60c44b).
 Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary& models,
                                                     const Actors::Drawing::DrawnObject& object,
                                                     const ModelEffectDrawResources* resources)
@@ -426,7 +426,7 @@ Core::Expected<void, std::string> PublishEffectItem(const Models::IModelLibrary&
     if (resources == nullptr || !resources->onUntranslatedPose)
         return Core::Unexpected(std::string("0x4eb860: falta la pose compartida sin trasladar del efecto con ítem"));
     auto posed = object;
-    posed.alpha = 1; // 52d35b/52d52b/52d7f8 posan antes de cualquier guarda de alpha.
+    posed.alpha = 1; // 0x52d35b/0x52d52b/0x52d7f8 pose before any alpha guard.
     return resources->onUntranslatedPose(posed);
 }
 Core::Expected<std::span<const Models::SkinnedMesh>, std::string>
@@ -465,7 +465,7 @@ Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch&
 }
 float EffectItemScale(std::int16_t type)
 {
-    // 607beb..607bfd y las excepciones de607f14..607f52.
+    // 0x607beb..0x607bfd and the exceptions of 0x607f14..0x607f52.
     if (type == 0x1a15 || type == 0x1e27)
         return 0.5f;
     if (type == 0x1e13)
@@ -476,7 +476,7 @@ float EffectItemScale(std::int16_t type)
 }
 void InitializeEffectItemPrefix(Effects::ModelEffect& effect)
 {
-    // 607b74..607bfd: stores durables anteriores a cualquier CRT específico del tipo.
+    // 0x607b74..0x607bfd: durable stores before any type-specific CRT.
     effect.light = glm::vec3(0.3f);
     effect.objectState.blendMesh = Models::NoBlendMesh;
     effect.objectState.hiddenMesh = Models::NoHiddenMesh;
@@ -536,7 +536,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
     if (auto initialized = InitializeEffectItem(effect, clock, resources); !initialized.HasValue())
         return initialized;
     if (!spinning)
-        effect.turnDirection = originalTurnDirection; // 52d4b9 después de volver de607b60.
+        effect.turnDirection = originalTurnDirection; // 0x52d4b9 after returning from 0x607b60.
     Actors::Drawing::DrawnObject object;
     object.model = model;
     object.animation = effect.animation;
@@ -552,11 +552,11 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
             object.color[axis] = F32(static_cast<double>(terrain[axis]) + effect.light[axis]);
     };
     if (!spinning)
-        setColor(); // fa:52d4c5 precede a la pose52d52b.
+        setColor(); // 0xfa: 0x52d4c5 comes before the 0x52d52b pose.
     if (auto posed = PublishEffectItem(models, object, resources); !posed.HasValue())
         return posed;
     if (spinning)
-        setColor(); // f4:52d36c sigue a la pose52d35b.
+        setColor(); // 0xf4: 0x52d36c follows the 0x52d35b pose.
     if (effect.itemLevel == nullptr)
         return Core::Unexpected(std::string(spinning ? "0x52d3a6: falta el nivel del ítem del dueño de f4"
                                                      : "0x52d549: falta el nivel del ítem del dueño de fa"));
@@ -572,7 +572,7 @@ Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch,
         special.objectLight = &effect.light;
         special.publishedObject = &object;
         itemContext.special = &special;
-        itemContext.ownerContext = &effect; // Dueño opaco real; no reinterpretar como FaunaObject.
+        itemContext.ownerContext = &effect; // The real opaque owner; not to be reinterpreted as FaunaObject.
         itemContext.storedAlpha = &effect.alpha;
         const auto drawn = Actors::Drawing::DrawItemFromMeshes(batch, models, object, clock, meshes.Value(),
                                                                *effect.itemLevel, 0, 0, itemContext);
@@ -594,11 +594,11 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
                      const Terrain::TerrainLighting* lighting, Core::Duration frameClock, float alpha,
                      const ModelEffectDrawResources* resources, std::uint64_t physicalSlot)
 {
-    // 0x602e90 llama primero a 0x5ffdf0 (0x602ea6). 0x5ffdff..0x5ffe24: en los mapas 18 a 23, con +0x1a1 del héroe, el
-    // alpha del efecto (+0x174) baja 0,15f y queda guardado, una vez por llamada en un frame del original (como los
-    // objetos en WorldObjectsDrawing). 0x5ffe2a..0x5ffe3d: por debajo de 0,01f (0x6b88d4; fcomp y test ah,1, también
-    // sin orden, con NaN) devuelve al = 0 sin posar, y 0x602eb0 salta 0x6002e0: ni la pose, ni el cuerpo, ni el caso
-    // propio (0x438fe0 del 0x125, sus sprites, ni los rand() del 0x11b).
+    // 0x602e90 calls 0x5ffdf0 first (0x602ea6). 0x5ffdff..0x5ffe24: on maps 18 to 23, with the hero's +0x1a1, the
+    // effect's alpha (+0x174) drops 0.15f and stays stored, once per call on an original frame (like the objects in
+    // WorldObjectsDrawing). 0x5ffe2a..0x5ffe3d: below 0.01f (0x6b88d4; fcomp and test ah,1, also unordered, with NaN)
+    // it returns al = 0 without posing, and 0x602eb0 skips 0x6002e0: neither the pose, nor the body, nor the own case
+    // (0x438fe0 of 0x125, its sprites, nor 0x11b's rand() calls).
     if (resources != nullptr && resources->originalFrame && resources->kalimaPass != nullptr)
         effect.alpha =
             Events::ChaosCastle::ChaosCastlePoseAlpha(resources->kalimaPass->map, resources->heroByte1a1, effect.alpha);
@@ -685,10 +685,10 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
             return Core::Unexpected(drawn.Error());
         return {};
     }
-    // 0x6004aa (+0x74 en 0x80) y los colores del 0xcc/3, /4 y el 0xcb/2, /3 (Scenes/WizardEffectDrawing, CL11); el
-    // 0x137 (Scenes/SkinShells, 0x600557); el 0x13d y el 0x13e por 0x442e10 (Scenes/MeteorEffects); el 0x11b, el
-    // 0x114/3..5, el 0x140 y, por 0x438fe0, el 0x125 (Scenes/HighEffectDrawing), después del +0x74 en 0x80, que
-    // 0x6002e0 mira antes que el tipo.
+    // 0x6004aa (+0x74 at 0x80) and the colors of 0xcc/3, /4 and 0xcb/2, /3 (Effects/WizardEffectDrawing, CL11); 0x137
+    // (Effects/SkinShells, 0x600557); 0x13d and 0x13e through 0x442e10 (Effects/MeteorEffects); 0x11b, 0x114/3..5,
+    // 0x140 and, through 0x438fe0, 0x125 (Effects/HighEffectDrawing), after the +0x74 at 0x80, which 0x6002e0 looks at
+    // before the type.
     const auto drawTheSpecialBody = [&]() -> Core::Expected<bool, std::string>
     {
         if (effect.type == Effects::SkinShellEffect && effect.renderFlags != Effects::CrackRenderFlags)
@@ -714,7 +714,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
     {
         if (auto published = resources->onPose(object); !published.HasValue())
             return published;
-        // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección), 0x6002e0 sale después de posar.
+        // 0x600328: with +0x58 at −2 (the selection's butterfly 0xae), 0x6002e0 leaves after posing.
         if (effect.objectState.hiddenMesh != Kernel::HiddenObject)
         {
             if (resources->posedMeshes)
@@ -765,9 +765,9 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
         effect.seen = Terrain::SphereVisible(frustum, effect.transform.position, 400);
         if (!effect.seen)
             continue;
-        // 0x103 (flashing.bmd) y 0x105/0 (Piercing.bmd) no tienen caso propio: 0x52d6c3 y 0x52d78f los mandan a
-        // 0x52da92 → 0x602e90 con su malla, como el resto de 0xbe..0x150 (GenericEffect, más abajo). Los tipos altos de
-        // la CL11 (0x134, 0x13b, 0x141 y 0xc1a) también; el 0x19f y el 0x61c no tienen caso y no se dibujan.
+        // 0x103 (flashing.bmd) and 0x105/0 (Piercing.bmd) have no own case: 0x52d6c3 and 0x52d78f send them to 0x52da92
+        // → 0x602e90 with their mesh, like the rest of 0xbe..0x150 (GenericEffect, below). The high CL11 types (0x134,
+        // 0x13b, 0x141 and 0xc1a) too; 0x19f and 0x61c have no case and are not drawn.
         if (mode != 0)
         {
             const auto blendMesh = effect.objectState.blendMesh;
@@ -777,7 +777,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
             if (modelId >= Tables::ModelTableSize)
                 return Core::Unexpected(std::format("0x52d68c: modelo {:#x} fuera de la tabla", modelId));
             const auto* model = models.Find(Models::ModelId{modelId});
-            // 0x60dbe0 inicializa la tabla a cero. Un BMD ausente deja en cero su cuenta de mallas.
+            // 0x60dbe0 initializes the table to zero. A missing BMD leaves its mesh count at zero.
             const auto meshCount = model != nullptr ? static_cast<std::int64_t>(model->meshes.size()) : 0;
             if (meshCount < blendMesh)
                 continue;
@@ -792,7 +792,7 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const Models::IModelLibra
         }
         if (effect.type == 0x135)
         {
-            // 52d86a..52d89f: dos cuerpos; el reflejo en +184+200 queda escrito, sin restauración.
+            // 0x52d86a..0x52d89f: two bodies; the reflection at +184+200 stays written, without being restored.
             if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources, i);
                 !drawn.HasValue())
                 return drawn;

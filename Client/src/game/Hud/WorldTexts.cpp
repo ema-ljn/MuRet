@@ -20,13 +20,13 @@ namespace Client::Hud
 {
 namespace
 {
-// 0x438434: la z de la entrada más 370 (0x6b8b88).
+// 0x438434: the entry's z plus 370 (0x6b8b88).
 constexpr double AboveThePosition = 370.0;
-// 0x4384a3..0x4384b0: el fondo y el texto.
+// 0x4384a3..0x4384b0: the background and the text.
 constexpr Render::Text::TextColors WorldTextColors{.text = 0xffc8e6ffu, .background = 0xff000064u};
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 
-// strlen sobre los 64 bytes de la entrada: 0x4381f0 copia los 64 que le pasan, con su '\0' adentro.
+// strlen over the entry's 64 bytes: 0x4381f0 copies the 64 it is passed, with its '\0' inside.
 std::string_view TextOf(const Kernel::WorldText& entry)
 {
     const void* end = std::memchr(entry.text.data(), 0, entry.text.size());
@@ -40,16 +40,16 @@ Core::Expected<void, std::string> DrawOne(WorldTextDrawContext& context, const K
 {
     if (context.projection == nullptr)
         return Core::Unexpected(std::string("0x438455: un texto 3D sin la proyección del pase del mundo (0x6203c0)"));
-    // 0x438434..0x43843d: fld de la z, fadd del float y fstp a float.
+    // 0x438434..0x43843d: fld of the z, fadd of the float and fstp to float.
     const glm::vec3 point{entry.position.x, entry.position.y,
                           static_cast<float>(static_cast<double>(entry.position.z) + AboveThePosition)};
     const auto projected = Scenes::ProjectGamePoint(*context.projection, point);
     if (!projected.HasValue())
         return Core::Unexpected(projected.Error());
-    // 0x438460..0x438469: con signo, las dos.
+    // 0x438460..0x438469: both signed.
     if (projected.Value().x < 0 || projected.Value().y < 0)
         return {};
-    // 0x43846b..0x438494: SelectObject con la negrita; el GetTextExtentPointA de acá no se usa.
+    // 0x43846b..0x438494: SelectObject with the bold font; the GetTextExtentPointA here is not used.
     context.hud.dcFont = Render::Text::FontKind::Bold;
     context.hud.textColors = WorldTextColors;
     DrawHudCentered(context.text, context.sprites.Screen(), context.hud, projected.Value().x, projected.Value().y,
@@ -71,7 +71,7 @@ Core::Expected<void, std::string> DrawTheWorldTexts(WorldTextDrawContext& contex
         }
         return {};
     }
-    // 0x43840b..0x438584: la de adelante y pop_front, hasta vaciarla (0x69eff0 suelta cada bloque al pasarlo).
+    // 0x43840b..0x438584: the front one and pop_front, until it is empty (0x69eff0 frees each block on passing it).
     while (!context.queue.empty())
     {
         const Kernel::WorldText entry = context.queue.front();

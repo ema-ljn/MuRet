@@ -8,7 +8,7 @@
 #include <bit>
 #include <cstdint>
 
-// 42c967..42c996: oculta antes de mirar el asedio, distingue la máscara entera y siempre correV durante guerra.
+// 0x42c967..0x42c996: hides before checking the siege, tells the whole mask apart and always scrolls V during war.
 TEST(CastleSiegeMarkerTest, WarUsesTheWholeCrownFlagsAndScrollsTheMarkerWithoutRandom)
 {
     bool war = true;

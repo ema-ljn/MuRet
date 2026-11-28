@@ -16,7 +16,7 @@ struct ActorState;
 namespace Client::CastleSiege
 {
 using CastleAttackEmitter = std::function<Core::Expected<void, std::string>(const Kernel::ModelEffectArguments&)>;
-// 42ea00: caller sobre el blanco del ataque; el caller exterior sólo lo invoca enmapa30.
+// 0x42ea00: caller on the attack target; the outer caller only invokes it in map 30.
 [[nodiscard]] Core::Expected<void, std::string> EmitTheCastleAttackHit(const Kernel::ActorState& target,
                                                                        std::uint32_t heroFlags, Crt::CrtRandom& random,
                                                                        const CastleAttackEmitter& emit);

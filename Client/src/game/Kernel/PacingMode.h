@@ -2,17 +2,17 @@
 
 #include <cstdint>
 
-// El ritmo del bucle (CL3.2). Está en su propio header porque lo leen el bucle, la línea de
-// comandos y la config (CL3.4), y ninguno de ellos necesita el resto del bucle.
+// Its own header because the loop, the command line and the config (CL3.4) read it, and none of them needs the rest
+// of the loop.
 namespace Client::Kernel
 {
 enum class PacingMode : std::uint8_t
 {
-    // El de MuRet: el frame entero va al acumulador, con MaxFrameTime de tope, y el dibujo se
-    // interpola entre pasos (D-C4).
+    // MuRet's: the whole frame goes to the accumulator, capped at MaxFrameTime, and the drawing is interpolated between
+    // steps (D-C4).
     Decoupled,
-    // El del original (0x637700): solo el dibujo, el swap y la espera de 40 ms de GetTickCount van
-    // al acumulador, sin tope y sin interpolar.
+    // The original's (0x637700): only the drawing, the swap and the 40 ms GetTickCount wait go to the accumulator, with
+    // no cap and no interpolation.
     Faithful,
 };
 } // namespace Client::Kernel

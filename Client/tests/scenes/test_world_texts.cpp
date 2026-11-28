@@ -17,10 +17,10 @@
 #include <string>
 #include <string_view>
 
-// Los textos 3D del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x4383f0. La proyección de los
-// tests deja la x de la pantalla en el centro menos la x y la y en el centro más la z menos 300, con el ojo siempre
-// a 1: con los 370 de arriba, en 240 + z + 70. El texto mide como el rasterizador falso: 6 columnas por letra y 13
-// filas. Los textos son inventados.
+// The game's 3D texts (CL8 milestone 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x4383f0. The tests'
+// projection leaves the screen x at the center minus x and the y at the center plus z minus 300, with the eye always
+// at 1: with the 370 above, at 240 + z + 70. The text measures like the fake rasterizer: 6 columns per letter and 13
+// rows. The texts are made up.
 namespace
 {
 using Client::Core::PixelSize;
@@ -82,8 +82,8 @@ protected:
     HudState m_hud{};
 };
 
-// 0x43840b..0x438584: cada entrada, 370 más arriba, centrada en la x con la negrita, el fondo 0xff000064 y el texto
-// 0xffc8e6ff; la cola queda vacía.
+// 0x43840b..0x438584: each entry, 370 higher, centered on x in bold, with background 0xff000064 and text 0xffc8e6ff;
+// the queue stays empty.
 TEST_F(WorldTextsTest, EachEntryIsDrawnAboveItsPositionAndTheQueueEmpties)
 {
     m_queue.push_back(Entry("Puerta", glm::vec3(100.0f, 0.0f, -100.0f)));
@@ -101,14 +101,14 @@ TEST_F(WorldTextsTest, EachEntryIsDrawnAboveItsPositionAndTheQueueEmpties)
     EXPECT_EQ(m_text.texts[1].text, "Paso");
     EXPECT_EQ(m_text.texts[1].x, 340 - 12);
     EXPECT_EQ(m_text.texts[1].y, 110);
-    // 0x554180 guarda el tamaño del último; la fuente y los colores quedan.
+    // 0x554180 keeps the last one's size; the font and the colors stay.
     EXPECT_EQ(m_hud.arrowsTextWidth, 24);
     EXPECT_EQ(m_hud.arrowsTextHeight, 13);
     EXPECT_EQ(m_hud.dcFont, FontKind::Bold);
     EXPECT_EQ(m_hud.textColors.text, 0xffc8e6ffu);
 }
 
-// 0x438460..0x438469: con la x o la y de la pantalla negativas no se dibuja, pero sale de la cola.
+// 0x438460..0x438469: with the screen x or y negative it is not drawn, but it leaves the queue.
 TEST_F(WorldTextsTest, AnEntryOffTheScreenIsDroppedWithoutDrawing)
 {
     m_queue.push_back(Entry("Lejos", glm::vec3(400.0f, 0.0f, 0.0f)));
@@ -119,7 +119,7 @@ TEST_F(WorldTextsTest, AnEntryOffTheScreenIsDroppedWithoutDrawing)
     EXPECT_EQ(m_hud.dcFont, FontKind::Normal);
 }
 
-// strlen sobre los 64 bytes: sin 0, los 64.
+// strlen over the 64 bytes: without a 0, the 64.
 TEST_F(WorldTextsTest, AFullEntryReadsItsSixtyFourBytes)
 {
     const std::string full(Client::Kernel::WorldTextSize, 'a');
@@ -129,7 +129,6 @@ TEST_F(WorldTextsTest, AFullEntryReadsItsSixtyFourBytes)
     EXPECT_EQ(m_text.texts[0].text, full);
 }
 
-// Un dibujo intermedio de MuRet lee la cola sin vaciarla.
 TEST_F(WorldTextsTest, AProjectedDrawKeepsTheQueue)
 {
     m_queue.push_back(Entry("Puerta", glm::vec3(100.0f, 0.0f, -100.0f)));
@@ -138,7 +137,7 @@ TEST_F(WorldTextsTest, AProjectedDrawKeepsTheQueue)
     EXPECT_EQ(m_text.texts.size(), 1U);
 }
 
-// Sin la proyección del pase del mundo, la cola vacía no corta y una entrada sí (0x438455).
+// Without the world pass's projection, the empty queue does not stop and an entry does (0x438455).
 TEST_F(WorldTextsTest, AnEntryWithoutTheProjectionCuts)
 {
     ASSERT_TRUE(Draw(false, false).HasValue());

@@ -28,8 +28,8 @@
 #include <string>
 #include <vector>
 
-// Client::Scenes::WorldLoadingScene: la escena 3 (0x6356f0), el contador de la espera, la bandera, el
-// mosaico de LSBg01 a 04 y el juego después de un frame (06 § La carga del mundo).
+// Client::Scenes::WorldLoadingScene: scene 3 (0x6356f0), the wait counter, the flag, the LSBg01 to 04 mosaic and the
+// game after one frame (06 § La carga del mundo).
 namespace
 {
 using Client::Assets::WorldLoadingTextureSet;
@@ -49,7 +49,6 @@ using Client::Tests::TemporaryFolder;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 
-// El estado del rand() de la CRT sembrado con Seed después de `draws` llamadas.
 std::uint32_t StateAfter(int draws)
 {
     CrtRandom random(Seed);
@@ -86,7 +85,6 @@ struct Harness
     const Client::Input::InputState input;
 };
 
-// Un frame con las cuatro en su lugar del mosaico de 800 × 600, y el juego en el paso que sigue.
 TEST(WorldLoadingSceneTest, DrawsTheFourTilesAndGoesToTheGame)
 {
     Harness tested;
@@ -105,7 +103,7 @@ TEST(WorldLoadingSceneTest, DrawsTheFourTilesAndGoesToTheGame)
     {
         EXPECT_EQ(events[k].texture, std::optional<TextureSlot>{TextureSlot{static_cast<std::uint16_t>(0x71e + k)}});
     }
-    // LSBg04, abajo a la derecha: de (400, 512) a (800, 600), con la y para arriba.
+    // LSBg04, bottom right: from (400, 512) to (800, 600), with y going up.
     EXPECT_FLOAT_EQ(events[3].vertices[0].x, 400.0f);
     EXPECT_FLOAT_EQ(events[3].vertices[0].y, 88.0f);
     EXPECT_EQ(tested.scene.Next(), SceneId::Game);
@@ -121,8 +119,8 @@ TEST(WorldLoadingSceneTest, ReleasesItsFourImages)
     EXPECT_EQ(tested.store.released, (std::vector<std::uint16_t>{0x71e, 0x71f, 0x720, 0x721}));
 }
 
-// 0x6356f0 con la bandera en 0: abre el contador, escribe 9.999.999 (0x6357eb) y lo cierra (0x412890),
-// que gasta 4 rand() solo si lo deja sin accesos; después sube la bandera (0x635980) y las texturas.
+// 0x6356f0 with the flag at 0: opens the counter, writes 9999999 (0x6357eb) and closes it (0x412890), which spends 4
+// rand() only if it leaves it with no accesses; then it raises the flag (0x635980) and uploads the textures.
 TEST(WorldLoadingSceneTest, TheFirstLoadArmsTheCounterAndTheFlag)
 {
     struct Case
@@ -147,9 +145,9 @@ TEST(WorldLoadingSceneTest, TheFirstLoadArmsTheCounterAndTheFlag)
     }
 }
 
-// 0x63571d: con la bandera ya en 1 el original saltea el contador, la bandera y las texturas y dibuja
-// con el objeto del mosaico nulo. La selección la baja siempre antes de la escena 3 y nadie más la
-// sube, así que no se llega: MuRet lo dice con el error y no toca nada.
+// 0x63571d: with the flag already at 1 the original skips the counter, the flag and the textures and draws with the
+// mosaic object null. The selection always lowers it before scene 3 and nobody else raises it, so it is never
+// reached: MuRet says so with the error and touches nothing.
 TEST(WorldLoadingSceneTest, ARaisedFlagKeepsTheCounter)
 {
     Harness tested;
@@ -167,8 +165,8 @@ TEST(WorldLoadingSceneTest, ARaisedFlagKeepsTheCounter)
     EXPECT_EQ(tested.store.loadCalls, 0);
 }
 
-// La espera vive en el WorldState y su cierre gasta el rand() de la tela: sin alguno de los dos, la
-// escena no entra en vez de saltear el contador.
+// The wait lives in the WorldState and its close spends the cloth's rand(): without either, the scene does not enter
+// instead of skipping the counter.
 TEST(WorldLoadingSceneTest, DoesNotEnterWithoutTheWorldOrTheRandom)
 {
     Harness tested;

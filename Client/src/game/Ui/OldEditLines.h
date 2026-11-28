@@ -14,64 +14,64 @@ namespace Client::Render::Text
 class ITextMeasure;
 }
 
-// El EDIT de varios renglones de las ventanas viejas (CL9 hito 10; 06 § HUD y ventanas, "Las cartas y el chat con un
-// amigo"): el cuerpo de la carta que se escribe (+0x958 de 0x497f50) es el único EDIT con +0xc4 en 1. El original le
-// deja a la ventana EDIT de Windows (ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, sin ES_AUTOHSCROLL) los renglones,
-// el corrimiento y el cursor, y los lee con EM_GETLINECOUNT, GetScrollPos y el bitmap que pinta (0x468320); MuRet no
-// tiene esa ventana y los arma acá. Lo que es de Windows es *inferido* y va contra la VM (08, P-C217): el corte de
-// las palabras, el ancho del área del texto (el de la ventana menos los 16 de su barra) y los topes del corrimiento.
+// The old windows' multiline EDIT (CL9 milestone 10; 06 § HUD y ventanas, "Las cartas y el chat con un amigo"): the
+// body of the letter being written (+0x958 of 0x497f50) is the only EDIT with +0xc4 at 1. The original leaves the
+// rows, the scroll and the caret to the Windows EDIT window (ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, without
+// ES_AUTOHSCROLL), and reads them with EM_GETLINECOUNT, GetScrollPos and the bitmap it paints (0x468320); MuRet has no
+// such window and builds them here. What belongs to Windows is *inferred* and to be checked against the VM (08,
+// P-C217): the word wrapping, the text area's width (the window's minus its bar's 16) and the scroll limits.
 namespace Client::Ui
 {
-// La fuente del EDIT: WM_SETFONT con la normal ([0x5763554], 0x49812c).
+// WM_SETFONT with the normal one ([0x5763554], 0x49812c).
 inline constexpr Render::Text::FontKind EditFont = Render::Text::FontKind::Normal;
 
-// El margen que el bitmap del EDIT SBCS observado en XP deja antes del texto. Con +0xc4 en 1, el área donde se cortan
-// los renglones lo pierde a cada lado (*inferido*: el derecho igual al izquierdo, P-C217).
+// The margin the SBCS EDIT's bitmap leaves before the text, observed on XP. With +0xc4 at 1, the area where the rows
+// wrap loses it on each side (*inferred*: the right one equal to the left, P-C217).
 inline constexpr std::int32_t EditTextMargin = 3;
 
-// 0x467fe0 con +0xc4 en 1 (0x4675e0 con 1 antes): +0xd0, ftol(h · ry / cy), con cy el alto de GetTextExtentPointA de
-// "1" (0x6c7af0) en el DC; y el ancho del área del texto: el de la ventana, ftol((w + ftol(−5 · rx)) · rx), menos su
-// barra de Windows.
+// 0x467fe0 with +0xc4 at 1 (0x4675e0 with 1 before): +0xd0, ftol(h · ry / cy), with cy the GetTextExtentPointA height
+// of "1" (0x6c7af0) in the DC; and the text area's width: the window's, ftol((w + ftol(−5 · rx)) · rx), minus its
+// Windows bar.
 void MakeTheEditMultiline(OldEdit& edit, const Render::Text::ITextMeasure& measure, Render::Text::FontKind dcFont,
                           Core::PixelSize screen);
 
-// Los renglones del EDIT: uno solo sin +0xc4; con +0xc4 en 1, cortados en cada "\r\n" y, donde no entran en el ancho
-// del área del texto, en el último espacio que entra (los espacios de más quedan en el renglón) o, sin espacio, en la
-// última letra que entra. Un EDIT vacío o que termina en "\r\n" tiene un renglón vacío al final. Las vistas son del
-// texto del EDIT y valen hasta que cambie.
+// The EDIT's rows: just one without +0xc4; with +0xc4 at 1, cut at each "\r\n" and, where they do not fit in the text
+// area's width, at the last space that fits (extra spaces stay in the row) or, without a space, at the last letter
+// that fits. An empty EDIT or one ending in "\r\n" has an empty row at the end. The views are into the EDIT's text
+// and are valid until it changes.
 [[nodiscard]] std::vector<std::string_view> EditLines(const OldEdit& edit, const Render::Text::ITextMeasure& measure);
 
-// EM_GETLINECOUNT: cuántos renglones tiene.
+// EM_GETLINECOUNT
 [[nodiscard]] std::int32_t EditLineCount(const OldEdit& edit, const Render::Text::ITextMeasure& measure);
 
-// EM_LINESCROLL(0, lines): el primer renglón a la vista corrido, entre 0 y renglones − los que entran.
+// EM_LINESCROLL(0, lines): the first row in view, shifted, between 0 and rows − the ones that fit.
 void ScrollTheEditLines(OldEdit& edit, std::int32_t lineCount, std::int32_t lines);
 
-// EM_SCROLL: SB_LINEUP (0) y SB_LINEDOWN (1) corren uno; SB_PAGEUP (2) y SB_PAGEDOWN (3), los que entran.
+// EM_SCROLL: SB_LINEUP (0) and SB_LINEDOWN (1) scroll one; SB_PAGEUP (2) and SB_PAGEDOWN (3), as many as fit.
 inline constexpr std::int32_t EditLineUp = 0;
 inline constexpr std::int32_t EditLineDown = 1;
 inline constexpr std::int32_t EditPageUp = 2;
 inline constexpr std::int32_t EditPageDown = 3;
 void ScrollTheEdit(OldEdit& edit, std::int32_t lineCount, std::int32_t code);
 
-// El renglón del cursor (TextField::Cursor): el último que empieza en él o antes. Con el cursor en un corte de
-// renglón, el de abajo (*inferido*, P-C217). `lines` son los de EditLines del mismo texto.
+// The caret's row (TextField::Cursor): the last one that starts at it or before. With the caret at a row break, the
+// lower one (*inferred*, P-C217). `lines` are EditLines' for the same text.
 [[nodiscard]] std::int32_t EditCaretLine(const OldEdit& edit, std::span<const std::string_view> lines);
 
-// ES_AUTOVSCROLL: después de un cambio del texto, el renglón del cursor a la vista (sin `caretLine`, el último).
+// ES_AUTOVSCROLL: after a text change, the caret's row in view (without `caretLine`, the last one).
 void FollowTheEditCaret(OldEdit& edit, std::int32_t lineCount, std::int32_t caretLine = -1);
 
-// WM_CHAR con el retroceso o con Enter (0x467b10): +0x80 en 0 (0x467b9d) y, al EDIT de Windows. Enter solo llega con
-// +0xc4 en 1 (0x467c8f), y es un "\r\n" si entra entero. Un carácter es Ui::TypeInTheEdit (UI/OldControls.h). Con
-// +0xc4 en 1, el retroceso borra entero el "\r\n" de antes del cursor y Supr, el de después (*inferido*, P-C217).
+// WM_CHAR with backspace or Enter (0x467b10): +0x80 at 0 (0x467b9d) and, to the Windows EDIT. Enter only arrives with
+// +0xc4 at 1 (0x467c8f), and is a "\r\n" if it fits whole. A character is Ui::TypeInTheEdit (Ui/OldControls.h). With
+// +0xc4 at 1, backspace erases the whole "\r\n" before the caret and Delete the one after (*inferred*, P-C217).
 void BackspaceInTheEdit(OldEdit& edit);
 void DeleteInTheEdit(OldEdit& edit);
 void BreakTheEditLine(OldEdit& edit);
 
-// Las teclas que el EDIT de Windows usa para mover el cursor con +0xc4 en 1 (*inferido*, P-C217): las flechas de los
-// costados saltan el "\r\n" entero; las de arriba y abajo van al renglón de al lado, a la letra más cerca de la misma
-// x; Inicio y Fin, al principio y al final del renglón; RePág y AvPág, tantos renglones como entran, y corren la vista
-// lo mismo. Con Shift, eligen. Después, el renglón del cursor queda a la vista (ES_AUTOVSCROLL).
+// The keys the Windows EDIT uses to move the caret with +0xc4 at 1 (*inferred*, P-C217): the side arrows skip the
+// whole "\r\n"; up and down go to the adjacent row, to the letter closest to the same x; Home and End, to the start
+// and the end of the row; PgUp and PgDn, as many rows as fit, and scroll the view the same. With Shift, they select.
+// Then the caret's row stays in view (ES_AUTOVSCROLL).
 enum class EditCaretKey : std::uint8_t
 {
     Left,
@@ -85,7 +85,7 @@ enum class EditCaretKey : std::uint8_t
 };
 void MoveTheEditCaret(OldEdit& edit, const Render::Text::ITextMeasure& measure, EditCaretKey key, bool shift);
 
-// WM_PASTE en el EDIT de Windows con +0xc4 en 1 (*inferido*, P-C217): el texto del portapapeles en CP1252 hasta el
-// primer NUL, con cada fin de renglón ("\r\n", "\n" o "\r") como "\r\n", hasta el tope.
+// WM_PASTE in the Windows EDIT with +0xc4 at 1 (*inferred*, P-C217): the clipboard text in CP1252 up to the first
+// NUL, with each line end ("\r\n", "\n" or "\r") as "\r\n", up to the limit.
 void PasteInTheEdit(OldEdit& edit, std::string_view utf8);
 } // namespace Client::Ui

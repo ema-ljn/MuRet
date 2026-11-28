@@ -18,13 +18,13 @@ namespace
 {
 namespace Castle = Protocol::CastleSiege;
 
-// El kind del B2 07 que manda cada respuesta.
+// The B2 07 kind each answer sends.
 constexpr std::uint32_t DefenseKind = 1;
 constexpr std::uint32_t RecoveryKind = 2;
 constexpr std::uint32_t LifeKind = 3;
 
-// La elegida (un int de la zona) y su registro: base + elegida · 0x1c, en 32 bits. std::nullopt, con un aviso, si el
-// registro cae fuera de la zona (el original lee los globales de al lado, Q-C1360).
+// The selected one (an int of the zone) and its record: base + selected · 0x1c, in 32 bits. std::nullopt, with a
+// warning, if the record falls outside the zone (the original reads the neighbouring globals, Q-C1360).
 std::optional<std::uint32_t> SelectedRecord(const CastleAnswerContext& context, std::uint32_t selectedAt,
                                             std::uint32_t firstAt, std::string_view what)
 {
@@ -47,7 +47,7 @@ void Send(const CastleAnswerContext& context, Protocol::Outgoing packet)
     }
 }
 
-// 0x6623e0 y 0x664370.
+// 0x6623e0 and 0x664370.
 void BuyOrRepair(std::int32_t answer, const CastleAnswerContext& context, std::uint32_t selectedAt,
                  std::uint32_t firstAt, std::string_view what)
 {
@@ -104,7 +104,7 @@ std::int32_t NextValue(const CastleSiege::CastleData& data, std::uint32_t record
     return 0;
 }
 
-// 0x662d50, 0x663440, 0x664ce0, 0x6653d0 y 0x665ab0: el valor se calcula antes de armar el paquete.
+// 0x662d50, 0x663440, 0x664ce0, 0x6653d0 and 0x665ab0: the value is computed before building the packet.
 void SendTheUpgrade(std::int32_t answer, const CastleAnswerContext& context, std::uint32_t selectedAt,
                     std::uint32_t firstAt, Upgrade upgrade, std::uint32_t kind, std::string_view what)
 {
@@ -128,10 +128,10 @@ bool IsCrtSpace(char c)
     return c == ' ' || (c >= '\t' && c <= '\r');
 }
 
-// 0x667a82 → 0x6a1dd4 → _input(0x6a91fc), formato "%u" en 0x6c7b04. El CRT inicial (mbcurmax=1)
-// usa SPACE={09..0d,20}, DIGIT={30..39} de la tabla apuntada por 0x6e2100. 0x6a990f acepta un signo;
-// 0x6a9aa4/0x6a9aea acumula módulo 2^32 y 0x6a9b1f niega después. Sin dígitos no escribe el destino
-// (0x6a9b2a); no sustituir por strtoul, que puede saturar o tener un unsigned long de 64 bits.
+// 0x667a82 → 0x6a1dd4 → _input(0x6a91fc), format "%u" at 0x6c7b04. The initial CRT (mbcurmax=1)
+// uses SPACE={09..0d,20}, DIGIT={30..39} from the table 0x6e2100 points to. 0x6a990f accepts a sign;
+// 0x6a9aa4/0x6a9aea accumulates modulo 2^32 and 0x6a9b1f negates afterwards. Without digits it does not write the
+// destination (0x6a9b2a); do not replace it with strtoul, which can saturate or have a 64-bit unsigned long.
 std::optional<std::uint32_t> ScanUnsigned(std::string_view text)
 {
     std::size_t at = 0;
@@ -220,7 +220,7 @@ void AnswerTheMoneyDialog(std::int32_t answer, std::string_view field, const Cas
     const auto amount = ScanUnsigned(field);
     if (!amount)
     {
-        // El original manda lo que había en la pila (Q-C1363).
+        // The original sends whatever was on the stack (Q-C1363).
         context.log.Warning("0x667a40 no manda el B2 10: el campo no empieza con un número (Q-C1363)");
         return;
     }

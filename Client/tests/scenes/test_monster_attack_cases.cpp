@@ -56,12 +56,12 @@
 #include <utility>
 #include <vector>
 
-// Client::Monsters::StepTheAttackCases: los casos de los monstruos de 0x4f5b70 (CL9 hito 3, fase 2e-B) sobre monstruos
-// del alta (0x5141e0) con el Data del repo: los ayudantes de Kalima (24 y 36), del asedio (30), del 33 y el 54, del 35
-// y de Crywolf (34), el switch por +0x376 y los dos de la cola (0x11 y 3), con los mismos tipos en Lorencia (0) y
-// Devias (2). Las claves son inventadas; el alta carga los modelos del Data del repo (0x612d90, CL9 hito 2) con una
-// tabla de texturas falsa, y los que no carga toman el esqueleto del 0x20a de la biblioteca del mapa. 06, "Los casos de
-// los monstruos (0x4f5b70)".
+// Client::Monsters::StepTheAttackCases: the monster cases of 0x4f5b70 (CL9 milestone 3, phase 2e-B) on created
+// monsters (0x5141e0) with the repo's Data: the helpers of Kalima (24 and 36), the siege (30), 33 and 54, 35 and
+// Crywolf (34), the switch on +0x376 and the two of the tail (0x11 and 3), with the same types in Lorencia (0) and
+// Devias (2). The keys are made up; the creation loads the models from the repo's Data (0x612d90, CL9 milestone 2)
+// with a fake texture table, and those it does not load take the 0x20a skeleton from the map's library. 06, "Los
+// casos de los monstruos (0x4f5b70)".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -69,23 +69,23 @@ using Client::Kernel::ActorState;
 
 constexpr std::uint32_t Seed = 0x0c19;
 constexpr std::int32_t MonsterKey = 0x0456;
-// Una lectura de +0x38e (0x517630 y sus copias en línea): un rand() al cerrarse en 0.
+// A read of +0x38e (0x517630 and its inline copies): one rand() when it closes at 0.
 constexpr int SkillRead = 1;
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
-// La cola con el blanco en el pool, sin 0x11 ni 3 en +0x38e: las lecturas de 0x4f811b y 0x4f8a2c.
+// The tail with the target in the pool, without 0x11 or 3 in +0x38e: the reads of 0x4f811b and 0x4f8a2c.
 constexpr int Tail = 2 * SkillRead;
-// '2' en +0x38e, la habilidad de los casos.
+// '2' in +0x38e.
 constexpr std::uint8_t CaseSkill = 0x32;
 constexpr std::uint16_t NoTarget = 0xffff;
-// Un lugar del héroe lejos del monstruo del alta (el primero libre del pool).
+// A hero slot far from the created monster (the first free one in the pool).
 constexpr std::size_t HeroAway = 399;
-// El alta del 0xf5 (0x5192ed): la escala, tres rand() del punto y uno de la caída antes del joint 0x618/5, que corta
-// (0x5193d6, lote joints de la CL11).
+// The creation of the 0xf5 (0x5192ed): the scale, three rand() of the point and one of the fall before the joint
+// 0x618/5, which stops (0x5193d6, CL11's joints batch).
 constexpr int BlastDraws = 5;
-// 0x41ed10(0x7a) del hijo 0x105/1 de cada 0x106/1 (0x51a08f).
+// 0x41ed10(0x7a) of the child 0x105/1 of each 0x106/1 (0x51a08f).
 constexpr std::int32_t StabSound = 0x7a;
 
-// El estallido de 0x51fff0 (ocho 0x40) y los cinco 0x106/1 de 0x4f79db, cada uno con el sonido de su hijo.
+// The burst of 0x51fff0 (eight 0x40) and the five 0x106/1 of 0x4f79db, each with its child's sound.
 std::vector<std::int32_t> FiveStabSounds()
 {
     std::vector<std::int32_t> sounds(8, 0x40);
@@ -118,7 +118,7 @@ std::uint32_t SeedForSecondRandomParity(bool odd)
     return Seed;
 }
 
-// El esqueleto del 0x20a para los modelos que el alta no carga (la biblioteca del mapa, detrás de AssetsState::fauna).
+// The 0x20a skeleton for the models the creation does not load (the map's library, behind AssetsState::fauna).
 class AnyModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -139,10 +139,10 @@ public:
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
-// El mundo del juego, en el heap: WorldState pesa unos 350 KB.
+// The game world, on the heap: WorldState weighs about 350 KB.
 struct Game
 {
-    // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
+    // 0x612d90 uploads the textures of the models it loads through the table the game binds (CL9 milestone 2).
     Game()
     {
         states.assets.fauna.TextureTable().Bind(store);
@@ -162,7 +162,7 @@ struct Game
                 .log = log,
                 .states = &states};
     }
-    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
@@ -182,9 +182,9 @@ struct Game
     std::vector<Client::Kernel::JointState> joints{};
 };
 
-// Un monstruo del alta con +0x381, la acción (+0x111), +0x38e y el blanco (+0x3a4), y lo que hace 0x4f5b70 sin su
-// rand(): el corte (el prefijo del error, vacío sin corte), los rand() y los sonidos. `kind` y `model` pisan el +0x376
-// y el tipo de los que el alta corta (los joints 0x618 de los tipos 0x35 a 0x3f, CL11).
+// A created monster with +0x381, the action (+0x111), +0x38e and the target (+0x3a4), and what 0x4f5b70 does without
+// its rand(): the stop (the error's prefix, empty without a stop), the rand() and the sounds. `kind` and `model`
+// override the +0x376 and the type of those the creation stops at (the 0x618 joints of types 0x35 to 0x3f, CL11).
 struct Probe
 {
     std::string_view name{};
@@ -200,18 +200,18 @@ struct Probe
     std::optional<std::uint16_t> model{};
     std::optional<std::uint16_t> right{};
     std::optional<std::uint8_t> bone{};
-    // Los lugares libres de la tabla de joints (0x74a8d78) del paso: los 0x106/1 del lote switch (CL11) piden los
-    // joints 0x610/0..3 de su hijo 0x105/1, y el 0xf5 el 0x618/5. Sin tabla, el paso corta ahí.
+    // The free places of the step's joint table (0x74a8d78): the 0x106/1 of the switch batch (CL11) ask for their child
+    // 0x105/1's joints 0x610/0..3, and the 0xf5 for 0x618/5. Without a table, the step stops there.
     std::size_t joints = 0;
 };
 
-// Los lugares de la tabla de joints del juego (GameDrawTailState::joints).
+// The places of the game's joint table (GameDrawTailState::joints).
 constexpr std::size_t JointTable = 500;
 
 class MonsterAttackCasesTest : public Client::Tests::GoldenDataTest
 {
 protected:
-    // El terreno de `terrain` con el mapa en `map`: el Data del repo no tiene el World36 del 35.
+    // The terrain of `terrain` with the map at `map`: the repo's Data lacks 35's World36.
     void Load(std::uint8_t map, std::uint8_t terrain)
     {
         game = std::make_unique<Game>();
@@ -226,7 +226,7 @@ protected:
         Load(map, map);
     }
 
-    // El alta de `type` en (100, 100), solo en el pool.
+    // The creation of `type` at (100, 100), only in the pool.
     ActorState& Create(std::int32_t type)
     {
         for (ActorState& actor : game->world.Actors())
@@ -237,7 +237,6 @@ protected:
         return game->world.Actors()[slot];
     }
 
-    // El monstruo de `probe`, listo para el paso.
     ActorState& Prepare(const Probe& probe)
     {
         ActorState& monster = Create(probe.type);
@@ -390,7 +389,7 @@ protected:
         EXPECT_EQ(sounds, probe.sounds);
     }
 
-    // Los mismos tipos en Lorencia y Devias, sin el ayudante de su mapa: sin caso por +0x376, van a la cola.
+    // The same types in Lorencia and Devias, without their map's helper: with no case on +0x376, they go to the tail.
     void ExpectTheTailIn(std::uint8_t map, const std::vector<std::int32_t>& types)
     {
         Load(map);
@@ -407,13 +406,13 @@ protected:
     bool withMonsters = true;
 };
 
-// 0x43a7a0 en Kalima (24 a 29 y 36): todos sus casos salen sin la cola; la partícula 0x600/1 nace en 14 (0x43a861 y
-// 0x43abd9, sobre el blanco o el héroe, con el rand() % 360 de su giro en 0x5431a1) y los efectos de otros lotes cortan
-// después de la lectura de +0x38e y de los rand() de su ayudante. Los de los magos se crean: el 0xcb/3 y el 0xcc/4 de
-// 0x439cd0 sin rand(), los tres 0xc2/7 de 0x43b18f con dos rand() % 200 y los cinco del alta cada uno; el anillo 0xc2/8
-// de 0x439bd0 (rand() % 360) crea sus cinco fuegos, con cuatro rand() y el joint 0x5f2/0 (0x51b268, sin rand()) cada
-// uno, y pide el sonido 0x1e0; los tres anillos 0x11b/1 de 0x439b20 se crean sin rand(). Afuera, los mismos tipos
-// van a la cola.
+// 0x43a7a0 in Kalima (24 to 29 and 36): all its cases leave without the tail; particle 0x600/1 is born at 14
+// (0x43a861 and 0x43abd9, on the target or the hero, with its rotation's rand() % 360 at 0x5431a1) and the effects of
+// other batches stop after the +0x38e read and their helper's rand(). The wizard ones are created: 0xcb/3 and 0xcc/4
+// of 0x439cd0 without rand(), the three 0xc2/7 of 0x43b18f with two rand() % 200 and the creation's five each; ring
+// 0xc2/8 of 0x439bd0 (rand() % 360) creates its five fires, with four rand() and joint 0x5f2/0 (0x51b268, without
+// rand()) each, and asks for sound 0x1e0; the three rings 0x11b/1 of 0x439b20 are created without rand(). Outside,
+// the same types go to the tail.
 TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
 {
     constexpr int Fires = 5, FireDraws = 4;
@@ -466,7 +465,7 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
     {
         SCOPED_TRACE(map);
         Load(map);
-        // El héroe lejos del lugar del monstruo: el 0xf6/0 de 0x43b5ac compara su dueño con [0x743a170].
+        // The hero far from the monster's slot: the 0xf6/0 of 0x43b5ac compares its owner with [0x743a170].
         game->world.Runtime().hero = HeroAway;
         for (const Probe& probe : probes)
             Expect(probe);
@@ -478,9 +477,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMonstersLeaveWithoutTheTail)
     }
 }
 
-// 0x43b045..0x43b156: el 0x95 con 0x11 en 14 y el blanco de +0x3a4 en [0, 400) tira tres joints 0x610/6 desde el
-// punto del hueso 60 (el mismo para los tres) a la posición del blanco, con él de dueño, ancho 30, vida 50 (la key),
-// 16 puntos y velocidad 5; los giros z son el suyo, ése − 30 y ése + 15. Sin rand() más que la lectura de +0x38e.
+// 0x43b045..0x43b156: the 0x95 with 0x11 at 14 and the target of +0x3a4 in [0, 400) throws three 0x610/6 joints from
+// bone 60's point (the same for the three) to the target's position, with it as owner, width 30, life 50 (the key),
+// 16 points and speed 5; the z rotations are its own, that − 30 and that + 15. No rand() besides the +0x38e read.
 TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
 {
     Load(24);
@@ -489,8 +488,8 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
     ActorState& monster =
         Prepare(Probe{.type = 0x95, .step = 14, .skill = 0x11, .target = VictimSlot, .joints = JointTable});
     monster.angles = {5.0f, 0.0f, 100.0f};
-    // El hueso 60 sin giro, corrido (12, −7, 45), con el modelo del tipo de escala 2 en (1000, 1100, 100): el punto es
-    // la traslación por la escala más el origen (0x4ec110 con el offset en 0).
+    // Bone 60 without rotation, shifted (12, −7, 45), with the type's model at scale 2 at (1000, 1100, 100): the point
+    // is the translation times the scale plus the origin (0x4ec110 with the offset at 0).
     monster.bodyPose.assign(61, Client::Math::BoneTransform(1.0f));
     for (std::size_t bone = 0; bone < monster.bodyPose.size(); ++bone)
         monster.bodyPose[bone][3] = glm::vec3(static_cast<float>(bone), 0.0f, 0.0f);
@@ -525,9 +524,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaMageThrowsThreeBoltsAtItsTarget)
     EXPECT_FALSE(game->joints[turns.size()].alive);
 }
 
-// 0x43ac07..0x43ac29: los siete números de +0x376 que la tabla de 0x43b8fc manda a 0x43abea (0x93, 0xb1, 0xb9, 0xc1,
-// 0x107, 0x10f y 0x117), en la 4 y en 14, ponen el seamanFX 0x11a sobre sí, con sus ángulos (vida 20, la luz que el
-// alta pisa con (1, 1, 1) y la partida en su lugar), sin rand() propios.
+// 0x43ac07..0x43ac29: the seven +0x376 numbers that 0x43b8fc's table sends to 0x43abea (0x93, 0xb1, 0xb9, 0xc1,
+// 0x107, 0x10f and 0x117), in action 4 and at 14, put the seamanFX 0x11a over themselves, with their angles (life 20,
+// the light the creation overrides with (1, 1, 1) and the start at their place), without rand() of their own.
 TEST_F(MonsterAttackCasesTest, TheKalimaSeamenRaiseTheSeamanEffectOverThemselves)
 {
     Load(24);
@@ -553,8 +552,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaSeamenRaiseTheSeamanEffectOverThemselves
     }
 }
 
-// 0x43ab04..0x43ab6b: el 0x91 en la 4 y en 14 crea el terremoto 0xfa/1 y, con otro lugar, el 0x615 sobre sí (vida 10,
-// +0x88 en 1, la posición corrida (−25, −80, 0) girado por sus ángulos), sin rand() propios; después, +0x381 en 15.
+// 0x43ab04..0x43ab6b: the 0x91 in action 4 and at 14 creates the earthquake 0xfa/1 and, with another slot, the 0x615
+// over itself (life 10, +0x88 at 1, the position shifted (−25, −80, 0) rotated by its angles), without rand() of its
+// own; then, +0x381 at 15.
 TEST_F(MonsterAttackCasesTest, Kalima91CreatesTheStateOneEarthquakeAndTheThunder)
 {
     constexpr std::uint8_t InitialStep = 14;
@@ -816,9 +816,9 @@ TEST_F(MonsterAttackCasesTest, KalimaOtherFamiliesSkipFullModelEffectsAndKeepThe
     EXPECT_EQ(Draws(), 0);
 }
 
-// Las habilidades 0xc9 y 0xca de los tres switch de Kalima (0x43aabf, 0x43b4f4 y 0x43b878): desde 13, +0x78 con 0x100
-// o 0x8, +0x381 en 15 y el sonido 0x1e1. Lo que sigue lee el +0x381 nuevo: el 0x91 en la 4 ya no ve el 14 y el 0xa1 en
-// la 3 suelta desde 13 sus 0xf6/0 y 0x5de/1 (CL11).
+// Skills 0xc9 and 0xca of Kalima's three switches (0x43aabf, 0x43b4f4 and 0x43b878): from 13, +0x78 with 0x100 or
+// 0x8, +0x381 at 15 and sound 0x1e1. What follows reads the new +0x381: the 0x91 in action 4 no longer sees 14 and the
+// 0xa1 in action 3 drops its 0xf6/0 and 0x5de/1 from 13 (CL11).
 TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
 {
     struct Case
@@ -861,7 +861,6 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
             EXPECT_EQ(sounds, (std::vector<std::int32_t>{0x1e1}));
             EXPECT_EQ(Draws(), SkillRead);
         }
-        // En 12, nada.
         ActorState& early = Prepare(Probe{.name = "en 12", .type = 0x91, .step = 12, .skill = 0xc9});
         early.flags78 = Earlier;
         ASSERT_TRUE(Step(early).HasValue());
@@ -871,9 +870,10 @@ TEST_F(MonsterAttackCasesTest, TheKalimaWardsSetTheFlagsAndEndTheCount)
     }
 }
 
-// 0x42dcf0 en el 30: el 0x68 suelta el lancero 0x19f/0 sólo en 5 y el 0x120 el pulso 0x61c/0 siempre; el alta del pulso
-// saca su rand() % 360 y crea su joint 0x61c/3 (0x51f1c5, sin rand()).
-// 0x429110 en el 33 y el 54: en 10, el 0x134 suelta el 0x141 y el 0x130 el 0x61c/1 (con su rand() % 360) en la 4.
+// 0x42dcf0 in the 30: the 0x68 drops the spearman 0x19f/0 only at 5 and the 0x120 the pulse 0x61c/0 always; the
+// pulse's creation takes its rand() % 360 and creates its joint 0x61c/3 (0x51f1c5, without rand()).
+// 0x429110 in the 33 and 54: at 10, the 0x134 drops the 0x141 and the 0x130 the 0x61c/1 (with its rand() % 360) in
+// action 4.
 TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
 {
     Load(30);
@@ -902,10 +902,10 @@ TEST_F(MonsterAttackCasesTest, TheSiegeAndTheTrialMonstersLeaveOrCut)
     }
 }
 
-// 0x42dd23..0x42dda4: las entradas completas, sin dueño y con la clave en −1, y la salida antes de la cola del ataque.
-// Las altas: el 0x61c/0 (0x51f154) con vida 20, la velocidad (0, −550, 0), los ángulos (−90, 0, z), +0x28 y +0x2c en 0,
-// +0x30 en rand() % 360 y la partida en la posición (con los joints llenos, sin el 0x61c/3); el 0x19f/0 (0x51e4ba) con
-// vida 20, +0x58 en 3, +0xd8 en 0,33f y los ángulos en 0.
+// 0x42dd23..0x42dda4: the full inputs, ownerless and with the key at −1, and the exit before the attack's tail. The
+// creations: 0x61c/0 (0x51f154) with life 20, speed (0, −550, 0), angles (−90, 0, z), +0x28 and +0x2c at 0, +0x30 at
+// rand() % 360 and the start at the position (with the joints full, without the 0x61c/3); 0x19f/0 (0x51e4ba) with
+// life 20, +0x58 at 3, +0xd8 at 0.33f and the angles at 0.
 TEST_F(MonsterAttackCasesTest, TheSiegeEffectsKeepTheCallerInputsAndUseTheFirstFreeEffectSlot)
 {
     Load(30);
@@ -969,7 +969,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeEffectGatesUseTheMapAndKindFrameWithoutAn
 {
     Load(30);
     withParticles = false;
-    // Sin lugar para el joint 0x61c/3 del pulso: su alta termina.
+    // No place for the pulse's joint 0x61c/3: its creation ends.
     for (auto& joint : game->world.DrawTail().joints)
         joint.alive = true;
     for (const std::uint8_t map :
@@ -980,7 +980,8 @@ TEST_F(MonsterAttackCasesTest, TheSiegeEffectGatesUseTheMapAndKindFrameWithoutAn
             {
                 SCOPED_TRACE(testing::Message() << "map=" << static_cast<int>(map) << " kind=" << kind
                                                 << " frame=" << static_cast<int>(frame));
-                // El alta usa el30; este caso varía sólo el gate del caller, sin cargar mundos de otros mapas.
+                // The creation uses the 30; this case only varies the caller's gate, without loading other maps'
+                // worlds.
                 game->world.Runtime().map = 30;
                 ActorState& monster = Prepare(Probe{.name = "gate del efecto del asedio",
                                                     .type = kind,
@@ -1005,7 +1006,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeEffectGatesUseTheMapAndKindFrameWithoutAn
             }
 }
 
-// 4329ec devuelve AL=0 después del primer abanico. 4f6442 vuelve a pasar por la rama común.
+// 0x4329ec returns AL=0 after the first fan. 0x4f6442 goes through the common branch again.
 TEST_F(MonsterAttackCasesTest, CrywolfRunsItsRadialVolleyBeforeTheCommonVolley)
 {
     withParticles = false;
@@ -1050,9 +1051,9 @@ TEST_F(MonsterAttackCasesTest, CrywolfRunsItsRadialVolleyBeforeTheCommonVolley)
     }
 }
 
-// 0x43257a y 0x42fd76: la 0xf8/1 con el actor de dueño y su +0x8a de clave. Su alta escribe los ángulos del actor
-// (0x51a347) antes de los tres joints 0x60f/0x19 (0x51a3b7, un rand() cada uno si hay lugar) y del registro propio
-// (0x51a1b0).
+// 0x43257a and 0x42fd76: the 0xf8/1 with the actor as owner and its +0x8a as key. Its creation writes the actor's
+// angles (0x51a347) before the three 0x60f/0x19 joints (0x51a3b7, one rand() each if there is room) and the own
+// record (0x51a1b0).
 TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPreserveTheOwnerAndKey)
 {
     withParticles = false;
@@ -1093,9 +1094,10 @@ TEST_F(MonsterAttackCasesTest, CrywolfAndFortressLaunchF8AtFrameFourteenAndPrese
     }
 }
 
-// 0x42fce0 en el 35 (con el terreno de Lorencia: el Data del repo no tiene el World36) y 0x4324c0 en Crywolf, por el
-// tipo: los efectos en 14 (0x1ad y 0x1b2) y en 15 (0x1b5); si no, siguen a la cola. El 0x17c y el 0x17e los crean los
-// tipos 0x3a, 0x3b, 0x3e, 0x52, 0x53 y 0x12c, que el alta corta: el tipo y el +0x376 van a mano.
+// 0x42fce0 in the 35 (with Lorencia's terrain: the repo's Data lacks World36) and 0x4324c0 in Crywolf, by type: the
+// effects at 14 (0x1ad and 0x1b2) and at 15 (0x1b5); otherwise, they go on to the tail. The 0x17c and the 0x17e are
+// created by types 0x3a, 0x3b, 0x3e, 0x52, 0x53 and 0x12c, which the creation stops at: the type and the +0x376 are
+// set by hand.
 TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
 {
     Load(35, 0);
@@ -1130,7 +1132,7 @@ TEST_F(MonsterAttackCasesTest, TheFortressAndCrywolfLookAtTheModel)
                                       .draws = 2 * SkillRead + Tail,
                                       .kind = std::uint16_t{0x3b},
                                       .model = std::uint16_t{0x17c}},
-                                     // 0x4324c0 lee +0x38e y sigue; el caso 0x3b de 0x4f5b70 la vuelve a leer en 14.
+                                     // 0x4324c0 reads +0x38e and goes on; 0x4f5b70's case 0x3b reads it again at 14.
                                      {.name = "0x17c en 14",
                                       .type = 3,
                                       .step = 14,
@@ -1189,7 +1191,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
     {
         SCOPED_TRACE(testing::Message() << "map " << static_cast<int>(probe.map) << ", type " << probe.type);
         Load(probe.map, probe.terrain);
-        // Sin lugar para el joint 0x61c/3 del pulso del 0x120 (0x51f1c5).
+        // No place for the 0x120 pulse's joint 0x61c/3 (0x51f1c5).
         for (auto& joint : game->world.DrawTail().joints)
             joint.alive = true;
         ActorState& monster = Prepare(Probe{.name = "ayudante con efecto omitido",
@@ -1224,7 +1226,7 @@ TEST_F(MonsterAttackCasesTest, TheSiegeTrialAndFortressHelpersExitWhenTheirModel
         }
         else if (probe.type == 0x135)
         {
-            // 0x42919a: el primero de los cinco 0xcf (el /3) toma el lugar libre; los demás no encuentran.
+            // 0x42919a: the first of the five 0xcf (the /3) takes the free slot; the others find none.
             EXPECT_TRUE(freeSlot.HasValue()) << (freeSlot.HasValue() ? std::string() : freeSlot.Error());
             EXPECT_EQ(Draws(), 0);
             const auto& twister = game->world.Map().effects.Effects().back();
@@ -1408,7 +1410,8 @@ TEST_F(MonsterAttackCasesTest, Crywolf17cStepFourteenContinuesPastTheFull18c1aPo
     }
 }
 
-// 432b30..432b63 y42fd04..42fd37: los callers no sortean ni pasan por la cola del ataque.
+// 0x432b30..0x432b63 and 0x42fd04..0x42fd37: the callers neither draw random values nor go through the attack's
+// tail.
 TEST_F(MonsterAttackCasesTest, CrywolfAndFortressMissilesPreserveTheirNativeArgumentsAndOwner)
 {
     struct Missile
@@ -1528,10 +1531,10 @@ TEST_F(MonsterAttackCasesTest, CrywolfAttacksSkipTheirFullModelEffectAndExit)
     }
 }
 
-// El switch por +0x376 (0x4f5c7e): cada caso con su +0x381, su acción y '2' en +0x38e, el corte después de sus
-// lecturas y rand(), o la cola. En Lorencia y en Devias (los mismos en cualquier mapa fuera de los ayudantes). Los
-// fuegos de los magos se crean: el 0xc2/1 y el /2, un rand() cada uno (la escala); el 0xc2/0 de alrededor, sus dos
-// rand() & 0x3ff y dos del alta (la escala y la x).
+// The switch on +0x376 (0x4f5c7e): each case with its +0x381, its action and '2' in +0x38e, the stop after its reads
+// and rand(), or the tail. In Lorencia and Devias (the same on any map outside the helpers). The wizard fires are
+// created: 0xc2/1 and /2, one rand() each (the scale); the surrounding 0xc2/0, its two rand() & 0x3ff and two of the
+// creation (the scale and x).
 TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
 {
     constexpr int FallingFireDraws = 1;
@@ -1548,7 +1551,7 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
          .draws = 1208 + SkillRead + Tail,
          .sounds = std::vector<std::int32_t>(8, 0x40),
          .kind = std::uint16_t{0x3f}},
-        // El 0xf5 cuelga su joint 0x618/5 (0x5193d6, lote joints) y lee el registro propio antes de la cola.
+        // The 0xf5 hangs its joint 0x618/5 (0x5193d6, joints batch) and reads the own record before the tail.
         {.name = "0x3f con '2'",
          .type = 3,
          .step = 2,
@@ -1679,8 +1682,8 @@ TEST_F(MonsterAttackCasesTest, TheKindCasesCutAfterTheirDrawsOrGoOnToTheTail)
     }
 }
 
-// 0x4f5cb6..0x4f5d1e: el 0x46 en 5 suelta veinte 0x625 en la posición y con los ángulos de su blanco (+0x3a4), con
-// la luz local (1, 1, 1), y sigue a la cola; con el blanco fuera de la tabla de personajes, MuRet corta.
+// 0x4f5cb6..0x4f5d1e: the 0x46 at 5 drops twenty 0x625 at its target's (+0x3a4) position and with its angles, with
+// the local light (1, 1, 1), and goes on to the tail; with the target outside the character table, MuRet stops.
 TEST_F(MonsterAttackCasesTest, TheKind46DropsTwentyFallingStarsOnItsTarget)
 {
     Load(0);
@@ -1971,9 +1974,9 @@ TEST_F(MonsterAttackCasesTest, FullJointPoolSkipsItsEffectsAndContinuesTheCaller
         ExpectWithOnlyJointPoolFull(probe);
 }
 
-// 0x4f74ee..0x4f7573 y 0x4f7ec0..0x4f7f45: con un solo lugar libre, el primero de los joints 0x613 sale sin dueño 100
-// más arriba del monstruo, con los ángulos de sus tres rand() % 360, y los demás intentos sólo sacan los suyos. El /1
-// suena 0x3e al nacer (0x5330c5); el /3 no. Los rand() de la cola (0x4f80e0) siguen.
+// 0x4f74ee..0x4f7573 and 0x4f7ec0..0x4f7f45: with a single free slot, the first of the 0x613 joints comes out
+// ownerless 100 above the monster, with the angles of its three rand() % 360, and the other attempts only take
+// theirs. The /1 sounds 0x3e on birth (0x5330c5); the /3 does not. The tail's rand() (0x4f80e0) follow.
 TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpirit)
 {
     Load(0);
@@ -2023,8 +2026,9 @@ TEST_F(MonsterAttackCasesTest, AFreeJointAfterTheFullModelPoolTakesTheFirstSpiri
     }
 }
 
-// 0x4f834c, 0x4f8484 y 0x4f8553: con el pool de efectos lleno, el 0x106/1 no sale y el joint 0x614/2 sí, colgado del
-// blanco (ESI) y apuntado a su hueso 33 con el modelo del jugador (0x5313fe), sin rand() propio.
+// 0x4f834c, 0x4f8484 and 0x4f8553: with the effects pool full, the 0x106/1 does not come out and the joint 0x614/2
+// does, hung from the target (ESI) and aimed at its bone 33 with the player model (0x5313fe), without rand() of its
+// own.
 TEST_F(MonsterAttackCasesTest, AFullModelPoolCreatesTheTailLightningOfTheTarget)
 {
     struct Case
@@ -2635,11 +2639,11 @@ TEST_F(MonsterAttackCasesTest, Saturated49AttackKeepsTheFifthTrailPointAndActorP
     }
 }
 
-// Los efectos de los magos que crean los monstruos, con sus argumentos: el 0xcb/3 (dueño c) y el 0xcc/4 de 0x439cd0;
-// los tres 0xc2/7 de 0x43b172 alrededor del héroe, con la luz (0,8f; 0,5; 0,1f) y la clave 0; los cinco 0xcf/3 a /7
-// de 0x429152 con la luz (1, 1, 1); el 0xcb/0 y el 0xcc/0 sin dueño de 0x4f7096; los dieciocho 0xc2/1 de 0x4f7010 con
-// c de dueño y el rumbo de 20 en 20; los tres 0xc2/2 del hueso 11 de 0x4f6e51 con los ángulos corridos y el 0xc2/0 de
-// alrededor (0x4f6fc5); y el 0xc2/5 del hueso 6 de 0x4f8368.
+// The wizard effects the monsters create, with their arguments: 0xcb/3 (owner c) and 0xcc/4 of 0x439cd0; the three
+// 0xc2/7 of 0x43b172 around the hero, with the light (0.8f, 0.5, 0.1f) and key 0; the five 0xcf/3 to /7 of 0x429152
+// with the light (1, 1, 1); the ownerless 0xcb/0 and 0xcc/0 of 0x4f7096; the eighteen 0xc2/1 of 0x4f7010 with c as
+// owner and the heading in steps of 20; the three 0xc2/2 of bone 11 of 0x4f6e51 with the shifted angles and the
+// surrounding 0xc2/0 (0x4f6fc5); and the 0xc2/5 of bone 6 of 0x4f8368.
 TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
 {
     const auto alive = [this](std::int16_t type)
@@ -2682,7 +2686,7 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
             EXPECT_EQ(fire->ownerContext, nullptr);
             EXPECT_EQ(fire->speed, 0.0f);
             EXPECT_EQ(fire->light, meteorLight);
-            // La x del alta suma 200 a 299 y la y −50 a 49 a las del héroe ± 100.
+            // The creation's x adds 200 to 299 and y −50 to 49 to the hero's ± 100.
             EXPECT_GE(fire->transform.position.x, 3000.0f - 100.0f + 200.0f);
             EXPECT_LT(fire->transform.position.x, 3000.0f + 100.0f + 300.0f);
             EXPECT_GE(fire->transform.position.y, 4000.0f - 100.0f - 50.0f);
@@ -2756,8 +2760,9 @@ TEST_F(MonsterAttackCasesTest, TheMonsterWizardEffectsKeepTheirArguments)
     }
 }
 
-// 0x4f75b5 (0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 y 0x8f): con '2', rand() & 1; con 1, dos rand() más, el 0xc2/0
-// (0x4f7930, dos rand() de su alta), el sonido 0x42 y la cola; con 0, en 1 el 0xf6/1 (0x4f789b) y si no la cola.
+// 0x4f75b5 (0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82 and 0x8f): with '2', rand() & 1; with 1, two more rand(), the 0xc2/0
+// (0x4f7930, two rand() of its creation), sound 0x42 and the tail; with 0, at 1 the 0xf6/1 (0x4f789b) and otherwise
+// the tail.
 TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -2782,7 +2787,7 @@ TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
                     EXPECT_TRUE(std::ranges::any_of(
                         game->world.Map().effects.Effects(), [](const Client::Effects::ModelEffect& effect)
                         { return effect.alive && effect.type == Client::Effects::FireEffect; }));
-                    // El fuego sigue vivo; se baja para que la vuelta par busque sólo su 0xf6.
+                    // The fire is still alive; it is turned off so the even round only looks for its 0xf6.
                     for (auto& effect : game->world.Map().effects.Effects())
                     {
                         effect.alive = false;
@@ -2813,9 +2818,9 @@ TEST_F(MonsterAttackCasesTest, TheOddDrawPicksTheEffectOfTheGroup)
     }
 }
 
-// 0x4f715a (+0x376 0x2d), en cada paso: cuatro veces tres rand() & 31 − 16, el punto del hueso 2 (sin huesos propios,
-// la matriz en cero: la posición, Q-C318) y las partículas 0x607/0 (dos rand()) y 0x5e4 (cuatro). Después, la cola.
-// Sin el pool corta en la primera, después de las tres del offset.
+// 0x4f715a (+0x376 0x2d), on each step: four times three rand() & 31 − 16, bone 2's point (without own bones, the
+// matrix at zero: the position, Q-C318) and the particles 0x607/0 (two rand()) and 0x5e4 (four). Then, the tail.
+// Without the pool it stops at the first, after the three of the offset.
 TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
 {
     constexpr int Pairs = 4;
@@ -2836,7 +2841,7 @@ TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
             if (!particle.alive)
                 continue;
             EXPECT_EQ(particle.position, monster.position);
-            // La sangre pisa el giro x con rand() % 360 (0x542b3b); la gota deja los ángulos del pedido.
+            // The blood overrides the x rotation with rand() % 360 (0x542b3b); the drop keeps the request's angles.
             EXPECT_EQ(particle.angles.y, monster.angles.y);
             EXPECT_EQ(particle.angles.z, monster.angles.z);
             if (particle.type == Client::Particles::DropParticle)
@@ -2859,9 +2864,9 @@ TEST_F(MonsterAttackCasesTest, TheBleedingMonsterDropsFourPairs)
     }
 }
 
-// 0x4f7ab9 (+0x376 0x49 y 0x4b fuera de la 3, en 13): el punto (−50, 100, 0) del hueso 11 de los huesos propios va a
-// +0x17c..+0x184 antes del efecto 0x106/1 (0x4f80cf, CL11), que sale de ahí con c de dueño y 45 más en la x de los
-// ángulos; después, el sonido 0x42 y la cola.
+// 0x4f7ab9 (+0x376 0x49 and 0x4b outside action 3, at 13): the point (−50, 100, 0) of bone 11 of the own bones goes
+// to +0x17c..+0x184 before the effect 0x106/1 (0x4f80cf, CL11), which comes out of there with c as owner and 45 more
+// on the angles' x; then, sound 0x42 and the tail.
 TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
 {
     constexpr std::size_t Bones = 16;
@@ -2901,7 +2906,7 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
         for (auto& effect : effects)
             effect.alive = false;
 
-        // En 9, el mismo 0x4ec110 sin escribir nada.
+        // At 9, the same 0x4ec110 without writing anything.
         ActorState& later = Prepare(Probe{.name = "0x4b en 9", .type = 0x4b, .step = 9, .action = 4});
         later.trailOrigin = untouched;
         ASSERT_TRUE(Step(later).HasValue());
@@ -2909,15 +2914,16 @@ TEST_F(MonsterAttackCasesTest, TheTrailStartsAtTheEleventhBone)
     }
 }
 
-// La cola con 0x11 en +0x38e (0x4f8147): los casos salen siempre, sin la segunda lectura; los sonidos 0x75 y 0x50 en
-// 1 salen antes del joint que corta. El 0x57 en 13 crea su 0xc2/5 del hueso 6 (sin rand()). Los 0x106/1 del lote
-// switch piden los joints de su hijo y su sonido 0x7a antes del joint 0x614/2, que ya no corta; el 0x4b en la 4 y en 13
-// llega al 0x4f8493 después del 0x106/1 de su caso de +0x376 (0x4f80cf) y su sonido 0x42. Los impares de 0xa3 a 0xad
-// sacan en el alta (0x51443f) la derecha: 0xa25 (el arco) o 0xc17; acá va escrita. Con el arco, en 8, la flecha de
-// 0x4f816f (0x53e2b0 → 0x53d9a0 con las manos) da el 0x111 con su joint 0x618/5 (0x51bf35), el cierre del registro
-// propio y los quince giros de la mano del arco 0xa25 (0x53e630..0x53e73a): en cada uno, el rand() % 360 de 0x53e6b0,
-// la moneda de 0x53e6d4 y los cinco de la 0x5c5/0 (0x540333, 0x54041f, 0x540436, 0x54045c y 0x540480). El 0x617/3 de la
-// moneda par no saca nada: acá el pool de joints está vacío.
+// The tail with 0x11 in +0x38e (0x4f8147): the cases always leave, without the second read; sounds 0x75 and 0x50 at
+// 1 come out before the joint that stops. The 0x57 at 13 creates its 0xc2/5 from bone 6 (without rand()). The switch
+// batch's 0x106/1 ask for their child's joints and their sound 0x7a before the joint 0x614/2, which no longer stops;
+// the 0x4b in action 4 and at 13 reaches 0x4f8493 after the 0x106/1 of its +0x376 case (0x4f80cf) and its sound 0x42.
+// The odd ones from 0xa3 to 0xad draw the right hand in the creation (0x51443f): 0xa25 (the bow) or 0xc17; here it is
+// written. With the bow, at 8, the arrow of 0x4f816f (0x53e2b0 → 0x53d9a0 with the hands) gives the 0x111 with its
+// joint 0x618/5 (0x51bf35), the own record's close and the fifteen turns of the bow hand 0xa25
+// (0x53e630..0x53e73a): in each, the rand() % 360 of 0x53e6b0, the coin of 0x53e6d4 and the five of 0x5c5/0
+// (0x540333, 0x54041f, 0x540436, 0x54045c and 0x540480). The 0x617/3 of the even coin takes nothing: here the joint
+// pool is empty.
 TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
 {
     constexpr int ReignShine = 15 * (2 + 5);
@@ -3009,14 +3015,14 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     {
         SCOPED_TRACE(map);
         Load(map);
-        // El héroe lejos del lugar del monstruo: 0x53d9a0 compara o con [0x743a170] y, con el héroe, lee las armas
-        // del registro propio.
+        // The hero far from the monster's slot: 0x53d9a0 compares o with [0x743a170] and, with the hero, reads the
+        // weapons from the own record.
         game->world.Runtime().hero = HeroAway;
         for (const Probe& probe : probes)
             Expect(probe);
-        // Sin el arco 0xa25, en la 4 y en 8: rand() & 1 elige dos 0xf5 (0x4f8227), cada uno con su joint 0x618/5
-        // (0x5193d6) y el registro propio, o dos 0xc2/6 (0x4f8287 y 0x4f82a5), cada uno con los cinco rand() de su alta
-        // y su joint 0x5f2/0 (0x51b098, sin rand()).
+        // Without the 0xa25 bow, in action 4 and at 8: rand() & 1 picks two 0xf5 (0x4f8227), each with its joint
+        // 0x618/5 (0x5193d6) and the own record, or two 0xc2/6 (0x4f8287 and 0x4f82a5), each with its creation's five
+        // rand() and its joint 0x5f2/0 (0x51b098, without rand()).
         for (const std::int32_t type : {0xa5, 0xa7, 0xad, 0xa3})
         {
             ActorState& monster = Prepare(Probe{.name = "sin el arco",
@@ -3050,8 +3056,9 @@ TEST_F(MonsterAttackCasesTest, TheSkill0x11CasesLeaveAfterTheirEffect)
     }
 }
 
-// La cola con 3 en +0x38e (0x4f8a56): los casos con sus sonidos en 1 y su rand() % 360 antes del joint, que corta sin
-// el pool de joints del frame; sin caso, 0x4f8f5b crea sus dos 0x614/0 (0x4f8fef y 0x4f9012) y la 0x5ca/0.
+// The tail with 3 in +0x38e (0x4f8a56): the cases with their sounds at 1 and their rand() % 360 before the joint,
+// which stops without the frame's joint pool; with no case, 0x4f8f5b creates its two 0x614/0 (0x4f8fef and 0x4f9012)
+// and the 0x5ca/0.
 TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
 {
     const std::vector<Probe> probes{
@@ -3097,8 +3104,8 @@ TEST_F(MonsterAttackCasesTest, TheSkill3CasesLeaveAfterTheirJoints)
         game->joints.assign(1, Client::Kernel::JointState{});
         const auto stepped = Step(fallback);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        // El primer 0x614/0 (0x4f8fef) toma el único lugar; el segundo (0x4f9012) no tiene dónde y la 0x5ca/0
-        // (0x4f9034) saca sus dos rand().
+        // The first 0x614/0 (0x4f8fef) takes the only slot; the second (0x4f9012) has nowhere to go and the 0x5ca/0
+        // (0x4f9034) takes its two rand().
         EXPECT_EQ(Draws(), Tail + 2);
         const Client::Kernel::JointState& joint = game->joints.front();
         ASSERT_TRUE(joint.alive);
@@ -3179,7 +3186,7 @@ TEST_F(MonsterAttackCasesTest, SaturatedSkill3FallbackPreservesLogicalDepthAndLe
     }
 }
 
-// 0x4f7fd2: las E2 ya tienen constructor; un pool lleno omite sólo cada alta y continúa la cola.
+// 0x4f7fd2: the E2 have a constructor; a full pool skips only each creation and the tail goes on.
 TEST_F(MonsterAttackCasesTest, TheAquagoldCasesCreateTheirArrowsAndContinueTheTail)
 {
     constexpr int RecordCloseDraws = 0xf08;
@@ -3221,7 +3228,7 @@ TEST_F(MonsterAttackCasesTest, TheAquagoldCasesCreateTheirArrowsAndContinueTheTa
     }
 }
 
-// 0x51fff0: con modelos llenos, los ocho estallidos y 16 selectores conservan sus sorteos.
+// 0x51fff0: with full models, the eight bursts and 16 selectors keep their draws.
 TEST_F(MonsterAttackCasesTest, TheScatteredBurstSkipsFullModelPoolsAndKeepsAllCallerDraws)
 {
     for (const bool particlesFull : {false, true})
@@ -3481,8 +3488,9 @@ TEST_F(MonsterAttackCasesTest, Kind49And4bStepNineUseTheirOrangeTailLightWithout
     }
 }
 
-// 0x43b5ac/0x43b5cc y 0x43b241/0x43b25e (CL11): el 0xa1 en la 3 desde 13 suelta 0xf6/0 y 0x5de/1, y el 0xa0 0xf6/5 y
-// 0x5de/2, sobre c y con c de dueño, y deja +0x381 en 15. Con el pool lleno, los dos se omiten y el 15 queda igual.
+// 0x43b5ac/0x43b5cc and 0x43b241/0x43b25e (CL11): the 0xa1 in action 3 from 13 drops 0xf6/0 and 0x5de/1, and the
+// 0xa0 0xf6/5 and 0x5de/2, over c and with c as owner, and leaves +0x381 at 15. With the pool full, both are skipped
+// and the 15 stays.
 TEST_F(MonsterAttackCasesTest, TheKalimaInfernosLeaveTheirOwnerAndEndTheCount)
 {
     struct Case
@@ -3533,8 +3541,9 @@ TEST_F(MonsterAttackCasesTest, TheKalimaInfernosLeaveTheirOwnerAndEndTheCount)
     }
 }
 
-// 0x4f8227 y 0x4f8244 (CL11): con el par, los dos 0xf5 caen sobre el blanco (+0x3a4) con c de dueño; cada alta saca sus
-// cinco rand(), omite el joint 0x618/5 con la tabla llena y cierra el registro propio (3.848 rand()).
+// 0x4f8227 and 0x4f8244 (CL11): with the even draw, the two 0xf5 fall on the target (+0x3a4) with c as owner; each
+// creation takes its five rand(), skips the joint 0x618/5 with the table full and closes the own record (3848
+// rand()).
 TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
 {
     constexpr std::uint16_t Staff = 0xc17;
@@ -3564,7 +3573,7 @@ TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
         EXPECT_EQ(effect.subtype, 0);
         EXPECT_EQ(effect.ownerContext, &monster);
         EXPECT_EQ(effect.life, 30);
-        // 0x51931b..0x51936a: el punto sube 300 a 799 sobre el blanco, con x en [200, 300) y y en [−50, 50).
+        // 0x51931b..0x51936a: the point rises 300 to 799 over the target, with x in [200, 300) and y in [−50, 50).
         EXPECT_GE(effect.transform.position.x, target.position.x + 200.0f);
         EXPECT_LT(effect.transform.position.x, target.position.x + 300.0f);
         EXPECT_GE(effect.transform.position.z, target.position.z + 300.0f);
@@ -3572,8 +3581,8 @@ TEST_F(MonsterAttackCasesTest, TheEvenDrawDropsTwoBlastsOnTheTarget)
     EXPECT_FALSE(effects[2].alive);
 }
 
-// 0x4f79db..0x4f7aae (CL11): el 0x49 en la 3 y en 11, después del estallido y del 0xf6/0, suelta cinco 0x106/1 desde
-// los puntos de +0x17c con c de dueño; cada uno deja su hijo 0x105/1 y sus cuatro joints 0x610/0..3.
+// 0x4f79db..0x4f7aae (CL11): the 0x49 in action 3 and at 11, after the burst and the 0xf6/0, drops five 0x106/1 from
+// the +0x17c points with c as owner; each leaves its child 0x105/1 and its four joints 0x610/0..3.
 TEST_F(MonsterAttackCasesTest, TheFiveStabsFallFromTheTrailPoints)
 {
     Load(0);

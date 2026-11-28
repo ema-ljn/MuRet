@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
-// Las barras de vida del 0x1a8 (CL9 hito 2): la cola de 0x42a2b0 y el dibujo de 0x42a4d0. Las posiciones son
-// inventadas; la proyección deja el ojo en (x, y, 1), así que un punto va a (320 − x, 240 + y).
+// The health bars of the 0x1a8 (CL9 milestone 2): the queue of 0x42a2b0 and the drawing of 0x42a4d0. The positions are
+// made up; the projection leaves the eye at (x, y, 1), so a point goes to (320 − x, 240 + y).
 namespace
 {
 using Client::Kernel::ActorState;
@@ -55,7 +55,7 @@ ActorState Stone(std::uint8_t stage)
     return stone;
 }
 
-// Lo que dejaría 0x5a6af0 con los argumentos que 0x42a4d0 le pasa por cada barra.
+// What 0x5a6af0 would leave with the arguments 0x42a4d0 passes it for each bar.
 std::vector<SpriteVertex> ExpectedGauges(const std::vector<QueuedHealthBar>& bars, const GameProjection& projection)
 {
     SpriteBatch sprites;
@@ -74,8 +74,8 @@ std::vector<SpriteVertex> ExpectedGauges(const std::vector<QueuedHealthBar>& bar
     return {vertices.begin(), vertices.end()};
 }
 
-// 0x42a2b0: solo el 0x1a8 con +0x93 debajo de 5, al final de la cola, con la z sobre el techo de su caja (la suma en
-// double y el FSTP en float).
+// 0x42a2b0: only the 0x1a8 with +0x93 below 5, at the end of the queue, with the z above the top of its box (the sum
+// in double and the FSTP in float).
 TEST(HealthBarsTest, OnlyTheLifeStoneUnderFiveIsQueued)
 {
     std::deque<QueuedHealthBar> queue;
@@ -94,8 +94,9 @@ TEST(HealthBarsTest, OnlyTheLifeStoneUnderFiveIsQueued)
     EXPECT_NE(top, 0.1f + 70.3f + 100.0f) << "la suma en float da otro valor: el caso no prueba la x87";
 }
 
-// 0x42a4d0: la cuenta baja con cada pop_front y el índice sube, así que de 1, 2, 3 y 4 dibuja 1, 1, 2 y 2, los
-// primeros, y deja el resto en la cola. Cada barra: 0x5a6af0(x − 25, y + 12, 50, 2, +0x93 · 10, verde, acotada).
+// 0x42a4d0: the count goes down with each pop_front and the index goes up, so from 1, 2, 3 and 4 it draws 1, 1, 2 and
+// 2, the first ones, and leaves the rest in the queue. Each bar: 0x5a6af0(x − 25, y + 12, 50, 2, +0x93 · 10, green,
+// clamped).
 TEST(HealthBarsTest, EachFrameDrawsTheFirstHalfRoundedUp)
 {
     const GameProjection flat = FlatProjection();
@@ -135,7 +136,7 @@ TEST(HealthBarsTest, EachFrameDrawsTheFirstHalfRoundedUp)
     }
 }
 
-// La barra del punto en (−20, 30) va a (340 − 25, 270 + 12): el marco de 0x5a6af0 en (315, 282), 54 por 6.
+// The bar of the point at (−20, 30) goes to (340 − 25, 270 + 12): the frame of 0x5a6af0 at (315, 282), 54 by 6.
 TEST(HealthBarsTest, TheBarHangsUnderThePoint)
 {
     const GameProjection flat = FlatProjection();
@@ -157,7 +158,8 @@ TEST(HealthBarsTest, TheBarHangsUnderThePoint)
     EXPECT_TRUE(queue.empty());
 }
 
-// Sin la proyección del pase del mundo, una cola con algo corta antes de sacar nada; la vacía no la necesita.
+// Without the world pass's projection, a queue with something stops before taking anything out; the empty one does not
+// need it.
 TEST(HealthBarsTest, WithoutTheProjectionAQueuedBarStops)
 {
     SpriteBatch sprites;

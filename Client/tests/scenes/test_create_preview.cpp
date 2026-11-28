@@ -19,8 +19,8 @@
 #include <span>
 #include <vector>
 
-// Client::FrontEnd::CreatePreview: la vista previa de la ventana de crear (0x63e460 y 0x63e3e0, con
-// 0x63e430 en el paso), con un NewFace sintético por clase.
+// Client::FrontEnd::CreatePreview: the create window's preview (0x63e460 and 0x63e3e0, with 0x63e430 in the step),
+// with a synthetic NewFace per class.
 namespace
 {
 using Client::Core::PixelSize;
@@ -37,7 +37,7 @@ using Client::Models::Skeleton;
 using Client::Models::SkeletonBone;
 using Client::Ui::Rect;
 
-// Dos acciones de 4 keys, la 1 sin repetir, en un hueso.
+// Two actions of 4 keys, action 1 not repeating, on one bone.
 class FaceModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -70,9 +70,8 @@ private:
     Skeleton m_skeleton;
 };
 
-// 0x6338a0 con la posición del objeto y (10, −500, 48): la cámara en el objeto más eso (girado por
-// el z de los ángulos, que es 0), mirando con (−90, 0, 0), con el fov de 10 de 0x63e460 y el near y
-// el far de la escena 4.
+// 0x6338a0 with the object's position and (10, −500, 48): the camera at the object plus that (rotated by the angles'
+// z, which is 0), looking with (−90, 0, 0), with 0x63e460's fov of 10 and scene 4's near and far.
 TEST(CreatePreviewTest, TheCameraIsRelativeToTheModel)
 {
     const Client::Render::Camera3D camera = PreviewCamera();
@@ -83,8 +82,8 @@ TEST(CreatePreviewTest, TheCameraIsRelativeToTheModel)
     EXPECT_FLOAT_EQ(camera.farPlane, Client::Camera::SelectionCamera().farPlane);
 }
 
-// 0x620db0(ftol(cx / rx), ftol(cy / ry), ftol(410 / rx), ftol(335 / ry)) con la esquina de la caja de
-// la ventana: (93, 37, 410, 335) en 640 × 480 y (178, 113, 256, 209) en 1024 × 768.
+// 0x620db0(ftol(cx / rx), ftol(cy / ry), ftol(410 / rx), ftol(335 / ry)) with the corner of the window's box:
+// (93, 37, 410, 335) at 640 × 480 and (178, 113, 256, 209) at 1024 × 768.
 TEST(CreatePreviewTest, TheViewportIs410By335FromTheBox)
 {
     const Client::Render::ViewportRect at640 =
@@ -101,9 +100,9 @@ TEST(CreatePreviewTest, TheViewportIs410By335FromTheBox)
     EXPECT_EQ(at1024.height, 209);
 }
 
-// 0x63e460 por clase: los ángulos y la escala, y la clase 2 corrida 4,8 en x y la 3 1,8 en z (de la
-// cámara, que se arma antes). El modelo es el NewFace de la clase, con la luz por vértice que prende
-// 0x511290 (+0xe8 en 1, 0x511be6) y el color en 4,8 que le pone 0x6002e0 a los 0xa8 a 0xac.
+// 0x63e460 per class: the angles and the scale, with class 2 shifted 4.8 in x and class 3 1.8 in z (of the camera,
+// which is built before). The model is the class's NewFace, with the per-vertex light 0x511290 turns on (+0xe8 at 1,
+// 0x511be6) and the color at 4.8 that 0x6002e0 gives 0xa8 to 0xac.
 TEST(CreatePreviewTest, EachClassHasItsAngleAndScale)
 {
     const FaceModels models;
@@ -134,10 +133,9 @@ TEST(CreatePreviewTest, EachClassHasItsAngleAndScale)
     }
 }
 
-// 0x63e3e0 arma el objeto de nuevo con la acción 1; 0x63e430 lo avanza 0,6 keys (la velocidad 0,3
-// por el 2 de 0x4f9580 con los NewFace) y, cuando la acción terminó, pasa a la 0. Las de los NewFace
-// repiten, así que termina por la regla de la escena 4 (0x4ec200 mira el frame + 2): con 4 keys, en el
-// cuarto paso (2,4 + 2 ≥ 4), y no en el séptimo.
+// 0x63e3e0 builds the object again with action 1; 0x63e430 advances it 0.6 keys (speed 0.3 times the 2 of 0x4f9580
+// with the NewFace) and, when the action has ended, moves to 0. The NewFace ones repeat, so it ends by scene 4's rule
+// (0x4ec200 looks at frame + 2): with 4 keys, on the fourth step (2.4 + 2 ≥ 4), and not on the seventh.
 TEST(CreatePreviewTest, ActionOneThenZero)
 {
     const FaceModels models;
@@ -154,7 +152,6 @@ TEST(CreatePreviewTest, ActionOneThenZero)
     StepPreview(preview, models);
     EXPECT_EQ(preview.animation.action, 0u);
 
-    // Otra clase: otra vez la 1 desde el principio.
     ChoosePreviewClass(preview, 3, models);
     EXPECT_EQ(preview.characterClass, 3u);
     EXPECT_EQ(preview.animation.action, 1u);

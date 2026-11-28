@@ -11,10 +11,10 @@
 #include <ostream>
 #include <vector>
 
-// El cliente de prueba de los tests del bucle (CL3.2, CL3.3 y CL4.1).
+// The loop tests' test client (CL3.2, CL3.3 and CL4.1).
 namespace Client::Tests
 {
-// Cada llamada del bucle al cliente, para mirar el orden.
+// Each call the loop makes to the client, to check the order.
 enum class LoopCall : std::uint8_t
 {
     Poll,
@@ -22,12 +22,12 @@ enum class LoopCall : std::uint8_t
     Render,
 };
 
-// Sin esto, GoogleTest muestra un vector de LoopCall como bytes sueltos.
+// Without this, GoogleTest shows a vector of LoopCall as loose bytes.
 void PrintTo(LoopCall call, std::ostream* out);
 
-// Cuenta polls, pasos y dibujos, anota el orden en que llegan, guarda cada alfa, y hace "tardar"
-// a cada uno lo que se le diga moviendo el FakeClock: así un test arma un frame de 130 ms, un
-// breakpoint de 10 s o una red que tarda 20 ms en cada poll.
+// Counts polls, steps and draws, records the order they arrive in, keeps each alpha, and makes each one "take" what
+// it is told by moving the FakeClock: so a test builds a 130 ms frame, a 10 s breakpoint or a network that takes
+// 20 ms on each poll.
 class RecordingClient final : public Scenes::ILoopClient
 {
 public:
@@ -44,22 +44,21 @@ public:
     Core::Duration renderCost{};
     std::uint64_t polls = 0;
     std::uint64_t steps = 0;
-    // Todas las llamadas, en orden.
     std::vector<LoopCall> calls;
-    // Uno por dibujo.
+    // One per draw.
     std::vector<float> alphas;
-    // Uno por FinishTheLoop: cuántas llamadas de `calls` había, para ver que va después del dibujo.
+    // One per FinishTheLoop: how many `calls` there were, to see it comes after the draw.
     std::vector<std::size_t> finishedLoops;
-    // Lo que contesta HoldsTheLastFrame: si el bucle tiene que dejar el último frame.
+    // What HoldsTheLastFrame answers.
     bool holdsTheLastFrame = false;
-    // Si cada paso lo prende, como el que entra al login y conecta: así un test ve que el bucle lo
-    // mira después de los pasos.
+    // Whether each step turns it on, like the one that enters the login and connects: so a test sees that the loop
+    // looks at it after the steps.
     bool holdsAfterAStep = false;
-    // Si cada paso cambia de escena, como el último de la carga: TakeTheSceneChange lo dice una vez.
+    // Whether each step changes the scene, like the loading's last: TakeTheSceneChange says so once.
     bool changesTheSceneInAStep = false;
-    // La tecla que mira cada paso; Count, que nunca se aprieta, si el test no mira ninguna.
+    // The key each step watches; Count, which is never pressed, if the test watches none.
     Input::Key watchedKey = Input::Key::Count;
-    // Uno por paso: si ese paso vio el apretón de watchedKey (WasPressed).
+    // One per step: whether that step saw watchedKey's press (WasPressed).
     std::vector<bool> sawPress;
 
 private:

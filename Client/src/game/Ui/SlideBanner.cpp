@@ -30,39 +30,40 @@ namespace
 {
 using Render::Text::FontKind;
 
-// 0x46b01d..0x46b04b: las dos colas en (0, 0x1ad), con el segundo 10 de 0x46a460.
+// 0x46b01d..0x46b04b: the two queues at (0, 0x1ad), with 0x46a460's second 10.
 constexpr std::int32_t SlideTop = 0x1ad;
 constexpr std::uint32_t FirstSecond = 10;
-// 0x46b73e y 0x46b746: hasta 30 repeticiones y los tipos de 0 a 5.
+// 0x46b73e and 0x46b746: up to 30 repeats and the kinds 0 to 5.
 constexpr std::int32_t MaxRepeats = 0x1e;
 constexpr std::int32_t LastKind = 5;
 constexpr std::int32_t FirstBoldKind = 3;
-// 0x46ac98: el tipo que entra con la clave 0.
+// 0x46ac98: the kind that goes in with key 0.
 constexpr std::int32_t AtOnceKind = 1;
-// 0x46ae07: el tipo que caduca, y a los cuántos segundos.
+// 0x46ae07: the kind that expires, and after how many seconds.
 constexpr std::int32_t ExpiringKind = -1;
 constexpr std::uint32_t ExpirySeconds = 0x3c;
-// 0x46ada0: un segundo de timeGetTime.
+// 0x46ada0: one timeGetTime second.
 constexpr std::uint32_t Second = 1000;
-// 0x46a9c0: 640 (0x6b8cb0) y el tope del buffer, 1024 (0x6b89b8).
+// 0x46a9c0: 640 (0x6b8cb0) and the buffer cap, 1024 (0x6b89b8).
 constexpr double DesignWidth = 640.0;
 constexpr double BufferBytes = 1024.0;
-// 0x46ab30 con 4: el pedazo de adelante.
+// 0x46ab30 with 4: the front chunk.
 constexpr std::size_t ChunkLetters = 4;
-// 0x46abc0: la velocidad de una entrada sin velocidad (0x40200000).
+// 0x46abc0: the speed of an entry without one (0x40200000).
 constexpr float DefaultSpeed = 2.5f;
-// 0x46a540: la opacidad sube y baja de a 30 hasta 205; las franjas restan 25 hasta 180 (0xb4), y el texto suma 50.
+// 0x46a540: the opacity rises and falls by 30 up to 205; the strips subtract 25 up to 180 (0xb4), and the text adds
+// 50.
 constexpr std::int32_t AlphaStep = 0x1e;
 constexpr std::int32_t MaxAlpha = 0xcd;
 constexpr std::int32_t PlainBandAlpha = 0xb4;
 constexpr std::int32_t BandFade = 0x19;
 constexpr std::int32_t TextLift = 0x32;
-// 0x6b88f8: 1/255 en float (0x3b808081).
+// 0x6b88f8: 1/255 as float (0x3b808081).
 constexpr float InverseByte = 1.0f / 255.0f;
-// 0x46a7e3..0x46a7ee: el parpadeo, la mitad de cada 10.
+// 0x46a7e3..0x46a7ee: the blink, half of every 10.
 constexpr std::int32_t BlinkCycle = 10;
 constexpr std::int32_t BlinkDim = 5;
-// 0x46a910: el rectángulo del mouse (0x459f00 con el modo 1), 3 arriba y 6 más que la letra.
+// 0x46a910: the mouse rectangle (0x459f00 with mode 1), 3 above and 6 more than the letter.
 constexpr std::int32_t HoverMode = 1;
 constexpr std::int32_t HoverAbove = 3;
 constexpr std::int32_t HoverExtra = 6;
@@ -92,7 +93,7 @@ void ResetTheQueue(SlideQueue& queue, FontKind font, std::uint32_t now)
     queue.alpha = 0;
 }
 
-// 0x46abf0(repeticiones, salto, texto, tipo, velocidad, color), con la escena y el texto ya mirados.
+// 0x46abf0(repeats, gap, text, kind, speed, color), with the scene and the text already checked.
 void Enqueue(SlideQueue& queue, std::int32_t repeats, std::uint16_t gap, std::string_view text, std::int32_t kind,
              float speed, std::uint32_t color)
 {
@@ -100,16 +101,16 @@ void Enqueue(SlideQueue& queue, std::int32_t repeats, std::uint16_t gap, std::st
     for (std::int32_t i = 0; i < repeats; ++i)
     {
         SlideEntry entry{.kind = kind, .text = std::string(text), .color = color, .speed = speed};
-        // 0x46ac98: el tipo 1 entra con la clave 0 (0x476040); los otros, con el segundo más el salto. El multimap
-        // (+0x8c en 1) inserta después de los de la misma clave, como std::multimap.
+        // 0x46ac98: kind 1 goes in with key 0 (0x476040); the others, with the second plus the gap. The multimap (+0x8c
+        // at 1) inserts after those with the same key, like std::multimap.
         const std::uint32_t key = kind == AtOnceKind ? 0U : queue.seconds + offset;
         queue.entries.emplace(key, std::move(entry));
         offset += gap;
     }
 }
 
-// 0x46ab30(texto, 4): los bytes del pedazo de adelante quedan en +0x8c0, salvo con el texto vacío, que no lo toca y
-// mide 0.
+// 0x46ab30(text, 4): the front chunk's bytes go in +0x8c0, except with the empty text, which does not touch it and
+// measures 0.
 std::int32_t MeasureTheChunk(SlideQueue& queue, const Render::Text::ITextMeasure& measure)
 {
     if (queue.text.empty())
@@ -119,8 +120,8 @@ std::int32_t MeasureTheChunk(SlideQueue& queue, const Render::Text::ITextMeasure
     return measure.Measure(queue.font, std::string_view(queue.text).substr(0, bytes)).width;
 }
 
-// 0x46a9c0(texto, color): los espacios de un ancho de pantalla y el texto, detrás de lo que pasa. Sin lugar en los
-// 0x400 bytes, false.
+// 0x46a9c0(text, color): a screen width of spaces and the text, behind what is scrolling. Without room in the 0x400
+// bytes, false.
 Core::Expected<bool, std::string> Append(SlideQueue& queue, const SlideEntry& entry, const SlideStepContext& context)
 {
     if (entry.text.empty())
@@ -129,7 +130,7 @@ Core::Expected<bool, std::string> Append(SlideQueue& queue, const SlideEntry& en
     context.dcFont = queue.font;
     if (context.measure == nullptr)
         return Core::Unexpected(std::string("0x46a9c0: no hay con qué medir el espacio del cartel"));
-    // 0x46aa2e..0x46aa52: 640 / cx · rx en la x87, hasta 1024. Un espacio de ancho 0 da infinito, que también para en
+    // 0x46aa2e..0x46aa52: 640 / cx · rx on the x87, up to 1024. A space of width 0 gives infinity, which also stops at
     // 1024.
     const std::int32_t space = context.measure->Measure(queue.font, " ").width;
     double spaces = BufferBytes;
@@ -143,7 +144,7 @@ Core::Expected<bool, std::string> Append(SlideQueue& queue, const SlideEntry& en
     return true;
 }
 
-// 0x46abc0: rx por la velocidad, o por 2,5 si no es positiva.
+// 0x46abc0: rx times the speed, or times 2.5 if it is not positive.
 void SetTheSpeed(SlideQueue& queue, float speed, Core::PixelSize screen)
 {
     if (speed <= 0.0f)
@@ -156,7 +157,7 @@ Core::Expected<void, std::string> StepTheQueue(SlideQueue& queue, const SlideSte
 {
     if (!IsIdle(queue))
         return {};
-    // 0x46ada0: suma sin signo.
+    // 0x46ada0: unsigned sum.
     if (static_cast<std::uint32_t>(queue.lastTick + Second) < context.now)
     {
         queue.lastTick = context.now;
@@ -181,15 +182,15 @@ Core::Expected<void, std::string> StepTheQueue(SlideQueue& queue, const SlideSte
     return {};
 }
 
-// 0x46a850: con el corrimiento pasado del pedazo de adelante, lo saca y suma su ancho.
+// 0x46a850: with the scroll past the front chunk, it drops it and adds its width.
 Core::Expected<void, std::string> DropTheChunk(SlideQueue& queue, const Render::Text::ITextMeasure& measure)
 {
     if (queue.chunkWidth == 0)
         queue.chunkWidth = MeasureTheChunk(queue, measure);
     if (!(static_cast<double>(queue.scroll) < -static_cast<double>(queue.chunkWidth)))
         return {};
-    // 0x46a8c9: strncpy con strlen − [+0x8c0], sin signo. Con menos bytes que el pedazo, el largo da la vuelta y el
-    // original escribe ceros fuera del buffer (Q-C518).
+    // 0x46a8c9: strncpy with strlen − [+0x8c0], unsigned. With fewer bytes than the chunk, the length wraps and the
+    // original writes zeros outside the buffer (Q-C518).
     if (queue.text.size() < queue.chunkBytes)
         return Core::Unexpected(std::string("0x46a850: el cartel tendría que sacar más bytes de los que le quedan "
                                             "(strncpy con un largo negativo, Q-C518)"));
@@ -199,8 +200,8 @@ Core::Expected<void, std::string> DropTheChunk(SlideQueue& queue, const Render::
     return {};
 }
 
-// 0x46a910: con el mouse sobre la franja frena de a 1 por dibujo, y si no acelera hasta la máxima. Las comparaciones
-// son con la suma en la x87; la velocidad se guarda en float.
+// 0x46a910: with the mouse over the strip it slows by 1 per draw, otherwise it speeds up to the maximum. The
+// comparisons use the sum on the x87; the speed is stored as float.
 void Scroll(SlideQueue& queue, const SlideDrawContext& context)
 {
     const bool hovered = Chat::MouseInRect(context.mouseX, context.mouseY, 0, queue.y - HoverAbove,
@@ -218,7 +219,7 @@ void Scroll(SlideQueue& queue, const SlideDrawContext& context)
     queue.scroll = F32(static_cast<double>(queue.scroll) - static_cast<double>(queue.velocity));
 }
 
-// La opacidad de las franjas finas y del texto: hasta 180 resta 25, sin bajar de 0.
+// The opacity of the thin strips and the text: up to 180 it subtracts 25, without going below 0.
 std::int32_t Faded(std::int32_t alpha)
 {
     return alpha <= PlainBandAlpha ? std::max(alpha - BandFade, 0) : alpha;
@@ -229,8 +230,8 @@ Render::Color Black(std::int32_t alpha)
     return Render::Color{0.0f, 0.0f, 0.0f, static_cast<float>(alpha & 0xff) / 255.0f};
 }
 
-// 0x46a540(forzado): `forced` apaga la cola aunque tenga texto (la normal, mientras pasa la gruesa), y sigue
-// dibujando y corriendo su texto mientras se apaga.
+// 0x46a540(forced): `forced` fades the queue out even if it has text (the normal one, while the thick one scrolls),
+// and it keeps drawing and scrolling its text while it fades.
 Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& queue, bool forced,
                                                const SlideDrawContext& context)
 {
@@ -256,8 +257,8 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
         return {};
     Render::SpriteBatch& sprites = context.sprites;
     const Core::PixelSize screen = sprites.Screen();
-    // 0x46a5c3..0x46a6b4: 0x620a00(1), las dos rayas de 1 y la franja, con 0x621aa0 y el ancho W en píxeles como si
-    // fuera de 640 × 480.
+    // 0x46a5c3..0x46a6b4: 0x620a00(1), the two 1-pixel lines and the strip, with 0x621aa0 and the width W in pixels as
+    // if it were 640 × 480.
     sprites.SetBlend(Render::BlendMode::Alpha);
     const auto width = static_cast<float>(screen.width);
     sprites.SetColor(Black(Faded(queue.alpha)));
@@ -265,7 +266,7 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
     sprites.ColorQuad(0.0f, static_cast<float>(queue.lineHeight + 2 + queue.y), width, 1.0f);
     sprites.SetColor(Black(std::max(queue.alpha - BandFade, 0)));
     sprites.ColorQuad(0.0f, static_cast<float>(queue.y - 2), width, static_cast<float>(queue.lineHeight + 4));
-    // 0x459ec0: glColor4f(1, 1, 1, 1) y GL_TEXTURE_2D.
+    // 0x459ec0: glColor4f(1, 1, 1, 1) and GL_TEXTURE_2D.
     sprites.SetColor(Render::Color{});
     sprites.EnableTexture();
     if (goingOut && !forced)
@@ -278,11 +279,11 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
         return dropped;
     if (queue.lineHeight == 0)
     {
-        // 0x46a74d: el alto de "Z" sobre ry, truncado, y la y sube eso (0x45a9d0).
+        // 0x46a74d: the height of "Z" over ry, truncated, and the y rises by that (0x45a9d0).
         queue.lineHeight = Render::Text::DesignY(context.text.Measure(queue.font, "Z").height, screen);
         queue.y -= queue.lineHeight;
     }
-    // 0x46a775..0x46a80a: el alfa del color por la opacidad (con 50 más) sobre 255, en la x87, y el byte de _ftol.
+    // 0x46a775..0x46a80a: the color's alpha times the opacity (plus 50) over 255, on the x87, and the _ftol byte.
     const std::uint32_t colorAlpha = queue.color >> 24U;
     const double lifted = static_cast<double>(Faded(queue.alpha) + TextLift) * static_cast<double>(colorAlpha);
     auto textAlpha = static_cast<std::uint32_t>(
@@ -291,7 +292,7 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
         textAlpha >>= 1U;
     context.textColors =
         Render::Text::TextColors{.text = (queue.color & 0xffffffU) + (textAlpha << 24U), .background = 0};
-    // 0x46a816..0x46a82b: 0x5542f0(_ftol(x + corrimiento), y, texto, 0, 6, 0).
+    // 0x46a816..0x46a82b: 0x5542f0(_ftol(x + scroll), y, text, 0, 6, 0).
     const auto x = static_cast<std::int32_t>(static_cast<double>(queue.x) + static_cast<double>(queue.scroll));
     context.text.DrawClippedAtLeft(x, queue.y, queue.text,
                                    Render::Text::TextStyle{.font = queue.font, .colors = context.textColors});
@@ -304,7 +305,8 @@ Core::Expected<void, std::string> DrawTheQueue(SlideBanner& banner, SlideQueue& 
 
 void LoadTheSlides(SlideBanner& banner, const Tables::SlideTable& table)
 {
-    // 0x46b3c4..0x46b3dc: con algún texto, 0x46b5b0 vacía las listas antes; los topes y las cuentas se pisan igual.
+    // 0x46b3c4..0x46b3dc: with some text, 0x46b5b0 empties the lists first; the caps and the counts are overwritten
+    // anyway.
     banner.periodSeconds = table.periodSeconds;
     banner.speed = table.speed;
     for (std::size_t group = 0; group < SlideGroups; ++group)
@@ -327,7 +329,7 @@ void ResetTheSlideQueues(SlideBanner& banner, std::uint32_t now)
 
 std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, Crt::CrtRandom& random)
 {
-    // 0x46b689..0x46b69d: CMP con JLE, con signo.
+    // 0x46b689..0x46b69d: CMP with JLE, signed.
     std::size_t group = 0;
     while (static_cast<std::int32_t>(level) > banner.maxLevels[group])
     {
@@ -337,7 +339,8 @@ std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, 
     const std::int32_t count = banner.counts[group];
     if (count == 0)
         return std::nullopt;
-    // 0x46b6c7..0x46b6de: IDIV y la comparación sin signo con la lista. rand() no es negativo: el resto tampoco.
+    // 0x46b6c7..0x46b6de: IDIV and the unsigned comparison with the list. rand() is not negative: neither is the
+    // remainder.
     const std::int32_t at = random.Next() % count;
     const std::vector<std::string>& texts = banner.texts[group];
     if (static_cast<std::uint32_t>(at) >= texts.size())
@@ -348,7 +351,7 @@ std::optional<std::string> PickASlide(SlideBanner& banner, std::uint16_t level, 
 void QueueTheSlide(SlideBanner& banner, std::int32_t repeats, std::uint16_t gap, std::string_view text,
                    std::int32_t kind, float speed, std::uint32_t color)
 {
-    // 0x46b72f..0x46b749: el texto, las repeticiones con signo y el tipo sin signo.
+    // 0x46b72f..0x46b749: the text, the signed repeats and the unsigned kind.
     if (text.empty() || repeats > MaxRepeats || kind < 0 || kind > LastKind)
         return;
     if (kind < FirstBoldKind)

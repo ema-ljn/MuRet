@@ -21,7 +21,7 @@ NoticeId Notice(NoticeId notice)
 
 std::optional<NoticeTexts> TextsOf(NoticeId notice)
 {
-    // La tabla de saltos de 0x6431b0, con los textos de 0x76bd1dc + 300 · índice.
+    // 0x6431b0's jump table, with the texts at 0x76bd1dc + 300 · index.
     switch (notice)
     {
     case 0x15:
@@ -140,7 +140,7 @@ NoticeId NoticeOfDeleteResult(std::uint8_t result)
 
 std::optional<NoticeId> NoticeOfLoginResult(std::uint8_t result)
 {
-    // 0x4e5ebc y 0x4e5f04; lo que no está en las tablas va al default de 0x4e2d66, el 0x1b.
+    // 0x4e5ebc and 0x4e5f04; what is not in the tables goes to 0x4e2d66's default, the 0x1b.
     switch (result)
     {
     case 0:

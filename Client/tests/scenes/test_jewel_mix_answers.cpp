@@ -29,10 +29,10 @@
 #include <utility>
 #include <vector>
 
-// Las respuestas del BC de la mezcla de joyas (0x4e4547 con 0x4e60a8 y 0x4da540 con 0x4da620, CL9 hitos 6 y 11): los
-// mensajes de tipo 1, el diálogo 0xa6 y la vuelta de 0x402e50, por Events::ApplyEventPacket. El GameServer 0.97 no
-// manda el BC; ninguna saca rand(). Textos inventados; el mundo, en Lorencia (0), Devias (2) y Noria (3), el mapa del
-// NPC de las joyas.
+// The BC answers of the jewel mix (0x4e4547 with 0x4e60a8 and 0x4da540 with 0x4da620, CL9 milestones 6 and 11): the
+// type 1 messages, dialog 0xa6 and the return of 0x402e50, through Events::ApplyEventPacket. GameServer 0.97 does not
+// send BC; none draws rand(). Made-up texts; the world in Lorencia (0), Devias (2) and Noria (3), the map of the jewel
+// NPC.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -43,7 +43,7 @@ namespace Events = Client::Protocol::Events;
 
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 3};
 constexpr std::uint32_t Seed = 0x2468;
-// 0x6284e5: el diálogo que espera el BC, y los de elegir (0xa2 juntar, 0xa4 deshacer) y del resultado (0xa6).
+// 0x6284e5: the dialog BC waits for, and those of the choice (0xa2 mix, 0xa4 unmix) and of the result (0xa6).
 constexpr std::int32_t WaitingDialog = 0xa5;
 constexpr std::int32_t ChoiceDialog = 0xa2;
 constexpr std::int32_t UnmixDialog = 0xa4;
@@ -89,7 +89,7 @@ struct Stage
         return {};
     }
 
-    // Lo que avisó 0x555190 con el tipo 1, en orden.
+    // What 0x555190 announced with type 1, in order.
     [[nodiscard]] std::vector<std::string> Messages() const
     {
         std::vector<std::string> messages;
@@ -120,13 +120,13 @@ struct Stage
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// En el heap: WorldState pesa unos 350 KB (la pila de MSVC es de 1 MB).
+// On the heap: WorldState weighs about 350 KB (the MSVC stack is 1 MB).
 std::unique_ptr<Stage> StageIn(std::int32_t map, std::int32_t mode = 0)
 {
     return std::make_unique<Stage>(map, mode);
 }
 
-// Lo que deja 0x402e50 con el modo 0 o 1: 0x6e5798 y 0x6e5799 en 0, la joya sin elegir y el diálogo de elegir.
+// What 0x402e50 leaves with mode 0 or 1: 0x6e5798 and 0x6e5799 at 0, the jewel unchosen and the choice dialog.
 void ExpectTheChoice(Stage& stage, std::int32_t dialog)
 {
     auto& npc = stage.Npc();
@@ -139,7 +139,7 @@ void ExpectTheChoice(Stage& stage, std::int32_t dialog)
     EXPECT_TRUE(stage.sent.empty());
 }
 
-// 0x4e4592: el BC 00 con 0, 2 o 3, "%s%s %s" con 1801, 1816 y 868, y 0x402e50 de vuelta al 0xa2.
+// 0x4e4592: BC 00 with 0, 2 or 3, "%s%s %s" with 1801, 1816 and 868, and 0x402e50 back to the 0xa2.
 TEST(JewelMixAnswersTest, TheMixFailuresShowTheSentenceAndReturnToTheChoice)
 {
     for (const std::int32_t map : Maps)
@@ -157,7 +157,7 @@ TEST(JewelMixAnswersTest, TheMixFailuresShowTheSentenceAndReturnToTheChoice)
     }
 }
 
-// 0x4e45f9 y 0x4e461e: el 4 con el 1817 y el 5 con el 1811, solos.
+// 0x4e45f9 and 0x4e461e: 4 with 1817 and 5 with 1811, alone.
 TEST(JewelMixAnswersTest, TheOtherMixAnswersShowTheirText)
 {
     for (const std::int32_t map : Maps)
@@ -173,7 +173,7 @@ TEST(JewelMixAnswersTest, TheOtherMixAnswersShowTheirText)
     }
 }
 
-// 0x4e45d9 y 0x4da5af: el 1 cierra el 0xa5 y abre el 0xa6, sin mensaje ni 0x402e50.
+// 0x4e45d9 and 0x4da5af: 1 closes the 0xa5 and opens the 0xa6, without a message or 0x402e50.
 TEST(JewelMixAnswersTest, TheSuccessOpensTheResultDialog)
 {
     for (const std::int32_t map : Maps)
@@ -192,8 +192,8 @@ TEST(JewelMixAnswersTest, TheSuccessOpensTheResultDialog)
     }
 }
 
-// 0x4da540: el BC 01 con 0 o 5 arma la frase con 1800; con 2, 3, 4 o 6 el 1812, con 7 el 1815 y con 8 el 1811. Todos
-// vuelven al 0xa4.
+// 0x4da540: BC 01 with 0 or 5 builds the sentence with 1800; with 2, 3, 4 or 6, 1812, with 7, 1815 and with 8, 1811.
+// All go back to the 0xa4.
 TEST(JewelMixAnswersTest, TheUnmixAnswersFollowTheirTable)
 {
     const std::array<std::pair<int, std::string_view>, 8> answers{{{0, "no se deshizo, falta zen"},
@@ -217,8 +217,8 @@ TEST(JewelMixAnswersTest, TheUnmixAnswersFollowTheirTable)
     }
 }
 
-// Fuera de las tablas (más de 5 con el 0, más de 8 con el 1), nada. Otro subcódigo no llega: la sesión registra el BC
-// solo con 0 y 1.
+// Outside the tables (above 5 with 0, above 8 with 1), nothing. Another subcode does not arrive: the session registers
+// BC only with 0 and 1.
 TEST(JewelMixAnswersTest, OutOfTheTablesNothingHappens)
 {
     for (const auto& [subcode, result] :
@@ -235,7 +235,7 @@ TEST(JewelMixAnswersTest, OutOfTheTablesNothingHappens)
     }
 }
 
-// 0x402e50 con un modo que no es 0 ni 1 cierra todo (0x402eb0): 0x402e10 y el C1 03 31 en claro.
+// 0x402e50 with a mode that is neither 0 nor 1 closes everything (0x402eb0): 0x402e10 and C1 03 31 in the clear.
 TEST(JewelMixAnswersTest, WithAnotherModeTheReturnClosesTheMix)
 {
     auto stage = StageIn(2, 7);
@@ -250,7 +250,7 @@ TEST(JewelMixAnswersTest, WithAnotherModeTheReturnClosesTheMix)
     EXPECT_EQ(stage->world.Runtime().dialogs.current, 0);
 }
 
-// El sprintf de 0x4e45ad escribe en 0x100 bytes: una frase de 0x100 o más (con su 0) corta.
+// The sprintf of 0x4e45ad writes into 0x100 bytes: a sentence of 0x100 or more (with its 0) stops.
 TEST(JewelMixAnswersTest, ASentenceThatDoesNotFitTheBufferCuts)
 {
     auto stage = StageIn(0);
@@ -263,7 +263,7 @@ TEST(JewelMixAnswersTest, ASentenceThatDoesNotFitTheBufferCuts)
 
     stage->texts =
         Client::Tests::MakeTextTable({{868, std::string(0x7f, 'z')}, {1801, std::string(0x7f, 'j')}, {1816, ""}});
-    // 0xff letras y el 0 entran justo; el área lo parte en renglones.
+    // 0xff letters and the 0 fit exactly; the area splits it into lines.
     ASSERT_TRUE(stage->Answer(Client::Protocol::JewelMix::MixSubcode, 0).HasValue());
     ASSERT_FALSE(stage->Messages().empty());
 }

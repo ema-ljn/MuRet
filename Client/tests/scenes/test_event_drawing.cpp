@@ -34,9 +34,9 @@
 #include <string_view>
 #include <vector>
 
-// CL9 hito 11, fase 2 (06 § Los eventos): los dibujos de los eventos en la pasada 2D, contra el ASM de c32bbd5f sin
-// traza de GL (*estático*; lo que la VM tiene que confirmar está en 08, P-C294). Text.bmd es inventado, con los
-// especificadores de los textos del original.
+// CL9 milestone 11, phase 2 (06 § Los eventos): the event drawings in the 2D pass, against the ASM of c32bbd5f with no
+// GL trace (*static*; what the VM has to confirm is in 08, P-C294). Text.bmd is made up, with the specifiers of the
+// original's texts.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -89,7 +89,7 @@ std::map<std::size_t, std::string> EventTexts()
     };
 }
 
-// El color de cada marca de texto del lote: el glColor que había al dibujarlo.
+// The color of each text mark of the batch: the glColor there was when it was drawn.
 std::vector<Color> MarkerColors(const SpriteBatch& sprites)
 {
     std::vector<Color> colors;
@@ -104,7 +104,7 @@ std::vector<Color> MarkerColors(const SpriteBatch& sprites)
     return colors;
 }
 
-// El color que hay en el lote: el de un rectángulo sin textura dibujado ahora (lo último de la prueba).
+// The color in the batch: that of an untextured rectangle drawn now (the test's last step).
 Color ColorNow(SpriteBatch& sprites)
 {
     sprites.ColorQuad(0.0f, 0.0f, 1.0f, 1.0f);
@@ -146,7 +146,7 @@ protected:
                               .worldClock = worldClock};
     }
 
-    // La x de 0x623690 con la medida del ITextDrawer de las pruebas.
+    // The x of 0x623690 with the measure of the tests' ITextDrawer.
     static int Centered(int x, std::string_view line)
     {
         return Client::Render::Text::CenteredAt(
@@ -154,7 +154,7 @@ protected:
             Screen640);
     }
 
-    // Un frame nuevo: el lote vacío y los globales del texto como los deja el HUD.
+    // A new frame: the batch empty and the text globals as the HUD leaves them.
     void Restart()
     {
         world->Runtime().hud.dcFont = FontKind::Normal;
@@ -173,10 +173,10 @@ protected:
 };
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x5a7eb0: el tiempo del F3 22.
+// 0x5a7eb0: the F3 22 time.
 
-// Con la palabra en 0, o con más de 10 minutos (660 s o más), no dibuja, no saca rand() (0x5bb8d0 no corre) y deja
-// los colores y la fuente como estaban.
+// With the word at 0, or with more than 10 minutes (660 s or more), it does not draw, draws no rand() (0x5bb8d0 does
+// not run) and leaves the colors and the font as they were.
 TEST_F(EventDrawingTest, TheEventTimeDrawsNothingWithoutTimeOrPastTenMinutes)
 {
     for (const std::uint16_t time : {std::uint16_t{0}, std::uint16_t{660}, std::uint16_t{719}, std::uint16_t{0xffff}})
@@ -194,9 +194,9 @@ TEST_F(EventDrawingTest, TheEventTimeDrawsNothingWithoutTimeOrPastTenMinutes)
     }
 }
 
-// Hasta 10 minutos: 1390 ("%d:0%d") con menos de 10 segundos y 1391 ("%d:%d") con 10 o más, con la fuente grande,
-// en 0xff0a0aff (0xff0affff con menos de un minuto) en (mitad del mundo, 350) y en blanco en (mitad + 1, 351). La
-// mitad sale de 0x5bb8d0, con sus rand(). Igual en Lorencia, en Devias y en un castillo.
+// Up to 10 minutes: 1390 ("%d:0%d") under 10 seconds and 1391 ("%d:%d") with 10 or more, in the big font, in
+// 0xff0a0aff (0xff0affff under a minute) at (world middle, 350) and in white at (middle + 1, 351). The middle comes
+// from 0x5bb8d0, with its rand(). The same in Lorencia, Devias and a castle.
 TEST_F(EventDrawingTest, TheEventTimeDrawsTwiceCenteredOnTheWorld)
 {
     struct Case
@@ -245,14 +245,14 @@ TEST_F(EventDrawingTest, TheEventTimeDrawsTwiceCenteredOnTheWorld)
             EXPECT_EQ(second.style.font, FontKind::BigBold);
             EXPECT_EQ(second.style.colors.text, WhiteText);
             EXPECT_EQ(random.State(), expected.State());
-            // 0x5a7ff4..0x5a8006: la fuente normal y el texto blanco.
+            // 0x5a7ff4..0x5a8006: the normal font and the white text.
             EXPECT_EQ(world->Runtime().hud.dcFont, FontKind::Normal);
             EXPECT_EQ(world->Runtime().hud.textColors.text, WhiteText);
         }
     }
 }
 
-// Con el tipo 3 (0x5767814), 1392 con los segundos y siempre en 0xff0affff, aunque falte más de un minuto.
+// With type 3 (0x5767814), 1392 with the seconds and always in 0xff0affff, even with more than a minute left.
 TEST_F(EventDrawingTest, TheStartKindDrawsTheSecondsInTheLastMinuteColor)
 {
     world->Runtime().events.timeKind = 3;
@@ -271,7 +271,7 @@ TEST_F(EventDrawingTest, TheStartKindDrawsTheSecondsInTheLastMinuteColor)
     }
 }
 
-// El sprintf va a 28 bytes de la pila ([ebp-0x1c]): un texto que no entra corta antes de dibujar.
+// The sprintf goes to 28 stack bytes ([ebp-0x1c]): a text that does not fit stops before drawing.
 TEST_F(EventDrawingTest, AnEventTimeLongerThanItsStackBufferCuts)
 {
     std::map<std::size_t, std::string> longTexts = EventTexts();
@@ -286,7 +286,7 @@ TEST_F(EventDrawingTest, AnEventTimeLongerThanItsStackBufferCuts)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x40c2d0 y 0x405090: el tiempo y los puntos de Blood Castle y de Chaos Castle.
+// 0x40c2d0 and 0x405090: the time and the points of Blood Castle and Chaos Castle.
 
 EventMapObject Castle(EventMapKind kind, std::uint8_t state, std::int32_t remaining, std::int32_t target,
                       std::int32_t kills)
@@ -298,8 +298,8 @@ EventMapObject Castle(EventMapKind kind, std::uint8_t state, std::int32_t remain
     return event;
 }
 
-// Devil Square (0x40bdb0 es un ret), un castillo sin estado o fuera de sus mapas (Lorencia, Devias, el otro castillo)
-// no dibujan ni tocan el lote.
+// Devil Square (0x40bdb0 is a ret), a castle without a state or outside its maps (Lorencia, Devias, the other castle)
+// do not draw or touch the batch.
 TEST_F(EventDrawingTest, TheCastleTimeDrawsNothingOutsideItsMaps)
 {
     struct Case
@@ -330,8 +330,8 @@ TEST_F(EventDrawingTest, TheCastleTimeDrawsNothingOutsideItsMaps)
     }
 }
 
-// En su mapa, el estado de mezcla, el blanco y los colores (0xff0096ff sobre 0) van antes de mirar el estado: con un
-// estado que no es de juego, o sin tiempo, quedan puestos y no dibuja.
+// In its map, the blend state, the white and the colors (0xff0096ff over 0) come before looking at the state: with a
+// state that is not a play state, or without time, they stay set and it does not draw.
 TEST_F(EventDrawingTest, TheCastleColorsAreSetBeforeTheStateIsRead)
 {
     struct Case
@@ -365,9 +365,9 @@ TEST_F(EventDrawingTest, TheCastleColorsAreSetBeforeTheStateIsRead)
     }
 }
 
-// Blood Castle con +0x10 en 1, 2 o 5 y tiempo: los puntos (864, o 866 con el 5) centrados en (570, 345) con la
-// fuente 0x5763558, 865 en (570, 357) y el tiempo de 0x40bbf0 en (570, 367) con la grande. Con 125 s quedan 2 minutos:
-// " 02 : 05" en 0xff2020ff y las centésimas del reloj del mundo (1234 ms → 34).
+// Blood Castle with +0x10 at 1, 2 or 5 and time: the points (864, or 866 with 5) centered at (570, 345) in font
+// 0x5763558, 865 at (570, 357) and the time of 0x40bbf0 at (570, 367) in the big one. With 125 s, 2 minutes are left:
+// " 02 : 05" in 0xff2020ff and the hundredths of the world clock (1234 ms → 34).
 TEST_F(EventDrawingTest, BloodCastleDrawsThePointsTheTitleAndTheTime)
 {
     worldClock = 1234.0f;
@@ -403,14 +403,13 @@ TEST_F(EventDrawingTest, BloodCastleDrawsThePointsTheTitleAndTheTime)
             EXPECT_EQ(text.texts[2].style.colors.text, 0xff2020ffu);
             for (const Color& color : MarkerColors(sprites))
                 ExpectColor(color, White);
-            // Blood Castle no escribe el área de la trampa.
             EXPECT_EQ(world->Runtime().chaosCastleArea, 0xff);
         }
     }
 }
 
-// Sin meta (+0x1c en 0xffff), sin puntos: 865 en 345 y el tiempo en 355. De 5 a 14 minutos, sin rojo y con las
-// centésimas; de 15 en adelante, sin ellas.
+// Without a target (+0x1c at 0xffff), no points: 865 at 345 and the time at 355. From 5 to 14 minutes, no red and with
+// the hundredths; from 15 on, without them.
 TEST_F(EventDrawingTest, TheCastleTimeWithoutATargetAndItsMinutes)
 {
     worldClock = 59999.0f;
@@ -440,8 +439,8 @@ TEST_F(EventDrawingTest, TheCastleTimeWithoutATargetAndItsMinutes)
     }
 }
 
-// Chaos Castle, de 6 a 8 en sus mapas: 1161 con los muertos y la meta, y después el área de la trampa (0x6c634c) por
-// +0x20: (40, 46] → 0, (30, 36] → 3, (20, 26] → 6; fuera de esos tramos queda como estaba.
+// Chaos Castle, from 6 to 8 in its maps: 1161 with the dead and the target, and then the trap area (0x6c634c) by
+// +0x20: (40, 46] → 0, (30, 36] → 3, (20, 26] → 6; outside those ranges it stays as it was.
 TEST_F(EventDrawingTest, ChaosCastleDrawsItsPointsAndPicksTheTrapArea)
 {
     struct Case
@@ -474,7 +473,6 @@ TEST_F(EventDrawingTest, ChaosCastleDrawsItsPointsAndPicksTheTrapArea)
     }
 }
 
-// Un dibujo intermedio de MuRet (projecting) dibuja igual pero no escribe el área.
 TEST_F(EventDrawingTest, AnIntermediateChaosCastleDrawDoesNotWriteTheArea)
 {
     world->Runtime().map = 18;
@@ -486,8 +484,8 @@ TEST_F(EventDrawingTest, AnIntermediateChaosCastleDrawDoesNotWriteTheArea)
     EXPECT_EQ(world->Runtime().chaosCastleArea, 0xff);
 }
 
-// 0x40bc96: el _ftol del reloj del mundo fuera del perfil de MuRet (un infinito) corta, con menos de 15 minutos; uno
-// grande da su dword bajo.
+// 0x40bc96: the _ftol of the world clock outside MuRet's profile (an infinity) stops, under 15 minutes; a large one
+// gives its low dword.
 TEST_F(EventDrawingTest, ACastleClockOutsideTheFtolProfileCuts)
 {
     worldClock = std::numeric_limits<float>::infinity();
@@ -500,7 +498,7 @@ TEST_F(EventDrawingTest, ACastleClockOutsideTheFtolProfileCuts)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x632a2b → el método +0x10: los textos de las cajas de los resultados.
+// 0x632a2b → method +0x10: the texts of the results boxes.
 
 void PutRecord(EventMapObject& event, std::size_t record, std::string_view name, std::int32_t points,
                std::int32_t experience, std::int32_t zen)
@@ -521,9 +519,9 @@ void NameTheHero(WorldState& world, std::string_view name)
         hero.name[at] = static_cast<std::byte>(name[at]);
 }
 
-// Devil Square (0x40bdd0): 647 y 648 con el nombre del héroe, los títulos 680, 682 (diez más a la derecha), 683 y 684
-// (sin el 681), y las filas: el registro (fila + 1) % cuenta, y en la última el propio (el 0) bajo 685, con el puesto
-// de +0x28. Los nombres llegan hasta 10 bytes.
+// Devil Square (0x40bdd0): 647 and 648 with the hero's name, titles 680, 682 (ten further right), 683 and 684 (without
+// 681), and the rows: record (row + 1) % count, and in the last the hero's own (record 0) under 685, with the rank of
+// +0x28. The names go up to 10 bytes.
 TEST_F(EventDrawingTest, TheDevilSquareRankingDrawsTheTitlesAndTheRows)
 {
     NameTheHero(*world, "Heroe");
@@ -545,7 +543,7 @@ TEST_F(EventDrawingTest, TheDevilSquareRankingDrawsTheTitlesAndTheRows)
         std::string_view text;
         std::uint32_t color;
     };
-    // Los colores del texto de los títulos son los que había (blanco); las filas van con los suyos.
+    // The title text colors are the ones there were (white); the rows use their own.
     const std::vector<Expected> expected{
         {0xe5, 0x46, "bien hecho", WhiteText},
         {0xe5, 0x56, "Heroe aguanto la prueba", WhiteText},
@@ -579,7 +577,7 @@ TEST_F(EventDrawingTest, TheDevilSquareRankingDrawsTheTitlesAndTheRows)
         EXPECT_EQ(text.texts[at].text, expected[at].text);
         EXPECT_EQ(text.texts[at].style.colors.text, expected[at].color);
     }
-    // glColor3f: (0,5, 1, 0,5) los títulos, (0,5, 0,5, 1) las columnas, blanco las filas y (0,9, 0,9, 0) la propia.
+    // glColor3f: (0.5, 1, 0.5) the titles, (0.5, 0.5, 1) the columns, white the rows and (0.9, 0.9, 0) the hero's own.
     const std::vector<Color> colors = MarkerColors(sprites);
     ASSERT_EQ(colors.size(), expected.size());
     const Color title{0.5f, 1.0f, 0.5f, 1.0f};
@@ -592,7 +590,7 @@ TEST_F(EventDrawingTest, TheDevilSquareRankingDrawsTheTitlesAndTheRows)
     }
 }
 
-// Con más de 11 registros, (fila + 1) % cuenta lee fuera de los 0x108 bytes de +0x2c: corta.
+// With more than 11 records, (row + 1) % count reads outside the 0x108 bytes of +0x2c: it stops.
 TEST_F(EventDrawingTest, ADevilSquareRankingPastItsRecordsCuts)
 {
     EventMapObject event;
@@ -604,8 +602,8 @@ TEST_F(EventDrawingTest, ADevilSquareRankingPastItsRecordsCuts)
     EXPECT_NE(drawn.Error().find("0x40bf1b"), std::string::npos) << drawn.Error();
 }
 
-// Blood Castle (0x40c440): 857 y 858 si ganó (+0x24), 859 y 860 si no, centrados en 0x140; después, con la fuente
-// 0x5763558, la experiencia (+0x3c), el zen (+0x40) solo si ganó y los puntos (+0x38).
+// Blood Castle (0x40c440): 857 and 858 if it won (+0x24), 859 and 860 if not, centered at 0x140; then, in font
+// 0x5763558, the experience (+0x3c), the zen (+0x40) only if it won and the points (+0x38).
 TEST_F(EventDrawingTest, TheBloodCastleResultDrawsWonAndLost)
 {
     for (const bool won : {true, false})
@@ -652,8 +650,8 @@ TEST_F(EventDrawingTest, TheBloodCastleResultDrawsWonAndLost)
     }
 }
 
-// Chaos Castle (0x405220): 1151 y "%s %s" con 1152 y 858 si ganó; "%s %s" con 1152 y 860 y 1153 si no; después la
-// experiencia (+0x3c), los monstruos (+0x38) y los jugadores (+0x40).
+// Chaos Castle (0x405220): 1151 and "%s %s" with 1152 and 858 if it won; "%s %s" with 1152 and 860 and 1153 if not;
+// then the experience (+0x3c), the monsters (+0x38) and the players (+0x40).
 TEST_F(EventDrawingTest, TheChaosCastleResultDrawsWonAndLost)
 {
     for (const bool won : {true, false})

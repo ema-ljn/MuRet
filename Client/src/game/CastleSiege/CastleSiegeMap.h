@@ -16,7 +16,7 @@ namespace Client::Terrain
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-// La transición de estado del asedio y sus archivos vivos (0x4294c0).
+// The siege state transition and its live files (0x4294c0).
 namespace Client::CastleSiege
 {
 

@@ -11,48 +11,42 @@
 #include <cstdint>
 #include <optional>
 
-// El bucle de juego (CL3.2): por frame, la red (el Poll de la CL4.1), los pasos de la lógica que
-// tocan y el dibujo. El reloj va inyectado, así que el mismo bucle corre con el de SDL en Main y
-// con uno falso en los tests.
+// The game loop (CL3.2): per frame, the network (the CL4.1 Poll), the logic steps due and the drawing.
 //
-// En Decoupled, el frame se mide de un Now() al siguiente, al empezar RunFrame después del Poll,
-// y va a un FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio, y
-// un frame con un cambio de escena lo vuelve a fijar después de sus pasos: lo que tarda entrar a una
-// escena no es tiempo del juego, como en el original, que no mide los pasos.
-// Con un tope de FPS (maxFps, el FpsCap de MuMain), después de dibujar duerme hasta la meta del
-// frame: 1 s / maxFps después de la del anterior, o de donde terminó el anterior si se pasó
-// (SleepRestOfFrame). Así lo que corre entre dos RunFrame no se suma, y el tope nunca da menos FPS
-// que no tenerlo. En Faithful, va a un FaithfulPacer: el Poll, BeginFrame, esos pasos,
-// StartMeasure, el dibujo con alfa 0 y EndFrame; el Poll queda fuera de la medición, y el tope no
-// se usa (Resolve no lo deja).
+// In Decoupled, the frame is measured from one Now() to the next, at the start of RunFrame after the Poll, and goes to
+// a FixedStep: the drawing is interpolated with its alpha. The first frame only sets the start, and a frame with a
+// scene change sets it again after its steps: the time to enter a scene is not game time, as in the original, which
+// does not measure the steps. With an FPS cap (maxFps, MuMain's FpsCap), after drawing it sleeps until the frame's
+// target: 1 s / maxFps after the previous one's, or after where the previous one ended if it overran
+// (SleepRestOfFrame). So what runs between two RunFrame does not add up, and the cap never gives fewer FPS than having
+// none. In Faithful, it goes to a FaithfulPacer: the Poll, BeginFrame, those steps, StartMeasure, the drawing with
+// alpha 0 and EndFrame; the Poll stays outside the measurement, and the cap is not used (Resolve does not allow it).
 namespace Client::App
 {
-// Lo que llevó el bucle hasta ahora, para --stats y para los tests.
 struct FrameStats
 {
     std::uint64_t frames = 0;
     std::uint64_t steps = 0;
-    // Solo Decoupled: los frames que pasaron MaxFrameTime y se recortaron.
+    // Decoupled only: the frames over MaxFrameTime that were clamped.
     std::uint64_t clampedFrames = 0;
     // Decoupled: FixedStep::Accumulated(); Faithful: AccumulatedMs().
     Core::Duration accumulated{};
-    // Solo Faithful: lo que sumó el último frame.
+    // Faithful only: what the last frame added.
     std::int32_t lastMeasuredMs = 0;
 };
 
 class GameLoop
 {
 public:
-    // maxFps: el tope de FPS del modo normal; 0 o menos es sin tope. Main pasa 0 o un valor de
-    // MinFpsLimit a MaxFpsLimit (Resolve y EffectiveMaxFps).
+    // maxFps: the normal mode's FPS cap; 0 or less is no cap. Main passes 0 or a value from MinFpsLimit to MaxFpsLimit
+    // (Resolve and EffectiveMaxFps).
     GameLoop(Core::IClock& clock, Scenes::ILoopClient& client, Kernel::PacingMode mode, int maxFps = 0);
-    // Un frame: un Poll, los pasos que tocan y el dibujo si `state.minimized` es falso y el
-    // cliente no retiene el último frame (ILoopClient::HoldsTheLastFrame). El Poll corre siempre,
-    // también minimizada y en un frame sin pasos. Sin dibujo, en Decoupled duerme hasta el próximo
-    // paso en vez de girar; en Faithful, la espera corre siempre.
-    // Cada paso recibe `input`, y después del primero GameLoop le llama a ConsumeEdges: un
-    // apretón lo ve un solo paso, y en un frame sin pasos `input` no se toca y el apretón espera
-    // al próximo (CL3.3, Q-C45). Devuelve cuántos pasos corrió.
+    // One frame: a Poll, the steps due and the drawing if `state.minimized` is false and the client does not hold the
+    // last frame (ILoopClient::HoldsTheLastFrame). The Poll always runs, also minimized and in a frame without steps.
+    // Without drawing, Decoupled sleeps until the next step instead of spinning; in Faithful, the wait always runs.
+    // Each step gets `input`, and after the first one GameLoop calls ConsumeEdges on it: a press is seen by a single
+    // step, and in a frame without steps `input` is untouched and the press waits for the next (CL3.3, Q-C45). Returns
+    // how many steps ran.
     int RunFrame(const Platform::WindowState& state, Input::InputState& input);
     [[nodiscard]] const FrameStats& Stats() const;
     [[nodiscard]] float LastAlpha() const;
@@ -61,20 +55,20 @@ private:
     int RunDecoupled(const Platform::WindowState& state, Input::InputState& input);
     int RunFaithful(const Platform::WindowState& state, Input::InputState& input);
     void RunSteps(int steps, Input::InputState& input);
-    // El tope de FPS, después de dibujar el frame que empezó en `frameStart`.
+    // The FPS cap, after drawing the frame that started at `frameStart`.
     void SleepRestOfFrame(Core::Duration frameStart);
 
     Core::IClock& m_clock;
     Scenes::ILoopClient& m_client;
     Kernel::PacingMode m_mode;
-    // 1 s / maxFps, o 0 sin tope.
+    // 1 s / maxFps, or 0 without a cap.
     Core::Duration m_minFrameTime{};
-    // Desde dónde cuenta la meta del próximo frame: hasta dónde durmió el último, o dónde terminó si
-    // se pasó. Vacía antes del primero, al minimizar y si el reloj volvió durante el frame.
+    // Where the next frame's target counts from: how far the last one slept, or where it ended if it overran. Empty
+    // before the first, when minimizing and if the clock went back during the frame.
     std::optional<Core::Duration> m_frameDeadline;
     FixedStep m_fixedStep;
     Kernel::FaithfulPacer m_pacer;
-    // El Now() del frame anterior; vacío antes del primero.
+    // Empty before the first frame.
     std::optional<Core::Duration> m_lastNow;
     FrameStats m_stats;
     float m_lastAlpha = 0.0f;

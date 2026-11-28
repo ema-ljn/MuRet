@@ -12,9 +12,9 @@
 #include <string>
 #include <utility>
 
-// Lo que arma la entrada de los tests de la UI (CL5.5): el mouse en un punto, un botón o una
-// tecla apretados o soltados, y un texto tecleado, como los mandaría Platform. Y los tamaños de
-// los buffers de las texturas, que en el cliente da SceneTextures::BufferSize.
+// What builds the input of the UI tests (CL5.5): the mouse at a point, a button or a key pressed or released, and
+// typed text, as Platform would send them. And the texture buffer sizes, which SceneTextures::BufferSize gives in the
+// client.
 namespace Client::Tests
 {
 inline void MoveMouse(Input::InputState& input, int x, int y)
@@ -33,7 +33,7 @@ inline void ReleaseLeft(Input::InputState& input)
     input.Apply(Input::InputEvent{.kind = Input::InputEvent::Kind::ButtonUp, .button = Input::MouseButton::Left});
 }
 
-// Apretar y soltar en el mismo paso, encima de (x, y).
+// Press and release in the same step, over (x, y).
 inline void ClickAt(Input::InputState& input, int x, int y)
 {
     MoveMouse(input, x, y);
@@ -51,7 +51,7 @@ inline void ReleaseKey(Input::InputState& input, Input::Key key)
     input.Apply(Input::InputEvent{.kind = Input::InputEvent::Kind::KeyUp, .key = key});
 }
 
-// Una tecla apretada y soltada en el mismo paso.
+// Pressed and released in the same step.
 inline void TapKey(Input::InputState& input, Input::Key key)
 {
     PressKey(input, key);
@@ -65,8 +65,7 @@ inline void TypeText(Input::InputState& input, std::string text)
     input.Apply(event);
 }
 
-// Los buffers de las texturas de un test: los de `sizes`, y 1 × 1 los demás, como BufferSize con
-// un slot que no se subió.
+// A test's texture buffers: those of `sizes`, and 1 × 1 the rest, like BufferSize with a slot that was not uploaded.
 inline Ui::TextureSizes FakeTextureSizes(std::map<std::uint16_t, Assets::TextureBufferSize> sizes)
 {
     return [sizes = std::move(sizes)](Render::TextureSlot slot)

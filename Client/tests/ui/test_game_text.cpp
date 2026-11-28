@@ -7,10 +7,9 @@
 #include <string_view>
 #include <vector>
 
-// Client::Ui::PlaceArguments: un texto de Text.bmd con sus "%s" y "%d" cambiados por los
-// argumentos, sin usarlo como formato (Q-C61, como PlaceVersion de la CL5.4). Lo usa el título de
-// la cuenta (los textos 460 y 461, con el grupo y el número; CL5.5). Y Client::Ui::SplitIntoLines,
-// los renglones de 0x632c90: la descripción de la lista, en dos de 83 bytes.
+// Client::Ui::PlaceArguments: a Text.bmd text with its "%s" and "%d" replaced by the arguments, without using it as
+// a format (Q-C61, like CL5.4's PlaceVersion). The account title uses it (texts 460 and 461, with the group and the
+// number; CL5.5). And Client::Ui::SplitIntoLines, 0x632c90's lines: the list's description, in two of 83 bytes.
 namespace
 {
 using Client::Ui::PlaceArguments;
@@ -24,7 +23,7 @@ TEST(GameTextTest, PlacesEachMarkInOrder)
     EXPECT_EQ(PlaceArguments("A %s b %d c", Arguments), "A x b 7 c");
 }
 
-// Una marca sin argumento queda como está, y un argumento de más no va a ningún lado.
+// An extra argument goes nowhere.
 TEST(GameTextTest, AMarkWithoutArgumentStays)
 {
     constexpr std::array<std::string_view, 1> One{"x"};
@@ -34,7 +33,7 @@ TEST(GameTextTest, AMarkWithoutArgumentStays)
     EXPECT_EQ(PlaceArguments("%s", Three), "x");
 }
 
-// El 201 del HUD, "Exp : %u/%u": el %u también es una marca.
+// The HUD's 201, "Exp : %u/%u".
 TEST(GameTextTest, TheUnsignedMarkTakesAnArgument)
 {
     constexpr std::array<std::string_view, 2> Two{"1", "2"};
@@ -42,8 +41,8 @@ TEST(GameTextTest, TheUnsignedMarkTakesAnArgument)
     EXPECT_EQ(PlaceArguments("Exp : %u/%u", Two), "Exp : 1/2");
 }
 
-// La cuenta del 380 (0x647ef0), "...en% d segundos.": con la bandera del espacio, un número sin
-// signo va con un espacio adelante, y uno negativo con su signo. Texto inventado.
+// The 380's countdown (0x647ef0), "...en% d segundos.": with the space flag, a number without a sign gets a space in
+// front, and a negative one its sign. Made-up text.
 TEST(GameTextTest, TheSpaceFlagPadsAnUnsignedNumber)
 {
     constexpr std::array<std::string_view, 1> Five{"5"};
@@ -53,7 +52,7 @@ TEST(GameTextTest, TheSpaceFlagPadsAnUnsignedNumber)
     EXPECT_EQ(PlaceArguments("faltan% d pasos", MinusOne), "faltan-1 pasos");
 }
 
-// Lo que no es "%s", "%d" ni "%u" queda: el texto no es un formato, y un "%n" no escribe nada.
+// Anything other than "%s", "%d" or "%u" stays: the text is not a format, and a "%n" writes nothing.
 TEST(GameTextTest, TheTextIsNotAFormat)
 {
     constexpr std::array<std::string_view, 1> One{"y"};
@@ -61,7 +60,7 @@ TEST(GameTextTest, TheTextIsNotAFormat)
     EXPECT_EQ(PlaceArguments("50% %n%s %x %", One), "50% %ny %x %");
 }
 
-// Un argumento con una marca no se vuelve a leer.
+// An argument containing a mark is not read again.
 TEST(GameTextTest, AnArgumentIsNotReadAgain)
 {
     constexpr std::array<std::string_view, 2> Arguments{"%s", "b"};
@@ -69,14 +68,14 @@ TEST(GameTextTest, AnArgumentIsNotReadAgain)
     EXPECT_EQ(PlaceArguments("%s %s", Arguments), "%s b");
 }
 
-// Un texto que entra es un renglón; uno vacío, un renglón vacío (0x632c90 devuelve 1).
+// An empty one is an empty line (0x632c90 returns 1).
 TEST(SplitIntoLinesTest, AShortTextIsOneLine)
 {
     EXPECT_EQ(SplitIntoLines("abc", 2, 83), (Lines{"abc"}));
     EXPECT_EQ(SplitIntoLines("", 2, 83), (Lines{""}));
 }
 
-// Un renglón tiene un byte menos que su lugar, por el '\0': con 83, entran 82.
+// Because of the '\0': with 83, 82 fit.
 TEST(SplitIntoLinesTest, ALineHoldsOneByteLessThanItsSize)
 {
     const std::string fits(82, 'a');
@@ -84,40 +83,39 @@ TEST(SplitIntoLinesTest, ALineHoldsOneByteLessThanItsSize)
     EXPECT_EQ(SplitIntoLines(fits + "b", 2, 83), (Lines{fits, "b"}));
 }
 
-// Con un espacio a menos de 10 bytes del carácter que no entra, corta después del espacio, que
-// queda al final del renglón, y sigue desde ahí.
+// With a space less than 10 bytes before the character that does not fit, it cuts after the space, which stays at the
+// end of the line, and goes on from there.
 TEST(SplitIntoLinesTest, CutsAfterASpaceWithinTen)
 {
     EXPECT_EQ(SplitIntoLines("aaaaaaaaaaaaaaa bbbbbbbbb", 2, 20), (Lines{"aaaaaaaaaaaaaaa ", "bbbbbbbbb"}));
 }
 
-// Con el espacio a 10 o más, corta en la palabra, justo antes del carácter que no entra.
+// Right before the character that does not fit.
 TEST(SplitIntoLinesTest, CutsInTheWordWhenTheSpaceIsTenOrMoreBack)
 {
     EXPECT_EQ(SplitIntoLines("aaaaaaaaa bbbbbbbbbbbbbbbbb", 2, 20), (Lines{"aaaaaaaaa bbbbbbbbb", "bbbbbbbb"}));
 }
 
-// El tope para volver es el menor de la mitad del renglón y 10: con 8, 4.
+// The back-off limit is the smaller of half the line and 10: with 8, 4.
 TEST(SplitIntoLinesTest, TheLimitIsHalfTheLineWhenShorter)
 {
     EXPECT_EQ(SplitIntoLines("ab cdefghij", 2, 8), (Lines{"ab cdef", "ghij"}));
     EXPECT_EQ(SplitIntoLines("abcd efghij", 2, 8), (Lines{"abcd ", "efghij"}));
 }
 
-// Con el último renglón lleno, lo que sigue no va; y el último también se corta en su espacio.
+// The last line is also cut at its space.
 TEST(SplitIntoLinesTest, WhatDoesNotFitInTheLastLineIsDropped)
 {
     EXPECT_EQ(SplitIntoLines("aaaabbbbcccc", 2, 5), (Lines{"aaaa", "bbbb"}));
     EXPECT_EQ(SplitIntoLines("aaaaaa bbbbb", 1, 10), (Lines{"aaaaaa "}));
 }
 
-// Un renglón nuevo puede empezar con el espacio que no entró en el de antes.
+// The space that did not fit in the line before.
 TEST(SplitIntoLinesTest, ANewLineCanStartWithTheSpace)
 {
     EXPECT_EQ(SplitIntoLines("abcde fgh", 2, 6), (Lines{"abcde", " fgh"}));
 }
 
-// Es un texto de C: termina en el primer '\0'.
 TEST(SplitIntoLinesTest, StopsAtTheFirstNul)
 {
     constexpr std::string_view WithNul{"ab\0cd", 5};

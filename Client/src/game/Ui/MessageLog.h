@@ -10,13 +10,13 @@
 #include <string>
 #include <string_view>
 
-// La entrada de los mensajes del juego (CL8 hito 3; 06 § El chat): 0x555190(nombre, texto, tipo), que llaman 98
-// lugares del original, y su reloj (0x5554b0). Primero va al registro nuevo (0x45bb20 por la vtable + 0x94, con el
-// cuarto argumento en 0) y después, si es para ella, al área vieja.
+// The game's message input (CL8 milestone 3; 06 § El chat): 0x555190(name, text, type), called from 98 places in the
+// original, and its clock (0x5554b0). It goes first to the new log (0x45bb20 through vtable + 0x94, with the fourth
+// argument at 0) and then, if it is for it, to the old area.
 namespace Client::Ui
 {
-// Lo que tocan 0x555190 y su reloj: las dos áreas, los modos del registro, el DC para medir y la opción del sonido
-// de los avisos (0x77f3b78, que pone el F3 30 y cambia el menú de Esc).
+// What 0x555190 and its clock touch: both areas, the log's modes, the DC to measure with and the notices' sound option
+// (0x77f3b78, which the F3 30 sets and the Esc menu changes).
 struct MessageSink
 {
     Chat::ChatLogState& log;
@@ -26,11 +26,11 @@ struct MessageSink
     bool noticeSound = false;
 };
 
-// 0x555190. Devuelve el sonido que pide el registro (0x26 con el filtro, ChatLog.h) o el error del corte.
+// 0x555190. Returns the sound the log asks for (0x26 with the filter, Chat/ChatLog.h) or the cut's error.
 [[nodiscard]] Core::Expected<std::optional<Audio::SoundId>, std::string>
 AddMessage(const MessageSink& sink, std::string_view name, std::string_view text, std::int32_t type);
 
-// 0x5554b0, por paso: con el reloj del área vieja en 0 o menos antes de bajarlo, 150 y un mensaje vacío
-// (0x555190 con 0x77f3bcc y 0x77f3bc8, dos textos vacíos de la .bss), que envejece el registro y corre el área.
+// 0x5554b0, per step: with the old area's clock at 0 or less before lowering it, 150 and an empty message (0x555190
+// with 0x77f3bcc and 0x77f3bc8, two empty .bss texts), which ages the log and shifts the area.
 [[nodiscard]] Core::Expected<std::optional<Audio::SoundId>, std::string> StepTheMessageClock(const MessageSink& sink);
 } // namespace Client::Ui

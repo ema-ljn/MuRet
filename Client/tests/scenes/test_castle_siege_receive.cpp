@@ -38,9 +38,9 @@
 #include <utility>
 #include <vector>
 
-// Los paquetes del castillo fuera de la batalla sobre el mundo (CL9 hito 12; 04 § Castle Siege, las ventanas del
-// castillo). Ningún caso mira el mapa: cada test corre en Lorencia (0), Devias (2) y el castillo (30). Los nombres y
-// los textos son inventados; el estado del rand() se compara para ver que ninguno saca.
+// The castle packets outside the battle on the world (CL9 milestone 12; 04 § Castle Siege, las ventanas del
+// castillo). No case looks at the map: each test runs in Lorencia (0), Devias (2) and the castle (30). The names and
+// the texts are made up; the rand() state is compared to see that none takes one.
 namespace
 {
 namespace Castle = Client::Protocol::CastleSiege;
@@ -104,14 +104,13 @@ protected:
         return context;
     }
 
-    // Aplica y espera que no corte.
     void Apply(const Castle::CastleSiegePacket& packet)
     {
         const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(packet, Context());
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
     }
 
-    // El error con que corta.
+    // The error it stops with.
     [[nodiscard]] std::string CutOf(const Castle::CastleSiegePacket& packet)
     {
         const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(packet, Context());
@@ -129,7 +128,7 @@ protected:
         return Runtime().castleSiege;
     }
 
-    // Los mensajes que llegaron al chat, en el orden en que llegaron (el registro guarda el último adelante).
+    // The chat messages in the order they arrived (the log keeps the last one first).
     [[nodiscard]] std::vector<std::string> Messages(std::int32_t type = Client::Ui::SystemMessage)
     {
         std::vector<std::string> texts;
@@ -142,13 +141,11 @@ protected:
         return texts;
     }
 
-    // El rand() no se movió.
     void ExpectNoRandom()
     {
         EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
     }
 
-    // Que un warning del log diga `part`.
     [[nodiscard]] bool Warned(std::string_view part) const
     {
         for (const std::string& line : m_sink.lines)
@@ -184,13 +181,13 @@ Castle::CastleState OwnedState(std::uint8_t result)
     state.dates[0] = {.year = 2026, .rest = {11, 14, 20, 30}};
     state.dates[2] = {.year = 1, .rest = {0xff, 0x80, 0x7f, 0}};
     state.ownerGuild = Name<8>("Roca");
-    state.ownerGuild[5] = std::byte{'x'}; // basura detrás del 0: strncpy la pone en 0
+    state.ownerGuild[5] = std::byte{'x'}; // garbage after the 0: strncpy sets it to 0
     state.ownerMaster = Name<10>("Lechuzaabc");
     state.remaining = 0x01020304;
     return state;
 }
 
-// 0x4e50f2: con el panel 0x80000 ya abierto, 0x6599a0 sale con 0 sin sacar rand() y 0x64b0f0 guarda todo.
+// 0x4e50f2: with panel 0x80000 already open, 0x6599a0 returns 0 without taking rand() and 0x64b0f0 stores everything.
 TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationOpenStoresTheCastleState)
 {
     Runtime().panels.delegated.castleSiege = 1;
@@ -209,7 +206,7 @@ TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationOpenStoresTheCastleState)
     ExpectNoRandom();
 }
 
-// 0x64b0f0 a secas: +4 en 1 aunque el panel estuviera cerrado.
+// 0x64b0f0 alone: +4 at 1 even if the panel was closed.
 TEST_P(CastleSiegeReceiveTest, StoreTheCastleStateMarksTheRegistrationOpen)
 {
     Client::CastleSiege::StoreTheCastleState(OwnedState(1), Runtime());
@@ -217,7 +214,7 @@ TEST_P(CastleSiegeReceiveTest, StoreTheCastleStateMarksTheRegistrationOpen)
     EXPECT_EQ(Castle().registration.state, -2);
 }
 
-// 0x65bef0..0x65bf0d y 0x64ae10: abrir pide B2 03 antes de guardar el estado de B2 00.
+// 0x65bef0..0x65bf0d and 0x64ae10: opening asks for B2 03 before storing B2 00's state.
 TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedOpensAndAsksForTheRegistration)
 {
     const auto applied = Client::CastleSiege::ApplyCastleSiegePacket(OwnedState(1), Context());
@@ -227,12 +224,12 @@ TEST_P(CastleSiegeReceiveTest, StateWithTheRegistrationClosedOpensAndAsksForTheR
     ASSERT_EQ(m_sent.size(), 1u);
     EXPECT_TRUE(SameBytes(Xor32Decode(std::move(m_sent[0].packet)).Bytes(), Bytes({0xc1, 4, 0xb2, 3})));
 
-    // 0x6599be: ya abierta, la siguiente respuesta no vuelve a pedir la lista.
+    // 0x6599be: already open, the next reply does not ask for the list again.
     Apply(OwnedState(2));
     EXPECT_EQ(m_sent.size(), 1u);
 }
 
-// 0x657b76..0x657b99 llama 0x64b200: C1 03 31 antes de apagar el byte abierto.
+// 0x657b76..0x657b99 calls 0x64b200: C1 03 31 before turning off the open byte.
 TEST_P(CastleSiegeReceiveTest, ClosingTheRegistrationSendsTheWindowCloseOnlyOnce)
 {
     Runtime().panels.delegated.castleSiege = 1;
@@ -295,7 +292,7 @@ TEST_P(CastleSiegeReceiveTest, StateWithZeroThreeOrFourShowsItsMessage)
     EXPECT_EQ(Castle().registration.state, -1);
 }
 
-// B2 01 (0x4df080): del 1503 al 1511, y con 1 el gremio queda registrado (0x64d290(1)).
+// B2 01 (0x4df080): from 1503 to 1511, and with 1 the guild is registered (0x64d290(1)).
 TEST_P(CastleSiegeReceiveTest, RegisterShowsOneMessagePerResult)
 {
     std::vector<std::string> expected;
@@ -310,7 +307,7 @@ TEST_P(CastleSiegeReceiveTest, RegisterShowsOneMessagePerResult)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// B2 02 con 1 (0x4df1e7): el C1 04 B2 03 y el C1 03 B4, el registro en 0 y el 1513.
+// B2 02 with 1 (0x4df1e7): C1 04 B2 03 and C1 03 B4, the registration at 0 and 1513.
 TEST_P(CastleSiegeReceiveTest, GiveUpWithOneAsksAgainAndClearsTheRegistration)
 {
     Castle().registration.registered = 1;
@@ -336,7 +333,7 @@ TEST_P(CastleSiegeReceiveTest, GiveUpWithOneAndNoGameServerCutsBeforeAnything)
     EXPECT_TRUE(Messages().empty());
 }
 
-// B2 03 (0x4e5186): con 0 o 2 el registro en 0; con 1, registrado si pkt[0x11] es 0, y las marcas.
+// B2 03 (0x4e5186): with 0 or 2 the registration at 0; with 1, registered if pkt[0x11] is 0, and the marks.
 TEST_P(CastleSiegeReceiveTest, RegistrationInfoSetsTheRegistrationAndTheMarks)
 {
     Apply(Castle::RegistrationInfo{.result = 1, .marks = 300, .gaveUp = 0});
@@ -376,7 +373,7 @@ std::array<std::uint8_t, 0x1c> RecordAt(const CastleData& data, std::uint32_t ad
     return record;
 }
 
-// B2 05 con 1 (0x4df806 → 0x668fd0): el registro de la pila, 500000 de vida para una puerta y 400000 para una estatua.
+// B2 05 with 1 (0x4df806 → 0x668fd0): the record from the stack, 500000 life for a gate and 400000 for a statue.
 TEST_P(CastleSiegeReceiveTest, NpcBuyWithOneStoresTheBoughtRecord)
 {
     Apply(Castle::NpcBuyResult{.result = 1, .type = 0x115, .index = 2});
@@ -391,8 +388,8 @@ TEST_P(CastleSiegeReceiveTest, NpcBuyWithOneStoresTheBoughtRecord)
     EXPECT_TRUE(Messages().empty());
 }
 
-// 0x668fd0 no copia un tipo que no es puerta ni estatua; la puerta 7 cae sobre las elegidas y los impuestos, dentro de
-// la zona; la 8 saldría de la zona y se descarta (Q-C1360).
+// 0x668fd0 does not copy a type that is neither gate nor statue; gate 7 falls on the selections and the taxes, inside
+// the zone; gate 8 would leave the zone and is discarded (Q-C1360).
 TEST_P(CastleSiegeReceiveTest, NpcBuyWritesWhereTheIndexSaysOrDiscardsOutsideTheZone)
 {
     Apply(Castle::NpcBuyResult{.result = 1, .type = 0x120, .index = 0});
@@ -414,7 +411,7 @@ TEST_P(CastleSiegeReceiveTest, NpcBuyMessages)
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1519), Text(1386), Text(1520), Text(1616)}));
 }
 
-// B2 06 con 1 (0x4e52ec): 0x669030 elige las puertas solo con 0x115; pkt+0x10 va a +0x14 y pkt+0x14 a +0x10.
+// B2 06 with 1 (0x4e52ec): 0x669030 picks the gates only with 0x115; pkt+0x10 goes to +0x14 and pkt+0x14 to +0x10.
 TEST_P(CastleSiegeReceiveTest, NpcRepairWritesBothLivesCrossed)
 {
     Apply(Castle::NpcRepairResult{.result = 1, .type = 0x115, .index = 1, .life = 111, .maxLife = 222});
@@ -432,7 +429,7 @@ TEST_P(CastleSiegeReceiveTest, NpcRepairWritesBothLivesCrossed)
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1519), Text(1386), Text(1520)}));
 }
 
-// B2 07 con 1 (0x4df9a5): 1 la defensa (+8), 2 la recuperación (+0xc), 3 las dos vidas; otro, nada.
+// B2 07 with 1 (0x4df9a5): 1 defense (+8), 2 recovery (+0xc), 3 both lives; another, nothing.
 TEST_P(CastleSiegeReceiveTest, NpcUpgradeWritesWhatItSays)
 {
     const std::uint32_t gate = 0x7d5c574 + 0x1c;
@@ -454,7 +451,7 @@ TEST_P(CastleSiegeReceiveTest, NpcUpgradeWritesWhatItSays)
                                                     Text(1523), Text(1524)}));
 }
 
-// B2 08 con 1 (0x669070): los dos pares de impuestos y la plata.
+// B2 08 with 1 (0x669070).
 TEST_P(CastleSiegeReceiveTest, TaxInfoWritesBothTaxPairsAndTheMoney)
 {
     Apply(Castle::TaxInfo{.result = 1, .chaosTax = 3, .storeTax = 7, .money = 0x0102030405060708});
@@ -469,7 +466,7 @@ TEST_P(CastleSiegeReceiveTest, TaxInfoWritesBothTaxPairsAndTheMoney)
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1525), Text(1386)}));
 }
 
-// B2 09 con 1 (0x4e541b, 0x6690f0): el 3 al precio de la zona de caza; el 1 y el 2 a su par de impuestos.
+// B2 09 with 1 (0x4e541b, 0x6690f0): 3 to the hunting zone's price; 1 and 2 to their tax pair.
 TEST_P(CastleSiegeReceiveTest, TaxRateWritesTheFeeOrOneTaxPair)
 {
     Apply(Castle::TaxRateResult{.result = 1, .kind = 3, .value = 100000});
@@ -497,7 +494,7 @@ TEST_P(CastleSiegeReceiveTest, MoneyOutWritesTheMoney)
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(1527), Text(1386)}));
 }
 
-// B2 1A (0x4e54f6): pkt[4] en 1 a 0x78aba34, en 2 a 0x78aba30.
+// B2 1A (0x4e54f6): pkt[4] at 1 to 0x78aba34, at 2 to 0x78aba30.
 TEST_P(CastleSiegeReceiveTest, SiegeFlagsUpdateTheCanonicalNpcTaxesWithoutChangingTheOtherRate)
 {
     Runtime().npcWindows.taxRate = 0x1234;
@@ -511,7 +508,7 @@ TEST_P(CastleSiegeReceiveTest, SiegeFlagsUpdateTheCanonicalNpcTaxesWithoutChangi
     ExpectNoRandom();
 }
 
-// B2 1F (0x4e5532): con 1, SETNZ de pkt[5] en +0x15; con 0 y 2, los diálogos del hito 8.
+// B2 1F (0x4e5532): with 1, SETNZ of pkt[5] at +0x15; with 0 and 2, the milestone 8 dialogs.
 TEST_P(CastleSiegeReceiveTest, HuntZoneGateKeepsTheEntryAndReplacesTheFailureDialogs)
 {
     Apply(Castle::HuntZoneGateResult{.result = 1, .allowed = 0x40});
@@ -538,7 +535,7 @@ Castle::NpcRecord RecordOf(std::uint32_t type, std::uint32_t index, std::uint8_t
     return record;
 }
 
-// B3 con 1 (0x4dfc60 → 0x668fd0 por registro): cada uno entero donde dice; uno fuera de la zona descarta el paquete.
+// B3 with 1 (0x4dfc60 → 0x668fd0 per record): each whole where it says; one outside the zone discards the packet.
 TEST_P(CastleSiegeReceiveTest, NpcListStoresEveryRecordOrNone)
 {
     Apply(Castle::NpcList{.result = 1,
@@ -560,7 +557,7 @@ TEST_P(CastleSiegeReceiveTest, NpcListStoresEveryRecordOrNone)
     EXPECT_EQ(Messages(), (std::vector<std::string>{Text(860), Text(1386)}));
 }
 
-// B4 y B5 con 1: las listas de [0x7d536f8] son de las ventanas (P-C300).
+// B4 and B5 with 1: the lists of [0x7d536f8] belong to the windows (P-C300).
 TEST_P(CastleSiegeReceiveTest, GuildListsShowTheirMessagesAndAcceptEmptyLists)
 {
     Apply(Castle::SiegeGuildList{.result = 0, .entries = {}});
@@ -598,7 +595,7 @@ TEST_P(CastleSiegeReceiveTest, SuccessfulGuildListsClearTheEntriesAndSelectionBu
     ExpectNoRandom();
 }
 
-// B6 (0x4e0ed0): sólo clase2; vacía el vector y añade los puntos con índice0, también con cuenta0.
+// B6 (0x4e0ed0): only class 2; empties the vector and appends the points with index 0, also with count 0.
 TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
 {
     const Castle::MinimapPoints points{.points = {{.x = 1, .y = 2}}};
@@ -619,7 +616,7 @@ TEST_P(CastleSiegeReceiveTest, MinimapPointsOnlyCountWithTheKindTwoPanel)
     ExpectNoRandom();
 }
 
-// B8 01 (0x4e0700) sobre el héroe: otro valor a +0x372; 0 devuelve la habilidad guardada (+0x373) a +0x425.
+// B8 01 (0x4e0700) on the hero: another value to +0x372; 0 returns the stored skill (+0x373) to +0x425.
 TEST_P(CastleSiegeReceiveTest, KillCountWritesTheHero)
 {
     Runtime().hero = 17;
@@ -717,7 +714,7 @@ TEST_P(CastleSiegeReceiveTest, HuntInformationNormalizesAccessAndCopiesTheSigned
     EXPECT_EQ(hunt.step, 7);
     EXPECT_EQ(Runtime().panels.delegated.secondCastleSiege, 1);
     EXPECT_TRUE(m_sent.empty());
-    // 659860 y657ab0 consultan comercio y tienda NPC: dos cierres protegidos en cada uno.
+    // 0x659860 and 0x657ab0 check trade and the NPC shop: two protected closes in each.
     CrtRandom expected(Seed);
     expected.Discard(4);
     EXPECT_EQ(m_random.State(), expected.State());

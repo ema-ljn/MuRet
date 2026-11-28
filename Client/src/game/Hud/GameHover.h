@@ -21,11 +21,11 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-// El hover y Alt del juego (CL8 hito 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0, lo segundo de la
-// pasada 2D (0x637650), entre los textos 3D (0x4383f0) y el HUD (0x5a7320). Pone el nombre del elegido bajo el mouse
-// (un NPC o un jugador en un globo con 0x557170, un monstruo arriba al medio con 0x623690) y, con Alt, los nombres
-// de los ítems del piso (0x5ba790, CL9 hito 5: Scenes/FloorItemNames.h). Lee lo que deja el picking del frame
-// (0x59ec80): los personajes desde la CL9 (hito 1) y el ítem del piso desde el hito 5; los objetos quedan en −1.
+// The game's hover and Alt (CL8 milestone 6; 06 § HUD y ventanas, "La pasada 2D del juego"): 0x5bbbc0, second in the
+// 2D pass (0x637650), between the 3D texts (0x4383f0) and the HUD (0x5a7320). It puts the name of the chosen one under
+// the mouse (an NPC or a player in a bubble with 0x557170, a monster at the top center with 0x623690) and, with Alt,
+// the floor items' names (0x5ba790, CL9 milestone 5: Items/FloorItemNames.h). It reads what the frame's picking leaves
+// (0x59ec80): the characters since CL9 (milestone 1) and the floor item since milestone 5; the objects stay at −1.
 namespace Client::Render::Frame
 {
 class ITextDrawer;
@@ -44,40 +44,40 @@ struct GameHudContext;
 struct GameHoverContext
 {
     Kernel::WorldState& world;
-    // Los ítems del piso (0x77f46d0, 1000 de 0x220 bytes) del dibujo de este frame.
+    // The floor items (0x77f46d0, 1000 of 0x220 bytes) of this frame's drawing.
     const Kernel::GameDrawTailState& tail;
-    // El rand() del frame, para el ancho del mundo (0x5bb8d0) del nombre de un monstruo.
+    // The frame's rand(), for the world width (0x5bb8d0) of a monster's name.
     Crt::CrtRandom& random;
-    // 0x6c8e28 (el ítem del piso), 0x6c8e2c (el NPC), 0x6c8e30 (el personaje), 0x6c8e34 y 0x6c8e38, como los dejó el
-    // picking de este frame.
+    // 0x6c8e28 (the floor item), 0x6c8e2c (the NPC), 0x6c8e30 (the character), 0x6c8e34 and 0x6c8e38, as this frame's
+    // picking left them.
     const std::array<std::int32_t, 5>& targets;
-    // 0x77f3b66 (durabilityWarning), la fuente del DC, 0x6c8e5c y 0x6c8e64, y 0x77f31b8 y 0x77f31bc.
+    // 0x77f3b66 (durabilityWarning), the DC font, 0x6c8e5c and 0x6c8e64, and 0x77f31b8 and 0x77f31bc.
     Kernel::HudState& hud;
-    // 0x77f36d4 + 0x12 · 4, el latch de Alt de 0x553520, y 0x78abb38, los nombres del piso prendidos. Solo los usa esta
-    // función.
+    // 0x77f36d4 + 0x12 · 4, 0x553520's Alt latch, and 0x78abb38, the floor names on. Only this function uses them.
     std::int32_t& altLatch;
     std::uint8_t& altNames;
-    // GetAsyncKeyState(0x12) en el momento del dibujo.
+    // GetAsyncKeyState(0x12) at drawing time.
     bool altDown = false;
     Render::SpriteBatch& sprites;
     Render::Frame::ITextDrawer& text;
-    // Un dibujo intermedio de MuRet no escribe los globos (0x557170): el dibujo de los globos lee una copia de la
-    // tabla del último frame del original, que es el que los escribe. Los demás estado que escribe le llegan en copias.
+    // A MuRet intermediate drawing does not write the bubbles (0x557170): the bubbles' drawing reads a copy of the
+    // table from the original's last frame, which is the one that writes them. The rest of the state it writes reaches
+    // it in copies.
     bool projecting = false;
-    // Text.bmd: los puestos del gremio del globo (0x556dd0).
+    // Text.bmd: the bubble's guild positions (0x556dd0).
     const Tables::TextTable* texts = nullptr;
-    // Lo que lee el nombre de un ítem del piso (0x5ba790): Item.bmd, Text.bmd, Skill.bmd y los conjuntos, el mouse y el
-    // mismo `hud`, `sprites` y `text`. Sin él, un nombre corta.
+    // What a floor item's name reads (0x5ba790): Item.bmd, Text.bmd, Skill.bmd and the sets, the mouse and the same
+    // `hud`, `sprites` and `text`. Without it, a name stops.
     GameHudContext* names = nullptr;
 };
 
-// 0x5bbbc0: en Chaos Castle (18 a 23), sin "webzen" en el nombre del héroe, con un NPC o un personaje elegido no hace
-// nada. Si no, 0x77f3b66 en 1, glColor3f(1, 1, 1), 0x620980 (sin mezcla) y, en este orden: con un NPC elegido, su
-// nombre solo en un globo (0x557170 con el texto vacío de 0x78abb3c, el modo 0 y sin color); si no, con un personaje
-// y 0x6c8e38 en −1, un monstruo (+0x88 en 2) va con su nombre centrado en la mitad del ancho del mundo y en y = 10
-// (0x623690, con la fuente del DC, el fondo 0xff000064 y el texto 0xffc8e6ff) y los demás, sin tienda personal en
-// 0x7245c8 (0x451770), en un globo como el NPC; si no, con un ítem del piso elegido, su nombre en el mouse
-// (0x5ba790 con 0). Después Alt: el flanco (0x553520(0x12)) invierte 0x78abb38, y con él prendido o Alt abajo, el
-// nombre de cada ítem del piso vivo y a la vista que no es el elegido, en su proyección (0x5ba790 con 1).
+// 0x5bbbc0: in Chaos Castle (18 to 23), without "webzen" in the hero's name, with an NPC or a character chosen it does
+// nothing. Otherwise, 0x77f3b66 at 1, glColor3f(1, 1, 1), 0x620980 (no blend) and, in this order: with an NPC chosen,
+// its name alone in a bubble (0x557170 with the empty text of 0x78abb3c, mode 0 and no color); otherwise, with a
+// character and 0x6c8e38 at −1, a monster (+0x88 at 2) goes with its name centered at half the world width and at
+// y = 10 (0x623690, with the DC font, the background 0xff000064 and the text 0xffc8e6ff) and the rest, without a
+// personal shop at 0x7245c8 (0x451770), in a bubble like the NPC; otherwise, with a floor item chosen, its name at the
+// mouse (0x5ba790 with 0). Then Alt: the edge (0x553520(0x12)) flips 0x78abb38, and with it on or Alt down, the name
+// of each live and visible floor item that is not the chosen one, at its projection (0x5ba790 with 1).
 [[nodiscard]] Core::Expected<void, std::string> DrawTheHover(GameHoverContext& context);
 } // namespace Client::Hud

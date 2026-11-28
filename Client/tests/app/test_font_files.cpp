@@ -11,10 +11,10 @@
 #include <utility>
 #include <vector>
 
-// Client::App::ChooseFontFiles: de dónde sale la fuente del texto (pregunta 8 del plan de la CL5).
-// La config manda; sin [Video] FontFile, la búsqueda del sistema (la de Windows, en Platform) con
-// la cara del texto 0 de Text.bmd; sin búsqueda o sin la cara, un error que nombra la clave y no la
-// cara. La cara de estos tests es inventada, y la búsqueda, una falsa que anota lo que le piden.
+// Client::App::ChooseFontFiles (question 8 of the CL5 plan). The config wins; without [Video] FontFile, the system
+// search (Windows', in Platform) with the face of text 0 of Text.bmd; without a search or the face, an error that
+// names the key and not the face. The face in these tests is made up, and the search is a fake that records what it
+// is asked.
 namespace
 {
 using Client::App::ChooseFontFiles;
@@ -24,7 +24,6 @@ using Client::App::SystemFontSearch;
 
 constexpr std::string_view Face = "Cara de prueba";
 
-// Lo que le pidieron a la búsqueda falsa: la cara y si era la negrita.
 struct Request
 {
     std::string face;
@@ -33,7 +32,7 @@ struct Request
     bool operator==(const Request&) const = default;
 };
 
-// Una búsqueda falsa: encuentra la normal y la negrita de `Face` si `found`, y anota cada pedido.
+// Finds the regular and the bold of `Face` if `found`, and records each request.
 SystemFontSearch FakeSearch(std::vector<Request>& requests, bool found = true, bool hasBold = true)
 {
     return [&requests, found, hasBold](std::string_view face, bool bold) -> std::optional<std::filesystem::path>
@@ -55,7 +54,7 @@ ClientConfig WithFonts(std::optional<std::filesystem::path> regular, std::option
     return config;
 }
 
-// Con [Video] FontFile, la búsqueda no corre: van los dos archivos de la config.
+// With [Video] FontFile, the search does not run: the config's two files are used.
 TEST(FontFilesTest, TheConfigWins)
 {
     std::vector<Request> requests;
@@ -68,8 +67,7 @@ TEST(FontFilesTest, TheConfigWins)
     EXPECT_TRUE(requests.empty());
 }
 
-// Sin BoldFontFile, la negrita la arma FreeTypeRasterizer (FT_Outline_EmboldenXY): no se busca
-// otra.
+// Without BoldFontFile, FreeTypeRasterizer builds the bold (FT_Outline_EmboldenXY): no other one is searched.
 TEST(FontFilesTest, WithoutABoldFileTheBoldIsSynthetic)
 {
     std::vector<Request> requests;
@@ -82,8 +80,8 @@ TEST(FontFilesTest, WithoutABoldFileTheBoldIsSynthetic)
     EXPECT_TRUE(requests.empty());
 }
 
-// Sin la clave se busca la cara, y su negrita, como CreateFontA con peso 700 elige la negrita de la
-// cara si el sistema la tiene.
+// Without the key the face is searched, and its bold, as CreateFontA with weight 700 picks the face's bold if the
+// system has it.
 TEST(FontFilesTest, WithoutTheKeyTheSystemListIsSearched)
 {
     std::vector<Request> requests;
@@ -96,7 +94,6 @@ TEST(FontFilesTest, WithoutTheKeyTheSystemListIsSearched)
     EXPECT_EQ(requests, (std::vector<Request>{{std::string(Face), false}, {std::string(Face), true}}));
 }
 
-// Una cara sin negrita en el sistema queda con la negrita armada.
 TEST(FontFilesTest, AFaceWithoutBoldInTheSystemHasTheSyntheticOne)
 {
     std::vector<Request> requests;
@@ -108,7 +105,7 @@ TEST(FontFilesTest, AFaceWithoutBoldInTheSystemHasTheSyntheticOne)
     EXPECT_FALSE(files.Value().bold.has_value());
 }
 
-// BoldFontFile vale aunque falte FontFile: la normal sale del sistema y la negrita, de la config.
+// BoldFontFile counts even without FontFile: the regular comes from the system and the bold from the config.
 TEST(FontFilesTest, TheBoldOfTheConfigWinsOverTheSystem)
 {
     std::vector<Request> requests;
@@ -121,7 +118,7 @@ TEST(FontFilesTest, TheBoldOfTheConfigWinsOverTheSystem)
     EXPECT_EQ(requests, (std::vector<Request>{{std::string(Face), false}}));
 }
 
-// Sin búsqueda (Linux), sin la clave es un error que la nombra.
+// Without a search (Linux), a missing key is an error that names it.
 TEST(FontFilesTest, WithoutASearchTheErrorNamesTheKey)
 {
     const auto files = ChooseFontFiles(ClientConfig{}, Face, SystemFontSearch{});
@@ -131,7 +128,7 @@ TEST(FontFilesTest, WithoutASearchTheErrorNamesTheKey)
     EXPECT_EQ(files.Error().find(Face), std::string::npos) << files.Error();
 }
 
-// Si la cara no está en el sistema, el error nombra la clave y no la cara: es un texto del juego.
+// The error names the key and not the face: the face is a game text.
 TEST(FontFilesTest, AFaceThatIsNotInTheSystemIsAnErrorWithoutTheFace)
 {
     std::vector<Request> requests;
@@ -144,7 +141,7 @@ TEST(FontFilesTest, AFaceThatIsNotInTheSystemIsAnErrorWithoutTheFace)
     EXPECT_EQ(requests.size(), 1u);
 }
 
-// Un texto 0 vacío no es una cara: no se busca, y es el mismo error.
+// An empty text 0 is not a face: it is not searched, and it is the same error.
 TEST(FontFilesTest, AnEmptyFaceIsNotSearched)
 {
     std::vector<Request> requests;
@@ -161,8 +158,7 @@ namespace
 {
 using Client::App::FontOpenError;
 
-// Si Open falla con las rutas de la config, su error sale tal cual: nombra el archivo que dio el
-// jugador.
+// With the config's paths, Open's error goes out as is: it names the file the player gave.
 TEST(FontFilesTest, AnOpenErrorWithTheConfigKeepsItsText)
 {
     const ClientConfig config = WithFonts(std::filesystem::path("config/normal.ttf"), std::nullopt);
@@ -170,8 +166,8 @@ TEST(FontFilesTest, AnOpenErrorWithTheConfigKeepsItsText)
     EXPECT_EQ(FontOpenError(config, "no abre config/normal.ttf"), "no abre config/normal.ttf");
 }
 
-// Con una ruta de la búsqueda, el error de Open la nombraría, y su nombre puede ser el de la cara
-// (la nota de la CL5.3): sale uno que nombra la clave, sin nada del de Open.
+// With a path from the search, Open's error would name it, and its name can be the face's (the CL5.3 note): the
+// message names the key, with nothing of Open's.
 TEST(FontFilesTest, AnOpenErrorWithTheSearchNamesTheKey)
 {
     const ClientConfig config = WithFonts(std::nullopt, std::filesystem::path("config/negrita.ttf"));

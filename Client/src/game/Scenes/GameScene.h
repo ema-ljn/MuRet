@@ -68,11 +68,10 @@ namespace Client::Particles
 class Particles;
 } // namespace Client::Particles
 
-// Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
-// La espera retiene la presentación, pero no interrumpe las fases posteriores a MoveHero.
-// Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
-// Los servicios o familias aún no portados devuelven su frontera después de conservar el prefijo.
-// Contrato: research06, «La entrada al mundo», «El paso del juego» y «El dibujo del juego».
+// Scene 5: the F303 entry, the gates wait and the logic/draw cycles over WorldState. The wait holds the presentation,
+// but does not interrupt the phases after MoveHero. The poses are global across scenes; the intermediate frames use
+// scratch and projected sprites. The services or families not ported yet return their boundary after keeping the
+// prefix. Contract: research 06, «La entrada al mundo», «El paso del juego» and «El dibujo del juego».
 namespace Client::Models
 {
 struct ClothWorld;
@@ -113,32 +112,31 @@ namespace Client::Scenes
 struct GameProjection;
 struct GameSceneFrameProjection;
 
-// 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
-// (0x7d36899), que no se prende nunca.
+// 0x620db0(0, 0, w, 432), the game's world pass (0x637410): 480 with the top view (0x7d36899), which never turns on.
 inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 
-// Lo que la entrada del chat lee de la carga (GameData): las palabras de Filter.bmd (0x622b40) y los conjuntos de
-// ItemSetOption.bmd (la cola de los nombres de 0x56c440). Tienen que vivir más que la escena.
+// What the chat input reads from the load (GameData): the Filter.bmd words (0x622b40) and the ItemSetOption.bmd sets
+// (the tail of 0x56c440's names). They must outlive the scene.
 struct GameChatTables
 {
     std::span<const std::string> filter{};
-    // FilterName.bmd: lo que mira 0x622c70 en el nombre del gremio nuevo (la ventana 2 del gremio, 0x654f80).
+    // FilterName.bmd: what 0x622c70 looks at in the new guild's name (guild window 2, 0x654f80).
     std::span<const std::string> filterName{};
     const Tables::ItemSetOptionTable* setOptions = nullptr;
-    // ItemSetType.bmd e ItemSetOption.bmd enteras (0x40c600): las lee 0x550d10 al abrir el personaje (0x65ca1e) desde
-    // el paso de la UI. nullptr si no se cargaron: 0x550d10 corta en 0x40e1b0.
+    // ItemSetType.bmd and ItemSetOption.bmd whole (0x40c600): 0x550d10 reads them on opening the character (0x65ca1e)
+    // from the UI step. nullptr if they were not loaded: 0x550d10 stops at 0x40e1b0.
     const Tables::ItemSetTables* itemSetTables = nullptr;
 };
 
 class GameScene final : public IScene
 {
 public:
-    // `session`, `models`, `items` y `gameSlots` tienen que vivir más; nullptr sin servidor, sin los modelos
-    // (el caballo oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en
-    // 0x4f9580) o sin Item.bmd (*[0x7758550]: lo que lo lee corta con error). `gameSlots` es la tabla de los
-    // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
-    // sin ella, desde 0x69. Sin Text.bmd (`texts`), el HUD corta con error en el primer texto que dibuja. `chat` es lo
-    // que lee la entrada del chat; vacío, sin filtro y sin los nombres de los conjuntos.
+    // `session`, `models`, `items` and `gameSlots` must outlive it; nullptr without a server, without the models (the
+    // dark horse stops with an error if one is alive, and the characters' body without Player.bmd, at 0x4f9580) or
+    // without Item.bmd (*[0x7758550]: what reads it stops with an error). `gameSlots` is the load's slot table
+    // (GameModels::TextureSlots), which the map's special models follow (WorldModels); without it, from 0x69. Without
+    // Text.bmd (`texts`), the HUD stops with an error at the first text it draws. `chat` is what the chat input reads;
+    // empty, without a filter and without the set names.
     GameScene(const SceneContext& context, App::ServerSession* session, const Models::IModelLibrary* models = nullptr,
               const Tables::ItemTable* items = nullptr, const Models::ModelTextureSlots* gameSlots = nullptr,
               const Tables::GateTable* gates = nullptr, const Tables::SkillTable* skills = nullptr,
@@ -146,62 +144,61 @@ public:
 
     ~GameScene() override;
 
-    // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
-    // gastan el rand() del segundo. Sube los cursores y las ventanas (WindowTextureSet) y las arenas del HUD
-    // (SandTextureSet); una que falta, el error.
+    // Without `context.world` or `context.cloth`, the error: the wait lives in the first and its closes spend the
+    // second's rand(). It uploads the cursors and the windows (WindowTextureSet) and the HUD sands (SandTextureSet); a
+    // missing one, the error.
     Core::Expected<void, std::string> Enter() override;
-    // 0x636290 y la tela. Después de la espera corre los personajes (0x508f00) y corta con error en la
-    // primera etapa que MuRet no tiene; ahí la escena queda en Failure. Después de un corte, nada.
+    // 0x636290 and the cloth. After the wait it runs the characters (0x508f00) and stops with an error at the first
+    // stage MuRet does not have; there the scene stays in Failure. After a cut, nothing.
     void Step(const Input::InputState& input) override;
-    // 0x63723a en adelante, con el frame no retenido: lo que MuRet tiene, en el orden del original,
-    // hasta la primera etapa que no tiene. Ahí el frame se corta y la escena queda en Failure. Retenido,
-    // o después de un corte, nada.
+    // 0x63723a onward, with the frame not held: what MuRet has, in the original's order, up to the first stage it does
+    // not have. There the frame stops and the scene stays in Failure. Held, or after a cut, nothing.
     void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
-    // 0x6371a6..0x63722e: sin el mundo cargado retiene sin leer; con él, lee el contador y retiene
-    // con más de 30.
+    // 0x6371a6..0x63722e: without the world loaded it holds without reading; with it, it reads the counter and holds
+    // with more than 30.
     void PrepareFrame() override;
-    // Suelta los tiles del terreno, los modelos de los objetos que subieron el dibujo y el paso, y las texturas
-    // que subió Enter.
+    // Releases the terrain tiles, the object models the draw and the step uploaded, and the textures Enter uploaded.
     void Leave() override;
-    // Ninguna: sin conexión, el juego sigue (Q-C70).
+    // None: without a connection, the game goes on (Q-C70).
     [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
-    // Lo que decidió el último PrepareFrame; antes del primero, retiene.
+    // What the last PrepareFrame decided; before the first, it holds.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
-    // El corte del dibujo, con la dirección de lo que falta; vacío mientras no corte.
+    // The draw's cut, with the address of what is missing; empty while it does not stop.
     [[nodiscard]] std::optional<std::string> Failure() const override;
 
-    // El segmento del mouse que dejó el último dibujo (0x620480 en 0x7d366c0), para el picking de
-    // MoveHero (CL7.4); vacío antes del primero.
+    // The mouse segment the last draw left (0x620480 into 0x7d366c0), for MoveHero's picking (CL7.4); empty before the
+    // first.
     [[nodiscard]] const std::optional<Terrain::TerrainPickingSegment>& MouseRay() const;
 
 private:
-    // 0x6362b2..0x63693a: solo el primer paso de la escena.
+    // 0x6362b2..0x63693a: only the scene's first step.
     void StepEntry();
-    // Los botones del mouse del WndProc y 0x623e70, los diálogos, antes de la lógica de la escena (GameSceneUi.cpp).
+    // The WndProc's mouse buttons and 0x623e70, the dialogs, before the scene's logic (GameSceneUi.cpp).
     [[nodiscard]] Core::Expected<void, std::string> StepTheDialogs(const Input::InputState& input);
-    // 0x636ded..0x63705b: el bloque de la UI del paso.
+    // 0x636ded..0x63705b: the step's UI block.
     [[nodiscard]] Core::Expected<void, std::string> StepTheUi(const Input::InputState& input);
-    // Lo que la entrada del chat lee y por dónde manda (App::ServerSession::SendChat).
+    // What the chat input reads and where it sends through (App::ServerSession::SendChat).
     [[nodiscard]] Chat::GameChatContext ChatContext();
-    // Lo que levantar, soltar y equipar piden afuera: los de SceneContext::worldEntry y el envío del 24
+    // What picking up, dropping and equipping ask for outside: those of SceneContext::worldEntry and sending the 24
     // (App::ServerSession::SendItemMove).
     [[nodiscard]] Items::InventoryServices InventoryContext();
-    // 0x5fc260(1) y 0x5fac90 con el rayo del mouse (MoveHero y el C1 23): la celda del terreno bajo el mouse o nada.
+    // 0x5fc260(1) and 0x5fac90 with the mouse ray (MoveHero and the C1 23): the terrain cell under the mouse or
+    // nothing.
     [[nodiscard]] Core::Expected<std::optional<Pathfinding::PathCell>, std::string> GroundUnderTheMouse();
-    // El envío de las ventanas de los NPC por la sesión (App::ServerSession::SendNpcWindowPacket); sin ella, vacío.
+    // Sending the NPC windows through the session (App::ServerSession::SendNpcWindowPacket); without it, empty.
     [[nodiscard]] static Npc::NpcWindowSender NpcWindowSenderOf(App::ServerSession* session);
-    // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
+    // 0x636da3..0x63717f: the step with the world loaded, up to its first cut.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
-    // `controlDown`: Ctrl, para 0x558eb0 en la habilidad del héroe (CL9 hito 3).
+    // `controlDown`: Ctrl, for 0x558eb0 in the hero's skill (CL9 milestone 3).
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock, bool controlDown);
-    // `terrainHeight` es la altura de 0x5f93c0 que pide la mariposa 0xae del 54 (0x520dad).
+    // `terrainHeight` is the 0x5f93c0 height the 54's butterfly 0xae asks for (0x520dad).
     [[nodiscard]] Core::Expected<void, std::string>
     StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheEffects(float worldClock);
-    // Lo que el paso y el choque de una flecha (0x5208a0, 0x520170) leen del frame.
+    // What an arrow's step and hit (0x5208a0, 0x520170) read from the frame.
     [[nodiscard]] Effects::ArrowStepContext ArrowContext(float worldClock,
                                                          const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
@@ -214,24 +211,24 @@ private:
     [[nodiscard]] Terrain::DynamicWorldLight& DynamicLight() const;
     // The models a creation loads (Assets::AssetsState::fauna), which outlive the map.
     [[nodiscard]] Assets::FaunaModels& LoadedFaunaModels() const;
-    // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
+    // 0x63706a: 0x606560 with the seen objects (StepGameWorldObjects); the other maps stop if there is one.
     [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
 
-    // 0x63723a: un frame completo del mundo, hasta una dependencia ausente si se alcanza.
+    // 0x63723a: a whole frame of the world, up to a missing dependency if one is reached.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(Render::Frame::SceneCanvas& canvas);
-    // Los modelos de los objetos de `map` (0x616ec0, WorldModels) y sus texturas, que el original lee en
-    // 0x61a560, al cargar; MuRet, la primera vez que el dibujo o el paso los piden.
+    // The object models of `map` (0x616ec0, WorldModels) and their textures, which the original reads in 0x61a560, on
+    // loading; MuRet, the first time the draw or the step asks for them.
     [[nodiscard]] Core::Expected<void, std::string> LoadTheObjectModels(std::int32_t map);
-    // Los tiles y el pasto de `map` en la GPU, que el original sube en 0x61a560, al cargar.
+    // The tiles and the grass of `map` on the GPU, which the original uploads in 0x61a560, on loading.
     [[nodiscard]] Core::Expected<void, std::string> UploadTheTiles(std::uint8_t map);
-    // 0x635ae0, una vez por frame original, y la consulta de los dibujos intermedios.
+    // 0x635ae0, once per original frame, and the intermediate draws' query.
     [[nodiscard]] Render::Camera3D CameraOfTheFrame(Render::Frame::SceneCanvas& canvas, int frames);
-    // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame. Con un
-    // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
+    // 0x5fbb00 → 0x5fb570: the trapezoid around `target`, with its transition if a frame runs. With a frame both stay
+    // in WorldRuntime (TerrainPolygonFrame.h); in an intermediate draw, nothing.
     [[nodiscard]] Core::Expected<Terrain::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, std::int32_t worldWidth, int frames);
-    // 0x637410: terreno, objetos, suelo, aves y personajes; después continúa la cola del frame.
-    // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
+    // 0x637410: terrain, objects, ground, birds and characters; then the frame's tail continues. `frames` are the
+    // clock's original frames: with 0, the objects take no rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(Render::Frame::SceneCanvas& canvas,
                                                                      const Render::Pass3D& pass,
                                                                      const Terrain::TerrainPolygon& polygon,
@@ -244,12 +241,12 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> DrawTheTail(Render::Frame::SceneCanvas& canvas,
                                                                 const Render::Pass3D& pass,
                                                                 const Terrain::TerrainPolygon& polygon, int frames);
-    // 0x637641..0x6376eb: el picking del frame y la pasada 2D: el HUD, las superposiciones y el cursor. `projection`
-    // es 0x6203c0 del pase del mundo, que leen los globos (0x5a9050); nullptr si no se pudo armar.
+    // 0x637641..0x6376eb: the frame's picking and the 2D pass: the HUD, the overlays and the cursor. `projection` is
+    // the world pass's 0x6203c0, which the bubbles read (0x5a9050); nullptr if it could not be built.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheInterface(Render::Frame::SceneCanvas& canvas,
                                                                      const GameProjection* projection);
-    // Los globales de 0x60b3d0 del frame, que comparten lo que cuelga de los personajes (0x509340) y los
-    // ítems del piso (0x608a00): `item` apunta a `special`.
+    // The frame's 0x60b3d0 globals, shared by what hangs from the characters (0x509340) and the floor items (0x608a00):
+    // `item` points at `special`.
     void FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special, Actors::Drawing::ItemDrawContext& item,
                              Core::Duration frameClock, int frames);
     [[nodiscard]] Kernel::PoseBuffer& FramePoseCarry();
@@ -280,21 +277,21 @@ private:
     const Tables::SkillTable* m_skills;
     const Tables::TextTable* m_texts;
     GameChatTables m_chatTables;
-    // Las texturas de la escena: los cursores 2 y 3 con las ventanas, y las arenas del HUD.
+    // The scene's textures: cursors 2 and 3 with the windows, and the HUD sands.
     Assets::SceneTextures m_windowTextures;
     Assets::SceneTextures m_sandTextures;
-    // Las marcas de los gremios (0x5f16a0), cada una en su slot de la tabla de la escena.
+    // The guild marks (0x5f16a0), each in its slot of the scene's table.
     Guild::GuildMarkTextures m_guildMarks;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
-    // La cámara y lo que lee, sin las de main (los tests que no las pasan).
+    // The camera and what it reads, without main's (the tests that do not pass them).
     Camera::GameCamera m_localCamera;
     Camera::GameCameraInput m_localCameraInput;
-    // Los frames del original, por los pasos de la escena (#307).
+    // The original frames, by the scene's steps (#307).
     OriginalFramesOfTheSteps m_cameraFrames;
-    // 0x4eb620: un frame del original empieza con el primer paso después del dibujo que lo fue; el timeGetTime() del
-    // anterior, para la espera de las skills (CL9 hito 4).
+    // 0x4eb620: an original frame starts with the first step after the draw that was one; the previous one's
+    // timeGetTime(), for the skills' wait (CL9 milestone 4).
     bool m_frameStarts = true;
     std::optional<std::uint32_t> m_lastFrameStart;
     Effects::GroundEffectFrame m_groundEffects;
@@ -315,13 +312,13 @@ private:
     Terrain::TerrainPickingState m_picking;
     Core::PixelSize m_screen{640, 480};
     Assets::TerrainTiles m_tiles;
-    // Los modelos de los objetos del mapa que los cargó, si alguno.
+    // The object models of the map that loaded them, if any.
     Assets::WorldModels m_worldModels;
     std::optional<std::int32_t> m_worldModelsMap;
     std::optional<std::uint64_t> m_loadedRevision;
-    // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
+    // The block range of the scene's last 0x5fbb00, which 0x5fbf60 reads in the step.
     Terrain::TerrainRange m_terrainRange;
-    // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.
+    // The game's water shift (0x78ecbec) and waves (0x78acbd8).
     Terrain::TerrainWater m_water;
     std::optional<Terrain::TerrainPickingSegment> m_mouseRay;
     std::optional<std::string> m_failure;

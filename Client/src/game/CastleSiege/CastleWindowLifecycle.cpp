@@ -77,7 +77,7 @@ Core::Expected<bool, std::string> CloseSenior(Ui::PanelContext& panels, Kernel::
     }
     if (!send)
         return Core::Unexpected(std::string("0x661bc0: cerrar Senior sin el cable"));
-    // 0x661bc0: apagar Senior antes de cerrar su auxiliar; el modo de la pestaña no se reinicia.
+    // 0x661bc0: turn Senior off before closing its helper; the tab's mode is not reset.
     delegated.castleSiegeList = 0;
     Ui::PanelRegistry registry(runtime.panels, panels);
     if (registry.IsOpen(Ui::InventoryPanel))
@@ -110,7 +110,7 @@ Core::Expected<bool, std::string> CloseHunt(Kernel::WorldState& world, const Cas
 
 bool CastleSeniorBusy(const Kernel::WorldState& world)
 {
-    // 0x661b90: exactamente los 32 lugares de 0x7d2d380..0x7d2dc80, por type WORD, no por occupied.
+    // 0x661b90: exactly the 32 slots of 0x7d2d380..0x7d2dc80, by the type WORD, not by occupied.
     return world.Runtime().cursorItemCount > 0 ||
            std::ranges::any_of(world.Runtime().npcWindows.chaosBox, [](const auto& item) { return item.id != 0xffff; });
 }
@@ -129,14 +129,14 @@ void LendTheCastleLifecycleTo(Ui::PanelContext& panels, Kernel::WorldState& worl
         auto& delegated = world.Runtime().panels.delegated;
         if (id == Ui::SecondCastleSiegePanel)
         {
-            delegated.secondCastleSiege = 1; // 0x6487c0: sin consulta ni reinicio del modo.
+            delegated.secondCastleSiege = 1; // 0x6487c0: without a query or a reset of the mode.
             return {};
         }
         if (delegated.castleSiegeList != 0)
             return {};
         if (!send)
             return Core::Unexpected(std::string("0x661310: abrir Senior sin el cable"));
-        // 0x661310: estos dos campos se escriben ANTES de los tres envíos.
+        // 0x661310: these two fields are written BEFORE the three sends.
         delegated.castleSiegeList = 1;
         delegated.castleSiegeListMode = 0;
         send(Protocol::CastleSiege::WriteNpcListRequest(1));
@@ -185,7 +185,7 @@ void LendTheCastlePanelServices(Hud::GamePanels& panels, const Scenes::WorldEntr
                                 .texts = resources.texts,
                                 .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
                                 .now = resources.clock != nullptr ? Kernel::TickCountMs(resources.clock->Now()) : 0u});
-    // La sesión puede prestar estos dos canales por separado; el de NPC conserva su Expected si send falla.
+    // The session can lend these two channels separately; the NPC one keeps its Expected if send fails.
     if (resources.sendNpcWindowPacket)
         Npc::LendTheNpcWindows(panels, resources);
     if (resources.sendWindowClose)

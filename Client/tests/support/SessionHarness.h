@@ -23,9 +23,9 @@
 
 #include <vector>
 
-// Una ServerSession sobre un FakeSocket, llevada hasta el login aceptado sin la escena del login,
-// para los tests de las escenas que siguen (CL6.3): la selección, la carga del mundo y el juego. Los
-// paquetes son los de SessionPackets.h, en claro, y la cuenta y la lista, sintéticas.
+// A ServerSession over a FakeSocket, taken up to the accepted login without the login scene, for the tests of the
+// scenes that follow (CL6.3): the selection, the world load and the game. The packets are those of SessionPackets.h,
+// in clear, and the account and the list are synthetic.
 namespace Client::Tests
 {
 struct LoggedInSession
@@ -38,8 +38,8 @@ struct LoggedInSession
     {
     }
 
-    // Del Start al login aceptado: el saludo y la lista del CS, la elección, la dirección, el Opened
-    // y el saludo del GS, la cuenta y el resultado.
+    // From Start to the accepted login: the CS hello and list, the choice, the address, the GS's Opened and hello, the
+    // account and the result.
     void LogIn()
     {
         session.Start();
@@ -59,7 +59,7 @@ struct LoggedInSession
         ASSERT_EQ(session.State(), Session::SessionState::LoggedIn);
     }
 
-    // La lista de personajes del GS, en claro.
+    // The GS's character list, in clear.
     void ReceiveTheList(const std::vector<CharacterEntryFields>& characters)
     {
         socket.reads = {CharacterListBytes(characters)};

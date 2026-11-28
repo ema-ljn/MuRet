@@ -4,8 +4,8 @@
 
 #include <string_view>
 
-// Los textos sueltos de la pasada 2D del juego por 0x554180(x, y, texto, 0, 0, …) (06 § Texto): con la fuente que haya
-// en el DC (0x57634f4) y los colores de 0x6c8e5c y 0x6c8e64, y el tamaño en 640 × 480 en 0x77f31b8 y 0x77f31bc.
+// The loose texts of the game's 2D pass through 0x554180(x, y, text, 0, 0, …) (06 § Texto): with whatever font is in
+// the DC (0x57634f4) and the colors of 0x6c8e5c and 0x6c8e64, and the size in 640 × 480 in 0x77f31b8 and 0x77f31bc.
 namespace Client::Render::Frame
 {
 class ITextDrawer;
@@ -18,12 +18,12 @@ struct HudState;
 namespace Client::Hud
 {
 
-// 0x554180(x, y, texto, 0, 0, …): el texto en (x, y) de 640 × 480 si no está vacío (0x465950 con el modo 1), y su
-// tamaño, aun vacío, pasado a 640 × 480 (Render::Text::DesignX y DesignY) en hud.arrowsTextWidth y arrowsTextHeight.
+// 0x554180(x, y, text, 0, 0, …): the text at (x, y) of 640 × 480 if not empty (0x465950 with mode 1), and its size,
+// even empty, scaled to 640 × 480 (Render::Text::DesignX and DesignY) into hud.arrowsTextWidth and arrowsTextHeight.
 void DrawHudLine(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                  std::string_view line);
 
-// 0x623690(x, y, texto): GetTextExtentPointA con la fuente del DC y 0x554180 en x − (cx · 640 / W) / 2
+// 0x623690(x, y, text): GetTextExtentPointA with the DC's font and 0x554180 at x − (cx · 640 / W) / 2
 // (Render::Text::CenteredAt).
 void DrawHudCentered(Render::Frame::ITextDrawer& text, Core::PixelSize screen, Kernel::HudState& hud, int x, int y,
                      std::string_view line);

@@ -27,10 +27,10 @@ namespace
 constexpr std::int16_t FirstStoneFragment = 0x12d, SecondStoneFragment = 0x12e;
 constexpr std::int16_t FirstGateFragment = 0x12f, LastGateFragment = 0x130;
 constexpr std::int16_t FirstStatueFragment = 0x131, LastStatueFragment = 0x133;
-// Skill\golem_stone (0x616894): las piedras del cuerpo que 0x4ee770 suelta al morir el 0x1a4 (0x441696).
+// Skill\golem_stone (0x616894): the body stones that 0x4ee770 drops when the 0x1a4 dies (0x441696).
 constexpr std::int16_t GolemStone = 0x13c;
-// Las piedritas 0x12d y 0x12e del /2 (las que 0x4ee770 suelta en lugar del 0x13c con el subtipo 1, 0x4eee35) y el
-// 0x12e/3 (la que tira el 0x1a6 en su ataque, 0x442397).
+// The pebbles 0x12d and 0x12e of /2 (the ones 0x4ee770 drops instead of the 0x13c with subtype 1, 0x4eee35) and the
+// 0x12e/3 (the one the 0x1a6 throws in its attack, 0x442397).
 constexpr std::int32_t ShowerSubtype = 2, ThrownSubtype = 3;
 constexpr double Tenth = Math::TenthAsDouble;
 constexpr int Degrees = 360;
@@ -60,7 +60,7 @@ void RandomizeTheAngles(Effects::ModelEffect& effect, Crt::CrtRandom& random)
     effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
 }
 
-// La familia de las piedras: la que 0x5291ce mueve con la caída de +0xe4 y 0x51d50d termina de dar de alta.
+// The stone family: the one 0x5291ce moves with the fall of +0xe4 and 0x51d50d finishes creating.
 bool IsStoneFragment(std::int16_t type)
 {
     return (type >= FirstStoneFragment && type <= LastGateFragment) || type == GolemStone;
@@ -78,15 +78,16 @@ bool IsThrownStone(const Effects::ModelEffect& effect)
 
 void BeginTheGateFragment(Effects::ModelEffect& effect, Crt::CrtRandom& random)
 {
-    // 51d2a9..51d50d, lo de cada uno, un rand() por campo: el empuje (en y), la escala y la caída (+0xe4). La puerta
-    // (0x12f, 0x130): ((r & 255) + 128) · 0,1f, ((r & 1) + 7) · 0,1f y r % 5 + 6. El 0x13c (0x51d32c): ((r & 127) +
-    // 32) · 0,1f, ((r & 1) + 10) · 0,25 y r % 5 + 2. El 0x12d/2 y el 0x12e/2 (0x51d3b1): ((r & 127) + 32) · 0,1f,
-    // ((r & 1) + 4) · 0,12f + 0,6f y r % 5 + 2. Los demás (0x51d4a5): ((r & 127) + 128) · 0,1f, (r % 7 + 10) · 0,1f y
-    // r % 5 + 2. 51d50d..51d5b6, de todos: vida, yaw del empuje, tres ángulos, altura.
+    // 0x51d2a9..0x51d50d, each one's part, one rand() per field: the push (in y), the scale and the fall (+0xe4). The
+    // gate (0x12f, 0x130): ((r & 255) + 128) · 0.1f, ((r & 1) + 7) · 0.1f and r % 5 + 6. The 0x13c (0x51d32c): ((r &
+    // 127) + 32) · 0.1f, ((r & 1) + 10) · 0.25 and r % 5 + 2. The 0x12d/2 and the 0x12e/2 (0x51d3b1): ((r & 127) + 32)
+    // · 0.1f,
+    // ((r & 1) + 4) · 0.12f + 0.6f and r % 5 + 2. The others (0x51d4a5): ((r & 127) + 128) · 0.1f, (r % 7 + 10) · 0.1f
+    // and r % 5 + 2. 0x51d50d..0x51d5b6, for all: life, push yaw, three angles, height.
     constexpr int SmallPushBase = 32, GolemScaleBase = 10, ShowerScaleBase = 4;
     constexpr double GolemScaleStep = 0.25;                                                     // 0x6b89e0
-    constexpr double ShowerScaleStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0,12f
-    constexpr double ShowerScaleFloor = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
+    constexpr double ShowerScaleStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0.12f
+    constexpr double ShowerScaleFloor = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0.6f
     const bool gate = effect.type >= FirstGateFragment && effect.type <= LastGateFragment;
     const bool golem = effect.type == GolemStone;
     const bool shower = IsShower(effect);
@@ -111,14 +112,14 @@ void BeginTheGateFragment(Effects::ModelEffect& effect, Crt::CrtRandom& random)
     effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + SpawnLift);
 }
 
-// 0x51d438..0x51d4a4, el 0x12e/3: vida (r & 15) + 32, la escala (r % 3 + 2) · 0,12f + 1,2f, la velocidad z en
-// −20 − r % 5 y +0xd8 en 1,8f. Sin la cola de los demás: ni los ángulos ni la altura.
+// 0x51d438..0x51d4a4, the 0x12e/3: life (r & 15) + 32, scale (r % 3 + 2) · 0.12f + 1.2f, z speed at −20 − r % 5
+// and +0xd8 at 1.8f. Without the others' tail: neither the angles nor the height.
 void BeginTheThrownStone(Effects::ModelEffect& effect, Crt::CrtRandom& random)
 {
     constexpr int ThrownScaleSpan = 3, ThrownScaleBase = 2, DropSpan = 5, DropBase = -20;
-    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0,12f
-    constexpr double ScaleFloor = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0, 1,2f
-    constexpr float Spin = std::bit_cast<float>(0x3fe66666u);                             // 0x51d496, 1,8f
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0.12f
+    constexpr double ScaleFloor = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0, 1.2f
+    constexpr float Spin = std::bit_cast<float>(0x3fe66666u);                             // 0x51d496, 1.8f
     effect.life = (random.Next() & LifeMask) + LifeBase;
     effect.transform.scale =
         F32(static_cast<double>(random.Next() % ThrownScaleSpan + ThrownScaleBase) * ScaleStep + ScaleFloor);
@@ -128,7 +129,7 @@ void BeginTheThrownStone(Effects::ModelEffect& effect, Crt::CrtRandom& random)
 
 void BeginTheStatueFragment(Effects::ModelEffect& effect, Crt::CrtRandom& random)
 {
-    // 51d5b7..51d744: el131/0 pasa al1 y consume un sorteo más para la gravedad.
+    // 0x51d5b7..0x51d744: the 0x131/0 goes to 1 and draws one more rand() for the gravity.
     const float push = F32(static_cast<double>((random.Next() & StonePushMask) + StatuePushBase) * Tenth);
     effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + SpawnLift);
     effect.life = (random.Next() & LifeMask) + LifeBase;
@@ -147,7 +148,7 @@ void BeginTheStatueFragment(Effects::ModelEffect& effect, Crt::CrtRandom& random
 
 void MoveTheFragment(Effects::ModelEffect& effect, bool stoneFamily)
 {
-    // 0x5291f8: la caída de 6 es solo de la puerta; el 0x13c cae de a 3 como las piedritas.
+    // 0x5291f8: the fall of 6 is only the gate's; the 0x13c falls by 3 like the pebbles.
     const bool door = effect.type >= FirstGateFragment && effect.type <= LastGateFragment;
     for (int axis = 0; axis < 3; ++axis)
     {
@@ -167,17 +168,17 @@ void MoveTheFragment(Effects::ModelEffect& effect, bool stoneFamily)
         effect.turnDirection = F32(static_cast<double>(effect.turnDirection) - StatueGravity);
 }
 
-// Devuelve la altura del terreno como la dejó el original (la de las piedras, guardada en float en [ebp+8]).
+// Returns the terrain height as the original left it (the stones' one, stored as a float at [ebp+8]).
 Core::Expected<double, std::string> LandTheFragment(Effects::ModelEffect& effect, bool stoneFamily,
                                                     const Effects::ModelEffectStepServices& services)
 {
     if (!services.terrainHeight)
         return Core::Unexpected(std::format("{}: falta la altura del terreno para el fragmento {:#x}",
                                             stoneFamily ? "0x5292a3" : "0x5294ab", effect.type));
-    // 5292a8 redondea antes de comparar;5294b0 conserva la altura en la x87.
+    // 0x5292a8 rounds before comparing; 0x5294b0 keeps the height on the x87.
     const double sampled = services.terrainHeight(effect.transform.position.x, effect.transform.position.y);
     const double ground = stoneFamily ? static_cast<double>(F32(sampled)) : sampled;
-    // TEST C0 solo en5292b6 también toma la rama de impacto con NaN;5294b8 mira C0|C3.
+    // TEST C0 alone at 0x5292b6 also takes the impact branch with NaN; 0x5294b8 checks C0|C3.
     const bool hit = stoneFamily ? !(effect.transform.position.z >= ground) : ground > effect.transform.position.z;
     if (hit)
     {
@@ -191,8 +192,8 @@ Core::Expected<double, std::string> LandTheFragment(Effects::ModelEffect& effect
     return ground;
 }
 
-// 0x53fe70 con el dueño en 0: un tipo o subtipo que Particles::Particles no tiene corta con la dirección (con la tabla
-// llena no crea nada ni saca rand() y el paso sigue).
+// 0x53fe70 with the owner at 0: a type or subtype that Particles::Particles lacks stops with the address (with the
+// table full it creates nothing, takes no rand() and the step goes on).
 Core::Expected<void, std::string> Emit(Particles::Particles& particles, std::int32_t type,
                                        const Effects::ModelEffect& effect, const glm::vec3& light, std::int32_t subtype,
                                        float scale, float worldClock, Crt::CrtRandom& random, std::uint32_t address)
@@ -206,18 +207,18 @@ Core::Expected<void, std::string> Emit(Particles::Particles& particles, std::int
     return {};
 }
 
-// La luz local del paso ([ebp−0x1c], 0x520921): (1; 1; 1).
+// The step's local light ([ebp−0x1c], 0x520921).
 constexpr glm::vec3 StepLight{1.0f};
 
-// 0x52930e..0x529385, el 0x13c después de caer: con rand() & 3 en 0, la piedra 0x6ec/5 (escala 2,8f) y el humo
-// 0x5f2/0x15 (1,8f); con rand() % 10 en 0, el polvo 0x5f3/0 (1). Todos con la luz local.
+// 0x52930e..0x529385, the 0x13c after falling: with rand() & 3 at 0, stone 0x6ec/5 (scale 2.8f) and smoke
+// 0x5f2/0x15 (1.8f); with rand() % 10 at 0, dust 0x5f3/0 (1). All with the local light.
 Core::Expected<void, std::string> CrumbleTheGolemStone(const Effects::ModelEffect& effect,
                                                        Particles::Particles& particles, Crt::CrtRandom& random,
                                                        float worldClock)
 {
     constexpr std::int32_t StoneParticle = 0x6ec, StoneSubtype = 5, SmokeSubtype = 0x15;
-    constexpr float StoneScale = std::bit_cast<float>(0x40333333u); // 0x529323, 2,8f
-    constexpr float SmokeScale = std::bit_cast<float>(0x3fe66666u); // 0x52933c, 1,8f
+    constexpr float StoneScale = std::bit_cast<float>(0x40333333u); // 0x529323, 2.8f
+    constexpr float SmokeScale = std::bit_cast<float>(0x3fe66666u); // 0x52933c, 1.8f
     constexpr int StoneChance = 3;
     if ((random.Next() & StoneChance) == 0)
     {
@@ -235,8 +236,8 @@ Core::Expected<void, std::string> CrumbleTheGolemStone(const Effects::ModelEffec
     return Emit(particles, Particles::DustParticle, effect, StepLight, 0, 1.0f, worldClock, random, 0x52937d);
 }
 
-// 0x52938a..0x5293ea, el 0x12d/2: con rand() % 10 en 0, la z en la altura del terreno de este paso y el humo
-// 0x5f2/0xb (escala 2) con la luz local en (0,2f; 0,5f; 0,35f).
+// 0x52938a..0x5293ea, the 0x12d/2: with rand() % 10 at 0, z at this step's terrain height and smoke 0x5f2/0xb
+// (scale 2) with the local light at (0.2f; 0.5f; 0.35f).
 Core::Expected<void, std::string> SmokeTheShower(Effects::ModelEffect& effect, double ground,
                                                  Particles::Particles& particles, Crt::CrtRandom& random,
                                                  float worldClock)
@@ -250,17 +251,17 @@ Core::Expected<void, std::string> SmokeTheShower(Effects::ModelEffect& effect, d
                 worldClock, random, 0x5293e2);
 }
 
-// 0x5290df..0x5291c9, el 0x12e/3: la velocidad z baja +0xd8, que sube 0,3f. Con el terreno (0x5f93c0, sin redondear)
-// por encima de su z, la z en el terreno, la velocidad, los ángulos y +0x58 en 0 y, con rand() % 10 en 0, el humo
-// 0x5f2/0x18 con la escala · 1,25; si no (también con NaN), con rand() & 1 en 0, el mismo humo con 0,2f. Los dos con su
-// luz (+0xf4).
+// 0x5290df..0x5291c9, the 0x12e/3: the z speed goes down by +0xd8, which goes up by 0.3f. With the terrain (0x5f93c0,
+// unrounded) above its z, z at the terrain, the speed, the angles and +0x58 at 0 and, with rand() % 10 at 0, smoke
+// 0x5f2/0x18 with the scale · 1.25; otherwise (also with NaN), with rand() & 1 at 0, the same smoke with 0.2f. Both
+// with their light (+0xf4).
 Core::Expected<void, std::string> StepTheThrownStone(Effects::ModelEffect& effect, Particles::Particles& particles,
                                                      Crt::CrtRandom& random,
                                                      const Effects::ModelEffectStepServices& services, float worldClock)
 {
-    constexpr double SpinGain = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
+    constexpr double SpinGain = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0.3f
     constexpr double LandedSmoke = 1.25;                                                // 0x6b8ad4
-    constexpr float FallingSmoke = std::bit_cast<float>(0x3e4ccccdu);                   // 0x5291a9, 0,2f
+    constexpr float FallingSmoke = std::bit_cast<float>(0x3e4ccccdu);                   // 0x5291a9, 0.2f
     constexpr std::int32_t SmokeSubtype = 0x18;
     effect.velocity.z = F32(static_cast<double>(effect.velocity.z) - static_cast<double>(effect.speed));
     effect.speed = F32(static_cast<double>(effect.speed) + SpinGain);
@@ -335,7 +336,7 @@ Core::Expected<void, std::string> StepSiegeVertexEffect(Effects::ModelEffect& ef
         return {};
     if (std::ranges::none_of(particles.All(), [](const Particles::Particle& particle) { return !particle.alive; }))
         return {};
-    // 529516 pasa LEA[EBP-28], igual que5252e6: ningún camino lo inicializa (Q-C1176).
+    // 0x529516 passes LEA [EBP-0x28], like 0x5252e6: no path initializes it (Q-C1176).
     return Core::Unexpected(std::string("0x529520: el polvo 0x5f3 del fragmento usa [EBP-0x28] sin inicializar "
                                         "en 0x5208a0 (Q-C1176; requiere evidencia de la VM)"));
 }

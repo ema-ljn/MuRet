@@ -4,7 +4,7 @@
 #include "Render/ModelVertex.h"
 #include <array>
 
-// Primitivas compartidas por las familias de la cola6374fe..637572.
+// Primitives shared by the families of the tail 0x6374fe..0x637572.
 namespace Client::Scenes::TailDrawing
 {
 inline void Blend(Render::ModelBatch& batch, Render::ModelBlend blend)

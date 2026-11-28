@@ -20,7 +20,7 @@ Core::Expected<bool, std::string> CollideTheSiegeObject(Effects::ModelEffect& pr
         return Core::Unexpected(std::string("429ec0: sector delproyectilfuera de_ftol"));
     if (*sx < 0 || *sx >= 16 || *sy < 0 || *sy >= 16)
         return false;
-    // 6066ff añade alfinaldelalista; objectsconservaelordendearchivoyluegoaltasespeciales.
+    // 0x6066ff appends to the end of the list; objects keeps the file order and then the special additions.
     for (auto& object : objects)
     {
         if (object.sectorX != *sx || object.sectorY != *sy || !object.alive || object.state.hiddenMesh != -1 ||

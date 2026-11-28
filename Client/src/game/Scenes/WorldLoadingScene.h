@@ -11,30 +11,28 @@
 #include <optional>
 #include <string>
 
-// La escena 3, la carga del mundo (0x6356f0): arma el contador de la espera en 9.999.999 y sube la
-// bandera de la escena (0x7d3a13e), sube LSBg01 a 04, dibuja un frame con las cuatro en un mosaico de
-// 2 × 2 en 800 × 600 y pide el juego. Ese frame queda en pantalla mientras el juego espera la respuesta
-// del F3 03 (GameScene). El original hace todo en la misma llamada; acá el juego va en el paso que
-// sigue al primer frame, uno más tarde. 0x553570(1), que al final vacía los campos de texto de la UI
-// (0x7798bf8), es de la UI (CL8).
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La carga del mundo (escena 3)" y "La
-// entrada al mundo", paso 2.
+// Scene 3, the world loading (0x6356f0): sets the wait counter to 9999999 and raises the scene's flag (0x7d3a13e),
+// loads LSBg01 to 04, draws one frame with the four in a 2 × 2 mosaic in 800 × 600 and asks for the game. That frame
+// stays on screen while the game waits for the F3 03 reply (GameScene). The original does everything in the same
+// call; here the game goes in the step after the first frame, one later. 0x553570(1), which at the end empties the
+// UI's text fields (0x7798bf8), belongs to the UI (CL8).
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "La carga del mundo (escena 3)" and "La entrada al
+// mundo", step 2.
 namespace Client::Scenes
 {
 class WorldLoadingScene final : public IScene
 {
 public:
-    // `context.world` y `context.cloth` (el rand() que gasta el cierre del contador) tienen que estar.
+    // `context.world` and `context.cloth` (the rand() the counter's close spends) must be there.
     explicit WorldLoadingScene(const SceneContext& context);
 
-    // Con la bandera en 0: el contador, la bandera y las cuatro texturas, en el orden de 0x6356f0. Con
-    // la bandera ya en 1, el error: es una rama que el original no alcanza (06, "La carga del mundo").
+    // With the flag at 0: the counter, the flag and the four textures, in 0x6356f0's order. With the flag already at 1,
+    // the error: it is a branch the original does not reach (06, "La carga del mundo").
     Core::Expected<void, std::string> Enter() override;
-    // Después del primer frame, el juego.
+    // After the first frame, the game.
     void Step(const Input::InputState& input) override;
-    // Las cuatro, con la escala W / 800 y H / 600, como la UI de la carga.
+    // The four, with the scale W / 800 and H / 600, like the loading's UI.
     void Render(Render::Frame::SceneCanvas& canvas, float alpha) override;
-    // Suelta las cuatro.
     void Leave() override;
     [[nodiscard]] std::optional<Kernel::SceneId> Next() const override;
     [[nodiscard]] bool WantsToQuit() const override;

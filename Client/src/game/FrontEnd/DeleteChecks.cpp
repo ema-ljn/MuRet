@@ -15,11 +15,11 @@ namespace Client::FrontEnd
 {
 namespace
 {
-// El byte 0x6d5e24, 0x50, que nadie escribe.
+// Byte 0x6d5e24, which nobody writes.
 constexpr std::uint16_t HighLevel = 80;
-// Las banderas (+0x1d8) que no dejan borrar.
+// +0x1d8.
 constexpr std::uint8_t BlockingFlags = 0x12;
-// El nombre del grupo que deja borrar a cualquiera (el del 12).
+// The name of the group that lets anyone be deleted (the 12's).
 constexpr std::size_t FreeGroupText = 559;
 } // namespace
 

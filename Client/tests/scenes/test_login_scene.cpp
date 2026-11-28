@@ -68,11 +68,11 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::LoginScene: la escena 2 sin que la sesión pida una ventana. Entra como 0x6349a0
-// (sus texturas, las de las ventanas y el ConnectServer) y dibuja como 0x6350b0. Con un Data\ que
-// es sintético, la tabla de texturas falsa y el RecordingFrameTarget, que anota cada quad, cada
-// texto, el fin del 2D y el pase 3D en orden. Su UI con la sesión (CL5.5) está en
-// test_login_scene_session.cpp. Los textos son inventados: los de Text.bmd no van a los tests.
+// Client::Scenes::LoginScene: scene 2 without the session asking for a window. It enters like 0x6349a0 (its
+// textures, the windows' and the ConnectServer) and draws like 0x6350b0. With a synthetic Data\, the fake texture
+// table and the RecordingFrameTarget, which records each quad, each text, the end of 2D and the 3D pass in order. Its
+// UI with the session (CL5.5) is in test_login_scene_session.cpp. The texts are made up: Text.bmd's do not go into
+// the tests.
 namespace
 {
 using Client::App::ServerSession;
@@ -129,24 +129,23 @@ using Client::Ui::Point;
 
 using Kind = FrameEvent::Kind;
 
-// Textos inventados en los índices del login, y una versión cualquiera.
 constexpr std::string_view LeftText = "texto de la izquierda";
 constexpr std::string_view RightText = "texto de la derecha";
 constexpr std::string_view VersionFormat = "prueba %s fin";
 constexpr std::string_view Version = "9.8.7";
 constexpr std::string_view VersionPlaced = "prueba 9.8.7 fin";
 
-// El estilo de los tres textos: la fuente DAT_05763554, el texto en blanco (DAT_006c8e5c) y el
-// fondo en 0x80000000 (DAT_006c8e64).
+// The style of the three texts: font DAT_05763554, the text in white (DAT_006c8e5c) and the background at 0x80000000
+// (DAT_006c8e64).
 constexpr TextStyle LoginTextStyle{FontKind::Normal, TextColors{0xffffffff, 0x80000000}};
 
-// Los colores de 0x6350b0: el blanco de los fondos, glColor3f(0,25; 0,1; 0,1) de la arena y
-// glColor3f(0,8; 0,7; 0,6) de los textos.
+// The colors of 0x6350b0: the backgrounds' white, glColor3f(0.25, 0.1, 0.1) of the sand and glColor3f(0.8, 0.7, 0.6)
+// of the texts.
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr Color SandColor{0.25f, 0.1f, 0.1f, 1.0f};
 constexpr Color TextColor{0.8f, 0.7f, 0.6f, 1.0f};
 
-// El reloj de los frames de los tests que no miran la arena.
+// The frame clock of the tests that do not look at the sand.
 constexpr std::chrono::milliseconds AnyClock{40};
 
 std::map<std::size_t, std::string> LoginTexts()
@@ -188,7 +187,7 @@ void ExpectColor(const FrameEvent& event, const Color& color)
     }
 }
 
-// Los fondos de 0x6350b0: 0x621b60(slot, x, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0).
+// The backgrounds of 0x6350b0: 0x621b60(slot, x, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0).
 OriginalQuad Background(std::uint16_t slot, float x)
 {
     return OriginalQuad{.slot = TextureSlot{slot},
@@ -200,7 +199,7 @@ OriginalQuad Background(std::uint16_t slot, float x)
                         .scalePosition = true};
 }
 
-// La u de una arena: ((int) T % 100000) · velocidad, con la cuenta en la x87 y guardada en float.
+// A sand's u: ((int) T % 100000) · speed, with the arithmetic on the x87 and stored as float.
 float SandU(std::chrono::milliseconds clock, float speed)
 {
     return static_cast<float>(static_cast<double>(clock.count() % 100000) * static_cast<double>(speed));
@@ -219,7 +218,6 @@ OriginalSkewedQuad Sand(std::uint16_t slot, float u, float du, float dv)
                               .dv = dv};
 }
 
-// Lo que mide un texto en el RecordingTextDrawer.
 TextExtent ExtentOf(std::string_view text)
 {
     return {static_cast<int>(text.size()) * RecordingTextDrawer::LetterWidth, RecordingTextDrawer::Height};
@@ -245,7 +243,6 @@ struct Harness
         }
     }
 
-    // La escena, con la sesión o sin ella.
     LoginScene& Make(ServerSession* session = nullptr)
     {
         return scene.emplace(SceneContext{folder.Path(), store, log}, data, models, session, Version, FixedSeed);
@@ -258,14 +255,13 @@ struct Harness
             models, nullptr, Version, FixedSeed);
     }
 
-    // Y con el mouse de `input` en el contexto, que el cursor lee en el dibujo.
+    // With `input`'s mouse in the context, which the cursor reads in the draw.
     LoginScene& MakeWithTheMouse()
     {
         return scene.emplace(SceneContext{.dataRoot = folder.Path(), .textures = store, .log = log, .input = &input},
                              data, models, nullptr, Version, FixedSeed);
     }
 
-    // Un frame con el reloj `clock`. Devuelve lo que se dibujó.
     std::vector<FrameEvent> Frame(std::chrono::milliseconds clock = AnyClock, float alpha = 0.0f)
     {
         Client::Render::Frame::SceneCanvas& canvas = target.BeginFrame(clock);
@@ -308,7 +304,7 @@ public:
     int worldSoundReleases = 0;
 };
 
-// Una sesión que no conectó todavía, sobre un FakeSocket.
+// A session that has not connected yet, on a FakeSocket.
 struct Session
 {
     Session()
@@ -337,9 +333,8 @@ std::vector<Kind> KindsOf(const std::vector<FrameEvent>& events)
     return kinds;
 }
 
-// 0x6350b0: los dos fondos, el fin del 2D, el pase 3D, las dos arenas y los tres textos. Dos
-// frames: el segundo empieza con la mezcla aditiva que dejó el primero, y los fondos van igual
-// con la normal.
+// 0x6350b0: the two backgrounds, the end of 2D, the 3D pass, the two sands and the three texts. Two frames: the
+// second starts with the additive blending the first left, and the backgrounds still go with normal.
 TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
 {
     Harness tested;
@@ -369,7 +364,7 @@ TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
             EXPECT_FALSE(events[sand].alphaTest);
             ExpectColor(events[sand], SandColor);
         }
-        // 0x554000 no cambia la mezcla: los textos salen aditivos, con el color de GL.
+        // 0x554000 does not change the blending: the texts come out additive, with GL's color.
         for (const std::size_t text : {6u, 7u, 8u})
         {
             EXPECT_EQ(events[text].blend, BlendMode::Additive);
@@ -381,9 +376,9 @@ TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
     }
 }
 
-// 0x635560: lo último del frame, después de la UI, es el cursor del juego (0x5ac2d0) en el mouse del
-// WndProc, con la mezcla normal y en blanco aunque los textos dejaron la aditiva; con el botón abajo, el
-// CursorPush. Sin el mouse en el contexto (los demás tests), no hay cursor.
+// 0x635560: the last thing in the frame, after the UI, is the game cursor (0x5ac2d0) at the WndProc's mouse, with
+// normal blending and in white even though the texts left additive; with the button down, the CursorPush. Without
+// the mouse in the context (the other tests), there is no cursor.
 TEST(LoginSceneTest, DrawsTheGameCursorLast)
 {
     constexpr PixelSize Screen{1024, 768};
@@ -408,7 +403,7 @@ TEST(LoginSceneTest, DrawsTheGameCursorLast)
     EXPECT_EQ(events.back().texture, TextureSlot{3});
 }
 
-// Los fondos y las arenas con los argumentos de 0x6350b0, en 640 × 480 y en otra pantalla.
+// The backgrounds and the sands with 0x6350b0's arguments, at 640 × 480 and on another screen.
 TEST(LoginSceneTest, UsesTheQuadsOfTheOriginal)
 {
     constexpr std::chrono::milliseconds clock{123456};
@@ -430,8 +425,8 @@ TEST(LoginSceneTest, UsesTheQuadsOfTheOriginal)
     }
 }
 
-// El mundo de la escena es el de su tabla, el 55 (World56): sin esa carpeta, como en esta, el login
-// va sin terreno, lo dice en el log y dibuja lo demás.
+// The scene's world is its table's, 55 (World56): without that folder, as in this one, the login goes without
+// terrain, says so in the log and draws the rest.
 TEST(LoginSceneTest, WithoutWorld56TheLoginStillDraws)
 {
     Harness tested;
@@ -452,8 +447,8 @@ TEST(LoginSceneTest, WithoutWorld56TheLoginStillDraws)
     EXPECT_TRUE(warned);
 }
 
-// El pase 3D va con la cámara fija de la escena 2 (0x635ae0) en el viewport de 0x620db0(0, 25, 640,
-// 430): en 640 × 480, la y de GL es 480 − 25 − 430 (CL6.3).
+// The 3D pass goes with scene 2's fixed camera (0x635ae0) in the viewport of 0x620db0(0, 25, 640, 430): at
+// 640 × 480, GL's y is 480 − 25 − 430 (CL6.3).
 TEST(LoginSceneTest, TheModelsGetThePassOfTheLoginCamera)
 {
     Harness tested;
@@ -471,8 +466,8 @@ TEST(LoginSceneTest, TheModelsGetThePassOfTheLoginCamera)
     EXPECT_EQ(events[3].pass->view, expected.view);
 }
 
-// La u de las arenas sale del reloj del frame (Q-C65): otro reloj, otra u; 100 s después, la
-// misma, porque la cuenta es módulo 100.000 ms.
+// The sands' u comes from the frame clock (Q-C65): another clock, another u; 100 s later, the same, because the
+// count is modulo 100000 ms.
 TEST(LoginSceneTest, TheSandRunsWithTheFrameClock)
 {
     Harness tested;
@@ -490,8 +485,8 @@ TEST(LoginSceneTest, TheSandRunsWithTheFrameClock)
     EXPECT_EQ(fast[0].u, SandU(std::chrono::milliseconds{1234}, 0.0005f));
 }
 
-// Apoyados en la y 479, con la división entera de TextLayout: el 454 termina en x = 335, el 455
-// empieza ahí y el de la versión va en x = 0.
+// Resting on y 479, with TextLayout's integer division: 454 ends at x = 335, 455 starts there and the version's goes
+// at x = 0.
 TEST(LoginSceneTest, PlacesTheTextsLikeTheOriginal)
 {
     for (const PixelSize screen : {PixelSize{640, 480}, PixelSize{1280, 1024}})
@@ -517,7 +512,7 @@ TEST(LoginSceneTest, PlacesTheTextsLikeTheOriginal)
     }
 }
 
-// El 456 con la versión de MuRet donde la marca el texto (Q-C61).
+// 456 with MuRet's version where the text marks it (Q-C61).
 TEST(LoginSceneTest, ShowsTheVersionOfMuRet)
 {
     Harness tested;
@@ -529,8 +524,8 @@ TEST(LoginSceneTest, ShowsTheVersionOfMuRet)
     EXPECT_EQ(tested.target.Texts()[2].text, VersionPlaced);
 }
 
-// Solo el primer "%s"; el resto del texto va tal cual, y sin "%s" el texto queda como está:
-// nunca es un formato.
+// Only the first "%s"; the rest of the text goes as is, and without "%s" the text stays as it is: it is never a
+// format.
 TEST(LoginSceneTest, PlacesTheVersionOnlyWhereTheTextMarksIt)
 {
     EXPECT_EQ(PlaceVersion("a %s b", "1.2"), "a 1.2 b");
@@ -541,7 +536,7 @@ TEST(LoginSceneTest, PlacesTheVersionOnlyWhereTheTextMarksIt)
     EXPECT_EQ(PlaceVersion("", "1.2"), "");
 }
 
-// 0x6349a0: las texturas, las suyas y las de las ventanas, y después el ConnectServer (0x4c1340).
+// 0x6349a0: the textures, its own and the windows', and then the ConnectServer (0x4c1340).
 TEST(LoginSceneTest, StartsTheSessionOnEnter)
 {
     Harness tested;
@@ -581,7 +576,7 @@ TEST(LoginSceneTest, EnterRequestsTheLoginThemeOnceWithoutLooping)
     EXPECT_EQ(playback.worldSoundReleases, 2);
 }
 
-// Sin servidor (Main sin host), la escena dibuja igual y no pide la selección.
+// Without a server (Main without a host), the scene draws anyway and does not ask for the selection.
 TEST(LoginSceneTest, WithoutASessionItDrawsAndDoesNotConnect)
 {
     Harness tested;
@@ -598,9 +593,9 @@ TEST(LoginSceneTest, WithoutASessionItDrawsAndDoesNotConnect)
     EXPECT_EQ(tested.Frame().size(), 9u);
 }
 
-// 0x6350b0 no dibuja ni presenta mientras 0x7d3a13d esté en 0 (0x6350b6..0x6350c4), y la prende el paso
-// que entra (0x634c87): con conexión o sin ella, el login no se ve antes de su primer paso. Sin sesión, la
-// escena retiene el frame hasta ese paso; así las brasas del primero nacen alrededor de (0, 0, 0) (Q-C137).
+// 0x6350b0 neither draws nor presents while 0x7d3a13d is 0 (0x6350b6..0x6350c4), and the entering step turns it on
+// (0x634c87): with or without a connection, the login is not seen before its first step. Without a session, the
+// scene holds the frame until that step; so the first one's embers are born around (0, 0, 0) (Q-C137).
 TEST(LoginSceneTest, WithoutASessionItHoldsTheFrameUntilItsFirstStep)
 {
     Harness tested;
@@ -615,8 +610,8 @@ TEST(LoginSceneTest, WithoutASessionItHoldsTheFrameUntilItsFirstStep)
     EXPECT_TRUE(scene.HoldsTheLastFrame());
 }
 
-// La sesión empezada no alcanza: la selección es con el login aceptado (LoggedIn). Lo prueba de
-// punta a punta test_login_scene_loopback.cpp.
+// The started session is not enough: the selection comes with the login accepted (LoggedIn).
+// test_login_scene_loopback.cpp tests it end to end.
 TEST(LoginSceneTest, StaysWhileTheSessionIsNotLoggedIn)
 {
     Harness tested;
@@ -631,7 +626,7 @@ TEST(LoginSceneTest, StaysWhileTheSessionIsNotLoggedIn)
     EXPECT_EQ(scene.Next(), std::nullopt);
 }
 
-// Una textura que falta corta antes de subir nada y de conectar.
+// A missing texture stops before uploading anything and before connecting.
 TEST(LoginSceneTest, AMissingTextureFailsWithItsName)
 {
     Harness tested;
@@ -648,8 +643,8 @@ TEST(LoginSceneTest, AMissingTextureFailsWithItsName)
     EXPECT_TRUE(online.socket.connects.empty());
 }
 
-// Una de las ventanas que falta también corta antes de conectar. Lo que subió se suelta con el
-// Leave, como hace el SceneManager con un Enter que falla.
+// A missing window texture also stops before connecting. What was uploaded is released with the Leave, as the
+// SceneManager does with an Enter that fails.
 TEST(LoginSceneTest, AMissingWindowTextureFailsWithItsName)
 {
     Harness tested;
@@ -667,7 +662,7 @@ TEST(LoginSceneTest, AMissingWindowTextureFailsWithItsName)
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 
-// Las 18 del login y las 3 de las ventanas, en ese orden.
+// The login's 18 and the windows' 3, in that order.
 TEST(LoginSceneTest, LeaveReleasesItsTwentyOneSlots)
 {
     Harness tested;
@@ -689,7 +684,7 @@ TEST(LoginSceneTest, LeaveReleasesItsTwentyOneSlots)
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 
-// Sin Text.bmd en GameData (un test, o una tabla que no se leyó), lo demás se dibuja igual.
+// Without Text.bmd in GameData (a test, or a table that was not read), the rest is drawn anyway.
 TEST(LoginSceneTest, WithoutTextsItDrawsTheRest)
 {
     Harness tested;
@@ -703,8 +698,8 @@ TEST(LoginSceneTest, WithoutTextsItDrawsTheRest)
     EXPECT_TRUE(tested.target.Texts().empty());
 }
 
-// Los tests arman escenas en la pila, y la de MSVC es de 1 MB: las tablas grandes (los 3.000 lugares de
-// las partículas, los 1.000 de los sprites) van en el heap, y la escena queda chica.
+// The tests build scenes on the stack, and MSVC's is 1 MB: the large tables (the particles' 3000 places, the
+// sprites' 1000) go on the heap, and the scene stays small.
 TEST(LoginSceneTest, FitsOnTheStackOfATest)
 {
     constexpr std::size_t Limit = 128 * 1024;

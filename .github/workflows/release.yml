@@ -1,0 +1,86 @@
+# The Windows client package from Client/tools/windows/build.ps1, without Data. A tag vX.Y.Z equal to the version in
+# CMakeLists.txt publishes it as a GitHub Release; a PR that changes the script only builds it.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - Client/tools/windows/**
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows:
+    name: Windows package
+    runs-on: windows-2022
+    timeout-minutes: 150
+    env:
+      VCPKG_DISABLE_METRICS: 1
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The tag is the project version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = [regex]::Match((Get-Content -Raw CMakeLists.txt), 'project\(MuRet\s+VERSION\s+([0-9.]+)').Groups[1].Value
+          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+            throw "The tag $env:GITHUB_REF_NAME is not v$version, the version in CMakeLists.txt"
+          }
+
+      - name: vcpkg binary cache folder
+        shell: bash
+        run: |
+          temp="$(cygpath -m "$RUNNER_TEMP")"
+          mkdir -p "$temp/vcpkg-cache"
+          echo "VCPKG_DEFAULT_BINARY_CACHE=$temp/vcpkg-cache" >> "$GITHUB_ENV"
+          echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_ENV"
+
+      # ci.yml's key: the ports main already built come from its cache, which only ci.yml saves.
+      - name: Restore the vcpkg binary cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/vcpkg-cache
+          key: vcpkg-${{ env.RUNNER_IMAGE }}-${{ hashFiles('vcpkg.json', 'cmake/triplets/*.cmake') }}
+          restore-keys: vcpkg-${{ env.RUNNER_IMAGE }}-
+
+      # Two compilations at once, as ci.yml's Windows jobs: more run the runner out of memory (C1060).
+      - name: Build and package
+        shell: pwsh
+        run: ./Client/tools/windows/build.ps1 -Package -NoData -Jobs 2
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: muret-client-windows-x64
+          path: build/package/*.zip
+          retention-days: 30
+
+  release:
+    name: GitHub Release
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: muret-client-windows-x64
+          path: package
+
+      # On a re-run it updates the release that exists instead of failing.
+      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          name: MuRet ${{ github.ref_name }}
+          files: package/*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true

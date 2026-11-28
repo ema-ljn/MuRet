@@ -54,6 +54,53 @@ ctest --preset windows-x64-debug
 Los binarios quedan en `build/<preset>/`. El CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))
 hace lo mismo en Linux y Windows, con warnings como errores, en cada PR.
 
+### Windows in one command
+
+[`Client\tools\windows\build.cmd`](Client/tools/windows/build.ps1) does every step: it finds Visual Studio 2022 or
+newer, enters its developer shell, keeps its own vcpkg clone at the `builtin-baseline` of `vcpkg.json` in
+`%LOCALAPPDATA%\MuRet\vcpkg` (as CI does), and builds `main.exe` in Release with Ninja. It needs only Git and Visual
+Studio with "Desktop development with C++" and "C++ CMake tools for Windows"; `VCPKG_ROOT` is not used.
+
+```bat
+Client\tools\windows\build.cmd
+Client\tools\windows\build.cmd -Package
+Client\tools\windows\build.cmd -Config Debug -Tests
+```
+
+| Option | What it does |
+| --- | --- |
+| `-Config Debug` | Debug instead of Release |
+| `-Tests` | builds every target and runs CTest; CI runs them in Debug |
+| `-Package` | `main.exe` and the DLLs it imports (in Release, the Visual C++ runtime's too), a `muret-client.ini` and `Client\assets\Data` in `build\package\<name>\`, and its zip |
+| `-NoData` | with `-Package`, no `Data`: `main.exe` then reads a `Data` folder beside it |
+| `-Clean` | deletes the build folder first |
+| `-Jobs <N>` | N compilations at once, if `cl` runs out of memory (C1060) |
+| `-Define <NAME=VALUE>` | a CMake cache variable, for example `MU_XOR_REMAP=OFF` |
+| `-VcpkgRoot <path>` | your own vcpkg clone, used as it is |
+
+The first run is the long one: it clones vcpkg and builds its ports, which vcpkg then keeps in its binary cache. At
+the end the script prints how to run `main.exe` with the repo's `Data`, through a `muret-client.ini` it leaves in
+`build\<preset>\` with the data path and a font (`[Video] FontFile`, Arial). From PowerShell,
+`.\Client\tools\windows\build.ps1` takes the same options when the execution policy lets scripts run.
+
+### Releases
+
+A tag `vX.Y.Z` publishes the Windows client as a GitHub Release, built by
+[`release.yml`](.github/workflows/release.yml) with the script above. The version is the one in
+`project(MuRet VERSION ...)` of `CMakeLists.txt`, which `main.exe --version` and the login show, and the workflow
+fails on any other tag. The zip holds `main.exe`, the DLLs it imports (the engine's four, `SDL3.dll` and the Visual
+C++ runtime's) and a `muret-client.ini`, without `Data`: the original client's `Data` folder goes beside `main.exe`.
+To publish one, raise the version in a PR, merge it, then:
+
+```bash
+git fetch origin main
+git tag v0.2.0 origin/main
+git push origin v0.2.0
+```
+
+A PR that changes `Client/tools/windows/` or `release.yml` builds the package without publishing it, and Actions >
+Release > Run workflow builds it from any branch. Both leave the zip as the run's artifact.
+
 ## Documentación
 
 - Entrada para agentes y personas: [`AGENTS.md`](AGENTS.md); reglas de código: [`docs/CODING_RULES.md`](docs/CODING_RULES.md)

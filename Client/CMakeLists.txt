@@ -38,7 +38,7 @@ list(FILTER engine_headers EXCLUDE REGEX "/src/engine/Network/XorRemap/")
 list(FILTER engine_headers EXCLUDE REGEX "/Data/Textures/JpegErrors\\.h$")
 
 mu_add_library(Engine SOURCES ${engine_sources} HEADERS ${engine_headers})
-# En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
+# The target's name follows the linkage: static with the repo's triplets, shared with vcpkg's own x64-windows.
 target_link_libraries(Engine PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
 # Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.

@@ -152,7 +152,8 @@ dibujaría a saltos. Con `--pacing faithful` (el ritmo del original, VSync apaga
 25 pasos por segundo, y no lleva tope. En Windows queda por probar a mano (Emanuel).
 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
-`build\windows-x64\bin\Debug\main.exe`.
+`build\windows-x64\bin\Debug\main.exe`. Or, in one command, `Client\tools\windows\build.cmd` (the
+[root README](../README.md#windows-in-one-command)).
 
 A `-O0` Debug build spends about 40 ms of CPU on a frame with 40 monsters on screen, the whole
 budget of a frame, mostly in standard-library calls that are not inlined

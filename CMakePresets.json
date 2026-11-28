@@ -6,17 +6,15 @@
       "name": "base",
       "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": { "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/cmake/triplets" }
     },
     {
       "name": "linux-x64",
       "hidden": true,
       "inherits": "base",
       "generator": "Ninja",
-      "cacheVariables": {
-        "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/cmake/triplets",
-        "VCPKG_TARGET_TRIPLET": "x64-linux-shared-sdl"
-      },
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-linux-shared-sdl" },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
     },
     {
@@ -43,6 +41,7 @@
       "inherits": "base",
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows-shared-sdl" },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     {
@@ -54,7 +53,7 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_C_COMPILER": "cl",
         "CMAKE_CXX_COMPILER": "cl",
-        "VCPKG_TARGET_TRIPLET": "x64-windows"
+        "VCPKG_TARGET_TRIPLET": "x64-windows-shared-sdl"
       },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },

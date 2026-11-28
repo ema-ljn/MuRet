@@ -154,6 +154,10 @@ cierran por sí solas toda la CL. Esto responde a huecos que aparecieron recién
     sigue la regla igual.
 - En la descripción del PR, citá la sub-ola y la sección del research que fija el cambio.
 - En el código, un comentario solo si es estrictamente necesario, corto y en inglés (CODING_RULES §9).
+- **Stacked PRs and CI** (Emanuel, 2026-11-28): a PR with another open PR based on its branch skips the build, the
+  tests and clang-tidy (its format and Python checks still run), because the top of the stack builds them all. To
+  build a lower PR anyway, label it `full-ci` and press "Re-run all jobs". After a push to a lower PR, rebase the
+  stack so its top runs again. A `docs(ARn.m)` PR that `check_comments_only.py` passes skips the build too.
 
 ## Fuera de alcance para cambios de IA
 

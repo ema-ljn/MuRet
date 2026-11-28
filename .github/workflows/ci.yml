@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 # En un PR, un push nuevo cancela la corrida vieja. En main no: cada merge tiene que quedar con
 # su resultado.
@@ -163,9 +164,17 @@ jobs:
       # A PR that changes nothing the build reads (docs, the Python tools, the agents' files) skips the rest of the
       # job except the Python checks, and the job still ends green. Not a job-level if: it is evaluated before the
       # matrix expands, so the required checks ("Linux (GCC, Debug)"...) would never report. Outside a PR, all runs.
+      # Two more PRs skip it: a docs(ARn.m) PR whose code tokens did not change, and a PR with another PR stacked on
+      # it, whose code the top of the stack builds. A stacked PR labeled full-ci builds anyway (then "Re-run all jobs").
       - name: What the PR changes
         id: scope
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ github.event.pull_request.title }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           set -euo pipefail
           build=true
@@ -178,6 +187,29 @@ jobs:
                 *) build=true; echo "Builds because of $path"; break ;;
               esac
             done < <(git diff --name-only HEAD^1 HEAD)
+          fi
+          # A comment ending in a backslash would swallow the next line, which check_comments_only.py reads as code.
+          if [ "$build" = true ] && [[ "$TITLE" =~ ^docs\(AR[0-9]+\.[0-9]+\): ]]; then
+            python=python3
+            if [ "$RUNNER_OS" = Windows ]; then python=python; fi
+            if "$python" -I Client/tools/architecture/check_comments_only.py --base HEAD^1 --head HEAD \
+              && git diff HEAD^1 HEAD -- '*.h' '*.cpp' '*.hpp' '*.inc' \
+                | awk '/^\+.*\\$/ { found = 1 } END { exit found }'; then
+              build=false
+              echo "Only comments changed: nothing new to build"
+            fi
+          fi
+          if [ "$build" = true ] && [ "$GITHUB_EVENT_NAME" = pull_request ] && [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ]; then
+            if labels="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER" --jq '.labels[].name')" \
+              && above="$(gh api -X GET "repos/$GITHUB_REPOSITORY/pulls" -f state=open -f base="$HEAD_REF" \
+                -f per_page=100 --jq 'map("#\(.number)") | join(" ")')"; then
+              if [ -n "$above" ] && ! grep -qx full-ci <<< "$labels"; then
+                build=false
+                echo "Stacked under $above: the top of the stack builds this code"
+              fi
+            else
+              echo "::warning::Could not read the PRs stacked on this one, so this one builds"
+            fi
           fi
           echo "build=$build" | tee -a "$GITHUB_OUTPUT"
 
@@ -580,6 +612,37 @@ jobs:
           test "$status" -eq 0
           grep -q '^frames: 300,' "$output"
 
+      # ctcache skips a .cpp whose preprocessed text, include lines, flags and clang-tidy config are all unchanged.
+      # The preprocessor drops an IWYU pragma written on a header's #include line, so the key carries every pragma.
+      # The headers below are checked without it: their hash would be their own text alone.
+      - name: ctcache (Linux)
+        id: ctcache
+        if: steps.scope.outputs.build == 'true' && matrix.kind == 'includes'
+        run: |
+          commit=2cb1c2bdd86f5e56a9044908f7c36a8a04a30ca2
+          tool="$RUNNER_TEMP/ctcache-tool"
+          mkdir -p "$tool"
+          curl -fsSL --retry 5 -o "$tool/clang_tidy_cache.py" \
+            "https://raw.githubusercontent.com/matus-chochlik/ctcache/$commit/src/ctcache/clang_tidy_cache.py"
+          echo "21eabf0105a38c63b43e80825a1656b0efd6cd9b040cb91490b34cbfb1f0b277  $tool/clang_tidy_cache.py" \
+            | sha256sum -c -
+          printf '#!/bin/sh\nexec python3 -I "%s/clang_tidy_cache.py" "%s" "$@"\n' \
+            "$tool" "$(command -v clang-tidy-18)" > "$tool/clang-tidy"
+          chmod +x "$tool/clang-tidy"
+          echo "CTCACHE_DIR=$RUNNER_TEMP/ctcache" >> "$GITHUB_ENV"
+          echo "CTCACHE_TOOL=$tool" >> "$GITHUB_ENV"
+          key="$({ clang-tidy-18 --version; git grep 'IWYU pragma' -- Client || true; } | sha256sum | cut -c1-16)"
+          echo "key=ctcache-$key" >> "$GITHUB_OUTPUT"
+
+      - name: Restore clang-tidy's cache
+        id: ctcache-restore
+        if: steps.ctcache.outcome == 'success'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/ctcache
+          key: ${{ steps.ctcache.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ steps.ctcache.outputs.key }}-
+
       # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7): el check
       # misc-include-cleaner de clang-tidy 18, con las opciones y el WarningsAsErrors de
       # .clang-tidy, así que un hallazgo corta el job. Solo ese check: los otros de .clang-tidy
@@ -596,7 +659,8 @@ jobs:
         run: |
           clang-tidy-18 --version
           build=build/${{ matrix.configure-preset }}
-          run-clang-tidy-18 -clang-tidy-binary clang-tidy-18 -p "$build" -quiet \
+          python3 -I "$CTCACHE_TOOL/clang_tidy_cache.py" --zero-stats
+          run-clang-tidy-18 -clang-tidy-binary "$CTCACHE_TOOL/clang-tidy" -p "$build" -quiet \
             -checks='-*,misc-include-cleaner' 'Client/(src|tests)/'
           git ls-files -z -- 'Client/src/*.h' \
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner'
@@ -608,6 +672,20 @@ jobs:
             | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner' \
                 --extra-arg="-I$PWD/Client/src" --extra-arg="-I$PWD/Client/src/game" \
                 --extra-arg=-DSDL_OPENGL_1_FUNCTION_TYPEDEFS
+
+      - name: Save clang-tidy's cache
+        if: always() && steps.ctcache-restore.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/ctcache
+          key: ${{ steps.ctcache-restore.outputs.cache-primary-key }}
+
+      - name: ctcache statistics
+        if: always() && steps.ctcache-restore.outcome == 'success'
+        run: |
+          stats="$(python3 -I "$CTCACHE_TOOL/clang_tidy_cache.py" --show-stats | grep -F '(local)' || true)"
+          printf '%s\n' "$stats"
+          { echo '### ctcache'; echo '```'; printf '%s\n' "$stats"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       # Al final del job, porque por la API se leen solo las últimas 5000 líneas del log y CTest escribe
       # más de 20 000. También van al resumen de la corrida, para verlos sin abrir el log.

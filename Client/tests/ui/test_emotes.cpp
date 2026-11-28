@@ -1,6 +1,7 @@
 #include "Chat/Emotes.h"
 #include "Actors/Emote.h"
 
+#include "Tables/AddedEmotes.h"
 #include "Tables/TextTable.h"
 
 #include "support/ChatTexts.h"
@@ -159,5 +160,31 @@ TEST(EmotesTest, AMissingTextIsFoundInAnyMessage)
     const auto table = Client::Tests::MakeTextTable(texts);
     EXPECT_EQ(FindTheEmote(table, "hola"), (EmoteCase{0xa3, 0x86}));
     EXPECT_EQ(FindTheEmote(table, "#e270"), (EmoteCase{0x99, 0x83}));
+}
+
+std::vector<Client::Tables::AddedEmote> AddedEmotes()
+{
+    return {
+        {.action = 205, .elfAction = 205, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave", "/hi"}},
+        {.action = 206, .elfAction = 206, .keysPerStep = 0.32f, .repeats = true, .triggers = {"bow", "hi"}},
+    };
+}
+
+// MuRet's added emotes: the first row with a trigger in what was said, as 0x576960 compares.
+TEST(EmotesTest, TheFirstAddedEmoteWithATriggerInWhatWasSaidIsFound)
+{
+    const std::vector<Client::Tables::AddedEmote> emotes = AddedEmotes();
+
+    EXPECT_EQ(Client::UI::FindTheAddedEmote(emotes, "a big wave!"), &emotes[0]);
+    EXPECT_EQ(Client::UI::FindTheAddedEmote(emotes, "hi there"), &emotes[1]);
+    EXPECT_EQ(Client::UI::FindTheAddedEmote(emotes, "/hi and bow"), &emotes[0]);
+}
+
+TEST(EmotesTest, NoAddedEmoteFoundIsNone)
+{
+    const std::vector<Client::Tables::AddedEmote> emotes = AddedEmotes();
+
+    EXPECT_EQ(Client::UI::FindTheAddedEmote(emotes, "WAVE"), nullptr);
+    EXPECT_EQ(Client::UI::FindTheAddedEmote({}, "wave"), nullptr);
 }
 } // namespace

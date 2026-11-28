@@ -652,4 +652,28 @@ TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
         EXPECT_EQ(Other().animation.action, 11);
     }
 }
+
+// MuRet's added emotes: an elf takes the row's elfAction, the others the action itself.
+TEST_F(ActionReplyTest, AnElfTakesTheElfActionOfAnAddedEmote)
+{
+    struct Played
+    {
+        std::uint8_t characterClass;
+        std::uint8_t action;
+    };
+    m_models.player.actions.resize(210);
+    m_world->Runtime().addedEmotes = {
+        {.action = 205, .elfAction = 207, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave"}}};
+    const std::vector<Played> cases = {{0, 205}, {ElfClass, 207}};
+    for (const auto& [characterClass, played] : cases)
+    {
+        SCOPED_TRACE(int{characterClass});
+        Other().characterClass = characterClass;
+        Other().animation.action = 0;
+
+        ASSERT_TRUE(Apply(1, 205).HasValue());
+
+        EXPECT_EQ(Other().animation.action, played);
+    }
+}
 } // namespace

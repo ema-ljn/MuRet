@@ -122,11 +122,14 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mutools action remove <model> <N> [--yes]` | Take an action out; any but the last needs `--yes` |
 | `mutools gltf export <model> --output <glb> [--part <model>]... [--action N]...` | The model for Blender: its skeleton, its actions as animations and its meshes |
 | `mutools gltf import <model> <glb> [--animation <name or N>] [--at N]` | An animation of a `.glb` from Blender into a model with the same skeleton, as a new action or over action N |
+| `mutools emote add <data> <N> --trigger <word>... [--elf-action N] [--keys-per-step K] [--once] [--replace]` | A new emote in `Data/MuRet/Emotes.txt`: action N of `player/Player.bmd`, played when the chat has a trigger |
+| `mutools emote list <data>` | The new emotes, with a warning for each trigger one of the original's takes |
+| `mutools emote remove <data> <N>` | Take action N's emote out; the action stays in `Player.bmd` |
 | `mutools roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mutools tui [<folder or file>]` | The console UI |
 | `mutools web [<folder or model>] [--port N] [--no-browser] [--edit]` | The studio of models, in the browser; `--edit` lets it change a working copy's actions |
 
-`set`, `apply`, `build`, `dump`, the `action` and `gltf` commands and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
+`set`, `apply`, `build`, `dump`, the `action` and `gltf` commands, `emote add` and `remove` and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
 
 Output is one JSON object on stdout, `{"ok": true, "schema": 1, "command", "data", "warnings"}`. An error is one JSON
@@ -354,6 +357,31 @@ the animation does not move keeps its pose of the file at every key. Over an act
 keeps its stored numbers, so an action exported and imported over itself leaves the model byte for byte as it was, and
 the action keeps its `lock`. Every action of `player/Player.bmd` makes that round trip through Blender 5.3 unchanged.
 
+## Emotes
+
+The original starts 22 animations from what a player says: 95 triggers, texts 270 to 348 and 783 of `Local/Text.bmd`
+and 15 strings of `main.exe`. MuRet adds its own in `Data/MuRet/Emotes.txt`, a file the original does not have, which
+MuRet's client reads when it starts:
+
+1. Put the movement into `player/Player.bmd` after its 205 actions, with `mutools gltf import` from Blender or
+   `mutools action import` from an action file. The first new one is action 205, and 255 is the last, because the
+   client sends an action in one byte.
+2. `mutools emote add ~/mu/Data 205 --trigger wave --trigger /wave` gives it a row. When what the player says holds a
+   trigger, anywhere and with the same capitals, MuRet's client plays the action at `--keys-per-step` (0.32 by
+   default, the original's emotes' speed) in a loop, or once with `--once`, and sends it to the server in `C1 18` as
+   the original's emotes are sent. An elf plays `--elf-action` instead, the same action by default.
+3. `mutools emote list ~/mu/Data` shows the rows, and `mutools emote remove ~/mu/Data 205` takes one out.
+
+The chat tries the original's triggers first, so a trigger that holds one of them starts the original's emote
+instead: `Thanks` holds `T`, text 279 of the Spanish `Text.bmd`. `emote add` and `emote list` warn of each one with
+`TRIGGER_TAKEN` and write the row all the same.
+
+The file is text. Its first line is `MuRet emotes 1`, and each row after it has tab-separated columns: the action, the
+elf's action, the keys per step, `loop` or `once`, and one or more triggers, in CP1252 as the chat sends them
+(`--encoding` for another). The client reads one of at most 64 KiB, and a row it cannot read stops it at start-up,
+with the line's number in its log. Whether GS 1.02 passes action 205 on to the players around, and what the original client does
+with it, is still to be checked in the VM.
+
 ## Development
 
 ```bash
@@ -395,7 +423,7 @@ wheel.
 
 ## Stages
 
-Stages 1 to 8 are done, and stage 9 is this version.
+Stages 1 to 9 are done, and stage 10 is this version.
 
 1. Design and skills.
 2. Texts end to end.
@@ -409,3 +437,4 @@ Stages 1 to 8 are done, and stage 9 is this version.
 8. Editing actions in the studio: `mutools web --edit`, a gizmo on a bone, keys and actions copied and removed, undo
    and save.
 9. The Blender bridge: `mutools gltf export` and `import`.
+10. New emotes: `mutools emote add`, `list` and `remove`, and MuRet's client plays them.

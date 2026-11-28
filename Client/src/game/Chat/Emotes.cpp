@@ -1,12 +1,16 @@
 #include "Chat/Emotes.h"
 
+#include "Tables/AddedEmotes.h"
 #include "Tables/TextTable.h"
 #include "Actors/Emote.h"
 #include "FrontEnd/NameChecks.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <span>
+#include <string>
 #include <string_view>
 
 namespace Client::UI
@@ -130,5 +134,16 @@ std::optional<EmoteCase> FindTheEmote(const Tables::TextTable& texts, std::strin
         }
     }
     return std::nullopt;
+}
+
+const Tables::AddedEmote* FindTheAddedEmote(std::span<const Tables::AddedEmote> emotes, std::string_view said)
+{
+    for (const Tables::AddedEmote& emote : emotes)
+    {
+        const auto isSaid = [said](const std::string& trigger) { return ContainsLikeTheOriginal(said, trigger); };
+        if (std::ranges::any_of(emote.triggers, isSaid))
+            return &emote;
+    }
+    return nullptr;
 }
 } // namespace Client::UI

@@ -5,14 +5,17 @@
 #include "Tables/PlayerActions.h"
 #include "Tables/PlayerBones.h"
 #include "Models/Skeleton.h"
+#include "Tables/AddedEmotes.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <utility>
 
 namespace Client::Assets
 {
-Core::Expected<Models::Skeleton, Models::SkeletonError> MakePlayerSkeleton(const Data::Models::Model& model)
+Core::Expected<Models::Skeleton, Models::SkeletonError>
+MakePlayerSkeleton(const Data::Models::Model& model, std::span<const Tables::AddedEmote> addedEmotes)
 {
     Core::Expected<Models::Skeleton, Models::SkeletonError> made = Models::MakeSkeleton(model);
     if (!made.HasValue())
@@ -32,6 +35,20 @@ Core::Expected<Models::Skeleton, Models::SkeletonError> MakePlayerSkeleton(const
         }
     }
     skeleton.headBone = Tables::PlayerHeadBone;
+    const auto playAsTheEmote = [&skeleton](std::uint8_t action, const Tables::AddedEmote& emote)
+    {
+        if (action >= skeleton.actions.size())
+            return;
+        skeleton.actions[action].speed = emote.keysPerStep;
+        skeleton.actions[action].repeats = emote.repeats;
+    };
+    for (const Tables::AddedEmote& emote : addedEmotes)
+    {
+        if (emote.elfAction >= Tables::FirstAddedEmoteAction)
+            playAsTheEmote(emote.elfAction, emote);
+    }
+    for (const Tables::AddedEmote& emote : addedEmotes)
+        playAsTheEmote(emote.action, emote);
     return skeleton;
 }
 } // namespace Client::Assets

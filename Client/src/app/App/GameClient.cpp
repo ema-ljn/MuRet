@@ -161,6 +161,8 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
     runtime.monsterSkills = data.monsterSkills;
     // 0x61ed05: 0x54e7f0 keeps NpcName(%s).txt in the records of 0x7681eb8.
     runtime.npcNames = Scenes::NpcNameTableOf(data.npcNames);
+    runtime.addedEmotes = data.addedEmotes;
+    m_models.UseAddedEmotes(data.addedEmotes);
     // 0x61ed18: 0x46b3b0 keeps Slide.bmd in the banner of [0x5763528].
     if (data.slides)
     {

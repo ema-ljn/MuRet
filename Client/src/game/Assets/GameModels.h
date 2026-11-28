@@ -13,6 +13,7 @@
 #include "Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Models/TextureMetadata.h"
+#include "Tables/AddedEmotes.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -23,6 +24,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 
 // The models of the character (0x60dbe0), items (0x60ff50) and effects (0x615700), with their skeletons and
 // mesh-to-texture links for the scenes. Contract in 06 § El modelo en el binario.
@@ -36,6 +38,8 @@ public:
     // missing resources go to the log (Q-C23).
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log);
+    // MuRet's added emotes, whose speeds the next Load sets on Player.bmd (Assets::MakePlayerSkeleton).
+    void UseAddedEmotes(std::vector<Tables::AddedEmote> emotes);
 
     [[nodiscard]] const Data::Models::Model* Find(Models::ModelId model) const override;
     [[nodiscard]] const Models::Skeleton* SkeletonOf(Models::ModelId model) const override;
@@ -58,6 +62,7 @@ private:
     void AssignTextures(std::span<const Tables::ModelTextureCall> calls);
 
     ModelTable m_models;
+    std::vector<Tables::AddedEmote> m_addedEmotes;
     // Only the textures that were actually uploaded.
     std::map<std::uint32_t, Models::TextureMetadata> m_textureMetadata;
     Render::ITextureStore* m_startupTextureStore = nullptr;

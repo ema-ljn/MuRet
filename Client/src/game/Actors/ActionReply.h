@@ -41,7 +41,8 @@ namespace Client::Actors
 // animation, with the elf's; and any other, itself (0x4ea030 does not set one the model lacks). It draws no rand()
 // except in 0x4f2250 (the suffix) and in 0x4f4a10: the speeds of the own record (0x4f3f80, 3,848 when it closes)
 // and those of its eight calls to _rand (0x69fd70) the branch reaches (with a player, 0x4f4db9 and 0x4f4e07/0x4f4e1c
-// for the weapons and 0x4f5192 for the sound).
+// for the weapons and 0x4f5192 for the sound). In MuRet, an elf doing one of the added emotes
+// (WorldRuntime::addedEmotes) takes its elfAction.
 [[nodiscard]] Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Action& reply,
                                                                  const Scenes::WorldEntryResources& resources,
                                                                  const ActionSender& sendAction);

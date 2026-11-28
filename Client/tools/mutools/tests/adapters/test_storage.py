@@ -252,3 +252,13 @@ def test_a_folder_that_cannot_be_listed_lists_nothing(tmp_path: Path, monkeypatc
     store = LocalFileStore()
     assert store.files_in(locked) == ()
     assert store.folders_in(locked) == ()
+
+
+def test_make_folder_creates_one_folder_and_refuses_the_reference(reference: Path, tmp_path: Path) -> None:
+    STORE.make_folder(tmp_path / "MuRet")
+    STORE.make_folder(tmp_path / "MuRet")
+    assert (tmp_path / "MuRet").is_dir()
+    with pytest.raises(MutoolsError) as caught:
+        STORE.make_folder(reference / "MuRet")
+    assert caught.value.code is ErrorCode.REFERENCE_READ_ONLY
+    assert not (reference / "MuRet").exists()

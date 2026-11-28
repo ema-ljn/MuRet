@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Actors/ActionSend.h"
+#include "Tables/AddedEmotes.h"
 
 #include <cstdint>
 #include <string>
@@ -52,4 +53,8 @@ struct EmoteContext
 // C1 18 with the case's action. With the hero standing two equal C1 18 go out (Q-C776); walking, striking or in
 // another action, only the case's, and the hero is not animated.
 [[nodiscard]] Core::Expected<void, std::string> DoTheEmote(EmoteCase emote, const EmoteContext& context);
+
+// MuRet's added emote, the way a case goes: 0x576a60 with its action (with an elf, its elfAction) and its own C1 18.
+[[nodiscard]] Core::Expected<void, std::string> DoTheAddedEmote(const Tables::AddedEmote& emote,
+                                                                const EmoteContext& context);
 } // namespace Client::Actors

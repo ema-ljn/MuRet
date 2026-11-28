@@ -4,6 +4,7 @@
 #include "Core/PathText.h"
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
+#include "Tables/AddedEmotes.h"
 #include "Tables/GateTable.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -44,6 +45,8 @@ constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
 // fscanf has no cap; MuRet reads up to 1 MiB of Macro.txt, more than ten 0xff words with any reasonable whitespace
 // between them.
 constexpr std::size_t MaxMacroFileBytes = 1024u * 1024u;
+// 51 rows with many triggers fit in far less.
+constexpr std::uintmax_t MaxAddedEmotesFileBytes = 64u * 1024u;
 
 Core::Expected<GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
 {
@@ -216,6 +219,24 @@ Core::Expected<UI::Macros, std::string> LoadMacros(const std::filesystem::path& 
     if (!macros.HasValue())
         return Core::Unexpected(std::format("{}: {}", MacroFile, macros.Error()));
     return std::move(macros).Value();
+}
+
+Core::Expected<std::vector<AddedEmote>, std::string> LoadAddedEmotes(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, AddedEmotesFile, error);
+    if (error)
+        return Core::Unexpected(
+            std::format("could not look for {} in {}: {}", AddedEmotesFile, Core::PathText(dataRoot), error.message()));
+    if (!path)
+        return std::vector<AddedEmote>{};
+    const auto file = Data::ReadDataFile(*path, MaxAddedEmotesFileBytes);
+    if (!file.HasValue())
+        return Core::Unexpected(std::format("could not read {}: {}", AddedEmotesFile, file.Error().message()));
+    auto emotes = ReadAddedEmotes(std::as_bytes(std::span(file.Value())));
+    if (!emotes.HasValue())
+        return Core::Unexpected(std::format("{}: {}", AddedEmotesFile, emotes.Error()));
+    return std::move(emotes).Value();
 }
 
 // 0x46b3b0 reads 0xa030 bytes without checking the size: a longer file reads the same.
@@ -444,6 +465,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(slides).Error());
     }
     data.slides = std::move(slides).Value();
+    auto addedEmotes = LoadAddedEmotes(dataRoot);
+    if (!addedEmotes.HasValue())
+    {
+        return Core::Unexpected(std::move(addedEmotes).Error());
+    }
+    data.addedEmotes = std::move(addedEmotes).Value();
     return data;
 }
 Core::Expected<void, std::string> WriteMacroFile(const std::filesystem::path& dataRoot, std::string_view content)

@@ -13,6 +13,7 @@
 #include "Input/TextInputEvent.h"
 #include "Protocol/Outgoing.h"
 #include "Models/ModelTextureSlots.h"
+#include "Models/Skeleton.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
@@ -1057,6 +1058,44 @@ TEST_F(GameChat, AnEmoteSendsItsActionsBeforeTheChat)
     EXPECT_EQ(Decode(sent[2]).text, "hola ^^");
     EXPECT_EQ(hero.animation.action, 0xaf);
     EXPECT_EQ(random.State(), before);
+}
+
+// MuRet's added emote, when none of the 95 is in what was said: its action twice before the C1 00.
+TEST_F(GameChat, AnAddedEmoteSendsItsActionBeforeTheChat)
+{
+    Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
+    player.actions.resize(210);
+    models.Set(Client::Tables::PlayerSkeletonModel, {}, player, {});
+    world.Runtime().addedEmotes = {
+        {.action = 205, .elfAction = 205, .keysPerStep = 0.32f, .repeats = true, .triggers = {"wave"}}};
+    auto& hero = world.Hero();
+    hero.animation.action = 1;
+    hero.angles.z = 100.0f;
+    ASSERT_TRUE(Type("\r").HasValue());
+
+    const auto said = Type("a big wave\r");
+
+    ASSERT_TRUE(said.HasValue()) << said.Error();
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_TRUE(IsTheAction(sent[0], 3, 205));
+    EXPECT_TRUE(IsTheAction(sent[1], 3, 205));
+    EXPECT_EQ(Decode(sent[2]).text, "a big wave");
+    EXPECT_EQ(hero.animation.action, 205);
+}
+
+// The original's 95 come first: an added emote with one of their triggers is not reached.
+TEST_F(GameChat, TheOriginalEmotesComeBeforeTheAddedOnes)
+{
+    world.Runtime().addedEmotes = {
+        {.action = 205, .elfAction = 205, .keysPerStep = 0.32f, .repeats = true, .triggers = {"^^"}}};
+    world.Hero().animation.action = 1;
+    world.Hero().angles.z = 100.0f;
+    ASSERT_TRUE(Type("\r").HasValue());
+
+    ASSERT_TRUE(Type("hola ^^\r").HasValue());
+
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_TRUE(IsTheAction(sent[0], 3, 0x8e));
 }
 
 // El modelo del transformado se carga realmente en fauna; el proveedor base sólo tiene Player.

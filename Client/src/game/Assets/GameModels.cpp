@@ -20,6 +20,7 @@
 #include "Assets/TextureSets.h"
 #include "Models/TextureMetadata.h"
 #include "Models/ModelId.h"
+#include "Tables/AddedEmotes.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -33,6 +34,7 @@
 #include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Client::Assets
 {
@@ -87,6 +89,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     // On a reload, the models of the skills phase must still be absent during 0x611850.
     GameModels staged;
     staged.m_textureMetadata = m_textureMetadata;
+    staged.m_addedEmotes = m_addedEmotes;
     if (m_startupTextureStore == &textures)
         staged.m_startupTextureStore = m_startupTextureStore;
     else
@@ -95,6 +98,11 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     if (loaded.HasValue())
         *this = std::move(staged);
     return loaded;
+}
+
+void GameModels::UseAddedEmotes(std::vector<Tables::AddedEmote> emotes)
+{
+    m_addedEmotes = std::move(emotes);
 }
 
 Core::Expected<void, std::string> GameModels::LoadResources(const std::filesystem::path& dataRoot,
@@ -118,8 +126,9 @@ Core::Expected<void, std::string> GameModels::LoadResources(const std::filesyste
                     continue;
                 }
                 Data::Models::Model model = std::move(loaded).Value();
-                auto skeleton = file.model == Tables::PlayerSkeletonModel ? Assets::MakePlayerSkeleton(model)
-                                                                          : Models::MakeSkeleton(model);
+                auto skeleton = file.model == Tables::PlayerSkeletonModel
+                                    ? Assets::MakePlayerSkeleton(model, m_addedEmotes)
+                                    : Models::MakeSkeleton(model);
                 std::optional<Models::Skeleton> made;
                 if (skeleton.HasValue())
                     made = std::move(skeleton).Value();

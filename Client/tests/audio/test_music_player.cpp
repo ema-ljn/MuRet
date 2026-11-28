@@ -1,40 +1,15 @@
-#include "Audio/IMusicStream.h"
 #include "Audio/MusicPlayer.h"
+#include "support/RecordingMusicStream.h"
 
 #include <gtest/gtest.h>
 
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace Client::Audio
 {
 namespace
 {
-class RecordingStream final : public IMusicStream
-{
-public:
-    void Play(std::string_view path) override
-    {
-        played.emplace_back(path);
-        events.emplace_back("play:" + std::string(path));
-    }
-    void Stop() override
-    {
-        ++stops;
-        events.emplace_back("stop");
-    }
-    [[nodiscard]] int ProgressPercent() const override
-    {
-        return progress;
-    }
-
-    std::vector<std::string> played;
-    std::vector<std::string> events;
-    int stops = 0;
-    int progress = 0;
-};
-
 struct Attached
 {
     Attached()
@@ -42,7 +17,7 @@ struct Attached
         music.Attach(&stream);
     }
 
-    RecordingStream stream;
+    Tests::RecordingMusicStream stream;
     MusicPlayer music;
 };
 
@@ -103,63 +78,6 @@ TEST(MusicPlayerTest, WithoutAStreamNothingPlaysAndNoTrackEnds)
     music.Play("Music\\Noria.mp3");
     EXPECT_TRUE(music.Current().empty());
     EXPECT_FALSE(music.ReachedTheEnd());
-}
-
-TEST(MusicPlayerTest, ResolvesSafeWorldTracksAndKeepsMapZeroMusicWhileUnsafe)
-{
-    Attached player;
-    player.music.StepWorld(0, true, 4, {});
-    EXPECT_EQ(player.music.Current(), "Music\\Pub.mp3");
-    player.music.StepWorld(0, false, 0, {});
-    EXPECT_EQ(player.stream.played.size(), 1u);
-    int deviasReads = 0;
-    player.music.StepWorld(2, true, 0,
-                           [&deviasReads]
-                           {
-                               ++deviasReads;
-                               return true;
-                           });
-    EXPECT_EQ(player.music.Current(), "Music\\Church.mp3");
-    EXPECT_EQ(deviasReads, 1);
-    player.music.StepWorld(3, true, 0, {});
-    EXPECT_EQ(player.music.Current(), "Music\\Noria.mp3");
-}
-
-TEST(MusicPlayerTest, DoesNotReadDeviasPositionOutsideSafeMapTwo)
-{
-    Attached player;
-    int reads = 0;
-    player.music.StepWorld(2, false, 0,
-                           [&reads]
-                           {
-                               ++reads;
-                               return true;
-                           });
-    EXPECT_EQ(reads, 0);
-    EXPECT_TRUE(player.music.Current().empty());
-}
-
-TEST(MusicPlayerTest, FollowsNativeMapGroupOrderWhenSwitchingBetweenPubAndDungeon)
-{
-    Attached player;
-    player.music.Play("Music\\Pub.mp3");
-    player.stream.events.clear();
-
-    player.music.StepWorld(1, false, 0, {});
-    EXPECT_EQ(player.stream.events, (std::vector<std::string>{"stop", "play:Music\\Dungeon.mp3"}));
-    player.stream.events.clear();
-
-    player.music.StepWorld(0, true, 4, {});
-    EXPECT_EQ(player.stream.events, (std::vector<std::string>{"play:Music\\Pub.mp3"}));
-}
-
-TEST(MusicPlayerTest, StopsAnyKnownWorldTrackOnWorldReturn)
-{
-    Attached player;
-    player.music.Play("Music\\Mutheme.mp3");
-    player.music.StopWorld();
-    EXPECT_EQ(player.stream.stops, 1);
-    EXPECT_TRUE(player.music.Current().empty());
 }
 } // namespace
 } // namespace Client::Audio

@@ -5,7 +5,7 @@ description: Use when adding a file to the MuRet client, deciding which module a
 
 # Client modules in MuRet
 
-The client is split into 58 modules in three roots (`engine/`, `game/`, `app/`), each with a layer. This skill is the
+The client is split into 59 modules in three roots (`engine/`, `game/`, `app/`), each with a layer. This skill is the
 procedure; the rules live in [CODING_RULES §5](../../../docs/CODING_RULES.md#5-capas-separadas), the decision in
 [ADR 0023](../../../docs/adr/0023-client-module-architecture.md) and the target shape in the
 [spec](../../../docs/superpowers/specs/2026-11-20-client-architecture-design.md). Fidelity to `main.exe` and CODING_RULES

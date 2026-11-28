@@ -3,7 +3,6 @@
 #include "Audio/IMusicStream.h"
 #include "EngineApi.h"
 
-#include <functional>
 #include <string>
 #include <string_view>
 
@@ -23,7 +22,6 @@ public:
     void Stop(std::string_view relativePath);
     // 0x4ad060
     [[nodiscard]] bool ReachedTheEnd() const;
-    void StopWorld();
     void SetEnabled(bool enabled)
     {
         m_enabled = enabled;
@@ -36,9 +34,6 @@ public:
     {
         return m_current;
     }
-
-    // Native ordered track-group policy. The Devias callback is evaluated only for safe map 2.
-    void StepWorld(int map, bool safe, int heroCellLayer, const std::function<bool()>& inDeviasChurch);
 
 private:
     IMusicStream* m_stream = nullptr;

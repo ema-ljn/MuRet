@@ -22,9 +22,10 @@ side: small handlers per packet and one folder per feature.
 
 ## Decision
 
-- **Three include roots, one target per module:** `engine/` (14 modules, layers 0 to 5), `game/` (43, layers 6 to 11)
-  and `app/` (12). A module uses only lower layers and, inside its layer, the modules its `may_use` names in
-  `Client/modules.tsv`. No cycles. The table is in [CODING_RULES §5](../CODING_RULES.md#5-capas-separadas).
+- **Three include roots, one target per module:** `engine/` (14 modules, layers 0 to 5), `game/` (44 since
+  `game/Music`, 2026-11-25; layers 6 to 11) and `app/` (12). A module uses only lower layers and, inside its layer, the
+  modules its `may_use` names in `Client/modules.tsv`. No cycles. The table is in
+  [CODING_RULES §5](../CODING_RULES.md#5-capas-separadas).
 - **Every file has a module** in `Client/docs/research/coverage/module-map.tsv`, and `check_layers.py` checks the
   includes in CI against a baseline that only shrinks.
 - **Protocol:** offsets in the type (`Field<T, Offset, Endian>`), a `constexpr` opcode table with one row per `case` of

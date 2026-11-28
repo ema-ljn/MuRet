@@ -18,11 +18,12 @@ engine/Render/Gl	engine	5	engine/Render/Gl/**	*layer<5	the OpenGL backend of Ren
 engine/Models	engine	5	engine/Models/**	*layer<5	skeleton, pose, animation, skinning, cloth, IModelLibrary
 game/Protocol	game	6	Protocol/**	*layer<6	packet layouts and writers, per module
 game/Tables	game	6	game/Tables/**	*layer<6	MU's tables: items, sets, skills, quests, gates, texts, NPC names
-game/Maps	game	6	game/Maps/**	*layer<6	named map ids and predicates, each map folder, music and ambience
+game/Maps	game	6	game/Maps/**	*layer<6	named map ids and predicates, each map folder and ambience
 game/Kernel	game	7	game/Kernel/**	*layer<7	GameContext, shared state (actor pool, player, current map) and the ports
 game/Assets	game	8	Assets/**	*layer<8;game/Sound;game/Terrain	game models and textures
 game/Terrain	game	8		*layer<8	the terrain; does not know actors
 game/Sound	game	8	game/Sound/**	*layer<8	sound catalog, per-map sounds, per-model sound table, the sound request
+game/Music	game	8	game/Music/**	*layer<8	MU's tracks, the map music and the world sweep, over the engine's music player
 game/Camera	game	8		*layer<8;game/Terrain	the camera
 game/Ui	game	8		*layer<8;game/Assets;game/Sound	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing

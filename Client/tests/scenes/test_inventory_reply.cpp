@@ -22,7 +22,7 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/InventoryMoves.h"
 #include "Actors/Drawing/GameHanging.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Render/ModelBatch.h"
 #include "Models/Pose.h"
 #include "World/Sprites.h"
@@ -1151,7 +1151,7 @@ TEST_F(InventoryReplyTest, EncodedEmptyHandsReachTheHangingConsumerWithTheirNati
         EXPECT_EQ(hero.hands[0].level, upgraded ? 13 : 0);
         ASSERT_EQ(tested.models.Find(Client::Models::ModelId{0x1211}), nullptr);
         Client::Render::ModelBatch batch;
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         auto sprites = std::make_unique<Client::World::FrameSprites>();
         std::array<Client::Math::BoneTransform, 64> bones;
         bones.fill(Client::Math::BoneTransform(1.0f));

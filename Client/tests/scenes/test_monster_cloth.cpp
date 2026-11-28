@@ -16,7 +16,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterCloth.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
@@ -283,7 +283,7 @@ protected:
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     std::vector<Client::Actors::Drawing::CharacterCloth> m_cloths;
     Client::Render::ModelBatch m_batch;

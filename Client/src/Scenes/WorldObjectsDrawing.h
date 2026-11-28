@@ -32,7 +32,6 @@
 namespace Client::World
 {
 class KalimaWorld;
-struct FishEffectRequest;
 struct ObjectModelStepState;
 } // namespace Client::World
 
@@ -40,11 +39,12 @@ namespace Client::Kernel
 {
 struct ActorState;
 struct CrywolfGlobals;
+struct JointRequest;
+struct PoseBuffer;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct FaunaDrawCarry;
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
 using SpecialObjectStep = std::function<bool(World::WorldObject&)>;
@@ -97,7 +97,7 @@ struct ObjectFrameEffects
     // Sin una muestra previa no hay brillo que repetir.
     std::span<std::optional<int>> lastRandoms{};
     std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onPose{};
-    const FaunaDrawCarry* retainedPose = nullptr;
+    const Kernel::PoseBuffer* retainedPose = nullptr;
     bool publishProjectedPose = false;
     // 0x5763538 (WorldRuntime::objectDrawCounter): 0x6046a0 la cuenta una vez por frame original, como en el juego.
     std::int32_t* objectDrawCounter = nullptr;
@@ -145,8 +145,8 @@ struct GameObjectPass
     // 5ffdf0 publica el scratch de la pose antes de 602ed0 y antes de las aves.
     std::function<Core::Expected<void, std::string>(const Actors::Drawing::DrawnObject&)> onPose{};
     World::FrameSprites* sprites = nullptr;
-    const FaunaDrawCarry* retainedPose = nullptr;
-    std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
+    const Kernel::PoseBuffer* retainedPose = nullptr;
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint{};
     World::ObjectModelStepState* modelState = nullptr;
     // Publicación sobre scratch de presentación del caller, sin ejecutar602ed0 ni consumir RNG.
     bool publishProjectedPose = false;

@@ -3,6 +3,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/JointRequest.h"
 #include "Models/Skeleton.h"
 #include "Models/Skinning.h"
 #include "Models/ModelId.h"
@@ -11,6 +12,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Session/CharacterDrawHooks.h"
 #include "World/BlastModelEffects.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -187,6 +189,8 @@ TEST(VertexEffectsTest, TheGolemStonesComeOneInFortyFiveUpToTwenty)
 using Client::Actors::Drawing::EmitVertexEffectsOf;
 using Client::Crt::CrtRandom;
 using Client::Models::SkinnedMesh;
+
+const Client::Session::CharacterDrawHooks JointHooks;
 
 // A model with `count` triangles of one corner (vertex 0) in mesh 0.
 Client::Data::Models::Model OneCornerModel(std::size_t count)
@@ -390,12 +394,12 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
                                                       .skill = 0,
                                                       .skillSerial = 0,
                                                       .target = -1},
-                                                     expected, Client::Scenes::JointOwnerKind::Actor)
+                                                     expected, Client::Kernel::JointOwnerKind::Actor)
                         .HasValue());
     }
     ASSERT_TRUE(EmitVertexEffectsOf(model, 1.0f, meshes,
                                     {.type = 0x5ac, .subtype = 1, .angles = {0.0f, 0.0f, 45.0f}, .target = &target},
-                                    {.joints = joints}, shout)
+                                    {.joints = joints, .jointHooks = &JointHooks}, shout)
                     .HasValue());
     EXPECT_EQ(shout.State(), expected.State());
     // By hand, with seed 9 (68, 6151, 18175, 22398) and the turn at 45: (−68, 0, 31 − 60 + 45) and (−85, 0, 78 − 60 +
@@ -413,8 +417,8 @@ TEST(VertexEffectsTest, TheRavenShoutLeavesSpritesOrJointsEveryTwentyTwoTriangle
     EXPECT_EQ(joints[1].ownerContext, &target);
 
     CrtRandom orphan(9);
-    const auto cut =
-        EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x5ac, .subtype = 1}, {.joints = joints}, orphan);
+    const auto cut = EmitVertexEffectsOf(model, 1.0f, meshes, {.type = 0x5ac, .subtype = 1},
+                                         {.joints = joints, .jointHooks = &JointHooks}, orphan);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x4eefc5"), std::string::npos) << cut.Error();
 }

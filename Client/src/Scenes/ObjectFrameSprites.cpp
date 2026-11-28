@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/PoseBuffer.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -9,7 +10,6 @@
 #include "Math/OriginalRotation.h"
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Math/Ftol.h"
 #include "World/Sprites.h"

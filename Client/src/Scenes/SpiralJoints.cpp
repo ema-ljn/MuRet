@@ -8,7 +8,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -185,7 +185,7 @@ Core::Expected<void, std::string> FollowTheOwnerBone(JointState& joint, const Jo
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSpiralJoint(JointState& joint, const Kernel::JointRequest& request,
                                                     Crt::CrtRandom& random)
 {
     // 0x5346d8..0x534765: lo común, con la z 150 más alta y el camino (+0x24) en la posición.

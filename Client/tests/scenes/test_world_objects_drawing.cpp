@@ -17,7 +17,8 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Models/TextureMetadata.h"
 #include "Data/Textures/Texture.h"
 #include "Terrain/TerrainCulling.h"
@@ -846,7 +847,7 @@ TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
         Client::Crt::CrtRandom random(7);
         std::uint8_t depth = probe.depth;
         Client::World::FrameSprites sprites;
-        const Client::Scenes::FaunaDrawCarry pose;
+        const Client::Kernel::PoseBuffer pose;
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects,
                                     {.map = 2,
@@ -871,7 +872,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
 {
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     Client::Math::BoneTransform bone(1.0f);
     bone[3] = glm::vec3(10.0f, 20.0f, 30.0f);
     pose.bones.push_back(bone);
@@ -1072,7 +1073,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
     {
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
-        Client::Scenes::FaunaDrawCarry native;
+        Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
@@ -1090,7 +1091,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         {
             EXPECT_EQ(pose.state.hiddenMesh, Client::World::HiddenObject);
             ++publications;
-            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+            return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
         ASSERT_TRUE(DrawGame(batch, models, objects, pass).HasValue());
         EXPECT_EQ(publications, 1);
@@ -1115,7 +1116,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
     {
         std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Login, Client::World::ObjectScene::Login)};
         objects.front().state.hiddenMesh = Client::World::HiddenObject;
-        Client::Scenes::FaunaDrawCarry native;
+        Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
         auto projected = native;
@@ -1132,7 +1133,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
             [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
             ++publications;
-            return Client::Scenes::PublishFaunaPose(target, models, pose, true);
+            return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
         DrawWorldObjects(batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, Login,
                          {}, 0.0f, effects);

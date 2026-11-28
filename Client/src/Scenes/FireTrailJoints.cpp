@@ -1,7 +1,7 @@
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <cstdint>
@@ -12,7 +12,7 @@
 // la vida · 0,1f) está en GameJointDrawing.cpp.
 namespace Client::Scenes::JointFamilies
 {
-void CreateFireTrailJoint(JointState& joint, const World::FishEffectRequest& request)
+void CreateFireTrailJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x531229..0x531231: el ancho. 0x531238..0x531260: la /0, velocidad 0, 20 puntos, vida 20 y la textura del 0x60f.
     // 0x531265..0x53128f: la /1, velocidad 0, 15 puntos y vida 15. 0x532073: las demás sólo la luz, con los puntos y la
@@ -47,7 +47,7 @@ Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint)
     // queda donde la dejó el movimiento común. Sigue la cola común (0x53c393).
     if (joint.ownerContext == nullptr)
         return {};
-    if (joint.ownerKind != JointOwnerKind::ByType && joint.ownerKind != JointOwnerKind::ModelEffect)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return Core::Unexpected(std::string("0x5366c8: el dueño del joint 0x5f2 no es un efecto con modelo"));
     constexpr std::int16_t MeteorEffect = 0xc2;
     const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);

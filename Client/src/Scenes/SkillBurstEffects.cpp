@@ -12,7 +12,7 @@
 #include "Scenes/HighModelEffects.h"
 #include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -135,17 +135,17 @@ Core::Expected<void, std::string> StepTheSweepEmitter(World::ModelEffect& effect
     glm::vec3 angles = effect.copiedAngles;
     // El dueño del joint es el del efecto (el personaje de la habilidad): el 0x61c/0 no lo lee, sólo lo compara con el
     // héroe en su paso (SweepJoints.cpp); por el tipo, ByType.
-    const World::FishEffectRequest request{.type = SweepJoint,
-                                           .firstPosition = point,
-                                           .secondPosition = point,
-                                           .angles = angles,
-                                           .subtype = SweepSubtype,
-                                           .ownerContext = effect.ownerContext,
-                                           .scale = SweepWidth,
-                                           .key = effect.disturbanceState,
-                                           .skill = effect.byte89,
-                                           .skillSerial = 0,
-                                           .target = NoTarget};
+    const Kernel::JointRequest request{.type = SweepJoint,
+                                       .firstPosition = point,
+                                       .secondPosition = point,
+                                       .angles = angles,
+                                       .subtype = SweepSubtype,
+                                       .ownerContext = effect.ownerContext,
+                                       .scale = SweepWidth,
+                                       .key = effect.disturbanceState,
+                                       .skill = effect.byte89,
+                                       .skillSerial = 0,
+                                       .target = NoTarget};
     const auto made = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x52a72a: {} (CL11)", made.Error()));

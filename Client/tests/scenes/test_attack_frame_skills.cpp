@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Math/HalfLifeMath.h"
@@ -456,7 +457,7 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
             EXPECT_EQ(bolt->angles, hero.angles);
             EXPECT_EQ(bolt->width, 40.0f);
             EXPECT_EQ(bolt->ownerContext, &hero);
-            EXPECT_EQ(bolt->ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(bolt->ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(bolt->texture, 0x62c);
         }
         EXPECT_EQ(DrawsSince(Seed, tested.random), 9);

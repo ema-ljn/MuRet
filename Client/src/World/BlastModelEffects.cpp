@@ -15,7 +15,7 @@
 #include "Models/Skeleton.h"
 #include "Math/Ftol.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
@@ -141,7 +141,7 @@ Core::Expected<void, std::string> WithTheOwnRecord(const BlastEffectServices& se
     return {};
 }
 
-Core::Expected<void, std::string> AskTheJoint(const BlastEffectServices& services, const FishEffectRequest& request,
+Core::Expected<void, std::string> AskTheJoint(const BlastEffectServices& services, const Kernel::JointRequest& request,
                                               bool effectOwner, std::string_view address)
 {
     if (!services.joint)
@@ -176,17 +176,17 @@ Core::Expected<void, std::string> BeginThePiercingChild(ModelEffect& child, cons
     child.transform.scale = ChildScale;
     for (std::int32_t subtype = 0; subtype < 4; ++subtype)
     {
-        const FishEffectRequest request{TrailJoint,
-                                        child.transform.position,
-                                        child.transform.position,
-                                        child.transform.angles,
-                                        subtype,
-                                        &child,
-                                        child.transform.scale,
-                                        JointKey,
-                                        child.subtype,
-                                        0,
-                                        NoTarget};
+        const Kernel::JointRequest request{TrailJoint,
+                                           child.transform.position,
+                                           child.transform.position,
+                                           child.transform.angles,
+                                           subtype,
+                                           &child,
+                                           child.transform.scale,
+                                           JointKey,
+                                           child.subtype,
+                                           0,
+                                           NoTarget};
         if (auto made = AskTheJoint(services, request, true, "0x51a08a"); !made.HasValue())
             return made;
     }
@@ -255,8 +255,8 @@ Core::Expected<void, std::string> BeginTheBlast(ModelEffect& effect, CrtRandom& 
     effect.velocity.z = F32(Fall - static_cast<double>(random.Next() % 50));
     effect.transform.angles = {0.0f, BlastPitch, 0.0f};
     effect.point40 = position;
-    const FishEffectRequest request{0x618, position, position, effect.transform.angles, 5, &effect, JointScale, -1,
-                                    0,     0,        -1};
+    const Kernel::JointRequest request{0x618, position, position, effect.transform.angles, 5, &effect, JointScale, -1,
+                                       0,     0,        -1};
     if (auto made = AskTheJoint(services, request, true, "0x5193d6"); !made.HasValue())
         return made;
     return WithTheOwnRecord(services, random, "0x5193db", [&](const std::uint8_t& count) { effect.word8c = count; });
@@ -375,8 +375,8 @@ Core::Expected<void, std::string> BeginTheBlizzard(ModelEffect& effect, CrtRando
     const auto ice = [&]() -> Core::Expected<void, std::string>
     {
         const float scale = F32(static_cast<double>(random.Next() % 10) + JointBase);
-        const FishEffectRequest request{0x615, position, position, effect.transform.angles, 4, &effect, scale, -1,
-                                        0,     0,        -1};
+        const Kernel::JointRequest request{0x615, position, position, effect.transform.angles, 4, &effect, scale, -1,
+                                           0,     0,        -1};
         return AskTheJoint(services, request, true, "0x51be22");
     };
     if (auto made = ice(); !made.HasValue())
@@ -567,17 +567,17 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
         for (int ray = 0; ray < Rays; ++ray)
         {
             const auto length = static_cast<float>(random.Next() % 40 + 70);
-            const FishEffectRequest request{0x5ac,
-                                            effect.transform.position,
-                                            effect.transform.position,
-                                            effect.transform.angles,
-                                            0,
-                                            nullptr,
-                                            length,
-                                            -1,
-                                            0,
-                                            0,
-                                            -1};
+            const Kernel::JointRequest request{0x5ac,
+                                               effect.transform.position,
+                                               effect.transform.position,
+                                               effect.transform.angles,
+                                               0,
+                                               nullptr,
+                                               length,
+                                               -1,
+                                               0,
+                                               0,
+                                               -1};
             if (auto made = AskTheJoint(services, request, false, "0x51c004"); !made.HasValue())
                 return made;
         }
@@ -965,7 +965,7 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         }
         if (!services.joint)
             return Core::Unexpected(Cut("0x521b75", "el joint 0x617/0 (0x530860) no tiene la tabla"));
-        const FishEffectRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        const Kernel::JointRequest request{0x617, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
         if (auto made = services.joint(request); !made.HasValue())
             return Core::Unexpected(std::format("0x521b75: {}", made.Error()));
         if (spark == 0)
@@ -1065,7 +1065,8 @@ Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtR
     glm::vec3& position = effect.transform.position;
     if (!services.joint)
         return Core::Unexpected(Cut("0x523c78", "el joint 0x614/3 (0x530860) no tiene la tabla"));
-    const FishEffectRequest request{0x614, position, position, effect.transform.angles, 3, nullptr, 20.0f, 7, 0, 0, -1};
+    const Kernel::JointRequest request{0x614, position, position, effect.transform.angles, 3, nullptr, 20.0f, 7,
+                                       0,     0,        -1};
     if (auto made = services.joint(request); !made.HasValue())
         return Core::Unexpected(std::format("0x523c78: {}", made.Error()));
     const auto rotation = static_cast<float>(random.Next() % 360);

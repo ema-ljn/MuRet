@@ -8,10 +8,9 @@
 #include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
 #include "Camera/GameCamera.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/JointHooks.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/JointFamilies.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
 #include "Tables/TextTable.h"
@@ -92,25 +91,29 @@ Core::Expected<void, std::string> ShowTheBlessingNotice(const Scenes::WorldEntry
     return resources.onScreenMessages->Add({}, *text, SystemMessage);
 }
 
+constexpr std::int32_t AuraJoint = 0x10f;
+
 // 0x530860(0x10f, from, from, angles, subtype, the character, width, −1, 0, 0, −1) (AuraJoints.cpp). With the pool
 // full, nothing.
 Core::Expected<void, std::string> CreateAura(Kernel::ActorState& actor, glm::vec3& from, glm::vec3& angles,
                                              std::int32_t subtype, float width,
                                              const Scenes::WorldEntryResources& resources)
 {
-    const World::FishEffectRequest request{.type = Scenes::JointFamilies::AuraJoint,
-                                           .firstPosition = from,
-                                           .secondPosition = from,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = &actor,
-                                           .scale = width,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
-    const auto created = Scenes::CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random,
-                                                  Scenes::JointOwnerKind::Actor);
+    const Kernel::JointRequest request{.type = AuraJoint,
+                                       .firstPosition = from,
+                                       .secondPosition = from,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = &actor,
+                                       .scale = width,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
+    if (resources.jointHooks == nullptr)
+        return Core::Unexpected(std::string("0x530860: no joint hooks for the aura of a flag"));
+    const auto created = resources.jointHooks->CreateTheJoint(resources.world.DrawTail().joints, request,
+                                                              resources.cloth.random, Kernel::JointOwnerKind::Actor);
     if (!created.HasValue())
         return Core::Unexpected(created.Error());
     return {};
@@ -180,7 +183,7 @@ Core::Expected<void, std::string> ApplyEffectFlags(Kernel::ActorState& actor, st
             requestSound(Bit100Sound);
             // 0x4e6447..0x4e6483: turns off its 0x10f/0 (0x534f90) and creates five, 50 wide, that turn around it.
             auto& joints = resources.world.DrawTail().joints;
-            KillJointsOf(joints, Scenes::JointFamilies::AuraJoint, &actor, 0);
+            KillJointsOf(joints, AuraJoint, &actor, 0);
             for (int ring = 0; ring < 5; ++ring)
                 if (auto created = CreateAura(actor, actor.position, actor.angles, 0, 50, resources);
                     !created.HasValue())

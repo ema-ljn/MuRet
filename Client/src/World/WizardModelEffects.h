@@ -36,9 +36,13 @@ struct TerrainLighting;
 // casos de habilidad de 0x4fd5f0 (Scenes/AttackSkillCases), los ataques de los monstruos (0x4f5b70, 0x439bd0,
 // 0x439cd0, 0x43a7a0 y 0x429110, Scenes/MonsterAttackStep), 0x4f97b0 (Scenes/AttackFrameSkills), las banderas de
 // 0x4e6380 (Scenes/ActorEffectFlags) y la muerte (0x4f5660, Scenes/ActorCombat). 06, "Los efectos de los magos".
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
-struct FishEffectRequest;
 struct ModelEffect;
 struct ModelEffectArguments;
 class ModelEffects;
@@ -105,7 +109,7 @@ struct WizardEffectServices
     // 0x41ed10(id, 0, 0).
     std::function<void(Audio::SoundId)> sound{};
     // 0x530860.
-    std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> joint{};
     // El dueño (+0x108) leído en vivo; nada si no es un personaje.
     std::function<std::optional<WizardOwnerView>(const void*)> ownerOf{};
     // [0x743a170], el héroe publicado.

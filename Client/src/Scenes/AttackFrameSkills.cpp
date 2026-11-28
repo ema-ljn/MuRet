@@ -25,7 +25,7 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
@@ -194,18 +194,18 @@ Core::Expected<void, std::string> StepTheSkill2b(Kernel::ActorState& actor, std:
             point.y = static_cast<float>(*cosine + static_cast<double>(point.y));
             if (context.joints.empty())
                 return CutAt(0x4f99fe, "falta el pool de joints de los 0x10f/2", skill, actor, slot);
-            const World::FishEffectRequest request{.type = BoltJoint,
-                                                   .firstPosition = point,
-                                                   .secondPosition = point,
-                                                   .angles = actor.angles,
-                                                   .subtype = BoltSubtype,
-                                                   .ownerContext = &actor,
-                                                   .scale = BoltWidth,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
-            if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+            const Kernel::JointRequest request{.type = BoltJoint,
+                                               .firstPosition = point,
+                                               .secondPosition = point,
+                                               .angles = actor.angles,
+                                               .subtype = BoltSubtype,
+                                               .ownerContext = &actor,
+                                               .scale = BoltWidth,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
                 !created.HasValue())
                 return Core::Unexpected(std::format("0x4f99fe: {}", created.Error()));
         }
@@ -302,17 +302,17 @@ Core::Expected<void, std::string> StepTheSkill2c(Kernel::ActorState& actor, std:
         glm::vec3 angles{static_cast<float>((context.random.Next() % PitchSpan) + PitchBase), 0.0f, actor.angles.z};
         if (context.joints.empty())
             return CutAt(0x4fa964, "falta el pool de joints de los 0x617/0", skill, actor, slot);
-        const World::FishEffectRequest request{.type = BoltJoint,
-                                               .firstPosition = point,
-                                               .secondPosition = point,
-                                               .angles = angles,
-                                               .subtype = 0,
-                                               .ownerContext = nullptr,
-                                               .scale = BoltWidth,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = BoltJoint,
+                                           .firstPosition = point,
+                                           .secondPosition = point,
+                                           .angles = angles,
+                                           .subtype = 0,
+                                           .ownerContext = nullptr,
+                                           .scale = BoltWidth,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("0x4fa964: {}", created.Error()));
         if (context.particles == nullptr)
@@ -585,7 +585,7 @@ Core::Expected<void, std::string> CreateSkill39Bolts(Kernel::ActorState& actor,
     constexpr float Width = 40.0f;
     for (const std::int32_t key : keys)
     {
-        const World::FishEffectRequest request{
+        const Kernel::JointRequest request{
             BoltJoint, actor.position, actor.position, actor.angles, BoltSubtype, nullptr, Width, key, 0, 0, -1};
         const auto created = CreateFaunaJoint(context.joints, request, context.random);
         if (!created.HasValue())

@@ -1,6 +1,7 @@
 #include "Scenes/JointKernels.h"
 
 #include "Core/Expected.h"
+#include "Kernel/JointRequest.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
@@ -86,7 +87,7 @@ Core::Expected<void, std::string> AppendCrossedJointTail(JointState& joint, cons
 
 const Kernel::ActorState* ActorOwner(const JointState& joint)
 {
-    if (joint.ownerKind != JointOwnerKind::ByType && joint.ownerKind != JointOwnerKind::Actor)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::Actor)
         return nullptr;
     return static_cast<const Kernel::ActorState*>(joint.ownerContext);
 }

@@ -11,7 +11,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -39,7 +39,7 @@ constexpr double Glimmer = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu)
 // del color del skill: 20 con el 0 y el 3, 40 con el 1; con otro, el ancho que tenía el lugar) y la /5: la luz en 1
 // (el color la pisa), la mezcla 4, sólo la segunda cara (+0x11 en 2), velocidad 3, vida 50, 8 puntos y el pase 2
 // (+0x64). El destino es el segundo punto. Sin rand().
-Core::Expected<void, std::string> CreateHelperSpark(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateHelperSpark(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::uint8_t OwnerColor = 3;
     // 0x531c71..0x531c8c: el color 3 lee la luz del dueño (+0xf4), que la /5 pisa; sin dueño, el original cae.
@@ -123,7 +123,7 @@ void CreateCommonSparkle(JointState& joint)
 
 // 0x533915..0x53399b: la /0x29, vida 40, el ancho del pedido, 50 puntos, la luz (1 − a, 1 − b, 1) con a y b en
 // rand() % 300 · 0,001f (a guardada en float, b no) y vz en rand() % 5 + 5. Tres rand().
-void CreateFallingSparkle(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateFallingSparkle(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 40, Points = 50, Spread = 300, Lift = 5;
     constexpr double Thousandth = Math::ThousandthAsDouble; // 0x6ba128
@@ -138,7 +138,7 @@ void CreateFallingSparkle(JointState& joint, const World::FishEffectRequest& req
 
 // 0x5339a5..0x533a1e: la /0x2a nace (0, −15, 0) girado por sus ángulos más allá, con el ancho del pedido; el camino
 // (+0x24) es esa posición, la velocidad (0, −50, 0), sin la cola común (+0x9f2) y la luz en 1. Sin rand().
-void CreateSpinningSparkle(JointState& joint, const World::FishEffectRequest& request)
+void CreateSpinningSparkle(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr float Start = -15.0f, Radius = -50.0f; // 0xc1700000 y 0xc2480000
     joint.velocity.y = Start;
@@ -203,17 +203,17 @@ Core::Expected<void, std::string> StepSpinningSparkle(JointState& joint, const J
     if (*turn % Beat == 0 && roll <= Most)
     {
         glm::vec3 still(0.0f); // [ebp−0x3c]
-        const World::FishEffectRequest sparkle{.type = DropJoint,
-                                               .firstPosition = joint.position,
-                                               .secondPosition = joint.position,
-                                               .angles = still,
-                                               .subtype = FallingSparkleSubtype,
-                                               .ownerContext = nullptr,
-                                               .scale = joint.width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest sparkle{.type = DropJoint,
+                                           .firstPosition = joint.position,
+                                           .secondPosition = joint.position,
+                                           .angles = still,
+                                           .subtype = FallingSparkleSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = joint.width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(services.joints, sparkle, *services.random); !created.HasValue())
             return Core::Unexpected(std::format("0x53a0eb: {}", created.Error()));
     }
@@ -228,7 +228,7 @@ bool IsSpark(std::int32_t type, std::int32_t subtype)
            (type == DropJoint && (subtype == FallingSparkleSubtype || subtype == SpinningSparkleSubtype));
 }
 
-Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     if (request.type == HelperSparkJoint)

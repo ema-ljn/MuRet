@@ -2,6 +2,7 @@
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Actors/Drawing/ItemDrawResources.h"
+#include "Session/ItemCreators.h"
 #include "Terrain/ITerrainAttributeQuerySource.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "Data/Terrain/TerrainAttributes.h"
@@ -14,6 +15,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Skinning.h"
 #include "World/ModelEffects.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameParticles.h"
@@ -74,19 +76,19 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(Render::Frame::SceneCa
 void GameScene::FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special,
                                     Actors::Drawing::ItemDrawContext& item, Core::Duration frameClock, int frames)
 {
-    Actors::Drawing::FillItemDrawContexts(
-        special, item,
-        Actors::Drawing::ItemDrawResources{.frameClock = frameClock,
-                                           .random = FrameCloth().random,
-                                           .itemRender = FrameItemRender(),
-                                           .sprites = FrameSpritesForDraw(),
-                                           .poseCarry = FramePoseCarry(),
-                                           .modelState = FrameModelState(),
-                                           .joints = FrameTail().joints,
-                                           .effects = FrameEffects(),
-                                           .map = m_context.world->Runtime().map,
-                                           .originalFrame = frames > 0,
-                                           .glowDetail = m_context.world->Runtime().ui.glowDetail});
+    const Actors::Drawing::ItemDrawResources itemResources{.frameClock = frameClock,
+                                                           .random = FrameCloth().random,
+                                                           .itemRender = FrameItemRender(),
+                                                           .sprites = FrameSpritesForDraw(),
+                                                           .poseCarry = FramePoseCarry(),
+                                                           .modelState = FrameModelState(),
+                                                           .joints = FrameTail().joints,
+                                                           .effects = FrameEffects(),
+                                                           .map = m_context.world->Runtime().map,
+                                                           .originalFrame = frames > 0,
+                                                           .glowDetail = m_context.world->Runtime().ui.glowDetail};
+    Actors::Drawing::FillItemDrawContexts(special, item, itemResources);
+    Session::FillItemCreators(item, itemResources);
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, const Render::Pass3D& pass,
@@ -113,10 +115,10 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
         floor.map = runtime.map;
         floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
         floor.onPose = [&](const Actors::Drawing::DrawnObject& object)
-        { return PublishFaunaFloorPose(FramePoseCarry(), *m_models, object); };
+        { return Actors::Drawing::PublishFloorPose(FramePoseCarry(), *m_models, object); };
         floor.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); };
         floor.onSkin = [&](const Actors::Drawing::DrawnObject& object)
-        { return TransformFaunaPose(FramePoseCarry(), *m_models, object); };
+        { return Actors::Drawing::TransformPose(FramePoseCarry(), *m_models, object); };
         if (itemState.initialized)
             floor.randomTable = itemState.floorAngles;
         floor.worldClock = clock;
@@ -154,7 +156,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
     if (auto result =
             DrawHelpers({canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
                          [&](const Actors::Drawing::DrawnObject& object)
-                         { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); }, true,
+                         { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); }, true,
                          [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); }, SceneId::Game,
                          &FrameLighting(), &FrameSpritesForDraw(), clock, &FrameEffects(), &FrameParticles(),
                          // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
@@ -176,9 +178,9 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
                                     .kalima = FrameKalima()};
     ModelEffectDrawResources effectResources{*MapTerrain().heights, clock};
     effectResources.onPose = [&](const Actors::Drawing::DrawnObject& object)
-    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); };
+    { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); };
     effectResources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
-    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, false); };
+    { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, false); };
     effectResources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); };
     effectResources.sprites = &FrameSpritesForDraw();
     effectResources.dynamicLighting = &FrameLighting();

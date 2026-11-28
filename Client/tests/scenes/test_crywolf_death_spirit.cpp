@@ -1,8 +1,10 @@
+#include "Kernel/JointRequest.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/GameCharacterEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Session/CharacterDrawHooks.h"
 #include "World/Sprites.h"
 #include "Audio/SoundId.h"
 #include <vector>
@@ -179,12 +181,13 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     decal.owner.effect = &parent;
     std::vector<Client::Scenes::JointState> joints(3);
     Client::Crt::CrtRandom random(7), expected(7);
+    const Client::Session::CharacterDrawHooks hooks;
     expected.Discard(13);
-    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(decal, joints, random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(decal, joints, &hooks, random).HasValue());
     for (auto& joint : joints)
     {
         EXPECT_TRUE(joint.alive);
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         joint.life = 1;
     }
     parent.transform.position = {400, 500, 600};

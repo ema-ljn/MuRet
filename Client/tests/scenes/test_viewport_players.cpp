@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -523,7 +524,7 @@ TEST_F(ViewportPlayersTest, InKalimaTheEnteringPlayerTakesTheJoint0x610Of8)
         EXPECT_EQ(joint.type, 0x610);
         EXPECT_EQ(joint.subtype, 8);
         EXPECT_EQ(joint.ownerContext, &actor);
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Actor);
         EXPECT_EQ(joint.position, glm::vec3(actor.position.x, actor.position.y, 300.0f));
         EXPECT_EQ(joint.angles, actor.angles);
         EXPECT_EQ(joint.targetPosition, actor.position);

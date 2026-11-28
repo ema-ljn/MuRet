@@ -11,7 +11,8 @@
 #include "Math/OriginalRotation.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
@@ -71,8 +72,8 @@ Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, cons
     if (!drawn.retainedMeshes.empty())
         return Actors::Drawing::DrawItemMeshPass(batch, models, drawn, frameClock, drawn.retainedMeshes, mesh, flags,
                                                  texture);
-    FaunaDrawCarry local;
-    if (auto posed = PublishFaunaPose(local, models, drawn, true); !posed.HasValue())
+    Kernel::PoseBuffer local;
+    if (auto posed = Actors::Drawing::PublishPose(local, models, drawn, true); !posed.HasValue())
         return posed;
     return Actors::Drawing::DrawItemMeshPass(batch, models, drawn, frameClock, local.meshes, mesh, flags, texture);
 }

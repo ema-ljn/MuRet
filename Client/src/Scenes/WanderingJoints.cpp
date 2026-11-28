@@ -10,7 +10,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -45,7 +45,7 @@ std::int32_t Wrapped(std::int32_t value, std::uint32_t amount)
 // +0x54 de la /0xb y la /0x19: la flecha 0xf8 (un efecto con modelo).
 World::ModelEffect* ArrowOwner(const JointState& joint)
 {
-    if (joint.ownerKind != JointOwnerKind::ModelEffect)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return nullptr;
     return static_cast<World::ModelEffect*>(joint.ownerContext);
 }
@@ -139,7 +139,7 @@ void Glint(World::FrameSprites& sprites, Crt::CrtRandom& random, std::uint16_t t
 }
 } // namespace
 
-void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateWanderingJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
     joint.life = 100;

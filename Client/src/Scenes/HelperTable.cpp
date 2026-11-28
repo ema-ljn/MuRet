@@ -19,7 +19,6 @@
 #include "Actors/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperStepParts.h"
@@ -29,7 +28,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/ChaosCastle.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -362,19 +361,19 @@ Core::Expected<void, std::string> RaiseTheOrbits(Kernel::HelperState& helper, co
                         F32(static_cast<double>(rotated.z) + static_cast<double>(helper.position.z))};
         for (int made = 0; made < JointsPerTurn; ++made)
         {
-            const World::FishEffectRequest request{.type = OrbitJoint,
-                                                   .firstPosition = point,
-                                                   .secondPosition = point,
-                                                   .angles = angles,
-                                                   .subtype = OrbitSubtype,
-                                                   .ownerContext = &helper,
-                                                   .scale = OrbitWidth,
-                                                   .key = OrbitKey,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = NoTarget};
-            const auto created =
-                CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::Helper);
+            const Kernel::JointRequest request{.type = OrbitJoint,
+                                               .firstPosition = point,
+                                               .secondPosition = point,
+                                               .angles = angles,
+                                               .subtype = OrbitSubtype,
+                                               .ownerContext = &helper,
+                                               .scale = OrbitWidth,
+                                               .key = OrbitKey,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = NoTarget};
+            const auto created = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
+                                                  Kernel::JointOwnerKind::Helper);
             if (!created.HasValue())
             {
                 return Core::Unexpected(std::format("0x444740: {}", created.Error()));

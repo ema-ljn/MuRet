@@ -49,20 +49,21 @@ struct Skeleton;
 
 namespace Client::Kernel
 {
-class WorldState;
 struct ActorState;
 struct DarkSpirit;
+struct PoseBuffer;
+class WorldState;
 } // namespace Client::Kernel
-
-namespace Client::Scenes
-{
-struct FaunaDrawCarry;
-} // namespace Client::Scenes
 
 // A player's effects in the game's draw: the tail of 0x50ba30 after what hangs, from the 0x20a case of the switch of
 // 0x50e9fa (0x50ea20) to the return, and the raven of 0x420df0. What asks for an effect, a joint, a particle or a sound
 // MuRet does not have stops with its address, and only when the branch would really run. Contract: 06 § El dibujo del
 // juego, "Los efectos del jugador".
+namespace Client::Actors
+{
+class IJointHooks;
+} // namespace Client::Actors
+
 namespace Client::Actors::Drawing
 {
 struct DrawnObject;
@@ -75,10 +76,11 @@ struct GameCharacterEffectsPass
     Crt::CrtRandom& random;
     // The frame's sprite table (0x5491e0). Needed only if a branch puts sprites.
     World::FrameSprites* sprites = nullptr;
-    // The frame's particles (0x53fe70), joints (0x530860) and model effects (0x518cf0), for what the full set creates.
-    // Needed only if a branch creates, in an original frame.
+    // The frame's particles (0x53fe70), joints (0x530860, born through `jointHooks`) and model effects (0x518cf0), for
+    // what the full set creates. Needed only if a branch creates, in an original frame.
     World::Particles* particles = nullptr;
     std::span<Scenes::JointState> joints{};
+    const IJointHooks* jointHooks = nullptr;
     World::ModelEffects* effects = nullptr;
     // The world, for the 0x518cf0 additions of the Dark Lord's actions 0x51 and 0x5b (the 0x621/2 of 0x50f9b3 and the
     // 0x117/2 of 0x50fb64, through CreateHighModelEffect) and their sound 0x1cc. Without it, those windows stop.
@@ -126,8 +128,9 @@ struct GameCharacterEffectsPass
 // more and, with the life a multiple of 15 and an owner, the z turn 180 more; the position at 50 from the owner
 // character (+0x108, read live) with the unrounded sine of the turn and the cosine of the stored turn (Q-C380), 20
 // higher, and the 0x619/9 joint there. Then the common tail (0x52cb98): no animation or speed, one life less.
-[[nodiscard]] Core::Expected<void, std::string>
-StepFullSetFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
+                                                                 std::span<Scenes::JointState> joints,
+                                                                 const IJointHooks* jointHooks, Crt::CrtRandom& random);
 
 // 0x5208a0 on the 0x61e/0 decal of the level-up, /1 of the pet and /3 of summoning. /0 only consumes the common rand()
 // and takes off a life (0x52b984 → 0x52bb29). /1 (0x52b9a6 → 0x518900): the light's rand() for every live effect
@@ -139,8 +142,9 @@ StepFullSetFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joint
 // /0. Then the common tail (0x52cb98): no animation or speed, one life less. /4 and /6 to /0xa belong to
 // Scenes/HighModelEffects (StepsAsPetSummon leaves them out).
 [[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
-[[nodiscard]] Core::Expected<void, std::string>
-StepPetSummon(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect,
+                                                              std::span<Scenes::JointState> joints,
+                                                              const IJointHooks* jointHooks, Crt::CrtRandom& random);
 
 // 0x5208a0 on the 0x5ac/1 and /2 of the skills that arrive (0x52a7b7 and 0x52a8a7, Scenes/SkillReplies): the light's
 // rand() for every live effect (0x5208c5) and the life at 10 with the owner (+0x108) alive (+0x0 at 1) and its flag of
@@ -151,8 +155,8 @@ StepPetSummon(World::ModelEffect& effect, std::span<Scenes::JointState> joints, 
 // 0x619/9 joint of width 15 there (with the joint table full, none). Then the common tail (0x52cb98): no animation or
 // speed, one life less. Without an owner, the original reads +0x78 of 0: MuRet stops.
 [[nodiscard]] Core::Expected<void, std::string>
-StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, Crt::CrtRandom& random,
-               World::Particles* particles = nullptr, World::ParticleOwner particleOwner = {});
+StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, const IJointHooks* jointHooks,
+               Crt::CrtRandom& random, World::Particles* particles = nullptr, World::ParticleOwner particleOwner = {});
 
 // What the game's raven reads (0x420df0 → 0x4182f0) outside its owner.
 struct GameRavenPass
@@ -166,7 +170,7 @@ struct GameRavenPass
     const Terrain::WorldTerrain& terrain;
     float fixedHeight = 0.0f;
     // The global pose buffer (0x68b181c), where 0x5ffdf0 leaves the raven's. Optional.
-    Scenes::FaunaDrawCarry* carry = nullptr;
+    Kernel::PoseBuffer* carry = nullptr;
     Core::Duration frameClock{};
     std::int32_t map = 0;
     // The hero's +0x1a1, which 0x5ffdf0 reads in maps 18 to 23.
@@ -182,6 +186,8 @@ struct GameRavenPass
     // effects of 0x518cf0) and for the end of the shout (0x418a8c: the 0x613/0xd joints toward the character of +0x3b0,
     // one of its 400). Without them, they stop at the first addition.
     Kernel::WorldState* world = nullptr;
+    // Who creates those joints (0x530860). Without it, they stop there too.
+    const IJointHooks* jointHooks = nullptr;
 };
 
 // 0x4182f0: whether the raven passes the trapezoid of 0x5fba90 at its (x, y) times 0.01f, with −20. If not, the draw

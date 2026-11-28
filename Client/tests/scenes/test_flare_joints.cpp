@@ -8,7 +8,7 @@
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -39,17 +39,17 @@ struct FlareWorld
         glm::vec3 from = start;
         glm::vec3 to{1.0f, 2.0f, 3.0f};
         glm::vec3 angles{10.0f, 20.0f, 30.0f};
-        const Client::World::FishEffectRequest request{.type = 0x5ac,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = 80.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x5ac,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = nullptr,
+                                                   .scale = 80.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 

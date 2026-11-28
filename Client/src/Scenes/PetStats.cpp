@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Protocol/Pets/PetInfo.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/ActorState.h"
@@ -164,7 +165,7 @@ Core::Expected<void, std::string> SparkTheRaven(DarkSpirit& raven, int joints, b
     {
         const auto created = CreateFaunaJoint(
             pool, {SparkleJoint, start, target, angles, SparkleSubtype, &raven, OrderWidth, OrderKey, 0, 0, NoTarget},
-            resources.cloth.random, JointOwnerKind::Raven);
+            resources.cloth.random, Kernel::JointOwnerKind::Raven);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{}: {}", turned ? "0x418444" : "0x4183e8", created.Error()));
     }

@@ -8,7 +8,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -76,7 +76,7 @@ Core::Expected<void, std::string> Glow(const JointState& joint, const JointKerne
 }
 } // namespace
 
-void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request)
+void CreatePlasmaJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x530ddd..0x530e0a: velocidad 50, la textura repetida (+0x9f0), el ancho, 50 puntos y vida 20. Por subtipo, la
     // textura y la luz: /0..2 la 0x614 con (0,7f; 1; 0,7f), (1; 0,6f; 0,6f) y (0,7f; 0,7f; 1); /3..5 la 0x632 con

@@ -8,7 +8,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -32,7 +32,7 @@ using Math::F32;
 
 constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0,01f
 
-Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x5337fa..0x533855: sin la cola común, la luz en 0,1f, vida 60, el destino y el ancho; después, mientras sea
     // menor que los puntos (20), la z + 50 y un tramo con la matriz de los ángulos del alta (0x530afa, [ebp−0x54]).
@@ -54,7 +54,7 @@ Core::Expected<void, std::string> CreateTheColumn(JointState& joint, const World
     return {};
 }
 
-void CreateTheWhirl(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateTheWhirl(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x534132..0x5341f7: la mezcla 4, el ancho, la textura 0x613; vz (rand() % 150) · 0,01f, vy rand() % 500 − 250,
     // velocidad 30 y la luz (0,2f; 0,4f; 0,8f). Con el ancho de más de 10 (fcomp y test ah,0x41: ni menor, ni igual, ni
@@ -157,7 +157,7 @@ bool IsOrbit(std::int32_t type, std::int32_t subtype)
            (subtype == ColumnSubtype || subtype == WhirlSubtype || subtype == MirroredWhirlSubtype);
 }
 
-Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/JointRequest.h"
 #include "Math/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -69,21 +70,6 @@ struct FishModelStepView
     void* identity; // Identidad opaca del modelo prestado, nunca propietario.
 };
 
-struct FishEffectRequest
-{
-    std::int32_t type;
-    glm::vec3& firstPosition;
-    glm::vec3& secondPosition;
-    glm::vec3& angles;
-    std::int32_t subtype;
-    void* ownerContext; // Se puede retener; los otros argumentos sólo se prestan durante la llamada.
-    float scale;
-    std::int32_t key;
-    std::int32_t skill;
-    std::int32_t skillSerial;
-    std::int32_t target;
-};
-
 // Todos los servicios son obligatorios al alcanzarse. Expected transporta fallos del binding;
 // los retornos nativos ignorados siguen ignorados, sin convertir AL/EAX en un éxito universal.
 // PC53/RN condicionado: sin traps/status x87. El backend matemático debe reutilizar
@@ -96,7 +82,7 @@ public:
     [[nodiscard]] virtual Core::Expected<std::int32_t, std::error_code> Truncate(double value) = 0;
     [[nodiscard]] virtual Core::Expected<std::uint8_t, std::error_code> EventGate() = 0;
     [[nodiscard]] virtual Core::Expected<std::uint32_t, std::error_code>
-    CreateEffect(const FishEffectRequest& request) = 0;
+    CreateEffect(const Kernel::JointRequest& request) = 0;
     [[nodiscard]] virtual Core::Expected<double, std::error_code> Height(float x, float y) = 0;
     [[nodiscard]] virtual Core::Expected<FishModelStepView, std::error_code> LookupModel(std::int16_t model) = 0;
     [[nodiscard]] virtual Core::Expected<std::uint8_t, std::error_code>

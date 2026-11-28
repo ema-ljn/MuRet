@@ -8,7 +8,7 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -32,7 +32,7 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::int32_t Aura = 0x10f;
@@ -55,17 +55,17 @@ struct Pool
     {
         glm::vec3 from = actors[0].position;
         glm::vec3 angles = startAngles;
-        const Client::World::FishEffectRequest request{.type = Aura,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = actors.data(),
-                                                       .scale = width,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = target};
+        const Client::Kernel::JointRequest request{.type = Aura,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = actors.data(),
+                                                   .scale = width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = target};
         return Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor);
     }
 

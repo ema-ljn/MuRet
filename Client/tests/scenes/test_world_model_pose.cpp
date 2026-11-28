@@ -3,7 +3,6 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Kernel/WorldState.h"
 

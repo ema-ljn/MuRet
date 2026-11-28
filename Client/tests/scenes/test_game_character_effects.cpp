@@ -19,8 +19,9 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
+#include "Session/CharacterDrawHooks.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameParticles.h"
@@ -29,7 +30,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "support/ParticleDrawRecorder.h"
 #include "Scenes/SocialState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -66,6 +67,8 @@ using Client::Actors::Drawing::GameRavenPass;
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
 using Client::Scenes::PartySlot;
+
+const Client::Session::CharacterDrawHooks JointHooks;
 
 float Float(std::uint32_t bits)
 {
@@ -178,6 +181,7 @@ protected:
                 .sprites = &m_sprites,
                 .particles = &m_particles,
                 .joints = m_joints,
+                .jointHooks = &JointHooks,
                 .effects = &m_effects,
                 .slot = Slot,
                 .scan = {},
@@ -626,7 +630,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareCirclesItsOwnerEveryFifteenSteps
         const float yaw = flare.transform.angles.z;
         if (step == 16)
             m_actor.position = {130.0f, 170.0f, 290.0f};
-        const auto stepped = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random);
+        const auto stepped = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -678,7 +682,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     Client::World::ModelEffect& flare = m_effects.Effects()[0];
     EXPECT_FALSE(flare.hasOwner);
 
-    ASSERT_TRUE(Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, &JointHooks, m_random).HasValue());
 
     EXPECT_EQ(flare.transform.position, m_actor.position);
     EXPECT_EQ(flare.transform.angles.z, 0.0f);
@@ -686,7 +690,7 @@ TEST_F(GameCharacterEffectsTest, TheFullSetFlareWithoutOwnerOnlyCountsAndOtherEf
     EXPECT_EQ(m_random.State(), AfterRandoms(1));
 
     flare.subtype = 0;
-    const auto refused = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, m_random);
+    const auto refused = Client::Actors::Drawing::StepFullSetFlare(flare, m_joints, &JointHooks, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52a9ad"), std::string::npos) << refused.Error();
 }
@@ -702,7 +706,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, m_actor.angles, glm::vec3(0.5f), &m_actor).has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, &JointHooks, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -738,7 +742,7 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonDropsThreeEnergyJointsAroundItsOwne
     {
         for (auto& joint : m_joints)
             joint.alive = false;
-        ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, &JointHooks, m_random).HasValue());
     }
     EXPECT_FALSE(summon.alive);
     EXPECT_EQ(m_random.State(), AfterRandoms(7 * 20));
@@ -751,7 +755,7 @@ TEST_F(GameCharacterEffectsTest, TheLevelUpDecalExpiresWithoutAJointTable)
     Client::World::ModelEffect& decal = m_effects.Effects()[0];
     for (int step = 1; step <= 20; ++step)
     {
-        const auto stepped = Client::Actors::Drawing::StepPetSummon(decal, {}, m_random);
+        const auto stepped = Client::Actors::Drawing::StepPetSummon(decal, {}, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(decal.life, 20 - step);
         EXPECT_EQ(decal.alive, step < 20);
@@ -766,14 +770,14 @@ TEST_F(GameCharacterEffectsTest, ThePetSummonRefusesOtherEffectsAndAMissingJoint
     ASSERT_TRUE(m_effects.CreatePetSummon(m_actor.position, {}, glm::vec3(0.5f), &m_actor).has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto tableless = Client::Actors::Drawing::StepPetSummon(summon, {}, m_random);
+    const auto tableless = Client::Actors::Drawing::StepPetSummon(summon, {}, &JointHooks, m_random);
     ASSERT_FALSE(tableless.HasValue());
     EXPECT_NE(tableless.Error().find("0x5189cc"), std::string::npos) << tableless.Error();
     EXPECT_EQ(m_random.State(), 1u);
     EXPECT_EQ(summon.life, 20);
 
     summon.subtype = 4;
-    const auto refused = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
+    const auto refused = Client::Actors::Drawing::StepPetSummon(summon, m_joints, &JointHooks, m_random);
     ASSERT_FALSE(refused.HasValue());
     EXPECT_NE(refused.Error().find("0x52b9a6"), std::string::npos) << refused.Error();
 }
@@ -788,7 +792,7 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
             .has_value());
     Client::World::ModelEffect& summon = m_effects.Effects()[0];
 
-    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, m_random);
+    const auto stepped = Client::Actors::Drawing::StepPetSummon(summon, m_joints, &JointHooks, m_random);
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
@@ -812,7 +816,7 @@ TEST_F(GameCharacterEffectsTest, TheSummonDecalDropsThreeEnergyJoints)
     for (auto& joint : m_joints)
         joint.alive = true;
     CrtRandom full{1};
-    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, full).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(summon, m_joints, &JointHooks, full).HasValue());
     EXPECT_EQ(full.State(), AfterRandoms(7));
     EXPECT_EQ(summon.life, 18);
 }
@@ -840,7 +844,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
         SCOPED_TRACE(step);
         const glm::vec3 before = flare.transform.position;
         const float yaw = flare.transform.angles.z;
-        const auto stepped = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random);
+        const auto stepped = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(static_cast<std::size_t>(step)));
         EXPECT_EQ(flare.speed, static_cast<float>(step));
@@ -876,7 +880,7 @@ TEST_F(GameCharacterEffectsTest, TheGuardFlareCirclesItsTargetEveryFiftyStepsWit
     // Without 0x400 the life stays at 0 and it dies in the tail; with 0x4000 on the owner, it neither counts nor moves.
     m_actor.flags78 = 0x4000;
     const float counted = flare.speed;
-    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random).HasValue());
     EXPECT_EQ(flare.speed, counted);
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(flare.life, -1);
@@ -902,7 +906,8 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
         auto& flare = m_effects.Effects()[0];
         const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, Slot};
 
-        const auto stepped = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles, owner);
+        const auto stepped =
+            Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles, owner);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_random.State(), AfterRandoms(2));
@@ -923,13 +928,15 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     m_particles.Clear();
     auto& flare = m_effects.Effects()[0];
     m_actor.flags78 = 0x4010;
-    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(
+        Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_EQ(flare.life, 9);
     EXPECT_TRUE(LiveParticles(m_particles).empty());
     EXPECT_EQ(m_random.State(), AfterRandoms(3));
     m_actor.flags78 = 0x10;
     m_actor.alive = false;
-    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(
+        Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(5));
@@ -938,14 +945,16 @@ TEST_F(GameCharacterEffectsTest, TheSwellFlareEmitsItsMirroredBonePairBeforeTheC
     flare.alive = true;
     m_actor.alive = true;
     m_actor.flags78 = 0;
-    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles).HasValue());
+    ASSERT_TRUE(
+        Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles).HasValue());
     EXPECT_FALSE(flare.alive);
     EXPECT_EQ(LiveParticles(m_particles).size(), 2u);
     EXPECT_EQ(m_random.State(), AfterRandoms(7));
 
     flare.alive = true;
     flare.ownerContext = nullptr;
-    const auto ownerless = Client::Actors::Drawing::StepSkillFlare(flare, m_joints, m_random, &m_particles);
+    const auto ownerless =
+        Client::Actors::Drawing::StepSkillFlare(flare, m_joints, &JointHooks, m_random, &m_particles);
     ASSERT_FALSE(ownerless.HasValue());
     EXPECT_NE(ownerless.Error().find("0x52a7ec"), std::string::npos);
     EXPECT_EQ(flare.life, 0);
@@ -966,8 +975,9 @@ TEST_F(GameCharacterEffectsTest, TheSwellBoneTableCoversAllSevenMirroredPairs)
         for (std::size_t draw = 0; draw < skipped; ++draw)
             (void)m_random.Next();
         ASSERT_TRUE(m_effects.CreateSkillFlare({}, {}, {}, Client::World::SwellFlareSubtype, &m_actor).has_value());
-        const auto stepped = Client::Actors::Drawing::StepSkillFlare(
-            m_effects.Effects()[0], m_joints, m_random, &m_particles, {Client::World::ParticleOwnerKind::Actor, Slot});
+        const auto stepped =
+            Client::Actors::Drawing::StepSkillFlare(m_effects.Effects()[0], m_joints, &JointHooks, m_random,
+                                                    &m_particles, {Client::World::ParticleOwnerKind::Actor, Slot});
         ASSERT_TRUE(stepped.HasValue());
         ASSERT_EQ(LiveParticles(m_particles).size(), 2u);
         EXPECT_EQ(m_particles.All()[0].rotation, Bones[index]);
@@ -995,8 +1005,8 @@ TEST(SwellLifePipelineTest, RunsFromParentToRetainedActorBonesAndExistingFlareDr
         effects.CreateSkillFlare({1, 2, 3}, {}, glm::vec3(1), Client::World::SwellFlareSubtype, &actor).has_value());
     CrtRandom random(7);
     const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::Actor, 3};
-    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, random,
-                                                        &world->Particles(), owner)
+    ASSERT_TRUE(Client::Actors::Drawing::StepSkillFlare(effects.Effects()[0], world->DrawTail().joints, &JointHooks,
+                                                        random, &world->Particles(), owner)
                     .HasValue());
     const auto resolver = Client::Scenes::ParticleOwnerBonesOf(*world);
     ASSERT_TRUE(
@@ -1600,7 +1610,8 @@ protected:
                 .heroByte1a1 = 0,
                 .originalFrame = true,
                 .random = &m_random,
-                .world = m_world.get()};
+                .world = m_world.get(),
+                .jointHooks = &JointHooks};
     }
 
     ActorState m_owner;
@@ -1630,7 +1641,7 @@ TEST_F(GameRavenTest, OutOfTheTrapeziumTheRavenSlowsDownAndForgetsItsStateWithou
 
 TEST_F(GameRavenTest, ASeenRavenDrawsMeshesThreeAndTwoAndTheShadowOfAllAndKeepsItsPose)
 {
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     GameRavenPass pass = Pass();
     pass.carry = &carry;
 
@@ -1734,7 +1745,7 @@ TEST_F(GameRavenTest, TheOwnersFlag4000DrawsTheRavenAsAChromeShellWithoutShadow)
     m_owner.flags78 = 0x4000;
     m_terrain.heights.reset();
     m_terrain.attributes.reset();
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     GameRavenPass pass = Pass(30);
     pass.carry = &carry;
 
@@ -1793,17 +1804,17 @@ TEST_F(GameRavenTest, TheAttackDropsItsJointsAndTheDarkLordSkill)
                 width = static_cast<float>(oracle.Next() % 40 + 20);
                 glm::vec3 from = spirit.position;
                 glm::vec3 angles = spirit.angles;
-                const Client::World::FishEffectRequest request{.type = 0x5ac,
-                                                               .firstPosition = from,
-                                                               .secondPosition = from,
-                                                               .angles = angles,
-                                                               .subtype = 1,
-                                                               .ownerContext = nullptr,
-                                                               .scale = width,
-                                                               .key = -1,
-                                                               .skill = 0,
-                                                               .skillSerial = 0,
-                                                               .target = -1};
+                const Client::Kernel::JointRequest request{.type = 0x5ac,
+                                                           .firstPosition = from,
+                                                           .secondPosition = from,
+                                                           .angles = angles,
+                                                           .subtype = 1,
+                                                           .ownerContext = nullptr,
+                                                           .scale = width,
+                                                           .key = -1,
+                                                           .skill = 0,
+                                                           .skillSerial = 0,
+                                                           .target = -1};
                 ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
             }
             const auto turn = counter == 1 ? static_cast<std::int32_t>(oracle.Next() % 180) : 0;
@@ -2004,7 +2015,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
     ASSERT_TRUE(Client::Actors::Drawing::DrawGameRaven(m_owner, projected).HasValue());
     EXPECT_EQ(m_owner.darkSpirit->byte38d, 15);
 
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     auto world = std::make_unique<Client::Kernel::WorldState>();
     const auto actors = world->Actors();
     actors[3].position = {1200.0f, 1300.0f, 40.0f};
@@ -2049,7 +2060,7 @@ TEST_F(GameRavenTest, TheEndOfTheShoutLooksAtTheAttackTarget)
                                                       .skill = 0,
                                                       .skillSerial = 0,
                                                       .target = -1},
-                                                     replay, Client::Scenes::JointOwnerKind::Actor)
+                                                     replay, Client::Kernel::JointOwnerKind::Actor)
                         .HasValue());
         const auto& joint = joints[corner];
         ASSERT_TRUE(joint.alive);

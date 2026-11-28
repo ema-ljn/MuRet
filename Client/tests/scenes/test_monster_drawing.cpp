@@ -24,7 +24,7 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Models/SkinningBuffers.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
@@ -257,7 +257,7 @@ protected:
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     std::vector<Client::Scenes::JointState> m_joints;
     Client::Models::SkinningBuffers m_buffers;
     Client::Render::ModelBatch m_batch;

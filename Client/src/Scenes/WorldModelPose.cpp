@@ -6,7 +6,6 @@
 #include "Models/Pose.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"

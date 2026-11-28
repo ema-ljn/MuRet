@@ -4,6 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
 #include "Protocol/Pets/PetInfo.h"
@@ -323,7 +324,7 @@ TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
             EXPECT_EQ(joint.width, 40.0f);
             EXPECT_EQ(joint.life, 50);
             EXPECT_EQ(joint.ownerContext, &raven);
-            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Raven);
+            EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Raven);
             EXPECT_EQ(joint.light, raven.light);
             EXPECT_EQ(joint.position, raven.position);
             EXPECT_EQ(joint.targetPosition, raven.position);

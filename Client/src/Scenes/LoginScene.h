@@ -4,9 +4,9 @@
 #include "Models/Cloth.h"
 #include "Models/IModelLibrary.h"
 #include "Render/Pass3D.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Camera/GameCamera.h"
 
+#include "Session/CharacterDrawHooks.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
@@ -63,6 +63,11 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+namespace Client::Kernel
+{
+struct PoseBuffer;
+} // namespace Client::Kernel
 
 // La escena 2 (CL5.4): el login de 0x634c60, que entra con 0x6349a0 y dibuja con 0x6350b0 (06 § El
 // login, al entrar y § El login, el dibujo), con el logo y el personaje (CL6.4, Scenes/LoginModels.h)
@@ -194,11 +199,11 @@ private:
                                             const Kernel::DarkHorse& drawnHorse) const;
     void DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
-    void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry = nullptr);
+    void DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, Kernel::PoseBuffer* carry = nullptr);
     // 0x50db57..0x510a7a con el personaje, después de su cuerpo, `frames` veces (con cero, una entre frames); un
     // error queda en m_failure.
     void DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor,
-                     const Actors::Drawing::DrawnCharacter& character, FaunaDrawCarry& carry,
+                     const Actors::Drawing::DrawnCharacter& character, Kernel::PoseBuffer& carry,
                      const Actors::FullSetScan& scan, int frames);
     // El corte del pase de partículas, en el log: una vez por entrada.
     void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
@@ -343,5 +348,7 @@ private:
     // primero, la de referencia.
     Core::PixelSize m_screen{640, 480};
     bool m_quit = false;
+    // Who creates the joints of the character's draw (0x530860).
+    Session::CharacterDrawHooks m_characterDrawHooks;
 };
 } // namespace Client::Scenes

@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
@@ -43,7 +43,7 @@ struct Fixture
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     std::uint32_t time = 0;
 

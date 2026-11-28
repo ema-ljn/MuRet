@@ -22,9 +22,13 @@ struct Skeleton;
 // Los efectos con modelo del lote "switch" de la CL11 (0x518cf0 y 0x5208a0): las piedras y las chispas de las skills
 // de los magos y de los monstruos que no tienen su propio archivo. Cada alta y cada paso citan su dirección; lo que
 // queda afuera (las partículas y los joints que MuRet todavía no crea) corta en la llamada que lo pide.
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
-struct FishEffectRequest;
 struct ModelEffect;
 struct ModelEffectArguments;
 struct ModelEffectOwner;
@@ -43,7 +47,7 @@ struct BlastEffectServices
     std::uint8_t* ownRecordCount = nullptr;
     const void* hero = nullptr;
     std::function<Core::Expected<void, std::string>(const ModelEffect&, float)> skillHits{};
-    std::function<Core::Expected<void, std::string>(const FishEffectRequest&, bool effectOwner)> joint{};
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&, bool effectOwner)> joint{};
     std::function<void(Audio::SoundId)> sound{};
 };
 

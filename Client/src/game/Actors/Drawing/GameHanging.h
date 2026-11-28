@@ -36,11 +36,11 @@ class IModelLibrary;
 namespace Client::Kernel
 {
 struct ActorState;
+struct PoseBuffer;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct FaunaDrawCarry;
 struct GuildState;
 } // namespace Client::Scenes
 
@@ -48,6 +48,11 @@ struct GuildState;
 // layer, the wings, Helper02 and the hands' loop, each one except the layer with 0x509340 (posed on the global pose
 // buffer, drawn with 0x60b3d0 and with its model's sprites). What asks for an effect or a joint MuRet does not have
 // stops with its address. Contract: 06 § El dibujo del juego, "Lo que cuelga en el juego".
+namespace Client::Actors
+{
+class IJointHooks;
+} // namespace Client::Actors
+
 namespace Client::Actors::Drawing
 {
 struct ItemDrawContext;
@@ -61,12 +66,13 @@ struct GameHangingPass
     // The global rand() of 0x69fd70.
     Crt::CrtRandom& random;
     // The global pose buffer (0x68b181c) and the frame's sprite table (0x5491e0). Needed only if something hangs.
-    Scenes::FaunaDrawCarry* carry = nullptr;
+    Kernel::PoseBuffer* carry = nullptr;
     World::FrameSprites* sprites = nullptr;
-    // The frame's joints of 0x530860 and particles of 0x53fe70. Needed only if something creates them: the 0x617 of
-    // action 0x8c (0x50a110), the 0x618/0x11 of 0xc1e, the 0x610/4 of 0x223 and the 0x614/10 of 0x224. The 0x610/4 and
-    // 0x618/0x11 keep the hanging character as owner (+0x54): an ActorState.
+    // The frame's joints of 0x530860, who creates them, and the particles of 0x53fe70. Needed only if something
+    // creates them: the 0x617 of action 0x8c (0x50a110), the 0x618/0x11 of 0xc1e, the 0x610/4 of 0x223 and the 0x614/10
+    // of 0x224. The 0x610/4 and 0x618/0x11 keep the hanging character as owner (+0x54): an ActorState.
     std::span<Scenes::JointState> joints{};
+    const IJointHooks* jointHooks = nullptr;
     World::Particles* particles = nullptr;
     // The globals of 0x60b3d0 the frame's owner lends (without it, those of an empty ItemDrawContext).
     const ItemDrawContext* itemContext = nullptr;

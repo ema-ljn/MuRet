@@ -31,7 +31,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/ColoredDecals.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/KalimaWorld.h"
 #include "World/Particles.h"
@@ -128,18 +128,19 @@ CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& c
                                                   { RequestTheSound(context, sound); },
                                                   .ownRecordDepth = &context.world.Runtime().ownRecordDepth,
                                                   .ownVolley = &context.world.OwnCharacter().bytef04};
-    const World::FishEffectRequest request{.type = JointFamilies::SpiritJoint,
-                                           .firstPosition = spirit.from,
-                                           .secondPosition = spirit.to,
-                                           .angles = spirit.angles,
-                                           .subtype = spirit.subtype,
-                                           .ownerContext = &actor,
-                                           .scale = spirit.width,
-                                           .key = spirit.key,
-                                           .skill = spirit.skill,
-                                           .skillSerial = spirit.serial,
-                                           .target = -1};
-    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor, &services);
+    const Kernel::JointRequest request{.type = JointFamilies::SpiritJoint,
+                                       .firstPosition = spirit.from,
+                                       .secondPosition = spirit.to,
+                                       .angles = spirit.angles,
+                                       .subtype = spirit.subtype,
+                                       .ownerContext = &actor,
+                                       .scale = spirit.width,
+                                       .key = spirit.key,
+                                       .skill = spirit.skill,
+                                       .skillSerial = spirit.serial,
+                                       .target = -1};
+    const auto created =
+        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", spirit.address, created.Error()));
     return {};
@@ -153,18 +154,18 @@ Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, Kernel::A
 {
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
-    const World::FishEffectRequest request{.type = FlameJoint,
-                                           .firstPosition = from,
-                                           .secondPosition = from,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = &owner,
-                                           .scale = width,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = target};
-    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+    const Kernel::JointRequest request{.type = FlameJoint,
+                                       .firstPosition = from,
+                                       .secondPosition = from,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = &owner,
+                                       .scale = width,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = target};
+    const auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -191,17 +192,17 @@ Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const 
     constexpr Audio::SoundId StormSound{0x266};
     if (context.joints.empty())
         return Core::Unexpected(std::string("0x4fe172: faltan los joints del frame (0x530860)"));
-    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
-                                           .firstPosition = actor.position,
-                                           .secondPosition = actor.position,
-                                           .angles = actor.angles,
-                                           .subtype = JointFamilies::StormSubtype,
-                                           .ownerContext = nullptr,
-                                           .scale = 10,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
+    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+                                       .firstPosition = actor.position,
+                                       .secondPosition = actor.position,
+                                       .angles = actor.angles,
+                                       .subtype = JointFamilies::StormSubtype,
+                                       .ownerContext = nullptr,
+                                       .scale = 10,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
         return Core::Unexpected(std::format("0x4fe172: {}", created.Error()));
     RequestTheSound(context, StormSound);
@@ -221,17 +222,17 @@ Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& acto
         return Core::Unexpected(std::string("0x504b33: faltan los joints del frame (0x530860)"));
     glm::vec3 from{actor.position.x, actor.position.y, F32(D(actor.position.z) + InfernoLift)};
     glm::vec3 turn{0, 0, actor.angles.z};
-    const World::FishEffectRequest request{.type = JointFamilies::InfernoJoint,
-                                           .firstPosition = from,
-                                           .secondPosition = from,
-                                           .angles = turn,
-                                           .subtype = InfernoSubtype,
-                                           .ownerContext = nullptr,
-                                           .scale = InfernoWidth,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
+    const Kernel::JointRequest request{.type = JointFamilies::InfernoJoint,
+                                       .firstPosition = from,
+                                       .secondPosition = from,
+                                       .angles = turn,
+                                       .subtype = InfernoSubtype,
+                                       .ownerContext = nullptr,
+                                       .scale = InfernoWidth,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
         return Core::Unexpected(std::format("0x504b33: {}", created.Error()));
     RequestTheSound(context, InfernoSound);
@@ -286,17 +287,17 @@ Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const
     {
         glm::vec3 from = energy.from;
         glm::vec3 angles{-45.0f, 0.0f, energy.turn};
-        const World::FishEffectRequest request{.type = EnergyJoint,
-                                               .firstPosition = from,
-                                               .secondPosition = from,
-                                               .angles = angles,
-                                               .subtype = EnergySubtype,
-                                               .ownerContext = &actor,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = EnergyJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = EnergySubtype,
+                                           .ownerContext = &actor,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", energy.address, created.Error()));
     }
@@ -348,18 +349,18 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
                                                  {0x51f3ad, 4, 100.0f}}};
         for (const Spiral& spiral : Spirals)
         {
-            const World::FishEffectRequest request{.type = JointFamilies::SpiralJoint,
-                                                   .firstPosition = point,
-                                                   .secondPosition = point,
-                                                   .angles = actor.angles,
-                                                   .subtype = spiral.subtype,
-                                                   .ownerContext = &actor,
-                                                   .scale = spiral.width,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
-            if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+            const Kernel::JointRequest request{.type = JointFamilies::SpiralJoint,
+                                               .firstPosition = point,
+                                               .secondPosition = point,
+                                               .angles = actor.angles,
+                                               .subtype = spiral.subtype,
+                                               .ownerContext = &actor,
+                                               .scale = spiral.width,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+            if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
                 !created.HasValue())
                 return Core::Unexpected(std::format("{:#x}: {}", spiral.address, created.Error()));
         }
@@ -674,18 +675,18 @@ Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::
     constexpr double Height = 1200.0; // 0x6ba198
     constexpr float Width = 120.0f;   // 0x42f00000
     glm::vec3 from{bound.position.x, bound.position.y, F32(D(bound.position.z) + Height)};
-    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
-                                           .firstPosition = from,
-                                           .secondPosition = from,
-                                           .angles = bound.angles,
-                                           .subtype = subtype,
-                                           .ownerContext = &bound,
-                                           .scale = Width,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
-    if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+                                       .firstPosition = from,
+                                       .secondPosition = from,
+                                       .angles = bound.angles,
+                                       .subtype = subtype,
+                                       .ownerContext = &bound,
+                                       .scale = Width,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
+    if (auto created = CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
         !created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", joint, created.Error()));
     constexpr Audio::SoundId BindSound{0x267};
@@ -875,18 +876,19 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
             for (const auto& [address, subtype, width] :
                  {std::tuple{first, shade, Wide}, std::tuple{second, shade + Paler, Narrow}})
             {
-                const World::FishEffectRequest request{.type = PlasmaJoint,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = &struck,
-                                                       .scale = width,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
-                if (auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor);
+                const Kernel::JointRequest request{.type = PlasmaJoint,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = &struck,
+                                                   .scale = width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+                if (auto created =
+                        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor);
                     !created.HasValue())
                     return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
             }
@@ -910,17 +912,17 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
         const auto pitch = static_cast<float>(context.random.Next() % Turn);
         const auto yaw = static_cast<float>(context.random.Next() % Turn);
         glm::vec3 angles{pitch, 0.0f, yaw};
-        const World::FishEffectRequest request{.type = SpiralJoint,
-                                               .firstPosition = from,
-                                               .secondPosition = from,
-                                               .angles = angles,
-                                               .subtype = shade + SpiralShade,
-                                               .ownerContext = nullptr,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = SpiralJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = shade + SpiralShade,
+                                           .ownerContext = nullptr,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
             return Core::Unexpected(std::format("0x50293c: {}", created.Error()));
     }

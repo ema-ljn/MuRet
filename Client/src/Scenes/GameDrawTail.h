@@ -8,6 +8,7 @@
 #include "Models/Pose.h"
 #include "Models/RayPicking.h"
 #include "Actors/Drawing/ModelPoseCallbacks.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "Terrain/SphereFrustum.h"
 
@@ -113,23 +114,6 @@ struct FloorItemDrawContext
     const Actors::Drawing::ItemDrawContext* itemContext = nullptr;
 };
 
-// Qué hay detrás de ownerContext. Casi siempre lo dice el tipo del joint (Scenes/FaunaJointCreation.h): un
-// FaunaObject, el ActorState del personaje o un dueño opaco. El 60f/0 que el caballo oscuro suelta a su alrededor
-// (0x444740) lleva en cambio el HelperState del caballo, y los de las órdenes del cuervo (0x418390 y 0x418400, el A9 de
-// Scenes/PetStats) el DarkSpirit del cuervo. En el original todos son el objeto del dueño y el joint lee los mismos
-// offsets: la luz (+0xf4) al nacer y la acción (+0x111) en el paso.
-enum class JointOwnerKind : std::uint8_t
-{
-    ByType,
-    // El 610/8, que por el tipo lleva el pez de Atlans (FaunaObject), con el ActorState del jugador que entra al
-    // viewport en Kalima (0x4c91dc): lee del dueño su luz (+0xf4), su posición (+0x10) y sus ángulos (+0x1c) al nacer,
-    // y su byte vivo (+0) y su posición en el paso. Con otro tipo, CreateFaunaJoint corta antes de escribir (0x530860).
-    Actor,
-    Helper,
-    Raven,
-    ModelEffect, // 619/1 del61e/1 y610/13 delE1/1; sin aliasActorState.
-};
-
 struct JointState
 {
     bool alive = false;
@@ -152,7 +136,7 @@ struct JointState
     glm::vec3 targetPosition{};
     void* ownerContext = nullptr;
     // Propio de MuRet: cómo leer ownerContext. 0x530860 lo escribe en cada alta.
-    JointOwnerKind ownerKind = JointOwnerKind::ByType;
+    Kernel::JointOwnerKind ownerKind = Kernel::JointOwnerKind::ByType;
     std::int32_t life = 0;
     std::uint8_t field9d4 = 0;
     float speed = 0;

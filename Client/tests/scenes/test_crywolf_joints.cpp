@@ -5,7 +5,7 @@
 #include "Render/Pass3D.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 
@@ -32,8 +32,7 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     glm::vec3 position{100, 200, 300};
     glm::vec3 angles{};
     const auto created = Client::Scenes::CreateFaunaJoint(
-        joints, Client::World::FishEffectRequest{0x615, position, position, angles, 7, nullptr, 60, -1, 0, 0, -1},
-        random);
+        joints, Client::Kernel::JointRequest{0x615, position, position, angles, 7, nullptr, 60, -1, 0, 0, -1}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     const auto& joint = joints[0];
@@ -71,8 +70,7 @@ TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
     for (const std::int32_t subtype : {1, 2})
     {
         const auto created = Client::Scenes::CreateFaunaJoint(
-            joints,
-            Client::World::FishEffectRequest{0x615, position, position, angles, subtype, nullptr, 55, -1, 0, 0, -1},
+            joints, Client::Kernel::JointRequest{0x615, position, position, angles, subtype, nullptr, 55, -1, 0, 0, -1},
             subtype == 1 ? random : twin);
         ASSERT_TRUE(created.HasValue()) << created.Error();
     }
@@ -117,7 +115,7 @@ TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompl
     glm::vec3 origin{};
     glm::vec3 angles{};
     const auto created = Client::Scenes::CreateFaunaJoint(
-        joints, Client::World::FishEffectRequest{0x614, origin, origin, angles, 17, nullptr, 10, -1, 0, 0, -1}, random);
+        joints, Client::Kernel::JointRequest{0x614, origin, origin, angles, 17, nullptr, 10, -1, 0, 0, -1}, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     ASSERT_EQ(created.Value(), 0u);
     const auto& joint = joints[0];
@@ -148,7 +146,7 @@ TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTh
     for (const std::int32_t subtype : {2, 3})
     {
         const auto created = Client::Scenes::CreateFaunaJoint(
-            joints, Client::World::FishEffectRequest{0x618, origin, origin, angles, subtype, &actor, 30, -1, 0, 0, -1},
+            joints, Client::Kernel::JointRequest{0x618, origin, origin, angles, subtype, &actor, 30, -1, 0, 0, -1},
             random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_EQ(created.Value(), static_cast<std::size_t>(subtype - 2));

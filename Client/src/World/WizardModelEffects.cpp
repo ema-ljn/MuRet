@@ -13,7 +13,7 @@
 #include "Models/Skeleton.h"
 #include "Math/Ftol.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -179,17 +179,17 @@ Core::Expected<void, std::string> Joint(const WizardEffectServices& services, st
 {
     if (!services.joint)
         return Core::Unexpected(std::format("{}: falta el alta de joints (0x530860) (CL11)", address));
-    const FishEffectRequest request{.type = arguments.type,
-                                    .firstPosition = arguments.first,
-                                    .secondPosition = arguments.second,
-                                    .angles = arguments.angles,
-                                    .subtype = arguments.subtype,
-                                    .ownerContext = arguments.owner,
-                                    .scale = arguments.scale,
-                                    .key = arguments.key,
-                                    .skill = 0,
-                                    .skillSerial = 0,
-                                    .target = arguments.target};
+    const Kernel::JointRequest request{.type = arguments.type,
+                                       .firstPosition = arguments.first,
+                                       .secondPosition = arguments.second,
+                                       .angles = arguments.angles,
+                                       .subtype = arguments.subtype,
+                                       .ownerContext = arguments.owner,
+                                       .scale = arguments.scale,
+                                       .key = arguments.key,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = arguments.target};
     if (auto created = services.joint(request); !created.HasValue())
         return Core::Unexpected(std::format("{}: el joint {:#x}/{} ({}) (CL11)", address, arguments.type,
                                             arguments.subtype, created.Error()));

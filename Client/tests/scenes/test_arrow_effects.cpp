@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Kernel/JointRequest.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Skills/Skill.h"
 #include "Math/HalfLifeMath.h"
@@ -598,7 +599,7 @@ TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
             std::ranges::find_if(joints, [](const auto& joint) { return joint.alive && joint.type == 0x610; });
         ASSERT_NE(trail, joints.end());
         EXPECT_EQ(trail->subtype, probe.subtype);
-        EXPECT_EQ(trail->ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(trail->ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         EXPECT_EQ(trail->ownerContext, &arrow);
         EXPECT_EQ(trail->position, arrow.transform.position);
         EXPECT_EQ(trail->targetPosition, arrow.transform.position);
@@ -791,7 +792,7 @@ TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
         EXPECT_EQ(beam->type, 0x618);
         EXPECT_EQ(beam->subtype, 5);
         EXPECT_EQ(beam->ownerContext, &arrow);
-        EXPECT_EQ(beam->ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(beam->ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         EXPECT_EQ(beam->position, arrow.point40);
         EXPECT_EQ(beam->angles, arrow.transform.angles);
         EXPECT_EQ(beam->width, 100.0f);
@@ -845,7 +846,7 @@ TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
         EXPECT_EQ(joint.type, 0x60f);
         EXPECT_EQ(joint.subtype, 0xb);
         EXPECT_EQ(joint.ownerContext, &arrow);
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         EXPECT_EQ(joint.position, arrow.start);
         EXPECT_EQ(joint.targetPosition, arrow.start);
         EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, arrow.transform.angles.z));
@@ -1157,7 +1158,7 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
                 EXPECT_TRUE(joints[slot].alive);
                 EXPECT_EQ(joints[slot].type, 0x610);
                 EXPECT_EQ(joints[slot].subtype, static_cast<std::int32_t>(slot));
-                EXPECT_EQ(joints[slot].ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+                EXPECT_EQ(joints[slot].ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
                 EXPECT_EQ(joints[slot].ownerContext, &*trail);
                 EXPECT_EQ(joints[slot].width, 20.0f);
                 EXPECT_EQ(joints[slot].life, 30);
@@ -1298,7 +1299,7 @@ TEST(ArrowEffectsTest, BothPiercingImpactSitesUseTheFirstFreeJointAndSkipBirthRa
                 EXPECT_EQ(impact.type, 0x60f);
                 EXPECT_EQ(impact.subtype, 6);
                 EXPECT_EQ(impact.ownerContext, &arrow);
-                EXPECT_EQ(impact.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+                EXPECT_EQ(impact.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
                 EXPECT_EQ(impact.position, (glm::vec3{1000, 1000, 0}));
                 EXPECT_EQ(impact.targetPosition, impact.position);
                 EXPECT_EQ(impact.angles, arrow.transform.angles);
@@ -1491,7 +1492,7 @@ TEST(ArrowEffectsTest, TheCrywolfArrowKeepsCallerDrawsWhenParticleCapacityIsPart
         const auto& joints = tested.world.DrawTail().joints;
         ASSERT_TRUE(joints[0].alive);
         EXPECT_EQ(joints[0].ownerContext, &arrow);
-        EXPECT_EQ(joints[0].ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+        EXPECT_EQ(joints[0].ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
         for (auto& p : tested.particles.All())
             p.alive = true;
         for (int i = 0; i < room; ++i)
@@ -2132,7 +2133,7 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
             ASSERT_TRUE(joint.alive);
             EXPECT_EQ(joint.type, 0x60f);
             EXPECT_EQ(joint.subtype, 0x19);
-            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+            EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
             EXPECT_EQ(joint.ownerContext, &effect);
             EXPECT_EQ(joint.life, 30);
             EXPECT_EQ(joint.maximumCount, 15);

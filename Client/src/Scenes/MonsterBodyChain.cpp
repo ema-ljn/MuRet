@@ -20,7 +20,7 @@
 #include "Scenes/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
@@ -318,17 +318,17 @@ Result DrawKundun(MonsterBodyFrame& frame)
                 angles.z = F32((static_cast<double>(spread) + SpreadBase) * static_cast<double>(ray));
                 for (const std::int32_t type : RayJoints)
                 {
-                    const World::FishEffectRequest request{.type = type,
-                                                           .firstPosition = point,
-                                                           .secondPosition = point,
-                                                           .angles = angles,
-                                                           .subtype = RaySubtype,
-                                                           .ownerContext = nullptr,
-                                                           .scale = RayWidth,
-                                                           .key = 0,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+                    const Kernel::JointRequest request{.type = type,
+                                                       .firstPosition = point,
+                                                       .secondPosition = point,
+                                                       .angles = angles,
+                                                       .subtype = RaySubtype,
+                                                       .ownerContext = nullptr,
+                                                       .scale = RayWidth,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
                     const auto created = CreateFaunaJoint(frame.joints, request, frame.random);
                     if (!created.HasValue())
                         return Core::Unexpected(

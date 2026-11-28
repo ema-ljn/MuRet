@@ -15,7 +15,7 @@
 #include "Scenes/RingEffects.h"
 #include "Scenes/SkillHits.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -89,7 +89,7 @@ void LightBySkill(JointState& joint)
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint, const Kernel::JointRequest& request,
                                                     CrtRandom& random, const JointKernels::CreationServices* services)
 {
     const bool spirit = joint.type == SpiritJoint;
@@ -274,17 +274,17 @@ Core::Expected<void, std::string> DropTheDrop(const JointKernels::StepServices& 
                                               glm::vec3 angles)
 {
     constexpr float Width = 40.0f; // 0x42200000
-    const World::FishEffectRequest drop{.type = DropJoint,
-                                        .firstPosition = point,
-                                        .secondPosition = point,
-                                        .angles = angles,
-                                        .subtype = DropSubtype,
-                                        .ownerContext = nullptr,
-                                        .scale = Width,
-                                        .key = -1,
-                                        .skill = 0,
-                                        .skillSerial = 0,
-                                        .target = -1};
+    const Kernel::JointRequest drop{.type = DropJoint,
+                                    .firstPosition = point,
+                                    .secondPosition = point,
+                                    .angles = angles,
+                                    .subtype = DropSubtype,
+                                    .ownerContext = nullptr,
+                                    .scale = Width,
+                                    .key = -1,
+                                    .skill = 0,
+                                    .skillSerial = 0,
+                                    .target = -1};
     if (auto created = CreateFaunaJoint(services.joints, drop, *services.random); !created.HasValue())
         return Core::Unexpected(std::format("0x5396ff: {}", created.Error()));
     return {};
@@ -469,17 +469,17 @@ Core::Expected<void, std::string> Release(JointState& joint, const JointKernels:
     const auto random = RandomOf(joint, services, address);
     if (!random.HasValue())
         return Core::Unexpected(random.Error());
-    const World::FishEffectRequest request{.type = SpiritJoint,
-                                           .firstPosition = from,
-                                           .secondPosition = from,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = nullptr,
-                                           .scale = Bits(0x3f666666u),
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
+    const Kernel::JointRequest request{.type = SpiritJoint,
+                                       .firstPosition = from,
+                                       .secondPosition = from,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = nullptr,
+                                       .scale = Bits(0x3f666666u),
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     if (auto created = CreateFaunaJoint(services.joints, request, *random.Value()); !created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -649,7 +649,7 @@ Core::Expected<void, std::string> StepTheSpiral(JointState& joint, const JointKe
         }
         if (joint.ownerContext != nullptr)
         {
-            if (joint.ownerKind != JointOwnerKind::ModelEffect)
+            if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
                 return Core::Unexpected(std::format(
                     "0x539249: el dueño del joint {:#x}/0xf que no es un efecto con modelo no está portado (CL11)",
                     joint.type));
@@ -687,17 +687,17 @@ Core::Expected<void, std::string> StepTheBurst(JointState& joint, const JointKer
     for (int piece = 0; piece < Pieces; ++piece)
     {
         glm::vec3 angles{0.0f, 0.0f, F32(static_cast<double>(piece) * Spread)};
-        const World::FishEffectRequest request{.type = SpiritJoint,
-                                               .firstPosition = from,
-                                               .secondPosition = joint.position,
-                                               .angles = angles,
-                                               .subtype = 0x10,
-                                               .ownerContext = nullptr,
-                                               .scale = Bits(0x3f666666u),
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = SpiritJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = joint.position,
+                                           .angles = angles,
+                                           .subtype = 0x10,
+                                           .ownerContext = nullptr,
+                                           .scale = Bits(0x3f666666u),
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(services.joints, request, *random.Value()); !created.HasValue())
             return Core::Unexpected(std::format("0x53940d: {}", created.Error()));
     }
@@ -722,7 +722,7 @@ Core::Expected<void, std::string> StepTheSwing(JointState& joint, const JointKer
     joint.angles.z = F32(D(joint.angles.z) + 10.0);
     if (joint.ownerContext != nullptr)
     {
-        if (joint.ownerKind != JointOwnerKind::ModelEffect)
+        if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
             return Core::Unexpected(std::format(
                 "0x539494: el dueño del joint {:#x}/0x12 que no es un efecto con modelo no está portado (CL11)",
                 joint.type));

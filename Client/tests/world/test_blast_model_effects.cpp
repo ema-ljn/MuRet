@@ -7,7 +7,7 @@
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -31,8 +31,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointRequest;
 using Client::World::BlastEffectServices;
-using Client::World::FishEffectRequest;
 using Client::World::ModelEffect;
 using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
@@ -64,22 +64,22 @@ struct Harness
 
     BlastEffectServices Services()
     {
-        return {.ownRecordDepth = &depth,
-                .ownRecordCount = &count,
-                .hero = &hero,
-                .skillHits = [this](const ModelEffect&, float radius) -> Client::Core::Expected<void, std::string>
-                {
-                    hits.push_back(radius);
-                    return {};
-                },
-                .joint = [this](const FishEffectRequest& request,
-                                bool effectOwner) -> Client::Core::Expected<void, std::string>
-                {
-                    joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill,
-                                      request.ownerContext, effectOwner});
-                    return {};
-                },
-                .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); }};
+        return {
+            .ownRecordDepth = &depth,
+            .ownRecordCount = &count,
+            .hero = &hero,
+            .skillHits = [this](const ModelEffect&, float radius) -> Client::Core::Expected<void, std::string>
+            {
+                hits.push_back(radius);
+                return {};
+            },
+            .joint = [this](const JointRequest& request, bool effectOwner) -> Client::Core::Expected<void, std::string>
+            {
+                joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill,
+                                  request.ownerContext, effectOwner});
+                return {};
+            },
+            .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); }};
     }
 };
 
@@ -397,7 +397,7 @@ struct StepHarness
                 .map = &map,
                 .cameraShake = withShake ? &shake : nullptr,
                 .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
-                .joint = [this](const FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+                .joint = [this](const JointRequest& request) -> Client::Core::Expected<void, std::string>
                 {
                     joints.push_back(request.type);
                     return {};

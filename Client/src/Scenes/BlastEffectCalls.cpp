@@ -11,7 +11,7 @@
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
 #include "World/BlastModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "Audio/SoundId.h"
 
@@ -77,12 +77,13 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
                 return Core::Unexpected(hit.Error());
             return {};
         },
-        .joint = [&](const World::FishEffectRequest& request, bool effectOwner) -> Core::Expected<void, std::string>
+        .joint = [&](const Kernel::JointRequest& request, bool effectOwner) -> Core::Expected<void, std::string>
         {
             if (context.joints.empty())
                 return Core::Unexpected(std::string("0x530860: el paso no tiene la tabla de joints (0x74a8d78)"));
-            const auto made = CreateFaunaJoint(context.joints, request, context.random,
-                                               effectOwner ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
+            const auto made =
+                CreateFaunaJoint(context.joints, request, context.random,
+                                 effectOwner ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
             if (!made.HasValue())
                 return Core::Unexpected(made.Error());
             return {};
@@ -103,11 +104,12 @@ CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, Ke
 {
     // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
     const World::BlastEffectServices services{
-        .joint = [&world, &random](const World::FishEffectRequest& request,
+        .joint = [&world, &random](const Kernel::JointRequest& request,
                                    bool effectOwner) -> Core::Expected<void, std::string>
         {
-            const auto made = CreateFaunaJoint(world.DrawTail().joints, request, random,
-                                               effectOwner ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
+            const auto made =
+                CreateFaunaJoint(world.DrawTail().joints, request, random,
+                                 effectOwner ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
             if (!made.HasValue())
                 return Core::Unexpected(made.Error());
             return {};

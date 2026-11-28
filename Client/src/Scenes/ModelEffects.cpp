@@ -19,14 +19,15 @@
 #include "Kernel/WorldMap.h"
 #include "Math/Ftol.h"
 #include "World/ModelEffects.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/SelectionParticleKernels.h"
@@ -107,17 +108,17 @@ Result Light(ModelEffectsPass& pass, std::string_view address, const glm::vec3& 
 Result Joint(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, std::int32_t subtype, glm::vec3 first,
              glm::vec3 second, glm::vec3 angles, float width)
 {
-    const World::FishEffectRequest request{.type = type,
-                                           .firstPosition = first,
-                                           .secondPosition = second,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = nullptr,
-                                           .scale = width,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
+    const Kernel::JointRequest request{.type = type,
+                                       .firstPosition = first,
+                                       .secondPosition = second,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = nullptr,
+                                       .scale = width,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     const auto created = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random);
     if (!created.HasValue())
         return Core::Unexpected(
@@ -251,7 +252,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
                                            .previousKey = actor.animation.previousKey};
     const Models::ObjectTransform transform{
         .position = actor.position, .angles = actor.angles, .scale = actor.scale, .lockedRootHeight = 0.0f};
-    FaunaDrawCarry& carry = pass.world.PoseCarry();
+    Kernel::PoseBuffer& carry = pass.world.PoseCarry();
     if (carry.bones.size() < skeleton.bones.size())
         carry.bones.resize(skeleton.bones.size(), Math::BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton.bones.size());
@@ -260,7 +261,7 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     if (pass.faunaModels == nullptr)
         return Core::Unexpected(std::format("{:#x}: no fauna models (0x5769ad8) for model {:#x}", address, actor.type));
     Assets::FaunaModels& models = *pass.faunaModels;
-    if (auto published = PublishFaunaPoseRaw(carry, models, actor.type, bones, transform, true, false);
+    if (auto published = Actors::Drawing::PublishPoseRaw(carry, models, actor.type, bones, transform, true, false);
         !published.HasValue())
         return Core::Unexpected(published.Error());
     if (const auto key = PoseKeyOf(skeleton, animation))

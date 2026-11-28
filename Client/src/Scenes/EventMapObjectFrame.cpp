@@ -9,7 +9,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
@@ -270,17 +270,17 @@ Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, co
         if (!pass.createJoint)
             return Core::Unexpected(std::string("0x405d49: falta quien cree el joint 0x615/2 de Chaos Castle"));
         glm::vec3 bone = point.Value();
-        const World::FishEffectRequest request{.type = TrapJoint,
-                                               .firstPosition = bone,
-                                               .secondPosition = bone,
-                                               .angles = object.transform.angles,
-                                               .subtype = TrapJointSubtype,
-                                               .ownerContext = nullptr,
-                                               .scale = scale,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = TrapJoint,
+                                           .firstPosition = bone,
+                                           .secondPosition = bone,
+                                           .angles = object.transform.angles,
+                                           .subtype = TrapJointSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = scale,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = pass.createJoint(request); !created.HasValue())
             return created;
         if (!pass.requestSound)

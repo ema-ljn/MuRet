@@ -10,7 +10,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/RecordingSink.h"
@@ -28,7 +28,7 @@
 namespace
 {
 using Client::Kernel::ActorState;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 // El 0x614/0xc con un personaje de dueño se pone en el modelo compartido del tipo del dueño (0x536b1d, 0x5769ad8): en
@@ -50,17 +50,17 @@ TEST(SelectionJointsTest, TheRedBoltFindsTheSharedModelsInTheSelection)
     glm::vec3 from{10.0f, 40.0f, 30.0f};
     glm::vec3 to{};
     glm::vec3 angles{};
-    const Client::World::FishEffectRequest request{.type = 0x614,
-                                                   .firstPosition = from,
-                                                   .secondPosition = to,
-                                                   .angles = angles,
-                                                   .subtype = 0xc,
-                                                   .ownerContext = &owner,
-                                                   .scale = 30.0f,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
+    const Client::Kernel::JointRequest request{.type = 0x614,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = angles,
+                                               .subtype = 0xc,
+                                               .ownerContext = &owner,
+                                               .scale = 30.0f,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
     auto& joints = world->DrawTail().joints;
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, cloth->random, JointOwnerKind::Actor).HasValue());
 
@@ -108,17 +108,17 @@ TEST(SelectionJointsTest, TheSelectionCutsWhereTheJointsAskForTheVolleyOrTheShad
         owner.alive = true;
         glm::vec3 from{1500.0f, 1600.0f, 1220.0f};
         glm::vec3 angles{};
-        const Client::World::FishEffectRequest request{.type = tested.type,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = tested.subtype,
-                                                       .ownerContext = &owner,
-                                                       .scale = tested.width,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = tested.type,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = tested.subtype,
+                                                   .ownerContext = &owner,
+                                                   .scale = tested.width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         // El 0x613/0 nace leyendo el registro propio (0x532675), como en el juego; los otros dos no lo miran.
         std::uint8_t ownRecordDepth = 0;
         const std::uint8_t ownVolley = 0;

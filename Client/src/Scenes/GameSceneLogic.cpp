@@ -14,7 +14,7 @@
 #include "Actors/Drawing/GameCharacterEffects.h"
 #include "Scenes/GameFloorItems.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 
@@ -177,7 +177,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         .cameraShake = &CameraInputState().shake,
         // 0x41ed10(id, 0, 0): RequestSound lo despacha sin sacar rand().
         .sound = [this](Audio::SoundId id) { m_context.world->Runtime().RequestSound(id); },
-        .joint = [this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        .joint = [this](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(m_context.world->DrawTail().joints, request, m_context.cloth->random);
             if (!created.HasValue())
@@ -249,7 +249,7 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {
             if (auto stepped = Actors::Drawing::StepFullSetFlare(effect, m_context.world->DrawTail().joints,
-                                                                 m_context.cloth->random);
+                                                                 &m_characterDrawHooks, m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -269,9 +269,9 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                     break;
                 }
             }
-            if (auto stepped =
-                    Actors::Drawing::StepSkillFlare(effect, m_context.world->DrawTail().joints, m_context.cloth->random,
-                                                    &m_context.world->Particles(), particleOwner);
+            if (auto stepped = Actors::Drawing::StepSkillFlare(effect, m_context.world->DrawTail().joints,
+                                                               &m_characterDrawHooks, m_context.cloth->random,
+                                                               &m_context.world->Particles(), particleOwner);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -280,8 +280,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // las invocaciones, los 619/3 de la CL11, fuera de World.
         if (Actors::Drawing::StepsAsPetSummon(effect))
         {
-            if (auto stepped =
-                    Actors::Drawing::StepPetSummon(effect, m_context.world->DrawTail().joints, m_context.cloth->random);
+            if (auto stepped = Actors::Drawing::StepPetSummon(effect, m_context.world->DrawTail().joints,
+                                                              &m_characterDrawHooks, m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;

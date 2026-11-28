@@ -47,6 +47,7 @@ struct DrawnObject;
 namespace Client::Kernel
 {
 struct ActorState;
+struct PoseBuffer;
 class WorldState;
 } // namespace Client::Kernel
 
@@ -54,7 +55,6 @@ class WorldState;
 // Contrato estático: 06 § Después de los objetos, P-C55 (a).
 namespace Client::Scenes
 {
-struct FaunaDrawCarry;
 
 // 0x4ec110 con Translate=0, después de los dos sorteos del desplazamiento de cada gota.
 // El caller presta el buffer global de la pose vigente y conserva sus huesos anteriores/dummy.
@@ -73,7 +73,7 @@ using WaterspoutBonePoint =
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Crt::CrtRandom& random,
                         const float& worldClock, const Models::IModelLibrary& models,
-                        const Actors::Drawing::DrawnObject& drawn, const FaunaDrawCarry* retainedPose = nullptr);
+                        const Actors::Drawing::DrawnObject& drawn, const Kernel::PoseBuffer* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
 // worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner. `owners`

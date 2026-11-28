@@ -9,7 +9,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -266,11 +266,11 @@ Core::Expected<void, std::string> StepTheBeam(JointState& joint, const JointKern
 
 } // namespace
 
-Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x530edd: el destino es el +0x10 del dueño, que tiene que estar.
     const auto* owner = JointKernels::ActorOwner(joint);
-    if (owner == nullptr || joint.ownerKind != JointOwnerKind::Actor)
+    if (owner == nullptr || joint.ownerKind != Kernel::JointOwnerKind::Actor)
         return Core::Unexpected(
             std::format("0x530ee0: falta el personaje dueño del joint 0x10f/{} (0x530860)", request.subtype));
     joint.targetPosition = owner->position;

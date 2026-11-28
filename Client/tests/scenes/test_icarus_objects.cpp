@@ -7,11 +7,11 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
@@ -83,7 +83,7 @@ WorldObject ObjectOf(std::int16_t type)
 struct FrameFixture
 {
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     float clock = 2345.0f;
 
@@ -177,7 +177,7 @@ struct StepFixture
             .effects = effects.get(),
             .sprites = sprites.get(),
             .createJoint =
-                [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+                [this](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
             {
                 joins.push_back(JoinedRequest{request.type, request.firstPosition, request.secondPosition,
                                               request.angles, request.subtype, request.ownerContext, request.scale,
@@ -529,7 +529,7 @@ TEST(IcarusObjectsTest, TheSkyBoltIsCreatedWithOneDraw)
     glm::vec3 first{100.0f, 200.0f, 300.0f};
     glm::vec3 second{-100.0f, -200.0f, -300.0f};
     glm::vec3 angles{};
-    const Client::World::FishEffectRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
     CrtRandom random(11);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     CrtRandom draws(11);
@@ -557,7 +557,7 @@ TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
     glm::vec3 first{100.0f, 200.0f, 300.0f};
     glm::vec3 second{-100.0f, -200.0f, -300.0f};
     glm::vec3 angles{};
-    const Client::World::FishEffectRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x615, first, second, angles, 0, nullptr, 43.0f, -1, 0, 0, -1};
     CrtRandom random(11);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];
@@ -597,7 +597,7 @@ TEST(IcarusObjectsTest, TheObjectBoltIsCreatedWithThreeDraws)
     glm::vec3 first = object.transform.position;
     glm::vec3 second = object.transform.position;
     glm::vec3 angles = object.transform.angles;
-    const Client::World::FishEffectRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
     CrtRandom random(13);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     CrtRandom draws(13);
@@ -626,7 +626,7 @@ TEST(IcarusObjectsTest, TheObjectBoltRebuildsTowardsItsOwnerAtTheEnd)
     glm::vec3 first = object.transform.position;
     glm::vec3 second = object.transform.position;
     glm::vec3 angles = object.transform.angles;
-    const Client::World::FishEffectRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x614, first, second, angles, 6, &object, 17.0f, -1, 0, 0, -1};
     CrtRandom random(13);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];

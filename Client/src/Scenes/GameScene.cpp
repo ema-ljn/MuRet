@@ -22,7 +22,8 @@
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventPackets.h"
 #include "Scenes/ObjectCollapse.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/InventoryMoves.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
@@ -108,6 +109,7 @@
 #include "World/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -506,7 +508,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             .heroPosition = hero.position,
             .heroAngles = hero.angles,
             .heroInSafeZone = hero.safeZone != 0,
-            .createJoint = [&world, this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+            .createJoint = [&world, this](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
             {
                 const auto created = CreateFaunaJoint(world.DrawTail().joints, request, m_context.cloth->random);
                 if (!created.HasValue())
@@ -531,7 +533,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             .lighting = &DynamicLight().Lighting(),
             .effects = &world.Map().effects,
             .sprites = &m_sprites,
-            .createJoint = [&world, this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+            .createJoint = [&world, this](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
             {
                 const auto created = CreateFaunaJoint(world.DrawTail().joints, request, m_context.cloth->random);
                 if (!created.HasValue())
@@ -1135,10 +1137,10 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                         std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
                     .particles = &FrameParticles(),
                     .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
-                    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, drawn, true); },
+                    { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, drawn, true); },
                     .sprites = &FrameSpritesForDraw(),
                     .retainedPose = &FramePoseCarry(),
-                    .createJoint = [&](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+                    .createJoint = [&](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
                     {
                         const auto created = CreateFaunaJoint(FrameTail().joints, request, FrameCloth().random);
                         if (!created.HasValue())
@@ -1257,7 +1259,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
                     const Models::ObjectTransform& transform, bool translated)
             {
                 const auto published =
-                    PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
+                    Actors::Drawing::PublishPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
                 if (!published.HasValue() && !poseFailure)
                     poseFailure = published.Error();
             },
@@ -1280,7 +1282,7 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
     return drawn;
 }
 
-FaunaDrawCarry& GameScene::FramePoseCarry()
+Kernel::PoseBuffer& GameScene::FramePoseCarry()
 {
     return m_framePoseCarry ? *m_framePoseCarry : m_context.world->PoseCarry();
 }

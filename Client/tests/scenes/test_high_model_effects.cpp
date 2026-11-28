@@ -20,7 +20,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -438,7 +438,7 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     EXPECT_EQ(star.type, 0x632);
     EXPECT_EQ(star.subtype, 5);
     EXPECT_EQ(star.ownerContext, &pulse);
-    EXPECT_EQ(star.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+    EXPECT_EQ(star.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
     EXPECT_EQ(star.position, point);
     EXPECT_EQ(star.angles, (glm::vec3{90, 0, 0}));
     EXPECT_EQ(star.bendAngles, (glm::vec3{90, 0, 0}));
@@ -1956,7 +1956,7 @@ struct GlowWorld
         tested.services.sprites = sprites.get();
         tested.services.effects = &tested.world->Map().effects;
         tested.services.joint =
-            [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+            [this](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
         {
             joints.push_back({request.type, request.subtype, request.scale, request.key, request.skill, request.target,
                               request.firstPosition, request.secondPosition, request.angles});

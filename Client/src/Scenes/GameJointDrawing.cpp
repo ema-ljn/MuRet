@@ -4,6 +4,7 @@
 #include "Render/SpriteVertex.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/FaunaObject.h"
 #include "Kernel/ActorState.h"
@@ -135,7 +136,7 @@ Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState&
     glm::vec3 segmentLight;
     // El +0x18 del dueño: un personaje (ActorState) en el 10f/0, /4 y /9 de AuraJoints.cpp, o el FaunaObject.
     const glm::vec3* ownerPosition = nullptr;
-    if (joint.ownerKind == JointOwnerKind::Actor)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Actor)
     {
         if (const auto* actor = JointKernels::ActorOwner(joint))
             ownerPosition = &actor->position;

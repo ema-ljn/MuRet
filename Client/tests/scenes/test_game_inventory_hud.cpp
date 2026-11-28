@@ -19,7 +19,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/EventChipWindow.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Tables/GameData.h"
 #include "Scenes/GameHud.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
@@ -37,6 +37,7 @@
 #include "Audio/SoundId.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>
@@ -318,7 +319,7 @@ protected:
     Client::Tables::GameData data;
     UiModels uiModels;
     Client::Render::ModelBatch models;
-    Client::Scenes::FaunaDrawCarry poseCarry;
+    Client::Kernel::PoseBuffer poseCarry;
     Client::Actors::Drawing::ItemSpecialDrawContext special;
     Client::Actors::Drawing::ItemDrawContext itemContext;
     std::vector<std::string> events;
@@ -608,13 +609,13 @@ TEST_F(GameInventoryHudTest, TheWingsOfDarknessHangTheirJointsFromTheUiLocalObje
     uiModels.skeleton.bones.resize(31, uiModels.skeleton.bones[0]);
     auto glow = std::make_unique<Client::World::FrameSprites>();
     special.sprites = glow.get();
-    std::vector<Client::World::FishEffectRequest> requests;
+    std::vector<Client::Kernel::JointRequest> requests;
     models.Begin(Client::Render::Pass3D{});
     Client::Scenes::UiItemResources resources = UiItems(Screen640);
     itemContext.originalFrame = true;
     itemContext.poseBones = [this]() { return std::span<const Client::Math::BoneTransform>(poseCarry.bones); };
     itemContext.createJoint =
-        [&requests](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+        [&requests](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         requests.push_back(request);
         return {};

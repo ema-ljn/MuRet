@@ -6,7 +6,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -39,7 +39,7 @@ Core::Expected<void, std::string> Advance(JointState& joint, const Math::Origina
 }
 } // namespace
 
-void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateFlareJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     // 0x530c93: todos sin la cola común.
     joint.tailEnabled = false;

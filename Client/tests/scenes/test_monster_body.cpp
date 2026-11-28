@@ -20,7 +20,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Audio/SoundId.h"
@@ -83,17 +83,17 @@ std::unique_ptr<std::vector<Client::Scenes::JointState>> KundunFallingRays(const
         angles.z = static_cast<float>((static_cast<double>(spread) + 10.0) * static_cast<double>(ray));
         for (const std::int32_t type : {0x613, 0x6ee})
         {
-            const Client::World::FishEffectRequest request{.type = type,
-                                                           .firstPosition = point,
-                                                           .secondPosition = point,
-                                                           .angles = angles,
-                                                           .subtype = 3,
-                                                           .ownerContext = nullptr,
-                                                           .scale = 50.0f,
-                                                           .key = 0,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+            const Client::Kernel::JointRequest request{.type = type,
+                                                       .firstPosition = point,
+                                                       .secondPosition = point,
+                                                       .angles = angles,
+                                                       .subtype = 3,
+                                                       .ownerContext = nullptr,
+                                                       .scale = 50.0f,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
             const auto created = Client::Scenes::CreateFaunaJoint(*joints, request, random);
             EXPECT_TRUE(created.HasValue()) << created.Error();
         }

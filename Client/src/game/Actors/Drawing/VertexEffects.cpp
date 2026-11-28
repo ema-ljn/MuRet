@@ -7,10 +7,10 @@
 #include "Models/Skinning.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/JointHooks.h"
 #include "Scenes/GameDrawTail.h"
 #include "World/BlastModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/SiegeVertexEffects.h"
@@ -228,18 +228,20 @@ Result PullTheRavenJoints(const glm::vec3& position, std::int32_t triangle, glm:
                         "(0x530860 lee +0x10 de un puntero nulo)"));
     glm::vec3 first = position;
     glm::vec3 second = call.target->position;
-    const World::FishEffectRequest request{.type = RavenJoint,
-                                           .firstPosition = first,
-                                           .secondPosition = second,
-                                           .angles = angles,
-                                           .subtype = RavenJointSubtype,
-                                           .ownerContext = call.target,
-                                           .scale = RavenJointWidth,
-                                           .key = 0,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = NoTarget};
-    const auto made = Scenes::CreateFaunaJoint(tables.joints, request, random, Scenes::JointOwnerKind::Actor);
+    const Kernel::JointRequest request{.type = RavenJoint,
+                                       .firstPosition = first,
+                                       .secondPosition = second,
+                                       .angles = angles,
+                                       .subtype = RavenJointSubtype,
+                                       .ownerContext = call.target,
+                                       .scale = RavenJointWidth,
+                                       .key = 0,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = NoTarget};
+    if (tables.jointHooks == nullptr)
+        return Core::Unexpected(std::string("0x4eefc5: no joint hooks (0x530860)"));
+    const auto made = tables.jointHooks->CreateTheJoint(tables.joints, request, random, Kernel::JointOwnerKind::Actor);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x4eefc5: {}", made.Error()));
     return {};

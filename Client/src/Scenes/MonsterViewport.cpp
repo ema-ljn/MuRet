@@ -28,7 +28,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainCulling.h"
@@ -215,18 +215,18 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
         for (std::size_t bolt = 0; bolt < WidthBases.size(); ++bolt)
         {
             const int jitter = resources.cloth.random.Next() % WidthSpan;
-            const World::FishEffectRequest request{
-                .type = ArrivalBolt,
-                .firstPosition = actor.position,
-                .secondPosition = actor.position,
-                .angles = actor.angles,
-                .subtype = ArrivalSubtype,
-                .ownerContext = nullptr,
-                .scale = static_cast<float>(static_cast<double>(jitter) + WidthBases[bolt]),
-                .key = -1,
-                .skill = 0,
-                .skillSerial = 0,
-                .target = -1};
+            const Kernel::JointRequest request{.type = ArrivalBolt,
+                                               .firstPosition = actor.position,
+                                               .secondPosition = actor.position,
+                                               .angles = actor.angles,
+                                               .subtype = ArrivalSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale =
+                                                   static_cast<float>(static_cast<double>(jitter) + WidthBases[bolt]),
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
             if (auto made = CreateFaunaJoint(resources.world.DrawTail().joints, request, resources.cloth.random);
                 !made.HasValue())
                 return Core::Unexpected(std::format("{:#x}: {}", Calls[bolt], made.Error()));

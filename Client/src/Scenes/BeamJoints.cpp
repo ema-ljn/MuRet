@@ -10,7 +10,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -55,17 +55,17 @@ std::optional<BeamOwner> OwnerOf(const JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return std::nullopt;
-    if (joint.ownerKind == JointOwnerKind::ModelEffect)
+    if (joint.ownerKind == Kernel::JointOwnerKind::ModelEffect)
     {
         const auto& effect = *static_cast<const World::ModelEffect*>(joint.ownerContext);
         return BeamOwner{effect.alive, effect.transform.position, effect.point40, effect.point4c};
     }
-    if (joint.ownerKind == JointOwnerKind::ByType && joint.subtype == TarkanSubtype)
+    if (joint.ownerKind == Kernel::JointOwnerKind::ByType && joint.subtype == TarkanSubtype)
     {
         const auto& object = *static_cast<const FaunaObject*>(joint.ownerContext);
         return BeamOwner{object.active != 0, object.position, object.previousPosition, std::nullopt};
     }
-    if (joint.ownerKind != JointOwnerKind::ByType && joint.ownerKind != JointOwnerKind::Actor)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ByType && joint.ownerKind != Kernel::JointOwnerKind::Actor)
         return std::nullopt;
     const auto& actor = *static_cast<const Kernel::ActorState*>(joint.ownerContext);
     return BeamOwner{actor.alive, actor.position, actor.effectOrigin, actor.bonePoint4c};
@@ -381,7 +381,7 @@ Core::Expected<void, std::string> Follow(JointState& joint, const JointKernels::
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateBeamJoint(JointState& joint, const Kernel::JointRequest& request,
                                                   CrtRandom& random)
 {
     // 0x532125: el ancho; 0x534ebc elige el grupo.

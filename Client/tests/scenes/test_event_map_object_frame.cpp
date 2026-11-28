@@ -3,7 +3,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/HalfLifeMath.h"
 #include "Scenes/EventMapObjectFrame.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/BloodCastleParticleKernels.h"
 #include "World/Particles.h"
@@ -37,9 +37,9 @@ using Client::World::WorldObject;
 using Client::Math::F32;
 
 // La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
-Client::Scenes::FaunaDrawCarry Pose(std::size_t bones)
+Client::Kernel::PoseBuffer Pose(std::size_t bones)
 {
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     for (std::size_t k = 0; k < bones; ++k)
     {
         BoneTransform bone(1.0f);

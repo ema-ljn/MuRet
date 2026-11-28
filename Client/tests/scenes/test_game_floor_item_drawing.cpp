@@ -4,7 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Models/IModelLibrary.h"
 #include "Assets/GameModels.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingSink.h"
@@ -23,7 +24,7 @@
 #include "Terrain/SphereFrustum.h"
 #include "World/Sprites.h"
 #include "World/ObjectModelStepState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float2.hpp>
@@ -259,7 +260,7 @@ TEST_F(GoldenGameFloorItemDrawing, RealWeaponsArmorAndMoneyUseTheSharedPoseAndTh
     Client::Assets::GameModels models;
     const auto loaded = models.Load(m_dataRoot, textures, log);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
     const std::array<std::int16_t, 5> types{0x225, 0x612, 0x1012, 0x1812, 0x1e21};
@@ -275,9 +276,9 @@ TEST_F(GoldenGameFloorItemDrawing, RealWeaponsArmorAndMoneyUseTheSharedPoseAndTh
             context.waterHeight = [](float, float) -> Client::Core::Expected<float, std::string> { return 20; };
             context.project = Project;
             context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-            { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
+            { return Client::Actors::Drawing::PublishFloorPose(carry, models, object); };
             context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
-            { return Client::Scenes::TransformFaunaPose(carry, models, object); };
+            { return Client::Actors::Drawing::TransformPose(carry, models, object); };
             context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
             const auto before = batch.Vertices().size();
             const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
@@ -408,7 +409,7 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
         Client::Render::ModelBatch batch;
         Client::Terrain::SphereFrustum frustum;
         Client::World::FrameSprites sprites;
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         auto item = Item(types[index]);
         Client::Actors::Drawing::ItemSpecialDrawContext special;
         special.sprites = &sprites;
@@ -419,9 +420,9 @@ TEST(GameFloorItemDrawingTest, GlowItemsPublishTheirSpritesFromTheRetainedBones)
         context.itemContext = &items;
         context.project = Project;
         context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-        { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
+        { return Client::Actors::Drawing::PublishFloorPose(carry, models, object); };
         context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
-        { return Client::Scenes::TransformFaunaPose(carry, models, object); };
+        { return Client::Actors::Drawing::TransformPose(carry, models, object); };
         context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -468,8 +469,7 @@ TEST(GameFloorItemDrawingTest, HelperBeamsUseTheRetainedBonesAndKeepTheDurableOw
     special.sprites = &sprites;
     Client::Actors::Drawing::ItemDrawContext items;
     items.special = &special;
-    items.createJoint =
-        [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    items.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         EXPECT_EQ(request.ownerContext, &item);
         EXPECT_EQ(request.type, requests % 2 == 0 ? 0x614 : 0x613);
@@ -654,7 +654,7 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         Client::World::ObjectModelStepState modelState;
         modelState.unlitMeshes[0x2247] = -1;
         auto item = Item(0x2247);
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         Client::Actors::Drawing::ItemDrawContext items;
         items.modelState = &modelState;
         items.poseBones = [&]() -> std::span<const Client::Math::BoneTransform>
@@ -664,9 +664,9 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         context.worldClock = 1000;
         context.project = Project;
         context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-        { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
+        { return Client::Actors::Drawing::PublishFloorPose(carry, models, object); };
         context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
-        { return Client::Scenes::TransformFaunaPose(carry, models, object); };
+        { return Client::Actors::Drawing::TransformPose(carry, models, object); };
         context.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
         const auto result = Client::Scenes::DrawFloorItems(std::span(&item, 1), context);
         ASSERT_FALSE(result.HasValue());
@@ -685,16 +685,16 @@ TEST(GameFloorItemDrawingTest, IncompleteStaffScratchKeepsStoresAndFirstMeshThro
         models.model.meshes[index].texture = static_cast<std::int16_t>(index);
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     auto item = Item(0x61c);
     item.objectState.light = 0.25f;
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.project = Project;
     context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaFloorPose(carry, models, object); };
+    { return Client::Actors::Drawing::PublishFloorPose(carry, models, object); };
     context.onSkin = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
-        const auto result = Client::Scenes::TransformFaunaPose(carry, models, object);
+        const auto result = Client::Actors::Drawing::TransformPose(carry, models, object);
         carry.meshes.resize(1);
         return result;
     };

@@ -16,7 +16,8 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Models/TextureMetadata.h"
 #include "Models/ModelId.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -491,12 +492,12 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
     {
         SCOPED_TRACE(transparent);
         FountainModels models;
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         Client::Actors::Drawing::DrawnObject previous;
         previous.model = 0x12;
         previous.transform.position = {100.0f, 200.0f, 300.0f};
         previous.transform.scale = 2.0f;
-        ASSERT_TRUE(Client::Scenes::PublishFaunaPose(carry, models, previous, true).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::PublishPose(carry, models, previous, true).HasValue());
         models.skeleton.bones[1].dummy = !transparent;
         models.skeleton.bones[4].dummy = !transparent;
         std::array objects{Fountain()};
@@ -513,7 +514,7 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
                                            .random = &random,
                                            .particles = &particles,
                                            .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
-                                           { return Client::Scenes::PublishFaunaPose(carry, models, drawn, true); },
+                                           { return Client::Actors::Drawing::PublishPose(carry, models, drawn, true); },
                                            .retainedPose = &carry});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         CrtRandom expected(2);
@@ -540,11 +541,11 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
     {
         SCOPED_TRACE(missingSecondBone);
         FountainModels models;
-        Client::Scenes::FaunaDrawCarry carry;
+        Client::Kernel::PoseBuffer carry;
         Client::Actors::Drawing::DrawnObject previous;
         previous.model = 0x12;
         previous.transform.position = {100.0f, 200.0f, 300.0f};
-        ASSERT_TRUE(Client::Scenes::PublishFaunaPose(carry, models, previous, true).HasValue());
+        ASSERT_TRUE(Client::Actors::Drawing::PublishPose(carry, models, previous, true).HasValue());
         if (missingSecondBone)
             carry.bones.resize(2);
         std::array objects{Fountain()};
@@ -581,7 +582,7 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
 TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInsteadOfReposing)
 {
     FountainModels models;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     std::array objects{Fountain()};
     Particles particles;
     CrtRandom random(2);

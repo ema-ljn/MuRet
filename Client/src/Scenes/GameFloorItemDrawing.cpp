@@ -7,7 +7,8 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skinning.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Terrain/SphereFrustum.h"
@@ -62,7 +63,7 @@ Actors::Drawing::DrawnObject Object(const FloorItemState& item, const FloorItemD
         object.color[component] = F32(static_cast<double>(terrain[component]) + item.light[component]);
     return object;
 }
-Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemState& item,
+Core::Expected<void, std::string> Pose(Kernel::PoseBuffer& local, const FloorItemState& item,
                                        const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (item.type >= FirstArmor && item.type < EndArmor)
@@ -75,9 +76,9 @@ Core::Expected<void, std::string> Pose(FaunaDrawCarry& local, const FloorItemSta
         return Core::Unexpected(std::format("0x608a98: faltan modelo o pose del ítem {:#x}", object.model));
     if (context.onPose)
         return context.onPose(object);
-    return PublishFaunaFloorPose(local, context.models, object);
+    return Actors::Drawing::PublishFloorPose(local, context.models, object);
 }
-Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemState& item,
+Core::Expected<void, std::string> RenderItem(Kernel::PoseBuffer& local, FloorItemState& item,
                                              const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object,
                                              std::span<const Models::SkinnedMesh> meshes)
 {
@@ -99,8 +100,8 @@ Core::Expected<void, std::string> RenderItem(FaunaDrawCarry& local, FloorItemSta
     item.alpha = object.alpha;
     return result;
 }
-Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& item, const FloorItemDrawContext& context,
-                                       Actors::Drawing::DrawnObject object)
+Core::Expected<void, std::string> Body(Kernel::PoseBuffer& local, FloorItemState& item,
+                                       const FloorItemDrawContext& context, Actors::Drawing::DrawnObject object)
 {
     if (!(item.alpha > VisibleAlpha))
         return {};
@@ -121,7 +122,7 @@ Core::Expected<void, std::string> Body(FaunaDrawCarry& local, FloorItemState& it
     }
     else if (!context.onPose)
     {
-        if (auto result = TransformFaunaPose(local, context.models, object); !result.HasValue())
+        if (auto result = Actors::Drawing::TransformPose(local, context.models, object); !result.HasValue())
             return result;
     }
     if (context.onPose && !context.posedMeshes)
@@ -144,7 +145,7 @@ Core::Expected<void, std::string> Project(FloorItemState& item, const FloorItemD
     item.screenY = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(projected.Value().y));
     return {};
 }
-Core::Expected<void, std::string> Coins(FaunaDrawCarry& local, FloorItemState& item,
+Core::Expected<void, std::string> Coins(Kernel::PoseBuffer& local, FloorItemState& item,
                                         const FloorItemDrawContext& context, const Actors::Drawing::DrawnObject& object,
                                         std::size_t slot)
 {
@@ -222,7 +223,7 @@ float BodyPartRootHeight(std::int16_t model)
 Core::Expected<void, std::string> DrawFloorItemDrawing(std::span<FloorItemState> items,
                                                        const FloorItemDrawContext& context)
 {
-    FaunaDrawCarry local;
+    Kernel::PoseBuffer local;
     constexpr float Radius = 400;
     for (std::size_t slot = 0; slot < items.size(); ++slot)
     {

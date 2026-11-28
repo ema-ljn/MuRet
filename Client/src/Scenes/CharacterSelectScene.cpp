@@ -1,6 +1,7 @@
 #include "Scenes/CharacterSelectScene.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Math/HalfLifeMath.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
@@ -58,6 +59,7 @@
 #include "Protocol/Outgoing.h"
 #include "UI/PanelRegistry.h"
 #include "Actors/Drawing/ItemDrawResources.h"
+#include "Session/ItemCreators.h"
 #include "Scenes/OptionsSettings.h"
 #include "Camera/SceneCameras.h"
 #include "Scenes/SelectionWorld.h"
@@ -1310,7 +1312,7 @@ void CharacterSelectScene::Render(Render::Frame::SceneCanvas& canvas, float alph
         canvas.world.Draw(*world, pass, alpha);
     }
     const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    FaunaDrawCarry projection;
+    Kernel::PoseBuffer projection;
     if (scanFrames == 0 && m_context.world != nullptr)
         projection = m_context.world->PoseCarry();
     auto* poseCarry = m_context.world == nullptr ? nullptr
@@ -1462,7 +1464,7 @@ std::function<double(float, float)> CharacterSelectScene::TerrainHeight()
 
 void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha,
                                                         const Render::Pass3D& pass, const Render::Camera3D& camera,
-                                                        std::uint8_t map, FaunaDrawCarry* poseCarry, int scanFrames)
+                                                        std::uint8_t map, Kernel::PoseBuffer* poseCarry, int scanFrames)
 {
     // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 y la luz +0xf4 en 0 en los cinco primeros registros del
     // pool, sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
@@ -1545,7 +1547,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
             .stepAlpha = 0.0f,
             .originalFrame = frames > 0,
             .onPose = [&](const Actors::Drawing::DrawnObject& object)
-            { return PublishFaunaPose(*poseCarry, m_models, object, true); },
+            { return Actors::Drawing::PublishPose(*poseCarry, m_models, object, true); },
             .publishProjectedPose = true,
             .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry->meshes); },
             .scene = SceneId::CharacterSelect,
@@ -1603,7 +1605,7 @@ void CharacterSelectScene::DrawTheWorldAndTheCharacters(Render::Frame::SceneCanv
 }
 
 void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map,
-                                             FaunaDrawCarry* poseCarry, int scanFrames)
+                                             Kernel::PoseBuffer* poseCarry, int scanFrames)
 {
     const Protocol::FrontEnd::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
@@ -1679,7 +1681,8 @@ void CharacterSelectScene::DrawTheCharacters(Render::Frame::SceneCanvas& canvas,
             {
                 if (model == Tables::PlayerSkeletonModel)
                     return;
-                if (auto result = PublishFaunaPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
+                if (auto result =
+                        Actors::Drawing::PublishPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
                     !result.HasValue())
                     m_failure = result.Error();
             };
@@ -1738,25 +1741,25 @@ bool CharacterSelectScene::HasTheSkeleton() const
 // rama de su color pisa (0x50d231); con +0x375 desde 6, (1; 0,1; 0,1). El cuervo de un Dark Lord de la lista
 // (EquipSelectionActor) va con el trapecio de la selección.
 void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor, std::size_t slot,
-                                       const Actors::Drawing::DrawnCharacter& drawn, FaunaDrawCarry& poseCarry,
+                                       const Actors::Drawing::DrawnCharacter& drawn, Kernel::PoseBuffer& poseCarry,
                                        const Actors::FullSetScan& scan, bool originalFrame)
 {
     Kernel::WorldState& world = *m_context.world;
     Actors::Drawing::ItemSpecialDrawContext special;
     Actors::Drawing::ItemDrawContext itemContext;
-    Actors::Drawing::FillItemDrawContexts(
-        special, itemContext,
-        Actors::Drawing::ItemDrawResources{.frameClock = canvas.frameClock,
-                                           .random = m_world.FrameCloth().random,
-                                           .itemRender = m_world.FrameItemRender(),
-                                           .sprites = m_world.FrameSprites(),
-                                           .poseCarry = poseCarry,
-                                           .modelState = m_world.FrameModelState(),
-                                           .joints = m_world.FrameTail().joints,
-                                           .effects = m_world.FrameEffects(),
-                                           .map = world.Runtime().map,
-                                           .originalFrame = originalFrame,
-                                           .glowDetail = world.Runtime().ui.glowDetail});
+    const Actors::Drawing::ItemDrawResources itemResources{.frameClock = canvas.frameClock,
+                                                           .random = m_world.FrameCloth().random,
+                                                           .itemRender = m_world.FrameItemRender(),
+                                                           .sprites = m_world.FrameSprites(),
+                                                           .poseCarry = poseCarry,
+                                                           .modelState = m_world.FrameModelState(),
+                                                           .joints = m_world.FrameTail().joints,
+                                                           .effects = m_world.FrameEffects(),
+                                                           .map = world.Runtime().map,
+                                                           .originalFrame = originalFrame,
+                                                           .glowDetail = world.Runtime().ui.glowDetail};
+    Actors::Drawing::FillItemDrawContexts(special, itemContext, itemResources);
+    Session::FillItemCreators(itemContext, itemResources);
     constexpr std::uint8_t RedPk = 6;
     const float base = slot == world.Runtime().hero ? HeroLight : CharacterLight;
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : glm::vec3(base) + actor.light;
@@ -1772,7 +1775,8 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kerne
                                                   .pace = OriginalFramePaceOf(m_context.pacing),
                                                   .polygon = &m_polygon,
                                                   .fixedHeight = CameraState().fixedHeight,
-                                                  .terrain = StepTerrain()};
+                                                  .terrain = StepTerrain(),
+                                                  .hooks = &m_characterDrawHooks};
     if (auto drawnTail = Actors::Drawing::DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass,
                                                             scan, originalFrame);
         !drawnTail.HasValue())
@@ -1897,9 +1901,9 @@ void CharacterSelectScene::DrawTheCreateWindow(Render::Frame::SceneCanvas& canva
         // frame del original guarda la pose en el buffer propio. 0x50ba30 llama con el segundo argumento en 1
         // (0x5ffdf0 en 0x50baed, 0x602e90 en 0x50bd81): los huesos quedan en el modelo (0x4eb860 con la bandera en 0)
         // y 0x4ebc80 corre con Translate en 1, la normal sin la escala de la clase (5,9 a 9,1) para la luz por vértice.
-        FaunaDrawCarry own;
+        Kernel::PoseBuffer own;
         own.bones = Preview().bodyPose;
-        if (auto result = PublishFaunaPose(own, m_selectionModels, drawn, false); !result.HasValue())
+        if (auto result = Actors::Drawing::PublishPose(own, m_selectionModels, drawn, false); !result.HasValue())
         {
             m_failure = result.Error();
             return;

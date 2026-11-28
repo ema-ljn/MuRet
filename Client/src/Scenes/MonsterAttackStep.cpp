@@ -24,7 +24,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/WizardModelEffects.h"
@@ -325,18 +325,19 @@ Core::Expected<void, std::string> ThrowTheSpirit(const Kernel::ActorState& actor
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
     const JointKernels::CreationServices services = JointServices(context);
-    const World::FishEffectRequest request{.type = JointFamilies::SpiritJoint,
-                                           .firstPosition = point,
-                                           .secondPosition = point,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = nullptr,
-                                           .scale = width,
-                                           .key = 0,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
-    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::ByType, &services);
+    const Kernel::JointRequest request{.type = JointFamilies::SpiritJoint,
+                                       .firstPosition = point,
+                                       .secondPosition = point,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = nullptr,
+                                       .scale = width,
+                                       .key = 0,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
+    const auto created =
+        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::ByType, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};
@@ -353,18 +354,19 @@ Core::Expected<void, std::string> CreateTheJoint(Kernel::ActorState& owner, cons
     if (context.joints.empty())
         return Core::Unexpected(std::format("{:#x}: faltan los joints del frame (0x530860)", address));
     const JointKernels::CreationServices services = JointServices(context);
-    const World::FishEffectRequest request{.type = type,
-                                           .firstPosition = from,
-                                           .secondPosition = to,
-                                           .angles = angles,
-                                           .subtype = subtype,
-                                           .ownerContext = &owner,
-                                           .scale = width,
-                                           .key = key,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
-    const auto created = CreateFaunaJoint(context.joints, request, context.random, JointOwnerKind::Actor, &services);
+    const Kernel::JointRequest request{.type = type,
+                                       .firstPosition = from,
+                                       .secondPosition = to,
+                                       .angles = angles,
+                                       .subtype = subtype,
+                                       .ownerContext = &owner,
+                                       .scale = width,
+                                       .key = key,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
+    const auto created =
+        CreateFaunaJoint(context.joints, request, context.random, Kernel::JointOwnerKind::Actor, &services);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
     return {};

@@ -18,7 +18,8 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/ObjectCollapse.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemRenderState.h"
@@ -32,7 +33,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Terrain/GroundMarks.h"
 #include "World/ModelEffects.h"
 #include "World/ObjectModelStepState.h"
@@ -255,7 +256,7 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState
         .lighting = &dynamicLighting,
         .systemTime = [systemTime]() { return systemTime; },
         .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
-        .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        .joint = [&world, &cloth](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
             if (!created.HasValue())
@@ -424,7 +425,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawTerrain(Kernel::WorldState
 }
 
 Core::Expected<void, std::string>
-SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, FaunaDrawCarry& poseCarry)
+SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, Kernel::PoseBuffer& poseCarry)
 {
     const auto map = static_cast<std::uint8_t>(world.Runtime().map);
     const float clock = Milliseconds(frame.frameClock);
@@ -436,7 +437,7 @@ SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame
                               .worldClock = clock,
                               .particles = &FrameParticles(),
                               .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
-                              { return PublishFaunaPose(poseCarry, m_models, drawn, true); },
+                              { return Actors::Drawing::PublishPose(poseCarry, m_models, drawn, true); },
                               .sprites = &FrameSprites(),
                               .retainedPose = &poseCarry,
                               .modelState = &world.Runtime().objectModelState,
@@ -460,7 +461,7 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
                                                                       const Terrain::WorldTerrain& terrain,
                                                                       const SelectionWorldFrame& frame,
                                                                       const Render::Camera3D& camera,
-                                                                      FaunaDrawCarry& poseCarry)
+                                                                      Kernel::PoseBuffer& poseCarry)
 {
     const float clock = Milliseconds(frame.frameClock);
     GameDrawTailState& tail = FrameTail();
@@ -478,9 +479,9 @@ Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::Wo
     }
     ModelEffectDrawResources resources{*terrain.heights, clock};
     resources.onPose = [&](const Actors::Drawing::DrawnObject& object)
-    { return PublishFaunaPose(poseCarry, m_models, object, true); };
+    { return Actors::Drawing::PublishPose(poseCarry, m_models, object, true); };
     resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
-    { return PublishFaunaPose(poseCarry, m_models, object, false); };
+    { return Actors::Drawing::PublishPose(poseCarry, m_models, object, false); };
     resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry.meshes); };
     resources.sprites = &FrameSprites();
     resources.dynamicLighting = &FrameLighting();

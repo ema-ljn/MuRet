@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -22,7 +22,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x5f2u;
@@ -41,17 +41,17 @@ struct TrailWorld
     {
         glm::vec3 from = start;
         glm::vec3 angles{0.0f, 20.0f, 0.0f};
-        const Client::World::FishEffectRequest request{.type = 0x5f2,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = 100.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x5f2,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = 100.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random, kind);
     }
 

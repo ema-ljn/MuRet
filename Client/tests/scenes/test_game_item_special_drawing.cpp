@@ -4,7 +4,8 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Assets/GameModels.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -291,8 +292,8 @@ TEST_F(GoldenGameItemSpecialDrawing, ActualItemResourcesProvideGeometryForSpecia
         SCOPED_TRACE(type);
         Client::Actors::Drawing::DrawnObject object;
         object.model = static_cast<std::uint16_t>(type);
-        Client::Scenes::FaunaDrawCarry carry;
-        const auto posed = Client::Scenes::PublishFaunaFloorPose(carry, models, object);
+        Client::Kernel::PoseBuffer carry;
+        const auto posed = Client::Actors::Drawing::PublishFloorPose(carry, models, object);
         ASSERT_TRUE(posed.HasValue()) << posed.Error();
         Client::Render::ModelBatch batch;
         Client::Crt::CrtRandom random;

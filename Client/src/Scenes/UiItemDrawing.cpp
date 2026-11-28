@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/PoseBuffer.h"
 #include "Tables/ItemTable.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
@@ -11,7 +12,7 @@
 #include "Math/RoundedTransforms.h"
 #include "Render/Pass3D.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Scenes/GameFloorItemDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
@@ -720,7 +721,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
                                                .lockedRootHeight = placement.rootHeight};
     // Sin el skin de la pose: lo hace 0x4ebc80 con el modelo que dibuja.
     object.alpha = 0.0f;
-    if (auto posed = PublishFaunaFloorPose(resources.poseCarry, resources.models, object); !posed.HasValue())
+    if (auto posed = Actors::Drawing::PublishFloorPose(resources.poseCarry, resources.models, object);
+        !posed.HasValue())
         return posed;
     // 0x5e13f3: 0x607b60 con el que dibuja en +2, con sus rand(); 0x5e1404..0x5e1466: la escala, la posición, la luz
     // por vértice en 0 y +0x1d4 en 2. El alpha (+0x174) y la luz, en 1.
@@ -733,7 +735,8 @@ Core::Expected<void, std::string> DrawUiItemModel(UiItemResources& resources, Cr
     object.alpha = 1.0f;
     object.vertexLight = false;
     // 0x60cf70: 0x4ebc80 sobre el buffer global y 0x60b3d0, sin dueño (los efectos de 0x60cf70 no corren).
-    if (auto skinned = TransformFaunaPose(resources.poseCarry, resources.models, object); !skinned.HasValue())
+    if (auto skinned = Actors::Drawing::TransformPose(resources.poseCarry, resources.models, object);
+        !skinned.HasValue())
         return skinned;
     Actors::Drawing::ItemDrawContext context = resources.itemContext;
     Actors::Drawing::ItemSpecialDrawContext special =

@@ -21,6 +21,11 @@
 // los ángulos, la escala y la altura de la raíz de su familia, lo posa en el buffer global (0x4eb860) y lo dibuja
 // como un ítem del piso (0x607b60 y 0x60cf70). Todo en el pase 3D de 0x5ac120: la proyección de 1° de la pantalla
 // entera con la cámara en el origen.
+namespace Client::Kernel
+{
+struct PoseBuffer;
+} // namespace Client::Kernel
+
 namespace Client::Render
 {
 class ModelBatch;
@@ -44,7 +49,6 @@ struct ItemDrawContext;
 namespace Client::Scenes
 {
 struct GameDrawTailState;
-struct FaunaDrawCarry;
 
 // La caja de un ítem de la UI en 640 × 480: los cuatro floats que reciben 0x5e1480 y 0x5e2d00.
 struct UiItemBox
@@ -125,7 +129,7 @@ struct UiItemResources
 {
     Render::ModelBatch& batch;
     const Models::IModelLibrary& models;
-    FaunaDrawCarry& poseCarry;
+    Kernel::PoseBuffer& poseCarry;
     const Actors::Drawing::ItemDrawContext& itemContext;
     Core::Duration frameClock{};
     std::function<void()> flushSprites{};

@@ -7,7 +7,7 @@
 #include "Models/IModelLibrary.h"
 #include "Scenes/GameDrawTail.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
@@ -43,7 +43,7 @@ namespace Client::Scenes
 {
 namespace
 {
-void Prefix(JointState& joint, const World::FishEffectRequest& request, JointOwnerKind ownerKind)
+void Prefix(JointState& joint, const Kernel::JointRequest& request, Kernel::JointOwnerKind ownerKind)
 {
     joint.alive = true;
     joint.type = request.type;
@@ -83,7 +83,7 @@ void Prefix(JointState& joint, const World::FishEffectRequest& request, JointOwn
 }
 using JointKernels::AppendJointTail;
 using JointKernels::FirstQuad;
-Core::Expected<void, std::string> CreateHelperBeam(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateHelperBeam(JointState& joint, const Kernel::JointRequest& request)
 {
     joint.width = request.scale;
     joint.life = 0;
@@ -115,7 +115,7 @@ Core::Expected<void, std::string> CreateHelperBeam(JointState& joint, const Worl
 // repite (+0x9f0), vida 0, los ángulos en 0, la luz (0,3; 0,3; 1), 10 puntos y el décimo de lo que falta hasta el
 // segundo punto. Nueve tramos: cada uno corre el avance (rand() & 7) − 4 en x e y (con dueño, (rand() & 15) − 8),
 // agrega la cola con la matriz de los ángulos en 0 y deshace la corrida. Al final, la posición es el destino (+0x58).
-Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const Kernel::JointRequest& request,
                                                   Crt::CrtRandom& random)
 {
     constexpr float Speed = 50;
@@ -162,7 +162,7 @@ Core::Expected<void, std::string> CreateSwordBeam(JointState& joint, const World
 // ancho, la luz en 1, 10 puntos y el décimo de lo que falta hasta el segundo punto (+0x24). Diez tramos, cada uno con
 // el avance sumado y la cola con la matriz de los ángulos en 0, y el destino (+0x58) en el segundo punto. Sin rand().
 // Con vida 0, vive un paso (Q-C365).
-Core::Expected<void, std::string> CreateSwordTrail(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateSwordTrail(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t Points = 10;
     constexpr std::uint8_t OwnerColor = 3;
@@ -248,7 +248,7 @@ Core::Expected<void, std::string> StepSwordTrail(JointState& joint, std::size_t 
 // 0x5319ea..0x531a30 y 0x533242: el 615/0 del cielo de Icarus (0x605d70). Textura 0x614, el ancho, 50
 // puntos, vida 20 (0x531a12 guarda el divisor; el resto sólo da la velocidad rand() % 20 + 80) y la z de la
 // luz en 50. +0x24 guarda la partida. Un rand().
-Core::Expected<void, std::string> CreateSkyBolt(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSkyBolt(JointState& joint, const Kernel::JointRequest& request,
                                                 Crt::CrtRandom& random)
 {
     constexpr std::uint16_t BoltTexture = 0x614;
@@ -272,7 +272,7 @@ Core::Expected<void, std::string> CreateSkyBolt(JointState& joint, const World::
 // la x y la y se corren rand() % 10 − 5 (fild y fadd, guardado en float) y la z sube 800 (0x6b8ac8; la /7, 1050).
 // Ángulos en cero, el destino es el segundo punto y +0x24 guarda la partida ya corrida. La /5 con la luz (1; 0,5;
 // 0,2f); la /6 con la velocidad 0,3f, la luz en 1 y la z otros 700 más arriba (después de guardar +0x24). Dos rand().
-Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const Kernel::JointRequest& request,
                                                  Crt::CrtRandom& random)
 {
     constexpr std::uint16_t BoltTexture = 0x614;
@@ -314,7 +314,7 @@ Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World:
 // 0x53265e (+0x10 = 3 en todo 613 y 6ee), 0x5333f6..0x533449 y 0x5331a9: el meteoro 6ee/9 del preludio de
 // Chaos Castle (0x4054ad). Resta, la segunda cara sola, el ancho, velocidad 10, luz blanca, ángulos (−90, 0, 0), el
 // desvío en cero, vida 20 y 15 puntos; +0x24 guarda la partida. Sin rand().
-void CreateMeteor(JointState& joint, const World::FishEffectRequest& request)
+void CreateMeteor(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::uint8_t Subtractive = 3, SecondFace = 2;
     constexpr float Speed = 10, Pitch = -90;
@@ -373,9 +373,9 @@ const glm::vec3* SparkleOwnerLight(const JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return nullptr;
-    if (joint.ownerKind == JointOwnerKind::Helper)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Helper)
         return &static_cast<const Kernel::HelperState*>(joint.ownerContext)->light;
-    if (joint.ownerKind == JointOwnerKind::Raven)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Raven)
         return &static_cast<const DarkSpirit*>(joint.ownerContext)->light;
     return &static_cast<const Kernel::ActorState*>(joint.ownerContext)->light;
 }
@@ -385,9 +385,9 @@ std::optional<std::uint8_t> SparkleOwnerAction(const JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return std::nullopt;
-    if (joint.ownerKind == JointOwnerKind::Helper)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Helper)
         return static_cast<const Kernel::HelperState*>(joint.ownerContext)->horse.animation.action;
-    if (joint.ownerKind == JointOwnerKind::Raven)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Raven)
         return static_cast<const DarkSpirit*>(joint.ownerContext)->animation.action;
     return static_cast<const Kernel::ActorState*>(joint.ownerContext)->animation.action;
 }
@@ -407,7 +407,7 @@ std::optional<KalimaBeamOwner> KalimaBeamOwnerOf(const JointState& joint)
 {
     if (joint.ownerContext == nullptr)
         return std::nullopt;
-    if (joint.ownerKind == JointOwnerKind::Actor)
+    if (joint.ownerKind == Kernel::JointOwnerKind::Actor)
     {
         const auto* actor = static_cast<const Kernel::ActorState*>(joint.ownerContext);
         return KalimaBeamOwner{actor->alive, &actor->position, &actor->angles, &actor->light};
@@ -430,7 +430,7 @@ void FadeJointLight(JointState& joint, std::uint32_t factorBits)
 // del caballo oscuro, la del caballo) y el destino el segundo punto. Dos rand(), o tres con el ancho.
 // El 60f/0xa del premio de una misión (0x4de0fe) va por 0x53373a..0x5337da y sigue en 0x53428f: lo mismo en el mismo
 // orden (la velocidad 140 de 0x53378d es sólo de la /0x19), sin la mezcla de la /0x12.
-Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSparkle(JointState& joint, const Kernel::JointRequest& request,
                                                 Crt::CrtRandom& random)
 {
     constexpr std::int32_t SparkleLife = 100, WideLife = 50, Points = 20;
@@ -466,7 +466,7 @@ Core::Expected<void, std::string> CreateSparkle(JointState& joint, const World::
 // pisa el caso 7: la luz en 1, vy y vz en 0, resta (mezcla 4), velocidad 10, la textura 0x60f, el ancho, 16 puntos y vx
 // 15. La x y la y se corren 40 desde el segundo punto con fcos y fsin de rand() % 360 sin pasar a radianes (Q-C384): la
 // x más el coseno y la y menos el seno. +0x24 guarda la partida y +0x58 el segundo punto. Dos rand().
-Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const Kernel::JointRequest& request,
                                                  Crt::CrtRandom& random)
 {
     constexpr std::uint8_t OwnerColor = 3;
@@ -507,7 +507,7 @@ Core::Expected<void, std::string> CreateSetTrail(JointState& joint, const World:
 // el personaje blanco de dueño (+0x54). Lo común del 0x610 pone la vida en la key, 50 puntos y la key en 0; el ancho y
 // la luz del color del skill (+0x9ea) los pisa el caso 6: la luz en 1, resta (mezcla 4), el ancho, 16 puntos y
 // velocidad 5. El destino (+0x58) es el segundo punto. Sin rand().
-Core::Expected<void, std::string> CreateTargetBolt(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateTargetBolt(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::uint8_t OwnerColor = 3;
     constexpr std::int32_t SharedPoints = 50, Points = 16;
@@ -532,7 +532,7 @@ Core::Expected<void, std::string> CreateTargetBolt(JointState& joint, const Worl
 // (+0x9f2 en 0); el ancho, velocidad 20, los ángulos (−90, 0, z), vida 10, 30 puntos y la velocidad +0x9dc en 0; la /1
 // además la textura repetida (+0x9f0) en 1. La luz en 1 con rand() impar y (1; 0,8f; 0,6f) con par, y el camino +0x24
 // en la posición. Un rand().
-void CreateSwirl(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateSwirl(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     constexpr float Speed = 20, Upright = -90; // 0x41a00000 y 0xc2b40000
     constexpr std::int32_t Life = 10, Points = 30;
@@ -558,7 +558,7 @@ void CreateSwirl(JointState& joint, const World::FishEffectRequest& request, Crt
 // dueño. Velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, +0x9dc en 0, 15 puntos, vida 30 y la tanda (+0x9eb) en
 // 0; la posición y los ángulos los del dueño (+0x10 y +0x1c). Sin dueño, el original apaga el joint y desreferencia el
 // puntero nulo (+0x10, 0x5343fb), y revienta: MuRet corta. Sin rand().
-Core::Expected<void, std::string> CreateLaserJoint(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateLaserJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::uint8_t FirstPass = 1;
     constexpr std::int32_t Points = 15, Life = 30;
@@ -583,7 +583,7 @@ Core::Expected<void, std::string> CreateLaserJoint(JointState& joint, const Worl
 // giro z, vx 50, la luz (0,09090909f; 0,04545455f; 0,09090909f) y el destino y la posición en la del dueño (+0x10). Sin
 // rand(). El caso 0xa (0x5325c7..0x532659, los cuatro de la 0x35, 0x4fe856): vida 80, vx 80 y +0x9d4 en 1 con el giro
 // 225 o 405 (el sentido de la vuelta en el paso).
-Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t SharedLife = 12, SharedPoints = 2, EnergyLife = 90, SkillLife = 80, Points = 20;
     constexpr float Orbit = 50, SkillOrbit = 80;
@@ -613,7 +613,7 @@ Core::Expected<void, std::string> CreateSetEnergy(JointState& joint, const World
 
 // 0x5323d3..0x5323f8, 0x532552..0x5325ca y 0x534cb6: el 619/1 y el 619/3 de los calcos 0x61e (0x518900). Lo común del
 // 0x619 (velocidad 0, vida 12, el ancho y 2 puntos); el subtipo 1 y el 3 no tienen caso. Sin rand().
-void CreateSummonEnergy(JointState& joint, const World::FishEffectRequest& request)
+void CreateSummonEnergy(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t SharedLife = 12, SharedPoints = 2;
     joint.speed = 0;
@@ -624,7 +624,7 @@ void CreateSummonEnergy(JointState& joint, const World::FishEffectRequest& reque
 
 // 0x5323d3..0x532415 y 0x534cb6: el 619/6 de los rayos del 0x813 (0x52cb85). Lo común del 0x619 y el caso 6: la luz
 // (1; 1; 0,5) y 4 puntos. Sin rand().
-void CreateBoltEnergy(JointState& joint, const World::FishEffectRequest& request)
+void CreateBoltEnergy(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t BoltPoints = 4;
     CreateSummonEnergy(joint, request);
@@ -635,7 +635,7 @@ void CreateBoltEnergy(JointState& joint, const World::FishEffectRequest& request
 // 0x5323d3..0x5323f8, 0x5324ea..0x53254a y 0x534cb6: el 619/8 de la skill cargada (0x5189f0). Lo común del 0x619 y el
 // caso 8: la luz (0,5; 0,5; (rand() & 0x7f) · 1/255f + 0,5), vida 0x11, 3 puntos y el destino (+0x58) en el segundo
 // punto con z + 100. Un rand(), después de las escrituras de la luz, de la vida y de los puntos.
-void CreateChargedEnergy(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random)
+void CreateChargedEnergy(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
     constexpr std::int32_t ChargedLife = 0x11, ChargedPoints = 3, ShadeMask = 0x7f;
     using Math::Half;                                              // 0x5324ef
@@ -653,7 +653,7 @@ void CreateChargedEnergy(JointState& joint, const World::FishEffectRequest& requ
 }
 
 // 0x533e60..0x533f9e: el abanico de la habilidad39, después del quad con el ancho retenido.
-void CreateSkill39Bolt(JointState& joint, const World::FishEffectRequest& request)
+void CreateSkill39Bolt(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t BoltLife = 24, BoltPoints = 15;
     joint.bendAngles = joint.angles;
@@ -698,7 +698,7 @@ void CreateSkill39Bolt(JointState& joint, const World::FishEffectRequest& reques
 // 0x533677..0x53369e y0x533faf..0x534028: el giro del impacto de PiercingShot. El 0x62b/6 que suelta el 0x61c/4
 // (0x53b7a7) comparte el alta del 0x60f (la tabla 0x534d30 lo manda a 0x533677) con la vida y los puntos en 15 (el
 // ECX de 0x5337e8, 0x534044).
-Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const Kernel::JointRequest& request,
                                                        Crt::CrtRandom& random)
 {
     const bool spark = request.type == SparkImpactJoint;
@@ -721,7 +721,7 @@ Core::Expected<void, std::string> CreatePiercingImpact(JointState& joint, const 
 }
 
 // 0x531c43..0x531cfa: los cuatro radios que siguen al modelo105/0.
-Core::Expected<void, std::string> CreatePiercingTrailJoint(JointState& joint, const World::FishEffectRequest& request)
+Core::Expected<void, std::string> CreatePiercingTrailJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     constexpr std::int32_t Points = 50;
     constexpr std::array<float, 4> Turns{0, 90, 180, 240};
@@ -740,7 +740,7 @@ Core::Expected<void, std::string> CreatePiercingTrailJoint(JointState& joint, co
     }
     if (joint.skill == 3)
     {
-        if (joint.ownerKind != JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
+        if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
             return Core::Unexpected(std::string("0x531c9e: falta el color del ModelEffect dueño del610/0..3"));
         joint.width = 20;
         joint.light = static_cast<const World::ModelEffect*>(joint.ownerContext)->light;
@@ -751,7 +751,7 @@ Core::Expected<void, std::string> CreatePiercingTrailJoint(JointState& joint, co
     return {};
 }
 
-Core::Expected<void, std::string> CreateCase(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateCase(JointState& joint, const Kernel::JointRequest& request,
                                              Crt::CrtRandom& random, const JointKernels::CreationServices* services)
 {
     const auto* owner =
@@ -1018,17 +1018,17 @@ Core::Expected<void, std::string> CreateStormBolts(std::span<JointState> joints,
         const auto matrix = Math::OriginalAngleMatrix(angles);
         const auto turned = Math::OriginalVectorRotate({static_cast<float>(offset), Down, 0}, matrix);
         glm::vec3 from{F32(D(turned.x) + D(origin.x)), F32(D(turned.y) + D(origin.y)), F32(D(turned.z) + D(origin.z))};
-        const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
-                                               .firstPosition = from,
-                                               .secondPosition = from,
-                                               .angles = angles,
-                                               .subtype = JointFamilies::BoltSubtype,
-                                               .ownerContext = nullptr,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = from,
+                                           .angles = angles,
+                                           .subtype = JointFamilies::BoltSubtype,
+                                           .ownerContext = nullptr,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto created = CreateFaunaJoint(joints, request, random); !created.HasValue())
             return Core::Unexpected(std::format("0x534baa: {}", created.Error()));
     }
@@ -1037,8 +1037,8 @@ Core::Expected<void, std::string> CreateStormBolts(std::span<JointState> joints,
 } // namespace
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request, Crt::CrtRandom& random,
-                 JointOwnerKind ownerKind, const JointKernels::CreationServices* services)
+CreateFaunaJoint(std::span<JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
+                 Kernel::JointOwnerKind ownerKind, const JointKernels::CreationServices* services)
 {
     // Lo que lee MuRet de un ayudante o del cuervo de dueño: sólo la luz y la acción del 60f/0 y del 60f/0x12.
     const bool helperSparkle =
@@ -1087,15 +1087,16 @@ CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& r
     {
         if (joints[i].alive)
             continue;
-        if ((ownerKind == JointOwnerKind::Helper || ownerKind == JointOwnerKind::Raven) && !helperSparkle)
+        if ((ownerKind == Kernel::JointOwnerKind::Helper || ownerKind == Kernel::JointOwnerKind::Raven) &&
+            !helperSparkle)
             return Core::Unexpected(std::format("0x530860: el joint {:#x}/{} con un ayudante o el cuervo de dueño no "
                                                 "está portado",
                                                 request.type, request.subtype));
-        if (ownerKind == JointOwnerKind::Actor && !kalimaBeam && !familyJoint)
+        if (ownerKind == Kernel::JointOwnerKind::Actor && !kalimaBeam && !familyJoint)
             return Core::Unexpected(
                 std::format("0x530860: el joint {:#x}/{} con el ActorState de dueño fuera de su tipo no está portado",
                             request.type, request.subtype));
-        if (ownerKind == JointOwnerKind::ModelEffect &&
+        if (ownerKind == Kernel::JointOwnerKind::ModelEffect &&
             !((request.type == EnergyJoint &&
                (request.subtype == SummonEnergySubtype || request.subtype == SummonDecalEnergySubtype)) ||
               (request.type == 0x610 && ((request.subtype >= ArrowTrailFirst && request.subtype <= ArrowTrailLast) ||
@@ -1597,7 +1598,7 @@ Core::Expected<void, std::string> StepSetEnergy(JointState& joint, std::size_t i
 // 0x537d49..0x537ec0: tres muestras hacia el dueño vivo y la cuarta de la cola común.
 Core::Expected<void, std::string> StepPiercingTrailJoint(JointState& joint)
 {
-    if (joint.ownerKind != JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
         return Core::Unexpected(std::string("0x537d49: falta el ModelEffect dueño del610/0..3"));
     const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
     if (!owner.alive)
@@ -1779,7 +1780,7 @@ Core::Expected<void, std::string> StepArrowTrail(JointState& joint, Crt::CrtRand
         joint.alive = false;
         return {};
     }
-    if (joint.ownerKind != JointOwnerKind::ModelEffect)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return Core::Unexpected(
             std::format("0x537ef8: el dueño del 0x610/{} no es un ModelEffect durable", joint.subtype));
     if (!static_cast<const World::ModelEffect*>(joint.ownerContext)->alive)
@@ -1812,7 +1813,7 @@ Core::Expected<void, std::string> StepSummonEnergy(JointState& joint, std::size_
             "0x538cce: faltan el RNG o los sprites del joint {} (0x619/{}) en su última vida", index, joint.subtype));
     if (joint.ownerContext == nullptr)
         return Core::Unexpected(std::format("0x538b17: falta el dueño del joint {} (0x619/{})", index, joint.subtype));
-    const glm::vec3& position = joint.ownerKind == JointOwnerKind::ModelEffect
+    const glm::vec3& position = joint.ownerKind == Kernel::JointOwnerKind::ModelEffect
                                     ? static_cast<const World::ModelEffect*>(joint.ownerContext)->transform.position
                                     : static_cast<const Kernel::ActorState*>(joint.ownerContext)->position;
     constexpr double Climb = 4.0, Lift = 120.0;

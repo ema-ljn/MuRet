@@ -5,7 +5,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaStep.h"
 #include "Assets/FaunaModels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -108,7 +108,7 @@ FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::Fauna
 {
     FaunaStepEffects result;
     result.effect = [joints, &random, &log = load.log](
-                        const World::FishEffectRequest& request) -> Core::Expected<std::uint32_t, std::error_code>
+                        const Kernel::JointRequest& request) -> Core::Expected<std::uint32_t, std::error_code>
     {
         const auto created = CreateFaunaJoint(joints, request, random);
         if (!created.HasValue())

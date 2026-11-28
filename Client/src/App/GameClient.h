@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Session/CharacterDrawHooks.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/Credentials.h"
 #include "App/ILoopClient.h"
@@ -179,6 +180,7 @@ private:
     // 0x61ccb0: the loading scene reads them.
     Assets::GameModels m_models;
     Session::CharacterStepHooks m_characterStepHooks;
+    Session::CharacterDrawHooks m_characterDrawHooks;
     Scenes::ChatMessages m_onScreenMessages;
     Scenes::WorldEntryResources m_worldEntry;
     Scenes::SessionEventApplier m_eventApplier;

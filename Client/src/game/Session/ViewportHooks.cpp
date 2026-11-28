@@ -3,6 +3,7 @@
 
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
+#include "Kernel/JointRequest.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Scenes/BlastEffectCalls.h"
@@ -59,7 +60,7 @@ Core::Expected<void, std::string> ViewportHooks::CreateTheKalimaBeam(Kernel::Act
     const auto beam = Scenes::CreateFaunaJoint(m_resources.world.DrawTail().joints,
                                                {KalimaBeamJoint, actor.position, actor.position, actor.angles,
                                                 KalimaBeamSubtype, &actor, KalimaBeamWidth, NoKey, 0, 0, NoTarget},
-                                               m_resources.cloth.random, Scenes::JointOwnerKind::Actor);
+                                               m_resources.cloth.random, Kernel::JointOwnerKind::Actor);
     if (!beam.HasValue())
         return Core::Unexpected(beam.Error());
     return {};

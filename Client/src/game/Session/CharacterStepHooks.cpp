@@ -25,7 +25,7 @@
 #include "Scenes/NpcChatter.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SiegeBattleUi.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ObjectAlpha.h"
 #include "World/WorldObjectStepServices.h"
 
@@ -188,17 +188,17 @@ Core::Expected<void, std::string> CharacterStepHooks::CreateTheJoint(const Actor
                                                                      const Actors::CharacterStepContext& context) const
 {
     constexpr std::int32_t NoKey = -1, NoTarget = -1;
-    const World::FishEffectRequest request{.type = joint.type,
-                                           .firstPosition = joint.first,
-                                           .secondPosition = joint.second,
-                                           .angles = joint.angles,
-                                           .subtype = joint.subtype,
-                                           .ownerContext = joint.owner,
-                                           .scale = joint.width,
-                                           .key = NoKey,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = NoTarget};
+    const Kernel::JointRequest request{.type = joint.type,
+                                       .firstPosition = joint.first,
+                                       .secondPosition = joint.second,
+                                       .angles = joint.angles,
+                                       .subtype = joint.subtype,
+                                       .ownerContext = joint.owner,
+                                       .scale = joint.width,
+                                       .key = NoKey,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = NoTarget};
     auto created = Scenes::CreateFaunaJoint(context.joints, request, context.random);
     if (!created.HasValue())
         return Core::Unexpected(std::move(created).Error());

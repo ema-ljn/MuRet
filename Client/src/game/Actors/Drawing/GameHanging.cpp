@@ -18,12 +18,13 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterAnimation.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
+#include "Actors/JointHooks.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Scenes/GuildState.h"
 #include "World/ChaosCastle.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
@@ -174,11 +175,12 @@ struct Frame
     }
 
     // 0x530860 at `address`, on the frame's joints. With the pool full it neither creates nor draws rand().
-    [[nodiscard]] Result Joint(const World::FishEffectRequest& request, std::string_view address) const
+    [[nodiscard]] Result Joint(const Kernel::JointRequest& request, std::string_view address) const
     {
-        if (pass.joints.empty())
+        if (pass.joints.empty() || pass.jointHooks == nullptr)
             return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", address));
-        auto created = Scenes::CreateFaunaJoint(pass.joints, request, pass.random);
+        auto created =
+            pass.jointHooks->CreateTheJoint(pass.joints, request, pass.random, Kernel::JointOwnerKind::ByType);
         if (!created.HasValue())
             return Core::Unexpected(created.Error());
         return {};
@@ -693,7 +695,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
         part.animation.previousKey = animation.previousKey;
     }
     // 0x509a1a: 0x4eb860 in the global buffer with the root of 0x68c4a1c; the dummies stay as they were.
-    Scenes::FaunaDrawCarry& carry = *pass.carry;
+    Kernel::PoseBuffer& carry = *pass.carry;
     if (carry.bones.size() < skeleton->bones.size())
         carry.bones.resize(skeleton->bones.size(), BoneTransform(0.0f));
     const auto bones = std::span(carry.bones).first(skeleton->bones.size());
@@ -706,7 +708,7 @@ Result HangItem(const Frame& frame, const glm::vec3& offset, Kernel::ActorItemPa
     object.state = state;
     object.color = actor.drawnLight;
     object.alpha = actor.alpha;
-    if (auto published = Scenes::PublishFaunaPoseRaw(carry, pass.models, type, bones, object.transform, false, true);
+    if (auto published = PublishPoseRaw(carry, pass.models, type, bones, object.transform, false, true);
         !published.HasValue())
         return published;
     // 0x509a8a: 0x60b3d0 with the level · 8, the excellent, no set, and 2 (0x102 with +0x376 at 0x43 or 0x89).
@@ -1223,8 +1225,8 @@ Result DrawMuSign(const Frame& frame, Kernel::GameMasterLayer& layer)
         return {};
     object.alpha = layer.alpha;
     // 0x5ffdf0 with the second argument at 1: the pose in the global buffer, without taking the bones to the world.
-    Scenes::FaunaDrawCarry& carry = *pass.carry;
-    if (auto posed = Scenes::PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())
+    Kernel::PoseBuffer& carry = *pass.carry;
+    if (auto posed = PublishPose(carry, pass.models, object, false); !posed.HasValue())
         return posed;
     if (auto drawn = DrawItemMeshPass(pass.batch, pass.models, object, pass.frameClock, carry.meshes, -1, BasePass);
         !drawn.HasValue())

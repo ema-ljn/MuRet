@@ -24,7 +24,7 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleBurst.h"
 #include "World/Particles.h"
@@ -176,7 +176,7 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
             CreateFaunaJoint(world.DrawTail().joints,
                              {TrailJoint, trail.transform.position, trail.transform.position, trail.transform.angles,
                               joint, &trail, trail.transform.scale, JointLife, subtype, 0, NoTarget},
-                             random, JointOwnerKind::ModelEffect);
+                             random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
     }
@@ -261,7 +261,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
             CreateFaunaJoint(world.DrawTail().joints,
                              {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
                               ViperTrailSubtype, &effect, ViperTrailWidth, ViperTrailKey, 0, 0, -1},
-                             random, JointOwnerKind::ModelEffect);
+                             random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c56c: {}", made.Error()));
     }
@@ -285,7 +285,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
         const auto made = CreateFaunaJoint(world.DrawTail().joints,
                                            {0x610, effect.transform.position, effect.transform.position,
                                             effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
-                                           random, JointOwnerKind::ModelEffect);
+                                           random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -308,7 +308,7 @@ Core::Expected<void, std::string> BeginTheArrow(World::ModelEffect& effect, Kern
             CreateFaunaJoint(world.DrawTail().joints,
                              {0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
                               TwentiethTrailSubtype, &effect, TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
-                             random, JointOwnerKind::ModelEffect);
+                             random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
     }
@@ -364,7 +364,7 @@ Core::Expected<void, std::string> BeginCelestialArrow(World::ModelEffect& effect
         const auto made = CreateFaunaJoint(world.DrawTail().joints,
                                            {ArrowJoint, effect.start, effect.start, angles, jointSubtype, &effect,
                                             ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
-                                           random, JointOwnerKind::ModelEffect);
+                                           random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", celestial ? 0x51a3b7u : 0x51a405u, made.Error()));
     }
@@ -405,18 +405,18 @@ Core::Expected<void, std::string> BeginAdvancedArrow(World::ModelEffect& effect,
         const auto address = effect.type == SaintArrow ? 0x51a24au : effect.type == ReignArrow ? 0x51bf35u : 0x51a173u;
         constexpr std::int32_t ArrowBeamSubtype = 5;
         constexpr float ArrowBeamWidth = 100.0f; // 0x42c80000
-        const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
-                                               .firstPosition = effect.transform.position,
-                                               .secondPosition = effect.transform.position,
-                                               .angles = effect.transform.angles,
-                                               .subtype = ArrowBeamSubtype,
-                                               .ownerContext = &effect,
-                                               .scale = ArrowBeamWidth,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
-        if (auto made = CreateFaunaJoint(world.DrawTail().joints, request, random, JointOwnerKind::ModelEffect);
+        const Kernel::JointRequest request{.type = JointFamilies::BeamJoint,
+                                           .firstPosition = effect.transform.position,
+                                           .secondPosition = effect.transform.position,
+                                           .angles = effect.transform.angles,
+                                           .subtype = ArrowBeamSubtype,
+                                           .ownerContext = &effect,
+                                           .scale = ArrowBeamWidth,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
+        if (auto made = CreateFaunaJoint(world.DrawTail().joints, request, random, Kernel::JointOwnerKind::ModelEffect);
             !made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     }
@@ -491,19 +491,19 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
     // (JointFamilies::StormJoint, alta 0x534977, sin rand()); con los joints llenos, nada.
     constexpr std::int32_t BlastJointSubtype = 4, BlastJointKey = 0x32, NoTarget = -1;
     constexpr float BlastJointWidth = 40.0f; // 0x42200000
-    const World::FishEffectRequest request{.type = JointFamilies::StormJoint,
-                                           .firstPosition = blast.transform.position,
-                                           .secondPosition = blast.transform.position,
-                                           .angles = blast.transform.angles,
-                                           .subtype = BlastJointSubtype,
-                                           .ownerContext = &blast,
-                                           .scale = BlastJointWidth,
-                                           .key = BlastJointKey,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = NoTarget};
-    if (auto made =
-            CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::ModelEffect);
+    const Kernel::JointRequest request{.type = JointFamilies::StormJoint,
+                                       .firstPosition = blast.transform.position,
+                                       .secondPosition = blast.transform.position,
+                                       .angles = blast.transform.angles,
+                                       .subtype = BlastJointSubtype,
+                                       .ownerContext = &blast,
+                                       .scale = BlastJointWidth,
+                                       .key = BlastJointKey,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = NoTarget};
+    if (auto made = CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
+                                     Kernel::JointOwnerKind::ModelEffect);
         !made.HasValue())
         return Core::Unexpected(std::format("0x51e01a: {}", made.Error()));
     // 0x51e01f..0x51e04d: la cuenta de la tanda en +0x8c.
@@ -534,8 +534,8 @@ Core::Expected<void, std::string> CreateTheReignHandShine(Kernel::ActorState& ac
         angles.z = 0.0f;
         if ((context.random.Next() & 1) == 0)
         {
-            const World::FishEffectRequest request{ShineJoint, point, point, angles, ShineSubtype, nullptr, 10.0f,
-                                                   -1,         0,     0,     -1};
+            const Kernel::JointRequest request{ShineJoint, point, point, angles, ShineSubtype, nullptr, 10.0f,
+                                               -1,         0,     0,     -1};
             const auto joint = CreateFaunaJoint(context.joints, request, context.random);
             if (!joint.HasValue())
                 return Core::Unexpected(std::format("0x53e6a8: {}", joint.Error()));
@@ -680,19 +680,19 @@ Core::Expected<void, std::string> CreatePiercingImpactJoint(World::ModelEffect& 
 {
     constexpr std::int32_t FlareJoint = 0x60f, ImpactSubtype = 6;
     constexpr float Width = 30.0f;
-    const World::FishEffectRequest request{FlareJoint,
-                                           effect.transform.position,
-                                           effect.transform.position,
-                                           effect.transform.angles,
-                                           ImpactSubtype,
-                                           &effect,
-                                           Width,
-                                           -1,
-                                           0,
-                                           0,
-                                           -1};
+    const Kernel::JointRequest request{FlareJoint,
+                                       effect.transform.position,
+                                       effect.transform.position,
+                                       effect.transform.angles,
+                                       ImpactSubtype,
+                                       &effect,
+                                       Width,
+                                       -1,
+                                       0,
+                                       0,
+                                       -1};
     const auto created =
-        CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, JointOwnerKind::ModelEffect);
+        CreateFaunaJoint(context.world.DrawTail().joints, request, context.random, Kernel::JointOwnerKind::ModelEffect);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, created.Error()));
     return {};

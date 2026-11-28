@@ -12,7 +12,7 @@
 #include "Tables/PlayerBones.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -71,7 +71,7 @@ namespace
 // en +0x9f4 los lugares de los que están a 400 o menos en el plano (con NaN también), vivos, sin +0x389, de clase 2
 // (+0x88), visibles (+0x16c) y que no son el dueño, hasta seis. +0x9eb es la cuenta · 15 (en un byte), +0x9ec vuelve
 // a 0 y +0x24 es el segundo punto 150 más arriba.
-Core::Expected<void, std::string> CreateTheChain(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateTheChain(JointState& joint, const Kernel::JointRequest& request,
                                                  const JointKernels::CreationServices* services)
 {
     if (services == nullptr || services->actors.empty())
@@ -111,7 +111,7 @@ Core::Expected<void, std::string> CreateTheChain(JointState& joint, const World:
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateLightningJoint(JointState& joint, const Kernel::JointRequest& request,
                                                        CrtRandom& random,
                                                        const JointKernels::CreationServices* services)
 {
@@ -235,7 +235,7 @@ Core::Expected<void, std::string> FollowTheOwner(JointState& joint)
 // 0x536a15..0x536a93: la /6 apunta 2.050 a 2.250 al costado del objeto dueño y 10.000 más abajo.
 Core::Expected<float, std::string> TurnFromTheObject(JointState& joint, CrtRandom& random)
 {
-    const auto* owner = joint.ownerKind == JointOwnerKind::ByType
+    const auto* owner = joint.ownerKind == Kernel::JointOwnerKind::ByType
                             ? static_cast<const World::WorldObject*>(joint.ownerContext)
                             : nullptr;
     if (owner == nullptr)
@@ -292,7 +292,7 @@ Core::Expected<float, std::string> Turn(JointState& joint, const glm::vec3& scra
         // salta 0x4e9810: lo que falta es el [ebp+8] de 0x53586c, la y de la posición menos la del destino al empezar
         // el paso.
         const Kernel::ActorState* owner =
-            joint.ownerKind == JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
+            joint.ownerKind == Kernel::JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
         if (owner == nullptr)
             return Core::Unexpected(std::string("0x536adf: el dueño del joint 0x614/0xc no es un personaje"));
         if (services == nullptr || services->world == nullptr)
@@ -412,17 +412,17 @@ Core::Expected<void, std::string> Arrive(JointState& joint, const JointKernels::
     const float scale = F32(static_cast<double>(random.Next() % 8) + 6.0);
     glm::vec3 to = joint.targetPosition;
     glm::vec3 angles = joint.angles;
-    const World::FishEffectRequest branch{.type = LightningJoint,
-                                          .firstPosition = from,
-                                          .secondPosition = to,
-                                          .angles = angles,
-                                          .subtype = 1,
-                                          .ownerContext = joint.ownerContext,
-                                          .scale = scale,
-                                          .key = -1,
-                                          .skill = 0,
-                                          .skillSerial = 0,
-                                          .target = -1};
+    const Kernel::JointRequest branch{.type = LightningJoint,
+                                      .firstPosition = from,
+                                      .secondPosition = to,
+                                      .angles = angles,
+                                      .subtype = 1,
+                                      .ownerContext = joint.ownerContext,
+                                      .scale = scale,
+                                      .key = -1,
+                                      .skill = 0,
+                                      .skillSerial = 0,
+                                      .target = -1};
     const auto kind = joint.ownerKind;
     if (auto created = CreateFaunaJoint(services.joints, branch, random, kind); !created.HasValue())
         return Core::Unexpected(std::format("0x53703d: {}", created.Error()));
@@ -509,17 +509,17 @@ Core::Expected<void, std::string> StepTheChain(JointState& joint, const JointKer
         return Core::Unexpected(std::string("0x5370a8: falta el RNG del joint 0x614/0xf"));
     for (const float width : {50.0f, 10.0f}) // 0x42480000 (0x5370a8) y 0x41200000 (0x5370c9)
     {
-        const World::FishEffectRequest strike{.type = LightningJoint,
-                                              .firstPosition = joint.position,
-                                              .secondPosition = joint.pathIncrement,
-                                              .angles = joint.angles,
-                                              .subtype = 0,
-                                              .ownerContext = nullptr,
-                                              .scale = width,
-                                              .key = -1,
-                                              .skill = 0,
-                                              .skillSerial = 0,
-                                              .target = -1};
+        const Kernel::JointRequest strike{.type = LightningJoint,
+                                          .firstPosition = joint.position,
+                                          .secondPosition = joint.pathIncrement,
+                                          .angles = joint.angles,
+                                          .subtype = 0,
+                                          .ownerContext = nullptr,
+                                          .scale = width,
+                                          .key = -1,
+                                          .skill = 0,
+                                          .skillSerial = 0,
+                                          .target = -1};
         if (auto created = CreateFaunaJoint(services.joints, strike, *services.random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", width > 10.0f ? 0x5370a8 : 0x5370c9, created.Error()));
     }

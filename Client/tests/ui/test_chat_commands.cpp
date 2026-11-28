@@ -6,7 +6,7 @@
 #include "Tables/ItemTable.h"
 #include "Data/Tables/RecordTable.h"
 #include "Tables/TextTable.h"
-#include "Chat/ChatInput.h"
+#include "Chat/MacroFile.h"
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
 #include "Ui/PanelRegistry.h"

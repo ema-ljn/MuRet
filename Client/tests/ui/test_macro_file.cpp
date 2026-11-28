@@ -1,7 +1,5 @@
 #include "Chat/MacroFile.h"
 
-#include "Chat/ChatInput.h"
-
 #include <gtest/gtest.h>
 
 #include <cstddef>

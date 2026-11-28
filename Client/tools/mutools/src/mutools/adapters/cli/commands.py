@@ -91,6 +91,7 @@ class TuiData:
 class WebData:
     path: Path
     url: str
+    edit: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -550,7 +551,10 @@ def load_web() -> Callable[..., str]:
 
 @app.command(
     "web",
-    help="Serve the web viewer of models, for people, on 127.0.0.1; it writes nothing and runs until Ctrl+C",
+    help=(
+        "Serve the web viewer of models, for people, on 127.0.0.1, until Ctrl+C; it writes nothing unless --edit lets "
+        "the page change a working copy's actions and save them"
+    ),
 )
 def web_command(
     path: Annotated[
@@ -560,10 +564,19 @@ def web_command(
         int, typer.Option("--port", min=0, max=HIGHEST_PORT, help="The port on 127.0.0.1; 0 takes a free one")
     ] = DEFAULT_WEB_PORT,
     no_browser: Annotated[bool, typer.Option("--no-browser", help="Do not open the page in the browser")] = False,
+    edit: Annotated[
+        bool, typer.Option("--edit", help="Let the page edit the models' actions and save them, in a working copy")
+    ] = False,
 ) -> Outcome:
     target = expanded(path)
     if not target.exists():
         raise MutoolsError(ErrorCode.FILE_NOT_FOUND, f"{target} does not exist")
+    if edit and STORE.is_reference(target):
+        raise MutoolsError(
+            ErrorCode.REFERENCE_READ_ONLY,
+            f"{target} is inside the reference folder, which is never written; edit a working copy",
+            suggestion="mutools workspace init ~/mu/Data",
+        )
     try:
         serve = load_web()
     except ModuleNotFoundError as error:
@@ -574,7 +587,8 @@ def web_command(
             f"mutools web needs the web extra, and {error.name} is not installed",
             suggestion="pip install 'mutools[web]'",
         ) from error
-    return Outcome("web", WebData(target, serve(STORE, target, port=port, open_browser=not no_browser)), WebData)
+    url = serve(STORE, target, port=port, open_browser=not no_browser, edit=edit)
+    return Outcome("web", WebData(target, url, edit), WebData)
 
 
 def version_outcome() -> Outcome:

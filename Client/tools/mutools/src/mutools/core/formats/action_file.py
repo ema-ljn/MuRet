@@ -41,14 +41,14 @@ def _not_found(count: int, index: int, suggestion: str) -> MutoolsError:
     )
 
 
-def _checked_index(view: JsonObject, index: int, suggestion: str = "mutools info <file>") -> list[JsonValue]:
+def checked_actions(view: JsonObject, index: int, suggestion: str = "mutools info <file>") -> list[JsonValue]:
     actions = _list(view["actions"])
     if not 0 <= index < len(actions):
         raise _not_found(len(actions), index, suggestion)
     return actions
 
 
-def _is_dummy(bone: JsonObject) -> bool:
+def is_dummy(bone: JsonObject) -> bool:
     return bone.keys() == DUMMY_MEMBERS
 
 
@@ -58,14 +58,14 @@ def _name_text(name: JsonValue) -> JsonValue:
 
 
 def _exported_bone(bone: JsonObject, index: int) -> JsonObject:
-    if _is_dummy(bone):
+    if is_dummy(bone):
         return dict(bone)
     pose = _object(_list(bone["actions"])[index])
     return {"name": _name_text(bone["name"]), "parent": bone["parent"], **deepcopy(pose)}
 
 
 def action_file(view: JsonObject, index: int) -> JsonObject:
-    action = _object(_checked_index(view, index)[index])
+    action = _object(checked_actions(view, index)[index])
     return {
         "format": ACTION_FILE_FORMAT,
         "format_version": ACTION_FILE_VERSION,
@@ -104,7 +104,7 @@ def _check_name(value: JsonValue, pointer: str) -> None:
 
 
 def _check_bone(value: JsonValue, keys: int, pointer: str) -> None:
-    if isinstance(value, dict) and _is_dummy(value):
+    if isinstance(value, dict) and is_dummy(value):
         _integer(value["dummy"], 1, BYTE_MAX, f"{pointer}/dummy")
         return
     bone = _members(value, pointer, BONE_MEMBERS)
@@ -136,7 +136,7 @@ def read_action_file(value: JsonValue) -> JsonObject:
 
 
 def _bone_label(bone: JsonObject) -> str:
-    if _is_dummy(bone):
+    if is_dummy(bone):
         return "a dummy bone"
     name = _name_text(bone["name"])
     parent = bone["parent"]
@@ -144,8 +144,8 @@ def _bone_label(bone: JsonObject) -> str:
 
 
 def _same_bone(model_bone: JsonObject, file_bone: JsonObject) -> bool:
-    if _is_dummy(model_bone) or _is_dummy(file_bone):
-        return _is_dummy(model_bone) and _is_dummy(file_bone)
+    if is_dummy(model_bone) or is_dummy(file_bone):
+        return is_dummy(model_bone) and is_dummy(file_bone)
     return _name_text(model_bone["name"]) == file_bone["name"] and model_bone["parent"] == file_bone["parent"]
 
 
@@ -171,7 +171,7 @@ def _placed(items: list[JsonValue], item: JsonValue, at: int | None) -> list[Jso
 
 
 def _with_pose(model_bone: JsonObject, file_bone: JsonObject, at: int | None) -> JsonObject:
-    if _is_dummy(model_bone):
+    if is_dummy(model_bone):
         return model_bone
     pose: JsonObject = {member: file_bone[member] for member in POSE_MEMBERS}
     return {**model_bone, "actions": _placed(_list(model_bone["actions"]), pose, at)}
@@ -180,7 +180,7 @@ def _with_pose(model_bone: JsonObject, file_bone: JsonObject, at: int | None) ->
 def with_action(view: JsonObject, action: JsonObject, at: int | None = None) -> JsonObject:
     actions = _list(view["actions"])
     if at is not None:
-        _checked_index(view, at, "leave --at out to add the action after the last one")
+        checked_actions(view, at, "leave --at out to add the action after the last one")
     model_bones, file_bones = _list(view["bones"]), _list(action["bones"])
     _check_skeleton(model_bones, file_bones)
     entry: JsonObject = {member: action[member] for member in ACTION_MEMBERS if member in action}
@@ -192,13 +192,13 @@ def with_action(view: JsonObject, action: JsonObject, at: int | None = None) -> 
 
 
 def _without_pose(bone: JsonObject, index: int) -> JsonObject:
-    if _is_dummy(bone):
+    if is_dummy(bone):
         return bone
     poses = _list(bone["actions"])
     return {**bone, "actions": [*poses[:index], *poses[index + 1 :]]}
 
 
 def without_action(view: JsonObject, index: int) -> JsonObject:
-    actions = _checked_index(view, index)
+    actions = checked_actions(view, index)
     bones: list[JsonValue] = [_without_pose(_object(bone), index) for bone in _list(view["bones"])]
     return {**view, "actions": [*actions[:index], *actions[index + 1 :]], "bones": bones}

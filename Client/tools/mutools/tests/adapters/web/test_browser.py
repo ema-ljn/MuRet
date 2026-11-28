@@ -223,4 +223,7 @@ def test_the_server_stops_with_its_envelope(served_folder: Path) -> None:
 
     envelope = json.loads(out)
     assert (code, len(out.splitlines())) == (0, 1)
-    assert (envelope["command"], envelope["data"]) == ("web", {"path": str(served_folder), "url": address})
+    assert (envelope["command"], envelope["data"]) == (
+        "web",
+        {"path": str(served_folder), "url": address, "edit": False},
+    )

@@ -4,6 +4,7 @@ import pytest
 
 from mutools.adapters.storage import LocalFileStore
 from mutools.adapters.web.models import KEPT_SESSIONS, Models
+from mutools.app.pose_edits import copy_action
 from mutools.core.errors import ErrorCode, MutoolsError
 from tests.conftest import MODEL_FILES, TABLE_FILES
 
@@ -54,6 +55,42 @@ def test_only_the_models_used_last_stay_open(web_copy: Path) -> None:
         models.session(name)
 
     assert models.session(SWORD) is not first
+
+
+def changed_sword(models: Models) -> None:
+    copy_action(models.session(SWORD), 0)
+
+
+def test_a_model_with_changes_stays_open(web_copy: Path) -> None:
+    models = Models(LocalFileStore(), web_copy, edit=True)
+    changed_sword(models)
+    first = models.session(SWORD)
+
+    for name in [name for name in MODEL_FILES if name != SWORD][: KEPT_SESSIONS + 1]:
+        models.session(name)
+
+    assert models.session(SWORD) is first
+
+
+def test_a_model_with_changes_stays_open_when_its_file_changes(web_copy: Path) -> None:
+    models = Models(LocalFileStore(), web_copy, edit=True)
+    changed_sword(models)
+    first = models.session(SWORD)
+
+    (web_copy / SWORD).write_bytes((web_copy / "player" / "HelmMale01.bmd").read_bytes())
+
+    assert models.session(SWORD) is first
+
+
+def test_a_save_writes_the_model_and_keeps_it_open(web_copy: Path) -> None:
+    models = Models(LocalFileStore(), web_copy, edit=True)
+    changed_sword(models)
+    first = models.session(SWORD)
+
+    assert models.save(SWORD).changed
+    assert models.session(SWORD) is first
+    assert not first.dirty
+    assert models.entry(SWORD).actions == 2
 
 
 def test_the_donor_of_a_part_is_the_folders_player(web_copy: Path) -> None:

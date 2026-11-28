@@ -1,5 +1,5 @@
 import { OrbitControls, THREE } from "nicegui-scene";
-import { FrameLoop, Rig, Stage, aim, glow_of, hear, tell } from "mutools-studio";
+import { FrameLoop, Rig, Stage, aim, gizmo_for, glow_of, hear, tell } from "mutools-studio";
 
 const FOV = 35;
 const MOST_ANISOTROPY = 8;
@@ -18,6 +18,7 @@ export default {
 
   mounted() {
     this.settings = { view: "textured", skeleton: false, additive: false, speed: 8, mesh: null, bone: null };
+    this.posing = { editing: false, bone: null, tool: "turn" };
     this.opened = Promise.resolve();
     const canvas = this.$el.querySelector("canvas");
     try {
@@ -46,13 +47,18 @@ export default {
     this.resizer = new ResizeObserver(() => this.resize());
     this.resizer.observe(this.$el);
     this.unheard = [hear("command", (command) => this.command(command)), hear("ask", () => this.told())];
-    window.mutoolsStudio = { frames: () => this.loop.drawn };
+    window.mutoolsStudio = {
+      frames: () => this.loop.drawn,
+      gizmo: () => this.gizmo_state(),
+      drag: (change) => this.drag(change),
+    };
   },
 
   unmounted() {
     this.unheard?.forEach((unhear) => unhear());
     this.resizer?.disconnect();
     this.loop?.dispose();
+    this.gizmo?.dispose();
     this.controls?.dispose();
     this.rig?.dispose();
     this.stage?.dispose();
@@ -74,11 +80,12 @@ export default {
         this.$emit("failed", String(error?.message ?? error));
         return;
       }
+      this.gizmo?.attach(null);
       this.rig?.dispose();
       this.rig = rig;
       window.mutoolsViewer = rig.state;
       this.stage.scene.add(rig.root);
-      this.settings.mesh = this.settings.bone = null;
+      this.settings.mesh = this.settings.bone = this.posing.bone = null;
       rig.show(this.settings.view);
       rig.skeleton(this.settings.skeleton);
       rig.additive(this.settings.additive);
@@ -149,6 +156,74 @@ export default {
       return this.when_open((rig) => rig.mark_bone(bone));
     },
 
+    async edit(on) {
+      this.posing.editing = on;
+      if (on && !this.gizmo) {
+        this.gizmo = await gizmo_for({
+          camera: this.camera,
+          canvas: this.renderer.domElement,
+          scene: this.stage.scene,
+          orbit: this.controls,
+          changed: () => this.loop.request(),
+          grabbed: () => this.grabbed(),
+          released: (change) => this.released(change),
+        });
+      }
+      this.posed_bone();
+    },
+
+    pose_bone(bone, tool) {
+      Object.assign(this.posing, { bone, tool });
+      return this.when_open(() => this.posed_bone());
+    },
+
+    posed_bone() {
+      if (!this.gizmo) return;
+      const { editing, bone, tool } = this.posing;
+      this.gizmo.attach(editing ? (this.rig?.bones[bone] ?? null) : null, bone, tool);
+      this.loop.request();
+    },
+
+    grabbed() {
+      if (!this.rig?.current) return;
+      this.rig.pause();
+      this.rig.seek(this.rig.state.key);
+      this.grabbed_at = { action: this.rig.state.action, key: this.rig.state.key };
+      this.told();
+    },
+
+    released(change) {
+      const at = this.grabbed_at ?? { action: this.rig?.state.action, key: this.rig?.state.key };
+      this.grabbed_at = null;
+      if (at.action === null || at.action === undefined) return;
+      this.$emit("posed", { ...at, ...change });
+    },
+
+    drag({ quaternion, position }) {
+      const bone = this.rig?.bones[this.posing.bone];
+      if (!this.gizmo || !bone) return false;
+      this.grabbed();
+      if (quaternion) bone.quaternion.fromArray(quaternion);
+      if (position) bone.position.fromArray(position);
+      this.released(this.gizmo.change());
+      this.loop.request();
+      return true;
+    },
+
+    gizmo_state() {
+      if (!this.gizmo) return null;
+      const bone = this.rig?.bones[this.gizmo.bone];
+      if (!bone) return { ...this.gizmo.state, at: null };
+      const shown = bone.getWorldPosition(new THREE.Vector3()).project(this.camera);
+      const box = this.renderer.domElement.getBoundingClientRect();
+      const at = [box.left + ((shown.x + 1) / 2) * box.width, box.top + ((1 - shown.y) / 2) * box.height];
+      return { ...this.gizmo.state, at };
+    },
+
+    reposed(action, actions) {
+      return this.when_open((rig) => rig.replay(action, actions));
+    },
+
     frame() {
       if (!this.rig) return;
       const { low, high } = this.rig.framed();
@@ -158,7 +233,8 @@ export default {
     },
 
     picture(name) {
-      this.renderer.render(this.stage.scene, this.camera);
+      const draw = () => this.renderer.render(this.stage.scene, this.camera);
+      this.gizmo ? this.gizmo.hidden(draw) : draw();
       this.renderer.domElement.toBlob((blob) => {
         if (!blob) return;
         const link = document.createElement("a");

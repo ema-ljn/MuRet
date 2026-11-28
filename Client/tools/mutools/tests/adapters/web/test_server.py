@@ -1,7 +1,8 @@
 import re
 import socket
-from collections.abc import Iterator
+from collections.abc import Iterator, MutableMapping
 from pathlib import Path
+from typing import Any
 
 import httpx2
 import pytest
@@ -9,7 +10,7 @@ from nicegui import app, ui
 from nicegui.testing.general import nicegui_reset_globals
 
 from mutools.adapters.storage import LocalFileStore
-from mutools.adapters.web.server import HOST, free_port, serve
+from mutools.adapters.web.server import HOST, SameOrigin, free_port, serve
 from mutools.core.errors import ErrorCode, MutoolsError
 
 
@@ -76,3 +77,37 @@ async def test_the_server_refuses_another_host(web_copy: Path) -> None:
         ]
 
     assert answers == [400, 200, 200]
+
+
+@pytest.mark.usefixtures("run_asked")
+async def test_the_server_refuses_a_page_of_another_site(web_copy: Path) -> None:
+    address = serve(LocalFileStore(), web_copy, port=0, open_browser=False)
+
+    async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app), base_url=address) as client:
+        answers = [
+            (await client.get("/api/scene", params={"file": "Item/Sword01.bmd"}, headers=origin)).status_code
+            for origin in ({"Origin": "http://evil.example"}, {"Origin": "null"}, {"Origin": address}, {})
+        ]
+
+    assert answers == [403, 403, 200, 200]
+
+
+async def test_a_socket_from_another_site_is_closed_before_it_opens() -> None:
+    sent: list[MutableMapping[str, Any]] = []
+    reached: list[bool] = []
+
+    async def inner(scope: Any, receive: Any, send: Any) -> None:
+        reached.append(True)
+
+    async def send(message: MutableMapping[str, Any]) -> None:
+        sent.append(message)
+
+    async def receive() -> MutableMapping[str, Any]:
+        return {"type": "websocket.connect"}
+
+    guarded = SameOrigin(inner, frozenset({"http://127.0.0.1:8765"}))
+    scope = {"type": "websocket", "headers": [(b"origin", b"http://evil.example")]}
+
+    await guarded(scope, receive, send)
+
+    assert (sent, reached) == ([{"type": "websocket.close", "code": 1008}], [])

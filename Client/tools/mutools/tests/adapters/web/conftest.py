@@ -74,8 +74,8 @@ def _texture_files(reference_data: Path, name: str) -> Iterator[Path]:
             yield found
 
 
-def start_web(folder: Path) -> tuple[subprocess.Popen[str], str]:
-    command = [str(MUTOOLS), "web", str(folder), "--port", "0", "--no-browser"]
+def start_web(folder: Path, *flags: str) -> tuple[subprocess.Popen[str], str]:
+    command = [str(MUTOOLS), "web", str(folder), "--port", "0", "--no-browser", *flags]
     # NiceGUI takes a process that has pytest's variable for one of its own screen tests and asks for their port.
     outside_pytest = {name: value for name, value in os.environ.items() if name != "PYTEST_CURRENT_TEST"}
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=outside_pytest)

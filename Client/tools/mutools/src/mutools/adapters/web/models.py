@@ -1,10 +1,11 @@
 from collections import Counter, OrderedDict
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from threading import Lock
 from typing import Final
 
-from mutools.app.documents import decode_document, format_name_of
+from mutools.app.documents import EditResult, decode_document, format_name_of
 from mutools.app.model_scene import borrows_skeleton, donor_of
 from mutools.app.session import EditSession
 from mutools.core.errors import ErrorCode, MutoolsError
@@ -37,9 +38,10 @@ def _stays_inside(file: str) -> bool:
 
 
 class Models:
-    def __init__(self, store: FileStore, root: Path) -> None:
+    def __init__(self, store: FileStore, root: Path, *, edit: bool = False) -> None:
         self.store = store
         self.root = root.resolve()
+        self.edit = edit
         self._sessions: OrderedDict[Path, tuple[str, EditSession]] = OrderedDict()
         self._entries: dict[Path, LibraryEntry] = {}
         self._opening = Lock()
@@ -89,13 +91,28 @@ class Models:
         with self._opening:
             sha256 = self.store.sha256(path)
             kept = self._sessions.get(path)
-            if kept is None or kept[0] != sha256:
+            if kept is None or (kept[0] != sha256 and not kept[1].dirty):
                 kept = (sha256, EditSession.open(self.store, path))
             self._sessions[path] = kept
             self._sessions.move_to_end(path)
-            while len(self._sessions) > KEPT_SESSIONS:
-                self._sessions.popitem(last=False)
+            self._drop_clean_sessions()
             return kept[1]
+
+    def _drop_clean_sessions(self) -> None:
+        """Past KEPT_SESSIONS the oldest sessions with no changes go; one with changes stays until it is saved."""
+        while len(self._sessions) > KEPT_SESSIONS:
+            older = islice(self._sessions.items(), len(self._sessions) - 1)
+            clean = next((path for path, (_, session) in older if not session.dirty), None)
+            if clean is None:
+                return
+            del self._sessions[clean]
+
+    def save(self, file: str) -> EditResult:
+        session = self.session(file)
+        with self._opening:
+            result = session.save()
+            self._sessions[session.path] = (self.store.sha256(session.path), session)
+            return result
 
     def donor(self, file: str) -> str | None:
         found = donor_of(self.store, self.path(file))

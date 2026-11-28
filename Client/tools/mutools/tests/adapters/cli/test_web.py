@@ -33,8 +33,8 @@ def test_web_on_a_path_that_does_not_exist(cli: Cli, tmp_path: Path, monkeypatch
 
 
 @pytest.mark.parametrize(
-    ("flags", "port", "open_browser"),
-    [((), 8765, True), (("--port", "0", "--no-browser"), 0, False)],
+    ("flags", "port", "open_browser", "edit"),
+    [((), 8765, True, False), (("--port", "0", "--no-browser", "--edit"), 0, False, True)],
 )
 def test_web_prints_its_envelope_when_the_server_stops(
     cli: Cli,
@@ -43,11 +43,12 @@ def test_web_prints_its_envelope_when_the_server_stops(
     flags: tuple[str, ...],
     port: int,
     open_browser: bool,
+    edit: bool,
 ) -> None:
-    served: list[tuple[Path, int, bool]] = []
+    served: list[tuple[Path, int, bool, bool]] = []
 
-    def serve(store: FileStore, target: Path, *, port: int, open_browser: bool) -> str:
-        served.append((target, port, open_browser))
+    def serve(store: FileStore, target: Path, *, port: int, open_browser: bool, edit: bool) -> str:
+        served.append((target, port, open_browser, edit))
         return ADDRESS
 
     monkeypatch.setattr(commands, "load_web", lambda: serve)
@@ -55,8 +56,21 @@ def test_web_prints_its_envelope_when_the_server_stops(
     run = cli("web", working_copy, *flags)
 
     assert (run.code, run.json["command"]) == (0, "web")
-    assert run.json["data"] == {"path": str(working_copy), "url": ADDRESS}
-    assert served == [(working_copy, port, open_browser)]
+    assert run.json["data"] == {"path": str(working_copy), "url": ADDRESS, "edit": edit}
+    assert served == [(working_copy, port, open_browser, edit)]
+
+
+def test_web_does_not_edit_the_reference(cli: Cli, reference: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    loaded: list[bool] = []
+    monkeypatch.setattr(commands, "load_web", lambda: loaded.append(True))
+
+    run = cli("web", reference, "--edit")
+
+    assert (run.error["code"], run.error["suggestion"], loaded) == (
+        "REFERENCE_READ_ONLY",
+        "mutools workspace init ~/mu/Data",
+        [],
+    )
 
 
 def test_a_port_out_of_range_is_a_usage_error(cli: Cli, working_copy: Path) -> None:

@@ -15,7 +15,6 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/MonsterAttackStep.h"

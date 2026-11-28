@@ -19,7 +19,6 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/LoginModels.h"

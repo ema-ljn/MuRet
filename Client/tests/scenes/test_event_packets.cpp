@@ -25,7 +25,6 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/EventGlobals.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GamePanels.h"

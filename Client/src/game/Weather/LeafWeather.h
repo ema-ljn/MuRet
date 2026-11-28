@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <system_error>
 
-// Estado persistente de 530490; el llamador conserva la instancia entre pasos.
+// Persistent state of 0x530490; the caller keeps the instance between steps.
 namespace Client::Weather
 {
 class ILeafWaveEvaluator;
@@ -20,9 +20,9 @@ struct LeafWeather
     std::int32_t phase = 0;      // 0x75fdc44
 };
 
-// 530490: T1/E1/H1/T2/E2/W/H2/V/Q. Relee time tras H1; no cambia target/current.
-// Evaluador obligatorio: nullptr devuelve function_not_supported sin stores.
-// Los errores se propagan intactos, conservando sólo el prefijo de stores ejecutado.
+// 0x530490: T1/E1/H1/T2/E2/W/H2/V/Q. Rereads time after H1; does not change target/current. Mandatory evaluator:
+// nullptr returns function_not_supported without stores. Errors propagate intact, keeping only the executed prefix
+// of stores.
 [[nodiscard]] Core::Expected<void, std::error_code> StepLeafWeatherWaves(LeafWeather& weather, const float& time,
                                                                          ILeafWaveEvaluator* evaluator);
 

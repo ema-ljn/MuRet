@@ -35,9 +35,9 @@
 #include <utility>
 #include <vector>
 
-// El dibujo de la ventana de la mascota y el cartel del cuervo (CL9 hito 4; 06 § El A9 de las mascotas, "La ventana de
-// la mascota"): 0x424160 con 0x4249a0, 0x424e40, 0x416670, 0x4149b0 y la vtable + 0xc del cuervo (0x418460), en 640 ×
-// 480. Los textos son inventados y miden 6 columnas por letra. Cada test corre en Lorencia y en Devias.
+// The pet window draw and the raven HUD (CL9 milestone 4; 06 § El A9 de las mascotas, "La ventana de la mascota"):
+// 0x424160 with 0x4249a0, 0x424e40, 0x416670, 0x4149b0 and the raven's vtable + 0xc (0x418460), at 640 × 480. The
+// texts are invented and are 6 columns per letter.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -54,12 +54,12 @@ constexpr Client::Core::PixelSize Screen640{640, 480};
 constexpr std::uint32_t Seed = 0x5eed4243u;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
-// La ventana va siempre al lado del personaje: 0x104.
+// The window always goes beside the character window: 0x104.
 constexpr float Left = 260.0f;
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
 constexpr int NoTexture = -1;
 constexpr int Marker = -2;
-// 0x414fd4: la skill del daño del caballo, con 20 de daño (+0x21): 20 y 30 más.
+// 0x414fd4: the horse damage skill, with 20 damage (+0x21): 20 and 30 more.
 constexpr std::uint8_t HorseSkill = 0x3e;
 constexpr std::uint8_t HorseSkillDamage = 20;
 constexpr auto SkillCloseRandoms = static_cast<std::uint32_t>(Client::Tables::SkillRecordSize);
@@ -107,7 +107,7 @@ std::vector<DrawnQuad> QuadsOf(const SpriteBatch& sprites)
     return quads;
 }
 
-// Las esquinas en píxeles de GL (H − (y + h) · ry).
+// The corners in GL pixels (H − (y + h) · ry).
 void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width, float height)
 {
     constexpr float Tolerance = 1e-3f;
@@ -118,7 +118,6 @@ void ExpectQuadAt(const DrawnQuad& quad, int slot, float x, float y, float width
     EXPECT_NEAR(quad.third.y, 480.0f - y - height, Tolerance);
 }
 
-// Los quads de una textura, en orden.
 std::vector<DrawnQuad> QuadsWith(const std::vector<DrawnQuad>& quads, int slot)
 {
     std::vector<DrawnQuad> found;
@@ -186,7 +185,7 @@ protected:
         return Client::Pets::DrawThePetWindow(context, panels.Registry());
     }
 
-    // El personaje abierto, la ventana de la mascota abierta (0x723911 en 2) y la pestaña.
+    // The character window and the pet window open (0x723911 at 2), on tab `tab`.
     void OpenTheWindow(std::uint8_t tab)
     {
         Runtime().panels.character = 1;
@@ -249,8 +248,8 @@ protected:
     Client::Tables::SkillTable m_skills = HorseSkills();
 };
 
-// 0x4249a6..0x424d9f: con el personaje cerrado, 0x723911 en 0 y nada más; sin cuervo, sin rand(). Un dibujo intermedio
-// no escribe el 0.
+// 0x4249a6..0x424d9f: with the character window closed, 0x723911 at 0 and nothing else; no raven, no rand(). An
+// intermediate draw does not write the 0.
 TEST_P(GamePetWindowTest, WithTheCharacterClosedItOnlyClearsTheWindow)
 {
     Runtime().panels.delegated.pet = 2;
@@ -263,8 +262,8 @@ TEST_P(GamePetWindowTest, WithTheCharacterClosedItOnlyClearsTheWindow)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x4249bf..0x424a82: con el personaje abierto y la ventana cerrada, el botón (pet1.jpg, 0x65d) en (535, 395) y, con
-// el mouse en [0x217, 0x22f) × [0x18b, 0x1a3), su ayuda (1217) en (0x217, 0x17e).
+// 0x4249bf..0x424a82: with the character window open and the pet window closed, the button (pet1.jpg, 0x65d) at
+// (535, 395) and, with the mouse in [0x217, 0x22f) × [0x18b, 0x1a3), its help (1217) at (0x217, 0x17e).
 TEST_P(GamePetWindowTest, TheButtonAndItsHelp)
 {
     Runtime().panels.character = 1;
@@ -294,10 +293,10 @@ TEST_P(GamePetWindowTest, TheButtonAndItsHelp)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x424a88..0x424e2b y 0x424e40: la pestaña del caballo con el caballo. El botón abierto (pet2.jpg), el fondo, la
-// pestaña del cuervo en gris y la del caballo en blanco, las líneas y el marco, el botón de cerrar, el título y los
-// nombres; después Level_box, el nombre y los renglones de 0x4149b0 con el daño de la skill 0x3e. Tres accesos al
-// registro propio (el cetro, el daño y el liderazgo) y la entrada de la skill.
+// 0x424a88..0x424e2b and 0x424e40: the horse tab with the horse. The open button (pet2.jpg), the background, the raven
+// tab in gray and the horse tab in white, the lines and the frame, the close button, the title and the names; then
+// Level_box, the name and 0x4149b0's lines with skill 0x3e's damage. Three own record accesses (the scepter, the damage
+// and the leadership) and the skill entry.
 TEST_P(GamePetWindowTest, TheHorseTabWithTheHorse)
 {
     OpenTheWindow(0);
@@ -329,7 +328,7 @@ TEST_P(GamePetWindowTest, TheHorseTabWithTheHorse)
     ExpectQuadAt(quads[15], 0xf5, Left + 13.0f, 96.0f, 75.0f, 21.0f);
     EXPECT_FLOAT_EQ(quads[15].third.u, 0.5859375f);
 
-    // La barra de la durabilidad: el fondo de 145 × 8 y lo lleno, 37 · 1/255 · 143 de 6 de alto.
+    // The durability bar: the 145 × 8 background and the filled part, 37 · 1/255 · 143, 6 high.
     const std::vector<DrawnQuad> bars = QuadsWith(quads, NoTexture);
     ASSERT_EQ(bars.size(), 6U);
     ExpectQuadAt(bars[4], NoTexture, Left + 24.0f, 135.0f, 145.0f, 8.0f);
@@ -340,7 +339,7 @@ TEST_P(GamePetWindowTest, TheHorseTabWithTheHorse)
 
     const auto& texts = m_text.texts;
     ASSERT_EQ(texts.size(), 10U);
-    // El título en la caja de 120 y los nombres de las pestañas, en negrita.
+    // The title in the 120 box and the tab names, in bold.
     EXPECT_EQ(texts[0].text, "Bicho");
     EXPECT_EQ(texts[0].x, 0x104 + 0x23);
     EXPECT_EQ(texts[0].columns, 120);
@@ -355,7 +354,7 @@ TEST_P(GamePetWindowTest, TheHorseTabWithTheHorse)
     EXPECT_EQ(texts[3].x, 0x104 + 0x55 - 18);
     EXPECT_EQ(texts[3].y, 0x14);
     EXPECT_EQ(texts[3].style.font, FontKind::Bold);
-    // El nivel centrado en la caja de 70, y los renglones de a 15 en la de 145.
+    // The level centered in the 70 box, and the lines every 15 in the 145 one.
     EXPECT_EQ(texts[4].text, "Nivel 3");
     EXPECT_EQ(texts[4].x, 0x104 + 0xe);
     EXPECT_EQ(texts[4].y, 100);
@@ -378,15 +377,15 @@ TEST_P(GamePetWindowTest, TheHorseTabWithTheHorse)
         EXPECT_EQ(texts[line + 5].firstColumn, 0);
         EXPECT_EQ(texts[line + 5].style.colors.background, 0x80000000u);
     }
-    // Sin el liderazgo que pide (3 · 15 + 185), en rojo.
+    // Without the leadership it asks for (3 · 15 + 185), in red.
     EXPECT_EQ(texts[9].style.colors.text, 0xff3c3cdcu);
     EXPECT_EQ(texts[8].style.colors.text, 0xffe6e6e6u);
     EXPECT_EQ(Runtime().hud.textColors.text, 0xffe6e6e6u);
     ExpectRandoms(3 * OwnRecordCloseRandoms + SkillCloseRandoms);
 }
 
-// 0x414bdd..0x414d21 y 0x415321..0x415336: con un cetro (algo en el lugar 0), su % en un renglón más, que el tipo 1 no
-// suma al daño (Q-C1040); con el liderazgo (+0x36 + +0x20) que alcanza, el renglón en el gris de los otros.
+// 0x414bdd..0x414d21 and 0x415321..0x415336: with a scepter (something in slot 0), its % in one more line, which type 1
+// does not add to the damage (Q-C1040); with enough leadership (+0x36 + +0x20), the line in the others' gray.
 TEST_P(GamePetWindowTest, TheScepterLineAndEnoughLeadership)
 {
     OpenTheWindow(0);
@@ -409,8 +408,8 @@ TEST_P(GamePetWindowTest, TheScepterLineAndEnoughLeadership)
     ExpectRandoms(3 * OwnRecordCloseRandoms + SkillCloseRandoms);
 }
 
-// 0x424f4d..0x424fb7: sin el caballo (otra mascota o ninguna), "Sin Corcel" con la grande en negrita, en negro en
-// (x + 0x5f, 0xdc) y en rojo en (x + 0x5e, 0xdb), centrado. Sin accesos.
+// 0x424f4d..0x424fb7: without the horse (another pet or none), "Sin Corcel" in the big bold font, in black at
+// (x + 0x5f, 0xdc) and in red at (x + 0x5e, 0xdb), centered. No accesses.
 TEST_P(GamePetWindowTest, TheHorseTabWithoutTheHorse)
 {
     OpenTheWindow(0);
@@ -434,9 +433,9 @@ TEST_P(GamePetWindowTest, TheHorseTabWithoutTheHorse)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x416670 y 0x4155c8..0x4157af: la pestaña del cuervo con el cuervo: los dos Level_box, el título (1214) en la caja
-// de 120, los renglones del tipo 0 (el daño sin la skill), el título de las órdenes y sus cuatro íconos con su texto;
-// después el cartel del cuervo. Dos accesos: el liderazgo y el cartel.
+// 0x416670 and 0x4155c8..0x4157af: the raven tab with the raven: the two Level_box, the title (1214) in the 120 box,
+// type 0's lines (the damage without the skill), the orders title and their four icons with their text; then the
+// raven HUD. Two accesses: the leadership and the HUD.
 TEST_P(GamePetWindowTest, TheRavenTabWithTheRaven)
 {
     OpenTheWindow(1);
@@ -450,7 +449,7 @@ TEST_P(GamePetWindowTest, TheRavenTabWithTheRaven)
     ASSERT_EQ(backs.size(), 2U);
     ExpectQuadAt(backs[0], 0xf5, Left + 13.0f, 96.0f, 75.0f, 21.0f);
     ExpectQuadAt(backs[1], 0xf5, Left + 13.0f, 236.0f, 75.0f, 21.0f);
-    // Los cuatro íconos de command.jpg y el de la orden del cartel.
+    // The four command.jpg icons and the HUD's order icon.
     const std::vector<DrawnQuad> icons = QuadsWith(quads, 0x12c);
     ASSERT_EQ(icons.size(), 5U);
     for (std::size_t icon = 0; icon < 4; ++icon)
@@ -461,7 +460,7 @@ TEST_P(GamePetWindowTest, TheRavenTabWithTheRaven)
         EXPECT_FLOAT_EQ(icons[icon].third.u, 0.125f * static_cast<float>(icon + 1));
         EXPECT_FLOAT_EQ(icons[icon].third.v, 0.13671875f);
     }
-    // La barra de la durabilidad, recortada a 255.
+    // The durability bar, clamped to 255.
     const std::vector<DrawnQuad> bars = QuadsWith(quads, NoTexture);
     ASSERT_GE(bars.size(), 6U);
     ExpectQuadAt(bars[5], NoTexture, Left + 25.0f, 136.0f, 143.0f, 6.0f);
@@ -502,7 +501,7 @@ TEST_P(GamePetWindowTest, TheRavenTabWithTheRaven)
     ExpectRandoms(2 * OwnRecordCloseRandoms);
 }
 
-// 0x4157c5..0x415858: con el mouse sobre un ícono, con los bordes incluidos, su ayuda en la esquina del ícono.
+// 0x4157c5..0x415858: with the mouse over an icon, edges included, its help at the icon's corner.
 TEST_P(GamePetWindowTest, TheRavenCommandsShowTheirHelp)
 {
     OpenTheWindow(1);
@@ -530,7 +529,7 @@ TEST_P(GamePetWindowTest, TheRavenCommandsShowTheirHelp)
     }
 }
 
-// 0x4241a0..0x424215: la pestaña del cuervo sin cuervo, 1169 como el "no tiene" del caballo; sin cartel ni accesos.
+// 0x4241a0..0x424215: the raven tab without the raven, 1169 like the horse's "has none"; no HUD and no accesses.
 TEST_P(GamePetWindowTest, TheRavenTabWithoutTheRaven)
 {
     OpenTheWindow(1);
@@ -548,9 +547,9 @@ TEST_P(GamePetWindowTest, TheRavenTabWithoutTheRaven)
     EXPECT_EQ(m_random.State(), Seed);
 }
 
-// 0x418460 sin la ventana: el nombre en negrita que termina en _ftol(640 − 50 − 15) + 50, la barra (0x5a6af0) con la
-// durabilidad del lugar 1 por 50 / 255 y el ícono de la orden 2 ((2 · 32 + 6) / 256, 3 / 256). Con la mascota de
-// 0x1c12 a 0x1c16 o Fenrir, 60 más a la izquierda. Un acceso al registro propio.
+// 0x418460 without the window: the bold name ending at _ftol(640 − 50 − 15) + 50, the bar (0x5a6af0) with slot 1's
+// durability times 50 / 255 and the order 2 icon ((2 · 32 + 6) / 256, 3 / 256). With pet 0x1c12 to 0x1c16 or Fenrir,
+// 60 more to the left. One own record access.
 TEST_P(GamePetWindowTest, TheRavenHudWithoutTheWindow)
 {
     GiveTheRaven();
@@ -570,7 +569,7 @@ TEST_P(GamePetWindowTest, TheRavenHudWithoutTheWindow)
     EXPECT_FLOAT_EQ(icons[0].first.u, 70.0f / 256.0f);
     EXPECT_FLOAT_EQ(icons[0].first.v, 3.0f / 256.0f);
     EXPECT_FLOAT_EQ(icons[0].third.u, 70.0f / 256.0f + 0.078125f);
-    // La barra: lo lleno es 102 · 50 / 255 = 20, en (x + 2, 18).
+    // The bar: the filled part is 102 · 50 / 255 = 20, at (x + 2, 18).
     const std::vector<DrawnQuad> bars = QuadsWith(quads, NoTexture);
     ASSERT_FALSE(bars.empty());
     ExpectQuadAt(bars.back(), NoTexture, 577.0f, 18.0f, 20.0f, 2.0f);
@@ -584,8 +583,8 @@ TEST_P(GamePetWindowTest, TheRavenHudWithoutTheWindow)
     ExpectQuadAt(QuadsWith(QuadsOf(m_sprites), 0x12c)[0], 0x12c, 495.0f, 5.0f, 16.0f, 20.0f);
 }
 
-// 0x41889a..0x418905: con el mouse sobre el ícono (los bordes incluidos, de 12 × 20), la ayuda de la orden (1219 +
-// orden) en (_ftol(x), 25). Con el inventario abierto, cada ancho del mundo saca dos rand().
+// 0x41889a..0x418905: with the mouse over the icon (edges included, 12 × 20), the order's help (1219 + order) at
+// (_ftol(x), 25). With the inventory open, each world width draws two rand().
 TEST_P(GamePetWindowTest, TheRavenHudOrderHelpAndTheWorldWidth)
 {
     GiveTheRaven().order = 1;
@@ -604,14 +603,13 @@ TEST_P(GamePetWindowTest, TheRavenHudOrderHelpAndTheWorldWidth)
     EXPECT_EQ(m_text.texts[1].y, 25);
     EXPECT_EQ(Runtime().hud.dcFont, FontKind::Normal);
 
-    // 0x5bb8d0 con el inventario solo: la tienda del NPC y el comercio, dos rand() en cada uno.
+    // 0x5bb8d0 with the inventory alone: the NPC shop and the trade, two rand() each.
     m_random = CrtRandom(Seed);
     Runtime().panels.inventory = 1;
     ASSERT_TRUE(Draw().HasValue());
     ExpectRandoms(OwnRecordCloseRandoms + 4);
 }
 
-// Con la ventana abierta en cualquier pestaña, el botón de cerrar muestra su ayuda (1002) en (x + 25, 382).
 TEST_P(GamePetWindowTest, TheCloseButtonShowsItsHelp)
 {
     OpenTheWindow(0);
@@ -626,7 +624,7 @@ TEST_P(GamePetWindowTest, TheCloseButtonShowsItsHelp)
     EXPECT_EQ(TextNamed("Cerrar"), nullptr);
 }
 
-// Sin Skill.bmd, el daño del caballo corta (0x414fd6); sin un texto, corta con su dirección.
+// Without Skill.bmd, the horse damage stops (0x414fd6); without a text, it stops with its address.
 TEST_P(GamePetWindowTest, MissingTablesCut)
 {
     OpenTheWindow(0);

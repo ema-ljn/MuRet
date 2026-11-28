@@ -12,14 +12,14 @@ class CrtRandom;
 
 namespace Client::Particles
 {
-// 0x51fe10: los veinte intentos de chispa y, con el segundo argumento distinto de cero, la explosión.
-// Devuelve si se creó la explosión: sólo en ese caso el caller publica el sonido 0x40 de 0x542a7c.
+// 0x51fe10: the twenty spark attempts and, with the second argument nonzero, the explosion. Returns whether the
+// explosion was created: only then does the caller publish sound 0x40 of 0x542a7c.
 [[nodiscard]] Core::Expected<bool, ParticleError> CreateParticleBurst(Particles& particles, const glm::vec3& position,
                                                                       Crt::CrtRandom& random, bool explosion,
                                                                       float worldClock = 0.0f);
 
-// 0x51fe10(posición, 0): veinte intentos de 0x5c5/2, sin la explosión opcional del caller de combate.
-// Cada intento consume sus dos sorteos antes de buscar slot; un pool lleno no frena la ráfaga.
+// 0x51fe10(position, 0): twenty attempts of 0x5c5/2, without the combat caller's optional explosion. Each attempt takes
+// its two rolls before looking for a slot; a full pool does not stop the burst.
 [[nodiscard]] Core::Expected<void, ParticleError> CreatePushBurst(Particles& particles, const glm::vec3& position,
                                                                   Crt::CrtRandom& random);
 } // namespace Client::Particles

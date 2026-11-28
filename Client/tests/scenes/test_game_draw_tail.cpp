@@ -105,7 +105,6 @@ public:
     std::array<Client::Render::TextureSlot, 1> textures{Client::Render::TextureSlot{0x400}};
     std::optional<std::uint16_t> missingModel;
 };
-// Dos triángulos, cada uno con su textura (0 y 1), con un hueso.
 class TwoMeshModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -175,7 +174,7 @@ private:
 };
 } // namespace
 
-// 52da84: los efectos de suelo publican seen pero no consultan modelos en el pase de cuerpos.
+// 0x52da84
 TEST(GameDrawTailTest, GroundOnlyEffectsPublishVisibilityWithoutLookingForModels)
 {
     Client::Render::ModelBatch batch;
@@ -226,7 +225,7 @@ TEST(GameDrawTailTest, DeviasLeavesUseTheWorldViewAndTheirOwnLight)
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 16);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.2f);
-    // El621400 de5306a0 no apila identidad: conserva la modelview del caller.
+    // The 0x621400 of 0x5306a0 does not push an identity: it keeps the caller's modelview.
     EXPECT_EQ(batch.State().space, Client::Render::ModelCoordinateSpace::World);
 }
 
@@ -430,7 +429,7 @@ TEST(GameDrawTailTest, ParticleModesFilterBeforeLookingUpUnsupportedResources)
     EXPECT_TRUE(particles.All()[0].alive);
 }
 
-// Fixtures calculados aparte con Decimal120, tan→R64 y stores PC53/F32, sin ejecutar el original.
+// Fixtures computed separately with Decimal120, tan→R64 and PC53/F32 stores, without running the original.
 TEST(GameDrawTailTest, ProjectionPreparationMatchesTheThreeReferenceScreensAtThirtyFiveDegrees)
 {
     struct Case
@@ -502,8 +501,9 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x530a2a y 0x5381cb: el alta y el paso del 0x697 no leen el subtipo; el único llamador (0x4473f9) pide el /0, pero
-// otro subtipo nace y sigue a su dueño igual, y con el dueño inactivo muere sin la cola ni la vida.
+// 0x530a2a and 0x5381cb: the 0x697's creation and step do not read the subtype; the only caller (0x4473f9) asks for
+// /0, but another subtype is born and follows its owner the same way, and with the owner inactive it dies without the
+// tail or the life.
 TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
 {
     std::array<Client::Kernel::JointState, 1> joints{};
@@ -569,7 +569,7 @@ TEST(GameDrawTailTest, CrywolfJointCopiesItsOwnerTrailBeforeGrowingAndExpiring)
     EXPECT_EQ(joint.count, 1);
     EXPECT_FLOAT_EQ(joint.points[1][0].x, 8);
     EXPECT_FLOAT_EQ(joint.points[0][0].x, 38);
-    EXPECT_TRUE(joint.alive); // life0 sigue vivo; muere al quedar negativo.
+    EXPECT_TRUE(joint.alive); // life 0 stays alive; it dies when it goes negative.
     ASSERT_TRUE(Client::Joints::StepJoints(joints).HasValue());
     EXPECT_FALSE(joint.alive);
 }
@@ -617,7 +617,7 @@ TEST(GameDrawTailTest, FirstDeviasSnowPassKeepsTheActiveWorldModelview)
     EXPECT_EQ(batch.State().space, Client::Render::ModelCoordinateSpace::World);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 16);
     const auto transformed = world.view * glm::vec4(batch.Vertices()[0].position, 1);
-    EXPECT_FLOAT_EQ(transformed.x, 36); // 621400 no hace LoadIdentity; el primer pase vuelve a aplicar view.
+    EXPECT_FLOAT_EQ(transformed.x, 36); // 0x621400 does no LoadIdentity; the first pass applies view again.
     batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Client::Scenes::DrawGameLeaves(batch, leaves, 2, view).HasValue());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 16);
@@ -763,8 +763,8 @@ TEST(GameDrawTailTest, BloodCastleJointStepsItsRandomLifeBeforeTheSineAndOwnerCo
     Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Joints::StepJoints(std::span(&joint, 1), random).HasValue());
     EXPECT_EQ(random.State(), 3289278137u); // rand61%5 !=0; rand17422%2 ==0.
-    EXPECT_EQ(joint.life, 10);              // 10+1 antes de sin; -1 al final.
-    // Decimal100: sin((11-2)*F32(.05))*3 =1.304896620447595617..., storeF32.
+    EXPECT_EQ(joint.life, 10);              // 10+1 before the sine; -1 at the end.
+    // Decimal100: sin((11-2)*F32(.05))*3 = 1.304896620447595617..., then an F32 store.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.velocity.x), 0x3fa706dau);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(joint.position.x), 0x3fa706dau);
     EXPECT_EQ(joint.light, owner.light);
@@ -822,7 +822,7 @@ TEST(GameDrawTailTest, IcarusJointCopiesEvenItsDeadOwnerAndPinsTheTailToHeightTh
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, 8);
     EXPECT_EQ(joint.count, 1);
-    EXPECT_TRUE(std::signbit(joint.position.x)); // 535932 omite las sumas cuando speed==0.
+    EXPECT_TRUE(std::signbit(joint.position.x)); // 0x535932 skips the sums when speed==0.
     EXPECT_TRUE(std::signbit(joint.position.y));
 }
 
@@ -845,7 +845,7 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
     ASSERT_EQ(batch.Vertices().size(), 294u);
     EXPECT_EQ(batch.State().texture->value, 0x6ad);
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
-    EXPECT_FLOAT_EQ(batch.Vertices()[0].position.z, 12); // altura7 +lift5; no z del efecto.
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].position.z, 12); // height 7 + lift 5; not the effect's z.
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.3f);
     batch.Begin(Client::Render::Pass3D{});
     effect.type = 0x14e;
@@ -864,8 +864,8 @@ TEST(GameDrawTailTest, GroundModelEffectsRenderBeforeRestoringOpaqueStateWithout
     EXPECT_EQ(models.lookups, 0);
 }
 
-// 0x52d620: el 0x19f y el 0x61c del asedio no tienen caso (ni en 0x52dc20) y no se dibujan; el aura 0x134 va por el
-// camino común (0x52da92 → 0x602e90) y busca su BMD (Skill\Aurora).
+// 0x52d620: the siege's 0x19f and 0x61c have no case (not even in 0x52dc20) and are not drawn; aura 0x134 goes through
+// the common path (0x52da92 → 0x602e90) and looks up its BMD (Skill\Aurora).
 TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
 {
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -889,8 +889,8 @@ TEST(GameDrawTailTest, TheSiegeEffectsDrawOnlyTheAuraThroughItsModel)
     }
 }
 
-// 0x518d63 limpia +0x16d y no +0x16c: el lugar que vuelve a usar el prefijo conserva lo que vio el último dibujo, y el
-// pase del suelo (0x52dc46) saca su rand() aunque el tipo no tenga caso.
+// 0x518d63 clears +0x16d and not +0x16c: the slot that reuses the prefix keeps what the last draw saw, and the ground
+// pass (0x52dc46) takes its rand() even though the type has no case.
 TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();
@@ -911,8 +911,8 @@ TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
 }
 
-// 0x52d620: la flecha 0xf8 y el pulso 0x105/3 no se dibujan (0x52d6c3 y 0x52d78f); el fragmento 0xc1a y las piedritas
-// 0xc8/0xc9 con el subtipo 1 van por el camino común (0x602e90) con su BMD, en los dos pases.
+// 0x52d620: arrow 0xf8 and pulse 0x105/3 are not drawn (0x52d6c3 and 0x52d78f); fragment 0xc1a and pebbles 0xc8/0xc9
+// with subtype 1 go through the common path (0x602e90) with their BMD, in both passes.
 TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
 {
     struct Probe
@@ -940,7 +940,7 @@ TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
             ASSERT_TRUE(result.HasValue()) << result.Error();
             EXPECT_TRUE(effect.seen);
             EXPECT_TRUE(batch.Vertices().empty());
-            // En el segundo pase el filtro (0x52d68c) busca el BMD de todos antes del caso.
+            // In the second pass the filter (0x52d68c) looks up everyone's BMD before the case.
             if (mode == 0)
             {
                 EXPECT_EQ(models.lookups > 0, drawn);
@@ -949,9 +949,9 @@ TEST(GameDrawTailTest, TheCrywolfEffectsDrawThroughTheirModelsOrNotAtAll)
     }
 }
 
-// 0x52d620 con los tipos altos de la CL11: el 0x116, el 0x117, el 0x138, el 0x13c y la piedra 0x12e/3 van por el
-// camino común (0x602e90) con su BMD de las skills; el 0x625, los emisores 0x812 y 0x813 y el brillo 0x621/1 (de
-// 0x151 en adelante, sin caso) no se dibujan.
+// 0x52d620 with the high types of CL11: 0x116, 0x117, 0x138, 0x13c and stone 0x12e/3 go through the common path
+// (0x602e90) with their skills BMD; 0x625, emitters 0x812 and 0x813 and glow 0x621/1 (from 0x151 on, without a case)
+// are not drawn.
 TEST(GameDrawTailTest, TheHighEffectsDrawThroughTheirModelsOrNotAtAll)
 {
     struct Probe
@@ -1042,13 +1042,13 @@ TEST(GameDrawTailTest, FloorStepFallsBeforeClampingAndSettlesItsWeaponWithoutRes
     EXPECT_EQ(item.effectCounter, 2);
     item.position.z = 100;
     ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
-    EXPECT_FLOAT_EQ(item.position.z, 99); // Sigue en el aire: suelo0 +30 +40.
+    EXPECT_FLOAT_EQ(item.position.z, 99); // Still in the air: ground 0 +30 +40.
     EXPECT_FLOAT_EQ(item.dropSpeed, -7);
     EXPECT_FLOAT_EQ(item.angles.y, 70);
     item.position.z = 60;
     ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_FLOAT_EQ(item.position.z, 70);
-    EXPECT_FLOAT_EQ(item.dropSpeed, -13); // el contacto no resetea la gravedad.
+    EXPECT_FLOAT_EQ(item.dropSpeed, -13); // the contact does not reset gravity.
     EXPECT_EQ(item.angles, glm::vec3(60, 0, -45));
     EXPECT_EQ(random.State(), 7u);
     item.type = 0xe12;
@@ -1096,7 +1096,7 @@ TEST(GameDrawTailTest, FloorStepEmitsBothSparkSubtypesAtTheSameRotatedPoint)
     const Client::Items::FloorItemStepContext context{*heights, *attributes, random, particles, 0};
     ASSERT_TRUE(Client::Items::StepFloorItems(std::span(&item, 1), context).HasValue());
     EXPECT_EQ(item.effectCounter, 1);
-    EXPECT_EQ(random.State(), 3289278137u); // R1=61→45,R2=17422→30;542ab9 no sortea para/0,/1.
+    EXPECT_EQ(random.State(), 3289278137u); // R1=61→45, R2=17422→30; 0x542ab9 does not roll for /0, /1.
     for (std::size_t i = 0; i < 2; ++i)
     {
         const auto& spark = particles.All()[i];
@@ -1177,8 +1177,8 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
     EXPECT_EQ(poses, 1);
 }
 
-// 0x52d6c3: el pulso 0x103 del terremoto no tiene caso propio y va por 0x52da84 → 0x602e90 con su malla,
-// flashing.bmd (0x615700). Nace con blendMesh 0: en el segundo pase lo filtra 0x52d66a..0x52d693 sólo con −1.
+// 0x52d6c3: the earthquake's pulse 0x103 has no case of its own and goes via 0x52da84 → 0x602e90 with its mesh,
+// flashing.bmd (0x615700). It is born with blendMesh 0: in the second pass 0x52d66a..0x52d693 filters it only with −1.
 TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
 {
     TriangleModels models;
@@ -1205,7 +1205,7 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
         Client::Scenes::DrawGameModelEffects(excluded, models, std::span(&burst, 1), frustum, nullptr, {}, 0, 1);
     ASSERT_TRUE(skipped.HasValue()) << skipped.Error();
     EXPECT_TRUE(excluded.Vertices().empty());
-    // Sin flashing.bmd la cuenta de mallas es 0 (0x60dbe0): el primer pase no dibuja nada y no corta.
+    // Without flashing.bmd the mesh count is 0 (0x60dbe0): the first pass draws nothing and does not cut.
     burst.objectState.blendMesh = 0;
     models.missingModel = static_cast<std::uint16_t>(Client::Effects::EarthquakeBurstEffect);
     Client::Render::ModelBatch missing;
@@ -1215,9 +1215,9 @@ TEST(GameDrawTailTest, TheEarthquakeBurstDrawsFlashingBmdThroughTheGenericPath)
     EXPECT_TRUE(missing.Vertices().empty());
 }
 
-// 0x52d620 → 0x52d400: el terremoto 0xfa del caballo (estado 2) no se dibuja ni busca modelos, en ninguna vida. Las
-// grietas 0xfb..0x102 van por 0x52da84 → 0x602e90 con su malla; con +0x74 en 0x80 (0xfc, 0xff y 0x102 de subtipo 1),
-// 0x6002e0 las dibuja por 0x4ef0c0 con 0x82 (0x6004aa), con la mezcla que oscurece.
+// 0x52d620 → 0x52d400: the horse's earthquake 0xfa (state 2) is not drawn and looks up no models, in any life. Cracks
+// 0xfb..0x102 go via 0x52da84 → 0x602e90 with their mesh; with +0x74 at 0x80 (0xfc, 0xff and 0x102 of subtype 1),
+// 0x6002e0 draws them through 0x4ef0c0 with 0x82 (0x6004aa), with the darkening blend.
 TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
 {
     Client::Terrain::SphereFrustum frustum;
@@ -1266,11 +1266,11 @@ TEST(GameDrawTailTest, TheHorseEarthquakeIsInvisibleAndItsCracksDrawTheirMesh)
     }
 }
 
-// 0x6004aa, 0x601da8 y 0x601df6 con los efectos de los magos: el 0xd0 (con +0x74 en 0x80 desde el alta) oscurece; el
-// 0xcc/3 y /4 van con el color del modelo en (0,1f; 0,1f; 10) y el pase común; el 0xcb/2 y /3 con (0,5; 0,5; 1) y
-// Effect\Magic_b.jpg (0x6e9) en cada malla. El 0xcc/0 y el 0xcb/0, con el color de su luz. Con la luz por vértice
-// (+0xe8) y la normal (0, 0, 1), cada esquina va con el color del modelo por 2 (NormalLight: 2 · 0,8 + 0,4, la tabla
-// 0x715a98c por el +0x48 de 0x5ffce0).
+// 0x6004aa, 0x601da8 and 0x601df6 with the wizards' effects: the 0xd0 (with +0x74 at 0x80 from creation) darkens; the
+// 0xcc/3 and /4 go with the model color at (0.1f; 0.1f; 10) and the common pass; the 0xcb/2 and /3 with (0.5; 0.5; 1)
+// and Effect\Magic_b.jpg (0x6e9) on each mesh. The 0xcc/0 and the 0xcb/0, with their light's color. With per-vertex
+// light (+0xe8) and normal (0, 0, 1), each corner goes with the model color times 2 (NormalLight: 2 · 0.8 + 0.4, the
+// table 0x715a98c by the +0x48 of 0x5ffce0).
 TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
 {
     struct Case
@@ -1336,9 +1336,10 @@ TEST(GameDrawTailTest, TheWizardEffectsTakeTheirBodyPass)
     }
 }
 
-// 0x60213e..0x60216b: el 0x109 (Protect2) con +0x4 en 1 (el edx de 0x601095) agrega antes del pase común (0x602170)
-// RenderBody(0x1040, …, 1, −1): el cromo 0x1000 con la textura del pase (0x620) y aditivo, sin la malla 1. El 0x109/0,
-// el escudo de 0x4cb3b0 y el único 0x109 que crea el original, va sólo por el común: cada malla con su textura.
+// 0x60213e..0x60216b: the 0x109 (Protect2) with +0x4 at 1 (the edx of 0x601095) adds before the common pass
+// (0x602170) RenderBody(0x1040, …, 1, −1): chrome 0x1000 with the pass texture (0x620), additive, without mesh 1. The
+// 0x109/0, the shield of 0x4cb3b0 and the only 0x109 the original creates, goes only through the common pass: each
+// mesh with its texture.
 TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommon)
 {
     using Client::Render::ModelBlend;
@@ -1375,7 +1376,7 @@ TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommo
     const std::vector<Draw>& chromed = draws[1];
     ASSERT_FALSE(common.empty());
     ASSERT_EQ(chromed.size(), common.size() + 1);
-    // Sólo la malla 0: la 1 va oculta en este pase.
+    // Only mesh 0: mesh 1 is hidden in this pass.
     EXPECT_EQ(chromed[0].blend, ModelBlend::Additive);
     EXPECT_EQ(chromed[0].texture, std::optional(TextureSlot{0x620}));
     EXPECT_EQ(chromed[0].vertices, 3u);
@@ -1390,9 +1391,10 @@ TEST(GameDrawTailTest, OnlyTheShieldOfSubtypeOneTakesTheChromePassBeforeTheCommo
         EXPECT_NE(draw.texture, std::optional(TextureSlot{0x620}));
 }
 
-// 0x6002e0 → 0x442e10 con el 0x13d y el 0x13e, sin RenderBody: la malla 0 con 2, la luz 1 y el color en (1, 1, 1). El
-// 0x13d, con el blendMesh −1 (opaca, su textura) y después con el 0 (aditiva) y la textura 0x63c. El 0x13e, una vez con
-// el blendMesh 0 y la U en FSIN(T · 0,00008f) · 2,5f, y deja +0x6c en 1; sin el reloj del mundo, corta.
+// 0x6002e0 → 0x442e10 with the 0x13d and the 0x13e, without RenderBody: mesh 0 with 2, light 1 and the color at
+// (1, 1, 1). The 0x13d, with blendMesh −1 (opaque, its texture) and then with 0 (additive) and texture 0x63c. The
+// 0x13e, once with blendMesh 0 and U at FSIN(T · 0.00008f) · 2.5f, and leaves +0x6c at 1; without the world clock, it
+// cuts.
 TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
 {
     Client::Terrain::SphereFrustum frustum;
@@ -1450,9 +1452,10 @@ TEST(GameDrawTailTest, TheMeteorRockAndItsShellTakeTheirOwnPasses)
     EXPECT_TRUE(cut.Error().starts_with("0x443605")) << cut.Error();
 }
 
-// 0x4ecf22..0x4ed035 con RenderBody(0x82) (0x6004aa): la malla del blendMesh va por 0x4ed014, que sólo mira la 0x80
-// (0x620b10, ZERO / ONE_MINUS_SRC_COLOR); la otra, por 0x4ecf68, también. Con el blendMesh en −2 van las dos por
-// 0x4ed014. Sin la 0x80 (el pase común, RenderBody(2)) la del blendMesh es aditiva (0x620a90) y la otra opaca.
+// 0x4ecf22..0x4ed035 with RenderBody(0x82) (0x6004aa): the blendMesh mesh goes through 0x4ed014, which only looks at
+// 0x80 (0x620b10, ZERO / ONE_MINUS_SRC_COLOR); the other, through 0x4ecf68, too. With blendMesh at −2 both go through
+// 0x4ed014. Without 0x80 (the common pass, RenderBody(2)) the blendMesh one is additive (0x620a90) and the other
+// opaque.
 TEST(GameDrawTailTest, TheDarkBodyDarkensItsBlendMeshToo)
 {
     TwoMeshModels models;
@@ -1493,8 +1496,8 @@ TEST(GameDrawTailTest, TheDarkBodyDarkensItsBlendMeshToo)
     }
 }
 
-// 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección, 0x51913a) 0x6002e0 sale después de posar: la
-// pose se publica y la malla no se dibuja.
+// 0x600328: with +0x58 at −2 (the selection's butterfly 0xae, 0x51913a) 0x6002e0 exits after posing: the pose is
+// published and the mesh is not drawn.
 TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
 {
     TriangleModels models;
@@ -1660,8 +1663,8 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, resources).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    // 0x4eb860 con la bandera en 1 no reescribe el dummy (0x4eb973): queda la matriz del anterior ya en el mundo (su
-    // origen es 0), y 0x4ebc80 con Translate en 0 no le suma el origen del segundo.
+    // 0x4eb860 with the flag at 1 does not rewrite the dummy (0x4eb973): the previous one's matrix, already in the
+    // world, stays (its origin is 0), and 0x4ebc80 with Translate at 0 does not add the second's origin.
     EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(7, 8, 9));
 }
 
@@ -1687,7 +1690,8 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
         Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
             .HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    EXPECT_EQ(batch.Vertices()[3].position, glm::vec3(7, 8, 9)); // La matriz del anterior, sin el origen (0x4ebc80).
+    EXPECT_EQ(batch.Vertices()[3].position,
+              glm::vec3(7, 8, 9)); // The previous one's matrix, without the origin (0x4ebc80).
 }
 
 TEST(GameDrawTailTest, PublishedFloorBodyReportsMissingAndIncompleteScratchBeforeProjection)

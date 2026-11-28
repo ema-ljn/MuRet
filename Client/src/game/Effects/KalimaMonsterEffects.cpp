@@ -17,8 +17,8 @@
 #include <cstdint>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: 0x51c884 (el alta del 0x11a), 0x5266ea (su paso), 0x51ed79 (el alta del 0x615) y
-// 0x52b4a7 (su paso).
+// Checked against the PE c32bbd5f: 0x51c884 (the 0x11a's creation), 0x5266ea (its step), 0x51ed79 (the 0x615's
+// creation) and 0x52b4a7 (its step).
 namespace Client::Effects
 {
 namespace
@@ -30,8 +30,8 @@ using Math::F32;
 void BeginTheSeaman(Effects::ModelEffect& effect)
 {
     constexpr std::int16_t HiddenBlend = -2;                       // 0x51c884
-    constexpr float MeshLight = std::bit_cast<float>(0x3e4ccccdu); // 0x51c88b, 0,2f
-    constexpr float Scale = std::bit_cast<float>(0x3ecccccdu);     // 0x51c892, 0,4f
+    constexpr float MeshLight = std::bit_cast<float>(0x3e4ccccdu); // 0x51c88b, 0.2f
+    constexpr float Scale = std::bit_cast<float>(0x3ecccccdu);     // 0x51c892, 0.4f
     constexpr std::int32_t Life = 20;                              // 0x51c899
     constexpr float Lift = 120.0f;                                 // 0x51c8a0, +0xe4
     constexpr float Push = -40.0f;                                 // 0x51c8aa, +0xd8
@@ -49,20 +49,20 @@ void BeginTheSeaman(Effects::ModelEffect& effect)
 Core::Expected<void, std::string> StepTheSeaman(Effects::ModelEffect& effect, float luminosity,
                                                 const HighEffectStepContext& context)
 {
-    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0.02f
     constexpr double Brake = 10.0;                                                    // 0x6b87a8
     constexpr double Drop = 20.0;                                                     // 0x6b86d0
     constexpr double Floor = 60.0;                                                    // 0x6b86cc
-    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));   // 0x6b87b8, 0,1f
-    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
-    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3f19999au));    // 0x6b8a20, 0,6f
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));   // 0x6b87b8, 0.1f
+    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0.3f
+    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3f19999au));    // 0x6b8a20, 0.6f
     constexpr std::int32_t Spray = 0x6f4, SpraySubtype = 1;
     constexpr int Sprays = 4;
     constexpr std::int32_t LightRadius = 3;
     effect.transform.scale = F32(D(effect.transform.scale) + Growth);
     effect.transform.position.z = F32(D(effect.start.z) + D(effect.turnDirection));
     effect.speed = F32(D(effect.speed) - Brake);
-    // 0x526717..0x526736: FST de la resta y FCOMP del valor de la pila con 60.
+    // 0x526717..0x526736: FST of the subtraction and FCOMP of the x87 stack's value with 60.
     const double lift = D(effect.turnDirection) - Drop;
     effect.turnDirection = lift < Floor ? static_cast<float>(Floor) : F32(lift);
     const double lum = D(luminosity);

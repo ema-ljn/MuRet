@@ -78,7 +78,7 @@ TEST(ObjectStepServicesTest, AFireWithoutAParticleStillLightsItsJitteredPosition
     const auto stepped = StepWorldObjectChecked(object, 0, nullptr, random, globals);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(random.State(), 0xbca151d2u);
-    EXPECT_GT(Cell(*lighting, 14, 10)[0], 0.0f); // Centro 10,05: radio 4, no 3.
+    EXPECT_GT(Cell(*lighting, 14, 10)[0], 0.0f); // Center 10.05: radius 4, not 3.
     EXPECT_FLOAT_EQ(Cell(*lighting, 10, 10)[0], 0.784379542f);
     EXPECT_EQ(Cell(*lighting, 15, 10)[0], 0.0f);
 }
@@ -128,7 +128,7 @@ TEST(ObjectStepServicesTest, FullParticlePoolSkipsKernelRandomButKeepsTheFollowi
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
     EXPECT_GT(Cell(*lighting, 10, 10)[0], 0.0f);
-    EXPECT_EQ(random.State(), 0x4cc2cb10u); // Seis llamadas del emisor; ninguna del pool lleno.
+    EXPECT_EQ(random.State(), 0x4cc2cb10u); // Six calls from the emitter; none from the full pool.
 }
 
 TEST(ObjectStepServicesTest, SmokeMarkersUseTheirOwnLightAndHideOnlyAfterTheEmissionReturns)
@@ -329,11 +329,11 @@ TEST(ObjectStepServicesTest, EveryFireCallerKeepsItsNativeOffsetBeforeJitter)
         EXPECT_EQ(particles->All().front().position, probe.position);
         if (probe.type == 0x37)
         {
-            EXPECT_GT(Cell(*lighting, 12, 8)[0], 0.0f); // Segunda antorcha: x=1150, y=850.
+            EXPECT_GT(Cell(*lighting, 12, 8)[0], 0.0f); // Second torch: x=1150, y=850.
         }
         if (probe.type == 0x50)
         {
-            EXPECT_GT(Cell(*lighting, 11, 14)[0], 0.0f); // Segundo fuego: y=1200, radio 4.
+            EXPECT_GT(Cell(*lighting, 11, 14)[0], 0.0f); // Second fire: y=1200, radius 4.
         }
     }
 }
@@ -395,7 +395,7 @@ TEST(ObjectStepServicesTest, TheDoorDistanceBranchUsesTheRetainedValueBeforeItsF
     object.copiedPosition = glm::vec3(0.0f);
     CrtRandom random(7);
     ASSERT_TRUE(StepWorldObjectChecked(object, 2, nullptr, random, globals).HasValue());
-    EXPECT_EQ(sounds, 1); // Distancia retenida <200; el store f32 ya redondeó a200.
+    EXPECT_EQ(sounds, 1); // Retained distance <200; the f32 store already rounded to 200.
     EXPECT_EQ(object.transform.position.x, 0.0f);
 }
 

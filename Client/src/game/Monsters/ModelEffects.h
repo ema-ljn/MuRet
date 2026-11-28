@@ -39,13 +39,13 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-// 0x505de0 de un personaje que no es el 0x20a, desde el rand() & 7 de 0x506cac hasta 0x50862f (06, "Los efectos de los
-// personajes (0x505de0)"): el caso de su tipo (la tabla de bytes 0x508884 sobre la de saltos 0x50880c) o, sin caso, los
-// seis helpers de 0x5085db en orden hasta el primero que devuelve 1 (0x43bdd0, 0x42de90, 0x441210, 0x42f550, 0x431470 y
-// 0x426ce0). Lo que escriben del personaje, sus luces, sus rand(), sus sonidos (en WorldRuntime::lastSoundId, CL10) y
-// las partículas, los joints y los sprites que MuRet ya tiene; corta con la dirección de lo demás (los efectos de
-// 0x518cf0 y las partículas y los joints que el pool no conoce, CL11; los huesos por nombre, el comportamiento
-// indefinido del original), siempre después de los rand() que el original saca antes.
+// 0x505de0 of a character other than 0x20a, from the rand() & 7 of 0x506cac up to 0x50862f (06, "Los efectos de los
+// personajes (0x505de0)"): the case of its type (the byte table 0x508884 over the jump table 0x50880c) or, without a
+// case, the six helpers of 0x5085db in order up to the first that returns 1 (0x43bdd0, 0x42de90, 0x441210, 0x42f550,
+// 0x431470 and 0x426ce0). What they write to the character, its lights, its rand(), its sounds (in
+// WorldRuntime::lastSoundId, CL10) and the particles, joints and sprites MuRet already has; it cuts with the address of
+// the rest (the effects of 0x518cf0 and the particles and joints the pool does not know, CL11; the bones by name, the
+// original's undefined behavior), always after the rand() the original takes before.
 namespace Client::Monsters
 {
 
@@ -55,10 +55,10 @@ struct ModelEffectsPass
     std::size_t slot = 0;
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    // El modelo del tipo (0x5769ad8 + tipo · 0xe0): la cantidad de huesos de +0x22 y la velocidad de las acciones.
+    // The type's model (0x5769ad8 + type · 0xe0): the bone count of +0x22 and the speed of the actions.
     const Models::Skeleton& skeleton;
     Particles::Particles* particles = nullptr;
-    // La tabla de sprites del frame (0x5491e0), la del paso de los efectos del mapa.
+    // The frame's sprite table (0x5491e0), the one of the map effects' step.
     Particles::FrameSprites* sprites = nullptr;
     float worldClock = 0.0f;
     std::int32_t map = 0;

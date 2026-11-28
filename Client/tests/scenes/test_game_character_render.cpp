@@ -52,8 +52,8 @@
 #include <string>
 #include <vector>
 
-// 0x50cc29..0x50d2aa y 0x50db57..0x50dc5e: vectores literales del ASM c32bbd5f,
-// sin ejecutar el original. Una bota y una sombra sintéticas vuelven observable el color y el contorno.
+// 0x50cc29..0x50d2aa and 0x50db57..0x50dc5e: literal vectors from the c32bbd5f ASM, without running the original. A
+// synthetic boot and shadow make the color and the outline observable.
 namespace
 {
 using Client::Actors::Drawing::GameCharacterPass;
@@ -61,11 +61,11 @@ using Client::Kernel::ActorState;
 
 constexpr std::uint16_t BootsModel = 0x1800;
 constexpr std::uint16_t AngelModel = 0x1f7;
-// Skill\\Skeleton02 (0x615e36): el cuerpo del subtipo 0xd2. El 0xd1 no está cargado.
+// Skill\\Skeleton02 (0x615e36): the body of subtype 0xd2. 0xd1 is not loaded.
 constexpr std::uint16_t SkeletonBodyModel = 0xd2;
 constexpr std::uint16_t UnloadedSkeletonBody = 0xd1;
 
-// El estado del rand() de la CRT con la semilla 1 después de `count` llamadas.
+// The CRT rand() state with seed 1 after `count` calls.
 std::uint32_t AfterRandoms(std::size_t count)
 {
     Client::Crt::CrtRandom random{1};
@@ -74,7 +74,7 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-// Cerrar el registro propio del héroe gasta 3848 rand() (0x50ccb5..0x50d219).
+// Closing the hero's own record spends 3848 rand() (0x50ccb5..0x50d219).
 constexpr std::size_t OwnRecordRandoms = 3848;
 
 void ExpectSameCloths(std::span<const Client::Models::Cloth> actual, std::span<const Client::Models::Cloth> expected)
@@ -171,8 +171,7 @@ public:
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
         bone.actions[0][0].rotation = AngleQuaternion({0.0f, 0.0f, 0.0f});
-        // El hueso k en (0, 0, k): lo que cuelga deja ver de qué hueso del cuerpo sale. Las mallas solo
-        // usan el 0.
+        // Bone k at (0, 0, k): what hangs shows which body bone it comes from. The meshes only use 0.
         m_skeleton.bones.assign(48, bone);
         for (std::size_t index = 0; index < m_skeleton.bones.size(); ++index)
             m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
@@ -184,9 +183,9 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "boot.jpg";
         m_model.meshes = {mesh};
-        // El Angel de Chaos Castle con dos mallas: su pase se distingue del de las botas por los vértices.
+        // The Chaos Castle Angel with two meshes: its pass is told apart from the boots' by the vertices.
         m_angel.meshes = {mesh, mesh};
-        // El cuerpo de un esqueleto con tres: ni las botas ni el Angel.
+        // A skeleton body with three: neither the boots nor the Angel.
         m_skeletonBody.meshes = {mesh, mesh, mesh};
     }
 
@@ -219,7 +218,7 @@ private:
     Client::Data::Models::Model m_model;
     Client::Data::Models::Model m_angel;
     Client::Data::Models::Model m_skeletonBody;
-    // Una por malla del modelo con más: las tres del esqueleto.
+    // One per mesh of the model with the most: the skeleton's three.
     std::array<Client::Render::TextureSlot, 3> m_texture{
         Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x300}};
 };
@@ -246,11 +245,11 @@ protected:
         actor.type = 0x20a;
         actor.word376 = 0xffff;
         actor.head = 0xffff;
-        // 0x511290: sin gremio (+0x1f2 en −1).
+        // 0x511290: no guild (+0x1f2 at −1).
         actor.word1f2 = 0xffff;
         actor.scale = 1.0f;
         actor.alpha = 1.0f;
-        // 0x511290: sin malla de mezcla ni oculta (+0x64 y +0x58 en −1) y la luz de la mezcla (+0x68) en 1.
+        // 0x511290: no blend or hidden mesh (+0x64 and +0x58 at −1) and the blend light (+0x68) at 1.
         actor.dword58 = -1;
         actor.dword64 = -1;
         actor.blendMeshLight = 1.0f;
@@ -263,7 +262,7 @@ protected:
             part.model = 0xffff;
         for (auto& part : actor.hands)
             part.model = 0xffff;
-        // 0x5126b2..0x5126d5: las manos de un 0x20a cuelgan de los huesos 33 y 42.
+        // 0x5126b2..0x5126d5: a 0x20a's hands hang from bones 33 and 42.
         actor.hands[0].bone = 0x21;
         actor.hands[1].bone = 0x2a;
         actor.body.back().model = BootsModel;
@@ -312,7 +311,7 @@ TEST_F(GameCharacterRenderTest, OtherPlayersUseTheSuppliedDynamicTerrainLightAnd
     EXPECT_FLOAT_EQ(actor.drawnLight.x, 0.3f);
     EXPECT_FLOAT_EQ(actor.drawnLight.y, 0.6f);
     EXPECT_FLOAT_EQ(actor.drawnLight.z, 0.9f);
-    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // semilla 1, un rand de 0x50db57
+    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // seed 1, one rand of 0x50db57
 }
 
 TEST_F(GameCharacterRenderTest, TheHeroBodyAppliesEveryAdjustmentBitInAssemblyOrder)
@@ -339,7 +338,7 @@ TEST_F(GameCharacterRenderTest, TheHeroBodyAppliesEveryAdjustmentBitInAssemblyOr
         EXPECT_FLOAT_EQ(color.red, value.expected.x);
         EXPECT_FLOAT_EQ(color.green, value.expected.y);
         EXPECT_FLOAT_EQ(color.blue, value.expected.z);
-        // El RGB persistente vuelve al del terreno antes de lo que cuelga, no al del cuerpo del héroe.
+        // The persistent RGB goes back to the terrain's before what hangs, not to the hero's body.
         EXPECT_FLOAT_EQ(hero.drawnLight.x, 0.3f);
         EXPECT_FLOAT_EQ(hero.drawnLight.y, 0.6f);
         EXPECT_FLOAT_EQ(hero.drawnLight.z, 0.9f);
@@ -403,10 +402,10 @@ TEST_F(GameCharacterRenderTest, AGamePlayerWithLessThanHalfAlphaHasNoShadowAndFa
     EXPECT_FLOAT_EQ(m_batch.Vertices()[0].color.alpha, 0.25f);
 }
 
-// 0x50ddde..0x50de60 en la zona segura: la espada derecha cuelga del hueso de las alas (47) por el camino
-// de la bandera, con la raíz de 0x5fc8f0 y 0x5fca90 (70, 0, 90 y −20, 5, 40) y el origen en el personaje,
-// y del color de lo que cuelga (+0x3b4). Los rand(): el de 0x50db57, el cierre de +0x38e en 0x509340 y el
-// de la luz de 0x509a92. A la espalda no corre el lazo de las manos.
+// 0x50ddde..0x50de60 in the safe zone: the right sword hangs from the wings bone (47) along the flag path, with the
+// root of 0x5fc8f0 and 0x5fca90 (70, 0, 90 and −20, 5, 40), the origin on the character and the hanging color
+// (+0x3b4). The rand(): 0x50db57's, +0x38e's close in 0x509340 and 0x509a92's light. On the back the hands loop does
+// not run.
 TEST_F(GameCharacterRenderTest, ABackSwordHangsFromTheWingsBoneWithTheFlagPlacement)
 {
     ActorState& actor = Player(0);
@@ -416,7 +415,7 @@ TEST_F(GameCharacterRenderTest, ABackSwordHangsFromTheWingsBoneWithTheFlagPlacem
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Vertices().size(), 9u);
-    // El vértice 0 de la espada está en su raíz: (−20, 5, 40) sobre el hueso 47, en (0, 0, 47).
+    // The sword's vertex 0 is at its root: (−20, 5, 40) on bone 47, at (0, 0, 47).
     EXPECT_EQ(m_batch.Vertices()[6].position, glm::vec3(130.0f, 155.0f, 97.0f));
     EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.red, 0.3f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.green, 0.6f);
@@ -444,7 +443,7 @@ TEST_F(GameCharacterRenderTest, HangingModelsUseTheirSecondColorAndTheSharedRand
     EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.red, 0.8f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.green, 0.7f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[6].color.blue, 0.6f);
-    EXPECT_EQ(m_clothWorld.random.State(), 0xc823f683u); // semilla 1, los dos rand de 0x607b60
+    EXPECT_EQ(m_clothWorld.random.State(), 0xc823f683u); // seed 1, the two rand of 0x607b60
 }
 
 TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheDrawDoesNotRepeatTheRecordOrAttachmentRandoms)
@@ -484,9 +483,8 @@ TEST_F(GameCharacterRenderTest, The401stPoolRecordIsNotPartOfThe400CharacterDraw
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-// Fuera de la zona segura corre el lazo de las manos (0x50e298): la espada derecha cuelga del hueso 33 con
-// el origen en el hueso (0x4ec190). Los rand(): 0x50db57, el +0x38e antes de cada mano (dos), el de
-// 0x509340 y el de la luz de 0x509a92.
+// Outside the safe zone the hands loop runs (0x50e298): the right sword hangs from bone 33 with the origin on the bone
+// (0x4ec190). The rand(): 0x50db57, the +0x38e before each hand (two), 0x509340's and 0x509a92's light.
 TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheSwordHangsFromTheRightHandBone)
 {
     ActorState& actor = Player(0);
@@ -502,8 +500,6 @@ TEST_F(GameCharacterRenderTest, OutsideTheSafeZoneTheSwordHangsFromTheRightHandB
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(OwnRecordRandoms + 5));
 }
 
-// Entre frames del original, lo que cuelga se dibuja como quedó, sobre una copia del personaje y del
-// rand(): ni el hueso de las alas ni los accesos a +0x38e ni el rand() cambian.
 TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheHangingIsDrawnWithoutChangingTheActor)
 {
     ActorState& actor = Player(0);
@@ -520,7 +516,7 @@ TEST_F(GameCharacterRenderTest, BetweenOriginalFramesTheHangingIsDrawnWithoutCha
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-// Sin el buffer global de la pose, lo que cuelga corta en 0x509340 con el cuerpo ya dibujado.
+// Without the global pose buffer, what hangs stops in 0x509340 with the body already drawn.
 TEST_F(GameCharacterRenderTest, AHangingItemWithoutThePoseBufferStopsAfterTheBody)
 {
     Player(0).hands[0].model = 0x212;
@@ -610,8 +606,8 @@ TEST_F(GameCharacterRenderTest, TheClothOnTheMeshStopsBeforeThePlayerRecordAndIt
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-// 0x50c951: el monstruo 55 es un 0x20a con el +0x376 0x37; sin la clase 3 ni la 4, bVar23 lo prende y 0x50d812 arma
-// la tela de ClothMonster (10 por 10, la textura 0x252), salvo en los mapas 0x12 a 0x17.
+// 0x50c951: monster 55 is a 0x20a with +0x376 0x37; without class 3 or 4, bVar23 turns it on and 0x50d812 builds
+// ClothMonster's cloth (10 by 10, texture 0x252), except on maps 0x12 to 0x17.
 TEST_F(GameCharacterRenderTest, TheMonster55WearsTheClothOfThe0x37)
 {
     for (const std::int32_t map : {0, 2, 0x12})
@@ -652,7 +648,7 @@ TEST_F(GameCharacterRenderTest, TheHiddenClothFlagDoesNotRunTheClothSimulationBe
 
     const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
 
-    // Con 0x4000 y sin 4 ni 0x2000000, 0x50fba4 no corre: el dibujo termina sin la tela.
+    // With 0x4000 and without 4 or 0x2000000, 0x50fba4 does not run: the draw ends without the cloth.
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
@@ -705,7 +701,7 @@ TEST_F(GameCharacterRenderTest, AnUnselectedLeftSwordIsNotDrawnInTheSafeZone)
     EXPECT_EQ(m_clothWorld.random.State(), 0x46d18088u);
 }
 
-// Los vértices de la tela con el color `color` (0x455930 pone el de 0x50ba30 en cada uno).
+// The cloth vertices with color `color` (0x455930 puts 0x50ba30's on each one).
 std::size_t ClothVerticesIn(const Client::Render::ModelBatch& batch, const glm::vec3& color)
 {
     std::size_t count = 0;
@@ -718,9 +714,9 @@ std::size_t ClothVerticesIn(const Client::Render::ModelBatch& batch, const glm::
     return count;
 }
 
-// 0x50c929..0x50cc29 (CL9 hito 7, fase 2): sin duelo, la clase 1 no lleva tela y la 3 con +0x3e3 tampoco. Con el
-// duelo en curso, el rival (su clave y su nombre en 0x78abadc y 0x78abae0) la lleva en (1; 0,2; 0) aunque sea de la
-// clase 1 y esté en Chaos Castle (0x12), y el héroe publicado, en (0; 0,2; 1). En Lorencia y Devias.
+// 0x50c929..0x50cc29 (CL9 milestone 7, phase 2): without a duel, class 1 wears no cloth and neither does 3 with
+// +0x3e3. With a duel on, the rival (its key and name at 0x78abadc and 0x78abae0) wears it in (1, 0.2, 0) even in class
+// 1 and in Chaos Castle (0x12), and the published hero, in (0, 0.2, 1).
 TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
 {
     constexpr glm::vec3 Rival{1.0f, 0.2f, 0.0f};
@@ -734,7 +730,7 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         player.key = 0x0456;
         for (std::size_t at = 0; at < player.name.size(); ++at)
             player.name[at] = at < 6 ? static_cast<std::byte>("Brezal"[at]) : std::byte{0};
-        // El héroe publicado es otro (sin dibujar).
+        // The published hero is another one (not drawn).
         m_world->Runtime().hero = 5;
         m_world->Actors()[5].key = 0x0021;
         Client::Social::DuelState& duel = m_world->Runtime().social.duel;
@@ -764,14 +760,14 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
         EXPECT_GT(ClothVerticesIn(m_batch, Rival), 0u);
         EXPECT_EQ(ClothVerticesIn(m_batch, Hero), 0u);
 
-        // El mismo, publicado: la segunda comparación gana.
+        // The same, published: the second comparison wins.
         m_world->Runtime().hero = 0;
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass).HasValue());
         EXPECT_EQ(ClothVerticesIn(m_batch, Rival), 0u);
         EXPECT_GT(ClothVerticesIn(m_batch, Hero), 0u);
 
-        // Otro nombre con la misma clave no es el rival.
+        // Another name with the same key is not the rival.
         m_world->Runtime().hero = 5;
         duel.rivalName[0] = std::byte{'Z'};
         m_batch.Begin(Client::Render::Pass3D{});
@@ -780,11 +776,10 @@ TEST_F(GameCharacterRenderTest, TheDuelDressesTheRivalInRedAndTheHeroInBlue)
     }
 }
 
-// 0x50c972..0x50caaa (CL9 hito 8): con la guerra (0x576796d) y +0x1f2 distinto de −1, el del gremio del héroe lleva la
-// tela del color de su equipo ((1; 0,2; 0) con 0x576796e en 0, (0; 0,2; 1) con 1) y el del rival (0x5767804), la del
-// otro, aunque sea de la clase 1 y esté en Chaos Castle (0x12); sin la guerra o sin gremio, no. Con el héroe sin
-// gremio, strcmp lee el byte 9 del nombre del miembro 74 (Q-C1281). Un índice fuera de la tabla corta. Gremios
-// inventados.
+// 0x50c972..0x50caaa (CL9 milestone 8): with the war (0x576796d) and +0x1f2 other than −1, the hero's guild wears the
+// cloth of its team's color ((1, 0.2, 0) with 0x576796e at 0, (0, 0.2, 1) with 1) and the rival's (0x5767804) the
+// other one, even in class 1 and in Chaos Castle (0x12); without the war or without a guild, not. With the hero
+// guildless, strcmp reads byte 9 of member 74's name (Q-C1281). An index outside the table stops. Invented guilds.
 TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
 {
     constexpr glm::vec3 Red{1.0f, 0.2f, 0.0f};
@@ -807,14 +802,14 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         ActorState& player = Player(0);
         player.characterClass = 1;
         player.word1f2 = 3;
-        // El héroe publicado es otro (sin dibujar), del mismo gremio.
+        // The published hero is another one (not drawn), from the same guild.
         runtime.hero = 5;
         m_world->Actors()[5].key = 0x0021;
         m_world->Actors()[5].word1f2 = 3;
         auto cloths = std::make_unique<std::array<Client::Actors::Drawing::CharacterCloth, 401>>();
         GameCharacterPass pass = Pass();
         pass.cloths = *cloths;
-        // Con +0x1f2 en 3 y las claves en −1, 0x50d533 también pide la marca (0x447b00 encuentra la entrada 0).
+        // With +0x1f2 at 3 and the keys at −1, 0x50d533 also asks for the mark (0x447b00 finds entry 0).
         auto store = std::make_unique<Client::Tests::FakeTextureStore>();
         auto marks = std::make_unique<Client::Guild::GuildMarkTextures>(*store);
         pass.guildMarks = marks.get();
@@ -837,19 +832,19 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
         EXPECT_EQ(ClothVerticesIn(m_batch, Red), 0u);
         EXPECT_GT(ClothVerticesIn(m_batch, Blue), 0u);
 
-        // El rival, con el equipo 1, de rojo.
+        // The rival, with team 1, in red.
         player.word1f2 = 4;
         ASSERT_TRUE(draw().HasValue());
         EXPECT_GT(ClothVerticesIn(m_batch, Red), 0u);
         EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
 
-        // Sin gremio, la clase 1 no la lleva.
+        // Without a guild, class 1 does not wear it.
         player.word1f2 = NoGuild;
         ASSERT_TRUE(draw().HasValue());
         EXPECT_EQ(ClothVerticesIn(m_batch, Red), 0u);
         EXPECT_EQ(ClothVerticesIn(m_batch, Blue), 0u);
 
-        // El héroe sin gremio: "" (el byte 9 del miembro 74 en 0) es el nombre vacío de la entrada 7.
+        // The guildless hero: "" (member 74's byte 9 at 0) is entry 7's empty name.
         m_world->Actors()[5].word1f2 = NoGuild;
         player.word1f2 = 7;
         ASSERT_TRUE(draw().HasValue());
@@ -871,7 +866,7 @@ TEST_F(GameCharacterRenderTest, TheGuildWarDressesBothGuildsInTheirTeamColors)
     }
 }
 
-// 0x50caaa..0x50cb5c: Soccer pisa los colores de la guerra, y el segundo nombre gana si ambos son iguales.
+// 0x50caaa..0x50cb5c: Soccer overrides the war colors, and the second name wins if both are equal.
 TEST_F(GameCharacterRenderTest, SoccerDressesTheCurrentGuildNamesAndTheSecondTeamWins)
 {
     auto& runtime = m_world->Runtime();
@@ -1026,7 +1021,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsOnlyTheLastFramesClothSpritesAndPres
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto expectedSprites = LiveSprites(referenceSprites);
-    ASSERT_EQ(expectedSprites.size(), 31u); // un sprite del mundo y los 30 del brillo de la tela
+    ASSERT_EQ(expectedSprites.size(), 31u); // one world sprite and the cloth glow's 30
     ExpectSameSprites(LiveSprites(sprites), expectedSprites);
     ExpectSameGeometry(m_batch, referenceBatch);
     EXPECT_EQ(cloths[0].Count(), referenceCloths[0].Count());
@@ -1039,8 +1034,8 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     ActorState& actor = Player(0);
     actor.characterClass = 4;
     actor.hands[0].model = 0x212;
-    // 414470: la librería sintética no tiene MuSign. La capa5 falla después de sombra/partes/tela/arma;
-    // las capas de asedio6..13 ya están portadas y no son un punto de fallo válido para esta regresión.
+    // 0x414470: the synthetic library has no MuSign. Layer 5 fails after shadow/parts/cloth/weapon; siege layers 6..13
+    // are already ported and are not a valid failure point for this regression.
     actor.byte360 = 5;
     auto referenceWorld = std::make_unique<Client::Kernel::WorldState>();
     referenceWorld->Runtime().map = 0;
@@ -1077,7 +1072,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
         Client::Actors::Drawing::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);
     ASSERT_FALSE(reference.HasValue());
     ASSERT_NE(reference.Error().find("0x414470"), std::string::npos) << reference.Error();
-    ASSERT_GT(referenceBatch.Vertices().size(), 6u); // sombra, partes, tela y el arma a la espalda
+    ASSERT_GT(referenceBatch.Vertices().size(), 6u); // shadow, parts, cloth and the back weapon
     ASSERT_EQ(LiveSprites(referenceSprites).size(), 31u);
 
     const auto result = Client::Actors::Drawing::DrawGameCharacters(m_batch, m_models, *m_world, pass);
@@ -1120,7 +1115,7 @@ TEST_F(GameCharacterRenderTest, MissingClothKeepsTheShadowPartsScanAndHeroLightP
         EXPECT_EQ(m_world->Runtime().fullSetScan->dword743a178, 0);
         EXPECT_EQ(m_world->Runtime().fullSetScan->byte743a17c, 1);
         EXPECT_EQ(actor.drawnLight, (glm::vec3{0.9f, 0.5f, 0.5f}));
-        // Cierra own, pero no llega al rand incondicional de 0x50db57.
+        // It closes the own record but does not reach 0x50db57's unconditional rand.
         EXPECT_EQ(m_clothWorld.random.State(), 0x65b2ab69u);
     }
 }
@@ -1172,12 +1167,12 @@ TEST_F(GameCharacterRenderTest, WithPlus3e3ThePlayerDrawsNoPartsAndGoesOnToTheCl
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_EQ(m_batch.Commands().size(), 1u);
     EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
-    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // el rand de 0x50db57 sigue
+    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // 0x50db57's rand still runs
 }
 
-// 0x50d316..0x50d35e: un 0x20a con el subtipo 0xd1..0xd3 no lleva sus partes ni la marca del gremio: 0x60cf70(c,
-// subtipo, NULL, &c+0x3b4, c+0x174, 0, 0, 0, 0, 0, 1, modo, 2) con el cuerpo entero del esqueleto (Skill\\Skeleton0N),
-// y salta a la tela (0x50d58b). Sin el nivel, el color es la luz.
+// 0x50d316..0x50d35e: a 0x20a with subtype 0xd1..0xd3 wears neither its parts nor the guild mark: 0x60cf70(c,
+// subtype, NULL, &c+0x3b4, c+0x174, 0, 0, 0, 0, 0, 1, mode, 2) with the skeleton's whole body (Skill\\Skeleton0N), and
+// jumps to the cloth (0x50d58b). Without the level, the color is the light.
 TEST_F(GameCharacterRenderTest, TheSkeletonSubtypesWearTheirWholeBodyInsteadOfTheParts)
 {
     ActorState& actor = Player(7);
@@ -1190,19 +1185,19 @@ TEST_F(GameCharacterRenderTest, TheSkeletonSubtypesWearTheirWholeBodyInsteadOfTh
     const auto commands = m_batch.Commands();
     ASSERT_EQ(commands.size(), 2u);
     EXPECT_EQ(commands[0].state.blend, Client::Render::ModelBlend::Shadow);
-    // Las tres mallas del esqueleto, no la bota.
+    // The skeleton's three meshes, not the boot.
     EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Opaque);
     EXPECT_EQ(commands[1].vertexCount, 9u);
     const auto light = m_batch.Vertices()[3].color;
     EXPECT_FLOAT_EQ(light.red, 0.3f);
     EXPECT_FLOAT_EQ(light.green, 0.6f);
     EXPECT_FLOAT_EQ(light.blue, 0.9f);
-    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // el rand de 0x50db57 sigue
+    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // 0x50db57's rand still runs
 }
 
-// 0x50d2aa..0x50d311: con +0x88 en 4 (un NPC) y el mapa [0x6c9dd0] en 0 (Lorencia), el nivel es el word +0x1d6 · 8,
-// que 0x60b3d0 lee con >> 3 y & 0xf: con 7, el color por 0,8 y el pase del 0x44 (Chrome). En otro mapa, o con otro
-// +0x88, el 0.
+// 0x50d2aa..0x50d311: with +0x88 at 4 (an NPC) and map [0x6c9dd0] at 0 (Lorencia), the level is word +0x1d6 · 8, which
+// 0x60b3d0 reads with >> 3 and & 0xf: with 7, the color times 0.8 and the 0x44 pass (Chrome). On another map, or with
+// another +0x88, 0.
 TEST_F(GameCharacterRenderTest, TheSkeletonNpcOfLorenciaGlowsWithItsWordOf1d6)
 {
     for (const std::int32_t map : {0, 2})
@@ -1266,7 +1261,8 @@ TEST_F(GameCharacterRenderTest, TheGlowDetailOfTheOptionsTrimsTheLevelOfTheSkele
     }
 }
 
-// 0x50d2aa: la rama del esqueleto va antes de mirar +0x3e3 (0x50d363): con +0x3e3 el cuerpo entero se dibuja igual.
+// 0x50d2aa: the skeleton branch comes before looking at +0x3e3 (0x50d363): with +0x3e3 the whole body is drawn the
+// same.
 TEST_F(GameCharacterRenderTest, WithPlus3e3TheSkeletonStillWearsItsWholeBody)
 {
     ActorState& actor = Player(7);
@@ -1281,8 +1277,8 @@ TEST_F(GameCharacterRenderTest, WithPlus3e3TheSkeletonStillWearsItsWholeBody)
     EXPECT_EQ(m_batch.Commands()[1].vertexCount, 9u);
 }
 
-// 0x60cf70 con un modelo sin cargar (el registro en 0 de 0x60dbe0): sin mallas que dibujar; publica la caja del
-// picking (0x4ebc80) igual.
+// 0x60cf70 with an unloaded model (0x60dbe0's record at 0): no meshes to draw; it publishes the picking box
+// (0x4ebc80) anyway.
 TEST_F(GameCharacterRenderTest, AnUnloadedSkeletonBodyOnlyPublishesThePickingBox)
 {
     ActorState& actor = Player(7);
@@ -1324,7 +1320,7 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         const auto commands = m_batch.Commands();
         ASSERT_EQ(commands.size(), slot == 0 ? 4u : 2u);
         EXPECT_EQ(commands[0].state.blend, Client::Render::ModelBlend::Shadow);
-        // 0x4ef0c0(2) sobre las dos mallas del Angel, no las botas (una malla), con la luz como color.
+        // 0x4ef0c0(2) on the Angel's two meshes, not the boots (one mesh), with the light as color.
         EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Opaque);
         EXPECT_EQ(commands[1].vertexCount, 6u);
         EXPECT_EQ(commands[1].state.texture, Client::Render::TextureSlot{0x300});
@@ -1335,7 +1331,7 @@ TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroA
         EXPECT_FLOAT_EQ(light.blue, expected.z);
         if (slot != 0)
             continue;
-        // 0x609640, caso 0x1f7, con 6: la malla 0 con 0x1040 (0x620) a (0,75; 0,55; 0,5) y con 0x46 (0x5c0) a 1.
+        // 0x609640, case 0x1f7, with 6: mesh 0 with 0x1040 (0x620) at (0.75, 0.55, 0.5) and with 0x46 (0x5c0) at 1.
         EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Additive);
         EXPECT_EQ(commands[2].state.texture, Client::Render::TextureSlot{0x620});
         EXPECT_EQ(commands[2].vertexCount, 3u);
@@ -1391,7 +1387,7 @@ TEST_F(GameCharacterRenderTest, TheChaosCastleOutlineScalesWithTheObjectAndHasIt
     EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Additive);
     ASSERT_EQ(commands[1].vertexCount, 12u);
     EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Opaque);
-    // 0x60d09f: 0,1f / 2 + 1 en el x87, guardado: 0x3f866666. 0x60d113: 0,04f / 2 + 1,02f − 0,02f: 1,02f.
+    // 0x60d09f: 0.1f / 2 + 1 on the x87, stored: 0x3f866666. 0x60d113: 0.04f / 2 + 1.02f − 0.02f: 1.02f.
     const auto vertices = m_batch.Vertices();
     const float outer = std::bit_cast<float>(0x3f866666u);
     const float inner = std::bit_cast<float>(0x3f828f5cu);
@@ -1418,7 +1414,7 @@ TEST_F(GameCharacterRenderTest, AnNpcKindOutlinesItsPartsWithTheGreenOfTheNpcs)
     ASSERT_TRUE(result.HasValue()) << result.Error();
     const auto vertices = m_batch.Vertices();
     ASSERT_GE(vertices.size(), 9u);
-    // 0x60d069 y 0x60d0dd: (0,02; 0,1; 0) y (0,16; 0,7; 0), con las escalas de siempre.
+    // 0x60d069 and 0x60d0dd: (0.02, 0.1, 0) and (0.16, 0.7, 0), with the usual scales.
     EXPECT_FLOAT_EQ(vertices[3].color.red, 0.02f);
     EXPECT_FLOAT_EQ(vertices[3].color.green, 0.1f);
     EXPECT_FLOAT_EQ(vertices[6].color.red, 0.16f);
@@ -1426,9 +1422,9 @@ TEST_F(GameCharacterRenderTest, AnNpcKindOutlinesItsPartsWithTheGreenOfTheNpcs)
     EXPECT_EQ(vertices[3 + 1].position.x, 1.2f + 150.0f);
 }
 
-// 0x50d4fb..0x50d588 (CL9 hito 8, fase 2): con +0x1f2 en 5 (su clave en −1, que 0x447b00 encuentra en la entrada 0
-// con la cuenta en 0) y sin la tabla de las marcas, la marca corta en 0x50d575 después de las partes; en Chaos Castle
-// (18) no hay marca.
+// 0x50d4fb..0x50d588 (CL9 milestone 8, phase 2): with +0x1f2 at 5 (its key at −1, which 0x447b00 finds in entry 0
+// with the count at 0) and without the marks table, the mark stops at 0x50d575 after the parts; in Chaos Castle (18)
+// there is no mark.
 TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle)
 {
     for (const std::int32_t map : {0, 18})
@@ -1450,7 +1446,7 @@ TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle
         }
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x50d575"), std::string::npos) << result.Error();
-        // La sombra y las botas ya están.
+        // The shadow and the boots are already there.
         ASSERT_EQ(m_batch.Commands().size(), 2u);
         EXPECT_EQ(m_batch.Commands()[1].vertexCount, 3u);
     }

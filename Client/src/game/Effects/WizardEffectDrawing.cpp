@@ -23,22 +23,22 @@ namespace Client::Effects
 namespace
 {
 constexpr std::uint32_t DarkBodyFlags = 0x82;      // 0x6004d0
-constexpr float VisibleAlpha = 0.01f;              // 0x6b88d4, el de 0x5ffdf0
+constexpr float VisibleAlpha = 0.01f;              // 0x6b88d4, 0x5ffdf0's
 constexpr Render::TextureSlot MagicTexture{0x6e9}; // Effect\Magic_b.jpg (0x61d632)
 
 // 0x601dbb..0x601dc7: (0x3dcccccd, 0x3dcccccd, 0x41200000).
 const glm::vec3 DeepBlue{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 10.0f};
 // 0x601e09..0x601e14: (0x3f000000, 0x3f000000, edi = 0x3f800000 de 0x60043c).
 constexpr glm::vec3 PaleBlue{0.5f, 0.5f, 1.0f};
-// 0x60213e..0x60216b: el 0x109 (Protect2) con +0x4 en 1 (el edx de 0x601095), RenderBody(0x1040) sin la malla 1.
+// 0x60213e..0x60216b: the 0x109 (Protect2) with +0x4 at 1 (0x601095's edx), RenderBody(0x1040) without mesh 1.
 constexpr std::int16_t ShieldEffect = 0x109;
 constexpr std::int32_t ShieldPassSubtype = 1;
 constexpr std::uint32_t ShieldPassFlags = 0x1040; // 0x602164
 constexpr std::int16_t ShieldHiddenMesh = 1;      // 0x602154
 
-// Las mallas posadas por el llamador o, sin ellas, las que posa acá como 0x5ffdf0 con el segundo argumento en 0
-// (0x52da99 → 0x602e90(efecto, 0, …)): WorldScratchOf, la normal girada por R · s. Vacío por debajo de 0,01 de alpha
-// o sin el modelo, su esqueleto o la pose.
+// The meshes posed by the caller or, without them, those it poses here as 0x5ffdf0 with the second argument at 0
+// (0x52da99 → 0x602e90(effect, 0, …)): WorldScratchOf, the normal rotated by R · s. Empty below 0.01 alpha or without
+// the model, its skeleton or the pose.
 std::span<const Models::SkinnedMesh> PosedOrScratch(const Models::IModelLibrary& models,
                                                     const Actors::Drawing::DrawnObject& object,
                                                     std::vector<Models::SkinnedMesh>& scratch)
@@ -64,8 +64,9 @@ Core::Expected<bool, std::string> DrawTheDarkBody(Render::ModelBatch& batch, con
     return true;
 }
 
-// 0x60213e..0x60216b: RenderBody(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1), el cromo 0x1000 (Chrome4, la
-// textura del pase) con la 0x40, aditivo, sin la malla 1 y con lo demás del efecto; después, el pase común (0x602170).
+// 0x60213e..0x60216b: RenderBody(0x1040, +0x174, +0x64, +0x68, +0x6c, +0x70, 1, −1), the chrome 0x1000 (Chrome4, the
+// pass's texture) with 0x40, additive, without mesh 1 and with the rest of the effect; then, the common pass
+// (0x602170).
 Core::Expected<void, std::string> DrawTheShieldChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                       const Actors::Drawing::DrawnObject& object,
                                                       Core::Duration frameClock)

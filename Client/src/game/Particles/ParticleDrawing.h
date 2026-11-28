@@ -29,7 +29,7 @@ enum class ParticleDrawingPhase
     TexCoord,
     Vertex,
     End,
-    // glTexEnvi de 0x5489eb; va al final para no mover los números de las fases que ya salen en los errores.
+    // glTexEnvi of 0x5489eb; it goes last so the phase numbers that already show in the errors do not move.
     TextureEnv
 };
 struct ParticleDrawingError
@@ -43,15 +43,13 @@ struct ParticleDrawingFailure
     std::size_t slot;
     ParticleDrawingError error;
 };
-// 548550: mismo pool, índice físico y prefijo sin rollback. Clock es el G vivo, no delta/seed.
-// Destinos acreditados: Fire default salvo5/7/8/11/12/13; Smoke con las guardas y relecturas cerradas;
-// Cloud8/10; Drop/Thunder/Spark/67/68, el brillo de la mano 5fd y la explosión 5ed (con sus cuadros de 4 × 4) directos
-// sin guarda de subtype;
-// 6ab directo y 6ac con 0x620c10 antes del billboard, la /2 entre GL_ADD y GL_MODULATE (0x5489eb). Otros destinos
-// fallan en Branch
-// DESPUÉS del prefijo. Es el único contrato del dibujo: Create/Step conservan su propio subconjunto,
-// que no filtra lo que se dibuja.
-// Pool, clock y servicios permanecen vivos; no reload/release concurrente ni retención diferida.
+// 0x548550: same pool, physical index and prefix without rollback. Clock is the live G, not delta/seed. Verified
+// destinations: Fire default except 5/7/8/11/12/13; Smoke with the closed guards and rereads; Cloud 8/10;
+// Drop/Thunder/Spark/67/68, the 5fd hand glow and the 5ed explosion (with its 4 × 4 frames) direct without a subtype
+// guard; 6ab direct and 6ac with 0x620c10 before the billboard, the /2 between GL_ADD and GL_MODULATE (0x5489eb).
+// Other destinations fail in Branch AFTER the prefix. It is the drawing's only contract: Create/Step keep their own
+// subset, which does not filter what is drawn. Pool, clock and services stay alive; no concurrent reload/release or
+// deferred retention.
 
 [[nodiscard]] Core::Expected<void, ParticleDrawingFailure>
 DrawParticlesChecked(Particles& particles, std::uint8_t mode, std::reference_wrapper<const float> clock,

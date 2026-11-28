@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-// El 0x62c (SpiralJoints.cpp): alta 0x5346d8 y paso 0x53b93f.
+// The 0x62c (SpiralJoints.cpp): creation 0x5346d8 and step 0x53b93f.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -77,8 +77,8 @@ struct Spirals
     void* owner = nullptr;
 };
 
-// 0x5346d8..0x534887: la /1 lleva la tanda rand() % 3 + 2 en +0x9eb y en la vida (20 más), el radio 80 y el giro 180
-// en +0x58/+0x5c, y nace en el camino (la posición 150 más alta) más (0, 0, 80) girado por (80, 180, 0).
+// 0x5346d8..0x534887: the /1 carries the volley rand() % 3 + 2 in +0x9eb and in the life (20 more), radius 80 and turn
+// 180 in +0x58/+0x5c, and is born on the path (the position 150 higher) plus (0, 0, 80) turned by (80, 180, 0).
 TEST(SpiralJointsTest, TheTurningSpiralsBornOnTheirRadius)
 {
     Spirals spirals;
@@ -105,8 +105,8 @@ TEST(SpiralJointsTest, TheTurningSpiralsBornOnTheirRadius)
     EXPECT_EQ(joint.position, Sum(radius, path));
 }
 
-// 0x5347b0..0x534824: la /0xb..0xd tienen su color y, como la /2 y la /4, el giro −180; la /3 y la /4, sin tanda.
-// La /0 no saca rand() y nace en el camino.
+// 0x5347b0..0x534824: the /0xb..0xd have their color and, like the /2 and /4, turn −180; the /3 and /4 have no volley.
+// The /0 draws no rand() and is born on the path.
 TEST(SpiralJointsTest, EachSubtypeHasItsColorTurnAndVolley)
 {
     struct Probe
@@ -141,8 +141,8 @@ TEST(SpiralJointsTest, EachSubtypeHasItsColorTurnAndVolley)
     EXPECT_EQ(column.joints[0].targetPosition, glm::vec3(0.0f));
 }
 
-// 0x534897..0x534926 y 0x530aa5: la /5..7 salta el primer tramo; textura 0x60d, el hueso en +0x9ec (el skill), una
-// vuelta de cola, vida 15, la velocidad (0, −4, 0) (0 con una key), la tanda 30 y (30, 0, subtipo · 90) en +0x58.
+// 0x534897..0x534926 and 0x530aa5: the /5..7 skip the first segment; texture 0x60d, the bone in +0x9ec (the skill), one
+// tail round, life 15, velocity (0, −4, 0) (0 with a key), volley 30 and (30, 0, subtype · 90) in +0x58.
 TEST(SpiralJointsTest, TheOrbitsWaitOnTheirOwnerBone)
 {
     Spirals spirals;
@@ -158,24 +158,23 @@ TEST(SpiralJointsTest, TheOrbitsWaitOnTheirOwnerBone)
     EXPECT_EQ(joint.volley, 30);
     EXPECT_EQ(joint.targetPosition, glm::vec3(30.0f, 0.0f, 540.0f));
     EXPECT_EQ(joint.position, glm::vec3(1000.0f, 2000.0f, 200.0f));
-    EXPECT_EQ(joint.points[0][0], glm::vec3(0.0f)); // sin el primer tramo
+    EXPECT_EQ(joint.points[0][0], glm::vec3(0.0f)); // without the first segment
     EXPECT_EQ(spirals.random.State(), CrtRandom(Seed).State());
 
     Spirals keyed;
     ASSERT_TRUE(keyed.Create(5, 20.0f, 7).HasValue());
     EXPECT_EQ(keyed.joints[0].velocity, glm::vec3(0.0f));
 
-    // 0x53bbe6..0x53be1c: sin dueño muere.
+    // 0x53bbe6..0x53be1c: without an owner it dies.
     ASSERT_TRUE(spirals.Step().HasValue());
     EXPECT_FALSE(joint.alive);
 }
 
-// 0x53bbf1..0x53be17: con dueño, la posición del dueño va al modelo compartido de su tipo (la escala y la acción
-// quedan) y el camino arranca en el punto (0, 20, 0) de su hueso +0x9ec. Cada paso da min(+0x6c, tanda) tramos: el
-// camino avanza la velocidad girada por el hueso (con la key en −1, 0,1f más baja por tramo, sólo en la local), +0x5c
-// gira 40 (la /5 y la /7 para un lado, la /6 para el otro) desde +0x60, la posición es (0, 0, radio) girado por (+0x5c,
-// 0, 0) sobre el camino, el radio baja 0,15f y en los tramos pares queda el sprite 0x60f con media luz roja. +0x6c
-// crece uno.
+// 0x53bbf1..0x53be17: with an owner, the owner's position goes to its type's shared model (scale and action stay) and
+// the path starts at the point (0, 20, 0) of its bone +0x9ec. Each step gives min(+0x6c, volley) segments: the path
+// advances the velocity turned by the bone (with key −1, 0.1f lower per segment, only in the local), +0x5c turns 40
+// (the /5 and /7 one way, the /6 the other) from +0x60, the position is (0, 0, radius) turned by (+0x5c, 0, 0) over the
+// path, the radius drops 0.15f and on even segments the sprite 0x60f stays with half red light. +0x6c grows by one.
 TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
 {
     using Client::Math::OriginalMatrixOf;
@@ -249,7 +248,7 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
         EXPECT_EQ(spirals.random.State(), CrtRandom(Seed).State());
     }
 
-    // Sin los modelos compartidos, o con un dueño que no es un personaje, corta.
+    // Without the shared models, or with an owner that is not a character, it stops.
     Spirals unserved;
     unserved.owner = &owner;
     ASSERT_TRUE(unserved.Create(7, 20.0f, -1, 2).HasValue());
@@ -262,8 +261,8 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
     EXPECT_TRUE(stranger.Error().starts_with("0x53bc27")) << stranger.Error();
 }
 
-// 0x53b974..0x53ba27: la /0 da +0x9ec − 1 tramos por paso (0, 2, 4…): cada uno la cola con la matriz de los ángulos y
-// (0, velocidad, 0) girado por ella sobre el camino, y la velocidad 2 menos.
+// 0x53b974..0x53ba27: the /0 gives +0x9ec − 1 segments per step (0, 2, 4…): each one the tail with the angles' matrix
+// and (0, speed, 0) turned by it over the path, and the speed 2 less.
 TEST(SpiralJointsTest, TheColumnRisesWithMoreStretchesEachStep)
 {
     Spirals spirals;
@@ -290,9 +289,9 @@ TEST(SpiralJointsTest, TheColumnRisesWithMoreStretchesEachStep)
     EXPECT_EQ(spirals.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x53ba4c..0x53bbe1: la /1 espera su tanda y después sube como la /0, corrida por (0, 0, +0x58) girado por (0,
-// +0x5c, la z de los ángulos), con +0x5c 20 menos (siempre: Q-C1624) y +0x58 2,5 menos por tramo. La /3 resta el
-// corrimiento.
+// 0x53ba4c..0x53bbe1: the /1 waits for its volley and then rises like the /0, shifted by (0, 0, +0x58) turned by (0,
+// +0x5c, the angles' z), with +0x5c 20 less (always: Q-C1624) and +0x58 2.5 less per segment. The /3 subtracts the
+// shift.
 TEST(SpiralJointsTest, TheSpiralsWaitTheirVolleyAndTurnAroundTheirPath)
 {
     for (const std::int32_t subtype : {1, 3})
@@ -306,7 +305,7 @@ TEST(SpiralJointsTest, TheSpiralsWaitTheirVolleyAndTurnAroundTheirPath)
             ASSERT_TRUE(spirals.Step().HasValue());
         EXPECT_EQ(joint.volley, 0);
         EXPECT_EQ(joint.field9ec, 1);
-        ASSERT_TRUE(spirals.Step().HasValue()); // sin tramos
+        ASSERT_TRUE(spirals.Step().HasValue()); // no segments
         EXPECT_EQ(joint.field9ec, 3);
         const glm::vec3 start = joint.pathIncrement;
         const std::int32_t count = joint.count;
@@ -337,8 +336,8 @@ TEST(SpiralJointsTest, TheSpiralsWaitTheirVolleyAndTurnAroundTheirPath)
     }
 }
 
-// 0x53b95d..0x53b966 y 0x53be4c..0x53b698: con la cola llena (la cuenta en los puntos − 1) no se mueve; con menos de 10
-// de vida, la luz por 0,7692308f en cada paso.
+// 0x53b95d..0x53b966 and 0x53be4c..0x53b698: with the tail full (the count at points − 1) it does not move; with life
+// under 10, the light times 0.7692308f each step.
 TEST(SpiralJointsTest, TheFullSpiralsOnlyFade)
 {
     Spirals spirals;

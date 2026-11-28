@@ -22,9 +22,9 @@ using Client::Weather::LeafWave;
 using Client::Weather::LeafWeather;
 using Client::Weather::StepLeafWeatherWaves;
 
-// Spy de wave-order-v1: observa lecturas/stores/orden en las fronteras de los callbacks.
-// V y Q no tienen observación intermedia; su orden requiere inspección estática.
-// No acredita el valor del binding (el perfil retenido de ADR0014) ni la conversión de 69fd3c.
+// wave-order-v1 spy: observes reads/stores/order at the callback boundaries. V and Q have no intermediate
+// observation; their order needs static inspection. Does not credit the binding's value (ADR0014's retained profile)
+// or the conversion of 0x69fd3c.
 class WaveSpy final : public ILeafWaveEvaluator
 {
 public:
@@ -98,7 +98,7 @@ TEST(LeafWaveOrderTest, RereadsPhaseChangedBySecondTruncation)
     LeafWeather weather{101, -5, 71, 72, 1990};
     float time = 10;
     WaveSpy spy(weather, time);
-    // H2 cambia la fase viva: Q debe partir de -30, no de la fase de entrada 1990.
+    // H2 changes the live phase: Q must start from -30, not from the input phase 1990.
     spy.phaseAfterSecondTruncation = -30;
     const auto result = StepLeafWeatherWaves(weather, time, &spy);
     ASSERT_TRUE(result.HasValue());
@@ -150,7 +150,7 @@ TEST(LeafWaveOrderTest, FailureStopsAtEachBoundaryAndPreservesPriorStores)
         float time = 10;
         WaveSpy spy(weather, time);
         spy.failAt = boundary;
-        // Valores y categorías distintos impiden fabricar un io_error genérico al propagar.
+        // Distinct values and categories keep the propagation from fabricating a generic io_error.
         spy.error = std::error_code(static_cast<int>(boundary) + 100,
                                     boundary % 2 == 0 ? std::system_category() : std::generic_category());
         const std::error_code expectedError = spy.error;

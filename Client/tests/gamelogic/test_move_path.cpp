@@ -270,7 +270,7 @@ TEST(MovePathTest, TargetRereadsCurrentAfterTheBeginningCallbacks)
                                              actor.path.current = 1;
                                          }
                                      }};
-    // i1 da objetivo177.34375; el k inicial sigue siendo1. Distancia exactamente20.
+    // i1 gives the target 177.34375; the initial k is still 1. Distance exactly 20.
     EXPECT_FALSE(MovePath(actor.View(), 0, effects));
     EXPECT_EQ(actor.path.current, 1);
     EXPECT_EQ(actor.logicalX, 1u);
@@ -336,7 +336,7 @@ TEST(MovePathTest, TargetRereadsProgressAfterTheBeginningCallbacks)
                                              actor.path.progress = 1;
                                          }
                                      }};
-    // §5.2 relee q: q1 da93.75, distancia20, y avanza una sola vez a q2.
+    // §5.2 rereads q: q1 gives 93.75, distance 20, and it advances only once, to q2.
     EXPECT_FALSE(MovePath(actor.View(), 0, effects));
     EXPECT_EQ(actor.path.current, 0);
     EXPECT_EQ(actor.logicalX, 1u);

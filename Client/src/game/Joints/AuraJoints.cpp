@@ -29,7 +29,7 @@ using JointKernels::AppendJointTail;
 using Math::D;
 using Math::F32;
 
-// 0x530f0d..0x531214: lo que pone cada alta.
+// 0x530f0d..0x531214: what each creation sets.
 constexpr std::int32_t RingLife = 0xf423f;                     // 0x530f15
 constexpr std::int32_t BindingLife = 0x2710;                   // 0x530f4c
 constexpr std::int32_t BeamLife = 0x14;                        // 0x530fa6
@@ -43,10 +43,10 @@ constexpr std::uint16_t RiseTexture = 0x610;                   // 0x5310df
 constexpr std::uint16_t SpinTexture = 0x5ac;                   // 0x531189
 constexpr float RiseSpeed = std::bit_cast<float>(0x44480000u); // 0x5310f5, 800
 constexpr float SpinSpeed = std::bit_cast<float>(0xc2200000u); // 0x53119a, −40
-constexpr float Tenth8 = std::bit_cast<float>(0x3f4ccccdu);    // 0,8f
+constexpr float Tenth8 = std::bit_cast<float>(0x3f4ccccdu);
 
-// 0x535d4f..0x535db2: el 10f/4 pasa a /9 si el personaje de +0xa0c monta a Fenrir (0x1c37 en +0x318) fuera de la zona
-// segura (+0x3e2), y el /9 vuelve a /4 si no. Con +0xa0c en −1, nada.
+// 0x535d4f..0x535db2: 10f/4 becomes /9 if +0xa0c's character rides Fenrir (0x1c37 in +0x318) outside the safe zone
+// (+0x3e2), and /9 goes back to /4 otherwise. With +0xa0c at −1, nothing.
 Core::Expected<void, std::string> SwapByFenrir(Kernel::JointState& joint, std::span<const Kernel::ActorState> actors)
 {
     constexpr std::uint16_t FenrirModel = 0x1c37;
@@ -65,7 +65,8 @@ Core::Expected<void, std::string> SwapByFenrir(Kernel::JointState& joint, std::s
     return {};
 }
 
-// 0x5360dc..0x536185: corre los tramos con el destino, restando el viejo y sumando el nuevo en dos vueltas de float.
+// 0x5360dc..0x536185: shifts the segments with the target, subtracting the old one and adding the new one in two float
+// rounds.
 void ShiftByTarget(Kernel::JointState& joint, const glm::vec3& target, bool add)
 {
     const auto count = joint.count < 0 ? 0 : static_cast<std::size_t>(joint.count);
@@ -75,10 +76,10 @@ void ShiftByTarget(Kernel::JointState& joint, const glm::vec3& target, bool add)
                 point[axis] = add ? F32(D(target[axis]) + D(point[axis])) : F32(D(point[axis]) - D(target[axis]));
 }
 
-// 0x536073..0x5364d2: el 10f/0, /4 y /9 giran alrededor del dueño, 80 de radio y 120 de alto, 110 (o 140 la /9) por
-// encima de su +0x10 + 10. El /4 y el /9 viven mientras el dueño tenga 8 o 0x2000000 en +0x78. Los subtipos sin caso
-// (de 0xa en adelante o negativos, que ningún llamador crea) hacen lo mismo sin correr los tramos ni moverse: el dueño,
-// el destino, el acceso al contador y la dirección, y van a la cola (0x536452).
+// 0x536073..0x5364d2: 10f/0, /4 and /9 turn around the owner, radius 80 and height 120, 110 (or 140 for /9) above its
+// +0x10 + 10. /4 and /9 live while the owner has 8 or 0x2000000 in +0x78. The subtypes without a case (0xa onward or
+// negative, which no caller creates) do the same without shifting the segments or moving: the owner, the target, the
+// counter access and the direction, and they go to the tail (0x536452).
 Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const bool ring = joint.subtype == 0 || joint.subtype == 4 || joint.subtype == 9;
@@ -89,7 +90,7 @@ Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const J
     {
         joint.life = 0;
         joint.alive = false;
-        return {}; // 0x536088: sigue en la cola y la vida.
+        return {}; // 0x536088: goes on to the tail and the life.
     }
     if (joint.subtype == 4 || joint.subtype == 9)
     {
@@ -103,14 +104,14 @@ Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const J
         }
         joint.life = 100; // 0x5360c4
     }
-    // 0x5360ce..0x536185: sólo el 0, el 4 y el 9 corren los tramos.
+    // 0x5360ce..0x536185: only 0, 4 and 9 shift the segments.
     if (ring)
         ShiftByTarget(joint, joint.targetPosition, false);
     joint.targetPosition = owner->position;
     joint.targetPosition.z = F32(D(owner->position.z) + 10);
     if (ring)
         ShiftByTarget(joint, joint.targetPosition, true);
-    // 0x536187..0x536388: el acceso al contador de pasos (0x7d3a0f0), como el hada.
+    // 0x536187..0x536388: the step counter access (0x7d3a0f0), like the fairy.
     if (services.cloth == nullptr || services.random == nullptr)
         return Core::Unexpected(
             std::format("0x536187: falta el contador compartido del joint 0x10f/{}", joint.subtype));
@@ -121,13 +122,13 @@ Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const J
     const auto index = static_cast<std::uint32_t>(services.index);
     constexpr std::uint32_t PhaseStride = 53731;
     const auto phase = std::bit_cast<std::int32_t>(index * PhaseStride + ((index & 1u) != 0 ? steps : 0u - steps));
-    // 0x5363bf: la frecuencia entera (0,048), la del 0x53d1a0 con escala 1.
+    // 0x5363bf: the integer frequency (0.048), 0x53d1a0's with scale 1.
     const auto direction = Math::Detail::FaunaDirectionPC53(phase);
     if (!direction)
         return Core::Unexpected(
             std::format("0x536409: la dirección del joint 0x10f/{} excede el perfil PC53", joint.subtype));
     if (!ring)
-        return {};                                      // 0x536452: a la cola.
+        return {};                                      // 0x536452: to the tail.
     const double lift = joint.subtype == 9 ? 140 : 110; // 0x5364c9, 0x536491
     joint.position = {F32(D((*direction)[0]) * 80 + D(joint.targetPosition.x)),
                       F32(D((*direction)[1]) * 80 + D(joint.targetPosition.y)),
@@ -135,7 +136,7 @@ Core::Expected<void, std::string> StepTheRing(Kernel::JointState& joint, const J
     return {};
 }
 
-// 0x536005..0x53606e: el 10f/8 gira 25 en z alrededor de su +0x24, agrega la cola y sube 15.
+// 0x536005..0x53606e: 10f/8 turns 25 in z around its +0x24, appends the tail and rises 15.
 Core::Expected<void, std::string> StepTheSpin(Kernel::JointState& joint)
 {
     joint.angles.z = F32(D(joint.angles.z) + 25);
@@ -149,18 +150,18 @@ Core::Expected<void, std::string> StepTheSpin(Kernel::JointState& joint)
     return {};
 }
 
-// 0x536526..0x5366a7: el 10f/5..7, tres vueltas por paso. Cada una gira 10 en z, se pone en su +0x24 más la velocidad
-// girada y agrega la cola. Con la tanda (+0x9eb) en 0, la velocidad y se frena (0,95) hasta −10 bajo 10; pasada la 40,
-// cae 20, gira −5 y ensancha 15. Con la y negativa: la tanda 40 de la /5 y la /6 suelta la onda 0x6eb/3 (0x536626:
-// 0x518cf0(0x6eb, +0x24, ángulos, luz, 3, 0, −1, 0, 0, 0, 0), sin rand(); llena, nada); la tanda sube y, hasta la 20,
-// la y vuelve a −30 y el ancho a 40; después el +0x24 sube 5.
+// 0x536526..0x5366a7: 10f/5..7, three rounds per step. Each turns 10 in z, sets itself at its +0x24 plus the turned
+// velocity and appends the tail. With the batch (+0x9eb) at 0, the y velocity brakes (0.95) to −10 below 10; past 40,
+// it falls 20, turns −5 and widens 15. With a negative y: batch 40 of /5 and /6 releases the wave 0x6eb/3 (0x536626:
+// 0x518cf0(0x6eb, +0x24, angles, light, 3, 0, −1, 0, 0, 0, 0), without rand(); full, nothing); the batch rises and, up
+// to 20, the y goes back to −30 and the width to 40; then the +0x24 rises 5.
 Core::Expected<void, std::string> StepTheRise(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
-    constexpr float Brake = std::bit_cast<float>(0x3f733333u);  // 0x6ba30c, 0,95
+    constexpr float Brake = std::bit_cast<float>(0x3f733333u);  // 0x6ba30c, 0.95
     constexpr float Floor = std::bit_cast<float>(0xc1200000u);  // 0x5365b3, −10
     constexpr float Fall = std::bit_cast<float>(0xc1f00000u);   // 0x536642, −30
     constexpr float Narrow = std::bit_cast<float>(0x42200000u); // 0x53664c, 40
-    constexpr float Fade = std::bit_cast<float>(0x3f555555u);   // 0x6b8b98, 0,8333333
+    constexpr float Fade = std::bit_cast<float>(0x3f555555u);   // 0x6b8b98, 0.8333333
     constexpr std::uint8_t BurstVolley = 0x28;
     constexpr std::uint8_t FallingVolleys = 0x14;
     for (int turn = 0; turn < 3; ++turn)
@@ -175,7 +176,7 @@ Core::Expected<void, std::string> StepTheRise(Kernel::JointState& joint, const J
         const std::uint8_t volley = joint.volley;
         if (volley == 0)
         {
-            // 0x5365a0: FST guarda el float y la comparación usa el producto retenido.
+            // 0x5365a0: FST stores the float and the comparison uses the retained product.
             const double braked = D(joint.velocity.y) * D(Brake);
             joint.velocity.y = F32(braked);
             if (braked < 10)
@@ -219,10 +220,10 @@ Core::Expected<void, std::string> StepTheRise(Kernel::JointState& joint, const J
     joint.width = F32(D(joint.width) - 5);
     return {};
 }
-// 0x535dbe..0x535ee4: el 0x10f/2 de la 0x2b (0x4f99fe). Sin dueño vivo, lo suelta y sigue en la cola. Con él, el
-// ancho es la vida · 3 y la posición va de la mano del dueño (+0x194, la que deja 0x4f9a0d) hacia el destino
-// (+0x58) corrido por la dirección de 0x53d1a0(17721 · lugar, dir, 1,4f) · 300: con a = (vida − 10) · 0,1 entre 0 y
-// 1, (1 − a) · mano + a · punto. La x del punto suma el producto sin guardarlo en float.
+// 0x535dbe..0x535ee4: 0x10f/2 of 0x2b (0x4f99fe). Without a live owner, it releases it and goes on to the tail. With
+// it, the width is life · 3 and the position goes from the owner's hand (+0x194, the one 0x4f9a0d leaves) toward the
+// target (+0x58) shifted by the direction of 0x53d1a0(17721 · slot, dir, 1.4f) · 300: with a = (life − 10) · 0.1
+// between 0 and 1, (1 − a) · hand + a · point. The point's x adds the product without storing it as float.
 Core::Expected<void, std::string> StepTheBeam(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto* owner = JointKernels::ActorOwner(joint);
@@ -233,15 +234,15 @@ Core::Expected<void, std::string> StepTheBeam(Kernel::JointState& joint, const J
     }
     constexpr double WidthPerLife = 3.0;                                                // 0x6b86b8
     constexpr std::int32_t FadeStart = 10;                                              // 0x535ddb
-    constexpr double FadeRate = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34, 0,1f
+    constexpr double FadeRate = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34, 0.1f
     joint.width = F32(static_cast<double>(joint.life) * WidthPerLife);
     const double fade = static_cast<double>(joint.life - FadeStart) * FadeRate;
-    // 0x535df6..0x535e35: menor que 1 y no menor que 0, guardado en float; si no, 0 o 1.
+    // 0x535df6..0x535e35: below 1 and not below 0, stored as float; otherwise 0 or 1.
     float near = 1.0f;
     if (fade < 1.0)
         near = fade >= 0.0 ? F32(fade) : 0.0f;
     const float far = F32(1.0 - D(near));
-    // 0x535e3c..0x535e66 y 0x53d1a0..0x53d1f4: el acceso al contador de pasos (0x7d3a0f0), como el hada.
+    // 0x535e3c..0x535e66 and 0x53d1a0..0x53d1f4: the step counter access (0x7d3a0f0), like the fairy.
     if (services.cloth == nullptr || services.random == nullptr)
         return Core::Unexpected(std::string("0x535e66: falta el contador compartido del joint 0x10f/2"));
     const auto steps = std::bit_cast<std::uint32_t>(services.cloth->logicSteps);
@@ -249,7 +250,7 @@ Core::Expected<void, std::string> StepTheBeam(Kernel::JointState& joint, const J
         for (std::uint16_t draw = 0; draw < Models::SmallLogicalCloseRandoms; ++draw)
             static_cast<void>(services.random->Next());
     constexpr std::uint32_t PhaseStride = 17721;                        // 0x535e4e..0x535e62
-    constexpr float DirectionScale = std::bit_cast<float>(0x3fb33333u); // 0x535e3f, 1,4f
+    constexpr float DirectionScale = std::bit_cast<float>(0x3fb33333u); // 0x535e3f, 1.4f
     const auto phase = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(services.index) * PhaseStride + steps);
     const auto direction = Math::Detail::ScaledFaunaDirectionPC53(phase, DirectionScale);
     if (!direction)
@@ -268,7 +269,7 @@ Core::Expected<void, std::string> StepTheBeam(Kernel::JointState& joint, const J
 
 Core::Expected<void, std::string> CreateAuraJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
-    // 0x530edd: el destino es el +0x10 del dueño, que tiene que estar.
+    // 0x530edd: the target is the owner's +0x10, which must be present.
     const auto* owner = JointKernels::ActorOwner(joint);
     if (owner == nullptr || joint.ownerKind != Kernel::JointOwnerKind::Actor)
         return Core::Unexpected(
@@ -319,7 +320,7 @@ Core::Expected<void, std::string> CreateAuraJoint(Kernel::JointState& joint, con
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(turned[axis]) + D(joint.pathIncrement[axis]));
         joint.count = -1;
-        // 0x53115b: la cola antes del ancho, con el que quedó del uso anterior.
+        // 0x53115b: the tail before the width, with the one left from the previous use.
         if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
         break;
@@ -341,7 +342,7 @@ Core::Expected<void, std::string> CreateAuraJoint(Kernel::JointState& joint, con
         break;
     }
     default:
-        break; // 0x53120e: sólo el ancho.
+        break; // 0x53120e: only the width.
     }
     joint.width = request.scale;
     return {};
@@ -362,7 +363,7 @@ Core::Expected<void, std::string> StepAuraJoint(Kernel::JointState& joint, const
     case 8:
         return StepTheSpin(joint);
     default:
-        // 0x536073: el 0, el 4, el 9 y los que no tienen caso.
+        // 0x536073: 0, 4, 9 and those without a case.
         return StepTheRing(joint, services);
     }
 }

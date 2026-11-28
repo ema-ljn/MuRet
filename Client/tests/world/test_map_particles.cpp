@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <limits>
 
-// Oráculos del contrato de extensión 53fe70/5446e0/548550: 607/0, sin ejecutar el PE.
+// Oracles of the extension contract 0x53fe70/0x5446e0/0x548550: 607/0, without running the PE.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,7 +52,7 @@ TEST(MapParticlesTest, ExpiringDropStillIncrementsItsFrameAndConsumesThreeOrdere
     Particles particles;
     Particle& particle = particles.All()[0];
     particle = Particle{.alive = true, .type = Drop, .subtype = 0, .scale = 0.25f, .life = 1};
-    CrtRandom random(7); // Viento:61,17422; ejes:15215,7040,15521 -> 5,-10,11.
+    CrtRandom random(7); // Wind: 61,17422; axes: 15215,7040,15521 -> 5,-10,11.
     Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
     EXPECT_EQ(particle.life, 0);
@@ -232,7 +232,7 @@ TEST(MapParticlesTest, MissingMapKeepsEarlierAndCurrentEffectsButLeavesTheLaterS
         EXPECT_EQ(slots[1].life, 0);
         EXPECT_FALSE(slots[1].alive);
         EXPECT_EQ(slots[1].position, glm::vec3(104, 205, 306));
-        EXPECT_EQ(slots[1].scale, 1.25f); // Continuación subtype1 previa a 4303c0.
+        EXPECT_EQ(slots[1].scale, 1.25f); // Subtype 1 continuation before 0x4303c0.
         EXPECT_EQ(slots[1].light, glm::vec3(2, 3, 4));
         EXPECT_TRUE(slots[2].alive);
         EXPECT_EQ(slots[2].life, 7);
@@ -263,14 +263,14 @@ TEST(MapParticlesTest, TwoDropsReceiveTheirSixAxisDrawsInPoolOrderAfterTheWind)
     CrtRandom random(7);
     const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
-    // CRT R3..8=15215,7040,15521 / 6516,30152,11794; pasos=5,-10,11 / 6,2,24.
+    // CRT R3..8=15215,7040,15521 / 6516,30152,11794; steps=5,-10,11 / 6,2,24.
     EXPECT_EQ(slots[0].position, glm::vec3(103.125f, 193.75f, 306.875f));
     EXPECT_EQ(slots[2].position, glm::vec3(-2.5f, 22.5f, 60));
     EXPECT_EQ(slots[0].life, 1);
     EXPECT_EQ(slots[2].life, 2);
     EXPECT_EQ(Bits(slots[0].field48), 5u);
     EXPECT_EQ(Bits(slots[2].field48), 9u);
-    EXPECT_EQ(random.State(), 0x2e12d22fu); // También coincide si se invierte el reparto entre slots.
+    EXPECT_EQ(random.State(), 0x2e12d22fu); // It also matches if the split between slots is reversed.
 }
 
 } // namespace

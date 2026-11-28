@@ -19,7 +19,7 @@
 namespace
 {
 using namespace Client::Fauna;
-// Sólo observación de fronteras; estos registros no implementan ningún cuerpo opaco.
+// Boundary observation only; these records implement no opaque body.
 enum class Boundary
 {
     Actor,
@@ -375,7 +375,7 @@ TEST(BirdLifecycleTest, ActiveKalimaIgnoresFailedGateAndFinalizesAfterTail)
 TEST(BirdLifecycleTest, FinalizerMapMutationChangesNextLimit)
 {
     Pool pool;
-    // Cinco activos impiden que una relectura de nacimiento oculte la omisión tras finalizar.
+    // Five active ones keep a birth reread from hiding the omission after finishing.
     for (std::size_t i = 0; i < 5; ++i)
         pool.data[i][0] = std::byte{1};
     Services services;
@@ -422,7 +422,7 @@ TEST(BirdLifecycleTest, EveryStableMapUsesIndependentExpectedCount)
         Pool pool;
         Services services;
         services.map = maps[i];
-        // Mantiene todos activos con tipo default para observar sólo el límite.
+        // Keeps them all active with the default type to observe only the limit.
         for (auto& bird : pool.data)
             bird[0] = std::byte{0x80};
         auto result = StepBirds(pool.views, services);
@@ -478,7 +478,7 @@ TEST(BirdLifecycleTest, SpecialBirthRetainsUnwrittenBytesAndUpdatesInSameStep)
     EXPECT_EQ(pool.Read<std::int16_t>(0, 2), 0x171);
     EXPECT_EQ(pool.Read<std::int32_t>(0, 4), 1);
     EXPECT_EQ(pool.Read<std::int32_t>(0, 0x60), 127);
-    EXPECT_EQ(services.draws, 38); // contrato: prefijo3 + cinco (gate300,speed,timer,phase,x,y,update)
+    EXPECT_EQ(services.draws, 38); // contract: prefix 3 + five × (gate300, speed, timer, phase, x, y, update)
     EXPECT_EQ(services.audios.front(), 0x42);
 }
 TEST(BirdLifecycleTest, OrdinaryAudioRunsAfterDeathAndUsesObjectPointer)
@@ -547,7 +547,7 @@ TEST(BirdLifecycleTest, SpecialExpiryStillRequestsNullAudioThenFinalizes)
     Services services;
     services.map = -1;
     services.mode = 1;
-    // Prefijo falla, update audio acierta; los cuatro inactivos fallan gate300.
+    // The prefix fails, the audio update succeeds; the four inactive ones fail gate300.
     services.scripted = {-1, 0, -1, -1, -1, -1};
     pool.data[0][0] = std::byte{1};
     const std::int16_t type = 0x171;
@@ -619,8 +619,8 @@ TEST(BirdLifecycleTest, Pc53RoundsWaveProductBeforeCancellation)
     std::memcpy(pool.data[0].data() + 2, &type, sizeof type);
     auto result = StepBirds(pool.views, services);
     ASSERT_FALSE(result.error);
-    // R53(Wave*100)=2^60; R53(2^60-2^60)+100=100, F32 bits42c80000.
-    // Con mantisa64 retenida el residuo es-24 y se guarda76: no son equivalentes.
+    // R53(Wave*100)=2^60; R53(2^60-2^60)+100=100, F32 bits 0x42c80000.
+    // With a 64-bit mantissa retained the residue is -24 and 76 is stored: they are not equivalent.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(pool.Read<float>(0, 0x18)), 0x42c80000u);
 }
 TEST(BirdLifecycleTest, CachedActorsSurviveCrossActorLookupsAndRemainLive)
@@ -633,10 +633,10 @@ TEST(BirdLifecycleTest, CachedActorsSurviveCrossActorLookupsAndRemainLive)
     services.scripted = {0, 1, 2};
     auto result = StepBirds(pool.views, services);
     ASSERT_FALSE(result.error);
-    // Luz conserva identidadA0 cacheada, pero observa su mutación posterior al efecto.
+    // The light keeps the cached identity A0, but observes its mutation after the effect.
     EXPECT_EQ(services.observedLight, (glm::vec3{11, 22, 0}));
     ASSERT_EQ(services.coordinates.size(), 2u);
-    // Conversión pura: el actorA1 sigue canónico; no mutar globals desde servicios matemáticos.
+    // Pure conversion: actor A1 stays canonical; do not mutate globals from math services.
     EXPECT_EQ(services.coordinates[0], 200.0 * static_cast<double>(0.01f));
     EXPECT_EQ(services.coordinates[1], 100.0 * static_cast<double>(0.01f));
 }
@@ -673,7 +673,7 @@ TEST(BirdLifecycleTest, RequiredSineServiceResultIsForwardedWithoutReevaluation)
     ASSERT_FALSE(result.error);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(services.observedPhase), 0u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(services.observedSine), 0x3e800000u);
-    // Sentinel de servicio, distinto de sin(0); prueba forwarding, no payload FSIN numérico.
+    // Service sentinel, different from sin(0); tests the forwarding, not a numeric FSIN payload.
 }
 
 TEST(BirdLifecycleTest, SpawnChainUsesIcarusThenAtlansThenKalimaWithFullEax)
@@ -685,7 +685,7 @@ TEST(BirdLifecycleTest, SpawnChainUsesIcarusThenAtlansThenKalimaWithFullEax)
         services.map = 10;
         services.useSpawnResults = true;
         services.spawnResults = {0, atlansResult, 1};
-        // Sólo slot0 nace: el resto activo con tipo default no llama a spawn.
+        // Only slot 0 is born: the rest, active with the default type, do not call spawn.
         for (std::size_t i = 1; i < 40; ++i)
             pool.data[i][0] = std::byte{1};
         auto result = StepBirds(pool.views, services);
@@ -895,7 +895,7 @@ TEST(BirdLifecycleObservabilityTest, HeightAdditionUsesQaPc53TieBeforeFloatStore
     auto result = StepBirds(pool.views, services);
     SCOPED_TRACE(services.DescribeTrace());
     ASSERT_FALSE(result.error);
-    // Oracle QA: R53(H+300) cae en el empateF32 de512; después +100 da612 exacto.
+    // QA oracle: R53(H+300) lands on the F32 tie of 512; then +100 gives exactly 612.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(pool.Read<float>(0, 0x18)), 0x44190000u);
 }
 } // namespace

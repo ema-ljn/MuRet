@@ -48,8 +48,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Skills::StepTheHeadSkill, StepTheTargetSkill y SparkTheTarget: los casos de habilidad del paso del ataque
-// (0x4fdeeb, 0x504372 y 0x5042ce). 06, "El paso del ataque".
+// StepTheHeadSkill (0x4fdeeb), StepTheTargetSkill (0x504372) and SparkTheTarget (0x5042ce). 06, "El paso del ataque".
 namespace
 {
 using Client::Actors::CharacterStepContext;
@@ -65,11 +64,11 @@ constexpr std::uint32_t Seed = 0x2468ace1u;
 constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t StrikerSlot = 5;
 constexpr std::size_t VictimSlot = 9;
-// El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
+// The own record closed at 0: the 3848 rand() of 0x40b4d0.
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
-// Una lectura de +0x38e: un rand() al cerrarse en 0.
+// One read of +0x38e: one rand() when it closes at 0.
 constexpr int SkillRead = 1;
-// La entrada de Skill.bmd de 0x5526f0, cerrada en 0.
+// The Skill.bmd entry of 0x5526f0, closed at 0.
 constexpr int SkillEntry = static_cast<int>(Client::Tables::SkillRecordSize);
 constexpr std::array<std::int32_t, 3> Maps{0, 2, 7};
 
@@ -96,7 +95,6 @@ std::string ErrorOf(const Client::Core::Expected<void, std::string>& stepped)
     return stepped.HasValue() ? std::string() : stepped.Error();
 }
 
-// Skill.bmd con el alcance (+0x26) de la 0x4c.
 Client::Tables::SkillTable SkillsWithRange(std::uint8_t range)
 {
     constexpr std::size_t AroundSkill = 0x4c;
@@ -133,7 +131,7 @@ struct SkillWorld
         return actor;
     }
 
-    // Un monstruo vivo (+0x88 en 2) en `slot`, a `x` de o en la x.
+    // A live monster (+0x88 at 2) at `x` from o on the x axis.
     ActorState& Monster(std::size_t slot, float x)
     {
         ActorState& monster = world.Actors()[slot];
@@ -212,11 +210,9 @@ std::vector<const Client::Effects::ModelEffect*> AliveEffects(const WorldState& 
     return found;
 }
 
-// Los casos de la cabeza que crean lo que MuRet no tiene (CL11): cortan en su alta, con los rand() de antes (0x59fb80
-// con el registro propio cerrado y los dos de 0x51fe10 de la 0x0e, que corta en su primera chispa). La 0x29, la 0x27 y
-// la 0x0d, del lote switch, en TheSwitchHeadCasesCreateTheirEffects; la 0x35 y la 0x41, del lote joints, en
-// TheEnergyCaseHangsFourJointsAroundItsCaster y TheSpiralCaseRaisesFiveJointsFromItsEffect; la 0x31, del lote altos,
-// en TheBreathCaseRaisesTheFireBreathOverTheStriker.
+// The head cases that create what MuRet does not have (CL11) cut at their creation, after the rand() before it
+// (0x59fb80 with the own record closed, and 0x0e's two from 0x51fe10, which cuts at its first spark). 0x29, 0x27 and
+// 0x0d (switch batch), 0x35 and 0x41 (joints batch) and 0x31 (high batch) have their own tests.
 TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
 {
     struct Case
@@ -246,10 +242,10 @@ TEST(AttackSkillCasesTest, TheHeadCasesCutAfterTheirDraws)
     }
 }
 
-// 0x4fe795..0x4fe981: la 0x35 cuelga de o cuatro 0x619/0xa de ancho 15 con los ángulos (−45, 0, 45, 405, 225 y 450),
-// que nacen en o; su primer tramo queda en el punto (sen 4,5 · 80; cos 4,5 · 80; 300) o (cos 22,5 · 80; sen 22,5 · 80;
-// 300) más o. Suena 0x7f, sin rand(). Los puntos, por sus bits: FSIN/FCOS a 64 bits, el producto por 80 y la suma con
-// o en PC53 y el fstp a float. Con el lugar nuevo (ancho 0 en 0x530afa), las cuatro esquinas caen justo en el punto.
+// 0x4fe795..0x4fe981: 0x35's four 0x619/0xa start at o; their first segment sits at (sin 4.5 · 80; cos 4.5 · 80; 300)
+// or (cos 22.5 · 80; sin 22.5 · 80; 300) plus o, by its bits: FSIN/FCOS at 64 bits, the product by 80 and the sum with
+// o in PC53, then the fstp to float. With the new slot (width 0 at 0x530afa), the four corners fall exactly on the
+// point.
 TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
 {
     SkillWorld tested;
@@ -271,7 +267,7 @@ TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
         EXPECT_EQ(joint.angles, glm::vec3(-45.0f, 0.0f, turns[index]));
         EXPECT_EQ(joint.position, tested.Striker().position);
         EXPECT_EQ(joint.ownerContext, &tested.Striker());
-        // 921,7976 y 1983,1364 (4,5 rad); 930,1356 y 1961,0260 (22,5 rad).
+        // 921.7976 and 1983.1364 (4.5 rad); 930.1356 and 1961.0260 (22.5 rad).
         const glm::vec3 from =
             index < 2 ? glm::vec3(std::bit_cast<float>(0x4466730cu), std::bit_cast<float>(0x44f7e45du), 350.0f)
                       : glm::vec3(std::bit_cast<float>(0x446888aeu), std::bit_cast<float>(0x44f520d5u), 350.0f);
@@ -282,9 +278,9 @@ TEST(AttackSkillCasesTest, TheEnergyCaseHangsFourJointsAroundItsCaster)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
 }
 
-// 0x4feb3b..0x4febd3: la 0x41 crea el efecto 0x62c en el punto (0, −90, −50) de o (80 más alto en la acción 0x51), con
-// vida 0, y su caso (0x51f25e) los cinco 0x62c: /1, /0 de ancho 250, /2, /3 y /4. Cuatro rand(), los de la tanda de la
-// /1..4 (0x53479d). Suena 0x1cd.
+// 0x4feb3b..0x4febd3: 0x41 creates the effect 0x62c at o's point (0, −90, −50) (80 higher in action 0x51), with life 0,
+// and its case (0x51f25e) the five 0x62c: /1, /0 of width 250, /2, /3 and /4. Four rand(), from the /1..4 volley
+// (0x53479d). Sounds 0x1cd.
 TEST(AttackSkillCasesTest, TheSpiralCaseRaisesFiveJointsFromItsEffect)
 {
     for (const std::uint8_t action : {std::uint8_t{0}, std::uint8_t{0x51}, std::uint8_t{0x5b}})
@@ -322,10 +318,10 @@ TEST(AttackSkillCasesTest, TheSpiralCaseRaisesFiveJointsFromItsEffect)
     }
 }
 
-// 0x4fe015..0x4fe13f: los 36 joints 0x613/2 de la 0x30, colgados de o 100 más arriba con los ángulos (−10, 0, 10 · i),
-// sin rand(); 0x53265e y 0x533173: la mezcla 1, la segunda cara, velocidad 50, la luz 0,5, vida 20, tres puntos y la
-// partida en +0x24. En las vueltas 0 y 20, después del joint, el calco 0x61e/4 sobre o (0x4fe127), con su escala
-// rand() % 50 + 50 por 0,04 (0x51ef79); al final, el sonido 0x7f.
+// 0x4fe015..0x4fe13f: 0x30's 36 joints 0x613/2 hang from o 100 higher with the angles (−10, 0, 10 · i), no rand();
+// 0x53265e and 0x533173: blend 1, the second face, speed 50, light 0.5, life 20, three points and the start at +0x24.
+// In rounds 0 and 20, after the joint, the decal 0x61e/4 over o (0x4fe127), scale rand() % 50 + 50 times 0.04
+// (0x51ef79); at the end, sound 0x7f.
 TEST(AttackSkillCasesTest, TheSpiritRingThrowsItsJointsAndTwoDecals)
 {
     SkillWorld tested;
@@ -369,9 +365,9 @@ TEST(AttackSkillCasesTest, TheSpiritRingThrowsItsJointsAndTwoDecals)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7f});
 }
 
-// 0x501bab..0x501ca4: la 0x09 da cuatro vueltas; en cada una, 0x59fb80(9) (el registro propio cerrado en 0) y dos
-// joints 0x613/0, cada uno con su acceso al registro propio para el +0x9eb (0x532675): 12 cierres de 3.848. El de
-// ancho 80 lleva la key +0x8a, el índice de la skill (0 sin ella) y +0x1bd; el de ancho 20, la key −1. Suena 0x75.
+// 0x501bab..0x501ca4: 0x09 makes four rounds; in each, 0x59fb80(9) (the own record closed at 0) and two joints 0x613/0,
+// each accessing the own record for +0x9eb (0x532675): 12 closes of 3848. The width-80 one carries key +0x8a, the
+// skill's index (0 without it) and +0x1bd; the width-20 one, key −1. Sounds 0x75.
 TEST(AttackSkillCasesTest, TheEvilSpiritsThrowEightJointsWithTheVolley)
 {
     SkillWorld tested;
@@ -408,9 +404,9 @@ TEST(AttackSkillCasesTest, TheEvilSpiritsThrowEightJointsWithTheVolley)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x75});
 }
 
-// 0x31 (0x4febdb..0x4fec2b): el 0x6ac sobre o, con o de dueño, su clave (+0x8a) y el byte bajo de [0x5767948], sin
-// 0x59fb80 antes; sus cuarenta joints 0x617/1 sacan tres rand() cada uno (el de su alta y los dos de 0x530860).
-// Después, el sonido 0x72. Con la tabla de efectos llena, ni efecto ni rand(), y el sonido igual.
+// 0x31 (0x4febdb..0x4fec2b): the 0x6ac over o, with o as owner, its key (+0x8a) and the low byte of [0x5767948], with
+// no 0x59fb80 before; its forty joints 0x617/1 draw three rand() each (their creation's and 0x530860's two). Then
+// sound 0x72. With the effect table full, neither effect nor rand(), and the same sound.
 TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
 {
     SkillWorld tested;
@@ -441,9 +437,9 @@ TEST(AttackSkillCasesTest, TheBreathCaseRaisesTheFireBreathOverTheStriker)
     EXPECT_EQ(full.sounds, std::vector<std::int32_t>{0x72});
 }
 
-// 0x0c (0x500c64..0x500ccf): el rayo 0x5e8 en el punto (−20, −90, 100) de o girado, con o de dueño, su clave (+0x8a)
-// y el lugar de la skill (0x59fb80, con el registro propio cerrado); el sonido 0x7a. Sin ser el héroe, el alta no busca
-// blancos.
+// 0x0c (0x500c64..0x500ccf): the ray 0x5e8 at the point (−20, −90, 100) of o rotated, with o as owner, its key (+0x8a)
+// and the skill's slot (0x59fb80, with the own record closed); sound 0x7a. When o is not the hero, the creation looks
+// for no targets.
 TEST(AttackSkillCasesTest, TheLightningRayLeavesFromTheHand)
 {
     SkillWorld tested;
@@ -468,7 +464,7 @@ TEST(AttackSkillCasesTest, TheLightningRayLeavesFromTheHand)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x7a});
 }
 
-// Con el registro propio abierto (+0x38e de 0x40ad90 en uso), 0x59fb80 no saca rand().
+// With the own record open (+0x38e of 0x40ad90 in use), 0x59fb80 draws no rand().
 TEST(AttackSkillCasesTest, AnOpenOwnRecordFindsTheSkillWithoutDraws)
 {
     SkillWorld tested;
@@ -481,8 +477,8 @@ TEST(AttackSkillCasesTest, AnOpenOwnRecordFindsTheSkillWithoutDraws)
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 
-// 0x4fdef2..0x4fdf26: de la 0x1e a la 0x24, el calco 0x61e/3 sobre o, con o de dueño, sin rand() ni sonido, con o sin
-// 0x4000. Con la tabla llena, nada.
+// 0x4fdef2..0x4fdf26: 0x1e to 0x24 leave the decal 0x61e/3 over o, with o as owner, no rand() or sound, with or
+// without 0x4000. With the table full, nothing.
 TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
 {
     for (const std::int32_t map : Maps)
@@ -523,7 +519,6 @@ TEST(AttackSkillCasesTest, TheSummonsLeaveTheirDecalOverTheStriker)
     EXPECT_EQ(DrawsSince(Seed, full.random), 0);
 }
 
-// Un mundo plano para la Flame: las alturas en 150 y los atributos en 0.
 void Flatten(Client::Terrain::WorldTerrain& terrain)
 {
     terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -531,10 +526,10 @@ void Flatten(Client::Terrain::WorldTerrain& terrain)
     terrain.heights->cells.fill(150.0f);
 }
 
-// 0x500496..0x500c0b, la Flame: el chorro 0x5de/0 en el centro de la celda de la skill (+0x39c/+0x39d) a la altura del
-// terreno, con o de dueño, +0x8a de o, el lugar de la skill en +0x89 y la cuenta +0xf04 en +0x8c (0x518cf0 la lee con
-// el registro propio abierto: 3.848 rand() al cerrarse). Solo con o el héroe publicado, +0xf04 uno más (otro registro).
-// Antes, 0x59fb80(5); después, el sonido 0x79.
+// 0x500496..0x500c0b, the Flame: the jet 0x5de/0 at the center of the skill's cell (+0x39c/+0x39d) at ground height,
+// with o as owner, o's +0x8a, the skill's slot in +0x89 and the count +0xf04 in +0x8c (0x518cf0 reads it with the own
+// record open: 3848 rand() when it closes). Only with o the published hero, +0xf04 one more (another record). Before,
+// 0x59fb80(5); after, sound 0x79.
 TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
 {
     for (const std::int32_t map : Maps)
@@ -577,8 +572,8 @@ TEST(AttackSkillCasesTest, TheFlameLightsItsJetOnTheSkillCell)
     }
 }
 
-// Con la tabla llena, sin chorro ni el registro de su alta; el del héroe y el sonido siguen. Sin las alturas del
-// terreno, MuRet corta antes de 0x59fb80.
+// With the table full, no jet and no record for its creation; the hero's record and the sound remain. Without the
+// ground heights, MuRet cuts before 0x59fb80.
 TEST(AttackSkillCasesTest, TheFlameWithoutRoomOrGroundSkipsItsJet)
 {
     SkillWorld full;
@@ -601,8 +596,8 @@ TEST(AttackSkillCasesTest, TheFlameWithoutRoomOrGroundSkipsItsJet)
     EXPECT_TRUE(bare.sounds.empty());
 }
 
-// El 0 y los que no están en las tablas de 0x505530 siguen en 0x502aff sin nada; la 0x37 y la 0x38 solo dejan el arma
-// de la derecha − 0x212 en +0x8c y su nivel en +0x8e.
+// 0 and those not in the tables of 0x505530 go on at 0x502aff with nothing; 0x37 and 0x38 only leave the right-hand
+// weapon − 0x212 in +0x8c and its level in +0x8e.
 TEST(AttackSkillCasesTest, TheQuietHeadCasesLeaveAtMostTheWeapon)
 {
     for (const std::uint8_t skill : std::array<std::uint8_t, 7>{0x00, 0x03, 0x0f, 0x25, 0x2b, 0x4d, 0xff})
@@ -629,15 +624,15 @@ TEST(AttackSkillCasesTest, TheQuietHeadCasesLeaveAtMostTheWeapon)
         EXPECT_EQ(tested.Striker().byte8e, 9);
         EXPECT_TRUE(tested.sounds.empty());
     }
-    // Sin nada en la derecha (0xffff), +0x8c queda en −1 − 0x212.
+    // With nothing in the right hand (0xffff), +0x8c is −1 − 0x212.
     SkillWorld unarmed;
     EXPECT_TRUE(unarmed.Head(0x37).HasValue());
     EXPECT_EQ(unarmed.Striker().word8c, -1 - 0x212);
 }
 
-// 0x2a: el arma en +0x8c/+0x8e, 0x59fb80(0x2a) y el terremoto 0xfa con el estado 0, el tamaño de +0x8a de o y el
-// lugar de la skill en +0x89, cuyo dibujo lee el arma por su dueño; después el sonido 0x95. Los rand(): 0x59fb80, el
-// subtipo rand() % 100 y el cierre del registro propio de la cuenta +0xf04.
+// 0x2a: the weapon in +0x8c/+0x8e, 0x59fb80(0x2a) and the quake 0xfa with state 0, the size from o's +0x8a and the
+// skill's slot in +0x89, whose drawing reads the weapon through its owner; then sound 0x95. The rand(): 0x59fb80, the
+// subtype rand() % 100 and the close of the own record of the count +0xf04.
 TEST(AttackSkillCasesTest, TheQuakeKeepsTheWeaponForItsOwner)
 {
     for (const std::int32_t map : Maps)
@@ -679,7 +674,6 @@ TEST(AttackSkillCasesTest, TheQuakeKeepsTheWeaponForItsOwner)
     }
 }
 
-// Con la tabla de efectos llena, el terremoto no se crea (sin su rand() ni el registro) y el sonido suena igual.
 TEST(AttackSkillCasesTest, AFullTableSkipsTheQuakeButNotItsSound)
 {
     SkillWorld tested;
@@ -695,11 +689,11 @@ TEST(AttackSkillCasesTest, AFullTableSkipsTheQuakeButNotItsSound)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x95}));
 }
 
-// 0x44 y 0x47: el blanco de +0x3a4 sin rango; sin blanco o con o mismo, nada; fuera del pool, MuRet corta en la
-// lectura. Con otro, el joint 0x632/0 (la 0x44, 0x4fe235) o /1 (la 0x47, 0x4fe4e7) 1200 por encima del blanco, con sus
-// ángulos, él de dueño, ancho 120 y key −1 (el alta 0x534bcb: vida 40, 10 puntos, velocidad 70, +0x9f1 en rand() & 1,
-// +0x9ec en 150 y los ángulos en (90, 0, 0)), y el sonido 0x267; con el pool lleno, sin el joint ni su rand(), pero con
-// el sonido.
+// 0x44 and 0x47: the target of +0x3a4, without range; without a target or with o itself, nothing; outside the pool,
+// MuRet cuts at the read. With another, the joint 0x632/0 (0x44, 0x4fe235) or /1 (0x47, 0x4fe4e7) 1200 above the
+// target, with its angles, it as owner, width 120 and key −1 (creation 0x534bcb: life 40, 10 points, speed 70, +0x9f1
+// at rand() & 1, +0x9ec at 150 and the angles at (90, 0, 0)), and sound 0x267; with the pool full, no joint and no
+// rand(), but the sound.
 TEST(AttackSkillCasesTest, TheBindingSkillsDropAStormOnTheirTarget)
 {
     struct Case
@@ -756,9 +750,9 @@ TEST(AttackSkillCasesTest, TheBindingSkillsDropAStormOnTheirTarget)
     }
 }
 
-// 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9) apagan los joints de él con esos subtipos, el calco 0x61e/6
-// nace sobre él (vida 60, escala (rand() % 50 + 50) · 0,04f, la partida en su posición y él de dueño) y suena el 0x269;
-// sin blanco, nada; sin el pool de joints, corta antes.
+// 0x46: with a target, 0x534f90(0x10f, target, 4) and (…, 9) kill its joints of those subtypes, the decal 0x61e/6 is
+// born over it (life 60, scale (rand() % 50 + 50) · 0.04f, the start at its position and it as owner) and 0x269
+// sounds; without a target, nothing; without the joint pool, it cuts before.
 TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
 {
     SkillWorld tested;
@@ -803,8 +797,8 @@ TEST(AttackSkillCasesTest, TheReleaseKillsTheFlamesOfTheTarget)
     EXPECT_TRUE(HasError(tested.Head(0x46), "0x4fe3ce"));
 }
 
-// 0x50294e..0x50298e, la 0x2c: el 0x13b/0 sobre o con o de dueño y la luz del paso (vida 15, la z 100 más) y el sonido
-// 0x26c, sin rand(); con la tabla llena, sólo el sonido.
+// 0x50294e..0x50298e, 0x2c: the 0x13b/0 over o with o as owner and the step's light (life 15, z 100 higher) and sound
+// 0x26c, no rand(); with the table full, only the sound.
 TEST(AttackSkillCasesTest, TheSwordForceRisesOverTheStriker)
 {
     for (const bool full : {false, true})
@@ -832,10 +826,10 @@ TEST(AttackSkillCasesTest, TheSwordForceRisesOverTheStriker)
     }
 }
 
-// 0x40 y 0x4b: con otra cosa que 0xa21 en la derecha, el 0x117/0 en el hueso de la derecha; con otra cosa que 0xa19 o
-// un escudo (0xe12..0x1011) en la izquierda, el 0x117/1 en el suyo (un rand() cada uno, en su alta), con los ángulos de
-// o y la luz (1; 0,6; 0,3) de la 0x40 o (1; 1; 1) de la 0x4b. Después la 0x40 suena (0x1cf, desde o) y la 0x4b crea el
-// 0x138/0 sobre o y suena (0x272). Con la tabla llena, sólo los sonidos y sin rand().
+// 0x40 and 0x4b: with anything but 0xa21 in the right hand, the 0x117/0 at the right hand's bone; with anything but
+// 0xa19 or a shield (0xe12..0x1011) in the left, the 0x117/1 at its bone (one rand() each, at its creation), with o's
+// angles and the light (1; 0.6; 0.3) for 0x40 or (1; 1; 1) for 0x4b. Then 0x40 sounds (0x1cf, from o) and 0x4b creates
+// the 0x138/0 over o and sounds (0x272). With the table full, only the sounds and no rand().
 TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
 {
     struct Case
@@ -899,10 +893,10 @@ TEST(AttackSkillCasesTest, TheHandsDecideTheRaise)
     EXPECT_EQ(full.sounds, (std::vector<std::int32_t>{0x272}));
 }
 
-// 0x4c: el sonido 0x27d y el lazo de los 400: el monstruo lejos lee el alcance y no entra, el de la acción 6 no lo lee,
-// y de los doce cerca entran diez (el último, justo en el alcance) y el lazo se corta ahí. Después rand() % 360; sin
-// blanco en +0x434, nada más; con él, dos vueltas de dos rand() por él y por cada uno de los diez (los 0x14f llenan los
-// 16 lugares y los demás no se crean) y seis 0x62c de tres rand() cada uno, sin lugar.
+// 0x4c: sound 0x27d and the loop over the 400: the far monster reads the range and stays out, the one in action 6 does
+// not read it, and of the twelve near ones ten enter (the last exactly at the range) and the loop cuts there. Then
+// rand() % 360; without a target in +0x434, nothing more; with it, two rounds of two rand() for it and for each of the
+// ten (the 0x14f fill the 16 slots and the rest are not created) and six 0x62c of three rand() each, without room.
 TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
 {
     const auto skills = SkillsWithRange(3);
@@ -941,11 +935,11 @@ TEST(AttackSkillCasesTest, TheStrikeAroundGathersTenTargetsInRange)
     }
 }
 
-// 0x5025d7..0x502944: con el blanco de +0x434 (que no se junta) dos vueltas desde el punto (0, −140, 130) de o, con los
-// ángulos (rand() % 360, 0, rand() % 360), de dos 0x14f hacia su posición y con él de dueño: ancho 100 con el subtipo
-// de 0x4f2230 y 80 con ese más 3. Después seis 0x62c sin dueño, de ancho 60 y con el subtipo más 0xb, desde (0, rand()
-// % 40 − 20 + 10, 130) hacia el mismo punto, con sus ángulos y el rand() de su tanda (0x53477e; el camino 150 más
-// alto). 0x4f2230 lee +0x31b (el excelente de Fenrir): 1 da 0, 2 da 2 y cualquier otro 1.
+// 0x5025d7..0x502944: with the target of +0x434 (not gathered), two rounds from o's point (0, −140, 130), with the
+// angles (rand() % 360, 0, rand() % 360), of two 0x14f toward its position with it as owner: width 100 with
+// 0x4f2230's subtype and 80 with that plus 3. Then six ownerless 0x62c, width 60 and the subtype plus 0xb, from (0,
+// rand() % 40 − 20 + 10, 130) toward the same point, with their angles and their volley's rand() (0x53477e; the path
+// 150 higher). 0x4f2230 reads +0x31b (Fenrir's excellent): 1 gives 0, 2 gives 2 and any other 1.
 TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
 {
     for (const auto& [excellent, shade] :
@@ -987,7 +981,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
                 EXPECT_EQ(plasma.width, pair == 0 ? 100.0f : 80.0f);
                 EXPECT_EQ(plasma.position, point({0.0f, -140.0f, 130.0f}));
                 EXPECT_EQ(plasma.angles, (glm::vec3{pitch, 0.0f, yaw}));
-                // Con dueño, 0x530942 salta la copia del segundo punto: su paso va hacia el dueño (0x535b37).
+                // With an owner, 0x530942 skips copying the second point: its step heads to the owner (0x535b37).
                 EXPECT_EQ(plasma.targetPosition, glm::vec3(0.0f));
             }
         }
@@ -1003,7 +997,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
             EXPECT_EQ(risen.subtype, shade + 0xb);
             EXPECT_EQ(risen.ownerContext, nullptr);
             EXPECT_EQ(risen.width, 60.0f);
-            // Su alta (0x5346d8) sube el camino 150.
+            // Its creation (0x5346d8) raises the path by 150.
             const glm::vec3 from = point({0.0f, height, 130.0f});
             EXPECT_EQ(risen.pathIncrement,
                       (glm::vec3{from.x, from.y, static_cast<float>(static_cast<double>(from.z) + 150.0)}));
@@ -1013,8 +1007,8 @@ TEST(AttackSkillCasesTest, TheStrikeAroundSendsPlasmaAndRaisesSpirals)
     }
 }
 
-// Los jugadores del lazo de la 0x4c pasan por 0x5588d0: el PK de 6 entra, el de 3 solo con Ctrl, el de la acción 0xc3
-// no se mira; en Chaos Castle (18) entra cualquiera menos el héroe. Con +0x88 en otra cosa, ninguno.
+// The players of 0x4c's loop go through 0x5588d0: PK 6 enters, PK 3 only with Ctrl, the one in action 0xc3 is not
+// checked; in Chaos Castle (18) anyone but the hero enters. With +0x88 at anything else, none.
 TEST(AttackSkillCasesTest, TheStrikeAroundAsksWhoIsAttackable)
 {
     const auto skills = SkillsWithRange(5);
@@ -1042,7 +1036,7 @@ TEST(AttackSkillCasesTest, TheStrikeAroundAsksWhoIsAttackable)
         tested.Victim().pk = probe.pk;
         tested.Victim().animation.action = probe.action;
         tested.Victim().byte88 = probe.object;
-        // El que pega, con el PK de 3, entra solo con Ctrl o en Chaos Castle; el héroe, nunca (es él).
+        // The striker, with PK 3, enters only with Ctrl or in Chaos Castle; the hero never.
         const int others = probe.control || probe.map == 18 ? 1 : 0;
 
         ASSERT_TRUE(tested.Head(0x4c).HasValue());
@@ -1051,8 +1045,8 @@ TEST(AttackSkillCasesTest, TheStrikeAroundAsksWhoIsAttackable)
     }
 }
 
-// 0x4c sin Skill.bmd: corta en el primer blanco que mira; sin ninguno, no lo lee. Con +0x434 negativo y no −1, el
-// pool se lee fuera: MuRet corta. Con la entrada abierta, el alcance no saca rand().
+// 0x4c without Skill.bmd: cuts at the first target it checks; with none, it does not read it. With +0x434 negative and
+// not −1, the pool is read out of bounds: MuRet cuts. With the entry open, the range draws no rand().
 TEST(AttackSkillCasesTest, TheStrikeAroundCutsWhereItReads)
 {
     {
@@ -1078,8 +1072,8 @@ TEST(AttackSkillCasesTest, TheStrikeAroundCutsWhereItReads)
     }
 }
 
-// Los casos con blanco que crean lo que MuRet no tiene (CL11), sin rand() antes; el 0x20a de la 0x01 crea antes su
-// 0xc3 (sin rand()).
+// The target cases that create what MuRet does not have (CL11), with no rand() before; the 0x20a's 0x01 first creates
+// its 0xc3 (no rand()).
 TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
 {
     struct Case
@@ -1108,9 +1102,9 @@ TEST(AttackSkillCasesTest, TheTargetCasesCutWithoutDraws)
     }
 }
 
-// 0x504cdb..0x504d7a, la 0x3c: dos 0x114/1 y un 0x115/0 sobre o, y el sonido 0x1c8. Con lugar en los joints, cada
-// 0x114/1 suelta sus dos remolinos 0x6e8/0 (0x51c25f, sin dueño), cada uno con el rand() de su escala y el de su luz
-// (0x534619): siete rand() por onda.
+// 0x504cdb..0x504d7a, 0x3c: two 0x114/1 and one 0x115/0 over o, and sound 0x1c8. With room in the joints, each 0x114/1
+// releases its two swirls 0x6e8/0 (0x51c25f, ownerless), each with the rand() of its scale and of its light
+// (0x534619): seven rand() per wave.
 TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlJointsPerWaveWithRoom)
 {
     SkillWorld tested;
@@ -1145,8 +1139,8 @@ TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlJointsPerWaveWithRoom)
     EXPECT_FALSE(joints[4].alive);
 }
 
-// Con los joints llenos, cada 0x114/1 saca cinco rand() (la escala, la de sus dos joints y el corrimiento en x y en y)
-// y el 0x115/0 ninguno: vida 10, la z 130 más.
+// With the joints full, each 0x114/1 draws five rand() (the scale, its two joints' and the shift in x and in y) and the
+// 0x115/0 none: life 10, z 130 higher.
 TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlsAndAPiercingWithFullJoints)
 {
     SkillWorld tested;
@@ -1192,8 +1186,8 @@ TEST(AttackSkillCasesTest, TheWaveCaseRaisesTwoSwirlsAndAPiercingWithFullJoints)
     EXPECT_EQ(piercing.transform.position, (glm::vec3{1000.0f, 2000.0f, 430.0f}));
 }
 
-// 0x504a0a..0x504abf, la 0x2d: tres 0x139 sobre o, con los subtipos 0, 1 y 2, el blanco de dueño (la partida en su
-// posición), la clave en −1 y un rand() cada uno (la z de +0x28); después el sonido 0x26d.
+// 0x504a0a..0x504abf, 0x2d: three 0x139 over o, subtypes 0, 1 and 2, the target as owner (the start at its position),
+// key −1 and one rand() each (the z of +0x28); then sound 0x26d.
 TEST(AttackSkillCasesTest, TheJavelinCaseThrowsThreeJavelinsAtTheTarget)
 {
     SkillWorld tested;
@@ -1217,8 +1211,8 @@ TEST(AttackSkillCasesTest, TheJavelinCaseThrowsThreeJavelinsAtTheTarget)
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x26d});
 }
 
-// 0x504b51..0x504b99, la 0x4a: el 0x116/2 sobre o con el blanco de dueño (vida 20, la z 20 menos) y el sonido 0x271,
-// sin rand(); con la tabla llena, sólo el sonido.
+// 0x504b51..0x504b99, 0x4a: the 0x116/2 over o with the target as owner (life 20, z 20 lower) and sound 0x271, no
+// rand(); with the table full, only the sound.
 TEST(AttackSkillCasesTest, TheDivingPartFollowsTheTarget)
 {
     SkillWorld tested;
@@ -1243,8 +1237,8 @@ TEST(AttackSkillCasesTest, TheDivingPartFollowsTheTarget)
     EXPECT_EQ(full.sounds, (std::vector<std::int32_t>{0x271}));
 }
 
-// 0x504d87..0x504f51, la 0x3d: tres 0x116/0 desde el primer hueso de o con el blanco de dueño, los rumbos z + 90, z y
-// z − 90 y la partida (0, 0, techo) y (0, 0, techo / 2); después el 0x117/0 y el /1 (un rand() cada uno). Sin sonido.
+// 0x504d87..0x504f51, 0x3d: three 0x116/0 from o's first bone with the target as owner, headings z + 90, z and z − 90
+// and the start (0, 0, top) and (0, 0, top / 2); then the 0x117/0 and the /1 (one rand() each). No sound.
 TEST(AttackSkillCasesTest, TheLaunchedPartsAimAtTheTargetsTop)
 {
     SkillWorld tested;
@@ -1275,8 +1269,8 @@ TEST(AttackSkillCasesTest, TheLaunchedPartsAimAtTheTargetsTop)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
-// 0x504ac7..0x504b49, la 0x49: un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho 40
-// (InfernoJoints.cpp: Effect\Hole.jpg, velocidad 8, vx 15,5, vz 3, 13 puntos, vida 20), sin rand(), y el sonido 0x26f.
+// 0x504ac7..0x504b49, 0x49: an ownerless 0x61c/4 from o 130 higher, angles (0, 0, the z of o) and width 40
+// (InfernoJoints.cpp: Effect\Hole.jpg, speed 8, vx 15.5, vz 3, 13 points, life 20), without rand(), and sound 0x26f.
 TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
 {
     for (const std::int32_t map : Maps)
@@ -1309,7 +1303,6 @@ TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
         EXPECT_EQ(inferno.field9ec, 10);
         EXPECT_FALSE(tested.joints[1].alive);
 
-        // Con la tabla de joints llena, nada ni rand(), y el sonido igual.
         SkillWorld full(map);
         for (auto& joint : full.joints)
             joint.alive = true;
@@ -1320,8 +1313,8 @@ TEST(AttackSkillCasesTest, TheInfernoRisesFromTheStriker)
     }
 }
 
-// 0x5046bf..0x50473b, la 0x1c: sin 0x4000 en o, el calco 0x61e/3 sobre el blanco, con él de dueño, y con +0x38d de o
-// el 4 en +0x78 del blanco; sin rand() ni sonido. Con la tabla llena, sin el calco y el 4 igual.
+// 0x5046bf..0x50473b, 0x1c: without 0x4000 on o, the decal 0x61e/3 over the target, with it as owner, and with o's
+// +0x38d the 4 in the target's +0x78; no rand() or sound. With the table full, no decal and the 4 still.
 TEST(AttackSkillCasesTest, TheSummonTargetLeavesItsDecalAndItsMark)
 {
     for (const std::int32_t map : Maps)
@@ -1360,15 +1353,15 @@ TEST(AttackSkillCasesTest, TheSummonTargetLeavesItsDecalAndItsMark)
     EXPECT_EQ(full.Victim().flags78, 4u);
 }
 
-// 0x1b: sin +0x38d o con 0x4000 en +0x78, nada; si no, el calco 0x61e/2. 0x1c: con 0x4000, nada. 0x11: los +0x376 de
-// las tablas de 0x50561a y 0x505672, nada. El 3 y el 0, nada.
+// 0x1b: without +0x38d or with 0x4000 in +0x78, nothing; otherwise the decal 0x61e/2. 0x1c: with 0x4000, nothing.
+// 0x11: the +0x376 in the tables of 0x50561a and 0x505672, nothing. 3 and 0, nothing.
 TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
 {
     SkillWorld tested;
     ActorState& striker = tested.Striker();
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     striker.skillSucceeded = 1;
-    // El calco 0x61e/2 nace sobre el blanco, sin rand(); después, los cinco joints 0x10f/4 de 0x5045f9 (en
+    // The decal 0x61e/2 is born over the target, no rand(); then the five joints 0x10f/4 of 0x5045f9 (in
     // BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt).
     EXPECT_TRUE(tested.WithTarget(0x1b).HasValue());
     const auto bound = AliveEffects(tested.world);
@@ -1395,15 +1388,15 @@ TEST(AttackSkillCasesTest, TheQuietTargetCasesDoNothing)
     EXPECT_TRUE(tested.WithTarget(0x00).HasValue());
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
     EXPECT_TRUE(tested.sounds.empty());
-    EXPECT_EQ(AliveEffects(tested.world).size(), 1u); // el 0x61e/2 de la 0x1b
-    // Otro +0x376 (0x26) ya no es de las tablas: la bola 0x5ca y el sonido 0x76 (TheEnergyBallFliesAtTheTarget).
+    EXPECT_EQ(AliveEffects(tested.world).size(), 1u); // 0x1b's 0x61e/2
+    // Another +0x376 (0x26) is not in the tables: the ball 0x5ca and sound 0x76 (TheEnergyBallFliesAtTheTarget).
     striker.word376 = 0x26;
     EXPECT_TRUE(tested.WithTarget(0x11).HasValue());
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x76});
 }
 
-// 0x10: el 0x189 prende 0x100 en su +0x78; con 0x4000, nada; si no, 0x100 en +0x78 del blanco, el sonido 0x84,
-// 0x534f90(0x10f, blanco, 0) y el primero de los cinco joints corta. Sin el pool de joints, corta después del sonido.
+// 0x10: the 0x189 sets 0x100 in its +0x78; with 0x4000, nothing; otherwise 0x100 in the target's +0x78, sound 0x84,
+// 0x534f90(0x10f, target, 0) and the first of the five joints cuts. Without the joint pool, it cuts after the sound.
 TEST(AttackSkillCasesTest, TheGuardMarksTheTarget)
 {
     {
@@ -1433,7 +1426,7 @@ TEST(AttackSkillCasesTest, TheGuardMarksTheTarget)
             joint.ownerContext = &tested.Victim();
         }
 
-        // 0x5048db: apaga el 10f/0 del blanco y crea cinco, de ancho 20, el primero en su lugar.
+        // 0x5048db: kills the target's 0x10f/0 and creates five of width 20, the first in its slot.
         ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
 
         EXPECT_EQ(tested.Victim().flags78, 0x100u);
@@ -1455,7 +1448,7 @@ TEST(AttackSkillCasesTest, TheGuardMarksTheTarget)
     EXPECT_EQ(unjointed.sounds, (std::vector<std::int32_t>{0x84}));
 }
 
-// 0x1a: el calco 0x61e/1 sobre el blanco, con él de dueño, sin rand(); con la tabla llena, nada.
+// 0x1a: the decal 0x61e/1 over the target, with it as owner, no rand(); with the table full, nothing.
 TEST(AttackSkillCasesTest, TheSummonGoesOverTheTarget)
 {
     for (const std::int32_t map : Maps)
@@ -1477,10 +1470,9 @@ TEST(AttackSkillCasesTest, TheSummonGoesOverTheTarget)
     }
 }
 
-// 0x33 y 0x34: dos lecturas de +0x38e (la skill de 0x53e2b0 y la de 0x59fb80) y un tiro; 0x18: antes, la tanda sin
-// blanco con su propia lectura y 0x59fb80. Los rand(), las flechas y los sonidos son los de las lecturas y los de
-// 0x53e2b0, que corre igual en un mundo gemelo. La flecha de la 0x34 deja la estela 0x105 con sus cuatro joints 0x610
-// (0x51a08a), sin corte.
+// 0x33 and 0x34: two reads of +0x38e (0x53e2b0's skill and 0x59fb80's) and one shot; 0x18: first, the targetless volley
+// with its own read and 0x59fb80. The rand(), arrows and sounds are the reads' and those of 0x53e2b0, which runs the
+// same in a twin world. 0x34's arrow leaves the trail 0x105 with its four joints 0x610 (0x51a08a), without a cut.
 TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
 {
     struct Case
@@ -1537,9 +1529,9 @@ TEST(AttackSkillCasesTest, TheArrowCasesReadTheSkillBeforeShooting)
     }
 }
 
-// 0x2e: lo mismo con el blanco; 0x53e2b0 crea el 0x13a con su joint 0x632/4 (0x51e01a, el efecto de dueño) y su cuenta,
-// suma la tanda y después suena el 0x26e (0x5044ad). Los rand() y el resto son los de 0x53e2b0 con el blanco en un
-// mundo gemelo.
+// 0x2e: the same with the target; 0x53e2b0 creates the 0x13a with its joint 0x632/4 (0x51e01a, the effect as owner)
+// and its count, adds the volley and then 0x26e sounds (0x5044ad). The rand() and the rest are 0x53e2b0's with the
+// target in a twin world.
 TEST(AttackSkillCasesTest, TheBlastLeavesItsJointBeforeItsSound)
 {
     SkillWorld tested;
@@ -1575,8 +1567,8 @@ TEST(AttackSkillCasesTest, TheBlastLeavesItsJointBeforeItsSound)
     EXPECT_FALSE(joints[1].alive);
 }
 
-// 0x5042ce: 0x52e740 con las acciones 0x38 a 0x3c: la chispa 0x5c6/0 en el blanco, sin rand(), y veinte veces dos
-// rand() y la 0x5c5/0. Con el pool lleno, sólo los cuarenta rand().
+// 0x5042ce: 0x52e740 with actions 0x38 to 0x3c: the spark 0x5c6/0 on the target, no rand(), and twenty times two rand()
+// and the 0x5c5/0. With the pool full, only the forty rand().
 TEST(AttackSkillCasesTest, TheSparkLeavesItsHitAndTwentyFairySparks)
 {
     SkillWorld tested;
@@ -1594,8 +1586,8 @@ TEST(AttackSkillCasesTest, TheSparkLeavesItsHitAndTwentyFairySparks)
     EXPECT_EQ(count(0x5c6), 1);
     EXPECT_EQ(count(0x5c5), 20);
     EXPECT_EQ(tested.world.Particles().All()[0].position, tested.Victim().position);
-    // La 0x5c6/0 no saca ninguno; cada vuelta, dos y los cinco de la alta de la 0x5c5/0 (0x540333, 0x54041f, 0x540436,
-    // 0x54045c y 0x540480).
+    // The 0x5c6/0 draws none; each round, two and the five of the 0x5c5/0's creation (0x540333, 0x54041f, 0x540436,
+    // 0x54045c and 0x540480).
     EXPECT_EQ(DrawsSince(Seed, tested.random), 20 * (2 + 5));
 
     SkillWorld full;
@@ -1605,7 +1597,7 @@ TEST(AttackSkillCasesTest, TheSparkLeavesItsHitAndTwentyFairySparks)
     ASSERT_TRUE(SparkTheTarget(full.Striker(), full.Victim(), StrikerSlot, full.Context()).HasValue());
     EXPECT_EQ(DrawsSince(Seed, full.random), 40);
 }
-// 501494→51fff0: el estallido y las piedras preceden al efecto 0xf6/0 sobre o, con o de dueño (0x5014da, CL11).
+// 0x501494→0x51fff0: the burst and the stones come before the effect 0xf6/0 over o, with o as owner (0x5014da, CL11).
 TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
 {
     SkillWorld tested;
@@ -1632,9 +1624,9 @@ TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
     ASSERT_TRUE(full.HasValue()) << full.Error();
     EXPECT_EQ(DrawsSince(before, tested.random), 8 * (20 * 2 + 2) + OwnRecord);
 
-    // Con o de héroe y la tabla libre, el 0xf6/0 copia la cuenta en su registro propio (0x519a66) y pide los blancos a
-    // 0x517a20, que lee la skill en el suyo; después la tanda del héroe (0x5014e5) cierra el tercero: tres cierres más
-    // que sin el héroe, con el mismo estallido.
+    // With o as hero and the table free, the 0xf6/0 copies the count into its own record (0x519a66) and asks 0x517a20
+    // for the targets, which reads the skill in its own; then the hero's volley (0x5014e5) closes the third: three more
+    // closes than without the hero, with the same burst.
     SkillWorld hero;
     hero.withParticles = true;
     hero.world.Runtime().hero = StrikerSlot;
@@ -1650,11 +1642,11 @@ TEST(AttackSkillCasesTest, Skill0eRunsTheBurstBeforeTheNextCapability)
     EXPECT_EQ(hero.world.OwnCharacter().bytef04, 0x42);
 }
 
-// 0x4fec30..0x4fecb0 (la 0x29), 0x4ffcbe..0x4ffdb7 (la 0x27) y 0x500cd4..0x500dba (la 0x0d), del lote switch de la
-// CL11: el 0xf3 sobre o (con su registro propio: la cuenta +0xf04 uno más) y el sonido 0x73; diez 0x108/0 sin dueño en
-// la celda de la skill, cada uno con su rand() % 50 antes del alta, la key de la vuelta y el sonido 0x90; y dos 0xf5 en
-// la celda con o de dueño, que cortan en el joint 0x618/5 (0x5193d6, lote joints) con lugar en la tabla y siguen sin
-// él. Sin las alturas del terreno, la 0x27 y la 0x0d cortan antes de sus rand().
+// 0x4fec30..0x4fecb0 (0x29), 0x4ffcbe..0x4ffdb7 (0x27) and 0x500cd4..0x500dba (0x0d), CL11's switch batch: the 0xf3
+// over o (with its own record: the count +0xf04 one more) and sound 0x73; ten ownerless 0x108/0 on the skill's cell,
+// each with its rand() % 50 before its creation, the round's key and sound 0x90; and two 0xf5 on the cell with o as
+// owner, which cut at the joint 0x618/5 (0x5193d6, joints batch) with room in the table and go on without it. Without
+// the ground heights, 0x27 and 0x0d cut before their rand().
 TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
 {
     const auto alive = [](SkillWorld& tested, std::int16_t type)
@@ -1721,8 +1713,8 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
         constexpr int BlastDraws = 5;
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + 2 * (BlastDraws + OwnRecord));
-        // 0x5193d6: con lugar, cada 0xf5 cuelga su joint 0x618/5 de ancho 100, sin rand() (lote joints); con el pool
-        // lleno, ninguno.
+        // 0x5193d6: with room, each 0xf5 hangs its joint 0x618/5 of width 100, no rand() (joints batch); with the pool
+        // full, none.
         const auto beams = std::ranges::count_if(tested.joints, [](const JointState& joint)
                                                  { return joint.alive && joint.type == 0x618 && joint.subtype == 5; });
         EXPECT_EQ(beams, jointsFull ? 0 : 2);
@@ -1732,7 +1724,7 @@ TEST(AttackSkillCasesTest, TheSwitchHeadCasesCreateTheirEffects)
         {
             EXPECT_EQ(blast->ownerContext, &striker);
             EXPECT_EQ(blast->byte89, 2);
-            // 0x51931b..0x51936a: 300 a 799 sobre la celda (12.050; 3.350) a la altura 150.
+            // 0x51931b..0x51936a: 300 to 799 above the cell (12050; 3350) at height 150.
             EXPECT_GE(blast->transform.position.x, 12050.0f + 200.0f);
             EXPECT_GE(blast->transform.position.z, 150.0f + 300.0f);
         }
@@ -1765,7 +1757,7 @@ TEST(AttackSkillCasesTest, TheFullPoolsPreserveEveryHeadTail)
         SCOPED_TRACE(int{probe.skill});
         SkillWorld tested;
         tested.withParticles = true;
-        // La 0x27 y la 0x0d leen la altura de la celda de la skill (0x5f93c0) aun sin lugar en la tabla.
+        // 0x27 and 0x0d read the height of the skill's cell (0x5f93c0) even without room in the table.
         Flatten(tested.terrain);
         auto& actor = tested.Hero();
         actor.position = glm::vec3(125.0f, 250.0f, 375.0f);
@@ -1844,7 +1836,7 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         tested.joints.front().alive = false;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
-        // Con un lugar, el primero de los 36 joints y nada más; los calcos no tienen lugar y suena 0x7f.
+        // With one slot, the first of the 36 joints and nothing more; the decals have no room and 0x7f sounds.
         const auto stepped = tested.Head(0x30);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(tested.joints.front().type, 0x613);
@@ -1856,7 +1848,8 @@ TEST(AttackSkillCasesTest, MixedPoolsStopAtTheFirstConstructorWithRoom)
         tested.withParticles = true;
         for (auto& effect : tested.world.Map().effects.Effects())
             effect.alive = true;
-        // 0x50492e..0x504986: con lugar, las diez 0x5f2/1 sobre el blanco, sin el 1 de +0x78 (sin +0x38d), y el sonido.
+        // 0x50492e..0x504986: with room, the ten 0x5f2/1 over the target, without the 1 in +0x78 (no +0x38d), and the
+        // sound.
         ASSERT_TRUE(tested.WithTarget(1).HasValue());
         const auto smokes =
             std::ranges::count_if(tested.world.Particles().All(), [](const auto& particle)
@@ -1886,7 +1879,7 @@ TEST(AttackSkillCasesTest, KillingABuffJointRestoresTheConstructorFrontier)
     killed.type = 0x10f;
     killed.subtype = 0;
     killed.ownerContext = &tested.Victim();
-    // El único lugar que queda es el que apagó: lo toma el primero de los cinco y los demás no entran.
+    // The only slot left is the one it killed: the first of the five takes it and the rest do not fit.
     ASSERT_TRUE(tested.WithTarget(0x10).HasValue());
     EXPECT_TRUE(killed.alive);
     EXPECT_EQ(killed.life, 999999);
@@ -1904,7 +1897,7 @@ TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
     tested.Striker().attackTarget = 0xfffe;
     ASSERT_TRUE(tested.WithTarget(0x1b).HasValue());
     EXPECT_EQ(tested.Victim().flags78, 8u);
-    // 0x5045f9: cinco 10f/4 de ancho 20 con el +0x3a4 de c, con signo, en +0xa0c.
+    // 0x5045f9: five 0x10f/4 of width 20 with c's +0x3a4, signed, in +0xa0c.
     const auto bindings = [&tested]
     {
         return std::ranges::count_if(tested.joints,
@@ -1927,8 +1920,8 @@ TEST(AttackSkillCasesTest, BindingFlagsPrecedeTheJointAndExistingBindingsSkipIt)
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 
-// 0x4fe505..0x4fe790: la 0x48 apaga +0x78 de o y crea seis 0x10f/5..7 de ancho 170 desde o + 100 en z (la copia
-// baja 10 salvo después de los /7), girados 45, 135, 225, 90, 180 y 270; después el sonido 0x26b. Sin rand().
+// 0x4fe505..0x4fe790: 0x48 clears o's +0x78 and creates six 0x10f/5..7 of width 170 from o + 100 in z (the copy drops
+// 10 except after the /7), turned 45, 135, 225, 90, 180 and 270; then sound 0x26b. No rand().
 TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
 {
     SkillWorld tested;
@@ -1955,9 +1948,8 @@ TEST(AttackSkillCasesTest, TheRisingAurasLeaveFromAboveTheCaster)
     EXPECT_EQ(DrawsSince(Seed, tested.random), 0);
 }
 
-// 0x4fe147..0x4fe18b: la 0x43 crea el 0x632/7 sobre o, que suelta tres 0x632/6 con dos rand() cada uno, y suena
-// 0x266. Sin la tabla de partículas, el paso de los /6 corta donde pide su llamarada 0x5ee (0x53bf6e), después de su
-// rand().
+// 0x4fe147..0x4fe18b: 0x43 creates the 0x632/7 over o, which drops three 0x632/6 with two rand() each, and 0x266
+// sounds. Without the particle table, the /6 step cuts where it asks for its flare 0x5ee (0x53bf6e), after its rand().
 TEST(AttackSkillCasesTest, TheStormDropsThreeBolts)
 {
     SkillWorld tested;
@@ -2049,7 +2041,6 @@ TEST(AttackSkillCasesTest, AFullEffectPoolStillDisturbsKalimaWhenItsOwnerExists)
     }
 }
 
-// Los efectos vivos de un tipo, en el orden de la tabla.
 std::vector<const Client::Effects::ModelEffect*> AliveOfType(const WorldState& world, std::int16_t type)
 {
     std::vector<const Client::Effects::ModelEffect*> found;
@@ -2061,16 +2052,16 @@ std::vector<const Client::Effects::ModelEffect*> AliveOfType(const WorldState& w
     return found;
 }
 
-// 0x5042d3..0x504324: el rumbo de o al blanco.
+// 0x5042d3..0x504324
 float HeadingTo(const ActorState& from, const ActorState& to)
 {
     return static_cast<float>(
         Client::Math::CreateAngle(from.position.x, from.position.y, to.position.x, to.position.y));
 }
 
-// 0x505024..0x505061, la 0x11 de un jugador (+0x376 en 0xffff) que no es el 0x15e, en todos los mapas: el 0x5ca/0
-// (Scenes/SkillBurstEffects: vida 20, la velocidad (0, −60, 0) y 100 más de z) sobre o con los ángulos hacia el blanco,
-// su luz y el blanco de dueño, sin rand(), y el sonido 0x76 sin objeto; con la tabla llena, sólo el sonido.
+// 0x505024..0x505061, 0x11 of a player (+0x376 at 0xffff) other than the 0x15e, on every map: the 0x5ca/0
+// (Effects/SkillBurstEffects: life 20, speed (0, −60, 0) and z 100 higher) over o with the angles toward the target,
+// its light and the target as owner, no rand(), and sound 0x76 with no object; with the table full, only the sound.
 TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
 {
     for (const std::int32_t map : Maps)
@@ -2119,8 +2110,8 @@ TEST(AttackSkillCasesTest, TheEnergyBallFliesAtTheTarget)
     }
 }
 
-// 0x4feabb..0x4feb36, la 0x3f: el 0xcb/2 con o de dueño y el 0xcc/3 sin dueño, los dos sobre o con su luz (vida 250,
-// sin rand()), y el sonido 0x1cb desde o.
+// 0x4feabb..0x4feb36, 0x3f: the 0xcb/2 with o as owner and the ownerless 0xcc/3, both over o with its light (life 250,
+// no rand()), and sound 0x1cb from o.
 TEST(AttackSkillCasesTest, TheRaisedRingsGoOverTheStriker)
 {
     SkillWorld tested;
@@ -2149,8 +2140,9 @@ TEST(AttackSkillCasesTest, TheRaisedRingsGoOverTheStriker)
     EXPECT_EQ(tested.soundOrigins.front(), striker.position);
 }
 
-// 0x4fecb5..0x4fed2a, la 0x0a con otro que el héroe: 0x59fb80(0xa), el 0xcb/0 con o de dueño, +0x8a de o y el lugar de
-// la skill en +0x89 (sin el registro propio ni los blancos, que son del héroe), el 0xcc/0 sin dueño y el sonido 0x77.
+// 0x4fecb5..0x4fed2a, 0x0a with someone other than the hero: 0x59fb80(0xa), the 0xcb/0 with o as owner, o's +0x8a and
+// the skill's slot in +0x89 (without the own record or the targets, which are the hero's), the ownerless 0xcc/0 and
+// sound 0x77.
 TEST(AttackSkillCasesTest, TheHellfireLeavesBothCirclesOverTheStriker)
 {
     SkillWorld tested;
@@ -2180,7 +2172,7 @@ TEST(AttackSkillCasesTest, TheHellfireLeavesBothCirclesOverTheStriker)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x77}));
 }
 
-// 0x4ff4c3..0x4ff514, la 0x28: el 0xcb/1 oculto (+0x58 en −2) con o de dueño, sin rand(), y el sonido 0x93.
+// 0x4ff4c3..0x4ff514, 0x28: the hidden 0xcb/1 (+0x58 at −2) with o as owner, without rand(), and sound 0x93.
 TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
 {
     SkillWorld tested;
@@ -2197,10 +2189,10 @@ TEST(AttackSkillCasesTest, TheHiddenCircleGoesWithTheStriker)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x93}));
 }
 
-// 0x4ff51c..0x4ff5f2, la 0x26: dos 0xc2/6 en el centro de la celda de la skill a la altura del terreno, con la luz
-// (0,8f; 0,5; 0,1f), sin dueño y la clave 0 (+0xd8 en 0), cada uno 500 a 799 más alto y con su estela 0x5f2/0 de dueño
-// (0x51b098, ancho 100, sin rand()); después el sonido 0x8e y, con el héroe, la tanda en +0xf04. Sin las alturas,
-// corta antes del primero y sin rand().
+// 0x4ff51c..0x4ff5f2, 0x26: two ownerless 0xc2/6 at the center of the skill's cell at ground height, light (0.8f; 0.5;
+// 0.1f), key 0 (+0xd8 at 0), each 500 to 799 higher and with its trail 0x5f2/0, owned by it (0x51b098, width 100, no
+// rand()); then sound 0x8e and, with the hero, the volley in +0xf04. Without the heights, it cuts before the first
+// and with no rand().
 TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
 {
     SkillWorld tested;
@@ -2247,9 +2239,9 @@ TEST(AttackSkillCasesTest, TheMeteorsFallWithTheirTrails)
     EXPECT_TRUE(AliveEffects(bare.world).empty());
 }
 
-// 0x500c10..0x500c5c, la 0x08: 0x59fb80(8) y el 0xcf/0 sobre o con la luz local de 0x4fd5f0, o de dueño, +0x8a de o y
-// el lugar en +0x89, a la altura del terreno; su alta cuenta en el registro propio (+0x8c con la cuenta, que sube).
-// Después, el sonido 0x74.
+// 0x500c10..0x500c5c, 0x08: 0x59fb80(8) and the 0xcf/0 over o with 0x4fd5f0's local light, o as owner, o's +0x8a and
+// the slot in +0x89, at ground height; its creation counts in the own record (+0x8c with the count, which rises). Then
+// sound 0x74.
 TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
 {
     for (const glm::vec3& light : {Client::Skills::BodyLight, glm::vec3(0.3f, 0.5f, 1.0f)})
@@ -2282,8 +2274,8 @@ TEST(AttackSkillCasesTest, TheTwisterTakesTheBodyLight)
     }
 }
 
-// 0x504740..0x504800, la 0x07: el 0xc1/0 sobre el blanco con los ángulos de o y la luz local, cinco pedazos de hielo
-// 0xca (cinco rand() cada uno), con +0x38d el 2 en +0x78 del blanco y el sonido 0x78.
+// 0x504740..0x504800, 0x07: the 0xc1/0 over the target with o's angles and the local light, five ice pieces 0xca (five
+// rand() each), with +0x38d the 2 in the target's +0x78, and sound 0x78.
 TEST(AttackSkillCasesTest, TheIceFreezesTheTarget)
 {
     for (const std::uint8_t succeeded : {std::uint8_t{0}, std::uint8_t{1}})
@@ -2313,8 +2305,8 @@ TEST(AttackSkillCasesTest, TheIceFreezesTheTarget)
     }
 }
 
-// 0x5049bf..0x5049fd, la 0x02: el 0xc2/0 sobre el blanco con sus ángulos y la luz de o, y el sonido 0x42. 0x504b9e, la
-// 0x04: el 0xc2/1 desde o hacia el blanco, con él de dueño, y el mismo sonido.
+// 0x5049bf..0x5049fd, 0x02: the 0xc2/0 over the target with its angles and o's light, and sound 0x42. 0x504b9e, 0x04:
+// the 0xc2/1 from o toward the target, with it as owner, and the same sound.
 TEST(AttackSkillCasesTest, TheFiresGoToTheTarget)
 {
     {
@@ -2353,8 +2345,8 @@ TEST(AttackSkillCasesTest, TheFiresGoToTheTarget)
     }
 }
 
-// 0x504be9..0x504cce, la 0x0b: el 0xce/0 desde o hacia el blanco; el 0x164 crea antes dos más, con el rumbo 10 más y
-// 10 menos. El sonido 0x76.
+// 0x504be9..0x504cce, 0x0b: the 0xce/0 from o toward the target; the 0x164 first creates two more, with the heading 10
+// more and 10 less. Sound 0x76.
 TEST(AttackSkillCasesTest, ThePowerWaveFansOutForTheTriple)
 {
     for (const std::uint16_t type : {std::uint16_t{0x20a}, std::uint16_t{0x164}})
@@ -2388,8 +2380,8 @@ TEST(AttackSkillCasesTest, ThePowerWaveFansOutForTheTriple)
     }
 }
 
-// 0x504fdc..0x505022, la 0x11 del 0x15e: el 0xd7/0 desde o hacia el blanco, con él de dueño, sin sonido. 0x5048f1, la
-// 0x01 del 0x20a: el 0xc3/0 sobre el blanco, antes de las partículas.
+// 0x504fdc..0x505022, 0x11 of the 0x15e: the 0xd7/0 from o toward the target, with it as owner, no sound. 0x5048f1,
+// 0x01 of the 0x20a: the 0xc3/0 over the target, before the particles.
 TEST(AttackSkillCasesTest, TheSnowballAndThePoisonFindTheTarget)
 {
     {

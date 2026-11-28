@@ -40,8 +40,8 @@
 #include <utility>
 #include <vector>
 
-// Cotejado con el PE c32bbd5f: 0x51c727 y 0x51efdc (las altas), 0x525f6a (el paso del 0x13f) y 0x5260bd (el del
-// 0x13d).
+// Checked against the PE c32bbd5f: 0x51c727 and 0x51efdc (the creations), 0x525f6a (the 0x13f's step) and 0x5260bd (the
+// 0x13d's).
 namespace Client::Effects
 {
 namespace
@@ -49,15 +49,15 @@ namespace
 using Math::D;
 using Math::F32;
 
-// 0x525f7b..0x526028: un joint 0x60f/0x18 de la lluvia, con sus dos rand() del lugar antes de crearlo.
+// 0x525f7b..0x526028: a rain joint 0x60f/0x18, with its two placement rand() before creating it.
 Core::Expected<void, std::string> DropTheRain(const Effects::ModelEffect& effect, int drop,
                                               const HighEffectStepContext& context)
 {
     constexpr float Pitch = -10.0f;                    // 0xc1200000
-    constexpr double Turn = 10.0;                      // 0x6b87a8, 10,0f
-    constexpr double Lift = 100.0;                     // 0x6b86b4, 100,0f
+    constexpr double Turn = 10.0;                      // 0x6b87a8, 10.0f
+    constexpr double Lift = 100.0;                     // 0x6b86b4, 100.0f
     constexpr int Spread = 600;                        // 0x258
-    constexpr int ForwardShift = 200, SideShift = 400; // 0xc8 y 0x190
+    constexpr int ForwardShift = 200, SideShift = 400; // 0xc8 and 0x190
     constexpr std::int32_t RainJoint = 0x60f, RainSubtype = 0x18;
     constexpr float RainWidth = 90.0f; // 0x42b40000
     const glm::vec3 angles{Pitch, 0.0f, F32(static_cast<double>(drop) * Turn)};
@@ -69,13 +69,13 @@ Core::Expected<void, std::string> DropTheRain(const Effects::ModelEffect& effect
                            RainWidth, 0x526028);
 }
 
-// 0x5260bd..0x526103: la luz dinámica (v, v, v + 0,1) de radio 10, con v = FSIN(vida · π/120) · −0,5 en la x87 (el
-// FMUL por un float negativo de potencia de dos, exacto: el producto retenido de SineDoubleProductPC53).
+// 0x5260bd..0x526103: the dynamic light (v, v, v + 0.1) of radius 10, with v = FSIN(life · π/120) · −0.5 on the x87
+// (the FMUL by a negative power-of-two float, exact: SineDoubleProductPC53's retained product).
 Core::Expected<void, std::string> LightTheMeteor(const Effects::ModelEffect& effect,
                                                  const HighEffectStepContext& context)
 {
     constexpr double Pulse = 0.02617993950843811; // 0x6ba250
-    constexpr double Depth = -0.5;                // 0x6ba298, −0,5f
+    constexpr double Depth = -0.5;                // 0x6ba298, −0.5f
     constexpr double Blue = 0.10000000149011612;  // 0x6ba248
     constexpr std::int32_t Radius = 10;
     const auto wave = Math::Detail::SineDoubleProductPC53(static_cast<double>(effect.life) * Pulse, Depth);
@@ -86,11 +86,11 @@ Core::Expected<void, std::string> LightTheMeteor(const Effects::ModelEffect& eff
                                          "0x5260fe");
 }
 
-// 0x52614a..0x526207: la piedrita 0xc8 o 0xc9, rand() % 150 + 300 adelante con el giro rand() % 360 en z, y el tipo.
+// 0x52614a..0x526207: the pebble 0xc8 or 0xc9, rand() % 150 + 300 ahead with the turn rand() % 360 in z, and the type.
 void DropTheStone(const Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int ReachSpan = 150;           // 0x96
-    constexpr double Reach = 300.0;          // 0x6b8900, 300,0f
+    constexpr double Reach = 300.0;          // 0x6b8900, 300.0f
     constexpr int FullTurn = Math::FullTurn; // 0x168
     constexpr std::int16_t Stone = 0xc8;
     glm::vec3 forward{0.0f};
@@ -105,10 +105,10 @@ void DropTheStone(const Effects::ModelEffect& effect, const HighEffectStepContex
                                                                   context.random));
 }
 
-// 0x52620f..0x52624f: 0x4eb860 con el modelo del 0x13d (0x5769ad8 + tipo · 0xe0) sobre el buffer global de la pose
-// (0x68b181c, PoseCarry), con la acción publicada del modelo (+0xa0, que pasa a 0 fuera de sus acciones), el frame
-// (+0x114), el anterior (+0x118) y su acción (+0x112), los ángulos (+0x1c), los de la cabeza (+0x28 y +0x2c) y las
-// banderas (0, 0). Sin acciones no hace nada; si no, deja en el modelo el frame y su key (+0xa4 y +0xa8), como
+// 0x52620f..0x52624f: 0x4eb860 with the 0x13d's model (0x5769ad8 + type · 0xe0) on the global pose buffer (0x68b181c,
+// PoseCarry), with the model's published action (+0xa0, which becomes 0 outside its actions), the frame (+0x114), the
+// previous one (+0x118) and its action (+0x112), the angles (+0x1c), the head's (+0x28 and +0x2c) and the flags (0, 0).
+// Without actions it does nothing; otherwise, it leaves the frame and its key on the model (+0xa4 and +0xa8), as
 // PoseWorldModel.
 Core::Expected<void, std::string> PoseTheMeteor(const Effects::ModelEffect& effect, const Models::Skeleton& skeleton,
                                                 Kernel::WorldState& world, Assets::FaunaModels* faunaModels)
@@ -129,7 +129,7 @@ Core::Expected<void, std::string> PoseTheMeteor(const Effects::ModelEffect& effe
                                            .frame = effect.animation.frame,
                                            .previousAction = effect.animation.previousAction,
                                            .previousKey = effect.animation.previousKey};
-    // Con las banderas (0, 0) la raíz sólo gira: la escala y la posición del modelo no entran en la pose.
+    // With the flags (0, 0) the root only rotates: the model's scale and position do not enter the pose.
     const Models::ObjectTransform transform{.angles = effect.transform.angles};
     const glm::vec2 head{effect.copiedAngles.x, effect.copiedAngles.y};
     if (!Models::PoseSkeleton(skeleton, animation, transform, head,
@@ -147,9 +147,9 @@ Core::Expected<void, std::string> PoseTheMeteor(const Effects::ModelEffect& effe
     return {};
 }
 
-// 0x526254..0x526331: por cada hueso que no es dummy, rand() % 12; con 0, su punto (0x4ec110(modelo, hueso, 0, punto,
-// 1): la escala y el origen que el dibujo del efecto dejó en el modelo, PoseCarry::models, o los de la tabla en cero)
-// y las dos partículas.
+// 0x526254..0x526331: for each non-dummy bone, rand() % 12; with 0, its point (0x4ec110(model, bone, 0, point, 1): the
+// scale and origin the effect's draw left on the model, PoseCarry::models, or the table's at zero) and the two
+// particles.
 Core::Expected<void, std::string> SparkTheBones(const Effects::ModelEffect& effect, const Models::Skeleton& skeleton,
                                                 const HighEffectStepContext& context)
 {
@@ -161,7 +161,7 @@ Core::Expected<void, std::string> SparkTheBones(const Effects::ModelEffect& effe
     const auto placed = carry.models.find(static_cast<std::uint16_t>(effect.type));
     const float scale = placed != carry.models.end() ? placed->second.scale : 0.0f;
     const glm::vec3 origin = placed != carry.models.end() ? placed->second.position : glm::vec3(0.0f);
-    // 0x5262cf: push ebx, el efecto, como dueño de la 0x6ec/3; la 0x5f2/0x15 va sin dueño (0x5262ed: push 0).
+    // 0x5262cf: push ebx, the effect, as the 0x6ec/3's owner; the 0x5f2/0x15 goes without an owner (0x5262ed: push 0).
     const auto pool = context.world.Map().effects.Effects();
     const auto found =
         std::ranges::find_if(pool, [&](const Effects::ModelEffect& candidate) { return &candidate == &effect; });
@@ -175,8 +175,8 @@ Core::Expected<void, std::string> SparkTheBones(const Effects::ModelEffect& effe
             continue;
         const glm::vec3 point = Math::OriginalTransformPosition(
             Math::OriginalMatrixOf(context.world.PoseCarry().bones[bone]), glm::vec3(0.0f), scale, origin);
-        // La 0x6ec/3 con el efecto de dueño: su paso busca la mano del Monster82 en la lista de 0x401000, donde el
-        // efecto no está, y sigue como la fanta común (0x547c28).
+        // The 0x6ec/3 with the effect as owner: its step looks for Monster82's hand in 0x401000's list, where the
+        // effect is not, and goes on as the common fanta (0x547c28).
         if (auto shard = CreateHighParticle(context.world, context.random, context.worldClock, Shard, point,
                                             effect.transform.angles, white, ShardSubtype, ShardScale, 0x5262e8, owner);
             !shard.HasValue())
@@ -199,7 +199,7 @@ void BeginTheMeteor(Effects::ModelEffect& effect)
         return;
     }
     constexpr std::int32_t MeteorLife = 120;                         // 0x51c727
-    constexpr float MeteorScale = std::bit_cast<float>(0x3f4ccccdu); // 0x51c72f, 0,8f
+    constexpr float MeteorScale = std::bit_cast<float>(0x3f4ccccdu); // 0x51c72f, 0.8f
     effect.life = MeteorLife;
     effect.transform.scale = MeteorScale;
 }
@@ -246,14 +246,14 @@ Core::Expected<void, std::string> StepTheMeteor(Effects::ModelEffect& effect, co
     if (auto lit = LightTheMeteor(effect, context); !lit.HasValue())
         return lit;
     constexpr int ShakeMask = 3, ShakeCenter = 2;
-    constexpr double ShakeStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+    constexpr double ShakeStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0.1f
     const int shake = (context.random.Next() & ShakeMask) - ShakeCenter;
     if (context.services.cameraShake == nullptr)
         return Core::Unexpected(std::string("0x526126: el 0x13d escribe el temblor de la cámara (0x7d325c8)"));
     *context.services.cameraShake = F32(static_cast<double>(shake) * ShakeStep);
     if ((context.random.Next() & 1) == 0)
         DropTheStone(effect, context);
-    // Sin el BMD del 0x13d (0x5769ad8 en cero): sin acciones ni huesos, ni la pose ni las chispas.
+    // Without the 0x13d's BMD (0x5769ad8 at zero): no actions or bones, no pose or sparks.
     if (skeleton == nullptr)
         return {};
     if (auto posed = PoseTheMeteor(effect, *skeleton, context.world, context.faunaModels); !posed.HasValue())
@@ -268,15 +268,15 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
 {
     if (effect.type != MeteorEffect && effect.type != MeteorShellEffect)
         return false;
-    constexpr float VisibleAlpha = 0.01f; // 0x6b88d4, el de 0x5ffdf0
+    constexpr float VisibleAlpha = 0.01f; // 0x6b88d4, 0x5ffdf0's
     constexpr std::uint32_t BodyFlags = 2;
     constexpr Render::TextureSlot RockTexture{0x63c};
     std::vector<Models::SkinnedMesh> posed;
     std::span<const Models::SkinnedMesh> meshes = object.retainedMeshes;
     if (meshes.empty())
     {
-        // Sin el scratch publicado, el de 0x5ffdf0 con el segundo argumento en 0 (0x52da99 → 0x602e90(efecto, 0, …)):
-        // WorldScratchOf, la normal girada por R · s. Nada sin el modelo, su esqueleto o la pose.
+        // Without the published scratch, 0x5ffdf0's with the second argument at 0 (0x52da99 → 0x602e90(effect, 0, …)):
+        // WorldScratchOf, the normal rotated by R · s. Nothing without the model, its skeleton or the pose.
         if (object.alpha < VisibleAlpha)
             return true;
         posed = Actors::Drawing::WorldScratchOf(models, object);
@@ -289,7 +289,7 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
     pass.state.light = 1.0f;
     if (effect.type == MeteorEffect)
     {
-        // 0x443598..0x4435d4: la U y la V del efecto en los dos.
+        // 0x443598..0x4435d4: the effect's U and V in both.
         pass.state.blendMesh = -1;
         if (auto drawn = Actors::Drawing::DrawItemMeshPass(batch, models, pass, frameClock, meshes, 0, BodyFlags);
             !drawn.HasValue())
@@ -301,7 +301,7 @@ Core::Expected<bool, std::string> DrawTheMeteorBody(Render::ModelBatch& batch, c
             return Core::Unexpected("0x4435d4: " + drawn.Error());
         return true;
     }
-    // 0x443605..0x44362a: FLD T, FMUL 0,00008f (0x6b8be8), FSIN, FMUL 2,5f (0x6b89a8) y FST a +0x6c.
+    // 0x443605..0x44362a: FLD T, FMUL 0.00008f (0x6b8be8), FSIN, FMUL 2.5f (0x6b89a8) and FST to +0x6c.
     if (!worldClock)
         return Core::Unexpected(std::string("0x443605: la cáscara 0x13e pide el reloj del mundo (0x5767b88)"));
     constexpr float Drift = std::bit_cast<float>(0x38a7c5acu); // 0x6b8be8

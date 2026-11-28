@@ -61,7 +61,7 @@ CreateCrywolfDeathSpirit(const Kernel::ModelEffectArguments& args, Effects::Mode
         e.objectState.hiddenMesh = 1;
         e.transform.scale = .2f;
         e.objectState.blendMesh = -1;
-        // 51c9ce resta entera con wrap antes de FILD.
+        // 0x51c9ce: integer subtraction with wrap before the FILD.
         const auto remaining = static_cast<std::int32_t>(20u - static_cast<std::uint32_t>(e.life));
         e.alpha = F32(static_cast<double>(remaining) * static_cast<double>(.2f));
         e.light = {.3f, .4f, 1};
@@ -99,7 +99,7 @@ Core::Expected<void, std::string> StepCrywolfDeathSpirit(Effects::ModelEffect& e
         if ((random.Next() & 1) == 0)
             e.transform.angles.x = F32(static_cast<double>(e.transform.angles.x) +
                                        (e.transform.angles.x < -90 || std::isnan(e.transform.angles.x) ? 20 : -20));
-        // El resultado de distancia sólo llega a un cálculo local muerto de altura; no se usa para mover.
+        // The distance result only reaches a dead local height computation; it is not used to move.
         static_cast<void>(Math::MoveToward(e.transform.position, e.transform.angles, target, e.speed));
         const double accelerated = static_cast<double>(e.speed) + static_cast<double>(.4f);
         e.speed = F32(accelerated);

@@ -49,7 +49,7 @@ using Maps::TarkanMap;
 
 std::size_t FishStepCount(std::int32_t map)
 {
-    // 0x447043..0x447064; 33 no comparte el prefijo extendido de 8.
+    // 0x447043..0x447064; 33 does not share 8's extended prefix.
     if (map == AtlansMap || map == TarkanMap || IsKalimaMap(map) || map == CrywolfMap)
         return ExtendedCount;
     return OrdinaryCount;
@@ -57,7 +57,7 @@ std::size_t FishStepCount(std::int32_t map)
 
 bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_t attributes)
 {
-    // 0x447108..0x447189. Los mapas8/33/34/54 llegan al fallback, con relecturas posteriores.
+    // 0x447108..0x447189. Maps 8/33/34/54 reach the fallback, with later rereads.
     if (map == LorenciaMap)
         return surface == LorenciaWater;
     if (map == DungeonMap || map == ArenaMap)
@@ -69,7 +69,7 @@ bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_
 
 bool FishSpawnEventGate(std::int32_t map)
 {
-    // 0x425070 reconoce exclusivamente los dos mapas de evento y no consume RNG.
+    // 0x425070 recognizes only the two event maps and consumes no RNG.
     return map == AidaMap || map == CharacterSelectMap;
 }
 
@@ -126,7 +126,7 @@ namespace
 {
 constexpr float TileScale = std::bit_cast<float>(std::uint32_t{0x3c23d70a});
 using Math::Tenth;
-// Literales recuperados en contratos de la misma imagen: K6b8a20 y K6b89a8.
+// Literals recovered in contracts of the same image: the constants at 0x6b8a20 and 0x6b89a8.
 constexpr float OrdinarySpeedNumerator = std::bit_cast<float>(std::uint32_t{0x3f19999a});
 constexpr float EffectSpeedNumerator = std::bit_cast<float>(std::uint32_t{0x40200000});
 constexpr double FarDistance = 1500;

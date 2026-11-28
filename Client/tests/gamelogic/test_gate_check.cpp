@@ -14,7 +14,7 @@
 #include <optional>
 #include <vector>
 
-// Casos del ASM de 0x599ef0: la decisión no ejecuta el original ni simula sus accesos protegidos.
+// Cases from the ASM of 0x599ef0: the decision neither runs the original nor simulates its protected accesses.
 namespace
 {
 using Client::Movement::GateCheck;

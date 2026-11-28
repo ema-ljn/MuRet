@@ -28,9 +28,8 @@
 #include <string>
 #include <utility>
 
-// Client::Effects::ModelEffects con el dragón del login (06 § El dragón de fondo), contra lo que hizo el
-// código real del main.exe: 0x518cf0 con el 0xb4 y 1.500 pasos de 0x5208a0 (tests/vectors/world55,
-// make_dragon_vectors.py), bit a bit.
+// Client::Effects::ModelEffects with the login dragon (06 § El dragón de fondo), against what the real main.exe code
+// did: 0x518cf0 with the 0xb4 and 1500 steps of 0x5208a0 (tests/vectors/world55, make_dragon_vectors.py), bit for bit.
 namespace
 {
 using Client::Effects::DragonEffect;
@@ -41,8 +40,7 @@ using Client::Tests::DragonVectorState;
 
 using Client::Math::Bits;
 
-// El esqueleto del dragón para el paso: la acción de Dragon.bmd, 41 keys que repiten (el +0 en 0, como
-// la del generador).
+// The dragon's skeleton for the step: Dragon.bmd's action, 41 repeating keys (the +0 at 0, like the generator's).
 Client::Models::Skeleton DragonSkeleton()
 {
     Client::Models::Skeleton skeleton;
@@ -92,8 +90,8 @@ protected:
         ASSERT_FALSE(error.has_value()) << *error;
     }
 
-    // 0x606660 con el dueño del dragón (el 0xb4 de la carga del mapa, en (5.600; 23.000; 0)): 0x518cf0
-    // con su posición, ángulos 0, luz blanca y escala 1,6.
+    // 0x606660 with the dragon's owner (the 0xb4 of the map load, at (5600; 23000; 0)): 0x518cf0 with its position,
+    // zero angles, white light and scale 1.6.
     std::optional<std::size_t> CreateTheDragon(ModelEffects& effects) const
     {
         return effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -131,7 +129,7 @@ TEST_F(DragonTest, FifteenHundredStepsMatchTheBinary)
     }
 }
 
-// 0x518cf0 toma el primer lugar sin el byte vivo, de los 200; 0x6070a0 los apaga todos (Q-C138).
+// 0x518cf0 takes the first slot without the alive byte, of the 200; 0x6070a0 kills them all (Q-C138).
 TEST(ModelEffectsTest, TheTableHasTwoHundredPlaces)
 {
     ModelEffects effects;
@@ -150,15 +148,15 @@ TEST(ModelEffectsTest, TheTableHasTwoHundredPlaces)
     EXPECT_EQ(effects.Create(DragonEffect, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 1.0f), 0u);
 }
 
-// De los tipos de 0x518cf0, MuRet solo arma el 0xb4: los demás no se crean.
+// Of 0x518cf0's types, MuRet only builds the 0xb4: the others are not created.
 TEST(ModelEffectsTest, OnlyTheDragonIsCreated)
 {
     ModelEffects effects;
     EXPECT_FALSE(effects.Create(0xb5, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f), 1.0f).has_value());
 }
 
-// Q-C278: 0x518cf0 no escribe +0x16c. El efecto nuevo hereda la visibilidad del lugar, aun después de
-// 0x6070a0 (Clear), y no la de otro lugar de la tabla.
+// Q-C278: 0x518cf0 does not write +0x16c. The new effect inherits the slot's visibility, even after 0x6070a0 (Clear),
+// and not another slot's.
 TEST(ModelEffectsTest, ReusingASlotRetainsItsLastDrawVisibility)
 {
     ModelEffects effects;
@@ -188,7 +186,7 @@ TEST(ModelEffectsTest, AnUnseenSlotDoesNotBecomeSeenWhenReused)
     EXPECT_FALSE(effects.Effects()[0].seen);
 }
 
-// 0x518d28..0x518e36 sólo pisa el prefijo: los otros campos físicos pertenecen al lugar reciclado.
+// 0x518d28..0x518e36 only overwrites the prefix: the other physical fields belong to the recycled slot.
 TEST(ModelEffectsTest, ReusingTheGenericEffectsRetainsFieldsOutsideTheNativePrefix)
 {
     for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
@@ -239,7 +237,7 @@ TEST(ModelEffectsTest, ReusingTheGenericEffectsRetainsFieldsOutsideTheNativePref
     }
 }
 
-// 0x518db5/0x518dcb/0x518dbe: el teletransporte también pisa los bytes de argumentos y +0x100.
+// 0x518db5/0x518dcb/0x518dbe: the teleport also overwrites the argument bytes and +0x100.
 TEST(ModelEffectsTest, ReusingTheGenericEffectsReinitializesEveryNativePrefixField)
 {
     for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
@@ -300,7 +298,7 @@ TEST(ModelEffectsTest, AnUnimplementedSubtypeLeavesTheFreeSlotUntouched)
     EXPECT_EQ(slot.disturbanceState, 17);
 }
 
-// El overload conserva los argumentos reales del caller, en vez de sintetizar un dueño o una clave.
+// The overload keeps the caller's real arguments, instead of synthesizing an owner or a key.
 TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
 {
     for (const auto type : {DragonEffect, Client::Effects::ArrivalEffect, Client::Effects::TeleportEffect})
@@ -337,7 +335,7 @@ TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
     }
 }
 
-// La vida baja uno por paso y se vuelve a llenar en 10 (0x520b3b): el dragón no muere nunca.
+// Life drops one per step and refills at 10 (0x520b3b): the dragon never dies.
 TEST_F(DragonTest, TheDragonNeverDies)
 {
     ModelEffects effects;
@@ -352,9 +350,9 @@ TEST_F(DragonTest, TheDragonNeverDies)
     }
 }
 
-// 0x518cf0 con otras entradas que las del login (emuladas en la revisión de la CL7.6 A): la z es la del
-// dueño más 3.400 (0x518fc9), el alabeo va en 0 (0x518fb3), la luz en blanco (la salida 0x51a97b) y una
-// escala de 0 o menos pasa a 0,9 (0x518d3c).
+// 0x518cf0 with inputs other than the login's (emulated in the review of CL7.6 A): z is the owner's plus 3400
+// (0x518fc9), the roll goes at 0 (0x518fb3), the light white (exit 0x51a97b) and a scale of 0 or less becomes 0.9
+// (0x518d3c).
 TEST(ModelEffectsTest, CreateIsTheBinaryWithOtherInputs)
 {
     ModelEffects effects;
@@ -369,8 +367,8 @@ TEST(ModelEffectsTest, CreateIsTheBinaryWithOtherInputs)
     EXPECT_EQ(dragon.start, dragon.transform.position);
 }
 
-// Las comparaciones de 0x5208a0 sin orden, como la x87: con +0xdc en NaN, `test ah, 0x40` (C3 prendido)
-// no da la vuelta, y el dragón gira con +0xe4 en 1 hacia la meta del alabeo de su estado.
+// 0x5208a0's unordered comparisons, like the x87: with +0xdc at NaN, `test ah, 0x40` (C3 set) does not turn around,
+// and the dragon turns with +0xe4 at 1 toward its state's roll goal.
 TEST(ModelEffectsTest, ANotANumberTurnIsNotATurn)
 {
     ModelEffects effects;
@@ -386,7 +384,7 @@ TEST(ModelEffectsTest, ANotANumberTurnIsNotATurn)
     EXPECT_EQ(dragon.reference, 30.0f);
 }
 
-// Y con el frame en NaN, `test ah, 1` (C0 prendido) no lo vuelve a 0.
+// And with the frame at NaN, `test ah, 1` (C0 set) does not reset it to 0.
 TEST(ModelEffectsTest, ANotANumberFrameIsNotReset)
 {
     ModelEffects effects;
@@ -398,9 +396,9 @@ TEST(ModelEffectsTest, ANotANumberFrameIsNotReset)
     Client::Effects::StepModelEffect(dragon, nullptr);
     EXPECT_TRUE(std::isnan(dragon.animation.frame));
 }
-// 0x518cf0(0xae, …, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: oculta en la escena 4, vida 250, animación
-// a 0,3, sin luz por vértice, el estado con rand() & 1, la velocidad (0, escala del dueño · −5, 0) y la
-// escala 0,9 con el /3 (0,25 con los demás). Con el pool lleno no saca rand().
+// 0x518cf0(0xae, …, subtype, owner, −1, 0, 0, 0, 0) → 0x51913a: hidden in scene 4, life 250, animation at 0.3, no
+// per-vertex light, the state from rand() & 1, the speed (0, owner's scale · −5, 0) and scale 0.9 with the /3 (0.25
+// with the others). With the pool full it draws no rand().
 TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
 {
     for (const bool selection : {true, false})
@@ -439,9 +437,9 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
     EXPECT_EQ(random.State(), 9u);
 }
 
-// 0x518cf0(0xda, …, −1, …) → 0x51b80a: el prefijo común sin dueño y seis rand(): vida (& 15) + 24, escala
-// ((& 7) + 6) · 0,1f, caída −(& 3) (−0 con 0), y el corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) +
-// 200), girado (con los ángulos en 0 queda igual) y sumado a la posición en float.
+// 0x518cf0(0xda, …, −1, …) → 0x51b80a: the common ownerless prefix and six rand(): life (& 15) + 24, scale ((& 7) + 6)
+// · 0.1f, fall −(& 3) (−0 with 0), and the shift ((& 63) − 32; −((& 31) + 50); (& 127) + 200), rotated (with zero
+// angles it stays the same) and added to the position in float.
 TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
 {
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u})
@@ -483,8 +481,8 @@ TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
     EXPECT_EQ(random.State(), 9u);
 }
 
-// 0x518cf0(0x5de, …) → 0x51e7d8 con el subtipo 0: vida 40 y el registro propio abierto y cerrado; con la
-// cuenta en 0, el cierre gasta los 3.848 rand() del registro.
+// 0x518cf0(0x5de, …) → 0x51e7d8 with subtype 0: life 40 and the own record opened and closed; with the count at 0, the
+// close spends the record's 3848 rand().
 TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
 {
     for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{2}})
@@ -512,10 +510,10 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
     }
 }
 
-// 0x518cf0(0x5de, punto, ángulos, luz, 0, o, o+0x8a, lugar, 0, 0, 0) → 0x51e7d8, el chorro de la Flame (0x500531): el
-// prefijo con el dueño, la clave en +0x8a y el lugar en +0x89, vida 40 y, con el registro abierto, su cuenta +0xf04 en
-// +0x8c (MOVZX); el cierre con la cuenta en 0 gasta los 3.848 rand(). Otro tipo o subtipo, o la tabla llena, ninguno,
-// sin rand().
+// 0x518cf0(0x5de, point, angles, light, 0, o, o+0x8a, slot, 0, 0, 0) → 0x51e7d8, the Flame's jet (0x500531): the
+// prefix with the owner, the key in +0x8a and the slot in +0x89, life 40 and, with the record open, its count +0xf04
+// in +0x8c (MOVZX); the close with the count at 0 spends the 3848 rand(). Another type or subtype, or the table full,
+// none, no rand().
 TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
 {
     int owner = 0;
@@ -571,8 +569,8 @@ TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
     EXPECT_EQ(untouched.State(), 9u);
 }
 
-// 0x518cf0(0x5ac, blanco+0x10, blanco+0x1c, blanco+0xf4, 1 o 2, blanco, −1, 0, 0, 0, 0) → 0x51e4a6: el prefijo común
-// con el blanco de dueño, vida 1.000 y +0xd8 en 0, sin rand(). El /3 y otros subtipos no; lleno, ninguno.
+// 0x518cf0(0x5ac, target+0x10, target+0x1c, target+0xf4, 1 or 2, target, −1, 0, 0, 0, 0) → 0x51e4a6: the common
+// prefix with the target as owner, life 1000 and +0xd8 at 0, no rand(). The /3 and other subtypes do not; full, none.
 TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
 {
     int owner = 0;
@@ -604,9 +602,9 @@ TEST(ModelEffectsTest, TheSkillFlaresLiveAThousandStepsWithTheirTarget)
     EXPECT_FALSE(full.CreateSkillFlare({}, {}, glm::vec3(1.0f), 2, &owner).has_value());
 }
 
-// 0x518cf0(0xc8 o 0xc9, …) → 0x51b72b con el subtipo 0: el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15)
-// + 32, la escala ((& 3) + 8) · 0,1f, el yaw rand() % 360, la velocidad (el empuje girado con ese yaw) y la
-// caída (& 15) + 8. Otro tipo no crea nada ni saca rand().
+// 0x518cf0(0xc8 or 0xc9, …) → 0x51b72b with subtype 0: the push ((& 255) + 64) · 0.1f in y, life (& 15) + 32, scale
+// ((& 3) + 8) · 0.1f, yaw rand() % 360, the speed (the push rotated by that yaw) and the fall (& 15) + 8. Another type
+// creates nothing and draws no rand().
 TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -642,10 +640,10 @@ TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
     EXPECT_EQ(random.State(), 4u);
 }
 
-// 0x518cf0(0xc8 o 0xc9, …, 0xc, 0, −1, …) → 0x51b426 → 0x51b509..0x51b5d6: la piedrita de la columna 0x5de/3
-// (0x52afe1) saca los cinco rand() de la /0 en su orden, con la escala ((& 3) + 15) · 0,1f; con la tabla llena,
-// ninguno. Conserva la x y la y de los ángulos que recibe y pisa la z con el rand() % 360, y el empuje gira con los
-// tres.
+// 0x518cf0(0xc8 or 0xc9, …, 0xc, 0, −1, …) → 0x51b426 → 0x51b509..0x51b5d6: the small stone of column 0x5de/3
+// (0x52afe1) draws the /0's five rand() in its order, with scale ((& 3) + 15) · 0.1f; with the table full, none. It
+// keeps the x and y of the angles it receives and overwrites z with the rand() % 360, and the push turns with all
+// three.
 TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -688,10 +686,10 @@ TEST(ModelEffectsTest, TheColumnChipIsBornLikeTheFirstOneButBigger)
     EXPECT_EQ(random.State(), 9u);
 }
 
-// 0x518cf0(0xe5 o 0xe6, …, 0, 0, −1, …) → 0x51b659..0x51b6d6 y 0x51b72b: la muerte del 0x16b (0x4f59ca) los corre
-// rand() % 128 − 64 en x e y y rand() % 180 en z (cada uno guardado en float y sumado con un fstp) y después da los
-// cinco rand() de las piedritas: ocho en total. Con otro subtipo que el 0 (el 5 es del estallido, el 10 de la piedra
-// que cae) o la tabla llena, ninguno.
+// 0x518cf0(0xe5 or 0xe6, …, 0, 0, −1, …) → 0x51b659..0x51b6d6 and 0x51b72b: the 0x16b's death (0x4f59ca) shifts them
+// rand() % 128 − 64 in x and y and rand() % 180 in z (each stored as float and added with one fstp) and then takes the
+// small stones' five rand(): eight in all. With a subtype other than 0 (5 is the burst's, 10 the falling stone's) or
+// the table full, none.
 TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -713,7 +711,7 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
         const auto scale = static_cast<float>(((draws.Next() & 3) + 8) * Tenth);
         const auto yaw = static_cast<float>(draws.Next() % 360);
         const auto fall = static_cast<float>((draws.Next() & 15) + 8);
-        // Enteros chicos sumados a 1000, 2000 y 30: exactos en float.
+        // Small integers added to 1000, 2000 and 30: exact in float.
         EXPECT_EQ(effect.transform.position,
                   glm::vec3(static_cast<float>(1000 + dx), static_cast<float>(2000 + dy), static_cast<float>(30 + dz)));
         EXPECT_EQ(effect.type, type);
@@ -739,8 +737,8 @@ TEST(ModelEffectsTest, TheSplintersAreScatteredBeforeTheChipPath)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x518cf0(0x5de, …, 3, …) → 0x51ecaa: la columna del 0x1a4 vive 15, sin rand(); con otro tipo o subtipo, o la tabla
-// llena, nada.
+// 0x518cf0(0x5de, …, 3, …) → 0x51ecaa: the 0x1a4's column lives 15, no rand(); with another type or subtype, or the
+// table full, nothing.
 TEST(ModelEffectsTest, TheFlameColumnLivesFifteenSteps)
 {
     ModelEffects effects;
@@ -765,10 +763,10 @@ TEST(ModelEffectsTest, TheFlameColumnLivesFifteenSteps)
     EXPECT_FALSE(effects.CreateFlameColumn({.type = Client::Effects::FlameJetEffect, .subtype = 3}).has_value());
 }
 
-// 0x518cf0(0xca, …) → 0x51b659..0x51b809, el pedazo de hielo de 0x52e810: el blendMesh (+0x64) en 0 y su luz (+0x68)
-// en 0,3f, el empuje ((& 255) + 64) · 0,1f en y, la z 50 más (0x6b86b0), la vida (& 15) + 32, la escala ((& 3) + 8) ·
-// 0,1f, el yaw rand() % 360 sobre los ángulos que trae, la velocidad (el empuje girado) y la caída (& 15) + 8. Cinco
-// rand(); con la tabla llena, ninguno.
+// 0x518cf0(0xca, …) → 0x51b659..0x51b809, 0x52e810's ice piece: the blendMesh (+0x64) at 0 and its light (+0x68) at
+// 0.3f, the push ((& 255) + 64) · 0.1f in y, z 50 more (0x6b86b0), life (& 15) + 32, scale ((& 3) + 8) · 0.1f, yaw
+// rand() % 360 over the angles it brings, the speed (the rotated push) and the fall (& 15) + 8. Five rand(); with the
+// table full, none.
 TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
 {
     constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
@@ -808,10 +806,10 @@ TEST(ModelEffectsTest, TheIceShardRisesFiftyAndIsPushedAlongItsDrawnYaw)
 }
 } // namespace
 
-// 0x518cf0(0xbb, …) → 0x51b968: la nube de Icarus vive 2, sin blendMesh, escala 10, 200 más en y y 190 menos
-// en z, sin luz por vértice y sin rand(). 0x518cf0(0x5ac, …) → 0x51e3ec: luz 0,3f, s = rand() % 5 + 9 y la
-// velocidad sin girar (sen 30° · cos 70°; cos 30° · cos 70°; sen 70°) · s · 0,5 en la x87, escala 3 y vida
-// 400. Otro tipo, ninguno.
+// 0x518cf0(0xbb, …) → 0x51b968: the Icarus cloud lives 2, no blendMesh, scale 10, 200 more in y and 190 less in z, no
+// per-vertex light and no rand(). 0x518cf0(0x5ac, …) → 0x51e3ec: light 0.3f, s = rand() % 5 + 9 and the unrotated
+// speed (sin 30° · cos 70°; cos 30° · cos 70°; sin 70°) · s · 0.5 in the x87, scale 3 and life 400. Another type,
+// none.
 TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
 {
     ModelEffects effects;
@@ -852,8 +850,8 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
     EXPECT_FALSE(effects.CreateIcarusEffect(0xb4, {}, {}, glm::vec3(1.0f), draws).has_value());
 }
 
-// 0x51900b: el 0xb3 de Aida. El prefijo común con la escala 0 (pasa a 0,9) y seis rand(): la z, la y y la x
-// corridas ± 100, el yaw, la y de la velocidad y la escala; la partida en la posición ya corrida.
+// 0x51900b: Aida's 0xb3. The common prefix with scale 0 (becomes 0.9) and six rand(): z, y and x shifted ± 100, the
+// yaw, the speed's y and the scale; the start at the already shifted position.
 TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
 {
     ModelEffects effects;
@@ -892,7 +890,7 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
     EXPECT_EQ(wisp.speed, 1.0f);
     EXPECT_EQ(wisp.turnDirection, 1.0f);
     EXPECT_EQ(wisp.flagEc, 1.0f);
-    EXPECT_EQ(wisp.turnPending, 7.0f); // +0xdc no lo escribe nadie: queda lo del lugar.
+    EXPECT_EQ(wisp.turnPending, 7.0f); // +0xdc is written by nobody: the slot's value stays.
     EXPECT_EQ(wisp.objectState.light, 1.0f);
     EXPECT_EQ(wisp.objectState.blendMesh, -1);
     EXPECT_TRUE(wisp.vertexLight);
@@ -906,8 +904,8 @@ TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
     EXPECT_EQ(full.State(), 11u);
 }
 
-// 0x518cf0(0x6eb, …) → 0x51f4ad con el subtipo 1, la onda del galope en Icarus: sin dueño, vida 20 y la escala
-// ((rand() % 10) + 10) · 0,1f en la x87. Con la semilla 1, 41: 1,1f. Lleno, ninguna y sin rand().
+// 0x518cf0(0x6eb, …) → 0x51f4ad with subtype 1, the gallop wave in Icarus: ownerless, life 20 and scale ((rand() % 10)
+// + 10) · 0.1f in the x87. With seed 1, 41: 1.1f. Full, none and no rand().
 TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
 {
     ModelEffects effects;
@@ -939,9 +937,9 @@ TEST(ModelEffectsTest, TheGallopShockWaveIsBornWithOneRandom)
 
 namespace
 {
-// 0x518cf0(0x14d, …) → 0x51db7a, el rayo de los Fenrir: vida 100, la escala (rand() % 100) · 0,002f + 0,3f, el alpha
-// 0,7f, tres ángulos rand() % 360 y el lugar por rand() % 30. Para cada semilla repite las cuentas con otra CRT, con
-// el punto de cada hueso en (hueso, 2 · hueso, 3 · hueso), y el sprite 0x5ac de 2 con la luz menos 0,3f.
+// 0x518cf0(0x14d, …) → 0x51db7a, the Fenrirs' ray: life 100, scale (rand() % 100) · 0.002f + 0.3f, alpha 0.7f, three
+// angles rand() % 360 and the place by rand() % 30. For each seed it repeats the computations with another CRT, with
+// each bone's point at (bone, 2 · bone, 3 · bone), and the 0x5ac sprite of 2 with the light minus 0.3f.
 TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
 {
     const auto bonePoint = [](std::size_t bone)
@@ -1042,12 +1040,12 @@ TEST(ModelEffectsTest, TheLightningPicksItsPlaceWithItsOwnRandoms)
     EXPECT_FALSE(empty.Effects()[0].alive);
 }
 
-// 0x518cf0(0x14e, …) → 0x51ddfc, el calco de los Fenrir: vida 200, el cuadro en 0, la luz, el alpha en 1, la hora de
-// timeGetTime() y la z en 0, con el subtipo del color. Sin rand(); lleno, ninguno.
+// 0x518cf0(0x14e, …) → 0x51ddfc, the Fenrirs' decal: life 200, frame at 0, the light, alpha at 1, timeGetTime()'s time
+// and z at 0, with the color's subtype. No rand(); full, none.
 TEST(ModelEffectsTest, TheLightningDecalKeepsItsHourAndLiesOnZeroHeight)
 {
     ModelEffects effects;
-    effects.Effects()[0].textureFrame = 3; // lo que dejó el anterior.
+    effects.Effects()[0].textureFrame = 3; // what the previous one left.
     int owner = 0;
     const auto slot =
         effects.CreateLightningDecal({100.5f, 200.25f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f), 2, &owner, 4321u);
@@ -1070,8 +1068,8 @@ TEST(ModelEffectsTest, TheLightningDecalKeepsItsHourAndLiesOnZeroHeight)
         effect.alive = true;
     EXPECT_FALSE(full.CreateLightningDecal({}, {}, glm::vec3(1.0f), 1, nullptr, 0u).has_value());
 }
-// 0x518cf0(0x61e, …, 1, héroe, −1, 0, 0, 0, 0) → 0x51eebb, el calco de la mascota: el prefijo común (escala 0,9, +0x8a
-// en −1), el dueño y vida 20; el subtipo 1 sale sin caso. Sin rand(); lleno, ninguno.
+// 0x518cf0(0x61e, …, 1, hero, −1, 0, 0, 0, 0) → 0x51eebb, the pet's decal: the common prefix (scale 0.9, +0x8a at −1),
+// the owner and life 20; subtype 1 goes out without a case. No rand(); full, none.
 TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
 {
     ModelEffects effects;
@@ -1098,7 +1096,7 @@ TEST(ModelEffectsTest, ThePetSummonIsTheColoredDecalWithItsOwnerAndTwentySteps)
         effect.alive = true;
     EXPECT_FALSE(full.CreatePetSummon({}, {}, glm::vec3(1.0f), &owner).has_value());
 
-    // El /3 de la 0x1c y de las invocaciones (y el 0 y el 2) salen igual; desde el 4, cada uno tiene su caso.
+    // The /3 of the 0x1c and of the summons (and 0 and 2) come out the same; from 4 on, each has its case.
     for (const std::int32_t subtype : {0, 2, Client::Effects::SummonDecalSubtype})
     {
         SCOPED_TRACE(subtype);
@@ -1126,10 +1124,10 @@ float EarthquakeSum(float value, double addend)
     return static_cast<float>(static_cast<double>(value) + addend);
 }
 
-// 0x518cf0(0xfa, posición, ángulos, luz, 0, caballo, −1, 0, 2, 0, 0) → 0x51a66d: el prefijo común con el estado 2
-// y el dueño, +0x28..+0x30 con los ángulos (x 80 más, z 180 más), la partida, vida 20, el subtipo rand() % 100, la
-// z de los ángulos 330 más y +0xe4 en 50. 0x51a8d8: abre el registro, sube su +0xf04 (envuelve) y lo cierra; con la
-// cuenta de accesos en 0, el cierre gasta sus 3.848 rand(). Lleno, ninguno: sin rand() ni registro.
+// 0x518cf0(0xfa, position, angles, light, 0, horse, −1, 0, 2, 0, 0) → 0x51a66d: the common prefix with state 2 and the
+// owner, +0x28..+0x30 with the angles (x 80 more, z 180 more), the start, life 20, subtype rand() % 100, the angles' z
+// 330 more and +0xe4 at 50. 0x51a8d8: opens the record, raises its +0xf04 (wraps) and closes it; with the access count
+// at 0, the close spends its 3848 rand(). Full, none: no rand() or record.
 TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
 {
     for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{2}})
@@ -1172,7 +1170,7 @@ TEST(ModelEffectsTest, TheEarthquakeIsBornWithItsSubtypeAndClosesTheOwnRecord)
         EXPECT_EQ(quake.owner.angles, &horseAngles);
         EXPECT_EQ(quake.renderFlags, 0u);
         EXPECT_EQ(Client::Effects::OwnerTypeOf(quake.owner), std::optional<std::uint16_t>(std::uint16_t{0x1b2}));
-        // La cuenta +0xf04 es un byte: 0xff más uno vuelve a 0.
+        // The +0xf04 count is a byte: 0xff plus one wraps to 0.
         EXPECT_EQ(count, 0);
         EXPECT_EQ(depth, start);
         if (start == 0)
@@ -1201,8 +1199,8 @@ struct CrackLifeCase
     std::int32_t life;
 };
 
-// 0x51a6e4..0x51a85c: la vida de cada grieta con sus subtipos, la escala size · 0,01f en la x87, +0x8a con el tamaño
-// y +0x64 en 0 salvo en 0xfd y 0x100. Sin rand().
+// 0x51a6e4..0x51a85c: each crack's life with its subtypes, scale size · 0.01f in the x87, +0x8a with the size and
+// +0x64 at 0 except for 0xfd and 0x100. No rand().
 TEST(ModelEffectsTest, TheEarthquakeBurstUsesTheFirstFreeSlotWithoutAnOwner)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();
@@ -1268,8 +1266,8 @@ TEST(ModelEffectsTest, TheEarthquakeCracksTakeTheirLifeAndScaleFromTheirSize)
     }
 }
 
-// Q-C423: 0xfb con un subtipo que no es 0 ni 1 y 0xfc con uno fuera de 0..2 salen por 0x51db73 sin caso: la escala
-// 0,9 del prefijo y la vida que el lugar tenía de su uso anterior. Otro tipo o la tabla llena, ninguno.
+// Q-C423: 0xfb with a subtype other than 0 or 1 and 0xfc with one outside 0..2 go out through 0x51db73 without a case:
+// the prefix's scale 0.9 and the life the slot had from its previous use. Another type or the table full, none.
 TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousEffect)
 {
     for (const auto& [type, subtype] : {std::pair<std::int16_t, std::int32_t>{std::int16_t{0xfb}, 2},
@@ -1299,7 +1297,7 @@ TEST(ModelEffectsTest, AnEarthquakeCrackWithoutItsCaseKeepsTheLifeOfThePreviousE
     EXPECT_FALSE(effects.CreateEarthquakeCrack(0xfb, {}, {}, glm::vec3(1.0f), 0, {}, 0x96).has_value());
 }
 
-// El tipo del dueño se lee en vivo: un efecto (su +0x2 con signo, como WORD) antes que el tipo de un helper.
+// The owner's type is read live: an effect (its +0x2, signed, as a WORD) before a helper's type.
 TEST(ModelEffectsTest, TheOwnerTypeIsReadFromTheLiveOwner)
 {
     ModelEffect owner;

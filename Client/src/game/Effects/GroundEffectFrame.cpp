@@ -19,7 +19,7 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
                                                           const Effects::GroundEffectResources& resources,
                                                           bool originalFrame)
 {
-    // El primer frame puede tener0 pasos. Conserva su entrada y proyecta sobre copias privadas.
+    // The first frame can have 0 steps. It keeps its input and projects onto private copies.
     if (originalFrame || !m_map)
         Capture(effects, resources);
     if (originalFrame)
@@ -30,8 +30,8 @@ Core::Expected<void, std::string> GroundEffectFrame::Draw(Render::ModelBatch& ba
             std::string("0x52dc20: el mapa cambió desde el frame original de los efectos del suelo"));
     }
 
-    // Los dos buffers retienen capacidad. Cada repetición empieza con la misma entrada, nunca
-    // con las mutaciones del dibujo anterior ni con el RNG o el reloj actuales del caller.
+    // Both buffers keep their capacity. Each replay starts from the same input, never from the previous drawing's
+    // mutations nor from the caller's current RNG or clock.
     std::copy(m_originalEffects.begin(), m_originalEffects.end(), m_replayEffects.begin());
     Crt::CrtRandom random(m_randomState);
     const Effects::GroundEffectResources replay{.heights = resources.heights,

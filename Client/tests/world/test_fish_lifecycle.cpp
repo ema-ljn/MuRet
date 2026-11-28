@@ -39,7 +39,7 @@ struct Storage
                 previousAction, frame,  previousFrame, field16d,    field170, field174, this};
     }
 };
-// Captura valores y direcciones prestadas; no retiene la solicitud efímera ni ejecuta efectos.
+// Captures borrowed values and addresses; does not retain the ephemeral request or run effects.
 struct EffectObservation
 {
     std::int32_t type;
@@ -604,7 +604,7 @@ TEST_F(FishLifecycleTest, DirectAdmissionShortCircuitsFallbackAndSurfaceNeedsNoA
     }
     m_slots[0].active = 0;
     auto r = Step();
-    ASSERT_FALSE(r.HasValue()); // gate recién se alcanza durante colisión.
+    ASSERT_FALSE(r.HasValue()); // the gate is only reached during the collision.
     EXPECT_EQ(m_slots[0].type, 0xb2);
     EXPECT_EQ(m_slots[0].active, 1);
     EXPECT_EQ(m_slots[0].timer, 3);
@@ -705,7 +705,7 @@ TEST_F(FishLifecycleTest, AsymmetricSpawnConversionArgumentsAreYX)
     EXPECT_EQ(m_slots[0].position.x, -513);
     EXPECT_EQ(m_slots[0].position.y, -514);
     ASSERT_GE(m_services.conversions.size(), 2U);
-    // Oracle de fracciones exactas: -514/-513 multiplicados por F32bits3c23d70a, sin store F32.
+    // Exact fraction oracle: -514/-513 times F32 bits 0x3c23d70a, without an F32 store.
     EXPECT_EQ(std::bit_cast<std::uint64_t>(m_services.conversions[0]), 0xc0148f5c21400000ULL);
     EXPECT_EQ(std::bit_cast<std::uint64_t>(m_services.conversions[1]), 0xc014851eb0a00000ULL);
 }
@@ -743,8 +743,8 @@ TEST_F(FishLifecycleTest, SpawnFamiliesHaveExactNumericOutputsAndEffectPayloads)
         std::int32_t subtype;
         std::uint32_t effectScaleBits;
     };
-    // Valores independientes de447030 con RNG explícito, literales F32 y perfil PC53/RN.
-    // Oracle privado reproduce operaciones por fracciones exactas; no se consulta el SUT para expected.
+    // Values independent of 0x447030 with explicit RNG, F32 literals and the PC53/RN profile. A private oracle
+    // reproduces the operations with exact fractions; the SUT is not queried for expected values.
     const std::array<Row, 19> rows{{{0, false, 0x3f333333U, 0x3f5b6db8U, 0x41500000U, 0x3e99999aU, 0x3edb6db8U,
                                      0x40c00001U, 0, true, 0x0, 0, 0x00000000U},
                                     {1, false, 0x3f333333U, 0x3f5b6db8U, 0x41500000U, 0x3f800000U, 0x3edb6db8U,

@@ -28,9 +28,9 @@ namespace Client::MapScripts::Kalima
 {
 namespace
 {
-constexpr float CellsPerUnit = 0.02f; // 41dd70/41dd7f, distinta de la proyección ordinaria.
-constexpr float CellSide = 50;        // 41dfd9/41dfe2.
-constexpr float SurfaceBase = 400;    // 41e00b/41e02e/41e058/41e06b.
+constexpr float CellsPerUnit = 0.02f; // 0x41dd70/0x41dd7f, different from the ordinary projection.
+constexpr float CellSide = 50;        // 0x41dfd9/0x41dfe2.
+constexpr float SurfaceBase = 400;    // 0x41e00b/0x41e02e/0x41e058/0x41e06b.
 constexpr double Half = Math::HalfAsDouble;
 constexpr std::int32_t FirstUndrawnCell = 255;
 constexpr std::int32_t FirstNonProgressingReach = 1 << 24;
@@ -60,7 +60,7 @@ Core::Expected<DecalProjection, std::string> Project(const Terrain::TerrainDecal
     if (!column || !row || !whole)
         return Core::Unexpected(std::string("0x41dd90/41dd96/41ddea: ftol del calco de Kalima fuera de int64"));
     const auto reach = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(*whole) + 1u);
-    // Con2^24 el incrementofloat de1 ya no progresa: el caller nativo no termina.
+    // At 2^24 the float increment of 1 no longer progresses: the native caller does not terminate.
     if (reach >= FirstNonProgressingReach)
         return Core::Unexpected(std::string("0x41df47: el alcance del calco no permite avanzar de a uno"));
     const float columnStart = F32(*column);
@@ -78,7 +78,7 @@ Core::Expected<DecalProjection, std::string> Project(const Terrain::TerrainDecal
 
 std::array<glm::vec2, 4> Uvs(const DecalProjection& projection, std::int64_t column, std::int64_t row)
 {
-    // 41de3e..41deb3: v inferior retenida, u derecha desde startU+1 derramado.
+    // 0x41de3e..0x41deb3: the lower v retained, the right u from the spilled startU + 1.
     const double v = static_cast<double>(row) + projection.startV;
     const float top = F32(v * projection.inverse);
     const float bottom = F32((v + 1.0) * projection.inverse);
@@ -117,7 +117,7 @@ void Cell(Render::ModelBatch& batch, const KalimaWavePlane& heights, const Terra
     for (std::size_t corner = 0; corner < vertices.size(); ++corner)
     {
         const auto wave = std::bit_cast<std::int32_t>(heights[indices[corner]]);
-        // 41dff9/41e027/41e046/41e064: siempre plano0, sin selector ni campos periódicos.
+        // 0x41dff9/0x41e027/0x41e046/0x41e064: always plane 0, with no selector or periodic fields.
         const float z = F32((static_cast<double>(wave) + decal.lift) + SurfaceBase);
         vertices[corner] = {{positions[corner].x, positions[corner].y, z}, uvs[corner], color};
     }
@@ -149,8 +149,8 @@ Core::Expected<void, std::string> DrawKalimaSurfaceDecal(Render::ModelBatch& bat
     const auto& projection = projected.Value();
     if (projection.reach < 0)
         return {};
-    // 41dfac..41dfd0 no emite GL fuera de0..254. Recortar omite sólo iteraciones sin efectos;
-    // los offsets siguen siendo enterosfloat exactos en el dominio donde el bucle termina.
+    // 0x41dfac..0x41dfd0 emits no GL outside 0..254. Clipping skips only iterations with no effect; the offsets are
+    // still exact float integers in the domain where the loop terminates.
     const std::int64_t reach = projection.reach;
     const auto column = static_cast<std::int64_t>(projection.column);
     const auto row = static_cast<std::int64_t>(projection.row);

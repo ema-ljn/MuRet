@@ -54,15 +54,15 @@ namespace Client::Pets
 {
 namespace
 {
-// 0x443faa..0x443fb3 y 0x5ffdff..0x5ffe07: los mapas 18 a 23.
+// 0x443faa..0x443fb3 and 0x5ffdff..0x5ffe07: maps 18 to 23.
 using Maps::IsChaosCastle;
-// 0x443fc0 y 0x4452c2: el ayudante que no pide un jugador de jinete.
+// 0x443fc0 and 0x4452c2: the helper that does not need a player rider.
 constexpr std::uint16_t RiderlessHelper = GuardianAngelModel;
-// 0x443e82: la escala del 0xbf al crearlo; 0x445309, la del dibujo en la escena 5.
+// 0x443e82: the 0xbf's scale on creation; 0x445309, the draw's in scene 5.
 constexpr float HorseScale = 1.0f;
 constexpr float RidingHelperScale = 0.9f;
 constexpr float GuardianScale = 0.7f;
-// 0x4452d2: con el segundo argumento de 0x445260 distinto de 0 (el retrato de las cartas), 0x3f3ae148.
+// 0x4452d2: 0x3f3ae148 with 0x445260's second argument not 0 (the card portrait).
 constexpr float PortraitHelperScale = std::bit_cast<float>(0x3f3ae148u);
 
 bool IsFenrir(std::uint16_t type)
@@ -74,44 +74,43 @@ bool IsRidingHelper(std::uint16_t type)
 {
     return type == UniriaModel || type == DinorantModel || IsFenrir(type);
 }
-// 0x443e4b y 0x443df7: la velocidad (+0xd8) y el alpha (+0x174) al crearlo.
+// 0x443e4b and 0x443df7: speed (+0xd8) and alpha (+0x174).
 constexpr float CreatedSpeed = 0.5f;
 constexpr float CreatedAlpha = 0.0f;
-// 0x4440f2: el EBX en 0 de 0x44401e.
+// 0x4440f2: the EBX at 0 of 0x44401e.
 constexpr float HiddenAlpha = 0.0f;
-// 0x44403e: con el +0x88 del jinete distinto de 1, la escena 5 lo apaga.
+// 0x44403e: with the rider's +0x88 not 1, scene 5 turns it off.
 constexpr std::uint8_t RiderShown = 1;
-// Las acciones del jinete (+0x111) y del caballo que miran el polvo, el aliento y el efecto.
+// The rider (+0x111) and horse actions that the dust, the breath and the effect check.
 constexpr std::uint8_t GallopingRiderAction = Tables::HorseWalkAction;
 constexpr std::uint8_t DustHorseAction = 1;
 constexpr std::uint8_t EffectHorseAction = 3;
-// 0x444196: en el mapa 10 el polvo es otro; 0x4445a9: en el 7 el aliento es la gota 607.
+// 0x444196: on map 10 the dust differs; 0x4445a9: on 7 the breath is the 607 drop.
 using Maps::AtlansMap;
 using Maps::IcarusMap;
-// 0x444414..0x44441d y 0x44455a..0x444563: con 0x4000 en +0x78 del jinete, ni polvo ni aliento; 0x445310
-// dibuja con 10. 0x5ffefc: con 0x1000, el frame del caballo en 0.
+// 0x444414..0x44441d and 0x44455a..0x444563: with 0x4000 in the rider's +0x78, no dust or breath; 0x445310 draws with
+// 10. 0x5ffefc: with 0x1000, the horse's frame at 0.
 constexpr std::uint32_t RiderWithoutDust = 0x4000;
 constexpr std::uint32_t RiderFrozen = 0x1000;
-// 0x4443e3 y 0x44456b: rand() % 2 y rand() % 3 en 0.
+// 0x4443e3 and 0x44456b: rand() % 2 and rand() % 3 == 0.
 constexpr int DustOneIn = 2;
 constexpr int BreathOneIn = 3;
-// 0x4445b5..0x4445c8: la luz del aliento, +0xf4, el 3 de 0x443d70 (nadie más lo escribe). Las partículas nacen con
-// el subtipo 0.
+// 0x4445b5..0x4445c8: the breath light, +0xf4, the 3 from 0x443d70 (nobody else writes it).
 constexpr glm::vec3 HorseLight{3.0f, 3.0f, 3.0f};
 constexpr std::int32_t ParticleSubtype = 0;
-// 0x444588..0x44459d: el aliento sale de (50; −4; 0) en el hueso 27 del buffer global (0x68b1d2c).
+// 0x444588..0x44459d: bone 27 of the global buffer (0x68b1d2c).
 constexpr std::size_t BreathBone = 27;
 constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
-// 0x444693: con 1 en +8 del jinete, los doce 0x60f. Lo pone en 1 sólo 0x421db0, en el héroe, con el A9 de las
-// mascotas y su byte 4 en 0xfe (0x4220b1..0x4220c1), sin portar.
+// 0x444693: with 1 at the rider's +8, the twelve 0x60f. Only 0x421db0 sets it to 1, on the hero, with the pets' A9 and
+// its byte 4 at 0xfe (0x4220b1..0x4220c1), not ported.
 constexpr std::uint8_t RiderWithOrbits = 1;
-// 0x5ffe30: el alpha con que 0x5ffdf0 todavía dibuja.
+// 0x5ffe30: the alpha down to which 0x5ffdf0 still draws.
 constexpr float DrawnAlpha = 0.01f;
-// 0x443f1a: el blendMesh del 0x1c12; los demás, el −1 de 0x443d70.
+// 0x443f1a: the 0x1c12's blendMesh; the others, the −1 of 0x443d70.
 constexpr std::int16_t GuardianBlendMesh = 1;
 constexpr std::int16_t NoBlendMesh = -1;
-// 0x445336..0x445390: rand() % 30 + 70 por 0,01f (0x6b88d4), y con el 0x1c12 el sprite 0x5ac (Effect\flare01.jpg) de
-// escala 1, sin rotación y aditivo, con esa luz por (0,5; 0,8; 0,6) (0x6b882c, 0x6b8a38 y 0x6b8a20).
+// 0x445336..0x445390: rand() % 30 + 70 times 0.01f (0x6b88d4) and, with 0x1c12, the 0x5ac sprite (Effect\flare01.jpg),
+// unrotated and additive, with that light times (0.5; 0.8; 0.6) (0x6b882c, 0x6b8a38 and 0x6b8a20).
 constexpr int GlowSpan = 30;
 constexpr int GlowBase = 70;
 constexpr double GlowUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
@@ -123,15 +122,15 @@ constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3f19999au
 
 using Math::F32;
 
-// 0x4441cd..0x4442ad: el hueso del buffer global por el frame del caballo, ya en la acción 1. Las ventanas se pisan
-// y gana la primera; fuera de todas (o sin orden), ninguno.
+// 0x4441cd..0x4442ad: the global buffer bone by the horse's frame, already in action 1. The windows overlap and the
+// first wins; outside all of them (or unordered), none.
 std::optional<std::size_t> IcarusDustBone(float frame)
 {
     struct Window
     {
         float low;
         float high;
-        bool closed; // 0x44429a mira C0 y C3: la última incluye su tope.
+        bool closed; // 0x44429a checks C0 and C3: the last one includes its top.
         std::size_t bone;
     };
     constexpr std::array<Window, 4> Windows{{
@@ -151,9 +150,8 @@ std::optional<std::size_t> IcarusDustBone(float frame)
     return std::nullopt;
 }
 
-// 0x44419f..0x4443d1, el galope en el mapa 10, sin mirar Kalima ni +0x78 del jinete: (rand() & 63) − 32 para la z del
-// desplazamiento (120; 0; z) antes de mirar el frame, el punto del hueso, la onda 0x6eb/1 corrida (rand() & 15) − 8
-// en x y en y, y las 5f2 (PuffTheIcarusDust).
+// 0x44419f..0x4443d1, the gallop on map 10, ignoring Kalima and the rider's +0x78: (rand() & 63) − 32 for the z of the
+// offset (120; 0; z) before looking at the frame.
 Core::Expected<void, std::string> RaiseTheIcarusDust(const Kernel::HelperState& helper,
                                                      const HelperStepContext& context)
 {
@@ -182,9 +180,8 @@ Core::Expected<void, std::string> RaiseTheIcarusDust(const Kernel::HelperState& 
     return PuffTheIcarusDust(base, helper.angles, context, "0x4443b1");
 }
 
-// 0x44416b..0x4444ef con la acción 0x4b del jinete, después de 0x4ea030(1): el polvo. Fuera del 10, con rand() % 2 en
-// 0, fuera de Kalima y sin el 0x4000 del jinete (0x44440a..0x444412: sin jinete, nada; 0x443fa0 siempre le da uno),
-// el polvo alrededor del caballo (ScatterTheDust: el 10 de 0x4444c0 no llega).
+// 0x44416b..0x4444ef with the rider's action 0x4b, after 0x4ea030(1). 0x44440a..0x444412: with no rider, nothing
+// (0x443fa0 always gives one). In ScatterTheDust, the 10 of 0x4444c0 is never reached.
 Core::Expected<void, std::string> RaiseTheDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                const HelperStepContext& context)
 {
@@ -205,8 +202,7 @@ Core::Expected<void, std::string> RaiseTheDust(const Kernel::HelperState& helper
     return ScatterTheDust(helper, context, "0x4444a6");
 }
 
-// 0x44453f..0x4445de: el aliento, con la acción del caballo distinta de 1 y sin el 0x4000 del jinete: con rand() % 3
-// en 0, el punto del hueso 27 del buffer global y la 5f2, o la gota 607 en el 7, con la luz del caballo.
+// 0x44453f..0x4445de
 Core::Expected<void, std::string> Breathe(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                           const HelperStepContext& context)
 {
@@ -228,15 +224,13 @@ Core::Expected<void, std::string> Breathe(const Kernel::HelperState& helper, con
     return EmitHelperParticle(context, type, ParticleSubtype, point.Value(), helper.angles, HorseLight, "0x4445d9");
 }
 
-// 0x4445e1..0x444654: con la acción 3 del caballo, la cinta 0x52e470 con el héroe (0x743a170) de dueño, del punto
-// (60; 0; 0) del hueso 9 del buffer global (0x68b19cc) al punto del mismo hueso, en blanco, con el tipo, el largo y la
-// key en 0. No saca rand().
+// 0x4445e1..0x444654: the 0x52e470 ribbon with the hero (0x743a170) as owner, on bone 9 of the global buffer
+// (0x68b19cc). No rand().
 constexpr std::size_t EarthquakeRibbonBone = 9;
 constexpr glm::vec3 EarthquakeRibbonReach{60.0f, 0.0f, 0.0f}; // 0x4445ff
 constexpr glm::vec3 EarthquakeRibbonLight{1.0f, 1.0f, 1.0f};  // 0x444629..0x444637
-// 0x4453e0: la cuenta de la onda (0x7d3a0f0 % 10), la ventana del frame (0x6b86c4 y 0x6b8c04), el radio de las
-// piedras por cada dos de la cuenta (0x6b87ac), el giro entre piedras (0x6b86cc), el temblor (0x6b8a5c) y la cuenta
-// con que crea el 0xfa y la que le deja después.
+// 0x4453e0: the wave count (0x7d3a0f0 % 10), the frame window (0x6b86c4 and 0x6b8c04), the stone radius per two counts
+// (0x6b87ac), the turn between stones (0x6b86cc), the shake (0x6b8a5c) and the counts that create the 0xfa and follow.
 constexpr std::int32_t ShockWaveEvery = 10;
 constexpr float QuakeFirstFrame = 8.0f;
 constexpr float QuakeLastFrame = 9.5f;
@@ -248,7 +242,7 @@ constexpr int ShakeSpan = 3;
 constexpr double ShakeUnit = static_cast<double>(std::bit_cast<float>(0x3f333333u));
 constexpr std::uint8_t EarthquakeCount = 0x13;
 constexpr std::uint8_t EarthquakeDone = 0xfd;
-constexpr std::uint8_t EarthquakeState = 2; // 0x44558e, el estado (+0x88) del 0xfa
+constexpr std::uint8_t EarthquakeState = 2; // 0x44558e, the 0xfa's state (+0x88)
 
 Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepContext& context)
 {
@@ -279,13 +273,9 @@ Core::Expected<void, std::string> LeaveTheEarthquakeRibbon(const HelperStepConte
     return {};
 }
 
-// 0x4453e0(caballo, modelo), con la acción 3: la cuenta +0x8e sube (un byte) y, cada 10 pasos lógicos (0x7d3a0f0 con
-// signo), la onda 0x6eb/0 en el caballo con sus ángulos y su luz (+0xf4). Con el frame en [8; 9,5] (un NaN cae
-// afuera): con la cuenta impar, seis piedras 0x118 + (rand() & 1) en un anillo de radio (cuenta / 2) · 150 alrededor
-// del caballo, con sus ángulos y su luz; la primera a rand() % 360 + 60 grados y cada una 60 más, el tipo sacado
-// después del giro y antes del alta. Siempre, dentro de la ventana, el temblor de la cámara ((rand() % 3) − 3) · 0,7f.
-// Fuera de ella, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño y el estado 2 (que abre y cierra el
-// registro propio, 3.848 rand() con la profundidad en 0), y la cuenta en 0xfd.
+// 0x4453e0(horse, model), with action 3. 0x7d3a0f0 is signed; a NaN frame falls outside [8; 9.5]; each stone's type is
+// drawn after the turn and before its creation. The 0xfa (state 2) opens and closes the own record: 3848 rand() with
+// the depth at 0.
 Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, const HelperStepContext& context)
 {
     ++helper.horse.effectCount;
@@ -328,7 +318,7 @@ Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, con
     }
     if (helper.horse.effectCount == EarthquakeCount)
     {
-        // 0x44558a..0x4455b3: el dueño se lee vivo (su tipo y sus ángulos) mientras el 0xfa dure.
+        // 0x44558a..0x4455b3: the owner (its type and angles) is read live while the 0xfa lasts.
         static_cast<void>(effects.CreateEarthquake(
             helper.position, helper.angles, helper.light, EarthquakeState,
             Effects::ModelEffectOwner{.type = &helper.type, .effect = nullptr, .angles = &helper.angles},
@@ -338,11 +328,10 @@ Core::Expected<void, std::string> ShakeTheEarth(Kernel::HelperState& helper, con
     return {};
 }
 
-// 0x44469d..0x44474c, con +8 del jinete en 1: cuatro vueltas que suben la z de los ángulos 90 (0x6b8948) desde
-// (0; 0; 0), giran (0; 50; 0) con su matriz (0x5fc8f0 y 0x5fcbd0) y le suman la posición del caballo (+0x10), cada eje
-// guardado en float. En cada vuelta, tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1) iguales,
-// con el caballo (su HelperState) de dueño: nacen con su luz (+0xf4) y, con el ancho en 40, el paso no lo vuelve a
-// leer. Tres rand() por joint; con el pool lleno, ninguno.
+// 0x44469d..0x44474c, with the rider's +8 at 1: the matrix of 0x5fc8f0 and 0x5fcbd0, each axis stored as float; per
+// turn, three equal 0x530860(0x60f, point, point, angles, 0, horse, 40, 2, 0, 0, −1) owned by the horse: they are born
+// with its light (+0xf4) and, with width 40, the step does not read it again. Three rand() per joint; with the pool
+// full, none.
 Core::Expected<void, std::string> RaiseTheOrbits(Kernel::HelperState& helper, const HelperStepContext& context)
 {
     constexpr int Turns = 4;                                                            // 0x4446c7
@@ -383,7 +372,7 @@ Core::Expected<void, std::string> RaiseTheOrbits(Kernel::HelperState& helper, co
     return {};
 }
 
-// 0x4440b8..0x444766, el cuerpo del 0xbf.
+// 0x4440b8..0x444766
 Core::Expected<void, std::string> StepTheDarkHorse(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                                    const Models::Skeleton& skeleton, const HelperStepContext& context)
 {
@@ -392,20 +381,20 @@ Core::Expected<void, std::string> StepTheDarkHorse(Kernel::HelperState& helper, 
     {
         return Core::Unexpected(safe.Error());
     }
-    // 0x4440eb: con el segundo argumento distinto de 0 (el retrato de las cartas), la celda no lo esconde.
+    // 0x4440eb: with the second argument not 0 (the card portrait), the cell does not hide it.
     if (safe.Value() && !context.ignoresTheSafeCell)
     {
-        // 0x4440f2..0x4440f8: al avance con la acción y la velocidad que tenía.
+        // 0x4440f2..0x4440f8: on to the advance with the action and speed it had.
         helper.horse.alpha = HiddenAlpha;
         return {};
     }
-    // 0x444103..0x444142: el hueso de la cabeza del modelo (+0x54) en 7 y la cabeza del jinete (+0x28..+0x30):
-    // en DarkHorse.bmd el 7 es una raíz sin hijos que ningún vértice usa, y MuRet no la lleva.
+    // 0x444103..0x444142: the model's head bone (+0x54) at 7 and the rider's head (+0x28..+0x30): in DarkHorse.bmd bone
+    // 7 is a childless root no vertex uses, and MuRet does not keep it.
     helper.position = rider.position;
     helper.angles = rider.angles;
     const std::uint8_t riderAction = rider.animation.action;
-    // 0x444145..0x444535. Con otra acción, 0x444523 pone además +0x8e en 0, que solo lee el efecto de la
-    // acción 3 (0x4453e0), que corta abajo.
+    // 0x444145..0x444535. With another action, 0x444523 also sets +0x8e to 0, which only the action 3 effect (0x4453e0,
+    // below) reads.
     TakeTheRidersGait(helper.horse, skeleton, riderAction);
     if (riderAction == GallopingRiderAction)
     {
@@ -418,8 +407,8 @@ Core::Expected<void, std::string> StepTheDarkHorse(Kernel::HelperState& helper, 
     {
         return breath;
     }
-    // 0x4445e1..0x44468a: la acción 3, el terremoto del Dark Lord: la cinta y 0x4453e0 (la acción se vuelve a mirar
-    // entre las dos, y la cinta no la cambia).
+    // 0x4445e1..0x44468a: action 3, the Dark Lord's earthquake: the ribbon and 0x4453e0 (the action is checked again
+    // between the two, and the ribbon does not change it).
     if (helper.horse.animation.action == EffectHorseAction)
     {
         if (auto ribbon = LeaveTheEarthquakeRibbon(context); !ribbon.HasValue())
@@ -443,8 +432,8 @@ Core::Expected<void, std::string> StepTheDarkHorse(Kernel::HelperState& helper, 
     return {};
 }
 
-// 0x444059..0x4440b3: el cuerpo por el tipo. El 0xae (0x44476b) no se crea en MuRet; los demás tipos van directo al
-// avance, pero 0x443d70 no los construye.
+// 0x444059..0x4440b3: the body by type. 0xae (0x44476b) is not created in MuRet; the other types go straight to the
+// advance, but 0x443d70 does not build them.
 bool HasItsBody(std::uint16_t type)
 {
     return type == DarkHorseModel || type == RiderlessHelper || IsRidingHelper(type);
@@ -468,11 +457,11 @@ Core::Expected<void, std::string> StepTheBody(Kernel::HelperState& helper, Kerne
     return StepRidingHelper(helper, rider, skeleton, context);
 }
 
-// 0x444010(lugar, 0) con un lugar vivo, en la escena 4 o en la 5, con su jinete (+0x108).
+// 0x444010(slot, 0) with a live slot, in scene 4 or 5, with its rider (+0x108).
 Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                              const HelperStepContext& context)
 {
-    // 0x44402a..0x444047: solo en la escena 5, con el jinete muerto o sin el 1 en +0x88.
+    // 0x44402a..0x444047
     if (context.scene == Kernel::SceneId::Game && (!rider.alive || rider.byte88 != RiderShown))
     {
         helper.alive = false;
@@ -491,13 +480,13 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
             std::format("0x444010: el ayudante {:#x} sin su modelo ({})", helper.type,
                         helper.type == RiderlessHelper ? "Player\\Helper01.bmd, 0x60ff50" : "Skill\\, 0x615700"));
     }
-    // 0x444080..0x44408b: dónde estaba el jinete al empezar, para el vuelo del 0x1c12.
+    // 0x444080..0x44408b: where the rider was at the start, for the 0x1c12's flight.
     const glm::vec2 riderStart(rider.position.x, rider.position.y);
     if (auto body = StepTheBody(helper, rider, *skeleton, context); !body.HasValue())
     {
         return body;
     }
-    // 0x445006..0x445039: +0xa0 del modelo con la acción, que lo portado no lee, y el avance.
+    // 0x445006..0x445039: the model's +0xa0 with the action, which the ported code does not read, and the advance.
     AdvanceDarkHorse(helper.horse, *skeleton,
                      context.scene == Kernel::SceneId::CharacterSelect ? Models::AnimationScene::CharacterSelect
                                                                        : Models::AnimationScene::Other);
@@ -508,8 +497,8 @@ Core::Expected<void, std::string> StepHelper(Kernel::HelperState& helper, Kernel
     return {};
 }
 
-// 0x4452db..0x445309: con el segundo argumento en 0, 1,6 en la escena 2 y 1 en la 4; en las demás, los Fenrir se
-// quedan con la de 0x443d70 (0,9) y los demás van a 1.
+// 0x4452db..0x445309, with the second argument at 0: 1.6 in scene 2 and 1 in 4; in the others the Fenrir keep
+// 0x443d70's (0.9) and the rest go to 1.
 float DrawScaleOf(const Kernel::HelperState& helper, Kernel::SceneId scene)
 {
     if (scene == Kernel::SceneId::Login)
@@ -523,9 +512,8 @@ float DrawScaleOf(const Kernel::HelperState& helper, Kernel::SceneId scene)
     return HorseScale;
 }
 
-// Lo que se dibuja de un ayudante que no es el caballo: su lugar, sus ángulos y su escala, la animación entre dos
-// pasos, el blendMesh con su luz en 1, la U y la V en 0, sin malla oculta, el color de 0x5ffce0 con la luz por
-// vértice (la del terreno más la de +0xf4, el 3 de 0x443d70) y su alpha.
+// A helper other than the horse, drawn between two steps: the 0x5ffce0 color with per-vertex light (the terrain's plus
+// +0xf4, the 3 of 0x443d70).
 Actors::Drawing::DrawnObject DrawnHelper(const Kernel::HelperState& helper, const Models::Skeleton* skeleton,
                                          const glm::vec3& terrainLight, float stepAlpha)
 {
@@ -540,17 +528,16 @@ Actors::Drawing::DrawnObject DrawnHelper(const Kernel::HelperState& helper, cons
     drawn.transform = Models::ObjectTransform{.position = helper.position, .angles = helper.angles};
     drawn.transform.scale = helper.scale;
     drawn.state.blendMesh = helper.blendMesh;
-    // 0x5ffd6a..0x5ffd8b (0x5ffce0): la luz del terreno más la propia (+0xf4..+0xfc).
+    // 0x5ffd6a..0x5ffd8b (0x5ffce0): the own light is +0xf4..+0xfc.
     drawn.color = terrainLight + helper.light;
     drawn.alpha = helper.horse.alpha;
     drawn.vertexLight = true;
     return drawn;
 }
 
-// 0x60277b..0x602e7d: el seno del reloj, los dos huesos de los sprites con sus corrimientos, sus luces y escalas,
-// la luz y el subtipo de los rayos por color, y las ventanas de los calcos.
-constexpr double FenrirPulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
-constexpr float FenrirPulseSwing = std::bit_cast<float>(0x3e4ccccdu);                      // 0x6b8854: 0,2f.
+// 0x60277b..0x602e7d
+constexpr double FenrirPulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0.002f.
+constexpr float FenrirPulseSwing = std::bit_cast<float>(0x3e4ccccdu);                      // 0x6b8854: 0.2f.
 constexpr std::uint8_t FenrirChargeAction = 4;
 constexpr std::uint8_t FenrirFirstStrikeAction = 1, FenrirSecondStrikeAction = 2;
 constexpr int FenrirSparkSpreadX = 10, FenrirSparkSpreadZ = 40, FenrirSparkCentreZ = 20;
@@ -558,9 +545,9 @@ constexpr double Half = Math::HalfAsDouble;                                     
 constexpr double FenrirSparkScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48.
 constexpr double FenrirSparkScaleBase = static_cast<double>(std::bit_cast<float>(0x3f333333u)); // 0x6b8a5c.
 constexpr std::size_t FenrirSparkBone = 14, FenrirEyeBone = 11, FenrirChestBone = 13;
-constexpr double FenrirEyeRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));   // 0x6b8a1c: 0,9f.
-constexpr double FenrirEyeGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854: 0,2f.
-constexpr double FenrirEyeBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8: 0,1f.
+constexpr double FenrirEyeRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));   // 0x6b8a1c: 0.9f.
+constexpr double FenrirEyeGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854: 0.2f.
+constexpr double FenrirEyeBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8: 0.1f.
 constexpr double FenrirEyeScaleStep = FenrirEyeBlue;                                      // 0x6b87b8.
 constexpr glm::vec3 FenrirLeftEye{50.0f, 2.0f, 11.0f}, FenrirRightEye{50.0f, 2.0f, -11.0f};
 constexpr glm::vec3 FenrirChest{40.0f, 15.0f, 0.0f};
@@ -570,14 +557,13 @@ constexpr std::uint16_t FenrirFlare = 0x5ac;
 constexpr std::uint16_t RedFenrir = 0x14b, BlueFenrir = 0x14c;
 constexpr std::array<std::size_t, 4> FenrirStrikeBones{22, 28, 36, 44};
 
-// Un punto del buffer global con un hueso de los de arriba, todos por debajo de los 200 del buffer.
+// The bones above are all under the buffer's 200.
 glm::vec3 FenrirBonePoint(std::span<const Math::BoneTransform> bones, std::size_t bone, const glm::vec3& offset)
 {
     return GlobalPosePoint(bones, bone, offset, "0x4ec110").Value();
 }
 
-// 0x60277b..0x602e7d, después de 0x5ffdf0: el cuerpo y su sombra, la chispa de la acción 4, los sprites, los rayos y
-// los calcos. Pide todo antes de sacar el primer rand().
+// 0x60277b..0x602e7d, after 0x5ffdf0. It asks for everything before drawing the first rand().
 Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     if (context.effects == nullptr || context.particles == nullptr || context.sprites == nullptr ||
@@ -588,7 +574,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
                                             "global de la pose",
                                             helper.type));
     }
-    // 0x60277b..0x602792: fld del reloj, fmul 0,002f, fsin, fmul 0,2f y fstp.
+    // 0x60277b..0x602792: fld clock, fmul 0.002f, fsin, fmul 0.2f and fstp.
     const auto sine =
         Math::Detail::SineProductPC53(static_cast<double>(context.worldClock) * FenrirPulseRate, FenrirPulseSwing);
     if (!sine)
@@ -611,8 +597,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
     Crt::CrtRandom& random = context.random;
     if (charging)
     {
-        // 0x60282f..0x6028c6: (rand() % 10 − 10; 0; rand() % 40 − 20) por 0,5 desde el hueso 14 y la 5c6/15 roja,
-        // con los ángulos del Fenrir y la escala del seno por 0,05f más 0,7f.
+        // 0x60282f..0x6028c6
         const int x = (random.Next() % FenrirSparkSpreadX) - FenrirSparkSpreadX;
         const int z = (random.Next() % FenrirSparkSpreadZ) - FenrirSparkCentreZ;
         const glm::vec3 offset(F32(static_cast<double>(x) * Half), 0.0f, F32(static_cast<double>(z) * Half));
@@ -625,8 +610,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
             return Core::Unexpected(std::format("0x6028c6: el alta de 0x5c6/15 falla con error {}",
                                                 static_cast<unsigned>(created.Error())));
     }
-    // 0x602930..0x602aa2: los ojos (el hueso 11) con la luz del seno, dos sprites en cada uno de escala seno · 0,1f +
-    // 0,5, y el pecho (el 13) con uno de 1,5 y otro de 1 en (1; 0,3; 0,2).
+    // 0x602930..0x602aa2
     const double halfPulse = pulse * Half;
     const glm::vec3 eyeLight(F32(pulse + FenrirEyeRed), F32(halfPulse + FenrirEyeGreen),
                              F32(halfPulse + FenrirEyeBlue));
@@ -640,7 +624,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
     const glm::vec3 chest = FenrirBonePoint(bones, FenrirChestBone, FenrirChest);
     static_cast<void>(context.sprites->Create(FenrirFlare, chest, FenrirChestScale, FenrirChestLight, 0.0f, 0));
     static_cast<void>(context.sprites->Create(FenrirFlare, chest, 1.0f, FenrirChestLight, 0.0f, 0));
-    // 0x602aa7..0x602b50: la luz y el subtipo por color y dos 0x518cf0(0x14d, lugar, ángulos, luz, 0, Fenrir, −1).
+    // 0x602aa7..0x602b50: two 0x518cf0(0x14d, place, angles, light, 0, Fenrir, −1).
     glm::vec3 strikeLight(1.0f, 1.0f, std::bit_cast<float>(0x3e4ccccdu));
     std::int32_t strike = 3;
     if (helper.type == RedFenrir)
@@ -662,7 +646,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
         if (!created.HasValue())
             return Core::Unexpected("0x602b30 → " + created.Error());
     }
-    // 0x602b55..0x602e75: los calcos 0x14e en blanco, con el subtipo del color, en los huesos de la ventana del frame.
+    // 0x602b55..0x602e75: the 0x14e decals.
     const std::uint8_t action = helper.horse.animation.action;
     const float frame = helper.horse.animation.frame;
     std::span<const std::size_t> strikes{};
@@ -682,7 +666,7 @@ Core::Expected<void, std::string> DrawTheFenrir(Kernel::HelperState& helper, con
     return {};
 }
 
-// 0x6002e0 con el ayudante, ya posado por 0x5ffdf0.
+// 0x6002e0, with the helper already posed by 0x5ffdf0.
 Core::Expected<void, std::string> DrawTheBody(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     const std::int32_t map = context.world.Runtime().map;
@@ -701,7 +685,7 @@ Core::Expected<void, std::string> DrawTheBody(Kernel::HelperState& helper, const
     }
     if (IsFenrir(helper.type))
         return DrawTheFenrir(helper, context);
-    // 0x5ffce0: la luz del terreno en su lugar.
+    // 0x5ffce0
     if (context.lighting == nullptr)
     {
         return Core::Unexpected(std::format(
@@ -715,15 +699,14 @@ Core::Expected<void, std::string> DrawTheBody(Kernel::HelperState& helper, const
             return published;
     if (context.posedMeshes)
         drawn.retainedMeshes = context.posedMeshes();
-    // 0x600b35 (el Dinorant) y 0x602360 (el Uniria y el Guardian Angel): RenderBody(2, alpha, blendMesh, 1, 0, 0,
-    // −1, −1).
+    // 0x600b35 (Dinorant) and 0x602360 (Uniria and Guardian Angel): RenderBody(2, alpha, blendMesh, 1, 0, 0, −1, −1).
     Actors::Drawing::DrawObject(context.batch, context.models, drawn, context.frameClock);
     return {};
 }
 
-// 0x600343..0x600399: el camino del 10 de 0x6002e0 busca al jinete (+0x108) en los 400 lugares del pool (0x743a16c,
-// de a 0x438). Si es otro que el héroe (0x743a170), con el asedio (0x4294b0 lee 0x7239ec) y su +0x78 & 0x4000, con
-// +0x370 distinto de 1 sale por 0x602e7d sin dibujar nada ni tocar el color del modelo.
+// 0x600343..0x600399: 0x6002e0's path for 10 looks up the rider (+0x108) in the pool's 400 slots (0x743a16c, 0x438
+// each). If it is not the hero (0x743a170), with the siege (0x4294b0 reads 0x7239ec), +0x78 & 0x4000 and +0x370 not 1,
+// it exits through 0x602e7d without drawing or touching the model's color.
 constexpr std::size_t CharacterTableSlots = 400; // 0x69780 / 0x438
 constexpr std::uint8_t ShownInTheSiege = 1;
 
@@ -738,9 +721,9 @@ bool HiddenInTheSiege(const Kernel::WorldState& world, std::size_t rider)
     return (riding.flags78 & RiderWithoutDust) != 0 && riding.byte370 != ShownInTheSiege;
 }
 
-// 0x6002e0 con 10 (0x60033c..0x600435), con el ayudante ya posado por 0x5ffdf0 como lo posa el camino de su tipo: no
-// llega al caso del tipo, así que el Fenrir no pide sus efectos ni saca sus rand(), y ninguno lee la luz del terreno,
-// que 0x60039d pisa con el blanco. El 0x1c12 conserva su blendMesh, que el 0x4000 no mira.
+// 0x6002e0 with 10 (0x60033c..0x600435), the helper already posed by 0x5ffdf0 as its type's path poses it: it does not
+// reach the type's case, so the Fenrir asks for no effects and draws no rand(), and none reads the terrain light, which
+// 0x60039d overwrites with white. The 0x1c12 keeps its blendMesh, which the 0x4000 does not check.
 Core::Expected<void, std::string> DrawTheShell(Kernel::HelperState& helper, const HelperDrawContext& context)
 {
     Actors::Drawing::DrawnObject drawn;
@@ -767,8 +750,8 @@ Core::Expected<void, std::string> DrawTheShell(Kernel::HelperState& helper, cons
     return Actors::Drawing::DrawChromeShell(context.batch, context.models, drawn, context.frameClock);
 }
 
-// 0x445260(lugar, `always`) con un lugar vivo y su jinete (+0x108). Con `always` (el retrato de las cartas), visto sin
-// el trapecio (0x4452a4) y con la escala de 0x4452d2.
+// 0x445260(slot, `always`) with a live slot and its rider (+0x108). With `always` (the card portrait), seen without the
+// trapezoid (0x4452a4) and with 0x4452d2's scale.
 Core::Expected<void, std::string> DrawHelper(Kernel::HelperState& helper, const Kernel::ActorState& rider, bool always,
                                              const HelperDrawContext& context)
 {
@@ -790,26 +773,26 @@ Core::Expected<void, std::string> DrawHelper(Kernel::HelperState& helper, const 
         return Core::Unexpected(std::format("0x445260: el dibujo del ayudante {:#x} no está portado", helper.type));
     }
     helper.scale = always ? PortraitHelperScale : DrawScaleOf(helper, context.scene);
-    // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
-    // vez por frame del original.
+    // 0x602e90 → 0x5ffdf0: on maps 18 to 23, with the hero's +0x1a1, alpha drops 0.15f and is stored, once per original
+    // frame.
     if (context.originalFrame)
         helper.horse.alpha =
             Events::ChaosCastle::ChaosCastlePoseAlpha(runtime.map, world.Hero().byte1a1, helper.horse.alpha);
-    // 0x5ffe2a..0x5ffe3b: por debajo de 0,01 (o sin orden) no lo dibuja.
+    // 0x5ffe2a..0x5ffe3b: below 0.01 (or unordered) it is not drawn.
     if (helper.horse.alpha >= DrawnAlpha)
     {
         if ((rider.flags78 & RiderFrozen) != 0)
         {
             helper.horse.animation.frame = 0.0f; // 0x5fff0d
         }
-        // 0x445310..0x445323: con 0x4000 en +0x78 del jinete, 0x602e90(lugar, 0, 0, 10).
+        // 0x445310..0x445323: 0x602e90(slot, 0, 0, 10).
         const bool shell = (rider.flags78 & RiderWithoutDust) != 0;
         if (auto body = shell ? DrawTheShell(helper, context) : DrawTheBody(helper, context); !body.HasValue())
         {
             return body;
         }
     }
-    // 0x445336..0x445358: rand() % 30 + 70, por 0,01f en la x87; solo el 0x1c12 la usa.
+    // 0x445336..0x445358: on the x87; only the 0x1c12 uses it.
     const double glow = static_cast<double>((context.random.Next() % GlowSpan) + GlowBase) * GlowUnit;
     if (helper.type != RiderlessHelper)
     {
@@ -830,12 +813,12 @@ Core::Expected<bool, std::string> ConstructHelper(Kernel::HelperState& helper, s
                                                   const glm::vec3& position, const Kernel::ActorState& rider,
                                                   std::size_t riderSlot, std::int32_t map, Crt::CrtRandom* random)
 {
-    // 0x443d73..0x443d87: en los mapas 18 a 23, nada (devuelve 0).
+    // 0x443d73..0x443d87 (returns 0).
     if (IsChaosCastle(map))
     {
         return false;
     }
-    // 0x443d8d: el lugar vivo queda como está (devuelve 1: 0x443fa0 prueba el siguiente).
+    // 0x443d8d: a live slot stays as it is (returns 1: 0x443fa0 tries the next one).
     if (helper.alive)
     {
         return false;
@@ -851,7 +834,7 @@ Core::Expected<bool, std::string> ConstructHelper(Kernel::HelperState& helper, s
     helper.scale = type == DarkHorseModel ? HorseScale : IsRidingHelper(type) ? RidingHelperScale : GuardianScale;
     helper.position = position;
     helper.angles = rider.angles;
-    // 0x443e1d y 0x443e23: la key anterior y el frame; +0x111 y +0x112 quedan (Q-C221).
+    // 0x443e1d and 0x443e23; +0x111 and +0x112 stay (Q-C221).
     helper.horse.animation.previousKey = 0;
     helper.horse.animation.frame = 0.0f;
     helper.horse.speed = CreatedSpeed;
@@ -928,7 +911,7 @@ Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
 Core::Expected<void, std::string> StepTheHelperOutsideTheTable(Kernel::HelperState& helper, Kernel::ActorState& rider,
                                                                const HelperStepContext& context)
 {
-    // 0x444021: sin el byte vivo, nada.
+    // 0x444021
     if (!helper.alive)
     {
         return {};
@@ -942,7 +925,7 @@ Core::Expected<void, std::string> DrawTheHelperOutsideTheTable(Kernel::HelperSta
                                                                const Kernel::ActorState& rider,
                                                                const HelperDrawContext& context)
 {
-    // 0x44526b: sin el byte vivo, nada.
+    // 0x44526b
     if (!helper.alive)
     {
         return {};

@@ -21,14 +21,14 @@ namespace Client::MapScripts::Icarus
 {
 namespace
 {
-// 0x603f09..0x6040ac: la luz de las nubes, 0x3dcccccd en las tres componentes.
+// 0x603f09..0x6040ac: the clouds' light, 0x3dcccccd in all three components.
 constexpr float CloudLight = std::bit_cast<float>(0x3dcccccdu);
 constexpr int ManyClouds = 20;
 constexpr int FewClouds = 10;
 constexpr std::int16_t LastManyClouds = 2;
 constexpr std::int16_t LastCloud = 5;
 constexpr std::int16_t Flare = 10;
-// 0x6040f3: 0x68b18ac, el hueso 3 desde 0x68b181c, de a 0x30.
+// 0x6040f3: 0x68b18ac, bone 3 from 0x68b181c, in steps of 0x30.
 constexpr std::size_t FlareBone = 3;
 
 Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass, std::int32_t type,
@@ -53,7 +53,7 @@ Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObjec
 {
     if (object.type >= 0 && object.type <= LastCloud)
     {
-        // 0x603f03..0x6040db: con +0x58 en −2 no emite; después lo deja en −2 igual.
+        // 0x603f03..0x6040db: with +0x58 at −2 it does not emit; afterwards it leaves it at −2 anyway.
         if (object.state.hiddenMesh != WorldObjects::HiddenObject)
         {
             const int count = object.type <= LastManyClouds ? ManyClouds : FewClouds;
@@ -72,7 +72,7 @@ Core::Expected<void, std::string> StepIcarusObjectFrame(WorldObjects::WorldObjec
     }
     if (object.type != Flare)
         return {};
-    // 0x6040e9..0x604143: 0x4ec110(hueso 3, cero, salida, 0) y 0x53fe70(0x5ac, punto, ángulos, 1, 0, 1, 0).
+    // 0x6040e9..0x604143: 0x4ec110(bone 3, zero, out, 0) and 0x53fe70(0x5ac, point, angles, 1, 0, 1, 0).
     const auto point = WorldObjects::ObjectBonePoint(pass, FlareBone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());

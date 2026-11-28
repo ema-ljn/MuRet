@@ -35,10 +35,8 @@
 #include <utility>
 #include <vector>
 
-// La cola de 0x57cfc0 con las skills 0x43 a 0x48 (0x5808da..0x599d5d, CL9 hito 4, fase 2c), llamada directo y desde
-// 0x57cfc0: el héroe en el lugar 0 en (182, 115), un monstruo elegido en el lugar 5 en (184, 117) con la clave 0x0a1b
-// y un Skill.bmd inventado. Cada envío con sus bytes y cada camino con sus rand(), en Lorencia (0), Devias (2) y, desde
-// 0x57cfc0, en Blood Castle (11), Chaos Castle (18) y el asedio (30).
+// The tail of 0x57cfc0 with skills 0x43 to 0x48 (0x5808da..0x599d5d), called directly and from 0x57cfc0, with an
+// invented Skill.bmd.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -48,19 +46,19 @@ constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
 constexpr int SendDraws = 2;
-// La cabeza de la cola (0x5808ef..0x594002) sin espera: el registro propio y, con él abierto, las entradas del costo,
-// de la espera (0x552c50) y de la energía (0x551f40).
+// The tail's head (0x5808ef..0x594002) without a delay: the own record and, with it open, the cost, delay (0x552c50)
+// and energy (0x551f40) entries.
 constexpr int TailHeadDraws = OwnDraws + 3 * EntryDraws;
-// Sin el maná o sin la stamina, sin la espera.
+// Without the mana or without the stamina, no delay.
 constexpr int UnpaidHeadDraws = OwnDraws + 2 * EntryDraws;
-// La celda lógica del héroe: la Y y la X (o la X y la Y).
+// The hero's logical cell: the Y and the X (or the X and the Y).
 constexpr int HeroCellDraws = 2 * CellDraws;
-// La 0x43 entera: la celda del rumbo, la del 1E y el relleno y el serial del C3. 0x4f3f80 corre con el registro propio
-// abierto, sin rand().
+// The whole 0x43: the heading's cell, the 1E's, and the C3's padding and serial. 0x4f3f80 runs with the own record
+// open, without rand().
 constexpr int SternDraws = TailHeadDraws + 2 * HeroCellDraws + SendDraws;
 constexpr int MagicAttackDraws = TailHeadDraws + SendDraws;
-// La cabeza de 0x57cfc0 hasta la skill de cada mano: el registro propio con la skill del lugar, la entrada del alcance,
-// la del +0x31 (0x57d2f1) y las dos celdas lógicas (0x57d4d6, 0x57d4f4).
+// The head of 0x57cfc0 up to each hand's skill: the own record with the slot's skill, the range entry, the +0x31 one
+// (0x57d2f1) and the two logical cells (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = OwnDraws + 2 * EntryDraws + 2 * CellDraws;
 constexpr std::size_t ChosenSlot = 5;
 constexpr std::uint16_t ChosenKey = 0x0a1b;
@@ -87,8 +85,6 @@ struct InventedSkill
     std::uint8_t range = 4;
 };
 
-// Skill.bmd con el nivel (+0x20), el maná (+0x22), la stamina (+0x24), el alcance (+0x26), la espera (+0x28) y la
-// energía (+0x2c).
 Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -127,8 +123,8 @@ std::uint8_t DefaultActionOf(std::uint8_t skill)
     return skill == 0x44 || skill == 0x47 ? CancelAction : StandingAction;
 }
 
-// El héroe de la clase `heroClass` con la skill en su lugar 0 y el blanco que 0x57cfc0 le dejó: +0x3a8 en el elegido y
-// 0x7758588 en su lugar.
+// The hero of class `heroClass` with the skill in slot 0 and the target 0x57cfc0 left it: +0x3a8 at the chosen one and
+// 0x7758588 at its slot.
 struct TailHero
 {
     explicit TailHero(std::uint8_t used, std::int32_t map = 0, std::uint8_t heroClass = 5) : skill(used)
@@ -152,8 +148,8 @@ struct TailHero
         auto& chosen = Chosen();
         chosen.alive = true;
         chosen.type = 0x20;
-        chosen.byte88 = 2;  // un monstruo: 0x558bb0 lo deja atacar
-        chosen.byte370 = 2; // y 0x558eb0 da su clave
+        chosen.byte88 = 2;  // a monster: 0x558bb0 lets it be attacked
+        chosen.byte370 = 2; // and 0x558eb0 gives its key
         chosen.key = ChosenKey;
         chosen.alpha = 1.0f;
         chosen.position = {18450.0f, 11750.0f, 0.0f};
@@ -216,7 +212,7 @@ std::unique_ptr<TailHero> AHero(std::uint8_t skill, std::int32_t map = 0, std::u
     return std::make_unique<TailHero>(skill, map, heroClass);
 }
 
-// 0x5808da..0x5808e9: fuera de 0x43 a 0x48, nada, ni rand().
+// 0x5808da..0x5808e9: outside 0x43 to 0x48, nothing, not even rand().
 TEST(HeroSkillsTailTest, OutsideTheTailNothing)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x13}, std::uint8_t{0x42}, std::uint8_t{0x49}})
@@ -232,7 +228,7 @@ TEST(HeroSkillsTailTest, OutsideTheTailNothing)
     }
 }
 
-// 0x580916..0x580922: sin un jugador (+2 en 0x20a), el costo de 0x551c70 y el cierre del registro propio, nada más.
+// 0x580916..0x580922: without a player (+2 at 0x20a), 0x551c70's cost and the close of the own record, nothing more.
 TEST(HeroSkillsTailTest, OnlyAPlayerGoesOn)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x43}, std::uint8_t{0x46}})
@@ -249,9 +245,9 @@ TEST(HeroSkillsTailTest, OnlyAPlayerGoesOn)
     }
 }
 
-// 0x580928..0x593fe0: sin el maná, la poción (sin ella, sigue; con ella, el hito 5); sin la stamina, sin la espera;
-// con ellos, la espera de 0x552c50, cuyo resultado nadie mira; la energía de 0x551f40, que nadie compara. Nada de eso
-// frena la skill (Q-C1226).
+// 0x580928..0x593fe0: without the mana, the potion (without it, it goes on); without the stamina, no delay; with them,
+// 0x552c50's delay, whose result nobody checks; 0x551f40's energy, which nobody compares. None of it stops the skill
+// (Q-C1226).
 TEST(HeroSkillsTailTest, TheHeadNeverStopsTheSkill)
 {
     for (const std::int32_t map : {0, 2})
@@ -285,7 +281,7 @@ TEST(HeroSkillsTailTest, TheHeadNeverStopsTheSkill)
         EXPECT_EQ(tested->sent.size(), 1u);
     }
     {
-        // 10 · 5 · 4 / 100 + 20 = 22 de energía, sin ella en el registro.
+        // 10 · 5 · 4 / 100 + 20 = 22 energy, without it in the record.
         const auto tested = AHero(0x43);
         tested->skills = SkillsWith({{0x43, 0, 0, 10, 5}});
         const CrtRandom expected = Advanced(tested->random, SternDraws);
@@ -293,7 +289,7 @@ TEST(HeroSkillsTailTest, TheHeadNeverStopsTheSkill)
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_EQ(tested->sent.size(), 1u);
     }
-    // Con la espera corriendo, 0x552c50 dice que no y la skill sale igual.
+    // With the delay running, 0x552c50 says no and the skill goes out anyway.
     const auto tested = AHero(0x48, 2);
     tested->skills = SkillsWith({{0x48, 0, 0, 0, 0, 1000}});
     ASSERT_TRUE(tested->Use().HasValue());
@@ -302,10 +298,10 @@ TEST(HeroSkillsTailTest, TheHeadNeverStopsTheSkill)
     EXPECT_EQ(tested->sent.size(), 2u);
 }
 
-// 0x594009..0x594de9: la 0x43 gira hacia +0x3a8 (135°), manda el 1E con la celda lógica (la X y la Y), el rumbo ·
-// 256/360, la celda del blanco desde la celda lógica (0x5ae300), la de 0x4e9920 desde la posición, la clave de
-// 0x558eb0 con 0x7758588 y la clave mágica 0 de 0x57cf90(0); 0x5767948 en 0x43, sin el freno ni el contador 0x77f3bad.
-// Después 0x4f3f80 y la acción 0x3f, con +0x378 en 0.
+// 0x594009..0x594de9: 0x43 turns toward +0x3a8 (135°), sends the 1E with the logical cell (the X and the Y), the
+// heading · 256/360, the target's cell from the logical cell (0x5ae300), 0x4e9920's from the position, 0x558eb0's key
+// with 0x7758588 and the magic key 0 from 0x57cf90(0); 0x5767948 at 0x43, without the brake or the counter 0x77f3bad.
+// Then 0x4f3f80 and action 0x3f, with +0x378 at 0.
 TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
 {
     for (const std::int32_t map : {0, 2})
@@ -330,7 +326,8 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
         EXPECT_EQ(tested->Hero().movement, 0);
     }
     {
-        // El byte 7 sale de la celda lógica (+0x41c, aquí 180) y el 8 de la posición: con ellas distintas, difieren.
+        // Byte 7 comes from the logical cell (+0x41c, here 180) and byte 8 from the position: when they differ, so do
+        // the bytes.
         const auto tested = AHero(0x43);
         tested->Hero().cellX = 180;
         ASSERT_TRUE(tested->Use().HasValue());
@@ -348,7 +345,7 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
         EXPECT_EQ(tested->Sent(0)[8], 0x94);
     }
     {
-        // Sin el blanco de la skill del arma (0x7758588 en −1), la clave 0xffff.
+        // Without the weapon skill's target (0x7758588 at −1), the key 0xffff.
         const auto tested = AHero(0x43);
         tested->Movement().weaponSkill.target = -1;
         ASSERT_TRUE(tested->Use().HasValue());
@@ -356,7 +353,7 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
         EXPECT_EQ(tested->Sent(0)[9], 0xff);
         EXPECT_EQ(tested->Sent(0)[10], 0xff);
     }
-    // Con "webzen", sin el 1E ni 0x5767948 (y sin la segunda lectura de la celda), pero con el giro y la acción.
+    // With "webzen", neither the 1E nor 0x5767948 (nor the second read of the cell), but the turn and the action.
     const auto tested = AHero(0x43, 2);
     tested->CallIt("awebzen");
     const CrtRandom expected = Advanced(tested->random, TailHeadDraws + HeroCellDraws);
@@ -369,8 +366,8 @@ TEST(HeroSkillsTailTest, TheSternSendsTheDurationMagic)
     EXPECT_EQ(tested->Hero().movement, 0);
 }
 
-// 0x594e42..0x599d1c: las 0x44 a 0x48 mandan el 19 con la clave del elegido (+0x1f4 de 0x6c8e30) o, sin él, la del
-// jugador (0x57678bc), después del freno de 300 ms; la acción 0x87 la 0x44 y la 0x47, 0x3f las demás, y +0x378 en 0.
+// 0x594e42..0x599d1c: 0x44 to 0x48 send the 19 with the chosen one's key (+0x1f4 of 0x6c8e30) or, without one, the
+// player's (0x57678bc), after the 300 ms brake; action 0x87 for 0x44 and 0x47, 0x3f for the rest, and +0x378 at 0.
 TEST(HeroSkillsTailTest, TheMagicAttacksSendTheChosenKey)
 {
     for (std::uint8_t skill = 0x44; skill <= 0x48; ++skill)
@@ -400,7 +397,7 @@ TEST(HeroSkillsTailTest, TheMagicAttacksSendTheChosenKey)
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, skill, 0x12, 0x34}));
     }
     {
-        // La clave del elegido sin mirar si se lo puede atacar: un aliado también.
+        // The chosen one's key without checking whether it can be attacked: an ally too.
         const auto tested = AHero(0x46);
         tested->Chosen().byte88 = 1;
         tested->Chosen().byte370 = 0;
@@ -408,7 +405,7 @@ TEST(HeroSkillsTailTest, TheMagicAttacksSendTheChosenKey)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x46, 0x0a, 0x1b}));
     }
-    // Un elegido fuera del pool corta donde lee su clave.
+    // A chosen one outside the pool cuts where its key is read.
     const auto tested = AHero(0x44);
     tested->world.Runtime().selectedTargets[2] = 1000;
     const auto result = tested->Use();
@@ -416,7 +413,7 @@ TEST(HeroSkillsTailTest, TheMagicAttacksSendTheChosenKey)
     EXPECT_TRUE(Contains(result.Error(), "0x595858")) << result.Error();
 }
 
-// El freno (300 ms o menos desde 0x576791c) y "webzen" dejan las 0x44 a 0x48 sin el 19, pero con la acción.
+// The brake (300 ms or less since 0x576791c) and "webzen" leave 0x44 to 0x48 without the 19, but with the action.
 TEST(HeroSkillsTailTest, TheBrakeAndTheSilentNameKeepTheAction)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x44}, std::uint8_t{0x48}})
@@ -441,8 +438,8 @@ TEST(HeroSkillsTailTest, TheBrakeAndTheSilentNameKeepTheAction)
     }
 }
 
-// 0x594dee..0x594e3d y 0x599d27..0x599d45: fuera de la zona segura, el caballo oscuro 0x52, Uniria 0x40, Dinorant 0x41
-// y Fenrir 0x5d (EBX); en ella, la acción sin montura.
+// 0x594dee..0x594e3d and 0x599d27..0x599d45: outside the safe zone, the dark horse 0x52, Uniria 0x40, Dinorant 0x41
+// and Fenrir 0x5d (EBX); inside it, the action without a mount.
 TEST(HeroSkillsTailTest, TheMountChoosesTheAction)
 {
     struct Case
@@ -471,7 +468,7 @@ TEST(HeroSkillsTailTest, TheMountChoosesTheAction)
     }
 }
 
-// Un héroe (de las clases 5 a 7, sin rama: 0x5897aa..0x5897b1) que usa la skill desde 0x57cfc0 con el derecho.
+// A hero (of classes 5 to 7, no branch: 0x5897aa..0x5897b1) that uses the skill from 0x57cfc0 with the right button.
 std::unique_ptr<TailHero> AHeroClicking(std::uint8_t skill, std::int32_t map, std::uint8_t heroClass = 6)
 {
     auto tested = AHero(skill, map, heroClass);
@@ -481,10 +478,10 @@ std::unique_ptr<TailHero> AHeroClicking(std::uint8_t skill, std::int32_t map, st
     return tested;
 }
 
-// Desde 0x57cfc0: el blanco de 0x57ce80 (+0x3a8 en el elegido) llega a la cola; 0x7758588 lo pone la skill de la
-// mano de las clases 1, 3 y 4 (0x57d582..0x57d61b), y las clases 5 a 7 mandan el −1 que quedó: la clave 0xffff
-// (Q-C1228). Fuera de la zona segura en Lorencia, Devias y el asedio (30, donde 0x5a5540 no mira estas skills); en
-// ella, solo en Blood Castle (11 a 17) y Chaos Castle (18 a 23), y la montura no cuenta.
+// From 0x57cfc0: 0x57ce80's target (+0x3a8 at the chosen one) reaches the tail; 0x7758588 is set by the hand skill of
+// classes 1, 3 and 4 (0x57d582..0x57d61b), and classes 5 to 7 send the −1 left there: the key 0xffff (Q-C1228).
+// Outside the safe zone in Lorencia, Devias and the siege (30, where 0x5a5540 does not check these skills); inside it,
+// only in Blood Castle (11 to 17) and Chaos Castle (18 to 23), and the mount does not count.
 TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
 {
     for (const std::int32_t map : {0, 2, 30})
@@ -501,8 +498,8 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
         EXPECT_EQ(tested->Hero().animation.action, StandingAction);
     }
     {
-        // El caballero: la skill de cada mano (el registro propio dos veces) pone 0x7758588 en el elegido, y su rama
-        // sin arma derecha (el costo y el cierre) termina en 0x5808da.
+        // The knight: each hand's skill (the own record twice) sets 0x7758588 to the chosen one, and its branch without
+        // a right-hand weapon (the cost and the close) ends at 0x5808da.
         const auto tested = AHeroClicking(0x43, 2, 1);
         const CrtRandom expected =
             Advanced(tested->random, AimDraws + 2 * OwnDraws + EntryDraws + OwnDraws + SternDraws);
@@ -525,7 +522,7 @@ TEST(HeroSkillsTailTest, TheHeroSkillReachesTheTailInEveryMap)
         EXPECT_EQ(tested->Sent(0), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x47, 0x0a, 0x1b}));
         EXPECT_EQ(tested->Hero().animation.action, CancelAction);
     }
-    // En la zona segura de Lorencia, 0x57d33d no deja pasar: ni la cola.
+    // In Lorencia's safe zone, 0x57d33d lets nothing through: not even the tail.
     const auto tested = AHeroClicking(0x47, 0);
     tested->Hero().safeZone = 1;
     ASSERT_TRUE(Client::Skills::UseTheHeroSkill(tested->Hero(), tested->Context()).HasValue());

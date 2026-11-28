@@ -243,7 +243,7 @@ TEST(KalimaObjectServicesTest, TheThreeNativeShadowTypesEmitTheFlattenedSecondBo
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         ASSERT_EQ(batch.Vertices().size(), 6u);
         EXPECT_FLOAT_EQ(batch.Vertices()[3].position.z, 255);
-        // X=100+1+(2000+1)*100/(100-4000), con un único store binario32 final.
+        // X=100+1+(2000+1)*100/(100-4000), with a single final binary32 store.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(batch.Vertices()[4].position.x), 0x4246c4ecu);
         EXPECT_FLOAT_EQ(batch.Vertices()[3].color.red, 0.1f);
         EXPECT_FLOAT_EQ(batch.Vertices()[3].color.alpha, 1);
@@ -300,7 +300,7 @@ TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRe
         }
     }
     EXPECT_EQ(sounds, (std::vector<std::int32_t>{0x1d6, 0x1d6}));
-    EXPECT_EQ(random.State(), 0xbb6f8e98u); // Sólo guards38,39,40, nunca CRT de creador.
+    EXPECT_EQ(random.State(), 0xbb6f8e98u); // Only the guards of 38, 39 and 40, never the creator's CRT.
 }
 
 TEST(KalimaObjectServicesTest, MissingSoundKeepsTheDifferentNativeScaleStoreOrderOfThirtySevenAndThirtyEight)

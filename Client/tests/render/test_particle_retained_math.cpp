@@ -26,7 +26,7 @@ void ExpectBits(const std::optional<double>& actual, double expected)
 
 TEST(ParticleRetainedMathTest, Retains64BeforeProducts40And20)
 {
-    // A1/A2: h=1/2+2^-54; producto directo queda 0,625 ulp por encima del entero.
+    // A1/A2: h = 1/2 + 2^-54; the direct product lands 0.625 ulp above the integer.
     const Retained64 h{0x8000000000000400ULL, -64, RetainedClass::Finite, false};
     ExpectBits(Math::RetainedProductPC53(h, 40.0f), 0x1.4000000000001p+4);
     ExpectBits(Math::RetainedProductPC53(h, 20.0f), 0x1.4000000000001p+3);
@@ -36,7 +36,7 @@ TEST(ParticleRetainedMathTest, Retains64BeforeProducts40And20)
 
 TEST(ParticleRetainedMathTest, RoundsProductDirectlyTo53)
 {
-    // A7: R64 intermedio crea un empate; el producto exacto queda justo por encima.
+    // A7: the intermediate R64 creates a tie; the exact product lands just above.
     ExpectBits(Math::RetainedProductPC53({0x8000000000001ccdULL, -64, RetainedClass::Finite, false}, 40.0f),
                0x1.4000000000005p+4);
 }
@@ -56,7 +56,7 @@ TEST(ParticleRetainedMathTest, PreservesCanonicalClasses)
 
 TEST(ParticleRetainedMathTest, RequiresExactDoubleRepresentation)
 {
-    // Potencias de dos: límites exactos de double normal/subnormal; ningún oráculo trig.
+    // Powers of two: exact limits of normal/subnormal double; no trig oracle.
     constexpr std::uint64_t OneBit = 0x8000000000000000ULL;
     ExpectBits(Math::RetainedProductPC53({OneBit, -63, RetainedClass::Finite, false}, 40.0f), 40.0);
     ExpectBits(Math::RetainedProductPC53({OneBit, -1137, RetainedClass::Finite, false}, 1.0f), 0x1p-1074);
@@ -104,7 +104,7 @@ TEST(ParticleRetainedMathTest, ImplementsZeroIdentitiesAndSigns)
 
 TEST(ParticleRetainedMathTest, PreservesTinySineAndRejectsUnderflow)
 {
-    // sin(2^-1074) difiere de su argumento por menos de media ulp64.
+    // sin(2^-1074) differs from its argument by less than half an ulp64.
     ExpectBits(Math::SineProductPC53(0x1p-1074, 1.0f), 0x1p-1074);
     ExpectBits(Math::SineProductPC53(-0x1p-1074, 1.0f), -0x1p-1074);
     EXPECT_FALSE(Math::SineProductPC53(0x1p-1074, 0.5f));
@@ -112,7 +112,7 @@ TEST(ParticleRetainedMathTest, PreservesTinySineAndRejectsUnderflow)
 
 TEST(ParticleRetainedMathTest, EvaluatesSmallNonzeroArgumentsAnalytically)
 {
-    // Taylor: sin(2^-32) está a < 1/6 ulp64 del argumento; cos a < media ulp64 de 1.
+    // Taylor: sin(2^-32) is < 1/6 ulp64 from the argument; cos is < half an ulp64 from 1.
     ExpectBits(Math::SineProductPC53(0x1p-32, 40.0f), 0x1.4p-27);
     ExpectBits(Math::SineProductPC53(-0x1p-32, 20.0f), -0x1.4p-28);
     ExpectBits(Math::CosineProductPC53(0x1p-32, 40.0f), 40.0);
@@ -120,9 +120,8 @@ TEST(ParticleRetainedMathTest, EvaluatesSmallNonzeroArgumentsAnalytically)
 
 TEST(ParticleRetainedMathTest, RetainsCosine64BeforeProduct)
 {
-    // Serie alternante de cos(1): R64 = 0x8a51407da8345c92 * 2^-64.
-    // R53(h64*40) termina en 482e; R53(double(cos113)*40), en 482f.
-    // Expectativa matemática independiente; no acredita FCOS del original.
+    // Alternating series of cos(1): R64 = 0x8a51407da8345c92 * 2^-64. R53(h64*40) ends in 482e; R53(double(cos113)*40),
+    // in 482f. Independent mathematical expectation; it does not credit the original's FCOS.
     ExpectBits(Math::CosineProductPC53(1.0, 40.0f), 0x1.59cb213a2482ep+4);
 }
 

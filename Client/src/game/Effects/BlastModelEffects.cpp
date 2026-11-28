@@ -47,16 +47,16 @@ using Crt::CrtRandom;
 constexpr std::int16_t ProtectionEffect = 0xe4;     // Protect1
 constexpr std::int16_t FirstBigStoneEffect = 0xe5;  // BigStone1
 constexpr std::int16_t SecondBigStoneEffect = 0xe6; // BigStone2
-constexpr std::int16_t FirstIceRockEffect = 0xe7;   // 0xe7..0xe9, sin modelo cargado
+constexpr std::int16_t FirstIceRockEffect = 0xe7;   // 0xe7..0xe9, no model loaded
 constexpr std::int16_t LastIceRockEffect = 0xe9;
 constexpr std::int16_t MagicCircleEffect = 0xec; // MagicCircle1
 constexpr std::int16_t FallingRockEffect = 0xf2;
-constexpr std::int16_t SwordTrailEffect = 0xf3;     // suelta un 0xf4 por paso
-constexpr std::int16_t SpinningItemEffect = 0xf4;   // el ítem del dueño, girando (0x52d620)
+constexpr std::int16_t SwordTrailEffect = 0xf3;     // drops one 0xf4 per step
+constexpr std::int16_t SpinningItemEffect = 0xf4;   // the owner's item (0x52d620)
 constexpr std::int16_t BlastEffect = 0xf5;          // Blast1
 constexpr std::int16_t InfernoEffect = 0xf6;        // Inferno1
 constexpr std::int16_t PiercingTrailEffect = 0x105; // Piercing
-constexpr std::int16_t DeathStabEffect = 0x106;     // sin modelo cargado
+constexpr std::int16_t DeathStabEffect = 0x106;     // no model loaded
 constexpr std::int16_t WaveForceEffect = 0x107;     // WaveForce
 constexpr std::int16_t BlizzardEffect = 0x108;      // Blizzard
 constexpr std::int16_t ShieldEffect = 0x109;        // Protect2
@@ -68,7 +68,7 @@ constexpr std::int16_t AirForceEffect = 0x113; // AirForce
 constexpr std::int32_t BigStoneOwnerSubtype = 5;
 constexpr std::int32_t PiercingChildSubtype = 1;
 constexpr std::uint8_t NoAction = 0xff;
-constexpr std::int16_t HiddenBlend = -2; // +0x64 en −2 (0xfffffffe)
+constexpr std::int16_t HiddenBlend = -2; // +0x64 at −2 (0xfffffffe)
 
 using Math::D;
 using Math::F32;
@@ -78,7 +78,7 @@ std::string Cut(std::string_view address, std::string_view what)
     return std::format("{}: {} (CL11)", address, what);
 }
 
-// +0x108 leído en vivo: un efecto de dueño da sus campos; si no, los punteros que prestó quien creó el efecto.
+// +0x108 read live: an owner effect gives its fields; otherwise, the pointers lent by whoever created the effect.
 const glm::vec3* OwnerPosition(const ModelEffect& effect)
 {
     if (effect.owner.position != nullptr)
@@ -129,8 +129,8 @@ void AddTo(glm::vec3& target, const glm::vec3& offset)
         target[axis] = F32(D(offset[axis]) + D(target[axis]));
 }
 
-// El registro propio abierto (0x4e79a0) y cerrado (0x40f370): el cierre que deja la profundidad en 0 gasta sus
-// 3.848 rand(). `inside` corre con el registro abierto.
+// The own record opened (0x4e79a0) and closed (0x40f370): the close that leaves the depth at 0 spends its 3848
+// rand(). `inside` runs with the record open.
 template <typename Inside>
 Core::Expected<void, std::string> WithTheOwnRecord(const BlastEffectServices& services, CrtRandom& random,
                                                    std::string_view address, Inside inside)
@@ -161,7 +161,7 @@ Core::Expected<void, std::string> HitTheTargets(const BlastEffectServices& servi
     return services.skillHits(effect, radius);
 }
 
-// 0x519fc9..0x51a101 con el subtipo 1: el 0x105 que crea el 0x106 al volver a 0x518d0a.
+// 0x519fc9..0x51a101 with subtype 1: the 0x105 that the 0x106 creates when going back to 0x518d0a.
 Core::Expected<void, std::string> BeginThePiercingChild(ModelEffect& child, const BlastEffectServices& services)
 {
     constexpr std::int32_t ChildLife = 100;
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> BeginThePiercingChild(ModelEffect& child, cons
     return {};
 }
 
-// 0x518e66..0x518f05 y la vuelta a 0x518d0a con el 0x105 del mismo subtipo.
+// 0x518e66..0x518f05 and the return to 0x518d0a with the 0x105 of the same subtype.
 Core::Expected<void, std::string> BeginTheDeathStab(ModelEffects& effects, ModelEffect& effect,
                                                     const BlastEffectServices& services)
 {
@@ -214,8 +214,8 @@ Core::Expected<void, std::string> BeginTheDeathStab(ModelEffects& effects, Model
     if (effect.subtype != PiercingChildSubtype)
         return Core::Unexpected(
             Cut("0x518f05", std::format("el 0x105/{} del 0x106 no es de este lote", effect.subtype)));
-    // 0x518eb3..0x518eee: la posición y los ángulos de este efecto, su luz (+0xf4, en [EBP + 0x30]), su subtipo, él
-    // de dueño, +0x8a en −1, los bytes en 0 y la escala 0.
+    // 0x518eb3..0x518eee: this effect's position and angles, its light (+0xf4, at [EBP + 0x30]), its subtype, itself as
+    // owner, +0x8a at −1, the bytes at 0 and scale 0.
     const Kernel::ModelEffectArguments child{.type = PiercingTrailEffect,
                                              .position = effect.transform.position,
                                              .angles = effect.transform.angles,
@@ -235,7 +235,7 @@ Core::Expected<void, std::string> BeginTheDeathStab(ModelEffects& effects, Model
     return BeginThePiercingChild(trail, services);
 }
 
-// 0x5192ed..0x5193d6 y 0x5193db..: el 0xf5 cae desde arriba con el joint 0x618/5 y copia la cuenta +0xf04.
+// 0x5192ed..0x5193d6 and 0x5193db..: the 0xf5 falls from above with the joint 0x618/5 and copies the count +0xf04.
 Core::Expected<void, std::string> BeginTheBlast(ModelEffect& effect, CrtRandom& random,
                                                 const BlastEffectServices& services)
 {
@@ -263,8 +263,8 @@ Core::Expected<void, std::string> BeginTheBlast(ModelEffect& effect, CrtRandom& 
     return WithTheOwnRecord(services, random, "0x5193db", [&](const std::uint8_t& count) { effect.word8c = count; });
 }
 
-// 0x5198cd..0x519a46 y 0x519a49..0x519e9e: el 0xf6 según su subtipo y, con el héroe de dueño y el subtipo 0 o 1,
-// la cuenta +0xf04 en +0x8c y los blancos a 400.
+// 0x5198cd..0x519a46 and 0x519a49..0x519e9e: the 0xf6 by its subtype and, with the hero as owner and subtype 0 or 1,
+// the count +0xf04 in +0x8c and the targets within 400.
 Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint16_t key, std::uint8_t byte89,
                                                   CrtRandom& random, const BlastEffectServices& services)
 {
@@ -278,8 +278,8 @@ Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint
     effect.speed = HalfSpeed;
     const auto keyed = [&](std::int32_t life)
     {
-        // 0x519943 y 0x5199ff: +0x58 con el byte +0x89 del argumento, +0x89 y +0x8a de vuelta, +0xec y la escala del
-        // WORD +0x8a con signo.
+        // 0x519943 and 0x5199ff: +0x58 with the argument's byte +0x89, +0x89 and +0x8a back, +0xec and the scale from
+        // the signed WORD +0x8a.
         const double signedKey = static_cast<double>(static_cast<std::int16_t>(key));
         effect.life = life;
         effect.objectState.hiddenMesh = static_cast<std::int16_t>(byte89);
@@ -326,8 +326,8 @@ Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint
     default:
         break;
     }
-    // 0x519a49..0x519a60: el dueño contra el héroe publicado (0x743a170) y después el subtipo; con el subtipo desde 2
-    // las dos salidas van a 0x51db73, así que el héroe solo decide por debajo de 2.
+    // 0x519a49..0x519a60: the owner against the published hero (0x743a170) and then the subtype; from subtype 2 both
+    // exits go to 0x51db73, so the hero only decides below 2.
     if (effect.subtype >= 2)
         return {};
     if (services.hero == nullptr)
@@ -342,7 +342,7 @@ Core::Expected<void, std::string> BeginTheInferno(ModelEffect& effect, std::uint
     return HitTheTargets(services, effect, HitRadius, "0x519e9e");
 }
 
-// 0x51bccb..0x51be7a: el 0x108.
+// 0x51bccb..0x51be7a.
 Core::Expected<void, std::string> BeginTheBlizzard(ModelEffect& effect, CrtRandom& random,
                                                    const BlastEffectServices& services)
 {
@@ -387,7 +387,7 @@ Core::Expected<void, std::string> BeginTheBlizzard(ModelEffect& effect, CrtRando
     return ice();
 }
 
-// 0x51b99f..0x51bafa: las piedras 0x10c y 0x10d de las puertas de Blood Castle.
+// 0x51b99f..0x51bafa: the Blood Castle gate stones 0x10c and 0x10d.
 void BeginTheGateDebris(ModelEffect& effect, CrtRandom& random)
 {
     constexpr double Tenth = Math::TenthAsDouble;        // 0x6b87b8
@@ -433,7 +433,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     }
     if (type == FirstBigStoneEffect || type == SecondBigStoneEffect)
     {
-        // 0x51b3b0..0x51b41e: la partida donde nació y la posición, la del dueño.
+        // 0x51b3b0..0x51b41e: the start where it was born and the position, the owner's.
         effect.life = 60;
         effect.transform.scale = F32(static_cast<double>((random.Next() & 3) + 8) * Tenth);
         effect.start = effect.transform.position;
@@ -490,13 +490,13 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     }
     if (type == SwordTrailEffect)
     {
-        // 0x51a625..0x51a64e: el registro abierto, su cuenta +0xf04 un paso más (envuelve) y cerrado.
+        // 0x51a625..0x51a64e: the record opened, its count +0xf04 one step more (it wraps) and closed.
         effect.life = 5;
         return WithTheOwnRecord(services, random, "0x51a638", [](std::uint8_t& count) { ++count; });
     }
     if (type == SpinningItemEffect)
     {
-        // 0x51a65a y 0x51a1b6: la cuenta +0xf04 en +0x8c.
+        // 0x51a65a and 0x51a1b6: the count +0xf04 in +0x8c.
         effect.life = 25;
         return WithTheOwnRecord(services, random, "0x51a1b6",
                                 [&](const std::uint8_t& count) { effect.word8c = count; });
@@ -539,7 +539,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     }
     if (type == RidingSpearEffect)
     {
-        // 0x519232..0x51926a: la velocidad del yaw con FSIN y FCOS de la x87.
+        // 0x519232..0x51926a: the yaw speed with the x87's FSIN and FCOS.
         constexpr double Radians = Math::DegreesToRadiansAsDouble; // 0x6b8cf8
         effect.life = 20;
         effect.transform.scale = 1.5f;
@@ -554,7 +554,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     }
     if (type == ComboEffect)
     {
-        // 0x51bf73..0x51c00d: con el subtipo 0, sesenta joints 0x5ac/0 sin dueño (el largo, antes de cada uno).
+        // 0x51bf73..0x51c00d: with subtype 0, sixty joints 0x5ac/0 without an owner (the length, before each one).
         effect.life = 20;
         effect.turnDirection = 0.1f;
         effect.objectState.blendMesh = HiddenBlend;
@@ -603,7 +603,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     }
     if (type == FlameJetEffect)
     {
-        // 0x51eca0..0x51ecda: el /1 y el /2, vida 10 y los ángulos en 0.
+        // 0x51eca0..0x51ecda: the /1 and the /2.
         effect.life = 10;
         effect.transform.angles = glm::vec3(0.0f);
         return {};
@@ -611,7 +611,7 @@ Core::Expected<void, std::string> BeginTheCase(ModelEffects& effects, ModelEffec
     return Core::Unexpected(Cut("0x518e3c", std::format("el alta del efecto {:#x} no es de este lote", type)));
 }
 
-// 0x52cb98..0x52cd9d: la cola. `straight` es 0x51fc80(efecto, 0) del 0x10f; `lifeOnly`, el salto a 0x52cd94.
+// 0x52cb98..0x52cd9d: the tail. `straight` is the 0x10f's 0x51fc80(effect, 0); `lifeOnly`, the jump to 0x52cd94.
 enum class Tail : std::uint8_t
 {
     Rotated,
@@ -633,7 +633,7 @@ void FinishTheStep(ModelEffect& effect, const Models::Skeleton* skeleton, const 
         constexpr std::int16_t FirstAnimatedModel = 0xad, LastAnimatedModel = 0x151;
         if (effect.type >= FirstAnimatedModel && effect.type < LastAnimatedModel)
         {
-            // 0x52cc21: la acción en la tabla del modelo; 0x4ec200 con +0xd8 y, al terminar, las keys y 0xff.
+            // 0x52cc21: the action in the model's table; 0x4ec200 with +0xd8 and, when done, the keys and 0xff.
             if (services.publishAction)
                 services.publishAction(static_cast<std::uint16_t>(effect.type), effect.animation.action);
             if (effect.animation.action != NoAction && skeleton != nullptr &&
@@ -647,7 +647,7 @@ void FinishTheStep(ModelEffect& effect, const Models::Skeleton* skeleton, const 
                 }
             }
         }
-        // 0x51fc80: con 1, la velocidad girada por los ángulos (0x51fc91..0x51fcdf); con 0, sin girar (0x51fce7).
+        // 0x51fc80: with 1, the velocity turned by the angles (0x51fc91..0x51fcdf); with 0, unturned (0x51fce7).
         AddTo(effect.transform.position,
               tail == Tail::Rotated ? Rotated(effect.velocity, effect.transform.angles) : effect.velocity);
     }
@@ -709,7 +709,7 @@ Core::Expected<void, std::string> NeedTheEffects(const ModelEffectStepServices& 
     return {};
 }
 
-// 0x5210e5..0x52124e: el 0xf5 cae; al tocar el terreno suelta seis piedritas, el estallido y los blancos, y muere.
+// 0x5210e5..0x52124e: the 0xf5 falls; on touching the ground it drops six pebbles, the burst and the targets, and dies.
 Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float luminosity, Particles::Particles& particles,
                                                float worldClock, CrtRandom& random,
                                                const ModelEffectStepServices& services)
@@ -757,7 +757,7 @@ Core::Expected<void, std::string> StepTheBlast(ModelEffect& effect, float lumino
     return Light(services, position, color, 2, "0x521246");
 }
 
-// 0x521324..0x5214d1: el 0xf6 según su subtipo.
+// 0x521324..0x5214d1: the 0xf6 by its subtype.
 Core::Expected<void, std::string> StepTheInferno(ModelEffect& effect, float luminosity,
                                                  const ModelEffectStepServices& services)
 {
@@ -784,7 +784,7 @@ Core::Expected<void, std::string> StepTheInferno(ModelEffect& effect, float lumi
     {
         if (auto followed = FollowTheOwner(effect, "0x521388"); !followed.HasValue())
             return followed;
-        // 0x5213ac..0x5213cd: FST deja la suma sin redondear en la pila para el producto y la z.
+        // 0x5213ac..0x5213cd: FST leaves the unrounded sum on the x87 stack for the product and z.
         const double scale = D(effect.transform.scale) + static_cast<double>(0.003f); // 0x6b89cc
         effect.transform.scale = F32(scale);
         const double rise = scale * 24.0 + D(effect.turnDirection); // 0x6ba294
@@ -823,7 +823,7 @@ Core::Expected<void, std::string> StepTheInferno(ModelEffect& effect, float lumi
     return Light(services, position, Shade(luminosity), 5, "0x5214c9");
 }
 
-// 0x5214d6..0x5215a0: el 0xec.
+// 0x5214d6..0x5215a0.
 Core::Expected<void, std::string> StepTheMagicCircle(ModelEffect& effect, float luminosity,
                                                      const ModelEffectStepServices& services)
 {
@@ -841,15 +841,15 @@ Core::Expected<void, std::string> StepTheMagicCircle(ModelEffect& effect, float 
         effect.transform.scale = F32(D(effect.transform.scale) + Growth);
         return Light(services, effect.transform.position, {luminosity, 0.0f, 0.0f}, 3, "0x521563");
     }
-    // 0x521570: la posición del dueño y después el crecimiento.
+    // 0x521570: the owner's position and then the growth.
     if (auto followed = FollowTheOwner(effect, "0x521570"); !followed.HasValue())
         return followed;
     effect.transform.scale = F32(D(effect.transform.scale) + Growth);
     return {};
 }
 
-// 0x5215a5..0x5216d6: las rocas 0xe7..0xe9 caen fuera de las celdas con el bit 0x08; al tocar el terreno tiemblan la
-// cámara, sueltan cinco pedazos 0xea/0xeb y mueren. Cada paso, el polvo 5f2/3, sin la cola.
+// 0x5215a5..0x5216d6: the rocks 0xe7..0xe9 fall outside the cells with bit 0x08; on touching the ground they shake the
+// camera, drop five pieces 0xea/0xeb and die. Each step, the dust 0x5f2/3, without the tail.
 Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles::Particles& particles, float worldClock,
                                                  CrtRandom& random, const ModelEffectStepServices& services)
 {
@@ -869,7 +869,7 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles:
         {
             position.z = F32(height);
             effect.alive = false;
-            // 0x521619: el rand() del temblor sale antes de escribirlo.
+            // 0x521619: the shake's rand() comes before writing it.
             const int shake = random.Next() % 8 - 8;
             if (services.cameraShake == nullptr)
                 return Core::Unexpected(Cut("0x52163e", "la roca escribe el temblor de la cámara (0x7d325c8)"));
@@ -877,9 +877,9 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles:
             constexpr int Shards = 5;
             for (int shard = 0; shard < Shards; ++shard)
             {
-                // 0x52165e..0x521675: 0x518cf0(0xea + rand() % 2, posición, ángulos, luz, 0, nadie, −1, 0, 0, 0, 0).
-                // En 0x51b659 los 0xea y 0xeb no son el 0xca (0x51b6d9): van por el camino de las piedritas
-                // (0x51b72b..0x51b805), sin +0x64, +0x68 ni los 50 más en z, con cinco rand().
+                // 0x52165e..0x521675: 0x518cf0(0xea + rand() % 2, position, angles, light, 0, nobody, −1, 0, 0, 0, 0).
+                // In 0x51b659 the 0xea and 0xeb are not the 0xca (0x51b6d9): they take the pebbles' path
+                // (0x51b72b..0x51b805), without +0x64, +0x68 or the 50 more in z, with five rand().
                 const auto type = static_cast<std::int16_t>(0xea + random.Next() % 2);
                 if (auto table = NeedTheEffects(services, "0x521675"); !table.HasValue())
                     return table;
@@ -894,8 +894,8 @@ Core::Expected<void, std::string> StepTheIceRock(ModelEffect& effect, Particles:
                 worldClock, random, "0x5216d6");
 }
 
-// 0x52186e..0x521c57: el ítem del dueño, girando detrás de él, con el polvo 5f2/3, la luz, los joints 0x617/0 y la
-// chispa 5c5/0 (en Kalima, la 6f4/3), el sprite 0x5ac y, en Kalima, la onda.
+// 0x52186e..0x521c57: the owner's item, spinning behind it, with the dust 0x5f2/3, the light, the joints 0x617/0 and
+// the spark 0x5c5/0 (in Kalima, the 0x6f4/3), the sprite 0x5ac and, in Kalima, the wave.
 Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float luminosity,
                                                       Particles::Particles& particles, float worldClock,
                                                       CrtRandom& random, const ModelEffectStepServices& services)
@@ -937,9 +937,10 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
         return lit;
     if (services.map == nullptr)
         return Core::Unexpected(Cut("0x52198e", "el 0xf4 lee el mapa (0x6c9dd0)"));
-    // 0x521996..0x521aab: en Kalima (0x18..0x1d o 0x24), una sola chispa con sus cuatro rand() (0x5219cc, 0x5219ec,
-    // 0x521a30 y 0x521a4c), 120 más arriba (0x6b86c8), y 0x53fe70(0x6f4, punto, ángulos, (0,5; 0,5; 0,5), 3, 1, 0)
-    // (0x521aa3), que salta al sprite (0x521bb6); el sprite sube 60 (0x42700000) en vez de 20 (0x41a00000, 0x5219ae).
+    // 0x521996..0x521aab: in Kalima (0x18..0x1d or 0x24), a single spark with its four rand() (0x5219cc, 0x5219ec,
+    // 0x521a30 and 0x521a4c), 120 higher (0x6b86c8), and 0x53fe70(0x6f4, point, angles, (0.5; 0.5; 0.5), 3, 1, 0)
+    // (0x521aa3), which skips to the sprite (0x521bb6); the sprite rises 60 (0x42700000) instead of 20 (0x41a00000,
+    // 0x5219ae).
     const bool kalima = Maps::IsKalimaMap(*services.map);
     const double lift = kalima ? 60.0 : 20.0;
     const int sparks = kalima ? 1 : 4;
@@ -983,8 +984,8 @@ Core::Expected<void, std::string> StepTheSpinningItem(ModelEffect& effect, float
     return {};
 }
 
-// 0x523974..0x523b3a con el 0xf2: el paso de las piedritas, sin partícula (el tipo no es ni 0xc8/0xc9 ni 0xca/0xea/
-// 0xeb), con el rand() % 10 del subtipo 0 y del 12.
+// 0x523974..0x523b3a with the 0xf2: the pebbles' step, without a particle (the type is neither 0xc8/0xc9 nor
+// 0xca/0xea/0xeb), with the rand() % 10 of subtype 0 and of 12.
 Core::Expected<void, std::string> StepTheFallingRock(ModelEffect& effect, CrtRandom& random,
                                                      const ModelEffectStepServices& services)
 {
@@ -1017,11 +1018,11 @@ Core::Expected<void, std::string> StepTheFallingRock(ModelEffect& effect, CrtRan
     }
     effect.transform.angles.x = F32(D(effect.transform.angles.x) - tilt);
     if (subtype == 0 || subtype == 12)
-        static_cast<void>(random.Next() % 10); // 0x523adb: sin partícula para el 0xf2.
+        static_cast<void>(random.Next() % 10); // 0x523adb: no particle for the 0xf2.
     return {};
 }
 
-// 0x523d3a..0x523dd4: el 0x106 suelta a veces el aliento 5f2/0, dos fuegos 5d9/5 y la luz.
+// 0x523d3a..0x523dd4: the 0x106 sometimes drops the breath 0x5f2/0, two fires 0x5d9/5 and the light.
 Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float luminosity,
                                                    Particles::Particles& particles, float worldClock, CrtRandom& random,
                                                    const ModelEffectStepServices& services)
@@ -1047,8 +1048,8 @@ Core::Expected<void, std::string> StepTheDeathStab(ModelEffect& effect, float lu
     return Light(services, position, {red, rest, rest}, 2, "0x523dd4");
 }
 
-// 0x523b8b..0x523d35 con el subtipo 1: la estela del 0x106 sigue a su dueño con el joint 0x614/3, el sprite 0x5fd y, en
-// Kalima con el héroe detrás del dueño, la onda.
+// 0x523b8b..0x523d35 with subtype 1: the 0x106's trail follows its owner with the joint 0x614/3, the sprite 0x5fd and,
+// in Kalima with the hero behind the owner, the wave.
 Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtRandom& random,
                                                        MapScripts::Kalima::KalimaWorld* kalima,
                                                        const ModelEffectStepServices& services)
@@ -1092,8 +1093,8 @@ Core::Expected<void, std::string> StepThePiercingChild(ModelEffect& effect, CrtR
     return {};
 }
 
-// 0x5251df..0x525318: las piedras 0x10c y 0x10d de las puertas. Uno de cada diez pasos corta en 0x5252e6, como las
-// 0x10a/0x10b: el polvo 5f3/0 va en [EBP − 0x28], un local que ningún camino escribe (Q-C1176, P-C232).
+// 0x5251df..0x525318: the gate stones 0x10c and 0x10d. One step in ten stops at 0x5252e6, like the 0x10a/0x10b: the
+// dust 0x5f3/0 goes to [EBP − 0x28], a local that no path writes (Q-C1176, P-C232).
 Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particles::Particles& particles,
                                                     CrtRandom& random, const ModelEffectStepServices& services)
 {
@@ -1130,7 +1131,7 @@ Core::Expected<void, std::string> StepTheGateDebris(ModelEffect& effect, Particl
                                         effect.type));
 }
 
-// 0x52552d..0x525564 y 0x5257e8..0x525825: la x y la y, la partida más FSIN(r % 1000 · 0,01f) · `amplitude`.
+// 0x52552d..0x525564 and 0x5257e8..0x525825: x and y, the start plus FSIN(r % 1000 · 0.01f) · `amplitude`.
 Core::Expected<void, std::string> SwayTheBlizzard(ModelEffect& effect, CrtRandom& random, float amplitude,
                                                   std::string_view address)
 {
@@ -1149,7 +1150,8 @@ Core::Expected<void, std::string> SwayTheBlizzard(ModelEffect& effect, CrtRandom
     return {};
 }
 
-// 0x525602..0x52569a y 0x5258b3..0x52bfc6: la luz más 0,1f en los tres canales y los sprites 0x5fd y 0x5ac.
+// 0x525602..0x52569a and 0x5258b3..0x52bfc6: the light plus 0.1f in the three channels and the sprites 0x5fd and
+// 0x5ac.
 Core::Expected<void, std::string> BrightenTheBlizzard(ModelEffect& effect, CrtRandom& random,
                                                       const ModelEffectStepServices& services,
                                                       std::string_view firstAddress, std::string_view secondAddress)
@@ -1164,7 +1166,7 @@ Core::Expected<void, std::string> BrightenTheBlizzard(ModelEffect& effect, CrtRa
     return Sprite(services, 0x5ac, effect.transform.position, 1.0f, effect.light, spin, secondAddress);
 }
 
-// 0x525506..0x5259xx: el 0x108.
+// 0x525506..0x5259xx.
 Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles::Particles& particles,
                                                   float worldClock, CrtRandom& random,
                                                   const ModelEffectStepServices& services)
@@ -1190,7 +1192,7 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
             return swayed;
         if (auto ground = NeedTheGround(services, "0x52586c"); !ground.HasValue())
             return ground;
-        // 0x525871: FCOMP y TEST AH, 1: sigue con la altura por debajo de la z (o NaN).
+        // 0x525871: FCOMP and TEST AH, 1: it goes on with the height below z (or NaN).
         const double height = Ground(services, position);
         if (!(height >= D(position.z)))
         {
@@ -1232,7 +1234,7 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
                          worldClock, random, "0x525721");
         !made.HasValue())
         return made;
-    // 0x525729: el rand() % 5 sale antes de 0x518cf0(0xca) (0x525750) y del 0x108/1 (0x52577a).
+    // 0x525729: the rand() % 5 comes before 0x518cf0(0xca) (0x525750) and the 0x108/1 (0x52577a).
     const bool shard = random.Next() % 5 == 0;
     if (auto table = NeedTheEffects(services, shard ? "0x525750" : "0x52577a"); !table.HasValue())
         return table;
@@ -1255,8 +1257,8 @@ Core::Expected<void, std::string> StepTheBlizzard(ModelEffect& effect, Particles
     return {};
 }
 
-// 0x52b15a..0x52b268: los /1 y /2 del chorro 0x5de, dieciocho llamas 5de/0 (el /1) o chispas 5dc/13 (el /2) en un
-// anillo de 250 alrededor de la posición, corridas al azar.
+// 0x52b15a..0x52b268: the /1 and /2 of the jet 0x5de, eighteen flames 0x5de/0 (the /1) or sparks 0x5dc/13 (the /2) in
+// a ring of 250 around the position, randomly shifted.
 Core::Expected<void, std::string> StepTheFlameRing(ModelEffect& effect, Particles::Particles& particles,
                                                    float worldClock, CrtRandom& random)
 {
@@ -1281,7 +1283,7 @@ Core::Expected<void, std::string> StepTheFlameRing(ModelEffect& effect, Particle
     return {};
 }
 
-// 0x525d6c..0x525e66: el 0x113.
+// 0x525d6c..0x525e66.
 Core::Expected<void, std::string> StepTheAirForce(ModelEffect& effect)
 {
     if (effect.subtype == 0)
@@ -1366,7 +1368,7 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     }
     else if (type == WaveForceEffect)
     {
-        // 0x521316 y 0x5212b6..0x5212da.
+        // 0x521316 and 0x5212b6..0x5212da.
         effect.objectState.light = F32(static_cast<double>(effect.life) * static_cast<double>(0.05f));
         stepped = Light(services, effect.transform.position, Shade(luminosity), 5, "0x5212da");
     }
@@ -1386,7 +1388,7 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     else if (type == ProtectionEffect)
     {
         // 0x5216ef..0x52173f.
-        effect.objectState.light = std::bit_cast<float>(0x3fa66666u); // 1,3f
+        effect.objectState.light = std::bit_cast<float>(0x3fa66666u); // 1.3f
         stepped = FollowTheOwner(effect, "0x5216f6");
         if (stepped.HasValue())
         {
@@ -1401,7 +1403,7 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     }
     else if (type == SwordTrailEffect)
     {
-        // 0x521821..0x521861: un 0xf4 con el subtipo 4 − vida, el mismo dueño, +0x8a, +0x89 y +0x88.
+        // 0x521821..0x521861: one 0xf4 with subtype 4 − life, the same owner, +0x8a, +0x89 and +0x88.
         tail = Tail::LifeOnly;
         stepped = NeedTheEffects(services, "0x521861");
         if (stepped.HasValue())
@@ -1437,7 +1439,8 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     }
     else if (type == FirstBigStoneEffect || type == SecondBigStoneEffect)
     {
-        // 0x523926..0x52396f: muerto el dueño, apaga el byte vivo y sigue; la posición, la del dueño más la partida.
+        // 0x523926..0x52396f: with the owner dead, it turns off the live byte and goes on; the position, the owner's
+        // plus the start.
         const bool* alive = OwnerAlive(effect);
         const glm::vec3* owner = OwnerPosition(effect);
         if (alive == nullptr || owner == nullptr)
@@ -1486,7 +1489,7 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     }
     else if (type == AirForceEffect)
     {
-        // 0x525d6c: sin dueño, apaga el byte vivo y sale sin la cola.
+        // 0x525d6c: without an owner, it turns off the live byte and returns without the tail.
         if (!effect.hasOwner)
         {
             effect.alive = false;
@@ -1499,7 +1502,7 @@ Core::Expected<void, std::string> StepBlastModelEffect(ModelEffect& effect, cons
     }
     else if (type == RidingSpearEffect)
     {
-        // 0x52d1a4: el 0x10f no tiene caso propio; la cola lo mueve sin girar la velocidad.
+        // 0x52d1a4: the 0x10f has no case of its own; the tail moves it without turning the velocity.
         tail = Tail::Straight;
     }
     else if (type == FlameJetEffect)

@@ -22,7 +22,7 @@ constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t FenrirModel = 0x1c37;
 
-// 0x4f52b5..0x4f52c3: la montura de +0x318 fuera de la zona segura (+0x3e2).
+// 0x4f52b5..0x4f52c3: the mount of +0x318 outside the safe zone (+0x3e2).
 bool Riding(const Kernel::ActorState& actor, std::uint16_t mount)
 {
     return actor.pet.model == mount && actor.safeZone == 0;
@@ -47,7 +47,7 @@ Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, con
 {
     if (actor.type != Tables::PlayerSkeletonModel)
     {
-        // 0x4f5334..0x4f5369: IDIV del byte +0x38f por 3.
+        // 0x4f5334..0x4f5369: IDIV of byte +0x38f by 3.
         const std::uint8_t action = actor.attackCount % 3 == 0 ? std::uint8_t{3} : std::uint8_t{4};
         if (auto acted = SetTheActorAction(actor, action, context); !acted.HasValue())
             return acted;
@@ -61,7 +61,7 @@ Core::Expected<void, std::string> SetTheHitAction(Kernel::ActorState& actor, con
         return SetTheActorAction(actor, 0x5d, context);
     if (Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf)
         return SetTheActorAction(actor, 0x92, context);
-    // 0x4f5311..0x4f5322: rand() con el resto con signo, que con un rand() de 0 a 0x7fff es el bit 0.
+    // 0x4f5311..0x4f5322: rand() with the signed remainder, which with a rand() from 0 to 0x7fff is bit 0.
     const int bit = context.random.Next() & 1;
     return SetTheActorAction(actor, static_cast<std::uint8_t>(0x8e + bit), context);
 }

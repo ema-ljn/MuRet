@@ -7,7 +7,7 @@ namespace Client::Actors
 {
 namespace
 {
-// 06 § Caminar: discriminadores y constantes de 0x508940, sin importar la política de Walk.
+// 06 § Caminar: discriminators and constants of 0x508940, without importing Walk's policy.
 constexpr std::uint16_t PlayerType = 0x020a;
 constexpr std::uint8_t SpecialMovementMode = 1;
 constexpr std::uint16_t SharedCounterItem = 0x1c37;
@@ -33,7 +33,7 @@ float SharedItemSpeed(MovementSpeedSharedState& shared, std::uint8_t variant)
 {
     if (shared.itemLatch == 0)
     {
-        // 0x508996, luego 0x50899c: conservar el orden de los dos stores persistentes.
+        // 0x508996, then 0x50899c: keep the order of the two persistent stores.
         shared.itemLatch = 1;
         shared.itemCounterBits = 0;
         return RunningSpeed;
@@ -54,7 +54,7 @@ float SpecialMovementSpeed(std::uint8_t& run, MovementSpeedSharedState& shared, 
 {
     if (input.item == SharedCounterItem && input.safeZone == 0)
     {
-        // La ruta de 17 comparte la constante con 0x508a1f, pero evita el store de Run.
+        // The 17 path shares the constant with 0x508a1f, but avoids the Run store.
         return SharedItemSpeed(shared, input.itemVariant);
     }
     if (input.item == RunningItem && input.safeZone == 0)
@@ -80,7 +80,7 @@ float UpdateMovementSpeed(std::uint8_t& run, MovementSpeedSharedState& shared, c
     {
         speed = SpecialMovementSpeed(run, shared, input);
     }
-    // El mapa se aplica después de los efectos de ítems, también para tipos no jugadores.
+    // The map applies after the item effects, also for non-player types.
     if (input.map >= FirstOverrideMap && input.map <= LastOverrideMap)
     {
         run = RunningThreshold;

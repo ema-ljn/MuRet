@@ -18,23 +18,23 @@ namespace Client::Weather
 {
 namespace
 {
-// 0x42b1e0, en el mapa 0x37: la escala (rand() % 50) · 0,01 (0x6b86c0) + 0,5 (0x6b882c); la posición, el
-// héroe más (rand() % 1600 − 800, rand() % 1400 − 500, rand() % 1000 + 50); la velocidad x
-// (rand() % 64 + 64) · −0,1 (0x6b8930), y si la y del nacimiento queda debajo de la cámara + 400
-// (0x6b87b0), 3,2 (0x6b8a6c) menos esa; las demás, de a 0,1 (0x6b87b8).
+// 0x42b1e0, on map 0x37: the scale (rand() % 50) · 0.01 (0x6b86c0) + 0.5 (0x6b882c); the position, the hero plus
+// (rand() % 1600 − 800, rand() % 1400 − 500, rand() % 1000 + 50); the x velocity (rand() % 64 + 64) · −0.1
+// (0x6b8930), and if the birth y falls below the camera + 400 (0x6b87b0), 3.2 (0x6b8a6c) minus that; the others, in
+// steps of 0.1 (0x6b87b8).
 constexpr double ScaleStep = static_cast<double>(0.01f);
 constexpr double ScaleBase = 0.5;
 constexpr double FallSpeed = static_cast<double>(-0.1f);
 constexpr double Tenth = Math::TenthAsDouble;
 constexpr float CameraMargin = 400.0f;
 constexpr float Bounce = 3.2f;
-// 0x5303e8: en el suelo, la luz baja 0,05 (0x6b8a48) por paso; en 0 se apaga.
+// 0x5303e8: on the ground, the light drops 0.05 (0x6b8a48) per step; at 0 it goes out.
 constexpr double Fade = static_cast<double>(0.05f);
 
 using Math::F32;
 
-// rand() % n con el idiom de `and 0x8000000f` (n potencia de 2) o con cdq e idiv: con un rand() no
-// negativo, los dos son el resto.
+// rand() % n with the `and 0x8000000f` idiom (n a power of 2) or with cdq and idiv: with a non-negative rand(), both
+// are the remainder.
 int Around(Crt::CrtRandom& random, int span, int shift)
 {
     return (random.Next() % span) + shift;
@@ -56,7 +56,7 @@ void Born(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random, bool embe
     leaf.start = leaf.position;
     const double fall = static_cast<double>(Around(random, 64, 64)) * FallSpeed;
     leaf.velocity.x = F32(fall);
-    // `fcomp`: la cámara + 400 contra la y; con `test ah, 0x41` (menor o igual, o sin orden) no cambia.
+    // `fcomp`: the camera + 400 against the y; with `test ah, 0x41` (less or equal, or unordered) it does not change.
     const double camera = static_cast<double>(world.cameraY) + static_cast<double>(CameraMargin);
     if (!(camera < static_cast<double>(y) || camera == static_cast<double>(y) || std::isnan(camera) || std::isnan(y)))
     {
@@ -71,9 +71,9 @@ void Born(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random, bool embe
         leaf.light = {1.0f, 0.0f, 0.0f};
 }
 
-// 0x5303a0: con el terreno por debajo (o un NaN), en el aire: cada componente de la velocidad suma
-// (rand() % 16 − 8) · 0,1 y la posición, la velocidad (la z, con la de z antes de guardarla en float). Si
-// no, queda en el suelo y se apaga de a 0,05; con el rojo en 0 o menos, muere.
+// 0x5303a0: with the terrain below (or a NaN), in the air: each velocity component adds (rand() % 16 − 8) · 0.1 and the
+// position, the velocity (the z, with z's before storing it in float). Otherwise, it stays on the ground and fades by
+// 0.05; with the red at 0 or less, it dies.
 void Fall(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
 {
     const double ground = Terrain::TerrainHeightAt(*world.heights, *world.attributes, leaf.position.x, leaf.position.y,
@@ -98,7 +98,7 @@ void Fall(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random)
     leaf.light.x = F32(red);
     leaf.light.y = F32(static_cast<double>(leaf.light.y) - Fade);
     leaf.light.z = F32(static_cast<double>(leaf.light.z) - Fade);
-    // `fcomp` con 0 y `test ah, 0x41`: mayor sigue; menor, igual o sin orden, muere.
+    // `fcomp` with 0 and `test ah, 0x41`: greater goes on; less, equal or unordered, it dies.
     if (!(red > 0.0))
     {
         leaf.alive = false;
@@ -148,7 +148,7 @@ void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Crt::CrtRandom& ra
         Leaf& leaf = all[k];
         if (!leaf.alive)
         {
-            // 0x5305a0: la luz en 1 y el byte vivo, y después el creador del mapa.
+            // 0x5305a0: the light at 1 and the live byte, and then the map's creator.
             leaf.light = glm::vec3(1.0f);
             leaf.alive = true;
             Born(leaf, world, random, true);
@@ -172,7 +172,7 @@ void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Crt::CrtRandom& random
 
 LeafQuad LeafQuadOf(const Leaf& leaf)
 {
-    // 0x5307e2: a = escala + escala, b = escala · 4 (0x6b8a44), los dos justos en float.
+    // 0x5307e2: a = scale + scale, b = scale · 4 (0x6b8a44), both exact in float.
     const float a = F32(static_cast<double>(leaf.scale) + static_cast<double>(leaf.scale));
     const float b = F32(static_cast<double>(leaf.scale) * 4.0);
     const Math::OriginalMatrix turn = Math::OriginalAngleMatrix(leaf.angles);

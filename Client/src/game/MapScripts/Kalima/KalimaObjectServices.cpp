@@ -52,7 +52,7 @@ constexpr std::uint32_t AnimatedWaterFrames = 32;
 
 bool HasWaterOverlay(std::int16_t type)
 {
-    // 4394cd..43956e, comparaciones signed16 después del primer RenderBody.
+    // 0x4394cd..0x43956e: signed16 comparisons after the first RenderBody.
     constexpr std::int16_t LastOverlayType = 66;
     constexpr std::array<std::int16_t, 18> Excluded{2,  4,  12, 14, 15, 18, 20, 21, 27,
                                                     29, 30, 31, 32, 41, 43, 52, 54, 55};
@@ -82,7 +82,7 @@ Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const 
                                                Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock,
                                                const WorldObjects::GameObjectPass& pass)
 {
-    // 439570: argumento sin spill binary32; el color sí tiene tres FSTP idénticos.
+    // 0x439570: the argument has no binary32 spill; the color does have three identical FSTPs.
     const auto pulse = Math::Detail::SineProductPC53(
         static_cast<double>(pass.worldClock) * static_cast<double>(WaterPulseRate), Tenth);
     if (!pulse)
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const 
 
 Core::Expected<void, std::string> Flare(const WorldObjects::GameObjectPass& pass)
 {
-    // 438c53..438cd0: hueso20 del scratch global; un hueso aún no escrito conserva .bss cero.
+    // 0x438c53..0x438cd0: bone 20 of the global scratch; a bone not yet written keeps the .bss zero.
     constexpr std::size_t Bone = 20;
     if (pass.retainedPose == nullptr)
         return Core::Unexpected(std::string("0x438c9e: falta el scratch global del hueso20 de Kalima"));
@@ -131,11 +131,11 @@ Core::Expected<void, std::string> MoveObject(WorldObjects::WorldObject& object,
         if (auto flare = Flare(pass); !flare.HasValue())
             return flare;
     }
-    // 4378ee/437905: C0 clampa también unordered antes de41dc80.
+    // 0x4378ee/0x437905: C0 also clamps unordered before 0x41dc80.
     const float x = object.transform.position.x >= 0.0f ? object.transform.position.x : 0.0f;
     const float y = object.transform.position.y >= 0.0f ? object.transform.position.y : 0.0f;
     const auto height =
-        pass.kalima != nullptr ? pass.kalima->Height(x, y) : std::optional<float>{0.0f}; // 4378e0 sin owner.
+        pass.kalima != nullptr ? pass.kalima->Height(x, y) : std::optional<float>{0.0f}; // 0x4378e0 without an owner.
     if (!height)
         return Core::Unexpected(std::string("0x4378e0: coordenada fuera del plano de Kalima"));
     constexpr double AboveWater = 180;
@@ -182,7 +182,7 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
             return overlay;
     }
     current.alpha = drawn.alpha;
-    // 4395bf: el tipo34 tiene una malla extra, sólo si el contador signed16 supera1.
+    // 0x4395bf: type 34 has an extra mesh, only if the signed16 count is above 1.
     if (object.type == 34 && models.Find(Models::ModelId{drawn.model}) != nullptr &&
         models.Find(Models::ModelId{drawn.model})->meshes.size() > 1)
     {
@@ -202,7 +202,7 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
 Core::Expected<void, std::string> StepKalimaObjectFrame(WorldObjects::WorldObject& object,
                                                         const WorldObjects::GameObjectPass& pass)
 {
-    // 6044ed→4059d0 retorna AL0;438c10 retorna AL1 aun en el default de438f90.
+    // 0x6044ed→0x4059d0 returns AL=0; 0x438c10 returns AL=1 even in the default of 0x438f90.
     switch (object.type)
     {
     case 12:

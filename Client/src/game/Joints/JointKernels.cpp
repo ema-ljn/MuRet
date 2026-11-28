@@ -20,7 +20,7 @@ namespace
 {
 void PlaceFirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed)
 {
-    // 0x530b07 y 0x53553f: ancho · −0,5f (0x6ba298) y · 0,5f (0x6b882c), guardados en float.
+    // 0x530b07 and 0x53553f: width · −0.5f (0x6ba298) and · 0.5f (0x6b882c), stored as float.
     const auto half = static_cast<float>(static_cast<double>(joint.width) * 0.5);
     const std::array<glm::vec3, 4> straight{{{-half, 0, 0}, {half, 0, 0}, {0, 0, -half}, {0, 0, half}}};
     const std::array<glm::vec3, 4> across{{{-half, 0, 0}, {half, 0, 0}, {0, -half, 0}, {0, half, 0}}};
@@ -49,7 +49,7 @@ Core::Expected<void, std::string> ShiftTail(Kernel::JointState& joint)
 
 void FirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix)
 {
-    // 530afa: width es el retenido del uso anterior, antes de que el caso escriba el nuevo.
+    // 0x530afa: width is the one retained from the previous use, before the case writes the new one.
     PlaceFirstQuad(joint, matrix, false);
 }
 

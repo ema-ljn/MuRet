@@ -14,47 +14,46 @@ namespace Client::Crt
 class CrtRandom;
 } // namespace Client::Crt
 
-// El alta de un monstruo o un NPC por tipo: 0x5141e0(tipo, x, y, clave) y su cola 0x5140c0 (04, "Los monstruos y
-// los NPC que entran"; 06, "El alta de un monstruo"). 0x5141e0 prueba primero seis creadores de evento (0x439df0,
-// 0x42d070, 0x440530, 0x42f190, 0x430c90 y 0x425db0, en ese orden: el primero que devuelve un personaje gana) y
-// después su switch por tipo − 1 (de 1 a 301, la tabla de bytes 0x517138 sobre la de saltos 0x516f44), con el
-// default 0x516e2a. Cada caso es una lista de pasos en el orden del ASM: lo que carga, el 0x512870 con el modelo, lo
-// que escribe en el personaje y lo que llama. Las tablas están leídas del listado caso por caso (*estático*).
+// Creating a monster or an NPC by type: 0x5141e0(type, x, y, key) and its tail 0x5140c0 (04, "Los monstruos y los NPC
+// que entran"; 06, "El alta de un monstruo"). 0x5141e0 first tries six event creators (0x439df0, 0x42d070, 0x440530,
+// 0x42f190, 0x430c90 and 0x425db0, in that order; the first that returns a character wins), then its switch on type − 1
+// (1 to 301, byte table 0x517138 over jump table 0x516f44) with default 0x516e2a. Each case is its steps in ASM order:
+// what it loads, the 0x512870 with the model, what it writes into the character and what it calls (*static*).
 namespace Client::Monsters
 {
 enum class MonsterStepKind : std::uint8_t
 {
-    LoadMonster, // 0x612d90(value): Monster\Monster{value + 1}.bmd en el modelo 0x152 + value
-    LoadNpc,     // 0x612270(value): el modelo value de los NPC
-    Create,      // 0x512870(clave, value, x, y, extra): extra son los bits del ángulo
-    Write,       // [personaje + offset] = value, de size bytes (un float va con sus bits)
-    Name,        // el strcpy de text a +0x1d9 (extra: la dirección del texto en la .data)
-    Dress,       // 0x512930(personaje): viste con lo que dejaron +0x218..+0x2d8
-    Box,         // 0x5133b0(personaje)
-    Action,      // 0x4ea030(personaje, value)
-    Ground,      // +0x18 = 0x5f93c0(+0x10, +0x14) + value (la altura del terreno más un float)
+    LoadMonster, // 0x612d90(value): Monster\Monster{value + 1}.bmd into model 0x152 + value
+    LoadNpc,     // 0x612270(value): NPC model value
+    Create,      // 0x512870(key, value, x, y, extra): extra holds the angle's bits
+    Write,       // [character + offset] = value, size bytes (a float goes as its bits)
+    Name,        // strcpy of text to +0x1d9 (extra: the text's address in .data)
+    Dress,       // 0x512930(character): dresses it with what +0x218..+0x2d8 hold
+    Box,         // 0x5133b0(character)
+    Action,      // 0x4ea030(character, value)
+    Ground,      // +0x18 = 0x5f93c0(+0x10, +0x14) + value (the terrain height plus a float)
     Lower,       // +0x18 -= value (float)
-    CopyHeight,  // [personaje + offset] = +0x18
-    MeshFlag,    // el byte +0 de la malla offset del modelo del personaje (+2) = value
-    ModelByte,   // el byte offset del modelo extra (0x5769ad8 + extra · 0xe0) = value
-    Random,      // r = rand() % 2 (0x69fd70 con AND 0x80000001)
-    Siege,       // 0x4294b0: con el asedio prendido sigue otra rama (CL9.5)
-    Joint,       // 0x530860(value, posición, posición, ángulos, offset, personaje, extra, −1, 0, 0, −1) (CL11)
-    Arrival,     // 0x518cf0(value, posición, ángulos, luz, offset, personaje) (CL11)
+    CopyHeight,  // [character + offset] = +0x18
+    MeshFlag,    // byte +0 of mesh offset of the character's model (+2) = value
+    ModelByte,   // byte offset of model extra (0x5769ad8 + extra · 0xe0) = value
+    Random,      // r = rand() % 2 (0x69fd70 with AND 0x80000001)
+    Siege,       // 0x4294b0: with the siege on it takes another branch (CL9.5)
+    Joint,       // 0x530860(value, position, position, angles, offset, character, extra, −1, 0, 0, −1) (CL11)
+    Arrival,     // 0x518cf0(value, position, angles, light, offset, character) (CL11)
     Sound,       // 0x41ed10(value, 0, 0) (CL10)
-    BoneName,    // 0x401000(personaje, text, value): el hueso con nombre del modelo (0x6e5640, CL11)
+    BoneName,    // 0x401000(character, text, value): the model's named bone (0x6e5640, CL11)
 };
 
 enum class MonsterStepWhen : std::uint8_t
 {
     Always,
-    RandomZero,    // con el rand() del paso Random par
-    RandomOne,     // con el rand() del paso Random impar
-    InWorlds,      // con el mapa de low a high
-    OutsideWorlds, // con el mapa fuera de low..high
-    AtEitherX,     // con la X de la celda en low o en high
-    SiegeOn,       // 0x4294b0 distinto de 0
-    SiegeOff,      // 0x4294b0 en 0
+    RandomZero,    // the Random step's rand() is even
+    RandomOne,     // the Random step's rand() is odd
+    InWorlds,      // the map is in low..high
+    OutsideWorlds, // the map is outside low..high
+    AtEitherX,     // the cell's X is low or high
+    SiegeOn,       // 0x4294b0 nonzero
+    SiegeOff,      // 0x4294b0 at 0
 };
 
 struct MonsterStep
@@ -62,17 +61,16 @@ struct MonsterStep
     MonsterStepKind kind = MonsterStepKind::Write;
     MonsterStepWhen when = MonsterStepWhen::Always;
     std::uint8_t size = 0;
-    bool plusRandom = false; // value + r (el r del último paso Random)
+    bool plusRandom = false; // value + r (the r of the last Random step)
     std::uint8_t low = 0;
     std::uint8_t high = 0;
     std::uint16_t offset = 0;
     std::uint32_t value = 0;
     std::uint32_t extra = 0;
-    std::uint32_t address = 0; // dónde está en el ASM
+    std::uint32_t address = 0; // where it is in the ASM
     std::string_view text{};
 };
 
-// Un tipo con su caso: el lugar del caso en el ASM y sus pasos.
 struct MonsterKind
 {
     std::int32_t type = 0;
@@ -80,7 +78,7 @@ struct MonsterKind
     std::span<const MonsterStep> steps;
 };
 
-// Un tipo de un creador de evento, que lo atiende solo en `world` (−1: en cualquier mapa).
+// A type of an event creator, which handles it only in `world` (−1: any map).
 struct EventMonsterKind
 {
     std::uint32_t creator = 0;
@@ -88,13 +86,13 @@ struct EventMonsterKind
     MonsterKind kind;
 };
 
-// Las tablas (MonsterKindTable.cpp): los tipos del switch que no van al default, el default y los de los creadores
-// de evento, en el orden en que 0x5141e0 los prueba.
+// The tables (MonsterKindTable.cpp): the switch types that do not go to the default, the default and the event
+// creators' types, in the order 0x5141e0 tries them.
 [[nodiscard]] std::span<const MonsterKind> MainMonsterKinds() noexcept;
 [[nodiscard]] const MonsterKind& DefaultMonsterKind() noexcept;
 [[nodiscard]] std::span<const EventMonsterKind> EventMonsterKinds() noexcept;
 
-// Quién atiende un tipo en un mapa: `creator` es 0x5141e0 con el switch o la dirección del creador de evento.
+// Who handles a type on a map: `creator` is 0x5141e0 with the switch or the event creator's address.
 struct MonsterCreation
 {
     std::uint32_t creator = 0;
@@ -103,8 +101,7 @@ struct MonsterCreation
 
 [[nodiscard]] MonsterCreation MonsterCreationOf(std::int32_t type, std::int32_t world) noexcept;
 
-// Lo que lee la resolución de los pasos: el mapa (0x6c9dd0), la X de la celda y el byte del asedio (0x7239ec,
-// Q-C330).
+// What step resolution reads: the map (0x6c9dd0), the cell's X and the siege byte (0x7239ec, Q-C330).
 struct MonsterCreationContext
 {
     std::int32_t world = 0;
@@ -112,9 +109,9 @@ struct MonsterCreationContext
     bool siegeActive = false;
 };
 
-// La resolución paso a paso, para sacar cada rand() en su lugar entre los de la creación (0x511290 y sus celdas): el
-// r del último Random y el contexto. `Next` devuelve el paso como corre (el Random con su resto en value, plusRandom
-// con el r sumado) o nullopt si su condición no se cumple; selecciona las ramas del estado del asedio.
+// Step-by-step resolution, to draw each rand() in its place among the creation's (0x511290 and its cells): the r of the
+// last Random and the context. `Next` returns the step as it runs (the Random with its remainder in value, plusRandom
+// with r added) or nullopt if its condition fails; it selects the siege-state branches.
 class MonsterStepResolver
 {
 public:
@@ -128,25 +125,25 @@ private:
     std::int32_t m_r = 0;
 };
 
-// Los pasos que corren con este contexto, en orden, con los rand() sacados en su lugar: cada Random saca uno (y queda
-// en la lista con su resto en value) y los pasos con plusRandom ya llevan el r sumado. Con el asedio prendido corta en
-// el paso Siege (0x4294b0, CL9.5).
+// The steps that run with this context, in order, with each rand() drawn in its place: each Random draws one (and stays
+// in the list with its remainder in value) and the plusRandom steps already carry r. With the siege on it cuts at the
+// Siege step (0x4294b0, CL9.5).
 [[nodiscard]] Core::Expected<std::vector<MonsterStep>, std::string>
 ResolveMonsterSteps(const MonsterCreation& creation, const MonsterCreationContext& context, Crt::CrtRandom& random);
 
-// 0x5140c0, la cola de cada alta (el nombre de la tabla de 0x7681eb8 lo copia MonsterCreation): en los mapas 10 a 17
-// los tipos 0x54 a 0x8f van con el nivel (+0x1d6) en 0 y la escala (+0xc) más (mapa − 9) / 3 · 0,05 (0x6b8a48);
-// después +0x376 = el tipo, +8 = 0, +0x3a4 = el word de 0x57678b0 y la clase del objeto (+0x88): 4 con los tipos 201 a
-// 259, 8 con los 100 a 110 y 2 con el resto.
+// 0x5140c0, every creation's tail (MonsterCreation copies the name from the 0x7681eb8 table): on maps 10 to 17, types
+// 0x54 to 0x8f get level (+0x1d6) 0 and scale (+0xc) plus (map − 9) / 3 · 0.05 (0x6b8a48); then +0x376 = type, +8 = 0,
+// +0x3a4 = the word at 0x57678b0 and the object class (+0x88): 4 for types 201 to 259, 8 for 100 to 110 and 2 for the
+// rest.
 struct MonsterTail
 {
     bool clearsLevel = false;
-    std::int32_t scaleSteps = 0; // (mapa − 9) / 3, el entero que multiplica a 0,05
+    std::int32_t scaleSteps = 0; // (map − 9) / 3, the integer that multiplies 0.05
     std::uint8_t objectClass = 2;
 };
 
 [[nodiscard]] MonsterTail MonsterTailOf(std::int32_t type, std::int32_t world) noexcept;
 
-// 0x514103..0x51410f: FILD de los escalones, FMUL por 0,05f (0x6b8a48), FADD de la escala y FSTP a float.
+// 0x514103..0x51410f: FILD of the steps, FMUL by 0.05f (0x6b8a48), FADD of the scale and FSTP to float.
 [[nodiscard]] float AddTailScale(float scale, std::int32_t steps) noexcept;
 } // namespace Client::Monsters

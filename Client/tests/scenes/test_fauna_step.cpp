@@ -73,7 +73,7 @@ protected:
         m_terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
     }
 };
-// 445b90: 0→1→3, dos if sucesivos y dos sorteos de altura en el mismo paso.
+// 0x445b90: 0→1→3, two successive ifs and two height draws in the same step.
 TEST_F(FaunaStepTest, LandingAndTakingOffRunTheirNewStatesInTheSameStep)
 {
     auto context = Context();
@@ -304,7 +304,7 @@ TEST_F(FaunaStepTest, RealBirdAndFishHeightServicesConsumeTheDurableFixedSurface
     liveFish.scale = 1;
     liveFish.bodyScale = 1;
     liveFish.turnRate = 13;
-    liveFish.timer = 1; // b0 sólo toma FullMovement mientras timer>0.
+    liveFish.timer = 1; // 0xb0 only takes FullMovement while timer>0.
     const auto fish = StepGameFish(context);
     ASSERT_TRUE(fish.HasValue()) << fish.Error();
     EXPECT_FLOAT_EQ(m_fauna.Fish()[0].position.z, 1201);

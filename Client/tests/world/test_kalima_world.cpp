@@ -107,7 +107,7 @@ TEST(KalimaWorldTest, DrawsBothRealModesWithCheckerboardTrianglesAndNoSimulation
     EXPECT_FLOAT_EQ(batch.Vertices()[0].uv.y, 1.0f);
     EXPECT_EQ(batch.Vertices()[0].color, (Client::Render::Color{0.2f, 0.5f, 0.65f, 1}));
     EXPECT_EQ(batch.Vertices()[10086].color, (Client::Render::Color{0, 0, 0, 1}));
-    // Columna impar: la otra diagonal corta por arriba-derecha / abajo-izquierda.
+    // Odd column: the other diagonal cuts top-right / bottom-left.
     EXPECT_EQ(batch.Vertices()[8].position.x, 5200.0f);
     EXPECT_EQ(batch.Vertices()[8].position.y, 5700.0f);
     EXPECT_FALSE(world.Waves().selected);
@@ -130,7 +130,7 @@ TEST(KalimaWorldTest, HighlightKeepsTheUnspilledLightForBlueOnTheUpdatedSurface)
                                              { return candidate.position.x == 5800 && candidate.position.y == 5650; });
     ASSERT_NE(vertex, vertices.end());
     ASSERT_EQ(vertex->position.z, 341.75f);
-    // 41d257 conserva la luz x87 para el azul; rojo/verde recargan su copia float.
+    // 0x41d257 keeps the x87 light for the blue; red/green reload their float copy.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(vertex->color.red), 0xbda71640u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(vertex->color.green), 0xbe50dbd0u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(vertex->color.blue), 0xbe7aa15fu);
@@ -143,7 +143,7 @@ TEST(KalimaWorldTest, PerturbationKeepsTheSignedShiftStrictDiskAndInteriorBorder
     ASSERT_TRUE(world.Disturb(64, 64, 3, -1000000, random).HasValue());
     const auto& plane = world.Waves().planes[0];
     EXPECT_EQ(plane[128 * 256 + 128], 0xfffffffcU);
-    EXPECT_EQ(plane[128 * 256 + 131], 0u); // distancia² == radio² queda afuera.
+    EXPECT_EQ(plane[128 * 256 + 131], 0u); // distance² == radius² stays outside.
     EXPECT_EQ(random.State(), initialRandom);
     ASSERT_TRUE(world.Disturb(0, 0, 20, 1000000000, random).HasValue());
     for (std::size_t index = 0; index < Client::MapScripts::Kalima::KalimaWaveSide; ++index)

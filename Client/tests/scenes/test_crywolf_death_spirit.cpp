@@ -138,7 +138,7 @@ TEST(CrywolfDeathSpiritTest, TheFullModelPoolDoesNotReadTheOwnerOrNeedParticles)
     EXPECT_FALSE(result.Value());
     EXPECT_EQ(random.State(), 7u);
 }
-// El punto es sintético: verifica la propagación, no una captura de la pila del original.
+// The point is synthetic: it checks the propagation, not a capture of the original's stack.
 TEST(CrywolfDeathSpiritTest, AnInjectedStackPointKeepsTheDecalAndTrailOwnersTyped)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();

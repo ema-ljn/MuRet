@@ -11,27 +11,27 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 4, fase 2c: la rama del elfo de 0x57cfc0 (0x57d790..0x58187c; 06, "La rama del elfo"). La usa el elfo
-// (+0x1d4 & 7 en 2); sigue en 0x5808da (las skills 0x43 a 0x48, de todas las clases: HeroSkillsTail.h).
+// The elf branch of 0x57cfc0 (0x57d790..0x58187c; 06, "La rama del elfo"). Used by the elf (+0x1d4 & 7 at 2);
+// continues at 0x5808da (skills 0x43 to 0x48, for all classes: HeroSkillsTail.h).
 namespace Client::Skills
 {
 
-// 0x57d790..0x58187c con `skill`, la del lugar, y el alcance de GameMovementState::selectedSkillRange ([ebp−0x50]).
-// - La cabeza, con el registro propio abierto: el maná y la stamina (0x551c70; sin el maná, la poción de maná de
-//   HeroSkillCasts, 0x57d837), la stamina contra +0x38, la espera (0x552c50) y la energía (0x551f40) contra +0x1e +
-//   +0x30. Cerrado el registro, el blanco (0x57ce80), sin mirar su resultado.
-// - 0x1e a 0x24 (las invocaciones, 0x57f252): en el mapa 10 o en Chaos Castle, nada; si no, sin "webzen" y con el
-//   freno, el C1 06 19 con la clave del jugador (0x57678bc); 0x4f5290 y nada más.
-// - 0x34 (0x57e14d): un jugador con el arco o la ballesta del héroe publicado, flechas (0x561c50) y la celda del blanco
-//   al alcance: el rumbo hacia +0x3a8, la clave de 0x558eb0 con 0x7758588 (0xffff sin él), sin "webzen" 0x5767948 y
-//   el C1 0C 1E con la celda lógica, y 0x4f4a10. Sigue como las demás.
-// - Las demás (0x57f008): con un elegido, 0x7758580..88; fuera de alcance, el camino hasta el elegido (un jugador, con
-//   las 0x1a a 0x1c o atacable, +0x379 en 5) y, salvo 0x43 a 0x47 y 0x4c, nada más. Con la línea de vista y un
-//   elegido, 0x55faa0 (las 0x1a a 0x1c sobre un jugador, y nada más; las 0x33 y 0x2e con el arma, y sigue). Por la
-//   skill: 0x1a a 0x1c y 0x35, el 19 con la clave del jugador y 0x4f5290 (la 0x35 con +0x378 en 0); 0x4c, con
-//   0x4e9920 y la clave mágica, como la del Wizard; las demás, a 0x5808da.
-// Los envíos van por HeroSkillContext::send; los C3 sacan sus dos rand() antes. Lo que es de otro hito corta con su
-// dirección: la poción (0x57d837, hito 5).
+// 0x57d790..0x58187c with `skill`, the slot's, and the reach of GameMovementState::selectedSkillRange ([ebp−0x50]).
+// - The head, with the own record open: mana and stamina (0x551c70; without the mana, HeroSkillCasts's mana potion,
+//   0x57d837), stamina against +0x38, the delay (0x552c50) and the energy (0x551f40) against +0x1e + +0x30. With the
+//   record closed, the target (0x57ce80), without checking its result.
+// - 0x1e to 0x24 (the summons, 0x57f252): on map 10 or in Chaos Castle, nothing; otherwise, without "webzen" and with
+//   the brake, the C1 06 19 with the player key (0x57678bc); 0x4f5290 and nothing more.
+// - 0x34 (0x57e14d): a player with the published hero's bow or crossbow, arrows (0x561c50) and the target's cell in
+//   reach: the heading towards +0x3a8, the key of 0x558eb0 with 0x7758588 (0xffff without it), without "webzen"
+//   0x5767948 and the C1 0C 1E with the logical cell, and 0x4f4a10. Continues like the others.
+// - The others (0x57f008): with a chosen target, 0x7758580..88; out of reach, the path to the chosen target (a player,
+//   with 0x1a to 0x1c or attackable, +0x379 at 5) and, except for 0x43 to 0x47 and 0x4c, nothing more. With the line
+//   of sight and a chosen target, 0x55faa0 (0x1a to 0x1c on a player, and nothing more; 0x33 and 0x2e with the weapon,
+//   and it continues). By skill: 0x1a to 0x1c and 0x35, the 19 with the player key and 0x4f5290 (0x35 with +0x378 at
+//   0); 0x4c, with 0x4e9920 and the magic key, like the Wizard's; the others, to 0x5808da.
+// The sends go through HeroSkillContext::send; the C3s draw their two rand() first. What belongs to another milestone
+// cuts with its address: the potion (0x57d837, milestone 5).
 [[nodiscard]] Core::Expected<void, std::string> UseTheElfSkill(Kernel::ActorState& hero, std::uint8_t skill,
                                                                const HeroSkillContext& context);
 } // namespace Client::Skills

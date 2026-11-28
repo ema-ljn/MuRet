@@ -5,17 +5,17 @@
 
 #include <cstddef>
 
-// La decisión pura de 0x599ef0 (06 § Los cambios de mapa). El caller toma el estado y aplica
-// mensajes, espera y envío; los accesos protegidos y su RNG quedan fuera de esta función.
+// The pure decision of 0x599ef0 (06 § Los cambios de mapa). The caller takes the state and applies messages, wait and
+// send; the protected accesses and their RNG stay outside this function.
 namespace Client::Movement
 {
 struct GateCheckState;
 struct GateDecision;
 
-// A lo sumo un pedido por paso. Conserva todos los avisos previos en el orden de Gate.bmd.
+// At most one request per step. Keeps all earlier warnings in Gate.bmd order.
 [[nodiscard]] GateDecision GateCheck(const Tables::GateTable& table, const GateCheckState& state);
 
-// La misma decisión para un registro: el integrador intercala accesos lógicos y sus efectos
-// entre gates sin copiar las reglas de equipo, nivel o mensajes de 0x599ef0.
+// The same decision for one record: the integrator interleaves logical accesses and their effects between gates
+// without copying 0x599ef0's equipment, level or message rules.
 [[nodiscard]] GateDecision CheckGate(std::size_t index, const Tables::GateRecord& gate, const GateCheckState& state);
 } // namespace Client::Movement

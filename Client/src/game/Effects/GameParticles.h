@@ -55,38 +55,36 @@ struct PoseBuffer;
 class WorldState;
 } // namespace Client::Kernel
 
-// Emisión, paso y dibujo de las partículas del juego, sobre la tabla compartida de 0x743a198.
-// Contrato estático: 06 § Después de los objetos, P-C55 (a).
+// The game's particles over the shared table at 0x743a198. Static contract: 06 § Después de los objetos, P-C55 (a).
 namespace Client::Effects
 {
 
-// 0x4ec110 con Translate=0, después de los dos sorteos del desplazamiento de cada gota.
-// El caller presta el buffer global de la pose vigente y conserva sus huesos anteriores/dummy.
+// 0x4ec110 with Translate=0, after each drop's two offset draws.
+// The caller lends the global buffer of the current pose and keeps its previous/dummy bones.
 using WaterspoutBonePoint =
     std::function<Core::Expected<glm::vec3, std::string>(std::size_t bone, const glm::vec3& offset)>;
 
-// 0x603011..0x60313f, después del rand() común de 0x602ef4: luz y V, guard de mitad de los frames,
-// y dos 5f2/0 con sus rand() intercalados y huesos 1 y 4. Pool lleno no consume rand() de Create.
+// 0x603011..0x60313f, after 0x602ef4's common rand(): light and V, the half-of-the-frames guard, and two 0x5f2/0 with
+// their interleaved rand() and bones 1 and 4. A full pool consumes no Create rand().
 [[nodiscard]] Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
                                                                         Particles::Particles& particles,
                                                                         Crt::CrtRandom& random, const float& worldClock,
                                                                         const WaterspoutBonePoint& bonePoint);
 
-// Con préstamo, 4ec110(Translate=0) lee la matriz global exacta, incluso dummy/alpha bajo.
-// Sin él sólo se acredita el hueso escrito por este modelo; falta de matriz corta tras X/Z.
+// With the loan, 0x4ec110(Translate=0) reads the exact global matrix, even dummy/low alpha.
+// Without it, only the bone written by this model is credited; a missing matrix stops after X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWaterspoutFrame(WorldObjects::WorldObject& object, Particles::Particles& particles, Crt::CrtRandom& random,
                         const float& worldClock, const Models::IModelLibrary& models,
                         const Actors::Drawing::DrawnObject& drawn, const Kernel::PoseBuffer* retainedPose = nullptr);
 
-// 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
-// worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner. `owners`
-// resuelve el dueño de 622/1 entre los objetos del mapa (Particles::ParticleObjectOwners), `actorActions` da la acción
-// del personaje dueño de la órbita 60f/0 (Particles::ParticleActorActions), `textureHeight`, el alto de la textura
-// que lee la 5f3 (Particles::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `ownerBones`,
-// el hueso del dueño de la 5fe (Particles::ParticleOwnerBones, 0x53fdb0). que lee la 5f3
-// (Particles::ParticleTextureHeight), `lighting`, la luz dinámica (0x7b4ccc4) de la 5ed, y `actorHands`, la mano del
-// dueño de la 5fd (0x53fdb0, Particles::ParticleActorHands).
+// 0x637128 → 0x5446e0: even with the pool empty it consumes the wind's two rand(). worldClock lends the caller's
+// lvalue during the pass; it neither keeps nor copies that owner. `owners` resolves the 0x622/1's owner among the map's
+// objects (Particles::ParticleObjectOwners), `actorActions` gives the action of the character owning the orbit 0x60f/0
+// (Particles::ParticleActorActions), `textureHeight`, the texture height the 0x5f3 reads
+// (Particles::ParticleTextureHeight), `lighting`, the 0x5ed's dynamic light (0x7b4ccc4), `actorHands`, the hand of the
+// 0x5fd's owner (0x53fdb0, Particles::ParticleActorHands), and `ownerBones`, the bone of the 0x5fe's owner
+// (Particles::ParticleOwnerBones, 0x53fdb0).
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
@@ -97,8 +95,8 @@ StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const
                   const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands = {},
                   const std::function<std::optional<glm::vec3>(const Particles::Particle&)>& ownerBones = {});
 
-// `sprites` es la tabla de los sprites del frame (0x5491e0) donde la 5fc/2 deja su destello en cada paso; sin ella,
-// una 5fc/2 viva corta (Particles::ParticleError::MissingSprites).
+// `sprites` is the frame's sprite table (0x5491e0) where the 0x5fc/2 leaves its flash each step; without it, a live
+// 0x5fc/2 stops (Particles::ParticleError::MissingSprites).
 [[nodiscard]] Core::Expected<void, std::string> StepGameParticles(
     Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
@@ -112,44 +110,44 @@ StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const
         {},
     Particles::FrameSprites* sprites = nullptr);
 
-// La acción (+0x111) del personaje de un lugar del pool entre `actors`, que tienen que vivir más que el
-// resolvedor: lo que el paso de la órbita 60f/0 lee por el puntero +0x40 (0x54735f).
+// The action (+0x111) of the character in a pool slot among `actors`, which must outlive the resolver: what the orbit
+// 0x60f/0's step reads through the pointer +0x40 (0x54735f).
 [[nodiscard]] std::function<std::optional<std::uint8_t>(std::uint64_t)>
 ParticleActorActionsAmong(std::span<const Kernel::ActorState> actors);
 
-// El alto de la textura de cada lugar (+0x24 de 0x7d3a198) entre las que subió `textures`, como lo lee el paso de
-// la 5f3; `textures` tiene que vivir más que el resolvedor.
+// The texture height of each slot (+0x24 of 0x7d3a198) among those `textures` uploaded, as the 0x5f3's step reads it;
+// `textures` must outlive the resolver.
 [[nodiscard]] std::function<std::optional<float>(std::int32_t)>
 ParticleTextureHeightsOf(const Models::IModelLibrary& textures);
 
-// El dueño de una partícula por la identidad de su objeto (WorldObject::identity) entre `objects`, que
-// tienen que vivir más que el resolvedor: lo que el original lee por el puntero +0x40.
+// A particle's owner by its object's identity (WorldObject::identity) among `objects`, which must outlive the
+// resolver: what the original reads through the pointer +0x40.
 [[nodiscard]] std::function<WorldObjects::WorldObject*(std::uint64_t)>
 ParticleOwnersAmong(std::span<WorldObjects::WorldObject> objects);
 
-// 5ac/4 (0x544a9d): dueño tipo20a y byte88=1, hueso ftol(rotation) de la pose propia, vector local `angles` más
-// posición del dueño, sin escala ni publicación de modelo. Un dueño inválido devuelve nullopt para apagar la luz.
-// Los demás: 0x53fdb0(partícula) con un dueño del pool de personajes (ParticleOwnerKind::Actor): el hueso es el byte +5
-// de la parte del héroe publicado ([0x743a170] + 0x2bd + (subtipo % 2, con signo) · 0x20: la mano derecha con 0, la
-// izquierda con 1 y la quinta del cuerpo con −1) y el punto local (0; −120; 0) con la 5fe y la 62d, cero con las demás.
-// 0x4ec110 con el modelo del dueño (+2): su origen (+0x6c) pasa a ser la posición del dueño y la escala (+0x68) es la
-// que quedó en el modelo; con los huesos propios (+0x120) del último dibujo, una matriz en cero antes del primero
-// (Q-C318). MuRet guarda el modelo de Player.bmd (WorldState::PlayerModel): con otro tipo, nullopt, que la partícula
-// devuelve como MissingOwner. Es el corte de los anillos de transformación (08, P-C358): la 5fe de 0x55be23 corta antes
-// con su dirección (Scenes::ShineOnTheHero).
+// 0x5ac/4 (0x544a9d): owner type 0x20a and byte88=1, bone ftol(rotation) of the own pose, local vector `angles` plus
+// the owner's position, without scale or model publication. An invalid owner returns nullopt to turn off the light.
+// The others: 0x53fdb0(particle) with an owner from the character pool (ParticleOwnerKind::Actor): the bone is byte +5
+// of the published hero's part ([0x743a170] + 0x2bd + (subtype % 2, signed) · 0x20: the right hand with 0, the left
+// with 1 and the body's fifth with −1) and the local point (0; −120; 0) with the 0x5fe and the 0x62d, zero with the
+// others. 0x4ec110 with the owner's model (+2): its origin (+0x6c) becomes the owner's position and the scale (+0x68)
+// is whatever stayed in the model; with the own bones (+0x120) of the last drawing, a zero matrix before the first
+// (Q-C318). MuRet keeps the Player.bmd model (WorldState::PlayerModel): with another type, nullopt, which the particle
+// returns as MissingOwner. It is the cut of the transformation rings (08, P-C358): the 0x5fe of 0x55be23 stops earlier
+// with its address (Skills::ShineOnTheHero).
 [[nodiscard]] std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const Particles::Particle& particle);
-// Lo que el paso lee por +0x40 de las partículas que siguen a su dueño (5c6/4, 5d5/2, el fuego /9 y 5de/4): de un
-// personaje del pool, su byte vivo y su posición; de un efecto con modelo, además su partida (+0x17c). De los dos, la
-// acción (+0x111), que la órbita 60f/0 lee también del 0x61d que la suelta (0x54735f). nullopt si la identidad no es
-// de ninguno de los dos pools. `world` tiene que vivir más que el resolvedor.
+// What the step reads through +0x40 of the particles that follow their owner (0x5c6/4, 0x5d5/2, the fire /9 and
+// 0x5de/4): from a pool character, its live byte and its position; from a model effect, also its start (+0x17c). From
+// both, the action (+0x111), which the orbit 0x60f/0 also reads from the 0x61d that drops it (0x54735f). nullopt if
+// the identity belongs to neither pool. `world` must outlive the resolver.
 [[nodiscard]] std::function<std::optional<Particles::ParticleOwnerState>(const Particles::ParticleOwner&)>
 ParticleOwnerStatesOf(Kernel::WorldState& world);
-// El resolvedor de 0x53fdb0 sobre `world`, que tiene que vivir más que él.
+// The 0x53fdb0 resolver over `world`, which must outlive it.
 [[nodiscard]] std::function<std::optional<glm::vec3>(const Particles::Particle&)>
 ParticleOwnerBonesOf(Kernel::WorldState& world);
 
-// 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
-// las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.
+// 0x637558 → 0x548550(0), in the eye pass after the sprites. Keeps the geometry and the operations before a failure
+// and returns the address and the slot that failed.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameParticles(Render::ModelBatch& batch, Particles::Particles& particles, const Models::IModelLibrary& textures,
                   const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);

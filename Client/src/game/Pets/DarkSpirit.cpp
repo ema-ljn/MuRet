@@ -26,8 +26,8 @@ namespace Client::Pets
 {
 namespace
 {
-// 0x4167b0: los rand() de los cierres de las celdas protegidas (0x4128e7, ocho) y del contador (0x40b9a1,
-// cuatro), y la altura sobre el terreno (0x6b8900).
+// 0x4167b0: the rand() of the protected cells' closes (0x4128e7, eight) and of the counter (0x40b9a1, four), and the
+// height above the terrain (0x6b8900).
 constexpr int CellSize = static_cast<int>(Terrain::CellSize);
 constexpr int CellCenter = 50;
 constexpr int CellMask = 0xff;
@@ -35,25 +35,24 @@ constexpr double BirthHeight = 300.0;
 
 constexpr std::uint32_t OwnerStops = 0x1000;
 constexpr std::uint32_t OwnerHidesSparks = 0x4000;
-// 0x416480: el avance de la animación, y la acción de cada estado al dar la vuelta (0x417f0c).
+// 0x416480: the animation step, and each state's action on wrapping (0x417f0c).
 constexpr float FrameStep = 0.4f;
 constexpr std::array<std::uint8_t, 6> ActionOfState{1, 0, 3, 2, 1, 3};
-// 0x417b87: la chispa, de un hueso de los 66 primeros, con su luz, su subtipo y su escala.
+// 0x417b87: the spark, from one of the first 66 bones.
 constexpr int SparkBones = 66;
 constexpr glm::vec3 SparkLight{std::bit_cast<float>(0x3E99999Au), std::bit_cast<float>(0x3ECCCCCDu),
                                std::bit_cast<float>(0x3F333333u)};
 constexpr float SparkScale = std::bit_cast<float>(0x3F4CCCCDu);
-// 150² (0x6b8938): más cerca no gira hacia el dueño y el sorteo es el de cerca; 640², lejos.
+// 150² (0x6b8938): closer, it does not turn toward the owner and uses the near draw; 640², far.
 constexpr double NearSquared = 22500.0;
 constexpr float NearSquaredFloat = 22500.0f;
 constexpr double FarSquared = 409600.0;
 constexpr int TurnSpan = 15;
 constexpr double TurnBase = 5.0;
-// 0x417c95: la altura de vuelo sobre el dueño, 350 en el mapa 0x37 y 250 en los demás (Q-C131), y el
-// margen de arriba.
+// 0x417c95: the flight height over the owner, 350 on map 0x37 and 250 on the others (Q-C131), and the upper margin.
 constexpr std::uint8_t LoginMap = Maps::LoginMap;
-// 0x417c95: compara el word de la mascota con 0x1a04, el índice del caballo oscuro (13, 4) y no su modelo
-// (0x1c16): con el equipo de 0x512a30 no da nunca (Q-C413).
+// 0x417c95 compares the pet word with 0x1a04, the Dark Horse's index (13, 4), not its model (0x1c16): with the 0x512a30
+// equipment it never matches (Q-C413).
 constexpr std::uint16_t HorseIndex = 0x1a04;
 constexpr double LoginFlight = 350.0;
 constexpr double Flight = 250.0;
@@ -83,46 +82,46 @@ constexpr std::uint8_t FastState = 0;
 constexpr std::uint8_t SlowState = 1;
 constexpr std::uint8_t PerchedState = 3;
 constexpr std::uint8_t LandingState = 4;
-// 0x4176f0: la zona segura es +0x3e2 en 1 justo; la velocidad al empezar a bajar (0x40400000).
+// 0x4176f0: the safe zone is +0x3e2 exactly 1; the speed when starting to land (0x40400000).
 constexpr std::uint8_t InSafeZone = 1;
 constexpr float LandingSpeed = 3.0f;
-// 0x4178a6: posado, el hueso 37 (0x6f0 / 0x30) del dueño con (−10, 0, 10) (0xc1200000, 0x41200000), y el
-// rumbo del dueño menos 120 (0x6b86c8).
+// 0x4178a6: perched, the owner's bone 37 (0x6f0 / 0x30) with (−10, 0, 10) (0xc1200000, 0x41200000), and the owner's
+// heading minus 120 (0x6b86c8).
 constexpr std::size_t PerchBone = 37;
 constexpr glm::vec3 PerchOffset{-10.0f, 0.0f, 10.0f};
 constexpr double PerchTurn = 120.0;
-// 0x417974: bajando, hacia el hueso 42 (0x7e0 / 0x30) del dueño; acelera 1 (0x6b87d4) y se posa a menos
-// de 50 (0x6b86b0).
+// 0x417974: landing, toward the owner's bone 42 (0x7e0 / 0x30); accelerates 1 (0x6b87d4) and perches under 50
+// (0x6b86b0).
 constexpr std::size_t LandingBone = static_cast<std::size_t>(Tables::PlayerLeftHandBone);
 constexpr double LandingAcceleration = 1.0;
 constexpr double PerchReach = 50.0;
-// Los estados del ataque (CL9 hito 4): el 2 vuelve, el 5 ataca y el 6 grita (0x416ae3, 0x417833).
+// The attack states (0x416ae3, 0x417833).
 constexpr std::uint8_t ReturningState = 2;
 constexpr std::uint8_t AttackingState = 5;
 constexpr std::uint8_t ShoutingState = 6;
-// 0x416b1d: +0x3b0 en 0xffff después del aviso; el 6 no gira con él (0x41784e).
+// 0x416b1d: +0x3b0 to 0xffff after the notice; state 6 does not turn with it (0x41784e).
 constexpr std::uint16_t NoAttackTarget = 0xffff;
-// 0x417a59: el destino del ataque, 50 (0x6b86b0) más arriba; a menos de 20 (0x6b86d0) o con la lejanía en más de 20
-// vuelve (0x417a84), con el cabeceo en −45 (0xc2340000); la orden 3 deja +0x1ad (0x417a9d).
+// 0x417a59: the attack destination, 50 (0x6b86b0) higher; under 20 (0x6b86d0) or with the far count over 20 it returns
+// (0x417a84), with pitch at −45 (0xc2340000); order 3 keeps +0x1ad (0x417a9d).
 constexpr double AttackLift = 50.0;
 constexpr double AttackReach = 20.0;
 constexpr std::int32_t AttackSteps = 20;
 constexpr float ReturnPitch = -45.0f;
 constexpr std::uint8_t FollowTargetOrder = 3;
-// 0x417acf: +0xf0 sube 0,2 (0x6b8854) por paso; 0x417b17: volviendo frena 1 (0x6b87d4); a 250² (0x6b893c) del
-// destino, el estado 0.
+// 0x417acf: +0xf0 rises 0.2 (0x6b8854) per step; 0x417b17: returning brakes 1 (0x6b87d4); at 250² (0x6b893c) from the
+// destination, state 0.
 constexpr double AttackAccelerationStep = static_cast<double>(0.2f);
 constexpr double ReturnBrake = 1.0;
 constexpr double ReturnedSquared = 62500.0;
 constexpr std::uint8_t AttackAction = 3;
-// 0x41788b: el 6 gira 40 (0x42200000) hacia el personaje de +0x3b0.
+// 0x41788b: state 6 turns 40 (0x42200000) toward the +0x3b0 character.
 constexpr float ShoutTurn = 40.0f;
-// 0x417e33: +0x38d sube en los estados 5 y 6 hasta 15.
+// 0x417e33: +0x38d rises in states 5 and 6 up to 15.
 constexpr std::uint8_t AttackCounterTop = 15;
 
 using Math::F32;
 
-// 0x4164f0: el estado y el contador de lejanía en 0, sin mirar el de antes.
+// 0x4164f0, whatever the previous state.
 void SetState(DarkSpirit& spirit, std::uint8_t state)
 {
     spirit.state = state;
@@ -137,18 +136,16 @@ void SetStateOf(DarkSpirit& spirit, std::uint8_t state)
     }
 }
 
-// 0x4ec110(modelo del dueño, huesos propios + hueso · 0x30, offset, punto, 1): el hueso por la escala y
-// más el origen que tiene el modelo compartido. Sin huesos (antes del primer dibujo), la matriz en cero,
-// como OwnBonePoint (Q-C318).
+// 0x4ec110(owner's model, own bones + bone · 0x30, offset, point, 1). With no bones (before the first draw), a zero
+// matrix, like OwnBonePoint (Q-C318).
 glm::vec3 OwnerBonePoint(const DarkSpiritOwner& owner, std::size_t bone, const glm::vec3& offset)
 {
     const Math::BoneTransform matrix = bone < owner.pose.size() ? owner.pose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, owner.modelScale, owner.modelOrigin);
 }
 
-// 0x4176f0..0x417775: dentro de la zona segura, sin estar posado ni bajando, 0x4164f0(3) y después 0x4164f0(4)
-// con la velocidad en 3: la comparación con 50 de la distancia al dueño lee el estado ya en 3 y no decide
-// nada (Q-C414). Fuera, posado o bajando, 0x4164f0(0).
+// 0x4176f0..0x417775: in the safe zone, when neither perched nor landing, 0x4164f0(3) then 0x4164f0(4) with speed 3:
+// the comparison of the owner distance with 50 reads the state already at 3 and decides nothing (Q-C414).
 void FollowTheSafeZone(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 {
     const bool resting = spirit.state == PerchedState || spirit.state == LandingState;
@@ -167,7 +164,7 @@ void FollowTheSafeZone(DarkSpirit& spirit, const DarkSpiritOwner& owner)
     }
 }
 
-// 0x4178a6..0x4178ec: en el hombro del dueño, con sus ángulos y el rumbo 120 grados menos.
+// 0x4178a6..0x4178ec: on the owner's shoulder.
 void Perch(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 {
     spirit.position = OwnerBonePoint(owner, PerchBone, PerchOffset);
@@ -176,9 +173,9 @@ void Perch(DarkSpirit& spirit, const DarkSpiritOwner& owner)
     spirit.angles.z = F32(static_cast<double>(owner.angles.z) - PerchTurn);
 }
 
-// 0x4178fc..0x4179ea: la matriz de sus ángulos antes de girar; con velocidad (fcomp con 0 y C3: ni 0 ni
-// unordered), avanza (0, −velocidad, 0) girado; gira hacia el hueso 42 con 0x4e9810 y acelera; con la
-// distancia de la x87 menor que 50 (o unordered), 0x4164f0(3).
+// 0x4178fc..0x4179ea: the angle matrix before turning; with speed (fcomp with 0 and C3: neither 0 nor unordered), it
+// advances (0, −speed, 0) rotated; turns toward bone 42 with 0x4e9810; with the x87 distance below 50 (or unordered),
+// 0x4164f0(3).
 void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
 {
     const Math::OriginalMatrix matrix = Math::OriginalAngleMatrix(spirit.angles);
@@ -198,8 +195,8 @@ void Land(DarkSpirit& spirit, const DarkSpiritOwner& owner)
     }
 }
 
-// 0x417b33..0x417e10: los estados 0 y 1, el vuelo libre hacia `destination` (el dueño o, con +0x1ad en 1, el blanco
-// de +8). +0x1ad en 0; la chispa mira las banderas del dueño y la altura, su mascota.
+// 0x417b33..0x417e10: states 0 and 1, the free flight toward `destination` (the owner or, with +0x1ad at 1, the +8
+// target). The spark checks the owner's flags, and the height its pet.
 void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& destination, std::uint8_t map,
          Particles::Particles& particles, float worldClock, Crt::CrtRandom& random)
 {
@@ -207,8 +204,8 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
     const glm::vec3 start = spirit.position;
     const float dx = F32(static_cast<double>(destination.x) - static_cast<double>(start.x));
     const float dy = F32(static_cast<double>(destination.y) - static_cast<double>(start.y));
-    // 0x417b75: la chispa, desde la traslación de un hueso de la pose del último dibujo (0x4ec110 sin
-    // trasladar). Antes del primero, el original lee memoria sin iniciar: MuRet, la posición (Q-C133).
+    // 0x417b75: from the translation of a bone of the last draw's pose (0x4ec110 untranslated). Before the first draw
+    // the original reads uninitialized memory; MuRet uses the position (Q-C133).
     if ((owner.flags & OwnerHidesSparks) == 0)
     {
         const auto bone = static_cast<std::size_t>(random.Next() % SparkBones);
@@ -218,7 +215,7 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
         (void)particles.Create(Particles::SparkParticle, from, spirit.angles, SparkLight, Particles::RavenSparkSubtype,
                                SparkScale, worldClock, random);
     }
-    // 0x417bcb: la distancia² en la x87 (fst la guarda en float y compara la de 53 bits).
+    // 0x417bcb: distance² on the x87 (fst stores it as float and compares the 53-bit one).
     const double distance =
         (static_cast<double>(dy) * static_cast<double>(dy)) + (static_cast<double>(dx) * static_cast<double>(dx));
     const float distanceFloat = F32(distance);
@@ -254,8 +251,8 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
             spirit.angles.x = PitchLimit;
         }
     }
-    // 0x417d25: el sorteo de la dirección. Cerca (con la distancia² en float), el empujón de rand() & 7 y
-    // un giro de rand() % 60; lejos, el de rand() & 63, sin redondear.
+    // 0x417d25: the direction draw. Near (with distance² as float), the rand() & 7 push and a rand() % 60 turn; far,
+    // the rand() & 63 push, without rounding.
     if (random.Next() % draw == 0)
     {
         double push = 0.0;
@@ -276,10 +273,10 @@ void Fly(DarkSpirit& spirit, const DarkSpiritOwner& owner, const glm::vec3& dest
     SetStateOf(spirit, spirit.direction.y < FastBelow ? FastState : SlowState);
 }
 
-// 0x416a88..0x4176e6: con el blanco de +0x3b0 entre los 400 y con 0x4000 (0x416ab6), o con el dueño con 0x4000
-// (0x416ac5, 0x4170d9), en los estados 5, 2 y 6, +0x3b0 en 0xffff y el A7 (las dos copias, 0x416b05 y 0x417113, arman
-// el mismo). Después 0x4164f0(3) y, a más de 50 del dueño (0x4170a9, 0x4176bf) o con el estado ya en 3, que no es 4
-// ni pasa de 3, 0x4164f0(4) con la velocidad en 3: siempre el 4 (Q-C1206). La distancia no saca rand().
+// 0x416a88..0x4176e6: with the +0x3b0 target among the 400 and with 0x4000 (0x416ab6), or the owner with 0x4000
+// (0x416ac5, 0x4170d9), in states 5, 2 and 6, +0x3b0 to 0xffff and the A7 (the two copies, 0x416b05 and 0x417113,
+// build the same one). Then 0x4164f0(3) and, beyond 50 from the owner (0x4170a9, 0x4176bf) or with the state already
+// 3, which is not 4 and not above 3, 0x4164f0(4) with speed 3: always 4 (Q-C1206). The distance draws no rand().
 bool StopTheHiddenAttack(DarkSpirit& spirit, const DarkSpiritOwner& owner, const DarkSpiritTargets& targets)
 {
     const bool targetHides = targets.attackInPool && (targets.attackFlags & OwnerHidesSparks) == OwnerHidesSparks;
@@ -297,8 +294,8 @@ bool StopTheHiddenAttack(DarkSpirit& spirit, const DarkSpiritOwner& owner, const
     return true;
 }
 
-// 0x4179ef..0x417b2e: el 5 y el 2. La matriz de los ángulos (0x5fc8f0) y el avance de (0, −velocidad, 0) girado, sin
-// mirar si la velocidad es 0. `dx` y `dy` son los del destino antes de avanzar (0x417814).
+// 0x4179ef..0x417b2e: states 5 and 2. The angle matrix (0x5fc8f0) and the advance of (0, −speed, 0) rotated, without
+// checking whether the speed is 0. `dx` and `dy` are the destination's before advancing (0x417814).
 void Charge(DarkSpirit& spirit, const Models::Skeleton& skeleton, glm::vec3 destination, float dx, float dy)
 {
     const Math::OriginalMatrix matrix = Math::OriginalAngleMatrix(spirit.angles);
@@ -308,7 +305,7 @@ void Charge(DarkSpirit& spirit, const Models::Skeleton& skeleton, glm::vec3 dest
     spirit.position.z = F32(static_cast<double>(move.z) + static_cast<double>(spirit.position.z));
     if (spirit.state == AttackingState)
     {
-        // 0x417a56..0x417aa6: fcomp con 20 y C0 (menor o unordered).
+        // 0x417a56..0x417aa6: fcomp with 20 and C0 (less or unordered).
         destination.z = F32(static_cast<double>(destination.z) + AttackLift);
         const double distance = Math::MoveToward(spirit.position, spirit.angles, destination, spirit.speed);
         if (!(distance >= AttackReach) || spirit.far > AttackSteps)
@@ -320,14 +317,14 @@ void Charge(DarkSpirit& spirit, const Models::Skeleton& skeleton, glm::vec3 dest
                 spirit.byte1ad = 0;
             }
         }
-        // 0x417aad..0x417ad5: la velocidad suma el +0xf0 de antes.
+        // 0x417aad..0x417ad5: the speed adds the previous +0xf0.
         ++spirit.far;
         spirit.speed = F32(static_cast<double>(spirit.speed) + static_cast<double>(spirit.floatF0));
         spirit.floatF0 = F32(static_cast<double>(spirit.floatF0) + AttackAccelerationStep);
     }
     else
     {
-        // 0x417aec..0x417b1d: fcomp con 250² y C0: con la suma en 250² o más (no unordered), 0x4164f0(0).
+        // 0x417aec..0x417b1d: fcomp with 250² and C0: with the sum at 250² or more (not unordered), 0x4164f0(0).
         const double squared =
             (static_cast<double>(dy) * static_cast<double>(dy)) + (static_cast<double>(dx) * static_cast<double>(dx));
         if (!(squared < ReturnedSquared || std::isnan(squared)))
@@ -336,12 +333,11 @@ void Charge(DarkSpirit& spirit, const Models::Skeleton& skeleton, glm::vec3 dest
         }
         spirit.speed = F32(static_cast<double>(spirit.speed) - ReturnBrake);
     }
-    // 0x417adb y 0x417b26: 0x4ea030(3).
+    // 0x417adb and 0x417b26: 0x4ea030(3).
     Models::SetAction(spirit.animation, skeleton, AttackAction);
 }
 
-// 0x417847..0x41789d: el 6, con +0x3b0 distinto de 0xffff, gira 40 hacia ese personaje (0x4e93f0 desde su posición
-// de antes del paso y 0x4e9560).
+// 0x417847..0x41789d: state 6 turns toward that character (0x4e93f0 from its position before the step, and 0x4e9560).
 void Shout(DarkSpirit& spirit, const DarkSpiritTargets& targets)
 {
     if (spirit.target3b0 == NoAttackTarget)
@@ -357,7 +353,7 @@ void Shout(DarkSpirit& spirit, const DarkSpiritTargets& targets)
 DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtRandom& random,
                             DarkSpiritBirthAccesses accesses)
 {
-    // 0x4167b0 lee Y y X del dueño, y 0x415be0 el contador: solo gastan si cierran en cero.
+    // 0x4167b0 reads the owner's Y and X, and 0x415be0 the counter: they only spend if they close at zero.
     const std::array closes{accesses.cellY == 0, accesses.cellX == 0, accesses.counter == 0};
     for (const bool closesInZero : closes)
     {
@@ -371,8 +367,7 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtR
         }
     }
     DarkSpirit spirit;
-    // 0x415c25: las celdas con `and 0xff`; 0x415ea7 guarda la altura del terreno en float y 0x4169ec le
-    // suma 300 desde ahí.
+    // 0x415c25: the cells with `and 0xff`; 0x415ea7 stores the terrain height as float and 0x4169ec adds 300 to that.
     const int x = cellX & CellMask;
     const int y = cellY & CellMask;
     spirit.position =
@@ -392,19 +387,18 @@ DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& ske
     {
         return stepped;
     }
-    // 0x416a82..0x416a8b: el byte +0x1d6 del CHARACTER del cuervo va a +0x8e; MuRet no tiene ninguno de los dos.
+    // 0x416a82..0x416a8b: the raven CHARACTER's byte +0x1d6 goes to +0x8e; MuRet has neither.
     stepped.stopsTheAttack = StopTheHiddenAttack(spirit, owner, targets);
     FollowTheSafeZone(spirit, owner);
     if (spirit.animation.action < skeleton.actions.size() &&
         Models::AdvanceAnimation(spirit.animation, skeleton.actions[spirit.animation.action], FrameStep,
                                  Models::AnimationScene::Other))
     {
-        // 0x417791: más allá de la tabla, la 0.
+        // 0x417791: beyond the table, action 0.
         Models::SetAction(spirit.animation, skeleton,
                           spirit.state < ActionOfState.size() ? ActionOfState[spirit.state] : 0);
     }
-    // 0x4177b1..0x417822: el destino, el blanco de +8 con +0x1ad en 1 o el dueño, y la distancia en float antes de
-    // moverse.
+    // 0x4177b1..0x417822: the destination, and the float distance before moving.
     const glm::vec3 destination = spirit.byte1ad == 1 ? targets.target : owner.position;
     const float dx = F32(static_cast<double>(destination.x) - static_cast<double>(spirit.position.x));
     const float dy = F32(static_cast<double>(destination.y) - static_cast<double>(spirit.position.y));
@@ -428,7 +422,7 @@ DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& ske
     {
         Land(spirit, owner);
     }
-    // 0x417e15..0x417e37: en el 5 y el 6, +0x38d sube (con la vuelta del byte) y se queda en 15.
+    // 0x417e15..0x417e37: +0x38d rises (with the byte wrap) and stays at 15.
     if (spirit.state == AttackingState || spirit.state == ShoutingState)
     {
         ++spirit.byte38d;
@@ -437,7 +431,7 @@ DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& ske
             spirit.byte38d = AttackCounterTop;
         }
     }
-    // 0x417e3e: el grito, con rand() % 100 y el contador que lee de 0x7d3a0f0, con signo.
+    // 0x417e3e: the shout, with rand() % 100 and the signed counter read from 0x7d3a0f0.
     stepped.shouts = random.Next() % ShoutSpan == 0 && counter % ShoutCounter == 0;
     const double farX = static_cast<double>(owner.position.x) - static_cast<double>(spirit.position.x);
     const double farY = static_cast<double>(owner.position.y) - static_cast<double>(spirit.position.y);

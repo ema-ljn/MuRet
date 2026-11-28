@@ -20,7 +20,7 @@ constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126f
 
 using Math::F32;
 
-// 0x545343..0x545363: +0x38 menos 0,001f; muere cuando la resta, sin redondear (fst y fcomp), no es mayor que 0.
+// 0x545343..0x545363: +0x38 minus 0.001f; it dies when the difference, unrounded (fst and fcomp), is not above 0.
 void CountDown(Particle& particle)
 {
     const double left = static_cast<double>(std::bit_cast<float>(particle.field38)) - Countdown;

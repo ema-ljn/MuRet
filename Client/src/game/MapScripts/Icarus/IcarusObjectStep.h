@@ -37,18 +37,18 @@ namespace Client::Particles
 class FrameSprites;
 } // namespace Client::Particles
 
-// Lo que 0x606560 hace en Icarus (el mapa 10) fuera de 0x604ab0: el preludio 0x6061c0 (con 0x605d70) antes
-// de los objetos y 0x6063d0 con cada objeto visto. Contrato: 06 § Los objetos de Icarus.
+// What 0x606560 does in Icarus (map 10) outside 0x604ab0: the prelude 0x6061c0 (with 0x605d70) before the objects
+// and 0x6063d0 with each seen object. Contract: 06 § Los objetos de Icarus.
 namespace Client::MapScripts::Icarus
 {
 struct IcarusObjectServices
 {
     Crt::CrtRandom& random;
-    // +0x10 del héroe (0x743a170).
+    // The hero's +0x10 (0x743a170).
     const glm::vec3& heroPosition;
-    // La luz dinámica durable (0x7b4ccc4).
+    // The durable dynamic light (0x7b4ccc4).
     Terrain::TerrainLighting* lighting = nullptr;
-    // La tabla de 0x518cf0.
+    // 0x518cf0.
     Effects::ModelEffects* effects = nullptr;
     // 0x5491e0.
     Particles::FrameSprites* sprites = nullptr;
@@ -56,21 +56,21 @@ struct IcarusObjectServices
     std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint;
 };
 
-// 0x6061c0 en el mapa 10, con `count` el 0x7d365a0 del pase anterior (todavía sin poner en cero):
-// 0x605d70 da el selector y, con rand() % 10 == 0, el efecto 0x5ac a ±2.500 del héroe en x y en y
-// (rand() % 5.000 − 2.500 en entero, cada uno sumado en la x87) y 1.000 más abajo, sin giro, luz 1.
-// 0x605d70, con rand() % 50 == 0: una luz dinámica de radio 2 en (x del héroe + rand() % 300 − 150; y del
-// héroe), con L = ((rand() & 3) + 4) · 0,05f y el color (L · 0,3f; L · 0,3f; L · 0,081f) (un rand() se
-// descarta en el medio), el efecto 0xbb en el héroe con ese color, el selector rand() % count si count
-// no es cero, y con rand() % 5 == 0 dos uniones 615/0 a uno de cuatro lados (rand() & 3), de ancho
-// rand() % 10 + 40. Devuelve el selector (0 sin la primera puerta).
+// 0x6061c0 on map 10, with `count` the previous pass's 0x7d365a0 (not yet reset to zero): 0x605d70 gives the
+// selector and, with rand() % 10 == 0, the effect 0x5ac at ±2500 from the hero in x and y (rand() % 5000 − 2500 as
+// an integer, each added on the x87) and 1000 lower, with no turn, light 1.
+// 0x605d70, with rand() % 50 == 0: a dynamic light of radius 2 at (hero x + rand() % 300 − 150; hero y), with
+// L = ((rand() & 3) + 4) · 0.05f and the color (L · 0.3f; L · 0.3f; L · 0.081f) (one rand() is discarded in
+// between), the effect 0xbb on the hero with that color, the selector rand() % count if count is not zero, and with
+// rand() % 5 == 0 two joints 0x615/0 on one of four sides (rand() & 3), of width rand() % 10 + 40. Returns the
+// selector (0 without the first gate).
 [[nodiscard]] Core::Expected<std::int32_t, std::string> StepIcarusObjectPrelude(std::int32_t count,
                                                                                 const IcarusObjectServices& services);
 
-// 0x6063d0 en el mapa 10: `count` (0x7d365a0) sube uno; con el selector en cero, nada más. Si no, con
-// rand() % 10 == 0 y el tipo del 0 al 5, un sprite 0x623 de escala 0,5 en el objeto con la luz
-// ((rand() % 10) · 0,02f) por canal y dos uniones 614/6 del objeto, de ancho rand() % 20 + 10; si no, count
-// vuelve a bajar.
+// 0x6063d0 on map 10: `count` (0x7d365a0) goes up by one; with the selector at zero, nothing else. Otherwise, with
+// rand() % 10 == 0 and the type from 0 to 5, a sprite 0x623 of scale 0.5 on the object with the light
+// ((rand() % 10) · 0.02f) per channel and two object joints 0x614/6, of width rand() % 20 + 10; if not, count goes
+// back down.
 [[nodiscard]] Core::Expected<void, std::string> StepIcarusSeenObject(WorldObjects::WorldObject& object,
                                                                      std::int32_t selector, std::int32_t& count,
                                                                      const IcarusObjectServices& services);

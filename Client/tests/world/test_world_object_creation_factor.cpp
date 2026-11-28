@@ -17,7 +17,7 @@
 
 namespace
 {
-// 41 * binary32(0.02) redondeado una vez a float: bits 0x3f51eb85, no 0x3ed1eb85 del factor inicial.
+// 41 * binary32(0.02) rounded once to float: bits 0x3f51eb85, not the initial factor's 0x3ed1eb85.
 TEST(WorldObjectCreationFactorTest, CastleAndMap31UseTheBorrowedFactorForANonzeroRemainder)
 {
     struct Case
@@ -60,7 +60,7 @@ TEST(WorldObjectCreationFactorTest, ReusingTheContextReadsTheChangedStorageWitho
     const auto second = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
     ASSERT_FALSE(second.failure.has_value());
     ASSERT_EQ(second.objects.size(), 1u);
-    // Segundo rand 18467, resto 467: producto binary32 esperado 9.34, literal independiente del port.
+    // Second rand 18467, remainder 467: expected binary32 product 9.34, a literal independent of the port.
     EXPECT_EQ(random.State(), 0xC823F683u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(second.objects[0].field84), 0x411570A4u);
 }

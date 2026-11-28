@@ -17,16 +17,16 @@
 #include <cstdint>
 #include <map>
 
-// Los 2.870 registros y 109 tipos de Data/world1/EncTerrain1.obj; los expected son la tabla ASM
-// cerrada de 0x606660 (06 § Lo propio de Lorencia), no un fixture producido por el port ni emulación.
+// The 2870 records and 109 types of Data/world1/EncTerrain1.obj; the expected values are 0x606660's closed ASM table
+// (06 § Lo propio de Lorencia), not a fixture produced by the port or by emulation.
 namespace
 {
 class GoldenLorenciaWorldObjects : public Client::Tests::GoldenDataTest
 {
 };
 
-// Oráculos literales para las seis escalas de Tree01/02 de este Data. Contrastados con cociente
-// racional exacto y redondeo al binary32 más cercano, fuera del algoritmo de producción.
+// Literal oracles for the six Tree01/02 scales of this Data. Checked against an exact rational quotient and rounding
+// to the nearest binary32, outside the production algorithm.
 std::uint32_t ExpectedTreeSpeed(float scale)
 {
     const std::map<std::uint32_t, std::uint32_t> speeds{{0x3F2E1480u, 0x3F169692u}, {0x3F333338u, 0x3F124921u},

@@ -20,7 +20,7 @@
 
 namespace
 {
-// 0x54271f..0x542897: seis rand() para 5f6/1; 0x546b66 comparte polvo, incluso al expirar.
+// 0x54271f..0x542897: six rand() for 5f6/1; 0x546b66 shares the dust, even on expiring.
 TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -52,9 +52,9 @@ TEST(CrywolfArrivalParticlesTest, TheArrivalDustCompletesCreationStepAndDrawing)
     ASSERT_TRUE(drawn.Value().has_value());
     EXPECT_EQ(drawn.Value()->texture, 0x5f6);
 }
-// 0x54271f..0x542878: el alta no separa la 5f3 de la 5f6 (0x542761 da dos ramas iguales). La 5f3/1 del freno de +0x3e5
-// (0x506a73) nace como la 5f6/1 de arriba, con sus seis rand(); la 5f6/0 de las piedras de Chaos Castle (0x405f24),
-// como la 5f3/0, con cuatro y el empuje (0; 3; 0). Con los 3.000 llenos, ninguna saca rand(). Los bits, aparte (x87).
+// 0x54271f..0x542878: creation does not tell 5f3 from 5f6 (0x542761 gives two equal branches). 5f3/1 of the +0x3e5
+// brake (0x506a73) is born like the 5f6/1 above, with its six rand(); 5f6/0 of Chaos Castle's stones (0x405f24), like
+// 5f3/0, with four and the push (0; 3; 0). With the 3000 full, none takes rand(). The bits, separately (x87).
 TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -67,7 +67,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     EXPECT_EQ(brake.texture, 0x5f3);
     EXPECT_EQ(brake.life, 40);
     EXPECT_EQ(brake.position, (glm::vec3{105, 206, 296}));
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(brake.scale), 0x40166666u); // 2,35f
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(brake.scale), 0x40166666u); // 2.35f
     EXPECT_EQ(brake.velocity, glm::vec3(0));
     EXPECT_EQ(brake.angles, (glm::vec3{41, 0, 200}));
     EXPECT_EQ(random.State(), 0x9974714du);
@@ -80,10 +80,10 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     EXPECT_EQ(stone.texture, 0x5f6);
     EXPECT_EQ(stone.life, 32);
     EXPECT_EQ(stone.position, (glm::vec3{105, 206, 300}));
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(stone.scale), 0x3f347ae1u); // 47 · 1,5 · 0,01f
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(stone.scale), 0x3f347ae1u); // 47 · 1.5 · 0.01f
     EXPECT_EQ(stone.angles, (glm::vec3{200, 0, 0}));
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(7, 4).State());
-    // La 5f3/0 con el mismo CRT en un pool gemelo: los mismos campos salvo el tipo.
+    // 5f3/0 with the same CRT in a twin pool: the same fields except the type.
     auto twin = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom oracle(7);
     ASSERT_TRUE(twin->CreateChecked(0x5f3, {100, 200, 300}, {}, {1, 1, 1}, 0, 1.5f, 0, oracle).HasValue());
@@ -106,7 +106,7 @@ TEST(CrywolfArrivalParticlesTest, TheDustTypesShareTheirBirthBySubtype)
     particles->All()[5].alive = false;
     EXPECT_FALSE(particles->CreateChecked(0x5f3, {}, {}, {}, 2, 1, 0, random).HasValue());
 }
-// 0x54308a: tres rand(), textura 6ad, z−45; 0x547149: escala+0,19 y z+5 tras el paso común.
+// 0x54308a: three rand(), texture 6ad, z−45; 0x547149: scale+0.19 and z+5 after the common step.
 TEST(CrywolfArrivalParticlesTest, ThePoundingBallKeepsItsCreationAndLastStep)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();

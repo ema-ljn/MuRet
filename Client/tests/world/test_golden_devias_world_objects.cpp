@@ -24,24 +24,24 @@
 #include <system_error>
 #include <vector>
 
-// Los 2.144 registros de Data/world3/EncTerrain3.obj, creados por MuRet en el mapa 2 y la escena 5, contra
-// las 256 listas de 0x7d325d0 que se leyeron de la memoria del original (P-C37 y Q-C186 del research del
-// cliente; el vector es tests/vectors/game/devias_object_lists.txt).
+// The 2144 records of Data/world3/EncTerrain3.obj, created by MuRet on map 2 and scene 5, against the 256 lists of
+// 0x7d325d0 read from the original's memory (P-C37 and Q-C186 of the client research; the vector is
+// tests/vectors/game/devias_object_lists.txt).
 namespace
 {
 constexpr std::uint8_t Devias = 2;
 constexpr std::size_t DeviasRecords = 2144;
-// 0x6066b1: la lista de un objeto es su sector x · 16 + su sector y.
+// 0x6066b1: an object's list is its sector x · 16 + its sector y.
 constexpr int SectorsPerSide = 16;
 constexpr std::size_t ListCount = 256;
-// En el vector, los nodos que no salen del archivo van con su tipo en hexadecimal.
+// In the vector, the nodes that do not come from the file carry their type in hexadecimal.
 constexpr std::string_view TypePrefix = "0x";
 constexpr int Decimal = 10;
 constexpr int Hexadecimal = 16;
 
 using ObjectLists = std::array<std::vector<std::size_t>, ListCount>;
 
-// Un nodo de la captura que no sale del archivo: su lista, su lugar en ella y su tipo.
+// A captured node that does not come from the file.
 struct ForeignNode
 {
     std::size_t list = 0;
@@ -50,7 +50,7 @@ struct ForeignNode
     bool operator==(const ForeignNode&) const = default;
 };
 
-// GoogleTest lo usa para mostrar una lista distinta de la esperada.
+// GoogleTest uses it to print a list that differs from the expected one.
 [[maybe_unused]] void PrintTo(const ForeignNode& node, std::ostream* out)
 {
     *out << "lista " << node.list << " #" << node.place << ": 0x" << std::hex << node.type << std::dec;
@@ -62,7 +62,7 @@ struct CapturedLists
     std::vector<ForeignNode> foreign;
 };
 
-// `word` entero como un número en `base`, o std::nullopt.
+// The whole `word` as a number in `base`, or std::nullopt.
 template <typename Number> std::optional<Number> ParseNumber(std::string_view word, int base)
 {
     Number value{};
@@ -75,8 +75,8 @@ template <typename Number> std::optional<Number> ParseNumber(std::string_view wo
     return value;
 }
 
-// Un renglón del vector: la lista y, en su orden, el índice del registro de cada nodo o el tipo de los
-// que no salen del archivo. false si no se entiende.
+// A line of the vector: the list and, in order, the record index of each node or the type of those that do not come
+// from the file. false if it cannot be parsed.
 bool ReadListLine(const std::string& line, CapturedLists& out)
 {
     std::istringstream words(line);
@@ -109,7 +109,7 @@ bool ReadListLine(const std::string& line, CapturedLists& out)
     return true;
 }
 
-// Las listas del vector, o std::nullopt (con el test ya fallado) si no se pudo leer.
+// The vector's lists, or std::nullopt (with the test already failed) if they could not be read.
 std::optional<CapturedLists> ReadCapturedLists(const std::filesystem::path& path)
 {
     std::ifstream file(path);
@@ -135,7 +135,7 @@ std::optional<CapturedLists> ReadCapturedLists(const std::filesystem::path& path
     return lists;
 }
 
-// Las listas de MuRet: cada objeto en la de su sector, en el orden en que los recorre WorldObjects::DrawOrder.
+// MuRet's lists: each object in its sector's, in the order WorldObjects::DrawOrder walks them.
 ObjectLists ListsOf(std::span<const Client::WorldObjects::WorldObject> objects)
 {
     ObjectLists lists;
@@ -153,10 +153,9 @@ class GoldenDeviasWorldObjects : public Client::Tests::GoldenDataTest
 {
 };
 
-// Los 2.144 registros se crean, también el 492 y el 493, con la y en NaN, en la lista 32 (Q-C186), y cada
-// lista tiene los del archivo en su orden. Los dos nodos de más, el primero de las listas 176 y 177, no
-// salen del archivo: los crea 0x616ec0 al cargar el mapa 2 (obj_donkey 0x201 y obj_flag 0x202), y acá
-// solo se comprueba que son esos dos.
+// The 2144 records are created, also 492 and 493, with y at NaN, in list 32 (Q-C186), and each list has the file's
+// records in order. The two extra nodes, the first of lists 176 and 177, do not come from the file: 0x616ec0 creates
+// them when loading map 2 (obj_donkey 0x201 and obj_flag 0x202), and here the test only checks that they are those two.
 TEST_F(GoldenDeviasWorldObjects, EveryListEqualsTheOriginalsMemory)
 {
     const auto captured =

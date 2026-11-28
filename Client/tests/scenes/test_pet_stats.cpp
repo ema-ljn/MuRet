@@ -42,9 +42,9 @@
 #include <utility>
 #include <vector>
 
-// El A9 de las mascotas que llega (0x4e4ca1 → 0x421db0, 0x4221d0, 0x417f30 y 0x420cd0; CL9 hito 4, 06 § El A9 de las
-// mascotas), con niveles y experiencias inventados. Las cuentas de rand() salen del ASM: cada acceso al registro propio
-// que lo cierra en 0 saca 3.848; lo de 0x550d10 se mide aparte sobre el mismo equipo.
+// The incoming pets A9 (0x4e4ca1 → 0x421db0, 0x4221d0, 0x417f30 and 0x420cd0; CL9 milestone 4, 06 § El A9 de las
+// mascotas), with invented levels and experience. The rand() counts come from the ASM: each own record access that
+// closes it at 0 draws 3848; 0x550d10's part is measured separately on the same equipment.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -56,7 +56,7 @@ using Client::Protocol::Pets::PetInfoReply;
 
 constexpr std::uint32_t Seed = 0x2468ace0u;
 constexpr std::size_t HeroIndex = 6;
-// +0x36 + +0x20 del registro propio: el liderazgo con lo agregado.
+// +0x36 + +0x20 of the own record: the leadership with what is added.
 constexpr std::uint16_t Leadership = 900;
 constexpr std::uint16_t Word36 = 100;
 constexpr std::uint8_t RavenDurability = 200;
@@ -89,8 +89,8 @@ Client::Tables::ItemSetTables EmptySets()
         std::vector<std::byte>(Client::Tables::ItemSetOptionTableSize, std::byte{0xff}));
 }
 
-// Un Dark Lord publicado con su cuervo, el equipo vacío con las durabilidades del cuervo y del caballo, nada en el
-// cartel y lo que dejó el último 0x505820.
+// A published Dark Lord with its raven, the empty equipment with the raven's and the horse's durabilities, nothing in
+// the tooltip and what the last 0x505820 left.
 struct Pets
 {
     Pets()
@@ -146,8 +146,8 @@ struct Pets
     {
         return DrawsBetween(CrtRandom(Seed), cloth.random.State());
     }
-    // 0x4e4cbd..0x4e4ce7, lo que no es del A9: el acceso de 0x4e79a0/0x40f370 y 0x550d10 (portado y probado aparte),
-    // medido sobre este mismo equipo.
+    // 0x4e4cbd..0x4e4ce7, what is not the A9's: the access of 0x4e79a0/0x40f370 and 0x550d10 (ported and tested
+    // separately), measured on this same equipment.
     int RecalculationDraws()
     {
         Client::Kernel::WorldRuntime& runtime = world.Runtime();
@@ -181,8 +181,8 @@ struct Pets
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
-// Lo de 0x417f30 con el nivel 7 y el liderazgo en 1.000: (7 + 11) · 8³ · 100, (7 · 3 + 36) · 5 + 1.000 / 8,
-// 1.000 / 4 + 200 + 7 · 15, 20 + 1.000 / 50 + 28 / 5 y 7 · 16 + 1.000.
+// 0x417f30's values with level 7 and leadership 1000: (7 + 11) · 8³ · 100, (7 · 3 + 36) · 5 + 1000 / 8,
+// 1000 / 4 + 200 + 7 · 15, 20 + 1000 / 50 + 28 / 5 and 7 · 16 + 1000.
 void ExpectTheRavenOfLevelSeven(const DarkSpirit& raven, std::uint32_t experience)
 {
     EXPECT_EQ(raven.word1e2, 7);
@@ -196,8 +196,8 @@ void ExpectTheRavenOfLevelSeven(const DarkSpirit& raven, std::uint32_t experienc
     EXPECT_EQ(raven.word45a, 1112);
 }
 
-// 0x421ef2..0x421fa1: con la ventana cerrada y nada en el cartel, la tabla no cambia de nivel y 0x4221d0 la recalcula
-// con el 0; la clase 0 del cuervo en la casilla 1 llena el cuervo del héroe (0x417f30). Tres accesos y 0x550d10.
+// 0x421ef2..0x421fa1: with the window closed and nothing in the tooltip, the table does not change level and 0x4221d0
+// recalculates it with 0; the raven's class 0 in slot 1 fills the hero's raven (0x417f30). Three accesses and 0x550d10.
 TEST(PetStatsTest, TheRavenReplyFillsTheRavenOfTheHero)
 {
     auto tested = std::make_unique<Pets>();
@@ -216,7 +216,7 @@ TEST(PetStatsTest, TheRavenReplyFillsTheRavenOfTheHero)
     EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x421f62..0x421f6a: el cuervo del héroe solo con la casilla 1, y la clase fuera de 0, 0xfe y 0xff no lo toca.
+// 0x421f62..0x421f6a: the hero's raven only with slot 1, and a class other than 0, 0xfe and 0xff does not touch it.
 TEST(PetStatsTest, TheRavenOfTheHeroNeedsItsSlotAndAPlainKind)
 {
     for (const PetInfoReply reply : {PetInfoReply{.pet = 0, .kind = 0, .slot = 8, .level = 7, .experience = 1},
@@ -229,8 +229,8 @@ TEST(PetStatsTest, TheRavenOfTheHeroNeedsItsSlotAndAPlainKind)
     }
 }
 
-// 0x421ef2..0x421f40: con un ítem en el cartel, la tabla toma el nivel, su durabilidad y la experiencia, salvo con el
-// entrenador abierto y una casilla del equipo (debajo de 12); el tipo 2 escribe la tercera y 0x4221d0 no la calcula.
+// 0x421ef2..0x421f40: with an item in the tooltip, the table takes its level, durability and experience, except with
+// the trainer open and an equipment slot (below 12); type 2 writes the third and 0x4221d0 does not calculate it.
 TEST(PetStatsTest, TheHoveredItemWritesTheTableUnlessTheTrainerHasTheEquipment)
 {
     for (const std::uint8_t slot : {std::uint8_t{1}, std::uint8_t{12}})
@@ -258,9 +258,10 @@ TEST(PetStatsTest, TheHoveredItemWritesTheTableUnlessTheTrainerHasTheEquipment)
     EXPECT_EQ(third->Pet(2).nextExperience, 0u);
 }
 
-// Q-C1208: un tipo de 3 o más que el original escribe fuera de 0x723960 (0x421dfd con la ventana abierta, 0x421f2c con
-// un ítem en el cartel) se descarta entero, sin rand() ni el cuervo ni 0x550d10, y la sesión sigue. Sin escribir (sin
-// nada en el cartel, o con el entrenador y una casilla del equipo), 0x4221d0 hace solo su acceso y sigue 0x550d10.
+// Q-C1208: a type of 3 or more that the original writes outside 0x723960 (0x421dfd with the window open, 0x421f2c with
+// an item in the tooltip) is discarded whole, without rand(), the raven or 0x550d10, and the session goes on. Without
+// writing (nothing in the tooltip, or with the trainer and an equipment slot), 0x4221d0 only does its access and
+// 0x550d10 follows.
 TEST(PetStatsTest, APetBeyondTheThirdIsDiscardedWhenItWrites)
 {
     for (const std::uint8_t pet : {std::uint8_t{3}, std::uint8_t{0xff}})
@@ -292,10 +293,10 @@ TEST(PetStatsTest, APetBeyondTheThirdIsDiscardedWhenItWrites)
     }
 }
 
-// 0x421f8f..0x421fae: con 0xfe, 0x418390 suelta cinco 60f/0 de clave 2 y ancho 40 desde la posición del cuervo, en
-// el lugar y con los ángulos en 0; con 0xff, 0x418400 suelta quince hacia su posición, con sus ángulos. El cuervo es el
-// dueño (su luz, +0xf4). Tres rand() cada uno, entre el 0x417f30 y el 0x4221d0. Antes cortaban por "/2" (0x421f9a,
-// 0x421fae): era la clave, no el subtipo.
+// 0x421f8f..0x421fae: with 0xfe, 0x418390 releases five 0x60f/0 of key 2 and width 40 from the raven's position, in
+// place and with the angles at 0; with 0xff, 0x418400 releases fifteen toward its position, with its angles. The raven
+// is the owner (its light, +0xf4). Three rand() each, between 0x417f30 and 0x4221d0. The "/2" of 0x421f9a and
+// 0x421fae is the key, not the subtype.
 TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
 {
     using Client::Kernel::JointState;
@@ -337,7 +338,7 @@ TEST(PetStatsTest, TheRavenSparksItsOrderJointsAfterItsInfo)
     }
 }
 
-// Con los 500 joints vivos, ninguno, sin rand(), y el A9 sigue hasta 0x4221d0.
+// With the 500 joints alive, none, without rand(), and the A9 goes on to 0x4221d0.
 TEST(PetStatsTest, TheOrderJointsOfTheRavenWithAFullTableAreNone)
 {
     auto tested = std::make_unique<Pets>();
@@ -350,9 +351,9 @@ TEST(PetStatsTest, TheOrderJointsOfTheRavenWithAFullTableAreNone)
     EXPECT_EQ(tested->Draws(), 3 * OwnRecordCloseRandoms + std::make_unique<Pets>()->RecalculationDraws());
 }
 
-// 0x421fb6..0x422196: el caballo en la casilla 8 toma el nivel, la durabilidad del registro propio y la experiencia;
-// con 0xfe y 0xff, el +8 del héroe en 1 y 2; 0x4221d0(1) con la fuerza y +0x2a, y la opción 0x96 del Dark Horse
-// (0x4225d0) con el registro abierto: 60 / 20 + 2 · 10 + 5.
+// 0x421fb6..0x422196: the horse in slot 8 takes the level, the own record's durability and the experience; with 0xfe
+// and 0xff, the hero's +8 at 1 and 2; 0x4221d0(1) with the strength and +0x2a, and the Dark Horse's 0x96 option
+// (0x4225d0) with the record open: 60 / 20 + 2 · 10 + 5.
 TEST(PetStatsTest, TheHorseReplyWritesItsStatsTheRiderAndTheOption)
 {
     for (const std::uint8_t kind : {std::uint8_t{0}, std::uint8_t{0xfe}, std::uint8_t{0xff}})
@@ -378,8 +379,8 @@ TEST(PetStatsTest, TheHorseReplyWritesItsStatsTheRiderAndTheOption)
     }
 }
 
-// 0x421dc7..0x421ead: con la ventana de la mascota abierta (0x420cc0), el cuervo del héroe con el tipo 0, sea cual sea
-// la casilla o la clase, y la tabla con la durabilidad del caballo del registro propio. Cuatro accesos y 0x550d10.
+// 0x421dc7..0x421ead: with the pet window open (0x420cc0), the hero's raven with type 0, whatever the slot or class,
+// and the table with the own record's horse durability. Four accesses and 0x550d10.
 TEST(PetStatsTest, TheOpenWindowFillsTheRavenAndTheTableWithTheHorseDurability)
 {
     auto tested = std::make_unique<Pets>();
@@ -406,7 +407,7 @@ TEST(PetStatsTest, TheOpenWindowFillsTheRavenAndTheTableWithTheHorseDurability)
     EXPECT_EQ(horse->Draws(), 2 * OwnRecordCloseRandoms + std::make_unique<Pets>()->RecalculationDraws());
 }
 
-// 0x4e4cd6: sin los conjuntos, 0x550d10 corta en 0x40e1b0 después de la tabla, con el registro cerrado.
+// 0x4e4cd6: without the set tables, 0x550d10 stops at 0x40e1b0 after the table, with the record closed.
 TEST(PetStatsTest, WithoutTheSetTablesTheRecalculationCuts)
 {
     auto tested = std::make_unique<Pets>();
@@ -419,7 +420,7 @@ TEST(PetStatsTest, WithoutTheSetTablesTheRecalculationCuts)
     EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
 }
 
-// 0x420cd0: la pestaña, 0x723911 y las tres mascotas en 0, sin rand().
+// 0x420cd0: the tab, 0x723911 and the three pets at 0, without rand().
 TEST(PetStatsTest, ResettingThePetsZeroesTheTableTheTabAndTheWindow)
 {
     const auto owned = std::make_unique<Client::Kernel::WorldRuntime>();

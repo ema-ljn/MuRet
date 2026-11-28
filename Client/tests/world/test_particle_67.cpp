@@ -14,7 +14,7 @@
 #include <initializer_list>
 #include <optional>
 
-// Contratos 53fe70/5446e0/548550_ext_67; predicado 4303c0 histórico íntegro reutilizado.
+// Contracts 53fe70/5446e0/548550_ext_67; the historical 0x4303c0 predicate, reused whole.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -27,7 +27,7 @@ constexpr std::int32_t Type67 = 0x67;
 TEST(Particle67Test, CreationUsesOneRandomValueAndLeavesTheCopiedVectorsUntouched)
 {
     Particles particles;
-    CrtRandom random(7); // R1=61; (8+61%6)*floatBits3dcccccd se almacena como3f666667.
+    CrtRandom random(7); // R1=61; (8+61%6)*floatBits 3dcccccd is stored as 3f666667.
     const auto slot = particles.Create(Type67, {100, 200, 300}, {10, 20, 30}, {2, 3, 4}, 0, 9, 999, random);
     ASSERT_EQ(slot, 0u);
     const Particle& particle = particles.All()[0];

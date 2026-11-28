@@ -10,6 +10,6 @@ struct WorldObject;
 
 namespace Client::MapScripts::Kalima
 {
-// 438ad0: sólo acciones unsigned0d..21, sin CRT. El caller consulta altura después.
+// 0x438ad0: only unsigned actions 0x0d..0x21, no CRT. The caller queries the height afterwards.
 void MoveKalimaObject(WorldObjects::WorldObject& object, const glm::vec3& heroPosition, std::uint8_t heroAction);
 } // namespace Client::MapScripts::Kalima

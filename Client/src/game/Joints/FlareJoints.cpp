@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <string>
 
-// El 0x5ac (alta 0x530c93..0x530dd8 y 0x53323b..0x533253, paso 0x5359d7..0x535b32): los rayos que el 0x114/0 (0x51c1b8)
-// y el combo de BlastModelEffects (0x51c004) sueltan de a sesenta, sin dueño. Sin la cola común (+0x9f2 en 0) ni el
-// movimiento común (0x53585e): el paso mismo agrega los tramos y avanza.
+// The 0x5ac (creation 0x530c93..0x530dd8 and 0x53323b..0x533253, step 0x5359d7..0x535b32): the rays that the 0x114/0
+// (0x51c1b8) and the BlastModelEffects combo (0x51c004) release sixty at a time, ownerless. Without the common tail
+// (+0x9f2 at 0) or the common move (0x53585e): the step itself appends the segments and advances.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -24,9 +24,9 @@ namespace
 using Math::D;
 using Math::F32;
 
-// 0x535a07..0x535a61 y 0x535aa0..0x535b0c: un tramo con la matriz de los ángulos (0x535520) y después el avance,
-// (0, −velocidad, 0) girado y sumado a la posición. 0x535a1d..0x535a3f y 0x535ab6..0x535ad8: 0x5fcbd0 recibe el mismo
-// vector [ebp−0x2c] de entrada y de salida, así que la y relee la x ya girada y la z relee las dos.
+// 0x535a07..0x535a61 and 0x535aa0..0x535b0c: a segment with the angle matrix (0x535520) and then the advance,
+// (0, −speed, 0) rotated and added to the position. 0x535a1d..0x535a3f and 0x535ab6..0x535ad8: 0x5fcbd0 gets the same
+// vector [ebp−0x2c] as input and output, so y rereads the already rotated x and z rereads both.
 Core::Expected<void, std::string> Advance(Kernel::JointState& joint, const Math::OriginalMatrix& matrix)
 {
     if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
@@ -41,13 +41,13 @@ Core::Expected<void, std::string> Advance(Kernel::JointState& joint, const Math:
 
 void CreateFlareJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
-    // 0x530c93: todos sin la cola común.
+    // 0x530c93: all without the common tail.
     joint.tailEnabled = false;
     constexpr int FullTurn = Math::FullTurn;
     if (joint.subtype == 0)
     {
-        // 0x530ca5..0x530d35: vida 20, 30 puntos, el ancho; la velocidad rand() % 10 + 10, la x de los ángulos
-        // 30 − rand() % 40, la y en 0 y la z rand() % 360; la velocidad en 0 y la luz (0,1f; 0,5f; 1) (0x53323b).
+        // 0x530ca5..0x530d35: life 20, 30 points, the width; speed rand() % 10 + 10, the angles' x 30 − rand() % 40, y
+        // at 0 and z rand() % 360; the speed at 0 and light (0.1f; 0.5f; 1) (0x53323b).
         constexpr std::int32_t Life = 20, Points = 30;
         constexpr double SpeedBase = 10.0, Tilt = 30.0;
         constexpr float Dim = std::bit_cast<float>(0x3dcccccdu);
@@ -62,13 +62,13 @@ void CreateFlareJoint(Kernel::JointState& joint, const Kernel::JointRequest& req
         joint.angles.z = static_cast<float>(random.Next() % FullTurn);
         joint.velocity = {0, 0, 0};
         joint.light = {Dim, 0.5f, 1};
-        // 0x533242..0x533250: +0x24 guarda la posición.
+        // 0x533242..0x533250: +0x24 stores the position.
         joint.pathIncrement = joint.position;
     }
     else if (joint.subtype == 1)
     {
-        // 0x530d43..0x530dd8: vida 10, 20 puntos, el ancho; el skill (+0x9ea) rand() % 5, la velocidad rand() % 5 + 1,
-        // los ángulos (30, 0, rand() % 360), la velocidad en 0 y la luz (1; 0,8f; 0,6f). 0x533242: +0x24.
+        // 0x530d43..0x530dd8: life 10, 20 points, the width; the skill (+0x9ea) rand() % 5, speed rand() % 5 + 1,
+        // angles (30, 0, rand() % 360), the speed at 0 and light (1; 0.8f; 0.6f). 0x533242: +0x24.
         constexpr std::int32_t Life = 10, Points = 20;
         constexpr float Tilt = 30;
         joint.life = Life;
@@ -84,7 +84,7 @@ void CreateFlareJoint(Kernel::JointState& joint, const Kernel::JointRequest& req
         joint.light = {1, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
         joint.pathIncrement = joint.position;
     }
-    // 0x534cb6: el tope de los puntos (los demás subtipos se quedan con los del lugar).
+    // 0x534cb6: the points cap (the other subtypes keep the slot's).
     constexpr std::int32_t MostPoints = 50;
     if (joint.maximumCount > MostPoints)
         joint.maximumCount = MostPoints;
@@ -94,7 +94,7 @@ Core::Expected<void, std::string> StepFlareJoint(Kernel::JointState& joint)
 {
     if (joint.subtype == 0 && joint.life > 16)
     {
-        // 0x5359e2..0x535a61: con vida de más de 16, diez tramos con la matriz de los ángulos.
+        // 0x5359e2..0x535a61: with life over 16, ten segments with the angle matrix.
         constexpr int Steps = 10;
         const auto matrix = Math::OriginalAngleMatrix(joint.angles);
         for (int step = 0; step < Steps; ++step)
@@ -103,7 +103,7 @@ Core::Expected<void, std::string> StepFlareJoint(Kernel::JointState& joint)
     }
     else if (joint.subtype == 1 && (joint.skill == 0 || joint.life > 3))
     {
-        // 0x535a71..0x535b0c: con el skill en 0 o la vida de más de 3, cinco tramos; la velocidad suma 0,5 en cada uno.
+        // 0x535a71..0x535b0c: with the skill at 0 or life over 3, five segments; the speed adds 0.5 in each.
         constexpr int Steps = 5;
         const auto matrix = Math::OriginalAngleMatrix(joint.angles);
         for (int step = 0; step < Steps; ++step)
@@ -113,7 +113,7 @@ Core::Expected<void, std::string> StepFlareJoint(Kernel::JointState& joint)
             joint.speed = F32(D(joint.speed) + 0.5);
         }
     }
-    // 0x535b0e..0x535b2f: todos apagan la luz por 0,8333333f (0x6b8b98).
+    // 0x535b0e..0x535b2f: all dim the light by 0.8333333f (0x6b8b98).
     constexpr double Fading = static_cast<double>(std::bit_cast<float>(0x3f555555u));
     for (int axis = 0; axis < 3; ++axis)
         joint.light[axis] = F32(D(joint.light[axis]) * Fading);

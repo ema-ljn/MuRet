@@ -115,7 +115,7 @@ Core::Expected<bool, std::string> AttackableTarget(const Kernel::WorldState& wor
         if (const auto decided = SiegeDecides(hero, target))
             return *decided;
     }
-    // 0x558d6e..0x558e9b (0x558a73..0x558ba3 en 0x5588d0).
+    // 0x558d6e..0x558e9b (0x558a73..0x558ba3 in 0x5588d0).
     if (target.byte370 == 2 || target.byte370 == 8)
         return true;
     if (guild.warOn != 0 && target.pk >= MinimumOutlawPk && target.word1f2 != NoGuild)

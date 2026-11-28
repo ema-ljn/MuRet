@@ -55,8 +55,8 @@ TEST(CrywolfExplosionsTest, TheFullParticlePoolSkipsTheRingCalleesAndKeepsTheFra
     EXPECT_EQ(random.State(), 0xc40e66b9u);
 }
 
-// 0x5446e0 recorre índices físicos. Los hijos creados detrás del cursor esperan al próximo pase;
-// los de delante dan su primer paso en este mismo frame. Sólo la explosión aceptada produce sonido.
+// 0x5446e0 walks physical indices. Children created behind the cursor wait for the next pass; those ahead take their
+// first step in this same frame. Only the accepted explosion makes a sound.
 TEST(CrywolfExplosionsTest, TheRingRetainsThePhysicalVisitOrderAndTheAcceptedExplosionSound)
 {
     for (const bool sourceLast : {false, true})

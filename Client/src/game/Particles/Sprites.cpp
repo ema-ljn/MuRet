@@ -9,7 +9,7 @@ namespace Client::Particles
 {
 namespace
 {
-// 0x549290: el paso del alpha (0x6b87b8), el tope (0x6b87d4) y el piso (0x6b8854).
+// 0x549290: step 0x6b87b8, ceiling 0x6b87d4, floor 0x6b8854.
 constexpr double AlphaStep = static_cast<double>(0.1f);
 constexpr float AlphaCeiling = 1.0f;
 constexpr float AlphaFloor = 0.2f;
@@ -79,7 +79,7 @@ void StepSpriteAlpha(Sprite& sprite)
     if (sprite.seen)
     {
         sprite.alpha = static_cast<float>(static_cast<double>(sprite.alpha) + AlphaStep);
-        // `test ah, 0x41`: menor o igual queda; si no (también sin orden), el tope.
+        // `test ah, 0x41`: less or equal stays; otherwise (also unordered), the ceiling.
         if (!(sprite.alpha <= AlphaCeiling))
         {
             sprite.alpha = AlphaCeiling;

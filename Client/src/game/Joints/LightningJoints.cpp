@@ -27,7 +27,7 @@
 #include <format>
 #include <string>
 
-// El 0x614: el alta (0x5309d6, después del primer tramo de 0x530afa) y el paso (0x53683e..0x537278).
+// The 0x614: creation (0x5309d6, after the first segment of 0x530afa) and step (0x53683e..0x537278).
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -41,7 +41,7 @@ constexpr float SharedSpeed = 50;         // 0x5309d9
 constexpr std::int32_t SharedPoints = 50; // 0x5309ec
 constexpr std::int32_t MostPoints = 50;   // 0x534cb9
 
-// 0x531676: (rand() % 10) · 0,06666667f (0x6ba1e0) + 0,1f (0x6b87b8), guardado una vez en las tres luces.
+// 0x531676: (rand() % 10) · 0.06666667f (0x6ba1e0) + 0.1f (0x6b87b8), stored once in the three lights.
 glm::vec3 RandomGray(CrtRandom& random)
 {
     constexpr int GraySpan = 10;
@@ -50,7 +50,7 @@ glm::vec3 RandomGray(CrtRandom& random)
     return glm::vec3(F32(static_cast<double>(random.Next() % GraySpan) * GrayStep + GrayBase));
 }
 
-// 0x5313fe..0x53145b: la /2 apunta al hueso 33 (0x630) del personaje dueño, (0, −150, 0) con el modelo del jugador.
+// 0x5313fe..0x53145b: the /2 aims at bone 33 (0x630) of the owner character, (0, −150, 0) with the player model.
 Core::Expected<void, std::string> AimAtTheOwnerBone(Kernel::JointState& joint,
                                                     const JointKernels::CreationServices* services)
 {
@@ -68,10 +68,10 @@ Core::Expected<void, std::string> AimAtTheOwnerBone(Kernel::JointState& joint,
 
 namespace
 {
-// 0x531907..0x5319e5: la /0xf no se dibuja (+0x11 en 0), vive 80 y no tiene puntos. Recorre los 400 personajes y guarda
-// en +0x9f4 los lugares de los que están a 400 o menos en el plano (con NaN también), vivos, sin +0x389, de clase 2
-// (+0x88), visibles (+0x16c) y que no son el dueño, hasta seis. +0x9eb es la cuenta · 15 (en un byte), +0x9ec vuelve
-// a 0 y +0x24 es el segundo punto 150 más arriba.
+// 0x531907..0x5319e5: the /0xf is not drawn (+0x11 at 0), lives 80 and has no points. It walks the 400 characters and
+// stores in +0x9f4 the slots of those at 400 or less on the plane (with NaN too), alive, without +0x389, of class 2
+// (+0x88), visible (+0x16c) and not the owner, up to six. +0x9eb is the count · 15 (in a byte), +0x9ec goes back to 0
+// and +0x24 is the second point 150 higher.
 Core::Expected<void, std::string> CreateTheChain(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                  const JointKernels::CreationServices* services)
 {
@@ -97,7 +97,7 @@ Core::Expected<void, std::string> CreateTheChain(Kernel::JointState& joint, cons
             const auto link = static_cast<std::size_t>(joint.field9ec);
             joint.chainTargets[link] = static_cast<std::int32_t>(slot);
             if (link + 1 == joint.chainTargets.size())
-                joint.skillSerial = static_cast<std::uint8_t>(slot); // el DWORD de +0xa08.
+                joint.skillSerial = static_cast<std::uint8_t>(slot); // the DWORD at +0xa08
             ++joint.field9ec;
         }
         if (joint.field9ec >= MostLinks)
@@ -120,10 +120,10 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
     joint.speed = SharedSpeed;
     joint.width = request.scale;
     joint.maximumCount = SharedPoints;
-    const glm::vec3 halfBlue{0.5f, 0.5f, 1.0f}; // 0x3f000000 y 0x3f800000
+    const glm::vec3 halfBlue{0.5f, 0.5f, 1.0f}; // 0x3f000000 and 0x3f800000
     switch (request.subtype)
     {
-    case 0xc: // 0x531356..0x531371: rojo; su paso se pone en el modelo compartido del dueño (0x536adf).
+    case 0xc: // 0x531356..0x531371: red; its step places itself in the owner's shared model (0x536adf).
         joint.light = {1.0f, std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu)};
         joint.life = 10;
         break;
@@ -144,7 +144,7 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         if (auto aimed = AimAtTheOwnerBone(joint, services); !aimed.HasValue())
             return aimed;
         break;
-    case 3: // 0x531460..0x53148f y 0x533236: la vida en la key, los puntos y la velocidad en el skill.
+    case 3: // 0x531460..0x53148f and 0x533236: life to the key, the points and the speed to the skill.
         joint.life = static_cast<std::int16_t>(request.key);
         joint.maximumCount = request.skill & 0xff;
         joint.speed = static_cast<float>(request.skill & 0xff);
@@ -152,8 +152,8 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         joint.light = halfBlue;
         joint.pathIncrement = joint.position;
         break;
-    case 4: // 0x531494..0x5314e8 y 0x53463b
-    case 5: // 0x5314ed..0x53155e: hacia atrás, con el destino 600 más arriba.
+    case 4: // 0x531494..0x5314e8 and 0x53463b
+    case 5: // 0x5314ed..0x53155e: backward, with the target 600 higher.
         joint.speed = request.subtype == 4 ? 60.0f : -60.0f;
         joint.velocity = {};
         joint.light = halfBlue;
@@ -164,14 +164,14 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         if (request.subtype == 5)
             joint.targetPosition.z = F32(D(joint.targetPosition.z) + 600.0);
         break;
-    case 6: // 0x531563..0x53168c y 0x53463b: sin cola común.
+    case 6: // 0x531563..0x53168c and 0x53463b: no common tail.
         joint.tailEnabled = false;
         joint.life = random.Next() % 20 + 6;
         joint.speed = F32(static_cast<double>(random.Next() % 10) + 15.0);
         joint.light = RandomGray(random);
         joint.pathIncrement = joint.position;
         break;
-    case 7: // 0x5315b7..0x531613: textura repetida, tres puntos y vida 1, girado ya hacia el destino.
+    case 7: // 0x5315b7..0x531613: repeated texture, three points and life 1, already turned toward the target.
         joint.repeatedTexture = true;
         joint.speed = 5.0f;
         joint.light = halfBlue;
@@ -180,14 +180,14 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         joint.life = 1;
         static_cast<void>(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 360.0f));
         break;
-    case 8: // 0x531618..0x531635 y 0x53204c..0x532073.
+    case 8: // 0x531618..0x531635 and 0x53204c..0x532073
         joint.width = 5.0f;
         joint.speed = static_cast<float>(random.Next() % 10 + 6);
         joint.life = random.Next() % 8 + 8;
         joint.maximumCount = 2;
         joint.light = glm::vec3(1.0f);
         break;
-    case 9: // 0x53163a..0x53168c y 0x53463b.
+    case 9: // 0x53163a..0x53168c and 0x53463b
         joint.life = 30;
         joint.speed = F32(static_cast<double>(random.Next() % 20) + 80.0);
         joint.light = RandomGray(random);
@@ -197,7 +197,7 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         joint.light = {1.0f, 0.5f, std::bit_cast<float>(0x3dcccccdu)};
         joint.life = 2;
         break;
-    case 0xd: // 0x531376..0x531398: nace como la /0xb.
+    case 0xd: // 0x531376..0x531398: created like the /0xb.
         joint.light = {1.0f, std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu)};
         joint.life = 2;
         joint.subtype = 0xb;
@@ -206,11 +206,11 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
         joint.speed = F32(static_cast<double>(random.Next() % 10) + 20.0);
         joint.life = random.Next() % 2 + 2;
         break;
-    case 0x11: // 0x530a00..0x530a1f: la vida es el divisor (10).
+    case 0x11: // 0x530a00..0x530a1f: life is the divisor (10).
         joint.life = 10;
         joint.speed = F32(static_cast<double>(random.Next() % 10) + 20.0);
         break;
-    default: // 0x5309f3: sin caso, la vida queda la del uso anterior.
+    default: // 0x5309f3: no case, life stays the previous use's.
         break;
     }
     if (joint.maximumCount > MostPoints)
@@ -220,7 +220,7 @@ Core::Expected<void, std::string> CreateLightningJoint(Kernel::JointState& joint
 
 namespace
 {
-// 0x536982: el dueño de la /0, /1, /2 y /0x10 es un personaje; sin dueño apunta a lo que ya tenía.
+// 0x536982: the owner of the /0, /1, /2 and /0x10 is a character; without an owner it aims at what it already had.
 Core::Expected<void, std::string> FollowTheOwner(Kernel::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
@@ -233,7 +233,7 @@ Core::Expected<void, std::string> FollowTheOwner(Kernel::JointState& joint)
     return {};
 }
 
-// 0x536a15..0x536a93: la /6 apunta 2.050 a 2.250 al costado del objeto dueño y 10.000 más abajo.
+// 0x536a15..0x536a93: the /6 aims 2050 to 2250 to the side of the owner object and 10000 lower.
 Core::Expected<float, std::string> TurnFromTheObject(Kernel::JointState& joint, CrtRandom& random)
 {
     const auto* owner = joint.ownerKind == Kernel::JointOwnerKind::ByType
@@ -251,8 +251,8 @@ Core::Expected<float, std::string> TurnFromTheObject(Kernel::JointState& joint, 
     return F32(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, turn));
 }
 
-// 0x53695e..0x536b3a: hacia dónde gira cada subtipo; devuelve lo que falta (el float de 0x536b3a). `services` puede
-// faltar en los caminos sin rand().
+// 0x53695e..0x536b3a: where each subtype turns; returns what is left (the float of 0x536b3a). `services` can be
+// missing on the paths without rand().
 Core::Expected<float, std::string> Turn(Kernel::JointState& joint, const glm::vec3& scratch, CrtRandom& random,
                                         const JointKernels::StepServices* services)
 {
@@ -268,12 +268,12 @@ Core::Expected<float, std::string> Turn(Kernel::JointState& joint, const glm::ve
         return F32(MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
     case 3: // 0x5369b3
         return F32(MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
-    case 4: // 0x5369bd: hacia 300 debajo del destino, girando −10.
+    case 4: // 0x5369bd: toward 300 below the target, turning −10.
     {
         const glm::vec3 below{joint.targetPosition.x, joint.targetPosition.y, F32(D(joint.targetPosition.z) - 300.0)};
         return F32(MoveToward(joint.position, joint.angles, below, -10.0f));
     }
-    case 5: // 0x5369e7: desde 600 encima del destino hacia la posición, girando −10.
+    case 5: // 0x5369e7: from 600 above the target toward the position, turning −10.
     {
         const glm::vec3 above{joint.targetPosition.x, joint.targetPosition.y, F32(D(joint.targetPosition.z) + 600.0)};
         return F32(MoveToward(above, joint.angles, joint.position, -10.0f));
@@ -287,11 +287,11 @@ Core::Expected<float, std::string> Turn(Kernel::JointState& joint, const glm::ve
     }
     case 0xc:
     {
-        // 0x536adf..0x536b1d: 0x4ec110(el modelo del tipo del dueño, 0x743751c, (0, −100, 0), +0x18, 1). En c32bbd5f
-        // nadie escribe 0x743751c (0x50c232..0x50c281 escriben las tres matrices de antes, 0x74374ec, 0x743748c y
-        // 0x74374bc): queda la del BSS, en cero, y el punto es la posición que tenga el modelo compartido. El camino
-        // salta 0x4e9810: lo que falta es el [ebp+8] de 0x53586c, la y de la posición menos la del destino al empezar
-        // el paso.
+        // 0x536adf..0x536b1d: 0x4ec110(the model of the owner's type, 0x743751c, (0, −100, 0), +0x18, 1). In c32bbd5f
+        // nobody writes 0x743751c (0x50c232..0x50c281 write the three matrices before it, 0x74374ec, 0x743748c and
+        // 0x74374bc): the BSS one stays, at zero, and the point is whatever position the shared model has. The path
+        // skips 0x4e9810: what is left is the [ebp+8] of 0x53586c, the position's y minus the target's at the start of
+        // the step.
         const Kernel::ActorState* owner =
             joint.ownerKind == Kernel::JointOwnerKind::Actor ? JointKernels::ActorOwner(joint) : nullptr;
         if (owner == nullptr)
@@ -304,7 +304,7 @@ Core::Expected<float, std::string> Turn(Kernel::JointState& joint, const glm::ve
             Math::OriginalTransformPosition(Math::OriginalMatrix{}, Below, placement.scale, placement.origin);
         return services->startDeltaY;
     }
-    case 9: // 0x536abc: hacia el punto sorteado antes del lazo.
+    case 9: // 0x536abc: toward the point drawn before the loop.
     {
         const auto turn = F32(static_cast<double>(random.Next() % 80) + 60.0);
         return F32(MoveToward(joint.position, joint.angles, scratch, turn));
@@ -314,7 +314,7 @@ Core::Expected<float, std::string> Turn(Kernel::JointState& joint, const glm::ve
     }
 }
 
-// 0x536b40..0x536cfb: la sacudida de cada subtipo en vx y vz.
+// 0x536b40..0x536cfb: each subtype's shake in vx and vz.
 void Jitter(Kernel::JointState& joint, CrtRandom& random)
 {
     const auto centered = [&random](int mask, int center) { return (random.Next() & mask) - center; };
@@ -335,7 +335,7 @@ void Jitter(Kernel::JointState& joint, CrtRandom& random)
         joint.velocity.x = static_cast<float>(random.Next() % 100 + 20);
         joint.velocity.z = static_cast<float>(random.Next() % 100 + 20);
         return;
-    case 0xb: // 0x536c60: · 0,7f (0x6b8a5c) antes de dividir por el ancho.
+    case 0xb: // 0x536c60: · 0.7f (0x6b8a5c) before dividing by the width.
     {
         constexpr double Softer = static_cast<double>(std::bit_cast<float>(0x3f333333u));
         joint.velocity.x = F32(static_cast<double>(centered(0x3ff, 0x200)) * Softer / D(joint.width));
@@ -349,7 +349,7 @@ void Jitter(Kernel::JointState& joint, CrtRandom& random)
     }
 }
 
-// 0x536d8e..0x536e32: con el ancho en 50 o más, la luz dinámica de radio 2 de la /0, la /0xb y la /2.
+// 0x536d8e..0x536e32: with the width at 50 or more, the radius-2 dynamic light of the /0, /0xb and /2.
 Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRandom& random,
                                        Terrain::TerrainLighting* lighting)
 {
@@ -358,9 +358,9 @@ Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRando
     const std::int32_t subtype = joint.subtype;
     if (subtype != 0 && subtype != 0xb && subtype != 2)
         return {};
-    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8aec, 0,04f
+    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8aec, 0.04f
     constexpr double Tenth = Math::TenthAsDouble;                                   // 0x6b87b8
-    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4, 0,4f
+    constexpr double Red = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4, 0.4f
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     const glm::vec3 color = subtype == 2 ? glm::vec3(F32(value * Red), F32(value * Tenth), F32(value * Tenth))
                                          : glm::vec3(F32(value * Tenth), F32(value * Tenth), F32(value * 0.5));
@@ -380,13 +380,13 @@ Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, std:
     return {};
 }
 
-// 0x536e95..0x537042: al llegar, sólo con el ancho en 50 justo (0x536e9c: con otro ancho salta a 0x537045, también
-// la /0), el 0x5ca y una vez cada ocho el 0x5f2 (tres rand() para un punto que nadie lee); la /0 en la primera mitad de
-// cada segundo, una vez cada dieciséis, suelta una /1 hacia el destino.
+// 0x536e95..0x537042: on arrival, only with the width at exactly 50 (0x536e9c: with another width it jumps to 0x537045,
+// the /0 too), the 0x5ca and once every eight the 0x5f2 (three rand() for a point nobody reads); the /0, in the first
+// half of each second, once every sixteen, releases a /1 toward the target.
 Core::Expected<void, std::string> Arrive(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     CrtRandom& random = *services.random;
-    constexpr std::uint32_t ArrivalWidthBits = 0x42480000u; // 50.0f, el inmediato de 0x536e95.
+    constexpr std::uint32_t ArrivalWidthBits = 0x42480000u; // 50.0f, the immediate of 0x536e95.
     if (std::bit_cast<std::uint32_t>(joint.width) != ArrivalWidthBits)
         return {};
     if (auto made = Particle(joint, Particles::ThunderParticle, services, "0x536eb9"); !made.HasValue())
@@ -430,7 +430,7 @@ Core::Expected<void, std::string> Arrive(Kernel::JointState& joint, const JointK
         return Core::Unexpected(std::format("0x53703d: {}", created.Error()));
     return {};
 }
-// El primer rand() de cada subtipo en el giro (0x536a2c, 0x536a98, 0x536abc) y en la sacudida (0x536b48..0x536cb3).
+// The first rand() of each subtype in the turn (0x536a2c, 0x536a98, 0x536abc) and in the shake (0x536b48..0x536cb3).
 std::uint32_t FirstTurnRandom(std::int32_t subtype)
 {
     switch (subtype)
@@ -463,7 +463,7 @@ std::uint32_t FirstJitterRandom(std::int32_t subtype)
     }
 }
 
-// Sin el RNG de MuRet: hace lo que el paso hace antes del primer rand() y corta ahí (el original siempre lo tiene).
+// Without MuRet's RNG: does what the step does before the first rand() and stops there (the original always has it).
 Core::Expected<void, std::string> StepWithoutRandom(Kernel::JointState& joint)
 {
     const std::int32_t subtype = joint.subtype;
@@ -497,19 +497,19 @@ Core::Expected<void, std::string> StepWithoutRandom(Kernel::JointState& joint)
 
 namespace
 {
-// 0x53706d..0x5370e8: la /0xf, con la vida par, suelta dos 0x614/0 sin dueño de ancho 50 y 10 desde la posición hasta
-// +0x24 con sus ángulos; después la partícula 0x5ca/0 con la luz de [ebp−0x18], que este camino no escribe: no es
-// indefinida, es la última que escribió el paso de un joint anterior de la misma vuelta de 0x53c670 (p. ej. 0x539cb6
-// del 0x613/0; sin ninguno antes, lo que haya en la pila) (Q-C1622), y corta. Lo que sigue (0x5370ed..0x537278: los
-// joints hacia los personajes de +0x9f4 cada 15 de +0x9ec, que crece de a uno con la vida par hasta +0x9eb) queda
-// documentado en 06.
+// 0x53706d..0x5370e8: the /0xf, with even life, releases two ownerless 0x614/0 of width 50 and 10 from the position to
+// +0x24 with its angles; then the 0x5ca/0 particle with the light of [ebp−0x18], which this path does not write: it is
+// not undefined, it is the last one written by the step of an earlier joint of the same 0x53c670 loop (e.g. 0x539cb6 of
+// the 0x613/0; with none before, whatever is on the stack) (Q-C1622), and it stops. What follows (0x5370ed..0x537278:
+// the joints toward the +0x9f4 characters every 15 of +0x9ec, which grows by one with even life up to +0x9eb) is
+// documented in 06.
 Core::Expected<void, std::string> StepTheChain(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.life % 2 != 0)
         return {};
     if (services.random == nullptr)
         return Core::Unexpected(std::string("0x5370a8: falta el RNG del joint 0x614/0xf"));
-    for (const float width : {50.0f, 10.0f}) // 0x42480000 (0x5370a8) y 0x41200000 (0x5370c9)
+    for (const float width : {50.0f, 10.0f}) // 0x42480000 (0x5370a8) and 0x41200000 (0x5370c9)
     {
         const Kernel::JointRequest strike{.type = LightningJoint,
                                           .firstPosition = joint.position,
@@ -534,19 +534,19 @@ Core::Expected<void, std::string> StepLightningJoint(Kernel::JointState& joint,
                                                      const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
-    // 0x536956/0x536964: la /0xf no gira (sin puntos y con su salto) y va a 0x537064.
+    // 0x536956/0x536964: the /0xf does not turn (no points and with its jump) and goes to 0x537064.
     if (subtype == 0xf)
         return StepTheChain(joint, services);
-    // 0x536841..0x536856: la /6 sólo se rehace con la vida en 4 o menos; la /8 no tiene caso.
+    // 0x536841..0x536856: the /6 is rebuilt only with life at 4 or less; the /8 has no case.
     if ((subtype == 6 && joint.life > 4) || subtype == 8)
         return {};
     if (services.random == nullptr)
         return StepWithoutRandom(joint);
     CrtRandom& random = *services.random;
-    glm::vec3 scratch{}; // [ebp−0xc]: el punto de la /4 y de la /9, y después el avance de cada tramo.
+    glm::vec3 scratch{}; // [ebp−0xc]: the point of the /4 and /9, and then each segment's advance.
     switch (subtype)
     {
-    case 4: // 0x53686f..0x5368f1: en el destino, con el sprite 0x5fd 30 más arriba.
+    case 4: // 0x53686f..0x5368f1: at the target, with the 0x5fd sprite 30 higher.
     {
         joint.position = joint.targetPosition;
         scratch = {joint.targetPosition.x, joint.targetPosition.y, F32(D(joint.targetPosition.z) + 30.0)};
@@ -560,20 +560,20 @@ Core::Expected<void, std::string> StepLightningJoint(Kernel::JointState& joint,
     case 5: // 0x53686f
         joint.position = joint.targetPosition;
         break;
-    case 9: // 0x5368f6..0x536936: un punto a ±100 del destino en x e y.
+    case 9: // 0x5368f6..0x536936: a point at ±100 from the target in x and y.
         scratch.x = F32((static_cast<double>(random.Next() % 200) + D(joint.targetPosition.x)) - 100.0);
         scratch.y = F32((static_cast<double>(random.Next() % 200) + D(joint.targetPosition.y)) - 100.0);
         scratch.z = joint.targetPosition.z;
         joint.position = joint.pathIncrement;
         break;
     case 6:
-    case 7: // 0x536939: desde la partida.
+    case 7: // 0x536939: from the start.
         joint.position = joint.pathIncrement;
         break;
     default:
         break;
     }
-    // 0x53694a..0x536e8a: un tramo por punto, salvo que llegue.
+    // 0x53694a..0x536e8a: one segment per point, unless it arrives.
     for (std::int32_t iteration = 0; iteration < joint.maximumCount; ++iteration)
     {
         const auto distance = Turn(joint, scratch, random, &services);
@@ -588,7 +588,7 @@ Core::Expected<void, std::string> StepLightningJoint(Kernel::JointState& joint,
             return appended;
         if (subtype == 3)
         {
-            // 0x536d4d: lejos (más de 150; con NaN no) la vida va a 0, pero no llega.
+            // 0x536d4d: far (over 150; not with NaN) life goes to 0, but it does not arrive.
             if (distance.Value() > 150.0f)
                 joint.life = 0;
         }
@@ -600,14 +600,14 @@ Core::Expected<void, std::string> StepLightningJoint(Kernel::JointState& joint,
         }
         if (auto lit = Glow(joint, random, services.lighting); !lit.HasValue())
             return lit;
-        // 0x536e35..0x536e56: el avance (0, −velocidad, 0) se arma en [ebp−0xc], la misma local del punto de la /9:
-        // desde el segundo tramo la /9 gira hacia ese avance y no hacia el punto sorteado.
+        // 0x536e35..0x536e56: the advance (0, −speed, 0) is built in [ebp−0xc], the same local as the /9's point: from
+        // the second segment the /9 turns toward that advance and not toward the drawn point.
         scratch = {0.0f, -joint.speed, 0.0f};
         const auto moved = Math::OriginalVectorRotate(scratch, matrix);
         for (int axis = 0; axis < 3; ++axis)
             joint.position[axis] = F32(D(moved[axis]) + D(joint.position[axis]));
     }
-    // 0x537045..0x53705f: la /7 termina en el destino.
+    // 0x537045..0x53705f: the /7 ends at the target.
     if (subtype == 7)
         joint.position = joint.targetPosition;
     return {};

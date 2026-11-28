@@ -32,8 +32,8 @@
 #include <string_view>
 #include <vector>
 
-// CL9 hito 3: si el elegido se puede atacar (0x558bb0), el freno de 300 ms (0x576791c) y el caso 3 de 0x5650c0, el
-// ataque al llegar, con los bytes del D3 de girar y del D7. Las claves y los nombres son inventados.
+// Whether the chosen one can be attacked (0x558bb0), the 300 ms brake (0x576791c) and case 3 of 0x5650c0, the attack
+// on arrival, with the bytes of the turning D3 and of the D7. The keys and names are made up.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -73,7 +73,7 @@ protected:
         Reset(0);
     }
 
-    // El héroe en (182, 115), quieto, llegando con +0x379 en 3 y el blanco de 0x6c8ebc una celda al este.
+    // The hero at (182, 115), still, arriving with +0x379 at 3 and the 0x6c8ebc target one cell east.
     void Reset(std::int32_t map)
     {
         m_random = CrtRandom(Seed);
@@ -113,7 +113,7 @@ protected:
     {
         return m_world->Actors()[TargetIndex];
     }
-    // El contexto de la llegada con los envíos grabados, como los manda la sesión (XOR32 y en claro).
+    // The arrival context with the sends recorded as the session sends them (XOR32 and in clear).
     [[nodiscard]] Client::Hero::HeroArrivalContext Arrival()
     {
         return {.combat = {.world = *m_world, .random = m_random, .playerSkeleton = &m_skeleton, .terrain = &m_terrain},
@@ -140,14 +140,14 @@ protected:
         expected.Discard(count);
         return expected.State();
     }
-    // El nombre (+0xd) de la entrada `index` de la tabla de los gremios (0x787aa48).
+    // The name (+0xd) of entry `index` of the guild table (0x787aa48).
     void GuildName(std::size_t index, std::string_view name)
     {
         auto& text = Runtime().guild.table[index].guildName;
         text.fill('\0');
         name.copy(text.data(), text.size() - 1);
     }
-    // El elegido de 0x6c8e30 para 0x558bb0.
+    // The 0x6c8e30 chosen one for 0x558bb0.
     ActorState& Chosen(std::size_t index)
     {
         Runtime().selectedTargets[2] = static_cast<std::int32_t>(index);
@@ -164,11 +164,10 @@ protected:
     std::vector<std::vector<std::byte>> m_sent;
 };
 
-// 0x565107..0x56601e: el blanco a una celda al este (90 grados, rumbo 3). El héroe toma la acción de pegar, mira al
-// blanco, manda C1 06 D3 X Y 30 (el giro de un paso) y C1 07 D7 12 34 78 03, que FoxAnti saca como A4. El rand():
-// el registro propio del alcance y el de 0x4f3f80 (3848 cada uno) y las dos celdas del héroe publicado y las dos del
-// que pega (4 cada una).
-// El ataque al llegar no mira el mapa: igual en Lorencia, Devias y Blood Castle.
+// 0x565107..0x56601e: the target one cell east (90 degrees, heading 3). The hero takes the hit action, faces the
+// target, sends C1 06 D3 X Y 30 (the one-step turn) and C1 07 D7 12 34 78 03, which FoxAnti outputs as A4. The rand():
+// the own record of the range and that of 0x4f3f80 (3848 each), and the two cells of the published hero and the two of
+// the hitter (4 each). The attack on arrival does not look at the map: the same in Lorencia, Devias and Blood Castle.
 TEST_F(HeroAttackTest, InRangeTheHeroTurnsAndSendsTheD3AndTheD7)
 {
     for (const std::int32_t map : {0, 2, 11})
@@ -194,8 +193,8 @@ TEST_F(HeroAttackTest, InRangeTheHeroTurnsAndSendsTheD3AndTheD7)
     }
 }
 
-// La clave del blanco viaja entera, y el rumbo del D7 es el del héroe después de girar: el blanco en y + 100 (180
-// grados) da el rumbo 5.
+// The target's key travels whole, and the D7's heading is the hero's after turning: the target at y + 100 (180
+// degrees) gives heading 5.
 TEST_F(HeroAttackTest, TheD7CarriesTheWholeKeyAndTheTurnedDirection)
 {
     Target().key = 0x8001;
@@ -206,7 +205,7 @@ TEST_F(HeroAttackTest, TheD7CarriesTheWholeKeyAndTheTurnedDirection)
     EXPECT_EQ(m_sent[1], Bytes({0xc1, 0x07, 0xd7, 0x80, 0x01, 0x78, 0x05}));
 }
 
-// 0x5659e6..0x565a47: con "webzen" en el nombre del héroe, el D3 sale pero el D7 no.
+// 0x5659e6..0x565a47
 TEST_F(HeroAttackTest, AHeroNamedWebzenTurnsButDoesNotHit)
 {
     Name(Hero(), "xwebzenx");
@@ -221,7 +220,6 @@ TEST_F(HeroAttackTest, AHeroNamedWebzenTurnsButDoesNotHit)
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// Sin los envíos (el socket cerrado), pega igual y no manda nada.
 TEST_F(HeroAttackTest, WithoutSendersTheHeroStillHits)
 {
     auto context = Arrival();
@@ -274,8 +272,8 @@ TEST_F(HeroAttackTest, AFailedAttackSendDoesNotUndoTheCompletedArrival)
     EXPECT_EQ(m_random.State(), After(2 * OwnRecordDraws + 4 * CellDraws));
 }
 
-// 0x565107..0x56526a: el alcance es 1,8 celdas a mano o con espada, 2,2 con las lanzas (0x600..0x7ff en la derecha),
-// 6 con arcos y ballestas y 7 con +0x376 en 9. El blanco a dos celdas queda fuera con 1,8 y dentro con 2,2.
+// 0x565107..0x56526a: the range is 1.8 cells bare-handed or with a sword, 2.2 with spears (0x600..0x7ff in the right
+// hand), 6 with bows and crossbows and 7 with +0x376 at 9. A target two cells away is out with 1.8 and in with 2.2.
 TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
 {
     Target().position = {18450.0f, 11550.0f, 0.0f};
@@ -289,7 +287,7 @@ TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
     ASSERT_TRUE(Client::Hero::InteractOnArrival(Hero(), Arrival()).HasValue());
     EXPECT_EQ(m_sent.size(), 2u);
 
-    // A seis celdas, el arco de la izquierda llega.
+    // At six cells, the left-hand bow reaches.
     m_sent.clear();
     Hero().animation.action = 0;
     Target().position = {18850.0f, 11550.0f, 0.0f};
@@ -307,9 +305,9 @@ TEST_F(HeroAttackTest, TheRangeFollowsTheOwnWeapons)
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// 0x565349..0x566299: fuera de alcance sólo el elfo se acerca. Lee la Y y la X de su celda y busca con PathFinding2 un
-// camino hasta las celdas a menos del alcance del blanco (1,8 sin arco: r = 1, el cuadrado de 3 × 3 alrededor de
-// (192, 115)); con camino, +0x378 en 1, sin D3 ni D7. Sin TerrainWall corta.
+// 0x565349..0x566299: out of range only the elf approaches. It reads the Y and the X of its cell and looks with
+// PathFinding2 for a path to the cells within range of the target (1.8 without a bow: r = 1, the 3 × 3 square around
+// (192, 115)); with a path, +0x378 to 1, without D3 or D7. Without TerrainWall it cuts.
 TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
 {
     Target().position = {19250.0f, 11550.0f, 0.0f};
@@ -336,10 +334,10 @@ TEST_F(HeroAttackTest, OutOfRangeOnlyTheElfWalksIntoRange)
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 2 * CellDraws));
 }
 
-// El elfo fuera de alcance con el blanco en la columna 256, que PathFinding2 (0x566272) toma como índice lineal: MuRet
-// descarta el acercamiento después de leer la Y y la X (07, Q-C1179). Con Crywolf en la etapa 3, en el mapa 34 y un
-// altar (0x206) en 0x6c8e54, PathFinding2 le pone la bandera al A* (0x4eac0a..0x4eac41), que con el alcance distinto
-// de 0 no cuenta (0x4eadd4): el elfo se acerca por el mismo camino que en Lorencia y en Devias.
+// The elf out of range with the target in column 256, which PathFinding2 (0x566272) takes as a linear index: MuRet
+// discards the approach after reading the Y and the X (07, Q-C1179). With Crywolf in stage 3, on map 34 and an altar
+// (0x206) at 0x6c8e54, PathFinding2 sets the flag for the A* (0x4eac0a..0x4eac41), which does not count with a nonzero
+// range (0x4eadd4): the elf approaches by the same path as in Lorencia and in Devias.
 TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywolfAltar)
 {
     constexpr std::size_t AltarIndex = 30;
@@ -375,8 +373,8 @@ TEST_F(HeroAttackTest, TheElfDiscardsATargetOffTheGridAndWalksTheSameWithACrywol
     }
 }
 
-// Las salidas antes de pegar: sin blanco (0x6c8ebc en −1) después del alcance, el héroe pegando ya (0x8d, o 3 y 4 si
-// no es un jugador) y la zona segura (después de anotar la celda del blanco).
+// The exits before hitting: no target (0x6c8ebc at −1) after the range, the hero already hitting (0x8d, or 3 and 4 if
+// it is not a player) and the safe zone (after storing the target's cell).
 TEST_F(HeroAttackTest, TheEarlyExitsDoNotHit)
 {
     Runtime().movement.attackTarget = -1;
@@ -396,7 +394,7 @@ TEST_F(HeroAttackTest, TheEarlyExitsDoNotHit)
     EXPECT_EQ(Hero().byte381, 0);
 }
 
-// 0x565289..0x565296: entre 0x22 y 0x97 sólo la 0x8d sale; con otra de esas acciones el héroe vuelve a pegar.
+// 0x565289..0x565296: between 0x22 and 0x97 only 0x8d exits; with another of those actions the hero hits again.
 TEST_F(HeroAttackTest, OnlyAction8DStopsAPlayerThatIsAlreadyHitting)
 {
     Hero().animation.action = 0x23;
@@ -404,8 +402,8 @@ TEST_F(HeroAttackTest, OnlyAction8DStopsAPlayerThatIsAlreadyHitting)
     EXPECT_EQ(m_sent.size(), 2u);
 }
 
-// 0x5650ef..0x565100: la tabla por +0x379 − 1. El 0 y los de afuera de 1 a 5 no hacen nada ni sacan rand(); el 1, el 2
-// y el 4 cortan con la dirección de su hito (el 5, en test_hero_arrival_skill.cpp).
+// 0x5650ef..0x565100: the table by +0x379 − 1. 0 and those outside 1 to 5 do nothing and take no rand(); 1, 2 and 4
+// cut with their milestone's address (5, in test_hero_arrival_skill.cpp).
 TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
 {
     for (const std::uint8_t type : {std::uint8_t{0}, std::uint8_t{6}, std::uint8_t{0xff}})
@@ -429,7 +427,8 @@ TEST_F(HeroAttackTest, TheOtherArrivalCasesCutWithTheirAddress)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x57f2d1..0x57f2f9: |GetTickCount() − [0x576791c]| de 300 o menos no pasa; si pasa, anota un GetTickCount nuevo.
+// 0x57f2d1..0x57f2f9: |GetTickCount() − [0x576791c]| of 300 or less does not pass; if it passes, it stores a new
+// GetTickCount.
 TEST(ActionBrakeTest, ThreeHundredMillisecondsOrLessDoNotPass)
 {
     std::vector<std::uint32_t> ticks;
@@ -449,8 +448,8 @@ TEST(ActionBrakeTest, ThreeHundredMillisecondsOrLessDoNotPass)
     EXPECT_EQ(last, 1305u);
 }
 
-// La resta es de 32 bits con signo y se toma su valor absoluto (CDQ/XOR/SUB): un reloj que vuelve atrás más de 300
-// pasa, y uno que dio la vuelta por poco no.
+// The subtraction is signed 32-bit and its absolute value is taken (CDQ/XOR/SUB): a clock that goes back more than 300
+// passes, and one that wrapped around by a little does not.
 TEST(ActionBrakeTest, TheDifferenceIsSignedAndAbsolute)
 {
     std::uint32_t now = 0;
@@ -470,7 +469,7 @@ TEST(ActionBrakeTest, TheDifferenceIsSignedAndAbsolute)
     EXPECT_FALSE(Client::Combat::PassesTheActionBrake(last, 0, tickCount));
 }
 
-// Con la skill 0x28 no hay freno: anota el reloj con una sola llamada.
+// With skill 0x28 there is no brake: it stores the clock with a single call.
 TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
 {
     std::size_t calls = 0;
@@ -481,7 +480,7 @@ TEST(ActionBrakeTest, TheSkill28SkipsTheBrake)
     EXPECT_EQ(last, 1001u);
 }
 
-// 0x558bb0: con un ítem en el cursor o sin elegido, no; en Chaos Castle, cualquiera que no sea el héroe.
+// 0x558bb0: with an item on the cursor or with none chosen, no; in Chaos Castle, anyone who is not the hero.
 TEST_F(HeroAttackTest, NothingIsAttackableWithAnItemOnTheCursorOrWithoutAChosen)
 {
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
@@ -508,8 +507,8 @@ TEST_F(HeroAttackTest, InChaosCastleEveryoneButTheHeroIsAttackable)
     }
 }
 
-// Un monstruo se puede atacar salvo en la guerra de gremios (0x576796c) sin 0x576796d; un jugador por +0x370 en 2/8,
-// PK de 6 o más (también el héroe), guerra de gremios o duelo; fuera de eso, Ctrl y no ser el héroe.
+// A monster can be attacked except in the guild war (0x576796c) without 0x576796d; a player by +0x370 at 2/8, PK 6 or
+// more (the hero too), guild war or duel; otherwise, Ctrl and not being the hero.
 TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
 {
     Chosen(TargetIndex);
@@ -541,7 +540,7 @@ TEST_F(HeroAttackTest, MonstersAndPlayersFollowTheRules)
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
-// 0x558e74..0x558e7b: el umbral PK 6 permite al héroe; con 5 no lo permite ni siquiera con Ctrl.
+// 0x558e74..0x558e7b: with 5, not even with Ctrl.
 TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
 {
     Chosen(HeroIndex);
@@ -554,7 +553,7 @@ TEST_F(HeroAttackTest, TheOutlawThresholdAllowsTheHeroAtSixButNotFive)
     EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
-// 0x558d6e..0x558d7e: +0x370 en 2/8 antecede los filtros de gremio, duelo y PK.
+// 0x558d6e..0x558d7e: +0x370 at 2/8 comes before the guild, duel and PK filters.
 TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
 {
     ActorState& player = Chosen(20);
@@ -575,9 +574,9 @@ TEST_F(HeroAttackTest, Byte370OverridesGuildDuelAndPkFilters)
     }
 }
 
-// En la guerra de gremios cuenta +0x374 en 2; con el PK de 6 y gremio, si su gremio se llama como el del héroe
-// (strcmp de 0x787aa55 en 0x558da4) no es atacable, aunque tenga el control o la marca; con otro nombre sigue a la
-// marca.
+// In the guild war +0x374 at 2 counts; with PK 6 and a guild, if their guild has the hero's guild name (strcmp of
+// 0x787aa55 at 0x558da4) it is not attackable, even with the control or the mark; with another name it follows the
+// mark.
 TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
 {
     Runtime().guild.warOn = 1;
@@ -603,19 +602,19 @@ TEST_F(HeroAttackTest, TheGuildWarLooksAtTheEnemyMark)
     player.byte374 = 0;
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
-    // Un héroe sin gremio (−1) compara con lo que está antes de la tabla (Q-C1281): el byte 9 del miembro 74.
+    // A hero without a guild (−1) compares with what lies before the table (Q-C1281): byte 9 of member 74.
     Hero().word1f2 = 0xffff;
     player.byte374 = 2;
     EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, false).Value());
-    // Un índice fuera de la tabla leería otra memoria: corta.
+    // An index outside the table would read other memory: it cuts.
     player.word1f2 = 2000;
     const auto outside = Client::Combat::IsAttackable(*m_world, false);
     ASSERT_FALSE(outside.HasValue());
     EXPECT_NE(outside.Error().find("0x558da4"), std::string::npos);
 }
 
-// En el duelo (0x78abad8), sólo el rival: la clave de 0x78abadc y el nombre de 0x78abae0, los de SocialState::duel que
-// escriben los paquetes del duelo (08 P-C206 b).
+// In the duel (0x78abad8), only the rival: the key at 0x78abadc and the name at 0x78abae0, those of SocialState::duel
+// that the duel packets write (08 P-C206 b).
 TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
 {
     ActorState& player = Chosen(20);
@@ -636,8 +635,8 @@ TEST_F(HeroAttackTest, InADuelOnlyTheRivalIsAttackable)
     EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, true).Value(), -1);
 }
 
-// 0x558e0f y 0x558f94: la clave del personaje va con MOVSX contra el DWORD de 0x78abadc, que el duelo escribe sin
-// signo: un rival desde 0x8000 nunca coincide, como en el original.
+// 0x558e0f and 0x558f94: the character's key goes with MOVSX against the DWORD at 0x78abadc, which the duel writes
+// unsigned: a rival from 0x8000 never matches, as in the original.
 TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
 {
     ActorState& player = Chosen(20);
@@ -657,8 +656,8 @@ TEST_F(HeroAttackTest, ARivalKeyFrom0x8000NeverMatches)
     EXPECT_EQ(Client::Combat::ChosenKeyOf(*m_world, HeroIndex, false).Value(), -0x7fff);
 }
 
-// 0x558c2a..0x558d6d: en el asedio, un atacante (+0x360 en 6 a 11) contra un defensor (12 o 13) decide por el escudo
-// 0x4000 del elegido.
+// 0x558c2a..0x558d6d: in the siege, an attacker (+0x360 at 6 to 11) against a defender (12 or 13) decides by the
+// chosen one's 0x4000 shield.
 TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
 {
     Runtime().castleSiege.siegeActive = true;
@@ -671,14 +670,14 @@ TEST_F(HeroAttackTest, InTheSiegeTheSidesDecideByTheShield)
     player.flags78 = 0x4000;
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 
-    // Del mismo lado no decide: sigue como sin asedio.
+    // On the same side it does not decide: it goes on as without the siege.
     player.flags78 = 0;
     player.byte360 = 9;
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, false).Value());
     EXPECT_TRUE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
-// 0x558c5b..0x558c7e: también el defensor puede atacar al atacante; el escudo 0x4000 del blanco bloquea ambos sentidos.
+// 0x558c5b..0x558c7e: the defender can also attack the attacker; the target's 0x4000 shield blocks both ways.
 TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
 {
     Runtime().castleSiege.siegeActive = true;
@@ -692,8 +691,8 @@ TEST_F(HeroAttackTest, InTheSiegeDefendersCanAttackUnshieldedAttackers)
     EXPECT_FALSE(Client::Combat::IsAttackable(*m_world, true).Value());
 }
 
-// 0x558cc1..0x558d59: las marcas 0x80000/0x400000/0x800000 comparan blanco sin marcas; si ambos tienen marca, sigue
-// fuera del asedio. El 0x40000 del héroe es una regla aparte cuando no tiene una de esas tres marcas.
+// 0x558cc1..0x558d59: marks 0x80000/0x400000/0x800000 compare against an unmarked target; if both have a mark, it
+// continues as outside the siege. The hero's 0x40000 is a separate rule when it has none of those three marks.
 TEST_F(HeroAttackTest, SiegeMarksUseTheShieldAndBothMarkedSidesContinue)
 {
     Runtime().castleSiege.siegeActive = true;

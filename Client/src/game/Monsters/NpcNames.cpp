@@ -18,7 +18,7 @@ NpcNameTable NpcNameTableOf(std::span<const NpcName> loaded)
 
 std::optional<std::string> NpcNameOf(const NpcNameTable& table, std::int32_t type)
 {
-    // 0x54ebbe..0x54ebd0: MOV SI con ESI en 0 y CMP ESI,EDX.
+    // 0x54ebbe..0x54ebd0: MOV SI with ESI at 0 and CMP ESI,EDX.
     const auto found = std::ranges::find_if(table, [type](const NpcName& entry)
                                             { return static_cast<std::int32_t>(entry.type) == type; });
     if (found == table.end())
@@ -34,7 +34,7 @@ std::string NpcNameAt(const NpcNameTable& table, std::size_t index)
     const auto first = table.begin() + static_cast<std::ptrdiff_t>(index);
     for (auto entry = first; entry != table.end(); ++entry)
     {
-        // Después del primero, el word del tipo del siguiente (el byte bajo primero) y su nombre.
+        // After the first, the next record's type word (low byte first) and its name.
         if (entry != first)
         {
             for (const unsigned shift : {0u, 8u})

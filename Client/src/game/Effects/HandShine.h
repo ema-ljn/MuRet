@@ -25,28 +25,28 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// El brillo de la mano de la skill que pega a varios (CL9 hito 2, el 1A): 0x53d810 y 0x53fdb0 sobre la 5fd de
-// Particles::Particles (06, "La skill que pega a varios").
+// The hand shine of the skill that hits several: 0x53d810 and 0x53fdb0 over the 0x5fd of Particles::Particles (06, "La
+// skill que pega a varios").
 namespace Client::Effects
 {
 
-// 0x53fdb0 con la 5fd: el punto (0, 0, 0) de un hueso en el mundo, 0x4ec110 con Translate en 1 sobre los huesos propios
-// (+0x120) del dueño `owner`, con su posición (que 0x53fdb0 copia al +0x6c del modelo) y su escala (la del +0x68 del
-// modelo, que dejó el último que lo usó: Q-C853). El hueso es el de la mano (subtipo % 2) del héroe `hero`
-// (0x743a170 + 0x2bd + (subtipo % 2) · 0x20), no el del dueño (Q-C854). Sin huesos propios (antes del primer dibujo
-// del dueño), la matriz en cero (Q-C318).
+// 0x53fdb0 with the 0x5fd: the point (0, 0, 0) of a bone in the world, 0x4ec110 with Translate at 1 over the own bones
+// (+0x120) of the owner `owner`, with its position (which 0x53fdb0 copies to the model's +0x6c) and its scale (the
+// model's +0x68, left by whoever used it last: Q-C853). The bone is the hand (subtype % 2) of the hero `hero`
+// (0x743a170 + 0x2bd + (subtype % 2) · 0x20), not the owner's (Q-C854). Without own bones (before the owner's first
+// drawing), the zero matrix (Q-C318).
 [[nodiscard]] glm::vec3 HandShinePoint(std::span<const Kernel::ActorState> actors, std::size_t hero, std::size_t owner,
                                        std::int32_t subtype);
 
-// El resolvedor del paso de la 5fd (Particles::ParticleActorHands): HandShinePoint del lugar del pool entre `actors`,
-// que tienen que vivir más que él; nullopt fuera del pool.
+// The 0x5fd step's resolver (Particles::ParticleActorHands): HandShinePoint of the pool slot among `actors`, which
+// must outlive it; nullopt outside the pool.
 [[nodiscard]] std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>
 ParticleActorHandsAmong(std::span<const Kernel::ActorState> actors, std::size_t hero);
 
-// 0x53d810(personaje, 0): el punto (0, 0, 0) del hueso de la mano derecha del personaje `slot` (+0x2bd, con sus
-// huesos propios, su posición y su escala: Q-C853) y, desde ahí, con sus ángulos (+0x1c), la luz (1; 0,5; 0,2) y la
-// escala 0, la 5fd/0 y la 5fd/2 de dueño el personaje (0x53fe70). Cada una que nace va a la mano con 0x53fdb0
-// (HandShinePoint); con el pool lleno no nace y no hay más. Sin rand().
+// 0x53d810(character, 0): the point (0, 0, 0) of the right-hand bone of the character `slot` (+0x2bd, with its own
+// bones, its position and its scale: Q-C853) and, from there, with its angles (+0x1c), the light (1; 0.5; 0.2) and
+// scale 0, the 0x5fd/0 and the 0x5fd/2 owned by the character (0x53fe70). Each one born goes to the hand with 0x53fdb0
+// (HandShinePoint); with the pool full it is not born and there are no more. Without rand().
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::ActorState> actors,
                                                                   std::size_t hero, std::size_t slot,
                                                                   Particles::Particles& particles,

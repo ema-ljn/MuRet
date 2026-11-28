@@ -19,7 +19,7 @@ namespace Client::Render
 class ModelBatch;
 } // namespace Client::Render
 
-// 06 § Kalima: dueño portable de4377a0/723c48. El mapa no sustituye su existencia.
+// 06 § Kalima: portable owner of 0x4377a0/0x723c48. The map does not stand in for its existence.
 namespace Client::MapScripts::Kalima
 {
 struct KalimaFrameContext
@@ -29,8 +29,8 @@ struct KalimaFrameContext
     std::uint8_t heroTileX;
     std::uint8_t heroTileY;
     Crt::CrtRandom& random;
-    // Cada callback devuelve el valor por copia, después de cerrar su acceso lógico.
-    // Update los invoca en los puntos nativos; no prelee ambos ejes.
+    // Each callback returns the value by copy, after closing its logical access.
+    // Update calls them at the native points; it does not read both axes ahead.
     std::function<Core::Expected<std::int32_t, std::string>()> readHeroX{};
     std::function<Core::Expected<std::int32_t, std::string>()> readHeroY{};
 };
@@ -42,15 +42,15 @@ public:
     KalimaWorld(const KalimaWorld&) = delete;
     KalimaWorld& operator=(const KalimaWorld&) = delete;
     [[nodiscard]] std::unique_ptr<KalimaWorld> CloneForFrame() const;
-    // 41cca0: perturbación condicional, selector, ondas y campos periódicos, en ese orden.
+    // 0x41cca0: conditional disturbance, selector, waves and periodic fields, in that order.
     [[nodiscard]] Core::Expected<void, std::string> Update(const KalimaFrameContext& context);
-    // 41cf00/41d2d0: misma cámara; publica agua Alpha23 y brillo Additive24.
+    // 0x41cf00/0x41d2d0: same camera; publishes the water (Alpha, 0x23) and the highlight (Additive, 0x24).
     [[nodiscard]] Core::Expected<void, std::string> Draw(Render::ModelBatch& batch, std::uint8_t heroTileX,
                                                          std::uint8_t heroTileY);
-    // 437860: coordenadas de tile, el radio en celdas de onda. Conserva el selector.
+    // 0x437860: tile coordinates, the radius in wave cells. Keeps the selector.
     [[nodiscard]] Core::Expected<void, std::string> Disturb(std::int32_t tileX, std::int32_t tileY, std::int32_t radius,
                                                             std::int32_t amplitude, Crt::CrtRandom& random);
-    // 4378e0/41dc80: clampa negativos; fuera del plano definido no inventa un alias.
+    // 0x4378e0/0x41dc80: clamps negatives; outside the defined plane it does not invent an alias.
     [[nodiscard]] std::optional<float> Height(float x, float y) const;
     [[nodiscard]] const KalimaWaveState& Waves() const;
     [[nodiscard]] std::int32_t Map() const;

@@ -23,8 +23,8 @@ struct ModelEffect;
 } // namespace Client::Effects
 namespace Client::Effects
 {
-// 6025fc..602764, después del cuerpo42 de ED/EE. El índice identifica el lugar durable del efecto,
-// incluso si el dibujo usa su proyección; la vista de pose se obtiene después del cuerpo.
+// 0x6025fc..0x602764, after body42 of ED/EE. The index identifies the effect's durable slot, even if the drawing uses
+// its projection; the pose view is obtained after the body.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawCrywolfMissileTail(Effects::ModelEffect& effect, std::uint64_t physicalSlot, Particles::Particles& particles,
                        Particles::FrameSprites& sprites, Crt::CrtRandom& random,

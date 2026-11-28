@@ -69,7 +69,7 @@ protected:
     }
 };
 
-// Detecta dirección invertida, escrituras interiores omitidas, toggle y pérdida del destino previo.
+// Detects an inverted direction, skipped interior writes, toggling and the loss of the previous destination.
 TEST_P(KalimaWavesTest, UpdatesEveryInteriorCellWithoutToggling)
 {
     Source().fill(2U);
@@ -113,7 +113,7 @@ struct ImpulseCase
     std::size_t count;
 };
 
-// Expected geométrico manual: no diagonales, centro, wrap espacial ni dependencia in-place.
+// Hand-computed geometric expected: no diagonals, center, spatial wrap or in-place dependency.
 TEST_P(KalimaWavesTest, SpreadsInteriorImpulsesOnlyToOrthogonalInteriorNeighbors)
 {
     constexpr std::array Cases{
@@ -142,7 +142,7 @@ TEST_P(KalimaWavesTest, SpreadsInteriorImpulsesOnlyToOrthogonalInteriorNeighbors
     }
 }
 
-// Los bordes fuente alimentan el interior; sus cuatro esquinas nunca se leen.
+// The source edges feed the interior; their four corners are never read.
 TEST_P(KalimaWavesTest, UsesEachSourceEdgeWithoutWrappingCorners)
 {
     constexpr std::array Cases{
@@ -178,7 +178,7 @@ TEST_P(KalimaWavesTest, UsesEachSourceEdgeWithoutWrappingCorners)
     }
 }
 
-// Fija los cuatro offsets con amplitudes y coordenadas asimétricas, sin replicar el cálculo.
+// Pins the four offsets with asymmetric amplitudes and coordinates, without replicating the computation.
 TEST_P(KalimaWavesTest, CombinesFourDistinctNeighborsWithTheCorrectStride)
 {
     Source()[Cell(36, 73)] = 2U;
@@ -202,7 +202,7 @@ TEST_P(KalimaWavesTest, CombinesFourDistinctNeighborsWithTheCorrectStride)
     ExpectPreserved(*before);
 }
 
-// Los literales analíticos distinguen ambos SAR de división y el wrap antes de cada uno.
+// The analytic literals tell apart both division SARs and the wrap before each.
 TEST_P(KalimaWavesTest, PreservesAllDwordPatternsAcrossWrappedArithmeticShifts)
 {
     struct ScalarCase

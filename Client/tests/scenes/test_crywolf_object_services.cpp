@@ -36,8 +36,8 @@
 #include <string>
 #include <vector>
 
-// 0x430510 y 0x4306a0, el frame y el dibujo de los objetos de Crywolf (el mapa 34), con el estado 0 de la .bss y los
-// demás que solo ponen los paquetes: 06 § Los objetos de Crywolf.
+// 0x430510 and 0x4306a0, the frame and the draw of the Crywolf objects (map 34), with the .bss state 0 and the
+// others that only the packets set: 06 § Los objetos de Crywolf.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -123,8 +123,8 @@ ObjectDraw BodyDraw()
     return draw;
 }
 
-// La primera semilla cuyo primer rand() % `modulus` da `remainder`, y con un segundo rand() % `second` en
-// `secondRemainder` si se pide.
+// The first seed whose first rand() % `modulus` gives `remainder`, and with a second rand() % `second` at
+// `secondRemainder` if asked.
 std::uint32_t SeedWith(int modulus, int remainder, int second = 0, int secondRemainder = 0)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -140,7 +140,7 @@ std::uint32_t SeedWith(int modulus, int remainder, int second = 0, int secondRem
 
 using Client::Math::F32;
 
-// Una biblioteca sin modelos: el dibujo de 0x6046a0 solo cuenta y no dibuja.
+// A library without models: the draw of 0x6046a0 only counts and does not draw.
 struct NoModels final : Client::Models::IModelLibrary
 {
     const Client::Data::Models::Model* Find(Client::Models::ModelId) const override
@@ -156,7 +156,7 @@ struct NoModels final : Client::Models::IModelLibrary
         return {};
     }
 };
-// Dos mallas: el caso51 sólo debe repetir la0. Cada consulta durante un pase observa model+88.
+// Two meshes: case 0x51 must repeat only mesh 0. Each query during a pass observes model+0x88.
 struct AltarModels final : Client::Models::IModelLibrary
 {
     explicit AltarModels(Client::WorldObjects::ObjectModelStepState& state) : shared(state)
@@ -197,8 +197,8 @@ struct AltarModels final : Client::Models::IModelLibrary
 };
 } // namespace
 
-// 0x430523..0x430561: cada objeto suma 1 a 0x723c0c; al pasar de 70.000, un rand() lo vuelve a 0 y el clima
-// 0x5763358 queda en rand() % 3. Antes, ningún rand().
+// 0x430523..0x430561: each object adds 1 to 0x723c0c; past 70000, a rand() resets it to 0 and the weather
+// 0x5763358 is left at rand() % 3. Before that, no rand().
 TEST(CrywolfObjectServicesTest, TheWeatherIsDrawnOnceEverySeventyThousandAndOneObjectFrames)
 {
     Fixture fixture;
@@ -223,9 +223,9 @@ TEST(CrywolfObjectServicesTest, TheWeatherIsDrawnOnceEverySeventyThousandAndOneO
     }
 }
 
-// 0x4305db..0x43068c: el 0x29 gira 1 el brillo (en 360 vuelve a 0, comparando la suma de la x87) y deja dos
-// sprites 0x60f de 1,3 en blanco a (x, y, 350 + cuenta + z), con la cuenta de 0x6046a0 o 40 menos ella pasados 20:
-// el primero sin giro y el segundo con el giro nuevo. Sin rand().
+// 0x4305db..0x43068c: the 0x29 turns the glow by 1 (at 360 it goes back to 0, comparing the x87 sum) and leaves two
+// white 0x60f sprites of 1.3 at (x, y, 350 + count + z), with the count of 0x6046a0 or 40 minus it past 20: the
+// first with no turn and the second with the new turn. No rand().
 TEST(CrywolfObjectServicesTest, TheGlowLeavesTwoSpritesThatRiseAndFallWithTheDrawCounter)
 {
     struct Case
@@ -262,8 +262,8 @@ TEST(CrywolfObjectServicesTest, TheGlowLeavesTwoSpritesThatRiseAndFallWithTheDra
     }
 }
 
-// 0x43057d..0x4305cc: el 0x54 saca un rand() y, en 0 módulo 3 solo con el estado de Crywolf en 1, suelta el humo
-// 5f2/21 con luz (1, 1, 1), su escala y sin dueño. Con el estado 0 de la .bss, solo el rand().
+// 0x43057d..0x4305cc: the 0x54 draws a rand() and, at 0 modulo 3 only with the Crywolf state at 1, releases the
+// smoke 0x5f2/21 with light (1, 1, 1), its scale and no owner. With the .bss state 0, only the rand().
 TEST(CrywolfObjectServicesTest, TheChimneySmokesOnlyWithTheEventStateOne)
 {
     for (const std::uint8_t state : {std::uint8_t{0}, std::uint8_t{1}})
@@ -290,7 +290,7 @@ TEST(CrywolfObjectServicesTest, TheChimneySmokesOnlyWithTheEventStateOne)
             EXPECT_EQ(alive[0]->subtype, 21);
             EXPECT_EQ(alive[0]->light, glm::vec3(1.0f));
             EXPECT_EQ(alive[0]->owner, 0u);
-            // 0x542370: tres rand() más.
+            // 0x542370: three more rand().
             static_cast<void>(draws.Next());
             static_cast<void>(draws.Next());
             static_cast<void>(draws.Next());
@@ -299,8 +299,8 @@ TEST(CrywolfObjectServicesTest, TheChimneySmokesOnlyWithTheEventStateOne)
     }
 }
 
-// 0x4306db y 0x430b23: el 0x24 dibuja con el color del modelo en 0,4 y el 0xfa en (0; 0; 0,9); el 0x29 con el
-// que trae (su luz de 0x4307d5 no se usa). Ninguno saca rand().
+// 0x4306db and 0x430b23: the 0x24 draws with the model's color at 0.4 and the 0xfa at (0; 0; 0.9); the 0x29 with
+// the one it brings (its light from 0x4307d5 is not used). None draws a rand().
 TEST(CrywolfObjectServicesTest, TheBodiesWithAColorOfTheirOwnDoNotDraw)
 {
     Fixture fixture;
@@ -320,16 +320,16 @@ TEST(CrywolfObjectServicesTest, TheBodiesWithAColorOfTheirOwnDoNotDraw)
     EXPECT_TRUE(fixture.Alive().empty());
 }
 
-// 0x430746..0x4307a3: el 0x38 se dibuja y, con el estado 0, saca la luz (rand() % 10.000 · 0,0001f, en los tres
-// canales) y, con otro rand() % 3 en 0, crea el 0x61d/3 con esa luz, sus ángulos y 4 en +0x8a: vida 20 y escala 0,5.
-// En un dibujo que no es del original no saca nada; con el estado 1, tampoco.
+// 0x430746..0x4307a3: the 0x38 is drawn and, with state 0, draws the light (rand() % 10000 · 0.0001f, on the three
+// channels) and, with another rand() % 3 at 0, creates the 0x61d/3 with that light, its angles and 4 at +0x8a:
+// life 20 and scale 0.5. In a draw that is not the original's it draws nothing; with state 1, neither.
 TEST(CrywolfObjectServicesTest, TheBannerDropsAFadingDecalOnceInThreeWithTheStartingState)
 {
     for (const int remainder : {0, 2})
     {
         SCOPED_TRACE(remainder);
         Fixture fixture;
-        // El primer rand() es la luz: el segundo decide.
+        // The first rand() is the light: the second decides.
         for (std::uint32_t seed = 1;; ++seed)
         {
             CrtRandom probe(seed);
@@ -379,8 +379,9 @@ TEST(CrywolfObjectServicesTest, TheBannerDropsAFadingDecalOnceInThreeWithTheStar
     }
 }
 
-// 0x4307f7..0x4308a5: el 0x39 y el 0x47 salen sin cuerpo; con rand() % 3 en 0, la chispa 6ec/5 (vida 20 y dos
-// rand()) y, el 0x39, además el humo 5f2/21 (tres rand()), con luz (1, 1, 1), su escala y sin dueño.
+// 0x4307f7..0x4308a5: the 0x39 and the 0x47 go without a body; with rand() % 3 at 0, the spark 0x6ec/5 (life 20
+// and two rand()) and, the 0x39, also the smoke 0x5f2/21 (three rand()), with light (1, 1, 1), its scale and no
+// owner.
 TEST(CrywolfObjectServicesTest, TheTorchesHideTheirBodyAndSparkOnceInThree)
 {
     for (const std::int16_t type : {std::int16_t{0x39}, std::int16_t{0x47}})
@@ -423,8 +424,8 @@ TEST(CrywolfObjectServicesTest, TheTorchesHideTheirBodyAndSparkOnceInThree)
     }
 }
 
-// 0x4309bd..0x430a23: el 0x4d y el 0x4e salen sin cuerpo y, con rand() % 6 en 0, sueltan la nube 622/9 con su
-// luz (0,02; 0,03; 0,02) y (0,03; 0,06; 0,05) y siete rand() de 0x54330a.
+// 0x4309bd..0x430a23: the 0x4d and the 0x4e go without a body and, with rand() % 6 at 0, release the cloud 0x622/9
+// with their light (0.02; 0.03; 0.02) and (0.03; 0.06; 0.05) and seven rand() of 0x54330a.
 TEST(CrywolfObjectServicesTest, TheMistObjectsReleaseACloudOnceInSix)
 {
     for (const std::int16_t type : {std::int16_t{0x4d}, std::int16_t{0x4e}})
@@ -453,8 +454,8 @@ TEST(CrywolfObjectServicesTest, TheMistObjectsReleaseACloudOnceInSix)
     }
 }
 
-// 0x430942..0x430950 y 0x43095e: el 0x49 pone la arena del HUD en 1 con el clima en 0, y el 0x4a, con el estado
-// 0, solo saca su rand(). Los dos, sin cuerpo.
+// 0x430942..0x430950 and 0x43095e: the 0x49 sets the HUD's sand to 1 with the weather at 0, and the 0x4a, with
+// state 0, only draws its rand(). Both without a body.
 TEST(CrywolfObjectServicesTest, TheSandAndTheQuietSmokeHideTheirBody)
 {
     Fixture fixture;
@@ -478,10 +479,11 @@ TEST(CrywolfObjectServicesTest, TheSandAndTheQuietSmokeHideTheirBody)
     EXPECT_TRUE(fixture.Alive().empty());
 }
 
-// 0x4308b5..0x430932: el 0x48 sale sin cuerpo y, con rand() % 10 en 0, saca otro rand() para la luz L = ((rand() & 3)
-// + 3) · 0,1f (fst del rojo; el verde por 0,6f y el azul por 0,2f desde L sin redondear) y suelta el humo
-// 0x53fe70(0x5f2, (x, y, z + 50), ángulos, luz, 33, escala, 0), con los cuatro rand() de 0x541a8d. Sin un frame del
-// original, no saca nada; sin el pool, corta en el alta después de sus dos rand().
+// 0x4308b5..0x430932: the 0x48 goes without a body and, with rand() % 10 at 0, draws another rand() for the light
+// L = ((rand() & 3) + 3) · 0.1f (fst of the red; the green times 0.6f and the blue times 0.2f from the unrounded L)
+// and releases the smoke 0x53fe70(0x5f2, (x, y, z + 50), angles, light, 33, scale, 0), with the four rand() of
+// 0x541a8d. Without an original frame, it draws nothing; without the pool, it cuts at the creation after its two
+// rand().
 TEST(CrywolfObjectServicesTest, TheRisingSmokeLeavesOnceInTenFiftyAboveTheObject)
 {
     for (const int remainder : {0, 1})
@@ -545,7 +547,7 @@ TEST(CrywolfObjectServicesTest, TheRisingSmokeLeavesOnceInTenFiftyAboveTheObject
     EXPECT_EQ(missing.random.State(), draws.State());
 }
 
-// Los casos de monstruos de0x4339d0 siguen con su guardia; sin globales no se inventa un estado.
+// The monster cases of 0x4339d0 keep their guard; without globals no state is invented.
 TEST(CrywolfObjectServicesTest, TheUnportedCasesCutWhereTheBinaryReachesThem)
 {
     Fixture fixture;
@@ -563,8 +565,8 @@ TEST(CrywolfObjectServicesTest, TheUnportedCasesCutWhereTheBinaryReachesThem)
     EXPECT_NE(cut.Error().find("0x4306a0"), std::string::npos) << cut.Error();
 }
 
-// 0x6046be..0x6046ce: con un frame del original, 0x6046a0 pasa la cuenta a 0 después de 40 y le suma 1 antes de
-// mirar un objeto, aun sin objetos. Un dibujo de MuRet entre frames no la toca.
+// 0x6046be..0x6046ce: with an original frame, 0x6046a0 resets the count to 0 after 40 and adds 1 to it before
+// looking at an object, even with no objects. A MuRet draw between frames does not touch it.
 TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
 {
     Fixture fixture;
@@ -593,7 +595,7 @@ TEST(CrywolfObjectServicesTest, TheObjectDrawCountsFromOneToFortyOne)
     EXPECT_EQ(fixture.drawCounter, 2);
 }
 
-// 430a40..430b14: dos RenderMesh(0),44→240; el segundo recibe el RGB que el primero multiplicó por alpha.
+// 0x430a40..0x430b14: two RenderMesh(0), 0x44→0x240; the second receives the RGB the first multiplied by alpha.
 TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishesTheirStores)
 {
     struct Case
@@ -602,7 +604,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
         float clock;
         std::array<std::uint32_t, 3> rgb;
     };
-    // Valores PC53 de430a5f..430ac1, después de los FSTP; no se recortan canales negativos ni mayores que1.
+    // PC53 values of 0x430a5f..0x430ac1, after the FSTPs; negative channels and channels above 1 are not clamped.
     constexpr std::array<Case, 4> cases{{{0, 0.0f, {0x40a00000, 0xbf800000, 0xbf000000}},
                                          {10, 250.0f, {0x40e0c7fe, 0xbf19999a, 0x32000000}},
                                          {11, 250.0f, {0x40967a66, 0xbf0f5c29, 0x3d4ccccf}},
@@ -619,7 +621,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             shared.unlitMeshes[0x51] = 7;
             AltarModels models(shared);
             std::array objects{ObjectOf(0x51)};
-            objects[0].alpha = 0.2f; // 4304a6, productor nativo del51.
+            objects[0].alpha = 0.2f; // 0x4304a6, the native producer of the 0x51.
             objects[0].state.blendMesh = 1;
             objects[0].state.light = 0.375f;
             objects[0].state.uv = {0.125f, 0.25f};
@@ -678,7 +680,7 @@ TEST(CrywolfObjectServicesTest, TheStateTwoAltarDrawsBothNativePassesAndPublishe
             EXPECT_EQ(vertices[4].position, vertices[1].position);
             auto expectedRandom = seed;
             if (original)
-                static_cast<void>(expectedRandom.Next()); // Sólo602ef4;430a33 no sortea nada.
+                static_cast<void>(expectedRandom.Next()); // Only 0x602ef4; 0x430a33 draws nothing.
             EXPECT_EQ(fixture.random.State(), expectedRandom.State());
         }
     }

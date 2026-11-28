@@ -9,7 +9,7 @@ namespace
 {
 using Client::WorldObjects::WorldObjectRegistrations;
 
-// Detecta búsqueda por puntero/null o por active == 1, y borrado de metadata al reservar un slot.
+// Catches lookup by pointer/null or by active == 1, and metadata erased when reserving a slot.
 TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState)
 {
     WorldObjectRegistrations registry;
@@ -41,7 +41,7 @@ TEST(WorldObjectRegistrationsTest, UsesTheFirstZeroFlagAndPreservesAllOtherState
     EXPECT_EQ(registry.nextIdentity, 123u);
 }
 
-// Detecta deduplicación y rechazo de null, ninguno existe en 0x606630.
+// Catches deduplication and rejection of null; neither exists in 0x606630.
 TEST(WorldObjectRegistrationsTest, AcceptsNullAndRepeatedIdentities)
 {
     WorldObjectRegistrations registry;
@@ -57,7 +57,7 @@ TEST(WorldObjectRegistrationsTest, AcceptsNullAndRepeatedIdentities)
     EXPECT_EQ(registry.entries[3].active, 0);
 }
 
-// Detecta capacidad 199/201, sobrescritura al llenarse y side effects en el contador moderno.
+// Catches capacity 199/201, overwriting when full and side effects on the modern counter.
 TEST(WorldObjectRegistrationsTest, FullTableMakesNoStores)
 {
     WorldObjectRegistrations registry;

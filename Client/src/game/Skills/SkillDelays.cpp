@@ -20,9 +20,9 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr std::size_t DelayOffset = 0x28;       // int, la espera
-constexpr std::size_t RequirementOffset = 0x2e; // WORD, lo que pide de +0x36 + +0x20
-constexpr std::uint8_t NoDelaySkill = 0x4c;     // 0x552ee3: 0x552c50 no le pone espera
+constexpr std::size_t DelayOffset = 0x28;       // int, the delay
+constexpr std::size_t RequirementOffset = 0x2e; // WORD, what it asks of +0x36 + +0x20
+constexpr std::uint8_t NoDelaySkill = 0x4c;     // 0x552ee3: 0x552c50 sets no delay for it
 
 Models::LogicalAccess OwnAccess(const SkillDelayContext& context)
 {
@@ -55,8 +55,8 @@ std::uint32_t LittleEndian(std::span<const std::byte, Tables::SkillRecordSize> r
     return value;
 }
 
-// Lo común de 0x552990 y 0x552c50 hasta la espera: la skill del lugar (con el registro abierto y cerrado) y la
-// espera de su entrada (abierta y cerrada).
+// What 0x552990 and 0x552c50 share up to the delay: the slot's skill (with the record opened and closed) and its
+// entry's delay (opened and closed).
 struct SlotDelay
 {
     std::uint8_t skill = 0;
@@ -81,7 +81,7 @@ Core::Expected<SlotDelay, std::string> SlotDelayOf(std::uint8_t slot, const Skil
     return read;
 }
 
-// +0x36 + +0x20 del registro propio, en int (los MOV de WORD a registros en 0).
+// +0x36 + +0x20 of the own record, as int (the WORD MOVs to zeroed registers).
 std::int32_t Allowance(const Kernel::OwnCharacterRecord& own)
 {
     return static_cast<std::int32_t>(own.word36) + static_cast<std::int32_t>(own.leadership);
@@ -148,7 +148,7 @@ Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed, con
     const auto access = OwnAccess(context);
     constexpr std::size_t MaximumSlots = 0x100;
     const std::size_t slots = std::min<std::size_t>(static_cast<std::size_t>(own.byte6a) + 2, MaximumSlots);
-    // Con +0x6a de los 64 primeros lugares no pasa de 66; el 255 sería el equipo (+0xb68, Q-C1203).
+    // With +0x6a of the first 64 slots it does not exceed 66; 255 would be the equipment (+0xb68, Q-C1203).
     if (slots > own.skillDelays.size())
         return Core::Unexpected(std::string("0x5530bb: la espera 255 pisa el equipo del registro propio"));
     for (std::size_t slot = 0; slot < slots; ++slot)
@@ -156,7 +156,7 @@ Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed, con
         std::int32_t& delay = own.skillDelays[slot];
         if (delay <= 0)
             continue;
-        // 0x5530c2..0x5530d3: SUB DWORD y después comparación con signo, incluso al desbordar la resta.
+        // 0x5530c2..0x5530d3: DWORD SUB and then a signed comparison, even when the subtraction overflows.
         const std::uint32_t remaining = std::bit_cast<std::uint32_t>(delay) - std::bit_cast<std::uint32_t>(elapsed);
         delay = std::bit_cast<std::int32_t>(remaining);
         if (delay < 0)

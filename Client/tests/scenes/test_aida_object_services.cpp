@@ -25,9 +25,8 @@
 #include <utility>
 #include <vector>
 
-// 0x425260, el caso del dibujo de los objetos de los mapas 33 y 54 (06 § El mundo de la selección): los
-// destellos de los huesos, las cascadas, las neblinas con dueño, la mariposa y la llama, con sus rand() y
-// sus cortes.
+// 0x425260, the draw case of the objects of maps 33 and 54 (06 § El mundo de la selección): the bone sparks, the
+// waterfalls, the owned mists, the butterfly and the flame, with their rand() and their cuts.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -116,8 +115,8 @@ constexpr std::array<Flare, 6> Flares{{
     {17, {0.0f, 2.0f, -8.0f}, 4.0f, 5.0f},
 }};
 
-// 0x425298..0x4255ee: dos 0x5c6 por hueso, el ancho con su escala y la luz (0,1; 0,1; 0,3), y el de
-// escala 3 con 0,15; sin rand().
+// 0x425298..0x4255ee: two 0x5c6 per bone, the wide one with its scale and the light (0.1; 0.1; 0.3), and the one
+// of scale 3 with 0.15; no rand().
 TEST(AidaObjectServicesTest, TheBlueGuardianLightsTwoSparksOnEachOfItsSixBones)
 {
     Fixture fixture;
@@ -145,8 +144,7 @@ TEST(AidaObjectServicesTest, TheBlueGuardianLightsTwoSparksOnEachOfItsSixBones)
     EXPECT_EQ(fixture.random.State(), 7u);
 }
 
-// 0x4259bf..0x425d1a: el rojo, (0,5; 0; 0) en el hueso 6 y (0,25; 0; 0) en los demás; el segundo, (0,15; 0;
-// 0).
+// 0x4259bf..0x425d1a: the red one, (0.5; 0; 0) on bone 6 and (0.25; 0; 0) on the others; the second, (0.15; 0; 0).
 TEST(AidaObjectServicesTest, TheRedGuardianBurnsBrighterOnItsFirstBone)
 {
     Fixture fixture;
@@ -162,8 +160,8 @@ TEST(AidaObjectServicesTest, TheRedGuardianBurnsBrighterOnItsFirstBone)
     }
 }
 
-// La .bss empieza en cero: un hueso que la pose global todavía no publicó deja el destello en el origen.
-// Sin el buffer, corta en 0x4ec110 antes del primer sprite.
+// The .bss starts at zero: a bone the global pose has not published yet leaves the spark at the origin.
+// Without the buffer, it cuts at 0x4ec110 before the first sprite.
 TEST(AidaObjectServicesTest, TheGuardianSparksReadTheRetainedPoseOrCutWithoutIt)
 {
     Fixture fixture;
@@ -182,7 +180,7 @@ TEST(AidaObjectServicesTest, TheGuardianSparksReadTheRetainedPoseOrCutWithoutIt)
     EXPECT_FALSE(missing.sprites->Any());
 }
 
-// 0x42566d: rand() & 1; con 0, la cascada 6f0/2 con luz blanca, la escala del objeto y sin dueño.
+// 0x42566d: rand() & 1; with 0, the waterfall 0x6f0/2 with white light, the object's scale and no owner.
 TEST(AidaObjectServicesTest, TheWaterfallFallsOnEvenDraws)
 {
     int created = 0;
@@ -214,7 +212,7 @@ TEST(AidaObjectServicesTest, TheWaterfallFallsOnEvenDraws)
     EXPECT_GT(skipped, 0);
 }
 
-// 0x4256ae: el 0x39 salpica siempre (6f2/4); 0x4256ed: el 0x3a, con rand() % 3 en 0, la neblina 6f1/2.
+// 0x4256ae: the 0x39 always splashes (0x6f2/4); 0x4256ed: the 0x3a, with rand() % 3 at 0, the mist 0x6f1/2.
 TEST(AidaObjectServicesTest, TheSplashAlwaysEmitsAndTheMistOnAThirdOfTheDraws)
 {
     Fixture splash;
@@ -246,7 +244,7 @@ TEST(AidaObjectServicesTest, TheSplashAlwaysEmitsAndTheMistOnAThirdOfTheDraws)
     EXPECT_GT(created, 0);
 }
 
-// 0x425740..0x425785: veinte 622/1 con el objeto de dueño y la luz del tipo, salvo con +0x58 en −2.
+// 0x425740..0x425785: twenty 0x622/1 with the object as owner and the type's light, except with +0x58 at −2.
 TEST(AidaObjectServicesTest, TheMistsEmitTwentyOwnedCloudsUntilTheirOwnerIsHidden)
 {
     const std::array<std::pair<std::int16_t, glm::vec3>, 3> mists{{
@@ -280,8 +278,8 @@ TEST(AidaObjectServicesTest, TheMistsEmitTwentyOwnedCloudsUntilTheirOwnerIsHidde
     }
 }
 
-// 0x425790..0x4257dd: con timeGetTime() & 0x3ff debajo de 10 sale la mariposa 0xae /3 (oculta en la
-// escena 4); salga o no, el objeto queda en −2.
+// 0x425790..0x4257dd: with timeGetTime() & 0x3ff below 10 the butterfly 0xae /3 comes out (hidden in scene 4);
+// whether it does or not, the object is left at −2.
 TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEachSecondWindow)
 {
     for (const std::uint32_t time : {0x400u + 9u, 0x400u + 10u})
@@ -320,7 +318,7 @@ TEST(AidaObjectServicesTest, TheButterflyFliesOnlyInTheFirstTenMillisecondsOfEac
     EXPECT_NE(cut.Error().find("0x425790"), std::string::npos);
 }
 
-// 0x4258ff..0x42592e: la luz del objeto en 0,3 y la llama 5de/7 con esa luz.
+// 0x4258ff..0x42592e: the object's light at 0.3 and the flame 0x5de/7 with that light.
 TEST(AidaObjectServicesTest, TheBrazierLightsAtAThirdAndRaisesAFlame)
 {
     Fixture fixture;
@@ -336,8 +334,8 @@ TEST(AidaObjectServicesTest, TheBrazierLightsAtAThirdAndRaisesAFlame)
     EXPECT_EQ(alive[0]->life, 33);
 }
 
-// 0x42593f..0x4259ae: el 0xb3 del 0x46 sale con rand() % 5 en 1 y el reloj debajo de 30, con la luz 0,1f; la
-// creación (0x51900b) saca sus seis rand() y deja su propia luz.
+// 0x42593f..0x4259ae: the 0x46's 0xb3 comes out with rand() % 5 at 1 and the clock below 30, with light 0.1f; the
+// creation (0x51900b) draws its six rand() and leaves its own light.
 TEST(AidaObjectServicesTest, TheWispLeavesOnlyWhenTheDrawAndTheClockAllowIt)
 {
     int created = 0;
@@ -386,8 +384,8 @@ TEST(AidaObjectServicesTest, TheWispLeavesOnlyWhenTheDrawAndTheClockAllowIt)
     EXPECT_NE(cut.Error().find("0x4259ae"), std::string::npos);
 }
 
-// El 0x29 y el 0x41/0x42 sólo dibujan (DrawAidaMeshPass): acá no sacan rand() ni crean nada, como los tipos
-// sin caso.
+// The 0x29 and the 0x41/0x42 only draw (DrawAidaMeshPass): here they draw no rand() and create nothing, like the
+// types without a case.
 TEST(AidaObjectServicesTest, TheRedrawnBodiesAndTheOtherTypesDoNothingHere)
 {
     for (const std::int16_t type : {std::int16_t{0x29}, std::int16_t{0x41}, std::int16_t{0x42}, std::int16_t{0x10}})

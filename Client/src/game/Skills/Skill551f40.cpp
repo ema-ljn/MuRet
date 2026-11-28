@@ -18,9 +18,9 @@ namespace Client::Skills
 namespace
 {
 constexpr std::size_t LevelOffset = 0x20;  // byte
-constexpr std::size_t EnergyOffset = 0x2c; // byte: con 0, la skill no pide energía
+constexpr std::size_t EnergyOffset = 0x2c; // byte: with 0, the skill asks for no energy
 constexpr std::int32_t EnergyFactor = 4;
-constexpr std::int32_t EnergyDivisor = 100; // 0x5520f4: IMUL por 0x51eb851f y SAR 5
+constexpr std::int32_t EnergyDivisor = 100; // 0x5520f4: IMUL by 0x51eb851f and SAR 5
 constexpr std::int32_t EnergyBase = 20;
 } // namespace
 

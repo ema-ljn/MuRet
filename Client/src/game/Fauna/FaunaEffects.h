@@ -36,14 +36,14 @@ struct Skeleton;
 }
 namespace Client::Fauna
 {
-// 518cf0(c2,pos,rot0,light1,3,null,-1,0,0,0,0), sin RNG.
+// 0x518cf0(0xc2, position, rotation 0, light 1, 3, null, -1, 0, 0, 0, 0), without consuming RNG.
 [[nodiscard]] std::optional<std::size_t> CreateFaunaLightning(Effects::ModelEffects& effects,
                                                               const glm::vec3& position);
 [[nodiscard]] Core::Expected<void, std::string>
 StepFaunaLightning(Effects::ModelEffect& effect, std::size_t physicalIndex, const Models::Skeleton* skeleton,
                    Particles::Particles& particles, Particles::FrameSprites& sprites,
                    Terrain::TerrainLighting& lighting, Models::ClothWorld& cloth);
-// Préstamos durables; load contiene referencias válidas hasta terminar el paso.
+// Durable borrows; load holds valid references until the step ends.
 [[nodiscard]] FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
                                                     std::span<Kernel::JointState> joints,
                                                     Effects::ModelEffects& effects, Crt::CrtRandom& random);

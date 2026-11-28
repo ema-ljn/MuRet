@@ -15,14 +15,14 @@ struct GameObjectPass;
 
 namespace Client::MapScripts::Aida
 {
-// 0x425260 (0x604535), con el mapa 33 o el 54, después del rand() común de 0x602ef4 (que no usa): los
-// sprites 0x5c6 de los huesos 6, 7, 8, 12, 13 y 17 del 0x1e y del 0x47; las cascadas 6f0/2 (0x38, rand()
-// & 1), 6f2/4 (0x39) y 6f1/2 (0x3a, rand() % 3); las veinte neblinas 622/1 con dueño del 0x3b, el 0x3e y
-// el 0x3f mientras +0x58 no sea −2; la mariposa 0xae del 0x3c con timeGetTime() & 0x3ff < 10, que después
-// deja el objeto en −2; la luz 0,3 y la llama 5de/7 del 0x43; y el 0x46, que con rand() % 5 en 1 y
-// timeGetTime() & 0x3ff < 30 crea el efecto 0xb3 (Effects::ModelEffects::CreateAidaWisp). El 0x29 y el
-// 0x41/0x42 sólo dibujan (DrawAidaMeshPass) y acá no hacen nada. Un pool o un reloj ausente corta donde lo
-// pide el ASM, conservando lo ya creado.
+// 0x425260 (0x604535), with map 33 or 54, after the common rand() of 0x602ef4 (which it does not use): the 0x5c6
+// sprites of bones 6, 7, 8, 12, 13 and 17 of the 0x1e and the 0x47; the cascades 0x6f0/2 (0x38, rand() & 1), 0x6f2/4
+// (0x39) and 0x6f1/2 (0x3a, rand() % 3); the twenty owned mists 0x622/1 of the 0x3b, the 0x3e and the 0x3f while +0x58
+// is not −2; the butterfly 0xae of the 0x3c with timeGetTime() & 0x3ff < 10, which then leaves the object at −2; the
+// light 0.3 and the flame 0x5de/7 of the 0x43; and the 0x46, which with rand() % 5 at 1 and timeGetTime() & 0x3ff < 30
+// creates effect 0xb3 (Effects::ModelEffects::CreateAidaWisp). The 0x29 and the 0x41/0x42 only draw
+// (DrawAidaMeshPass) and do nothing here. A missing pool or clock cuts where the ASM does, keeping what was already
+// created.
 [[nodiscard]] Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject& object,
                                                                     const WorldObjects::GameObjectPass& pass);
 } // namespace Client::MapScripts::Aida

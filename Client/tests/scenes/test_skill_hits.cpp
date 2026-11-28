@@ -27,8 +27,7 @@
 #include <utility>
 #include <vector>
 
-// Client::Actors::HitTheTargetsAround: 0x517a20, los blancos de una skill alrededor de un punto y el C1 10 que los
-// manda (06, "La flecha").
+// HitTheTargetsAround (0x517a20): a skill's targets around a point and the C1 10 that sends them (06, "La flecha").
 namespace
 {
 using Client::Actors::HitTheTargetsAround;
@@ -41,7 +40,7 @@ constexpr std::uint32_t Seed = 0x13579bdfu;
 constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t SkillPlace = 3;
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
-// 0x518515..0x518606: el relleno y el serial del C3.
+// 0x518515..0x518606: the C3's padding and serial.
 constexpr int Delivery = 2;
 
 int DrawsSince(std::uint32_t seed, const CrtRandom& random)
@@ -73,7 +72,7 @@ struct HitsWorld
         hero.position = {12345.0f, 6789.0f, 0.0f};
     }
 
-    // Un monstruo (+0x88 en 2) o un jugador (en 1), vivo y visto, a `distance` del punto en x.
+    // A monster (+0x88 at 2) or a player (at 1), at `distance` from the point on the x axis.
     ActorState& Put(std::size_t slot, std::uint8_t kind, std::uint16_t key, float distance)
     {
         ActorState& actor = world.Actors()[slot];
@@ -116,10 +115,10 @@ void Name(ActorState& actor, std::string_view name)
         actor.name[index] = static_cast<std::byte>(name[index]);
 }
 
-// En Lorencia y en Devias, de los 400 en orden: entran los monstruos a 100 o menos y el jugador de la clave; quedan
-// afuera el jugador sin la clave, el monstruo a más de 100, el que no se ve, el que se muere y el que no está vivo. El
-// C1 10 lleva la skill, la celda del punto (ftol(x · 0,01) & 0xff = 123 y 67), la tanda, la cuenta y las claves, con
-// los 3.848 rand() del registro propio y los dos del C3.
+// In Lorencia and in Devias, of the 400 in order: the monsters at 100 or less and the player of the key enter; the
+// player without the key, the monster beyond 100, the unseen one, the dying one and the dead one stay out. The C1 10
+// carries the skill, the point's cell (ftol(x · 0.01) & 0xff = 123 and 67), the volley, the count and the keys, with
+// the own record's 3848 rand() and the C3's two.
 TEST(SkillHitsTest, TheMonstersAroundAndThePlayerOfTheKeyAreHit)
 {
     for (const std::int32_t map : {0, 2})
@@ -149,8 +148,8 @@ TEST(SkillHitsTest, TheMonstersAroundAndThePlayerOfTheKeyAreHit)
     }
 }
 
-// Hasta cinco: el sexto monstruo no entra. Con la skill 8 o 9, cada uno con +0x394 en 0 queda con +0x398 en 10; con
-// otra, ninguno.
+// Up to five: the sixth monster does not enter. With skill 8 or 9, each one with +0x394 at 0 gets +0x398 at 10; with
+// another, none.
 TEST(SkillHitsTest, FiveAtMostAndTheEighthAndNinthSkillsMark)
 {
     for (const std::uint8_t skill : {std::uint8_t{8}, std::uint8_t{9}, std::uint8_t{0x33}})
@@ -178,8 +177,8 @@ TEST(SkillHitsTest, FiveAtMostAndTheEighthAndNinthSkillsMark)
     }
 }
 
-// Sin nadie, false con solo los rand() del registro propio. Con "webzen" en el nombre del héroe, true sin mandar nada
-// ni los rand() del C3. El héroe nunca entra, aunque esté en el punto.
+// With nobody, false with only the own record's rand(). With "webzen" in the hero's name, true without sending anything
+// or the C3's rand(). The hero never enters, even at the point.
 TEST(SkillHitsTest, NobodyOrTheGameMasterSendNothing)
 {
     for (const std::int32_t map : {0, 2})
@@ -204,7 +203,7 @@ TEST(SkillHitsTest, NobodyOrTheGameMasterSendNothing)
     }
 }
 
-// Sin la sesión, los dos rand() del C3 salen igual. Con el radio NaN, la comparación de la x87 deja entrar a todos.
+// Without the session, the C3's two rand() are drawn anyway. With a NaN radius, the x87 comparison lets everyone in.
 TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
 {
     HitsWorld tested(0, 0x18);
@@ -216,8 +215,8 @@ TEST(SkillHitsTest, WithoutTheSessionTheDeliveryStillDraws)
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord + Delivery);
 }
 
-// En el mapa 30 con el asedio (0x4294b0), el atributo de la celda del punto corta (0x517b1e, CL9.5), después de leer
-// la skill; sin el asedio, el 30 es como los demás. Un punto que el ftol no representa corta en 0x517deb.
+// On map 30 with the siege (0x4294b0), the attribute of the point's cell cuts (0x517b1e, CL9.5), after reading the
+// skill; without the siege, 30 is like the rest. A point the ftol cannot represent cuts at 0x517deb.
 TEST(SkillHitsTest, TheSiegeRequiresAttributesAndTheOutOfRangePointCuts)
 {
     HitsWorld siege(30, 0x18);
@@ -245,7 +244,7 @@ TEST(SkillHitsTest, TheSiegeRequiresAttributesAndTheOutOfRangePointCuts)
     EXPECT_TRUE(far.sent.empty());
 }
 
-// 517bf3..517c00: EBX < 0x190. El slot400 de MuRet es reserva, no uno de los400 actores nativos.
+// 0x517bf3..0x517c00: EBX < 0x190. MuRet's slot 400 is a spare, not one of the 400 native actors.
 TEST(SkillHitsTest, OnlyTheFourHundredNativeSlotsCanBeHitOrMarked)
 {
     for (const std::size_t slot : {399u, 400u})
@@ -273,7 +272,7 @@ TEST(SkillHitsTest, WarIncludesOtherPlayersAndAttribute100StopsBeforeCollectingT
     ASSERT_TRUE(hit.HasValue());
     EXPECT_TRUE(hit.Value());
     EXPECT_EQ(tested.sent.size(), 1u);
-    // 12345/6789 por−.01f sinstore: índicenativo123+67*256.
+    // 12345/6789 · .01f without a store: native index 123 + 67 * 256.
     tested.terrain.attributes->cells[123 + 67 * 256] = 0x100;
     const auto blocked = tested.Hit(Request(100.0f));
     ASSERT_TRUE(blocked.HasValue());

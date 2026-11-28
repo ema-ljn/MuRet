@@ -53,7 +53,7 @@ TEST(CrywolfWavesTest, BothNativeWaveSubtypesKeepTheirOwnGrowthFadeAndCommonTail
         wave.type = 0x114;
         wave.subtype = subtype;
         wave.life = 1;
-        // 1,495f + 0,01f y 2,45f + 0,08f pasan el tope (1,5 y 2,5, 0x526e7d y 0x526f61), que los deja ahí.
+        // 1.495f + 0.01f and 2.45f + 0.08f pass the cap (1.5 and 2.5, 0x526e7d and 0x526f61), which leaves them there.
         wave.transform.scale = subtype == 2 ? 1.495f : 2.45f;
         wave.turnDirection = subtype == 2 ? 0.01f : 0.08f;
         wave.velocity = {1, 2, 3};
@@ -109,8 +109,8 @@ TEST(CrywolfWavesTest, ThePiercingMovesTwiceAndCreatesTheWaveAtItsIntermediatePo
         }
     }
 }
-// 0x51c2b3..0x51c36d: la /2, /3 y /4 viven 15 con +0xe4 en 0,01f y la x en 90; la /5 y la /6 viven 10 con +0xe4 en
-// 0,08f y la x en −90. La /0, la /1 y las demás no son de World.
+// 0x51c2b3..0x51c36d: the /2, /3 and /4 live 15 with +0xe4 at 0.01f and x at 90; the /5 and the /6 live 10 with +0xe4
+// at 0.08f and x at −90. The /0, the /1 and the others are not Effects/ModelEffects's.
 TEST(CrywolfWavesTest, EveryWorldWaveSubtypeTakesItsLifeGrowthAndPitch)
 {
     for (const int subtype : {2, 3, 4, 5, 6})
@@ -134,8 +134,8 @@ TEST(CrywolfWavesTest, EveryWorldWaveSubtypeTakesItsLifeGrowthAndPitch)
     }
 }
 
-// 0x526dd0..0x526f9b: la escala suma +0xe4 (la /0 sólo con más de 4 de vida), +0xe4 crece, la escala topa, +0x68 baja
-// y la /3..6 giran 45 en y; con otro subtipo, sólo la cola. Sin rand() salvo el de la luz local.
+// 0x526dd0..0x526f9b: the scale adds +0xe4 (the /0 only with life above 4), +0xe4 grows, the scale caps, +0x68 drops
+// and the /3..6 turn 45 in y; with another subtype, only the tail. No rand() except the local light's.
 TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
 {
     struct Case
@@ -158,7 +158,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
         Case{3, 6, 1.5f, f(0.5 + d(0x3ba3d70au)), f(d(0x3f44ec4fu)), 45},
         Case{4, 6, 1.5f, f(0.5 + d(0x3b03126fu)), f(d(0x3f555555u)), 45},
         Case{5, 6, 1.5f, f(0.5 + d(0x3c75c28fu)), f(d(0x3f44ec4fu)), 45},
-        // Los topes (0x526ec8, 0x526f0b y 0x526f61): 1,4f + 0,5 pasa el 1,5 y 2,4f + 0,5 pasa el 2,5.
+        // The caps (0x526ec8, 0x526f0b and 0x526f61): 1.4f + 0.5 passes 1.5 and 2.4f + 0.5 passes 2.5.
         Case{3, 6, 1.5f, f(0.5 + d(0x3ba3d70au)), f(d(0x3f44ec4fu)), 45, 1.4f},
         Case{4, 6, std::bit_cast<float>(0x40200000u), f(0.5 + d(0x3b03126fu)), f(d(0x3f555555u)), 45, 2.4f},
         Case{5, 6, std::bit_cast<float>(0x40200000u), f(0.5 + d(0x3c75c28fu)), f(d(0x3f44ec4fu)), 45, 2.4f},
@@ -189,7 +189,7 @@ TEST(CrywolfWavesTest, EveryWaveSubtypeStepsWithItsGrowthLimitAndFade)
     }
 }
 
-// 0x51c8e8 y 0x52705a: el 0x115 de otro subtipo que el 1 vive 10 y suelta la onda 0x114/2 sólo con más de 5 de vida.
+// 0x51c8e8 and 0x52705a: the 0x115 of a subtype other than 1 lives 10 and releases wave 0x114/2 only with life above 5.
 TEST(CrywolfWavesTest, TheOtherPiercingLivesTenAndWavesAboveFive)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();

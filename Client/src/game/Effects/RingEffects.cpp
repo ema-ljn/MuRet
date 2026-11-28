@@ -21,7 +21,7 @@
 #include <string>
 #include <utility>
 
-// Cotejado con el PE c32bbd5f: 0x51c782 (el alta del 0x11b) y 0x526507 (su paso).
+// Checked against the PE c32bbd5f: 0x51c782 (the 0x11b's creation) and 0x526507 (its step).
 namespace Client::Effects
 {
 namespace
@@ -31,14 +31,14 @@ using Math::F32;
 
 constexpr std::int32_t SparkSubtype = 0, RingSubtype = 1;
 
-// (rand() & 31) − 16 (AND 0x8000001f con el ajuste del signo; rand() no es negativo).
+// (rand() & 31) − 16 (AND 0x8000001f with the sign fixup; rand() is not negative).
 int Shake(Crt::CrtRandom& random)
 {
     constexpr int ShakeMask = 31, ShakeCenter = 16;
     return (random.Next() & ShakeMask) - ShakeCenter;
 }
 
-// 0x526649..0x526691: 0x5f93c0 en la x87; cerca del terreno sube, lejos baja.
+// 0x526649..0x526691: 0x5f93c0 on the x87; near the terrain it rises, far from it it goes down.
 Core::Expected<void, std::string> KeepAboveTheGround(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     if (!context.services.terrainHeight)
@@ -53,7 +53,7 @@ Core::Expected<void, std::string> KeepAboveTheGround(Effects::ModelEffect& effec
         effect.copiedAngles.x = 0.0f;
         effect.transform.angles.x = Climb;
     }
-    // 0x526682: JE con C0 en 0; sin orden (NaN) también baja.
+    // 0x526682: JE with C0 at 0; unordered (NaN) also goes down.
     if (!(ground + High >= D(effect.transform.position.z)))
     {
         effect.copiedAngles.x = 0.0f;
@@ -62,11 +62,11 @@ Core::Expected<void, std::string> KeepAboveTheGround(Effects::ModelEffect& effec
     return {};
 }
 
-// 0x51c789..0x51c79d, la /0.
+// 0x51c789..0x51c79d, the /0.
 void LightTheSpark(Effects::ModelEffect& effect)
 {
     effect.life = 1;
-    effect.transform.scale = std::bit_cast<float>(0x40133333u); // 0x51c791, 2,3f
+    effect.transform.scale = std::bit_cast<float>(0x40133333u); // 0x51c791, 2.3f
 }
 } // namespace
 
@@ -127,9 +127,9 @@ Core::Expected<void, std::string> StepTheRing(Effects::ModelEffect& effect, floa
     constexpr float TurnStep = 10.0f; // 0x41200000
     effect.start = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Hover)};
     static_cast<void>(Math::MoveToward(effect.transform.position, effect.transform.angles, effect.start, TurnStep));
-    constexpr double PitchShake = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0,2f
-    constexpr double YawShake = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));   // 0x6b8a38, 0,8f
-    constexpr double PitchBrake = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
+    constexpr double PitchShake = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854, 0.2f
+    constexpr double YawShake = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));   // 0x6b8a38, 0.8f
+    constexpr double PitchBrake = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0.6f
     const int pitch = Shake(context.random);
     effect.copiedAngles.x = F32(static_cast<double>(pitch) * PitchShake + D(effect.copiedAngles.x));
     const int yaw = Shake(context.random);
@@ -141,8 +141,8 @@ Core::Expected<void, std::string> StepTheRing(Effects::ModelEffect& effect, floa
     constexpr std::int32_t FadingLife = 10;
     if (effect.life < FadingLife)
     {
-        constexpr double AlphaFade = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu)); // 0x6ba26c, 0,909f
-        constexpr double LightFade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98, 0,833f
+        constexpr double AlphaFade = static_cast<double>(std::bit_cast<float>(0x3f68ba2eu)); // 0x6ba26c, 0.909f
+        constexpr double LightFade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98, 0.833f
         constexpr float Ceiling = 80.0f;                                                     // 0x6b9ffc
         constexpr double Rise = 5.0;                                                         // 0x6b87f8
         effect.alpha = F32(D(effect.alpha) * AlphaFade);
@@ -155,14 +155,14 @@ Core::Expected<void, std::string> StepTheRing(Effects::ModelEffect& effect, floa
         return kept;
     }
     constexpr std::int32_t Spark = 0x5d9, RingSparkSubtype = 5;
-    constexpr float SparkScale = std::bit_cast<float>(0x3f99999au); // 0x526696, 1,2f
+    constexpr float SparkScale = std::bit_cast<float>(0x3f99999au); // 0x526696, 1.2f
     if (auto made =
             CreateHighParticle(context.world, context.random, context.worldClock, Spark, effect.transform.position,
                                effect.transform.angles, glm::vec3(1.0f), RingSparkSubtype, SparkScale, 0x5266a8);
         !made.HasValue())
         return Core::Unexpected(made.Error());
-    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
-    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0,1f
+    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0.3f
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0.1f
     const glm::vec3 color{luminosity, F32(D(luminosity) * Green), F32(D(luminosity) * Blue)};
     constexpr std::int32_t Radius = 4;
     return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, color, Radius,

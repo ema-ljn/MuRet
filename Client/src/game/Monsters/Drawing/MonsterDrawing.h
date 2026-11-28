@@ -26,60 +26,58 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// Los monstruos y los NPC en el dibujo del juego (0x50ba30 con un tipo que no es el 0x20a, CL9 hito 2). Contrato: 06
-// § El dibujo del juego, "El dibujo de los monstruos y los NPC".
+// Monsters and NPCs in the game's draw (0x50ba30 with a type other than 0x20a, CL9 milestone 2). Contract: 06 § El
+// dibujo del juego, "El dibujo de los monstruos y los NPC".
 namespace Client::Monsters::Drawing
 {
 
-// 0x50c671, 0x50c71b y 0x50c8ce: los +0x376 con pases de brillo de 0x60b130 (0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e a 0x53,
-// 0x35, 0x36 y 0x87).
+// 0x50c671, 0x50c71b and 0x50c8ce: the +0x376 values with 0x60b130 shine passes (0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e to
+// 0x53, 0x35, 0x36 and 0x87).
 [[nodiscard]] bool MonsterShines(std::uint16_t monster);
 
-// 0x50ba30 con un monstruo o un NPC (el tipo no es el 0x20a) en el lugar `slot`, en el orden del ASM:
-// - con un +0x376 de WearsClothOnTheMesh (0x50bae7), 0x5ffdf0, la tela sobre la malla de pass.cloths[slot]
-//   (MonsterMeshCloth, también si 0x5ffdf0 no dibuja) y 0x6002e0, con el cuarto argumento en 0;
-// - si no, 0x602e90(objeto, 1, contorno, +0x376 de la lista de 0x50bd05 o 0): 0x5ffdf0 baja 0,15f el alpha en Chaos
-//   Castle con +0x1a1 del héroe, por debajo de 0,01 no posa ni dibuja; posa en los huesos propios (+0x120,
-//   actor.bodyPose) con los ángulos de la cabeza, con el contorno (los dos pases de 0x60cd60 con los colores y las
-//   escalas de 0x5fffbd..0x600135; el 0xc5, solo su malla 0) y el cuerpo de 0x6002e0 sobre el color del modelo de
-//   0x5ffce0, con sus casos por tipo y por mapa, su cadena y lo que agrega después del cuerpo (DrawMonsterBody,
-//   MonsterBody.h);
-// - la sombra de 0x50bd89 con sus condiciones (DrawObjectShadow) y, en Blood Castle, la altura del terreno de los que
-//   mueren; el calco 0x61e del 0xe8 y el 0xe9 (0x5fb2f0, Terrain::DrawTerrainDecal), aditivo, con las alturas del
-//   terreno de `pass` o del mundo (sin ellas, corta);
-// - lo de 0x50bf45 por el +0x376: el 0x45 con sus nueve flare01 y los cuatro rand() de su primera partícula 0x5c6/3,
-//   que corta (0x50c0db, CL11; entre frames del original, sin las partículas); el flare01 del 0x46 en su hueso 20;
-//   los pases de brillo de 0x60b130 (MonsterShines: el color de 0x608e00 por el alpha y el factor, y RenderBody con
-//   0x48, 0x44, 0x144 o 0x140 sobre la pose guardada; Q-C863); el 0x4d (0x50c177: su pase 0x44 con el factor del
-//   reloj, +0x64 en 0 y +0x68 guardados, su cuerpo otra vez con 0x602e90 en los modos 2 y 3, a 1,2 y a 1,4 alrededor
-//   de sus huesos, el tipo + 1 (el 0x18a) con el contorno, los huesos 24, 23 y 14 en WorldRuntime::phoenixBones y la
-//   tela de la grilla del 0x4d de pass.cloths[slot] (CharacterCloth::FrameTheMonsterCloth; sin ella, corta en
-//   0x50c283), con el tipo en 0x18a; Q-C864); las telas de la grilla del 0x47, el 0x4a y el 0x12d (0x50c59f), con
-//   la misma tela del lugar sobre la pose guardada (sin ella, corta en 0x50c59f); lo que cuelgan del lugar de las alas
-//   el 0x2a (0x50c762: el 0xef del hueso 9 y el 0xf0 del 0x3d a 0,9f con la luz en 1) y las estatuas 0x84 a 0x86
-//   (0x50c83b: el 0xc1c, el 0x225 o el 0xa24 del hueso 1 con la bandera), con HangFromTheWingsSlot (GameHanging.h) y
-//   la biblioteca de la fauna; el 0x49 (0x50c3ed: veintiún flare01 y cuatro joints 0x614/7 entre sus huesos, el pase
-//   0x44 y el corte en 0x60b300) y el 0x4b (0x50c37e: la 0x5d9/0 de su hueso 18 y el pase 0x144); los demás,
-//   CheckMonsterDecorations;
-// - el bloque de la guerra de gremios y el duelo (0x50c972..0x50cc29), que MuRet no corre para estos dibujos: el
-//   duelo no alcanza a un monstruo y la guerra solo a un NPC con +0x1f2 pisado (08 P-C352);
-// - sin +0x3e3, las partes de la 5 a la 0 con 0x60cf70 (0x50d3e3: el contorno de las partes con el modo 1, la pose en
-//   los huesos propios y 0x60b3d0 con el nivel, el excelente y el set de cada una, con la luz de +0x3b4); un modelo
-//   fuera de los registros que 0x60dbe0 pone en 0 corta en 0x50d431, y el Angel de Chaos Castle (+0x88 en 1) en
-//   0x50d383;
-// - las telas (0x50d58b): con el +0x376 0x37 fuera de los mapas 0x12 a 0x17 (WearsTheMonsterCloth), el CharacterCloth
-//   de pass.cloths[slot] sobre los huesos propios (sin él, corta), con sus destellos en pass.sprites;
-// - 0x50db57: el rand() y la luz de lo que cuelga (HangingLightOf) y, fuera de la espalda, las manos (DrawGameHanging);
-// - el switch por modelo de 0x50e9fa: los sprites de 0x50b870 y 0x50b920 del 0x152 (con +0x1d6 en 1), el 0x170, el
-//   0x186, el 0x177, el 0x174, el 0x176, el 0x173, el 0x1d8 y el 0x1f2; los del 0x1d9 (0x510763) con su rand() % 30 y,
-//   si da 0, sus tres rand() % 100 y el joint 0x618/6 (que CreateFaunaJoint todavía no crea: corta); el lazo de los
-//   huesos del 0x16e (0x5108b6, DrawTheBoneSparks), y los demás van por la cadena de 0x510a1e: 0x43c150 y 0x42dfe0
-//   (DrawKalimaSiegeHelpers, KalimaSiegeHelpers.h) y, si ninguno tiene el tipo, 0x441400, 0x434180 y 0x4271d0
-//   (DrawTheMonsterHelpers, MonsterHelpers.h), con sus efectos de la CL11 cortados;
-// - 0x510ef0 en la escena 5 con +0x88 en 1 y +0x369 (corta en 0x510f4d, CL11); después el cuervo de +0x430
-//   (DrawGameRaven, con pass.polygon).
-// `models` tiene los ítems y Player.bmd (las manos); el modelo del tipo sale de Assets::AssetsState::fauna. Entre
-// frames del original, todo sobre una copia del personaje y del rand().
+// 0x50ba30 with a monster or an NPC (the type is not 0x20a) in slot `slot`, in the ASM's order:
+// - with a +0x376 of WearsClothOnTheMesh (0x50bae7), 0x5ffdf0, the cloth on the mesh of pass.cloths[slot]
+//   (MonsterMeshCloth, also if 0x5ffdf0 does not draw) and 0x6002e0, with the fourth argument at 0;
+// - otherwise, 0x602e90(object, 1, outline, +0x376 from the 0x50bd05 list or 0): 0x5ffdf0 lowers the alpha 0.15f in
+//   Chaos Castle with the hero's +0x1a1, below 0.01 it neither poses nor draws; it poses on the own bones (+0x120,
+//   actor.bodyPose) with the head's angles, with the outline (the two 0x60cd60 passes with the colors and scales of
+//   0x5fffbd..0x600135; 0xc5, only its mesh 0) and the body of 0x6002e0 over the model color of 0x5ffce0, with its
+//   cases by type and by map, its chain and what it adds after the body (DrawMonsterBody, MonsterBody.h);
+// - the shadow of 0x50bd89 with its conditions (DrawObjectShadow) and, in Blood Castle, the terrain height of those
+//   dying; the 0x61e decal of 0xe8 and 0xe9 (0x5fb2f0, Terrain::DrawTerrainDecal), additive, with the terrain heights
+//   of `pass` or of the world (without them, it cuts);
+// - what 0x50bf45 adds by +0x376: 0x45 with its nine flare01 and the four rand() of its first 0x5c6/3 particle, which
+//   cuts (0x50c0db, CL11; between original frames, without the particles); the flare01 of 0x46 on its bone 20; the
+//   0x60b130 shine passes (MonsterShines: the color of 0x608e00 times the alpha and the factor, and RenderBody with
+//   0x48, 0x44, 0x144 or 0x140 over the stored pose; Q-C863); 0x4d (0x50c177: its 0x44 pass with the clock's factor,
+//   +0x64 at 0 and +0x68 stored, its body again with 0x602e90 in modes 2 and 3, at 1.2 and 1.4 around its bones, the
+//   type + 1 (0x18a) with the outline, bones 24, 23 and 14 in WorldRuntime::phoenixBones and the 0x4d grid cloth of
+//   pass.cloths[slot] (CharacterCloth::FrameTheMonsterCloth; without it, it cuts at 0x50c283), with the type at 0x18a;
+//   Q-C864); the grid cloths of 0x47, 0x4a and 0x12d (0x50c59f), with the same slot cloth over the stored pose (without
+//   it, it cuts at 0x50c59f); what 0x2a (0x50c762: 0xef from bone 9 and 0xf0 from 0x3d at 0.9f with the light at 1) and
+//   the statues 0x84 to 0x86 (0x50c83b: 0xc1c, 0x225 or 0xa24 from bone 1 with the flag) hang from the wings slot, with
+//   HangFromTheWingsSlot (GameHanging.h) and the fauna library; 0x49 (0x50c3ed: twenty-one flare01 and four 0x614/7
+//   joints between its bones, the 0x44 pass and the cut at 0x60b300) and 0x4b (0x50c37e: the 0x5d9/0 of its bone 18 and
+//   the 0x144 pass); the others, CheckMonsterDecorations;
+// - the guild war and duel block (0x50c972..0x50cc29), which MuRet does not run for these draws: the duel does not
+//   reach a monster and the war only an NPC with +0x1f2 overwritten (08 P-C352);
+// - without +0x3e3, parts 5 down to 0 with 0x60cf70 (0x50d3e3: the parts' outline with mode 1, the pose on the own
+//   bones and 0x60b3d0 with each one's level, excellent and set, with the light of +0x3b4); a model outside the records
+//   0x60dbe0 sets to 0 cuts at 0x50d431, and the Chaos Castle Angel (+0x88 at 1) at 0x50d383;
+// - the cloths (0x50d58b): with +0x376 at 0x37 outside maps 0x12 to 0x17 (WearsTheMonsterCloth), the CharacterCloth of
+//   pass.cloths[slot] over the own bones (without it, it cuts), with its flares in pass.sprites;
+// - 0x50db57: the rand() and the light of what hangs (HangingLightOf) and, outside the back, the hands
+//   (DrawGameHanging);
+// - the by-model switch of 0x50e9fa: the 0x50b870 and 0x50b920 sprites of 0x152 (with +0x1d6 at 1), 0x170, 0x186,
+//   0x177, 0x174, 0x176, 0x173, 0x1d8 and 0x1f2; those of 0x1d9 (0x510763) with its rand() % 30 and, if it gives 0, its
+//   three rand() % 100 and the 0x618/6 joint (which CreateFaunaJoint does not create yet: it cuts); the bone loop of
+//   0x16e (0x5108b6, DrawTheBoneSparks), and the others go through the 0x510a1e chain: 0x43c150 and 0x42dfe0
+//   (DrawKalimaSiegeHelpers, KalimaSiegeHelpers.h) and, if neither has the type, 0x441400, 0x434180 and 0x4271d0
+//   (DrawTheMonsterHelpers, MonsterHelpers.h), with their CL11 effects cut;
+// - 0x510ef0 in scene 5 with +0x88 at 1 and +0x369 (cuts at 0x510f4d, CL11); then the raven of +0x430 (DrawGameRaven,
+//   with pass.polygon).
+// `models` holds the items and Player.bmd (the hands); the type's model comes from Assets::AssetsState::fauna. Between
+// original frames, everything on a copy of the character and the rand().
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models, Kernel::WorldState& world,
                 std::size_t slot, const Actors::Drawing::GameCharacterPass& pass, bool originalFrame);

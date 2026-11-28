@@ -44,8 +44,7 @@
 #include <utility>
 #include <vector>
 
-// La rama de las clases 1, 3 y 4 de 0x57cfc0 (CL9 hito 4, fase 2c; 06 § Las skills del caballero): el héroe en el
-// lugar 0 con una espada a la derecha, un monstruo elegido en el 5 con una clave inventada y un Skill.bmd inventado.
+// The branch of classes 1, 3 and 4 of 0x57cfc0 (06 § Las skills del caballero), with an invented key and Skill.bmd.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -56,11 +55,11 @@ constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
 constexpr int C3Draws = 2;
-// 0x551c70, 0x552c50 (su entrada; el registro ya está abierto) y 0x551f40, y el cierre del registro propio.
+// 0x551c70, 0x552c50 (its entry; the record is already open) and 0x551f40, and the close of the own record.
 constexpr int PaidDraws = 3 * EntryDraws + OwnDraws;
-// Sin pasar por 0x552c50 (sin poder usarla).
+// Without going through 0x552c50 (when it cannot be used).
 constexpr int UnpaidDraws = 2 * EntryDraws + OwnDraws;
-// Las dos celdas lógicas del héroe, la Y antes que la X.
+// The hero's two logical cells, the Y before the X.
 constexpr int CellsDraws = 2 * CellDraws;
 constexpr std::size_t ChosenSlot = 5;
 constexpr std::uint16_t ChosenKey = 0x0a1b;
@@ -100,8 +99,6 @@ void PutWord(std::vector<std::byte>& bytes, std::size_t offset, std::uint16_t va
     bytes[offset + 1] = static_cast<std::byte>(value >> 8);
 }
 
-// Skill.bmd con el nivel (+0x20), el maná (+0x22), la stamina (+0x24), el alcance (+0x26), la energía (+0x2c) y el
-// liderazgo (+0x2e) de cada skill.
 Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -127,8 +124,8 @@ void Rename(Client::Kernel::ActorState& actor, std::string_view name)
         actor.name[index] = static_cast<std::byte>(name[index]);
 }
 
-// Un héroe jugador en (182, 115) con una espada a la derecha que ya apuntó (0x57ce80) al elegido, un monstruo en
-// (184, 117) con la clave 0x0a1b; el registro propio con 100 de maná, stamina y energía.
+// A player hero with a sword in the right hand that already aimed (0x57ce80) at the chosen one; the own record with
+// 100 mana, stamina and energy.
 struct KnightHero
 {
     explicit KnightHero(std::uint8_t used, std::uint8_t heroClass = Knight, std::int32_t map = 0) : skill(used)
@@ -229,8 +226,8 @@ bool Contains(const std::string& text, const char* part)
     return text.find(part) != std::string::npos;
 }
 
-// El rumbo hacia el blanco (0x4e93f0 en float) y su _ftol: ((+0x24 + `offset`) · `first`) · `second`, cada producto
-// redondeado a doble como la x87 con PC53.
+// The heading toward the target (0x4e93f0 in float) and its _ftol: ((+0x24 + `offset`) · `first`) · `second`, each
+// product rounded to double as the x87 does with PC53.
 std::uint8_t ExpectedDirection(double first, double second = 1.0, double offset = 0.0)
 {
     const auto angle = static_cast<float>(Client::Math::CreateAngle(18250.0f, 11550.0f, 18450.0f, 11750.0f));
@@ -258,8 +255,8 @@ std::vector<std::uint8_t> DurationMagic(std::uint8_t skill, std::uint8_t directi
             byte11};
 }
 
-// 0x582393..0x5830dc: la 0x29 manda el 1E con las celdas lógicas, el rumbo · 256/360 y la clave del elegido; las
-// velocidades, la acción 0x3d y +0x378 en 0. En Lorencia y en Devias.
+// 0x582393..0x5830dc: 0x29 sends the 1E with the logical cells, the heading · 256/360 and the chosen one's key; the
+// speeds, action 0x3d and +0x378 at 0. In Lorencia and in Devias.
 TEST(HeroSkillsKnightTest, Skill29SendsThe1E)
 {
     for (const std::int32_t map : {0, 2})
@@ -283,8 +280,8 @@ TEST(HeroSkillsKnightTest, Skill29SendsThe1E)
     }
 }
 
-// 0x5823b1..0x5823ce: sin elegido de la skill del arma, la clave 0xffff; con un elegido que 0x558eb0 no deja atacar
-// (+0x370 que no es 2 ni 8, sin PK ni Ctrl), también.
+// 0x5823b1..0x5823ce: without a chosen one for the weapon skill, the key 0xffff; with a chosen one that 0x558eb0 does
+// not let be attacked (+0x370 neither 2 nor 8, without PK or Ctrl), too.
 TEST(HeroSkillsKnightTest, WithoutAnAttackableChosenTheKeyIsFfff)
 {
     for (int variant = 0; variant < 2; ++variant)
@@ -301,8 +298,8 @@ TEST(HeroSkillsKnightTest, WithoutAnAttackableChosenTheKeyIsFfff)
     }
 }
 
-// El strstr en línea con "webzen" en el nombre del héroe publicado: no manda ni lee las celdas, pero hace el resto.
-// Sin la sesión, el C3 saca igual sus dos rand().
+// The inline strstr with "webzen" in the published hero's name: it neither sends nor reads the cells, but does the
+// rest. Without the session, the C3 still draws its two rand().
 TEST(HeroSkillsKnightTest, TheGameMasterAndTheClosedSocketSendNothing)
 {
     {
@@ -327,8 +324,8 @@ TEST(HeroSkillsKnightTest, TheGameMasterAndTheClosedSocketSendNothing)
     }
 }
 
-// 0x587a8d..0x58886f: la 0x2a en alcance manda la celda de 0x4e9920 en el byte 8 y hace la 0x3e, sin 0x4f3f80; fuera
-// de alcance, el otro elegido (0x6c8e38) en −1 y nada más.
+// 0x587a8d..0x58886f: 0x2a in reach sends 0x4e9920's cell in byte 8 and does 0x3e, without 0x4f3f80; out of reach, the
+// other chosen one (0x6c8e38) at −1 and nothing more.
 TEST(HeroSkillsKnightTest, Skill2aSendsTheRelativeCellOrForgetsTheTarget)
 {
     for (const std::int32_t map : {0, 2})
@@ -353,8 +350,8 @@ TEST(HeroSkillsKnightTest, Skill2aSendsTheRelativeCellOrForgetsTheTarget)
     EXPECT_EQ(tested->Hero().animation.action, 1);
 }
 
-// 0x5830e1..0x583ece: la 0x37 lee las celdas dos veces y manda la posición del blanco (cada lado entre −8 y 7) en el
-// byte 7, sin mirar el alcance.
+// 0x5830e1..0x583ece: 0x37 reads the cells twice and sends the target's position (each side between −8 and 7) in byte
+// 7, without checking the reach.
 TEST(HeroSkillsKnightTest, Skill37SendsTheClampedTargetPosition)
 {
     struct Case
@@ -378,8 +375,8 @@ TEST(HeroSkillsKnightTest, Skill37SendsTheClampedTargetPosition)
     }
 }
 
-// 0x583ed3..0x584d6e: la 0x38, a pie y en alcance, manda el rumbo en la escala de 255 y el opuesto en el byte 8 y hace
-// la 0x8d. Montado (Uniria, Dinorant, el caballo oscuro o Fenrir) o fuera de alcance, nada.
+// 0x583ed3..0x584d6e: 0x38, on foot and in reach, sends the heading on the 255 scale and the opposite in byte 8 and
+// does 0x8d. Mounted (Uniria, Dinorant, the dark horse or Fenrir) or out of reach, nothing.
 TEST(HeroSkillsKnightTest, Skill38OnlyOnFootAndInRange)
 {
     {
@@ -413,8 +410,8 @@ TEST(HeroSkillsKnightTest, Skill38OnlyOnFootAndInRange)
     EXPECT_EQ(tested->world.Runtime().selectedTargets[4], 2);
 }
 
-// 0x586436..0x587317: la 0x41 manda la celda del blanco contra la del héroe en el byte 7 y la de 0x4e9920 en el 8;
-// la acción por la montura fuera de la zona segura: 0x51 en el caballo oscuro, 0x5b en Fenrir y si no 0x94.
+// 0x586436..0x587317: 0x41 sends the target's cell against the hero's in byte 7 and 0x4e9920's in byte 8; the action
+// by the mount outside the safe zone: 0x51 on the dark horse, 0x5b on Fenrir and otherwise 0x94.
 TEST(HeroSkillsKnightTest, Skill41ActsByTheMount)
 {
     struct Case
@@ -439,7 +436,8 @@ TEST(HeroSkillsKnightTest, Skill41ActsByTheMount)
         EXPECT_EQ(tested->Hero().animation.action, tried.action);
         EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
     }
-    // La celda del blanco sale de +0x3a8/+0x3ac, no de 0x77e1ba8: el byte 7 la sigue; 0x4e9920 deja pisar el nibble.
+    // The target's cell comes from +0x3a8/+0x3ac, not from 0x77e1ba8: byte 7 follows it; 0x4e9920 lets the nibble be
+    // overwritten.
     const auto tested = AKnight(0x41);
     tested->Hero().attackPosition = {19450.0f, 11850.0f, 0.0f};
     tested->Movement().selectedSkillRange = 20.0f;
@@ -449,8 +447,8 @@ TEST(HeroSkillsKnightTest, Skill41ActsByTheMount)
     EXPECT_EQ(tested->Sent(0)[8], 0xb4);
 }
 
-// 0x586419..0x587346: la 0x3e, en el caballo oscuro y fuera de la zona segura, hace la 0x53 con el sonido 0x1ce. Sin
-// el caballo, en la zona segura, sin durabilidad (+0xdc6) o en Chaos Castle, nada.
+// 0x586419..0x587346: 0x3e, on the dark horse and outside the safe zone, does 0x53 with sound 0x1ce. Without the horse,
+// in the safe zone, without durability (+0xdc6) or in Chaos Castle, nothing.
 TEST(HeroSkillsKnightTest, Skill3eNeedsTheDarkHorse)
 {
     for (const std::int32_t map : {0, 2})
@@ -483,7 +481,7 @@ TEST(HeroSkillsKnightTest, Skill3eNeedsTheDarkHorse)
     }
 }
 
-// 0x58734b..0x587a88: la 0x30 manda el 19 con la clave del jugador si pasa el freno de 300 ms y, mande o no, hace la
+// 0x58734b..0x587a88: 0x30 sends the 19 with the player's key if it passes the 300 ms brake and, sent or not, does
 // 0x3f.
 TEST(HeroSkillsKnightTest, Skill30SendsThe19AndActs)
 {
@@ -516,7 +514,7 @@ TEST(HeroSkillsKnightTest, Skill30SendsThe19AndActs)
         EXPECT_TRUE(tested->sent.empty());
         EXPECT_EQ(tested->Hero().animation.action, 0x3f);
     }
-    // Sin GetTickCount, el freno corta.
+    // Without GetTickCount, the brake cuts.
     const auto tested = AKnight(0x30);
     auto context = tested->Context();
     context.tickCount = nullptr;
@@ -525,8 +523,8 @@ TEST(HeroSkillsKnightTest, Skill30SendsThe19AndActs)
     EXPECT_TRUE(Contains(result.Error(), "0x5873ba")) << result.Error();
 }
 
-// 0x584d73.., 0x5854fd.. y 0x585c8a..: las 0x3f, 0x40 y 0x4b mandan el 19 y dejan +0x378 en 0, sin acción. La 0x3f
-// pide a alguien en la party (0x78aba48). Las tres siguen sin arma derecha.
+// 0x584d73.., 0x5854fd.. and 0x585c8a..: 0x3f, 0x40 and 0x4b send the 19 and leave +0x378 at 0, without an action. 0x3f
+// needs someone in the party (0x78aba48). The three go on without a right-hand weapon.
 TEST(HeroSkillsKnightTest, TheLordSkillsSendThe19)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x3f}, std::uint8_t{0x40}, std::uint8_t{0x4b}})
@@ -555,9 +553,9 @@ TEST(HeroSkillsKnightTest, TheLordSkillsSendThe19)
     EXPECT_TRUE(tested->sent.empty());
 }
 
-// 0x588874..0x5896da: la 0x4c, con Fenrir en el héroe publicado. En alcance y con elegido: la espera, +0x434, el 1E con
-// la celda de 0x4e9920 en el byte 8 y la clave de la magia (0x57cf90) en el 11 y en +0x1bd, +0x378 en 0 y la acción de
-// las manos (0x4e9c50: solo la derecha, 0x64).
+// 0x588874..0x5896da: 0x4c, with Fenrir on the published hero. In reach and with a chosen one: the delay, +0x434, the
+// 1E with 0x4e9920's cell in byte 8 and the magic key (0x57cf90) in byte 11 and in +0x1bd, +0x378 at 0 and the hands'
+// action (0x4e9c50: only the right, 0x64).
 TEST(HeroSkillsKnightTest, Skill4cSendsTheMagicKey)
 {
     for (const std::int32_t map : {0, 2})
@@ -578,7 +576,7 @@ TEST(HeroSkillsKnightTest, Skill4cSendsTheMagicKey)
         EXPECT_EQ(tested->Hero().movement, 0);
     }
     {
-        // Sin Fenrir, o en Chaos Castle, no se puede.
+        // Without Fenrir, or in Chaos Castle, it cannot be used.
         for (const std::int32_t map : {0, 18})
         {
             const auto tested = AKnight(0x4c, Knight, map);
@@ -590,7 +588,7 @@ TEST(HeroSkillsKnightTest, Skill4cSendsTheMagicKey)
         }
     }
     {
-        // En alcance sin elegido: +0x434 en −1, sin la espera ni +0x378.
+        // In reach without a chosen one: +0x434 at −1, without the delay or +0x378.
         const auto tested = AKnight(0x4c);
         tested->Hero().pet.model = 0x1c37;
         tested->Hero().movement = 1;
@@ -604,8 +602,8 @@ TEST(HeroSkillsKnightTest, Skill4cSendsTheMagicKey)
     }
 }
 
-// 0x5896ea..0x589779: la 0x4c fuera de alcance camina hasta alcance · 1,2 del blanco (con las celdas leídas) y pone
-// +0x378 en 1; sin elegido, el otro elegido en −1.
+// 0x5896ea..0x589779: 0x4c out of range walks to the reach · 1.2 of the target (with the cells read) and sets +0x378 to
+// 1; without a chosen one, the other chosen one at −1.
 TEST(HeroSkillsKnightTest, Skill4cOutOfRangeWalks)
 {
     {
@@ -639,8 +637,8 @@ TEST(HeroSkillsKnightTest, Skill4cOutOfRangeWalks)
     }
 }
 
-// P-C256: la 0x4c fuera de alcance con la celda del blanco fuera de 0..255 (que PathFinding2 toma como índice
-// lineal en 0x58975f): después de las lecturas de las celdas, el camino se descarta sin cortar.
+// P-C256: 0x4c out of range with the target's cell outside 0..255 (which PathFinding2 takes as a linear index at
+// 0x58975f): after the reads of the cells, the path is discarded without cutting.
 TEST(HeroSkillsKnightTest, Skill4cDiscardsAWalkOffTheGrid)
 {
     for (const std::int32_t map : {0, 2})
@@ -665,8 +663,8 @@ TEST(HeroSkillsKnightTest, Skill4cDiscardsAWalkOffTheGrid)
     }
 }
 
-// 0x581912..0x58197a: sin arma derecha, o con un escudo en una mano, la 0x29 no sigue: solo el maná y el registro.
-// Otro tipo que no es un jugador, tampoco.
+// 0x581912..0x58197a: without a right-hand weapon, or with a shield in either hand, 0x29 does not go on: only the mana
+// and the record. Another type that is not a player does not either.
 TEST(HeroSkillsKnightTest, TheHandsAndTheTypeGateTheSkill)
 {
     for (int variant = 0; variant < 4; ++variant)
@@ -686,15 +684,16 @@ TEST(HeroSkillsKnightTest, TheHandsAndTheTypeGateTheSkill)
         EXPECT_EQ(tested->random.State(), expected.State());
         EXPECT_TRUE(tested->sent.empty());
     }
-    // 0xe12 ya no es escudo.
+    // 0xe12 is no longer a shield.
     const auto tested = AKnight(0x29);
     tested->Hero().hands[1].model = 0xe12;
     ASSERT_TRUE(tested->Use().HasValue());
     EXPECT_EQ(tested->sent.size(), 1u);
 }
 
-// 0x581b70..0x58236f: sin el maná, 0x558110(3) busca la poción y no se usa (con ella, 0x5af520 corta: hito 5); sin la
-// stamina o la energía, no se usa (sin 0x552c50 con la stamina); el Dark Lord sin el liderazgo termina.
+// 0x581b70..0x58236f: without the mana, 0x558110(3) looks for the potion and the skill is not used (with it, 0x5af520
+// cuts: milestone 5); without the stamina or the energy, it is not used (no 0x552c50 with the stamina); the Dark Lord
+// without the leadership ends.
 TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
 {
     for (const std::int32_t map : {0, 2})
@@ -742,7 +741,7 @@ TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
         EXPECT_EQ(tested->sent.size(), 1u);
     }
     {
-        // 0x5521f0: el Dark Lord con +0x2e por encima de +0x36 + +0x20; el caballero no lo mira.
+        // 0x5521f0: the Dark Lord with +0x2e above +0x36 + +0x20; the knight does not check it.
         for (const std::uint8_t heroClass : {Lord, Knight})
         {
             SCOPED_TRACE(heroClass);
@@ -755,9 +754,9 @@ TEST(HeroSkillsKnightTest, TheCostsGateTheSkill)
     }
 }
 
-// 0x58238c: fuera de la tabla (la 0x13) o con una que salta a 0x5854be (la 0x31), nada después de pagar. En Chaos
-// Castle (0x581a71..0x581ab1, los mapas 18 a 23) la 0x31 y las órdenes del cuervo (0x78 a 0x7b) ni se pueden: no se
-// pagan; en los bordes de afuera (17 y 24), en Lorencia y en Devias, se pagan y siguen a 0x5854be.
+// 0x58238c: off the table (0x13) or with one that jumps to 0x5854be (0x31), nothing after paying. In Chaos Castle
+// (0x581a71..0x581ab1, maps 18 to 23) 0x31 and the raven's orders (0x78 to 0x7b) cannot even be used: they are not
+// paid; on the outer edges (17 and 24), in Lorencia and in Devias, they are paid and go on to 0x5854be.
 TEST(HeroSkillsKnightTest, TheOtherSkillsDoNothing)
 {
     for (const std::int32_t map : {0, 2, 17, 18, 23, 24})
@@ -790,16 +789,16 @@ TEST(HeroSkillsKnightTest, TheOtherSkillsDoNothing)
     EXPECT_EQ(tested->random.State(), expected.State());
 }
 
-// 0x4e9920: arriba ((y) − (blancoY) + 8) << 4 y abajo (x) − (blancoX) + 8, sin enmascarar el de abajo (Q-C1232).
+// 0x4e9920: high ((y) − (targetY) + 8) << 4 and low (x) − (targetX) + 8, without masking the low one (Q-C1232).
 TEST(HeroSkillsKnightHelpersTest, TheRelativeCellBleedsIntoTheHighNibble)
 {
     EXPECT_EQ(Client::Skills::RelativeTargetCell(18250.0f, 11550.0f, 18450, 11750), 0xaa);
     EXPECT_EQ(Client::Skills::RelativeTargetCell(18250.0f, 11550.0f, 18250, 11550), 0x88);
-    // X − blancoX = +9 (en celdas negativas): el 0x11 de abajo prende el bit 4 del 0x80 de arriba.
+    // X − targetX = +9 (in negative cells): the low 0x11 sets bit 4 of the high 0x80.
     EXPECT_EQ(Client::Skills::RelativeTargetCell(17350.0f, 11550.0f, 18250, 11550), 0x91);
 }
 
-// 0x4e9c50: las dos manos 0x63, la derecha 0x64, la izquierda 0x65 y ninguna 0x62.
+// 0x4e9c50: both hands 0x63, the right 0x64, the left 0x65 and none 0x62.
 TEST(HeroSkillsKnightHelpersTest, TheHandsChooseTheAction)
 {
     Client::Kernel::ActorState actor = Client::Tests::UnarmedPlayer(1);
@@ -812,7 +811,7 @@ TEST(HeroSkillsKnightHelpersTest, TheHandsChooseTheAction)
     EXPECT_EQ(Client::Skills::ActionByTheHands(actor), 0x64);
 }
 
-// 0x57cf90: de 1 a 0x32 y otra vez 1.
+// 0x57cf90: from 1 to 0x32 and back to 1.
 TEST(HeroSkillsKnightHelpersTest, TheMagicKeyWrapsAfter32)
 {
     Client::Movement::GameMovementState state;
@@ -825,7 +824,8 @@ TEST(HeroSkillsKnightHelpersTest, TheMagicKeyWrapsAfter32)
     EXPECT_EQ(state.magicKeyCounter, 1);
 }
 
-// 0x551f40: la energía, 0 con +0x2c en 0 y si no (+0x20 · +0x2c · 4) / 100 + 20. Abre y cierra la entrada: 60 rand().
+// 0x551f40: the energy, 0 with +0x2c at 0 and otherwise (+0x20 · +0x2c · 4) / 100 + 20. It opens and closes the entry:
+// 60 rand().
 TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -846,9 +846,9 @@ TEST(HeroSkillsKnightHelpersTest, TheEnergyComesFromSkillBmd)
 }
 } // namespace
 
-// 0x58975f: la 0x4c fuera de alcance en el mapa 34, con Crywolf en la etapa 3 y un altar (0x206) en 0x6c8e54.
-// PathFinding2 le pone la bandera al A* (0x4eac0a..0x4eac41), que con el alcance distinto de 0 no cuenta (0x4eadd4): el
-// camino, los rand() y +0x378 son los mismos que con otro NPC (0x203) elegido.
+// 0x58975f: 0x4c out of reach on map 34, with Crywolf at stage 3 and an altar (0x206) in 0x6c8e54. PathFinding2 sets
+// the A* flag (0x4eac0a..0x4eac41), which does not count with a nonzero reach (0x4eadd4): the path, the rand() and
+// +0x378 are the same as with another NPC (0x203) chosen.
 TEST(HeroSkillsKnightTest, TheApproachWalksTheSameWithACrywolfAltar)
 {
     const auto approach = [](std::uint16_t chosenType)

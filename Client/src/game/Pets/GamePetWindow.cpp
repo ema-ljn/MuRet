@@ -45,16 +45,15 @@ using Render::Color;
 using Render::Text::FontKind;
 
 constexpr Color White{1.0f, 1.0f, 1.0f, 1.0f};
-// glColor3f(0,6; 0,6; 0,6) de la pestaña que no está elegida (0x424ad9) y glColor3f(0,9; 0,9; 0,6) de las líneas del
-// marco (0x424c24).
+// The glColor3f of 0x424ad9 (unselected tab) and of 0x424c24 (frame lines).
 constexpr Color OtherTabColor{0.6f, 0.6f, 0.6f, 1.0f};
 constexpr Color FrameLineColor{0.9f, 0.9f, 0.6f, 1.0f};
-// 0x414ac8 y 0x414aec: el fondo de la barra de durabilidad y lo lleno (0x3f61e1e2 y 0x3d70f0f1).
+// 0x414ac8 and 0x414aec (0x3f61e1e2 and 0x3d70f0f1).
 constexpr Color DurabilityBackColor{0.2f, 0.0f, 0.0f, 1.0f};
 constexpr Color DurabilityColor{0.88235295f, 0.05882353f, 0.0f, 1.0f};
 
-// Los slots de 0x61ccb0: pet1.jpg y pet2.jpg (0x61d4b0 y 0x61d4cc), win_button.tga (0x61d17a), Level_box.jpg
-// (0x61cf8f), y los de 0x61ae60: Trading_line.jpg y command.jpg.
+// Slots from 0x61ccb0: pet1.jpg and pet2.jpg (0x61d4b0 and 0x61d4cc), win_button.tga (0x61d17a), Level_box.jpg
+// (0x61cf8f); from 0x61ae60: Trading_line.jpg and command.jpg.
 constexpr std::uint16_t PetButtonSlot = 0x65d;
 constexpr std::uint16_t PetButtonOpenSlot = 0x65e;
 constexpr std::uint16_t TabSlot = 0x646;
@@ -62,18 +61,17 @@ constexpr std::uint16_t LineSlot = 0x117;
 constexpr std::uint16_t StatsBackSlot = 0xf5;
 constexpr std::uint16_t CommandsSlot = 0x12c;
 
-// 0x723911 en 2: la ventana abierta (0x42474c).
+// 0x723911 at 2 (0x42474c).
 constexpr std::uint8_t PetWindowOpen = 2;
-// 0x723910: la pestaña 0, la del caballo (0x424e40), y la 1, la del cuervo (0x416670).
+// 0x723910 (the horse tab is 0x424e40, the raven tab 0x416670).
 constexpr std::uint8_t HorseTab = 0;
 constexpr std::uint8_t RavenTab = 1;
 constexpr std::uint8_t TabCount = 2;
-// La esquina de la ventana: 0x1c2, o 0x104 con el personaje abierto.
 constexpr std::int32_t WindowLeft = 0x1c2;
 constexpr std::int32_t WindowBesideTheCharacter = 0x104;
 
-// 0x4249c4..0x424a74: el botón de la mascota, fijo en (535, 395), de 24 × 24 (0x4405c000 y 0x43c58000), y su ayuda
-// con el mouse en [0x217, 0x22f) × [0x18b, 0x1a3), en (0x217, 0x17e).
+// 0x4249c4..0x424a74: the pet button, fixed at (535, 395), 24 × 24 (0x4405c000 and 0x43c58000), and its help with the
+// mouse in [0x217, 0x22f) × [0x18b, 0x1a3), at (0x217, 0x17e).
 constexpr float PetButtonX = 535.0f;
 constexpr float PetButtonY = 395.0f;
 constexpr float PetButtonSize = 24.0f;
@@ -84,8 +82,7 @@ constexpr std::int32_t PetButtonTop = 0x18b;
 constexpr std::int32_t PetButtonBottom = 0x1a3;
 constexpr std::int32_t PetButtonHelpY = 0x17e;
 
-// 0x424ac9..0x424ba6: las pestañas, de a 45 desde 15 (0x6b87bc), de 49 de ancho; la elegida en y = 63 y de 20 de alto,
-// la otra en 67 y de 16, con du = 0,765625 y dv = 1.
+// 0x424ac9..0x424ba6: the tabs, every 45 from 15 (0x6b87bc); dv = 1.
 constexpr std::int32_t TabStep = 45;
 constexpr double TabLeft = 15.0;
 constexpr float TabWidth = 49.0f;
@@ -94,15 +91,14 @@ constexpr float OtherTabHeight = 16.0f;
 constexpr float ChosenTabTop = 63.0f;
 constexpr float ChosenTabHeight = 20.0f;
 constexpr float TabDu = 0.765625f;
-// 0x424bb9..0x424c1c: las dos líneas de 190 × 10 en y = 80 y 380, con du = 0,7421875 y dv = 0,625.
+// 0x424bb9..0x424c1c
 constexpr float LineWidth = 190.0f;
 constexpr float LineHeight = 10.0f;
 constexpr float TopLineY = 80.0f;
 constexpr float BottomLineY = 380.0f;
 constexpr float LineDu = 0.7421875f;
 constexpr float LineDv = 0.625f;
-// 0x424c35..0x424ca8: el marco de 1 punto, 12 (0x6b8864) adentro de la ventana de 190 (0x6b8a08): arriba y abajo de
-// 166 en y = 90 y 380, a la izquierda de 290 y a la derecha de 291.
+// 0x424c35..0x424ca8: the 1-point frame, 12 (0x6b8864) inside the 190 window (0x6b8a08).
 constexpr double FrameInset = 12.0;
 constexpr double WindowWidth = 190.0;
 constexpr float FrameTop = 90.0f;
@@ -110,16 +106,15 @@ constexpr float FrameBottom = 380.0f;
 constexpr float FrameWidth = 166.0f;
 constexpr float FrameLeftHeight = 290.0f;
 constexpr float FrameRightHeight = 291.0f;
-// 0x424de1..0x424e26: el título en (x + 0x23, 0xc) y los nombres de las pestañas en (x + 0x28, 0x46) y (x + 0x55,
-// 0x46).
+// 0x424de1..0x424e26
 constexpr std::int32_t TitleLeft = 0x23;
 constexpr std::int32_t TitleTop = 0xc;
 constexpr std::int32_t HorseTabNameLeft = 0x28;
 constexpr std::int32_t RavenTabNameLeft = 0x55;
 constexpr std::int32_t TabNameTop = 0x46;
 
-// 0x424e8c..0x424ec7 y 0x4166a0..0x416702: el fondo de Level_box en x + 19 − 6 (0x6b8870 y 0x6b87f4), de 75 × 21, con
-// du = 0,5859375 y dv = 0,65625; el caballo uno en y = 96, el cuervo dos, en 96 y 236 (0x8c más).
+// 0x424e8c..0x424ec7 and 0x4166a0..0x416702: the Level_box back at x + 19 − 6 (0x6b8870 and 0x6b87f4); the horse has
+// one at y = 96, the raven two, at 96 and 236 (0x8c more).
 constexpr double StatsBackLeft = 19.0;
 constexpr double StatsBackShift = 6.0;
 constexpr double StatsBackTop = 96.0;
@@ -129,19 +124,17 @@ constexpr float StatsBackWidth = 75.0f;
 constexpr float StatsBackHeight = 21.0f;
 constexpr float StatsBackDu = 0.5859375f;
 constexpr float StatsBackDv = 0.65625f;
-// 0x424eff..0x424f1e: el nombre del caballo en (x + 0x55, 0x14); 0x416767..0x416772: el del cuervo, el título en
-// (x + 0x23, 0x14).
+// 0x424eff..0x424f1e: the horse's name; 0x416767..0x416772: the raven's, at the title (x + 0x23, 0x14).
 constexpr std::int32_t HorseNameLeft = 0x55;
 constexpr std::int32_t PetNameTop = 0x14;
-// 0x424f61..0x424fb2 y 0x4241d6..0x424215: "no tiene" en (x + 0x5f, 0xdc), negro, y encima en (x + 0x5e, 0xdb).
+// 0x424f61..0x424fb2 and 0x4241d6..0x424215: the missing-pet text in black, and on top of it.
 constexpr std::int32_t MissingShadowLeft = 0x5f;
 constexpr std::int32_t MissingShadowTop = 0xdc;
 constexpr std::int32_t MissingLeft = 0x5e;
 constexpr std::int32_t MissingTop = 0xdb;
 
-// 0x4149b0: los renglones desde y + 100 (0x6b86b4), el nivel en x + 0xe en una caja de 70 y los demás en x + 0x18 en
-// una de 145, de a 15 (0x6b87bc) salvo el primero, a 20 (0x6b86d0). La barra de durabilidad: el fondo de 145 × 8 en
-// x + 0x18 y lo lleno de 6 de alto en (x + 0x19, + 1), de durabilidad · 1/255 · 143 de ancho (0x6b88f8 y 0x6b88f4).
+// 0x4149b0: the lines from y + 100 (0x6b86b4), every 15 (0x6b87bc) except the first, at 20 (0x6b86d0). The durability
+// bar fill is 6 high at (x + 0x19, + 1) and durability · 1/255 · 143 wide (0x6b88f8 and 0x6b88f4).
 constexpr double StatsTop = 100.0;
 constexpr double FirstStep = 20.0;
 constexpr double StatsStep = 15.0;
@@ -155,17 +148,16 @@ constexpr float DurabilityHeight = 6.0f;
 constexpr std::uint16_t MaxDurability = 0xff;
 constexpr float InverseMaxDurability = 1.0f / 255.0f;
 constexpr double DurabilityWidth = 143.0;
-// 0x414d18: el % del cetro (el byte +0x16 del lugar 0) por 0,01 (0x6b86c0).
+// 0x414d18: the scepter's % (byte +0x16 of slot 0) times 0.01 (0x6b86c0).
 constexpr float Percent = 0.01f;
-// 0x414fd4: la skill 0x3e de Skill.bmd, el daño del caballo.
+// 0x414fd4: Skill.bmd's 0x3e, the horse's damage.
 constexpr std::uint8_t HorseSkill = 0x3e;
-// 0x415249..0x415255: el liderazgo que pide, nivel · 15 + 0xb9.
+// 0x415249..0x415255: the required leadership.
 constexpr std::int32_t LeadershipPerLevel = 15;
 constexpr std::int32_t LeadershipBase = 0xb9;
-// 0x4155c8..0x4157af: las órdenes, el título en (x + 0xe, y + 0xf0) y los cuatro íconos de command.jpg de 22 × 26 en
-// x + 24 (0x6b8800) e y + 260, 288, 316 y 344, con u = 0,125 · k, du = 0,125 y dv = 0,13671875, y su texto en
-// (_ftol(x) + 30, _ftol(y) + 10). 0x4157c5..0x415830: el mouse sobre el ícono k de y + k · 28 (0x6b880c) + 260, con
-// los bordes incluidos (22 y 26 más, 0x6b8820 y 0x6b88e0).
+// 0x4155c8..0x4157af: the orders, the four command.jpg icons at x + 24 (0x6b8800), u = 0.125 · k, and their text at
+// (_ftol(x) + 30, _ftol(y) + 10). 0x4157c5..0x415830: the mouse over icon k at y + k · 28 (0x6b880c) + 260, edges
+// included (22 and 26 more, 0x6b8820 and 0x6b88e0).
 constexpr std::int32_t CommandsTitleTop = 0xf0;
 constexpr double CommandsLeft = 24.0;
 constexpr std::array<double, 4> CommandTops{260.0, 288.0, 316.0, 344.0};
@@ -177,9 +169,9 @@ constexpr float CommandDv = 0.13671875f;
 constexpr std::int32_t CommandTextLeft = 30;
 constexpr std::int32_t CommandTextTop = 10;
 
-// 0x418486..0x418508: el cartel del cuervo a la izquierda del ancho del mundo, 50 (0x6b86b0) más 50 con la party y 60
-// (0x6b86cc) más con una mascota de 0x1c12 a 0x1c16 o Fenrir, y 15 (0x6b87bc); el nombre termina en _ftol(x) + 50 en
-// y = 4, y la barra (0x5a6af0) de 50 × 2 en y = 16, con la durabilidad del lugar 1 por 50 / 255.
+// 0x418486..0x418508: the raven's label left of the world width, 50 (0x6b86b0), plus 50 with the party and 60
+// (0x6b86cc) more with a pet from 0x1c12 to 0x1c16 or Fenrir, and 15 (0x6b87bc); the name ends at _ftol(x) + 50, and
+// the bar (0x5a6af0) gets slot 1's durability times 50 / 255.
 constexpr float PartyOffset = 50.0f;
 constexpr double PetOffset = 60.0;
 constexpr double RavenHudWidth = 50.0;
@@ -191,10 +183,9 @@ constexpr float RavenGaugeWidth = 50.0f;
 constexpr float RavenGaugeHeight = 2.0f;
 constexpr std::int32_t RavenGaugeFill = 50;
 constexpr std::int32_t RavenGaugeFull = 255;
-// 0x4187f6..0x418895: el ícono de la orden de command.jpg, de 16 × 20 en (ancho − 20 − corrimiento − 65, 5): u =
-// ((orden % 8) · 32 + 6) / 256 y v = ((orden / 8) · 28 + 3) / 256 (0x6b87f4, 0x6b86b8 y 0x6b8940), du = 0,078125 y
-// dv = 0,10546875. El mouse, con los bordes incluidos: 12 de ancho (0x6b8864), de 5 a 25 (0x6b87f8 y 0x6b8808), y la
-// ayuda en (_ftol(x), 25).
+// 0x4187f6..0x418895: the order's command.jpg icon at (width − 20 − shift − 65, 5), u = ((order % 8) · 32 + 6) / 256
+// and v = ((order / 8) · 28 + 3) / 256 (0x6b87f4, 0x6b86b8 and 0x6b8940). The mouse, edges included: 12 wide
+// (0x6b8864), from 5 to 25 (0x6b87f8 and 0x6b8808); the help at (_ftol(x), 25).
 constexpr double OrderIconShift = 20.0;
 constexpr double OrderIconRight = 65.0;
 constexpr float OrderIconTop = 5.0f;
@@ -212,13 +203,13 @@ constexpr double OrderHoverTop = 5.0;
 constexpr double OrderHoverBottom = 25.0;
 constexpr std::int32_t OrderHelpTop = 25;
 
-// Los modelos de las mascotas (0x418486..0x4184c9): de 0x1c12 a 0x1c16 y Fenrir, y el caballo oscuro (0x424e7d).
+// 0x418486..0x4184c9, and the Dark Horse at 0x424e7d.
 constexpr std::int16_t FirstPetModel = 0x1c12;
 constexpr std::int16_t LastPetModel = 0x1c16;
 constexpr std::int16_t FenrirModel = 0x1c37;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;
 
-// Los textos de Text.bmd (la dirección − 0x76bd1dc, sobre 300).
+// Text.bmd indices (the address − 0x76bd1dc, over 300).
 constexpr std::size_t CloseHelpText = 1002;
 constexpr std::size_t NoPetText = 1169;
 constexpr std::size_t DarkHorseText = 1187;
@@ -236,7 +227,7 @@ constexpr std::size_t LifeText = 358;
 constexpr std::size_t LeadershipText = 698;
 constexpr std::size_t ScepterText = 1234;
 
-// Los colores de 0x6c8e5c y 0x6c8e64.
+// 0x6c8e5c and 0x6c8e64.
 constexpr Render::Text::TextColors HelpColors{.text = 0xffffffffu, .background = 0xff000000u};
 constexpr Render::Text::TextColors NameColors{.text = 0xffdcdcdcu, .background = 0};
 constexpr Render::Text::TextColors MissingShadowColors{.text = 0xff000000u, .background = 0};
@@ -259,13 +250,13 @@ Core::Expected<std::string_view, std::string> TextOf(const Hud::GameHudContext& 
     return *text;
 }
 
-// Un acceso al registro propio ([0x7681eb4]): abre sin gastar y, si lo deja en 0, cierra con 3.848 rand().
+// An access to the own record ([0x7681eb4]): opens for free and, if it leaves it at 0, closes with 3848 rand().
 Models::LogicalAccess OwnAccess(Hud::GameHudContext& context)
 {
     return Models::LogicalAccess(context.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
 }
 
-// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0): escalado en tamaño y en posición, sin alfa.
+// 0x621b60(slot, x, y, w, h, u, v, du, dv, 1, 1, 0)
 void Quad(Render::SpriteBatch& sprites, std::uint16_t slot, float x, float y, float width, float height, float u,
           float v, float du, float dv)
 {
@@ -288,7 +279,7 @@ void SetColors(Hud::GameHudContext& context, Render::Text::TextColors colors)
     context.hud.textColors = colors;
 }
 
-// 0x554340(x, y, texto): la ayuda, que deja la fuente normal en el DC y los colores −1 y 0.
+// 0x554340(x, y, text), which leaves the normal font in the DC and the colors −1 and 0.
 void DrawHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std::string_view help)
 {
     Ui::DrawHelp(context.sprites, context.text, x, y, help);
@@ -296,14 +287,13 @@ void DrawHelp(Hud::GameHudContext& context, std::int32_t x, std::int32_t y, std:
     SetColors(context, Render::Text::TextColors{.text = 0xffffffffu, .background = 0});
 }
 
-// 0x2000000 (el personaje) no saca rand().
+// 0x2000000 (the character panel) draws no rand().
 std::int32_t WindowLeftOf(Ui::PanelRegistry& panels)
 {
     return panels.IsOpen(Ui::CharacterPanel) ? WindowBesideTheCharacter : WindowLeft;
 }
 
-// "No tiene" de la pestaña (0x424f4d..0x424fb7 y 0x4241c3..0x424215): la grande en negrita (0x576355c), en negro una
-// vez y en rojo un punto más arriba y a la izquierda, centrada con 0x623690.
+// 0x424f4d..0x424fb7 and 0x4241c3..0x424215: the big bold font (0x576355c), centered with 0x623690.
 void DrawTheMissingPet(Hud::GameHudContext& context, std::int32_t left, std::string_view text)
 {
     Hud::WindowDrawing::SelectFont(context, FontKind::BigBold);
@@ -313,9 +303,8 @@ void DrawTheMissingPet(Hud::GameHudContext& context, std::int32_t left, std::str
     Hud::WindowDrawing::DrawCenteredText(context, left + MissingLeft, MissingTop, text);
 }
 
-// 0x4249a0: el botón de la mascota y, con 0x723911 en 2, el marco de la ventana. Devuelve el 0x723911 que leen los que
-// siguen. Un dibujo intermedio de MuRet no escribe el 0 del personaje cerrado (lo vuelve a escribir el paso, 0x424230),
-// pero lo devuelve igual.
+// 0x4249a0. Returns the 0x723911 the later parts read. A MuRet in-between draw does not write the closed character's 0
+// (the step writes it again, 0x424230), but returns it anyway.
 Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(Hud::GameHudContext& context, Ui::PanelRegistry& panels)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
@@ -343,8 +332,8 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(Hud::GameHudCont
         return runtime.panels.delegated.pet;
     const std::int32_t left = WindowLeftOf(panels);
     Hud::WindowDrawing::DrawTheWindowBack(sprites, left, 0);
-    // 0x424ac9..0x424b34 y 0x424b3d..0x424ba6: primero la que no está elegida, después la elegida, con 0x723910 leído
-    // en cada vuelta.
+    // 0x424ac9..0x424b34 and 0x424b3d..0x424ba6: the unselected tab first, then the selected one, rereading 0x723910 on
+    // each loop.
     const auto tabX = [left](std::uint8_t tab) { return F32(static_cast<double>(tab * TabStep + left) + TabLeft); };
     for (std::uint8_t tab = 0; tab < TabCount; ++tab)
     {
@@ -372,8 +361,8 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(Hud::GameHudCont
     sprites.ColorQuad(F32(static_cast<double>(x) + WindowWidth - FrameInset), FrameTop, 1.0f, FrameRightHeight);
     sprites.SetColor(White);
     sprites.SetBlend(BlendMode::Alpha);
-    // 0x424cc8..0x424d8a: el botón de cerrar en (x + 25, 395) y, con el mouse encima, la ayuda en (_ftol(x + 25), 382)
-    // con la fuente normal y los colores −1 y 0xff000000.
+    // 0x424cc8..0x424d8a: the close button at (x + 25, 395) and, with the mouse over it, the help at (_ftol(x + 25),
+    // 382) with the normal font and the colors −1 and 0xff000000.
     if (Hud::WindowDrawing::DrawTheCloseButton(context, left, 0))
     {
         auto help = TextOf(context, CloseHelpText, "0x424d66");
@@ -396,8 +385,8 @@ Core::Expected<std::uint8_t, std::string> DrawTheButtonAndFrame(Hud::GameHudCont
     return runtime.panels.delegated.pet;
 }
 
-// 0x4149b0(tipo, x, y, datos, órdenes): los datos de una mascota, el caballo (tipo 1, sin órdenes, desde 0x424e40) o
-// el cuervo (el +0x444 del objeto, que solo escribe 0x4167b0 en 0, con las órdenes, desde 0x416670).
+// 0x4149b0(type, x, y, stats, orders): the horse (type 1, no orders, from 0x424e40) or the raven (the object's +0x444,
+// which only 0x4167b0 writes, to 0, with the orders, from 0x416670).
 Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std::int32_t type, std::int32_t x,
                                                std::int32_t y, const Kernel::PetStats& stats, bool commands)
 {
@@ -406,7 +395,7 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
     Render::SpriteBatch& sprites = context.sprites;
     const std::int32_t lineBox = Hud::WindowDrawing::BoxWidth(context, LineBox);
     const std::int32_t lineLeft = x + LineLeft;
-    // fild y; fst [ebp − 0x20]; fadd 100: la suma sale del entero, y el float de y queda para las órdenes.
+    // fild y; fst [ebp − 0x20]; fadd 100: the sum comes from the integer, and y's float is kept for the orders.
     const auto floatY = static_cast<float>(y);
     float top = F32(static_cast<double>(y) + StatsTop);
     const auto drawLine = [&](std::string_view text)
@@ -434,7 +423,7 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
         Crt::Sprintf(life.Value(), static_cast<std::uint32_t>(stats.durability), std::uint32_t{MaxDurability}),
         lineBox);
     top = F32(static_cast<double>(top) + StatsStep);
-    // 0x414ac8..0x414b3e: la barra de la durabilidad, recortada a 255.
+    // 0x414ac8..0x414b3e
     sprites.SetColor(DurabilityBackColor);
     sprites.ColorQuad(static_cast<float>(lineLeft), top, DurabilityBackWidth, DurabilityBackHeight);
     sprites.SetColor(DurabilityColor);
@@ -451,8 +440,8 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
         return Core::Unexpected(std::move(experience).Error());
     drawLine(Crt::Sprintf(experience.Value(), stats.experience, stats.nextExperience));
 
-    // 0x414bca..0x414d24: el caballo, con su propio acceso al registro propio, el % del cetro (el byte +0x16 del lugar
-    // 0 del equipo), si hay algo en ese lugar.
+    // 0x414bca..0x414d24: the horse, with its own access to the own record, the scepter's % (byte +0x16 of equipment
+    // slot 0).
     float scepter = 0.0f;
     if (type == 1)
     {
@@ -468,8 +457,8 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
             scepter = F32(static_cast<double>(percent) * static_cast<double>(Percent));
         }
     }
-    // 0x414ebf..0x41518b: el daño de +0xc y +0xe. El tipo 0 le suma el % (que solo el tipo 1 lee, así que es 0,
-    // Q-C1040); el 1, el de la skill 0x3e (0x5516e0) con el registro propio abierto.
+    // 0x414ebf..0x41518b: the damage of +0xc and +0xe. Type 0 adds the % (which only type 1 reads, so it is 0,
+    // Q-C1040); type 1, that of skill 0x3e (0x5516e0) with the own record open.
     std::int32_t minimum = stats.word0c;
     std::int32_t maximum = stats.word0e;
     if (type == 0)
@@ -503,8 +492,8 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
         return Core::Unexpected(std::move(speed).Error());
     drawLine(Crt::Sprintf(speed.Value(), static_cast<std::uint32_t>(stats.word10)));
 
-    // 0x415240..0x4155bd: el liderazgo que pide, en rojo si el del registro propio (+0x36 + +0x20, de 16 bits) no
-    // alcanza, con su acceso. Siempre es positivo: el nivel es de 16 bits.
+    // 0x415240..0x4155bd: in red if the own record's (+0x36 + +0x20, 16 bits) falls short. Always positive: the level
+    // is 16 bits.
     const std::int32_t leadership = static_cast<std::int32_t>(stats.level) * LeadershipPerLevel + LeadershipBase;
     if (leadership > 0)
     {
@@ -526,7 +515,7 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
         return Core::Unexpected(std::string("0x415869: los datos del tipo 0 sin las órdenes no los llama nadie (las "
                                             "llamadas de 0x424e40 y 0x416670 son con el tipo 1 o con las órdenes)"));
     }
-    // 0x4155c8..0x4157af: las cuatro órdenes del cuervo.
+    // 0x4155c8..0x4157af
     auto commandsTitle = format(CommandsTitleText, "0x41560b");
     if (!commandsTitle.HasValue())
         return Core::Unexpected(std::move(commandsTitle).Error());
@@ -546,7 +535,7 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
         Hud::WindowDrawing::DrawText(context, Truncate(static_cast<double>(commandX)) + CommandTextLeft,
                                      Truncate(static_cast<double>(commandY)) + CommandTextTop, text.Value());
     }
-    // 0x4157b4..0x415858: la ayuda de la primera orden con el mouse encima, y sale.
+    // 0x4157b4..0x415858: the help of the first order under the mouse, then it returns.
     const auto mouseX = static_cast<double>(static_cast<float>(context.mouse.x));
     const auto mouseY = static_cast<double>(context.mouse.y);
     for (std::size_t command = 0; command < CommandTops.size(); ++command)
@@ -569,7 +558,7 @@ Core::Expected<void, std::string> DrawTheStats(Hud::GameHudContext& context, std
     return {};
 }
 
-// 0x424e40(héroe): la pestaña del caballo.
+// 0x424e40(hero)
 Core::Expected<void, std::string> DrawTheHorseTab(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const Kernel::ActorState& hero)
 {
@@ -599,7 +588,7 @@ Core::Expected<void, std::string> DrawTheHorseTab(Hud::GameHudContext& context, 
     return DrawTheStats(context, 1, left, 0, runtime.pets[Kernel::DarkHorsePetStats], false);
 }
 
-// 0x416670, thiscall sobre el cuervo: la pestaña del cuervo.
+// 0x416670, thiscall on the raven.
 Core::Expected<void, std::string> DrawTheRavenTab(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const DarkSpirit& raven)
 {
@@ -617,7 +606,7 @@ Core::Expected<void, std::string> DrawTheRavenTab(Hud::GameHudContext& context, 
     Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, NameColors);
     Hud::WindowDrawing::DrawTitle(context, left + TitleLeft, PetNameTop, name.Value());
-    // 0x41677d..0x41679b: los 0x14 bytes de +0x448 y el tipo de +0x444 (0, Q-C1041).
+    // 0x41677d..0x41679b: the 0x14 bytes at +0x448 and the type at +0x444 (0, Q-C1041).
     const Kernel::PetStats stats{.experience = raven.experience,
                                  .nextExperience = raven.nextExperience,
                                  .level = raven.level,
@@ -629,7 +618,7 @@ Core::Expected<void, std::string> DrawTheRavenTab(Hud::GameHudContext& context, 
     return DrawTheStats(context, 0, left, 0, stats, true);
 }
 
-// La vtable + 0xc del cuervo (0x4182e0 → 0x418460): su cartel arriba a la derecha, con o sin la ventana.
+// The raven's vtable + 0xc (0x4182e0 → 0x418460): its top-right label, with or without the window.
 Core::Expected<void, std::string> DrawTheRavenHud(Hud::GameHudContext& context, Ui::PanelRegistry& panels,
                                                   const Kernel::ActorState& hero, const DarkSpirit& raven)
 {
@@ -638,7 +627,7 @@ Core::Expected<void, std::string> DrawTheRavenHud(Hud::GameHudContext& context, 
     Hud::WindowDrawing::SelectFont(context, FontKind::Bold);
     SetColors(context, RavenHudColors);
     float offset = context.hud.partyCount > 0 ? PartyOffset : 0.0f;
-    // 0x4184ac: la mascota del héroe de [0x743a170], con signo.
+    // 0x4184ac: the pet of the hero at [0x743a170], signed.
     const auto pet = static_cast<std::int16_t>(hero.pet.model);
     if ((pet >= FirstPetModel && pet <= LastPetModel) || pet == FenrirModel)
         offset = F32(static_cast<double>(offset) + PetOffset);
@@ -653,8 +642,8 @@ Core::Expected<void, std::string> DrawTheRavenHud(Hud::GameHudContext& context, 
     auto name = TextOf(context, DarkRavenText, "0x41877b");
     if (!name.HasValue())
         return Core::Unexpected(std::move(name).Error());
-    // 0x41877a..0x4187b1: GetTextExtentPoint32 sin usar lo que mide y 0x5542f0(_ftol(x) + 50, 4, texto, 0, 4, 0), que
-    // termina en x con la fuente del DC y no dibuja un texto vacío ni mide.
+    // 0x41877a..0x4187b1: GetTextExtentPoint32 with its result unused, then 0x5542f0(_ftol(x) + 50, 4, text, 0, 4, 0),
+    // which ends at x with the DC's font and neither draws nor measures an empty text.
     if (!name.Value().empty())
     {
         const std::int32_t at =

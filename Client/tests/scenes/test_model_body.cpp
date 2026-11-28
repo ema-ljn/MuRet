@@ -42,8 +42,8 @@
 #include <string>
 #include <vector>
 
-// El cuerpo de los monstruos y los NPC (CL9 hito 2, P-C52 d): 0x4f9580, 0x4fcbb0, 0x42d890, 0x4ea190, 0x4ea0e0 y los
-// cortes de 0x4fcee0 y 0x505de0 por tipo.
+// The body of monsters and NPCs (P-C52 d): 0x4f9580, 0x4fcbb0, 0x42d890, 0x4ea190, 0x4ea0e0 and the per-type cuts of
+// 0x4fcee0 and 0x505de0.
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
@@ -84,7 +84,7 @@ TEST(ModelBodyTest, TheSpeedOfTheOtherModelsByType)
     using Client::Monsters::ModelSpeedOf;
     EXPECT_EQ(ModelSpeedOf(0xa8, 0, 0.0f, 0.3f), 0.6f);
     EXPECT_EQ(ModelSpeedOf(0xac, 6, 7.0f, 0.3f), 0.6f);
-    // 0x4f96f7..0x4f9712: el 0x192 en la 6 solo pasado el frame 6.
+    // 0x4f96f7..0x4f9712: the 0x192 in action 6 only past frame 6.
     EXPECT_EQ(ModelSpeedOf(0x192, 6, 6.5f, 0.3f), 0.3f * 4.0f);
     EXPECT_EQ(ModelSpeedOf(0x192, 6, 6.0f, 0.3f), 0.3f);
     EXPECT_EQ(ModelSpeedOf(0x192, 5, 7.0f, 0.3f), 0.3f);
@@ -93,8 +93,8 @@ TEST(ModelBodyTest, TheSpeedOfTheOtherModelsByType)
     EXPECT_EQ(ModelSpeedOf(0x153, 6, 9.0f, 0.3f), 0.3f);
 }
 
-// 0x4fcbb0: los monstruos vuelven a la 0 desde las 1, 3, 4, 5, 8, 9 y 0xb sin rand(); la 2 y la 7 siguen; la 6 con
-// +0x38a en 0 lo pone en 1 y pide los restos (0x4fcc3c, 0x52e810), y con él en 1 no hace nada.
+// 0x4fcbb0: monsters go back to 0 from 1, 3, 4, 5, 8, 9 and 0xb without rand(); 2 and 7 go on; 6 with +0x38a at 0 sets
+// it to 1 and requests the remains (0x4fcc3c, 0x52e810), and with it at 1 does nothing.
 TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
 {
     const Skeleton skeleton = EightActions();
@@ -132,9 +132,9 @@ TEST(ModelBodyTest, TheMonstersGoBackToRestWithoutRandom)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x4fcc77..0x4fccf7: el 0x1ce y el 0x1cf sortean con rand() % 16 (debajo de 12 la 0, si no 1 + rand() % 2); los demás
-// fuera de los monstruos, con rand() % 2; el NewFace no sortea; el 0xc5 pone el byte de la acción en 1 sin 0x4ea030; el
-// 0x28 en el mapa 1 va a la 0.
+// 0x4fcc77..0x4fccf7: 0x1ce and 0x1cf draw with rand() % 16 (below 12 action 0, otherwise 1 + rand() % 2); the other
+// non-monsters, with rand() % 2; NewFace does not draw; 0xc5 sets the action byte to 1 without 0x4ea030; 0x28 on map 1
+// goes to 0.
 TEST(ModelBodyTest, TheNpcsDrawTheirNextAction)
 {
     const Skeleton skeleton = EightActions();
@@ -174,9 +174,9 @@ TEST(ModelBodyTest, TheNpcsDrawTheirNextAction)
     EXPECT_EQ(random.State(), Seed);
 }
 
-// 0x42d890 en el mapa 30, por +0x376: 221 y 222 a la 0; 277 con +0x78 en 0x20000 a la 2 y +0x42c en 0, con +0x78 en 0
-// a la 0 y +0x42c en 1; 286 y 287 de la 5 a la 4 con 0x7239d8 en 2, +0x110 en 1 y +0x100 en 0x12c. Devuelven 1 y
-// 0x4fcbb0 vuelve a avanzar; fuera del 30, nada.
+// 0x42d890 on map 30, by +0x376: 221 and 222 to 0; 277 with +0x78 at 0x20000 to 2 and +0x42c at 0, with +0x78 at 0 to 0
+// and +0x42c at 1; 286 and 287 from 5 to 4 with 0x7239d8 at 2, +0x110 at 1 and +0x100 at 0x12c. They return 1 and
+// 0x4fcbb0 advances again; outside 30, nothing.
 TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
 {
     const Skeleton skeleton = EightActions();
@@ -216,7 +216,7 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     EXPECT_EQ(runtime.castleSiege.castleByte7239d8, 2);
     EXPECT_EQ(gate.byte110, 1);
     EXPECT_EQ(gate.dword100, 0x12c);
-    // La 3 no es de 0x42d890: sigue a los monstruos, que la vuelven a la 0.
+    // Action 3 is not 0x42d890's: it goes on to the monsters, which send it back to 0.
     gate.word376 = 287;
     gate.animation.action = 3;
     ASSERT_EQ(Client::Monsters::FinishTheModelAction(gate, skeleton, runtime, random).Value(), ModelActionEnd::Done);
@@ -230,8 +230,8 @@ TEST(ModelBodyTest, TheCastleObjectsFinishByTheirKind)
     EXPECT_EQ(outside.animation.action, 2);
 }
 
-// 0x4ea190 y 0x4ea0e0: la 2 mira al personaje de +0x3a4 si está a menos de 90 grados; sin blanco (−1) o con otra acción
-// el blanco queda en 0; la 6 no lo toca; la 0 sortea.
+// 0x4ea190 and 0x4ea0e0: action 2 looks at the +0x3a4 character if it is within 90 degrees; with no target (−1) or
+// another action the target stays at 0; 6 leaves it alone; 0 draws.
 TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -246,11 +246,11 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target.x, 0.0f);
     EXPECT_EQ(actor.headTurn.target.y, static_cast<float>((180.0 - (30.0 + 50.0)) * static_cast<double>(0.2f)));
-    // De espaldas: a 180 grados, en 0.
+    // Facing away: at 180 degrees, 0.
     actor.angles.z = heading >= 180.0f ? heading - 180.0f : heading + 180.0f;
     ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{0.0f, 0.0f}));
-    // Debajo: el ángulo negativo suma 360.
+    // Below: the negative angle adds 360.
     actor.angles.z = heading;
     pool[5].position.z = 0.0f;
     ASSERT_TRUE(Client::Monsters::SetTheModelHeadTarget(actor, pool, random).HasValue());
@@ -276,13 +276,10 @@ TEST(ModelBodyTest, TheHeadOfAnotherModelLooksAtItsTarget)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, expected.Next() % 32 == 0 ? 3 : 1).State());
 }
 
-// Las antiguas expectativas de corte de 4fcee0 se sustituyeron por geometría y continuidad
-// en test_weapon_trail, test_monster_ribbon_trails y test_weapon_trail_pipeline.
-
-// Un Monster02 (el modelo 0x153) cargado por 0x612d90 en Assets::AssetsState::fauna da su paso fuera del pool: avanza
-// con la velocidad de su acción (0,2 la 1, 0x612e5a..0x612e9f) y, al terminar la 3, vuelve a la 0 (0x4fcbb0), que
-// después sortea la cabeza con 0x4ea190. Los rand(): los dos accesos de 0x508ba0, el % 6 del cuerpo, la celda de
-// 0x505de0, 0x4ea190 (solo con la 0), la cabeza común y el & 7.
+// A Monster02 (model 0x153) loaded by 0x612d90 into Assets::AssetsState::fauna steps outside the pool: it advances with
+// its action's speed (0.2 for action 1, 0x612e5a..0x612e9f) and, when 3 ends, goes back to 0 (0x4fcbb0), which then
+// draws the head with 0x4ea190. The rand(): the two accesses of 0x508ba0, the body's % 6, the 0x505de0 cell, 0x4ea190
+// (only with 0), the common head and the & 7.
 class MonsterStep : public ::testing::Test
 {
 protected:
@@ -352,7 +349,7 @@ protected:
     ActorState m_actor;
 };
 
-// Lo que saca después de la celda de 0x505de0: la cabeza común y el & 7.
+// What it draws after the 0x505de0 cell: the common head and the & 7.
 void DrawTheHeadAndTheEffects(CrtRandom& random)
 {
     Client::Kernel::CharacterHead head;
@@ -386,7 +383,7 @@ TEST_F(MonsterStep, AMonsterThatEndsItsAttackRests)
     EXPECT_EQ(m_actor.animation.action, 0);
     EXPECT_EQ(m_actor.animation.frame, 0.0f);
     CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 8);
-    // 0x4ea190 con la 0: rand() % 32 y, si da 0, dos más.
+    // 0x4ea190 with 0: rand() % 32 and, if it gives 0, two more.
     if (CrtRandom(expected).Next() % 32 == 0)
         Skip(expected, 3);
     else
@@ -395,7 +392,7 @@ TEST_F(MonsterStep, AMonsterThatEndsItsAttackRests)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Lo que 0x52e810 saca para una marca de sangre, en orden: x, y, el lado, el giro y la vida de 0x548fe0.
+// What 0x52e810 draws for a blood mark, in order: x, y, the side, the turn and the life from 0x548fe0.
 struct DrawnMark
 {
     float size;
@@ -414,11 +411,11 @@ DrawnMark DrawBloodMark(CrtRandom& draws)
     return drawn;
 }
 
-// En Lorencia, el Monster02 (0x153, hueso +0x54 en 5) que termina la 6 deja sus restos una vez (0x4fcc3c → 0x52e810):
-// +0x38a en 1 y dos marcas 0x5e3 con su luz. Sin huesos propios (antes de su primer dibujo) caen en la posición del
-// modelo compartido que 0x4fd69b ya publicó desde este actor; no conservan el origen de otro 0x153 (Q-C1178 revisado).
-// Los rand(): los de 0x508ba0, los diez de las marcas, el % 6, la celda de 0x505de0, la cabeza y el & 7. El paso que
-// sigue, con +0x38a en 1, no deja nada.
+// In Lorencia, the Monster02 (0x153, bone +0x54 at 5) that ends action 6 leaves its remains once (0x4fcc3c → 0x52e810):
+// +0x38a at 1 and two 0x5e3 marks with their light. Without own bones (before its first draw) they fall at the position
+// of the shared model that 0x4fd69b already published from this actor; they do not keep another 0x153's origin
+// (Q-C1178, revised). The rand(): those of 0x508ba0, the ten of the marks, the % 6, the 0x505de0 cell, the head and the
+// & 7. The next step, with +0x38a at 1, leaves nothing.
 TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceAtItsPublishedPosition)
 {
     ActorState previous = m_actor;
@@ -465,9 +462,9 @@ TEST_F(MonsterStep, AMonsterThatEndsDyingBleedsOnceAtItsPublishedPosition)
     EXPECT_EQ(again.State(), once.State());
 }
 
-// En Devias (el mapa 2), el monstruo de hielo (0x161, Monster16) que termina de morir apaga su byte vivo y suelta diez
-// pedazos 0xca en la tabla de 0x518cf0 del mapa, cinco rand() cada uno; el paso sigue (0x508ea0 no vuelve a mirar el
-// byte) hasta su caso de 0x505de0 (0x507e63, el corrimiento de la textura, sin rand()), después del & 7.
+// In Devias (map 2), the ice monster (0x161, Monster16) that finishes dying turns off its alive byte and drops ten 0xca
+// shards in the map's 0x518cf0 table, five rand() each; the step goes on (0x508ea0 does not check the byte again) to
+// its 0x505de0 case (0x507e63, the texture scroll, no rand()), after the & 7.
 TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
 {
     m_world->Runtime().map = 2;
@@ -516,9 +513,9 @@ TEST_F(MonsterStep, TheIceMonsterOfDeviasBreaksIntoShards)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Un modelo sin cargar (el 0x154) es el registro en 0 de 0x5769ad8 (+0x26 sin acciones): 0x4f9580 no avanza, el
-// rand() % 6 de 0x4fd7e4 sale igual y 0x505de0 va a 0x505e15, que arma la caja de +0x13c..+0x168 con la de +0x124 y
-// la posición y sale, sin la celda ni el & 7 (B3). En Lorencia, en Devias y en Atlans.
+// An unloaded model (0x154) is the zeroed record of 0x5769ad8 (+0x26, no actions): 0x4f9580 does not advance, the
+// rand() % 6 of 0x4fd7e4 is drawn anyway and 0x505de0 goes to 0x505e15, which builds the +0x13c..+0x168 box from the
+// +0x124 one and the position and exits, without the cell or the & 7 (B3).
 TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
 {
     for (const std::int32_t map : {0, 2, 7})
@@ -554,8 +551,8 @@ TEST_F(MonsterStep, AModelThatIsNotLoadedOnlyBoxesItself)
     }
 }
 
-// Monster01 (0x152) tiene caso en 0x505de0 (0x5084b3): fuera de las ventanas de frame de su aliento no saca más que el
-// & 7 (Monsters::StepTheModelEffects).
+// Monster01 (0x152) has a case in 0x505de0 (0x5084b3): outside its breath's frame windows it draws only the & 7
+// (Monsters::StepTheModelEffects).
 TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
 {
     m_actor.animation.action = 1;
@@ -568,7 +565,7 @@ TEST_F(MonsterStep, AModelWithItsOwnCaseOutsideItsWindowOnlyDrawsTheBrightness)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// La biblioteca del mapa detrás de AssetsState::fauna con el 0x1f5 (un NPC) en el esqueleto de Monster02.
+// The map library behind AssetsState::fauna, with the 0x1f5 (an NPC) on Monster02's skeleton.
 class TraderLibrary final : public Client::Models::IModelLibrary
 {
 public:
@@ -594,9 +591,9 @@ private:
     std::uint16_t m_model;
 };
 
-// 0x4fce7a..0x4fced1: el 0x1f5 mira +a8 después de 4ec200, que acaba de publicarlo al avanzar; con la
-// última de su acción, rand() % 32 en 0 le pone la acción 1 y si no la 0 (0x4ea030); con otra, nada. Después sigue
-// hasta el caso de su modelo en 0x505de0 (0x508093): en la 0, su luz y sus joints; en las otras, nada.
+// 0x4fce7a..0x4fced1: the 0x1f5 checks +0xa8 after 0x4ec200, which has just published it while advancing; on the last
+// key of its action, rand() % 32 at 0 sets action 1 and otherwise 0 (0x4ea030); on another, nothing. Then it goes on to
+// its model's case in 0x505de0 (0x508093): in 0, its light and its joints; in the others, nothing.
 TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNextAction)
 {
     TraderLibrary trader(Model());
@@ -616,7 +613,7 @@ TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNex
     ASSERT_TRUE(other.HasValue()) << other.Error();
     EXPECT_EQ(m_actor.animation.action, 2);
 
-    // Un dibujo anterior en last no dispara el gate: el avance actual lo sobrescribe con 0.
+    // An earlier draw in last does not trigger the gate: the current advance overwrites it with 0.
     ASSERT_TRUE(stepFrom(last, Seed, 0.0f).HasValue());
     EXPECT_EQ(m_actor.animation.action, 2);
     EXPECT_EQ(m_faunaModels.PoseKey(0x1f5), 0);
@@ -641,10 +638,9 @@ TEST_F(MonsterStep, TheTraderUsesTheKeyPublishedByTheAdvanceBeforeChoosingItsNex
     m_faunaModels.Bind(nullptr);
 }
 
-// 0x4fd5d7: desde el frame 3, 0x432bd0 con el 0x1b0 en la 4 fuera de (5, 7) saca su rand() de 0x432bf1 y los dos de
-// cada una de sus diez poses (Monsters::Drawing::StepTheSwingsOf1abTo1b4), entre el % 6 del cuerpo y la celda de
-// 0x505de0; después, el helper 0x431470 no hace nada con el 0x1b0 en la 4. El esqueleto de Monster02 con diez keys por
-// acción.
+// 0x4fd5d7: from frame 3, 0x432bd0 with the 0x1b0 in action 4 outside (5, 7) draws its rand() from 0x432bf1 and the two
+// of each of its ten poses (Monsters::Drawing::StepTheSwingsOf1abTo1b4), between the body's % 6 and the 0x505de0 cell;
+// then helper 0x431470 does nothing with the 0x1b0 in action 4. Monster02's skeleton with ten keys per action.
 TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
 {
     Skeleton swinging = Model();
@@ -672,8 +668,8 @@ TEST_F(MonsterStep, TheSwingOfThe1b0DrawsItsRandomsBeforeItsEffects)
     m_faunaModels.Bind(nullptr);
 }
 
-// 0x4fd5c1: quieto desde el frame 3, el 0x1a7 (Monster85, de los tipos 294 y 302: la 31) no deja estela en 0x441260
-// (solo en la 3 y la 4); sigue con el rand() de 0x432bf1 y llega a 0x505de0, donde ningún helper actúa con él.
+// 0x4fd5c1: standing from frame 3, the 0x1a7 (Monster85, of types 294 and 302: the 31) leaves no trail in 0x441260
+// (only in actions 3 and 4); it goes on with the rand() from 0x432bf1 and reaches 0x505de0, where no helper acts on it.
 TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
 {
     Skeleton standing = Model();
@@ -697,7 +693,7 @@ TEST_F(MonsterStep, AStanding1a7GoesPastItsTrailHelper)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(m_actor.animation.action, 0);
         CrtRandom expected = Client::Tests::AfterDraws(Seed, 8 + 1 + 1 + 8);
-        // 0x4ea190 con la 0: rand() % 32 y, si da 0, dos más.
+        // 0x4ea190 with 0: rand() % 32 and, if it gives 0, two more.
         if (CrtRandom(expected).Next() % 32 == 0)
             Skip(expected, 3);
         else

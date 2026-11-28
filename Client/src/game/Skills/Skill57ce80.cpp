@@ -19,7 +19,7 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0.01
 } // namespace
 
 Core::Expected<bool, std::string> AimTheHeroSkill(Kernel::ActorState& hero, const HeroSkillContext& context)

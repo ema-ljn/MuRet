@@ -3,17 +3,17 @@
 #include <array>
 #include <span>
 
-// Los casos de 0x5141e0 y de sus seis creadores de evento, leídos del listado caso por caso (*estático*): cada
-// arreglo es un caso con sus pasos en el orden del ASM, y `address` dice dónde está cada uno. Un caso que cambia con
-// el mapa o con el rand() lleva la condición en el paso (MonsterStepWhen). Los nombres son los bytes CP949 de la
-// .data del original (la dirección va en `extra`), y los de los huesos, los del std::string que arma el creador.
+// The cases of 0x5141e0 and its six event creators (*static*): each array is a case with its steps in ASM order. A case
+// that changes with the map or with rand() carries the condition in the step (MonsterStepWhen). The names are the CP949
+// bytes of the original's .data (the address goes in `extra`); the bone names, those of the std::string the creator
+// builds.
 namespace Client::Monsters
 {
 namespace
 {
 using K = MonsterStepKind;
 
-// 0x516e2a: el tipo 0.
+// 0x516e2a: type 0.
 constexpr MonsterStep Case516e2a[]{
     {.kind = K::LoadMonster, .value = 0x0, .address = 0x516e2c},
     {.kind = K::Create, .value = 0x152, .extra = 0x0, .address = 0x516e3b},
@@ -23,7 +23,7 @@ constexpr MonsterStep Case516e2a[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x418, .address = 0x516e82},
 };
 
-// 0x515be6: el tipo 1.
+// 0x515be6: type 1.
 constexpr MonsterStep Case515be6[]{
     {.kind = K::LoadMonster, .value = 0x1, .address = 0x515be8},
     {.kind = K::Create, .value = 0x153, .extra = 0x0, .address = 0x515bf7},
@@ -33,7 +33,7 @@ constexpr MonsterStep Case515be6[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x216, .address = 0x515c3f},
 };
 
-// 0x515cb0: el tipo 2.
+// 0x515cb0: type 2.
 constexpr MonsterStep Case515cb0[]{
     {.kind = K::LoadMonster, .value = 0x2, .address = 0x515cb2},
     {.kind = K::Create, .value = 0x154, .extra = 0x0, .address = 0x515cc7},
@@ -41,7 +41,7 @@ constexpr MonsterStep Case515cb0[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f000000, .address = 0x515cf9},
 };
 
-// 0x515a1f: el tipo 3.
+// 0x515a1f: type 3.
 constexpr MonsterStep Case515a1f[]{
     {.kind = K::LoadMonster, .value = 0x9, .address = 0x515a21},
     {.kind = K::Create, .value = 0x15b, .extra = 0x0, .address = 0x515a36},
@@ -49,7 +49,7 @@ constexpr MonsterStep Case515a1f[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3ecccccd, .address = 0x515a68},
 };
 
-// 0x516e2a: el tipo 4.
+// 0x516e2a: type 4.
 constexpr MonsterStep Case516e2a_2[]{
     {.kind = K::LoadMonster, .value = 0x0, .address = 0x516e2c},
     {.kind = K::Create, .value = 0x152, .extra = 0x0, .address = 0x516e3b},
@@ -62,7 +62,7 @@ constexpr MonsterStep Case516e2a_2[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x1, .address = 0x516ed0},
 };
 
-// 0x515be6: el tipo 5.
+// 0x515be6: type 5.
 constexpr MonsterStep Case515be6_2[]{
     {.kind = K::LoadMonster, .value = 0x1, .address = 0x515be8},
     {.kind = K::Create, .value = 0x153, .extra = 0x0, .address = 0x515bf7},
@@ -74,7 +74,7 @@ constexpr MonsterStep Case515be6_2[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x1, .address = 0x515ca4},
 };
 
-// 0x515d6c: el tipo 6.
+// 0x515d6c: type 6.
 constexpr MonsterStep Case515d6c[]{
     {.kind = K::LoadMonster, .value = 0x4, .address = 0x515d6e},
     {.kind = K::Create, .value = 0x156, .extra = 0x0, .address = 0x515d7d},
@@ -83,7 +83,7 @@ constexpr MonsterStep Case515d6c[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f59999a, .address = 0x515dc0},
 };
 
-// 0x515e0c: el tipo 7.
+// 0x515e0c: type 7.
 constexpr MonsterStep Case515e0c[]{
     {.kind = K::LoadMonster, .value = 0x5, .address = 0x515e0e},
     {.kind = K::Create, .value = 0x157, .extra = 0x0, .address = 0x515e23},
@@ -93,7 +93,7 @@ constexpr MonsterStep Case515e0c[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fcccccd, .address = 0x515e68},
 };
 
-// 0x516e2a: el tipo 8.
+// 0x516e2a: type 8.
 constexpr MonsterStep Case516e2a_3[]{
     {.kind = K::LoadMonster, .value = 0x0, .address = 0x516e2c},
     {.kind = K::Create, .value = 0x152, .extra = 0x0, .address = 0x516e3b},
@@ -107,7 +107,7 @@ constexpr MonsterStep Case516e2a_3[]{
     {.kind = K::Write, .size = 4, .offset = 0x78, .value = 0x1, .address = 0x516f21},
 };
 
-// 0x515d6c: el tipo 9.
+// 0x515d6c: type 9.
 constexpr MonsterStep Case515d6c_2[]{
     {.kind = K::LoadMonster, .value = 0x4, .address = 0x515d6e},
     {.kind = K::Create, .value = 0x156, .extra = 0x0, .address = 0x515d7d},
@@ -117,7 +117,7 @@ constexpr MonsterStep Case515d6c_2[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x515e00},
 };
 
-// 0x515d05: el tipo 10.
+// 0x515d05: type 10.
 constexpr MonsterStep Case515d05[]{
     {.kind = K::LoadMonster, .value = 0x3, .address = 0x515d07},
     {.kind = K::Create, .value = 0x155, .extra = 0x0, .address = 0x515d1c},
@@ -127,7 +127,7 @@ constexpr MonsterStep Case515d05[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x21f, .address = 0x515d5e},
 };
 
-// 0x515acb: el tipo 11.
+// 0x515acb: type 11.
 constexpr MonsterStep Case515acb[]{
     {.kind = K::LoadMonster, .value = 0x7, .address = 0x515acd},
     {.kind = K::Create, .value = 0x159, .extra = 0x0, .address = 0x515ae2},
@@ -137,7 +137,7 @@ constexpr MonsterStep Case515acb[]{
     {.kind = K::Write, .size = 1, .offset = 0x38a, .value = 0x1, .address = 0x515b27},
 };
 
-// 0x515b33: el tipo 12.
+// 0x515b33: type 12.
 constexpr MonsterStep Case515b33[]{
     {.kind = K::LoadMonster, .value = 0x6, .address = 0x515b35},
     {.kind = K::Create, .value = 0x158, .extra = 0x0, .address = 0x515b4a},
@@ -145,7 +145,7 @@ constexpr MonsterStep Case515b33[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f19999a, .address = 0x515b7c},
 };
 
-// 0x515b88: el tipo 13.
+// 0x515b88: type 13.
 constexpr MonsterStep Case515b88[]{
     {.kind = K::LoadMonster, .value = 0x8, .address = 0x515b8a},
     {.kind = K::Create, .value = 0x15a, .extra = 0x0, .address = 0x515b9f},
@@ -154,7 +154,7 @@ constexpr MonsterStep Case515b88[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x515bda},
 };
 
-// 0x515e74: el tipo 14.
+// 0x515e74: type 14.
 constexpr MonsterStep Case515e74[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x515e84},
     {.kind = K::Name, .extra = 0x6c8a20, .address = 0x515ead, .text = "\xc7\xd8\xb0\xf1\xc0\xfc\xbb\xe7"},
@@ -165,7 +165,7 @@ constexpr MonsterStep Case515e74[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xe16, .address = 0x515edc},
 };
 
-// 0x516033: el tipo 15.
+// 0x516033: type 15.
 constexpr MonsterStep Case516033[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x516043},
     {.kind = K::Name, .extra = 0x6c8a04, .address = 0x51606c, .text = "\xc7\xd8\xb0\xf1\xb1\xc3\xbc\xf6"},
@@ -176,7 +176,7 @@ constexpr MonsterStep Case516033[]{
     {.kind = K::Write, .size = 1, .offset = 0x38a, .value = 0x1, .address = 0x5160f9},
 };
 
-// 0x51608e: el tipo 16.
+// 0x51608e: type 16.
 constexpr MonsterStep Case51608e[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x51609e},
     {.kind = K::Name,
@@ -191,7 +191,7 @@ constexpr MonsterStep Case51608e[]{
     {.kind = K::Write, .size = 1, .offset = 0x38a, .value = 0x1, .address = 0x5160f9},
 };
 
-// 0x515a74: el tipo 17.
+// 0x515a74: type 17.
 constexpr MonsterStep Case515a74[]{
     {.kind = K::LoadMonster, .value = 0xa, .address = 0x515a76},
     {.kind = K::Create, .value = 0x15c, .extra = 0x0, .address = 0x515a8b},
@@ -199,7 +199,7 @@ constexpr MonsterStep Case515a74[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x41a, .address = 0x515abd},
 };
 
-// 0x5159b3: el tipo 18.
+// 0x5159b3: type 18.
 constexpr MonsterStep Case5159b3[]{
     {.kind = K::LoadMonster, .value = 0xb, .address = 0x5159b5},
     {.kind = K::Create, .value = 0x15d, .extra = 0x0, .address = 0x5159ca},
@@ -210,7 +210,7 @@ constexpr MonsterStep Case5159b3[]{
     {.kind = K::Write, .size = 4, .offset = 0x68, .value = 0x3f800000, .address = 0x515a13},
 };
 
-// 0x51595e: el tipo 19.
+// 0x51595e: type 19.
 constexpr MonsterStep Case51595e[]{
     {.kind = K::LoadMonster, .value = 0xc, .address = 0x515960},
     {.kind = K::Create, .value = 0x15e, .extra = 0x0, .address = 0x515975},
@@ -218,7 +218,7 @@ constexpr MonsterStep Case51595e[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x5159a7},
 };
 
-// 0x515909: el tipo 20.
+// 0x515909: type 20.
 constexpr MonsterStep Case515909[]{
     {.kind = K::LoadMonster, .value = 0xd, .address = 0x51590b},
     {.kind = K::Create, .value = 0x15f, .extra = 0x0, .address = 0x515920},
@@ -226,7 +226,7 @@ constexpr MonsterStep Case515909[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fb33333, .address = 0x515952},
 };
 
-// 0x5158b4: el tipo 21.
+// 0x5158b4: type 21.
 constexpr MonsterStep Case5158b4[]{
     {.kind = K::LoadMonster, .value = 0xe, .address = 0x5158b6},
     {.kind = K::Create, .value = 0x160, .extra = 0x0, .address = 0x5158cb},
@@ -234,7 +234,7 @@ constexpr MonsterStep Case5158b4[]{
     {.kind = K::Name, .extra = 0x6c8ac4, .address = 0x5158fb, .text = "\xbe\xcf\xbb\xec\xc0\xda"},
 };
 
-// 0x515858: el tipo 22.
+// 0x515858: type 22.
 constexpr MonsterStep Case515858[]{
     {.kind = K::LoadMonster, .value = 0xf, .address = 0x51585a},
     {.kind = K::Create, .value = 0x161, .extra = 0x0, .address = 0x51586f},
@@ -243,7 +243,7 @@ constexpr MonsterStep Case515858[]{
     {.kind = K::Name, .extra = 0x6c8acc, .address = 0x5158a6, .text = "\xbe\xf3\xc0\xbd\xb1\xab\xb9\xb0"},
 };
 
-// 0x5157f1: el tipo 23.
+// 0x5157f1: type 23.
 constexpr MonsterStep Case5157f1[]{
     {.kind = K::LoadMonster, .value = 0x10, .address = 0x5157f3},
     {.kind = K::Create, .value = 0x162, .extra = 0x0, .address = 0x515808},
@@ -253,14 +253,14 @@ constexpr MonsterStep Case5157f1[]{
     {.kind = K::Name, .extra = 0x6c8ad8, .address = 0x51584a, .text = "\xc8\xa3\xb8\xd3\xb5\xe5"},
 };
 
-// 0x5157a3: el tipo 24.
+// 0x5157a3: type 24.
 constexpr MonsterStep Case5157a3[]{
     {.kind = K::LoadMonster, .value = 0x11, .address = 0x5157a5},
     {.kind = K::Create, .value = 0x163, .extra = 0x0, .address = 0x5157ba},
     {.kind = K::Name, .extra = 0x6c8ae0, .address = 0x5157ea, .text = "\xbf\xfa"},
 };
 
-// 0x515727: el tipo 25.
+// 0x515727: type 25.
 constexpr MonsterStep Case515727[]{
     {.kind = K::LoadMonster, .value = 0x12, .address = 0x515729},
     {.kind = K::Create, .value = 0x164, .extra = 0x0, .address = 0x51573e},
@@ -273,7 +273,7 @@ constexpr MonsterStep Case515727[]{
     {.kind = K::Name, .extra = 0x6c8ae4, .address = 0x515795, .text = "\xbe\xc6\xc0\xcc\xbd\xba\xc4\xfd"},
 };
 
-// 0x5156c9: el tipo 26.
+// 0x5156c9: type 26.
 constexpr MonsterStep Case5156c9[]{
     {.kind = K::LoadMonster, .value = 0x13, .address = 0x5156cb},
     {.kind = K::Create, .value = 0x165, .extra = 0x0, .address = 0x5156e0},
@@ -282,7 +282,7 @@ constexpr MonsterStep Case5156c9[]{
     {.kind = K::Name, .extra = 0x6c8af0, .address = 0x515719, .text = "\xb0\xed\xba\xed\xb8\xb0"},
 };
 
-// 0x515674: el tipo 27.
+// 0x515674: type 27.
 constexpr MonsterStep Case515674[]{
     {.kind = K::LoadMonster, .value = 0x14, .address = 0x515676},
     {.kind = K::Create, .value = 0x166, .extra = 0x0, .address = 0x51568b},
@@ -290,7 +290,7 @@ constexpr MonsterStep Case515674[]{
     {.kind = K::Name, .extra = 0x6c8af8, .address = 0x5156bb, .text = "\xb0\xed\xb8\xae\xc0\xfc\xb0\xa5"},
 };
 
-// 0x51560f: el tipo 28.
+// 0x51560f: type 28.
 constexpr MonsterStep Case51560f[]{
     {.kind = K::LoadMonster, .value = 0x15, .address = 0x515611},
     {.kind = K::Create, .value = 0x167, .extra = 0x0, .address = 0x515626},
@@ -300,7 +300,7 @@ constexpr MonsterStep Case51560f[]{
     {.kind = K::Write, .size = 4, .offset = 0x64, .value = 0x1, .address = 0x515668},
 };
 
-// 0x5155b1: el tipo 29.
+// 0x5155b1: type 29.
 constexpr MonsterStep Case5155b1[]{
     {.kind = K::LoadMonster, .value = 0x16, .address = 0x5155b3},
     {.kind = K::Create, .value = 0x168, .extra = 0x0, .address = 0x5155c8},
@@ -309,7 +309,7 @@ constexpr MonsterStep Case5155b1[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f733333, .address = 0x515603},
 };
 
-// 0x51555c: el tipo 30.
+// 0x51555c: type 30.
 constexpr MonsterStep Case51555c[]{
     {.kind = K::LoadMonster, .value = 0x17, .address = 0x51555e},
     {.kind = K::Create, .value = 0x169, .extra = 0x0, .address = 0x515573},
@@ -317,7 +317,7 @@ constexpr MonsterStep Case51555c[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f400000, .address = 0x5155a5},
 };
 
-// 0x5154f4: el tipo 31.
+// 0x5154f4: type 31.
 constexpr MonsterStep Case5154f4[]{
     {.kind = K::LoadMonster, .value = 0x18, .address = 0x5154f6},
     {.kind = K::Create, .value = 0x16a, .extra = 0x0, .address = 0x51550b},
@@ -327,14 +327,14 @@ constexpr MonsterStep Case5154f4[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0x21a, .address = 0x515550},
 };
 
-// 0x5154a6: el tipo 32.
+// 0x5154a6: type 32.
 constexpr MonsterStep Case5154a6[]{
     {.kind = K::LoadMonster, .value = 0x19, .address = 0x5154a8},
     {.kind = K::Create, .value = 0x16b, .extra = 0x0, .address = 0x5154bd},
     {.kind = K::Name, .extra = 0x6c8b2c, .address = 0x5154e6, .text = "\xb5\xb9\xb1\xab\xb9\xb0"},
 };
 
-// 0x515436: el tipo 33.
+// 0x515436: type 33.
 constexpr MonsterStep Case515436[]{
     {.kind = K::LoadMonster, .value = 0x13, .address = 0x515438},
     {.kind = K::Create, .value = 0x165, .extra = 0x0, .address = 0x51544d},
@@ -345,7 +345,7 @@ constexpr MonsterStep Case515436[]{
     {.kind = K::Name, .extra = 0x6c8b34, .address = 0x515498, .text = "\xb0\xed\xba\xed\xb8\xb0 \xb4\xeb\xc0\xe5"},
 };
 
-// 0x51536b: el tipo 34.
+// 0x51536b: type 34.
 constexpr MonsterStep Case51536b[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x51537b},
     {.kind = K::Name,
@@ -376,7 +376,7 @@ constexpr MonsterStep Case51536b[]{
      .address = 0x51542a},
 };
 
-// 0x5152ec: el tipo 35.
+// 0x5152ec: type 35.
 constexpr MonsterStep Case5152ec[]{
     {.kind = K::LoadMonster, .value = 0xb, .address = 0x5152ee},
     {.kind = K::Create, .value = 0x15d, .extra = 0x0, .address = 0x515303},
@@ -389,7 +389,7 @@ constexpr MonsterStep Case5152ec[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x2, .address = 0x51535d},
 };
 
-// 0x515297: el tipo 36.
+// 0x515297: type 36.
 constexpr MonsterStep Case515297[]{
     {.kind = K::LoadMonster, .value = 0x1c, .address = 0x515299},
     {.kind = K::Create, .value = 0x16e, .extra = 0x0, .address = 0x5152ae},
@@ -397,7 +397,7 @@ constexpr MonsterStep Case515297[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f99999a, .address = 0x5152e0},
 };
 
-// 0x515242: el tipo 37.
+// 0x515242: type 37.
 constexpr MonsterStep Case515242[]{
     {.kind = K::LoadMonster, .value = 0x1a, .address = 0x515244},
     {.kind = K::Create, .value = 0x16c, .extra = 0x0, .address = 0x515259},
@@ -405,7 +405,7 @@ constexpr MonsterStep Case515242[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x51528b},
 };
 
-// 0x5151dd: los tipos 38, 67.
+// 0x5151dd: types 38, 67.
 constexpr MonsterStep Case5151dd[]{
     {.kind = K::LoadMonster, .value = 0x1b, .address = 0x5151df},
     {.kind = K::Create, .value = 0x16d, .extra = 0x0, .address = 0x5151f4},
@@ -415,7 +415,7 @@ constexpr MonsterStep Case5151dd[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fcccccd, .address = 0x515236},
 };
 
-// 0x51517f: el tipo 39.
+// 0x51517f: type 39.
 constexpr MonsterStep Case51517f[]{
     {.kind = K::LoadMonster, .value = 0x1c, .address = 0x515181},
     {.kind = K::Create, .value = 0x16e, .extra = 0x0, .address = 0x515196},
@@ -427,7 +427,7 @@ constexpr MonsterStep Case51517f[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x1, .address = 0x5151cf},
 };
 
-// 0x515121: el tipo 40.
+// 0x515121: type 40.
 constexpr MonsterStep Case515121[]{
     {.kind = K::LoadMonster, .value = 0x1d, .address = 0x515123},
     {.kind = K::Create, .value = 0x16f, .extra = 0x0, .address = 0x515138},
@@ -436,7 +436,7 @@ constexpr MonsterStep Case515121[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fa66666, .address = 0x515173},
 };
 
-// 0x5150c3: el tipo 41.
+// 0x5150c3: type 41.
 constexpr MonsterStep Case5150c3[]{
     {.kind = K::LoadMonster, .value = 0x1e, .address = 0x5150c5},
     {.kind = K::Create, .value = 0x170, .extra = 0x0, .address = 0x5150da},
@@ -445,7 +445,7 @@ constexpr MonsterStep Case5150c3[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x515115},
 };
 
-// 0x515050: el tipo 42.
+// 0x515050: type 42.
 constexpr MonsterStep Case515050[]{
     {.kind = K::LoadMonster, .value = 0x1f, .address = 0x515052},
     {.kind = K::Create, .value = 0x171, .extra = 0x0, .address = 0x515067},
@@ -456,7 +456,7 @@ constexpr MonsterStep Case515050[]{
     {.kind = K::Write, .size = 4, .offset = 0x138, .value = 0x438c0000, .address = 0x5150b4},
 };
 
-// 0x514ffb: el tipo 43.
+// 0x514ffb: type 43.
 constexpr MonsterStep Case514ffb[]{
     {.kind = K::LoadMonster, .value = 0x2, .address = 0x514ffd},
     {.kind = K::Create, .value = 0x154, .extra = 0x0, .address = 0x515012},
@@ -467,7 +467,7 @@ constexpr MonsterStep Case514ffb[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f333333, .address = 0x515044},
 };
 
-// 0x514fa6: los tipos 44, 79.
+// 0x514fa6: types 44, 79.
 constexpr MonsterStep Case514fa6[]{
     {.kind = K::LoadMonster, .value = 0x1f, .address = 0x514fa8},
     {.kind = K::Create, .value = 0x171, .extra = 0x0, .address = 0x514fbd},
@@ -475,21 +475,21 @@ constexpr MonsterStep Case514fa6[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f666666, .address = 0x514fef},
 };
 
-// 0x514f2a: el tipo 45.
+// 0x514f2a: type 45.
 constexpr MonsterStep Case514f2a[]{
     {.kind = K::LoadMonster, .value = 0x21, .address = 0x514f2c},
     {.kind = K::Create, .value = 0x173, .extra = 0x0, .address = 0x514f3b},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f19999a, .address = 0x514f45},
 };
 
-// 0x514f03: los tipos 46, 81.
+// 0x514f03: types 46, 81.
 constexpr MonsterStep Case514f03[]{
     {.kind = K::LoadMonster, .value = 0x22, .address = 0x514f05},
     {.kind = K::Create, .value = 0x174, .extra = 0x0, .address = 0x514f14},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f800000, .address = 0x514f1e},
 };
 
-// 0x514ec5: el tipo 47.
+// 0x514ec5: type 47.
 constexpr MonsterStep Case514ec5[]{
     {.kind = K::LoadMonster, .value = 0x23, .address = 0x514ec7},
     {.kind = K::Create, .value = 0x175, .extra = 0x0, .address = 0x514ed6},
@@ -499,7 +499,7 @@ constexpr MonsterStep Case514ec5[]{
     {.kind = K::Write, .size = 4, .offset = 0x68, .value = 0x3f800000, .address = 0x514ef7},
 };
 
-// 0x514e95: el tipo 48.
+// 0x514e95: type 48.
 constexpr MonsterStep Case514e95[]{
     {.kind = K::LoadMonster, .value = 0x24, .address = 0x514e97},
     {.kind = K::Create, .value = 0x176, .extra = 0x0, .address = 0x514ea6},
@@ -507,7 +507,7 @@ constexpr MonsterStep Case514e95[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0xc18, .address = 0x514eb7},
 };
 
-// 0x514e60: el tipo 49.
+// 0x514e60: type 49.
 constexpr MonsterStep Case514e60[]{
     {.kind = K::LoadMonster, .value = 0x25, .address = 0x514e62},
     {.kind = K::Create, .value = 0x177, .extra = 0x0, .address = 0x514e71},
@@ -516,14 +516,14 @@ constexpr MonsterStep Case514e60[]{
     {.kind = K::Write, .size = 4, .offset = 0x68, .value = 0x0, .address = 0x514e89},
 };
 
-// 0x514e39: el tipo 50.
+// 0x514e39: type 50.
 constexpr MonsterStep Case514e39[]{
     {.kind = K::LoadMonster, .value = 0x26, .address = 0x514e3b},
     {.kind = K::Create, .value = 0x178, .extra = 0x0, .address = 0x514e4a},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fe66666, .address = 0x514e54},
 };
 
-// 0x514e09: el tipo 51.
+// 0x514e09: type 51.
 constexpr MonsterStep Case514e09[]{
     {.kind = K::LoadMonster, .value = 0x21, .address = 0x514e0b},
     {.kind = K::Create, .value = 0x173, .extra = 0x0, .address = 0x514e1a},
@@ -531,7 +531,7 @@ constexpr MonsterStep Case514e09[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x1, .address = 0x514e2b},
 };
 
-// 0x514dd9: el tipo 52.
+// 0x514dd9: type 52.
 constexpr MonsterStep Case514dd9[]{
     {.kind = K::LoadMonster, .value = 0x23, .address = 0x514ddb},
     {.kind = K::Create, .value = 0x175, .extra = 0x0, .address = 0x514dea},
@@ -539,7 +539,7 @@ constexpr MonsterStep Case514dd9[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0xa1f, .address = 0x514dfb},
 };
 
-// 0x515f23: el tipo 53.
+// 0x515f23: type 53.
 constexpr MonsterStep Case515f23[]{
     {.kind = K::LoadMonster, .value = 0x27, .address = 0x515f25},
     {.kind = K::Create, .value = 0x179, .extra = 0x0, .address = 0x515f3a},
@@ -551,7 +551,7 @@ constexpr MonsterStep Case515f23[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x515fbc},
 };
 
-// 0x515fc9: el tipo 54.
+// 0x515fc9: type 54.
 constexpr MonsterStep Case515fc9[]{
     {.kind = K::LoadMonster, .value = 0x28, .address = 0x515fcb},
     {.kind = K::Create, .value = 0x17a, .extra = 0x0, .address = 0x515fe0},
@@ -560,7 +560,7 @@ constexpr MonsterStep Case515fc9[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x516027},
 };
 
-// 0x515e74: el tipo 55.
+// 0x515e74: type 55.
 constexpr MonsterStep Case515e74_2[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x515e84},
     {.kind = K::Name, .extra = 0x6c8a20, .address = 0x515ead, .text = "\xc7\xd8\xb0\xf1\xc0\xfc\xbb\xe7"},
@@ -571,7 +571,7 @@ constexpr MonsterStep Case515e74_2[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x81b, .address = 0x515f15},
 };
 
-// 0x515e74: el tipo 56.
+// 0x515e74: type 56.
 constexpr MonsterStep Case515e74_3[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x515e84},
     {.kind = K::Name, .extra = 0x6c8a20, .address = 0x515ead, .text = "\xc7\xd8\xb0\xf1\xc0\xfc\xbb\xe7"},
@@ -581,7 +581,7 @@ constexpr MonsterStep Case515e74_3[]{
     {.kind = K::Write, .size = 2, .offset = 0x2b8, .value = 0x81a, .address = 0x515ef7},
 };
 
-// 0x514d66: el tipo 57.
+// 0x514d66: type 57.
 constexpr MonsterStep Case514d66[]{
     {.kind = K::LoadMonster, .value = 0x29, .address = 0x514d68},
     {.kind = K::Create, .value = 0x17b, .extra = 0x0, .address = 0x514d77},
@@ -591,7 +591,7 @@ constexpr MonsterStep Case514d66[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514dcc},
 };
 
-// 0x514cc4: el tipo 58.
+// 0x514cc4: type 58.
 constexpr MonsterStep Case514cc4[]{
     {.kind = K::LoadMonster, .value = 0x2a, .address = 0x514cc6},
     {.kind = K::Create, .value = 0x17c, .extra = 0x0, .address = 0x514cd5},
@@ -603,7 +603,7 @@ constexpr MonsterStep Case514cc4[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514d59},
 };
 
-// 0x514cc4: el tipo 59.
+// 0x514cc4: type 59.
 constexpr MonsterStep Case514cc4_2[]{
     {.kind = K::LoadMonster, .value = 0x2a, .address = 0x514cc6},
     {.kind = K::Create, .value = 0x17c, .extra = 0x0, .address = 0x514cd5},
@@ -616,7 +616,7 @@ constexpr MonsterStep Case514cc4_2[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514d59},
 };
 
-// 0x514c5a: el tipo 60.
+// 0x514c5a: type 60.
 constexpr MonsterStep Case514c5a[]{
     {.kind = K::LoadMonster, .value = 0x2b, .address = 0x514c5c},
     {.kind = K::Create, .value = 0x17d, .extra = 0x0, .address = 0x514c6b},
@@ -625,7 +625,7 @@ constexpr MonsterStep Case514c5a[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514cb7},
 };
 
-// 0x514bd1: el tipo 61.
+// 0x514bd1: type 61.
 constexpr MonsterStep Case514bd1[]{
     {.kind = K::LoadMonster, .value = 0x2c, .address = 0x514bd3},
     {.kind = K::Create, .value = 0x17e, .extra = 0x0, .address = 0x514be2},
@@ -634,7 +634,7 @@ constexpr MonsterStep Case514bd1[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514c4d},
 };
 
-// 0x514b67: los tipos 62, 300.
+// 0x514b67: types 62, 300.
 constexpr MonsterStep Case514b67[]{
     {.kind = K::LoadMonster, .value = 0x2d, .address = 0x514b69},
     {.kind = K::Create, .value = 0x17f, .extra = 0x0, .address = 0x514b78},
@@ -643,7 +643,7 @@ constexpr MonsterStep Case514b67[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514bc4},
 };
 
-// 0x514bd1: el tipo 63.
+// 0x514bd1: type 63.
 constexpr MonsterStep Case514bd1_2[]{
     {.kind = K::LoadMonster, .value = 0x2c, .address = 0x514bd3},
     {.kind = K::Create, .value = 0x17e, .extra = 0x0, .address = 0x514be2},
@@ -654,7 +654,7 @@ constexpr MonsterStep Case514bd1_2[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x514c4d},
 };
 
-// 0x514a96: el tipo 64.
+// 0x514a96: type 64.
 constexpr MonsterStep Case514a96[]{
     {.kind = K::LoadMonster, .value = 0x2e, .address = 0x514a98},
     {.kind = K::Create, .value = 0x180, .extra = 0x0, .address = 0x514aa7},
@@ -664,7 +664,7 @@ constexpr MonsterStep Case514a96[]{
     {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0x1, .address = 0x514ac8},
 };
 
-// 0x514b12: los tipos 65, 136.
+// 0x514b12: types 65, 136.
 constexpr MonsterStep Case514b12[]{
     {.kind = K::LoadMonster, .value = 0x2f, .address = 0x514b14},
     {.kind = K::Create, .value = 0x181, .extra = 0x0, .address = 0x514b23},
@@ -672,21 +672,21 @@ constexpr MonsterStep Case514b12[]{
     {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0x2, .address = 0x514b34},
 };
 
-// 0x514b40: los tipos 66, 135.
+// 0x514b40: types 66, 135.
 constexpr MonsterStep Case514b40[]{
     {.kind = K::LoadMonster, .value = 0x30, .address = 0x514b42},
     {.kind = K::Create, .value = 0x182, .extra = 0x0, .address = 0x514b51},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fd9999a, .address = 0x514b5b},
 };
 
-// 0x514818: el tipo 68.
+// 0x514818: type 68.
 constexpr MonsterStep Case514818[]{
     {.kind = K::LoadMonster, .value = 0x31, .address = 0x51481a},
     {.kind = K::Create, .value = 0x183, .extra = 0x0, .address = 0x514829},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fb33333, .address = 0x514833},
 };
 
-// 0x51483f: el tipo 69.
+// 0x51483f: type 69.
 constexpr MonsterStep Case51483f[]{
     {.kind = K::LoadMonster, .value = 0x32, .address = 0x514841},
     {.kind = K::Create, .value = 0x184, .extra = 0x0, .address = 0x514850},
@@ -694,7 +694,7 @@ constexpr MonsterStep Case51483f[]{
     {.kind = K::Write, .size = 4, .offset = 0x64, .value = 0x0, .address = 0x514861},
 };
 
-// 0x51486d: el tipo 70.
+// 0x51486d: type 70.
 constexpr MonsterStep Case51486d[]{
     {.kind = K::LoadMonster, .value = 0x33, .address = 0x51486f},
     {.kind = K::Create, .value = 0x185, .extra = 0x0, .address = 0x51487e},
@@ -704,7 +704,7 @@ constexpr MonsterStep Case51486d[]{
     {.kind = K::Write, .size = 1, .offset = 0x92, .value = 0x0, .address = 0x51489d},
 };
 
-// 0x5148a9: el tipo 71.
+// 0x5148a9: type 71.
 constexpr MonsterStep Case5148a9[]{
     {.kind = K::LoadMonster, .value = 0x34, .address = 0x5148ab},
     {.kind = K::Create, .value = 0x186, .extra = 0x0, .address = 0x5148ba},
@@ -717,7 +717,7 @@ constexpr MonsterStep Case5148a9[]{
     {.kind = K::Write, .size = 4, .offset = 0x68, .value = 0x3f800000, .address = 0x5148fa},
 };
 
-// 0x514940: el tipo 72.
+// 0x514940: type 72.
 constexpr MonsterStep Case514940[]{
     {.kind = K::LoadMonster, .value = 0x35, .address = 0x514942},
     {.kind = K::Create, .value = 0x187, .extra = 0x0, .address = 0x514951},
@@ -726,7 +726,7 @@ constexpr MonsterStep Case514940[]{
     {.kind = K::Write, .size = 1, .offset = 0x2ba, .value = 0x5, .address = 0x51496b},
 };
 
-// 0x514977: el tipo 73.
+// 0x514977: type 73.
 constexpr MonsterStep Case514977[]{
     {.kind = K::LoadMonster, .value = 0x36, .address = 0x514979},
     {.kind = K::Create, .value = 0x188, .extra = 0x0, .address = 0x514988},
@@ -739,7 +739,7 @@ constexpr MonsterStep Case514977[]{
     {.kind = K::MeshFlag, .offset = 4, .value = 1, .address = 0x514a45},
 };
 
-// 0x5148a9: los tipos 74, 301.
+// 0x5148a9: types 74, 301.
 constexpr MonsterStep Case5148a9_2[]{
     {.kind = K::LoadMonster, .value = 0x34, .address = 0x5148ab},
     {.kind = K::Create, .value = 0x186, .extra = 0x0, .address = 0x5148ba},
@@ -752,7 +752,7 @@ constexpr MonsterStep Case5148a9_2[]{
     {.kind = K::Write, .size = 4, .offset = 0x68, .value = 0x3f800000, .address = 0x514934},
 };
 
-// 0x514977: el tipo 75.
+// 0x514977: type 75.
 constexpr MonsterStep Case514977_2[]{
     {.kind = K::LoadMonster, .value = 0x36, .address = 0x514979},
     {.kind = K::Create, .value = 0x188, .extra = 0x0, .address = 0x514988},
@@ -765,13 +765,13 @@ constexpr MonsterStep Case514977_2[]{
     {.kind = K::MeshFlag, .offset = 4, .value = 1, .address = 0x514a45},
 };
 
-// 0x516e2a: los tipos que el switch no lista (y los del default que no son el 0, el 4 ni el 8).
+// 0x516e2a: the types the switch does not list (and the default's that are not 0, 4 or 8).
 constexpr MonsterStep DefaultSteps[]{
     {.kind = K::LoadMonster, .value = 0x0, .address = 0x516e2c},
     {.kind = K::Create, .value = 0x152, .extra = 0x0, .address = 0x516e3b},
 };
 
-// 0x514a51: el tipo 77.
+// 0x514a51: type 77.
 constexpr MonsterStep Case514a51[]{
     {.kind = K::LoadMonster, .value = 0x37, .address = 0x514a53},
     {.kind = K::LoadMonster, .value = 0x38, .address = 0x514a5a},
@@ -781,7 +781,7 @@ constexpr MonsterStep Case514a51[]{
     {.kind = K::ModelByte, .offset = 0x88, .value = 0, .extra = 0x189, .address = 0x514a8a},
 };
 
-// 0x5146f9: el tipo 78.
+// 0x5146f9: type 78.
 constexpr MonsterStep Case5146f9[]{
     {.kind = K::LoadMonster, .value = 0x13, .address = 0x5146fb},
     {.kind = K::Create, .value = 0x165, .extra = 0x0, .address = 0x514710},
@@ -791,7 +791,7 @@ constexpr MonsterStep Case5146f9[]{
     {.kind = K::Name, .extra = 0x6c8af0, .address = 0x515719, .text = "\xb0\xed\xba\xed\xb8\xb0"},
 };
 
-// 0x51472f: el tipo 80.
+// 0x51472f: type 80.
 constexpr MonsterStep Case51472f[]{
     {.kind = K::LoadMonster, .value = 0x24, .address = 0x514731},
     {.kind = K::Create, .value = 0x176, .extra = 0x0, .address = 0x514740},
@@ -800,7 +800,7 @@ constexpr MonsterStep Case51472f[]{
     {.kind = K::Write, .size = 1, .offset = 0x2bb, .value = 0x3f, .address = 0x51475a},
 };
 
-// 0x514766: el tipo 82.
+// 0x514766: type 82.
 constexpr MonsterStep Case514766[]{
     {.kind = K::LoadMonster, .value = 0x2a, .address = 0x514768},
     {.kind = K::Create, .value = 0x17c, .extra = 0x0, .address = 0x514777},
@@ -813,7 +813,7 @@ constexpr MonsterStep Case514766[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x51480b},
 };
 
-// 0x51479e: el tipo 83.
+// 0x51479e: type 83.
 constexpr MonsterStep Case51479e[]{
     {.kind = K::LoadMonster, .value = 0x29, .address = 0x5147a0},
     {.kind = K::Create, .value = 0x17b, .extra = 0x0, .address = 0x5147af},
@@ -824,14 +824,14 @@ constexpr MonsterStep Case51479e[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x51480b},
 };
 
-// 0x5145a6: los tipos 84, 90, 96, 113, 119, 125, 138.
+// 0x5145a6: types 84, 90, 96, 113, 119, 125, 138.
 constexpr MonsterStep Case5145a6[]{
     {.kind = K::LoadMonster, .value = 0x2f, .address = 0x5145a8},
     {.kind = K::Create, .value = 0x181, .extra = 0x0, .address = 0x5145b7},
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f8ccccd, .address = 0x5145c1},
 };
 
-// 0x5145cd: los tipos 85, 91, 97, 114, 120, 126, 139.
+// 0x5145cd: types 85, 91, 97, 114, 120, 126, 139.
 constexpr MonsterStep Case5145cd[]{
     {.kind = K::LoadMonster, .value = 0x2e, .address = 0x5145cf},
     {.kind = K::Create, .value = 0x180, .extra = 0x0, .address = 0x5145de},
@@ -840,7 +840,7 @@ constexpr MonsterStep Case5145cd[]{
     {.kind = K::Write, .size = 1, .offset = 0x2da, .value = 0x1, .address = 0x5145f8},
 };
 
-// 0x514604: los tipos 86, 92, 98, 115, 121, 127, 140.
+// 0x514604: types 86, 92, 98, 115, 121, 127, 140.
 constexpr MonsterStep Case514604[]{
     {.kind = K::LoadMonster, .value = 0x3b, .address = 0x514606},
     {.kind = K::Create, .value = 0x18d, .extra = 0x0, .address = 0x51461b},
@@ -852,7 +852,7 @@ constexpr MonsterStep Case514604[]{
     {.kind = K::Name, .extra = 0x6c8be4, .address = 0x515719, .text = "\xc8\xe6\xc7\xd8\xb0\xf1\xc0\xfc\xbb\xe7"},
 };
 
-// 0x51465d: los tipos 87, 93, 99, 116, 122, 128, 141.
+// 0x51465d: types 87, 93, 99, 116, 122, 128, 141.
 constexpr MonsterStep Case51465d[]{
     {.kind = K::LoadMonster, .value = 0x3a, .address = 0x51465f},
     {.kind = K::Create, .value = 0x18c, .extra = 0x0, .address = 0x514674},
@@ -863,7 +863,7 @@ constexpr MonsterStep Case51465d[]{
      .text = "\xc0\xda\xc0\xcc\xbe\xf0\xc6\xae\xbf\xc0\xbf\xec\xb0\xc5"},
 };
 
-// 0x514695: los tipos 88, 94, 111, 117, 123, 129, 142.
+// 0x514695: types 88, 94, 111, 117, 123, 129, 142.
 constexpr MonsterStep Case514695[]{
     {.kind = K::LoadMonster, .value = 0x39, .address = 0x514697},
     {.kind = K::Create, .value = 0x18b, .extra = 0x0, .address = 0x5146a6},
@@ -891,7 +891,7 @@ constexpr MonsterStep Case514695[]{
      .text = "\xba\xd3\xc0\xba\xc7\xd8\xb0\xf1\xb1\xe2\xbb\xe7"},
 };
 
-// 0x5144cc: los tipos 89, 95, 112, 118, 124, 130, 143.
+// 0x5144cc: types 89, 95, 112, 118, 124, 130, 143.
 constexpr MonsterStep Case5144cc[]{
     {.kind = K::LoadMonster, .value = 0x3e, .address = 0x5144ce},
     {.kind = K::Create, .value = 0x190, .extra = 0x0, .address = 0x5144e3},
@@ -901,34 +901,34 @@ constexpr MonsterStep Case5144cc[]{
     {.kind = K::Name, .extra = 0x6c8c04, .address = 0x515719, .text = "\xb8\xb6\xb9\xfd\xc7\xd8\xb0\xf1"},
 };
 
-// 0x516105: el tipo 100.
+// 0x516105: type 100.
 constexpr MonsterStep Case516105[]{
     {.kind = K::Create, .value = 0x27, .extra = 0x0, .address = 0x51610c},
 };
 
-// 0x51611b: el tipo 101.
+// 0x51611b: type 101.
 constexpr MonsterStep Case51611b[]{
     {.kind = K::Create, .value = 0x28, .extra = 0x0, .address = 0x516122},
 };
 
-// 0x516131: el tipo 102.
+// 0x516131: type 102.
 constexpr MonsterStep Case516131[]{
     {.kind = K::Create, .value = 0x33, .extra = 0x0, .address = 0x516138},
 };
 
-// 0x516147: el tipo 103.
+// 0x516147: type 103.
 constexpr MonsterStep Case516147[]{
     {.kind = K::Create, .value = 0x19, .extra = 0x0, .address = 0x51614e},
 };
 
-// 0x42d0ab: el tipo 104.
+// 0x42d0ab: type 104.
 constexpr MonsterStep Event42d070Case42d0ab[]{
     {.kind = K::Create, .value = 0xb, .extra = 0x0, .address = 0x42d0bb},
     {.kind = K::Write, .size = 4, .offset = 0x394, .value = 0x1, .address = 0x42d0c5},
     {.kind = K::Write, .size = 1, .offset = 0x92, .value = 0x0, .address = 0x42d0cf},
 };
 
-// 0x514514: el tipo 131.
+// 0x514514: type 131.
 constexpr MonsterStep Case514514[]{
     {.kind = K::LoadMonster, .value = 0x3d, .address = 0x514516},
     {.kind = K::Create, .value = 0x18f, .extra = 0x0, .address = 0x51452b},
@@ -938,7 +938,7 @@ constexpr MonsterStep Case514514[]{
     {.kind = K::Name, .extra = 0x6c8bfc, .address = 0x515719, .text = "\xbc\xba\xb9\xae"},
 };
 
-// 0x51455d: los tipos 132, 133, 134.
+// 0x51455d: types 132, 133, 134.
 constexpr MonsterStep Case51455d[]{
     {.kind = K::LoadMonster, .value = 0x3c, .address = 0x51455f},
     {.kind = K::Create, .value = 0x18e, .extra = 0x0, .address = 0x514574},
@@ -948,7 +948,7 @@ constexpr MonsterStep Case51455d[]{
     {.kind = K::Name, .extra = 0x6c8bf0, .address = 0x515719, .text = "\xbc\xba\xc0\xda\xc0\xc7\xbc\xae\xb0\xfc"},
 };
 
-// 0x514ad4: el tipo 137.
+// 0x514ad4: type 137.
 constexpr MonsterStep Case514ad4[]{
     {.kind = K::LoadMonster, .value = 0x2e, .address = 0x514ad6},
     {.kind = K::Create, .value = 0x180, .extra = 0x0, .address = 0x514ae5},
@@ -958,7 +958,7 @@ constexpr MonsterStep Case514ad4[]{
     {.kind = K::Write, .size = 4, .offset = 0x58, .value = 0x1, .address = 0x514b06},
 };
 
-// 0x439e1e: los tipos 144, 174, 182, 190, 260, 268, 334.
+// 0x439e1e: types 144, 174, 182, 190, 260, 268, 334.
 constexpr MonsterStep Event439df0Case439e1e[]{
     {.kind = K::LoadMonster, .value = 0x3f, .address = 0x439e20},
     {.kind = K::Create, .value = 0x191, .extra = 0x0, .address = 0x439e37},
@@ -969,7 +969,7 @@ constexpr MonsterStep Event439df0Case439e1e[]{
     {.kind = K::Name, .extra = 0x6c74cc, .address = 0x43a0e4, .text = "\xc0\xe5\xbc\xf6\xb0\xc5\xba\xcf"},
 };
 
-// 0x439e6f: los tipos 145, 175, 183, 191, 261, 269, 336.
+// 0x439e6f: types 145, 175, 183, 191, 261, 269, 336.
 constexpr MonsterStep Event439df0Case439e6f[]{
     {.kind = K::LoadMonster, .value = 0x43, .address = 0x439e71},
     {.kind = K::Create, .value = 0x195, .extra = 0x0, .address = 0x439e88},
@@ -984,7 +984,7 @@ constexpr MonsterStep Event439df0Case439e6f[]{
      .text = "\xb4\xeb\xc7\xfc \xba\xed\xb7\xe7\xb3\xaa\xc0\xcc\xc6\xae"},
 };
 
-// 0x439ec3: los tipos 146, 176, 184, 192, 262, 270, 333.
+// 0x439ec3: types 146, 176, 184, 192, 262, 270, 333.
 constexpr MonsterStep Event439df0Case439ec3[]{
     {.kind = K::LoadMonster, .value = 0x41, .address = 0x439ec5},
     {.kind = K::Create, .value = 0x193, .extra = 0x0, .address = 0x439edc},
@@ -994,7 +994,7 @@ constexpr MonsterStep Event439df0Case439ec3[]{
     {.kind = K::Name, .extra = 0x6c74b4, .address = 0x43a0e4, .text = "\xb6\xf8\xbd\xba\xc5\xcd"},
 };
 
-// 0x439f0d: los tipos 147, 177, 185, 193, 263, 271, 331.
+// 0x439f0d: types 147, 177, 185, 193, 263, 271, 331.
 constexpr MonsterStep Event439df0Case439f0d[]{
     {.kind = K::LoadMonster, .value = 0x42, .address = 0x439f0f},
     {.kind = K::Create, .value = 0x194, .extra = 0x0, .address = 0x439f26},
@@ -1005,7 +1005,7 @@ constexpr MonsterStep Event439df0Case439f0d[]{
     {.kind = K::Name, .extra = 0x6c74ac, .address = 0x43a0e4, .text = "\xb0\xa1\xbf\xc0\xb8\xae"},
 };
 
-// 0x439f5e: los tipos 148, 178, 186, 194, 264, 272, 332.
+// 0x439f5e: types 148, 178, 186, 194, 264, 272, 332.
 constexpr MonsterStep Event439df0Case439f5e[]{
     {.kind = K::LoadMonster, .value = 0x43, .address = 0x439f60},
     {.kind = K::Create, .value = 0x195, .extra = 0x0, .address = 0x439f77},
@@ -1016,7 +1016,7 @@ constexpr MonsterStep Event439df0Case439f5e[]{
     {.kind = K::Name, .extra = 0x6c74a0, .address = 0x43a0e4, .text = "\xba\xed\xb7\xe7\xb3\xaa\xc0\xcc\xc6\xae"},
 };
 
-// 0x439fab: los tipos 149, 179, 187, 195, 265, 273, 335.
+// 0x439fab: types 149, 179, 187, 195, 265, 273, 335.
 constexpr MonsterStep Event439df0Case439fab[]{
     {.kind = K::LoadMonster, .value = 0x44, .address = 0x439fad},
     {.kind = K::Create, .value = 0x196, .extra = 0x0, .address = 0x439fc4},
@@ -1027,7 +1027,7 @@ constexpr MonsterStep Event439df0Case439fab[]{
     {.kind = K::Name, .extra = 0x6c7494, .address = 0x43a0e4, .text = "\xb8\xb6\xb8\xb0\xba\xb8\xc0\xcc"},
 };
 
-// 0x514f51: el tipo 150.
+// 0x514f51: type 150.
 constexpr MonsterStep Case514f51[]{
     {.kind = K::LoadMonster, .value = 0x20, .address = 0x514f53},
     {.kind = K::Create, .value = 0x172, .extra = 0x0, .address = 0x514f68},
@@ -1035,7 +1035,7 @@ constexpr MonsterStep Case514f51[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3df5c28f, .address = 0x514f9a},
 };
 
-// 0x515fc9: el tipo 151.
+// 0x515fc9: type 151.
 constexpr MonsterStep Case515fc9_2[]{
     {.kind = K::LoadMonster, .value = 0x28, .address = 0x515fcb},
     {.kind = K::Create, .value = 0x17a, .extra = 0x0, .address = 0x515fe0},
@@ -1044,7 +1044,7 @@ constexpr MonsterStep Case515fc9_2[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3fa66666, .address = 0x515173},
 };
 
-// 0x514390: los tipos 152, 153, 154, 155, 156, 157, 158.
+// 0x514390: types 152, 153, 154, 155, 156, 157, 158.
 constexpr MonsterStep Case514390[]{
     {.kind = K::Create, .value = 0xc5, .extra = 0x0, .address = 0x5143a0},
     {.kind = K::Write, .size = 4, .offset = 0x394, .value = 0x1, .address = 0x5143b2},
@@ -1058,7 +1058,7 @@ constexpr MonsterStep Case514390[]{
     {.kind = K::Name, .extra = 0x6e57a4, .address = 0x516a97, .text = ""},
 };
 
-// 0x439ffd: los tipos 160, 180, 188, 196, 266, 274, 337.
+// 0x439ffd: types 160, 180, 188, 196, 266, 274, 337.
 constexpr MonsterStep Event439df0Case439ffd[]{
     {.kind = K::LoadMonster, .value = 0x45, .address = 0x439fff},
     {.kind = K::Create, .value = 0x197, .extra = 0x0, .address = 0x43a016},
@@ -1070,7 +1070,7 @@ constexpr MonsterStep Event439df0Case439ffd[]{
     {.kind = K::Name, .extra = 0x6c7488, .address = 0x43a065, .text = "\xc4\xef\xb5\xd0\xc8\xc4\xba\xb8"},
 };
 
-// 0x43a075: los tipos 161, 181, 189, 197, 267, 338.
+// 0x43a075: types 161, 181, 189, 197, 267, 338.
 constexpr MonsterStep Event439df0Case43a075[]{
     {.kind = K::LoadMonster, .value = 0x45, .address = 0x43a077},
     {.kind = K::Create, .value = 0x197, .extra = 0x0, .address = 0x43a08e},
@@ -1083,7 +1083,7 @@ constexpr MonsterStep Event439df0Case43a075[]{
     {.kind = K::Name, .extra = 0x6c7488, .address = 0x43a0e4, .text = "\xc4\xef\xb5\xd0\xc8\xc4\xba\xb8"},
 };
 
-// 0x5143f7: los tipos 162, 164, 166, 168, 170, 172.
+// 0x5143f7: types 162, 164, 166, 168, 170, 172.
 constexpr MonsterStep Case5143f7[]{
     {.kind = K::LoadMonster, .value = 0x46, .address = 0x5143f9},
     {.kind = K::Create, .value = 0x198, .extra = 0x0, .address = 0x514408},
@@ -1094,7 +1094,7 @@ constexpr MonsterStep Case5143f7[]{
     {.kind = K::Write, .size = 1, .offset = 0x2da, .value = 0x0, .address = 0x514433},
 };
 
-// 0x51443f: los tipos 163, 165, 167, 169, 171, 173.
+// 0x51443f: types 163, 165, 167, 169, 171, 173.
 constexpr MonsterStep Case51443f[]{
     {.kind = K::Random, .address = 0x51443f},
     {.kind = K::LoadMonster, .plusRandom = true, .value = 0x47, .address = 0x514457},
@@ -1130,7 +1130,7 @@ constexpr MonsterStep Case51443f[]{
      .address = 0x5144c0},
 };
 
-// 0x51615d: el tipo 200.
+// 0x51615d: type 200.
 constexpr MonsterStep Case51615d[]{
     {.kind = K::Create, .value = 0xf1, .extra = 0x0, .address = 0x516167},
     {.kind = K::Write, .size = 4, .offset = 0x64, .value = 0x2, .address = 0x516171},
@@ -1138,7 +1138,7 @@ constexpr MonsterStep Case51615d[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x1, .address = 0x51617f},
 };
 
-// 0x516b13: el tipo 204.
+// 0x516b13: type 204.
 constexpr MonsterStep Case516b13[]{
     {.kind = K::LoadNpc, .value = 0x203, .address = 0x516b18},
     {.kind = K::Create, .value = 0x203, .extra = 0x0, .address = 0x516b2d},
@@ -1146,7 +1146,7 @@ constexpr MonsterStep Case516b13[]{
     {.kind = K::Write, .size = 1, .offset = 0x0, .value = 0x0, .address = 0x516b5f},
 };
 
-// 0x516b67: el tipo 205.
+// 0x516b67: type 205.
 constexpr MonsterStep Case516b67[]{
     {.kind = K::LoadNpc, .value = 0x204, .address = 0x516b6c},
     {.kind = K::Create, .value = 0x204, .extra = 0x0, .address = 0x516b81},
@@ -1161,7 +1161,7 @@ constexpr MonsterStep Case516b67[]{
     {.kind = K::Write, .size = 1, .offset = 0x98, .value = 0x0, .address = 0x516bcd},
 };
 
-// 0x516bd9: el tipo 206.
+// 0x516bd9: type 206.
 constexpr MonsterStep Case516bd9[]{
     {.kind = K::LoadNpc, .value = 0x205, .address = 0x516bde},
     {.kind = K::Create, .value = 0x205, .extra = 0x0, .address = 0x516bf3},
@@ -1176,7 +1176,7 @@ constexpr MonsterStep Case516bd9[]{
     {.kind = K::Write, .size = 1, .offset = 0x98, .value = 0x0, .address = 0x516c3f},
 };
 
-// 0x516c4b: el tipo 207.
+// 0x516c4b: type 207.
 constexpr MonsterStep Case516c4b[]{
     {.kind = K::LoadNpc, .value = 0x206, .address = 0x516c50},
     {.kind = K::Create, .value = 0x206, .extra = 0x0, .address = 0x516c65},
@@ -1191,7 +1191,7 @@ constexpr MonsterStep Case516c4b[]{
     {.kind = K::Write, .size = 1, .offset = 0x98, .value = 0x0, .address = 0x516cb1},
 };
 
-// 0x516cbd: el tipo 208.
+// 0x516cbd: type 208.
 constexpr MonsterStep Case516cbd[]{
     {.kind = K::LoadNpc, .value = 0x207, .address = 0x516cc2},
     {.kind = K::Create, .value = 0x207, .extra = 0x0, .address = 0x516cd7},
@@ -1206,7 +1206,7 @@ constexpr MonsterStep Case516cbd[]{
     {.kind = K::Write, .size = 1, .offset = 0x98, .value = 0x0, .address = 0x516d23},
 };
 
-// 0x516d2f: el tipo 209.
+// 0x516d2f: type 209.
 constexpr MonsterStep Case516d2f[]{
     {.kind = K::LoadNpc, .value = 0x208, .address = 0x516d34},
     {.kind = K::Create, .value = 0x208, .extra = 0x0, .address = 0x516d49},
@@ -1221,7 +1221,7 @@ constexpr MonsterStep Case516d2f[]{
     {.kind = K::Write, .size = 1, .offset = 0x98, .value = 0x0, .address = 0x516d95},
 };
 
-// 0x42d0db: el tipo 215.
+// 0x42d0db: type 215.
 constexpr MonsterStep Event42d070Case42d0db[]{
     {.kind = K::LoadNpc, .value = 0x1ff, .address = 0x42d0e0},
     {.kind = K::Create, .value = 0x1ff, .extra = 0x0, .address = 0x42d0f8},
@@ -1235,7 +1235,7 @@ constexpr MonsterStep Event42d070Case42d0db[]{
     {.kind = K::Name, .extra = 0x6c737c, .address = 0x42d450, .text = "\xbf\xd5\xb0\xfc"},
 };
 
-// 0x42d149: el tipo 216.
+// 0x42d149: type 216.
 constexpr MonsterStep Event42d070Case42d149[]{
     {.kind = K::LoadNpc, .value = 0x1fc, .address = 0x42d14e},
     {.kind = K::Create, .value = 0x1fc, .extra = 0x0, .address = 0x42d166},
@@ -1246,7 +1246,7 @@ constexpr MonsterStep Event42d070Case42d149[]{
     {.kind = K::Name, .extra = 0x6c737c, .address = 0x42d450, .text = "\xbf\xd5\xb0\xfc"},
 };
 
-// 0x42d183: el tipo 217.
+// 0x42d183: type 217.
 constexpr MonsterStep Event42d070Case42d183[]{
     {.kind = K::LoadNpc, .value = 0x1fd, .address = 0x42d188},
     {.kind = K::Create, .value = 0x1fd, .extra = 0x0, .address = 0x42d1a0},
@@ -1262,7 +1262,7 @@ constexpr MonsterStep Event42d070Case42d183[]{
     {.kind = K::Lower, .when = MonsterStepWhen::SiegeOff, .value = 0x42c80000, .address = 0x42d25d},
 };
 
-// 0x42d1d2: el tipo 218.
+// 0x42d1d2: type 218.
 constexpr MonsterStep Event42d070Case42d1d2[]{
     {.kind = K::LoadNpc, .value = 0x1fd, .address = 0x42d1d7},
     {.kind = K::Create, .value = 0x1fd, .extra = 0x0, .address = 0x42d1ef},
@@ -1278,7 +1278,7 @@ constexpr MonsterStep Event42d070Case42d1d2[]{
     {.kind = K::Lower, .when = MonsterStepWhen::SiegeOff, .value = 0x42c80000, .address = 0x42d25d},
 };
 
-// 0x42d264: el tipo 219.
+// 0x42d264: type 219.
 constexpr MonsterStep Event42d070Case42d264[]{
     {.kind = K::LoadNpc, .value = 0x1fb, .address = 0x42d269},
     {.kind = K::Create, .value = 0x1fb, .extra = 0x0, .address = 0x42d281},
@@ -1289,7 +1289,7 @@ constexpr MonsterStep Event42d070Case42d264[]{
     {.kind = K::Name, .extra = 0x6c7358, .address = 0x42d450, .text = "\xbc\xba\xb9\xae \xbd\xba\xc0\xa7\xc4\xa1"},
 };
 
-// 0x42d2bd: el tipo 220.
+// 0x42d2bd: type 220.
 constexpr MonsterStep Event42d070Case42d2bd[]{
     {.kind = K::LoadNpc, .value = 0x4d, .address = 0x42d2bf},
     {.kind = K::Create, .value = 0x19f, .extra = 0x0, .address = 0x42d2d7},
@@ -1303,7 +1303,7 @@ constexpr MonsterStep Event42d070Case42d2bd[]{
      .text = "\xbb\xe7\xb3\xc9\xc5\xcd \xb9\xae\xc1\xf6\xb1\xe2"},
 };
 
-// 0x42d313: el tipo 221.
+// 0x42d313: type 221.
 constexpr MonsterStep Event42d070Case42d313[]{
     {.kind = K::LoadNpc, .value = 0x1f8, .address = 0x42d318},
     {.kind = K::Create, .value = 0x1f8, .extra = 0x0, .address = 0x42d330},
@@ -1315,7 +1315,7 @@ constexpr MonsterStep Event42d070Case42d313[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d361: el tipo 222.
+// 0x42d361: type 222.
 constexpr MonsterStep Event42d070Case42d361[]{
     {.kind = K::LoadNpc, .value = 0x1f9, .address = 0x42d366},
     {.kind = K::Create, .value = 0x1f9, .extra = 0x0, .address = 0x42d330},
@@ -1327,7 +1327,7 @@ constexpr MonsterStep Event42d070Case42d361[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d37c: el tipo 223.
+// 0x42d37c: type 223.
 constexpr MonsterStep Event42d070Case42d37c[]{
     {.kind = K::LoadNpc, .value = 0x1fa, .address = 0x42d381},
     {.kind = K::Create, .value = 0x1fa, .extra = 0x0, .address = 0x42d399},
@@ -1338,7 +1338,7 @@ constexpr MonsterStep Event42d070Case42d37c[]{
     {.kind = K::Name, .extra = 0x6c7340, .address = 0x42d450, .text = "\xbf\xf8\xb7\xce\xbf\xf8"},
 };
 
-// 0x514323: el tipo 224.
+// 0x514323: type 224.
 constexpr MonsterStep Case514323[]{
     {.kind = K::LoadNpc, .value = 0x1fe, .address = 0x514328},
     {.kind = K::Create, .value = 0x1fe, .extra = 0x0, .address = 0x51433d},
@@ -1351,7 +1351,7 @@ constexpr MonsterStep Case514323[]{
     {.kind = K::Name, .extra = 0x6c7338, .address = 0x516a90, .text = "\xb1\xd9\xc0\xa7\xba\xb4"},
 };
 
-// 0x42d3d2: el tipo 224.
+// 0x42d3d2: type 224.
 constexpr MonsterStep Event42d070Case42d3d2[]{
     {.kind = K::LoadNpc, .value = 0x1fe, .address = 0x42d3d7},
     {.kind = K::Create, .value = 0x1fe, .extra = 0x0, .address = 0x42d3ef},
@@ -1364,14 +1364,14 @@ constexpr MonsterStep Event42d070Case42d3d2[]{
     {.kind = K::Name, .extra = 0x6c7338, .address = 0x42d450, .text = "\xb1\xd9\xc0\xa7\xba\xb4"},
 };
 
-// 0x51618d: el tipo 226.
+// 0x51618d: type 226.
 constexpr MonsterStep Case51618d[]{
     {.kind = K::LoadNpc, .value = 0x1f6, .address = 0x516192},
     {.kind = K::Create, .value = 0x1f6, .extra = 0x0, .address = 0x5161a7},
     {.kind = K::Name, .extra = 0x6c89e8, .address = 0x5161d0, .text = "\xc1\xb6\xb7\xc3\xbb\xe7 NPC"},
 };
 
-// 0x5161de: el tipo 229.
+// 0x5161de: type 229.
 constexpr MonsterStep Case5161de[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x5161ee},
     {.kind = K::Name, .extra = 0x6c89e0, .address = 0x516215, .text = "\xb8\xbb\xb7\xd0"},
@@ -1391,7 +1391,7 @@ constexpr MonsterStep Case5161de[]{
     {.kind = K::Dress, .address = 0x516284},
 };
 
-// 0x516291: el tipo 230.
+// 0x516291: type 230.
 constexpr MonsterStep Case516291[]{
     {.kind = K::LoadNpc, .value = 0x1cc, .address = 0x516296},
     {.kind = K::Create, .value = 0x1cc, .extra = 0x0, .address = 0x5162ab},
@@ -1405,7 +1405,7 @@ constexpr MonsterStep Case516291[]{
     {.kind = K::Write, .size = 2, .offset = 0x298, .value = 0x1ea, .address = 0x5162f8},
 };
 
-// 0x516306: el tipo 231.
+// 0x516306: type 231.
 constexpr MonsterStep Case516306[]{
     {.kind = K::LoadNpc, .value = 0x1f5, .address = 0x51630b},
     {.kind = K::Create, .value = 0x1f5, .extra = 0x0, .address = 0x516320},
@@ -1415,7 +1415,7 @@ constexpr MonsterStep Case516306[]{
      .text = "\xb5\xa5\xba\xf1\xc3\xdf\xb0\xa1\xbb\xf3\xc0\xce"},
 };
 
-// 0x516357: el tipo 232.
+// 0x516357: type 232.
 constexpr MonsterStep Case516357[]{
     {.kind = K::LoadNpc, .value = 0x1f3, .address = 0x51635c},
     {.kind = K::Create, .value = 0x1f3, .extra = 0x0, .address = 0x5163db},
@@ -1423,7 +1423,7 @@ constexpr MonsterStep Case516357[]{
     {.kind = K::Write, .size = 1, .offset = 0x88, .value = 0x4, .address = 0x5163ec},
 };
 
-// 0x51636c: el tipo 233.
+// 0x51636c: type 233.
 constexpr MonsterStep Case51636c[]{
     {.kind = K::LoadNpc, .value = 0x1f4, .address = 0x516371},
     {.kind = K::Create, .value = 0x1f4, .extra = 0x0, .address = 0x5163db},
@@ -1431,7 +1431,7 @@ constexpr MonsterStep Case51636c[]{
     {.kind = K::Write, .size = 1, .offset = 0x88, .value = 0x4, .address = 0x5163ec},
 };
 
-// 0x516381: el tipo 234.
+// 0x516381: type 234.
 constexpr MonsterStep Case516381[]{
     {.kind = K::LoadMonster, .value = 0x13, .address = 0x516383},
     {.kind = K::Create, .value = 0x165, .extra = 0x0, .address = 0x516392},
@@ -1442,7 +1442,7 @@ constexpr MonsterStep Case516381[]{
     {.kind = K::Action, .value = 0x0, .address = 0x5163ba},
 };
 
-// 0x5163c7: el tipo 235.
+// 0x5163c7: type 235.
 constexpr MonsterStep Case5163c7[]{
     {.kind = K::LoadNpc, .value = 0x1f2, .address = 0x5163cc},
     {.kind = K::Create, .value = 0x1f2, .extra = 0x0, .address = 0x5163db},
@@ -1450,7 +1450,7 @@ constexpr MonsterStep Case5163c7[]{
     {.kind = K::Write, .size = 1, .offset = 0x88, .value = 0x4, .address = 0x5163ec},
 };
 
-// 0x5163f8: el tipo 236.
+// 0x5163f8: type 236.
 constexpr MonsterStep Case5163f8[]{
     {.kind = K::LoadNpc, .value = 0x20a, .address = 0x5163fd},
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x51640c},
@@ -1460,39 +1460,39 @@ constexpr MonsterStep Case5163f8[]{
     {.kind = K::Write, .size = 2, .offset = 0x1d6, .value = 0x8, .address = 0x51642b},
 };
 
-// 0x516439: el tipo 237.
+// 0x516439: type 237.
 constexpr MonsterStep Case516439[]{
     {.kind = K::LoadNpc, .value = 0x1d9, .address = 0x51643e},
     {.kind = K::Create, .value = 0x1d9, .extra = 0x0, .address = 0x51644d},
 };
 
-// 0x51645c: el tipo 238.
+// 0x51645c: type 238.
 constexpr MonsterStep Case51645c[]{
     {.kind = K::LoadNpc, .value = 0x1d8, .address = 0x516461},
     {.kind = K::Create, .value = 0x1d8, .extra = 0x0, .address = 0x516470},
     {.kind = K::Write, .size = 4, .offset = 0x64, .value = 0x1, .address = 0x51647a},
 };
 
-// 0x516486: el tipo 239.
+// 0x516486: type 239.
 constexpr MonsterStep Case516486[]{
     {.kind = K::LoadNpc, .value = 0x1d7, .address = 0x51648b},
     {.kind = K::Create, .value = 0x1d7, .extra = 0x0, .address = 0x51649a},
 };
 
-// 0x5164a9: el tipo 240.
+// 0x5164a9: type 240.
 constexpr MonsterStep Case5164a9[]{
     {.kind = K::LoadNpc, .value = 0x1d6, .address = 0x5164ae},
     {.kind = K::Create, .value = 0x1d6, .extra = 0x0, .address = 0x5164bd},
 };
 
-// 0x5164cc: el tipo 241.
+// 0x5164cc: type 241.
 constexpr MonsterStep Case5164cc[]{
     {.kind = K::LoadNpc, .value = 0x1d5, .address = 0x5164d1},
     {.kind = K::Create, .value = 0x1d5, .extra = 0x0, .address = 0x5164e6},
     {.kind = K::Name, .extra = 0x6c89b8, .address = 0x51650f, .text = "\xb8\xb6\xbd\xba\xc5\xcd"},
 };
 
-// 0x5165de: el tipo 242.
+// 0x5165de: type 242.
 constexpr MonsterStep Case5165de[]{
     {.kind = K::LoadNpc, .value = 0x1d3, .address = 0x5165e3},
     {.kind = K::Create, .value = 0x1d3, .extra = 0x0, .address = 0x5165f8},
@@ -1501,35 +1501,35 @@ constexpr MonsterStep Case5165de[]{
     {.kind = K::Ground, .value = 0x430c0000, .address = 0x516636},
 };
 
-// 0x51664c: el tipo 243.
+// 0x51664c: type 243.
 constexpr MonsterStep Case51664c[]{
     {.kind = K::LoadNpc, .value = 0x1d4, .address = 0x516651},
     {.kind = K::Create, .value = 0x1d4, .extra = 0x0, .address = 0x516666},
     {.kind = K::Name, .extra = 0x6c8990, .address = 0x51668f, .text = "\xc0\xe5\xc0\xce"},
 };
 
-// 0x51669d: el tipo 244.
+// 0x51669d: type 244.
 constexpr MonsterStep Case51669d[]{
     {.kind = K::LoadNpc, .value = 0x1d0, .address = 0x5166a2},
     {.kind = K::Create, .value = 0x1d0, .extra = 0x0, .address = 0x5166b7},
     {.kind = K::Name, .extra = 0x6c8984, .address = 0x5166e0, .text = "\xbc\xfa\xc1\xfd\xb8\xb6\xb4\xe3"},
 };
 
-// 0x5166ee: el tipo 245.
+// 0x5166ee: type 245.
 constexpr MonsterStep Case5166ee[]{
     {.kind = K::LoadNpc, .value = 0x1d2, .address = 0x5166f3},
     {.kind = K::Create, .value = 0x1d2, .extra = 0x0, .address = 0x516708},
     {.kind = K::Name, .extra = 0x6c897c, .address = 0x516731, .text = "\xb8\xb6\xb9\xfd\xbb\xe7"},
 };
 
-// 0x51673f: el tipo 246.
+// 0x51673f: type 246.
 constexpr MonsterStep Case51673f[]{
     {.kind = K::LoadNpc, .value = 0x1d1, .address = 0x516744},
     {.kind = K::Create, .value = 0x1d1, .extra = 0x0, .address = 0x516759},
     {.kind = K::Name, .extra = 0x6c8970, .address = 0x516782, .text = "\xb9\xab\xb1\xe2\xbb\xf3\xc0\xce"},
 };
 
-// 0x516790: el tipo 247.
+// 0x516790: type 247.
 constexpr MonsterStep Case516790[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x5167a0},
     {.kind = K::Name, .extra = 0x6c8968, .address = 0x5167c7, .text = "\xb0\xe6\xba\xf1\xba\xb4"},
@@ -1543,7 +1543,7 @@ constexpr MonsterStep Case516790[]{
     {.kind = K::Dress, .address = 0x51680f},
 };
 
-// 0x51681c: el tipo 248.
+// 0x51681c: type 248.
 constexpr MonsterStep Case51681c[]{
     {.kind = K::LoadNpc, .value = 0x1cc, .address = 0x516821},
     {.kind = K::Create, .value = 0x1cc, .extra = 0x0, .address = 0x516836},
@@ -1554,7 +1554,7 @@ constexpr MonsterStep Case51681c[]{
     {.kind = K::Write, .size = 2, .offset = 0x298, .value = 0x1eb, .address = 0x516883},
 };
 
-// 0x516891: el tipo 249.
+// 0x516891: type 249.
 constexpr MonsterStep Case516891[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x5168a1},
     {.kind = K::Name, .extra = 0x6c8968, .address = 0x5168c8, .text = "\xb0\xe6\xba\xf1\xba\xb4"},
@@ -1567,7 +1567,7 @@ constexpr MonsterStep Case516891[]{
     {.kind = K::Dress, .address = 0x516907},
 };
 
-// 0x516914: el tipo 250.
+// 0x516914: type 250.
 constexpr MonsterStep Case516914[]{
     {.kind = K::LoadNpc, .value = 0x1cc, .address = 0x516919},
     {.kind = K::Create, .value = 0x1cc, .extra = 0x0, .address = 0x51692e},
@@ -1578,7 +1578,7 @@ constexpr MonsterStep Case516914[]{
     {.kind = K::Write, .size = 2, .offset = 0x298, .value = 0x1ea, .address = 0x51697b},
 };
 
-// 0x516989: el tipo 251.
+// 0x516989: type 251.
 constexpr MonsterStep Case516989[]{
     {.kind = K::LoadNpc, .value = 0x1ce, .address = 0x51698e},
     {.kind = K::Create, .value = 0x1ce, .extra = 0x0, .address = 0x5169a3},
@@ -1589,7 +1589,7 @@ constexpr MonsterStep Case516989[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f733333, .address = 0x5169d5},
 };
 
-// 0x5169e1: el tipo 253.
+// 0x5169e1: type 253.
 constexpr MonsterStep Case5169e1[]{
     {.kind = K::LoadNpc, .value = 0x1cd, .address = 0x5169e6},
     {.kind = K::Create, .value = 0x1cd, .extra = 0x0, .address = 0x5169fb},
@@ -1602,14 +1602,14 @@ constexpr MonsterStep Case5169e1[]{
     {.kind = K::Write, .size = 2, .offset = 0x258, .value = 0x1f0, .address = 0x516a3f},
 };
 
-// 0x516a4d: el tipo 254.
+// 0x516a4d: type 254.
 constexpr MonsterStep Case516a4d[]{
     {.kind = K::LoadNpc, .value = 0x1cf, .address = 0x516a52},
     {.kind = K::Create, .value = 0x1cf, .extra = 0x0, .address = 0x516a67},
     {.kind = K::Name, .extra = 0x6c8930, .address = 0x516a90, .text = "\xb8\xb6\xb9\xfd\xbb\xe7 \xc6\xc4\xbd\xc3"},
 };
 
-// 0x516a9e: el tipo 255.
+// 0x516a9e: type 255.
 constexpr MonsterStep Case516a9e[]{
     {.kind = K::LoadNpc, .value = 0x1cb, .address = 0x516aa3},
     {.kind = K::Create, .value = 0x1cb, .extra = 0x0, .address = 0x516ab8},
@@ -1623,14 +1623,14 @@ constexpr MonsterStep Case516a9e[]{
     {.kind = K::Write, .size = 2, .offset = 0x298, .value = 0x1e3, .address = 0x516b05},
 };
 
-// 0x51651d: el tipo 256.
+// 0x51651d: type 256.
 constexpr MonsterStep Case51651d[]{
     {.kind = K::LoadNpc, .value = 0x200, .address = 0x516522},
     {.kind = K::Create, .value = 0x200, .extra = 0x0, .address = 0x516537},
     {.kind = K::Name, .extra = 0x6c89ac, .address = 0x516560, .text = "\xbc\xbc\xb8\xa3\xba\xf1\xbd\xba"},
 };
 
-// 0x51656e: el tipo 257.
+// 0x51656e: type 257.
 constexpr MonsterStep Case51656e[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x51657e},
     {.kind = K::Box, .address = 0x516586},
@@ -1638,7 +1638,7 @@ constexpr MonsterStep Case51656e[]{
     {.kind = K::Joint, .offset = 42, .value = 0x60f, .extra = 0x41700000, .address = 0x5165d1},
 };
 
-// 0x516da1: el tipo 258.
+// 0x516da1: type 258.
 constexpr MonsterStep Case516da1[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x516db1},
     {.kind = K::Name, .extra = 0x6c8968, .address = 0x516dd8, .text = "\xb0\xe6\xba\xf1\xba\xb4"},
@@ -1652,7 +1652,7 @@ constexpr MonsterStep Case516da1[]{
     {.kind = K::Write, .size = 4, .offset = 0x4, .value = 0x102, .address = 0x516e22},
 };
 
-// 0x43a0f4: el tipo 275.
+// 0x43a0f4: type 275.
 constexpr MonsterStep Event439df0Case43a0f4[]{
     {.kind = K::LoadMonster, .value = 0x40, .address = 0x43a0f6},
     {.kind = K::Create, .value = 0x192, .extra = 0x0, .address = 0x43a10d},
@@ -1663,7 +1663,7 @@ constexpr MonsterStep Event439df0Case43a0f4[]{
     {.kind = K::Write, .size = 4, .offset = 0x60, .value = 0x64, .address = 0x43a155},
 };
 
-// 0x42d460: el tipo 277.
+// 0x42d460: type 277.
 constexpr MonsterStep Event42d070Case42d460[]{
     {.kind = K::LoadMonster, .value = 0x49, .address = 0x42d462},
     {.kind = K::Create, .value = 0x19b, .extra = 0x0, .address = 0x42d47a},
@@ -1674,7 +1674,7 @@ constexpr MonsterStep Event42d070Case42d460[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d4a1: el tipo 278.
+// 0x42d4a1: type 278.
 constexpr MonsterStep Event42d070Case42d4a1[]{
     {.kind = K::LoadMonster, .value = 0x56, .address = 0x42d4a3},
     {.kind = K::Create, .value = 0x1a8, .extra = 0x0, .address = 0x42d4bb},
@@ -1687,7 +1687,7 @@ constexpr MonsterStep Event42d070Case42d4a1[]{
     {.kind = K::Arrival, .offset = 0, .value = 0x134, .address = 0x42d513},
 };
 
-// 0x42d522: el tipo 283.
+// 0x42d522: type 283.
 constexpr MonsterStep Event42d070Case42d522[]{
     {.kind = K::LoadMonster, .value = 0x4a, .address = 0x42d524},
     {.kind = K::Create, .value = 0x19c, .extra = 0x0, .address = 0x42d53c},
@@ -1712,7 +1712,7 @@ constexpr MonsterStep Event42d070Case42d522[]{
     {.kind = K::Arrival, .offset = 0, .value = 0x134, .address = 0x42d5af},
 };
 
-// 0x42d5be: el tipo 285.
+// 0x42d5be: type 285.
 constexpr MonsterStep Event42d070Case42d5be[]{
     {.kind = K::LoadMonster, .value = 0x4a, .address = 0x42d5c0},
     {.kind = K::Create, .value = 0x19c, .extra = 0x0, .address = 0x42d47a},
@@ -1723,7 +1723,7 @@ constexpr MonsterStep Event42d070Case42d5be[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d5d9: el tipo 286.
+// 0x42d5d9: type 286.
 constexpr MonsterStep Event42d070Case42d5d9[]{
     {.kind = K::LoadMonster, .value = 0x4c, .address = 0x42d5db},
     {.kind = K::Create, .value = 0x19e, .extra = 0x0, .address = 0x42d5f3},
@@ -1733,7 +1733,7 @@ constexpr MonsterStep Event42d070Case42d5d9[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d610: el tipo 287.
+// 0x42d610: type 287.
 constexpr MonsterStep Event42d070Case42d610[]{
     {.kind = K::LoadMonster, .value = 0x4d, .address = 0x42d612},
     {.kind = K::Create, .value = 0x19f, .extra = 0x0, .address = 0x42d62a},
@@ -1744,7 +1744,7 @@ constexpr MonsterStep Event42d070Case42d610[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42d654},
 };
 
-// 0x42d660: el tipo 288.
+// 0x42d660: type 288.
 constexpr MonsterStep Event42d070Case42d660[]{
     {.kind = K::LoadMonster, .value = 0x4f, .address = 0x42d662},
     {.kind = K::Create, .value = 0x1a1, .extra = 0x0, .address = 0x42d67a},
@@ -1780,7 +1780,7 @@ constexpr MonsterStep Event42d070Case42d660[]{
      .address = 0x42d6d4},
 };
 
-// 0x44056b: el tipo 290.
+// 0x44056b: type 290.
 constexpr MonsterStep Event440530Case44056b[]{
     {.kind = K::LoadMonster, .value = 0x51, .address = 0x44056d},
     {.kind = K::Create, .value = 0x1a3, .extra = 0x0, .address = 0x440585},
@@ -1791,7 +1791,7 @@ constexpr MonsterStep Event440530Case44056b[]{
     {.kind = K::BoneName, .value = 30, .address = 0x4406af, .text = "Monster81_EyeLeft"},
 };
 
-// 0x4406da: el tipo 291.
+// 0x4406da: type 291.
 constexpr MonsterStep Event440530Case4406da[]{
     {.kind = K::LoadMonster, .value = 0x52, .address = 0x4406dc},
     {.kind = K::Create, .value = 0x1a4, .extra = 0x0, .address = 0x4406f4},
@@ -1804,7 +1804,7 @@ constexpr MonsterStep Event440530Case4406da[]{
     {.kind = K::BoneName, .value = 46, .address = 0x440917, .text = "Monster82_Back"},
 };
 
-// 0x44093f: el tipo 292.
+// 0x44093f: type 292.
 constexpr MonsterStep Event440530Case44093f[]{
     {.kind = K::LoadMonster, .value = 0x53, .address = 0x440941},
     {.kind = K::Create, .value = 0x1a5, .extra = 0x0, .address = 0x440959},
@@ -1815,7 +1815,7 @@ constexpr MonsterStep Event440530Case44093f[]{
     {.kind = K::BoneName, .value = 62, .address = 0x440a71, .text = "Monster83_Tail"},
 };
 
-// 0x440a99: los tipos 293, 303.
+// 0x440a99: types 293, 303.
 constexpr MonsterStep Event440530Case440a99[]{
     {.kind = K::LoadMonster, .value = 0x54, .address = 0x440a9b},
     {.kind = K::Create, .value = 0x1a6, .extra = 0x0, .address = 0x440ab3},
@@ -1829,7 +1829,7 @@ constexpr MonsterStep Event440530Case440a99[]{
     {.kind = K::BoneName, .value = 50, .address = 0x440d78, .text = "Monster84_RightHand"},
 };
 
-// 0x440da3: los tipos 294, 302.
+// 0x440da3: types 294, 302.
 constexpr MonsterStep Event440530Case440da3[]{
     {.kind = K::LoadMonster, .value = 0x55, .address = 0x440da5},
     {.kind = K::Create, .value = 0x1a7, .extra = 0x0, .address = 0x440dbd},
@@ -1840,7 +1840,7 @@ constexpr MonsterStep Event440530Case440da3[]{
     {.kind = K::BoneName, .value = 19, .address = 0x440ee7, .text = "Monster85_RightEye"},
 };
 
-// 0x440f12: el tipo 295.
+// 0x440f12: type 295.
 constexpr MonsterStep Event440530Case440f12[]{
     {.kind = K::LoadMonster, .value = 0x57, .address = 0x440f14},
     {.kind = K::Create, .value = 0x1a9, .extra = 0x0, .address = 0x440f2c},
@@ -1853,7 +1853,7 @@ constexpr MonsterStep Event440530Case440f12[]{
     {.kind = K::Sound, .value = 0x20a, .address = 0x4410eb},
 };
 
-// 0x441106: el tipo 297.
+// 0x441106: type 297.
 constexpr MonsterStep Event440530Case441106[]{
     {.kind = K::Create, .value = 0x20a, .extra = 0x0, .address = 0x441119},
     {.kind = K::Name,
@@ -1877,7 +1877,7 @@ constexpr MonsterStep Event440530Case441106[]{
     {.kind = K::Dress, .address = 0x4411b6},
 };
 
-// 0x425deb: el tipo 304.
+// 0x425deb: type 304.
 constexpr MonsterStep Event425db0Case425deb[]{
     {.kind = K::LoadMonster, .value = 0x64, .address = 0x425ded},
     {.kind = K::Create, .value = 0x1b6, .extra = 0x0, .address = 0x425e05},
@@ -1895,7 +1895,7 @@ constexpr MonsterStep Event425db0Case425deb[]{
     {.kind = K::BoneName, .value = 110, .address = 0x42615d, .text = "Monster100_z05"},
 };
 
-// 0x426188: el tipo 305.
+// 0x426188: type 305.
 constexpr MonsterStep Event425db0Case426188[]{
     {.kind = K::LoadMonster, .value = 0x65, .address = 0x42618a},
     {.kind = K::Create, .value = 0x1b7, .extra = 0x0, .address = 0x4261a2},
@@ -1907,7 +1907,7 @@ constexpr MonsterStep Event425db0Case426188[]{
     {.kind = K::BoneName, .value = 6, .address = 0x4262f8, .text = "Monster101_Head"},
 };
 
-// 0x426323: el tipo 306.
+// 0x426323: type 306.
 constexpr MonsterStep Event425db0Case426323[]{
     {.kind = K::LoadMonster, .value = 0x66, .address = 0x426325},
     {.kind = K::Create, .value = 0x1b8, .extra = 0x0, .address = 0x42633d},
@@ -1918,7 +1918,7 @@ constexpr MonsterStep Event425db0Case426323[]{
     {.kind = K::BoneName, .value = 6, .address = 0x426452, .text = "Monster102_Head"},
 };
 
-// 0x42647d: el tipo 307.
+// 0x42647d: type 307.
 constexpr MonsterStep Event425db0Case42647d[]{
     {.kind = K::LoadMonster, .value = 0x67, .address = 0x42647f},
     {.kind = K::Create, .value = 0x1b9, .extra = 0x0, .address = 0x426497},
@@ -1927,7 +1927,7 @@ constexpr MonsterStep Event425db0Case42647d[]{
     {.kind = K::Write, .size = 4, .offset = 0xc, .value = 0x3f933333, .address = 0x4264b3},
 };
 
-// 0x4264cc: el tipo 308.
+// 0x4264cc: type 308.
 constexpr MonsterStep Event425db0Case4264cc[]{
     {.kind = K::LoadMonster, .value = 0x68, .address = 0x4264ce},
     {.kind = K::Create, .value = 0x1ba, .extra = 0x0, .address = 0x4264e6},
@@ -1943,7 +1943,7 @@ constexpr MonsterStep Event425db0Case4264cc[]{
     {.kind = K::BoneName, .value = 1, .address = 0x4268b6, .text = "Monster104_Footsteps"},
 };
 
-// 0x4268e1: el tipo 309.
+// 0x4268e1: type 309.
 constexpr MonsterStep Event425db0Case4268e1[]{
     {.kind = K::LoadMonster, .value = 0x69, .address = 0x4268e3},
     {.kind = K::Create, .value = 0x1bb, .extra = 0x0, .address = 0x4268fb},
@@ -1959,7 +1959,7 @@ constexpr MonsterStep Event425db0Case4268e1[]{
     {.kind = K::BoneName, .value = 39, .address = 0x426c77, .text = "Monster105_R_Hand"},
 };
 
-// 0x430cee: el tipo 310.
+// 0x430cee: type 310.
 constexpr MonsterStep Event430c90Case430cee[]{
     {.kind = K::LoadMonster, .value = 0x62, .address = 0x430cf0},
     {.kind = K::Create, .value = 0x1b4, .extra = 0x0, .address = 0x430d07},
@@ -1968,7 +1968,7 @@ constexpr MonsterStep Event430c90Case430cee[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x4310e2},
 };
 
-// 0x42f4d7: el tipo 310.
+// 0x42f4d7: type 310.
 constexpr MonsterStep Event42f190Case42f4d7[]{
     {.kind = K::LoadMonster, .value = 0x5b, .address = 0x42f4d9},
     {.kind = K::Create, .value = 0x1ad, .extra = 0x0, .address = 0x42f4f0},
@@ -1977,7 +1977,7 @@ constexpr MonsterStep Event42f190Case42f4d7[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42f50b},
 };
 
-// 0x430d1d: el tipo 311.
+// 0x430d1d: type 311.
 constexpr MonsterStep Event430c90Case430d1d[]{
     {.kind = K::LoadMonster, .value = 0x61, .address = 0x430d1f},
     {.kind = K::Create, .value = 0x1b3, .extra = 0x0, .address = 0x430d07},
@@ -1986,7 +1986,7 @@ constexpr MonsterStep Event430c90Case430d1d[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x4310e2},
 };
 
-// 0x430d34: el tipo 312.
+// 0x430d34: type 312.
 constexpr MonsterStep Event430c90Case430d34[]{
     {.kind = K::LoadMonster, .value = 0x60, .address = 0x430d36},
     {.kind = K::Create, .value = 0x1b2, .extra = 0x0, .address = 0x430d4d},
@@ -1998,7 +1998,7 @@ constexpr MonsterStep Event430c90Case430d34[]{
     {.kind = K::BoneName, .value = 29, .address = 0x430e8e, .text = "Monster96_Bottom"},
 };
 
-// 0x430ece: el tipo 313.
+// 0x430ece: type 313.
 constexpr MonsterStep Event430c90Case430ece[]{
     {.kind = K::LoadMonster, .value = 0x5f, .address = 0x430ed0},
     {.kind = K::Create, .value = 0x1b1, .extra = 0x0, .address = 0x430ee7},
@@ -2009,7 +2009,7 @@ constexpr MonsterStep Event430c90Case430ece[]{
     {.kind = K::BoneName, .value = 6, .address = 0x430f70, .text = "Monster95_Head"},
 };
 
-// 0x430f80: el tipo 314.
+// 0x430f80: type 314.
 constexpr MonsterStep Event430c90Case430f80[]{
     {.kind = K::LoadMonster, .value = 0x62, .address = 0x430f82},
     {.kind = K::Create, .value = 0x1b4, .extra = 0x0, .address = 0x430f99},
@@ -2018,7 +2018,7 @@ constexpr MonsterStep Event430c90Case430f80[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x4310e2},
 };
 
-// 0x430faf: el tipo 315.
+// 0x430faf: type 315.
 constexpr MonsterStep Event430c90Case430faf[]{
     {.kind = K::LoadMonster, .value = 0x5f, .address = 0x430fb1},
     {.kind = K::Create, .value = 0x1b1, .extra = 0x0, .address = 0x430fc8},
@@ -2029,7 +2029,7 @@ constexpr MonsterStep Event430c90Case430faf[]{
     {.kind = K::BoneName, .value = 6, .address = 0x431055, .text = "Monster95_Head"},
 };
 
-// 0x42f1e3: el tipo 315.
+// 0x42f1e3: type 315.
 constexpr MonsterStep Event42f190Case42f1e3[]{
     {.kind = K::LoadMonster, .value = 0x5f, .address = 0x42f1e5},
     {.kind = K::Create, .value = 0x1b1, .extra = 0x0, .address = 0x42f1fc},
@@ -2039,7 +2039,7 @@ constexpr MonsterStep Event42f190Case42f1e3[]{
     {.kind = K::BoneName, .value = 6, .address = 0x42f280, .text = "Monster95_Head"},
 };
 
-// 0x431081: los tipos 316, 344.
+// 0x431081: types 316, 344.
 constexpr MonsterStep Event430c90Case431081[]{
     {.kind = K::LoadMonster, .value = 0x5b, .address = 0x431083},
     {.kind = K::Create, .value = 0x1ad, .extra = 0x0, .address = 0x43109a},
@@ -2048,7 +2048,7 @@ constexpr MonsterStep Event430c90Case431081[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x4310e2},
 };
 
-// 0x42f2ac: el tipo 316.
+// 0x42f2ac: type 316.
 constexpr MonsterStep Event42f190Case42f2ac[]{
     {.kind = K::LoadMonster, .value = 0x60, .address = 0x42f2ae},
     {.kind = K::Create, .value = 0x1b2, .extra = 0x0, .address = 0x42f2c5},
@@ -2060,7 +2060,7 @@ constexpr MonsterStep Event42f190Case42f2ac[]{
     {.kind = K::BoneName, .value = 29, .address = 0x42f440, .text = "Monster96_Bottom"},
 };
 
-// 0x4310ad: los tipos 317, 341.
+// 0x4310ad: types 317, 341.
 constexpr MonsterStep Event430c90Case4310ad[]{
     {.kind = K::LoadMonster, .value = 0x5e, .address = 0x4310af},
     {.kind = K::Create, .value = 0x1b0, .extra = 0x0, .address = 0x4310c6},
@@ -2069,7 +2069,7 @@ constexpr MonsterStep Event430c90Case4310ad[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x4310e2},
 };
 
-// 0x42f494: el tipo 317.
+// 0x42f494: type 317.
 constexpr MonsterStep Event42f190Case42f494[]{
     {.kind = K::LoadMonster, .value = 0x61, .address = 0x42f496},
     {.kind = K::Create, .value = 0x1b3, .extra = 0x0, .address = 0x42f4c4},
@@ -2078,7 +2078,7 @@ constexpr MonsterStep Event42f190Case42f494[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42f50b},
 };
 
-// 0x42f4ab: el tipo 318.
+// 0x42f4ab: type 318.
 constexpr MonsterStep Event42f190Case42f4ab[]{
     {.kind = K::LoadMonster, .value = 0x62, .address = 0x42f4ad},
     {.kind = K::Create, .value = 0x1b4, .extra = 0x0, .address = 0x42f4c4},
@@ -2087,7 +2087,7 @@ constexpr MonsterStep Event42f190Case42f4ab[]{
     {.kind = K::Write, .size = 2, .offset = 0x2d8, .value = 0xffff, .address = 0x42f50b},
 };
 
-// 0x4312d7: el tipo 340.
+// 0x4312d7: type 340.
 constexpr MonsterStep Event430c90Case4312d7[]{
     {.kind = K::LoadMonster, .value = 0x5c, .address = 0x4312d9},
     {.kind = K::Create, .value = 0x1ae, .extra = 0x0, .address = 0x4312f0},
@@ -2097,7 +2097,7 @@ constexpr MonsterStep Event430c90Case4312d7[]{
     {.kind = K::BoneName, .value = 17, .address = 0x431376, .text = "Left_Hand"},
 };
 
-// 0x431189: el tipo 345.
+// 0x431189: type 345.
 constexpr MonsterStep Event430c90Case431189[]{
     {.kind = K::LoadMonster, .value = 0x5d, .address = 0x43118b},
     {.kind = K::Create, .value = 0x1af, .extra = 0x0, .address = 0x4311a2},
@@ -2108,7 +2108,7 @@ constexpr MonsterStep Event430c90Case431189[]{
     {.kind = K::BoneName, .value = 28, .address = 0x431280, .text = "Monster94_zx01"},
 };
 
-// 0x4313a2: el tipo 348.
+// 0x4313a2: type 348.
 constexpr MonsterStep Event430c90Case4313a2[]{
     {.kind = K::LoadMonster, .value = 0x63, .address = 0x4313a4},
     {.kind = K::Create, .value = 0x1b5, .extra = 0x43340000, .address = 0x4313bf},
@@ -2125,7 +2125,7 @@ constexpr MonsterStep Event430c90Case4313a2[]{
      .address = 0x4313ee},
 };
 
-// 0x4310fb: el tipo 349.
+// 0x4310fb: type 349.
 constexpr MonsterStep Event430c90Case4310fb[]{
     {.kind = K::LoadMonster, .value = 0x59, .address = 0x4310fd},
     {.kind = K::Create, .value = 0x1ab, .extra = 0x0, .address = 0x431114},
@@ -2136,8 +2136,8 @@ constexpr MonsterStep Event430c90Case4310fb[]{
     {.kind = K::Joint, .offset = 3, .value = 0x618, .extra = 0x41f00000, .address = 0x43116e},
 };
 
-// 0x51430e: el switch de 0x5141e0 por tipo − 1 (de 1 a 301), con el default (0x516e2a) en el 0, el 4 y el 8
-// y en los tipos que el switch no lista.
+// 0x51430e: the 0x5141e0 switch on type − 1 (1 to 301), with the default (0x516e2a) for 0, 4 and 8 and for the types
+// the switch does not list.
 constexpr std::array<MonsterKind, 197> MainKinds{{
     {0, 0x516e2a, Case516e2a},    {1, 0x515be6, Case515be6},     {2, 0x515cb0, Case515cb0},
     {3, 0x515a1f, Case515a1f},    {4, 0x516e2a, Case516e2a_2},   {5, 0x515be6, Case515be6_2},
@@ -2208,7 +2208,7 @@ constexpr std::array<MonsterKind, 197> MainKinds{{
 }};
 constexpr MonsterKind DefaultKind{-1, 0x516e2a, DefaultSteps};
 
-// Los seis creadores de evento que 0x5141e0 prueba antes del switch, en su orden.
+// The six event creators 0x5141e0 tries before the switch, in order.
 constexpr std::array<EventMonsterKind, 108> EventKinds{{
     {0x439df0, -1, {144, 0x439e1e, Event439df0Case439e1e}}, {0x439df0, -1, {145, 0x439e6f, Event439df0Case439e6f}},
     {0x439df0, -1, {146, 0x439ec3, Event439df0Case439ec3}}, {0x439df0, -1, {147, 0x439f0d, Event439df0Case439f0d}},

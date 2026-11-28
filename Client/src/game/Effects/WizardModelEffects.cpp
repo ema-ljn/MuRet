@@ -56,35 +56,35 @@ constexpr double Bits(std::uint32_t bits)
     return static_cast<double>(std::bit_cast<float>(bits));
 }
 
-// Las constantes de .rdata que leen las altas y los pasos, en el double de la x87 (PC53).
-constexpr double Tenth = Math::TenthAsDouble;             // 0x6b87b8: 0,1f.
-constexpr double NegativeTenth = Bits(0xbdcccccdu);       // 0x6b8930: −0,1f.
-constexpr double Hundredth = Math::HundredthAsDouble;     // 0x6b86c0 y 0x6b88d4: 0,01f.
-constexpr double NegativeHundredth = Bits(0xbc23d70au);   // 0x6b8a58: −0,01f.
-constexpr double Fifth = Math::FifthAsDouble;             // 0x6b8854 y 0x6b8cfc: 0,2f.
-constexpr double NegativeFifth = Bits(0xbe4ccccdu);       // 0x6b8d3c: −0,2f.
-constexpr double ThreeTenths = Bits(0x3e99999au);         // 0x6b89dc: 0,3f.
-constexpr double NegativeThreeTenths = Bits(0xbe99999au); // 0x6ba274: −0,3f.
-constexpr double NegativeFourTenths = Bits(0xbecccccdu);  // 0x6ba18c: −0,4f.
-constexpr double SixTenths = Bits(0x3f19999au);           // 0x6b8a20: 0,6f.
-constexpr double EightTenths = Bits(0x3f4ccccdu);         // 0x6b8a38: 0,8f.
-constexpr double NineTenths = Bits(0x3f666666u);          // 0x6b8a1c: 0,9f.
-constexpr double Twentieth = Math::TwentiethAsDouble;     // 0x6b8a48: 0,05f.
-constexpr double ElevenTenths = Bits(0x3f8ccccdu);        // 0x6b8830: 1,1f.
-constexpr double DustStep = Bits(0x3c75c28fu);            // 0x6b8a24: 0,015f.
-constexpr double SmokeStep = Bits(0x3ccccccdu);           // 0x6b8bd0: 0,025f.
-constexpr double MeteorScaleStep = Bits(0x3e051eb8u);     // 0x6ba1f0: 0,13f.
+// The .rdata constants the creations and steps read, as x87 doubles (PC53).
+constexpr double Tenth = Math::TenthAsDouble;             // 0x6b87b8: 0.1f.
+constexpr double NegativeTenth = Bits(0xbdcccccdu);       // 0x6b8930: −0.1f.
+constexpr double Hundredth = Math::HundredthAsDouble;     // 0x6b86c0 and 0x6b88d4: 0.01f.
+constexpr double NegativeHundredth = Bits(0xbc23d70au);   // 0x6b8a58: −0.01f.
+constexpr double Fifth = Math::FifthAsDouble;             // 0x6b8854 and 0x6b8cfc: 0.2f.
+constexpr double NegativeFifth = Bits(0xbe4ccccdu);       // 0x6b8d3c: −0.2f.
+constexpr double ThreeTenths = Bits(0x3e99999au);         // 0x6b89dc: 0.3f.
+constexpr double NegativeThreeTenths = Bits(0xbe99999au); // 0x6ba274: −0.3f.
+constexpr double NegativeFourTenths = Bits(0xbecccccdu);  // 0x6ba18c: −0.4f.
+constexpr double SixTenths = Bits(0x3f19999au);           // 0x6b8a20: 0.6f.
+constexpr double EightTenths = Bits(0x3f4ccccdu);         // 0x6b8a38: 0.8f.
+constexpr double NineTenths = Bits(0x3f666666u);          // 0x6b8a1c: 0.9f.
+constexpr double Twentieth = Math::TwentiethAsDouble;     // 0x6b8a48: 0.05f.
+constexpr double ElevenTenths = Bits(0x3f8ccccdu);        // 0x6b8830: 1.1f.
+constexpr double DustStep = Bits(0x3c75c28fu);            // 0x6b8a24: 0.015f.
+constexpr double SmokeStep = Bits(0x3ccccccdu);           // 0x6b8bd0: 0.025f.
+constexpr double MeteorScaleStep = Bits(0x3e051eb8u);     // 0x6ba1f0: 0.13f.
 
-// Las escalas que las altas escriben por sus bits.
-constexpr float EightTenthsScale = std::bit_cast<float>(0x3f4ccccdu); // 0x51abf4 y 0x51ad1d.
-constexpr float LaserScale = std::bit_cast<float>(0x3fa66666u);       // 0x51a56d: 1,3f.
-constexpr float SnowScale = std::bit_cast<float>(0x3f99999au);        // 0x51ada9: 1,2f.
-constexpr float HellGateScale = std::bit_cast<float>(0x3f333333u);    // 0x51b90d: 0,7f.
-constexpr float LightningScale = std::bit_cast<float>(0x3e99999au);   // 0x51aea2: 0,3f.
+// The scales the creations write by their bits.
+constexpr float EightTenthsScale = std::bit_cast<float>(0x3f4ccccdu); // 0x51abf4 and 0x51ad1d.
+constexpr float LaserScale = std::bit_cast<float>(0x3fa66666u);       // 0x51a56d: 1.3f.
+constexpr float SnowScale = std::bit_cast<float>(0x3f99999au);        // 0x51ada9: 1.2f.
+constexpr float HellGateScale = std::bit_cast<float>(0x3f333333u);    // 0x51b90d: 0.7f.
+constexpr float LightningScale = std::bit_cast<float>(0x3e99999au);   // 0x51aea2: 0.3f.
 constexpr glm::vec3 IceCallerLight{std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au),
-                                   std::bit_cast<float>(0x3e4ccccdu)}; // 0x51acd2: (0,4f; 0,3f; 0,2f).
+                                   std::bit_cast<float>(0x3e4ccccdu)}; // 0x51acd2: (0.4f, 0.3f, 0.2f).
 
-// Los hijos: partículas (0x53fe70), joints (0x530860), sprites (0x5491e0) y efectos (0x518cf0).
+// The children: particles (0x53fe70), joints (0x530860), sprites (0x5491e0) and effects (0x518cf0).
 constexpr std::int32_t ShinyParticleType = 0x5fc;
 constexpr std::int32_t ColumnParticle = 0x62b;
 constexpr std::int32_t MeteorEmberParticle = 0x6ad;
@@ -96,9 +96,9 @@ constexpr std::int32_t ColumnJoint = 0x62b;
 constexpr std::int32_t FireTrailJoint = 0x5f2;
 constexpr std::uint16_t FlareSprite = 0x5ac;
 constexpr std::uint16_t ShineSprite = 0x5fd;
-constexpr std::int16_t ChipEffect = 0xc8;  // 0xc8 + (rand() & 1): las piedritas.
-constexpr std::int16_t MeteorBurst = 0xf6; // 0x524d05: el 0xf6/2 del lote del switch.
-// +0x2 del personaje jugador.
+constexpr std::int16_t ChipEffect = 0xc8;  // 0xc8 + (rand() & 1): the pebbles.
+constexpr std::int16_t MeteorBurst = 0xf6; // 0x524d05: the switch batch's 0xf6/2.
+// +0x2 of the player character.
 constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr std::uint16_t NoKey = 0xffff;
 constexpr std::int32_t NoTarget = -1;
@@ -119,8 +119,8 @@ Core::Expected<void, std::string> Emit(const WizardEffectServices& services, Crt
     return {};
 }
 
-// 0x53fe70 con la niebla 5f2/28..30, que pide la altura del terreno (0x5f93c0) al nacer y, la /30, el seno del reloj
-// (0x5767b88).
+// 0x53fe70 with the mist 0x5f2/28..30, which asks for the terrain height (0x5f93c0) when born and, the /30, the clock's
+// sine (0x5767b88).
 Core::Expected<void, std::string> EmitOnGround(const WizardEffectServices& services, CrtRandom& random,
                                                std::string_view address, std::int32_t type, const glm::vec3& position,
                                                const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
@@ -138,8 +138,8 @@ Core::Expected<void, std::string> EmitOnGround(const WizardEffectServices& servi
     return {};
 }
 
-// 0x53fe70 con el efecto de dueño (+0x40): la estela 0x5f2/0x24 lo sigue los dos primeros pasos. El dueño es su lugar
-// en la tabla de los efectos con modelo, como lo resuelve ParticleOwnerStatesOf.
+// 0x53fe70 with the effect as owner (+0x40): the trail 0x5f2/0x24 follows it the first two steps. The owner is its slot
+// in the model effects' table, as ParticleOwnerStatesOf resolves it.
 Core::Expected<void, std::string> EmitOwned(const WizardEffectServices& services, CrtRandom& random,
                                             std::string_view address, const ModelEffect& effect, std::int32_t type,
                                             const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
@@ -222,8 +222,8 @@ Core::Expected<double, std::string> Height(const WizardEffectServices& services,
     return services.terrainHeight(x, y);
 }
 
-// 0x518cf0(0xc8 + (rand() & 1), punto, ángulos, luz, subtipo, 0, −1, 0, 0, 0, 0): los argumentos se apilan antes del
-// rand() del tipo. MuRet sólo tiene las piedritas con el subtipo 0 y el 1.
+// 0x518cf0(0xc8 + (rand() & 1), point, angles, light, subtype, 0, −1, 0, 0, 0, 0): the arguments are pushed before the
+// type's rand(). MuRet only has the pebbles with subtype 0 and 1.
 Core::Expected<void, std::string> Chip(const WizardEffectServices& services, CrtRandom& random,
                                        std::string_view address, const glm::vec3& position, const glm::vec3& angles,
                                        const glm::vec3& light, std::int32_t subtype)
@@ -253,7 +253,7 @@ Core::Expected<WizardOwnerView, std::string> OwnerOf(const ModelEffect& effect, 
     return *owner;
 }
 
-// 0x4e79a0, +0xf04 a +0x8c como WORD, +0xf04 más 1 y 0x40f370: el registro propio abierto y cerrado.
+// 0x4e79a0, +0xf04 to +0x8c as a WORD, +0xf04 plus 1 and 0x40f370: the own record opened and closed.
 Core::Expected<void, std::string> CountInTheOwnRecord(ModelEffect& effect, CrtRandom& random,
                                                       const WizardEffectServices& services, std::string_view address)
 {
@@ -276,7 +276,8 @@ glm::vec3 Turned(const glm::vec3& vector, const glm::vec3& angles)
     return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
-// (rand() & 63) − 32 en x e y y (rand() & 127) + 32 en z, cada uno sumado a su eje en la x87 (0x51ac38 y 0x5246bc).
+// (rand() & 63) − 32 in x and y and (rand() & 127) + 32 in z, each added to its axis on the x87 (0x51ac38 and
+// 0x5246bc).
 glm::vec3 ScatteredAround(const glm::vec3& position, CrtRandom& random)
 {
     glm::vec3 point{};
@@ -291,27 +292,28 @@ double LifeTimes(std::int32_t life, double factor)
     return static_cast<double>(life) * factor;
 }
 
-// 0x51b426: el caso de las piedritas, al que caen el 0xd8 y el 0xd9 (y el 0xd5 y el 0xd6 con otro subtipo que el 5).
+// 0x51b426: the pebbles' case, which the 0xd8 and the 0xd9 fall into (and the 0xd5 and the 0xd6 with a subtype other
+// than 5).
 Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom& random)
 {
     constexpr std::int32_t FollowingSubtype = 5, FollowingLife = 60;
     if (effect.subtype == FollowingSubtype)
     {
-        // 0x51b5dc: vida 60 y la escala; el dueño sólo lo sigue el 0xd5 y el 0xd6 (0x51b3b6).
+        // 0x51b5dc: life 60 and the scale; only the 0xd5 and the 0xd6 follow the owner (0x51b3b6).
         effect.life = FollowingLife;
         effect.transform.scale = F32(static_cast<double>((random.Next() & 3) + 8) * Tenth);
         return {};
     }
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, FallMask = 15;
     constexpr int FullTurn = Math::FullTurn;
-    // 0x51b432..0x51b4ff (la /10) y 0x51b509..0x51b5d6 (la /0xc): el empuje ((& 255) + 64) en y, la vida (& 15) + 32,
-    // la escala ((& 3) + 15), el yaw rand() % 360, la velocidad (el empuje girado) y la caída; la /10 con el empuje por
-    // 0,2 (double, 0x6ba1e8), la escala por 0,05f y la caída (& 15) + 28; la /0xc con los dos por 0,1f y la caída
-    // (& 15) + 8.
+    // 0x51b432..0x51b4ff (the /10) and 0x51b509..0x51b5d6 (the /0xc): the push ((& 255) + 64) in y, the life
+    // (& 15) + 32, the scale ((& 3) + 15), the yaw rand() % 360, the speed (the rotated push) and the fall; the /10
+    // with the push times 0.2 (double, 0x6ba1e8), the scale times 0.05f and the fall (& 15) + 28; the /0xc with both
+    // times 0.1f and the fall (& 15) + 8.
     if (effect.subtype == GroundStoneChipSubtype || effect.subtype == 0xc)
     {
         const bool ground = effect.subtype == GroundStoneChipSubtype;
-        constexpr double GroundPush = std::bit_cast<double>(0x3fc999999999999aull); // 0x6ba1e8: 0,2
+        constexpr double GroundPush = std::bit_cast<double>(0x3fc999999999999aull); // 0x6ba1e8: 0.2
         constexpr int GroundScaleBase = 15, GroundFallBase = 28, FallBase = 8;
         const float push =
             F32(static_cast<double>((random.Next() & PushMask) + PushBase) * (ground ? GroundPush : Tenth));
@@ -323,7 +325,7 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
         effect.turnDirection = static_cast<float>((random.Next() & FallMask) + (ground ? GroundFallBase : FallBase));
         return {};
     }
-    // 0x51b612..0x51b658: la /0xb, vida 40, la escala ((& 3) + 8) · 0,8f y el yaw; sin velocidad ni caída.
+    // 0x51b612..0x51b658: the /0xb, life 40, the scale ((& 3) + 8) · 0.8f and the yaw; no speed or fall.
     if (effect.subtype == 0xb)
     {
         constexpr std::int32_t FadingLife = 40;
@@ -333,7 +335,7 @@ Core::Expected<void, std::string> CreateChipCase(ModelEffect& effect, CrtRandom&
         effect.transform.angles.z = static_cast<float>(random.Next() % FullTurn);
         return {};
     }
-    // 0x51b72b..0x51b805: el empuje (salvo el /1), la vida, la escala, el yaw, la velocidad girada y la caída.
+    // 0x51b72b..0x51b805: the push (except the /1), the life, the scale, the yaw, the rotated speed and the fall.
     const float push =
         effect.subtype == RisingStoneChipSubtype ? 0.0f : F32(static_cast<double>((random.Next() & 255) + 64) * Tenth);
     effect.life = (random.Next() & 15) + 32;
@@ -348,14 +350,14 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::
                                              CrtRandom& random, const WizardEffectServices& services)
 {
     constexpr std::int32_t FireLife = 40;
-    constexpr double Ahead = 130.0, Above = 400.0; // 0x6ba194 y 0x6b87b0.
+    constexpr double Ahead = 130.0, Above = 400.0; // 0x6ba194 and 0x6b87b0.
     glm::vec3& at = effect.transform.position;
     effect.objectState.blendMesh = 1; // 0x51adb5
     const auto scaleFrom = [&random](int mask, int base)
     { return F32(static_cast<double>((random.Next() & mask) + base) * Tenth); };
     const auto keyedFall = [&]()
     {
-        // 0x51afab..0x51afeb: oculto, la escala, +0xd8 con la clave firmada y +0x8a en −1.
+        // 0x51afab..0x51afeb: hidden, the scale, +0xd8 with the signed key and +0x8a at −1.
         effect.life = FireLife;
         effect.objectState.hiddenMesh = -2;
         effect.transform.scale = scaleFrom(7, 15);
@@ -391,7 +393,7 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::
         effect.transform.scale = scaleFrom(7, 10);
         effect.velocity = {0.0f, 0.0f, -50.0f};
         return {};
-    case 3: // 0x51ae9b → 0x51a9b1: el rayo del 3 (Fauna::StepFaunaLightning da su paso).
+    case 3: // 0x51ae9b → 0x51a9b1: the 3's ray (Fauna::StepFaunaLightning does its step).
         effect.life = 80;
         effect.transform.scale = LightningScale;
         effect.velocity = {0.0f, -12.0f, 0.0f};
@@ -414,7 +416,7 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::
         effect.copiedAngles = {0.0f, 20.0f, 0.0f};
         if (effect.subtype == 7)
             return {};
-        // 0x51b098: 0x530860(0x5f2, posición, posición, +0x28, 0, efecto, 100, −1, 0, 0, −1).
+        // 0x51b098: 0x530860(0x5f2, position, position, +0x28, 0, effect, 100, −1, 0, 0, −1).
         return Joint(services, "0x51b098",
                      {.type = FireTrailJoint,
                       .first = at,
@@ -456,7 +458,7 @@ Core::Expected<void, std::string> CreateFire(ModelEffect& effect, const Kernel::
         effect.velocity.z = F32(-10.0 - static_cast<double>(random.Next() % 10));
         effect.transform.angles = {};
         return {};
-    default: // 0x51b345: el 1 y del 10 en adelante.
+    default: // 0x51b345: the 1 and from 10 on.
         effect.life = 60;
         effect.transform.scale = scaleFrom(3, 8);
         at.z = F32(D(at.z) + 120.0);
@@ -526,7 +528,8 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
                 !smoke.HasValue())
                 return smoke;
         }
-        // 0x51acc5..0x51acec: la luz del llamador (el cuarto argumento) pasa a (0,4f; 0,3f; 0,2f) y prende la dinámica.
+        // 0x51acc5..0x51acec: the caller's light (the fourth argument) becomes (0.4f, 0.3f, 0.2f) and turns on the
+        // dynamic one.
         glm::vec3 own = IceCallerLight;
         glm::vec3& light = callerLight != nullptr ? *callerLight : own;
         light = IceCallerLight;
@@ -646,7 +649,7 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
         case 6:
         case 7:
         {
-            // 0x51a994..0x51aa54: los cinco remolinos chicos, con su velocidad.
+            // 0x51a994..0x51aa54: the five small whirls, with their speed.
             constexpr glm::vec3 Velocities[] = {{0.0f, -12.0f, 0.0f},
                                                 {7.0f, -6.0f, 0.0f},
                                                 {-7.0f, -6.0f, 0.0f},
@@ -695,7 +698,7 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
         at.z = F32(D(at.z) + 130.0); // 0x6ba194
         effect.velocity = Turned(glm::vec3(0.0f, -60.0f, 0.0f), effect.transform.angles);
         return {};
-    case FirstBoneEffect: // 0x51b398: 50 más y cae en el 0xd6.
+    case FirstBoneEffect: // 0x51b398: 50 more and falls into the 0xd6.
     case SecondBoneEffect:
     {
         if (effect.type == FirstBoneEffect)
@@ -703,7 +706,7 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
         at.z = F32(D(at.z) + 100.0); // 0x51b3a4
         if (effect.subtype != 5)
             return CreateChipCase(effect, random);
-        // 0x51b3b6..0x51b41e: vida 60, la escala, la partida en la posición y la posición en la del dueño.
+        // 0x51b3b6..0x51b41e: life 60, the scale, the start at the position and the position at the owner's.
         effect.life = 60;
         effect.transform.scale = F32(static_cast<double>((random.Next() & 3) + 8) * Tenth);
         effect.start = at;
@@ -728,8 +731,8 @@ Core::Expected<void, std::string> CreateCase(ModelEffect& effect, const Kernel::
     }
 }
 
-// 0x518b60: con el dueño vivo, visto (+0x16c) y a 100 o menos en el plano, la vida en 1; el 0xc2/1 suelta dos
-// piedritas y el 0xd7 dos piedritas 0xd8/0xd9 con su humo 5f2/0 y el sonido 0x44.
+// 0x518b60: with the owner alive, seen (+0x16c) and at 100 or less in the plane, life at 1; the 0xc2/1 drops two
+// pebbles and the 0xd7 two pebbles 0xd8/0xd9 with their smoke 0x5f2/0 and the sound 0x44.
 Core::Expected<void, std::string> HitTheOwner(ModelEffect& effect, CrtRandom& random,
                                               const WizardEffectServices& services)
 {
@@ -782,9 +785,9 @@ Core::Expected<void, std::string> HitTheOwner(ModelEffect& effect, CrtRandom& ra
     return {};
 }
 
-// 0x5238be y 0x523926..0x523b3a: las piedritas 0xd8/0xd9 y los huesos 0xd5/0xd6. Con el subtipo 5 siguen al dueño (el
-// 0xd5 y el 0xd6 mueren con él); con el 0, el 10 y el 12 caen y rebotan (sin fuego: su tipo no es 0xc8/0xc9, pero el
-// rand() % 10 corre igual con el 0 y el 12); con los demás suben girados.
+// 0x5238be and 0x523926..0x523b3a: the pebbles 0xd8/0xd9 and the bones 0xd5/0xd6. With subtype 5 they follow the owner
+// (the 0xd5 and the 0xd6 die with it); with 0, 10 and 12 they fall and bounce (no fire: their type is not 0xc8/0xc9,
+// but the rand() % 10 runs anyway with 0 and 12); with the others they rise rotated.
 Core::Expected<void, std::string> StepChip(ModelEffect& effect, CrtRandom& random, const WizardEffectServices& services)
 {
     glm::vec3& at = effect.transform.position;
@@ -832,7 +835,7 @@ Core::Expected<void, std::string> StepChip(ModelEffect& effect, CrtRandom& rando
     }
     effect.transform.angles.x = F32(D(effect.transform.angles.x) - tilt);
     if (effect.subtype == 0 || effect.subtype == 0xc)
-        static_cast<void>(random.Next() % 10); // 0x523adb: ni fuego ni aliento con estos tipos.
+        static_cast<void>(random.Next() % 10); // 0x523adb: neither fire nor breath with these types.
     return {};
 }
 
@@ -843,7 +846,7 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
     glm::vec3& at = effect.transform.position;
     if (effect.subtype == 0)
     {
-        // 0x524688: desde el frame 5, quieto, a veces humo, y se apaga de a 0,05f.
+        // 0x524688: from frame 5, still, sometimes smoke, and it fades by 0.05f.
         if (!(effect.animation.frame < 5.0f))
         {
             effect.speed = 0.0f;
@@ -875,10 +878,10 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
     if (!owner.HasValue())
         return Core::Unexpected(owner.Error());
     const WizardOwnerView& frozen = owner.Value();
-    constexpr std::uint32_t FrozenFlag = 0x20; // +0x78 del dueño
+    constexpr std::uint32_t FrozenFlag = 0x20; // the owner's +0x78
     if (frozen.alive && (frozen.flags78 & FrozenFlag) == FrozenFlag)
     {
-        // 0x5244fb..0x52458d: el jugador en las acciones 0xd..0x21 y 0x46..0x47, o el monstruo en la 2, se congela.
+        // 0x5244fb..0x52458d: the player in actions 0xd..0x21 and 0x46..0x47, or the monster in 2, freezes.
         const std::uint8_t action = frozen.action;
         const bool still = frozen.type == PlayerType
                                ? (action >= 0xd && action <= 0x21) || (action >= 0x46 && action <= 0x47)
@@ -900,7 +903,7 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
         effect.alpha = F32(D(effect.alpha) - Twentieth);
     if (effect.subtype != 1)
         return {};
-    // 0x5245b2..0x52467b: la llama 5db/10 que gira alrededor del dueño y sube y baja con el seno del reloj.
+    // 0x5245b2..0x52467b: the flame 0x5db/10 that turns around the owner and rises and falls with the clock's sine.
     effect.copiedAngles.z = F32(D(effect.copiedAngles.z) + 20.0);
     const auto sine = Math::Detail::SineProductPC53(D(services.worldClock) * Hundredth, 20.0f);
     if (!sine)
@@ -913,7 +916,7 @@ Core::Expected<void, std::string> StepIce(ModelEffect& effect, float luminosity,
                 glm::vec3(1.0f), 10, 2.0f);
 }
 
-// La celda de 0x5f82a0(ftol(x · 0,01f), ftol(y · 0,01f)), con el byte bajo de cada una, y su atributo (0x7d0d348).
+// The cell of 0x5f82a0(ftol(x · 0.01f), ftol(y · 0.01f)), with each one's low byte, and its attribute (0x7d0d348).
 Core::Expected<std::uint16_t, std::string> MaskedCellAttribute(const WizardEffectServices& services,
                                                                const glm::vec3& point, std::string_view address)
 {
@@ -926,7 +929,7 @@ Core::Expected<std::uint16_t, std::string> MaskedCellAttribute(const WizardEffec
 
 constexpr std::uint8_t BlockedCell = 0x8;
 
-// 0x524c64..0x524e95: la caída del 0xc2 en `height`: se apoya, se queda quieto y explota.
+// 0x524c64..0x524e95: the 0xc2's fall at `height`: it lands, stays still and explodes.
 Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height, glm::vec3& local, CrtRandom& random,
                                               const WizardEffectServices& services)
 {
@@ -944,8 +947,8 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
     }
     else
     {
-        // 0x524cf3..0x524d38: el 0xf6/2 (World/BlastModelEffects, por otherEffect) con el 0xc2 de dueño, la clave 30,
-        // los ángulos en 0 y la luz (0; 0,5; 0); no saca rand().
+        // 0x524cf3..0x524d38: the 0xf6/2 (Effects/BlastModelEffects, via otherEffect) with the 0xc2 as owner, key
+        // 30, the angles at 0 and the light (0, 0.5, 0); it draws no rand().
         const Kernel::ModelEffectArguments burst{.type = MeteorBurst,
                                                  .position = at,
                                                  .angles = {},
@@ -986,7 +989,7 @@ Core::Expected<void, std::string> LandTheFire(ModelEffect& effect, double height
     return {};
 }
 
-// 0x524e99..0x5251b1: la parte común del 0xc2 (el 3 lo da Fauna::StepFaunaLightning).
+// 0x524e99..0x5251b1: the 0xc2's common part (the 3 is Fauna::StepFaunaLightning's).
 Core::Expected<void, std::string> FireGlow(ModelEffect& effect, float luminosity, glm::vec3& local, CrtRandom& random,
                                            const WizardEffectServices& services)
 {
@@ -1042,7 +1045,7 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
         return Core::Unexpected(std::string("0x52500e: el paso del 0xc2/3 lo da Scenes::StepFaunaLightning"));
     if (subtype == 5)
     {
-        // 0x5247f1..0x52494b: rebota contra el terreno y, en una celda con el 8 o en su último paso, explota.
+        // 0x5247f1..0x52494b: it bounces against the terrain and, in a cell with the 8 or on its last step, explodes.
         at.z = F32(D(at.z) + D(effect.turnDirection));
         effect.turnDirection = F32(D(effect.turnDirection) - 2.0);
         const auto height = Height(services, at.x, at.y, "0x524819");
@@ -1083,8 +1086,8 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
     }
     if (subtype == 9)
     {
-        // 0x524959..0x5249f6: dos humos con la velocidad de luz y el efecto de dueño (push ebx), la luz propia, y muere
-        // al pasar el terreno. La 0x25 guarda el dueño pero su paso (0x545f68) no lo lee.
+        // 0x524959..0x5249f6: two smokes with the speed as light and the effect as owner (push ebx), its own light, and
+        // it dies on passing the terrain. The 0x25 keeps the owner but its step (0x545f68) does not read it.
         constexpr std::int32_t FirstTrailSubtype = 0x24, SecondTrailSubtype = 0x25;
         if (auto smoke =
                 EmitOwned(services, random, "0x52497d", effect, Particles::BreathParticle, at, effect.transform.angles,
@@ -1131,20 +1134,20 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
         if (services.cameraShake == nullptr)
             return Core::Unexpected(std::string("0x524a87: falta el temblor de la cámara (0x7d325c8)"));
         *services.cameraShake = F32(static_cast<double>((random.Next() & 3) - 4) * Tenth);
-        // 0x524a8d..0x524b21: los personajes cercanos van a 0x4e9cd0 (el 0x20a con +0x318 en 0x1c37) o a 0x4ea030
-        // (0xc2 el 0x20a, 5 los demás).
+        // 0x524a8d..0x524b21: the nearby characters go to 0x4e9cd0 (the 0x20a with +0x318 at 0x1c37) or to 0x4ea030
+        // (0xc2 the 0x20a, 5 the others).
         if (!services.pushAround)
             return Core::Unexpected(std::string("0x524a8d: faltan los personajes del pool (0x743a16c)"));
         if (auto pushed = services.pushAround(at.x, at.y); !pushed.HasValue())
             return pushed;
-        // 0x524b27: con o sin empujados, cae en el suelo (fld [ebp-0x7c]; jmp 0x524c64).
+        // 0x524b27: with or without pushed ones, it falls on the ground (fld [ebp-0x7c]; jmp 0x524c64).
         if (auto landed = LandTheFire(effect, D(ground), local, random, services); !landed.HasValue())
             return landed;
         return FireGlow(effect, luminosity, local, random, services);
     }
     if (subtype == 6 || subtype == 7 || subtype == 8)
     {
-        // 0x524b5e..0x524c1b: los tres sprites de la cabeza y los ángulos de +0x28.
+        // 0x524b5e..0x524c1b: the head's three sprites and the angles of +0x28.
         if (auto sprite = Sprite(services, "0x524b8a", FlareSprite, at, 3.0f, {0.5f, 0.5f, 1.0f}, 0.0f, 0);
             !sprite.HasValue())
             return sprite;
@@ -1161,7 +1164,7 @@ Core::Expected<void, std::string> StepFire(ModelEffect& effect, float luminosity
     }
     if (subtype == 0 || subtype == 2 || subtype == 6 || subtype == 7 || subtype == 8)
     {
-        // 0x524c1e..0x524c5e: en Kalima (24..29 y 36) el suelo está 50 más arriba.
+        // 0x524c1e..0x524c5e: in Kalima (24..29 and 36) the ground is 50 higher.
         if (services.map == nullptr)
             return Core::Unexpected(std::string("0x524c1e: falta el mapa (0x6c9dd0)"));
         const std::int32_t map = *services.map;
@@ -1189,9 +1192,9 @@ Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, CrtRandom
             return Core::Unexpected(owner.Error());
         if (effect.life <= 44 - owner.Value().byte1bc)
             return {};
-        // 0x5231f6..0x5232f8: 36 joints 613/6 en abanico y, con la vida en 45 − +0x1bc, un 613/7 detrás de cada uno.
-        // Los ángulos locales son (−10, 0, z) y el punto (x, y, z + 100), el mismo para las dos posiciones; el efecto
-        // es el dueño, de ancho 60, con la clave 0, la skill 0 y sin blanco.
+        // 0x5231f6..0x5232f8: 36 joints 0x613/6 fanned out and, with life at 45 − +0x1bc, a 0x613/7 behind each one.
+        // The local angles are (−10, 0, z) and the point (x, y, z + 100), the same for both positions; the effect is
+        // the owner, width 60, with key 0, skill 0 and no target.
         constexpr int Rays = 36;               // 0x5232f2: 0x24
         constexpr std::int32_t Spread = 10;    // 0x523225: rand() % 10
         constexpr double SpreadBase = 10.0;    // 0x6b87a8
@@ -1204,7 +1207,7 @@ Core::Expected<void, std::string> StepInnerCircle(ModelEffect& effect, CrtRandom
         glm::vec3 angles{Tilt, 0.0f, 0.0f};
         for (int ray = 0; ray < Rays; ++ray)
         {
-            const auto turn = static_cast<float>(ray); // 0x523205: fild y fstp a [ebp+8]
+            const auto turn = static_cast<float>(ray); // 0x523205: fild and fstp to [ebp+8]
             const auto spread = static_cast<std::int32_t>(random.Next() % Spread);
             angles.z = F32((static_cast<double>(spread) + SpreadBase) * D(turn));
             glm::vec3 point{effect.transform.position.x, effect.transform.position.y,
@@ -1302,7 +1305,7 @@ Core::Expected<void, std::string> StepOuterCircle(ModelEffect& effect, float lum
     *services.cameraShake = F32(static_cast<double>(random.Next() % 6 - 6) * Tenth);
     if ((random.Next() & 3) == 0)
     {
-        // 0x5233f3..0x5234e1: una piedrita que sube (subtipo 1) a rand() % 300 girada por rand() % 360.
+        // 0x5233f3..0x5234e1: a rising pebble (subtype 1) at rand() % 300 rotated by rand() % 360.
         const glm::vec3 reach{0.0f, static_cast<float>(random.Next() % 300), 0.0f};
         const glm::vec3 turn{0.0f, 0.0f, static_cast<float>(random.Next() % 360)};
         const glm::vec3 offset = Turned(reach, turn);
@@ -1337,7 +1340,7 @@ Core::Expected<void, std::string> StepMagic(ModelEffect& effect, float luminosit
         return {};
     effect.objectState.hiddenMesh = 0;
     glm::vec3 point = at;
-    static_cast<void>(random.Next() % 10); // 0x522c8c: la z de una copia de los ángulos que nadie lee.
+    static_cast<void>(random.Next() % 10); // 0x522c8c: the z of a copy of the angles nobody reads.
     const float scale = F32(static_cast<double>((random.Next() & 31) + 80) * DustStep);
     if (auto dust = Emit(services, random, "0x522cdb", Particles::BreathParticle, at, effect.transform.angles, local,
                          Particles::StoneDustSubtype, scale);
@@ -1366,7 +1369,8 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
         if (services.cameraShake == nullptr)
             return Core::Unexpected(std::string("0x52313e: falta el temblor de la cámara (0x7d325c8)"));
         *services.cameraShake = F32(static_cast<double>((random.Next() & 7) - 4) * Tenth);
-        // 0x523144, 0x52315d y 0x523176: la niebla 5f2/28, /29 y /30 en el punto del efecto, con sus ángulos y su luz.
+        // 0x523144, 0x52315d and 0x523176: the mist 0x5f2/28, /29 and /30 at the effect's point, with its angles and
+        // light.
         constexpr std::array<std::pair<std::int32_t, std::string_view>, 3> Mists{
             {{Particles::StormMistSubtype, "0x523144"},
              {Particles::DarkStormMistSubtype, "0x52315d"},
@@ -1393,7 +1397,7 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
         {
             if ((random.Next() & 1) != 0)
                 continue;
-            const glm::vec3 top{F32(D(at.x) + side), at.y, F32(D(at.z) + 700.0)}; // 0x6b8928 y 0x6b8bec
+            const glm::vec3 top{F32(D(at.x) + side), at.y, F32(D(at.z) + 700.0)}; // 0x6b8928 and 0x6b8bec
             if (auto joint = Joint(services, side < 0.0 ? "0x522e69" : "0x522ebf",
                                    {.type = StormJoint,
                                     .first = top,
@@ -1428,7 +1432,7 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
             constexpr std::uint32_t SiegeWall = 0x100;
             if ((attribute.Value() & SiegeWall) == SiegeWall)
             {
-                // 0x522f81..0x522fa9: contra el muro del asedio se frena y le queda un quinto de vida.
+                // 0x522f81..0x522fa9: against the siege wall it stops and keeps a fifth of its life.
                 effect.speed = 0.0f;
                 effect.velocity = {};
                 effect.life = Math::FtolLow(LifeTimes(effect.life, Fifth));
@@ -1464,8 +1468,8 @@ Core::Expected<void, std::string> StepStorm(ModelEffect& effect, float luminosit
                             effect.light, 3, std::bit_cast<float>(0x3dcccccdu));
         !created.HasValue())
         return created;
-    // 0x52308e..0x5230be: el tono (−0,1L; −0,3L; −L) que guarda en [ebp-0x1c] no lo lee nadie; 0x5f9780 recibe la luz
-    // del efecto (esi = +0xf4, 0x523049).
+    // 0x52308e..0x5230be: nobody reads the tone (−0.1L, −0.3L, −L) it stores in [ebp-0x1c]; 0x5f9780 receives the
+    // effect's light (esi = +0xf4, 0x523049).
     return Light(services, at, effect.light, 5, "0x5230be");
 }
 
@@ -1553,8 +1557,8 @@ Core::Expected<void, std::string> StepCase(ModelEffect& effect, float luminosity
     }
 }
 
-// 0x52cb98..0x52cdb2 con los tipos del lote: todos animan ([0xad, 0x151)), el 0xd4 se mueve sin girar (0x51fc80 con
-// 0, la tabla 0x52d1b8) y los demás girados; una vida menos y, con 0 o menos, muere.
+// 0x52cb98..0x52cdb2 with the batch's types: all animate ([0xad, 0x151)), the 0xd4 moves unrotated (0x51fc80 with
+// 0, the 0x52d1b8 table) and the others rotated; one life less and, at 0 or less, it dies.
 void StepTail(ModelEffect& effect, const Models::Skeleton* skeleton, const WizardEffectServices& services)
 {
     constexpr std::uint8_t NoAction = 0xff;
@@ -1629,7 +1633,7 @@ Core::Expected<void, std::string> StepWizardModelEffect(ModelEffect& effect, con
     if (!IsWizardModelEffect(effect.type))
         return Core::Unexpected(std::format("0x5208a0: el tipo {:#x} no es del lote de los magos", effect.type));
     const glm::vec3 before = effect.transform.position;
-    // 0x5208c5..0x52092f: el primer rand() da la luz local L y la luz del paso empieza en blanco.
+    // 0x5208c5..0x52092f: the first rand() gives the local light L and the step's light starts white.
     const float luminosity = StepLuminosity(random.Next(), effect.life);
     glm::vec3 local(1.0f);
     if (auto stepped = StepCase(effect, luminosity, local, random, services); !stepped.HasValue())

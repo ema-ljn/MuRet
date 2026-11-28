@@ -32,420 +32,420 @@ namespace Client::Particles
 class FrameSprites;
 } // namespace Client::Particles
 
-// Los efectos con modelo (CL7.6 A): la tabla de 0x518cf0 (200 lugares de 0x1d4 bytes).
-// El dragón conserva los vectores históricos; llegada, teleport y torre de Noria se contrastaron
-// estáticamente con ASM. Para el paso del juego y su CRT, usar World/GameModelEffects.h.
+// The model effects (CL7.6 A): 0x518cf0's table (200 slots of 0x1d4 bytes). The dragon keeps the historical vectors;
+// arrival, teleport and the Noria tower were checked statically against the ASM. For the game's step and its CRT, use
+// Effects/GameModelEffects.h.
 namespace Client::Effects
 {
 
 inline constexpr std::size_t ModelEffectCount = 200;
-// El dragón que vuela en el login, con su modelo (Assets::DragonModel) y la escala que le pasa 0x606660.
+// The dragon that flies in the login, with its model (Assets::DragonModel) and the scale 0x606660 passes it.
 inline constexpr std::int16_t DragonEffect = 0xb4;
 inline constexpr float DragonScale = 1.6f;
-// El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
+// The arrival effect: the F3 03 reply creates it twice on the hero (06, "El héroe").
 inline constexpr std::int16_t ArrivalEffect = 0x61f;
 inline constexpr std::int16_t TeleportEffect = 0x5c6;
 inline constexpr std::int16_t PiercingShotGlowEffect = 0x621;
-// La mariposa (0x51913a): la emite el 0x3c del mapa 54 y del 33 (0x425790), con el objeto de dueño.
+// The butterfly (0x51913a): emitted by the 0x3c of maps 54 and 33 (0x425790), with the object as owner.
 inline constexpr std::int16_t ButterflyEffect = 0xae;
-// Los del Dungeon y de Lost Tower: la piedra que cae del 0x34 del mapa 1 (DungeonStone), el chorro de fuego
-// del 0x18 del 4 (sin modelo: sólo el pase del suelo) y las dos piedritas que salta el chorro (Stone01/02).
+// Those of the Dungeon and Lost Tower: the stone that falls from map 1's 0x34 (DungeonStone), the fire jet of map 4's
+// 0x18 (no model: only the floor pass) and the two pebbles the jet throws (Stone01/02).
 inline constexpr std::int16_t FallingStoneEffect = 0xda;
 inline constexpr std::int16_t FlameJetEffect = 0x5de;
-inline constexpr std::int32_t FlameColumnSubtype = 3; // el 0x5de/3 de la mano derecha del 0x1a4 (0x441b7c)
-// Las piedras del 0x10a y del 0x10b (0x51bafb, 0x52531d): el ataque con daño a las estatuas 0x18e de Blood Castle
-// suelta el 0x10b (0x504267), que salta, cae sobre el terreno y se inclina.
+inline constexpr std::int32_t FlameColumnSubtype = 3; // the 0x5de/3 of the 0x1a4's right hand (0x441b7c)
+// The stones of the 0x10a and the 0x10b (0x51bafb, 0x52531d): the damaging attack on Blood Castle's 0x18e statues drops
+// the 0x10b (0x504267), which jumps, falls on the terrain and tilts.
 inline constexpr std::int16_t FirstDebrisEffect = 0x10a;
 inline constexpr std::int16_t DebrisEffect = 0x10b;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 inline constexpr std::int32_t RisingStoneChipSubtype = 1;
-// La /2 de las piedritas (la de las tormentas 0xcf, 0x522f17 y 0x5231a1 → 0x52b14d): nace como la /0 (0x51b72b) y
-// sube como la /1, girando 20 en z en cada paso (0x523a44).
+// The pebbles' /2 (that of the 0xcf storms, 0x522f17 and 0x5231a1 → 0x52b14d): born as the /0 (0x51b72b) and rises as
+// the /1, turning 20 in z each step (0x523a44).
 inline constexpr std::int32_t SpinningStoneChipSubtype = 2;
-// La /0xc de las piedritas (la de la columna 0x5de/3, 0x52afe1): nace como la /0 con la escala ((& 3) + 15) · 0,1f
-// (0x51b509..0x51b5d6) y cae y se prende como la /0 (0x523980, 0x523a3a, 0x523ad2).
+// The pebbles' /0xc (that of the column 0x5de/3, 0x52afe1): born as the /0 with the scale ((& 3) + 15) · 0.1f
+// (0x51b509..0x51b5d6) and falls and lights up as the /0 (0x523980, 0x523a3a, 0x523ad2).
 inline constexpr std::int32_t ColumnStoneChipSubtype = 0xc;
-// Los pedazos grandes (Data\Skill\BigStone1 y 2): con el subtipo 0 los suelta la muerte del 0x16b (0x4f59ca), corridos
-// rand() % 128 − 64 en x e y y rand() % 180 en z antes del camino de las piedritas (0x51b659); el /5 es del lote del
-// estallido (World/BlastModelEffects) y el /10 de la piedra que cae (CreateGroundStoneChip).
+// The big pieces (Data\Skill\BigStone1 and 2): with subtype 0 the 0x16b's death drops them (0x4f59ca), shifted
+// rand() % 128 − 64 in x and y and rand() % 180 in z before the pebbles' path (0x51b659); the /5 is from the blast
+// batch (Effects/BlastModelEffects) and the /10 from the falling stone (CreateGroundStoneChip).
 inline constexpr std::int16_t FirstSplinterEffect = 0xe5;
 inline constexpr std::int16_t SecondSplinterEffect = 0xe6;
-// El pedazo de hielo 0xca (Data\Skill\Ice02.bmd, 0x615d36): diez los suelta el monstruo de hielo 0x161 al terminar de
-// morir (0x52e810, CL9 hito 3). Su paso es el de las piedritas (0x523974).
+// The ice piece 0xca (Data\Skill\Ice02.bmd, 0x615d36): the ice monster 0x161 drops ten when it finishes dying
+// (0x52e810, CL9 milestone 3). Its step is the pebbles' (0x523974).
 inline constexpr std::int16_t IceShardEffect = 0xca;
-// Los de Icarus (0x605d70 y 0x6061c0): la nube 0xbb (Object11\cloud) sobre el héroe y el 0x5ac, sin modelo,
-// que sube soltando partículas 5ac/1.
+// Icarus's (0x605d70 and 0x6061c0): the cloud 0xbb (Object11\cloud) over the hero and the 0x5ac, with no model, which
+// rises dropping particles 0x5ac/1.
 inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
 inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
-// El 0x5ac/3 del conjunto completo (0x50fdc3): cada 100 dibujos del personaje con +0x358, con él de dueño. No se
-// mueve solo: cada 15 pasos se corre alrededor del dueño y suelta un joint 619/9 (0x52a9ad).
+// The full set's 0x5ac/3 (0x50fdc3): every 100 draws of the character with +0x358, with it as owner. It does not move
+// by itself: every 15 steps it shifts around the owner and drops a joint 0x619/9 (0x52a9ad).
 inline constexpr std::int32_t FullSetFlareSubtype = 3;
-// Los 0x5ac/1 y /2 de las skills que llegan (0x4cdd84 con la 0x30 y 0x4cdc88 con la 0x35, Scenes/SkillReplies), con el
-// blanco de dueño: viven mientras el dueño esté vivo con su bandera de +0x78 (0x10 el /1, 0x400 el /2). El /1 suelta
-// partículas 5ac/4 en cada paso (0x52a7b7) y el /2, cada 50, se corre alrededor del dueño y suelta un joint 619/9
+// The 0x5ac/1 and /2 of the arriving skills (0x4cdd84 with skill 0x30 and 0x4cdc88 with 0x35, Skills/SkillReplies),
+// with the target as owner: they live while the owner is alive with its +0x78 flag (0x10 the /1, 0x400 the /2). The /1
+// drops particles 0x5ac/4 each step (0x52a7b7) and the /2, every 50, shifts around the owner and drops a joint 0x619/9
 // (0x52a8a7).
 inline constexpr std::int32_t SwellFlareSubtype = 1;
 inline constexpr std::int32_t GuardFlareSubtype = 2;
-// El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
-// vaga cerca de donde nació y suelta partículas 5ac/9.
+// Aida's (0x42593f): the 0x46 creates the 0xb3, a model Aida does not load (in Atlans, Object8\Fish02), which wanders
+// near where it was born and drops particles 0x5ac/9.
 inline constexpr std::int16_t AidaWispEffect = 0xb3;
-// El de Castle Siege (0x42c6b0): el objeto 79 del mapa 30 crea el 0x135 (Skill\TowerGatePlane), un plano
-// que sube y baja con el reloj y se dibuja dos veces, la segunda reflejada.
+// Castle Siege's (0x42c6b0): object 79 of map 30 creates the 0x135 (Skill\TowerGatePlane), a plane that rises and falls
+// with the clock and is drawn twice, the second time mirrored.
 inline constexpr std::int16_t GatePlaneEffect = 0x135;
-// El calco que se apaga (0x61d, sin modelo: solo el pase del suelo dibuja la /1). El 0x38 de Crywolf crea el /3, que
-// suelta órbitas 60f/10 (0x52b933).
+// The fading decal (0x61d, no model: only the floor pass draws the /1). Crywolf's 0x38 creates the /3, which drops
+// orbits 0x60f/10 (0x52b933).
 inline constexpr std::int16_t FadingDecalEffect = 0x61d;
 inline constexpr std::int32_t CrywolfDecalSubtype = 3;
-// La onda (0x6eb, Effect\ShockWave.jpg, sin modelo: solo el pase del suelo la dibuja). El galope del caballo oscuro en
-// Icarus crea la /1 (0x44431b), que crece y tiembla.
+// The wave (0x6eb, Effect\ShockWave.jpg, no model: only the floor pass draws it). The dark horse's gallop in Icarus
+// creates the /1 (0x44431b), which grows and shakes.
 inline constexpr std::int16_t ShockWaveEffect = 0x6eb;
 inline constexpr std::int32_t GallopShockWaveSubtype = 1;
-// El pisotón del caballo oscuro (0x4453e0, la acción 3 de 0x444010): cada 10 pasos lógicos la onda 0x6eb con el
-// subtipo 0, que se achica, y seis piedras 0x118 o 0x119 (Skill\groundStone y groundStone2, 0x615700) alrededor. Cada
-// piedra suelta en sus pasos 33 a 36 el polvo 5f2/11 y una piedrita 0xc8/0xc9 con el subtipo 10 (0x5275ca).
+// The dark horse's stomp (0x4453e0, 0x444010's action 3): every 10 logic steps the wave 0x6eb with subtype 0, which
+// shrinks, and six stones 0x118 or 0x119 (Skill\groundStone and groundStone2, 0x615700) around. Each stone drops in its
+// steps 33 to 36 the dust 0x5f2/11 and a pebble 0xc8/0xc9 with subtype 10 (0x5275ca).
 inline constexpr std::int32_t StompShockWaveSubtype = 0;
 inline constexpr std::int16_t FirstGroundStoneEffect = 0x118;
 inline constexpr std::int16_t SecondGroundStoneEffect = 0x119;
 inline constexpr std::int32_t GroundStoneChipSubtype = 10;
-// Los del dibujo de los Fenrir (0x60277b): el rayo 0x14d (Effect\lightning_type01.bmd), que nace en un hueso del
-// Fenrir con su sprite 0x5ac y se prende y se apaga en pocos pasos, y el calco 0x14e (eff_lightinga01..05, sin
-// modelo: lo dibuja 0x52d8f2 en el piso), que cambia de textura cada 200 ms de timeGetTime().
+// Those of the Fenrir draw (0x60277b): the ray 0x14d (Effect\lightning_type01.bmd), born at a Fenrir bone with its
+// sprite 0x5ac and flickering on and off within a few steps, and the decal 0x14e (eff_lightinga01..05, no model:
+// 0x52d8f2 draws it on the floor), which changes texture every 200 ms of timeGetTime().
 inline constexpr std::int16_t LightningEffect = 0x14d;
 inline constexpr std::int16_t LightningDecalEffect = 0x14e;
-// El calco de colores (0x61e, Effect\Magic_Ground2 en el pase del suelo). Al vestir una mascota fuera de la zona
-// segura, 0x5bca46 crea el /1 sobre el héroe, con él de dueño: cada paso suelta tres joints 619/1 que bajan hacia el
-// dueño (0x518900).
+// The colored decal (0x61e, Effect\Magic_Ground2 in the floor pass). On equipping a pet outside the safe zone, 0x5bca46
+// creates the /1 over the hero, with it as owner: each step drops three joints 0x619/1 that go down toward the owner
+// (0x518900).
 inline constexpr std::int16_t ColoredDecalEffect = 0x61e;
 inline constexpr std::int32_t LevelUpDecalSubtype = 0;
 inline constexpr std::int32_t PetSummonSubtype = 1;
-// El /3, que la 0x1c crea sobre el blanco y las invocaciones 0x1e..0x24 sobre el que las lanza (0x50470f y 0x4fdf1e):
-// su paso suelta tres joints 619/3 (0x518900), que suben hacia él como los 619/1.
+// The /3, which skill 0x1c creates over the target and the summons 0x1e..0x24 over their caster (0x50470f and
+// 0x4fdf1e): its step drops three joints 0x619/3 (0x518900), which rise toward it like the 0x619/1.
 inline constexpr std::int32_t SummonDecalSubtype = 3;
-// El terremoto (la familia EarthQuake): el 0xfa, que la acción 3 del caballo oscuro crea con el caballo de dueño y el
-// estado (+0x88) en 2 (0x4453e0) y que con un estado distinto de 0 no se dibuja (0x52d400). Su paso suelta en la vida
-// 11 la explosión 5ed/0 y las grietas 0xfb..0x100, y en la 10 las 0x101 y 0x102 (Data\Skill\EarthQuake01..08, que
-// dibuja 0x602e90). Los tres primeros (0xfd, 0xfb y 0xfc) llevan al 0xfa de dueño; los demás, al dueño del 0xfa.
+// The earthquake (the EarthQuake family): the 0xfa, which the dark horse's action 3 creates with the horse as owner and
+// the state (+0x88) at 2 (0x4453e0) and which is not drawn with a state other than 0 (0x52d400). Its step drops at life
+// 11 the explosion 0x5ed/0 and the cracks 0xfb..0x100, and at 10 the 0x101 and 0x102 (Data\Skill\EarthQuake01..08,
+// which 0x602e90 draws). The first three (0xfd, 0xfb and 0xfc) take the 0xfa as owner; the others, the 0xfa's owner.
 inline constexpr std::int16_t EarthquakeEffect = 0xfa;
 inline constexpr std::int16_t EarthquakeBurstEffect = 0x103;
 inline constexpr std::int16_t FirstEarthquakeCrack = 0xfb;
 inline constexpr std::int16_t LastEarthquakeCrack = 0x102;
-// +0x74 en 0x80: las grietas 0xfc, 0xff y 0x102 con el subtipo 1 (0x51a850); 0x6002e0 las dibuja por 0x4ef0c0 con
+// +0x74 at 0x80: the cracks 0xfc, 0xff and 0x102 with subtype 1 (0x51a850); 0x6002e0 draws them through 0x4ef0c0 with
 // 0x82 (0x6004aa).
 inline constexpr std::uint32_t CrackRenderFlags = 0x80;
 
 struct ModelEffect;
-// +0x108, el dueño, con lo que leen de él en vivo los pasos del terremoto y sus grietas: el WORD +0x2 (su tipo) y +0x1c
-// (sus ángulos). El original guarda un puntero a un objeto de cualquier tabla; MuRet, punteros a esos campos, que
-// tienen que vivir más que el efecto (los lugares de las tablas no se mueven, y un lugar que se vuelve a usar se lee
-// como el original lo lee). Un ayudante (Actors::HelperState) da `type` y `angles`; otro efecto, `effect` (su
-// ModelEffect::type) y sus ángulos. Sin ninguno de los tres, no hay dueño.
+// +0x108, the owner, with what the earthquake's and its cracks' steps read live from it: the WORD +0x2 (its type)
+// and +0x1c (its angles). The original stores a pointer to an object of any table; MuRet, pointers to those fields,
+// which must outlive the effect (the tables' slots do not move, and a reused slot is read as the original reads it). A
+// helper (Kernel::HelperState) gives `type` and `angles`; another effect, `effect` (its ModelEffect::type) and its
+// angles. Without any of the three, there is no owner.
 struct ModelEffectOwner
 {
     const std::uint16_t* type = nullptr;
     const ModelEffect* effect = nullptr;
     const glm::vec3* angles = nullptr;
-    // CL11 (World/BlastModelEffects): +0x10 (la posición), +0 (el byte vivo) y +0x16c (si se dibujó) de un dueño que
-    // no es otro efecto, como los leen en vivo los pasos del 0xe4, del 0xe5/5, del 0xec, del 0xf6, del 0x109 y del
-    // 0x113.
+    // CL11 (Effects/BlastModelEffects): +0x10 (the position), +0 (the live byte) and +0x16c (whether it was drawn) of
+    // an owner that is not another effect, as the steps of the 0xe4, the 0xe5/5, the 0xec, the 0xf6, the 0x109 and the
+    // 0x113 read them live.
     const glm::vec3* position = nullptr;
     const bool* alive = nullptr;
     const bool* seen = nullptr;
 };
 
-// Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
+// The fields shared by the 0x1d4-byte effects.
 struct ModelEffect
 {
     bool alive = false;                // +0x0
-    bool seen = false;                 // +0x16c, del último dibujo de este lugar
-    std::int16_t type = 0;             // +0x2, el modelo
-    std::int32_t subtype = 0;          // +0x4, la rama del efecto
-    Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    std::int32_t life = 0;             // +0x60, pasos que le quedan
-    glm::vec3 velocity{};              // +0xcc, por paso, girada por los ángulos
-    float speed = 0.0f;                // +0xd8, keys por paso
-    float turnPending = 0.0f;          // +0xdc: en el próximo paso lejos, da la vuelta
-    float turnDirection = 0.0f;        // +0xe4: 1 o −1, el sentido del giro
+    bool seen = false;                 // +0x16c, from this slot's last draw
+    std::int16_t type = 0;             // +0x2, the model
+    std::int32_t subtype = 0;          // +0x4, the effect's branch
+    Models::ObjectTransform transform; // +0xc the scale, +0x10 the position, +0x1c the angles
+    std::int32_t life = 0;             // +0x60, steps left
+    glm::vec3 velocity{};              // +0xcc, per step, rotated by the angles
+    float speed = 0.0f;                // +0xd8, keys per step
+    float turnPending = 0.0f;          // +0xdc: on the next far step, it turns around
+    float turnDirection = 0.0f;        // +0xe4: 1 or −1, the turn direction
     float flagEc = 0.0f;               // +0xec
-    std::uint8_t state = 0;            // +0x88: 0 y 1 giran, 2 va derecho
-    // +0x84: al empezar cada paso, la meta del alabeo del estado (30, −30 o 0); al dar la vuelta, el
-    // yaw con el que se compara el giro de ±60°. Los dos usos son del original.
+    std::uint8_t state = 0;            // +0x88: 0 and 1 turn, 2 goes straight
+    // +0x84: at the start of each step, the state's roll goal (30, −30 or 0); on turning around, the yaw the ±60° turn
+    // is compared with. Both uses are the original's.
     float reference = 0.0f;
-    Models::AnimationState animation;   // +0x111 la acción, +0x114 el frame, +0x118 el anterior
+    Models::AnimationState animation;   // +0x111 the action, +0x114 the frame, +0x118 the previous one
     glm::vec3 light{};                  // +0xf4
     float alpha = 1.0f;                 // +0x174
-    Models::ObjectState objectState;    // +0x58, +0x64 y +0x68
-    std::uint16_t disturbanceState = 0; // +0x8a, guard de437860 del efecto9
+    Models::ObjectState objectState;    // +0x58, +0x64 and +0x68
+    std::uint16_t disturbanceState = 0; // +0x8a, 0x437860's guard for effect 9
     bool vertexLight = true;            // +0xe8
-    glm::vec3 point40{};                // +0x40..+0x48, vector nativo de las estelas, distinto de la interpolación.
-    // +0x4c..+0x54: el otro punto que sigue el joint 0x618/0xb del 0x11b/1 (0x51c82d, 0x538256).
+    glm::vec3 point40{};                // +0x40..+0x48, native trail vector, distinct from the interpolation.
+    // +0x4c..+0x54: the other point the joint 0x618/0xb of the 0x11b/1 follows (0x51c82d, 0x538256).
     glm::vec3 point4c{};
-    glm::vec3 start{}; // +0x17c, la partida
-    // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
+    glm::vec3 start{}; // +0x17c, the start
+    // MuRet's own: the position before the last step, to draw between two steps (D-C4).
     glm::vec3 previousPosition{};
-    std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
-    std::uint32_t textureTime = 0;           // +0x1c0: el timeGetTime() del último cambio del calco 0x14e.
-    const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
-    const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
-    // +0x108 distinto de 0: el efecto tiene dueño. El plano 0x135 sólo se mueve con dueño (0x529745).
+    std::int32_t textureFrame = 0;           // +0x1c4: signed selector of the 0x14e decal at 0x52d8f2.
+    std::uint32_t textureTime = 0;           // +0x1c0: the timeGetTime() of the 0x14e decal's last change.
+    const std::int16_t* itemType = nullptr;  // the effect's +0x108 → the durable owner's +0x8c, for 0xf4/0xfa.
+    const std::uint8_t* itemLevel = nullptr; // +0x108 → +0x8e; do not infer from ActorState.
+    // +0x108 other than 0: the effect has an owner. The 0x135 plane only moves with an owner (0x529745).
     bool hasOwner = false;
-    // +0x108 como dueño opaco, para los pasos que lo leen fuera de World: el ActorState del personaje del 5ac/3.
+    // +0x108 as an opaque owner, for the steps that read it outside ModelEffects: the ActorState of the 0x5ac/3's
+    // character.
     void* ownerContext = nullptr;
-    // +0x108 con lo que leen en vivo el terremoto 0xfa y sus grietas (OwnerTypeOf). El prefijo lo pisa.
+    // +0x108 with what the earthquake 0xfa and its cracks read live (OwnerTypeOf). The prefix overwrites it.
     ModelEffectOwner owner{};
-    // +0x28..+0x30: el 0xfa copia ahí sus ángulos al nacer (0x51a66d) y su paso gira la velocidad con ellos. El prefijo
-    // no los toca.
+    // +0x28..+0x30: the 0xfa copies its angles there when born (0x51a66d) and its step rotates the speed with them. The
+    // prefix does not touch them.
     glm::vec3 copiedAngles{};
-    // +0x74: el prefijo lo deja en 0; CrackRenderFlags en las grietas de subtipo 1.
+    // +0x74: the prefix leaves it at 0; CrackRenderFlags in the subtype 1 cracks.
     std::uint32_t renderFlags = 0;
-    // CL9 hito 3, fase 2e (las flechas). +0x89: el byte del noveno argumento de 0x518cf0, el lugar de la skill en el
-    // registro propio que 0x520170 lee al chocar. +0x1bd: el del décimo, que nadie portado lee. +0x8c: la cuenta +0xf04
-    // del registro propio que la salida de las flechas (0x51a1b6) copia entre la apertura y el cierre. +0x100: el
-    // prefijo lo pone en 0; con la skill 0x34, los pasos que le quedan sin chocar (0x52045c, hito 4).
+    // +0x89: the byte of 0x518cf0's ninth argument, the skill's place in the own record that 0x520170 reads on
+    // collision. +0x1bd: the tenth's, which nothing ported reads. +0x8c: the own record's +0xf04 count that the arrows'
+    // exit (0x51a1b6) copies between the opening and the closing. +0x100: the prefix sets it to 0; with skill 0x34, the
+    // steps it has left without colliding (0x52045c).
     std::uint8_t byte89 = 0;
     std::uint8_t byte1bd = 0;
     std::uint16_t word8c = 0;
     std::int32_t dword100 = 0;
-    // +0x90 y +0x1b0: el umbral del impacto y el destino de los proyectiles del castillo y del 0xee de Crywolf.
+    // +0x90 and +0x1b0: the impact threshold and the destination of the castle's projectiles and of Crywolf's 0xee.
     std::uint8_t byte90 = 0;
     glm::vec3 siegeTarget{};
-    // +0x78: cola602365 de6002e0. El prefijo518cf0 no lo reinicializa.
+    // +0x78: 0x6002e0's tail 0x602365. 0x518cf0's prefix does not reset it.
     std::uint32_t flags78 = 0;
 };
 
-// El WORD +0x2 del dueño, leído en vivo, o nada sin dueño.
+// The owner's WORD +0x2, read live, or nothing without an owner.
 [[nodiscard]] std::optional<std::uint16_t> OwnerTypeOf(const ModelEffectOwner& owner);
 
-// ModelEffects::Begin sobre otra tabla del mismo formato: la copia que repite el pase del suelo (0x52dc20) crea ahí lo
-// que el original crea en la suya (los 0x61e/7 y /9 de 0x52e04c y 0x52e0a2).
+// ModelEffects::Begin on another table of the same format: the copy the floor pass repeats (0x52dc20) creates there
+// what the original creates in its own (the 0x61e/7 and /9 of 0x52e04c and 0x52e0a2).
 [[nodiscard]] std::optional<std::size_t> BeginModelEffect(std::span<ModelEffect> table,
                                                           const Kernel::ModelEffectArguments& arguments);
 
 class ModelEffects
 {
 public:
-    // 0x51c754: el torbellino145/2 de la estela del1ae, sinRNG.
+    // 0x51c754: the 0x145/2 whirlwind of the 0x1ae's trail, without RNG.
     std::optional<std::size_t> CreateCrywolfTideEffect(const Kernel::ModelEffectArguments& arguments);
-    // 0x51c129..0x51c36d: las ondas 0x114/2..6, sin rand(). Lo común del 0x114 (vida 20, +0xe4 en 0,1f, +0x64 en −2,
-    // +0x68 en 1, los ángulos en 0, la partida en la posición y la z + 50) y lo del subtipo: la /2, /3 y /4 (0x51c31f)
-    // viven 15 con +0xe4 en 0,01f y la x de los ángulos en 90; la /5 y la /6 (0x51c2d0) viven 10 con +0xe4 en 0,08f y
-    // la x en −90. Todas: la escala de la clave (+0x8a, MOVSX) por 0,05f, la clave en −1, la z − 50 y la z de los
-    // ángulos la del argumento. La /0 y la /1 sueltan joints (Scenes/WaveEffects); otro subtipo, nada. Lleno, ninguno.
+    // 0x51c129..0x51c36d: the waves 0x114/2..6, no rand(). The 0x114's common part (life 20, +0xe4 at 0.1f, +0x64
+    // at −2, +0x68 at 1, the angles at 0, the start at the position and z + 50) and the subtype's: the /2, /3 and /4
+    // (0x51c31f) live 15 with +0xe4 at 0.01f and the angles' x at 90; the /5 and /6 (0x51c2d0) live 10 with +0xe4 at
+    // 0.08f and x at −90. All: the key's scale (+0x8a, MOVSX) times 0.05f, the key at −1, z − 50 and the angles' z the
+    // argument's. The /0 and /1 drop joints (Effects/WaveEffects); another subtype, nothing. Full, none.
     std::optional<std::size_t> CreateWaveEffect(const Kernel::ModelEffectArguments& arguments);
-    // 0x51efa5: brillo621/0 de Piercing Shot, vida10 y corrimiento girado, sinCRT.
+    // 0x51efa5: Piercing Shot's 0x621/0 glow, life 10 and rotated shift, without CRT.
     std::optional<std::size_t> CreatePiercingShot(const Kernel::ModelEffectArguments& arguments);
-    // 0x51c8e8..0x51c951: el 0x115 de cualquier subtipo, sin rand(): escala 2, vida 6 con el /1 y 10 con los demás,
-    // +0x64 en −2, la velocidad (0, −60, 0), la partida en la posición y la z + 130. Lleno, ninguno.
+    // 0x51c8e8..0x51c951: the 0x115 of any subtype, no rand(): scale 2, life 6 with the /1 and 10 with the
+    // others, +0x64 at −2, speed (0, −60, 0), the start at the position and z + 130. Full, none.
     std::optional<std::size_t> CreatePiercingEffect(const Kernel::ModelEffectArguments& arguments);
-    // 0x51c06c: proyectil0xee de BD0C, sinCRT; +1b0 recibe los ángulos como destino.
+    // 0x51c06c: BD0C's 0xee projectile, without CRT; +0x1b0 receives the angles as destination.
     std::optional<std::size_t> CreateCrywolfMissile(const Kernel::ModelEffectArguments& arguments);
-    // 0x51edc4/0x51ee54: los fuegos artificiales60d/60e, con pools reales y sin sonidos implícitos.
+    // 0x51edc4/0x51ee54: the fireworks 0x60d/0x60e, with real pools and no implicit sounds.
     std::optional<std::size_t> CreateFireworkEmitter(const Kernel::ModelEffectArguments& arguments);
     std::optional<std::size_t> CreateFireworkFlare(const Kernel::ModelEffectArguments& arguments,
                                                    Crt::CrtRandom& random);
-    // 0x51f7f9: cráter636, sub0/1/2; no consume RNG y el pool lleno conserva sus argumentos.
+    // 0x51f7f9: crater 0x636, subtypes 0/1/2; consumes no RNG and a full pool keeps its arguments.
     std::optional<std::size_t> CreateCraterEffect(const Kernel::ModelEffectArguments& arguments);
-    // 0x51f4ad..0x51f5fd: la onda 0x6eb de cualquier subtipo: vida 30 y escala 20, y después la /1 y la /2 vida 20 y
-    // (rand() % 10 + 10) · 0,1f, la /3 vida 15 y 1, la /4 vida 10 y (rand() % 6 + 6) · 0,1f, la /5 20 y 9, la /6 50 y
-    // 9, la /7 10 y 1 y la /8 10 y (rand() % 10 + 10) · 0,2f. Sólo la /1, la /2, la /4 y la /8 sacan un rand(), con
-    // lugar.
+    // 0x51f4ad..0x51f5fd: the wave 0x6eb of any subtype: life 30 and scale 20, and then the /1 and /2 life 20 and
+    // (rand() % 10 + 10) · 0.1f, the /3 life 15 and 1, the /4 life 10 and (rand() % 6 + 6) · 0.1f, the /5 20 and 9, the
+    // /6 50 and 9, the /7 10 and 1 and the /8 10 and (rand() % 10 + 10) · 0.2f. Only the /1, /2, /4 and /8 draw a
+    // rand(), with room.
     std::optional<std::size_t> CreateCastleShockWave(const Kernel::ModelEffectArguments& arguments,
                                                      Crt::CrtRandom& random);
     // 438a1a→5191be: tipo9/0, ownerNULL, escalaargumento0; primer libre, lleno sinCRT.
     std::optional<std::size_t> CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(type, position, angles, light, 0, dueño, −1, 0, 0, 0, scale) en el primer lugar sin el
-    // byte vivo, o nada si están todos. Una escala de 0 o menos pasa a 0,9 (0x518d3c). Del 0xb4: la
-    // posición del dueño con la z 3.400 más arriba (0x518fc9), los ángulos con el alabeo en 0 (0x518fb3),
-    // la luz en blanco (la salida 0x51a97b pisa `light`), vida 1.000, la velocidad (0, −35, 0), la de la
-    // animación en 1, +0xdc, +0xe4 y +0xec en 1, luz por vértice y la partida en la posición. Del 0x61f
-    // con el subtipo 0: la posición, los ángulos y la luz tal cual, 20 pasos de vida y la animación a
-    // 0,3, sin rand(). El 0x5c6 conserva ese prefijo con vida 10 (0x51e4f6), también sin rand().
-    // Noria tiene su creador separado con CRT; los demás tipos no se crean.
+    // 0x518cf0(type, position, angles, light, 0, owner, −1, 0, 0, 0, scale) in the first slot without the live byte, or
+    // nothing if all have it. A scale of 0 or less becomes 0.9 (0x518d3c). For the 0xb4: the owner's position with z
+    // 3400 higher (0x518fc9), the angles with the roll at 0 (0x518fb3), the light in white (the exit 0x51a97b
+    // overwrites `light`), life 1000, speed (0, −35, 0), the animation's at 1, +0xdc, +0xe4 and +0xec at 1, per-vertex
+    // light and the start at the position. For the 0x61f with subtype 0: the position, angles and light as given, 20
+    // steps of life and the animation at 0.3, no rand(). The 0x5c6 keeps that prefix with life 10 (0x51e4f6), also no
+    // rand(). Noria has its separate creator with CRT; the other types are not created.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
-    // Admite el subtipo 0 de los tres tipos anteriores. Conserva los argumentos del prefijo y los campos
-    // físicos que éste no escribe al reciclar el lugar.
+    // Accepts subtype 0 of the three types above. Keeps the prefix's arguments and the physical fields it does not
+    // write when recycling the slot.
     std::optional<std::size_t> Create(const Kernel::ModelEffectArguments& arguments);
-    // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
+    // 0x51c36e/0x51c38a: the Noria tower's effects 322..324; 322/323 set sourceLight to zero.
     std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                  glm::vec3& sourceLight, Crt::CrtRandom& random);
-    // 0x518cf0(0xae, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: el prefijo común
-    // (+0x8a en −1), en la escena 4 oculto (+0x58 = −2), vida 250, animación a 0,3, sin luz por vértice, el
-    // estado con rand() & 1, la velocidad (0, escala del dueño · −5, 0) y la escala 0,9 con el subtipo 3 o
-    // 0,25 con los demás. Un rand(); lleno, ninguno.
+    // 0x518cf0(0xae, position, angles, light, subtype, owner, −1, 0, 0, 0, 0) → 0x51913a: the common prefix (+0x8a
+    // at −1), hidden in scene 4 (+0x58 = −2), life 250, animation at 0.3, no per-vertex light, the state with
+    // rand() & 1, the speed (0, owner's scale · −5, 0) and the scale 0.9 with subtype 3 or 0.25 with the others. One
+    // rand(); full, none.
     std::optional<std::size_t> CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light, std::int32_t subtype, float ownerScale,
                                                      bool selectionScene, Crt::CrtRandom& random);
-    // 0x518cf0(0xda, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b80a: el prefijo común (+0x8a en −1)
-    // y seis rand(): la vida (& 15) + 24, la escala ((& 7) + 6) · 0,1f, la caída −(& 3) en +0xe4 y el
-    // corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) + 200), girado por los ángulos y sumado a la posición
-    // en float. Lleno, ninguno y sin rand().
+    // 0x518cf0(0xda, position, angles, light, 0, 0, −1, 0, 0, 0, 0) → 0x51b80a: the common prefix (+0x8a at −1) and six
+    // rand(): the life (& 15) + 24, the scale ((& 7) + 6) · 0.1f, the fall −(& 3) in +0xe4 and the shift
+    // ((& 63) − 32, −((& 31) + 50), (& 127) + 200), rotated by the angles and added to the position in float. Full,
+    // none and no rand().
     std::optional<std::size_t> CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(0x10a o 0x10b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51bafb, que sale en 0x51bc42 sin la
-    // salida común: el prefijo (sin dueño, +0x8a en −1), la z 50 más, el empuje (0; ((& 127) + 32) · 0,1f; 0), la vida
-    // (& 15) + 32, la escala ((& 3) + 8) · 0,1f, la z de los ángulos en % 360 para girar el empuje a la velocidad, la
-    // caída +0xe4 en % 5 + 2 y, con el 0x10b, el subtipo 1 y otro % 5 más en la caída; al final, los tres ángulos en
-    // % 360. Nueve rand() con el 0x10b, ocho con el 0x10a. Lleno, ninguno y sin rand(). Otro subtipo (el 0x10b/2, /3
-    // y /4 y el 0x10a/4 de 0x4ee770) queda en +0x4 y sale con ocho rand().
+    // 0x518cf0(0x10a or 0x10b, position, angles, light, 0, 0, −1, 0, 0, 0, 0) → 0x51bafb, which exits at 0x51bc42
+    // without the common exit: the prefix (no owner, +0x8a at −1), z 50 more, the push (0, ((& 127) + 32) · 0.1f, 0),
+    // the life (& 15) + 32, the scale ((& 3) + 8) · 0.1f, the angles' z at % 360 to rotate the push into the speed, the
+    // fall +0xe4 at % 5 + 2 and, with the 0x10b, subtype 1 and another % 5 more in the fall; at the end, the three
+    // angles at % 360. Nine rand() with the 0x10b, eight with the 0x10a. Full, none and no rand(). Another subtype (the
+    // 0x10b/2, /3 and /4 and 0x4ee770's 0x10a/4) stays in +0x4 and exits with eight rand().
     std::optional<std::size_t> CreateDebris(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                             const glm::vec3& light, Crt::CrtRandom& random, std::int32_t subtype = 0);
-    // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 con el subtipo 0: el prefijo común, vida 40 y el
-    // registro propio abierto y cerrado (copia su +0xf04 a +0x8c, que sólo lee la rama del dueño héroe, y el
-    // cierre que deja la cuenta en 0 gasta sus 3.848 rand()). Lleno, ninguno.
+    // 0x518cf0(0x5de, …, 0, 0, −1, 0, 0, 0, 0) → 0x51e7d8 with subtype 0: the common prefix, life 40 and the own record
+    // opened and closed (copies its +0xf04 to +0x8c, which only the hero-owner branch reads, and the closing that
+    // leaves the count at 0 spends its 3848 rand()). Full, none.
     std::optional<std::size_t> CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, std::uint8_t& ownRecordDepth,
                                               Crt::CrtRandom& random);
-    // 0x518cf0(0x5de, …) con el subtipo 3 → 0x51ecaa: la columna de la mano derecha del 0x1a4 (0x441b7c y 0x441c4c):
-    // el prefijo de Begin y vida 15, sin rand(). Otro tipo o subtipo, o la tabla llena, ninguno.
+    // 0x518cf0(0x5de, …) with subtype 3 → 0x51ecaa: the column of the 0x1a4's right hand (0x441b7c and 0x441c4c):
+    // Begin's prefix and life 15, no rand(). Another type or subtype, or the table full, none.
     std::optional<std::size_t> CreateFlameColumn(const Kernel::ModelEffectArguments& arguments);
-    // 0x518cf0(0x5de, punto, ángulos, luz, 0, dueño, clave, lugar, 0, 0, 0) → 0x51e7d8 con el subtipo 0, el chorro de
-    // la Flame (0x500531, Scenes/AttackSkillCases): el prefijo de Begin (el dueño en +0x108, la clave en +0x8a y el
-    // lugar de la skill en +0x89), vida 40 (0x51e7f9) y el registro propio abierto, su cuenta +0xf04 (`ownRecordCount`)
-    // como WORD en +0x8c (0x51ea9f, MOVZX) y cerrado (0x51eab6: con `ownRecordDepth` en 0, sus 3.848 rand()). La rama
-    // del dueño héroe del paso (0x52ae2a) lee +0x89, +0x8a y +0x8c. Otro tipo o subtipo, o la tabla llena, ninguno, sin
-    // rand() y sin tocar el registro.
+    // 0x518cf0(0x5de, point, angles, light, 0, owner, key, place, 0, 0, 0) → 0x51e7d8 with subtype 0, the Flame's jet
+    // (0x500531, Skills/AttackSkillCases): Begin's prefix (the owner in +0x108, the key in +0x8a and the skill's place
+    // in +0x89), life 40 (0x51e7f9) and the own record opened, its count +0xf04 (`ownRecordCount`) as a WORD in +0x8c
+    // (0x51ea9f, MOVZX) and closed (0x51eab6: with `ownRecordDepth` at 0, its 3848 rand()). The step's hero-owner
+    // branch (0x52ae2a) reads +0x89, +0x8a and +0x8c. Another type or subtype, or the table full, none, no rand() and
+    // the record untouched.
     std::optional<std::size_t> CreateOwnedFlameJet(const Kernel::ModelEffectArguments& arguments,
                                                    std::uint8_t& ownRecordDepth, std::uint8_t ownRecordCount,
                                                    Crt::CrtRandom& random);
-    // 0x518cf0(0xc8 o 0xc9, o 0xea, 0xeb, 0xe5 o 0xe6 con el subtipo 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: el
-    // prefijo común y cinco rand(): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
-    // 0,1f, el yaw rand() % 360 y la caída (& 15) + 8 en +0xe4; la velocidad es el empuje girado por los ángulos con
-    // ese yaw. La /1 de 0x520119 tiene empuje cero y omite ese primer sorteo; la /0xc del 0xc8 y el 0xc9 (0x51b509..
-    // 0x51b5d6) saca los mismos cinco con la escala ((& 3) + 15) · 0,1f. El 0xe5 y el 0xe6 sacan antes tres más
-    // (0x51b66b..0x51b6d6): rand() % 128 − 64 en x, otro en y y rand() % 180 en z, sumados a la posición (cada uno
-    // guardado en float y después fld, fadd y fstp). Otro tipo o la tabla llena, ninguno.
+    // 0x518cf0(0xc8 or 0xc9, or 0xea, 0xeb, 0xe5 or 0xe6 with subtype 0, …, 0, 0, −1, 0, 0, 0, 0) → 0x51b72b: the
+    // common prefix and five rand(): the push ((& 255) + 64) · 0.1f in y, the life (& 15) + 32, the scale
+    // ((& 3) + 8) · 0.1f, the yaw rand() % 360 and the fall (& 15) + 8 in +0xe4; the speed is the push rotated by the
+    // angles with that yaw. The /1 of 0x520119 has zero push and skips that first draw; the /0xc of the 0xc8 and the
+    // 0xc9 (0x51b509..0x51b5d6) draws the same five with the scale ((& 3) + 15) · 0.1f. The 0xe5 and the 0xe6 draw
+    // three more before (0x51b66b..0x51b6d6): rand() % 128 − 64 in x, another in y and rand() % 180 in z, added to the
+    // position (each stored in float and then fld, fadd and fstp). Another type or the table full, none.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Crt::CrtRandom& random);
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Crt::CrtRandom& random, std::int32_t subtype);
-    // 0x518cf0(0xbb o 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) con el subtipo 0. La nube (0x51b968): vida 2, el
-    // blendMesh en 0, escala 10, 200 más en y y 190 menos en z, sin luz por vértice; sin rand(). El 0x5ac
-    // (0x51e3ec): la luz en 0,3f, s = rand() % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°; cos 30° ·
-    // cos 70°; sen 70°) · s · 0,5 con la x87 sobre los double 0x6ba1c8 y 0x6ba1d0, escala 3 y vida 400. Otro
-    // tipo o la tabla llena, ninguno y sin rand().
+    // 0x518cf0(0xbb or 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) with subtype 0. The cloud (0x51b968): life 2, blendMesh at
+    // 0, scale 10, 200 more in y and 190 less in z, no per-vertex light; no rand(). The 0x5ac (0x51e3ec): the light at
+    // 0.3f, s = rand() % 5 + 9 and the unrotated speed (sin 30° · cos 70°, cos 30° · cos 70°, sin 70°) · s · 0.5 on the
+    // x87 over the doubles 0x6ba1c8 and 0x6ba1d0, scale 3 and life 400. Another type or the table full, none and no
+    // rand().
     std::optional<std::size_t> CreateIcarusEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(0xb3, posición, ángulos, luz, 0, objeto, −1, 0, ftol(escala del objeto), 0, 0) → 0x51900b: el
-    // prefijo común (+0x8a en −1, escala 0,9) y seis rand(): la z, la y y la x ± 100 (r % 200 − 100), el yaw
-    // más r % 360, la y de la velocidad (r & 7) · 0,1f − 5 (la x y la z en 0) y la escala más (r % 5) ·
-    // 0,025f. El estado +0x88 en 0 (pisa el byte de la escala del objeto), +0x68 y la animación +0xd8 en 1,
-    // vida 1.000, +0xe4 y +0xec en 1, la partida en la posición ya corrida y la luz (0,01f; 0,01f; 0,03f).
-    // El dueño (+0x108) no lo lee nadie. Lleno, ninguno y sin rand().
+    // 0x518cf0(0xb3, position, angles, light, 0, object, −1, 0, ftol(the object's scale), 0, 0) → 0x51900b: the common
+    // prefix (+0x8a at −1, scale 0.9) and six rand(): z, y and x ± 100 (r % 200 − 100), the yaw plus r % 360, the
+    // speed's y (r & 7) · 0.1f − 5 (x and z at 0) and the scale plus (r % 5) · 0.025f. The state +0x88 at 0 (overwrites
+    // the object scale's byte), +0x68 and the animation +0xd8 at 1, life 1000, +0xe4 and +0xec at 1, the start at the
+    // already shifted position and the light (0.01f, 0.01f, 0.03f). Nobody reads the owner (+0x108). Full, none and no
+    // rand().
     std::optional<std::size_t> CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(0x135, posición, ángulos, luz, 0, objeto, −1, 0, 0, 0, 0) → 0x51d73b: el prefijo común (+0x8a
-    // en −1, escala 0,9), el dueño (+0x108), vida 100, la luz de las mallas (+0x68) en 0,3f y la partida en
-    // la posición. Sin rand(); lleno, ninguno.
+    // 0x518cf0(0x135, position, angles, light, 0, object, −1, 0, 0, 0, 0) → 0x51d73b: the common prefix (+0x8a
+    // at −1, scale 0.9), the owner (+0x108), life 100, the meshes' light (+0x68) at 0.3f and the start at the position.
+    // No rand(); full, none.
     std::optional<std::size_t> CreateGatePlane(const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, bool hasOwner);
-    // 0x518cf0(0x61d, posición, ángulos, luz, subtipo, dueño, `disturbance`, 0, 0, 0, 0) → 0x51ee96: el prefijo
-    // común (escala 0,9 y +0x8a con `disturbance`), vida 20 y escala 0,5; con el subtipo 0, la vida en 15. Sin
-    // rand(). El dueño (+0x108) no lo lee el paso del 0x61d. Lleno, ninguno.
+    // 0x518cf0(0x61d, position, angles, light, subtype, owner, `disturbance`, 0, 0, 0, 0) → 0x51ee96: the common prefix
+    // (scale 0.9 and +0x8a with `disturbance`), life 20 and scale 0.5; with subtype 0, life at 15. No rand(). The
+    // 0x61d's step does not read the owner (+0x108). Full, none.
     std::optional<std::size_t> CreateFadingDecal(const glm::vec3& position, const glm::vec3& angles,
                                                  const glm::vec3& light, std::int32_t subtype,
                                                  std::uint16_t disturbance);
-    // 0x518cf0(0x5ac, posición, ángulos, luz, 3, personaje, −1, 0, 0, 0, 0) → 0x51e489: el prefijo común (+0x8a en
-    // −1, escala 0,9) con el personaje de dueño (+0x108), vida 30 y +0xd8 en 0. Sin rand(); lleno, ninguno.
+    // 0x518cf0(0x5ac, position, angles, light, 3, character, −1, 0, 0, 0, 0) → 0x51e489: the common prefix (+0x8a
+    // at −1, scale 0.9) with the character as owner (+0x108), life 30 and +0xd8 at 0. No rand(); full, none.
     std::optional<std::size_t> CreateFullSetFlare(const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, void* owner);
-    // 0x518cf0(0x5ac, posición, ángulos, luz, 1 o 2, blanco, −1, 0, 0, 0, 0) → 0x51e4a6: el prefijo común (+0x8a en −1,
-    // escala 0,9) con el blanco de dueño (+0x108), vida 1.000 y +0xd8 en 0. Sin rand(); otro subtipo o la tabla llena,
-    // ninguno.
+    // 0x518cf0(0x5ac, position, angles, light, 1 or 2, target, −1, 0, 0, 0, 0) → 0x51e4a6: the common prefix (+0x8a
+    // at −1, scale 0.9) with the target as owner (+0x108), life 1000 and +0xd8 at 0. No rand(); another subtype or the
+    // table full, none.
     std::optional<std::size_t> CreateSkillFlare(const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, std::int32_t subtype, void* owner);
-    // 0x518cf0(0x6eb, posición, ángulos, luz, 1, 0, −1, 0, 0, 0, 0) → 0x51f4ad: el prefijo común (+0x8a en −1, sin
-    // dueño), la vida 30 y la escala 20 del tipo, y con el subtipo 1 la vida 20 y la escala ((rand() % 10) + 10) ·
-    // 0,1f en la x87 (0x51f4c3..0x51f4eb). Un rand(); lleno, ninguno y sin rand().
+    // 0x518cf0(0x6eb, position, angles, light, 1, 0, −1, 0, 0, 0, 0) → 0x51f4ad: the common prefix (+0x8a at −1, no
+    // owner), the type's life 30 and scale 20, and with subtype 1 life 20 and scale ((rand() % 10) + 10) · 0.1f on the
+    // x87 (0x51f4c3..0x51f4eb). One rand(); full, none and no rand().
     std::optional<std::size_t> CreateGallopShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(0x14d, posición, ángulos, luz, 0, dueño, −1, 0, 0, 0, 0) → 0x51db7a: el prefijo común (+0x8a en −1,
-    // escala 0,9) con el dueño, vida 100, la escala (rand() % 100) · 0,002f + 0,3f, el subtipo en 0, el alpha en 0,7f,
-    // los tres ángulos con rand() % 360 y, por rand() % 30, el lugar: el punto del hueso 10 (con 1 y 2), 14 (3), 2 (4
-    // y 5), 50 o 51 con un rand() par o impar (6 y 7) o 53 (8) del buffer global de la pose (0x4ec110(…, 0), que no
-    // mira el modelo del dueño), con 0,2f menos de escala en el 3, el 6, el 7 y el 8; con 9 y 10 lo apaga (y el
-    // alpha en 0); con los demás, 0,1f más de escala y la posición corrida rand() % 240 − 120 en x, rand() % 10 − 5
-    // en y y 110 en z. Siempre, también apagado, el sprite 0x5ac de escala 2 en su lugar con la luz menos 0,3f
-    // (0x51ddab). `bonePoint` da el punto de un hueso del buffer global; sin él, corta antes de tocar nada. Lleno,
-    // ninguno y sin rand().
+    // 0x518cf0(0x14d, position, angles, light, 0, owner, −1, 0, 0, 0, 0) → 0x51db7a: the common prefix (+0x8a
+    // at −1, scale 0.9) with the owner, life 100, the scale (rand() % 100) · 0.002f + 0.3f, subtype at 0, alpha at
+    // 0.7f, the three angles with rand() % 360 and, by rand() % 30, the place: the point of bone 10 (with 1 and 2), 14
+    // (3), 2 (4 and 5), 50 or 51 with an even or odd rand() (6 and 7) or 53 (8) of the global pose buffer
+    // (0x4ec110(…, 0), which does not look at the owner's model), with 0.2f less scale in 3, 6, 7 and 8; with 9 and 10
+    // it turns it off (and the alpha at 0); with the others, 0.1f more scale and the position shifted
+    // rand() % 240 − 120 in x, rand() % 10 − 5 in y and 110 in z. Always, also when off, the sprite 0x5ac of scale 2 in
+    // its place with the light minus 0.3f (0x51ddab). `bonePoint` gives the point of a bone of the global buffer;
+    // without it, it cuts before touching anything. Full, none and no rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
     CreateLightning(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, void* owner,
                     Crt::CrtRandom& random, const std::function<glm::vec3(std::size_t)>& bonePoint,
                     Particles::FrameSprites& sprites);
-    // 0x518cf0(0x14e, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51ddfc: el prefijo común (+0x8a en
-    // −1, escala 0,9) con el dueño, vida 200, el cuadro (+0x1c4) en 0, la luz, el alpha en 1, la hora (+0x1c0) de
-    // timeGetTime() y la z en 0. Sin rand(); lleno, ninguno.
+    // 0x518cf0(0x14e, position, angles, light, subtype, owner, −1, 0, 0, 0, 0) → 0x51ddfc: the common prefix (+0x8a
+    // at −1, scale 0.9) with the owner, life 200, the frame (+0x1c4) at 0, the light, alpha at 1, the time (+0x1c0)
+    // from timeGetTime() and z at 0. No rand(); full, none.
     std::optional<std::size_t> CreateLightningDecal(const glm::vec3& position, const glm::vec3& angles,
                                                     const glm::vec3& light, std::int32_t subtype, void* owner,
                                                     std::uint32_t systemTime);
-    // 0x518cf0(0x61e, posición, ángulos, luz, `subtype`, dueño, −1, 0, 0, 0, 0) → 0x51eebb: el prefijo común (+0x8a en
-    // −1, escala 0,9) con el dueño (+0x108) y vida 20; los subtipos 0 a 3 (el 1 de la mascota y de la 0x1a, el 3 de la
-    // 0x1c y de las invocaciones 0x1e..0x24, Scenes/AttackSkillCases) no tienen caso y salen por 0x51db73. Sin rand();
-    // otro subtipo (el 4 y del 6 al 10 tienen su caso) o la tabla llena, ninguno.
+    // 0x518cf0(0x61e, position, angles, light, `subtype`, owner, −1, 0, 0, 0, 0) → 0x51eebb: the common prefix (+0x8a
+    // at −1, scale 0.9) with the owner (+0x108) and life 20; subtypes 0 to 3 (the 1 of the pet and of skill 0x1a, the 3
+    // of skill 0x1c and of the summons 0x1e..0x24, Skills/AttackSkillCases) have no case and exit through 0x51db73. No
+    // rand(); another subtype (the 4 and 6 to 10 have their case) or the table full, none.
     std::optional<std::size_t> CreatePetSummon(const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, void* owner,
                                                std::int32_t subtype = PetSummonSubtype);
-    // 0x518cf0(0x118 o 0x119, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51cc6b o 0x51cd1b: el prefijo común
-    // (+0x8a en −1, sin dueño, escala 0,9) y el atributo de la celda de la posición (UnmaskedCellAttribute, en
-    // 0x51cc8b o 0x51cd3b): con el bit 0x04, el 0x08 o el 0x10 el lugar queda escrito con el byte vivo en 0, y
-    // ninguno, sin rand(). Si no, vida 40, la escala rand() % 30 · 0,01f + 1,2f (0x118) o + 1 (0x119) en la x87, +0xd8
-    // en 0,3f y el yaw rand() % 360; 0x4ea030(efecto, 0) no hace nada, porque el prefijo ya dejó la acción en 0. Dos
-    // rand(). Sin la tabla de atributos, o con una celda fuera de ella, corta después del prefijo, con el lugar vivo
-    // como lo dejó el original en ese punto. Otro tipo o la tabla llena, ninguno y sin rand().
+    // 0x518cf0(0x118 or 0x119, position, angles, light, 0, 0, −1, 0, 0, 0, 0) → 0x51cc6b or 0x51cd1b: the common prefix
+    // (+0x8a at −1, no owner, scale 0.9) and the attribute of the position's cell (UnmaskedCellAttribute, at 0x51cc8b
+    // or 0x51cd3b): with bit 0x04, 0x08 or 0x10 the slot stays written with the live byte at 0, and none, no rand().
+    // Otherwise, life 40, the scale rand() % 30 · 0.01f + 1.2f (0x118) or + 1 (0x119) on the x87, +0xd8 at 0.3f and the
+    // yaw rand() % 360; 0x4ea030(effect, 0) does nothing, because the prefix already left the action at 0. Two rand().
+    // Without the attributes table, or with a cell outside it, it cuts after the prefix, with the slot alive as the
+    // original left it at that point. Another type or the table full, none and no rand().
     [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
     CreateGroundStone(std::int16_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       const Data::Terrain::TerrainAttributes* attributes, Crt::CrtRandom& random);
-    // 0x518cf0(0xc8 o 0xc9, …, 10, 0, −1, 0, 0, 0, 0) → 0x51b432, la piedrita que suelta la piedra 0x118/0x119: el
-    // prefijo común, el subtipo 10 y cinco rand(): el empuje ((& 255) + 64) · 0,2 (el double 0x6ba1e8) en y, la vida
-    // (& 15) + 32, la escala ((& 3) + 15) · 0,05f, el yaw rand() % 360 y la caída (& 15) + 28 en +0xe4; la velocidad es
-    // el empuje girado por los ángulos con ese yaw. Otro tipo o la tabla llena, ninguno y sin rand().
+    // 0x518cf0(0xc8 or 0xc9, …, 10, 0, −1, 0, 0, 0, 0) → 0x51b432, the pebble the stone 0x118/0x119 drops: the common
+    // prefix, subtype 10 and five rand(): the push ((& 255) + 64) · 0.2 (the double 0x6ba1e8) in y, the life
+    // (& 15) + 32, the scale ((& 3) + 15) · 0.05f, the yaw rand() % 360 and the fall (& 15) + 28 in +0xe4; the speed is
+    // the push rotated by the angles with that yaw. Another type or the table full, none and no rand().
     std::optional<std::size_t> CreateGroundStoneChip(std::int16_t type, const glm::vec3& position,
                                                      const glm::vec3& angles, const glm::vec3& light,
                                                      Crt::CrtRandom& random);
-    // 0x518cf0(0xca, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51b659, el pedazo de hielo de 0x52e810: el
-    // prefijo común (+0x8a en −1, sin dueño, escala 0,9) y el caso, que comparten el 0xea y el 0xeb (la guarda del 0xe5
-    // y el 0xe6 de 0x51b65d no corre con ellos): +0x64 (el blendMesh) en 0 y +0x68 (su luz) en 0,3f; el empuje
-    // ((rand() & 255) + 64) · 0,1f en y; la z 50 más; la vida (rand() & 15) + 32; la escala ((rand() & 3) + 8) · 0,1f;
-    // el yaw rand() % 360 y la velocidad, el empuje girado por los ángulos con ese yaw (0x5fc8f0 y 0x5fcbd0); y +0xe4
-    // (la caída) en (rand() & 15) + 8. Cinco rand(). La tabla llena, ninguno y sin rand().
+    // 0x518cf0(0xca, position, angles, light, 0, 0, −1, 0, 0, 0, 0) → 0x51b659, 0x52e810's ice piece: the common prefix
+    // (+0x8a at −1, no owner, scale 0.9) and the case, which the 0xea and the 0xeb share (0x51b65d's guard for the 0xe5
+    // and the 0xe6 does not run with them): +0x64 (the blendMesh) at 0 and +0x68 (its light) at 0.3f; the push
+    // ((rand() & 255) + 64) · 0.1f in y; z 50 more; the life (rand() & 15) + 32; the scale ((rand() & 3) + 8) · 0.1f;
+    // the yaw rand() % 360 and the speed, the push rotated by the angles with that yaw (0x5fc8f0 and 0x5fcbd0);
+    // and +0xe4 (the fall) at (rand() & 15) + 8. Five rand(). With the table full, none and no rand().
     std::optional<std::size_t> CreateIceShard(const glm::vec3& position, const glm::vec3& angles,
                                               const glm::vec3& light, Crt::CrtRandom& random);
-    // 0x518cf0(0x6eb, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad con el subtipo 0, la onda del pisotón:
-    // el prefijo común (+0x8a en −1, sin dueño), vida 30 y escala 20, sin rand(). Lleno, ninguna.
+    // 0x518cf0(0x6eb, position, angles, light, 0, 0, −1, 0, 0, 0, 0) → 0x51f4ad with subtype 0, the stomp's wave: the
+    // common prefix (+0x8a at −1, no owner), life 30 and scale 20, no rand(). Full, none.
     std::optional<std::size_t> CreateStompShockWave(const glm::vec3& position, const glm::vec3& angles,
                                                     const glm::vec3& light);
-    // 0x518cf0(0xfa, posición, ángulos, luz, 0, dueño, −1, 0, estado, 0, 0) → 0x51a66d, como la llama el caballo
-    // (0x4453e0, con el estado 2): el prefijo común (+0x8a en −1, escala 0,9, el estado en +0x88) con el dueño,
-    // +0x28..+0x30 con los ángulos, la partida con la posición, vida 20, el subtipo rand() % 100, la z de los ángulos
-    // 330 más (fld/fadd/fstp), +0x28 80 más, +0x30 180 más y +0xe4 en 50. Después, 0x51a8d8: abre el registro propio
-    // (0x4e79a0, no gasta), le sube 1 a su cuenta +0xf04 (`ownRecordCount`, que envuelve, Q-C426; la de antes va a
-    // +0x8c, que no lee nadie portado) y lo cierra (0x40f370: con `ownRecordDepth` en 0, sus 3.848 rand()). Lleno,
-    // ninguno, sin rand() y sin tocar el registro.
+    // 0x518cf0(0xfa, position, angles, light, 0, owner, −1, 0, state, 0, 0) → 0x51a66d, as the horse calls it
+    // (0x4453e0, with state 2): the common prefix (+0x8a at −1, scale 0.9, the state in +0x88) with the
+    // owner, +0x28..+0x30 with the angles, the start with the position, life 20, subtype rand() % 100, the angles' z
+    // 330 more (fld/fadd/fstp), +0x28 80 more, +0x30 180 more and +0xe4 at 50. Then, 0x51a8d8: opens the own record
+    // (0x4e79a0, spends nothing), adds 1 to its count +0xf04 (`ownRecordCount`, which wraps, Q-C426; the previous one
+    // goes to +0x8c, which nothing ported reads) and closes it (0x40f370: with `ownRecordDepth` at 0, its 3848 rand()).
+    // Full, none, no rand() and the record untouched.
     std::optional<std::size_t> CreateEarthquake(const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, std::uint8_t state,
                                                 const ModelEffectOwner& owner, std::uint8_t& ownRecordDepth,
                                                 std::uint8_t& ownRecordCount, Crt::CrtRandom& random);
-    // 0x519275: pulso sin dueño ni azar; primer lugar libre, vida 15 y luz blanca.
+    // 0x519275: pulse with no owner or randomness; first free slot, life 15 and white light.
     std::optional<std::size_t> CreateEarthquakeBurst(const glm::vec3& position, const glm::vec3& angles,
                                                      const glm::vec3& light);
-    // 0x518cf0(0xfb..0x102, posición, ángulos, luz, subtipo, dueño, tamaño, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: el
-    // prefijo común con el dueño y +0x8a en `size`, y la escala size · 0,01f (fild/fmul/fstp). Vida: 0xfb 35 con el
-    // subtipo 0 y 60 con el 1; 0xfc 20 con el 0 y el 1 y 50 con el 2; 0xfd, 0xfe y 0x100 35; 0xff, 0x101 y 0x102 40.
-    // +0x64 en 0 en todos salvo 0xfd y 0x100, que dejan el −1 del prefijo. Con el subtipo 1, 0xfc, 0xff y 0x102 ponen
-    // +0x74 en CrackRenderFlags. Un subtipo sin caso (0xfb con otro que 0 o 1, 0xfc con otro que 0..2) sale por
-    // 0x51db73 sin escala ni vida: la escala 0,9 del prefijo y la vida del uso anterior del lugar (Q-C423). Otro tipo
-    // o la tabla llena, ninguno. Sin rand().
+    // 0x518cf0(0xfb..0x102, position, angles, light, subtype, owner, size, 0, 0, 0, 0) → 0x51a6e4..0x51a85c: the common
+    // prefix with the owner and +0x8a at `size`, and the scale size · 0.01f (fild/fmul/fstp). Life: 0xfb 35 with
+    // subtype 0 and 60 with 1; 0xfc 20 with 0 and 1 and 50 with 2; 0xfd, 0xfe and 0x100 35; 0xff, 0x101 and 0x102
+    // 40. +0x64 at 0 in all except 0xfd and 0x100, which keep the prefix's −1. With subtype 1, 0xfc, 0xff and 0x102
+    // set +0x74 to CrackRenderFlags. A subtype with no case (0xfb with other than 0 or 1, 0xfc with other than 0..2)
+    // exits through 0x51db73 with no scale or life: the prefix's scale 0.9 and the life of the slot's previous use
+    // (Q-C423). Another type or the table full, none. No rand().
     std::optional<std::size_t> CreateEarthquakeCrack(std::int16_t type, const glm::vec3& position,
                                                      const glm::vec3& angles, const glm::vec3& light,
                                                      std::int32_t subtype, const ModelEffectOwner& owner,
                                                      std::int16_t size);
-    // 0x518cf0 hasta su switch (0x518e3c): el primer lugar sin el byte vivo con lo que escribe el prefijo (el byte
-    // vivo, los argumentos, +0x58 y +0x64 en −1, +0x68 en 1, el alpha en 1, +0xd8 en 0,3, la acción y el frame en 0,
-    // +0x74 y +0x100 en 0, la luz por vértice y la velocidad en 0). Los demás campos del lugar quedan los del uso
-    // anterior. Lleno, nada (0x51db71), sin rand(). El caso de cada tipo lo sigue quien lo llama (Scenes/ArrowEffects).
+    // 0x518cf0 up to its switch (0x518e3c): the first slot without the live byte with what the prefix writes (the live
+    // byte, the arguments, +0x58 and +0x64 at −1, +0x68 at 1, the alpha at 1, +0xd8 at 0.3, the action and frame at
+    // 0, +0x74 and +0x100 at 0, per-vertex light and speed at 0). The slot's other fields keep the previous use's
+    // values. Full, nothing (0x51db71), no rand(). The caller continues each type's case (Effects/ArrowEffects).
     std::optional<std::size_t> Begin(const Kernel::ModelEffectArguments& arguments);
-    // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
+    // 0x6070a0: only clears each slot's live byte (Q-C138).
     void Clear();
 
     [[nodiscard]] std::span<ModelEffect> Effects();
@@ -460,17 +460,17 @@ private:
 // effect's ownerContext (*inferred*, Q-C1200: effects owned by a character keep it there).
 bool KillModelEffectsOf(ModelEffects& effects, std::int16_t type, const void* owner, std::int32_t subtype);
 
-// 0x5f8290(ftol(x · 0,01f), ftol(y · 0,01f)) y el WORD de 0x7d0d348 en ese índice, como lo leen las altas de las
-// piedras 0x118/0x119: y · 256 + x en 32 bits, sin la máscara de 0x5f82a0. Sin la tabla, con una coordenada que el
-// ftol de 0x69fd3c no representa o con un índice fuera de las 65.536 celdas (el original leería otra memoria), corta
-// con `address`.
+// 0x5f8290(ftol(x · 0.01f), ftol(y · 0.01f)) and the WORD of 0x7d0d348 at that index, as the creations of the stones
+// 0x118/0x119 read it: y · 256 + x in 32 bits, without 0x5f82a0's mask. Without the table, with a coordinate that
+// 0x69fd3c's ftol cannot represent or with an index outside the 65536 cells (the original would read other memory), it
+// cuts with `address`.
 [[nodiscard]] Core::Expected<std::uint16_t, std::string>
 UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes, const glm::vec3& position,
                       std::string_view address);
 
-// 0x5208a0 sobre un efecto vivo, con el esqueleto de su modelo (para el avance, o nullptr): el caso del
-// tipo (el 0xb4: 0x52096c..0x520b72) y la cola común (0x52cb98): la animación a +0xd8 (0x4ec200; si la
-// acción termina, el frame en sus keys y la acción en 0xff), la posición más la velocidad girada por los
-// ángulos (0x51fc80 con 0x5fc8f0 y 0x5fcbd0) y una vida menos; con la vida en 0, muere.
+// 0x5208a0 on a live effect, with its model's skeleton (for the advance, or nullptr): the type's case (the 0xb4:
+// 0x52096c..0x520b72) and the common tail (0x52cb98): the animation at +0xd8 (0x4ec200; if the action ends, the frame
+// at its keys and the action at 0xff), the position plus the speed rotated by the angles (0x51fc80 with 0x5fc8f0 and
+// 0x5fcbd0) and one life less; with life at 0, it dies.
 void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton);
 } // namespace Client::Effects

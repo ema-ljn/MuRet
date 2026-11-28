@@ -18,37 +18,38 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 4, fase 6b: los casos de habilidad del paso del ataque (0x4fd5f0) que el hito 3 dejó cortados (08, P-C258):
-// el switch de la cabeza (0x4fdeeb), el primero con blanco (0x504372) y las acciones 0x38 a 0x3c (0x5042ce, 0x52e740).
-// 06, "El paso del ataque". Cada caso corre hasta donde crea un efecto con modelo, un joint o una partícula que MuRet
-// no tiene (la CL11), con los rand() de antes; los que crean lo que World ya sabe crear (el terremoto 0xfa, el calco
-// 0x61e/1, la flecha y los efectos de los magos de World/WizardModelEffects.h) siguen hasta el final.
+// The skill cases of the attack step (0x4fd5f0; 08, P-C258): the head's switch (0x4fdeeb), the first with a target
+// (0x504372) and actions 0x38 to 0x3c (0x5042ce, 0x52e740). 06, "El paso del ataque". Each case runs until it creates
+// a model effect, a joint or a particle MuRet lacks (CL11), with the rand() before it; those that create what Effects
+// already creates (the 0xfa earthquake, the 0x61e/1 decal, the arrow and the wizard effects of
+// Effects/WizardModelEffects.h) run to the end.
 namespace Client::Skills
 {
 
-// La luz local de 0x4fd5f0 ([EBP − 0x30]): (1, 1, 1) en 0x4fd81e, sin condición; la partícula 0x5ac de las acciones
-// 0x4d, 0x4f y 0x5a pasado el frame 5,5 la deja en (0,3f; 0,5; 1) (0x4fdb3f, Scenes::CreateTheActionFlare). La leen
-// los casos 0x08 de la cabeza (0x500c32) y 0x07 con blanco (0x50474e).
+// 0x4fd5f0's local light ([EBP − 0x30]): (1, 1, 1) at 0x4fd81e, unconditionally; particle 0x5ac of actions 0x4d, 0x4f
+// and 0x5a past frame 5.5 sets it to (0.3f, 0.5, 1) (0x4fdb3f, Actors::CreateTheActionFlare). Read by the head's case
+// 0x08 (0x500c32) and the target case 0x07 (0x50474e).
 inline constexpr glm::vec3 BodyLight{1.0f, 1.0f, 1.0f};
 
-// 0x4fdc17..0x4fdeeb y sus casos, con `skill` la lectura de +0x38e de la cabeza: 5, 8, 9, 0xa, 0xc..0xe, 0x1e..0x24,
-// 0x26..0x2a, 0x2c, 0x30, 0x31, 0x35, 0x37, 0x38, 0x3f..0x41, 0x43..0x48, 0x4b y 0x4c (la tabla de bytes de 0x505530 y
-// la de saltos de 0x5054b4). Los demás, como el 0, no hacen nada (0x502aff). `actor` es c y o; `slot`, su lugar en el
-// pool y `light`, la luz local de 0x4fd5f0. Todos los casos siguen en 0x502aff.
+// 0x4fdc17..0x4fdeeb and its cases, with `skill` the read of the head's +0x38e: 5, 8, 9, 0xa, 0xc..0xe, 0x1e..0x24,
+// 0x26..0x2a, 0x2c, 0x30, 0x31, 0x35, 0x37, 0x38, 0x3f..0x41, 0x43..0x48, 0x4b and 0x4c (the byte table of 0x505530
+// and the jump table of 0x5054b4). The others, like 0, do nothing (0x502aff). `actor` is c and o; `slot`, its pool
+// slot and `light`, the local light of 0x4fd5f0. All cases continue at 0x502aff.
 [[nodiscard]] Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, std::size_t slot,
                                                                  std::uint8_t skill,
                                                                  const Actors::CharacterStepContext& context,
                                                                  const glm::vec3& light = BodyLight);
 
-// 0x504372 y sus casos, con `skill` la lectura de +0x38e de 0x50432a y `victim` el blanco de +0x3a4: 1, 2, 4, 7, 0xb,
-// 0x10, 0x11, 0x18, 0x1a..0x1c, 0x2d, 0x2e, 0x33, 0x34, 0x3c, 0x3d, 0x49 y 0x4a (la tabla de bytes de 0x5055c8 y la de
-// saltos de 0x505578). El 3 y los demás no hacen nada. Todos siguen en 0x505069. Los ángulos hacia el blanco de
-// 0x5042d3..0x504324 (los de o con el rumbo de 0x4e93f0 de o al blanco, sin rand()) los arma cada caso que los lee.
+// 0x504372 and its cases, with `skill` the read of +0x38e of 0x50432a and `victim` the target of +0x3a4: 1, 2, 4, 7,
+// 0xb, 0x10, 0x11, 0x18, 0x1a..0x1c, 0x2d, 0x2e, 0x33, 0x34, 0x3c, 0x3d, 0x49 and 0x4a (the byte table of 0x5055c8 and
+// the jump table of 0x505578). Case 3 and the others do nothing. All continue at 0x505069. Each case that reads the
+// angles towards the target of 0x5042d3..0x504324 (o's, with the heading of 0x4e93f0 from o to the target, no rand())
+// builds them.
 [[nodiscard]] Core::Expected<void, std::string>
 StepTheTargetSkill(Kernel::ActorState& actor, Kernel::ActorState& victim, std::size_t slot, std::uint8_t skill,
                    const Actors::CharacterStepContext& context, const glm::vec3& light = BodyLight);
 
-// 0x5042ce: 0x52e740(0, blanco, blanco + 0x10, o + 0x1c), con las acciones 0x38 a 0x3c de o.
+// 0x5042ce: 0x52e740(0, target, target + 0x10, o + 0x1c), with o's actions 0x38 to 0x3c.
 [[nodiscard]] Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor,
                                                                const Kernel::ActorState& victim, std::size_t slot,
                                                                const Actors::CharacterStepContext& context);

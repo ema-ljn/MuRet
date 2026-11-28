@@ -31,23 +31,23 @@ constexpr float LateFrame = 6.0f;         // 0x6b87f4
 constexpr float FasterLateFactor = 4.0f;  // 0x6b8a44
 constexpr float SlowerDyingFactor = 0.5f; // 0x6b882c
 
-// 0x4fcbb8 y 0x4fce68: el tipo que no pasa por 0x4ea030.
+// 0x4fcbb8 and 0x4fce68: the type that does not go through 0x4ea030.
 constexpr std::uint16_t NamedModel = 0xc5;
-// 0x4fcbef..0x4fcbfc: en el mapa 1 (Dungeon), el 0x28.
+// 0x4fcbef..0x4fcbfc: type 0x28 in map 1 (Dungeon).
 using Maps::DungeonMap;
 constexpr std::uint16_t DungeonModel = 0x28;
-// 0x4fcc11..0x4fcc1b: los monstruos, de Monster01 (0x152) a antes del 0x1ca.
+// 0x4fcc11..0x4fcc1b: the monsters, from Monster01 (0x152) to before 0x1ca.
 constexpr std::uint16_t FirstMonsterModel = 0x152;
 constexpr std::uint16_t EndOfMonsterModels = 0x1ca;
-// 0x4fcc48..0x4fcc62: las acciones que vuelven a la 0.
+// 0x4fcc48..0x4fcc62: the actions that go back to 0.
 constexpr std::array<std::uint8_t, 7> RestingActions{1, 5, 3, 4, 8, 9, 0xb};
-// 0x4fcc7a..0x4fcc86: el 0x1ce y el 0x1cf.
+// 0x4fcc7a..0x4fcc86
 constexpr std::uint16_t FirstTalkingNpc = 0x1ce;
 constexpr std::uint16_t LastTalkingNpc = 0x1cf;
 constexpr int TalkingNpcSpan = 16;    // 0x4fcc9f
 constexpr int TalkingNpcResting = 12; // 0x4fccab
 
-// 0x42d893..0x42d8c5: el mapa 30 y la tabla de bytes 0x42d9f8 sobre la de saltos 0x42d9e8, con +0x376 − 221.
+// 0x42d893..0x42d8c5: map 30 and the byte table 0x42d9f8 over the jump table 0x42d9e8, with +0x376 − 221.
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::uint32_t CarriedFlag = 0x20000; // 0x42d99d
 
@@ -59,14 +59,14 @@ bool IsOneOf(std::span<const std::uint8_t> values, std::uint8_t value)
     return false;
 }
 
-// 0x4ea030 con el modelo del personaje.
+// 0x4ea030 with the character's model.
 void SetModelAction(Kernel::ActorState& actor, const Models::Skeleton& skeleton, std::uint8_t action)
 {
     Models::SetAction(actor.animation, skeleton, action);
 }
 
-// Lo que 0x42d890 deja de la acción: la anterior (+0x112), la key (+0x118), la acción (+0x111) y el frame (+0x114), sin
-// 0x4ea030.
+// What 0x42d890 leaves of the action: the previous one (+0x112), the key (+0x118), the action (+0x111) and the
+// frame (+0x114), without 0x4ea030.
 void PutTheAction(Kernel::ActorState& actor, std::uint8_t action)
 {
     actor.animation.previousAction = action;
@@ -75,7 +75,7 @@ void PutTheAction(Kernel::ActorState& actor, std::uint8_t action)
     actor.animation.frame = 0.0f;
 }
 
-// 0x42d890(c, c): fuera del mapa 30, 0. En el 30, por +0x376.
+// 0x42d890(c, c): outside map 30, 0. In map 30, by +0x376.
 bool FinishTheCastleObject(Kernel::ActorState& actor, const Models::Skeleton& skeleton, Kernel::WorldRuntime& runtime)
 {
     if (runtime.map != CastleMap)
@@ -165,7 +165,7 @@ Core::Expected<ModelActionEnd, std::string> FinishTheModelAction(Kernel::ActorSt
     if (type >= FirstMonsterModel && type < EndOfMonsterModels)
     {
         const std::uint8_t action = actor.animation.action;
-        // 0x4fcc1d..0x4fcc3c: +0x38a en 1 (el ECX en 1 de 0x4fcbd5) antes de 0x52e810, que corre quien llama.
+        // 0x4fcc1d..0x4fcc3c: +0x38a at 1 (the ECX at 1 of 0x4fcbd5) before 0x52e810, which the caller runs.
         if (action == DyingAction)
         {
             if (actor.byte38a != 0)
@@ -197,7 +197,7 @@ void LookAtTheTarget(Kernel::ActorState& actor, const Kernel::ActorState& target
 {
     const auto heading =
         static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, target.position.x, target.position.y));
-    // 0x4ea11a..0x4ea128: C0 en 1 (menor o sin orden, NaN) mira.
+    // 0x4ea11a..0x4ea128: C0 at 1 (less or unordered, NaN) looks.
     constexpr double FacingLimit = 90.0; // 0x6b8948
     const double distance = Math::AngleDistance(actor.angles.z, heading, 1);
     if (!(distance < FacingLimit) && !std::isnan(distance))
@@ -243,7 +243,7 @@ SetTheModelHeadTarget(Kernel::ActorState& actor, std::span<const Kernel::ActorSt
     constexpr std::uint16_t NoTarget = 0xffff;
     if (action == TrackingAction && actor.attackTarget != NoTarget)
     {
-        // 0x4ea236: MOVSX, el lugar con signo sobre 0x743a16c.
+        // 0x4ea236: MOVSX, the signed slot over 0x743a16c.
         const auto target = static_cast<std::int16_t>(actor.attackTarget);
         if (target < 0 || static_cast<std::size_t>(target) >= pool.size())
             return Core::Unexpected(

@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: 0x51dacb (el alta del 0x139) y 0x529b86 (su paso).
+// Checked against the PE c32bbd5f: 0x51dacb (the 0x139's creation) and 0x529b86 (its step).
 namespace Client::Effects
 {
 namespace
@@ -29,7 +29,7 @@ using Math::F32;
 
 constexpr double Lift = 150.0; // 0x6b87ac
 
-// 0x529c8e..0x529cc5 y 0x529d2b..0x529d62: la velocidad girada por los ángulos de +0x28, sumada a la posición.
+// 0x529c8e..0x529cc5 and 0x529d2b..0x529d62: the speed rotated by +0x28's angles, added to the position.
 void Advance(Effects::ModelEffect& effect)
 {
     const glm::vec3 step = Math::OriginalVectorRotate(effect.velocity, Math::OriginalAngleMatrix(effect.copiedAngles));
@@ -37,12 +37,12 @@ void Advance(Effects::ModelEffect& effect)
     position = {F32(D(step.x) + D(position.x)), F32(D(step.y) + D(position.y)), F32(D(step.z) + D(position.z))};
 }
 
-// 0x529bc9..0x529d06, por debajo de 25 de vida.
+// 0x529bc9..0x529d06, below 25 life.
 Core::Expected<void, std::string> Hunt(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr std::int32_t HuntLife = 20;
     constexpr double Near = 100.0;                                                   // 0x6b86b4
-    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8aec, 0,04f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0x6b8aec, 0.04f
     constexpr std::int32_t TrailEvery = 3;
     constexpr std::int32_t Trail = 0x6ad, TrailSubtype = 1;
     constexpr double Acceleration = 1.5; // 0x6b8b94
@@ -54,7 +54,7 @@ Core::Expected<void, std::string> Hunt(Effects::ModelEffect& effect, const HighE
     {
         const double distance =
             Math::MoveToward(effect.transform.position, effect.copiedAngles, effect.start, effect.speed);
-        // 0x529bf9..0x529c38: FCOMP con 100 (C0, también sin orden).
+        // 0x529bf9..0x529c38: FCOMP with 100 (C0, also unordered).
         bool trail = true;
         if (!(distance >= Near))
         {
@@ -74,7 +74,7 @@ Core::Expected<void, std::string> Hunt(Effects::ModelEffect& effect, const HighE
     effect.speed = F32(D(effect.speed) + Acceleration);
     Advance(effect);
     effect.turnDirection = F32(static_cast<double>(context.random.Next() % SpinSpan) + SpinBase);
-    // 0x529ce7..0x529cf8: FCOMP con −50; con C0 o C3 (o sin orden), nada.
+    // 0x529ce7..0x529cf8: FCOMP with −50; with C0 or C3 (or unordered), nothing.
     if (D(effect.velocity.y) > Floor)
         effect.velocity.y = F32(D(effect.velocity.y) - Brake);
     return {};
@@ -86,7 +86,7 @@ Core::Expected<void, std::string> BeginTheJavelin(Effects::ModelEffect& effect, 
     constexpr std::int32_t Life = 35;                          // 0x51dacb
     constexpr float Spin = 2.0f;                               // 0x51dad2, +0xe4
     constexpr float Speed = 10.0f;                             // 0x51dadc, +0xd8
-    constexpr float Scale = std::bit_cast<float>(0x3f99999au); // 0x51dae6, 1,2f
+    constexpr float Scale = std::bit_cast<float>(0x3f99999au); // 0x51dae6, 1.2f
     constexpr float Push = -5.0f;                              // 0x51daf3, +0xd0
     constexpr int SpreadSpan = 80, SpreadBase = 10;
     const auto* owner = static_cast<const Kernel::ActorState*>(effect.ownerContext);
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> BeginTheJavelin(Effects::ModelEffect& effect, 
     effect.copiedAngles = effect.transform.angles;
     effect.start = owner->position;
     effect.transform.position.z = F32(D(effect.transform.position.z) + Lift);
-    // 0x51db4e..0x51db6e: FILD r, FILD subtipo, FMUL, FSUB r y FADD la z de +0x28.
+    // 0x51db4e..0x51db6e: FILD r, FILD subtype, FMUL, FSUB r and FADD +0x28's z.
     const auto spread = static_cast<double>(context.random.Next() % SpreadSpan + SpreadBase);
     effect.copiedAngles.z = F32(static_cast<double>(effect.subtype) * spread - spread + D(effect.copiedAngles.z));
     return {};
@@ -108,10 +108,10 @@ Core::Expected<void, std::string> BeginTheJavelin(Effects::ModelEffect& effect, 
 
 Core::Expected<void, std::string> StepTheJavelin(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3c75c28fu)); // 0x6b8a24, 0,015f
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3c75c28fu)); // 0x6b8a24, 0.015f
     constexpr std::int32_t RiseLife = 25;
     constexpr double Climb = 10.0;                                                  // 0x6b87a8
-    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34 y 0x6b87b8, 0,1f
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b8a34 and 0x6b87b8, 0.1f
     constexpr float Wave = 30.0f;                                                   // 0x6b8858
     constexpr std::int32_t RisingSubtype = 1, SinkingSubtype = 2;
     constexpr glm::vec3 Glow{1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3e99999au)};
@@ -131,7 +131,7 @@ Core::Expected<void, std::string> StepTheJavelin(Effects::ModelEffect& effect, c
     const float fade = F32(static_cast<double>(effect.life) * Fade);
     effect.objectState.light = fade;
     effect.alpha = fade;
-    // 0x529d83..0x529db7: el FSIN de vida · 0,1f por 30 se calcula con cualquier subtipo; solo el /1 y el /2 lo usan.
+    // 0x529d83..0x529db7: the FSIN of life · 0.1f times 30 is computed with any subtype; only the /1 and the /2 use it.
     if (effect.subtype == RisingSubtype || effect.subtype == SinkingSubtype)
     {
         const auto wave = Math::Detail::SineProductPC53(static_cast<double>(effect.life) * Fade, Wave);

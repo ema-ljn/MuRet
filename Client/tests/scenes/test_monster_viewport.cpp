@@ -76,9 +76,9 @@
 #include <utility>
 #include <vector>
 
-// Los monstruos y los NPC del viewport (CL9 hito 2): el 0x13, el 0x1F y el 0x68 sobre el alta de 0x5141e0, con el Data
-// del laboratorio (los Monster*.bmd que mira el alta y los mundos). Los registros van armados con los structs del ASM
-// (support/ViewportPackets.h); los nombres de los dueños y el Text 485 son inventados.
+// The viewport monsters and NPCs: 0x13, 0x1F and 0x68 on top of the 0x5141e0 creation, with the lab's Data (the
+// Monster*.bmd the creation reads and the worlds). The records are built with the ASM structs
+// (support/ViewportPackets.h); the owners' names and Text 485 are made up.
 namespace
 {
 const Client::Session::HeroMovementHooks MovementHooks{};
@@ -93,21 +93,21 @@ using Client::Tests::SummonRecordBytes;
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t HeroKey = 33;
 constexpr std::int32_t HeroSlot = 5;
-// 0x511290 desde cero: las dos escrituras de la celda, sus cuatro lecturas y la del contador, 4 rand() cada una.
+// 0x511290 from scratch: the cell's two writes, its four reads and the counter's, 4 rand() each.
 constexpr int ConstructionDraws = 28;
-// Dos accesos a la celda protegida (+0x41c y +0x420).
+// Two accesses to the protected cell (+0x41c and +0x420).
 constexpr int CellDraws = 8;
-// El alta, las dos celdas del registro y las dos lecturas del camino.
+// The creation, the record's two cells and the path's two reads.
 constexpr int WalkingRecordDraws = ConstructionDraws + CellDraws + CellDraws;
-// El alta y las dos celdas: el recién llegado no camina.
+// The creation and the two cells: a new arrival does not walk.
 constexpr int ArrivingRecordDraws = ConstructionDraws + CellDraws;
 
-// El mundo del juego, en el heap: WorldState pesa unos 350 KB.
+// On the heap: WorldState weighs about 350 KB.
 struct Game
 {
     Game()
     {
-        // 0x612d90 y 0x612270 suben las texturas de los modelos que cargan por la tabla que liga el juego.
+        // 0x612d90 and 0x612270 upload the textures of the models they load through the table the game binds.
         states.assets.fauna.TextureTable().Bind(store);
         models.Set(PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         ActorState& hero = world.Actors()[0];
@@ -132,7 +132,7 @@ struct Game
                 .texts = texts,
                 .states = &states};
     }
-    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
@@ -201,7 +201,7 @@ protected:
         game->dataRoot = m_dataRoot;
     }
 
-    // La primera celda, desde (100, 100), con las cuatro de su derecha libres: sin paredes ni zona segura.
+    // The first cell from (100, 100) with the four to its right free too: no walls and no safe zone.
     [[nodiscard]] Cell FreeRow() const
     {
         const auto& cells = game->states.terrain.current.attributes->cells;
@@ -239,7 +239,7 @@ protected:
         hero.alpha = 1.0f;
         hero.cellX = npc.cellX;
         hero.cellY = npc.cellY;
-        // Estado del último dibujo: caja del actor creado y un rayo que la atraviesa.
+        // The last draw's state: the created actor's box and a ray through it.
         npc.seen = true;
         npc.alpha = 1;
         Client::Actors::PublishPickingBox(npc, npc.position, npc.boundsMin,
@@ -284,10 +284,10 @@ protected:
     std::unique_ptr<Game> game;
 };
 
-// 0x4c9c60 con el caso del switch: en Lorencia el tipo 3 (0x515a1f) y en Devias el 19 (0x51595e) cargan su .bmd, dan
-// de alta el modelo con su caja y sus manos, el nombre y la escala; la cola pone +0x376, +0x3a4 y la clase 2. Después,
-// el ángulo por 45, las celdas, +0x42d y +0x93 del tipo alto y el camino. Los rand(): los 28 del alta, las dos celdas
-// y las dos lecturas del camino.
+// 0x4c9c60 with the switch case: in Lorencia type 3 (0x515a1f) and in Devias 19 (0x51595e) load their .bmd, create the
+// model with its box and hands, the name and the scale; the tail sets +0x376, +0x3a4 and class 2. Then the angle times
+// 45, the cells, +0x42d and +0x93 of the high type, and the path. The rand(): the creation's 28, the two cells and the
+// path's two reads.
 TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
 {
     struct Case
@@ -347,9 +347,9 @@ TEST_F(MonsterViewportTest, TheMonstersOfLorenciaAndDeviasComeFromTheirCase)
     }
 }
 
-// 0x4ca06e → 0x4eac00 (Q-C1351): el camino de un monstruo que no es recién llegado también lleva la bandera si
-// 0x6c8e54 tiene un altar (el registro 9, muerto) con la etapa 4 en el 34: su blanco, de pared en el TerrainWall, queda
-// en 0 y el camino llega. En Lorencia y Devias el camino para al lado del blanco, que queda como estaba.
+// 0x4ca06e → 0x4eac00 (Q-C1351): the path of a monster that is not a new arrival also carries the flag if 0x6c8e54 has
+// an altar (record 9, dead) with stage 4 on map 34: its goal, a wall in the TerrainWall, is set to 0 and the path
+// arrives. In Lorencia and Devias the path stops next to the goal, which stays as it was.
 TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{34}})
@@ -394,10 +394,10 @@ TEST_F(MonsterViewportTest, AChosenCrywolfAltarAlsoClearsTheGoalOfAMonster)
     }
 }
 
-// 0x51411f..0x51416b: con NpcName(%s).txt cargado, la cola copia a +0x1d9 el nombre del primer registro con el tipo
-// (con su '\0': lo que queda del nombre del caso no se ve). Un tipo sin registro se queda con el del caso. Uno de 25
-// letras deja su '\0' en el byte bajo del WORD de +0x1f2, como el strcpy sin tope del original (Q-C847); uno que
-// llegaría a las partes de +0x218 corta antes de +0x376 (P-C352). Los nombres son inventados.
+// 0x51411f..0x51416b: with NpcName(%s).txt loaded, the tail copies to +0x1d9 the name of the first record with the type
+// (with its '\0': what is left of the case's name is not seen). A type with no record keeps the case's. One of 25
+// letters leaves its '\0' in the low byte of the WORD at +0x1f2, like the original's unbounded strcpy (Q-C847); one
+// that would reach the parts at +0x218 cuts before +0x376 (P-C352). The names are made up.
 TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
 {
     const auto put = [](Client::Monsters::NpcName& record, std::uint16_t type, std::string_view name)
@@ -417,7 +417,7 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         SCOPED_TRACE(tested.map);
         Load(tested.map);
         auto& names = game->world.Runtime().npcNames;
-        // El 0x54ebb0 de la cola compara el word sin signo con el dword del tipo: gana el primero.
+        // The tail's 0x54ebb0 compares the unsigned word with the type's dword: the first one wins.
         put(names[4], tested.type, "Bicho");
         put(names[9], tested.type, "Otro bicho");
         const Cell cell = FreeRow();
@@ -435,7 +435,7 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
         EXPECT_EQ(Client::Monsters::ActorText(Actor(2)), tested.caseName);
 
-        // 24 letras y el '\0' llegan a +0x1f1; el WORD de +0x1f2 sigue con el 0xffff de 0x511290.
+        // 24 letters and the '\0' reach +0x1f1; the WORD at +0x1f2 keeps the 0xffff of 0x511290.
         put(names[4], tested.type, "Bicho de veinticuatro le");
         records[0].key = 0x0125;
         applied = Monsters(records);
@@ -443,7 +443,7 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         EXPECT_EQ(Client::Monsters::ActorText(Actor(3)), "Bicho de veinticuatro le");
         EXPECT_EQ(Actor(3).word1f2, 0xffff);
 
-        // Con una más, el '\0' cae en el byte bajo de +0x1f2; la clave de +0x1f4 no la toca.
+        // With one more, the '\0' lands in the low byte of +0x1f2; it does not touch the key at +0x1f4.
         put(names[4], tested.type, "Bicho de veinticinco letr");
         records[0].key = 0x0126;
         applied = Monsters(records);
@@ -453,8 +453,8 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         EXPECT_EQ(Actor(4).key, 0x0126);
         EXPECT_EQ(Actor(4).word376, tested.type);
 
-        // Sin '\0' en sus 0x34 bytes, 0x54ebb0 sigue por el tipo y el nombre del registro 5: 52 + 2 + 10 letras y el
-        // '\0' son 65 bytes desde +0x1d9, que pasan de +0x217.
+        // With no '\0' in its 0x34 bytes, 0x54ebb0 goes on through record 5's type and name: 52 + 2 + 10 letters and
+        // the '\0' are 65 bytes from +0x1d9, past +0x217.
         names[4].type = tested.type;
         std::ranges::fill(names[4].name, 'x');
         put(names[5], 0x7979, "zzzzzzzzzz");
@@ -463,16 +463,16 @@ TEST_F(MonsterViewportTest, TheTailCopiesTheNameOfTheTable)
         ASSERT_FALSE(applied.HasValue());
         EXPECT_NE(applied.Error().find("0x514164"), std::string::npos) << applied.Error();
         EXPECT_NE(applied.Error().find("P-C352"), std::string::npos) << applied.Error();
-        // +0x376 sigue con el 0xffff de 0x511290.
+        // +0x376 keeps the 0xffff of 0x511290.
         EXPECT_EQ(Actor(5).word376, 0xffff);
         names[5].type = 0;
     }
 }
 
-// Los tres nombres de NpcName(Eng).txt de más de 24 letras: el strcpy de 0x51416b sigue por +0x1f2 (76 y 246, con su
-// '\0' en el byte alto) y, con las 34 de 231, por la clave de +0x1f4 (que 0x512926 ya escribió), +0x1f6 y +0x1f7 (que
-// MuRet no guarda), la cabeza de +0x1f8 y +0x1fa..+0x1fb (P-C352). El nombre de 231 no tiene '\0' en los 29 bytes que
-// MuRet guarda seguidos.
+// The three NpcName(Eng).txt names longer than 24 letters: the 0x51416b strcpy goes on through +0x1f2 (76 and 246, with
+// their '\0' in the high byte) and, with the 34 of 231, through the key at +0x1f4 (which 0x512926 already wrote),
+// +0x1f6 and +0x1f7 (which MuRet does not keep), the head at +0x1f8 and +0x1fa..+0x1fb (P-C352). The name of 231 has
+// no '\0' in the 29 bytes MuRet keeps contiguous.
 TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
 {
     const auto path = DataFile("Local\\NpcName(Eng).txt");
@@ -505,20 +505,20 @@ TEST_F(MonsterViewportTest, TheLongNamesOfTheTableSpillIntoTheKey)
         EXPECT_EQ(Actor(2).word1f2, 0x0074);
         EXPECT_EQ(Actor(2).key, 0x0131);
 
-        // "Thompson Kenel the Weapon Merchant": " M" en +0x1f2, "er" en la clave, "ch" perdidas, "an" en la cabeza.
+        // "Thompson Kenel the Weapon Merchant": " M" at +0x1f2, "er" in the key, "ch" lost, "an" in the head.
         const ActorState& merchant = Actor(3);
         EXPECT_EQ(merchant.word376, 231);
         EXPECT_EQ(Client::Monsters::ActorText(merchant), "Thompson Kenel the Weapon Mer");
         EXPECT_EQ(merchant.word1f2, 0x4d20);
         EXPECT_EQ(merchant.key, 0x7265);
         EXPECT_EQ(merchant.head, 0x6e61);
-        // La clave ya no es la del registro: el original tampoco lo encuentra por ella.
+        // The key is no longer the record's: the original does not find it by key either.
         EXPECT_EQ(Client::Kernel::ActorWithKey(game->world, 0x0132), Client::Actors::CreatedActorSearch);
     }
 }
 
-// 0x4c9acb..0x4c9af7: el NPC recién llegado (237 en Lorencia, 241 en Devias) queda con el alpha en 0 y no camina; la
-// cola le pone la clase 4 (de 201 a 259).
+// 0x4c9acb..0x4c9af7: the newly arrived NPC (237 in Lorencia, 241 in Devias) keeps alpha at 0 and does not walk; the
+// tail sets class 4 (201 to 259).
 TEST_F(MonsterViewportTest, ANewNpcStartsTransparentWithItsClass)
 {
     struct Case
@@ -553,8 +553,8 @@ TEST_F(MonsterViewportTest, ANewNpcStartsTransparentWithItsClass)
     EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "\xb8\xb6\xbd\xba\xc5\xcd");
 }
 
-// En Castle Siege (30) el 224 va por el creador de evento 0x42d070: su rand() (0x42d40a) sale después de los 28 del
-// alta y antes de las celdas, y el subtipo es 10 más el resto.
+// In Castle Siege (30), 224 goes through the event creator 0x42d070: its rand() (0x42d40a) comes after the creation's
+// 28 and before the cells, and the subtype is 10 plus the remainder.
 TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
 {
     ASSERT_EQ(Client::Monsters::MonsterCreationOf(224, 30).creator, 0x42d070u);
@@ -587,8 +587,8 @@ TEST_F(MonsterViewportTest, TheCastleSiegeCreatorDrawsAfterTheCreation)
     }
 }
 
-// 0x59e700 elige el interruptor o la catapulta como NPC. El clic de 0x59daaf le habla en 0x568f54;
-// el B2 11 o B7 00 del servidor elige qué puerta o arma abrir (0x44f120 / 0x44dd10).
+// 0x59e700 picks the switch or the catapult as an NPC. The 0x59daaf click talks to it at 0x568f54; the server's B2 11
+// or B7 00 picks which gate or weapon to open (0x44f120 / 0x44dd10).
 TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndOpenedByTheServer)
 {
     constexpr std::uint16_t key = 0x1234;
@@ -658,8 +658,8 @@ TEST_F(MonsterViewportTest, TheSiegeSwitchAndBothCatapultsCanBePickedForTalkAndO
     }
 }
 
-// 0x42d513 y 0x42d5af publican el actor tanto con espacio para el aura 0x134 como con el pool lleno. Su alta
-// (0x51d714): vida 100, la escala de la clave (120 · 0,01f), +0x64 y +0x68 en 0, sin rand().
+// 0x42d513 and 0x42d5af publish the actor both with room for the 0x134 aura and with the pool full. Its creation
+// (0x51d714): life 100, the key's scale (120 · 0.01f), +0x64 and +0x68 at 0, no rand().
 TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalSlots)
 {
     struct Kind
@@ -672,7 +672,7 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalS
     for (const auto& [wire, model] : kinds)
     {
         SCOPED_TRACE(wire);
-        // Un solo slot disponible alcanza para que 518cf0 entre al efecto 134/0.
+        // One free slot is enough for 518cf0 to enter the 134/0 effect.
         Load(30);
         auto effects = game->world.Map().effects.Effects();
         for (auto& effect : effects)
@@ -702,7 +702,7 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalS
         EXPECT_EQ(effects.back().objectState.light, 0.0f);
         EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws).State());
 
-        // La misma alta con la tabla llena se completa sin tocar sus entradas vivas.
+        // The same creation with the table full completes without touching its live entries.
         Load(30);
         effects = game->world.Map().effects.Effects();
         for (auto& effect : effects)
@@ -723,8 +723,8 @@ TEST_F(MonsterViewportTest, CastleSiegePublishesTheActorsWithOneOrNoFreeArrivalS
     }
 }
 
-// 0x51443f, el 163 en Devil Square (9): el rand() del caso sale antes que los del alta y elige el .bmd, el modelo
-// (0x199 o 0x19a, con la caja de 0x5122d4) y el arma.
+// 0x51443f, 163 in Devil Square (9): the case's rand() comes before the creation's and picks the .bmd, the model
+// (0x199 or 0x19a, with the 0x5122d4 box) and the weapon.
 TEST_F(MonsterViewportTest, TheRandomOfACaseCanGoBeforeTheCreation)
 {
     for (const int wanted : {0, 1})
@@ -750,8 +750,8 @@ TEST_F(MonsterViewportTest, TheRandomOfACaseCanGoBeforeTheCreation)
     }
 }
 
-// En Crywolf (34), el 312 de 0x430c90 nombra tres huesos (0x401000); darlo de alta otra vez con la misma clave los
-// reemplaza y la baja (0x510ff0 → 0x401040) los saca.
+// In Crywolf (34), 312 of 0x430c90 names three bones (0x401000); creating it again with the same key replaces them and
+// the removal (0x510ff0 → 0x401040) drops them.
 TEST_F(MonsterViewportTest, TheCrywolfStatueNamesItsBonesUntilItLeaves)
 {
     Load(34);
@@ -781,10 +781,11 @@ TEST_F(MonsterViewportTest, TheCrywolfStatueNamesItsBonesUntilItLeaves)
     EXPECT_TRUE(game->world.Runtime().namedBones.empty());
 }
 
-// El 348 de Crywolf (0x4313a2): el alta lo gira 180 y, con la X del argumento en 62 o 183, le escribe 90 en +0x24. El
-// 0x13 lo gira otra vez con el paso de 0x4c9d01..0x4c9d36, que lee +0x420 y +0x41c sin abrir: lo que dejó el último
-// cierre de 0x511290, cuatro rand() & 0xff que no dan nunca 0x5a, 0x3e ni 0xb7 (Q-C849), así que el paso es 45. Solo
-// con la entrada abierta por otro (la cuenta en 1) la variable queda en claro y da 0 (la Y en 90) o −135 (la X en 62).
+// Crywolf's 348 (0x4313a2): the creation turns it 180 and, with the argument's X at 62 or 183, writes 90 to +0x24. The
+// 0x13 turns it again with the 0x4c9d01..0x4c9d36 step, which reads +0x420 and +0x41c without opening them: what the
+// last close of 0x511290 left, four rand() & 0xff that never give 0x5a, 0x3e or 0xb7 (Q-C849), so the step is 45.
+// Only with the entry opened by someone else (the count at 1) is the variable in clear, giving 0 (Y at 90) or −135 (X
+// at 62).
 TEST_F(MonsterViewportTest, TheCrywolfAltarReadsItsClosedCell)
 {
     Load(34);
@@ -830,11 +831,11 @@ TEST_F(MonsterViewportTest, TheCrywolfAltarReadsItsClosedCell)
     }
 }
 
-// 0x612d90 y 0x612270 desde el alta (P-C176): en Lorencia el tipo 3 carga Monster10.bmd en el 0x15b con la acción 2 en
-// 1,2 (0x612f4a); en Devias el 19, Monster13.bmd en el 0x15e con el hueso de la cabeza en 0x14 y sus sonidos
-// (0x6133f4); el herrero (251) Smith01.bmd en el 0x1ce con sus acciones a 0,25; en Chaos Castle (18) el 162 lee las
-// texturas de Monster71.bmd de la carpeta Npc (0x612e0d) y en Castle Siege (30) el 283 las de Monster75.bmd de la
-// Object31 (0x612e2a), antes de cortar en su llegada (CL11). Cargar no saca rand() ni vuelve a leer lo que ya está.
+// 0x612d90 and 0x612270 from the creation (P-C176): in Lorencia type 3 loads Monster10.bmd into 0x15b with action 2 at
+// 1.2 (0x612f4a); in Devias 19, Monster13.bmd into 0x15e with the head bone at 0x14 and its sounds (0x6133f4); the
+// smith (251) Smith01.bmd into 0x1ce with its actions at 0.25; in Chaos Castle (18) 162 reads the Monster71.bmd
+// textures from the Npc folder (0x612e0d) and in Castle Siege (30) 283 those of Monster75.bmd from Object31
+// (0x612e2a), before cutting at its arrival (CL11). Loading draws no rand() and does not reread what is loaded.
 TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
 {
     struct Case
@@ -877,7 +878,7 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         EXPECT_EQ(Actor(1).type, tested.model);
         if (tested.model == 0x198)
         {
-            // El 0x46 va por 0x613053: las acciones 3 y 4 en 0,5 y la 2 en 0,3; el hueso de la cabeza, 0x14.
+            // 0x46 goes through 0x613053: actions 3 and 4 at 0.5 and 2 at 0.3; the head bone, 0x14.
             const auto* skeleton = models.SkeletonOf(Client::Models::ModelId{0x198});
             ASSERT_NE(skeleton, nullptr);
             EXPECT_EQ(skeleton->actions[3].speed, 0.5f);
@@ -914,8 +915,8 @@ TEST_F(MonsterViewportTest, TheCreationLoadsTheModelsOfItsCase)
         EXPECT_EQ(action.speed, 0.25f);
 }
 
-// 0x51481a: el 68 pide Monster50.bmd, que el Data del laboratorio no trae; el original cierra (Q-C23) y MuRet corta
-// antes del alta, sin rand().
+// 0x51481a: 68 asks for Monster50.bmd, which the lab's Data lacks; the original closes (Q-C23) and MuRet cuts before
+// the creation, with no rand().
 TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
 {
     Load(0);
@@ -928,9 +929,9 @@ TEST_F(MonsterViewportTest, TheMissingMonsterFileCutsBeforeTheCreation)
     EXPECT_EQ(game->cloth.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x4c9790: el 85 pide el sonido 0x173; el 21 la acción 1 (0x4c97ff) con las acciones de Monster15.bmd, que su caso
-// cargó en el modelo 0x160 (0x612d90(0xe), P-C176), y el sonido 0x13. El 0x35 (0x4c9828) pone +0x3e5 en 0x3c y la
-// acción 1, sin sonido ni rand().
+// 0x4c9790: 85 requests sound 0x173; 21 requests action 1 (0x4c97ff) with the actions of Monster15.bmd, which its case
+// loaded into model 0x160 (0x612d90(0xe), P-C176), and sound 0x13. 0x35 (0x4c9828) sets +0x3e5 to 0x3c and action 1,
+// with no sound or rand().
 TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
 {
     Load(0);
@@ -954,7 +955,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_EQ(Actor(2).animation.previousAction, 1);
     EXPECT_EQ(Actor(2).alpha, 1.0f);
     EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0x13});
-    // Cargar no saca rand(): el alta y las celdas, como el 85.
+    // Loading draws no rand(): the creation and the cells, like 85.
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, 2 * ArrivingRecordDraws).State());
 
     ActorState arriving = Actor(2);
@@ -977,7 +978,7 @@ TEST_F(MonsterViewportTest, TheNewArrivalsAskForTheirSoundOrAction)
     EXPECT_EQ(arriving.alpha, 0.0f);
 }
 
-// 0x515f9c/515fbc y los casos 5147eb..514dcc: el contrato618/2,3 no depende de349 ni del mapa34.
+// 0x515f9c/515fbc and cases 5147eb..514dcc: the 618/2, 618/3 contract does not depend on 349 or on map 34.
 TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativeOrder)
 {
     for (const std::int32_t type : {53, 57, 58, 59, 60, 61, 62, 63, 82, 83, 300})
@@ -1005,8 +1006,8 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
     }
 }
 
-// 0x51656e..0x5165d1: el NPC 257 (un 0x20a) suelta el 0x60f/0x2a de ancho 15 con él de dueño, que nace (0, −15, 0)
-// girado por sus ángulos más allá de su posición. Sin rand(): con los joints llenos, el RNG queda igual.
+// 0x51656e..0x5165d1: NPC 257 (a 0x20a) drops the 0x60f/0x2a of width 15 owned by it, born at (0, −15, 0) rotated by
+// its angles beyond its position. No rand(): with the joints full, the RNG stays the same.
 TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
 {
     std::optional<std::uint32_t> drawn;
@@ -1068,7 +1069,7 @@ TEST_F(MonsterViewportTest, OrdinaryCreationFinishesItsTailWithOneOrNoJointSlots
     }
 }
 
-// 0x4c9883..4c9aca: la etapa3 sólo publica alpha1; las otras completan4×615/7,3×5f6/1,4×614/17.
+// 0x4c9883..4c9aca: stage 3 only publishes alpha 1; the others complete 4×615/7, 3×5f6/1, 4×614/17.
 TEST_F(MonsterViewportTest, CrywolfArrivalsUseTheTourStageAndPreserveTheJointWidthDraws)
 {
     for (const std::uint16_t type :
@@ -1096,7 +1097,7 @@ TEST_F(MonsterViewportTest, CrywolfArrivalsUseTheTourStageAndPreserveTheJointWid
             EXPECT_EQ(joints[index].type, 0x615);
             EXPECT_EQ(joints[index].subtype, 7);
             EXPECT_EQ(joints[index].width, static_cast<float>(widths.Next() % 10 + bases[index]));
-            widths.Discard(2); // 0x531b0c..0x531b57: los dos sorteos del constructor615/7 intercalados.
+            widths.Discard(2); // 0x531b0c..0x531b57: the 615/7 constructor's two interleaved draws.
             EXPECT_EQ(joints[index].ownerContext, nullptr);
             EXPECT_EQ(joints[index].targetPosition, (glm::vec3{120, 220, 300}));
             EXPECT_EQ(joints[index + 4].type, 0x614);
@@ -1142,8 +1143,8 @@ TEST_F(MonsterViewportTest, CrywolfArrivalCompletesWithPartialAndFullEffectPools
     }
 }
 
-// 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: en Castle Siege, la puerta (+0x376 en 0x115, el 0x19b con la caja de
-// 0x42d7f0) con +0x78 en 0 corta en 0x4c9f0f (el 0x13) o en 0x4e0bd1 (el 0x68); con otro estado sigue.
+// 0x4c9ed2..0x4c9f44 and 0x4e0b96..0x4e0c10: in Castle Siege, the gate (+0x376 at 0x115, the 0x19b with the 0x42d7f0
+// box) with +0x78 at 0 cuts at 0x4c9f0f (the 0x13) or at 0x4e0bd1 (the 0x68); with another state it goes on.
 TEST_F(MonsterViewportTest, TheCastleSiegeGateAppliesItsActionWhenItIsOpenOrUnmarked)
 {
     Load(30);
@@ -1174,8 +1175,8 @@ TEST_F(MonsterViewportTest, TheCastleSiegeGateAppliesItsActionWhenItIsOpenOrUnma
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
 }
 
-// 0x4ca0b0 con 0x517400: el 0x98 y el 0x9e (nivel tipo − 0x97, el 7 con el subtipo 1), +0x88 en 1, el PK de la
-// dirección y, con 6 o más, el nivel en 1. El nombre es la cadena vacía de 0x6e57a4, sin el dueño.
+// 0x4ca0b0 with 0x517400: 0x98 and 0x9e (level type − 0x97, the 7 with subtype 1), +0x88 at 1, the PK from the
+// direction and, at 6 or more, the level at 1. The name is the empty string at 0x6e57a4, without the owner.
 TEST_F(MonsterViewportTest, TheSummonsTakeTheirLevelFromTheType)
 {
     Load(0);
@@ -1221,11 +1222,11 @@ TEST_F(MonsterViewportTest, TheSummonsTakeTheirLevelFromTheType)
     EXPECT_EQ(game->cloth.random.State(), AfterDraws(Seed, WalkingRecordDraws + WalkingRecordDraws).State());
 }
 
-// 0x51746e..0x517555: el invocado que llega (0x98..0x9e), después del nombre y antes de las celdas, suelta cuatro
-// 0x615/1 sin dueño desde su posición, de ancho rand() % 10 más 60, 50, 50 y 60, cada uno con los dos rand() de su alta
-// (la x y la y ± 5, 0x531b1d y 0x531b37), 800 más arriba y con la cola apagada. Con el pool lleno, sólo los cuatro del
-// ancho. Después sigue como los otros recién llegados (el círculo 0xec y el rayo 0x5d5/2, 0x4ca5f6 y 0x4ca611, sin
-// rand()) y, por ser de 0x98..0x9e, vuelve al frame 0 y suena 0x61 (0x4ca616..0x4ca642).
+// 0x51746e..0x517555: the arriving summon (0x98..0x9e), after the name and before the cells, drops four 0x615/1 with no
+// owner from its position, of width rand() % 10 plus 60, 50, 50 and 60, each with its creation's two rand() (x and y
+// ± 5, 0x531b1d and 0x531b37), 800 higher and with the tail off. With the pool full, only the four width draws. Then
+// it goes on like the other new arrivals (the 0xec circle and the 0x5d5/2 ray, 0x4ca5f6 and 0x4ca611, no rand()) and,
+// being 0x98..0x9e, goes back to frame 0 and sounds 0x61 (0x4ca616..0x4ca642).
 TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
 {
     for (const bool full : {false, true})
@@ -1282,10 +1283,10 @@ TEST_F(MonsterViewportTest, ANewSummonDropsFourBoltsAfterItsName)
     }
 }
 
-// 0x4ca516..0x4ca5bf: fuera de 0x98..0x9e, el nombre es el del dueño (diez bytes), el Text 485 y el del monstruo; sin
-// Text.bmd corta en 0x4ca570. Los strcat siguen por +0x1f2 y la clave de +0x1f4 como el original (Q-C847). El recién
-// llegado no camina: ArriveAsNew (alpha en 0), el círculo 0xec (0x4ca5f6) y el rayo 0x5d5/2 (0x4ca611) con él de
-// dueño, sin rand() y sin el sonido 0x61, que es de 0x98..0x9e.
+// 0x4ca516..0x4ca5bf: outside 0x98..0x9e, the name is the owner's (ten bytes), Text 485 and the monster's; without
+// Text.bmd it cuts at 0x4ca570. The strcats go on through +0x1f2 and the key at +0x1f4 like the original (Q-C847). The
+// new arrival does not walk: ArriveAsNew (alpha at 0), the 0xec circle (0x4ca5f6) and the 0x5d5/2 ray (0x4ca611) owned
+// by it, no rand() and no 0x61 sound, which belongs to 0x98..0x9e.
 TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
 {
     Load(0);
@@ -1309,8 +1310,8 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Carpincho con su \xb0\xc5\xb9\xcc");
     EXPECT_EQ(Actor(1).byte88, 1);
 
-    // Diez letras, " con su " y las nueve del caso del 20 (0x515949): 27, con el '\0' en el byte bajo de la clave. El
-    // WORD de +0x1f2 queda con las dos últimas.
+    // Ten letters, " con su " and the nine of case 20 (0x515949): 27, with the '\0' in the key's low byte. The WORD at
+    // +0x1f2 holds the last two.
     records[0].key = 0x0c02;
     records[0].owner = "Carpinchos";
     records[0].type = 20;
@@ -1347,10 +1348,9 @@ TEST_F(MonsterViewportTest, TheOtherSummonsTakeTheOwnersName)
     EXPECT_EQ(game->world.Runtime().lastSoundId, lastSound);
 }
 
-// 0x51743f..0x517466 con NpcName(Eng).txt cargado: la cola deja "Magic stone of %s " del 152 al 157 (0x98..0x9d) y
-// "Shadow Knight" en el 158 (0x9e), y wsprintfA pone el dueño en el "%s". Los 24 bytes del local van a +0x1d9: con
-// menos de 24 letras, con su '\0'; con más, los 24 primeros sin él, y el nombre sigue en +0x1f1. Los dueños son
-// inventados.
+// 0x51743f..0x517466 with NpcName(Eng).txt loaded: the tail leaves "Magic stone of %s " for 152 to 157 (0x98..0x9d) and
+// "Shadow Knight" for 158 (0x9e), and wsprintfA puts the owner in the "%s". The local's 24 bytes go to +0x1d9: under
+// 24 letters, with their '\0'; over, the first 24 without it, and the name goes on at +0x1f1. The owners are made up.
 TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
 {
     const auto path = DataFile("Local\\NpcName(Eng).txt");
@@ -1383,7 +1383,7 @@ TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
 
         EXPECT_EQ(Actor(1).word376, 0x98);
         EXPECT_EQ(Client::Monsters::ActorText(Actor(1)), "Magic stone of Yacare ");
-        // "Magic stone of Carpinchos " tiene 26: los 24 primeros, sin '\0'; +0x1f1 sigue en 0 y corta la cadena.
+        // "Magic stone of Carpinchos " has 26: the first 24, with no '\0'; +0x1f1 stays at 0 and ends the string.
         EXPECT_EQ(Client::Monsters::ActorText(Actor(2)), "Magic stone of Carpincho");
         EXPECT_EQ(Actor(2).nameSpill[13], std::byte{0});
         EXPECT_EQ(Actor(2).word1f2, 0xffff);
@@ -1394,9 +1394,9 @@ TEST_F(MonsterViewportTest, TheMagicStonesFormatTheOwnersName)
     }
 }
 
-// 0x51743f: wsprintfA con otro especificador, o un segundo "%s", lee de la pila argumentos que 0x517400 no pasa, y un
-// dueño de diez letras sin '\0' detrás de menos de 14 bytes sigue en el registro del 1F dentro de los 24 bytes: cortan
-// (P-C356). "%%" da '%'. Los nombres de la tabla y los dueños son inventados.
+// 0x51743f: wsprintfA with another specifier, or a second "%s", reads from the stack arguments 0x517400 does not pass,
+// and a ten-letter owner with no '\0' after fewer than 14 bytes goes on into the 1F record within the 24 bytes: they
+// cut (P-C356). "%%" gives '%'. The table names and the owners are made up.
 TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
@@ -1436,7 +1436,7 @@ TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
             EXPECT_NE(applied.Error().find("P-C356"), std::string::npos) << applied.Error();
         }
 
-        // Sin '\0' en los diez bytes del dueño: detrás de "%s" solo, corta; detrás de 18 bytes, los 24 son conocidos.
+        // No '\0' in the owner's ten bytes: after a bare "%s", it cuts; after 18 bytes, the 24 are known.
         records[0].owner = "Carpinchos";
         records[0].type = 0x9b;
         applied = Summons(records);
@@ -1449,8 +1449,8 @@ TEST_F(MonsterViewportTest, TheSummonFormatsThatReadMoreCut)
     }
 }
 
-// 0x4e0980: con 1, un jugador (0x20a) con la clase de +1, +0x88 en 0x80, +0x428 en 0x96, el ángulo rand() % 360 y el
-// nombre "   "; con 2, el monstruo del tipo de +1 y +2 con el mismo ángulo; con 0, nada.
+// 0x4e0980: with 1, a player (0x20a) with the class from +1, +0x88 at 0x80, +0x428 at 0x96, the angle rand() % 360 and
+// the name "   "; with 2, the monster of the type from +1 and +2 with the same angle; with 0, nothing.
 TEST_F(MonsterViewportTest, TheObjectsArePlayersOrMonstersByTheirKind)
 {
     Load(0);

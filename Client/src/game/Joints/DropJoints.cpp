@@ -8,10 +8,10 @@
 #include <bit>
 #include <cstdint>
 
-// El 0x60f/2 y el 0x60f/0x18: la gota que el 0x613/2 suelta en su segundo paso (0x5396ff). Nace con la luz blanca y
-// su segundo punto de destino, quieta (sin velocidad) y, con vida de 25 o menos, cae sobre el destino: cada paso la
-// z suma una velocidad que crece de a 5. La /0x13 (la del 0x62b de las columnas del círculo 0xc3, 0x5236ce y
-// 0x523898) es la misma con la velocidad negada: baja. El 0x62b comparte el alta y el paso del 0x60f.
+// 0x60f/2 and 0x60f/0x18: the drop that 0x613/2 releases on its second step (0x5396ff). Born with white light and its
+// second target point, still (no velocity) and, with life of 25 or less, it falls on the target: each step the z adds
+// a velocity that grows by 5. /0x13 (that of 0x62b of circle 0xc3's columns, 0x5236ce and 0x523898) is the same with
+// the velocity negated: it goes down. 0x62b shares 0x60f's creation and step.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -19,7 +19,7 @@ namespace
 using Math::D;
 using Math::F32;
 
-// 0x53b339..0x53b363: con vida de menos de 10, la luz por 0,7692308f (0x6ba240).
+// 0x53b339..0x53b363: with life below 10, the light times 0.7692308f (0x6ba240).
 void Fade(Kernel::JointState& joint)
 {
     constexpr double Fading = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu));
@@ -39,12 +39,13 @@ bool IsDrop(std::int32_t type, std::int32_t subtype)
 
 void CreateDropJoint(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
-    // 0x533677..0x53368e: lo del 0x60f antes del subtipo (vida 100 y ancho 10, que el subtipo pisa) y 20 puntos.
+    // 0x533677..0x53368e: 0x60f's part before the subtype (life 100 and width 10, which the subtype overwrites) and 20
+    // points.
     constexpr std::int32_t Points = 20;
     joint.maximumCount = Points;
-    // 0x5340dc..0x53412d: la /0x18 con la textura 0x62d; vz en rand() % 20 + 35, el ancho, la luz blanca y la vida
-    // rand() % 50 + 25. 0x533a28..0x533a40: la /0x13 niega vz (fchs) y sigue en 0x5340fe, sin la textura. 0x5342be:
-    // el destino es el segundo punto.
+    // 0x5340dc..0x53412d: /0x18 with texture 0x62d; vz at rand() % 20 + 35, the width, white light and life
+    // rand() % 50 + 25. 0x533a28..0x533a40: /0x13 negates vz (fchs) and continues at 0x5340fe, without the texture.
+    // 0x5342be: the target is the second point.
     constexpr std::uint16_t DarkDropTexture = 0x62d;
     constexpr std::int32_t FallBase = 35, LifeBase = 25;
     if (joint.subtype == DarkDropSubtype)
@@ -60,8 +61,8 @@ void CreateDropJoint(Kernel::JointState& joint, const Kernel::JointRequest& requ
 
 void StepDropJoint(Kernel::JointState& joint)
 {
-    // 0x53b156..0x53b185: con vida de 25 o menos, vz + 5 (el float en +0x9e4, la suma sin redondear en la z), x e y
-    // en el destino. 0x53a12c..0x53a15b: la /0x13, vz − 5.
+    // 0x53b156..0x53b185: with life of 25 or less, vz + 5 (the float in +0x9e4, the sum unrounded in the z), x and y at
+    // the target. 0x53a12c..0x53a15b: /0x13, vz − 5.
     constexpr std::int32_t FallLife = 25;
     if (joint.life <= FallLife)
     {

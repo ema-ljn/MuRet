@@ -18,8 +18,8 @@
 #include <functional>
 #include <optional>
 
-// La sangre 5e4 del golpe con daño (CL9 hito 3, fase 2d): 0x542b3b (la creación), 0x546b04 (el paso) y 0x5487b9 (el
-// dibujo). 06, "El paso del ataque".
+// Blood 5e4 of the damaging hit: 0x542b3b (creation), 0x546b04 (step) and 0x5487b9 (drawing). 06, "El paso del
+// ataque".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -32,9 +32,9 @@ const float Brake = std::bit_cast<float>(0x3f733333u);
 
 using Client::Math::F32;
 
-// 0x542b3b..0x542bf3: la vida 12, la escala ((rand() & 3) + 8) · 0,05f que pisa la del pedido, el giro x rand() % 360,
-// la velocidad (0; −((rand() & 15) + 8); rand() % 6 − 3) girada por los ángulos del pedido y la luz (0,1f; 0; 0), con
-// cuatro rand() y el prefijo de siempre (la posición en +0x14 y en +0x6c, +0x4c en 1). No lee el subtipo.
+// 0x542b3b..0x542bf3: life 12, scale ((rand() & 3) + 8) · 0.05f overwriting the requested one, turn x rand() % 360,
+// velocity (0; −((rand() & 15) + 8); rand() % 6 − 3) turned by the requested angles and light (0.1f; 0; 0), with four
+// rand() and the usual prefix (position in +0x14 and +0x6c, +0x4c at 1). It does not read the subtype.
 TEST(BloodParticlesTest, TheBloodTakesFourDrawsAndFallsAlongTheStrikersAngles)
 {
     for (const glm::vec3 angles : {glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 90.0f), glm::vec3(10.0f, 20.0f, 250.0f)})
@@ -76,9 +76,9 @@ TEST(BloodParticlesTest, TheBloodTakesFourDrawsAndFallsAlongTheStrikersAngles)
     }
 }
 
-// 0x5446e0 con la 5e4: después de la vida y del movimiento común (la velocidad girada por sus ángulos, 0x4e98d0), la
-// velocidad por 0,95f, el cuadro (12 − vida) / 3 y la posición más la velocidad sin girar; la x con el producto sin
-// redondear. Se apaga en el paso 12, con el cuadro 4. Cada paso saca los dos rand() del viento y nada más.
+// 0x5446e0 with 5e4: after the life and the common movement (the velocity turned by its angles, 0x4e98d0), velocity
+// times 0.95f, frame (12 − life) / 3 and position plus the unturned velocity; the x with the unrounded product. It goes
+// off at step 12, with frame 4. Each step takes the wind's two rand() and nothing else.
 TEST(BloodParticlesTest, TheBloodBrakesCountsItsFramesAndDiesAtTwelve)
 {
     Particles particles;
@@ -122,8 +122,8 @@ TEST(BloodParticlesTest, TheBloodBrakesCountsItsFramesAndDiesAtTwelve)
     }
 }
 
-// 0x548644 → 0x5487b9: la 5e4 va con la mezcla de su material, sin giro, con la celda del cuadro en el atlas de 2 × 2
-// (la u de cuadro % 2 y la v de cuadro / 2, cada una · 0,5f) y el tamaño (0,5f; 0,5f).
+// 0x548644 → 0x5487b9: 5e4 goes with its material's blend, without turn, with the frame's cell in the 2 × 2 atlas (u
+// from frame % 2 and v from frame / 2, each · 0.5f) and size (0.5f; 0.5f).
 TEST(BloodParticlesTest, TheBloodDrawsItsFrameFromATwoByTwoAtlas)
 {
     Particle blood;

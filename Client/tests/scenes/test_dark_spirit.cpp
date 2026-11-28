@@ -30,11 +30,10 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::DarkSpirit, el cuervo, contra el código real del main.exe: el constructor 0x4167b0 y el
-// paso 0x416a20 con la chispa de 0x53fe70 (el 0x5c6, subtipo 5) y el grito, en 8 casos (las celdas (0, 0)
-// y (13, 27), naciendo en la celda o junto al dueño, el dueño con 0x4000 y con 0x1000, el contador del
-// grito múltiplo de 60, el rumbo justo en 180 y 300 por debajo del dueño), bit a bit (tests/vectors/world55/raven.txt,
-// make_raven_vectors.py).
+// Client::Kernel::DarkSpirit against the real main.exe code: constructor 0x4167b0 and step 0x416a20 with 0x53fe70's
+// spark (0x5c6, subtype 5) and the cry, in 8 cases (cells (0, 0) and (13, 27), born on the cell or beside the owner,
+// the owner with 0x4000 and with 0x1000, the cry counter a multiple of 60, the heading exactly at 180 and 300 below the
+// owner), bit for bit (tests/vectors/world55/raven.txt, make_raven_vectors.py).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -50,7 +49,7 @@ std::uint32_t Hex(const std::string& word)
     return static_cast<std::uint32_t>(std::stoul(word, nullptr, 16));
 }
 
-// Las acciones de DarkSpirit.bmd: 6, 4, 4 (con lock_positions) y 4 keys, todas repitiendo.
+// DarkSpirit.bmd's actions: 6, 4, 4 (with lock_positions) and 4 keys, all repeating.
 Client::Models::Skeleton RavenSkeleton()
 {
     struct Action
@@ -67,8 +66,7 @@ Client::Models::Skeleton RavenSkeleton()
     return skeleton;
 }
 
-// La pose de mentira del último dibujo de make_raven_vectors.py: sin giro, el hueso i en
-// (1.000 + 7i; 2.000 − 3i; 300 + 5i).
+// The fake pose of make_raven_vectors.py's last draw: no rotation, bone i at (1000 + 7i, 2000 − 3i, 300 + 5i).
 std::vector<Client::Math::OriginalMatrix> FakePose()
 {
     std::vector<Client::Math::OriginalMatrix> pose(Bones);
@@ -81,7 +79,7 @@ std::vector<Client::Math::OriginalMatrix> FakePose()
     return pose;
 }
 
-// Los 0x78 bytes de un lugar de 0x743a198.
+// The 0x78 bytes of a 0x743a198 slot.
 std::array<std::uint32_t, 30> WordsOf(const Client::Particles::Particle& particle)
 {
     std::array<std::uint32_t, 30> words{};
@@ -111,8 +109,8 @@ std::array<std::uint32_t, 30> WordsOf(const Client::Particles::Particle& particl
     return words;
 }
 
-// El mapa de alturas de make_raven_vectors.py (el de make_leaf_vectors.py): 100 + ((i·a + j·b + (i·j)
-// % 97) % 512) · 0,5, sin atributos.
+// make_raven_vectors.py's height map (make_leaf_vectors.py's): 100 + ((i·a + j·b + (i·j) % 97) % 512) · 0.5, without
+// attributes.
 struct Terrain
 {
     std::unique_ptr<Client::Data::Terrain::TerrainHeights> heights =
@@ -295,8 +293,8 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
     EXPECT_GE(shouts, 1u);
 }
 
-// Los huesos propios del dueño de make_raven_safe_zone_vectors.py: el giro de 0,6 y 0,8 sobre z y el hueso i en
-// (−40 + 3i; 25 − 2i; 90 + 4i).
+// The owner's own bones of make_raven_safe_zone_vectors.py: a rotation of 0.6 and 0.8 about z and bone i at
+// (−40 + 3i, 25 − 2i, 90 + 4i).
 std::vector<Client::Math::BoneTransform> OwnerPose()
 {
     constexpr std::size_t OwnerBones = 60;
@@ -317,7 +315,6 @@ std::vector<Client::Math::BoneTransform> OwnerPose()
     return pose;
 }
 
-// Los tramos de la zona segura de un caso: "desde:valor".
 std::uint8_t ZoneAt(const std::vector<std::pair<std::size_t, int>>& zones, std::size_t step)
 {
     int zone = 0;
@@ -331,11 +328,11 @@ std::uint8_t ZoneAt(const std::vector<std::pair<std::size_t, int>>& zones, std::
     return static_cast<std::uint8_t>(zone);
 }
 
-// 0x416a20 en la zona segura (Q-C412 a Q-C414), contra el código real emulado (raven_safe_zone.txt, de
-// make_raven_safe_zone_vectors.py): entra en la zona desde lejos y baja (el estado 4) acelerando hasta que el
-// contador de lejanía lo trae, se posa (el 3) en el hueso 37 del dueño con la escala y la posición del modelo
-// compartido, sale de la zona (el 0) y vuelve; se posa enseguida desde junto al dueño; con la mascota en 0x1a04
-// en el mapa 0 vuela a 350; y +0x3e2 en 2 no es la zona segura. Bit a bit, paso por paso.
+// 0x416a20 in the safe zone (Q-C412 to Q-C414), against the real emulated code (raven_safe_zone.txt, from
+// make_raven_safe_zone_vectors.py): it enters the zone from far and descends (state 4) speeding up until the distance
+// counter brings it, perches (3) on the owner's bone 37 with the shared model's scale and position, leaves the zone
+// (0) and comes back; it perches right away from beside the owner; with pet 0x1a04 on map 0 it flies at 350; and
+// +0x3e2 at 2 is not the safe zone. Bit for bit, step by step.
 TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
 {
     std::ifstream file(Client::Tests::World55VectorsDir() / "raven_safe_zone.txt");
@@ -482,8 +479,8 @@ TEST(DarkSpiritTest, TheSafeZoneStepMatchesTheBinary)
     EXPECT_GT(seenStates[4], 100u) << "bajando";
 }
 
-// 0x415be0 guarda la altura del terreno en float (0x415ea7) y 0x4169ec le suma 300 desde ahí: f(f(h) +
-// 300), no f(h + 300). Las celdas van con `and 0xff` (0x415c25): la 259 es la 3.
+// 0x415be0 stores the terrain height as a float (0x415ea7) and 0x4169ec adds 300 from there: f(f(h) + 300), not
+// f(h + 300). The cells go through `and 0xff` (0x415c25): 259 is 3.
 TEST(DarkSpiritTest, TheBirthRoundsTheGroundFirstAndWrapsTheCells)
 {
     CrtRandom random(1);
@@ -493,7 +490,7 @@ TEST(DarkSpiritTest, TheBirthRoundsTheGroundFirstAndWrapsTheCells)
     EXPECT_EQ(spirit.position.z, 750.0f) << "f(f(h) + 300); con f(h + 300) daría 750,00006";
 }
 
-// 0x418365: el cuervo que no pasa el trapecio va a la velocidad 3 y, salvo en el estado 4, al 0.
+// 0x418365: a raven outside the trapezoid goes at speed 3 and, except in state 4, to state 0.
 TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
 {
     DarkSpirit spirit;
@@ -511,7 +508,7 @@ TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
     EXPECT_EQ(spirit.state, 4);
 }
 
-// 0x417791: con el estado más allá de la tabla de 0x417f0c, la acción al dar la vuelta es la 0.
+// 0x417791: with the state past 0x417f0c's table, the action on turning around is 0.
 TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
 {
     const Client::Models::Skeleton skeleton = RavenSkeleton();
@@ -528,8 +525,8 @@ TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
     EXPECT_EQ(spirit.animation.action, 0);
 }
 
-// Q-C131: en el mapa 0x37 ronda a 350 sobre el dueño; en los demás, a 250. La altura media sobre el
-// dueño, desde junto a él y pasada la subida, con la misma semilla.
+// Q-C131: on map 0x37 it circles at 350 above the owner; on the others, at 250. The mean height above the owner, from
+// beside it and past the climb, with the same seed.
 TEST(DarkSpiritTest, ItFliesHigherInTheLoginMap)
 {
     const Client::Models::Skeleton skeleton = RavenSkeleton();

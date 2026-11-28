@@ -15,7 +15,7 @@ namespace Client::Fauna
 {
 inline constexpr std::size_t FishPoolSize = 10;
 
-// Referencias a almacenamiento canónico. Ningún campo se inicializa al construir la vista.
+// References to canonical storage. No field is initialized when building the view.
 struct FishStepView
 {
     std::uint8_t& active;
@@ -45,8 +45,8 @@ struct FishStepView
     std::uint8_t& field16d;
     float& field170;
     float& field174;
-    // Identidad estable del slot/subsistema canónico, válida durante toda retención en efectos/audio.
-    // Core la provee: nunca es la dirección de esta vista ni de una solicitud temporal.
+    // Stable identity of the canonical slot/subsystem, valid for the whole retention in effects/audio. Core provides
+    // it: it is never the address of this view or of a temporary request.
     void* context;
 };
 
@@ -67,13 +67,12 @@ struct FishStepWorld
 struct FishModelStepView
 {
     std::uint8_t& action;
-    void* identity; // Identidad opaca del modelo prestado, nunca propietario.
+    void* identity; // Opaque identity of the borrowed model, never an owner.
 };
 
-// Todos los servicios son obligatorios al alcanzarse. Expected transporta fallos del binding;
-// los retornos nativos ignorados siguen ignorados, sin convertir AL/EAX en un éxito universal.
-// PC53/RN condicionado: sin traps/status x87. El backend matemático debe reutilizar
-// OriginalRetainedMath; esta interfaz no incorpora algoritmo, RNG, pool ni reloj alternativos.
+// Every service is mandatory when reached. Expected carries binding failures; ignored native returns stay ignored,
+// without turning AL/EAX into a universal success. Conditional PC53/RN: no x87 traps/status. The math backend must
+// reuse OriginalRetainedMath; this interface brings in no alternative algorithm, RNG, pool or clock.
 class IFishStepServices
 {
 public:
@@ -96,8 +95,8 @@ public:
     [[nodiscard]] virtual Core::Expected<std::int32_t, std::error_code> Sound(std::int32_t id, void* context,
                                                                               std::int32_t mode) = 0;
     [[nodiscard]] virtual Core::Expected<void, std::error_code> Finalize(FishStepView& fish) = 0;
-    // Frontera pura sin mutaciones: SineProductPC53(double(phase), F32bits3ecccccd).
-    // Devuelve producto retenido antes de sumar0.5PC53 y almacenarF32; errores del perfil al alcanzarse.
+    // Pure boundary without mutations: SineProductPC53(double(phase), F32 bits 0x3ecccccd). Returns the retained
+    // product before adding 0.5 PC53 and storing F32; profile errors when reached.
     [[nodiscard]] virtual Core::Expected<double, std::error_code> OscillationProductPC53(float phase) = 0;
 };
 } // namespace Client::Fauna

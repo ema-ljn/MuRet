@@ -19,15 +19,16 @@
 #include <optional>
 #include <string>
 
-// Las cáscaras 0x137 (World/SkinShellEffects.h): el alta 0x51d8c4..0x51da45 y el paso 0x529926..0x529a4a, con el
-// prólogo y el epílogo comunes de 0x5208a0. Los bits fijados salen de repetir las cuentas del ASM en float32 aparte.
+// The 0x137 shells (Effects/SkinShellEffects.h): creation 0x51d8c4..0x51da45 and step 0x529926..0x529a4a, with
+// 0x5208a0's common prologue and epilogue. The pinned bits come from repeating the ASM's computations in float32
+// separately.
 namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Effects::ModelEffect;
 using Client::Effects::ModelEffects;
 
-// La semilla con la que el cuarto rand() da 0 en % 360: la velocidad del alta queda sin girar.
+// The seed with which the fourth rand() gives 0 in % 360: the creation's speed stays unrotated.
 constexpr std::uint32_t StraightSeed = 298;
 
 float Bits(std::uint32_t value)
@@ -35,7 +36,7 @@ float Bits(std::uint32_t value)
     return std::bit_cast<float>(value);
 }
 
-// Lo que pide 0x4ee770 (0x4eee6b): la esquina, los ángulos en 0, la luz (1, 1, 1) y el subtipo del joint.
+// What 0x4ee770 (0x4eee6b) asks for: the corner, zero angles, light (1, 1, 1) and the joint's subtype.
 Client::Kernel::ModelEffectArguments ShellArguments(std::int32_t subtype)
 {
     return {.type = Client::Effects::SkinShellEffect,
@@ -45,7 +46,7 @@ Client::Kernel::ModelEffectArguments ShellArguments(std::int32_t subtype)
             .subtype = subtype};
 }
 
-// Una cáscara a mano para el paso: velocidad (10, 20, 0), caída 6, escala 0,4f, x de los ángulos 100, vida 40.
+// A shell by hand for the step: speed (10, 20, 0), fall 6, scale 0.4f, angles' x 100, life 40.
 ModelEffect PlacedShell()
 {
     ModelEffect shell{};
@@ -62,10 +63,10 @@ ModelEffect PlacedShell()
 }
 } // namespace
 
-// 0x51d8c4..0x51da45 con la semilla 298: empuje ((1011 & 127) + 32) · 0,1f = 14,7f, la z + 50, vida (32248 & 15) + 32 =
-// 40, escala (3577 % 3 + 3) · 0,1f = 0,4f, alpha 0,5, la z de los ángulos 29880 % 360 = 0 y la velocidad (0; 14,7f; 0)
-// sin girar; la caída 2406 % 5 + 2 + 2314 % 5 = 7 y los ángulos (11, 45, 224). La luz: 0,5 el /0, (0,1f; 0,6f; 1) el
-// /1 y la del pedido el /2. Nueve rand().
+// 0x51d8c4..0x51da45 with seed 298: push ((1011 & 127) + 32) · 0.1f = 14.7f, z + 50, life (32248 & 15) + 32 = 40,
+// scale (3577 % 3 + 3) · 0.1f = 0.4f, alpha 0.5, the angles' z 29880 % 360 = 0 and the speed (0; 14.7f; 0) unrotated;
+// the fall 2406 % 5 + 2 + 2314 % 5 = 7 and the angles (11, 45, 224). The light: 0.5 for the /0, (0.1f; 0.6f; 1) for
+// the /1 and the request's for the /2. Nine rand().
 TEST(SkinShellEffectsTest, TheShellIsBornWithNineRandoms)
 {
     for (const std::int32_t subtype : {0, 1, 2})
@@ -99,11 +100,12 @@ TEST(SkinShellEffectsTest, TheShellIsBornWithNineRandoms)
     }
 }
 
-// Con la semilla 7 (rand() 61, 17422, 15215, 7040, 15521, 6516, 30152, 11794, 27727): empuje (61 & 127) + 32 = 93 ·
-// 0,1f = 0x4114cccd, vida (17422 & 15) + 32 = 46, escala (15215 % 3 + 3) · 0,1f = 0,5 y la z de los ángulos 7040 % 360
-// = 200. 0x5fc8f0 con (0, 0, 200): sin(200 · 0x3c8efa35) guardado en float y el coseno en la pila; 0x5fcbd0 gira (0,
-// empuje, 0) a (0x404b9205, 0xc10bd386, 0). Después la caída 15521 % 5 + 2 + 6516 % 5 = 4 y los ángulos (272, 274, 7).
-// Los bits salen de repetir las cuentas del ASM en la x87 aparte (Fraction exacta con redondeo a 53 y 24 bits).
+// With seed 7 (rand() 61, 17422, 15215, 7040, 15521, 6516, 30152, 11794, 27727): push (61 & 127) + 32 = 93 · 0.1f =
+// 0x4114cccd, life (17422 & 15) + 32 = 46, scale (15215 % 3 + 3) · 0.1f = 0.5 and the angles' z 7040 % 360 = 200.
+// 0x5fc8f0 with (0, 0, 200): sin(200 · 0x3c8efa35) stored as float and the cosine on the x87 stack; 0x5fcbd0 rotates
+// (0, push, 0) to (0x404b9205, 0xc10bd386, 0). Then the fall 15521 % 5 + 2 + 6516 % 5 = 4 and the angles (272, 274,
+// 7). The bits come from repeating the ASM's computations in a separate x87 (exact Fraction with rounding to 53 and 24
+// bits).
 TEST(SkinShellEffectsTest, ThePushTurnsWithTheFirstYaw)
 {
     auto effects = std::make_unique<ModelEffects>();
@@ -124,7 +126,7 @@ TEST(SkinShellEffectsTest, ThePushTurnsWithTheFirstYaw)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x518cf0 con la tabla llena: nada, ni rand().
+// 0x518cf0 with the table full: nothing, not even rand().
 TEST(SkinShellEffectsTest, TheFullTableSkipsTheShellWithoutRandoms)
 {
     auto effects = std::make_unique<ModelEffects>();
@@ -135,9 +137,9 @@ TEST(SkinShellEffectsTest, TheFullTableSkipsTheShellWithoutRandoms)
     EXPECT_EQ(random.State(), CrtRandom(StraightSeed).State());
 }
 
-// 0x529926..0x529a4a: la posición más la velocidad, la velocidad por 0,9f, la z más la caída, la velocidad por 1,1f, la
-// caída menos 3. En el aire (el terreno debajo, o NaN), la x de los ángulos menos 0,4f · 16; en el suelo (500 por
-// encima de 306), la z ahí, la caída por −0,2f, cinco vidas menos y la x menos 0,4f · 128. El alpha, la vida · 0,1f.
+// 0x529926..0x529a4a: position plus speed, speed times 0.9f, z plus the fall, speed times 1.1f, the fall minus 3. In
+// the air (terrain below, or NaN), the angles' x minus 0.4f · 16; on the ground (500 above 306), z there, the fall
+// times −0.2f, five lives less and x minus 0.4f · 128. The alpha, life · 0.1f.
 TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
 {
     struct Case
@@ -174,12 +176,12 @@ TEST(SkinShellEffectsTest, TheShellFallsAndBouncesOnTheGround)
     EXPECT_TRUE(cut.Error().starts_with("0x5299dc")) << cut.Error();
 }
 
-// 0x5208a0 con el 0x137: el rand() de la luz local (0x5208c5), el cuerpo, la animación (sin esqueleto, nada), el
-// movimiento común 0x51fc80(efecto, 1) con la velocidad nueva girada por los ángulos nuevos y la vida menos uno; la
-// posición de antes del paso queda como la anterior. El paso del 0x137 deja la posición en (1010, 2020, 306), la
-// velocidad en (0x411e6667, 0x419e6667, 0) y la x de los ángulos en 0x42bb3333 (93,6f); 0x5fc8f0 con (93,6f, 0, 0)
-// da sin y cos en float (0x3f7f7eae, 0xbd80984c), y 0x5fcbd0 gira la velocidad a (0x411e6667, 0xbf9f22df,
-// 0x419e1663). Los bits de la posición salen de repetir esas cuentas en la x87 aparte.
+// 0x5208a0 with the 0x137: the local light's rand() (0x5208c5), the body, the animation (no skeleton, nothing), the
+// common move 0x51fc80(effect, 1) with the new speed rotated by the new angles and life minus one; the position before
+// the step stays as the previous one. The 0x137's step leaves the position at (1010, 2020, 306), the speed at
+// (0x411e6667, 0x419e6667, 0) and the angles' x at 0x42bb3333 (93.6f); 0x5fc8f0 with (93.6f, 0, 0) gives sin and cos
+// in float (0x3f7f7eae, 0xbd80984c), and 0x5fcbd0 rotates the speed to (0x411e6667, 0xbf9f22df, 0x419e1663). The
+// position's bits come from repeating those computations in a separate x87.
 TEST(SkinShellEffectsTest, TheGameStepAddsTheCommonMove)
 {
     ModelEffect shell = PlacedShell();

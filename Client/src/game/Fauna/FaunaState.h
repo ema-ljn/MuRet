@@ -18,7 +18,7 @@ struct FaunaSound
     std::int32_t id;
     const void* owner;
 };
-// Los 50 slots físicos sobreviven a las escenas; Clear sólo escribe active (60712a..607150).
+// The 50 physical slots survive the scenes; Clear only writes active (0x60712a..0x607150).
 class FaunaState
 {
 public:
@@ -34,7 +34,7 @@ public:
     [[nodiscard]] std::array<Fauna::BirdRecord, BirdPoolSize> BirdRecords();
     [[nodiscard]] std::array<Fauna::FishStepView, Fauna::FishPoolSize> FishViews();
     void Clear();
-    // 41ed10: solicitudes lógicas con identidad durable; el consumidor de audio las drena.
+    // 0x41ed10: logical requests with durable identity; the audio consumer drains them.
     void Sound(std::int32_t id, const void* owner);
     [[nodiscard]] std::span<const FaunaSound> Sounds() const;
     void ClearSounds();

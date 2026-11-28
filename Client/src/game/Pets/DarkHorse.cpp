@@ -12,14 +12,14 @@ namespace Client::Pets
 {
 namespace
 {
-// Las velocidades que 0x444010 escribe en +0xd8.
+// The speeds 0x444010 writes to +0xd8.
 constexpr float SlowGait = 0.34f; // 0x3eae147b
 constexpr float Gesture = 1.0f;   // 0x3f800000
 constexpr float Standing = 0.3f;  // 0x3e99999a
-// 0x4e9980 con +0x16d en 0: el alpha va hacia +0x170 (1, de 0x443d70) un décimo (0x6b87b8) por paso.
+// 0x4e9980 with +0x16d at 0: alpha moves toward +0x170 (1, from 0x443d70) by a tenth (0x6b87b8) per step.
 constexpr float AlphaGoal = 1.0f;
 constexpr float AlphaRate = 0.1f;
-// 0x4440f2: en la celda segura del jinete, +0x174 = 0 (el EBX de 0x44401e).
+// 0x4440f2: on the rider's safe cell, +0x174 = 0 (the EBX of 0x44401e).
 constexpr float HiddenAlpha = 0.0f;
 } // namespace
 
@@ -48,7 +48,7 @@ DarkHorseGait DarkHorseGaitOf(std::uint8_t riderAction)
 
 void FadeInDarkHorse(Kernel::DarkHorse& horse)
 {
-    // En la x87 (0x4e9a0c..0x4e9a1e): un solo redondeo a float, al final.
+    // On the x87 (0x4e9a0c..0x4e9a1e): a single rounding to float, at the end.
     horse.alpha = static_cast<float>(
         ((static_cast<double>(AlphaGoal) - static_cast<double>(horse.alpha)) * static_cast<double>(AlphaRate)) +
         static_cast<double>(horse.alpha));
@@ -58,7 +58,7 @@ void TakeTheRidersGait(Kernel::DarkHorse& horse, const Models::Skeleton& skeleto
 {
     const DarkHorseGait gait = DarkHorseGaitOf(riderAction);
     Models::SetAction(horse.animation, skeleton, gait.action);
-    // 0x444523..0x44452e: solo la rama de las otras acciones (la única que da la 0) borra la cuenta del terremoto.
+    // 0x444523..0x44452e: only the other-actions branch (the only one that gives action 0) clears the earthquake count.
     if (gait.action == 0)
     {
         horse.effectCount = 0;
@@ -81,7 +81,7 @@ void StepDarkHorse(Kernel::DarkHorse& horse, const Models::Skeleton& skeleton, s
     FadeInDarkHorse(horse);
     if (riderInSafeCell)
     {
-        // 0x4440f2..0x4440f8: el alpha en 0 y al avance, sin tocar la acción ni +0xd8.
+        // 0x4440f2..0x4440f8: alpha to 0, then straight to the advance, without touching the action or +0xd8.
         horse.alpha = HiddenAlpha;
     }
     else

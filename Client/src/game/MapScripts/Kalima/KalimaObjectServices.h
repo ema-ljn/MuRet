@@ -30,12 +30,12 @@ struct GameObjectPass;
 
 namespace Client::MapScripts::Kalima
 {
-// 438fe0/43948d: cola pública del cuerpo de Kalima, ya emitido por el caller.
+// 0x438fe0/0x43948d: the public tail of the Kalima body, which the caller already emitted.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                      const WorldObjects::WorldObject& object, const Actors::Drawing::DrawnObject& drawn,
                      Core::Duration frameClock, const WorldObjects::GameObjectPass& pass);
-// 6044ed→438c10 después del rand común. Los prefijos fallidos quedan visibles al caller.
+// 0x6044ed→0x438c10 after the common rand(). Failed prefixes stay visible to the caller.
 [[nodiscard]] Core::Expected<void, std::string> StepKalimaObjectFrame(WorldObjects::WorldObject& object,
                                                                       const WorldObjects::GameObjectPass& pass);
 } // namespace Client::MapScripts::Kalima

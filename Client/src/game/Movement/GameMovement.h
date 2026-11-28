@@ -74,7 +74,8 @@ struct HeroMovementInput
     bool shiftDown = false;
     float worldTime = 0.0f;
     std::uint32_t ticksMs = 0;
-    // GetAsyncKeyState(0x11), que 0x558bb0 mira en 0x558e7f para atacar a otro jugador desde el clic (CL9 hito 3).
+    // GetAsyncKeyState(0x11), which 0x558bb0 checks at 0x558e7f to attack another player from the click (CL9 milestone
+    // 3).
     bool controlDown = false;
 };
 struct HeroMovementContext
@@ -86,7 +87,7 @@ struct HeroMovementContext
     const Tables::SkillTable* skills = nullptr;
     const Tables::GateTable* gates = nullptr;
     HeroMovementInput input{};
-    // El servicio usa el rayo, rango y trapecio del dibujo anterior.
+    // The service uses the previous draw's ray, range and trapezoid.
     std::function<Core::Expected<std::optional<Pathfinding::PathCell>, std::string>()> pickTarget{};
     std::function<Core::Expected<void, std::string>(std::span<const Protocol::Movement::Cell>, Protocol::Movement::Cell,
                                                     float)>
@@ -94,50 +95,52 @@ struct HeroMovementContext
     std::function<void(std::uint8_t)> requestGate{};
     float fixedHeight = 1200.0f;
     std::function<Core::Expected<void, std::string>(std::uint8_t)> sendFacing{};
-    // CL9 hito 11, SendMove con 0x78abb00 (0x56b4db..0x56b78f): el C1 03 97 en claro (sin el servicio, corta), y
-    // SetCursorPos ([0x6b84f4]) con el lugar que calcula el original en la pantalla de `screen` ([0x6d5d60] y
-    // [0x6d5d64]), que queda pedido en GameMovementState::cursorWarpRequest.
+    // CL9 milestone 11, SendMove with 0x78abb00 (0x56b4db..0x56b78f): the C1 03 97 in clear (without the service, it
+    // stops), and SetCursorPos ([0x6b84f4]) with the place the original computes on the `screen` screen ([0x6d5d60] and
+    // [0x6d5d64]), which stays requested in GameMovementState::cursorWarpRequest.
     std::function<Core::Expected<void, std::string>()> sendEventWindowLeave{};
-    // El D7 de pegar al llegar (0x5650c0, CL9 hito 3): la clave del blanco, la acción y el rumbo. Vacío, no manda.
+    // The D7 for hitting on arrival (0x5650c0, CL9 milestone 3): the target's key, the action and the heading. Empty,
+    // it sends nothing.
     std::function<Core::Expected<void, std::string>(std::uint16_t, std::uint8_t, std::uint8_t)> sendAttack{};
-    // El C1 05 DF X Y del elfo que camina con un arma de tiro y hace clic en un atacable (0x59cf88, CL9 hito 3). Vacío,
-    // no manda.
+    // The C1 05 DF X Y of the elf that walks with a ranged weapon and clicks an attackable (0x59cf88, CL9 milestone 3).
+    // Empty, it sends nothing.
     std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)> sendElfCell{};
-    // El C1 18 de sentarse del héroe (0x4f2250, 0x4f2416..0x4f2bea). Vacío: sentarse corta con error.
+    // The hero's C1 18 for sitting (0x4f2250, 0x4f2416..0x4f2bea). Empty: sitting stops with an error.
     Actors::ActionSender sendAction{};
-    // Vestir al héroe y el envío del 24, para pasar el arma de la izquierda a la derecha (0x59bd3e). nullptr: corta
-    // donde los pide.
+    // Dressing the hero and sending the 24, to move the left weapon to the right (0x59bd3e). nullptr: it stops where it
+    // asks for them.
     const Items::InventoryServices* inventory = nullptr;
-    // 0x419900: el C1 03 31 al cerrar las misiones, que caminar cierra (0x56b397..), y el de cerrar el NPC de evento
-    // (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 hito 11). Sin él, cerrarlos corta.
+    // 0x419900: the C1 03 31 on closing the quests, which walking closes (0x56b397..), and the one for closing the
+    // event NPC (0x56b4d6 → 0x65cae0(0x1000), 0x658a18; CL9 milestone 11). Without it, closing them stops.
     std::function<void()> sendWindowClose{};
-    // El C1 03 3D que caminar manda al cerrar el comercio (0x56b3b2 → 0x65cae0(0x20) con 0, 0x657fe1). Sin él, caminar
-    // con el comercio abierto corta.
+    // The C1 03 3D that walking sends on closing the trade (0x56b3b2 → 0x65cae0(0x20) with 0, 0x657fe1). Without it,
+    // walking with the trade open stops.
     std::function<void(Protocol::Outgoing)> sendGamePacket{};
-    // Lo que manda caminar al cerrar las ventanas de los NPC (0x56b3d2, 0x56b41e y 0x56b48a → 0x65cae0 → 0x657ab0): el
-    // C1 03 82 del almacén, el C1 03 87 de la caja del caos y el C1 03 31 de la tienda, en claro por la sesión
-    // (App::ServerSession::SendNpcWindowPacket). Vacío, el cierre corta donde manda.
+    // What walking sends on closing the NPC windows (0x56b3d2, 0x56b41e and 0x56b48a → 0x65cae0 → 0x657ab0): the
+    // warehouse's C1 03 82, the chaos box's C1 03 87 and the shop's C1 03 31, in clear through the session
+    // (App::ServerSession::SendNpcWindowPacket). Empty, the close stops where it sends.
     std::function<Core::Expected<void, std::string>(Protocol::Outgoing)> sendNpcWindow{};
-    // La llegada a un NPC (0x5674c8, Scenes/NpcTalk.h): el C3 A0 sin la clase de las misiones (0x5676a6) y el C3 30
-    // (0x567c2d..). Los dos rand() de cada C3 los saca el paso. Sin ellos, la llegada corta donde los manda.
+    // The arrival at an NPC (0x5674c8, Npc/NpcTalk.h): the C3 A0 without the quest class (0x5676a6) and the C3 30
+    // (0x567c2d..). The step draws the two rand() of each C3. Without them, the arrival stops where it sends them.
     std::function<void()> requestQuestList{};
     std::function<void(std::int16_t)> sendTalk{};
-    // Text.bmd: los textos de los avisos de la llegada a un NPC (el 663 del 0xee, 0x567618, y el 1830 del 0x101,
-    // 0x567ad3). nullptr: esos avisos cortan.
+    // Text.bmd: the texts of the NPC arrival notices (663 of 0xee, 0x567618, and 1830 of 0x101, 0x567ad3). nullptr:
+    // those notices stop.
     const Tables::TextTable* texts = nullptr;
-    // 0x57ceea: el punto del terreno bajo el mouse para una skill sin elegido (0x5fc260(1) y 0x5fac90). Vacío: corta.
+    // 0x57ceea: the terrain point under the mouse for a skill without a chosen one (0x5fc260(1) and 0x5fac90). Empty:
+    // it stops.
     std::function<Core::Expected<std::optional<glm::vec3>, std::string>()> pickTerrainPoint{};
-    // Lo que manda 0x57cfc0 (las skills, el cuervo y la poción de maná). Vacío, no sale.
+    // What 0x57cfc0 sends (the skills, the raven and the mana potion). Empty, nothing goes out.
     std::function<void(Protocol::Outgoing)> sendSkill{};
-    // La clave del jugador del F1 00 ([0x57678bc]), que las skills mandan en el C1 19 (CL9 hito 4, fase 2c).
+    // The player key of the F1 00 ([0x57678bc]), which the skills send in the C1 19 (CL9 milestone 4, phase 2c).
     std::uint16_t playerKey = 0;
-    // 0x555190, para esos avisos: el medidor del texto y la pantalla. Sin medidor, cortan. La pantalla es también la
-    // del SetCursorPos de SendMove con 0x78abb00 (CL9 hito 11).
+    // 0x555190, for those notices: the text measure and the screen. Without a measure, they stop. The screen is also
+    // the one for SendMove's SetCursorPos with 0x78abb00 (CL9 milestone 11).
     const Render::Text::ITextMeasure* measure = nullptr;
     Core::PixelSize screen{640, 480};
-    // La biblioteca base para acciones de personajes transformados que no estén en AssetsState::fauna.
+    // The base library for the actions of transformed characters that are not in AssetsState::fauna.
     const Models::IModelLibrary* models = nullptr;
-    // 0x599ef0 → 0x61c210/0x61c170: opciones y macros antes de entrar a Castle Siege o Land of Trial.
+    // 0x599ef0 → 0x61c210/0x61c170: options and macros before entering Castle Siege or Land of Trial.
     std::function<Core::Expected<void, std::string>()> saveOptionsAndMacros{};
     // The current map's terrain (Terrain::TerrainState::current). Without it, an empty one: walking stops where it
     // reads the TerrainWall.

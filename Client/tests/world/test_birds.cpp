@@ -30,7 +30,7 @@ TEST(BirdsTest, TheAeGlowUsesOneDrawAndTheRetainedProducts)
     CrtRandom random(74);
     const auto light = BirdGlowLight(0xae, random);
     ASSERT_TRUE(light);
-    // 446b60-contract: q=88*0.01f; (q*0.2f,q*0.4f,q*0.4f), F32 en cada store.
+    // 0x446b60 contract: q=88*0.01f; (q*0.2f,q*0.4f,q*0.4f), F32 at each store.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light->x), 0x3e343958u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light->y), 0x3eb43958u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light->z), 0x3eb43958u);
@@ -53,7 +53,7 @@ TEST(BirdsTest, TheBcGreenDoesNotReloadTheRoundedRed)
     CrtRandom random(0);
     const auto light = BirdGlowLight(0xbc, random);
     ASSERT_TRUE(light);
-    // q=134*0.01f; recargar F32(q) produce0x3e89374b, un ULP menos.
+    // q=134*0.01f; reloading F32(q) gives 0x3e89374b, one ULP less.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light->x), 0x3fab851eu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light->y), 0x3e89374cu);
     EXPECT_EQ(random.State(), 0x00269ec3u);

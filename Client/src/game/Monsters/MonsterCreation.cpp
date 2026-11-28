@@ -42,17 +42,16 @@ namespace Client::Monsters
 {
 namespace
 {
-// El aura de la llegada del asedio (Skill\Aurora, 0x42d513 y 0x42d5af).
+// Skill\Aurora (0x42d513, 0x42d5af).
 constexpr std::int16_t ArrivalAuraEffect = 0x134;
-// Desde +0x1d9: el nombre (diez bytes), +0x1e3, nameSpill hasta +0x1f1, el WORD de +0x1f2, la clave de +0x1f4,
-// +0x1f6 y +0x1f7 (MuRet no los guarda), la cabeza de +0x1f8 y el resto de su parte, +0x1fa..+0x217 (tampoco).
+// From +0x1d9: the name (ten bytes), +0x1e3, nameSpill up to +0x1f1, the WORD at +0x1f2, the key at +0x1f4, +0x1f6 and
+// +0x1f7 (MuRet does not keep them), the head at +0x1f8 and the rest of its part, +0x1fa..+0x217 (not kept either).
 constexpr std::size_t NameBytes = 10;
 constexpr std::size_t SpillStart = NameBytes + 1;
 constexpr std::size_t Word1f2Start = ActorTextSize;
 constexpr std::size_t KeyStart = Word1f2Start + 2;
 constexpr std::size_t HeadStart = 0x1f8 - 0x1d9;
 
-// `value` con su byte `index` (0 el bajo, 1 el alto) en `byte`.
 std::uint16_t WithByte(std::uint16_t value, std::size_t index, std::byte byte)
 {
     const auto shift = static_cast<unsigned>(8 * index);
@@ -79,7 +78,7 @@ void SetTextByte(Kernel::ActorState& actor, std::size_t index, std::byte value)
         actor.key = WithByte(actor.key, index - KeyStart, value);
     else if (index == HeadStart || index == HeadStart + 1)
         actor.head = WithByte(actor.head, index - HeadStart, value);
-    // +0x1f6, +0x1f7 y +0x1fa..+0x217 no están en ActorState: el byte se pierde (P-C352).
+    // +0x1f6, +0x1f7 and +0x1fa..+0x217 are not in ActorState: the byte is lost (P-C352).
 }
 
 std::byte TextByte(const Kernel::ActorState& actor, std::size_t index)
@@ -95,7 +94,7 @@ std::byte TextByte(const Kernel::ActorState& actor, std::size_t index)
     return ByteOf(actor.key, index - KeyStart);
 }
 
-// Una parte de +0x218..+0x2f7: las cinco del cuerpo y las dos manos, de a 0x20 bytes.
+// A part of +0x218..+0x2f7: the five body parts and the two hands, 0x20 bytes each.
 constexpr std::uint16_t FirstPartOffset = 0x218;
 constexpr std::uint16_t HandsOffset = 0x2b8;
 constexpr std::uint16_t PartsEnd = 0x2f8;
@@ -124,7 +123,6 @@ Core::Expected<void, std::string> WriteThePart(Kernel::ActorItemPart& part, cons
     return {};
 }
 
-// Los campos de 4 bytes que los casos escriben.
 bool WriteDword(Kernel::ActorState& actor, std::uint16_t offset, std::uint32_t value)
 {
     const float real = std::bit_cast<float>(value);
@@ -162,7 +160,7 @@ bool WriteDword(Kernel::ActorState& actor, std::uint16_t offset, std::uint32_t v
         actor.animation.frame = real;
         return true;
     case 0x118:
-        // El original guarda el frame anterior en un float; MuRet guarda lo que la pose lee, truncado.
+        // The original keeps the previous frame in a float; MuRet keeps what the pose reads, truncated.
         actor.animation.previousKey = static_cast<std::int16_t>(real);
         return true;
     case 0x130:
@@ -263,8 +261,7 @@ Core::Expected<void, std::string> WriteTheField(Kernel::ActorState& actor, const
     return written ? Core::Expected<void, std::string>{} : WrongWrite(step);
 }
 
-// 0x5133b0: el techo de la caja más 70 (0x6ba1b0) en la pila, las alas 0x1a15, el cuerpo 0x102a..0x182a de nivel 13,
-// la escala en 1 y +0x111 (la acción) en 9, sin 0x4ea030.
+// 0x5133b0: the box top plus 70 (0x6ba1b0) on the x87 stack; +0x111 (the action) is set without 0x4ea030.
 void PutOnTheBoxArmour(Kernel::ActorState& actor)
 {
     constexpr double BoxRise = 70.0;
@@ -284,8 +281,8 @@ void PutOnTheBoxArmour(Kernel::ActorState& actor)
     actor.animation.action = BoxAction;
 }
 
-// 0x612d90(n) y 0x612270(modelo) sobre los modelos del juego que no se sueltan (Assets::AssetsState::fauna), con el
-// mapa en curso y la tabla de texturas que liga el juego.
+// 0x612d90(n) and 0x612270(model) on the game models that are never released (Assets::AssetsState::fauna), with the
+// current map and the texture table the game binds.
 Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Scenes::WorldEntryResources& resources)
 {
     Assets::FaunaModels* models = Scenes::FaunaModelsOf(resources);
@@ -300,8 +297,8 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Sc
     context->audio = resources.world.Runtime().audio;
     if (step.kind == MonsterStepKind::LoadMonster)
     {
-        // 0x613127..0x615232: la tabla de sonidos del modelo (0x612c80, CL9 hito 3, fase 2c) va a
-        // WorldRuntime::modelSounds, que leen los pasos del ataque.
+        // 0x613127..0x615232: the model's sound table (0x612c80) goes to WorldRuntime::modelSounds, which the attack
+        // steps read.
         context->sounds = &resources.world.Runtime().modelSounds;
         if (auto loaded =
                 models->LoadMonster(static_cast<std::int32_t>(step.value), resources.world.Runtime().map, *context);
@@ -314,7 +311,7 @@ Core::Expected<void, std::string> LoadTheModel(const MonsterStep& step, const Sc
     return {};
 }
 
-// 0x5f93c0 en la escena del juego: la altura del terreno en la X y la Y del personaje.
+// 0x5f93c0 in the game scene.
 Core::Expected<double, std::string> GroundAt(const Kernel::ActorState& actor,
                                              const Scenes::WorldEntryResources& resources, std::uint32_t address)
 {
@@ -376,12 +373,12 @@ private:
         case MonsterStepKind::Create:
             return Create(step);
         case MonsterStepKind::Sound:
-            // 0x4410eb → 0x41ed10: reproduce el sonido de aparición del monstruo.
+            // 0x4410eb → 0x41ed10
             m_resources.world.Runtime().RequestSound(Audio::SoundId{static_cast<std::int32_t>(step.value)});
             return {};
         case MonsterStepKind::Joint:
-            // 0x515f9c y los otros casos normales usan el mismo contrato que 349: dueño Actor y 618/2,3. 0x5165d1, el
-            // NPC 257: el 0x60f/0x2a que gira a su alrededor, de ancho 15, con él de dueño.
+            // 0x515f9c and the other normal cases use the same contract as 349: Actor owner and 618/2,3. 0x5165d1, NPC
+            // 257: the 0x60f/0x2a that circles it, width 15, owned by it.
             if (m_index && ((step.value == 0x618 && (step.offset == 2 || step.offset == 3)) ||
                             (step.value == 0x60f && step.offset == 0x2a)))
             {
@@ -402,8 +399,7 @@ private:
             if (m_index && step.value == ArrivalAuraEffect)
             {
                 auto& actor = Actor();
-                // 0x42d4c0..0x42d513 y 0x42d5af: 0x518cf0(0x134, el actor, sus ángulos, su luz, 0, el actor, 120, 0, 0,
-                // 0, 0): el aura de la llegada, con el actor de dueño y la escala de la clave.
+                // 0x42d4c0..0x42d513, 0x42d5af: 0x518cf0 with the key holding the scale.
                 constexpr std::uint16_t ArrivalScaleKey = 120;
                 const Kernel::ModelEffectArguments arguments{.type = ArrivalAuraEffect,
                                                              .position = actor.position,
@@ -417,7 +413,7 @@ private:
                     return Core::Unexpected(created.Error());
                 return {};
             }
-            // 0x518d0f devuelve el control al caller cuando no hay un lugar libre en el pool.
+            // 0x518d0f returns to the caller when the pool has no free slot.
             if (std::ranges::all_of(m_resources.world.Map().effects.Effects(), &Effects::ModelEffect::alive))
                 return {};
             return Core::Unexpected(std::format("{:#x}: el efecto {:#x} (0x518cf0) del tipo {} es de la CL11",
@@ -455,7 +451,7 @@ private:
             return WriteTheField(actor, step);
         case MonsterStepKind::Name:
         {
-            // El strcpy a +0x1d9, con su 0.
+            // The strcpy to +0x1d9 copies its 0.
             std::vector<std::byte> bytes(std::as_bytes(std::span(step.text)).begin(),
                                          std::as_bytes(std::span(step.text)).end());
             bytes.push_back(std::byte{0});
@@ -510,7 +506,7 @@ private:
         }
     }
 
-    // 0x4ea030(personaje, acción) con la cuenta de acciones del modelo del tipo.
+    // 0x4ea030(character, action) with the action count of the type's model.
     Core::Expected<void, std::string> SetTheAction(Kernel::ActorState& actor, const MonsterStep& step)
     {
         return Actors::SetMonsterAction(actor, static_cast<std::uint8_t>(step.value), step.address, m_resources);
@@ -527,9 +523,9 @@ private:
             actor.level = 0;
             actor.scale = AddTailScale(actor.scale, tail.scaleSteps);
         }
-        // 0x51411f..0x51416b: el strcpy a +0x1d9 del nombre del primer registro de 0x7681eb8 con el tipo (el word
-        // contra el dword), si hay uno. Uno de más de 24 letras (tres en el NpcName(%s).txt del laboratorio) sigue por
-        // el WORD de +0x1f2, la clave, +0x1f6, la cabeza y lo que sigue, como el original (Q-C847, P-C352).
+        // 0x51411f..0x51416b: strcpy to +0x1d9 of the name of the first record in 0x7681eb8 with the type (the word
+        // against the dword), if there is one. One longer than 24 letters (three in the lab's NpcName(%s).txt) runs
+        // into the WORD at +0x1f2, the key, +0x1f6, the head and what follows, as in the original (Q-C847, P-C352).
         if (const std::optional<std::string> name = NpcNameOf(runtime.npcNames, m_type))
         {
             std::vector<std::byte> bytes(std::as_bytes(std::span(*name)).begin(),

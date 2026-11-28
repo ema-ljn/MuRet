@@ -32,8 +32,8 @@ namespace
 constexpr std::uint16_t GlowTexture = 0x5ac;
 constexpr std::uint16_t MagicGroundTexture = 0x61e;
 constexpr std::uint16_t LightningTexture = 0x5d5;
-// 0x6b88d4 (0,01f), 0x6b87f8 (5), 0x6b8a20 (0,6f), 0x6b89dc (0,3f), 0x6b87b8 (0,1f), 0x6b8854 (0,2f),
-// 0x6b87b4 (0,4f), 0x6b8a38 (0,8f) y 0x6b88f0 (260).
+// 0x6b88d4 (0.01f), 0x6b87f8 (5), 0x6b8a20 (0.6f), 0x6b89dc (0.3f), 0x6b87b8 (0.1f), 0x6b8854 (0.2f), 0x6b87b4 (0.4f),
+// 0x6b8a38 (0.8f) and 0x6b88f0 (260).
 constexpr double Hundredth = Math::HundredthAsDouble;
 constexpr double GlowSize = 5.0;
 constexpr double EmberRed = static_cast<double>(std::bit_cast<float>(0x3f19999au));
@@ -45,24 +45,24 @@ constexpr double LightningGreen = static_cast<double>(std::bit_cast<float>(0x3f4
 constexpr double Lift = 260.0;
 constexpr double TurnPerMs = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 using Math::FullTurn;
-// 0x3e99999a, 0x3fc00000 y 0x40200000.
+// 0x3e99999a, 0x3fc00000 and 0x40200000.
 constexpr float SmallSprite = std::bit_cast<float>(0x3e99999au);
 constexpr float LargeSprite = 1.5f;
 constexpr float BeamSprite = 2.5f;
-// 0x603281..0x60328f: el desplazamiento del 0x64 de Devias, (0; 0; 150) (0x43160000).
+// 0x603281..0x60328f (0x43160000)
 constexpr glm::vec3 DeviasBeamOffset{0.0f, 0.0f, 150.0f};
 constexpr std::int16_t DeviasBeamObject = 0x64;
 constexpr std::int16_t DeviasSwitchingObject = 0x67;
-// 0x60321f: rand() & 0x8000001f, el resto con signo de 32.
+// 0x60321f: rand() & 0x8000001f, the 32-bit signed remainder.
 constexpr int SwitchOdds = 32;
 constexpr std::uint8_t RestingAction = 0;
 constexpr std::uint8_t SwitchedAction = 1;
-// El nivel del try de 0x6002e0 (+0x60, en −1): leído como float, NaN; 0x5fccc0 lo propaga a los tres ejes.
+// 0x6002e0's try level (+0x60, at −1): read as float, NaN; 0x5fccc0 propagates it to all three axes.
 constexpr float StackNaN = std::bit_cast<float>(0xffffffffu);
 
 using Math::F32;
 
-// 0x602ef4..0x602f18: L, guardada en float.
+// 0x602ef4..0x602f18: L, stored as float.
 float FrameLight(int commonRandom)
 {
     constexpr int LightSpan = 30, LightBase = 70;
@@ -75,9 +75,9 @@ glm::vec3 EmberLight(float light)
     return {F32(value * EmberRed), F32(value * EmberGreen), F32(value * EmberBlue)};
 }
 
-// La salida de 0x4ec110 con el desplazamiento de [ebp − 0x28] de 0x602ed0, que nadie escribió: con el objeto
-// posado, 0x602e90 llamó a 0x6002e0 en el mismo lugar de la pila y ahí quedaron su [ebp − 8] (0x6b628b), su
-// nivel del try (−1) y su ebp guardado. La y es NaN, y la salida también.
+// 0x4ec110's output with 0x602ed0's offset at [ebp − 0x28], which nobody wrote: with the object posed, 0x602e90 called
+// 0x6002e0 at the same stack place and its [ebp − 8] (0x6b628b), its try level (−1) and its saved ebp stayed there. y
+// is NaN, and so is the output.
 Core::Expected<glm::vec3, std::string> StackPoint(bool posed, std::string_view address)
 {
     if (!posed)
@@ -93,18 +93,18 @@ Core::Expected<void, std::string> CreateSprite(const GameObjectPass& pass, std::
 {
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::format("{}: falta el pool de sprites (0x5491e0)", address));
-    // 0x5491e0(textura, punto, escala, luz, objeto, giro, 0): MuRet no guarda el dueño del sprite (Q-C303).
+    // 0x5491e0(texture, point, scale, light, object, turn, 0): MuRet does not keep the sprite's owner (Q-C303).
     static_cast<void>(pass.sprites->Create(texture, position, scale, light, rotation, 0));
     return {};
 }
 
-// 0x6037bb/0x6038ba: ftol de reloj · 0,1f desde la pila, su resto firmado de 360 y fild a float.
+// 0x6037bb/0x6038ba: ftol of clock · 0.1f from the stack, its signed remainder of 360 and fild to float.
 float ClockTurn(float worldClock)
 {
     return static_cast<float>(Math::FtolLow(static_cast<double>(worldClock) * TurnPerMs) % FullTurn);
 }
 
-// 0x6038ed..0x6039c3: los pares de giro r y −r en los huesos 15, 19 y 21.
+// 0x6038ed..0x6039c3: the turn pairs r and −r on bones 15, 19 and 21.
 Core::Expected<void, std::string> BoneSprites(const GameObjectPass& pass, std::uint16_t texture, const glm::vec3& light)
 {
     struct BonePair
@@ -138,12 +138,12 @@ Core::Expected<glm::vec3, std::string> ObjectBonePoint(const GameObjectPass& pas
         return Core::Unexpected(std::format("0x4ec110: falta la pose global del hueso {} de los objetos del {}", bone,
                                             static_cast<int>(pass.map)));
     }
-    // La .bss nativa empieza en cero; un hueso aún no publicado conserva esa matriz.
+    // The native .bss starts at zero; a bone not yet published keeps that matrix.
     if (bone >= pass.retainedPose->bones.size())
     {
         return Math::OriginalVectorTransform(offset, Math::OriginalMatrix{});
     }
-    // Translate=0: el hueso del buffer ya está escalado y trasladado al mundo.
+    // Translate=0: the buffer's bone is already scaled and translated to the world.
     return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
 }
 
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> StepMerchantAnimalFrame(const WorldObjects::Wo
     static_cast<void>(object);
     const float light = FrameLight(commonRandom);
     const float scale = F32(static_cast<double>(light) * GlowSize);
-    // 0x60318a y 0x6031be: los huesos 48 y 57, con la misma pila.
+    // 0x60318a and 0x6031be: bones 48 and 57, with the same stack.
     for (int sprite = 0; sprite < 2; ++sprite)
     {
         const auto point = StackPoint(posed, "0x60318a");
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> StepMerchantAnimalFrame(const WorldObjects::Wo
 
 namespace
 {
-// 0x603251..0x6032f2: L de la pila, el giro antes de 0x4ec110 y los dos sprites con r y −r.
+// 0x603251..0x6032f2: L from the stack, the turn before 0x4ec110 and the two sprites with r and −r.
 Core::Expected<void, std::string> DeviasBeams(int commonRandom, const GameObjectPass& pass)
 {
     const float light = FrameLight(commonRandom);
@@ -186,8 +186,8 @@ Core::Expected<void, std::string> DeviasBeams(int commonRandom, const GameObject
     return {};
 }
 
-// 0x4eb860 con el frame de 0x5ffdf0 (+0x114): el short de ftol, en 0 si es negativo o no es una key de la
-// acción del modelo (+0xa0, que 0x5ffdf0 copió del objeto y 0x4eb860 deja en 0 si el modelo no la tiene).
+// 0x4eb860 with 0x5ffdf0's frame (+0x114): ftol's short, at 0 if negative or not a key of the model's action (+0xa0,
+// which 0x5ffdf0 copied from the object and 0x4eb860 leaves at 0 if the model lacks it).
 std::int16_t PosedKey(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const std::size_t modelAction = animation.action < skeleton.actions.size() ? animation.action : 0;
@@ -259,7 +259,7 @@ Core::Expected<void, std::string> StepLostTowerObjectFrame(const WorldObjects::W
     }
     else if (object.type == 0x28)
     {
-        // 0x6037bb..0x603864: sobre el objeto, la z 260 más arriba guardada en float.
+        // 0x6037bb..0x603864: over the object, z 260 higher stored as float.
         const float turn = ClockTurn(pass.worldClock);
         const glm::vec3 point{object.transform.position.x, object.transform.position.y,
                               F32(static_cast<double>(object.transform.position.z) + Lift)};
@@ -281,7 +281,7 @@ Core::Expected<void, std::string> StepArenaObjectFrame(const WorldObjects::World
     if (object.type != GlowingObject)
         return {};
     const float light = FrameLight(commonRandom);
-    // 0x603a0b: el hueso 1 (0x68b184c), con la misma pila sin escribir.
+    // 0x603a0b: bone 1 (0x68b184c), with the same unwritten stack.
     const auto point = StackPoint(posed, "0x603a0b");
     if (!point.HasValue())
         return Core::Unexpected(point.Error());

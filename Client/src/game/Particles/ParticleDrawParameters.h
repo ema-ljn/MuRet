@@ -12,11 +12,11 @@ enum class ParticleDrawKind
     RotatedFire,
     Drop,
     Unrotated,
-    // 0x54899a, la burbuja 698 de Crywolf: la columna de 8 cuadros de coll.jpg.
+    // 0x54899a, Crywolf's bubble 698: the 8-frame column of coll.jpg.
     Bubble,
-    // 0x54864b, la explosión 5ed del terremoto: los cuatro por cuatro cuadros de Explotion01.jpg.
+    // 0x54864b, the earthquake's explosion 5ed: the four by four frames of Explotion01.jpg.
     Explosion,
-    // 0x5487b9, la sangre 5e4 del golpe: los dos por dos cuadros de blood.tga, sin giro.
+    // 0x5487b9, the hit's blood 5e4: the two by two frames of blood.tga, no turn.
     Blood
 };
 struct ParticleDrawParameters
@@ -27,7 +27,7 @@ struct ParticleDrawParameters
     glm::vec2 uv;
     glm::vec2 uvSize;
 };
-// Fórmulas compartidas; extents ya contiene los dos stores F32 previos al servicio.
+// Shared formulas; extents already holds the two F32 stores before the service.
 [[nodiscard]] ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::vec2 extents,
                                                               ParticleDrawKind kind);
 void UpdateParticleCloudDrawRotation(Particle& particle, float clock, std::size_t physicalIndex);

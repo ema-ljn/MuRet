@@ -42,8 +42,7 @@
 #include <tuple>
 #include <utility>
 
-// Los casos de 0x505de0 y los helpers de 0x5085db de un personaje que no es el 0x20a (Monsters::StepTheModelEffects):
-// lo que escriben, sus rand() en orden, sus partículas, joints, sprites y luces, y dónde cortan.
+// The 0x505de0 cases and the 0x5085db helpers of a character other than 0x20a (Monsters::StepTheModelEffects).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -123,8 +122,8 @@ protected:
         return !result.HasValue() && result.Error().find(address) != std::string::npos;
     }
 
-    // Los 88 huesos de Monster45 (el modelo 0x17e) en la identidad, cada uno corrido a BoneOffset: el punto de
-    // 0x4ec110 sin offset es la posición más eso.
+    // Monster45 (model 0x17e) has 88 bones; each at identity shifted by BoneOffset, so the 0x4ec110 point with no
+    // offset is the position plus that.
     void PoseEveryBone()
     {
         constexpr std::size_t MonsterBones = 88;
@@ -144,7 +143,7 @@ protected:
         return m_actor.position + BoneOffset(bone);
     }
 
-    // El rojo de la luz dinámica en la celda del personaje (x · 0,01; y · 0,01); 0x5f9780 no la deja bajar de 0.
+    // The dynamic light's red at the character's cell; 0x5f9780 keeps it from going below 0.
     float& RedAtTheActor()
     {
         const auto x = static_cast<std::uint8_t>(m_actor.position.x / 100.0f);
@@ -152,7 +151,7 @@ protected:
         return m_light.Lighting().cells[Client::Data::Terrain::CellIndex(x, y)][0];
     }
 
-    // 0x53fe70(0x5de, …) en un pool gemelo, con el reloj `clock` y el rand() de `replay`.
+    // 0x53fe70(0x5de, …) in a twin pool.
     static void ReferenceFlame(Client::Particles::Particles& reference, CrtRandom& replay, const float& clock,
                                std::int32_t subtype, const glm::vec3& point, const glm::vec3& angles,
                                const glm::vec3& light, float scale)
@@ -163,7 +162,6 @@ protected:
         ASSERT_TRUE(made.HasValue());
     }
 
-    // Deja libres sólo los primeros `free` lugares de `pool`; los demás, ocupados por una partícula sin tipo.
     static void Crowd(Client::Particles::Particles& pool, std::size_t free)
     {
         const auto all = pool.All();
@@ -171,7 +169,6 @@ protected:
             all[index] = Client::Particles::Particle{.alive = true};
     }
 
-    // Las partículas del mundo, lugar por lugar, contra las del pool gemelo.
     void ExpectTheSameParticles(const Client::Particles::Particles& reference)
     {
         const auto got = m_world->Particles().All();
@@ -207,7 +204,7 @@ protected:
     float m_clock = Clock;
 };
 
-// 0x506cac: el & 7 sin condición; un modelo sin caso ni helper no saca más.
+// 0x506cac: the unconditional & 7; a model with no case or helper draws nothing more.
 TEST_F(ModelEffectsTest, AModelWithoutEffectsOnlyDrawsTheBrightness)
 {
     for (const std::int32_t map : {0, 2, 30})
@@ -222,7 +219,7 @@ TEST_F(ModelEffectsTest, AModelWithoutEffectsOnlyDrawsTheBrightness)
     }
 }
 
-// 0x5073c6, 0x5073ed, 0x507ab7, 0x507ade y 0x507e63: la U o la V del reloj, sin más rand().
+// 0x5073c6, 0x5073ed, 0x507ab7, 0x507ade and 0x507e63: U or V from the clock, with no more rand().
 TEST_F(ModelEffectsTest, TheScrollingModelsWriteTheirTextureOffsets)
 {
     const std::int32_t clock = *Client::Math::OriginalFtolLow(static_cast<double>(Clock));
@@ -248,7 +245,7 @@ TEST_F(ModelEffectsTest, TheScrollingModelsWriteTheirTextureOffsets)
     }
 }
 
-// 0x5084b3: el 0x152 (Monster01, de Lorencia) solo en sus ventanas de frame, con rand() % 2 en 0, el 0x5f2/0.
+// 0x5084b3: 0x152 (Monster01, Lorencia) only in its frame windows, with rand() % 2 == 0, the 0x5f2/0.
 TEST_F(ModelEffectsTest, TheBullBreathesOnlyInItsFrameWindows)
 {
     const std::uint32_t breath = FirstSeedWhere(
@@ -280,7 +277,7 @@ TEST_F(ModelEffectsTest, TheBullBreathesOnlyInItsFrameWindows)
     }
 }
 
-// 0x5079c0: el 0x177 sube +0x68 en la 3 y la 4 con tope 1 y lo baja en las demás con piso 0.
+// 0x5079c0: 0x177 raises +0x68 in actions 3 and 4 up to 1 and lowers it in the others down to 0.
 TEST_F(ModelEffectsTest, TheGhostFadesInWhileItAttacks)
 {
     for (const std::int32_t map : {0, 2})
@@ -301,7 +298,7 @@ TEST_F(ModelEffectsTest, TheGhostFadesInWhileItAttacks)
     }
 }
 
-// 0x507e8a y 0x507eb7: rand() & 63 o & 255 en 0 pide el sonido (CL10).
+// 0x507e8a and 0x507eb7: rand() & 63 or & 255 == 0 requests the sound (CL10).
 TEST_F(ModelEffectsTest, TheTownSoundsComeFromTheirOwnRandom)
 {
     const std::uint32_t lucky = FirstSeedWhere(
@@ -324,7 +321,7 @@ TEST_F(ModelEffectsTest, TheTownSoundsComeFromTheirOwnRandom)
     }
 }
 
-// 0x507dab: el 0x15d con el nivel 2, diez 0x5d9/0 en huesos de rand(); con otro nivel, solo +0x68.
+// 0x507dab: 0x15d at level 2 makes ten 0x5d9/0 on rand() bones; at any other level, only +0x68.
 TEST_F(ModelEffectsTest, TheSecondLevelBurnsTenTimes)
 {
     for (const std::int32_t map : {0, 2})
@@ -345,7 +342,7 @@ TEST_F(ModelEffectsTest, TheSecondLevelBurnsTenTimes)
     }
 }
 
-// 0x507b05: el 0x172 en la 3, el 0x5ca/0 y el 0x5d9/0 del hueso 33; en la 6 antes del frame 12, veinte 0x5d9/0.
+// 0x507b05: 0x172 in action 3 makes the 0x5ca/0 and 0x5d9/0 of bone 33; in action 6 before frame 12, twenty 0x5d9/0.
 TEST_F(ModelEffectsTest, TheWizardSparksByItsAction)
 {
     for (const std::int32_t map : {0, 2})
@@ -370,8 +367,8 @@ TEST_F(ModelEffectsTest, TheWizardSparksByItsAction)
     }
 }
 
-// 0x507ee6: el 0x1ce en la 0 con el frame en 5, el sonido 0xa0, +0x68 en s, +0x64 en 4 y cuatro joints 0x617/0 con su
-// 0x5c5/0; con +0x7c & 0x10000000, nada.
+// 0x507ee6: 0x1ce in action 0 at frame 5: sound 0xa0, +0x68 at s, +0x64 at 4 and four 0x617/0 joints with their
+// 0x5c5/0; with +0x7c & 0x10000000, nothing.
 TEST_F(ModelEffectsTest, TheFountainSparksAtTheStartOfItsRest)
 {
     for (const std::int32_t map : {0, 2})
@@ -398,7 +395,7 @@ TEST_F(ModelEffectsTest, TheFountainSparksAtTheStartOfItsRest)
     }
 }
 
-// 0x508093: el 0x1f5 en la 0, cuatro joints 0x617/0; fuera de la 0, nada.
+// 0x508093: 0x1f5 in action 0 makes four 0x617/0 joints; outside action 0, nothing.
 TEST_F(ModelEffectsTest, TheTraderSparksWhileItRests)
 {
     for (const std::int32_t map : {0, 2})
@@ -418,8 +415,8 @@ TEST_F(ModelEffectsTest, TheTraderSparksWhileItRests)
     }
 }
 
-// 0x50826d: el 0x155 con rand() % 4 en 0, el 0x5f2/0 en Devias y el 0x5f3/0 en los demás; el 0x166 deja además su
-// sprite 0x5ac; muriéndose, nada.
+// 0x50826d: 0x155 with rand() % 4 == 0 makes the 0x5f2/0 in Devias and the 0x5f3/0 elsewhere; 0x166 also leaves its
+// 0x5ac sprite; while dying, nothing.
 TEST_F(ModelEffectsTest, TheWalkersKickDustByTheirMap)
 {
     const std::uint32_t kick = FirstSeedWhere(
@@ -450,10 +447,10 @@ TEST_F(ModelEffectsTest, TheWalkersKickDustByTheirMap)
     m_actor.dying = 0;
 }
 
-// 0x505c50: el 0x157 en la 6 con el frame en [8, 9), después del rand() & 7, veinte vueltas: la luz propia en 1, tres
-// rand() alrededor de la posición ((& 63) − 32, (& 63) − 32 y (& 31) − 16) y el polvo 0x5f3/1 (0x505d2c, que nace
-// como la 5f6/1: seis rand()) con los ángulos y la luz propios, escala 1 y sin dueño. Las posiciones, escalas y
-// ángulos salen de burst.py (0x505c50 y 0x54271f en una x87 aparte), no de CreateChecked. Con el frame en 9, nada.
+// 0x505c50: 0x157 in action 6 with frame in [8, 9), after the rand() & 7, loops twenty times: own light to 1, three
+// rand() around the position ((& 63) − 32, (& 63) − 32, (& 31) − 16) and the 0x5f3/1 dust (0x505d2c, born like 5f6/1:
+// six rand()). Positions, scales and angles come from burst.py (0x505c50 and 0x54271f on a separate x87), not from
+// CreateChecked.
 TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
 {
     struct Dust
@@ -486,7 +483,7 @@ TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(m_actor.light, glm::vec3(1.0f));
         EXPECT_EQ(Alive(Client::Particles::DustParticle, 1), 20);
-        // El rand() & 7 y veinte vueltas de nueve: 181.
+        // The rand() & 7 plus twenty loops of nine: 181.
         EXPECT_EQ(random.State(), 0xd8d78c92u);
         for (std::size_t slot = 0; slot < Dusts.size(); ++slot)
         {
@@ -509,8 +506,8 @@ TEST_F(ModelEffectsTest, TheDyingBurstLeavesTwentyDusts)
     }
 }
 
-// 0x505c50 con el pool lleno: 0x53fe70 no saca nada, pero las veinte vueltas siguen con la luz y sus tres rand()
-// (1 + 20 · 3 = 61, burst.py). Con el frame en NaN, el fcomp de 0x505c6d deja C0 en 1 y 0x505c78 sale: nada.
+// 0x505c50 with the pool full: 0x53fe70 draws nothing, but the twenty loops still set the light and draw their three
+// rand() (1 + 20 · 3 = 61, burst.py). With a NaN frame, the fcomp at 0x505c6d sets C0 to 1 and 0x505c78 exits.
 TEST_F(ModelEffectsTest, TheDyingBurstScattersWithAFullPoolAndSkipsANaNFrame)
 {
     Clear();
@@ -536,7 +533,7 @@ TEST_F(ModelEffectsTest, TheDyingBurstScattersWithAFullPoolAndSkipsANaNFrame)
     EXPECT_EQ(Alive(Client::Particles::DustParticle, 1), 0);
 }
 
-// 0x507006: el 0x185 crea sus catorce joints 0x614/7 (0x5315b7, sin rand()).
+// 0x507006: 0x185 creates its fourteen 0x614/7 joints (0x5315b7, no rand()).
 TEST_F(ModelEffectsTest, TheBoneJointsAreCreated)
 {
     for (const std::int32_t map : {0, 2})
@@ -550,13 +547,12 @@ TEST_F(ModelEffectsTest, TheBoneJointsAreCreated)
     }
 }
 
-// 0x5074bb..0x50775c: el 0x17e con +0x376 en 0x3f, después de 0x505bc0(8, 9). Los 35 puntos de los huesos de
-// 0x6c882c; una 0x5de/2 por par de 0x6c8850 y de 0x6c8870 (escala 1 hasta el byte 0x16 y 0,5 desde ahí) y de 0x6c8890
-// y de 0x6c8898 (0,6f), en el punto del byte par, mirada desde el del impar con los ángulos que dejó la anterior y la
-// distancia de 0x4e9810 en la x de la luz; con ftol(reloj) par, la /2 del punto 30 desde el 0 con 1,3f y la /3 del 1
-// con 0,5f; al final, la luz (−1,3) × 3. Lugar por lugar, lo mismo que un pool gemelo con esos pedidos y el mismo
-// rand(); la y y la z de la luz del pedido (que el original no escribe) no cambian nada. Con cinco lugares libres, las
-// cinco primeras y las demás sin rand().
+// 0x5074bb..0x50775c: 0x17e with +0x376 == 0x3f, after 0x505bc0(8, 9). The 35 bone points of 0x6c882c; one 0x5de/2
+// per pair of 0x6c8850 and 0x6c8870 (scale 1 up to byte 0x16, 0.5 from there) and of 0x6c8890 and 0x6c8898 (0.6f), at
+// the even byte's point, looking from the odd one's with the angles the previous one left and the 0x4e9810 distance in
+// the light's x; with ftol(clock) even, the /2 of point 30 from point 0 with 1.3f and the /3 of point 1 with 0.5f; at
+// the end, the light (−1.3) × 3. The y and z of the requested light (the original does not write them) change nothing.
+// With five free slots, the first five, and the rest with no rand().
 TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
 {
     // 0x6c882c..0x6c889f, byte a byte.
@@ -593,7 +589,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
             EXPECT_EQ(m_actor.effectOrigin, BoneAt(9));
             EXPECT_EQ(Alive(0x5de, 2), crowded ? 5 : (even ? 39 : 38));
             EXPECT_EQ(Alive(0x5de, 3), !crowded && even ? 1 : 0);
-            // 0x50772c..0x507754: la celda (10, 20) del personaje con peso 1: 2 − 1,3f = 0x3f333334.
+            // 0x50772c..0x507754: the character's cell (10, 20) with weight 1: 2 − 1.3f = 0x3f333334.
             EXPECT_EQ(std::bit_cast<std::uint32_t>(RedAtTheActor()), 0x3f333334u);
 
             std::array<glm::vec3, Bones.size()> points{};
@@ -631,10 +627,10 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterBurnsAlongItsLimbs)
     }
 }
 
-// 0x507761..0x507897: el 0x17e sin el 0x3f. La luz (L; L · 0,5; L · 0,5) con L = sen(reloj · 0,002f) · 0,3f + 0,7f, la
-// 0x5de/1 de 0,2f en el hueso 62 mirada desde el 55 y en el 77 desde el 70 (los ángulos siguen de una a la otra) y
-// después 0x505d50 (en la 2, sus dos rand() y el polvo 0x5f3/0) y 0x505c50 (en la 6 con el frame en [8, 9), con sus
-// veinte 0x5f3/1, 0x505d2c).
+// 0x507761..0x507897: 0x17e without the 0x3f. The light (L; L · 0.5; L · 0.5) with L = sin(clock · 0.002f) · 0.3f +
+// 0.7f, the 0x5de/1 of 0.2f at bone 62 looking from 55 and at 77 from 70 (the angles carry from one to the other), then
+// 0x505d50 (in action 2, its two rand() and the 0x5f3/0 dust) and 0x505c50 (in action 6 with frame in [8, 9), its
+// twenty 0x5f3/1, 0x505d2c).
 TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
 {
     PoseEveryBone();
@@ -646,7 +642,7 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
     ASSERT_TRUE(sine.has_value());
     const double glow = *sine + static_cast<double>(std::bit_cast<float>(0x3f333333u));
     const glm::vec3 light{static_cast<float>(glow), static_cast<float>(glow * 0.5), static_cast<float>(glow * 0.5)};
-    // Con el reloj en 12345, los bits que da una emulación x87 aparte (redondeo a 53 bits y seno con 80 dígitos).
+    // With the clock at 12345, the bits from a separate x87 emulation (53-bit rounding and an 80-digit sine).
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3f124c2eu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3e924c2eu);
     EXPECT_EQ(light.z, light.y);
@@ -693,8 +689,9 @@ TEST_F(ModelEffectsTest, TheMonsterWithoutFlamesBurnsItsHands)
     }
 }
 
-// Con la tabla de partículas llena, 0x53fe70 no crea nada ni saca rand() y el 0x17e sigue: con el 0x3f, la luz; sin
-// él, los dos rand() de 0x505d50 en la 2 y los sesenta de 0x505c50 en la 6, que ya no corta.
+// With the particle table full, 0x53fe70 creates nothing and draws no rand(), and 0x17e goes on: with the 0x3f, the
+// light; without it, the two rand() of 0x505d50 in action 2 and the sixty of 0x505c50 in action 6, which no longer
+// cuts.
 TEST_F(ModelEffectsTest, TheFlamingMonsterGoesOnWithTheParticlesFull)
 {
     PoseEveryBone();
@@ -714,7 +711,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterGoesOnWithTheParticlesFull)
             const auto stepped = Step(0x17e, map, random);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
             EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
-            // 1 − 1,3f es negativo: 0x5f9780 deja la celda en 0.
+            // 1 − 1.3f is negative: 0x5f9780 leaves the cell at 0.
             EXPECT_EQ(RedAtTheActor(), 0.0f);
         }
         m_clock = Clock;
@@ -736,7 +733,7 @@ TEST_F(ModelEffectsTest, TheFlamingMonsterGoesOnWithTheParticlesFull)
     }
 }
 
-// 0x507414: el 0x182 con rand() % 5 en 0 deja la marca 0x5e3 del suelo.
+// 0x507414: 0x182 with rand() % 5 == 0 leaves the 0x5e3 ground mark.
 TEST_F(ModelEffectsTest, TheBleedingMonsterMarksTheGround)
 {
     const std::uint32_t mark = FirstSeedWhere(
@@ -774,8 +771,8 @@ TEST_F(ModelEffectsTest, WithoutTheMarksTableTheBleedingMonsterStops)
     EXPECT_NE(stepped.Error().find("0x507486"), std::string::npos) << stepped.Error();
 }
 
-// 0x43bdd0: el 0x191 y el 0x196 laten +0x68; del 0x193 al 0x195, nada; el 0xc5 fuera de la 0 pone +0x64 en 1; en la
-// 0 completa dos 0x5f3/0 y C8/C9, y ambas ramas alcanzan el pulso.
+// 0x43bdd0: 0x191 and 0x196 pulse +0x68; 0x193 to 0x195, nothing; 0xc5 outside action 0 sets +0x64 to 1; in action 0
+// it completes two 0x5f3/0 and C8/C9, and both branches reach the pulse.
 TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCompletesItsStoneEffects)
 {
     const auto pulse = Client::Math::Detail::SineProductPC53(static_cast<double>(Clock) *
@@ -803,7 +800,7 @@ TEST_F(ModelEffectsTest, TheKalimaHelperPulsesAndCompletesItsStoneEffects)
     }
 }
 
-// 0x43be8c..43bed9: los fragmentos usan la posición del actor, no la aleatoria de los dos polvos.
+// 0x43be8c..43bed9: the fragments use the actor's position, not the random one of the two dusts.
 TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
 {
     struct Capacity
@@ -846,10 +843,10 @@ TEST_F(ModelEffectsTest, TheKalimaHelperKeepsItsStoneOrderAndPulseWhenPoolsFill)
     }
 }
 
-// 0x43befb y 0x43bfa8: el 0x192 y el 0x197 (salvo el 0x197 en la 6, que vuelve sin rand(): 0x43bfaf) sacan rand() % 2;
-// en 0, el humo 0x5f2/0x11 en el punto (2, 30, 0) del hueso 6 (+0x120, el 0x192) o 31 (+0x5d0, el 0x197) por 0x4ec110,
-// con los ángulos del objeto (+0x1c), escala 1 y sin dueño (0x43bf75, 0x43c04b). La luz: (1; 0,2f; 0) del 0x192; la
-// del 0x197, (1; 0; 0) con +0x4 en 9 y (0; 0,3f; 1) si no. Con la tabla llena, sin los rand() del humo.
+// 0x43befb and 0x43bfa8: 0x192 and 0x197 (except 0x197 in action 6, which returns with no rand(): 0x43bfaf) draw
+// rand() % 2; at 0, the 0x5f2/0x11 smoke at point (2, 30, 0) of bone 6 (+0x120, 0x192) or 31 (+0x5d0, 0x197) by
+// 0x4ec110, with the object's angles (+0x1c), scale 1 and no owner (0x43bf75, 0x43c04b). The light: (1; 0.2f; 0) for
+// 0x192; for 0x197, (1; 0; 0) with +0x4 at 9 and (0; 0.3f; 1) otherwise. With the table full, no smoke rand().
 TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
 {
     m_actor.bodyPose.assign(40, Client::Math::BoneTransform(1.0f));
@@ -928,7 +925,7 @@ TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
             ASSERT_TRUE(Step(value.type, map, crowded).HasValue());
             EXPECT_EQ(crowded.State(), AfterDraws(smoky, 2).State());
         }
-        // El 0x197 en la 6: sólo el rand() de 0x506cac.
+        // 0x197 in action 6: only the rand() of 0x506cac.
         Clear();
         m_actor.animation.action = 6;
         CrtRandom still(smoky);
@@ -938,8 +935,8 @@ TEST_F(ModelEffectsTest, TheKalimaSmokersBreatheFromTheirBone)
     }
 }
 
-// 0x42de90: en el mapa 30 el 0x19b deja el ángulo z en 0, el 0x1a1 en 45 y el 0x1fc +0x58 en −2 (o −1 con el asedio y
-// 0x20000); en los otros mapas, nada.
+// 0x42de90: in map 30, 0x19b sets the z angle to 0, 0x1a1 to 45 and 0x1fc sets +0x58 to −2 (or −1 with the siege and
+// 0x20000); in the other maps, nothing.
 TEST_F(ModelEffectsTest, TheCastleHelperOnlyActsInTheCastle)
 {
     for (const std::int32_t map : {0, 2, 30})
@@ -965,9 +962,9 @@ TEST_F(ModelEffectsTest, TheCastleHelperOnlyActsInTheCastle)
     }
 }
 
-// 0x42f550 y 0x431470: el 0x1b2 saca su rand() % 360 y corta en los huesos por nombre (en el 35, en el primero); el
-// 0x1b1 en la 6 no hace nada; el 0x1ad con rand() % 10 en 0 levanta su polvo; el 0x1b4 quieto pose sin cortar y en la
-// 2 su polvo lee una luz que no escribe.
+// 0x42f550 and 0x431470: 0x1b2 draws its rand() % 360 and cuts at the named bones (in 35, at the first one); 0x1b1 in
+// action 6 does nothing; 0x1ad with rand() % 10 == 0 raises its dust; 0x1b4 at rest poses without cutting, and in
+// action 2 its dust reads a light it does not write.
 TEST_F(ModelEffectsTest, TheCrywolfHelpersCutOnlyAtTheirEffects)
 {
     const std::uint32_t dust = FirstSeedWhere(
@@ -1006,8 +1003,8 @@ TEST_F(ModelEffectsTest, TheCrywolfHelpersCutOnlyAtTheirEffects)
     }
 }
 
-// 0x431470 con el 0x1b5: con la etapa de Crywolf en 4 y rand() % 100 en 0, la acción 3 y +0x84 en 1; sin la etapa,
-// nada.
+// 0x431470 with 0x1b5: with the Crywolf stage at 4 and rand() % 100 == 0, action 3 and +0x84 to 1; without the stage,
+// nothing.
 TEST_F(ModelEffectsTest, TheCrywolfStageCallsTheBalgass)
 {
     const std::uint32_t call = FirstSeedWhere(
@@ -1034,8 +1031,8 @@ TEST_F(ModelEffectsTest, TheCrywolfStageCallsTheBalgass)
     m_world->Runtime().crywolf.stage = 0;
 }
 
-// 0x53fe83 busca un muerto antes de leer la luz. El polvo de un camino con luz indeterminada no la lee si el pool
-// está realmente lleno; el sorteo del caller ya ocurrió.
+// 0x53fe83 looks for a dead slot before reading the light. The dust of a path with an indeterminate light does not read
+// it if the pool is really full; the caller's draw already happened.
 TEST_F(ModelEffectsTest, TheBarrierDustDoesNotReadItsIndeterminateLightWithAFullPool)
 {
     const std::uint32_t dust = FirstSeedWhere(
@@ -1075,7 +1072,7 @@ TEST_F(ModelEffectsTest, TheBalgassLaunchesTheTourProjectileAtTheFrameGate)
     EXPECT_EQ(m_actor.movementPhase, 0);
 }
 
-// 0x441210 y 0x426ce0: las luces del 0x1a4 y del 0x1bb, sin rand().
+// 0x441210 and 0x426ce0: the lights of 0x1a4 and 0x1bb, with no rand().
 TEST_F(ModelEffectsTest, TheGlowingModelsOnlyLight)
 {
     for (const std::int32_t map : {0, 2})
@@ -1108,6 +1105,6 @@ TEST_F(ModelEffectsTest, TheWarningAltarConsumesTheFlagAndRunsWithPartialPools)
     EXPECT_EQ(crater.start.y, 3);
     EXPECT_EQ(crater.light, glm::vec3(1));
     EXPECT_EQ(m_world->Particles().All()[0].type, 0x640);
-    EXPECT_EQ(random.State(), 0x1b8052fbu); // brillo, tres del único constructor aceptado.
+    EXPECT_EQ(random.State(), 0x1b8052fbu); // brightness, plus three from the only accepted constructor.
 }
 } // namespace

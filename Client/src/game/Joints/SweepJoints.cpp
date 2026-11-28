@@ -19,12 +19,12 @@
 #include <format>
 #include <string>
 
-// El 0x61c/0 (alta 0x5342e4..0x534399, paso 0x53b3e1..0x53b623): el barrido que pide el paso del efecto 0x5be
-// (0x52a72a, con el personaje dueño del efecto, ancho 150 y la skill y la clave del efecto), que MuRet ya crea
-// (0x4f9fae). Gira a 180 de su destino (la posición de partida) bajando la z de su giro 11 por tramo, ocho tramos por
-// paso, y suelta en cada uno dos rayos 0x614/3 y a veces la partícula 0x5d9; con el héroe de dueño, cada cinco vueltas,
-// el asedio lo frena o manda los blancos de la skill (0x53b569). Sin la cola común ni el movimiento común
-// (0x53585e).
+// The 0x61c/0 (creation 0x5342e4..0x534399, step 0x53b3e1..0x53b623): the sweep requested by the step of the 0x5be
+// effect (0x52a72a, with the effect's owner character, width 150 and the effect's skill and key), which MuRet already
+// creates (0x4f9fae). It turns 180 from its target (the start position) lowering its turn's z by 11 per segment, eight
+// segments per step, and on each releases two 0x614/3 bolts and sometimes the 0x5d9 particle; with the hero as owner,
+// every five turns, the siege stops it or sends the skill's targets (0x53b569). Without the common tail or the common
+// move (0x53585e).
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -34,7 +34,7 @@ using Math::F32;
 
 constexpr float Reach = std::bit_cast<float>(0xc3340000u); // −180
 
-// 0x53b4c2..0x53b53b: 0x530860(0x614, partida, posición, ángulos, 3, 0, escala, 5, 0xa, 0, −1).
+// 0x53b4c2..0x53b53b: 0x530860(0x614, start, position, angles, 3, 0, scale, 5, 0xa, 0, −1).
 Core::Expected<void, std::string> Spark(const JointKernels::StepServices& services, Kernel::JointState& joint,
                                         glm::vec3& from, float scale)
 {
@@ -55,9 +55,9 @@ Core::Expected<void, std::string> Spark(const JointKernels::StepServices& servic
     return {};
 }
 
-// 0x53b400..0x53b53b: un tramo: la posición es el destino más (0, −180, 0) girado por la velocidad (los ángulos del
-// barrido), un tramo con la matriz de los ángulos, vz − 11; con rand() & 1 en 0 la partícula 0x5d9 (luz del joint,
-// escala 1) y los dos 0x614/3 desde la posición de antes, de escala rand() % 10 + 5 y (rand() & 7) + 4.
+// 0x53b400..0x53b53b: one segment: the position is the target plus (0, −180, 0) rotated by the velocity (the sweep's
+// angles), a segment with the angle matrix, vz − 11; with rand() & 1 at 0 the 0x5d9 particle (the joint's light, scale
+// 1) and the two 0x614/3 from the previous position, at scale rand() % 10 + 5 and (rand() & 7) + 4.
 Core::Expected<void, std::string> Sweep(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     glm::vec3 from = joint.position;
@@ -82,7 +82,7 @@ Core::Expected<void, std::string> Sweep(Kernel::JointState& joint, const JointKe
             return Core::Unexpected(std::format("0x53b4ba: falló la partícula 0x5d9 del joint 0x61c/0 ({})",
                                                 static_cast<int>(made.Error())));
     }
-    constexpr double SmallBase = 5.0, LargeBase = 4.0; // 0x6b87f8 y 0x6b8a44
+    constexpr double SmallBase = 5.0, LargeBase = 4.0; // 0x6b87f8 and 0x6b8a44
     const std::int32_t first = services.random->Next() % 10;
     if (auto spark = Spark(services, joint, from, F32(static_cast<double>(first) + SmallBase)); !spark.HasValue())
         return spark;
@@ -90,11 +90,11 @@ Core::Expected<void, std::string> Sweep(Kernel::JointState& joint, const JointKe
     return Spark(services, joint, from, F32(static_cast<double>(second) + LargeBase));
 }
 
-// 0x53b569..0x53b5b6 y 0x53b5cb..0x53b5e6, con el héroe de dueño. Con el asedio prendido (0x4294b0, el byte 0x7239ec)
-// y el bit 0x100 del atributo de la celda de la posición (0x5f82c0), la velocidad (+0x9d8) en 0 y la vida en
-// ftol(vida · 0,2f) (0x6b8cfc, 0x69fd3c): devuelve true y el paso sale de las vueltas (0x53b5ec). Si no,
-// 0x517a20(+0x9ea, posición, 150, +0x9eb, +0x9e8, 0): los blancos de la skill alrededor, con el C1 10, y sigue con la
-// vuelta siguiente. Lo mismo que lee el 0x613 de ancho 80 (JointKernels::VolleyServices, 0x539a50).
+// 0x53b569..0x53b5b6 and 0x53b5cb..0x53b5e6, with the hero as owner. With the siege on (0x4294b0, the byte 0x7239ec)
+// and bit 0x100 of the attribute of the position's cell (0x5f82c0), the speed (+0x9d8) at 0 and life at ftol(life ·
+// 0.2f) (0x6b8cfc, 0x69fd3c): returns true and the step leaves the turns (0x53b5ec). Otherwise, 0x517a20(+0x9ea,
+// position, 150, +0x9eb, +0x9e8, 0): the skill's targets around, with the C1 10, and it goes on to the next turn. The
+// same that the 0x613 of width 80 reads (JointKernels::VolleyServices, 0x539a50).
 Core::Expected<bool, std::string> HitAroundTheHero(Kernel::JointState& joint,
                                                    const JointKernels::StepServices& services)
 {
@@ -112,7 +112,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(Kernel::JointState& joint,
         constexpr std::uint32_t Blocked = 0x100;
         if ((cell.Value() & Blocked) == Blocked)
         {
-            constexpr double Cut = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc, 0,2f
+            constexpr double Cut = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc, 0.2f
             joint.speed = 0.0f;
             joint.life = Math::FtolLow(static_cast<double>(joint.life) * Cut);
             return true;
@@ -135,9 +135,9 @@ Core::Expected<bool, std::string> HitAroundTheHero(Kernel::JointState& joint,
 
 void CreateSweepJoint(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
-    // 0x5342e4..0x534399: sin la cola común, velocidad 0, el ancho, la z de los ángulos + 30, el destino en la posición
-    // de partida, vida 20, 18 puntos, la velocidad (+0x9dc) con los ángulos nuevos, la cuenta en −1; la posición, 180
-    // hacia −y girado por esos ángulos, y la luz blanca.
+    // 0x5342e4..0x534399: without the common tail, speed 0, the width, the angles' z + 30, the target at the start
+    // position, life 20, 18 points, the velocity (+0x9dc) with the new angles, the count at −1; the position, 180
+    // toward −y rotated by those angles, and white light.
     constexpr double Tilt = 30.0; // 0x6b8858
     constexpr std::int32_t Life = 20, Points = 18;
     joint.tailEnabled = false;
@@ -157,11 +157,11 @@ void CreateSweepJoint(Kernel::JointState& joint, const Kernel::JointRequest& req
 
 Core::Expected<void, std::string> StepSweepJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
-    // 0x53b3f1..0x53b5c3: ocho vueltas; cada una agrega un tramo mientras la cuenta sea menor que los puntos − 1.
-    // 0x53b53e..0x53b567: en la /0 (+0xc) con el dueño (+0x54) igual al héroe ([0x743a170]), vida de más de 18 y la
-    // vuelta múltiplo de 5, el asedio o los blancos de la skill (HitAroundTheHero). Con otro dueño (o sin dueño) sigue
-    // con la vuelta siguiente. Sin el héroe en los servicios no se sabe: con dueño, vida de más de 18 y la vuelta
-    // múltiplo de 5, corta.
+    // 0x53b3f1..0x53b5c3: eight turns; each appends a segment while the count is less than points − 1.
+    // 0x53b53e..0x53b567: in the /0 (+0xc) with the owner (+0x54) equal to the hero ([0x743a170]), life over 18 and the
+    // turn a multiple of 5, the siege or the skill's targets (HitAroundTheHero). With another owner (or none) it goes
+    // on to the next turn. Without the hero in the services it cannot tell: with an owner, life over 18 and the turn a
+    // multiple of 5, it stops.
     constexpr int Turns = 8, HitEvery = 5;
     constexpr std::int32_t HitLife = 18;
     for (int turn = 0; turn < Turns; ++turn)
@@ -169,7 +169,7 @@ Core::Expected<void, std::string> StepSweepJoint(Kernel::JointState& joint, cons
         if (joint.count < joint.maximumCount - 1)
             if (auto swept = Sweep(joint, services); !swept.HasValue())
                 return swept;
-        // Las comparaciones no tienen efectos: el orden (dueño, vida, vuelta) no cambia nada.
+        // The comparisons have no side effects: the order (owner, life, turn) changes nothing.
         if (joint.subtype != 0 || joint.ownerContext == nullptr || !(joint.life > HitLife) || turn % HitEvery != 0)
             continue;
         if (services.hero == nullptr)
@@ -183,8 +183,8 @@ Core::Expected<void, std::string> StepSweepJoint(Kernel::JointState& joint, cons
         if (stopped.Value())
             break;
     }
-    // 0x53b5ec..0x53b620: con vida de menos de 10, la x de la luz por 0,6666667f en los tres canales; si no, la vida
-    // por 0,033333335f.
+    // 0x53b5ec..0x53b620: with life under 10, the light's x times 0.6666667f in all three channels; otherwise, life
+    // times 0.033333335f.
     constexpr std::int32_t DimLife = 10;
     constexpr double Dimming = static_cast<double>(std::bit_cast<float>(0x3f2aaaabu)); // 0x6b8c64
     constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3d088889u));    // 0x6ba29c

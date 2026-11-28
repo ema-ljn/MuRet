@@ -10,31 +10,30 @@ namespace Client::Particles
 {
 struct Particle;
 
-// Las partículas de la antorcha 0x25 de Blood Castle (0x604171..0x6042ac): la chispa 6ab/0 y 6ab/1
-// (Effect\fi01.jpg, 0x61d55e), la llama 6ac/0 (Effect\fi02.tga, 0x61d57a) y el humo 622/6 (Effect\clouds.jpg).
-// La órbita 60f/4 de la misma antorcha va con la 60f/3, en Particles.cpp. Contrato: 06 § Los objetos de Devil
-// Square y de Blood Castle.
+// The particles of Blood Castle's torch 0x25 (0x604171..0x6042ac): the spark 6ab/0 and 6ab/1 (Effect\fi01.jpg,
+// 0x61d55e), the flame 6ac/0 (Effect\fi02.tga, 0x61d57a) and the smoke 622/6 (Effect\clouds.jpg). The same torch's
+// orbit 60f/4 goes with the 60f/3, in Particles.cpp. Contract: 06 § Los objetos de Devil Square y de Blood Castle.
 inline constexpr std::int32_t TorchSparkParticle = 0x6ab;
 inline constexpr std::int32_t TorchFlameParticle = 0x6ac;
-// La 6ac/2 (0x53c042, en el paso de los joints 0x535840, del joint 0x632/6): se dibuja con GL_ADD (0x5489eb).
+// The 6ac/2 (0x53c042, in the step of joints 0x535840, from joint 0x632/6): drawn with GL_ADD (0x5489eb).
 inline constexpr std::int32_t BrightFlameSubtype = 2;
 inline constexpr std::int32_t TorchSmokeSubtype = 6;
 [[nodiscard]] bool IsBloodCastleParticle(std::int32_t type, std::int32_t subtype);
 
-// 0x5436fe (6ab): vida rand() % 5 + 20 y giro 0; con el subtipo 0, la escala (rand() % 10) · 0,02f + 0,5 y la
-// velocidad ((rand() % 10 + 5) · 0,4f; (rand() % 10 − 5) · 0,4f; (rand() % 10 + 5) · 0,2f); con otro, la escala
-// (rand() % 10) · 0,1f + 1 y la velocidad con 0,2f, 0,2f y 0,1f.
-// 0x543a5d (6ac/0,6ac/1 y 6ac/2): vida rand() % 5 + 25, escala 0,5, giro rand() % 360 y velocidad ((rand() % 10 + 5) ·
-// 0,4f; 0; (rand() % 10 + 5) · 0,2f); después cae en el caso del 6ec (0x543ae3), que deja la vida en 24 y vuelve a
-// tirar la x ((rand() % 10 − 5) · 0,4f) y la z ((rand() % 10 + 5) · 0,2f); el inicio (+0x6c) queda en la
-// posición. La /1 cambia sólo su escala inicial a argumento·0,5 (0x543a84). 0x54327b (622/6): vida rand() % 5 + 25,
-// escala 0,2f, giro rand() % 360 y la velocidad de la 6ac antes del 6ec. Cada producto de la x87 se guarda en float.
+// 0x5436fe (6ab): life rand() % 5 + 20 and turn 0; with subtype 0, the scale (rand() % 10) · 0.02f + 0.5 and the
+// speed ((rand() % 10 + 5) · 0.4f; (rand() % 10 − 5) · 0.4f; (rand() % 10 + 5) · 0.2f); with another, the scale
+// (rand() % 10) · 0.1f + 1 and the speed with 0.2f, 0.2f and 0.1f.
+// 0x543a5d (6ac/0, 6ac/1 and 6ac/2): life rand() % 5 + 25, scale 0.5, turn rand() % 360 and speed ((rand() % 10 + 5) ·
+// 0.4f; 0; (rand() % 10 + 5) · 0.2f); then it falls into the 6ec case (0x543ae3), which leaves the life at 24 and
+// rolls the x again ((rand() % 10 − 5) · 0.4f) and the z ((rand() % 10 + 5) · 0.2f); the start (+0x6c) stays at the
+// position. The /1 only changes its initial scale to argument·0.5 (0x543a84). 0x54327b (622/6): life rand() % 5 + 25,
+// scale 0.2f, turn rand() % 360 and the speed of the 6ac before the 6ec. Each x87 product is stored in a float.
 void CreateBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
 
-// Después de la vida y el movimiento comunes de 0x5446e0, las tres suman la velocidad a la posición y frenan la x
-// y la y por 0,95f. 0x5477e4 (6ab): la luz en vida · 0,1f, la velocidad z +0,3f y la escala +0,07f (subtipo 0)
-// o +0,09f. 0x54793f (6ac) y 0x54748a (622/6): la velocidad z +0,6f, la posición corrida (rand() & 3) − 2 en x
-// e y y ((rand() & 3) − 2) · 0,8f en z, la escala +0,05f, la luz en vida · 0,04f (6ac/0), vida · 0,08f − 1
-// (6ac/2) o vida · 0,02f (622/6), y el giro + (rand() & 1) + 1.
+// After the common life and movement of 0x5446e0, the three add the speed to the position and brake the x and the y
+// by 0.95f. 0x5477e4 (6ab): the light at life · 0.1f, the z speed +0.3f and the scale +0.07f (subtype 0) or +0.09f.
+// 0x54793f (6ac) and 0x54748a (622/6): the z speed +0.6f, the position shifted (rand() & 3) − 2 in x and y and
+// ((rand() & 3) − 2) · 0.8f in z, the scale +0.05f, the light at life · 0.04f (6ac/0), life · 0.08f − 1 (6ac/2) or
+// life · 0.02f (622/6), and the turn + (rand() & 1) + 1.
 void StepBloodCastleParticle(Particle& particle, Crt::CrtRandom& random);
 } // namespace Client::Particles

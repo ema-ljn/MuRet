@@ -67,7 +67,7 @@ Core::Expected<void, std::string> StepFaunaLightning(Effects::ModelEffect& effec
     if (effect.type != 0xc2 || effect.subtype != 3)
         return Core::Unexpected(std::string("5247b1: familia de rayo no portada"));
     const auto f32 = [](double value) { return static_cast<float>(value); };
-    // 5208c5..52091a: un sorteo para todo efecto vivo, antes del dispatch.
+    // 0x5208c5..0x52091a: one random draw for every live effect, before the dispatch.
     float light = f32(static_cast<double>(cloth.random.Next() % 4 + 7) * .1f);
     if (effect.life < 5)
         light = std::max(f32(static_cast<double>(light) - static_cast<double>(5 - effect.life) * .2f), 0.0f);

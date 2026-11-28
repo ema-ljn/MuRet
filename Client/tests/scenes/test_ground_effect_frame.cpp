@@ -21,8 +21,8 @@
 #include <memory>
 #include <string>
 
-// D-C4 y 06 § El dibujo del juego: el pase 0x52dc20 se repite entre frames originales sin
-// adelantar el RNG, los cambios de los efectos ni el reloj que usó el último frame original.
+// D-C4 and 06 § El dibujo del juego: pass 0x52dc20 repeats between original frames without advancing the RNG, the
+// effects' changes or the clock the last original frame used.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -133,7 +133,7 @@ TEST(GroundEffectFrameTest, IntermediateDrawsRepeatTheOriginalRandomDecalWithout
     ModelBatch original;
     Begin(original);
     ASSERT_TRUE(frame.Draw(original, effects, {.heights = *heights, .random = random}, true).HasValue());
-    // 0x52dc46 saca 41; el 0x5de saca 18467, y (18467 % 4 + 8) * 0,1f da 1,1f.
+    // 0x52dc46 draws 41; the 0x5de draws 18467, and (18467 % 4 + 8) * 0.1f gives 1.1f.
     EXPECT_EQ(random.State(), 3357800067u);
     ASSERT_EQ(original.Vertices().size(), 49u * 6u);
     EXPECT_EQ(original.Vertices()[0].position, glm::vec3(700.0f, 1700.0f, 5.0f));
@@ -142,7 +142,7 @@ TEST(GroundEffectFrameTest, IntermediateDrawsRepeatTheOriginalRandomDecalWithout
     effects[0].seen = false;
     effects[0].transform.position = glm::vec3(4000.0f);
     effects[0].light = glm::vec3(0.125f);
-    static_cast<void>(random.Next()); // otro pase del mismo frame ya avanzó el RNG compartido.
+    static_cast<void>(random.Next()); // another pass of the same frame already advanced the shared RNG.
     const auto state = random.State();
     const ModelEffect before = effects[0];
     for (int repeat = 0; repeat < 3; ++repeat)
@@ -252,7 +252,7 @@ TEST(GroundEffectFrameTest, AFailedFrameReplaysItsPrefixAndErrorWithoutVisitingL
     EXPECT_EQ(effects[0].transform.scale, 1.0f);
     EXPECT_EQ(effects[2].transform.scale, 0.8f);
     EXPECT_EQ(random.State(), 3357800067u);
-    effects[1].subtype = 0; // el replay debe seguir fallando en la entrada que guardó.
+    effects[1].subtype = 0; // the replay must keep failing at the entry it saved.
     const auto before = effects;
     ModelBatch between;
     Begin(between);

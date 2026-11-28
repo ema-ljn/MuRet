@@ -26,8 +26,8 @@ struct DrawnObject;
 namespace Client::MapScripts::Crywolf
 {
 
-// 0x430ae1/0x430b0f: RenderMesh de malla 0 con 0x44 y 0x240, textura−1 y el estado del objeto.
-// Conserva los stores RGB por alpha entre pases y publica model+88 en 0, 1 y finalmente−1. Usa la pose previa.
+// 0x430ae1/0x430b0f: RenderMesh of mesh 0 with 0x44 and 0x240, texture −1 and the object's state. Keeps the RGB
+// stores by alpha between passes and publishes model+88 at 0, 1 and finally −1. Uses the previous pose.
 [[nodiscard]] Core::Expected<void, std::string> DrawCrywolfAltarMeshes(Render::ModelBatch& batch,
                                                                        const Models::IModelLibrary& models,
                                                                        Actors::Drawing::DrawnObject& object,

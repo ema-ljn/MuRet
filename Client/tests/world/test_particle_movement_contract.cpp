@@ -12,8 +12,8 @@
 #include <cstdint>
 #include <limits>
 
-// Reconciliación de 4e98d0 con su binding P=S+14,A=S+20,V=S+54 en 5446e0.
-// Sólo proyección finita acreditada de OriginalRotation; no ABI/alias nativos universales.
+// Reconciliation of 0x4e98d0 with its binding P=S+14,A=S+20,V=S+54 in 0x5446e0.
+// Only the credited finite projection of OriginalRotation; no universal native ABI/aliases.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -44,8 +44,8 @@ TEST(ParticleMovementContractTest, TheRotatedTemporaryIsAddedToTheThreePositionC
     CrtRandom random(7);
     const auto step = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(step.HasValue());
-    // Matriz de 90° acreditada en rotation.txt: sinY=1, cosY=bits32510b46.
-    // R=(3,2,-0.99999994), y cada suma independiente se almacena como float.
+    // 90° matrix credited in rotation.txt: sinY=1, cosY=bits 32510b46.
+    // R=(3,2,-0.99999994), and each independent sum is stored as float.
     EXPECT_EQ(particle.position, glm::vec3(103, 202, 299));
     EXPECT_EQ(particle.angles, glm::vec3(0, 90, 0));
     EXPECT_EQ(particle.velocity, glm::vec3(1, 2, 3));
@@ -56,8 +56,8 @@ TEST(ParticleMovementContractTest, TheRotatedTemporaryIsAddedToTheThreePositionC
     EXPECT_EQ(particle.rotationFactor, -7);
     EXPECT_EQ(particle.field64, glm::vec2(31, 32));
     EXPECT_EQ(particle.start, glm::vec3(7, 8, 9));
-    EXPECT_EQ(particle.life, 9);            // Del prefijo caller, no del helper.
-    EXPECT_EQ(random.State(), 0xc40e66b9u); // Sólo viento del caller.
+    EXPECT_EQ(particle.life, 9);            // From the caller's prefix, not the helper.
+    EXPECT_EQ(random.State(), 0xc40e66b9u); // Only the caller's wind.
 }
 
 TEST(ParticleMovementContractTest, AZeroMovementFlagSkipsTheHelperEvenWithUnorderedAngles)

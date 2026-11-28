@@ -26,9 +26,9 @@
 #include <string>
 #include <vector>
 
-// El 0x14f (PlasmaJoints.cpp): el alta 0x530ddd..0x530ed8 y el paso 0x535b37..0x535d4a, con el pedido de 0x5026a4
-// (0x530860(0x14f, punto, blanco + 0x10, giro, 0x4f2230(o), blanco, 100, −1, 0, 0, −1)). Los esperados del paso repiten
-// las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// The 0x14f (PlasmaJoints.cpp): creation 0x530ddd..0x530ed8 and step 0x535b37..0x535d4a, with 0x5026a4's request
+// (0x530860(0x14f, point, target + 0x10, turn, 0x4f2230(o), target, 100, −1, 0, 0, −1)). The step's expected values
+// repeat the ASM formulas with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -75,12 +75,12 @@ struct PlasmaWorld
     CrtRandom random{Seed};
 };
 
-// 0x535c26..0x535c77: la luz dinámica de radio 2 con ((rand() & 3) + 4) · 0,04f · 0,4f, por los bits de cada sorteo
-// (de una cuenta aparte: cada producto a 53 bits y el fst a float).
+// 0x535c26..0x535c77: the radius 2 dynamic light with ((rand() & 3) + 4) · 0.04f · 0.4f, by the bits of each draw
+// (from a separate computation: each product at 53 bits and the fst to float).
 constexpr std::array<std::uint32_t, 4> GlowBits{0x3d83126fu, 0x3da3d70au, 0x3dc49ba6u, 0x3de56041u};
 
-// Una vuelta del paso con `replay`: el giro hacia el destino, el sacudón y, si no llega, la luz (en `lighting`, si
-// está) y el avance. Devuelve si llegó.
+// One round of the step with `replay`: the turn toward the target, the shake and, if it does not arrive, the light (in
+// `lighting`, if given) and the advance. Returns whether it arrived.
 bool Turn(JointState& joint, CrtRandom& replay, Client::Terrain::TerrainLighting* lighting = nullptr)
 {
     const float distance = F32(Client::Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 50.0f));
@@ -105,8 +105,8 @@ bool Turn(JointState& joint, CrtRandom& replay, Client::Terrain::TerrainLighting
 }
 } // namespace
 
-// 0x530ddd..0x530ed8: sin rand(); velocidad 50, la textura repetida, el ancho, 50 puntos y vida 20; la textura y la luz
-// por subtipo (0..2 la 0x614, 3..5 la 0x632); otro subtipo queda con las del prefijo (el tipo y la luz blanca).
+// 0x530ddd..0x530ed8: without rand(); speed 50, the repeated texture, the width, 50 points and life 20; texture and
+// light by subtype (0..2 the 0x614, 3..5 the 0x632); another subtype keeps the prefix's (the type and the white light).
 TEST(PlasmaJointsTest, EachSubtypeBornsWithItsColor)
 {
     constexpr auto Bits = [](std::uint32_t bits) { return std::bit_cast<float>(bits); };
@@ -142,10 +142,10 @@ TEST(PlasmaJointsTest, EachSubtypeBornsWithItsColor)
     }
 }
 
-// 0x535b37..0x535cd4: después del movimiento común (50 por sus ángulos), una vuelta por punto: el destino es el dueño
-// 80 más arriba, gira hacia él de a 50 (0x4e9810), saca vx y vz ((rand() & 0x3ff) − 512) / ancho, agrega el tramo y, si
-// no llega (velocidad · 1,5 contra la distancia), con el ancho de 50 o más deja la luz dinámica y avanza.
-// Con ancho 100, al llegar no suelta nada. Sigue la cola común.
+// 0x535b37..0x535cd4: after the common movement (50 by its angles), one round per point: the target is the owner 80
+// higher, it turns toward it by 50 (0x4e9810), draws vx and vz ((rand() & 0x3ff) − 512) / width, adds the segment and,
+// if it does not arrive (speed · 1.5 against the distance), with width 50 or more leaves the dynamic light and
+// advances. With width 100, on arrival it drops nothing. The common tail follows.
 TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
 {
     PlasmaWorld tested;
@@ -175,11 +175,11 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
     EXPECT_EQ(joint.position, expected.position);
     EXPECT_EQ(joint.angles, expected.angles);
     EXPECT_EQ(joint.velocity, expected.velocity);
-    // La luz dinámica de cada vuelta que no llega, en la posición de antes de avanzar.
+    // The dynamic light of each round that does not arrive, at the position before advancing.
     EXPECT_TRUE(lit->cells == tested.lighting->cells);
     const auto dark = std::make_unique<Client::Terrain::TerrainLighting>();
     EXPECT_FALSE(lit->cells == dark->cells);
-    // Un tramo por vuelta (también la de la llegada) y el de la cola común.
+    // One segment per round (the arriving one too) and the common tail's.
     EXPECT_EQ(joint.count, turns + 2);
     EXPECT_EQ(joint.life, 19);
     EXPECT_EQ(std::ranges::count_if(tested.particles->All(),
@@ -187,8 +187,8 @@ TEST(PlasmaJointsTest, ThePlasmaTurnsTowardItsOwnerUntilItArrives)
               0);
 }
 
-// 0x535cdf..0x535d4a: con el ancho en 50 justo, al llegar la partícula 0x5ca y, con rand() % 8 en 0, tres rand() sin
-// usar y la 0x5f2/0. Sin dueño, el destino es el segundo punto del alta.
+// 0x535cdf..0x535d4a: with the width at exactly 50, on arrival the particle 0x5ca and, with rand() % 8 at 0, three
+// unused rand() and the 0x5f2/0. Without an owner, the target is the creation's second point.
 TEST(PlasmaJointsTest, TheFiftyWidePlasmaSparksWhenItArrives)
 {
     int smokes = 0;

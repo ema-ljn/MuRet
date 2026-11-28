@@ -37,8 +37,8 @@ namespace
 {
 using Client::Kernel::ActorState;
 
-// Los esqueletos del juego (0x5769ad8 + tipo · 0xe0): Player.bmd con 0xc3 acciones y un monstruo con 6; el resto no
-// está (el registro sin acciones).
+// The game's skeletons (0x5769ad8 + type · 0xe0): Player.bmd with 0xc3 actions and a monster with 6; the rest is
+// missing (the record without actions).
 class PushedModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -66,10 +66,10 @@ public:
     Client::Models::Skeleton monster;
 };
 
-// 0x524a8d..0x524b21: el 0xc2/4 que toca el suelo recorre los 400 primeros personajes del pool y empuja a los vivos,
-// vistos (+0x16c), que no son el héroe ([0x743a170]), sin morirse (+0x389) y a 200 o menos en x e y: el 0x20a con
-// Fenrir (+0x318 en 0x1c37) con 0x4e9cd0 (0x68 con sólo la derecha), el 0x20a sin él con 0x4ea030(0xc2) y los demás
-// con 0x4ea030(5), que no pone una acción que el modelo no tiene. Sigue con todos y no saca rand().
+// 0x524a8d..0x524b21: the 0xc2/4 that touches the ground walks the pool's first 400 characters and pushes the live,
+// seen (+0x16c) ones that are not the hero ([0x743a170]), not dying (+0x389) and within 200 in x and y: the 0x20a with
+// Fenrir (+0x318 at 0x1c37) with 0x4e9cd0 (0x68 with only the right), the 0x20a without it with 0x4ea030(0xc2) and the
+// others with 0x4ea030(5), which does not set an action the model lacks. It goes on with all and draws no rand().
 TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
 {
     constexpr std::size_t Hero = 3;
@@ -97,7 +97,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     };
     const std::uint16_t player = Client::Tables::PlayerSkeletonModel;
     ActorState& justThere = place(7, player, 1000.0f, 1200.0f); // a 200 justo
-    ActorState& rider = place(8, player, 1120.0f, 1160.0f);     // la raíz de 120² + 160²
+    ActorState& rider = place(8, player, 1120.0f, 1160.0f);     // the square root of 120² + 160²
     rider.pet.model = 0x1c37;
     rider.hands[0].model = Sword;
     rider.hands[1].model = Client::Kernel::NoItemModel;
@@ -127,7 +127,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     }
     EXPECT_EQ(random.State(), Client::Crt::CrtRandom(1).State());
 
-    // Sin los modelos del juego, el 0x20a que empuja no tiene Player.bmd: corta en 0x524afc.
+    // Without the game's models, the pushing 0x20a has no Player.bmd: it stops at 0x524afc.
     const Client::Effects::WizardEffectServices bare =
         Client::Effects::WizardEffectServicesOf(*world, random, Client::Effects::WizardSceneParts{});
     const auto cut = bare.pushAround(1000.0f, 1000.0f);
@@ -135,9 +135,9 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     EXPECT_NE(cut.Error().find("0x524afc"), std::string::npos) << cut.Error();
 }
 
-// 0x524d38: el 0xf6/2 del meteoro que cae va por Effects::CreateBlastModelEffect a la tabla del mundo, con el meteoro
-// de dueño (+0x108, que el paso lee en vivo) y la clave 30 en +0xec y en la escala (30 · 0,01f), vida 12 y sin rand().
-// Un dueño que no es un lugar de la tabla no tiene cómo leerse: corta.
+// 0x524d38: the falling meteor's 0xf6/2 goes through Effects::CreateBlastModelEffect to the world's table, owned by
+// the meteor (+0x108, which the step reads live), with key 30 in +0xec and in the scale (30 · 0.01f), life 12 and no
+// rand(). An owner that is not a slot of the table cannot be read: it stops.
 TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -180,10 +180,10 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
     EXPECT_FALSE(world->Map().effects.Effects()[1].alive);
 }
 
-// 0x5231f6..0x5232f8 con los joints del mundo: el 0xcb/1 en su primer paso (vida 45 con +0x1bc en 0) suelta 36
-// joints 613/6 y 36 613/7 a la tabla de 0x530860 (WorldState::DrawTail), con el efecto de dueño; cada rand() % 10 del
-// abanico va antes del alta de su 613/6, que saca el suyo (la key, rand() % 5). Después el paso de los joints los
-// avanza sin cortar.
+// 0x5231f6..0x5232f8 with the world's joints: the 0xcb/1 on its first step (life 45 with +0x1bc at 0) releases 36
+// 0x613/6 and 36 0x613/7 joints into 0x530860's table (WorldState::DrawTail), owned by the effect; each rand() % 10 of
+// the fan goes before its 0x613/6's creation, which draws its own (the key, rand() % 5). Then the joint step advances
+// them without stopping.
 TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

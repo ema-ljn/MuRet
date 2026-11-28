@@ -16,8 +16,8 @@ struct WorldEntryResources;
 
 namespace Client::Combat
 {
-// 0x4f3f80: las velocidades compartidas de Player.bmd, desde los stats propios protegidos.
+// 0x4f3f80: Player.bmd's shared speeds, from the protected own stats.
 void RefreshCombatActionSpeeds(const Scenes::WorldEntryResources& resources);
-// Lo mismo con el mundo y el rand() de la CRT: 0x4f4a10 la llama al pegar (CL9 hito 3).
+// The same with the world and the CRT's rand(): 0x4f4a10 calls it when striking.
 void RefreshCombatActionSpeeds(Kernel::WorldState& world, Crt::CrtRandom& random);
 } // namespace Client::Combat

@@ -66,7 +66,7 @@ struct Harness
     GameGateContext context{.world = *world, .gates = gates, .random = random, .ticksMs = 3000};
 };
 
-// 0x599f41..0x59a038: X>=min, Y>=min, X<=max, Y<=max, luego contador.
+// 0x599f41..0x59a038: X>=min, Y>=min, X<=max, Y<=max, then the counter.
 TEST(GameGatesTest, RectangleTestsConsumeOnlyTheShortCircuitPrefix)
 {
     struct Case
@@ -108,7 +108,7 @@ TEST(GameGatesTest, ABlockedHeroStillReadsTheRectangleAndCounter)
     EXPECT_EQ(tested.random.State(), AfterDraws(1, 20).State());
 }
 
-// Sigue el barrido aun después de poner la espera: 0x59adcc vuelve hasta el gate 255.
+// The sweep goes on even after setting the wait: 0x59adcc loops up to gate 255.
 TEST(GameGatesTest, ARequestedGatePreservesSendCounterAndOwnRecordOrderAndKeepsScanning)
 {
     Harness tested({{23, Entry}, {24, Entry}});
@@ -263,7 +263,7 @@ TEST(GameGatesTest, SiegeMacroBoundaryOccursAfterSendAndWaitBeforePendingAndTarg
     EXPECT_EQ(tested.world->Runtime().selectedTargets[0], 9);
     EXPECT_EQ(tested.world->Runtime().movement.movementTarget, 8);
 }
-// 0x59ad2a..0x59ad73: el F3 30 y Macro.txt van después del pedido y la espera, antes de pending/objetivos.
+// 0x59ad2a..0x59ad73: the F3 30 and Macro.txt go after the request and the wait, before pending/targets.
 TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTargets)
 {
     for (const std::uint8_t map : {std::uint8_t{30}, std::uint8_t{31}})
@@ -302,7 +302,7 @@ TEST(GameGatesTest, SiegeDestinationsSaveOptionsAndMacrosBeforeCleaningTheTarget
                 return Client::Core::Unexpected(std::move(body).Error());
             options.push_back(Client::Protocol::Player::WriteOptionData(body.Value()));
             macros = Client::Chat::WrittenMacros(runtime.chat.input.macros);
-            // 61c210 abre/cierra dentro del acceso de599ef0: el cierre interior no consume3.848 rand().
+            // 0x61c210 opens/closes inside 0x599ef0's access: the inner close does not consume 3848 rand().
             EXPECT_EQ(runtime.ownRecordDepth, 1);
             EXPECT_EQ(tested.random.State(), AfterDraws(1, 28).State());
             return {};

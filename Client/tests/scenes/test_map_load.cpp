@@ -106,8 +106,8 @@ TEST(ActorClothLifecycleTest, MapCleanupReleasesClothsInEveryPoolSlotExceptTheSe
     EXPECT_FALSE(world.ActorCloths()[400].Cloths().empty());
 }
 
-// 06 § La carga del mapa, paso 2: 0x60719c..0x6071ac solo apaga el primer byte de los 200
-// registros de 0x7d34818. La próxima creación debe poder reutilizarlos sin borrar sus demás campos.
+// 06 § La carga del mapa, step 2: 0x60719c..0x6071ac only clears the first byte of 0x7d34818's 200 records. The next
+// creation must be able to reuse them without erasing their other fields.
 TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
 {
     Client::Kernel::WorldMap loaded;
@@ -146,7 +146,7 @@ TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
 class MapLoadTest : public Client::Tests::GoldenDataTest
 {
 protected:
-    // Como 0x4c41cf: el mundo en curso primero, después 0x61a560.
+    // Like 0x4c41cf: the current world first, then 0x61a560.
     [[nodiscard]] Client::Core::Expected<void, std::string> Load(std::uint8_t map, SceneId scene = SceneId::Game)
     {
         world.Runtime().map = map;
@@ -163,7 +163,7 @@ protected:
     CrtRandom random{Seed};
 };
 
-// Q-C146: 65.536 (rand() % 4) · 0,25, y el 0 no pide rand() al crear sus objetos.
+// Q-C146: 65536 (rand() % 4) · 0.25, and 0 draws no rand() when creating its objects.
 TEST_F(MapLoadTest, TheGrassOffsetsAreTheFirstSixtyFiveThousandRandoms)
 {
     ASSERT_TRUE(Load(0).HasValue());
@@ -181,7 +181,7 @@ TEST_F(MapLoadTest, TheGrassOffsetsAreTheFirstSixtyFiveThousandRandoms)
     EXPECT_TRUE(terrainState.current.attributes && terrainState.current.heights);
 }
 
-// Q-C58: con el argumento y el mundo en curso en 32, la carga sigue como el 9, en World10.
+// Q-C58: with the argument and the current world at 32, the load goes on as 9, in World10.
 TEST_F(MapLoadTest, MapThirtyTwoLoadsWorldTenAsNine)
 {
     ASSERT_TRUE(Load(32).HasValue());
@@ -247,8 +247,8 @@ TEST_F(MapLoadTest, CreatingAnActorInAFreeSlotDropsItsClothAndLiveKeyRecreationK
     EXPECT_TRUE(world.ActorCloths()[0].Cloths().empty());
 }
 
-// 0x447d70: Devil Square (9), Blood Castle (11 a 17) y Chaos Castle (18 a 23) arman su objeto de evento, con
-// los campos de 0x447db5..0x447ddc (y de 0x404d60); los demás no tocan el que había (Q-C320).
+// 0x447d70: Devil Square (9), Blood Castle (11 to 17) and Chaos Castle (18 to 23) arm their event object, with the
+// fields of 0x447db5..0x447ddc (and of 0x404d60); the others do not touch the previous one (Q-C320).
 TEST(MapLoadEventTest, AnEventMapArmsItsObjectAndTheOthersKeepThePreviousOne)
 {
     for (std::int32_t map = 0; map <= 55; ++map)
@@ -288,8 +288,8 @@ TEST(MapLoadEventTest, AnEventMapArmsItsObjectAndTheOthersKeepThePreviousOne)
     EXPECT_EQ(leaving.eventObject->field0c, 7);
 }
 
-// 0x447de7: Chaos Castle mira el mundo en curso (0x6c9dd0), no el argumento; Blood Castle y Devil Square, el
-// argumento. Blood Castle va primero.
+// 0x447de7: Chaos Castle looks at the current world (0x6c9dd0), not the argument; Blood Castle and Devil Square, at
+// the argument. Blood Castle goes first.
 TEST(MapLoadEventTest, ChaosCastleReadsTheCurrentWorldInsteadOfTheArgument)
 {
     WorldRuntime runtime;
@@ -307,8 +307,8 @@ TEST(MapLoadEventTest, ChaosCastleReadsTheCurrentWorldInsteadOfTheArgument)
     EXPECT_EQ(elsewhere.chaosCastleArea, 0xff);
 }
 
-// Q-C228: la carga del mapa no vacía las marcas del suelo (0x6070a0 apaga las tablas de al lado y no esta): la
-// marca que había en Lorencia sigue igual en Devias, y de vuelta en Lorencia.
+// Q-C228: the map load does not empty the ground marks (0x6070a0 clears the neighboring tables, not this one): the
+// mark in Lorencia stays the same in Devias, and back in Lorencia.
 TEST_F(MapLoadTest, TheGroundMarksSurviveTheMapLoad)
 {
     ASSERT_TRUE(Load(0).HasValue());
@@ -331,8 +331,8 @@ TEST_F(MapLoadTest, TheGroundMarksSurviveTheMapLoad)
     }
 }
 
-// Q-C180: sin TerrainHeight.OZB el original avisa y cierra; MuRet corta nombrando el archivo, con el
-// pasto ya sacado.
+// Q-C180: without TerrainHeight.OZB the original warns and closes; MuRet stops naming the file, with the grass already
+// drawn.
 TEST_F(MapLoadTest, AMissingTerrainHeightNamesTheFile)
 {
     const Client::Tests::TemporaryFolder folder("map-load");
@@ -358,9 +358,9 @@ TEST_F(MapLoadTest, AMissingTerrainHeightNamesTheFile)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, GrassRandoms).State());
 }
 
-// 0x510f70: fuera de la selección mata a los vivos de otra clave, comparada con signo (movsx), entre
-// los 400 primeros, y apaga los ayudantes de cada uno que mata (0x510fa1..0x510fc0). Los del que sobrevive,
-// los de uno que ya estaba muerto y los del 401 quedan.
+// 0x510f70: outside the selection it kills the live ones of another key, compared signed (movsx), among the first 400,
+// and turns off the helpers of each one it kills (0x510fa1..0x510fc0). Those of the survivor, of one already dead and
+// of the 401st stay.
 TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
 {
     auto actors = world.Actors();
@@ -425,9 +425,9 @@ TEST_F(MapLoadTest, AKeyAbove7fffKillsEvenItsOwnerAndTheSelectionKillsNobody)
     EXPECT_FALSE(actors[4].alive);
 }
 
-// 0x61744d..0x61751b: Devias crea el 0x201 y el 0x202 con 0x606660 antes del .obj, sin ángulo y con
-// escala 1. En la captura de la VM son el primer nodo de las listas 176 y 177 (sector x 11; la y de
-// 1.600 por el float de 1/1.600 todavía es el sector 0).
+// 0x61744d..0x61751b: Devias creates 0x201 and 0x202 with 0x606660 before the .obj, without angle and with scale 1. In
+// the VM capture they are the first node of lists 176 and 177 (sector x 11; the y of 1600 times the float of 1/1600 is
+// still sector 0).
 TEST_F(MapLoadTest, DeviasCreatesItsTwoSpecialsBeforeTheObjFile)
 {
     ASSERT_TRUE(Load(2).HasValue());
@@ -448,8 +448,8 @@ TEST_F(MapLoadTest, DeviasCreatesItsTwoSpecialsBeforeTheObjFile)
     EXPECT_EQ(objects[1].sectorY, 1);
 }
 
-// 0x6175ea..0x617626: el especial de Noria nace en z=0 y con yaw=10, antes de pedir sus cinco
-// efectos. Los cuatro 322/323 gastan tres rand() cada uno antes del pasto; 324 no gasta.
+// 0x6175ea..0x617626: Noria's special is born at z=0 and with yaw=10, before asking for its five effects. The four
+// 322/323 spend three rand() each before the grass; 324 spends none.
 TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArguments)
 {
     const auto loaded = Load(3);
@@ -475,8 +475,8 @@ TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArgument
     }
 }
 
-// 0x42a760 con el byte del asedio en 0, como arranca el original: la hora de la música (0x7239f0) en 0, un B9 02 y
-// los cinco lanceros 0x19f en (x; 11.300; 270), antes de los del .obj (06 § Los objetos de Castle Siege).
+// 0x42a760 with the siege byte at 0, as the original starts: the music hour (0x7239f0) at 0, a B9 02 and the five
+// 0x19f spearmen at (x, 11300, 270), before the .obj ones (06 § Los objetos de Castle Siege).
 TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
 {
     world.Runtime().map = 30;
@@ -508,7 +508,7 @@ TEST_F(MapLoadTest, CastleSiegeAsksForItsStateAndPlacesTheFiveSpearmen)
     EXPECT_TRUE(terrainState.current.attributes && terrainState.current.heights);
 }
 
-// 0x61a6ea/0x61a8af: en guerra, el ATT312 y TerrainLight2, después de los lanceros.
+// 0x61a6ea/0x61a8af: at war, ATT312 and TerrainLight2, after the spearmen.
 TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
 {
     world.Runtime().castleSiege.siegeActive = true;
@@ -528,8 +528,8 @@ TEST_F(MapLoadTest, CastleSiegeWithTheSiegeOnLoadsTheWarAttributesAndLight)
               Client::Terrain::ShadeTerrainLight(*decoded.Value(), *terrainState.current.heights, 30)->cells);
 }
 
-// 0x61a6d0 → 0x42fe50: con el estado de Crywolf de la .bss (0) el 34 toma EncTerrain35.att, el mismo que lee el
-// cargador del repo, y no EncTerrain351.att. Con 1 y 2, que pone el BD 00, EncTerrain351/352.att y TerrainLight1/2.
+// 0x61a6d0 → 0x42fe50: with the .bss Crywolf state (0) map 34 takes EncTerrain35.att, the same one the repo loader
+// reads, and not EncTerrain351.att. With 1 and 2, set by the BD 00, EncTerrain351/352.att and TerrainLight1/2.
 TEST_F(MapLoadTest, CrywolfTakesTheAttributesAndTheLightOfItsState)
 {
     ASSERT_EQ(world.Runtime().crywolf.state, 0);
@@ -630,13 +630,13 @@ TEST_F(MapLoadTest, CrywolfReusesTerrainTablesAfterTheAttributeReaderRejectsTheM
     }
 }
 
-// Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
+// The maps with data in the repo's Data: those it loads and, for the others, where it stops.
 TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
 {
     struct Case
     {
         std::uint8_t map;
-        std::string_view frontier; // vacío: carga
+        std::string_view frontier; // empty: loads
     };
     constexpr Case Cases[] = {
         {0, ""},  {1, ""},  {2, ""},  {3, ""},  {4, ""},  {5, "World6"}, {6, ""},  {7, ""},  {8, ""},  {9, ""},

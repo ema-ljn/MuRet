@@ -42,18 +42,18 @@ constexpr std::uint32_t ChromeFlags = 0x44;
 constexpr std::uint32_t ShinyFlags = 0x48;
 constexpr std::uint8_t DeathAction = 6;
 constexpr Audio::SoundId DeathSound{0x87};
-// Los efectos por vértice de la muerte: las piedras 0x10a del 0x18e (0x601c01) y las 0x10c del 0x18f (0x601c3d).
+// The death's per-vertex effects: stones 0x10a of type 0x18e (0x601c01) and 0x10c of type 0x18f (0x601c3d).
 constexpr std::int32_t StoneEffects = 0x10a;
 constexpr std::int32_t GateStoneEffects = 0x10c;
 
-// Las constantes de 0x6002e0 (EDI es 1,0f desde 0x60043c).
-using Math::Tenth;                                               // 0,1
-constexpr float ThreeTenths = std::bit_cast<float>(0x3e99999au); // 0,3
-constexpr float FourTenths = std::bit_cast<float>(0x3ecccccdu);  // 0,4
-constexpr float SixTenths = std::bit_cast<float>(0x3f19999au);   // 0,6
-constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu); // 0,8
-constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);   // 0,002f (0x6b89bc)
-using Math::Hundredth;                                           // 0,01f (0x6b88d4)
+// The constants of 0x6002e0 (EDI is 1.0f from 0x60043c on).
+using Math::Tenth;
+constexpr float ThreeTenths = std::bit_cast<float>(0x3e99999au);
+constexpr float FourTenths = std::bit_cast<float>(0x3ecccccdu);
+constexpr float SixTenths = std::bit_cast<float>(0x3f19999au);
+constexpr float EightTenths = std::bit_cast<float>(0x3f4ccccdu);
+constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu); // 0.002f (0x6b89bc)
+using Math::Hundredth;                                         // 0x6b88d4
 
 using Math::D;
 using Math::F32;
@@ -79,7 +79,7 @@ BodyPassArgs WithTexture(BodyPassArgs args, std::int32_t texture)
     return args;
 }
 
-// FLD T, FMUL rate, FSIN, FMUL swing, FADD base y FSTP: el pulso en un float.
+// FLD T, FMUL rate, FSIN, FMUL swing, FADD base and FSTP: the pulse in a float.
 Core::Expected<float, std::string> PulseOf(float worldClock, float swing, float base, std::string_view address)
 {
     const auto product = Math::Detail::SineProductPC53(D(worldClock) * D(PulseRate), swing);
@@ -88,8 +88,8 @@ Core::Expected<float, std::string> PulseOf(float worldClock, float swing, float 
     return F32(*product + D(base));
 }
 
-// Los casos de 0x6002e0 y su cadena de tipos que no da ninguna alta de monstruo (MonsterKinds: sus modelos son
-// objetos del mundo): la dirección del caso, o nada.
+// The cases of 0x6002e0 and its chain for types no monster spawn gives (MonsterKinds: their models are world objects):
+// the case's address, or nothing.
 std::optional<std::string_view> UnreachableCaseOf(const Kernel::ActorState& actor, std::int32_t map)
 {
     const std::uint16_t type = actor.type;
@@ -116,7 +116,7 @@ std::optional<std::string_view> UnreachableCaseOf(const Kernel::ActorState& acto
                                                   0x49, 0x4a, 0x4d, 0x4e, 0x51, 0xfa};
     if (map == 0x22 && OneOf(type, Map34))
         return "0x4306a0";
-    // El 0x18a no lo da ninguna alta, pero el +0x376 0x4d lo dibuja con el tipo + 1 (0x50c244): tiene su caso.
+    // No spawn gives type 0x18a, but +0x376 at 0x4d draws it with the type + 1 (0x50c244): it has its case.
     constexpr std::array<std::uint16_t, 14> Late{0x10a, 0x10b, 0x12b, 0x12c, 0x12d, 0x12e, 0x12f,
                                                  0x130, 0x199, 0xf9,  0x11b, 0x114, 0x140, 0x12a};
     if (OneOf(type, Late) || (type == 0x112 && subtype == 1) || (type == 0xcc && (subtype == 3 || subtype == 4)) ||
@@ -128,7 +128,7 @@ std::optional<std::string_view> UnreachableCaseOf(const Kernel::ActorState& acto
     return std::nullopt;
 }
 
-// 0x600436..0x6004a4: el 0x171 en el 10, el 0x164 en el 9 y el 0x16d con el cuarto argumento.
+// 0x600436..0x6004a4: 0x171 in map 10, 0x164 in map 9 and 0x16d with the fourth argument.
 glm::vec3 EarlyColorOf(const Kernel::ActorState& actor, std::int32_t map, std::uint16_t special, glm::vec3 color)
 {
     if (map == 10 && actor.type == 0x171)
@@ -141,7 +141,7 @@ glm::vec3 EarlyColorOf(const Kernel::ActorState& actor, std::int32_t map, std::u
     return color;
 }
 
-// 0x600e69..0x600ec1: +0x78 & 1 y & 2.
+// 0x600e69..0x600ec1: +0x78 & 1 and & 2.
 glm::vec3 FlagColorOf(const Kernel::ActorState& actor, glm::vec3 color)
 {
     if ((actor.flags78 & 1u) != 0)
@@ -152,7 +152,7 @@ glm::vec3 FlagColorOf(const Kernel::ActorState& actor, glm::vec3 color)
     return color;
 }
 
-// 0x6004f7..0x600548: el 0x16c.
+// 0x6004f7..0x600548: type 0x16c.
 Result DrawTheTintedBody(MonsterBodyFrame& frame)
 {
     MonsterBodyModel& model = frame.model;
@@ -163,11 +163,11 @@ Result DrawTheTintedBody(MonsterBodyFrame& frame)
         return drawn;
     model.object.color = glm::vec3(1.0f);
     model.object.unlitMesh.reset();
-    // 0x600b35: RenderBody(2) y RET, sin 0x602365.
+    // 0x600b35: RenderBody(2) and RET, without 0x602365.
     return DrawBodyPass(model, BaseFlags, ActorPassArgs(frame.actor));
 }
 
-// Lo que sigue a un caso de después de la cadena: el RenderBody(2) común (0x60235e) o directo 0x602365.
+// What follows a case after the chain: the common RenderBody(2) (0x60235e) or straight to 0x602365.
 enum class LateNext
 {
     Common,
@@ -183,8 +183,8 @@ LateResult Done(const Result& drawn, LateNext next)
     return next;
 }
 
-// Las mallas `meshes` con (2, −1) y después (0x44, Chrome01): el 0x17f (0x600f9f..0x601080) y el 0x186 con el
-// 0x12d (0x601471..0x601507).
+// The meshes `meshes` with (2, −1) and then (0x44, Chrome01): type 0x17f (0x600f9f..0x601080) and type 0x186 with 0x12d
+// (0x601471..0x601507).
 Result DrawChromedMeshes(MonsterBodyFrame& frame, std::span<const std::int16_t> meshes)
 {
     const BodyPassArgs args = ActorPassArgs(frame.actor);
@@ -199,8 +199,8 @@ Result DrawChromedMeshes(MonsterBodyFrame& frame, std::span<const std::int16_t> 
     return {};
 }
 
-// 0x601091..0x601159: el 0x17c con el subtipo 1, la luz en sin(T · 0,002f) · 0,01f + 1 (un float) y cuatro mallas
-// aditivas: la 0 con 0x6f6 y el blendMesh en 0, la 1 con 0x6f5 y la 2 dos veces, con el blendMesh en 1.
+// 0x601091..0x601159: type 0x17c with subtype 1, the light at sin(T · 0.002f) · 0.01f + 1 (a float) and four additive
+// meshes: mesh 0 with 0x6f6 and blendMesh 0, mesh 1 with 0x6f5 and mesh 2 twice, with blendMesh 1.
 Result DrawTheGlowingMeshes(MonsterBodyFrame& frame)
 {
     const auto light = PulseOf(frame.worldClock, Hundredth, 1.0f, "0x6010df");
@@ -219,9 +219,9 @@ Result DrawTheGlowingMeshes(MonsterBodyFrame& frame)
     return DrawMeshPass(frame.model, 2, AdditiveFlags, args);
 }
 
-// 0x601be5..0x601c0d y 0x601c21..0x601c49: el 0x18e y el 0x18f; al morir (+0x111 en 6), el byte vivo en 0. Después,
-// el sonido 0x87 y 0x4ee770(0, efecto, 0, 0, 0) con el modelo del tipo sobre las mallas que dejó 0x5ffdf0 en este
-// dibujo (0x5786f9c), en los frames del original, y la cola (0x602365).
+// 0x601be5..0x601c0d and 0x601c21..0x601c49: types 0x18e and 0x18f; on death (+0x111 at 6), the alive byte at 0. Then
+// sound 0x87 and 0x4ee770(0, effect, 0, 0, 0) with the type's model over the meshes 0x5ffdf0 left in this draw
+// (0x5786f9c), in the original's frames, and the tail (0x602365).
 LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t effect)
 {
     if (dies)
@@ -238,12 +238,12 @@ LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t eff
                 LateNext::Tail);
 }
 
-// 0x457e00, la vtable+4 de la clase de los bordes (0x6b8d4c), con el cuarto argumento en 1 (0x60121f): si llega a
-// 0x457740, que marca en +0x22 las caras de la malla 1 que no dan hacia la dirección de la cámara al héroe y junta sus
-// aristas de silueta con la vecindad de +0x1a (P-C332 b). No llega con el alpha por debajo de 0,01f o un NaN
-// (0x457e53), con +0x58 o +0x64 (como int16) en −2 o en 1, ni con una textura de cuatro componentes en la malla 1
-// (+0x28 de su lugar en 0x7d3a198, 0x457efb; la de un .tga, como HasFourComponents); con cero triángulos no hace nada.
-// Sin la malla 1, el original lee fuera de las mallas.
+// 0x457e00, vtable+4 of the edge class (0x6b8d4c), with the fourth argument at 1 (0x60121f): whether it reaches
+// 0x457740, which marks in +0x22 the faces of mesh 1 that do not face the camera-to-hero direction and gathers their
+// silhouette edges with the +0x1a neighborhood (P-C332 b). It does not reach it with the alpha below 0.01f or a NaN
+// (0x457e53), with +0x58 or +0x64 (as int16) at −2 or 1, nor with a four-component texture in mesh 1 (+0x28 of its slot
+// in 0x7d3a198, 0x457efb; a .tga's, as in HasFourComponents); with zero triangles it does nothing. Without mesh 1, the
+// original reads outside the meshes.
 Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& frame)
 {
     const Kernel::ActorState& actor = frame.actor;
@@ -263,13 +263,13 @@ Core::Expected<bool, std::string> MarksTheSilhouette(const MonsterBodyFrame& fra
     return !mesh.triangles.empty();
 }
 
-// 0x601654..0x601bb1: el 0x18e.
+// 0x601654..0x601bb1: type 0x18e.
 LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
     if (actor.animation.action == DeathAction)
         return EmitTheDeathMesh(frame, true, StoneEffects);
-    // 0x60166b..0x601b11: el contador de pasos (0x7d3a0f0) menos +0x188, con signo (JL).
+    // 0x60166b..0x601b11: the step counter (0x7d3a0f0) minus +0x188, signed (JL).
     const std::int32_t steps = ReadLogicSteps(frame);
     if (static_cast<std::int32_t>(static_cast<std::uint32_t>(steps) - static_cast<std::uint32_t>(actor.stepStamp)) <
         0x19)
@@ -285,7 +285,7 @@ LateResult DrawTheSpiritBody(MonsterBodyFrame& frame)
     return Done(DrawBodyPass(model, ShinyFlags, WithTexture(args, ChromeTexture)), LateNext::Tail);
 }
 
-// 0x600f74..0x60235c: los casos de 0x6002e0 después de su cadena.
+// 0x600f74..0x60235c: the cases of 0x6002e0 after its chain.
 LateResult DrawTheLateCase(MonsterBodyFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -308,7 +308,7 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return Done(DrawTheGlowingMeshes(frame), LateNext::Tail);
     case 0x190:
     {
-        // 0x60115e..0x6011a4: RenderBody(2) y la malla 2 con el blendMesh en 2 y la luz en 1.
+        // 0x60115e..0x6011a4: RenderBody(2) and mesh 2 with blendMesh 2 and the light at 1.
         if (auto drawn = DrawBodyPass(model, BaseFlags, args); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
         BodyPassArgs lit = args;
@@ -318,10 +318,10 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
     }
     case 0x183:
     {
-        // 0x6011ae..0x6011e5: la malla 0; después, 0x457d60 arma la clase de los bordes (vtable 0x6b8d4c), 0x457e00
-        // junta las aristas de silueta de la malla 1 y 0x457f70 las dibuja con 0x458000, un rand() por arista
-        // (0x6011f1..0x601241), y vtable+8 la libera. Sin 0x457740 no junta ninguna y no se ve nada; con él, corta
-        // antes de esos rand(): le falta la vecindad de los triángulos y el quad sustractivo (P-C332 b).
+        // 0x6011ae..0x6011e5: mesh 0; then 0x457d60 builds the edge class (vtable 0x6b8d4c), 0x457e00 gathers mesh 1's
+        // silhouette edges and 0x457f70 draws them with 0x458000, one rand() per edge (0x6011f1..0x601241), and
+        // vtable+8 frees it. Without 0x457740 it gathers none and nothing shows; with it, it cuts before those rand():
+        // it lacks the triangles' neighborhood and the subtractive quad (P-C332 b).
         if (auto drawn = DrawMeshPass(model, 0, BaseFlags, args); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
         const auto marks = MarksTheSilhouette(frame);
@@ -336,7 +336,7 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
     {
         if (!special)
             return LateNext::Common;
-        // 0x601264..0x6012c3: con 0,1, RenderBody(2) sin la malla 1; con (1; 0,1; 0,1), la malla 1.
+        // 0x601264..0x6012c3: with 0.1, RenderBody(2) without mesh 1; with (1, 0.1, 0.1), mesh 1.
         model.object.color = glm::vec3(Tenth);
         BodyPassArgs hidden = args;
         hidden.hiddenMesh = 1;
@@ -363,7 +363,7 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
     {
         if (!special)
             return LateNext::Common;
-        // 0x6013b4..0x6013c4: RenderBody(2) sin la malla 1, con 0x62e y el color en 1 (0x601436..0x60235e).
+        // 0x6013b4..0x6013c4: RenderBody(2) without mesh 1, with 0x62e and the color at 1 (0x601436..0x60235e).
         model.object.color = glm::vec3(1.0f);
         BodyPassArgs hidden = WithTexture(args, 0x62e);
         hidden.hiddenMesh = 1;
@@ -372,8 +372,8 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
     case 0x186:
         if (!special)
         {
-            // 0x6013d7..0x60142d: con el +0x88 en 0 y (0,4; 0,3; 0,5), RenderBody(2) con 0x624; después el +0x88 en
-            // 0xff, el color en 0,5 y el común (0x601430).
+            // 0x6013d7..0x60142d: with +0x88 at 0 and (0.4, 0.3, 0.5), RenderBody(2) with 0x624; then +0x88 at 0xff,
+            // the color at 0.5 and the common one (0x601430).
             model.object.unlitMesh = std::int16_t{0};
             model.object.color = {FourTenths, ThreeTenths, 0.5f};
             if (auto drawn = DrawBodyPass(model, BaseFlags, WithTexture(args, 0x624)); !drawn.HasValue())
@@ -388,11 +388,11 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
             constexpr std::array<std::int16_t, 2> Meshes{0, 1};
             return Done(DrawChromedMeshes(frame, Meshes), LateNext::Tail);
         }
-        // 0x601518: (0,1; 1; 0,8) y el común.
+        // 0x601518: (0.1, 1, 0.8) and the common one.
         model.object.color = {Tenth, 1.0f, EightTenths};
         return LateNext::Common;
     case 0x187:
-        // 0x60152e..0x601577: con (0,9; 0,8; 1), RenderBody(4) con 0x5c1; el color en 1 y el común.
+        // 0x60152e..0x601577: with (0.9, 0.8, 1), RenderBody(4) with 0x5c1; the color at 1 and the common one.
         model.object.color = {std::bit_cast<float>(0x3f666666u), EightTenths, 1.0f};
         if (auto drawn = DrawBodyPass(model, 0x4, WithTexture(args, 0x5c1)); !drawn.HasValue())
             return Core::Unexpected(drawn.Error());
@@ -400,8 +400,8 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return LateNext::Common;
     case 0x185:
     {
-        // 0x60157c..0x6015f1: RenderBody(2) sin la malla 1 y la malla 1 dos veces con 0x402 (la onda de 0x4ecc30,
-        // 0x4ed775), la textura en +0x58 y el alpha en 0,5 y en +0x174; después 0x602365.
+        // 0x60157c..0x6015f1: RenderBody(2) without mesh 1 and mesh 1 twice with 0x402 (the wave of 0x4ecc30,
+        // 0x4ed775), the texture in +0x58 and the alpha at 0.5 and at +0x174; then 0x602365.
         constexpr std::uint32_t Waving = 0x402;
         BodyPassArgs hidden = args;
         hidden.hiddenMesh = 1;
@@ -414,8 +414,8 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
         return Done(DrawMeshPass(model, 1, Waving, WithTexture(args, actor.dword58)), LateNext::Tail);
     }
     case 0x18a:
-        // 0x601601..0x60164f, el segundo modelo del +0x376 0x4d (0x50c244): con el +0x88 en 0 y el color en 1,
-        // RenderBody(0x42) con Chrome01 (0x5c0); después el +0x88 en 0xff, el color en 0,6 y el común (0x602216).
+        // 0x601601..0x60164f, the second model of +0x376 at 0x4d (0x50c244): with +0x88 at 0 and the color at 1,
+        // RenderBody(0x42) with Chrome01 (0x5c0); then +0x88 at 0xff, the color at 0.6 and the common one (0x602216).
         model.object.unlitMesh = std::int16_t{0};
         model.object.color = glm::vec3(1.0f);
         if (auto drawn = DrawBodyPass(model, AdditiveFlags, WithTexture(args, ChromeTexture)); !drawn.HasValue())
@@ -430,12 +430,12 @@ LateResult DrawTheLateCase(MonsterBodyFrame& frame)
             return EmitTheDeathMesh(frame, true, GateStoneEffects);
         return LateNext::Common;
     default:
-        // El 0x198 (0x601d61 → 0x602170) y los demás: el común.
+        // Type 0x198 (0x601d61 → 0x602170) and the others: the common one.
         return LateNext::Common;
     }
 }
 
-// 0x602365..0x602466: lo que 0x6002e0 agrega después del cuerpo.
+// 0x602365..0x602466: what 0x6002e0 adds after the body.
 Result DrawTheTail(MonsterBodyFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -450,9 +450,9 @@ Result DrawTheTail(MonsterBodyFrame& frame)
     }
     if (actor.type == 0x177)
     {
-        // 0x602391..0x602431: la luz en sin(T · 0,002f) · 0,3f + 0,5f (un float); la malla 0 con la textura de la
-        // malla 6 (IndexTexture[6], +0x38 del modelo) y el blendMesh en 0, y la malla 3 cromada con el blendMesh en 3 y
-        // la V en −((ftol(T) % 100) · 0,01f), el resto con el signo del dividendo (CDQ e IDIV).
+        // 0x602391..0x602431: the light at sin(T · 0.002f) · 0.3f + 0.5f (a float); mesh 0 with mesh 6's texture
+        // (IndexTexture[6], +0x38 of the model) and blendMesh 0, and mesh 3 chromed with blendMesh 3 and the V at
+        // −((ftol(T) % 100) · 0.01f), the remainder with the dividend's sign (CDQ and IDIV).
         const auto light = PulseOf(frame.worldClock, ThreeTenths, 0.5f, "0x6023c4");
         if (!light.HasValue())
             return Core::Unexpected(light.Error());
@@ -476,7 +476,7 @@ Result DrawTheTail(MonsterBodyFrame& frame)
     }
     if (actor.type == 0x1f3 || actor.type == 0x1f4)
     {
-        // 0x60243e..0x602465: la malla 0 aditiva con +0x64, +0x68 y la U y la V en 0.
+        // 0x60243e..0x602465: mesh 0 additive with +0x64, +0x68 and the U and V at 0.
         BodyPassArgs args = ActorPassArgs(actor);
         args.uv = {};
         if (auto drawn = DrawMeshPass(model, 0, AdditiveFlags, args); !drawn.HasValue())
@@ -494,13 +494,12 @@ Result DrawMonsterBody(MonsterBodyFrame& frame)
     if (const auto address = UnreachableCaseOf(actor, frame.map))
         return Cut(*address, "el caso de 0x6002e0 de un tipo que no da ninguna alta de monstruo", actor.type);
     model.object.color = EarlyColorOf(actor, frame.map, frame.special, model.object.color);
-    // 0x6004aa: con +0x74 en 0x80, RenderBody(0x82) y nada más. El +0x74 no está en ActorState: ninguna alta lo
-    // escribe y MuRet lo toma en 0 (*inferido*).
+    // 0x6004aa: with +0x74 at 0x80, RenderBody(0x82) and nothing else. +0x74 is not in ActorState: no spawn writes it
+    // and MuRet takes it as 0 (*inferred*).
     if (actor.type == 0x16c)
         return DrawTheTintedBody(frame);
     model.object.color = FlagColorOf(actor, model.object.color);
-    // 0x600ec4..0x600ef1: con el alpha en 1 y +0x68 en 0,05, el 0x175, el 0x161, el 0x184 y el 0x185 guardan +0x68
-    // en 1.
+    // 0x600ec4..0x600ef1: with the alpha at 1 and +0x68 at 0.05, types 0x175, 0x161, 0x184 and 0x185 store 1 in +0x68.
     constexpr std::array<std::uint16_t, 4> Lit{0x175, 0x161, 0x184, 0x185};
     if (OneOf(actor.type, Lit) && std::bit_cast<std::uint32_t>(actor.alpha) == 0x3f800000u &&
         std::bit_cast<std::uint32_t>(actor.blendMeshLight) == 0x3d4ccccdu)

@@ -31,8 +31,9 @@
 #include <string>
 #include <vector>
 
-// Las familias 0x614 (LightningJoints.cpp) y 0x61b/0x5bc (HandBoltJoints.cpp): el alta de 0x530860 (0x5309d6,
-// 0x5335cf), el paso de 0x535840 (0x53683e, 0x539ccc) y el dibujo común de 0x53c6a0. 06, "Los joints de las familias".
+// The 0x614 (LightningJoints.cpp) and 0x61b/0x5bc (HandBoltJoints.cpp) families: the creation in 0x530860 (0x5309d6,
+// 0x5335cf), the step in 0x535840 (0x53683e, 0x539ccc) and the common drawing in 0x53c6a0. 06, "Los joints de las
+// familias".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -89,7 +90,7 @@ ActorState Owner(glm::vec3 position)
     return owner;
 }
 
-// Una semilla cuyo rand() número `index` (desde 0) cumple `wanted`.
+// A seed whose rand() number `index` (from 0) satisfies `wanted`.
 template <typename Wanted> std::uint32_t SeedWhere(int index, Wanted wanted)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
@@ -110,8 +111,8 @@ int AliveParticles(const Client::Particles::Particles& particles, std::int32_t t
     return found;
 }
 
-// 0x5309d6..0x5309ec y 0x5313b1: el 614/0 toma el ancho del pedido después del primer tramo, que usó el retenido,
-// velocidad 50, 50 puntos y vida 2, sin rand().
+// 0x5309d6..0x5309ec and 0x5313b1: the 0x614/0 takes the requested width after the first segment, which used the
+// retained one; speed 50, 50 points and life 2, without rand().
 TEST(LightningJointsTest, TheMonsterBoltKeepsTheRetainedWidthForItsFirstQuad)
 {
     Pool pool;
@@ -129,7 +130,7 @@ TEST(LightningJointsTest, TheMonsterBoltKeepsTheRetainedWidthForItsFirstQuad)
     EXPECT_EQ(pool.random.State(), Seed);
 }
 
-// 0x5313c0, 0x531318, 0x530a00, 0x531618 y 0x53163a: los rand() del alta, en su orden.
+// 0x5313c0, 0x531318, 0x530a00, 0x531618 and 0x53163a: the creation's rand(), in their order.
 TEST(LightningJointsTest, TheRandomSubtypesDrawInTheirNativeOrder)
 {
     struct Case
@@ -175,8 +176,8 @@ TEST(LightningJointsTest, TheRandomSubtypesDrawInTheirNativeOrder)
     static_cast<void>(c);
 }
 
-// 0x531460 (la /3: la vida en la key y los puntos y la velocidad en el skill), 0x531494/0x5314ed (la /4 y la /5, al
-// destino y 600 más arriba), 0x53139d (la /0xb) y 0x531376 (la /0xd, que pasa a ser una /0xb).
+// 0x531460 (the /3: the life in the key and the points and speed in the skill), 0x531494/0x5314ed (the /4 and the /5,
+// at the target and 600 higher), 0x53139d (the /0xb) and 0x531376 (the /0xd, which becomes a /0xb).
 TEST(LightningJointsTest, TheFixedSubtypesWriteTheirFields)
 {
     const glm::vec3 halfBlue{0.5f, 0.5f, 1.0f};
@@ -219,8 +220,8 @@ TEST(LightningJointsTest, TheFixedSubtypesWriteTheirFields)
     }
 }
 
-// 0x5313fe: la /2 apunta al hueso 33 del personaje dueño, (0, −150, 0), con el modelo del jugador; sin dueño o sin el
-// servicio, corta.
+// 0x5313fe: the /2 aims at bone 33 of the owner character, (0, −150, 0), with the player's model; without an owner or
+// without the service, it stops.
 TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
 {
     ActorState owner = Owner({500, 600, 700});
@@ -252,10 +253,10 @@ TEST(LightningJointsTest, TheOwnerBoneBoltAimsAtTheChestOfItsOwner)
     EXPECT_NE(lonely.Error().find("0x531412"), std::string::npos) << lonely.Error();
 }
 
-// 0x531356: la /0xc nace roja con vida 10. Su paso (0x536adf..0x536b22) pone la posición en el punto (0, −100, 0) de
-// la matriz 0x743751c del modelo del tipo del dueño: nadie la escribe en c32bbd5f y queda en cero, así que el punto es
-// la posición del modelo compartido. Salta 0x4e9810: "lo que falta" es el [ebp+8] de 0x53586c, la y de la posición
-// menos la del destino antes de moverse, con signo. Sin dueño personaje o sin los modelos, corta.
+// 0x531356: the /0xc is born red with life 10. Its step (0x536adf..0x536b22) puts the position at the point (0, −100,
+// 0) of the matrix 0x743751c of the owner type's model: nothing writes it in c32bbd5f and it stays zero, so the point
+// is the shared model's position. It skips 0x4e9810: "what is left" is 0x53586c's [ebp+8], the position's y minus the
+// target's before moving, signed.
 TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
 {
     ActorState owner = Owner({1.0f, 2.0f, 3.0f});
@@ -263,10 +264,10 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
     auto world = std::make_unique<Client::Kernel::WorldState>();
     const glm::vec3 origin{700.25f, 800.5f, 900.75f};
     world->PlaceModel(owner.type, {.scale = 1.5f, .origin = origin});
-    // y de partida menos y del destino: 40 (< 50 · 1,5, llega), −500 (llega: no hay valor absoluto), 75 (50 · 1,5 = 75
-    // exacto: con el > estricto de 0x536d71 no llega en ese tramo) y 80 (no llega). Con dueño, el alta no copia el
-    // segundo punto (0x530942 salta a 0x530957): el destino es el que tenía el lugar, (0, 0, 0), y no el (0, 1000, 0)
-    // que se pasa.
+    // Start y minus target y: 40 (< 50 · 1.5, arrives), −500 (arrives: no absolute value), 75 (50 · 1.5 = 75 exactly:
+    // with 0x536d71's strict > it does not arrive in that segment) and 80 (does not arrive). With an owner, the
+    // creation does not copy the second point (0x530942 jumps to 0x530957): the target is the slot's old one, (0, 0,
+    // 0), not the (0, 1000, 0) passed.
     for (const float startY : {40.0f, -500.0f, 75.0f, 80.0f})
     {
         SCOPED_TRACE(startY);
@@ -285,7 +286,8 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
         const auto stepped = pool.Step(0.0f, world.get());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         const bool arrives = startY < 75.0f;
-        // Cada tramo saca los dos rand() del temblor por defecto (0x536cb3); con ancho 30 no hay luz ni partículas.
+        // Each segment draws the default shake's two rand() (0x536cb3); with width 30 there is no light and no
+        // particles.
         const int segments = arrives ? 1 : 50;
         glm::vec3 shaken{};
         for (int segment = 0; segment < segments; ++segment)
@@ -298,14 +300,13 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
         EXPECT_EQ(joint.velocity.z, shaken.z);
         shaken = {F32(D(joint.angles.x) + D(shaken.x)), F32(D(joint.velocity.y) + D(joint.angles.y)),
                   F32(D(shaken.z) + D(joint.angles.z))};
-        // Un corrimiento por tramo y otro de la cola común (CommonTail), hasta 49 (0x53553f).
+        // One shift per segment and one from the common tail (CommonTail), up to 49 (0x53553f).
         EXPECT_EQ(joint.count, std::min(count + segments + 1, joint.maximumCount - 1));
         if (arrives)
         {
             EXPECT_EQ(joint.position, origin);
             continue;
         }
-        // El último tramo vuelve al modelo y avanza (0, −50, 0) por la matriz de sus ángulos con el temblor.
         const auto moved =
             Client::Math::OriginalVectorRotate({0.0f, -50.0f, 0.0f}, Client::Math::OriginalAngleMatrix(shaken));
         EXPECT_EQ(joint.position, (glm::vec3{F32(D(moved.x) + D(origin.x)), F32(D(moved.y) + D(origin.y)),
@@ -324,10 +325,10 @@ TEST(LightningJointsTest, TheRedBoltSitsOnTheSharedModelOfItsOwner)
     EXPECT_TRUE(cut.Error().starts_with("0x536b1d")) << cut.Error();
 }
 
-// 0x531907..0x5319e5: la /0xf no se dibuja, vive 80 y elige hasta seis personajes cercanos (a 400 o menos), vivos, sin
-// +0x389, de clase 2, visibles y que no son el dueño; +0x9eb es la cuenta · 15 y +0x24 el segundo punto 150 más arriba.
-// Su paso no se mueve (0x53587c); con la vida par suelta dos 0x614/0 y corta en la luz de su 0x5ca (0x5370e8, Q-C1622);
-// con la vida impar sólo corre la cuenta (sin dibujo, la matriz de la pila no se ve).
+// 0x531907..0x5319e5: the /0xf is not drawn, lives 80 and picks up to six nearby characters (at 400 or less), alive,
+// without +0x389, of class 2, visible and not the owner; +0x9eb is the count · 15 and +0x24 the second point 150
+// higher. Its step does not move (0x53587c); with even life it drops two 0x614/0 and stops at the light of its 0x5ca
+// (0x5370e8, Q-C1622); with odd life only the count runs (no drawing, the matrix on the stack is not seen).
 TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
 {
     std::vector<ActorState> actors(14);
@@ -342,8 +343,8 @@ TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
     actors[3].byte88 = 1;
     actors[4].seen = false;
     actors[5].alive = false;
-    // A 400 justos entra (0x53194f: test ah,0x41); apenas más lejos, no. Hay siete candidatos: el séptimo (el 13) queda
-    // afuera por el tope de seis (0x531995: cmp [+0x9ec],5; jg).
+    // Exactly at 400 it gets in (0x53194f: test ah,0x41); just farther, it does not. There are seven candidates: the
+    // seventh (13) stays out by the cap of six (0x531995: cmp [+0x9ec],5; jg).
     actors[6].position = {500.0f, 0.0f, 0.0f};
     actors[7].position = {500.0f, 1.0f, 0.0f};
     const Client::Joints::JointKernels::CreationServices services{.actors = actors};
@@ -388,7 +389,7 @@ TEST(LightningJointsTest, TheChainPicksTheNearMonsters)
     EXPECT_EQ(pool.random.State(), Seed);
 }
 
-// 0x530860 con el pool lleno: nada, ni los rand() de la /1.
+// 0x530860 with the pool full: nothing, not even the /1's rand().
 TEST(LightningJointsTest, AFullPoolCreatesNothingAndDrawsNothing)
 {
     Pool pool;
@@ -403,8 +404,9 @@ TEST(LightningJointsTest, AFullPoolCreatesNothingAndDrawsNothing)
     EXPECT_FALSE(bolt.Value().has_value());
 }
 
-// 0x536982 y 0x536e95..0x537042: la /0 sigue a su dueño (80 más arriba); al llegar, con el ancho fuera de 50 no hay
-// partículas y con el reloj en la segunda mitad del segundo, tampoco la rama: dos rand() de la sacudida y la cola.
+// 0x536982 and 0x536e95..0x537042: the /0 follows its owner (80 higher); on arrival, with the width other than 50 there
+// are no particles, and with the clock in the second half of the second, no branch either: the shake's two rand() and
+// the tail.
 TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
 {
     ActorState owner = Owner({1000, 1000, 0});
@@ -417,7 +419,7 @@ TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
     CrtRandom expected(Seed);
     expected.Discard(2);
     EXPECT_EQ(pool.random.State(), expected.State());
-    // El movimiento común (velocidad 50 con los ángulos de antes) y nada más: llega en el primer tramo.
+    // The common movement (speed 50 with the previous angles) and nothing else: it arrives in the first segment.
     const glm::vec3 moved = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -50.0f, 0.0f),
                                                                Client::Math::OriginalAngleMatrix(before.angles));
     EXPECT_EQ(joint.position, (glm::vec3{F32(D(before.position.x) + D(moved.x)), F32(D(before.position.y) + D(moved.y)),
@@ -427,9 +429,10 @@ TEST(LightningJointsTest, TheMonsterBoltFollowsItsOwnerAndStopsWhenItArrives)
     EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::ThunderParticle), 0);
 }
 
-// 0x536f71..0x53703d: con el ancho en 50, en la primera mitad del segundo y con rand() % 16 en 0, la /0 suelta una /1
-// desde el destino corrido (rand() % 100 − 50, rand() % 100 − 50, rand() % 120 − 60) con el ancho rand() % 8 + 6, del
-// mismo dueño. Antes: los dos rand() de la sacudida, los dos del 0x5ca/0 (0x536eb9) y el % 8 que no suelta el 0x5f2.
+// 0x536f71..0x53703d: with the width at 50, in the first half of the second and with rand() % 16 at 0, the /0 drops a
+// /1 from the shifted target (rand() % 100 − 50, rand() % 100 − 50, rand() % 120 − 60) with width rand() % 8 + 6, of
+// the same owner. Before: the shake's two rand(), the 0x5ca/0's two (0x536eb9) and the % 8 that does not drop the
+// 0x5f2.
 TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
 {
     std::uint32_t seed = 0;
@@ -446,7 +449,8 @@ TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
     Pool pool;
     pool.random = CrtRandom(seed);
     ASSERT_TRUE(pool.Create(0x614, 0, {1000, 1040, 80}, {}, 50.0f, &owner, JointOwnerKind::Actor).HasValue());
-    // El padre en el lugar 2: la rama cae en el 0, que el paso ya dejó atrás (0x53c670 recorre los 500 en orden).
+    // The parent in slot 2: the branch lands in 0, which the step already left behind (0x53c670 walks the 500 in
+    // order).
     pool.joints[2] = pool.joints[0];
     pool.joints[0] = JointState{};
     ASSERT_TRUE(pool.Step(400.0f).HasValue());
@@ -468,14 +472,14 @@ TEST(LightningJointsTest, TheMonsterBoltBranchesInTheFirstHalfOfTheSecond)
     EXPECT_EQ(branch.width, width);
     EXPECT_EQ(branch.speed, speed);
     EXPECT_EQ(branch.position, (glm::vec3{F32(x + 1000.0), F32(y + 1000.0), F32(z + 80.0)}));
-    EXPECT_EQ(branch.targetPosition, glm::vec3(0.0f)); // Con dueño, +0x58 queda la del uso anterior.
+    EXPECT_EQ(branch.targetPosition, glm::vec3(0.0f)); // With an owner, +0x58 keeps the previous use's value.
     EXPECT_EQ(branch.life, life);
     EXPECT_EQ(pool.random.State(), expected.State());
     EXPECT_FALSE(pool.joints[1].alive);
 }
 
-// 0x536e9c: con un ancho distinto de 50 (los 0x614/0 de ancho 10 de la cola de 0x4f5b70) la llegada salta entera a
-// 0x537045: ni el 0x5ca, ni el % 8, ni la rama de la /0 aunque el reloj y el rand() la habrían soltado.
+// 0x536e9c: with a width other than 50 (the 0x614/0 of width 10 from 0x4f5b70's tail) the arrival jumps whole to
+// 0x537045: no 0x5ca, no % 8, no /0 branch even though the clock and the rand() would have dropped it.
 TEST(LightningJointsTest, AThinMonsterBoltNeverBranches)
 {
     const std::uint32_t seed = SeedWhere(2, [](int value) { return value % 16 == 0; });
@@ -494,7 +498,7 @@ TEST(LightningJointsTest, AThinMonsterBoltNeverBranches)
     EXPECT_EQ(AliveParticles(pool.particles, Client::Particles::ThunderParticle), 0);
 }
 
-// 0x536d4d: la /3 lejos de su destino (más de 150) pone la vida en 0 y la cola común la mata.
+// 0x536d4d: the /3 far from its target (more than 150) sets its life to 0 and the common tail kills it.
 TEST(LightningJointsTest, TheFarThirdSubtypeDiesAfterItsSegment)
 {
     Pool pool;
@@ -509,8 +513,8 @@ TEST(LightningJointsTest, TheFarThirdSubtypeDiesAfterItsSegment)
     EXPECT_EQ(pool.random.State(), expected.State());
 }
 
-// 0x5335cf..0x533672: el 61b repite la textura; los dos con velocidad 40, ancho 60, 50 puntos y vida 2; la /0 blanca,
-// la /3 quieta con vida 20, y las demás rojas (61b) o azules (5bc). El primer tramo usa el ancho retenido.
+// 0x5335cf..0x533672: the 0x61b repeats the texture; both with speed 40, width 60, 50 points and life 2; the /0 white,
+// the /3 still with life 20, and the others red (0x61b) or blue (0x5bc). The first segment uses the retained width.
 TEST(HandBoltJointsTest, TheBoltsWriteTheirLightSpeedAndWidth)
 {
     struct Case
@@ -545,8 +549,9 @@ TEST(HandBoltJointsTest, TheBoltsWriteTheirLightSpeedAndWidth)
     }
 }
 
-// 0x539ce1..0x539ec9: un tramo lejos del dueño: el destino 80 sobre el dueño, la sacudida acumulada y amortiguada a
-// 0,8f (con la z en la x87), la luz dinámica ((rand() & 3) + 4) · 0,05f y el avance de 40 con la matriz sacudida.
+// 0x539ce1..0x539ec9: a segment far from the owner: the target 80 above the owner, the shake accumulated and damped at
+// 0.8f (with the z in the x87), the dynamic light ((rand() & 3) + 4) · 0.05f and the advance of 40 with the shaken
+// matrix.
 TEST(HandBoltJointsTest, AFarBoltShakesGlowsAndAdvances)
 {
     ActorState owner = Owner({1000, 1000, 0});
@@ -555,7 +560,6 @@ TEST(HandBoltJointsTest, AFarBoltShakesGlowsAndAdvances)
     JointState& joint = pool.joints[0];
     joint.maximumCount = 1;
     joint.velocity = {2, 5, 3};
-    // El movimiento común y el giro, a mano.
     glm::vec3 position = joint.position;
     const glm::vec3 common = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -40.0f, 0.0f),
                                                                 Client::Math::OriginalAngleMatrix(joint.angles));
@@ -585,8 +589,8 @@ TEST(HandBoltJointsTest, AFarBoltShakesGlowsAndAdvances)
     EXPECT_TRUE(joint.alive);
 }
 
-// 0x539ed4..0x539f11: al llegar, una vez cada dos, tres rand() para nada y el fuego 0x5d9/0 en la posición, con los
-// ángulos y la luz del joint; la otra vez, nada.
+// 0x539ed4..0x539f11: on arrival, once every two, three unused rand() and the fire 0x5d9/0 at the position, with the
+// joint's angles and light; the other time, nothing.
 TEST(HandBoltJointsTest, AnArrivingBoltDropsFireEveryOtherTime)
 {
     for (const bool even : {true, false})
@@ -618,7 +622,8 @@ TEST(HandBoltJointsTest, AnArrivingBoltDropsFireEveryOtherTime)
     }
 }
 
-// 0x53c6a0: el 61b se dibuja con su textura (JointLaser02, repetida) y el aditivo común, dos caras por tramo.
+// 0x53c6a0: the 0x61b is drawn with its texture (JointLaser02, repeated) and the common additive, two faces per
+// segment.
 TEST(HandBoltJointsTest, TheBoltDrawsWithItsOwnTexture)
 {
     ActorState owner = Owner({1000, 1000, 0});

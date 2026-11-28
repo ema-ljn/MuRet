@@ -12,8 +12,9 @@
 #include <cstdint>
 #include <limits>
 
-// La chispa 0x5c6/0xb del arco 0xa27 y del bastón 0xc1e: 0x540977 al crearla y 0x545368 en cada paso; y la 0x5c6/0xf
-// del Fenrir: 0x540b42 y 0x5453d3. Los esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// The spark 0x5c6/0xb of bow 0xa27 and staff 0xc1e: 0x540977 on creation and 0x545368 each step; and the Fenrir's
+// 0x5c6/0xf: 0x540b42 and 0x5453d3. The expected values repeat the ASM's formulas with another CrtRandom of the same
+// seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -25,8 +26,9 @@ using Client::Math::Bits;
 using Client::Math::D;
 using Client::Math::F32;
 
-// 0x540977: +0x38 en 1,0f; la velocidad ((rand() & 7) − 4,0f; rand() & 3; rand() & 3) con la vida 30 en el medio,
-// y la escala (rand() % 5) · 0,1f + 1, que pisa la del argumento. El prefijo deja la posición, los ángulos y la luz.
+// 0x540977: +0x38 at 1.0f; velocity ((rand() & 7) − 4.0f; rand() & 3; rand() & 3) with life 30 in the middle, and
+// scale (rand() % 5) · 0.1f + 1, which overwrites the argument's. The prefix leaves the position, the angles and the
+// light.
 TEST(WeaponSparkParticlesTest, TheCreationDrawsFourRandomsAndReplacesTheScale)
 {
     for (const std::uint32_t seed : {1u, 7u, 319u})
@@ -60,7 +62,7 @@ TEST(WeaponSparkParticlesTest, TheCreationDrawsFourRandomsAndReplacesTheScale)
     }
 }
 
-// 0x545368, después de la vida y del movimiento comunes: la luz por 0,952381f, la escala −0,04f y +0x38 −0,001f.
+// 0x545368, after the common life and movement: light times 0.952381f, scale −0.04f and +0x38 −0.001f.
 TEST(WeaponSparkParticlesTest, EachStepMovesThenFadesShrinksAndCountsDown)
 {
     Particles particles;
@@ -87,7 +89,7 @@ TEST(WeaponSparkParticlesTest, EachStepMovesThenFadesShrinksAndCountsDown)
     EXPECT_EQ(particle.velocity, glm::vec3(-3.0f, 2.0f, 1.0f));
 }
 
-// La cuenta de +0x38 mata con la resta sin redondear en 0 o por debajo, y sin orden; no con un resto positivo.
+// The +0x38 countdown kills with the unrounded difference at 0 or below, and unordered; not with a positive remainder.
 TEST(WeaponSparkParticlesTest, TheCountdownKillsAtZeroAndBelowButNotAbove)
 {
     struct Case
@@ -109,9 +111,9 @@ TEST(WeaponSparkParticlesTest, TheCountdownKillsAtZeroAndBelowButNotAbove)
     }
 }
 
-// 0x540b42: la chispa 0x5c6/15 del Fenrir saca un rand() y, con el resto de 3 distinto de 0, se queda con la vida 2 del
-// prefijo, la velocidad en 0 y el +0x38 que tenía el lugar (Q-C422). Con 0, +0x38 en 1,0f, la vida 35 y la velocidad
-// en z ((rand() % 5) + 5) · −0,5f; la escala es la del argumento.
+// 0x540b42: the Fenrir's spark 0x5c6/15 takes one rand() and, with a remainder by 3 other than 0, keeps the prefix's
+// life 2, velocity at 0 and the slot's previous +0x38 (Q-C422). With 0, +0x38 at 1.0f, life 35 and z velocity
+// ((rand() % 5) + 5) · −0.5f; the scale is the argument's.
 TEST(WeaponSparkParticlesTest, TheFenrirSparkOnlyLivesWithOneDrawInThree)
 {
     bool kept = false;
@@ -120,7 +122,7 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkOnlyLivesWithOneDrawInThree)
     {
         SCOPED_TRACE(seed);
         Particles particles;
-        particles.All()[0].field38 = Bits(0.25f); // lo que dejó el anterior en el lugar.
+        particles.All()[0].field38 = Bits(0.25f); // what the previous one left in the slot.
         CrtRandom random(seed);
         const auto created =
             particles.CreateChecked(Spark, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, {1.0f, 0.0f, 0.0f},
@@ -152,7 +154,7 @@ TEST(WeaponSparkParticlesTest, TheFenrirSparkOnlyLivesWithOneDrawInThree)
     EXPECT_TRUE(lit);
 }
 
-// 0x5453d3, después de la vida y del movimiento comunes: la luz por 0,952381f y +0x38 −0,001f, sin tocar la escala.
+// 0x5453d3, after the common life and movement: light times 0.952381f and +0x38 −0.001f, without touching the scale.
 TEST(WeaponSparkParticlesTest, TheFenrirSparkFadesAndCountsDownWithoutShrinking)
 {
     Particles particles;

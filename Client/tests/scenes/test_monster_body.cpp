@@ -45,9 +45,9 @@
 #include <utility>
 #include <vector>
 
-// Los casos por tipo y por mapa de 0x6002e0 con un monstruo o un NPC (MonsterBody.h): vectores literales del ASM
-// c32bbd5f, sin ejecutar el original. Un modelo sintético de siete mallas de un triángulo, cada una con su slot (0x300
-// más su índice), deja ver qué pase dibuja qué malla con qué textura, qué color y qué mezcla.
+// The per-type and per-map cases of 0x6002e0 with a monster or an NPC (MonsterBody.h): literal vectors from the
+// c32bbd5f ASM, without running the original. A synthetic model of seven one-triangle meshes, each with its slot (0x300
+// plus its index), shows which pass draws which mesh with which texture, color and blend.
 namespace
 {
 const Client::Effects::ActorEffectHooks EffectHooks;
@@ -67,11 +67,11 @@ std::uint32_t AfterRandoms(std::size_t count)
     return random.State();
 }
 
-// La tabla de joints del original (0x74a8d78, 500 lugares).
+// The original's joint table (0x74a8d78, 500 slots).
 constexpr std::size_t KundunJointTable = 500;
 
-// Gemela de 0x43f1a6..0x43f243, escrita aparte: 0x56 vueltas con su rand() % 10, los ángulos (−10, 0, (r + 10) · i)
-// y el punto (x, y, z + 200) para el 0x613/3 y el 0x6ee/3 de ancho 50, sin dueño ni blanco.
+// Twin of 0x43f1a6..0x43f243, written separately: 0x56 turns with their rand() % 10, angles (−10, 0, (r + 10) · i) and
+// point (x, y, z + 200) for the 0x613/3 and the 0x6ee/3 of width 50, with no owner or target.
 std::unique_ptr<std::vector<Client::Kernel::JointState>> KundunFallingRays(const glm::vec3& position,
                                                                            Client::Crt::CrtRandom& random)
 {
@@ -191,7 +191,7 @@ protected:
         m_actor->blendMeshLight = 1.0f;
     }
 
-    // 0x6002e0 con el color que dejó 0x5ffce0 en (0,2; 0,4; 0,6).
+    // 0x6002e0 with the color 0x5ffce0 left at (0.2, 0.4, 0.6).
     Client::Core::Expected<void, std::string> Draw(std::uint16_t type, std::int32_t map, std::uint16_t special = 0,
                                                    float worldClock = 0.0f, bool originalFrame = true)
     {
@@ -231,8 +231,8 @@ protected:
         return result;
     }
 
-    // 0x4ee770 repetido sobre las mallas de este dibujo en tablas gemelas, con el rand() desde `state`: las mismas
-    // altas, los mismos rand(). Devuelve cuántos creó.
+    // 0x4ee770 repeated over this draw's meshes in twin tables, with the rand() from `state`: the same creations, the
+    // same rand(). Returns how many it created.
     std::size_t ExpectTheTwinVertexEffects(std::uint32_t state, std::int32_t mesh, std::int32_t type,
                                            std::int32_t subtype)
     {
@@ -315,11 +315,11 @@ protected:
     float m_shake = 0.0f;
     bool m_siegeActive = false;
     float m_boneScale = 1.0f;
-    // La escala y la posición que 0x5ffdf0 copió al modelo (+0x68 y +0x6c): las del objeto del dibujo.
+    // The scale and position 0x5ffdf0 copied to the model (+0x68 and +0x6c): those of the draw's object.
     Client::Models::ObjectTransform m_transform{};
     std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
     std::unique_ptr<Client::Particles::Particles> m_particles = std::make_unique<Client::Particles::Particles>();
-    // La tabla de joints (0x74a8d78): vacía salvo en Kundun al morir.
+    // The joint table (0x74a8d78): empty except for Kundun when dying.
     std::vector<Client::Kernel::JointState> m_joints;
     std::vector<Client::Math::BoneTransform> m_bones{Client::Math::BoneTransform(1.0f)};
     std::function<double(float, float)> m_terrainHeight{};
@@ -332,7 +332,7 @@ TEST_F(MonsterBodyTest, ALorenciaSpiderDrawsTheCommonBodyWithTheModelColor)
     const auto result = Draw(0x15b, 0);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x60235e: RenderBody(2) con la textura de cada malla.
+    // 0x60235e: RenderBody(2) with each mesh's texture.
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody);
     ExpectColor(0, 0.2f, 0.4f, 0.6f);
     EXPECT_EQ(TextureAt(0), 0x300);
@@ -347,7 +347,7 @@ TEST_F(MonsterBodyTest, ADeviasMonsterWithTheSecondFlagDrawsItsBodyTwiceInItsCol
     const auto result = Draw(0x15e, 2);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x600eb3: (0,3; 0,5; 1); 0x602365: el segundo RenderBody(2) con el blendMesh en −2 y la luz en 1.
+    // 0x600eb3: (0.3, 0.5, 1); 0x602365: the second RenderBody(2) with blendMesh at −2 and the light at 1.
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
     ExpectColor(0, std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f);
     ExpectColor(WholeBody, std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f);
@@ -365,7 +365,7 @@ TEST_F(MonsterBodyTest, TheFirstFlagWinsOverTheSecondWithItsOwnColor)
 
 TEST_F(MonsterBodyTest, TheEarlyColorsGoByMap)
 {
-    // 0x60044d: el 0x171 en el 10; 0x600475: el 0x164 en el 9; en Lorencia y Devias, el del modelo.
+    // 0x60044d: the 0x171 on map 10; 0x600475: the 0x164 on 9; in Lorencia and Devias, the model's.
     ASSERT_TRUE(Draw(0x171, 10).HasValue());
     ExpectColor(0, std::bit_cast<float>(0x3ca3d70au), std::bit_cast<float>(0x3d4ccccdu),
                 std::bit_cast<float>(0x3e19999au));
@@ -378,7 +378,7 @@ TEST_F(MonsterBodyTest, TheEarlyColorsGoByMap)
         ASSERT_TRUE(Draw(0x164, map).HasValue());
         ExpectColor(0, 0.2f, 0.4f, 0.6f);
     }
-    // 0x60049b: el 0x16d con el cuarto argumento.
+    // 0x60049b: the 0x16d with the fourth argument.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x16d, 2, 0x43).HasValue());
     ExpectColor(0, 0.0f, 0.0f, 1.0f);
@@ -391,7 +391,7 @@ TEST_F(MonsterBodyTest, The16cDrawsAChromeBodyAndThePlainOneWithoutTheTail)
     const auto result = Draw(0x16c, 0);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x6004f7: (0,4; 0,6; 1) con Chrome01 en cada malla; 0x600538: con 1, la propia. Sale sin el +0x78 & 2.
+    // 0x6004f7: (0.4, 0.6, 1) with Chrome01 on each mesh; 0x600538: with 1, its own. Exits without the +0x78 & 2.
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
     ExpectColor(0, std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3f19999au), 1.0f);
     EXPECT_EQ(TextureAt(0), 0x5c0);
@@ -411,7 +411,7 @@ TEST_F(MonsterBodyTest, TheKalimaTrapAddsTheWaterAndTheSameTrapInLorenciaDoesNot
         m_batch.Begin(Client::Render::Pass3D{});
         const auto result = Draw(0x27, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        // 0x4394c4: RenderBody(2); 0x439570: con sin(T · 0,002f) · 0,1f + 0,3f, el agua con el alpha en 0,3.
+        // 0x4394c4: RenderBody(2); 0x439570: with sin(T · 0.002f) · 0.1f + 0.3f, the water with alpha at 0.3.
         ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
         ExpectColor(0, 0.2f, 0.4f, 0.6f);
         const auto water = static_cast<float>(
@@ -438,7 +438,7 @@ TEST_F(MonsterBodyTest, TheKalima173GoesDarkAndLeavesTheColorInOne)
     const auto result = Draw(0x173, 25);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x43900f: con el color en 0, RenderBody(2); 0x439657: en 1, y 0x602365 con ese color.
+    // 0x43900f: with the color at 0, RenderBody(2); 0x439657: at 1, and 0x602365 with that color.
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
     ExpectColor(0, 0.0f, 0.0f, 0.0f);
     ExpectColor(WholeBody, 1.0f, 1.0f, 1.0f);
@@ -452,7 +452,7 @@ TEST_F(MonsterBodyTest, TheC5DrawsEveryMeshRedWithTheSubtypeOne)
     const auto result = Draw(0xc5, 2);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x43904c: (1; 0,1; 0,1) y RenderBody(2) con la malla oculta en −1.
+    // 0x43904c: (1, 0.1, 0.1) and RenderBody(2) with the hidden mesh at −1.
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody);
     ExpectColor(0, 1.0f, std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu));
 }
@@ -465,7 +465,7 @@ TEST_F(MonsterBodyTest, The17cWithSubtypeOneDrawsFourAdditiveMeshes)
     const auto result = Draw(0x17c, 0, 0, Clock);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x6010f4..0x601080: la malla 0 con 0x6f6, la 1 con 0x6f5 y la 2 dos veces, aditivas.
+    // 0x6010f4..0x601080: mesh 0 with 0x6f6, mesh 1 with 0x6f5 and mesh 2 twice, additive.
     ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
     EXPECT_EQ(TextureAt(0), 0x6f6);
     EXPECT_EQ(TextureAt(3), 0x6f5);
@@ -477,17 +477,17 @@ TEST_F(MonsterBodyTest, The17cWithSubtypeOneDrawsFourAdditiveMeshes)
 
 TEST_F(MonsterBodyTest, TheSpecialCasesSwapTheirTexturesOnlyWithTheFourthArgument)
 {
-    // 0x6012d8..0x601330: el 0x180 con el cuarto argumento, la malla 0 con 0x62f y la 2 con 0x631.
+    // 0x6012d8..0x601330: the 0x180 with the fourth argument, mesh 0 with 0x62f and mesh 2 with 0x631.
     ASSERT_TRUE(Draw(0x180, 2, 0x43).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), 2 * Triangle);
     EXPECT_EQ(TextureAt(0), 0x62f);
     EXPECT_EQ(TextureAt(3), 0x631);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.x, 2.0f);
-    // Sin él, el común.
+    // Without it, the common one.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x180, 2).HasValue());
     EXPECT_EQ(m_batch.Vertices().size(), WholeBody);
-    // 0x6013b4: el 0x182, RenderBody(2) sin la malla 1 y con 0x62e.
+    // 0x6013b4: the 0x182, RenderBody(2) without mesh 1 and with 0x62e.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x182, 0, 0x4a).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody - Triangle);
@@ -497,14 +497,14 @@ TEST_F(MonsterBodyTest, TheSpecialCasesSwapTheirTexturesOnlyWithTheFourthArgumen
 
 TEST_F(MonsterBodyTest, The186GoesByItsFourthArgument)
 {
-    // Sin él: (0,4; 0,3; 0,5) con 0x624 y después el común con 0,5.
+    // Without it: (0.4, 0.3, 0.5) with 0x624 and then the common one with 0.5.
     ASSERT_TRUE(Draw(0x186, 0).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
     EXPECT_EQ(TextureAt(0), 0x624);
     ExpectColor(0, std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3e99999au), 0.5f);
     ExpectColor(WholeBody, 0.5f, 0.5f, 0.5f);
     EXPECT_EQ(TextureAt(WholeBody), 0x300);
-    // Con otro: (0,1; 1; 0,8) y el común.
+    // With another: (0.1, 1, 0.8) and the common one.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x186, 2, 0x43).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody);
@@ -519,19 +519,19 @@ TEST_F(MonsterBodyTest, The18eDrawsAfterTwentyFiveStepsAndDrawsTheCounterRandoms
     const auto result = Draw(0x18e, 0);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x601b3e..0x601bac: RenderBody(2), el cromo con 1 y el brillo con (0,3; 0,3; 1), los dos con Chrome01.
+    // 0x601b3e..0x601bac: RenderBody(2), the chrome with 1 and the shine with (0.3, 0.3, 1), both with Chrome01.
     ASSERT_EQ(m_batch.Vertices().size(), 3 * WholeBody);
     EXPECT_EQ(CommandAt(WholeBody).state.blend, ModelBlend::Additive);
     EXPECT_EQ(CommandAt(2 * WholeBody).state.blend, ModelBlend::Additive);
     EXPECT_EQ(TextureAt(0), 0x300);
-    // El cierre del contador de pasos (0x7d3a0f0): cuatro rand().
+    // The close of the step counter (0x7d3a0f0): four rand().
     EXPECT_EQ(m_cloth.random.State(), AfterRandoms(4));
     EXPECT_FALSE(m_sound.has_value());
 }
 
-// 0x601bd3..0x601c0d: con menos de 25 pasos, el 0x18e no se dibuja: pide el sonido 0x87 y 0x4ee770(0, 0x10a, 0, 0, 0)
-// sobre las mallas del dibujo (la malla 0: rand() & 1 y el 0x10b/0, rand() % 10 y el 0x10a/0 en cada esquina), y sigue
-// en la cola.
+// 0x601bd3..0x601c0d: with fewer than 25 steps, the 0x18e is not drawn: it requests sound 0x87 and
+// 0x4ee770(0, 0x10a, 0, 0, 0) over the draw's meshes (mesh 0: rand() & 1 and the 0x10b/0, rand() % 10 and the 0x10a/0
+// at each corner), and goes on to the tail.
 TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndLeavesItsStones)
 {
     m_cloth.logicSteps = 100;
@@ -547,10 +547,10 @@ TEST_F(MonsterBodyTest, The18eBeforeTwentyFiveStepsAsksItsSoundAndLeavesItsStone
     EXPECT_GT(ExpectTheTwinVertexEffects(AfterRandoms(4), 0, 0x10a, 0), 0u);
 }
 
-// La esquina que ancla las tablas gemelas de ExpectTheTwinVertexEffects, con valores a mano: 0x4ee770(0, 0x10a, 0)
-// sobre una esquina sola con la semilla 8. r0 = 64 es par (0x4ee835): el 0x10b/0, que 0x518cf0 deja en el /1 con un
-// rand() más (nueve); r10 = 4670 da 0 % 10 (0x4ee86a): el 0x10a/0 (ocho). 19 rand(), [0] el 0x10b/1 y [1] el 0x10a/0,
-// los dos sobre la esquina. Con la tabla llena, 0x518cf0 sale sin sortear: sólo r0 y r1.
+// The corner that anchors the twin tables of ExpectTheTwinVertexEffects, with hand-computed values: 0x4ee770(0, 0x10a,
+// 0) over a single corner with seed 8. r0 = 64 is even (0x4ee835): the 0x10b/0, which 0x518cf0 leaves as /1 with one
+// more rand() (nine); r10 = 4670 gives 0 % 10 (0x4ee86a): the 0x10a/0 (eight). 19 rand(), [0] the 0x10b/1 and [1] the
+// 0x10a/0, both on the corner. With the table full, 0x518cf0 exits without drawing: only r0 and r1.
 TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
 {
     Client::Data::Models::Model model;
@@ -584,7 +584,7 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     EXPECT_EQ(made[1].subtype, 0);
     EXPECT_EQ(made[1].life, 45); // r12 = 14413: 13 + 32.
     EXPECT_FALSE(made[2].alive);
-    // La esquina con la z 50 más (0x51bafb..0x51bb35).
+    // The corner with z 50 higher (0x51bafb..0x51bb35).
     EXPECT_EQ(made[0].transform.position, glm::vec3(100.0f, 200.0f, 80.0f));
     EXPECT_EQ(made[1].transform.position, glm::vec3(100.0f, 200.0f, 80.0f));
 
@@ -598,9 +598,9 @@ TEST(MonsterBodyStonesTest, OneCornerOfTheFallingStonesWithTheSeedEight)
     EXPECT_EQ(full.State(), after(2));
 }
 
-// 0x601be5 y 0x601c21: al morir, el 0x18e y el 0x18f dejan el byte vivo en 0, piden el 0x87 y 0x4ee770 con el 0x10a y
-// el 0x10c (el /0: la luz en 0,2f, rand() % 12 y el 0x10d/0, rand() % 50 y el 0x10c/0), sin el contador. Entre frames
-// del original, ni el sonido ni los efectos.
+// 0x601be5 and 0x601c21: on death, the 0x18e and the 0x18f leave the alive byte at 0, request the 0x87 and 0x4ee770
+// with the 0x10a and the 0x10c (the /0: light at 0.2f, rand() % 12 and the 0x10d/0, rand() % 50 and the 0x10c/0),
+// without the counter. Between the original's frames, neither the sound nor the effects.
 TEST_F(MonsterBodyTest, TheDying18eAnd18fDieWithoutTheCounter)
 {
     m_cloth.openCounterAccesses = 0;
@@ -635,7 +635,7 @@ TEST_F(MonsterBodyTest, The177AddsTheMesh6TextureAndTheScrollingChrome)
     const auto result = Draw(0x177, 2, 0, Clock);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // El común y 0x602391: la malla 0 con IndexTexture[6] y la 3 cromada.
+    // The common one and 0x602391: mesh 0 with IndexTexture[6] and mesh 3 chromed.
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 2 * Triangle);
     EXPECT_EQ(TextureAt(WholeBody), 0x306);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody].position.x, 0.0f);
@@ -661,7 +661,7 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         std::int32_t map;
         const char* address;
     };
-    // La clase de los bordes del 0x183 después de su malla 0; la cadena; los tipos que ninguna alta da.
+    // The edge class of the 0x183 after its mesh 0; the chain; the types no creation gives.
     constexpr std::array cases{Case{0x183, 0, "0x6011f1"}, Case{0x110, 0, "0x6004ed"}, Case{0x69, 0, "0x600a4a"},
                                Case{0x12a, 2, "0x600654"}, Case{0x111, 0, "0x60246a"}, Case{0x11d, 0, "0x43ed20"},
                                Case{0x13d, 2, "0x442e10"}};
@@ -673,7 +673,7 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(result.Error().rfind(value.address, 0), 0u) << result.Error();
     }
-    // Fuera de su mapa, los del 30 y el 34 son el común.
+    // Outside their map, those of 30 and 34 are the common one.
     for (const std::uint16_t type : {std::uint16_t{0x19b}, std::uint16_t{0x1b4}})
     {
         m_batch.Begin(Client::Render::Pass3D{});
@@ -683,7 +683,7 @@ TEST_F(MonsterBodyTest, TheUnportedBranchesCutWithTheirAddress)
     }
 }
 
-// 42e701..42e730 vuelve con AL=0: el caller conserva el RenderBody común después del propio.
+// 0x42e701..0x42e730 returns with AL=0: the caller keeps the common RenderBody after its own.
 TEST_F(MonsterBodyTest, TheCastleStatueDrawsTwiceBecauseItsBodyCaseReturnsFalse)
 {
     const auto result = Draw(0x19b, 30);
@@ -691,7 +691,7 @@ TEST_F(MonsterBodyTest, TheCastleStatueDrawsTwiceBecauseItsBodyCaseReturnsFalse)
     EXPECT_EQ(m_batch.Vertices().size(), WholeBody * 2);
 }
 
-// 42e731..42e738 y42e966: sin batalla el19c devuelve1 sin tocar el modelo ni dibujar.
+// 0x42e731..0x42e738 and 0x42e966: without a battle the 0x19c returns 1 without touching the model or drawing.
 TEST_F(MonsterBodyTest, TheCastleGuardConsumesItsBodyPassOutsideTheBattle)
 {
     const auto result = Draw(0x19c, 30);
@@ -827,7 +827,7 @@ TEST_F(MonsterBodyTest, TheCastleProjectileUsesTheActorsSharedBoneScale)
 
 TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)
 {
-    // 0x457e00: sin llegar a 0x457740 no junta ninguna arista, no saca rand() y solo queda la malla 0.
+    // 0x457e00: without reaching 0x457740 it gathers no edge, draws no rand() and only mesh 0 remains.
     struct Case
     {
         const char* what;
@@ -862,7 +862,7 @@ TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)
             EXPECT_EQ(TextureAt(0), 0x300);
             EXPECT_EQ(m_cloth.random.State(), AfterRandoms(0));
         }
-        // Con 0x457740, corta después de la malla 0 y antes del primer rand() de 0x458000.
+        // With 0x457740, it cuts after mesh 0 and before the first rand() of 0x458000.
         m_actor->alpha = 1.0f;
         m_actor->dword58 = -1;
         m_actor->dword64 = -1;
@@ -876,8 +876,7 @@ TEST_F(MonsterBodyTest, TheEdgeClassOf183OnlyCutsWhenItMarksTheSilhouette)
     }
 }
 
-// sin(T · rate) · factor + base en double, como la x87 con PC53 (el seno de la CRT basta en los relojes de las
-// pruebas).
+// sin(T · rate) · factor + base in double, like the x87 with PC53 (the CRT sine is enough for the tests' clocks).
 double WaveAt(float clock, std::uint32_t rate, std::uint32_t factor, std::uint32_t base)
 {
     return RoundedSin(static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate))) *
@@ -891,7 +890,7 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        // 0x43ed71: el 0x191, RenderBody(2) sin la malla oculta y la malla 0 con 0x48 y Chrome01.
+        // 0x43ed71: the 0x191, RenderBody(2) without the hidden mesh and mesh 0 with 0x48 and Chrome01.
         m_actor->dword58 = 3;
         m_batch.Begin(Client::Render::Pass3D{});
         auto result = Draw(0x191, map, 0, Clock);
@@ -899,7 +898,7 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
         ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
         EXPECT_EQ(TextureAt(WholeBody), 0x5c0);
         m_actor->dword58 = -1;
-        // 0x43f519: el 0x193, RenderBody(2) y la malla 0 cromada con (0,5; 0,1; 0).
+        // 0x43f519: the 0x193, RenderBody(2) and mesh 0 chromed with (0.5, 0.1, 0).
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x193, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -907,13 +906,14 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
         ExpectColor(0, 0.2f, 0.4f, 0.6f);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 1].position.x, 1.0f);
         EXPECT_EQ(m_color, glm::vec3(0.5f, std::bit_cast<float>(0x3dcccccdu), 0.0f));
-        // 0x43f5be: el 0x194, las mallas 0 y 2 cromadas.
+        // 0x43f5be: the 0x194, meshes 0 and 2 chromed.
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x194, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), WholeBody + 2 * Triangle);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + Triangle].position.x, 2.0f);
-        // 0x43f687: el 0x195 sin el subtipo 9: la malla 0 aditiva, las 1 a 3 y las 0 y 2 cromadas con (0,1; 0,6; 1).
+        // 0x43f687: the 0x195 without subtype 9: mesh 0 additive, meshes 1 to 3, and 0 and 2 chromed with (0.1, 0.6,
+        // 1).
         m_actor->subtype = 0;
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x195, map, 0, Clock);
@@ -922,7 +922,7 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
         EXPECT_EQ(CommandAt(0).state.blend, ModelBlend::Additive);
         ExpectColor(Triangle, 0.2f, 0.4f, 0.6f);
         EXPECT_EQ(m_color, glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3f19999au), 1.0f));
-        // Con el 9: (0,3; 0,1; 0,1), la malla 1 dos veces más (cromada al alpha 0,5 y con 0x240) y (1; 0,6; 0,1).
+        // With 9: (0.3, 0.1, 0.1), mesh 1 twice more (chromed at alpha 0.5 and with 0x240) and (1, 0.6, 0.1).
         m_actor->subtype = 9;
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x195, map, 0, Clock);
@@ -932,8 +932,8 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
                     std::bit_cast<float>(0x3dcccccdu));
         EXPECT_EQ(m_color, glm::vec3(1.0f, std::bit_cast<float>(0x3f19999au), std::bit_cast<float>(0x3dcccccdu)));
         m_actor->subtype = 0;
-        // 0x43f882: el 0x196 con (0,5; sin(T · 0,002f) · 0,3f + 0,7f; 0,5) y la malla 0 cromada al alpha 0,8, que
-        // guarda en el color del modelo el suyo por el alpha (0x4ed3fd).
+        // 0x43f882: the 0x196 with (0.5, sin(T · 0.002f) · 0.3f + 0.7f, 0.5) and mesh 0 chromed at alpha 0.8, which
+        // stores in the model's color its own times the alpha (0x4ed3fd).
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x196, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -941,8 +941,8 @@ TEST_F(MonsterBodyTest, TheLateChainMonstersOf43ed20DrawTheirPassesOnEveryMap)
         const float fade = std::bit_cast<float>(0x3f4ccccdu);
         EXPECT_FLOAT_EQ(m_color.x, 0.5f * fade);
         EXPECT_NEAR(m_color.y, static_cast<float>(WaveAt(Clock, 0x3b03126fu, 0x3e99999au, 0x3f333333u)) * fade, 1e-6f);
-        // 0x43f945: el 0x197, las mallas 0, 1, 3 y 5, las 2 y 4 con la onda y, sin el subtipo 9, otra vez con 2 (con
-        // él, las 0, 1 y 3 con 0x48), y la 6; +0x68 queda en sin(T · 0,002f) · 0,1f + 0,05f.
+        // 0x43f945: the 0x197, meshes 0, 1, 3 and 5, meshes 2 and 4 with the wave and, without subtype 9, again with 2
+        // (with it, 0, 1 and 3 with 0x48), and mesh 6; +0x68 ends at sin(T · 0.002f) · 0.1f + 0.05f.
         for (const std::int32_t subtype : {0, 9})
         {
             m_actor->subtype = subtype;
@@ -969,8 +969,8 @@ TEST_F(MonsterBodyTest, The185WavesItsMesh1AlongItsNormals)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        // 0x60157c: RenderBody(2) sin la malla 1 y la malla 1 dos veces con 0x402, al alpha 0,5 y al suyo: cada esquina
-        // corrida por su normal (0, 0, 1) en sin((931 · v + ftol(T)) · 0,007f) · 28 (0x4ed775).
+        // 0x60157c: RenderBody(2) without mesh 1 and mesh 1 twice with 0x402, at alpha 0.5 and at its own: each corner
+        // shifted along its normal (0, 0, 1) by sin((931 · v + ftol(T)) · 0.007f) · 28 (0x4ed775).
         m_batch.Begin(Client::Render::Pass3D{});
         const auto result = Draw(0x185, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -992,14 +992,14 @@ TEST_F(MonsterBodyTest, The185WavesItsMesh1AlongItsNormals)
     }
 }
 
-// 0x43ed4a..0x43ed6c y sus copias: al morir con el alpha por debajo de 0,5 (o NaN), los 0x191..0x197 piden
-// 0x4ee770(0, 0x607, 0, 0, 0) antes de dibujarse: rand() % 30 por esquina de la malla 0 y, con 0, la partícula 0x607/2.
-// Con el alpha en 0,5, o entre frames del original, nada.
+// 0x43ed4a..0x43ed6c and its copies: dying with alpha below 0.5 (or NaN), the 0x191..0x197 request
+// 0x4ee770(0, 0x607, 0, 0, 0) before drawing: rand() % 30 per corner of mesh 0 and, with 0, particle 0x607/2. With
+// alpha at 0.5, or between the original's frames, nothing.
 TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
 {
     m_actor->animation.action = 6;
     m_transform.position = {500.0f, 600.0f, 70.0f};
-    // Con la semilla 16, el primer rand() es 90: la primera esquina suelta su partícula.
+    // With seed 16, the first rand() is 90: the first corner drops its particle.
     m_cloth.random = Client::Crt::CrtRandom{16};
     std::size_t made = 0;
     for (const float alpha : {0.25f, std::numeric_limits<float>::quiet_NaN()})
@@ -1018,7 +1018,7 @@ TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
         }
     }
     EXPECT_GT(made, 0u);
-    // Con el alpha en 0,5 o fuera de los frames del original, sin rand().
+    // With alpha at 0.5 or outside the original's frames, no rand().
     m_particles = std::make_unique<Client::Particles::Particles>();
     for (const bool original : {true, false})
     {
@@ -1032,9 +1032,9 @@ TEST_F(MonsterBodyTest, TheFadingDeathOf43ed20LeavesItsParticlesBeforeDrawing)
     EXPECT_TRUE(std::ranges::none_of(m_particles->All(), [](const auto& particle) { return particle.alive; }));
 }
 
-// 0x439d90 al final del 0x197 y del 0x195/9: con +0x110 en 0x21 o 0x22, 0x4ee770(6, 0x10a, 1 o 2, 0, 0) sobre la malla
-// 6 del dibujo (el 0x10b/2 o /3 en cada esquina, sin rand() propios: los ocho de cada alta), +0x110 en 0 y el sonido
-// 0x88. Entre frames del original, sólo +0x110 en 0.
+// 0x439d90 at the end of the 0x197 and the 0x195/9: with +0x110 at 0x21 or 0x22, 0x4ee770(6, 0x10a, 1 or 2, 0, 0) over
+// the draw's mesh 6 (the 0x10b/2 or /3 at each corner, without rand() of their own: the eight of each creation), +0x110
+// at 0 and sound 0x88. Between the original's frames, only +0x110 at 0.
 TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
 {
     m_transform.position = {300.0f, 400.0f, 50.0f};
@@ -1069,10 +1069,10 @@ TEST_F(MonsterBodyTest, TheStruckGlowLeavesItsStonesOnMeshSix)
     EXPECT_FALSE(m_effects->Effects()[0].alive);
 }
 
-// 0x50baed → 0x5ffdf0(Kundun, 1) → 0x600177: el cuerpo de un monstruo pasa por 0x4ebc80 con Translate en 1, que gira
-// cada normal por el hueso sin la escala (0x5fcbd0 en 0x68c53bc, 0x4ebf70) y no la escala nunca. El cromo de las mallas
-// 1 a 6 (0x4ecc30 con 0x44) lee esa normal (0x4ed149) y, con 0x4 y el reloj en 0, u = 0,5 · nz y v = 0,5 · ny
-// (0x4ed309..0x4ed32c): con la escala 1,5 y la normal (0, 0, 1), (0,5; 0), no (0,75; 0).
+// 0x50baed → 0x5ffdf0(Kundun, 1) → 0x600177: a monster's body goes through 0x4ebc80 with Translate at 1, which turns
+// each normal by the bone without the scale (0x5fcbd0 on 0x68c53bc, 0x4ebf70) and never scales it. The chrome of meshes
+// 1 to 6 (0x4ecc30 with 0x44) reads that normal (0x4ed149) and, with 0x4 and the clock at 0, u = 0.5 · nz and v = 0.5 ·
+// ny (0x4ed309..0x4ed32c): with scale 1.5 and normal (0, 0, 1), (0.5, 0), not (0.75, 0).
 TEST_F(MonsterBodyTest, KundunsChromeReadsTheNormalsWithoutTheScaleOfItsBody)
 {
     m_transform.scale = 1.5f;
@@ -1095,7 +1095,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        // 0x43f279: con +0x60 en 100, el alpha guardado en 1, RenderBody(2) y las mallas 1 a 6 cromadas.
+        // 0x43f279: with +0x60 at 100, the stored alpha at 1, RenderBody(2) and meshes 1 to 6 chromed.
         m_actor->dword60 = 100;
         m_actor->alpha = 0.75f;
         m_actor->animation = {.action = 0, .frame = 4.0f};
@@ -1106,7 +1106,7 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         EXPECT_FLOAT_EQ(m_actor->alpha, 1.0f);
         EXPECT_EQ(m_color, glm::vec3(std::bit_cast<float>(0x3ecccccdu), std::bit_cast<float>(0x3ecccccdu),
                                      std::bit_cast<float>(0x3e99999au)));
-        // 0x43f3fb: en la acción 5 con el frame en (3,5; 6), las mallas 1, 2, 3 y 5 aditivas.
+        // 0x43f3fb: in action 5 with the frame in (3.5, 6), meshes 1, 2, 3 and 5 additive.
         m_actor->animation.action = 5;
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x192, map).HasValue());
@@ -1116,11 +1116,11 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x192, map).HasValue());
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
-        // 0x43f182: al morir desde el frame 8, el sonido 0x1de, +0x60 en 0x5a, los 0x56 rayos 0x613/3 y 0x6ee/3 de
-        // 0x530860 desde (x, y, z + 200), el temblor y el cuerpo (0x43f26f: +0x60 ya está en 0x5a).
+        // 0x43f182: dying from frame 8, sound 0x1de, +0x60 at 0x5a, the 0x56 rays 0x613/3 and 0x6ee/3 of 0x530860 from
+        // (x, y, z + 200), the shake and the body (0x43f26f: +0x60 is already at 0x5a).
         m_sound.reset();
         m_actor->animation = {.action = 6, .frame = 8.0f};
-        m_actor->position = {12800.5f, 6400.25f, std::bit_cast<float>(0x4215999au)}; // z: 37,4f
+        m_actor->position = {12800.5f, 6400.25f, std::bit_cast<float>(0x4215999au)}; // z: 37.4f
         m_cloth.random = Client::Crt::CrtRandom{1};
         m_joints.assign(KundunJointTable, Client::Kernel::JointState{});
         m_batch.Begin(Client::Render::Pass3D{});
@@ -1133,25 +1133,25 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
         const auto twin = KundunFallingRays(m_actor->position, oracle);
         ExpectSameJoints(m_joints, *twin);
         EXPECT_EQ(std::ranges::count_if(m_joints, [](const auto& joint) { return joint.alive; }), 2 * 0x56);
-        // 0x43f20d: el primer rayo sale con el giro 0 desde 37,4f + 200 (0x436d6666 en float).
+        // 0x43f20d: the first ray leaves with turn 0 from 37.4f + 200 (0x436d6666 as a float).
         EXPECT_EQ(m_joints[0].type, 0x613);
         EXPECT_EQ(m_joints[1].type, 0x6ee);
         EXPECT_EQ(m_joints[1].subtype, 3);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(m_joints[0].targetPosition.z), 0x436d6666u);
         EXPECT_EQ(m_joints[0].angles.z, 0.0f);
-        // 0x43f249: el temblor con el rand() que sigue a los rayos.
+        // 0x43f249: the shake with the rand() that follows the rays.
         const auto rayShake = static_cast<float>(static_cast<double>((oracle.Next() % 8) - 8) *
                                                  static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
         EXPECT_FLOAT_EQ(m_shake, rayShake);
         EXPECT_EQ(m_cloth.random.State(), oracle.State());
         m_joints.clear();
-        // Con +0x60 en 0x5a y el frame hasta 14,8, el cuerpo.
+        // With +0x60 at 0x5a and the frame up to 14.8, the body.
         m_actor->animation.frame = std::bit_cast<float>(0x416ccccdu);
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x192, map).HasValue());
         EXPECT_EQ(m_batch.Vertices().size(), WholeBody + 6 * Triangle);
-        // 0x43edff: pasado 14,8, el sonido 0x1dd, +0x60 en 10, la malla 0 y el temblor en (rand() % 8 − 8) · 0,1f;
-        // después, los pedazos en el hueso 4 (KundunScattersItsPiecesWhenItFalls): con uno solo, corta.
+        // 0x43edff: past 14.8, sound 0x1dd, +0x60 at 10, mesh 0 and the shake at (rand() % 8 − 8) · 0.1f; then the
+        // pieces at bone 4 (KundunScattersItsPiecesWhenItFalls): with only one, it cuts.
         m_actor->animation.frame = 15.0f;
         m_cloth.random = Client::Crt::CrtRandom{1};
         m_batch.Begin(Client::Render::Pass3D{});
@@ -1166,20 +1166,20 @@ TEST_F(MonsterBodyTest, KundunDrawsItsChromeUntilItFalls)
                                               static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
         EXPECT_FLOAT_EQ(m_shake, shake);
         EXPECT_EQ(m_cloth.random.State(), AfterRandoms(1));
-        // Con +0x60 en 10, nada.
+        // With +0x60 at 10, nothing.
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x192, map).HasValue());
         EXPECT_TRUE(m_batch.Vertices().empty());
     }
 }
 
-// 0x43ee84..0x43f144, en todos los mapas: pasado 14,8, después del temblor, Kundun suelta en el hueso 4 sus ocho
-// pedazos (0x518cf0 con el punto de 0x4ec110, sus ángulos y su luz, él de dueño, la clave −130 (−10 el 0x122) y +0x89
-// de la tabla) y el 0x128/2 en su posición, que vuelve a entrar como el 0x127 con él de dueño. El punto: el
-// desplazamiento de la tabla más la traslación del hueso (10, 20, 30), por la escala del modelo (2) y más su origen
-// (1.000, 2.000, 300), calculados aparte. Con la altura del terreno en x/2 + y/4 en ese punto (0x5f93c0), la partida
-// del /2 y el /3 en altura + 130 − 80 y la del /4 en altura + 10; cada /2 y /3 saca su rand() % 2 después del rand()
-// del temblor. Sin la altura, corta el primero (0x43eeb9 → 0x51e26e).
+// 0x43ee84..0x43f144, on every map: past 14.8, after the shake, Kundun drops its eight pieces at bone 4 (0x518cf0 with
+// the 0x4ec110 point, its angles and its light, owned by it, key −130 (−10 for the 0x122) and +0x89 from the table) and
+// the 0x128/2 at its position, which re-enters as the 0x127 owned by it. The point: the table's offset plus the bone's
+// translation (10, 20, 30), times the model's scale (2) plus its origin (1000, 2000, 300), computed separately. With
+// the terrain height at x/2 + y/4 at that point (0x5f93c0), the /2 and /3 start at height + 130 − 80 and the /4 at
+// height + 10; each /2 and /3 draws its rand() % 2 after the shake's rand(). Without the height, the first one cuts
+// (0x43eeb9 → 0x51e26e).
 TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
 {
     struct Piece
@@ -1281,9 +1281,9 @@ TEST_F(MonsterBodyTest, KundunScattersItsPiecesWhenItFalls)
     }
 }
 
-// 0x43edc1..0x43ee7e entre frames del original (ADR 0005): Kundun, pasado 14,8 con +0x60 en 0x5a, dibuja su malla 0 y
-// deja +0x60 en 10 en la copia que dibuja, pero no tiembla, no suelta los pedazos ni el 0x128, no pide el sonido y no
-// saca rand(): eso lo hace una vez, en el frame del original.
+// 0x43edc1..0x43ee7e between the original's frames (ADR 0005): Kundun, past 14.8 with +0x60 at 0x5a, draws its mesh 0
+// and leaves +0x60 at 10 in the copy it draws, but does not shake, drop the pieces or the 0x128, request the sound or
+// draw rand(): it does that once, in the original's frame.
 TEST_F(MonsterBodyTest, KundunFallsOnlyInTheOriginalFrame)
 {
     for (const std::int32_t map : {0, 2, 24})
@@ -1327,8 +1327,8 @@ TEST_F(MonsterBodyTest, TheFlaggedLateChainMonstersAddAWiderChromeShell)
     for (const std::int32_t map : {0, 2, 24})
     {
         SCOPED_TRACE(map);
-        // 0x43fc25: con +0x78 & 0x100, (v · 0,1; v · 0,3; v · 0,6) y 0x60cd60: RenderBody(0x44) a 1,3 alrededor de los
-        // huesos.
+        // 0x43fc25: with +0x78 & 0x100, (v · 0.1, v · 0.3, v · 0.6) and 0x60cd60: RenderBody(0x44) at 1.3 around the
+        // bones.
         m_actor->flags78 = 0x100;
         m_batch.Begin(Client::Render::Pass3D{});
         auto result = Draw(0x193, map, 0, Clock);
@@ -1341,7 +1341,7 @@ TEST_F(MonsterBodyTest, TheFlaggedLateChainMonstersAddAWiderChromeShell)
         EXPECT_NEAR(m_color.y, part(0x3e99999au), 1e-6f);
         EXPECT_NEAR(m_color.z, part(0x3f19999au), 1e-6f);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 2 * Triangle].position.x, 1.3f);
-        // Con & 8, (v · 0,1; v · 0,6; v · 0,3); con +0x78 & 2 también, el cuerpo de 0x602365 sobre esas mallas.
+        // With & 8, (v · 0.1, v · 0.6, v · 0.3); with +0x78 & 2 too, the 0x602365 body over those meshes.
         m_actor->flags78 = 0xa;
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x193, map, 0, Clock);
@@ -1350,7 +1350,7 @@ TEST_F(MonsterBodyTest, TheFlaggedLateChainMonstersAddAWiderChromeShell)
         EXPECT_NEAR(m_color.y, part(0x3f19999au), 1e-6f);
         EXPECT_NEAR(m_color.z, part(0x3e99999au), 1e-6f);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * WholeBody + 2 * Triangle].position.x, 1.3f);
-        // Con & 0x4000, 0x60cd60 no dibuja.
+        // With & 0x4000, 0x60cd60 does not draw.
         m_actor->flags78 = 0x4100;
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x193, map, 0, Clock).HasValue());
@@ -1367,7 +1367,7 @@ TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
     for (const std::int32_t map : {0, 2, 31})
     {
         SCOPED_TRACE(map);
-        // 0x442e3d: el 0x1a3, RenderBody(2) sin la malla 1 y la 1 con (0,6; 0,4; 0,4); el color vuelve.
+        // 0x442e3d: the 0x1a3, RenderBody(2) without mesh 1 and mesh 1 with (0.6, 0.4, 0.4); the color comes back.
         m_batch.Begin(Client::Render::Pass3D{});
         auto result = Draw(0x1a3, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1376,7 +1376,7 @@ TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
                     std::bit_cast<float>(0x3ecccccdu));
         EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody - Triangle].position.x, 1.0f);
         EXPECT_EQ(m_color, glm::vec3(0.2f, 0.4f, 0.6f));
-        // 0x442eda: el 0x1a4, la malla 0 sin luz con el color por f y la U y la V corridas, aditiva, y la 1.
+        // 0x442eda: the 0x1a4, mesh 0 unlit with the color times f and U and V shifted, additive, and mesh 1.
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x1a4, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1389,14 +1389,14 @@ TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
         EXPECT_EQ(CommandAt(Triangle).state.blend, ModelBlend::Additive);
         ExpectColor(2 * Triangle, 0.2f, 0.4f, 0.6f);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * Triangle].position.x, 1.0f);
-        // 0x442fe9: el 0x1a5, RenderBody(2) sin la malla 0, la 0 con 1 y cromada.
+        // 0x442fe9: the 0x1a5, RenderBody(2) without mesh 0, then mesh 0 with 1 and chromed.
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x1a5, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(m_batch.Vertices().size(), WholeBody + Triangle);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[0].position.x, 1.0f);
         ExpectColor(WholeBody - Triangle, 1.0f, 1.0f, 1.0f);
-        // 0x4430a9: el 0x1a6, la malla 1 dos veces, la 0 al alpha del seno y la 2; con el cuarto argumento, cromadas.
+        // 0x4430a9: the 0x1a6, mesh 1 twice, mesh 0 at the sine's alpha and mesh 2; with the fourth argument, chromed.
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x1a6, map, 0, Clock);
         ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -1416,7 +1416,7 @@ TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
         EXPECT_EQ(TextureAt(Triangle), 0x5c0);
         EXPECT_EQ(TextureAt(5 * Triangle), 0x5c0);
         EXPECT_EQ(m_color, glm::vec3(1.0f));
-        // 0x4432b0: el 0x1a7, las mallas 0 y 1 (cromadas con el cuarto argumento).
+        // 0x4432b0: the 0x1a7, meshes 0 and 1 (chromed with the fourth argument).
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x1a7, map, 0, Clock).HasValue());
         ASSERT_EQ(m_batch.Vertices().size(), 2 * Triangle);
@@ -1428,8 +1428,8 @@ TEST_F(MonsterBodyTest, TheMonstersOf442e10DrawTheirPassesOnEveryMap)
         ASSERT_TRUE(Draw(0x1a7, map, 0x43, Clock).HasValue());
         ASSERT_EQ(m_batch.Vertices().size(), 4 * Triangle);
         EXPECT_EQ(TextureAt(Triangle), 0x5c0);
-        // 0x4433de: el 0x1a9, RenderBody(2) sin la malla 5, la 5 con 0x63b y con la suya al alpha 1, la 4 y las 0, 1 y
-        // 3 cromadas y la 0 con 0x63a.
+        // 0x4433de: the 0x1a9, RenderBody(2) without mesh 5, mesh 5 with 0x63b and with its own at alpha 1, mesh 4 and
+        // meshes 0, 1 and 3 chromed and mesh 0 with 0x63a.
         m_actor->alpha = 0.75f;
         m_batch.Begin(Client::Render::Pass3D{});
         result = Draw(0x1a9, map, 0, Clock);
@@ -1451,7 +1451,8 @@ TEST_F(MonsterBodyTest, The428df0CasesDrawLooseMeshesOnEveryMap)
     for (const std::int32_t map : {0, 2, 33})
     {
         SCOPED_TRACE(map);
-        // 0x428e1b: el 0x1bb, la malla 0 con 1 y con (1, 0, 0) y 0x46, la 1, y la 2 con 1 y con (0,5; 0; 0) y 0x46.
+        // 0x428e1b: the 0x1bb, mesh 0 with 1 and with (1, 0, 0) and 0x46, mesh 1, and mesh 2 with 1 and with (0.5, 0,
+        // 0) and 0x46.
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x1bb, map, 0, Clock).HasValue());
         ASSERT_EQ(m_batch.Vertices().size(), 5 * Triangle);
@@ -1459,14 +1460,14 @@ TEST_F(MonsterBodyTest, The428df0CasesDrawLooseMeshesOnEveryMap)
         EXPECT_EQ(CommandAt(3).state.blend, ModelBlend::Additive);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[6].position.x, 1.0f);
         EXPECT_FLOAT_EQ(m_batch.Vertices()[12].position.x, 2.0f);
-        // 0x428f39: el 0x1b8 con 0,9, las mallas 0 a 2 y la 3 dos veces.
+        // 0x428f39: the 0x1b8 with 0.9, meshes 0 to 2 and mesh 3 twice.
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x1b8, map, 0, Clock).HasValue());
         ASSERT_EQ(m_batch.Vertices().size(), 5 * Triangle);
         ExpectColor(0, std::bit_cast<float>(0x3f666666u), std::bit_cast<float>(0x3f666666u),
                     std::bit_cast<float>(0x3f666666u));
         EXPECT_FLOAT_EQ(m_batch.Vertices()[12].position.x, 3.0f);
-        // 0x429047: el 0x1b7, la malla 0 sin luz con la U y la V en −(12345 % 10.000) · 0,0003f, con 0x46, y la 1.
+        // 0x429047: the 0x1b7, mesh 0 unlit with U and V at −(12345 % 10000) · 0.0003f, with 0x46, and mesh 1.
         m_batch.Begin(Client::Render::Pass3D{});
         ASSERT_TRUE(Draw(0x1b7, map, 0, Clock).HasValue());
         ASSERT_EQ(m_batch.Vertices().size(), 3 * Triangle);
@@ -1479,12 +1480,12 @@ TEST_F(MonsterBodyTest, The428df0CasesDrawLooseMeshesOnEveryMap)
 
 TEST_F(MonsterBodyTest, TheMap34MonstersGoThrough4339d0)
 {
-    // 0x4339fa: el 0x1b0 con 1 y sin la malla 5.
+    // 0x4339fa: the 0x1b0 with 1 and without mesh 5.
     ASSERT_TRUE(Draw(0x1b0, 34).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody - Triangle);
     ExpectColor(0, 1.0f, 1.0f, 1.0f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[15].position.x, 6.0f);
-    // 0x433a4b: el 0x1ab, cada malla con 2 y con 0x240 y 0x6b1.
+    // 0x433a4b: the 0x1ab, each mesh with 2 and with 0x240 and 0x6b1.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x1ab, 34).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
@@ -1492,7 +1493,7 @@ TEST_F(MonsterBodyTest, TheMap34MonstersGoThrough4339d0)
     EXPECT_EQ(TextureAt(3), 0x6b1);
     EXPECT_EQ(CommandAt(3).state.blend, ModelBlend::Additive);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[39].position.x, 6.0f);
-    // 0x433c75: el 0x1b4 sin el cuarto argumento, sin la malla 5; con él, (0,5; 0,5; 0,6) y el cromo.
+    // 0x433c75: the 0x1b4 without the fourth argument, without mesh 5; with it, (0.5, 0.5, 0.6) and the chrome.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x1b4, 34).HasValue());
     EXPECT_EQ(m_batch.Vertices().size(), WholeBody - Triangle);
@@ -1501,7 +1502,7 @@ TEST_F(MonsterBodyTest, TheMap34MonstersGoThrough4339d0)
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
     ExpectColor(0, 0.5f, 0.5f, std::bit_cast<float>(0x3f19999au));
     EXPECT_EQ(TextureAt(3), 0x5c0);
-    // 0x43404c: el 0x171 con (0,6; 0,8; 0,6) y el cromo; en Lorencia y Devias, el común.
+    // 0x43404c: the 0x171 with (0.6, 0.8, 0.6) and the chrome; in Lorencia and Devias, the common one.
     m_batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Draw(0x171, 34).HasValue());
     ASSERT_EQ(m_batch.Vertices().size(), 2 * WholeBody);
@@ -1519,8 +1520,8 @@ TEST_F(MonsterBodyTest, The1afOfMap34KeepsItsUAndLeavesMesh2Unlit)
 {
     constexpr float Clock = 12345.0f;
     const auto u = static_cast<float>(2345.0 * static_cast<double>(std::bit_cast<float>(0x3a03126fu)));
-    // 0x433b2f: cada malla con 2 y la U guardada; desde la 2, el alpha en 0,3; al final el alpha en 1. Con
-    // +0x78 & 2, el cuerpo de 0x602365 corre la U en la malla 2, que sigue sin luz (+0x88 del modelo en 2).
+    // 0x433b2f: each mesh with 2 and the U stored; from mesh 2, alpha at 0.3; at the end alpha at 1. With +0x78 & 2,
+    // the 0x602365 body shifts the U on mesh 2, which stays unlit (+0x88 of the model at 2).
     m_actor->alpha = 0.75f;
     m_actor->flags78 = 2;
     const auto result = Draw(0x1af, 34, 0, Clock);
@@ -1530,14 +1531,14 @@ TEST_F(MonsterBodyTest, The1afOfMap34KeepsItsUAndLeavesMesh2Unlit)
     EXPECT_FLOAT_EQ(m_actor->alpha, 1.0f);
     EXPECT_EQ(m_actor->dword64, -1);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[0].color.alpha, 0.75f);
-    // La 2 con +0x64 en −2: aditiva, con la luz de +0x68 (0x4ecc30 mezcla toda malla con el blendMesh en −2).
+    // Mesh 2 with +0x64 at −2: additive, with the light of +0x68 (0x4ecc30 blends every mesh with blendMesh at −2).
     EXPECT_EQ(CommandAt(2 * Triangle).state.blend, ModelBlend::Additive);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[3 * Triangle].color.alpha, std::bit_cast<float>(0x3e99999au));
     EXPECT_FLOAT_EQ(m_batch.Vertices()[0].uv.x, 0.0f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[2 * Triangle].uv.x, u);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody + 2 * Triangle].uv.x, u);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[WholeBody].uv.x, 0.0f);
-    // Fuera del 34, el común.
+    // Outside 34, the common one.
     for (const std::int32_t map : {0, 2})
     {
         m_actor->textureU = 0.0f;
@@ -1555,7 +1556,7 @@ TEST_F(MonsterBodyTest, TheCastleTrapGoesThroughTheSiegeCase)
     const auto result = Draw(0x33, 30, 0, 500.0f);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x42cc10 con el 0x33: RenderBody(0x42) con la U corrida, aditivo.
+    // 0x42cc10 with the 0x33: RenderBody(0x42) with the U shifted, additive.
     ASSERT_EQ(m_batch.Vertices().size(), WholeBody);
     EXPECT_EQ(CommandAt(0).state.blend, ModelBlend::Additive);
 }

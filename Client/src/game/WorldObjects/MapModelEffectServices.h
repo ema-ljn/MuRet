@@ -12,7 +12,7 @@ class ModelEffects;
 }
 namespace Client::WorldObjects
 {
-// La creación síncrona de 0x606660 conserva los efectos de Noria en el mismo pool que la llegada.
+// 0x606660's synchronous creation keeps the Noria effects in the same pool as the arrival.
 class MapModelEffectServices final : public WorldObjects::IWorldObjectCreationServices
 {
 public:

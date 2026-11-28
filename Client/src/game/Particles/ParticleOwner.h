@@ -4,8 +4,8 @@
 
 namespace Client::Particles
 {
-// Identidad no poseedora, copiable con el frame. None es NULL; Actor usa índice de pool,
-// WorldObject su identidad estable. Clear de los pools precede la liberación del mapa.
+// Non-owning identity, copyable with the frame. None is NULL; Actor uses the pool index, WorldObject its stable
+// identity. Clearing the pools comes before releasing the map.
 enum class ParticleOwnerKind : std::uint8_t
 {
     None,

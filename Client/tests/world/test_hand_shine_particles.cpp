@@ -19,8 +19,8 @@
 #include <optional>
 #include <vector>
 
-// El brillo de la mano 5fd (CL9 hito 2, el 1A): su alta (0x542b0e), su paso (0x546cd4) y su dibujo (0x5488f6). Las
-// posiciones y los dueños son inventados; los valores esperados salen del ASM.
+// The hand shine 5fd: its creation (0x542b0e), step (0x546cd4) and drawing (0x5488f6). Positions and owners are made
+// up; the expected values come from the ASM.
 namespace
 {
 using Client::Particles::HandShineParticle;
@@ -32,10 +32,9 @@ using Client::Particles::Particles;
 
 constexpr std::uint64_t OwnerSlot = 7;
 constexpr ParticleOwner Owner{ParticleOwnerKind::Actor, OwnerSlot};
-// 0x6ba368: 5° en float.
+// 0x6ba368: 5° in float.
 constexpr float PulseStep = std::bit_cast<float>(0x3db2b8c2u);
 
-// Un seno de mentira: anota el argumento y el factor, y devuelve `product`.
 class ScriptedSine final : public Client::Particles::IParticleTrigonometry
 {
 public:
@@ -89,8 +88,8 @@ protected:
     };
 };
 
-// 0x53fe9c..0x53ff37 y 0x542b0e..0x542b1b: el prefijo común, la vida 36 y el ángulo x en 45; sin rand() ni reloj. La
-// posición de 0x53fdb0 la pone quien la crea: la partícula queda donde se la pidió.
+// 0x53fe9c..0x53ff37 and 0x542b0e..0x542b1b: the common prefix, life 36 and the x angle at 45; neither rand() nor
+// clock. 0x53fdb0's position is set by the creator: the particle stays where it was requested.
 TEST_F(HandShineTest, ItIsBornWithThirtySixStepsTiltedFortyFiveDegrees)
 {
     const auto seed = m_random.State();
@@ -110,7 +109,7 @@ TEST_F(HandShineTest, ItIsBornWithThirtySixStepsTiltedFortyFiveDegrees)
     EXPECT_EQ(m_random.State(), seed);
 }
 
-// Sólo la /0 y la /2, las de 0x53d810, y con un personaje de dueño: sin él, el paso no tendría la mano.
+// Only /0 and /2, those of 0x53d810, and with a character as owner: without it, the step would not have the hand.
 TEST_F(HandShineTest, OnlyTheTwoSubtypesOfAPersonAreBorn)
 {
     const auto odd = m_particles->CreateOwnedChecked(HandShineParticle, {}, {}, {}, 1, 0.0f, 0.0f, m_random, 0, Owner);
@@ -122,8 +121,8 @@ TEST_F(HandShineTest, OnlyTheTwoSubtypesOfAPersonAreBorn)
     EXPECT_FALSE(m_particles->Any());
 }
 
-// 0x546d08..0x546d4f: la vida ya bajó; la escala es sin(vida · 5°) · 5 y la /0 no gira. Después, 0x53fdb0 con el
-// subtipo la pone en la mano. Los dos rand() son los del viento.
+// 0x546d08..0x546d4f: the life has already dropped; the scale is sin(life · 5°) · 5 and /0 does not turn. Then
+// 0x53fdb0 puts it in the hand with the subtype. The two rand() are the wind's.
 TEST_F(HandShineTest, TheFirstOnePulsesWithItsLifeAndFollowsTheHand)
 {
     const std::size_t index = Create(0);
@@ -145,7 +144,7 @@ TEST_F(HandShineTest, TheFirstOnePulsesWithItsLifeAndFollowsTheHand)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x546d21..0x546d34: de la /2 en adelante, el mismo producto de la pila por 0,75 y 12 grados menos de rotación.
+// 0x546d21..0x546d34: from /2 on, the same x87 stack product times 0.75 and 12 degrees less rotation.
 TEST_F(HandShineTest, TheSecondOneIsSmallerAndTurns)
 {
     const std::size_t index = Create(2);
@@ -160,7 +159,6 @@ TEST_F(HandShineTest, TheSecondOneIsSmallerAndTurns)
     EXPECT_EQ(m_handSubtypes, (std::vector<std::int32_t>{2, 2}));
 }
 
-// Sin quién diga dónde está la mano, el paso corta después de la escala y la rotación.
 TEST_F(HandShineTest, WithoutTheHandTheStepStopsAfterThePulse)
 {
     const std::size_t index = Create(2);
@@ -174,7 +172,7 @@ TEST_F(HandShineTest, WithoutTheHandTheStepStopsAfterThePulse)
     EXPECT_EQ(shine.position, glm::vec3(10.0f, 20.0f, 30.0f));
 }
 
-// 0x5488f6 → 0x54889a: el billboard común con la textura de la creación (Effect\Shiny02.jpg).
+// 0x5488f6 → 0x54889a: the common billboard with the creation's texture (Effect\Shiny02.jpg).
 TEST_F(HandShineTest, ItIsDrawnWithTheCommonBillboard)
 {
     Particle shine = m_particles->All()[Create(0)];

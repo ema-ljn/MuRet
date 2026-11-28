@@ -43,32 +43,31 @@ namespace Client::WorldObjects
 {
 namespace
 {
-// 0x606660: la velocidad de la animación (0x3e23d70a), y la escala y la luz del farol en el login y la
-// selección (0x3f4ccccd y 0x3e4ccccd).
+// 0x606660: the animation speed (0x3e23d70a), and the lantern's scale and light in the login and the selection
+// (0x3f4ccccd and 0x3e4ccccd).
 constexpr float ObjectSpeed = std::bit_cast<float>(0x3E23D70Au);
 constexpr std::int16_t DragonOwner = 0xb4;
 constexpr float DragonEffectScale = std::bit_cast<float>(0x3FCCCCCDu);
 constexpr float StreetLightScale = std::bit_cast<float>(0x3F4CCCCDu);
 constexpr float StreetLightLight = std::bit_cast<float>(0x3E4CCCCDu);
-// 0x6069bd: Bridge01 del mapa 0 amplía su margen individual de recorte (+0xdc).
+// 0x6069bd: Bridge01 of map 0 widens its own culling margin (+0xdc).
 constexpr std::uint8_t LorenciaMap = Maps::LorenciaMap;
 constexpr std::int16_t LorenciaBridge = 0x50;
 constexpr float BridgeCullingMargin = std::bit_cast<float>(0xC2480000u);
-// Los remolinos del mapa 0x37 (0x606d03): a (8.600; 25.000; 5.000), con escalas 60 y 110.
+// The whirlpools of map 0x37 (0x606d03): at (8600; 25000; 5000), with scales 60 and 110.
 constexpr std::uint8_t LoginMap = Maps::LoginMap;
 constexpr std::int16_t RedWhirlpool = 0x56;
 constexpr std::int16_t DarkWhirlpool = 0x5a;
 constexpr glm::vec3 WhirlpoolPlace{8600.0f, 25000.0f, 5000.0f};
 constexpr float RedWhirlpoolScale = 60.0f;
 constexpr float DarkWhirlpoolScale = 110.0f;
-// 0x604ab0 en el mapa 0x37: el giro de los remolinos por paso (0x6b8a20 y 0x6ba154) y el alpha del
-// rojo (0x3e4ccccd).
+// 0x604ab0 on map 0x37: the whirlpools' turn per step (0x6b8a20 and 0x6ba154) and the red one's alpha (0x3e4ccccd).
 constexpr float RedWhirlpoolTurn = std::bit_cast<float>(0x3F19999Au);
 constexpr float DarkWhirlpoolTurn = std::bit_cast<float>(0x3E6B851Fu);
 constexpr float RedWhirlpoolAlpha = std::bit_cast<float>(0x3E4CCCCDu);
-// 0x4e9980: un décimo de lo que le falta al alpha (0x6b87b8).
+// 0x4e9980: a tenth of what the alpha still lacks (0x6b87b8).
 constexpr float AlphaApproach = std::bit_cast<float>(0x3DCCCCCDu);
-// 0x606660: la posición por 0,000625 da el sector (de 16 × 16 celdas).
+// 0x606660: the position times 0.000625 gives the sector (of 16 × 16 cells).
 constexpr float SectorPerUnit = std::bit_cast<float>(0x3A23D70Au);
 constexpr int SectorCount = 16;
 
@@ -77,16 +76,16 @@ bool HasSceneCases(ObjectScene scene)
     return scene == ObjectScene::Login || scene == ObjectScene::CharacterSelect;
 }
 
-// 0x5ffdf0: el alpha por debajo del cual no dibuja (0x3c23d70a).
+// 0x5ffdf0: the alpha below which it does not draw (0x3c23d70a).
 constexpr float MinimumAlpha = std::bit_cast<float>(0x3C23D70Au);
 
-// La rama de 0x604ab0 que oculta: los tipos 0x54, 0x55, 0x57 y 0x59 del mapa 0x37.
+// The branch of 0x604ab0 that hides: types 0x54, 0x55, 0x57 and 0x59 of map 0x37.
 bool IsLoginMarker(std::int16_t type)
 {
     return type == 0x54 || type == 0x55 || type == 0x57 || type == 0x59;
 }
-// 06 § Lo propio de Lorencia: las operaciones permanecen en binary64 (PC53/RN del port)
-// hasta el único store binary32, sin redondear primero 1 / escala.
+// 06 § Lo propio de Lorencia: the operations stay in binary64 (the port's PC53/RN) up to the single binary32 store,
+// without rounding 1 / scale first.
 void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
 {
     constexpr float TreeSpeedFactor = std::bit_cast<float>(0x3ECCCCCDu);
@@ -151,7 +150,7 @@ void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegis
         object.state.hiddenMesh = HiddenObject;
         return;
     default:
-        // La tabla nativa termina acá: NO cae al switch del mapa 1.
+        // The native table ends here: it does NOT fall into map 1's switch.
         return;
     }
 }
@@ -285,7 +284,7 @@ bool EmitModelEffect(WorldObject& object, IWorldObjectCreationServices* services
 
 bool EmitNoriaTowerEffects(WorldObject& object, IWorldObjectCreationServices* services)
 {
-    // 0x606b9d..0x606cb5: cada callee puede cambiar source; no cachear posición entre llamadas.
+    // 0x606b9d..0x606cb5: each callee can change source; do not cache the position between calls.
     constexpr std::array<std::int16_t, 5> EffectTypes{322, 323, 322, 323, 324};
     constexpr std::array<float, 5> OffsetsY{0.0f, 4.0f, 8.0f, 12.0f, 20.0f};
     constexpr double OffsetZ = 350.0;
@@ -390,7 +389,7 @@ void ApplySceneCases(WorldObject& object, std::int16_t type)
         object.light = glm::vec3(1.0f);
         return;
     case DragonOwner:
-        // La emisión síncrona se ejecuta después de estos stores, antes de leer el mapa.
+        // The synchronous emission runs after these stores, before reading the map.
         object.state.hiddenMesh = HiddenObject;
         object.light = glm::vec3(1.0f);
         return;
@@ -439,7 +438,7 @@ WorldObjectCreationResult CreateObjects(std::span<const Data::Terrain::TerrainOb
     for (std::size_t index = 0; index < records.size(); ++index)
     {
         const Data::Terrain::TerrainObject& record = records[index];
-        // El sector se calcula antes de leer Z/ángulos/escala y antes de cualquier caso de escena.
+        // The sector is computed before reading Z/angles/scale and before any scene case.
         const int sectorX = SectorOf(record.position[0]);
         const int sectorY = SectorOf(record.position[1]);
         if (sectorX < 0 || sectorY < 0)
@@ -487,9 +486,9 @@ WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::Terr
 
 namespace
 {
-// 0x4e9980 y 0x4ec200, lo común de 0x604ab0: el alpha hacia su meta y, si no quedó por debajo de 0,01
-// (0x604c3d, que sale), la animación a `speed` (la del objeto, salvo el 8 de Tarkan) con la acción de
-// `skeleton`, si tiene. Devuelve si sigue.
+// 0x4e9980 and 0x4ec200, the common part of 0x604ab0: the alpha toward its target and, if it did not fall below 0.01
+// (0x604c3d, which exits), the animation at `speed` (the object's, except Tarkan's 8) with `skeleton`'s action, if it
+// has one. Returns whether it goes on.
 bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, float speed)
 {
     Effects::StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
@@ -505,7 +504,7 @@ bool AdvanceTheObject(WorldObject& object, const Models::Skeleton* skeleton, flo
     return true;
 }
 
-// Los casos del mapa 0x37 de 0x604ab0: los marcadores se ocultan y los remolinos giran.
+// The map 0x37 cases of 0x604ab0: the markers hide and the whirlpools turn.
 void ApplyLoginStepCases(WorldObject& object)
 {
     if (IsLoginMarker(object.type))
@@ -528,8 +527,8 @@ void ApplyLoginStepCases(WorldObject& object)
     }
 }
 
-// 0x604bb4..0x604c1d: los techos, antes del alpha. En el 0, los de la taberna (HouseWall05 y 06) se apagan
-// con la capa 4; en el 2, los suyos con la capa 3 o desde la 10 (*inferido*: el héroe bajo techo).
+// 0x604bb4..0x604c1d: the roofs, before the alpha. On the 0, the tavern's (HouseWall05 and 06) go off with layer 4;
+// on the 2, its own with layer 3 or from 10 up (*inferred*: the hero under a roof).
 constexpr std::uint8_t DeviasMap = Maps::DeviasMap;
 constexpr std::uint8_t NoriaMap = Maps::NoriaMap;
 constexpr std::int32_t LorenciaRoofLayer = 4;
@@ -549,8 +548,8 @@ std::optional<float> RoofTargetAlpha(std::int16_t type, std::uint8_t map, std::i
     return std::nullopt;
 }
 
-// 0x604db9 y 0x60508f: la luz del blendMesh (+0x68), (rand() & 3 + 4) · 0,1f (0x6b87b8), el producto de
-// fild y fmul guardado en float.
+// 0x604db9 and 0x60508f: the blendMesh light (+0x68), (rand() & 3 + 4) · 0.1f (0x6b87b8), the product of fild and
+// fmul stored in float.
 constexpr int FlickerBase = 4;
 using Math::Tenth;
 
@@ -560,8 +559,8 @@ float FlickeringLight(Crt::CrtRandom& random)
     return static_cast<float>(static_cast<double>(step) * static_cast<double>(Tenth));
 }
 
-// 0x604d8e: la V del blendMesh (+0x70) con el reloj, (−ftol(T) % 1000) · 0,001f (0x6b89c8): neg sobre el
-// dword bajo, cdq e idiv con signo. Sin un ftol acreditado (un reloj infinito), nullopt.
+// 0x604d8e: the blendMesh V (+0x70) with the clock, (−ftol(T) % 1000) · 0.001f (0x6b89c8): neg on the low dword, cdq
+// and signed idiv. Without a credited ftol (an infinite clock), nullopt.
 constexpr std::int32_t ScrollPeriod = 1000;
 using Math::Thousandth;
 
@@ -572,15 +571,14 @@ std::optional<float> ScrolledV(float worldClock)
     {
         return std::nullopt;
     }
-    // neg en 32 bits: envuelve en −2^31, como el registro.
+    // 32-bit neg: wraps at −2^31, like the register.
     const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(*low));
     const std::int32_t scroll = negated % ScrollPeriod;
     return static_cast<float>(static_cast<double>(scroll) * static_cast<double>(Thousandth));
 }
 
-// Dónde empieza el caso de un tipo del mapa 0 que llama a 0x52f360: el fuego de FireLight01 y 02, de
-// Bonfire01, las antorchas de DoungeonGate01 y de Bridge01, y los marcadores Light01..03 (con las clases 0 a
-// 2, que después se ocultan).
+// Where the case of a map 0 type that calls 0x52f360 starts: the fire of FireLight01 and 02, of Bonfire01, the
+// torches of DoungeonGate01 and Bridge01, and the Light01..03 markers (with classes 0 to 2, which then hide).
 std::string_view LorenciaFireCase(std::int16_t type)
 {
     switch (type)
@@ -604,7 +602,7 @@ std::string_view LorenciaFireCase(std::int16_t type)
     }
 }
 
-// 0x604d6f: los casos del mapa 0, por el tipo − 0x32 (la tabla de 0x605b58).
+// 0x604d6f: map 0's cases, by type − 0x32 (the table at 0x605b58).
 Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::CrtRandom& random,
                                                     const ObjectStepGlobals& globals)
 {
@@ -682,7 +680,7 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Crt::Cr
     }
 }
 
-// 0x60506d: los casos del mapa 2, por el tipo − 0x14 (la tabla de 0x605c08).
+// 0x60506d: map 2's cases, by type − 0x14 (the table at 0x605c08).
 Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Crt::CrtRandom& random,
                                                   const ObjectStepGlobals& globals)
 {
@@ -710,15 +708,15 @@ Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Crt::CrtR
         return {};
     }
 }
-// 0x603053..0x603088: la gota de 0x603011 sale a ±16 del hueso en x y en z, con rand() % 32 − 16
-// (and con 0x8000001f y la corrección del signo, que con rand() no corre).
+// 0x603053..0x603088: the drop of 0x603011 comes out at ±16 from the bone in x and z, with rand() % 32 − 16 (and
+// with 0x8000001f and the sign correction, which never runs with rand()).
 constexpr int DropSpread = 32;
 constexpr int DropCenter = 16;
 } // namespace
 
 Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Crt::CrtRandom& random, float worldClock)
 {
-    // 0x603011: la luz del blendMesh en 1,0 (0x3f800000), antes del ftol.
+    // 0x603011: the blendMesh light at 1.0 (0x3f800000), before the ftol.
     object.state.light = 1.0f;
     const std::optional<float> v = ScrolledV(worldClock);
     if (!v)
@@ -726,12 +724,12 @@ Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Cr
         return Core::Unexpected(std::string("0x60301e: ftol del reloj del mundo fuera de lo acreditado"));
     }
     object.state.uv.y = *v;
-    // 0x60303c: rand() % 2; con 1 no hay gotas.
+    // 0x60303c: rand() % 2; with 1 there are no drops.
     if ((random.Next() % 2) != 0)
     {
         return {};
     }
-    // 0x603053 y 0x603077: la x y la z de la primera gota, en ese orden; la y, −20 (0xc1a00000).
+    // 0x603053 and 0x603077: the x and the z of the first drop, in that order; the y, −20 (0xc1a00000).
     const int x = (random.Next() % DropSpread) - DropCenter;
     const int z = (random.Next() % DropSpread) - DropCenter;
     return Core::Unexpected(std::format("0x6030c7: la gota 0x5f2 del 0x69 (Waterspout01), a ({}, −20, {}) del "
@@ -752,7 +750,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          const Models::Skeleton* skeleton, Crt::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
-    // 0x425070: el 33 (Aida) y el 54 (la selección) llegan a 0x4250f0 por la cadena de 0x605a62.
+    // 0x425070: the 33 (Aida) and the 54 (the selection) reach 0x4250f0 through the chain of 0x605a62.
     constexpr std::uint8_t AidaMap = Maps::AidaMap;
     constexpr std::uint8_t SelectionWorldMap = Maps::CharacterSelectMap;
     const bool aida = map == AidaMap || map == SelectionWorldMap;
@@ -762,16 +760,16 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t AtlansMap = Maps::AtlansMap;
     constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     constexpr std::uint8_t IcarusMap = Maps::IcarusMap;
-    // 0x43ff10: el 31 (Land of Trials) llega a 0x43ffc0 por la misma cadena.
+    // 0x43ff10: the 31 (Land of Trials) reaches 0x43ffc0 through the same chain.
     constexpr std::uint8_t LandOfTrialsMap = Maps::LandOfTrialsMap;
-    // El 30 (Castle Siege) llega antes a 0x42c850, el segundo eslabón.
+    // The 30 (Castle Siege) reaches 0x42c850, the second link, earlier.
     constexpr std::uint8_t CastleSiegeMap = Maps::CastleSiegeMap;
     constexpr std::uint8_t DevilSquareMap = Maps::DevilSquareMap;
     constexpr std::uint8_t FirstBloodCastleMap = 11;
     constexpr std::uint8_t LastBloodCastleMap = 17;
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
     const bool chaosCastle = Maps::IsChaosCastle(map);
-    // 0x4303c0: el 34 (Crywolf) llega a 0x4303e0, el último eslabón de la cadena de 0x605a62.
+    // 0x4303c0: the 34 (Crywolf) reaches 0x4303e0, the last link of the chain of 0x605a62.
     constexpr std::uint8_t CrywolfMap = Maps::CrywolfMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
@@ -781,7 +779,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
     }
-    // 0x604ac0..0x604ba0: el 9 saca sus rand() y pide su sonido antes de todo.
+    // 0x604ac0..0x604ba0: the 9 takes its rand() and requests its sound before everything else.
     if (map == DevilSquareMap)
     {
         if (auto prelude = Events::StepDevilSquarePrelude(random, globals); !prelude.HasValue())
@@ -791,7 +789,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     {
         object.targetAlpha = *target;
     }
-    // 0x604c67..0x604c8e: la velocidad sale de +0xd8 a una copia, que el 8 de Tarkan multiplica.
+    // 0x604c67..0x604c8e: the speed goes from +0xd8 to a copy, which Tarkan's 8 multiplies.
     const float speed =
         map == TarkanMap ? MapScripts::Tarkan::TarkanAnimationSpeed(object.type, object.speed) : object.speed;
     if (!AdvanceTheObject(object, skeleton, speed))
@@ -800,7 +798,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     }
     if (Maps::IsKalimaMap(map))
     {
-        // 605a62→438a90: AL1 corta los handlers posteriores, incluso sin un store por tipo.
+        // 0x605a62→0x438a90: AL1 cuts the later handlers, even without a per-type store.
         constexpr std::int16_t FirstHiddenKalimaObject = 37;
         constexpr std::int16_t LastHiddenKalimaObject = 40;
         if (object.type >= FirstHiddenKalimaObject && object.type <= LastHiddenKalimaObject)
@@ -828,7 +826,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         Events::StepBloodCastleObject(object);
         return {};
     }
-    // 0x605a62: ningún eslabón de la cadena mira los mapas 18 a 23; queda la parte común.
+    // 0x605a62: no link of the chain looks at maps 18 to 23; the common part remains.
     if (chaosCastle)
         return {};
     switch (map)
@@ -850,10 +848,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     case TarkanMap:
         return MapScripts::Tarkan::StepTarkanObject(object, globals);
     case IcarusMap:
-        // 0x605ab4 por 0x605ae8: el 10 no tiene casos; 0x6063d0 va aparte (Scenes/IcarusObjectStep.h).
+        // 0x605ab4 via 0x605ae8: the 10 has no cases; 0x6063d0 goes separately (MapScripts/Icarus/IcarusObjectStep.h).
         return {};
     case DevilSquareMap:
-        // 0x605ae8 lo manda a la cadena de 0x605a62, que en el 9 no hace nada.
+        // 0x605ae8 sends it to the chain of 0x605a62, which does nothing on the 9.
         return {};
     default:
         ApplyLoginStepCases(object);
@@ -867,9 +865,8 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     draw.alpha = object.alpha;
     draw.state = object.state;
     draw.vertexLight = object.vertexLight;
-    // 0x5ffce0: con la luz por vértice, la del terreno más la del objeto; sin ella, la del terreno por
-    // 0,1 (0x6b87b8) más la del objeto: el producto de G y B se guarda en float antes de la suma, y el de
-    // R se suma desde la x87.
+    // 0x5ffce0: with per-vertex light, the terrain's plus the object's; without it, the terrain's times 0.1 (0x6b87b8)
+    // plus the object's: the G and B products are stored in float before the sum, and R's is added from the x87.
     if (object.vertexLight)
     {
         draw.color = terrainLight + object.light;
@@ -881,7 +878,7 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         draw.color.y = (terrainLight.y * AlphaApproach) + object.light.y;
         draw.color.z = (terrainLight.z * AlphaApproach) + object.light.z;
     }
-    // 0x5ffdf0 no dibuja con el alpha por debajo de 0,01, y 0x6002e0 sale con +0x58 = −2.
+    // 0x5ffdf0 does not draw with the alpha below 0.01, and 0x6002e0 exits with +0x58 = −2.
     draw.posed = !(object.alpha < MinimumAlpha);
     if (!draw.posed || object.state.hiddenMesh == HiddenObject)
     {
@@ -890,8 +887,8 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     }
     if (map == LorenciaMap && object.type == Waterspout)
     {
-        // 0x600a4a: sin el glColor de RenderBody; el 0x69 va con la luz por vértice (+0xe8), que pisa el
-        // color de cada esquina.
+        // 0x600a4a: without RenderBody's glColor; the 0x69 goes with per-vertex light (+0xe8), which overrides each
+        // corner's color.
         draw.kind = ObjectDrawKind::Waterspout;
         return draw;
     }
@@ -904,9 +901,9 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     }
     if (map == LoginMap && object.type == DarkWhirlpool)
     {
-        // El caso del mapa 55: la malla 0 sola, en blanco y sin luz, por la rama del blendMesh
-        // (GL_ZERO, GL_ONE_MINUS_SRC_COLOR). Antes de su primer paso, sin el blendMesh, 0x4ecc30 no ata
-        // textura ni cambia la mezcla (Q-C135): MuRet no la dibuja.
+        // The map 55 case: mesh 0 alone, white and unlit, through the blendMesh branch (GL_ZERO,
+        // GL_ONE_MINUS_SRC_COLOR). Before its first step, without the blendMesh, 0x4ecc30 binds no texture and does not
+        // change the blend (Q-C135): MuRet does not draw it.
         draw.kind = object.state.blendMesh == Models::EveryMeshBlends ? ObjectDrawKind::SubtractiveMesh
                                                                       : ObjectDrawKind::Hidden;
         draw.color = glm::vec3(1.0f);
@@ -921,9 +918,9 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
 
 int SectorOf(float coordinate)
 {
-    // 0x60666c: el producto queda en la x87 (exacto) y ftol trunca hacia el 0: de −1.600 a 0 todavía es
-    // el sector 0. 0x60668d..0x6066ab compara con signo el dword bajo (EAX) con 0 y con 16, así que un
-    // NaN cae en el 0 (Q-C186). Con un infinito o fuera de int64, sin observar, el port no lo crea.
+    // 0x60666c: the product stays in the x87 (exact) and ftol truncates toward 0: from −1600 to 0 it is still sector 0.
+    // 0x60668d..0x6066ab compares the low dword (EAX) signed with 0 and with 16, so a NaN lands in 0 (Q-C186). With an
+    // infinity or outside int64, unobserved, the port does not create it.
     const double product = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
     const std::optional<std::int32_t> sector = Math::OriginalFtolLow(product);
     if (!sector.has_value() || *sector < 0 || *sector >= SectorCount)
@@ -940,7 +937,7 @@ glm::vec3 StreetLightGlowLight(int random)
     constexpr double Step = static_cast<double>(0.01f);
     constexpr double Green = 0.5;
     constexpr double Blue = static_cast<double>(0.2f);
-    // `cdq` e `idiv`: con un rand() no negativo, el resto.
+    // `cdq` and `idiv`: with a non-negative rand(), the remainder.
     const auto light = static_cast<float>(static_cast<double>((random % Span) + Base) * Step);
     return {light, static_cast<float>(static_cast<double>(light) * Green),
             static_cast<float>(static_cast<double>(light) * Blue)};

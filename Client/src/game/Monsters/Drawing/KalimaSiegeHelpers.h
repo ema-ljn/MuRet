@@ -53,78 +53,76 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// Los helpers de efectos por tipo de la cadena de 0x510a1e (0x43c150 y 0x42dfe0) y el lazo de los huesos del 0x16e
-// (0x5108b6), sobre el cuerpo ya dibujado de un monstruo (MonsterDrawing.h). Contrato: 06 § Los helpers de Kalima y del
-// asedio (0x43c150 y 0x42dfe0). Los efectos con modelo (0x518cf0), los joints (0x530860) y las partículas
-// (0x53fe70) que MuRet no tiene cortan con su dirección (CL11) si su tabla tiene lugar; llenas, el original no crea
-// nada y sigue.
+// The per-type effect helpers of the 0x510a1e chain (0x43c150 and 0x42dfe0) and the bone loop of type 0x16e (0x5108b6),
+// over a monster's already drawn body (MonsterDrawing.h). Contract: 06 § Los helpers de Kalima y del asedio (0x43c150 y
+// 0x42dfe0). Model effects (0x518cf0), joints (0x530860) and particles (0x53fe70) that MuRet does not have cut with
+// their address (CL11) if their table has room; when full, the original creates nothing and goes on.
 namespace Client::Monsters::Drawing
 {
 
 struct KalimaSiegeHelperPass
 {
     Render::ModelBatch& batch;
-    // El personaje y el objeto (+0x8 y +0xc de 0x43c150): el mismo registro, o su copia entre frames del original.
+    // The character and the object (+0x8 and +0xc of 0x43c150): the same record, or its copy between original frames.
     Kernel::ActorState& actor;
-    // El rand() de la CRT del dibujo (o su copia entre frames).
+    // The drawing's CRT rand() (or its copy between frames).
     Crt::CrtRandom& random;
     Particles::FrameSprites* sprites = nullptr;
     Particles::Particles* particles = nullptr;
     std::span<Kernel::JointState> joints{};
     Effects::ModelEffects* effects = nullptr;
-    // 0x723c48: sin él, 0x437860 no perturba nada.
+    // 0x723c48: without it, 0x437860 disturbs nothing.
     MapScripts::Kalima::KalimaWorld* kalima = nullptr;
-    // 0x7d325c8, el temblor de la cámara.
+    // 0x7d325c8
     float* cameraShake = nullptr;
-    // Las alturas del .OZB de 0x5fb2f0, para los calcos de 0x42a1b0.
+    // The .OZB heights of 0x5fb2f0, for the decals of 0x42a1b0.
     const Data::Terrain::TerrainHeights* heights = nullptr;
-    // 0x41ed10 (CL10): WorldRuntime::lastSoundId en el frame del original; entre frames, nullptr.
+    // 0x41ed10 (CL10): WorldRuntime::lastSoundId in the original's frame; between frames, nullptr.
     std::optional<Audio::SoundId>* sound = nullptr;
     std::function<void(Audio::SoundId)> soundRequest{};
-    // 0x5767b88, en ms.
+    // 0x5767b88, in ms.
     float worldClock = 0.0f;
     std::int32_t map = 0;
     // 0x4294b0 (0x7239ec).
     bool siegeActive = false;
-    // +0x6c..+0x74 del modelo (+0x10 de 0x43c150, [ebp−0x14] de 0x50ba30): la posición que le copió el 0x60cf70 de la
-    // sombra (0x50beb6, ya en el suelo de Blood Castle de 0x50be4d) o, sin él, 0x5ffdf0 (MonsterFrame::modelOrigin).
-    // Sin ella, la del personaje.
+    // +0x6c..+0x74 of the model (+0x10 of 0x43c150, [ebp−0x14] of 0x50ba30): the position the shadow's 0x60cf70 copied
+    // to it (0x50beb6, already on the Blood Castle floor of 0x50be4d) or, without that call, 0x5ffdf0's
+    // (MonsterFrame::modelOrigin). Without the position, the character's.
     std::optional<glm::vec3> modelOrigin{};
 };
 
-// 0x510a1e..0x510a36: 0x43c150 y, si no es suyo, 0x42dfe0. Devuelve true si uno de los dos tiene el tipo (+0x2), que
-// salta el resto de la cadena. Sin la tabla de sprites corta solo un tipo que la usa.
+// 0x510a1e..0x510a36: 0x43c150 and, if the type is not its own, 0x42dfe0. Returns true if one of them has the
+// type (+0x2), which skips the rest of the chain. Without the sprite table, only a type that uses it cuts.
 //
-// 0x43c150, por el tipo:
-// - 0xc5 (la puerta de Kalima): con la acción 1, si +0x60 está en 0, la partícula 0x6ae (CL11) del hueso 8 (el punto
-//   pisa la posición 20 más arriba que el original arma antes); +0x60 cuenta de 0 a 4.
-// - 0x191: fuera de la acción 6, de los huesos 74..78 y 62..66 dos 0x5ac cada uno con un rand() & 1 para la partícula
-//   0x607/1 (CL11), y los 0x5ca y 0x5fd de los huesos 8, 22 y 15 con +0x68; siempre, los 0x5ac de los huesos 51..55 y
-//   29..33.
-// - 0x192 (Kundun): en la acción 6 suelta la mano izquierda; si no, los 0x5ca de los huesos 8 y 9, el 0x62b (y en la
-//   acción 5 el 0x62d con el pulso de +0x8a y +0x89) del hueso 100 y un rand() & 1 para la partícula 0x5f2/13 (CL11).
-//   En la acción 5, con el frame debajo de 2, el sonido 0x1db (CL10); pasado el 4, en Kalima, 0x437860 en su celda;
-//   pasado el 3, el temblor con rand() & 7; en Kalima entre el 3 y el 14, dos efectos 9 (0x518cf0) con rand() % 360 y
-//   rand() % 600. Las acciones 3 y 4 sacan el efecto 0x128 (el /0 en la x y la y del objeto con la z del hueso 49,
-//   0x43d051; el /1 en el hueso 49 a 400 de altura, 0x43d0fd; Scenes/KundunEffects), los joints 0x6ee/14 (CL11),
-//   0x437860 y el temblor con rand() & 15.
-// - 0x193, 0x194, 0x195, 0x196 y 0x197: sus sprites (el 0x194 con dos rand() % 360); el 0x196 saca la neblina 0x5ac/0
-//   del hueso 60 y, en las acciones 0 y 1, rand() % 50 por hueso; los joints 0x614/7 y 0x610/5 y la partícula
-//   0x5f2/13 cortan (CL11); la 0x5da/1 (World::MissileFireParticleKernels) y la 0x5dc/12 se crean. El 0x195 y el
-//   0x197 sueltan las dos manos en la acción 6.
-// 0x42dfe0, solo en el mapa 30: el 0x19c, el 0x1a1, el 0x1a8 y el 0x1fd, con sus sprites, +0x68, +0x42c, +0x58 y
-// los calcos de 0x42a1b0, que en el modo 0x80 pisan la luz que reciben (+0xf4 del 0x19c sin el asedio y del 0x1a1
-// con él, Q-C876).
+// 0x43c150, by type:
+// - 0xc5 (the Kalima gate): with action 1, if +0x60 is 0, particle 0x6ae (CL11) from bone 8 (the point overwrites the
+//   position 20 higher that the original builds before); +0x60 counts from 0 to 4.
+// - 0x191: outside action 6, from bones 74..78 and 62..66 two 0x5ac each with a rand() & 1 for particle 0x607/1 (CL11),
+//   and the 0x5ca and 0x5fd of bones 8, 22 and 15 with +0x68; always, the 0x5ac of bones 51..55 and 29..33.
+// - 0x192 (Kundun): in action 6 it drops the left hand; otherwise, the 0x5ca of bones 8 and 9, the 0x62b (and in action
+//   5 the 0x62d with the pulse of +0x8a and +0x89) of bone 100 and a rand() & 1 for particle 0x5f2/13 (CL11). In action
+//   5, with the frame under 2, sound 0x1db (CL10); past 4, in Kalima, 0x437860 on its cell; past 3, the shake with
+//   rand() & 7; in Kalima between 3 and 14, two 9 effects (0x518cf0) with rand() % 360 and rand() % 600. Actions 3 and
+//   4 emit effect 0x128 (the /0 at the object's x and y with bone 49's z, 0x43d051; the /1 at bone 49 at height 400,
+//   0x43d0fd; Effects/KundunEffects), the 0x6ee/14 joints (CL11), 0x437860 and the shake with rand() & 15.
+// - 0x193, 0x194, 0x195, 0x196 and 0x197: their sprites (0x194 with two rand() % 360); 0x196 emits the 0x5ac/0 mist
+//   from bone 60 and, in actions 0 and 1, rand() % 50 per bone; the 0x614/7 and 0x610/5 joints and particle 0x5f2/13
+//   cut (CL11); the 0x5da/1 (Particles::MissileFireParticleKernels) and the 0x5dc/12 are created. 0x195 and 0x197 drop
+//   both hands in action 6.
+// 0x42dfe0, only in map 30: 0x19c, 0x1a1, 0x1a8 and 0x1fd, with their sprites, +0x68, +0x42c, +0x58 and the decals of
+// 0x42a1b0, which in mode 0x80 overwrite the light they receive (+0xf4 of 0x19c without the siege and of 0x1a1 with it,
+// Q-C876).
 [[nodiscard]] Core::Expected<bool, std::string> DrawKalimaSiegeHelpers(const KalimaSiegeHelperPass& pass);
 
-// 0x5108b6..0x510a1c, el 0x16e: por cada hueso que no es dummy, fuera de los 15..20 y 27..32, el 0x5fd de escala 2,5
-// aditivo (con +0x1d6 en 0) o el 0x61e de 0,8 verde, y rand() & 3 en 0 en las acciones 3 y 4 para la partícula 0x5ca
-// con la misma luz. Después salta la cadena de helpers.
+// 0x5108b6..0x510a1c, type 0x16e: for each bone that is not a dummy, outside 15..20 and 27..32, the 0x5fd at scale 2.5
+// additive (with +0x1d6 at 0) or the green 0x61e at 0.8, and rand() & 3 at 0 in actions 3 and 4 for particle 0x5ca with
+// the same light. Then it skips the helper chain.
 [[nodiscard]] Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass& pass,
                                                                   const Models::Skeleton& skeleton);
 
-// 0x42a1b0(0x61e, modo, x, y, lado, lado, luz): los dos calcos girados de 0x5fb2f0, con 0x620b10 en el modo 0x80 (la
-// luz pasa a v y después a v · (1 − v)) y con 0x620a90 en los demás (la luz por v), v = sin(T · 0,0015f) · 0,3f + 0,7f.
+// 0x42a1b0(0x61e, mode, x, y, side, side, light): the two turned decals of 0x5fb2f0, with 0x620b10 in mode 0x80 (the
+// light becomes v and then v · (1 − v)) and with 0x620a90 in the others (the light times v), v = sin(T · 0.0015f) ·
+// 0.3f + 0.7f.
 [[nodiscard]] Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pass, std::int32_t mode,
                                                                float x, float y, float side, glm::vec3& light);
 } // namespace Client::Monsters::Drawing

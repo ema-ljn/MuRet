@@ -55,10 +55,10 @@
 #include <utility>
 #include <vector>
 
-// H2 T16: matriz del consumidor MoveHero con terreno contractual explícito y Skill.bmd real.
-// Los nombres KernelOnly evitan confundir una llamada aislada con entrada/1C/regen/render nativos.
-// La grilla plana vale 75, está abierta salvo donde el test crea un corredor/borde; Player sólo
-// presta 205 acciones sin geometría. El picker presta una celda explícita: no valida rayos ni GL.
+// H2 T16: the MoveHero consumer matrix with explicit contract terrain and the real Skill.bmd. The KernelOnly names keep
+// an isolated call from being mistaken for native input/1C/regen/render. The flat grid is 75 and open except where the
+// test makes a corridor/border; Player only lends 205 actions without geometry. The picker lends an explicit cell: it
+// validates no rays or GL.
 namespace
 {
 const Client::Session::HeroMovementHooks MovementHooks{};
@@ -119,13 +119,13 @@ constexpr std::array<MapCase, 37> MovementMaps{{
 constexpr float FlatHeight = 75.0f;
 constexpr std::uint32_t Seed = 0x1616;
 constexpr int MaximumMovementSteps = 256;
-// Dos cierres de espera, tres lecturas de celda en el clic y el sufijo propio/Skill real.
+// Two wait closes, three cell reads in the click and the own/real Skill suffix.
 constexpr int CommonPrefixRandoms = 2 * Client::Models::SmallLogicalCloseRandoms +
                                     Client::Models::OwnRecordCloseRandoms +
                                     static_cast<int>(Client::Tables::SkillRecordSize);
 constexpr int ClickPrefixRandoms =
     CommonPrefixRandoms + Client::Models::OwnRecordCloseRandoms + 3 * Client::Models::SmallLogicalCloseRandoms + 2;
-// Walk ordinario saca1; el inicio de MovePath escribe X/Y con dos cierres más.
+// An ordinary Walk draws 1; the start of MovePath writes X/Y with two more closes.
 constexpr int FirstMovingPrefixRandoms = CommonPrefixRandoms + 1 + 2 * Client::Models::SmallLogicalCloseRandoms;
 constexpr float CellSize = 100.0f;
 constexpr float CellCentre = 50.0f;
@@ -174,7 +174,7 @@ protected:
     {
         Hero() = Client::Tests::UnarmedPlayer();
         Hero().alive = true;
-        // Estado construido, opaco y quieto: evita las guardas nativas de alfa/acción del clic.
+        // Built state, opaque and idle: avoids the click's native alpha/action guards.
         Hero().alpha = Hero().alphaTarget = 1.0f;
         Hero().animation.action = Hero().animation.previousAction = 1;
         Hero().byte88 = 1;
@@ -409,8 +409,8 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
     ASSERT_EQ(Hero().cellX, 11);
     ASSERT_LT(Hero().position.x, 1100.0f);
-    // Con el pool: la burbuja de Atlans (0x506d0a, con el reloj en 0), la lluvia de Devil Square (0x506d7f) y los
-    // pasos de Kalima (0x5087fc) lo piden.
+    // With the pool: the Atlans bubble (0x506d0a, with the clock at 0), the Devil Square rain (0x506d7f) and the Kalima
+    // steps (0x5087fc) ask for it.
     auto particles = std::make_unique<Client::Particles::Particles>();
     const auto stepped = Client::Actors::StepCharacters({.world = m_world,
                                                          .random = m_random,
@@ -421,7 +421,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
                                                          .faunaModels = &m_faunaModels,
                                                          .reportedCell = &m_reportedCell,
                                                          .hooks = &StepHooks});
-    // En el 30, 0x412140 arma el panel del asedio con el puesto del arranque (0xff) y el paso sigue.
+    // On 30, 0x412140 builds the siege panel with the startup status (0xff) and the step goes on.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Hero().safeZone, 1);
 }
@@ -458,7 +458,7 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
     }
 }
 
-// 0x61a560 lleva el 32 al 9 y 0x447d70, con el mundo en curso, arma el objeto de Devil Square.
+// 0x61a560 takes 32 to 9 and 0x447d70, with the current world, arms the Devil Square object.
 TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
 {
     Client::Kernel::WorldState world;
@@ -488,7 +488,7 @@ TEST_F(GameMovementMapEvidenceTest, TheTwoSceneMapsExposeTerrainHeightsWithoutCl
             Client::Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, 10050.0f, 10050.0f);
         EXPECT_TRUE(std::isfinite(height));
         EXPECT_GE(height, 0.0);
-        // 54/55 corren otras escenas: no se llama StepHeroMovement aquí.
+        // 54/55 run other scenes: StepHeroMovement is not called here.
     }
 }
 

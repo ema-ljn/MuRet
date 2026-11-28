@@ -27,9 +27,9 @@
 #include <span>
 #include <string>
 
-// Los joints del conjunto completo (0x5102c3..0x5104cb) y el del 5ac/3 (0x52aa5d), con el personaje de dueño: el 60f/0
-// y el 60f/0x12 con su caída al 60f/1, el 610/7 y el 619/9. Los esperados repiten las fórmulas del ASM de 0x530860 y
-// 0x535840 con otro CrtRandom de la misma semilla.
+// The full set's joints (0x5102c3..0x5104cb) and the 5ac/3's (0x52aa5d), owned by the character: the 60f/0 and
+// 60f/0x12 with their fall to the 60f/1, the 610/7 and the 619/9. The expected values repeat the ASM formulas of
+// 0x530860 and 0x535840 with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -99,13 +99,13 @@ Create(std::span<JointState> joints, Request request, void* owner, CrtRandom& ra
     return Client::Joints::CreateFaunaJoint(joints, made, random, ownerKind);
 }
 
-// La cola común (0x53c393) con los ángulos en 0: count sube hasta maximumCount − 1.
+// The common tail (0x53c393) with angles at 0: count rises up to maximumCount − 1.
 std::int32_t Appended(std::int32_t count, std::int32_t maximum)
 {
     return std::min(count + 1, maximum - 1);
 }
 
-// Lo que un 60f/0 o 60f/0x12 hace en un paso de 0x53b239 con la key en −1, sin la caída.
+// What a 60f/0 or 60f/0x12 does in one 0x53b239 step with the key at −1, without the fall.
 void TurnSparkle(JointState& expected)
 {
     const double tenth = D(Float(0x3dcccccdu));
@@ -135,8 +135,8 @@ void TurnSparkle(JointState& expected)
 }
 } // namespace
 
-// 0x533677 y 0x5341fc..0x5342d2: el 60f/0 de ancho 10 (0x51037c): vida 100, 20 puntos, velocidad 40, vz (rand() % 150)
-// · 0,01f, vy rand() % 500 − 250, la luz del personaje y el destino en el segundo punto. Dos rand().
+// 0x533677 and 0x5341fc..0x5342d2: the 60f/0 of width 10 (0x51037c): life 100, 20 points, speed 40, vz (rand() % 150)
+// · 0.01f, vy rand() % 500 − 250, the character's light and the target at the second point. Two rand().
 TEST(FullSetJointsTest, TheSparkleIsBornWithTheLightOfItsOwnerAndTwoRandoms)
 {
     ActorState actor;
@@ -173,7 +173,7 @@ TEST(FullSetJointsTest, TheSparkleIsBornWithTheLightOfItsOwnerAndTwoRandoms)
     EXPECT_TRUE(joint.tailEnabled);
 }
 
-// Sin el personaje, el 60f/0 no puede leer su luz (0x53429b).
+// Without the character, the 60f/0 cannot read its light (0x53429b).
 TEST(FullSetJointsTest, TheSparkleNeedsItsOwner)
 {
     std::array<JointState, 1> joints{};
@@ -185,8 +185,8 @@ TEST(FullSetJointsTest, TheSparkleNeedsItsOwner)
     EXPECT_NE(created.Error().find("0x53429b"), std::string::npos) << created.Error();
 }
 
-// 0x53b239..0x53b3d1: el 60f/0 gira a 40 alrededor de su destino con (vida + vy) · 0,1f, sube vz y, con la vida debajo
-// de 10, la luz por 0,7692308f; la cola común lo agrega y muere en el paso 101. Sin rand().
+// 0x53b239..0x53b3d1: the 60f/0 turns at 40 around its target with (life + vy) · 0.1f, rises by vz and, with life below
+// 10, the light times 0.7692308f; the common tail appends it and it dies at step 101. No rand().
 TEST(FullSetJointsTest, TheSparkleTurnsAroundItsTargetUntilItsLifeRunsOut)
 {
     ActorState actor;
@@ -215,9 +215,9 @@ TEST(FullSetJointsTest, TheSparkleTurnsAroundItsTargetUntilItsLifeRunsOut)
     EXPECT_EQ(random.State(), state);
 }
 
-// 0x53b378..0x53b3a9: con el ancho debajo de 40 y la acción del dueño en [0xd, 0x21] o [0x38, 0x3c], después de girar,
-// pasa al 60f/1 sin cola y con la vida en 10 a lo sumo. El 60f/1 no se mueve (0x5358bc), sólo se apaga con la vida
-// debajo de 10, y muere cuando se le acaba la vida (Q-C383).
+// 0x53b378..0x53b3a9: with the width below 40 and the owner's action in [0xd, 0x21] or [0x38, 0x3c], after turning, it
+// becomes the 60f/1 without tail and with life at most 10. The 60f/1 does not move (0x5358bc), only fades with life
+// below 10, and dies when its life runs out (Q-C383).
 TEST(FullSetJointsTest, TheSparkleFallsWithTheActionsOfItsOwnerAndThenOnlyFades)
 {
     struct Case
@@ -277,8 +277,8 @@ TEST(FullSetJointsTest, TheSparkleFallsWithTheActionsOfItsOwnerAndThenOnlyFades)
     }
 }
 
-// 0x444740: el 60f/0 del caballo oscuro lleva su HelperState de dueño, y 0x53429b lee de él la luz propia (+0xf4, la
-// que 0x443d70 pone en 3), no la del personaje. Lo demás nace igual que con el personaje.
+// 0x444740: the dark horse's 60f/0 has its HelperState as owner, and 0x53429b reads its own light from it (+0xf4, the
+// one 0x443d70 sets to 3), not the character's. The rest is created as with the character.
 TEST(FullSetJointsTest, TheSparkleOfTheHorseIsBornWithTheLightOfTheHorse)
 {
     HelperState horse;
@@ -307,7 +307,7 @@ TEST(FullSetJointsTest, TheSparkleOfTheHorseIsBornWithTheLightOfTheHorse)
                                         F32(static_cast<double>(rise % 250 + 200) * D(Float(0x3c23d70au)))));
     EXPECT_EQ(joint.targetPosition, request.second);
 
-    // 0x530860 escribe el tipo de dueño en cada alta: el lugar vuelve a ByType con el personaje.
+    // 0x530860 writes the owner kind at each creation: the slot goes back to ByType with the character.
     joints[0].alive = false;
     ActorState actor;
     actor.light = glm::vec3(0.5f);
@@ -316,8 +316,8 @@ TEST(FullSetJointsTest, TheSparkleOfTheHorseIsBornWithTheLightOfTheHorse)
     EXPECT_EQ(joints[0].light, actor.light);
 }
 
-// 0x53b378..0x53b3a9 con el caballo de dueño: debajo de 40 de ancho la caída mira la acción del caballo (+0x111, la de
-// DarkHorse), no la del personaje.
+// 0x53b378..0x53b3a9 with the horse as owner: below width 40 the fall looks at the horse's action (+0x111,
+// DarkHorse's), not the character's.
 TEST(FullSetJointsTest, TheSparkleOfTheHorseFallsWithTheActionOfTheHorse)
 {
     for (const std::uint8_t action : {std::uint8_t{0xc}, std::uint8_t{0xd}})
@@ -342,8 +342,8 @@ TEST(FullSetJointsTest, TheSparkleOfTheHorseFallsWithTheActionOfTheHorse)
     }
 }
 
-// MuRet sólo sabe leer un ayudante de dueño en el 60f/0 y el 60f/0x12: con otro joint corta antes de escribir el lugar
-// y sin rand(); con el pool lleno no lee los argumentos.
+// MuRet can only read a helper owner in the 60f/0 and 60f/0x12: with another joint it stops before writing the slot and
+// without rand(); with the pool full it does not read the arguments.
 TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
 {
     HelperState horse;
@@ -363,9 +363,9 @@ TEST(FullSetJointsTest, OnlyTheSparklesTakeAHelperForOwner)
     EXPECT_FALSE(full.Value().has_value());
 }
 
-// 0x53c393: un 60f/1 con la cola usa la matriz que dejó en [ebp−0xe8] el último joint de la vuelta que la calculó (el
-// 60f/0 que cae la apaga, así que sólo se llega con un estado armado a mano). Sin ninguno antes, la de la pila: con
-// dibujo corta (Q-C1623).
+// 0x53c393: a 60f/1 with the tail uses the matrix that the last joint of the loop that computed it left in [ebp−0xe8]
+// (the falling 60f/0 turns it off, so it is only reached with a hand-built state). With none before, the one on the
+// stack: with drawing it stops (Q-C1623).
 TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
 {
     std::array<JointState, 2> joints{};
@@ -384,7 +384,7 @@ TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53c3a5"), std::string::npos) << stepped.Error();
 
-    // El 0x613/0xa de antes calcula la matriz con sus ángulos de antes del caso (0, 0, 90).
+    // The earlier 0x613/0xa computes the matrix with its angles from before the case (0, 0, 90).
     joints[0].alive = true;
     joints[0].type = 0x613;
     joints[0].subtype = 0xa;
@@ -400,9 +400,9 @@ TEST(FullSetJointsTest, AFallenSparkleWithItsTailUsesThePreviousMatrix)
     EXPECT_EQ(joints[1].position, (glm::vec3{10.0f, 20.0f, 30.0f}));
 }
 
-// 0x534cb6: los 60f/0x12 (0x5103be) restan (mezcla 4) y, con el ancho 20, viven 50 con un tercer rand() para vz:
-// (rand() % 250 + 200) · 0,01f. Giran con la vida doble, el skill 1 al revés, suben vz · 1,1f y crecen la velocidad
-// 0,1f y el ancho 0,2f por paso.
+// 0x534cb6: the 60f/0x12 (0x5103be) subtract (blend 4) and, with width 20, live 50 with a third rand() for vz:
+// (rand() % 250 + 200) · 0.01f. They turn with doubled life, skill 1 reversed, rise by vz · 1.1f and grow the speed
+// 0.1f and the width 0.2f per step.
 TEST(FullSetJointsTest, TheWideSparklesTurnBothWaysAndGrow)
 {
     for (const std::int32_t skill : {0, 1})
@@ -448,7 +448,7 @@ TEST(FullSetJointsTest, TheWideSparklesTurnBothWaysAndGrow)
     }
 }
 
-// 0x53b378: con el ancho en 40 o más, la acción del dueño no lo hace caer.
+// 0x53b378: with the width at 40 or more, the owner's action does not make it fall.
 TEST(FullSetJointsTest, AWideSparkleOfFortyDoesNotFall)
 {
     ActorState actor;
@@ -464,9 +464,9 @@ TEST(FullSetJointsTest, AWideSparkleOfFortyDoesNotFall)
     EXPECT_EQ(joints[0].life, 49);
 }
 
-// 0x531c43..0x531ec7: el 610/7 de +13 (0x5104a8): la vida en la key (0x28), la luz en 1, vy y vz en 0, mezcla 4,
-// velocidad 10, la textura 0x60f, el ancho, 16 puntos y vx 15. La x y la y se corren 40 desde el segundo punto con el
-// coseno y el seno de rand() % 360 tomado en radianes (Q-C384); la partida (+0x24) es esa posición.
+// 0x531c43..0x531ec7: the 610/7 at +13 (0x5104a8): life to the key (0x28), light at 1, vy and vz at 0, blend 4, speed
+// 10, texture 0x60f, the width, 16 points and vx 15. x and y shift 40 from the second point with the cosine and sine of
+// rand() % 360 taken as radians (Q-C384); the start (+0x24) is that position.
 TEST(FullSetJointsTest, TheSetTrailIsBornFortyAwayFromItsSecondPoint)
 {
     ActorState actor;
@@ -500,7 +500,7 @@ TEST(FullSetJointsTest, TheSetTrailIsBornFortyAwayFromItsSecondPoint)
     EXPECT_EQ(joint.skill, 1);
 }
 
-// 0x531c7b: con el color 3 y sin dueño, lo común del 0x610 lee la luz de un nulo.
+// 0x531c7b: with color 3 and without an owner, the common 0x610 part reads the light of a null.
 TEST(FullSetJointsTest, TheSetTrailOfColorThreeNeedsItsOwner)
 {
     std::array<JointState, 1> joints{};
@@ -513,8 +513,8 @@ TEST(FullSetJointsTest, TheSetTrailOfColorThreeNeedsItsOwner)
     EXPECT_EQ(random.State(), CrtRandom(1).State());
 }
 
-// 0x537c82..0x537d17: el 610/7 se mece desde su partida con sen(vida · 0,4f) · vx, sube la velocidad (que baja 0,1f,
-// como vx) y, con la vida debajo de 15, la luz por 0,8333333f. Muere en el paso 41. Sin rand().
+// 0x537c82..0x537d17: the 610/7 sways from its start with sin(life · 0.4f) · vx, rises by the speed (which drops 0.1f,
+// like vx) and, with life below 15, the light times 0.8333333f. It dies at step 41. No rand().
 TEST(FullSetJointsTest, TheSetTrailSwaysUpwardsUntilItsLifeRunsOut)
 {
     ActorState actor;
@@ -550,9 +550,9 @@ TEST(FullSetJointsTest, TheSetTrailSwaysUpwardsUntilItsLifeRunsOut)
     EXPECT_EQ(random.State(), state);
 }
 
-// 0x5323d3 y 0x53254f..0x5325c2: el 619/9 del 5ac/3: vida 90, 20 puntos, count 0, +0x9ec en ftol del giro z, vx 50,
-// la luz (0,09090909f; 0,04545455f; 0,09090909f) y la posición y el destino en el personaje. Sin rand(); sin el
-// personaje, corta (0x5325a2).
+// 0x5323d3 and 0x53254f..0x5325c2: the 5ac/3's 619/9: life 90, 20 points, count 0, +0x9ec at the ftol of the z turn,
+// vx 50, light (0.09090909f; 0.04545455f; 0.09090909f) and the position and target on the character. No rand();
+// without the character, it stops (0x5325a2).
 TEST(FullSetJointsTest, TheSetEnergyIsBornOnItsOwnerWithTheTurnOfTheFlare)
 {
     ActorState actor;
@@ -585,9 +585,10 @@ TEST(FullSetJointsTest, TheSetEnergyIsBornOnItsOwnerWithTheTurnOfTheFlare)
     EXPECT_NE(cut.Error().find("0x5325a2"), std::string::npos) << cut.Error();
 }
 
-// 0x5387a9..0x5388e2: el 619/9 sigue al personaje en vivo: corre los tramos de count − 1 a 0 lo que se movió, gira a vx
-// del destino con +0x9ec · 0,1f (+0x9ec sube 2), la z es el destino más 90 − vida más 10; vx baja 1 y en el paso 51,
-// por debajo de 0, queda en 0 con la vida en 0. La luz por 1,25 por encima de 80 y por 0,9090909f debajo de 50.
+// 0x5387a9..0x5388e2: the 619/9 follows the character live: shifts the segments from count − 1 to 0 by how much it
+// moved, turns at vx from the target with +0x9ec · 0.1f (+0x9ec rises 2), z is the target plus 90 − life plus 10; vx
+// drops 1 and at step 51, below 0, stays at 0 with life at 0. The light times 1.25 above 80 and times 0.9090909f below
+// 50.
 TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
 {
     ActorState actor;
@@ -643,7 +644,7 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
         EXPECT_EQ(joint.count, expected.count);
         EXPECT_EQ(joint.life, expected.life);
         EXPECT_EQ(joint.alive, step < 51);
-        // Los tramos de count − 1 a 0 corridos y, con la cola, un lugar más atrás; el último no se corre.
+        // The segments from count − 1 to 0 shifted and, with the tail, one slot further back; the last is not shifted.
         for (std::int32_t segment = 0; segment < joint.count; ++segment)
         {
             SCOPED_TRACE(segment);
@@ -657,7 +658,7 @@ TEST(FullSetJointsTest, TheSetEnergyCirclesItsMovingOwnerUntilItsRadiusRunsOut)
     EXPECT_EQ(random.State(), CrtRandom(1).State());
 }
 
-// 0x5325c7..0x532659: el 619/0xa de la 0x35: como el /9, con vida 80, vx 80 y +0x9d4 en 1 sólo con el giro 225 o 405.
+// 0x5325c7..0x532659: the 0x35's 619/0xa: like the /9, with life 80, vx 80 and +0x9d4 at 1 only with turn 225 or 405.
 TEST(FullSetJointsTest, TheSkillEnergyTurnsForwardOnlyFromTwoAngles)
 {
     for (const float turn : {45.0f, 405.0f, 225.0f, 450.0f})
@@ -688,11 +689,11 @@ TEST(FullSetJointsTest, TheSkillEnergyTurnsForwardOnlyFromTwoAngles)
     }
 }
 
-// 0x5388e7..0x538a4d: el 619/0xa sigue al dueño como el /9, con la z en el destino más vida · 0,0125f · 300, +0x9ec
-// que sube 2 con +0x9d4 y si no baja 2, y la luz por 1,2f por encima de 68 y por 0,9090909f debajo de 40. En el paso
-// 81, vx por debajo de 0, queda en 0 con la vida en 0. Los valores, por sus bits, salen de un cálculo aparte del ASM
-// (FSIN/FCOS a 64 bits, PC53 y fstp a float) en los pasos 1 y 12 (la luz sube), 20 (el dueño se mueve 3,5; −2,25 y 1
-// antes del paso), 42 (la luz baja), 80 (vx en 0) y 81 (la vida en 0 y muerto).
+// 0x5388e7..0x538a4d: the 619/0xa follows the owner like the /9, with z at the target plus life · 0.0125f · 300, +0x9ec
+// which rises 2 with +0x9d4 and otherwise drops 2, and the light times 1.2f above 68 and times 0.9090909f below 40. At
+// step 81, vx below 0, it stays at 0 with life at 0. The values, by their bits, come from a computation apart from the
+// ASM (FSIN/FCOS at 64 bits, PC53 and fstp to float) at steps 1 and 12 (the light rises), 20 (the owner moves 3.5;
+// −2.25 and 1 before the step), 42 (the light drops), 80 (vx at 0) and 81 (life at 0 and dead).
 TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
 {
     struct Checkpoint
@@ -787,10 +788,10 @@ TEST(FullSetJointsTest, TheSkillEnergyCirclesItsOwnerAndClimbsWithItsLife)
     }
 }
 
-// El 619/1 del calco de la mascota y el 619/3 del calco de las invocaciones (0x518900), con el héroe de dueño.
+// The pet decal's 619/1 and the summons decal's 619/3 (0x518900), owned by the hero.
 namespace
 {
-// 4e9810 con el destino: el yaw y el pitch giran de a `turn` (lo que hace SteerJoint en el paso).
+// 0x4e9810 with the target: yaw and pitch turn by `turn` (what SteerJoint does in the step).
 void Steer(JointState& expected, const glm::vec3& target, float turn)
 {
     using Client::Math::CreateAngle;
@@ -805,8 +806,8 @@ void Steer(JointState& expected, const glm::vec3& target, float turn)
 }
 } // namespace
 
-// 0x5323d3..0x5323f8 y 0x5325ca: el 619/1 y el 619/3 sólo tienen lo común del 0x619: velocidad 0, vida 12, el ancho y 2
-// puntos. Sin rand(); la posición es el primer punto y el destino no se escribe, porque tiene dueño.
+// 0x5323d3..0x5323f8 and 0x5325ca: the 619/1 and 619/3 only have the common 0x619 part: speed 0, life 12, the width and
+// 2 points. No rand(); the position is the first point and the target is not written, because it has an owner.
 TEST(FullSetJointsTest, TheSummonEnergyIsBornWithTheCommonFieldsOfThe619)
 {
     for (const std::int32_t subtype : {1, 3})
@@ -842,7 +843,7 @@ TEST(FullSetJointsTest, TheSummonEnergyIsBornWithTheCommonFieldsOfThe619)
 
 namespace
 {
-// 0x538a52..0x538d28 con el 619/1 o el 619/3 (lo comprueba el test de abajo).
+// 0x538a52..0x538d28 with the 619/1 or 619/3 (the test below checks it).
 void ClimbTowardsTheOwner(std::int32_t subtype)
 {
     ActorState hero;
@@ -892,7 +893,7 @@ void ClimbTowardsTheOwner(std::int32_t subtype)
             EXPECT_EQ(shown->light, expected.light);
             EXPECT_EQ(shown->rotation, rotation);
         }
-        // El sprite de la última vida queda en la tabla del frame: ninguno antes y ése solo después.
+        // The last life's sprite stays in the frame table: none before and only that one after.
         EXPECT_EQ(std::ranges::count_if(sprites.Sprites(), [](const auto& sprite) { return sprite.alive; }),
                   step >= 12 ? 1 : 0);
         expected.count = Appended(expected.count, expected.maximumCount);
@@ -912,10 +913,10 @@ void ClimbTowardsTheOwner(std::int32_t subtype)
 
 } // namespace
 
-// 0x538a52..0x538d28: después del avance común con la velocidad de antes, sube 4; gira de a 10 hacia el héroe 120 más
-// arriba, leído en vivo; la luz es (12 − vida) · 0,1f por (0,4f; 0,6f; 1) la /1 y por (1; 0,6f; 0,4f) la /3
-// (0x538bc8) y, con la vida en 1, el sprite 0x5fd en ese destino con el giro rand() % 360 y la escala
-// ((rand() & 7) + 8) · 0,2f. La cola común con la matriz del principio del paso; muere en el paso 13.
+// 0x538a52..0x538d28: after the common advance with the earlier speed, the speed rises 4; it turns 10 at a time toward
+// the hero 120 higher, read live; the light is (12 − life) · 0.1f times (0.4f; 0.6f; 1) for the /1 and times (1; 0.6f;
+// 0.4f) for the /3 (0x538bc8) and, with life at 1, the 0x5fd sprite at that target with a rand() % 360 turn and scale
+// ((rand() & 7) + 8) · 0.2f. The common tail with the matrix from the start of the step; it dies at step 13.
 TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLife)
 {
     for (const std::int32_t subtype : {1, 3})
@@ -925,8 +926,8 @@ TEST(FullSetJointsTest, TheSummonEnergyClimbsTowardsItsOwnerAndShinesOnItsLastLi
     }
 }
 
-// 0x538b17: sin el héroe no tiene a quién seguir; 0x538cce: en la última vida, sin el RNG o los sprites corta antes de
-// tocar nada.
+// 0x538b17: without the hero it has no one to follow; 0x538cce: in the last life, without the RNG or the sprites it
+// stops before touching anything.
 TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
 {
     std::array<JointState, 1> joints{};
@@ -950,8 +951,8 @@ TEST(FullSetJointsTest, TheSummonEnergyNeedsItsOwnerAndItsLastSprite)
     EXPECT_EQ(last[0].life, 1);
 }
 
-// El 619/6 de los rayos del 0x813 (0x52cb85), sin dueño. 0x5323d3..0x532415: lo común del 0x619 y la luz (1; 1; 0,5)
-// con 4 puntos; el destino es el segundo punto. Sin rand().
+// The 0x813 bolts' 619/6 (0x52cb85), ownerless. 0x5323d3..0x532415: the common 0x619 part and light (1; 1; 0.5) with 4
+// points; the target is the second point. No rand().
 TEST(FullSetJointsTest, TheBoltEnergyIsBornWithAPaleLight)
 {
     std::array<JointState, 1> joints{};
@@ -974,9 +975,10 @@ TEST(FullSetJointsTest, TheBoltEnergyIsBornWithAPaleLight)
     EXPECT_EQ(joint.ownerContext, nullptr);
 }
 
-// 0x538a52..0x538a70 y 0x538c25..0x538ca9: después del avance común con la velocidad de antes, sube 2, sin girar ni
-// cambiar la luz. Con 10 de vida o menos, el sprite 0x5fd en el destino con la luz gris (6 − |vida − 6|) · 0,15f, el
-// giro rand() % 360 y la escala ((rand() & 7) + 8) · 0,05f: once sprites, del paso 3 al 13, en que muere.
+// 0x538a52..0x538a70 and 0x538c25..0x538ca9: after the common advance with the earlier speed, the speed rises 2,
+// without turning or changing the light. With 10 life or less, the 0x5fd sprite at the target with the gray light (6 −
+// |life − 6|) · 0.15f, a rand() % 360 turn and scale ((rand() & 7) + 8) · 0.05f: eleven sprites, from step 3 to 13,
+// when it dies.
 TEST(FullSetJointsTest, TheBoltEnergyGlidesAndSparksInItsLastLives)
 {
     std::array<JointState, 1> joints{};
@@ -1033,7 +1035,7 @@ TEST(FullSetJointsTest, TheBoltEnergyGlidesAndSparksInItsLastLives)
     EXPECT_EQ(made, 11u);
 }
 
-// 0x538c5d: con 10 de vida o menos, sin el RNG o los sprites corta; antes, no los pide.
+// 0x538c5d: with 10 life or less, without the RNG or the sprites it stops; before that, it does not ask for them.
 TEST(FullSetJointsTest, TheBoltEnergyNeedsTheSpritesOnlyForItsSparks)
 {
     std::array<JointState, 1> joints{};
@@ -1048,16 +1050,16 @@ TEST(FullSetJointsTest, TheBoltEnergyNeedsTheSpritesOnlyForItsSparks)
     EXPECT_NE(blind.Error().find("0x538c5d"), std::string::npos) << blind.Error();
 }
 
-// El 619/8 de la skill cargada del mago (0x5189f0), con el personaje de dueño. Los esperados son literales, calculados
-// aparte del port (Fraction y redondeos de la x87; el primer rand() de la semilla 1 es 41).
+// The wizard's charged skill 619/8 (0x5189f0), owned by the character. The expected values are literals, computed
+// outside the port (Fraction and the x87's roundings; seed 1's first rand() is 41).
 namespace
 {
 constexpr std::int32_t ChargedEnergy = 8;
 } // namespace
 
-// 0x5323d3..0x5323f8 y 0x5324ea..0x53254a: lo común del 0x619 (velocidad 0, el ancho) y el caso 8: vida 0x11, 3 puntos,
-// la luz (0,5; 0,5; (41 & 0x7f) · 1/255f + 0,5) y el destino en el segundo punto con z + 100, aunque tenga dueño. Un
-// rand(); la posición y los ángulos, los del pedido.
+// 0x5323d3..0x5323f8 and 0x5324ea..0x53254a: the common 0x619 part (speed 0, the width) and case 8: life 0x11, 3
+// points, light (0.5; 0.5; (41 & 0x7f) · 1/255f + 0.5) and the target at the second point with z + 100, even with an
+// owner. One rand(); the position and angles are the request's.
 TEST(FullSetJointsTest, TheChargedEnergyIsBornWithAHalfLightAndOneRandom)
 {
     ActorState hero;
@@ -1090,7 +1092,7 @@ TEST(FullSetJointsTest, TheChargedEnergyIsBornWithAHalfLightAndOneRandom)
     EXPECT_EQ(joint.ownerContext, &hero);
 }
 
-// 0x530860..0x53088a: con la tabla llena sale antes del caso, sin el rand() de la luz.
+// 0x530860..0x53088a: with the table full it leaves before the case, without the light's rand().
 TEST(FullSetJointsTest, TheChargedEnergyIsNotBornInAFullPoolNorDrawsItsRandom)
 {
     ActorState hero;
@@ -1106,10 +1108,10 @@ TEST(FullSetJointsTest, TheChargedEnergyIsNotBornInAFullPoolNorDrawsItsRandom)
     EXPECT_EQ(random.State(), CrtRandom(1).State());
 }
 
-// 0x538a52..0x538a70, 0x538a94..0x538b15 y 0x53c393, con 17 de vida y la velocidad en 0 (sin avance común): la
-// velocidad en 4; gira de a 10 hacia el destino (300, 200, 400) desde (100, 200, 400): el rumbo 90 deja la z en 10 y la
-// inclinación 360 (0x4e93f0 sin x da 0) deja la x en 360; el sprite 0x5ac en la posición con la escala 1, la luz, el
-// giro 0 y la mezcla 0. La luz no cambia (0x53c628 lleva la /8 a 0x538c23). Sin rand(); la cola común: un punto y 16.
+// 0x538a52..0x538a70, 0x538a94..0x538b15 and 0x53c393, with 17 life and speed 0 (no common advance): the speed at 4; it
+// turns 10 at a time toward the target (300, 200, 400) from (100, 200, 400): heading 90 leaves z at 10 and pitch 360
+// (0x4e93f0 without x gives 0) leaves x at 360; the 0x5ac sprite at the position with scale 1, the light, turn 0 and
+// blend 0. The light does not change (0x53c628 takes the /8 to 0x538c23). No rand(); the common tail: one point and 16.
 TEST(FullSetJointsTest, TheChargedEnergySteersTowardsItsTargetAndLeavesAFlare)
 {
     ActorState hero;
@@ -1146,8 +1148,9 @@ TEST(FullSetJointsTest, TheChargedEnergySteersTowardsItsTargetAndLeavesAFlare)
     EXPECT_EQ(flare.blend, 0);
 }
 
-// 0x538aad..0x538af5: con 10 de vida o menos no gira; con menos de 6, cada canal de la luz por 0,5555556f (0x6ba234):
-// 0,5 da 0x3e8e38e4 y 0x3f292929 da 0x3ebbf4d9. El sprite 0x5ac sale igual, con la luz que quedó.
+// 0x538aad..0x538af5: with 10 life or less it does not turn; with less than 6, each light channel times 0.5555556f
+// (0x6ba234): 0.5 gives 0x3e8e38e4 and 0x3f292929 gives 0x3ebbf4d9. The 0x5ac sprite comes out the same, with the light
+// that is left.
 TEST(FullSetJointsTest, TheChargedEnergyStopsTurningAndFadesBelowSixLives)
 {
     struct Case
@@ -1181,7 +1184,7 @@ TEST(FullSetJointsTest, TheChargedEnergyStopsTurningAndFadesBelowSixLives)
     }
 }
 
-// 0x538b0d: el sprite de cada paso pide la tabla de sprites del frame; sin ella corta antes de tocar el joint.
+// 0x538b0d: each step's sprite needs the frame's sprite table; without it, it stops before touching the joint.
 TEST(FullSetJointsTest, TheChargedEnergyNeedsTheFrameSprites)
 {
     ActorState hero;

@@ -10,14 +10,15 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 4, fase 2c: el blanco de una skill (0x57ce80), que llaman la cabeza de 0x57cfc0 (0x57d4c2, sin mirar el
-// resultado), la rama del elfo (0x57e12b) y la del Wizard (0x58a118, que lo guarda en [ebp−0x3d]).
+// A skill's target (0x57ce80), called by the head of 0x57cfc0 (0x57d4c2, without checking the result), the elf branch
+// (0x57e12b) and the Wizard's (0x58a118, which stores it in [ebp−0x3d]).
 namespace Client::Skills
 {
 
-// 0x57ce80(héroe): con un elegido (0x6c8e30), su celda (ftol de la posición · 0,01) en 0x77e1ba8/0x77e1bac y su
-// posición en +0x3a8..+0x3b0 del héroe, y 1. Sin él, el punto del terreno bajo el mouse (0x5fc260(1) y 0x5fac90): si
-// acierta, el punto en +0x3a8..+0x3b0 y su celda, y 1; si no, 0 sin tocar nada. Sin rand().
+// 0x57ce80(hero): with a chosen target (0x6c8e30), its cell (ftol of the position · 0.01) in 0x77e1ba8/0x77e1bac and
+// its position in the hero's +0x3a8..+0x3b0, and 1. Without one, the terrain point under the mouse (0x5fc260(1) and
+// 0x5fac90): if it hits, the point in +0x3a8..+0x3b0 and its cell, and 1; otherwise 0 without touching anything. No
+// rand().
 [[nodiscard]] Core::Expected<bool, std::string> AimTheHeroSkill(Kernel::ActorState& hero,
                                                                 const HeroSkillContext& context);
 } // namespace Client::Skills

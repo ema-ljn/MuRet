@@ -85,30 +85,30 @@ using Maps::IsBloodCastle;
 using Maps::IsChaosCastle;
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::int32_t NoShadowMap = 10;
-// 0x5ffdf0: por debajo de 0,01f (0x6b88d4) no posa ni dibuja; en Chaos Castle, con +0x1a1 del héroe, 0,15f menos
-// (0x6b8ae8) en cada llamada.
+// 0x5ffdf0: below 0.01f (0x6b88d4) it neither poses nor draws; in Chaos Castle, with the hero's +0x1a1, 0.15f less
+// (0x6b8ae8) on each call.
 constexpr float DrawnAlpha = std::bit_cast<float>(0x3c23d70au);
 constexpr float ChaosCastleFade = std::bit_cast<float>(0x3e19999au);
-// 0x50be04: la sombra desde 0,3f (0x6b89dc).
+// 0x50be04: the shadow from 0.3f (0x6b89dc) on.
 constexpr float ShadowAlpha = std::bit_cast<float>(0x3e99999au);
-// 0x5ffdf0..0x600135: las constantes del contorno.
-constexpr float OutlineScale = std::bit_cast<float>(0x3f99999au);      // 1,2
-constexpr float InnerOutlineScale = std::bit_cast<float>(0x3f8a3d71u); // 1,08
-constexpr float MinimumOutline = std::bit_cast<float>(0x3f8147aeu);    // 1,01
-constexpr float NpcOutlineStep = std::bit_cast<float>(0x3df5c28fu);    // 0,12 (0x6ba1d8)
-constexpr float OutlineStep = std::bit_cast<float>(0x3d23d70au);       // 0,04 (0x6b8aec)
-constexpr float OuterSpan = std::bit_cast<float>(0x3dcccccdu);         // 0,1 (0x6b87b8)
-// 0x50b870 y 0x50b920: sin(T · 0,002f (0x6b89bc)) · 0,3f (0x6b89dc).
+// 0x5ffdf0..0x600135: the outline's constants.
+constexpr float OutlineScale = std::bit_cast<float>(0x3f99999au);      // 1.2
+constexpr float InnerOutlineScale = std::bit_cast<float>(0x3f8a3d71u); // 1.08
+constexpr float MinimumOutline = std::bit_cast<float>(0x3f8147aeu);    // 1.01
+constexpr float NpcOutlineStep = std::bit_cast<float>(0x3df5c28fu);    // 0.12 (0x6ba1d8)
+constexpr float OutlineStep = std::bit_cast<float>(0x3d23d70au);       // 0.04 (0x6b8aec)
+constexpr float OuterSpan = std::bit_cast<float>(0x3dcccccdu);         // 0.1 (0x6b87b8)
+// 0x50b870 and 0x50b920: sin(T · 0.002f (0x6b89bc)) · 0.3f (0x6b89dc).
 constexpr float PulseRate = std::bit_cast<float>(0x3b03126fu);
 constexpr float PulseSpan = std::bit_cast<float>(0x3e99999au);
 constexpr std::uint16_t WideOutlineType = 0x172;
-constexpr std::uint16_t KalimaGate = 0xc5;                                    // los monstruos 152 a 158 (0x514390)
+constexpr std::uint16_t KalimaGate = 0xc5;                                    // monsters 152 to 158 (0x514390)
 constexpr auto ArmorPart = static_cast<std::size_t>(Kernel::BodyPart::Armor); // +0x238
 constexpr std::uint32_t RiderFlag = 0x4000;
 
-// El tercer argumento de 0x602e90, que pasa a 0x5ffdf0 (0x5fff7f..0x5fffb7): con 1, el contorno; con 2 y 3, sin él,
-// 0x6c881c en 1,2f (0x3f99999a) y 1,4f (0x3fb33333) para el último 0x4ebc80, el del cuerpo; con otro, 1. 0x6002e0 no
-// lo mira.
+// The third argument of 0x602e90, which it passes to 0x5ffdf0 (0x5fff7f..0x5fffb7): with 1, the outline; with 2 and 3,
+// without it, 0x6c881c at 1.2f (0x3f99999a) and 1.4f (0x3fb33333) for the last 0x4ebc80, the body's; with any other, 1.
+// 0x6002e0 does not look at it.
 enum class PoseMode : std::uint8_t
 {
     Plain = 0,
@@ -144,7 +144,7 @@ Result Cut(std::string_view address, std::string_view what, std::uint16_t type)
     return Core::Unexpected(std::format("{}: {} (el tipo {:#x}) no está portado", address, what, type));
 }
 
-// 0x50bd05..0x50bd7e: el cuarto argumento de 0x602e90, el +0x376 si está en la lista y si no 0.
+// 0x50bd05..0x50bd7e: the fourth argument of 0x602e90, the +0x376 if it is in the list and 0 otherwise.
 std::uint16_t SpecialOf(std::uint16_t monster)
 {
     constexpr std::array<std::uint16_t, 6> Listed{0x43, 0x4a, 0x4b, 0x87, 0x88, 0x89};
@@ -153,18 +153,18 @@ std::uint16_t SpecialOf(std::uint16_t monster)
     return 0;
 }
 
-// 0x5ffce0: el color del modelo. El 0x189 en 0,6 y el 0xe4 con el seno del reloj no escriben la luz por vértice
-// (+0x44 del modelo), que solo ponen en 0 los contornos: queda apagada (Q-C859, *inferido*). Los demás, la luz del
-// terreno (0x5f99e0) más la propia (+0xf4), con la luz por vértice, o un décimo de ella sin.
+// 0x5ffce0: the model's color. Type 0x189 at 0.6 and type 0xe4 with the clock's sine do not write the per-vertex
+// light (+0x44 of the model), which only the outlines set to 0: it stays off (Q-C859, *inferred*). The others, the
+// terrain light (0x5f99e0) plus their own (+0xf4), with the per-vertex light, or a tenth of it without.
 struct ModelLight
 {
     glm::vec3 color{1.0f};
     bool vertexLight = false;
 };
 
-// FLD T; FMUL tasa; FSIN y FMUL o FADD de un float de la .data: el seno retenido con un solo R53 (ADR0014). El reloj
-// del frame son los ms desde el arranque, finitos y lejos de 2^63 / tasa, y DrawGameHanging corta en el mismo frame si
-// pasa de 2^40: fuera del perfil, que no se alcanza, queda 0 (como GameHanging).
+// FLD T; FMUL rate; FSIN and FMUL or FADD by a .data float: the sine kept with a single R53 (ADR0014). The frame clock
+// is the ms since startup, finite and far from 2^63 / rate, and DrawGameHanging cuts in the same frame past 2^40:
+// outside the profile, which is never reached, it is 0 (as in GameHanging).
 double ClockSine(float worldClock, float rate, float factor)
 {
     return Math::Detail::SineProductPC53(D(worldClock) * D(rate), factor).value_or(0.0);
@@ -195,9 +195,8 @@ ModelLight ModelLightOf(const Kernel::ActorState& actor, const Terrain::TerrainL
             false};
 }
 
-// 0x5fffbd..0x600135: los dos pases del contorno de 0x5ffdf0, con los colores del NPC (+0x88 en 4, fuera de Chaos
-// Castle) o los de los demás, y la escala de +0x94 o la del objeto (+0xc). 0x622150 es el mayor de los dos (con
-// empate, el segundo).
+// 0x5fffbd..0x600135: the two outline passes of 0x5ffdf0, with the NPC's colors (+0x88 at 4, outside Chaos Castle) or
+// the others', and the scale of +0x94 or the object's (+0xc). 0x622150 is the larger of the two (on a tie, the second).
 std::array<Actors::Drawing::ObjectOutlinePass, 2> OutlinePassesOf(const Kernel::ActorState& actor, std::int32_t map)
 {
     const float scale94 = actor.float94;
@@ -219,7 +218,7 @@ std::array<Actors::Drawing::ObjectOutlinePass, 2> OutlinePassesOf(const Kernel::
              {inner, Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3d8f5c29u), 0.0f, 1.0f}}}};
 }
 
-// La misma altura como función para el cuerpo (MonsterBodyFrame::terrainHeight); vacía sin las alturas o los atributos.
+// The same height as a function for the body (MonsterBodyFrame::terrainHeight); empty without heights or attributes.
 std::function<double(float, float)> BodyTerrainHeight(const Actors::Drawing::GameCharacterPass& pass)
 {
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
@@ -229,9 +228,9 @@ std::function<double(float, float)> BodyTerrainHeight(const Actors::Drawing::Gam
     { return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, fixed); };
 }
 
-// 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, el frame (+0x114) por 0x69fd3c en un short, en 0
-// si es negativa o si llega a las keys de la acción del modelo (+0xa0, en 0 si el modelo no la tiene). Sin acciones no
-// la toca; con un frame infinito, el original no está observado: tampoco.
+// 0x4eb860 (0x4eb86d..0x4eb94c): the key it leaves in +0xa8 of the model, the frame (+0x114) through 0x69fd3c into a
+// short, at 0 if negative or if it reaches the keys of the model's action (+0xa0, at 0 if the model does not have it).
+// Without actions it does not touch it; with an infinite frame the original is not observed: neither does MuRet.
 std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const auto truncated = Math::OriginalFtolLow(D(animation.frame));
@@ -246,7 +245,7 @@ std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Mo
     return key;
 }
 
-// Lo que dibuja un monstruo en un frame: el personaje (el registro o su copia), el rand() y los recursos.
+// What a monster draws in a frame: the character (the record or its copy), the rand() and the resources.
 struct MonsterFrame
 {
     Render::ModelBatch& batch;
@@ -261,16 +260,16 @@ struct MonsterFrame
     std::int32_t map = 0;
     float worldClock = 0.0f;
     bool originalFrame = true;
-    // El tercer argumento de 0x50ba30 (0x510ea1: el lugar en 0x6c8e30 o 0x6c8e2c): Outlined o Plain.
+    // The third argument of 0x50ba30 (0x510ea1: the slot in 0x6c8e30 or 0x6c8e2c): Outlined or Plain.
     PoseMode outline = PoseMode::Plain;
-    // +0x6c..+0x74 del modelo del tipo ([ebp−0x14], 0x50ba7f): lo que copió el último 0x5ffdf0 de este dibujo
-    // (0x5ffe8b..0x5ffe9a; el 0x18f y el 0x18e, 60 y 120 más en y, 0x5ffea7..0x5ffeef) o, después del suelo de Blood
-    // Castle (0x50be4d), el 0x60cf70 de la sombra (0x50beb6, 0x60cfe8..0x60d015, ya en el suelo; no lo llaman el 0x18e,
-    // el 0x18f ni del 0xa8 al 0xac, que quedan a la z de antes) y los 0x602e90 del 0x4d con el tipo propio (0x50c20b,
-    // 0x50c217; el de 0x50c248 escribe el del tipo + 1). Con él trasladan 0x4ec110 los puntos de los huesos de lo que
-    // sigue (0x50bff8, 0x50c3c1.., 0x50b8bf, 0x50b99a, 0x5107b4, 0x51096d) y se repiten los vértices del cuerpo posado.
-    // Antes de la primera copia (con el alpha por debajo de 0,01 no copia), la posición del personaje: el original lee
-    // la que dejó otro dibujo o el paso en el registro compartido.
+    // +0x6c..+0x74 of the type's model ([ebp−0x14], 0x50ba7f): what the last 0x5ffdf0 of this draw copied
+    // (0x5ffe8b..0x5ffe9a; 0x18f and 0x18e, 60 and 120 more in y, 0x5ffea7..0x5ffeef) or, after the Blood Castle floor
+    // (0x50be4d), the shadow's 0x60cf70 (0x50beb6, 0x60cfe8..0x60d015, already on the floor; 0x18e, 0x18f and 0xa8 to
+    // 0xac do not call it and stay at the earlier z) and the 0x602e90 calls of 0x4d with its own type (0x50c20b,
+    // 0x50c217; the one at 0x50c248 writes the one of the type + 1). 0x4ec110 translates with it the bone points of
+    // what follows (0x50bff8, 0x50c3c1.., 0x50b8bf, 0x50b99a, 0x5107b4, 0x51096d) and the posed body's vertices are
+    // repeated. Before the first copy (with the alpha below 0.01 it does not copy), the character's position: the
+    // original reads the one another draw or the step left in the shared record.
     glm::vec3 modelOrigin{};
 };
 
@@ -285,15 +284,15 @@ void PublishMonsterPickingBox(MonsterFrame& frame, const glm::vec3& position)
         Actors::PublishPickingBox(actor, position, actor.boundsMin, max);
 }
 
-// 0x50bae7..0x50bbca: la tela sobre la malla (MonsterCloth.h) entre 0x5ffdf0 y 0x6002e0, sobre `meshes` (lo que dejó
-// 0x4ebc80 en 0x5786f9c) con los huesos `bones` y la posición del modelo. Entre frames del original, la de antes.
+// 0x50bae7..0x50bbca: the cloth on the mesh (MonsterCloth.h) between 0x5ffdf0 and 0x6002e0, over `meshes` (what
+// 0x4ebc80 left in 0x5786f9c) with `bones` and the model's position. Between original frames, the earlier one.
 Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> meshes,
                         std::span<const BoneTransform> bones, const glm::vec3& position)
 {
     const Kernel::ActorState& actor = frame.actor;
     if (frame.slot >= frame.pass.cloths.size())
         return Core::Unexpected<std::string>("0x50bb96: falta la tela persistente del lugar del personaje");
-    // objeto + 0x190: la del lugar, en sus telas.
+    // object + 0x190: the slot's, in its cloths.
     Actors::Drawing::CharacterCloth& worn = frame.pass.cloths[frame.slot];
     Actors::Drawing::MonsterMeshCloth& cloth = worn.OnTheMesh();
     const Models::ClothBody body{.bones = bones, .angles = actor.angles, .scale = actor.scale, .position = position};
@@ -308,22 +307,22 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> mesh
     return cloth.Frame(*model, actor.type, meshes, body, *frame.pass.clothWorld, static_cast<std::uint8_t>(frame.map));
 }
 
-// 0x602e90(objeto, 1, mode, special): 0x5ffdf0 (con su 0x5ffce0) y 0x6002e0: la pose en los huesos propios, el contorno
-// (con Outlined) y el cuerpo, con las mallas a la escala de `mode` alrededor de sus huesos. Con la tela sobre la malla
-// (0x50bae7), 0x5ffdf0 y 0x6002e0 van separados y la tela entre los dos, con el cuarto argumento en 0.
+// 0x602e90(object, 1, mode, special): 0x5ffdf0 (with its 0x5ffce0) and 0x6002e0: the pose on its own bones, the outline
+// (with Outlined) and the body, with the meshes at `mode`'s scale around their bones. With the cloth on the mesh
+// (0x50bae7), 0x5ffdf0 and 0x6002e0 go apart with the cloth between them, with the fourth argument at 0.
 Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
 {
     Kernel::ActorState& actor = frame.actor;
     const bool cloth = Actors::Drawing::WearsClothOnTheMesh(actor.word376);
-    // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
+    // 0x5ffdf0: in Chaos Castle, with the hero's +0x1a1, the stored alpha drops 0.15f.
     if (IsChaosCastle(frame.map) && frame.world.Hero().byte1a1 != 0)
         actor.alpha = F32(D(actor.alpha) - D(ChaosCastleFade));
     if (actor.alpha < DrawnAlpha)
     {
         if (!cloth)
             return {};
-        // 0x50bafd: sin dibujo, la tela se arma y se simula igual, con lo que el último 0x4ebc80 dejó en 0x5786f9c, de
-        // otro modelo; MuRet usa la pose guardada de este (Q-C862, *inferido*).
+        // 0x50bafd: without a draw, the cloth is built and simulated anyway, with what the last 0x4ebc80 left in
+        // 0x5786f9c, from another model; MuRet uses this one's stored pose (Q-C862, *inferred*).
         if (actor.bodyPose.empty())
             return Core::Unexpected<std::string>(
                 "0x50bb3b: la tela sobre la malla de un monstruo que no se dibujó lee 0x5786f9c de otro modelo");
@@ -334,32 +333,32 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
             Actors::Drawing::SkinObjectMeshesInto(frame.buffers.meshes, frame.fauna, stale, actor.bodyPose);
         return StepTheMeshCloth(frame, meshes, actor.bodyPose, actor.position);
     }
-    // 0x5ffe9d..0x5ffeef: el 0x18f y el 0x18e van 60 y 120 más allá en y (0x6b86cc y 0x6b86c8).
+    // 0x5ffe9d..0x5ffeef: 0x18f and 0x18e go 60 and 120 further in y (0x6b86cc and 0x6b86c8).
     Models::ObjectTransform transform{.position = actor.position, .angles = actor.angles, .scale = actor.scale};
     if (actor.type == 0x18f)
         transform.position.y = F32(D(actor.position.y) + 60.0);
     else if (actor.type == 0x18e)
         transform.position.y = F32(D(actor.position.y) + 120.0);
-    // 0x5ffe8b..0x5ffeef: el origen del registro, el que leen los puntos de los huesos de la cola (también entre frames
-    // del original, sobre la copia).
+    // 0x5ffe8b..0x5ffeef: the record's origin, the one the tail's bone points read (also between original frames, on
+    // the copy).
     frame.modelOrigin = transform.position;
-    // 0x4ec110 copia la escala y el origen del modelo compartido antes de posar; entre frames del original no escribe.
+    // 0x4ec110 copies the shared model's scale and origin before posing; not between original frames.
     if (frame.originalFrame)
         frame.world.PlaceModel(actor.type, Kernel::SharedModelPlacement{.scale = transform.scale,
                                                                         .origin = transform.position,
                                                                         .action = actor.animation.action});
-    // 0x5ffef2: con un dueño (+0x108) con +0x78 & 0x1000, el frame (+0x114) a 0. Ninguna alta ni paquete escribe el
-    // +0x108 de un personaje del pool: queda en 0 (Q-C224, *inferido*).
-    // 0x4eb860 en el buffer propio (+0x120, que 0x511290 le dio a todo personaje): los huesos dummy quedan como los
-    // dejó el dibujo anterior (Q-C318).
+    // 0x5ffef2: with an owner (+0x108) with +0x78 & 0x1000, the frame (+0x114) to 0. No spawn or packet writes the
+    // +0x108 of a pool character: it stays at 0 (Q-C224, *inferred*).
+    // 0x4eb860 on the own buffer (+0x120, which 0x511290 gave every character): the dummy bones stay as the previous
+    // draw left them (Q-C318).
     std::vector<BoneTransform>& bones = frame.buffers.bones;
     bones.assign(skeleton.bones.size(), BoneTransform(0.0f));
     std::copy_n(actor.bodyPose.begin(), std::min(actor.bodyPose.size(), bones.size()), bones.begin());
     if (!Models::PoseSkeleton(skeleton, actor.animation, transform, actor.headTurn.angles, bones))
         return Core::Unexpected(std::format("0x4eb860: la pose del modelo {:#x} falló", actor.type));
     actor.bodyPose = bones;
-    // 0x4eb8b3..0x4eb94c: frame/key en +0xa4/+0xa8 del modelo compartido; el paso del 0x1f5 lee la key (0x4fce92).
-    // Entre frames del original no se guardan.
+    // 0x4eb8b3..0x4eb94c: frame/key in +0xa4/+0xa8 of the shared model; the 0x1f5's step reads the key (0x4fce92).
+    // Between original frames they are not stored.
     if (frame.originalFrame)
     {
         if (const auto key = PoseKeyOf(skeleton, actor.animation))
@@ -372,7 +371,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     object.model = actor.type;
     object.animation = actor.animation;
     object.transform = transform;
-    // +0x6c y +0x70 (la U y la V): 0x511290 las pone en 0; las escriben 0x433b2f y los casos de 0x505de0.
+    // +0x6c and +0x70 (the U and V): 0x511290 sets them to 0; 0x433b2f and the cases of 0x505de0 write them.
     object.state = Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                        .light = actor.blendMeshLight,
                                        .uv = {actor.textureU, actor.textureV},
@@ -380,11 +379,11 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     object.color = light.color;
     object.alpha = actor.alpha;
     object.vertexLight = light.vertexLight;
-    // 0x5fffb4: el contorno, salvo con +0x78 & 0x4000 (0x60cd74).
+    // 0x5fffb4: the outline, except with +0x78 & 0x4000 (0x60cd74).
     if (mode == PoseMode::Outlined && (actor.flags78 & RiderFlag) == 0)
     {
         const auto passes = OutlinePassesOf(actor, frame.map);
-        // 0x60cdd9: el 0xc5 (las puertas de Kalima) solo con su malla 0, y con el +0x58 de textura (0x60ce4e).
+        // 0x60cdd9: 0xc5 (the Kalima gates) only with its mesh 0, and with the +0x58 texture (0x60ce4e).
         if (actor.type == KalimaGate && actor.dword58 != -1)
             return Cut("0x60ce4e", "la textura +0x58 del contorno del 0xc5", actor.type);
         if (actor.type == KalimaGate)
@@ -393,7 +392,7 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
         else
             Actors::Drawing::DrawObjectOutline(frame.batch, frame.fauna, object, frame.pass.frameClock, bones, passes);
     }
-    // 0x600177: el último 0x4ebc80 de 0x5ffdf0, con la escala de 0x6c881c por el modo, deja las mallas en 0x5786f9c.
+    // 0x600177: the last 0x4ebc80 of 0x5ffdf0, with the 0x6c881c scale of the mode, leaves the meshes in 0x5786f9c.
     const std::span<Models::SkinnedMesh> meshes =
         Actors::Drawing::SkinObjectMeshesInto(frame.buffers.meshes, frame.fauna, object, bones, BoneScaleOf(mode));
     if (!(actor.alpha < DrawnAlpha))
@@ -403,10 +402,10 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
         if (auto stepped = StepTheMeshCloth(frame, meshes, bones, transform.position); !stepped.HasValue())
             return stepped;
     }
-    // 0x6002e0: con +0x58 en −2 (sin el modo editor, 0x77f3b18) no dibuja nada.
+    // 0x6002e0: with +0x58 at −2 (without the editor mode, 0x77f3b18) it draws nothing.
     if (actor.dword58 == -2)
         return {};
-    // 0x600436..0x602e7d: los casos por tipo y por mapa, el cuerpo y lo que va después (MonsterBody.h).
+    // 0x600436..0x602e7d: the cases by type and by map, the body and what goes after it (MonsterBody.h).
     MonsterBodyModel model{.batch = frame.batch,
                            .models = frame.fauna,
                            .object = object,
@@ -435,19 +434,19 @@ Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::u
     return DrawMonsterBody(body);
 }
 
-// 0x50bed8..0x50bf3e: el calco 0x61e del +0x376 0xe8 y 0xe9, aditivo (0x620a90), con v = sin(T · 0,0015f) · 0,3f +
-// 0,8f en la x87 y la luz (v · 0,5; v · 0,5; v): 0x5fb2f0(0x61e, x, y, 2,7f, 2,7f, &luz, −giro z, 1, 5). Después,
-// +0x58 vuelve a −1.
+// 0x50bed8..0x50bf3e: the 0x61e decal of +0x376 at 0xe8 and 0xe9, additive (0x620a90), with v = sin(T · 0.0015f) ·
+// 0.3f + 0.8f on the x87 and the light (v · 0.5, v · 0.5, v): 0x5fb2f0(0x61e, x, y, 2.7f, 2.7f, &light, −turn z, 1, 5).
+// Then +0x58 goes back to −1.
 Result DrawTheFloorMark(MonsterFrame& frame)
 {
     constexpr std::int32_t Mark = 0x61e;
-    constexpr float Side = std::bit_cast<float>(0x402ccccdu); // 2,7
-    constexpr float Rate = std::bit_cast<float>(0x3ac49ba6u); // 0x6b8a60: 0,0015
-    constexpr float Span = std::bit_cast<float>(0x3e99999au); // 0x6b89dc: 0,3
-    constexpr float Base = std::bit_cast<float>(0x3f4ccccdu); // 0x6b8a38: 0,8
+    constexpr float Side = std::bit_cast<float>(0x402ccccdu); // 2.7
+    constexpr float Rate = std::bit_cast<float>(0x3ac49ba6u); // 0x6b8a60: 0.0015
+    constexpr float Span = std::bit_cast<float>(0x3e99999au); // 0x6b89dc: 0.3
+    constexpr float Base = std::bit_cast<float>(0x3f4ccccdu); // 0x6b8a38: 0.8
     constexpr float Lift = std::bit_cast<float>(0x40a00000u); // 5
     Kernel::ActorState& actor = frame.actor;
-    // 0x620a90: ONE / ONE, sin culling ni alpha test y sin escribir la profundidad.
+    // 0x620a90: ONE / ONE, without culling or alpha test and without writing the depth.
     Render::ModelDrawState state = frame.batch.State();
     state.blend = Render::ModelBlend::Additive;
     state.cullEnabled = false;
@@ -478,8 +477,8 @@ Result DrawTheFloorMark(MonsterFrame& frame)
     return drawn;
 }
 
-// 0x4ec110(huesos propios + hueso · 0x30, corrimiento, salida, 1) de 0x50ba30 sobre [ebp−0x14]: la escala del personaje
-// y el origen del registro (MonsterFrame::modelOrigin: el de la sombra, ya en el suelo, o el de 0x5ffdf0 sin ella).
+// 0x4ec110(own bones + bone · 0x30, offset, out, 1) of 0x50ba30 on [ebp−0x14]: the character's scale and the record's
+// origin (MonsterFrame::modelOrigin: the shadow's, already on the floor, or 0x5ffdf0's without it).
 glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm::vec3& offset)
 {
     const Kernel::ActorState& actor = frame.actor;
@@ -487,16 +486,16 @@ glm::vec3 PointOnTheBone(const MonsterFrame& frame, std::size_t bone, const glm:
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, frame.modelOrigin);
 }
 
-// 0x50bf98..0x50c0f0, el +0x376 0x45: x = (rand() % 30 + 70) · 0,01f en la x87; nueve flare01 (0x5ac) de 0,6f con la
-// luz (x · 0,8f; x · 0,9f; x) en los huesos de la tabla de 0x6c88a0, y tres 0x53fe70(0x5c6, punto, ángulos, luz, 3, 1,
-// 0) con la luz (v · 0,6f; v · 0,7f; x · 0,8f), v = f(x), cada una en un hueso al azar del modelo (rand() % +0x22)
-// corrido (rand() % 20 − 10) en x, y y z: cuatro rand() antes de cada una. El corrimiento queda en [ebp−0x50], que un
-// monstruo no vuelve a leer antes de 0x50ea23. Entre frames del original no crea las partículas.
+// 0x50bf98..0x50c0f0, +0x376 at 0x45: x = (rand() % 30 + 70) · 0.01f on the x87; nine flare01 (0x5ac) of 0.6f with the
+// light (x · 0.8f, x · 0.9f, x) on the bones of the 0x6c88a0 table, and three 0x53fe70(0x5c6, point, angles, light, 3,
+// 1, 0) with the light (v · 0.6f, v · 0.7f, x · 0.8f), v = f(x), each on a random bone of the model (rand() % +0x22)
+// offset by (rand() % 20 − 10) in x, y and z: four rand() before each. The offset stays in [ebp−0x50], which a monster
+// does not read again before 0x50ea23. Between original frames it does not create the particles.
 Result DrawTheSparksOf0x45(MonsterFrame& frame)
 {
     constexpr std::array<std::size_t, 9> Bones{10, 18, 37, 38, 51, 52, 58, 59, 66};
     constexpr std::uint16_t Flare = 0x5ac;
-    constexpr float FlareScale = std::bit_cast<float>(0x3f19999au); // 0,6
+    constexpr float FlareScale = std::bit_cast<float>(0x3f19999au); // 0.6
     constexpr std::int32_t Spark = 0x5c6;
     constexpr std::int32_t SparkSubtype = 3;
     constexpr int Sparks = 3;
@@ -538,13 +537,13 @@ Result DrawTheSparksOf0x45(MonsterFrame& frame)
     return {};
 }
 
-// 0x50c0fb..0x50c136, el +0x376 0x46: un flare01 (0x5ac) de 0,8f en el hueso 20 (+0x3c0), con el corrimiento de
-// [ebp−0x50] (en 0 desde el prólogo) y la luz de [ebp−0x44] (1, 1, 1 desde 0x50bab9).
+// 0x50c0fb..0x50c136, +0x376 at 0x46: one flare01 (0x5ac) of 0.8f on bone 20 (+0x3c0), with the offset of [ebp−0x50]
+// (at 0 since the prologue) and the light of [ebp−0x44] (1, 1, 1 since 0x50bab9).
 Result DrawTheFlareOf0x46(MonsterFrame& frame)
 {
     constexpr std::size_t Bone = 20;
     constexpr std::uint16_t Flare = 0x5ac;
-    constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
+    constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0.8
     if (frame.pass.sprites == nullptr)
         return Core::Unexpected<std::string>("0x50c131: falta la tabla de los sprites del frame (0x5491e0)");
     static_cast<void>(frame.pass.sprites->Create(Flare, PointOnTheBone(frame, Bone, glm::vec3(0.0f)), FlareScale,
@@ -552,11 +551,11 @@ Result DrawTheFlareOf0x46(MonsterFrame& frame)
     return {};
 }
 
-// 0x60b130(modelo, objeto, tipo, +0x174, banderas, factor, textura) con el modelo de un monstruo. Sin el 0x10 y con un
-// tipo que no es el 0x188 (0x60b15e) ni uno de los ítems de 0x60b1dd..0x60b2cf, 0x608e00(tipo, +0x174, factor, +0x48,
-// banderas >> 8 & 1) deja en el color del modelo k = +0x174 · factor (en la x87) por el color del tipo: el de
-// Models::ShineColorOf, salvo el 0x16d con el 0x100, que va por el caso 8 de 0x60936c, (0,8k; 0,8k; k).
-// Después, RenderBody(banderas, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, textura), que no mira el 0x100.
+// 0x60b130(model, object, type, +0x174, flags, factor, texture) with a monster's model. Without 0x10 and with a type
+// that is neither 0x188 (0x60b15e) nor one of the items of 0x60b1dd..0x60b2cf, 0x608e00(type, +0x174, factor, +0x48,
+// flags >> 8 & 1) leaves in the model's color k = +0x174 · factor (on the x87) times the type's color: the one of
+// Models::ShineColorOf, except 0x16d with 0x100, which goes through case 8 of 0x60936c, (0.8k, 0.8k, k). Then
+// RenderBody(flags, +0x174, +0x64, +0x68, +0x6c, +0x70, −1, texture), which does not look at 0x100.
 Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint32_t flags, float factor,
                         std::int32_t texture)
 {
@@ -583,19 +582,19 @@ Result DrawTheShinePass(MonsterFrame& frame, MonsterBodyModel& model, std::uint3
     return DrawBodyPass(model, flags & ~SecondColor, args);
 }
 
-// 0x50c671..0x50c705: los +0x376 0x26, 0x2b, 0x34, 0x3b, 0x43 y 0x4e a 0x53, con el factor en 1 (0,5 el 0x3b): el
-// 0x2b y los 0x4e a 0x53 con el pase 0x48 y después todos con el 0x44 (el 0x43, 0x144). 0x50c71b..0x50c74e: el 0x35 y
-// el 0x36 con el 0x48 y la textura 0x5fd. 0x50c8ce..0x50c901: el 0x87 con el 0x140. Todos sobre las mallas de
-// 0x5786f9c, que MuRet vuelve a pasar a la pose guardada (+0x120) con la posición, los ángulos y la escala, como la
-// sombra; si el monstruo nunca se posó (el alpha por debajo de 0,01f desde que llegó), el original las dibuja con las
-// de otro modelo y un color de menos de un centésimo, y MuRet no dibuja (Q-C863). El +0x44 del modelo (la luz por
-// vértice, que mira el 0x140) es el de 0x5ffce0 (*inferido*: la sombra no lo toca).
+// 0x50c671..0x50c705: +0x376 at 0x26, 0x2b, 0x34, 0x3b, 0x43 and 0x4e to 0x53, with the factor at 1 (0.5 for 0x3b):
+// 0x2b and 0x4e to 0x53 with pass 0x48 and then all with 0x44 (0x43, 0x144). 0x50c71b..0x50c74e: 0x35 and 0x36 with
+// 0x48 and texture 0x5fd. 0x50c8ce..0x50c901: 0x87 with 0x140. All over the meshes of 0x5786f9c, which MuRet passes
+// again to the stored pose (+0x120) with the position, angles and scale, like the shadow; if the monster never posed
+// (the alpha below 0.01f since it arrived), the original draws them with another model's and a color under a hundredth,
+// and MuRet does not draw (Q-C863). The model's +0x44 (the per-vertex light, which 0x140 looks at) is the one of
+// 0x5ffce0 (*inferred*: the shadow does not touch it).
 constexpr std::uint32_t ShinyPass = 0x48;
 constexpr std::uint32_t ChromePass = 0x44;
 constexpr std::int32_t OwnTexture = -1;
 
-// Las mallas de 0x5786f9c que leen los pases de 0x60b130 después de la sombra (Q-C863): la pose guardada (+0x120)
-// pasada otra vez al mundo con la posición, los ángulos y la escala, como la sombra.
+// The meshes of 0x5786f9c the passes of 0x60b130 read after the shadow (Q-C863): the stored pose (+0x120) passed again
+// to the world with the position, angles and scale, like the shadow.
 struct PosedBody
 {
     Actors::Drawing::DrawnObject object;
@@ -609,9 +608,9 @@ PosedBody PosedBodyOf(MonsterFrame& frame)
     Actors::Drawing::DrawnObject& object = posed.object;
     object.model = actor.type;
     object.animation = actor.animation;
-    // Los vértices de 0x5786f9c como los dejó el último 0x4ebc80, con el origen del registro (0x4ebeec): el del
-    // 0x60cf70 de la sombra (0x60d186, ya en el suelo) o, si no corre (sus guardas, o el 0x18e, el 0x18f y del 0xa8 al
-    // 0xac), el de 0x5ffdf0.
+    // The vertices of 0x5786f9c as the last 0x4ebc80 left them, with the record's origin (0x4ebeec): the shadow's
+    // 0x60cf70 one (0x60d186, already on the floor) or, if it does not run (its guards, or 0x18e, 0x18f and 0xa8 to
+    // 0xac), the one of 0x5ffdf0.
     object.transform = {.position = frame.modelOrigin, .angles = actor.angles, .scale = actor.scale};
     object.state = Models::ObjectState{.blendMesh = static_cast<std::int16_t>(actor.dword64),
                                        .light = actor.blendMeshLight,
@@ -654,14 +653,14 @@ Result DrawTheShines(MonsterFrame& frame)
     return DrawTheShinePass(frame, model, monster == 0x43 ? 0x144 : Chrome, factor, OwnTexture);
 }
 
-// 0x50c36b..0x50c595, los +0x376 0x49 y 0x4b, con el corrimiento de [ebp−0x50] en 0. El 0x49 (0x50c3ed..0x50c50e):
-// catorce flare01 (0x5ac) de 0,8f con la luz (0,1f; 0,1f; 1) en los huesos 13 a 26 (+0x270..+0x4e0) y, desde el punto
-// del hueso de antes ([ebp−0x8c]) hasta el del actual, el joint 0x614/7 sin dueño de ancho 20 (0x41a00000) con los
-// ángulos del actor en los huesos 14, 15, 16 y 23 (+0x2a0..+0x300 y +0x450); después siete flare01 más en los huesos
-// 52 a 58 (+0x9c0..+0xb10). El 0x4b (0x50c37e..0x50c3e8): la partícula 0x5d9/0 de 0,3f (0x3e99999a) con la luz (1,
-// 1, 1) en el hueso 18 (+0x360). Entre frames del original no crean los joints ni la partícula. Después, 0x60b130 con
-// el pase 0x44 (el 0x4b con el 0x100: 0x50c51d..0x50c53c) sobre la pose guardada, como MonsterShines; el 0x49 sigue
-// con 0x60b300 (0x50c595), que corta.
+// 0x50c36b..0x50c595, +0x376 at 0x49 and 0x4b, with the offset of [ebp−0x50] at 0. 0x49 (0x50c3ed..0x50c50e): fourteen
+// flare01 (0x5ac) of 0.8f with the light (0.1f, 0.1f, 1) on bones 13 to 26 (+0x270..+0x4e0) and, from the previous
+// bone's point ([ebp−0x8c]) to the current one's, the 0x614/7 joint without owner of width 20 (0x41a00000) with the
+// actor's angles on bones 14, 15, 16 and 23 (+0x2a0..+0x300 and +0x450); then seven more flare01 on bones 52 to
+// 58 (+0x9c0..+0xb10). 0x4b (0x50c37e..0x50c3e8): particle 0x5d9/0 of 0.3f (0x3e99999a) with the light (1, 1, 1) on
+// bone 18 (+0x360). Between original frames they do not create the joints or the particle. Then 0x60b130 with pass 0x44
+// (0x4b with 0x100: 0x50c51d..0x50c53c) over the stored pose, like MonsterShines; 0x49 goes on with 0x60b300
+// (0x50c595), which cuts.
 Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
 {
     const Kernel::ActorState& actor = frame.actor;
@@ -670,7 +669,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
     if (monster == Chained)
     {
         constexpr std::uint16_t Flare = 0x5ac;
-        constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0,8
+        constexpr float FlareScale = std::bit_cast<float>(0x3f4ccccdu); // 0.8
         const glm::vec3 light{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f};
         constexpr std::size_t FirstBone = 13;
         constexpr std::size_t LastBone = 26;
@@ -718,7 +717,7 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
     else if (frame.originalFrame)
     {
         constexpr std::size_t SparkBone = 18;
-        constexpr float SparkScale = std::bit_cast<float>(0x3e99999au); // 0,3
+        constexpr float SparkScale = std::bit_cast<float>(0x3e99999au); // 0.3
         if (frame.pass.particles == nullptr)
             return Core::Unexpected<std::string>("0x50c3e0: falta el arreglo de las partículas (0x53fe70)");
         const auto created = frame.pass.particles->CreateChecked(
@@ -746,9 +745,9 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
     return {};
 }
 
-// La tela de la grilla de un +0x376 de WearsAGridClothOfItsOwn (0x50c283..0x50c35c y 0x50c59f..0x50c669): la del lugar
-// (pass.cloths[slot]), armada, simulada y dibujada sobre la pose guardada (+0x120) con CharacterCloth, y entre frames
-// del original dibujada como quedó. Sin la tela del lugar, corta con `address`.
+// The grid cloth of a +0x376 of WearsAGridClothOfItsOwn (0x50c283..0x50c35c and 0x50c59f..0x50c669): the slot's
+// (pass.cloths[slot]), built, simulated and drawn over the stored pose (+0x120) with CharacterCloth, and between
+// original frames drawn as it was left. Without the slot's cloth, it cuts with `address`.
 Result RunTheGridCloth(MonsterFrame& frame, std::string_view address)
 {
     const Kernel::ActorState& actor = frame.actor;
@@ -765,9 +764,9 @@ Result RunTheGridCloth(MonsterFrame& frame, std::string_view address)
     return {};
 }
 
-// 0x50c24d..0x50c366 con el tipo + 1 (el 0x18a): 0x602e90(objeto, 1, contorno, 0); los huesos 23 y 14 de su pose a
-// 0x743748c y 0x74374bc (solo en el frame del original); y la tela del 0x4d sobre esa pose, la del lugar
-// (pass.cloths[slot]), que entre frames del original se dibuja como quedó.
+// 0x50c24d..0x50c366 with the type + 1 (0x18a): 0x602e90(object, 1, outline, 0); bones 23 and 14 of its pose to
+// 0x743748c and 0x74374bc (only in the original's frame); and the 0x4d cloth over that pose, the slot's
+// (pass.cloths[slot]), which between original frames is drawn as it was left.
 Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
 {
     constexpr std::size_t FirstBone = 23;
@@ -788,20 +787,20 @@ Result DrawTheSecondPhoenixModel(MonsterFrame& frame)
     return RunTheGridCloth(frame, "0x50c283");
 }
 
-// 0x50c177..0x50c366, el +0x376 0x4d (el monstruo 77: el tipo 0x189, que el alta carga con su segundo modelo, el
-// 0x18a, Monster57): s = f((sin((ftol(T) % 10.000) · 0,001f) + 1) · 0,5f), sin redondear el seno antes de la suma; el
-// pase 0x44 de 0x60b130 con el factor f(s · 0,7f + 0,3f), sobre la pose guardada como los de MonsterShines; +0x64 en 0
-// y +0x68 en f((1 − s + 1) · 0,3f), guardados; 0x602e90(objeto, 1, 2, 0) y (objeto, 1, 3, 0), el cuerpo otra vez a 1,2
-// y a 1,4 alrededor de sus huesos, sin contorno; el hueso 24 de la pose a 0x74374ec (en el frame del original); +0x64
-// en −1; y el tipo + 1 (DrawTheSecondPhoenixModel), que después vuelve. No saca rand() propios: los de la tela y los de
-// cada 0x6002e0.
+// 0x50c177..0x50c366, +0x376 at 0x4d (monster 77: type 0x189, which the spawn loads with its second model, 0x18a,
+// Monster57): s = f((sin((ftol(T) % 10000) · 0.001f) + 1) · 0.5f), without rounding the sine before the sum; pass 0x44
+// of 0x60b130 with the factor f(s · 0.7f + 0.3f), over the stored pose like those of MonsterShines; +0x64 at 0 and
+// +0x68 at f((1 − s + 1) · 0.3f), stored; 0x602e90(object, 1, 2, 0) and (object, 1, 3, 0), the body again at 1.2 and
+// 1.4 around its bones, without outline; bone 24 of the pose to 0x74374ec (in the original's frame); +0x64 at −1; and
+// the type + 1 (DrawTheSecondPhoenixModel), which then goes back. It takes no rand() of its own: only the cloth's and
+// those of each 0x6002e0.
 Result DrawThePhoenix(MonsterFrame& frame)
 {
     constexpr std::int32_t Period = 10000;
     constexpr std::size_t TailBone = 24;
-    constexpr float Rate = std::bit_cast<float>(0x3a83126fu);   // 0x6b89c8: 0,001
-    constexpr float Weight = std::bit_cast<float>(0x3f333333u); // 0x6b8a5c: 0,7
-    constexpr float Floor = std::bit_cast<float>(0x3e99999au);  // 0x6b89dc: 0,3
+    constexpr float Rate = std::bit_cast<float>(0x3a83126fu);   // 0x6b89c8: 0.001
+    constexpr float Weight = std::bit_cast<float>(0x3f333333u); // 0x6b8a5c: 0.7
+    constexpr float Floor = std::bit_cast<float>(0x3e99999au);  // 0x6b89dc: 0.3
     Kernel::ActorState& actor = frame.actor;
     const auto clock = Math::OriginalFtolLow(D(frame.worldClock));
     if (!clock)
@@ -837,7 +836,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
     if (frame.originalFrame)
         frame.world.Runtime().phoenixBones[2] = actor.bodyPose[TailBone];
     actor.dword64 = -1;
-    // 0x50c244..0x50c34b: INC y DEC de +0x2 alrededor del segundo modelo y de la tela.
+    // 0x50c244..0x50c34b: INC and DEC of +0x2 around the second model and the cloth.
     const std::uint16_t type = actor.type;
     actor.type = static_cast<std::uint16_t>(type + 1);
     Result second = DrawTheSecondPhoenixModel(frame);
@@ -845,7 +844,7 @@ Result DrawThePhoenix(MonsterFrame& frame)
     return second;
 }
 
-// Lo que 0x509340 lee del frame de 0x50ba30, con la biblioteca `models`.
+// What 0x509340 reads from the frame of 0x50ba30, with the library `models`.
 Actors::Drawing::GameHangingPass HangingPassOf(MonsterFrame& frame, const Models::IModelLibrary& models)
 {
     const Actors::Drawing::GameCharacterPass& pass = frame.pass;
@@ -869,8 +868,8 @@ Actors::Drawing::GameHangingPass HangingPassOf(MonsterFrame& frame, const Models
                                             .modelOrigin = frame.modelOrigin};
 }
 
-// 0x50c762..0x50c826 y 0x50c845..0x50c857: el lugar de las alas (+0x2f8) con el modelo, el hueso, la acción y la
-// anterior en 1 y la velocidad en 0,2f (0x3e4ccccd).
+// 0x50c762..0x50c826 and 0x50c845..0x50c857: the wings slot (+0x2f8) with the model, the bone, the action and the
+// previous one at 1 and the speed at 0.2f (0x3e4ccccd).
 void ArmTheWingsSlot(Kernel::ActorState& actor, std::uint16_t model, std::uint8_t bone)
 {
     Kernel::ActorItemPart& wings = actor.wings;
@@ -881,11 +880,11 @@ void ArmTheWingsSlot(Kernel::ActorState& actor, std::uint16_t model, std::uint8_
     wings.speed = std::bit_cast<float>(0x3e4ccccdu);
 }
 
-// 0x50c762..0x50c82c: el +0x376 0x2a cuelga del lugar de las alas el 0xef (BossHead01) del hueso 9 con (0, 0, −40) y
-// el 0xf0 (Princess01) del 0x3d con (0, −40, 45), este con la luz de lo que cuelga (+0x3b4) en 1 y la escala en 0,9f
-// (0x3f666666), que vuelven después. Los dos son objetos del mapa 5 (Object6, 0x617325): en otro mapa, lo que haya
-// en esos lugares de la tabla, y sin nada, solo los rand() de 0x509340 (Q-C102). Van con la biblioteca de la fauna,
-// que sigue con la del mapa y la global, como la tabla única del original.
+// 0x50c762..0x50c82c: +0x376 at 0x2a hangs from the wings slot 0xef (BossHead01) from bone 9 with (0, 0, −40) and 0xf0
+// (Princess01) from 0x3d with (0, −40, 45), the latter with the light of what hangs (+0x3b4) at 1 and the scale at 0.9f
+// (0x3f666666), which are restored afterwards. Both are objects of map 5 (Object6, 0x617325): in another map, whatever
+// is in those table slots, and with nothing, only the rand() of 0x509340 (Q-C102). They go with the fauna library,
+// which falls back to the map's and the global one, like the original's single table.
 Result HangTheCarriedModels(MonsterFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -895,7 +894,7 @@ Result HangTheCarriedModels(MonsterFrame& frame)
                                                           {0.0f, 0.0f, -40.0f}, false, scale);
         !hung.HasValue())
         return hung;
-    // 0x50c79f: el modelo y el hueso; las acciones y la velocidad quedan como las dejó el 0xef.
+    // 0x50c79f: the model and the bone; the actions and speed stay as 0xef left them.
     actor.wings.model = 0xf0;
     actor.wings.bone = 0x3d;
     const glm::vec3 light = actor.drawnLight;
@@ -908,9 +907,8 @@ Result HangTheCarriedModels(MonsterFrame& frame)
     return hung;
 }
 
-// 0x50c83b..0x50c8c6: las estatuas de Blood Castle (+0x376 de 0x84 a 0x86) cuelgan del hueso 1, con la bandera
-// (PlacementOf de 0x509340), el 0xc1c, el 0x225 o el 0xa24 a la escala 0,7f (0x3f333333; el 0xa24, 0,9f), que
-// vuelve después.
+// 0x50c83b..0x50c8c6: the Blood Castle statues (+0x376 from 0x84 to 0x86) hang from bone 1, with the flag (PlacementOf
+// of 0x509340), 0xc1c, 0x225 or 0xa24 at scale 0.7f (0x3f333333; 0xa24, 0.9f), which is restored afterwards.
 Result HangTheStatueWeapon(MonsterFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -923,10 +921,9 @@ Result HangTheStatueWeapon(MonsterFrame& frame)
     return hung;
 }
 
-// 0x50bf45..0x50c904: lo que se agrega por el +0x376. El 0x45 con sus partículas, el 0x46, el 0x4d, las telas del
-// 0x47, el 0x4a y el 0x12d (0x50c59f, con cualquier tipo: los tres son del 0x186), los pases de brillo
-// (MonsterShines), lo que cuelgan el 0x2a y las estatuas 0x84 a 0x86 y las cadenas del 0x49 y el 0x4b (el 0x49 corta
-// en 0x60b300); los demás cortan.
+// 0x50bf45..0x50c904: what is added by +0x376. 0x45 with its particles, 0x46, 0x4d, the cloths of 0x47, 0x4a and 0x12d
+// (0x50c59f, with any type: all three are 0x186's), the shine passes (MonsterShines), what 0x2a and the statues 0x84 to
+// 0x86 hang, and the chains of 0x49 and 0x4b (0x49 cuts at 0x60b300); the others cut.
 Result DrawTheDecorations(MonsterFrame& frame)
 {
     const std::uint16_t monster = frame.actor.word376;
@@ -949,7 +946,7 @@ Result DrawTheDecorations(MonsterFrame& frame)
     return Actors::Drawing::CheckMonsterDecorations(frame.actor.word376);
 }
 
-// 0x50bd89..0x50bf3e: la sombra de los monstruos.
+// 0x50bd89..0x50bf3e
 Result DrawTheShadow(MonsterFrame& frame)
 {
     Kernel::ActorState& actor = frame.actor;
@@ -957,7 +954,7 @@ Result DrawTheShadow(MonsterFrame& frame)
     if (actor.byte88 == UnwalledKind || OneOf(actor.word376, Unshadowed) || frame.map == NoShadowMap ||
         actor.alpha < ShadowAlpha)
         return {};
-    // 0x50be15..0x50be52: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno (también con NaN).
+    // 0x50be15..0x50be52: in Blood Castle, with +0x1a1 and dying, the z drops to the terrain's (also with NaN).
     const auto grounded = Actors::Drawing::ShadowGroundOf(frame.pass, actor, frame.map, 0x50be3b);
     if (!grounded.HasValue())
         return Core::Unexpected(grounded.Error());
@@ -965,17 +962,18 @@ Result DrawTheShadow(MonsterFrame& frame)
     const bool marked = actor.word376 == 0xe8 || actor.word376 == 0xe9;
     if (marked)
         actor.dword58 = 2;
-    // 0x50be6e..0x50beb6: sin sombra el 0x18e, el 0x18f y del 0xa8 al 0xac; los demás, 0x60cf70(objeto, tipo, ...) con
-    // +0x98 en 1.
+    // 0x50be6e..0x50beb6: no shadow for 0x18e, 0x18f and 0xa8 to 0xac; the others, 0x60cf70(object, type, ...) with
+    // +0x98 at 1.
     if (actor.type != 0x18e && actor.type != 0x18f && !Within(actor.type, 0xa8, 0xac))
     {
-        // 0x60cfe8..0x60d015: antes de 0x60b3d0 y sin mirar sus guardas, la escala (+0xc → +0x68, la del personaje,
-        // la misma que copió 0x5ffdf0) y la posición ya en el suelo (+0x10..+0x18 → +0x6c..+0x74) van al registro del
-        // tipo, el mismo [ebp−0x14] (0x510e9f: el objeto es el personaje), y 0x4ebc80 (0x60d186) vuelve a pasar las
-        // mallas de 0x5786f9c con ese origen: la cola lo lee. Entre frames del original, sobre la copia.
+        // 0x60cfe8..0x60d015: before 0x60b3d0 and without looking at its guards, the scale (+0xc → +0x68, the
+        // character's, the same 0x5ffdf0 copied) and the position already on the floor (+0x10..+0x18 → +0x6c..+0x74) go
+        // to the type's record, the same [ebp−0x14] (0x510e9f: the object is the character), and 0x4ebc80 (0x60d186)
+        // passes the meshes of 0x5786f9c again with that origin: the tail reads it. Between original frames, on the
+        // copy.
         frame.modelOrigin = actor.position;
-        // 0x60d44b → 0x60b3d0 con +0x98 en 1, sin +0x1bc en 3 (MuRet no lo tiene: 0, *inferido*), sin +0x78 & 0x4000 y
-        // con +0x92.
+        // 0x60d44b → 0x60b3d0 with +0x98 at 1, without +0x1bc at 3 (MuRet does not have it: 0, *inferred*), without
+        // +0x78 & 0x4000 and with +0x92.
         if ((actor.flags78 & RiderFlag) == 0 && actor.byte92 != 0 && actor.bodyPose.size() > 0)
         {
             Actors::Drawing::DrawnObject object;
@@ -993,17 +991,18 @@ Result DrawTheShadow(MonsterFrame& frame)
     return {};
 }
 
-// 0x60cf70 con su modo 1, en un personaje que no es el 0x20a: los dos pases de 0x60cd60 de cada parte (0x60d056..
-// 0x60d14c), con la escala de +0x94 y los colores por +0x88 (con 4, los del NPC: 0x60d069 y 0x60d0dd) y el segundo
-// 0,02f (0x6b8b90) más chico; en los mapas 18 a 23, otros colores y las escalas por la del objeto (+0xc): 0,1 / escala
-// + 1 guardado en float y 0,04 / escala + 1,02 − 0,02 en la x87. No son los del cuerpo (OutlinePassesOf, 0x5ffdf0).
+// 0x60cf70 with its mode 1, on a character that is not 0x20a: the two 0x60cd60 passes of each part
+// (0x60d056..0x60d14c), with the scale of +0x94 and the colors by +0x88 (with 4, the NPC's: 0x60d069 and 0x60d0dd) and
+// the second 0.02f (0x6b8b90) smaller; in maps 18 to 23, other colors and the scales by the object's (+0xc): 0.1 /
+// scale + 1 stored as a float and 0.04 / scale + 1.02 − 0.02 on the x87. They are not the body's (OutlinePassesOf,
+// 0x5ffdf0).
 std::array<Actors::Drawing::ObjectOutlinePass, 2> PartOutlinePassesOf(const Kernel::ActorState& actor, std::int32_t map)
 {
-    constexpr float InnerStep = std::bit_cast<float>(0x3ca3d70au); // 0,02 (0x6b8b90)
+    constexpr float InnerStep = std::bit_cast<float>(0x3ca3d70au); // 0.02 (0x6b8b90)
     if (IsChaosCastle(map))
     {
         const float outer = F32(D(OuterSpan) / D(actor.scale) + 1.0);
-        const double inner = D(OutlineStep) / D(actor.scale) + D(std::bit_cast<float>(0x3f828f5cu)); // 1,02 (0x6ba764)
+        const double inner = D(OutlineStep) / D(actor.scale) + D(std::bit_cast<float>(0x3f828f5cu)); // 1.02 (0x6ba764)
         return {{{outer, Render::Color{OuterSpan, std::bit_cast<float>(0x3c23d70au), 0.0f, 1.0f}},
                  {F32(inner - D(InnerStep)),
                   Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3d8f5c29u), 0.0f, 1.0f}}}};
@@ -1082,12 +1081,12 @@ Result DrawTheParts(MonsterFrame& frame)
                                           { PublishMonsterPickingBox(frame, position); });
 }
 
-// 0x50c929..0x50c96e y 0x50d58b..0x50db57: en un personaje que no es el 0x20a, bVar23 es solo el +0x376 0x37 fuera de
-// los mapas 0x12 a 0x17; con él, el bloque de las telas de CharacterCloth sobre los huesos propios (+0x120) con el
-// blanco de 0x50c979 (+0x1f2 en 0xffff). Entre frames del original, las de antes.
+// 0x50c929..0x50c96e and 0x50d58b..0x50db57: on a character that is not 0x20a, bVar23 is only +0x376 at 0x37 outside
+// maps 0x12 to 0x17; with it, the block of CharacterCloth's cloths over the own bones (+0x120) with the white of
+// 0x50c979 (+0x1f2 at 0xffff). Between original frames, the earlier ones.
 Result RunTheCloth(MonsterFrame& frame)
 {
-    constexpr std::uint16_t ClothFlare = 0x5ac; // flare01, aditivo (0x5491e0 con 0)
+    constexpr std::uint16_t ClothFlare = 0x5ac; // flare01, additive (0x5491e0 with 0)
     const Kernel::ActorState& actor = frame.actor;
     const auto map = static_cast<std::uint8_t>(frame.map);
     const bool wears = Actors::Drawing::WearsTheMonsterCloth(actor.word376, map);
@@ -1118,9 +1117,9 @@ Result RunTheCloth(MonsterFrame& frame)
     return {};
 }
 
-// 0x50b870(objeto, sprite, escala, hueso, x, y, z): el punto del hueso propio con la escala del personaje y la posición
-// del modelo (0x50b8bf, MonsterFrame::modelOrigin) y el sprite aditivo con la luz sin(T · 0,002f) · 0,3f + 0,7f, por
-// 0,6f y 0,4f en verde y azul (con la luz en la pila).
+// 0x50b870(object, sprite, scale, bone, x, y, z): the own bone's point with the character's scale and the model's
+// position (0x50b8bf, MonsterFrame::modelOrigin) and the additive sprite with the light sin(T · 0.002f) · 0.3f + 0.7f,
+// times 0.6f and 0.4f in green and blue (with the light on the x87 stack).
 void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, std::size_t bone,
                 const glm::vec3& offset)
 {
@@ -1131,13 +1130,13 @@ void BoneSprite(const MonsterFrame& frame, std::uint16_t texture, float scale, s
     static_cast<void>(frame.pass.sprites->Create(texture, point, scale, light, 0.0f, 0));
 }
 
-// 0x50b920(objeto, hueso a, hueso b, escala): el 0x5ff en (5, 0, 0) del hueso a y en (−5, 0, 0) del b, con la luz
-// sin(T · 0,002f) · 0,3f + 0,8f guardada; el último punto queda en +0x40..+0x48.
+// 0x50b920(object, bone a, bone b, scale): the 0x5ff at (5, 0, 0) of bone a and at (−5, 0, 0) of b, with the light
+// sin(T · 0.002f) · 0.3f + 0.8f stored; the last point stays in +0x40..+0x48.
 void PairOfSprites(MonsterFrame& frame, std::size_t first, std::size_t second, float scale)
 {
     Kernel::ActorState& actor = frame.actor;
     const float lum = F32(ClockSine(frame.worldClock, PulseRate, PulseSpan) + D(std::bit_cast<float>(0x3f4ccccdu)));
-    // 0x50b99a y 0x50b9f1: 0x4ec110 con el modelo del tipo.
+    // 0x50b99a and 0x50b9f1: 0x4ec110 with the type's model.
     const auto at = [&frame](std::size_t bone, float x) { return PointOnTheBone(frame, bone, {x, 0.0f, 0.0f}); };
     constexpr std::uint16_t Glow = 0x5ff;
     static_cast<void>(frame.pass.sprites->Create(Glow, at(first, 5.0f), scale, glm::vec3(lum), 0.0f, 0));
@@ -1160,16 +1159,16 @@ void BoneSprites(const MonsterFrame& frame, std::span<const BoneSpriteCall> call
         BoneSprite(frame, call.texture, call.scale, call.bone, {0.0f, 0.0f, call.z});
 }
 
-// 0x510763..0x5108b1, el 0x1d9: el punto (3,5; −12; 10) del hueso 20, dos 0x5d5 a 0,3 con la luz sin(T · 0,002f) ·
-// 0,35f (0x6b8bc4) + 0,65f (0x6b8bc0) guardada y girados T · 0,02f (0x6b89e4) y −T · 0,02f, y con rand() % 30 en 0,
-// tres rand() % 100 más el punto menos 50 (0x6b86b0), en x, y y z, para el joint 0x618/6 (0x530860) desde ahí hacia
-// el punto, con los ángulos del objeto, sin dueño y de ancho 20.
+// 0x510763..0x5108b1, type 0x1d9: the point (3.5, −12, 10) of bone 20, two 0x5d5 at 0.3 with the light sin(T · 0.002f)
+// · 0.35f (0x6b8bc4) + 0.65f (0x6b8bc0) stored and turned T · 0.02f (0x6b89e4) and −T · 0.02f, and with rand() % 30 at
+// 0, three rand() % 100 plus the point minus 50 (0x6b86b0), in x, y and z, for the 0x618/6 joint (0x530860) from there
+// towards the point, with the object's angles, without owner and of width 20.
 Result DrawTheFairy(MonsterFrame& frame)
 {
     const Kernel::ActorState& actor = frame.actor;
     constexpr std::size_t Bone = 20;
     constexpr std::uint16_t Flare = 0x5d5;
-    // 0x510780..0x5107b4: 0x4ec110 con [ebp−0x14].
+    // 0x510780..0x5107b4: 0x4ec110 with [ebp−0x14].
     glm::vec3 point = PointOnTheBone(frame, Bone, {3.5f, -12.0f, 10.0f});
     const float lum = F32(ClockSine(frame.worldClock, PulseRate, std::bit_cast<float>(0x3eb33333u)) +
                           D(std::bit_cast<float>(0x3f266666u)));
@@ -1203,8 +1202,8 @@ Result DrawTheFairy(MonsterFrame& frame)
     return {};
 }
 
-// Lo que leen los helpers de KalimaSiegeHelpers.h: el pase del frame y, en el 0x42a1b0, las alturas del terreno del
-// pase (sin él, ninguna). El sonido, solo en el frame del original.
+// What the helpers of KalimaSiegeHelpers.h read: the frame's pass and, in 0x42a1b0, the pass's terrain heights (without
+// it, none). The sound, only in the original's frame.
 KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
 {
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(frame.pass.terrain);
@@ -1229,8 +1228,8 @@ KalimaSiegeHelperPass HelperPassOf(MonsterFrame& frame)
             .modelOrigin = frame.modelOrigin};
 }
 
-// 0x50e9fa..0x510a1e: el switch por modelo (la tabla de 0x510b80 sobre 0x510b50). Devuelve true si el tipo tiene su
-// caso, que salta la cadena de 0x510a1e.
+// 0x50e9fa..0x510a1e: the switch by model (the 0x510b80 table over 0x510b50). Returns true if the type has its case,
+// which skips the 0x510a1e chain.
 Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
 {
     const std::uint16_t type = frame.actor.type;
@@ -1240,7 +1239,7 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
         return false;
     if (type == 0x16e)
     {
-        // 0x5108b6 (KalimaSiegeHelpers.h), con los huesos del modelo.
+        // 0x5108b6 (KalimaSiegeHelpers.h), with the model's bones.
         const Models::Skeleton* skeleton = frame.fauna.SkeletonOf(Models::ModelId{type});
         if (skeleton == nullptr)
             return Core::Unexpected(std::format("0x5108b6: falta el modelo {:#x}", type));
@@ -1255,7 +1254,7 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     {
     case 0x152:
     case 0x170:
-        // 0x5104d0: el 0x152 solo con +0x1d6 en 1.
+        // 0x5104d0: type 0x152 only with +0x1d6 at 1.
         if (type == 0x170 || frame.actor.level == 1)
             PairOfSprites(frame, 0x16, 0x17, 1.0f);
         break;
@@ -1313,13 +1312,13 @@ Core::Expected<bool, std::string> DrawTheModelCase(MonsterFrame& frame)
     return true;
 }
 
-// 0x50db57..0x510ac2 sobre el cuerpo ya dibujado.
+// 0x50db57..0x510ac2 over the already drawn body.
 Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
 {
     Kernel::ActorState& actor = frame.actor;
     const Actors::Drawing::GameCharacterPass& pass = frame.pass;
-    // 0x50db94: la luz de lo que cuelga; el rand() de 0x50db57 y los dos cierres de +0x38e de las manos los saca
-    // DrawGameHanging (Q-C860).
+    // 0x50db94: the light of what hangs; DrawGameHanging takes the rand() of 0x50db57 and the two +0x38e closes of the
+    // hands (Q-C860).
     actor.drawnLight = Actors::Drawing::HangingLightOf(actor, terrainLight, frame.map);
     if (auto hung = Actors::Drawing::DrawGameHanging(actor, HangingPassOf(frame, frame.items)); !hung.HasValue())
         return hung;
@@ -1328,14 +1327,14 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
         return Core::Unexpected(cased.Error());
     if (!cased.Value())
     {
-        // 0x510a27 y 0x510a36: 0x43c150 y 0x42dfe0 (KalimaSiegeHelpers.h); el primero que tiene el tipo salta el resto.
+        // 0x510a27 and 0x510a36: 0x43c150 and 0x42dfe0 (KalimaSiegeHelpers.h); the first with the type skips the rest.
         const auto helped = DrawKalimaSiegeHelpers(HelperPassOf(frame));
         if (!helped.HasValue())
             return Core::Unexpected(helped.Error());
         if (!helped.Value())
         {
-            // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 y 0x4271d0.
-            // Las alturas del pase (sin él, ninguna) para las marcas de 0x434180.
+            // 0x510a42..0x510a72: 0x441400, 0x42fa30, 0x434180 and 0x4271d0.
+            // The pass's heights (without it, none) for the marks of 0x434180.
             const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
             MonsterHelperPass helperPass{.actor = actor,
                                          .slot = frame.slot,
@@ -1348,7 +1347,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                                          .originalFrame = frame.originalFrame,
                                          .batch = &frame.batch,
                                          .heights = terrain.heights.get()};
-            // 0x4ee770 desde 0x441400: la malla 0 del cuerpo posado otra vez, como la dejó en 0x5786f9c (Q-C1581).
+            // 0x4ee770 from 0x441400: mesh 0 of the posed body again, as it left it in 0x5786f9c (Q-C1581).
             helperPass.vertexEffects = [&frame](std::int32_t type,
                                                 std::int32_t subtype) -> Core::Expected<void, std::string>
             {
@@ -1363,9 +1362,9 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
                 return helpers;
         }
     }
-    // 0x510a7a: en la escena 5, con +0x88 en 1, fuera de Blood Castle, Chaos Castle y el 30, 0x510ef0 con +0x369 y
-    // +0x36c (Q-C352): el efecto 0x140 (Scenes/GuildMarkEffects) con el hueso 20 del cuerpo recién posado. Solo en un
-    // frame del original: entre frames, el personaje es una copia y las tablas, las del mundo.
+    // 0x510a7a: in scene 5, with +0x88 at 1, outside Blood Castle, Chaos Castle and map 30, 0x510ef0 with +0x369 and
+    // +0x36c (Q-C352): effect 0x140 (Effects/GuildMarkEffects) with bone 20 of the freshly posed body. Only in an
+    // original frame: between frames, the character is a copy and the tables are the world's.
     if (actor.byte88 == PlayerKind && !IsBloodCastle(frame.map) && !IsChaosCastle(frame.map) &&
         frame.map != CastleMap && frame.originalFrame && Effects::GuildMarkIsDue(actor, frame.worldClock))
     {
@@ -1377,7 +1376,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
             !raised.HasValue())
             return Core::Unexpected(std::format("0x510f4d: {}", raised.Error()));
     }
-    // 0x510abd: 0x420df0, el cuervo de +0x430, con cualquier tipo.
+    // 0x510abd: 0x420df0, the raven of +0x430, with any type.
     if (!actor.darkSpirit)
         return {};
     if (pass.polygon == nullptr)
@@ -1416,7 +1415,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
     const Models::Skeleton* skeleton = fauna.SkeletonOf(Models::ModelId{stored.type});
     if (skeleton == nullptr)
         return Core::Unexpected(std::format("0x50ba82: falta el modelo {:#x}", stored.type));
-    // Entre frames del original, sobre una copia del personaje y del rand(): no guarda nada.
+    // Between original frames, on a copy of the character and the rand(): it stores nothing.
     std::optional<Kernel::ActorState> projected;
     std::optional<Crt::CrtRandom> projectedRandom;
     Kernel::ActorState& actor = originalFrame ? stored : projected.emplace(stored);
@@ -1445,13 +1444,13 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
         return shadow;
     if (auto decorated = DrawTheDecorations(frame); !decorated.HasValue())
         return decorated;
-    // 0x50c972..0x50cc29: con +0x1f2 distinto de 0xffff (un nombre largo de NpcName lo pisa, P-C352), los colores de la
-    // guerra de gremios piden [0x576796d] o [0x576796f], y los del duelo, para todos, [0x78abad8]. Los escriben los
-    // paquetes de la guerra (GuildState, hito 8) y del duelo (SocialState::duel, hito 7), pero acá MuRet no corre el
-    // bloque: el duelo no alcanza a un monstruo (las claves son de otros objetos), y la guerra solo a los NPC con
-    // +0x1f2 pisado, que compararían los nombres de la tabla de gremios por +0x1f2 (0x787aa55 + i · 0x58) y pondrían
-    // bVar23 ([EBP+0xf], que prende la tela de 0x50d58b) y su color ([EBP−0x5c..−0x54]) (08 P-C352).
-    // 0x50cc55: la luz del terreno (0x5f99e0) más la propia, en +0x3b4; el 0x189 en 0,6.
+    // 0x50c972..0x50cc29: with +0x1f2 other than 0xffff (a long NpcName name overwrites it, P-C352), the guild war
+    // colors ask for [0x576796d] or [0x576796f], and the duel's, for everyone, [0x78abad8]. The war packets
+    // (GuildState, milestone 8) and the duel packets (SocialState::duel, milestone 7) write them, but MuRet does not
+    // run the block here: the duel does not reach a monster (the keys belong to other objects), and the war only NPCs
+    // with +0x1f2 overwritten, which would compare the guild table's names by +0x1f2 (0x787aa55 + i · 0x58) and set
+    // bVar23 ([EBP+0xf], which turns on the cloth of 0x50d58b) and its color ([EBP−0x5c..−0x54]) (08 P-C352).
+    // 0x50cc55: the terrain light (0x5f99e0) plus its own, in +0x3b4; type 0x189 at 0.6.
     if (pass.dynamicLighting == nullptr)
         return Core::Unexpected<std::string>("0x50cc55: falta el buffer dinámico de luz del terreno para 0x50ba30");
     const glm::vec3 terrainLight = Terrain::LightAt(*pass.dynamicLighting, actor.position.x, actor.position.y);

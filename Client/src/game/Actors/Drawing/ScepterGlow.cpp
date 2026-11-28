@@ -25,13 +25,13 @@ constexpr float SmallShrink = 0.2f; // 0x6b8854
 
 using Math::F32;
 
-// fild, fmul por 0,05f y la suma de `base`, en 53 bits, guardado en float.
+// fild, fmul by 0.05f and the sum of `base`, in 53 bits, stored in a float.
 float Steps(int count, double base)
 {
     return F32((static_cast<double>(count) * static_cast<double>(Step)) + base);
 }
 
-// (0, p ± 100, p): la y en 53 bits y guardada en float.
+// (0, p ± 100, p): the y in 53 bits and stored in a float.
 glm::vec3 OffsetOf(float p, double reach)
 {
     return {0.0f, F32(static_cast<double>(p) + reach), p};
@@ -63,7 +63,7 @@ void CreateScepterGlow(Particles::FrameSprites& sprites, const Math::OriginalMat
     const auto at = [&](const glm::vec3& offset)
     { return Math::OriginalTransformPosition(bone, offset, bodyScale, bodyOrigin); };
 
-    // El tridente: p = (rand() % 60) · 0,05 − 1,5 y la escala (rand() % 10) · 0,05 + 1,4.
+    // The trident: p = (rand() % 60) · 0.05 − 1.5 and the scale (rand() % 10) · 0.05 + 1.4.
     float p = Steps(randoms.tridentStep, -1.5);
     float scale = Steps(randoms.tridentScale, 1.4f);
     glm::vec3 position = at(OffsetOf(p, -Reach));
@@ -71,14 +71,14 @@ void CreateScepterGlow(Particles::FrameSprites& sprites, const Math::OriginalMat
     (void)sprites.Create(Shiny, position, F32(static_cast<double>(scale) - static_cast<double>(BigShrink)), light,
                          20.0f, Additive);
 
-    // El flare01, con otro p y la escala (rand() % 10) · 0,05 + 1, más 0,3 al pedirlo.
+    // The flare01, with another p and the scale (rand() % 10) · 0.05 + 1, plus 0.3 when requested.
     p = Steps(randoms.flareStep, -1.5);
     scale = Steps(randoms.flareScale, 1.0);
     position = at(OffsetOf(p, -Reach));
     (void)sprites.Create(Flare, position, F32(static_cast<double>(scale) + static_cast<double>(BigShrink)), light, 0.0f,
                          Additive);
 
-    // El pomo: p = (rand() % 40) · 0,05 − 1 y la escala (rand() % 8) · 0,05 + 0,4.
+    // The pommel: p = (rand() % 40) · 0.05 − 1 and the scale (rand() % 8) · 0.05 + 0.4.
     p = Steps(randoms.pommelStep, -1.0);
     scale = Steps(randoms.pommelScale, 0.4f);
     position = at(OffsetOf(p, Reach));

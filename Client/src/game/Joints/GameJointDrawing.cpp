@@ -67,7 +67,7 @@ glm::vec3 JointCenter(const Kernel::JointState& joint, std::size_t segment)
 void IcarusSprites(Kernel::JointState& joint, const JointDrawResources& resources)
 {
     if (!resources.originalFrame && !joint.icarusRotations.has_value())
-        return; // Sin muestra original previa no inventar giros para los dibujos intermedios.
+        return; // Without a previous original sample, do not invent turns for the intermediate draws.
     if (resources.originalFrame)
         joint.icarusRotations = std::array<float, 2>{};
     const auto center = JointCenter(joint, 0);
@@ -88,7 +88,7 @@ bool HalfTexture(const Kernel::JointState& joint)
     return (joint.type == 0x62c && joint.subtype >= 0 && joint.subtype <= 4) ||
            (joint.subtype >= 11 && joint.subtype <= 13);
 }
-// u, la siguiente u y el corrimiento de 0x53c8ee (el de la segunda cara de 614 y 615).
+// u, the next u and the shift of 0x53c8ee (the one of the second face of 614 and 615).
 Core::Expected<std::array<float, 3>, std::string> JointUvs(const Kernel::JointState& joint, std::int32_t segment,
                                                            const JointDrawResources* resources)
 {
@@ -135,7 +135,7 @@ Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const Kernel::Joi
                                                                const JointDrawResources* resources)
 {
     glm::vec3 segmentLight;
-    // El +0x18 del dueño: un personaje (ActorState) en el 10f/0, /4 y /9 de AuraJoints.cpp, o el FaunaObject.
+    // The owner's +0x18: a character (ActorState) in the 10f/0, /4 and /9 of AuraJoints.cpp, or the FaunaObject.
     const glm::vec3* ownerPosition = nullptr;
     if (joint.ownerKind == Kernel::JointOwnerKind::Actor)
     {
@@ -253,7 +253,7 @@ Core::Expected<void, std::string> DrawJointSegment(Render::ModelBatch& batch, Ke
         JointFace(batch, joint, at, 2, 3, u, nextU, otherV, v, segmentLight);
     if ((joint.drawEnabled & 2u) != 0)
     {
-        // 0x53d01d..0x53d043: en 614 y 615 la segunda cara corre las dos u en dos veces el corrimiento.
+        // 0x53d01d..0x53d043: in 614 and 615 the second face shifts both u by twice the shift.
         if (joint.type == 0x614 || joint.type == 0x615)
         {
             const double twice = static_cast<double>(uv.Value()[2]) + static_cast<double>(uv.Value()[2]);

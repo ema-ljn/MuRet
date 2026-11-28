@@ -35,7 +35,7 @@ Effects::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor)
 
 namespace
 {
-// El alta con el dueño en +0x108 (lo que el paso lee en vivo) y sus +0x8c y +0x8e.
+// The creation with the owner in +0x108 (what the step reads live) and its +0x8c and +0x8e.
 Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const Kernel::ModelEffectArguments& arguments,
                                                                       Kernel::ActorState* owner,
                                                                       Kernel::WorldState& world, Crt::CrtRandom& random,
@@ -89,7 +89,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
                 return Core::Unexpected(made.Error());
             return {};
         },
-        // 0x41ed10(id, 0, 0): el pedido de sonido del paso (WorldRuntime::RequestSound en el juego).
+        // 0x41ed10(id, 0, 0): the step's sound request (WorldRuntime::RequestSound in the game).
         .sound =
             [&](Audio::SoundId id)
         {
@@ -103,7 +103,7 @@ Core::Expected<std::optional<std::size_t>, std::string>
 CreateBlastEffectOutsideTheStep(const Kernel::ModelEffectArguments& arguments, Kernel::ActorState* owner,
                                 Kernel::WorldState& world, Crt::CrtRandom& random)
 {
-    // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).
+    // 0x530860: the joint table is the global one (0x74a8d78), also outside the step (the 0x112's sixty 0x5ac/0).
     const Effects::BlastEffectServices services{
         .joint = [&world, &random](const Kernel::JointRequest& request,
                                    bool effectOwner) -> Core::Expected<void, std::string>

@@ -63,7 +63,7 @@ struct RecordedJoint
     std::int32_t target = 0;
 };
 
-// Las tablas del mundo en el heap, y los servicios que las prestan.
+// The world's tables on the heap, and the services that lend them.
 struct Harness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
@@ -82,7 +82,7 @@ struct Harness
     double ground = 0.0;
     std::optional<WizardOwnerView> owner;
     int hero = 0;
-    // Lo que devuelve el empujón (0x524a8d): un error del servicio corta el paso ahí.
+    // What the push (0x524a8d) returns: a service error stops the step there.
     std::string pushFailure;
     std::vector<std::pair<float, float>> pushes;
     std::vector<ModelEffectArguments> others;
@@ -361,8 +361,8 @@ TEST(WizardModelEffectsTest, TheShadowRainDropsTenOrbitsFromItsOwner)
     EXPECT_EQ(world.joints[9].scale, 120.0f);
 }
 
-// 0x525438..0x5254f9: con dueño y vida por encima de 10, el paso del 0xbd/0 saca (rand() & 127) − 64 y suelta la
-// 0x5fc/2 a (r − 50; r + 50; 360) del dueño, con la escala (rand() % 30 + 50) · 0,01f.
+// 0x525438..0x5254f9: with an owner and life above 10, the 0xbd/0's step draws (rand() & 127) − 64 and releases the
+// 0x5fc/2 at (r − 50; r + 50; 360) from the owner, with scale (rand() % 30 + 50) · 0.01f.
 TEST(WizardModelEffectsTest, TheShadowRainDropsAFallingShineNearItsOwner)
 {
     Harness world;
@@ -376,7 +376,7 @@ TEST(WizardModelEffectsTest, TheShadowRainDropsAFallingShineNearItsOwner)
     const auto stepped = Client::Effects::StepWizardModelEffect(rain, nullptr, random, world.Services());
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_EQ(world.ParticlesOf(0x5fc, 2), 1U);
-    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+    static_cast<void>(oracle.Next()); // 0x5208c5, the step's light.
     const int spread = (oracle.Next() & 127) - 64;
     const float scale = F32(static_cast<double>(oracle.Next() % 30 + 50) * std::bit_cast<float>(0x3c23d70au));
     const glm::vec3 point{static_cast<float>(spread - 50) + 500.0f, static_cast<float>(spread + 50) + 600.0f, 430.0f};
@@ -439,7 +439,7 @@ TEST(WizardModelEffectsTest, TheFollowingMagicAndTheHellGateStayOnTheirOwner)
     EXPECT_EQ(hell.objectState.blendMesh, -4);
     ASSERT_TRUE(Client::Effects::StepWizardModelEffect(magic, nullptr, random, world.Services()).HasValue());
     ASSERT_TRUE(Client::Effects::StepWizardModelEffect(hell, nullptr, random, world.Services()).HasValue());
-    // La cola mueve con la velocidad (cero) girada: se quedan donde los puso el caso.
+    // The tail moves with the (zero) speed rotated: they stay where the case put them.
     EXPECT_EQ(magic.transform.position, glm::vec3(50.0f, 60.0f, 170.0f));
     EXPECT_EQ(magic.transform.angles.y, 20.0f);
     EXPECT_EQ(magic.objectState.light, F32(20.0 * Tenth));
@@ -498,8 +498,8 @@ TEST(WizardModelEffectsTest, TheMeteorExplodesOnTheGround)
     EXPECT_EQ(world.ParticlesOf(0x5d9, 5), 1U);
 }
 
-// 0x524959..0x5249a0: el meteoro 0xc2/9 del mapa 55 suelta en cada paso sus dos humos 0x5f2/0x24 y /0x25 con él de
-// dueño (push ebx); la 0x24 lo sigue (ParticleOwnerStatesOf lo busca por su lugar en la tabla), la 0x25 no lo lee.
+// 0x524959..0x5249a0: map 55's meteor 0xc2/9 releases each step its two smokes 0x5f2/0x24 and /0x25 owned by it (push
+// ebx); the 0x24 follows it (ParticleOwnerStatesOf looks it up by its slot in the table), the 0x25 does not read it.
 TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
 {
     Harness world;
@@ -520,7 +520,7 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
                   (Client::Particles::ParticleOwner{Client::Particles::ParticleOwnerKind::ModelEffect, slot}));
     }
 
-    // Fuera de la tabla no hay de dónde sacar el dueño: corta en la primera.
+    // Outside the table there is nowhere to get the owner from: it stops at the first.
     Harness other;
     other.ground = -1000.0;
     CrtRandom again(14);
@@ -530,9 +530,9 @@ TEST(WizardModelEffectsTest, TheMapMeteorTrailsTwoSmokesOwnedByItself)
     EXPECT_NE(cut.Error().find("0x52497d"), std::string::npos) << cut.Error();
 }
 
-// 0x524c64..0x524e95: el 0xc2/6, /7 y /8 que pasa el suelo se apoya en él y suelta el 0xf6/2 (0x524d38: en su punto,
-// ángulos 0, luz (0; 0,5; 0), el meteoro de dueño y la clave 30), los humos de piedra 5f2/11 (15, 7 o 5), las seis
-// piedritas sólo el /6, el sonido 0x8f y la explosión 5ed/0; después, su brillo (0x524e99).
+// 0x524c64..0x524e95: the 0xc2/6, /7 and /8 that pass the ground rest on it and release the 0xf6/2 (0x524d38: at its
+// point, zero angles, light (0; 0.5; 0), the meteor as owner and key 30), the 0x5f2/11 stone smokes (15, 7 or 5), the
+// six small stones only the /6, sound 0x8f and the 0x5ed/0 explosion; then, its shine (0x524e99).
 TEST(WizardModelEffectsTest, TheGreenMeteorDropsItsBurstWhenItLands)
 {
     struct Case
@@ -570,9 +570,9 @@ TEST(WizardModelEffectsTest, TheGreenMeteorDropsItsBurstWhenItLands)
     }
 }
 
-// 0x524a5f..0x524b2a: el 0xc2/4 que baja del suelo tiembla la cámara, empuja a los personajes del pool que estén
-// cerca (el servicio, en su punto) y cae en el suelo como el meteoro (0x524b27 → 0x524c64), haya empujado o no: seis
-// piedritas, la explosión y muere. Un error del empujón corta ahí, con el efecto vivo.
+// 0x524a5f..0x524b2a: the 0xc2/4 that goes below the ground shakes the camera, pushes the pool's nearby characters (the
+// service, at its point) and lands like the meteor (0x524b27 → 0x524c64), pushed or not: six small stones, the
+// explosion, and it dies. A push error stops there, with the effect alive.
 TEST(WizardModelEffectsTest, TheFallingFirePushesAndLands)
 {
     for (const bool fails : {false, true})
@@ -604,8 +604,9 @@ TEST(WizardModelEffectsTest, TheFallingFirePushesAndLands)
     }
 }
 
-// 0x524f05: con rand() % 5 distinto de 0, el 0xc2/5 suelta la brasa 6ad/0 en su posición y con sus ángulos (la luz
-// la pisa el alta con 0,5) y termina el paso; con las partículas llenas, sin la brasa ni sus tres rand().
+// 0x524f05: with rand() % 5 other than 0, the 0xc2/5 releases the 0x6ad/0 ember at its position with its angles (the
+// creation overwrites the light with 0.5) and ends the step; with the particles full, without the ember or its three
+// rand().
 TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
 {
     for (const bool full : {false, true})
@@ -652,8 +653,8 @@ TEST(WizardModelEffectsTest, TheBouncingFireDropsItsEmber)
     }
 }
 
-// 0x522dff y 0x522c0e: el 0xcf/0 suelta su humo 5f2/3 antes de sus joints y el 0xce/0 cuatro, antes de su luz; los dos
-// siguen hasta el final del paso.
+// 0x522dff and 0x522c0e: the 0xcf/0 releases its 0x5f2/3 smoke before its joints and the 0xce/0 four, before its
+// light; both go on to the end of the step.
 TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
 {
     const auto smokes = [](Harness& world)
@@ -673,9 +674,9 @@ TEST(WizardModelEffectsTest, TheStormAndTheMagicLeaveTheirSmoke)
     EXPECT_EQ(smokes(world), 1 + 4);
 }
 
-// 0x52303b..0x5230be: el 0xcf/1 suelta su humo 5f2/3 y su gota 607/3 (con la tabla de partículas llena, 0x53fe70 no
-// hace nada) y suma al terreno su propia luz (+0xf4, esi de 0x523049) con el radio 5; el tono (−0,1L; −0,3L; −L) de
-// [ebp-0x1c] no lo lee nadie.
+// 0x52303b..0x5230be: the 0xcf/1 releases its 0x5f2/3 smoke and its 0x607/3 drop (with the particle table full,
+// 0x53fe70 does nothing) and adds its own light (+0xf4, 0x523049's esi) to the terrain with radius 5; the tone (−0.1L;
+// −0.3L; −L) of [ebp-0x1c] is read by nobody.
 TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
 {
     Harness world;
@@ -695,10 +696,10 @@ TEST(WizardModelEffectsTest, TheTwistingStormLightsTheGroundWithItsOwnLight)
         ASSERT_EQ(world.lighting->cells[cell], reference->cells[cell]) << cell;
 }
 
-// 0x52303b..0x523089: con lugar, el 0xcf/1 suelta en el punto 100 más arriba su humo 5f2/3 y su gota 607/3 de 0,1f
-// (0x523070, 0x523089), con sus ángulos ya girados: la gota vive rand() % 10 + 30, su escala suma (rand() % 6 + 4) ·
-// 0,03f a la del pedido, sortea otra igual para la subida (+0x50) y pisa la luz con 1 (0x542e1a). Su paso suma 1 al
-// cuadro y camina por la subida · 2,5 (0x5470d3).
+// 0x52303b..0x523089: with a slot, the 0xcf/1 releases at the point 100 higher its 0x5f2/3 smoke and its 0x607/3 drop
+// of 0.1f (0x523070, 0x523089), with its already turned angles: the drop lives rand() % 10 + 30, its scale adds
+// (rand() % 6 + 4) · 0.03f to the request's, draws another equal one for the rise (+0x50) and overwrites the light
+// with 1 (0x542e1a). Its step adds 1 to the frame and walks by the rise · 2.5 (0x5470d3).
 TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
 {
     Harness world;
@@ -711,8 +712,8 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(world.ParticlesOf(0x5f2, 3), 1U);
     ASSERT_EQ(world.ParticlesOf(0x607, 3), 1U);
-    static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
-    static_cast<void>(oracle.Next()); // rand() % 30 del giro.
+    static_cast<void>(oracle.Next()); // 0x5208c5, the step's light.
+    static_cast<void>(oracle.Next()); // the turn's rand() % 30.
     auto twin = std::make_unique<Client::Particles::Particles>();
     ASSERT_TRUE(
         twin->CreateChecked(0x5f2, point, storm.transform.angles, storm.light, 3, 1.0f, 1000.0f, oracle).HasValue());
@@ -736,10 +737,10 @@ TEST(WizardModelEffectsTest, TheTwistingStormDropsARisingDrop)
     EXPECT_GT(drop->verticalSpeed, 0.0f);
 }
 
-// La piedrita /2 de las tormentas (0x5231a9 → 0x52b14d → 0x51b72b), con valores a mano: la semilla 298 da 1011, 32248,
-// 3577, 29880 y 2406. El empuje ((1011 & 255) + 64) · 0,1f = 30,7f (0x41f5999a) en y, girado por los ángulos con la z
-// pisada por 29880 % 360 = 0: sin giro; la vida (32248 & 15) + 32 = 40; la escala ((3577 & 3) + 8) · 0,1f (0x3f666667);
-// la caída (2406 & 15) + 8 = 14. Cinco rand().
+// The storms' small stone /2 (0x5231a9 → 0x52b14d → 0x51b72b), with values by hand: seed 298 gives 1011, 32248, 3577,
+// 29880 and 2406. The push ((1011 & 255) + 64) · 0.1f = 30.7f (0x41f5999a) in y, rotated by the angles with z
+// overwritten by 29880 % 360 = 0: no turn; life (32248 & 15) + 32 = 40; scale ((3577 & 3) + 8) · 0.1f (0x3f666667);
+// the fall (2406 & 15) + 8 = 14. Five rand().
 TEST(WizardModelEffectsTest, TheStormChipIsBornWithItsFiveDrawsByHand)
 {
     for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
@@ -763,11 +764,11 @@ TEST(WizardModelEffectsTest, TheStormChipIsBornWithItsFiveDrawsByHand)
     }
 }
 
-// 0x523101..0x52318f: el 0xcf/3..7 tiembla la cámara ((rand() & 7) − 4) · 0,1f y suelta en su punto la niebla 5f2/28,
-// /29 y /30 (0x523144, 0x52315d, 0x523176), con sus ángulos, su luz y la escala 1, que piden la altura del terreno y,
-// la /30, el seno del reloj. Después, con rand() & 1 en 0, la piedrita 0xc8 + (rand() & 1) con el subtipo 2 (0x5231a9
-// → 0x52b14d), que nace como la /0 (0x51b72b) con sus cinco rand(). Con la tabla de partículas llena, la niebla no saca
-// nada. Réplica en un pool gemelo con el mismo CrtRandom.
+// 0x523101..0x52318f: the 0xcf/3..7 shakes the camera ((rand() & 7) − 4) · 0.1f and releases at its point the
+// 0x5f2/28, /29 and /30 mist (0x523144, 0x52315d, 0x523176), with its angles, its light and scale 1, which ask for the
+// terrain height and, the /30, the clock's sine. Then, with rand() & 1 at 0, the small stone 0xc8 + (rand() & 1) with
+// subtype 2 (0x5231a9 → 0x52b14d), born like the /0 (0x51b72b) with its five rand(). With the particle table full, the
+// mist draws nothing. Replayed in a twin pool with the same CrtRandom.
 TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
 {
     bool calm = false, chipped = false;
@@ -787,7 +788,7 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                 const glm::vec3 angles = storm.transform.angles;
                 const glm::vec3 light = storm.light;
                 CrtRandom oracle = random;
-                static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+                static_cast<void>(oracle.Next()); // 0x5208c5, the step's light.
                 const float shake = F32(static_cast<double>((oracle.Next() & 7) - 4) * Tenth);
                 auto twin = std::make_unique<Client::Particles::Particles>();
                 if (full)
@@ -805,7 +806,7 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
                 std::optional<std::size_t> twinChip;
                 if (chip)
                 {
-                    // 0x5231a9, el tipo de la piedrita, y su alta en una tabla gemela.
+                    // 0x5231a9, the small stone's type, and its creation in a twin table.
                     const auto type = static_cast<std::int16_t>(0xc8 + (oracle.Next() & 1));
                     twinChip = twinEffects->CreateStoneChip(type, at, angles, light, oracle, 2);
                     ASSERT_TRUE(twinChip.has_value());
@@ -864,10 +865,10 @@ TEST(WizardModelEffectsTest, TheLittleStormsLeaveTheirMistOnTheGround)
     EXPECT_TRUE(chipped);
 }
 
-// 0x5231f6..0x5232f8: el 0xcb/1 con la vida por encima de 44 − +0x1bc del dueño suelta 36 joints 613/6 en abanico,
-// cada uno con su rand() % 10 (0x52321f) antes del alta: los ángulos (−10, 0, (r + 10) · i), el punto (x, y, z + 100)
-// en las dos posiciones, el efecto de dueño, ancho 60, la clave 0 y sin blanco. Con la vida justo en 45 − +0x1bc, un
-// 613/7 de ángulo 10 · i detrás de cada uno. Con la vida en 44 − +0x1bc o menos, nada.
+// 0x5231f6..0x5232f8: the 0xcb/1 with life above 44 − the owner's +0x1bc releases 36 0x613/6 joints in a fan, each with
+// its rand() % 10 (0x52321f) before the creation: angles (−10, 0, (r + 10) · i), point (x, y, z + 100) in both
+// positions, the effect as owner, width 60, key 0 and no target. With life exactly at 45 − +0x1bc, a 0x613/7 of angle
+// 10 · i behind each. With life at 44 − +0x1bc or less, nothing.
 TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
 {
     struct Case
@@ -888,7 +889,7 @@ TEST(WizardModelEffectsTest, TheHiddenCircleFansItsRays)
         ModelEffect& circle = world.At(Create(world, arguments, random));
         circle.life = tested.life;
         CrtRandom oracle = random;
-        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        static_cast<void>(oracle.Next()); // 0x5208c5, the step's light.
         const auto stepped = Client::Effects::StepWizardModelEffect(circle, nullptr, random, world.Services());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         ASSERT_EQ(world.joints.size(), tested.second ? 72U : 36U);
@@ -952,12 +953,12 @@ TEST(WizardModelEffectsTest, TheOuterCircleShakesTheCameraAndGlows)
     EXPECT_EQ(world.AliveOf(0xc8) + world.AliveOf(0xc9), chip ? 1U : 0U);
 }
 
-// 0x523640..0x52384c: el círculo 0xcc/3 (con más de 30 de vida y rand() & 1 en 0) y el /4 (rand() % 5 en 0 y más de 5
-// de vida) sacan el alcance y el giro y dejan la columna 0x62b/0 de 1 con sus ángulos y su luz (0x523677, 0x52384c;
-// 0x542d01: dos rand() más, vida rand() % 10 + 30, luz 1 y la velocidad (0; 0; (rand() % 100) · 0,02f)); después el
-// joint 0x62b/0x13 600 más arriba. Con las partículas llenas, el alcance y el giro salen igual (son los argumentos) y
-// el joint también; sólo faltan los dos rand() de la alta. Lo esperado sale de column.py (0x523582..0x523898 y
-// 0x542d01 en una x87 aparte), con la semilla 2 para el /3 y la 4 para el /4.
+// 0x523640..0x52384c: circle 0xcc/3 (with life above 30 and rand() & 1 at 0) and the /4 (rand() % 5 at 0 and life
+// above 5) draw the reach and the turn and leave column 0x62b/0 at scale 1 with its angles and light (0x523677,
+// 0x52384c; 0x542d01: two more rand(), life rand() % 10 + 30, light 1 and speed (0; 0; (rand() % 100) · 0.02f)); then
+// joint 0x62b/0x13 600 higher. With the particles full, the reach and the turn come out the same (they are the
+// arguments) and the joint too; only the creation's two rand() are missing. The expected values come from column.py
+// (0x523582..0x523898 and 0x542d01 in a separate x87), with seed 2 for the /3 and 4 for the /4.
 TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
 {
     struct Column
@@ -966,7 +967,7 @@ TEST(WizardModelEffectsTest, TheOuterCircleRaisesFlareColumns)
         std::uint32_t seed;
         std::uint32_t state;
         std::uint32_t fullState;
-        std::array<std::uint32_t, 2> point; // x e y: (0, alcance, 0) girado por (0, 0, giro), más la posición
+        std::array<std::uint32_t, 2> point; // x and y: (0, reach, 0) rotated by (0, 0, turn), plus the position
         std::int32_t life;
         std::uint32_t rise;
     };
@@ -1078,11 +1079,11 @@ TEST(WizardModelEffectsTest, TheBoneChipFallsAndDrawsItsTenWithoutFire)
     EXPECT_FALSE(world.particles->Any());
 }
 
-// 0x51b432..0x51b4ff, 0x51b509..0x51b5d6 y 0x51b612..0x51b658: las piedritas 0xd8 de subtipo 10 y 0xc nacen con el
-// empuje ((& 255) + 64) girado por el yaw rand() % 360, la vida (& 15) + 32, la escala ((& 3) + 15) y la caída (la /10
-// con 0,2 en double, 0,05f y + 28; la /0xc con 0,1f, 0,1f y + 8); la /0xb, con la vida 40, la escala ((& 3) + 8) ·
-// 0,8f y el yaw. En el paso, después del rand() de la luz, la /10 cae sin otro rand(), la /0xc saca el % 10 (0x523adb)
-// y la /0xb, con la vida en 10 o más, no hace nada.
+// 0x51b432..0x51b4ff, 0x51b509..0x51b5d6 and 0x51b612..0x51b658: small stones 0xd8 of subtype 10 and 0xc are born with
+// the push ((& 255) + 64) rotated by the yaw rand() % 360, life (& 15) + 32, scale ((& 3) + 15) and the fall (the /10
+// with 0.2 in double, 0.05f and + 28; the /0xc with 0.1f, 0.1f and + 8); the /0xb, with life 40, scale ((& 3) + 8) ·
+// 0.8f and the yaw. In the step, after the light's rand(), the /10 falls with no other rand(), the /0xc draws the % 10
+// (0x523adb) and the /0xb, with life 10 or more, does nothing.
 TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
 {
     for (const std::int32_t subtype : {10, 0xb, 0xc})
@@ -1123,9 +1124,9 @@ TEST(WizardModelEffectsTest, TheStonesOfSubtypesTenElevenAndTwelveAreBorn)
         EXPECT_EQ(random.State(), oracle.State());
         const float alpha = stone.alpha;
         ASSERT_TRUE(Client::Effects::StepWizardModelEffect(stone, nullptr, random, world.Services()).HasValue());
-        static_cast<void>(oracle.Next()); // 0x5208c5, la luz del paso.
+        static_cast<void>(oracle.Next()); // 0x5208c5, the step's light.
         if (subtype == 0xc)
-            static_cast<void>(oracle.Next()); // 0x523adb, el % 10 sin fuego.
+            static_cast<void>(oracle.Next()); // 0x523adb, the % 10 without fire.
         EXPECT_EQ(random.State(), oracle.State());
         if (subtype == 0xb)
         {

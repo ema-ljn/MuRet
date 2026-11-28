@@ -40,59 +40,59 @@ class FrameSprites;
 class Particles;
 } // namespace Client::Particles
 
-// 530860: ownerContext es FaunaObject durable salvo613/4, 614/10 y614/14, donde permanece opaco, y el 618/0x11 y el
-// 610/4 de lo que cuelga de un jugador, el 60f/0, el 60f/0x12 y el 610/7 del conjunto completo, el 60f/0 y el 60f/0xa
-// del premio de una misión (0x4ddb80), el 619/9 de su 5ac/3, el 619/1 del calco de la mascota (0x518900) y el 619/8 de
-// la skill cargada (0x5189f0), donde es el ActorState del personaje, al igual que618/2y/3 del altarCrywolf. Con
-// `ownerKind` en Helper es el HelperState del caballo oscuro (0x444740), y en Raven el DarkSpirit del cuervo (0x418390
-// y 0x418400), sólo para el 60f/0 y el 60f/0x12: lee su luz (+0xf4) al nacer y su acción (+0x111) en el paso; con otro
-// tipo corta antes de escribir (0x530860). ModelEffect identifica al dueño durable de619/1 y610/13, sin
-// aliasActorState. Pool lleno no lee los argumentos ni RNG.
+// 0x530860: ownerContext is a durable FaunaObject except in the 613/4, 614/10 and 614/14, where it stays opaque, and in
+// the 618/0x11 and 610/4 of what hangs from a player, the full set's 60f/0, 60f/0x12 and 610/7, the quest reward's
+// 60f/0 and 60f/0xa (0x4ddb80), its 5ac/3's 619/9, the pet decal's 619/1 (0x518900) and the charged skill's 619/8
+// (0x5189f0), where it is the character's ActorState, as in the Crywolf altar's 618/2 and /3. With `ownerKind` at
+// Helper it is the dark horse's HelperState (0x444740), and at Raven the raven's DarkSpirit (0x418390 and 0x418400),
+// only for the 60f/0 and 60f/0x12: it reads its light (+0xf4) at creation and its action (+0x111) in the step; with
+// another type it stops before writing (0x530860). ModelEffect identifies the durable owner of the 619/1 and 610/13,
+// without an ActorState alias. A full pool reads neither the arguments nor the RNG.
 namespace Client::Joints
 {
 
-// El 618/0 y el 618/1 que el que mató lanza desde el blanco (0x505169, 0x5051a4): con el ActorState del que pega como
-// dueño, giran 20 pasos y después vuelven hacia él (0x538313), con la luz dinámica, el rayo 0x5d5/0 de cada paso y, al
-// llegar, el 0x5d5/1 y el sonido 0x23.
+// The 618/0 and 618/1 that the killer casts from the target (0x505169, 0x5051a4): owned by the attacker's ActorState,
+// they turn for 20 steps and then return to it (0x538313), with the dynamic light, the 0x5d5/0 ray each step and, on
+// arrival, the 0x5d5/1 and sound 0x23.
 inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateFaunaJoint(std::span<Kernel::JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
                  Kernel::JointOwnerKind ownerKind = Kernel::JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
-// 535840: 697 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
-// 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;
-// el 618/0x11 sigue el +0x40 del personaje y el 610/4 va de su +0x17c a su posición; el 60f/0, el 60f/0xa (que baja) y
-// el 60f/0x12 giran alrededor de su destino y, según la acción del dueño (la del personaje o la del caballo), pasan al
-// 60f/1, que sólo se apaga; con el ancho en 40 o más no la leen (el 60f/0 del caballo y los del premio nacen con 40);
-// el 610/7 se mece desde su partida y el 619/9 gira alrededor de la posición del personaje, leída en vivo; el 619/1
-// acelera y gira hacia el héroe, 120 más arriba, y en su última vida deja el sprite 0x5fd (pide el RNG y los sprites);
-// el 619/8 acelera, gira hacia su destino con más de 10 de vida, se apaga con menos de 6 y deja el sprite 0x5ac en cada
-// paso (pide los sprites, sin el RNG);
-// sólo la llegada con width50 necesita particles, y el humo usa worldClock.
-// El overload sin RNG conserva la frontera535f18 tras movimiento y comprobación del dueño. El 615/2 de Chaos
-// Castle pide los sprites del frame (0x5491e0) y las partículas. El615/7 de la llegada comparte geometría sin esas
-// emisiones. Los618/2y/3 siguen los dos puntos del dueño y emiten5d5/0 con el seno del reloj.
+// 0x535840: the 0x697 and 618/4 follow the owner's +0x40; the 610/8 follows position with z 300; the 10f/3 uses
+// life/RNG, the sine and the owner's color. The 614/10 and 614/14 turn and iterate their tail without reading the
+// owner; the 618/0x11 follows the character's +0x40 and the 610/4 goes from its +0x17c to its position; the 60f/0, the
+// 60f/0xa (which falls) and the 60f/0x12 turn around their target and, depending on the owner's action (the character's
+// or the horse's), become the 60f/1, which only fades; with the width at 40 or more they do not read it (the horse's
+// 60f/0 and the reward's are created with 40); the 610/7 sways from its start and the 619/9 turns around the
+// character's position, read live; the 619/1 speeds up and turns toward the hero, 120 higher, and in its last life
+// leaves the 0x5fd sprite (it needs the RNG and the sprites); the 619/8 speeds up, turns toward its target with more
+// than 10 life, fades with less than 6 and leaves the 0x5ac sprite each step (it needs the sprites, not the RNG); only
+// the arrival with width 50 needs particles, and the smoke uses worldClock. The overload without RNG keeps the 0x535f18
+// boundary after the move and the owner check. Chaos Castle's 615/2 needs the frame sprites (0x5491e0) and the
+// particles. The arrival's 615/7 shares the geometry without those emissions. The 618/2 and /3 follow the owner's two
+// points and emit 0x5d5/0 with the clock's sine.
 [[nodiscard]] Core::Expected<void, std::string> StepJoints(std::span<Kernel::JointState> joints);
-// El 618/0 y /1 piden además la luz dinámica (`lighting`, 0x7b4ccc4) y el sonido 0x23 (0x41ed10) al llegar; el
-// 613/0 y el /5, la altura del terreno (`terrainHeight`, 0x5f93c0); el 0x10f/4 y el /9, los 400 personajes
-// (`actors`, 0x743a16c); el 0x60f/0xb y el /0x19 con skill 1, el choque de la flecha dueña (`effectHit`, 0x520170);
-// el 0x613/0x13, la tabla de efectos con modelo (`effects`, 0x7491fd8). De la CL11: el 0x610/6 del 0x95 de Kalima pide
-// la luz dinámica; el 0x615/6 del pulso del asedio, la altura del terreno y las partículas; el 0x632/5, los sprites, la
-// altura del terreno y la tabla de efectos (la onda 0x6eb/4 al llegar al suelo); el 0x60f/4, /0xc y el 0x62b/4, /0xc
-// dan otro paso entero mientras la vida no sea múltiplo de 12 (0x53c3c6); el 0x6e8/0 y /1 no se mueven (la lista de
-// 0x53585e) y el 0x61c/1 sigue a su efecto de dueño. De la sexta vuelta: el 0x5ac agrega sus tramos sin moverse con
-// el paso común; el 0x6ee/0x12 le escribe al 0x125 dueño el alpha y la posición (0x539494); la /0xe y la /0xf del
-// 0x60f y del 0x62b con dueño piden el RNG; el 0x61c/0, el RNG y las partículas (y corta con dueño donde busca al
-// héroe, 0x53b548); el 0x14f, el RNG, la luz dinámica con ancho de 50 o más y las partículas al llegar con 50. De la
-// séptima: el 0x613 y el 0x6ee /0xb, /0xc, /0xe, /0xf, /0x10 y /0x12 piden el RNG y las partículas, el 0x613/0xf le
-// escribe al 0x126 dueño los ángulos, el alpha y la posición (0x539249) y el 0x61c/0 con dueño pide el héroe (`hero`,
-// [0x743a170], 0x53b548): sólo con él de dueño corta. De la octava: el 0x614/0xc y el 0x62c/5..7 con dueño piden los
-// modelos compartidos (`world`, 0x5769ad8), y el 0x62c/5..7, los sprites. El 0x613/0, /5 y /0x13 de ancho 80 sueltan
-// el 0xd0 en la tabla de efectos y piden `volley` (el asedio, los atributos de 0x5f82c0 y los blancos del héroe,
-// 0x539a50). De la novena: el 0x61c/0 del héroe pide también `volley` (0x53b569); el 0x632/0 y /1 con dueño, al llegar
-// al suelo, posan el 0x20b de `models` con el modelo compartido de `world` y sueltan las cáscaras 0x137 de sus vértices
-// en la tabla de efectos (0x53c1c6).
+// The 618/0 and /1 also need the dynamic light (`lighting`, 0x7b4ccc4) and sound 0x23 (0x41ed10) on arrival; the
+// 613/0 and /5, the terrain height (`terrainHeight`, 0x5f93c0); the 0x10f/4 and /9, the 400 characters (`actors`,
+// 0x743a16c); the 0x60f/0xb and /0x19 with skill 1, the owner arrow's hit (`effectHit`, 0x520170); the 0x613/0x13, the
+// table of effects with a model (`effects`, 0x7491fd8). The 0x610/6 of Kalima's 0x95 needs the dynamic light; the
+// siege pulse's 0x615/6, the terrain height and the particles; the 0x632/5, the sprites, the terrain height and the
+// effect table (the 0x6eb/4 wave on reaching the ground); the 0x60f/4, /0xc and the 0x62b/4, /0xc take another whole
+// step while life is not a multiple of 12 (0x53c3c6); the 0x6e8/0 and /1 do not move (the 0x53585e list) and the
+// 0x61c/1 follows its owner effect. The 0x5ac appends its segments without moving with the common step; the 0x6ee/0x12
+// writes the alpha and position of its 0x125 owner (0x539494); the /0xe and /0xf of the 0x60f and 0x62b with an owner
+// need the RNG; the 0x61c/0, the RNG and the particles (and stops with an owner where it looks for the hero,
+// 0x53b548); the 0x14f, the RNG, the dynamic light with width 50 or more and the particles on arrival with 50. The
+// 0x613 and 0x6ee /0xb, /0xc, /0xe, /0xf, /0x10 and /0x12 need the RNG and the particles, the 0x613/0xf writes the
+// angles, alpha and position of its 0x126 owner (0x539249) and the 0x61c/0 with an owner needs the hero (`hero`,
+// [0x743a170], 0x53b548): it stops only with the hero as owner. The 0x614/0xc and the 0x62c/5..7 with an owner need the
+// shared models (`world`, 0x5769ad8), and the 0x62c/5..7, the sprites. The 0x613/0, /5 and /0x13 of width 80 release
+// the 0xd0 into the effect table and need `volley` (the siege, the attributes of 0x5f82c0 and the hero's targets,
+// 0x539a50). The hero's 0x61c/0 also needs `volley` (0x53b569); the 0x632/0 and /1 with an owner, on reaching the
+// ground, pose the 0x20b from `models` with the shared model from `world` and release the 0x137 shells of its vertices
+// into the effect table (0x53c1c6).
 [[nodiscard]] Core::Expected<void, std::string>
 StepJoints(std::span<Kernel::JointState> joints, Crt::CrtRandom& random, Models::ClothWorld* cloth = nullptr,
            Particles::Particles* particles = nullptr, float worldClock = 0, Particles::FrameSprites* sprites = nullptr,

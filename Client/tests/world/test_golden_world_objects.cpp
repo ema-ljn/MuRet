@@ -25,9 +25,9 @@
 #include <utility>
 #include <vector>
 
-// Client::WorldObjects::CreateWorldObjects, StepWorldObject y DrawOf con el EncTerrain56.obj del laboratorio,
-// contra lo que hizo el código real del main.exe con cada uno de sus 276 registros
-// (tests/vectors/world55, 06 § El mundo del login): bit a bit.
+// Client::WorldObjects::CreateWorldObjects, StepWorldObject and DrawOf with the lab's EncTerrain56.obj, against what
+// the real main.exe code did with each of its 276 records (tests/vectors/world55, 06 § El mundo del login): bit for
+// bit.
 namespace
 {
 using Client::Tests::WorldObjectVector;
@@ -42,7 +42,7 @@ constexpr std::uint8_t Login = 55;
 
 using Client::Math::Bits;
 
-// Cada campo del objeto contra el del binario, por sus bits.
+// Each object field against the binary's, by its bits.
 void ExpectSameState(const WorldObject& object, const WorldObjectVectorState& expected, const std::string& where)
 {
     EXPECT_EQ(Bits(object.transform.scale), Bits(expected.scale)) << where << ": la escala";
@@ -82,7 +82,7 @@ protected:
         ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     }
 
-    // Los objetos como los crea MuRet en el login, y los tres pasos del binario sobre cada uno.
+    // The objects as MuRet creates them in the login, and the binary's three steps on each one.
     std::vector<WorldObject> Created() const
     {
         return Client::Tests::CheckedWorldObjectProjection(m_records, Login, Client::WorldObjects::ObjectScene::Login);
@@ -102,8 +102,8 @@ protected:
     Client::Assets::WorldModels m_models;
 };
 
-// 0x606660 con cada registro, en la escena 2: lo de siempre, el farol a 0,8 con luz 0,2 y los
-// remolinos 86 y 90 en su lugar del cielo.
+// 0x606660 with each record, in scene 2: the usual, the lantern at 0.8 with light 0.2 and whirlpools 86 and 90 at
+// their place in the sky.
 TEST_F(GoldenWorldObjects, EachTypeIsCreatedAsTheBinary)
 {
     const std::vector<WorldObject> objects = Created();
@@ -117,8 +117,7 @@ TEST_F(GoldenWorldObjects, EachTypeIsCreatedAsTheBinary)
     }
 }
 
-// Tres pasos de 0x604ab0 sobre cada uno, con +0x16c prendido: el alpha, la animación a 0,16 y los
-// casos del mapa 0x37.
+// Three steps of 0x604ab0 on each one, with +0x16c on: the alpha, the animation at 0.16 and the map 0x37 cases.
 TEST_F(GoldenWorldObjects, ThreeStepsOfEachTypeMatchTheBinary)
 {
     std::vector<WorldObject> objects = Created();
@@ -135,8 +134,8 @@ TEST_F(GoldenWorldObjects, ThreeStepsOfEachTypeMatchTheBinary)
     }
 }
 
-// Y lo que 0x602e90 le pasa a RenderBody o a RenderMesh después de los tres pasos, con la luz del
-// terreno del generador: los marcadores no se dibujan, el remolino 90 va por su malla 0.
+// What 0x602e90 passes to RenderBody or RenderMesh after the three steps, with the generator's terrain light: the
+// markers are not drawn, whirlpool 90 goes through its mesh 0.
 TEST_F(GoldenWorldObjects, EachTypeDrawsAsTheBinary)
 {
     std::vector<WorldObject> objects = Created();
@@ -183,7 +182,7 @@ TEST_F(GoldenWorldObjects, EachTypeDrawsAsTheBinary)
             EXPECT_EQ(Bits(draw.color[c]), Bits(call.color[c])) << where << ": el color " << c;
         }
     }
-    // Los 276 menos los 3 marcadores (dos 84 y el 89): 272 cuerpos y el remolino 90.
+    // The 276 minus the 3 markers (two 84 and the 89): 272 bodies and whirlpool 90.
     EXPECT_EQ(bodies, 272u);
     EXPECT_EQ(meshes, 1u);
 }

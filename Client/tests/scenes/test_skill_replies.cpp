@@ -56,7 +56,7 @@
 #include <utility>
 #include <vector>
 
-// Las skills que llegan (CL9 hito 4, 06 § Las skills que llegan): las claves y los personajes son inventados.
+// The incoming skills (06 § Las skills que llegan), with invented keys and characters.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -77,7 +77,7 @@ constexpr std::size_t HeroIndex = 7;
 constexpr std::size_t CasterIndex = 3;
 constexpr std::size_t TargetIndex = 5;
 constexpr std::uint16_t MonsterType = 0x1a;
-// +0x38e y +0x42e: un rand() al cerrarlos en 0.
+// +0x38e and +0x42e: one rand() when they close at 0.
 constexpr int ActorByteRandoms = 1;
 constexpr int OwnRecordRandoms = 3848;
 constexpr int SkillEntryRandoms = 60;
@@ -89,7 +89,6 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Skill.bmd inventado: las skills de `hidden` con el +0x31 en 1.
 Client::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidden)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -100,7 +99,6 @@ Client::Tables::SkillTable SkillsHiding(std::initializer_list<std::uint8_t> hidd
     return Client::Tables::SkillTable(std::span<const std::byte>(encrypted));
 }
 
-// El esqueleto de los jugadores y el de un monstruo inventado.
 class SkillModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -188,7 +186,8 @@ struct Replies
 // ---------------------------------------------------------------------------------------------------------------
 // 0x19 (0x4cc530)
 
-// Sobre otro: el rumbo hacia el blanco, el blanco en +0x3a4, +0x38d, la skill en +0x38e (un rand()) y la rama 0x13.
+// On another: the heading toward the target, the target in +0x3a4, +0x38d, the skill in +0x38e (one rand()) and branch
+// 0x13.
 TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
 {
     auto tested = std::make_unique<Replies>();
@@ -207,7 +206,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfAnotherTurnsTowardsTheTargetAndActs)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
-// El héroe no gira, y en la 0x10 tampoco golpea: solo +0x381.
+// The hero does not turn, and with 0x10 it does not strike either: only +0x381.
 TEST(SkillRepliesTest, TheMagicAttackOfTheHeroKeepsItsDirection)
 {
     auto tested = std::make_unique<Replies>();
@@ -223,7 +222,7 @@ TEST(SkillRepliesTest, TheMagicAttackOfTheHeroKeepsItsDirection)
     EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(HeroIndex));
 }
 
-// Sin el blanco (o con su bit 15, que el lector ya sacó y queda en el éxito), nada.
+// Without the target (or with its bit 15, which the reader already removed and which stays in the success), nothing.
 TEST(SkillRepliesTest, TheMagicAttackWithoutTheTargetDoesNothing)
 {
     auto tested = std::make_unique<Replies>();
@@ -236,10 +235,10 @@ TEST(SkillRepliesTest, TheMagicAttackWithoutTheTargetDoesNothing)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// Q-C1237: una fuente que no está es el 400 (0x4cce50). Lo de antes de la rama va ahí: 0x5767964, el rumbo hacia el
-// blanco, +0x3a4, +0x38d y la skill en +0x38e con su rand(); la rama, que en el original sale de lo que haya en el 400
-// (su tipo, su montura), se descarta sin cortar: ni la acción, ni +0x381, ni el sonido, ni lo que toca del blanco. La
-// 0x3b no tiene nada antes de la rama. En Lorencia y Devias.
+// Q-C1237: a missing source is the 400 (0x4cce50). What comes before the branch goes there: 0x5767964, the heading
+// toward the target, +0x3a4, +0x38d and the skill in +0x38e with its rand(); the branch, which in the original comes
+// from whatever is in the 400 (its type, its mount), is discarded without cutting: no action, +0x381, sound, or
+// anything it touches on the target. 0x3b has nothing before the branch. In Lorencia and Devias.
 TEST(SkillRepliesTest, AnUnknownSourceIsTheLastActor)
 {
     for (const std::int32_t map : {0, 2})
@@ -270,7 +269,7 @@ TEST(SkillRepliesTest, AnUnknownSourceIsTheLastActor)
     }
 }
 
-// La 0x10 de otro jugador: 0x4f5290 abre los stats propios (0x4f3f80) y saca el rand() de la acción 0x8e o 0x8f.
+// Another player's 0x10: 0x4f5290 opens the own stats (0x4f3f80) and draws the rand() of action 0x8e or 0x8f.
 TEST(SkillRepliesTest, TheHitOfAnotherPlayerDrawsAfterTheSpeeds)
 {
     auto tested = std::make_unique<Replies>();
@@ -282,7 +281,7 @@ TEST(SkillRepliesTest, TheHitOfAnotherPlayerDrawsAfterTheSpeeds)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
-// En un monstruo, 3 y 4 de a tres con +0x38f.
+// On a monster, 3 and 4 in threes with +0x38f.
 TEST(SkillRepliesTest, TheHitOfAMonsterAlternatesEveryThree)
 {
     auto tested = std::make_unique<Replies>();
@@ -296,10 +295,9 @@ TEST(SkillRepliesTest, TheHitOfAMonsterAlternatesEveryThree)
     EXPECT_EQ(caster.attackCount, 2);
 }
 
-// 0x4cd3e0 → 0x4cd68e: las ramas 1, 2, 4, 7, 0xb y 0x11 en un monstruo hacen la acción de ataque de 0x4f4a10
-// (SetActorAttack: la 3 con +0x38f en 0, que sube dos veces), el frame en 0 y +0x381 en 1. Los rand(): el cierre de
-// +0x38e y el del sonido de pegar sin la tabla del modelo (P-C253). En Lorencia, Devias y Kalima (un monstruo que no es
-// de los de 0x43a2f0).
+// 0x4cd3e0 → 0x4cd68e: branches 1, 2, 4, 7, 0xb and 0x11 on a monster do 0x4f4a10's attack action (SetActorAttack: 3
+// with +0x38f at 0, which rises twice), the frame at 0 and +0x381 at 1. The rand(): the close of +0x38e and the hit
+// sound's without the model's table (P-C253). In Lorencia, Devias and Kalima (a monster not among those of 0x43a2f0).
 TEST(SkillRepliesTest, TheStrikeOfAMonsterIsTheAttackAction)
 {
     for (const std::int32_t map : {0, 2, 0x18})
@@ -324,9 +322,9 @@ TEST(SkillRepliesTest, TheStrikeOfAMonsterIsTheAttackAction)
     }
 }
 
-// 0x4cd316, 0x4cd34b y 0x4cd35b: la 0xc9, la 0xca y la 0xc8 de un jugador pegan con 0x4f4a10 (sin armas, la 0x22, con
-// los 3848 rand() de 0x4f3f80) y vuelven sin el frame en 0 (ya en la 0x22, 0x4ea030 no lo toca); las dos primeras
-// prenden su bandera y +0x381.
+// 0x4cd316, 0x4cd34b and 0x4cd35b: a player's 0xc9, 0xca and 0xc8 strike with 0x4f4a10 (unarmed, 0x22, with
+// 0x4f3f80's 3848 rand()) and return without the frame at 0 (already in 0x22, 0x4ea030 does not touch it); the first
+// two set their flag and +0x381.
 TEST(SkillRepliesTest, TheMonsterSkillsOfAPlayerAreTheAttackAction)
 {
     for (const auto& [skill, flag, settled] :
@@ -348,8 +346,8 @@ TEST(SkillRepliesTest, TheMonsterSkillsOfAPlayerAreTheAttackAction)
     }
 }
 
-// 0x4cd681 y 0x4cdd21: la 0x37 sin salir y la 0x3f en un monstruo terminan en 0x4f4a10 (la 3, que pisa la 0x4d de la
-// 0x3f), el frame en 0 y +0x381; en un jugador, la 0x37 vuelve sin nada y la 0x3f se queda con su acción.
+// 0x4cd681 and 0x4cdd21: 0x37 without success and 0x3f on a monster end in 0x4f4a10 (3, which overwrites 0x3f's 0x4d),
+// the frame at 0 and +0x381; on a player, 0x37 returns with nothing and 0x3f keeps its action.
 TEST(SkillRepliesTest, TheSkills37And3FOfAMonsterEndInTheAttackAction)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x37}, std::uint8_t{0x3f}})
@@ -369,7 +367,7 @@ TEST(SkillRepliesTest, TheSkills37And3FOfAMonsterEndInTheAttackAction)
     }
 }
 
-// 0x4cdda4: la 0x31 en Atlans (8) y en el cielo (10) es la 0x41; en Lorencia, Devias y los demás, la 0x40.
+// 0x4cdda4: 0x31 in Atlans (8) and in the sky (10) is 0x41; in Lorencia, Devias and the rest, 0x40.
 TEST(SkillRepliesTest, TheSkill31DependsOnTheMap)
 {
     for (const auto& [map, action] :
@@ -383,7 +381,7 @@ TEST(SkillRepliesTest, TheSkill31DependsOnTheMap)
     }
 }
 
-// Las monturas de las ramas 0x43 a 0x48, fuera de la zona segura.
+// The mounts of branches 0x43 to 0x48, outside the safe zone.
 TEST(SkillRepliesTest, TheMountChoosesTheActionOfTheLordSkills)
 {
     for (const auto& [model, safe, action] :
@@ -399,7 +397,7 @@ TEST(SkillRepliesTest, TheMountChoosesTheActionOfTheLordSkills)
     }
 }
 
-// 0x4cd410: el blanco se va y la fuente llega, cada uno con su destello 0x5c6 y el 0x76; después el 0x83.
+// 0x4cd410: the target vanishes and the source arrives, each with its flash 0x5c6 and the 0x76; then the 0x83.
 TEST(SkillRepliesTest, TheTeleportSkillSwapsTheVanishing)
 {
     auto tested = std::make_unique<Replies>();
@@ -408,7 +406,6 @@ TEST(SkillRepliesTest, TheTeleportSkillSwapsTheVanishing)
     ASSERT_TRUE(tested->Attack(0xf, HeroKey).HasValue());
     const ActorState& hero = tested->Actor(HeroIndex);
     const ActorState& target = tested->Actor(TargetIndex);
-    // La 0xf no gira la fuente.
     EXPECT_EQ(hero.angles.z, 0.0f);
     EXPECT_EQ(target.alphaTarget, 0.0f);
     EXPECT_EQ(target.byte80, 1);
@@ -416,20 +413,20 @@ TEST(SkillRepliesTest, TheTeleportSkillSwapsTheVanishing)
     EXPECT_EQ(hero.alphaTarget, 1.0f);
     EXPECT_EQ(hero.byte80, 3);
     EXPECT_EQ(hero.animation.frame, 5.0f);
-    // 0x4cd442 salta a 0x4cde69, después del +0x381 de 0x4cde62.
+    // 0x4cd442 jumps to 0x4cde69, past the +0x381 of 0x4cde62.
     EXPECT_EQ(hero.byte381, 0);
     EXPECT_EQ(tested->AliveEffects(0x5c6), 2u);
     EXPECT_EQ(tested->world.Runtime().movement.gateRequestBlocked, 0);
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x83});
 }
 
-// 0x4cdb0f: la 0x44 salida baja el 0x1000 del blanco (0x4e6910) y apaga su 0x628/5.
+// 0x4cdb0f: a successful 0x44 clears the target's 0x1000 (0x4e6910) and kills its 0x628/5.
 TEST(SkillRepliesTest, TheSucceededSkill44LowersTheTargetFlag)
 {
     auto tested = std::make_unique<Replies>();
     ActorState& target = tested->Actor(TargetIndex);
     target.flags78 = 0x1001;
-    // El 0x628/5 del blanco, puesto a mano: MuRet no crea el 0x628 (CL11).
+    // The target's 0x628/5, set by hand: MuRet does not create the 0x628 (CL11).
     auto& sword = tested->world.Map().effects.Effects()[4];
     sword.alive = true;
     sword.type = 0x628;
@@ -452,9 +449,9 @@ TEST(SkillRepliesTest, TheSkill46MarksAnotherTarget)
     EXPECT_EQ(tested->Actor(TargetIndex).flags78, 0x4000u);
 }
 
-// 0x4cddd3..0x4cde03: la 0x3b suelta el 0x112/0 en la fuente (su posición, ángulos y luz, sin dueño), con sus sesenta
-// joints 0x5ac/0 en la tabla del mundo, y pide el sonido 0x94. La réplica: lo mismo con la tabla llena (0x518cf0 sale
-// sin rand()) y después el alta sobre un mundo gemelo con ese CRT.
+// 0x4cddd3..0x4cde03: 0x3b drops the 0x112/0 at the source (its position, angles and light, ownerless), with its sixty
+// joints 0x5ac/0 in the world's table, and asks for sound 0x94. The replica: the same with the table full (0x518cf0
+// leaves without rand()) and then the creation on a twin world with that CRT.
 TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
 {
     auto tested = std::make_unique<Replies>();
@@ -505,9 +502,9 @@ TEST(SkillRepliesTest, TheSkill3bDropsItsComboAtTheSource)
     }
 }
 
-// 0x4cd6bc..0x4cd748: con la skill salida, la 0x33 envuelve al blanco en hielo (0x4cd6ff y 0x4cd72b, el 0xc1/1 y el
-// /2 con él de dueño y la z 180 más) y después lo para y le prende 0x20. La referencia hace lo mismo a mano sobre un
-// blanco igual, después del rand() de la cabeza: el hielo gasta sus rand() antes que 0x4f2250.
+// 0x4cd6bc..0x4cd748: with the skill succeeded, 0x33 wraps the target in ice (0x4cd6ff and 0x4cd72b, the 0xc1/1 and the
+// /2 with it as owner and z 180 higher) and then stops it and sets 0x20 on it. The reference does the same by hand on
+// an equal target, after the head's rand(): the ice spends its rand() before 0x4f2250.
 TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
 {
     auto tested = std::make_unique<Replies>();
@@ -543,9 +540,9 @@ TEST(SkillRepliesTest, TheSkill33FreezesTheTarget)
     EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
-// 0x4cd617..0x4cd67e: con la skill salida, la 0x37 apaga el 0x628/0 del blanco y le pone otro con él de dueño (vida
-// 1.000, su posición y sus ángulos, luz 1), sin rand() propios; después, el sonido 0x85 en él y su 0x40. El 0x628/5
-// del blanco queda.
+// 0x4cd617..0x4cd67e: with the skill succeeded, 0x37 kills the target's 0x628/0 and puts another with it as owner
+// (life 1000, its position and angles, light 1), without rand() of its own; then sound 0x85 on it and its 0x40. The
+// target's 0x628/5 stays.
 TEST(SkillRepliesTest, TheSkill37PutsASkullOverItsTarget)
 {
     auto tested = std::make_unique<Replies>();
@@ -580,8 +577,8 @@ TEST(SkillRepliesTest, TheSkill37PutsASkullOverItsTarget)
     EXPECT_EQ(target.flags78, 0x40u);
 }
 
-// 0x4e683b..0x4e68a6: el 0x40 de 0x4e6380 sin el bit pone la calavera 0x628/0 sobre el personaje y el sonido 0x85;
-// con el bit, solo lo vuelve a prender.
+// 0x4e683b..0x4e68a6: 0x4e6380's 0x40 without the bit puts the skull 0x628/0 over the character and sound 0x85; with
+// the bit, it only sets it again.
 TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
 {
     auto tested = std::make_unique<Replies>();
@@ -605,8 +602,8 @@ TEST(SkillRepliesTest, TheFlag40PutsASkullOverTheActorOnce)
     EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
 }
 
-// 0x4cdb36..0x4cdb7a: con la skill salida, la 0x45 prende 0x2000 en la fuente y pone la runa de maná 0x138/0 en su
-// posición, con sus ángulos y su luz, sin rand() propios.
+// 0x4cdb36..0x4cdb7a: with the skill succeeded, 0x45 sets 0x2000 on the source and puts the mana rune 0x138/0 at its
+// position, with its angles and light, without rand() of its own.
 TEST(SkillRepliesTest, TheSkill45RaisesAManaRuneOverItsCaster)
 {
     auto tested = std::make_unique<Replies>();
@@ -629,9 +626,9 @@ TEST(SkillRepliesTest, TheSkill45RaisesAManaRuneOverItsCaster)
     EXPECT_FALSE(rune->hasOwner);
 }
 
-// 0x518d0f..0x518d26 retorna al no hallar hueco, sin ejecutar el constructor pendiente ni consumir su RNG. Lo que
-// sigue al alta no depende de él: la 0x37 suena 0x85 en el blanco y le prende 0x40 (0x4cd669..0x4cd67e), y la 0x33
-// le prende 0x20 (0x4cd740..0x4cd748), después de pararlo (TheSkill33WithAFullPoolStillStopsTheTarget).
+// 0x518d0f..0x518d26 returns when it finds no free slot, without running the pending constructor or using its RNG.
+// What follows the creation does not depend on it: 0x37 sounds 0x85 on the target and sets 0x40 (0x4cd669..0x4cd67e),
+// and 0x33 sets 0x20 (0x4cd740..0x4cd748), after stopping it (TheSkill33WithAFullPoolStillStopsTheTarget).
 TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
 {
     for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}, std::uint8_t{0x45}, std::uint8_t{0x3b}})
@@ -652,7 +649,7 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
         const auto applied = tested->Attack(skill);
 
         ASSERT_TRUE(applied.HasValue()) << applied.Error();
-        // La 0x33 gasta además el rand() de 0x4f2250: lo mira TheSkill33WithAFullPoolStillStopsTheTarget.
+        // 0x33 also spends the rand() of 0x4f2250: TheSkill33WithAFullPoolStillStopsTheTarget checks it.
         if (skill != 0x33)
         {
             EXPECT_EQ(tested->cloth.random.State(), expected.State());
@@ -678,8 +675,8 @@ TEST(SkillRepliesTest, AFullEffectPoolDoesNotStopTheMagicReplyTail)
     }
 }
 
-// 0x4cd733..0x4cd748: con la tabla llena, la 0x33 igual deja +0x378 del blanco en 0, lo para (0x4f2250, con su
-// rand()) y le prende 0x20. La referencia hace lo mismo a mano sobre un blanco igual, después del rand() de la cabeza.
+// 0x4cd733..0x4cd748: with the table full, 0x33 still leaves the target's +0x378 at 0, stops it (0x4f2250, with its
+// rand()) and sets 0x20. The reference does the same by hand on an equal target, after the head's rand().
 TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
 {
     constexpr std::uint8_t BusyAction = 0x22;
@@ -715,8 +712,9 @@ TEST(SkillRepliesTest, TheSkill33WithAFullPoolStillStopsTheTarget)
     EXPECT_EQ(tested->cloth.random.State(), reference->cloth.random.State());
 }
 
-// 0x518ac0 antes de 0x518cf0: con la tabla llena, apagar el efecto del blanco deja su lugar para el alta. La 0x37 crea
-// ahí la calavera nueva (vida 1.000); la 0x33 crea su 0xc1/1 en el hueco que dejó el viejo y el /2 ya no tiene dónde.
+// 0x518ac0 before 0x518cf0: with the table full, killing the target's effect frees its slot for the creation. 0x37
+// creates the new skull there (life 1000); 0x33 creates its 0xc1/1 in the slot the old one left and the /2 has nowhere
+// to go.
 TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullPool)
 {
     for (const auto skill : {std::uint8_t{0x37}, std::uint8_t{0x33}})
@@ -748,9 +746,9 @@ TEST(SkillRepliesTest, KillingAMatchingEffectReopensItsConstructorEvenFromAFullP
     }
 }
 
-// 0x4cdc37..0x4cdc9c y 0x4cdd45..0x4cdd94: sin el bit (0x400 la 0x35, 0x10 la 0x30) en el blanco, apagan su 0x5ac/2
-// (con sus joints 0x619/9) o su 0x5ac/1 y crean otro con el blanco de dueño (vida 1000); con el bit, nada. Después,
-// el bit y sigue. Sin rand() de más. Con la tabla llena, ninguno.
+// 0x4cdc37..0x4cdc9c and 0x4cdd45..0x4cdd94: without the bit (0x400 for 0x35, 0x10 for 0x30) on the target, they kill
+// its 0x5ac/2 (with its joints 0x619/9) or its 0x5ac/1 and create another with the target as owner (life 1000); with
+// the bit, nothing. Then the bit, and it goes on. No extra rand(). With the table full, none.
 TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
 {
     for (const std::int32_t map : {0, 2})
@@ -782,7 +780,7 @@ TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
             EXPECT_EQ(joint.alive, skill != 0x35);
             EXPECT_EQ(target.flags78 & bit, bit);
 
-            // Con el bit ya prendido, ni apaga ni crea, y los mismos rand().
+            // With the bit already set, it neither kills nor creates, and the same rand().
             auto lit = std::make_unique<Replies>();
             lit->world.Runtime().map = map;
             lit->Actor(TargetIndex).flags78 = bit;
@@ -801,8 +799,8 @@ TEST(SkillRepliesTest, TheGuardAndSwellSkillsLightAFlareOnTheTarget)
     }
 }
 
-// 0x4ccea1: la 0x3b no gira, ni toca +0x3a4, +0x38d ni +0x38e (sin el rand()). Con la tabla de efectos llena, el
-// 0x112 no nace ni saca los rand() de sus joints.
+// 0x4ccea1: 0x3b does not turn or touch +0x3a4, +0x38d or +0x38e (no rand()). With the effect table full, the 0x112 is
+// not born and does not draw its joints' rand().
 TEST(SkillRepliesTest, TheSkill3bGoesStraightToTheTable)
 {
     auto tested = std::make_unique<Replies>();
@@ -815,7 +813,7 @@ TEST(SkillRepliesTest, TheSkill3bGoesStraightToTheTable)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// 0x4ccef1: la 0x4c también deja el blanco en +0x434.
+// 0x4ccef1: 0x4c also leaves the target in +0x434.
 TEST(SkillRepliesTest, TheSkill4cKeepsItsTarget)
 {
     auto tested = std::make_unique<Replies>();
@@ -823,8 +821,8 @@ TEST(SkillRepliesTest, TheSkill4cKeepsItsTarget)
     EXPECT_EQ(tested->Actor(CasterIndex).skillTarget4c, static_cast<std::int32_t>(TargetIndex));
 }
 
-// 0x4cde2f..0x4cde58: la 0x28 del héroe suelta el derecho: el soltado (0x7d36840), el clic (0x7d36880), el abajo
-// (0x7d3685c) y los frames de la carga (0x7d368a4). La de otro no los toca.
+// 0x4cde2f..0x4cde58: the hero's 0x28 lets go of the right button: the release (0x7d36840), the click (0x7d36880), the
+// down (0x7d3685c) and the charge frames (0x7d368a4). Another's does not touch them.
 TEST(SkillRepliesTest, TheSkill28OfTheHeroDropsTheRightButton)
 {
     auto tested = std::make_unique<Replies>();
@@ -852,7 +850,7 @@ TEST(SkillRepliesTest, TheSkill28OfTheHeroDropsTheRightButton)
     EXPECT_EQ(otherUi.rightHoldFrames, 12);
 }
 
-// Las manos de 0x4cc110: un bastón en la izquierda, otro arma en la derecha, y el elfo con alas.
+// The hands of 0x4cc110: a staff in the left, another weapon in the right, and the elf with wings.
 TEST(SkillRepliesTest, TheStaffSkillsActByTheHands)
 {
     auto staff = std::make_unique<Replies>();
@@ -877,7 +875,7 @@ TEST(SkillRepliesTest, TheStaffSkillsActByTheHands)
 // ---------------------------------------------------------------------------------------------------------------
 // 0x1E (0x4ce000)
 
-// Sobre otro jugador: la skill en +0x38e, el rumbo, la acción de la tabla con el frame en 0 y la celda.
+// On another player: the skill in +0x38e, the heading, the table's action with the frame at 0 and the cell.
 TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
 {
     auto tested = std::make_unique<Replies>();
@@ -898,8 +896,8 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerActsAndKeepsTheCell)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
-// 0x4cea84 (0x18 y 0x34) y 0x4ceaa9 (0x36): otro jugador hace la acción de ataque de 0x4f4a10 (sin armas, la 0x22 con
-// los 3848 rand() de 0x4f3f80) y el frame en 0, en Lorencia, Devias y Atlans (8).
+// 0x4cea84 (0x18 and 0x34) and 0x4ceaa9 (0x36): another player does 0x4f4a10's attack action (unarmed, 0x22 with
+// 0x4f3f80's 3848 rand()) and the frame at 0, in Lorencia, Devias and Atlans (8).
 TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerCanBeTheAttackAction)
 {
     for (const std::int32_t map : {0, 2, 8})
@@ -925,7 +923,6 @@ TEST(SkillRepliesTest, TheDurationMagicOfAnotherPlayerCanBeTheAttackAction)
     }
 }
 
-// Sobre el héroe: sin acción, pero con la celda.
 TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
 {
     auto tested = std::make_unique<Replies>();
@@ -940,8 +937,8 @@ TEST(SkillRepliesTest, TheDurationMagicOfTheHeroOnlyKeepsTheCell)
     EXPECT_EQ(hero.attackTarget, 0xffff);
 }
 
-// 0x4cece8: un monstruo hace la acción de ataque de 0x4f4a10 después de la skill y el rumbo, con el frame en 0, y
-// sigue con la celda, +0x381, +0x3a4 y +0x380. Los rand(): el cierre de +0x38e y el del sonido de pegar.
+// 0x4cece8: a monster does 0x4f4a10's attack action after the skill and the heading, with the frame at 0, and goes on
+// with the cell, +0x381, +0x3a4 and +0x380. The rand(): the close of +0x38e and the hit sound's.
 TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackAction)
 {
     auto tested = std::make_unique<Replies>();
@@ -962,15 +959,15 @@ TEST(SkillRepliesTest, TheDurationMagicOfAMonsterIsTheAttackAction)
     EXPECT_EQ(caster.attackTarget, 0xffff);
     EXPECT_EQ(caster.byte380, 0);
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
-    // 255 · (1/255) · 360 en double pasa de 360 y queda en el float de arriba.
+    // 255 · (1/255) · 360 in double goes past 360 and rounds to the float above.
     EXPECT_EQ(tested->Actor(CasterIndex).angles.z,
               static_cast<float>(255.0 * static_cast<double>(1.0f / 255.0f) * 360.0));
     EXPECT_GT(tested->Actor(CasterIndex).angles.z, 360.0f);
 }
 
-// Q-C1204: sin el personaje de la clave, el 400: la skill en +0x38e (su rand()), el rumbo, el frame en 0, la celda,
-// +0x381, +0x3a4 y +0x380. La acción, que en el original sale del tipo que haya en el 400, se descarta sin cortar y
-// sin rand(). El 1B también va al 400. En Lorencia y Devias.
+// Q-C1204: without the key's character, the 400: the skill in +0x38e (its rand()), the heading, the frame at 0, the
+// cell, +0x381, +0x3a4 and +0x380. The action, which in the original comes from whatever type is in the 400, is
+// discarded without cutting and without rand(). The 1B also goes to the 400. In Lorencia and Devias.
 TEST(SkillRepliesTest, TheDurationMagicWithoutTheKeyWritesTheLastActor)
 {
     for (const std::int32_t map : {0, 2})
@@ -1021,7 +1018,7 @@ TEST(SkillRepliesTest, TheDurationTableChoosesTheActionOfTheOtherPlayer)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x1B (0x4cbe90), 0x07 (0x4cbe00) y 0x4e6910
+// 0x1B (0x4cbe90), 0x07 (0x4cbe00) and 0x4e6910
 
 TEST(SkillRepliesTest, TheMagicCancelLowersItsFlag)
 {
@@ -1032,12 +1029,11 @@ TEST(SkillRepliesTest, TheMagicCancelLowersItsFlag)
     EXPECT_EQ(caster.flags78, 0x4ff7u);
     ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x46, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
-    // Una skill sin bandera no hace nada.
     ASSERT_TRUE(Client::Skills::ApplyMagicCancel(MagicCancel{0x99, CasterKey}, tested->Resources()).HasValue());
     EXPECT_EQ(caster.flags78, 0x0ff7u);
 }
 
-// 0x4cbfc8: la 0xc9 pasa antes por 0x439d40, que en un monstruo baja el 0x100 y pone +0x110 en 0x21.
+// 0x4cbfc8: 0xc9 first goes through 0x439d40, which on a monster clears the 0x100 and sets +0x110 to 0x21.
 TEST(SkillRepliesTest, TheMonsterCancelSettlesBeforeTheFlag)
 {
     auto tested = std::make_unique<Replies>();
@@ -1049,7 +1045,7 @@ TEST(SkillRepliesTest, TheMonsterCancelSettlesBeforeTheFlag)
     EXPECT_EQ(caster.flags78, 0u);
 }
 
-// Con el tipo 1 y la máscara prendida, +0x7c queda en 0x200000 si lo tenía; sin prender, 0x4e6380 (hito 1).
+// With type 1 and the mask set, +0x7c stays at 0x200000 if it had it; unset, 0x4e6380.
 TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
 {
     auto tested = std::make_unique<Replies>();
@@ -1065,14 +1061,14 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x10, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags7c, 0u);
-    // 0x4cbe47: sin prender, 0x4e6380 con la máscara (ApplyEffectFlags): el 4 se prende y +0x7c queda.
+    // 0x4cbe47: unset, 0x4e6380 with the mask (ApplyEffectFlags): the 4 is set and +0x7c stays.
     ASSERT_TRUE(
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x4, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x34u);
     EXPECT_EQ(caster.flags7c, 0u);
-    // El 0x1000 prende su bit y crea tres 0x10f/8 (0x4e662d) desde su +0x10, girados 90, 180 y 270, cada uno 10 más
-    // abajo.
+    // The 0x1000 sets its bit and creates three 0x10f/8 (0x4e662d) from its +0x10, turned 90, 180 and 270, each 10
+    // lower.
     caster.position = {1000, 2000, 300};
     ASSERT_TRUE(
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x1000, CasterKey}, tested->Resources())
@@ -1093,7 +1089,7 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
         EXPECT_EQ(joints[i].targetPosition, caster.position);
     }
     EXPECT_FALSE(joints[3].alive);
-    // El 0x400 (CL9 hito 4): el 0x5ac/2 del personaje, y sigue.
+    // The 0x400: the character's 0x5ac/2, and it goes on.
     ASSERT_TRUE(
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{1, 0x400, CasterKey}, tested->Resources())
             .HasValue());
@@ -1104,8 +1100,8 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneRewritesTheSecondFlags)
     EXPECT_EQ(flare.ownerContext, &caster);
 }
 
-// 0x4e6430..0x4e6491: el 0x100 en un jugador que no lo tenía apaga sus 10f/0 (0x534f90) y crea cinco de ancho 50
-// alrededor de él (0x4e644f); con el bit ya prendido, nada.
+// 0x4e6430..0x4e6491: the 0x100 on a player that did not have it kills its 0x10f/0 (0x534f90) and creates five of
+// width 50 around it (0x4e644f); with the bit already set, nothing.
 TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
 {
     auto tested = std::make_unique<Replies>();
@@ -1138,7 +1134,8 @@ TEST(SkillRepliesTest, TheActorStateHundredRingsAPlayer)
     EXPECT_EQ(rings(), 4);
 }
 
-// 0x4cbe45: 0x4e6380 sabe si es el héroe publicado ([0x743a170]): el 0x2000000 corta en él y en otro se prende.
+// 0x4cbe45: 0x4e6380 knows whether it is the published hero ([0x743a170]): the 0x2000000 cuts on it and is set on
+// another.
 TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
 {
     auto tested = std::make_unique<Replies>();
@@ -1152,9 +1149,9 @@ TEST(SkillRepliesTest, TheActorStateOfTypeOneKnowsThePublishedHero)
     EXPECT_EQ(tested->Actor(CasterIndex).flags78, 0x2000000u);
 }
 
-// 0x4e67a6..0x4e6835: la bandera 0x20 sin su bit apaga los 0xc1/1 del personaje (0x518ac0) y crea el 0xc1/1 y el /2
-// (0x4e67fc, 0x4e6825) en su posición, con sus ángulos (el segundo con la z 180 más) y él de dueño. Cada alta pisa la
-// luz del personaje con (0,4f; 0,3f; 0,2f). Con el bit ya prendido, nada.
+// 0x4e67a6..0x4e6835: the flag 0x20 without its bit kills the character's 0xc1/1 (0x518ac0) and creates the 0xc1/1 and
+// the /2 (0x4e67fc, 0x4e6825) at its position, with its angles (the second with z 180 higher) and it as owner. Each
+// creation overwrites the character's light with (0.4f; 0.3f; 0.2f). With the bit already set, nothing.
 TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
 {
     constexpr std::size_t OldIce = 5;
@@ -1188,7 +1185,6 @@ TEST(SkillRepliesTest, TheIceFlagFreezesTheActor)
     }
     EXPECT_EQ(caster.light, glm::vec3(0.4f, 0.3f, 0.2f));
 
-    // Con el bit prendido, ni apaga ni crea.
     const auto alive = std::ranges::count_if(effects, [](const auto& effect) { return effect.alive; });
     const auto state = tested->cloth.random.State();
     ASSERT_TRUE(
@@ -1207,14 +1203,14 @@ TEST(SkillRepliesTest, TheActorStateOfAnotherTypeLowersTheLitFlag)
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
-    // Sin prender, nada.
     ASSERT_TRUE(
         Client::Skills::ApplyActorState(Client::Protocol::Skills::ActorState{2, 0x20, CasterKey}, tested->Resources())
             .HasValue());
     EXPECT_EQ(caster.flags78, 0x10u);
 }
 
-// 0x4e6cb6: el 0x100000 baja el suyo de +0x7c, los trece de +0x78 y apaga los efectos y los joints del personaje.
+// 0x4e6cb6: the 0x100000 clears its own from +0x7c and the thirteen of +0x78, and kills the character's effects and
+// joints.
 TEST(SkillRepliesTest, TheBigClearLowersEverything)
 {
     auto tested = std::make_unique<Replies>();
@@ -1237,7 +1233,7 @@ TEST(SkillRepliesTest, TheBigClearLowersEverything)
     EXPECT_TRUE(joints[1].alive);
 }
 
-// 0x4e6c23: los tipos 0x204 a 0x208 restan el 0x10000 de +0x7c, lo tengan o no.
+// 0x4e6c23: types 0x204 to 0x208 subtract the 0x10000 from +0x7c, whether they have it or not.
 TEST(SkillRepliesTest, SomeTypesLowerTheFlag10000FromTheSecondFlags)
 {
     auto tested = std::make_unique<Replies>();
@@ -1265,7 +1261,7 @@ TEST(SkillRepliesTest, AFlagWithEffectsStopsWithoutTheEffectHooks)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// 0x69 (0x4cc290) y 0x48 (0x4dbf50)
+// 0x69 (0x4cc290) and 0x48 (0x4dbf50)
 
 TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
 {
@@ -1280,15 +1276,15 @@ TEST(SkillRepliesTest, TheSkillTargetKeepsTheSkillAndTheTarget)
     EXPECT_EQ(tested->world.Runtime().lastAttacker, static_cast<std::int32_t>(CasterIndex));
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 
-    // Con el bit 15, 0x5110d0 no lo encuentra: nada.
+    // With bit 15, 0x5110d0 does not find it: nothing.
     ASSERT_TRUE(Client::Skills::ApplySkillTarget(
                     SkillTarget{0x21, CasterKey, static_cast<std::uint16_t>(TargetKey | 0x8000)}, tested->Resources())
                     .HasValue());
     EXPECT_EQ(caster.byte42e, 0x20);
 }
 
-// 0x4cc503..0x4cc51c: con las skills 1 a 0xd, 0x4f4a10 (un jugador sin armas: los 3848 rand() de 0x4f3f80 y la
-// 0x22), el frame en 0 y +0x381 en 1; con 0 o 0xe, nada de eso.
+// 0x4cc503..0x4cc51c: with skills 1 to 0xd, 0x4f4a10 (an unarmed player: 0x4f3f80's 3848 rand() and 0x22), the frame
+// at 0 and +0x381 at 1; with 0 or 0xe, none of that.
 TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
 {
     for (const std::uint8_t skill : {std::uint8_t{1}, std::uint8_t{0xd}})
@@ -1316,9 +1312,9 @@ TEST(SkillRepliesTest, TheSkillTargetOfTheFirstSkillsIsTheAttackAction)
     }
 }
 
-// Q-C1237: una fuente que no está es el 400 (0x4cc2b0): 0x5767964, la skill en +0x42e (su rand()), +0x3a4 y +0x38d, y
-// con las skills 1 a 0xd el frame en 0 y +0x381 en 1; el 0x4f4a10 del 400, que sale del tipo que haya ahí, se descarta
-// sin cortar y sin rand(). En Lorencia y Devias.
+// Q-C1237: a missing source is the 400 (0x4cc2b0): 0x5767964, the skill in +0x42e (its rand()), +0x3a4 and +0x38d,
+// and with skills 1 to 0xd the frame at 0 and +0x381 at 1; the 400's 0x4f4a10, which comes from whatever type is
+// there, is discarded without cutting and without rand(). In Lorencia and Devias.
 TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
 {
     for (const std::int32_t map : {0, 2})
@@ -1344,7 +1340,7 @@ TEST(SkillRepliesTest, TheSkillTargetOfAnUnknownSourceWritesTheLastActor)
     }
 }
 
-// 0x4dbfad..0x4dc004: los quince intentos no se interrumpen por un pool lleno; el sonido siempre queda al final.
+// 0x4dbfad..0x4dc004: a full pool does not interrupt the fifteen attempts; the sound always comes last.
 TEST(SkillRepliesTest, TheLevelUpEffectRespectsBothPoolsAndContinuesToItsSound)
 {
     for (const int freeJoints : {0, 1, 7, 15, 16})
@@ -1472,10 +1468,10 @@ TEST(SkillRepliesTest, TheLevelUpEffectChecksItsActorAndKindBeforeEitherPool)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// F3 11 (0x4c5070) y F3 20
+// F3 11 (0x4c5070) and F3 20
 
-// La lista entera: con la lista en 0, los 256 en 0, las entradas y la cuenta de las 64 primeras, con su entrada de
-// Skill.bmd abierta y cerrada.
+// The whole list: with the list at 0, the 256 at 0, the entries and the count of the first 64, with their Skill.bmd
+// entry opened and closed.
 TEST(SkillRepliesTest, TheWholeSkillListCountsTheShownAndTheHidden)
 {
     auto tested = std::make_unique<Replies>();
@@ -1499,7 +1495,7 @@ TEST(SkillRepliesTest, TheWholeSkillListCountsTheShownAndTheHidden)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
-// 0x4c539b: el Dark Lord recibe las cuatro órdenes del cuervo en 0x78 a 0x7b, que no cuentan.
+// 0x4c539b: the Dark Lord gets the raven's four orders in 0x78 to 0x7b, which do not count.
 TEST(SkillRepliesTest, TheDarkLordGetsTheRavenOrders)
 {
     auto tested = std::make_unique<Replies>();
@@ -1514,7 +1510,7 @@ TEST(SkillRepliesTest, TheDarkLordGetsTheRavenOrders)
     EXPECT_EQ(own.byte6a, 1);
 }
 
-// 0xfe agrega y 0xff saca, y +0x425 del héroe vuelve a 0 sin skill y saltea las 0x43 a 0x48.
+// 0xfe adds and 0xff removes, and the hero's +0x425 goes back to 0 without a skill and skips 0x43 to 0x48.
 TEST(SkillRepliesTest, OneSkillAddedOrRemovedFixesTheHeroSkill)
 {
     auto tested = std::make_unique<Replies>();
@@ -1537,11 +1533,10 @@ TEST(SkillRepliesTest, OneSkillAddedOrRemovedFixesTheHeroSkill)
     ASSERT_TRUE(Client::Skills::ApplySkillList(remove, tested->Resources()).HasValue());
     EXPECT_EQ(own.SkillAt(3), 0);
     EXPECT_EQ(own.byte6a, 3);
-    // 3 >= +0x6a: a 0, y de ahí saltea las dos del Dark Lord.
+    // 3 >= +0x6a: to 0, and from there it skips the Dark Lord's two.
     EXPECT_EQ(hero.skillIndex, 2);
 }
 
-// La lista en 2 vacía el lugar.
 TEST(SkillRepliesTest, TheListTwoClearsTheSlot)
 {
     auto tested = std::make_unique<Replies>();
@@ -1557,7 +1552,7 @@ TEST(SkillRepliesTest, TheListTwoClearsTheSlot)
     EXPECT_EQ(own.byte6a, 1);
 }
 
-// El F3 11 vacío de list=2 conserva los slots y no agrega las órdenes DL, pero recuenta mediante dos accesos.
+// The empty F3 11 with list=2 keeps the slots and does not add the DL orders, but recounts through two accesses.
 TEST(SkillRepliesTest, TheEmptyClearListStillRecountsAndClosesBothAccesses)
 {
     for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})

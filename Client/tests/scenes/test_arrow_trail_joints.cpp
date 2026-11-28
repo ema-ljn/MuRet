@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
-// Las estelas de flecha 0x610/0xc (la 0x11c, 0x51c713) y /0xe (la 0xf9, 0x51c56c): el alta de 0x531c43..0x53200e y el
-// paso de 0x537ee6..0x538016, que comparten con la /0xd del misil de Crywolf (test_crywolf_arrow_dependencies); y la
-// partícula 0x5f2/34 que suelta la /0xe (0x537f39). 06, "Los joints de las familias".
+// Arrow trails 0x610/0xc (the 0x11c, 0x51c713) and /0xe (the 0xf9, 0x51c56c): the creation of 0x531c43..0x53200e and
+// the step of 0x537ee6..0x538016, which they share with the Crywolf missile's /0xd (test_crywolf_arrow_dependencies);
+// and the 0x5f2/34 particle that the /0xe releases (0x537f39). 06, "Los joints de las familias".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -75,9 +75,9 @@ struct Trail
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
-// 0x531fa3..0x53200e: la /0xc nace con la luz (0,6f; 0,2f; 0,8f) y la mezcla 4 y la /0xe con la luz 1 y la mezcla 1;
-// las dos con la key de vida, la key en 0, el ancho, 16 puntos, velocidad 70 y el destino en el segundo punto, sin
-// rand(). Un dueño que no es un efecto con modelo no se acepta.
+// 0x531fa3..0x53200e: the /0xc is created with light (0.6f; 0.2f; 0.8f) and blend 4 and the /0xe with light 1 and
+// blend 1; both with the key as life, the key at 0, the width, 16 points, speed 70 and the target at the second point,
+// without rand(). An owner that is not an effect with a model is not accepted.
 TEST(ArrowTrailJointsTest, TheTrailsAreBornWithTheLightAndBlendOfTheirSubtype)
 {
     Trail twentieth(0xc, 40.0f, 80);
@@ -108,9 +108,10 @@ TEST(ArrowTrailJointsTest, TheTrailsAreBornWithTheLightAndBlendOfTheirSubtype)
     EXPECT_EQ(viper.random.State(), Seed);
 }
 
-// 0x537f0b..0x537f94: la /0xe viva, después de avanzar 70, deja en su posición el sprite 0x5c6 de escala 5 con su luz,
-// las 0x5f2/0x22 y /0x23 de escala 1 con sus ángulos y su luz y la 0x5c6/0xa de escala 4 con (0,7f; 0,3f; 0,3f); su luz
-// queda en (1; 1; 0,2f). Después, el rand() de la luz dinámica (0x537fc8). Cada partícula se repite en un pool gemelo.
+// 0x537f0b..0x537f94: the live /0xe, after advancing 70, leaves at its position the 0x5c6 sprite at scale 5 with its
+// light, the 0x5f2/0x22 and /0x23 at scale 1 with its angles and light, and the 0x5c6/0xa at scale 4 with (0.7f; 0.3f;
+// 0.3f); its light stays at (1; 1; 0.2f). Then, the dynamic light's rand() (0x537fc8). Each particle is repeated in a
+// twin pool.
 TEST(ArrowTrailJointsTest, TheViperTrailLeavesItsSparksWhileAlive)
 {
     Trail viper(0xe, 50.0f, 40);
@@ -171,9 +172,9 @@ TEST(ArrowTrailJointsTest, TheViperTrailLeavesItsSparksWhileAlive)
     EXPECT_EQ(viper.random.State(), replay.State());
 }
 
-// 0x537ef1..0x537f05 y 0x537f9b..0x537fbf: con la flecha muerta el joint se apaga y no suelta nada, pero sigue con el
-// rand() de la luz; con menos de 15 de vida, la luz (1; 1; 0,2f) que dejó el paso anterior pasa por 0,8333333f después
-// de las chispas. La /0xc no suelta nada.
+// 0x537ef1..0x537f05 and 0x537f9b..0x537fbf: with the arrow dead the joint turns off and releases nothing, but goes on
+// with the light's rand(); with less than 15 life, the light (1; 1; 0.2f) the previous step left goes through
+// 0.8333333f after the sparks. The /0xc releases nothing.
 TEST(ArrowTrailJointsTest, TheViperTrailFadesAndStopsWithItsArrow)
 {
     Trail dying(0xe, 50.0f, 40);
@@ -208,8 +209,9 @@ TEST(ArrowTrailJointsTest, TheViperTrailFadesAndStopsWithItsArrow)
     EXPECT_EQ(violet.random.State(), one.State());
 }
 
-// 0x541a36..0x541a8c y 0x5467b8..0x5467e5: la 0x5f2/34 nace como la /35 (vida 30, la luz (1; 0,2f; 0,2f) y el giro
-// rand() % 360) pero quieta (0x5435bb), y en su paso, como la /35, la luz por 0,9615385f y la escala + 0,06f.
+// 0x541a36..0x541a8c and 0x5467b8..0x5467e5: the 0x5f2/34 is created like the /35 (life 30, light (1; 0.2f; 0.2f) and
+// a rand() % 360 turn) but still (0x5435bb), and in its step, like the /35, the light times 0.9615385f and the scale +
+// 0.06f.
 TEST(ArrowTrailJointsTest, TheViperSmokeIsTheStillTwinOfTheExplosionSmoke)
 {
     auto still = std::make_unique<Client::Particles::Particles>();

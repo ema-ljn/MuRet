@@ -152,7 +152,7 @@ void SeedTheActors(WorldState& world)
         actors[slot].key = slot == OwnActor ? PlayerKey : PlayerKey + 1;
         actors[slot].darkSpirit.emplace();
     }
-    actors[3].darkSpirit.emplace(); // También se suelta el cuervo del que ya estaba muerto.
+    actors[3].darkSpirit.emplace(); // The raven of the one already dead is released too.
     world.Helpers()[0] = {.alive = true, .rider = OwnActor};
     world.Helpers()[1] = {.alive = true, .rider = OtherActor};
     world.Helpers()[2] = {.alive = true, .rider = LastActor};
@@ -173,7 +173,7 @@ void ExpectTerrain(const Client::Terrain::WorldTerrain& terrain, const MapSweepW
     ASSERT_NE(terrain.lighting, nullptr);
     EXPECT_EQ(CrcOf(terrain.mapping->layer1), expected.layer1Crc);
     EXPECT_EQ(CrcOf(terrain.mapping->layer2), expected.layer2Crc);
-    // La altura ocupa byte*1,5; World56 usa byte*3. Ambas sumas son exactas en double.
+    // The height is byte*1.5; World56 uses byte*3. Both sums are exact in double.
     const double scale = expected.folder == 56 ? 3.0 : 1.5;
     EXPECT_EQ(std::accumulate(terrain.heights->cells.begin(), terrain.heights->cells.end(), 0.0),
               static_cast<double>(expected.heightByteSum) * scale);
@@ -184,7 +184,7 @@ void ExpectPublishedFiles(const Client::Kernel::WorldMap& loaded, const Client::
 {
     if (probe.cut == MapSweepCut::MissingHeight)
     {
-        // 61a650..61a7e9 publica MAP/ATT y OBJ antes de cargar las alturas (Q-C180).
+        // 61a650..61a7e9 publishes MAP/ATT and OBJ before loading the heights (Q-C180).
         ASSERT_NE(terrain.mapping, nullptr);
         ASSERT_NE(terrain.attributes, nullptr);
         EXPECT_EQ(CrcOf(terrain.mapping->layer1), expected.layer1Crc);
@@ -208,7 +208,7 @@ void ExpectPublishedFiles(const Client::Kernel::WorldMap& loaded, const Client::
     ASSERT_FALSE(loaded.objectRecords.empty());
     EXPECT_EQ(loaded.objectRecords.front().type, expected.firstType);
     EXPECT_EQ(loaded.objectRecords.back().type, expected.lastType);
-    // Los especiales preceden al archivo: dos en Devias, la torre de Noria y los cinco lanceros 0x19f del 30
+    // The specials come before the file: two in Devias, the Noria tower and the five 0x19f lancers of map 30
     // (0x42a760).
     const std::size_t specialCount = probe.nominal == 2 ? 2 : (probe.nominal == 3 ? 1 : (probe.nominal == 30 ? 5 : 0));
     ASSERT_EQ(loaded.objects.size(), specialCount + loaded.objectRecords.size());
@@ -261,8 +261,8 @@ void ExpectGrassAndRandom(const Client::Kernel::WorldMap& loaded, const MapSweep
         ASSERT_TRUE(offset == 0.0f || offset == 0.25f || offset == 0.5f || offset == 0.75f);
         quarters.push_back(static_cast<std::uint8_t>(offset * 4.0f));
     }
-    // CRC de la secuencia literal de la CRT, calculada fuera de MuRet desde seed=5eed.
-    // Noria antepone12 sorteos de sus cuatro efectos322/323; CRC calculado con la LCG literal.
+    // CRC of the literal CRT sequence, computed outside MuRet from seed=5eed. Noria first draws 12 for its four 322/323
+    // effects; CRC computed with the literal LCG.
     EXPECT_EQ(CrcOf(quarters), probe.nominal == 3 ? 0x7c9c1daau : 0xc78fa93bu);
 }
 
@@ -273,7 +273,7 @@ void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
         const auto& effect = effects[slot];
-        ASSERT_TRUE(effect.seen); // El creador retiene seen incluso al reutilizar estos primeros slots.
+        ASSERT_TRUE(effect.seen); // The creator keeps seen even when reusing these first slots.
         if (probe.nominal == 3 && slot < NoriaEffects.size())
         {
             ASSERT_TRUE(effect.alive);
@@ -282,7 +282,7 @@ void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
         }
         else if (probe.nominal == 30 && slot == 0)
         {
-            // El único 79 de World31 pide el plano 0x135 con vida 100 (0x42c6b0 → 0x51d73b).
+            // World31's only 79 asks for the 0x135 plane with life 100 (0x42c6b0 → 0x51d73b).
             ASSERT_TRUE(effect.alive);
             ASSERT_EQ(effect.type, 0x135);
             ASSERT_EQ(effect.life, 100);
@@ -445,8 +445,8 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     }
 }
 
-// Los lectores aislados también cubren las carpetas que LoadMap todavía no alcanza: World4,
-// World31/35 y World56. No afirman que estén implementados sus hooks, variantes de .att ni escenas.
+// The isolated readers also cover the folders LoadMap does not reach yet: World4, World31/35 and World56. They do not
+// claim their hooks, .att variants or scenes are implemented.
 TEST_P(MapSweep, MatchesTheIndependentArchivedWorldAndGateInventory)
 {
     const MapSweepCase& probe = GetParam();

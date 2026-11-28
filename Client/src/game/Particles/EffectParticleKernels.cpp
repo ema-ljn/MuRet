@@ -23,14 +23,14 @@ namespace Client::Particles
 namespace
 {
 constexpr int FullTurn = Math::FullTurn;
-constexpr double Hundredth = Math::HundredthAsDouble;                                 // 0x6b88d4 y 0x6b86c0, 0,01f
+constexpr double Hundredth = Math::HundredthAsDouble;                                 // 0x6b88d4 and 0x6b86c0, 0.01f
 constexpr double Half = Math::HalfAsDouble;                                           // 0x6b882c
-constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8 y 0x6b8a34, 0,1f
-constexpr double Fifth = Math::FifthAsDouble;                                         // 0x6b8cfc y 0x6b8854, 0,2f
-constexpr double FourFifths = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
-constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));      // 0x6b87b4, 0,4f
-constexpr double Twentieth = Math::TwentiethAsDouble;                                 // 0x6b8a48, 0,05f
-constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8, 0,001f
+constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8 and 0x6b8a34, 0.1f
+constexpr double Fifth = Math::FifthAsDouble;                                         // 0x6b8cfc and 0x6b8854, 0.2f
+constexpr double FourFifths = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0.8f
+constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));      // 0x6b87b4, 0.4f
+constexpr double Twentieth = Math::TwentiethAsDouble;                                 // 0x6b8a48, 0.05f
+constexpr double Countdown = static_cast<double>(std::bit_cast<float>(0x3a83126fu));  // 0x6b89c8, 0.001f
 
 using Math::F32;
 
@@ -46,7 +46,7 @@ void SubtractLight(Particle& particle, double amount)
         particle.light[channel] = F32(static_cast<double>(particle.light[channel]) - amount);
 }
 
-// 0x4e98d0: la posición más la velocidad girada por AngleMatrix de los ángulos, cada suma en 53 bits.
+// 0x4e98d0: the position plus the speed rotated by AngleMatrix of the angles, each sum in 53 bits.
 void Move(Particle& particle)
 {
     const glm::vec3 turned = Math::OriginalVectorRotate(particle.velocity, Math::OriginalAngleMatrix(particle.angles));
@@ -64,8 +64,8 @@ bool IsEffectFlame(std::int32_t type, std::int32_t subtype)
     return type == FlameParticle && subtype != FloorFlameSubtype && subtype != RisingFlameSubtype;
 }
 
-// Las 5c6 que la tabla de 0x5443c0 deja en el prefijo o en casos sin kernel propio. La 1, 2, 5, 9, 11..13 y 15 tienen
-// el suyo en Particles.cpp y WeaponSparkKernels.
+// The 5c6 that the 0x5443c0 table leaves in the prefix or in cases without their own kernel. 1, 2, 5, 9, 11..13 and
+// 15 have theirs in Particles.cpp and WeaponSparkKernels.
 bool IsEffectSpark(std::int32_t type, std::int32_t subtype)
 {
     if (type != SparkParticle)
@@ -86,13 +86,13 @@ bool IsEffectSpark(std::int32_t type, std::int32_t subtype)
     }
 }
 
-// 0x541722..0x541748, 0x54178c..0x5417b2 y 0x5417f3..: la luz del reloj, L = sin(reloj · 0,002f) · 0,3f + 0,7f: el
-// rojo L, el verde y el azul L · 0,5, cada uno desde la suma sin redondear.
+// 0x541722..0x541748, 0x54178c..0x5417b2 and 0x5417f3..: the clock light, L = sin(clock · 0.002f) · 0.3f + 0.7f: red
+// L, green and blue L · 0.5, each from the unrounded sum.
 Core::Expected<void, ParticleError> LightTheFlameByTheClock(Particle& particle, const EffectParticleBirth& birth)
 {
-    constexpr double ClockStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0,002f
-    constexpr float Swing = std::bit_cast<float>(0x3e99999au);                           // 0x6b89dc, 0,3f
-    constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f333333u));      // 0x6b8a5c, 0,7f
+    constexpr double ClockStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0.002f
+    constexpr float Swing = std::bit_cast<float>(0x3e99999au);                           // 0x6b89dc, 0.3f
+    constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f333333u));      // 0x6b8a5c, 0.7f
     if (birth.worldClock == nullptr || birth.trigonometry == nullptr)
         return Core::Unexpected(ParticleError::MissingClock);
     const auto sine = birth.trigonometry->SineProductPC53(static_cast<double>(*birth.worldClock) * ClockStep, Swing);
@@ -105,9 +105,9 @@ Core::Expected<void, ParticleError> LightTheFlameByTheClock(Particle& particle, 
     return {};
 }
 
-// 0x541eb6..0x541fa2 (/1) y 0x541cf2..0x541d80 (/3): la escala ((rand() & 31) + 80) · 0,01f, la /1 corre la posición
-// ((rand() & 63) − 32; (rand() & 63) − 32; (rand() & 63) + 32), el ángulo x rand() % 90 − 45, el z rand() % 360 y la
-// velocidad (0; −((rand() & 7) + 40); 0). La /1 vive 50 con siete rand(); la /3, 10 con cuatro.
+// 0x541eb6..0x541fa2 (/1) and 0x541cf2..0x541d80 (/3): the scale ((rand() & 31) + 80) · 0.01f, the /1 shifts the
+// position ((rand() & 63) − 32; (rand() & 63) − 32; (rand() & 63) + 32), the x angle rand() % 90 − 45, the z rand() %
+// 360 and the speed (0; −((rand() & 7) + 40); 0). The /1 lives 50 with seven rand(); the /3, 10 with four.
 void CreateTheSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t PoisonLife = 50, EffectLife = 10;
@@ -133,15 +133,15 @@ void CreateTheSmoke(Particle& particle, Crt::CrtRandom& random)
     particle.velocity.y = static_cast<float>(-speed);
 }
 
-// La tabla de 0x54448c, casos 1..6 (0x541603, 0x541693, 0x541750, 0x5417ba, 0x54166a y 0x5414a5). Los subtipos de
-// fuera de la tabla sólo tienen el prefijo.
+// The 0x54448c table, cases 1..6 (0x541603, 0x541693, 0x541750, 0x5417ba, 0x54166a and 0x5414a5). Subtypes outside
+// the table only have the prefix.
 Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtRandom& random,
                                                    const EffectParticleBirth& birth)
 {
     constexpr int GrowthMask = 31, GrowthBase = 32, RiseMask = 3, RiseBase = 4, TossSpan = 80;
-    constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
-    constexpr double TossBack = static_cast<double>(std::bit_cast<float>(0x3d888889u)); // 0x6ba1e0, 0,0666…f
-    constexpr double JetStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0,12f
+    constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0.15f
+    constexpr double TossBack = static_cast<double>(std::bit_cast<float>(0x3d888889u)); // 0x6ba1e0, 0.0666…f
+    constexpr double JetStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));  // 0x6ba1d8, 0.12f
     constexpr int JetMask = 127, JetBase = 256, JetScaleMask = 63, JetScaleBase = 64;
     constexpr float FollowRise = 10.0f; // 0x5417d5, 0x41200000
     const auto grow = [&]
@@ -153,8 +153,8 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtR
     {
     case 1:
     case 5:
-        // 0x541603 (/1: vida 15 y la escala crece) y 0x54166a (/5: vida 4): la velocidad (0; ((rand() & 3) + 4) ·
-        // 0,15f; 0).
+        // 0x541603 (/1: life 15 and the scale grows) and 0x54166a (/5: life 4): the speed (0; ((rand() & 3) + 4) ·
+        // 0.15f; 0).
         particle.life = particle.subtype == 1 ? 15 : 4;
         if (particle.subtype == 1)
         {
@@ -172,8 +172,8 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtR
         return {};
     case 2:
     {
-        // 0x541693..0x54174b: vida 10, la escala crece, un salto t = rand() % 80 · rojo · 0,01f hacia adelante con
-        // 0x4e98d0 y la velocidad (0; (rojo − t) · 0,0666667f; 0). Después, la luz del reloj.
+        // 0x541693..0x54174b: life 10, the scale grows, a jump t = rand() % 80 · red · 0.01f forward with 0x4e98d0 and
+        // the speed (0; (red − t) · 0.0666667f; 0). Then the clock light.
         particle.life = 10;
         grow();
         const int toss = random.Next() % TossSpan;
@@ -189,13 +189,13 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtR
         return LightTheFlameByTheClock(particle, birth);
     }
     case 3:
-        // 0x541750..0x5417b2: vida 10, la escala crece, quieta y con la luz del reloj.
+        // 0x541750..0x5417b2: life 10, the scale grows, still and with the clock light.
         particle.life = 10;
         grow();
         particle.velocity = glm::vec3(0.0f);
         return LightTheFlameByTheClock(particle, birth);
     case FollowingFlameSubtype:
-        // 0x5417ba..: vida 5, la subida 10, la escala crece, la partida en la posición del dueño y la luz del reloj.
+        // 0x5417ba..: life 5, the rise 10, the scale grows, the start at the owner's position and the clock light.
         particle.life = 5;
         grow();
         particle.verticalSpeed = FollowRise;
@@ -205,8 +205,8 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtR
         return LightTheFlameByTheClock(particle, birth);
     case 6:
     {
-        // 0x5414a5..0x541506: vida 10, sube recta ((rand() & 127) + 256) · 0,12f y la escala ((rand() & 63) + 64) ·
-        // la del pedido · 0,01f.
+        // 0x5414a5..0x541506: life 10, rises straight ((rand() & 127) + 256) · 0.12f and the scale ((rand() & 63) + 64)
+        // · the requested one · 0.01f.
         particle.life = 10;
         particle.velocity.x = 0.0f;
         particle.velocity.y = 0.0f;
@@ -221,15 +221,15 @@ Core::Expected<void, ParticleError> CreateTheFlame(Particle& particle, Crt::CrtR
     }
 }
 
-// La tabla de 0x5443c0 para las chispas sin kernel propio (subtipo − 1; la /0, la /14 y las de fuera de 1..15 sólo
-// tienen el prefijo).
+// The 0x5443c0 table for the sparks without their own kernel (subtype − 1; the /0, the /14 and those outside 1..15
+// only have the prefix).
 Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtRandom& random,
                                                    const EffectParticleBirth& birth)
 {
     constexpr double Approach = static_cast<double>(std::bit_cast<float>(0x3e2aaaabu)); // 0x6ba05c, 1/6
     constexpr int RareChance = 50, RareLife = 50, FallSpan = 20, ScaleSpan = 5, JitterSpan = 60, JitterCenter = 30;
     constexpr int SideMask = 7, SideCenter = 4;
-    constexpr float GreenRise = std::bit_cast<float>(0x3fa66666u); // 0x540809, 1,3f
+    constexpr float GreenRise = std::bit_cast<float>(0x3fa66666u); // 0x540809, 1.3f
     const auto spread = [&] { particle.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * Tenth + 1.0); };
     switch (particle.subtype)
     {
@@ -237,8 +237,8 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
         particle.life = 5; // 0x540679
         return {};
     case FollowingSparkSubtype:
-        // 0x540686..0x5406dd: sin ángulos, vida 10, +0x38 en 0,1f, la partida en la posición y la velocidad hacia el
-        // dueño, un sexto de la distancia por paso.
+        // 0x540686..0x5406dd: no angles, life 10, +0x38 at 0.1f, the start at the position and the speed toward the
+        // owner, a sixth of the distance per step.
         if (birth.ownerPosition == nullptr)
             return Core::Unexpected(ParticleError::MissingOwner);
         particle.angles = glm::vec3(0.0f);
@@ -251,8 +251,8 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
                     Approach);
         return {};
     case RareSparkSubtype:
-        // 0x54073d..0x5407af: con rand() % 50 distinto de 0, la vida 0 (el paso la apaga); si no, vida 50, la caída
-        // (rand() % 20) · 0,2f + 1 y la escala (rand() % 5) · 0,1f + 1.
+        // 0x54073d..0x5407af: with rand() % 50 nonzero, life 0 (the step turns it off); otherwise life 50, the fall
+        // (rand() % 20) · 0.2f + 1 and the scale (rand() % 5) · 0.1f + 1.
         if (random.Next() % RareChance != 0)
         {
             particle.life = 0;
@@ -264,8 +264,8 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
         return {};
     case GreenSparkSubtype:
     {
-        // 0x5407b0..0x540849: +0x38 en 1,0f, y y z corridas rand() % 60 − 30 (sumadas antes de restar), vida 30, la
-        // caída 1,3f, el ángulo x corrido igual y la escala (rand() % 5) · 0,1f + 1.
+        // 0x5407b0..0x540849: +0x38 at 1.0f, y and z shifted rand() % 60 − 30 (added before subtracting), life 30, the
+        // fall 1.3f, the x angle shifted the same way and the scale (rand() % 5) · 0.1f + 1.
         particle.field38 = std::bit_cast<std::uint32_t>(1.0f);
         particle.position.y =
             F32((static_cast<double>(random.Next() % JitterSpan) + particle.position.y) - JitterCenter);
@@ -283,8 +283,8 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
         return {};
     case BurstSparkSubtype:
     {
-        // 0x5408f7..0x540972: +0x38 en 1,0f, la velocidad ((rand() & 7) − 4; 0; (rand() & 7) − 4), vida 20 y la
-        // escala (rand() % 5) · 0,1f + 1.
+        // 0x5408f7..0x540972: +0x38 at 1.0f, the speed ((rand() & 7) − 4; 0; (rand() & 7) − 4), life 20 and the scale
+        // (rand() % 5) · 0.1f + 1.
         particle.field38 = std::bit_cast<std::uint32_t>(1.0f);
         const int side = random.Next() & SideMask;
         particle.velocity.y = 0.0f;
@@ -300,9 +300,9 @@ Core::Expected<void, ParticleError> CreateTheSpark(Particle& particle, Crt::CrtR
     }
 }
 
-// 0x5473b1..0x547468: la /0 late con la vida (escala sin(vida · 0,17453292f) · 3 + 2, luz vida · 0,2f); la /1 crece
-// con +0x50 (escala sin(+0x50 · π/180) · 3 + 1,5; +0x50 suma (15 − vida) · 6 con tope 90) y con vida menor que 6
-// apaga la luz a la mitad. Los demás subtipos no hacen nada.
+// 0x5473b1..0x547468: the /0 beats with the life (scale sin(life · 0.17453292f) · 3 + 2, light life · 0.2f); the /1
+// grows with +0x50 (scale sin(+0x50 · π/180) · 3 + 1.5; +0x50 adds (15 − life) · 6 capped at 90) and with life under
+// 6 dims the light by half. The other subtypes do nothing.
 Core::Expected<void, ParticleError> StepTheRing(Particle& particle, IParticleTrigonometry* trigonometry)
 {
     constexpr double PulseStep = static_cast<double>(std::bit_cast<float>(0x3e32b8c2u)); // 0x6ba370
@@ -334,7 +334,7 @@ Core::Expected<void, ParticleError> StepTheRing(Particle& particle, IParticleTri
     const double sum =
         static_cast<double>(BurstLife - particle.life) * BurstStep + static_cast<double>(particle.verticalSpeed);
     particle.verticalSpeed = F32(sum);
-    // 0x547427: fcomp con test ah,0x41; el tope sólo cuando la suma sin redondear es mayor.
+    // 0x547427: fcomp with test ah,0x41; the cap only when the unrounded sum is greater.
     if (sum > BurstLimit)
         particle.verticalSpeed = static_cast<float>(BurstLimit);
     if (particle.life < DimLife)
@@ -342,10 +342,10 @@ Core::Expected<void, ParticleError> StepTheRing(Particle& particle, IParticleTri
     return {};
 }
 
-// 0x546250..0x5462a0 (/1) y 0x5460c2..0x54610c (/3): la luz con la vida, la velocidad por 0,4f y la escala crece.
+// 0x546250..0x5462a0 (/1) and 0x5460c2..0x54610c (/3): the light with the life, the speed by 0.4f and the scale grows.
 void StepTheSmoke(Particle& particle)
 {
-    constexpr double PoisonFade = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4, 0,02f
+    constexpr double PoisonFade = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4, 0.02f
     constexpr double EffectFade = 0.125;                                                  // 0x6ba170
     if (particle.subtype == PoisonSmokeSubtype)
     {
@@ -364,13 +364,13 @@ void StepTheSmoke(Particle& particle)
         F32(static_cast<double>(particle.scale) + (particle.subtype == PoisonSmokeSubtype ? Twentieth : Tenth));
 }
 
-// La tabla de 0x5482f4 (0x545d03..0x545e3f), después de su propia muerte con vida 0 o menos.
+// The 0x5482f4 table (0x545d03..0x545e3f), after its own death with life 0 or less.
 Core::Expected<void, ParticleError> StepTheFlame(Particle& particle, Crt::CrtRandom& random,
                                                  const ParticleOwnerStates& ownerStates)
 {
     constexpr std::int32_t KickLife = 10;
-    constexpr double Kick = static_cast<double>(std::bit_cast<float>(0x40cccccdu));   // 0x6ba3bc, 6,4f
-    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
+    constexpr double Kick = static_cast<double>(std::bit_cast<float>(0x40cccccdu));   // 0x6ba3bc, 6.4f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0.15f
     if (particle.life <= 0)
         particle.alive = false;
     const auto turn = [&] { particle.rotation = static_cast<float>(random.Next() % FullTurn); };
@@ -396,8 +396,8 @@ Core::Expected<void, ParticleError> StepTheFlame(Particle& particle, Crt::CrtRan
         return {};
     case FollowingFlameSubtype:
     {
-        // 0x545ddf..0x545e3a: la posición sigue lo que se movió el dueño desde la partida (z también suma +0x50), la
-        // partida pasa a la posición del dueño y +0x50 suma 0,1f.
+        // 0x545ddf..0x545e3a: the position follows what the owner moved since the start (z also adds +0x50), the start
+        // becomes the owner's position and +0x50 adds 0.1f.
         const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
         if (!owner)
             return Core::Unexpected(ParticleError::MissingOwner);
@@ -416,7 +416,7 @@ Core::Expected<void, ParticleError> StepTheFlame(Particle& particle, Crt::CrtRan
     }
 }
 
-// +0x38 baja 0,001f; muere cuando la resta sin redondear no es mayor que 0 (fst y fcomp con test ah,0x41).
+// +0x38 drops 0.001f; it dies when the unrounded subtraction is not greater than 0 (fst and fcomp with test ah,0x41).
 void CountDown(Particle& particle)
 {
     const double left = static_cast<double>(std::bit_cast<float>(particle.field38)) - Countdown;
@@ -425,17 +425,17 @@ void CountDown(Particle& particle)
         particle.alive = false;
 }
 
-// La tabla de 0x548204 para las chispas sin kernel propio.
+// The 0x548204 table for the sparks without their own kernel.
 Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRandom& random,
                                                  const ParticleOwnerStates& ownerStates)
 {
     constexpr double HitShrink = 0.5;                                                       // 0x6b882c
-    constexpr double HitMinimum = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));   // 0x6b8854, 0,2f
-    constexpr double FollowGrowth = static_cast<double>(std::bit_cast<float>(0x3da3d70au)); // 0x6ba1ac, 0,08f
-    constexpr double GreenShrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));  // 0x6b8b90, 0,02f
+    constexpr double HitMinimum = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));   // 0x6b8854, 0.2f
+    constexpr double FollowGrowth = static_cast<double>(std::bit_cast<float>(0x3da3d70au)); // 0x6ba1ac, 0.08f
+    constexpr double GreenShrink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));  // 0x6b8b90, 0.02f
     constexpr double BurstFade = static_cast<double>(std::bit_cast<float>(0x3f6d097bu));    // 0x6ba150
-    constexpr double BurstShrink = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));  // 0x6b8bd4, 0,03f
-    constexpr double RareGreen = static_cast<double>(std::bit_cast<float>(0x3f333333u));    // 0x6b8a5c, 0,7f
+    constexpr double BurstShrink = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));  // 0x6b8bd4, 0.03f
+    constexpr double RareGreen = static_cast<double>(std::bit_cast<float>(0x3f333333u));    // 0x6b8a5c, 0.7f
     constexpr std::int32_t DetachedLife = 5;
     constexpr int RareSpan = 10, GreenSpan = 50;
     switch (particle.subtype)
@@ -443,7 +443,7 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRan
     case HitSparkSubtype:
     case ShortHitSparkSubtype:
     {
-        // 0x545084: la escala baja 0,5 y muere bajo 0,2f (o sin orden), comparando la resta sin redondear.
+        // 0x545084: the scale drops 0.5 and it dies under 0.2f (or unordered), comparing the unrounded subtraction.
         const double shrunk = static_cast<double>(particle.scale) - HitShrink;
         particle.scale = F32(shrunk);
         if (!(shrunk >= HitMinimum))
@@ -455,9 +455,9 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRan
         return {};
     case FollowingSparkSubtype:
     {
-        // 0x545150..0x545204: con el dueño muerto pasa a vida 5; la luz vida · 0,2f, la escala + 0,08f, la posición
-        // (y la partida) en partida + velocidad, y después lo que se movió el dueño desde su partida (+0x17c): la x con
-        // la resta sin redondear, la y y la z redondeadas antes de sumar.
+        // 0x545150..0x545204: with the owner dead it goes to life 5; the light life · 0.2f, the scale + 0.08f, the
+        // position (and the start) at start + speed, and then what the owner moved since its start (+0x17c): the x with
+        // the unrounded subtraction, the y and the z rounded before adding.
         if (particle.life <= 0)
             particle.alive = false;
         const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
@@ -483,8 +483,8 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRan
         return {};
     }
     case RareSparkSubtype:
-        // 0x54521a..0x545267: cae con +0x50, se corre −1 en y, la caída crece 0,1f y el verde (rand() % 10) · 0,01f
-        // + 0,7f.
+        // 0x54521a..0x545267: falls with +0x50, shifts −1 in y, the fall grows 0.1f and the green is (rand() % 10) ·
+        // 0.01f + 0.7f.
         if (particle.life <= 0)
             particle.alive = false;
         particle.position.z = F32(static_cast<double>(particle.position.z) - particle.verticalSpeed);
@@ -494,8 +494,8 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRan
         return {};
     case GreenSparkSubtype:
     {
-        // 0x54526c..0x5452c4: la escala baja 0,02f, +0x38 cuenta para abajo, cae con +0x50 y la luz es (0; (rand() %
-        // 50) · 0,01f + 0,2f; 0).
+        // 0x54526c..0x5452c4: the scale drops 0.02f, +0x38 counts down, it falls with +0x50 and the light is (0;
+        // (rand() % 50) · 0.01f + 0.2f; 0).
         particle.scale = F32(static_cast<double>(particle.scale) - GreenShrink);
         CountDown(particle);
         particle.position.z = F32(static_cast<double>(particle.position.z) - particle.verticalSpeed);
@@ -506,13 +506,13 @@ Core::Expected<void, ParticleError> StepTheSpark(Particle& particle, Crt::CrtRan
         return {};
     }
     case BurstSparkSubtype:
-        // 0x545313..0x545363: la luz por 0,9259259f, la escala baja 0,03f y +0x38 cuenta para abajo.
+        // 0x545313..0x545363: the light by 0.9259259f, the scale drops 0.03f and +0x38 counts down.
         ScaleLight(particle, BurstFade);
         particle.scale = F32(static_cast<double>(particle.scale) - BurstShrink);
         CountDown(particle);
         return {};
     default:
-        // La /14 y las de fuera de 0..15 (0x5481df).
+        // The /14 and those outside 0..15 (0x5481df).
         return {};
     }
 }
@@ -551,7 +551,7 @@ Core::Expected<void, ParticleError> CreateEffectParticle(Particle& particle, Crt
 {
     if (particle.type == RingParticle)
     {
-        // 0x543183..0x5431b9: vida 20; la /1, vida 15, +0x50 en 0 y el giro rand() % 360.
+        // 0x543183..0x5431b9: life 20; the /1, life 15, +0x50 at 0 and the turn rand() % 360.
         particle.life = 20;
         if (particle.subtype == RingBurstSubtype)
         {

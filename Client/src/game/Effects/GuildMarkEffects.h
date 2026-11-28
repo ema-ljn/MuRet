@@ -9,9 +9,9 @@
 #include <cstdint>
 #include <string>
 
-// El 0x140, la marca que 0x510ef0 pone sobre un personaje con +0x369 en 1 (0x510f4d): su alta (0x51e0cb) y su paso
-// (0x529f0c). Su dibujo es el caso propio de 0x6002e0 (0x602005, DrawTheHighEffectBody de Scenes/HighEffectDrawing):
-// dos pases cromados. 06, "Los efectos con modelo de los tipos altos".
+// The 0x140, the mark 0x510ef0 puts on a character with +0x369 at 1 (0x510f4d): its creation (0x51e0cb) and its step
+// (0x529f0c). Its drawing is 0x6002e0's own case (0x602005, DrawTheHighEffectBody of Effects/HighEffectDrawing): two
+// chrome passes. 06, "Los efectos con modelo de los tipos altos".
 namespace Client::Crt
 {
 class CrtRandom;
@@ -39,40 +39,41 @@ struct HighEffectStepContext;
 
 inline constexpr std::int16_t GuildMarkEffect = 0x140;
 
-// El hueso del dueño que la marca sigue: 0x4ec110(modelo del dueño, +0x120 + 0x3c0, (0, 0, 0), punto, 1).
+// The owner bone the mark follows: 0x4ec110(owner's model, +0x120 + 0x3c0, (0, 0, 0), point, 1).
 inline constexpr std::size_t GuildMarkBone = static_cast<std::size_t>(Tables::PlayerHeadBone);
 
-// 0x51e0cb..0x51e233, después del prefijo de 0x518cf0 en `slot`: el alpha en 0, la z de los ángulos en 45, la x y la y
-// del punto del hueso 20 del dueño (`bonePoint`) y la z ((punto + z del dueño) − z del dueño) + 60, vida 130, escala
-// 3,2f, la luz en 1 y la partida en la posición. Después, diez veces: el giro rand() % 360 y dos radios rand() % 20 +
-// 15 (cada uno sacado justo antes de usarlo), y la chispa 0x5c6/4 (escala 0,6f, con el efecto de dueño, hacia su
-// posición) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z). Treinta rand(); los de la chispa, ninguno.
+// 0x51e0cb..0x51e233, after 0x518cf0's prefix in `slot`: the alpha at 0, the angles' z at 45, the x and y of the
+// owner's bone 20 point (`bonePoint`) and z ((point + owner's z) − owner's z) + 60, life 130, scale 3.2f, the light at
+// 1 and the start at the position. Then, ten times: the turn rand() % 360 and two radii rand() % 20 + 15 (each drawn
+// right before being used), and the spark 0x5c6/4 (scale 0.6f, with the effect as owner, toward its position) at
+// (FSIN(turn) · r + x, FCOS(turn) · r2 + y, z). Thirty rand(); the spark's, none.
 [[nodiscard]] Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect, std::size_t slot,
                                                                   const Kernel::ActorState& owner,
                                                                   const glm::vec3& bonePoint,
                                                                   Particles::Particles& particles,
                                                                   Crt::CrtRandom& random, float worldClock);
 
-// 0x510ef0 hasta 0x518cf0: +0x369 en 1 y +0x36c (un float) en 0 o un NaN, o el reloj del mundo más de 5000 después.
+// 0x510ef0 up to 0x518cf0: +0x369 at 1 and +0x36c (a float) at 0 or a NaN, or the world clock more than 5000 later.
 [[nodiscard]] bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock);
 
-// 0x510ef0 con +0x369 en 1: si +0x36c (un float) es 0 o un NaN, o si el reloj del mundo le lleva más de 5000, el 0x140
-// (0x518cf0(0x140, posición, ángulos, luz, 0, el personaje, −1, 0, 0, 0, 0), con la tabla llena nada), y +0x36c pasa
-// a ser el reloj. `bonePoint` es el punto del hueso 20 del personaje con el modelo como lo dejó su dibujo.
+// 0x510ef0 with +0x369 at 1: if +0x36c (a float) is 0 or a NaN, or if the world clock is more than 5000 ahead of it,
+// the 0x140 (0x518cf0(0x140, position, angles, light, 0, the character, −1, 0, 0, 0, 0), with the table full
+// nothing), and +0x36c becomes the clock. `bonePoint` is the point of the character's bone 20 with the model as its
+// drawing left it.
 [[nodiscard]] Core::Expected<void, std::string> RaiseTheGuildMark(Kernel::ActorState& actor, const glm::vec3& bonePoint,
                                                                   Effects::ModelEffects& effects,
                                                                   Particles::Particles& particles,
                                                                   Crt::CrtRandom& random, float worldClock);
 
-// 0x529f0c..0x52a176. Sin dueño (+0x108), la vida en 0. Con el alpha en 1 o más, la z de los ángulos 5 más. Con la
-// vida entre 121 y 124, cinco chispas 0x5c5/6 (escala 1,5f, 0x529f71); entre 96 y 120, el alpha 0,4f más hasta pasar 1
-// (y entonces 1); por debajo de 50, 0,1f menos hasta pasar 0 hacia abajo (y entonces 0). Sigue al hueso 20 del dueño:
-// x e y en dueño − héroe ([0x743a170]) + punto, y la z hacia ((punto + z) − z) + 60, en un décimo si está más arriba o
-// a la mitad si no. Con la vida entre 40 y 59: el giro rand() % 360, dos radios rand() % 26 − 13 y rand() % 5, y la
-// chispa 0x5c5/5 (escala 2, 0x52a16e) en (FSIN(giro) · r + x, FCOS(giro) · r2 + y, z + 48 − vida + k). Las 0x5c5/5 y
-// /6 guardan la marca de dueño (su lugar en la tabla, el ebx de 0x52a134 y 0x529f5b); la /5 lee su posición al nacer
-// (0x5403ad) y las dos la siguen en su paso. Con las partículas llenas, sin chispas ni los rand() de su alta; los
-// cuatro de 0x52a0c2..0x52a12c salen igual.
+// 0x529f0c..0x52a176. Without an owner (+0x108), life at 0. With the alpha at 1 or more, the angles' z 5 more. With
+// life between 121 and 124, five sparks 0x5c5/6 (scale 1.5f, 0x529f71); between 96 and 120, the alpha 0.4f more until
+// it passes 1 (and then 1); below 50, 0.1f less until it passes 0 downward (and then 0). It follows the owner's bone
+// 20: x and y at owner − hero ([0x743a170]) + point, and z toward ((point + z) − z) + 60, by a tenth if it is higher or
+// by half otherwise. With life between 40 and 59: the turn rand() % 360, two radii rand() % 26 − 13 and rand() % 5, and
+// the spark 0x5c5/5 (scale 2, 0x52a16e) at (FSIN(turn) · r + x, FCOS(turn) · r2 + y, z + 48 − life + k). The 0x5c5/5
+// and /6 keep the owner mark (its slot in the table, the ebx of 0x52a134 and 0x529f5b); the /5 reads its position at
+// birth (0x5403ad) and both follow it in their step. With the particles full, no sparks nor their creation's rand();
+// the four of 0x52a0c2..0x52a12c are drawn anyway.
 [[nodiscard]] Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect,
                                                                  const HighEffectStepContext& context);
 } // namespace Client::Effects

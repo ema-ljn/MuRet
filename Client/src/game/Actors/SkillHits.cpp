@@ -24,7 +24,7 @@
 #include <string>
 #include <string_view>
 
-// 0x517a20, cotejada con el PE c32bbd5f (06, "La flecha", el choque de las flechas de skill).
+// 0x517a20, checked against the PE c32bbd5f (06, "La flecha", the skill arrows' impact).
 namespace Client::Actors
 {
 namespace
@@ -33,13 +33,13 @@ using Maps::CastleSiegeMap;
 constexpr double CellsPerUnit = static_cast<double>(0.01f); // 0x6b86c0
 constexpr std::uint8_t MonsterKind = 2;
 constexpr std::uint8_t PlayerKind = 1;
-constexpr std::size_t NativeActorSlots = 400;         // 517bf3..517c00: el slot400 de reserva de MuRet no se recorre.
+constexpr std::size_t NativeActorSlots = 400;         // 0x517bf3..0x517c00: MuRet's spare slot 400 is not walked.
 constexpr std::string_view GameMasterName = "webzen"; // 0x6c8c40
 
 using Math::D;
 using Math::F32;
 
-// 0x517bc3..0x517bda: con la skill 8 o 9, el blanco con +0x394 en 0 queda con +0x398 en 10.
+// 0x517bc3..0x517bda: with skill 8 or 9, the target with +0x394 at 0 gets +0x398 at 10.
 void MarkTheStunned(Kernel::ActorState& actor, std::uint8_t skill)
 {
     constexpr std::uint8_t FirstMarkingSkill = 8;
@@ -49,7 +49,7 @@ void MarkTheStunned(Kernel::ActorState& actor, std::uint8_t skill)
         actor.byte398 = Mark;
 }
 
-// 0x517b44..0x517c0b: hasta cinco claves, de los 400 en orden.
+// 0x517b44..0x517c0b: up to five keys, from the 400 in order.
 Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& request, Kernel::WorldState& world,
                                                   std::uint8_t skill, bool siegePlayers)
 {
@@ -58,7 +58,7 @@ Protocol::Skills::SkillHitsSend CollectTheTargets(const SkillHitsRequest& reques
     const Kernel::ActorState* hero = &world.Hero();
     for (Kernel::ActorState& actor : actors.first<NativeActorSlots>())
     {
-        // 0x517b54..0x517b73: la distancia se calcula antes de mirar nada.
+        // 0x517b54..0x517b73: the distance is computed before checking anything.
         const double dx = D(request.point.x) - D(actor.position.x);
         const double dy = D(request.point.y) - D(actor.position.y);
         const float distance = F32(std::sqrt((dy * dy) + (dx * dx)));
@@ -90,8 +90,8 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         skill = Kernel::OwnSkillByte(world.OwnCharacter(), request.skillIndex);
     }
-    // 0x517af8..0x517b3f: en el 30 con el asedio (0x4294b0), el bit 0x100 de la celda del punto (0x5f82c0) sale con 0;
-    // sin él, un jugador entra aunque no tenga la clave.
+    // 0x517af8..0x517b3f: on map 30 with the siege (0x4294b0), bit 0x100 of the point's cell (0x5f82c0) returns 0;
+    // without it, a player enters even without the key.
     bool siegePlayers = false;
     if (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive)
     {
@@ -111,7 +111,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     // 0x517c11..0x517c72.
     if (Actors::ActorNameContains(world.Hero(), GameMasterName))
         return true;
-    // 0x517c74..0x5184c7: el C1 10, con la celda del punto (0x517deb y 0x517eed).
+    // 0x517c74..0x5184c7: the C1 10, with the point's cell (0x517deb and 0x517eed).
     const auto x = Math::OriginalFtolLow(D(request.point.x) * CellsPerUnit);
     const auto y = Math::OriginalFtolLow(D(request.point.y) * CellsPerUnit);
     if (!x || !y)
@@ -122,7 +122,7 @@ Core::Expected<bool, std::string> HitTheTargetsAround(const SkillHitsRequest& re
     hits.y = static_cast<std::uint8_t>(*y & 0xff);
     hits.volley = request.volley;
     hits.extra = request.extra;
-    // 0x518515..0x518606: el relleno y el serial del C3.
+    // 0x518515..0x518606: the C3's padding and serial.
     random.Discard(2);
     if (send)
         send(Protocol::Skills::WriteSkillHits(hits));

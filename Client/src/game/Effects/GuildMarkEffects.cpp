@@ -27,7 +27,7 @@
 #include <string>
 #include <string_view>
 
-// Cotejado con el PE c32bbd5f: 0x510ef0 (el llamador), 0x51e0cb (el alta del 0x140) y 0x529f0c (su paso).
+// Checked against the PE c32bbd5f: 0x510ef0 (the caller), 0x51e0cb (the 0x140's creation) and 0x529f0c (its step).
 namespace Client::Effects
 {
 namespace
@@ -35,15 +35,15 @@ namespace
 using Math::D;
 using Math::F32;
 
-// ((punto + z del dueño) − z del dueño) + 60 en la x87 (0x51e148..0x51e153 y 0x52a07a..0x52a086).
+// ((point + owner's z) − owner's z) + 60 on the x87 (0x51e148..0x51e153 and 0x52a07a..0x52a086).
 double MarkHeight(const glm::vec3& bonePoint, const Kernel::ActorState& owner)
 {
-    constexpr double Above = 60.0; // 0x6b86cc, 60,0f
+    constexpr double Above = 60.0; // 0x6b86cc, 60.0f
     return ((D(bonePoint.z) + D(owner.position.z)) - D(owner.position.z)) + Above;
 }
 
-// El lugar del 0x140 en la tabla de los efectos con modelo, que sus chispas guardan de dueño (+0x40): el ebx que
-// empujan 0x529f5b y 0x52a134.
+// The 0x140's slot in the model effect table, which its sparks keep as owner (+0x40): the ebx that 0x529f5b and
+// 0x52a134 push.
 Core::Expected<Particles::ParticleOwner, std::string>
 MarkAsOwner(const Effects::ModelEffect& effect, const HighEffectStepContext& context, std::string_view address)
 {
@@ -56,14 +56,14 @@ MarkAsOwner(const Effects::ModelEffect& effect, const HighEffectStepContext& con
                                     static_cast<std::uint64_t>(found - pool.begin())};
 }
 
-// 0x52a0c2..0x52a16e: la chispa 0x5c5/5 de la vida 40..59, con el 5 que 0x5208a0 dejó en edi (0x5208df) de divisor y
-// de subtipo, y la marca de dueño (0x52a134: push ebx), cuya posición lee al nacer (0x5403ad) para su partida.
+// 0x52a0c2..0x52a16e: the spark 0x5c5/5 of life 40..59, with the 5 that 0x5208a0 left in edi (0x5208df) as divisor
+// and subtype, and the owner mark (0x52a134: push ebx), whose position it reads at birth (0x5403ad) for its start.
 Core::Expected<void, std::string> SparkTheMark(const Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
     constexpr int FullTurn = Math::FullTurn;         // 0x168
-    constexpr int RadiusSpan = 26, RadiusShift = 13; // 0x1a y 0xd
+    constexpr int RadiusSpan = 26, RadiusShift = 13; // 0x1a and 0xd
     constexpr int LiftSpan = 5;                      // edi
-    constexpr double Base = 48.0;                    // 0x6ba220, 48,0f
+    constexpr double Base = 48.0;                    // 0x6ba220, 48.0f
     constexpr std::int32_t Spark = 0x5c5, SparkSubtype = 5;
     constexpr float SparkScale = 2.0f; // 0x40000000
     const float turn = static_cast<float>(context.random.Next() % FullTurn);
@@ -102,7 +102,7 @@ Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect
 {
     constexpr float Tilt = 45.0f; // 0x42340000
     constexpr std::int32_t MarkLife = 130;
-    constexpr float MarkScale = std::bit_cast<float>(0x404ccccdu); // 3,2f
+    constexpr float MarkScale = std::bit_cast<float>(0x404ccccdu); // 3.2f
     effect.alpha = 0.0f;
     effect.transform.angles.z = Tilt;
     glm::vec3& position = effect.transform.position;
@@ -114,9 +114,9 @@ Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect
     effect.light = glm::vec3(1.0f);
     effect.start = position;
     constexpr int Sparks = 10;
-    constexpr int FullTurn = Math::FullTurn, RadiusSpan = 20, RadiusBase = 15; // 0x168, 0x14 y 0xf
+    constexpr int FullTurn = Math::FullTurn, RadiusSpan = 20, RadiusBase = 15; // 0x168, 0x14 and 0xf
     constexpr std::int32_t Spark = 0x5c6, SparkSubtype = 4;
-    constexpr float SparkScale = std::bit_cast<float>(0x3f19999au); // 0,6f
+    constexpr float SparkScale = std::bit_cast<float>(0x3f19999au); // 0.6f
     Particles::PortableParticleTrigonometry trigonometry;
     const Particles::ParticleOwner sparkOwner{Particles::ParticleOwnerKind::ModelEffect, slot};
     for (int spark = 0; spark < Sparks; ++spark)
@@ -124,7 +124,7 @@ Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect
         const float turn = static_cast<float>(random.Next() % FullTurn);
         glm::vec3 point{};
         const float side = static_cast<float>(random.Next() % RadiusSpan + RadiusBase);
-        // 0x52e3a0 y 0x52e390: FSIN y FCOS del giro, retenidos en la x87 hasta el FMUL por el radio.
+        // 0x52e3a0 and 0x52e390: FSIN and FCOS of the turn, retained on the x87 until the FMUL by the radius.
         const auto sine = Math::Detail::SineProductPC53(D(turn), side);
         if (!sine)
             return Core::Unexpected(std::string("0x51e1c6: el seno del giro del 0x140 fuera del perfil PC53"));
@@ -135,7 +135,7 @@ Core::Expected<void, std::string> BeginTheGuildMark(Effects::ModelEffect& effect
             return Core::Unexpected(std::string("0x51e1ee: el coseno del giro del 0x140 fuera del perfil PC53"));
         point.y = F32(*cosine + D(position.y));
         point.z = position.z;
-        // 0x540686: la 5c6/4 lee la posición de su dueño (+0x40 → +0x10) para su velocidad.
+        // 0x540686: the 0x5c6/4 reads its owner's position (+0x40 → +0x10) for its velocity.
         const auto made =
             particles.CreateTowardChecked(Spark, point, effect.transform.angles, effect.light, SparkSubtype, SparkScale,
                                           std::cref(worldClock), random, trigonometry, sparkOwner, position);
@@ -150,9 +150,9 @@ bool GuildMarkIsDue(const Kernel::ActorState& actor, float worldClock)
 {
     if (actor.byte369 != 1)
         return false;
-    // 0x510f00..0x510f2a: FCOMP con 0 (C3 también con un NaN) y, si no, el reloj menos +0x36c contra 5000 (JNE con C0 o
-    // C3: igual, menos o sin orden, nada).
-    constexpr double Period = 5000.0; // 0x6ba1c4, 5000,0f
+    // 0x510f00..0x510f2a: FCOMP with 0 (C3 also with a NaN) and, otherwise, the clock minus +0x36c against 5000 (JNE
+    // with C0 or C3: equal, less or unordered, nothing).
+    constexpr double Period = 5000.0; // 0x6ba1c4, 5000.0f
     const float last = std::bit_cast<float>(actor.dword36c);
     return last == 0.0f || std::isnan(last) || D(worldClock) - D(last) > Period;
 }
@@ -186,8 +186,8 @@ Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect,
         return {};
     }
     constexpr float Opaque = 1.0f; // 0x6b87d4
-    constexpr double Spin = 5.0;   // 0x6b87f8, 5,0f
-    // 0x529f26: FCOMP con 1; JNE con C0 (menos o sin orden) salta el giro.
+    constexpr double Spin = 5.0;   // 0x6b87f8, 5.0f
+    // 0x529f26: FCOMP with 1; JNE with C0 (less or unordered) skips the turn.
     if (effect.alpha >= Opaque)
         effect.transform.angles.z = F32(D(effect.transform.angles.z) + Spin);
     constexpr std::int32_t BurstFrom = 120, BurstTo = 125, FadeInFrom = 95, FadeOutFrom = 50;
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect,
             constexpr int Bursts = 5;
             constexpr std::int32_t Burst = 0x5c5, BurstSubtype = 6;
             constexpr float BurstScale = 1.5f; // 0x3fc00000
-            // 0x529f5b: push ebx, la marca de dueño; el paso de la 0x5c5/6 resta lo que se corrió desde su partida.
+            // 0x529f5b: push ebx, the owner mark; the 0x5c5/6's step subtracts how far it moved from its start.
             const auto burstOwner = MarkAsOwner(effect, context, "0x529f5b");
             if (!burstOwner.HasValue())
                 return Core::Unexpected(burstOwner.Error());
@@ -212,27 +212,27 @@ Core::Expected<void, std::string> StepTheGuildMark(Effects::ModelEffect& effect,
     }
     else if (effect.life > FadeInFrom)
     {
-        constexpr double FadeIn = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0,4f
+        constexpr double FadeIn = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0.4f
         effect.alpha = effect.alpha > Opaque ? Opaque : F32(D(effect.alpha) + FadeIn);
     }
     else if (effect.life < FadeOutFrom)
     {
-        constexpr double FadeOut = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
+        constexpr double FadeOut = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0.1f
         effect.alpha = effect.alpha >= 0.0f ? F32(D(effect.alpha) - FadeOut) : 0.0f;
     }
-    // 0x529fe7..0x52a0aa: 0x4ec110 con el hueso 20 del dueño y el modelo como lo dejó el paso de su personaje.
+    // 0x529fe7..0x52a0aa: 0x4ec110 with the owner's bone 20 and the model as its character's step left it.
     const glm::vec3 point = ActorBonePoint(*owner, GuildMarkBone, glm::vec3(0.0f), context.world);
     const Kernel::ActorState& hero = context.world.Hero();
     glm::vec3& position = effect.transform.position;
     position.x = F32((D(owner->position.x) - D(hero.position.x)) + D(point.x));
     position.y = F32((D(owner->position.y) - D(hero.position.y)) + D(point.y));
-    constexpr double Settle = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0,1f
-    constexpr double Rise = 0.5;                                                      // 0x6b882c, 0,5f
+    constexpr double Settle = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8, 0.1f
+    constexpr double Rise = 0.5;                                                      // 0x6b882c, 0.5f
     const double height = MarkHeight(point, *owner);
-    // FCOM: C0 con la meta por debajo o sin orden, un décimo; si no, la mitad.
+    // FCOM: C0 with the goal below or unordered, a tenth; otherwise, half.
     const bool above = !(height >= D(position.z));
     position.z = F32((height - D(position.z)) * (above ? Settle : Rise) + D(position.z));
-    constexpr std::int32_t SparkFrom = 39, SparkTo = 60; // 0x27 y 0x3c
+    constexpr std::int32_t SparkFrom = 39, SparkTo = 60; // 0x27 and 0x3c
     if (effect.life > SparkFrom && effect.life < SparkTo)
         return SparkTheMark(effect, context);
     return {};

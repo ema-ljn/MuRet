@@ -20,9 +20,9 @@
 #include <span>
 #include <string>
 
-// El 60f/0xa del premio de una misión (A3 0xc9..0xcb, 0x4de0fe), con el personaje de dueño: nace como el 60f/0
-// (0x53373a..0x5337da y 0x53428f..0x5342d2) y en el paso (0x539f1b → 0x53b239) gira igual pero baja vz (0x53b2d5). Los
-// esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// The 0x60f/0xa of a quest prize (A3 0xc9..0xcb, 0x4de0fe), with the character as owner: it is born like the 0x60f/0
+// (0x53373a..0x5337da and 0x53428f..0x5342d2) and in the step (0x539f1b → 0x53b239) turns the same but goes down by vz
+// (0x53b2d5). The expected values repeat the ASM formulas with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -44,8 +44,8 @@ float Float(std::uint32_t bits)
     return std::bit_cast<float>(bits);
 }
 
-// Como lo pide 0x4de0fe: el punto copiado con la z + 200 en los dos puntos, los ángulos y el dueño del personaje, el
-// ancho 40 y la key 2.
+// As 0x4de0fe requests it: the copied point with z + 200 in both points, the character's angles and owner, width 40
+// and key 2.
 Client::Core::Expected<std::optional<std::size_t>, std::string>
 CreateFalling(std::span<JointState> joints, ActorState& owner, CrtRandom& random, float width = PrizeWidth)
 {
@@ -65,8 +65,8 @@ CreateFalling(std::span<JointState> joints, ActorState& owner, CrtRandom& random
     return Client::Joints::CreateFaunaJoint(joints, request, random);
 }
 
-// Lo que el 60f/0xa hace en un paso de 0x53b239 con la key 2, sin la caída. Con los ángulos en 0, el movimiento común
-// (0x53590e) sólo corre la y, que el giro pisa.
+// What the 0x60f/0xa does in one 0x53b239 step with key 2, without the fall. With the angles at 0, the common movement
+// (0x53590e) only shifts y, which the turn overwrites.
 void TurnFalling(JointState& expected)
 {
     const double argument = (static_cast<double>(expected.life) + D(expected.velocity.y)) / PrizeKey;
@@ -85,9 +85,9 @@ void TurnFalling(JointState& expected)
 }
 } // namespace
 
-// 0x533677, 0x53373a..0x5337da y 0x53428f..0x5342d2: vida 100 y 20 puntos; vz (rand() % 150) · 0,01f, vy rand() % 500 −
-// 250 y velocidad 40 (la 140 es de la /0x19); con el ancho 40, por encima de 10, vida 50 y vz (rand() % 250 + 200) ·
-// 0,01f. La luz del personaje y el destino en el segundo punto. Tres rand(), sin la mezcla de la /0x12.
+// 0x533677, 0x53373a..0x5337da and 0x53428f..0x5342d2: life 100 and 20 points; vz (rand() % 150) · 0.01f, vy rand() %
+// 500 − 250 and speed 40 (140 is the /0x19's); with width 40, above 10, life 50 and vz (rand() % 250 + 200) · 0.01f.
+// The character's light and the target at the second point. Three rand(), without the /0x12's blend.
 TEST(QuestPrizeJointsTest, TheFallingSparkleIsBornLikeTheSparkle)
 {
     ActorState owner;
@@ -124,9 +124,9 @@ TEST(QuestPrizeJointsTest, TheFallingSparkleIsBornLikeTheSparkle)
     EXPECT_FALSE(joints[1].alive);
 }
 
-// 0x53b239..0x53b2e1 con la key 2: (vida + vy) / 2 de argumento, la x y la y alrededor del destino, y la z que baja vz
-// en cada paso (fsub, 0x53b2d5). Con la vida debajo de 10, la luz por 0,7692308f. Con el ancho 40 no lee al dueño
-// aunque su acción sea de caída: vive sus 50 pasos.
+// 0x53b239..0x53b2e1 with key 2: (life + vy) / 2 as the argument, x and y around the target, and z going down by vz
+// each step (fsub, 0x53b2d5). With life under 10, the light times 0.7692308f. With width 40 it does not read the owner
+// even if its action is a falling one: it lives its 50 steps.
 TEST(QuestPrizeJointsTest, TheFallingSparkleTurnsAndGoesDown)
 {
     ActorState owner;
@@ -156,8 +156,8 @@ TEST(QuestPrizeJointsTest, TheFallingSparkleTurnsAndGoesDown)
     EXPECT_EQ(random.State(), born.State());
 }
 
-// 0x53b366..0x53b3d1: la /0xa también cae al 60f/1 con el ancho debajo de 40 y la acción del dueño en [0xd, 0x21] o
-// [0x38, 0x3c]: sin cola y la vida en 10 a lo sumo.
+// 0x53b366..0x53b3d1: the /0xa also falls to the 0x60f/1 with width under 40 and the owner's action in [0xd, 0x21] or
+// [0x38, 0x3c]: no tail and life at 10 at most.
 TEST(QuestPrizeJointsTest, ANarrowFallingSparkleFallsWithItsOwner)
 {
     for (const std::uint8_t action : {std::uint8_t{0xc}, std::uint8_t{0x38}})

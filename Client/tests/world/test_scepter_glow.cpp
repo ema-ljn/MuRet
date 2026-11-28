@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
-// Client::Actors::Drawing::CreateScepterGlow contra el caso 0x620 de 0x509340 del código real del main.exe, en 300
-// casos al azar (tests/vectors/world55/scepter.txt, make_scepter_vectors.py): con 0x4ec110 y 0x5491e0
-// reales, los cinco sprites que deja y el rand() al final, bit a bit.
+// Client::Actors::Drawing::CreateScepterGlow against case 0x620 of 0x509340 in the real main.exe code, in 300 random
+// cases (tests/vectors/world55/scepter.txt, make_scepter_vectors.py): with the real 0x4ec110 and 0x5491e0, the five
+// sprites it leaves and the rand() at the end, bit by bit.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -123,7 +123,7 @@ TEST(ScepterGlowTest, ThreeHundredCasesMatchTheBinary)
     EXPECT_EQ(cases, 300u);
 }
 
-// La tabla llena: 0x5491e0 no crea ninguno, pero el caso saca igual sus seis rand().
+// Full table: 0x5491e0 creates none, but the case takes its six rand() anyway.
 TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
 {
     FrameSprites sprites;
@@ -142,7 +142,7 @@ TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Los seis rand() que pide un frame, después de los de `random`.
+// The six rand() a frame asks for, after those of `random`.
 CrtRandom After(std::uint32_t seed, int frames)
 {
     CrtRandom random(seed);
@@ -153,7 +153,6 @@ CrtRandom After(std::uint32_t seed, int frames)
     return random;
 }
 
-// Los cinco sprites que dejó la tabla.
 std::vector<Sprite> GlowOf(FrameSprites& sprites)
 {
     std::vector<Sprite> glow;
@@ -179,10 +178,9 @@ void ExpectSameGlow(const std::vector<Sprite>& actual, const std::vector<Sprite>
     }
 }
 
-// 0x509340 sortea el brillo en cada frame dibujado del original, a 21,33 por segundo (Q-C20 y Q-C124 con la
-// mascota y la tela): MuRet lo sortea una vez por cada frame del original (46,875 ms) que pasó desde el
-// suyo anterior, y en un frame sin ninguno repite el último sorteo, en el hueso de ahora. El primero
-// sortea.
+// 0x509340 rolls the glow on every drawn frame of the original, at 21.33 per second (Q-C20 and Q-C124 with the pet
+// and the cloth): MuRet rolls it once per original frame (46.875 ms) elapsed since its previous one, and in a frame
+// with none it repeats the last roll, on the current bone. The first one rolls.
 TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
 {
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
@@ -202,7 +200,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     EXPECT_EQ(random.State(), After(5, 1).State()) << "sin un frame del original, ningún rand()";
     ExpectSameGlow(GlowOf(repeated), GlowOf(first));
 
-    // 1046,875 ms: uno.
+    // 1046.875 ms: one.
     FrameSprites next;
     carry.Create(next, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::microseconds{1046875});
     EXPECT_EQ(random.State(), After(5, 2).State());
@@ -211,7 +209,7 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     Client::Actors::Drawing::CreateScepterGlow(expectedNext, bone, 1.0f, glm::vec3(0.0f), sortedNext);
     ExpectSameGlow(GlowOf(next), GlowOf(expectedNext));
 
-    // Tres de golpe: los dos primeros solo sacan sus rand(), y el último se dibuja.
+    // Three at once: the first two only take their rand(), and the last one is drawn.
     FrameSprites late;
     carry.Create(late, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::microseconds{1046875 + (3 * 46875)});
     EXPECT_EQ(random.State(), After(5, 5).State());
@@ -221,7 +219,6 @@ TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
     ExpectSameGlow(GlowOf(late), GlowOf(expectedLate));
 }
 
-// Un reloj que vuelve no corre frames: repite el último sorteo.
 TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
 {
     const auto bone = Client::Math::OriginalMatrixOf(Client::Math::BoneTransform(1.0f));
@@ -237,8 +234,8 @@ TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
     ExpectSameGlow(GlowOf(back), GlowOf(first));
 }
 
-// En el modo fiel, un sorteo por dibujo, aunque el frame no dure justo 46,875 ms: por el reloj, el segundo
-// de estos repetiría el sorteo y el tercero sacaría dos.
+// In the faithful mode, one roll per draw, even if the frame does not last exactly 46.875 ms: by the clock, the second
+// of these would repeat the roll and the third would take two.
 TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
 {
     using namespace std::chrono_literals;
@@ -258,8 +255,8 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
     }
 }
 
-// Después de un frame retenido (Q-C85, P-C27 f), RestartTheClock: el próximo dibujo sortea uno, como el primero,
-// aunque pasaron 5 s (por el reloj serían 64), con el hueso de ahora. Después sigue por el reloj.
+// After a held frame (Q-C85, P-C27 f), RestartTheClock: the next draw rolls one, like the first, even though 5 s
+// passed (by the clock it would be 64), with the current bone. Then it follows the clock.
 TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
 {
     using namespace std::chrono_literals;

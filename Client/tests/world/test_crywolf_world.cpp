@@ -36,8 +36,8 @@
 #include <utility>
 #include <vector>
 
-// Lo que Crywolf (el mapa 34) agrega al mundo: el paso de sus objetos (0x4303e0), sus partículas (5f2/21, 5f2/33,
-// 622/9, 698/0, 6ec/5 y 60f/10), el calco 0x61d/3 del estandarte y las burbujas de su agua (0x5fa695):
+// What Crywolf (map 34) adds to the world: the step of its objects (0x4303e0), its particles (0x5f2/21, 0x5f2/33,
+// 0x622/9, 0x698/0, 0x6ec/5 and 0x60f/10), the banner's decal 0x61d/3 and the bubbles of its water (0x5fa695):
 // 06 § Los objetos de Crywolf.
 namespace
 {
@@ -78,7 +78,7 @@ struct Step
     }
 };
 
-// La primera semilla cuyo primer rand() % `modulus` da `remainder`, o no lo da con `match` en falso.
+// The first seed whose first rand() % `modulus` gives `remainder`, or does not with `match` false.
 std::uint32_t SeedWhere(int modulus, int remainder, bool match = true)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -89,7 +89,7 @@ std::uint32_t SeedWhere(int modulus, int remainder, bool match = true)
     }
 }
 
-// La trigonometría portable, con la cuenta de las llamadas: la 60f/10 la pide al nacer y no en el paso.
+// The portable trigonometry, counting the calls: the 0x60f/10 asks for it at birth and not in the step.
 class CountingTrigonometry final : public Client::Particles::IParticleTrigonometry
 {
 public:
@@ -111,7 +111,7 @@ private:
     Client::Particles::PortableParticleTrigonometry m_inner;
 };
 
-// Los campos que deja el paso; la comparación entre gemelos ignora el tipo y el subtipo.
+// The fields the step leaves; the comparison between twins ignores the type and the subtype.
 void ExpectSameStep(const Particle& actual, const Particle& twin)
 {
     EXPECT_EQ(actual.alive, twin.alive);
@@ -129,8 +129,8 @@ void ExpectSameStep(const Particle& actual, const Particle& twin)
     EXPECT_EQ(actual.start, twin.start);
 }
 
-// Da `steps` pasos a una partícula y a su gemela de otro tipo o subtipo, cada una en su pool y con la misma
-// semilla, y compara lo que queda.
+// Gives a particle and its twin of another type or subtype `steps` steps, each in its pool and with the same seed,
+// and compares what is left.
 void ExpectTheSameStepAs(const Particle& particle, std::int32_t twinType, std::int32_t twinSubtype, int steps)
 {
     auto own = std::make_unique<Particles>();
@@ -158,8 +158,8 @@ void ExpectTheSameStepAs(const Particle& particle, std::int32_t twinType, std::i
 }
 } // namespace
 
-// 0x430416..0x43043e: el 0x29 suma (0,2f; 0,7f; 0,5f) a la luz dinámica con radio 2, sin rand(); sin el buffer,
-// corta en la llamada.
+// 0x430416..0x43043e: the 0x29 adds (0.2f; 0.7f; 0.5f) to the dynamic light with radius 2, no rand(); without the
+// buffer, it cuts at the call.
 TEST(CrywolfObjectsTest, TheGlowLightsTheDynamicBufferWithoutADraw)
 {
     Step step;
@@ -184,8 +184,8 @@ TEST(CrywolfObjectsTest, TheGlowLightsTheDynamicBufferWithoutADraw)
     EXPECT_NE(cut.Error().find("0x43043e"), std::string::npos) << cut.Error();
 }
 
-// 0x43044d..0x430497: el 0x39 y el 0x47, ((rand() & 3) + 3) · 0,1f en la x87 (fst del rojo), por 0,6f y 0,2f,
-// con radio 3. Sin el buffer, el rand() ya salió cuando corta.
+// 0x43044d..0x430497: the 0x39 and the 0x47, ((rand() & 3) + 3) · 0.1f on the x87 (fst of the red), times 0.6f
+// and 0.2f, with radius 3. Without the buffer, the rand() is already drawn when it cuts.
 TEST(CrywolfObjectsTest, TheTorchesLightTheDynamicBufferWithOneDraw)
 {
     for (const std::int16_t type : {std::int16_t{0x39}, std::int16_t{0x47}})
@@ -218,8 +218,8 @@ TEST(CrywolfObjectsTest, TheTorchesLightTheDynamicBufferWithOneDraw)
     }
 }
 
-// 0x4304a6 y 0x4304b7: el 0x51 queda con alpha 0,2f (+0x174) y el 0x52, el 0x53 y el 0x54 con +0x58 en −2; los
-// demás tipos de la tabla (0x29..0x54) y los de afuera no tocan nada.
+// 0x4304a6 and 0x4304b7: the 0x51 is left with alpha 0.2f (+0x174) and the 0x52, the 0x53 and the 0x54 with +0x58
+// at −2; the other types of the table (0x29..0x54) and those outside it touch nothing.
 TEST(CrywolfObjectsTest, TheFaintAndHiddenObjectsOnlyChangeTheirOwnField)
 {
     for (const std::int16_t type :
@@ -239,8 +239,8 @@ TEST(CrywolfObjectsTest, TheFaintAndHiddenObjectsOnlyChangeTheirOwnField)
     }
 }
 
-// 0x542370..0x5423d8: la 5f2/21 nace con vida 80, la escala ((rand() & 63) + 64) · escala · 0,005f, el giro
-// rand() % 360 y la subida ((rand() & 31) + 60) · 0,1f; 0x5466c3 la manda al paso de la 5f2/2.
+// 0x542370..0x5423d8: the 0x5f2/21 is born with life 80, the scale ((rand() & 63) + 64) · scale · 0.005f, the
+// rotation rand() % 360 and the rise ((rand() & 31) + 60) · 0.1f; 0x5466c3 sends it to the step of the 0x5f2/2.
 TEST(CrywolfParticlesTest, TheChimneySmokeIsBornWithThreeDrawsAndStepsAsTheWorldSmoke)
 {
     auto particles = std::make_unique<Particles>();
@@ -263,8 +263,8 @@ TEST(CrywolfParticlesTest, TheChimneySmokeIsBornWithThreeDrawsAndStepsAsTheWorld
     ExpectTheSameStepAs(smoke, Client::Particles::BreathParticle, 2, 4);
 }
 
-// 0x54330a..0x5433f4: la 622/9 saca siete rand() en el orden de la 622/8, pero su escala multiplica la del
-// argumento y +0x60 no le suma nada; 0x54768f le da el paso de la 622/8.
+// 0x54330a..0x5433f4: the 0x622/9 draws seven rand() in the order of the 0x622/8, but its scale multiplies the
+// argument's and +0x60 adds nothing to it; 0x54768f gives it the step of the 0x622/8.
 TEST(CrywolfParticlesTest, TheMistCloudScalesItsArgumentAndStepsAsTheCloudEight)
 {
     auto particles = std::make_unique<Particles>();
@@ -300,9 +300,10 @@ TEST(CrywolfParticlesTest, TheMistCloudScalesItsArgumentAndStepsAsTheCloudEight)
     ExpectTheSameStepAs(cloud, Client::Particles::CloudParticle, 8, 4);
 }
 
-// 0x543152..0x543178 y 0x54719f..0x5471b2: la burbuja 698/0 nace con vida 32 y la escala (rand() % 170 + 1) ·
-// 0,01f, que pisa la del argumento; cada paso deja en +0x48 el cuadro (32 − vida) / 4, y el dibujo (0x54899a)
-// toma la fila del cuadro % 8 de la columna de coll.jpg, con el alto por 0,125 y el giro de +0x20.
+// 0x543152..0x543178 and 0x54719f..0x5471b2: the bubble 0x698/0 is born with life 32 and the scale
+// (rand() % 170 + 1) · 0.01f, which overrides the argument's; each step leaves at +0x48 the frame (32 − life) / 4,
+// and the draw (0x54899a) takes the row frame % 8 of coll.jpg's column, with the height times 0.125 and the
+// rotation of +0x20.
 TEST(CrywolfParticlesTest, TheBubbleLivesThirtyTwoStepsAcrossEightFrames)
 {
     auto particles = std::make_unique<Particles>();
@@ -343,11 +344,12 @@ TEST(CrywolfParticlesTest, TheBubbleLivesThirtyTwoStepsAcrossEightFrames)
     }
 }
 
-// 0x541a8d..0x541b03: la 5f2/33 del 0x48 nace con la escala del argumento más 0,1f, la vida rand() % 150, la
-// inclinación rand() % 90 − 45 en +0x20, el giro rand() % 360 en +0x28 y la velocidad (0, −(rand() & 7), 0).
-// 0x545ffc..0x54604c: después del movimiento común, la luz (V · 0,4f; V · 0,4f; V) con V = vida · 0,125f en la x87,
-// la velocidad por 0,001f, la escala más 0,02f (fst) y la z más esa suma sin redondear. 0x548550 la dibuja sin restar
-// (no es /2, /5, /12, /14, /15, /20, /21, /29, /37 ni /38) con el billboard común y su giro (0x548a64).
+// 0x541a8d..0x541b03: the 0x48's 0x5f2/33 is born with the argument's scale plus 0.1f, life rand() % 150, the tilt
+// rand() % 90 − 45 at +0x20, the rotation rand() % 360 at +0x28 and the speed (0, −(rand() & 7), 0).
+// 0x545ffc..0x54604c: after the common movement, the light (V · 0.4f; V · 0.4f; V) with V = life · 0.125f on the
+// x87, the speed times 0.001f, the scale plus 0.02f (fst) and the z plus that unrounded sum. 0x548550 draws it
+// without subtracting (it is not /2, /5, /12, /14, /15, /20, /21, /29, /37 or /38) with the common billboard and
+// its rotation (0x548a64).
 TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
 {
     auto particles = std::make_unique<Particles>();
@@ -423,8 +425,8 @@ TEST(CrywolfParticlesTest, TheRisingSmokeDriftsOnceAndClimbsWithItsGrowingScale)
     EXPECT_EQ(billboard.Value()->light, drawn.light);
 }
 
-// 0x543b82..0x543bd5: la 6ec del 0x39 y del 0x47 nace como la 6ed (vida 24 y los dos rand() de la velocidad) y,
-// con la /5, queda con vida 20; el paso es el de la 6ed (0x547a40).
+// 0x543b82..0x543bd5: the 0x6ec of the 0x39 and the 0x47 is born like the 0x6ed (life 24 and the speed's two
+// rand()) and, with the /5, is left with life 20; the step is the 0x6ed's (0x547a40).
 TEST(CrywolfParticlesTest, TheTorchSparkIsAShortFanta)
 {
     for (const std::int32_t subtype : {0, Client::Particles::ShortFantaSubtype})
@@ -449,9 +451,10 @@ TEST(CrywolfParticlesTest, TheTorchSparkIsAShortFanta)
     }
 }
 
-// 0x542ed0..0x54304a: la 60f/10 nace como la /3 (vida 60, cuatro rand()) y, sola entre las órbitas, corre su
-// partida con el seno y el coseno de (vida + Vx) · 0,1f por 40. 0x547286..0x5472a5: en el paso calcula el argumento
-// y lo tira; vuelve a la partida en x e y, sube, se achica 0,002f y, con la vida en 20 o menos, se apaga.
+// 0x542ed0..0x54304a: the 0x60f/10 is born like the /3 (life 60, four rand()) and, alone among the orbs, shifts its
+// start with the sine and cosine of (life + Vx) · 0.1f times 40. 0x547286..0x5472a5: in the step it computes the
+// argument and throws it away; goes back to the start in x and y, rises, shrinks 0.002f and, with life at 20 or
+// less, fades out.
 TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
 {
     auto particles = std::make_unique<Particles>();
@@ -511,10 +514,10 @@ TEST(CrywolfParticlesTest, TheAnchoredOrbStaysOverItsShiftedStart)
     EXPECT_EQ(trigonometry.calls, 0);
 }
 
-// 0x51ee96..0x51eeae: el calco 0x61d nace con vida 20 (15 con el subtipo 0) y escala 0,5, sin rand().
-// 0x52b91f..0x52b954: el /3, con la vida entre 6 y 9 antes del paso común, suelta una 60f/10 con su luz y la
-// escala 0,19; el /0, el /2 y el /7 sueltan la 60f/0 con el efecto de dueño (0x52b8ff, 0x52b977), y los demás solo
-// tienen el paso común.
+// 0x51ee96..0x51eeae: the decal 0x61d is born with life 20 (15 with subtype 0) and scale 0.5, no rand().
+// 0x52b91f..0x52b954: the /3, with life between 6 and 9 before the common step, releases a 0x60f/10 with its light
+// and scale 0.19; the /0, the /2 and the /7 release the 0x60f/0 with the owner effect (0x52b8ff, 0x52b977), and the
+// others only have the common step.
 TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();
@@ -570,9 +573,9 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     }
     EXPECT_EQ(orbs, 4);
 
-    // 0x52b8ff y 0x52b977: el /0, el /2 y el /7 sueltan la órbita 60f/0 con su posición, sus ángulos, su luz, la escala
-    // 0,19 y el efecto de dueño (su lugar en la tabla), después del rand() de la luz del paso; llena, nada. Sin la
-    // tabla de efectos (de donde sale el lugar del dueño) cortan con su dirección si la órbita tiene lugar.
+    // 0x52b8ff and 0x52b977: the /0, the /2 and the /7 release the orb 0x60f/0 with its position, angles, light, scale
+    // 0.19 and the owner effect (its slot in the table), after the rand() of the step's light; full, nothing. Without
+    // the effect table (where the owner's slot comes from) they cut with their address if the orb has room.
     for (const std::int32_t subtype : {0, 2, 7})
     {
         SCOPED_TRACE(subtype);
@@ -590,8 +593,8 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
             Client::Effects::StepGameModelEffect(owner, nullptr, *spawned, 2500.0f, orbRandom, nullptr, services)
                 .HasValue());
         constexpr Client::Particles::ParticleOwner DecalOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 1};
-        // El rand() de la luz y los cuatro de 0x542f83, 0x542fab, 0x542fc6 y 0x542fe5; los valores, de orbit.py
-        // (0x542ed0..0x54304a en una x87 aparte) y no de CreateChecked.
+        // The light's rand() and the four of 0x542f83, 0x542fab, 0x542fc6 and 0x542fe5; the values come from orbit.py
+        // (0x542ed0..0x54304a on a separate x87) and not from CreateChecked.
         EXPECT_EQ(orbRandom.State(), 0x3309f4f0u);
         EXPECT_EQ(orbRandom.State(), Client::Tests::AfterDraws(29, 5).State());
         const Particle& orb = spawned->All()[0];
@@ -601,9 +604,9 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
         EXPECT_EQ(orb.typedOwner, DecalOwner);
         EXPECT_EQ(orb.light, light);
         EXPECT_EQ(orb.position, position);
-        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.scale), 0x3e4ccccdu);         // 0,19f + (rand() % 6) · 0,01f
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.scale), 0x3e4ccccdu);         // 0.19f + (rand() % 6) · 0.01f
         EXPECT_EQ(orb.rotation, 105.0f);                                         // rand() % 360
-        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.verticalSpeed), 0x3fb851ebu); // (rand() % 100) · 0,01f · 4 + 1
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(orb.verticalSpeed), 0x3fb851ebu); // (rand() % 100) · 0.01f · 4 + 1
         EXPECT_EQ(orb.velocity, (glm::vec3{-139.0f, 0.0f, 0.0f}));               // rand() % 300 − 150
         EXPECT_EQ(orb.angles, glm::vec3(0.0f));
         EXPECT_EQ(orb.start, position);
@@ -628,8 +631,8 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
 
         if (subtype == 0)
             continue;
-        // Con la tabla de partículas llena la órbita no nace y el dueño no hace falta: sin la tabla de efectos el /2 y
-        // el /7 siguen como el original, con sólo el rand() de la luz.
+        // With the particle table full the orb is not born and the owner is not needed: without the effect table the /2
+        // and the /7 go on like the original, with only the light's rand().
         Client::Effects::ModelEffect unowned = before;
         CrtRandom unownedRandom(29);
         ASSERT_TRUE(Client::Effects::StepGameModelEffect(unowned, nullptr, *full, 2500.0f, unownedRandom).HasValue());
@@ -653,8 +656,9 @@ TEST(CrywolfDecalTest, TheBannerDecalReleasesFourOrbsBeforeItFades)
     }
 }
 
-// 0x52b8ad..0x52b8cf: el 0x61d/0 deja en cada paso el /1 en su posición, con sus ángulos y su luz, vida 20 y escala
-// 0,5, sin rand(); llena, nada. Sin la tabla de efectos corta. Fuera de la vida 6..9 no suelta la órbita.
+// 0x52b8ad..0x52b8cf: the 0x61d/0 leaves on each step the /1 at its position, with its angles and light, life 20
+// and scale 0.5, no rand(); full, nothing. Without the effect table it cuts. Outside life 6..9 it does not release
+// the orb.
 TEST(CrywolfDecalTest, TheTrailDecalLeavesAFadingDecalEachStep)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();
@@ -715,7 +719,7 @@ struct Water
         context.particles = particles.get();
     }
 
-    // Las cuatro esquinas de (x, y), en el orden de Terrain::DrawTerrainCell.
+    // The four corners of (x, y), in the order of Terrain::DrawTerrainCell.
     void Cell(std::uint8_t x, std::uint8_t y, std::uint8_t layer1, std::uint8_t layer2, float alpha)
     {
         const std::size_t first = Client::Data::Terrain::CellIndex(x, y);
@@ -726,7 +730,7 @@ struct Water
     }
 };
 
-// Una pedida de las UV del agua (0x5fa6ab..0x5fa731), sobre una copia del azar: la burbuja, si sale.
+// A request for the water UVs (0x5fa6ab..0x5fa731), on a copy of the randomness: the bubble, if it comes out.
 std::optional<glm::vec3> Request(CrtRandom& draws, std::uint8_t x, std::uint8_t y, float heroZ, float& scale)
 {
     if (draws.Next() % 50 != 0)
@@ -740,10 +744,10 @@ std::optional<glm::vec3> Request(CrtRandom& draws, std::uint8_t x, std::uint8_t 
 }
 } // namespace
 
-// 0x5fa8d0..0x5fa8f6 y 0x5fa9b2..0x5fa9dc: la capa de abajo pide las UV del agua con la capa 1 en 5 y alguna
-// esquina de alfa debajo de 1; la de alfa, además con la capa 2 en 5 y alguna esquina arriba de 0. Cada pedida saca
-// un rand() y, con 0 módulo 50, la burbuja 698/0 en la celda, sobre el héroe, con sus ángulos y la luz
-// (0,3; 0,4; 0,2).
+// 0x5fa8d0..0x5fa8f6 and 0x5fa9b2..0x5fa9dc: the bottom layer requests the water UVs with layer 1 at 5 and some
+// alpha corner below 1; the alpha one, also with layer 2 at 5 and some corner above 0. Each request draws a rand()
+// and, with 0 modulo 50, the bubble 0x698/0 in the cell, above the hero, with its angles and the light
+// (0.3; 0.4; 0.2).
 TEST(CrywolfWaterTest, EachWaterRequestDrawsOnceAndSometimesReleasesABubble)
 {
     struct Case
@@ -800,8 +804,8 @@ TEST(CrywolfWaterTest, EachWaterRequestDrawsOnceAndSometimesReleasesABubble)
     }
 }
 
-// Sin el mapeo, el azar o el pool, la pedida corta donde los lee: el pool, después de los tres rand() de la
-// posición.
+// Without the mapping, the randomness or the pool, the request cuts where it reads them: the pool, after the three
+// rand() of the position.
 TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
 {
     const std::uint32_t seed = SeedWhere(50, 0);
@@ -830,7 +834,7 @@ TEST(CrywolfWaterTest, AMissingBindingCutsWhereTheRequestReadsIt)
         EXPECT_EQ(water.random.State(), Client::Tests::AfterDraws(seed, 3).State());
     }
     {
-        // Sin burbuja, el pool no se lee.
+        // Without a bubble, the pool is not read.
         Water water(SeedWhere(50, 0, false));
         water.Cell(40, 120, 5, 0, 0.0f);
         water.context.particles = nullptr;

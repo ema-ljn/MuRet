@@ -25,7 +25,8 @@
 #include <string>
 #include <vector>
 
-// El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f.
+// The 0x60f/7, /0xb and /0x19 (WanderingJoints.cpp): creation 0x533bbd, 0x533d5f and 0x533db8 and step
+// 0x53a87a..0x53b01f.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -53,7 +54,7 @@ struct Pool
     {
         cloth->random = CrtRandom{Seed};
         cloth->logicSteps = 77;
-        cloth->openCounterAccesses = 1; // sin los cuatro rand() del cierre.
+        cloth->openCounterAccesses = 1; // without the close's four rand().
         arrow.alive = true;
         arrow.start = {1100, 2100, 160};
         actor.alive = true;
@@ -111,8 +112,9 @@ std::size_t LiveSprites(Client::Particles::FrameSprites& sprites)
 }
 } // namespace
 
-// 0x533bbd..0x533c13: la /7 nace azul (0,2; 0,2; 1) con la vida rand() % 10 + 30 y el resto en +0x9ec, 15 puntos, ancho
-// 30 (no el del pedido) y vx en rand() % 3000; el destino es el segundo punto. Con el pool lleno, nada ni rand().
+// 0x533bbd..0x533c13: the /7 is born blue (0.2; 0.2; 1) with life rand() % 10 + 30 and the rest in +0x9ec, 15 points,
+// width 30 (not the requested one) and vx at rand() % 3000; the target is the second point. With the pool full,
+// nothing, not even rand().
 TEST(WanderingJointsTest, TheWanderersBornWithTheirDelay)
 {
     Pool pool;
@@ -144,8 +146,8 @@ TEST(WanderingJointsTest, TheWanderersBornWithTheirDelay)
     EXPECT_EQ(pool.cloth->random.State(), before.State());
 }
 
-// 0x533d5f..0x533db3 y 0x533db8..0x533e0c: la /0xb (azul) y la /0x19 (rosa) sin demora: vida 30, +0x9ec en 0 y un solo
-// rand(), el de vx.
+// 0x533d5f..0x533db3 and 0x533db8..0x533e0c: the /0xb (blue) and the /0x19 (pink) without delay: life 30, +0x9ec at 0
+// and a single rand(), the vx one.
 TEST(WanderingJointsTest, TheArrowWanderersHaveNoDelay)
 {
     for (const std::int32_t subtype : {0xb, 0x19})
@@ -173,10 +175,10 @@ TEST(WanderingJointsTest, TheArrowWanderersHaveNoDelay)
     }
 }
 
-// 0x53a89e..0x53b01f con la /0xb en el lugar 0 y 77 pasos (fase −77), vida 30: la dirección con las frecuencias de
-// una vez y media, el radio 150, la mezcla con la partida de la flecha corrida por cos(arg · 0,01f) · 25, el sonido
-// 0x42 (vida 30) y tres sprites (0x5fd y dos 0x5ac) con dos rand() cada uno. Calculado aparte de MuRet
-// (golden_wander.py: Fraction y Decimal, FSIN/FCOS a 64 bits, PC53 y stores a float).
+// 0x53a89e..0x53b01f with the /0xb in slot 0 and 77 steps (phase −77), life 30: the direction with the
+// one-and-a-half frequencies, radius 150, the blend with the arrow's start shifted by cos(arg · 0.01f) · 25, the sound
+// 0x42 (life 30) and three sprites (0x5fd and two 0x5ac) with two rand() each. Computed apart from MuRet
+// (golden_wander.py: Fraction and Decimal, FSIN/FCOS to 64 bits, PC53 and stores to float).
 TEST(WanderingJointsTest, TheArrowWandererCirclesItsStart)
 {
     Pool pool;
@@ -194,17 +196,17 @@ TEST(WanderingJointsTest, TheArrowWandererCirclesItsStart)
     EXPECT_TRUE(pool.hits.empty());
     EXPECT_EQ(joint.life, 29);
     EXPECT_EQ(joint.count, 1);
-    // La /0xb no se apaga (0x53b318).
+    // The /0xb does not fade (0x53b318).
     EXPECT_EQ(joint.light.x, std::bit_cast<float>(0x3e4ccccdu));
 }
 
-// 0x53acaf..0x53ae06: la /7 en el lugar 1 (fase 53.808) con vida 12 y +0x9ec 3, alrededor del +0x10 del personaje y
-// 100 más arriba; con el contador cerrado en 0, sus cuatro rand() antes de los seis de los sprites.
+// 0x53acaf..0x53ae06: the /7 in slot 1 (phase 53808) with life 12 and +0x9ec 3, around the character's +0x10 and 100
+// higher; with the counter closed at 0, its four rand() before the six of the sprites.
 TEST(WanderingJointsTest, TheWandererCirclesItsOwner)
 {
     Pool pool;
     pool.joints[0].alive = true;
-    pool.joints[0].type = 0x617; // un lugar ocupado que no se mueve
+    pool.joints[0].type = 0x617; // an occupied slot that does not move
     pool.joints[0].subtype = 0;
     pool.joints[0].life = 1000;
     pool.joints[0].tailEnabled = false;
@@ -223,10 +225,10 @@ TEST(WanderingJointsTest, TheWandererCirclesItsOwner)
     EXPECT_TRUE(pool.sounds.empty());
 }
 
-// 0x53aaa2..0x53acd7 con el radio sin recortar a 150 y la mezcla de la rama "· 4": con t = vida · 4/3, la /0x19 con
-// vida 5 (t debajo de 20: la mezcla t · 4 y el radio 0, recortado desde t − 10 < 0), la /7 con vida 29 y +0x9ec 3 (el
-// radio (40 − t) · 15 ≈ 20) y la /0xb con vida 20 (el radio (t − 10) · 5 ≈ 83), con 77 pasos y el reloj sin cerrar.
-// Los bits los dio una emulación x87 independiente de MuRet (la revisión ASM de la cuarta vuelta).
+// 0x53aaa2..0x53acd7 with the radius not clipped to 150 and the blend of the "· 4" branch: with t = life · 4/3, the
+// /0x19 with life 5 (t under 20: the blend t · 4 and radius 0, clipped from t − 10 < 0), the /7 with life 29 and +0x9ec
+// 3 (radius (40 − t) · 15 ≈ 20) and the /0xb with life 20 (radius (t − 10) · 5 ≈ 83), with 77 steps and the clock not
+// closed. The bits came from an x87 emulation independent of MuRet (the fourth round's ASM review).
 TEST(WanderingJointsTest, TheWanderersOutsideTheWidestRadius)
 {
     struct Probe
@@ -249,7 +251,7 @@ TEST(WanderingJointsTest, TheWanderersOutsideTheWidestRadius)
         for (std::size_t slot = 0; slot < probe.slot; ++slot)
         {
             pool.joints[slot].alive = true;
-            pool.joints[slot].type = 0x617; // un lugar ocupado que no se mueve
+            pool.joints[slot].type = 0x617; // an occupied slot that does not move
             pool.joints[slot].subtype = 0;
             pool.joints[slot].life = 1000;
             pool.joints[slot].tailEnabled = false;
@@ -270,8 +272,8 @@ TEST(WanderingJointsTest, TheWanderersOutsideTheWidestRadius)
     }
 }
 
-// 0x53afc0..0x53b017: la /7 en su última vida también suelta la 0x5ed/1 (escala 0,6f) en su posición, sin rand() ni
-// apagarse (0x53b318); con las 3.000 partículas llenas, no la crea y sigue igual.
+// 0x53afc0..0x53b017: the /7 in its last life also drops the 0x5ed/1 (scale 0.6f) at its position, without rand() and
+// without fading (0x53b318); with the 3000 particles full, it does not create it and goes on the same.
 TEST(WanderingJointsTest, TheWandererBurstsAtTheEndUnlessTheParticlesAreFull)
 {
     for (const bool full : {false, true})
@@ -305,8 +307,9 @@ TEST(WanderingJointsTest, TheWandererBurstsAtTheEndUnlessTheParticlesAreFull)
     }
 }
 
-// 0x53ae2f..0x53ae72: con el skill 1, la flecha queda en la posición del joint y choca (0x520170).
-// 0x53a884..0x53a899: con la flecha apagada, el joint se apaga con la vida en −1 y pasa por la cola (−2), sin rand().
+// 0x53ae2f..0x53ae72: with skill 1, the arrow stays at the joint's position and hits (0x520170).
+// 0x53a884..0x53a899: with the arrow off, the joint goes out with life at −1 and goes through the tail (−2), without
+// rand().
 TEST(WanderingJointsTest, TheSecondArrowWandererDrivesTheArrow)
 {
     Pool pool;
@@ -329,8 +332,8 @@ TEST(WanderingJointsTest, TheSecondArrowWandererDrivesTheArrow)
     EXPECT_EQ(pool.hits.size(), 1u);
 }
 
-// 0x53afc9..0x53b017 y 0x53b339: la /0x19 en su última vida suelta la partícula 0x5ed/1 (escala 0,6f) y, con menos de
-// 10 de vida, se apaga por 0,7692308f. La /0xb no la suelta.
+// 0x53afc9..0x53b017 and 0x53b339: the /0x19 in its last life drops the particle 0x5ed/1 (scale 0.6f) and, with life
+// under 10, fades by 0.7692308f. The /0xb does not drop it.
 TEST(WanderingJointsTest, ThePinkWandererBurstsAtTheEnd)
 {
     for (const std::int32_t subtype : {0x19, 0xb})
@@ -352,7 +355,7 @@ TEST(WanderingJointsTest, ThePinkWandererBurstsAtTheEnd)
     }
 }
 
-// Sin la flecha dueña viva y sin el choque, la /0xb con skill 1 corta en 0x53ae6d.
+// Without the live owner arrow and without the hit, the /0xb with skill 1 stops at 0x53ae6d.
 TEST(WanderingJointsTest, TheArrowHitNeedsItsService)
 {
     Pool pool;

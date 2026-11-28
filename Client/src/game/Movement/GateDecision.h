@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-// Efectos ordinarios de la decisión pura de gates, para que el caller los aplique en su paso.
+// Ordinary effects of the pure gate decision, for the caller to apply in its step.
 namespace Client::Movement
 {
 struct GateWarning
@@ -18,11 +18,11 @@ struct GateWarning
 struct GateDecision
 {
     std::optional<std::uint8_t> request;
-    // Sin espera, el barrido continúa: los avisos pueden preceder a un pedido u otra espera.
+    // Without a wait, the sweep goes on: warnings can come before a request or another wait.
     std::vector<GateWarning> warnings;
     std::uint8_t waitSteps = 0;
-    // 0x59abdc/0x59abfa ejecutaron el store de 0 en 0x77f3bb0, aun si ya era cero. Aplicar antes
-    // del pedido, si lo hay: ese pedido vuelve a poner pending en 1.
+    // 0x59abdc/0x59abfa ran the store of 0 to 0x77f3bb0, even if it was already zero. Apply it before the request, if
+    // any: that request sets pending back to 1.
     bool clearWarpPending = false;
 };
 } // namespace Client::Movement

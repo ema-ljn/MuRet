@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-// El 0x615/5 del 0x615 de Kalima (0x52b560) y el /6 del pulso 0x61c/1 del asedio (0x52c31e y 0x52c342): el alta de
-// 0x531b0c..0x531bfc y el paso de 0x53768f..0x5379ef, que comparten con el /2 de Chaos Castle y el /7 de Crywolf.
+// The 0x615/5 of Kalima's 0x615 (0x52b560) and the /6 of the siege's 0x61c/1 pulse (0x52c31e and 0x52c342): the
+// creation in 0x531b0c..0x531bfc and the step in 0x53768f..0x5379ef, shared with Chaos Castle's /2 and Crywolf's /7.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -74,9 +74,9 @@ struct Strike
 };
 } // namespace
 
-// 0x531b0c..0x531bfc: la textura 0x614, 50 puntos, vida 20, la x y la y corridas rand() % 10 − 5, 800 más arriba, los
-// ángulos en 0, el destino en el segundo punto y +0x24 en la posición corrida. La /5 con la luz (1; 0,5; 0,2f); la /6
-// con la velocidad 0,3f, la luz en 1 y otros 700 más arriba sin tocar +0x24. Dos rand().
+// 0x531b0c..0x531bfc: texture 0x614, 50 points, life 20, x and y shifted rand() % 10 − 5, 800 higher, the angles at 0,
+// the target at the second point and +0x24 at the shifted position. The /5 with the light (1; 0.5; 0.2f); the /6 with
+// speed 0.3f, the light at 1 and another 700 higher without touching +0x24. Two rand().
 TEST(StrikeJointsTest, EachBoltIsBornAboveItsPoint)
 {
     for (const std::int32_t subtype : {5, 6})
@@ -116,10 +116,10 @@ TEST(StrikeJointsTest, EachBoltIsBornAboveItsPoint)
     }
 }
 
-// 0x53768f..0x5379ef: el rayo se rehace desde +0x24: 45 tramos que corren x e y rand() % 20 − 10 y bajan la z (16 la
-// /5, 13 la /6), cuatro que se acercan al destino y el destino. La /5 no suelta nada; la /6 pone la z del destino 30
-// sobre el terreno (0x5f93c0) y deja ahí la partícula 0x6ed/0 de escala 2 con sus ángulos. Con más de 10 de vida, la
-// cola común agrega el tramo 51 (0x53c393).
+// 0x53768f..0x5379ef: the bolt is rebuilt from +0x24: 45 segments that shift x and y by rand() % 20 − 10 and lower z
+// (16 the /5, 13 the /6), four that approach the target, and the target. The /5 drops nothing; the /6 puts the target's
+// z 30 above the ground (0x5f93c0) and leaves there the particle 0x6ed/0 of scale 2 with its angles. With life over 10,
+// the common tail adds segment 51 (0x53c393).
 TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
 {
     for (const std::int32_t subtype : {5, 6})
@@ -134,11 +134,11 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
 
         ASSERT_TRUE(strike.Step().HasValue());
 
-        // Dos por tramo de la bajada y de la llegada y, con la /6, los dos de la velocidad de la 0x6ed (0x543b82).
+        // Two per segment of the descent and of the arrival and, with the /6, the two of the 0x6ed's speed (0x543b82).
         for (int draw = 0; draw < 45 * 2 + 4 * 2 + (subtype == 6 ? 2 : 0); ++draw)
             static_cast<void>(expected.Next());
         EXPECT_EQ(strike.random.State(), expected.State());
-        // Cada tramo de la bajada corre la x y después la y rand() % 20 − 10 (sumados en la x87) y baja la z.
+        // Each descent segment shifts x and then y by rand() % 20 − 10 (summed in the x87) and lowers z.
         const double drop = subtype == 6 ? 13.0 : 16.0;
         CrtRandom jitter = before;
         glm::vec3 lowest = from;
@@ -148,8 +148,8 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
             lowest.y = F32(static_cast<double>(jitter.Next() % 20 - 10) + D(lowest.y));
             lowest.z = F32(D(lowest.z) - drop);
         }
-        // El tramo 45 (el último de la bajada) quedó seis lugares atrás: los cuatro de la llegada, el destino y la
-        // cola. Con los ángulos en 0, su punto 2 es el centro 40 más abajo y el 0, 40 a la izquierda.
+        // Segment 45 (the last of the descent) ended up six slots back: the four of the arrival, the target and the
+        // tail. With the angles at 0, its point 2 is the center 40 lower and point 0, 40 to the left.
         EXPECT_EQ(joint.points[6][2].x, lowest.x);
         EXPECT_EQ(joint.points[6][2].y, lowest.y);
         EXPECT_EQ(joint.points[6][0].z, lowest.z);
@@ -167,7 +167,8 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
             EXPECT_EQ(joint.position, strike.start);
             continue;
         }
-        // El destino baja a 30 sobre el terreno después de copiarse en la posición (0x53782a), que no lo sigue.
+        // The target drops to 30 above the ground after being copied into the position (0x53782a), which does not
+        // follow it.
         const glm::vec3 landed{strike.start.x, strike.start.y, 280.0f};
         EXPECT_EQ(joint.targetPosition, landed);
         EXPECT_EQ(joint.position, strike.start);
@@ -179,8 +180,8 @@ TEST(StrikeJointsTest, TheBoltRedrawsItsPathEachStep)
     }
 }
 
-// 0x5379d3..0x5379ef: con 10 de vida o menos, la /5 y la /6 apagan la cola (sin el tramo de 0x53c393); con menos de 4,
-// la luz por 0,8333333f.
+// 0x5379d3..0x5379ef: with life 10 or less, the /5 and the /6 turn off the tail (no 0x53c393 segment); under 4, the
+// light times 0.8333333f.
 TEST(StrikeJointsTest, TheBoltFadesAndStopsItsTail)
 {
     for (const std::int32_t subtype : {5, 6})

@@ -17,28 +17,29 @@ struct GameObjectPass;
 namespace Client::MapScripts::Crywolf
 {
 
-// 0x430510 (0x602ed0 → 0x6044ed), con el mapa 34 (0x4303c0), después del rand() común de 0x602ef4 (que no usa):
-// cada objeto suma 1 a la cuenta del clima (0x723c0c) y, pasados 70.000, un rand() la vuelve a 0 y deja el clima
-// (0x5763358) en rand() % 3. El 0x29 gira 1° el brillo (0x723c10, que vuelve a 0 en 360) y deja dos sprites 0x60f de
-// 1,3 en blanco sobre él, a 350 más la cuenta de 0x6046a0 (0x5763538, o 40 menos ella pasados 20) de altura: el
-// primero sin giro y el segundo con el del brillo. El 0x54 saca un rand() y, en 0 módulo 3 con el estado de Crywolf
-// en 1, suelta el humo 5f2/21 con luz (1, 1, 1), su escala y sin dueño. Sin los globales, el pool o la cuenta, corta
-// donde lo pide el ASM, con lo anterior ya hecho.
+// 0x430510 (0x602ed0 → 0x6044ed), with map 34 (0x4303c0), after the common rand() of 0x602ef4 (which it does not use):
+// each object adds 1 to the weather count (0x723c0c) and, past 70000, a rand() resets it to 0 and leaves the weather
+// (0x5763358) at rand() % 3. The 0x29 turns the glow 1° (0x723c10, which goes back to 0 at 360) and leaves two white
+// 0x60f sprites of 1.3 over it, at a height of 350 plus the count of 0x6046a0 (0x5763538, or 40 minus it past 20): the
+// first unrotated and the second with the glow's turn. The 0x54 takes a rand() and, at 0 modulo 3 with Crywolf's state
+// at 1, releases the smoke 0x5f2/21 with light (1, 1, 1), its scale and no owner. Without the globals, the pool or the
+// count, it cuts where the ASM does, with the earlier work already done.
 [[nodiscard]] Core::Expected<void, std::string> StepCrywolfObjectFrame(const WorldObjects::WorldObject& object,
                                                                        const WorldObjects::GameObjectPass& pass);
 
-// 0x4306a0, el último eslabón de la cadena de 0x6002e0, con el mapa 34 y un objeto que 0x6002e0 dibuja (`draw`, el
-// de WorldObjects::DrawOf, en Body). Con el 0x24, el color del modelo en 0,4 y su RenderBody; con el 0xfa, en (0; 0;
-// 0,9). El 0x29 y el 0x38 dibujan el cuerpo con el color que traen; el 0x39, el 0x47, el 0x48, el 0x49, el 0x4a, el
-// 0x4d, el 0x4e y el 0x51 salen sin cuerpo (Hidden). Los demás siguen a 0x4339d0, que no tiene nada fuera de
-// 0x171..0x1b4, y 0x6002e0 dibuja su cuerpo. Con un frame del original, además, los sorteos de cada tipo, antes del
-// rand() común de 0x602ef4: el 0x38 con el estado en 0, un rand() para la luz (rand() % 10.000 · 0,0001f) y, con otro
-// en 0 módulo 3, el efecto 0x61d/3 (Effects::ModelEffects::CreateFadingDecal, con 4 en +0x8a); el 0x39 y el 0x47, con
-// rand() % 3 en 0, la chispa 6ec/5 (y el 0x39, el humo 5f2/21) con luz (1, 1, 1), su escala y sin dueño; el 0x48, con
-// rand() % 10 en 0, otro rand() para la luz L = ((rand() & 3) + 3) · 0,1f y el humo 5f2/33 50 más arriba, con luz (L; L
-// · 0,6f; L · 0,2f), su escala y sin dueño; el 0x4a, el humo con el estado en 1; el 0x4d y el 0x4e, con rand() % 6 en
-// 0, la nube 622/9 con su luz; y el 0x49, con el clima en 0, la arena del HUD (0x576353c) en 1. El 0x51 con el estado
-// en 2 deja el RGB PC53 de 0x430a40..0x430ac1; el caller conserva la pose previa y ejecuta 0x44→0x240 de la malla 0.
+// 0x4306a0, the last link of the chain of 0x6002e0, with map 34 and an object that 0x6002e0 draws (`draw`, the one
+// from WorldObjects::DrawOf, in Body). With the 0x24, the model color at 0.4 and its RenderBody; with the 0xfa, at
+// (0; 0; 0.9). The 0x29 and the 0x38 draw the body with the color they bring; the 0x39, 0x47, 0x48, 0x49, 0x4a, 0x4d,
+// 0x4e and 0x51 leave without a body (Hidden). The others go on to 0x4339d0, which has nothing outside 0x171..0x1b4,
+// and 0x6002e0 draws their body. With an original frame, also, each type's random draws, before the common rand() of
+// 0x602ef4: the 0x38 with the state at 0, a rand() for the light (rand() % 10000 · 0.0001f) and, with another at 0
+// modulo 3, effect 0x61d/3 (Effects::ModelEffects::CreateFadingDecal, with 4 at +0x8a); the 0x39 and the 0x47, with
+// rand() % 3 at 0, the spark 0x6ec/5 (and the 0x39, the smoke 0x5f2/21) with light (1, 1, 1), its scale and no owner;
+// the 0x48, with rand() % 10 at 0, another rand() for the light L = ((rand() & 3) + 3) · 0.1f and the smoke 0x5f2/33
+// 50 higher, with light (L; L · 0.6f; L · 0.2f), its scale and no owner; the 0x4a, the smoke with the state at 1; the
+// 0x4d and the 0x4e, with rand() % 6 at 0, the cloud 0x622/9 with its light; and the 0x49, with the weather at 0, the
+// HUD sand (0x576353c) at 1. The 0x51 with the state at 2 leaves the PC53 RGB of 0x430a40..0x430ac1; the caller keeps
+// the previous pose and runs 0x44→0x240 of mesh 0.
 [[nodiscard]] Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObject& object,
                                                                   WorldObjects::ObjectDraw& draw,
                                                                   const WorldObjects::GameObjectPass& pass);

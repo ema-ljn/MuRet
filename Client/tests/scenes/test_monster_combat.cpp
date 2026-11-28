@@ -69,11 +69,10 @@
 #include <utility>
 #include <vector>
 
-// Los monstruos del 0x13 en combate (CL9 hito 3, fase 2c): el alta escribe la tabla de sonidos de su modelo (0x612d90),
-// el 0x18 con la 0x78 los hace pegar (0x4f4a10 con sus ayudantes) y contar en el paso (0x4fd5f0 con 0x4f97b0 y
-// 0x4f5b70), y el D7, el 0x16 y el 0x17 los lastiman y los matan (0x4f5660 y 0x4fb9e0). Con el Data del laboratorio
-// (Lorencia y Devias); las claves son inventadas y el alta carga el modelo del monstruo (0x612d90, CL9 hito 2) con una
-// tabla de texturas falsa.
+// The 0x13 monsters in combat: the creation writes its model's sound table (0x612d90), the 0x18 with 0x78 makes them
+// hit (0x4f4a10 with its helpers) and count in the step (0x4fd5f0 with 0x4f97b0 and 0x4f5b70), and the D7, the 0x16
+// and the 0x17 hurt and kill them (0x4f5660 and 0x4fb9e0). Lab Data (Lorencia and Devias), made-up keys and a fake
+// texture table for the monster's model.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -96,7 +95,7 @@ constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t HeroKey = 33;
 constexpr std::int32_t HeroSlot = 5;
 constexpr std::uint16_t MonsterKey = 0x0123;
-// El tipo 3 de Lorencia: Monster10.bmd (0x612d90(9)) en el modelo 0x15b.
+// Monster10.bmd (0x612d90(9)).
 constexpr std::uint8_t LorenciaType = 3;
 constexpr std::uint16_t LorenciaModel = 0x15b;
 
@@ -113,7 +112,7 @@ int DrawsSince(std::uint32_t state, const CrtRandom& random)
     return draws;
 }
 
-// La biblioteca del mapa, detrás de AssetsState::fauna: Player.bmd, también en el modelo del monstruo de Lorencia.
+// The map's library behind AssetsState::fauna: Player.bmd, also as the Lorencia monster's model.
 class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -134,12 +133,12 @@ public:
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
-// El mundo del juego, en el heap: WorldState pesa unos 350 KB.
+// On the heap: WorldState is about 350 KB.
 struct Game
 {
     Game()
     {
-        // 0x612d90 sube las texturas de los modelos que carga por la tabla que liga el juego (CL9 hito 2).
+        // 0x612d90 uploads the textures of the models it loads through the table the game binds.
         states.assets.fauna.TextureTable().Bind(store);
         ActorState& hero = world.Actors()[0];
         hero = Client::Tests::UnarmedPlayer();
@@ -170,7 +169,7 @@ struct Game
                 .models = &models,
                 .terrain = &states.terrain.current};
     }
-    // Antes que el mundo: FaunaModels suelta sus texturas al destruirse.
+    // Before the world: FaunaModels releases its textures when destroyed.
     Client::Tests::FakeTextureStore store;
     Client::Kernel::WorldState world;
     Client::Session::ModuleStates states;
@@ -201,7 +200,7 @@ protected:
         game->dataRoot = m_dataRoot;
     }
 
-    // Da de alta un monstruo del tipo `type` en la primera celda libre desde (100, 100) y devuelve su lugar.
+    // In the first free cell from (100, 100); returns its slot.
     std::size_t Create(std::uint8_t type)
     {
         const auto& cells = game->states.terrain.current.attributes->cells;
@@ -232,8 +231,8 @@ ModelSounds Sounds(std::int16_t first, std::int16_t second, std::int16_t third, 
     return {first, second, third, fourth, fifth, -1, -1, -1, -1, -1};
 }
 
-// El alta (0x612d90 desde 0x5141e0) escribe la tabla de sonidos del modelo: el 3 de Lorencia la del caso 9 (0x15b) y
-// el 19 de Devias, el caso 0xc, las de los dos modelos del yeti (0x15e y 0x15f).
+// 0x612d90 from 0x5141e0: Lorencia's 3 gets the table of case 9 (0x15b) and Devias's 19, case 0xc, those of the two
+// yeti models (0x15e and 0x15f).
 TEST_F(MonsterCombatTest, TheCreationWritesTheModelSounds)
 {
     Load(0);
@@ -250,9 +249,9 @@ TEST_F(MonsterCombatTest, TheCreationWritesTheModelSounds)
     EXPECT_EQ(devias.at(0x15f), Sounds(0x44, 0x45, 0x46, 0x46, 0x47));
 }
 
-// El 0x18 con la 0x78: 0x4f4a10 sin ayudantes (Lorencia) pone la 3, cuenta +0x38f y pide el sonido de pegar de su
-// tabla (rand() % 2 entre la WORD 2 y la 3, más 0xd2); después +0x381 en 1. El paso del ataque cuenta como el de un
-// jugador y, en el frame 5, corre la habilidad sobre el héroe, con el sonido de las manos del registro propio.
+// 0x18 with 0x78: 0x4f4a10 without helpers (Lorencia) sets 3, counts +0x38f and asks for the hit sound from its table
+// (rand() % 2 between WORD 2 and 3, plus 0xd2); then +0x381 to 1. The attack step counts like a player's and, at
+// frame 5, runs the skill on the hero, with the hands sound of the own record.
 TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
 {
     Load(0);
@@ -284,20 +283,20 @@ TEST_F(MonsterCombatTest, AMonsterAttacksAndStepsItsAttack)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(monster.byte381, step + 1);
     }
-    // Cada paso: la lectura de 0x4f97b0, el rand() de 0x4f5b97 y las dos lecturas de 0x4f811b y 0x4f8a2c.
+    // Each step: the read of 0x4f97b0, the rand() of 0x4f5b97 and the two reads of 0x4f811b and 0x4f8a2c.
     EXPECT_EQ(DrawsSince(before, game->cloth.random), 3 * 4);
 
     monster.animation.frame = 5.0f;
     const auto struck = Client::Skills::StepTheAttack(monster, slot, context);
     ASSERT_TRUE(struck.HasValue()) << struck.Error();
     EXPECT_EQ(monster.byte381, 0);
-    // El paso con el registro propio (4 + 3.848) y la habilidad con blanco (3.853).
+    // The step with the own record (4 + 3848) and the skill with a target (3853).
     EXPECT_EQ(DrawsSince(before, game->cloth.random), 3 * 4 + 4 + 0xf08 + 0xf08 + 5);
     EXPECT_EQ(sounds.size(), 1u);
 }
 
-// El D7, el 0x16 con el bit 15 y el 0x17 sobre el monstruo: el daño con el golpe (0x4f53a0, el sonido de su tabla),
-// 0x4f5660 (la acción de morir y el sonido de la WORD 4) y el que se muere, que 0x4fb9e0 lleva hasta borrarlo.
+// D7, 0x16 with bit 15 and 0x17 on the monster: the damage with the hit (0x4f53a0, the sound from its table), 0x4f5660
+// (the die action and the sound of WORD 4) and the dying one, which 0x4fb9e0 carries until it is erased.
 TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
 {
     Load(0);
@@ -309,7 +308,7 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     const std::uint32_t created = game->cloth.random.State();
     const auto damaged = Client::Actors::ApplyDamageReply(hurt, Client::Kernel::PlayerKey{HeroKey}, game->Resources());
     ASSERT_TRUE(damaged.HasValue()) << damaged.Error();
-    // 0x4f53a0: la acción 5 y, con el frame en 0, el golpe de la WORD 2 o la 3 de su tabla (0x4f553d..0x4f55ac).
+    // 0x4f53a0: action 5 and, with the frame at 0, the hit of WORD 2 or 3 of its table (0x4f553d..0x4f55ac).
     EXPECT_EQ(monster.animation.action, 5);
     EXPECT_EQ(game->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd + 0xd2});
     EXPECT_GE(DrawsSince(created, game->cloth.random), 1);
@@ -339,9 +338,8 @@ TEST_F(MonsterCombatTest, AMonsterIsHurtKilledAndDies)
     EXPECT_GT(steps, 50);
 }
 
-// Tras un golpe normal, la captura entrega primero el 0x17 de cinco bytes y luego el 0x16 sin shock. Los lectores
-// reciben los payloads en claro después del descifrado de red; ambas respuestas se aplican al monstruo dado de alta
-// desde el Data real del fixture.
+// After a plain hit the capture delivers the five-byte 0x17 first and then the 0x16 without shock. The readers get the
+// payloads in clear, after network decryption.
 TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
 {
     Load(0);
@@ -415,8 +413,8 @@ TEST_F(MonsterCombatTest, APlainDeathThenKillExperienceReplyFinishesTheMonster)
     EXPECT_GT(steps, 50);
 }
 
-// 0x4f553d..0x4f55bb y 0x4f55c0..0x4f5649: la tabla del registro canónico manda el sonido del golpe; el tipo 0x18f
-// conserva cinco oportunidades de polvo y termina siempre con el sonido 0x86, incluso si el pool está lleno.
+// 0x4f553d..0x4f55bb and 0x4f55c0..0x4f5649: the canonical record's table drives the hit sound; type 0x18f keeps five
+// dust chances and always ends with sound 0x86, even with the pool full.
 TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFullPools)
 {
     struct PoolCase
@@ -460,7 +458,7 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
         game->cloth.random = CrtRandom(SparkSeed);
         game->world.Runtime().lastSoundId.reset();
         CrtRandom expectedRandom(SparkSeed);
-        static_cast<void>(expectedRandom.Next()); // El sonido de golpe precede al bucle de las chispas.
+        static_cast<void>(expectedRandom.Next()); // The hit sound comes before the spark loop.
         std::size_t expectedSparkCount = 0;
         for (int attempt = 0; attempt < 5; ++attempt)
         {
@@ -505,8 +503,8 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsSparkLoopAcrossFreePartialAndFull
     }
 }
 
-// 0x612d90 carga el mismo modelo y registro de sonidos que consume el ataque y la muerte. Una escritura posterior al
-// alta en WorldRuntime.modelSounds es la tabla canónica para el golpe (0x4f553d..0x4f55a7).
+// 0x612d90 loads the same model and sound record that the attack and the death use. A write to
+// WorldRuntime.modelSounds after the creation is the canonical table for the hit (0x4f553d..0x4f55a7).
 TEST_F(MonsterCombatTest, AMonsterHitUsesTheCanonicalRuntimeSoundRecord)
 {
     Load(0);
@@ -526,8 +524,8 @@ TEST_F(MonsterCombatTest, AMonsterHitUsesTheCanonicalRuntimeSoundRecord)
     EXPECT_EQ(game->cloth.random.State(), expected.State());
 }
 
-// 0x4f5496: un frame distinto de cero salta el sonido; con NaN los dos saltos ordenados son falsos y consume su rand().
-// En ambos casos, los cinco gates impares siguen sin crear polvo y el 0x18f termina con 0x86.
+// 0x4f5496: a nonzero frame skips the sound; with NaN both ordered jumps are false and it takes its rand(). Either
+// way, the five odd gates still create no dust and the 0x18f ends with 0x86.
 TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisses)
 {
     struct FrameCase
@@ -569,8 +567,8 @@ TEST_F(MonsterCombatTest, TheBlackSkullKeepsItsFinalSoundWhenEverySparkGateMisse
     }
 }
 
-// En Devias el alta real escribe dos registros, 0x15e y 0x15f. Sus WORD 2 y 3 distinguen el registro elegido por el
-// golpe; comprobar ambos evita leer una copia vieja de AssetsState::fauna para uno de los modelos.
+// In Devias the real creation writes two records, 0x15e and 0x15f. Their WORD 2 and 3 tell which record the hit chose;
+// checking both avoids reading a stale copy of AssetsState::fauna for one of the models.
 TEST_F(MonsterCombatTest, TheTwoDeviasModelsUseTheirOwnCanonicalHitSoundPairs)
 {
     Load(2);

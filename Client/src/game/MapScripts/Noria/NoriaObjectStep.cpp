@@ -24,7 +24,7 @@ Core::Expected<void, std::string> StepNoriaObject(WorldObjects::WorldObject& obj
     constexpr float TwoThousandths = std::bit_cast<float>(0x3b03126fu);
     if (object.type == 0x27)
     {
-        object.state.blendMesh = 1; // 605461: salto compartido, no el switch del mapa4.
+        object.state.blendMesh = 1; // 0x605461: shared jump, not map 4's switch.
         return {};
     }
     if (object.type != 0x12 && object.type != 0x29 && object.type != 0x2a && object.type != 0x2b &&

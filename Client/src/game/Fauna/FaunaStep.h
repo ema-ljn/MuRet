@@ -31,7 +31,7 @@ struct WorldRuntime;
 
 namespace Client::Fauna
 {
-// Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
+// The optional services fail when reached: they do not simulate effects with an empty success.
 struct FaunaStepEffects
 {
     std::function<Core::Expected<std::uint32_t, std::error_code>(const Kernel::JointRequest&)> effect;
@@ -52,17 +52,17 @@ struct FaunaStepContext
     Models::ClothWorld& cloth;
     float worldTime;
     FaunaStepEffects effects{};
-    // Sólo SetAction con tipo firmado -1: BMD construido previo a la base si su desplazamiento>0.
-    // La ausencia mantiene la frontera de memoria; el binding no fabrica esa precondición.
+    // Only SetAction with signed type -1: a BMD built before the base if its offset>0. The absence keeps the memory
+    // boundary; the binding does not fabricate that precondition.
     const Models::Skeleton* prefixModel = nullptr;
     float fixedHeight = 1200;
     Kernel::WorldRuntime* runtime = nullptr;
 };
-// 6370ea/6370ef. Una sola CRT; las vistas apuntan a los slots físicos del dueño.
+// 0x6370ea/0x6370ef. A single CRT; the views point to the owner's physical slots.
 [[nodiscard]] Core::Expected<void, std::string> StepGameBirds(FaunaStepContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepGameFish(FaunaStepContext& context);
 [[nodiscard]] Core::Expected<void, std::string> StepGameFauna(FaunaStepContext& context);
-// Dispatch productivo de IBirdStepServices::Call; expuesto también para comprobar cada handler con ASM.
+// Production dispatch of IBirdStepServices::Call; also exposed to check each handler against the ASM.
 [[nodiscard]] Fauna::BirdCallResult RunFaunaBirdHandler(FaunaStepContext& context, Fauna::BirdHandler handler,
                                                         FaunaObject& bird, std::int32_t index);
 } // namespace Client::Fauna

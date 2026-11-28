@@ -136,7 +136,7 @@ TEST(GameJointStepTest, Skill39BoltsWaitGrowToTheirCapFadeAndExpireAtMinusOne)
         EXPECT_EQ(joint.velocity.y, 15);
         EXPECT_EQ(joint.speed, 0);
         EXPECT_EQ(joint.bendAngles.x, key == 0 || key == 2 ? 55.0f : key == 1 || key == 3 ? -35.0f : 10.0f);
-        // Siete incrementos6,5..15,5, luego ocho de16,5:209, sin usar el15 almacenado como delta.
+        // Seven increments 6.5..15.5, then eight of 16.5: 209, without using the stored 15 as the delta.
         EXPECT_EQ(joint.bendAngles.z, key == 0 || key == 1 ? -89.0f : key == 2 || key == 3 ? 149.0f : 1.0f);
         EXPECT_EQ(joint.angles, angles);
         EXPECT_EQ(joint.pathIncrement, anchor);
@@ -289,7 +289,7 @@ TEST(GameJointStepTest, CosineDoubleProductsPreserveTheMultiplierAndSignedZeroAt
     EXPECT_EQ(Math::SineDoubleProductPC53(0, retained), -0.0);
 }
 
-// Referencia independiente mpmath100dps: trascendente R64, productos R53 y storesF32 del ASM.
+// Independent mpmath 100-dps reference: R64 transcendentals, R53 products and the ASM's F32 stores.
 TEST(GameJointStepTest, PiercingImpactsFollowTheirRetainedCurveAndExpireWithoutReadingTheirOwner)
 {
     struct Fixture
@@ -371,7 +371,7 @@ TEST(GameJointStepTest, MissingCounterFailsAfterTheOwnerTargetWasCopied)
     EXPECT_EQ(joint.count, 0);
 }
 
-// Referencia independiente mpmath180dps: trig→R64, productosPC53 y spillsF32, no ejecuta main.exe.
+// Independent mpmath 180-dps reference: trig → R64, PC53 products and F32 spills; it does not run main.exe.
 TEST(GameJointStepTest, CounterPhaseWrapAndHalfFrequenciesMatchIndependentFixtures)
 {
     struct Vector
@@ -531,12 +531,12 @@ TEST(GameJointStepTest, RealHelperPublisherCompletesTheFollowingTickWithItsFloor
     EXPECT_EQ(owner.type, 0x1a18);
 }
 
-// 0x60c3b6..0x60c598 desde el dibujo de la UI (0x5e0720): las 20 uniones del 0x1a18 (12,6) con el objeto local de la
-// pila de 0x5e0720 de dueño, que nadie desreferencia (07 Q-C1821). Con dueño, 0x530860 no escribe +0x58 (0x53099b):
-// queda el del ocupante anterior del lugar, y la posición sale de ahí (0x5333a7). Nacen después del dibujo de las
-// uniones del frame (0x637516, 0x637592) y mueren en el primer paso del siguiente (0x53c3ad..0x53c3bd), con dos rand()
-// por cada 0x614 (0x536cb3, 0x536cda): el original no las dibuja nunca, y el dibujo intermedio de MuRet las apaga en su
-// copia.
+// 0x60c3b6..0x60c598 from the UI draw (0x5e0720): the 20 joints of the 0x1a18 (12,6) owned by the local object on
+// 0x5e0720's stack, which nobody dereferences (07 Q-C1821). With an owner, 0x530860 does not write +0x58 (0x53099b):
+// the slot's previous occupant's stays, and the position comes from there (0x5333a7). They are created after the
+// frame's joint draw (0x637516, 0x637592) and die in the first step of the next one (0x53c3ad..0x53c3bd), with two
+// rand() per 0x614 (0x536cb3, 0x536cda): the original never draws them, and MuRet's intermediate draw turns them off in
+// its copy.
 TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
 {
     Client::Actors::Drawing::DrawnObject object;
@@ -574,7 +574,7 @@ TEST(GameJointStepTest, TheUiWingJointsDieUnseenInTheirFirstStep)
         EXPECT_EQ(joint.position, glm::vec3(900, 800, 700));
     }
 
-    // El dibujo intermedio no las ve; la tabla de verdad las guarda para el paso.
+    // The intermediate draw does not see them; the real table keeps them for the step.
     auto copy = std::make_unique<Client::Kernel::GameDrawTailState>(*tail);
     Client::Items::HideUiItemJoints(*copy);
     EXPECT_EQ(std::ranges::count_if(copy->joints, [](const auto& joint) { return joint.alive; }), 0);
@@ -734,8 +734,8 @@ TEST(GameJointStepTest, ThunderDrawingUsesTheCommonBillboardAfterMaterial)
     EXPECT_EQ(services.events, (std::vector<std::string>{"dimensions", "flag", "material", "billboard"}));
 }
 
-// Client/docs/research/scripts/make_helper_joint_vectors.py: referencia independiente, dos iteraciones y cola común con
-// matriz previa.
+// Client/docs/research/scripts/make_helper_joint_vectors.py: independent reference, two iterations and the common tail
+// with the previous matrix.
 TEST(GameJointStepTest, BeamMovementJitterAndBothTailMatricesMatchIndependentVectors)
 {
     Client::Kernel::JointState joint;
@@ -750,7 +750,7 @@ TEST(GameJointStepTest, BeamMovementJitterAndBothTailMatricesMatchIndependentVec
     joint.speed = 50;
     joint.life = 5;
     joint.velocity.y = 7;
-    // maximumCount limita también count; la cola final usa la matriz anterior al steering.
+    // maximumCount also limits count; the final tail uses the matrix from before the steering.
     joint.maximumCount = 2;
     joint.tailEnabled = true;
     Client::Crt::CrtRandom random(1);
@@ -894,7 +894,7 @@ TEST(GameJointStepTest, EqualReachDistanceStillMovesAndZeroIterationsNeedNoRando
     joint.subtype = 14;
     joint.width = 23;
     joint.speed = 50;
-    joint.targetPosition = {0, 25, 0}; // después del movimiento común quedan75, exactamente1.5*50.
+    joint.targetPosition = {0, 25, 0}; // after the common move 75 remain, exactly 1.5*50
     joint.maximumCount = 1;
     Client::Crt::CrtRandom random(1), expected(1);
     auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);
@@ -914,7 +914,7 @@ TEST(GameJointStepTest, EqualReachDistanceStillMovesAndZeroIterationsNeedNoRando
     EXPECT_TRUE(joint.alive);
 }
 
-// El literal6ba108 y R64(atan)→productoPC53 distinguen estos casos de180/pi del host.
+// The literal at 0x6ba108 and R64(atan) → PC53 product tell these cases apart from the host's 180/pi.
 TEST(GameJointStepTest, UnsaturatedSteeringKeepsTheNativeAngleProductForBothAxes)
 {
     struct Vector
@@ -951,7 +951,7 @@ TEST(GameJointStepTest, DistanceSpillRoundsUpToTheReachThresholdBeforeComparing)
     joint.width = 23;
     joint.maximumCount = 1;
     joint.speed = 2;
-    // Tras el movimiento común, distancia retenida<3, pero su spillF32 es3 exactamente.
+    // After the common move, the retained distance is < 3, but its F32 spill is exactly 3.
     joint.targetPosition = {1, -2, std::bit_cast<float>(0x403504f3u)};
     Client::Crt::CrtRandom random(1);
     const auto result = Client::Joints::StepJoints(std::span(&joint, 1), random);

@@ -28,7 +28,7 @@ namespace Client::MapScripts::Aida
 {
 namespace
 {
-// 0x5c6 (Effect\Spark03.jpg de la tabla de texturas del juego): los destellos del 0x1e y del 0x47.
+// 0x5c6 (Effect\Spark03.jpg from the game's texture table): the flares of the 0x1e and the 0x47.
 constexpr std::uint16_t AidaFlareTexture = 0x5c6;
 constexpr std::int32_t SelectionSceneId = 4;
 constexpr std::int32_t MistCount = 20;
@@ -39,8 +39,8 @@ constexpr std::int32_t WaterfallSubtype = 2;
 constexpr std::int32_t SplashSubtype = 4;
 constexpr std::int32_t ButterflySubtype = 3;
 
-// Un destello del par: el hueso (en el buffer global 0x68b181c + hueso · 0x30) con su desplazamiento, y
-// las escalas de los dos sprites; la luz del primero es por tipo, la del segundo es fija.
+// One flare of the pair: the bone (in the global buffer 0x68b181c + bone · 0x30) with its offset, and the scales of
+// the two sprites; the first one's light is per type, the second's is fixed.
 struct FlarePair
 {
     std::size_t bone;
@@ -49,7 +49,7 @@ struct FlarePair
     float firstRed;
 };
 
-// 0x425298..0x4255ee (0x1e): luz (0,1; 0,1; 0,3) y (0,15; 0,15; 0,15).
+// 0x425298..0x4255ee (0x1e): light (0.1; 0.1; 0.3) and (0.15; 0.15; 0.15).
 constexpr std::array<FlarePair, 6> BlueFlares{{
     {6, {0.0f, -3.0f, 1.0f}, 5.5f, 0.0f},
     {7, {0.0f, -3.0f, 0.0f}, 4.5f, 0.0f},
@@ -58,8 +58,8 @@ constexpr std::array<FlarePair, 6> BlueFlares{{
     {13, {-3.0f, -3.0f, 0.0f}, 4.0f, 0.0f},
     {17, {0.0f, 2.0f, -8.0f}, 4.0f, 0.0f},
 }};
-// 0x4259bf..0x425d1a (0x47): el primero (0,5; 0; 0) en el hueso 6 y (0,25; 0; 0) en los demás; el segundo
-// (0,15; 0; 0).
+// 0x4259bf..0x425d1a (0x47): the first (0.5; 0; 0) on bone 6 and (0.25; 0; 0) on the others; the second
+// (0.15; 0; 0).
 constexpr std::array<FlarePair, 6> RedFlares{{
     {6, {0.0f, -3.0f, 1.0f}, 6.0f, 0.5f},
     {7, {0.0f, -3.0f, 0.0f}, 5.5f, 0.25f},
@@ -88,7 +88,7 @@ Core::Expected<void, std::string> Flares(const WorldObjects::GameObjectPass& pas
         {
             return Core::Unexpected(std::string("0x5491e0: falta el pool de sprites de los objetos del 54/33"));
         }
-        // 0x5491e0(0x5c6, punto, escala, luz, objeto, 0, 0): MuRet no guarda el dueño del sprite (Q-C303).
+        // 0x5491e0(0x5c6, point, scale, light, object, 0, 0): MuRet does not store the sprite's owner (Q-C303).
         const glm::vec3 firstLight = blue ? glm::vec3(Tenth, Tenth, BlueGlow) : glm::vec3(flare.firstRed, 0.0f, 0.0f);
         static_cast<void>(
             pass.sprites->Create(AidaFlareTexture, position.Value(), flare.firstScale, firstLight, 0.0f, 0));
@@ -122,7 +122,7 @@ Core::Expected<void, std::string> Mist(const WorldObjects::GameObjectPass& pass,
                                        const WorldObjects::WorldObject& object, const glm::vec3& light,
                                        std::string_view address)
 {
-    // 0x425740/0x4257ed/0x42583d: con +0x58 en −2 (el paso de 0x4250f0) no emite.
+    // 0x425740/0x4257ed/0x42583d: with +0x58 at −2 (the step of 0x4250f0) it does not emit.
     if (object.state.hiddenMesh == WorldObjects::HiddenObject)
     {
         return {};
@@ -156,10 +156,10 @@ Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject&
     case 0x29:
     case 0x41:
     case 0x42:
-        // 0x4255f3 y 0x42588d sólo dibujan, sin rand() ni estado: DrawAidaMeshPass, en cada dibujo de MuRet.
+        // 0x4255f3 and 0x42588d only draw, without rand() or state: DrawAidaMeshPass, in every MuRet draw.
         return {};
     case 0x38:
-        // 0x42566d: rand() & 1 (con la corrección del signo, que con rand() no corre); con 1, nada.
+        // 0x42566d: rand() & 1 (with the sign correction, which never runs with rand()); with 1, nothing.
         if ((pass.random->Next() & 1) != 0)
         {
             return {};
@@ -187,7 +187,7 @@ Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject&
                     "0x425879");
     case 0x3c:
     {
-        // 0x425790: timeGetTime() (0x6b8544) & 0x3ff; el and deja un valor no negativo.
+        // 0x425790: timeGetTime() (0x6b8544) & 0x3ff; the and leaves a non-negative value.
         if (!pass.systemTime)
         {
             return Core::Unexpected(std::string("0x425790: falta timeGetTime() para la mariposa del 0x3c"));
@@ -202,12 +202,12 @@ Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject&
                 object.transform.position, object.transform.angles, glm::vec3(1.0f), ButterflySubtype,
                 object.transform.scale, pass.scene == SelectionSceneId, *pass.random));
         }
-        // 0x4257dd: siempre, aunque no haya salido la mariposa.
+        // 0x4257dd: always, even if the butterfly did not come out.
         object.state.hiddenMesh = WorldObjects::HiddenObject;
         return {};
     }
     case 0x43:
-        // 0x4258ff: la luz del objeto (+0xf4..+0xfc) en 0,3 antes de prestarla a la llama.
+        // 0x4258ff: the object's light (+0xf4..+0xfc) at 0.3 before lending it to the flame.
         object.light = glm::vec3(BlueGlow);
         return Emit(pass, object, Particles::FlameParticle, Particles::RisingFlameSubtype, object.light, {},
                     "0x42592e");
@@ -224,8 +224,8 @@ Core::Expected<void, std::string> StepAidaObjectFrame(WorldObjects::WorldObject&
             {
                 return Core::Unexpected(std::string("0x4259ae: falta el pool de efectos de modelo para el 0xb3"));
             }
-            // 0x425974..0x4259ae: la luz (0,1f; 0,1f; 0,1f), el objeto de dueño y su escala en el byte +0x88,
-            // que la creación pisa con 0.
+            // 0x425974..0x4259ae: the light (0.1f; 0.1f; 0.1f), the object as owner and its scale in byte +0x88, which
+            // the creation overwrites with 0.
             static_cast<void>(pass.effects->CreateAidaWisp(object.transform.position, object.transform.angles,
                                                            glm::vec3(Tenth), *pass.random));
         }

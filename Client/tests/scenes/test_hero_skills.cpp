@@ -49,9 +49,9 @@
 #include <utility>
 #include <vector>
 
-// La cabeza de 0x57cfc0 (CL9 hito 4, fase 2b; 06 § Usar una skill): el héroe en el lugar 0, un elegido en el 5 y un
-// Skill.bmd inventado. La rama de las clases 1, 3 y 4 (HeroSkillsKnight, con sus tests) termina sin arma derecha con
-// las skills que no son de su lista; las otras ramas todavía cortan con su dirección.
+// The head of 0x57cfc0 (06 § Usar una skill): the hero in slot 0, a chosen one in slot 5 and an invented Skill.bmd.
+// The branch of classes 1, 3 and 4 (HeroSkillsKnight, with its tests) ends without a right-hand weapon for the skills
+// not on its list; the other branches still cut with their address.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -61,20 +61,20 @@ using Client::Skills::UseTheHeroSkill;
 constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
-// Una lectura de +0x38e: un rand() al cerrarse en 0.
+// One read of +0x38e: one rand() when it closes at 0.
 constexpr int Byte38eDraws = 1;
-// El registro propio con la skill del lugar y la entrada del alcance (0x5526f0): lo que gasta toda vuelta con uso.
+// The own record with the slot's skill and the range entry (0x5526f0): what every round with a use spends.
 constexpr int HeadDraws = OwnDraws + EntryDraws;
-// Más la entrada del +0x31 (0x57d2f1).
+// Plus the +0x31 entry (0x57d2f1).
 constexpr int PartyDraws = HeadDraws + EntryDraws;
-// Más las dos celdas lógicas (0x57d4d6, 0x57d4f4).
+// Plus the two logical cells (0x57d4d6, 0x57d4f4).
 constexpr int AimDraws = PartyDraws + 2 * CellDraws;
-// La rama de las clases 1, 3 y 4 (HeroSkillsKnight) sin arma derecha y con una skill fuera de su lista: el maná y la
-// stamina de 0x551c70 y el cierre del registro propio, abierto desde 0x581894.
+// The branch of classes 1, 3 and 4 (HeroSkillsKnight) without a right-hand weapon and with a skill off its list: the
+// mana and stamina of 0x551c70 and the close of the own record, open since 0x581894.
 constexpr int KnightBranchDraws = EntryDraws + OwnDraws;
 constexpr std::size_t ChosenSlot = 5;
-// La cabeza de la rama del Wizard (0x5897b7..0x58a08a) sin espera: el registro propio y, con él abierto, las entradas
-// del costo, de la energía y de la espera.
+// The head of the Wizard branch (0x5897b7..0x58a08a) without a delay: the own record and, with it open, the cost,
+// energy and delay entries.
 constexpr int WizardHeadDraws = OwnDraws + 3 * EntryDraws;
 
 CrtRandom Advanced(CrtRandom random, int count)
@@ -92,7 +92,6 @@ struct InventedSkill
     std::uint8_t mana = 0;
 };
 
-// Skill.bmd con el alcance (+0x26) y el byte de grupo (+0x31) de cada skill de `skills`.
 Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -117,7 +116,7 @@ enum HeroClass : std::uint8_t
     Lord = 4,
 };
 
-// El esqueleto de Player.bmd para cualquier modelo: el 0x4f4a10 de un héroe transformado (0x4ea030) pide sus acciones.
+// Player.bmd's skeleton for any model: a transformed hero's 0x4f4a10 (0x4ea030) asks for its actions.
 class AnyModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -138,7 +137,7 @@ public:
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
 };
 
-// Un héroe jugador en (182, 115) con la skill `skill` en su lugar 0 y la acción 1, que deja pasar 0x57d45d.
+// A player hero with `skill` in slot 0 and action 1, which 0x57d45d lets through.
 struct SkillHero
 {
     explicit SkillHero(std::uint8_t skill, std::uint8_t heroClass = Knight, std::int32_t map = 0)
@@ -160,7 +159,7 @@ struct SkillHero
         world.OwnCharacter().SetSkillAt(0, skill);
         auto& chosen = world.Actors()[ChosenSlot];
         chosen.alive = true;
-        chosen.byte88 = 2; // un monstruo: 0x558bb0 lo deja atacar
+        chosen.byte88 = 2; // a monster: 0x558bb0 lets it be attacked
         chosen.position = {18450.0f, 11750.0f, 0.0f};
     }
     Client::Kernel::ActorState& Hero()
@@ -204,7 +203,7 @@ struct SkillHero
     float worldTime = 5000.0f;
     std::uint32_t ticks = 100000;
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
-    // nullptr: el 0x4f4a10 de un héroe transformado corta (0x4ea030).
+    // nullptr: a transformed hero's 0x4f4a10 cuts (0x4ea030).
     const Client::Models::IModelLibrary* models = nullptr;
     std::vector<Client::Protocol::Outgoing> sent;
     Client::Tables::SkillTable skills = SkillsWith({{0x11, 3},
@@ -239,7 +238,7 @@ bool Contains(const std::string& text, const char* part)
     return text.find(part) != std::string::npos;
 }
 
-// La rama del Wizard apuntó (0x58a118) al elegido del lugar 5, en la celda (184, 117).
+// The Wizard branch aimed (0x58a118) at the chosen one in slot 5.
 void ExpectTheWizardAimed(SkillHero& tested)
 {
     EXPECT_EQ(tested.Movement().targetX, 184u);
@@ -255,7 +254,7 @@ std::vector<std::uint8_t> ClearBytesOf(const Client::Protocol::Outgoing& outgoin
     return bytes;
 }
 
-// 0x57cfe2..0x57d00f: con el modo del editor, el mouse en la UI o 0x1000 en +0x78, nada, ni rand().
+// 0x57cfe2..0x57d00f: with the editor mode, the mouse on the UI or 0x1000 in +0x78, nothing, not even rand().
 TEST(HeroSkillsTest, TheGuardsDoNothing)
 {
     for (int guard = 0; guard < 3; ++guard)
@@ -278,8 +277,8 @@ TEST(HeroSkillsTest, TheGuardsDoNothing)
     }
 }
 
-// 0x57d23c..0x57d260: sin el derecho ni el ataque automático, el reloj vuelve a empezar después del registro propio y
-// de la entrada del alcance; el alcance queda en el local de las ramas.
+// 0x57d23c..0x57d260: without the right button or the auto attack, the clock starts again after the own record and the
+// range entry; the range stays in the branches' local.
 TEST(HeroSkillsTest, WithoutAUseTheClockStartsAgain)
 {
     for (const std::int32_t map : {0, 2})
@@ -300,7 +299,7 @@ TEST(HeroSkillsTest, WithoutAUseTheClockStartsAgain)
     }
 }
 
-// 0x5526f0: montado en el 0x1c16, el alcance suma 2.
+// 0x5526f0: mounted on the 0x1c16, the range adds 2.
 TEST(HeroSkillsTest, TheThirdMountAddsTwoToTheRange)
 {
     auto tested = std::make_unique<SkillHero>(std::uint8_t{0x13});
@@ -310,7 +309,7 @@ TEST(HeroSkillsTest, TheThirdMountAddsTwoToTheRange)
     EXPECT_FLOAT_EQ(tested->Movement().selectedSkillRange, 6.0f);
 }
 
-// 0x57d02b..0x57d04a: con +0x80 en 1, el desvanecido baja 0,1 por vuelta y, debajo de 0,1, +0x80 pasa a 2.
+// 0x57d02b..0x57d04a: with +0x80 at 1, the fade drops 0.1 per round and, below 0.1, +0x80 becomes 2.
 TEST(HeroSkillsTest, TheTeleportFadeLowersTheAlpha)
 {
     auto tested = std::make_unique<SkillHero>(std::uint8_t{0x13});
@@ -325,8 +324,8 @@ TEST(HeroSkillsTest, TheTeleportFadeLowersTheAlpha)
     EXPECT_EQ(tested->Hero().byte80, 2);
 }
 
-// 0x57d179..0x57d1b8: el derecho sobre la 0x28 la carga como 0x3a (los frames en 1 y +0x1bc del publicado en 0) si
-// +0x80 es 0 o 3; con otro, se va sin gastar el derecho.
+// 0x57d179..0x57d1b8: the right button on 0x28 charges it as 0x3a (the frames at 1 and the published one's +0x1bc at
+// 0) if +0x80 is 0 or 3; with another value, it leaves without spending the right button.
 TEST(HeroSkillsTest, TheRightClickChargesTheSkill28As3a)
 {
     {
@@ -335,14 +334,14 @@ TEST(HeroSkillsTest, TheRightClickChargesTheSkill28As3a)
         tested->Hero().byte80 = 3;
         tested->Ui().autoAttack = true;
         const auto result = tested->Use();
-        // La rama del Wizard la suelta en el mismo paso: el 19 de la 0x3a (0x58a141).
+        // The Wizard branch releases it in the same step: 0x3a's 19 (0x58a141).
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(std::to_integer<int>(tested->sent[0].packet.Bytes()[2]), 0x19);
         EXPECT_FALSE(tested->Ui().rightClick);
         EXPECT_EQ(tested->Ui().rightHoldFrames, 1);
         EXPECT_EQ(tested->Hero().byte1bc, 0);
-        // 0x57d419: la del Wizard ya es la 0x3a; el alcance es el de la 0x28 (0x57d114, antes de cargarla).
+        // 0x57d419: the Wizard's is already 0x3a; the range is 0x28's (0x57d114, before charging it).
         EXPECT_EQ(tested->world.Runtime().selectedTargets[4], -1);
         EXPECT_FLOAT_EQ(tested->Movement().selectedSkillRange, 7.0f);
     }
@@ -359,7 +358,7 @@ TEST(HeroSkillsTest, TheRightClickChargesTheSkill28As3a)
     }
 }
 
-// 0x57d12c..0x57d165: con la carga, los frames cuentan hasta el soltado, que limpia el derecho y la usa.
+// 0x57d12c..0x57d165: while charging, the frames count until the release, which clears the right button and uses it.
 TEST(HeroSkillsTest, WhileChargingTheFramesCountUntilTheRelease)
 {
     const auto tested = AHeroClicking(0x3a, Wizard);
@@ -383,8 +382,8 @@ TEST(HeroSkillsTest, WhileChargingTheFramesCountUntilTheRelease)
     EXPECT_FLOAT_EQ(tested->Movement().actionInputElapsed, 0.0f);
 }
 
-// 0x57d1bc..0x57d1ef: el ataque automático usa la skill sin el derecho con 0x6c8e38 en 2 y un elegido, salvo en el mapa
-// 6 y en Chaos Castle.
+// 0x57d1bc..0x57d1ef: the auto attack uses the skill without the right button with 0x6c8e38 at 2 and a chosen one,
+// except on map 6 and in Chaos Castle.
 TEST(HeroSkillsTest, TheAutoAttackUsesTheSkillWithTheOtherChosenInTwo)
 {
     for (const std::int32_t map : {0, 2, 6, 18, 23})
@@ -416,7 +415,8 @@ TEST(HeroSkillsTest, TheAutoAttackUsesTheSkillWithTheOtherChosenInTwo)
     }
 }
 
-// 0x57d1f8..0x57d22d: el tiempo desde la última vuelta sin uso, en s; a las 3.600 suelta el derecho y se va.
+// 0x57d1f8..0x57d22d: the time since the last round without a use, in s; at 3600 it lets go of the right button and
+// leaves.
 TEST(HeroSkillsTest, AfterAnHourTheRightButtonIsLetGo)
 {
     {
@@ -429,7 +429,7 @@ TEST(HeroSkillsTest, AfterAnHourTheRightButtonIsLetGo)
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_FALSE(tested->Ui().rightDown);
         EXPECT_FLOAT_EQ(tested->Movement().actionInputElapsed, 3600.0002f);
-        // 0x6c8e50 se toca recién en 0x57d294.
+        // 0x6c8e50 is only touched at 0x57d294.
         EXPECT_EQ(tested->Movement().followTarget, 7);
     }
     {
@@ -444,8 +444,8 @@ TEST(HeroSkillsTest, AfterAnHourTheRightButtonIsLetGo)
     }
 }
 
-// 0x57d261..0x57d282: con el movimiento trabado (0x77f3bac), solo el clic izquierdo (que se gasta) o el botón abajo; el
-// derecho no cuenta ni se gasta y el reloj no se mira.
+// 0x57d261..0x57d282: with the movement blocked (0x77f3bac), only the left click (which is spent) or the button down;
+// the right one neither counts nor is spent and the clock is not checked.
 TEST(HeroSkillsTest, ABlockedHeroUsesTheSkillWithTheLeftButton)
 {
     {
@@ -465,14 +465,14 @@ TEST(HeroSkillsTest, ABlockedHeroUsesTheSkillWithTheLeftButton)
         tested->Mouse().pendingClick = click;
         tested->Mouse().leftHeld = !click;
         const auto result = tested->Use();
-        // Sin elegido, la rama del Wizard apunta al terreno (0x57ceea), que el contexto no trae.
+        // Without a chosen one, the Wizard branch aims at the terrain (0x57ceea), which the context does not carry.
         ASSERT_FALSE(result.HasValue());
         EXPECT_TRUE(Contains(result.Error(), "0x57ceea")) << result.Error();
         EXPECT_FALSE(tested->Mouse().pendingClick);
     }
 }
 
-// 0x5a5540: las skills del asedio solo en el mapa 30 con el asedio; si no, se va antes de la entrada del +0x31.
+// 0x5a5540: the siege skills only on map 30 with the siege on; otherwise it leaves before the +0x31 entry.
 TEST(HeroSkillsTest, TheSiegeSkillsNeedTheSiege)
 {
     for (const std::int32_t map : {0, 2, 30})
@@ -490,11 +490,11 @@ TEST(HeroSkillsTest, TheSiegeSkillsNeedTheSiege)
     const auto result = tested->Use();
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ExpectTheWizardAimed(*tested);
-    // 0x58c16e: la 0x2c va por el alcance y pide la skill del arma con el elegido.
+    // 0x58c16e: 0x2c goes through the range and asks for the weapon skill with the chosen one.
     EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
 }
 
-// 0x57d30c..0x57d31e: con el +0x31 en 2, la skill pide 0x200 en +0x78 del héroe.
+// 0x57d30c..0x57d31e: with +0x31 at 2, the skill needs 0x200 in the hero's +0x78.
 TEST(HeroSkillsTest, APartySkillNeedsThe200Flag)
 {
     {
@@ -511,7 +511,7 @@ TEST(HeroSkillsTest, APartySkillNeedsThe200Flag)
     ExpectTheWizardAimed(*tested);
 }
 
-// 0x57d324..0x57d337: con +0x389, nada después de la entrada.
+// 0x57d324..0x57d337: with +0x389, nothing after the entry.
 TEST(HeroSkillsTest, ADyingHeroStopsAfterTheEntry)
 {
     const auto tested = AHeroClicking(0x13, Wizard);
@@ -522,8 +522,8 @@ TEST(HeroSkillsTest, ADyingHeroStopsAfterTheEntry)
     EXPECT_EQ(tested->random.State(), expected.State());
 }
 
-// 0x57d33d..0x57d3a5: en la zona segura, nada en Lorencia ni en Devias; en Blood Castle y Chaos Castle, solo las skills
-// de la lista.
+// 0x57d33d..0x57d3a5: in the safe zone, nothing in Lorencia or Devias; in Blood Castle and Chaos Castle, only the
+// skills of the list.
 TEST(HeroSkillsTest, TheSafeZoneOnlyLetsTheListInTheEventMaps)
 {
     struct Case
@@ -554,7 +554,7 @@ TEST(HeroSkillsTest, TheSafeZoneOnlyLetsTheListInTheEventMaps)
     }
 }
 
-// 0x57d3ab..0x57d458: con el ataque automático, 0x6c8e38 por la clase y la skill.
+// 0x57d3ab..0x57d458: with the auto attack, 0x6c8e38 by the class and the skill.
 TEST(HeroSkillsTest, TheAutoAttackChoosesTheOtherTargetByClassAndSkill)
 {
     struct Case
@@ -579,15 +579,15 @@ TEST(HeroSkillsTest, TheAutoAttackChoosesTheOtherTargetByClassAndSkill)
             EXPECT_EQ(tested->world.Runtime().selectedTargets[4], tried.target);
         }
     }
-    // En Chaos Castle no se elige.
+    // In Chaos Castle nothing is chosen.
     const auto tested = AHeroClicking(0x13, Wizard, 18);
     tested->Ui().autoAttack = true;
     static_cast<void>(tested->Use());
     EXPECT_EQ(tested->world.Runtime().selectedTargets[4], -1);
 }
 
-// 0x57d45d..0x57d4b0: un jugador con una acción fuera de la lista no la usa y olvida los frames del derecho (la carga
-// que acaba de empezar); otro tipo, con la acción 2 o más, no la usa y los deja.
+// 0x57d45d..0x57d4b0: a player with an action off the list does not use it and forgets the right button's frames (the
+// charge that just started); another type, with action 2 or more, does not use it and keeps them.
 TEST(HeroSkillsTest, TheActionOfTheHeroGatesTheUse)
 {
     {
@@ -618,8 +618,8 @@ TEST(HeroSkillsTest, TheActionOfTheHeroGatesTheUse)
     }
 }
 
-// 0x57d4b6: el Wizard no apunta ni mira las armas: va directo a su rama (HeroSkillsWizard), que apunta después de su
-// cabeza; la 0x13 no hace nada más (0x58a13a).
+// 0x57d4b6: the Wizard neither aims nor checks the weapons: it goes straight to its branch (HeroSkillsWizard), which
+// aims after its head; 0x13 does nothing more (0x58a13a).
 TEST(HeroSkillsTest, TheWizardGoesStraightToItsBranch)
 {
     const auto tested = AHeroClicking(0x13, Wizard);
@@ -633,10 +633,10 @@ TEST(HeroSkillsTest, TheWizardGoesStraightToItsBranch)
     EXPECT_TRUE(tested->sent.empty());
 }
 
-// 0x57ce80 y 0x57d532..0x57d61b: el caballero apunta al elegido (su celda y su posición) y, por cada mano sin la opción
-// de la skill, pide la del arma con el lugar y el elegido; el registro abierto en cada mano cierra con 3.848 rand().
-// Sin arma derecha, la rama (0x581894) termina sin la 0x13; el Magic Gladiator sigue en la del Wizard (0x5897b7), que
-// con la 0x13 no hace nada después de su cabeza.
+// 0x57ce80 and 0x57d532..0x57d61b: the knight aims at the chosen one (its cell and its position) and, for each hand
+// without the skill's option, asks for the weapon's with the slot and the chosen one; the record opened in each hand
+// closes with 3848 rand(). Without a right-hand weapon, the branch (0x581894) ends without 0x13; the Magic Gladiator
+// goes on into the Wizard's (0x5897b7), which with 0x13 does nothing after its head.
 TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
 {
     for (const std::uint8_t heroClass : {Knight, Gladiator, Lord})
@@ -661,16 +661,17 @@ TEST(HeroSkillsTest, AKnightAimsAtTheChosenAndAsksForTheWeaponSkill)
             EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
         }
     }
-    // 0x57d617: un elegido que 0x558bb0 no deja atacar (un NPC) va como −1.
+    // 0x57d617: a chosen one that 0x558bb0 does not let be attacked (an NPC) goes as −1.
     const auto tested = AHeroClicking(0x13, Knight);
     tested->world.Actors()[ChosenSlot].byte88 = 4;
     static_cast<void>(tested->Use());
     EXPECT_EQ(tested->Movement().weaponSkill.target, -1);
 }
 
-// 0x5897a7..0x5897b1: el Magic Gladiator pasa por la rama de las clases 1, 3 y 4 (sin arma derecha, la 0xa no es de su
-// lista) y sigue en la del Wizard: Hellfire (0x58c1b6) manda el 1E con su celda lógica (la Y y la X), el rumbo y la
-// clave 0xffff, y pone la acción 0x96. El caballero y el Dark Lord terminan en 0x5808da sin nada.
+// 0x5897a7..0x5897b1: the Magic Gladiator goes through the branch of classes 1, 3 and 4 (without a right-hand weapon,
+// 0xa is not on its list) and on into the Wizard's: Hellfire (0x58c1b6) sends the 1E with its logical cell (the Y and
+// the X), the heading and the key 0xffff, and sets action 0x96. The knight and the Dark Lord end at 0x5808da with
+// nothing.
 TEST(HeroSkillsTest, TheMagicGladiatorGoesOnThroughTheKnightIntoTheWizardBranch)
 {
     for (const std::int32_t map : {0, 2})
@@ -680,7 +681,7 @@ TEST(HeroSkillsTest, TheMagicGladiatorGoesOnThroughTheKnightIntoTheWizardBranch)
         tested->skills = SkillsWith({{0xa}});
         tested->Hero().movement = 1;
         constexpr int SendDraws = 2;
-        // 0x4f3f80 (las velocidades) abre y cierra el registro propio.
+        // 0x4f3f80 (the speeds) opens and closes the own record.
         const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws +
                                                                 WizardHeadDraws + 2 * CellDraws + SendDraws + OwnDraws);
         const auto result = tested->Use();
@@ -705,9 +706,9 @@ TEST(HeroSkillsTest, TheMagicGladiatorGoesOnThroughTheKnightIntoTheWizardBranch)
     }
 }
 
-// 0x57d564..0x57d57b: montado, la tabla 0x599d70 saltea las armas con las skills que no deja (la 0x30) y las mira con
-// las demás (la 0x2f). La 0x30 sigue sin arma derecha: la rama la paga (0x551c70, 0x552c50 y 0x551f40), saca los dos
-// rand() del C3 sin la sesión y hace la 0x3f.
+// 0x57d564..0x57d57b: mounted, the table 0x599d70 skips the weapons for the skills it does not allow (0x30) and checks
+// them for the rest (0x2f). 0x30 goes on without a right-hand weapon: the branch pays for it (0x551c70, 0x552c50 and
+// 0x551f40), draws the C3's two rand() without the session and does 0x3f.
 TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
 {
     {
@@ -721,7 +722,7 @@ TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
         EXPECT_EQ(tested->Hero().animation.action, 0x3f);
     }
     {
-        // 0x5599f2..0x559ad3: con la 0x2f montado y sin arma derecha, 0x559890 da 0 antes de las opciones.
+        // 0x5599f2..0x559ad3: with 0x2f mounted and without a right-hand weapon, 0x559890 gives 0 before the options.
         const auto tested = AHeroClicking(0x2f, Lord);
         tested->Hero().pet.model = 0x1c37;
         const CrtRandom expected = Advanced(tested->random, AimDraws + 2 * OwnDraws + KnightBranchDraws);
@@ -732,8 +733,8 @@ TEST(HeroSkillsTest, AMountedHeroSkipsTheWeaponsForSomeSkills)
     }
 }
 
-// 0x5599db..0x559afc: las skills especiales del arma van a 0x559afc y las opciones del arma a 0x55a368; las que
-// llegan a 0x55b6f0 sueltan el brillo 0x5fe (0x55be23).
+// 0x5599db..0x559afc: the weapon's special skills go to 0x559afc and the weapon's options to 0x55a368; those that reach
+// 0x55b6f0 release the shine 0x5fe (0x55be23).
 TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
 {
     {
@@ -743,8 +744,8 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         EXPECT_EQ(tested->world.Particles().All()[0].type, 0x5fe);
     }
     {
-        // 0x559a84..0x559a9f: la 0x39 con un arma derecha de 0x212 a 0x411; su alcance de 0 deja al elegido lejos y
-        // 0x559510 arma el camino (el caso 5 de la llegada).
+        // 0x559a84..0x559a9f: 0x39 with a right-hand weapon from 0x212 to 0x411; its range of 0 leaves the chosen one
+        // far and 0x559510 builds the path (case 5 of the arrival).
         const auto tested = AHeroClicking(0x13, Knight, 30);
         tested->world.Runtime().castleSiege.siegeActive = true;
         tested->world.OwnCharacter().SetSkillAt(0, 0x39);
@@ -755,8 +756,8 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         EXPECT_EQ(tested->Hero().movement, 1);
     }
     {
-        // 0x559ad5..0x559afa: la 0x2b con un arma derecha de 0xc12 a 0xe11 da 0 y sigue a la rama, que con el escudo
-        // termina.
+        // 0x559ad5..0x559afa: 0x2b with a right-hand weapon from 0xc12 to 0xe11 gives 0 and goes on to the branch,
+        // which ends with the shield.
         const auto tested = AHeroClicking(0x13, Knight);
         tested->world.OwnCharacter().SetSkillAt(0, 0x2b);
         tested->Hero().hands[0].model = 0xd00;
@@ -764,7 +765,7 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         ASSERT_TRUE(result.HasValue()) << result.Error();
     }
     {
-        // 0x55a340..0x55a362: la segunda mano con la opción de la skill, que 0x559510 lanza sobre el elegido.
+        // 0x55a340..0x55a362: the second hand with the skill's option, which 0x559510 casts on the chosen one.
         const auto tested = AHeroClicking(0x13, Knight);
         auto& item = tested->world.OwnCharacter().equipment[1];
         item.optionCount = 2;
@@ -773,14 +774,14 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
         const auto result = tested->Use();
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(tested->world.Particles().All()[0].type, 0x5fe);
-        // El D3, el 19 y, con la 0x13, el DF con la celda del blanco.
+        // The D3, the 19 and, with 0x13, the DF with the target's cell.
         ASSERT_EQ(tested->sent.size(), 3u);
         EXPECT_EQ(ClearBytesOf(tested->sent[1])[3], 0x13);
         EXPECT_EQ(ClearBytesOf(tested->sent[2]), (std::vector<std::uint8_t>{0xc1, 0x05, 0xdf, 184, 117}));
     }
     {
-        // 0x561f60: la del elfo, sin la lista; fuera de la 0x18 y la 0x36 no tira y sigue a la rama de la clase
-        // (0x57d790), que con la 0x13 no manda nada.
+        // 0x561f60: the elf's, without the list; except for 0x18 and 0x36 it does not shoot and goes on to the class
+        // branch (0x57d790), which sends nothing with 0x13.
         const auto tested = AHeroClicking(0x13, Elf);
         auto& item = tested->world.OwnCharacter().equipment[0];
         item.optionCount = 1;
@@ -791,9 +792,9 @@ TEST(HeroSkillsTest, TheWeaponSkillsGoToTheirTails)
     }
 }
 
-// El elfo mira las dos manos con 0x561f60 y, sin la opción, va a su rama (0x57d790): la cabeza (el registro propio y
-// las entradas del costo, de la espera y de la energía), el blanco y, en alcance, la skill del arma con el elegido y la
-// celda lógica para la línea de vista; la 0x18 no es de las que mandan ahí (HeroSkillsElf, con sus tests).
+// The elf checks both hands with 0x561f60 and, without the option, goes to its branch (0x57d790): the head (the own
+// record and the cost, delay and energy entries), the target and, in reach, the weapon skill with the chosen one and
+// the logical cell for the line of sight; 0x18 is not one of those that send there (HeroSkillsElf, with its tests).
 TEST(HeroSkillsTest, AnElfLooksAtBothHandsAndGoesToItsBranch)
 {
     for (const std::int32_t map : {0, 2})
@@ -811,7 +812,8 @@ TEST(HeroSkillsTest, AnElfLooksAtBothHandsAndGoesToItsBranch)
     }
 }
 
-// 0x57d51f y 0x57d760..0x57d774: una pared entre el héroe y el blanco deja la skill del arma en 0 y el elegido en −1.
+// 0x57d51f and 0x57d760..0x57d774: a wall between the hero and the target leaves the weapon skill at 0 and the chosen
+// one at −1.
 TEST(HeroSkillsTest, AWallBeforeTheTargetClearsTheWeaponSkill)
 {
     const auto tested = AHeroClicking(0x13, Knight);
@@ -826,7 +828,7 @@ TEST(HeroSkillsTest, AWallBeforeTheTargetClearsTheWeaponSkill)
     EXPECT_EQ(tested->Movement().weaponSkill.target, -1);
 }
 
-// 0x57ceea: sin elegido, el punto del terreno bajo el mouse; si no acierta, el blanco queda como estaba.
+// 0x57ceea: without a chosen one, the terrain point under the mouse; if it misses, the target stays as it was.
 TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
 {
     {
@@ -863,8 +865,8 @@ TEST(HeroSkillsTest, WithoutAChosenTheSkillAimsAtTheTerrain)
     }
 }
 
-// 0x5897aa y 0x5808da: las clases 5 a 7 (sin rama) apuntan y siguen solo con las 0x43 a 0x48 (HeroSkillsTail): la
-// 0x43, con el registro propio, las entradas del costo, la espera y la energía, la celda dos veces y el 1E.
+// 0x5897aa and 0x5808da: classes 5 to 7 (no branch) aim and go on only with 0x43 to 0x48 (HeroSkillsTail): 0x43, with
+// the own record, the cost, delay and energy entries, the cell twice and the 1E.
 TEST(HeroSkillsTest, TheOtherClassesOnlyGoOnWith43To48)
 {
     {
@@ -888,7 +890,6 @@ TEST(HeroSkillsTest, TheOtherClassesOnlyGoOnWith43To48)
     EXPECT_EQ(tested->Hero().animation.action, 0x3f);
 }
 
-// Un Dark Lord con el cuervo, el botón derecho abajo y el lugar `slot` elegido, que guarda lo que manda.
 struct RavenHero
 {
     explicit RavenHero(std::uint8_t slot, std::int32_t map = 0) : tested(AHeroClicking(0x13, Lord, map))
@@ -910,8 +911,9 @@ struct RavenHero
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// 0x420f70 (0x421599..0x421b20): los lugares 0x78 a 0x7a mandan el A7 con la orden del lugar y la clave 0xffff, por
-// send() con el XOR32; el derecho queda suelto y la skill no sigue (ni la entrada del +0x31). En Lorencia y en Devias.
+// 0x420f70 (0x421599..0x421b20): slots 0x78 to 0x7a send the A7 with the slot's order and the key 0xffff, through
+// send() with the XOR32; the right button is let go and the skill does not go on (not even the +0x31 entry). In
+// Lorencia and in Devias.
 TEST(HeroSkillsTest, TheRavenOrdersSendTheirA7)
 {
     for (const std::int32_t map : {0, 2})
@@ -942,8 +944,8 @@ TEST(HeroSkillsTest, TheRavenOrdersSendTheirA7)
     }
 }
 
-// 0x420fd6..0x421594: el 0x7b ataca al elegido si 0x558bb0 lo deja y es un monstruo o un jugador: la orden 3 con su
-// clave. Si no, nada sale, pero el derecho queda suelto igual y la skill no sigue.
+// 0x420fd6..0x421594: the 0x7b attacks the chosen one if 0x558bb0 allows it and it is a monster or a player: order 3
+// with its key. Otherwise nothing goes out, but the right button is let go all the same and the skill does not go on.
 TEST(HeroSkillsTest, TheRavenAttackOrderNeedsAnAttackableChosen)
 {
     {
@@ -965,7 +967,7 @@ TEST(HeroSkillsTest, TheRavenAttackOrderNeedsAnAttackableChosen)
         EXPECT_FALSE(raven.tested->Ui().rightDown);
     }
     {
-        // Sin la sesión (el socket en −1), tampoco sale y el derecho se suelta.
+        // Without the session (the socket at −1), nothing goes out either and the right button is let go.
         const auto tested = AHeroClicking(0x13, Lord);
         tested->Ui().rightDown = true;
         tested->Hero().darkSpirit.emplace();
@@ -977,8 +979,9 @@ TEST(HeroSkillsTest, TheRavenAttackOrderNeedsAnAttackableChosen)
     }
 }
 
-// 0x57d29e..0x57d2c3 y 0x420f9a..0x420fc5: sin el cuervo, con 0x4000 en el publicado, con un lugar fuera de 0x78 a 0x7b
-// o con solo el clic (ya gastado en 0x57d1b1), no hay orden y la skill sigue a la rama de la clase.
+// 0x57d29e..0x57d2c3 and 0x420f9a..0x420fc5: without the raven, with 0x4000 on the published one, with a slot outside
+// 0x78 to 0x7b or with only the click (already spent at 0x57d1b1), there is no order and the skill goes on to the class
+// branch.
 TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
 {
     for (int variant = 0; variant < 4; ++variant)
@@ -999,14 +1002,14 @@ TEST(HeroSkillsTest, WithoutTheRavenOrTheButtonTheSkillGoesOn)
 }
 } // namespace
 
-// Lo que gasta 0x559afc hasta 0x55b6f0 con la 0x3c en alcance: la cabeza y el blanco (AimDraws), el costo (0x559b0b) y
-// la espera (0x552c50) con sus entradas, las celdas del héroe publicado del D3, los dos del C3 19, la entrada de
-// 0x559510 al cerrarse y el registro propio de la mano.
+// What 0x559afc spends up to 0x55b6f0 with 0x3c in reach: the head and the target (AimDraws), the cost (0x559b0b) and
+// the delay (0x552c50) with their entries, the published hero's cells for the D3, the C3 19's two, 0x559510's entry
+// when it closes and the hand's own record.
 constexpr int ListedCastDraws = AimDraws + 2 * EntryDraws + 2 * CellDraws + 2 + EntryDraws + OwnDraws;
 
-// 0x559afc → 0x559510 → 0x55b6f0 con la 0x3c (sin la partícula 0x5fe): el D3 de girar con la celda del héroe y su
-// rumbo, el C3 19 con la clave del elegido, el blanco en +0x3a8, el rumbo hacia él y +0x381; el DF no sale con la 0x3c.
-// En Lorencia y en Devias.
+// 0x559afc → 0x559510 → 0x55b6f0 with 0x3c (without the particle 0x5fe): the turn D3 with the hero's cell and its
+// heading, the C3 19 with the chosen one's key, the target in +0x3a8, the heading toward it and +0x381; the DF does not
+// go out with 0x3c. In Lorencia and in Devias.
 TEST(HeroSkillsTest, AListedWeaponSkillCastsAtTheChosen)
 {
     for (const std::int32_t map : {0, 2})
@@ -1032,10 +1035,9 @@ TEST(HeroSkillsTest, AListedWeaponSkillCastsAtTheChosen)
     }
 }
 
-// 0x55be0d..0x55be49: la 0x31 (en Lorencia, Devias y Noria, el mapa 8 de la acción 0x41) suelta el brillo 0x5fe sobre
-// el héroe, con su dueño en el pool y en el hueso de la mano derecha (sin dibujo, la matriz en cero: el origen del
-// modelo, que pasa a ser la posición del héroe), y el sonido rand() % 2 + 0x3c, su único rand(); después, el 19 y
-// ningún DF.
+// 0x55be0d..0x55be49: 0x31 (in Lorencia, Devias and Noria, map 8 for action 0x41) releases the shine 0x5fe over the
+// hero, with its owner in the pool and at the right hand's bone (without drawing, the matrix at zero: the model's
+// origin, which becomes the hero's position), and the sound rand() % 2 + 0x3c, its only rand(); then the 19 and no DF.
 TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
 {
     for (const std::int32_t map : {0, 2, 8})
@@ -1065,9 +1067,9 @@ TEST(HeroSkillsTest, AWeaponSkillShinesOnTheHero)
     }
 }
 
-// P-C358: el brillo 0x5fe de un héroe transformado (otro modelo que 0x20a) corta en 0x53fdb0 antes de crearse: su
-// escala sale del modelo compartido de ese tipo, que MuRet todavía no tiene (los anillos de transformación). Antes,
-// el D3 y el 0x4f4a10 del modelo (con su esqueleto) corren como siempre.
+// P-C358: the shine 0x5fe of a transformed hero (a model other than 0x20a) cuts at 0x53fdb0 before it is created: its
+// scale comes from that type's shared model, which MuRet does not have yet (the transformation rings). Before, the D3
+// and the model's 0x4f4a10 (with its skeleton) run as always.
 TEST(HeroSkillsTest, TheShineOfATransformedHeroUsesItsSharedModel)
 {
     for (const bool full : {false, true})
@@ -1102,8 +1104,8 @@ TEST(HeroSkillsTest, TheShineOfATransformedHeroUsesItsSharedModel)
     }
 }
 
-// 0x55bf0c..0x55bf29: dentro de los 300 ms del último envío el 19 no sale, pero sí el D3 y lo demás; con "webzen" en el
-// nombre del héroe publicado, tampoco (0x55be9a).
+// 0x55bf0c..0x55bf29: within 300 ms of the last send the 19 does not go out, but the D3 and the rest do; with "webzen"
+// in the published hero's name, it does not either (0x55be9a).
 TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)
 {
     {
@@ -1127,15 +1129,15 @@ TEST(HeroSkillsTest, TheBrakeAndTheNameHoldTheMagicAttack)
     }
 }
 
-// 0x559b29..0x559b3b: sin maná y sin poción de maná, 0x559890 da 0 y la skill sigue a la rama de la clase; con una
-// poción, 0x5af520 manda el C1 26 y la rama de la clase sigue sin maná.
+// 0x559b29..0x559b3b: without mana and without a mana potion, 0x559890 gives 0 and the skill goes on to the class
+// branch; with a potion, 0x5af520 sends the C1 26 and the class branch goes on without mana.
 TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
         const auto tested = AHeroClicking(0x3d, Knight, map);
-        // La rama del caballero (0x581894) termina: sin arma derecha, la 0x3d no sigue.
+        // The knight branch (0x581894) ends: without a right-hand weapon, 0x3d does not go on.
         const auto result = tested->Use();
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_TRUE(tested->sent.empty());
@@ -1148,7 +1150,7 @@ TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
         ASSERT_EQ(tested->sent.size(), 1u);
         EXPECT_EQ(ClearBytesOf(tested->sent[0]), (std::vector<std::uint8_t>{0xc1, 6, 0x26, 24, 0, 0}));
     }
-    // Con el maná del registro propio, la 0x3d llega al 19.
+    // With the own record's mana, 0x3d reaches the 19.
     const auto tested = AHeroClicking(0x3d, Knight);
     tested->world.OwnCharacter().mana = 0x40;
     ASSERT_TRUE(tested->Use().HasValue());
@@ -1156,9 +1158,8 @@ TEST(HeroSkillsTest, WithoutManaTheListedSkillLooksForAPotion)
     EXPECT_EQ(ClearBytesOf(tested->sent[1])[3], 0x3d);
 }
 
-// 0x5596f2..0x559822: fuera de alcance, el camino de PathFinding2 hasta el alcance desde las celdas lógicas del héroe
-// (la Y antes que la X), +0x378 en 1 y +0x379 en 5; no sale nada. En Blood Castle (0x55969e) las 0x13 a 0x17 tienen
-// 1,8 de alcance.
+// 0x5596f2..0x559822: out of reach, PathFinding2's path up to the reach from the hero's logical cells (the Y before the
+// X), +0x378 at 1 and +0x379 at 5; nothing goes out. In Blood Castle (0x55969e) 0x13 to 0x17 have a reach of 1.8.
 TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
 {
     {
@@ -1174,8 +1175,8 @@ TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
         EXPECT_GT(tested->Hero().path.count, 0);
     }
     {
-        // La 0x13 de una opción del arma: 4 · 1,2 en Lorencia la deja en alcance (con el brillo y el 19), y 1,8 en
-        // Blood Castle no llega a los 283 del elegido.
+        // 0x13 from a weapon option: 4 · 1.2 in Lorencia leaves it in reach (with the shine and the 19), and 1.8 in
+        // Blood Castle does not reach the chosen one's 283.
         for (const std::int32_t map : {0, 11})
         {
             SCOPED_TRACE(map);
@@ -1197,8 +1198,8 @@ TEST(HeroSkillsTest, AFarChosenGetsAPathForTheSkill)
     }
 }
 
-// 0x55abfa..0x55b45a: la opción 0x12 del arma pone la acción 0x98 y manda el C3 19 con la clave del héroe publicado; si
-// 0x558bb0 no deja atacar al elegido, la 0x3c de la lista también va a las opciones (0x55a2c0).
+// 0x55abfa..0x55b45a: the weapon's option 0x12 sets action 0x98 and sends the C3 19 with the published hero's key; if
+// 0x558bb0 does not let the chosen one be attacked, the listed 0x3c also goes to the options (0x55a2c0).
 TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
 {
     for (const std::int32_t map : {0, 2})
@@ -1216,7 +1217,7 @@ TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
     }
     const auto tested = AHeroClicking(0x3c, Knight);
     tested->world.Actors()[ChosenSlot].byte88 = 0;
-    // Después, la rama del caballero (0x581894), que sin arma derecha termina sin la 0x3c.
+    // Then the knight branch (0x581894), which without a right-hand weapon ends without 0x3c.
     const auto result = tested->Use();
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested->sent.empty());
@@ -1224,7 +1225,7 @@ TEST(HeroSkillsTest, TheOption12CastsOnTheHeroItself)
 
 namespace
 {
-// Un elfo con la opción `skill` en el arma de la derecha, el elegido de 0x7758588 en ChosenSlot y su clave.
+// An elf with the option `skill` on the right-hand weapon, 0x7758588's chosen one in ChosenSlot and its key.
 std::unique_ptr<SkillHero> AnElfWithTheOption(std::uint8_t skill, std::int32_t map = 0)
 {
     auto tested = AHeroClicking(skill, Elf, map);
@@ -1238,12 +1239,12 @@ std::unique_ptr<SkillHero> AnElfWithTheOption(std::uint8_t skill, std::int32_t m
     return tested;
 }
 
-// El costo, la espera y el alcance (una entrada cada uno), la celda lógica del 1E y el C3; el registro de la mano.
+// The cost, the delay and the reach (one entry each), the logical cell of the 1E and the C3; the hand's record.
 constexpr int ElfShotDraws = AimDraws + 3 * EntryDraws + 2 * CellDraws + 2 + OwnDraws;
 } // namespace
 
-// 0x563df6..0x564f37: la 0x18 en alcance gira al héroe hacia +0x3a8 y manda el 1E con la celda lógica, el rumbo ·
-// 256/360, dos ceros y la clave de 0x558eb0 con 0x7758588; 0x5767948 queda en la skill y la usó (0x57df46).
+// 0x563df6..0x564f37: 0x18 in reach turns the hero toward +0x3a8 and sends the 1E with the logical cell, the heading ·
+// 256/360, two zeros and 0x558eb0's key with 0x7758588; 0x5767948 stays on the skill and it was used (0x57df46).
 TEST(HeroSkillsTest, TheElfTripleShotSendsA1E)
 {
     for (const std::int32_t map : {0, 2})
@@ -1263,8 +1264,8 @@ TEST(HeroSkillsTest, TheElfTripleShotSendsA1E)
     }
 }
 
-// 0x56291f..0x563b8f: la 0x36 suma la celda lógica hacia el blanco (2 y 2: 0xaa) y la espalda (315 · 255/360); el
-// rumbo es · 255/360. Sin elegido en 0x7758588, la clave es 0xffff.
+// 0x56291f..0x563b8f: 0x36 adds the logical cell toward the target (2 and 2: 0xaa) and the back (315 · 255/360); the
+// heading is · 255/360. Without a chosen one in 0x7758588, the key is 0xffff.
 TEST(HeroSkillsTest, TheElfPenetrationSendsWhereTheTargetIs)
 {
     for (const std::int32_t map : {0, 2})
@@ -1282,8 +1283,9 @@ TEST(HeroSkillsTest, TheElfPenetrationSendsWhereTheTargetIs)
     }
 }
 
-// 0x562a8a y 0x563eae: con "webzen" en el nombre no sale el 1E (y no hay freno), pero la usó; fuera de alcance
-// (0x56298f, 0x563e66), ni el 1E ni el rumbo, y sigue a la rama de la clase, que con un monstruo no camina.
+// 0x562a8a and 0x563eae: with "webzen" in the name the 1E does not go out (and there is no brake), but it was used; out
+// of reach (0x56298f, 0x563e66), neither the 1E nor the heading, and it goes on to the class branch, which does not
+// walk with a monster.
 TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
 {
     {
@@ -1307,12 +1309,11 @@ TEST(HeroSkillsTest, TheElfShotNeedsTheNameAndTheReach)
     }
 }
 
-// 0x563b8f..0x564f37 con un héroe transformado (no es el 0x20a; +0x88 en 0): 0x4f4a10 por su modelo (la acción 1, el
-// sonido 0x10 del 0x28 y el rand() del sonido del modelo), +0x38e (un rand() al cerrarlo; el registro propio sigue
-// abierto desde 0x561f60) y la flecha de 0x53e2b0(c, c, 0, lugar, bandera, 0) (P-C269 c): con la 0x18 la bandera en 1,
-// tres tiros de 0x53d9a0 y la cuenta de la tanda; con la 0x36, la 2 (0x563df1) y un tiro. Los tiros dejan [0x5767948]
-// en la skill 0; sin arco en el registro propio, sin flecha. Sin la biblioteca de modelos, el 0x4f4a10 corta
-// (0x4ea030).
+// 0x563b8f..0x564f37 with a transformed hero (not the 0x20a; +0x88 at 0): 0x4f4a10 through its model (action 1, the
+// 0x28's sound 0x10 and the rand() of the model's sound), +0x38e (one rand() when it closes; the own record stays open
+// since 0x561f60) and the arrow of 0x53e2b0(c, c, 0, slot, flag, 0) (P-C269 c): with 0x18 the flag at 1, three shots of
+// 0x53d9a0 and the volley's count; with 0x36, flag 2 (0x563df1) and one shot. The shots leave [0x5767948] at skill 0;
+// without a bow in the own record, no arrow. Without the model library, the 0x4f4a10 cuts (0x4ea030).
 TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
 {
     struct Case
@@ -1322,7 +1323,7 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
         std::uint8_t volleys;
     };
     constexpr std::uint16_t TransformedModel = 0x28;
-    // 0x4f51f1: el rand() % 2 del sonido de ataque del modelo (DrawModelSound), que el 0x20a no saca.
+    // 0x4f51f1: the rand() % 2 of the model's attack sound (DrawModelSound), which the 0x20a does not draw.
     constexpr int ModelSoundDraws = 1;
     for (const std::int32_t map : {0, 2})
     {
@@ -1347,7 +1348,7 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
             EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0xd2});
             EXPECT_EQ(tested->world.Runtime().lastShotSkill, 0u);
             EXPECT_EQ(tested->world.OwnCharacter().bytef04, probe.volleys);
-            // Los tres tiros de la bandera en 1 giran el rumbo 15, −30 y 15: vuelve al de 0x5629b6.
+            // The three shots of flag 1 turn the heading by 15, −30 and 15: it returns to the one of 0x5629b6.
             EXPECT_EQ(tested->Hero().angles.z, 135.0f);
         }
     }
@@ -1356,12 +1357,12 @@ TEST(HeroSkillsTest, TheTransformedElfShootsThroughTheArrowOf53e2b0)
     cut->Hero().animation.action = 0;
     const auto result = cut->Use();
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // H3 conserva el no-op de 0x4ea030 cuando el registro de modelo está sin acciones.
+    // H3 keeps the no-op of 0x4ea030 when the model record has no actions.
     EXPECT_EQ(cut->Hero().animation.action, 0);
 }
 
-// 0x56205f..0x562092: sin maná y sin poción, la opción que sigue (y la rama de la clase, que sin maná ni poción no
-// sigue, 0x57d821); con una, 0x5af520 (hito 5).
+// 0x56205f..0x562092: without mana and without a potion, the next option (and the class branch, which without mana or
+// potion does not go on, 0x57d821); with one, 0x5af520.
 TEST(HeroSkillsTest, TheElfShotWithoutMana)
 {
     for (const std::int32_t map : {0, 2})
@@ -1383,7 +1384,7 @@ TEST(HeroSkillsTest, TheElfShotWithoutMana)
     }
 }
 
-// 0x55cdc8 → 0x4f5290 → 0x4ea030: una transformación consulta las acciones de su modelo compartido.
+// 0x55cdc8 → 0x4f5290 → 0x4ea030: a transformation queries the actions of its shared model.
 TEST(HeroSkillsTest, ATransformedWizardUsesItsModelForTheReachedSkill)
 {
     auto tested = AHeroClicking(0x11, Wizard);
@@ -1399,7 +1400,7 @@ TEST(HeroSkillsTest, ATransformedWizardUsesItsModelForTheReachedSkill)
     EXPECT_EQ(tested->sent[1].packet.Opcode(), Client::Network::Opcode{0xd3});
 }
 
-// MoveHero (0x59e255) conserva la misma biblioteca de modelos al entrar en 0x57cfc0 y 0x564f2f.
+// MoveHero (0x59e255) keeps the same model library when it enters 0x57cfc0 and 0x564f2f.
 TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
 {
     auto tested = AnElfWithTheOption(0x18);
@@ -1425,9 +1426,9 @@ TEST(HeroSkillsTest, MovementForwardsTheModelOfTheTransformedElfShot)
     EXPECT_EQ(tested->sent[0].packet.Opcode(), Client::Network::Opcode{0x1e});
 }
 
-// 0x55980f: con Crywolf en la etapa 3, en el mapa 34 y un altar (0x206) en 0x6c8e54, PathFinding2 le pone la bandera
-// al A* (0x4eac0a..0x4eac41), que con el alcance distinto de 0 no cuenta (0x4eadd4): el camino, los rand() y +0x378
-// son los mismos que con otro NPC (0x203) elegido.
+// 0x55980f: with Crywolf at stage 3, on map 34 and an altar (0x206) in 0x6c8e54, PathFinding2 sets the A* flag
+// (0x4eac0a..0x4eac41), which does not count with a nonzero reach (0x4eadd4): the path, the rand() and +0x378 are the
+// same as with another NPC (0x203) chosen.
 TEST(HeroSkillsTest, TheWeaponApproachWalksTheSameWithACrywolfAltar)
 {
     const auto approach = [](std::uint16_t chosenType)

@@ -73,8 +73,8 @@ void OwnRecordSound(Kernel::WorldState& world, Models::ClothWorld& cloth)
 
 std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level)
 {
-    // 6b8b18..6b8b80: los siete superiores son999, incluso cuando se solapan.
-    // El primer rango que acepta retorna su ordinal; sin ninguno,4379dd retorna7.
+    // 0x6b8b18..0x6b8b80: the seven upper bounds are 999, even where they overlap.
+    // The first range that accepts returns its ordinal; with none, 0x4379dd returns 7.
     constexpr std::array<std::uint16_t, 14> Lower{40, 131, 181, 231, 281, 331, 350, 20, 111, 161, 211, 261, 311, 350};
     constexpr std::uint16_t Upper = 999;
     constexpr std::uint8_t ClassMask = 7;
@@ -93,12 +93,12 @@ Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldS
     if (cloth.logicSteps % AmbientPeriod == 0)
         PlayKalimaSound(world, Audio::SoundId{PeriodicSound + cloth.random.Next() % SoundAlternatives});
     OwnRecordSound(world, cloth);
-    // 438904: cierre propio antes del gate. El count se lee sólo si éste acepta.
+    // 0x438904: its own close before the gate. The count is read only if the gate accepts.
     if (cloth.random.Next() % SelectorGate == 0 && world.Runtime().objectSelectionCount != 0)
         return cloth.random.Next() % world.Runtime().objectSelectionCount;
     if (cloth.random.Next() % ParticleGate != 0)
         return std::int32_t{0};
-    // 438947..4389ca: ambos sorteos preceden al creador, aun con pool lleno.
+    // 0x438947..0x4389ca: both draws come before the creator, even with a full pool.
     const Kernel::ActorState& hero = world.Hero();
     constexpr double SpreadCenter = 400, ParticleHeight = 50, EffectHeight = 800;
     constexpr int EffectGate = 15;

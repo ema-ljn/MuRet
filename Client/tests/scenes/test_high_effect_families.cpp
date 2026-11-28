@@ -51,9 +51,9 @@
 #include <utility>
 #include <vector>
 
-// Las familias de los tipos altos de la CL11 que viven en su propio archivo y entran por CreateHighModelEffect y
-// StepHighModelEffect: el 0x114 de Scenes/WaveEffects, el 0x11b de Scenes/RingEffects y el 0x13d..0x13f de
-// Scenes/MeteorEffects. 06, "Los efectos con modelo de los tipos altos".
+// The CL11 high-type families that live in their own file and enter through CreateHighModelEffect and
+// StepHighModelEffect: the 0x114 of Effects/WaveEffects, the 0x11b of Effects/RingEffects and the 0x13d..0x13f of
+// Effects/MeteorEffects. 06, "Los efectos con modelo de los tipos altos".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -66,7 +66,6 @@ using Client::Kernel::WorldState;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
 
-// Cuántos rand() sacó `random` desde la semilla.
 int DrawsSince(std::uint32_t seed, const CrtRandom& random)
 {
     CrtRandom probe(seed);
@@ -128,7 +127,7 @@ struct FamilyWorld
     Client::Assets::FaunaModels faunaModels;
 };
 
-// Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.
+// A particle's rand(): it creates it in a separate pool with `replay`, which advances like the original.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale)
 {
     auto twin = std::make_unique<Client::Particles::Particles>();
@@ -137,7 +136,7 @@ void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, 
     ASSERT_TRUE(made.HasValue());
 }
 
-// La partícula que pide un paso, repetida en un pool gemelo con `replay` (el mismo CrtRandom del original).
+// The particle a step asks for, repeated in a twin pool with `replay` (the same CrtRandom as the original).
 Client::Particles::Particle TwinParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype,
                                          const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                                          float scale)
@@ -159,8 +158,8 @@ template <typename Result> bool HasError(const Result& result, std::string_view 
     return !result.HasValue() && result.Error().starts_with(address);
 }
 
-// 0x51c186: el 0x114/0 saca un rand() (la escala) antes de cada uno de sus sesenta joints 0x5ac/0 (FlareJoints.cpp),
-// que sacan tres más al nacer (0x530cbc..0x530cfe); con los joints llenos, sesenta rand() y lo común.
+// 0x51c186: the 0x114/0 draws one rand() (the scale) before each of its sixty 0x5ac/0 joints (FlareJoints.cpp), which
+// draw three more at birth (0x530cbc..0x530cfe); with the joints full, sixty rand() and the common part.
 TEST(HighEffectFamiliesTest, TheFlareWaveDrawsOneScaleForEachOfItsSixtyJoints)
 {
     for (const bool full : {false, true})
@@ -196,7 +195,7 @@ TEST(HighEffectFamiliesTest, TheFlareWaveDrawsOneScaleForEachOfItsSixtyJoints)
     }
 }
 
-// 0x51db73: otro subtipo del 0x114 se queda con lo común, sin rand(); con la tabla llena, nada.
+// 0x51db73: another 0x114 subtype keeps only the common part, no rand(); with the table full, nothing.
 TEST(HighEffectFamiliesTest, AnotherWaveSubtypeKeepsOnlyTheCommonPart)
 {
     FamilyWorld tested;
@@ -215,8 +214,8 @@ TEST(HighEffectFamiliesTest, AnotherWaveSubtypeKeepsOnlyTheCommonPart)
     EXPECT_EQ(none.Value(), std::nullopt);
     EXPECT_EQ(full.Draws(), 0);
 }
-// 0x51c7a7..0x51c883: el 0x11b/1 de 0x439b20, sin rand(): vida 49, escala 2, los puntos y la partida en la posición y
-// los joints 0x618/0xa y /0xb con el efecto de dueño (ancho 30, cinco puntos); con los joints llenos, sin ellos.
+// 0x51c7a7..0x51c883: 0x439b20's 0x11b/1, no rand(): life 49, scale 2, the points and the start at the position, and
+// joints 0x618/0xa and /0xb owned by the effect (width 30, five points); with the joints full, without them.
 TEST(HighEffectFamiliesTest, TheRingLeavesItsTwoBeamsOnItsOwnPoints)
 {
     for (const bool full : {false, true})
@@ -261,8 +260,8 @@ TEST(HighEffectFamiliesTest, TheRingLeavesItsTwoBeamsOnItsOwnPoints)
     }
 }
 
-// 0x526507..0x5266e5: el paso del 0x11b/1 con dueño. Con 10 o más de vida, a más de 400 sobre el terreno baja (la x en
-// 5, la copiada en 0); los dos rand() de la sacudida y, con lugar, los de la partícula 0x5d9/5.
+// 0x526507..0x5266e5: the step of the 0x11b/1 with an owner. With life 10 or more, above 400 over the terrain it dives
+// (x at 5, the copied one at 0); the shake's two rand() and, with a slot, those of particle 0x5d9/5.
 TEST(HighEffectFamiliesTest, TheRingFollowsItsOwnerAndDivesFromHigh)
 {
     for (const bool full : {false, true})
@@ -304,8 +303,8 @@ TEST(HighEffectFamiliesTest, TheRingFollowsItsOwnerAndDivesFromHigh)
     }
 }
 
-// Sin la altura del terreno, el paso del 0x11b/1 con 10 o más de vida corta después de sus dos rand(); con menos, no la
-// pide: el alpha por 0,909f, +0x68 por 0,833f y la x 5 más.
+// Without the terrain height, the 0x11b/1's step with life 10 or more stops after its two rand(); with less, it does
+// not ask for it: alpha times 0.909f, +0x68 times 0.833f and x 5 more.
 TEST(HighEffectFamiliesTest, TheRingAsksForTheGroundOnlyWhileItIsYoung)
 {
     for (const int life : {10, 9})
@@ -326,11 +325,11 @@ TEST(HighEffectFamiliesTest, TheRingAsksForTheGroundOnlyWhileItIsYoung)
             continue;
         }
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        // El primer rand() del paso es la luz local; la sacudida, (8845 & 31) − 16 = −3 de cabeceo y (11882 & 31) − 16
-        // = −6 de giro. 0x4e9810 gira también el cabeceo hacia la partida, (0, 0, 200) desde el origen: 0x4e93f0(z, 0,
-        // 200, 0) da 90, 360 − 90 = 270 y 0x4e9560 lo lleva de 0 a 350 de a 10 (0x4e9647); la z, de 0 a 350 hacia 180.
-        // La copiada x en −3 · 0,2f se suma (349,4f, por encima de 80: sin los 5 de 0x52663d) y se frena por 0,6f; la
-        // copiada z en −6 · 0,8f se suma (345,2f) y se frena por 0,8f.
+        // The step's first rand() is the local light; the shake, (8845 & 31) − 16 = −3 of pitch and (11882 & 31) − 16 =
+        // −6 of turn. 0x4e9810 also turns the pitch toward the start, (0, 0, 200) from the origin: 0x4e93f0(z, 0, 200,
+        // 0) gives 90, 360 − 90 = 270 and 0x4e9560 takes it from 0 to 350 in steps of 10 (0x4e9647); z, from 0 to 350
+        // toward 180. The copied x at −3 · 0.2f is added (349.4f, above 80: without 0x52663d's 5) and slowed by 0.6f;
+        // the copied z at −6 · 0.8f is added (345.2f) and slowed by 0.8f.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.transform.angles.x), 0x43aeb333u);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.transform.angles.z), 0x43ac999au);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.copiedAngles.x), 0xbeb851ecu);
@@ -341,7 +340,7 @@ TEST(HighEffectFamiliesTest, TheRingAsksForTheGroundOnlyWhileItIsYoung)
     }
 }
 
-// 0x51c789: el 0x11b/0 vive 1 con escala 2,3f; el del joint 0x613/0x13 (CreateTheRingSpark) es el mismo.
+// 0x51c789: the 0x11b/0 lives 1 with scale 2.3f; the one of joint 0x613/0x13 (CreateTheRingSpark) is the same.
 TEST(HighEffectFamiliesTest, TheRingSparkLivesOneStep)
 {
     FamilyWorld tested;
@@ -351,9 +350,9 @@ TEST(HighEffectFamiliesTest, TheRingSparkLivesOneStep)
     EXPECT_EQ(tested.Draws(), 0);
 }
 
-// 0x525f6a..0x52603d: con vida 8, el 0x13f suelta dieciséis joints 0x60f/0x18 sin dueño, de ancho 90, en su posición
-// con la z 100 más, la x más rand() % 600 − 200 y la y más rand() % 600 − 400, con los ángulos (−10, 0, i · 10); con
-// los joints llenos, sólo esos treinta y dos rand().
+// 0x525f6a..0x52603d: at life 8, the 0x13f releases sixteen ownerless 0x60f/0x18 joints, width 90, at its position
+// with z 100 more, x plus rand() % 600 − 200 and y plus rand() % 600 − 400, with angles (−10, 0, i · 10); with the
+// joints full, only those thirty-two rand().
 TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
 {
     for (const bool full : {false, true})
@@ -370,7 +369,7 @@ TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
         const auto stepped = Client::Effects::StepHighModelEffect(call, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         FamilyWorld twin;
-        static_cast<void>(twin.random.Next()); // la luz local (0x5208c5)
+        static_cast<void>(twin.random.Next()); // the local light (0x5208c5)
         const auto& joints = tested.world->DrawTail().joints;
         for (int drop = 0; drop < 16; ++drop)
         {
@@ -398,8 +397,9 @@ TEST(HighEffectFamiliesTest, TheMeteorCallRainsSixteenDropsAtLifeEight)
     }
 }
 
-// 0x526042..0x5260b8: con vida 2, el 0x13f saca el giro (rand() % 360) y deja el 0x13d (0x526090) y el 0x13e (0x5260ad)
-// en su posición, con su luz y él de dueño (vida 120, escala 0,8f), y se apaga; con la tabla llena, sólo el giro.
+// 0x526042..0x5260b8: at life 2, the 0x13f draws the turn (rand() % 360) and leaves the 0x13d (0x526090) and the 0x13e
+// (0x5260ad) at its position, with its light and itself as owner (life 120, scale 0.8f), and dies; with the table
+// full, only the turn.
 TEST(HighEffectFamiliesTest, TheMeteorCallLeavesTheRockAndItsShellAtLifeTwo)
 {
     for (const bool full : {false, true})
@@ -440,7 +440,7 @@ TEST(HighEffectFamiliesTest, TheMeteorCallLeavesTheRockAndItsShellAtLifeTwo)
     }
 }
 
-// Una semilla que da `coin` en el tercer rand() (0x52612c): la luz local y el temblor van antes.
+// A seed that gives `coin` on the third rand() (0x52612c): the local light and the shake come first.
 std::uint32_t SeedWithCoin(int coin)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -453,9 +453,9 @@ std::uint32_t SeedWithCoin(int coin)
     }
 }
 
-// 0x5260bd..0x526207, el 0x13d sin BMD: la luz (v, v, v + 0,1) de radio 10 con v = FSIN(vida · π/120) · −0,5, el
-// temblor ((rand() & 3) − 2) · 0,1f y, con rand() & 1 en 0, la piedrita 0xc8 o 0xc9 a rand() % 150 + 300 girada
-// rand() % 360 en z, con sus cinco rand().
+// 0x5260bd..0x526207, the 0x13d without BMD: the light (v, v, v + 0.1) with radius 10 and v = FSIN(life · π/120) ·
+// −0.5, the shake ((rand() & 3) − 2) · 0.1f and, with rand() & 1 at 0, the small stone 0xc8 or 0xc9 at rand() % 150 +
+// 300 turned rand() % 360 in z, with its five rand().
 TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
 {
     for (const int coin : {0, 1})
@@ -515,7 +515,8 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
     }
 }
 
-// Sin la luz dinámica el 0x13d corta antes del temblor (0x5260fe); sin el temblor, después de su rand() (0x526126).
+// Without the dynamic light the 0x13d stops before the shake (0x5260fe); without the shake, after its rand()
+// (0x526126).
 TEST(HighEffectFamiliesTest, TheMeteorAsksForTheLightAndTheShake)
 {
     for (const bool lit : {false, true})
@@ -531,8 +532,8 @@ TEST(HighEffectFamiliesTest, TheMeteorAsksForTheLightAndTheShake)
     }
 }
 
-// Los rand() del 0x13d antes de sus huesos: la luz local, el temblor, la moneda y, con 0, los tres de la piedrita y
-// sus cinco.
+// The 0x13d's rand() before its bones: the local light, the shake, the coin and, with 0, the small stone's three and
+// its five.
 void ReplayTheMeteorPrefix(CrtRandom& replay)
 {
     static_cast<void>(replay.Next());
@@ -543,9 +544,9 @@ void ReplayTheMeteorPrefix(CrtRandom& replay)
         static_cast<void>(replay.Next());
 }
 
-// 0x52620f..0x526331: con el BMD, la pose del 0x13d en el buffer global (la acción publicada que se pasa de las del
-// modelo vuelve a 0) y un rand() % 12 por cada hueso que no es dummy; con 0, la 0x6ec/3 con el efecto de dueño
-// (0x5262e8) y la 0x5f2/0x15 sin dueño (0x526307) en el punto del hueso; con las partículas llenas, sólo los rand().
+// 0x52620f..0x526331: with the BMD, the 0x13d's pose in the global buffer (a published action past the model's goes
+// back to 0) and one rand() % 12 per non-dummy bone; with 0, the 0x6ec/3 owned by the effect (0x5262e8) and the
+// ownerless 0x5f2/0x15 (0x526307) at the bone's point; with the particles full, only the rand().
 TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
 {
     auto loaded = Client::Models::MakeSkeleton(Client::Tests::SampleModel());
@@ -569,7 +570,7 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
                         .HasValue());
         const auto sparked = Client::Effects::StepHighModelEffect(tested.Effect(0), &skeleton, tested.StepContext());
         ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
-        // Los rand() de las dos partículas por cada hueso que sale, en un pool aparte.
+        // The two particles' rand() for each bone that comes out, in a separate pool.
         CrtRandom replay(hit);
         ReplayTheMeteorPrefix(replay);
         auto twin = std::make_unique<Client::Particles::Particles>();
@@ -629,8 +630,8 @@ TEST(HighEffectFamiliesTest, TheMeteorSparksOverItsPosedBones)
     EXPECT_EQ(carry[1], expected[1]);
 }
 
-// Un dueño del 0x140 en el lugar 5: el hueso k sin giro y en (0, 0, k), su modelo con escala 1 y el origen en su
-// posición; el héroe (el lugar 0) en otro lado.
+// An owner of the 0x140 in slot 5: bone k unrotated and at (0, 0, k), its model with scale 1 and the origin at its
+// position; the hero (slot 0) elsewhere.
 ActorState& MarkOwner(FamilyWorld& tested)
 {
     ActorState& owner = tested.world->Actors()[5];
@@ -645,9 +646,9 @@ ActorState& MarkOwner(FamilyWorld& tested)
     return owner;
 }
 
-// 0x51e0cb..0x51e233: el 0x140 nace en el hueso 20 de su dueño, 60 más arriba, con el alpha en 0, la z de los ángulos
-// en 45, vida 130 y escala 3,2f, y suelta diez chispas 0x5c6/4 hacia él con tres rand() cada una; con las partículas
-// llenas, los mismos treinta rand() y ninguna. Sin dueño, corta.
+// 0x51e0cb..0x51e233: the 0x140 is born at its owner's bone 20, 60 higher, with alpha at 0, the angles' z at 45, life
+// 130 and scale 3.2f, and releases ten 0x5c6/4 sparks toward it with three rand() each; with the particles full, the
+// same thirty rand() and none. Without an owner, it stops.
 TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
 {
     for (const bool full : {false, true})
@@ -679,7 +680,7 @@ TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
         ASSERT_TRUE(sine.has_value());
         const auto& first = tested.world->Particles().All()[0];
         EXPECT_EQ(first.position.x, static_cast<float>(*sine + 1000.0));
-        // Referencia aparte (FSIN nativo con el perfil PC53): la x y la y de la primera chispa, en bits.
+        // Separate reference (native FSIN with the PC53 profile): the first spark's x and y, in bits.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.x), 0x44778b75u);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(first.position.y), 0x44f8261bu);
         EXPECT_EQ(first.position.z, 180.0f);
@@ -690,9 +691,9 @@ TEST(HighEffectFamiliesTest, TheGuildMarkRisesOverItsOwnerWithTenSparks)
     EXPECT_TRUE(HasError(CreateHighModelEffect({.type = 0x140}, ownerless.Context()), "0x51e0d8"));
 }
 
-// 0x529f0c..0x52a0aa: el paso del 0x140 sigue al hueso 20 del dueño (x e y en dueño − héroe + punto, la z a la mitad
-// hacia la meta si está debajo); entre 96 y 120 de vida el alpha sube 0,4f, sin girar mientras no llega a 1; con el
-// alpha en 1, la z de los ángulos 5 más. Sin dueño, la vida en 0 y se apaga en la cola.
+// 0x529f0c..0x52a0aa: the 0x140's step follows the owner's bone 20 (x and y at owner − hero + point, z halfway toward
+// the goal if below); between life 96 and 120 alpha rises 0.4f, without turning until it reaches 1; with alpha at 1,
+// the angles' z 5 more. Without an owner, life at 0 and it dies in the tail.
 TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
 {
     FamilyWorld tested;
@@ -722,12 +723,12 @@ TEST(HighEffectFamiliesTest, TheGuildMarkFollowsItsOwnerAndFadesIn)
     EXPECT_EQ(mark.life, -1);
 }
 
-// Las chispas del paso del 0x140: con la vida entre 121 y 124, cinco 0x5c5/6 con él de dueño (0x529f71, escala 1,5f),
-// que el paso de las partículas resuelve; entre 40 y 59, el giro, dos radios y la altura (cuatro rand()) y una 0x5c5/5
-// (0x52a16e, escala 2) también con él de dueño (el ebx de 0x52a134), que al nacer lee su posición para su partida
-// (0x5403ad) y saca dos rand(). Réplica en un pool gemelo con el mismo CrtRandom; el punto, desde el ASM (FSIN y FCOS
-// del giro por los radios enteros, retenidos, y ((z + 48) − vida) + altura). Con las partículas llenas, sólo los rand()
-// propios; por debajo de 50 el alpha baja 0,1f.
+// The 0x140 step's sparks: with life between 121 and 124, five 0x5c5/6 owned by it (0x529f71, scale 1.5f), which the
+// particle step resolves; between 40 and 59, the turn, two radii and the height (four rand()) and one 0x5c5/5
+// (0x52a16e, scale 2) also owned by it (0x52a134's ebx), which at birth reads its position for its start (0x5403ad)
+// and draws two rand(). Replayed in a twin pool with the same CrtRandom; the point, from the ASM (FSIN and FCOS of the
+// turn times the integer radii, retained, and ((z + 48) − life) + height). With the particles full, only its own
+// rand(); below 50 the alpha drops 0.1f.
 TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
 {
     for (const bool full : {false, true})
@@ -746,12 +747,12 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
             ModelEffect& mark = tested.Effect(0);
             mark.life = life;
             mark.alpha = 0.5f;
-            // Las 0x5c5/6 nacen donde estaba el 0x140 (0x529f5b, antes de seguir al hueso); la 0x5c5/5, después.
+            // The 0x5c5/6 are born where the 0x140 was (0x529f5b, before following the bone); the 0x5c5/5, after.
             const glm::vec3 before = mark.transform.position;
             CrtRandom replay = tested.random;
             const auto stepped = Client::Effects::StepHighModelEffect(mark, nullptr, tested.StepContext());
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            static_cast<void>(replay.Next()); // 0x5208c5, la luz del paso.
+            static_cast<void>(replay.Next()); // 0x5208c5, the step's light.
             const Client::Particles::ParticleOwner markOwner{Client::Particles::ParticleOwnerKind::ModelEffect, 0};
             auto twin = std::make_unique<Client::Particles::Particles>();
             if (full)
@@ -774,10 +775,10 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
                 const glm::vec3 point{static_cast<float>(*sine + static_cast<double>(at.x)),
                                       static_cast<float>(*cosine + static_cast<double>(at.y)),
                                       static_cast<float>(((static_cast<double>(at.z) + 48.0) - 45.0) + lift)};
-                // Con la semilla (treinta rand() del alta y el de la luz antes): giro 132, radios −4 y 6 y altura 1,
-                // con el 0x140 en (1100, 2100, 180). Los bits, calculados aparte con el emulador de la x87 (sin y cos
-                // exactos redondeados a 64 bits, producto por el radio y suma con RN a 53, fstp a 24): x =
-                // FSIN(132) · −4 + 1100, y = FCOS(132) · 6 + 2100 y z = ((180 + 48) − 45) + 1.
+                // With the seed (thirty creation rand() and the light's before): turn 132, radii −4 and 6 and height 1,
+                // with the 0x140 at (1100, 2100, 180). The bits, computed separately with the x87 emulator (exact sin
+                // and cos rounded to 64 bits, product by the radius and sum with RN at 53, fstp at 24): x = FSIN(132) ·
+                // −4 + 1100, y = FCOS(132) · 6 + 2100 and z = ((180 + 48) − 45) + 1.
                 EXPECT_EQ(turn, 132.0f);
                 EXPECT_EQ(side, -4);
                 EXPECT_EQ(depth, 6);
@@ -815,7 +816,7 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
                 EXPECT_EQ(particle.texture, 0x5c6);
                 if (subtype == 5)
                 {
-                    EXPECT_EQ(particle.start, at); // 0x5403ad: la posición del 0x140 al nacer.
+                    EXPECT_EQ(particle.start, at); // 0x5403ad: the 0x140's position at birth.
                     EXPECT_EQ(particle.scale, 2.0f);
                 }
             }
@@ -824,9 +825,9 @@ TEST(HighEffectFamiliesTest, TheGuildMarkSparksAtBirthAndBeforeFading)
     }
 }
 
-// 0x51cdc9..0x51cebe: el 0x125 sube 100, sortea el giro y el radio y deja el joint 0x6ee/0x12 con él de dueño y la
-// clave 0 en (FSIN(giro) · radio + x, FCOS(giro) · radio + y, 0); después los ángulos en (−30, 0, rand() % 360). El
-// 0x6ee/0x12 (SpiritJoints.cpp, 0x533539) no saca rand(): con lugar o con los joints llenos, tres rand().
+// 0x51cdc9..0x51cebe: the 0x125 rises 100, draws the turn and the radius and leaves joint 0x6ee/0x12 owned by it with
+// key 0 at (FSIN(turn) · radius + x, FCOS(turn) · radius + y, 0); then the angles at (−30, 0, rand() % 360). The
+// 0x6ee/0x12 (SpiritJoints.cpp, 0x533539) draws no rand(): with a slot or with the joints full, three rand().
 TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
 {
     for (const bool full : {false, true})
@@ -867,9 +868,9 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritLeavesItsOrbitingJoint)
     }
 }
 
-// 0x51ce4f..0x51ce7d: con la semilla, el giro 211 y el radio 645. FSIN y FCOS de 211 (radianes, no grados) con la
-// precisión de la x87, por el radio y más la x y la y en doble, guardados en float: los bits que da otra corrida
-// (Fraction exacta y el seno con 80 dígitos), no los de SineProductPC53. La z es 0.
+// 0x51ce4f..0x51ce7d: with the seed, turn 211 and radius 645. FSIN and FCOS of 211 (radians, not degrees) at x87
+// precision, times the radius plus x and y in double, stored as float: the bits another run gives (exact Fraction and
+// the sine with 80 digits), not SineProductPC53's. z is 0.
 TEST(HighEffectFamiliesTest, TheKundunJointLandsOnTheBitsOfTheOrbit)
 {
     FamilyWorld tested;
@@ -882,10 +883,10 @@ TEST(HighEffectFamiliesTest, TheKundunJointLandsOnTheBitsOfTheOrbit)
     EXPECT_EQ(joint.position.z, 0.0f);
 }
 
-// 0x539494..0x5394bb: el paso del 0x6ee/0x12 (después del movimiento común de 50 por sus ángulos y de su giro) le pone
-// al 0x125 el alpha en 1 con vida de más de 5 (con 5, no) y le copia su posición; después (0x5394be..0x5394fb) deja la
-// partícula 0x5f2/0x13 de escala 7 con la luz 1 en su posición y sigue a la cola (la vida, de 39 a 38). La partícula se
-// repite en un pool gemelo con el mismo CrtRandom.
+// 0x539494..0x5394bb: the 0x6ee/0x12's step (after the common move of 50 along its angles and its turn) sets the
+// 0x125's alpha to 1 with life above 5 (with 5, no) and copies its position to it; then (0x5394be..0x5394fb) it leaves
+// particle 0x5f2/0x13 with scale 7 and light 1 at its position and goes on to the tail (life, from 39 to 38). The
+// particle is repeated in a twin pool with the same CrtRandom.
 TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
 {
     for (const std::int32_t life : {6, 5})
@@ -904,7 +905,7 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(spirit.alpha, life > 5 ? 1.0f : 0.0f);
         EXPECT_EQ(spirit.transform.position, joints[0].position);
-        // Con los ángulos del pedido en 0, el movimiento común es (0, −50, 0).
+        // With the request's angles at 0, the common move is (0, −50, 0).
         EXPECT_EQ(joints[0].position, (glm::vec3{born.x, born.y - 50.0f, 0.0f}));
         EXPECT_EQ(joints[0].speed, 53.0f);
         EXPECT_EQ(joints[0].life, 38);
@@ -914,7 +915,7 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
         ASSERT_TRUE(flame.alive);
         EXPECT_EQ(flame.type, 0x5f2);
         EXPECT_EQ(flame.subtype, 0x13);
-        // La escala del pedido es 7; la de la partícula la sortea su alta (el gemelo la repite).
+        // The request's scale is 7; the particle's is drawn by its creation (the twin repeats it).
         EXPECT_EQ(flame.scale, twin.scale);
         EXPECT_EQ(flame.light, glm::vec3(1.0f));
         EXPECT_EQ(flame.position, twin.position);
@@ -927,12 +928,13 @@ TEST(HighEffectFamiliesTest, TheKundunJointShowsAndCarriesItsSpirit)
     }
 }
 
-// 0x539249..0x5392e6: el 0x613/0xf del 0x126 (vida 20, menos de 35) deja la 0x5d9/7 y, con rand() & 1 en 1, no suelta
-// nada; con dueño le pone al 0x126 la x y la y de los ángulos en 0, el alpha en 1 (vida de más de 5) y la posición del
-// joint más (FSIN(z) · k, −FCOS(z) · k, 0) con k = 30 · 0,1f + 30 en float (0x53929a); después el joint avanza con k
-// retenido. En (10, 20) y con la z de los ángulos del 0x126 en 29, z = 29 · 0,01745329f (0x3f0192c0) y el k en float
-// separa los dos: el 0x126 queda en x 0x41cffd5f y el joint en 0x41cffd60 (con el k retenido el 0x126 daría el del
-// joint); la y es 0xc10dcc99 en los dos. Los bits salen de una cuenta aparte (seno y coseno exactos a 64 bits).
+// 0x539249..0x5392e6: the 0x126's 0x613/0xf (life 20, under 35) leaves the 0x5d9/7 and, with rand() & 1 at 1, releases
+// nothing; with an owner it sets the 0x126's angles' x and y to 0, alpha to 1 (life above 5) and the position to the
+// joint's plus (FSIN(z) · k, −FCOS(z) · k, 0) with k = 30 · 0.1f + 30 in float (0x53929a); then the joint advances
+// with k retained. At (10, 20) and with the 0x126's angles' z at 29, z = 29 · 0.01745329f (0x3f0192c0) and the float k
+// separates the two: the 0x126 ends at x 0x41cffd5f and the joint at 0x41cffd60 (with the retained k the 0x126 would
+// give the joint's); y is 0xc10dcc99 in both. The bits come from a separate computation (exact sine and cosine at 64
+// bits).
 TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
 {
     std::uint32_t seed = 0;
@@ -977,7 +979,7 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     static_cast<void>(replay.Next());
     EXPECT_EQ(tested.random.State(), replay.State());
 
-    // Con la vida del 0x126 en 5, el alpha no cambia.
+    // With the 0x126's life at 5, the alpha does not change.
     phoenix.life = 5;
     phoenix.alpha = 0.25f;
     ASSERT_TRUE(Client::Joints::StepJoints(joints, tested.random, nullptr, &tested.world->Particles(), 0.0f, nullptr)
@@ -985,11 +987,11 @@ TEST(HighEffectFamiliesTest, TheKundunPhoenixJointCarriesItsPhoenix)
     EXPECT_EQ(phoenix.alpha, 0.25f);
 }
 
-// 0x5276b7..0x527787: el paso del 0x125 gira rand() % 10 + 10; entre 300 y 600 de z, con rand() & 1 en 0, el joint
-// 0x6ee/0xe sin dueño, de ancho 100 y clave 0, en (x, y, 350) con el giro (rand() % 24) · 30. Fuera de esa franja, un
-// solo rand(). Con la semilla, el alta saca tres rand() (con los joints llenos) y el paso empieza con el de la luz
-// local; con cuatro más antes del paso, el giro es el noveno (2629: 19), la moneda el décimo (22786, par) y el rayo el
-// undécimo (11018 % 24 = 2: 60 grados).
+// 0x5276b7..0x527787: the 0x125's step turns rand() % 10 + 10; between z 300 and 600, with rand() & 1 at 0, the
+// ownerless joint 0x6ee/0xe, width 100 and key 0, at (x, y, 350) with turn (rand() % 24) · 30. Outside that band, a
+// single rand(). With the seed, the creation draws three rand() (with the joints full) and the step starts with the
+// local light's; with four more before the step, the turn is the ninth (2629: 19), the coin the tenth (22786, even)
+// and the ray the eleventh (11018 % 24 = 2: 60 degrees).
 TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
 {
     for (const float height : {300.0f, 450.0f, 600.0f})
@@ -1021,16 +1023,16 @@ TEST(HighEffectFamiliesTest, TheKundunSpiritFansOutBetweenThreeAndSixHundred)
         EXPECT_EQ(fan.subtype, 0xe);
         EXPECT_EQ(fan.ownerContext, nullptr);
         EXPECT_EQ(fan.position, (glm::vec3{1000.0f, 2000.0f, 350.0f}));
-        // Pide los ángulos (0, 0, 60); el alta del 0x6ee/0xe pone la x en 20 (0x5334bb).
+        // It asks for angles (0, 0, 60); the 0x6ee/0xe's creation sets x to 20 (0x5334bb).
         EXPECT_EQ(fan.angles, (glm::vec3{20.0f, 0.0f, 60.0f}));
         EXPECT_EQ(fan.width, 100.0f);
         EXPECT_EQ(fan.key, 0);
     }
 }
 
-// 0x518f38..0x518f90: el 0x128/0 y el /1 viven 30, sin rand(); el /2 deja la vida en 40 y la clave en 0 y vuelve a
-// entrar en 0x518cf0 como el 0x127/0 (0x51cf6d) con él de dueño, su posición, sus ángulos y su luz, la clave en −1 y la
-// escala del caso (1,8f); con la tabla llena después del 0x128, sin el 0x127. Otro subtipo, sólo lo común.
+// 0x518f38..0x518f90: the 0x128/0 and the /1 live 30, no rand(); the /2 sets life to 40 and the key to 0 and re-enters
+// 0x518cf0 as the 0x127/0 (0x51cf6d) owned by it, with its position, angles and light, the key at −1 and the case's
+// scale (1.8f); with the table full after the 0x128, no 0x127. Another subtype, only the common part.
 TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3})
@@ -1076,7 +1078,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
         }
     }
     {
-        // El 0x128/2 en el último lugar libre: el 0x127 no encuentra otro y no nace.
+        // The 0x128/2 in the last free slot: the 0x127 finds no other and is not born.
         FamilyWorld tested;
         tested.FillTheEffects();
         tested.Effect(9).alive = false;
@@ -1088,7 +1090,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
                   0);
     }
 
-    // El alta de 0x43d051 y 0x43d0fd, sin el mundo: la misma; con la tabla llena, nada.
+    // The creation of 0x43d051 and 0x43d0fd, without the world: the same; with the table full, nothing.
     FamilyWorld tested;
     auto& effects = tested.world->Map().effects;
     const auto made = Client::Effects::CreateTheKundunCall(effects, {.type = 0x128, .subtype = 1});
@@ -1102,11 +1104,11 @@ TEST(HighEffectFamiliesTest, TheKundunCallLivesThirtyStepsOrCallsItsEcho)
     EXPECT_FALSE(Client::Effects::CreateTheKundunCall(effects, {.type = 0x125}).HasValue());
 }
 
-// 0x527ad6..0x527b4a: el paso del 0x128/0 con la vida en 30 suelta diez 0x126 (i = 0, 8, …, 72) en su posición, de
-// ángulos (0, 0, i + z + 320) con un solo fstp (con z = 15,3f, de 0x43a7a666 para i = 0 a 0x43cba666 para i = 72,
-// calculados aparte); cada 0x126 (0x51cebf) pone sus campos y, con los joints llenos, saca rand() % 5 para el frame.
-// Once rand() con el de la luz local. Con los joints libres, cada uno deja antes del frame su 0x613/0xf con él de
-// dueño (0x51cf45), sin rand(). Con la vida en 29, nada.
+// 0x527ad6..0x527b4a: the 0x128/0's step at life 30 releases ten 0x126 (i = 0, 8, …, 72) at its position, with angles
+// (0, 0, i + z + 320) in a single fstp (with z = 15.3f, from 0x43a7a666 for i = 0 to 0x43cba666 for i = 72, computed
+// separately); each 0x126 (0x51cebf) sets its fields and, with the joints full, draws rand() % 5 for the frame. Eleven
+// rand() with the local light's. With the joints free, each leaves its 0x613/0xf owned by it before the frame
+// (0x51cf45), no rand(). At life 29, nothing.
 TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
 {
     for (const bool full : {true, false})
@@ -1116,7 +1118,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
         if (full)
             tested.FillTheJoints();
         const glm::vec3 origin{1000.0f, 2000.0f, 149.0f};
-        const glm::vec3 angles{0.0f, 0.0f, std::bit_cast<float>(0x4174cccdu)}; // 15,3f
+        const glm::vec3 angles{0.0f, 0.0f, std::bit_cast<float>(0x4174cccdu)}; // 15.3f
         const glm::vec3 light{0.25f, 0.5f, 0.75f};
         ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .position = origin, .angles = angles, .light = light},
                                           tested.Context())
@@ -1126,7 +1128,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         if (!full)
         {
-            // Cada 0x126 deja su 0x613/0xf con él de dueño, sin rand() (0x5334c7), antes del rand() del frame.
+            // Each 0x126 leaves its 0x613/0xf owned by it, no rand() (0x5334c7), before the frame's rand().
             for (std::size_t phoenix = 0; phoenix < 10; ++phoenix)
             {
                 SCOPED_TRACE(phoenix);
@@ -1173,9 +1175,9 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTenPhoenixesAtLifeThirty)
     }
 }
 
-// 0x527b4f..0x527c22: el 0x128/1 con la vida en 30 suelta veinte 0x125 y, con la clave (+0x8a, MOVSX) entre 6 y 9,
-// uno más por paso; la clave sube una por paso desde el −1 del alta. Con los joints llenos cada 0x125 saca tres rand();
-// en los pasos 8 a 11 (clave 6 a 9), cuatro más. Con los joints libres, los mismos rand() y un 0x6ee/0x12 por 0x125.
+// 0x527b4f..0x527c22: the 0x128/1 at life 30 releases twenty 0x125 and, with the key (+0x8a, MOVSX) between 6 and 9,
+// one more per step; the key rises one per step from the creation's −1. With the joints full each 0x125 draws three
+// rand(); in steps 8 to 11 (key 6 to 9), four more. With the joints free, the same rand() and one 0x6ee/0x12 per 0x125.
 TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
 {
     FamilyWorld tested;
@@ -1205,7 +1207,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
     EXPECT_EQ(spirits(), 24);
     EXPECT_FALSE(call.alive);
 
-    // Con los joints libres, cada 0x125 deja su 0x6ee/0x12 con él de dueño (0x51ce91), sin rand() de más.
+    // With the joints free, each 0x125 leaves its 0x6ee/0x12 owned by it (0x51ce91), with no extra rand().
     FamilyWorld free;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x128, .subtype = 1}, free.Context()).HasValue());
     ASSERT_TRUE(Client::Effects::StepHighModelEffect(free.Effect(0), nullptr, free.StepContext()).HasValue());
@@ -1222,7 +1224,7 @@ TEST(HighEffectFamiliesTest, TheKundunCallSendsTwentySpiritsAndFourMore)
     EXPECT_FALSE(free.world->DrawTail().joints[20].alive);
 }
 
-// 0x527c27..0x527c51: el 0x128/2 con la clave en 0 y la vida debajo de 10 pone la clave en 1.
+// 0x527c27..0x527c51: the 0x128/2 with the key at 0 and life below 10 sets the key to 1.
 TEST(HighEffectFamiliesTest, TheKundunEchoRaisesItsKeyBelowLifeTen)
 {
     for (const std::int32_t life : {10, 9})
@@ -1239,7 +1241,7 @@ TEST(HighEffectFamiliesTest, TheKundunEchoRaisesItsKeyBelowLifeTen)
     }
 }
 
-// 0x52778c..0x5277a9: el 0x126 con la vida debajo de 5 pone el alpha en vida · 0,2f; con 5 o más, nada.
+// 0x52778c..0x5277a9: the 0x126 with life below 5 sets alpha to life · 0.2f; with 5 or more, nothing.
 TEST(HighEffectFamiliesTest, ThePhoenixFadesInItsLastFourSteps)
 {
     FamilyWorld tested;
@@ -1258,7 +1260,7 @@ TEST(HighEffectFamiliesTest, ThePhoenixFadesInItsLastFourSteps)
     EXPECT_EQ(tested.Draws(), 4);
 }
 
-// Las partículas del mundo `made` y las del pool gemelo `expected`, campo por campo.
+// `made` from the world and `expected` from the twin pool, field by field.
 void ExpectSameParticle(const Client::Particles::Particle& made, const Client::Particles::Particle& expected)
 {
     EXPECT_TRUE(made.alive);
@@ -1270,11 +1272,10 @@ void ExpectSameParticle(const Client::Particles::Particle& made, const Client::P
     EXPECT_EQ(made.scale, expected.scale);
 }
 
-// 0x51e397..0x51e3eb: el 0x5be de la habilidad 0x37 nace con vida 30, la luz en 0,8f, los ángulos copiados en (0, 0,
-// z + 45) (15,3f + 45 en un fstp: 0x42713333, calculado aparte) y la partida en la posición, sin rand(). El paso
-// (0x52a6d6..0x52a732) con la vida en 30 deja el joint 0x61c/0 en (x, y, z + 100) con los ángulos copiados, el dueño,
-// la clave y la skill del efecto y ancho 150, repetido en un pool gemelo con el mismo CrtRandom; con 29, sólo el rand()
-// de la luz local.
+// 0x51e397..0x51e3eb: skill 0x37's 0x5be is born with life 30, light at 0.8f, the copied angles at (0, 0, z + 45)
+// (15.3f + 45 in one fstp: 0x42713333, computed separately) and the start at the position, no rand(). The step
+// (0x52a6d6..0x52a732) at life 30 leaves joint 0x61c/0 at (x, y, z + 100) with the copied angles, the effect's owner,
+// key and skill and width 150, repeated in a twin pool with the same CrtRandom; at 29, only the local light's rand().
 TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
 {
     FamilyWorld tested;
@@ -1340,11 +1341,11 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     EXPECT_FALSE(tested.world->DrawTail().joints[1].alive);
 }
 
-// 0x51e529..0x51e569: el 0x5ca de la habilidad 0x11 nace con vida 20, la velocidad (0, −60, 0) y 100 más de z; el /1,
-// con escala 1,5f. El paso (0x52abbe..0x52ac75) con la vida en 17: el nivel 17 · 0,2f (0x4059999a) es el color del /0;
-// las partículas 0x5ca/0 (escala 1) y 0x5c6/0 (escala 4), repetidas en un pool gemelo; la luz (nivel · 0,2f; nivel ·
-// 0,4f; nivel) de radio 2 (0x3f2e147b y 0x3fae147b, calculados aparte). Con el dueño a más de 100 en el plano sigue;
-// a 100 justos, vivo y visto (0x518b60), la vida en 1 (la cola la deja en 0) y la 0x5c6/1 blanca de escala 6.
+// 0x51e529..0x51e569: skill 0x11's 0x5ca is born with life 20, speed (0, −60, 0) and z 100 more; the /1, with scale
+// 1.5f. The step (0x52abbe..0x52ac75) at life 17: level 17 · 0.2f (0x4059999a) is the /0's color; particles 0x5ca/0
+// (scale 1) and 0x5c6/0 (scale 4), repeated in a twin pool; the light (level · 0.2f; level · 0.4f; level) with radius 2
+// (0x3f2e147b and 0x3fae147b, computed separately). With the owner more than 100 away on the plane it goes on; at
+// exactly 100, alive and seen (0x518b60), life at 1 (the tail leaves it at 0) and the white 0x5c6/1 with scale 6.
 TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
 {
     for (const bool near : {false, true})
@@ -1395,8 +1396,8 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
     }
 }
 
-// El /1 del 0x5ca nace con escala 1,5f y suelta sus partículas en (1; 0,8f; 0,2f); un dueño que no es uno de los
-// personajes del mundo corta en 0x518b60 (0x518b7a), después de las partículas.
+// The 0x5ca's /1 is born with scale 1.5f and releases its particles at (1; 0.8f; 0.2f); an owner that is not one of
+// the world's characters stops at 0x518b60 (0x518b7a), after the particles.
 TEST(HighEffectFamiliesTest, TheOrangeEnergyBallAndTheOwnerOutsideTheWorld)
 {
     FamilyWorld tested;
@@ -1413,10 +1414,10 @@ TEST(HighEffectFamiliesTest, TheOrangeEnergyBallAndTheOwnerOutsideTheWorld)
     EXPECT_EQ(tested.world->Particles().All()[1].light, orange);
 }
 
-// 0x51e773..0x51e7d7: el 0x5da del 0x33 nace con vida 10 y (0, −60, 0) girado por sus ángulos más la posición, con 130
-// más de z: con los ángulos en 0, (100, 140, 430). El paso (0x52acc3..0x52b3b1): la partícula 0x5da/1 blanca de escala
-// 1 (repetida en un pool gemelo) y la luz (L; L · 0,6f; L · 0,3f) de radio 2, con L la luz local; sus bits, por cada
-// valor de rand() & 3, calculados aparte.
+// 0x51e773..0x51e7d7: the 0x33's 0x5da is born with life 10 and (0, −60, 0) rotated by its angles plus the position,
+// with z 130 more: with zero angles, (100, 140, 430). The step (0x52acc3..0x52b3b1): the white 0x5da/1 particle with
+// scale 1 (repeated in a twin pool) and the light (L; L · 0.6f; L · 0.3f) with radius 2, with L the local light; its
+// bits, for each value of rand() & 3, computed separately.
 TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
 {
     constexpr std::array<std::array<std::uint32_t, 3>, 4> Lights{{{0x3f333333u, 0x3ed70a3eu, 0x3e570a3eu},
@@ -1447,8 +1448,8 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
                     .HasValue());
     EXPECT_EQ(tested.lighting->cells, expected->cells);
     EXPECT_EQ(burst.life, 9);
-    // Con la z de los ángulos en 45 (0x5fc8f0: sen y cos de 45 · 0,0174533f en la x87, guardados en float), (0, −60, 0)
-    // girado da (60 · sen, −60 · cos, 0): la posición en (142,4264…; 157,5735…; 430), bits calculados aparte.
+    // With the angles' z at 45 (0x5fc8f0: sin and cos of 45 · 0.0174533f in the x87, stored as float), (0, −60, 0)
+    // rotated gives (60 · sin, −60 · cos, 0): the position at (142.4264…; 157.5735…; 430), bits computed separately.
     FamilyWorld turned;
     ASSERT_TRUE(CreateHighModelEffect({.type = Client::Effects::FlameBurstEffect,
                                        .position = {100.0f, 200.0f, 300.0f},
@@ -1462,7 +1463,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
     EXPECT_EQ(aimed.transform.angles, (glm::vec3{0.0f, 0.0f, 45.0f}));
 }
 
-// El 0x13a de la skill 0x2e en la tabla, como lo deja su alta (Scenes/ArrowEffects).
+// The skill 0x2e's 0x13a in the table, as its creation leaves it (Effects/ArrowEffects).
 ModelEffect& ArrowBlast(FamilyWorld& tested, void* target, std::int32_t subtype, std::int32_t life)
 {
     const auto slot = tested.world->Map().effects.Begin(
@@ -1475,10 +1476,10 @@ ModelEffect& ArrowBlast(FamilyWorld& tested, void* target, std::int32_t subtype,
     return blast;
 }
 
-// 0x529dee..0x529f07: el 0x13a baja 5 la x de los ángulos y 8 la y de la velocidad. Con la vida debajo de 2, el /0 y el
-// blanco de dueño: la x de los ángulos en 90, el /1 y los joints 0x632/2 y /3 sobre el blanco (rand() % 100 − 50 en x
-// y en y); con los joints llenos, esos dos rand() y la cola lo apaga; con lugar, los dos joints.
-// Con el /1, el lugar libre; un dueño fuera de los personajes del mundo corta (0x529e3e).
+// 0x529dee..0x529f07: the 0x13a lowers the angles' x by 5 and the speed's y by 8. With life below 2, the /0 and the
+// target as owner: the angles' x at 90, the /1 and joints 0x632/2 and /3 over the target (rand() % 100 − 50 in x and
+// y); with the joints full, those two rand() and the tail kills it; with a slot, both joints. With the /1, the slot
+// free; an owner outside the world's characters stops (0x529e3e).
 TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
 {
     {
@@ -1512,9 +1513,8 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
             EXPECT_EQ(tested.Draws(), 3);
             continue;
         }
-        // 0x529e62..0x529eed: la luz local, rand() % 100 − 50 en x, en y, la z 1200 más y los dos 0x632 (/2 y /3) con
-        // el 0x13a de dueño, ancho 50 y clave −1, repetidos en un pool gemelo con el mismo CrtRandom (un rand() cada
-        // uno).
+        // 0x529e62..0x529eed: the local light, rand() % 100 − 50 in x, in y, z 1200 more and the two 0x632 (/2 and /3)
+        // owned by the 0x13a, width 50 and key −1, repeated in a twin pool with the same CrtRandom (one rand() each).
         CrtRandom replay(Seed);
         static_cast<void>(replay.Next());
         const auto dx = static_cast<double>(replay.Next() % 100) - 50.0;
@@ -1566,7 +1566,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
         ModelEffect& blast = ArrowBlast(tested, &stranger, 0, 1);
         EXPECT_TRUE(HasError(Client::Effects::StepHighModelEffect(blast, nullptr, tested.StepContext()), "0x529e3e"));
         EXPECT_EQ(tested.Draws(), 1);
-        // 0x529e31 y 0x529e37 escriben antes de leer al dueño en 0x529e3e.
+        // 0x529e31 and 0x529e37 write before reading the owner at 0x529e3e.
         EXPECT_EQ(std::bit_cast<std::uint32_t>(blast.transform.angles.x), 0x42b40000u);
         EXPECT_EQ(blast.subtype, 1);
     }
@@ -1579,16 +1579,16 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
     }
 }
 
-// La altura del terreno de las pruebas de los pedazos.
 double FlatGround(float, float)
 {
     return 123.5;
 }
 
-// 0x51e234..0x51e348: los pedazos de la caída de Kundun por subtipo, con la altura del terreno en 123,5 y la clave en
-// −130 (−10 el /4): el /1 vive 100; el /2 y el /3, 500, con la partida en (x, y, 123,5 + 130 − 80) y la x copiada en
-// rand() % 2 (el /2, en 0); el /4, 170 con la partida en (x, y, 123,5 + 10) y la acción en 0; el /5, 170. Escala 2 y
-// la clave en 0xffff en todos. Sin la altura (CreateHighModelEffect), el /2 y el /4 cortan; otro tipo, también.
+// 0x51e234..0x51e348: the Kundun fall's pieces by subtype, with the terrain height at 123.5 and the key at −130 (−10
+// for the /4): the /1 lives 100; the /2 and the /3, 500, with the start at (x, y, 123.5 + 130 − 80) and the copied x
+// at rand() % 2 (the /2, at 0); the /4, 170 with the start at (x, y, 123.5 + 10) and the action at 0; the /5, 170.
+// Scale 2 and the key at 0xffff in all. Without the height (CreateHighModelEffect), the /2 and the /4 stop; another
+// type too.
 TEST(HighEffectFamiliesTest, TheKundunPiecesSettleByTheirSubtype)
 {
     for (std::int32_t subtype = 1; subtype <= 5; ++subtype)
@@ -1641,7 +1641,7 @@ TEST(HighEffectFamiliesTest, TheKundunPiecesSettleByTheirSubtype)
                          "0x518cf0"));
 }
 
-// Un pedazo de Kundun en la tabla, sin rand(): la caída lo crea con la altura del terreno.
+// A Kundun piece in the table, no rand(): the fall creates it with the terrain height.
 ModelEffect& KundunPiece(FamilyWorld& tested, std::int32_t subtype, std::int32_t life)
 {
     const auto made = Client::Effects::CreateTheKundunPiece(
@@ -1654,9 +1654,10 @@ ModelEffect& KundunPiece(FamilyWorld& tested, std::int32_t subtype, std::int32_t
     return piece;
 }
 
-// 0x52a5fe..0x52a683: el /1 baja el alpha 0,01f (1 − 0,01f: 0x3f7d70a4, calculado aparte); el /4 con 140 de vida o más
-// deja el frame en 0 y, con menos, baja el alpha y, por encima de la partida, 3,5 la z de la velocidad (−6 − 3,5:
-// 0xc1180000), o la deja en 0; el /5 con 150 o más deja el frame en 0 y, con menos, baja el alpha. Sólo la luz local.
+// 0x52a5fe..0x52a683: the /1 lowers alpha by 0.01f (1 − 0.01f: 0x3f7d70a4, computed separately); the /4 with life 140
+// or more sets the frame to 0 and, with less, lowers alpha and, above the start, the speed's z by 3.5 (−6 − 3.5:
+// 0xc1180000), or sets it to 0; the /5 with 150 or more sets the frame to 0 and, with less, lowers alpha. Only the
+// local light.
 TEST(HighEffectFamiliesTest, TheKundunShardsFadeAndSink)
 {
     const auto step = [](FamilyWorld& tested, ModelEffect& piece)
@@ -1699,8 +1700,8 @@ TEST(HighEffectFamiliesTest, TheKundunShardsFadeAndSink)
     EXPECT_EQ(sunk.velocity, glm::vec3(0.0f));
 }
 
-// La primera semilla desde `from` cuyo paso de un /3 que tiembla (el rand() de la luz local primero) saca 0 en
-// rand() % 2, después el giro, otra vez 0 en rand() % 2 y 0 en rand() % 3: los ángulos, el joint y la partícula.
+// The first seed from `from` whose step of a shaking /3 (the local light's rand() first) draws 0 in rand() % 2, then
+// the turn, again 0 in rand() % 2 and 0 in rand() % 3: the angles, the joint and the particle.
 std::uint32_t ShakingSeed(std::uint32_t from)
 {
     for (std::uint32_t seed = from;; ++seed)
@@ -1715,11 +1716,11 @@ std::uint32_t ShakingSeed(std::uint32_t from)
     }
 }
 
-// 0x52a4ab..0x52a5f9: el /3 con la vida desde (0x5e − +0x89) · 5 y más de 385 tiembla: con rand() % 2 en 0, unos
-// ángulos locales en (0, 0, rand() % 360) y, con otro rand() % 2 en 0, el joint 0x6ee/8 sin dueño con ellos (ancho 50,
-// clave 0); con rand() % 3 en 0, la partícula 0x5f5/2 con los ángulos del efecto, luz 0,5 y escala ((rand() & 31) +
-// 48) · 0,02f. El joint y la partícula,
-// repetidos en un mundo gemelo con el mismo CrtRandom; con los pools llenos, los mismos rand(). El /2 no tiembla.
+// 0x52a4ab..0x52a5f9: the /3 with life from (0x5e − +0x89) · 5 and above 385 shakes: with rand() % 2 at 0, local
+// angles at (0, 0, rand() % 360) and, with another rand() % 2 at 0, the ownerless joint 0x6ee/8 with them (width 50,
+// key 0); with rand() % 3 at 0, particle 0x5f5/2 with the effect's angles, light 0.5 and scale ((rand() & 31) + 48) ·
+// 0.02f. The joint and the particle, repeated in a twin world with the same CrtRandom; with the pools full, the same
+// rand(). The /2 does not shake.
 TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
 {
     const std::uint32_t seed = ShakingSeed(Seed);
@@ -1780,8 +1781,8 @@ TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
     EXPECT_EQ(DrawsSince(seed, rock.random), 1);
 }
 
-// 0x52a1ae..0x52a259: por debajo de (0x5e − +0x89) · 5 de vida y por encima de 350, con la velocidad en 0, la x y la y
-// en rand() % 2 · 2 − 2 y la z en 0; después, la z 6 menos.
+// 0x52a1ae..0x52a259: below life (0x5e − +0x89) · 5 and above 350, with the speed at 0, x and y at rand() % 2 · 2 − 2
+// and z at 0; then z 6 less.
 TEST(HighEffectFamiliesTest, TheFallingKundunPieceDrifts)
 {
     FamilyWorld tested;
@@ -1801,13 +1802,14 @@ TEST(HighEffectFamiliesTest, TheFallingKundunPieceDrifts)
     EXPECT_EQ(piece.velocity, (glm::vec3{x, y, -18.0f}));
 }
 
-// 0x52a26e..0x52a487: a 350 o menos, con la z de la velocidad distinta de −3, el golpe: sin Kalima, cien partículas
-// 0x6f4/2 (0x52a37d: giro, radio y giro de la partícula, tres rand() cada una, y los dos de su alta, 0x543d68) con
-// luz 0,3f, escala 1 y sin dueño, la 0x607/4 (x e y, y los dos de su alta, 0x542d75), la velocidad en (0, 0, −3) y el
-// balanceo (rand() % 3 + 1 menos con la x copiada en 0); con las partículas llenas, los trescientos rand() del lazo y
-// los dos de la 0x607/4. Ya en −3, sin golpe; con la x copiada en 1 y la x de los ángulos en 30, la copiada vuelve a 0
-// sin rand(); con menos de 100 de vida, el alpha 0,1f menos (0x3f666666). Lo esperado sale de kundun.py (0x52a26e..
-// 0x52a48a, 0x543d68 y 0x542d75 en una x87 aparte, con el FSIN y el FCOS del giro en grados tomados como radianes).
+// 0x52a26e..0x52a487: at 350 or less, with the speed's z other than −3, the strike: without Kalima, a hundred 0x6f4/2
+// particles (0x52a37d: turn, radius and the particle's turn, three rand() each, and its creation's two, 0x543d68) with
+// light 0.3f, scale 1 and no owner, the 0x607/4 (x and y, and its creation's two, 0x542d75), the speed at (0, 0, −3)
+// and the sway (rand() % 3 + 1 less with the copied x at 0); with the particles full, the loop's three hundred rand()
+// and the 0x607/4's two. Already at −3, no strike; with the copied x at 1 and the angles' x at 30, the copied one goes
+// back to 0 without rand(); with life under 100, alpha 0.1f less (0x3f666666). The expected values come from kundun.py
+// (0x52a26e..0x52a48a, 0x543d68 and 0x542d75 in a separate x87, with the turn's FSIN and FCOS in degrees taken as
+// radians).
 TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
 {
     {
@@ -1819,7 +1821,7 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
         ASSERT_EQ(piece.transform.position, (glm::vec3{1000.0f, 2000.0f, 300.0f}));
         const auto struck = Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext());
         ASSERT_TRUE(struck.HasValue()) << struck.Error();
-        // La luz local, cien de cinco, los cuatro de la 0x607/4 y el balanceo: 506.
+        // The local light, a hundred of five, the 0x607/4's four and the sway: 506.
         EXPECT_EQ(tested.random.State(), 0xafd45dbbu);
         EXPECT_EQ(tested.Draws(), 506);
         EXPECT_EQ(piece.transform.angles.x, -2.0f);
@@ -1827,8 +1829,8 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
         struct Debris
         {
             std::size_t slot;
-            std::array<std::uint32_t, 2> point; // x e y: sen y cos del giro por el radio, más la posición
-            float tilt;                         // 12,5 + rand() % 180
+            std::array<std::uint32_t, 2> point; // x and y: sin and cos of the turn times the radius, plus the position
+            float tilt;                         // 12.5 + rand() % 180
             float rotation;                     // rand() % 360
             float rise;                         // rand() % 5 + 10
         };
@@ -1861,8 +1863,8 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
             EXPECT_EQ(made.rotation, debris.rotation);
             EXPECT_EQ(made.velocity, (glm::vec3{0.0f, 0.0f, debris.rise}));
         }
-        // 0x52a38c..0x52a400: la 0x607/4 en (x + rand() % 40 − 20; y + rand() % 40 − 20; z − 50), con los ángulos del
-        // pedazo; su alta pisa la luz con 1 y le da vida 33 y escala (1 + 4) · 0,03f (0x3e199999).
+        // 0x52a38c..0x52a400: the 0x607/4 at (x + rand() % 40 − 20; y + rand() % 40 − 20; z − 50), with the piece's
+        // angles; its creation overwrites the light with 1 and gives it life 33 and scale (1 + 4) · 0.03f (0x3e199999).
         const auto& dust = particles[100];
         ASSERT_TRUE(dust.alive);
         EXPECT_EQ(dust.type, 0x607);
@@ -1881,7 +1883,7 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     piece.transform.angles = {0.0f, 0.0f, 12.5f};
     piece.copiedAngles.x = 0.0f;
     ASSERT_TRUE(Client::Effects::StepHighModelEffect(piece, nullptr, tested.StepContext()).HasValue());
-    // 1 + 300 + 2 y el balanceo (kundun.py).
+    // 1 + 300 + 2 and the sway (kundun.py).
     EXPECT_EQ(tested.random.State(), 0x6076eb51u);
     EXPECT_EQ(tested.Draws(), 1 + 300 + 2 + 1);
     EXPECT_EQ(piece.velocity, (glm::vec3{0.0f, 0.0f, -3.0f}));
@@ -1898,9 +1900,9 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     EXPECT_EQ(piece.transform.angles.x, 30.0f);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(piece.alpha), 0x3f666666u);
 
-    // 0x52a37d..0x52a400 ya en el suelo (la z de la velocidad en −3), con lugar en el pool: después de la luz local,
-    // rand() % 40 − 20 en x, después en y, la z 50 menos y la 0x607/4 con sus ángulos (vida 39, escala 0x3e570a3d y
-    // luz 1, de su alta); después el balanceo, 3 (kundun.py).
+    // 0x52a37d..0x52a400 already on the ground (the speed's z at −3), with a slot in the pool: after the local light,
+    // rand() % 40 − 20 in x, then in y, z 50 less and the 0x607/4 with its angles (life 39, scale 0x3e570a3d and light
+    // 1, from its creation); then the sway, 3 (kundun.py).
     FamilyWorld landed;
     ModelEffect& rock = KundunPiece(landed, 3, 300);
     rock.byte89 = 4;
@@ -1926,8 +1928,8 @@ TEST(HighEffectFamiliesTest, TheKundunPieceStrikesTheGroundOnce)
     EXPECT_EQ(rock.transform.angles.x, 2.0f);
 }
 
-// 0x5277ae..0x5277d6: el 0x127 con su 0x128/2 de dueño: con la clave del 0x128 en 0, el frame en 0; si no, se queda
-// sin dueño. Sólo la luz local.
+// 0x5277ae..0x5277d6: the 0x127 with its 0x128/2 as owner: with the 0x128's key at 0, the frame at 0; otherwise it is
+// left without an owner. Only the local light.
 TEST(HighEffectFamiliesTest, TheKundunEchoWaitsForItsCall)
 {
     FamilyWorld tested;
@@ -1950,7 +1952,7 @@ TEST(HighEffectFamiliesTest, TheKundunEchoWaitsForItsCall)
     EXPECT_EQ(tested.Draws(), 2);
 }
 
-// El 0x127 sin dueño, como lo deja la vuelta de su 0x128/2.
+// The ownerless 0x127, as the return of its 0x128/2 leaves it.
 ModelEffect& LooseEcho(FamilyWorld& tested, const glm::vec3& position, float frame)
 {
     const auto slot = tested.world->Map().effects.Begin(
@@ -1962,9 +1964,9 @@ ModelEffect& LooseEcho(FamilyWorld& tested, const glm::vec3& position, float fra
     return echo;
 }
 
-// 0x527808..0x5278ae: el 0x127 sin dueño con el frame pasado 6 sube la clave y la z clave · 0,8f (con la clave de 4 a 5
-// y la z en 100: 0x42d00000, calculado aparte) y deja tres 0x5f2/0x14 blancas de escala 10 en la posición con rand() %
-// 120 − 60 en x e y y rand() % 60 en z, repetidas en un pool gemelo.
+// 0x527808..0x5278ae: the ownerless 0x127 with the frame past 6 raises the key and z by key · 0.8f (with the key from
+// 4 to 5 and z at 100: 0x42d00000, computed separately) and leaves three white 0x5f2/0x14 with scale 10 at the
+// position with rand() % 120 − 60 in x and y and rand() % 60 in z, repeated in a twin pool.
 TEST(HighEffectFamiliesTest, TheLooseKundunEchoRisesInSmoke)
 {
     FamilyWorld tested;
@@ -1986,10 +1988,10 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoRisesInSmoke)
     EXPECT_EQ(tested.random.State(), replay.State());
 }
 
-// 0x5278b3..0x527ad1: con el frame hasta 6, +0x89 de 9 a 10; la z de los ángulos de 44,9f a 47,9f y de vuelta
-// (0x423f999a y 0x4233999a); hacia el héroe en (2000, 2000), la x y la y 2 más (0x44964000 y 0x44c84000); el 0xc2/0
-// con la clave 0 a ±600, repetido en un mundo gemelo; la escala 1,8f + 0,02f (0x3fe8f5c2) y el temblor (rand() % 8 −
-// 8) · 0,1f, con sus ocho valores calculados aparte. Sin el temblor o sin el héroe en el pool, corta.
+// 0x5278b3..0x527ad1: with the frame up to 6, +0x89 from 9 to 10; the angles' z from 44.9f to 47.9f and back
+// (0x423f999a and 0x4233999a); toward the hero at (2000, 2000), x and y 2 more (0x44964000 and 0x44c84000); the 0xc2/0
+// with key 0 at ±600, repeated in a twin world; scale 1.8f + 0.02f (0x3fe8f5c2) and the shake (rand() % 8 − 8) ·
+// 0.1f, with its eight values computed separately. Without the shake or without the hero in the pool, it stops.
 TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
 {
     constexpr std::array<std::uint32_t, 8> Shakes{0xbf4ccccdu, 0xbf333333u, 0xbf19999au, 0xbf000000u,

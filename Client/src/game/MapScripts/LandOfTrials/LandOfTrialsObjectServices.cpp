@@ -27,7 +27,7 @@ namespace Client::MapScripts::LandOfTrials
 namespace
 {
 constexpr int EmitChance = 3;
-// 0x68b18ac: el hueso 3 del buffer global de la pose (0x68b181c + 3 · 0x30).
+// 0x68b18ac: bone 3 of the global pose buffer (0x68b181c + 3 · 0x30).
 constexpr std::size_t SpriteBone = 3;
 constexpr std::uint16_t FlareTexture = 0x5ac; // Effect\flare01.jpg.
 constexpr std::uint16_t ShinyTexture = 0x5fd; // Effect\Shiny02.jpg.
@@ -59,12 +59,12 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
 // 0x440263..0x440346.
 Core::Expected<void, std::string> Sprites(const WorldObjects::GameObjectPass& pass)
 {
-    // 0x4ec110(0x68b18ac, (0, −10, 0), salida, 0).
+    // 0x4ec110(0x68b18ac, (0, −10, 0), out, 0).
     const auto point = WorldObjects::ObjectBonePoint(pass, SpriteBone, glm::vec3(0.0f, -10.0f, 0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
-    // 0x44028f..0x4402d7: el reloj por 0,002f (0x6b89bc), FSIN, por 0,35f (0x6b8bc4), más 0,65f (0x6b8bc0),
-    // por 1,2f (0x6b8bb0) y más 0,3f (0x6b89dc), en la x87 hasta el fstp de la escala.
+    // 0x44028f..0x4402d7: the clock times 0.002f (0x6b89bc), FSIN, times 0.35f (0x6b8bc4), plus 0.65f (0x6b8bc0),
+    // times 1.2f (0x6b8bb0) and plus 0.3f (0x6b89dc), on the x87 up to the scale's fstp.
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
     constexpr float Swing = std::bit_cast<float>(0x3eb33333u);
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f266666u));
@@ -76,11 +76,11 @@ Core::Expected<void, std::string> Sprites(const WorldObjects::GameObjectPass& pa
     const float scale = static_cast<float>(((*pulse + Base) * Stretch) + Lift);
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::string("0x4402e0: falta el pool de sprites de los objetos del 31"));
-    // 0x5491e0(textura, punto, escala, luz, dueño, giro, 0): MuRet no guarda el dueño del sprite (Q-C303).
+    // 0x5491e0(texture, point, scale, light, owner, rotation, 0): MuRet does not keep the sprite's owner (Q-C303).
     const glm::vec3 red(1.0f, 0.0f, 0.0f);
     static_cast<void>(pass.sprites->Create(FlareTexture, point.Value(), scale, red, 0.0f, 0));
     static_cast<void>(pass.sprites->Create(FlareTexture, point.Value(), SecondFlareScale, red, 0.0f, 0));
-    // 0x44031b: el giro sale después de los dos primeros, sin dueño.
+    // 0x44031b: the rotation is drawn after the first two, with no owner.
     const float rotation = static_cast<float>(pass.random->Next() % FullTurn);
     static_cast<void>(pass.sprites->Create(ShinyTexture, point.Value(), ShinyScale, glm::vec3(ShinyGrey), rotation, 0));
     return {};
@@ -97,8 +97,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects
     switch (object.type)
     {
     case 3:
-        // 0x440355: con rand() % 3 en 0, 0x53fe70(0x6f2, …, 3, escala, 0); el subtipo es el divisor que quedó
-        // en ECX.
+        // 0x440355: with rand() % 3 at 0, 0x53fe70(0x6f2, …, 3, scale, 0); the subtype is the divisor left in ECX.
         if (pass.random->Next() % EmitChance != 0)
             return {};
         return Emit(pass, object, Particles::WaterfallSplashFirst, Particles::TrialsSplashSubtype, "0x440392");
@@ -116,8 +115,8 @@ Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects
 Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(const WorldObjects::WorldObject& object,
                                                                             const glm::vec3& color, float worldClock)
 {
-    // 0x6b8ac4 (0,0012f) para el 0x1b y el 0x36, 0x6b8bc8 (0,0009f) para el 0x34; 0x6b882c (0,5f) y
-    // 0x6b8a1c (0,9f) para los dos.
+    // 0x6b8ac4 (0.0012f) for the 0x1b and the 0x36, 0x6b8bc8 (0.0009f) for the 0x34; 0x6b882c (0.5f) and
+    // 0x6b8a1c (0.9f) for both.
     constexpr double FastRate = static_cast<double>(std::bit_cast<float>(0x3a9d4952u));
     constexpr double SlowRate = static_cast<double>(std::bit_cast<float>(0x3a6bedfau));
     constexpr float Swing = 0.5f;
@@ -136,7 +135,7 @@ Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(cons
         address = "0x440446";
         break;
     case 0xa:
-        // 0x4403ed: sin restaurarlo; el próximo objeto lo recibe de 0x5ffce0.
+        // 0x4403ed: without restoring it; the next object receives it from 0x5ffce0.
         return std::optional(
             TrialsBodyDraw{glm::vec3(std::bit_cast<float>(0x3f0f5c29u), std::bit_cast<float>(0x3f4ccccdu),
                                      std::bit_cast<float>(0x3f4f5c29u)),
@@ -149,7 +148,7 @@ Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(cons
     if (!pulse)
         return Core::Unexpected(std::format("{}: el pulso del {:#x} del 31 no cabe en el perfil PC53", address,
                                             static_cast<int>(object.type)));
-    // La suma queda en la x87 y cada canal se guarda de su producto.
+    // The sum stays on the x87 and each channel is stored from its product.
     const double level = *pulse + Base;
     TrialsBodyDraw body;
     body.twice = twice;

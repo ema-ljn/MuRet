@@ -29,7 +29,7 @@ namespace Client::Weather
 {
 namespace
 {
-// Selectores de 637082..6370e5 y de la cadena de creadores de 5305b3.
+// Selectors of 0x637082..0x6370e5 and of the creator chain of 0x5305b3.
 using Maps::AtlansMap;
 using Maps::DeviasMap;
 using Maps::LorenciaMap;
@@ -48,7 +48,7 @@ constexpr std::int32_t CrywolfEffectState = 2;
 constexpr std::size_t CrywolfRainCount = 60;
 constexpr std::size_t CrywolfEffectCount = 50;
 constexpr std::int32_t RainTexture = 102;
-// 52fc10/52fd20 y los creadores 52f6b0/52f880, en unidades del mundo.
+// 0x52fc10/0x52fd20 and the creators 0x52f6b0/0x52f880, in world units.
 constexpr int BirthXSpan = 1600;
 constexpr int BirthXCenter = 800;
 constexpr int BirthYSpan = 1400;
@@ -85,7 +85,7 @@ constexpr double SpinStep = static_cast<double>(0.02f);
 constexpr double MaximumTravelSquared = 200000.0;
 constexpr float SplashHeight = 10;
 
-// Adapta el perfil retenido ya usado por el kernel de clima (ADR0014).
+// Adapts the retained profile already used by the weather kernel (ADR0014).
 class RetainedWaveEvaluator final : public Weather::ILeafWaveEvaluator
 {
 public:
@@ -194,7 +194,7 @@ void SpawnRain(Weather::Leaf& leaf, GameLeafContext& context, bool eventRain)
     BirthPosition(leaf, context, BirthHeightSpan, RainHeightBase);
     const bool inclined = context.random.Next() % 2 != 0;
     const auto slope = static_cast<std::uint32_t>(context.random.Next() % RainSlopeSpan);
-    // SUB y LEA de 32 bits; el clima puede haber recibido valores fuera del rango nominal.
+    // 32-bit SUB and LEA; the weather may have received values outside the nominal range.
     const auto slopeBits =
         inclined ? 0u - InclinedRainSlopeBase - slope - static_cast<std::uint32_t>(context.weather.secondWave)
                  : 0u - RainSlopeBase - slope;
@@ -223,7 +223,7 @@ Core::Expected<void, std::string> Spawn(Weather::Leaf& leaf, GameLeafContext& co
         Weather::SpawnDriftingLeaf(leaf, FallingWorld(context), context.random);
     else if (context.map == IcarusMap)
     {
-        // 52fc25: multiplicación 32 bits por 200 y división signed por 100.
+        // 0x52fc25: 32-bit multiplication by 200 and signed division by 100.
         const auto product = static_cast<std::uint32_t>(context.weather.current) * IntensityScale;
         const auto limit = std::bit_cast<std::int32_t>(product) / IntensityDivisor;
         if (static_cast<std::int32_t>(slot) < limit)
@@ -233,8 +233,8 @@ Core::Expected<void, std::string> Spawn(Weather::Leaf& leaf, GameLeafContext& co
         SpawnSnow(leaf, context);
     else if (context.map == SpecialLeafMap)
         return SpawnGameLeafCloud(leaf, context, false);
-    // 4292c0 (33/54) sólo consulta el rectángulo puro 425090, descarta su resultado y
-    // devuelve false. No hay creador ni efecto: continúa hasta el final con los campos retenidos.
+    // 0x4292c0 (33/54) only queries the pure rectangle 0x425090, discards its result and returns false. There is no
+    // creator or effect: it goes on to the end with the retained fields.
     else if (context.map == CrywolfMap && *context.crywolfState == CrywolfEffectState)
         return SpawnGameLeafCloud(leaf, context, true);
     return {};
@@ -265,7 +265,7 @@ void Flutter(Weather::Leaf& leaf, GameLeafContext& context)
     const double x = static_cast<double>(leaf.start.x) - leaf.position.x;
     const double y = static_cast<double>(leaf.start.y) - leaf.position.y;
     const double z = static_cast<double>(leaf.start.z) - leaf.position.z;
-    // El NaN también conserva la hoja (`test ah, 1` en 530383).
+    // NaN also keeps the leaf (`test ah, 1` at 0x530383).
     if (z * z + y * y + x * x >= MaximumTravelSquared)
         leaf.alive = false;
 }
@@ -295,7 +295,7 @@ Core::Expected<void, std::string> StepRain(Weather::Leaf& leaf, GameLeafContext&
         leaf.position[axis] = F32(static_cast<double>(leaf.velocity[axis]) + leaf.position[axis]);
     const double height = Terrain::TerrainHeightAt(context.heights, context.attributes, leaf.position.x,
                                                    leaf.position.y, context.fixedHeight);
-    // 53010e guarda primero la altura en binary32; los otros dos conservan el intermedio.
+    // 0x53010e stores the height in binary32 first; the other two keep the intermediate.
     const double ground = eventRain ? static_cast<double>(F32(height)) : height;
     const bool hit = ground > static_cast<double>(leaf.position.z) ||
                      (eventRain && (std::isnan(ground) || std::isnan(leaf.position.z)));
@@ -303,7 +303,7 @@ Core::Expected<void, std::string> StepRain(Weather::Leaf& leaf, GameLeafContext&
         return {};
     if (eventRain)
     {
-        // 5f82c0 conserva el wrap de DIRECCIÓN, no envuelve cada coordenada de celda.
+        // 0x5f82c0 keeps the ADDRESS wrap; it does not wrap each cell coordinate.
         BorrowedAttributeQuery source(context.attributes);
         const auto attribute = Terrain::TerrainAttributeQueryAt(source, leaf.position.x, leaf.position.y);
         if (!attribute.HasValue())

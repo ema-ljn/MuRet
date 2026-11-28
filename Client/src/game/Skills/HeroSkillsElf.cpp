@@ -52,11 +52,11 @@ constexpr std::uint8_t PlayerObject = 1;
 constexpr std::int32_t SummonForbiddenMap = 10;
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0.01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
 using Terrain::CellSize;                                                          // [0x6b86b4], 100
 constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});       // [0x6b86b0], 50
-constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
+constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1.2
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {
@@ -68,9 +68,9 @@ bool IsPlayer(const Kernel::ActorState& actor)
     return actor.type == Tables::PlayerSkeletonModel;
 }
 
-// 0x57e162..0x57e1b1 y 0x57f9d1..0x57fa1c: el arma de tiro del héroe publicado (los CMP de WORD con signo): la derecha
-// (+0x2b8) de 0xa1a a 0xa20, la izquierda (+0x2d8) de 0xa12 a 0xa18, 0xa23, 0xa26 o 0xa27, o la derecha de 0xa22 a
-// 0xc11.
+// 0x57e162..0x57e1b1 and 0x57f9d1..0x57fa1c: the published hero's ranged weapon (the signed WORD CMPs): the right
+// (+0x2b8) from 0xa1a to 0xa20, the left (+0x2d8) from 0xa12 to 0xa18, 0xa23, 0xa26 or 0xa27, or the right from 0xa22
+// to 0xc11.
 bool HoldsTheElfWeapon(const Kernel::ActorState& published)
 {
     const auto right = static_cast<std::int16_t>(published.hands[0].model);
@@ -82,9 +82,9 @@ bool HoldsTheElfWeapon(const Kernel::ActorState& published)
     return InRange(right, 0xa22, 0xc11);
 }
 
-// 0x57e1c4..0x57e21e (el límite en la x87), 0x57f044..0x57f092 y 0x5809a2..0x5809e7 (el límite guardado en un float,
-// [ebp−0x34]): la distancia del héroe al centro de la celda 0x77e1ba8/0x77e1bac contra el alcance · 100. Menor, igual
-// o desordenado (C0 o C3) está en alcance.
+// 0x57e1c4..0x57e21e (the limit on the x87), 0x57f044..0x57f092 and 0x5809a2..0x5809e7 (the limit stored in a float,
+// [ebp−0x34]): the distance from the hero to the center of cell 0x77e1ba8/0x77e1bac against the reach · 100. Less,
+// equal or unordered (C0 or C3) is in reach.
 bool InReach(const Kernel::ActorState& hero, const Movement::GameMovementState& state, bool storedLimit)
 {
     const auto targetX = std::bit_cast<std::int32_t>(state.targetX);
@@ -114,7 +114,7 @@ struct SkillCell
     std::uint8_t y = 0;
 };
 
-// La celda lógica del héroe: la Y (+0x420) antes que la X (+0x41c), 4 + 4 rand().
+// The hero's logical cell: Y (+0x420) before X (+0x41c), 4 + 4 rand().
 SkillCell ReadTheHeroCell(Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     const std::uint8_t y = ReadTheSkillCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -169,8 +169,8 @@ Core::Expected<Kernel::ActorState*, std::string> ElfBranch::ActorAt(std::int32_t
     return &m_world.Actors()[static_cast<std::size_t>(index)];
 }
 
-// El C1 06 19 en línea con la clave del jugador (0x57f2fe.., 0x57fadb.. y 0x58021d..): sin "webzen" en el héroe
-// publicado y con el freno (que con la 0x28 no frena y anota igual).
+// The inline C1 06 19 with the player key (0x57f2fe.., 0x57fadb.. and 0x58021d..): without "webzen" in the published
+// hero and with the brake (which with 0x28 does not brake and records anyway).
 Core::Expected<void, std::string> ElfBranch::SendTheMagicAttack(std::string_view brake)
 {
     if (HasTheSilentName(m_world))
@@ -183,7 +183,7 @@ Core::Expected<void, std::string> ElfBranch::SendTheMagicAttack(std::string_view
     return {};
 }
 
-// 0x57d790..0x57e12a: true si sigue a 0x57ce80, con el registro propio ya cerrado.
+// 0x57d790..0x57e12a: true if it continues to 0x57ce80, with the own record already closed.
 Core::Expected<bool, std::string> ElfBranch::PassesTheHead()
 {
     const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random, Models::OwnRecordCloseRandoms);
@@ -191,7 +191,7 @@ Core::Expected<bool, std::string> ElfBranch::PassesTheHead()
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());
     const Kernel::OwnCharacterRecord& record = m_world.OwnCharacter();
-    // 0x57d808..0x57d854: JLE con signo contra +0x24; sin el maná, la poción y nada.
+    // 0x57d808..0x57d854: signed JLE against +0x24; without the mana, the potion and nothing.
     if (static_cast<std::int32_t>(cost.Value().mana) > static_cast<std::int32_t>(record.mana))
     {
         if (auto potion = UseAManaPotion(m_context, "0x57d837"); !potion.HasValue())
@@ -201,14 +201,14 @@ Core::Expected<bool, std::string> ElfBranch::PassesTheHead()
     // 0x57df9c..0x57dfa7.
     if (static_cast<std::int32_t>(cost.Value().stamina) > static_cast<std::int32_t>(record.bp))
         return false;
-    // 0x57dfff..0x57e018: la espera de la skill del lugar del héroe publicado.
+    // 0x57dfff..0x57e018: the delay of the published hero's slot skill.
     const SkillDelayContext delays{.world = m_world, .random = m_context.random, .skills = m_context.skills};
     const auto ready = TryStartSkillDelay(Published().skillIndex, delays);
     if (!ready.HasValue())
         return Core::Unexpected(ready.Error());
     if (!ready.Value())
         return false;
-    // 0x57e070..0x57e095: JLE con signo contra +0x30 + +0x1e.
+    // 0x57e070..0x57e095: signed JLE against +0x30 + +0x1e.
     const auto energy = SkillEnergyRequirement(m_skill, delays);
     if (!energy.HasValue())
         return Core::Unexpected(energy.Error());
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> ElfBranch::Use()
         return Core::Unexpected(head.Error());
     if (!head.Value())
         return {};
-    // 0x57e12a..0x57e130: el resultado no lo mira nadie.
+    // 0x57e12a..0x57e130: nobody checks the result.
     if (auto aimed = AimTheHeroSkill(m_hero, m_context); !aimed.HasValue())
         return Core::Unexpected(aimed.Error());
     // 0x57e130..0x57e150.
@@ -236,7 +236,7 @@ Core::Expected<void, std::string> ElfBranch::Use()
     return UseByReach();
 }
 
-// 0x57f252..0x57f9af: las invocaciones. En el mapa 10 o de 18 a 23 (0x6c9dd0), nada.
+// 0x57f252..0x57f9af: the summons. On map 10 or 18 to 23 (0x6c9dd0), nothing.
 Core::Expected<void, std::string> ElfBranch::Summon()
 {
     const std::int32_t map = m_runtime.map;
@@ -248,7 +248,7 @@ Core::Expected<void, std::string> ElfBranch::Summon()
     return SetTheHitAction(m_hero, CombatContextOf(m_context));
 }
 
-// 0x57e14d..0x57f005: la 0x34. Cualquier "no" sigue en 0x57f008, sin 0x4f4a10.
+// 0x57e14d..0x57f005: skill 0x34. Any "no" continues at 0x57f008, without 0x4f4a10.
 Core::Expected<void, std::string> ElfBranch::Shoot()
 {
     if (!IsPlayer(m_hero) || !HoldsTheElfWeapon(Published()))
@@ -262,7 +262,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
         return Core::Unexpected(arrows.Error());
     if (!arrows.Value() || !InReach(m_hero, m_state, false))
         return {};
-    // 0x57e224..0x57e25d: el rumbo hacia +0x3a8 y la clave de 0x558eb0 con 0x7758588, o 0xffff sin él.
+    // 0x57e224..0x57e25d: the heading towards +0x3a8 and the key of 0x558eb0 with 0x7758588, or 0xffff without it.
     m_hero.angles.z = static_cast<float>(
         Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
     std::uint16_t key = Protocol::Skills::NoSkillTargetKey;
@@ -276,7 +276,7 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
     }
     if (!HasTheSilentName(m_world))
     {
-        // 0x57e2c8..0x57ef4e: 0x5767948 y el 1E con la celda lógica (la Y antes que la X).
+        // 0x57e2c8..0x57ef4e: 0x5767948 and the 1E with the logical cell (Y before X).
         m_context.world.Runtime().lastShotSkill = ShotSkill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = LowByteOf(static_cast<double>(m_hero.angles.z) * static_cast<double>(DirectionScale));
@@ -286,14 +286,14 @@ Core::Expected<void, std::string> ElfBranch::Shoot()
                            Protocol::Skills::WriteDurationMagic(
                                {.skill = ShotSkill, .x = cell.x, .y = cell.y, .direction = *direction, .key = key}));
     }
-    // 0x57ef5f..0x57ef71: 0x4f4a10. La flecha de 0x53e2b0 (0x57ef77..0x57f002) es de quien no es un jugador, que
-    // 0x57e156 ya dejó afuera.
+    // 0x57ef5f..0x57ef71: 0x4f4a10. The arrow of 0x53e2b0 (0x57ef77..0x57f002) belongs to a non-player, which 0x57e156
+    // already left out.
     return Combat::SetActorAttack(m_hero, CombatContextOf(m_context));
 }
 
-// 0x4eac00(X, Y, x, y, +0x3e8, distancia) desde la celda lógica del héroe (la Y y la X, 8 rand()). Con camino, +0x378
-// en 1 y, con `withType`, +0x379 en 5. Sin camino, nada. Con la meta fuera de 0..255, que PathFinding2 toma como índice
-// lineal, MuRet descarta el camino después de las lecturas, como sin camino (08, P-C256).
+// 0x4eac00(X, Y, x, y, +0x3e8, distance) from the hero's logical cell (Y and X, 8 rand()). With a path, +0x378 at 1
+// and, with `withType`, +0x379 at 5. Without a path, nothing. With the goal outside 0..255, which PathFinding2 takes as
+// a linear index, MuRet drops the path after the reads, as with no path (08, P-C256).
 Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std::int32_t goalY, float distance,
                                                         bool withType, std::string_view where)
 {
@@ -304,7 +304,7 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::format("{}: falta TerrainWall para el camino de la skill", where));
-    // 0x4eac0a..0x4eac41: la bandera del altar de Crywolf, que con la distancia distinta de 0 no cuenta (0x4eadd4).
+    // 0x4eac0a..0x4eac41: the Crywolf altar flag, which does not count with a nonzero distance (0x4eadd4).
     const auto path =
         Actors::FindThePath(m_world, terrain.attributes->cells, {start.x, start.y},
                             {static_cast<std::uint8_t>(goalX), static_cast<std::uint8_t>(goalY)}, distance);
@@ -317,7 +317,7 @@ Core::Expected<void, std::string> ElfBranch::WalkToward(std::int32_t goalX, std:
     return {};
 }
 
-// 0x57f008..0x57fa3f: las demás por el alcance.
+// 0x57f008..0x57fa3f: the others by reach.
 Core::Expected<void, std::string> ElfBranch::UseByReach()
 {
     const std::int32_t chosen = m_runtime.selectedTargets[2];
@@ -327,7 +327,7 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
             Movement::WeaponSkillRequest{.active = 1, .slot = Published().skillIndex, .target = chosen};
     if (!InReach(m_hero, m_state, true))
     {
-        // 0x57f098..0x57f15e: el camino hasta un jugador elegido (+0x88 en 1), con las 0x1a a 0x1c o atacable.
+        // 0x57f098..0x57f15e: the path to a chosen player (+0x88 at 1), with 0x1a to 0x1c or attackable.
         if (chosen != -1)
         {
             bool walks = InRange(m_skill, 0x1a, 0x1c);
@@ -357,8 +357,8 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
         if (!InRange(m_skill, 0x43, 0x47) && m_skill != Skill4c)
             return {};
     }
-    // 0x57f18a..0x57f1ef: la línea de vista desde la celda del héroe (la Y y la X). La que sale de TerrainWall
-    // (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
+    // 0x57f18a..0x57f1ef: the line of sight from the hero's cell (Y and X). MuRet takes the line that leaves
+    // TerrainWall (0x55886d reads past the 65536 WORDs) as no line (08, P-C256).
     const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(m_context.terrain);
     if (!terrain.attributes)
@@ -372,10 +372,10 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
         const auto target = ActorAt(m_runtime.selectedTargets[2], "0x57f211");
         if (!target.HasValue())
             return Core::Unexpected(target.Error());
-        // 0x57f203..0x57f251: las 0x1a a 0x1c sobre un jugador, 0x55faa0 y nada más.
+        // 0x57f203..0x57f251: 0x1a to 0x1c on a player, 0x55faa0 and nothing more.
         if (target.Value()->byte88 == PlayerObject && InRange(m_skill, 0x1a, 0x1c))
             return UseTheElfSkillOnItsTarget(m_hero, m_hero, m_context);
-        // 0x57f9b0..0x57fa25: las 0x33 y 0x2e de un jugador con el arma, sobre un atacable, y sigue.
+        // 0x57f9b0..0x57fa25: a player's 0x33 and 0x2e with the weapon, on an attackable target, and it continues.
         const auto attackable = Attackable();
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
@@ -386,7 +386,7 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
                 return reached;
         }
     }
-    // 0x57fa28..0x57fa3f: la skill − 0x1a por las tablas 0x599dac y 0x599d9c.
+    // 0x57fa28..0x57fa3f: the skill − 0x1a through tables 0x599dac and 0x599d9c.
     switch (m_skill)
     {
     case 0x1a:
@@ -402,7 +402,7 @@ Core::Expected<void, std::string> ElfBranch::UseByReach()
     }
 }
 
-// 0x57fa46..0x580187: las 0x1a a 0x1c, de cualquier tipo: el 19 con la clave del jugador y 0x4f5290, y nada más.
+// 0x57fa46..0x580187: 0x1a to 0x1c, of any type: the 19 with the player key and 0x4f5290, and nothing more.
 Core::Expected<void, std::string> ElfBranch::CastTheSupport()
 {
     if (auto sent = SendTheMagicAttack("0x57fabc"); !sent.HasValue())
@@ -410,7 +410,7 @@ Core::Expected<void, std::string> ElfBranch::CastTheSupport()
     return SetTheHitAction(m_hero, CombatContextOf(m_context));
 }
 
-// 0x580188..0x5808d3: la 0x35, como las 0x1a a 0x1c, con +0x378 en 0; sigue en 0x5808da.
+// 0x580188..0x5808d3: skill 0x35, like 0x1a to 0x1c, with +0x378 at 0; continues at 0x5808da.
 Core::Expected<void, std::string> ElfBranch::CastThe35()
 {
     if (auto sent = SendTheMagicAttack("0x5801f6"); !sent.HasValue())
@@ -421,11 +421,11 @@ Core::Expected<void, std::string> ElfBranch::CastThe35()
     return UseTheSharedTail(m_hero, m_skill, m_context);
 }
 
-// 0x58097a..0x581877: la 0x4c. La celda de +0x3a8 (ftol · 0,01) es la meta del camino; en alcance (el límite del
-// float de 0x57f087) y con el elegido atacable, la posición relativa (0x4e9920), sin elegido +0x434 en −1; si no, el
-// ángulo, la espera (0x552990), la clave (0x558eb0), +0x434 y el 1E con la clave mágica; después, +0x378 en 0 y, en
-// un jugador, 0x4e9c50. Si no, sin elegido 0x6c8e38 en −1; con él, el camino hasta el alcance · 1,2 (sin +0x379).
-// Todo sigue en 0x5808da.
+// 0x58097a..0x581877: skill 0x4c. The cell of +0x3a8 (ftol · 0.01) is the path's goal; in reach (the float limit of
+// 0x57f087) and with the chosen target attackable, the relative position (0x4e9920), with no chosen target +0x434 at
+// −1; otherwise the angle, the delay (0x552990), the key (0x558eb0), +0x434 and the 1E with the magic key; then +0x378
+// at 0 and, on a player, 0x4e9c50. Otherwise, with no chosen target 0x6c8e38 at −1; with one, the path up to the reach
+// · 1.2 (without +0x379). Everything continues at 0x5808da.
 Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
 {
     const auto aimX =
@@ -450,14 +450,14 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
             m_runtime.selectedTargets[4] = -1;
             return UseTheSharedTail(m_hero, m_skill, m_context);
         }
-        // 0x58182f..0x581848: FMUL y FSTP a un float de la pila.
+        // 0x58182f..0x581848: FMUL and FSTP to a float on the stack.
         const auto reach =
             static_cast<float>(static_cast<double>(m_state.selectedSkillRange) * static_cast<double>(WalkReach));
         if (auto walked = WalkToward(*aimX, *aimY, reach, false, "0x581853"); !walked.HasValue())
             return walked;
         return UseTheSharedTail(m_hero, m_skill, m_context);
     }
-    // 0x5809fa..0x580a1a: los ftol de +0x3ac y +0x3a8 sin escalar.
+    // 0x5809fa..0x580a1a: the ftol of +0x3ac and +0x3a8, unscaled.
     const auto wholeY = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.y));
     const auto wholeX = Math::OriginalFtolLow(static_cast<double>(m_hero.attackPosition.x));
     if (!wholeX || !wholeY)
@@ -486,8 +486,8 @@ Core::Expected<void, std::string> ElfBranch::CastTheSkill4c()
     m_hero.skillTarget4c = chosen;
     if (!HasTheSilentName(m_world))
     {
-        // 0x580af3..0x5817a5: 0x5767948, la celda lógica (la Y y la X), el rumbo, la celda relativa en el byte 8 y la
-        // clave mágica (0x57cf90 en línea, con +0x1bd).
+        // 0x580af3..0x5817a5: 0x5767948, the logical cell (Y and X), the heading, the relative cell in byte 8 and the
+        // magic key (0x57cf90 inline, with +0x1bd).
         m_context.world.Runtime().lastShotSkill = m_skill;
         const SkillCell cell = ReadTheHeroCell(m_hero, m_context);
         const auto direction = LowByteOf(static_cast<double>(m_hero.angles.z) * static_cast<double>(DirectionScale));

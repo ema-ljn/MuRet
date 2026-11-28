@@ -39,10 +39,9 @@
 #include <utility>
 #include <vector>
 
-// El caso 5 de 0x5650c0 (0x56601f..0x566754, CL9 hito 4, fase 2c): el héroe llega con +0x379 en 5 y usa la skill del
-// arma pendiente (0x7758580..0x7758588). El héroe en el lugar 0 en (182, 115), el blanco en el lugar 5 en (184, 117)
-// con la clave 0x0a1b, el alcance 4 en un Skill.bmd inventado. Cada caso contra la llamada directa (0x55cbc0, 0x55b6f0
-// o 0x55faa0) después de los mismos rand(), en Lorencia (0), Devias (2) y Blood Castle (11, el mapa de 0x55b6f0).
+// Case 5 of 0x5650c0 (0x56601f..0x566754): the hero arrives with +0x379 at 5 and uses the pending weapon skill
+// (0x7758580..0x7758588). Each case against the direct call (0x55cbc0, 0x55b6f0 or 0x55faa0) after the same rand(), in
+// Lorencia (0), Devias (2) and Blood Castle (11, the map of 0x55b6f0).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,9 +51,9 @@ constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
 constexpr int SendDraws = 2;
-// La skill (el registro propio) y su alcance (0x5526f0, la entrada de Skill.bmd).
+// The skill (the own record) and its range (0x5526f0, the Skill.bmd entry).
 constexpr int SkillDraws = OwnDraws + EntryDraws;
-// La celda lógica del héroe: la Y y la X.
+// The hero's logical cell: the Y and the X.
 constexpr int HeroCellDraws = 2 * CellDraws;
 constexpr std::size_t TargetSlot = 5;
 constexpr std::uint16_t TargetKey = 0x0a1b;
@@ -70,7 +69,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Skill.bmd con el alcance (+0x26) de cada skill.
+// Skill.bmd with the range (+0x26) of every skill.
 Client::Tables::SkillTable SkillsWithRange(std::uint8_t range)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -143,7 +142,7 @@ struct ArrivingHero
                 .tickCount = [this] { return ticks; },
                 .sendSkill = [this](Client::Protocol::Outgoing outgoing) { Send(std::move(outgoing)); }};
     }
-    // El mismo contexto para llamar directo a 0x55cbc0, 0x55b6f0 o 0x55faa0.
+    // The same context, to call 0x55cbc0, 0x55b6f0 or 0x55faa0 directly.
     HeroSkillContext Direct()
     {
         return {.world = world,
@@ -179,8 +178,8 @@ std::unique_ptr<ArrivingHero> Arriving(std::uint8_t skill, std::int32_t map, std
 
 using DirectCall = std::function<Client::Core::Expected<void, std::string>(ArrivingHero&)>;
 
-// La llegada contra la llamada directa después de `before` rand() y con la celda del blanco ya anotada: los mismos
-// rand(), los mismos bytes y el mismo héroe.
+// The arrival against the direct call after `before` rand() and with the target's cell already stored: the same
+// rand(), the same bytes and the same hero.
 void ExpectTheDirectCall(std::uint8_t skill, std::int32_t map, int before, const DirectCall& call,
                          const std::function<void(ArrivingHero&)>& prepare = {})
 {
@@ -229,8 +228,8 @@ Client::Core::Expected<void, std::string> ElfOnItsTarget(ArrivingHero& hero)
     return Client::Skills::UseTheElfSkillOnItsTarget(hero.Hero(), hero.Hero(), hero.Direct());
 }
 
-// 0x56629a..0x5663b7: 1 a 4, 7, 0xb, 0x11, 0x2d y 0x49 en alcance (· 100) y a la vista: 0x55cbc0(héroe, héroe) después
-// de la skill, el alcance y la celda del héroe. La 1: el 19 con la clave del blanco y el D3 con el rumbo nuevo.
+// 0x56629a..0x5663b7: 1 to 4, 7, 0xb, 0x11, 0x2d and 0x49 in range (· 100) and in sight: 0x55cbc0(hero, hero) after the
+// skill, the range and the hero's cell. Skill 1: the 19 with the target's key and the D3 with the new heading.
 TEST(HeroArrivalSkillTest, TheFirstGroupGoesTo55cbc0)
 {
     for (const std::int32_t map : {0, 2})
@@ -249,8 +248,8 @@ TEST(HeroArrivalSkillTest, TheFirstGroupGoesTo55cbc0)
     EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
 }
 
-// 0x566143..0x5661fc: 0x13 a 0x17, 0x2b, 0x2c, 0x31, 0x39, 0x3c, 0x3d y 0x4a en alcance (· 120,0000076):
-// 0x55b6f0(héroe, héroe) sin la celda del héroe ni la línea de vista. La 0x2f, solo con el héroe publicado en Uniria
+// 0x566143..0x5661fc: 0x13 to 0x17, 0x2b, 0x2c, 0x31, 0x39, 0x3c, 0x3d and 0x4a in range (· 120.0000076):
+// 0x55b6f0(hero, hero) without the hero's cell or line of sight. 0x2f only with the published hero on Uniria
 // (0x56612e).
 TEST(HeroArrivalSkillTest, TheSecondGroupGoesTo55b6f0WithoutLookingAtTheWalls)
 {
@@ -259,12 +258,12 @@ TEST(HeroArrivalSkillTest, TheSecondGroupGoesTo55b6f0WithoutLookingAtTheWalls)
         for (const std::uint8_t skill : {std::uint8_t{0x13}, std::uint8_t{0x2c}, std::uint8_t{0x3c}})
             ExpectTheDirectCall(skill, map, SkillDraws, AtTheTarget);
     }
-    // Una pared entre los dos no cambia nada.
+    // A wall between them changes nothing.
     ExpectTheDirectCall(0x13, 0, SkillDraws, AtTheTarget,
                         [](ArrivingHero& hero) { hero.terrain.attributes->cells[(116u << 8) + 183u] = 4; });
     ExpectTheDirectCall(0x2f, 2, SkillDraws, AtTheTarget,
                         [](ArrivingHero& hero) { hero.Hero().pet.model = UniriaModel; });
-    // La 0x13: el D3, la acción, el brillo y el 19 con la clave del blanco.
+    // 0x13: the D3, the action, the glow and the 19 with the target's key.
     {
         const auto tested = Arriving(0x13, 0);
         ASSERT_TRUE(tested->Arrive().HasValue());
@@ -272,7 +271,7 @@ TEST(HeroArrivalSkillTest, TheSecondGroupGoesTo55b6f0WithoutLookingAtTheWalls)
         EXPECT_EQ(tested->Sent(0)[2], 0xd3);
         EXPECT_EQ(tested->Sent(1), (std::vector<std::uint8_t>{0xc1, 0x06, 0x19, 0x13, 0x0a, 0x1b}));
     }
-    // Sin Uniria, la 0x2f no hace nada.
+    // Without Uniria, 0x2f does nothing.
     const auto tested = Arriving(0x2f, 0);
     const CrtRandom expected = Advanced(tested->random, SkillDraws);
     ASSERT_TRUE(tested->Arrive().HasValue());
@@ -281,8 +280,8 @@ TEST(HeroArrivalSkillTest, TheSecondGroupGoesTo55b6f0WithoutLookingAtTheWalls)
     EXPECT_EQ(tested->Movement().targetX, 0u);
 }
 
-// 0x56642c..0x56654f y 0x5665c3..0x5666e0: la 0x2e y la 0x33, y las 0x1a a 0x1c, en alcance y a la vista: 0x55faa0.
-// El D3 con el rumbo de antes (0: 0x10) y el 19 con la clave del blanco.
+// 0x56642c..0x56654f and 0x5665c3..0x5666e0: 0x2e and 0x33, and 0x1a to 0x1c, in range and in sight: 0x55faa0. The D3
+// with the previous heading (0: 0x10) and the 19 with the target's key.
 TEST(HeroArrivalSkillTest, TheElfSkillsGoTo55faa0)
 {
     for (const std::int32_t map : {0, 2})
@@ -291,8 +290,8 @@ TEST(HeroArrivalSkillTest, TheElfSkillsGoTo55faa0)
              {std::uint8_t{0x1a}, std::uint8_t{0x1c}, std::uint8_t{0x2e}, std::uint8_t{0x33}})
             ExpectTheDirectCall(skill, map, SkillDraws + HeroCellDraws, ElfOnItsTarget);
     }
-    // La 0x1b: la skill, el alcance, la celda del héroe, la del publicado y el registro propio de 0x55faa0, el 19 y
-    // 0x4f5290 (0x4f3f80, el registro propio).
+    // 0x1b: the skill, the range, the hero's cell, the published one's and the own record of 0x55faa0, the 19 and
+    // 0x4f5290 (0x4f3f80, the own record).
     const auto tested = Arriving(0x1b, 2);
     const CrtRandom expected =
         Advanced(tested->random, SkillDraws + HeroCellDraws + HeroCellDraws + OwnDraws + SendDraws + OwnDraws);
@@ -304,7 +303,7 @@ TEST(HeroArrivalSkillTest, TheElfSkillsGoTo55faa0)
     EXPECT_EQ(tested->Hero().animation.action, 0x92);
 }
 
-// 0x56609c..0x5660b1: sin el byte de 0x7758580, 0x7758584 es la skill; el registro propio se abre igual.
+// 0x56609c..0x5660b1: without the byte at 0x7758580, 0x7758584 is the skill; the own record is opened anyway.
 TEST(HeroArrivalSkillTest, WithoutTheActiveByteTheSlotIsTheSkill)
 {
     const auto tested = Arriving(0x13, 0);
@@ -314,15 +313,15 @@ TEST(HeroArrivalSkillTest, WithoutTheActiveByteTheSlotIsTheSkill)
     ASSERT_TRUE(tested->Arrive().HasValue());
     EXPECT_EQ(tested->random.State(), expected.State());
     EXPECT_TRUE(tested->sent.empty());
-    // Una skill de más de un byte no está en Skill.bmd.
+    // A skill wider than one byte is not in Skill.bmd.
     tested->Movement().weaponSkill.slot = 0x113;
     const auto cut = tested->Arrive();
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x566108"), std::string::npos) << cut.Error();
 }
 
-// Las salidas: el blanco en −1 o muriéndose (+0x389) después del alcance; la 0x1a sin la línea de vista después de la
-// celda del héroe; el blanco fuera del pool corta.
+// The exits: the target at −1 or dying (+0x389) after the range; 0x1a without line of sight after the hero's cell; the
+// target outside the pool cuts.
 TEST(HeroArrivalSkillTest, TheEarlyExitsDoNothing)
 {
     for (const std::int32_t map : {0, 2})
@@ -357,9 +356,9 @@ TEST(HeroArrivalSkillTest, TheEarlyExitsDoNothing)
     EXPECT_NE(cut.Error().find("0x56615b"), std::string::npos) << cut.Error();
 }
 
-// 0x56620d..0x566299: fuera de alcance, el camino de PathFinding2 hasta el alcance desde la celda del héroe (la Y y la
-// X), · 1,2 en un float con 0x55b6f0; con él, +0x378 en 1 y +0x379 sigue en 5. El alcance 5 y el blanco diez celdas
-// al este, en (192, 115): el 5 y el 6 terminan en celdas distintas.
+// 0x56620d..0x566299: out of range, the PathFinding2 path to the range from the hero's cell (the Y and the X), · 1.2 in
+// a float with 0x55b6f0; with it, +0x378 to 1 and +0x379 stays at 5. Range 5 and the target ten cells east, at
+// (192, 115): the 5 and the 6 end in different cells.
 TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
 {
     struct Probe
@@ -399,9 +398,9 @@ TEST(HeroArrivalSkillTest, OutOfReachTheHeroWalksIntoReach)
     EXPECT_NE(near->count, far->count);
 }
 
-// P-C256: fuera de alcance, el blanco con la celda fuera de 0..255 (que PathFinding2, 0x566272, toma como índice
-// lineal) no lleva camino: después de leer la Y y la X del héroe, el camino se descarta sin cortar. En alcance, la
-// línea de vista que sale de TerrainWall (0x56639d → 0x55886d, la celda 256 de la fila 255) se toma como sin línea.
+// P-C256: out of range, a target with its cell outside 0..255 (which PathFinding2, 0x566272, takes as a linear index)
+// gets no path: after reading the hero's Y and X, the path is discarded without cutting. In range, the line of sight
+// that leaves TerrainWall (0x56639d → 0x55886d, cell 256 of row 255) is taken as no line.
 TEST(HeroArrivalSkillTest, ACellOffTheGridDiscardsTheWalkAndTheLine)
 {
     for (const std::int32_t map : {0, 2})
@@ -434,8 +433,8 @@ TEST(HeroArrivalSkillTest, ACellOffTheGridDiscardsTheWalkAndTheLine)
     }
 }
 
-// 0x5661e8 y sus pares: en alcance pero en la zona segura, el camino en lugar de la skill, sin envíos; con el héroe ya
-// en alcance, PathFinding2 no da un camino de dos celdas y no camina (Q-C1217).
+// 0x5661e8 and its pairs: in range but in the safe zone, the path instead of the skill, without sends; with the hero
+// already in range, PathFinding2 gives no two-cell path and does not walk (Q-C1217).
 TEST(HeroArrivalSkillTest, InTheSafeZoneTheHeroWalksInstead)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x1}, std::uint8_t{0x13}, std::uint8_t{0x33}})
@@ -455,7 +454,7 @@ TEST(HeroArrivalSkillTest, InTheSafeZoneTheHeroWalksInstead)
     }
 }
 
-// Las skills fuera de las tablas (0x5, 0x34, 0x43) y la 0: la skill y el alcance, y nada más.
+// The skills outside the tables (0x5, 0x34, 0x43) and 0: the skill and the range, and nothing else.
 TEST(HeroArrivalSkillTest, TheOtherSkillsDoNothing)
 {
     for (const std::uint8_t skill : {std::uint8_t{0}, std::uint8_t{0x5}, std::uint8_t{0x34}, std::uint8_t{0x43}})

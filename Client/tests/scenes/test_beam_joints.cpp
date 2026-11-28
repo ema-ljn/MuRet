@@ -26,8 +26,7 @@
 #include <utility>
 #include <vector>
 
-// El 0x618 (BeamJoints.cpp): el alta 0x532125..0x5323ce y el paso 0x5381f3..0x538704, con los subtipos que el lote de
-// joints de la CL11 agregó a la /0, /1, /2, /3, /4 y /0x11 de antes.
+// The 0x618 (BeamJoints.cpp): creation 0x532125..0x5323ce and step 0x5381f3..0x538704.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -93,9 +92,10 @@ struct BeamWorld
     std::vector<std::int32_t> sounds;
 };
 
-// 0x532238..0x5322c9 y 0x5322cc..0x5323ce: los que siguen al dueño nacen quietos, con vida 999.999.999, en su +0x40 o
-// su +0x4c, con los puntos y la luz de su subtipo, sin rand(). 0x530a32..0x530a55: la /0xa, /0xb, /0xe y /0xf nacen
-// con la cuenta en −1 y sin el primer tramo (0x530afa), así que el punto 0 conserva lo del lugar; las otras, en 0.
+// 0x532238..0x5322c9 and 0x5322cc..0x5323ce: those that follow the owner are created still, with life 999999999, at
+// its +0x40 or its +0x4c, with their subtype's points and light, without rand(). 0x530a32..0x530a55: the /0xa, /0xb,
+// /0xe and /0xf are created with the count at −1 and without the first segment (0x530afa), so point 0 keeps the
+// slot's; the others, at 0.
 TEST(BeamJointsTest, TheFollowersBornOnTheirOwnersPoint)
 {
     struct Case
@@ -140,8 +140,8 @@ TEST(BeamJointsTest, TheFollowersBornOnTheirOwnersPoint)
     }
 }
 
-// 0x53820e..0x53830e: la /8 sigue el +0x40 y ensancha 10,1f; la /0xb sigue el +0x4c del efecto. Con el dueño muerto,
-// se apaga y sale del paso sin la cola ni la vida.
+// 0x53820e..0x53830e: the /8 follows the +0x40 and widens 10.1f; the /0xb follows the effect's +0x4c. With the owner
+// dead, it turns off and leaves the step without the tail or life.
 TEST(BeamJointsTest, TheFollowersTrackTheirOwnerUntilItDies)
 {
     BeamWorld tested;
@@ -156,7 +156,7 @@ TEST(BeamJointsTest, TheFollowersTrackTheirOwnerUntilItDies)
     EXPECT_EQ(tested.joints[0].width, static_cast<float>(20.0 + static_cast<double>(10.1f)));
     EXPECT_EQ(tested.joints[1].position, glm::vec3(4.0f, 5.0f, 6.0f));
     EXPECT_EQ(tested.joints[1].width, 20.0f);
-    // La /8 nació en 0 y la /0xb en −1 (0x530a55): tras un paso, 1 y 0.
+    // The /8 was created at 0 and the /0xb at −1 (0x530a55): after one step, 1 and 0.
     EXPECT_EQ(tested.joints[0].count, 1);
     EXPECT_EQ(tested.joints[1].count, 0);
     for (const JointState& joint : {tested.joints[0], tested.joints[1]})
@@ -176,9 +176,9 @@ TEST(BeamJointsTest, TheFollowersTrackTheirOwnerUntilItDies)
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x5382c9..0x53830e: la /0xe sigue el +0x40 del dueño y deja el 0x5d5/4 de escala 1 con la luz (v; v · 0,1f; v ·
-// 0,1f), v = sen(reloj · 0,002f) · 0,3f + 0,8f en la x87 (los bits, de una cuenta aparte: el seno exacto a 64 bits). La
-// partícula se repite en un pool gemelo con el mismo CrtRandom.
+// 0x5382c9..0x53830e: the /0xe follows the owner's +0x40 and leaves the 0x5d5/4 at scale 1 with light (v; v · 0.1f; v
+// · 0.1f), v = sin(clock · 0.002f) · 0.3f + 0.8f on the x87 stack (the bits, from a separate computation: the exact
+// sine at 64 bits). The particle is repeated in a twin pool with the same CrtRandom.
 TEST(BeamJointsTest, TheRedFollowersLeaveTheirLightning)
 {
     for (const auto& [clock, light] : {std::pair{0.0f, std::array{0x3f4ccccdu, 0x3da3d70bu}},
@@ -213,8 +213,8 @@ TEST(BeamJointsTest, TheRedFollowersLeaveTheirLightning)
     }
 }
 
-// 0x53214b..0x5321db: la /0xc, /0xd y /0x10 sacan el sentido (rand() impar: 1; par: −1), velocidad 10 y los ángulos x e
-// y en rand() % 45, con la luz de su subtipo; la /9 nace gris; la /7 conserva la luz del prefijo.
+// 0x53214b..0x5321db: the /0xc, /0xd and /0x10 draw the direction (odd rand(): 1; even: −1), speed 10 and the x and y
+// angles at rand() % 45, with their subtype's light; the /9 is created gray; the /7 keeps the prefix's light.
 TEST(BeamJointsTest, TheSwervingBeamsDrawTheirSideAndTilt)
 {
     for (const std::int32_t subtype : {0xc, 0xd, 0x10})
@@ -248,9 +248,9 @@ TEST(BeamJointsTest, TheSwervingBeamsDrawTheirSideAndTilt)
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x538341..0x538387 y 0x5385d3..0x5386e3: con vida de 100 o más, la /0xc suma 15 al rumbo, (rand() · sentido) % 5 en
-// x y en y y 6 en z, después del movimiento común (velocidad 10, con los ángulos de antes); después el rand() & 3 de la
-// luz dinámica, el sprite 0x5ac y el 0x5fd girado rand() % 360.
+// 0x538341..0x538387 and 0x5385d3..0x5386e3: with life 100 or more, the /0xc adds 15 to the heading, (rand() ·
+// direction) % 5 in x and y and 6 in z, after the common move (speed 10, with the earlier angles); then the dynamic
+// light's rand() & 3, the 0x5ac sprite and the 0x5fd turned rand() % 360.
 TEST(BeamJointsTest, TheSwervingBeamSpinsAndLeavesItsSprites)
 {
     BeamWorld tested;
@@ -274,7 +274,7 @@ TEST(BeamJointsTest, TheSwervingBeamSpinsAndLeavesItsSprites)
     EXPECT_EQ(joint.position.y, jitter(before.position.y, moved.y));
     const float rose = static_cast<float>(static_cast<double>(before.position.z) + static_cast<double>(moved.z));
     EXPECT_EQ(joint.position.z, static_cast<float>(static_cast<double>(rose) + 6.0));
-    static_cast<void>(expected.Next()); // la luz dinámica
+    static_cast<void>(expected.Next()); // the dynamic light
     const auto turn = static_cast<float>(expected.Next() % 360);
     EXPECT_EQ(tested.random.State(), expected.State());
     int flashes = 0, rings = 0;
@@ -292,8 +292,9 @@ TEST(BeamJointsTest, TheSwervingBeamSpinsAndLeavesItsSprites)
     EXPECT_EQ(joint.life, 119);
 }
 
-// 0x538475..0x5385cd: debajo de vida 100 la /6 va hacia su propio destino (no lee al dueño): la velocidad + 5 hasta 30,
-// y a 35 o menos muere, deja el 0x5d5/1 y pide el sonido 0x23; después sigue con la luz y el 0x5d5/3.
+// 0x538475..0x5385cd: below life 100 the /6 goes toward its own target (it does not read the owner): speed + 5 up to
+// 30, and at 35 or less it dies, leaves the 0x5d5/1 and requests sound 0x23; then it goes on with the light and the
+// 0x5d5/3.
 TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
 {
     BeamWorld tested;
@@ -308,8 +309,8 @@ TEST(BeamJointsTest, TheOwnerlessBeamGoesToItsOwnTarget)
     EXPECT_EQ(tested.joints[0].targetPosition, glm::vec3(1300.0f, 1020.0f, 100.0f));
     EXPECT_FALSE(tested.joints[0].alive);
     EXPECT_EQ(tested.sounds, std::vector<std::int32_t>{0x23});
-    // 0x5385d3..0x538704: después, la luz ((rand() & 3) + 8) · 0,03f y el 0x5d5/3 de escala 0,05f con su luz
-    // (0x5386ff). El 0x5d5/1 del choque, el rand() de la luz y el 0x5d5/3, en ese orden, en un pool gemelo con el mismo
+    // 0x5385d3..0x538704: then, the light ((rand() & 3) + 8) · 0.03f and the 0x5d5/3 at scale 0.05f with its light
+    // (0x5386ff). The hit's 0x5d5/1, the light's rand() and the 0x5d5/3, in that order, in a twin pool with the same
     // CrtRandom.
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     const JointState& joint = tested.joints[0];

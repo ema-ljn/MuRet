@@ -8,10 +8,10 @@ namespace Client::Particles
 {
 enum class ParticleError : std::uint8_t;
 
-// Producto PC53 de la salida trigonométrica retenida64 por el factor f32 exacto.
-// El argumento ya viene preparado en PC53; no se redondea el seno/coseno a double antes del producto.
-// Evaluador obligatorio, sin acceso/mutación/reentrada al mundo, reloj o RNG, ni referencias retenidas.
-// Su implementación declara su dominio y devuelve error cuando no puede representarlo.
+// PC53 product of the trigonometric output retained in 64 bits by the exact f32 factor. The argument already comes
+// prepared in PC53; the sine/cosine is not rounded to double before the product. A required evaluator, without
+// access/mutation/reentry to the world, clock or RNG, nor retained references. Its implementation declares its
+// domain and returns an error when it cannot represent it.
 class IParticleTrigonometry
 {
 public:

@@ -18,8 +18,8 @@
 #include <format>
 #include <string>
 
-// El 0x61b y el 0x5bc, los rayos de las manos de los monstruos (0x4f5b70): comparten el alta (0x5335cf, 0x5335d6) y
-// el paso (0x539ccc..0x539f16); el 0x61b repite la textura.
+// The 0x61b and 0x5bc, the monsters' hand bolts (0x4f5b70): they share creation (0x5335cf, 0x5335d6) and step
+// (0x539ccc..0x539f16); the 0x61b repeats the texture.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -31,7 +31,7 @@ using Math::F32;
 
 void CreateHandBoltJoint(Kernel::JointState& joint)
 {
-    // 0x5335cf..0x5335f3: velocidad 40, ancho 60, 50 puntos y vida 2.
+    // 0x5335cf..0x5335f3: speed 40, width 60, 50 points and life 2.
     if (joint.type == RedHandBoltJoint)
         joint.repeatedTexture = true;
     joint.speed = 40.0f;
@@ -42,7 +42,7 @@ void CreateHandBoltJoint(Kernel::JointState& joint)
         joint.light = glm::vec3(1.0f);
     else if (joint.subtype == 3)
     {
-        // 0x533616..0x533634: quieto, con vida 20.
+        // 0x533616..0x533634: still, with life 20.
         joint.speed = 0.0f;
         joint.light = glm::vec3(1.0f);
         joint.life = 20;
@@ -55,15 +55,15 @@ void CreateHandBoltJoint(Kernel::JointState& joint)
 
 namespace
 {
-// 0x539def..0x539e6f: (rand() & 3) + 4 por 0,05f (0x6b8a48) en la luz dinámica de radio 2.
+// 0x539def..0x539e6f: (rand() & 3) + 4 times 0.05f (0x6b8a48) in the radius-2 dynamic light.
 Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRandom& random,
                                        Terrain::TerrainLighting* lighting)
 {
     constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
     constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
-    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
-    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
-    constexpr double Fifth = Math::FifthAsDouble;                                    // 0x6b8854, 0,2f
+    constexpr double Green = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0.6f
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0.3f
+    constexpr double Fifth = Math::FifthAsDouble;                                    // 0x6b8854, 0.2f
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     glm::vec3 color;
     if (joint.type != RedHandBoltJoint)
@@ -75,7 +75,7 @@ Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRando
     return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x539e6f");
 }
 
-// 0x539ed4..0x539f11: al llegar, una vez cada dos, tres rand() para un punto que nadie lee y el fuego 0x5d9/0.
+// 0x539ed4..0x539f11: on arrival, once every two, three rand() for a point nobody reads and the 0x5d9/0 fire.
 Core::Expected<void, std::string> Arrive(const Kernel::JointState& joint, CrtRandom& random,
                                          const JointKernels::StepServices& services)
 {
@@ -103,10 +103,10 @@ Core::Expected<void, std::string> StepHandBoltJoint(Kernel::JointState& joint,
     if (services.random == nullptr)
         return Core::Unexpected(std::format("0x539d18: falta el RNG del joint {:#x}/{}", joint.type, joint.subtype));
     CrtRandom& random = *services.random;
-    constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
+    constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0.8f
     for (std::int32_t iteration = 0; iteration < joint.maximumCount; ++iteration)
     {
-        // 0x539ce1..0x539cff: salvo la /2, el destino es el personaje dueño, 80 más arriba.
+        // 0x539ce1..0x539cff: except the /2, the target is the owner character, 80 higher.
         if (joint.subtype != 2)
         {
             const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
@@ -116,7 +116,7 @@ Core::Expected<void, std::string> StepHandBoltJoint(Kernel::JointState& joint,
             joint.targetPosition = {owner->position.x, owner->position.y, F32(D(owner->position.z) + 80.0)};
         }
         const float distance = F32(Math::MoveToward(joint.position, joint.angles, joint.targetPosition, 25.0f));
-        // 0x539d18..0x539dc1: la sacudida se acumula en la velocidad y se amortigua a 0,8f; la z queda en la x87.
+        // 0x539d18..0x539dc1: the shake accumulates in the velocity and is damped by 0.8f; z stays on the x87 stack.
         const double width = D(joint.width);
         joint.velocity.x = F32(static_cast<double>((random.Next() & 0xff) - 0x80) / width + D(joint.velocity.x));
         joint.velocity.x = F32(D(joint.velocity.x) * Damping);
@@ -129,8 +129,8 @@ Core::Expected<void, std::string> StepHandBoltJoint(Kernel::JointState& joint,
         const auto matrix = Math::OriginalAngleMatrix(shaken);
         if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
-        // 0x539dd6..0x539de9: llega cuando el doble de la velocidad ya no es menor que lo que falta (con NaN, C0 en 1,
-        // sigue).
+        // 0x539dd6..0x539de9: it arrives when twice the speed is no longer less than what is left (with NaN, C0 at 1,
+        // it goes on).
         if (D(joint.speed) + D(joint.speed) >= D(distance))
             return Arrive(joint, random, services);
         if (auto lit = Glow(joint, random, services.lighting); !lit.HasValue())

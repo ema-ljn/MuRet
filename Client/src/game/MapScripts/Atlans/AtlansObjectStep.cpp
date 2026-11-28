@@ -21,13 +21,13 @@ namespace
 {
 using Math::F32;
 
-// 0x6b89bc (0,002f), 0x6b89e8 (0,004f), 0x6b89dc (0,3f) y 0x6b882c (0,5).
+// 0x6b89bc (0.002f), 0x6b89e8 (0.004f), 0x6b89dc (0.3f) and 0x6b882c (0.5).
 constexpr double SlowRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
 constexpr double FastRate = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
 constexpr float Swing = std::bit_cast<float>(0x3e99999au);
 constexpr double Half = Math::HalfAsDouble;
 
-// fld del reloj, fmul por `rate`, fsin y fmul por `factor`, en la x87.
+// fld of the clock, fmul by `rate`, fsin and fmul by `factor`, in the x87.
 std::optional<double> Wave(float worldClock, double rate, float factor)
 {
     return Math::Detail::SineProductPC53(static_cast<double>(worldClock) * rate, factor);
@@ -43,8 +43,8 @@ Core::Expected<void, std::string> SetSwingLight(WorldObjects::WorldObject& objec
     return {};
 }
 
-// 0x60556e..0x6055c8: la fase sube 0,1f (0x6b87b8) con fst, la suma sin redondear se compara con 10
-// (0x6b87a8) y la fase guardada con 5 (0x6b87f8); test ah, 0x41 deja pasar sólo el mayor ordenado.
+// 0x60556e..0x6055c8: the phase goes up 0.1f (0x6b87b8) with fst, the unrounded sum is compared with 10 (0x6b87a8) and
+// the stored phase with 5 (0x6b87f8); test ah, 0x41 lets only the ordered greater through.
 Core::Expected<void, std::string> StepBubbles(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
                                               const WorldObjects::ObjectStepGlobals& globals)
 {
@@ -55,7 +55,7 @@ Core::Expected<void, std::string> StepBubbles(WorldObjects::WorldObject& object,
     object.state.hiddenMesh = WorldObjects::HiddenObject;
     object.field84 = F32(phase);
     if (phase > Ceiling)
-        object.field84 = 0.0f; // EDX, todavía en 0 desde 0x604d50.
+        object.field84 = 0.0f; // EDX, still 0 from 0x604d50.
     if (!(object.field84 > Threshold))
         return {};
     if (globals.particles == nullptr)
@@ -84,7 +84,7 @@ Core::Expected<void, std::string> StepAtlansObject(WorldObjects::WorldObject& ob
     case 0x20:
     case 0x22:
     {
-        // 0x6055fe..0x605620: fsin, fadd 1 (0x6b87d4) con un solo redondeo y fmul 0,5, en la x87.
+        // 0x6055fe..0x605620: fsin, fadd 1 (0x6b87d4) with a single rounding and fmul 0.5, in the x87.
         object.state.blendMesh = 1;
         const std::optional<double> wave =
             Math::Detail::SineSumPC53(static_cast<double>(globals.worldClock) * FastRate, 1.0);
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> StepAtlansObject(WorldObjects::WorldObject& ob
         return {};
     case 0x28:
     {
-        // 0x605633..0x60565b: el blendMesh, la velocidad (0x3d4ccccd) antes del fsin y la luz.
+        // 0x605633..0x60565b: the blendMesh, the speed (0x3d4ccccd) before the fsin and the light.
         constexpr float SlowAnimation = std::bit_cast<float>(0x3d4ccccdu);
         object.state.blendMesh = 0;
         object.speed = SlowAnimation;

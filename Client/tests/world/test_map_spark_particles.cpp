@@ -15,8 +15,8 @@
 #include <cstdint>
 #include <limits>
 
-// Contratos extendidos 53fe70/5446e0/548550, 5c6/9. Matrices reutilizadas por permiso root;
-// el caso de90grados usa el coseno32510b46 ya acreditado en rotation.txt, no el port como oráculo.
+// Extended contracts 0x53fe70/0x5446e0/0x548550, 5c6/9. Matrices reused by root permission; the 90-degree case uses
+// the cosine 32510b46 already credited in rotation.txt, not the port, as oracle.
 namespace
 {
 using Client::Crt::CrtRandom;

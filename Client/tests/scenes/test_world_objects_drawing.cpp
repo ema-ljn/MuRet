@@ -55,9 +55,9 @@
 #include <span>
 #include <vector>
 
-// Client::WorldObjects::StepWorldObjects y DrawWorldObjects (06 § El mundo del login): qué objetos avanzan,
-// en qué orden se dibujan y cómo van los remolinos del mapa 55, con modelos de mentira; y los del juego,
-// DrawGameWorldObjects y StepGameWorldObjects (06 § Los objetos del juego).
+// Client::WorldObjects::StepWorldObjects and DrawWorldObjects (06 § El mundo del login): which objects advance, in
+// what order they are drawn and how map 55's whirlpools go, with fake models; and the game's, DrawGameWorldObjects
+// and StepGameWorldObjects (06 § Los objetos del juego).
 namespace
 {
 using Client::Data::Models::Mesh;
@@ -78,8 +78,8 @@ constexpr std::int16_t RedWhirlpool = 0x56;
 constexpr std::int16_t DarkWhirlpool = 0x5a;
 constexpr std::int16_t Rock = 1;
 
-// Cualquier modelo: dos mallas de un triángulo del hueso 0 (texturas 0x41c y 0x41d) y un esqueleto de
-// un hueso, sin animación.
+// Any model: two one-triangle meshes of bone 0 (textures 0x41c and 0x41d) and a one-bone skeleton, without
+// animation.
 class TwoMeshModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -123,8 +123,8 @@ private:
     std::array<TextureSlot, 2> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}};
 };
 
-// Un modelo como Waterspout01: cuatro mallas de un triángulo del hueso 0, cada una con la textura de su
-// índice (de 0 a 3, slots 0x41c a 0x41f) y la UV (0,125; 0,25), sin animación.
+// A model like Waterspout01: four one-triangle meshes of bone 0, each with its index's texture (0 to 3, slots 0x41c
+// to 0x41f) and the UV (0.125; 0.25), without animation.
 class FourMeshModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -204,8 +204,8 @@ void Draw(ModelBatch& batch, const TwoMeshModels& models, std::span<WorldObject>
     DrawWorldObjects(batch, models, objects, polygon, nullptr, map, {}, 0.0f);
 }
 
-// 0x606560 solo avanza los que se vieron en el último dibujo (+0x16c): recién creado, el alpha no se
-// mueve; después de un dibujo, un décimo hacia su meta (Q-C135).
+// 0x606560 only advances those seen in the last draw (+0x16c): freshly created, the alpha does not move; after one
+// draw, a tenth toward its target (Q-C135).
 TEST(WorldObjectsDrawingTest, OnlyTheObjectsDrawnLastFrameStep)
 {
     const TwoMeshModels models;
@@ -222,8 +222,8 @@ TEST(WorldObjectsDrawingTest, OnlyTheObjectsDrawnLastFrameStep)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].alpha), 0x3DCCCCCDu) << "0,1";
 }
 
-// 0x6046a0: los sectores por x y después por y, y en cada uno el orden del archivo. El objeto del
-// sector (0, 3) va antes que el del (5, 2), y los dos del (0, 3) en su orden.
+// 0x6046a0: the sectors by x and then by y, and in each one the file's order. The object of sector (0, 3) goes
+// before that of (5, 2), and the two of (0, 3) in their order.
 TEST(WorldObjectsDrawingTest, ObjectsGoSectorBySector)
 {
     const TwoMeshModels models;
@@ -232,14 +232,14 @@ TEST(WorldObjectsDrawingTest, ObjectsGoSectorBySector)
     ModelBatch batch;
     Draw(batch, models, objects);
     ASSERT_EQ(batch.Vertices().size(), 3u * 6u);
-    // La primera esquina de la malla 0 de cada uno, en el orden del lote.
+    // The first corner of each one's mesh 0, in batch order.
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 100.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[6].position.x, 200.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[12].position.x, 8000.0f);
 }
 
-// Un objeto fuera del trapecio del juego no se ve ni avanza: el de un sector lejano, y el del sector
-// del héroe (9, 7) que queda afuera en su lugar.
+// An object outside the game's trapezoid is neither seen nor advances: the one in a far sector, and the one in the
+// hero's sector (9, 7) that is outside at its place.
 TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
 {
     const TwoMeshModels models;
@@ -257,8 +257,8 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
     EXPECT_EQ(batch.Vertices().size(), 6u);
 }
 
-// 0x6069bd: el puente del mapa 0 usa −50 en +0xdc; 0x604744..0x60476b pasa ese margen a
-// 0x5fba90. El sector (0, 0), centro (8, 8), pasa; (14, 5) da −40 en el lado derecho.
+// 0x6069bd: map 0's bridge uses −50 at +0xdc; 0x604744..0x60476b passes that margin to 0x5fba90. Sector (0, 0),
+// center (8, 8), passes; (14, 5) gives −40 on the right side.
 TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
 {
     const TwoMeshModels models;
@@ -280,7 +280,7 @@ TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
     }
 }
 
-// El borde de 0x5fba90 es estricto: (15, 5) da −50. Al salir se borra seen y el lote del frame.
+// The edge of 0x5fba90 is strict: (15, 5) gives −50. On leaving, seen and the frame's batch are cleared.
 TEST(WorldObjectsDrawingTest, TheBridgeIsCulledExactlyAtItsMargin)
 {
     const TwoMeshModels models;
@@ -297,8 +297,8 @@ TEST(WorldObjectsDrawingTest, TheBridgeIsCulledExactlyAtItsMargin)
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// El consumidor usa el campo del objeto, sin volver a deducirlo de tipo, mapa o escena. El helper
-// devuelve una copia y el array la copia otra vez, como los contenedores de las escenas.
+// The consumer uses the object's field, without deducing it again from type, map or scene. The helper returns a copy
+// and the array copies it again, like the scenes' containers.
 TEST(WorldObjectsDrawingTest, CullingUsesTheStoredMarginAfterCopyingAnObject)
 {
     const TwoMeshModels models;
@@ -313,9 +313,9 @@ TEST(WorldObjectsDrawingTest, CullingUsesTheStoredMarginAfterCopyingAnObject)
     EXPECT_EQ(batch.Vertices().size(), 6u);
 }
 
-// 0x602ed0 saca un rand() de la CRT por cada objeto que llega a él (0x602ef4, antes de mirar la escena o el
-// tipo): los que se ven, aunque no se dibujen (el de alpha 0 y el de +0x58 en −2). El del sector lejano no
-// llega.
+// 0x602ed0 takes a CRT rand() for each object that reaches it (0x602ef4, before looking at the scene or the type):
+// those seen, even if not drawn (the one with alpha 0 and the one with +0x58 at −2). The one in the far sector does
+// not reach it.
 TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
 {
     const TwoMeshModels models;
@@ -353,8 +353,7 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
     EXPECT_EQ(random.State(), 4u);
 }
 
-// El pase de los objetos del juego (0x6046a0 en 0x6374ce) con los modelos de mentira, todo visto y la
-// semilla 7.
+// The game objects pass (0x6046a0 at 0x6374ce) with the fake models, everything seen and seed 7.
 Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Models::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
                                                    const Client::WorldObjects::GameObjectPass& pass)
@@ -373,9 +372,9 @@ Client::Crt::CrtRandom SevenAfter(int draws)
     return random;
 }
 
-// 0x6046a0 en el juego: cada objeto vivo que pasa el trapecio se dibuja (0x602e90) y saca el rand() de
-// 0x602ed0 (0x602ef4), aunque no se dibuje (el de +0x58 en −2). El que no está vivo no se mira (0x60473b): no
-// queda visto ni saca rand().
+// 0x6046a0 in the game: each live object that passes the trapezoid is drawn (0x602e90) and takes the rand() of
+// 0x602ed0 (0x602ef4), even if it is not drawn (the one with +0x58 at −2). The one that is not alive is not looked at
+// (0x60473b): it is not seen and takes no rand().
 TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
 {
     const TwoMeshModels models;
@@ -401,10 +400,10 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
     }
 }
 
-// El 0x38 de Lorencia (0x603149): después de su rand(), dos sprites 0x5ac en los huesos 48 y 57 con el
-// desplazamiento de la pila que dejó 0x6002e0 (la y es su nivel del try, −1): en NaN, de escala L · 5 y luz
-// (L · 0,6; L · 0,3; L · 0,1). Los de después siguen. Sin posar (el alpha por debajo de 0,01), la pila es
-// la de 0x5ffdf0, que no está leída, y corta con los de antes dibujados y los de después sin mirar.
+// Lorencia's 0x38 (0x603149): after its rand(), two 0x5ac sprites at bones 48 and 57 with the stack offset that
+// 0x6002e0 left (the y is its try level, −1): at NaN, scale L · 5 and light (L · 0.6; L · 0.3; L · 0.1). The later
+// ones go on. Unposed (alpha below 0.01), the stack is 0x5ffdf0's, which is not read, and it cuts with the earlier
+// ones drawn and the later ones not looked at.
 TEST(WorldObjectsDrawingTest, TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN)
 {
     const TwoMeshModels models;
@@ -453,10 +452,10 @@ TEST(WorldObjectsDrawingTest, TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN)
     EXPECT_EQ(unposed.State(), SevenAfter(2).State());
 }
 
-// 0x6002e0 con el mapa 4: el 3 saca un rand() (en el frame del original) y, antes de su cuerpo, un
-// RenderBody con Chrome01 (0x5c0) forzado, opaco, con la luz (1; 0,2; 0,1) y la malla 1 (su model+0x88) sin
-// luz y con la U y la V del objeto; el 0x17 sólo saca el rand(). El cuerpo después, como siempre. En un
-// dibujo intermedio de MuRet no hay rand().
+// 0x6002e0 with map 4: the 3 takes a rand() (in the original's frame) and, before its body, a RenderBody with
+// Chrome01 (0x5c0) forced, opaque, with the light (1; 0.2; 0.1) and mesh 1 (its model+0x88) unlit and with the
+// object's U and V; the 0x17 only takes the rand(). The body after, as always. An intermediate MuRet draw has no
+// rand().
 TEST(WorldObjectsDrawingTest, TheLostTowerChromeGoesBeforeTheBody)
 {
     constexpr std::uint8_t LostTower = 4;
@@ -474,7 +473,7 @@ TEST(WorldObjectsDrawingTest, TheLostTowerChromeGoesBeforeTheBody)
     ModelBatch batch;
     ASSERT_TRUE(DrawGame(batch, models, objects, {.map = LostTower, .random = &random}).HasValue());
     EXPECT_EQ(random.State(), SevenAfter(4).State()) << "dos del 6002e0 del 4 y dos de 0x602ed0";
-    // Las dos mallas cromadas comparten el estado y quedan en un solo comando.
+    // The two chromed meshes share the state and end up in a single command.
     ASSERT_EQ(batch.Commands().size(), 5u);
     const auto& chrome = batch.Commands()[0];
     EXPECT_EQ(chrome.state.texture, TextureSlot{0x5c0});
@@ -505,9 +504,9 @@ TEST(WorldObjectsDrawingTest, TheLostTowerChromeGoesBeforeTheBody)
     EXPECT_EQ(between.Commands().size(), 5u);
 }
 
-// 0x602ed0 con el mapa 4: el 0x28 deja dos 0x5d5 de 2,5 sobre el objeto, 260 más arriba, con (L; L; L) y el
-// giro r y −r (r = ftol(reloj · 0,1f) % 360); el 9 cae al caso del 6 y deja un 0x5ac en NaN. El 0x13 lee
-// los huesos de la pose global: sin ella corta.
+// 0x602ed0 with map 4: the 0x28 leaves two 0x5d5 of 2.5 over the object, 260 higher, with (L; L; L) and the turn r
+// and −r (r = ftol(clock · 0.1f) % 360); the 9 falls into the 6's case and leaves a 0x5ac at NaN. The 0x13 reads the
+// global pose's bones: without it, it cuts.
 TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
 {
     constexpr std::uint8_t LostTower = 4;
@@ -551,9 +550,9 @@ TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
     EXPECT_NE(cut.Error().find("0x4ec110"), std::string::npos) << cut.Error();
 }
 
-// 0x600c72..0x600cdc: el 0x51 de Tarkan va sin RenderBody, con dos 0x4ecc30 de la malla 0: el pase común (2) y
-// el del cromo (0x44) con Chrome01 (0x5c0), aditivo, en el color del modelo sin la luz de cada normal; con el
-// alpha por debajo de 0,99, el color por el alpha. La malla 1 no se dibuja.
+// 0x600c72..0x600cdc: Tarkan's 0x51 goes without RenderBody, with two 0x4ecc30 of mesh 0: the common pass (2) and the
+// chrome one (0x44) with Chrome01 (0x5c0), additive, in the model color without each normal's light; with the alpha
+// below 0.99, the color times the alpha. Mesh 1 is not drawn.
 TEST(WorldObjectsDrawingTest, TheTarkanChromeGoesAfterItsFirstMesh)
 {
     constexpr std::uint8_t Tarkan = 8;
@@ -591,9 +590,9 @@ TEST(WorldObjectsDrawingTest, TheTarkanChromeGoesAfterItsFirstMesh)
     }
 }
 
-// 0x600a4a..0x600ae6: el 0x69 de Lorencia va con cuatro 0x4ecc30 sueltos, sin RenderBody. Las mallas 0 a 2,
-// opacas, con la luz de cada normal y sin la U ni la V; la 3, la de su blendMesh, aditiva, por la luz del
-// blendMesh y con la U y la V del objeto. La malla oculta (+0x58) no cuenta: 0x4ecc30 no la mira.
+// 0x600a4a..0x600ae6: Lorencia's 0x69 goes with four loose 0x4ecc30, without RenderBody. Meshes 0 to 2, opaque, with
+// each normal's light and without the U or the V; mesh 3, its blendMesh one, additive, by the blendMesh light and with
+// the object's U and V. The hidden mesh (+0x58) does not count: 0x4ecc30 does not look at it.
 TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutDrawsFourLooseMeshes)
 {
     const FourMeshModels models;
@@ -631,8 +630,8 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutDrawsFourLooseMeshes)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// La primera semilla desde 1 cuyo tercer rand() (el de rand() % 2 de 0x603011, después de los comunes de un
-// objeto y de la fuente) es impar (`odd`) o par.
+// The first seed from 1 whose third rand() (that of rand() % 2 of 0x603011, after the common ones of an object and of
+// the fountain) is odd (`odd`) or even.
 std::uint32_t SeedWithThirdRand(bool odd)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -647,9 +646,9 @@ std::uint32_t SeedWithThirdRand(bool odd)
     }
 }
 
-// 0x602ed0 con el 0x69 de Lorencia (0x603011): después del rand() común, la luz del blendMesh en 1, la V
-// con el reloj del pase y rand() % 2. Impar, sigue con los de después; par, corta en la primera gota
-// (0x6030c7) después de sus dos rand(), con los de después sin mirar. Oculto no se dibuja, y corre igual.
+// 0x602ed0 with Lorencia's 0x69 (0x603011): after the common rand(), the blendMesh light at 1, the V with the pass
+// clock and rand() % 2. Odd, it goes on with the later ones; even, it cuts at the first drop (0x6030c7) after its two
+// rand(), with the later ones not looked at. Hidden, it is not drawn and runs the same.
 TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
 {
     const FourMeshModels models;
@@ -702,8 +701,8 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
     }
 }
 
-// 0x52dc2d..0x52dc50: el +0x16c retenido decide el rand común y el cambio de mezcla, aun en un tipo
-// que no tiene caso de suelo (el dragón). No se recalcula la esfera en este pase.
+// 0x52dc2d..0x52dc50: the retained +0x16c decides the common rand and the blend change, even in a type that has no
+// ground case (the dragon). The sphere is not recomputed in this pass.
 TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlots)
 {
     std::array<Client::Effects::ModelEffect, 3> effects{};
@@ -829,10 +828,10 @@ TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabled
     EXPECT_EQ(batch.State().depthWrite, false);
 }
 
-// 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35
-// con la clase del héroe en 3 o 4 (+0x1d4 & 7), con el registro abierto y cerrado: con la cuenta en 0, el
-// cierre saca los 3.848 rand() de 0x40b4d0; con otro acceso abierto, ninguno. Si sigue, su caso de 0x602ed0
-// (0x603251) deja sus dos sprites después del rand(); si no, no corre.
+// 0x60479c..0x604a36: Devias' 0x64 only goes on with the own record's level from 0x50, or from 0x35 with the hero's
+// class at 3 or 4 (+0x1d4 & 7), with the record opened and closed: with the count at 0, the close takes the 3848
+// rand() of 0x40b4d0; with another access open, none. If it goes on, its case of 0x602ed0 (0x603251) leaves its two
+// sprites after the rand(); if not, it does not run.
 TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
 {
     const TwoMeshModels models;
@@ -872,9 +871,9 @@ TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
     }
 }
 
-// 0x603251: el 0x64 de Devias deja dos 0x5d5 de 2,5 en (0; 0; 150) por el hueso 0 de la pose global (la del
-// último posado, sin trasladar: 0x4ec110 con 0), con (L; L; L) y el giro r y −r (r = ftol(reloj · 0,1f) %
-// 360). Sin la pose global corta.
+// 0x603251: Devias' 0x64 leaves two 0x5d5 of 2.5 at (0; 0; 150) by bone 0 of the global pose (the last posed one's,
+// untranslated: 0x4ec110 with 0), with (L; L; L) and the turn r and −r (r = ftol(clock · 0.1f) % 360). Without the
+// global pose it cuts.
 TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBone)
 {
     const TwoMeshModels models;
@@ -919,7 +918,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBon
     EXPECT_NE(cut.Error().find("0x4ec110"), std::string::npos) << cut.Error();
 }
 
-// Como el 0x67 de Devias (Object104.bmd): dos mallas del hueso 0 y dos acciones de seis keys.
+// Like Devias' 0x67 (Object104.bmd): two meshes of bone 0 and two actions of six keys.
 class SwitchingModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -962,11 +961,11 @@ private:
     std::array<TextureSlot, 2> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}};
 };
 
-// 0x6031f7: el 0x67 de Devias mira el cuadro que 0x4eb860 dejó en su modelo al posarlo (+0xa8, el short de
-// ftol del frame, en 0 si no es una key de la acción) y, en la última key de su acción, saca un rand(): & 31
-// en 0 lo pasa a la acción 1 con 0x4ea030 (la vieja y su key quedan como anteriores, el frame en 0), y si no,
-// a la 0 (con la 0 puesta, nada). Con el cuadro en otra key no saca nada. Sin posar (alpha por debajo de 0,01)
-// o con la acción fuera de la tabla, corta.
+// 0x6031f7: Devias' 0x67 looks at the frame that 0x4eb860 left in its model when posing it (+0xa8, the short of the
+// frame's ftol, 0 if it is not a key of the action) and, on the last key of its action, takes a rand(): & 31 at 0
+// moves it to action 1 with 0x4ea030 (the old one and its key stay as previous, the frame at 0), and otherwise to
+// action 0 (with 0 already set, nothing). With the frame on another key it takes nothing. Unposed (alpha below 0.01)
+// or with the action outside the table, it cuts.
 TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastKey)
 {
     const SwitchingModels models;
@@ -979,7 +978,7 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
         std::uint8_t wantedAction;
         float wantedFrame;
     };
-    // Con la semilla 2, el segundo rand() es 29.216 (& 31 en 0); con la 7, 17.422 (14).
+    // With seed 2, the second rand() is 29216 (& 31 at 0); with 7, 17422 (14).
     for (const Case& probe :
          {Case{2, 0, 5.5f, 2, 1, 0.0f}, Case{7, 0, 5.5f, 2, 0, 5.5f}, Case{2, 0, 4.99f, 1, 0, 4.99f},
           Case{2, 0, 6.0f, 1, 0, 6.0f}, Case{7, 1, 5.0f, 2, 0, 0.0f}, Case{2, 1, 5.0f, 2, 1, 5.0f}})
@@ -1025,8 +1024,8 @@ TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastK
     EXPECT_NE(beyond.Error().find("0x603205"), std::string::npos) << beyond.Error();
 }
 
-// Un dibujo intermedio de MuRet (sin frame del original): dibuja y marca los vistos, sin el rand() de
-// 0x602ed0 ni sus casos, y el 0x64 de Devias lee el nivel sin abrir el registro.
+// An intermediate MuRet draw (no original frame): draws and marks the seen ones, without the rand() of 0x602ed0 or
+// its cases, and Devias' 0x64 reads the level without opening the record.
 TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
 {
     const TwoMeshModels models;
@@ -1074,7 +1073,7 @@ TEST(WorldObjectsDrawingTest, ProjectedPosePublicationDoesNotRunOriginalFramePro
     EXPECT_FALSE(batch.Vertices().empty());
 }
 
-// 5ffdf0 posa antes de que600328 descarte hiddenMesh=-2: el scratch cambia sin geometría.
+// 0x5ffdf0 poses before 0x600328 discards hiddenMesh=-2: the scratch changes without geometry.
 TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWithoutGeometry)
 {
     const TwoMeshModels models;
@@ -1192,7 +1191,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// Los demás mapas cortan antes de mirar un objeto: sus casos de 0x6002e0 y 0x602ed0 no están leídos.
+// The other maps cut before looking at an object: their cases of 0x6002e0 and 0x602ed0 are not read.
 TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
 {
     const TwoMeshModels models;
@@ -1207,8 +1206,8 @@ TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x606560 en el juego: solo los vivos que se vieron, en el orden del dibujo, hasta el primero que corta (la
-// lámpara del 0, después del rand() de su luz); el de después no avanza.
+// 0x606560 in the game: only the live ones that were seen, in draw order, up to the first one that cuts (map 0's
+// lamp, after its light's rand()); the later one does not advance.
 TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
 {
     const TwoMeshModels models;
@@ -1235,8 +1234,8 @@ TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
     EXPECT_EQ(random.State(), SevenAfter(2).State());
 }
 
-// Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el
-// del tipo 2 con el 8 dummy. El farol (0x3c), de un hueso, como Object61.bmd.
+// Models of ten root bones, without animation, bone k at (100 · k, 10 · k, 0) by its type's base; type 2's with bone
+// 8 dummy. The lantern (0x3c), one bone, like Object61.bmd.
 class TenBoneModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -1305,8 +1304,8 @@ struct LanternGlow
     std::optional<glm::vec3> rock9;
 };
 
-// El caballo posado antes de los objetos (0x4453b0) en (1.000; 2.000; 300) y `objects` dibujados en su
-// orden, con el farol al final.
+// The horse posed before the objects (0x4453b0) at (1000; 2000; 300) and `objects` drawn in order, with the lantern
+// last.
 LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::WorldObjects::ObjectScene scene, std::uint32_t seed)
 {
     const TenBoneModels models;
@@ -1421,10 +1420,10 @@ TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFr
     EXPECT_EQ(random.State(), state);
 }
 
-// 0x602ed0 en la escena 2 con el farol (0x3c, 0x602f21): dos sprites de flare01 (0x5ac), de escala 1,
-// aditivos y sin giro, en las traslaciones de los huesos 8 y 9 del buffer global de la pose (0x68b199c y
-// 0x68b19cc), con la luz del rand() de su objeto. El farol tiene un hueso: los dos son los del último
-// modelo posado que los tiene sin ser dummy. Sin otro objeto antes, los del caballo.
+// 0x602ed0 in scene 2 with the lantern (0x3c, 0x602f21): two flare01 sprites (0x5ac), scale 1, additive and
+// unrotated, at the translations of bones 8 and 9 of the global pose buffer (0x68b199c and 0x68b19cc), with the light
+// of its object's rand(). The lantern has one bone: both are those of the last posed model that has them non-dummy.
+// With no other object before, the horse's.
 TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesThatTheHorseLeft)
 {
     std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
@@ -1446,9 +1445,9 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesThatTheHorseLeft)
     }
 }
 
-// Un objeto de diez huesos dibujado antes del farol pisa el 9; su 8 es dummy (0x4eb973 no lo escribe) y
-// queda el del caballo. Con el alpha por debajo de 0,01, 0x5ffdf0 sale antes de posarlo y quedan los dos
-// del caballo; justo en 0,01, lo posa. Con +0x58 en −2 lo posa (0x6002e0 es el que no lo dibuja).
+// A ten-bone object drawn before the lantern overwrites bone 9; its 8 is dummy (0x4eb973 does not write it) and the
+// horse's stays. With the alpha below 0.01, 0x5ffdf0 exits before posing it and both of the horse's remain; exactly at
+// 0.01, it poses it. With +0x58 at −2 it poses it (0x6002e0 is the one that does not draw it).
 TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
 {
     std::vector<WorldObject> objects{ObjectAt(static_cast<std::int16_t>(TenBoneModels::SecondRock), 100.0f, 100.0f),
@@ -1470,22 +1469,22 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
     ASSERT_EQ(faded.sprites.size(), 2u);
     EXPECT_EQ(faded.sprites[1].position, *faded.horse9);
 
-    // `fcomp` con 0,01f y `test ah, 1`: con el alpha justo en 0,01 no sale.
+    // `fcomp` with 0.01f and `test ah, 1`: with the alpha exactly at 0.01 it does not exit.
     objects[0].alpha = std::bit_cast<float>(0x3C23D70Au);
     const LanternGlow edge = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(edge.sprites.size(), 2u);
     EXPECT_EQ(edge.sprites[1].position, *edge.rock9) << "posado con el alpha en 0,01";
 }
 
-// El caso del farol es de la escena 2 (0x602f09): en otra, el rand() se saca igual pero no hay sprites.
+// The lantern case belongs to scene 2 (0x602f09): in another one, the rand() is still taken but there are no sprites.
 TEST(WorldObjectsDrawingTest, TheLanternGlowsOnlyInTheLogin)
 {
     std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
     EXPECT_TRUE(GlowOf(objects, Client::WorldObjects::ObjectScene::CharacterSelect, 11).sprites.empty());
 }
 
-// Los dos remolinos rojos (86) del .obj están en el mismo lugar, con el mismo giro y aditivos desde su
-// primer paso: se suman dos veces, las dos mallas de cada uno.
+// The two red whirlpools (86) of the .obj are at the same place, with the same turn and additive from their first
+// step: they add up twice, both meshes of each one.
 TEST(WorldObjectsDrawingTest, TheTwoRedWhirlpoolsAddUp)
 {
     const TwoMeshModels models;
@@ -1498,8 +1497,8 @@ TEST(WorldObjectsDrawingTest, TheTwoRedWhirlpoolsAddUp)
     EXPECT_EQ(batch.Vertices().size(), 2u * 2u * 3u);
 }
 
-// El remolino 90: antes de su primer paso no se dibuja (sin el blendMesh, Q-C135); después, solo su
-// malla 0, sustractiva y en blanco.
+// Whirlpool 90: before its first step it is not drawn (without the blendMesh, Q-C135); afterwards, only its mesh 0,
+// subtractive and white.
 TEST(WorldObjectsDrawingTest, TheDarkWhirlpoolGoesSubtractive)
 {
     const TwoMeshModels models;
@@ -1517,8 +1516,8 @@ TEST(WorldObjectsDrawingTest, TheDarkWhirlpoolGoesSubtractive)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 1.0f);
 }
 
-// 0x6046a0 guarda en +0x16c el resultado del test de cada objeto, y 0x606560 apaga los de un sector que
-// no pasó: uno que sale de la vista deja de avanzar.
+// 0x6046a0 stores each object's test result in +0x16c, and 0x606560 clears those of a sector that did not pass: one
+// that leaves the view stops advancing.
 TEST(WorldObjectsDrawingTest, AnObjectThatLeavesTheViewStopsStepping)
 {
     const TwoMeshModels models;
@@ -1535,8 +1534,8 @@ TEST(WorldObjectsDrawingTest, AnObjectThatLeavesTheViewStopsStepping)
     EXPECT_EQ(objects[0].alpha, 0.0f) << "no avanzó";
 }
 
-// 0x606560 recorre los sectores como el dibujo (x afuera, y adentro) y, en cada uno, el orden en que se
-// crearon: el orden importa cuando los pasos sacan rand().
+// 0x606560 walks the sectors like the draw (x outside, y inside) and, in each one, the order in which they were
+// created: the order matters when the steps take rand().
 TEST(WorldObjectsDrawingTest, TheObjectsStepSectorBySector)
 {
     const TwoMeshModels models;
@@ -1554,7 +1553,6 @@ TEST(WorldObjectsDrawingTest, TheObjectsStepSectorBySector)
     EXPECT_EQ(order, (std::vector<float>{100.0f, 200.0f, 8000.0f}));
 }
 
-// El que se encarga de uno (el logo del login) lo avanza él, y StepWorldObject no lo toca.
 TEST(WorldObjectsDrawingTest, ASpecialObjectIsSteppedByItsOwner)
 {
     const TwoMeshModels models;
@@ -1573,8 +1571,7 @@ TEST(WorldObjectsDrawingTest, ASpecialObjectIsSteppedByItsOwner)
     EXPECT_EQ(objects[0].alpha, 0.0f);
 }
 
-// Un efecto con modelo vivo, como el dragón, en (1.000; 1.000; 3.400), y su paso anterior 70 más atrás
-// en y.
+// A live model effect like the dragon, at (1000; 1000; 3400), with its previous step 70 further back in y.
 Client::Effects::ModelEffect LiveEffect()
 {
     Client::Effects::ModelEffect effect;
@@ -1586,8 +1583,8 @@ Client::Effects::ModelEffect LiveEffect()
     return effect;
 }
 
-// 0x52d620 → 0x5ffce0 con la luz por vértice: el color es la luz del terreno en su lugar más la del
-// efecto, y cada esquina va por la luz de su normal.
+// 0x52d620 → 0x5ffce0 with per-vertex light: the color is the terrain light at its place plus the effect's, and each
+// corner goes by its normal's light.
 TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
 {
     const TwoMeshModels models;
@@ -1616,7 +1613,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
     effects[0].seen = true;
     effects[0].transform.position.x = -401.0f;
     effects[0].previousPosition.x = -1000.0f;
-    // La extrapolación entraría en pantalla; el recorte usa +0x10, no esa posición dibujada.
+    // The extrapolation would come on screen; the culling uses +0x10, not that drawn position.
     effects[1].seen = false;
     effects[1].transform.position.x = 0.0f;
     effects[1].previousPosition.x = 1000.0f;
@@ -1672,7 +1669,6 @@ TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// El paso solo corre los efectos vivos.
 TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
 {
     const TwoMeshModels models;
@@ -1685,8 +1681,8 @@ TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
     EXPECT_EQ(effects[1].life, 100);
 }
 
-// Fuera del modo fiel, el dibujo va entre dos pasos (D-C4): la posición, `alpha` de un paso más, con lo
-// que se movió en el último; el frame no, que es entero.
+// Outside the faithful mode, the draw goes between two steps (D-C4): the position, `alpha` one step further, with what
+// it moved in the last one; not the frame, which is whole.
 TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 {
     const TwoMeshModels models;
@@ -1699,8 +1695,8 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
 }
 
-// Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32) y la del aliento (0x5f2): las
-// dos son JPG, de 3 componentes, y ligan el slot de su selector, como las de EffectTextureSet en GameModels.
+// A library with the size of the sprites' texture (0x5ac, 64 × 32) and the breath's (0x5f2): both are JPG, 3
+// components, and bind their selector's slot, like those of EffectTextureSet in GameModels.
 class SpriteTextures : public Client::Models::IModelLibrary
 {
 public:
@@ -1739,7 +1735,7 @@ public:
     }
 };
 
-// Metadata sintética: fuerza la frontera de color después de Begin, sin assets ni GL.
+// Synthetic metadata: forces the color boundary after Begin, without assets or GL.
 class InterruptedEffectTextures final : public SpriteTextures
 {
 public:
@@ -1867,8 +1863,8 @@ TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProdu
     }
 }
 
-// 0x549440(0): cada sprite vivo se dibuja una vez, aditivo, como el cuadrado de 0x621400 con la textura
-// por la escala (0x549290), y se apaga.
+// 0x549440(0): each live sprite is drawn once, additive, as the square of 0x621400 with the texture times the scale
+// (0x549290), and is turned off.
 TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
 {
     const SpriteTextures textures;
@@ -1883,7 +1879,7 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
     EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5ac});
     ASSERT_EQ(batch.Vertices().size(), 6u);
-    // 64 × 2 de ancho y 32 × 2 de alto, centrado en (10, 20).
+    // 64 × 2 wide and 32 × 2 high, centered at (10, 20).
     float minX = 1e9f;
     float maxX = -1e9f;
     float minY = 1e9f;
@@ -1906,8 +1902,7 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-// La mezcla de cada sprite sale de su +4 (0x549440): 1 0x620b10, 2 la normal; la textura 0x637 siempre
-// la normal.
+// Each sprite's blend comes from its +4 (0x549440): 1 0x620b10, 2 the normal one; texture 0x637 always the normal one.
 TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
 {
     const SpriteTextures textures;
@@ -1923,8 +1918,8 @@ TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
 }
 
-// Sin 0x549510 (+0x16c en 0), 0x549290 le resta 0,1 al alpha antes de medirlo: el cuadrado sale a 0,9
-// de la textura por la escala, y el color del billboard no lleva el alpha.
+// Without 0x549510 (+0x16c at 0), 0x549290 subtracts 0.1 from the alpha before measuring it: the square comes out at
+// 0.9 of the texture times the scale, and the billboard color does not carry the alpha.
 TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
 {
     const SpriteTextures textures;
@@ -1945,9 +1940,9 @@ TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
     EXPECT_FLOAT_EQ(maxX - minX, 64.0f * 2.0f * 0.9f);
 }
 
-// 0x548550(0): cada aliento vivo, aditivo (smoke01 es de 3 componentes: 0x620a90), del tamaño de su textura
-// por la escala, sin el alpha de los sprites y sin apagarlo; el paso lo apaga cuando se le acaba la vida. El
-// material y el binder (0x620780) van al lote como efectos sin geometría antes del quad, en coordenadas de ojo.
+// 0x548550(0): each live breath, additive (smoke01 has 3 components: 0x620a90), the size of its texture times the
+// scale, without the sprites' alpha and without turning it off; the step turns it off when its life runs out. The
+// material and the binder (0x620780) go to the batch as effects without geometry before the quad, in eye coordinates.
 TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 {
     const SpriteTextures textures;
@@ -1985,12 +1980,11 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
         minY = std::min(minY, vertex.position.y);
         maxY = std::max(maxY, vertex.position.y);
     }
-    // Con la rotación del reloj en 0, el alto es el de la textura por la escala.
+    // With the clock rotation at 0, the height is the texture's times the scale.
     EXPECT_FLOAT_EQ(maxY - minY, 32.0f * scale);
     EXPECT_TRUE(particles.All()[*index].alive);
 }
 
-// Una biblioteca que no subió ninguna textura de efectos.
 class NoEffectTextures final : public Client::Models::IModelLibrary
 {
 public:
@@ -2008,8 +2002,8 @@ public:
     }
 };
 
-// Sin el tamaño de su textura (una biblioteca que no la subió), el pase se corta en ese lugar con el error, en
-// la primera frontera (Recurso+20/+24), antes de cualquier servicio: no se saltea en silencio.
+// Without its texture's size (a library that did not upload it), the pass cuts at that place with the error, at the
+// first boundary (the resource's +20/+24), before any service: it is not skipped silently.
 TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
 {
     const NoEffectTextures textures;
@@ -2029,10 +2023,10 @@ TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
     EXPECT_TRUE(batch.Commands().empty());
 }
 
-// 0x4255f3 y 0x42588d (0x425260 desde 0x602ed0): el 0x29 y el 0x41/0x42 de Aida repiten su malla 0 con un
-// 0x4ecc30 después del cuerpo, sin luz por vértice y con la U del reloj (−ftol(T) % 100.000 · paso) y la V del
-// objeto. El 0x29 suma (banderas 0x42) en 0,52 y paso 0,00001f; el 0x41/0x42 va con el pase base (2), el color
-// que le dejó el cuerpo y paso 0,00005f. Dibujan también en un dibujo intermedio de MuRet, sin rand().
+// 0x4255f3 and 0x42588d (0x425260 from 0x602ed0): Aida's 0x29 and 0x41/0x42 repeat their mesh 0 with one 0x4ecc30
+// after the body, without per-vertex light and with the U from the clock (−ftol(T) % 100000 · step) and the object's
+// V. The 0x29 adds (flags 0x42) at 0.52 and step 0.00001f; the 0x41/0x42 goes with the base pass (2), the color the
+// body left it and step 0.00005f. They also draw in an intermediate MuRet draw, without rand().
 TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScroll)
 {
     constexpr std::uint8_t Aida = 33;
@@ -2076,7 +2070,7 @@ TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScrol
             EXPECT_EQ(vertex.color.blue, color.z);
         }
     }
-    // Otros tipos del 33 no repiten nada.
+    // Other types of the 33 repeat nothing.
     std::vector<WorldObject> objects{ObjectAt(0x10, 100.0f, 100.0f, Aida, Client::WorldObjects::ObjectScene::Other)};
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
@@ -2084,9 +2078,9 @@ TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScrol
     EXPECT_EQ(batch.Commands().size(), 2u);
 }
 
-// 0x4403b0 (la cadena de 0x6002e0 en el 31): el 0x1b, el 0x36 y el 0x34 multiplican el color del modelo por
-// el pulso de su fase; el 0x34 se dibuja dos veces con ese color (Q-C317); el 0xa va en (0,56; 0,8; 0,81).
-// Sin rand() ni estado: igual en un dibujo intermedio y en uno del original.
+// 0x4403b0 (the chain of 0x6002e0 on the 31): the 0x1b, the 0x36 and the 0x34 multiply the model color by their
+// phase's pulse; the 0x34 is drawn twice with that color (Q-C317); the 0xa goes at (0.56; 0.8; 0.81). No rand() or
+// state: the same in an intermediate draw and in an original one.
 TEST(WorldObjectsDrawingTest, TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawnTwice)
 {
     constexpr std::uint8_t Trials = 31;

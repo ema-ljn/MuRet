@@ -26,7 +26,7 @@
 #include <utility>
 #include <vector>
 
-// El 0x10f con un personaje de dueño (AuraJoints.cpp): el alta 0x530edd..0x531214 y el paso 0x535d4f..0x5366a7. 06,
+// The 0x10f with a character as owner (AuraJoints.cpp): creation 0x530edd..0x531214 and step 0x535d4f..0x5366a7. 06,
 // "Los joints de las familias (CL11)".
 namespace
 {
@@ -47,7 +47,7 @@ struct Pool
         actors[0].alive = true;
         actors[0].position = {1000, 2000, 300};
         cloth->logicSteps = 77;
-        cloth->openCounterAccesses = 1; // sin los cuatro rand() del cierre.
+        cloth->openCounterAccesses = 1; // without the four rand() of the close.
     }
 
     Client::Core::Expected<std::optional<std::size_t>, std::string>
@@ -82,9 +82,9 @@ struct Pool
     Client::Effects::ModelEffects* effects = nullptr;
 };
 
-// 0x5363bf..0x536450 con la frecuencia entera, calculado aparte del código de MuRet (Fraction y Decimal de Python):
-// FSIN y FCOS a 64 bits, los productos en PC53, el seno de z directo a float (0x53642f) y los spills a float. La fase
-// −77 es la del lugar 0 con 77 pasos; 53.808, la del lugar 1.
+// 0x5363bf..0x536450 with the integer frequency, computed apart from MuRet's code (Python's Fraction and Decimal): FSIN
+// and FCOS at 64 bits, the products in PC53, the sine of z straight to float (0x53642f) and the spills to float. Phase
+// −77 is slot 0's with 77 steps; 53808, slot 1's.
 glm::vec3 GoldenDirection(std::int32_t phase)
 {
     if (phase == -77)
@@ -94,7 +94,7 @@ glm::vec3 GoldenDirection(std::int32_t phase)
     return {std::bit_cast<float>(0xbe5d83c5u), std::bit_cast<float>(0xbf7610b0u), std::bit_cast<float>(0x3e2f529eu)};
 }
 
-// 0x536388..0x5364d2: el punto del lugar `index` alrededor de `target`, con la frecuencia entera.
+// 0x536388..0x5364d2: the point of slot `index` around `target`, with the integer frequency.
 glm::vec3 RingPoint(std::size_t index, std::int32_t steps, const glm::vec3& target, double lift)
 {
     const auto slot = static_cast<std::uint32_t>(index);
@@ -107,8 +107,8 @@ glm::vec3 RingPoint(std::size_t index, std::int32_t steps, const glm::vec3& targ
 }
 } // namespace
 
-// 0x530f05 y 0x536073: el 10f/0 nace con la luz entera, 999.999 de vida y 30 puntos, y gira alrededor del dueño, 110
-// por encima de su +0x10 + 10. Al moverse el dueño, los tramos se corren con él (0x5360dc..0x536185).
+// 0x530f05 and 0x536073: the 10f/0 is created with full light, 999999 life and 30 points, and turns around the owner,
+// 110 above its +0x10 + 10. When the owner moves, the segments shift with it (0x5360dc..0x536185).
 TEST(AuraJointsTest, TheRingsCircleTheirOwner)
 {
     Pool pool;
@@ -130,16 +130,16 @@ TEST(AuraJointsTest, TheRingsCircleTheirOwner)
     const glm::vec3 before = ring.points[0][0];
     pool.actors[0].position.x = 1100;
     ASSERT_TRUE(pool.Step().HasValue());
-    // El viejo tramo 0 (ya corrido) es ahora el 1.
+    // The old segment 0 (already shifted) is now 1.
     EXPECT_EQ(ring.points[1][0].x, F32(D(F32(D(before.x) - 1000)) + 1100));
-    // Muerto el dueño: vida en 0, sin dibujo, y la cola común le resta uno.
+    // With the owner dead: life at 0, no drawing, and the common tail subtracts one.
     pool.actors[0].alive = false;
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_FALSE(ring.alive);
     EXPECT_EQ(ring.life, -1);
 }
 
-// FaunaDirectionPC53 (0x53d1a0 con escala 1, el mismo bloque que 0x5363bf) da los valores dorados.
+// FaunaDirectionPC53 (0x53d1a0 with scale 1, the same block as 0x5363bf) gives the golden values.
 TEST(AuraJointsTest, TheDirectionMatchesTheGoldenValues)
 {
     for (const std::int32_t phase : {-77, 53808})
@@ -154,8 +154,8 @@ TEST(AuraJointsTest, TheDirectionMatchesTheGoldenValues)
     }
 }
 
-// 0x536187..0x536383: sin otro acceso abierto al contador de pasos, cada anillo lo abre y lo cierra, y el cierre saca
-// cuatro rand() (0x536383 → 0x412890), por anillo y por paso.
+// 0x536187..0x536383: with no other open access to the step counter, each ring opens and closes it, and the close draws
+// four rand() (0x536383 → 0x412890), per ring and per step.
 TEST(AuraJointsTest, EachRingClosesTheCounterWithFourRandoms)
 {
     Pool pool;
@@ -176,16 +176,16 @@ TEST(AuraJointsTest, EachRingClosesTheCounterWithFourRandoms)
     EXPECT_EQ(pool.cloth->openCounterAccesses, 0);
 }
 
-// 0x53120e y 0x536073..0x536452: un subtipo sin caso (0xa, que ningún llamador crea) nace sólo con el ancho y en su
-// paso lee al dueño, pone el destino 10 más arriba, abre y cierra el acceso al contador (cuatro rand() sin otro
-// abierto) y va a la cola, sin correr los tramos ni moverse.
+// 0x53120e and 0x536073..0x536452: a subtype without a case (0xa, which no caller creates) is created with only the
+// width and in its step reads the owner, puts the target 10 higher, opens and closes the counter access (four rand()
+// with no other open) and goes to the tail, without shifting the segments or moving.
 TEST(AuraJointsTest, TheUnhandledSubtypesOnlyReadTheirOwner)
 {
     Pool pool;
     pool.cloth->openCounterAccesses = 0;
     ASSERT_TRUE(pool.Create(0xa, 20).HasValue());
     JointState& joint = pool.joints[0];
-    joint.life = 5; // el alta no la escribe.
+    joint.life = 5; // creation does not write it
     const glm::vec3 before = joint.position;
     CrtRandom expected = pool.cloth->random;
 
@@ -196,15 +196,15 @@ TEST(AuraJointsTest, TheUnhandledSubtypesOnlyReadTheirOwner)
     EXPECT_EQ(pool.cloth->random.State(), expected.State());
     EXPECT_EQ(joint.targetPosition, glm::vec3(1000, 2000, 310));
     EXPECT_EQ(joint.position, before);
-    EXPECT_EQ(joint.count, -1); // sin puntos: +0x6c quedó en 0 y la cuenta llega a −1 (0x535520).
+    EXPECT_EQ(joint.count, -1); // no points: +0x6c stayed at 0 and the count reaches −1 (0x535520).
     pool.actors[0].alive = false;
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, -1);
 }
 
-// 0x530f35 y 0x535d4f: el 10f/4 vive mientras su dueño tenga 8 (o 0x2000000) en +0x78, con la vida en 100; con el
-// personaje de su +0xa0c sobre Fenrir fuera de la zona segura pasa a /9 (140 de alto) y vuelve a /4 al bajarse.
+// 0x530f35 and 0x535d4f: the 10f/4 lives while its owner has 8 (or 0x2000000) in +0x78, with life at 100; with the
+// character of its +0xa0c on Fenrir outside the safe zone it becomes /9 (140 high) and goes back to /4 on dismounting.
 TEST(AuraJointsTest, TheBindingFollowsItsTargetOnFenrir)
 {
     Pool pool;
@@ -223,14 +223,14 @@ TEST(AuraJointsTest, TheBindingFollowsItsTargetOnFenrir)
     pool.actors[2].safeZone = 1;
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_EQ(binding.subtype, 4);
-    // Sin el bit, se apaga.
+    // Without the bit, it turns off.
     pool.actors[0].flags78 = 0;
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_FALSE(binding.alive);
-    // Otro /4 con el blanco −1 se queda con el +0xa0c del uso anterior del lugar.
+    // Another /4 with target −1 keeps the +0xa0c of the slot's previous use.
     ASSERT_TRUE(pool.Create(4, 20).HasValue());
     EXPECT_EQ(pool.joints[0].target, 2);
-    // Un blanco fuera de los personajes corta.
+    // A target outside the characters stops.
     pool.joints[0].target = 7;
     pool.actors[0].flags78 = 8;
     const auto cut = pool.Step();
@@ -238,15 +238,15 @@ TEST(AuraJointsTest, TheBindingFollowsItsTargetOnFenrir)
     EXPECT_NE(cut.Error().find("0x535d63"), std::string::npos) << cut.Error();
 }
 
-// 0x53106d y 0x536526: el 10f/5 nace sin el primer tramo, a 800 de su +0x24, y en cada paso da tres vueltas que lo
-// frenan (0,95) y lo hacen caer; en la tanda 40 suelta la onda 0x6eb/3 (0x536626) y, sin la tabla de efectos, corta.
-// La /7 no.
+// 0x53106d and 0x536526: the 10f/5 is created without the first segment, 800 from its +0x24, and each step takes three
+// turns that slow it (0.95) and make it fall; at batch 40 it releases the 0x6eb/3 wave (0x536626) and, without the
+// effect table, stops. The /7 does not.
 TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
 {
     Pool pool;
     pool.startAngles = {0, 0, 30};
     const glm::vec3 base{500, 600, 700};
-    // 0x53115b va antes de 0x531166: el primer tramo usa el ancho del uso anterior del lugar.
+    // 0x53115b runs before 0x531166: the first segment uses the width of the slot's previous use.
     constexpr float PreviousWidth = 12.0f;
     pool.joints[0].width = PreviousWidth;
     ASSERT_TRUE(pool.Create(5, 25, -1, base).HasValue());
@@ -278,8 +278,8 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
     EXPECT_NE(stepped.Error().find("0x536626"), std::string::npos) << stepped.Error();
     EXPECT_EQ(rise.volley, 40);
 
-    // Con la tabla: la onda en el +0x24 de esa vuelta, con los ángulos y la luz del joint, vida 15 y escala 1, sin
-    // rand(); llena, nada y el mismo RNG.
+    // With the table: the wave at that turn's +0x24, with the joint's angles and light, life 15 and scale 1, without
+    // rand(); full, nothing and the same RNG.
     auto table = std::make_unique<Client::Effects::ModelEffects>();
     auto full = std::make_unique<Client::Effects::ModelEffects>();
     for (auto& effect : full->Effects())
@@ -324,7 +324,7 @@ TEST(AuraJointsTest, TheRiseFallsUntilItsEffect)
     EXPECT_GT(other.joints[0].volley, 40);
 }
 
-// 0x53116e y 0x536005: el 10f/8 gira 25 en z alrededor de su +0x24, agrega la cola y sube 15.
+// 0x53116e and 0x536005: the 10f/8 turns 25 in z around its +0x24, appends the tail and rises 15.
 TEST(AuraJointsTest, TheSpinTurnsAndRises)
 {
     Pool pool;
@@ -342,11 +342,12 @@ TEST(AuraJointsTest, TheSpinTurnsAndRises)
     EXPECT_EQ(spin.position, glm::vec3(F32(D(turned.x) + 10), F32(D(turned.y) + 20), F32(D(turned.z) + 30)));
 }
 
-// 0x530f7e y 0x535dbe..0x535ee4: el 10f/2 toma el segundo punto; sin dueño vivo lo suelta. Con él, el ancho es la vida
-// · 3 y la posición va de la mano del dueño (+0x194) al destino corrido por 0x53d1a0(17721 · lugar, dir, 1,4f) · 300,
-// con a = (vida − 10) · 0,1f entre 0 y 1. Los bits salen aparte de MuRet (Fraction y Decimal de Python): la frecuencia
-// de la x sin guardar en float (con ella guardada, la dirección del lugar 0 sería (0xbe847c40, 0xbf7734eb,
-// 0xbcc1fe0a)), FSIN y FCOS a 64 bits, PC53 y los stores a float. Fase 77 en el lugar 0 y 17.798 en el 1.
+// 0x530f7e and 0x535dbe..0x535ee4: the 10f/2 takes the second point; without a live owner it lets go. With one, the
+// width is life · 3 and the position goes from the owner's hand (+0x194) to the target shifted by 0x53d1a0(17721 ·
+// slot, dir, 1.4f) · 300, with a = (life − 10) · 0.1f between 0 and 1. The bits come from outside MuRet (Python's
+// Fraction and Decimal): the x frequency not stored as float (with it stored, slot 0's direction would be (0xbe847c40,
+// 0xbf7734eb, 0xbcc1fe0a)), FSIN and FCOS at 64 bits, PC53 and the stores to float. Phase 77 in slot 0 and 17798 in
+// slot 1.
 TEST(AuraJointsTest, TheBeamRunsFromTheHandToItsPoint)
 {
     Pool pool;
@@ -362,18 +363,18 @@ TEST(AuraJointsTest, TheBeamRunsFromTheHandToItsPoint)
 
     ASSERT_TRUE(pool.Step().HasValue());
 
-    // Vida 20: a = 1,0000000149 → 1; la posición es el punto.
+    // Life 20: a = 1.0000000149 → 1; the position is the point.
     EXPECT_EQ(pool.joints[0].width, 60.0f);
     EXPECT_EQ(pool.joints[0].position, glm::vec3(std::bit_cast<float>(0xc28d4689u), std::bit_cast<float>(0xc38cd8c4u),
                                                  std::bit_cast<float>(0x3ff66054u)));
-    // Vida 13: a = 0,3f y 1 − a = 0,7f.
+    // Life 13: a = 0.3f and 1 − a = 0.7f.
     EXPECT_EQ(pool.joints[1].width, 39.0f);
     EXPECT_EQ(pool.joints[1].position, glm::vec3(std::bit_cast<float>(0x44359c23u), std::bit_cast<float>(0x44b73895u),
                                                  std::bit_cast<float>(0x43876087u)));
     EXPECT_EQ(pool.joints[1].life, 12);
     EXPECT_EQ(pool.cloth->random.State(), before.State());
 
-    // El lugar 0 con vida 13, y con vida 5 (a = 0: la mano), con el contador cerrado: cuatro rand() por acceso.
+    // Slot 0 with life 13, and with life 5 (a = 0: the hand), with the counter closed: four rand() per access.
     for (const auto& [life, expected] :
          {std::pair{13, glm::vec3(std::bit_cast<float>(0x443b33c1u), std::bit_cast<float>(0x44b5efbeu),
                                   std::bit_cast<float>(0x438c49eau))},

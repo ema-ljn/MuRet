@@ -19,7 +19,7 @@ class IModelLibrary;
 
 namespace Client::Effects
 {
-// Borrow del mismo owner CPU y del contexto/view vigentes; no posee metadata ni caches GL.
+// Borrows from the same CPU owner and the current context/view; owns no metadata or GL caches.
 class ParticleDrawServices final : public Particles::IParticleDrawingServices
 {
 public:

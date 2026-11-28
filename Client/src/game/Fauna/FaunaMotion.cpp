@@ -30,7 +30,7 @@ constexpr float SeparationDistance = 80;
 using Math::F32;
 std::int32_t TargetAngle(float fromX, float fromY, float targetX, float targetY)
 {
-    // 4e97a0 usa una división y atan, no atan2; dx cero/unordered toma el cociente cero.
+    // 0x4e97a0 uses a division and atan, not atan2; a zero/unordered dx takes the zero quotient.
     const double dx = static_cast<double>(targetX) - fromX;
     const double quotient = dx != 0 && !std::isnan(dx) ? (static_cast<double>(fromY) - targetY) / dx : 0;
     std::int32_t angle = Math::FtolLow(Math::Detail::AtanDegreesProductPC53(quotient));
@@ -48,7 +48,7 @@ double FaunaHeight(const FaunaStepContext& context, float x, float y)
 }
 float FaunaSine(float phase)
 {
-    // La misma proyección retenido64→R53 que las partículas. El binding limita el argumento finito.
+    // The same retained64→R53 projection as the particles. The binding limits the finite argument.
     const auto product = Math::Detail::SineProductPC53(static_cast<double>(phase), 1.0f);
     return product ? F32(*product) : std::numeric_limits<float>::quiet_NaN();
 }
@@ -58,7 +58,7 @@ double FaunaWave(float sine)
 }
 std::int32_t TurnFaunaAngle(std::int32_t from, std::int32_t target, std::int32_t step)
 {
-    // 4e94c0: los callers entregan ángulos acotados. Igualdad conserva el extraño EAX=from.
+    // 0x4e94c0: the callers hand in bounded angles. Equality keeps the odd EAX=from.
     const std::int32_t difference = from - target;
     const std::int32_t distance = std::abs(difference);
     std::int32_t delta = from;
@@ -110,7 +110,7 @@ void SetFaunaAction(FaunaObject& object, const Models::Skeleton& skeleton, std::
 {
     if (action >= skeleton.actions.size() || action == object.action)
         return;
-    // 4ea030 guarda el frame completo, a diferencia del cruce entero de 4ec200.
+    // 0x4ea030 stores the whole frame, unlike 0x4ec200's integer crossing.
     object.previousAction = object.action;
     object.previousFrame = object.frame;
     object.action = action;

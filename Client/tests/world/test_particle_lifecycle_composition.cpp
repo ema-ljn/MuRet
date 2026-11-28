@@ -17,7 +17,7 @@
 namespace
 {
 using namespace Client;
-// Perfil CPU explícito: metadata fija y registro de fronteras D2, sin GL ni recursos reales.
+// Explicit CPU profile: fixed metadata and D2 boundary log, without GL or real resources.
 class TraceServices final : public Particles::IParticleDrawingServices
 {
 public:
@@ -92,7 +92,7 @@ TEST(ParticleLifecycleCompositionTest, RealBackendOrbitAndMap8SharePoolAndDispat
     EXPECT_EQ(p.life, 60);
     EXPECT_EQ(p.velocity.x, -128);
     EXPECT_EQ(p.rotation, 200);
-    // Estado legal preparado: tras decremento u=(59-59)*f32(0.1)=0, seno0 y coseno1.
+    // Prepared legal state: after the decrement u=(59-59)*f32(0.1)=0, sine 0 and cosine 1.
     p.velocity.x = -59;
     s.verticalSpeed = 0;
     ASSERT_TRUE(Particles::StepParticlesChecked(particles, random, std::cref(clock), nullptr, trig).HasValue());

@@ -21,8 +21,8 @@
 #include <tuple>
 #include <vector>
 
-// El 618/0 y el 618/1 del que mató (CL9 hito 3, fase 2d): 0x530860 (0x532125, 0x5322df, 0x5322f8) y su paso en
-// 0x535840 (0x538313..0x5386a4). 06, "El paso del ataque".
+// The killer's 618/0 and 618/1: 0x530860 (0x532125, 0x5322df, 0x5322f8) and their step in 0x535840
+// (0x538313..0x5386a4). 06, "El paso del ataque".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -83,9 +83,9 @@ int AliveLightning(const Client::Particles::Particles& particles, std::int32_t s
     return found;
 }
 
-// 0x532125..0x5322f8: el ancho, velocidad 3, vida 120, 8 puntos y la luz de cada subtipo, sin rand(). El primer paso
-// (vida 120, en 100 o más) mueve 3 con la matriz de los ángulos de antes, gira el rumbo 10 (la /0) o −10 (la /1), sube
-// 6 o 5, saca rand() & 3 para la luz dinámica, deja un 0x5d5/0 y agrega la cola.
+// 0x532125..0x5322f8: the width, speed 3, life 120, 8 points and each subtype's light, without rand(). The first step
+// (life 120, at 100 or more) moves 3 with the earlier angle matrix, turns the heading 10 (the /0) or −10 (the /1),
+// rises 6 or 5, draws rand() & 3 for the dynamic light, leaves a 0x5d5/0 and appends the tail.
 TEST(KillBeamJointsTest, TheBeamsSpinWhileTheirLifeIsAboveOneHundred)
 {
     BeamWorld tested;
@@ -122,9 +122,9 @@ TEST(KillBeamJointsTest, TheBeamsSpinWhileTheirLifeIsAboveOneHundred)
     EXPECT_TRUE(tested.sounds.empty());
 }
 
-// 0x538475..0x5385cd: debajo de vida 100, la velocidad sube de a 5 hasta 30 y 0x4e9810 los gira hacia el que mató (su
-// posición, 120 más arriba). A 35 o menos mueren, dejan el 0x5d5/1 y piden el sonido 0x23. Un rand() por joint vivo y
-// por paso, y nada más.
+// 0x538475..0x5385cd: below life 100, the speed rises by 5 up to 30 and 0x4e9810 turns them toward the killer (its
+// position, 120 higher). At 35 or less they die, leave the 0x5d5/1 and request sound 0x23. One rand() per live joint
+// and per step, and nothing more.
 TEST(KillBeamJointsTest, TheBeamsComeBackToTheKillerAndSound)
 {
     BeamWorld tested;
@@ -149,7 +149,7 @@ TEST(KillBeamJointsTest, TheBeamsComeBackToTheKillerAndSound)
     EXPECT_EQ(tested.joints[0].speed, 30.0f);
 }
 
-// 0x538501: sin el personaje dueño, el paso corta al volver.
+// 0x538501: without the owner character, the step stops on turning back.
 TEST(KillBeamJointsTest, AnOwnerlessBeamStopsWhenItTurnsBack)
 {
     BeamWorld tested;

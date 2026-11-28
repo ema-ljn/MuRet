@@ -30,52 +30,52 @@ namespace Client::Pets
 {
 namespace
 {
-// 0x444877..0x44487f y 0x4448fe..0x444906: el Dinorant vuela en Tarkan (8) y en Icarus (10).
+// 0x444877..0x44487f and 0x4448fe..0x444906: the Dinorant flies in Tarkan (8) and Icarus (10).
 using Maps::IcarusMap;
 using Maps::TarkanMap;
-// 0x444881: con el mundo en −1 el Dinorant queda a la altura del jinete.
+// 0x444881: with the world at −1 the Dinorant stays at the rider's height.
 constexpr std::int32_t NoMap = -1;
 constexpr double FlyingDrop = 10.0;  // 0x6b87a8
 constexpr double WalkingDrop = 30.0; // 0x6b8858
-// 0x444ab6: la velocidad del Uniria y del Dinorant.
-constexpr float RidingSpeed = std::bit_cast<float>(0x3eae147bu); // 0,34
-// 0x4449bf..0x4449d0: el polvo del galope con rand() % 2 en 0; 0x444e1b..0x444e2a, el del Fenrir con rand() % 3.
+// 0x444ab6: the Uniria's and the Dinorant's speed.
+constexpr float RidingSpeed = std::bit_cast<float>(0x3eae147bu); // 0.34
+// 0x4449bf..0x4449d0: the gallop dust with rand() % 2 == 0; 0x444e1b..0x444e2a, the Fenrir's with rand() % 3.
 constexpr int RidingDustOneIn = 2;
 constexpr int FenrirDustOneIn = 3;
-// 0x4449f1..0x4449fe, 0x444e5a..0x444e69 y 0x444f32..0x444f41: con 0x4000 en +0x78 del jinete, nada.
+// 0x4449f1..0x4449fe, 0x444e5a..0x444e69 and 0x444f32..0x444f41: with 0x4000 in the rider's +0x78, nothing.
 constexpr std::uint32_t RiderWithoutDust = 0x4000;
-// Las velocidades del Fenrir (0x444c06, 0x444c2a y 0x444c4b).
-constexpr float FenrirCalm = std::bit_cast<float>(0x3ecccccdu); // 0,4
+// 0x444c06, 0x444c2a and 0x444c4b
+constexpr float FenrirCalm = std::bit_cast<float>(0x3ecccccdu); // 0.4
 constexpr float FenrirRun = 1.0f;
-constexpr float FenrirTrot = std::bit_cast<float>(0x3f19999au); // 0,6
-// 0x444c84..0x444c92: el desplazamiento del hueso; 0x444ccd y 0x444d20, los 40 en x (0x6b8bf4); 0x444d2c, los 700
-// en z (0x6b8bec) de la segunda ventana.
+constexpr float FenrirTrot = std::bit_cast<float>(0x3f19999au); // 0.6
+// 0x444c84..0x444c92: the bone offset; 0x444ccd and 0x444d20, the 40 in x (0x6b8bf4); 0x444d2c, the 700 in z (0x6b8bec)
+// of the second window.
 constexpr glm::vec3 FenrirDustReach{120.0f, 0.0f, 32.0f};
 constexpr double FenrirDustAhead = 40.0;
 constexpr double FenrirDustLift = 700.0;
-// 0x444f47..0x444f55: la luz de las chispas del Guardian Angel; 0x444f5f, cuántas.
-constexpr float GuardianLightLevel = std::bit_cast<float>(0x3ecccccdu); // 0,4
+// 0x444f47..0x444f55 and 0x444f5f
+constexpr float GuardianLightLevel = std::bit_cast<float>(0x3ecccccdu); // 0.4
 constexpr int GuardianSparks = 4;
 constexpr std::int32_t GuardianSparkSubtype = 1;
 constexpr int SparkSpread = 16;
 constexpr int SparkCentre = 8;
-// 0x444fff: el alcance del vuelo, al cuadrado en float (0x44507a..0x445080); 0x4450a8, el giro.
+// 0x444fff: the flight reach, squared as float (0x44507a..0x445080); 0x4450a8, the turn.
 constexpr float GuardianReach = 150.0f;
 constexpr float GuardianTurn = 20.0f;
-// 0x4450f7..0x445108: la z del vuelo; 0x445117..0x445128, el cambio de rumbo con rand() % 32 en 0.
+// 0x4450f7..0x445108: the flight's z; 0x445117..0x445128, the course change with rand() % 32 == 0.
 constexpr int FlightJitter = 16;
 constexpr int FlightJitterCentre = 8;
 constexpr int NewCourseOneIn = 32;
-// 0x44513b..0x445157: la velocidad en y de lejos, ((rand() & 63) + 128) · −0,1f; 0x44515f..0x445179, la de cerca,
-// ((rand() & 63) + 16) · −0,1f, con el rumbo rand() % 360; 0x4451ab..0x4451c5, la de z, ((rand() & 63) − 32) · 0,1f.
+// 0x44513b..0x445157: the far y speed, ((rand() & 63) + 128) · −0.1f; 0x44515f..0x445179, the near one,
+// ((rand() & 63) + 16) · −0.1f, with course rand() % 360; 0x4451ab..0x4451c5, the z one, ((rand() & 63) − 32) · 0.1f.
 constexpr int CourseSpread = 64;
 constexpr int FarCourseBase = 128;
 constexpr int NearCourseBase = 16;
 constexpr int CourseCentre = 32;
 constexpr int Degrees = 360;
-constexpr double Backwards = static_cast<double>(std::bit_cast<float>(0xbdcccccdu)); // 0x6b8930, −0,1
-constexpr double Upwards = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));   // 0x6b87b8, 0,1
-// 0x4451d7..0x445215: entre 100 (0x6b86b4) y 200 (0x6b8928) por encima del jinete, de a 1,5 (0x6b8b94).
+constexpr double Backwards = static_cast<double>(std::bit_cast<float>(0xbdcccccdu)); // 0x6b8930, −0.1
+constexpr double Upwards = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));   // 0x6b87b8, 0.1
+// 0x4451d7..0x445215: between 100 (0x6b86b4) and 200 (0x6b8928) above the rider, by 1.5 (0x6b8b94).
 constexpr double FlightFloor = 100.0;
 constexpr double FlightCeiling = 200.0;
 constexpr double FlightClimb = 1.5;
@@ -92,7 +92,7 @@ bool InRange(std::uint8_t value, std::uint8_t low, std::uint8_t high)
     return value >= low && value <= high;
 }
 
-// 0x4448b1..0x4449b7: la acción del Uniria y del Dinorant por la del jinete, y si es la del galope (0x44499b).
+// 0x4448b1..0x4449b7, and whether it is the gallop (0x44499b).
 struct RidingGait
 {
     std::uint8_t action = 0;
@@ -109,7 +109,7 @@ RidingGait RidingGaitOf(std::uint16_t type, std::int32_t map, std::uint8_t rider
     }
     if (riderAction == 0x40 || riderAction == 0x41)
     {
-        return {static_cast<std::uint8_t>(flying ? 7 : 6), false}; // 0x44496c: sin mirar el tipo.
+        return {static_cast<std::uint8_t>(flying ? 7 : 6), false}; // 0x44496c: regardless of the type.
     }
     if (InRange(riderAction, 0x22, 0x37))
     {
@@ -118,7 +118,7 @@ RidingGait RidingGaitOf(std::uint16_t type, std::int32_t map, std::uint8_t rider
     return {static_cast<std::uint8_t>(dinorant && flying ? 1 : 0), false};
 }
 
-// 0x444867..0x44489a: la z del Dinorant, en la x87 hasta su fstp.
+// 0x444867..0x44489a: on the x87 until its fstp.
 float DinorantHeight(std::int32_t map, float riderZ)
 {
     if (map == TarkanMap || map == IcarusMap)
@@ -132,7 +132,7 @@ float DinorantHeight(std::int32_t map, float riderZ)
     return riderZ;
 }
 
-// 0x4449bf..0x444aad: el polvo del galope del Uniria y del Dinorant.
+// 0x4449bf..0x444aad
 Core::Expected<void, std::string> RaiseTheRidingDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
@@ -147,8 +147,7 @@ Core::Expected<void, std::string> RaiseTheRidingDust(const Kernel::HelperState& 
     return ScatterTheDust(helper, context, "0x444aa8");
 }
 
-// 0x444bbc..0x444c4b: la acción y la velocidad del Fenrir por la del jinete. Devuelve si sigue al polvo (0x444c55):
-// las acciones quietas van directo al avance.
+// 0x444bbc..0x444c4b. Returns whether it goes on to the dust (0x444c55): the still actions go straight to the advance.
 bool TakeTheFenrirGait(Kernel::HelperState& helper, const Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
     std::optional<std::uint8_t> calm;
@@ -187,14 +186,14 @@ bool TakeTheFenrirGait(Kernel::HelperState& helper, const Models::Skeleton& skel
     return true;
 }
 
-// 0x444c78..0x444e16: el polvo del Fenrir en Icarus, sin rand() antes del frame. Las ventanas comparan el frame
-// (+0x114) con los float de 0x6b87d4, 0x6b8bb0, 0x6b8bf0 y 0x6b87f8; fuera de ellas (o sin orden), nada.
+// 0x444c78..0x444e16: the Fenrir's Icarus dust, with no rand() before the frame. The windows compare the frame (+0x114)
+// with the floats at 0x6b87d4, 0x6b8bb0, 0x6b8bf0 and 0x6b87f8; outside them (or unordered), nothing.
 Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const Kernel::HelperState& helper,
                                                            const HelperStepContext& context)
 {
     constexpr float FirstLow = std::bit_cast<float>(0x3f800000u);   // 1
-    constexpr float FirstHigh = std::bit_cast<float>(0x3f99999au);  // 1,2
-    constexpr float SecondLow = std::bit_cast<float>(0x4099999au);  // 4,8
+    constexpr float FirstHigh = std::bit_cast<float>(0x3f99999au);  // 1.2
+    constexpr float SecondLow = std::bit_cast<float>(0x4099999au);  // 4.8
     constexpr float SecondHigh = std::bit_cast<float>(0x40a00000u); // 5
     constexpr std::size_t FirstBone = 22;                           // 0x68b1c3c
     constexpr std::size_t SecondBone = 44;                          // 0x68b205c
@@ -221,7 +220,7 @@ Core::Expected<void, std::string> RaiseTheIcarusFenrirDust(const Kernel::HelperS
     return PuffTheIcarusDust(base, helper.angles, context, "0x444df6");
 }
 
-// 0x444c55..0x444f25: el polvo del Fenrir. Fuera del 10, el que no tiene ventanas.
+// 0x444c55..0x444f25: the Fenrir's dust. Outside map 10, the one without windows.
 Core::Expected<void, std::string> RaiseTheFenrirDust(const Kernel::HelperState& helper, const Kernel::ActorState& rider,
                                                      const HelperStepContext& context)
 {
@@ -251,10 +250,10 @@ Core::Expected<void, std::string> StepRidingHelper(Kernel::HelperState& helper, 
     {
         return Core::Unexpected(safe.Error());
     }
-    // 0x4447f9: con el segundo argumento distinto de 0 (el retrato de las cartas), la celda no lo esconde.
+    // 0x4447f9: with the second argument not 0 (the card portrait), the cell does not hide it.
     if (safe.Value() && !context.ignoresTheSafeCell)
     {
-        helper.horse.alpha = 0.0f; // 0x444800: el EBX en 0.
+        helper.horse.alpha = 0.0f; // 0x444800: the EBX at 0.
         return {};
     }
     FadeWithTheRider(helper, rider);
@@ -287,14 +286,14 @@ Core::Expected<void, std::string> StepFenrir(Kernel::HelperState& helper, const 
     {
         return Core::Unexpected(safe.Error());
     }
-    // 0x444b25: lo mismo.
+    // 0x444b25: the same.
     if (safe.Value() && !context.ignoresTheSafeCell)
     {
         helper.horse.alpha = 0.0f; // 0x444b2c
         return {};
     }
     FadeWithTheRider(helper, rider);
-    // 0x444b84..0x444b96: también la cabeza del jinete (+0x28..+0x30), que lo portado no lee.
+    // 0x444b84..0x444b96: also the rider's head (+0x28..+0x30), which the ported code does not read.
     helper.position = rider.position;
     helper.angles = rider.angles;
     if (!TakeTheFenrirGait(helper, skeleton, rider.animation.action))
@@ -335,18 +334,18 @@ void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& 
                          Crt::CrtRandom& random)
 {
     const float reach = F32(static_cast<double>(GuardianReach) * static_cast<double>(GuardianReach));
-    // 0x445057..0x445078: la distancia al cuadrado en la x87; el float se guarda para el cambio de rumbo.
+    // 0x445057..0x445078: the squared distance on the x87; the float is stored for the course change.
     const double dx = static_cast<double>(riderStart.x) - static_cast<double>(helper.position.x);
     const double dy = static_cast<double>(riderStart.y) - static_cast<double>(helper.position.y);
     const double distance = (dy * dy) + (dx * dx);
     const float storedDistance = F32(distance);
-    // 0x445083..0x4450b4: menor o sin orden no gira.
+    // 0x445083..0x4450b4: less or unordered does not turn.
     if (distance >= static_cast<double>(reach))
     {
         const float course = F32(Math::CreateAngle(helper.position.x, helper.position.y, riderStart.x, riderStart.y));
         helper.angles.z = F32(Math::TurnAngle(helper.angles.z, course, GuardianTurn));
     }
-    // 0x4450ba..0x4450f4: la velocidad girada por la matriz de sus ángulos (+0x9c), sumada eje por eje.
+    // 0x4450ba..0x4450f4: the speed rotated by its angle matrix (+0x9c), added axis by axis.
     const glm::vec3 move = Math::OriginalVectorRotate(helper.velocity, Math::OriginalAngleMatrix(helper.angles));
     helper.position.x = F32(static_cast<double>(move.x) + static_cast<double>(helper.position.x));
     helper.position.y = F32(static_cast<double>(move.y) + static_cast<double>(helper.position.y));
@@ -354,7 +353,7 @@ void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& 
     helper.position.z = Shifted((random.Next() % FlightJitter) - FlightJitterCentre, helper.position.z);
     if (random.Next() % NewCourseOneIn == 0)
     {
-        // 0x44512e..0x445139: menor o sin orden, de cerca.
+        // 0x44512e..0x445139: less or unordered, near.
         if (!(storedDistance >= reach))
         {
             const float pull = F32(static_cast<double>((random.Next() % CourseSpread) + NearCourseBase) * Backwards);
@@ -368,12 +367,12 @@ void FlyTheGuardianAngel(Kernel::HelperState& helper, const Kernel::ActorState& 
         helper.velocity.x = 0.0f;
         helper.velocity.z = F32(static_cast<double>((random.Next() % CourseSpread) - CourseCentre) * Upwards);
     }
-    // 0x4451d1..0x4451f6: por debajo de 100 sobre el jinete (mayor y ordenado), sube.
+    // 0x4451d1..0x4451f6: below 100 over the rider (greater and ordered), it climbs.
     if (static_cast<double>(rider.position.z) + FlightFloor > static_cast<double>(helper.position.z))
     {
         helper.velocity.z = F32(static_cast<double>(helper.velocity.z) + FlightClimb);
     }
-    // 0x4451fc..0x44521b: por encima de 200 (menor o sin orden), baja.
+    // 0x4451fc..0x44521b: above 200 (less or unordered), it descends.
     if (!(static_cast<double>(rider.position.z) + FlightCeiling >= static_cast<double>(helper.position.z)))
     {
         helper.velocity.z = F32(static_cast<double>(helper.velocity.z) - FlightClimb);

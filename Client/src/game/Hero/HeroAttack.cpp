@@ -49,13 +49,13 @@ constexpr std::uint32_t LastSkill = 0xff;
 constexpr std::int32_t LastCell = 0xff;
 using Terrain::CellSize;                                                          // [0x6b86b4], 100
 constexpr float HalfCell = std::bit_cast<float>(std::uint32_t{0x42480000});       // [0x6b86b0], 50
-constexpr float CastReach = std::bit_cast<float>(std::uint32_t{0x42f00001});      // [0x6ba448], 120,0000076
-constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1,2
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
-// 0x6c8ff0: el nombre con el que el héroe no manda el D7.
+constexpr float CastReach = std::bit_cast<float>(std::uint32_t{0x42f00001});      // [0x6ba448], 120.0000076
+constexpr float WalkReach = std::bit_cast<float>(std::uint32_t{0x3f99999a});      // [0x6b8bb0], 1.2
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0.01
+// 0x6c8ff0: with this name the hero does not send the D7.
 constexpr std::string_view NoAttackName = "webzen";
 
-// 0x5650ef..0x565100: la tabla 0x56ab20 por +0x379 − 1.
+// 0x5650ef..0x565100: table 0x56ab20 by +0x379 − 1.
 std::string_view ArrivalCaseOf(std::int32_t type)
 {
     switch (type)
@@ -71,8 +71,8 @@ std::string_view ArrivalCaseOf(std::int32_t type)
     }
 }
 
-// 0x565107..0x56526a: el alcance, en celdas, por las armas (los tipos del registro propio, +0xb6c la derecha y
-// +0xbb4 la izquierda) y +0x376.
+// 0x565107..0x56526a: the range, in cells, by the weapons (the own record's types, +0xb6c the right one and +0xbb4 the
+// left one) and +0x376.
 float AttackRange(const Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
     Kernel::WorldState& world = context.combat.world;
@@ -110,7 +110,7 @@ Core::Expected<std::uint8_t, std::string> DirectionOf(float yaw, std::string_vie
     return direction.Value();
 }
 
-// 0x5653bb..0x56601e: en alcance.
+// 0x5653bb..0x56601e: in range.
 Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::int32_t target,
                                                const HeroArrivalContext& context)
 {
@@ -124,11 +124,11 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
     hero.attackPosition = world.Actors()[static_cast<std::size_t>(target)].position;
     hero.angles.z = static_cast<float>(
         Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
-    // 0x56544c..0x56548b: la celda del héroe publicado, X con 0x40b570/0x40b800 e Y con 0x4e7e40.
+    // 0x56544c..0x56548b: the published hero's cell, X with 0x40b570/0x40b800 and Y with 0x4e7e40.
     Kernel::ActorState& published = world.Hero();
     const std::uint8_t x = ReadTheCell(published.cellXAccesses, published.cellX, random);
     const std::uint8_t y = ReadTheCell(published.cellYAccesses, published.cellY, random);
-    // 0x56548b..0x565954: C1 06 D3 X Y (rumbo << 4), el giro de un paso, por el socket.
+    // 0x56548b..0x565954: C1 06 D3 X Y (heading << 4), the one-step turn, through the socket.
     if (const auto turn = DirectionOf(published.angles.z, "0x565700"); !turn.HasValue())
         return Core::Unexpected(turn.Error());
     if (context.sendWalk)
@@ -137,14 +137,14 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
         context.sendWalk(cell, cell[0], published.angles.z);
     }
     hero.movement = 0;
-    // 0x565954..0x56599f: abre y cierra la X y la Y de la celda.
+    // 0x565954..0x56599f: opens and closes the cell's X and Y.
     static_cast<void>(ReadTheCell(hero.cellXAccesses, hero.cellX, random));
     static_cast<void>(ReadTheCell(hero.cellYAccesses, hero.cellY, random));
     hero.attackTarget = static_cast<std::uint16_t>(target);
     const auto direction = DirectionOf(published.angles.z, "0x5659cd");
     if (!direction.HasValue())
         return Core::Unexpected(direction.Error());
-    // 0x5659e6..0x565a47: con "webzen" en el nombre del héroe publicado, no pega.
+    // 0x5659e6..0x565a47: with "webzen" in the published hero's name, it does not hit.
     if (Combat::CNameOf(published).find(NoAttackName) != std::string::npos)
         return {};
     if (!context.sendAttack)
@@ -154,26 +154,26 @@ Core::Expected<void, std::string> HitTheTarget(Kernel::ActorState& hero, std::in
     return {};
 }
 
-// 0x56535b..0x566299: la Y (+0x420) y la X (+0x41c), cada una con 0x40b570 y 0x40b800, y PathFinding2(X, Y, blanco,
-// +0x3e8, 0) con el alcance de distancia (0x4eac00, donde la bandera del altar no cuenta): las celdas a menos del
-// alcance del blanco son la meta. Con camino, +0x378 en 1 y nada más: sin SendMove, el servidor no ve el camino hasta
-// el D3 de girar al llegar (07). Sin camino, nada.
+// 0x56535b..0x566299: the Y (+0x420) and the X (+0x41c), each with 0x40b570 and 0x40b800, and PathFinding2(X, Y,
+// target, +0x3e8, 0) with the distance range (0x4eac00, where the altar flag does not count): the goal is the cells
+// within range of the target. With a path, +0x378 to 1 and nothing else: without SendMove, the server does not see the
+// path until the D3 of turning on arrival (07). Without a path, nothing.
 Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::int32_t targetX, std::int32_t targetY,
                                                 float range, const HeroArrivalContext& context)
 {
     auto& random = context.combat.random;
     const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
     const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
-    // La celda del blanco fuera de la grilla, que el A* toma como índice lineal (la fila de al lado, o fuera de los
-    // 65.536 WORD): MuRet descarta el acercamiento, con los dos rand() de las lecturas (07, Q-C1179).
+    // The target's cell off the grid, which the A* takes as a linear index (the next row, or outside the 65536 WORDs):
+    // MuRet discards the approach, with the two rand() of the reads (07, Q-C1179).
     if (targetX < 0 || targetX > LastCell || targetY < 0 || targetY > LastCell)
         return {};
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.combat.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x566272: falta TerrainWall para el camino hasta el alcance"));
     const Pathfinding::PathCell target{static_cast<std::uint8_t>(targetX), static_cast<std::uint8_t>(targetY)};
-    // 0x566272: PathFinding2 calcula primero la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance
-    // distinto de 0 no cuenta (0x4eadd4).
+    // 0x566272: PathFinding2 first computes the Crywolf altar flag (0x4eac0a..0x4eac41), which does not count with a
+    // nonzero range (0x4eadd4).
     const auto path = Actors::FindThePath(context.combat.world, terrain.attributes->cells, {x, y}, target, range);
     if (!path)
         return {};
@@ -182,14 +182,14 @@ Core::Expected<void, std::string> WalkIntoRange(Kernel::ActorState& hero, std::i
     return {};
 }
 
-// 0x56610d..0x566127: la skill − 1 por las tablas 0x56ab4c y 0x56ab34.
+// 0x56610d..0x566127: the skill − 1 through tables 0x56ab4c and 0x56ab34.
 enum class ArrivalSkillKind : std::uint8_t
 {
     None,
     OnItsTarget,    // 0x56629a: 0x55cbc0
     AtTheTarget,    // 0x566143: 0x55b6f0
-    ElfOnItsTarget, // 0x56642c y 0x5665c3: 0x55faa0
-    OnUniria,       // 0x56612e: la 0x2f, con el héroe publicado en Uniria, como 0x566143
+    ElfOnItsTarget, // 0x56642c and 0x5665c3: 0x55faa0
+    OnUniria,       // 0x56612e: 0x2f, with the published hero on Uniria, as 0x566143
 };
 
 ArrivalSkillKind ArrivalSkillKindOf(std::uint32_t skill)
@@ -249,15 +249,15 @@ Skills::HeroSkillContext SkillContextOf(const HeroArrivalContext& context)
                                     .faunaModels = context.combat.faunaModels};
 }
 
-// 0x56601f..0x566754: el caso 5.
+// 0x56601f..0x566754: case 5.
 Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero, const HeroArrivalContext& context)
 {
     Kernel::WorldState& world = context.combat.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     auto& random = context.combat.random;
     const Movement::WeaponSkillRequest request = runtime.movement.weaponSkill;
-    // 0x56601f..0x566106: con el byte de 0x7758580, el lugar 0x7758584 del registro propio; si no, 0x7758584 entero. El
-    // registro se abre y se cierra igual.
+    // 0x56601f..0x566106: with the byte at 0x7758580, the 0x7758584 slot of the own record; otherwise 0x7758584 whole.
+    // The record is opened and closed either way.
     std::uint32_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
@@ -278,8 +278,8 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     }
     if (kind == ArrivalSkillKind::None)
         return {};
-    // 0x566143..0x56616d (y sus pares): +0x389 del blanco 0x7758588 y el −1. El original lee +0x389 antes de mirar el
-    // −1 (Q-C1216), pero con −1 o menos sale por cualquiera de los dos.
+    // 0x566143..0x56616d (and its pairs): the +0x389 of target 0x7758588 and the −1. The original reads +0x389 before
+    // checking the −1 (Q-C1216), but with −1 or less it exits through either.
     const std::int32_t target = request.target;
     if (target <= -1)
         return {};
@@ -289,7 +289,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     const Kernel::ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
     if (victim.dying != 0)
         return {};
-    // 0x566173..0x566194: la celda del blanco, ftol(· 0,01), en 0x77e1ba8 y 0x77e1bac.
+    // 0x566173..0x566194: the target's cell, ftol(· 0.01), at 0x77e1ba8 and 0x77e1bac.
     const auto cellX =
         Math::OriginalFtolLow(static_cast<double>(victim.position.x) * static_cast<double>(CellReciprocal));
     const auto cellY =
@@ -298,8 +298,8 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
         return Core::Unexpected(std::string("0x56617c: la celda del blanco de la skill fuera del perfil ftol"));
     runtime.movement.targetX = std::bit_cast<std::uint32_t>(*cellX);
     runtime.movement.targetY = std::bit_cast<std::uint32_t>(*cellY);
-    // 0x566194..0x5661f0: la distancia al centro de la celda contra el alcance · 120,0000076 (la 0x55b6f0) o · 100, en
-    // la x87. TEST AH, 1: con C0 (menor o desordenado) está fuera; igual está en alcance (Q-C1216).
+    // 0x566194..0x5661f0: the distance to the cell's center against the range · 120.0000076 (0x55b6f0's) or · 100, on
+    // the x87. TEST AH, 1: with C0 (less or unordered) it is out; equal is in range (Q-C1216).
     const bool castsAtTheTarget = kind == ArrivalSkillKind::AtTheTarget;
     const double dx = static_cast<double>(hero.position.x) -
                       (static_cast<double>(*cellX) * static_cast<double>(CellSize) + static_cast<double>(HalfCell));
@@ -312,15 +312,15 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
     {
         if (castsAtTheTarget)
             return Skills::CastTheSkillAtTheTarget(hero, hero, skills);
-        // 0x56634c..0x5663a7: la línea de vista desde la celda lógica del héroe (la Y y la X).
+        // 0x56634c..0x5663a7: the line of sight from the hero's logical cell (the Y and the X).
         const std::uint8_t y = ReadTheCell(hero.cellYAccesses, hero.cellY, random);
         const std::uint8_t x = ReadTheCell(hero.cellXAccesses, hero.cellX, random);
         const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.combat.terrain);
         if (!terrain.attributes)
             return Core::Unexpected(
                 std::string("0x558800: falta TerrainWall para ver el blanco de la skill pendiente"));
-        // 0x56639d: la línea que sale de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin
-        // línea (08, P-C256).
+        // 0x56639d: MuRet takes a line that leaves TerrainWall (0x55886d reads outside the 65536 WORDs) as no line (08,
+        // P-C256).
         const auto seen = Pathfinding::CanSeeTheCell(terrain.attributes->cells, x, y, *cellX, *cellY);
         if (!seen || !*seen)
             return {};
@@ -328,7 +328,7 @@ Core::Expected<void, std::string> UseTheSkillOnArrival(Kernel::ActorState& hero,
             return Skills::UseTheSkillOnItsTarget(hero, hero, skills);
         return Skills::UseTheElfSkillOnItsTarget(hero, hero, skills);
     }
-    // 0x56620d..0x566299: el camino hasta el alcance (· 1,2 en un float, con 0x55b6f0) desde la celda lógica del héroe.
+    // 0x56620d..0x566299: the path to the range (· 1.2 in a float, with 0x55b6f0) from the hero's logical cell.
     const float reach = castsAtTheTarget
                             ? static_cast<float>(static_cast<double>(range.Value()) * static_cast<double>(WalkReach))
                             : range.Value();
@@ -343,8 +343,8 @@ Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, cons
     const std::int32_t target = runtime.movement.attackTarget;
     if (target == -1)
         return {};
-    // 0x565278..0x5652a6: el segundo argumento (el héroe) pegando ya no vuelve a pegar; de 0x22 a 0x97, sólo con la
-    // 0x8d (Q-C1162).
+    // 0x565278..0x5652a6: the second argument (the hero) already hitting does not hit again; from 0x22 to 0x97, only
+    // with 0x8d (Q-C1162).
     const std::uint8_t action = hero.animation.action;
     if (hero.type == Tables::PlayerSkeletonModel)
     {
@@ -360,7 +360,7 @@ Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, cons
     if (static_cast<std::size_t>(target) >= world.Actors().size())
         return Core::Unexpected(std::format("0x5652b5: el blanco {} está fuera del pool", target));
     const Kernel::ActorState& victim = world.Actors()[static_cast<std::size_t>(target)];
-    // 0x5652b5..0x5652e8: la celda del blanco, ftol(x · 0,01f) entero, en 0x77e1ba8 y 0x77e1bac.
+    // 0x5652b5..0x5652e8: the target's cell, ftol(x · 0.01f) as an integer, at 0x77e1ba8 and 0x77e1bac.
     constexpr double CellScale = static_cast<double>(0.01f);
     const auto cellX = Math::OriginalFtolLow(static_cast<double>(victim.position.x) * CellScale);
     const auto cellY = Math::OriginalFtolLow(static_cast<double>(victim.position.y) * CellScale);
@@ -370,15 +370,15 @@ Core::Expected<void, std::string> AttackOnArrival(Kernel::ActorState& hero, cons
     runtime.movement.targetY = std::bit_cast<std::uint32_t>(*cellY);
     if (hero.safeZone != 0)
         return {};
-    // 0x5652fb..0x565347: la distancia al centro de la celda, en la x87, contra el alcance · 100. Menor, igual o
-    // unordered (C0 o C3) está en alcance.
+    // 0x5652fb..0x565347: the distance to the cell's center, on the x87, against the range · 100. Less, equal or
+    // unordered (C0 or C3) is in range.
     const double dx = static_cast<double>(hero.position.x) - (static_cast<double>(*cellX) * 100.0 + 50.0);
     const double dy = static_cast<double>(hero.position.y) - (static_cast<double>(*cellY) * 100.0 + 50.0);
     const double distance = std::sqrt(dx * dx + dy * dy);
     const double limit = static_cast<double>(range) * 100.0;
     if (distance > limit)
     {
-        // 0x565349..0x5653b6: fuera de alcance sólo el elfo se acerca, con el camino hasta el alcance (0x566271).
+        // 0x565349..0x5653b6: out of range only the elf approaches, with the path to the range (0x566271).
         if (Kernel::BaseClassOf(hero.characterClass) != Kernel::CharacterClass::Elf)
             return {};
         return WalkIntoRange(hero, *cellX, *cellY, range, context);

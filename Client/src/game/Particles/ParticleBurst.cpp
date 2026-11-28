@@ -27,7 +27,7 @@ Core::Expected<bool, ParticleError> CreateParticleBurst(Particles& particles, co
     glm::vec3 angles{};
     for (int spark = 0; spark < BurstCount; ++spark)
     {
-        // 0x51fe4b/0x51fe6e: también corren si 0x53fe70 no encuentra lugar; su creación no lee el reloj.
+        // 0x51fe4b/0x51fe6e: they also run if 0x53fe70 finds no slot; its creation does not read the clock.
         const float pitch = static_cast<float>(random.Next() % PitchSpan + PitchBase);
         const float yaw = static_cast<float>(random.Next() % YawSpan);
         angles = {pitch, 0.0f, yaw};
@@ -38,7 +38,7 @@ Core::Expected<bool, ParticleError> CreateParticleBurst(Particles& particles, co
     }
     if (!explosion)
         return false;
-    // 0x51fea8..0x51fee0: usa los ángulos del último intento incluso si no pudo crear su chispa.
+    // 0x51fea8..0x51fee0: uses the angles of the last attempt even if it could not create its spark.
     const glm::vec3 light(std::bit_cast<float>(0x3f333333u));
     const auto created = particles.CreateChecked(ExplosionParticle, point, angles, light, 0, 1.0f, worldClock, random);
     if (!created.HasValue())

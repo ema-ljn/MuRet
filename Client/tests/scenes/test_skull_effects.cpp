@@ -23,7 +23,7 @@
 #include <optional>
 #include <string>
 
-// El 0x628, la calavera: su alta (0x51ee23), su paso (0x52b59b) y PutTheSkullOn (0x4e688c, 0x4cd664).
+// The 0x628, the skull: its creation (0x51ee23), its step (0x52b59b) and PutTheSkullOn (0x4e688c, 0x4cd664).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -98,7 +98,7 @@ struct SkullWorld
     float clock = 98765.5f;
 };
 
-// 0x52b640..0x52b726: el punto de la vuelta `turn` del /0, /1 y /3 con la vida de antes de la cola.
+// 0x52b640..0x52b726: the point of turn `turn` of the /0, /1 and /3 with the life before the tail.
 glm::vec3 OrbitPoint(int turn, std::int32_t life, bool reversed, float clock, const ActorState& owner)
 {
     using Client::Math::Detail::CosineProductPC53;
@@ -121,8 +121,8 @@ glm::vec3 OrbitPoint(int turn, std::int32_t life, bool reversed, float clock, co
                                static_cast<double>(owner.position.z))};
 }
 
-// 0x51ee23..0x51ee95: vida 1.000, salvo el /1 (940), el /2 (8, 150 más arriba) y el /4 (20, +0xd8 en 2 y la velocidad
-// (0, −10, 0)). Sin rand().
+// 0x51ee23..0x51ee95: life 1000, except the /1 (940), the /2 (8, 150 higher) and the /4 (20, +0xd8 at 2 and speed (0,
+// −10, 0)). No rand().
 TEST(SkullEffectsTest, TheSkullTakesItsLifeFromItsSubtype)
 {
     constexpr std::int32_t Lives[] = {1000, 940, 8, 1000, 20, 1000, 1000};
@@ -142,8 +142,8 @@ TEST(SkullEffectsTest, TheSkullTakesItsLifeFromItsSubtype)
     }
 }
 
-// 0x52b5a3..0x52b5dc: el /4 baja la velocidad y en +0xd8 y la x de sus ángulos en 1 y deja el sprite 0x628 de escala
-// 10 con su luz, donde estaba; la cola lo mueve. Sin dueño y sin rand() más que el de la luz local.
+// 0x52b5a3..0x52b5dc: the /4 lowers the speed's y in +0xd8 and its angles' x by 1 and leaves the 0x628 sprite with
+// scale 10 and its light where it was; the tail moves it. No owner and no rand() besides the local light's.
 TEST(SkullEffectsTest, TheFallingSkullDropsAndLeavesItsSprite)
 {
     SkullWorld tested;
@@ -162,7 +162,7 @@ TEST(SkullEffectsTest, TheFallingSkullDropsAndLeavesItsSprite)
     EXPECT_EQ(DrawsSince(tested.random), 1);
 }
 
-// 0x52b5e9..0x52b5fe: los demás se apagan con su dueño muerto; sin dueño, el original lee un puntero nulo.
+// 0x52b5e9..0x52b5fe: the others die with their owner dead; without an owner, the original reads a null pointer.
 TEST(SkullEffectsTest, TheSkullDiesWithItsOwner)
 {
     SkullWorld tested;
@@ -180,9 +180,9 @@ TEST(SkullEffectsTest, TheSkullDiesWithItsOwner)
     EXPECT_TRUE(cut.Error().starts_with("0x52b5ef")) << cut.Error();
 }
 
-// 0x52b640..0x52b782: el /1 y el /3 (al revés, más alto) dan tres vueltas sobre su dueño; con la tabla de partículas
-// llena, la 0x5de/5 no nace y queda el sprite 0x628 de escala 1 con la luz local (1, 1, 1) en cada punto. Con lugar,
-// cada vuelta suelta su 0x5de/5 de escala 0,4f (0x52b74e), con sus rand(), antes de su sprite.
+// 0x52b640..0x52b782: the /1 and the /3 (reversed, higher) do three turns over their owner; with the particle table
+// full, the 0x5de/5 is not born and the 0x628 sprite with scale 1 and local light (1, 1, 1) stays at each point. With
+// a slot, each turn releases its 0x5de/5 with scale 0.4f (0x52b74e), with its rand(), before its sprite.
 TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
 {
     for (const std::int32_t subtype : {1, 3})
@@ -228,9 +228,9 @@ TEST(SkullEffectsTest, TheSkullCirclesOverItsOwner)
     }
 }
 
-// 0x52b612..0x52b63b: el /0 mira su propio +0x78. Con 0x40, la vida en 10 (la cola la deja en 9) y da sus vueltas;
-// con 0x40 y 0x4000, además +0x16c en 0 y nada más. Sin los bits, gira como el /1. Nadie escribe +0x78 en un efecto
-// (Q-C1582): el test lo pone a mano, en un estado al que el original no llega.
+// 0x52b612..0x52b63b: the /0 looks at its own +0x78. With 0x40, life at 10 (the tail leaves it at 9) and it does its
+// turns; with 0x40 and 0x4000, also +0x16c at 0 and nothing else. Without the bits, it turns like the /1. Nobody writes
+// +0x78 on an effect (Q-C1582): the test sets it by hand, in a state the original does not reach.
 TEST(SkullEffectsTest, ThePlainSkullReadsItsOwnFlags)
 {
     for (const std::uint32_t flags : {0x0u, 0x40u, 0x4040u, 0x4000u})
@@ -255,10 +255,10 @@ TEST(SkullEffectsTest, ThePlainSkullReadsItsOwnFlags)
     }
 }
 
-// 0x52b648..0x52b773, la vuelta 1 del /3 con la vida 1.000 y T = 98.765,5f, calculada a mano fuera de MuRet (sin y cos
-// exactos, el retenido de 64 bits, un R53 por producto y por suma, un FSTP por eje): el radio FSIN(15,37f +
-// T · 0,0031f) · 20 + 50 en float (0x4287a8c9) y el punto (0x4538ca82, 0x4576bd33, 562,5). Con la tabla de partículas
-// llena, el sprite 0x628 queda ahí.
+// 0x52b648..0x52b773, turn 1 of the /3 with life 1000 and T = 98765.5f, computed by hand outside MuRet (exact sin and
+// cos, the 64-bit retained, one R53 per product and per sum, one FSTP per axis): the radius FSIN(15.37f + T · 0.0031f)
+// · 20 + 50 in float (0x4287a8c9) and the point (0x4538ca82, 0x4576bd33, 562.5). With the particle table full, the
+// 0x628 sprite stays there.
 TEST(SkullEffectsTest, TheReversedSkullsSecondTurnMatchesTheHandMadePoint)
 {
     SkullWorld tested;
@@ -274,8 +274,8 @@ TEST(SkullEffectsTest, TheReversedSkullsSecondTurnMatchesTheHandMadePoint)
     EXPECT_EQ(DrawsSince(tested.random), 1);
 }
 
-// 0x52b795..0x52b829: los tres puntos del /5 con la vida 1.000 y T = 98.765,5f, calculados a mano como el de arriba.
-// Con la tabla de partículas llena, sus 0x5ac/5 no nacen y el paso sigue sin rand() de más.
+// 0x52b795..0x52b829: the /5's three points with life 1000 and T = 98765.5f, computed by hand like the one above. With
+// the particle table full, its 0x5ac/5 are not born and the step goes on with no extra rand().
 TEST(SkullEffectsTest, TheStackedSkullPointsMatchTheHandMadeOnes)
 {
     SkullWorld tested;
@@ -298,7 +298,7 @@ TEST(SkullEffectsTest, TheStackedSkullPointsMatchTheHandMadeOnes)
     EXPECT_EQ(DrawsSince(tested.random), 1);
 }
 
-// 0x52b85e..0x52b899: el /2 deja el sprite 0x628 de escala 1,5f en su lugar con la luz vida · 0,1f.
+// 0x52b85e..0x52b899: the /2 leaves the 0x628 sprite with scale 1.5f at its place with light life · 0.1f.
 TEST(SkullEffectsTest, TheGlowingSkullFadesWithItsLife)
 {
     SkullWorld tested;
@@ -314,9 +314,9 @@ TEST(SkullEffectsTest, TheGlowingSkullFadesWithItsLife)
     EXPECT_EQ(skull.life, 7);
 }
 
-// 0x52b78d..0x52b853: el /5 suelta tres 0x5ac/5 (vida 25, sin rand()) en SkullStackPoint con la vida de antes de la
-// cola, sus ángulos, la luz (0,6f; 0,6f; 1) y la escala 0,7f; con la tabla llena, nada. El /6 y los demás de más de 5
-// solo pierden una vida.
+// 0x52b78d..0x52b853: the /5 releases three 0x5ac/5 (life 25, no rand()) at SkullStackPoint with the life before the
+// tail, its angles, light (0.6f; 0.6f; 1) and scale 0.7f; with the table full, nothing. The /6 and the others above 5
+// only lose a life.
 TEST(SkullEffectsTest, TheStackedSkullAndTheOthers)
 {
     SkullWorld full;
@@ -355,8 +355,8 @@ TEST(SkullEffectsTest, TheStackedSkullAndTheOthers)
     EXPECT_EQ(DrawsSince(other.random), 1);
 }
 
-// PutTheSkullOn: apaga solo el 0x628/0 del mismo dueño y crea otro con él de dueño, su posición y sus ángulos y luz 1.
-// Con la tabla llena, ninguno y sin error.
+// PutTheSkullOn: kills only the same owner's 0x628/0 and creates another owned by it, with its position, its angles
+// and light 1. With the table full, none and no error.
 TEST(SkullEffectsTest, PuttingASkullReplacesOnlyTheOwnersPlainOne)
 {
     SkullWorld tested;
@@ -366,7 +366,7 @@ TEST(SkullEffectsTest, PuttingASkullReplacesOnlyTheOwnersPlainOne)
     owner.angles = {0, 0, 60};
     ASSERT_TRUE(Client::Effects::PutTheSkullOn(owner, *tested.world, tested.random, 0x4cd664).HasValue());
     EXPECT_TRUE(stacked.alive);
-    EXPECT_TRUE(old.alive); // el lugar 0 otra vez, con el nuevo
+    EXPECT_TRUE(old.alive); // slot 0 again, with the new one
     EXPECT_EQ(old.life, 1000);
     EXPECT_EQ(old.transform.position, owner.position);
     EXPECT_EQ(old.transform.angles, owner.angles);

@@ -13,8 +13,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Scenes: las tablas de 0x5141e0 y de sus seis creadores de evento, lo que corre en cada mapa, los rand() y
-// la cola 0x5140c0 (04, "Los monstruos y los NPC que entran").
+// Client::Monsters: the tables of 0x5141e0 and of its six event creators, and the 0x5140c0 tail (04, "Los monstruos y
+// los NPC que entran").
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -56,8 +56,7 @@ const MonsterStep* Find(const std::vector<MonsterStep>& steps, MonsterStepKind k
 
 using Client::Math::Bits;
 
-// Cada caso crea una sola vez y carga lo que pide antes de crear; los tipos del switch van de 0 a 301 y los 124
-// casos que no son el default aparecen todos.
+// The switch's types go from 0 to 301 and all 124 non-default cases appear.
 TEST(MonsterKindsTest, EveryCaseCreatesOnceAfterItsLoads)
 {
     std::set<std::uint32_t> cases;
@@ -87,7 +86,7 @@ TEST(MonsterKindsTest, EveryCaseCreatesOnceAfterItsLoads)
         check(event.kind);
 }
 
-// 0x515a1f (Lorencia): Monster10 en el modelo 0x15b, el nombre de 0x6c8aa0 y la escala 0,4. Ningún rand().
+// 0x515a1f (Lorencia): Monster10 in model 0x15b, the name at 0x6c8aa0 and scale 0.4. No rand().
 TEST(MonsterKindsTest, ASimpleCaseLoadsCreatesNamesAndScales)
 {
     CrtRandom random(7);
@@ -106,7 +105,7 @@ TEST(MonsterKindsTest, ASimpleCaseLoadsCreatesNamesAndScales)
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
 
-// 0x515e74: el 14 es un jugador (0x20a) con el sufijo 209 en +4, +0x38a en 1 y las dos manos.
+// 0x515e74: 14 is a player (0x20a) with suffix 209 at +4, +0x38a at 1 and both hands.
 TEST(MonsterKindsTest, AGuardIsAPlayerModelWithItsSuffixAndHands)
 {
     const auto steps = Resolve(14, Devias);
@@ -120,7 +119,7 @@ TEST(MonsterKindsTest, AGuardIsAPlayerModelWithItsSuffixAndHands)
     EXPECT_EQ(Find(steps, MonsterStepKind::Write, 0x2d8)->value, 0xe16u);
 }
 
-// 0x516e2a: el default carga Monster01 y crea 0x152; el 0, el 4 y el 8 además escriben su nombre y su arma.
+// 0x516e2a: the default loads Monster01 and creates 0x152; 0, 4 and 8 also write their name and weapon.
 TEST(MonsterKindsTest, TheDefaultCreatesMonster01AndOnlyTheZeroFourAndEightAddMore)
 {
     const auto plain = Resolve(399, Lorencia);
@@ -135,7 +134,7 @@ TEST(MonsterKindsTest, TheDefaultCreatesMonster01AndOnlyTheZeroFourAndEightAddMo
     EXPECT_EQ(Find(Resolve(8, Lorencia), MonsterStepKind::Write, 0x78)->value, 1u);
 }
 
-// 0x51536b: el 34 viste (0x512930) y solo en Devil Square (el mapa 9) pone la escala en 1 después (0x51542a).
+// 0x51536b: 34 dresses (0x512930) and only in Devil Square (map 9) then sets the scale to 1 (0x51542a).
 TEST(MonsterKindsTest, TheCursedWizardScalesOnlyInDevilSquare)
 {
     const auto devias = Resolve(34, Devias);
@@ -148,7 +147,7 @@ TEST(MonsterKindsTest, TheCursedWizardScalesOnlyInDevilSquare)
     EXPECT_EQ(square.back().address, 0x51542au);
 }
 
-// 0x5146be..0x5146db: +0x2ba en 8 con (mapa − 10) / 3 en 0, que con la división de C cubre del 8 al 12 (Q-C846).
+// 0x5146be..0x5146db: +0x2ba to 8 when (map − 10) / 3 == 0, which with C division covers 8 to 12 (Q-C846).
 TEST(MonsterKindsTest, TheSpiritKnightWeaponLevelCoversTheMapsEightToTwelve)
 {
     for (const std::int32_t world : {Tarkan, DevilSquare, 10, BloodCastle1, 12})
@@ -157,7 +156,7 @@ TEST(MonsterKindsTest, TheSpiritKnightWeaponLevelCoversTheMapsEightToTwelve)
         EXPECT_EQ(Find(Resolve(88, world), MonsterStepKind::Write, 0x2ba)->value, 0u) << world;
 }
 
-// 0x439df0 atiende Kalima (144 a 149 y los suyos) en cualquier mapa, antes del switch.
+// 0x439df0 handles Kalima (144 to 149 and its own) on any map, before the switch.
 TEST(MonsterKindsTest, KalimaMonstersComeFromTheirCreatorInEveryMap)
 {
     for (const std::int32_t world : {Lorencia, Devias, 24})
@@ -171,7 +170,7 @@ TEST(MonsterKindsTest, KalimaMonstersComeFromTheirCreatorInEveryMap)
     EXPECT_EQ(steps[1].value, 0x191u);
 }
 
-// 0x42d070 solo en el mapa 30: el 104 crea el modelo 0xb; en otro mapa va al default.
+// 0x42d070 only on map 30: 104 creates model 0xb; on another map it goes to the default.
 TEST(MonsterKindsTest, TheSiegeCreatorOnlyRunsInMapThirty)
 {
     EXPECT_EQ(MonsterCreationOf(104, CastleSiege).creator, 0x42d070u);
@@ -182,7 +181,7 @@ TEST(MonsterKindsTest, TheSiegeCreatorOnlyRunsInMapThirty)
     EXPECT_EQ(MonsterCreationOf(104, Lorencia).kind.address, 0x516e2au);
 }
 
-// 0x42d244: la guerra conserva la altura de 217/218; en paz baja100. No pide rand().
+// 0x42d244: war keeps the height of 217/218; in peace it lowers 100. No rand().
 TEST(MonsterKindsTest, TheSiegeGateRetainsItsHeightDuringWar)
 {
     for (const std::int32_t type : {217, 218})
@@ -199,7 +198,7 @@ TEST(MonsterKindsTest, TheSiegeGateRetainsItsHeightDuringWar)
     }
 }
 
-// 0x42d579/0x42d6b7: 283 visible sólo en guerra; 288 termina visible en ambos estados (doble escritura nativa).
+// 0x42d579/0x42d6b7: 283 visible only in war; 288 ends visible in both states (double write in the original).
 TEST(MonsterKindsTest, TheSiegeMonstersSelectTheirNativeVisibility)
 {
     for (const bool war : {false, true})
@@ -220,7 +219,7 @@ TEST(MonsterKindsTest, TheSiegeMonstersSelectTheirNativeVisibility)
     }
 }
 
-// 0x4313cc..0x4313ee: en Crywolf el 348 mira a 180 al crearse y, con la X en 62 o en 183, gira +0x24 a 90.
+// 0x4313cc..0x4313ee: in Crywolf, 348 faces 180 on creation and, with X at 62 or 183, turns +0x24 to 90.
 TEST(MonsterKindsTest, TheCrywolfStatueTurnsAtTwoColumns)
 {
     for (const std::int32_t x : {62, 183})
@@ -236,8 +235,8 @@ TEST(MonsterKindsTest, TheCrywolfStatueTurnsAtTwoColumns)
     EXPECT_EQ(MonsterCreationOf(348, Lorencia).kind.address, 0x516e2au);
 }
 
-// 0x51443f: un rand() antes de cargar; con r par, Monster72 (0x47), el modelo 0x199 y el arma 0xa25; con r impar,
-// Monster73, 0x19a y 0xc17.
+// 0x51443f: one rand() before loading; with r even, Monster72 (0x47), model 0x199 and weapon 0xa25; with r odd,
+// Monster73, 0x19a and 0xc17.
 TEST(MonsterKindsTest, TheChaosCastleSoldierDrawsOneRandomBeforeLoading)
 {
     std::uint32_t even = 0;
@@ -260,7 +259,7 @@ TEST(MonsterKindsTest, TheChaosCastleSoldierDrawsOneRandomBeforeLoading)
     EXPECT_GT(odd, 0u);
 }
 
-// 0x514358: el 224 saca su rand() después de la escala y lo suma a 10 en +4.
+// 0x514358: 224 draws its rand() after the scale and adds it to 10 at +4.
 TEST(MonsterKindsTest, TheGuardsmanDrawsAfterItsScale)
 {
     CrtRandom random(3);
@@ -274,8 +273,8 @@ TEST(MonsterKindsTest, TheGuardsmanDrawsAfterItsScale)
     EXPECT_EQ((draw + 1)->value, 10u + static_cast<std::uint32_t>(copy.Next() % 2));
 }
 
-// 0x514818: el tipo 68 (el caso 0x3a) carga Monster50 (0x612d90(0x31)), que el Data del laboratorio no trae: el
-// original se cierra al cargarlo (0x612dd6..0x612de1, 09). La carga corta en la fase 2.
+// 0x514818: type 68 (case 0x3a) loads Monster50 (0x612d90(0x31)), which the lab's Data lacks: the original closes when
+// loading it (0x612dd6..0x612de1, 09). The load cuts in phase 2.
 TEST(MonsterKindsTest, TypeSixtyEightAsksForMonster50)
 {
     const auto steps = Resolve(68, Tarkan);
@@ -285,7 +284,7 @@ TEST(MonsterKindsTest, TypeSixtyEightAsksForMonster50)
     EXPECT_EQ(Find(steps, MonsterStepKind::Create)->value, 0x183u);
 }
 
-// 0x5140c0: la cola.
+// 0x5140c0
 TEST(MonsterKindsTest, TheTailLevelsBloodCastleAndClassifiesTheObject)
 {
     using Client::Monsters::MonsterTailOf;

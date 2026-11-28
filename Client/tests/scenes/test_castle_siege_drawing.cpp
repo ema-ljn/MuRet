@@ -43,9 +43,9 @@
 #include <utility>
 #include <vector>
 
-// Los objetos del mapa 30 (06 § Los objetos de Castle Siege): el caso del dibujo 0x42c9f0, con sus rand() y sus
-// partículas, y el del cuerpo 0x42cc10 (DrawCastleSiegeBody), con la bandera, los corrimientos, el pulso, los pases de
-// Chrome01, las puertas y la sombra con el spread 2500.
+// The objects of map 30 (06 § Los objetos de Castle Siege): the draw case 0x42c9f0, with its rand() and its
+// particles, and the body case 0x42cc10 (DrawCastleSiegeBody), with the banner, the shifts, the pulse, the Chrome01
+// passes, the gates and the shadow with spread 2500.
 namespace
 {
 using Client::Actors::Drawing::CastleSiegeBodyPass;
@@ -108,7 +108,7 @@ WorldObject ObjectOf(std::int16_t type)
     return object;
 }
 
-// El primer rand() que cae (o no cae) en el resto por 3 que pide `zero`.
+// The first seed whose first rand() % 3 is 0, or is not, as `zero` asks.
 std::uint32_t SeedWhere(bool zero)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -119,7 +119,7 @@ std::uint32_t SeedWhere(bool zero)
     }
 }
 
-// 0x42ca37..0x42ca53: sin(T · 0,002f) · 0,3f + 0,7f, en la x87 hasta el fstp.
+// 0x42ca37..0x42ca53: sin(T · 0.002f) · 0.3f + 0.7f, on the x87 up to the fstp.
 TEST(CastleSiegeObjectServicesTest, TheLampPulsesWithTheClockInBothStates)
 {
     for (const bool siege : {false, true})
@@ -144,8 +144,8 @@ TEST(CastleSiegeObjectServicesTest, TheLampPulsesWithTheClockInBothStates)
     EXPECT_EQ(object.state.light, std::bit_cast<float>(0x3f333333u));
 }
 
-// 0x42cb61..0x42cbab: sin el asedio, 0x6f2 + rand() % 2 con el subtipo 0, la escala 1 y la luz blanca; el alta
-// (0x53fe70) saca después sus seis rand().
+// 0x42cb61..0x42cbab: without the siege, 0x6f2 + rand() % 2 with subtype 0, scale 1 and white light; the creation
+// (0x53fe70) then draws its six rand().
 TEST(CastleSiegeObjectServicesTest, TheFountainSplashesOneOfTheTwoSplashesWithoutTheSiege)
 {
     bool first = false;
@@ -181,8 +181,8 @@ TEST(CastleSiegeObjectServicesTest, TheFountainSplashesOneOfTheTwoSplashesWithou
     EXPECT_EQ(siege.random.State(), Seed);
 }
 
-// Sin el pool, cada alta corta en su llamada a 0x53fe70, después de sus rand(): el 0x36 y el 0 sacan uno y el 0x34,
-// ninguno.
+// Without the pool, each creation cuts at its call to 0x53fe70, after its rand(): the 0x36 and the 0 draw one and
+// the 0x34 none.
 TEST(CastleSiegeObjectServicesTest, EachReleaseWithoutThePoolCutsAfterItsDraws)
 {
     for (const auto& [type, address, draws] :
@@ -207,9 +207,9 @@ TEST(CastleSiegeObjectServicesTest, EachReleaseWithoutThePoolCutsAfterItsDraws)
     }
 }
 
-// 0x42cb10..0x42cb52: el 0 sin el asedio y el 0x35 con el asedio sacan un rand() y, con el resto por 3 en 0, la chispa
-// 0x53fe70(0x6ec, posición, ángulos, (1, 1, 1), 0, escala, 0): la de la 6ed/0, con vida 24 y dos rand() más
-// (0x543b82). En el otro estado no sacan nada.
+// 0x42cb10..0x42cb52: the 0 without the siege and the 0x35 with the siege draw a rand() and, with the remainder by 3
+// at 0, the spark 0x53fe70(0x6ec, position, angles, (1, 1, 1), 0, scale, 0): the one of the 0x6ed/0, with life 24
+// and two more rand() (0x543b82). In the other state they draw nothing.
 TEST(CastleSiegeObjectServicesTest, TheTorchesSparkOnceInThreeOnTheirSideOfTheSiege)
 {
     for (const auto& [type, siege] : {std::pair<std::int16_t, bool>{std::int16_t{0}, false},
@@ -263,8 +263,8 @@ TEST(CastleSiegeObjectServicesTest, TheTorchesSparkOnceInThreeOnTheirSideOfTheSi
     }
 }
 
-// 0x42cab9..0x42caf4: el 0x34 sin el asedio, en cada frame y sin rand() propio, la caída
-// 0x53fe70(0x6f4, posición, ángulos, (1, 1, 1), 6, escala, 0), que saca los dos de 0x543f04; con el asedio, nada.
+// 0x42cab9..0x42caf4: the 0x34 without the siege, on every frame and with no rand() of its own, the fall
+// 0x53fe70(0x6f4, position, angles, (1, 1, 1), 6, scale, 0), which draws the two of 0x543f04; with the siege, nothing.
 TEST(CastleSiegeObjectServicesTest, TheBrazierDropsItsFallOnEveryFrameWithoutTheSiege)
 {
     Fixture fixture;
@@ -293,8 +293,8 @@ TEST(CastleSiegeObjectServicesTest, TheBrazierDropsItsFallOnEveryFrameWithoutThe
     EXPECT_TRUE(siege.Alive().empty());
 }
 
-// 0x42ca5b..0x42caaa: el 0x2a solo humea con el asedio: un rand() y, con el resto por 3 en 0, el humo
-// 0x53fe70(0x5f2, posición, ángulos, (1, 1, 1), 0x15, escala, 0), el de Crywolf (0x542370), con sus tres rand().
+// 0x42ca5b..0x42caaa: the 0x2a only smokes with the siege: a rand() and, with the remainder by 3 at 0, the smoke
+// 0x53fe70(0x5f2, position, angles, (1, 1, 1), 0x15, scale, 0), Crywolf's (0x542370), with its three rand().
 TEST(CastleSiegeObjectServicesTest, TheChimneySmokesOnlyDuringTheSiege)
 {
     Fixture quiet;
@@ -338,8 +338,8 @@ TEST(CastleSiegeObjectServicesTest, TheChimneySmokesOnlyDuringTheSiege)
     }
 }
 
-// Los tipos sin caso (la bandera, las puertas, los que solo dibujan) no sacan rand() ni cambian el objeto; sin el
-// rand() de la CRT, corta antes del switch.
+// The types without a case (the banner, the gates, the ones that only draw) draw no rand() and do not change the
+// object; without the CRT's rand(), it cuts before the switch.
 TEST(CastleSiegeObjectServicesTest, TheOtherTypesDoNothingAndTheRandomIsRequired)
 {
     for (const std::int16_t type : {std::int16_t{0xc}, std::int16_t{0x13}, std::int16_t{0x3d}, std::int16_t{0x42}})
@@ -366,7 +366,6 @@ TEST(CastleSiegeObjectServicesTest, TheOtherTypesDoNothingAndTheRandomIsRequired
     EXPECT_NE(cut.Error().find("0x42c9f0"), std::string::npos);
 }
 
-// Un esqueleto de un hueso en el origen, con una acción de una key.
 Skeleton OneBone()
 {
     Skeleton skeleton;
@@ -382,8 +381,8 @@ Skeleton OneBone()
 
 constexpr std::uint16_t SiegeModel = 0x4c;
 
-// `meshes` mallas de un triángulo levantado 10 sobre el piso, cada una con la textura de su índice y el slot
-// 0x300 más el índice.
+// `meshes` meshes of one triangle raised 10 above the floor, each with the texture of its index and the slot
+// 0x300 plus the index.
 class SiegeModels final : public IModelLibrary
 {
 public:
@@ -474,15 +473,15 @@ Drawn DrawBody(const SiegeModels& models, const DrawnObject& object, const Castl
     return drawn;
 }
 
-// (ftol(T) % 10.000) · 0,0002f.
+// (ftol(T) % 10000) · 0.0002f.
 float Scroll(std::int32_t clock)
 {
     return static_cast<float>(static_cast<double>(clock % 10000) *
                               static_cast<double>(std::bit_cast<float>(0x3951b717u)));
 }
 
-// 0x42cfd6: los tipos sin caso van a 0x42e3d0, que con un objeto del mapa no dibuja nada; el que llama los
-// dibuja como siempre.
+// 0x42cfd6: the types without a case go to 0x42e3d0, which draws nothing with a map object; the caller draws them
+// as always.
 TEST(CastleSiegeDrawingTest, TheTypesWithoutACaseAreLeftToTheCommonBody)
 {
     const SiegeModels models(1);
@@ -495,7 +494,7 @@ TEST(CastleSiegeDrawingTest, TheTypesWithoutACaseAreLeftToTheCommonBody)
     }
 }
 
-// 0x42cc32..0x42cc89: la bandera, en color 1, con la malla 0 con su textura y la malla 1 con Flag (0x69c).
+// 0x42cc32..0x42cc89: the banner, in color 1, with mesh 0 with its texture and mesh 1 with Flag (0x69c).
 TEST(CastleSiegeDrawingTest, TheBannerDrawsItsClothWithTheFlag)
 {
     const SiegeModels models(2);
@@ -515,8 +514,8 @@ TEST(CastleSiegeDrawingTest, TheBannerDrawsItsClothWithTheFlag)
     }
 }
 
-// 0x42cc9a..0x42ccf7: el 0x11 corre la V de la malla 0 con el reloj; 0x42cd0a..0x42cd5b: el 0x33 corre la U
-// con el reloj negado (el resto lleva el signo del dividendo).
+// 0x42cc9a..0x42ccf7: the 0x11 scrolls mesh 0's V with the clock; 0x42cd0a..0x42cd5b: the 0x33 scrolls the U
+// with the negated clock (the remainder takes the dividend's sign).
 TEST(CastleSiegeDrawingTest, TheWaterAndTheFallsScrollWithTheClock)
 {
     const SiegeModels models(1);
@@ -534,7 +533,8 @@ TEST(CastleSiegeDrawingTest, TheWaterAndTheFallsScrollWithTheClock)
         EXPECT_EQ(vertex.uv, glm::vec2(Scroll(-12345), 0.0f));
 }
 
-// 0x42cef9..0x42cf62: el 0x13 sin el asedio, el cuerpo y dos pases con Chrome01; con el asedio corta en 0x42ce09.
+// 0x42cef9..0x42cf62: the 0x13 without the siege, the body and two passes with Chrome01; with the siege it cuts at
+// 0x42ce09.
 TEST(CastleSiegeDrawingTest, TheGlowingStoneUsesTheWholeBodyInPeaceAndOnlyMeshThreeInWar)
 {
     const SiegeModels models(1);
@@ -629,7 +629,7 @@ TEST(CastleSiegeDrawingTest, TheCrywolfMissileTailFetchesTheUpdatedGlobalPoseEve
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x42cf7b..0x42cfcb: las puertas 0x3d a 0x40 van con RenderBody si +0x4 está en 0; si no, corta en 0x4ee770.
+// 0x42cf7b..0x42cfcb: the gates 0x3d to 0x40 go with RenderBody if +0x4 is at 0; if not, it cuts at 0x4ee770.
 TEST(CastleSiegeDrawingTest, TheGatesDrawTheirBodyOnlyWithTheirFieldAtZero)
 {
     const SiegeModels models(1);
@@ -647,8 +647,8 @@ TEST(CastleSiegeDrawingTest, TheGatesDrawTheirBodyOnlyWithTheirFieldAtZero)
     }
 }
 
-// 0x42cfe7..0x42d038: el 0x32 y los 0x53 a 0x55, sin el asedio, el cuerpo y su sombra negra, aplastada desde el
-// objeto con el spread 2500; con el asedio, el cuerpo solo.
+// 0x42cfe7..0x42d038: the 0x32 and the 0x53 to 0x55, without the siege, the body and its black shadow, flattened
+// from the object with spread 2500; with the siege, the body alone.
 TEST(CastleSiegeDrawingTest, TheShadowedWallsCastAWiderShadowOnlyWithoutTheSiege)
 {
     const SiegeModels models(1);
@@ -677,7 +677,6 @@ TEST(CastleSiegeDrawingTest, TheShadowedWallsCastAWiderShadowOnlyWithoutTheSiege
     }
 }
 
-// Sin el modelo en la biblioteca, el caso no dibuja nada pero lo da por dibujado.
 TEST(CastleSiegeDrawingTest, AMissingModelIsTakenAsDrawn)
 {
     const SiegeModels models(1);

@@ -13,26 +13,25 @@ namespace Client::WorldObjects
 struct GameObjectPass;
 } // namespace Client::WorldObjects
 
-// 0x602ed0 con el mapa 8 (0x603a3e, la tabla 0x6045f8), después del rand() común de 0x602ef4. Contrato:
+// 0x602ed0 with map 8 (0x603a3e, table 0x6045f8), after the common rand() of 0x602ef4. Contract:
 // 06 § Los objetos de Tarkan.
 namespace Client::MapScripts::Tarkan
 {
 
-// Con el reloj del mundo T y s = sin(fase · 0,002f) · 0,3f + 0,7f en la x87 (L, s guardada en float):
-// - el 0: un sprite 0x5c6 (Spark03) en el hueso 6 del buffer global de la pose, de escala L · 5 y luz
-//   (s · 0,5882353f; s; s), con la fase T;
-// - el 0x3f: un 0x716 (Impack03) en el hueso 2, de escala L · 1,5 y la misma luz, con la fase
-//   ángulo z · 5 + T; el 0x40, igual pero con la luz (L; L · 0,32f; L · 0,32f);
-// - el 0x3c: la primera vez (+0x58 distinto de −2), veinte humos 5f2/6 con la luz (+0xf4) y la escala del
-//   objeto; después +0x58 = −2;
-// - el 0x46: +0x58 = −2 y, con rand() % 5 == 0, un 5f2/7;
-// - el 0x4c: +0x58 = −2 y, con ftol(T) % 5.000 mayor que 4.500, un 5f2/4;
-// - el 0x53: +0x58 = −2 y, con ftol(T) % 10.000 entre ftol(ángulo z) · 10 + 3.500 y + 4.000 (sin los bordes),
-//   un 5f2/8; con rand() % 3 == 0, además un 5f2/4 corrido ((rand() & 127) − 64) en x y en y, de media
-//   escala, y la piedrita 200 + rand() % 2 (0x518cf0) en el objeto.
-// Los humos van al pool compartido de las partículas (0x53fe70) con el reloj prestado, sin dueño; uno lleno
-// no es error. Sin pool, sin sprites o sin la tabla de efectos corta con su dirección, después de lo que ya
-// hizo.
+// With the world clock T and s = sin(phase · 0.002f) · 0.3f + 0.7f on the x87 (L, s stored as float):
+// - the 0: a sprite 0x5c6 (Spark03) on bone 6 of the global pose buffer, of scale L · 5 and light
+//   (s · 0.5882353f; s; s), with phase T;
+// - the 0x3f: a 0x716 (Impack03) on bone 2, of scale L · 1.5 and the same light, with phase z angle · 5 + T; the
+//   0x40, the same but with the light (L; L · 0.32f; L · 0.32f);
+// - the 0x3c: the first time (+0x58 other than −2), twenty smokes 0x5f2/6 with the object's light (+0xf4) and
+//   scale; then +0x58 = −2;
+// - the 0x46: +0x58 = −2 and, with rand() % 5 == 0, a 0x5f2/7;
+// - the 0x4c: +0x58 = −2 and, with ftol(T) % 5000 above 4500, a 0x5f2/4;
+// - the 0x53: +0x58 = −2 and, with ftol(T) % 10000 between ftol(z angle) · 10 + 3500 and + 4000 (borders
+//   excluded), a 0x5f2/8; with rand() % 3 == 0, also a 0x5f2/4 shifted ((rand() & 127) − 64) in x and y, at half
+//   scale, and the pebble 200 + rand() % 2 (0x518cf0) on the object.
+// The smokes go to the particles' shared pool (0x53fe70) with the borrowed clock, with no owner; a full one is not
+// an error. Without the pool, the sprites or the effect table it cuts with its address, after what it already did.
 [[nodiscard]] Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObject& object,
                                                                       const WorldObjects::GameObjectPass& pass);
 } // namespace Client::MapScripts::Tarkan

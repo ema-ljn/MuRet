@@ -22,7 +22,7 @@ namespace
 {
 constexpr int EmitChance = 3;
 
-// 0x53fe70(tipo, +0x10, +0x1c, (1, 1, 1), subtipo, escala, 0). Ninguna de las del 30 lee la escena ni el dueño.
+// 0x53fe70(type, +0x10, +0x1c, (1, 1, 1), subtype, scale, 0). None of the 30's reads the scene or the owner.
 Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
                                        const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
                                        float scale, std::string_view address)
@@ -38,7 +38,7 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
     return {};
 }
 
-// 0x42cb10..0x42cb52: con rand() % 3 en 0, 0x53fe70(0x6ec, …, 0, escala, 0).
+// 0x42cb10..0x42cb52: with rand() % 3 at 0, 0x53fe70(0x6ec, …, 0, scale, 0).
 Core::Expected<void, std::string> Spark(const WorldObjects::GameObjectPass& pass,
                                         const WorldObjects::WorldObject& object)
 {
@@ -47,8 +47,8 @@ Core::Expected<void, std::string> Spark(const WorldObjects::GameObjectPass& pass
     return Emit(pass, object, Particles::CrywolfFanta, 0, object.transform.scale, "0x42cb52");
 }
 
-// 0x42ca37..0x42ca53: el reloj por 0,002f (0x6b89bc), FSIN, por 0,3f (0x6b89dc) y más 0,7f (0x6b8a5c) en la
-// x87 hasta el fstp de +0x68.
+// 0x42ca37..0x42ca53: the clock times 0.002f (0x6b89bc), FSIN, times 0.3f (0x6b89dc) and plus 0.7f (0x6b8a5c) in the
+// x87 up to the fstp of +0x68.
 Core::Expected<void, std::string> Pulse(WorldObjects::WorldObject& object, float worldClock)
 {
     constexpr double Rate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
@@ -70,20 +70,20 @@ Core::Expected<void, std::string> StepCastleSiegeObjectFrame(WorldObjects::World
     switch (object.type)
     {
     case 0:
-        // 0x42ca25: con el asedio, nada.
+        // 0x42ca25: with the siege, nothing.
         if (pass.siegeActive)
             return {};
         return Spark(pass, object);
     case 0x29:
         return Pulse(object, pass.worldClock);
     case 0x2a:
-        // 0x42ca5b..0x42caaa: solo con el asedio, el humo 5f2/0x15 de Crywolf.
+        // 0x42ca5b..0x42caaa: only with the siege, Crywolf's smoke 0x5f2/0x15.
         if (!pass.siegeActive || pass.random->Next() % EmitChance != 0)
             return {};
         return Emit(pass, object, Particles::BreathParticle, Particles::CrywolfSmokeSubtype, object.transform.scale,
                     "0x42caaa");
     case 0x34:
-        // 0x42cab9..0x42caf4: sin el asedio, sin rand().
+        // 0x42cab9..0x42caf4: without the siege, without rand().
         if (pass.siegeActive)
             return {};
         return Emit(pass, object, Particles::KalimaWaterfallLast, Particles::BrazierFallSubtype, object.transform.scale,
@@ -94,8 +94,8 @@ Core::Expected<void, std::string> StepCastleSiegeObjectFrame(WorldObjects::World
         return Spark(pass, object);
     case 0x36:
     {
-        // 0x42cb61..0x42cbab: el rand() después de armar los argumentos; & 0x80000001 con el arreglo del signo es
-        // el resto por 2.
+        // 0x42cb61..0x42cbab: the rand() after building the arguments; & 0x80000001 with the sign fix is the remainder
+        // by 2.
         if (pass.siegeActive)
             return {};
         constexpr int Splashes = 2;

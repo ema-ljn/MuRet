@@ -21,8 +21,8 @@
 #include <initializer_list>
 #include <memory>
 
-// El fuego 0x5da de la CL11 (MissileFireParticleKernels): oráculos escritos desde el ASM de 0x53fe70 y 0x5446e0, con
-// los rand() contados contra Client::Tests::AfterDraws.
+// The fire 0x5da (MissileFireParticleKernels): oracles written from the ASM of 0x53fe70 and 0x5446e0, with the rand()
+// counted against Client::Tests::AfterDraws.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -75,8 +75,8 @@ Particle& Create(Particles& particles, CrtRandom& random, std::int32_t subtype, 
     return Only(particles);
 }
 
-// 0x541045, 0x540d1b, 0x540d5c y 0x540d9d: la /0..3 viven 12, 3, 5 y 7 y salen con la velocidad (0; ((rand() & 7) +
-// 32) · −0,3f o −0,1f; 0) (la /0 con la escala 0,8f); después el giro rand() % 360 de 0x54107f.
+// 0x541045, 0x540d1b, 0x540d5c and 0x540d9d: /0..3 live 12, 3, 5 and 7 and leave with velocity (0; ((rand() & 7) + 32)
+// · −0.3f or −0.1f; 0) (/0 with scale 0.8f); then 0x54107f's turn rand() % 360.
 TEST(Cl11MissileFire, TheTrailsPushBackAndTurn)
 {
     struct Case
@@ -102,8 +102,8 @@ TEST(Cl11MissileFire, TheTrailsPushBackAndTurn)
     }
 }
 
-// 0x5456a6: la /0 y la /3 suben 0,02f, se agrandan con la subida, aceleran 1,05f y la z suma la subida por 20;
-// 0x54556d, la /1 sin la subida; 0x5456ea, la /2 sólo la luz vida · 0,2f.
+// 0x5456a6: /0 and /3 rise 0.02f, grow with the rise, accelerate 1.05f and the z adds the rise times 20; 0x54556d, /1
+// without the rise; 0x5456ea, /2 only the light life · 0.2f.
 TEST(Cl11MissileFire, TheTrailStepsClimbWithTheirLift)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3})
@@ -133,9 +133,9 @@ TEST(Cl11MissileFire, TheTrailStepsClimbWithTheirLift)
     }
 }
 
-// 0x540dcf: la /4 vive 100, sube (rand() % 100 · 0,01f) · 4 + 1, toma la fase rand() % 300 − 150 en la velocidad x, la
-// escala rand() % 6 · 0,15f más la del pedido, los ángulos en 0 y la partida; cinco rand(). 0x5455b0: la vuelta de
-// radio 120 alrededor de la partida con a = (vida + fase) · 0,1f, la z sube y la escala baja 0,002f.
+// 0x540dcf: /4 lives 100, rises (rand() % 100 · 0.01f) · 4 + 1, takes the phase rand() % 300 − 150 in the x velocity,
+// scale rand() % 6 · 0.15f plus the requested one, angles at 0 and the start; five rand(). 0x5455b0: the radius-120
+// loop around the start with a = (life + phase) · 0.1f, the z rises and the scale falls 0.002f.
 TEST(Cl11MissileFire, TheOrbitCirclesItsBirthplace)
 {
     auto particles = std::make_unique<Particles>();
@@ -158,7 +158,7 @@ TEST(Cl11MissileFire, TheOrbitCirclesItsBirthplace)
     const float lift = fire.verticalSpeed;
     const float scale = fire.scale;
     ASSERT_TRUE(Step(*particles, random).HasValue());
-    // FSIN y FCOS retenidos por el 120 del radio (0x6b86c8) con un solo R53.
+    // FSIN and FCOS retained, times the radius 120 (0x6b86c8), with a single R53.
     const double angle = (99.0 + D(phase)) * D(0x3dcccccdu);
     const auto sine = SineProductPC53(angle, 120.0f);
     const auto cosine = CosineProductPC53(angle, 120.0f);
@@ -170,9 +170,9 @@ TEST(Cl11MissileFire, TheOrbitCirclesItsBirthplace)
     EXPECT_EQ(fire.scale, F32(D(scale) - D(0x3b03126fu)));
 }
 
-// 0x540e74 (/5): vida 6, la subida más el ángulo x · 1,2f, la escala · 0,2f; 0x5455f9 avanza cos y sen del ángulo z
-// crudo por 20 y gira 1. 0x540ee7 (/6): la subida más 5 y la escala · 0,1f; 0x54563a sube y gira 4. 0x540f51 (/7):
-// vida 10; 0x545659 acelera y se apaga.
+// 0x540e74 (/5): life 6, the rise plus angle x · 1.2f, scale · 0.2f; 0x5455f9 advances cos and sin of the raw z angle
+// times 20 and turns 1. 0x540ee7 (/6): the rise plus 5 and scale · 0.1f; 0x54563a rises and turns 4. 0x540f51 (/7):
+// life 10; 0x545659 accelerates and fades.
 TEST(Cl11MissileFire, TheSwirlTheRiseAndTheFade)
 {
     {
@@ -223,7 +223,7 @@ TEST(Cl11MissileFire, TheSwirlTheRiseAndTheFade)
     }
 }
 
-// Los subtipos fuera de 0..9 sólo sacan el giro de 0x54107f y su paso no hace nada; todos van al billboard común.
+// Subtypes outside 0..9 only take 0x54107f's turn and their step does nothing; all go to the common billboard.
 TEST(Cl11MissileFire, TheOthersOnlyTurnAndAllDraw)
 {
     auto particles = std::make_unique<Particles>();

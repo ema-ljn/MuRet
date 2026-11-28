@@ -28,11 +28,11 @@ namespace
 using Math::F32;
 
 constexpr std::int32_t ScrollPeriod = 1000;
-// 0x6ba1a4 (−0,001f) del mapa 1 y 0x6b89c8 (0,001f) del 4.
+// 0x6ba1a4 (−0.001f) of map 1 and 0x6b89c8 (0.001f) of map 4.
 constexpr double NegativeThousandth = static_cast<double>(std::bit_cast<float>(0xba83126fu));
 constexpr double Thousandth = Math::ThousandthAsDouble;
 
-// 0x60500b..0x60502b: fld del reloj, ftol, idiv por 1.000 y fild del resto por −0,001f.
+// 0x60500b..0x60502b: fld of the clock, ftol, idiv by 1000 and fild of the remainder times −0.001f.
 std::optional<float> DungeonScroll(float worldClock)
 {
     const std::optional<std::int32_t> low = Math::OriginalFtolLow(static_cast<double>(worldClock));
@@ -41,7 +41,7 @@ std::optional<float> DungeonScroll(float worldClock)
     return F32(static_cast<double>(*low % ScrollPeriod) * NegativeThousandth);
 }
 
-// 0x605404..0x605426: el ftol negado en 32 bits (envuelve en −2^31), su resto firmado y 0,001f.
+// 0x605404..0x605426: the ftol negated in 32 bits (wraps at −2^31), its signed remainder and 0.001f.
 std::optional<float> LostTowerScroll(float worldClock)
 {
     const std::optional<std::int32_t> low = Math::OriginalFtolLow(static_cast<double>(worldClock));
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& o
     case 0x17:
     case 0x18:
     {
-        // 0x605003: el byte del modelo, antes del ftol.
+        // 0x605003: the model's byte, before the ftol.
         if (globals.modelState == nullptr)
             return Core::Unexpected(std::string("0x605003: falta el model+0x88 de los tipos del mapa 1"));
         globals.modelState->unlitMeshes[object.type] = 1;
@@ -168,7 +168,7 @@ Core::Expected<void, std::string> StepArenaObject(WorldObjects::WorldObject& obj
     }
     if (object.type != ScrollingObject)
         return {};
-    // 0x60551d: el blendMesh antes del ftol; 0x605524..0x605546: la V con el ftol negado.
+    // 0x60551d: the blendMesh before the ftol; 0x605524..0x605546: the V with the negated ftol.
     constexpr std::int16_t ScrollBlendMesh = 3;
     object.state.blendMesh = ScrollBlendMesh;
     const std::optional<float> v = LostTowerScroll(globals.worldClock);
@@ -184,7 +184,7 @@ Core::Expected<void, std::string> KickObject(WorldObjects::WorldObject& object,
     if (globals.heroPosition == nullptr || globals.heroAction == nullptr)
         return Core::Unexpected(std::string("0x52f556: la patada 0x52f550 lee la posición y la acción del héroe "
                                             "(0x743a170)"));
-    // 0x6b87b8 (0,1f), 0x6b86b0 (50), 0x6ba18c (−0,4f), 0x6ba2bc (−4) y 0x6b8a20 (0,6f).
+    // 0x6b87b8 (0.1f), 0x6b86b0 (50), 0x6ba18c (−0.4f), 0x6ba2bc (−4) and 0x6b8a20 (0.6f).
     constexpr float StillSpeed = std::bit_cast<float>(0x3dcccccdu);
     constexpr double KickReach = 50.0;
     constexpr double Push = static_cast<double>(std::bit_cast<float>(0xbecccccdu));
@@ -198,7 +198,7 @@ Core::Expected<void, std::string> KickObject(WorldObjects::WorldObject& object,
             static_cast<double>(globals.heroPosition->x) - static_cast<double>(object.transform.position.x);
         const double dy =
             static_cast<double>(globals.heroPosition->y) - static_cast<double>(object.transform.position.y);
-        // 0x52f5a0: fst de dy en float y fmul por esa copia; dx al cuadrado desde la pila.
+        // 0x52f5a0: fst of dy into float and fmul by that copy; dx squared from the x87 stack.
         const float dyStored = F32(dy);
         const double distance = std::sqrt((dy * static_cast<double>(dyStored)) + (dx * dx));
         if (!(distance >= KickReach))
@@ -213,7 +213,7 @@ Core::Expected<void, std::string> KickObject(WorldObjects::WorldObject& object,
             globals.sound(KickSound);
         }
     }
-    // 0x52f608..0x52f6a1: la x de la velocidad se suma desde la pila (fst), los demás desde su float.
+    // 0x52f608..0x52f6a1: the x of the velocity is added from the x87 stack (fst), the others from their float.
     const double pushX = static_cast<double>(object.velocity.x) * Decay;
     object.velocity.x = F32(pushX);
     object.velocity.y = F32(static_cast<double>(object.velocity.y) * Decay);

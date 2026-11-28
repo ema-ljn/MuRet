@@ -23,7 +23,7 @@ namespace
 {
 constexpr std::size_t DelayOffset = Tables::SkillRecordLayout::Delay;
 constexpr std::size_t RequirementOffset = Tables::SkillRecordLayout::Leadership; // what it asks of +0x36 + +0x20
-constexpr std::uint8_t NoDelaySkill = 0x4c;     // 0x552ee3: 0x552c50 sets no delay for it
+constexpr std::uint8_t NoDelaySkill = 0x4c; // 0x552ee3: 0x552c50 sets no delay for it
 
 Models::LogicalAccess OwnAccess(const SkillDelayContext& context)
 {

@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Models/Cloth.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -30,7 +30,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::Scenes::JointOwnerKind;
+using Client::Kernel::JointOwnerKind;
 using Client::Scenes::JointState;
 
 constexpr std::uint32_t Seed = 0x610ceu;
@@ -44,17 +44,17 @@ struct Trail
     Trail(std::int32_t subtype, float width, std::int32_t key)
     {
         owner.alive = true;
-        const Client::World::FishEffectRequest request{.type = 0x610,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = &owner,
-                                                       .scale = width,
-                                                       .key = key,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x610,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = &owner,
+                                                   .scale = width,
+                                                   .key = key,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         made = Client::Scenes::CreateFaunaJoint(joints, request, random, JointOwnerKind::ModelEffect).HasValue();
     }
 

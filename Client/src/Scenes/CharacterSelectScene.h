@@ -4,6 +4,7 @@
 #include "Models/IModelLibrary.h"
 #include "Camera/GameCamera.h"
 
+#include "Session/CharacterDrawHooks.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/ServerSession.h"
 #include "Core/Expected.h"
@@ -61,6 +62,7 @@ class GameModels;
 namespace Client::Kernel
 {
 struct ActorState;
+struct PoseBuffer;
 } // namespace Client::Kernel
 
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el
@@ -74,7 +76,6 @@ struct ActorState;
 // la CL6 (CL6.3, "Contrato").
 namespace Client::Scenes
 {
-struct FaunaDrawCarry;
 
 class CharacterSelectScene final : public IScene
 {
@@ -191,15 +192,15 @@ private:
     // 0x634680 desde 0x6347e9 hasta 0x6213f0: la luz del elegido, el mundo, los personajes, la cola, las dos
     // 0x729 del elegido y el pase de ojo. Sin el mundo, solo los personajes.
     void DrawTheWorldAndTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
-                                      const Render::Camera3D& camera, std::uint8_t map, FaunaDrawCarry* poseCarry,
+                                      const Render::Camera3D& camera, std::uint8_t map, Kernel::PoseBuffer* poseCarry,
                                       int scanFrames);
-    void DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map, FaunaDrawCarry* poseCarry,
-                           int scanFrames);
+    void DrawTheCharacters(Render::Frame::SceneCanvas& canvas, float alpha, std::uint8_t map,
+                           Kernel::PoseBuffer* poseCarry, int scanFrames);
     // Si Player.bmd tiene su esqueleto con acciones: sin ellas, 0x50ba30 sale antes (0x50ba87).
     [[nodiscard]] bool HasTheSkeleton() const;
     // 0x50db57..0x510a7a con un personaje de la lista, después de su cuerpo; un error queda en m_failure.
     void DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor, std::size_t slot,
-                     const Actors::Drawing::DrawnCharacter& drawn, FaunaDrawCarry& poseCarry,
+                     const Actors::Drawing::DrawnCharacter& drawn, Kernel::PoseBuffer& poseCarry,
                      const Actors::FullSetScan& scan, bool originalFrame);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(Render::Frame::SceneCanvas& canvas) const;
@@ -253,6 +254,7 @@ private:
     Models::OriginalFrameCarry m_messageFrames;
     Render::Camera3D m_previewCamera;
     Session::CharacterStepHooks m_stepHooks;
+    Session::CharacterDrawHooks m_characterDrawHooks;
     const Tables::TextTable* m_texts;
     const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;

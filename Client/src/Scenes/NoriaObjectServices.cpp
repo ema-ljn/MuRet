@@ -2,12 +2,12 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/PoseBuffer.h"
 #include "Math/FloatConstants.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
@@ -130,7 +130,7 @@ Core::Expected<void, std::string> Fairy(const World::WorldObject& object, const 
         angles.z = static_cast<float>(pass.random->Next() % 30);
         if (!pass.createJoint)
             return Core::Unexpected(std::string("0x603764: falta el productor durable de juntas617"));
-        const World::FishEffectRequest request{FairyJoint, position, position, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        const Kernel::JointRequest request{FairyJoint, position, position, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
         const auto created = pass.createJoint(request);
         if (!created.HasValue())
             return created;

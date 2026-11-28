@@ -4,6 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/ItemSetTables.h"
 #include "Tables/ItemTable.h"
@@ -993,7 +994,7 @@ TEST_F(MonsterViewportTest, OrdinaryMonsterCreationAttachesBothOwnedBeamsInNativ
             EXPECT_EQ(joints[index].type, 0x618);
             EXPECT_EQ(joints[index].subtype, static_cast<int>(index) + 2);
             EXPECT_EQ(joints[index].ownerContext, &actor);
-            EXPECT_EQ(joints[index].ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joints[index].ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(joints[index].width, 30.0f);
             EXPECT_EQ(joints[index].life, 999999999);
         }
@@ -1026,7 +1027,7 @@ TEST_F(MonsterViewportTest, TheNpc257CarriesItsSpinningSparkle)
             EXPECT_EQ(joint.type, 0x60f);
             EXPECT_EQ(joint.subtype, 0x2a);
             EXPECT_EQ(joint.ownerContext, &actor);
-            EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Actor);
+            EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Actor);
             EXPECT_EQ(joint.width, 15.0f);
             EXPECT_EQ(joint.life, 100);
             const auto moved = Client::Math::OriginalVectorRotate({0.0f, -15.0f, 0.0f},

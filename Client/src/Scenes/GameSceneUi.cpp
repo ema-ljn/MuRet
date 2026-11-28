@@ -18,7 +18,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/ActorPickingBox.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameChat.h"
 #include "Tables/GameData.h"
@@ -557,8 +557,8 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                         [&](std::uint16_t model, std::span<const Math::BoneTransform> bones,
                             const Models::ObjectTransform& transform, bool translated)
                     {
-                        const auto published =
-                            PublishFaunaPoseRaw(FramePoseCarry(), *m_models, model, bones, transform, translated);
+                        const auto published = Actors::Drawing::PublishPoseRaw(FramePoseCarry(), *m_models, model,
+                                                                               bones, transform, translated);
                         if (!published.HasValue() && !portraitPoseFailure)
                             portraitPoseFailure = published.Error();
                     },
@@ -573,7 +573,7 @@ Core::Expected<void, std::string> GameScene::DrawTheInterface(Render::Frame::Sce
                     .hooks = &m_characterDrawHooks},
             .helperModels = &m_worldModels,
             .onHelperPose = [&](const Actors::Drawing::DrawnObject& object)
-            { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
+            { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); },
             .posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(FramePoseCarry().meshes); },
             // timeGetTime (0x6b8544), del calco 0x14e de los Fenrir: el reloj del dibujo en ms.
             .systemTime = [systemTime = static_cast<std::uint32_t>(

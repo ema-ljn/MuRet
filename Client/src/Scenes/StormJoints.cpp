@@ -10,7 +10,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "Scenes/SkinShells.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -79,7 +79,8 @@ Core::Expected<void, std::string> StepFallingJoint(JointState& joint, const Join
                 // ángulos y las cáscaras 0x137 de sus vértices (Scenes/SkinShells.h); sin dueño, nada.
                 if (joint.ownerContext != nullptr)
                 {
-                    if (joint.ownerKind != JointOwnerKind::Actor && joint.ownerKind != JointOwnerKind::ByType)
+                    if (joint.ownerKind != Kernel::JointOwnerKind::Actor &&
+                        joint.ownerKind != Kernel::JointOwnerKind::ByType)
                         return Core::Unexpected(
                             std::format("0x53c1bb: el dueño del joint 0x632/{} no es un personaje", joint.subtype));
                     if (services.models == nullptr || services.world == nullptr || services.effects == nullptr)
@@ -150,7 +151,7 @@ Core::Expected<void, std::string> FollowTheBlast(JointState& joint)
         joint.alive = false; // 0x53be97
         return {};
     }
-    if (joint.ownerKind != JointOwnerKind::ModelEffect)
+    if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         return Core::Unexpected(std::string("0x53be9f: el dueño del joint 0x632/4 no es un efecto con modelo"));
     const auto& owner = *static_cast<const World::ModelEffect*>(joint.ownerContext);
     joint.alive = owner.alive;
@@ -166,7 +167,7 @@ Core::Expected<void, std::string> FollowTheBlast(JointState& joint)
 }
 } // namespace
 
-Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     if (request.subtype == StormSubtype)
@@ -240,7 +241,7 @@ Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Worl
         joint.maximumCount = Points;
         joint.life = Life;
         joint.volley = 0;
-        if (joint.ownerContext == nullptr || joint.ownerKind != JointOwnerKind::ModelEffect)
+        if (joint.ownerContext == nullptr || joint.ownerKind != Kernel::JointOwnerKind::ModelEffect)
         {
             joint.alive = false;
             return Core::Unexpected(std::string("0x5349d3: el joint 0x632/4 sin un efecto con modelo de dueño"));
@@ -294,17 +295,17 @@ Core::Expected<void, std::string> HitTheGround(JointState& joint, const JointKer
     glm::vec3 from = joint.position;
     constexpr std::int32_t GroundBoltJoint = 0x614, GroundBoltSubtype = 4;
     constexpr float GroundBoltScale = 60.0f; // 0x42700000
-    const World::FishEffectRequest bolt{.type = GroundBoltJoint,
-                                        .firstPosition = joint.position,
-                                        .secondPosition = joint.position,
-                                        .angles = joint.angles,
-                                        .subtype = GroundBoltSubtype,
-                                        .ownerContext = nullptr,
-                                        .scale = GroundBoltScale,
-                                        .key = -1,
-                                        .skill = 0,
-                                        .skillSerial = 0,
-                                        .target = -1};
+    const Kernel::JointRequest bolt{.type = GroundBoltJoint,
+                                    .firstPosition = joint.position,
+                                    .secondPosition = joint.position,
+                                    .angles = joint.angles,
+                                    .subtype = GroundBoltSubtype,
+                                    .ownerContext = nullptr,
+                                    .scale = GroundBoltScale,
+                                    .key = -1,
+                                    .skill = 0,
+                                    .skillSerial = 0,
+                                    .target = -1};
     if (auto created = CreateFaunaJoint(services.joints, bolt, *services.random); !created.HasValue())
         return Core::Unexpected(std::format("0x53bfd3: {}", created.Error()));
     if (!(joint.velocity.z > 0.0f))

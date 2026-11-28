@@ -8,7 +8,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -49,17 +49,17 @@ struct Spirals
         glm::vec3 from = origin;
         glm::vec3 to = origin;
         glm::vec3 turn = angles;
-        const Client::World::FishEffectRequest request{.type = 0x62c,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = turn,
-                                                       .subtype = subtype,
-                                                       .ownerContext = owner,
-                                                       .scale = width,
-                                                       .key = key,
-                                                       .skill = skill,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = 0x62c,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = turn,
+                                                   .subtype = subtype,
+                                                   .ownerContext = owner,
+                                                   .scale = width,
+                                                   .key = key,
+                                                   .skill = skill,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         return Client::Scenes::CreateFaunaJoint(joints, request, random);
     }
 
@@ -255,7 +255,7 @@ TEST(SpiralJointsTest, TheOrbitsCircleTheirOwnerBone)
     const auto cut = unserved.Step(nullptr, &sprites);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_TRUE(cut.Error().starts_with("0x53bc42")) << cut.Error();
-    unserved.joints[0].ownerKind = Client::Scenes::JointOwnerKind::Helper;
+    unserved.joints[0].ownerKind = Client::Kernel::JointOwnerKind::Helper;
     const auto stranger = unserved.Step(world.get(), &sprites);
     ASSERT_FALSE(stranger.HasValue());
     EXPECT_TRUE(stranger.Error().starts_with("0x53bc27")) << stranger.Error();

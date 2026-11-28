@@ -5,7 +5,7 @@
 
 #include "Protocol/Events/Events.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/AidaObjectServices.h"
 #include "Scenes/EventMapObjectFrame.h"
 #include "Scenes/NoriaObjectServices.h"
@@ -175,7 +175,7 @@ Actors::Drawing::DrawnObject DrawTheObject(Render::ModelBatch& batch, const Mode
                                            const World::WorldObject& object, const World::ObjectDraw& draw,
                                            Core::Duration frameClock, float alpha,
                                            const World::ObjectModelStepState* modelState = nullptr,
-                                           const FaunaDrawCarry* retainedPose = nullptr)
+                                           const Kernel::PoseBuffer* retainedPose = nullptr)
 {
     const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.type)});
     Actors::Drawing::DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
@@ -514,7 +514,7 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 // U y la V del objeto. Después +0x88 vuelve a 0xff, que en el 4 es lo que esos tipos ya tenían.
 void DrawLostTowerChrome(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                          const World::WorldObject& object, const World::ObjectDraw& draw, Core::Duration frameClock,
-                         const GameObjectPass& pass, const FaunaDrawCarry* retained)
+                         const GameObjectPass& pass, const Kernel::PoseBuffer* retained)
 {
     const std::int16_t type = object.type;
     const bool chrome = type == 0x13 || type == 0x14 || type == 3 || type == 4;

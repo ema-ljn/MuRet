@@ -4,18 +4,14 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaEffects.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Kernel/PoseBuffer.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
-#include "World/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <ratio>
 #include <span>
 #include <string>
@@ -28,7 +24,7 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     special.random = &resources.random;
     special.pulse = &resources.itemRender.specialPulse;
     special.sprites = &resources.sprites;
-    Scenes::FaunaDrawCarry* carry = &resources.poseCarry;
+    Kernel::PoseBuffer* carry = &resources.poseCarry;
     special.bonePoint = [carry](std::size_t bone) -> Core::Expected<glm::vec3, std::string>
     {
         const auto& bones = carry->bones;
@@ -45,30 +41,5 @@ void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item
     item.map = resources.map;
     item.glowDetail = resources.glowDetail;
     item.poseBones = [carry]() { return std::span<const Math::BoneTransform>(carry->bones); };
-    item.createJoint = [joints = resources.joints, random = &resources.random](
-                           const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
-    {
-        // Helper07's producers, with an opaque owner (the floor's FloorItemState or the ActorState of what hangs):
-        // never read it as a FaunaObject.
-        if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
-            return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
-        const auto created = Scenes::CreateFaunaJoint(joints, request, *random);
-        return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
-    };
-    item.createEffect = [effects = &resources.effects](std::uint16_t type, std::int32_t subtype,
-                                                       const DrawnObject& object) -> Core::Expected<void, std::string>
-    {
-        if (type == 0xc2 && subtype == 3)
-        {
-            static_cast<void>(Scenes::CreateFaunaLightning(*effects, object.transform.position));
-            return {};
-        }
-        if (subtype != 0 ||
-            (type != World::DragonEffect && type != World::ArrivalEffect && type != World::TeleportEffect))
-            return Core::Unexpected(std::string("0x518cf0: creador del efecto de ítem fuera del contrato portable"));
-        static_cast<void>(effects->Create(static_cast<std::int16_t>(type), object.transform.position,
-                                          object.transform.angles, object.color, object.transform.scale));
-        return {};
-    };
 }
 } // namespace Client::Actors::Drawing

@@ -8,7 +8,6 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"

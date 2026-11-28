@@ -5,7 +5,7 @@
 #include "Math/X87.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 
@@ -28,8 +28,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointRequest;
 using Client::Scenes::JointState;
-using Client::World::FishEffectRequest;
 
 using Client::Math::D;
 using Client::Math::F32;
@@ -42,7 +42,7 @@ Client::Core::Expected<std::optional<std::size_t>, std::string> CreateSwordTrail
 {
     glm::vec3 angles{0.0f, 0.0f, 45.0f};
     CrtRandom random(9);
-    const FishEffectRequest request{0x610, first, second, angles, 4, owner, width, key, skill, 0, -1};
+    const JointRequest request{0x610, first, second, angles, 4, owner, width, key, skill, 0, -1};
     auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
     EXPECT_EQ(random.State(), CrtRandom(9).State());
     return created;
@@ -65,7 +65,7 @@ TEST(HangingJointsTest, TheSwordBeamWalksNineJitteredSamplesTowardItsTarget)
     glm::vec3 angles{0.0f, 0.0f, 120.0f};
     constexpr float Width = 27.5f;
     CrtRandom random(23);
-    const FishEffectRequest request{0x614, first, second, angles, 10, nullptr, Width, -1, 0, 0, -1};
+    const JointRequest request{0x614, first, second, angles, 10, nullptr, Width, -1, 0, 0, -1};
 
     const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
 
@@ -120,7 +120,7 @@ TEST(HangingJointsTest, TheSwordBeamStepsLikeTheFlareBeam)
         glm::vec3 second{1003.5f, 1887.25f, 142.0f};
         glm::vec3 angles{};
         CrtRandom random(41);
-        const FishEffectRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
+        const JointRequest request{0x614, first, second, angles, 10, nullptr, width, -1, 0, 0, -1};
         ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(sword, request, random).HasValue());
         std::array<JointState, 1> flare = sword;
         flare[0].subtype = 14;
@@ -159,7 +159,7 @@ TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoi
         glm::vec3 point{1.0f, 2.0f, 3.0f};
         glm::vec3 angles{0.0f, 0.0f, 45.0f};
         CrtRandom random(5);
-        const FishEffectRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
+        const JointRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
 
         const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
 
@@ -191,7 +191,7 @@ TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
     glm::vec3 point{};
     glm::vec3 angles{};
     CrtRandom random(5);
-    const FishEffectRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
+    const JointRequest request{0x618, point, point, angles, 0x11, &actor, 30.0f, -1, 0, 0, -1};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     actor.effectOrigin = {430.0f, 600.0f, 90.0f};
 

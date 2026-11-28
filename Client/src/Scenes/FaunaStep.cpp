@@ -18,6 +18,7 @@
 #include "World/Fish.h"
 #include "Math/Ftol.h"
 #include "World/IBirdStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/IFishStepServices.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
@@ -176,7 +177,7 @@ public:
     {
         return static_cast<std::uint8_t>(World::FishSpawnEventGate(m_context.map));
     }
-    Core::Expected<std::uint32_t, std::error_code> CreateEffect(const World::FishEffectRequest& request) override
+    Core::Expected<std::uint32_t, std::error_code> CreateEffect(const Kernel::JointRequest& request) override
     {
         if (!m_context.effects.effect)
             return Core::Unexpected(Unsupported());

@@ -7,6 +7,7 @@
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/JointRequest.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Math/HalfLifeMath.h"
@@ -22,7 +23,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -830,7 +831,7 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
                               .random = tested.random,
                               .trapezoid = &tested.trapezoid};
     context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(tested.world.PoseCarry(), models, object, true); };
+    { return Client::Actors::Drawing::PublishPose(tested.world.PoseCarry(), models, object, true); };
     ASSERT_TRUE(DrawHelpers(context).HasValue());
     ASSERT_EQ(tested.world.PoseCarry().bones.size(), 28u);
     const glm::vec3 expected = Client::Math::OriginalVectorTransform(
@@ -1363,7 +1364,7 @@ TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
         EXPECT_EQ(joint.skill, 0);
         EXPECT_EQ(joint.skillSerial, 0);
         EXPECT_EQ(joint.ownerContext, &tested.Horse());
-        EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::Helper);
+        EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::Helper);
         EXPECT_EQ(joint.angles, glm::vec3(0.0f, 0.0f, 90.0f * static_cast<float>(turn + 1)));
         EXPECT_EQ(joint.position, Points[turn]);
         EXPECT_EQ(joint.targetPosition, Points[turn]);

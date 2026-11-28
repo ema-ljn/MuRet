@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/WorldObjects.h"
 #include "Terrain/TerrainDefines.h"
@@ -135,17 +135,17 @@ Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t co
     glm::vec3 first = position;
     glm::vec3 second = position;
     glm::vec3 angles = context.heroAngles;
-    const FishEffectRequest request{.type = MeteorJoint,
-                                    .firstPosition = first,
-                                    .secondPosition = second,
-                                    .angles = angles,
-                                    .subtype = MeteorSubtype,
-                                    .ownerContext = nullptr,
-                                    .scale = scale,
-                                    .key = -1,
-                                    .skill = 0,
-                                    .skillSerial = 0,
-                                    .target = -1};
+    const Kernel::JointRequest request{.type = MeteorJoint,
+                                       .firstPosition = first,
+                                       .secondPosition = second,
+                                       .angles = angles,
+                                       .subtype = MeteorSubtype,
+                                       .ownerContext = nullptr,
+                                       .scale = scale,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     if (auto created = context.createJoint(request); !created.HasValue())
         return Core::Unexpected(created.Error());
     return 0;

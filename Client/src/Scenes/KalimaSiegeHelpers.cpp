@@ -15,7 +15,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/KundunEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -155,7 +155,7 @@ public:
     }
 
     // 0x530860 en `address`: llena, nada; con lugar, el tipo que MuRet no tiene corta.
-    [[nodiscard]] Result Joint(const World::FishEffectRequest& request, std::string_view address) const
+    [[nodiscard]] Result Joint(const Kernel::JointRequest& request, std::string_view address) const
     {
         if (m_pass.joints.empty())
             return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", address));

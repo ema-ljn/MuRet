@@ -15,7 +15,6 @@
 #include "Models/Skinning.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"

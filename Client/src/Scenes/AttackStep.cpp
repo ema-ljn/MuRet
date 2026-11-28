@@ -20,7 +20,7 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Kernel/ItemState.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -346,17 +346,17 @@ Core::Expected<void, std::string> StrikeTheTarget(Kernel::ActorState& actor, std
         glm::vec3 angles = actor.angles;
         for (const std::int32_t subtype : {0, 1})
         {
-            const World::FishEffectRequest request{.type = KillBeamJoint,
-                                                   .firstPosition = from,
-                                                   .secondPosition = to,
-                                                   .angles = angles,
-                                                   .subtype = subtype,
-                                                   .ownerContext = &actor,
-                                                   .scale = KillBeamWidth,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
+            const Kernel::JointRequest request{.type = KillBeamJoint,
+                                               .firstPosition = from,
+                                               .secondPosition = to,
+                                               .angles = angles,
+                                               .subtype = subtype,
+                                               .ownerContext = &actor,
+                                               .scale = KillBeamWidth,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
             if (auto created = CreateFaunaJoint(context.joints, request, context.random); !created.HasValue())
                 return Core::Unexpected(std::format("{:#x}: {}", subtype == 0 ? 0x505169 : 0x5051a4, created.Error()));
         }

@@ -7,7 +7,7 @@
 #include "Scenes/HighModelEffects.h"
 #include "Kernel/WorldState.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -31,8 +31,8 @@ Core::Expected<void, std::string> CreateHighJoint(Kernel::WorldState& world, Crt
     constexpr std::int32_t NoTarget = -1;
     const auto made = CreateFaunaJoint(
         world.DrawTail().joints,
-        World::FishEffectRequest{type, first, second, angles, subtype, owner, scale, key, 0, 0, NoTarget}, random,
-        owner != nullptr ? JointOwnerKind::ModelEffect : JointOwnerKind::ByType);
+        Kernel::JointRequest{type, first, second, angles, subtype, owner, scale, key, 0, 0, NoTarget}, random,
+        owner != nullptr ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
     if (!made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {} (CL11)", address, made.Error()));
     return {};

@@ -29,9 +29,13 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
-struct FishEffectRequest;
 struct ModelEffect;
 struct ModelEffectArguments;
 class ModelEffects;
@@ -59,7 +63,7 @@ struct ModelEffectStepServices
     const std::int32_t* map = nullptr;
     float* cameraShake = nullptr;
     std::function<void(Audio::SoundId)> sound{};
-    std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> joint{};
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> joint{};
     // 0x52cc21: el paso del pulso 0x103 publica su acción en la tabla compartida antes de animar.
     std::function<void(std::uint16_t, std::uint8_t)> publishAction{};
     // 0x51ed6a y 0x52b349 piden sonido para el destello 0x60d en su posición.

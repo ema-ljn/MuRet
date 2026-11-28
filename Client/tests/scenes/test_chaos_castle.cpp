@@ -7,11 +7,11 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/ObjectState.h"
 #include "Scenes/EventMapObjectFrame.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -40,10 +40,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::JointRequest;
 using Client::Math::BoneTransform;
 using Client::Scenes::GameObjectPass;
 using Client::Scenes::JointState;
-using Client::World::FishEffectRequest;
 using Client::World::Particle;
 using Client::World::Particles;
 using Client::World::WorldObject;
@@ -67,9 +67,9 @@ std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& condition)
 }
 
 // La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
-Client::Scenes::FaunaDrawCarry Pose(std::size_t bones)
+Client::Kernel::PoseBuffer Pose(std::size_t bones)
 {
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     for (std::size_t k = 0; k < bones; ++k)
     {
         BoneTransform bone(1.0f);
@@ -106,10 +106,9 @@ struct JointCall
     std::int32_t target = 0;
 };
 
-std::function<Client::Core::Expected<void, std::string>(const FishEffectRequest&)>
-Recorder(std::vector<JointCall>& calls)
+std::function<Client::Core::Expected<void, std::string>(const JointRequest&)> Recorder(std::vector<JointCall>& calls)
 {
-    return [&calls](const FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    return [&calls](const JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         calls.push_back({request.type, request.subtype, request.firstPosition, request.secondPosition, request.angles,
                          request.ownerContext, request.scale, request.key, request.skill, request.skillSerial,
@@ -158,7 +157,7 @@ struct TrapBolt
 
     explicit TrapBolt(std::uint32_t seed) : random(seed)
     {
-        const FishEffectRequest request{0x615, point, point, angles, 2, nullptr, 63.0f, -1, 0, 0, -1};
+        const JointRequest request{0x615, point, point, angles, 2, nullptr, 63.0f, -1, 0, 0, -1};
         EXPECT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     }
 };
@@ -757,7 +756,7 @@ TEST(ChaosCastleTest, TheMeteorIsCreatedWithoutDraws)
     std::array<JointState, 1> joints{};
     glm::vec3 first{300.0f, 400.0f, 30.0f};
     glm::vec3 angles{0.0f, 0.0f, 45.0f};
-    const FishEffectRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
+    const JointRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
     CrtRandom random(5);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     EXPECT_EQ(random.State(), CrtRandom(5).State());
@@ -784,7 +783,7 @@ TEST(ChaosCastleTest, TheMeteorRisesFasterEachStepAndFades)
     std::array<JointState, 1> joints{};
     glm::vec3 first{300.0f, 400.0f, 30.0f};
     glm::vec3 angles{};
-    const FishEffectRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
+    const JointRequest request{0x6ee, first, first, angles, 9, nullptr, 57.0f, -1, 0, 0, -1};
     CrtRandom random(5);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     JointState& joint = joints[0];

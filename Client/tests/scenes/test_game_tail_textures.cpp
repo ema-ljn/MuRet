@@ -17,7 +17,7 @@
 #include "Scenes/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
 #include "Models/TextureMetadata.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Sprites.h"
 
 #include "support/FakeTextureStore.h"
@@ -188,17 +188,17 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
         glm::vec3 second = owner.previousPosition;
         glm::vec3 angles{};
         Client::Crt::CrtRandom random(1);
-        const Client::World::FishEffectRequest request{.type = probe.type,
-                                                       .firstPosition = first,
-                                                       .secondPosition = second,
-                                                       .angles = angles,
-                                                       .subtype = probe.subtype,
-                                                       .ownerContext = &owner,
-                                                       .scale = 30,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+        const Client::Kernel::JointRequest request{.type = probe.type,
+                                                   .firstPosition = first,
+                                                   .secondPosition = second,
+                                                   .angles = angles,
+                                                   .subtype = probe.subtype,
+                                                   .ownerContext = &owner,
+                                                   .scale = 30,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
         const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
         ASSERT_TRUE(created.HasValue()) << created.Error();
         ASSERT_TRUE(created.Value().has_value());

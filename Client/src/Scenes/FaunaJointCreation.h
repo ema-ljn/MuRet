@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Audio/SoundId.h"
 
 #include <cstddef>
@@ -53,8 +53,8 @@ namespace Client::Scenes
 inline constexpr std::int32_t KillBeamJoint = 0x618;
 
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateFaunaJoint(std::span<JointState> joints, const World::FishEffectRequest& request, Crt::CrtRandom& random,
-                 JointOwnerKind ownerKind = JointOwnerKind::ByType,
+CreateFaunaJoint(std::span<JointState> joints, const Kernel::JointRequest& request, Crt::CrtRandom& random,
+                 Kernel::JointOwnerKind ownerKind = Kernel::JointOwnerKind::ByType,
                  const JointKernels::CreationServices* services = nullptr);
 // 535840: 697 y618/4 siguen el+40 del dueño;610/8 sigue position con z300;
 // 10f/3 usa vida/RNG, seno y color del dueño.614/10 y 614/14 giran e iteran su cola sin leer al dueño;

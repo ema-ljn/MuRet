@@ -38,6 +38,11 @@ namespace Client::Scenes
 struct JointState;
 } // namespace Client::Scenes
 
+namespace Client::Actors
+{
+class IJointHooks;
+} // namespace Client::Actors
+
 namespace Client::Actors::Drawing
 {
 struct DrawnObject;
@@ -54,7 +59,8 @@ struct VertexEffectCall
 };
 
 // The tables it releases into: 0x518cf0 (the model effects), 0x53fe70 (the particles, with their clock), 0x5491e0 (the
-// sprites) and 0x530860 (the joints). Only the one the type asks for is needed; without it, it stops at its address.
+// sprites) and 0x530860 (the joints, born through `jointHooks`). Only the one the type asks for is needed; without it,
+// it stops at its address.
 struct VertexEffectTables
 {
     World::ModelEffects* effects = nullptr;
@@ -62,6 +68,7 @@ struct VertexEffectTables
     float worldClock = 0.0f;
     World::FrameSprites* sprites = nullptr;
     std::span<Scenes::JointState> joints{};
+    const IJointHooks* jointHooks = nullptr;
 };
 
 // 0x4ee770: with the mesh between 0 and the model's (+0x24) and with triangles (+0xa), each corner of each polygon (the

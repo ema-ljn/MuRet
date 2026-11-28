@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/JointRequest.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalAngles.h"
 #include "Math/OriginalRetainedMath.h"
@@ -10,7 +11,6 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/FaunaJointCreation.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -252,7 +252,7 @@ TEST(HighEffectFamiliesTest, TheRingLeavesItsTwoBeamsOnItsOwnPoints)
             EXPECT_EQ(beam.type, 0x618);
             EXPECT_EQ(beam.subtype, index == 0 ? 0xa : 0xb);
             EXPECT_EQ(beam.ownerContext, &ring);
-            EXPECT_EQ(beam.ownerKind, Client::Scenes::JointOwnerKind::ModelEffect);
+            EXPECT_EQ(beam.ownerKind, Client::Kernel::JointOwnerKind::ModelEffect);
             EXPECT_EQ(beam.width, 30.0f);
             EXPECT_EQ(beam.maximumCount, 5);
             EXPECT_EQ(beam.position, (glm::vec3{100.0f, 200.0f, 300.0f}));
@@ -1323,7 +1323,7 @@ TEST(HighEffectFamiliesTest, TheSweepEmitterLeavesItsJointAtLifeThirty)
     EXPECT_EQ(joint.type, 0x61c);
     EXPECT_EQ(joint.subtype, 0);
     EXPECT_EQ(joint.ownerContext, &caster);
-    EXPECT_EQ(joint.ownerKind, Client::Scenes::JointOwnerKind::ByType);
+    EXPECT_EQ(joint.ownerKind, Client::Kernel::JointOwnerKind::ByType);
     EXPECT_EQ(joint.width, 150.0f);
     EXPECT_EQ(joint.key, 7);
     EXPECT_EQ(joint.skill, 3);
@@ -1535,7 +1535,7 @@ TEST(HighEffectFamiliesTest, TheArrowBlastFallsAndCallsTheRainOverItsTarget)
                                                           .skill = 0,
                                                           .skillSerial = 0,
                                                           .target = -1},
-                                                         replay, Client::Scenes::JointOwnerKind::ModelEffect)
+                                                         replay, Client::Kernel::JointOwnerKind::ModelEffect)
                             .HasValue());
         }
         EXPECT_EQ(tested.random.State(), replay.State());

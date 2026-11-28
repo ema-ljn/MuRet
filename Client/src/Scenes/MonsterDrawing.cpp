@@ -1,5 +1,6 @@
 #include "Scenes/MonsterDrawing.h"
 
+#include "Actors/Drawing/CharacterDrawHooks.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
@@ -44,7 +45,7 @@
 #include "Kernel/WorldState.h"
 #include "World/ChaosCastle.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Terrain/TerrainDecal.h"
@@ -691,17 +692,17 @@ Result DrawTheChainsOf0x49And0x4b(MonsterFrame& frame)
                 glm::vec3 from = previous;
                 glm::vec3 to = point;
                 glm::vec3 angles = actor.angles;
-                const World::FishEffectRequest request{.type = 0x614,
-                                                       .firstPosition = from,
-                                                       .secondPosition = to,
-                                                       .angles = angles,
-                                                       .subtype = 7,
-                                                       .ownerContext = nullptr,
-                                                       .scale = LinkWidth,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
+                const Kernel::JointRequest request{.type = 0x614,
+                                                   .firstPosition = from,
+                                                   .secondPosition = to,
+                                                   .angles = angles,
+                                                   .subtype = 7,
+                                                   .ownerContext = nullptr,
+                                                   .scale = LinkWidth,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
                 if (auto made = CreateFaunaJoint(frame.pass.joints, request, frame.random); !made.HasValue())
                     return Core::Unexpected(std::format("0x50c492: {}", made.Error()));
             }
@@ -854,6 +855,7 @@ Actors::Drawing::GameHangingPass HangingPassOf(MonsterFrame& frame, const Models
                                             .carry = pass.poseCarry,
                                             .sprites = pass.sprites,
                                             .joints = pass.joints,
+                                            .jointHooks = pass.hooks,
                                             .particles = pass.particles,
                                             .itemContext = pass.itemContext,
                                             .frameClock = pass.frameClock,

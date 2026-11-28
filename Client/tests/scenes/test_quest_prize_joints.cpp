@@ -6,7 +6,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -27,10 +27,10 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::JointRequest;
 using Client::Math::Detail::CosineProductPC53;
 using Client::Math::Detail::SineProductPC53;
 using Client::Scenes::JointState;
-using Client::World::FishEffectRequest;
 
 constexpr std::int32_t Sparkle = 0x60f, FallingSubtype = 0xa;
 constexpr float PrizeWidth = 40.0f;
@@ -51,17 +51,17 @@ CreateFalling(std::span<JointState> joints, ActorState& owner, CrtRandom& random
 {
     glm::vec3 raised{100.0f, 200.0f, 500.0f};
     glm::vec3 angles{};
-    const FishEffectRequest request{.type = Sparkle,
-                                    .firstPosition = raised,
-                                    .secondPosition = raised,
-                                    .angles = angles,
-                                    .subtype = FallingSubtype,
-                                    .ownerContext = &owner,
-                                    .scale = width,
-                                    .key = PrizeKey,
-                                    .skill = 0,
-                                    .skillSerial = 0,
-                                    .target = -1};
+    const JointRequest request{.type = Sparkle,
+                               .firstPosition = raised,
+                               .secondPosition = raised,
+                               .angles = angles,
+                               .subtype = FallingSubtype,
+                               .ownerContext = &owner,
+                               .scale = width,
+                               .key = PrizeKey,
+                               .skill = 0,
+                               .skillSerial = 0,
+                               .target = -1};
     return Client::Scenes::CreateFaunaJoint(joints, request, random);
 }
 

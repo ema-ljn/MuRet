@@ -18,13 +18,12 @@
 #include "Models/Animation.h"
 #include "Models/Skeleton.h"
 #include "Terrain/TerrainCulling.h"
-#include "Scenes/FaunaDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Actors/JointHooks.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GuildMarkEffects.h"
 #include "Scenes/HighModelEffects.h"
-#include "Scenes/JointFamilies.h"
 #include "Scenes/PartyActors.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SocialState.h"
@@ -34,7 +33,7 @@
 #include "World/BlastModelEffects.h"
 #include "World/ChaosCastle.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -107,6 +106,9 @@ constexpr double GlowGreen = static_cast<double>(std::bit_cast<float>(0x3e99999a
 constexpr double GlowBlue = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));  // 0x6b8854, 0.2f
 constexpr std::uint16_t GlowSprite = 0x5fd;
 constexpr float GlowScale = 1.5f; // 0x3fc00000
+// 0x50fa74 and 0x50fa97: the party's beams.
+constexpr std::int32_t BeamJoint = 0x618;
+
 // 0x50fcf7..0x50fd5c: the five 0x10f/4 of width 20 (0x41a00000), if it has no 0x10f/4 or /9 of its own (0x534fd0).
 constexpr std::int32_t AuraType = 0x10f;
 constexpr std::int32_t BindingSubtype = 4;
@@ -250,12 +252,12 @@ struct Tail
     [[nodiscard]] Result Joint(std::string_view call, std::int32_t type, std::int32_t subtype, float width,
                                std::int32_t key, std::int32_t skill) const
     {
-        if (pass.joints.empty())
+        if (pass.joints.empty() || pass.jointHooks == nullptr)
             return Core::Unexpected(std::format("{}: faltan los joints del frame (0x530860)", call));
-        const auto created = Scenes::CreateFaunaJoint(
+        const auto created = pass.jointHooks->CreateTheJoint(
             pass.joints,
             {type, actor.position, actor.position, actor.angles, subtype, &actor, width, key, skill, 0, NoTarget},
-            pass.random);
+            pass.random, Kernel::JointOwnerKind::ByType);
         if (!created.HasValue())
             return Core::Unexpected(std::format("{}: {}", call, created.Error()));
         return {};
@@ -373,24 +375,25 @@ Core::Expected<AfterTheActions, std::string> Actions(Tail& tail)
                 return Core::Unexpected(
                     std::format("0x50fa3b: el miembro {} de la party de la acción {:#x} está fuera de los personajes",
                                 index, action));
-            if (tail.pass.joints.empty())
+            if (tail.pass.joints.empty() || tail.pass.jointHooks == nullptr)
                 return Core::Unexpected(std::string("0x50fa74: faltan los joints del frame (0x530860)"));
             const glm::vec3& at = tail.pass.actors[index].position;
             glm::vec3 from{at.x, at.y, F32(D(at.z) + 150.0)}; // 0x6b87ac
             for (const std::int32_t subtype : {0xc, 0xd})
             {
-                const World::FishEffectRequest request{.type = Scenes::JointFamilies::BeamJoint,
-                                                       .firstPosition = from,
-                                                       .secondPosition = from,
-                                                       .angles = tail.actor.angles,
-                                                       .subtype = subtype,
-                                                       .ownerContext = &tail.actor,
-                                                       .scale = 20.0f,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = NoTarget};
-                const auto created = Scenes::CreateFaunaJoint(tail.pass.joints, request, tail.pass.random);
+                const Kernel::JointRequest request{.type = BeamJoint,
+                                                   .firstPosition = from,
+                                                   .secondPosition = from,
+                                                   .angles = tail.actor.angles,
+                                                   .subtype = subtype,
+                                                   .ownerContext = &tail.actor,
+                                                   .scale = 20.0f,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = NoTarget};
+                const auto created = tail.pass.jointHooks->CreateTheJoint(tail.pass.joints, request, tail.pass.random,
+                                                                          Kernel::JointOwnerKind::ByType);
                 if (!created.HasValue())
                     return Core::Unexpected(
                         std::format("{}: {}", subtype == 0xc ? "0x50fa74" : "0x50fa97", created.Error()));
@@ -463,7 +466,7 @@ Result Flags(Tail& tail)
     }
     if (!tail.pass.originalFrame)
         return {};
-    if (tail.pass.joints.empty())
+    if (tail.pass.joints.empty() || tail.pass.jointHooks == nullptr)
         return Core::Unexpected(std::string("0x50fcff: faltan los joints del frame (0x534fd0)"));
     const bool bound =
         std::ranges::any_of(tail.pass.joints,
@@ -476,19 +479,19 @@ Result Flags(Tail& tail)
         return {};
     for (int ring = 0; ring < BindingRings; ++ring)
     {
-        const World::FishEffectRequest request{.type = AuraType,
-                                               .firstPosition = actor.position,
-                                               .secondPosition = actor.position,
-                                               .angles = actor.angles,
-                                               .subtype = BindingSubtype,
-                                               .ownerContext = &actor,
-                                               .scale = BindingWidth,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = std::bit_cast<std::int16_t>(actor.attackTarget)};
-        if (auto created =
-                Scenes::CreateFaunaJoint(tail.pass.joints, request, tail.pass.random, Scenes::JointOwnerKind::Actor);
+        const Kernel::JointRequest request{.type = AuraType,
+                                           .firstPosition = actor.position,
+                                           .secondPosition = actor.position,
+                                           .angles = actor.angles,
+                                           .subtype = BindingSubtype,
+                                           .ownerContext = &actor,
+                                           .scale = BindingWidth,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = std::bit_cast<std::int16_t>(actor.attackTarget)};
+        if (auto created = tail.pass.jointHooks->CreateTheJoint(tail.pass.joints, request, tail.pass.random,
+                                                                Kernel::JointOwnerKind::Actor);
             !created.HasValue())
             return Core::Unexpected(std::format("0x50fd4d: {}", created.Error()));
     }
@@ -802,7 +805,7 @@ Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& a
 }
 
 Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                   Crt::CrtRandom& random)
+                                                   const IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
@@ -830,12 +833,12 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
         position.x = F32(*sine + D(owner.position.x));
         position.y = F32(*cosine + D(owner.position.y));
         position.z = F32(D(owner.position.z) + Rise);
-        if (joints.empty())
+        if (joints.empty() || jointHooks == nullptr)
             return Core::Unexpected<std::string>("0x52aa5d: faltan los joints del paso (0x530860)");
-        const auto created = Scenes::CreateFaunaJoint(joints,
-                                                      {EnergyType, position, position, angles, EnergySubtype,
-                                                       effect.ownerContext, EnergyWidth, NoKey, 0, 0, NoTarget},
-                                                      random);
+        const auto created = jointHooks->CreateTheJoint(joints,
+                                                        {EnergyType, position, position, angles, EnergySubtype,
+                                                         effect.ownerContext, EnergyWidth, NoKey, 0, 0, NoTarget},
+                                                        random, Kernel::JointOwnerKind::ByType);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x52aa5d: {}", created.Error()));
     }
@@ -845,8 +848,8 @@ Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect, s
 }
 
 Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                 Crt::CrtRandom& random, World::Particles* particles,
-                                                 World::ParticleOwner particleOwner)
+                                                 const IJointHooks* jointHooks, Crt::CrtRandom& random,
+                                                 World::Particles* particles, World::ParticleOwner particleOwner)
 {
     if (!effect.alive)
         return {};
@@ -896,12 +899,13 @@ Core::Expected<void, std::string> StepSkillFlare(World::ModelEffect& effect, std
                 position.x = F32(*sine + D(owner.position.x));
                 position.y = F32(*cosine + D(owner.position.y));
                 position.z = F32(D(owner.position.z) + GuardRise);
-                if (joints.empty())
+                if (joints.empty() || jointHooks == nullptr)
                     return Core::Unexpected<std::string>("0x52a9a0: faltan los joints del paso (0x530860)");
-                const auto created = Scenes::CreateFaunaJoint(joints,
-                                                              {EnergyType, position, position, angles, EnergySubtype,
-                                                               effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
-                                                              random);
+                const auto created =
+                    jointHooks->CreateTheJoint(joints,
+                                               {EnergyType, position, position, angles, EnergySubtype,
+                                                effect.ownerContext, GuardWidth, NoKey, 0, 0, NoTarget},
+                                               random, Kernel::JointOwnerKind::ByType);
                 if (!created.HasValue())
                     return Core::Unexpected(std::format("0x52a9a0: {}", created.Error()));
             }
@@ -921,7 +925,7 @@ bool StepsAsPetSummon(const World::ModelEffect& effect)
 }
 
 Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std::span<Scenes::JointState> joints,
-                                                Crt::CrtRandom& random)
+                                                const IJointHooks* jointHooks, Crt::CrtRandom& random)
 {
     if (!effect.alive)
         return {};
@@ -936,7 +940,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
         World::StepModelEffect(effect, nullptr);
         return {};
     }
-    if (joints.empty())
+    if (joints.empty() || jointHooks == nullptr)
         return Core::Unexpected<std::string>("0x5189cc: faltan los joints del paso (0x530860)");
     // 0x5208c5: the first rand() runs for every live effect, even if 0x61e does not use the light.
     static_cast<void>(random.Next());
@@ -953,12 +957,12 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
         // 0x51897a..0x5189b4: each subtraction is stored; z adds 120 before it is stored.
         glm::vec3 start{F32(D(position.x) - D(reach.x)), F32(D(position.y) - D(reach.y)),
                         F32(D(position.z) - D(reach.z) + SummonLift)};
-        const auto created = Scenes::CreateFaunaJoint(
+        const auto created = jointHooks->CreateTheJoint(
             joints,
             {EnergyType, start, position, angles, jointSubtype, effect.ownerContext, SummonWidth, NoKey, 0, 0,
              NoTarget},
             random,
-            effect.owner.effect != nullptr ? Scenes::JointOwnerKind::ModelEffect : Scenes::JointOwnerKind::ByType);
+            effect.owner.effect != nullptr ? Kernel::JointOwnerKind::ModelEffect : Kernel::JointOwnerKind::ByType);
         if (!created.HasValue())
             return Core::Unexpected(std::format("0x5189cc: {}", created.Error()));
     }
@@ -975,7 +979,7 @@ Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect, std:
 Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit, const Kernel::ActorState& owner,
                                                      const Models::Skeleton* skeleton, Crt::CrtRandom& random,
                                                      World::Particles* particles, float worldClock,
-                                                     Kernel::WorldState* world)
+                                                     Kernel::WorldState* world, const IJointHooks* jointHooks)
 {
     if (spirit.state == FirstOrderState)
     {
@@ -990,21 +994,22 @@ Core::Expected<void, std::string> DrawTheRavenAttack(Kernel::DarkSpirit& spirit,
             {
                 const auto width = static_cast<float>(static_cast<std::int32_t>(random.Next() % JointSpan) + JointBase);
                 // Without the table, it stops at the first 0x530860, after the rand() of 0x418ad6.
-                if (world == nullptr)
+                if (world == nullptr || jointHooks == nullptr)
                     return Core::Unexpected(std::string("0x418aff: faltan los joints del mundo (0x530860) para el "
                                                         "ataque del cuervo"));
-                const World::FishEffectRequest request{.type = AttackJoint,
-                                                       .firstPosition = spirit.position,
-                                                       .secondPosition = spirit.position,
-                                                       .angles = spirit.angles,
-                                                       .subtype = AttackJointSubtype,
-                                                       .ownerContext = nullptr,
-                                                       .scale = width,
-                                                       .key = -1,
-                                                       .skill = 0,
-                                                       .skillSerial = 0,
-                                                       .target = -1};
-                const auto created = Scenes::CreateFaunaJoint(world->DrawTail().joints, request, random);
+                const Kernel::JointRequest request{.type = AttackJoint,
+                                                   .firstPosition = spirit.position,
+                                                   .secondPosition = spirit.position,
+                                                   .angles = spirit.angles,
+                                                   .subtype = AttackJointSubtype,
+                                                   .ownerContext = nullptr,
+                                                   .scale = width,
+                                                   .key = -1,
+                                                   .skill = 0,
+                                                   .skillSerial = 0,
+                                                   .target = -1};
+                const auto created = jointHooks->CreateTheJoint(world->DrawTail().joints, request, random,
+                                                                Kernel::JointOwnerKind::ByType);
                 if (!created.HasValue())
                     return Core::Unexpected(std::format("0x418aff: {}", created.Error()));
             }
@@ -1133,8 +1138,9 @@ Core::Expected<void, std::string> EndTheShout(Kernel::DarkSpirit& spirit, std::s
                                         .subtype = ShoutJoints,
                                         .angles = spirit.angles,
                                         .target = &actors[static_cast<std::size_t>(slot)]};
-            if (auto emitted = EmitVertexEffectsOf(*model, spirit.scale, meshes, call,
-                                                   {.joints = pass.world->DrawTail().joints}, *pass.random);
+            if (auto emitted = EmitVertexEffectsOf(
+                    *model, spirit.scale, meshes, call,
+                    {.joints = pass.world->DrawTail().joints, .jointHooks = pass.jointHooks}, *pass.random);
                 !emitted.HasValue())
                 return Core::Unexpected(std::format("0x418a8c: {}", emitted.Error()));
         }
@@ -1213,7 +1219,7 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
         DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, 0.0f);
         if (pass.carry != nullptr)
         {
-            if (auto posed = Scenes::PublishFaunaPose(*pass.carry, pass.models, drawn, true); !posed.HasValue())
+            if (auto posed = PublishPose(*pass.carry, pass.models, drawn, true); !posed.HasValue())
                 return posed;
             drawn.retainedMeshes = pass.carry->meshes;
         }
@@ -1254,7 +1260,7 @@ Core::Expected<void, std::string> DrawGameRaven(Kernel::ActorState& owner, const
             return EndTheShout(spirit, scratch, ravenPosed, pass);
         }
         return DrawTheRavenAttack(spirit, owner, pass.models.SkeletonOf(Models::ModelId{Assets::DarkSpiritModel}),
-                                  *pass.random, pass.particles, pass.worldClock, pass.world);
+                                  *pass.random, pass.particles, pass.worldClock, pass.world, pass.jointHooks);
     }
     return {};
 }

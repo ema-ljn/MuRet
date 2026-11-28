@@ -31,13 +31,17 @@
 #include <string>
 #include <vector>
 
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
 class FrameSprites;
 struct ModelEffect;
 class ScepterGlowCarry;
 struct ObjectModelStepState;
-struct FishEffectRequest;
 } // namespace Client::World
 
 namespace Client::Models
@@ -300,7 +304,7 @@ struct ItemDrawContext
     std::int32_t map = 0;
     void* ownerContext = nullptr;
     std::function<std::span<const Math::BoneTransform>()> poseBones{};
-    std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint{};
     std::function<Core::Expected<void, std::string>(std::uint16_t, std::int32_t, const DrawnObject&)> createEffect{};
     // Gets only the native alpha stores, separate from the temporary drawing alpha.
     float* storedAlpha = nullptr;

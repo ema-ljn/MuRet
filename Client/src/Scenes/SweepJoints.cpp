@@ -8,7 +8,7 @@
 #include "Scenes/JointKernels.h"
 #include "Scenes/SkillHits.h"
 #include "Math/Ftol.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainAttributeQuery.h"
 
@@ -39,17 +39,17 @@ Core::Expected<void, std::string> Spark(const JointKernels::StepServices& servic
                                         float scale)
 {
     constexpr std::int32_t SparkJoint = 0x614, SparkSubtype = 3, SparkKey = 5, SparkSkill = 0xa;
-    const World::FishEffectRequest spark{.type = SparkJoint,
-                                         .firstPosition = from,
-                                         .secondPosition = joint.position,
-                                         .angles = joint.angles,
-                                         .subtype = SparkSubtype,
-                                         .ownerContext = nullptr,
-                                         .scale = scale,
-                                         .key = SparkKey,
-                                         .skill = SparkSkill,
-                                         .skillSerial = 0,
-                                         .target = -1};
+    const Kernel::JointRequest spark{.type = SparkJoint,
+                                     .firstPosition = from,
+                                     .secondPosition = joint.position,
+                                     .angles = joint.angles,
+                                     .subtype = SparkSubtype,
+                                     .ownerContext = nullptr,
+                                     .scale = scale,
+                                     .key = SparkKey,
+                                     .skill = SparkSkill,
+                                     .skillSerial = 0,
+                                     .target = -1};
     if (auto created = CreateFaunaJoint(services.joints, spark, *services.random); !created.HasValue())
         return Core::Unexpected(std::format("0x53b4f6: {}", created.Error()));
     return {};
@@ -132,7 +132,7 @@ Core::Expected<bool, std::string> HitAroundTheHero(JointState& joint, const Join
 }
 } // namespace
 
-void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request)
+void CreateSweepJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x5342e4..0x534399: sin la cola común, velocidad 0, el ancho, la z de los ángulos + 30, el destino en la posición
     // de partida, vida 20, 18 puntos, la velocidad (+0x9dc) con los ángulos nuevos, la cuenta en −1; la posición, 180

@@ -1,10 +1,10 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/NoriaObjectServices.h"
 #include "Scenes/WorldObjectsDrawing.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
@@ -20,9 +20,9 @@
 
 namespace
 {
-Client::Scenes::FaunaDrawCarry Pose()
+Client::Kernel::PoseBuffer Pose()
 {
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     pose.bones.resize(70, Client::Math::BoneTransform(1.0f));
     for (int bone = 0; bone < 70; ++bone)
         pose.bones[static_cast<std::size_t>(bone)][3] =
@@ -112,7 +112,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
     pass.particles = particles.get();
     pass.retainedPose = &pose;
     int calls = 0;
-    pass.createJoint = [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+    pass.createJoint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
     {
         EXPECT_EQ(request.type, 0x617);
         EXPECT_EQ(request.firstPosition, glm::vec3(158, 258, 358));
@@ -171,7 +171,7 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
     pass.particles = particles.get();
     pass.retainedPose = &pose;
     int calls = 0;
-    pass.createJoint = [&](const Client::World::FishEffectRequest&) -> Client::Core::Expected<void, std::string>
+    pass.createJoint = [&](const Client::Kernel::JointRequest&) -> Client::Core::Expected<void, std::string>
     {
         if (++calls == 3)
             return Client::Core::Unexpected(std::string("joint failure"));

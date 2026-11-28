@@ -22,7 +22,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Session/WorldTransitionSupport.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "Audio/SoundId.h"
 
@@ -87,32 +87,32 @@ Core::Expected<void, std::string> CreateThePrizeSparkles(Kernel::ActorState& act
     Crt::CrtRandom& random = resources.cloth.random;
     for (int round = 0; round < Rounds; ++round)
     {
-        const World::FishEffectRequest sparkle{.type = SparkleJoint,
-                                               .firstPosition = actor.position,
-                                               .secondPosition = actor.position,
-                                               .angles = actor.angles,
-                                               .subtype = SparkleSubtype,
-                                               .ownerContext = &actor,
-                                               .scale = SparkleWidth,
-                                               .key = SparkleKey,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = NoTarget};
+        const Kernel::JointRequest sparkle{.type = SparkleJoint,
+                                           .firstPosition = actor.position,
+                                           .secondPosition = actor.position,
+                                           .angles = actor.angles,
+                                           .subtype = SparkleSubtype,
+                                           .ownerContext = &actor,
+                                           .scale = SparkleWidth,
+                                           .key = SparkleKey,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = NoTarget};
         if (auto created = CreateFaunaJoint(joints, sparkle, random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, created.Error()));
         if (!falling)
             continue;
-        const World::FishEffectRequest descending{.type = SparkleJoint,
-                                                  .firstPosition = raised,
-                                                  .secondPosition = raised,
-                                                  .angles = actor.angles,
-                                                  .subtype = FallingSubtype,
-                                                  .ownerContext = &actor,
-                                                  .scale = SparkleWidth,
-                                                  .key = SparkleKey,
-                                                  .skill = 0,
-                                                  .skillSerial = 0,
-                                                  .target = NoTarget};
+        const Kernel::JointRequest descending{.type = SparkleJoint,
+                                              .firstPosition = raised,
+                                              .secondPosition = raised,
+                                              .angles = actor.angles,
+                                              .subtype = FallingSubtype,
+                                              .ownerContext = &actor,
+                                              .scale = SparkleWidth,
+                                              .key = SparkleKey,
+                                              .skill = 0,
+                                              .skillSerial = 0,
+                                              .target = NoTarget};
         if (auto created = CreateFaunaJoint(joints, descending, random); !created.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address + 0x23, created.Error()));
     }

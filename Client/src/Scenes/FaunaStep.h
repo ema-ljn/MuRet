@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/FaunaState.h"
 #include "Scenes/FaunaObject.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/IBirdStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -34,7 +34,7 @@ namespace Client::Scenes
 // Los servicios opcionales fallan al alcanzarse: no simulan efectos con un éxito vacío.
 struct FaunaStepEffects
 {
-    std::function<Core::Expected<std::uint32_t, std::error_code>(const World::FishEffectRequest&)> effect;
+    std::function<Core::Expected<std::uint32_t, std::error_code>(const Kernel::JointRequest&)> effect;
     std::function<std::error_code(const glm::vec3&)> lightning;
     std::function<std::error_code(std::int32_t)> prepare;
 };

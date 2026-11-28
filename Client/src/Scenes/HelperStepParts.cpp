@@ -8,7 +8,6 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/HelperTable.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

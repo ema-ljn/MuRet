@@ -15,7 +15,7 @@
 #include "Scenes/GameParticles.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
@@ -2133,8 +2133,7 @@ TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAre
         Client::Crt::CrtRandom random(1);
         auto services = scene.Services();
         int calls = 0;
-        services.joint =
-            [&](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+        services.joint = [&](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
         {
             EXPECT_EQ(request.type, 0x617);
             EXPECT_EQ(request.subtype, 0);

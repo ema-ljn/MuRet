@@ -15,7 +15,7 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
 #include "World/WizardModelEffects.h"
@@ -213,17 +213,17 @@ TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
         {
             if (subtype == 7)
                 angles.z = 10.0f * static_cast<float>(ray);
-            const Client::World::FishEffectRequest request{.type = 0x613,
-                                                           .firstPosition = point,
-                                                           .secondPosition = second,
-                                                           .angles = angles,
-                                                           .subtype = subtype,
-                                                           .ownerContext = &circle,
-                                                           .scale = 60.0f,
-                                                           .key = 0,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+            const Client::Kernel::JointRequest request{.type = 0x613,
+                                                       .firstPosition = point,
+                                                       .secondPosition = second,
+                                                       .angles = angles,
+                                                       .subtype = subtype,
+                                                       .ownerContext = &circle,
+                                                       .scale = 60.0f,
+                                                       .key = 0,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
             ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(*twin, request, oracle).HasValue());
         }
     }

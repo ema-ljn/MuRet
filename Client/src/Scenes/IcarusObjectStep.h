@@ -17,11 +17,15 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
 class FrameSprites;
 class ModelEffects;
-struct FishEffectRequest;
 struct WorldObject;
 } // namespace Client::World
 
@@ -41,7 +45,7 @@ struct IcarusObjectServices
     // 0x5491e0.
     World::FrameSprites* sprites = nullptr;
     // 0x530860.
-    std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint;
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint;
 };
 
 // 0x6061c0 en el mapa 10, con `count` el 0x7d365a0 del pase anterior (todavía sin poner en cero):

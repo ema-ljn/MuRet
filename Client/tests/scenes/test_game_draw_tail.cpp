@@ -8,14 +8,15 @@
 #include "Scenes/GameFloorItems.h"
 #include "Render/TextureSlot.h"
 #include "Render/Pass3D.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaObject.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Models/Skinning.h"
 #include "World/Particles.h"
 #include "Render/Billboard.h"
@@ -462,17 +463,17 @@ TEST(GameDrawTailTest, FaunaJointCreationRetainsOldPointsAndCountsItsTwoRandoms)
     owner.position = {10, 20, 30};
     owner.light = {0.1f, 0.2f, 0.3f};
     glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{};
-    Client::World::FishEffectRequest request{.type = 0x697,
-                                             .firstPosition = first,
-                                             .secondPosition = second,
-                                             .angles = angles,
-                                             .subtype = 0,
-                                             .ownerContext = &owner,
-                                             .scale = 2,
-                                             .key = -1,
-                                             .skill = 0,
-                                             .skillSerial = 0,
-                                             .target = -1};
+    Client::Kernel::JointRequest request{.type = 0x697,
+                                         .firstPosition = first,
+                                         .secondPosition = second,
+                                         .angles = angles,
+                                         .subtype = 0,
+                                         .ownerContext = &owner,
+                                         .scale = 2,
+                                         .key = -1,
+                                         .skill = 0,
+                                         .skillSerial = 0,
+                                         .target = -1};
     Client::Crt::CrtRandom random(7), expected(7);
     joints[0].points[0][0] = {99, 98, 97};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
@@ -509,17 +510,17 @@ TEST(GameDrawTailTest, ScrollTailOfAnotherSubtypeIsTheSame)
     owner.active = 1;
     owner.previousPosition = {10, 20, 30};
     glm::vec3 first{1, 2, 3}, second{4, 5, 6}, angles{};
-    const Client::World::FishEffectRequest request{.type = 0x697,
-                                                   .firstPosition = first,
-                                                   .secondPosition = second,
-                                                   .angles = angles,
-                                                   .subtype = 5,
-                                                   .ownerContext = &owner,
-                                                   .scale = 30,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
+    const Client::Kernel::JointRequest request{.type = 0x697,
+                                               .firstPosition = first,
+                                               .secondPosition = second,
+                                               .angles = angles,
+                                               .subtype = 5,
+                                               .ownerContext = &owner,
+                                               .scale = 30,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
     Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
@@ -635,17 +636,17 @@ TEST(GameDrawTailTest, IcarusJointOwnerColorFailureKeepsTheEarlierConstructorPre
 {
     std::array<Client::Scenes::JointState, 1> joints{};
     glm::vec3 first{}, second{}, angles{};
-    Client::World::FishEffectRequest request{.type = 0x610,
-                                             .firstPosition = first,
-                                             .secondPosition = second,
-                                             .angles = angles,
-                                             .subtype = 8,
-                                             .ownerContext = nullptr,
-                                             .scale = 77,
-                                             .key = 7,
-                                             .skill = 3,
-                                             .skillSerial = 0,
-                                             .target = -1};
+    Client::Kernel::JointRequest request{.type = 0x610,
+                                         .firstPosition = first,
+                                         .secondPosition = second,
+                                         .angles = angles,
+                                         .subtype = 8,
+                                         .ownerContext = nullptr,
+                                         .scale = 77,
+                                         .key = 7,
+                                         .skill = 3,
+                                         .skillSerial = 0,
+                                         .target = -1};
     Client::Crt::CrtRandom random(1);
     const auto created = Client::Scenes::CreateFaunaJoint(joints, request, random);
     ASSERT_FALSE(created.HasValue());
@@ -986,17 +987,17 @@ TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrow
     joints[0].width = 10;
     joints[0].icarusRotations = std::array<float, 2>{45, 60};
     glm::vec3 position{10, 20, 30}, angles{};
-    const Client::World::FishEffectRequest request{.type = 0x617,
-                                                   .firstPosition = position,
-                                                   .secondPosition = position,
-                                                   .angles = angles,
-                                                   .subtype = 0,
-                                                   .ownerContext = nullptr,
-                                                   .scale = 10,
-                                                   .key = -1,
-                                                   .skill = 0,
-                                                   .skillSerial = 0,
-                                                   .target = -1};
+    const Client::Kernel::JointRequest request{.type = 0x617,
+                                               .firstPosition = position,
+                                               .secondPosition = position,
+                                               .angles = angles,
+                                               .subtype = 0,
+                                               .ownerContext = nullptr,
+                                               .scale = 10,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
     Client::Crt::CrtRandom random(7);
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
@@ -1497,13 +1498,13 @@ TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
     TriangleModels models;
     Client::Terrain::SphereFrustum frustum;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
     int poses = 0;
     resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
         ++poses;
-        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+        return Client::Actors::Drawing::PublishPose(carry, models, object, true);
     };
     resources.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     for (const bool hidden : {true, false})
@@ -1606,7 +1607,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     carry.meshes.resize(1);
     carry.meshes[0].positions.assign(3, glm::vec3(42));
     std::array<Client::Scenes::FloorItemState, 2> items{};
@@ -1621,7 +1622,7 @@ TEST(GameDrawTailTest, FloorBodyUsesThePrecedingTransparentPoseAndRetainsItsDumm
     Client::Scenes::FloorItemDrawContext context{.batch = batch, .models = models, .frustum = frustum};
     context.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     {
-        auto published = Client::Scenes::PublishFaunaFloorPose(carry, models, object);
+        auto published = Client::Actors::Drawing::PublishFloorPose(carry, models, object);
         if (object.model == 0x212)
         {
             EXPECT_EQ(carry.meshes[0].positions[0], glm::vec3(42)); // alpha0 posa bones, no skin.
@@ -1640,7 +1641,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::array<Client::World::ModelEffect, 2> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
@@ -1652,7 +1653,7 @@ TEST(GameDrawTailTest, ModelEffectBodyUsesTheDummyBonePublishedByThePrecedingMod
     effects[1].transform.position = {1000, 1000, 300};
     Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
     resources.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
+    { return Client::Actors::Drawing::PublishPose(carry, models, object, true); };
     resources.posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh> { return carry.meshes; };
     ASSERT_TRUE(
         Client::Scenes::DrawGameModelEffects(batch, models, effects, frustum, nullptr, {}, 0, resources).HasValue());
@@ -1667,7 +1668,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     Client::Render::ModelBatch batch;
     RetainedDummyModels models;
     Client::Terrain::SphereFrustum frustum;
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     std::array<Client::World::ModelEffect, 2> effects{};
     for (std::size_t i = 0; i < effects.size(); ++i)
     {
@@ -1677,7 +1678,7 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     }
     effects[1].transform.position = {1000, 1000, 300};
     const Client::Actors::Drawing::TailPoseObserver onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return Client::Scenes::PublishFaunaPose(carry, models, object, true); };
+    { return Client::Actors::Drawing::PublishPose(carry, models, object, true); };
     const Client::Actors::Drawing::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
     { return carry.meshes; };
     ASSERT_TRUE(Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)

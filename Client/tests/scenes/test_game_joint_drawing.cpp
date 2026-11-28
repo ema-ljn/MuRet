@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/FaunaObject.h"
 #include "Render/ModelBatch.h"
@@ -207,7 +207,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
     actor.position.z = 10;
     auto joint = Joint(0x10f, 9);
     joint.ownerContext = &actor;
-    joint.ownerKind = Client::Scenes::JointOwnerKind::Actor;
+    joint.ownerKind = Client::Kernel::JointOwnerKind::Actor;
     joint.points[0][0].z = 215.0f;
     Client::Crt::CrtRandom random(1);
     Client::World::FrameSprites sprites;
@@ -244,7 +244,7 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
     glm::vec3 point{100, 200, 300}, angles{};
     Client::Crt::CrtRandom random(1);
     Client::World::FrameSprites sprites;
-    const Client::World::FishEffectRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
+    const Client::Kernel::JointRequest request{0x60f, point, point, angles, 0x17, nullptr, 40, 0, 0, 0, -1};
     ASSERT_TRUE(Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     Client::Render::ModelBatch waiting;

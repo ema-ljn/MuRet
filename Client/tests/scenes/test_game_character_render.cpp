@@ -21,7 +21,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/EventGlobals.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Actors/FullSetScan.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
@@ -287,7 +287,7 @@ protected:
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     Client::Models::ClothWorld m_clothWorld;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     CharacterModels m_models;
     Client::Render::ModelBatch m_batch;
 };
@@ -1067,7 +1067,7 @@ TEST_F(GameCharacterRenderTest, CatchUpKeepsTheFirstFailedFramesShadowPartsCloth
     referencePass.clothWorld = &referenceClothWorld;
     referencePass.cloths = referenceCloths;
     referencePass.sprites = &referenceSprites;
-    Client::Scenes::FaunaDrawCarry referenceCarry;
+    Client::Kernel::PoseBuffer referenceCarry;
     referencePass.poseCarry = &referenceCarry;
     const auto reference =
         Client::Actors::Drawing::DrawGameCharacters(referenceBatch, m_models, *referenceWorld, referencePass);

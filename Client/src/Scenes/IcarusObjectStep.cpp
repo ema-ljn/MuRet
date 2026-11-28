@@ -4,7 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
 #include "World/WorldObjectStepServices.h"
@@ -90,7 +90,7 @@ Core::Expected<void, std::string> Join(const IcarusObjectServices& services, std
     constexpr std::int32_t NoKey = -1;
     constexpr std::int32_t NoTarget = -1;
     return services.createJoint(
-        World::FishEffectRequest{type, first, second, angles, subtype, owner, width, NoKey, 0, 0, NoTarget});
+        Kernel::JointRequest{type, first, second, angles, subtype, owner, width, NoKey, 0, 0, NoTarget});
 }
 
 // 0x605d70.

@@ -3,7 +3,7 @@
 #include "Core/Expected.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 
 #include <cstdint>
 #include <string>
@@ -22,7 +22,7 @@ namespace Client::Scenes::JointFamilies
 // pide; la /0xf corta en el paso, en la luz de su 0x5ca (0x5370e8).
 inline constexpr std::int32_t LightningJoint = 0x614;
 [[nodiscard]] Core::Expected<void, std::string> CreateLightningJoint(JointState& joint,
-                                                                     const World::FishEffectRequest& request,
+                                                                     const Kernel::JointRequest& request,
                                                                      Crt::CrtRandom& random,
                                                                      const JointKernels::CreationServices* services);
 [[nodiscard]] Core::Expected<void, std::string> StepLightningJoint(JointState& joint,
@@ -40,7 +40,7 @@ void CreateHandBoltJoint(JointState& joint);
 inline constexpr std::int32_t SpiritJoint = 0x613;
 inline constexpr std::int32_t SecondSpiritJoint = 0x6ee;
 [[nodiscard]] Core::Expected<void, std::string> CreateSpiritJoint(JointState& joint,
-                                                                  const World::FishEffectRequest& request,
+                                                                  const Kernel::JointRequest& request,
                                                                   Crt::CrtRandom& random,
                                                                   const JointKernels::CreationServices* services);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiritJoint(JointState& joint,
@@ -54,7 +54,7 @@ inline constexpr std::int32_t DropSubtype = 2;
 inline constexpr std::int32_t DarkDropSubtype = 0x18;
 inline constexpr std::int32_t SinkingDropSubtype = 0x13;
 [[nodiscard]] bool IsDrop(std::int32_t type, std::int32_t subtype);
-void CreateDropJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+void CreateDropJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
 void StepDropJoint(JointState& joint);
 
 // El 0x60f/7, /0xb y /0x19 (WanderingJoints.cpp): alta 0x533bbd, 0x533d5f y 0x533db8 y paso 0x53a87a..0x53b01f. Vagan
@@ -63,7 +63,7 @@ void StepDropJoint(JointState& joint);
 inline constexpr std::int32_t WanderSubtype = 7;
 inline constexpr std::int32_t ArrowWanderSubtype = 0xb;
 inline constexpr std::int32_t PinkWanderSubtype = 0x19;
-void CreateWanderingJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+void CreateWanderingJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepWanderingJoint(JointState& joint,
                                                                    const JointKernels::StepServices& services);
 
@@ -74,15 +74,15 @@ inline constexpr std::int32_t SecondHelixJoint = 0x62b;
 inline constexpr std::int32_t HelixSubtype = 4;
 inline constexpr std::int32_t WideHelixSubtype = 0xc;
 [[nodiscard]] bool IsHelix(std::int32_t type, std::int32_t subtype);
-[[nodiscard]] Core::Expected<void, std::string>
-CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Kernel::JointRequest& request,
+                                                                 Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepHelixJoint(JointState& joint);
 
 // El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec. La /4 (la skill 0x49,
 // 0x504b33) suelta en cada paso un 0x62b/6 y dos sprites; la /2, el efecto 0xf6/6 cada cinco vidas (0x53b760).
 inline constexpr std::int32_t InfernoJoint = 0x61c;
 [[nodiscard]] bool IsInferno(std::int32_t type, std::int32_t subtype);
-void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& request);
+void CreateInfernoJoint(JointState& joint, const Kernel::JointRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepInfernoJoint(JointState& joint,
                                                                  const JointKernels::StepServices& services);
 
@@ -90,15 +90,14 @@ void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& reque
 // meteoros 0xc2/6 y /8 de los magos (0x51b098 y 0x51b268), con el efecto (World::ModelEffect) de dueño, que sigue
 // mientras vive y es 0xc2.
 inline constexpr std::int32_t FireTrailJoint = 0x5f2;
-void CreateFireTrailJoint(JointState& joint, const World::FishEffectRequest& request);
+void CreateFireTrailJoint(JointState& joint, const Kernel::JointRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepFireTrailJoint(JointState& joint);
 
 // El 0x10f con un personaje (ActorState) de dueño (AuraJoints.cpp): alta 0x530edd..0x531214 y paso 0x535d4f..0x5366a7.
 // La /1 (el hada) y la /3 (Blood Castle) llevan un FaunaObject y siguen en FaunaJointCreation.cpp. Las /5..7 no hacen
 // el primer tramo (0x530a5c): FaunaJointCreation.cpp las llama antes.
 inline constexpr std::int32_t AuraJoint = 0x10f;
-[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(JointState& joint,
-                                                                const World::FishEffectRequest& request);
+[[nodiscard]] Core::Expected<void, std::string> CreateAuraJoint(JointState& joint, const Kernel::JointRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepAuraJoint(JointState& joint,
                                                               const JointKernels::StepServices& services);
 
@@ -106,8 +105,8 @@ inline constexpr std::int32_t AuraJoint = 0x10f;
 // (ActorState) en la /0, /1, /2, /3, /0xc, /0xd, /0x10 y /0x11, el FaunaObject en la /4 (0x447374) y el efecto con
 // modelo (JointOwnerKind::ModelEffect) en la /5 de las flechas y la /0xa y /0xb del 0x11b/1; la /6 y la /9 no lo leen.
 inline constexpr std::int32_t BeamJoint = 0x618;
-[[nodiscard]] Core::Expected<void, std::string>
-CreateBeamJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateBeamJoint(JointState& joint, const Kernel::JointRequest& request,
+                                                                Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepBeamJoint(JointState& joint,
                                                               const JointKernels::StepServices& services);
 
@@ -123,8 +122,8 @@ inline constexpr std::int32_t BlastSubtype = 4;
 inline constexpr std::int32_t FallingStarSubtype = 5;
 inline constexpr std::int32_t BoltSubtype = 6;
 inline constexpr std::int32_t StormSubtype = 7;
-[[nodiscard]] Core::Expected<void, std::string>
-CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateStormJoint(JointState& joint, const Kernel::JointRequest& request,
+                                                                 Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepStormJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 
@@ -134,14 +133,14 @@ CreateStormJoint(JointState& joint, const World::FishEffectRequest& request, Crt
 // creador, el efecto 0x62c/1 (0x51f32e), nace detrás del corte 0x50e0c0 (el efecto de +0x78 & 0x800).
 inline constexpr std::int32_t SpiralJoint = 0x62c;
 [[nodiscard]] Core::Expected<void, std::string>
-CreateSpiralJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+CreateSpiralJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSpiralJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
 // El 0x5ac (FlareJoints.cpp): alta 0x530c93..0x530dd8 y paso 0x5359d7..0x535b32, sin la cola ni el movimiento comunes.
 // Los sesenta /0 del 0x114/0 (0x51c1b8) y del combo de BlastModelEffects (0x51c004), sin dueño.
 inline constexpr std::int32_t FlareJoint = 0x5ac;
-void CreateFlareJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+void CreateFlareJoint(JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepFlareJoint(JointState& joint);
 
 // El 0x60f y el 0x62b /0x10, /0xe y /0xf (OrbitJoints.cpp): alta 0x5337fa y 0x534132 y paso 0x53a5c7 y 0x53b18a. La
@@ -151,8 +150,8 @@ inline constexpr std::int32_t ColumnSubtype = 0x10;
 inline constexpr std::int32_t WhirlSubtype = 0xe;
 inline constexpr std::int32_t MirroredWhirlSubtype = 0xf;
 [[nodiscard]] bool IsOrbit(std::int32_t type, std::int32_t subtype);
-[[nodiscard]] Core::Expected<void, std::string>
-CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateOrbitJoint(JointState& joint, const Kernel::JointRequest& request,
+                                                                 Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepOrbitJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 
@@ -160,14 +159,14 @@ CreateOrbitJoint(JointState& joint, const World::FishEffectRequest& request, Crt
 // del efecto 0x5be (0x52a72a), que crea la 0x37 (0x4f9fae); con dueño y vida de más de 18, corta en 0x53b548 (el
 // héroe).
 inline constexpr std::int32_t SweepSubtype = 0;
-void CreateSweepJoint(JointState& joint, const World::FishEffectRequest& request);
+void CreateSweepJoint(JointState& joint, const Kernel::JointRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepSweepJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 
 // El 0x14f (PlasmaJoints.cpp): alta 0x530ddd y paso 0x535b37, una vuelta por punto hacia su personaje dueño (0x4e9810).
 // Lo pide la 0x4c (0x5026a4..0x502841, AttackSkillCases.cpp), con el subtipo de 0x4f2230 (el +0x31b, pet.flags1b).
 inline constexpr std::int32_t PlasmaJoint = 0x14f;
-void CreatePlasmaJoint(JointState& joint, const World::FishEffectRequest& request);
+void CreatePlasmaJoint(JointState& joint, const Kernel::JointRequest& request);
 [[nodiscard]] Core::Expected<void, std::string> StepPlasmaJoint(JointState& joint,
                                                                 const JointKernels::StepServices& services);
 
@@ -179,8 +178,8 @@ inline constexpr std::int32_t HelperSparkSubtype = 5;
 inline constexpr std::int32_t FallingSparkleSubtype = 0x29;
 inline constexpr std::int32_t SpinningSparkleSubtype = 0x2a;
 [[nodiscard]] bool IsSpark(std::int32_t type, std::int32_t subtype);
-[[nodiscard]] Core::Expected<void, std::string>
-CreateSparkJoint(JointState& joint, const World::FishEffectRequest& request, Crt::CrtRandom& random);
+[[nodiscard]] Core::Expected<void, std::string> CreateSparkJoint(JointState& joint, const Kernel::JointRequest& request,
+                                                                 Crt::CrtRandom& random);
 [[nodiscard]] Core::Expected<void, std::string> StepSparkJoint(JointState& joint,
                                                                const JointKernels::StepServices& services);
 } // namespace Client::Scenes::JointFamilies

@@ -7,7 +7,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 
 #include <bit>
@@ -37,7 +37,7 @@ bool IsHelix(std::int32_t type, std::int32_t subtype)
     return (type == DropJoint || type == SecondHelixJoint) && (subtype == HelixSubtype || subtype == WideHelixSubtype);
 }
 
-Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const World::FishEffectRequest& request,
+Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
     // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa. 0x533faf: el ancho.
@@ -60,7 +60,7 @@ Core::Expected<void, std::string> CreateHelixJoint(JointState& joint, const Worl
     {
         // 0x53405c..0x53408d: vida 110, 200 puntos (el tope de 0x534cb6 los deja en 50) y la luz del dueño (+0xf4: el
         // efecto 0x812); sin dueño, el original desreferencia el puntero nulo (0x534070) y revienta.
-        if (joint.ownerKind != JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
+        if (joint.ownerKind != Kernel::JointOwnerKind::ModelEffect || joint.ownerContext == nullptr)
             return Core::Unexpected(std::format("0x534070: falta el efecto dueño del joint {:#x}/4", joint.type));
         joint.life = 0x6e;
         joint.maximumCount = 0xc8;

@@ -1,4 +1,5 @@
 #include "World/Fish.h"
+#include "Kernel/JointRequest.h"
 #include "World/IFishStepServices.h"
 #include "Core/Expected.h"
 #include "Math/OriginalRotation.h"
@@ -102,7 +103,7 @@ public:
             return Unexpected(r.Error());
         return gate;
     }
-    Expected<std::uint32_t, std::error_code> CreateEffect(const FishEffectRequest& q) override
+    Expected<std::uint32_t, std::error_code> CreateEffect(const Client::Kernel::JointRequest& q) override
     {
         effects.push_back({q.type, q.subtype, std::bit_cast<std::uint32_t>(q.scale), &q.firstPosition,
                            &q.secondPosition, &q.angles, q.ownerContext});

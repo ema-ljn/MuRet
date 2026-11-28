@@ -16,7 +16,7 @@
 #include "Models/ModelId.h"
 #include "Scenes/FaunaState.h"
 #include "World/IBirdStepServices.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 
@@ -271,7 +271,7 @@ TEST_F(FaunaStepTest, KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan)
     m_models.missingPrefix = true;
     auto context = Context();
     context.effects.effect =
-        [](const Client::World::FishEffectRequest&) -> Client::Core::Expected<std::uint32_t, std::error_code>
+        [](const Client::Kernel::JointRequest&) -> Client::Core::Expected<std::uint32_t, std::error_code>
     { return std::uint32_t{0}; };
     const auto missing = StepGameFish(context);
     EXPECT_FALSE(missing.HasValue());

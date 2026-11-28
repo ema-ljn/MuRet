@@ -1,4 +1,6 @@
 #include "Models/IModelLibrary.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaDrawing.h"
 
 #include "Crt/CrtRandom.h"
@@ -69,7 +71,7 @@ protected:
     Client::Terrain::TerrainPolygon m_polygon{.everything = true};
     Client::Models::ClothWorld m_cloth;
     Client::World::FrameSprites m_sprites;
-    Client::Scenes::FaunaDrawCarry m_carry;
+    Client::Kernel::PoseBuffer m_carry;
     Client::Render::ModelBatch m_batch;
     Client::Scenes::FaunaDrawContext Context()
     {
@@ -190,7 +192,7 @@ TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     {
         ++publications;
-        return PublishFaunaPose(m_carry, m_models, drawn, true);
+        return Client::Actors::Drawing::PublishPose(m_carry, m_models, drawn, true);
     };
     const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -211,7 +213,7 @@ TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAg
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
     {
         ++publications;
-        return PublishFaunaPose(m_carry, m_models, drawn, true);
+        return Client::Actors::Drawing::PublishPose(m_carry, m_models, drawn, true);
     };
     const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -307,7 +309,7 @@ TEST_F(FaunaDrawingTest, TransparentFloorItemsPublishBonesWithoutReplacingTheMes
     item.transform.scale = 3;
     m_carry.meshes.resize(1);
     m_carry.meshes[0].positions = {{7, 8, 9}};
-    ASSERT_TRUE(Client::Scenes::PublishFaunaFloorPose(m_carry, m_models, item).HasValue());
+    ASSERT_TRUE(Client::Actors::Drawing::PublishFloorPose(m_carry, m_models, item).HasValue());
     ASSERT_FALSE(m_carry.bones.empty());
     EXPECT_EQ(m_carry.meshes[0].positions.front(), glm::vec3(7, 8, 9));
     EXPECT_EQ(m_carry.models.at(0xad).position, item.transform.position);
@@ -340,7 +342,7 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
     pass.random = &m_cloth.random;
     pass.retainedPose = &m_carry;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
-    { return PublishFaunaPose(m_carry, m_models, object, true); };
+    { return Client::Actors::Drawing::PublishPose(m_carry, m_models, object, true); };
     ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
     ASSERT_FALSE(m_batch.Vertices().empty());
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(7, 8, 9));
@@ -349,25 +351,6 @@ TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposin
 
 namespace
 {
-// Q-C347: una malla con un vértice en un hueso que no existe (la 1 de Object36.bmd de Crywolf nombra el −8888) no
-// queda posada y se vacía su scratch; las demás se posan y la publicación sigue.
-TEST_F(FaunaDrawingTest, AMeshOnAMissingBoneIsLeftUnposedAndTheOthersPose)
-{
-    auto broken = Client::Tests::SampleMesh();
-    ASSERT_FALSE(broken.vertices.empty());
-    broken.vertices[0].bone = -8888;
-    m_models.model.meshes.push_back(broken);
-    m_carry.meshes.resize(2);
-    m_carry.meshes[1].positions = {glm::vec3(1.0f)};
-    m_carry.meshes[1].normals = {glm::vec3(0.0f, 0.0f, 1.0f)};
-    const std::vector<Client::Math::BoneTransform> bones(3, Client::Math::BoneTransform(1.0f));
-    const Client::Models::ObjectTransform transform{.position = {1000, 1000, 300}};
-    ASSERT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, 0x24, bones, transform, false).HasValue());
-    EXPECT_EQ(m_carry.meshes[0].positions.size(), m_models.model.meshes[0].vertices.size());
-    EXPECT_TRUE(m_carry.meshes[1].positions.empty());
-    EXPECT_TRUE(m_carry.meshes[1].normals.empty());
-}
-
 TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing)
 {
     m_carry.bones.resize(3, Client::Math::BoneTransform(0));
@@ -378,7 +361,10 @@ TEST_F(FaunaDrawingTest, CharacterBodiesInitializeDummyMatricesFromTheSharedScra
     character.poseBones = [&](std::uint16_t) { return std::span<const Client::Math::BoneTransform>(m_carry.bones); };
     character.onPose = [&](std::uint16_t model, std::span<const Client::Math::BoneTransform> bones,
                            const Client::Models::ObjectTransform& transform, bool translated)
-    { EXPECT_TRUE(PublishFaunaPoseRaw(m_carry, m_models, model, bones, transform, translated).HasValue()); };
+    {
+        EXPECT_TRUE(
+            Client::Actors::Drawing::PublishPoseRaw(m_carry, m_models, model, bones, transform, translated).HasValue());
+    };
     DrawCharacter(m_batch, m_models, character, {});
     ASSERT_FALSE(m_batch.Vertices().empty());
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(1007, 1008, 309));

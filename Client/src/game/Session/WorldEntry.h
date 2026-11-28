@@ -59,6 +59,7 @@ namespace Client::Actors
 {
 struct ActorsState;
 class ICharacterStepHooks;
+class IJointHooks;
 } // namespace Client::Actors
 
 namespace Client::Assets
@@ -140,6 +141,8 @@ struct WorldEntryResources
     const Actors::ICharacterStepHooks* characterStepHooks = nullptr;
     // Where a module writes on the screen (0x555190, App::GameClient's). nullptr: a message stops.
     Kernel::IOnScreenMessages* onScreenMessages = nullptr;
+    // Who creates the joints of the characters' flags (0x530860, App::GameClient's). nullptr: an aura stops.
+    const Actors::IJointHooks* jointHooks = nullptr;
 };
 
 // The current map's terrain (Terrain::TerrainState::current), which the load replaces. nullptr without `states`.

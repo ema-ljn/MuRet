@@ -10,7 +10,7 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
@@ -94,7 +94,7 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
 
 Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrary& models,
                                                       const Actors::Drawing::DrawnObject& drawn, std::size_t bone,
-                                                      const glm::vec3& offset, const FaunaDrawCarry* retainedPose)
+                                                      const glm::vec3& offset, const Kernel::PoseBuffer* retainedPose)
 {
     if (retainedPose != nullptr)
     {
@@ -153,7 +153,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
                                                           Crt::CrtRandom& random, const float& worldClock,
                                                           const Models::IModelLibrary& models,
                                                           const Actors::Drawing::DrawnObject& drawn,
-                                                          const FaunaDrawCarry* retainedPose)
+                                                          const Kernel::PoseBuffer* retainedPose)
 {
     const auto point = [&models, &drawn, retainedPose](std::size_t bone, const glm::vec3& offset)
     { return PosedDropPoint(models, drawn, bone, offset, retainedPose); };

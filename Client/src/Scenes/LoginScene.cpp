@@ -4,7 +4,8 @@
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
 #include "Models/Skinning.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
 
@@ -64,6 +65,7 @@
 #include "Scenes/HandShine.h"
 #include "Render/Frame/ITextDrawer.h"
 #include "Actors/Drawing/ItemDrawResources.h"
+#include "Session/ItemCreators.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/LoginActor.h"
 #include "Scenes/OptionsSettings.h"
@@ -115,6 +117,7 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -1033,7 +1036,7 @@ Core::Expected<void, std::string> LoginScene::StepTheModelEffects()
         .map = &world.Runtime().map,
         .cameraShake = &CameraInputState().shake,
         .sound = sound,
-        .joint = [&world, &cloth](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+        .joint = [&world, &cloth](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
             if (!created.HasValue())
@@ -1771,7 +1774,7 @@ Actors::Drawing::DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
 {
     const int nativeFrames = m_objectEffectFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    FaunaDrawCarry projection;
+    Kernel::PoseBuffer projection;
     if (nativeFrames == 0)
         projection = CharacterWorld().PoseCarry();
     auto& carry = nativeFrames > 0 ? CharacterWorld().PoseCarry() : projection;
@@ -1790,7 +1793,8 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
     {
         if (model == Tables::PlayerSkeletonModel)
             return;
-        if (auto result = PublishFaunaPoseRaw(carry, m_models, model, bones, transform, translated); !result.HasValue())
+        if (auto result = Actors::Drawing::PublishPoseRaw(carry, m_models, model, bones, transform, translated);
+            !result.HasValue())
             m_failure = result.Error();
     };
     if (actor.alive && actor.seen)
@@ -1837,7 +1841,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
 
     Actors::Drawing::DrawnObject horse = DrawnDarkHorse(m_horse, m_models.SkeletonOf(Models::ModelId{DarkHorseModel}),
                                                         character.object, DarkHorseLoginScale, alpha);
-    if (auto result = PublishFaunaPose(carry, m_models, horse, true); !result.HasValue())
+    if (auto result = Actors::Drawing::PublishPose(carry, m_models, horse, true); !result.HasValue())
         m_failure = result.Error();
     horse.retainedMeshes = carry.meshes;
     Actors::Drawing::DrawDarkHorse(canvas.models, m_models, horse, m_world ? m_world->map : EmberMap,
@@ -1866,7 +1870,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
                                         .onPose =
                                             [&](const Actors::Drawing::DrawnObject& object)
                                         {
-                                            auto result = PublishFaunaPose(carry, objects, object, true);
+                                            auto result = Actors::Drawing::PublishPose(carry, objects, object, true);
                                             if (!result.HasValue())
                                                 m_failure = result.Error();
                                             return result;
@@ -1900,9 +1904,9 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
             *terrain->heights,
             static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count())};
         resources.onPose = [&](const Actors::Drawing::DrawnObject& object)
-        { return PublishFaunaPose(carry, effectModels, object, true); };
+        { return Actors::Drawing::PublishPose(carry, effectModels, object, true); };
         resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
-        { return PublishFaunaPose(carry, effectModels, object, false); };
+        { return Actors::Drawing::PublishPose(carry, effectModels, object, false); };
         resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(carry.meshes); };
         resources.dynamicLighting = &DynamicLight().Lighting();
         resources.originalFrame = nativeFrames > 0;
@@ -1924,7 +1928,7 @@ void LoginScene::DrawTheModels(Render::Frame::SceneCanvas& canvas, float alpha)
 // cuerpo, o el rojo de los PK. Lo que sortea (el brillo del cetro de 0x509340) cambia sólo en un frame del original:
 // un dibujo intermedio repite sus sprites del último. El cuervo lo dibuja DrawTheRaven.
 void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorState& actor,
-                             const Actors::Drawing::DrawnCharacter& character, FaunaDrawCarry& carry,
+                             const Actors::Drawing::DrawnCharacter& character, Kernel::PoseBuffer& carry,
                              const Actors::FullSetScan& scan, int frames)
 {
     Kernel::WorldState& world = CharacterWorld();
@@ -1952,19 +1956,19 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
         m_tailSprites.Clear();
         Actors::Drawing::ItemSpecialDrawContext special;
         Actors::Drawing::ItemDrawContext itemContext;
-        Actors::Drawing::FillItemDrawContexts(
-            special, itemContext,
-            Actors::Drawing::ItemDrawResources{.frameClock = canvas.frameClock,
-                                               .random = itemRandom,
-                                               .itemRender = items,
-                                               .sprites = m_tailSprites,
-                                               .poseCarry = carry,
-                                               .modelState = modelState,
-                                               .joints = world.DrawTail().joints,
-                                               .effects = world.Map().effects,
-                                               .map = world.Runtime().map,
-                                               .originalFrame = originalFrame,
-                                               .glowDetail = world.Runtime().ui.glowDetail});
+        const Actors::Drawing::ItemDrawResources itemResources{.frameClock = canvas.frameClock,
+                                                               .random = itemRandom,
+                                                               .itemRender = items,
+                                                               .sprites = m_tailSprites,
+                                                               .poseCarry = carry,
+                                                               .modelState = modelState,
+                                                               .joints = world.DrawTail().joints,
+                                                               .effects = world.Map().effects,
+                                                               .map = world.Runtime().map,
+                                                               .originalFrame = originalFrame,
+                                                               .glowDetail = world.Runtime().ui.glowDetail};
+        Actors::Drawing::FillItemDrawContexts(special, itemContext, itemResources);
+        Session::FillItemCreators(itemContext, itemResources);
         const Actors::Drawing::GameCharacterPass pass{.dynamicLighting = &DynamicLight().Lighting(),
                                                       .clothWorld = &cloth,
                                                       .frameClock = canvas.frameClock,
@@ -1973,7 +1977,8 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
                                                       .joints = world.DrawTail().joints,
                                                       .particles = &world.Particles(),
                                                       .effects = &world.Map().effects,
-                                                      .itemContext = &itemContext};
+                                                      .itemContext = &itemContext,
+                                                      .hooks = &m_characterDrawHooks};
         if (auto drawn = Actors::Drawing::DrawCharacterTail(batch, m_models, world, actor, LoginActorSlot, character,
                                                             pass, scan, originalFrame);
             !drawn.HasValue())
@@ -1997,7 +2002,7 @@ void LoginScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kernel::ActorSt
     }
 }
 
-void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, FaunaDrawCarry* carry)
+void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, Kernel::PoseBuffer* carry)
 {
     DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
     if (!Actors::Drawing::DarkSpiritSeen(spirit, SharedTerrainPolygon()))
@@ -2011,7 +2016,7 @@ void LoginScene::DrawTheRaven(Render::Frame::SceneCanvas& canvas, float alpha, F
     Actors::Drawing::DrawnObject drawn = Actors::Drawing::DrawnDarkSpirit(spirit, skeleton, light, alpha);
     if (carry != nullptr)
     {
-        if (auto result = PublishFaunaPose(*carry, m_models, drawn, true); !result.HasValue())
+        if (auto result = Actors::Drawing::PublishPose(*carry, m_models, drawn, true); !result.HasValue())
         {
             m_failure = result.Error();
             return;

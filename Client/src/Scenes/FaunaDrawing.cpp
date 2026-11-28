@@ -8,16 +8,16 @@
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Models/Cloth.h"
-#include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Pose.h"
-#include "Models/Skeleton.h"
 #include "Models/Shine.h"
 #include "Models/Skinning.h"
 #include "Render/SpriteVertex.h"
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/FaunaObject.h"
 #include "Scenes/FaunaState.h"
 #include "World/Birds.h"
@@ -29,10 +29,8 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 
-#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <chrono>
@@ -209,7 +207,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, FaunaObject
     }
     if (object.alpha >= VisibleAlpha)
     {
-        auto pose = PublishFaunaPose(context.carry, context.models, drawn, !bird);
+        auto pose = Actors::Drawing::PublishPose(context.carry, context.models, drawn, !bird);
         if (!pose.HasValue())
             return pose;
     }
@@ -249,7 +247,7 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
             }
             return {};
         }
-        FaunaDrawCarry carry = context.carry;
+        Kernel::PoseBuffer carry = context.carry;
         FaunaDrawContext projected{context.fauna,   context.models,     context.terrain,    context.lighting,
                                    context.polygon, context.cloth,      context.sprites,    carry,
                                    context.map,     context.storm,      context.frameClock, context.particles,
@@ -278,107 +276,7 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
     }
     return {};
 }
-// 0x4ebc80 sobre el scratch (0x5786f9c y 0x68c53bc): sin `world`, por la escala y más el origen del objeto (Translate
-// en 1), las normales sin la escala; con él, `bones` ya en el mundo (Translate en 0), las normales con la escala que
-// traen los huesos.
-void SkinTheScratch(FaunaDrawCarry& carry, const Data::Models::Model& model, std::span<const Math::BoneTransform> bones,
-                    const Models::ObjectTransform& transform, bool world)
-{
-    if (carry.meshes.size() < model.meshes.size())
-        carry.meshes.resize(model.meshes.size());
-    for (std::size_t i = 0; i < model.meshes.size(); ++i)
-    {
-        Models::SkinnedMesh& mesh = carry.skinned;
-        auto& output = carry.meshes[i];
-        const bool skinned = world ? Models::SkinMeshInWorld(model.meshes[i], bones, mesh)
-                                   : Models::SkinMesh(model.meshes[i], bones, transform, mesh);
-        if (!skinned)
-        {
-            // Q-C347: un vértice o una normal en un hueso que la malla no tiene (la 1 de Object36.bmd de
-            // Crywolf nombra el −8888) hace leer a 0x4ebc80 fuera de las matrices. Como MeshDrawsOf con las
-            // mallas rotas, esa no queda posada y no se dibuja.
-            output.positions.clear();
-            output.normals.clear();
-            continue;
-        }
-        if (output.positions.size() < mesh.positions.size())
-            output.positions.resize(mesh.positions.size());
-        std::copy(mesh.positions.begin(), mesh.positions.end(), output.positions.begin());
-        if (output.normals.size() < mesh.normals.size())
-            output.normals.resize(mesh.normals.size());
-        std::copy(mesh.normals.begin(), mesh.normals.end(), output.normals.begin());
-    }
-}
 } // namespace
-Core::Expected<void, std::string> PublishFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                   const Actors::Drawing::DrawnObject& object, bool translated)
-{
-    if (object.alpha < VisibleAlpha)
-        return {};
-    const auto* model = models.Find(Models::ModelId{object.model});
-    const auto* skeleton = models.SkeletonOf(Models::ModelId{object.model});
-    if (model == nullptr || skeleton == nullptr)
-        return {};
-    carry.models[object.model] = object.transform;
-    const auto count = skeleton->bones.size();
-    if (carry.bones.size() < count)
-        carry.bones.resize(count, Math::BoneTransform(0));
-    auto bones = std::span(carry.bones).first(count);
-    // 0x5ffdf0 con el segundo argumento en 1 (sin `translated`): 0x4eb860 con la bandera en 0 (el sete de 0x5fff22 o
-    // 0x5fff50) deja los huesos en el modelo y 0x4ebc80 corre con Translate en 1. Con el segundo argumento en 0:
-    // 0x4eb860 con la bandera en 1 (0x4ebbda..0x4ebc14) mete la escala (R · s, en float) y el origen en la raíz y arma
-    // los huesos en el mundo, y 0x4ebc80 corre con Translate en 0: hueso · v y hueso · n. El Translate de las dos
-    // llamadas a 0x4ebc80 es el mismo `ebx` (el segundo argumento, 0x5fff19) que empuja 0x600154: 0x600177 con +0x11c
-    // en 1 posa en el buffer propio ([esi+0x120]) y 0x6001a1 con +0x11c en 0, en el global 0x68b181c. Las dos poses
-    // saltean los dummy (0x4eb973), que quedan con lo que tenía el buffer.
-    const bool posed =
-        translated ? Models::PoseWorldSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones)
-                   : Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones);
-    if (!posed)
-        return Core::Unexpected(std::string("5ffdf0: pose de fauna inválida"));
-    return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, translated);
-}
-Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                        const Actors::Drawing::DrawnObject& object)
-{
-    const auto* skeleton = models.SkeletonOf(Models::ModelId{object.model});
-    if (skeleton == nullptr)
-        return {};
-    const auto count = skeleton->bones.size();
-    if (carry.bones.size() < count)
-        carry.bones.resize(count, Math::BoneTransform(0));
-    auto bones = std::span(carry.bones).first(count);
-    if (!Models::PoseSkeleton(*skeleton, object.animation, object.transform, {}, bones))
-        return Core::Unexpected(std::string("608b0a: pose de ítem del piso inválida"));
-    return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, false,
-                               object.alpha > VisibleAlpha);
-}
-Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                     const Actors::Drawing::DrawnObject& object)
-{
-    return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
-}
-Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, const Models::IModelLibrary& models,
-                                                      std::uint16_t modelId, std::span<const Math::BoneTransform> bones,
-                                                      const Models::ObjectTransform& transform, bool translated,
-                                                      bool skin)
-{
-    const auto* model = models.Find(Models::ModelId{modelId});
-    const auto* skeleton = models.SkeletonOf(Models::ModelId{modelId});
-    const auto count = bones.size();
-    carry.models[modelId] = transform;
-    if (carry.bones.size() < count)
-        carry.bones.resize(count, Math::BoneTransform(0));
-    for (std::size_t i = 0; i < count; ++i)
-        if (skeleton == nullptr || i >= skeleton->bones.size() || !skeleton->bones[i].dummy)
-            carry.bones[i] = bones[i];
-    if (model == nullptr)
-        return {};
-    bones = std::span(carry.bones).first(count);
-    if (skin)
-        SkinTheScratch(carry, *model, bones, transform, translated);
-    return {};
-}
 Core::Expected<void, std::string> DrawGameBirds(Render::ModelBatch& batch, FaunaDrawContext& context)
 {
     return DrawPool(batch, context.fauna.Birds(), context, true);

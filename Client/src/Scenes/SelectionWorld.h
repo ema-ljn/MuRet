@@ -60,12 +60,12 @@ struct GameItemRenderState;
 
 namespace Client::Kernel
 {
+struct PoseBuffer;
 class WorldState;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
 {
-struct FaunaDrawCarry;
 
 // Las texturas que la selección le presta a los sprites y a las partículas: las de su juego (0x61ca30:
 // Impack03 en 0x719 y chasellight en 0x729) y, detrás, las del mundo con las globales de la carga.
@@ -160,11 +160,13 @@ public:
                                                                 const SelectionWorldFrame& frame);
     // 0x6046a0 con los casos de 0x602ed0 → 0x425260. `poseCarry` es el buffer global de la pose del frame.
     [[nodiscard]] Core::Expected<void, std::string>
-    DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, FaunaDrawCarry& poseCarry);
+    DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, Kernel::PoseBuffer& poseCarry);
     // 0x52e590, 0x53c6a0(0), 0x52d620(0) y 0x549510, después de los personajes.
-    [[nodiscard]] Core::Expected<void, std::string>
-    DrawAfterCharacters(Kernel::WorldState& world, const Terrain::WorldTerrain& terrain,
-                        const SelectionWorldFrame& frame, const Render::Camera3D& camera, FaunaDrawCarry& poseCarry);
+    [[nodiscard]] Core::Expected<void, std::string> DrawAfterCharacters(Kernel::WorldState& world,
+                                                                        const Terrain::WorldTerrain& terrain,
+                                                                        const SelectionWorldFrame& frame,
+                                                                        const Render::Camera3D& camera,
+                                                                        Kernel::PoseBuffer& poseCarry);
     // 0x6213e0..0x6213f0: 0x549440(0), 0x548550(0) y 0x548eb0(0) con la modelview en la identidad.
     [[nodiscard]] Core::Expected<void, std::string> DrawEye(const Render::Pass3D& pass,
                                                             const SelectionWorldFrame& frame,

@@ -16,7 +16,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "World/BlastModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainHeight.h"
 #include "World/WizardModelEffects.h"
@@ -57,7 +57,7 @@ World::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Cr
         .siegeActive = runtime.castleSiege.siegeActive,
         .sound = parts.sound,
         .joint = [&world, &random,
-                  joints = parts.joints](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+                  joints = parts.joints](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
         {
             const auto created = CreateFaunaJoint(
                 joints.empty() ? std::span<JointState>(world.DrawTail().joints) : joints, request, random);

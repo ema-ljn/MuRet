@@ -15,7 +15,7 @@
 #include "Scenes/ArrowEffects.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "Scenes/EventGlobals.h"
@@ -745,7 +745,7 @@ Core::Expected<void, std::string> CreateArrivalSparks(Kernel::ActorState& actor,
     {
         return CreateFaunaJoint(
             world.DrawTail().joints,
-            World::FishEffectRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1}, random);
+            Kernel::JointRequest{type, from, to, actor.angles, subtype, nullptr, width, -1, 0, 0, -1}, random);
     };
     glm::vec3 corner = actor.position;
     corner.x = F32(static_cast<double>(corner.x) + 20.0);

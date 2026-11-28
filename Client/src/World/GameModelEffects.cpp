@@ -13,7 +13,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Math/Ftol.h"
 #include "World/ModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "World/ParticleBurst.h"
 #include "World/ParticleOwner.h"
@@ -106,8 +106,8 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
                                                     effect.subtype));
             glm::vec3 first = point;
             glm::vec3 second = effect.transform.position;
-            const FishEffectRequest request{SparkJoint,     first,    second,   angles, SparkJointSubtype, nullptr,
-                                            SparkJointSize, JointKey, JointKey, 0,      NoJointTarget};
+            const Kernel::JointRequest request{SparkJoint,     first,    second,   angles, SparkJointSubtype, nullptr,
+                                               SparkJointSize, JointKey, JointKey, 0,      NoJointTarget};
             if (auto created = services.joint(request); !created.HasValue())
                 return Core::Unexpected(
                     std::format("{}: {}", effect.subtype == HeldSubtype ? "0x52bcc4" : "0x52bd80", created.Error()));
@@ -1228,7 +1228,7 @@ Core::Expected<void, std::string> EmitEarthquakeBurst(ModelEffect& effect, Parti
         point.y = F32(static_cast<double>(random.Next() % PointSpan - PointCentre) + point.y);
         if (!services.joint)
             return Core::Unexpected(std::string("0x521ef5: el terremoto pide el servicio de joints 0x617/0"));
-        const FishEffectRequest request{BurstJoint, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
+        const Kernel::JointRequest request{BurstJoint, point, point, angles, 0, nullptr, 10.0f, -1, 0, 0, -1};
         if (auto created = services.joint(request); !created.HasValue())
             return created;
         if (index == 0)
@@ -1736,17 +1736,17 @@ Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Crt::Cr
     constexpr float SparkJointScale = 20.0f; // 0x41a00000
     if (!services.joint)
         return Core::Unexpected(std::string("0x523c78: la estela 0x105/1 pide el servicio de joints 0x614/3"));
-    const FishEffectRequest request{SparkJoint,
-                                    effect.transform.position,
-                                    effect.transform.position,
-                                    effect.transform.angles,
-                                    SparkJointSubtype,
-                                    nullptr,
-                                    SparkJointScale,
-                                    SparkJointKey,
-                                    0,
-                                    0,
-                                    NoTarget};
+    const Kernel::JointRequest request{SparkJoint,
+                                       effect.transform.position,
+                                       effect.transform.position,
+                                       effect.transform.angles,
+                                       SparkJointSubtype,
+                                       nullptr,
+                                       SparkJointScale,
+                                       SparkJointKey,
+                                       0,
+                                       0,
+                                       NoTarget};
     if (auto created = services.joint(request); !created.HasValue())
         return Core::Unexpected("0x523c78: " + created.Error());
     if (services.sprites == nullptr)

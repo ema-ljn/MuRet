@@ -5,7 +5,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Math/RoundedMath.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -46,7 +46,7 @@ struct Fixture
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
     std::unique_ptr<Client::World::ModelEffects> effects = std::make_unique<Client::World::ModelEffects>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
     float clock = 12345.0f;
 

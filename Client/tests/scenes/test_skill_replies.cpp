@@ -24,6 +24,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SelectionState.h"
+#include "Session/CharacterDrawHooks.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
@@ -153,6 +154,7 @@ struct Replies
                                                       .log = log};
         resources.skills = skills;
         resources.states = &states;
+        resources.jointHooks = &jointHooks;
         return resources;
     }
     Client::Core::Expected<void, std::string> Attack(std::uint8_t skill, std::uint16_t source = CasterKey,
@@ -178,6 +180,7 @@ struct Replies
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
     const Client::Tables::SkillTable* skills = nullptr;
     Client::Session::ModuleStates states;
+    Client::Session::CharacterDrawHooks jointHooks;
 };
 
 // ---------------------------------------------------------------------------------------------------------------

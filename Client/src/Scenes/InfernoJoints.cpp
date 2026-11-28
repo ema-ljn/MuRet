@@ -6,7 +6,7 @@
 #include "Scenes/JointFamilies.h"
 #include "Scenes/JointKernels.h"
 #include "World/BlastModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/Sprites.h"
 
@@ -33,7 +33,7 @@ bool IsInferno(std::int32_t type, std::int32_t subtype)
     return type == InfernoJoint && subtype >= 2 && subtype <= 6; // 0x534432..0x53443e y 0x53b6a0..0x53b6ac
 }
 
-void CreateInfernoJoint(JointState& joint, const World::FishEffectRequest& request)
+void CreateInfernoJoint(JointState& joint, const Kernel::JointRequest& request)
 {
     // 0x534444..0x53448c: lo común de la /2..6.
     constexpr float Speed = 8;                                  // 0x41000000
@@ -147,17 +147,17 @@ Core::Expected<void, std::string> StepInfernoJoint(JointState& joint, const Join
         return Core::Unexpected(std::string("0x53b7a7: faltan el RNG o los sprites del joint 0x61c/4"));
     constexpr std::int32_t ImpactJoint = 0x62b, ImpactSubtype = 6;
     constexpr float ImpactWidth = 30; // 0x41f00000
-    const World::FishEffectRequest impact{.type = ImpactJoint,
-                                          .firstPosition = joint.position,
-                                          .secondPosition = joint.position,
-                                          .angles = joint.angles,
-                                          .subtype = ImpactSubtype,
-                                          .ownerContext = nullptr,
-                                          .scale = ImpactWidth,
-                                          .key = -1,
-                                          .skill = 0,
-                                          .skillSerial = 0,
-                                          .target = -1};
+    const Kernel::JointRequest impact{.type = ImpactJoint,
+                                      .firstPosition = joint.position,
+                                      .secondPosition = joint.position,
+                                      .angles = joint.angles,
+                                      .subtype = ImpactSubtype,
+                                      .ownerContext = nullptr,
+                                      .scale = ImpactWidth,
+                                      .key = -1,
+                                      .skill = 0,
+                                      .skillSerial = 0,
+                                      .target = -1};
     if (auto created = CreateFaunaJoint(services.joints, impact, *services.random); !created.HasValue())
         return Core::Unexpected(std::format("0x53b7a7: {}", created.Error()));
     const glm::vec3 glow{std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3f19999au), 1};

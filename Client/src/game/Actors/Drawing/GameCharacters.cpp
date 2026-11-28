@@ -533,6 +533,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                       .carry = pass.poseCarry,
                                       .sprites = pass.sprites,
                                       .joints = pass.joints,
+                                      .jointHooks = pass.hooks,
                                       .particles = pass.particles,
                                       .itemContext = pass.itemContext,
                                       .frameClock = pass.frameClock,
@@ -551,6 +552,7 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                                .sprites = pass.sprites,
                                                .particles = pass.particles,
                                                .joints = pass.joints,
+                                               .jointHooks = pass.hooks,
                                                .effects = pass.effects,
                                                .world = &world,
                                                .slot = slot,
@@ -585,7 +587,8 @@ Core::Expected<void, std::string> DrawTheTail(Render::ModelBatch& batch, const M
                                               .random = &random,
                                               .particles = pass.particles,
                                               .worldClock = worldClock,
-                                              .world = &world});
+                                              .world = &world,
+                                              .jointHooks = pass.hooks});
 }
 
 // Between original frames, the z of the shadow's floor (0x50bc77..0x50bcbd) is the draw's, but it does not stay on the

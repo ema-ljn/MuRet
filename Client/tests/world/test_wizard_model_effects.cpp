@@ -6,7 +6,7 @@
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
 #include "World/GameModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/ModelEffects.h"
 #include "World/ParticleOwner.h"
 #include "World/Particles.h"
@@ -100,8 +100,7 @@ struct Harness
             .cameraShake = &shake,
             .siegeActive = false,
             .sound = [this](Client::Audio::SoundId id) { sounds.push_back(id.Value()); },
-            .joint =
-                [this](const Client::World::FishEffectRequest& request) -> Client::Core::Expected<void, std::string>
+            .joint = [this](const Client::Kernel::JointRequest& request) -> Client::Core::Expected<void, std::string>
             {
                 joints.push_back({request.type, request.firstPosition, request.secondPosition, request.angles,
                                   request.subtype, request.ownerContext, request.scale, request.key, request.target});

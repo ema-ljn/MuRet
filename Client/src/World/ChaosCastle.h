@@ -17,10 +17,14 @@ class CrtRandom;
 // Lo de los mapas de Chaos Castle (18 a 23) que no depende de sus paquetes: lo que cada celda dibujada saca
 // (0x405e00) y el alpha de 0x5ffdf0. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "Los objetos de Chaos Castle".
+namespace Client::Kernel
+{
+struct JointRequest;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
 class Particles;
-struct FishEffectRequest;
 struct WorldObject;
 
 // Un rectángulo de celdas de 0x405e00, con los bordes incluidos: x0, y0, x1, y1.
@@ -73,7 +77,7 @@ struct ChaosCastlePreludeContext
     glm::vec3 heroAngles{};
     // +0x3e2 del héroe: la zona segura.
     bool heroInSafeZone = false;
-    std::function<Core::Expected<void, std::string>(const FishEffectRequest&)> createJoint{};
+    std::function<Core::Expected<void, std::string>(const Kernel::JointRequest&)> createJoint{};
 };
 
 // 0x405490 en los mapas 18 a 23, primero en 0x6061c0, con la cuenta de los 3 vistos del pase anterior

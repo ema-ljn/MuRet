@@ -13,7 +13,6 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
@@ -28,7 +27,7 @@
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"
 #include "World/EffectParticleKernels.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -396,17 +395,17 @@ Result StrikeAt(MonsterHelperPass& pass, glm::vec3 point, glm::vec3 angles, cons
         return {};
     static_cast<void>(pass.world.Map().effects.CreateCraterEffect(
         {.type = 0x636, .position = point, .angles = angles, .light = white, .subtype = CraterSubtype}));
-    const World::FishEffectRequest request{.type = LaserJoint,
-                                           .firstPosition = point,
-                                           .secondPosition = point,
-                                           .angles = angles,
-                                           .subtype = LaserSubtype,
-                                           .ownerContext = nullptr,
-                                           .scale = LaserWidth,
-                                           .key = -1,
-                                           .skill = 0,
-                                           .skillSerial = 0,
-                                           .target = -1};
+    const Kernel::JointRequest request{.type = LaserJoint,
+                                       .firstPosition = point,
+                                       .secondPosition = point,
+                                       .angles = angles,
+                                       .subtype = LaserSubtype,
+                                       .ownerContext = nullptr,
+                                       .scale = LaserWidth,
+                                       .key = -1,
+                                       .skill = 0,
+                                       .skillSerial = 0,
+                                       .target = -1};
     if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", joint, made.Error()));
     static_cast<void>(pass.world.Map().effects.CreateFlameColumn({.type = World::FlameJetEffect,
@@ -1142,17 +1141,17 @@ Result DrawThe1b6(MonsterHelperPass& pass)
         glm::vec3 to{target.position.x, target.position.y, F32(D(target.position.z) + 100.0)};
         glm::vec3 angles = actor.angles;
         constexpr float Width = 10.0f; // 0x41200000
-        const World::FishEffectRequest request{.type = 0x614,
-                                               .firstPosition = from,
-                                               .secondPosition = to,
-                                               .angles = angles,
-                                               .subtype = 0x10,
-                                               .ownerContext = nullptr,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = 0x614,
+                                           .firstPosition = from,
+                                           .secondPosition = to,
+                                           .angles = angles,
+                                           .subtype = 0x10,
+                                           .ownerContext = nullptr,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
             return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
     }
@@ -1222,17 +1221,17 @@ Result DrawThe1b7(MonsterHelperPass& pass)
         glm::vec3 to = pass.actor.position;
         constexpr std::int32_t BeamSubtype = 0x10;
         constexpr float Width = 20.0f; // 0x41a00000
-        const World::FishEffectRequest request{.type = JointFamilies::BeamJoint,
-                                               .firstPosition = from,
-                                               .secondPosition = to,
-                                               .angles = target.angles,
-                                               .subtype = BeamSubtype,
-                                               .ownerContext = &pass.actor,
-                                               .scale = Width,
-                                               .key = -1,
-                                               .skill = 0,
-                                               .skillSerial = 0,
-                                               .target = -1};
+        const Kernel::JointRequest request{.type = JointFamilies::BeamJoint,
+                                           .firstPosition = from,
+                                           .secondPosition = to,
+                                           .angles = target.angles,
+                                           .subtype = BeamSubtype,
+                                           .ownerContext = &pass.actor,
+                                           .scale = Width,
+                                           .key = -1,
+                                           .skill = 0,
+                                           .skillSerial = 0,
+                                           .target = -1};
         if (auto made = CreateFaunaJoint(pass.world.DrawTail().joints, request, pass.random); !made.HasValue())
             return Core::Unexpected(std::format("0x427a8d: {}", made.Error()));
     }

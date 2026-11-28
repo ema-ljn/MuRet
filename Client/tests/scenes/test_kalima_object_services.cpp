@@ -11,7 +11,7 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Sprites.h"
 #include "World/KalimaWorld.h"
@@ -190,7 +190,7 @@ TEST(KalimaObjectServicesTest, TheStepHidesExactlyThirtySevenThroughFortyAfterTh
 TEST(KalimaObjectServicesTest, TheFlareUsesBoneTwentyAndDoesNotInventAnObjectOrigin)
 {
     auto object = Object(12);
-    Client::Scenes::FaunaDrawCarry carry;
+    Client::Kernel::PoseBuffer carry;
     Client::World::FrameSprites sprites;
     Client::Crt::CrtRandom random(7);
     const auto result = Client::Scenes::StepKalimaObjectFrame(

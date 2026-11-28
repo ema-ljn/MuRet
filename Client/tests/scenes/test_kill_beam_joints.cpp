@@ -5,7 +5,7 @@
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "World/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
@@ -42,17 +42,17 @@ struct BeamWorld
         glm::vec3 angles{0.0f, 0.0f, 0.0f};
         for (const std::int32_t subtype : {0, 1})
         {
-            const Client::World::FishEffectRequest request{.type = Client::Scenes::KillBeamJoint,
-                                                           .firstPosition = from,
-                                                           .secondPosition = to,
-                                                           .angles = angles,
-                                                           .subtype = subtype,
-                                                           .ownerContext = &killer,
-                                                           .scale = 20.0f,
-                                                           .key = -1,
-                                                           .skill = 0,
-                                                           .skillSerial = 0,
-                                                           .target = -1};
+            const Client::Kernel::JointRequest request{.type = Client::Scenes::KillBeamJoint,
+                                                       .firstPosition = from,
+                                                       .secondPosition = to,
+                                                       .angles = angles,
+                                                       .subtype = subtype,
+                                                       .ownerContext = &killer,
+                                                       .scale = 20.0f,
+                                                       .key = -1,
+                                                       .skill = 0,
+                                                       .skillSerial = 0,
+                                                       .target = -1};
             created = created && Client::Scenes::CreateFaunaJoint(joints, request, random).HasValue();
         }
     }

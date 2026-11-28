@@ -19,7 +19,6 @@
 #include "Render/TextureSlot.h"
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Assets/FaunaModels.h"
 #include "Kernel/WorldRuntime.h"

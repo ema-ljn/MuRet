@@ -9,7 +9,6 @@
 #include "Tables/SkillTable.h"
 #include "Tables/TextTable.h"
 #include "Pathfinding/PathCell.h"
-#include "Scenes/FaunaDrawing.h"
 #include "Terrain/SphereFrustum.h"
 #include "Terrain/TerrainPickingState.h"
 #include "Core/Expected.h"
@@ -23,6 +22,7 @@
 #include "Scenes/OriginalFramesOfTheSteps.h"
 #include "Scenes/GroundEffectFrame.h"
 #include "Scenes/GuildMarks.h"
+#include "Kernel/PoseBuffer.h"
 #include "World/Sprites.h"
 #include "World/ModelEffects.h"
 #include "Render/Frame/SceneCanvas.h"
@@ -54,6 +54,7 @@ namespace Client::Terrain
 {
 class DynamicWorldLight;
 struct TerrainLighting;
+struct WorldTerrain;
 } // namespace Client::Terrain
 
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
@@ -71,8 +72,9 @@ struct WorldObject;
 
 namespace Client::Models
 {
+struct ClothWorld;
 class IModelLibrary;
-}
+} // namespace Client::Models
 
 namespace Client::Actors::Drawing
 {
@@ -229,7 +231,7 @@ private:
     // ítems del piso (0x608a00): `item` apunta a `special`.
     void FillTheItemContexts(Actors::Drawing::ItemSpecialDrawContext& special, Actors::Drawing::ItemDrawContext& item,
                              Core::Duration frameClock, int frames);
-    [[nodiscard]] FaunaDrawCarry& FramePoseCarry();
+    [[nodiscard]] Kernel::PoseBuffer& FramePoseCarry();
     [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
     void PrepareDrawProjection(int frames);
     void ObserveMapLoad();
@@ -282,8 +284,8 @@ private:
     World::FrameSprites* m_frameSprites = nullptr;
     std::unique_ptr<GameSceneFrameProjection> m_projection;
     bool m_projectingFrame = false;
-    FaunaDrawCarry m_projectedPoseCarry;
-    FaunaDrawCarry* m_framePoseCarry = nullptr;
+    Kernel::PoseBuffer m_projectedPoseCarry;
+    Kernel::PoseBuffer* m_framePoseCarry = nullptr;
     Models::SkinningBuffers m_characterBuffers;
     Session::CharacterDrawHooks m_characterDrawHooks;
     Terrain::SphereFrustum m_frustum;

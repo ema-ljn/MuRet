@@ -7,6 +7,11 @@
 #include <cstdint>
 #include <span>
 
+namespace Client::Kernel
+{
+struct PoseBuffer;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -18,11 +23,6 @@ class FrameSprites;
 class ModelEffects;
 struct ObjectModelStepState;
 } // namespace Client::World
-
-namespace Client::Scenes
-{
-struct FaunaDrawCarry;
-} // namespace Client::Scenes
 
 // What 0x60b3d0 and 0x609640 read from the globals to draw an item, in any scene that draws a player with 0x50ba30: the
 // clock, the glow's pulse (0x7d36ba8, which 0x639482 writes before each frame), that of 0x6c9de4/0x6c9de8, each BMD's
@@ -42,7 +42,7 @@ struct ItemDrawResources
     Crt::CrtRandom& random;
     GameItemRenderState& itemRender;
     World::FrameSprites& sprites;
-    Scenes::FaunaDrawCarry& poseCarry;
+    Kernel::PoseBuffer& poseCarry;
     World::ObjectModelStepState& modelState;
     std::span<Scenes::JointState> joints;
     World::ModelEffects& effects;
@@ -51,8 +51,7 @@ struct ItemDrawResources
     std::uint8_t glowDetail = Models::DefaultGlowDetail;
 };
 
-// Sets up `special` and `item` on `resources`: of the items' joints, only Helper07's 0x613/4 and 0x614/14 with their
-// opaque owner, and of the model effects, only the lightning 0xc2/3 and the dragon, the arrival and the teleport with
-// subtype 0. The rest stops with 0x530860 or 0x518cf0. `item.special` points to `special`.
+// Sets up `special` and `item` on `resources`, except what the items create in other modules (Session/ItemCreators.h).
+// `item.special` points to `special`.
 void FillItemDrawContexts(ItemSpecialDrawContext& special, ItemDrawContext& item, const ItemDrawResources& resources);
 } // namespace Client::Actors::Drawing

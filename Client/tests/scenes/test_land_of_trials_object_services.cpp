@@ -4,7 +4,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Math/OriginalRotation.h"
-#include "Scenes/FaunaDrawing.h"
+#include "Kernel/PoseBuffer.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -36,7 +36,7 @@ struct Fixture
 {
     std::unique_ptr<Client::World::Particles> particles = std::make_unique<Client::World::Particles>();
     std::unique_ptr<Client::World::FrameSprites> sprites = std::make_unique<Client::World::FrameSprites>();
-    Client::Scenes::FaunaDrawCarry pose;
+    Client::Kernel::PoseBuffer pose;
     CrtRandom random{7};
 
     Fixture()

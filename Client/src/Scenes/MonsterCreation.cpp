@@ -12,7 +12,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/HighModelEffects.h"
-#include "World/IFishStepServices.h"
+#include "Kernel/JointRequest.h"
 #include "Scenes/MonsterKinds.h"
 #include "Scenes/NpcNames.h"
 #include "Session/WorldEntry.h"
@@ -387,10 +387,10 @@ private:
                 Kernel::ActorState& actor = m_resources.world.Actors()[*m_index];
                 auto created =
                     CreateFaunaJoint(m_resources.world.DrawTail().joints,
-                                     World::FishEffectRequest{static_cast<std::int32_t>(step.value), actor.position,
-                                                              actor.position, actor.angles, step.offset, &actor,
-                                                              std::bit_cast<float>(step.extra), -1, 0, 0, -1},
-                                     m_resources.cloth.random, JointOwnerKind::Actor);
+                                     Kernel::JointRequest{static_cast<std::int32_t>(step.value), actor.position,
+                                                          actor.position, actor.angles, step.offset, &actor,
+                                                          std::bit_cast<float>(step.extra), -1, 0, 0, -1},
+                                     m_resources.cloth.random, Kernel::JointOwnerKind::Actor);
                 if (!created.HasValue())
                     return Core::Unexpected(std::move(created).Error());
                 return {};

@@ -16,8 +16,8 @@ game/Session/ConnectionKeyFiles.cpp	117	game/Session	game/Session	medium	the ses
 game/Session/ConnectionKeyFiles.h	29	game/Session	game/Session	medium	the session with the servers
 game/Session/Credentials.cpp	62	game/Session	game/Session	medium	the session with the servers
 game/Session/Credentials.h	49	game/Session	game/Session	medium	the session with the servers
-App/FaithfulPacer.cpp	83	App	app/App	high	engine or protocol layer, no game state
-App/FaithfulPacer.h	41	App	app/App	high	engine or protocol layer, no game state
+App/FaithfulPacer.cpp	83	App	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
+App/FaithfulPacer.h	41	App	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
 App/FixedStep.cpp	42	App	app/App	high	engine or protocol layer, no game state
 App/FixedStep.h	26	App	app/App	high	engine or protocol layer, no game state
 App/FontFiles.cpp	54	App	app/App	high	engine or protocol layer, no game state
@@ -29,21 +29,21 @@ App/GameClient.h	196	App	app/App	high	composition root: builds the game's pieces
 App/GameLoop.cpp	166	App	app/App	high	engine or protocol layer, no game state
 App/GameLoop.h	82	App	app/App	high	engine or protocol layer, no game state
 App/IChatRoomLinks.h	37	App	app/App	high	engine or protocol layer, no game state
-App/ILoopClient.h	40	App	app/App	high	engine or protocol layer, no game state
+App/ILoopClient.h	40	App	game/Scenes	high	what the app's loop calls; the scene manager implements it (AR4.5 Step 0)
 game/Session/ISessionEventSink.h	54	game/Session	game/Session	medium	the session with the servers
 App/LabXorRemapTables.h	46	App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
-App/LoopTiming.h	43	App	app/App	high	engine or protocol layer, no game state
+App/LoopTiming.h	43	App	game/Kernel	high	the original loop's step and limits (addr.), which the game's steps read too (AR4.5 Step 0)
 App/MakeObfuscation.h	12	App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
 App/MakeObfuscationNone.cpp	14	App	app/App	high	composition root: the factory of a build without the XOR and remap layer (AR1.1)
 App/MakeObfuscationXorRemap.cpp	15	App	app/App	high	composition root: the factory of a build with the XOR and remap layer (AR1.1)
-App/PacingMode.h	18	App	app/App	high	engine or protocol layer, no game state
+App/PacingMode.h	18	App	game/Kernel	high	the loop's pacing mode, read by the scenes' context, the loop and the config (AR4.5 Step 0)
 engine/Platform/Resolution.cpp	36	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 engine/Platform/Resolution.h	36	engine/Platform	engine/Platform	high	included by Render, UI and Platform
-App/ServerAddress.cpp	75	App	app/App	high	engine or protocol layer, no game state
-App/ServerAddress.h	38	App	app/App	high	engine or protocol layer, no game state
+App/ServerAddress.cpp	75	App	game/Session	high	the server address the session connects to and its checks; the app reads it from the config (AR4.5 Step 0)
+App/ServerAddress.h	38	App	game/Session	high	the server address the session connects to and its checks; the app reads it from the config (AR4.5 Step 0)
 game/Session/ServerSession.cpp	1530	game/Session	game/Session	medium	the session with the servers
 game/Session/ServerSession.h	603	game/Session	game/Session	medium	the session with the servers
-App/SessionState.h	49	App	app/App	high	engine or protocol layer, no game state
+App/SessionState.h	49	App	game/Session	high	the server session's states and failures; only the session and the scenes that show them read it (AR4.5 Step 0)
 engine/Platform/VSyncMode.h	19	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 engine/Platform/WindowState.cpp	39	engine/Platform	engine/Platform	high	included by Render, UI and Platform
 engine/Platform/WindowState.h	44	engine/Platform	engine/Platform	high	included by Render, UI and Platform
@@ -1398,18 +1398,18 @@ game/Terrain/ITerrainAttributeQuerySource.h	20	game/Terrain	game/Terrain	medium	
 World/IWorldObjectCreationServices.h	36	World	game/WorldObjects	medium	rule ^(Birds|Fish|IBird|IFish|Leaf|Leaves|ILe
 game/Kernel/ItemState.cpp	610	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
 game/Kernel/ItemState.h	87	game/Kernel	game/Kernel	high	shared core every module reads: actor, player, inventory, item (AR3.1)
-World/KalimaObjectMovement.cpp	47	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaObjectMovement.h	11	World	game/Events/Kalima	medium	rule ^(Kalima)
+World/KalimaObjectMovement.cpp	47	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaObjectMovement.h	11	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
 World/KalimaParticleKernels.cpp	586	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
 World/KalimaParticleKernels.h	70	World	game/Particles	medium	particles, a module of their own below Effects (2026-11-21 review)
-World/KalimaResources.cpp	22	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaResources.h	15	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaSurfaceDecal.cpp	167	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaSurfaceDecal.h	19	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaWaves.cpp	35	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaWaves.h	24	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaWorld.cpp	375	World	game/Events/Kalima	medium	rule ^(Kalima)
-World/KalimaWorld.h	62	World	game/Events/Kalima	medium	rule ^(Kalima)
+World/KalimaResources.cpp	22	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaResources.h	15	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaSurfaceDecal.cpp	167	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaSurfaceDecal.h	19	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaWaves.cpp	35	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaWaves.h	24	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaWorld.cpp	375	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
+World/KalimaWorld.h	62	World	game/MapScripts/Kalima	medium	a map without an event: what Kalima does with the map as its gate (AR4.3 Step 0)
 World/LeafWeather.cpp	78	World	game/Weather	medium	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
 World/LeafWeather.h	32	World	game/Weather	medium	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)
 World/Leaves.cpp	189	World	game/Weather	medium	leaves, rain and clouds, like Weather/ in TrinityCore and cMaNGOS (2026-11-21 review)

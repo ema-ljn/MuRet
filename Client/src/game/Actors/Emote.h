@@ -2,8 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Actors/ActionSend.h"
-#include "UI/Emotes.h"
 
+#include <cstdint>
 #include <string>
 
 namespace Client::Models
@@ -21,6 +21,15 @@ struct ActorState;
 namespace Client::Actors
 {
 
+// A case of 0x576eb0: the animation and action it passes to 0x576a60, and the action of its own C1 18.
+struct EmoteCase
+{
+    std::uint8_t animation = 0;
+    std::uint8_t action = 0;
+
+    friend bool operator==(const EmoteCase&, const EmoteCase&) = default;
+};
+
 struct EmoteContext
 {
     // [0x743a170], the hero: the direction of every C1 18 comes from its angle (+0x24), whatever the character.
@@ -36,11 +45,11 @@ struct EmoteContext
 // (with an elf, +0x1d4 & 7 == 2, the next one, except from 0xb7 to 0xc0) and sends the action's C1 18; otherwise,
 // nothing. Returns whether it acted. Its callers (0x576eb0 and the guild war: 0x4d8260 and 0x4d8870) pass the same
 // character twice, the class's and the action's; MuRet receives it once.
-[[nodiscard]] Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
+[[nodiscard]] Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, EmoteCase emote,
                                                              const EmoteContext& context);
 
 // A case of 0x576eb0 (0x57ca85 and the others): 0x576a60 with the hero and then, whether it acted or not, its own
 // C1 18 with the case's action. With the hero standing two equal C1 18 go out (Q-C776); walking, striking or in
 // another action, only the case's, and the hero is not animated.
-[[nodiscard]] Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context);
+[[nodiscard]] Core::Expected<void, std::string> DoTheEmote(EmoteCase emote, const EmoteContext& context);
 } // namespace Client::Actors

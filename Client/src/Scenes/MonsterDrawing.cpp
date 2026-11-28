@@ -80,7 +80,6 @@ using Result = Core::Expected<void, std::string>;
 constexpr std::uint8_t PlayerKind = 1;
 constexpr std::uint8_t NpcKind = 4;
 constexpr std::uint8_t UnwalledKind = 8;
-constexpr std::uint8_t RedPk = 6;
 using Maps::IsBloodCastle;
 using Maps::IsChaosCastle;
 constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
@@ -219,15 +218,6 @@ std::array<Actors::Drawing::ObjectOutlinePass, 2> OutlinePassesOf(const Kernel::
              {inner, Render::Color{std::bit_cast<float>(0x3f333333u), std::bit_cast<float>(0x3d8f5c29u), 0.0f, 1.0f}}}};
 }
 
-// La altura del terreno (0x5f93c0) del terreno del pase o, sin él, de uno vacío.
-std::optional<double> GroundHeight(const Actors::Drawing::GameCharacterPass& pass, float x, float y)
-{
-    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
-    if (!terrain.heights || !terrain.attributes)
-        return std::nullopt;
-    return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
-}
-
 // La misma altura como función para el cuerpo (MonsterBodyFrame::terrainHeight); vacía sin las alturas o los atributos.
 std::function<double(float, float)> BodyTerrainHeight(const Actors::Drawing::GameCharacterPass& pass)
 {
@@ -323,7 +313,7 @@ Result StepTheMeshCloth(MonsterFrame& frame, std::span<Models::SkinnedMesh> mesh
 Result DrawTheBody(MonsterFrame& frame, const Models::Skeleton& skeleton, std::uint16_t special, PoseMode mode)
 {
     Kernel::ActorState& actor = frame.actor;
-    const bool cloth = WearsClothOnTheMesh(actor.word376);
+    const bool cloth = Actors::Drawing::WearsClothOnTheMesh(actor.word376);
     // 0x5ffdf0: en Chaos Castle, con +0x1a1 del héroe, el alpha guardado baja 0,15f.
     if (IsChaosCastle(frame.map) && frame.world.Hero().byte1a1 != 0)
         actor.alpha = F32(D(actor.alpha) - D(ChaosCastleFade));
@@ -953,7 +943,7 @@ Result DrawTheDecorations(MonsterFrame& frame)
         return HangTheStatueWeapon(frame);
     if (monster == 0x49 || monster == 0x4b)
         return DrawTheChainsOf0x49And0x4b(frame);
-    return CheckMonsterDecorations(frame.actor.word376);
+    return Actors::Drawing::CheckMonsterDecorations(frame.actor.word376);
 }
 
 // 0x50bd89..0x50bf3e: la sombra de los monstruos.
@@ -965,7 +955,7 @@ Result DrawTheShadow(MonsterFrame& frame)
         actor.alpha < ShadowAlpha)
         return {};
     // 0x50be15..0x50be52: en Blood Castle, con +0x1a1 y muriéndose, la z baja a la del terreno (también con NaN).
-    const auto grounded = ShadowGroundOf(frame.pass, actor, frame.map, 0x50be3b);
+    const auto grounded = Actors::Drawing::ShadowGroundOf(frame.pass, actor, frame.map, 0x50be3b);
     if (!grounded.HasValue())
         return Core::Unexpected(grounded.Error());
     actor.position.z = grounded.Value();
@@ -1327,7 +1317,7 @@ Result DrawTheTail(MonsterFrame& frame, const glm::vec3& terrainLight)
     const Actors::Drawing::GameCharacterPass& pass = frame.pass;
     // 0x50db94: la luz de lo que cuelga; el rand() de 0x50db57 y los dos cierres de +0x38e de las manos los saca
     // DrawGameHanging (Q-C860).
-    actor.drawnLight = HangingLightOf(actor, terrainLight, frame.map);
+    actor.drawnLight = Actors::Drawing::HangingLightOf(actor, terrainLight, frame.map);
     if (auto hung = Actors::Drawing::DrawGameHanging(actor, HangingPassOf(frame, frame.items)); !hung.HasValue())
         return hung;
     const auto cased = DrawTheModelCase(frame);
@@ -1409,77 +1399,6 @@ bool MonsterShines(std::uint16_t monster)
     return OneOf(monster, Shining) || Within(monster, 0x4e, 0x53);
 }
 
-bool WearsClothOnTheMesh(std::uint16_t monster)
-{
-    constexpr std::array<std::uint16_t, 7> Cloths{0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82, 0x8f};
-    return OneOf(monster, Cloths);
-}
-
-Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster)
-{
-    const auto cut = [monster](std::string_view address, std::string_view what) {
-        return Core::Unexpected(
-            std::format("{}: {} del +0x376 {:#x} (0x50bf45) no está portado", address, what, monster));
-    };
-    constexpr std::array<std::uint16_t, 5> Glowing{0x26, 0x2b, 0x34, 0x3b, 0x43};
-    if (OneOf(monster, Glowing) || Within(monster, 0x4e, 0x53))
-        return cut("0x50c671", "el brillo de 0x60b130");
-    if (monster == 0x45)
-        return cut("0x50bf98", "los sprites 0x5ac de la tabla 0x6c88a0 y las partículas 0x5c6");
-    if (monster == 0x46)
-        return cut("0x50c0fb", "el sprite 0x5ac");
-    if (monster == 0x47 || monster == 0x4a || monster == 0x12d)
-        return cut("0x50c59f", "la tela 0x64 de 0x4548b0");
-    if (monster == 0x49 || monster == 0x4b)
-        return cut("0x50c36b", "los sprites, los joints 0x614 y la partícula 0x5d9");
-    if (monster == 0x4d)
-        return cut("0x50c177", "el modelo, la tela y los huesos");
-    if (monster == 0x35 || monster == 0x36)
-        return cut("0x50c71b", "el brillo 0x48 con la textura 0x5fd");
-    if (monster == 0x2a)
-        return cut("0x50c762", "las armas 0xef y 0xf0 colgadas con 0x509340");
-    if (Within(monster, 0x84, 0x86))
-        return cut("0x50c83b", "el arma 0xc1c, 0x225 o 0xa24 colgada con 0x509340");
-    if (monster == 0x87)
-        return cut("0x50c8ce", "el brillo 0x140");
-    return {};
-}
-
-glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terrainLight, std::int32_t map)
-{
-    const float faint = std::bit_cast<float>(0x3dcccccdu);
-    if (actor.pk >= RedPk)
-        return {1.0f, faint, faint};
-    glm::vec3 light{F32(D(terrainLight.x) + D(actor.light.x)), F32(D(terrainLight.y) + D(actor.light.y)),
-                    F32(D(terrainLight.z) + D(actor.light.z))};
-    const std::int32_t level = map - 9;
-    if (level <= 0 || level > 8)
-        return light;
-    const std::uint16_t monster = actor.word376;
-    const bool keeper = Within(monster, 0x56, 0x59) || Within(monster, 0x5c, 0x5f) || Within(monster, 0x73, 0x76) ||
-                        Within(monster, 0x79, 0x7c) || Within(monster, 0x7f, 0x82) || Within(monster, 0x8a, 0x8f);
-    // 0x50dc2a: el cociente por 3 con IMUL 0x55555556 (con signo; level es positivo).
-    const std::int32_t third = level / 3;
-    if (!keeper || third == 0)
-        return light;
-    return {F32(static_cast<double>(third) * 0.5), faint, faint};
-}
-
-Core::Expected<float, std::string> ShadowGroundOf(const Actors::Drawing::GameCharacterPass& pass,
-                                                  const Kernel::ActorState& actor, std::int32_t map,
-                                                  std::uint32_t address)
-{
-    if (!IsBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
-        return actor.position.z;
-    const auto ground = GroundHeight(pass, actor.position.x, actor.position.y);
-    if (!ground)
-        return Core::Unexpected(std::format("{:#x}: falta el terreno de 0x5f93c0", address));
-    // fcom [z] y `test ah, 1`: con el terreno a la altura de la z o arriba (C0 en 0, ordenados) no escribe.
-    if (*ground >= D(actor.position.z))
-        return actor.position.z;
-    return F32(*ground);
-}
-
 Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                   Kernel::WorldState& world, std::size_t slot,
                                                   const Actors::Drawing::GameCharacterPass& pass, bool originalFrame)
@@ -1515,7 +1434,7 @@ Core::Expected<void, std::string> DrawGameMonster(Render::ModelBatch& batch, con
                        .modelOrigin = actor.position};
     const auto slotIndex = static_cast<std::int32_t>(slot);
     frame.outline = slotIndex == pass.hovered || slotIndex == pass.targeted ? PoseMode::Outlined : PoseMode::Plain;
-    const std::uint16_t special = WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);
+    const std::uint16_t special = Actors::Drawing::WearsClothOnTheMesh(actor.word376) ? 0 : SpecialOf(actor.word376);
     if (auto body = DrawTheBody(frame, *skeleton, special, frame.outline); !body.HasValue())
         return body;
     if (auto shadow = DrawTheShadow(frame); !shadow.HasValue())

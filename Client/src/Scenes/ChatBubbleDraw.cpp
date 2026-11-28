@@ -1,5 +1,6 @@
 #include "Scenes/ChatBubbleDraw.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"
@@ -243,7 +244,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     const std::int32_t bottom = Add(Wrapped(Bits(bubble.height) * Bits(DesignHeight) / Bits(screen.height)), bubble.y);
     if (bubble.x <= context.mouse.x && context.mouse.x < right && bubble.y <= context.mouse.y &&
         context.mouse.y < bottom && runtime.ui.chatOpen && hero.safeZone != 0 &&
-        CString(bubble.name) != ChatNameOf(hero) && context.blink % BlinkCycle < BlinkSwapped)
+        CString(bubble.name) != Actors::ChatNameOf(hero) && context.blink % BlinkCycle < BlinkSwapped)
     {
         std::swap(text, background);
     }

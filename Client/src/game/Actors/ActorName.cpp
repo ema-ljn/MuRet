@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <string>
 #include <string_view>
 
 namespace Client::Actors
@@ -20,5 +21,21 @@ bool ActorNameContains(const Kernel::ActorState& actor, std::string_view word)
     const auto end = std::ranges::find(name, '\0');
     return UI::ContainsLikeTheOriginal(std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())),
                                        word);
+}
+
+std::string_view HeroNameOf(const Kernel::ActorState& hero)
+{
+    std::size_t size = 0;
+    while (size < hero.name.size() && hero.name[size] != std::byte{0})
+        ++size;
+    return {reinterpret_cast<const char*>(hero.name.data()), size};
+}
+
+std::string ChatNameOf(const Kernel::ActorState& actor)
+{
+    std::string name(HeroNameOf(actor));
+    if (name.size() == actor.name.size() && actor.byte1e3 != 0)
+        name.push_back(static_cast<char>(actor.byte1e3));
+    return name;
 }
 } // namespace Client::Actors

@@ -30,6 +30,7 @@ public:
 };
 
 constexpr Client::Core::PixelSize Screen640{640, 480};
+constexpr Client::Core::PixelSize Screen1280{1280, 960};
 
 // Un mensaje entra en el registro y, con el nombre vacío, en el área vieja; el reloj del área vuelve a 150.
 TEST(GameMessagesTest, AMessageGoesToTheLogAndTheOldArea)
@@ -41,6 +42,45 @@ TEST(GameMessagesTest, AMessageGoesToTheLogAndTheOldArea)
     EXPECT_EQ(runtime.chat.log.entries[0].text, "hola");
     EXPECT_EQ(runtime.chat.area.count, 1);
     EXPECT_EQ(runtime.chat.area.clock, Client::UI::MessageClockSteps);
+}
+
+// What the modules write through Kernel::IOnScreenMessages is AddGameMessage measured on the screen of that moment: a
+// line that wraps at 640 fits in one at 1280.
+TEST(GameMessagesTest, TheModulesMessagesAreMeasuredOnTheScreenOfTheMoment)
+{
+    constexpr std::string_view Long = "uno dos tres cuatro cinco seis siete ocho nueve";
+    const LetterMeasure letters;
+    WorldRuntime asked;
+    int screens = 0;
+    Client::Scenes::ChatMessages messages{asked, letters, [&screens]
+                                          {
+                                              ++screens;
+                                              return Screen1280;
+                                          }};
+
+    ASSERT_TRUE(messages.Add("Ana", Long, 1).HasValue());
+
+    EXPECT_EQ(screens, 1);
+    WorldRuntime direct;
+    ASSERT_TRUE(Client::Scenes::AddGameMessage(direct, letters, Screen1280, "Ana", Long, 1).HasValue());
+    EXPECT_EQ(asked.chat.log.entries, direct.chat.log.entries);
+    EXPECT_EQ(asked.chat.log.entries.size(), 1u);
+}
+
+// Without the screen, the messages are measured at 640 × 480, where the same line takes two.
+TEST(GameMessagesTest, TheModulesMessagesWithoutAScreenAreMeasuredAt640)
+{
+    constexpr std::string_view Long = "uno dos tres cuatro cinco seis siete ocho nueve";
+    const LetterMeasure letters;
+    WorldRuntime asked;
+    Client::Scenes::ChatMessages messages{asked, letters, {}};
+
+    ASSERT_TRUE(messages.Add("Ana", Long, 1).HasValue());
+
+    WorldRuntime direct;
+    ASSERT_TRUE(Client::Scenes::AddGameMessage(direct, letters, Screen640, "Ana", Long, 1).HasValue());
+    EXPECT_EQ(asked.chat.log.entries, direct.chat.log.entries);
+    EXPECT_EQ(asked.chat.log.entries.size(), 2u);
 }
 
 // 0x637cf3 y 0x637cf8: con los relojes vencidos, un aviso vacío (300) y un mensaje vacío (150), que envejece los

@@ -13,7 +13,6 @@
 #include "Actors/ActorActions.h"
 #include "Scenes/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/MonsterCreation.h"
 #include "Scenes/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -119,7 +118,7 @@ Core::Expected<void, std::string> StopTheActor(Kernel::ActorState& actor, const 
     static const Models::Skeleton EmptySkeleton;
     const Models::Skeleton* playerSkeleton = player != nullptr ? player : &EmptySkeleton;
     const Models::Skeleton* actorSkeleton =
-        actor.type == Tables::PlayerSkeletonModel ? nullptr : Scenes::MonsterSkeletonOf(resources, actor.type);
+        actor.type == Tables::PlayerSkeletonModel ? nullptr : MonsterSkeletonOf(resources, actor.type);
     const ActorStopContext context{
         .runtime = resources.world.Runtime(),
         .scene = Scenes::SceneId::Game,
@@ -191,14 +190,32 @@ Core::Expected<void, std::string> ApplyActionReply(const Protocol::Movement::Act
             return Core::Unexpected(std::format("0x4ea030: la acción {:#x} sin Player.bmd", action));
         Models::SetAction(actor.animation, *player, AnimationOf(actor, action));
     }
-    else if (auto set = Scenes::SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources);
-             !set.HasValue())
+    else if (auto set = SetMonsterAction(actor, AnimationOf(actor, action), 0x4cbcdd, resources); !set.HasValue())
     {
         return set;
     }
     // 0x4cb864: 0x41ed10(0x6f, 0, 0).
     if (action == ShieldAction)
         resources.world.Runtime().RequestSound(ShieldSound);
+    return {};
+}
+
+const Models::Skeleton* MonsterSkeletonOf(const Scenes::WorldEntryResources& resources, std::uint16_t model)
+{
+    if (const auto* skeleton =
+            Assets::FaunaModelsOrEmpty(Scenes::FaunaModelsOf(resources)).SkeletonOf(Models::ModelId{model}))
+        return skeleton;
+    return resources.models.SkeletonOf(Models::ModelId{model});
+}
+
+Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
+                                                   [[maybe_unused]] std::uint32_t address,
+                                                   const Scenes::WorldEntryResources& resources)
+{
+    // The record of 0x5769ad8 + type · 0xe0 always exists: that of a model that was not loaded (a .bmd missing from Npc
+    // or Object35, which 0x60da30 skips) has +0x26 at 0, and 0x4ea030 leaves without setting anything (0x4ea056).
+    if (const auto* skeleton = MonsterSkeletonOf(resources, actor.type))
+        Models::SetAction(actor.animation, *skeleton, action);
     return {};
 }
 } // namespace Client::Actors

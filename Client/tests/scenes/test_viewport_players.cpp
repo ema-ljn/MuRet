@@ -29,6 +29,7 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameMessages.h"
 #include "Scenes/HelperTable.h"
 #include "Assets/FaunaModels.h"
 #include "Scenes/LoginModels.h"
@@ -816,8 +817,9 @@ TEST_F(ViewportPlayersTest, TheHeroesBlessingFlagShowsText1828OnEveryApplication
     Client::Tests::RecordingTextDrawer measure{sprites};
     auto resources = game->Resources();
     resources.texts = &texts;
-    resources.textMeasure = &measure;
-    resources.screen = [] { return Client::Core::PixelSize{640, 480}; };
+    Client::Scenes::ChatMessages messages{game->world.Runtime(), measure,
+                                          [] { return Client::Core::PixelSize{640, 480}; }};
+    resources.onScreenMessages = &messages;
     constexpr std::uint32_t BlessingFlag = 0x2000000;
     const Client::Protocol::Actors::TransformedRecord record{
         .key = HeroKey, .x = cell.x, .y = cell.y, .effects = BlessingFlag, .targetX = cell.x, .targetY = cell.y};
@@ -874,7 +876,8 @@ TEST_F(ViewportPlayersTest, AnEmptyBlessingTextStillUpdatesTheMessageAreaAndTheL
     Client::Tests::RecordingTextDrawer measure{sprites};
     auto resources = game->Resources();
     resources.texts = &texts;
-    resources.textMeasure = &measure;
+    Client::Scenes::ChatMessages messages{game->world.Runtime(), measure, resources.screen};
+    resources.onScreenMessages = &messages;
     auto& chat = game->world.Runtime().chat;
     chat.log.entries.push_back({.name = "", .text = "previo"});
     const Client::Protocol::Actors::TransformedRecord record{

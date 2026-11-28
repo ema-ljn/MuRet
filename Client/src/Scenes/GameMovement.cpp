@@ -1,5 +1,6 @@
 #include "Scenes/GameMovement.h"
 
+#include "Actors/ActorName.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
@@ -769,7 +770,7 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
                                 named));
             constexpr std::size_t SetTextLimit = 0x100;
             UI::OldEdit& edit = box->add.edit;
-            const std::string name = ChatNameOf(world.Actors()[static_cast<std::size_t>(named)]);
+            const std::string name = Actors::ChatNameOf(world.Actors()[static_cast<std::size_t>(named)]);
             if (name.size() < SetTextLimit)
                 edit.text.SetText(name);
             UI::Steps::FocusTheEdit(runtime.oldWindows, edit, OldWindowGlobalsOf(runtime));
@@ -801,7 +802,7 @@ Core::Expected<void, std::string> NameTheChosen(Kernel::WorldState& world)
     UI::SetTheChatFields(input, std::nullopt, UI::CStringOf(slot));
     // 0x59b0cf..0x59b16b: strcpy del nombre (+0x1d9) al buffer del susurro (0x7798cf8), del buffer al lugar, el buffer
     // en 0 entero (0x100 bytes) y otra vez del lugar al buffer; 0x59b17a, su largo (0x7758594).
-    UI::CopyIntoTheBuffer(input.whisperBuffer, ChatNameOf(target));
+    UI::CopyIntoTheBuffer(input.whisperBuffer, Actors::ChatNameOf(target));
     UI::CopyIntoTheBuffer(slot, UI::CStringOf(input.whisperBuffer));
     input.whisperBuffer.fill('\0');
     UI::CopyIntoTheBuffer(input.whisperBuffer, UI::CStringOf(slot));

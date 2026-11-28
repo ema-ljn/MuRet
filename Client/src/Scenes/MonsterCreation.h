@@ -24,16 +24,6 @@ namespace Client::Scenes
 {
 struct WorldEntryResources;
 
-// El esqueleto del modelo `model` como lo lee 0x4ea030 (0x5769ad8 + modelo · 0xe0): primero los que cargan 0x612d90 y
-// 0x612270 (Assets::AssetsState::fauna, que sigue con la biblioteca del mapa) y después los de `resources.models`.
-[[nodiscard]] const Models::Skeleton* MonsterSkeletonOf(const WorldEntryResources& resources, std::uint16_t model);
-
-// 0x4ea030(personaje, acción) con el esqueleto de MonsterSkeletonOf. Un modelo que no está es el registro en 0 del
-// original (+0x26, sin acciones): no pone nada y no es un error. `address` queda para quien llama.
-[[nodiscard]] Core::Expected<void, std::string> SetMonsterAction(Kernel::ActorState& actor, std::uint8_t action,
-                                                                 std::uint32_t address,
-                                                                 const WorldEntryResources& resources);
-
 // Los bytes de texto desde +0x1d9: el nombre (diez bytes), +0x1e3 y +0x1e4..+0x1f1 (ActorState::nameSpill).
 inline constexpr std::size_t ActorTextSize = 25;
 // Los que MuRet guarda seguidos desde +0x1d9: los de texto, el WORD de +0x1f2 y la clave de +0x1f4. +0x1f6 no lo

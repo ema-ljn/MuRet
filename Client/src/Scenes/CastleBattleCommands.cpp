@@ -1,4 +1,5 @@
 #include "Scenes/CastleBattleCommands.h"
+#include "Actors/ActorName.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -95,12 +96,13 @@ Core::Expected<void, std::string> CrownAccess(const Battle::CrownAccess& access,
     }
     const auto second = Kernel::ActorWithKey(context.world, access.secondKey);
     const std::array<Crt::FormatArgument, 1> secondName{
-        Crt::StringArgument{HeroNameOf(context.world.Actors()[second])}};
+        Crt::StringArgument{Actors::HeroNameOf(context.world.Actors()[second])}};
     auto message = Formatted(context, 1486, secondName);
     if (!message.HasValue())
         return Core::Unexpected(std::move(message).Error());
     lines[0] = std::move(message).Value();
-    const std::array<Crt::FormatArgument, 1> firstName{Crt::StringArgument{HeroNameOf(context.world.Actors()[first])}};
+    const std::array<Crt::FormatArgument, 1> firstName{
+        Crt::StringArgument{Actors::HeroNameOf(context.world.Actors()[first])}};
     message = Formatted(context, 1488, firstName);
     if (!message.HasValue())
         return Core::Unexpected(std::move(message).Error());

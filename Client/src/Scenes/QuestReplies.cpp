@@ -1,4 +1,5 @@
 #include "Scenes/QuestReplies.h"
+#include "Actors/ActionReply.h"
 #include "Kernel/ActorSearch.h"
 
 #include "Core/Expected.h"
@@ -133,7 +134,7 @@ Core::Expected<void, std::string> DressTheNewClass(Kernel::ActorState& actor, co
     const auto dressed = Actors::ApplyTheClassParts(actor, stop.Value());
     if (!dressed.HasValue())
         return Core::Unexpected(std::format("{:#x}: {}", address, dressed.Error()));
-    if (auto acted = SetMonsterAction(actor, ClassPrizeAction, 0x4de4d0, resources); !acted.HasValue())
+    if (auto acted = Actors::SetMonsterAction(actor, ClassPrizeAction, 0x4de4d0, resources); !acted.HasValue())
         return acted;
     resources.world.Runtime().RequestSound(PrizeSound);
     return {};

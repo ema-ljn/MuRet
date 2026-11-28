@@ -8,7 +8,7 @@
 #include "Models/Animation.h"
 #include "Models/IModelLibrary.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/MonsterCreation.h"
+#include "Actors/ActionReply.h"
 #include "Sound/MonsterSounds.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
@@ -142,7 +142,7 @@ Core::Expected<void, std::string> SetActorShock(Kernel::ActorState& actor, std::
         // not Player.bmd); a model that is not there is the record without actions and sets nothing.
         if (actor.animation.action < 3 || actor.animation.action > 4)
         {
-            if (auto set = Scenes::SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
+            if (auto set = SetMonsterAction(actor, MonsterShockAction, 0x4f5480, resources); !set.HasValue())
                 return set;
         }
     }

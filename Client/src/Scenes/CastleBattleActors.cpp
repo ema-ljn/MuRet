@@ -1,5 +1,6 @@
 #include "Scenes/CastleBattleActors.h"
 
+#include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -71,7 +72,7 @@ Core::Expected<void, std::string> ChangeTheGateWall(Kernel::ActorState& actor, b
 Core::Expected<void, std::string> SetTheCastleGateState(Kernel::ActorState& actor, bool open,
                                                         const WorldEntryResources& resources)
 {
-    if (auto action = SetMonsterAction(actor, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
+    if (auto action = Actors::SetMonsterAction(actor, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
         return action;
     return ChangeTheGateWall(actor, open, resources);
 }
@@ -79,7 +80,7 @@ Core::Expected<void, std::string> SetTheCastleGateState(Kernel::ActorState& acto
 Core::Expected<void, std::string> SetTheCastleGate(Kernel::ActorState& cellsActor, Kernel::ActorState& gate, bool open,
                                                    const WorldEntryResources& resources)
 {
-    if (auto action = SetMonsterAction(gate, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
+    if (auto action = Actors::SetMonsterAction(gate, open ? 1 : 0, 0x4ea030, resources); !action.HasValue())
         return action;
     gate.flags78 = open ? OpenGate : 0;
     if (auto wall = ChangeTheGateWall(cellsActor, open, resources); !wall.HasValue())

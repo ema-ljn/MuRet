@@ -28,27 +28,27 @@ game/Ui	game	8		*layer<8;game/Assets;game/Sound	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
 game/Player	game	9		*layer<9	the player state
 game/Hero	game	9		*layer<9;game/Actors;game/Events;game/Events/Crywolf;game/Guild;game/Player;game/Social	the hero's attack and facing
-game/Monsters	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
+game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Hud;game/Joints;game/Particles;game/Player;game/WorldObjects	monsters and their drawing
 game/Pets	game	9		*layer<9;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
-game/Movement	game	9		*layer<9;game/Chat;game/Items;game/Player	the player's path, gates, speed
+game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the player's path, gates, speed
 game/Skills	game	9		*layer<9;game/Chat;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Particles;game/Party;game/Player	the hero's skills and their replies
-game/Combat	game	9		*layer<9;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Particles;game/Player	combat
-game/Items	game	9		*layer<9;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
+game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Particles;game/Player	combat
+game/Items	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
 game/Tooltips	game	9		*layer<9;game/Actors;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips
 game/Npc	game	9		*layer<9;game/Actors;game/Chat;game/Events;game/Events/Crywolf;game/Player;game/Quests;game/Social	NPC talk and the generic NPC windows
 game/Quests	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Monsters;game/Movement;game/Player	quests
 game/ChaosMix	game	9		*layer<9;game/Chat;game/Items;game/Movement;game/Player;game/Social	the Chaos Goblin machine and jewel mixes
 game/Warehouse	game	9		*layer<9;game/Movement;game/Npc	the warehouse
-game/PetTrainer	game	9		*layer<9;game/ChaosMix;game/Chat;game/Items;game/Movement;game/Player	the pet trainer
+game/PetTrainer	game	9		*layer<9;game/Actors;game/ChaosMix;game/Chat;game/Items;game/Movement;game/Player	the pet trainer
 game/Party	game	9		*layer<9;game/Player;game/Social	the party
-game/Social	game	9		*layer<9;game/CastleSiege;game/Movement;game/Player	trade and duel
+game/Social	game	9		*layer<9;game/Actors;game/CastleSiege;game/Movement;game/Player	trade and duel
 game/Messenger	game	9		*layer<9;game/Actors;game/Combat;game/Items;game/Pets;game/Player;game/Tooltips	friends and letters
-game/PersonalShop	game	9		*layer<9;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
-game/Chat	game	9		*layer<9;game/FrontEnd;game/Player	chat
-game/Guild	game	9		*layer<9;game/Events;game/Player	guild, alliance and war
-game/Events	game	9		*layer<9;game/CastleSiege;game/ChaosMix;game/Chat;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	Blood Castle, Devil Square and Chaos Castle around the object and windows they share, and what the events share; Kalima waits for AR4.3 (ADR 0029)
-game/Events/Crywolf	game	9		*layer<9;game/Events;game/Fauna;game/Joints;game/Particles	the Crywolf event: its packets, contract, interface, music and camera tour (ADR 0029)
-game/CastleSiege	game	9		*layer<9;game/Items;game/Movement;game/Particles;game/Player;game/Tooltips	Castle Siege
+game/PersonalShop	game	9		*layer<9;game/Actors;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
+game/Chat	game	9		*layer<9;game/Actors;game/FrontEnd;game/Player	chat
+game/Guild	game	9		*layer<9;game/Actors;game/Events;game/Player	guild, alliance and war
+game/Events	game	9		*layer<9;game/Actors;game/CastleSiege;game/ChaosMix;game/Chat;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	Blood Castle, Devil Square and Chaos Castle around the object and windows they share, and what the events share; Kalima waits for AR4.3 (ADR 0029)
+game/Events/Crywolf	game	9		*layer<9;game/Actors;game/Events;game/Fauna;game/Joints;game/Particles	the Crywolf event: its packets, contract, interface, music and camera tour (ADR 0029)
+game/CastleSiege	game	9		*layer<9;game/Actors;game/Items;game/Movement;game/Particles;game/Player;game/Tooltips	Castle Siege
 game/WorldObjects	game	9		*layer<9;game/Fauna;game/Weather	world objects
 game/MapScripts/Aida	game	9		*layer<9;game/Effects;game/Particles	what Aida does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Atlans	game	9		*layer<9;game/Particles	what Atlans does with the map as its gate: its object steps and services (ADR 0029)
@@ -65,7 +65,7 @@ game/Weather	game	9		*layer<9;game/Actors;game/Movement;game/Particles	leaves, r
 game/Particles	game	9		*layer<9	particles
 game/Joints	game	9		*layer<9;game/Particles;game/WorldObjects	joints
 game/Effects	game	9		*layer<9;game/Particles;game/Player	model effects
-game/Hud	game	9		*layer<9;game/FrontEnd;game/Hero;game/Player	the HUD and its dialogs
+game/Hud	game	9		*layer<9;game/Actors;game/FrontEnd;game/Hero;game/Player	the HUD and its dialogs
 game/FrontEnd	game	9		*layer<9;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation
 game/Session	game	10		*layer<10	connection to the servers, keepalive, the opcode table and routing
 game/Scenes	game	11		*layer<11	the frame scripts: Login, Selection, Loading, Game; SceneManager

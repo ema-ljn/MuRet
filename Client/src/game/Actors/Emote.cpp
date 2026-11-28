@@ -6,7 +6,6 @@
 #include "Models/IModelLibrary.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
-#include "UI/Emotes.h"
 
 #include <cstdint>
 #include <format>
@@ -37,8 +36,7 @@ std::uint8_t AnimationFor(const Kernel::ActorState& actor, std::uint8_t animatio
 }
 } // namespace
 
-Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::EmoteCase emote,
-                                               const EmoteContext& context)
+Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, EmoteCase emote, const EmoteContext& context)
 {
     if (!IsStanding(actor.animation.action))
         return false;
@@ -54,7 +52,7 @@ Core::Expected<bool, std::string> PlayTheEmote(Kernel::ActorState& actor, UI::Em
     return true;
 }
 
-Core::Expected<void, std::string> DoTheEmote(UI::EmoteCase emote, const EmoteContext& context)
+Core::Expected<void, std::string> DoTheEmote(EmoteCase emote, const EmoteContext& context)
 {
     if (auto played = PlayTheEmote(context.hero, emote, context); !played.HasValue())
         return Core::Unexpected(played.Error());

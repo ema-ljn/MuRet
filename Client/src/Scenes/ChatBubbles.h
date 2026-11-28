@@ -72,10 +72,6 @@ struct ChatBubble
 
 using ChatBubbleTable = std::array<ChatBubble, ChatBubbleCount>;
 
-// +0x1d9 como lo leen strcmp y strcpy: con los diez bytes llenos sigue +0x1e3. Lo que sigue a +0x1e3 MuRet no lo tiene
-// y lo toma en 0.
-[[nodiscard]] std::string ChatNameOf(const Kernel::ActorState& actor);
-
 // El modo de 0x557170: 0 el chat (el globo dura según el largo) y 1 también al registro del chat (1.000 pasos).
 // Ningún llamador de MuRet pasa otro: el original toma de duración un puntero (el texto o el personaje).
 enum class ChatBubbleMode : std::uint8_t

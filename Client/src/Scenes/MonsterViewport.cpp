@@ -1,5 +1,6 @@
 #include "Scenes/MonsterViewport.h"
 
+#include "Actors/ActionReply.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Tables/PlayerModels.h"
@@ -59,7 +60,7 @@ Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, s
                                                     std::optional<std::int32_t> sound,
                                                     const WorldEntryResources& resources)
 {
-    if (auto set = SetMonsterAction(actor, 1, address, resources); !set.HasValue())
+    if (auto set = Actors::SetMonsterAction(actor, 1, address, resources); !set.HasValue())
         return set;
     actor.animation.previousAction = 1;
     actor.alpha = 1.0f;

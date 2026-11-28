@@ -1,4 +1,5 @@
 #include "Scenes/GameInventoryHud.h"
+#include "Actors/ActorName.h"
 #include "Math/X87.h"
 #include "Math/RoundedMath.h"
 #include "Scenes/CastleWindows.h"
@@ -1151,7 +1152,7 @@ Core::Expected<void, std::string> DrawTheTradeWindow(GameHudContext& context, UI
     hud.textColors.text = 0xffffe6d2u;
     SelectFont(context, FontKind::Bold);
     const Kernel::ActorState& hero = context.world.Hero();
-    DrawText(context, x + 0x14, y + 0xfa, HeroNameOf(hero));
+    DrawText(context, x + 0x14, y + 0xfa, Actors::HeroNameOf(hero));
     // 0x5f4623..0x5f470b: el aviso que late y los tres renglones.
     hud.textColors.text = WarningPulseColor(context.worldClock);
     for (const auto& [text, left, top, where] :

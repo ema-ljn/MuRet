@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
+#include "Kernel/IOnScreenMessages.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Frame/ITextDrawer.h"
@@ -9,6 +10,7 @@
 #include "UI/Widget.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -25,10 +27,6 @@ struct WorldRuntime;
 namespace Client::Scenes
 {
 
-// El nombre del héroe (+0x1d9) como lo leen strcmp y sprintf: hasta su '\0'. Con los diez bytes llenos sigue +0x1e3,
-// que la respuesta del F3 03 pone en 0.
-[[nodiscard]] std::string_view HeroNameOf(const Kernel::ActorState& hero);
-
 // La entrada de 0x555190 sobre el chat y los modos de la UI de `runtime`, midiendo con `measure` en una pantalla de
 // `screen` y con la fuente del DC que dejó el último dibujo.
 [[nodiscard]] UI::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
@@ -39,6 +37,23 @@ namespace Client::Scenes
                                                                const Render::Text::ITextMeasure& measure,
                                                                Core::PixelSize screen, std::string_view name,
                                                                std::string_view text, std::int32_t type);
+
+// AddGameMessage as the modules ask for it: on `runtime`, measured with `measure` on a screen of `screen()` (640 × 480
+// without it).
+class ChatMessages final : public Kernel::IOnScreenMessages
+{
+public:
+    ChatMessages(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
+                 std::function<Core::PixelSize()> screen);
+
+    [[nodiscard]] Core::Expected<void, std::string> Add(std::string_view name, std::string_view text,
+                                                        std::int32_t type) override;
+
+private:
+    Kernel::WorldRuntime& m_runtime;
+    const Render::Text::ITextMeasure& m_measure;
+    std::function<Core::PixelSize()> m_screen;
+};
 
 // Las 120 llamadas a 0x555190 con dos textos vacíos de la .bss con que entran el login (0x634b4a), la selección
 // (0x6341d3) y el primer paso del juego (0x636881): envejecen el registro y vacían el área vieja. Sin medidor (los

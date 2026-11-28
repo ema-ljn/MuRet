@@ -1,4 +1,5 @@
 #include "Scenes/GameUi.h"
+#include "Actors/ActorName.h"
 #include "Maps/MapId.h"
 #include "Scenes/SiegeBattleUi.h"
 #include "Scenes/CastleWindows.h"
@@ -264,7 +265,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
                                    .leftDown = runtime.movement.leftHeld,
                                    .chatOpen = ui.chatOpen,
                                    .heroSafeZone = hero.safeZone != 0,
-                                   .heroName = HeroNameOf(hero),
+                                   .heroName = Actors::HeroNameOf(hero),
                                    .chatEditFocused = ui.chatOpen,
                                    .measure = context.measure,
                                    .dcFont = runtime.hud.dcFont};
@@ -1980,7 +1981,7 @@ void StepTheOldAreaRows(const GameUiContext& context)
         if (context.mouseX < 0 || context.mouseX >= static_cast<std::int32_t>(right) || context.mouseY < y ||
             context.mouseY >= y + OldAreaRowHeight || !ui.chatOpen || hero.safeZone == 0)
             continue;
-        if (row.name == HeroNameOf(hero) || !ui.rightClick)
+        if (row.name == Actors::HeroNameOf(hero) || !ui.rightClick)
             continue;
         ui.rightClick = false;
         UI::PutTheWhisperName(runtime.chat.input, row.name);
@@ -2345,7 +2346,7 @@ void LendTheGameHooks(UI::OldWindowStepView& view, const GameUiContext& context,
     if (const GameChatContext* chatContext = context.chat; chatContext != nullptr)
         view.badWord = [filter = chatContext->filter](std::string_view text)
         { return UI::ContainsAFilteredWord(text, filter, false); };
-    view.heroName = std::string(HeroNameOf(world.Hero()));
+    view.heroName = std::string(Actors::HeroNameOf(world.Hero()));
     view.field78abaac = runtime.ui.field78abaac;
     if (!effects)
     {

@@ -1,4 +1,5 @@
 #include "Actors/Drawing/GameCharacters.h"
+#include "Actors/ActorName.h"
 #include "Maps/MapId.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ObjectState.h"
@@ -22,17 +23,17 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
+#include "Math/X87.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/ActorAppearance.h"
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/ChatBubbles.h"
 #include "Assets/FaunaModels.h"
 #include "Actors/FullSetScan.h"
 #include "Actors/Drawing/GameCharacterEffects.h"
 #include "Actors/Drawing/GameHanging.h"
-#include "Scenes/MonsterDrawing.h"
+#include "Actors/Drawing/CharacterDrawHooks.h"
 #include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/GuildMarks.h"
 #include "Scenes/GuildState.h"
@@ -43,6 +44,7 @@
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "World/Sprites.h"
+#include "Terrain/TerrainHeight.h"
 #include "Terrain/TerrainLighting.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
@@ -52,6 +54,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -78,6 +81,29 @@ constexpr float ShadowAlphaThreshold = 0.5f;
 constexpr std::uint8_t PlayerKind = 1;
 // +0x88 at 4: an NPC (0x50d2b6).
 constexpr std::uint8_t NpcKind = 4;
+constexpr std::uint8_t RedPk = 6;
+using Maps::IsBloodCastle;
+using Math::D;
+using Math::F32;
+
+bool Within(std::uint16_t value, std::uint16_t first, std::uint16_t last)
+{
+    return value >= first && value <= last;
+}
+
+template <std::size_t N> bool OneOf(std::uint16_t value, const std::array<std::uint16_t, N>& values)
+{
+    return std::ranges::find(values, value) != values.end();
+}
+
+// The terrain height (0x5f93c0) of the pass's terrain or, without it, of an empty one.
+std::optional<double> GroundHeight(const GameCharacterPass& pass, float x, float y)
+{
+    const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(pass.terrain);
+    if (!terrain.heights || !terrain.attributes)
+        return std::nullopt;
+    return Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, pass.fixedHeight);
+}
 constexpr std::uint32_t ChaosCastleBodyFlags = 2;
 constexpr std::uint32_t ChaosCastleHeroFlags = 6;
 
@@ -266,14 +292,14 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const Kernel::WorldState& 
     const Scenes::DuelState& duel = world.Runtime().social.duel;
     if (duel.active == 0)
         return look;
-    const std::string name = Scenes::ChatNameOf(actor);
+    const std::string name = ChatNameOf(actor);
     const auto rivalEnd = std::ranges::find(duel.rivalName, std::byte{0});
     const std::string_view rival(reinterpret_cast<const char*>(duel.rivalName.data()),
                                  static_cast<std::size_t>(rivalEnd - duel.rivalName.begin()));
     if (static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key)) == duel.rivalKey && name == rival)
         look = {.wears = true, .color = RedCloth};
     const Kernel::ActorState& hero = world.Hero();
-    if (actor.key == hero.key && name == Scenes::ChatNameOf(hero))
+    if (actor.key == hero.key && name == ChatNameOf(hero))
         look = {.wears = true, .color = BlueCloth};
     return look;
 }
@@ -284,7 +310,7 @@ Core::Expected<ClothLook, std::string> LookOfTheCloth(const Kernel::WorldState& 
 // (0x50bbe4), with its cases by +0x376 further on.
 Core::Expected<void, std::string> CheckTheEarlyBranches(const Kernel::ActorState& actor)
 {
-    if (Scenes::WearsClothOnTheMesh(actor.word376))
+    if (WearsClothOnTheMesh(actor.word376))
         return Core::Unexpected(
             std::format("0x50bae7: el 0x20a con la tela sobre la malla del +0x376 {:#x} (0x5ffdf0 y 0x6002e0 en vez "
                         "de 0x6001b0) no está portado",
@@ -601,7 +627,11 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
     if (skeleton == nullptr || skeleton->actions.empty())
         return {};
     if (!player)
-        return Scenes::DrawGameMonster(batch, models, world, slot, pass, originalFrame);
+    {
+        if (pass.hooks == nullptr)
+            return Core::Unexpected<std::string>("0x50ba30: no draw hooks for a monster or an NPC");
+        return pass.hooks->DrawTheMonster(batch, models, world, slot, pass, originalFrame);
+    }
     if (auto supported = CheckTheEarlyBranches(actor); !supported.HasValue())
         return supported;
     const std::int32_t map = world.Runtime().map;
@@ -630,7 +660,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
     std::optional<GroundBetweenFrames> projectedGround;
     if (DrawsTheShadow(character))
     {
-        const auto ground = Scenes::ShadowGroundOf(pass, actor, map, 0x50bc9d);
+        const auto ground = ShadowGroundOf(pass, actor, map, 0x50bc9d);
         if (!ground.HasValue())
             return Core::Unexpected(ground.Error());
         character.object.position.z = ground.Value();
@@ -644,7 +674,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
     // 0x632/0 and /1 read it on the floor, 0x53c1eb). Only in an original frame.
     if (originalFrame && DrawsTheShadow(character))
         world.PlaceShadowModel(actor);
-    if (auto decorated = Scenes::CheckMonsterDecorations(actor.word376); !decorated.HasValue())
+    if (auto decorated = CheckMonsterDecorations(actor.word376); !decorated.HasValue())
         return decorated;
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50c91e: falta el flujo global de rand del scan de los personajes");
@@ -658,7 +688,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const Model
         !supported.HasValue())
         return supported;
     // 0x50db94: the light of what hangs (+0x3b4), the terrain's, the PKs' red or Blood Castle's.
-    actor.drawnLight = Scenes::HangingLightOf(actor, terrainLight.Value(), map);
+    actor.drawnLight = HangingLightOf(actor, terrainLight.Value(), map);
     return DrawTheTail(batch, models, world, actor, slot, character, pass, scan, modelOrigin, originalFrame, true);
 }
 
@@ -811,5 +841,75 @@ Core::Expected<void, std::string> DrawGameCharacters(std::span<Kernel::ActorStat
     }
     FinishTheCastleFrame(runtime, walls);
     return {};
+}
+
+bool WearsClothOnTheMesh(std::uint16_t monster)
+{
+    constexpr std::array<std::uint16_t, 7> Cloths{0x59, 0x5f, 0x70, 0x76, 0x7c, 0x82, 0x8f};
+    return OneOf(monster, Cloths);
+}
+
+Core::Expected<void, std::string> CheckMonsterDecorations(std::uint16_t monster)
+{
+    const auto cut = [monster](std::string_view address, std::string_view what) {
+        return Core::Unexpected(
+            std::format("{}: {} del +0x376 {:#x} (0x50bf45) no está portado", address, what, monster));
+    };
+    constexpr std::array<std::uint16_t, 5> Glowing{0x26, 0x2b, 0x34, 0x3b, 0x43};
+    if (OneOf(monster, Glowing) || Within(monster, 0x4e, 0x53))
+        return cut("0x50c671", "el brillo de 0x60b130");
+    if (monster == 0x45)
+        return cut("0x50bf98", "los sprites 0x5ac de la tabla 0x6c88a0 y las partículas 0x5c6");
+    if (monster == 0x46)
+        return cut("0x50c0fb", "el sprite 0x5ac");
+    if (monster == 0x47 || monster == 0x4a || monster == 0x12d)
+        return cut("0x50c59f", "la tela 0x64 de 0x4548b0");
+    if (monster == 0x49 || monster == 0x4b)
+        return cut("0x50c36b", "los sprites, los joints 0x614 y la partícula 0x5d9");
+    if (monster == 0x4d)
+        return cut("0x50c177", "el modelo, la tela y los huesos");
+    if (monster == 0x35 || monster == 0x36)
+        return cut("0x50c71b", "el brillo 0x48 con la textura 0x5fd");
+    if (monster == 0x2a)
+        return cut("0x50c762", "las armas 0xef y 0xf0 colgadas con 0x509340");
+    if (Within(monster, 0x84, 0x86))
+        return cut("0x50c83b", "el arma 0xc1c, 0x225 o 0xa24 colgada con 0x509340");
+    if (monster == 0x87)
+        return cut("0x50c8ce", "el brillo 0x140");
+    return {};
+}
+
+glm::vec3 HangingLightOf(const Kernel::ActorState& actor, const glm::vec3& terrainLight, std::int32_t map)
+{
+    const float faint = std::bit_cast<float>(0x3dcccccdu);
+    if (actor.pk >= RedPk)
+        return {1.0f, faint, faint};
+    glm::vec3 light{F32(D(terrainLight.x) + D(actor.light.x)), F32(D(terrainLight.y) + D(actor.light.y)),
+                    F32(D(terrainLight.z) + D(actor.light.z))};
+    const std::int32_t level = map - 9;
+    if (level <= 0 || level > 8)
+        return light;
+    const std::uint16_t monster = actor.word376;
+    const bool keeper = Within(monster, 0x56, 0x59) || Within(monster, 0x5c, 0x5f) || Within(monster, 0x73, 0x76) ||
+                        Within(monster, 0x79, 0x7c) || Within(monster, 0x7f, 0x82) || Within(monster, 0x8a, 0x8f);
+    // 0x50dc2a: the quotient by 3 with IMUL 0x55555556 (signed; level is positive).
+    const std::int32_t third = level / 3;
+    if (!keeper || third == 0)
+        return light;
+    return {F32(static_cast<double>(third) * 0.5), faint, faint};
+}
+
+Core::Expected<float, std::string> ShadowGroundOf(const GameCharacterPass& pass, const Kernel::ActorState& actor,
+                                                  std::int32_t map, std::uint32_t address)
+{
+    if (!IsBloodCastle(map) || actor.byte1a1 == 0 || actor.dying == 0)
+        return actor.position.z;
+    const auto ground = GroundHeight(pass, actor.position.x, actor.position.y);
+    if (!ground)
+        return Core::Unexpected(std::format("{:#x}: falta el terreno de 0x5f93c0", address));
+    // fcom [z] and `test ah, 1`: with the terrain at the z or above (C0 at 0, ordered) it does not write.
+    if (*ground >= D(actor.position.z))
+        return actor.position.z;
+    return F32(*ground);
 }
 } // namespace Client::Actors::Drawing

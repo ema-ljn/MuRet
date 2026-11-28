@@ -277,7 +277,7 @@ void SdlAudio::StopSound(std::int32_t id, bool rewind)
     }
 }
 
-void SdlAudio::PlayMusic(std::string_view relativePath, bool loop)
+void SdlAudio::Play(std::string_view relativePath)
 {
     if (m_impl->musicTrack == nullptr)
     {
@@ -301,10 +301,11 @@ void SdlAudio::PlayMusic(std::string_view relativePath, bool loop)
         m_impl->StopMusic();
         return;
     }
-    PlayTrack(m_impl->musicTrack, loop);
+    // The 1 that 0x4acfd0 passes to wzAudioPlay does not repeat the track (CL10).
+    PlayTrack(m_impl->musicTrack, false);
 }
 
-void SdlAudio::StopMusic()
+void SdlAudio::Stop()
 {
     m_impl->StopMusic();
 }
@@ -360,7 +361,7 @@ void SdlAudio::ReleaseWorldSounds()
     }
 }
 
-int SdlAudio::MusicProgressPercent() const
+int SdlAudio::ProgressPercent() const
 {
     if (m_impl->musicTrack == nullptr || m_impl->music == nullptr)
     {

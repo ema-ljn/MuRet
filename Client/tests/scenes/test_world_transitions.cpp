@@ -160,8 +160,6 @@ public:
     {
         requests.push_back(rewind ? "stop-rewind:" + std::to_string(id) : "stop:" + std::to_string(id));
     }
-    void PlayMusic(std::string_view, bool) override {}
-    void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
 

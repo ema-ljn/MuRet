@@ -548,7 +548,7 @@ struct WorldRuntime
     // The music and the WAVs a map or a model registers; the requests go through `sounds`.
     Audio::IPlayback* audio = nullptr;
     Kernel::ISoundRequests* sounds = nullptr;
-    Audio::Music music{};
+    Audio::MusicPlayer music{};
 };
 
 // 0x63722e and 0x59afd6: with the counter above this, the game neither draws nor moves the hero.

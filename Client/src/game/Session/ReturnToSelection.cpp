@@ -138,7 +138,7 @@ void StopAudioForSceneReturn(Kernel::WorldRuntime& runtime)
 {
     if (runtime.audio == nullptr)
         return;
-    runtime.music.StopWorld(runtime.audio);
+    runtime.music.StopWorld();
     for (std::int32_t sound = 0; sound < 0x27e; ++sound)
         runtime.StopSound(Audio::SoundId{sound}, true);
 }

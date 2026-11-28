@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Audio/IMusicStream.h"
 #include "Audio/ISoundCatalog.h"
 #include "Audio/Playback.h"
 #include "AudioApi.h"
@@ -17,7 +18,7 @@
 
 namespace Client::Audio::Sdl
 {
-class AUDIO_API SdlAudio final : public Audio::IPlayback
+class AUDIO_API SdlAudio final : public Audio::IPlayback, public Audio::IMusicStream
 {
 public:
     // The catalog must outlive the playback: RegisterSound looks sounds up in it.
@@ -32,13 +33,13 @@ public:
     [[nodiscard]] std::string_view DriverName() const;
     void PlaySound(std::int32_t id, std::optional<glm::vec3> origin, bool loop) override;
     void StopSound(std::int32_t id, bool rewind) override;
-    void PlayMusic(std::string_view relativePath, bool loop) override;
-    void StopMusic() override;
     void SetEffectsVolume(std::uint8_t level) override;
     void SetListener(glm::vec3 position) override;
     void RegisterSound(std::int32_t id, std::string_view path) override;
     void ReleaseWorldSounds() override;
-    [[nodiscard]] int MusicProgressPercent() const override;
+    void Play(std::string_view relativePath) override;
+    void Stop() override;
+    [[nodiscard]] int ProgressPercent() const override;
 
 private:
     struct Impl;

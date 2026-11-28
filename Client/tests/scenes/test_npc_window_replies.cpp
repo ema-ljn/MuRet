@@ -83,8 +83,6 @@ public:
         sounds.push_back(id);
     }
     void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view, bool) override {}
-    void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
 

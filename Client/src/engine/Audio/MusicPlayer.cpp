@@ -1,5 +1,4 @@
 #include "Audio/MusicPlayer.h"
-#include "Audio/Playback.h"
 
 #include <array>
 #include <functional>
@@ -9,6 +8,8 @@ namespace Client::Audio
 {
 namespace
 {
+// wzAudioGetStreamOffsetRange's percent when the stream is at its end.
+constexpr int TrackEnd = 100;
 constexpr std::string_view LoginTheme = "Music\\main_theme.mp3";
 constexpr std::string_view PubTheme = "Music\\Pub.mp3";
 constexpr std::array<std::string_view, 22> WorldTracks{"Music\\Pub.mp3",
@@ -36,101 +37,105 @@ constexpr std::array<std::string_view, 22> WorldTracks{"Music\\Pub.mp3",
 
 } // namespace
 
-void Music::Play(IPlayback* playback, std::string_view relativePath, bool force)
+void MusicPlayer::Play(std::string_view relativePath)
 {
-    if (playback == nullptr || relativePath.empty() || m_blocked || (!force && !m_enabled) || relativePath == m_current)
+    if (m_stream == nullptr || relativePath.empty() || m_blocked || !m_enabled || relativePath == m_current)
         return;
-    playback->PlayMusic(relativePath, false);
+    m_stream->Play(relativePath);
     m_current.assign(relativePath);
 }
 
-void Music::Stop(IPlayback* playback, std::string_view relativePath, bool force)
+void MusicPlayer::Stop(std::string_view relativePath)
 {
-    if (playback == nullptr || relativePath.empty() || (!force && !m_enabled) || relativePath != m_current)
+    if (m_stream == nullptr || relativePath.empty() || !m_enabled || relativePath != m_current)
         return;
-    playback->StopMusic();
+    m_stream->Stop();
     m_current = {};
 }
 
-void Music::StopWorld(IPlayback* playback)
+bool MusicPlayer::ReachedTheEnd() const
 {
-    for (const std::string_view track : WorldTracks)
-        Stop(playback, track);
+    return m_stream != nullptr && m_stream->ProgressPercent() == TrackEnd;
 }
 
-void Music::StepWorld(IPlayback* playback, int map, bool safe, int heroCellLayer,
-                      const std::function<bool()>& inDeviasChurch)
+void MusicPlayer::StopWorld()
+{
+    for (const std::string_view track : WorldTracks)
+        Stop(track);
+}
+
+void MusicPlayer::StepWorld(int map, bool safe, int heroCellLayer, const std::function<bool()>& inDeviasChurch)
 {
     // The native loop's path groups run in this order. Each failed map comparison stops only that
     // map's path; retaining the order matters because Play replaces the shared stream immediately.
     if (map == 0)
     {
         if (safe)
-            Play(playback, heroCellLayer == 4 ? PubTheme : LoginTheme);
+            Play(heroCellLayer == 4 ? PubTheme : LoginTheme);
     }
     else
     {
-        Stop(playback, PubTheme);
-        Stop(playback, LoginTheme);
+        Stop(PubTheme);
+        Stop(LoginTheme);
     }
 
     if (map == 2)
     {
         if (safe)
-            Play(playback, inDeviasChurch && inDeviasChurch() ? "Music\\Church.mp3" : "Music\\Devias.mp3");
+            Play(inDeviasChurch && inDeviasChurch() ? "Music\\Church.mp3" : "Music\\Devias.mp3");
     }
     else
     {
-        Stop(playback, "Music\\Church.mp3");
-        Stop(playback, "Music\\Devias.mp3");
+        Stop("Music\\Church.mp3");
+        Stop("Music\\Devias.mp3");
     }
 
     if (map == 3)
     {
         if (safe)
-            Play(playback, "Music\\Noria.mp3");
+            Play("Music\\Noria.mp3");
     }
     else
-        Stop(playback, "Music\\Noria.mp3");
+        Stop("Music\\Noria.mp3");
 
     if (map == 1 || map == 5)
-        Play(playback, "Music\\Dungeon.mp3");
+        Play("Music\\Dungeon.mp3");
     else
-        Stop(playback, "Music\\Dungeon.mp3");
+        Stop("Music\\Dungeon.mp3");
 
     if (map == 7)
-        Play(playback, "Music\\atlans.mp3");
+        Play("Music\\atlans.mp3");
     else
-        Stop(playback, "Music\\atlans.mp3");
+        Stop("Music\\atlans.mp3");
 
     if (map == 10)
-        Play(playback, "Music\\icarus.mp3");
+        Play("Music\\icarus.mp3");
     else
-        Stop(playback, "Music\\icarus.mp3");
+        Stop("Music\\icarus.mp3");
 
     if (map == 8)
-        Play(playback, "Music\\tarkan.mp3");
+        Play("Music\\tarkan.mp3");
     else
-        Stop(playback, "Music\\tarkan.mp3");
+        Stop("Music\\tarkan.mp3");
 
     if (map == 4)
-        Play(playback, "Music\\lost_tower_a.mp3");
+        Play("Music\\lost_tower_a.mp3");
     else
-        Stop(playback, "Music\\lost_tower_a.mp3");
+        Stop("Music\\lost_tower_a.mp3");
 
     if ((map >= 24 && map <= 29) || map == 36)
-        Play(playback, "Music\\kalima.mp3");
+        Play("Music\\kalima.mp3");
     else
-        Stop(playback, "Music\\kalima.mp3");
+        Stop("Music\\kalima.mp3");
 
     if (map == 31)
-        Play(playback, "Music\\huntingground.mp3");
+        Play("Music\\huntingground.mp3");
     else
-        Stop(playback, "Music\\huntingground.mp3");
+        Stop("Music\\huntingground.mp3");
 
     if (map == 33)
-        Play(playback, "Music\\Aida.mp3");
+        Play("Music\\Aida.mp3");
     else
-        Stop(playback, "Music\\Aida.mp3");
+        Stop("Music\\Aida.mp3");
 }
 } // namespace Client::Audio

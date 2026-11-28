@@ -691,8 +691,8 @@ e0cfc7c8faecdc3f93fbe4851025fee774778f95	Client/src/World/WorldTerrain.cpp	Clien
 e0cfc7c8faecdc3f93fbe4851025fee774778f95	Client/src/World/WorldTerrain.h	Client/src/game/Terrain/WorldTerrain.h
 c5d07e8c4154241f842c0132a6f93bfaaf960dd7	Client/src/game/Kernel/LoadedWorld.cpp	Client/src/game/Assets/LoadedWorld.cpp
 c5d07e8c4154241f842c0132a6f93bfaaf960dd7	Client/src/game/Kernel/LoadedWorld.h	Client/src/game/Assets/LoadedWorld.h
-	Client/src/engine/Audio/Music.cpp	Client/src/engine/Audio/MusicPlayer.cpp
-	Client/src/engine/Audio/Music.h	Client/src/engine/Audio/MusicPlayer.h
+fe0d0d6bbcda874c3e8824869092b1eb537e79c7	Client/src/engine/Audio/Music.cpp	Client/src/engine/Audio/MusicPlayer.cpp
+fe0d0d6bbcda874c3e8824869092b1eb537e79c7	Client/src/engine/Audio/Music.h	Client/src/engine/Audio/MusicPlayer.h
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/GameLogic/CharacterPosition.cpp	Client/src/game/Actors/CharacterPosition.cpp
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/GameLogic/CharacterPosition.h	Client/src/game/Actors/CharacterPosition.h
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/GameLogic/GateCheck.cpp	Client/src/game/Movement/GateCheck.cpp

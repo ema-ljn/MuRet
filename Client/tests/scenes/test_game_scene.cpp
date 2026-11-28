@@ -947,8 +947,6 @@ public:
     explicit SpearmanRegistrationPlayback(const WorldRuntime& runtime) : m_runtime(runtime) {}
     void PlaySound(std::int32_t, std::optional<glm::vec3>, bool) override {}
     void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view, bool) override {}
-    void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
     void RegisterSound(std::int32_t id, std::string_view path) override

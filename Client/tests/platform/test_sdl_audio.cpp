@@ -239,9 +239,9 @@ TEST(SdlAudioTest, WritesLoopedSyntheticAudioToDiskDriver)
     const auto finished = capture("finished.raw",
                                   [&](Client::Audio::Sdl::SdlAudio& audio)
                                   {
-                                      audio.PlayMusic(MusicWave, false);
+                                      audio.Play(MusicWave);
                                       std::this_thread::sleep_for(std::chrono::milliseconds(1800));
-                                      EXPECT_EQ(audio.MusicProgressPercent(), 0);
+                                      EXPECT_EQ(audio.ProgressPercent(), 0);
                                   });
     EXPECT_GT(finished.size(), 1024U);
     EXPECT_TRUE(std::ranges::any_of(finished, nonzero));

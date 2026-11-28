@@ -23,7 +23,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <glm/ext/vector_float3.hpp>
@@ -56,8 +55,6 @@ public:
         requests.push_back({id, origin, loop});
     }
     void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view, bool) override {}
-    void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
 

@@ -12,7 +12,6 @@
 
 #include <cstdint>
 #include <optional>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -33,8 +32,6 @@ public:
     {
         stops.emplace_back(id, rewind);
     }
-    void PlayMusic(std::string_view, bool) override {}
-    void StopMusic() override {}
     void SetEffectsVolume(std::uint8_t level) override
     {
         volume = level;

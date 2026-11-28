@@ -1,5 +1,6 @@
 #include "Events/Crywolf/CrywolfMusic.h"
 
+#include "Audio/IMusicStream.h"
 #include "Audio/Playback.h"
 #include "Kernel/WorldRuntime.h"
 #include "Audio/SoundId.h"
@@ -37,7 +38,7 @@ constexpr std::string_view StartTrack = "Music\\crywolf_back-03.ogg";
 
 using Stages = std::initializer_list<std::uint8_t>;
 
-class RecordingPlayback final : public Client::Audio::IPlayback
+class RecordingPlayback final : public Client::Audio::IPlayback, public Client::Audio::IMusicStream
 {
 public:
     void PlaySound(std::int32_t id, std::optional<glm::vec3>, bool) override
@@ -45,19 +46,19 @@ public:
         events.push_back(std::format("sound:{:#x}", id));
     }
     void StopSound(std::int32_t, bool) override {}
-    void PlayMusic(std::string_view path, bool) override
+    void Play(std::string_view path) override
     {
         events.push_back(std::format("play:{}", path));
         if (progressOfANewTrack.has_value())
             progress = *progressOfANewTrack;
     }
-    void StopMusic() override
+    void Stop() override
     {
         events.emplace_back("stop");
     }
     void SetEffectsVolume(std::uint8_t) override {}
     void SetListener(glm::vec3) override {}
-    [[nodiscard]] int MusicProgressPercent() const override
+    [[nodiscard]] int ProgressPercent() const override
     {
         return progress;
     }
@@ -84,6 +85,7 @@ struct Frame
     {
         runtime.audio = &playback;
         runtime.sounds = &sounds;
+        runtime.music.Attach(&playback);
         runtime.map = map;
     }
 
@@ -95,7 +97,7 @@ struct Frame
 
     void StartWith(std::string_view track)
     {
-        runtime.music.Play(&playback, track);
+        runtime.music.Play(track);
     }
 
     RecordingPlayback playback{};
@@ -295,6 +297,7 @@ TEST(CrywolfMusicTest, WithoutAPlaybackDeviceTheResultIsStillRecorded)
     Frame frame;
     frame.runtime.audio = nullptr;
     frame.runtime.sounds = nullptr;
+    frame.runtime.music.Attach(nullptr);
 
     frame.StepAt(3);
     EXPECT_TRUE(frame.runtime.music.Current().empty());

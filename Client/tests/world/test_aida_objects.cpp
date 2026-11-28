@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-// 0x4250f0, el paso de los objetos de los mapas 33 y 54 (0x605a97 después de la cadena de 0x605a62, con
-// 0x425070): 06 § El mundo de la selección.
+// 0x4250f0, the step of the objects of maps 33 and 54 (0x605a97 after the chain of 0x605a62, with 0x425070): 06 § El
+// mundo de la selección.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -49,9 +49,9 @@ struct Step
     }
 };
 
-// 0x425137..0x42517c (0x1e) y 0x425186..0x4251c9 (0x47): un rand() % 5 por 0,01 que queda en la x87, y
-// cada canal guardado de su suma: verde (b + 0,4; b + 0,6; b + 0,4), rojo (b + 0,9; b + 0,2; b + 0,2); con
-// radio 2 en el buffer dinámico. Después, el 0x246.
+// 0x425137..0x42517c (0x1e) and 0x425186..0x4251c9 (0x47): one rand() % 5 times 0.01 that stays in the x87, and each
+// channel stored from its sum: green (b + 0.4; b + 0.6; b + 0.4), red (b + 0.9; b + 0.2; b + 0.2); with radius 2 in
+// the dynamic buffer. Then, the 0x246.
 TEST(AidaObjectsTest, TheGuardiansLightTheDynamicBufferWithOneDraw)
 {
     for (const std::uint8_t map : {SelectionMap, AidaMap})
@@ -81,8 +81,8 @@ TEST(AidaObjectsTest, TheGuardiansLightTheDynamicBufferWithOneDraw)
     }
 }
 
-// 0x425126: la V del 0x19 y del 0x1c baja 0,015 (0x6b8a24) por paso; 0x4251d3: el 0x29 a medio alpha;
-// 0x4251e8: el 0x40 a 0,05 keys por paso.
+// 0x425126: the V of the 0x19 and the 0x1c drops 0.015 (0x6b8a24) per step; 0x4251d3: the 0x29 at half alpha;
+// 0x4251e8: the 0x40 at 0.05 keys per step.
 TEST(AidaObjectsTest, TheScrollingTheHalfTransparentAndTheSlowObjectsStoreTheirFields)
 {
     Step step;
@@ -105,8 +105,8 @@ TEST(AidaObjectsTest, TheScrollingTheHalfTransparentAndTheSlowObjectsStoreTheirF
     EXPECT_EQ(step.sounds, (std::vector<std::int32_t>{0x246, 0x246, 0x246, 0x246}));
 }
 
-// 0x4251df: los que emiten en el dibujo (0x425260) quedan con +0x58 en −2; el 0x3c no, porque se oculta
-// en su propio caso del dibujo.
+// 0x4251df: those that emit in the draw (0x425260) stay with +0x58 at −2; the 0x3c does not, because it hides in its
+// own draw case.
 TEST(AidaObjectsTest, TheEmittersHideTheirMeshButNotTheButterflyPost)
 {
     Step step;
@@ -123,8 +123,8 @@ TEST(AidaObjectsTest, TheEmittersHideTheirMeshButNotTheButterflyPost)
     EXPECT_EQ(post.state.hiddenMesh, Client::Models::NoHiddenMesh);
 }
 
-// 0x4251fb: el 0x246 sale con cada objeto, también de un tipo sin caso; sin emisor, corta después de los
-// stores. Sin el buffer dinámico, el 0x1e corta en 0x5f9780 después de su rand().
+// 0x4251fb: the 0x246 goes out with every object, also of a type without a case; without an emitter, it cuts after
+// the stores. Without the dynamic buffer, the 0x1e cuts at 0x5f9780 after its rand().
 TEST(AidaObjectsTest, EveryObjectRequestsTheAmbientSoundAndTheGuardianNeedsTheDynamicLight)
 {
     Step step;

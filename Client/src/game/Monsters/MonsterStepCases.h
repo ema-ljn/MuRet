@@ -24,47 +24,46 @@ struct ActorState;
 struct WorldRuntime;
 } // namespace Client::Kernel
 
-// Los casos por tipo del paso de los personajes que no son el 0x20a (0x4fd5f0 y 0x508ea0): el nombre del 0xc5, la
-// caída del 0xf1 y los objetos del asedio de 0x42da90. Contrato: 06 § El cuerpo de los personajes (0x4fd5f0) y § Los
+// The per-type cases of the character step that are not the 0x20a (0x4fd5f0 and 0x508ea0): the name of the 0xc5, the
+// fall of the 0xf1 and the siege objects of 0x42da90. Contract: 06 § El cuerpo de los personajes (0x4fd5f0) and § Los
 // objetos del mapa 30 en el paso (0x42da90).
 namespace Client::Monsters
 {
 
-// 0x4fd603..0x4fd698, el 0xc5 (las puertas de Kalima): "%s ." (0x6c88bc) con el nombre (+0x1d9, como cadena de C),
-// Text.bmd[1176] (0x77133fc) con +0x1d6 sin signo, el strcat de los dos en el buffer de 100 bytes y 0x4381f0 con la
-// posición (+0x10). Sin rand(). Sin Text.bmd, o si el strcat se pasara de los 100 bytes, corta.
+// 0x4fd603..0x4fd698, the 0xc5 (the Kalima gates): "%s ." (0x6c88bc) with the name (+0x1d9, as a C string),
+// Text.bmd[1176] (0x77133fc) with +0x1d6 unsigned, the strcat of both into the 100-byte buffer and 0x4381f0 with the
+// position (+0x10). No rand(). Without Text.bmd, or if the strcat would go past 100 bytes, it cuts.
 [[nodiscard]] Core::Expected<void, std::string>
 QueueTheGateName(const Kernel::ActorState& actor, const Tables::TextTable* texts, Kernel::WorldTextQueue& queue);
 
-// 0x4fb910..0x4fb9c7, el 0xf1 desde 0x4fb380: la z sube +0xe4 y +0xe4 baja 6; si la altura del terreno (0x5f93c0) más
-// 30 queda por encima, la z pasa a esa y +0xe4 a −0,4f veces; los ángulos suman +0xcc, +0xd0 y +0xd4, que se achican a
-// 0,8f. `height` es 0x5f93c0(x, y).
+// 0x4fb910..0x4fb9c7, the 0xf1 from 0x4fb380: z rises by +0xe4 and +0xe4 drops by 6; if the terrain height (0x5f93c0)
+// plus 30 is above, z takes it and +0xe4 is multiplied by −0.4f; the angles add +0xcc, +0xd0 and +0xd4, which shrink by
+// 0.8f. `height` is 0x5f93c0(x, y).
 void StepTheFallingBall(Kernel::ActorState& actor, const std::function<double(float, float)>& height);
 
-// 0x42a020(objeto, modo, rango): si algún jugador del pool (+0x88 en 1, el tipo 0x20a y +0x16c) está cerca del
-// objeto. El modo 0: dx y dy (objeto menos jugador) debajo del rango y de 100; el 1: |dx| debajo de 1 y dy entre 0 y
-// el rango; el 2: la distancia en el plano debajo del rango. Un NaN pasa las comparaciones con C0 (las de "debajo").
+// 0x42a020(object, mode, range): whether any player of the pool (+0x88 at 1, type 0x20a and +0x16c) is near the object.
+// Mode 0: dx and dy (object minus player) below the range and below 100; 1: |dx| below 1 and dy between 0 and the
+// range; 2: the planar distance below the range. A NaN passes the C0 comparisons (the "below" ones).
 [[nodiscard]] bool PlayerNear(const Kernel::ActorState& object, std::span<const Kernel::ActorState> pool,
                               std::uint8_t mode, float range);
 
 struct CastleObjectStep
 {
     Kernel::WorldRuntime& runtime;
-    // El pool de 0x743a16c, para 0x42a020.
+    // The pool of 0x743a16c, for 0x42a020.
     std::span<const Kernel::ActorState> pool;
-    // 0x5f93c0(x, y); vacía, el 216 corta.
+    // 0x5f93c0(x, y); empty, the 216 cuts.
     std::function<double(float, float)> height{};
-    // El modelo del personaje, para 0x4ea030; sin él, el 286 y el 287 cortan cuando cambian la acción.
+    // The character's model, for 0x4ea030; without it, 286 and 287 cut when they change the action.
     const Models::Skeleton* skeleton = nullptr;
 };
 
-// 0x42da90(c, c), desde 0x508eed después de 0x505de0: fuera del mapa 30 nada. En el 30, por +0x376: el 216 (0xd8) se
-// apoya 200 sobre el terreno, copia +0x78 a 0x7239e4 y +0x42c es +0x78 distinto de 0; el 277 (0x115) pone 0x7239d9
-// en 1 (las puertas no se abren en 0x42da60); el 278 (0x116) con +0x42d en 0x80 guarda su x y su y en 0x7239dc y
-// 0x7239e0; el 283 (0x11b) con el asedio +0x58 en −1 y +0x42c en 1, sin él −2 y 0; el 286 y el 287 (0x11e y 0x11f)
-// abren con un jugador justo enfrente (0x42a020 con el modo 1 y 500) o con 0x7239d8 en 2 (la acción 4, 0x7239d8 en 2,
-// +0x110 en 1 y +0x100 en 300) y cierran cuando se acaba +0x100 sin nadie (la acción 0), y +0x100 baja 1 en cada paso.
-// Sin rand().
+// 0x42da90(c, c), from 0x508eed after 0x505de0: outside map 30, nothing. In 30, by +0x376: 216 (0xd8) rests 200 above
+// the terrain, copies +0x78 to 0x7239e4 and +0x42c is +0x78 nonzero; 277 (0x115) sets 0x7239d9 to 1 (the gates do not
+// open in 0x42da60); 278 (0x116) with +0x42d at 0x80 stores its x and y in 0x7239dc and 0x7239e0; 283 (0x11b) with the
+// siege sets +0x58 to −1 and +0x42c to 1, without it −2 and 0; 286 and 287 (0x11e and 0x11f) open with a player right
+// in front (0x42a020 with mode 1 and 500) or with 0x7239d8 at 2 (action 4, 0x7239d8 at 2, +0x110 at 1 and +0x100 at
+// 300) and close when +0x100 runs out with nobody there (action 0), and +0x100 drops by 1 each step. No rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheCastleObject(Kernel::ActorState& actor,
                                                                     const CastleObjectStep& step);
 } // namespace Client::Monsters

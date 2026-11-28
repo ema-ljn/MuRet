@@ -35,21 +35,21 @@ namespace Client::Combat
 {
 namespace
 {
-// 0x4cf9a9..0x4cf9c3: la luz del número del muerto, 1, 0,6f y 0, y su escala, 15.
+// 0x4cf9a9..0x4cf9c3
 const glm::vec3 KillDamageLight{1.0f, 0.6f, 0.0f};
 constexpr float KillDamageScale = 15.0f;
-// 0x76e0b64: el texto 486 de Text.bmd (0x76bd1dc + 486 · 300), el formato de la experiencia.
+// 0x76e0b64: Text.bmd's text 486 (0x76bd1dc + 486 · 300), the experience format.
 constexpr std::size_t ExperienceText = 486;
 constexpr std::uint8_t KillerOnRecord = 2;
-// Los empujes del 0x17: la skill 0x28 y la 0x3b (0x4d0ab3, 0x4d0b41).
+// The 0x17's pushes (0x4d0ab3, 0x4d0b41).
 constexpr std::uint8_t FirstPushSkill = 0x28;
 constexpr std::uint8_t SecondPushSkill = 0x3b;
-// 0x4d0a5f..0x4d0aa2: 0x4d07c0 corre en Blood Castle (11 a 17) y en Chaos Castle (18 a 23), dos rangos seguidos.
+// 0x4d0a5f..0x4d0aa2: 0x4d07c0 runs in Blood Castle (11 to 17) and Chaos Castle (18 to 23), two adjacent ranges.
 using Maps::FirstBloodCastleMap;
 using Maps::FirstChaosCastleMap;
 using Maps::LastChaosCastleMap;
-// El TerrainWall de 0x4d07c0: 8 en Chaos Castle (cae) y 0x20 (lo empujan); el bit 8 de la celda de al lado decide
-// hacia dónde.
+// 0x4d07c0's TerrainWall: 8 in Chaos Castle (it falls) and 0x20 (it is pushed); bit 8 of the neighbor cell decides
+// which way.
 constexpr std::uint16_t FallWall = 0x08;
 constexpr std::uint16_t PushWall = 0x20;
 constexpr Audio::SoundId ChaosCastleFallSound{0x60};
@@ -66,14 +66,14 @@ bool IsPushedBySkill(std::uint8_t skill)
     return skill == FirstPushSkill || skill == SecondPushSkill;
 }
 
-// FILD r; FADD float c; FSTP float: la suma en la x87 y guardada en float.
+// FILD r; FADD float c; FSTP float: the sum in the x87, stored as float.
 float Plus(std::int32_t drawn, float constant)
 {
     return static_cast<float>(static_cast<double>(drawn) + static_cast<double>(constant));
 }
 
-// 0x4cfc93..0x4cfcb7: sprintf(texto 486, experiencia) y 0x555190(0x576798c, texto, 1); el 0x9C (0x4d0775..0x4d0799),
-// lo mismo con 0x5767990.
+// 0x4cfc93..0x4cfcb7: sprintf(text 486, experience) and 0x555190(0x576798c, text, 1); the 0x9C (0x4d0775..0x4d0799),
+// the same with 0x5767990.
 Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, const Chat::ChatReceiveContext& chat)
 {
     const std::optional<std::string_view> format = Ui::TextAt(chat.texts, ExperienceText);
@@ -82,16 +82,15 @@ Core::Expected<void, std::string> AddTheExperienceMessage(std::uint32_t amount, 
     if (chat.measure == nullptr)
         return Core::Unexpected(std::string("0x555190: no hay con qué medir el mensaje de la experiencia"));
     const std::string text = Crt::Sprintf(CString(*format), amount);
-    // 0x576798c y 0x5767990, en la .bss: nadie les escribe un nombre en lo que MuRet porta (*inferido*, P-C252 d).
+    // 0x576798c and 0x5767990, in .bss: nothing MuRet ports writes a name to them (*inferred*, P-C252 d).
     return Chat::AddGameMessage(chat.world.Runtime(), *chat.measure, chat.screen, std::string_view{}, text,
                                 Ui::SystemMessage);
 }
 
-// 0x4d08ea..0x4d0a06: lo empujan del puente, hacia el lado de la celda vecina con el bit 8: la de la derecha
-// (0x4d0949) o, sin el bit ahí, la de la izquierda (0x4d0979); sin ninguna, el empujón queda como estaba. En el borde
-// de la grilla (la celda 0xffff, o la 0 sin el bit en la 1) el original lee la memoria de al lado de TerrainWall
-// (0x7d0d348): MuRet saca los tres rand() de antes de esa lectura y descarta el empujón (+0x1a1 de nuevo en 0), sin
-// cortar el handler (07, Q-C1180).
+// 0x4d08ea..0x4d0a06: pushed off the bridge, toward the side of the neighbor cell with bit 8: the right one (0x4d0949)
+// or, without the bit there, the left one (0x4d0979); with neither, the push stays as it was. At the grid's edge (cell
+// 0xffff, or 0 without the bit at 1) the original reads the memory next to TerrainWall (0x7d0d348): MuRet draws the
+// three rand() before that read and discards the push (+0x1a1 back at 0), without cutting the handler (07, Q-C1180).
 void PushOffTheBridge(Kernel::ActorState& actor, std::size_t cell,
                       const Data::Terrain::TerrainLayer<std::uint16_t>& cells, Crt::CrtRandom& random)
 {
@@ -122,21 +121,21 @@ void PushOffTheBridge(Kernel::ActorState& actor, std::size_t cell,
     }
     actor.angles.z = actor.push.z;
     actor.floatCC = Plus(random.Next() % 6, 8.0f);
-    // 0x4d09c2..0x4d09d4: NEG y el resto con signo de 2: 0 o −1.
+    // 0x4d09c2..0x4d09d4: NEG and the signed remainder of 2: 0 or −1.
     const std::int32_t side = (-random.Next()) % 2;
     actor.floatD4 = 5.0f;
     actor.pushOrigin = actor.position;
     actor.floatD0 = Plus(side, 13.0f);
 }
 
-// 0x4d07c0 con los dos argumentos en el mismo personaje.
+// 0x4d07c0 with both arguments on the same character.
 Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, const ActorCombatContext& combat)
 {
     Kernel::WorldRuntime& runtime = combat.world.Runtime();
     const auto& attributes = Terrain::TerrainOrEmpty(combat.terrain).attributes;
     if (!attributes)
         return Core::Unexpected(std::string("0x4d07ff: faltan los atributos del mundo cargado"));
-    // 0x4d07ca..0x4d07ff: la celda de ftol(x · 0,01f) y ftol(y · 0,01f), de a un byte.
+    // 0x4d07ca..0x4d07ff: the cell from ftol(x · 0.01f) and ftol(y · 0.01f), one byte each.
     constexpr double CellScale = static_cast<double>(0.01f);
     const auto x = Math::OriginalFtolLow(static_cast<double>(actor.position.x) * CellScale);
     const auto y = Math::OriginalFtolLow(static_cast<double>(actor.position.y) * CellScale);
@@ -150,7 +149,7 @@ Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, cons
     auto& random = combat.random;
     if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap && (wall & FallWall) == FallWall)
     {
-        // 0x4d0848..0x4d08dc: cae al vacío de Chaos Castle.
+        // 0x4d0848..0x4d08dc: falls into Chaos Castle's void.
         actor.byte1a1 = 1;
         actor.byte398 = 0;
         actor.floatE4 = Plus(random.Next() % 10, 10.0f);
@@ -167,7 +166,7 @@ Core::Expected<void, std::string> DieInTheCastle(Kernel::ActorState& actor, cons
     {
         PushOffTheBridge(actor, cell, attributes->cells, random);
     }
-    // 0x4d0a0c..0x4d0a25: el héroe con el objeto del evento lo vuelve a 0x40ba20.
+    // 0x4d0a0c..0x4d0a25: the hero with the event object returns it to 0x40ba20.
     if (&actor == &combat.world.Hero() && runtime.eventObject)
     {
         runtime.eventObject->field10 = 0;
@@ -221,7 +220,7 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.byte1a1 = 0;
     if (!IsPushedBySkill(reply.skill))
         return {};
-    // 0x4d0ac1..0x4d0b38: el empuje de la skill.
+    // 0x4d0ac1..0x4d0b38: the skill's push.
     actor.byte1a1 = 1;
     actor.byte398 = 0;
     const std::int32_t first = combat.random.Next() % 5;
@@ -233,7 +232,8 @@ Core::Expected<void, std::string> ApplyDeath(const Protocol::Combat::Death& repl
     actor.floatD4 = 0.0f;
     actor.pushOrigin = actor.position;
     actor.floatD0 = Plus(second, 40.0f);
-    // 0x4d0b49..0x4d0b98: el rumbo hacia el que lo mató (0x4e93f0) va a +0x24 y +0x30; la cabeza copia +0x1c y +0x20.
+    // 0x4d0b49..0x4d0b98: the heading toward the killer (0x4e93f0) goes to +0x24 and +0x30; the head copies +0x1c and
+    // +0x20.
     const Kernel::ActorState& killer = world.Actors()[Kernel::ActorWithKey(world, reply.killer)];
     const auto angle =
         static_cast<float>(Math::CreateAngle(actor.position.x, actor.position.y, killer.position.x, killer.position.y));

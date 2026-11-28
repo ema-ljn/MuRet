@@ -15,8 +15,8 @@
 #include <functional>
 #include <optional>
 
-// Las partículas del conjunto completo (0x50fddb) contra el ASM de c32bbd5f: la 6f1/3 de las botas (0x544088 al crear,
-// 0x5480b7 al pasar) y la órbita 60f/0 con su caída a la /1 (0x542f74 al crear, 0x547354 y 0x5472da al pasar).
+// The full set's particles (0x50fddb) against the ASM of c32bbd5f: the boots' 6f1/3 (0x544088 on creation, 0x5480b7
+// on step) and the orbit 60f/0 with its fall to /1 (0x542f74 on creation, 0x547354 and 0x5472da on step).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -46,7 +46,7 @@ glm::vec3 Faded(const glm::vec3& light, std::uint32_t factorBits)
     return {F32(D(light.x) * factor), F32(D(light.y) * factor), F32(D(light.z) * factor)};
 }
 
-// La 60f/0 y la /3 nacen y giran con las mismas instrucciones: todo igual salvo el subtipo y el dueño.
+// 60f/0 and /3 are born and turn with the same instructions: everything equal except the subtype and the owner.
 void ExpectSameOrbit(const Particle& set, const Particle& plain)
 {
     EXPECT_EQ(set.alive, plain.alive);
@@ -67,7 +67,7 @@ void ExpectSameOrbit(const Particle& set, const Particle& plain)
 class FullSetOrbitTest : public testing::Test
 {
 protected:
-    // La órbita del conjunto (0x510339): en el personaje, la luz en 1 y la escala 0,19f, con el lugar 3 de dueño.
+    // The set's orbit (0x510339): on the character, light at 1 and scale 0.19f, with slot 3 as owner.
     void Create(Particles& pool, std::int32_t subtype, ParticleOwner owner, CrtRandom& random)
     {
         const auto made = pool.CreateChecked(Orbit, {100.0f, 200.0f, 300.0f}, {0.0f, 0.0f, 45.0f}, glm::vec3(1.0f),
@@ -83,7 +83,7 @@ protected:
                                                        actions);
     }
 
-    // El paso con el resolvedor del estado del dueño (el de un efecto con modelo) y sin el de los personajes.
+    // The step with the owner state resolver (a model effect's) and without the characters' one.
     auto StepWithStates(Particles& pool, CrtRandom& random, const Client::Particles::ParticleOwnerStates& states)
     {
         return Client::Particles::StepParticlesChecked(pool, random, std::cref(m_clock), nullptr, m_trig, {}, {}, {},
@@ -105,9 +105,9 @@ protected:
 };
 } // namespace
 
-// 0x543f49..0x544153: lo de la neblina (giro, escala, caída, la luz de la escena y ±10, ±10, ±20) y, con la /3, la
-// textura cra_04 (0x5ae), la luz del argumento, vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro
-// corrimiento. Once rand() en el orden del ASM.
+// 0x543f49..0x544153: the mist's part (turn, scale, fall, the scene's light and ±10, ±10, ±20) and, with /3, texture
+// cra_04 (0x5ae), the argument's light, life 12, another turn, vz 2, scale (rand() % 3 + 3) · 0.18f and another shift.
+// Eleven rand() in the ASM's order.
 TEST(FullSetParticlesTest, TheBootsMistIsBornAsTheMistWithElevenRandomsAndItsOwnLight)
 {
     Particles particles;
@@ -144,7 +144,7 @@ TEST(FullSetParticlesTest, TheBootsMistIsBornAsTheMistWithElevenRandomsAndItsOwn
                                     F32(static_cast<double>(r[10] % 40 - 20) + D(first.z))));
 }
 
-// 0x543fcd: sin escena, la /3 corta como la /0, después de los tres rand() del prefijo y sin los de las botas.
+// 0x543fcd: without a scene, /3 cuts like /0, after the prefix's three rand() and without the boots' ones.
 TEST(FullSetParticlesTest, TheBootsMistWithoutSceneStopsAfterTheMistPrefix)
 {
     Particles particles;
@@ -160,9 +160,9 @@ TEST(FullSetParticlesTest, TheBootsMistWithoutSceneStopsAfterTheMistPrefix)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x547fe8..0x5480ed: el viento (dos rand()), la vida y el movimiento común; la escala +0,03f, vx y vy de dos rand(),
-// vz la suma retenida con 0,1f; con vida bajo 10, la luz por 0,9090909f; con la /3, la escala −0,038f, vz la suma sin
-// redondear menos 0,02f y la luz por 0,98039216f. Vive 12 pasos.
+// 0x547fe8..0x5480ed: the wind (two rand()), the life and the common movement; scale +0.03f, vx and vy from two
+// rand(), vz the sum retained with 0.1f; with life below 10, the light times 0.9090909f; with /3, scale −0.038f, vz the
+// unrounded sum minus 0.02f and the light times 0.98039216f. It lives 12 steps.
 TEST(FullSetParticlesTest, TheBootsMistShrinksSlowsItsRiseAndFadesForTwelveSteps)
 {
     Particles particles;
@@ -205,7 +205,7 @@ TEST(FullSetParticlesTest, TheBootsMistShrinksSlowsItsRiseAndFadesForTwelveSteps
     }
 }
 
-// 0x542f74 y 0x5471bd: mientras su personaje no cae, la /0 es la /3 con el lugar del personaje de dueño.
+// 0x542f74 and 0x5471bd: while its character does not fall, /0 is /3 with the character's slot as owner.
 TEST_F(FullSetOrbitTest, TheSetOrbitIsBornAndTurnsLikeTheOrbitOfSubtypeThree)
 {
     Particles set;
@@ -232,8 +232,8 @@ TEST_F(FullSetOrbitTest, TheSetOrbitIsBornAndTurnsLikeTheOrbitOfSubtypeThree)
     EXPECT_FALSE(set.All()[0].alive);
 }
 
-// 0x547354..0x5473a9: con la acción del dueño en [0xd, 0x21] o [0x38, 0x3c], después de girar, la /1 con la vida en 20
-// si tenía más, la velocidad en 0 y la partida en la posición. Fuera de esos rangos sigue siendo la /0.
+// 0x547354..0x5473a9: with the owner's action in [0xd, 0x21] or [0x38, 0x3c], after turning, /1 with life at 20 if it
+// had more, velocity at 0 and the start at the position. Outside those ranges it stays /0.
 TEST_F(FullSetOrbitTest, TheSetOrbitFallsWithTheActionsOfItsOwner)
 {
     struct Case
@@ -275,8 +275,8 @@ TEST_F(FullSetOrbitTest, TheSetOrbitFallsWithTheActionsOfItsOwner)
     }
 }
 
-// 0x5472da..0x547351: la /1 ya no gira ni lee al dueño; con la vida en 20 o menos, la luz por 0,9090909f, y muere
-// cuando se le acaba la vida.
+// 0x5472da..0x547351: /1 no longer turns or reads the owner; with life at 20 or less, the light times 0.9090909f, and
+// it dies when its life runs out.
 TEST_F(FullSetOrbitTest, TheFallenOrbitStaysWhereItFellAndFades)
 {
     Particles set;
@@ -307,12 +307,12 @@ TEST_F(FullSetOrbitTest, TheFallenOrbitStaysWhereItFellAndFades)
     }
 }
 
-// 0x52b8ff y 0x52b977: el 0x61d suelta la /0 con él de dueño (+0x40), y 0x54735f lee su +0x111 (ModelEffect::animation)
-// como la acción de un personaje, por ParticleOwnerStates: con 0 (la del prefijo de 0x518cf0) sigue girando como la /3,
-// en [0xd, 0x21] o [0x38, 0x3c] cae a la /1. Lo lee aunque el lugar del efecto esté muerto; sin el resolvedor, o con un
-// lugar que no responde, MissingOwner después de girar. Lo esperado sale de orbit.py (0x542ed0 y 0x5446e0..0x5473a9
-// en una x87 aparte): con la semilla 1, la fase 17, la subida 0x4028f5c2 y, tras un paso (el viento y la vida 59), el
-// punto (0x430ab77f; 0x433df31a; 0x439751ec) y la escala 0x3e6978d4.
+// 0x52b8ff and 0x52b977: 0x61d releases /0 with itself as owner (+0x40), and 0x54735f reads its +0x111
+// (ModelEffect::animation) as a character's action, through ParticleOwnerStates: with 0 (that of 0x518cf0's prefix)
+// it keeps turning like /3, in [0xd, 0x21] or [0x38, 0x3c] it falls to /1. It reads it even if the effect's slot is
+// dead; without the resolver, or with a slot that does not answer, MissingOwner after turning. The expected values come
+// from orbit.py (0x542ed0 and 0x5446e0..0x5473a9 on a separate x87): with seed 1, phase 17, rise 0x4028f5c2 and,
+// after one step (the wind and life 59), the point (0x430ab77f; 0x433df31a; 0x439751ec) and scale 0x3e6978d4.
 TEST_F(FullSetOrbitTest, TheSetOrbitReadsTheActionOfItsModelEffectOwner)
 {
     static constexpr ParticleOwner DecalOwner{ParticleOwnerKind::ModelEffect, 5};
@@ -380,8 +380,8 @@ TEST_F(FullSetOrbitTest, TheSetOrbitReadsTheActionOfItsModelEffectOwner)
     }
 }
 
-// 0x54735c: la /0 lee al dueño por +0x40. Sin un personaje del pool (sin el resolvedor, con un lugar que no está o sin
-// dueño), MissingOwner después de girar.
+// 0x54735c: /0 reads the owner through +0x40. Without a pool character (without the resolver, with a missing slot or
+// without owner), MissingOwner after turning.
 TEST_F(FullSetOrbitTest, TheSetOrbitWithoutAnActorOwnerIsMissingItsOwner)
 {
     const std::uint8_t action = 0;

@@ -45,7 +45,7 @@
 
 namespace
 {
-// El batch usa el mismo walker de producción; la falta de esqueleto permite aislar los servicios.
+// The batch uses the production walker; the missing skeleton lets the services be isolated.
 class ObjectModels final : public Client::Models::IModelLibrary
 {
 public:

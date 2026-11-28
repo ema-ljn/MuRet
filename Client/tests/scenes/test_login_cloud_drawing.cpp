@@ -48,7 +48,7 @@
 #include <string>
 #include <vector>
 
-// El emisor de 0x602ed0 y el pase de ojo de 0x548550(0), sin GL.
+// The emitter of 0x602ed0 and the eye pass of 0x548550(0), without GL.
 namespace
 {
 constexpr std::uint8_t LoginMap = 55;
@@ -71,7 +71,7 @@ public:
     {
         return {};
     }
-    // clouds.jpg: 64 × 32 y 3 componentes, ligada en el slot de su selector, como en GameModels.
+    // clouds.jpg: 64 × 32 and 3 components, bound in its selector's slot, as in GameModels.
     std::optional<Client::Models::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
         if (selector != static_cast<std::uint32_t>(CloudType))
@@ -115,7 +115,7 @@ void Emit(Client::WorldObjects::WorldObject& object, Client::Particles::Particle
         batch, models, std::span(&object, 1), polygon, nullptr, map, std::chrono::milliseconds{1234}, 0.0f,
         Client::WorldObjects::ObjectFrameEffects{.random = &random, .particles = &particles});
 }
-// Scene 2 solo controla el farol. Seed 4: rand común 51, guard 17945 y cinco rand de creación.
+// Scene 2 only controls the lantern. Seed 4: common rand 51, guard 17945 and five creation rands.
 TEST(LoginCloudDrawingTest, ASeenHiddenMarkerEmitsOutsideSceneTwoAfterTheCommonRand)
 {
     auto object = Marker();
@@ -156,9 +156,9 @@ TEST(LoginCloudDrawingTest, AMissingPoolStillConsumesTheCloudGuard)
     EXPECT_EQ(random.State(), 0xc6192e9eu) << "común51 y guard17945, sin los cinco rand de creación";
 }
 
-// 0x6043ff..0x604427: el 0x59 del mapa 55 con ftol(reloj) % 8000 desde 7950 suelta un meteoro 0xc2/9; sin la tabla de
-// los efectos con modelo (ObjectFrameEffects::modelEffects) no tiene dónde ponerlo: corta antes de sus tres rand(),
-// después del común, por ObjectFrameEffects::onFailure. Fuera de esa ventana (7949) o en otro mapa, sólo el rand común.
+// 0x6043ff..0x604427: map 55's 0x59 with ftol(clock) % 8000 from 7950 drops a 0xc2/9 meteor; without the model effects
+// table (ObjectFrameEffects::modelEffects) it has nowhere to put it: it cuts before its three rand(), after the common
+// one, through ObjectFrameEffects::onFailure. Outside that window (7949) or on another map, only the common rand.
 TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
 {
     struct Case
@@ -199,7 +199,7 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
     }
 }
 
-// El 0x59 dibujado una vez en el mapa 55 con el reloj `clock`, con la tabla de los efectos con modelo.
+// Map 55's 0x59 drawn once with the clock `clock`, with the model effects table.
 std::vector<std::string> DropTheMeteor(Client::WorldObjects::WorldObject& object,
                                        Client::Effects::ModelEffects& effects, Client::Crt::CrtRandom& random,
                                        std::int64_t clock)
@@ -221,11 +221,11 @@ std::vector<std::string> DropTheMeteor(Client::WorldObjects::WorldObject& object
     return failures;
 }
 
-// 0x604427..0x6044b2: en la ventana, después del rand común, x e y con (rand() & 0x7ff) − 1024 y z con rand() % 600 +
-// 3000 sobre el objeto, y 0x518cf0(0xc2, punto, ángulos, luz, 9, 0, −1): el caso 9 (0x51b280) sigue con sus cinco
-// rand(). Con la semilla 4: común 51; 17945, 27159 y 386 dan (1537; 1511; 3686); el caso, 17345 (escala 25 · 0,13f),
-// 27504 (x + 16 + 130), 20815 (z + 15 + 400), 20576 (vy −1 − 8) y 10960 (vz −10 − 0). La réplica pasa el mismo punto
-// por el alta de los magos en una tabla gemela con la misma CRT.
+// 0x604427..0x6044b2: in the window, after the common rand, x and y with (rand() & 0x7ff) − 1024 and z with
+// rand() % 600 + 3000 over the object, and 0x518cf0(0xc2, point, angles, light, 9, 0, −1): case 9 (0x51b280) goes on
+// with its five rand(). With seed 4: common 51; 17945, 27159 and 386 give (1537; 1511; 3686); the case, 17345 (scale
+// 25 · 0.13f), 27504 (x + 16 + 130), 20815 (z + 15 + 400), 20576 (vy −1 − 8) and 10960 (vz −10 − 0). The replica
+// passes the same point through the wizards' creation in a twin table with the same CRT.
 TEST(LoginCloudDrawingTest, TheMeteorMarkerDropsAMeteorInsideItsWindow)
 {
     auto object = Marker(MeteorMarker);
@@ -265,7 +265,8 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerDropsAMeteorInsideItsWindow)
     EXPECT_EQ(meteor.objectState.blendMesh, expected.objectState.blendMesh);
 }
 
-// 0x518cf0 con la tabla llena no hace nada ni saca rand(): los tres del punto ya salieron (0x604427..0x604471).
+// 0x518cf0 with the table full does nothing and takes no rand(): the point's three already came out
+// (0x604427..0x604471).
 TEST(LoginCloudDrawingTest, AFullTableTakesOnlyTheThreeRandsOfThePoint)
 {
     auto object = Marker(MeteorMarker);
@@ -336,8 +337,8 @@ void SetCloud(Client::Particles::Particle& particle, float baseAngle)
     particle.rotationFactor = 2.0f;
     particle.start.y = baseAngle;
 }
-// Al compactar los vivos, el slot 1 se trataría como par. 0x620b10 reemplaza la mezcla del JPEG (0x620a90):
-// cada nube publica las dos antes de su quad, así que los tramos que dibujan van de a uno.
+// Compacting the live ones would treat slot 1 as even. 0x620b10 replaces the JPEG's blend (0x620a90): each cloud
+// publishes both before its quad, so the runs that draw go one by one.
 TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
 {
     const CloudTextures textures;
@@ -381,8 +382,8 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
     EXPECT_FLOAT_EQ(particles.All()[4].rotation, 48.0f);
 }
 
-// Dos objetos y dos frames: marcador/roca y después marcador/roca; la segunda nube
-// usa 5261/28277/24162. Agrupar los frames de cada objeto usaría otros desplazamientos.
+// Two objects and two frames: marker/rock and then marker/rock; the second cloud uses 5261/28277/24162. Grouping each
+// object's frames would use other offsets.
 TEST(LoginCloudDrawingTest, CatchUpVisitsEveryObjectBeforeStartingTheNextOriginalFrame)
 {
     const CloudTextures models;
@@ -410,7 +411,7 @@ std::size_t CloudsIn(const Client::Tests::RecordedFrame& frame)
     {
         for (const auto& command : event.modelCommands)
         {
-            // Solo los tramos que dibujan: los efectos sin geometría de 0x620a90 van con la mezcla aditiva.
+            // Only the runs that draw: 0x620a90's effects without geometry go with the additive blend.
             if (command.state.texture == Client::Render::TextureSlot{CloudType} &&
                 command.operation == Client::Render::ModelStateOperation::Draw)
             {
@@ -427,8 +428,8 @@ std::size_t CloudsIn(const Client::Tests::RecordedFrame& frame)
     return count;
 }
 
-// El marcador no necesita BMD: está oculto, pero su dibujo pide nubes al pool de LoginScene.
-// Un Enter nuevo borra las partículas previas aunque su textura siga en la biblioteca del juego.
+// The marker needs no BMD: it is hidden, but its draw asks LoginScene's pool for clouds. A new Enter clears the
+// earlier particles even though their texture stays in the game library.
 TEST(LoginCloudDrawingTest, TheSceneEmitsInTheEyePassAndClearsThePoolOnEnteringAgain)
 {
     Client::Tests::TemporaryFolder folder("login-cloud");

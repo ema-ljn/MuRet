@@ -266,7 +266,7 @@ void MoveRidingSpear(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
                                                5161U * static_cast<std::uint32_t>(index) + 17732U);
     const auto z = std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(steps) +
                                                41273U * static_cast<std::uint32_t>(index) + 34571U);
-    // Las dos trascendentes permanecen retenidas en el original; el perfil portable declara su límite.
+    // Both transcendentals stay retained in the original; the portable profile declares its limit.
     const auto wave =
         Math::Detail::SineCosineProductPC53(static_cast<double>(a) * .0003f, static_cast<double>(z) * .0003f);
     if (wave)

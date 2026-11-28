@@ -105,7 +105,7 @@ void Skip(CrtRandom& random, int count)
         static_cast<void>(random.Next());
 }
 
-// Los rand() del alta de una partícula: la misma alta en un pool aparte, con el mismo generador.
+// A particle creation's rand(): the same creation in a separate pool, with the same generator.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
 {
     auto twin = std::make_unique<Client::Particles::Particles>();
@@ -136,7 +136,7 @@ TEST(BlastModelEffectsTest, TheBlastFallsFromAboveWithItsJointAndCopiesTheOwnCou
     ASSERT_TRUE(made.HasValue()) << made.Error();
     ASSERT_TRUE(made.Value().has_value());
     const ModelEffect& blast = harness.effects->Effects()[*made.Value()];
-    // 0x5192f7..0x519381: la escala, la x, la y, la z y la caída, en ese orden.
+    // 0x5192f7..0x519381: the scale, x, y, z and the fall, in that order.
     EXPECT_EQ(blast.life, 30);
     EXPECT_EQ(blast.objectState.blendMesh, 0);
     EXPECT_EQ(blast.transform.scale, F32(static_cast<double>((replay.Next() & 7) + 10) * static_cast<double>(0.1f)));
@@ -230,7 +230,7 @@ TEST(BlastModelEffectsTest, TheHeroInfernoCopiesTheCountAndHitsAtFourHundred)
     Skip(replay, OwnRecordCloseRandoms);
     EXPECT_EQ(random.State(), replay.State());
 
-    // Con el subtipo 2 (o con otro dueño), ni el registro ni los blancos.
+    // With subtype 2 (or another owner), neither the record nor the targets.
     auto keyed = Arguments(0xf6, 2, &harness.hero);
     keyed.key = 150;
     keyed.byte89 = 3;
@@ -248,8 +248,8 @@ TEST(BlastModelEffectsTest, TheHeroInfernoCopiesTheCountAndHitsAtFourHundred)
     EXPECT_EQ(harness.hits.size(), 1u);
 }
 
-// 0x519a49..0x519a60: el dueño se compara con el héroe publicado (0x743a170) y después el subtipo; desde el 2 las dos
-// salidas van a 0x51db73. Sin el héroe, solo el /0 y el /1 cortan; del /2 al /6 nacen sin él.
+// 0x519a49..0x519a60: the owner is compared with the published hero (0x743a170) and then the subtype; from 2 on, both
+// exits go to 0x51db73. Without the hero, only the /0 and the /1 stop; the /2 to /6 are born without it.
 TEST(BlastModelEffectsTest, TheInfernoOnlyAsksForTheHeroBelowTheSecondSubtype)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3, 4, 5, 6})
@@ -332,7 +332,7 @@ TEST(BlastModelEffectsTest, TheRidingSpearTakesItsVelocityFromTheYaw)
         Client::Effects::CreateBlastModelEffect(*harness.effects, Arguments(0x10f, 0), {}, random, harness.Services());
     ASSERT_TRUE(made.HasValue()) << made.Error();
     const ModelEffect& spear = harness.effects->Effects()[*made.Value()];
-    // Calculados aparte para el rumbo 90: FSIN · 5 y FCOS · −5 en double, guardados en float.
+    // Computed separately for heading 90: FSIN · 5 and FCOS · −5 in double, stored as float.
     EXPECT_EQ(spear.velocity.x, std::bit_cast<float>(0x40a00000u));
     EXPECT_EQ(spear.velocity.y, std::bit_cast<float>(0xb382a70cu));
     EXPECT_EQ(spear.life, 20);
@@ -371,7 +371,7 @@ TEST(BlastModelEffectsTest, OtherTypesAreNotOfThisBatch)
     EXPECT_FALSE(made.HasValue());
 }
 
-// El paso, por StepGameModelEffect: el primer rand() es el de la luz local.
+// The step, through StepGameModelEffect: the first rand() is the local light's.
 struct StepHarness
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
@@ -429,8 +429,8 @@ ModelEffect& Alive(ModelEffects& effects, std::size_t slot, std::int16_t type, s
     return effect;
 }
 
-// 0x5211a0 y 0x5211bf: después de las piedritas, el anillo 0x600/0 (el rand() % 360 de su giro, 0x5431a1) y la
-// explosión 0x5ed/0 (sin rand(), con el sonido 0x40 en 0x542a82), 80 más arriba; sin dueño, muere.
+// 0x5211a0 and 0x5211bf: after the small stones, ring 0x600/0 (the rand() % 360 of its turn, 0x5431a1) and explosion
+// 0x5ed/0 (no rand(), with sound 0x40 at 0x542a82), 80 higher; without an owner, it dies.
 TEST(BlastModelEffectsTest, TheBlastOnTheGroundDropsSixChipsARingAndAnExplosion)
 {
     StepHarness harness;
@@ -453,7 +453,8 @@ TEST(BlastModelEffectsTest, TheBlastOnTheGroundDropsSixChipsARingAndAnExplosion)
     };
     EXPECT_EQ(born(0x600), 1);
     EXPECT_EQ(born(Client::Particles::ExplosionParticle), 1);
-    // La luz, por piedrita el rand() % 2 del tipo (0x52115e) y los cinco del alta (0x51b72b), y las dos altas.
+    // The light, per small stone the type's rand() % 2 (0x52115e) and the creation's five (0x51b72b), and the two
+    // creations.
     Skip(replay, 1 + 6 * (1 + 5));
     ReplayParticle(replay, 0x600, 0);
     ReplayParticle(replay, Client::Particles::ExplosionParticle, 0);
@@ -563,8 +564,8 @@ TEST(BlastModelEffectsTest, TheFlameRingLightsEighteenFlames)
                                               { return particle.alive && particle.type == 0x5de; });
     EXPECT_EQ(flames, 18);
     EXPECT_EQ(ring.life, 9);
-    // La luz (1) y, por llama, los dos corrimientos (& 63) − 32 (36 en total) antes del alta de la 5de/0 (0x54150e),
-    // que saca cinco o seis más.
+    // The light (1) and, per flame, the two shifts (& 63) − 32 (36 in all) before the creation of the 0x5de/0
+    // (0x54150e), which draws five or six more.
     Skip(replay, 1);
     auto twin = std::make_unique<Client::Particles::Particles>();
     for (int flame = 0; flame < 18; ++flame)
@@ -651,7 +652,7 @@ TEST(BlastModelEffectsTest, ThePiercingChildFollowsItsOwnerAndAsksForItsJoint)
     EXPECT_EQ(child.copiedAngles.y, 90.0f);
 }
 
-// La primera semilla desde 1 con rand() % `modulo` == `value` después de `skipped` rand().
+// The first seed from 1 with rand() % `modulo` == `value` after `skipped` rand().
 std::uint32_t SeedWhere(int skipped, int modulo, int value)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -663,10 +664,10 @@ std::uint32_t SeedWhere(int skipped, int modulo, int value)
     }
 }
 
-// 0x5215a5..0x5216d6: la roca 0xe7 toca el terreno fuera de las celdas con el bit 0x08: queda en la altura, muerta, con
-// el temblor de 0x521619 y cinco pedazos 0xea/0xeb por el camino de las piedritas (0x51b72b, no el del 0xca): el
-// subtipo 0, +0x64 en −1, +0x68 en 1, la z del terreno, la luz de la roca y cinco rand() cada uno. Después, con el giro
-// ya sumado, el polvo 5f2/3 (0x5216d6, cuatro rand() en 0x541cf2), sin la cola.
+// 0x5215a5..0x5216d6: rock 0xe7 touches the terrain outside the cells with bit 0x08: it stays at the height, dead, with
+// 0x521619's shake and five 0xea/0xeb pieces through the small stones' path (0x51b72b, not the 0xca's): subtype 0,
+// +0x64 at −1, +0x68 at 1, the terrain's z, the rock's light and five rand() each. Then, with the turn already added,
+// the 0x5f2/3 dust (0x5216d6, four rand() at 0x541cf2), without the tail.
 TEST(BlastModelEffectsTest, TheIceRockLandsShakingTheCameraAndDropsFiveShards)
 {
     StepHarness harness;
@@ -705,7 +706,7 @@ TEST(BlastModelEffectsTest, TheIceRockLandsShakingTheCameraAndDropsFiveShards)
     ReplayParticle(replay, Client::Particles::BreathParticle, 3);
     EXPECT_EQ(random.State(), replay.State());
 
-    // Sin el temblor, el corte de 0x52163e llega después del rand() de 0x521619.
+    // Without the shake, 0x52163e's stop comes after 0x521619's rand().
     StepHarness still;
     still.ground = 400.0f;
     still.withShake = false;
@@ -720,8 +721,8 @@ TEST(BlastModelEffectsTest, TheIceRockLandsShakingTheCameraAndDropsFiveShards)
     EXPECT_EQ(stillRandom.State(), stillReplay.State());
 }
 
-// 0x521616 apaga la roca antes de 0x521675: si su lugar es el primero libre, el primer pedazo cae en él, y
-// 0x521684..0x5216d4 mueven y giran ese pedazo con su velocidad y su escala.
+// 0x521616 kills the rock before 0x521675: if its slot is the first free one, the first piece lands in it, and
+// 0x521684..0x5216d4 move and turn that piece with its speed and scale.
 TEST(BlastModelEffectsTest, TheFirstShardTakesTheRockSlotWhenItIsTheFirstFree)
 {
     StepHarness harness;
@@ -741,8 +742,8 @@ TEST(BlastModelEffectsTest, TheFirstShardTakesTheRockSlotWhenItIsTheFirstFree)
     EXPECT_FALSE(harness.effects->Effects()[5].alive);
 }
 
-// En el aire, o sobre una celda con el bit 0x08 (0x5215f4), la roca sigue cayendo sin temblor ni pedazos: sólo el
-// rand() de la luz y los del polvo 5f2/3 de 0x5216d6.
+// In the air, or over a cell with bit 0x08 (0x5215f4), the rock keeps falling without shake or pieces: only the
+// light's rand() and those of 0x5216d6's 0x5f2/3 dust.
 TEST(BlastModelEffectsTest, TheIceRockKeepsFallingInTheAirOrOverAnOpenCell)
 {
     for (const bool open : {false, true})
@@ -771,10 +772,10 @@ TEST(BlastModelEffectsTest, TheIceRockKeepsFallingInTheAirOrOverAnOpenCell)
     }
 }
 
-// 0x52186e..0x521bf6: el 0xf4/2 de un ítem largo (0x650) queda 180 detrás de su dueño, con el alfa 0,5 y 18 menos de
-// giro; suelta el polvo 5f2/3 (0x521960) y, fuera de Kalima, cuatro chispas con sus cuatro rand() y su joint 0x617/0
-// (0x521b75); la primera, además, la 5c5/0 (0x521b9e, cinco rand()). Al final, el sprite 0x5ac 20 más arriba, y la
-// cola le resta la vida.
+// 0x52186e..0x521bf6: the 0xf4/2 of a long item (0x650) stays 180 behind its owner, with alpha 0.5 and 18 less turn;
+// it releases the 0x5f2/3 dust (0x521960) and, outside Kalima, four sparks with their four rand() and their joint
+// 0x617/0 (0x521b75); the first, also, the 0x5c5/0 (0x521b9e, five rand()). At the end, the 0x5ac sprite 20 higher,
+// and the tail takes its life.
 TEST(BlastModelEffectsTest, TheSpinningItemStaysBehindItsOwnerWithItsDustAndSparks)
 {
     StepHarness harness;
@@ -802,8 +803,8 @@ TEST(BlastModelEffectsTest, TheSpinningItemStaysBehindItsOwnerWithItsDustAndSpar
     EXPECT_EQ(random.State(), replay.State());
 }
 
-// 0x521996..0x521aab y 0x521bb6: en Kalima (24 a 29 y 36), una sola chispa con sus cuatro rand(), sin el joint ni la
-// 5c5/0: la 6f4/3 120 más arriba con la luz (0,5; 0,5; 0,5) (0x521aa3) y el sprite 0x5ac 60 más arriba.
+// 0x521996..0x521aab and 0x521bb6: in Kalima (24 to 29 and 36), a single spark with its four rand(), without the joint
+// or the 0x5c5/0: the 0x6f4/3 120 higher with light (0.5; 0.5; 0.5) (0x521aa3) and the 0x5ac sprite 60 higher.
 TEST(BlastModelEffectsTest, TheSpinningItemDropsOneKalimaFallInKalima)
 {
     for (const std::int32_t map : {24, 29, 36})
@@ -839,9 +840,9 @@ TEST(BlastModelEffectsTest, TheSpinningItemDropsOneKalimaFallInKalima)
     }
 }
 
-// 0x52552d..0x52569a: el 0x108/0 se hamaca (los dos rand() del seno y el de la caída), suelta el aliento 5f2/0, sortea
-// entre la 5ca/1 y la 5db/7 (0x5255fd), sube la luz con los sprites 0x5fd y 0x5ac (tres rand()) y, en el aire, no hace
-// más.
+// 0x52552d..0x52569a: the 0x108/0 sways (the sine's two rand() and the fall's), releases the 0x5f2/0 breath, picks
+// between the 0x5ca/1 and the 0x5db/7 (0x5255fd), raises the light with the 0x5fd and 0x5ac sprites (three rand())
+// and, in the air, does nothing else.
 TEST(BlastModelEffectsTest, TheIceStormSwaysBreathesAndDropsItsIceOrItsFire)
 {
     const auto icyOf = [](std::uint32_t seed)
@@ -885,9 +886,9 @@ TEST(BlastModelEffectsTest, TheIceStormSwaysBreathesAndDropsItsIceOrItsFire)
     }
 }
 
-// 0x5257e8..0x52bfc6: el 0x108/2 se hamaca con 50; en el terreno o debajo no hace más (cuatro rand()); en el aire, el
-// rand() % 2 en 0 suelta la 5db/7 (0x5258ab), y en los dos casos la luz sube 0,1f con los sprites 0x5fd y 0x5ac (tres
-// rand() más).
+// 0x5257e8..0x52bfc6: the 0x108/2 sways with 50; on the terrain or below it does nothing else (four rand()); in the
+// air, rand() % 2 at 0 releases the 0x5db/7 (0x5258ab), and in both cases the light rises 0.1f with the 0x5fd and
+// 0x5ac sprites (three more rand()).
 TEST(BlastModelEffectsTest, TheFallingIceStormOnlyBrightensInTheAir)
 {
     {
@@ -928,9 +929,9 @@ TEST(BlastModelEffectsTest, TheFallingIceStormOnlyBrightensInTheAir)
     }
 }
 
-// 0x5251df..0x525318: la piedra de la puerta avanza, frena 0,9f (la 0x10c/1 vuelve a acelerar 1,1f), cae 4 y, en el
-// terreno, rebota a la mitad, pierde 5 de vida y se inclina 128 por la escala. El rand() % 10 del polvo corta sólo con
-// un lugar libre en las partículas (0x5252e6).
+// 0x5251df..0x525318: the gate's stone advances, slows 0.9f (the 0x10c/1 speeds up again 1.1f), falls 4 and, on the
+// terrain, bounces at half, loses 5 life and tilts 128 times the scale. The dust's rand() % 10 stops only with a free
+// particle slot (0x5252e6).
 TEST(BlastModelEffectsTest, TheGateDebrisBouncesOnTheGround)
 {
     for (const int kind : {0x10c, 0x10d})
@@ -966,8 +967,8 @@ TEST(BlastModelEffectsTest, TheGateDebrisBouncesOnTheGround)
     EXPECT_NE(stepped.Error().find("0x5252e6"), std::string::npos) << stepped.Error();
 }
 
-// 0x5214ea..0x521570: el círculo 0xec/1 crece 0,01f con su luz; el /0 toma la posición de su dueño y crece igual. Sólo
-// el rand() de la luz.
+// 0x5214ea..0x521570: circle 0xec/1 grows 0.01f with its light; the /0 takes its owner's position and grows the same.
+// Only the light's rand().
 TEST(BlastModelEffectsTest, TheMagicCircleGrowsAndTheFirstFollowsItsOwner)
 {
     for (const int subtype : {0, 1})
@@ -989,7 +990,7 @@ TEST(BlastModelEffectsTest, TheMagicCircleGrowsAndTheFirstFollowsItsOwner)
     }
 }
 
-// 0x5212b6..0x521316: la onda 0x107 deja +0x68 en la vida por 0,05f y prende su luz; sólo el rand() de la luz.
+// 0x5212b6..0x521316: wave 0x107 sets +0x68 to life times 0.05f and turns on its light; only the light's rand().
 TEST(BlastModelEffectsTest, TheWaveForceFadesWithItsLife)
 {
     StepHarness harness;
@@ -1003,8 +1004,8 @@ TEST(BlastModelEffectsTest, TheWaveForceFadesWithItsLife)
     EXPECT_EQ(random.State(), replay.State());
 }
 
-// 0x5210a1..0x5210e0: el escudo 0x109 toma la posición de su dueño y, con menos de 10 de vida, deja +0x68 en la vida
-// por 0,1f; sólo el rand() de la luz.
+// 0x5210a1..0x5210e0: shield 0x109 takes its owner's position and, with life under 10, sets +0x68 to life times 0.1f;
+// only the light's rand().
 TEST(BlastModelEffectsTest, TheShieldFollowsItsOwnerAndFadesInItsLastSteps)
 {
     for (const std::int32_t life : {12, 5})
@@ -1025,8 +1026,8 @@ TEST(BlastModelEffectsTest, TheShieldFollowsItsOwnerAndFadesInItsLastSteps)
     }
 }
 
-// 0x523974..0x523b3a: la piedra 0xf2/0 cae 3; en el terreno rebota a la mitad, pierde 4 de vida y se inclina 128 por la
-// escala; el rand() % 10 de 0x523adb sale sin partícula.
+// 0x523974..0x523b3a: stone 0xf2/0 falls 3; on the terrain it bounces at half, loses 4 life and tilts 128 times the
+// scale; 0x523adb's rand() % 10 comes out without a particle.
 TEST(BlastModelEffectsTest, TheFallingRockBouncesAndDrawsItsUnusedTenth)
 {
     StepHarness harness;
@@ -1044,7 +1045,7 @@ TEST(BlastModelEffectsTest, TheFallingRockBouncesAndDrawsItsUnusedTenth)
     EXPECT_EQ(random.State(), replay.State());
 }
 
-// 0x523d3a..0x523dd4: la puñalada 0x106 suelta el aliento 5f2/0 con el rand() % 2 en 0, dos fuegos 5d9/5 y su luz.
+// 0x523d3a..0x523dd4: stab 0x106 releases the 0x5f2/0 breath with rand() % 2 at 0, two 0x5d9/5 fires and its light.
 TEST(BlastModelEffectsTest, TheDeathStabBreathesHalfTheTimeAndLightsTwoFires)
 {
     for (const int parity : {0, 1})

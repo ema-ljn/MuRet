@@ -19,7 +19,8 @@
 #include <format>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: 0x51ee23..0x51ee95 (el alta) y 0x52b59b..0x52b8a1 (el paso, con la tabla de 0x52d18c).
+// Checked against the PE c32bbd5f: 0x51ee23..0x51ee95 (the creation) and 0x52b59b..0x52b8a1 (the step, with 0x52d18c's
+// table).
 namespace Client::Effects
 {
 namespace
@@ -27,51 +28,52 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr std::int32_t PlainSubtype = 0;        // el de la bandera 0x40 (0x4e688c, 0x4cd664)
-constexpr std::int32_t OrbitSubtype = 1;        // gira como el /0
-constexpr std::int32_t GlowSubtype = 2;         // un sprite que se apaga con la vida
-constexpr std::int32_t ReverseOrbitSubtype = 3; // gira al revés, más alto y con otra luz
-constexpr std::int32_t FallingSubtype = 4;      // cae sin mirar al dueño
-constexpr std::int32_t StackSubtype = 5;        // el de la bandera 0x1000 (0x60c6d0)
+constexpr std::int32_t PlainSubtype = 0;        // that of flag 0x40 (0x4e688c, 0x4cd664)
+constexpr std::int32_t OrbitSubtype = 1;        // turns like the /0
+constexpr std::int32_t GlowSubtype = 2;         // a sprite that fades with the life
+constexpr std::int32_t ReverseOrbitSubtype = 3; // turns in reverse, higher and with another light
+constexpr std::int32_t FallingSubtype = 4;      // falls without looking at the owner
+constexpr std::int32_t StackSubtype = 5;        // that of flag 0x1000 (0x60c6d0)
 
 constexpr std::uint16_t SkullSprite = 0x628; // Skill\Skull.jpg (0x61db86)
 constexpr std::int32_t OrbitParticle = 0x5de;
 constexpr std::int32_t StackParticle = 0x5ac;
 constexpr std::int32_t OrbitParticleSubtype = 5;
 constexpr std::int32_t StackParticleSubtype = 5;
-constexpr float OrbitParticleScale = std::bit_cast<float>(0x3ecccccdu); // 0x52b6dd, 0,4f
-constexpr float StackParticleScale = std::bit_cast<float>(0x3f333333u); // 0x52b7af, 0,7f
+constexpr float OrbitParticleScale = std::bit_cast<float>(0x3ecccccdu); // 0x52b6dd, 0.4f
+constexpr float StackParticleScale = std::bit_cast<float>(0x3f333333u); // 0x52b7af, 0.7f
 constexpr int Turns = 3;
 
 constexpr double TurnStep = static_cast<double>(std::bit_cast<float>(0x40060a92u));   // 0x6ba214, 2π/3
-constexpr double LifeTurn = static_cast<double>(std::bit_cast<float>(0x3e2e147bu));   // 0x6ba218, 0,17f
-constexpr double WobbleStep = static_cast<double>(std::bit_cast<float>(0x4175eb85u)); // 0x6ba210, 15,37f
-constexpr double OrbitClock = static_cast<double>(std::bit_cast<float>(0x3b4b295fu)); // 0x6ba20c, 0,0031f
-constexpr double StackClock = static_cast<double>(std::bit_cast<float>(0x3b449ba6u)); // 0x6b89cc, 0,003f
+constexpr double LifeTurn = static_cast<double>(std::bit_cast<float>(0x3e2e147bu));   // 0x6ba218, 0.17f
+constexpr double WobbleStep = static_cast<double>(std::bit_cast<float>(0x4175eb85u)); // 0x6ba210, 15.37f
+constexpr double OrbitClock = static_cast<double>(std::bit_cast<float>(0x3b4b295fu)); // 0x6ba20c, 0.0031f
+constexpr double StackClock = static_cast<double>(std::bit_cast<float>(0x3b449ba6u)); // 0x6b89cc, 0.003f
 constexpr float WobbleDepth = 20.0f;                                                  // 0x6b86d0
 constexpr double RadiusBase = 50.0;                                                   // 0x6b86b0
 constexpr float StackRadius = 50.0f;                                                  // 0x6b86b0
 constexpr double StackSpacing = 50.0;                                                 // 0x6b86b0
 constexpr double OrbitHeight = 200.0;                                                 // 0x6b8928
 constexpr double ReverseOrbitHeight = 250.0;                                          // 0x6b8920
-constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8, 0,1f
+constexpr double Tenth = Math::TenthAsDouble;                                         // 0x6b87b8, 0.1f
 
-// 0x52b6ea..0x52b71c: la luz de la partícula 0x5de, (0,65f; 0,65f; 0,65f) o, el /3, (0,1f; 1; 1).
+// 0x52b6ea..0x52b71c: the light of the particle 0x5de, (0.65f, 0.65f, 0.65f) or, the /3, (0.1f, 1, 1).
 constexpr float Grey = std::bit_cast<float>(0x3f266666u);
 constexpr float Cyan = std::bit_cast<float>(0x3dcccccdu);
-// 0x52b817..0x52b839: la de la 0x5ac, (0,6f; 0,6f; 1).
+// 0x52b817..0x52b839: that of the 0x5ac, (0.6f, 0.6f, 1).
 constexpr float Pale = std::bit_cast<float>(0x3f19999au);
 
-// 0x52b612..0x52b63b: los bits que el /0 mira en su propio +0x78 (no en el del dueño). MuRet no escribe ese campo en
-// ningún efecto, como el prefijo de 0x518cf0, que no lo toca (Effects::ModelEffect::flags78).
+// 0x52b612..0x52b63b: the bits the /0 checks in its own +0x78 (not the owner's). MuRet does not write that field on any
+// effect, like 0x518cf0's prefix, which does not touch it (Effects::ModelEffect::flags78).
 constexpr std::uint32_t HeldFlag = 0x40;
 constexpr std::uint32_t HiddenFlag = 0x4000;
 constexpr std::int32_t HeldLife = 10;
 
-// 0x52b640..0x52b782, el /0, el /1 y el /3: tres vueltas; en cada una, el ángulo vida · 0,17f + i · 2π/3 (negado en el
-// /3) y el radio FSIN(i · 15,37f + T · 0,0031f) · 20 + 50, guardado en float; el punto es el del dueño corrido en x por
-// FSIN(ángulo) · radio y en y por FCOS(ángulo) · radio, a 200 (250 el /3) por su escala sobre su z. Ahí, la partícula
-// 0x5de/5 con los ángulos del efecto y escala 0,4f, y el sprite 0x628 de escala 1 con la luz local (1, 1, 1).
+// 0x52b640..0x52b782, the /0, the /1 and the /3: three rounds; in each, the angle life · 0.17f + i · 2π/3 (negated in
+// the /3) and the radius FSIN(i · 15.37f + T · 0.0031f) · 20 + 50, stored in float; the point is the owner's shifted in
+// x by FSIN(angle) · radius and in y by FCOS(angle) · radius, at 200 (250 the /3) times its scale above its z. There,
+// the particle 0x5de/5 with the effect's angles and scale 0.4f, and the sprite 0x628 of scale 1 with the local light
+// (1, 1, 1).
 Core::Expected<void, std::string> Orbit(Effects::ModelEffect& effect, const Kernel::ActorState& owner,
                                         const HighEffectStepContext& context)
 {
@@ -81,7 +83,7 @@ Core::Expected<void, std::string> Orbit(Effects::ModelEffect& effect, const Kern
     const double height = reversed ? ReverseOrbitHeight : OrbitHeight;
     for (int turn = 0; turn < Turns; ++turn)
     {
-        const double index = D(static_cast<float>(turn)); // FILD y FSTP a float (0x52b648..0x52b655)
+        const double index = D(static_cast<float>(turn)); // FILD and FSTP to float (0x52b648..0x52b655)
         double angle = static_cast<double>(effect.life) * LifeTurn + index * TurnStep;
         if (reversed)
             angle = -angle;
@@ -108,8 +110,8 @@ Core::Expected<void, std::string> Orbit(Effects::ModelEffect& effect, const Kern
     return {};
 }
 
-// 0x52b78d..0x52b853, el /5: tres partículas 0x5ac/5 con los ángulos del efecto, la luz (0,6f; 0,6f; 1) y escala 0,7f,
-// en SkullStackPoint.
+// 0x52b78d..0x52b853, the /5: three particles 0x5ac/5 with the effect's angles, the light (0.6f, 0.6f, 1) and scale
+// 0.7f, at SkullStackPoint.
 Core::Expected<void, std::string> Stack(Effects::ModelEffect& effect, const Kernel::ActorState& owner,
                                         const HighEffectStepContext& context)
 {
@@ -159,7 +161,7 @@ void BeginTheSkull(Effects::ModelEffect& effect)
         effect.transform.position.z = F32(D(effect.transform.position.z) + GlowRise);
         break;
     case FallingSubtype:
-        // 0x51ee79..0x51ee89: la x y la z de la velocidad, del ESI en 0 del prólogo.
+        // 0x51ee79..0x51ee89: the speed's x and z, from the prologue's ESI at 0.
         effect.life = FallingLife;
         effect.speed = FallingSpeed;
         effect.velocity = {0.0f, FallingPush, 0.0f};
@@ -207,8 +209,8 @@ Core::Expected<void, std::string> StepTheSkull(Effects::ModelEffect& effect, con
         return Orbit(effect, *owner, context);
     case GlowSubtype:
     {
-        // 0x52b85e..0x52b899: la luz en vida · 0,1f, un FST por canal.
-        constexpr float GlowScale = std::bit_cast<float>(0x3fc00000u); // 0x52b88e, 1,5f
+        // 0x52b85e..0x52b899: the light at life · 0.1f, one FST per channel.
+        constexpr float GlowScale = std::bit_cast<float>(0x3fc00000u); // 0x52b88e, 1.5f
         const float glow = F32(static_cast<double>(effect.life) * Tenth);
         return CreateHighSprite(context, SkullSprite, effect.transform.position, GlowScale, glm::vec3(glow), 0.0f,
                                 0x52b899);
@@ -216,7 +218,7 @@ Core::Expected<void, std::string> StepTheSkull(Effects::ModelEffect& effect, con
     case StackSubtype:
         return Stack(effect, *owner, context);
     default:
-        // 0x52b603: los de más de 5 (sin signo) van a la cola.
+        // 0x52b603: those above 5 (unsigned) go to the tail.
         return {};
     }
 }

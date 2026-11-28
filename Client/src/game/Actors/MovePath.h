@@ -33,14 +33,14 @@ enum class LogicalStoreStage
 };
 struct LogicalCellEffects
 {
-    // La frontera preserva pre/store/post de cada eje, incluso si el valor no cambia. El servicio
-    // dueño de P conserva sus contadores/aliases; BeginningAfter de Y difiere de ArrivalAfter.
-    // Beginning conserva k; Arrival relee path.current tras el pre-callback de cada eje.
-    // Vacío es no-op. Durante una llamada no reasignar el callback que se está ejecutando.
+    // The boundary keeps pre/store/post of each axis, even if the value does not change. The service that owns P keeps
+    // its counters/aliases; Y's BeginningAfter differs from ArrivalAfter. Beginning keeps k; Arrival rereads
+    // path.current after each axis's pre-callback. Empty is a no-op. During a call do not reassign the callback that is
+    // running.
     std::function<void(LogicalAxis, LogicalStoreStage, std::uint32_t&)> onStore;
 };
-// 0x4ea270. Referentes disjuntos y vivos, actor/buffers sin reubicar durante la llamada.
-// Ruta válida: count<=MaxPathCells y progress<=3; los callbacks pueden alterar sus valores vivos
-// manteniendo ese dominio. Retorna llegada; no desplaza XY salvo al llegar.
+// 0x4ea270. Disjoint, live referents; actor/buffers not relocated during the call. Valid path: count<=MaxPathCells
+// and progress<=3; the callbacks may alter their live values within that domain. Returns the arrival; does not move XY
+// except on arrival.
 [[nodiscard]] bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects& effects = {});
 } // namespace Client::Actors

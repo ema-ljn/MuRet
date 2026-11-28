@@ -16,7 +16,7 @@ constexpr std::uint8_t NoHandAction = 0x62;
 
 std::uint8_t ActionByTheHands(const Kernel::ActorState& by)
 {
-    // 0x4e9c56..0x4e9cbd: los dos WORD contra −1.
+    // 0x4e9c56..0x4e9cbd: the two WORDs against −1.
     const bool right = by.hands[0].model != Kernel::NoItemModel;
     const bool left = by.hands[1].model != Kernel::NoItemModel;
     if (right && left)

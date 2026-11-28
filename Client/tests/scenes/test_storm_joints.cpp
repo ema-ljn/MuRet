@@ -38,8 +38,8 @@
 #include <string>
 #include <vector>
 
-// El 0x632 (StormJoints.cpp): la /7 y sus tres /6 (0x534b27, 0x534a16 y el paso 0x53bec2), los subtipos de más de 7 y
-// la /5 del pulso del asedio (0x534bcb y el paso 0x53c0a5).
+// The 0x632 (StormJoints.cpp): the /7 and its three /6 (0x534b27, 0x534a16 and the step 0x53bec2), the subtypes above
+// 7 and the siege pulse's /5 (0x534bcb and the step 0x53c0a5).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -82,8 +82,8 @@ struct Storm
     std::vector<std::int32_t> sounds;
 };
 
-// 0x53bf7f..0x53c0a0: desde el décimo paso, con la z por encima del suelo (0x5f93c0), el ancho 40, la cola cruzada
-// (0x535020 con la matriz del paso) y, con la vida por debajo de la mitad de la tanda, la luz · 0,7692308f.
+// 0x53bf7f..0x53c0a0: from the tenth step, with z above the ground (0x5f93c0), width 40, the crossed tail (0x535020
+// with the step's matrix) and, with life under half the volley, the light · 0.7692308f.
 TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
 {
     Storm storm;
@@ -99,11 +99,11 @@ TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
 
     ASSERT_TRUE(storm.Step().HasValue());
 
-    static_cast<void>(expected.Next()); // el temblor de la y
+    static_cast<void>(expected.Next()); // the y shake
     EXPECT_EQ(storm.random.State(), expected.State());
     EXPECT_EQ(bolt.width, 40.0f);
     EXPECT_EQ(bolt.count, 1);
-    EXPECT_EQ(bolt.light, light); // 12 no es menos que 0x19 / 2.
+    EXPECT_EQ(bolt.light, light); // 12 is not less than 0x19 / 2.
     EXPECT_EQ(bolt.life, 11);
 
     ASSERT_TRUE(storm.Step().HasValue());
@@ -114,11 +114,12 @@ TEST(StormJointsTest, TheBoltFallsUntilItTouchesTheGround)
     EXPECT_EQ(bolt.count, 2);
 }
 
-// 0x53bfa9..0x53c04f: en el suelo (la z del terreno, 1234,567 en float, no por debajo de la del joint), antes de la
-// cola, el joint 0x614/4 desde su posición con sus ángulos, de escala 60 y sin dueño; con la z de la velocidad en 0 o
-// menos, FSIN(velocidad) · 20; la z en el suelo + 5 y la partícula 0x6ac/2 de escala 3 en una copia 30 más arriba, con
-// su luz. Los bits salen de una cuenta aparte (el seno exacto a 64 bits); el joint y la partícula se repiten con
-// gemelos que sacan los rand() del mismo CrtRandom. Con la z de la velocidad positiva, no la toca.
+// 0x53bfa9..0x53c04f: on the ground (the terrain's z, 1234.567 as a float, not below the joint's), before the tail, the
+// joint 0x614/4 from its position with its angles, of scale 60 and without an owner; with the velocity's z at 0 or
+// less, FSIN(velocity) · 20; z on the ground + 5 and the particle 0x6ac/2 of scale 3 at a copy 30 higher, with its
+// light. The bits come from a separate computation (the sine exact to 64 bits); the joint and the particle are
+// repeated with twins that draw the rand() from the same CrtRandom. With the velocity's z positive, it does not touch
+// it.
 TEST(StormJointsTest, TheBoltHitsTheGround)
 {
     for (const float rise : {-3.0f, 50.0f})
@@ -154,7 +155,7 @@ TEST(StormJointsTest, TheBoltHitsTheGround)
         EXPECT_EQ(bolt.count, above->joints[1].count);
         EXPECT_EQ(bolt.life, 11);
 
-        static_cast<void>(replay.Next()); // el temblor de la y
+        static_cast<void>(replay.Next()); // the y shake
         std::vector<JointState> twinJoints(1);
         glm::vec3 from = moved;
         glm::vec3 angles = bolt.angles;
@@ -198,9 +199,9 @@ TEST(StormJointsTest, TheBoltHitsTheGround)
     }
 }
 
-// 0x53bf3c..0x53bf76: en los diez primeros pasos de la tanda, la llamarada 0x5ee/0 (0x53bf6e) en +0x24, con los
-// ángulos (+0x30), la luz (+0x48) y escala 3, sin rand(), y el sonido 0x40 de su alta (0x542aa7); el ancho 100. Con la
-// tabla llena, ni la llamarada ni el sonido.
+// 0x53bf3c..0x53bf76: in the volley's first ten steps, the blaze 0x5ee/0 (0x53bf6e) at +0x24, with the angles (+0x30),
+// the light (+0x48) and scale 3, without rand(), and the sound 0x40 of its creation (0x542aa7); width 100. With the
+// table full, neither the blaze nor the sound.
 TEST(StormJointsTest, TheBoltBlazesInItsFirstTenSteps)
 {
     for (const bool full : {false, true})
@@ -225,7 +226,7 @@ TEST(StormJointsTest, TheBoltBlazesInItsFirstTenSteps)
 
         ASSERT_TRUE(storm.Step().HasValue());
 
-        static_cast<void>(expected.Next()); // el temblor de la y
+        static_cast<void>(expected.Next()); // the y shake
         EXPECT_EQ(storm.random.State(), expected.State());
         EXPECT_EQ(bolt.width, 100.0f);
         if (full)
@@ -247,7 +248,8 @@ TEST(StormJointsTest, TheBoltBlazesInItsFirstTenSteps)
     }
 }
 
-// 0x534b1e y 0x53bec5: los de más de 7 sólo hacen el primer tramo y el tope de 50 puntos, y su paso va a la cola.
+// 0x534b1e and 0x53bec5: those above 7 only do the first segment and the cap of 50 points, and their step goes to the
+// tail.
 TEST(StormJointsTest, TheSubtypesAboveSevenOnlyAge)
 {
     Storm storm;
@@ -270,7 +272,8 @@ namespace
 using Client::Math::D;
 using Client::Math::F32;
 
-// La /5 con un efecto de dueño (que no lee), los ángulos (90, 0, 0) del pulso y la altura del terreno de `ground`.
+// The /5 with an owner effect (which it does not read), the pulse's angles (90, 0, 0) and the ground height from
+// `ground`.
 struct FallingStar
 {
     Client::Core::Expected<std::optional<std::size_t>, std::string> Create()
@@ -310,9 +313,9 @@ struct FallingStar
 };
 } // namespace
 
-// 0x534bcb..0x534cb6 con la /5: 15 puntos, vida 40, el ancho, +0x9f1 en 2 (después de guardar rand() & 1), la clave en
-// 0, +0x9ec en 150, la textura 0x60f, la velocidad rand() % 20 + 10 y +0x3c con los ángulos. Dos rand(); el efecto de
-// dueño queda en +0x54. Con el pool lleno, nada ni rand().
+// 0x534bcb..0x534cb6 with the /5: 15 points, life 40, the width, +0x9f1 at 2 (after storing rand() & 1), the key at 0,
+// +0x9ec at 150, texture 0x60f, speed rand() % 20 + 10 and +0x3c with the angles. Two rand(); the owner effect stays in
+// +0x54. With the pool full, nothing, not even rand().
 TEST(StormJointsTest, TheFallingStarIsBornWithItsSpeed)
 {
     FallingStar star;
@@ -344,9 +347,9 @@ TEST(StormJointsTest, TheFallingStarIsBornWithItsSpeed)
     EXPECT_EQ(star.random.State(), before.State());
 }
 
-// 0x53590e y 0x53c0c9..0x53c38b: en el aire avanza con la velocidad girada por los ángulos (el movimiento común), sube
-// 10, agrega la cola, sube otros 10 y avanza de nuevo girado por +0x3c, que no son los ángulos; el sprite 0x60f de
-// escala 2,5 con la luz y rand() % 360. La cola común agrega otro tramo.
+// 0x53590e and 0x53c0c9..0x53c38b: in the air it advances with the velocity turned by the angles (the common
+// movement), speeds up 10, adds the tail, speeds up another 10 and advances again turned by +0x3c, which are not the
+// angles; the sprite 0x60f of scale 2.5 with the light and rand() % 360. The common tail adds another segment.
 TEST(StormJointsTest, TheFallingStarSpeedsUpInTheAir)
 {
     FallingStar star;
@@ -382,9 +385,9 @@ TEST(StormJointsTest, TheFallingStarSpeedsUpInTheAir)
     EXPECT_EQ(live->position, joint.position);
 }
 
-// 0x53c16d..0x53c2e0: debajo de la altura del terreno menos 150, la z queda ahí; la primera vez (la clave en 0) suelta
-// la onda 0x6eb/4 en la posición, con los ángulos y la luz (1; 0,8f; 0,3f) (0x53c295, con el rand() de su escala si hay
-// lugar); siempre la clave pasa a 1, la velocidad a −20 y la luz a · 0,8333333f, y el sprite sale igual.
+// 0x53c16d..0x53c2e0: below the ground height minus 150, z stays there; the first time (the key at 0) it drops the wave
+// 0x6eb/4 at the position, with the angles and the light (1; 0.8f; 0.3f) (0x53c295, with its scale's rand() if there
+// is room); the key always becomes 1, the speed −20 and the light · 0.8333333f, and the sprite comes out the same.
 TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
 {
     for (const std::int16_t key : {std::int16_t{0}, std::int16_t{1}})
@@ -429,8 +432,8 @@ TEST(StormJointsTest, TheFallingStarBouncesOnTheGround)
     }
 }
 
-// 0x53c190..0x53c19b: con la cola apagada (+0x9f2), la clave en 0 no suelta la onda (ni su rand()); el rebote sigue
-// igual.
+// 0x53c190..0x53c19b: with the tail off (+0x9f2), the key at 0 does not drop the wave (nor its rand()); the bounce
+// stays the same.
 TEST(StormJointsTest, TheFallingStarWithoutItsTailBouncesWithoutAWave)
 {
     FallingStar star;
@@ -452,7 +455,7 @@ TEST(StormJointsTest, TheFallingStarWithoutItsTailBouncesWithoutAWave)
     EXPECT_EQ(star.random.State(), expected.State());
 }
 
-// 0x53c295: sin la tabla de efectos, la onda corta; con la tabla llena, no hay onda ni su rand().
+// 0x53c295: without the effect table, the wave stops; with the table full, there is no wave nor its rand().
 TEST(StormJointsTest, TheFallingStarWaveNeedsTheEffectTable)
 {
     FallingStar tableless;
@@ -478,8 +481,8 @@ TEST(StormJointsTest, TheFallingStarWaveNeedsTheEffectTable)
 
 namespace
 {
-// La /0..4 con la altura del terreno de `ground`. La /0 y la /1 tienen al personaje blanco de dueño (0x4fe235,
-// 0x4fe4e7) y la /4 al efecto 0x13a (0x51e01a).
+// The /0..4 with the ground height from `ground`. The /0 and the /1 have the target character as owner (0x4fe235,
+// 0x4fe4e7) and the /4 the effect 0x13a (0x51e01a).
 struct Falling
 {
     Client::Core::Expected<std::optional<std::size_t>, std::string> Create(std::int32_t subtype, void* owner,
@@ -527,8 +530,8 @@ struct Falling
     double ground = 20.0;
 };
 
-// El 0x20b (Player\Shadow01) de prueba: una malla de tres vértices del hueso 0 y 30 triángulos (90 esquinas), un hueso
-// sin padre con su key en el origen y una acción de una key. Los demás modelos no están.
+// The test 0x20b (Player\Shadow01): a mesh of three vertices of bone 0 and 30 triangles (90 corners), a parentless bone
+// with its key at the origin and an action of one key. The other models are absent.
 class ShadowModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -559,7 +562,7 @@ public:
     Client::Models::Skeleton skeleton;
 };
 
-// Lo que no tiene el 0x20b: ni modelo ni esqueleto.
+// Without the 0x20b: neither model nor skeleton.
 class NoModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -578,9 +581,9 @@ public:
 };
 } // namespace
 
-// 0x534bcb..0x534cb6 con la /0..3: 10 puntos, vida 40, el ancho, +0x9f1 en rand() & 1, la clave en 0, velocidad 70 y
-// +0x9ec en 150 (la /2 y la /3, 30 y 300 con la textura 0x62c y 0x62b; la /0 y la /1 conservan la 0x632) y los ángulos
-// y +0x3c en (90, 0, 0). Un rand(); el dueño queda en +0x54.
+// 0x534bcb..0x534cb6 with the /0..3: 10 points, life 40, the width, +0x9f1 at rand() & 1, the key at 0, speed 70 and
+// +0x9ec at 150 (the /2 and the /3, 30 and 300 with texture 0x62c and 0x62b; the /0 and the /1 keep the 0x632) and the
+// angles and +0x3c at (90, 0, 0). One rand(); the owner stays in +0x54.
 TEST(StormJointsTest, TheFallingSubtypesAreBornUpright)
 {
     struct Case
@@ -616,9 +619,9 @@ TEST(StormJointsTest, TheFallingSubtypesAreBornUpright)
     }
 }
 
-// 0x53c0a5..0x53c38b en el aire: la /2 gira la z rand() % 10 + 10; todas suben 10 la velocidad, agregan la cola, suben
-// otros 10 y bajan con +0x3c (90, 0, 0); el sprite con rand() % 360: el 0x60f de escala 1 con la luz la /0 y la /1 y el
-// 0x5fe de 1,6f con (0; 1; 1) la /2 y la /3. La cola común agrega otro tramo.
+// 0x53c0a5..0x53c38b in the air: the /2 turns z by rand() % 10 + 10; all speed up 10, add the tail, speed up another 10
+// and go down with +0x3c (90, 0, 0); the sprite with rand() % 360: the 0x60f of scale 1 with the light for the /0 and
+// the /1 and the 0x5fe of 1.6f with (0; 1; 1) for the /2 and the /3. The common tail adds another segment.
 TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3})
@@ -660,10 +663,10 @@ TEST(StormJointsTest, TheFallingSubtypesSpeedUpInTheAir)
     }
 }
 
-// 0x53c16d..0x53c2e0 en el suelo (la altura del terreno menos +0x9ec por encima de la z): la z queda ahí; la /2 y la
-// /3, con la cola y la clave en 0, sueltan la onda 0x6eb/4 con la luz (0,3f; 0,8f; 1) (con el rand() de su escala);
-// todas apagan la cola (la clave queda) y la luz pasa a · 0,8333333f; el sprite sale igual. La /0 y la /1 sin dueño no
-// sueltan nada; con dueño, sin los modelos, el mundo o la tabla de efectos, MuRet corta en 0x53c1c6.
+// 0x53c16d..0x53c2e0 on the ground (the ground height minus +0x9ec above z): z stays there; the /2 and the /3, with the
+// tail and the key at 0, drop the wave 0x6eb/4 with the light (0.3f; 0.8f; 1) (with its scale's rand()); all turn off
+// the tail (the key stays) and the light becomes · 0.8333333f; the sprite comes out the same. The /0 and the /1 without
+// an owner drop nothing; with an owner, without the models, the world or the effect table, MuRet stops at 0x53c1c6.
 TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
 {
     for (const std::int32_t subtype : {0, 1, 2, 3})
@@ -706,14 +709,13 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
     for (const std::int32_t subtype : {0, 1})
     {
         SCOPED_TRACE(subtype);
-        // Sin los modelos, el mundo o la tabla, MuRet corta.
         Falling owned;
         owned.ground = 5000.0;
         ASSERT_TRUE(owned.Create(subtype, &owned.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
         const auto cut = owned.Step();
         ASSERT_FALSE(cut.HasValue());
         EXPECT_TRUE(cut.Error().starts_with("0x53c1c6")) << cut.Error();
-        // Sin la cola, el suelo no lee al dueño.
+        // Without the tail, the ground does not read the owner.
         Falling tailless;
         tailless.ground = 5000.0;
         ASSERT_TRUE(tailless.Create(subtype, &tailless.target, Client::Kernel::JointOwnerKind::Actor).HasValue());
@@ -722,11 +724,11 @@ TEST(StormJointsTest, TheFallingSubtypesLandWithTheirWaveOrTheirVertices)
     }
 }
 
-// 0x53c1c6..0x53c246: la /0 y la /1 con dueño, en el suelo con la cola, posan el 0x20b con la acción, la escala (2) y
-// el origen (100, 200, 300) que dejó la última sombra (no la posición del dueño) y los ángulos del dueño (en 0): los
-// vértices quedan en el origen más el doble de los suyos. 0x4ebc80 le escribe al dueño la caja de +0x13c (el origen más
-// su piso; los ejes, su caja). Después 0x4ee770(0, 0x137, subtipo): por esquina, rand() % 8 y con 0 la cáscara 0x137
-// del subtipo (nueve rand()); al final, el sprite con su rand() % 360.
+// 0x53c1c6..0x53c246: the /0 and the /1 with an owner, on the ground with the tail, pose the 0x20b with the action, the
+// scale (2) and the origin (100, 200, 300) the last shadow left (not the owner's position) and the owner's angles (at
+// 0): the vertices end up at the origin plus twice their own. 0x4ebc80 writes the owner's box at +0x13c (the origin
+// plus its floor; the axes, its box). Then 0x4ee770(0, 0x137, subtype): per corner, rand() % 8 and with 0 the
+// subtype's shell 0x137 (nine rand()); at the end, the sprite with its rand() % 360.
 TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
 {
     const ShadowModels models;
@@ -789,7 +791,7 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
         EXPECT_FALSE(owned.joints[0].tailEnabled);
         EXPECT_NE(owned.LiveSprite(), nullptr);
 
-        // Sin el 0x20b en los modelos, corta en 0x53c1eb.
+        // Without the 0x20b in the models, it stops at 0x53c1eb.
         const NoModels none;
         Falling bare;
         bare.ground = 5000.0;
@@ -800,13 +802,13 @@ TEST(StormJointsTest, TheOwnedFallingSubtypesShedTheShellsOfTheShadow)
     }
 }
 
-// 0x53c1c6..0x53c210 con los ángulos del dueño y un hueso raíz que no es la identidad: 0x4eb860 arma la raíz con
-// 0x5fc8f0(ángulos del dueño) por la escala (2) y el origen (100, 200, 300) del 0x20b, le concatena (0x5fca90) la key
-// del hueso, el cuaternión (0,5; 0,5; 0,5; 0,5) (0x5fcdb0: (x, y, z) → (z, x, y), exacto) en (1, 2, 3), y 0x4ebc80 pasa
-// cada vértice por esa matriz (0x5fccc0). Con (0, 0, 90) el coseno de 90 · 0x3c8efa35 queda en la pila (0x32510b46 en
-// float) y se pierde al redondear: (94, 208, 310), (104, 214, 316) y (82, 220, 290). Con (30, 0, 45), los bits de
-// abajo. Los vértices salen de repetir 0x5fc8f0, 0x5fcdb0, 0x5fca90 y 0x5fccc0 en la x87 aparte (Fraction exacta con
-// redondeo a 53 y 24 bits, el seno y el coseno a 64).
+// 0x53c1c6..0x53c210 with the owner's angles and a root bone that is not the identity: 0x4eb860 builds the root with
+// 0x5fc8f0(owner's angles) times the scale (2) and the origin (100, 200, 300) of the 0x20b, concatenates (0x5fca90) the
+// bone's key, the quaternion (0.5; 0.5; 0.5; 0.5) (0x5fcdb0: (x, y, z) → (z, x, y), exact) at (1, 2, 3), and 0x4ebc80
+// passes each vertex through that matrix (0x5fccc0). With (0, 0, 90) the cosine of 90 · 0x3c8efa35 stays on the x87
+// stack (0x32510b46 as a float) and is lost when rounding: (94, 208, 310), (104, 214, 316) and (82, 220, 290). With
+// (30, 0, 45), the bits below. The vertices come from repeating 0x5fc8f0, 0x5fcdb0, 0x5fca90 and 0x5fccc0 on the x87
+// separately (exact Fraction with rounding to 53 and 24 bits, the sine and cosine to 64).
 TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
 {
     struct Case
@@ -874,9 +876,9 @@ TEST(StormJointsTest, TheShellsOfTheShadowTurnWithTheOwnerAndTheRootBone)
     }
 }
 
-// 0x534977..0x534a08: la /4 con los argumentos de 0x51e01a (la posición y los ángulos del 0x13a, ancho 40, key 50):
-// velocidad 0, el pase 1, la textura 0x62b, la luz 1, 20 puntos, vida 30, la tanda en 0 y la posición y los ángulos
-// del dueño, sin rand(). Sin dueño, el original desreferencia el puntero nulo: MuRet corta.
+// 0x534977..0x534a08: the /4 with 0x51e01a's arguments (the 0x13a's position and angles, width 40, key 50): speed 0,
+// pass 1, texture 0x62b, light 1, 20 points, life 30, the volley at 0 and the owner's position and angles, without
+// rand(). Without an owner, the original dereferences the null pointer: MuRet stops.
 TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
 {
     Falling blast;
@@ -911,8 +913,8 @@ TEST(StormJointsTest, TheBlastJointIsBornOnItsEffect)
     EXPECT_TRUE(cut.Error().starts_with("0x5349d3")) << cut.Error();
 }
 
-// 0x53be90..0x53bebd y 0x53c076..0x53c0a0: la /4 toma el byte vivo y la posición de su efecto; con menos de 15 de vida
-// la luz por 0,7692308f. Sin dueño se apaga. Sin rand().
+// 0x53be90..0x53bebd and 0x53c076..0x53c0a0: the /4 takes its effect's live byte and position; with life under 15 the
+// light times 0.7692308f. Without an owner it goes out. Without rand().
 TEST(StormJointsTest, TheBlastJointFollowsItsEffect)
 {
     Falling blast;

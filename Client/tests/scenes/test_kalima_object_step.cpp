@@ -53,7 +53,7 @@ TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndNat
         const int region = 0x1d9 + expected.Next() % 2;
         for (int close = 0; close < 3848; ++close)
             static_cast<void>(expected.Next());
-        static_cast<void>(expected.Next()); // gate de selección; count0 no consume otro.
+        static_cast<void>(expected.Next()); // selection gate; count 0 does not consume another.
         const bool particle = expected.Next() % 5 == 0;
         if (particle)
         {
@@ -129,7 +129,7 @@ TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDo
     EXPECT_TRUE(selected);
 }
 
-// 0x43878a y 0x4387f4: el cierre final deja cuatro bytes de rand() en cada celda; los accesos anidados no escriben.
+// 0x43878a and 0x4387f4: the final close leaves four bytes of rand() in each cell; nested accesses do not write.
 TEST(KalimaObjectStepTest, RegionCellClosesStoreTheNativeRandomBytesOnlyAtDepthZero)
 {
     constexpr std::uint32_t InitialLeft = 0x12345678;

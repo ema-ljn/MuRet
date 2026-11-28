@@ -20,7 +20,7 @@ namespace
 constexpr std::uint8_t ChargingState = 5;
 constexpr std::uint8_t ShoutingState = 6;
 
-// 0x4164f0(estado): +0x6c (la lejanía) en 0 y el estado.
+// 0x4164f0(state); the far count is +0x6c.
 void SetRavenState(DarkSpirit& spirit, std::uint8_t state)
 {
     spirit.far = 0;
@@ -39,7 +39,7 @@ void ApplyPetOrder(const Protocol::Pets::PetOrder& order, Kernel::WorldState& wo
         spirit.byte1ad = 0;
     if (order.order != Protocol::Pets::FollowTargetOrder)
         return;
-    // 0x41653d..0x41655e: +0x1ad en 1 y el blanco en el personaje de la clave, esté o no.
+    // 0x41653d..0x41655e: the target is the key's character, present or not.
     spirit.byte1ad = 1;
     spirit.target = Kernel::ActorWithKey(world, order.key);
 }
@@ -69,7 +69,7 @@ void ApplyPetAttack(const Protocol::Pets::PetAttack& attack, const Scenes::World
     if (spirit.state == ChargingState)
     {
         spirit.byte1ad = 1;
-        // 0x4165ff..0x41662b: rand() % 10 por CDQ/IDIV, FILD y FADD 20 (0x6b86d0).
+        // 0x4165ff..0x41662b: rand() % 10 by CDQ/IDIV, FILD and FADD 20 (0x6b86d0).
         const int roll = resources.cloth.random.Next() % 10;
         spirit.floatF0 = 0.5f;
         spirit.speed = static_cast<float>(roll) + 20.0f;

@@ -171,7 +171,7 @@ TEST(GameMovementTest, AnOrdinaryIdleStepClosesTheOwnRecord)
 {
     MovingHero tested;
     CrtRandom expected = tested.random;
-    // 57d114 llama5526f0 incluso con skill0: cierra60 bytes tras el registro propio.
+    // 0x57d114 calls 0x5526f0 even with skill 0: it closes 60 bytes after the own record.
     for (int i = 0; i < 8 + 3848 + 60; ++i)
         static_cast<void>(expected.Next());
     const auto result = StepHeroMovement(tested.Context());
@@ -217,7 +217,7 @@ TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
 {
     MovingHero tested;
     tested.world.Runtime().mouse.updateTime = 6;
-    // 0x775857c: la UI del paso la prende con el mouse en la barra (y ≥ 432) o sobre un panel.
+    // 0x775857c: the step's UI sets it with the mouse on the bar (y ≥ 432) or over a panel.
     tested.world.Runtime().ui.mouseOnUi = 1;
     auto context = tested.Context();
     context.input.mouseY = 432;
@@ -232,8 +232,8 @@ TEST(GameMovementTest, TheMouseOnTheUiDoesNotAdvanceTheClickWindow)
 TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
 {
     MovingHero tested;
-    // El cable no captura ocupantes. Esta celda fuerza el camino documentado7,6,7;
-    // en una grilla vacía el A* nativo puede elegir7,7,6 con la misma meta.
+    // The cable does not capture occupants. This cell forces the documented path 7,6,7; on an empty grid the native A*
+    // can pick 7,7,6 with the same goal.
     tested.terrain.attributes->cells[115 * 256 + 180] = 2;
     tested.world.Runtime().mouse.updateTime = 6;
     auto context = tested.Context();
@@ -262,12 +262,12 @@ TEST(GameMovementTest, AClickFindsAndSendsTheHistoricalD3)
     EXPECT_EQ(tested.world.Actors()[0].movementType, 0);
     EXPECT_EQ(tested.world.Runtime().mouse.updateTimeMax, 16);
 }
-// CL9 hito 11, 0x56b4db..0x56b78f: con la ventana de los eventos (0x78abb00) abierta, después del D3 va el C1 03 97,
-// 0x78abb00 vuelve a 0, el cursor queda pedido en SetCursorPos(x · ancho / 260, y · alto / 480) (Q-C1330), 0x6c8dcc
-// a 6 y el izquierdo suelto; con el 3 (el número de serie), antes cierra la entrada (0x56b6a9..0x56b72a): el campo
-// elegido en 0, el buffer del mensaje vacío, el EDIT de [0x5763504] vacío, el chat cerrado y 0x77f3b6b en 0, sin
-// tocar el foco ni el buffer del susurro. En Lorencia y en Devias, cada caso con un héroe quieto, porque el anterior
-// lo deja caminando.
+// CL9 milestone 11, 0x56b4db..0x56b78f: with the event window (0x78abb00) open, the C1 03 97 goes after the D3,
+// 0x78abb00 goes back to 0, the cursor stays requested at SetCursorPos(x · width / 260, y · height / 480) (Q-C1330),
+// 0x6c8dcc to 6 and the left button released; with 3 (the serial number), it first closes the entry
+// (0x56b6a9..0x56b72a): the chosen field at 0, the message buffer empty, the [0x5763504] EDIT empty, the chat closed
+// and 0x77f3b6b at 0, without touching the focus or the whisper buffer. Each case with an idle hero, because the
+// previous one leaves it walking.
 TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
 {
     struct Walk
@@ -283,7 +283,7 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
         out.tested->world.Runtime().panels.field78abb00 = window;
         if (window == 3)
         {
-            // Lo que deja abierta la entrada: un número a medio escribir, el foco en el EDIT y un susurro guardado.
+            // What the open entry leaves: a half-typed number, the focus on the EDIT and a stored whisper.
             Client::Chat::ChatInputState& input = out.tested->world.Runtime().chat.input;
             input.dialogEdit.text.SetText("AB12");
             input.focus = Client::Chat::ChatFocus::Dialog;
@@ -350,8 +350,8 @@ TEST(GameMovementTest, AWalkWithTheEventWindowOpenLeavesItAndAsksForTheCursor)
     }
 }
 
-// 0x56b3b2 → 0x65cae0(0x20, 0): caminar con el comercio abierto lo cierra después del D3, con el C1 03 3D en C3 por la
-// sesión (0x657fe1) y el inventario con él. En Lorencia y en Devias.
+// 0x56b3b2 → 0x65cae0(0x20, 0): walking with the trade open closes it after the D3, with the C1 03 3D in C3 through the
+// session (0x657fe1) and the inventory with it.
 TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
 {
     for (const std::int32_t map : {0, 2})
@@ -389,9 +389,8 @@ TEST(GameMovementTest, AWalkWithTheTradeOpenCancelsItAfterTheD3)
     }
 }
 
-// 0x56b3dd → 0x65cae0(0x40000, 0) → 0x657b73 (CL9 hito 8): caminar con la ventana 2 del gremio abierta (la del Guild
-// Master) la cierra después del D3 (0x6570b0): el C1 04 54 00 en claro por la sesión y el sonido 0x1c. En Lorencia y en
-// Devias.
+// 0x56b3dd → 0x65cae0(0x40000, 0) → 0x657b73 (CL9 milestone 8): walking with guild window 2 open (the Guild Master's)
+// closes it after the D3 (0x6570b0): the C1 04 54 00 in clear through the session and sound 0x1c.
 TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
 {
     for (const std::int32_t map : {0, 2})
@@ -429,11 +428,9 @@ TEST(GameMovementTest, AWalkWithTheSecondGuildWindowOpenClosesItAfterTheD3)
     }
 }
 
-// 0x56b3d2, 0x56b41e y 0x56b48a → 0x65cae0(id, 0) → 0x657ab0: caminar con la tienda del NPC, el almacén o la caja del
-// caos abiertos los cierra después del D3, con su paquete en claro por la sesión de las ventanas (el C1 03 31 de
-// 0x659063, el C1 03 82 de 0x658567 y el C1 03 87 de 0x658767), la grilla del NPC vacía y el inventario con ellos.
-// Sin esos cierres prestados, el juego terminaba con "cerrar la ventana del NPC sin el mundo". En Lorencia y en
-// Devias.
+// 0x56b3d2, 0x56b41e and 0x56b48a → 0x65cae0(id, 0) → 0x657ab0: walking with the NPC shop, the warehouse or the chaos
+// box open closes them after the D3, with their packet in clear through the windows session (0x659063's C1 03 31,
+// 0x658567's C1 03 82 and 0x658767's C1 03 87), the NPC grid empty and the inventory with them.
 TEST(GameMovementTest, AWalkWithAnNpcWindowOpenClosesItAfterTheD3)
 {
     using Client::Ui::PanelState;
@@ -646,7 +643,7 @@ TEST(GameMovementTest, ASittingHeroWithACharacterUnderTheMouseSkipsTheWaitCounte
     EXPECT_EQ(tested.world.Runtime().warpCounter, 50);
 }
 
-// Un nombre inventado para el personaje elegido y otro para el lugar del historial.
+// An invented name for the chosen character and another for the history slot.
 void NameTheActor(Client::Kernel::ActorState& actor, std::string_view name)
 {
     actor.name.fill(std::byte{0});
@@ -654,8 +651,8 @@ void NameTheActor(Client::Kernel::ActorState& actor, std::string_view name)
         actor.name[i] = static_cast<std::byte>(name[i]);
 }
 
-// Lo que pide 0x59b036..0x59b086: el chat abierto, el héroe en la zona segura, un elegido con +0x376 en 0xff y el
-// derecho.
+// What 0x59b036..0x59b086 asks for: the chat open, the hero in the safe zone, a chosen one with +0x376 at 0xff and the
+// right click.
 std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
 {
     auto tested = std::make_unique<MovingHero>();
@@ -677,8 +674,9 @@ std::unique_ptr<MovingHero> AHeroRightClickingTheChosen(std::int32_t map)
     return tested;
 }
 
-// 0x59b036..0x59b185 (Q-C804): el derecho sobre el elegido se gasta, el nombre va al buffer del susurro (vaciado entero
-// antes) y al lugar del historial, con su largo y el sonido 0x19; el EDIT del susurro toma lo que había en el lugar.
+// 0x59b036..0x59b185 (Q-C804): the right click on the chosen one is consumed, the name goes to the whisper buffer
+// (fully emptied first) and to the history slot, with its length and sound 0x19; the whisper EDIT takes what was in
+// the slot.
 TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneInTheEdit)
 {
     for (const std::int32_t map : {0, 2})
@@ -696,15 +694,16 @@ TEST(GameMovementTest, TheRightClickOnTheChosenWritesItsNameAndLeavesTheOldOneIn
             std::all_of(input.whisperBuffer.begin() + 7, input.whisperBuffer.end(), [](char c) { return c == '\0'; }));
         EXPECT_EQ(input.whisperLength, 7);
         EXPECT_EQ(Client::Chat::CStringOf(slot), "Rival01");
-        // strcpy: después del 0, el lugar conserva lo que tenía.
+        // strcpy: after the 0, the slot keeps what it had.
         EXPECT_EQ(slot[8], 'y');
         EXPECT_EQ(input.whisper.text.Value(), "Viejo07");
         EXPECT_EQ(runtime.lastSoundId, Client::Audio::SoundId{0x19});
     }
 }
 
-// 0x59b092..0x59b0a1: en Chaos Castle el derecho se gasta y nada más; con +0x376 distinto de 0xff (un jugador del 12,
-// 0xffff de 0x511290) 0x59b036 no lo gasta y lo gasta 0x57cfc0 al final (0x57d1b1), sin el nombre.
+// 0x59b092..0x59b0a1: in Chaos Castle the right click is consumed and nothing else; with +0x376 other than 0xff (a
+// player's 12, 0x511290's 0xffff) 0x59b036 does not consume it and 0x57cfc0 consumes it at the end (0x57d1b1), without
+// the name.
 TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCastle)
 {
     {
@@ -729,8 +728,8 @@ TEST(GameMovementTest, TheRightClickOnTheChosenNeedsItsWordAndAMapOutsideChaosCa
     }
 }
 
-// 0x59afdf..0x59b001: la ventana de la carta (+0xf0) cuenta solo si 0x490a00 la encuentra; sin ella, el nombre no va
-// al susurro y el derecho lo gasta 0x57cfc0 (0x57d1b1).
+// 0x59afdf..0x59b001: the letter window (+0xf0) counts only if 0x490a00 finds it; without it, the name does not go to
+// the whisper and 0x57cfc0 consumes the right click (0x57d1b1).
 TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
 {
     const auto tested = AHeroRightClickingTheChosen(0);
@@ -743,8 +742,7 @@ TEST(GameMovementTest, ALetterIdWithoutItsWindowDoesNotTakeTheRightClick)
     EXPECT_FALSE(tested->world.Runtime().lastSoundId.has_value());
 }
 
-// La caja de agregar un amigo (0x49d0b0) abierta, con su id en +0xf0 de [0x5763514] y su EDIT en +0xb4. Los ids son
-// inventados.
+// The add-friend box (0x49d0b0) open, with its id in +0xf0 of [0x5763514] and its EDIT in +0xb4. The ids are invented.
 constexpr std::int32_t AddBoxId = 0x77;
 constexpr std::int32_t AddBoxEditId = 0x78;
 
@@ -759,9 +757,10 @@ void OpenTheAddFriendBox(Client::Kernel::WorldRuntime& runtime, Client::Ui::OldW
     runtime.oldWindows.letter = AddBoxId;
 }
 
-// 0x59afdf..0x59b033: con la caja de agregar un amigo y el derecho, el nombre del elegido (+0x1d9) va a su EDIT con la
-// vtable + 0x4c (0x467ee0, SetWindowTextA) y la vtable + 0x30 con 1 (0x4682a0: el foco de Windows, el id del EDIT en
-// 0x5762ec0 y EM_SETSEL(−2, −1), el cursor al final). Después sigue en 0x59b036, que con el chat cerrado no hace nada.
+// 0x59afdf..0x59b033: with the add-friend box and the right click, the chosen one's name (+0x1d9) goes to its EDIT with
+// the vtable + 0x4c (0x467ee0, SetWindowTextA) and the vtable + 0x30 with 1 (0x4682a0: the Windows focus, the EDIT id
+// in 0x5762ec0 and EM_SETSEL(−2, −1), the cursor at the end). Then it goes on at 0x59b036, which with the chat closed
+// does nothing.
 TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdit)
 {
     const auto tested = AHeroRightClickingTheChosen(0);
@@ -781,8 +780,9 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxPutsTheChosenNameInItsEdi
     EXPECT_EQ(runtime.chat.input.whisperBuffer[0], 'x');
 }
 
-// 0x59b003..0x59b020: sin mirar el −1, un derecho sin elegido lee el nombre del registro −1, antes de la tabla de
-// personajes ([0x743a16c] − 0x438 + 0x1d9): lo que hay ahí depende del heap (VM). Corta, y el EDIT queda como estaba.
+// 0x59b003..0x59b020: without checking −1, a right click with no chosen one reads the name of record −1, before the
+// character table ([0x743a16c] − 0x438 + 0x1d9): what is there depends on the heap (VM). It stops, and the EDIT stays
+// as it was.
 TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxAndNoChosenIsCut)
 {
     const auto tested = AHeroRightClickingTheChosen(0);
@@ -797,15 +797,15 @@ TEST(GameMovementTest, TheRightClickWithTheAddFriendBoxAndNoChosenIsCut)
     EXPECT_EQ(runtime.oldWindows.windows.at(AddBoxId).add.edit.text.Value(), "previo");
 }
 
-// El clic de ataque (CL9 hito 3): el héroe de MovingHero en (182, 115) y otro jugador elegido en el lugar 5, en
-// `cellX`. Las claves son inventadas.
+// The attack click (CL9 milestone 3): MovingHero's hero at (182, 115) and another player chosen in slot 5, at `cellX`.
+// The keys are invented.
 constexpr std::size_t ChosenSlot = 5;
 constexpr std::uint16_t ChosenKey = 0x0456;
 constexpr int OwnDraws = 3848;
 constexpr int CellDraws = 4;
-// Los dos cierres del contador de la espera (0x59af50) y el registro propio que cierra el clic (0x59bd01).
+// The two closes of the wait counter (0x59af50) and the own record the click closes (0x59bd01).
 constexpr int BeforeTheClick = 2 * CellDraws + OwnDraws;
-// Después de mandar el camino: las dos ventanas que miran SendMove y 0x57cfc0 (el registro propio y Skill.bmd).
+// After sending the path: the two windows SendMove checks, and 0x57cfc0 (the own record and Skill.bmd).
 constexpr int AfterTheWalk = 2 + OwnDraws + 60;
 
 std::unique_ptr<MovingHero> AHeroClickingAPlayer(std::uint8_t cellX)
@@ -837,9 +837,10 @@ struct Walk
     std::uint32_t randomState = 0;
 };
 
-// 0x59cd2e..0x59cd43 y 0x59d3de..0x59d8b6: fuera de la zona segura, un jugador elegido con Ctrl abajo (0x558e7f) se
-// ataca: el blanco a 0x6c8ebc, 0x6c8e38 en 1, +0x379 en 3 y su celda a 0x77e1ba8; se ve (0x558800), el camino sale y,
-// sin arma de tiro, SendMove con su celda de meta. Sin Ctrl, o en la zona segura, el mismo clic camina al terreno.
+// 0x59cd2e..0x59cd43 and 0x59d3de..0x59d8b6: outside the safe zone, a chosen player with Ctrl down (0x558e7f) is
+// attacked: the target to 0x6c8ebc, 0x6c8e38 at 1, +0x379 at 3 and its cell to 0x77e1ba8; it is seen (0x558800), the
+// path is found and, without a ranged weapon, SendMove with its cell as the goal. Without Ctrl, or in the safe zone,
+// the same click walks to the terrain.
 TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
 {
     for (const bool control : {true, false})
@@ -892,7 +893,7 @@ TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
             EXPECT_EQ(runtime.movement.targetY, 115u);
             ASSERT_EQ(hero.path.count, 4u);
             EXPECT_EQ(hero.path.cells[3].x, 185);
-            // La Y y la X para ver, otra vez para el camino, y las manos.
+            // The Y and the X to see, again for the path, and the hands.
             const CrtRandom atTheWalk = Advanced(start, BeforeTheClick + 4 * CellDraws + OwnDraws);
             EXPECT_EQ(walk.randomState, atTheWalk.State());
             EXPECT_EQ(tested->random.State(), Advanced(atTheWalk, AfterTheWalk).State());
@@ -900,8 +901,9 @@ TEST(GameMovementTest, AClickOnAPlayerWithCtrlWalksToItAndRemembersIt)
     }
 }
 
-// 0x558800: una celda con el WORD en 4 o más y sin 0x20, 0x40 ni 0x80 entre el héroe y el elegido tapa: el blanco ya
-// quedó anotado, pero no hay camino y el clic termina como siempre (0x59e248). Con 0x20 se ve.
+// 0x558800: a cell with the WORD at 4 or more and without 0x20, 0x40 or 0x80 between the hero and the chosen one
+// blocks: the target is already noted, but there is no path and the click ends as always (0x59e248). With 0x20 it is
+// seen.
 TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
 {
     for (const std::uint16_t wall : {std::uint16_t{4}, std::uint16_t{0x24}})
@@ -938,13 +940,13 @@ TEST(GameMovementTest, AWallBetweenStopsTheAttackAfterRememberingTheTarget)
     }
 }
 
-// El clic de ataque con el elegido fuera de la grilla: en la fila −1 la línea de 0x558800 sale de TerrainWall
-// (0x55886d) y en la columna 256 la ve (el índice lineal cae en la fila de al lado) pero PathFinding2 (0x59d653) la
-// toma como índice lineal; MuRet descarta el clic como el de una pared, con las lecturas de antes (07, Q-C1179). Con
-// Crywolf en la etapa 3 o 4, en el mapa 34 y un altar (0x204..0x208) en 0x6c8e54, PathFinding2 le pone la bandera al
-// A* (0x4eac0a..0x4eac41): sin distancia, el WORD de la meta en TerrainWall queda en 0 (el 0x02 del personaje que la
-// ocupa también) y el camino llega a la celda del elegido. En la etapa 2, con otro NPC y en Lorencia y en Devias la
-// bandera no está: la meta ocupada queda en 0x02 y el camino es el de la segunda pasada, sin llegar a la celda.
+// The attack click with the chosen one off the grid: on row −1 0x558800's line leaves TerrainWall (0x55886d) and on
+// column 256 it sees it (the linear index falls on the next row) but PathFinding2 (0x59d653) takes it as a linear
+// index; MuRet discards the click as a wall's, with the earlier reads (07, Q-C1179). With Crywolf at stage 3 or 4, on
+// map 34 and an altar (0x204..0x208) in 0x6c8e54, PathFinding2 gives the A* the flag (0x4eac0a..0x4eac41): no
+// distance, the goal's WORD in TerrainWall stays at 0 (also the 0x02 of the character on it) and the path reaches the
+// chosen one's cell. At stage 2, with another NPC and in Lorencia and Devias there is no flag: the occupied goal stays
+// at 0x02 and the path is the second pass's, without reaching the cell.
 TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarClearsTheGoal)
 {
     constexpr std::size_t AltarSlot = 9;
@@ -1036,9 +1038,9 @@ TEST(GameMovementTest, AChosenOffTheGridDiscardsTheClickAndACrywolfAltarClearsTh
     }
 }
 
-// 0x59d856..0x59d8bb y 0x561c50: con el arco en la izquierda el camino no se manda; sin flechas en la derecha,
-// 0x561840 las busca (el texto 251, tipo 2, sin ninguna) y MoveHero sale (0x59e2c0) sin sumar el contador ni
-// pasar por 0x57cfc0.
+// 0x59d856..0x59d8bb and 0x561c50: with the bow in the left the path is not sent; without arrows in the right,
+// 0x561840 looks for them (text 251, type 2, with none) and MoveHero leaves (0x59e2c0) without adding to the counter
+// or going through 0x57cfc0.
 TEST(GameMovementTest, ABowWithoutArrowsLeavesMoveHero)
 {
     const auto tested = AHeroClickingAPlayer(185);
@@ -1071,13 +1073,13 @@ TEST(GameMovementTest, ABowWithoutArrowsLeavesMoveHero)
     EXPECT_EQ(texts, std::vector<std::size_t>{251});
     EXPECT_EQ(tested->world.Runtime().mouse.updateTime, 0);
     EXPECT_EQ(tested->world.Actors()[0].path.count, 4u);
-    // Las celdas, las manos y los dos accesos de 0x561c50.
+    // The cells, the hands and 0x561c50's two accesses.
     EXPECT_EQ(tested->random.State(), Advanced(start, BeforeTheClick + 4 * CellDraws + 3 * OwnDraws).State());
 }
 
-// 0x59cd49..0x59d3d7 y 0x59d65f..0x59d678: el elfo que camina con el arco manda antes su celda lógica (C1 05 DF X Y,
-// la que ya va adelante); con flechas, 0x5650c0(héroe, héroe, 1) pega desde ahí si está en alcance (seis celdas con
-// el arco): el D3 de girar y el D7 con la clave del elegido.
+// 0x59cd49..0x59d3d7 and 0x59d65f..0x59d678: the elf walking with the bow first sends its logical cell (C1 05 DF X Y,
+// the one already ahead); with arrows, 0x5650c0(hero, hero, 1) hits from there if in range (six cells with the bow):
+// the D3 to turn and the D7 with the chosen one's key.
 TEST(GameMovementTest, AWalkingElfWithABowSendsItsCellAndShoots)
 {
     const auto tested = AHeroClickingAPlayer(188);
@@ -1130,14 +1132,14 @@ TEST(GameMovementTest, AWalkingElfWithABowSendsItsCellAndShoots)
     EXPECT_EQ(keys, std::vector<std::uint16_t>{ChosenKey});
     EXPECT_EQ(hero.byte381, 1);
     EXPECT_EQ(hero.movement, 0);
-    // 0x5653c1 pone el contador en su tope antes de la suma de 0x59e248.
+    // 0x5653c1 sets the counter to its cap before 0x59e248's sum.
     const Client::Kernel::MouseState& mouse = tested->world.Runtime().mouse;
     EXPECT_EQ(mouse.updateTime, mouse.updateTimeMax + 1);
 }
 
-// 0x59b89e..0x59b8cd: con el ataque automático, el otro elegido (0x6c8e38) en 1 y un elegido, el clic vuelve solo,
-// sin botón; fuera del mapa 6 y de Chaos Castle. 0x59b22f: lo mismo con 0x6c8e38 distinto de −1 pone la cabeza en 0 y
-// el héroe quieto no gira (0x59b3c4).
+// 0x59b89e..0x59b8cd: with the auto attack, the other chosen (0x6c8e38) at 1 and a chosen one, the click comes back by
+// itself, without a button; outside map 6 and Chaos Castle. 0x59b22f: the same with 0x6c8e38 other than −1 sets the
+// head to 0 and the idle hero does not turn (0x59b3c4).
 TEST(GameMovementTest, TheAutomaticAttackClicksAgainAndHoldsTheHead)
 {
     for (const std::int32_t map : {0, 6, 18})
@@ -1336,7 +1338,7 @@ TEST(GameMovementTest, AClickClosesBeforePickingAndReadsTwoWindowsAfterSending)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// Lo que pasa con un clic según las manos del registro propio: walked dice si salió el D3.
+// What happens on a click depending on the own record's hands: walked says whether the D3 went out.
 struct HandsClick
 {
     Client::Core::Expected<void, std::string> result;
@@ -1369,8 +1371,8 @@ HandsClick ClickWithTheHands(std::uint16_t right, std::uint16_t left, std::int32
 
 constexpr std::uint16_t EmptyHand = 0xffff;
 
-// 0x59bbe9..0x59bd38: la derecha es +0xb6c y la izquierda +0xbb4. Con la espada en la derecha y la
-// izquierda vacía, el caso más común, el clic camina.
+// 0x59bbe9..0x59bd38: the right is +0xb6c and the left +0xbb4. With the sword in the right and the left empty, the most
+// common case, the click walks.
 TEST(GameMovementTest, AWeaponInTheRightHandWithTheLeftEmptyWalks)
 {
     for (const std::uint16_t right : {std::uint16_t{0x0000}, std::uint16_t{0x0205}, std::uint16_t{0x0a00}})
@@ -1381,9 +1383,10 @@ TEST(GameMovementTest, AWeaponInTheRightHandWithTheLeftEmptyWalks)
     }
 }
 
-// 0x59bd3e..0x59bf56: con la derecha vacía y un arma de los grupos 0 a 2 o del 5 en la izquierda, el original la pasa
-// al cursor, viste al héroe y manda el C1 0E 24 del lugar 1 al 0 (Items::MoveTheLeftWeaponToTheRight); después sigue
-// con el clic (0x59cd23). Sin quien vista al héroe corta en 0x59bf23, con el registro ya cerrado.
+// 0x59bd3e..0x59bf56: with the right empty and a weapon of groups 0 to 2 or 5 in the left, the original moves it to
+// the cursor, dresses the hero and sends the C1 0E 24 from slot 1 to 0 (Items::MoveTheLeftWeaponToTheRight); then it
+// goes on with the click (0x59cd23). Without someone to dress the hero it stops at 0x59bf23, with the record already
+// closed.
 TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
 {
     for (const std::uint16_t left :
@@ -1422,8 +1425,8 @@ TEST(GameMovementTest, AWeaponOnlyInTheLeftHandGoesToTheRight)
     }
 }
 
-// Fuera de esos grupos (las lanzas, los arcos, los escudos), con la derecha ocupada o con un ítem en el
-// cursor ([0x7879fbc] > 0), el original sigue a 0x59cd23.
+// Outside those groups (spears, bows, shields), with the right occupied or with an item on the cursor
+// ([0x7879fbc] > 0), the original goes on to 0x59cd23.
 TEST(GameMovementTest, TheOtherHandsAndAnItemOnTheCursorWalk)
 {
     for (const std::uint16_t left :

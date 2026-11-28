@@ -10,31 +10,30 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-// Las partículas de los objetos de la selección (mapa 54, también los del 33) y del aura del elegido:
-// 622/1 (la neblina de 0x425260 con dueño, 0x5435cf y 0x5476f0), 5de/7 (la llama del 0x43, 0x54150e y
-// 0x545e3f) y 729/0,1 (las dos luces de 0x6348c6/0x6348dc, 0x543840 y 0x547880); la 5de/0 del chorro de
-// Lost Tower (0x54143c), que sólo sube; y las nubes 622/0..5 de los objetos de Icarus (0x603f3b), con el alta
-// y el paso de la 622/1 y el giro por subtipo de 0x54848c. Intermedios double (PC53) y stores binary32, como
-// los demás kernels. Contrato: 06 § El mundo de la selección y § Los objetos de Icarus.
+// The particles of the selection objects (map 54, also those of 33) and of the chosen one's aura: 622/1 (0x425260's
+// owned mist, 0x5435cf and 0x5476f0), 5de/7 (0x43's flame, 0x54150e and 0x545e3f) and 729/0,1 (the two lights of
+// 0x6348c6/0x6348dc, 0x543840 and 0x547880); Lost Tower's jet 5de/0 (0x54143c), which only rises; and the clouds
+// 622/0..5 of Icarus's objects (0x603f3b), with 622/1's creation and step and 0x54848c's per-subtype turn. Double
+// intermediates (PC53) and binary32 stores, like the other kernels. Contract: 06 § El mundo de la selección and § Los
+// objetos de Icarus.
 namespace Client::Particles
 {
 inline constexpr std::int32_t FlameParticle = 0x5de;
 inline constexpr std::int32_t ChaseLightParticle = 0x729;
-// 0x543851: el 729/1 se dibuja con Effect\Impack03.jpg (0x719) de SelectionTextureSet.
+// 0x543851: 729/1 is drawn with Effect\Impack03.jpg (0x719) from SelectionTextureSet.
 inline constexpr std::int32_t ChaseLightImpactTexture = 0x719;
 inline constexpr std::int32_t OwnedMistSubtype = 1;
 inline constexpr std::int32_t RisingFlameSubtype = 7;
-// 0x54143c: la llama del chorro 0x5de de Lost Tower (el 0x18 del mapa 4), que no es de la selección pero
-// comparte el tipo y el dibujo.
+// 0x54143c: the flame of Lost Tower's 0x5de jet (map 4's 0x18), not from the selection but sharing the type and the
+// drawing.
 inline constexpr std::int32_t FloorFlameSubtype = 0;
 
 [[nodiscard]] bool IsSelectionParticle(std::int32_t type, std::int32_t subtype);
-// Después del prefijo de 0x53fe70 (Initialize): `scaleArgument` es el argumento de escala, que 622/1 suma
-// a +0x60 después de pisar +0x10. 622/0..5 consumen siete rand(), 5de/7 cinco o seis, 5de/0 dos y 729 seis.
+// After 0x53fe70's prefix (Initialize): 622/1 adds `scaleArgument` to +0x60 after overwriting +0x10. 622/0..5 take
+// seven rand(), 5de/7 five or six, 5de/0 two and 729 six.
 void CreateSelectionParticle(Particle& particle, float scaleArgument, Crt::CrtRandom& random);
-// Después de vida/movimiento de 0x5446e0, incluso en el tick que apaga alive. 622/0..5 leen su dueño (+0x40,
-// un objeto del mundo: +0x16c y +0x58) y el reloj del mundo; sin ellos, MissingOwner o MissingClock antes
-// de escribir nada.
+// After 0x5446e0's life/movement, even on the tick that clears alive. 622/0..5 read their owner (+0x40, a world object:
+// +0x16c and +0x58) and the world clock; without them, MissingOwner or MissingClock before writing anything.
 [[nodiscard]] Core::Expected<void, ParticleError> StepSelectionParticle(Particle& particle, const float* worldClock,
                                                                         IParticleTrigonometry* trigonometry,
                                                                         const ParticleObjectOwners& owners);

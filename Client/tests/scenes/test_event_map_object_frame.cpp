@@ -23,7 +23,7 @@
 #include <optional>
 #include <string>
 
-// 0x602ed0 con Devil Square (0x603dd7) y con los Blood Castle (0x604152), después del rand() común (06 § Los
+// 0x602ed0 with Devil Square (0x603dd7) and with the Blood Castles (0x604152), after the common rand() (06 § Los
 // objetos de Devil Square y de Blood Castle).
 namespace
 {
@@ -36,7 +36,7 @@ using Client::WorldObjects::WorldObject;
 
 using Client::Math::F32;
 
-// La pose global de 0x68b181c: huesos sin giro, el k en (10 · k; 100; 50).
+// The global pose of 0x68b181c: unrotated bones, bone k at (10 · k; 100; 50).
 Client::Kernel::PoseBuffer Pose(std::size_t bones)
 {
     Client::Kernel::PoseBuffer pose;
@@ -85,8 +85,8 @@ void ExpectSameParticles(const Particles& actual, const Particles& expected)
 }
 } // namespace
 
-// 0x603dfe..0x603ee0: el 2 deja una 68/0 en el hueso 23 corrido (−15; 0; 0) con cada rand() & 3 en 0 (la
-// segunda en el 31) y siempre una más en el 23, con los ángulos del objeto, luz 1 y escala 1.
+// 0x603dfe..0x603ee0: the 2 leaves a 0x68/0 at bone 23 shifted (−15; 0; 0) with each rand() & 3 at 0 (the second at
+// 31) and always one more at 23, with the object's angles, light 1 and scale 1.
 TEST(EventMapObjectFrameTest, TheDevilSquareRainObjectDropsOnItsBones)
 {
     const auto pose = Pose(32);
@@ -126,7 +126,7 @@ TEST(EventMapObjectFrameTest, TheDevilSquareRainObjectDropsOnItsBones)
     EXPECT_TRUE(sawExtra);
     EXPECT_TRUE(sawOnlyLast);
 
-    // Los demás tipos no sacan rand(); sin rand() en el pase, el 2 corta antes de mirar la pose.
+    // The other types take no rand(); without a rand() in the pass, the 2 cuts before looking at the pose.
     CrtRandom random(7);
     Particles particles;
     const GameObjectPass quiet{.map = 9, .random = &random, .particles = &particles, .retainedPose = &pose};
@@ -137,8 +137,8 @@ TEST(EventMapObjectFrameTest, TheDevilSquareRainObjectDropsOnItsBones)
     EXPECT_NE(cut.Error().find("0x603e0e"), std::string::npos) << cut.Error();
 }
 
-// 0x60433a..0x6043e9: siete 0x5ac de 0,5 en (0; 0; 2) por los huesos 1, 2, 4, 6, 9, 10 y 11, con la luz
-// (a; a · 0,5; 0), a = (sin((z · 20 + T) · 0,001f) + 1) · 0,5.
+// 0x60433a..0x6043e9: seven 0x5ac of 0.5 at (0; 0; 2) on bones 1, 2, 4, 6, 9, 10 and 11, with the light
+// (a; a · 0.5; 0), a = (sin((z · 20 + T) · 0.001f) + 1) · 0.5.
 TEST(EventMapObjectFrameTest, TheBloodCastleStatueGlowsOnSevenBones)
 {
     const auto pose = Pose(12);
@@ -169,7 +169,7 @@ TEST(EventMapObjectFrameTest, TheBloodCastleStatueGlowsOnSevenBones)
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
 
-// 0x6042bb..0x60432b: un 0x60f en el hueso 3, v = sin(T · 0,001f) · 0,3f + 0,7f en float, luz v y escala v + 0,5.
+// 0x6042bb..0x60432b: one 0x60f at bone 3, v = sin(T · 0.001f) · 0.3f + 0.7f in float, light v and scale v + 0.5.
 TEST(EventMapObjectFrameTest, TheBloodCastleOrbPulsesOnItsThirdBone)
 {
     const auto pose = Pose(4);
@@ -190,8 +190,9 @@ TEST(EventMapObjectFrameTest, TheBloodCastleOrbPulsesOnItsThirdBone)
     EXPECT_EQ(live[0].scale, F32(static_cast<double>(level) + 0.5));
 }
 
-// 0x604171..0x6042ac: dos rand() & 1; con cada 0, la fase (+0x84) sube 1 y con ftol(fase + 2) % 4 o ftol(fase) %
-// 4 en 0 suelta 6ac/0 y 6ab/0, o 622/6, 6ab/1 y 60f/4 (luz (1; 0,8f; 0,8f), escala 0,19f), en el objeto.
+// 0x604171..0x6042ac: two rand() & 1; with each 0, the phase (+0x84) goes up 1 and with ftol(phase + 2) % 4 or
+// ftol(phase) % 4 at 0 it releases 0x6ac/0 and 0x6ab/0, or 0x622/6, 0x6ab/1 and 0x60f/4 (light (1; 0.8f; 0.8f), scale
+// 0.19f), at the object.
 TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
 {
     bool sawFlame = false;
@@ -258,7 +259,6 @@ TEST(EventMapObjectFrameTest, TheBloodCastleTorchReleasesItsParticlesOnItsTurns)
     EXPECT_TRUE(sawSmoke);
 }
 
-// Sin pose, sin sprites o sin pool cortan con la dirección de su lectura.
 TEST(EventMapObjectFrameTest, TheBloodCastleObjectsCutWithoutTheirBindings)
 {
     WorldObject statue = Object(0xb);

@@ -22,9 +22,9 @@
 #include <utility>
 #include <vector>
 
-// Client::WorldObjects::CreateWorldObjects, StepWorldObject y DrawOf en los casos que los 276 vectores del
-// mapa 55 no tocan (06 § El mundo del login, la revisión de la CL7.2), y StepWorldObjectChecked con los
-// casos de los mapas 0 y 2 (06 § Los objetos del juego).
+// Client::WorldObjects::CreateWorldObjects, StepWorldObject and DrawOf in the cases the 276 vectors of map 55 do not
+// touch (06 § El mundo del login, the CL7.2 review), and StepWorldObjectChecked with the cases of maps 0 and 2 (06 §
+// Los objetos del juego).
 namespace
 {
 using Client::WorldObjects::WorldObject;
@@ -43,8 +43,8 @@ std::vector<WorldObject> Created(std::int16_t type, float x, float y, std::uint8
                                                        Client::WorldObjects::ObjectScene::Login);
 }
 
-// 0x60666c: la posición por 0,000625f en la x87, sin redondear el producto, y ftol. En los múltiplos de
-// 1.600 el float sube al entero siguiente; la x87 no.
+// 0x60666c: the position times 0.000625f in the x87, without rounding the product, and ftol. At multiples of 1600 the
+// float goes up to the next integer; the x87 does not.
 TEST(WorldObjectsTest, TheSectorIsTheProductWithoutRounding)
 {
     EXPECT_EQ(Client::WorldObjects::SectorX(Created(1, 1600.0f, 0.0f).front()), 0);
@@ -60,9 +60,9 @@ TEST(WorldObjectsTest, TheSectorIsTheProductWithoutRounding)
     EXPECT_TRUE(Created(1, 25700.0f, 0.0f).empty());
 }
 
-// Q-C186: los registros 492 y 493 de World3\EncTerrain3.obj (tipo 86, la y en 0xFFFFFFFF) están en la
-// lista 32 del original. Con la operación inválida enmascarada, ftol da 0x8000000000000000 con un NaN,
-// y 0x606660 compara con signo el dword bajo (0x60668d..0x6066ab): el sector 0, y el objeto se crea.
+// Q-C186: records 492 and 493 of World3\EncTerrain3.obj (type 86, y at 0xFFFFFFFF) are in the original's list 32.
+// With the invalid operation masked, ftol gives 0x8000000000000000 with a NaN, and 0x606660 compares the low dword
+// signed (0x60668d..0x6066ab): sector 0, and the object is created.
 TEST(WorldObjectsTest, ANotANumberPositionGoesToSectorZeroAndIsCreated)
 {
     const auto objects = Created(86, 4000.0f, std::bit_cast<float>(0xFFFFFFFFu), Devias);
@@ -72,9 +72,9 @@ TEST(WorldObjectsTest, ANotANumberPositionGoesToSectorZeroAndIsCreated)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(objects.front().transform.position.y), 0xFFFFFFFFu);
 }
 
-// 0x60668d..0x6066ab mira EAX, el dword bajo de ftol, y no el producto: 2^65 por 0,000625f da
-// 0x51eb85 · 2^32, exacto y de dword bajo 0, el sector 0. El infinito y lo que no entra en int64 siguen
-// sin observar (Q-C186): son la frontera del port, que no los crea, no un resultado del original.
+// 0x60668d..0x6066ab looks at EAX, ftol's low dword, not the product: 2^65 times 0.000625f gives 0x51eb85 · 2^32,
+// exact and with low dword 0, sector 0. Infinity and what does not fit in int64 stay unobserved (Q-C186): they are the
+// port's boundary, which does not create them, not a result of the original.
 TEST(WorldObjectsTest, TheSectorIsTheSignedLowDwordOfFtol)
 {
     for (const float x : {0x1p65f, -0x1p65f})
@@ -90,8 +90,8 @@ TEST(WorldObjectsTest, TheSectorIsTheSignedLowDwordOfFtol)
     }
 }
 
-// 0x606660 saca el sector de la posición del archivo, antes de su switch: los remolinos del 55, que el
-// caso lleva a (8.600; 25.000; 5.000), quedan en el sector de donde estaban.
+// 0x606660 takes the sector from the file's position, before its switch: the 55's whirlpools, which the case moves to
+// (8600; 25000; 5000), stay in the sector they were in.
 TEST(WorldObjectsTest, TheWhirlpoolsKeepTheSectorOfTheFile)
 {
     const auto whirlpool = Created(0x56, 100.0f, 100.0f);
@@ -101,9 +101,9 @@ TEST(WorldObjectsTest, TheWhirlpoolsKeepTheSectorOfTheFile)
     EXPECT_EQ(Client::WorldObjects::SectorY(whirlpool.front()), 0);
 }
 
-// Fija una inferencia: 06 da +0xdc = -50 de Bridge01 como *inferido*; falta su lectura estática (P-C35 del 08).
-// 0x6067ae inicializa +0xdc a c1f00000; solo 0x6069bd (mapa 0, Bridge01) pone c2480000.
-// La rama del mapa corre después de los casos de escena, también fuera del juego.
+// Pins an inference: 06 gives +0xdc = -50 for Bridge01 as *inferred*; its static reading is missing (P-C35 of 08).
+// 0x6067ae initializes +0xdc to 0xc1f00000; only 0x6069bd (map 0, Bridge01) sets 0xc2480000. The map branch runs
+// after the scene cases, also outside the game.
 TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)
 {
     const std::array<Client::Data::Terrain::TerrainObject, 2> records{
@@ -153,7 +153,7 @@ TEST(WorldObjectsTest, OtherLorenciaTypesKeepTheDefaultCullingMargin)
     }
 }
 
-// Detecta casos omitidos del switch 0, un blend heredado por error o el falso fallthrough a mapa 1.
+// Catches omitted cases of switch 0, a blend inherited by mistake or the false fallthrough to map 1.
 TEST(WorldObjectsTest, LorenciaCreationCoversEveryDirectType)
 {
     struct Changed
@@ -209,7 +209,7 @@ TEST(WorldObjectsTest, LorenciaCreationCoversEveryDirectType)
     }
 }
 
-// Detecta si el caso de escena se saltea en mapas comunes o corre fuera de las escenas 2 y 4.
+// Catches the scene case being skipped on common maps or running outside scenes 2 and 4.
 TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
 {
     struct Case
@@ -256,7 +256,7 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
     }
 }
 
-// Detecta tabla descartada al crear otro batch, IDs ligados a direcciones y registro del tipo equivocado.
+// Catches a table discarded when creating another batch, IDs tied to addresses and registering the wrong type.
 TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTable)
 {
     Client::WorldObjects::WorldObjectRegistrations registry;
@@ -302,7 +302,7 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
     EXPECT_EQ(moved[0].identity, registry.entries[1].object);
 }
 
-// Detecta que el límite auxiliar se confunda con un pool de objetos o reinicialice metadata/objetos.
+// Catches the auxiliary limit being mistaken for an object pool or reinitializing metadata/objects.
 TEST(WorldObjectsTest, FullAuxiliaryTableStillCreatesEveryNewObject)
 {
     Client::WorldObjects::WorldObjectRegistrations registry;
@@ -360,7 +360,7 @@ TEST(WorldObjectsTest, RegistrationIsAMapCaseInEverySceneAndNotAnotherMap)
     }
 }
 
-// Detecta el redondeo binary32 prematuro del recíproco (7 da ...a2 si se derrama).
+// Catches premature binary32 rounding of the reciprocal (7 gives ...a2 if it spills).
 TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
 {
     struct Case
@@ -389,7 +389,7 @@ TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
     }
 }
 
-// Detecta defaults prestados de actores y datos heredados del batch anterior.
+// Catches defaults borrowed from actors and data inherited from the previous batch.
 TEST(WorldObjectsTest, NewObjectsHaveFreshConstructorStateAndTheSecondPositionCopy)
 {
     Client::WorldObjects::WorldObjectRegistrations registry;
@@ -428,7 +428,7 @@ TEST(WorldObjectsTest, NewObjectsHaveFreshConstructorStateAndTheSecondPositionCo
     EXPECT_EQ(previous[0].boundsMaximum, glm::vec3(900.0f));
 }
 
-// Detecta truncar el tipo antes de validar el selector o caer a una rama de otro mapa.
+// Catches truncating the type before validating the selector or falling into another map's branch.
 TEST(WorldObjectsTest, SignedFileTypesOutsideTheMapZeroSelectorKeepDefaults)
 {
     for (const std::int16_t type : std::array<std::int16_t, 6>{-32768, -515, -1, 151, 153, 32767})
@@ -447,7 +447,7 @@ TEST(WorldObjectsTest, SignedFileTypesOutsideTheMapZeroSelectorKeepDefaults)
     }
 }
 
-// Detecta orden por tipo/ID en vez de sectores y cola de creación.
+// Catches ordering by type/ID instead of by sectors and creation queue.
 TEST(WorldObjectsTest, RegistrationDoesNotChangeSectorAndInsertionDrawOrder)
 {
     const std::array<Client::Data::Terrain::TerrainObject, 5> records{
@@ -467,7 +467,7 @@ TEST(WorldObjectsTest, RegistrationDoesNotChangeSectorAndInsertionDrawOrder)
     }
 }
 
-// 0x604ab0 sale después del alpha si quedó por debajo de 0,01: no avanza ni corre los casos del mapa.
+// 0x604ab0 exits after the alpha if it fell below 0.01: it neither advances nor runs the map cases.
 TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
 {
     WorldObject whirlpool = Created(0x56, 100.0f, 100.0f).front();
@@ -480,7 +480,7 @@ TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
     EXPECT_EQ(whirlpool.state.blendMesh, Client::Models::NoBlendMesh);
 }
 
-// El rand() de la CRT con la semilla 7 después de `draws` llamadas.
+// The CRT rand() with seed 7 after `draws` calls.
 Client::Crt::CrtRandom SevenAfter(int draws)
 {
     Client::Crt::CrtRandom random(7);
@@ -491,9 +491,9 @@ Client::Crt::CrtRandom SevenAfter(int draws)
     return random;
 }
 
-// 0x604bc4 y 0x604c06: antes del alpha, los techos de la taberna del 0 (0x7d y 0x7e) van a la meta 0 con la
-// capa del héroe en 4, y los del 2 (0x51, 0x52, 0x60, 0x62 y 0x63) con la capa en 3 o desde 10; a 1 si no.
-// Los mismos tipos en el otro mapa no se tocan, y nadie saca rand().
+// 0x604bc4 and 0x604c06: before the alpha, the tavern roofs of the 0 (0x7d and 0x7e) go to target 0 with the hero's
+// layer at 4, and those of the 2 (0x51, 0x52, 0x60, 0x62 and 0x63) with the layer at 3 or from 10 up; to 1 otherwise.
+// The same types on the other map are not touched, and nobody takes a rand().
 TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
 {
     struct Case
@@ -520,8 +520,8 @@ TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
     }
 }
 
-// 0x604db9 y 0x60508f: las ventanas del 0 (0x75 y 0x7a) y el 0x4e del 2 sacan la luz del blendMesh con un
-// rand(), (rand() & 3 + 4) · 0,1f guardado en float. El 0x75 del 2 no tiene caso.
+// 0x604db9 and 0x60508f: the windows of the 0 (0x75 and 0x7a) and the 2's 0x4e take the blendMesh light with a
+// rand(), (rand() & 3 + 4) · 0.1f stored in float. The 2's 0x75 has no case.
 TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
 {
     struct Case
@@ -550,8 +550,8 @@ TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
     }
 }
 
-// 0x604d8e: el 0x76 y el 0x77 del 0 corren la V del blendMesh con el reloj del mundo: (−ftol(T) % 1000) ·
-// 0,001f, con el resto con signo de idiv.
+// 0x604d8e: the 0's 0x76 and 0x77 scroll the blendMesh V with the world clock: (−ftol(T) % 1000) · 0.001f, with
+// idiv's signed remainder.
 TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
 {
     struct Case
@@ -575,8 +575,8 @@ TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
     }
 }
 
-// Sin destinos prestados, el caso corta en el servicio que los necesita, con la dirección del
-// caller y su prefijo RNG. El alpha y la animación ya corrieron.
+// Without borrowed destinations, the case cuts at the service that needs them, with the caller's address and its RNG
+// prefix. The alpha and the animation already ran.
 TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
 {
     struct Case
@@ -607,8 +607,8 @@ TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
     }
 }
 
-// Con el alpha por debajo de 0,01, 0x604ab0 sale antes del caso: la ventana no saca su rand(). El techo, que va
-// antes del alpha, sí cambia su meta.
+// With the alpha below 0.01, 0x604ab0 exits before the case: the window takes no rand(). The roof, which goes before
+// the alpha, does change its target.
 TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
 {
     WorldObject window = Created(0x7a, 100.0f, 100.0f, Lorencia).front();
@@ -629,8 +629,8 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
     EXPECT_EQ(roof.targetAlpha, 1.0f);
 }
 
-// El paso del juego conoce los mapas portados y el 55 (con lo mismo que StepWorldObject); en otro, como el
-// 35 (World36, sin .att en la Data), corta antes de tocar el objeto.
+// The game step knows the ported maps and the 55 (with the same as StepWorldObject); on another one, like the 35
+// (World36, with no .att in the Data), it cuts before touching the object.
 TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
 {
     WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
@@ -654,8 +654,8 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x5ffce0 sin luz por vértice: la luz del terreno por 0,1 de G y B se guarda en float antes de sumarle
-// la del objeto; la de R se suma desde la x87. Con este R las dos cuentas difieren en el último bit.
+// 0x5ffce0 without per-vertex light: the terrain light times 0.1 of G and B is stored in float before adding the
+// object's; R's is added from the x87. With this R the two computations differ in the last bit.
 TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
 {
     WorldObject logo = Created(1, 100.0f, 100.0f, Lorencia).front();
@@ -668,9 +668,9 @@ TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.z), 0x3F212876u);
 }
 
-// 0x600a4a: el 0x69 del 0 (Waterspout01) va con sus cuatro 0x4ecc30, con el blendMesh 3 de su alta y el
-// color de 0x5ffce0. Oculto (+0x58 en −2) o con el alpha por debajo de 0,01, nada; en el 2 no es un caso, y
-// va por el RenderBody común.
+// 0x600a4a: the 0's 0x69 (Waterspout01) goes with its four 0x4ecc30, with the blendMesh 3 from its creation and the
+// color of 0x5ffce0. Hidden (+0x58 at −2) or with the alpha below 0.01, nothing; on the 2 it is not a case, and goes
+// through the common RenderBody.
 TEST(WorldObjectsTest, TheLorenciaWaterspoutDrawsItsOwnMeshes)
 {
     WorldObject fountain = Created(Client::WorldObjects::Waterspout, 100.0f, 100.0f, Lorencia).front();
@@ -696,7 +696,7 @@ TEST(WorldObjectsTest, TheLorenciaWaterspoutDrawsItsOwnMeshes)
     EXPECT_EQ(Client::WorldObjects::DrawOf(devias, terrain, Devias).kind, Client::WorldObjects::ObjectDrawKind::Body);
 }
 
-// La primera semilla desde 1 cuyo primer rand() es impar (`odd`) o par.
+// The first seed from 1 whose first rand() is odd (`odd`) or even.
 std::uint32_t SeedWithFirstRand(bool odd)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -709,9 +709,9 @@ std::uint32_t SeedWithFirstRand(bool odd)
     }
 }
 
-// 0x603011, el caso del 0x69 en 0x602ed0: la luz del blendMesh en 1, la V con el reloj como la del 0x76
-// (−ftol(T) % 1000) · 0,001f, y rand() % 2. Impar, nada más; par, los dos rand() de la primera gota (x y z)
-// y el corte en 0x53fe70 (0x6030c7), que lleva a las partículas del juego.
+// 0x603011, the 0x69 case in 0x602ed0: the blendMesh light at 1, the V with the clock like the 0x76's
+// (−ftol(T) % 1000) · 0.001f, and rand() % 2. Odd, nothing more; even, the two rand() of the first drop (x and z) and
+// the cut at 0x53fe70 (0x6030c7), which leads to the game's particles.
 TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
 {
     for (const bool odd : {true, false})
@@ -745,7 +745,7 @@ TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
     }
 }
 
-// Sin un ftol acreditado del reloj, 0x603011 corta en 0x60301e con la luz ya en 1, la V como estaba y sin
+// Without a credited ftol of the clock, 0x603011 cuts at 0x60301e with the light already at 1, the V as it was and no
 // rand().
 TEST(WorldObjectsTest, TheWaterspoutFrameNeedsACreditedClock)
 {
@@ -762,8 +762,8 @@ TEST(WorldObjectsTest, TheWaterspoutFrameNeedsACreditedClock)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x602ed0: la luz de los dos sprites del farol, L = (rand() % 30 + 70) · 0,01f guardado en float, y
-// (L; L · 0,5; L · 0,2f), cada producto guardado en float.
+// 0x602ed0: the light of the lantern's two sprites, L = (rand() % 30 + 70) · 0.01f stored in float, and
+// (L; L · 0.5; L · 0.2f), each product stored in float.
 TEST(WorldObjectsTest, TheLanternGlowIsOrange)
 {
     const auto bits = [](const glm::vec3& light)

@@ -34,33 +34,33 @@ namespace Client::Pets
 {
 namespace
 {
-// 0x420cc0: la ventana de la mascota abierta es 0x723911 en 2.
+// 0x420cc0: the pet window is open with 0x723911 at 2.
 constexpr std::uint8_t PetWindowOpen = 2;
-// 0x421f62..0x421fbf: la casilla del cuervo (la mano izquierda) y la del caballo.
+// 0x421f62..0x421fbf; the raven's slot is the left hand.
 constexpr std::uint8_t RavenSlot = 1;
 constexpr std::uint8_t HorseSlot = 8;
-// 0x421f52..0x421f5c: las clases que hacen algo más con la mascota del héroe.
+// 0x421f52..0x421f5c: the kinds that do something more with the hero's pet.
 constexpr std::uint8_t PlainKind = 0;
 constexpr std::uint8_t LevelUpKind = 0xfe;
 constexpr std::uint8_t LastKind = 0xff;
-// 0x4220bf: el +8 del héroe es la clase + 3 (1 con 0xfe, 2 con 0xff).
+// 0x4220bf: the hero's +8 is the kind + 3 (1 with 0xfe, 2 with 0xff).
 constexpr std::uint8_t KindToRiderByte = 3;
-// 0x421f00: con la casilla debajo de 12 (el equipo) y el entrenador abierto, el cartel no escribe la tabla.
+// 0x421f00: with the slot under 12 (the equipment) and the trainer open, the label does not write the table.
 constexpr std::uint8_t EquipmentSlots = 12;
 constexpr std::uint16_t NoHoveredItem = 0xffff;
 constexpr std::uint16_t DarkHorseItem = 0x1a04;
-// El lugar del equipo de +0xbce (la durabilidad del cuervo, 0x418170) y de +0xdac (el caballo, 0x42214a).
+// The equipment slots of +0xbce (the raven's durability, 0x418170) and of +0xdac (the horse, 0x42214a).
 constexpr std::size_t RavenEquipmentSlot = 1;
 constexpr std::size_t HorseEquipmentSlot = 8;
 
-// (nivel + 11) · (nivel + 1)³ · 100, en 32 bits (0x4222fd y 0x418207).
+// 0x4222fd and 0x418207, in 32 bits.
 std::uint32_t NextExperience(std::uint32_t level)
 {
     const std::uint32_t next = level + 1;
     return (level + 11) * next * next * next * 100;
 }
 
-// +0x36 + +0x20 del registro propio, con el registro abierto y cerrado.
+// +0x36 + +0x20 of the own record, opened and closed around the read.
 std::uint32_t Allowance(Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
@@ -68,16 +68,14 @@ std::uint32_t Allowance(Kernel::WorldState& world, Crt::CrtRandom& random)
     return static_cast<std::uint32_t>(own.word36) + own.leadership;
 }
 
-// El byte de la durabilidad del lugar `slot` del equipo propio, con el registro abierto y cerrado.
 std::uint8_t OwnDurability(Kernel::WorldState& world, Crt::CrtRandom& random, std::size_t slot)
 {
     const Models::LogicalAccess access(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     return world.OwnCharacter().equipment[slot].durability;
 }
 
-// Si 0x421db0 escribe la entrada de la mascota en la tabla de 0x723960: con la ventana abierta, siempre (0x421e00); con
-// la ventana cerrada, con un ítem en el cartel y sin el entrenador abierto con la casilla debajo de 12
-// (0x421eee..0x421f16).
+// Whether 0x421db0 writes the pet's entry in the 0x723960 table: always with the window open (0x421e00); with it
+// closed, with an item in the label and without the trainer open with the slot under 12 (0x421eee..0x421f16).
 bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, Kernel::WorldState& world, Crt::CrtRandom& random,
                     bool windowOpen)
 {
@@ -91,7 +89,7 @@ bool WritesTheTable(const Protocol::Pets::PetInfoReply& reply, Kernel::WorldStat
     return !panels.Registry().IsOpen(Ui::TrainerPanel);
 }
 
-// 0x4e4cbd..0x4e4ce7: con el registro propio abierto (0x4e79a0 y 0x40f370), 0x550d10.
+// 0x4e4cbd..0x4e4ce7: with the own record open (0x4e79a0 and 0x40f370), 0x550d10.
 Core::Expected<void, std::string> RecalculateTheStats(const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
@@ -109,7 +107,7 @@ Core::Expected<void, std::string> RecalculateTheStats(const Scenes::WorldEntryRe
                                                                .scan505820 = runtime.fullSetScan});
 }
 
-// 0x421db0 con la ventana de la mascota abierta (0x421dc7..0x421ead).
+// 0x421db0 with the pet window open (0x421dc7..0x421ead).
 Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInfoReply& reply,
                                                     const Scenes::WorldEntryResources& resources)
 {
@@ -119,7 +117,7 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInf
     Kernel::ActorState& hero = world.Hero();
     if (hero.darkSpirit && reply.pet == Kernel::RavenPetStats)
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
-    // ApplyPetInfo ya descartó la mascota de fuera de la tabla.
+    // ApplyPetInfo already dropped a pet outside the table.
     Kernel::PetStats& entry = runtime.pets[reply.pet];
     entry.level = reply.level;
     entry.durability = OwnDurability(world, random, HorseEquipmentSlot);
@@ -128,7 +126,7 @@ Core::Expected<void, std::string> WithTheWindowOpen(const Protocol::Pets::PetInf
     return {};
 }
 
-// 0x421fb6..0x422196: el caballo del héroe, en la casilla 8.
+// 0x421fb6..0x422196
 void TheHorse(const Protocol::Pets::PetInfoReply& reply, const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
@@ -147,11 +145,10 @@ void TheHorse(const Protocol::Pets::PetInfoReply& reply, const Scenes::WorldEntr
         Items::AddTheDarkHorseOption(item, resources);
 }
 
-// 0x418390 (cinco) y 0x418400 (quince), por la vtable del cuervo (+0x14 y +0x18): 0x530860(0x60f, p, q, ángulos, 0,
-// cuervo, 40, la clave 2, 0, 0, −1) con el objeto del cuervo (+0xc) de dueño. 0x418390 pasa una copia de su posición
-// en p y q y los ángulos en 0; 0x418400, la copia en p, su posición en q y sus ángulos. Son los 60f/0 de
-// Joints::CreateFaunaJoint (la luz del cuervo, +0xf4, y con el ancho de 40 su paso no lee su acción): tres rand() cada
-// uno. Con la tabla de joints llena, ninguno y sigue. Sin rand() propios.
+// 0x418390 (five) and 0x418400 (fifteen), through the raven's vtable (+0x14 and +0x18): 0x530860(0x60f, p, q, angles,
+// 0, raven, 40, key 2, 0, 0, −1) with the raven object (+0xc) as owner. Three rand() each (the raven's light, +0xf4;
+// with width 40 its step does not read its action); with the joint table full, none, and it goes on. No rand() of their
+// own.
 Core::Expected<void, std::string> SparkTheRaven(Kernel::DarkSpirit& raven, int joints, bool turned,
                                                 const Scenes::WorldEntryResources& resources)
 {
@@ -172,14 +169,14 @@ Core::Expected<void, std::string> SparkTheRaven(Kernel::DarkSpirit& raven, int j
     return {};
 }
 
-// 0x421db0 con la ventana cerrada (0x421ef2..0x422196).
+// 0x421db0 with the window closed (0x421ef2..0x422196).
 Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetInfoReply& reply,
                                                       const Scenes::WorldEntryResources& resources)
 {
     Kernel::WorldState& world = resources.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     Crt::CrtRandom& random = resources.cloth.random;
-    // 0x421f18..0x421f40. ApplyPetInfo ya descartó la mascota de fuera de la tabla.
+    // 0x421f18..0x421f40. ApplyPetInfo already dropped a pet outside the table.
     if (WritesTheTable(reply, world, random, false))
     {
         Kernel::PetStats& entry = runtime.pets[reply.pet];
@@ -196,7 +193,7 @@ Core::Expected<void, std::string> WithTheWindowClosed(const Protocol::Pets::PetI
         if (reply.slot != RavenSlot || !hero.darkSpirit)
             return {};
         ApplyRavenInfo(*hero.darkSpirit, reply.level, reply.experience, world, random);
-        // 0x421f8f..0x421fae: con 0xfe, la vtable + 0x14 (0x418390); con 0xff, la + 0x18 (0x418400).
+        // 0x421f8f..0x421fae: with 0xfe, vtable + 0x14 (0x418390); with 0xff, + 0x18 (0x418400).
         constexpr int LevelUpJoints = 5, LastJoints = 15;
         if (reply.kind == LevelUpKind)
             return SparkTheRaven(*hero.darkSpirit, LevelUpJoints, false, resources);
@@ -244,13 +241,13 @@ void UpdatePetStats(std::uint8_t pet, const Kernel::WorldState& world,
     stats.nextExperience = NextExperience(level);
     if (pet == Kernel::RavenPetStats)
     {
-        // 0x42226a..0x4222c3: los del cuervo, como los de 0x417f30.
+        // 0x42226a..0x4222c3: the raven's, like those of 0x417f30.
         stats.word0c = static_cast<std::uint16_t>((level + 12) * 15 + (allowance >> 3));
         stats.word0e = static_cast<std::uint16_t>((allowance >> 2) + 200 + level * 15);
     }
     else
     {
-        // 0x4222f0..0x422381: el caballo, con la fuerza y +0x2a; +0xe es +0xc y medio, en 16 bits.
+        // 0x4222f0..0x422381: the horse, with strength and +0x2a; +0xe is +0xc and a half, in 16 bits.
         const auto word0c = static_cast<std::uint16_t>(allowance / 10 + (word2a + strength) / 10 + level * 5);
         stats.word0c = word0c;
         stats.word0e = static_cast<std::uint16_t>((word0c >> 1) + word0c);
@@ -280,8 +277,8 @@ Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoRepl
 {
     Kernel::WorldRuntime& runtime = resources.world.Runtime();
     const bool windowOpen = runtime.panels.delegated.pet == PetWindowOpen;
-    // 0x421dfd y 0x421f2c: una mascota de 3 o más escribe fuera de las tres entradas de 0x723960 (0x14 bytes cada una)
-    // y sigue. MuRet descarta el A9 entero, antes de cualquier rand() (07, Q-C1208).
+    // 0x421dfd and 0x421f2c: a pet of 3 or more writes outside the three 0x723960 entries (0x14 bytes each) and goes
+    // on. MuRet drops the whole A9, before any rand() (07, Q-C1208).
     if (reply.pet >= runtime.pets.size() && WritesTheTable(reply, resources.world, resources.cloth.random, windowOpen))
     {
         resources.log.Warning("se descarta un A9 con la mascota {}: el original escribe fuera de la tabla de 0x723960",

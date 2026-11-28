@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-// La espera de las skills (CL9 hito 4, 06 § La espera de las skills), con un Skill.bmd inventado.
+// The skill delays (06 § La espera de las skills), with an invented Skill.bmd.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -44,7 +44,6 @@ struct InventedSkill
     std::uint16_t requirement = 0;
 };
 
-// Skill.bmd con la espera (+0x28, int) y el requisito (+0x2e, WORD) de cada skill de `skills`.
 Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -88,7 +87,7 @@ struct Delays
     Client::Tables::SkillTable skills = SkillsWith({{0x11, 3000, 15}, {0x12, 0, 0}, {0x4c, 2000, 0}, {0x13, 1500, 16}});
 };
 
-// 0x5521f0: el WORD +0x2e, con la entrada abierta y cerrada.
+// 0x5521f0: the WORD +0x2e, with the entry opened and closed.
 TEST(SkillDelaysTest, TheRequirementIsTheWordAt2e)
 {
     auto tested = std::make_unique<Delays>();
@@ -99,8 +98,8 @@ TEST(SkillDelaysTest, TheRequirementIsTheWordAt2e)
     EXPECT_EQ(tested->random.State(), expected.State());
 }
 
-// 0x552990: la skill del lugar, su espera y, con la del registro en 0 y el requisito cumplido (15 <= 10 + 5), la
-// pone. Abre el registro dos veces y la entrada dos.
+// 0x552990: the slot's skill, its delay and, with the record's at 0 and the requirement met (15 <= 10 + 5), it sets
+// it. It opens the record twice and the entry twice.
 TEST(SkillDelaysTest, StartingPutsTheDelayWhenTheRequirementIsMet)
 {
     auto tested = std::make_unique<Delays>();
@@ -112,7 +111,7 @@ TEST(SkillDelaysTest, StartingPutsTheDelayWhenTheRequirementIsMet)
     EXPECT_EQ(tested->world.Runtime().ownRecordDepth, 0);
 }
 
-// Con el requisito sin cumplir (16 > 15), no la pone.
+// With the requirement unmet (16 > 15), it does not set it.
 TEST(SkillDelaysTest, StartingWithoutTheRequirementLeavesTheDelay)
 {
     auto tested = std::make_unique<Delays>();
@@ -123,7 +122,8 @@ TEST(SkillDelaysTest, StartingWithoutTheRequirementLeavesTheDelay)
     EXPECT_EQ(tested->Own().skillDelays[3], 1500);
 }
 
-// Sin espera en Skill.bmd, vuelve sin abrir el registro otra vez; con la espera corriendo, sin el requisito.
+// Without a delay in Skill.bmd, it returns without opening the record again; with the delay running, without the
+// requirement.
 TEST(SkillDelaysTest, StartingStopsWithoutDelayOrWithItRunning)
 {
     auto tested = std::make_unique<Delays>();
@@ -139,7 +139,7 @@ TEST(SkillDelaysTest, StartingStopsWithoutDelayOrWithItRunning)
     EXPECT_EQ(tested->Own().skillDelays[0], 7);
 }
 
-// 0x552c50: dice si se puede usar.
+// 0x552c50
 TEST(SkillDelaysTest, TryingSaysWhetherTheSkillCanBeUsed)
 {
     auto tested = std::make_unique<Delays>();
@@ -158,7 +158,7 @@ TEST(SkillDelaysTest, TryingSaysWhetherTheSkillCanBeUsed)
     EXPECT_TRUE(free.Value());
 }
 
-// 0x552ee3: la 0x4c se puede usar pero no le pone la espera.
+// 0x552ee3
 TEST(SkillDelaysTest, TryingTheSkill4cDoesNotPutItsDelay)
 {
     auto tested = std::make_unique<Delays>();
@@ -178,7 +178,7 @@ TEST(SkillDelaysTest, WithoutSkillBmdItIsACut)
     EXPECT_NE(started.Error().find("0x552990"), std::string::npos) << started.Error();
 }
 
-// 0x552f10: baja las esperas de los +0x6a + 2 primeros lugares, sin pasar de 0, con el registro abierto.
+// 0x552f10: lowers the delays of the first +0x6a + 2 slots, not below 0, with the record open.
 TEST(SkillDelaysTest, TheCountDownLowersTheFirstSlots)
 {
     auto tested = std::make_unique<Delays>();
@@ -199,7 +199,7 @@ TEST(SkillDelaysTest, TheCountDownLowersTheFirstSlots)
     EXPECT_EQ(tested->random.State(), expected.State());
 }
 
-// 5530c2 SUB32 seguido de CMP signed: la resta desborda como DWORD antes de truncar negativos.
+// 0x5530c2: a SUB32 followed by a signed CMP: the subtraction wraps as a DWORD before negatives are clamped.
 TEST(SkillDelaysTest, TheCountDownWrapsBeforeTheSignedClamp)
 {
     for (const auto elapsed : {std::numeric_limits<std::int32_t>::min(), std::int32_t{-1}})
@@ -218,7 +218,7 @@ TEST(SkillDelaysTest, TheCountDownWrapsBeforeTheSignedClamp)
     }
 }
 
-// Con +0x6a en 0xfe o más, el lazo llegaría al lugar 255, que es el equipo (+0xb68): corta.
+// With +0x6a at 0xfe or more, the loop would reach slot 255, which is the equipment (+0xb68): it cuts.
 TEST(SkillDelaysTest, TheCountDownPastTheDelaysIsACut)
 {
     auto tested = std::make_unique<Delays>();

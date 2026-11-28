@@ -35,21 +35,21 @@ namespace Client::Effects
 {
 namespace
 {
-// 0x518cf0, el caso 0xb4: la altura del vuelo, la vida, la velocidad de vuelo y la de la animación.
+// 0x518cf0, case 0xb4: the flight height, the life, the flight speed and the animation's.
 constexpr float DragonHeight = 3400.0f;
-// 0x518d3c..0x518d7f: la escala de 0 o menos.
+// 0x518d3c..0x518d7f: for a scale of 0 or less.
 constexpr float DefaultScale = 0.9f;
 constexpr std::int32_t DragonLife = 1000;
 constexpr glm::vec3 DragonVelocity{0.0f, -35.0f, 0.0f};
-// 0x518d0a..0x518e3c: la velocidad de la animación que pone lo común; 0x51eebb: la vida del 0x61f.
+// 0x518d0a..0x518e3c: the animation speed the common part sets; 0x51eebb: the 0x61f's life.
 constexpr float CommonAnimationSpeed = 0.3f;
 constexpr std::int32_t ArrivalLife = 20;
-// 0x51e4f6: el teletransporte no consume rand().
+// 0x51e4f6: the teleport consumes no rand().
 constexpr std::int32_t TeleportLife = 10;
 
-// 0x52096c..0x520b72: los topes de los ángulos (0x6b869c, 0x6ba2a8), el alabeo por paso (0x6b882c), el
-// radio de la partida (0x6b8ac8, 0x6ba2a4), el giro (0x6b86cc, 0x6b8b94), la vida que se vuelve a
-// llenar y el frame que vuelve a 0 (0x6b8bf4).
+// 0x52096c..0x520b72: the angle limits (0x6b869c, 0x6ba2a8), the roll per step (0x6b882c), the start's radius
+// (0x6b8ac8, 0x6ba2a4), the turn (0x6b86cc, 0x6b8b94), the life that refills and the frame that goes back to 0
+// (0x6b8bf4).
 constexpr float FullTurn = Math::FullTurnAsFloat;
 constexpr float RollStep = 0.5f;
 constexpr float RollTarget = 30.0f;
@@ -65,8 +65,8 @@ constexpr std::uint8_t Straight = 2;
 
 using Math::F32;
 
-// Un ángulo fuera de (−360, 360) vuelve a 0: `fcomp` con 360 (C0 apagado, mayor o igual) y con −360
-// (C0 o C3, menor o igual, o sin orden).
+// An angle outside (−360, 360) goes back to 0: `fcomp` with 360 (C0 off, greater or equal) and with −360 (C0 or C3,
+// less or equal, or unordered).
 float WithinATurn(float angle)
 {
     if (angle >= FullTurn)
@@ -84,14 +84,13 @@ void StepDragon(ModelEffect& dragon)
 {
     glm::vec3& angles = dragon.transform.angles;
     const glm::vec3& position = dragon.transform.position;
-    // La distancia a la partida, en la x87 hasta la comparación.
+    // The distance to the start, on the x87 until the comparison.
     const double dx = static_cast<double>(position.x) - static_cast<double>(dragon.start.x);
     const double dy = static_cast<double>(position.y) - static_cast<double>(dragon.start.y);
     const double dz = static_cast<double>(position.z) - static_cast<double>(dragon.start.z);
     const double distance = std::sqrt(((dz * dz) + (dy * dy)) + (dx * dx));
     angles.z = WithinATurn(angles.z);
     angles.y = WithinATurn(angles.y);
-    // El alabeo, medio grado por paso hacia la meta del estado.
     dragon.reference = dragon.state == TurningRight ? RollTarget : dragon.state == TurningLeft ? -RollTarget : 0.0f;
     if (dragon.reference > angles.y)
     {
@@ -106,14 +105,14 @@ void StepDragon(ModelEffect& dragon)
     { angles.z = F32((static_cast<double>(dragon.turnDirection) * TurnRate) + static_cast<double>(angles.z)); };
     if (distance <= StartRadius && !(distance < -StartRadius))
     {
-        // Cerca de la partida: derecho, y que dé la vuelta cuando se aleje.
+        // Near the start: straight, and set to turn around when it moves away.
         dragon.state = Straight;
         dragon.flagEc = 0.0f;
         dragon.turnPending = 1.0f;
     }
     else
     {
-        // `test ah, 0x40` (C3): sin orden (NaN) también es "igual a 0".
+        // `test ah, 0x40` (C3): unordered (NaN) also counts as "equal to 0".
         if (dragon.turnPending < 0.0f || dragon.turnPending > 0.0f)
         {
             dragon.reference = angles.z;
@@ -140,7 +139,7 @@ void StepDragon(ModelEffect& dragon)
     {
         dragon.life = DragonLife;
     }
-    // `test ah, 1` (C0): sin orden (NaN) es "menor", y no vuelve a 0.
+    // `test ah, 1` (C0): unordered (NaN) counts as "less", and it does not go back to 0.
     if (dragon.animation.frame >= LastFrame)
     {
         dragon.animation.frame = 0.0f;
@@ -154,7 +153,7 @@ float CreationScale(float scale)
     return scale > 0.0f ? scale : DefaultScale;
 }
 
-// 0x518f95..0x519006 y 0x51a97b: sólo los stores de la rama del dragón.
+// 0x518f95..0x519006 and 0x51a97b: only the dragon branch's stores.
 void InitializeDragonEffect(ModelEffect& effect)
 {
     effect.transform.position.z =
@@ -173,7 +172,7 @@ void InitializeDragonEffect(ModelEffect& effect)
     effect.previousPosition = effect.transform.position;
 }
 
-// 0x518d28..0x518e36: lo que realmente escribe el prefijo; los demás campos del slot sobreviven.
+// 0x518d28..0x518e36: what the prefix actually writes; the slot's other fields survive.
 void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                             const glm::vec3& light, float scale)
 {
@@ -290,12 +289,12 @@ std::optional<std::size_t> ModelEffects::CreateButterflyEffect(const glm::vec3& 
 
 namespace
 {
-// 0x6b87b8: el décimo de las escalas y del empuje de las piedras.
+// 0x6b87b8: the tenth of the stones' scales and push.
 constexpr double StoneTenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 constexpr std::uint16_t NoDisturbance = 0xffff;
 
-// El prefijo de 0x518cf0 con el +0x8a en −1 y sin dueño (+0x108 en 0): los que crean los objetos del 1 y
-// del 4 y el chorro.
+// 0x518cf0's prefix with +0x8a at −1 and no owner (+0x108 at 0): the ones that create the objects of 1 and 4 and the
+// jet.
 void InitializeOwnerlessEffect(ModelEffect& effect, std::int16_t type, const glm::vec3& position,
                                const glm::vec3& angles, const glm::vec3& light)
 {
@@ -305,7 +304,7 @@ void InitializeOwnerlessEffect(ModelEffect& effect, std::int16_t type, const glm
     effect.itemLevel = nullptr;
 }
 
-// fld del corrimiento girado y fadd de la posición: cada eje se guarda de su suma.
+// fld of the rotated shift and fadd of the position: each axis is stored from its sum.
 void AddRotated(glm::vec3& position, const glm::vec3& rotated)
 {
     for (int axis = 0; axis < 3; ++axis)
@@ -355,7 +354,7 @@ std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& positi
         effect.subtype = subtype;
         effect.hasOwner = owner != nullptr;
         effect.ownerContext = owner;
-        effect.life = ArrivalLife; // 0x51eec0: la del 0x61e y el 0x61f.
+        effect.life = ArrivalLife; // 0x51eec0: that of the 0x61e and the 0x61f.
         return slot;
     }
     return std::nullopt;
@@ -363,26 +362,26 @@ std::optional<std::size_t> ModelEffects::CreatePetSummon(const glm::vec3& positi
 
 namespace
 {
-// +0x108: el dueño y lo que de él se lee en vivo.
+// +0x108: the owner and what is read live from it.
 void SetOwner(ModelEffect& effect, const ModelEffectOwner& owner)
 {
     effect.owner = owner;
     effect.hasOwner = owner.type != nullptr || owner.effect != nullptr || owner.angles != nullptr;
 }
 
-// 0x51a6e4..0x51a85c: la vida de cada grieta, o nada con el subtipo que sale por 0x51db73 sin caso.
+// 0x51a6e4..0x51a85c: each crack's life, or nothing with the subtype that exits through 0x51db73 without a case.
 std::optional<std::int32_t> CrackLife(std::int16_t type, std::int32_t subtype)
 {
     constexpr std::int32_t Short = 35, Long = 40;
     switch (type)
     {
-    case FirstEarthquakeCrack: // 0x51a6e4: 0x23 o 0x3c.
+    case FirstEarthquakeCrack: // 0x51a6e4: 0x23 or 0x3c.
         if (subtype == 0)
             return Short;
         if (subtype == 1)
             return 60;
         return std::nullopt;
-    case 0xfc: // 0x51a73c: 0x14 o 0x32.
+    case 0xfc: // 0x51a73c: 0x14 or 0x32.
         if (subtype == 0 || subtype == 1)
             return 20;
         if (subtype == 2)
@@ -392,7 +391,7 @@ std::optional<std::int32_t> CrackLife(std::int16_t type, std::int32_t subtype)
     case 0xfe:  // 0x51a7ac
     case 0x100: // 0x51a7e3
         return Short;
-    default: // 0xff (0x51a7d0), 0x101 (0x51a804) y 0x102 (0x51a828).
+    default: // 0xff (0x51a7d0), 0x101 (0x51a804) and 0x102 (0x51a828).
         return Long;
     }
 }
@@ -423,7 +422,7 @@ std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& posit
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, EarthquakeEffect, position, angles, light);
-        // 0x518db5..0x518dcb: los argumentos comunes de las altas 0xfa son cero aun al reutilizar un lugar.
+        // 0x518db5..0x518dcb: the common arguments of the 0xfa creations are zero even when reusing a slot.
         effect.byte89 = 0;
         effect.byte1bd = 0;
         effect.dword100 = 0;
@@ -438,7 +437,7 @@ std::optional<std::size_t> ModelEffects::CreateEarthquake(const glm::vec3& posit
         effect.copiedAngles.x = F32(static_cast<double>(effect.copiedAngles.x) + CopiedPitch);
         effect.copiedAngles.z = F32(static_cast<double>(effect.copiedAngles.z) + CopiedYaw);
         effect.turnDirection = EarthquakeLift;
-        // 0x51a8d8..0x51a90f: la cuenta sube entre la apertura y el cierre.
+        // 0x51a8d8..0x51a90f: the count goes up between the opening and the closing.
         const Models::LogicalAccess access(ownRecordDepth, random, Models::OwnRecordCloseRandoms);
         ++ownRecordCount;
         return slot;
@@ -472,7 +471,7 @@ std::optional<std::size_t> ModelEffects::CreateEarthquakeCrack(std::int16_t type
 {
     if (type < FirstEarthquakeCrack || type > LastEarthquakeCrack)
         return std::nullopt;
-    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0: 0,01f.
+    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au)); // 0x6b86c0: 0.01f.
     constexpr std::int16_t KeepsItsBlend = 0xfd, AlsoKeepsItsBlend = 0x100;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
@@ -513,7 +512,7 @@ std::optional<std::size_t> ModelEffects::CreateGallopShockWave(const glm::vec3& 
         InitializeOwnerlessEffect(effect, ShockWaveEffect, position, angles, light);
         effect.subtype = GallopShockWaveSubtype;
         effect.life = GallopLife;
-        // fild, más 10 (0x6b87a8) y por 0,1f (0x6b8a34), en la x87 hasta el fstp.
+        // fild, plus 10 (0x6b87a8) and times 0.1f (0x6b8a34), on the x87 until the fstp.
         effect.transform.scale = F32((static_cast<double>(random.Next() % ScaleSpan) + ScaleBase) * StoneTenth);
         return slot;
     }
@@ -542,7 +541,7 @@ std::optional<std::size_t> ModelEffects::CreateStompShockWave(const glm::vec3& p
 Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Terrain::TerrainAttributes* attributes,
                                                                  const glm::vec3& position, std::string_view address)
 {
-    // 0x6b86c0: el 0,01f de los dos fmul; el producto de dos floats entra entero en el double.
+    // 0x6b86c0: the 0.01f of both fmul; the product of two floats fits whole in the double.
     constexpr double CellsPerUnit = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
     constexpr std::uint32_t RowShift = 8;
     const std::optional<std::int32_t> x = Math::OriginalFtolLow(static_cast<double>(position.x) * CellsPerUnit);
@@ -553,7 +552,7 @@ Core::Expected<std::uint16_t, std::string> UnmaskedCellAttribute(const Data::Ter
                                             address));
     if (attributes == nullptr)
         return Core::Unexpected(std::format("{}: falta la tabla de atributos (0x7d0d348) para 0x5f8290", address));
-    // 0x5f8290: shl eax, 8 y add, en 32 bits; el índice firmado sólo cae en la tabla entre 0 y 0xffff.
+    // 0x5f8290: shl eax, 8 and add, in 32 bits; the signed index only lands in the table between 0 and 0xffff.
     const std::uint32_t index = (static_cast<std::uint32_t>(*y) << RowShift) + static_cast<std::uint32_t>(*x);
     if (index >= Data::Terrain::TerrainCellCount)
         return Core::Unexpected(
@@ -570,10 +569,10 @@ ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, co
         return std::optional<std::size_t>{};
     constexpr std::int32_t GroundStoneLife = 40;
     constexpr int ScaleSpan = 30, Degrees = 360;
-    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));      // 0x6b86c0: 0,01f.
-    constexpr double FirstScaleBase = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0: 1,2f.
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));      // 0x6b86c0: 0.01f.
+    constexpr double FirstScaleBase = static_cast<double>(std::bit_cast<float>(0x3f99999au)); // 0x6b8bb0: 1.2f.
     constexpr double SecondScaleBase = 1.0;                                                   // 0x6b87d4.
-    // 0x51cc9b..0x51ccbb: el byte bajo del WORD con el bit 0x04, el 0x08 o el 0x10.
+    // 0x51cc9b..0x51ccbb: the WORD's low byte with bit 0x04, 0x08 or 0x10.
     constexpr std::uint16_t BlockingBits = 0x04 | 0x08 | 0x10;
     const bool first = type == FirstGroundStoneEffect;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
@@ -588,16 +587,17 @@ ModelEffects::CreateGroundStone(std::int16_t type, const glm::vec3& position, co
             return Core::Unexpected(attribute.Error());
         if ((attribute.Value() & BlockingBits) != 0)
         {
-            // 0x51cdc0: el lugar queda con el prefijo escrito y el byte vivo en 0.
+            // 0x51cdc0: the slot keeps the written prefix and the live byte at 0.
             effect.alive = false;
             return std::optional<std::size_t>{};
         }
         effect.life = GroundStoneLife;
         effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep +
                                      (first ? FirstScaleBase : SecondScaleBase));
-        effect.speed = CommonAnimationSpeed; // 0x51ccea: el mismo 0x3e99999a del prefijo.
+        effect.speed = CommonAnimationSpeed; // 0x51ccea: the same 0x3e99999a as the prefix.
         effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
-        // 0x51cd0c: 0x4ea030(efecto, 0) sólo cambia la acción si es otra; el prefijo la dejó en 0 (0x518dc4).
+        // 0x51cd0c: 0x4ea030(effect, 0) only changes the action if it is a different one; the prefix left it at 0
+        // (0x518dc4).
         return std::optional(slot);
     }
     return std::optional<std::size_t>{};
@@ -616,19 +616,19 @@ std::optional<std::size_t> ModelEffects::CreateDebris(std::int16_t type, const g
         if (effect.alive)
             continue;
         InitializeOwnerlessEffect(effect, type, position, angles, light);
-        effect.subtype = subtype; // 0x518d36: el quinto argumento en +0x4.
-        // 0x51bafb..0x51bb35: el empuje en un local y la z 50 más.
+        effect.subtype = subtype; // 0x518d36: the fifth argument in +0x4.
+        // 0x51bafb..0x51bb35: the push in a local and z 50 more.
         const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
         glm::vec3& place = effect.transform.position;
         place.z = F32(static_cast<double>(place.z) + Lift);
         // 0x51bb38..0x51bb6f.
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
-        // 0x51bb72..0x51bba4: la z de los ángulos y el empuje girado (0x5fc8f0, 0x5fcbd0) a +0xcc.
+        // 0x51bb72..0x51bba4: the angles' z and the rotated push (0x5fc8f0, 0x5fcbd0) to +0xcc.
         glm::vec3& turn = effect.transform.angles;
         turn.z = static_cast<float>(random.Next() % Turn);
         effect.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(effect.transform.angles));
-        // 0x51bbac..0x51bbf5: la caída en +0xe4; el 0x10b con el subtipo 0 pasa al 1 y suma otro rand() % 5.
+        // 0x51bbac..0x51bbf5: the fall in +0xe4; the 0x10b with subtype 0 becomes the 1 and adds another rand() % 5.
         effect.turnDirection = static_cast<float>((random.Next() % FallSpan) + FallBase);
         if (type == DebrisEffect && effect.subtype == 0)
         {
@@ -659,7 +659,7 @@ std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& pos
         InitializeOwnerlessEffect(effect, FallingStoneEffect, position, angles, light);
         effect.life = (random.Next() & LifeMask) + LifeBase;
         effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
-        // fild y fchs: con 0 queda −0.
+        // fild and fchs: with 0 it stays −0.
         effect.turnDirection = -static_cast<float>(random.Next() & FallMask);
         glm::vec3 offset{};
         offset.x = static_cast<float>((random.Next() & SideMask) - SideCenter);
@@ -731,19 +731,19 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
                                                          const glm::vec3& angles, const glm::vec3& light,
                                                          Crt::CrtRandom& random, std::int32_t subtype)
 {
-    // 0x51b659 → 0x51b72b: los pedazos 0xea y 0xeb de las rocas 0xe7..0xe9 (CL11, lote switch) van por el mismo
-    // camino, con el subtipo 0.
+    // 0x51b659 → 0x51b72b: the pieces 0xea and 0xeb of the rocks 0xe7..0xe9 (CL11, switch batch) take the same path,
+    // with subtype 0.
     constexpr std::int16_t FirstRockShard = 0xea, SecondRockShard = 0xeb;
     const bool chip = type == FirstStoneChipEffect || type == SecondStoneChipEffect;
     const bool shard = (type == FirstRockShard || type == SecondRockShard) && subtype == 0;
     const bool splinter = (type == FirstSplinterEffect || type == SecondSplinterEffect) && subtype == 0;
-    // 0x51b426 → 0x51b509: la /0xc del 0xc8 y el 0xc9 (la de la columna 0x5de/3).
+    // 0x51b426 → 0x51b509: the /0xc of the 0xc8 and the 0xc9 (that of the column 0x5de/3).
     const bool column = chip && subtype == ColumnStoneChipSubtype;
     if ((!chip && !shard && !splinter) ||
         (subtype != 0 && subtype != RisingStoneChipSubtype && subtype != SpinningStoneChipSubtype && !column))
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
-    constexpr int ColumnScaleBase = 15; // 0x51b564: la escala de la /0xc, ((& 3) + 15) · 0,1f.
+    constexpr int ColumnScaleBase = 15; // 0x51b564: the /0xc's scale, ((& 3) + 15) · 0.1f.
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
@@ -754,8 +754,8 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
         effect.subtype = subtype;
         if (splinter)
         {
-            // 0x51b66b..0x51b6d6: los tres corrimientos, cada uno en float antes de sumarse.
-            constexpr int SpreadMask = 127, SpreadCenter = 64, Lift = 180; // 0x7f, 0x40 y 0xb4
+            // 0x51b66b..0x51b6d6: the three shifts, each one in float before being added.
+            constexpr int SpreadMask = 127, SpreadCenter = 64, Lift = 180; // 0x7f, 0x40 and 0xb4
             const auto dx = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
             const auto dy = static_cast<float>((random.Next() & SpreadMask) - SpreadCenter);
             const auto dz = static_cast<float>(random.Next() % Lift);
@@ -763,7 +763,7 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
             effect.transform.position.y = F32(static_cast<double>(dy) + static_cast<double>(position.y));
             effect.transform.position.z = F32(static_cast<double>(dz) + static_cast<double>(position.z));
         }
-        // 0x51b735: la /1 inicializa a cero, sin llamar a rand() para el empuje.
+        // 0x51b735: the /1 initializes to zero, without calling rand() for the push.
         const float impulse = subtype == RisingStoneChipSubtype
                                   ? 0.0f
                                   : F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth);
@@ -789,8 +789,8 @@ std::optional<std::size_t> ModelEffects::CreateGroundStoneChip(std::int16_t type
         return std::nullopt;
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 15;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 28;
-    constexpr double PushStep = std::bit_cast<double>(0x3fc999999999999aull);            // 0x6ba1e8: 0,2.
-    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0,05f.
+    constexpr double PushStep = std::bit_cast<double>(0x3fc999999999999aull);            // 0x6ba1e8: 0.2.
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48: 0.05f.
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
         ModelEffect& effect = m_effects[slot];
@@ -814,10 +814,10 @@ std::optional<std::size_t> ModelEffects::CreateIceShard(const glm::vec3& positio
 {
     constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
     constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
-    constexpr double Tenth = Math::TenthAsDouble;                        // 0x6b87b8: 0,1f.
+    constexpr double Tenth = Math::TenthAsDouble;                        // 0x6b87b8: 0.1f.
     constexpr double Rise = 50.0;                                        // 0x6b86b0
-    constexpr std::int16_t ShardBlendMesh = 0;                           // 0x51b6e0: ESI, en 0 (0x518d08)
-    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au); // 0x51b6e3: 0,3f
+    constexpr std::int16_t ShardBlendMesh = 0;                           // 0x51b6e0: ESI, at 0 (0x518d08)
+    constexpr float ShardBlendLight = std::bit_cast<float>(0x3e99999au); // 0x51b6e3: 0.3f
     for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
     {
         ModelEffect& effect = m_effects[slot];
@@ -870,7 +870,7 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
         constexpr float FlareLight = std::bit_cast<float>(0x3e99999au);
         constexpr int SpeedSpan = 5, SpeedBase = 9;
         constexpr double Half = Math::HalfAsDouble;
-        // 0x6ba1d0 (70° en radianes, de float a double) y 0x6ba1c8 (30°).
+        // 0x6ba1d0 (70° in radians, from float to double) and 0x6ba1c8 (30°).
         constexpr double Steep = std::bit_cast<double>(0x3ff38c3540000000ull);
         constexpr double Side = std::bit_cast<double>(0x3fe0c15240000000ull);
         constexpr float FlareScale = 3.0f;
@@ -910,12 +910,12 @@ std::optional<std::size_t> ModelEffects::CreateAidaWisp(const glm::vec3& positio
         effect.turnDirection = 1.0f;
         effect.flagEc = 1.0f;
         glm::vec3& at = effect.transform.position;
-        // 0x519033..0x51908d: la z, la y y la x, en ese orden.
+        // 0x519033..0x51908d: z, y and x, in that order.
         for (int axis = 2; axis >= 0; --axis)
             at[axis] = F32(static_cast<double>(random.Next() % Spread) - Center + static_cast<double>(at[axis]));
         effect.transform.angles.z =
             F32(static_cast<double>(random.Next() % Turn) + static_cast<double>(effect.transform.angles.z));
-        // 0x5190a9..0x5190d8: la x y la z de la velocidad con esi, que el prefijo dejó en 0.
+        // 0x5190a9..0x5190d8: the speed's x and z with esi, which the prefix left at 0.
         effect.velocity = {0.0f, F32(static_cast<double>(random.Next() & PushMask) * PushStep - Push), 0.0f};
         effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep +
                                      static_cast<double>(effect.transform.scale));
@@ -991,18 +991,18 @@ std::optional<std::size_t> ModelEffects::CreateSkillFlare(const glm::vec3& posit
 
 namespace
 {
-// 0x51db7a..0x51ddab: los lugares del rayo por rand() % 30 y los huesos del buffer global (0x68b19fc, 0x68b1abc,
-// 0x68b187c, 0x68b217c, 0x68b21ac y 0x68b220c: 0x68b181c + hueso · 0x30).
+// 0x51db7a..0x51ddab: the ray's places by rand() % 30 and the global buffer's bones (0x68b19fc, 0x68b1abc, 0x68b187c,
+// 0x68b217c, 0x68b21ac and 0x68b220c: 0x68b181c + bone · 0x30).
 constexpr std::int32_t LightningLife = 100;
 constexpr std::int32_t LightningPlaces = 30;
 constexpr std::size_t NeckBone = 10, ShoulderBone = 14, BackBone = 2, LeftClawBone = 50, RightClawBone = 51,
                       TailBone = 53;
-constexpr double LightningScaleStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0,002f.
-constexpr double LightningScaleBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0,3f.
-constexpr double LightningShrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));    // 0x6b8854: 0,2f.
-constexpr double LightningGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8: 0,1f.
+constexpr double LightningScaleStep = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc: 0.002f.
+constexpr double LightningScaleBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc: 0.3f.
+constexpr double LightningShrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));    // 0x6b8854: 0.2f.
+constexpr double LightningGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));    // 0x6b87b8: 0.1f.
 constexpr double LightningLift = 110.0;                                                       // 0x6ba184.
-constexpr float LightningAlpha = std::bit_cast<float>(0x3f333333u);                           // 0,7f.
+constexpr float LightningAlpha = std::bit_cast<float>(0x3f333333u);                           // 0.7f.
 constexpr int LightningAngleSpan = 360;
 constexpr int LightningSpreadX = 240, LightningCentreX = 120, LightningSpreadY = 10, LightningCentreY = 5;
 constexpr std::uint16_t LightningFlare = 0x5ac;
@@ -1074,7 +1074,7 @@ ModelEffects::CreateLightning(const glm::vec3& position, const glm::vec3& angles
             place.z = F32(static_cast<double>(place.z) + LightningLift);
         }
         effect.previousPosition = place;
-        // 0x51ddab..0x51dded: la luz guardada menos 0,3f, cada canal en la x87 hasta su fstp.
+        // 0x51ddab..0x51dded: the stored light minus 0.3f, each channel on the x87 until its fstp.
         const glm::vec3 flare(F32(static_cast<double>(effect.light.x) - LightningScaleBase),
                               F32(static_cast<double>(effect.light.y) - LightningScaleBase),
                               F32(static_cast<double>(effect.light.z) - LightningScaleBase));
@@ -1101,7 +1101,7 @@ std::optional<std::size_t> ModelEffects::CreateLightningDecal(const glm::vec3& p
         effect.textureFrame = 0;
         effect.alpha = 1.0f;
         effect.textureTime = systemTime;
-        effect.transform.position.z = 0.0f; // 0x51de4d: la z en 0 (esi), después de la hora.
+        effect.transform.position.z = 0.0f; // 0x51de4d: z at 0 (esi), after the time.
         effect.previousPosition = effect.transform.position;
         return slot;
     }
@@ -1130,7 +1130,7 @@ std::optional<std::size_t> ModelEffects::Create(const Kernel::ModelEffectArgumen
     }
     else
     {
-        // 0x51eebb (llegada /0) y 0x51e4f6: el resto del lugar queda como lo dejó el prefijo.
+        // 0x51eebb (arrival /0) and 0x51e4f6: the rest of the slot stays as the prefix left it.
         effect.life = arguments.type == ArrivalEffect ? ArrivalLife : TeleportLife;
     }
     return slot;
@@ -1161,9 +1161,9 @@ std::optional<std::size_t> ModelEffects::CreateWaveEffect(const Kernel::ModelEff
         return std::nullopt;
     auto& effect = m_effects[*slot];
     constexpr double Lift = 50.0;                                                          // 0x6b86b0
-    constexpr double ScalePerKey = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48, 0,05f
+    constexpr double ScalePerKey = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8a48, 0.05f
     effect.start = arguments.position;
-    // 0x51c173: el +50 de lo común y el −50 del subtipo, cada uno con su fstp.
+    // 0x51c173: the common part's +50 and the subtype's −50, each with its fstp.
     effect.transform.position.z =
         F32(static_cast<double>(F32(static_cast<double>(arguments.position.z) + Lift)) - Lift);
     effect.objectState.blendMesh = Models::EveryMeshBlends;
@@ -1172,7 +1172,7 @@ std::optional<std::size_t> ModelEffects::CreateWaveEffect(const Kernel::ModelEff
     effect.life = slow ? 15 : 10;
     effect.transform.scale = F32(static_cast<double>(std::bit_cast<std::int16_t>(arguments.key)) * ScalePerKey);
     effect.disturbanceState = 0xffff;
-    effect.turnDirection = std::bit_cast<float>(slow ? 0x3c23d70au : 0x3da3d70au); // 0,01f y 0,08f
+    effect.turnDirection = std::bit_cast<float>(slow ? 0x3c23d70au : 0x3da3d70au); // 0.01f and 0.08f
     effect.transform.angles = {slow ? 90.0f : -90.0f, 0, arguments.angles.z};
     return slot;
 }
@@ -1289,7 +1289,7 @@ std::optional<std::size_t> ModelEffects::CreateCastleShockWave(const Kernel::Mod
     ModelEffect& effect = m_effects[*slot];
     effect.life = 30;
     effect.transform.scale = 20.0f;
-    // fild, más la base (0x6b87a8 o 0x6b87f4) y por 0,1f (0x6b8a34), en la x87 hasta el fstp.
+    // fild, plus the base (0x6b87a8 or 0x6b87f4) and times 0.1f (0x6b8a34), on the x87 until the fstp.
     const auto tenths = [&random](int span, double base)
     { return F32((static_cast<double>(random.Next() % span) + base) * StoneTenth); };
     switch (effect.subtype)
@@ -1350,7 +1350,7 @@ std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, co
             effect.transform.scale = 0.6f;
             return slot;
         }
-        // La copia al efecto precede la mutación de la luz prestada (0x51c39b).
+        // The copy to the effect precedes the mutation of the borrowed light (0x51c39b).
         sourceLight = glm::vec3(0.0f);
         effect.transform.scale =
             F32(static_cast<double>(random.Next() % 50) * static_cast<double>(0.01f) + static_cast<double>(1.3f));
@@ -1408,8 +1408,8 @@ void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)
     {
         StepDragon(effect);
     }
-    // 0x52cc04..0x52cc7b: la animación a +0xd8. 0x4ec200 devuelve 0 cuando la acción termina o da la
-    // vuelta (Models::AdvanceAnimation, true): el frame queda en sus keys y la acción en 0xff.
+    // 0x52cc04..0x52cc7b: the animation at +0xd8. 0x4ec200 returns 0 when the action ends or wraps
+    // (Models::AdvanceAnimation, true): the frame stays at its keys and the action at 0xff.
     if (effect.animation.action != NoAction && skeleton != nullptr &&
         effect.animation.action < skeleton->actions.size())
     {
@@ -1420,9 +1420,9 @@ void StepModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton)
             effect.animation.action = NoAction;
         }
     }
-    // 0x51fc80(efecto, 1): la velocidad girada por los ángulos, sumada a la posición.
+    // 0x51fc80(effect, 1): the speed rotated by the angles, added to the position.
     effect.previousPosition = effect.transform.position;
-    // 52cbea:147 ya hizo su movimiento iterativo y salta directo a52cd94.
+    // 0x52cbea: the 0x147 already did its iterative movement and jumps straight to 0x52cd94.
     if (effect.type != 0x147)
     {
         const glm::vec3 step =

@@ -5,8 +5,8 @@
 
 namespace Client::WorldObjects
 {
-// model+88: selección compartida por tipo, no un campo por instancia. Ausente equivale al -1
-// inicial del modelo cargado. El owner conserva o limpia la tabla con el ciclo de sus modelos.
+// model+88: a selection shared per type, not a per-instance field. Absent equals the loaded model's initial -1. The
+// owner keeps or clears the table with its models' lifecycle.
 struct ObjectModelStepState
 {
     std::map<std::int16_t, std::int8_t> unlitMeshes;

@@ -37,24 +37,24 @@ bool InHalfOpenRange(std::int32_t value, std::int32_t first, std::int32_t end)
     return value >= first && value < end;
 }
 
-// 0x4f4915..0x4f4938: un arco en la izquierda (+0x2d8, el CMP de WORD con signo): 0xa12 a 0xa18, 0xa23, 0xa26 o 0xa27.
+// 0x4f4915..0x4f4938: a bow in the left hand (+0x2d8, the signed WORD CMP): 0xa12 to 0xa18, 0xa23, 0xa26 or 0xa27.
 bool BowInTheLeft(const Kernel::ActorState& actor)
 {
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
     return InHalfOpenRange(left, 0xa12, 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27;
 }
 
-// 0x4f493a..0x4f4967: una ballesta en la derecha (+0x2b8): 0xa1a a 0xa20, 0xa22 o 0xa24 a 0xc11.
+// 0x4f493a..0x4f4967: a crossbow in the right hand (+0x2b8): 0xa1a to 0xa20, 0xa22 or 0xa24 to 0xc11.
 bool CrossbowInTheRight(const Kernel::ActorState& actor)
 {
     const auto right = static_cast<std::int16_t>(actor.hands[0].model);
     return InHalfOpenRange(right, 0xa1a, 0xa21) || right == 0xa22 || InHalfOpenRange(right, 0xa24, 0xc12);
 }
 
-// 0x4f48e0(personaje): en un jugador, las velocidades (0x4f3f80) y la acción de tirar por las manos. Montado en Uniria
-// o Dinorant (+0x318) fuera de la zona segura (+0x3e2), 0x82 con el arco y 0x83 con la ballesta; si no, con el arco
-// 0x7e sin alas (+0x2f8 en −1) y 0x80 con ellas, y con la ballesta 0x7f y 0x81. Sin arma de tiro, ninguna. Con o sin
-// acción, de cualquier tipo, +0x38f sube.
+// 0x4f48e0(character): on a player, the speeds (0x4f3f80) and the shooting action by hands. Riding Uniria or Dinorant
+// (+0x318) outside the safe zone (+0x3e2), 0x82 with the bow and 0x83 with the crossbow; otherwise, with the bow 0x7e
+// without wings (+0x2f8 at −1) and 0x80 with them, and with the crossbow 0x7f and 0x81. Without a ranged weapon, none.
+// With or without an action, of any type, +0x38f goes up.
 Core::Expected<void, std::string> SetTheShotAction(Kernel::ActorState& actor, const Combat::ActorCombatContext& context)
 {
     if (actor.type == Tables::PlayerSkeletonModel)
@@ -77,8 +77,8 @@ Core::Expected<void, std::string> SetTheShotAction(Kernel::ActorState& actor, co
     return {};
 }
 
-// El C1 06 19 en línea (0x56018f.., 0x5608fd.. y 0x56109a..): sin "webzen" en el héroe publicado y con el freno (que
-// con la 0x28 no frena), con la clave del blanco.
+// The inline C1 06 19 (0x56018f.., 0x5608fd.. and 0x56109a..): without "webzen" in the published hero and with the
+// brake (which with 0x28 does not brake), with the target's key.
 Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Kernel::ActorState& target,
                                                   const HeroSkillContext& context, std::string_view where)
 {
@@ -92,7 +92,7 @@ Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Kern
     return {};
 }
 
-// 0x561c50 (CheckTheArrows) con los servicios del contexto, o sin ellos.
+// 0x561c50 (CheckTheArrows) with the context's services, or without them.
 Core::Expected<bool, std::string> HasArrows(const HeroSkillContext& context)
 {
     static const Items::InventoryServices NoServices{};
@@ -109,7 +109,7 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const Movement::WeaponSkillRequest request = runtime.movement.weaponSkill;
-    // 0x55fac2..0x55ffcf: el D3 de girar, antes que todo, con el ángulo del héroe publicado de ahora.
+    // 0x55fac2..0x55ffcf: the turning D3, before anything, with the published hero's current angle.
     {
         Kernel::ActorState& published = world.Hero();
         const std::uint8_t x = ReadTheSkillCell(published.cellXAccesses, published.cellX, context.random);
@@ -117,13 +117,13 @@ Core::Expected<void, std::string> UseTheElfSkillOnItsTarget(Kernel::ActorState& 
         if (auto sent = SendTheTurn(x, y, published.angles.z, context, "0x55fd72"); !sent.HasValue())
             return sent;
     }
-    // 0x55ffd6..0x560080: la skill del lugar, con el registro propio abierto y cerrado.
+    // 0x55ffd6..0x560080: the slot's skill, with the own record opened and closed.
     std::uint8_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
         skill = Kernel::OwnSkillByte(world.OwnCharacter(), request.slot);
     }
-    // 0x560080..0x5600dc: el blanco sin mirar el −1, que MuRet no lee fuera del pool.
+    // 0x560080..0x5600dc: the target without checking the −1, which MuRet does not read outside the pool.
     if (request.target < 0 || static_cast<std::size_t>(request.target) >= world.Actors().size())
         return Core::Unexpected(
             std::format("0x560080: el blanco {} de la skill del elfo está fuera del pool", request.target));

@@ -13,7 +13,7 @@ namespace Client::Combat
 {
 namespace
 {
-// Los offsets nativos de velocidad son 4 + 16·acción (0x4f444a..0x4f48c1).
+// The native speed offsets are 4 + 16·action (0x4f444a..0x4f48c1).
 void SetOffsets(Actors::PlayerActionSpeeds& speeds, std::initializer_list<std::size_t> offsets, double value)
 {
     for (const auto offset : offsets)

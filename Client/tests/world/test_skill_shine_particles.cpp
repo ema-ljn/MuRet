@@ -18,9 +18,8 @@
 #include <functional>
 #include <optional>
 
-// El brillo 5fe de las skills de las armas (CL9 hito 4, fase 2c-A2): 0x542bff (la creación), 0x546d54 (el paso) y el
-// billboard común de 548550 (0x54889a). El hueso del dueño (0x53fdb0) lo da quien lo pide. 06, "Lo que mandan las
-// skills de las armas".
+// The weapon skills' shine 5fe: 0x542bff (creation), 0x546d54 (step) and 0x548550's common billboard (0x54889a). The
+// owner's bone (0x53fdb0) is given by the requester. 06, "Lo que mandan las skills de las armas".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -34,7 +33,7 @@ using Client::Particles::SkillShineParticle;
 constexpr std::uint32_t Seed = 0x1357bdfu;
 constexpr ParticleOwner HeroOwner{.kind = ParticleOwnerKind::Actor, .identity = 3};
 
-// Un hueso que se mueve con la vida, para ver que el paso lo vuelve a leer.
+// A bone that moves with the life, to see that the step reads it again.
 std::optional<glm::vec3> BonePoint(const Particle& particle)
 {
     if (particle.typedOwner != HeroOwner)
@@ -42,8 +41,9 @@ std::optional<glm::vec3> BonePoint(const Particle& particle)
     return glm::vec3{100.0f + static_cast<float>(particle.life), 200.0f, 50.0f};
 }
 
-// 0x542bff..0x542c07: el prefijo común, la vida 18 y 0x53fdb0, que pisa la posición con la del hueso. Sin rand(); la
-// escala del pedido (0) queda. Con el pool lleno, nada; sin el dueño, MissingOwner con el lugar apagado.
+// 0x542bff..0x542c07: the common prefix, life 18 and 0x53fdb0, which overwrites the position with the bone's. Without
+// rand(); the requested scale (0) stays. With the pool full, nothing; without the owner, MissingOwner with the slot
+// off.
 TEST(SkillShineParticlesTest, TheShineIsBornOnTheOwnersBoneWithoutDraws)
 {
     Particles particles;
@@ -83,9 +83,9 @@ TEST(SkillShineParticlesTest, TheShineIsBornOnTheOwnersBoneWithoutDraws)
     EXPECT_FALSE(full.Value().has_value());
 }
 
-// 0x546d54..0x546d6e: después de la vida (y del movimiento común, con la velocidad en cero), la escala
-// sin(vida · π/18) · 3 y la posición del hueso otra vez. Se apaga en el paso 18 con la escala en 0. Cada paso saca los
-// dos rand() del viento y nada más; sin el hueso, MissingOwner.
+// 0x546d54..0x546d6e: after the life (and the common movement, with the velocity at zero), the scale
+// sin(life · π/18) · 3 and the bone's position again. It goes off at step 18 with the scale at 0. Each step takes the
+// wind's two rand() and nothing else; without the bone, MissingOwner.
 TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
 {
     Particles particles;
@@ -125,8 +125,8 @@ TEST(SkillShineParticlesTest, TheShineSwellsWithItsLifeAndFollowsTheBone)
     EXPECT_EQ(lost.Error(), Client::Particles::ParticleError::MissingOwner);
 }
 
-// 0x548550: la 5fe va por la tabla de 0x548cf0 (el byte 8) al billboard común de 0x54889a, con la mezcla de su
-// material y el tamaño de la textura por la escala.
+// 0x548550: 5fe goes through 0x548cf0's table (byte 8) to 0x54889a's common billboard, with its material's blend and
+// the texture's size times the scale.
 TEST(SkillShineParticlesTest, TheShineDrawsWithTheCommonBillboard)
 {
     Particle shine;

@@ -18,7 +18,7 @@ namespace
 {
 using Result = Core::Expected<void, std::string>;
 
-// La textura de 0x4ef0c0 y 0x4ecc30: −1 deja la de cada malla; otra negativa no tiene un slot.
+// The texture of 0x4ef0c0 and 0x4ecc30: −1 keeps each mesh's own; any other negative one has no slot.
 Core::Expected<std::optional<Render::TextureSlot>, std::string> TextureOf(std::int32_t texture)
 {
     if (texture == -1)
@@ -81,7 +81,7 @@ Result DrawMeshPass(MonsterBodyModel& model, std::int16_t mesh, std::uint32_t fl
 
 void RequestBodySound(MonsterBodyFrame& frame, Audio::SoundId sound)
 {
-    // 0x41ed10 (CL10): el sonido queda anotado; entre frames del original no se pide.
+    // 0x41ed10 (CL10): the sound is recorded; between original frames it is not requested.
     if (!frame.originalFrame)
         return;
     if (frame.soundRequest)

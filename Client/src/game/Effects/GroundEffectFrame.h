@@ -20,9 +20,8 @@ namespace Client::Effects
 struct GroundEffectResources;
 }
 
-// D-C4: 0x52dc20 consume RNG y cambia efectos solo en los frames del original. Los dibujos
-// intermedios repiten su entrada, incluido el prefijo anterior a un error. Contrato: 06 § El dibujo
-// del juego y Los efectos del login.
+// D-C4: 0x52dc20 consumes RNG and changes effects only on the original's frames. The in-between drawings replay their
+// input, including the prefix before an error. Contract: 06 § El dibujo del juego and Los efectos del login.
 namespace Client::Effects
 {
 class GroundEffectFrame
@@ -33,7 +32,7 @@ public:
                                                          const Effects::GroundEffectResources& resources,
                                                          bool originalFrame);
 
-    // Al entrar a la escena o reemplazar su mundo; conserva la capacidad de los buffers.
+    // On entering the scene or replacing its world; keeps the buffers' capacity.
     void Reset();
 
 private:

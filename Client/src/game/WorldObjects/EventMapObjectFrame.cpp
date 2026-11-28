@@ -35,7 +35,7 @@ namespace
 {
 using Math::F32;
 
-// 0x6b89c8 (0,001f), 0x6b86d0 (20), 0x6b89dc (0,3f), 0x6b8a5c (0,7f), 0x6b882c (0,5), 0x6b8818 (2) y 0x6b87d4 (1).
+// 0x6b89c8 (0.001f), 0x6b86d0 (20), 0x6b89dc (0.3f), 0x6b8a5c (0.7f), 0x6b882c (0.5), 0x6b8818 (2) and 0x6b87d4 (1).
 constexpr double Thousandth = Math::ThousandthAsDouble;
 constexpr double AngleRate = 20.0;
 constexpr float PulseSwing = std::bit_cast<float>(0x3e99999au);
@@ -48,7 +48,7 @@ constexpr std::int32_t RainParticle = 0x68;
 constexpr std::int32_t GlowSpriteTexture = 0x5ac;
 constexpr std::int32_t OrbTexture = 0x60f;
 constexpr std::int32_t TorchOrbSubtype = 4;
-// 0x6042a5..0x604285: la luz y la escala de la 60f/4.
+// 0x6042a5..0x604285 (the 0x60f/4)
 constexpr glm::vec3 TorchOrbLight{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f4ccccdu)};
 constexpr float TorchOrbScale = std::bit_cast<float>(0x3e428f5cu);
 
@@ -56,7 +56,7 @@ constexpr std::int16_t DevilSquareRainObject = 2;
 constexpr std::int16_t GlowingStatue = 0xb;
 constexpr std::int16_t PulsingOrb = 0xd;
 constexpr std::int16_t Torch = 0x25;
-// 0x603df9 y 0x60433a..0x604361: los huesos y los desplazamientos.
+// 0x603df9 and 0x60433a..0x604361
 constexpr std::size_t FirstRainBone = 23;
 constexpr std::size_t SecondRainBone = 31;
 constexpr glm::vec3 RainOffset{-15.0f, 0.0f, 0.0f};
@@ -65,7 +65,7 @@ constexpr glm::vec3 StatueOffset{0.0f, 0.0f, 2.0f};
 constexpr float StatueSprite = 0.5f;
 constexpr std::size_t OrbBone = 3;
 
-// 0x4059d0: los tipos de Chaos Castle y las luces de sus nubes (0x3d4ccccd, 0x3dcccccd y 0x3e99999a).
+// 0x4059d0: the Chaos Castle types and their clouds' lights (0x3d4ccccd, 0x3dcccccd and 0x3e99999a).
 constexpr std::int16_t LastTrapObject = 3;
 constexpr std::int16_t FirstCloudObject = 6;
 constexpr std::int16_t LastManyCloudObject = 8;
@@ -78,7 +78,7 @@ constexpr glm::vec3 CloudLight{std::bit_cast<float>(0x3d4ccccdu), std::bit_cast<
                                std::bit_cast<float>(0x3dcccccdu)};
 constexpr glm::vec3 BrightCloudLight{std::bit_cast<float>(0x3e99999au)};
 constexpr std::uint8_t NoArea = 0xff;
-// 0x405cea..0x405d69: el hueso 1 (0x68b184c), la cuenta de +0x60, el joint y el sonido de la trampa.
+// 0x405cea..0x405d69: bone 1 (0x68b184c), +0x60's count, the joint and the trap's sound.
 constexpr std::size_t TrapBone = 1;
 constexpr std::int32_t TrapStart = 10;
 constexpr std::int32_t TrapEnd = 5;
@@ -103,8 +103,8 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t 
     return {};
 }
 
-// 0x6042a5..0x6042ac: 0x53fe70(0x60f, posición, ángulos, (1; 0,8f; 0,8f), 4, 0,19f, 0), con el reloj del mundo y
-// la trigonometría de la órbita prestados.
+// 0x6042a5..0x6042ac: 0x53fe70(0x60f, position, angles, (1; 0.8f; 0.8f), 4, 0.19f, 0), with the world clock and the
+// orbit's trigonometry borrowed.
 Core::Expected<void, std::string> Orbit(const GameObjectPass& pass, const glm::vec3& position, const glm::vec3& angles)
 {
     if (pass.particles == nullptr)
@@ -119,7 +119,7 @@ Core::Expected<void, std::string> Orbit(const GameObjectPass& pass, const glm::v
     return {};
 }
 
-// 0x5491e0(textura, punto, escala, luz, objeto, 0, 0): MuRet no guarda el dueño del sprite (Q-C303).
+// 0x5491e0(texture, point, scale, light, object, 0, 0): MuRet does not keep the sprite's owner (Q-C303).
 Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::int32_t texture, const glm::vec3& position,
                                          float scale, const glm::vec3& light, std::string_view address)
 {
@@ -175,7 +175,7 @@ Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
                   "0x60432b");
 }
 
-// 0x604199..0x6041c2 y 0x60421c..0x604245: ftol de la fase (más `lead`) % 4 y la fase más 1, guardada.
+// 0x604199..0x6041c2 and 0x60421c..0x604245: ftol of the phase (plus `lead`) % 4 and the phase plus 1, stored.
 Core::Expected<bool, std::string> TorchTurn(WorldObjects::WorldObject& object, double lead, std::string_view address)
 {
     const std::optional<std::int32_t> turn = Math::OriginalFtolLow(static_cast<double>(object.field84) + lead);
@@ -224,7 +224,7 @@ Core::Expected<void, std::string> TorchFrame(WorldObjects::WorldObject& object, 
         return spark;
     return Orbit(pass, position, angles);
 }
-// 0x405abb..0x405c5c: las nubes del 6 al 0xc, con el objeto de dueño, la primera vez.
+// 0x405abb..0x405c5c: the clouds of 6 to 0xc, owned by the object, the first time.
 Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
     if (object.state.hiddenMesh != WorldObjects::HiddenObject)
@@ -252,10 +252,10 @@ Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& o
     return {};
 }
 
-// 0x405cc5..0x405d82: el 0..3 con +0x8a y sin esconder toma el punto del hueso 1 de la pose global (0x4ec110 con
-// 0x68b184c y el desplazamiento en cero). Con +0x60 en 10 crea ahí el joint 0x615/2, de ese punto a ese punto, con
-// los ángulos del objeto y escala rand() % 10 + 60 (0x6b86cc), y pide el sonido 0x9c + (rand() & 1) con
-// 0x41ed10(id, 0, 0). Después, +0x60 por debajo de 5 apaga +0x8a y, si no, baja uno.
+// 0x405cc5..0x405d82: the 0..3 with +0x8a and not hidden take the point of bone 1 of the global pose (0x4ec110 with
+// 0x68b184c and zero offset). With +0x60 at 10 it creates joint 0x615/2 there, from that point to that point, with the
+// object's angles and scale rand() % 10 + 60 (0x6b86cc), and asks for sound 0x9c + (rand() & 1) with 0x41ed10(id, 0,
+// 0). Then, +0x60 below 5 turns +0x8a off and, otherwise, drops by one.
 Core::Expected<void, std::string> ChaosCastleTrap(WorldObjects::WorldObject& object, const GameObjectPass& pass)
 {
     const auto point = ObjectBonePoint(pass, TrapBone, glm::vec3(0.0f));
@@ -294,7 +294,7 @@ Core::Expected<void, std::string> ChaosCastleTrap(WorldObjects::WorldObject& obj
     return {};
 }
 
-// 0x405c7f y 0x405d95: −1 lo vuelve a dibujar y −2 lo esconde.
+// 0x405c7f and 0x405d95: −1 draws it again and −2 hides it.
 void ShowChaosCastleObject(WorldObjects::WorldObject& object, bool shown)
 {
     object.state.hiddenMesh = shown ? Models::NoHiddenMesh : WorldObjects::HiddenObject;
@@ -341,7 +341,7 @@ Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::World
 {
     const std::int16_t type = object.type;
     const std::uint8_t area = pass.chaosCastleArea;
-    // +0x8a lo prende 0x4055b0 en el paso (la trampa armada o la cuenta del elegido); cae después al área.
+    // 0x4055b0 sets +0x8a in the step (the trap armed or the chosen one's count); then it falls to the area.
     if (type >= 0 && type <= LastTrapObject && object.field8a != 0 &&
         object.state.hiddenMesh != WorldObjects::HiddenObject)
         if (auto trap = ChaosCastleTrap(object, pass); !trap.HasValue())

@@ -104,7 +104,7 @@ Particles::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Rend
     const auto bound = Checked(m_backend.get().BindTexture(request.selector), Phase::Bind);
     if (!bound.HasValue())
         return bound;
-    // P y view se consumen DESPUÉS del binder.
+    // P and view are consumed AFTER the binder.
     const auto corners = Render::MakeBillboardGeometry(m_view.get(), request.position.get(), request.width,
                                                        request.height, request.rotation, request.uv, request.uvSize);
     const auto begun = Checked(m_backend.get().Begin(), Phase::Begin);

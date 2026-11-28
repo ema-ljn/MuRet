@@ -33,8 +33,8 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
     }
     if (kind == ParticleDrawKind::Bubble)
     {
-        // 0x54899a..0x5489e0: el alto por el double 0,125 (0x6ba3f8), el giro de +0x20 y la v del cuadro (+0x48 % 8,
-        // con el and de la corrección del signo) por 0,125f (0x6ba170); la u en 0 y el tamaño (1; 0,125).
+        // 0x54899a..0x5489e0: the height by the double 0.125 (0x6ba3f8), the turn from +0x20 and the frame's v (+0x48 %
+        // 8, with the and of the sign correction) by 0.125f (0x6ba170); the u at 0 and the size (1; 0.125).
         constexpr std::int32_t BubbleFrames = 8;
         constexpr double BubbleRow = 0.125;
         result.height = static_cast<float>(static_cast<double>(result.height) * BubbleRow);
@@ -45,9 +45,9 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
     }
     if (kind == ParticleDrawKind::Explosion)
     {
-        // 0x54864b..0x5486b1: sin giro, la u del resto con signo cuadro % 4 (and 0x80000003 con la corrección) y la v
-        // del cociente cuadro / 4 (cdq, and 3, sar 2: hacia 0), cada una · 0,25f + 0,005f (0x6b89e0 y 0x6b89d8) en la
-        // x87, y el tamaño (0,24f; 0,24f).
+        // 0x54864b..0x5486b1: no turn, the u from the signed remainder frame % 4 (and 0x80000003 with the correction)
+        // and the v from the quotient frame / 4 (cdq, and 3, sar 2: toward 0), each · 0.25f + 0.005f (0x6b89e0 and
+        // 0x6b89d8) on the x87, and the size (0.24f; 0.24f).
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
         result.uv.x = static_cast<float>(static_cast<double>(frame % AtlasColumns) * Quarter + DropInset);
         result.uv.y = static_cast<float>(static_cast<double>(frame / AtlasColumns) * Quarter + DropInset);
@@ -55,9 +55,9 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
     }
     if (kind == ParticleDrawKind::Blood)
     {
-        // 0x5487b9..0x5487fb: sin giro, la u del resto con signo cuadro % 2 (and 0x80000001 con la corrección) y la v
-        // del cociente cuadro / 2 (cdq, sub y sar: hacia 0), cada una · 0,5f (0x6b882c) en la x87, y el tamaño
-        // (0,5f; 0,5f).
+        // 0x5487b9..0x5487fb: no turn, the u from the signed remainder frame % 2 (and 0x80000001 with the correction)
+        // and the v from the quotient frame / 2 (cdq, sub and sar: toward 0), each · 0.5f (0x6b882c) on the x87, and
+        // the size (0.5f; 0.5f).
         constexpr std::int32_t BloodColumns = 2;
         constexpr double Half = Math::HalfAsDouble;
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
@@ -76,7 +76,7 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
 }
 void UpdateParticleCloudDrawRotation(Particle& particle, float clock, std::size_t physicalIndex)
 {
-    // 548c13..2f: dos productos retenidos y un único store; G se recibe en esta frontera.
+    // 0x548c13..0x548c2f: two retained products and a single store; G is received at this boundary.
     const double direction = physicalIndex % 2 == 0 ? CloudRotationStep : -CloudRotationStep;
     const double global = static_cast<double>(clock) * static_cast<double>(particle.rotationFactor);
     const double signedRotation = global * direction;
@@ -87,7 +87,7 @@ glm::vec3 ScaledParticleDrawLight(const Particle& particle)
     glm::vec3 light{};
     for (int axis = 0; axis < 3; ++axis)
     {
-        // 548c43..70: cada canal vuelve a leer +38; no altera RGB canónico.
+        // 0x548c43..0x548c70: each channel rereads +0x38; the canonical RGB is not altered.
         const float q = std::bit_cast<float>(particle.field38);
         light[axis] = static_cast<float>(static_cast<double>(particle.light[axis]) * static_cast<double>(q));
     }

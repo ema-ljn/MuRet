@@ -50,8 +50,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Effects::FireTheArrow y StepArrow: 0x53e2b0, 0x53d9a0, los casos de flecha de 0x518cf0 y de 0x5208a0,
-// 0x520170 y 0x517850, por el paso del ataque (0x50377d y 0x504060). 06, "La flecha".
+// Client::Effects::FireTheArrow and StepArrow: 0x53e2b0, 0x53d9a0, the arrow cases of 0x518cf0 and of 0x5208a0,
+// 0x520170 and 0x517850, through the attack step (0x50377d and 0x504060). 06, "La flecha".
 namespace
 {
 using Client::Actors::CharacterStepContext;
@@ -68,22 +68,22 @@ constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t OtherSlot = 3;
 constexpr std::size_t VictimSlot = 7;
 constexpr std::uint16_t NoTarget = 0xffff;
-// Una lectura de +0x38e: un rand() al cerrarse en 0.
+// One read of +0x38e: one rand() when it closes at 0.
 constexpr int SkillRead = 1;
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
-// El paso de +0x381 que corre la habilidad, antes del frame 5: la lectura de 0x4f97b0, el rand() de 0x4f5b97 y, con
-// blanco en el pool, las dos lecturas de 0x4f811b y 0x4f8a2c.
+// The +0x381 step that runs the skill, before frame 5: the read of 0x4f97b0, the rand() of 0x4f5b97 and, with a target
+// in the pool, the two reads of 0x4f811b and 0x4f8a2c.
 constexpr int CountingWithTarget = SkillRead + 1 + 2 * SkillRead;
 constexpr int CountingWithoutTarget = SkillRead + 1;
-// La flecha en el paso del ataque: las dos lecturas de +0x38e, 0x59fb80 con el registro propio y, con el héroe, las
-// armas de 0x53d9a0 con el registro propio.
+// The arrow in the attack step: the two reads of +0x38e, 0x59fb80 with the own record and, with the hero, the weapons
+// of 0x53d9a0 with the own record.
 constexpr int ShotReads = 2 * SkillRead + OwnRecord;
-// El alta de cada flecha: la salida 0x51a1b6 con el registro propio.
+// Each arrow's creation: the exit 0x51a1b6 with the own record.
 constexpr int ArrowCreation = OwnRecord;
-// Lo de después de la flecha con blanco sin daño: los dos switch, el sonido con el registro propio y la escritura.
+// After the arrow with a target and no damage: the two switches, the sound with the own record and the write.
 constexpr int AfterTheArrow = 2 * SkillRead + 1 + OwnRecord + SkillRead;
 
-// El arco 4/0 en la izquierda y la ballesta 4/8 en la derecha, con sus acciones a pie y sus flechas.
+// Bow 4/0 in the left hand and crossbow 4/8 in the right, with their on-foot actions and their arrows.
 struct Weapon
 {
     std::string_view name;
@@ -118,7 +118,7 @@ std::string ErrorOf(const Client::Core::Expected<void, std::string>& stepped)
     return stepped.HasValue() ? std::string() : stepped.Error();
 }
 
-// Los rand() del fuego 0x5d9/0 de la flecha 0xdb (0x53fe70), medidos en un pool aparte.
+// The rand() of arrow 0xdb's 0x5d9/0 fire (0x53fe70), measured in a separate pool.
 int FireDraws()
 {
     Client::Particles::Particles scratch;
@@ -136,7 +136,7 @@ struct ArrowWorld
         world.Runtime().hero = HeroSlot;
         world.Runtime().heroSlot = static_cast<std::int32_t>(HeroSlot);
         world.OwnCharacter().ClearEquipmentForEntry();
-        // Los tiempos de 0x4fc450 lejos de 0, como en el paso del ataque.
+        // 0x4fc450's timers away from 0, as in the attack step.
         constexpr std::uint16_t FarTimer = 1000;
         world.OwnCharacter().word3e = FarTimer;
         world.OwnCharacter().word40 = FarTimer;
@@ -160,8 +160,8 @@ struct ArrowWorld
         return world.Actors()[HeroSlot];
     }
 
-    // El blanco en `slot`, a `distance` delante de quien tira (la flecha va hacia −y con los ángulos en 0), visto y
-    // vivo: un jugador (+0x88 en 1) o un monstruo (en 2).
+    // The target in `slot`, `distance` ahead of the shooter (the arrow goes toward −y with zero angles), seen and
+    // alive: a player (+0x88 at 1) or a monster (at 2).
     ActorState& Target(std::size_t slot, bool monster, float distance)
     {
         ActorState& target = world.Actors()[slot];
@@ -178,7 +178,7 @@ struct ArrowWorld
         return target;
     }
 
-    // El héroe con el arma en el registro propio, la acción y +0x381 en 14: el próximo paso tira.
+    // The hero with the weapon in the own record, the action and +0x381 at 14: the next step shoots.
     ActorState& Archer(const Weapon& weapon, std::uint8_t action, std::uint16_t target)
     {
         auto& equipment = world.OwnCharacter().equipment;
@@ -226,8 +226,8 @@ struct ArrowWorld
             .send = [this](Client::Protocol::Outgoing packet) { sent.push_back(std::move(packet)); }};
     }
 
-    // Saca rand() hasta que el que sigue a los próximos `skipped` sea par (o impar con `odd`): el rand() & 1 de
-    // 0x5201ed, después del de la luz y los del fuego del paso.
+    // Draws rand() until the one after the next `skipped` is even (odd with `odd`): the rand() & 1 of 0x5201ed, after
+    // the light's and the step's fire draws.
     void HitDrawIs(int skipped, bool odd)
     {
         const auto drawn = [this, skipped]()
@@ -241,8 +241,8 @@ struct ArrowWorld
             static_cast<void>(random.Next());
     }
 
-    // Llena los 3.000 lugares del pool con fuegos 0x5d9/0 (rand() aparte): las partículas que siguen no se crean ni
-    // sacan rand(), como en 0x53fe70 con el pool lleno.
+    // Fills the pool's 3000 slots with 0x5d9/0 fires (separate rand()): the following particles are neither created nor
+    // draw rand(), as in 0x53fe70 with the pool full.
     void FillTheParticles()
     {
         CrtRandom scratch(Seed);
@@ -266,7 +266,7 @@ struct ArrowWorld
         return found;
     }
 
-    // Pasos de la flecha hasta que se apaga (o `limit`); devuelve cuántos dio.
+    // Steps the arrow until it dies (or `limit`); returns how many steps it took.
     int StepUntilItDies(ModelEffect& arrow, int limit)
     {
         int steps = 0;
@@ -293,17 +293,17 @@ struct ArrowWorld
     std::vector<glm::vec3> soundOrigins;
     std::vector<Client::Protocol::Outgoing> sent;
     std::function<double(float, float)> terrainHeight{};
-    // La altura del terreno de 0x5f93c0 en cualquier punto; sin valor, el contexto va sin ella.
+    // 0x5f93c0's terrain height at any point; without a value, the context goes without it.
     std::optional<double> ground = 0.0;
 };
 
-// El elfo con el arco corto (la 0xdb, por la izquierda del registro propio) o la ballesta (la 0xdc, por la derecha)
-// pega a un monstruo y a un jugador, en Lorencia y en Devias: el paso del ataque llega al final (+0x381 en 0, el
-// sonido del golpe y la escritura de +0x38e) con la flecha creada (0x518cf0: la boca (−10; −60; 135) girada, vida 30,
-// escala 0,8f, la velocidad (0; −70; 0), el dueño, +0x8a, +0x89 y +0x8c), con sus 3.848 rand() de más por el
-// registro propio en 0x53d9a0 y otros tantos en la salida del alta. La flecha da cinco pasos (un rand() de luz cada
-// uno, y la 0xdb su fuego 0x5d9/0 con la luz dinámica) y en el quinto, a 60 del blanco, choca: abre el registro propio
-// para la skill del lugar +0x89 y se apaga.
+// The elf with the short bow (0xdb, through the own record's left) or the crossbow (0xdc, through the right) hits a
+// monster and a player, in Lorencia and Devias: the attack step reaches the end (+0x381 at 0, the hit sound and the
+// write of +0x38e) with the arrow created (0x518cf0: the mouth (−10; −60; 135) rotated, life 30, scale 0.8f, speed (0;
+// −70; 0), the owner, +0x8a, +0x89 and +0x8c), with its 3848 extra rand() for the own record at 0x53d9a0 and as many at
+// the creation's exit. The arrow takes five steps (one light rand() each, and the 0xdb its 0x5d9/0 fire with the
+// dynamic light) and on the fifth, 60 from the target, it hits: it opens the own record for the skill of slot +0x89
+// and dies.
 TEST(ArrowEffectsTest, TheElfShootsAMonsterAndAPlayer)
 {
     const int fireDraws = FireDraws();
@@ -359,8 +359,9 @@ TEST(ArrowEffectsTest, TheElfShootsAMonsterAndAPlayer)
     }
 }
 
-// Sin blanco (+0x3a4 en −1), en Lorencia y en Devias: la flecha sale igual (0x50377d, con la bandera en 0) y, sin nadie
-// a 100, vuela sus 30 pasos con un rand() cada uno y se apaga por la vida. El héroe que tira no la frena.
+// Without a target (+0x3a4 at −1), in Lorencia and Devias: the arrow leaves the same way (0x50377d, with the flag at 0)
+// and, with nobody within 100, flies its 30 steps with one rand() each and dies of life. The shooting hero does not
+// stop it.
 
 TEST(ArrowEffectsTest, WithoutATargetTheArrowFliesItsLife)
 {
@@ -378,7 +379,7 @@ TEST(ArrowEffectsTest, WithoutATargetTheArrowFliesItsLife)
             ASSERT_TRUE(struck.HasValue()) << struck.Error();
             EXPECT_EQ(hero.byte381, 0);
             EXPECT_TRUE(tested.sounds.empty());
-            // La cabeza, la lectura de 0x502b12 (la bandera), la flecha y la escritura de +0x38e.
+            // The head, the read of 0x502b12 (the flag), the arrow and the write of +0x38e.
             EXPECT_EQ(DrawsSince(Seed, tested.random),
                       CountingWithoutTarget + 2 * SkillRead + ShotReads + OwnRecord + ArrowCreation + SkillRead);
             const auto arrows = tested.Arrows();
@@ -395,8 +396,8 @@ TEST(ArrowEffectsTest, WithoutATargetTheArrowFliesItsLife)
     }
 }
 
-// Otro elfo, con el arco en su mano (+0x2d8 en 0xa12: sin el registro propio en 0x53d9a0), le tira al héroe: 0x517850
-// con la clase 0 no choca con el héroe, que está en el camino, y la flecha vuela sus 30 pasos.
+// Another elf, with the bow in hand (+0x2d8 at 0xa12: no own record at 0x53d9a0), shoots the hero: 0x517850 with class
+// 0 does not hit the hero, who is in the way, and the arrow flies its 30 steps.
 
 TEST(ArrowEffectsTest, AnotherElfsArrowPassesThroughTheHero)
 {
@@ -423,9 +424,9 @@ TEST(ArrowEffectsTest, AnotherElfsArrowPassesThroughTheHero)
     EXPECT_EQ(tested.StepUntilItDies(*arrows.front(), 40), 30);
 }
 
-// Los arcos y las ballestas montados tiran igual que a pie (CL9 hito 3, fase 2e, la segunda pieza): las ocho acciones
-// de tiro del 0x20a (a pie, con alas, 0x36/0x37, en Uniria o Dinorant la 0x5e y en Fenrir la 0x61), con y sin blanco,
-// en Lorencia, en Devias y en un mapa de cada montura (Atlans para Uniria, Icarus para Dinorant y Tarkan para Fenrir).
+// Mounted bows and crossbows shoot like on foot: the 0x20a's eight shooting actions (on foot, with wings, 0x36/0x37,
+// on Uniria or Dinorant 0x5e and on Fenrir 0x61), with and without a target, in Lorencia, Devias and one map per mount
+// (Atlans for Uniria, Icarus for Dinorant and Tarkan for Fenrir).
 
 TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
 {
@@ -475,12 +476,13 @@ TEST(ArrowEffectsTest, TheMountedBowsShootLikeOnFoot)
     }
 }
 
-// 0x5269ed..0x526a9a: el arma 4/6 tira la 0xe1, que en cada paso, después del rand() de la luz y de sus dos sprites,
-// saca cuatro veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) − 16) y la flor 0x608 + rand() % 3 de 1 con
-// sus ángulos y su luz (0x526a8b; la flor nace con cinco rand() más, 0x542c4b: vida rand() % 10 + 15, escala
-// ((rand() & 7) + 4) · 0,03f, luz 1 y la velocidad ((& 31) − 16; (& 31) − 16; (& 31) − 32) · 0,1f). Con la tabla de
-// partículas llena, los mismos rand() del punto y del tipo. El paso empieza con el CrtRandom en 0x1234; lo esperado
-// sale de arrowflowers.py (0x5269ed..0x526a9a y 0x542c4b en una x87 aparte), no de CreateChecked.
+// 0x5269ed..0x526a9a: weapon 4/6 shoots the 0xe1, which each step, after the light's rand() and its two sprites, draws
+// the random point four times ((& 31) − 16; (& 63) − 32; (& 31) − 16) and the flower 0x608 + rand() % 3 at scale 1
+// with its angles and light (0x526a8b; the flower is born with five more rand(), 0x542c4b: life rand() % 10 + 15,
+// scale ((rand() & 7) + 4) · 0.03f, light 1 and speed ((& 31) − 16; (& 31) − 16; (& 31) − 32) · 0.1f). With the
+// particle table full, the same rand() for the point and the type. The step starts with the CrtRandom at 0x1234; the
+// expected values come from arrowflowers.py (0x5269ed..0x526a9a and 0x542c4b in a separate x87), not from
+// CreateChecked.
 TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
 {
     struct Flower
@@ -522,7 +524,7 @@ TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
         EXPECT_EQ(arrow.transform.angles.y, 45.0f);
         if (full)
         {
-            // La luz y los cuatro del punto y del tipo de cada flor: 17.
+            // The light, plus the four of each flower's point and type: 17.
             EXPECT_EQ(tested.random.State(), 0x0e390577u);
             EXPECT_TRUE(std::ranges::none_of(tested.particles.All(), [](const Client::Particles::Particle& particle)
                                              { return particle.type >= 0x608 && particle.type <= 0x60a; }));
@@ -550,10 +552,10 @@ TEST(ArrowEffectsTest, TheNatureArrowScattersFourFlowers)
     }
 }
 
-// 0x51c542..0x51c56c y 0x51c6dd..0x51c713: el arma 4/21 tira la 0xf9, que nace con el joint 0x610/0xe (ancho 50, key
-// 40) y el 4/20 la 0x11c, que después de su rand() % 360 nace con el 0x610/0xc (ancho 40, key 80); los dos con la
-// flecha de dueño y nacidos en su posición con sus ángulos (0x531fa3..0x53200e: la key es la vida, 16 puntos y
-// velocidad 70; la luz y la mezcla, las de su subtipo). Ninguno saca rand(): el tiro sigue como el de las otras.
+// 0x51c542..0x51c56c and 0x51c6dd..0x51c713: weapon 4/21 shoots the 0xf9, born with joint 0x610/0xe (width 50, key
+// 40), and 4/20 the 0x11c, which after its rand() % 360 is born with the 0x610/0xc (width 40, key 80); both owned by
+// the arrow and born at its position with its angles (0x531fa3..0x53200e: the key is the life, 16 points and speed 70;
+// the light and the blend, those of its subtype). Neither draws rand(): the shot goes on like the others'.
 TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
 {
     struct Case
@@ -616,8 +618,8 @@ TEST(ArrowEffectsTest, TheViperAndTheTwentiethArrowsAreBornWithTheirTrail)
     }
 }
 
-// 0x51c6dd..0x51c713: el alta de la 0x11c pone +0x64 en 1 y la y de los ángulos en rand() % 360 antes de soltar su
-// 0x610/0xc en el primer lugar libre, que nace con esos ángulos; después, el registro propio.
+// 0x51c6dd..0x51c713: the 0x11c's creation sets +0x64 to 1 and the angles' y to rand() % 360 before releasing its
+// 0x610/0xc into the first free slot, born with those angles; then the own record.
 TEST(ArrowEffectsTest, TheTwentiethArrowTurnsAtRandomBeforeItsTrail)
 {
     ArrowWorld tested(0);
@@ -639,9 +641,9 @@ TEST(ArrowEffectsTest, TheTwentiethArrowTurnsAtRandomBeforeItsTrail)
     EXPECT_FALSE(joints[1].alive);
 }
 
-// 0x526b06..0x526bcb: con la vida par, la 0x11c saca tres veces el punto al azar ((& 31) − 16; (& 63) − 32; (& 31) −
-// 16) y deja la 0x60f/5 de escala 0,2f con sus ángulos (ya girados 60) y la luz (0,4f; 0,2f; 1); con la vida impar,
-// nada. Cada una se repite en un pool gemelo con el mismo CrtRandom.
+// 0x526b06..0x526bcb: with an even life, the 0x11c draws the random point three times ((& 31) − 16; (& 63) − 32; (&
+// 31) − 16) and leaves the 0x60f/5 with scale 0.2f, its angles (already turned 60) and the light (0.4f; 0.2f; 1); with
+// an odd life, nothing. Each is repeated in a twin pool with the same CrtRandom.
 TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
 {
     for (const std::int32_t life : {20, 21})
@@ -688,7 +690,7 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
             EXPECT_EQ(shine.life, reference.life);
             EXPECT_EQ(shine.rotation, reference.rotation);
             EXPECT_EQ(shine.velocity, reference.velocity);
-            EXPECT_EQ(shine.owner, 0u); // sin dueño: el último argumento de 0x53fe70 (0x526b72)
+            EXPECT_EQ(shine.owner, 0u); // no owner: 0x53fe70's last argument (0x526b72)
         }
         EXPECT_FALSE(tested.particles.All()[shines].alive);
         EXPECT_EQ(arrow.transform.angles.y, 75.0f);
@@ -696,9 +698,9 @@ TEST(ArrowEffectsTest, TheTwentiethArrowLeavesThreeShinesOnEvenLives)
     }
 }
 
-// 0x524300..0x52434e (la 0xe2, 4/14) y 0x526cd0..0x526d5f (la 0xe3, 4/13): después del rand() de la luz, cuatro
-// veces el punto al azar (tres rand()) y la burbuja 0x607/1 de 1 con los ángulos de la flecha (la luz 1 de su alta,
-// 0x542d96, y dos rand()). La 0xe3 sigue con su humo 0x5f2/0 en la posición de la flecha.
+// 0x524300..0x52434e (the 0xe2, 4/14) and 0x526cd0..0x526d5f (the 0xe3, 4/13): after the light's rand(), the random
+// point four times (three rand()) and the 0x607/1 bubble at scale 1 with the arrow's angles (light 1 from its
+// creation, 0x542d96, and two rand()). The 0xe3 goes on with its 0x5f2/0 smoke at the arrow's position.
 TEST(ArrowEffectsTest, TheWaterArrowsLeaveFourBubbles)
 {
     for (const Weapon& weapon : {Weapon{"4/14", 0x80e, 0xffff, 0x2e, 0xe2}, Weapon{"4/13", 0x80d, 0xffff, 0x2e, 0xe3}})
@@ -760,17 +762,18 @@ TEST(ArrowEffectsTest, TheWaterArrowsLeaveFourBubbles)
     }
 }
 
-// La caída de la flecha 0xe2 (4/14, 0x52435d..0x52443f), con el pool de partículas lleno para que sus burbujas 0x607/1
-// (CL11) no se creen: el paso saca el rand() de la luz y los tres del punto de cada una de las cuatro burbujas. La z
-// suma +0xe4 (−10 en el alta) y +0xe4 pierde 1; con el terreno (0x5f93c0) por encima de la z, la z al terreno, +0xe4
-// por −0,4f y la y de la velocidad por 0,4f; con el terreno igual a la z no rebota. En la última vida suelta las
-// chispas de 0x51fe10 (40 rand() con el pool lleno) y, con el héroe de dueño y sin el subtipo 0x63, corta en 0x517a20
-// (0x524405, hito 4); sin la altura del terreno corta en 0x524382. En Lorencia, en Devias y en Icarus (10).
+// The fall of arrow 0xe2 (4/14, 0x52435d..0x52443f), with the particle pool full so that its 0x607/1 bubbles (CL11)
+// are not created: the step draws the light's rand() and the point's three for each of the four bubbles. z adds +0xe4
+// (−10 at creation) and +0xe4 loses 1; with the terrain (0x5f93c0) above z, z goes to the terrain, +0xe4 times −0.4f
+// and the speed's y times 0.4f; with the terrain equal to z it does not bounce. On the last life it releases
+// 0x51fe10's sparks (40 rand() with the pool full) and, with the hero as owner and without subtype 0x63, it stops at
+// 0x517a20 (0x524405, milestone 4); without the terrain height it stops at 0x524382. In Lorencia, Devias and Icarus
+// (10).
 
-// 0x51a173, 0x51a24a y 0x51bf35: la flecha de la 4/16, la 4/18 y la 4/19 deja un 0x618/5 con ella de dueño, desde su
-// posición (la z + 130, que también queda en su +0x40), con sus ángulos y ancho 100, sin rand(): velocidad 0, vida
-// 999.999.999, 10 puntos y la luz (0,5; 0,1; 1) (0x532238..0x53230e). En el paso sigue el +0x40 de la flecha y, con
-// la flecha apagada, se apaga sin la cola ni la vida (0x53820e).
+// 0x51a173, 0x51a24a and 0x51bf35: the arrow of 4/16, 4/18 and 4/19 leaves a 0x618/5 owned by it, from its position (z
+// + 130, also kept in its +0x40), with its angles and width 100, no rand(): speed 0, life 999999999, 10 points and
+// light (0.5; 0.1; 1) (0x532238..0x53230e). In the step it follows the arrow's +0x40 and, with the arrow dead, dies
+// without the tail or the life (0x53820e).
 TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
 {
     for (const auto& [name, right] : {std::pair{"4/16", std::uint16_t{0x810}}, std::pair{"4/18", std::uint16_t{0x812}},
@@ -816,9 +819,9 @@ TEST(ArrowEffectsTest, TheAdvancedArrowsLeaveTheirBeam)
     }
 }
 
-// 0x51a3d0..0x51a417: la flecha 0xf8 de la 4/17 deja cuatro 0x60f/0xb con ella de dueño, desde su partida (+0x17c),
-// con los ángulos (0, 0, z), ancho 50 de pedido (el alta pone 30) y el skill 1 en el segundo; cada uno saca su
-// rand() % 3000 (vx). Con el pool lleno, ninguno y sin rand().
+// 0x51a3d0..0x51a417: arrow 0xf8 of 4/17 leaves four 0x60f/0xb owned by it, from its start (+0x17c), with angles (0,
+// 0, z), width 50 requested (the creation sets 30) and skill 1 in the second; each draws its rand() % 3000 (vx). With
+// the pool full, none and no rand().
 TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
 {
     const Weapon weapon{"4/17", 0xffff, 0x811, 0x2e, 0};
@@ -858,8 +861,8 @@ TEST(ArrowEffectsTest, TheCelestialArrowLeavesFourWanderingJoints)
     }
     EXPECT_FALSE(joints[4].alive);
 
-    // El alta sola (0x51a2bd..0x51a417, sin el ataque): los cuatro rand() % 3000 de vx (0x533c06), en orden, antes de
-    // los de 0x51a1b0.
+    // The creation alone (0x51a2bd..0x51a417, without the attack): the four rand() % 3000 of vx (0x533c06), in order,
+    // before those of 0x51a1b0.
     auto alone = std::make_unique<ArrowWorld>(0);
     glm::vec3 angles{15.0f, 25.0f, 35.0f};
     const Client::Kernel::ModelEffectArguments args{
@@ -910,13 +913,12 @@ TEST(ArrowEffectsTest, TheArrowRainCountsTheVolley)
     }
 }
 
-// La skill 0x2e (0x53df2a), con blanco y sin él, en Lorencia, en Devias y en Icarus (10): no sale flecha sino el efecto
-// 0x13a con el blanco de dueño, +0x8a del que tira, el lugar y la bandera; vida 20, escala 1,8f, +0x64 en −2, la
-// velocidad (0; −30; 0), la luz (0,3f; 0,8f; 1), la boca (−10; −80; 200) girada y la x de los ángulos en −30. Después,
-// su joint 0x632/4 (0x51e01a: la posición y los ángulos del 0x13a, el efecto de dueño, ancho 40, clave 0x32, sin
-// rand()), la cuenta de la tanda en +0x8c (0x51e01f, con el registro propio) y, de vuelta en 0x53e75b, la tanda uno
-// más. Con blanco, el paso tira dos veces (0x504060 y el caso 0x2e de 0x504453, con el sonido 0x26e): dos 0x13a, cada
-// uno con su joint.
+// Skill 0x2e (0x53df2a), with and without a target, in Lorencia, Devias and Icarus (10): no arrow comes out, but effect
+// 0x13a owned by the target, with the shooter's +0x8a, the slot and the flag; life 20, scale 1.8f, +0x64 at −2, speed
+// (0; −30; 0), light (0.3f; 0.8f; 1), the mouth (−10; −80; 200) rotated and the angles' x at −30. Then its joint
+// 0x632/4 (0x51e01a: the 0x13a's position and angles, owned by the effect, width 40, key 0x32, no rand()), the batch
+// count in +0x8c (0x51e01f, with the own record) and, back at 0x53e75b, the batch plus one. With a target, the step
+// shoots twice (0x504060 and case 0x2e of 0x504453, with sound 0x26e): two 0x13a, each with its joint.
 
 TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
 {
@@ -934,7 +936,7 @@ TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
             const auto struck = StepTheAttack(hero, HeroSlot, tested.Context());
 
             ASSERT_TRUE(struck.HasValue()) << ErrorOf(struck);
-            // Cada tiro: las lecturas, el registro propio de 0x53d9a0, el de la cuenta del 0x13a y el de la tanda.
+            // Each shot: the reads, 0x53d9a0's own record, the 0x13a count's and the batch's.
             constexpr int BlastShot = ShotReads + OwnRecord + OwnRecord + OwnRecord;
             const int draws = withTarget ? CountingWithTarget + SkillRead + 2 * BlastShot + AfterTheArrow
                                          : CountingWithoutTarget + 2 * SkillRead + BlastShot + SkillRead;
@@ -943,7 +945,7 @@ TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
             EXPECT_EQ(tested.world.OwnCharacter().bytef04, static_cast<std::uint8_t>(9 + shots));
             EXPECT_EQ(tested.world.Runtime().lastShotSkill, 0x2eu);
             EXPECT_TRUE(tested.Arrows().empty());
-            // Con blanco, el 0x26e del caso 0x2e (0x5044ad) y el de pegar (0x505224, 0x46 más rand() & 3).
+            // With a target, the 0x26e of case 0x2e (0x5044ad) and the hit's (0x505224, 0x46 plus rand() & 3).
             ASSERT_EQ(tested.sounds.size(), withTarget ? 2u : 0u);
             if (withTarget)
             {
@@ -992,10 +994,10 @@ TEST(ArrowEffectsTest, TheBlastSkillLeavesItsEffectAndItsJoint)
     }
 }
 
-// La skill 0x18 sin blanco (la bandera en 1, 0x53e2e0), en Lorencia y en Devias: tres flechas con +0x24 en a, a + 15 y
-// a − 15, que vuelve a a; con 0xa24 o 0xa25 en +0x2b8, cuatro en a + 5, a + 15, a − 5 y a − 15, y +0x24 queda en a + 15
-// (Q-C1218). Cada tiro con el registro propio de 0x53d9a0 y el de la salida del alta, las flechas con +0x88 en 1, y la
-// cuenta de la tanda; con la 0xa25, sigue el brillo de H3 (0x53e642).
+// Skill 0x18 without a target (the flag at 1, 0x53e2e0), in Lorencia and Devias: three arrows with +0x24 at a, a + 15
+// and a − 15, which returns to a; with 0xa24 or 0xa25 in +0x2b8, four at a + 5, a + 15, a − 5 and a − 15, and +0x24
+// stays at a + 15 (Q-C1218). Each shot with 0x53d9a0's own record and the creation exit's, the arrows with +0x88 at 1,
+// and the batch count; with 0xa25, H3's shine follows (0x53e642).
 
 TEST(ArrowEffectsTest, TheFlaggedShotFansTheArrows)
 {
@@ -1028,8 +1030,8 @@ TEST(ArrowEffectsTest, TheFlaggedShotFansTheArrows)
             const int expected = CountingWithoutTarget + 2 * SkillRead + ShotReads +
                                  shots * (OwnRecord + ArrowCreation) + OwnRecord + SkillRead +
                                  (probe.shines ? 15 * (2 + 5) : 0);
-            // El fixture no ofrece joints: los quince intentos del brillo conservan los dos rand() del caller y
-            // los cinco de cada partícula; la prueba de capacidad inferior cubre también los joints disponibles.
+            // The fixture offers no joints: the shine's fifteen attempts keep the caller's two rand() and each
+            // particle's five; the capacity test below also covers available joints.
             EXPECT_TRUE(struck.HasValue()) << ErrorOf(struck);
             EXPECT_EQ(DrawsSince(Seed, tested.random), expected);
             EXPECT_EQ(hero.angles.z, probe.lastYaw);
@@ -1050,10 +1052,10 @@ TEST(ArrowEffectsTest, TheFlaggedShotFansTheArrows)
     }
 }
 
-// La flecha de la bandera choca por 0x5201ed, en Lorencia y en Devias, con la ballesta (la 0xdc, que solo choca): con
-// un rand() par, el dueño héroe y la skill 0x18 del lugar, 0x517a20 manda el C1 10 con el monstruo a 40 de la flecha
-// (la celda 9; 9, la tanda +0x8c y su clave) y la flecha se apaga con el sonido rand() % 4 + 0x4b (CL10). Con un rand()
-// impar, o con otro dueño, no hace nada más y la flecha sigue.
+// The flag's arrow hits through 0x5201ed, in Lorencia and Devias, with the crossbow (0xdc, which only hits): with an
+// even rand(), the hero as owner and the slot's skill 0x18, 0x517a20 sends C1 10 with the monster within 40 of the
+// arrow (cell 9; 9, batch +0x8c and its key) and the arrow dies with sound rand() % 4 + 0x4b (CL10). With an odd
+// rand(), or another owner, nothing else happens and the arrow goes on.
 
 TEST(ArrowEffectsTest, TheFlaggedArrowSendsTheHits)
 {
@@ -1107,8 +1109,8 @@ TEST(ArrowEffectsTest, TheFlaggedArrowSendsTheHits)
     }
 }
 
-// 0x53e2b0 con la skill 0x34: dispara 0xdb/2, crea su estela 0x105/0 y conserva la tanda de cuatro
-// intentos de joint 0x610/0..3 y el sonido 0x7a con cualquier capacidad (0x51a08a..0x51a101).
+// 0x53e2b0 with skill 0x34: fires 0xdb/2, creates its 0x105/0 trail and keeps the batch of four 0x610/0..3 joint
+// attempts and sound 0x7a at any capacity (0x51a08a..0x51a101).
 
 TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
 {
@@ -1172,8 +1174,8 @@ TEST(ArrowEffectsTest, ThePiercingShotLeavesItsTrail)
         }
 }
 
-// 0x52055f: la flecha 0x34 choca con el monstruo, manda C1 10 e intenta 0x60f/6.
-// La pausa de dos pasos y el impacto son los mismos con la estela activa o sin hueco para crearla.
+// 0x52055f: arrow 0x34 hits the monster, sends C1 10 and tries 0x60f/6. The two-step pause and the impact are the same
+// with the trail active or without a slot to create it.
 
 TEST(ArrowEffectsTest, ThePiercingArrowHitsAndWaitsWithOrWithoutATrailSlot)
 {
@@ -1314,9 +1316,9 @@ TEST(ArrowEffectsTest, BothPiercingImpactSitesUseTheFirstFreeJointAndSkipBirthRa
     }
 }
 
-// La flecha 0xdb con el subtipo 3 o 4 (la de los objetos del asedio, CL9.5), por 0x518cf0 directo, en Lorencia, en
-// Devias y en el 30: vida 40, escala 1,5, +0xe4 de (rand() % 100 + 50) · 0x3d888889, la partida en el héroe y la
-// velocidad y la x de los ángulos de sus rand() (dos con el 3, uno con el 4), y la salida del alta.
+// Arrow 0xdb with subtype 3 or 4 (the siege objects', CL9.5), through 0x518cf0 directly, in Lorencia, Devias and map
+// 30: life 40, scale 1.5, +0xe4 of (rand() % 100 + 50) · 0x3d888889, the start at the hero and the speed and the
+// angles' x from its rand() (two with 3, one with 4), and the creation's exit.
 
 TEST(ArrowEffectsTest, TheSiegeArrowsAreBornFromTheirRandoms)
 {
@@ -1357,10 +1359,10 @@ TEST(ArrowEffectsTest, TheSiegeArrowsAreBornFromTheirRandoms)
     }
 }
 
-// El paso de la flecha 0xdb/3 y /4 (0x52413a), en Lorencia, en Devias y en el 30: con el 3, +0xe4 se suma a la x de los
-// ángulos, que queda en 50 como mucho; con la celda sin el 0x08, el terreno más alto que la z la deja en la altura + 10
-// y frena la flecha (más bajo, nada; con el 0x08, no se pide la altura). El fuego 0x5d9/5 nace antes de la cola
-// común: tres rand() además del de la luz, sin choque. Después la flecha se mueve y pierde una vida (0x52cb98).
+// The step of arrow 0xdb/3 and /4 (0x52413a), in Lorencia, Devias and map 30: with 3, +0xe4 is added to the angles' x,
+// capped at 50; with the cell without 0x08, terrain higher than z sets it to the height + 10 and stops the arrow
+// (lower, nothing; with 0x08, the height is not asked). The 0x5d9/5 fire is born before the common tail: three rand()
+// besides the light's, no hit. Then the arrow moves and loses a life (0x52cb98).
 
 TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
 {
@@ -1402,7 +1404,7 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
             arrow.transform.angles.x = probe.subtype == 3 ? 48.0f : 60.0f;
             arrow.turnDirection = 5.0f;
             const glm::vec3 velocity = arrow.velocity;
-            // CRT1: luz41, velocidad18467, escala6334 y giro26500, en ese orden.
+            // CRT 1: light 41, speed 18467, scale 6334 and turn 26500, in that order.
             tested.random = CrtRandom(1);
             const CrtRandom before = tested.random;
 
@@ -1440,8 +1442,8 @@ TEST(ArrowEffectsTest, TheSiegeArrowsFallOnTheGround)
     }
 }
 
-// E1/1 de Crywolf:610/13 al nacer ydos60f/5 en las vidas pares mayores25, con CRT intercalado.
-// También conserva el recorrido de la fortaleza, que usa el mismo constructor.
+// Crywolf's 0xe1/1: 0x610/13 at birth and two 0x60f/5 on even lives above 25, with the CRT interleaved. It also keeps
+// the fortress path, which uses the same constructor.
 
 TEST(ArrowEffectsTest, TheFortressArrowSparklesOnEvenLives)
 {
@@ -1505,9 +1507,9 @@ TEST(ArrowEffectsTest, TheCrywolfArrowKeepsCallerDrawsWhenParticleCapacityIsPart
     }
 }
 
-// El choque lee la skill del lugar +0x89 en el registro propio (0x5205cd..0x5207d1): con la 0x33 la flecha 0xdb se
-// apaga sin más; con la 0x34 se apaga y 0x51fe10 suelta sus chispas 0x5c5/2, que cortan en 0x51fe9e (CL11) después de
-// los dos rand() de la primera. En Lorencia y en Devias, con el blanco a 50.
+// The hit reads the skill of slot +0x89 in the own record (0x5205cd..0x5207d1): with 0x33 arrow 0xdb just dies; with
+// 0x34 it dies and 0x51fe10 releases its 0x5c5/2 sparks, which stop at 0x51fe9e (CL11) after the first one's two
+// rand(). In Lorencia and Devias, with the target at 50.
 
 TEST(ArrowEffectsTest, TheSkillOfThePlaceDecidesTheHit)
 {
@@ -1578,10 +1580,10 @@ TEST(ArrowEffectsTest, TheFifthSubtypeBurnsBlue)
     }
 }
 
-// Los misiles de los monstruos (0x5037d0 sin blanco y 0x5040a9 con blanco, este sin el 0x180): 0x53e2b0(c, o, 0, 0, 0,
-// 0) va a 0x53d9a0 con las manos de +0x2b8/+0x2d8, sin el registro propio; con el arco 0xa12 en la izquierda sale la
-// 0xdb del monstruo, con los 3.848 rand() de la salida del alta como única diferencia con las manos vacías. En
-// Lorencia y en Devias.
+// Monster missiles (0x5037d0 without a target and 0x5040a9 with one, the latter without the 0x180): 0x53e2b0(c, o, 0,
+// 0, 0, 0) goes to 0x53d9a0 with the hands of +0x2b8/+0x2d8, without the own record; with bow 0xa12 in the left, the
+// monster's 0xdb comes out, with the creation exit's 3848 rand() as the only difference from empty hands. In Lorencia
+// and Devias.
 
 TEST(ArrowEffectsTest, TheMonsterMissilesShootWithTheirHands)
 {
@@ -1630,7 +1632,7 @@ TEST(ArrowEffectsTest, TheMonsterMissilesShootWithTheirHands)
     }
 }
 
-// 0x53e642: pose propia retenida y escala/origen compartidos; los sorteos de los pools van intercalados.
+// 0x53e642: own retained pose and shared scale/origin; the pools' draws are interleaved.
 
 TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
 {
@@ -1704,14 +1706,14 @@ TEST(ArrowEffectsTest, TheAquagoldArrowFallsAndBounces)
     }
 }
 
-// Las skills de tiro (0x34, 0x33 y 0x2e) van a 0x53e741: el tiro de 0x53d9a0 (el registro propio del héroe, la skill en
-// [0x5767948], el sonido 0x82 de la 0x33 y una flecha con su alta, que abre y cierra el registro propio otra vez) y
-// cortan en el registro propio de 0x53e75b (hito 4); la 0x2e (el efecto 0x13a de 0x53df2a) está en
-// TheBlastSkillLeavesItsEffectAndItsJoint, y la 0x34 no llega: corta en 0x4f9899. La bandera de la 0x18 sin blanco tira
-// el abanico de 0x53e2e0: tres flechas con la z de los ángulos del héroe en 0, 15 y −15, que vuelve a 0, y corta en
-// 0x53e365; con la 0xa24 o la 0xa25 en +0x2b8, cuatro en 5, 15, −5 y −15, que queda en 15 (Q-C1181), y corta en
-// 0x53e4dd. Cada tiro saca los 3.848 rand() del registro propio de 0x53d9a0 y otros tantos en la salida del alta. El
-// brillo 0x53e642 de la 0xa25 se cubre con el cuerpo, los pools y el RNG intercalado abajo. En Lorencia, en Devias y en
+// The shooting skills (0x34, 0x33 and 0x2e) go to 0x53e741: 0x53d9a0's shot (the hero's own record, the skill in
+// [0x5767948], the 0x33's sound 0x82 and an arrow with its creation, which opens and closes the own record again) and
+// stop at 0x53e75b's own record (milestone 4); the 0x2e (0x53df2a's effect 0x13a) is in
+// TheBlastSkillLeavesItsEffectAndItsJoint, and the 0x34 does not get there: it stops at 0x4f9899. The flag of 0x18
+// without a target fires 0x53e2e0's fan: three arrows with the hero's angles' z at 0, 15 and −15, which returns to 0,
+// and stops at 0x53e365; with 0xa24 or 0xa25 in +0x2b8, four at 5, 15, −5 and −15, which stays at 15 (Q-C1181), and
+// stops at 0x53e4dd. Each shot draws the 3848 rand() of 0x53d9a0's own record and as many at the creation's exit. The
+// 0xa25's shine 0x53e642 is covered with the body, the pools and the interleaved RNG below. In Lorencia, Devias and
 // Icarus (10).
 
 TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
@@ -1726,8 +1728,8 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
         std::vector<float> yaws;
         float yawAfter;
     };
-    // Antes de la flecha: con blanco, la cabeza, la lectura de la habilidad y los dos de 0x59fb80; sin blanco, la
-    // cabeza, la lectura de 0x502b12 (la bandera) y los mismos.
+    // Before the arrow: with a target, the head, the skill read and the two of 0x59fb80; without one, the head, the
+    // read of 0x502b12 (the flag) and the same.
     const int withTarget = CountingWithTarget + SkillRead + ShotReads;
     const int withoutTarget = CountingWithoutTarget + 2 * SkillRead + ShotReads;
     const std::array cases{
@@ -1776,8 +1778,8 @@ TEST(ArrowEffectsTest, TheSkillShotsAndTheFanContinueAfterShooting)
     }
 }
 
-// El abanico de la 0x18 con la z de los ángulos del héroe en 100,3f: cada corrimiento se suma en la x87 y se guarda en
-// float (0x53e31b..0x53e362), así que la z de cada flecha es la suma redondeada a float de la anterior.
+// The 0x18's fan with the hero's angles' z at 100.3f: each shift is added in the x87 and stored as float
+// (0x53e31b..0x53e362), so each arrow's z is the previous one's sum rounded to float.
 
 TEST(ArrowEffectsTest, TheFanTurnsTheYawInFloatSteps)
 {
@@ -1801,9 +1803,9 @@ TEST(ArrowEffectsTest, TheFanTurnsTheYawInFloatSteps)
     EXPECT_EQ(hero.angles.z, step(third, 15.0));
 }
 
-// El choque lee la skill del lugar +0x89 en el registro propio (0x5205cd..0x5207d1): con la 0x33 la flecha 0xdb se
-// apaga sin más; con la 0x34 se apaga y 0x51fe10 suelta sus chispas 0x5c5/2, que cortan en 0x51fe9e (CL11) después de
-// los dos rand() de la primera. En Lorencia y en Devias, con el blanco a 50.
+// The hit reads the skill of slot +0x89 in the own record (0x5205cd..0x5207d1): with 0x33 arrow 0xdb just dies; with
+// 0x34 it dies and 0x51fe10 releases its 0x5c5/2 sparks, which stop at 0x51fe9e (CL11) after the first one's two
+// rand(). In Lorencia and Devias, with the target at 50.
 
 TEST(ArrowEffectsTest, MissingBurstParticlesKeepsItsTwoCallerDrawsBeforeTheDiagnostic)
 {
@@ -1826,8 +1828,8 @@ TEST(ArrowEffectsTest, MissingBurstParticlesKeepsItsTwoCallerDrawsBeforeTheDiagn
     EXPECT_EQ(DrawsSince(before.State(), tested.random), 1 + OwnRecord + 2);
 }
 
-// La flecha 0xdb con el subtipo 5 (la crea el hito 4) no corta en el paso: su fuego 0x5d9/0 lleva (luz · 0,1f;
-// luz · 0,6f; luz · 0,3f) en vez del color de la luz dinámica (0x5240be..0x5240fa).
+// Arrow 0xdb with subtype 5 (created by milestone 4) does not stop in the step: its 0x5d9/0 fire carries (light · 0.1f;
+// light · 0.6f; light · 0.3f) instead of the dynamic light's color (0x5240be..0x5240fa).
 
 TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCapacity)
 {
@@ -1846,7 +1848,7 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
             actor.bodyPose.resize(1, Client::Math::BoneTransform(1.0f));
             actor.bodyPose[0][3] = {3.0f, 4.0f, 5.0f};
             tested->world.PlayerModel() = {.scale = 2.0f, .origin = {100.0f, 200.0f, 300.0f}};
-            // El tiro sigue al brillo aunque no encuentre lugar para la flecha 0x111.
+            // The shot goes on after the shine even without a slot for arrow 0x111.
             for (ModelEffect& effect : tested->world.Map().effects.Effects())
                 effect.alive = true;
             if (particlesFull)
@@ -1905,8 +1907,8 @@ TEST(ArrowEffectsTest, TheReignHandShineUsesTheSharedPlacementAndRespectsPoolCap
     }
 }
 
-// 0x517850 recorre los lugares 0..399: incluye al 399 y deja afuera al registro fantasma 400. En el plano, el borde
-// de 100 cuenta; nextafter fuera no, y el unordered de la comparación nativa cuenta.
+// 0x517850 walks slots 0..399: it includes 399 and leaves out the ghost record 400. On the plane, the 100 border
+// counts; nextafter outside does not, and the native comparison's unordered counts.
 
 TEST(ArrowEffectsTest, ArrowHitSearchUsesTheNativePoolBoundAndDistancePredicate)
 {
@@ -1967,7 +1969,7 @@ TEST(ArrowEffectsTest, ArrowHitSearchUsesTheNativePoolBoundAndDistancePredicate)
         EXPECT_EQ(!arrow.alive, test.expectedHit);
     }
 }
-// 524405: el envío terminal sucede antes de la luz/choque, aun cuando las partículas no tengan hueco.
+// 0x524405: the final send happens before the light/hit, even when the particles have no slot.
 TEST(ArrowEffectsTest, TheLastAquagoldStepSendsTheNearbySkillHits)
 {
     ArrowWorld tested(0);
@@ -2045,15 +2047,14 @@ TEST(ArrowEffectsTest, FullPoolsPreserveTheNewlyReachableArrowSteps)
         const auto stepped = StepArrow(arrow, nullptr, tested.StepContext());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_EQ(arrow.life, 19);
-        // 0x52ccbe: la 0xf8 no se mueve; la velocidad corre su partida.
+        // 0x52ccbe: the 0xf8 does not move; the speed moves its start.
         EXPECT_EQ(arrow.transform.position.y, type == 0xf8 ? 1000.0f : 930.0f);
         EXPECT_EQ(DrawsSince(Seed, tested.random), type == 0x10e ? 2 : type == 0x11c ? 10 : 1);
     }
 }
 
-// 0x52594c..0x5259a4: después del rand() de la luz (0x5208c5), el paso de la flecha 0x111 gira la y +30 y suelta tres
-// humos 0x5f2/13 en su posición, con esos ángulos, la luz 1 (0x520921) y escala 1, tres rand() cada uno; después se
-// mueve.
+// 0x52594c..0x5259a4: after the light's rand() (0x5208c5), the step of arrow 0x111 turns y by +30 and releases three
+// 0x5f2/13 smokes at its position, with those angles, light 1 (0x520921) and scale 1, three rand() each; then it moves.
 TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
 {
     ArrowWorld tested(0);
@@ -2097,8 +2098,8 @@ TEST(ArrowEffectsTest, TheReignArrowLeavesThreeEmbers)
     EXPECT_EQ(arrow.transform.position.y, 930.0f);
 }
 
-// 0x51a347..0x51a3b7: la 0xf8/1 escribe los ángulos del caller (0, 0, z) antes de sus tres joints 0x60f/0x19 (alta
-// 0x533db8, un rand() % 3000 cada uno, con la flecha de dueño) y sigue a 0x51a1b0; con la tabla llena, no hay joints.
+// 0x51a347..0x51a3b7: the 0xf8/1 writes the caller's angles (0, 0, z) before its three 0x60f/0x19 joints (creation
+// 0x533db8, one rand() % 3000 each, owned by the arrow) and goes on to 0x51a1b0; with the table full, no joints.
 TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
 {
     for (const bool full : {false, true})
@@ -2147,8 +2148,8 @@ TEST(ArrowEffectsTest, CelestialWritesTheCallerAnglesBeforeItsJoints)
     }
 }
 
-// 0x526c05: con las partículas llenas, la flecha 0x11c deja la onda 0x114/3 (0x51c31f) con la clave en 0, sin rand(),
-// y sigue con su luz y su choque.
+// 0x526c05: with the particles full, arrow 0x11c leaves the 0x114/3 wave (0x51c31f) with the key at 0, no rand(), and
+// goes on with its light and its hit.
 TEST(ArrowEffectsTest, TheTwentiethArrowLeavesTheThirdWave)
 {
     ArrowWorld tested(0);
@@ -2200,8 +2201,8 @@ TEST(ArrowEffectsTest, TheLastFreeEffectSlotStillFinishesAnArrowWithFullJoints)
     EXPECT_EQ(DrawsSince(Seed, tested.random), OwnRecord);
 }
 
-// 0x4039a0 usa 0xed/1, el mismo prefijo de las flechas pero con pitch−90, vy−42 y vz4; el paso0x524210 ilumina de
-// rojo y continúa por 0x52cb98 sin el choque de 0x520170.
+// 0x4039a0 uses 0xed/1, the arrows' prefix but with pitch −90, vy −42 and vz 4; step 0x524210 lights red and goes on
+// through 0x52cb98 without 0x520170's hit.
 TEST(ArrowEffectsTest, TheTourProjectileCreatesAndStepsWithoutAttackingActors)
 {
     for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}})
@@ -2263,9 +2264,9 @@ TEST(ArrowEffectsTest, Attribute100StopsTheArrowAndHalvesLifeBeforeTheCommonEpil
     EXPECT_EQ(DrawsSince(Seed, tested.random), 1);
 }
 
-// 0x523f33..0x523f72: la 0xf8/1 gira 60 su y y, en la vida 13, crea el pulso 0x105/3 con ella de dueño (0x51a01b: la
-// escala 10 y la luz (0,9; 0,4; 0,6) para sus cuatro joints 0x610 con el noveno argumento en 3, el sonido 0x7a y la
-// escala en 1); la cola (0x52ccbe) corre la partida y no la posición. Con la tabla llena, ni el pulso ni el sonido.
+// 0x523f33..0x523f72: the 0xf8/1 turns its y by 60 and, at life 13, creates the 0x105/3 pulse owned by it (0x51a01b:
+// scale 10 and light (0.9; 0.4; 0.6) for its four 0x610 joints with the ninth argument at 3, sound 0x7a and scale at
+// 1); the tail (0x52ccbe) moves the start and not the position. With the table full, neither the pulse nor the sound.
 TEST(ArrowEffectsTest, CelestialPulseAtLifeThirteenCreatesTheTrailPulseAndMovesOnlyTheStart)
 {
     for (const bool full : {false, true})
@@ -2325,8 +2326,8 @@ TEST(ArrowEffectsTest, CelestialPulseAtLifeThirteenCreatesTheTrailPulseAndMovesO
     }
 }
 
-// Con los joints llenos, la 0xf8/1 nace sin cortar: no se mueve, su partida avanza 60 por paso y en la vida 13 suelta
-// el pulso 0x105/3 en su posición, hasta que se le acaban los 30 pasos.
+// With the joints full, the 0xf8/1 is born without stopping: it does not move, its start advances 60 per step and at
+// life 13 it releases the 0x105/3 pulse at its position, until its 30 steps run out.
 TEST(ArrowEffectsTest, CelestialArrowStaysPutWhileItsStartTravelsForThirtySteps)
 {
     ArrowWorld tested(34);

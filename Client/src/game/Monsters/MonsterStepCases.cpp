@@ -34,13 +34,13 @@ constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 using Math::D;
 using Math::F32;
 
-// El dec de 32 bits, que da la vuelta en el mínimo.
+// The 32-bit dec, which wraps at the minimum.
 std::int32_t Decremented(std::int32_t value)
 {
     return static_cast<std::int32_t>(static_cast<std::uint32_t>(value) - 1u);
 }
 
-// 0x42db4b..0x42dc28: las puertas 286 y 287.
+// 0x42db4b..0x42dc28: gates 286 and 287.
 Core::Expected<void, std::string> StepTheGate(Kernel::ActorState& actor, const CastleObjectStep& step)
 {
     Kernel::WorldRuntime& runtime = step.runtime;
@@ -100,13 +100,13 @@ Core::Expected<void, std::string> QueueTheGateName(const Kernel::ActorState& act
     const std::optional<std::string_view> format = texts->Text(LevelText);
     if (!format)
         return Core::Unexpected<std::string>("0x4fd63b: Text.bmd no tiene el texto 1176");
-    // 0x4fd625: el wsprintfA del nombre de +0x1d9, que sin 0 seguiría en +0x1f6 (Q-C847).
+    // 0x4fd625: the wsprintfA of the +0x1d9 name, which without a 0 would go on into +0x1f6 (Q-C847).
     const auto name = ActorCString(actor, 0x4fd625);
     if (!name.HasValue())
         return Core::Unexpected(name.Error());
     std::string text = Crt::Sprintf("%s .", std::string_view(name.Value()));
     text += Crt::Sprintf(*format, static_cast<std::uint32_t>(actor.level));
-    // 0x4fd5f3: los dos buffers de la pila son de 100 bytes (0xf8 − 0x94).
+    // 0x4fd5f3: the two stack buffers are 100 bytes (0xf8 − 0x94).
     constexpr std::size_t Buffer = 100;
     if (text.size() >= Buffer)
         return Core::Unexpected(std::format("0x4fd67c: el nombre del 0xc5 con su nivel ocupa {} bytes y se pasa del "
@@ -125,7 +125,7 @@ void StepTheFallingBall(Kernel::ActorState& actor, const std::function<double(fl
     constexpr float Damping = 0.8f; // 0x6b8a38
     actor.floatE4 = F32(D(actor.floatE4) - Gravity);
     const double ground = height(actor.position.x, actor.position.y) + Lift;
-    // 0x4fb950: fcom con la z guardada; con la altura por encima (ordenada), la z pasa a ella.
+    // 0x4fb950: fcom with the stored z; with the height above (ordered), z takes it.
     if (ground > D(actor.position.z))
     {
         actor.position.z = F32(ground);
@@ -154,12 +154,12 @@ bool PlayerNear(const Kernel::ActorState& object, std::span<const Kernel::ActorS
         switch (mode)
         {
         case 0:
-            // 0x42a05c..0x42a07c: C0 con NaN también.
+            // 0x42a05c..0x42a07c: C0 with NaN too.
             if (!(dx >= D(range)) && !(dy >= 100.0))
                 return true;
             break;
         case 1:
-            // 0x42a085..0x42a0b2: |dx| debajo de 1 (o NaN), dy mayor que 0 y debajo del rango.
+            // 0x42a085..0x42a0b2: |dx| below 1 or NaN.
             if (!(std::abs(dx) >= 1.0) && dy > 0.0 && !(dy >= D(range)))
                 return true;
             break;

@@ -18,14 +18,14 @@ namespace Client::Particles
 namespace
 {
 constexpr int FullTurn = Math::FullTurn;
-constexpr double Hundredth = Math::HundredthAsDouble;                              // 0x6b86c0, 0,01f
-constexpr double Tenth = Math::TenthAsDouble;                                      // 0x6b87b8 y 0x6b8a34, 0,1f
-constexpr double Fifth = Math::FifthAsDouble;                                      // 0x6b8854, 0,2f
-constexpr double Speedup = static_cast<double>(std::bit_cast<float>(0x3f866666u)); // 0x6ba3d4, 1,05f
+constexpr double Hundredth = Math::HundredthAsDouble;                              // 0x6b86c0, 0.01f
+constexpr double Tenth = Math::TenthAsDouble;                                      // 0x6b87b8 and 0x6b8a34, 0.1f
+constexpr double Fifth = Math::FifthAsDouble;                                      // 0x6b8854, 0.2f
+constexpr double Speedup = static_cast<double>(std::bit_cast<float>(0x3f866666u)); // 0x6ba3d4, 1.05f
 
 using Math::F32;
 
-// 0x540d1b..0x540d4f y 0x540d5c..0x540d90: vida, la velocidad (0; ((rand() & 7) + 32) · paso; 0).
+// 0x540d1b..0x540d4f and 0x540d5c..0x540d90: the life and the speed (0; ((rand() & 7) + 32) · step; 0).
 void Push(Particle& particle, Crt::CrtRandom& random, std::int32_t life, double step)
 {
     constexpr int PushMask = 7, PushBase = 32;
@@ -36,7 +36,7 @@ void Push(Particle& particle, Crt::CrtRandom& random, std::int32_t life, double 
     particle.velocity.y = F32(static_cast<double>(push) * step);
 }
 
-// 0x540dd6..0x540dfb, 0x540e7b..0x540ea5 y 0x540eea..0x540f0f: la subida (rand() % 100 · 0,01f) · 4 más `base`.
+// 0x540dd6..0x540dfb, 0x540e7b..0x540ea5 and 0x540eea..0x540f0f: the rise (rand() % 100 · 0.01f) · 4 plus `base`.
 double Lift(Crt::CrtRandom& random)
 {
     constexpr int LiftSpan = 100;
@@ -44,27 +44,27 @@ double Lift(Crt::CrtRandom& random)
     return (static_cast<double>(random.Next() % LiftSpan) * Hundredth) * LiftStep;
 }
 
-// 0x540e19..0x540e35 y siguientes: la escala rand() % 6 · paso más la del pedido.
+// 0x540e19..0x540e35 and the following ones: the scale rand() % 6 · step plus the requested one.
 void Grow(Particle& particle, Crt::CrtRandom& random, double step)
 {
     constexpr int GrowSpan = 6;
     particle.scale = F32(static_cast<double>(random.Next() % GrowSpan) * step + static_cast<double>(particle.scale));
 }
 
-// 0x5456ba..0x5456db: la velocidad por 1,05f.
+// 0x5456ba..0x5456db: the speed by 1.05f.
 void Accelerate(Particle& particle)
 {
     for (int axis = 0; axis < 3; ++axis)
         particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * Speedup);
 }
 
-// 0x5456ea..0x5456f9: la luz gris vida · 0,2f.
+// 0x5456ea..0x5456f9: the gray light life · 0.2f.
 void Glow(Particle& particle)
 {
     particle.light = glm::vec3(F32(static_cast<double>(particle.life) * Fifth));
 }
 
-// 0x5456de..0x5456e7: la z suma la subida por 20.
+// 0x5456de..0x5456e7: the z adds the rise times 20.
 void Climb(Particle& particle, double speed)
 {
     constexpr double ClimbStep = 20.0; // 0x6b86d0
@@ -76,12 +76,12 @@ void Rise(Particle& particle)
     particle.position.z = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.position.z));
 }
 
-// 0x5455b0..0x5455ec: a = (vida + velocidad x) · 0,1f; la x es la partida más sen(a) · 120, la y la partida menos
-// cos(a) · 120, la z suma la subida y la escala baja 0,002f.
+// 0x5455b0..0x5455ec: a = (life + x speed) · 0.1f; the x is the start plus sin(a) · 120, the y the start minus
+// cos(a) · 120, the z adds the rise and the scale drops 0.002f.
 Core::Expected<void, ParticleError> Orbit(Particle& particle, IParticleTrigonometry& trigonometry)
 {
     constexpr float Radius = 120.0f;                                                  // 0x6b86c8
-    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0,002f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0.002f
     const double angle = (static_cast<double>(particle.life) + static_cast<double>(particle.velocity.x)) * Tenth;
     const auto sine = trigonometry.SineProductPC53(angle, Radius);
     if (!sine.HasValue())
@@ -96,8 +96,8 @@ Core::Expected<void, ParticleError> Orbit(Particle& particle, IParticleTrigonome
     return {};
 }
 
-// 0x5455f9..0x54562d: la x suma cos(ángulo z) · 20 y la y sen(ángulo z) · 20 (el ángulo crudo, 0x6ba2f8 en double),
-// la z la subida y el giro 1.
+// 0x5455f9..0x54562d: the x adds cos(z angle) · 20 and the y sin(z angle) · 20 (the raw angle, 0x6ba2f8 in double),
+// the z the rise and the turn 1.
 Core::Expected<void, ParticleError> Swirl(Particle& particle, IParticleTrigonometry& trigonometry)
 {
     constexpr float Reach = 20.0f;
@@ -123,16 +123,16 @@ bool IsMissileFireKernel(std::int32_t type, std::int32_t subtype)
 
 void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
 {
-    constexpr double Back = static_cast<double>(std::bit_cast<float>(0xbe99999au));        // 0x6ba274, −0,3f
-    constexpr double SlowBack = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));    // 0x6b8930, −0,1f
-    constexpr double OrbitGrowth = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
-    constexpr double SwirlTilt = static_cast<double>(std::bit_cast<float>(0x3f99999au));   // 0x6b8bb0, 1,2f
+    constexpr double Back = static_cast<double>(std::bit_cast<float>(0xbe99999au));        // 0x6ba274, −0.3f
+    constexpr double SlowBack = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));    // 0x6b8930, −0.1f
+    constexpr double OrbitGrowth = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0.15f
+    constexpr double SwirlTilt = static_cast<double>(std::bit_cast<float>(0x3f99999au));   // 0x6b8bb0, 1.2f
     constexpr double RiseBase = 5.0;                                                       // 0x6b87f8
     constexpr int SpreadSpan = 300, SpreadCenter = 150;
     switch (particle.subtype)
     {
     case MissileTrailSubtype:
-        // 0x541045..0x54107c: vida 12 y la escala 0,8f.
+        // 0x541045..0x54107c: life 12 and the scale 0.8f.
         Push(particle, random, 12, Back);
         particle.scale = std::bit_cast<float>(0x3f4ccccdu);
         break;
@@ -147,8 +147,8 @@ void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
         break;
     case MissileOrbitSubtype:
     {
-        // 0x540dcf..0x540e67: vida 100, la subida más 1, la velocidad x rand() % 300 − 150 (la fase de la vuelta), la
-        // escala, los ángulos en 0, un giro que pisa el del final y la partida en la posición.
+        // 0x540dcf..0x540e67: life 100, the rise plus 1, the x speed rand() % 300 − 150 (the lap's phase), the scale,
+        // the angles at 0, a turn that the final one overrides and the start at the position.
         particle.life = 100;
         particle.verticalSpeed = F32(Lift(random) + 1.0);
         particle.velocity.x = static_cast<float>(random.Next() % SpreadSpan - SpreadCenter);
@@ -160,7 +160,7 @@ void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
         break;
     }
     case MissileSwirlSubtype:
-        // 0x540e74..0x540edd: vida 6, la subida más el ángulo x · 1,2f, la escala y el giro; la partida.
+        // 0x540e74..0x540edd: life 6, the rise plus the x angle · 1.2f, the scale and the turn; the start.
         particle.life = 6;
         particle.verticalSpeed = F32(Lift(random) + static_cast<double>(particle.angles.x) * SwirlTilt);
         Grow(particle, random, Fifth);
@@ -168,7 +168,7 @@ void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
         particle.start = particle.position;
         break;
     case MissileRiseSubtype:
-        // 0x540ee7..0x540f47: vida 6, la subida más 5, la escala y el giro; la partida.
+        // 0x540ee7..0x540f47: life 6, the rise plus 5, the scale and the turn; the start.
         particle.life = 6;
         particle.verticalSpeed = F32(Lift(random) + RiseBase);
         Grow(particle, random, Tenth);
@@ -181,21 +181,21 @@ void CreateMissileFire(Particle& particle, Crt::CrtRandom& random)
     default:
         break;
     }
-    // 0x54107f: el giro rand() % 360, para todos.
+    // 0x54107f: the turn rand() % 360, for all.
     particle.rotation = static_cast<float>(random.Next() % FullTurn);
 }
 
 Core::Expected<void, ParticleError> StepMissileFire(Particle& particle, IParticleTrigonometry* trigonometry)
 {
-    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0,02f
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90, 0.02f
     constexpr double Turn = 4.0;                                                    // 0x6b8a44
     switch (particle.subtype)
     {
     case MissileTrailSubtype:
     case MissileLongTrailSubtype:
     {
-        // 0x5456a6..0x5456e7: la subida suma 0,02f y la escala la suma sin redondear; la velocidad por 1,05f y la z
-        // la subida por 20.
+        // 0x5456a6..0x5456e7: the rise adds 0.02f and the scale adds the unrounded sum; the speed by 1.05f and the z
+        // the rise times 20.
         const double speed = static_cast<double>(particle.verticalSpeed) + Lift;
         particle.verticalSpeed = F32(speed);
         particle.scale = F32(speed + static_cast<double>(particle.scale));

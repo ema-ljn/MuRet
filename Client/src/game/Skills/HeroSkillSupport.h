@@ -16,31 +16,31 @@ class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 4, fase 2c: lo que las ramas de las clases de 0x57cfc0 y 0x55cbc0 hacen en línea, sin dirección propia, al
-// mandar (06, "Usar una skill"). Todo con el contexto de UseTheHeroSkill.
+// What the class branches of 0x57cfc0 and 0x55cbc0 do inline, with no address of their own, when sending (06, "Usar
+// una skill"). All with UseTheHeroSkill's context.
 namespace Client::Skills
 {
 
-// Las cadenas "webzen" (0x6c91ac..0x6c9254 en 0x57cfc0 y 0x6c8fb0..0x6c8fc0 en 0x55cbc0): el strstr en línea sobre el
-// nombre del héroe publicado (+0x1d9, con el strlen que sigue a +0x1e3). Con el nombre, la rama no manda y sigue con lo
-// de después del envío.
+// The "webzen" strings (0x6c91ac..0x6c9254 in 0x57cfc0 and 0x6c8fb0..0x6c8fc0 in 0x55cbc0): the inline strstr on the
+// published hero's name (+0x1d9, with the strlen that runs on into +0x1e3). With the name, the branch does not send and
+// continues with what comes after the send.
 [[nodiscard]] bool HasTheSilentName(const Kernel::WorldState& world);
 
-// El D3 de girar en línea (0x55d4ef.., como el SendMove de un paso): C1 06 D3 X Y (rumbo << 4), con el XOR32 y sin C3
-// (SendTheSkillPacket, sin rand()), el rumbo de `angle` como DirectionFromAngle. Un ángulo que no se puede escribir
-// corta con `where`.
+// The inline turning D3 (0x55d4ef.., like a step's SendMove): C1 06 D3 X Y (heading << 4), with the XOR32 and no C3
+// (SendTheSkillPacket, no rand()), the heading of `angle` as DirectionFromAngle. An angle that cannot be written cuts
+// with `where`.
 [[nodiscard]] Core::Expected<void, std::string> SendTheTurn(std::uint8_t x, std::uint8_t y, float angle,
                                                             const HeroSkillContext& context, std::string_view where);
 
-// Lo que leen 0x4f5290, 0x4f3f80 y 0x4ea030 desde las ramas: el mundo, el rand(), Player.bmd e Item.bmd (sin la
-// biblioteca de modelos, como el contexto de 0x5650c0 desde MoveHero).
+// What 0x4f5290, 0x4f3f80 and 0x4ea030 read from the branches: the world, the rand(), Player.bmd and Item.bmd
+// (without the model library, like 0x5650c0's context from MoveHero).
 [[nodiscard]] Combat::ActorCombatContext CombatContextOf(const HeroSkillContext& context);
 
-// El lugar de `actor` en el pool (0x743a16c), o el tamaño del pool si no es uno de sus personajes (0x558eb0 lo compara
-// con el héroe publicado).
+// `actor`'s pool slot (0x743a16c), or the pool size if it is not one of its characters (0x558eb0 compares it with the
+// published hero).
 [[nodiscard]] std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor);
 
-// La celda lógica del personaje (+0x41c o +0x420) abierta, leída y cerrada: 4 rand() si su cuenta vuelve a 0 (0x40b570
-// y 0x412890 o 0x40b800, 0x412810 y 0x4e7e40 en línea).
+// The character's logical cell (+0x41c or +0x420) opened, read and closed: 4 rand() if its count returns to 0
+// (0x40b570 and 0x412890 or 0x40b800, 0x412810 and 0x4e7e40 inline).
 [[nodiscard]] std::uint8_t ReadTheSkillCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random);
 } // namespace Client::Skills

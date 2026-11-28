@@ -16,7 +16,7 @@
 #include <span>
 #include <utility>
 
-// Gate.bmd real, descifrado por el cargador de CL1 igual que scripts/game/maps/gate.py.
+// The real Gate.bmd, decrypted by the CL1 loader like scripts/game/maps/gate.py.
 namespace
 {
 using Client::Movement::GateCheck;

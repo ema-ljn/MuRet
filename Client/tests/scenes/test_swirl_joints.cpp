@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-// Los remolinos 0x6e8/0 y /1 que el 0x114/1 suelta de a dos (0x51c25f, sin dueño): el alta de 0x5345bf..0x5346d3 y el
-// paso de 0x53b7f1..0x53b93a, sin el movimiento común ni la cola común.
+// The swirls 0x6e8/0 and /1 that the 0x114/1 drops in pairs (0x51c25f, without an owner): the creation in
+// 0x5345bf..0x5346d3 and the step in 0x53b7f1..0x53b93a, without the common movement or the common tail.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -61,9 +61,9 @@ struct SwirlWorld
 };
 } // namespace
 
-// 0x5345bf..0x5346d3: sin la cola común, el ancho, velocidad 20, los ángulos (−90, 0, z), vida 10 y 30 puntos; la /1
-// con la textura repetida (+0x9f0). La luz en 1 con rand() impar y (1; 0,8f; 0,6f) con par; +0x24 en la posición. Con
-// la tabla llena, nada ni rand().
+// 0x5345bf..0x5346d3: without the common tail, the width, speed 20, the angles (−90, 0, z), life 10 and 30 points; the
+// /1 with the repeated texture (+0x9f0). The light at 1 with an odd rand() and (1; 0.8f; 0.6f) with an even one; +0x24
+// at the position. With the table full, nothing, not even rand().
 TEST(SwirlJointsTest, EachSwirlIsBornUprightWithItsLight)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -99,8 +99,8 @@ TEST(SwirlJointsTest, EachSwirlIsBornUprightWithItsLight)
     EXPECT_EQ(full.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x53b7f1..0x53b8af: con más de 9 de vida, treinta veces la cola con la matriz de los ángulos y la posición más
-// (0, 0, −velocidad) girado; siempre la velocidad 2 menos y la luz por 0,7142857f. Sin el movimiento común ni rand().
+// 0x53b7f1..0x53b8af: with life over 9, thirty times the tail with the angles' matrix and the position plus (0, 0,
+// −speed) turned; always the speed 2 less and the light times 0.7142857f. Without the common movement or rand().
 TEST(SwirlJointsTest, TheSwirlUnwindsOnlyOnItsFirstStep)
 {
     SwirlWorld tested;
@@ -120,7 +120,7 @@ TEST(SwirlJointsTest, TheSwirlUnwindsOnlyOnItsFirstStep)
             expected.position[axis] = F32(D(moved[axis]) + D(expected.position[axis]));
     }
     EXPECT_EQ(joint.position, expected.position);
-    // 0x535520 deja la cuenta en 30 − 1 con la cola llena.
+    // 0x535520 leaves the count at 30 − 1 with the tail full.
     EXPECT_EQ(joint.count, 29);
     EXPECT_EQ(joint.speed, 18.0f);
     for (int channel = 0; channel < 3; ++channel)

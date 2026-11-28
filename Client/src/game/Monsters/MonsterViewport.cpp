@@ -53,10 +53,10 @@ namespace
 using Maps::CastleSiegeMap;
 constexpr std::uint16_t SiegeGateKind = 0x115;
 constexpr std::uint32_t GateOpenFlag = 0x20000;
-// 0x51745c: los seis dwords del nombre del invocado.
+// 0x51745c: the summon name's six dwords.
 constexpr std::size_t SummonNameBytes = 24;
 
-// 0x4c9790, los casos con la acción 1, +0x112 en 1, el alpha en 1 y, si hay, el sonido.
+// 0x4c9790
 Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, std::uint32_t address,
                                                     std::optional<std::int32_t> sound,
                                                     const Scenes::WorldEntryResources& resources)
@@ -70,7 +70,7 @@ Core::Expected<void, std::string> RiseWithActionOne(Kernel::ActorState& actor, s
     return {};
 }
 
-// 0x4c9ed2..0x4c9f44 y 0x4e0b96..0x4e0c10: la puerta de Castle Siege.
+// 0x4c9ed2..0x4c9f44 and 0x4e0b96..0x4e0c10: the Castle Siege gate.
 Core::Expected<void, std::string> CheckTheSiegeGate(Kernel::ActorState& actor,
                                                     const Scenes::WorldEntryResources& resources)
 {
@@ -83,8 +83,8 @@ Core::Expected<void, std::string> CheckTheSiegeGate(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x4c9cf8..0x4c9d3c: el multiplicador del ángulo, 45 o, con el modelo 0x1b5, los de la celda. Los DWORD de +0x420 y
-// +0x41c se leen sin abrir su entrada: lo que dejó el último cierre de 0x511290 (Q-C849).
+// 0x4c9cf8..0x4c9d3c. The DWORDs at +0x420 and +0x41c are read without opening their entry: what the last close of
+// 0x511290 left (Q-C849).
 float AngleStepOf(const Kernel::ActorState& actor)
 {
     constexpr std::uint16_t RotatedModel = 0x1b5;
@@ -132,11 +132,11 @@ Core::Expected<void, std::string> ApplyMonsterRecord(const Protocol::Actors::Mon
     return Actors::WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }
 
-// 0x51743f: wsprintfA(local de 0x64 bytes, el nombre de +0x1d9 como formato, el dueño de pkt + 0xd), sin más
-// argumentos. El formato sale tal cual, "%%" da '%' y el primer "%s" el dueño hasta su 0. Sin 0 en sus diez bytes,
-// wsprintfA sigue leyendo el registro (+0x17 y el siguiente), que solo cambia lo que se copia si el texto de antes del
-// "%s" tiene menos de 14 bytes: corta (P-C356). Otro especificador, o un segundo "%s", lee de la pila argumentos que
-// 0x517400 no pasa: corta (P-C356).
+// 0x51743f: wsprintfA(0x64-byte local, the +0x1d9 name as format, the owner from pkt + 0xd), with no more arguments.
+// The format comes out as is, "%%" gives '%' and the first "%s" the owner up to its 0. Without a 0 in its ten bytes,
+// wsprintfA reads on into the record (+0x17 and the next one), which only changes what is copied if the text before the
+// "%s" is shorter than 14 bytes: it cuts (P-C356). Another specifier, or a second "%s", reads stack arguments 0x517400
+// does not pass: it cuts (P-C356).
 Core::Expected<std::string, std::string> FormatTheSummonName(std::string_view format, std::span<const std::byte> owner)
 {
     std::string text;
@@ -174,7 +174,7 @@ Core::Expected<std::string, std::string> FormatTheSummonName(std::string_view fo
     return text;
 }
 
-// 0x517400(dueño, clave, tipo, X, Y, recién llegado).
+// 0x517400(owner, key, type, X, Y, just arrived).
 Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::SummonRecord& record,
                                                       const Scenes::WorldEntryResources& resources)
 {
@@ -184,8 +184,8 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
     Kernel::ActorState& actor = resources.world.Actors()[created.Value()];
     constexpr std::uint16_t FirstSummonLevel = 0x97;
     actor.level = static_cast<std::uint16_t>(record.type - FirstSummonLevel);
-    // 0x51743f: el formato es el nombre que dejó la cola (0x5140c0) con NpcName(%s).txt sobre la cadena vacía del caso
-    // 0x514390: "Magic stone of %s " del 152 al 157 y "Shadow Knight" en el 158 del archivo del laboratorio (P-C177).
+    // 0x51743f: the format is the name the tail (0x5140c0) left with NpcName(%s).txt over the empty string of case
+    // 0x514390: "Magic stone of %s " for 152 to 157 and "Shadow Knight" for 158 in the lab's file (P-C177).
     const auto format = ActorCString(actor, 0x51743f);
     if (!format.HasValue())
         return Core::Unexpected(format.Error());
@@ -195,9 +195,9 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
     constexpr std::uint16_t LastSummonLevel = 7;
     if (actor.level == LastSummonLevel)
         actor.subtype = 1;
-    // 0x51745c..0x517466: MOVSD.REP de 6 dwords, los 24 primeros bytes del local a +0x1d9..+0x1f0. Con menos de 24
-    // letras va el 0 y, después, la pila sin iniciar (Q-C848): MuRet escribe hasta el 0 y deja el resto como estaba
-    // (P-C177). Con 24 o más, los 24 primeros, sin 0.
+    // 0x51745c..0x517466: REP MOVSD of 6 dwords, the local's first 24 bytes to +0x1d9..+0x1f0. With fewer than 24
+    // letters the 0 goes and then the uninitialized stack (Q-C848): MuRet writes up to the 0 and leaves the rest as it
+    // was (P-C177). With 24 or more, the first 24, no 0.
     std::vector<std::byte> bytes(std::as_bytes(std::span(text.Value())).begin(),
                                  std::as_bytes(std::span(text.Value())).end());
     bytes.push_back(std::byte{0});
@@ -206,9 +206,9 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
         return Core::Unexpected(put.Error());
     if (record.isNew)
     {
-        // 0x51746e..0x517555: cuatro 0x530860(0x615, +0x10, +0x10, +0x1c, 1, nulo, ancho, −1, 0, 0, −1), el rayo que
-        // cae sobre el invocado (FaunaJointCreation.cpp), con el ancho rand() % 10 más 60, 50, 50 y 60 (0x6b86cc y
-        // 0x6b86b0; fild y fadd, guardado en float). Con el pool lleno, los rand() igual.
+        // 0x51746e..0x517555: four 0x530860, the bolt that falls on the summon (FaunaJointCreation.cpp); width rand() %
+        // 10 plus 60, 50, 50 and 60 (0x6b86cc and 0x6b86b0; fild and fadd, stored as float). With the pool full, the
+        // rand() still happen.
         constexpr std::int32_t ArrivalBolt = 0x615, ArrivalSubtype = 1;
         constexpr int WidthSpan = 10;
         constexpr std::array<double, 4> WidthBases{60.0, 50.0, 50.0, 60.0};
@@ -237,12 +237,12 @@ Core::Expected<std::size_t, std::string> CreateSummon(const Protocol::Actors::Su
     return created;
 }
 
-// 0x4ca516..0x4ca5bf: el dueño (diez bytes, con +0x1e3 en 0 antes), el Text 485 y el nombre que tenía.
+// 0x4ca516..0x4ca5bf: the owner (ten bytes, with +0x1e3 at 0 first), Text 485 and the name it had.
 Core::Expected<void, std::string> NameAfterTheOwner(Kernel::ActorState& actor,
                                                     const Protocol::Actors::SummonRecord& record,
                                                     const Scenes::WorldEntryResources& resources)
 {
-    // 0x76e0a38, el registro 485 de Text.bmd.
+    // 0x76e0a38
     constexpr std::size_t OwnerText = 485;
     const auto monster = ActorCString(actor, 0x4ca516);
     if (!monster.HasValue())
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> NameAfterTheOwner(Kernel::ActorState& actor,
     const auto text = resources.texts->Text(OwnerText);
     if (!text)
         return Core::Unexpected(std::string("0x4ca570: Text.bmd no tiene el 485"));
-    // Los dos strcat, cada uno con su 0: el Text 485 (0x4ca57a..0x4ca592) y el nombre de antes (0x4ca5a7..0x4ca5bf).
+    // The two strcat, each with its 0: Text 485 (0x4ca57a..0x4ca592) and the previous name (0x4ca5a7..0x4ca5bf).
     const auto concatenate = [&actor](std::string_view added,
                                       std::uint32_t address) -> Core::Expected<void, std::string>
     {
@@ -314,9 +314,9 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
     {
         if (auto arrived = ArriveAsNew(actor, resources); !arrived.HasValue())
             return arrived;
-        // 0x4ca5d5..0x4ca611: 0x518cf0(0xec, +0x10, +0x1c, +0xf4, 0, el personaje, −1, 0, 0, 0, 0), el círculo mágico
-        // (World/BlastModelEffects), y 0x53fe70(0x5d5, +0x10, +0x1c, +0xf4, 2, 1,0f, el personaje), el rayo que lo
-        // sigue en su paso, como el transformado de 0x4c965c; ninguno saca rand(). Con la tabla llena, nada.
+        // 0x4ca5d5..0x4ca611: the magic circle 0xec (0x518cf0, Effects/BlastModelEffects) and the 0x5d5 bolt (0x53fe70)
+        // that follows the character in its step, like the transformed one of 0x4c965c; neither draws rand(). With the
+        // table full, nothing.
         constexpr std::int16_t MagicCircle = 0xec;
         if (auto circle = Combat::CreateBlastEffectOutsideTheStep({.type = MagicCircle,
                                                                    .position = actor.position,
@@ -334,7 +334,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
             !bolt.HasValue())
             return Core::Unexpected(
                 std::format("0x4ca611: la partícula 0x5d5/2, error {}", static_cast<unsigned>(bolt.Error())));
-        // 0x4ca616..0x4ca642: un invocado (0x98..0x9e) vuelve al frame 0 (+0x114 y +0x118) y suena 0x61.
+        // 0x4ca616..0x4ca642
         if (summon)
         {
             constexpr Audio::SoundId SummonSound = Sound::WallFallSound;
@@ -347,7 +347,7 @@ Core::Expected<void, std::string> ApplySummonRecord(const Protocol::Actors::Summ
     return Actors::WalkToTheTarget(actor, record.targetX, record.targetY, resources);
 }
 
-// 0x4e0b7f..0x4e0b9b y 0x4e0dea..0x4e0e13: +0x428 en 0x96 y el ángulo rand() % 360.
+// 0x4e0b7f..0x4e0b9b, 0x4e0dea..0x4e0e13
 void TurnAtRandom(Kernel::ActorState& actor, Crt::CrtRandom& random)
 {
     using Math::FullTurn;
@@ -357,7 +357,7 @@ void TurnAtRandom(Kernel::ActorState& actor, Crt::CrtRandom& random)
     actor.angles.z = static_cast<float>(drawn % FullTurn);
 }
 
-// 0x4e0c1d..0x4e0e52, el registro de un jugador.
+// 0x4e0c1d..0x4e0e52
 Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::ObjectRecord& record,
                                                     const Scenes::WorldEntryResources& resources)
 {
@@ -372,7 +372,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
         return Core::Unexpected(created.Error());
     const std::size_t index = created.Value();
     Kernel::ActorState& actor = world.Actors()[index];
-    // ((b & 0x10) | (b >> 4)) >> 1, como el 12.
+    // ((b & 0x10) | (b >> 4)) >> 1, as in the 12.
     constexpr std::uint8_t EvolutionBit = 0x10;
     constexpr int ClassShift = 4;
     constexpr std::uint8_t ObjectClass = 0x80;
@@ -387,12 +387,12 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
         return flagged;
     Actors::WriteTheCells(actor, record.x, record.y, random);
     TurnAtRandom(actor, random);
-    // 0x4e0e16..0x4e0e1f: 0x5139f0 con el lugar de 0x5110d0 y el equipo de +7.
+    // 0x4e0e16..0x4e0e1f: 0x5139f0 with the slot from 0x5110d0 and the equipment at +7.
     if (auto set = Actors::ApplyCharacterSet(Kernel::ActorWithKey(world, record.key), record.equipment, resources,
                                              Pets::TableHelpers(world, &resources.cloth.random));
         !set.HasValue())
         return set;
-    // 0x4e0e24..0x4e0e52: "   " (0x6c8648) y +0x1e3 en 0.
+    // 0x4e0e24..0x4e0e52: "   " (0x6c8648).
     constexpr std::array<std::byte, 4> Blank{std::byte{' '}, std::byte{' '}, std::byte{' '}, std::byte{0}};
     if (auto put = PutActorText(actor, Blank, 0x4e0e24); !put.HasValue())
         return put;
@@ -400,7 +400,7 @@ Core::Expected<void, std::string> ApplyObjectPlayer(const Protocol::Actors::Obje
     return {};
 }
 
-// 0x4e09ca..0x4e0c18, el registro de un monstruo (un 0 de 0x5141e0 pasa al siguiente, 0x4e0a06).
+// 0x4e09ca..0x4e0c18 (a 0 from 0x5141e0 goes on to the next record, 0x4e0a06).
 Core::Expected<void, std::string> ApplyObjectMonster(const Protocol::Actors::ObjectRecord& record,
                                                      const Scenes::WorldEntryResources& resources)
 {
@@ -435,8 +435,8 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const S
     case 0x35:
     case 0x36:
     {
-        // 0x4c9828..0x4c984f: +0x3e5 en 0x3c antes de la acción 1 (0x4c9832), sin sonido. El freno lo bajan
-        // 0x505de0 (0x5069ae, Actors::StepActorCooldown, con sus veinte vueltas de efectos), 0x508ba0 y el D3.
+        // 0x4c9828..0x4c984f, 0x4c9832. The brake is lowered by 0x505de0 (0x5069ae, Actors::StepActorCooldown, with its
+        // twenty effect turns), 0x508ba0 and the D3.
         constexpr std::uint8_t ArrivalCooldown = 0x3c;
         actor.movementCooldown = ArrivalCooldown;
         return RiseWithActionOne(actor, 0x4c9832, std::nullopt, resources);
@@ -453,7 +453,7 @@ Core::Expected<void, std::string> ArriveAsNew(Kernel::ActorState& actor, const S
     case 0x155:
     case 0x158:
     case 0x159:
-        // 0x4c9883: la etapa 3 no llega a ningún constructor ni toca el RNG.
+        // 0x4c9883: stage 3 reaches no constructor and does not touch the RNG.
         if (runtime.events.cameraTour.stage == Protocol::Events::CrywolfReadyStage)
         {
             actor.alpha = 1.0f;

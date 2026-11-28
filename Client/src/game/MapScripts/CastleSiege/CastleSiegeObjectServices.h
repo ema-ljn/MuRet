@@ -16,15 +16,15 @@ struct GameObjectPass;
 namespace Client::MapScripts::CastleSiege
 {
 
-// 0x42c9f0 (0x602ed0, después de 0x4059d0 y 0x438c10), con el mapa 30, después del rand() común de 0x602ef4
-// (que no usa). Sin el asedio:
-// - el 0: con rand() % 3 en 0, la chispa 6ec/0 sobre el objeto, con luz (1, 1, 1), su escala y sin dueño;
-// - el 0x29: la luz del blendMesh (+0x68) en sin(T · 0,002f) · 0,3f + 0,7f, que queda en el objeto;
-// - el 0x34: la caída 6f4/6 sobre el objeto, con luz (1, 1, 1), su escala y sin dueño, sin rand();
-// - el 0x36: la salpicadura 0x6f2 + (rand() & 1) con el subtipo 0 y la escala 1.
-// Con el asedio, el 0 no hace nada, el 0x2a (con rand() % 3 en 0) suelta el humo 5f2/0x15 con luz (1, 1, 1), su
-// escala y sin dueño, el 0x35 hace lo que el 0 sin el asedio y el 0x34 y el 0x36 no hacen nada. Los demás tipos no
-// hacen nada. Sin el pool, el alta corta después de sus rand(), con su dirección.
+// 0x42c9f0 (0x602ed0, after 0x4059d0 and 0x438c10), with map 30, after the common rand() of 0x602ef4 (which it does
+// not use). Without the siege:
+// - the 0: with rand() % 3 at 0, the spark 0x6ec/0 over the object, with light (1, 1, 1), its scale and no owner;
+// - the 0x29: the blendMesh light (+0x68) at sin(T · 0.002f) · 0.3f + 0.7f, which stays in the object;
+// - the 0x34: the fall 0x6f4/6 over the object, with light (1, 1, 1), its scale and no owner, without rand();
+// - the 0x36: the splash 0x6f2 + (rand() & 1) with subtype 0 and scale 1.
+// With the siege, the 0 does nothing, the 0x2a (with rand() % 3 at 0) releases the smoke 0x5f2/0x15 with light
+// (1, 1, 1), its scale and no owner, the 0x35 does what the 0 does without the siege, and the 0x34 and the 0x36 do
+// nothing. The other types do nothing. Without the pool, the creation cuts after its rand(), with its address.
 [[nodiscard]] Core::Expected<void, std::string> StepCastleSiegeObjectFrame(WorldObjects::WorldObject& object,
                                                                            const WorldObjects::GameObjectPass& pass);
 } // namespace Client::MapScripts::CastleSiege

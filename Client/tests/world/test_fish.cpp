@@ -21,7 +21,7 @@ using Client::Fauna::FishOpenWaterTile;
 using Client::Fauna::FishSpawnEventGate;
 using Client::Fauna::FishStepCount;
 
-// 447030-contract § Recorrido y § Candidatos; oráculos estáticos, sin captura runtime fabricada.
+// 0x447030 contract § Recorrido and § Candidatos; static oracles, without a fabricated runtime capture.
 TEST(FishTest, AllMapFamiliesSelectTheirPersistentPrefix)
 {
     constexpr std::array<std::size_t, 37> Counts{3, 3, 3, 3, 3, 3,  3,  10, 10, 3,  3,  3, 3, 3, 3, 3,  3, 3, 3,

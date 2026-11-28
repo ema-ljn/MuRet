@@ -31,7 +31,7 @@ Core::Expected<void, std::string> DrawCrywolfMissileTail(Effects::ModelEffect& e
                                                          std::span<const Math::BoneTransform> globalPose,
                                                          float worldClock)
 {
-    // 602626 transforma(0,1.5,0) con el hueso2 en un local muerto. Las altas leen la posición del efecto.
+    // 0x602626 transforms (0, 1.5, 0) with bone 2 into a dead local. The creations read the effect's position.
     Particles::PortableParticleTrigonometry trigonometry;
     const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::ModelEffect, physicalSlot};
     const auto emit = [&](std::int32_t type, std::int32_t subtype, float scale) -> Core::Expected<void, std::string>
@@ -58,7 +58,7 @@ Core::Expected<void, std::string> DrawCrywolfMissileTail(Effects::ModelEffect& e
                          F32(static_cast<double>(effect.transform.scale) - static_cast<double>(Shrink)));
         !made.HasValue())
         return made;
-    // 6026cf..602764: cada canal conserva el producto x87 hasta su store. La matriz ausente es BSS0.
+    // 0x6026cf..0x602764: each channel keeps the x87 product until its store. The missing matrix is BSS0.
     constexpr int Glows = 10;
     constexpr float RedStep = 0.1f, GreenBase = 0.4f, GreenStep = 0.04f, SizeStep = 0.9f;
     for (int index = 0; index < Glows; ++index)

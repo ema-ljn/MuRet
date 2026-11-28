@@ -44,7 +44,7 @@
 #include <string>
 #include <vector>
 
-// P-C55 (a): contrato estático de 603011 y de los calls 637128/637558. Sin ejecutar el PE.
+// P-C55 (a): static contract of 0x603011 and of the calls 0x637128/0x637558, without running the PE.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -229,7 +229,7 @@ TEST(GameParticlesTest, FullPoolConsumesBothOffsetsButNoConstructorRandoms)
     ASSERT_TRUE(Client::Effects::StepGameWaterspoutFrame(object, particles, oneFree, clock, point).HasValue());
     EXPECT_TRUE(particles.All().back().alive);
     EXPECT_EQ(particles.All().back().type, Client::Particles::BreathParticle);
-    EXPECT_EQ(oneFree.State(), 0x20ad96a9u); // Solo la primera alcanza a crearse: siete sorteos.
+    EXPECT_EQ(oneFree.State(), 0x20ad96a9u); // Only the first one gets created: seven draws.
 }
 
 TEST(GameParticlesTest, EachConstructorReadsTheLiveClockAfterItsBoneCallback)
@@ -317,9 +317,9 @@ TEST(GameParticlesTest, UnsupportedStepKeepsWindAndTheAlreadyAdvancedSlots)
     EXPECT_NE(random.State(), 1u);
 }
 
-// 0x546be9: el paso de la 5f3 lee el alto de su textura (+0x24 de su lugar en 0x7d3a198) entre las que subió el
-// juego, por ParticleTextureHeightsOf: con 16 de alto, la escala 0,58 y el terreno en 100, la z queda en
-// 100 + 16 · 0,58 · 0,5. Sin el resolvedor, el paso corta.
+// 0x546be9: the 0x5f3's step reads its texture height (+0x24 of its slot in 0x7d3a198) among those the game uploaded,
+// through ParticleTextureHeightsOf: with height 16, scale 0.58 and the terrain at 100, z ends at 100 + 16 · 0.58 ·
+// 0.5. Without the resolver, the step stops.
 TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
 {
     const SmokeTextures textures;
@@ -350,8 +350,8 @@ TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
     EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }
 
-// 0x546c96: el paso de la 5fc/2 deja su flare01 en la tabla de los sprites del frame que presta la escena; sin ella,
-// corta en 0x637128.
+// 0x546c96: the 0x5fc/2's step leaves its flare01 in the frame-sprites table the scene lends; without it, it stops at
+// 0x637128.
 TEST(GameParticlesTest, TheFallingShineLeavesItsFlareInTheFrameSprites)
 {
     Particles particles;
@@ -521,7 +521,7 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
                 .retainedPose = &carry});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         CrtRandom expected(2);
-        static_cast<void>(expected.Next()); // Común del objeto, antes del guard de la fuente.
+        static_cast<void>(expected.Next()); // The object's common part, before the fountain's guard.
         ASSERT_EQ(expected.Next() % 2, 0);
         for (std::size_t i = 0; i < 2; ++i)
         {
@@ -575,7 +575,7 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
             ASSERT_TRUE(result.HasValue()) << result.Error();
         CrtRandom expected(2);
         for (int i = 0; i < 6; ++i)
-            static_cast<void>(expected.Next()); // Común, guard y dos parejas X/Z; ningún constructor.
+            static_cast<void>(expected.Next()); // Common part, guard and two X/Z pairs; no constructor.
         EXPECT_EQ(random.State(), expected.State());
         for (const auto& particle : particles.All())
             EXPECT_EQ(particle.type, 0x777);
@@ -640,9 +640,9 @@ TEST(GameParticlesTest, LaterAmbientSlotReadsTheCallerClockChangedByTerrainHeigh
     EXPECT_EQ(random.State(), 0xc40e66b9u);
 }
 
-// ParticleOwnerStatesOf con un personaje: su byte vivo, su posición, la acción (+0x111) y sus huesos con nombre por
-// 0x4010b0 (0x4016c0 con su lugar y el nombre exacto, y 0x4ec110 sin corrimiento por la escala y más la posición). Sin
-// el nombre, o con el de otro lugar, nullopt.
+// ParticleOwnerStatesOf with a character: its alive byte, its position, the action (+0x111) and its named bones through
+// 0x4010b0 (0x4016c0 with its slot and the exact name, and 0x4ec110 without the scale shift and plus the position).
+// Without the name, or with another slot's, nullopt.
 TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -670,9 +670,9 @@ TEST(GameParticlesTest, TheOwnerStateOfAnActorReadsItsActionAndItsNamedBones)
     EXPECT_EQ(state->namedBone("monster82_lhand"), std::nullopt);
 }
 
-// ParticleOwnerStatesOf con un efecto con modelo (su lugar en la tabla): su byte vivo, su posición, su partida
-// (+0x17c) y su acción (+0x111), la que la órbita 60f/0 del 0x61d lee como la de un personaje (0x54735f). Un lugar
-// muerto conserva lo que tenía, como la memoria que el original lee por el puntero; fuera de la tabla, nullopt.
+// ParticleOwnerStatesOf with a model effect (its slot in the table): its alive byte, its position, its start (+0x17c)
+// and its action (+0x111), which the 0x61d's 0x60f/0 orbit reads as a character's (0x54735f). A dead slot keeps what it
+// had, like the memory the original reads through the pointer; outside the table, nullopt.
 TEST(GameParticlesTest, TheOwnerStateOfAModelEffectReadsItsAction)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();

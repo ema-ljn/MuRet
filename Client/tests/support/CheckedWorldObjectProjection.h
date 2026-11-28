@@ -13,8 +13,8 @@
 
 namespace Client::Tests
 {
-// Fixtures de entradas válidas: registrar un failure hace fallar el test antes de devolver el prefijo.
-// Las pruebas del canal de error llaman directamente a la API y observan su resultado completo.
+// Fixtures for valid inputs: recording a failure fails the test before returning the prefix. The error channel tests
+// call the API directly and observe their full result.
 inline std::vector<WorldObjects::WorldObject>
 CheckedWorldObjectProjection(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
                              WorldObjects::ObjectScene scene,

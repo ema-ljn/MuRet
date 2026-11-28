@@ -44,17 +44,17 @@ constexpr std::uint16_t FenrirModel = 0x1c37;
 constexpr std::uint8_t DarkHorseAction = 0x52;
 constexpr std::uint8_t UniriaAction = 0x40;
 constexpr std::uint8_t DinorantAction = 0x41;
-constexpr std::uint8_t FenrirAction = 0x5d; // EBX, la constante del XOR32 de la función (0x58187f, 0x599d37)
+constexpr std::uint8_t FenrirAction = 0x5d; // EBX, the constant of the function's XOR32 (0x58187f, 0x599d37)
 constexpr std::uint8_t StandingAction = 0x3f;
-constexpr std::uint8_t CancelAction = 0x87;                                       // 0x598d5b, la de la 0x44 y la 0x47
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
+constexpr std::uint8_t CancelAction = 0x87;                                       // 0x598d5b, the one of 0x44 and 0x47
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0.01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
 constexpr std::int32_t MinimumOffset = -8;
 constexpr std::int32_t MaximumOffset = 7;
 constexpr std::uint8_t OffsetBias = 8;
 constexpr unsigned HighNibble = 4;
 constexpr std::uint8_t LowNibbleMask = 0xf;
-// 0x57cf90(0): con el puntero nulo da 0 sin tocar el contador 0x77f3bad.
+// 0x57cf90(0): with the null pointer it gives 0 without touching the counter 0x77f3bad.
 constexpr std::uint8_t NoMagicKey = 0;
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
@@ -67,8 +67,8 @@ std::int32_t Minus(std::int32_t left, std::int32_t right)
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(left) - static_cast<std::uint32_t>(right));
 }
 
-// 0x5ae300(x, y, blancoX, blancoY): la celda del blanco menos (x, y), cada eje entre −8 y 7; arriba la X + 8 y abajo
-// la Y − 8 con el AND. El que llama guarda el byte de abajo.
+// 0x5ae300(x, y, targetX, targetY): the target's cell minus (x, y), each axis between −8 and 7; X + 8 on top and Y − 8
+// below with the AND. The caller keeps the low byte.
 std::uint8_t TowardsTheTarget(std::int32_t x, std::int32_t y, std::int32_t targetX, std::int32_t targetY)
 {
     const auto dx = static_cast<std::uint8_t>(std::clamp(Minus(targetX, x), MinimumOffset, MaximumOffset));
@@ -86,7 +86,6 @@ Core::Expected<std::int32_t, std::string> Ftol(double value, std::string_view wh
     return *truncated;
 }
 
-// Lo que hace cada una de las 0x44 a 0x48: sus direcciones y la acción sin montura.
 struct MagicAttackSite
 {
     std::string_view brake;
@@ -95,8 +94,8 @@ struct MagicAttackSite
     std::uint8_t standing = StandingAction;
 };
 
-// 0x599ed0, la tabla por la skill − 0x43 (de la 0x44 en adelante): el GetTickCount del freno sin elegido y con él, la
-// clave del elegido y la acción del final.
+// 0x599ed0, the table by skill − 0x43 (from 0x44 on): the brake's GetTickCount without a chosen target and with one,
+// the chosen target's key and the final action.
 MagicAttackSite SiteOf(std::uint8_t skill)
 {
     switch (skill)
@@ -145,19 +144,19 @@ private:
 
 Core::Expected<void, std::string> SharedTail::Use()
 {
-    // 0x5808ef..0x5808fa: el registro propio (0x4e79a0), abierto hasta 0x599d4c..0x599d58 (0x40f370, los 3.848 rand()
-    // si vuelve a 0).
+    // 0x5808ef..0x5808fa: the own record (0x4e79a0), open until 0x599d4c..0x599d58 (0x40f370, the 3848 rand() if it
+    // returns to 0).
     const Models::LogicalAccess own(m_runtime.ownRecordDepth, m_context.random, Models::OwnRecordCloseRandoms);
-    // 0x5808ff..0x580911: 0x551c70(skill, 1, 0, &maná, 0, &stamina).
+    // 0x5808ff..0x580911: 0x551c70(skill, 1, 0, &mana, 0, &stamina).
     const auto cost = SkillCostOf(m_skill, m_context, "0x580911");
     if (!cost.HasValue())
         return Core::Unexpected(cost.Error());
-    // 0x580916..0x580922: el héroe de 0x57cfc0 tiene que ser un jugador; si no, 0x599d4c (solo el cierre).
+    // 0x580916..0x580922: 0x57cfc0's hero has to be a player; otherwise, 0x599d4c (only the close).
     if (m_hero.type != Tables::PlayerSkeletonModel)
         return {};
     if (auto paid = PayForTheSkill(cost.Value()); !paid.HasValue())
         return paid;
-    // 0x593fe0..0x594002: la energía (0x551f40), que nadie lee ([ebp−0x84]), y la tabla 0x599ed0 por la skill − 0x43.
+    // 0x593fe0..0x594002: the energy (0x551f40), which nobody reads ([ebp−0x84]), and table 0x599ed0 by skill − 0x43.
     if (const auto energy = SkillEnergyRequirement(m_skill, Delays()); !energy.HasValue())
         return Core::Unexpected(energy.Error());
     if (m_skill == SternSkill)
@@ -172,34 +171,35 @@ Core::Expected<void, std::string> SharedTail::Use()
     return ActByTheMount(site.standing);
 }
 
-// 0x580928..0x580975 y 0x593fbd..0x593fdd: todos los caminos siguen en 0x593fe0, sin mirar si alcanzó (Q-C1226).
+// 0x580928..0x580975 and 0x593fbd..0x593fdd: every path continues at 0x593fe0, without checking whether it was enough
+// (Q-C1226).
 Core::Expected<void, std::string> SharedTail::PayForTheSkill(const SkillCost& cost)
 {
     const Kernel::OwnCharacterRecord& record = m_world.OwnCharacter();
-    // 0x580928..0x580938: JLE con signo contra +0x24 de [0x7681eb0].
+    // 0x580928..0x580938: signed JLE against +0x24 of [0x7681eb0].
     if (static_cast<std::int32_t>(cost.mana) > static_cast<std::int32_t>(record.mana))
     {
-        // 0x58093e..0x580954: 0x558110(3); sin poción, 0x593fe0. Con ella, 0x5af520, el C1 26 (0x593874) o el aviso
-        // de 0x555190 (0x580961): del hito 5.
+        // 0x58093e..0x580954: 0x558110(3); with no potion, 0x593fe0. With one, 0x5af520, the C1 26 (0x593874) or the
+        // notice of 0x555190 (0x580961): milestone 5.
         return UseAManaPotion(m_context, "0x580954");
     }
-    // 0x593fbd..0x593fc8: JG con signo contra +0x38.
+    // 0x593fbd..0x593fc8: signed JG against +0x38.
     if (static_cast<std::int32_t>(cost.stamina) > static_cast<std::int32_t>(record.bp))
         return {};
-    // 0x593fca..0x593fdd: 0x552c50 con +0x425 del héroe publicado; el resultado no lo mira nadie.
+    // 0x593fca..0x593fdd: 0x552c50 with the published hero's +0x425; nobody checks the result.
     const auto started = TryStartSkillDelay(m_world.Hero().skillIndex, Delays());
     if (!started.HasValue())
         return Core::Unexpected(started.Error());
     return {};
 }
 
-// 0x594009..0x594de9: la 0x43.
+// 0x594009..0x594de9: skill 0x43.
 Core::Expected<void, std::string> SharedTail::CastTheStern()
 {
-    // 0x594009..0x594027: 0x4e93f0(+0x10, +0x14, +0x3a8, +0x3ac) en +0x24.
+    // 0x594009..0x594027: 0x4e93f0(+0x10, +0x14, +0x3a8, +0x3ac) into +0x24.
     m_hero.angles.z = static_cast<float>(
         Math::CreateAngle(m_hero.position.x, m_hero.position.y, m_hero.attackPosition.x, m_hero.attackPosition.y));
-    // 0x59402a..0x59404c: la celda del blanco, ftol de +0x3a8 · 0,01 y después de +0x3ac · 0,01.
+    // 0x59402a..0x59404c: the target's cell, ftol of +0x3a8 · 0.01 and then of +0x3ac · 0.01.
     const auto targetX =
         Ftol(static_cast<double>(m_hero.attackPosition.x) * static_cast<double>(CellReciprocal), "0x594039");
     if (!targetX.HasValue())
@@ -208,11 +208,11 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
         Ftol(static_cast<double>(m_hero.attackPosition.y) * static_cast<double>(CellReciprocal), "0x59404c");
     if (!targetY.HasValue())
         return Core::Unexpected(targetY.Error());
-    // 0x594051..0x594082: 0x4e7e40 sobre +0x420 y después sobre +0x41c, y 0x5ae300.
+    // 0x594051..0x594082: 0x4e7e40 on +0x420 and then on +0x41c, and 0x5ae300.
     const std::uint8_t cellY = ReadTheSkillCell(m_hero.cellYAccesses, m_hero.cellY, m_context.random);
     const std::uint8_t cellX = ReadTheSkillCell(m_hero.cellXAccesses, m_hero.cellX, m_context.random);
     const std::uint8_t towards = TowardsTheTarget(cellX, cellY, targetX.Value(), targetY.Value());
-    // 0x59407c..0x5940a4: 0x4e9920 con el ftol de +0x3ac y después el de +0x3a8, sin escalar.
+    // 0x59407c..0x5940a4: 0x4e9920 with the ftol of +0x3ac and then that of +0x3a8, unscaled.
     const auto wholeY = Ftol(static_cast<double>(m_hero.attackPosition.y), "0x594085");
     if (!wholeY.HasValue())
         return Core::Unexpected(wholeY.Error());
@@ -222,7 +222,7 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
     const auto back = RelativeTargetCell(m_hero.position.x, m_hero.position.y, wholeX.Value(), wholeY.Value());
     if (!back)
         return Core::Unexpected(std::string("0x59409f: 0x4e9920 fuera del perfil de ftol"));
-    // 0x5940a7..0x5940c5: la clave de 0x558eb0 con 0x7758588, o 0xffff con −1.
+    // 0x5940a7..0x5940c5: the key of 0x558eb0 with 0x7758588, or 0xffff with −1.
     std::uint16_t key = Protocol::Skills::NoSkillTargetKey;
     if (m_state.weaponSkill.target != -1)
     {
@@ -232,12 +232,12 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
             return Core::Unexpected(chosen.Error());
         key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(chosen.Value()) & 0xffffu);
     }
-    // 0x5940c8..0x594135: con "webzen" en el nombre del héroe publicado, a 0x594de9 sin mandar (ni el freno: no lo
-    // tiene).
+    // 0x5940c8..0x594135: with "webzen" in the published hero's name, to 0x594de9 without sending (nor the brake: it
+    // has none).
     if (!HasTheSilentName(m_world))
     {
-        // 0x594137..0x594de1: 0x5767948 y el 1E. La celda lógica la lee 0x4e7e40 al armarlo: la X (0x5942c9) antes
-        // que la Y (0x5943c8).
+        // 0x594137..0x594de1: 0x5767948 and the 1E. 0x4e7e40 reads the logical cell while building it: X (0x5942c9)
+        // before Y (0x5943c8).
         m_context.world.Runtime().lastShotSkill = m_skill;
         const std::uint8_t x = ReadTheSkillCell(m_hero.cellXAccesses, m_hero.cellX, m_context.random);
         const std::uint8_t y = ReadTheSkillCell(m_hero.cellYAccesses, m_hero.cellY, m_context.random);
@@ -256,15 +256,16 @@ Core::Expected<void, std::string> SharedTail::CastTheStern()
                                                              .key = key,
                                                              .magicKey = NoMagicKey}));
     }
-    // 0x594de9: las velocidades, con el registro propio todavía abierto.
+    // 0x594de9: the speeds, with the own record still open.
     Combat::RefreshCombatActionSpeeds(m_world, m_context.random);
     return {};
 }
 
-// 0x594e42..0x595db3 (y sus pares de la 0x45 a la 0x48): el 19.
+// 0x594e42..0x595db3 (and their pairs from 0x45 to 0x48): the 19.
 Core::Expected<void, std::string> SharedTail::SendTheMagicAttack(const MagicAttackSite& site)
 {
-    // El nombre "webzen" (0x6c920c..0x6c9254, uno por camino) se mira antes que el freno, que se mira antes de armarlo.
+    // The "webzen" name (0x6c920c..0x6c9254, one per path) is checked before the brake, which is checked before
+    // building it.
     if (HasTheSilentName(m_world))
         return {};
     const std::int32_t chosen = m_runtime.selectedTargets[2];
@@ -276,7 +277,7 @@ Core::Expected<void, std::string> SharedTail::SendTheMagicAttack(const MagicAtta
     std::uint16_t key = m_context.playerKey;
     if (chosen != -1)
     {
-        // El WORD +0x1f4 del elegido, sin mirar si está en el pool.
+        // The chosen target's WORD +0x1f4, without checking whether it is in the pool.
         if (chosen < 0 || static_cast<std::size_t>(chosen) >= m_world.Actors().size())
             return Core::Unexpected(std::format("{}: el elegido {} está fuera del pool", site.chosenKey, chosen));
         key = m_world.Actors()[static_cast<std::size_t>(chosen)].key;
@@ -285,8 +286,8 @@ Core::Expected<void, std::string> SharedTail::SendTheMagicAttack(const MagicAtta
     return {};
 }
 
-// 0x594dee..0x594e3d, 0x595db8..0x595e20 y los demás, hasta 0x599d45: la acción por la montura, cada una fuera de la
-// zona segura (+0x3e2), y +0x378 en 0.
+// 0x594dee..0x594e3d, 0x595db8..0x595e20 and the others, up to 0x599d45: the action by mount, each outside the safe
+// zone (+0x3e2), and +0x378 at 0.
 Core::Expected<void, std::string> SharedTail::ActByTheMount(std::uint8_t standing)
 {
     const std::uint16_t mount = m_hero.pet.model;

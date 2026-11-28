@@ -24,8 +24,8 @@
 #include <utility>
 #include <vector>
 
-// Lo que comparten las ramas de las clases de 0x57cfc0 (CL9 hito 4, fase 2c; 06 § Usar una skill): el costo de una
-// skill (0x551c70) y el camino sin maná (0x558110(3) y el corte de 0x5af520).
+// What the class branches of 0x57cfc0 share (06 § Usar una skill): a skill's cost (0x551c70) and the path without mana
+// (0x558110(3) and 0x5af520's cut).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -40,7 +40,7 @@ CrtRandom Advanced(CrtRandom random, int count)
     return random;
 }
 
-// Skill.bmd con el maná (+0x22) y la stamina (+0x24) de la skill 0x2b.
+// Skill.bmd with skill 0x2b's mana (+0x22) and stamina (+0x24).
 Client::Tables::SkillTable ACostlySkill()
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -65,7 +65,7 @@ struct Casting
     }
 };
 
-// 0x551c70(skill, 1, 0, &maná, 0, &stamina): los WORD +0x22 y +0x24, con los 60 rand() de la entrada al cerrarla.
+// 0x551c70(skill, 1, 0, &mana, 0, &stamina): the WORDs +0x22 and +0x24, with the entry's 60 rand() when it closes.
 TEST(HeroSkillCastsTest, TheCostReadsTheManaAndTheStaminaOfTheEntry)
 {
     const auto tested = std::make_unique<Casting>();
@@ -75,12 +75,11 @@ TEST(HeroSkillCastsTest, TheCostReadsTheManaAndTheStaminaOfTheEntry)
     EXPECT_EQ(cost.Value().mana, 0x134);
     EXPECT_EQ(cost.Value().stamina, 0x0a);
     EXPECT_EQ(tested->random.State(), expected.State());
-    // Abierta por fuera, no se vuelve a cifrar.
+    // Opened from outside, it is not encrypted again.
     tested->world.Runtime().movement.skillDepths[0x2b] = 1;
     const CrtRandom open = tested->random;
     ASSERT_TRUE(SkillCostOf(0x2b, tested->Context(), "0x559b0b").HasValue());
     EXPECT_EQ(tested->random.State(), open.State());
-    // Sin Skill.bmd, la dirección.
     HeroSkillContext without = tested->Context();
     without.skills = nullptr;
     const auto missing = SkillCostOf(0x2b, without, "0x559b0b");
@@ -88,7 +87,8 @@ TEST(HeroSkillCastsTest, TheCostReadsTheManaAndTheStaminaOfTheEntry)
     EXPECT_NE(missing.Error().find("0x559b0b"), std::string::npos) << missing.Error();
 }
 
-// 0x559b29..0x559b41: sin poción, nada; con ella, 0x5af520 usa el slot real, sin anticipar la respuesta del GS.
+// 0x559b29..0x559b41: without a potion, nothing; with one, 0x5af520 uses the real slot, without anticipating the GS
+// reply.
 TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
 {
     const auto tested = std::make_unique<Casting>();
@@ -119,7 +119,7 @@ TEST(HeroSkillCastsTest, WithoutManaTheSkillLooksForAPotion)
     EXPECT_EQ(tested->world.Runtime().lastSoundId, Client::Audio::SoundId{0x20});
     EXPECT_EQ(cells[20].id, 0x1c06);
     EXPECT_EQ(tested->random.State(), Advanced(before, 3).State());
-    // Con la espera activa, solo se consulta el comercio protegido: ni otro envío ni otro sonido.
+    // With the wait active, only the protected trade is checked: no other send and no other sound.
     ASSERT_TRUE(UseAManaPotion(context, "0x559b41").HasValue());
     EXPECT_EQ(sent.size(), 1u);
     EXPECT_EQ(tested->random.State(), Advanced(before, 4).State());

@@ -53,16 +53,16 @@ class WorldState;
 struct JointState;
 } // namespace Client::Kernel
 
-// CL11, lote magos: los servicios de World::WizardModelEffects desde el mundo de la escena. El dueño (+0x108) de los
-// efectos es un personaje del pool (ActorState: el byte vivo, +0x2, la posición, +0x78, la acción +0x111, +0x16c y
-// +0x1bc), el héroe es [0x743a170], el registro propio es el de WorldRuntime y OwnCharacterRecord (+0xf04), el asedio
-// es CastleSiegeState::siegeActive (0x4294b0), los joints van a la tabla del mundo (0x530860,
-// Scenes/FaunaJointCreation) y 0x517a20 es Actors::HitTheTargetsAround.
+// CL11, wizards batch: Effects::WizardModelEffects' services from the scene's world. The effects' owner (+0x108) is a
+// pool character (ActorState: the live byte, +0x2, the position, +0x78, the action +0x111, +0x16c and +0x1bc), the hero
+// is [0x743a170], the own record is WorldRuntime's and OwnCharacterRecord (+0xf04), the siege is
+// CastleSiegeState::siegeActive (0x4294b0), the joints go to the world's table (0x530860, Joints/FaunaJointCreation)
+// and 0x517a20 is Actors::HitTheTargetsAround.
 namespace Client::Effects
 {
 
-// Lo que pone la escena: las tablas del frame, el terreno del paso (la altura y los atributos), el temblor de la
-// cámara, el sonido y el envío del C1 10.
+// What the scene provides: the frame's tables, the step's terrain (the height and the attributes), the camera shake,
+// the sound and the sending of the C1 10.
 struct WizardSceneParts
 {
     Particles::Particles* particles = nullptr;
@@ -73,10 +73,10 @@ struct WizardSceneParts
     float* cameraShake = nullptr;
     std::function<void(Audio::SoundId)> sound{};
     std::function<void(Protocol::Outgoing)> send{};
-    // La tabla de joints (0x530860); vacía, la del mundo (WorldState::DrawTail).
+    // The joints table (0x530860); empty, the world's (WorldState::DrawTail).
     std::span<Kernel::JointState> joints{};
-    // Los esqueletos del juego que lee 0x4ea030 después de los del mapa (`faunaModels`), para el empujón
-    // del 0xc2/4 (0x524a8d). Sin ellos, un 0x20a que empuja corta.
+    // The game's skeletons that 0x4ea030 reads after the map's (`faunaModels`), for the 0xc2/4's push (0x524a8d).
+    // Without them, a 0x20a push cuts.
     const Models::IModelLibrary* models = nullptr;
     // The dynamic light (Terrain::TerrainState::dynamicLight) the effects add to (0x5f9780). nullptr: adding one stops.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
@@ -87,18 +87,18 @@ struct WizardSceneParts
 [[nodiscard]] Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                    const WizardSceneParts& parts);
 
-// Los de un llamador del paso de los personajes (0x4fd5f0, 0x4f97b0, 0x4e6380…): sin el temblor de la cámara.
+// Those of a caller of the characters' step (0x4fd5f0, 0x4f97b0, 0x4e6380…): without the camera shake.
 [[nodiscard]] Effects::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context);
 
-// 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, 0, 0, 0, 0): los argumentos de un efecto de los magos.
+// 0x518cf0(type, position, angles, light, subtype, owner, key, 0, 0, 0, 0): a wizard effect's arguments.
 [[nodiscard]] Kernel::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position,
                                                            const glm::vec3& angles, const glm::vec3& light,
                                                            std::int32_t subtype, void* owner = nullptr,
                                                            std::uint16_t key = 0xffff);
 
-// El alta de un efecto de los magos (Effects::CreateWizardModelEffect) desde un llamador del paso de los personajes,
-// con sus servicios (WizardEffectServicesOf). Con la tabla llena, nada y sin rand(). `callerLight` es la luz del
-// llamador que escriben el 0xc1/1 y el /2.
+// A wizard effect's creation (Effects::CreateWizardModelEffect) from a caller of the characters' step, with its
+// services (WizardEffectServicesOf). With the table full, nothing and no rand(). `callerLight` is the caller's light
+// that the 0xc1/1 and /2 write.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateWizardEffect(const Actors::CharacterStepContext& context, const Kernel::ModelEffectArguments& arguments,
                    glm::vec3* callerLight = nullptr);

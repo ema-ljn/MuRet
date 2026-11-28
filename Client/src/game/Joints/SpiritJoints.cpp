@@ -37,8 +37,8 @@
 #include <optional>
 #include <string>
 
-// El 0x613 y el 0x6ee: comparten el alta (0x53265e, la mezcla en 3 y la tabla 0x534f18 por subtipo) y el paso
-// (0x538d77). Los sprites del paso son los de 0x5491e0 (el dueño que reciben no lo guarda MuRet).
+// The 0x613 and 0x6ee: they share creation (0x53265e, blend at 3 and table 0x534f18 by subtype) and step (0x538d77).
+// The step's sprites are those of 0x5491e0 (MuRet does not store the owner they receive).
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -59,7 +59,7 @@ float Bits(std::uint32_t bits)
     return std::bit_cast<float>(bits);
 }
 
-// 0x532675 y 0x532bab: el +0xf04 del registro propio con un acceso abierto y cerrado alrededor.
+// 0x532675 and 0x532bab: the own record's +0xf04 with an access opened and closed around it.
 Core::Expected<void, std::string> ReadTheVolley(Kernel::JointState& joint, CrtRandom& random,
                                                 const JointKernels::CreationServices* services, std::uint32_t address)
 {
@@ -71,13 +71,13 @@ Core::Expected<void, std::string> ReadTheVolley(Kernel::JointState& joint, CrtRa
     return {};
 }
 
-// 0x5331a9..0x5331b7 y 0x53463b..0x534649: +0x24 guarda la partida.
+// 0x5331a9..0x5331b7 and 0x53463b..0x534649: +0x24 stores the start.
 void KeepTheStart(Kernel::JointState& joint)
 {
     joint.pathIncrement = joint.position;
 }
 
-// 0x533208..0x53323b y 0x53326c..0x5332ac (con 0x534633): la luz de la /6 y la /7 según la skill (+0x9ea).
+// 0x533208..0x53323b and 0x53326c..0x5332ac (with 0x534633): the light of the /6 and /7 by skill (+0x9ea).
 void LightBySkill(Kernel::JointState& joint)
 {
     if (joint.skill == 0)
@@ -114,7 +114,7 @@ Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint, c
         joint.width = request.scale;
         joint.maximumCount = 9;
         break;
-    case 5: // 0x532bab..0x53307f: la mezcla antes del acceso.
+    case 5: // 0x532bab..0x53307f: the blend before the access.
         joint.blend = Lighter;
         if (auto read = ReadTheVolley(joint, random, services, 0x532bab); !read.HasValue())
             return read;
@@ -123,7 +123,7 @@ Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint, c
         joint.width = request.scale;
         joint.maximumCount = 12;
         break;
-    case 1: // 0x53309e..0x5330cd: y suena 0x3e.
+    case 1: // 0x53309e..0x5330cd: and plays 0x3e.
     {
         constexpr Audio::SoundId BirthSound{0x3e};
         joint.speed = 70.0f;
@@ -167,7 +167,7 @@ Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint, c
         joint.maximumCount = 3;
         KeepTheStart(joint);
         break;
-    case 6: // 0x5331bf..0x533253: la key en rand() % 5; con otra que 0, sin cola.
+    case 6: // 0x5331bf..0x533253: the key at rand() % 5; with one other than 0, no tail.
         joint.blend = Lighter;
         joint.drawEnabled = SecondFace;
         joint.speed = 50.0f;
@@ -200,17 +200,17 @@ Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint, c
         joint.maximumCount = 6;
         break;
     case 4:
-    case 9: // 0x5332b8 y 0x5333f6: FaunaJointCreation.cpp los crea antes (CreateHelperBeam y CreateMeteor).
+    case 9: // 0x5332b8 and 0x5333f6: FaunaJointCreation.cpp creates them earlier (CreateHelperBeam and CreateMeteor).
         return Core::Unexpected(std::format("{:#x}: el joint {:#x}/{} no llega a CreateSpiritJoint",
                                             request.subtype == 4 ? 0x5332b8 : 0x5333f6, request.type, request.subtype));
-    case 0xb: // 0x53344e..0x533495: quietos, de un punto.
+    case 0xb: // 0x53344e..0x533495: still, one point.
     case 0xc:
     case 0xe:
     case 0xf:
     case 0x10:
     case 0x11:
     {
-        // 0xb..0x11, con la 0xd fuera: 0x53344e, 0x533474, 0x53349a, 0x5334c7, 0x5334ed y 0x533513.
+        // 0xb..0x11, with 0xd left out: 0x53344e, 0x533474, 0x53349a, 0x5334c7, 0x5334ed and 0x533513.
         constexpr std::array<std::int32_t, 7> Lives{50, 30, 0, 10, 20, 50, 100};
         joint.speed = 0.0f;
         joint.life = Lives[static_cast<std::size_t>(request.subtype - 0xb)];
@@ -236,7 +236,7 @@ Core::Expected<void, std::string> CreateSpiritJoint(Kernel::JointState& joint, c
         joint.width = request.scale;
         joint.maximumCount = 15;
         break;
-    default: // 0x532668: más allá de 0x15, sólo la mezcla.
+    default: // 0x532668: beyond 0x15, only the blend.
         break;
     }
     return {};
@@ -254,7 +254,7 @@ Core::Expected<void, std::string> Sprite(const JointKernels::StepServices& servi
     return {};
 }
 
-// 0x539600..0x539641 y 0x5398be..0x5398ff: la luz por 0,8333333f (0x6b8b98) en float; la local queda igual.
+// 0x539600..0x539641 and 0x5398be..0x5398ff: the light times 0.8333333f (0x6b8b98) as float; the local stays the same.
 void FadeTheLight(Kernel::JointState& joint)
 {
     constexpr double Fading = static_cast<double>(std::bit_cast<float>(0x3f555555u));
@@ -262,7 +262,7 @@ void FadeTheLight(Kernel::JointState& joint)
         joint.light[axis] = F32(D(joint.light[axis]) * Fading);
 }
 
-// 0x538d99..0x538dda: la /1, el sprite 0x5ac de escala 4 con la luz (0,8; 0,4; 1) y un giro rand() % 360.
+// 0x538d99..0x538dda: the /1, the 0x5ac sprite at scale 4 with light (0.8; 0.4; 1) and a rand() % 360 turn.
 Core::Expected<void, std::string> StepTheSpark(const Kernel::JointState& joint,
                                                const JointKernels::StepServices& services)
 {
@@ -271,7 +271,7 @@ Core::Expected<void, std::string> StepTheSpark(const Kernel::JointState& joint,
     return Sprite(services, SpiritSprite, joint.position, 4.0f, local, rotation, 0x538dda);
 }
 
-// 0x5396ff: la gota 0x60f/2 del 0x613/2, sin dueño, de ancho 40, en el punto y con los ángulos de la vuelta.
+// 0x5396ff: the 0x613/2's 0x60f/2 drop, ownerless, width 40, at the point and with the turn's angles.
 Core::Expected<void, std::string> DropTheDrop(const JointKernels::StepServices& services, glm::vec3 point,
                                               glm::vec3 angles)
 {
@@ -292,10 +292,9 @@ Core::Expected<void, std::string> DropTheDrop(const JointKernels::StepServices& 
     return {};
 }
 
-// 0x539586..0x539775: la /2, la /6, la /7 y la /0x15. La luz local por subtipo (la /6 y la /7 por la skill); con vida
-// de menos de 10, la propia se apaga y la local es ella; con vida 19, la /2 y la /0x15 sortean un punto alrededor de
-// la partida (+0x24) y la /2 suelta allí la gota. Después el sprite 0x5ac, de escala (20 − vida) / 5 + 4, y la
-// velocidad sube 5.
+// 0x539586..0x539775: the /2, /6, /7 and /0x15. The local light by subtype (the /6 and /7 by skill); with life under
+// 10, its own fades and the local is it; with life 19, the /2 and /0x15 draw a point around the start (+0x24) and the
+// /2 releases the drop there. Then the 0x5ac sprite, of scale (20 − life) / 5 + 4, and the speed rises 5.
 Core::Expected<void, std::string> StepTheCross(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     CrtRandom& random = *services.random;
@@ -316,7 +315,7 @@ Core::Expected<void, std::string> StepTheCross(Kernel::JointState& joint, const 
     }
     else if (joint.life == DropLife && (joint.subtype == 2 || joint.subtype == 0x15))
     {
-        // 0x539669..0x5396d8: los ángulos (0, 0, rand() % 360) y el punto (±100, ±100, −200) desde la partida.
+        // 0x539669..0x5396d8: angles (0, 0, rand() % 360) and the point (±100, ±100, −200) from the start.
         glm::vec3 angles{0.0f, 0.0f, 0.0f};
         angles.z = static_cast<float>(random.Next() % FullTurn);
         glm::vec3 point{};
@@ -327,7 +326,7 @@ Core::Expected<void, std::string> StepTheCross(Kernel::JointState& joint, const 
             if (auto dropped = DropTheDrop(services, point, angles); !dropped.HasValue())
                 return dropped;
     }
-    const auto rotation = static_cast<float>(random.Next() % FullTurn); // 0x539709, antes de leer la luz.
+    const auto rotation = static_cast<float>(random.Next() % FullTurn); // 0x539709, before reading the light.
     if (!local)
         return Core::Unexpected(
             std::format("0x53975b: la luz local del joint {:#x}/{} con la skill {} queda sin escribir (sin portar)",
@@ -341,8 +340,8 @@ Core::Expected<void, std::string> StepTheCross(Kernel::JointState& joint, const 
     return {};
 }
 
-// 0x539941..0x5399a2: el desvío de 0x53d1a0(lugar, dir, 1): el contador compartido con su acceso (4 rand() al
-// cerrarlo en 0) y la dirección de la fase lugar + contador, por 50. La x suma el producto sin redondear.
+// 0x539941..0x5399a2: the deviation of 0x53d1a0(slot, dir, 1): the shared counter with its access (4 rand() when
+// closing it at 0) and the direction of the phase slot + counter, times 50. x adds the unrounded product.
 Core::Expected<void, std::string> Wander(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.cloth == nullptr)
@@ -365,10 +364,10 @@ Core::Expected<void, std::string> Wander(Kernel::JointState& joint, const JointK
     return {};
 }
 
-// 0x53977a..0x539a09: la /3 y la /0xd. La /0xd con vida de 28 o menos busca a su dueño: medio giro de 20 en x con
-// rand() & 1 en 0, un punto ±70 alrededor del dueño y 50 más arriba, 0x4e9810 con la velocidad − 20, la velocidad + 1
-// hasta 50, una vida menos cerca del punto, la luz local es la propia y la escala (vida / 10 + 1) · 2. Si no, el
-// desvío y la luz (1; 0,5; 0,1) con escala 3. Después, los sprites 0x5ac y 0x5fd (a media escala).
+// 0x53977a..0x539a09: the /3 and /0xd. The /0xd with life 28 or less seeks its owner: half a turn of 20 in x with
+// rand() & 1 at 0, a point ±70 around the owner and 50 higher, 0x4e9810 with speed − 20, speed + 1 up to 50, one life
+// less near the point, the local light is its own and the scale (life / 10 + 1) · 2. Otherwise, the deviation and light
+// (1; 0.5; 0.1) with scale 3. Then the 0x5ac and 0x5fd sprites (at half scale).
 Core::Expected<void, std::string> StepTheBolt(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     CrtRandom& random = *services.random;
@@ -404,7 +403,7 @@ Core::Expected<void, std::string> StepTheBolt(Kernel::JointState& joint, const J
             return wandered;
         local = glm::vec3{1.0f, 0.5f, Bits(0x3dcccccdu)};
     }
-    const auto first = static_cast<float>(random.Next() % FullTurn); // 0x5399a4, antes de leer la luz.
+    const auto first = static_cast<float>(random.Next() % FullTurn); // 0x5399a4, before reading the light.
     if (!local)
         return Core::Unexpected(
             std::string("0x5399cd: la luz local del joint 0x613/0xd sin dueño queda sin escribir (sin portar)"));
@@ -414,8 +413,8 @@ Core::Expected<void, std::string> StepTheBolt(Kernel::JointState& joint, const J
     return Sprite(services, GlowSprite, joint.position, F32(D(scale) * 0.5), *local, second, 0x539a09);
 }
 
-// 0x538e1e..0x538e7f: la /8 sube de 110 en x con velocidad 10 hasta la vida 41; después, con velocidad 50, la x va
-// de 180 a 360 de a rand() % 3 + 2.
+// 0x538e1e..0x538e7f: the /8 rises from 110 in x with speed 10 until life 41; then, with speed 50, x goes from 180 to
+// 360 by rand() % 3 + 2.
 void StepTheArc(Kernel::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t RiseLife = 42;
@@ -444,8 +443,8 @@ Core::Expected<CrtRandom*, std::string> RandomOf(const Kernel::JointState& joint
     return services.random;
 }
 
-// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0): una partícula sin dueño, con el RNG y el reloj del paso.
-// Con la tabla llena no hace nada (ni rand()).
+// 0x53fe70(type, position, angles, light, subtype, scale, 0): an ownerless particle, with the step's RNG and clock.
+// With the table full it does nothing (not even rand()).
 Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, const JointKernels::StepServices& services,
                                            std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                            const glm::vec3& position, const glm::vec3& light, float scale)
@@ -462,8 +461,8 @@ Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, cons
     return {};
 }
 
-// 0x530860(0x613, desde, desde, ángulos, subtipo, 0, 0,9f, −1, 0, 0, −1): los joints que sueltan la /0xb y la /0xf, sin
-// dueño y siempre del 0x613 (también desde un 0x6ee).
+// 0x530860(0x613, from, from, angles, subtype, 0, 0.9f, −1, 0, 0, −1): the joints the /0xb and /0xf release, ownerless
+// and always 0x613 (also from a 0x6ee).
 Core::Expected<void, std::string> Release(Kernel::JointState& joint, const JointKernels::StepServices& services,
                                           std::uint32_t address, glm::vec3& from, glm::vec3& angles,
                                           std::int32_t subtype)
@@ -487,7 +486,7 @@ Core::Expected<void, std::string> Release(Kernel::JointState& joint, const Joint
     return {};
 }
 
-// FCOS y FSIN de la z de los ángulos (sin pasar a radianes) por un float de memoria, sumados a la x y a la y.
+// FCOS and FSIN of the angles' z (not converted to radians) times a float from memory, added to x and y.
 Core::Expected<void, std::string> Drift(Kernel::JointState& joint, float reach, std::uint32_t address)
 {
     const auto cosine = Math::Detail::CosineProductPC53(D(joint.angles.z), reach);
@@ -500,9 +499,9 @@ Core::Expected<void, std::string> Drift(Kernel::JointState& joint, float reach, 
     return {};
 }
 
-// 0x538f45..0x538feb (la /0xb): la x de los ángulos es la vida (fild); la partícula 0x5da/5 de 0,9f con la luz 1 en una
-// copia de la posición; con rand() % 200 en 0, el joint 0x613/0xc desde esa copia; después avanza 20 por FCOS y FSIN de
-// la z (0x6b86d0).
+// 0x538f45..0x538feb (the /0xb): the angles' x is the life (fild); the 0x5da/5 particle of 0.9f with light 1 at a copy
+// of the position; with rand() % 200 at 0, the 0x613/0xc joint from that copy; then it advances 20 by FCOS and FSIN of
+// z (0x6b86d0).
 Core::Expected<void, std::string> StepTheStill(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     glm::vec3 from = joint.position;
@@ -523,8 +522,8 @@ Core::Expected<void, std::string> StepTheStill(Kernel::JointState& joint, const 
     return Drift(joint, Reach, 0x538fce);
 }
 
-// 0x539328..0x539384 (la /0x10): la x de los ángulos es la vida; la partícula 0x6f4/4 de escala 1 en la posición, con
-// la luz del joint (+0x48); después avanza 30 por FCOS y FSIN de la z (0x6b8858).
+// 0x539328..0x539384 (the /0x10): the angles' x is the life; the 0x6f4/4 particle at scale 1 at the position, with the
+// joint's light (+0x48); then it advances 30 by FCOS and FSIN of z (0x6b8858).
 Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     joint.angles.x = static_cast<float>(joint.life);
@@ -536,8 +535,8 @@ Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint, const
     return Drift(joint, Reach, 0x539361);
 }
 
-// 0x538ff9..0x539091 (la /0xc): en una copia de la posición, la 0x5f5/0 de escala ((rand() & 31) + 48) · 0,01f
-// (0x6b88d4) con la luz (1; 0,2f; 0,1f) y la 0x5da/6 de 0,6f con la luz 1.
+// 0x538ff9..0x539091 (the /0xc): at a copy of the position, the 0x5f5/0 at scale ((rand() & 31) + 48) · 0.01f
+// (0x6b88d4) with light (1; 0.2f; 0.1f) and the 0x5da/6 of 0.6f with light 1.
 Core::Expected<void, std::string> StepTheSmoke(const Kernel::JointState& joint,
                                                const JointKernels::StepServices& services)
 {
@@ -556,8 +555,8 @@ Core::Expected<void, std::string> StepTheSmoke(const Kernel::JointState& joint,
     return Particle(joint, services, 0x539089, Glow, GlowSubtype, from, glm::vec3(1.0f), Bits(0x3f19999au));
 }
 
-// 0x53909f..0x539125 (la /0xe): la x de los ángulos − 2 (0x6b8818) y rand() % 5: con 0 la partícula 0x6f2/2, con 1 o 2
-// la 0x6f3/2 y si no la 0x6f4/4, de escala 1 en la posición, con la luz del joint (+0x48).
+// 0x53909f..0x539125 (the /0xe): the angles' x − 2 (0x6b8818) and rand() % 5: with 0 the 0x6f2/2 particle, with 1 or 2
+// the 0x6f3/2 and otherwise the 0x6f4/4, at scale 1 at the position, with the joint's light (+0x48).
 Core::Expected<void, std::string> StepTheSplash(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto random = RandomOf(joint, services, 0x5390c2);
@@ -576,10 +575,10 @@ Core::Expected<void, std::string> StepTheSplash(Kernel::JointState& joint, const
     return Particle(joint, services, 0x539120, Third, LastSubtype, joint.position, joint.light, 1.0f);
 }
 
-// 0x539249..0x5392e6: el dueño de la /0xf (el 0x126 de Kundun, 0x51cf45: un efecto con modelo). La x de sus ángulos en
-// 0 si no es cero (fcomp con C3: un cero de cualquier signo o NaN quedan); con su vida (+0x60) de más de 5, el alpha
-// (+0x174) en 1; su posición, la del joint con k = clave · 0,1f + 30 guardado en float: x + FSIN(z) · k (el fst deja la
-// suma en la pila y el fstp la guarda igual), y − FCOS(z) · k y la z; otra vez la x de los ángulos y la y en 0.
+// 0x539249..0x5392e6: the /0xf's owner (Kundun's 0x126, 0x51cf45: an effect with a model). The x of its angles at 0 if
+// it is not zero (fcomp with C3: a zero of either sign or NaN stays); with its life (+0x60) over 5, the alpha (+0x174)
+// at 1; its position, the joint's with k = key · 0.1f + 30 stored as float: x + FSIN(z) · k (the fst leaves the sum on
+// the x87 stack and the fstp stores it the same), y − FCOS(z) · k and the z; again the angles' x and y at 0.
 Core::Expected<void, std::string> CarryThePhoenix(const Kernel::JointState& joint, Effects::ModelEffect& owner)
 {
     const auto flatten = [](float& pitch)
@@ -604,11 +603,11 @@ Core::Expected<void, std::string> CarryThePhoenix(const Kernel::JointState& join
     return {};
 }
 
-// 0x539133..0x53931e: la /0xf. La key (WORD) suma 30. Con vida de menos de 35, en una copia de la posición: la
-// partícula 0x5d9/7 de escala 1 con la luz 1 (0x53918a); con rand() & 1 en 0, la copia pasa a (x − FSIN(z) · k, FCOS(z)
-// · k + y, 350) con k = 40 − key · 0,1f retenido en la x87 y suelta dos joints 0x613/0xe desde ella con los ángulos (0,
-// 0, 0) y (0, 0, 3); después, con dueño, CarryThePhoenix. Siempre (0x5392e9): avanza k = key · 0,1f + 30 (en la x87,
-// sin redondear) en x con el seno de la z de los ángulos y lo resta en y con el coseno.
+// 0x539133..0x53931e: the /0xf. The key (WORD) adds 30. With life under 35, at a copy of the position: the 0x5d9/7
+// particle at scale 1 with light 1 (0x53918a); with rand() & 1 at 0, the copy becomes (x − FSIN(z) · k, FCOS(z) · k +
+// y, 350) with k = 40 − key · 0.1f retained on the x87 stack and releases two 0x613/0xe joints from it with angles (0,
+// 0, 0) and (0, 0, 3); then, with an owner, CarryThePhoenix. Always (0x5392e9): it advances k = key · 0.1f + 30 (on the
+// x87 stack, unrounded) in x with the sine of the angles' z and subtracts it in y with the cosine.
 Core::Expected<void, std::string> StepTheSpiral(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::uint16_t KeyStep = 30;         // 0x53913b
@@ -674,8 +673,8 @@ Core::Expected<void, std::string> StepTheSpiral(Kernel::JointState& joint, const
     return {};
 }
 
-// 0x539392..0x53941e: la /0x11, con la vida justo en 100, suelta 120 joints 0x613/0x10 sin dueño desde una copia de
-// la posición hasta la posición, de ancho 0,9f (0x3f666666) y con los ángulos (0, 0, 3 · i).
+// 0x539392..0x53941e: the /0x11, with life at exactly 100, releases 120 ownerless 0x613/0x10 joints from a copy of the
+// position to the position, of width 0.9f (0x3f666666) and with angles (0, 0, 3 · i).
 Core::Expected<void, std::string> StepTheBurst(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::int32_t BurstLife = 100;
@@ -707,11 +706,11 @@ Core::Expected<void, std::string> StepTheBurst(Kernel::JointState& joint, const 
     return {};
 }
 
-// 0x53942c..0x539500: la /0x12. La velocidad + 3; la key (WORD) + 6 con vida % 12 de 5 o menos y − 6 si no; la x de los
-// ángulos −90 − key y la z + 10. Con dueño (el 0x125 de Kundun, 0x51ce91: JointOwnerKind::ModelEffect), le pone el
-// alpha (+0x174) en 1 si su vida (+0x60) pasa de 5 y le copia la posición (+0x10, 0x539494); otro dueño corta ahí.
-// Después (0x5394be..0x5394fb), en una copia de la posición, la partícula 0x5f2/0x13 de escala 7 (0x40e00000) con la
-// luz 1, y sigue a la cola (0x53c390).
+// 0x53942c..0x539500: the /0x12. Speed + 3; the key (WORD) + 6 with life % 12 of 5 or less and − 6 otherwise; the
+// angles' x −90 − key and z + 10. With an owner (Kundun's 0x125, 0x51ce91: JointOwnerKind::ModelEffect), it sets the
+// owner's alpha (+0x174) to 1 if its life (+0x60) is over 5 and copies the position to it (+0x10, 0x539494); another
+// owner stops there. Then (0x5394be..0x5394fb), at a copy of the position, the 0x5f2/0x13 particle at scale 7
+// (0x40e00000) with light 1, and it goes on to the tail (0x53c390).
 Core::Expected<void, std::string> StepTheSwing(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     constexpr std::int32_t SwingPeriod = 12, RisingHalf = 5;
@@ -741,12 +740,12 @@ Core::Expected<void, std::string> StepTheSwing(Kernel::JointState& joint, const 
     return Particle(joint, services, 0x5394fb, Flame, FlameSubtype, from, glm::vec3(1.0f), FlameScale);
 }
 
-// 0x539b10..0x539cc7: la /0 y la /5 con un ancho distinto de 80. El destino es el dueño 80 más arriba; la distancia en
-// el plano es la de antes del movimiento (0x539b33, en float); 0x4e9810 gira hacia el destino de a 10 (la /5, de a 2) y
-// con el doble de la velocidad no menor que esa distancia prende +0x9d4. La /0 se sacude con dos (rand() & 31) − 16:
-// vx + r1 · 0,2f, la x de los ángulos + vx, la z + (r2 · 0,8f + vz), vx · 0,6f y vz el sacudón · 0,8f. Con 0x5f93c0, a
-// menos de 100 sobre el terreno sube (x en −5) y a más de 400 baja (x en 5), con vx en 0. La luz es la vida · 0,1f y la
-// luz dinámica de radio 4 resta ((rand() & 3) + 4) · 0,01f.
+// 0x539b10..0x539cc7: the /0 and /5 with a width other than 80. The target is the owner 80 higher; the distance on the
+// plane is the one before the move (0x539b33, as float); 0x4e9810 turns toward the target by 10 (the /5, by 2) and with
+// twice the speed not less than that distance sets +0x9d4. The /0 shakes with two (rand() & 31) − 16: vx + r1 · 0.2f,
+// the angles' x + vx, z + (r2 · 0.8f + vz), vx · 0.6f and vz the shake · 0.8f. With 0x5f93c0, less than 100 above the
+// terrain it rises (x at −5) and over 400 it falls (x at 5), with vx at 0. The light is life · 0.1f and the radius-4
+// dynamic light subtracts ((rand() & 3) + 4) · 0.01f.
 Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const Kernel::ActorState* owner = JointKernels::ActorOwner(joint);
@@ -763,16 +762,16 @@ Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const
     joint.targetPosition = {owner->position.x, owner->position.y, F32(D(owner->position.z) + Above)};
     const float distance = F32(std::sqrt(D(services.startDeltaY) * D(services.startDeltaY) +
                                          D(services.startDeltaX) * D(services.startDeltaX)));
-    constexpr float SlowTurn = 2.0f, FastTurn = 10.0f; // 0x40000000 y 0x41200000
+    constexpr float SlowTurn = 2.0f, FastTurn = 10.0f; // 0x40000000 and 0x41200000
     static_cast<void>(
         Math::MoveToward(joint.position, joint.angles, joint.targetPosition, joint.subtype == 5 ? SlowTurn : FastTurn));
     if (joint.field9d4 == 0 && D(joint.speed) + D(joint.speed) >= D(distance))
         joint.field9d4 = 1;
     if (joint.subtype != 5)
     {
-        constexpr double Pitch = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));   // 0x6b8854, 0,2f
-        constexpr double Yaw = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));     // 0x6b8a38, 0,8f
-        constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
+        constexpr double Pitch = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));   // 0x6b8854, 0.2f
+        constexpr double Yaw = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));     // 0x6b8a38, 0.8f
+        constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0.6f
         constexpr int Mask = 31, Center = 16;
         const auto first = (random.Value()->Next() & Mask) - Center;
         joint.velocity.x = F32(static_cast<double>(first) * Pitch + D(joint.velocity.x));
@@ -784,7 +783,7 @@ Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const
         joint.velocity.z = F32(shake * Yaw);
     }
     const double ground = (*services.terrainHeight)(joint.position.x, joint.position.y);
-    constexpr double Low = 100.0, High = 400.0; // 0x6b86b4 y 0x6b87b0
+    constexpr double Low = 100.0, High = 400.0; // 0x6b86b4 and 0x6b87b0
     if (ground + Low > D(joint.position.z))
     {
         joint.velocity.x = 0.0f;
@@ -796,7 +795,7 @@ Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const
         joint.angles.x = 5.0f; // 0x40a00000
     }
     constexpr double Tenth = Math::TenthAsDouble;                                    // 0x6b87b8
-    constexpr double Shade = static_cast<double>(std::bit_cast<float>(0xbc23d70au)); // 0x6b8a58, −0,01f
+    constexpr double Shade = static_cast<double>(std::bit_cast<float>(0xbc23d70au)); // 0x6b8a58, −0.01f
     joint.light = glm::vec3(F32(static_cast<double>(joint.life) * Tenth));
     const auto shadeSteps = (random.Value()->Next() & 3) + 4;
     const glm::vec3 shade(F32(static_cast<double>(shadeSteps) * Shade));
@@ -804,18 +803,19 @@ Core::Expected<void, std::string> StepTheVolley(Kernel::JointState& joint, const
     return WorldObjects::AddDynamicLight(services.lighting, joint.position, shade, ShadeRadius, "0x539cbf");
 }
 
-// 0x539a0e..0x539ae5: el 0x613/0, /5 y /0x13 de ancho 80. Suelta el 0xd0 (0x518cf0(0xd0, posición, ángulos, luz,
-// 3 la /5 y 0 los demás, sin dueño, −1, 0, 0, 0, 0), el rayo que cae, que no saca rand()). Con el asedio prendido
-// (0x4294b0) y el bit 0x100 de 0x5f82c0 en su punto, la velocidad en 0 y la vida en _ftol(vida · 0,2f), y vuelve a la
-// cola 0x53c393 sin el resto (false). Si no, con la vida múltiplo de 15 y el héroe de dueño, sus blancos (0x517a20(la
-// skill +0x9ea, la posición, 150, la tanda +0x9eb, la clave +0x9e8, el byte +0xa08)), y sigue (true).
+// 0x539a0e..0x539ae5: the 0x613/0, /5 and /0x13 of width 80. Releases the 0xd0 (0x518cf0(0xd0, position, angles,
+// light, 3 for the /5 and 0 for the others, no owner, −1, 0, 0, 0, 0), the falling ray, which draws no rand()). With
+// the siege on (0x4294b0) and bit 0x100 of 0x5f82c0 at its point, speed at 0 and life at _ftol(life · 0.2f), and it
+// returns to the 0x53c393 tail without the rest (false). Otherwise, with life a multiple of 15 and the hero as owner,
+// its targets (0x517a20(the skill +0x9ea, the position, 150, the batch +0x9eb, the key +0x9e8, the byte +0xa08)), and
+// it goes on (true).
 Core::Expected<bool, std::string> VolleyFromTheSky(Kernel::JointState& joint,
                                                    const JointKernels::StepServices& services)
 {
     constexpr std::int32_t ShieldSubtype = 5;
     constexpr std::int32_t FallingRay = 3; // 0x539a2f
     constexpr std::uint32_t SiegeCell = 0x100;
-    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc: 0,2f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8cfc: 0.2f
     constexpr std::int32_t HitEvery = 15;                                             // 0x539aa0
     constexpr float HitRadius = 150.0f;                                               // 0x539ad6: 0x43160000
     if (services.effects == nullptr || services.random == nullptr)
@@ -877,9 +877,9 @@ Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint, con
     const std::int32_t subtype = joint.subtype;
     if (subtype == 0 || subtype == 5 || subtype == 0x13)
     {
-        // 0x539a0e: con el ancho en 80 (los bits 0x42a00000), el 0xd0 y lo que sigue (VolleyFromTheSky); si no vuelve
-        // antes, la misma cola que con otro ancho. Con otro ancho, la /0x13 suelta antes el destello 0x11b/0
-        // (0x539b08).
+        // 0x539a0e: with the width at 80 (bits 0x42a00000), the 0xd0 and what follows (VolleyFromTheSky); if it does
+        // not return earlier, the same tail as with another width. With another width, the /0x13 first releases the
+        // 0x11b/0 flash (0x539b08).
         constexpr std::uint32_t VolleyWidth = 0x42a00000u;
         if (std::bit_cast<std::uint32_t>(joint.width) == VolleyWidth)
         {
@@ -892,7 +892,7 @@ Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint, con
         }
         if (subtype == 0x13)
         {
-            // 0x539aec..0x539b08: 0x518cf0(0x11b, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0), sin rand().
+            // 0x539aec..0x539b08: 0x518cf0(0x11b, position, angles, light, 0, 0, −1, 0, 0, 0, 0), no rand().
             if (services.effects == nullptr)
                 return Core::Unexpected(std::format(
                     "0x539b08: el joint {:#x}/0x13 pide la tabla de efectos (0x518cf0) para el 0x11b/0", joint.type));
@@ -904,7 +904,7 @@ Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint, con
     switch (subtype)
     {
     case 0xa:
-        // 0x538e89..0x538e9f: la z de los ángulos − 50 y velocidad 50.
+        // 0x538e89..0x538e9f: the angles' z − 50 and speed 50.
         joint.angles.z = F32(D(joint.angles.z) - 50.0);
         joint.speed = 50.0f;
         return {};
@@ -933,8 +933,8 @@ Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint, con
     case 0x15:
         break;
     default:
-        // 0x538d77..0x539505: la cadena de comparaciones no tiene caso para la /4 (y la /9 tiene el suyo en
-        // FaunaJointCreation.cpp, StepMeteor) ni para los subtipos mayores que 0x15: van directo a la cola 0x53c393.
+        // 0x538d77..0x539505: the comparison chain has no case for the /4 (and the /9 has its own in
+        // FaunaJointCreation.cpp, StepMeteor) nor for subtypes over 0x15: they go straight to the 0x53c393 tail.
         return {};
     }
     if (services.random == nullptr)
@@ -947,7 +947,7 @@ Core::Expected<void, std::string> StepSpiritJoint(Kernel::JointState& joint, con
     case 0xd:
         return StepTheBolt(joint, services);
     case 8:
-    case 0x14: // 0x53950e..0x53956b: igual que la /8.
+    case 0x14: // 0x53950e..0x53956b: same as the /8.
         StepTheArc(joint, *services.random);
         return {};
     default:

@@ -8,18 +8,18 @@
 #include <cstddef>
 #include <cstdint>
 
-// Políticas puras usadas por el paso 0x447030. La orquestación conserva las lecturas tardías de mapa,
-// tile y del predicado 0x425070 alrededor de estos helpers.
+// Pure policies used by step 0x447030. The orchestration keeps the late reads of map, tile and predicate 0x425070
+// around these helpers.
 namespace Client::Fauna
 {
-// Solo el prefijo del mapa actual se procesa; el resto del pool conserva sus campos y flags.
+// Only the current map's prefix is processed; the rest of the pool keeps its fields and flags.
 [[nodiscard]] std::size_t FishStepCount(std::int32_t map);
 
-// Guardas de admisión directa: surface es capa1 y attributes el word .att. Mapas8/33/34/54 sólo
-// pueden entrar por el fallback posterior y no se admiten aquí.
+// Direct admission guards: surface is layer 1 and attributes the .att word. Maps 8/33/34/54 can only enter through
+// the later fallback and are not admitted here.
 [[nodiscard]] bool FishDirectSpawnAllowed(std::int32_t map, std::uint8_t surface, std::uint16_t attributes);
 
-// Fronteras puras correspondientes al predicado 0x425070 y a la palabra de agua 0/2.
+// Pure boundaries matching predicate 0x425070 and the water word 0/2.
 [[nodiscard]] bool FishSpawnEventGate(std::int32_t map);
 [[nodiscard]] bool FishOpenWaterTile(std::uint16_t attributes);
 
@@ -41,11 +41,11 @@ enum class FishMovement : std::uint8_t
 [[nodiscard]] bool FishHasModel(std::int16_t model);
 // 447472 and 4474ba: the lower half of Atlans draws one of Fish04..07, the upper half Fish08 or Fish09.
 [[nodiscard]] std::int16_t AtlansFishModel(bool lower, std::int32_t draw);
-// 5f82a0: wrap independiente de los dos bytes bajos, distinto de5f82c0.
+// 0x5f82a0: wrap independent of the two low bytes, unlike 0x5f82c0.
 [[nodiscard]] std::uint32_t FishTileIndex(std::int32_t x, std::int32_t y);
 
-// Caller447030 completo respecto de servicios requeridos. No conecta Main/escena/renderer.
-// Un fallo alcanzado conserva el prefijo; no valida por adelantado servicios de ramas no tomadas.
+// Caller 0x447030, complete with respect to the required services. Does not connect Main/scene/renderer. A reached
+// failure keeps the prefix; services of branches not taken are not validated in advance.
 [[nodiscard]] Core::Expected<void, std::error_code> StepFish(std::span<FishStepView, FishPoolSize> pool,
                                                              const FishStepWorld& world, IFishStepServices& services);
 } // namespace Client::Fauna

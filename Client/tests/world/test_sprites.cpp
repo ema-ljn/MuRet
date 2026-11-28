@@ -8,13 +8,13 @@
 #include <cstddef>
 #include <cstdint>
 
-// Client::Particles::FrameSprites (0x5491e0, 0x549510 y el alpha de 0x549290; 06 § Los efectos del login).
+// Client::Particles::FrameSprites (0x5491e0, 0x549510 and 0x549290's alpha; 06 § Los efectos del login).
 namespace
 {
 using Client::Particles::FrameSprites;
 using Client::Particles::Sprite;
 
-// 0x5491e0 toma el primer lugar sin el byte vivo de los 1.000 y lo arma con el alpha en 1.
+// 0x5491e0 takes the first of the 1000 slots without the alive byte and sets it up with alpha at 1.
 TEST(SpritesTest, TheFirstFreePlaceOfAThousand)
 {
     FrameSprites sprites;
@@ -30,7 +30,7 @@ TEST(SpritesTest, TheFirstFreePlaceOfAThousand)
     EXPECT_EQ(sprites.Sprites()[7].position.x, 7.0f);
 }
 
-// 0x549510 prende +0x16c de los vivos.
+// 0x549510 sets +0x16c of the live ones.
 TEST(SpritesTest, TheLiveOnesAreSeen)
 {
     FrameSprites sprites;
@@ -40,7 +40,7 @@ TEST(SpritesTest, TheLiveOnesAreSeen)
     EXPECT_FALSE(sprites.Sprites()[1].seen);
 }
 
-// 0x549290: visto, el alpha sube 0,1 con tope 1; sin ver, baja 0,1 con piso 0,2.
+// 0x549290: seen, alpha rises 0.1 up to 1; unseen, it falls 0.1 down to 0.2.
 TEST(SpritesTest, TheAlphaRisesWhenSeenAndFallsWhenNot)
 {
     Sprite sprite;

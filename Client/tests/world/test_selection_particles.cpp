@@ -19,9 +19,9 @@
 #include <optional>
 #include <vector>
 
-// Las partículas de los objetos del mapa 54 (y del 33) y del aura del elegido de la selección: lo que
-// 0x53fe70 escribe después de su prefijo y lo que 0x5446e0 avanza (06 § El mundo de la selección). Los
-// valores esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// The particles of the objects of map 54 (and 33) and of the selection's chosen one's aura: what 0x53fe70 writes
+// after its prefix and what 0x5446e0 advances (06 § El mundo de la selección). The expected values repeat the ASM's
+// formulas with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -49,7 +49,7 @@ const Particle& Create(Particles& particles, std::int32_t type, std::int32_t sub
     return particles.All()[created.HasValue() && created.Value() ? *created.Value() : 0];
 }
 
-// El seno de 0x547723 por el 20 de 0x6b86d0: anota el argumento y devuelve un producto fijo.
+// The sine of 0x547723 times the 20 of 0x6b86d0: records the argument and returns a fixed product.
 class RecordingSine final : public Client::Particles::IParticleTrigonometry
 {
 public:
@@ -68,7 +68,7 @@ public:
     }
 };
 
-// Un paso de 0x5446e0 con el reloj del mundo y los objetos de `objects` como dueños.
+// A 0x5446e0 step with the world clock and the objects of `objects` as owners.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
                                                  RecordingSine& sine,
                                                  std::vector<Client::WorldObjects::WorldObject>* objects = nullptr)
@@ -90,7 +90,7 @@ Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom
     return Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, sine, {}, owners);
 }
 
-// 0x543851..0x54389c: el 729/1 se dibuja con Impack03 (0x719), con escala y subida sorteadas.
+// 0x543851..0x54389c: 729/1 is drawn with Impack03 (0x719), with rolled scale and rise.
 TEST(SelectionParticlesTest, TheChaseLightRisingSubtypeDrawsWithImpack03AndSixRandomDraws)
 {
     auto particles = std::make_unique<Particles>();
@@ -113,7 +113,7 @@ TEST(SelectionParticlesTest, TheChaseLightRisingSubtypeDrawsWithImpack03AndSixRa
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x54389e..0x5438c1: el 729/0 es la luz ancha, quieta, con su propia textura.
+// 0x54389e..0x5438c1: 729/0 is the wide light, still, with its own texture.
 TEST(SelectionParticlesTest, TheWideChaseLightStaysStillAndDrawsFiveTimes)
 {
     auto particles = std::make_unique<Particles>();
@@ -133,7 +133,7 @@ TEST(SelectionParticlesTest, TheWideChaseLightStaysStillAndDrawsFiveTimes)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x547880..0x5478cf: con vida 10 o más (ya descontada) la luz sube 1,16; debajo, baja 0,862.
+// 0x547880..0x5478cf: with life 10 or more (already decremented) the light rises 1.16; below, it falls 0.862.
 TEST(SelectionParticlesTest, TheChaseLightBrightensUntilTenStepsAreLeftAndThenFades)
 {
     for (const int life : {11, 10})
@@ -158,8 +158,8 @@ TEST(SelectionParticlesTest, TheChaseLightBrightensUntilTenStepsAreLeftAndThenFa
     }
 }
 
-// 0x54150e..0x5415fb: vida 33, la escala baja, el giro, el lado, la subida y la deriva en y (con siete
-// de diez); y sigue al corrimiento de x.
+// 0x54150e..0x5415fb: life 33, the scale drops, the turn, the side, the rise and the y drift (with seven of ten); y
+// follows the x shift.
 TEST(SelectionParticlesTest, TheRisingFlameDrawsItsDriftOnlyWhenTheSeventhOfTenComesOut)
 {
     std::vector<bool> drifted;
@@ -193,9 +193,9 @@ TEST(SelectionParticlesTest, TheRisingFlameDrawsItsDriftOnlyWhenTheSeventhOfTenC
     EXPECT_NE(std::find(drifted.begin(), drifted.end(), false), drifted.end());
 }
 
-// 0x54143c..0x54149d: la llama 5de/0 del chorro de Lost Tower vive 20, sube recta ((& 127) + 128) · 0,15f y su
-// escala es ((& 63) + 64) por el argumento por 0,01f: dos rand(). 0x545d03: su paso es sólo el común, que
-// no le toca la escala, la subida ni el giro.
+// 0x54143c..0x54149d: Lost Tower's jet flame 5de/0 lives 20, rises straight ((& 127) + 128) · 0.15f and its scale is
+// ((& 63) + 64) times the argument times 0.01f: two rand(). 0x545d03: its step is only the common one, which touches
+// neither the scale, the rise nor the turn.
 TEST(SelectionParticlesTest, TheLostTowerFloorFlameRisesStraightWithTwoDraws)
 {
     auto particles = std::make_unique<Particles>();
@@ -226,8 +226,8 @@ TEST(SelectionParticlesTest, TheLostTowerFloorFlameRisesStraightWithTwoDraws)
     EXPECT_TRUE(sine.arguments.empty());
 }
 
-// 0x545e3f..0x545ea9: con la partida a la izquierda de x (C0 del fcomp) gira +2 y si no −2; sube, se achica con la
-// subida y se apaga con la escala del x87 en 0 o menos; la luz cae 0,993.
+// 0x545e3f..0x545ea9: with the start left of x (fcomp's C0) it turns +2 and otherwise −2; it rises, shrinks with the
+// rise and goes off with the x87 scale at 0 or less; the light falls 0.993.
 TEST(SelectionParticlesTest, TheRisingFlameTurnsBySideOfItsStartAndDiesWhenItsScaleIsGone)
 {
     for (const float startX : {-5.0f, 5.0f})
@@ -270,8 +270,8 @@ TEST(SelectionParticlesTest, TheRisingFlameTurnsBySideOfItsStartAndDiesWhenItsSc
     EXPECT_FALSE(p.alive);
 }
 
-// 0x5435cf..0x54363b: 622/1 vive 30, sortea su fase, su lugar, su escala y su giro (siete rand()) y suma
-// el argumento de escala al giro; la velocidad queda en 0.
+// 0x5435cf..0x54363b: 622/1 lives 30, rolls its phase, place, scale and turn (seven rand()) and adds the scale
+// argument to the turn; the velocity stays at 0.
 TEST(SelectionParticlesTest, TheOwnedMistDrawsSevenTimesAndAddsTheScaleArgumentToItsTurn)
 {
     auto particles = std::make_unique<Particles>();
@@ -298,8 +298,8 @@ TEST(SelectionParticlesTest, TheOwnedMistDrawsSevenTimesAndAddsTheScaleArgumentT
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x5476f0..0x547757: el dueño visto renueva la vida a 50; la altura es el seno del reloj por 20 sobre la
-// de partida y el giro, el reloj por el factor por 0,02 más la fase.
+// 0x5476f0..0x547757: the seen owner renews the life to 50; the height is the clock's sine times 20 over the start's,
+// and the turn, the clock times the factor times 0.02 plus the phase.
 TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsSeen)
 {
     std::vector<Client::WorldObjects::WorldObject> objects(1);
@@ -330,8 +330,8 @@ TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsS
     EXPECT_EQ(p.rotation, F32((1234.0 * 1.5) * Fiftieth + 0.25));
 }
 
-// 0x547703..0x547711: sin verse y sin vida, la neblina se apaga y su dueño vuelve a emitir (+0x58 en 0);
-// igual termina su altura y su giro.
+// 0x547703..0x547711: unseen and without life, the mist goes off and its owner emits again (+0x58 at 0); it still
+// finishes its height and turn.
 TEST(SelectionParticlesTest, TheOwnedMistLetsItsOwnerEmitAgainWhenItDiesUnseen)
 {
     std::vector<Client::WorldObjects::WorldObject> objects(1);
@@ -355,8 +355,8 @@ TEST(SelectionParticlesTest, TheOwnedMistLetsItsOwnerEmitAgainWhenItDiesUnseen)
     EXPECT_EQ(sine.arguments.size(), 1u);
 }
 
-// 0x54327b..0x5435cf: las nubes 622 del 0 al 5 de Icarus comparten el alta del /1 (siete rand()); en el paso,
-// la tabla 0x54848c gira a favor el 1 y el 4, en contra el 2 y el 5, y deja el giro del 0 y del 3.
+// 0x54327b..0x5435cf: Icarus's clouds 622 from 0 to 5 share /1's creation (seven rand()); in the step, table 0x54848c
+// turns 1 and 4 forward, 2 and 5 backward, and leaves 0's and 3's turn alone.
 TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
 {
     for (std::int32_t subtype = 0; subtype <= 5; ++subtype)
@@ -390,7 +390,7 @@ TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
     }
 }
 
-// Sin el objeto dueño entre los del mapa, el paso corta con MissingOwner antes de escribir la partícula.
+// Without the owner object among the map's, the step cuts with MissingOwner before writing the particle.
 TEST(SelectionParticlesTest, TheOwnedMistNeedsItsOwnerAmongTheMapObjects)
 {
     std::vector<Client::WorldObjects::WorldObject> objects(1);
@@ -414,7 +414,7 @@ TEST(SelectionParticlesTest, TheOwnedMistNeedsItsOwnerAmongTheMapObjects)
     EXPECT_TRUE(sine.arguments.empty());
 }
 
-// 0x543f04 del 6f0: el /2 de los objetos suma 1,6 (0x6b8bfc) a la escala del argumento.
+// 0x543f04 of 6f0: the objects' /2 adds 1.6 (0x6b8bfc) to the argument's scale.
 TEST(SelectionParticlesTest, TheObjectWaterfallAddsItsScaleArgument)
 {
     auto particles = std::make_unique<Particles>();
@@ -431,7 +431,7 @@ TEST(SelectionParticlesTest, TheObjectWaterfallAddsItsScaleArgument)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x543f49..0x543fae del 6f1: el /2 vive 40 y suma el argumento a su escala; en la selección, luz 0,25.
+// 0x543f49..0x543fae of 6f1: /2 lives 40 and adds the argument to its scale; in the selection, light 0.25.
 TEST(SelectionParticlesTest, TheObjectWaterfallMistLivesFortyAndAddsItsScaleArgument)
 {
     auto particles = std::make_unique<Particles>();
@@ -453,8 +453,8 @@ TEST(SelectionParticlesTest, TheObjectWaterfallMistLivesFortyAndAddsItsScaleArgu
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x54417f..0x544149 del 6f2: el /4 sortea giro y escala, y después vive 20, sube y vuelve a sortear la
-// escala con el argumento sumado.
+// 0x54417f..0x544149 of 6f2: /4 rolls turn and scale, then lives 20, rises and rolls the scale again with the
+// argument added.
 TEST(SelectionParticlesTest, TheObjectSplashDrawsItsScaleTwice)
 {
     auto particles = std::make_unique<Particles>();
@@ -476,7 +476,6 @@ TEST(SelectionParticlesTest, TheObjectSplashDrawsItsScaleTwice)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// Fuera de las familias con dueño, CreateOwnedChecked no da de alta nada.
 TEST(SelectionParticlesTest, OwnedCreationRejectsOtherFamilies)
 {
     auto particles = std::make_unique<Particles>();

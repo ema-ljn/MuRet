@@ -30,12 +30,12 @@ namespace Client::Skills
 {
 namespace
 {
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0,01
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a}); // [0x6b86c0], 0.01
 constexpr float DirectionScale = std::bit_cast<float>(std::uint32_t{0x3f360b61}); // [0x6ba440], 256/360
 constexpr std::uint8_t ThrustSkill = 0x49;
 constexpr std::uint8_t ThrustAction = 0x86;
 
-// 0x55fa54 por la skill − 1 (0x49 entradas) a 0x55fa44: 0, el 19 y 0x4f5290; 1, el 1E; 2, el 19 de la 0x49.
+// 0x55fa54 by skill − 1 (0x49 entries) into 0x55fa44: 0, the 19 and 0x4f5290; 1, the 1E; 2, the 19 of 0x49.
 enum class ReachedCase : std::uint8_t
 {
     Strike,
@@ -74,8 +74,8 @@ std::optional<std::uint8_t> LowByteOf(double value)
     return static_cast<std::uint8_t>(*truncated & 0xff);
 }
 
-// 0x55d4a9..0x55d4e4 (y 0x55e150.., 0x55f409..): la X (+0x41c) y la Y (+0x420) del héroe publicado, cada una abierta y
-// cerrada, y el D3 de girar con su ángulo.
+// 0x55d4a9..0x55d4e4 (and 0x55e150.., 0x55f409..): the published hero's X (+0x41c) and Y (+0x420), each opened and
+// closed, and the turning D3 with its angle.
 Core::Expected<void, std::string> TurnThePublishedHero(const HeroSkillContext& context, std::string_view where)
 {
     Kernel::ActorState& published = context.world.Hero();
@@ -84,7 +84,8 @@ Core::Expected<void, std::string> TurnThePublishedHero(const HeroSkillContext& c
     return SendTheTurn(x, y, published.angles.z, context, where);
 }
 
-// 0x55cd47..0x55d499 y 0x55d9da..0x55e133: sin "webzen" y con el freno (que con la 0x28 no frena), el C1 06 19.
+// 0x55cd47..0x55d499 and 0x55d9da..0x55e133: without "webzen" and with the brake (which with 0x28 does not brake), the
+// C1 06 19.
 Core::Expected<void, std::string> StrikeTheTarget(std::uint8_t skill, const Kernel::ActorState& target,
                                                   const HeroSkillContext& context, std::string_view where)
 {
@@ -105,7 +106,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const Movement::WeaponSkillRequest& request = runtime.movement.weaponSkill;
-    // 0x55cbe4..0x55cc9a: la skill del lugar, con el registro propio abierto y cerrado.
+    // 0x55cbe4..0x55cc9a: the slot's skill, with the own record opened and closed.
     std::uint8_t skill = 0;
     {
         const Models::LogicalAccess own(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
@@ -115,14 +116,15 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
         return {};
     if (skill == ThrustSkill)
     {
-        // 0x55ccb1..0x55cccc: el CMP de WORD con signo.
+        // 0x55ccb1..0x55cccc: the signed WORD CMP.
         const auto right = static_cast<std::int16_t>(world.Hero().hands[0].model);
         if (right < 0xc12 || right >= 0xe12)
             return {};
     }
-    // 0x55ccd2..0x55cd26: el blanco sin mirar el −1. Con −1 el original lee la posición de actor[−1], antes del pool
-    // (comportamiento indefinido); MuRet no lee fuera del pool y corta (07, Q-C1239). Los que llaman no llegan con él:
-    // HeroAttack sale antes con −1 o menos y la rama del Wizard (0x58eecc) pide un elegido atacable.
+    // 0x55ccd2..0x55cd26: the target without checking the −1. With −1 the original reads the position of actor[−1],
+    // before the pool (undefined behavior); MuRet does not read outside the pool and cuts (07, Q-C1239). The callers
+    // never arrive with it: HeroAttack leaves first with −1 or less and the Wizard's branch (0x58eecc) asks for an
+    // attackable chosen target.
     if (request.target < 0 || static_cast<std::size_t>(request.target) >= world.Actors().size())
         return Core::Unexpected(
             std::format("0x55ccd2: el blanco {} de la skill del arma está fuera del pool", request.target));
@@ -152,8 +154,8 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
     }
     case ReachedCase::Duration:
     {
-        // 0x55e67e..0x55e699: la clave por 0x558eb0(p1, blanco), sin rand(). Con el blanco en −1 el original deja
-        // 0xffff, pero ese −1 ya cortó en 0x55ccd2 (Q-C1239): acá el blanco siempre está en el pool.
+        // 0x55e67e..0x55e699: the key through 0x558eb0(p1, target), no rand(). With the target at −1 the original
+        // leaves 0xffff, but that −1 already cut at 0x55ccd2 (Q-C1239): here the target is always in the pool.
         const auto chosen = Combat::ChosenKeyOf(world, SlotOf(world, user), request.target, context.controlDown);
         if (!chosen.HasValue())
             return Core::Unexpected(chosen.Error());
@@ -161,7 +163,7 @@ Core::Expected<void, std::string> UseTheSkillOnItsTarget(Kernel::ActorState& use
         if (!HasTheSilentName(world))
         {
             runtime.lastShotSkill = skill;
-            // 0x55e881..0x55ea8e: la celda de +0x3a8/+0x3ac de p1 y el rumbo de p2, cada uno el byte bajo del ftol.
+            // 0x55e881..0x55ea8e: the cell of p1's +0x3a8/+0x3ac and p2's heading, each the low byte of the ftol.
             const auto x = LowByteOf(static_cast<double>(user.attackPosition.x) * static_cast<double>(CellReciprocal));
             const auto y = LowByteOf(static_cast<double>(user.attackPosition.y) * static_cast<double>(CellReciprocal));
             const auto direction =

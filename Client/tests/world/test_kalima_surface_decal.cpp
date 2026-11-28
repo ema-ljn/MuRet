@@ -139,7 +139,7 @@ TEST(KalimaSurfaceDecalTest, RejectsTheNonProgressingNativeFloatLoopAfterPublish
     KalimaWorld world(24);
     ModelBatch batch;
     auto decal = Decal();
-    decal.width = 16777215.0f; // ftol(side)+1:2^24; sumarfloat1 ya no progresa en el extremo.
+    decal.width = 16777215.0f; // ftol(side)+1: 2^24; adding float 1 no longer progresses at the end.
     batch.Begin(Client::Render::Pass3D{});
     EXPECT_FALSE(DrawKalimaSurfaceDecal(batch, world, decal).HasValue());
     ASSERT_EQ(batch.Commands().size(), 1u);

@@ -23,15 +23,15 @@ namespace Client::Effects
 {
 namespace
 {
-// 0x53d88d..0x53d89b: la luz de las dos.
+// 0x53d88d..0x53d89b.
 constexpr glm::vec3 HandShineLight(1.0f, 0.5f, 0.2f);
-// 0x53d879 y 0x53d8ab: la escala, un 0 entero que 0x53fe70 lee como float.
+// 0x53d879 and 0x53d8ab: an integer 0 that 0x53fe70 reads as a float.
 constexpr float HandShineScale = 0.0f;
-// 0x53d81c y 0x53d8a8: el subtipo de cada una (el segundo argumento, 0, y ese más 2).
+// 0x53d81c and 0x53d8a8: each one's subtype (the second argument, 0, and that plus 2).
 constexpr std::array<std::int32_t, 2> HandShineSubtypes{0, Particles::HandShineSecondSubtype};
 constexpr std::size_t RightHand = 0;
 
-// 0x4ec110(modelo, huesos propios + hueso · 0x30, (0, 0, 0), punto, 1) con la escala y la posición del personaje.
+// 0x4ec110(model, own bones + bone · 0x30, (0, 0, 0), point, 1) with the character's scale and position.
 glm::vec3 BoneOrigin(const Kernel::ActorState& actor, std::uint8_t bone)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
@@ -43,7 +43,7 @@ glm::vec3 BoneOrigin(const Kernel::ActorState& actor, std::uint8_t bone)
 glm::vec3 HandShinePoint(std::span<const Kernel::ActorState> actors, std::size_t hero, std::size_t owner,
                          std::int32_t subtype)
 {
-    // 0x53fe20..0x53fe42: el idiom de and 0x80000001 sobre el subtipo, que es 0 o 2.
+    // 0x53fe20..0x53fe42: the and 0x80000001 idiom on the subtype, which is 0 or 2.
     const auto hand = static_cast<std::size_t>(subtype % 2);
     return BoneOrigin(actors[owner], actors[hero].hands[hand].bone);
 }
@@ -68,7 +68,7 @@ Core::Expected<void, std::string> RaiseTheHandShine(std::span<const Kernel::Acto
     const Particles::ParticleOwner owner{Particles::ParticleOwnerKind::Actor, slot};
     for (const std::int32_t subtype : HandShineSubtypes)
     {
-        // 0x53fe70 no lee el reloj ni la escena para la 5fd.
+        // 0x53fe70 reads neither the clock nor the scene for the 0x5fd.
         const auto created =
             particles.CreateOwnedChecked(Particles::HandShineParticle, point, actor.angles, HandShineLight, subtype,
                                          HandShineScale, 0.0f, random, 0, owner);

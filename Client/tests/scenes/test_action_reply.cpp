@@ -42,8 +42,8 @@
 #include <string>
 #include <vector>
 
-// Actors::ApplyActionReply: el 18 de otro personaje (0x4cb750; 04 § La acción, 18). Las claves, las clases y las
-// posiciones son inventadas; la tabla esperada sale de los bloques del ASM (0x4cb812..0x4cbcdb), no de una corrida.
+// Actors::ApplyActionReply: another character's 18 (0x4cb750; 04 § La acción, 18). The keys, classes and positions are
+// made up; the expected table comes from the ASM blocks (0x4cb812..0x4cbcdb), not from a run.
 namespace
 {
 using Client::Kernel::ActorState;
@@ -51,7 +51,7 @@ using Client::Kernel::ActorState;
 constexpr std::uint16_t OtherKey = 0x1234;
 constexpr std::size_t OtherSlot = 12;
 constexpr std::uint8_t ElfClass = 2;
-// Un tipo que no es jugador, con diez acciones.
+// A non-player type with ten actions.
 constexpr std::uint16_t SmallModel = 0x20;
 constexpr std::uint16_t TransformedModel = 0x154;
 constexpr std::uint32_t SittingFlag = 0x200000;
@@ -85,7 +85,7 @@ public:
     Client::Models::Skeleton transformed;
 };
 
-// 0x4cb871..0x4cbcc8: la animación de cada acción para las otras clases y para el elfo.
+// 0x4cb871..0x4cbcc8: each action's animation for the other classes and for the elf.
 struct TableRow
 {
     std::uint8_t action;
@@ -102,7 +102,7 @@ constexpr std::array<TableRow, 28> TableAnimations{{
     {0x99, 0xbd, 0xbd}, {0x9a, 0xbe, 0xbe}, {0x9b, 0xbf, 0xbf},
 }};
 
-// La animación que 0x4cb750 le pide a 0x4ea030 para `action`.
+// The animation 0x4cb750 requests from 0x4ea030 for `action`.
 std::uint8_t ExpectedAnimation(std::uint8_t action, std::uint8_t characterClass)
 {
     if (action == 0x12)
@@ -174,8 +174,8 @@ protected:
     std::vector<Client::Tests::SentAction> m_sent;
 };
 
-// 0x4cb7fd..0x4cbcdb: cada acción que no va a 0x4f2250 ni a 0x4f4a10, con cada clase: la animación de su bloque (las
-// que el modelo no tiene, 205 o más, no se ponen), el sonido 0x6f solo con la 0x12 y ningún rand().
+// 0x4cb7fd..0x4cbcdb: every action that goes to neither 0x4f2250 nor 0x4f4a10, with every class: its block's animation
+// (those the model lacks, 205 or more, are not set), sound 0x6f only with 0x12 and no rand().
 TEST_F(ActionReplyTest, EveryActionWithEveryClass)
 {
     const auto seed = m_cloth.random.State();
@@ -205,8 +205,8 @@ TEST_F(ActionReplyTest, EveryActionWithEveryClass)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// Lo que los demás ven de un emote (la acción de su C1 18) es la animación que el que lo hizo se puso (0x576a60 con el
-// +1 del elfo salvo de 0xb7 a 0xc0), en los 22 casos de 0x576eb0.
+// What others see of an emote (the action of its C1 18) is the animation its author set (0x576a60 with the elf's +1
+// except from 0xb7 to 0xc0), in the 22 cases of 0x576eb0.
 TEST_F(ActionReplyTest, TheEmoteLooksTheSameFromOutside)
 {
     const std::vector<Client::Actors::EmoteCase> cases = {
@@ -229,8 +229,8 @@ TEST_F(ActionReplyTest, TheEmoteLooksTheSameFromOutside)
     }
 }
 
-// 0x4cb794..0x4cb7fa: el ángulo es (dirección − 1) · 45 sin envolver, y la X y la Y van al centro de la celda blanco
-// (+0x39a y +0x39b), no a la lógica, para cualquier acción (Q-C779). La Z y las celdas no se tocan.
+// 0x4cb794..0x4cb7fa: the angle is (direction − 1) · 45 unwrapped, and X and Y go to the centre of the target cell
+// (+0x39a and +0x39b), not the logical one, for any action (Q-C779). Z and the cells are untouched.
 TEST_F(ActionReplyTest, TheAngleComesFromTheDirectionAndThePositionSnapsToTheTarget)
 {
     struct Turn
@@ -256,7 +256,7 @@ TEST_F(ActionReplyTest, TheAngleComesFromTheDirectionAndThePositionSnapsToTheTar
     EXPECT_EQ(Other().targetY, 0xff);
 }
 
-// 0x4cb781: con el caballo oscuro en +0x318 no hace nada; las otras mascotas no lo frenan.
+// 0x4cb781: with the dark horse in +0x318 it does nothing; the other pets do not stop it.
 TEST_F(ActionReplyTest, TheDarkHorseIsLeftAlone)
 {
     Other().pet.model = 0x1c16;
@@ -276,7 +276,7 @@ TEST_F(ActionReplyTest, TheDarkHorseIsLeftAlone)
     }
 }
 
-// 0x5110d0 (MOVSX): si no hay una clave viva, devuelve el lugar 400 y el 18 sigue escribiendo ahí (Q-C778).
+// 0x5110d0 (MOVSX): with no live key it returns slot 400 and the 18 keeps writing there (Q-C778).
 TEST_F(ActionReplyTest, AMissingKeyUpdatesTheSpareActorAtSlot400)
 {
     ActorState& spare = m_world->Actors()[400];
@@ -309,7 +309,7 @@ TEST_F(ActionReplyTest, AMissingKeyUpdatesTheSpareActorAtSlot400)
     EXPECT_EQ(Other().position, glm::vec3(1.0f, 2.0f, 3.0f));
 }
 
-// 0x5110d0 ignora claves sin signo desde 0x8000 por el MOVSX, y no encuentra una clave solo en un actor muerto.
+// 0x5110d0 ignores unsigned keys from 0x8000 because of the MOVSX, and does not find a key held only by a dead actor.
 TEST_F(ActionReplyTest, DeadAndHighBitKeysAlsoSelectTheSpareActor)
 {
     ActorState& spare = m_world->Actors()[400];
@@ -341,7 +341,7 @@ TEST_F(ActionReplyTest, DeadAndHighBitKeysAlsoSelectTheSpareActor)
     EXPECT_EQ(Other().position, glm::vec3(7.0f, 8.0f, 9.0f));
 }
 
-// Si hay dos vivos con la misma clave, 0x5110d0 elige el primero del pool.
+// 0x5110d0
 TEST_F(ActionReplyTest, TheFirstAliveActorWithADuplicateKeyWins)
 {
     Other().key = OtherKey;
@@ -354,10 +354,9 @@ TEST_F(ActionReplyTest, TheFirstAliveActorWithADuplicateKeyWins)
     EXPECT_EQ(Other().animation.action, 0);
 }
 
-// 0x4cb820..0x4cb852: 0x78 y 0x79 pegan con 0x4f4a10 (sin armas, la 0x22, sin sonido: el único rand() es el cierre del
-// registro propio de 0x4f3f80) y después ponen +0x381 en 1, el frame en 0 (aunque 0x4ea030 lo haya dejado en otro
-// valor por seguir en la misma acción), el blanco +0x3a4 con el WORD de abajo de [0x57678b0] y [0x5767964] con el
-// índice. En Lorencia y en Devias.
+// 0x4cb820..0x4cb852: 0x78 and 0x79 strike with 0x4f4a10 (no weapons, the 0x22, no sound: the only rand() is the close
+// of 0x4f3f80's own record) and then set +0x381 to 1, the frame to 0 (even if 0x4ea030 left it elsewhere by staying in
+// the same action), the +0x3a4 target to the low WORD of [0x57678b0] and [0x5767964] to the index.
 TEST_F(ActionReplyTest, TheStrikeAttacksAndRemembersTheAttacker)
 {
     constexpr std::uint32_t OwnRecordDraws = 0xf08;
@@ -395,7 +394,7 @@ TEST_F(ActionReplyTest, TheStrikeAttacksAndRemembersTheAttacker)
     EXPECT_TRUE(m_sent.empty());
 }
 
-// 0x4cb820 escribe el WORD +0x3a4 del héroe; 0x4ea190 debe leer ese mismo blanco al seguir con la cabeza.
+// 0x4cb820 writes the hero's +0x3a4 WORD; 0x4ea190 must read that same target when following with the head.
 TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
 {
     constexpr std::size_t StaleTargetSlot = 6;
@@ -422,8 +421,8 @@ TEST_F(ActionReplyTest, TheModelHeadTracksTheHeroSlotWrittenByAnAttackReply)
     EXPECT_EQ(m_cloth.random.State(), before);
 }
 
-// Un corte de 0x4f4a10 (un jugador con un arma cuerpo a cuerpo en la derecha y sin Item.bmd para leer su marca) deja el
-// ángulo, el Movement y la posición, y no escribe ni +0x381 ni [0x5767964].
+// A cut in 0x4f4a10 (a player with a melee weapon in the right hand and no Item.bmd to read its mark) leaves the angle,
+// the Movement and the position, and writes neither +0x381 nor [0x5767964].
 TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
 {
     Other().hands[0].model = 0x212;
@@ -435,7 +434,7 @@ TEST_F(ActionReplyTest, AStrikeThatCutsLeavesTheAttackerAlone)
     EXPECT_EQ(m_world->Runtime().lastAttacker, 0);
 }
 
-// 0x4cb781 es la única salida antes de los stores comunes, también si la búsqueda cayó en el 400.
+// 0x4cb781 is the only exit before the common stores, also when the lookup fell on 400.
 TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
 {
     ActorState& spare = m_world->Actors()[400];
@@ -465,7 +464,7 @@ TEST_F(ActionReplyTest, DarkHorseInTheSpareSlotStopsTheReplyBeforeAnyStores)
     EXPECT_EQ(m_cloth.random.State(), random);
 }
 
-// 0x4cb820: con H3 integrado, el registro fantasma también completa el ataque y su sufijo.
+// 0x4cb820: the ghost record also completes the attack and its suffix.
 TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotCompletesTheAttackAndItsSuffix)
 {
     ActorState& spare = m_world->Actors()[400];
@@ -499,7 +498,7 @@ TEST_F(ActionReplyTest, AStrikeOnTheSpareSlotCompletesTheAttackAndItsSuffix)
     }
 }
 
-// 0x4cb812: 0x7a va a 0x4f2250 incluso para la búsqueda sin resultado, que devuelve el slot 400.
+// 0x4cb812: 0x7a goes to 0x4f2250 even for the failed lookup, which returns slot 400.
 TEST_F(ActionReplyTest, AStopActionAppliesToTheSpareActorAtSlot400)
 {
     ActorState& spare = m_world->Actors()[400];
@@ -526,7 +525,7 @@ TEST_F(ActionReplyTest, AStopActionAppliesToTheSpareActorAtSlot400)
     EXPECT_EQ(Other().animation.action, 0);
 }
 
-// 0x4cb853..0x4cb864 pide el sonido aunque Player.bmd no tenga la animación 0x98.
+// 0x4cb853..0x4cb864 requests the sound even if Player.bmd lacks animation 0x98.
 TEST_F(ActionReplyTest, ShieldSetsItsSoundWhenTheModelLacksItsAnimation)
 {
     m_models.player.actions.resize(0x98);
@@ -541,7 +540,7 @@ TEST_F(ActionReplyTest, ShieldSetsItsSoundWhenTheModelLacksItsAnimation)
     EXPECT_EQ(m_world->Runtime().lastSoundId, Client::Audio::SoundId{0x6f});
 }
 
-// 0x4ea030 no reinicia el frame si la respuesta vuelve a pedir la acción actual, pero sí corre los stores previos.
+// 0x4ea030 does not reset the frame if the reply asks for the current action again, but the previous stores still run.
 TEST_F(ActionReplyTest, RepeatingTheCurrentAnimationStillUpdatesTheReplyPosition)
 {
     Other().animation.action = 5;
@@ -556,8 +555,7 @@ TEST_F(ActionReplyTest, RepeatingTheCurrentAnimationStillUpdatesTheReplyPosition
     EXPECT_EQ(Other().animation.frame, 3.5f);
 }
 
-// 0x4cb812: 0x7a y 0x7b van a 0x4f2250, con su sufijo (un rand()); sin armas, la 1 y la 2 con el elfo, en Lorencia y
-// en Devias.
+// 0x4cb812: 0x7a and 0x7b go to 0x4f2250, with its suffix (one rand()); without weapons, 1 and 2 with the elf.
 TEST_F(ActionReplyTest, TheStopActionsGoThroughSetActorStop)
 {
     for (const std::int32_t map : {0, 2})
@@ -594,7 +592,7 @@ TEST_F(ActionReplyTest, AStopReplyUsesTheTransformedActorsSevenActionModel)
     EXPECT_EQ(Other().animation.action, 0);
 }
 
-// Sentado (+0x7c con 0x200000), 0x4f2250 pone la 0xca y manda el C1 18 0x82 con el ángulo que el 18 acaba de poner.
+// Sitting (+0x7c with 0x200000), 0x4f2250 sets 0xca and sends the C1 18 0x82 with the angle the 18 just set.
 TEST_F(ActionReplyTest, ASittingActorSendsTheSitAction)
 {
     Other().flags7c = SittingFlag;
@@ -615,8 +613,8 @@ TEST_F(ActionReplyTest, ASittingActorSendsTheSitAction)
     EXPECT_NE(unsent.Error().find("0x4f2416"), std::string::npos);
 }
 
-// 0x4ea030 mira las acciones del modelo del personaje: las que no tiene no se ponen. Un modelo que no está es el
-// registro en 0 del original (+0x26, sin acciones): no pone nada y no cierra la sesión.
+// 0x4ea030 checks the actions of the character's model: those it lacks are not set. A missing model is the original's
+// zeroed record (+0x26, no actions): it sets nothing and does not close the session.
 TEST_F(ActionReplyTest, TheAnimationUsesTheModelOfTheActor)
 {
     Other().type = SmallModel;
@@ -632,11 +630,9 @@ TEST_F(ActionReplyTest, TheAnimationUsesTheModelOfTheActor)
     EXPECT_EQ(m_cloth.random.State(), 1u);
 }
 
-// Un monstruo con su modelo cargado por el alta (Assets::AssetsState::fauna, con su biblioteca detrás) toma las
-// acciones de ese modelo, no las de la biblioteca del mapa. En Lorencia y en Devias.
 TEST_F(ActionReplyTest, AMonsterTakesTheActionsOfItsLoadedModel)
 {
-    // La 11, que el modelo de la biblioteca del mapa (diez acciones) no tiene.
+    // Action 11, which the map library's model (ten actions) lacks.
     ReplyModels fauna;
     fauna.small.actions.resize(12);
     for (const std::int32_t map : {0, 2})

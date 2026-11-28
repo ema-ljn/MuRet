@@ -436,7 +436,7 @@ TEST_F(ParticleDrawingTest, MissingInitialMetadataAndUnknownBranchesFailAtTheirO
     EXPECT_EQ(m_events.back(), "additive");
     EXPECT_TRUE(m_backend.selectors.empty());
     m_events.clear();
-    // El 7 va, como el 5, al fuego girado por +0x44 (0x548850).
+    // 7 goes, like 5, to the fire turned by +0x44 (0x548850).
     Seed(13, 0x5d9, 7);
     result = Draw();
     EXPECT_TRUE(result.HasValue());
@@ -574,7 +574,7 @@ TEST_F(ParticleDrawingTest, AServiceCanActivateALaterCanonicalSlotWithoutASnapsh
 }
 TEST_F(ParticleDrawingTest, FrozenFiniteRotationAlsoPassesThroughTheNewSynchronousAdapter)
 {
-    // Caso1 ya versionado de billboard300; ningún expected se calcula con el helper.
+    // Case 1 already versioned from billboard300; no expected value is computed with the helper.
     constexpr std::array<std::uint32_t, 12> words{0xbf722bf0u, 0xbea5ffb1u, 0,           0x454f7e05u,
                                                   0x3e1b081eu, 0xbee22c08u, 0x3f625fdau, 0xc688eb09u,
                                                   0xbe92c9e2u, 0x3f562577u, 0x3eef1636u, 0x4555da83u};
@@ -622,7 +622,7 @@ TEST_F(ParticleDrawingTest, DirectNativeDestinationsDoNotInventASubtypeGuard)
 }
 TEST_F(ParticleDrawingTest, FireDefaultKeepsSignedFramesForEveryNonSpecialSubtype)
 {
-    // 548550: 5/7/8/11/12/13 tienen ramas propias fuera del caso común de fuego.
+    // 0x548550: 5/7/8/11/12/13 have their own branches outside the common fire case.
     for (const std::int32_t subtype : {4, 6, 9, 10, -1, std::numeric_limits<std::int32_t>::min()})
     {
         SCOPED_TRACE(subtype);
@@ -744,7 +744,7 @@ TEST_F(ParticleDrawingTest, UnorderedRotationAndZeroAlphaStillEmitTheUnrotatedQu
 
 TEST_F(ParticleDrawingTest, SmokeReadsTheClosedMaterialGuardSetsAfterTheInitialService)
 {
-    // 548707..749: primer conjunto2/5/12/14/15/20/21/29; segundo37/38; última lectura6.
+    // 0x548707..0x548749: first set 2/5/12/14/15/20/21/29; second 37/38; last read 6.
     struct Case
     {
         std::int32_t subtype;
@@ -777,8 +777,7 @@ TEST_F(ParticleDrawingTest, SmokeReadsTheClosedMaterialGuardSetsAfterTheInitialS
     }
 }
 
-// 0x5489eb..0x548a4c: la 6ac/2 pone GL_ADD antes de 0x620c10, dibuja el billboard común y vuelve a GL_MODULATE
-// antes del lugar siguiente, que es una 6ac/0 sin glTexEnvi.
+// 0x5489eb..0x548a4c: 6ac/2 sets GL_ADD before 0x620c10 and goes back to GL_MODULATE before the next slot.
 TEST_F(ParticleDrawingTest, TheBrightFlameDrawsItsBillboardBetweenAddAndModulate)
 {
     Seed(0, 0x6ac, 2);
@@ -797,7 +796,7 @@ TEST_F(ParticleDrawingTest, TheBrightFlameDrawsItsBillboardBetweenAddAndModulate
     EXPECT_EQ(m_backend.completed, 2u);
 }
 
-// Un glTexEnvi que falla corta con su fase: el de GL_ADD antes de la mezcla y el de GL_MODULATE después del quad.
+// GL_ADD's glTexEnvi fails before the blend and GL_MODULATE's after the quad.
 TEST_F(ParticleDrawingTest, ATextureEnvFailureStopsAtItsOwnPhase)
 {
     for (const char* event : {"tex-add", "tex-modulate"})

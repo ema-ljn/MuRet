@@ -32,8 +32,8 @@ constexpr double BubbleLift = 10.0;                    // 0x6b87a8.
 constexpr float BubbleScale = 1.0f;                    // 0x5fa6f2.
 constexpr std::int32_t BubbleSubtype = 0;
 
-// Las esquinas como Terrain::DrawTerrainCell: (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1), con la vuelta de la
-// capa en la última fila.
+// The corners like Terrain::DrawTerrainCell: (x, y), (x + 1, y), (x + 1, y + 1) and (x, y + 1), with the layer's wrap
+// on the last row.
 std::array<std::size_t, 4> Corners(std::uint8_t x, std::uint8_t y)
 {
     const std::size_t first = Data::Terrain::CellIndex(x, y);
@@ -41,7 +41,7 @@ std::array<std::size_t, 4> Corners(std::uint8_t x, std::uint8_t y)
     return {first, (first + 1) % TerrainCellCount, (below + 1) % TerrainCellCount, below % TerrainCellCount};
 }
 
-// 0x5fa6ab..0x5fa731, una pedida de las UV del agua.
+// 0x5fa6ab..0x5fa731, one request of the water UVs.
 Core::Expected<void, std::string> Bubble(std::uint8_t x, std::uint8_t y, const CrywolfWaterContext& context)
 {
     if (context.random == nullptr)
@@ -49,7 +49,7 @@ Core::Expected<void, std::string> Bubble(std::uint8_t x, std::uint8_t y, const C
     Crt::CrtRandom& random = *context.random;
     if (random.Next() % BubbleOdds != 0)
         return {};
-    // fild del entero, la coordenada por 100 y faddp, en la x87 hasta el fstp.
+    // fild of the integer, the coordinate times 100 and faddp, in the x87 up to the fstp.
     const int across = (random.Next() % BubbleSpread) + 1;
     const auto bubbleX =
         static_cast<float>(static_cast<double>(across) + (static_cast<double>(static_cast<float>(x)) * CellSize));
@@ -85,14 +85,14 @@ Core::Expected<void, std::string> StepCrywolfWaterCell(const Terrain::TerrainVie
         someBelowOne = someBelowOne || mapping.alpha[corner] < 1.0f;
         someAboveZero = someAboveZero || mapping.alpha[corner] > 0.0f;
     }
-    // 0x5fa8d6..0x5fa8f6: local_8 en 1 solo con la capa 1 de abajo en 5.
+    // 0x5fa8d6..0x5fa8f6: local_8 at 1 only with layer 1 below at 5.
     const bool baseIsWater = someBelowOne && mapping.layer1[corners[0]] == WaterTile;
     if (baseIsWater)
     {
         if (auto bubble = Bubble(x, y, context); !bubble.HasValue())
             return bubble;
     }
-    // 0x5fa9bf..0x5fa9dc: la capa 2 con local_8, que vuelve a 0 si ella no es 5.
+    // 0x5fa9bf..0x5fa9dc: layer 2 with local_8, which goes back to 0 if layer 2 is not 5.
     if (someBelowOne && someAboveZero && baseIsWater && mapping.layer2[corners[0]] == WaterTile)
     {
         if (auto bubble = Bubble(x, y, context); !bubble.HasValue())

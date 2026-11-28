@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <string>
 
-// Los casos de 0x604ab0 de Atlans (mapa 7, la tabla 0x605c94 por el tipo − 0x16; 06 § Los objetos de Atlans).
+// The Atlans cases of 0x604ab0 (map 7, table 0x605c94 by type − 0x16; 06 § Los objetos de Atlans).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -41,24 +41,24 @@ CrtRandom After(std::uint32_t seed, int draws)
     return random;
 }
 
-// fld del reloj, fmul por la tasa (float), fsin, fmul por el factor y fadd: en double, que es la precisión
-// de la x87 del original, y guardado en float.
+// fld of the clock, fmul by the rate (float), fsin, fmul by the factor and fadd: in double, which is the precision
+// of the original's x87, and stored as float.
 float Swing(float clock, std::uint32_t rate, float factor, double addend)
 {
     const double argument = static_cast<double>(clock) * static_cast<double>(std::bit_cast<float>(rate));
     return static_cast<float>(RoundedSin(argument) * static_cast<double>(factor) + addend);
 }
 
-constexpr std::uint32_t SlowRate = 0x3b03126fu;              // 0x6b89bc, 0,002f
-constexpr std::uint32_t FastRate = 0x3b83126fu;              // 0x6b89e8, 0,004f
-const float SwingFactor = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
+constexpr std::uint32_t SlowRate = 0x3b03126fu;              // 0x6b89bc, 0.002f
+constexpr std::uint32_t FastRate = 0x3b83126fu;              // 0x6b89e8, 0.004f
+const float SwingFactor = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0.3f
 
-// 0x60556e..0x6055c8: el 0x16 se oculta, sube su fase (+0x84) 0,1f y la guarda en float; si la suma sin redondear
-// pasa de 10 vuelve a 0, y con la fase guardada por encima de 5 suelta una burbuja 0x607/0 (dos rand()) en su
-// posición y con sus ángulos.
+// 0x60556e..0x6055c8: the 0x16 hides, raises its phase (+0x84) by 0.1f and stores it as float; if the unrounded
+// sum passes 10 it goes back to 0, and with the stored phase above 5 it releases a bubble 0x607/0 (two rand()) at
+// its position and with its angles.
 TEST(AtlansObjectsTest, TheBubblesRiseAndBlowAboveFive)
 {
-    // La fase guardada después de sumar 0,1f (0x6b87b8) en la x87.
+    // The phase stored after adding 0.1f (0x6b87b8) on the x87.
     const auto rise = [](float phase) { return static_cast<float>(static_cast<double>(phase) + 0.1f); };
     struct Case
     {
@@ -66,8 +66,8 @@ TEST(AtlansObjectsTest, TheBubblesRiseAndBlowAboveFive)
         float after;
         bool blows;
     };
-    // 9,95f + 0,1f pasa de 10 y vuelve a 0. 9,9f + 0,1f queda debajo de 10 sin redondear y se guarda como
-    // 10,0f: no vuelve a 0 y sopla.
+    // 9.95f + 0.1f passes 10 and goes back to 0. 9.9f + 0.1f stays below 10 unrounded and is stored as 10.0f: it does
+    // not go back to 0 and blows.
     for (const Case& probe : {Case{0.0f, rise(0.0f), false}, Case{4.8f, rise(4.8f), false},
                               Case{5.0f, rise(5.0f), true}, Case{9.95f, 0.0f, false}, Case{9.9f, 10.0f, true}})
     {
@@ -95,7 +95,7 @@ TEST(AtlansObjectsTest, TheBubblesRiseAndBlowAboveFive)
         }
     }
 
-    // Sin el pool corta en la llamada, después de ocultarse y de guardar la fase.
+    // Without the pool it cuts at the call, after hiding and storing the phase.
     WorldObject cut = Object(0x16);
     cut.field84 = 5.0f;
     CrtRandom random(7);
@@ -107,9 +107,9 @@ TEST(AtlansObjectsTest, TheBubblesRiseAndBlowAboveFive)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x6055d7..0x60565b: las luces del reloj. El 0x17 con blendMesh 0 y sin(T · 0,002f) · 0,3f + 0,5; el 0x20 y el
-// 0x22 con blendMesh 1 y (sin(T · 0,004f) + 1) · 0,5; el 0x28 con blendMesh 0, la velocidad en 0,05f y
-// sin(T · 0,004f) · 0,3f + 0,5; el 0x26 solo con blendMesh 0. Ninguno saca rand() ni se oculta.
+// 0x6055d7..0x60565b: the clock lights. The 0x17 with blendMesh 0 and sin(T · 0.002f) · 0.3f + 0.5; the 0x20 and
+// the 0x22 with blendMesh 1 and (sin(T · 0.004f) + 1) · 0.5; the 0x28 with blendMesh 0, the speed at 0.05f and
+// sin(T · 0.004f) · 0.3f + 0.5; the 0x26 only with blendMesh 0. None draws a rand() or hides.
 TEST(AtlansObjectsTest, TheLightsSwingWithTheWorldClock)
 {
     ObjectStepGlobals globals;
@@ -158,7 +158,6 @@ TEST(AtlansObjectsTest, TheLightsSwingWithTheWorldClock)
     }
     EXPECT_EQ(random.State(), 7u);
 
-    // Por StepWorldObjectChecked en el 7.
     WorldObject stepped = Object(0x17);
     ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(stepped, 7, nullptr, random, globals).HasValue());
     EXPECT_EQ(stepped.state.light, weed.state.light);

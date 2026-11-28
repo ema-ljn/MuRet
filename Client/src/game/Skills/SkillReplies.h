@@ -22,60 +22,61 @@ namespace Client::Scenes
 struct WorldEntryResources;
 } // namespace Client::Scenes
 
-// Las skills que llegan (CL9 hito 4), ya cifradas: lo que los handlers de 0x4e2b10 hacen con el mundo. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "Las skills que llegan". Lo que MuRet no tiene corta con error
-// después de lo que el original hace antes: la acción de ataque de 0x4f4a10 (hito 3), las banderas de 0x4e6380
-// (hito 1), los efectos de 0x518cf0 de tipos que MuRet no crea y los joints de 0x530860 (CL11). Los sonidos quedan en
-// WorldRuntime::lastSoundId (CL10). El rand() del cierre de +0x38e y de +0x42e, y los de 0x4f2250 y 0x4f5290, en su
-// orden.
+// The incoming skills: what the handlers of 0x4e2b10 do with the world. Contract:
+// Client/docs/research/06-render-escenas-y-ui.md, "Las skills que llegan". What MuRet lacks cuts with an error after
+// what the original does first: the attack action of 0x4f4a10 (milestone 3), the flags of 0x4e6380 (milestone 1), the
+// 0x518cf0 effects of types MuRet does not create and the joints of 0x530860 (CL11). The sounds stay in
+// WorldRuntime::lastSoundId (CL10). The close rand() of +0x38e and +0x42e, and those of 0x4f2250 and 0x4f5290, in
+// their order.
 namespace Client::Skills
 {
 
-// 0x4cc530: la skill de la fuente sobre el blanco (sin el blanco, nada). Salvo la 0x3b: el rumbo de la fuente hacia
-// el blanco (si no es el héroe, ni las skills 6 y 0xf, y el blanco se ve), el blanco en +0x3a4 (y en +0x434 con la
-// 0x4c), +0x38d y la skill en +0x38e, protegido. Después, la rama de la skill (06, la tabla de 0x4cc530). Sin la
-// fuente, lo de antes de la rama va al 400 y la rama se descarta (Q-C1237).
+// 0x4cc530: the source's skill on the target (without the target, nothing). Except for 0x3b: the source's heading
+// towards the target (if it is not the hero, nor skills 6 and 0xf, and the target is visible), the target in +0x3a4
+// (and in +0x434 with 0x4c), +0x38d and the skill in +0x38e, protected. Then the skill's branch (06, the table of
+// 0x4cc530). Without the source, what comes before the branch goes to slot 400 and the branch is dropped (Q-C1237).
 [[nodiscard]] Core::Expected<void, std::string> ApplyMagicAttack(const Protocol::Skills::MagicAttack& attack,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x4ce000: la skill con duración. Sobre el personaje de la clave: la skill en +0x38e, el rumbo (rumbo · 1/255 · 360)
-// y la acción, con la de ataque si no es un jugador y la de la skill si es otro jugador; después la celda (+0x39c,
-// +0x39d), +0x381 en 1, +0x3a4 en 0xffff y +0x380 en 0. Sin el personaje, todo eso en el 400 salvo la acción, que se
-// descarta: solo el frame en 0 (Q-C1204).
+// 0x4ce000: the duration skill. On the key's character: the skill in +0x38e, the heading (heading · 1/255 · 360) and
+// the action, the attack one if it is not a player and the skill's if it is another player; then the cell (+0x39c,
+// +0x39d), +0x381 at 1, +0x3a4 at 0xffff and +0x380 at 0. Without the character, all of that on slot 400 except the
+// action, which is dropped: only the frame at 0 (Q-C1204).
 [[nodiscard]] Core::Expected<void, std::string> ApplyDurationMagic(const Protocol::Skills::DurationMagic& magic,
                                                                    const Scenes::WorldEntryResources& resources);
 
-// 0x4cbe90: el fin de una skill con duración: la bandera que le toca (0x4e6910), con 0x439d40 antes en las 0xc9 y
-// 0xca. Sobre el 400 si la clave no está.
+// 0x4cbe90: the end of a duration skill: its flag (0x4e6910), with 0x439d40 first for 0xc9 and 0xca. On slot 400 if
+// the key is absent.
 [[nodiscard]] Core::Expected<void, std::string> ApplyMagicCancel(const Protocol::Skills::MagicCancel& cancel,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x4cbe00: con el tipo 1 y la máscara sin prender del todo en +0x78, 0x4e6380 (hito 1, corta); con el tipo 1 y la
-// máscara prendida, +0x7c queda en 0x200000 si la tenía y en 0 si no; con otro tipo y la máscara prendida, 0x4e6910.
+// 0x4cbe00: with type 1 and the mask not fully set in +0x78, 0x4e6380 (milestone 1, cuts); with type 1 and the mask
+// set, +0x7c stays at 0x200000 if it had it and at 0 if not; with another type and the mask set, 0x4e6910.
 [[nodiscard]] Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorState& state,
                                                                 const Scenes::WorldEntryResources& resources);
 
-// 0x4cc290: sin el blanco, nada. Si no, la fuente en 0x5767964, la skill en +0x42e (protegido), el blanco en +0x3a4 y
-// su bit 15 en +0x38d, y con las skills 1 a 0xd, la acción de ataque (0x4f4a10, hito 3), el frame en 0 y +0x381 en 1.
-// Sin la fuente, todo eso en el 400 salvo la acción de ataque, que se descarta (Q-C1237).
+// 0x4cc290: without the target, nothing. Otherwise the source in 0x5767964, the skill in +0x42e (protected), the
+// target in +0x3a4 and its bit 15 in +0x38d, and with skills 1 to 0xd, the attack action (0x4f4a10, milestone 3), the
+// frame at 0 and +0x381 at 1. Without the source, all of that on slot 400 except the attack action, which is dropped
+// (Q-C1237).
 [[nodiscard]] Core::Expected<void, std::string> ApplySkillTarget(const Protocol::Skills::SkillTarget& target,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x4dbf50: con un personaje de la clave que es un jugador (+0x88 en 1) y el tipo 0x10, quince joints 0x60f (CL11,
-// corta), el efecto 0x61e y el sonido 0x98.
+// 0x4dbf50: with a key character that is a player (+0x88 at 1) and type 0x10, fifteen 0x60f joints (CL11, cuts), the
+// 0x61e effect and sound 0x98.
 [[nodiscard]] Core::Expected<void, std::string> ApplyActorEffect(const Protocol::Skills::ActorEffect& effect,
                                                                  const Scenes::WorldEntryResources& resources);
 
-// 0x4c5070: las skills del registro propio, abierto (3.848 rand() si lo cierra en 0); después lo abre otra vez y
-// cuenta +0x6a y +0x6b con +0x31 de Skill.bmd de cada una de las 64 primeras (60 rand() por cierre en 0); arregla
-// +0x425 del héroe y lo cierra.
+// 0x4c5070: the own record's skills, open (3848 rand() if it closes at 0); then it opens it again and counts +0x6a
+// and +0x6b with Skill.bmd's +0x31 of each of the first 64 (60 rand() per close at 0); fixes the hero's +0x425 and
+// closes it.
 [[nodiscard]] Core::Expected<void, std::string> ApplySkillList(const Protocol::Skills::SkillList& list,
                                                                const Scenes::WorldEntryResources& resources);
 
-// 0x4d30d0: stats propios en una apertura, cierre y efecto del héroe sin filtros.
+// 0x4d30d0: own stats in one opening, the close and the hero's effect without filters.
 [[nodiscard]] Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& reply,
                                                              const Scenes::WorldEntryResources& resources);
 
-// 0x4e31e1: la vida del invocado, 0x5767960 (HudState::summonLife).
+// 0x4e31e1: the summon's life, 0x5767960 (HudState::summonLife).
 void ApplySummonLife(const Protocol::Skills::SummonLife& summon, const Scenes::WorldEntryResources& resources);
 } // namespace Client::Skills

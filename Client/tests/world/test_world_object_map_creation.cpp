@@ -51,7 +51,7 @@ constexpr std::array DirectMapRules{
     DirectMapRule{3, 18, 2, false, false, 80.0f}, DirectMapRule{3, 38, -1, true, true, 80.0f},
     DirectMapRule{7, 39, -1, true, true, 80.0f},  DirectMapRule{8, 78, -1, true, false, 80.0f}};
 
-// Tabla literal independiente del switch: detecta handlers omitidos y fallthrough de mapa especial.
+// Literal table independent of the switch: catches omitted handlers and special-map fallthrough.
 TEST(WorldObjectMapCreationTest, EverySpecialMapUsesOnlyItsOwnDirectCases)
 {
     for (const std::uint8_t map : std::array<std::uint8_t, 5>{1, 2, 3, 7, 8})
@@ -104,8 +104,8 @@ TEST(WorldObjectMapCreationTest, EverySpecialMapUsesOnlyItsOwnDirectCases)
         }
     }
 }
-// Detecta resto positivo/fmod, uso de int64%360 y pérdida de las copias originales del mapa2. El NaN pasa
-// por el mismo ftol que el sector de Q-C186, en la misma llamada a 0x606660: 0x8000000000000000, resto 0.
+// Catches a positive/fmod remainder, use of int64%360 and loss of map 2's original copies. The NaN goes through the
+// same ftol as the sector of Q-C186, in the same call to 0x606660: 0x8000000000000000, remainder 0.
 TEST(WorldObjectMapCreationTest, DeviasCopiesTheTransformAndUsesTheSignedLowDwordRemainder)
 {
     struct Angle
@@ -162,7 +162,7 @@ TEST(WorldObjectMapCreationTest, TheLoginRelocationPreservesTheInputBucketAndBas
         EXPECT_EQ(objects[0].sectorY, 8);
     }
 }
-// Detecta que el registro de otro mapa reinicie la tabla, pierda metadata o use un pool de objetos.
+// Catches another map's registration resetting the table, losing metadata or using an object pool.
 TEST(WorldObjectMapCreationTest, EveryMapRegistrationPreservesAFullTableAndStableObjectIdentities)
 {
     struct RegisteredType
@@ -213,7 +213,7 @@ TEST(WorldObjectMapCreationTest, EveryMapRegistrationPreservesAFullTableAndStabl
     }
 }
 
-// Detecta que copiar int16 como unsigned convierta tipos negativos en casos de otro mapa.
+// Catches copying int16 as unsigned turning negative types into another map's cases.
 TEST(WorldObjectMapCreationTest, SignedTypeBoundariesPreserveDefaultsOnEverySpecialMap)
 {
     constexpr std::array<std::int16_t, 4> types{std::numeric_limits<std::int16_t>::min(), -515, -1,
@@ -246,7 +246,7 @@ class GoldenWorldObjectMapCreationTest : public Client::Tests::GoldenDataTest
 {
 };
 
-// Los expected vienen de la tabla ASM literal, no del constructor ni de archivos generados por él.
+// The expected values come from the literal ASM table, not from the constructor or files it generated.
 TEST_F(GoldenWorldObjectMapCreationTest, RealSpecialMapObjectsReceiveTheDirectRulesAndFillTheSameRegistry)
 {
     for (const std::uint8_t map : std::array<std::uint8_t, 5>{1, 2, 3, 7, 8})
@@ -292,8 +292,8 @@ TEST_F(GoldenWorldObjectMapCreationTest, RealSpecialMapObjectsReceiveTheDirectRu
         }
     }
 }
-// Este servicio de prueba observa la frontera síncrona y modifica el objeto real prestado.
-// No prueba que ModelEffects implemente los efectos 322..324: ese binding se integra por su dueño.
+// This test service observes the synchronous boundary and modifies the real borrowed object. It does not prove that
+// ModelEffects implements effects 322..324: that binding is integrated by its owner.
 class MutatingCreationServices final : public Client::WorldObjects::IWorldObjectCreationServices
 {
 public:
@@ -345,7 +345,7 @@ public:
     }
 };
 
-// Detecta requests diferidos, posiciones cacheadas, tipo/owner/escala equivocados y el offset16 errado.
+// Catches deferred requests, cached positions, wrong type/owner/scale and a wrong 16 offset.
 TEST(WorldObjectMapCreationTest, NoriaEmitsFiveEffectsAndRereadsTheLiveSourceBetweenCalls)
 {
     const Client::Data::Terrain::TerrainObject record{
@@ -378,7 +378,7 @@ TEST(WorldObjectMapCreationTest, NoriaEmitsFiveEffectsAndRereadsTheLiveSourceBet
     EXPECT_EQ(registrations.nextIdentity, 2u);
 }
 
-// Detecta lectura del mapa antes de la emisión180 y dispatch por object.type mutado en vez del parámetro.
+// Catches reading the map before emission 180 and dispatching by the mutated object.type instead of the parameter.
 TEST(WorldObjectMapCreationTest, SceneEmissionRunsBeforeReadingTheMapAndPreservesTheOriginalDispatchType)
 {
     const Client::Data::Terrain::TerrainObject record{
@@ -403,7 +403,7 @@ TEST(WorldObjectMapCreationTest, SceneEmissionRunsBeforeReadingTheMapAndPreserve
     EXPECT_EQ(context.map, 0);
 }
 
-// Detecta fallback silencioso, rollback de efectos previos y continuar con records posteriores tras un binding ausente.
+// Catches a silent fallback, a rollback of earlier effects and going on with later records after a missing binding.
 TEST(WorldObjectMapCreationTest, UnsupportedEffectRetainsTheCreatedObjectsAndStopsAtItsExactRecord)
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 8, .position = {10.0f, 20.0f, 30.0f}},
@@ -443,7 +443,7 @@ TEST(WorldObjectMapCreationTest, MissingEmissionServiceIsAnExplicitIntegrationEr
     }
 }
 
-// El infinito y lo que no entra en int64 siguen sin observar (Q-C186); el NaN ya no es frontera.
+// Infinity and what does not fit in int64 stay unobserved (Q-C186); NaN is no longer a boundary.
 TEST(WorldObjectMapCreationTest, FullDeviasCreationRejectsTheUnverifiedFtolDomainExplicitly)
 {
     for (const float angle : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p63f})
@@ -460,7 +460,7 @@ TEST(WorldObjectMapCreationTest, FullDeviasCreationRejectsTheUnverifiedFtolDomai
         EXPECT_EQ(result.objects[0].copiedPosition, glm::vec3(0.0f));
     }
 }
-// Detecta stop condicionado a stores, mapas fuera de18..23 aceptados y el tipo firmado mal extendido.
+// Catches a stop conditioned on stores, maps outside 18..23 accepted and a badly extended signed type.
 TEST(WorldObjectMapCreationTest, ChaosCastleAcceptsEverySignedTypeAndStopsBeforeOtherMapCases)
 {
     std::vector<Client::Data::Terrain::TerrainObject> records;
@@ -488,7 +488,7 @@ TEST(WorldObjectMapCreationTest, ChaosCastleAcceptsEverySignedTypeAndStopsBefore
         EXPECT_EQ(registrations.nextIdentity, 65537u);
     }
 }
-// Sólo las lecturas de estado requeridas pueden fallar; se conservan los stores previos de Castle Siege.
+// Only the required state reads can fail; Castle Siege's earlier stores are kept.
 TEST(WorldObjectMapCreationTest, CastleCreationPreservesKnownStoresBeforeAnyRequiredStateRead)
 {
     for (const std::int16_t type :
@@ -550,8 +550,8 @@ TEST(WorldObjectMapCreationTest, CastleEffectRunsBeforeTheFollowingCreationHandl
     ASSERT_EQ(result.objects.size(), 1u);
     EXPECT_EQ(result.objects[0].transform.position, glm::vec3(110.0f, 120.0f, 130.0f));
 }
-// Detecta gastar IDs/RNG o pedir un servicio antes del prefijo espacial de 0x606660. Un NaN no sirve acá:
-// cae en el sector 0 y se crea (Q-C186).
+// Catches spending IDs/RNG or requesting a service before 0x606660's spatial prefix. A NaN does not work here: it
+// lands in sector 0 and is created (Q-C186).
 TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistrationOrRandom)
 {
     struct Scenario
@@ -586,7 +586,7 @@ TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistra
         EXPECT_EQ(random.State(), 123u);
     }
 }
-// Cada invocación nativa lee la escena global; el batch no debe congelar la del primer record.
+// Each native invocation reads the global scene; the batch must not freeze the first record's.
 TEST(WorldObjectMapCreationTest, EachRecordReadsTheSceneAfterThePreviousSynchronousService)
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 180},
@@ -605,7 +605,7 @@ TEST(WorldObjectMapCreationTest, EachRecordReadsTheSceneAfterThePreviousSynchron
     EXPECT_EQ(result.objects[1].state.hiddenMesh, -1);
     EXPECT_EQ(result.objects[1].light, glm::vec3(0.0f));
 }
-// El catálogo acredita creación del tipo default, no gameplay. No quedan errores sintéticos de wrappers puros.
+// The catalog credits creation of the default type, not gameplay. No synthetic errors from pure wrappers remain.
 TEST(WorldObjectMapCreationTest, EveryCatalogAndRawMapCompletesTheDefaultType)
 {
     const auto check = [](std::int32_t map)
@@ -633,7 +633,7 @@ TEST(WorldObjectMapCreationTest, EveryCatalogAndRawMapCompletesTheDefaultType)
     }
 }
 
-// Proyecciones comprobadas: conservar el prefijo y el objeto parcial sin tratar sus copias como válidas.
+// Checked projections: keep the prefix and the partial object without treating their copies as valid.
 TEST(WorldObjectMapCreationTest, BothProjectionsReturnInvalidAngleAndStopBeforeTheFollowingRecord)
 {
     for (const bool withRegistry : {false, true})

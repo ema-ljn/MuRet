@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: 0x51f5fe (el alta del 0x6ac), 0x52c7f0 (su paso) y 0x51fef0.
+// Checked against the PE c32bbd5f: 0x51f5fe (the 0x6ac's creation), 0x52c7f0 (its step) and 0x51fef0.
 namespace Client::Effects
 {
 namespace
@@ -31,21 +31,21 @@ namespace
 using Math::D;
 using Math::F32;
 
-// 0x5fc8f0 y 0x5fcbd0: el vector girado por los ángulos.
+// 0x5fc8f0 and 0x5fcbd0.
 glm::vec3 Rotated(const glm::vec3& vector, const glm::vec3& angles)
 {
     return Math::OriginalVectorRotate(vector, Math::OriginalAngleMatrix(angles));
 }
 
-// El fld/fadd/fstp de cada eje.
+// fld/fadd/fstp per axis.
 glm::vec3 Sum(const glm::vec3& a, const glm::vec3& b)
 {
     return {F32(D(a.x) + D(b.x)), F32(D(a.y) + D(b.y)), F32(D(a.z) + D(b.z))};
 }
 
-// 0x51fef0(punto, 1): veinte 0x5c5/2 en el punto con la z 30 más, cada una con los ángulos (rand() % 60 + 150; 0;
-// rand() % 30), la luz (1, 1, 1) y escala 1, sacados aunque no haya lugar; después, con el 1, la 0x5ee/0 ahí con los
-// ángulos en 0 y escala 4.
+// 0x51fef0(point, 1): twenty 0x5c5/2 at the point with z 30 more, each with the angles (rand() % 60 + 150; 0; rand() %
+// 30), the light (1, 1, 1) and scale 1, drawn even when there is no room; then, with the 1, the 0x5ee/0 there with the
+// angles at 0 and scale 4.
 Core::Expected<void, std::string> SparkAndBlast(const glm::vec3& position, const HighEffectStepContext& context)
 {
     constexpr double Lift = 30.0; // 0x6b8858
@@ -64,7 +64,7 @@ Core::Expected<void, std::string> SparkAndBlast(const glm::vec3& position, const
             !made.HasValue())
             return Core::Unexpected(made.Error());
     }
-    // 0x542aa7: el alta de la 0x5ee pide el sonido 0x40 cuando encuentra lugar.
+    // 0x542aa7: the 0x5ee's creation asks for the sound 0x40 when it finds room.
     constexpr Audio::SoundId BlastSound = Sound::ExplosionSound;
     const auto made = CreateHighParticle(context.world, context.random, context.worldClock, Blast, point,
                                          glm::vec3(0.0f), glm::vec3(1.0f), 0, BlastScale, 0x51ffd5);
@@ -81,7 +81,7 @@ Core::Expected<void, std::string> BeginTheFireBreath(Effects::ModelEffect& effec
     constexpr std::int32_t Life = 10;              // 0x51f5fe
     constexpr float Push = -30.0f;                 // 0x51f61c, +0xd0
     constexpr glm::vec3 Lift{0.0f, -20.0f, 50.0f}; // 0x51f641..0x51f64f
-    // 0x51f676..0x51f684 y 0x51f740..0x51f751.
+    // 0x51f676..0x51f684 and 0x51f740..0x51f751.
     constexpr std::array<glm::vec3, 2> Mouths{{{-20.0f, -20.0f, 60.0f}, {30.0f, -20.0f, 60.0f}}};
     constexpr std::array<std::uint32_t, 2> MouthAddresses{0x51f719, 0x51f7dc};
     constexpr int TiltSpan = 20;
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> BeginTheFireBreath(Effects::ModelEffect& effec
     constexpr int TurnStep = 18, Turns = 360;
     constexpr std::int32_t Spark = 0x617, SparkSubtype = 1;
     constexpr float SparkScale = 10.0f; // 0x51f6e3
-    // [ebp+0xc] (edi): la posición que recibe el alta, la del llamador, no la del efecto que se corre.
+    // [ebp+0xc] (edi): the position the creation receives, the caller's, not the shifted effect's.
     const glm::vec3 origin = effect.transform.position;
     const glm::vec3 angles = effect.transform.angles;
     effect.life = Life;
@@ -99,7 +99,7 @@ Core::Expected<void, std::string> BeginTheFireBreath(Effects::ModelEffect& effec
     for (std::size_t mouth = 0; mouth < Mouths.size(); ++mouth)
     {
         const glm::vec3 point = Sum(Rotated(Mouths[mouth], angles), origin);
-        // [ebp−0x30]: la x se rehace en cada vuelta y la y suma las vueltas sin volver a la del efecto.
+        // [ebp−0x30]: x is redone each round and y adds up the rounds without going back to the effect's.
         glm::vec3 turned = angles;
         for (int turn = 0; turn < Turns; turn += TurnStep)
         {
@@ -119,17 +119,17 @@ Core::Expected<void, std::string> StepTheFireBreath(Effects::ModelEffect& effect
                                                     const HighEffectStepContext& context)
 {
     constexpr double Half = Math::HalfAsDouble;                                     // 0x6b882c
-    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0,8f
+    constexpr double Blue = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38, 0.8f
     constexpr std::int32_t LightRadius = 2;
     constexpr double Turn = 90.0; // 0x6b8948
     constexpr int SizeSpan = 3, SizeBase = 2;
     constexpr std::int32_t Fade = 15;
-    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0, 0,05f
-    // 0x52c8a2..0x52c8b0 y 0x52c90e..0x52c91c.
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu)); // 0x6b8ad0, 0.05f
+    // 0x52c8a2..0x52c8b0 and 0x52c90e..0x52c91c.
     constexpr std::array<glm::vec3, 2> Sides{{{0.0f, 20.0f, 0.0f}, {0.0f, -20.0f, 0.0f}}};
     constexpr std::array<std::uint32_t, 2> SideAddresses{0x52c8f7, 0x52c95d};
     constexpr std::int32_t Fire = 0x5db, FireSubtype = 0xa;
-    // 0x52c7f0..0x52c816: FST de la mitad en la x y la y, FSTP del 0,8f en la z.
+    // 0x52c7f0..0x52c816: FST of the half in x and y, FSTP of the 0.8f in z.
     const double lum = D(luminosity);
     const float half = F32(lum * Half);
     const glm::vec3 color{half, half, F32(lum * Blue)};
@@ -139,7 +139,7 @@ Core::Expected<void, std::string> StepTheFireBreath(Effects::ModelEffect& effect
         return lit;
     const glm::vec3& angles = effect.transform.angles;
     const glm::vec3 turned{angles.x, angles.y, F32(D(angles.z) + Turn)};
-    // 0x52c852..0x52c88b: el rand() de la escala va al FILD antes que la vida.
+    // 0x52c852..0x52c88b: the scale's rand() goes to the FILD before the life.
     const int size = context.random.Next() % SizeSpan + SizeBase;
     effect.transform.scale = F32(static_cast<double>(size) * (static_cast<double>(Fade - effect.life) * Growth));
     for (std::size_t side = 0; side < Sides.size(); ++side)

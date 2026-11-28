@@ -13,7 +13,7 @@
 #include <map>
 #include <vector>
 
-// Client::Scenes::DarkHorse: el caballo oscuro (0xbf) que crea 0x443d70 y mueve 0x444010 en cada paso
+// Client::Kernel::DarkHorse (0xbf), created by 0x443d70 and moved by 0x444010 each step
 // (Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro").
 namespace
 {
@@ -30,7 +30,7 @@ using Client::Pets::DarkHorseModel;
 using Client::Pets::DrawnDarkHorse;
 using Client::Pets::StepDarkHorse;
 
-// Las siete acciones de DarkHorse.bmd, de 10 keys cada una, en un hueso.
+// DarkHorse.bmd's seven actions, 10 keys each, on one bone.
 Skeleton HorseSkeleton()
 {
     Skeleton skeleton;
@@ -55,8 +55,7 @@ void ExpectGait(std::uint8_t rider, std::uint8_t action, float speed)
     EXPECT_FLOAT_EQ(gait.speed, speed) << std::hex << static_cast<int>(rider);
 }
 
-// 0x444010 con el 0xbf: la acción del caballo por la del jinete (+0x111), con la velocidad que escribe
-// en +0xd8.
+// 0x444010 with 0xbf: the horse's action from the rider's (+0x111), with the speed it writes to +0xd8.
 TEST(DarkHorseTest, TheHorseFollowsItsRider)
 {
     ExpectGait(0x53, 3, 0.34f);
@@ -65,7 +64,7 @@ TEST(DarkHorseTest, TheHorseFollowsItsRider)
     ExpectGait(0x52, 2, 0.34f);
     ExpectGait(0x54, 5, 1.0f);
     ExpectGait(0x55, 6, 1.0f);
-    // La de parado montado del login (0x4a) y las vecinas de los rangos, la 0 a 0,3.
+    // The login's mounted standing action (0x4a) and the ranges' neighbors: 0 at 0.3.
     ExpectGait(0x4a, 0, 0.3f);
     ExpectGait(0x4c, 0, 0.3f);
     ExpectGait(0x4d, 0, 0.3f);
@@ -73,8 +72,8 @@ TEST(DarkHorseTest, TheHorseFollowsItsRider)
     ExpectGait(0x00, 0, 0.3f);
 }
 
-// 0x443d70 lo crea invisible, con el alpha en 0 y la velocidad en 0,5; 0x4e9980 lo sube en cada paso
-// un décimo de lo que le falta para 1: 0,1, 0,19, … y pasa 0,99 (desde ahí va opaco) en el paso 44.
+// 0x443d70 creates it invisible, with alpha at 0 and speed at 0.5; 0x4e9980 raises it each step by a tenth of what is
+// left to 1: 0.1, 0.19, … and passes 0.99 (opaque from there) at step 44.
 TEST(DarkHorseTest, TheHorseFadesInByATenthOfWhatIsLeft)
 {
     const Skeleton skeleton = HorseSkeleton();
@@ -95,8 +94,8 @@ TEST(DarkHorseTest, TheHorseFadesInByATenthOfWhatIsLeft)
     EXPECT_GE(horse.alpha, 0.99f);
 }
 
-// 0x4e9a0c..0x4e9a1e: la resta, el producto por 0,1f y la suma van en la x87, con un solo redondeo a float
-// al final (fstp). Redondear en cada operación da otro bit desde el paso 5 (0x3ed1ab4c y no 0x3ed1ab4b).
+// 0x4e9a0c..0x4e9a1e: the subtraction, the product by 0.1f and the sum run on the x87, with a single rounding to float
+// at the end (fstp). Rounding each operation gives another bit from step 5 (0x3ed1ab4c, not 0x3ed1ab4b).
 TEST(DarkHorseTest, TheFadeRoundsOnceLikeTheBinary)
 {
     const Skeleton skeleton = HorseSkeleton();
@@ -113,8 +112,8 @@ TEST(DarkHorseTest, TheFadeRoundsOnceLikeTheBinary)
     }
 }
 
-// En cada paso, la acción que le da el jinete (0x4ea030: la otra pasa a anterior y el frame a 0) y el
-// avance a su velocidad (0x4ec200).
+// Each step, the action the rider gives (0x4ea030: the old one becomes the previous and the frame goes to 0) and the
+// advance at its speed (0x4ec200).
 TEST(DarkHorseTest, AStepTakesTheActionOfTheRiderAndAdvancesAtItsSpeed)
 {
     const Skeleton skeleton = HorseSkeleton();
@@ -134,8 +133,8 @@ TEST(DarkHorseTest, AStepTakesTheActionOfTheRiderAndAdvancesAtItsSpeed)
     EXPECT_FLOAT_EQ(horse.animation.frame, 2.0f);
 }
 
-// 0x4440b8..0x4440f8: en la celda segura del jinete el alpha sube y vuelve a 0, y el caballo avanza con la
-// acción y la velocidad que tenía, sin mirar la del jinete. Al salir, sube otra vez desde 0,1.
+// 0x4440b8..0x4440f8: on the rider's safe cell the alpha rises and goes back to 0, and the horse advances with the
+// action and speed it had, ignoring the rider's. On leaving, it rises again from 0.1.
 TEST(DarkHorseTest, InTheRidersSafeCellTheAlphaGoesToZeroAndKeepsTheSpeed)
 {
     const Skeleton skeleton = HorseSkeleton();
@@ -159,8 +158,8 @@ TEST(DarkHorseTest, InTheRidersSafeCellTheAlphaGoesToZeroAndKeepsTheSpeed)
     EXPECT_FLOAT_EQ(horse.speed, 0.34f);
 }
 
-// Lo que se dibuja: el 0xbf, en el lugar y con los ángulos del jinete y la escala de 0x445260, con su
-// alpha, la luz por vértice y la animación de un poco más que el paso.
+// What is drawn: 0xbf, at the rider's place and angles, with 0x445260's scale, its alpha, the per-vertex light and the
+// animation a bit past the step.
 TEST(DarkHorseTest, TheHorseIsDrawnWhereItsRiderIs)
 {
     const Skeleton skeleton = HorseSkeleton();
@@ -180,7 +179,7 @@ TEST(DarkHorseTest, TheHorseIsDrawnWhereItsRiderIs)
     EXPECT_FLOAT_EQ(drawn.alpha, 0.1f);
     EXPECT_TRUE(drawn.vertexLight);
     EXPECT_FLOAT_EQ(drawn.animation.frame, 0.3f + 0.5f * 0.3f);
-    // Sin el esqueleto, la del paso.
+    // Without the skeleton, the step's animation.
     EXPECT_FLOAT_EQ(DrawnDarkHorse(horse, nullptr, rider, 1.0f, 0.5f).animation.frame, 0.3f);
     EXPECT_FLOAT_EQ(DrawnDarkHorse(horse, nullptr, rider, 1.0f, 0.5f).transform.scale, 1.0f);
 }

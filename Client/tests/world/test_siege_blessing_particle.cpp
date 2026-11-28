@@ -32,7 +32,7 @@ TEST(SiegeBlessingParticleTest, CreationAndStepPreserveTheNativeJitterAndRandomO
     EXPECT_EQ(particle.scale, static_cast<float>(1.0 - static_cast<double>(0.01f)));
     EXPECT_EQ(particle.light, glm::vec3(static_cast<float>(19.0 * static_cast<double>(0.05f))));
     Client::Crt::CrtRandom expected(1);
-    expected.Discard(6); // 2alta,2viento,2pasodelapartícula.
+    expected.Discard(6); // 2 creation, 2 wind, 2 particle step.
     EXPECT_EQ(random.State(), expected.State());
 }
 

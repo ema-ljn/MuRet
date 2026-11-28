@@ -77,7 +77,7 @@ bool Seen(const FaunaObject& object, const Terrain::TerrainPolygon& polygon)
 }
 glm::vec3 Flatten(const glm::vec3& world, const glm::vec3& origin, std::int32_t map)
 {
-    // 4f0040..4f0089: x/z retenidos, diferencia Y guardada en f32 antes de reponer el origen.
+    // 0x4f0040..0x4f0089: x/z retained, the Y difference stored in f32 before restoring the origin.
     const double x = static_cast<double>(world.x) - origin.x, z = static_cast<double>(world.z) - origin.z;
     const float y = F32(static_cast<double>(world.y) - origin.y);
     const double spread = map == 30 ? 2500 : 2000;
@@ -88,7 +88,7 @@ glm::vec3 Flatten(const glm::vec3& world, const glm::vec3& origin, std::int32_t 
 Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaObject& object,
                                          FaunaDrawContext& context)
 {
-    // 620a00(1) precede la consulta del número de mallas de 4eff40, incluso si no hay geometría.
+    // 0x620a00(1) precedes 0x4eff40's mesh count query, even if there is no geometry.
     auto state = batch.State();
     state.blend = Render::ModelBlend::Alpha;
     state.cullEnabled = false;
@@ -100,7 +100,7 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
     glm::vec3 origin = object.position;
     origin.z = F32(Terrain::TerrainHeightAt(*context.terrain.heights, *context.terrain.attributes, origin.x, origin.y,
                                             context.fixedHeight));
-    // 446e9d..446eb3: sólo XYZ; la escala del último cuerpo permanece retenida.
+    // 0x446e9d..0x446eb3: only XYZ; the last body's scale stays retained.
     context.carry.models[static_cast<std::uint16_t>(object.model)].position = origin;
     const auto* model = context.models.Find(Models::ModelId{static_cast<std::uint16_t>(object.model)});
     if (model == nullptr || model->meshes.empty())
@@ -122,7 +122,7 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
                 const auto vertex = triangle.vertices[k];
                 if (vertex < 0)
                     return Core::Unexpected(std::string("4eff40: índice de vértice negativo"));
-                // El scratch frío original es .bss en cero. Los índices no escritos conservan ese cero.
+                // The original cold scratch is zeroed .bss. Unwritten indices keep that zero.
                 glm::vec3 position{};
                 if (i < context.carry.meshes.size() &&
                     static_cast<std::size_t>(vertex) < context.carry.meshes[i].positions.size())
@@ -132,7 +132,7 @@ Core::Expected<void, std::string> Shadow(Render::ModelBatch& batch, const FaunaO
             batch.Triangle(vertices);
         }
     }
-    // 4f00f5→620890 sólo repone la escritura de profundidad, deja textura/alpha test apagados.
+    // 0x4f00f5→0x620890 only restores depth writes, leaves texture/alpha test off.
     state.depthWrite = true;
     batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
     return {};
@@ -212,7 +212,7 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, FaunaObject
             return pose;
     }
     Actors::Drawing::DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes);
-    // 446c35..446c80 son draws puros, también visibles en la proyección entre pasos nativos.
+    // 0x446c35..0x446c80 are pure draws, also visible in the projection between native steps.
     if (bird && object.model == StormBird && object.counter == 1)
     {
         Actors::Drawing::DrawObjectFromMeshes(batch, context.models, drawn, context.frameClock, context.carry.meshes,
@@ -268,7 +268,7 @@ Core::Expected<void, std::string> DrawPool(Render::ModelBatch& batch, std::span<
         if (rotate)
             object.angles.z = F32(static_cast<double>(object.angles.z) + QuarterTurn);
         auto result = DrawOne(batch, object, context, birds);
-        // Fallo del binding: conservar el prefijo del slot actual, incluido el yaw aún sumado.
+        // Binding failure: keep the current slot's prefix, including the yaw already added.
         if (!result.HasValue())
             return result;
         if (rotate)

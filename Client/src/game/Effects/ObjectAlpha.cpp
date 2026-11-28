@@ -11,14 +11,14 @@ namespace
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
 
-// Datos f32 exactos del contrato ordinario cerrado de 0x4e9980 (0x6b8a48 y 0x6b87b8).
+// Exact f32 data of 0x4e9980's closed ordinary contract (0x6b8a48 and 0x6b87b8).
 constexpr float AlphaStep = std::bit_cast<float>(0x3d4ccccdu);
 constexpr float AlphaRate = std::bit_cast<float>(0x3dcccccdu);
 
 void InterpolateAlpha(double target, float& current)
 {
-    // Los stores double fuerzan R53 por operación incluso con registros de mayor precisión;
-    // separarlos también impide contraer producto+suma. No son stores f32 intermedios.
+    // The double stores force R53 per operation even with higher-precision registers; splitting them also prevents
+    // contracting product+sum. They are not intermediate f32 stores.
     volatile double difference = target - static_cast<double>(current);
     volatile double scaled = difference * static_cast<double>(AlphaRate);
     volatile double result = scaled + static_cast<double>(current);
@@ -31,14 +31,14 @@ void StepAlpha(double target, const float& targetView, float& current)
     {
         volatile double result = static_cast<double>(current) + static_cast<double>(AlphaStep);
         current = static_cast<float>(result);
-        // FST no reemplaza el resultado retenido: se compara R53, no el f32 almacenado.
+        // FST does not replace the retained result: R53 is compared, not the stored f32.
         if (result > 1.0)
         {
             current = 1.0f;
         }
         return;
     }
-    // La segunda comparación incluye unordered en el descenso y relee target/current.
+    // The second comparison includes unordered on the descent and rereads target/current.
     if (!(static_cast<double>(targetView) >= static_cast<double>(current)))
     {
         volatile double result = static_cast<double>(current) - static_cast<double>(AlphaStep);
@@ -62,7 +62,7 @@ void StepObjectAlpha(const float& target, float& current, float& ceiling, std::u
     {
         StepAlpha(loadedTarget, target, current);
     }
-    // Sólo el mayor ordenado copia; igualdad (incluso ±0) y NaN preservan los bits de ceiling.
+    // Only the ordered greater copies; equality (even ±0) and NaN keep ceiling's bits.
     if (ceiling > current)
     {
         ceiling = current;

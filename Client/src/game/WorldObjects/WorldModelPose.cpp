@@ -23,7 +23,7 @@ Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, Asse
                                                  const Kernel::ActorState& actor, const Models::Skeleton& skeleton,
                                                  float frame, const glm::vec3& angles)
 {
-    // 4eb86d: sin acciones no publica ni metadatos ni scratch, aunque el modelo tenga huesos.
+    // 0x4eb86d: without actions it publishes neither metadata nor scratch, even if the model has bones.
     if (skeleton.actions.empty())
         return {};
     if (faunaModels == nullptr)

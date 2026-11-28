@@ -33,22 +33,22 @@ namespace
 {
 // 0x4cee16: 0x41ed10(0x76, 0, 0).
 constexpr Audio::SoundId MagicAttackSound = Sound::MagicSound;
-// 0x4cee1d: 0x4ea030(el que pega, 0x96).
+// 0x4cee1d: 0x4ea030(striker, 0x96).
 constexpr std::uint8_t MagicAttackAction = 0x96;
-// 0x5110d0 sin nadie con la clave: el lugar de después de los 400.
+// 0x5110d0 when nobody has the key: the slot after the 400.
 constexpr std::size_t NoActor = 400;
-// 0x40b3f0: un rand() por el byte de +0x38e al cerrarse.
+// 0x40b3f0: one rand() for the +0x38e byte when it closes.
 constexpr std::uint16_t Byte38eCloseRandoms = 1;
-// 0x4cefe4: +0x381 en 1.
+// 0x4cefe4: +0x381 at 1.
 constexpr std::uint8_t SkillActive = 1;
 // 0x4cf024..0x4cf035: rand() par.
 constexpr int ShockOneIn = 2;
-// 0x4cf05a..0x4cf07d: el color (1; 0,6; 0) (0x3f19999a), la escala 15 (0x41700000) y que sube.
+// 0x4cf05a..0x4cf07d: the color (1; 0.6; 0) (0x3f19999a), scale 15 (0x41700000) and rising.
 constexpr glm::vec3 DamageLight(1.0f, 0.6f, 0.0f);
 constexpr float DamageScale = 15.0f;
 constexpr bool DamageRises = true;
 
-// 0x4cf099..0x4cf17d: el registro propio abierto alrededor de la resta; un golpe de la vida o más la deja en 0.
+// 0x4cf099..0x4cf17d: the own record open around the subtraction; a hit of the life or more leaves it at 0.
 void HitTheHero(Kernel::WorldState& world, std::uint16_t damage, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess own(world.Runtime().ownRecordDepth, random, Models::OwnRecordCloseRandoms);
@@ -73,22 +73,21 @@ Core::Expected<void, std::string> ApplyMagicAttackCount(const Protocol::Actors::
         !raised.HasValue())
         return raised;
     runtime.RequestSound(MagicAttackSound);
-    // 0x4cee23: 0x4ea030 lee la cuenta de acciones del modelo del que pega (+0x26 de 0x5769ad8): el de un monstruo o
-    // un NPC, el que cargó su alta (el GS 0.97 también manda el 1A de un monstruo, user.cpp:11887). Sin nadie con la
-    // clave, el 400 (Q-C1125): su tipo es memoria que MuRet no modela y la acción se descarta, con una línea de
-    // depuración (con el viewport del GS, que no es el del cliente, pasa jugando); lo demás va al 400 como en el
-    // original.
+    // 0x4cee23: 0x4ea030 reads the action count of the striker's model (+0x26 of 0x5769ad8): a monster's or an NPC's,
+    // the one its creation loaded (GS 0.97 also sends a monster's 1A, user.cpp:11887). With nobody holding the key, the
+    // 400 (Q-C1125): its type is memory MuRet does not model and the action is discarded, with a debug line (with the
+    // GS's viewport, which is not the client's, it happens in play); the rest goes to the 400 as in the original.
     if (casterSlot == NoActor)
         resources.log.Debug("se descarta la acción 0x96 del 1A: la clave {:#x} del que pega no está", attack.key);
     else if (auto set = Actors::SetMonsterAction(caster, MagicAttackAction, 0x4cee23, resources); !set.HasValue())
         return set;
-    // 0x4cee28..0x4cefd7: pkt[5] en +0x38e, con la entrada de la tabla abierta.
+    // 0x4cee28..0x4cefd7: pkt[5] in +0x38e, with the table entry open.
     {
         const Models::LogicalAccess skill(caster.byte38eAccesses, random, Byte38eCloseRandoms);
         caster.byte38e = attack.magic;
     }
     caster.byte381 = SkillActive;
-    // 0x4cefeb..0x4cf196: cada blanco, con su clave entera (ESI).
+    // 0x4cefeb..0x4cf196: each target, with its whole key (ESI).
     for (const std::uint16_t key : attack.targets)
     {
         Kernel::ActorState& target = world.Actors()[Kernel::ActorWithKey(world, key)];

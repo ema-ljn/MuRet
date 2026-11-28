@@ -33,8 +33,8 @@ TEST(CrywolfEffectsTest, TheCraterVariantsKeepTheNativeSidesAndRetainedThirdComp
     }
 }
 
-// 0x51f4ad..0x51f576: la /0 y un subtipo sin rama (9) quedan en vida 30 y escala 20; la /1 y la /2, vida 20 y (rand() %
-// 10 + 10) · 0,1f; la /3, 15 y 1; la /4, 10 y (rand() % 6 + 6) · 0,1f. Llena, ningún rand().
+// 0x51f4ad..0x51f576: the /0 and a subtype without a branch (9) end with life 30 and scale 20; the /1 and the /2, life
+// 20 and (rand() % 10 + 10) · 0.1f; the /3, 15 and 1; the /4, 10 and (rand() % 6 + 6) · 0.1f. Full, no rand().
 TEST(CrywolfEffectsTest, TheLowShockWavesTakeTheirLifeAndScale)
 {
     auto effects = std::make_unique<Client::Effects::ModelEffects>();

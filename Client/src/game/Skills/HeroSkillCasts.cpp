@@ -67,11 +67,11 @@ constexpr std::size_t RangeOffset = 0x26;
 constexpr std::uint16_t DarkHorsePet = 0x1c16;
 constexpr std::uint16_t FenrirPet = 0x1c37;
 using Maps::IsBloodCastle;
-constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});    // [0x6b86c0], 0,01
-constexpr float ChosenRangeFactor = std::bit_cast<float>(std::uint32_t{0x3f99999a}); // [0x6b8bb0], 1,2
-constexpr float BloodCastleRange = std::bit_cast<float>(std::uint32_t{0x3fe66666});  // 0x55969e, 1,8
+constexpr float CellReciprocal = std::bit_cast<float>(std::uint32_t{0x3c23d70a});    // [0x6b86c0], 0.01
+constexpr float ChosenRangeFactor = std::bit_cast<float>(std::uint32_t{0x3f99999a}); // [0x6b8bb0], 1.2
+constexpr float BloodCastleRange = std::bit_cast<float>(std::uint32_t{0x3fe66666});  // 0x55969e, 1.8
 constexpr float RumboFactor = std::bit_cast<float>(std::uint32_t{0x3cb60b61});       // [0x6b87d8], 1/45
-constexpr std::string_view NoAttackName = "webzen";                                  // 0x6c8fa0 y 0x6c8fa8
+constexpr std::string_view NoAttackName = "webzen";                                  // 0x6c8fa0 and 0x6c8fa8
 constexpr std::uint32_t HiddenFlag20 = 0x20;
 constexpr std::uint16_t WallAttribute = 4;
 using Terrain::CellSize;                                                      // [0x6b86b4], 100
@@ -100,14 +100,14 @@ Models::LogicalAccess EntryAccess(const HeroSkillContext& context, std::uint8_t 
                                  static_cast<std::uint16_t>(Tables::SkillRecordSize));
 }
 
-// Una celda lógica (+0x41c o +0x420) con 0x40b570/0x412810 y 0x40b800: 4 rand() al cerrarla en 0.
+// A logical cell (+0x41c or +0x420) with 0x40b570/0x412810 and 0x40b800: 4 rand() when closed at 0.
 std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& random)
 {
     const Models::LogicalAccess access(depth, random, Models::SmallLogicalCloseRandoms);
     return cell;
 }
 
-// El nombre (+0x1d9) hasta su '\0', como lo recorre la búsqueda en línea de "webzen".
+// The name (+0x1d9) up to its '\0', as the inline search for "webzen" walks it.
 bool NamedWebzen(const Kernel::ActorState& actor)
 {
     std::string name;
@@ -128,7 +128,7 @@ Core::Expected<Kernel::ActorState*, std::string> ActorAt(Kernel::WorldState& wor
     return &world.Actors()[static_cast<std::size_t>(index)];
 }
 
-// El lugar de `actor` en el pool, para 0x558eb0, que compara el puntero con [0x743a170]. Fuera del pool, ninguno.
+// `actor`'s pool slot, for 0x558eb0, which compares the pointer with [0x743a170]. Outside the pool, none.
 std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& actor)
 {
     const auto actors = world.Actors();
@@ -140,7 +140,6 @@ std::size_t SlotOf(const Kernel::WorldState& world, const Kernel::ActorState& ac
     return actors.size();
 }
 
-// El byte bajo de ftol, o el corte con `where`.
 Core::Expected<std::uint8_t, std::string> FtolByte(double value, std::string_view where)
 {
     const auto whole = Math::OriginalFtolLow(value);
@@ -149,8 +148,8 @@ Core::Expected<std::uint8_t, std::string> FtolByte(double value, std::string_vie
     return static_cast<std::uint8_t>(static_cast<std::uint32_t>(*whole) & 0xffu);
 }
 
-// 0x562934..0x56298f y 0x563e0b..0x563e66: la distancia de c al centro de la celda de 0x77e1ba8/0x77e1bac, en la x87,
-// contra el alcance (0x5526f0, en float) · 100. Fuera (sin C0 ni C3), no; desordenado, sí.
+// 0x562934..0x56298f and 0x563e0b..0x563e66: the distance from c to the center of the cell of 0x77e1ba8/0x77e1bac, on
+// the x87, against the reach (0x5526f0, as a float) · 100. Outside (no C0 or C3), no; unordered, yes.
 bool TheChosenCellIsInReach(const Kernel::ActorState& caster, const Movement::GameMovementState& state, float range)
 {
     const auto cellX = static_cast<double>(std::bit_cast<std::int32_t>(state.targetX));
@@ -163,7 +162,7 @@ bool TheChosenCellIsInReach(const Kernel::ActorState& caster, const Movement::Ga
     return !(distance > static_cast<double>(range) * static_cast<double>(CellSize));
 }
 
-// 0x562a01..0x562a5b: la distancia de la celda lógica de c a la del blanco, cada eje entre −8 y 7, en un byte.
+// 0x562a01..0x562a5b: the distance from c's logical cell to the target's, each axis between −8 and 7, in a byte.
 std::uint8_t TowardsTheChosen(const Movement::GameMovementState& state, std::uint8_t x, std::uint8_t y)
 {
     const std::int32_t dx = std::clamp(std::bit_cast<std::int32_t>(state.targetX) - std::int32_t{x}, -8, 7);
@@ -172,7 +171,7 @@ std::uint8_t TowardsTheChosen(const Movement::GameMovementState& state, std::uin
                                      (static_cast<std::uint32_t>(dy - 8) & 0x0fu));
 }
 
-// 0x4ea030(personaje, acción) con las acciones de Player.bmd.
+// 0x4ea030(character, action) with Player.bmd's actions.
 Core::Expected<void, std::string> SetPlayerAction(Kernel::ActorState& actor, std::uint8_t action,
                                                   const HeroSkillContext& context, std::string_view where)
 {
@@ -182,7 +181,7 @@ Core::Expected<void, std::string> SetPlayerAction(Kernel::ActorState& actor, std
     return {};
 }
 
-// 0x4f4a10 con el contexto de las skills.
+// 0x4f4a10 with the skills' context.
 Core::Expected<void, std::string> AttackWith(Kernel::ActorState& actor, const HeroSkillContext& context)
 {
     return Combat::SetActorAttack(actor, Combat::ActorCombatContext{.world = context.world,
@@ -195,9 +194,9 @@ Core::Expected<void, std::string> AttackWith(Kernel::ActorState& actor, const He
                                                                     .faunaModels = context.faunaModels});
 }
 
-// 0x563b8f..0x564f37: 0x4f4a10 sobre c; un jugador (0x20a en +2) o, en la 0x18, uno con 1 en +0x88, nada más. Si
-// no, +0x38e (un rand() al cerrarlo), su lugar en las skills del registro propio (abierto por quien llama) y la
-// flecha de 0x53e2b0(c, c, 0, lugar, `count`, 0) (Effects::FireTheArrow): 1 en la 0x18 (0x564f28) y 0x36 − 0x34 en la
+// 0x563b8f..0x564f37: 0x4f4a10 on c; a player (0x20a in +2) or, with skill 0x18, one with 1 in +0x88, nothing more.
+// Otherwise, +0x38e (one rand() on closing it), its slot in the own record's skills (opened by the caller) and the
+// arrow of 0x53e2b0(c, c, 0, slot, `count`, 0) (Effects::FireTheArrow): 1 with 0x18 (0x564f28) and 0x36 − 0x34 with
 // 0x36 (0x563df1).
 Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std::uint8_t skill, std::uint8_t count,
                                                 const HeroSkillContext& context)
@@ -223,7 +222,7 @@ Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std:
             }
         }
     }
-    // 0x564f2f (P-C269 c): 0x53e2b0(c, c, 0, lugar, `count`, 0), con los sonidos en WorldRuntime::lastSoundId (CL10).
+    // 0x564f2f (P-C269 c): 0x53e2b0(c, c, 0, slot, `count`, 0), with the sounds in WorldRuntime::lastSoundId (CL10).
     Kernel::WorldState& world = context.world;
     const Actors::CharacterStepContext shot{.world = world,
                                             .random = context.random,
@@ -241,7 +240,7 @@ Core::Expected<void, std::string> ShootTheArrow(Kernel::ActorState& caster, std:
                                  shot);
 }
 
-// 0x55bd12..0x55bdd8: la acción de un jugador por la skill (la tabla 0x55cb78 por skill − 0x2b, a 0x55cb60).
+// 0x55bd12..0x55bdd8: a player's action by skill (table 0x55cb78 by skill − 0x2b, into 0x55cb60).
 std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const Kernel::ActorState& caster,
                                            const Kernel::WorldRuntime& runtime)
 {
@@ -260,16 +259,16 @@ std::optional<std::uint8_t> PlayerActionOf(std::uint8_t skill, const Kernel::Act
     case 0x4a:
         return std::nullopt;
     default:
-        // 0x55bda6..0x55bdd8: con Fenrir fuera de la zona segura, la 0x5d; si no, 0x7758584 + 0x25 (el lugar o la
-        // skill que quedó ahí, no la skill leída).
+        // 0x55bda6..0x55bdd8: with Fenrir outside the safe zone, 0x5d; otherwise 0x7758584 + 0x25 (the slot or the
+        // skill left there, not the skill read).
         if (caster.pet.model == FenrirPet && caster.safeZone == 0)
             return std::uint8_t{0x5d};
         return static_cast<std::uint8_t>(runtime.movement.weaponSkill.slot + 0x25u);
     }
 }
 
-// 0x55c680..0x55c72a: la celda del blanco corrida un paso por el rumbo de `hero` (ftol(+0x24 · 1/45), en valor
-// absoluto, de 0 a 7; con más, quieta): la tabla 0x55cb98.
+// 0x55c680..0x55c72a: the target's cell moved one step along `hero`'s heading (ftol(+0x24 · 1/45), absolute value,
+// from 0 to 7; with more, it stays): table 0x55cb98.
 void StepTheCellByTheRumbo(std::uint8_t& x, std::uint8_t& y, std::int32_t rumbo)
 {
     switch (rumbo)
@@ -307,11 +306,11 @@ void StepTheCellByTheRumbo(std::uint8_t& x, std::uint8_t& y, std::int32_t rumbo)
     }
 }
 
-// 0x55be0d..0x55be49: 0x53fe70(0x5fe, +0x10, +0x1c, (1; 1; 1), 0, 0, `hero`), con el dueño en el pool, y el sonido
-// 0x41ed10(rand() % 2 + 0x3c, 0, 0), que saca su rand() también con el pool lleno (CL10: queda en el último sonido).
-// 0x53fdb0 pone el brillo en un hueso con la escala del modelo compartido del tipo del dueño (+0x68 de 0x5769ad8 +
-// tipo · 0xe0), que MuRet solo tiene para Player.bmd (WorldState::PlayerModel): con otro tipo, el héroe de un anillo de
-// transformación, corta antes de crearlo (08, P-C358).
+// 0x55be0d..0x55be49: 0x53fe70(0x5fe, +0x10, +0x1c, (1, 1, 1), 0, 0, `hero`), with the owner in the pool, and sound
+// 0x41ed10(rand() % 2 + 0x3c, 0, 0), which draws its rand() even with the pool full (CL10: it stays in the last sound).
+// 0x53fdb0 puts the shine on a bone with the scale of the owner type's shared model (+0x68 of 0x5769ad8 + type ·
+// 0xe0), which MuRet has only for Player.bmd (WorldState::PlayerModel): with another type, the hero of a
+// transformation ring, it cuts before creating it (08, P-C358).
 Core::Expected<void, std::string> ShineOnTheHero(const Kernel::ActorState& hero, const HeroSkillContext& context)
 {
     constexpr std::int32_t FirstShineSound = 0x3c;
@@ -364,8 +363,8 @@ Core::Expected<void, std::string> UseAManaPotion(const HeroSkillContext& context
     Items::InventoryServices inventory = context.inventory != nullptr ? *context.inventory : Items::InventoryServices{};
     if (!inventory.sendUseItem)
     {
-        // 0x5af520 saca el relleno y el serial antes del send. UseInventoryItem ya conserva esos dos rand(),
-        // incluso con el socket en −1: acá se presta sólo el envío, sin pasar otra vez por SendTheSkillPacket.
+        // 0x5af520 draws the padding and the serial before the send. UseInventoryItem already keeps those two rand(),
+        // even with the socket at −1: here only the send is lent, without going through SendTheSkillPacket again.
         inventory.sendUseItem = [&context](const Protocol::Items::UseItem& use) -> Core::Expected<void, std::string>
         {
             if (context.send)
@@ -429,7 +428,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
     const auto target = ActorAt(world, chosen, "0x55952d");
     if (!target.HasValue())
         return Core::Unexpected(target.Error());
-    // 0x55953e..0x55956c: la celda del elegido.
+    // 0x55953e..0x55956c: the chosen target's cell.
     const auto cellX =
         Math::OriginalFtolLow(static_cast<double>(target.Value()->position.x) * static_cast<double>(CellReciprocal));
     const auto cellY =
@@ -441,7 +440,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
     state.weaponSkill = Movement::WeaponSkillRequest{.active = 0, .slot = skill, .target = chosen};
     if (context.skills == nullptr || !context.skills->Record(skill))
         return Core::Unexpected(std::format("0x5595b5: Skill.bmd no tiene la skill {}", skill));
-    // 0x5595b5..0x559720 y 0x55982d..0x55987e: la entrada de la skill, abierta hasta el final.
+    // 0x5595b5..0x559720 and 0x55982d..0x55987e: the skill's entry, open until the end.
     const auto entry = EntryAccess(context, skill);
     const auto range = SkillRangeOf(skill, caster, context);
     if (!range.HasValue())
@@ -449,8 +448,8 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
     float reach = static_cast<float>(static_cast<double>(range.Value()) * static_cast<double>(ChosenRangeFactor));
     if (IsBloodCastle(runtime.map) && InRange(skill, 0x13, 0x17))
         reach = BloodCastleRange;
-    // 0x5596a5..0x5596f2: la distancia de `hero` al centro de la celda, en la x87; menor o igual que el alcance · 100
-    // (sin C0) está en alcance.
+    // 0x5596a5..0x5596f2: the distance from `hero` to the cell's center, on the x87; less than or equal to the reach ·
+    // 100 (no C0) is in reach.
     const double dx = static_cast<double>(hero.position.x) - (static_cast<double>(*cellX) * 100.0 + 50.0);
     const double dy = static_cast<double>(hero.position.y) - (static_cast<double>(*cellY) * 100.0 + 50.0);
     const double distance = std::sqrt(dx * dx + dy * dy);
@@ -461,7 +460,7 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
             return Core::Unexpected(cast.Error());
         return true;
     }
-    // 0x559725..0x559822: fuera de alcance, el camino desde las celdas lógicas de c.
+    // 0x559725..0x559822: out of reach, the path from c's logical cells.
     const std::uint8_t y = ReadCell(caster.cellYAccesses, caster.cellY, context.random);
     const std::uint8_t x = ReadCell(caster.cellXAccesses, caster.cellX, context.random);
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
@@ -472,8 +471,8 @@ Core::Expected<bool, std::string> UseTheSkillOnTheChosen(Kernel::ActorState& cas
         return Core::Unexpected(std::format("0x55980f: la celda del elegido ({}, {}) fuera de la grilla, que "
                                             "PathFinding2 toma como índice lineal",
                                             *cellX, *cellY));
-    // 0x55980f: PathFinding2 con la bandera del altar de Crywolf (0x4eac0a..0x4eac41), que con el alcance distinto de 0
-    // no cuenta (0x4eadd4).
+    // 0x55980f: PathFinding2 with the Crywolf altar flag (0x4eac0a..0x4eac41), which does not count with a nonzero
+    // reach (0x4eadd4).
     const auto path =
         Actors::FindThePath(world, terrain.attributes->cells, {x, y},
                             {static_cast<std::uint8_t>(*cellX), static_cast<std::uint8_t>(*cellY)}, reach);
@@ -491,7 +490,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
     Kernel::WorldState& world = context.world;
     Kernel::WorldRuntime& runtime = world.Runtime();
     const Movement::WeaponSkillRequest request = runtime.movement.weaponSkill;
-    // 0x55b714..0x55b7fe: con 0x7758580, la skill del lugar 0x7758584 en el registro propio; si no, 0x7758584 es la
+    // 0x55b714..0x55b7fe: with 0x7758580, the skill of slot 0x7758584 in the own record; otherwise 0x7758584 is the
     // skill.
     std::uint8_t skill = 0;
     {
@@ -499,7 +498,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
         skill = request.active != 0 ? Kernel::OwnSkillByte(world.OwnCharacter(), request.slot)
                                     : static_cast<std::uint8_t>(request.slot & 0xffu);
     }
-    // 0x55b803..0x55bc0c: C1 06 D3 X Y (rumbo << 4) con la celda lógica del héroe publicado, X antes que Y, por el
+    // 0x55b803..0x55bc0c: C1 06 D3 X Y (heading << 4) with the published hero's logical cell, X before Y, through the
     // socket.
     Kernel::ActorState& published = world.Hero();
     const std::uint8_t x = ReadCell(published.cellXAccesses, published.cellX, context.random);
@@ -524,20 +523,20 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
     {
         return attacked;
     }
-    // 0x55bde6..0x55be49: salvo las 0x3c, 0x3d y 0x4a, el brillo 0x5fe sobre `hero` y el sonido 0x3c o 0x3d.
+    // 0x55bde6..0x55be49: except for 0x3c, 0x3d and 0x4a, the 0x5fe shine over `hero` and sound 0x3c or 0x3d.
     if (skill != 0x3c && skill != 0x3d && skill != 0x4a)
     {
         if (auto shone = ShineOnTheHero(hero, context); !shone.HasValue())
             return shone;
     }
-    // 0x55be4c..0x55beb5: la posición del blanco en +0x3a8 de c y el rumbo de `hero` hacia él.
+    // 0x55be4c..0x55beb5: the target's position in c's +0x3a8 and `hero`'s heading towards it.
     const auto target = ActorAt(world, request.target, "0x55be4c");
     if (!target.HasValue())
         return Core::Unexpected(target.Error());
     caster.attackPosition = target.Value()->position;
     hero.angles.z = static_cast<float>(
         Math::CreateAngle(hero.position.x, hero.position.y, caster.attackPosition.x, caster.attackPosition.y));
-    // 0x55be9a..0x55c622: con "webzen" en el nombre del héroe publicado o sin pasar el freno, no sale el 19.
+    // 0x55be9a..0x55c622: with "webzen" in the published hero's name or without passing the brake, the 19 is not sent.
     if (!NamedWebzen(published))
     {
         const auto passes = PassesTheSkillBrake(skill, context, "0x55bf17");
@@ -567,7 +566,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
             return Core::Unexpected(std::string("0x55c6e0: el rumbo del héroe fuera del perfil ftol"));
         StepTheCellByTheRumbo(dfX, dfY, std::abs(*rumbo));
     }
-    // 0x55c72d..0x55c79b: 0x5f8290 (y · 256 + x) en los atributos de TerrainWall.
+    // 0x55c72d..0x55c79b: 0x5f8290 (y · 256 + x) in TerrainWall's attributes.
     const Terrain::WorldTerrain& terrain = Terrain::TerrainOrEmpty(context.terrain);
     if (!terrain.attributes)
         return Core::Unexpected(std::string("0x55c745: falta TerrainWall para la celda del DF"));
@@ -576,7 +575,7 @@ Core::Expected<void, std::string> CastTheSkillAtTheTarget(Kernel::ActorState& ca
         return {};
     if (skill == 0x2f || skill == 0x2b || skill == 0x31 || skill == 0x3c || skill == 0x3d || skill == 0x4a)
         return {};
-    // 0x55c7a1..0x55cb48: C1 05 DF X Y, por el socket.
+    // 0x55c7a1..0x55cb48: C1 05 DF X Y, through the socket.
     SendTheSkillPacket(context, Protocol::Combat::WriteElfCell(dfX, dfY));
     return {};
 }
@@ -625,7 +624,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(Kernel::ActorState& hero, 
         const Kernel::ActorState& published = world.Hero();
         if (Kernel::OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
-        // 0x55a368..0x55a3b0: el costo y, sin maná, la poción o la opción que sigue.
+        // 0x55a368..0x55a3b0: the cost and, without mana, the potion or the next option.
         const auto cost = SkillCostOf(skill, context, "0x55a37a");
         if (!cost.HasValue())
             return Core::Unexpected(cost.Error());
@@ -635,7 +634,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(Kernel::ActorState& hero, 
                 return Core::Unexpected(potion.Error());
             continue;
         }
-        // 0x55abb5..0x55abf3: la espera del lugar del héroe publicado y la tabla 0x55b6c8 por la opción − 0x12.
+        // 0x55abb5..0x55abf3: the delay of the published hero's slot and table 0x55b6c8 by option − 0x12.
         const auto ready =
             TryStartSkillDelay(published.skillIndex,
                                SkillDelayContext{.world = world, .random = context.random, .skills = context.skills});
@@ -645,7 +644,7 @@ Core::Expected<bool, std::string> UseTheWeaponOptions(Kernel::ActorState& hero, 
             continue;
         if (skill == 0x12)
         {
-            // 0x55abfa..0x55b45a: la acción, y el 19 sobre el héroe publicado.
+            // 0x55abfa..0x55b45a: the action, and the 19 over the published hero.
             hero.movement = 0;
             if (hero.type == Tables::PlayerSkeletonModel)
             {
@@ -698,7 +697,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
         const Kernel::ActorState& published = world.Hero();
         if (Kernel::OwnSkillByte(world.OwnCharacter(), published.skillIndex) != skill)
             continue;
-        // 0x562024..0x562092: el costo y, sin maná, la poción o la opción que sigue.
+        // 0x562024..0x562092: the cost and, without mana, the potion or the next option.
         const auto cost = SkillCostOf(skill, context, "0x56203e");
         if (!cost.HasValue())
             return Core::Unexpected(cost.Error());
@@ -708,7 +707,8 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
                 return Core::Unexpected(potion.Error());
             continue;
         }
-        // 0x5628c3..0x5628ef y 0x56500b: con la stamina de más o sin la espera, 0 aunque otra opción la haya usado.
+        // 0x5628c3..0x5628ef and 0x56500b: with too much stamina or without the delay, 0 even if another option used
+        // it.
         if (cost.Value().stamina > world.OwnCharacter().bp)
             return false;
         const auto ready =
@@ -718,13 +718,13 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
             return Core::Unexpected(ready.Error());
         if (!ready.Value())
             return false;
-        // 0x5628f5..0x562919: el alcance (0x5526f0) de cualquier opción; solo la 0x18 y la 0x36 siguen.
+        // 0x5628f5..0x562919: the reach (0x5526f0) of any option; only 0x18 and 0x36 continue.
         const auto range = SkillRangeOf(skill, hero, context);
         if (!range.HasValue())
             return Core::Unexpected(range.Error());
         if (skill != 0x18 && skill != 0x36)
             continue;
-        // 0x56291f..0x56292f y 0x563df6..0x563e06: sin flechas (0x561c50), se terminan las opciones.
+        // 0x56291f..0x56292f and 0x563df6..0x563e06: without arrows (0x561c50), the options end.
         static const Items::InventoryServices NoServices{};
         const auto arrows = Items::CheckTheArrows(
             Items::InventoryMoveContext{.world = world,
@@ -736,13 +736,13 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
             break;
         if (!TheChosenCellIsInReach(hero, state, range.Value()))
             continue;
-        // 0x562995..0x5629b0 y 0x563e6c..0x563e92: el rumbo de c hacia +0x3a8.
+        // 0x562995..0x5629b0 and 0x563e6c..0x563e92: c's heading towards +0x3a8.
         hero.angles.z = static_cast<float>(
             Math::CreateAngle(hero.position.x, hero.position.y, hero.attackPosition.x, hero.attackPosition.y));
         Protocol::Skills::DurationMagicSend send{.skill = skill};
         if (skill == 0x36)
         {
-            // 0x5629b6..0x562a69: la celda lógica de c (la Y antes que la X), hacia el blanco y la espalda.
+            // 0x5629b6..0x562a69: c's logical cell (Y before X), towards the target and the back.
             const std::uint8_t y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
             const std::uint8_t x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);
             send.towards = TowardsTheChosen(state, x, y);
@@ -753,7 +753,7 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
                 return Core::Unexpected(back.Error());
             send.back = back.Value();
         }
-        // 0x562a6c..0x562a87 y 0x563e8a..0x563eab: la clave de 0x558eb0 con 0x7758588, o 0xffff sin él.
+        // 0x562a6c..0x562a87 and 0x563e8a..0x563eab: the key of 0x558eb0 with 0x7758588, or 0xffff without it.
         std::int32_t key = 0xffff;
         if (state.weaponSkill.target != -1)
         {
@@ -764,10 +764,11 @@ Core::Expected<bool, std::string> UseTheElfWeaponOptions(Kernel::ActorState& her
             key = chosen.Value();
         }
         send.key = static_cast<std::uint16_t>(static_cast<std::uint32_t>(key) & 0xffffu);
-        // 0x562a8a..0x562af3 y 0x563eae..0x563f17: con "webzen" en el nombre del héroe publicado, no sale (sin freno).
+        // 0x562a8a..0x562af3 and 0x563eae..0x563f17: with "webzen" in the published hero's name, it is not sent (no
+        // brake).
         if (!NamedWebzen(world.Hero()))
         {
-            // 0x562af5..0x563b78 y 0x563f19..0x564e84: 0x5767948, la celda lógica otra vez y el 1E.
+            // 0x562af5..0x563b78 and 0x563f19..0x564e84: 0x5767948, the logical cell again and the 1E.
             context.world.Runtime().lastShotSkill = skill;
             send.y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
             send.x = ReadCell(hero.cellXAccesses, hero.cellX, context.random);

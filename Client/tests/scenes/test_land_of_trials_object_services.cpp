@@ -19,8 +19,7 @@
 #include <string>
 #include <vector>
 
-// 0x4401e0 y 0x4403b0, el frame y el dibujo de los objetos de Land of Trials (el mapa 31): 06 § Los objetos
-// de Land of Trials.
+// 0x4401e0 and 0x4403b0, the frame and the draw of the objects of map 31: 06 § Los objetos de Land of Trials.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -92,7 +91,7 @@ WorldObject ObjectOf(std::int16_t type)
     return object;
 }
 
-// La semilla cuyo primer rand() % 3 da `remainder`.
+// The seed whose first rand() % 3 gives `remainder`.
 std::uint32_t SeedWith(int remainder)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -104,8 +103,8 @@ std::uint32_t SeedWith(int remainder)
 }
 } // namespace
 
-// 0x440355 y 0x440212: con rand() % 3 en 0, el 3 suelta la salpicadura 6f2/3 y el 0x35 el humo 5f2/22, sobre
-// el objeto, con sus ángulos, luz (1, 1, 1) y su escala; con otro resto, nada más que ese rand().
+// 0x440355 and 0x440212: with rand() % 3 at 0, the 3 releases the splash 0x6f2/3 and the 0x35 the smoke 0x5f2/22,
+// on the object, with its angles, light (1, 1, 1) and its scale; with another remainder, nothing but that rand().
 TEST(LandOfTrialsObjectServicesTest, TheEmittersReleaseTheirParticleOnceInThree)
 {
     struct Case
@@ -147,9 +146,9 @@ TEST(LandOfTrialsObjectServicesTest, TheEmittersReleaseTheirParticleOnceInThree)
     EXPECT_TRUE(Fixture().Sprites().empty());
 }
 
-// 0x440263..0x440346: en el hueso 3 de la pose global, 10 más abajo en la y: un 0x5ac rojo de escala
-// ((sin(reloj · 0,002f) · 0,35f + 0,65f) · 1,2f + 0,3f), otro de 0,5 y un 0x5fd gris 0,3 de 1,2 girado
-// rand() % 360, el único rand() del caso.
+// 0x440263..0x440346: on bone 3 of the global pose, 10 lower in y: a red 0x5ac of scale
+// ((sin(clock · 0.002f) · 0.35f + 0.65f) · 1.2f + 0.3f), another of 0.5 and a 0x5fd in grey 0.3 of 1.2 turned
+// rand() % 360, the case's only rand().
 TEST(LandOfTrialsObjectServicesTest, TheBrazierLeavesTwoRedFlaresAndATurnedShineOnItsBone)
 {
     Fixture fixture;
@@ -181,7 +180,6 @@ TEST(LandOfTrialsObjectServicesTest, TheBrazierLeavesTwoRedFlaresAndATurnedShine
     EXPECT_TRUE(fixture.Alive().empty());
 }
 
-// Los demás tipos no hacen nada en el frame. Sin pose o sin sprites el 0x31 corta, y sin rand() corta todo.
 TEST(LandOfTrialsObjectServicesTest, TheOtherTypesDoNothingAndMissingServicesCut)
 {
     for (const std::int16_t type : {std::int16_t{1}, std::int16_t{0xa}, std::int16_t{0x1b}, std::int16_t{0x2a}})
@@ -224,9 +222,9 @@ TEST(LandOfTrialsObjectServicesTest, TheOtherTypesDoNothingAndMissingServicesCut
     }
 }
 
-// 0x4404a2..0x4404ec y 0x440432..0x440467: el 0x1b y el 0x36 multiplican el color del modelo por
-// sin(reloj · 0,0012f + fase) · 0,5f + 0,9f; el 0x34 por el mismo pulso con 0,0009f, y se dibuja dos veces
-// (Q-C317). 0x4403e9: el 0xa, (0,56; 0,8; 0,81). Los demás, sin caso.
+// 0x4404a2..0x4404ec and 0x440432..0x440467: the 0x1b and the 0x36 multiply the model's color by
+// sin(clock · 0.0012f + phase) · 0.5f + 0.9f; the 0x34 by the same pulse with 0.0009f, and is drawn twice
+// (Q-C317). 0x4403e9: the 0xa, (0.56; 0.8; 0.81). The others, no case.
 TEST(LandOfTrialsObjectServicesTest, TheBodiesPulseWithTheClockAndTheirPhase)
 {
     const glm::vec3 color{0.7f, 0.45f, 0.3f};

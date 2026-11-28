@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-// El 0x610/6 que el 0x95 de Kalima tira con la 0x11 hacia su blanco (0x43b0ed, 0x43b11c y 0x43b14e): el alta de
-// 0x531c43..0x531cc7 y 0x531e04..0x531e27 y el paso de 0x537b36..0x537c7d, con el blanco de dueño.
+// The 0x610/6 that Kalima's 0x95 throws with the 0x11 toward its target (0x43b0ed, 0x43b11c and 0x43b14e): the
+// creation in 0x531c43..0x531cc7 and 0x531e04..0x531e27 and the step in 0x537b36..0x537c7d, with the target as owner.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -79,7 +79,7 @@ struct BoltWorld
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
-// 0x4e9810 con el destino: el yaw y el pitch giran de a `turn`; devuelve la distancia sin redondear.
+// 0x4e9810 with the target: yaw and pitch turn by `turn`; returns the unrounded distance.
 double Steer(JointState& expected, const glm::vec3& target, float turn)
 {
     using Client::Math::CreateAngle;
@@ -95,7 +95,7 @@ double Steer(JointState& expected, const glm::vec3& target, float turn)
     return std::sqrt((D(z) * z + D(F32(x * x))) + D(F32(y * y)));
 }
 
-// El avance común (0x53590e) con la velocidad de antes y los ángulos de antes.
+// The common advance (0x53590e) with the previous speed and angles.
 void MoveAhead(JointState& expected)
 {
     const glm::vec3 moved = Client::Math::OriginalVectorRotate({0.0f, -expected.speed, 0.0f},
@@ -105,9 +105,9 @@ void MoveAhead(JointState& expected)
 }
 } // namespace
 
-// 0x531c43..0x531cc7, 0x531e04..0x531e27 y 0x532003: la vida en la key (50) y la key en 0; la luz en 1, la mezcla 4, el
-// ancho, 16 puntos, velocidad 5 y el destino en el segundo punto. Sin rand(). Con el color 3 sin dueño, el original
-// desreferencia el puntero nulo (+0xf4, 0x531c7b) y revienta: MuRet corta.
+// 0x531c43..0x531cc7, 0x531e04..0x531e27 and 0x532003: the life in the key (50) and the key at 0; the light at 1, blend
+// 4, the width, 16 points, speed 5 and the target at the second point. Without rand(). With color 3 without an owner,
+// the original dereferences the null pointer (+0xf4, 0x531c7b) and crashes: MuRet stops.
 TEST(TargetBoltJointsTest, TheBoltIsBornWithTheKeyAsItsLife)
 {
     BoltWorld tested;
@@ -134,9 +134,9 @@ TEST(TargetBoltJointsTest, TheBoltIsBornWithTheKeyAsItsLife)
     EXPECT_NE(cut.Error().find("0x531c7b"), std::string::npos) << cut.Error();
 }
 
-// 0x537b4a..0x537c7d: con 30 de vida o más, la z de los ángulos baja 10 y la posición sube 2,5 después del avance
-// común; la velocidad sube 5 y gira con ella hacia el blanco 150 más arriba; lejos (más de 70) no frena. Con 15 de
-// vida o más, la luz no cambia. Un rand() para la luz dinámica.
+// 0x537b4a..0x537c7d: with life 30 or more, the angles' z drops 10 and the position rises 2.5 after the common
+// advance; the speed rises 5 and it turns with it toward the target 150 higher; far away (more than 70) it does not
+// brake. With life 15 or more, the light does not change. One rand() for the dynamic light.
 TEST(TargetBoltJointsTest, TheBoltRisesAndTurnsTowardsItsTarget)
 {
     BoltWorld tested;
@@ -162,8 +162,8 @@ TEST(TargetBoltJointsTest, TheBoltRisesAndTurnsTowardsItsTarget)
     EXPECT_EQ(tested.random.State(), draws.State());
 }
 
-// 0x537b6b..0x537c29: la velocidad tiene tope 30; a 70 o menos del blanco, con el giro z de más de 20 y la velocidad
-// de 20 o más, baja 10. Con menos de 15 de vida, los tres canales son la x por 0,8333333f.
+// 0x537b6b..0x537c29: the speed is capped at 30; at 70 or less from the target, with the z turn over 20 and the speed
+// 20 or more, it drops 10. With life under 15, the three channels are x times 0.8333333f.
 TEST(TargetBoltJointsTest, TheBoltBrakesNearItsTargetAndFades)
 {
     BoltWorld tested;
@@ -189,7 +189,7 @@ TEST(TargetBoltJointsTest, TheBoltBrakesNearItsTargetAndFades)
     EXPECT_EQ(joint.life, 9);
 }
 
-// 0x537b3f..0x537b44 y 0x53be97: sin dueño se apaga sin rand(), con la cola y la vida comunes.
+// 0x537b3f..0x537b44 and 0x53be97: without an owner it goes out without rand(), with the common tail and life.
 TEST(TargetBoltJointsTest, TheBoltWithoutItsTargetGoesOut)
 {
     BoltWorld tested;
@@ -204,10 +204,10 @@ TEST(TargetBoltJointsTest, TheBoltWithoutItsTargetGoesOut)
     EXPECT_EQ(tested.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x537bf3..0x537c29 en el borde de 70: desde (1000, 1025, 300) con los ángulos en 0, velocidad 25 y vida 20, el
-// avance común deja el joint en (1000, 1000, 300) y el blanco 150 más arriba queda a la misma altura, 70 más allá en x.
-// Con la y del blanco en 1000 la distancia es 70 justo y frena (30 − 10); con la siguiente y en float, apenas más de
-// 70, no. En los dos, la luz dinámica de radio 2 en la posición con ((rand() & 3) + 8) · 0,03f por (0,4f; 1; 0,8f).
+// 0x537bf3..0x537c29 at the edge of 70: from (1000, 1025, 300) with the angles at 0, speed 25 and life 20, the common
+// advance leaves the joint at (1000, 1000, 300) and the target 150 higher is at the same height, 70 farther in x. With
+// the target's y at 1000 the distance is exactly 70 and it brakes (30 − 10); with the next float y, just over 70, it
+// does not. In both, the radius 2 dynamic light at the position with ((rand() & 3) + 8) · 0.03f times (0.4f; 1; 0.8f).
 TEST(TargetBoltJointsTest, TheBoltBrakesOnlyWithinSeventy)
 {
     for (const float y : {std::nextafter(1000.0f, 2000.0f), 1000.0f})

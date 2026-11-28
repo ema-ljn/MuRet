@@ -53,7 +53,7 @@ TEST(NoriaParticlesTest, ShinyStepUsesLifeSineAndSubtypeOneRotatesTwelveDegrees)
         EXPECT_EQ(particle.life, 17);
         EXPECT_NEAR(particle.scale, subtype == 0 ? 0.17364827f : 0.13023620f, 0.0000001f);
         EXPECT_EQ(particle.rotation, subtype == 0 ? 30.0f : 18.0f);
-        EXPECT_EQ(random.State(), 0xc40e66b9u); // Sólo dos rand del viento.
+        EXPECT_EQ(random.State(), 0xc40e66b9u); // Only the wind's two rand.
     }
 }
 
@@ -75,7 +75,7 @@ TEST(NoriaParticlesTest, TheFairySparkKeepsFiveRandomDrawsAndItsStoredMotion)
     EXPECT_EQ(random.State(), 0xbca151d2u);
 }
 
-// 0x5404ad..0x5404ca: /2 duplica escala y triplica el vector local antes de 0x5fcbd0; mismo resto que /0.
+// 0x5404ad..0x5404ca: /2 doubles the scale and triples the local vector before 0x5fcbd0; the rest as /0.
 TEST(NoriaParticlesTest, ThePushedSparkDoublesTheScaleAndTriplesTheForwardSpeed)
 {
     for (const std::uint32_t seed : {1u, 7u, 99u})
@@ -159,8 +159,8 @@ TEST(NoriaParticlesTest, NoriaParticleBillboardsUseTheWholeTextureAndTheStoredRo
         EXPECT_EQ(drawn.Value()->light, particle.light);
     }
 }
-// 0x54038c..0x5403a7: la 5c5/7 (las chispas de la mariposa de la selección) sortea su escala como la /0 y
-// después sólo su vida (12..23): sin giro, sin velocidad y sin la escala del argumento.
+// 0x54038c..0x5403a7: 5c5/7 (the selection butterfly's sparks) rolls its scale like /0 and then only its life
+// (12..23): without turn, velocity or the argument's scale.
 TEST(NoriaParticlesTest, TheButterflySparkDrawsOnlyItsScaleAndItsLife)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -179,8 +179,8 @@ TEST(NoriaParticlesTest, TheButterflySparkDrawsOnlyItsScaleAndItsLife)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x5403eb..0x540406: la 5c5/1 (las chispas del bastón 0xc18, 0x50f5a8) sortea su escala como la /0 y después sólo su
-// vida, (rand() & 7) + 8: sin giro, sin velocidad y sin la escala del argumento.
+// 0x5403eb..0x540406: 5c5/1 (the sparks of staff 0xc18, 0x50f5a8) rolls its scale like /0 and then only its life,
+// (rand() & 7) + 8: without turn, velocity or the argument's scale.
 TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
 {
     for (const std::uint32_t seed : {1u, 7u, 99u})
@@ -204,8 +204,8 @@ TEST(NoriaParticlesTest, TheStaffSparkDrawsOnlyItsScaleAndItsLife)
     }
 }
 
-// 0x540333..0x54055a: la /3 nace como la /0; la /4 triplica la escala y multiplica por 10 el vector local (0x5404cc);
-// las de fuera de la tabla (la /9, la −1) van por el camino de la /1 (0x5403eb). La /5, abajo.
+// 0x540333..0x54055a: /3 is born like /0; /4 triples the scale and multiplies the local vector by 10 (0x5404cc); those
+// outside the table (/9, −1) take /1's path (0x5403eb). /5, below.
 TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
 {
     for (const std::uint32_t seed : {1u, 7u, 99u})
@@ -263,11 +263,11 @@ TEST(NoriaParticlesTest, TheOtherFairySparksFollowTheirBranch)
     }
 }
 
-// 0x540333 y 0x5403ad..0x5403e9: la /5 (la del paso del 0x140, 0x52a16e) saca la escala ((rand() & 3) + 4) · 0,1f que
-// después pisa con la del pedido, lee la posición de su dueño (+0x40 → +0x10) para su partida (+0x6c), vive
-// (rand() & 3) + 12 y sale con la subida en 0, la textura 0x5c6 y la velocidad del prefijo (cero). Dos rand(). Sin la
-// posición del dueño, CreateChecked la rechaza antes de tocar el lugar; CreateOwnedChecked no la conoce. Con la tabla
-// llena, nada.
+// 0x540333 and 0x5403ad..0x5403e9: /5 (that of 0x140's step, 0x52a16e) takes the scale ((rand() & 3) + 4) · 0.1f that
+// it then overwrites with the requested one, reads its owner's position (+0x40 → +0x10) for its start (+0x6c), lives
+// (rand() & 3) + 12 and leaves with rise at 0, texture 0x5c6 and the prefix's velocity (zero). Two rand(). Without the
+// owner's position, CreateChecked rejects it before touching the slot; CreateOwnedChecked does not know it. With the
+// table full, nothing.
 TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
 {
     const Client::Particles::ParticleOwner owner{Client::Particles::ParticleOwnerKind::ModelEffect, 3};
@@ -286,7 +286,7 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
         ASSERT_TRUE(created.Value().has_value());
         const auto& particle = particles->All()[*created.Value()];
         Client::Crt::CrtRandom draws(seed);
-        static_cast<void>(draws.Next()); // 0x540333, la escala que se pisa.
+        static_cast<void>(draws.Next()); // 0x540333, the overwritten scale.
         EXPECT_EQ(particle.life, (draws.Next() & 3) + 12);
         EXPECT_EQ(random.State(), draws.State());
         EXPECT_EQ(particle.scale, 2.0f);
@@ -300,7 +300,7 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
         EXPECT_EQ(particle.typedOwner, owner);
         if (seed == 1)
         {
-            EXPECT_EQ(particle.life, 12 + 3); // el segundo rand() de la semilla 1 es 18467 (& 3 = 3).
+            EXPECT_EQ(particle.life, 12 + 3); // seed 1's second rand() is 18467 (& 3 = 3).
         }
     }
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -322,9 +322,9 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkStartsAtItsOwner)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x544f29..0x545040: la /5 se ilumina con la vida · 0,0625 (no pisa la luz como la /6), cae 0,3f (0x544f4c), se
-// mueve y resta lo que el dueño se corrió desde su partida, que pasa a ser su posición (0x544fe4 → 0x544fef). El
-// dueño muerto también: sólo se lee su posición. Sin dueño, MissingOwner.
+// 0x544f29..0x545040: /5 lights up with life · 0.0625 (it does not overwrite the light like /6), falls 0.3f
+// (0x544f4c), moves and subtracts how far the owner moved from its start, which becomes its position (0x544fe4 →
+// 0x544fef). The dead owner too: only its position is read. Without owner, MissingOwner.
 TEST(NoriaParticlesTest, TheOwnerBirthFairySparkMovesWithItsOwner)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -359,15 +359,15 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkMovesWithItsOwner)
             return Client::Particles::ParticleOwnerState{.alive = false, .position = moved, .start = std::nullopt};
         });
     ASSERT_TRUE(stepped.HasValue());
-    // 13 · 0,0625 = 0,8125 y 4 − 0,3f (0x3e99999a) = 3,7f (0x406ccccd), calculados aparte.
+    // 13 · 0.0625 = 0.8125 and 4 − 0.3f (0x3e99999a) = 3.7f (0x406ccccd), computed separately.
     EXPECT_EQ(particle.life, 13);
     EXPECT_EQ(particle.light, glm::vec3(0.8125f));
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.verticalSpeed), 0x406ccccdu);
     EXPECT_EQ(particle.position, glm::vec3(12.5f, 24.25f, 110.0f));
     EXPECT_EQ(particle.start, moved);
 
-    // La x retenida: 2^24 + 1 no entra en un float y, con la partida 1 más allá del dueño, vuelve a 2^24. Por un float
-    // daría 2^24 − 1 (0x4b7fffff).
+    // The retained x: 2^24 + 1 does not fit a float and, with the start 1 beyond the owner, returns to 2^24. Through a
+    // float it would give 2^24 − 1 (0x4b7fffff).
     particle = initial;
     particle.position.x = 16777216.0f;
     particle.start.x = 7.0f;
@@ -383,9 +383,9 @@ TEST(NoriaParticlesTest, TheOwnerBirthFairySparkMovesWithItsOwner)
     EXPECT_EQ(lost.Error(), Client::Particles::ParticleError::MissingOwner);
 }
 
-// 0x5404f9..0x54053c: la /6 (la de 0x529f71) saca los cinco rand() de la /0, después la vida (rand() & 3) + 4 y el
-// vector local (0; (rand() % 20 + 20) · 0,2f; 0); toma la escala del pedido, la textura 0x5c6 y la subida en 0. Con
-// CreateOwnedChecked guarda a su dueño.
+// 0x5404f9..0x54053c: /6 (0x529f71's) takes /0's five rand(), then the life (rand() & 3) + 4 and the local vector
+// (0; (rand() % 20 + 20) · 0.2f; 0); it takes the requested scale, texture 0x5c6 and rise at 0. With
+// CreateOwnedChecked it keeps its owner.
 TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
 {
     for (const std::uint32_t seed : {1u, 7u, 99u})
@@ -420,7 +420,7 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
         EXPECT_EQ(random.State(), draws.State());
         if (seed == 1)
         {
-            // Valores fijos, calculados aparte del RNG de la CRT: vida 4, giro 214, adelante 7,6f.
+            // Fixed values, computed apart from the CRT's RNG: life 4, turn 214, forward 7.6f.
             EXPECT_EQ(particle.life, 4);
             EXPECT_EQ(particle.angles.z, 214.0f);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(forward), 0x40f33333u);
@@ -429,8 +429,8 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkDrawsSevenTimesAndKeepsItsOwner)
     }
 }
 
-// 0x544f57..0x545040: la /6 cae 0,3f, su luz es 0,9f, se mueve y resta lo que el dueño se corrió desde su partida
-// (la x retenida, la y y la z guardadas); la partida pasa a ser la posición del dueño. Sin dueño, MissingOwner.
+// 0x544f57..0x545040: /6 falls 0.3f, its light is 0.9f, it moves and subtracts how far the owner moved from its start
+// (the x retained, the y and the z stored); the start becomes the owner's position. Without owner, MissingOwner.
 TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -471,8 +471,8 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
     EXPECT_EQ(particle.position, glm::vec3(12.5f, 24.25f, 110.0f));
     EXPECT_EQ(particle.start, moved);
 
-    // La x queda retenida en la x87 entre la suma y la resta: 2^24 + 1 no entra en un float, pero 2^24 + 2 sí. Por un
-    // float daría 2^24.
+    // The x stays retained on the x87 between the add and the subtract: 2^24 + 1 does not fit a float, but 2^24 + 2
+    // does. Through a float it would give 2^24.
     particle = initial;
     particle.position.x = 16777216.0f;
     ASSERT_TRUE(
@@ -487,7 +487,7 @@ TEST(NoriaParticlesTest, TheOwnedFairySparkMovesWithItsOwner)
     EXPECT_EQ(lost.Error(), Client::Particles::ParticleError::MissingOwner);
 }
 
-// 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0 y la /1, 2 (0x6b8818).
+// 0x544f7b: /7 falls 0.6 (0x6b8a20) per step; /0 and /1, 2 (0x6b8818).
 TEST(NoriaParticlesTest, TheButterflySparkFallsSlowerThanTheFairySpark)
 {
     for (const int subtype : {0, 1, 2, 7})

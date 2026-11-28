@@ -54,7 +54,7 @@ TEST(CrywolfArrowDependenciesTest, TheJointCopiesItsRequestAndKeepsTheNativeKeyL
     EXPECT_EQ(joint.targetPosition, (glm::vec3{400, 500, 600}));
     EXPECT_EQ(random.State(), 7u);
 }
-// 0x537d2e..0x537d43: la /0xc (la estela de la flecha 0x11c) va al mismo paso que la /13 (0x537ee6).
+// 0x537d2e..0x537d43: the /0xc (the 0x11c arrow's trail) goes to the same step as the /13 (0x537ee6).
 TEST(CrywolfArrowDependenciesTest, TheJointMovesBeforeCheckingItsOwnerAndStillRunsItsLightAndTail)
 {
     for (const std::int32_t subtype : {12, 13})

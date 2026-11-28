@@ -95,7 +95,7 @@ TEST(NoriaObjectServicesTest, TheFairyPublishesItsPairedRingsAndFiveWhiteFlaresB
         EXPECT_EQ(sprite.texture, 0x5ac);
         EXPECT_EQ(sprite.light, glm::vec3(1));
     }
-    EXPECT_EQ(random.State(), 0x9974714du); // Cinco guardas de5fc y una del estallido.
+    EXPECT_EQ(random.State(), 0x9974714du); // Five 0x5fc guards and one for the burst.
 }
 
 TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTheParticlePoolIsFull)
@@ -126,7 +126,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
         EXPECT_EQ(request.key, -1);
         EXPECT_EQ(request.target, -1);
         static_cast<void>(random.Next());
-        static_cast<void>(random.Next()); // El callee617 toma2rand, intercalados con el caller.
+        static_cast<void>(random.Next()); // The 0x617 callee takes 2 rand(), interleaved with the caller.
         ++calls;
         return {};
     };
@@ -138,7 +138,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
     Client::Crt::CrtRandom expected(4);
     for (int draw = 0; draw < 38; ++draw)
         static_cast<void>(expected.Next());
-    EXPECT_EQ(random.State(), expected.State()); // 6 guardas+8*(2caller+2joint),sinRNG de5c5.
+    EXPECT_EQ(random.State(), expected.State()); // 6 guards + 8 · (2 caller + 2 joint), no RNG from 0x5c5.
 }
 TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlreadyPublished)
 {
@@ -154,7 +154,7 @@ TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlre
     const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x53fe70"), std::string::npos);
-    EXPECT_EQ(random.State(), 0x1b8052fbu); // R4&31==0, antes del quinto flare.
+    EXPECT_EQ(random.State(), 0x1b8052fbu); // R4&31==0, before the fifth flare.
     EXPECT_TRUE(sprites.Sprites()[5].alive);
     EXPECT_FALSE(sprites.Sprites()[6].alive);
 }

@@ -24,8 +24,8 @@
 #include <format>
 #include <string>
 
-// Cotejado con el PE c32bbd5f: las altas 0x51e397, 0x51e529 y 0x51e773, los pasos 0x52a6d6, 0x52abbe, 0x52acc3 y
-// 0x529dee, y la rama del 0x5ca de 0x518b60.
+// Checked against the PE c32bbd5f: the creations 0x51e397, 0x51e529 and 0x51e773, the steps 0x52a6d6, 0x52abbe,
+// 0x52acc3 and 0x529dee, and 0x518b60's 0x5ca branch.
 namespace Client::Effects
 {
 namespace
@@ -33,13 +33,13 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr double Fifth = Math::FifthAsDouble;                                          // 0x6b8854, 0,2f
-constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));   // 0x6b87b4, 0,4f
-constexpr double ThreeFifths = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0,6f
-constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0,3f
-constexpr std::int32_t BurstLightRadius = 2; // el cuarto argumento de 0x5f9780 en 0x52ac4b y 0x52acff
+constexpr double Fifth = Math::FifthAsDouble;                                          // 0x6b8854, 0.2f
+constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));   // 0x6b87b4, 0.4f
+constexpr double ThreeFifths = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20, 0.6f
+constexpr double ThreeTenths = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc, 0.3f
+constexpr std::int32_t BurstLightRadius = 2; // 0x5f9780's fourth argument at 0x52ac4b and 0x52acff
 
-// El personaje de `world` que es el dueño opaco (+0x108) de un efecto, o nullptr si no es uno de ellos.
+// The `world` character that is an effect's opaque owner (+0x108), or nullptr if it is not one of them.
 const Kernel::ActorState* ActorOwnerOf(const Kernel::WorldState& world, const void* owner)
 {
     for (const Kernel::ActorState& actor : world.Actors())
@@ -50,9 +50,9 @@ const Kernel::ActorState* ActorOwnerOf(const Kernel::WorldState& world, const vo
     return nullptr;
 }
 
-// 0x518b60 con el 0x5ca (0x518bfd..0x518c13): con el dueño vivo (+0), visto (+0x16c) y a 100 o menos en el plano
-// (FSQRT de dy² + dx², sin orden también sigue), la vida en 1 y la partícula 0x5c6/1 en su posición y con sus
-// ángulos, en blanco (0x518bd2) y de escala 6.
+// 0x518b60 with the 0x5ca (0x518bfd..0x518c13): with the owner alive (+0), seen (+0x16c) and at 100 or less in the
+// plane (FSQRT of dy² + dx², unordered also goes on), life at 1 and the particle 0x5c6/1 at its position and with its
+// angles, in white (0x518bd2) and of scale 6.
 Core::Expected<void, std::string> HitTheEnergyBallOwner(Effects::ModelEffect& effect,
                                                         const HighEffectStepContext& context)
 {
@@ -84,11 +84,11 @@ Core::Expected<void, std::string> HitTheEnergyBallOwner(Effects::ModelEffect& ef
 void BeginTheSweepEmitter(Effects::ModelEffect& effect)
 {
     constexpr std::int32_t SweepLife = 30;                    // 0x1e
-    constexpr float Glow = std::bit_cast<float>(0x3f4ccccdu); // 0,8f
+    constexpr float Glow = std::bit_cast<float>(0x3f4ccccdu); // 0.8f
     constexpr double Tilt = 45.0;                             // 0x6b8848
     effect.life = SweepLife;
     effect.light = glm::vec3(Glow);
-    // 0x51e3b8..0x51e3c7: la x y la y en ESI (0); la z del argumento, que el prefijo copió en los ángulos.
+    // 0x51e3b8..0x51e3c7: the x and y in ESI (0); the argument's z, which the prefix copied into the angles.
     effect.copiedAngles.x = 0.0f;
     effect.copiedAngles.y = 0.0f;
     effect.copiedAngles.z = F32(D(effect.transform.angles.z) + Tilt);
@@ -100,7 +100,7 @@ void BeginTheEnergyBall(Effects::ModelEffect& effect)
     constexpr std::int32_t BallLife = 20;                          // 0x14
     constexpr float Push = std::bit_cast<float>(0xc2700000u);      // −60
     constexpr double Lift = 100.0;                                 // 0x6b86b4
-    constexpr float WideScale = std::bit_cast<float>(0x3fc00000u); // 1,5f
+    constexpr float WideScale = std::bit_cast<float>(0x3fc00000u); // 1.5f
     effect.life = BallLife;
     effect.velocity = {0.0f, Push, 0.0f};
     effect.transform.position.z = F32(D(effect.transform.position.z) + Lift);
@@ -134,8 +134,8 @@ Core::Expected<void, std::string> StepTheSweepEmitter(Effects::ModelEffect& effe
     glm::vec3 point{effect.transform.position.x, effect.transform.position.y,
                     F32(D(effect.transform.position.z) + Lift)};
     glm::vec3 angles = effect.copiedAngles;
-    // El dueño del joint es el del efecto (el personaje de la habilidad): el 0x61c/0 no lo lee, sólo lo compara con el
-    // héroe en su paso (SweepJoints.cpp); por el tipo, ByType.
+    // The joint's owner is the effect's (the ability's character): the 0x61c/0 does not read it, it only compares it
+    // with the hero in its step (SweepJoints.cpp); by type, ByType.
     const Kernel::JointRequest request{.type = SweepJoint,
                                        .firstPosition = point,
                                        .secondPosition = point,
@@ -196,13 +196,13 @@ Core::Expected<void, std::string> StepTheFlameBurst(Effects::ModelEffect& effect
 
 Core::Expected<void, std::string> StepTheArrowBlast(Effects::ModelEffect& effect, const HighEffectStepContext& context)
 {
-    constexpr double Pitch = 5.0, Drop = 8.0; // 0x6b87f8 y 0x6b86c4
+    constexpr double Pitch = 5.0, Drop = 8.0; // 0x6b87f8 and 0x6b86c4
     effect.transform.angles.x = F32(D(effect.transform.angles.x) - Pitch);
     effect.velocity.y = F32(D(effect.velocity.y) - Drop);
     constexpr std::int32_t LastLives = 2, FiredSubtype = 1;
     if (effect.life < LastLives && effect.subtype == 0 && effect.ownerContext != nullptr)
     {
-        // 0x529e31 y 0x529e37: el pitch en 90 y el subtipo en 1 antes de leer al dueño (+0x108, 0x529e3e).
+        // 0x529e31 and 0x529e37: the pitch at 90 and the subtype at 1 before reading the owner (+0x108, 0x529e3e).
         constexpr float Upright = std::bit_cast<float>(0x42b40000u); // 90
         effect.transform.angles.x = Upright;
         effect.subtype = FiredSubtype;
@@ -211,7 +211,7 @@ Core::Expected<void, std::string> StepTheArrowBlast(Effects::ModelEffect& effect
             return Core::Unexpected(
                 std::string("0x529e3e: el dueño (+0x108) del efecto 0x13a no es un personaje del mundo (CL11)"));
         constexpr int Spread = 100;                      // 0x64
-        constexpr double Center = 50.0, Height = 1200.0; // 0x6b86b0 y 0x6ba198
+        constexpr double Center = 50.0, Height = 1200.0; // 0x6b86b0 and 0x6ba198
         glm::vec3 point = owner->position;
         point.x = F32((static_cast<double>(context.random.Next() % Spread) - Center) + D(point.x));
         point.y = F32((static_cast<double>(context.random.Next() % Spread) - Center) + D(point.y));

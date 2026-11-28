@@ -29,9 +29,9 @@
 #include <string_view>
 #include <vector>
 
-// Los casos por tipo del paso de los personajes que no son el 0x20a (CL9 hito 2): el nombre del 0xc5 (0x4fd603), la
-// caída del 0xf1 (0x4fb910), 0x42a020 y los objetos del mapa 30 de 0x42da90, y 0x42da60 al final del dibujo. Vectores
-// literales del ASM c32bbd5f, sin ejecutar el original; los nombres son inventados.
+// The per-type step cases of characters other than 0x20a: the 0xc5 name (0x4fd603), the 0xf1 fall (0x4fb910),
+// 0x42a020 and the map 30 objects of 0x42da90, and 0x42da60 at the end of the draw. Literal vectors from the ASM
+// c32bbd5f, without running the original; the names are made up.
 namespace
 {
 using Client::Kernel::ActorState;
@@ -60,8 +60,8 @@ std::string QueuedText(const Client::Kernel::WorldText& entry)
     return {entry.text.begin(), end};
 }
 
-// 0x4fd603..0x4fd698: "%s ." con el nombre, Text[1176] con +0x1d6 sin signo y el strcat de los dos, a la cola de
-// 0x4381f0 con la posición del objeto.
+// 0x4fd603..0x4fd698: "%s ." with the name, Text[1176] with unsigned +0x1d6 and the strcat of both, into the 0x4381f0
+// queue with the object's position.
 TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
@@ -76,8 +76,8 @@ TEST(MonsterStepCasesTest, TheKalimaGateQueuesItsNameAndLevel)
     EXPECT_EQ(queue.front().position, gate.position);
 }
 
-// 0x4fd625: el nombre de una piedra con un dueño largo (24 letras, "Magic stone of " y nueve) llega hasta +0x1f1; uno
-// de 29 sin 0 seguiría en +0x1f6, que MuRet no guarda, y corta (Q-C847). Los dueños son inventados.
+// 0x4fd625: a stone's name with a long owner (24 letters, "Magic stone of " plus nine) reaches +0x1f1; one of 29 with
+// no 0 would go on into +0x1f6, which MuRet does not keep, and cuts (Q-C847). The owners are made up.
 TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, "Nivel %d"}});
@@ -94,8 +94,8 @@ TEST(MonsterStepCasesTest, TheGateNameReadsUpToItsZero)
     EXPECT_EQ(queue.size(), 1u);
 }
 
-// El strcat escribe en el buffer de 100 bytes (0xf8 − 0x94): 99 letras y el 0 entran; con una más el original pisaría
-// el segundo buffer, y MuRet corta. Sin Text.bmd, también.
+// The strcat writes into the 100-byte buffer (0xf8 − 0x94): 99 letters and the 0 fit; with one more the original would
+// overwrite the second buffer, and MuRet cuts. Without Text.bmd too.
 TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)
 {
     const auto texts = Client::Tests::MakeTextTable({{LevelText, std::string(90, 'x') + "%d"}});
@@ -103,7 +103,7 @@ TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)
 
     ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), &texts, queue).HasValue());
     ASSERT_EQ(queue.size(), 1u);
-    // 0x438209: 0x4381f0 copia 64 bytes (los 0x10 dwords).
+    // 0x438209: 0x4381f0 copies 64 bytes (the 0x10 dwords).
     EXPECT_EQ(QueuedText(queue.front()), "Portal ." + std::string(56, 'x'));
 
     const auto overflow = Client::Monsters::QueueTheGateName(NamedGate("Portal", 10), &texts, queue);
@@ -115,15 +115,15 @@ TEST(MonsterStepCasesTest, TheGateNameCutsWithoutTextsOrPastItsBuffer)
     ASSERT_FALSE(missing.HasValue());
     EXPECT_NE(missing.Error().find("0x4fd63b"), std::string::npos) << missing.Error();
     EXPECT_EQ(queue.size(), 1u);
-    // Un Text.bmd con el 1176 vacío deja el nombre solo.
+    // A Text.bmd with an empty 1176 leaves the name alone.
     const auto empty = Client::Tests::MakeTextTable({{1, "otro"}});
     ASSERT_TRUE(Client::Monsters::QueueTheGateName(NamedGate("Portal", 3), &empty, queue).HasValue());
     ASSERT_EQ(queue.size(), 2u);
     EXPECT_EQ(QueuedText(queue.back()), "Portal .");
 }
 
-// 0x4fb910..0x4fb9c7: la z sube +0xe4 y +0xe4 baja 6; con el piso más 30 por encima, la z pasa a él y +0xe4 rebota a
-// −0,4f; los ángulos suman +0xcc, +0xd0 y +0xd4, que se achican a 0,8f.
+// 0x4fb910..0x4fb9c7: z rises by +0xe4 and +0xe4 drops 6; with the floor plus 30 above, z moves to it and +0xe4
+// bounces (× −0.4f); the angles add +0xcc, +0xd0 and +0xd4, which shrink (× 0.8f).
 TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
 {
     ActorState ball;
@@ -141,7 +141,7 @@ TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
         return 200.0;
     };
 
-    // En el aire: 260 − 10 = 250, sobre los 230 del piso.
+    // In the air: 260 − 10 = 250, above the floor's 230.
     Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 250.0f);
     EXPECT_EQ(ball.floatE4, -16.0f);
@@ -152,14 +152,14 @@ TEST(MonsterStepCasesTest, TheBallFallsBouncesAndSpins)
     ASSERT_EQ(asked.size(), 1u);
     EXPECT_EQ(asked[0], glm::vec2(500.0f, 700.0f));
 
-    // 250 − 16 = 234, todavía arriba; después 234 − 22 = 212: el piso (230) la sube y +0xe4 rebota.
+    // 250 − 16 = 234, still above; then 234 − 22 = 212: the floor (230) lifts it and +0xe4 bounces.
     Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 234.0f);
     Client::Monsters::StepTheFallingBall(ball, ground);
     EXPECT_EQ(ball.position.z, 230.0f);
     EXPECT_EQ(ball.floatE4, static_cast<float>(-28.0 * static_cast<double>(-0.4f)));
 
-    // Justo en el piso no rebota: el fcom pide el piso estrictamente arriba.
+    // Exactly at the floor it does not bounce: the fcom needs the floor strictly above.
     ActorState resting;
     resting.position = {0.0f, 0.0f, 236.0f};
     resting.floatE4 = -6.0f;
@@ -179,7 +179,7 @@ ActorState Player(glm::vec3 position)
     return player;
 }
 
-// 0x42a020: solo los jugadores (+0x88 en 1, el 0x20a) que se ven (+0x16c); dx y dy son el objeto menos el jugador.
+// 0x42a020: only visible (+0x16c) players (+0x88 at 1, the 0x20a); dx and dy are the object minus the player.
 TEST(MonsterStepCasesTest, PlayerNearMeasuresByItsMode)
 {
     ActorState object;
@@ -188,7 +188,7 @@ TEST(MonsterStepCasesTest, PlayerNearMeasuresByItsMode)
     const auto near = [&](std::uint8_t mode, float range)
     { return Client::Monsters::PlayerNear(object, *pool, mode, range); };
 
-    // El modo 1: |dx| debajo de 1 y dy en (0, rango).
+    // Mode 1: |dx| below 1 and dy in (0, range).
     (*pool)[5] = Player({1000.5f, 600.0f, 0.0f});
     EXPECT_TRUE(near(1, 500.0f));
     EXPECT_FALSE(near(1, 400.0f));
@@ -199,7 +199,7 @@ TEST(MonsterStepCasesTest, PlayerNearMeasuresByItsMode)
     (*pool)[5].position = {1000.0f, 1100.0f, 0.0f};
     EXPECT_FALSE(near(1, 500.0f));
 
-    // El modo 0: dx debajo del rango y dy debajo de 100, sin valor absoluto.
+    // Mode 0: dx below the range and dy below 100, with no absolute value.
     (*pool)[5].position = {5000.0f, 950.0f, 0.0f};
     EXPECT_TRUE(near(0, 10.0f));
     (*pool)[5].position = {5000.0f, 900.0f, 0.0f};
@@ -207,20 +207,20 @@ TEST(MonsterStepCasesTest, PlayerNearMeasuresByItsMode)
     (*pool)[5].position = {900.0f, 950.0f, 0.0f};
     EXPECT_FALSE(near(0, 100.0f));
 
-    // El modo 2: la distancia en el plano; otro modo nunca.
+    // Mode 2: the distance in the plane; any other mode never.
     (*pool)[5].position = {1030.0f, 1040.0f, 0.0f};
     EXPECT_TRUE(near(2, 50.5f));
     EXPECT_FALSE(near(2, 50.0f));
     EXPECT_FALSE(near(3, 1.0e9f));
 
-    // Un NaN pasa las comparaciones de "debajo" (C0) y no la de dy > 0.
+    // A NaN passes the "below" comparisons (C0) and not dy > 0.
     (*pool)[5].position = {std::numeric_limits<float>::quiet_NaN(), 600.0f, 0.0f};
     EXPECT_TRUE(near(1, 500.0f));
     EXPECT_TRUE(near(2, 1.0f));
     (*pool)[5].position = {1000.0f, std::numeric_limits<float>::quiet_NaN(), 0.0f};
     EXPECT_FALSE(near(1, 500.0f));
 
-    // Los que no cuentan: otro +0x88, otro modelo, sin verse o fuera de los 400.
+    // Those that do not count: another +0x88, another model, not seen, or beyond the 400.
     (*pool)[5] = Player({1000.0f, 600.0f, 0.0f});
     (*pool)[5].byte88 = 2;
     EXPECT_FALSE(near(1, 500.0f));
@@ -271,7 +271,7 @@ protected:
     Client::Models::Skeleton m_skeleton;
 };
 
-// 0x42da9a: fuera del mapa 30 ninguno hace nada (Lorencia, Devias y Kalima).
+// 0x42da9a
 TEST_F(CastleObjectTest, OutsideTheCastleMapNothingMoves)
 {
     for (const std::int32_t map : {0, 2, 24})
@@ -296,7 +296,8 @@ TEST_F(CastleObjectTest, OutsideTheCastleMapNothingMoves)
     }
 }
 
-// El 216 (0x42dacb): 200 sobre el terreno, +0x78 a 0x7239e4 y +0x42c en 1 si +0x78 no es 0; sin la altura corta.
+// 216 (0x42dacb): 200 above the terrain, +0x78 to 0x7239e4 and +0x42c to 1 if +0x78 is not 0; without the height it
+// cuts.
 TEST_F(CastleObjectTest, TheBannerStandsOnTheGroundAndCopiesItsFlags)
 {
     ActorState banner = Object(216);
@@ -318,7 +319,7 @@ TEST_F(CastleObjectTest, TheBannerStandsOnTheGroundAndCopiesItsFlags)
     EXPECT_NE(cut.Error().find("0x42dad6"), std::string::npos) << cut.Error();
 }
 
-// El 277 cierra las puertas del frame (0x7239d9), el 278 en el modo 0x80 guarda su x y su y, y el 283 sigue al asedio.
+// 277 locks the frame's gates (0x7239d9), 278 in mode 0x80 stores its x and y, and 283 follows the siege.
 TEST_F(CastleObjectTest, TheGateLockTheMarkAndTheSiegeSwitch)
 {
     ActorState lock = Object(277);
@@ -344,8 +345,9 @@ TEST_F(CastleObjectTest, TheGateLockTheMarkAndTheSiegeSwitch)
     EXPECT_EQ(lever.byte42c, 1);
 }
 
-// El 286 y el 287: un jugador justo enfrente (modo 1, 500) abre (la acción 4, 0x7239d8 en 2, +0x110 en 1 y +0x100 en
-// 300); +0x100 baja 1 en cada paso y, vencido sin nadie, cierra con la acción 0. Con 0x7239d8 en 2 abre sin nadie.
+// 286 and 287: a player right in front (mode 1, 500) opens (action 4, 0x7239d8 at 2, +0x110 at 1 and +0x100 at 300);
+// +0x100 drops 1 per step and, expired with nobody there, closes with action 0. With 0x7239d8 at 2 it opens with
+// nobody.
 TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut)
 {
     for (const std::uint16_t monster : std::array<std::uint16_t, 2>{286, 287})
@@ -366,13 +368,12 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
         EXPECT_EQ(gate.byte110, 1);
         EXPECT_EQ(gate.dword100, 299);
 
-        // Con alguien enfrente al vencer, vuelve a 300.
+        // With someone in front when it expires, back to 300.
         gate.dword100 = -1;
         ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.dword100, 299);
         EXPECT_EQ(gate.animation.action, 4);
 
-        // Sin nadie, cierra.
         (*m_pool)[12] = ActorState{};
         gate.dword100 = -1;
         ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
@@ -381,7 +382,7 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
         EXPECT_EQ(m_runtime->castleSiege.castleByte7239d8, 0);
         EXPECT_EQ(gate.dword100, -2);
 
-        // Otra puerta abierta (0x7239d8 en 2) abre esta también.
+        // Another open gate (0x7239d8 at 2) opens this one too.
         m_runtime->castleSiege.castleByte7239d8 = 2;
         ASSERT_TRUE(Client::Monsters::StepTheCastleObject(gate, Step()).HasValue());
         EXPECT_EQ(gate.animation.action, 4);
@@ -389,8 +390,8 @@ TEST_F(CastleObjectTest, TheGatesOpenForAPlayerInFrontAndCloseWhenTheTimeRunsOut
     }
 }
 
-// La acción 5 (abriéndose) no cierra; 0x7239d8 en 0 cierra antes de que venza; el dec de +0x100 da la vuelta en el
-// mínimo; sin el modelo, el cambio de acción corta.
+// Action 5 (opening) does not close; 0x7239d8 at 0 closes before it expires; the dec of +0x100 wraps at the minimum;
+// without the model, the action change cuts.
 TEST_F(CastleObjectTest, TheGateEdges)
 {
     ActorState gate = Object(286);
@@ -423,8 +424,8 @@ TEST_F(CastleObjectTest, TheGateEdges)
     EXPECT_NE(cut.Error().find("0x42db87"), std::string::npos) << cut.Error();
 }
 
-// 0x42da60 al final del dibujo: 0x7239dc y 0x7239e0 en 0; sin el 277, las puertas del TerrainWall se abren; con él,
-// quedan, y 0x7239d9 vuelve a 0 para el frame siguiente.
+// 0x42da60 at the end of the draw: 0x7239dc and 0x7239e0 to 0; without 277, the TerrainWall gates open; with it, they
+// stay, and 0x7239d9 goes back to 0 for the next frame.
 TEST(MonsterStepCasesTest, TheEndOfTheFrameOpensTheGatesUnlessTheLockStepped)
 {
     const Client::Pathfinding::GateCell gate = Client::Pathfinding::GateCells.front();

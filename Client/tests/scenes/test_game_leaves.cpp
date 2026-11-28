@@ -311,12 +311,12 @@ TEST_F(GameLeavesTest, IcarusUsesTwentyAsTheSpeedBase)
 {
     m_map = 10;
     ASSERT_TRUE(Client::Weather::StepGameLeaves(m_context).HasValue());
-    // R4=26500; 26500 % 24 + 20 = 24; seno de -30° por esa velocidad.
+    // R4=26500; 26500 % 24 + 20 = 24; the sine of -30° times that speed.
     EXPECT_NEAR(m_leaves.All()[0].velocity.y, -12, 0.00001);
 }
 
-// 0x5f82c0 multiplica por el −0,01f de 0x6ba110: (1.000; −2.000) da la fila 20 y la columna −10, y 0x7d0d348
-// − 5.110 · 2 queda antes de la tabla.
+// 0x5f82c0 multiplies by the −0.01f of 0x6ba110: (1000; −2000) gives row 20 and column −10, and 0x7d0d348 − 5110 · 2
+// lies before the table.
 TEST_F(GameLeavesTest, EventRainCannotInventAWrappedAttributeCell)
 {
     m_map = 18;
@@ -381,7 +381,7 @@ TEST_F(GameLeavesTest, CloudCreatorsEmitRealParticlesAndKeepTheirDifferentHeight
         EXPECT_TRUE(particle.alive);
         EXPECT_EQ(particle.type, 0x622);
         EXPECT_EQ(particle.subtype, 8);
-        // Create622/8 suma sus propios R2/R3/R4 a la posición: no es un recorder sin efectos.
+        // Creating 0x622/8 adds its own R2/R3/R4 to the position: it is not a recorder without effects.
         EXPECT_EQ(particle.position, (map == 31 ? glm::vec3{10617, 15088, -12} : glm::vec3{10481, 15004, 398}));
         EXPECT_EQ(particle.light, (map == 31 ? glm::vec3{0.05f, 0.05f, 0.1f} : glm::vec3(0.07f)));
         EXPECT_EQ(m_random.State(), SeedStateAfter(613, map == 31 ? 12 : 11));
@@ -504,7 +504,7 @@ TEST_F(GameLeavesTest, EventRainHonorsTheAttributeBitBeforeConsumingSplashRandom
     EXPECT_EQ(m_random.State(), 1u);
 }
 
-// Con el −0,01f, (1.050; 2.050) es la celda (10; 20): el bit 8 de esa celda la frena, como el de la (0; 0).
+// With the −0.01f, (1050; 2050) is cell (10; 20): that cell's bit 8 stops it, like the one of (0; 0).
 TEST_F(GameLeavesTest, EventRainReadsTheAttributeOfTheCellItFallsOn)
 {
     m_map = 18;

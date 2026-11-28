@@ -12,7 +12,7 @@ namespace Client::Weather
 {
 namespace
 {
-// 530490, contrato congelado wave-order-v1: aritmética de stores enteros, no del evaluador.
+// 0x530490, frozen contract wave-order-v1: arithmetic of integer stores, not of the evaluator.
 constexpr std::uint32_t FirstWaveOffset = 3;
 constexpr std::uint32_t FirstWaveScale = 10;
 constexpr std::uint32_t SecondWaveScale = 20;
@@ -25,7 +25,7 @@ constexpr std::int32_t TargetPerIntensity = 6;
 
 void AdvancePhase(LeafWeather& weather)
 {
-    // 0x530564..0x530585: ADD de 32 bits seguido de IDIV con resto signed.
+    // 0x530564..0x530585: 32-bit ADD followed by IDIV with a signed remainder.
     const std::uint32_t sum = static_cast<std::uint32_t>(weather.phase) + PhaseStep;
     weather.phase = std::bit_cast<std::int32_t>(sum) % PhasePeriod;
 }
@@ -48,7 +48,7 @@ Core::Expected<void, std::error_code> StepLeafWeatherWaves(LeafWeather& weather,
     {
         return Core::Unexpected(first.Error());
     }
-    // T2 se relee después de H1. W debe ser visible en H2, pero todavía no en E2.
+    // T2 is reread after H1. W must be visible in H2, but not yet in E2.
     const auto secondSine = evaluator->Evaluate(LeafWave::Second, time);
     if (!secondSine.HasValue())
     {

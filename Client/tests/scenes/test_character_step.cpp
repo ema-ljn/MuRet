@@ -68,10 +68,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Actors::StepCharacters: 0x508f00. El TerrainWall, si cada personaje se ve, el 0x508ba0 de los que no
-// son el héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 entero, con la cabeza que sortea en
-// los que no son el héroe. 06 § El paso de los personajes, § El paso de los personajes en la selección y el login,
-// § El cuerpo de los personajes (0x4fd5f0), § Los efectos de los personajes (0x505de0) y § Caminar.
+// Client::Actors::StepCharacters: 0x508f00. 06 § El paso de los personajes, § El paso de los personajes en la
+// selección y el login, § El cuerpo de los personajes (0x4fd5f0), § Los efectos de los personajes (0x505de0) and
+// § Caminar.
 namespace
 {
 const Client::Session::CharacterStepHooks StepHooks{};
@@ -90,45 +89,45 @@ using Client::Models::Skeleton;
 using Client::Terrain::TerrainPolygon;
 
 constexpr std::uint32_t Seed = 0x2468ace1u;
-// Los dos accesos de 0x508f00 a la celda lógica (4 rand() por cierre).
+// 0x508f00's two logical cell accesses (4 rand() per close).
 constexpr int WallDraws = 8;
-// 0x4fbe10 con la celda del héroe igual a la guardada: abre y cierra la X y la Y, cuatro rand() cada cierre.
+// 0x4fbe10 with the hero cell equal to the stored one: opens and closes X and Y, four rand() per close.
 constexpr int HeroCellReads = 2 * Client::Models::SmallLogicalCloseRandoms;
-// 0x4fc450 con el héroe: el registro propio, que se cierra en 0 con los 3.848 de 0x40b4d0.
+// 0x4fc450 with the hero: the own record, which closes at 0 with the 3848 of 0x40b4d0.
 constexpr int OwnRecordDraws = Client::Models::OwnRecordCloseRandoms;
-// El rand() % 6 de 0x4fd7e4.
+// The rand() % 6 of 0x4fd7e4.
 constexpr int BodyDraws = 1;
-// 0x505de0 con el héroe visto: los dos accesos de la celda y el rand() & 7 de 0x506cac.
+// 0x505de0 with the hero seen: the two cell accesses and the rand() & 7 of 0x506cac.
 constexpr int SeenEffectsDraws = 8 + 1;
-// El héroe visto, quieto, sin terminar la acción y antes del frame 3: sin el rand() de 0x432bf1 (0x4fcee0).
+// The hero seen, idle, action not ended and before frame 3: without the rand() of 0x432bf1 (0x4fcee0).
 constexpr int SeenHeroDraws = WallDraws + OwnRecordDraws + BodyDraws + SeenEffectsDraws;
-// El rand() de 0x432bf1, desde el frame 3 (0x4fcee0), y el del sufijo de 0x4f2250 al terminar la acción.
+// The rand() of 0x432bf1 from frame 3 (0x4fcee0), and the one of 0x4f2250's suffix when the action ends.
 constexpr int TrailDraws = 1;
 constexpr int StopDraws = 1;
-// Los dos accesos de 0x508ba0 con otro que el héroe, la X (0x412890) y la Y (0x40b800).
+// 0x508ba0's two accesses with a non-hero, X (0x412890) and Y (0x40b800).
 constexpr int OtherCellDraws = 8;
-// Los dos accesos de 0x505de0 con otro visto (0x506362 y 0x506833).
+// 0x505de0's two accesses with a seen non-hero (0x506362 and 0x506833).
 constexpr int OtherSeenCellDraws = 8;
-// El rand() & 7 de 0x506cac, después de la cabeza.
+// The rand() & 7 of 0x506cac, after the head.
 constexpr int EffectsRandomDraws = 1;
-// Una lectura de +0x38e (0x517630 o sus copias en línea): un rand() al cerrarse en 0.
+// One read of +0x38e (0x517630 or its inline copies): one rand() when it closes at 0.
 constexpr int SkillReadDraws = 1;
-// Una habilidad sin el pool de joints: la 0x2b con +0x381 en 2 y el hueso 0 de la mano en el modelo saca los tres
-// rand() del punto y corta en el primer joint 0x10f/2 (0x4f99fe), que este contexto no presta. La 0x2f (sus 0x10f de
-// 0x4f9e49) y el 0x621/1 de la 0x37 ya nacen (test_attack_frame_skills).
+// A skill without the joint pool: 0x2b with +0x381 at 2 and the hand's bone 0 in the model draws the point's three
+// rand() and stops at the first 0x10f/2 joint (0x4f99fe), which this context does not provide. 0x2f (its 0x10f of
+// 0x4f9e49) and 0x37's 0x621/1 are already created (test_attack_frame_skills).
 constexpr std::uint8_t FrameSkill = 0x2b;
 constexpr std::uint8_t FrameSkillStep = 2;
 constexpr std::string_view FrameSkillCut = "0x4f99fe";
 constexpr int FrameSkillDraws = 3;
-// 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
+// 0x5068fd: a non-hero's head draws when rand() % 32 is 0.
 constexpr int HeadOneIn = 32;
-// La selección (0x633f20, World55) y el login (0x6349a0, World56).
+// The selection (0x633f20, World55) and the login (0x6349a0, World56).
 constexpr std::uint8_t SelectionMap = 54;
 constexpr std::uint8_t LoginMap = 55;
-// El cetro del personaje del login en la mano derecha (LoginModels.cpp; el caso 0x620 de 0x509340).
+// The login character's scepter in the right hand (LoginModels.cpp; case 0x620 of 0x509340).
 constexpr std::uint16_t LoginScepter = 0x620;
 
-// 0x634303 pasa el objeto suelto después de los 400 registros: también avanza con la ventana cerrada.
+// 0x634303 passes the loose object after the 400 records: it also steps with the window closed.
 TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
 {
     WorldState world;
@@ -159,13 +158,13 @@ TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_FLOAT_EQ(preview.animation.frame, 0.6f);
     EXPECT_EQ(preview.headTurn.target, (glm::vec2{0.0f, 0.0f}));
-    // X/Y de 0x508ba0, el rand del cuerpo, Y/X de efectos, cabeza común, rand de efectos.
+    // X/Y of 0x508ba0, the body's rand, Y/X of the effects, the common head, the effects' rand.
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 19).State());
     EXPECT_EQ(terrain.attributes->cells[0] & Client::Pathfinding::CharacterWallBit, 0u);
     EXPECT_FALSE(world.Actors()[0].alive);
 }
 
-// 4ec200 decide el look-ahead por la escena global: ser NewFace no equivale a escena4.
+// 0x4ec200 picks the look-ahead by the global scene: being NewFace is not scene 4.
 TEST(CharacterStepTest, ANewFaceInTheGameUsesTheGameAnimationEndGate)
 {
     auto world = std::make_unique<WorldState>();
@@ -225,7 +224,7 @@ TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesMod
                                                .hooks = &StepHooks});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    // Rand 19..22: 1536, 18843, 27303 y 16668; %48 da Y23, mientras que %32 daría Y351.
+    // Rand 19..22: 1536, 18843, 27303 and 16668; %48 gives Y23, while %32 would give Y351.
     EXPECT_EQ(actor.headTurn.target, (glm::vec2{323.0f, 23.0f}));
     EXPECT_FLOAT_EQ(actor.headTurn.angles.x, 352.6f);
     EXPECT_FLOAT_EQ(actor.headTurn.angles.y, 4.6f);
@@ -250,9 +249,9 @@ void Skip(CrtRandom& random, int draws)
     }
 }
 
-// Lo que saca otro que el héroe, visto, quieto y sin terminar la acción, después de su TerrainWall: su
-// 0x508ba0, su cuerpo (el rand() % 6), la celda de su 0x505de0, su cabeza (0x5068fd: rand() % 32 y, si da 0,
-// dos más) y el rand() & 7. La cabeza va a `head` como la mueve StepCharacterHead. Devuelve si sorteó.
+// What a seen, idle non-hero whose action has not ended draws after its TerrainWall: its 0x508ba0, its body (the
+// rand() % 6), its 0x505de0's cell, its head (0x5068fd: rand() % 32 and, if 0, two more) and the rand() & 7. The
+// head goes to `head` as StepCharacterHead moves it. Returns whether it drew.
 bool DrawASeenOther(CrtRandom& random, CharacterHead& head)
 {
     Skip(random, OtherCellDraws + BodyDraws + OtherSeenCellDraws);
@@ -274,7 +273,7 @@ glm::vec3 CellCentre(std::uint8_t x, std::uint8_t y)
     return {(static_cast<float>(x) * 100.0f) + 50.0f, (static_cast<float>(y) * 100.0f) + 50.0f, 0.0f};
 }
 
-// El trapecio del juego alrededor de `centre`, como el que deja 0x5fb570 con la cámara de arranque.
+// The game's trapezoid around `centre`, like the one 0x5fb570 leaves with the startup camera.
 TerrainPolygon GamePolygon(std::uint8_t map, const glm::vec3& centre)
 {
     return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, map, centre, -45.0f);
@@ -290,7 +289,7 @@ std::string ErrorOf(const Client::Core::Expected<void, std::string>& stepped)
     return stepped.HasValue() ? std::string() : stepped.Error();
 }
 
-// Player.bmd con las 205 acciones sin keys y la acción `action` con `keys` keys a `speed` por paso.
+// Player.bmd with its 205 actions without keys, and `action` with `keys` keys at `speed` per step.
 Skeleton SkeletonWith(std::uint8_t action, std::int16_t keys, float speed)
 {
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
@@ -298,9 +297,9 @@ Skeleton SkeletonWith(std::uint8_t action, std::int16_t keys, float speed)
     return skeleton;
 }
 
-// Un mundo con el héroe vivo en el lugar HeroSlot, de pie (la acción 1 de 0x511290), con el PK de 0x511290, y
-// Player.bmd con sus acciones sin keys: el cuerpo no avanza ni termina. El registro propio, con el equipo vacío
-// que deja la respuesta del F3 03 (0x4c47c8): 0x4fc450 no pide Item.bmd.
+// The hero alive in slot HeroSlot, standing (action 1 of 0x511290), with 0x511290's PK, and Player.bmd with its
+// actions without keys: the body neither advances nor ends. The own record has the empty equipment the F3 03 reply
+// leaves (0x4c47c8): 0x4fc450 does not ask for Item.bmd.
 struct GameWorld
 {
     explicit GameWorld(std::int32_t map = 0)
@@ -321,7 +320,7 @@ struct GameWorld
         return world.Actors()[HeroSlot];
     }
 
-    // Otro jugador vivo y de pie en `slot`, con la celda lógica en (x, y), +0x88 en 1 y el PK de 0x511290.
+    // Another player alive and standing in `slot`, with the logical cell at (x, y), +0x88 at 1 and 0x511290's PK.
     ActorState& Other(std::size_t slot, std::uint8_t x = 3, std::uint8_t y = 4)
     {
         ActorState& other = world.Actors()[slot];
@@ -330,7 +329,7 @@ struct GameWorld
         other.byte88 = 1;
         other.pk = 3;
         other.animation.action = 1;
-        // Quieto: 0x511290 deja el blanco +0x39a/b igual a la celda lógica, antes del primer D3.
+        // Idle: 0x511290 leaves the +0x39a/b target equal to the logical cell, before the first D3.
         other.cellX = other.targetX = x;
         other.cellY = other.targetY = y;
         return other;
@@ -341,8 +340,7 @@ struct GameWorld
         return terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
-    // En `map` (18 a 23), el héroe en (5; 6), la celda que 0x4fbe10 guardó hace 10 s, con el bit 8.
-    // El hueso 0 del modelo, con sus keys: la mano de la 0x2b (FrameSkill) llega al punto de 0x4f9918.
+    // Bone 0 of the model, with its keys: the hand of 0x2b (FrameSkill) reaches 0x4f9918's point.
     void GiveTheHandABone()
     {
         Client::Models::SkeletonBone bone;
@@ -363,14 +361,13 @@ struct GameWorld
         Cell(5, 6) = 8;
     }
 
-    // Con `polygon` en el global que deja el último 0x5fb570 (Camera::CameraState::trapezoid).
+    // With `polygon` in the global the last 0x5fb570 leaves (Camera::CameraState::trapezoid).
     Client::Core::Expected<void, std::string> Step(const TerrainPolygon& polygon, SceneId scene = SceneId::Game)
     {
         trapezoid = polygon;
         return Step(scene);
     }
 
-    // Con el global como esté.
     Client::Core::Expected<void, std::string> Step(SceneId scene = SceneId::Game)
     {
         return StepCharacters(CharacterStepContext{.world = world,
@@ -387,8 +384,8 @@ struct GameWorld
     }
 
     static constexpr std::size_t HeroSlot = 42;
-    // En el heap: el WorldState pasa de 340 KB y hay tests con tres GameWorld vivos, más de lo que entra en el
-    // stack de 1 MB de Windows. Mover el GameWorld mueve el puntero, y la referencia sigue en el mismo WorldState.
+    // On the heap: WorldState is over 340 KB and some tests have three GameWorld alive, more than Windows' 1 MB stack.
+    // Moving the GameWorld moves the pointer, and the reference stays on the same WorldState.
     std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
     WorldState& world = *ownedWorld;
     Client::Terrain::WorldTerrain terrain;
@@ -428,11 +425,11 @@ TEST(CharacterStepTest, FullJointsKeepTheBoneEmitterSelectorsAndDecrementItsByte
         GameWorld tested(map);
         tested.Hero().byte1a0 = 35;
         tested.skeleton.bones.resize(5);
-        tested.skeleton.bones[0].parent = 2; // El padre puede venir después.
+        tested.skeleton.bones[0].parent = 2; // The parent can come later.
         tested.skeleton.bones[1].dummy = true;
         tested.skeleton.bones[1].parent = 0;
         tested.skeleton.bones[2].parent = -1;
-        tested.skeleton.bones[3].parent = 5; // Fuera del modelo.
+        tested.skeleton.bones[3].parent = 5; // Outside the model.
         tested.skeleton.bones[4].parent = 0;
         tested.trapezoid = Everything;
         for (auto& joint : tested.world.DrawTail().joints)
@@ -528,12 +525,11 @@ TEST(CharacterStepTest, ChargedSkillFlaresAndTheFullJointTailUseTheirNativeBudge
     }
 }
 
-// 0x506f5a → 0x5189f0: el héroe en (1000, 2000, 300) con la acción 0x44 o la 0x45 (sin huesos, sin las chispas
-// 0x5ac/6) suelta tres 0x619/8 en los tres primeros lugares de la tabla de joints, cada uno con sus tres rand(): los
-// dos de los ángulos (rand() % 90, 0, rand() % 360) y el de la luz del alta (rand() & 0x7f). El primer punto es la
-// posición menos (0, −500, 0) girado por los ángulos (0x5fc8f0 y 0x5fcbd0) y 120 más arriba; el destino, la posición
-// con z + 100. Los esperados son literales, calculados aparte del port con los rand() de la semilla después de
-// SeenHeroDraws.
+// 0x506f5a → 0x5189f0: action 0x44 or 0x45 (no bones, no 0x5ac/6 sparks) releases three 0x619/8 into the first
+// three slots of the joint table, each with three rand(): the two of the angles (rand() % 90, 0, rand() % 360) and the
+// creation light's (rand() & 0x7f). The first point is the position minus (0, −500, 0) rotated by the angles
+// (0x5fc8f0 and 0x5fcbd0) and 120 higher; the target, the position with z + 100. The expected values are literals,
+// computed outside the port with the seed's rand() after SeenHeroDraws.
 TEST(CharacterStepTest, TheChargedSkillReleasesThreeEnergyJointsWithTheirRandoms)
 {
     struct Expected
@@ -620,7 +616,7 @@ TEST(CharacterStepTest, Action96CreatesTenFiresAndFullParticlesKeepItsBoneChoice
                                              .faunaModels = &tested.faunaModels,
                                              .hooks = &StepHooks});
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        // 506f7a selector y 541189/5411ce/5413ef, tres del constructor5d9/0 si hay hueco.
+        // 0x506f7a selector and 0x541189/0x5411ce/0x5413ef, three from the 0x5d9/0 constructor if there is room.
         EXPECT_EQ(tested.random.State(), Client::Tests::AfterDraws(Seed, SeenHeroDraws + 10 * (full ? 1 : 4)).State());
         if (!full)
         {
@@ -686,14 +682,14 @@ TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
                                          .hooks = &StepHooks});
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-    // 8 paredes + 8 del otro + 1 cuerpo + 7 cuervo + 8 celda + 1 cabeza + 1 sufijo.
+    // 8 walls + 8 of the other + 1 body + 7 raven + 8 cell + 1 head + 1 suffix.
     EXPECT_EQ(tested.random.State(), RandomAfter(34).State());
     EXPECT_FLOAT_EQ(actor.darkSpirit->direction.y, -7.55f);
     EXPECT_FLOAT_EQ(actor.darkSpirit->direction.z, 2.9f);
     EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
 }
 
-// 0x4fd69b..0x4fd6ef publica la colocación antes de que 0x4fb9e0 hunda al dueño; 0x420dd0 consume ese snapshot.
+// 0x4fd69b..0x4fd6ef publishes the placement before 0x4fb9e0 sinks the owner; 0x420dd0 consumes that snapshot.
 
 TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
 {
@@ -730,16 +726,17 @@ TEST(CharacterStepTest, ThePerchedRavenUsesThePlacementPublishedByItsOwner)
 
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
-    // 0x4fd69b publica al dueño antes del 0x420dd0: 1,25 · ((7, 8, 9) + (−10, 0, 10)) + su posición.
+    // 0x4fd69b publishes the owner before 0x420dd0: 1.25 · ((7, 8, 9) + (−10, 0, 10)) + its position.
     EXPECT_EQ(owner.darkSpirit->position, glm::vec3(10599.25f, 14122.0f, 603.75f));
     EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
-    // El último 0x20a del paso deja lo suyo para el próximo.
+    // The step's last 0x20a leaves its own for the next one.
     EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
 
-// 0x416a88..0x4176e6: en los estados 2, 5 y 6, con el personaje de +0x3b0 escondido (0x4000), el cuervo manda el A7
-// que corta el ataque (C1 07 A7 00 78 FF FF, con el XOR32) y deja +0x3b0 en 0xffff. Sin 0x4000, no manda nada.
+// 0x416a88..0x4176e6: in states 2, 5 and 6, with the +0x3b0 character hidden (0x4000), the raven sends the A7 that
+// stops the attack (C1 07 A7 00 78 FF FF, with the XOR32) and leaves +0x3b0 at 0xffff. Without 0x4000, it sends
+// nothing.
 
 TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
 {
@@ -795,8 +792,8 @@ TEST(CharacterStepTest, AHiddenRavenTargetSendsTheA7ThatStopsTheAttack)
     }
 }
 
-// 0x416a8b: +0x3b0 entre 0 y 399 mira las banderas de ese personaje; fuera (el 400 de una clave que no estaba), solo
-// las del dueño.
+// 0x416a8b: +0x3b0 between 0 and 399 looks at that character's flags; outside (the 400 of a missing key), only the
+// owner's.
 
 TEST(CharacterStepTest, TheRavenLooksAtTheAttackTargetOnlyInsideTheFourHundred)
 {
@@ -862,7 +859,6 @@ TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)
 class GoldenCharacterStep : public Client::Tests::GoldenDataTest
 {
 protected:
-    // Item.bmd del Data\ del repo.
     std::optional<Client::Tables::LoadedItemTable> LoadItems() const
     {
         const auto path = DataFile("Local\\Item.bmd");
@@ -884,7 +880,7 @@ protected:
     }
 };
 
-// Player.bmd del Data\ del repo, con sus 205 acciones (P-C14 a).
+// Player.bmd from the repo's Data\, with its 205 actions (P-C14 a).
 std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot)
 {
     for (const Client::Data::Models::ModelFile& file : Client::Tables::PlayerModelFiles())
@@ -908,11 +904,9 @@ std::optional<Skeleton> LoadPlayerSkeleton(const std::filesystem::path& dataRoot
     return std::nullopt;
 }
 
-// El plan del hito 1, T11, y la observación 8: cruzando el borde del pueblo, +0x3e2 sigue a la celda lógica
-// (+0x41c, +0x420), la que va una adelante, y no a la que se dibuja. En Lorencia (el 0), el borde del este
-// en (172, 128) y (173, 128); en Devias (el 2), el del norte en (220, 76) y (220, 77). Con el héroe visto:
-// los 8 rand() del TerrainWall, los 3.848 del registro propio y el rand() % 6 de 0x4fd5f0, los 8 de la celda
-// de 0x505de0 y el rand() & 7.
+// Milestone 1 plan, T11, and observation 8: crossing the town border, +0x3e2 follows the logical cell (+0x41c,
+// +0x420), the one a step ahead, not the drawn one. With the hero seen: the TerrainWall's 8 rand(), the own record's
+// 3848, 0x4fd5f0's rand() % 6, 0x505de0's 8 for the cell and the rand() & 7.
 
 TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
 {
@@ -950,7 +944,7 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
             hero.position = CellCentre(walk.drawnX, walk.drawnY);
             hero.cellX = walk.logicalX;
             hero.cellY = walk.logicalY;
-            // Lo que dejó 0x511290 con la celda dibujada.
+            // What 0x511290 left with the drawn cell.
             hero.safeZone = static_cast<std::uint8_t>(1 - walk.safeZone);
             const TerrainPolygon polygon = GamePolygon(border.map, hero.position);
             ASSERT_TRUE(CharacterSeen(polygon, hero.position));
@@ -968,11 +962,10 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
     }
 }
 
-// Lo que saca por paso el héroe quieto en la zona segura, con Player.bmd del repo: la acción 1 (6 keys, 0,28 por
-// paso, repite) de un jugador sin armas. Por paso, los 8 del TerrainWall, los 3.848 del registro propio
-// (0x4fc450), el rand() % 6 (0x4fd7e4), y los 8 de la celda y el rand() & 7 de 0x505de0: 3.866. Desde el paso 11
-// el frame pasa de 3 y 0x432bf1 saca uno más; en el 22 la acción termina (6,16), vuelve al frame 0,16 y 0x4f2250
-// saca el de su sufijo, sin el de 0x432bf1. En Lorencia y en Devias.
+// What the idle hero in the safe zone draws per step with the repo's Player.bmd: action 1 (6 keys, 0.28 per step,
+// repeating) of an unarmed player. Per step, the TerrainWall's 8, the own record's 3848 (0x4fc450), the rand() % 6
+// (0x4fd7e4), and 0x505de0's 8 for the cell and rand() & 7: 3866. From step 11 the frame passes 3 and 0x432bf1 draws
+// one more; at 22 the action ends (6.16), goes back to frame 0.16 and 0x4f2250 draws its suffix's, without 0x432bf1's.
 
 TEST_F(GoldenCharacterStep, TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias)
 {
@@ -1024,8 +1017,8 @@ TEST_F(GoldenCharacterStep, TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias)
     }
 }
 
-// 0x505ef2: sin verse, 0x505de0 no lee la celda ni toca +0x3e2; quedan los 8 rand() del TerrainWall y los del
-// cuerpo, que corre igual.
+// 0x505ef2: unseen, 0x505de0 neither reads the cell nor touches +0x3e2; the TerrainWall's 8 rand() and the body's,
+// which runs the same, remain.
 
 TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
 {
@@ -1049,7 +1042,7 @@ TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
     EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OwnRecordDraws + BodyDraws).State());
 }
 
-// 0x505de0 mira el bit 0x01 del byte bajo del WORD: el 0x02 del héroe y los bits altos no cuentan.
+// 0x505de0 looks at bit 0x01 of the WORD's low byte: the hero's 0x02 and the high bits do not count.
 
 TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
 {
@@ -1074,12 +1067,13 @@ TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
     }
 }
 
-// 0x508f14..0x5091a0: el 0x02 sale de toda la grilla y vuelve en la celda lógica (los ocho bits bajos) de
-// cada personaje vivo, sin morirse (+0x389) y sin el 8 de +0x88, con sus dos accesos; si se ve, de los 400
-// primeros, vivos o no; el 401 no. Después, el primer vivo que no es el héroe, el que se muere, sale de 0x508ba0
-// sin leer su celda (0x508bb6) y, después de su paso de morirse (0x4fb9e0, sin rand() fuera del mapa 7), su modelo, el
-// 0, es el registro sin acciones de 0x5769ad8: no avanza (0x4f9580), saca el rand() % 6 y 0x505de0 arma su caja y sale
-// (0x505e15). Los otros dos, sin modelo, leen su celda en 0x508ba0 y hacen lo mismo, y el héroe da su paso entero.
+// 0x508f14..0x5091a0: 0x02 is cleared from the whole grid and set again on the logical cell (the low eight bits) of
+// each live character, not dying (+0x389) and without the 8 of +0x88, with its two accesses; whether it is seen, for
+// the first 400, alive or not; not for the 401st. Then the first live non-hero, the dying one, leaves 0x508ba0 without
+// reading its cell (0x508bb6) and, after its dying step (0x4fb9e0, no rand() outside map 7), its model, 0, is
+// 0x5769ad8's record without actions: it does not advance (0x4f9580), draws the rand() % 6, and 0x505de0 builds its box
+// and leaves (0x505e15). The other two, without a model, read their cell in 0x508ba0 and do the same; the hero takes
+// its whole step.
 
 TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 {
@@ -1120,8 +1114,8 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
               RandomAfter(2 * WallDraws + BodyDraws + 2 * (OtherCellDraws + BodyDraws) + SeenHeroDraws).State());
 }
 
-// 0x4fbb08: al llegar a 1, 0x4fb1a0 suelta las telas en el mismo frame, también para el héroe. 0x4fb1a0 es
-// idempotente: los frames siguientes vuelven a llamarlo mientras el tiempo de muerte siga arriba de 1.
+// 0x4fbb08: on reaching 1, 0x4fb1a0 releases the cloths in the same frame, also for the hero. 0x4fb1a0 is idempotent:
+// the next frames call it again while the death time stays above 1.
 
 TEST(CharacterStepTest, AnOpenAccessSpendsNothingOnClosing)
 {
@@ -1136,7 +1130,7 @@ TEST(CharacterStepTest, AnOpenAccessSpendsNothingOnClosing)
     EXPECT_EQ(tested.random.State(), RandomAfter(OwnRecordDraws + BodyDraws + 1).State());
 }
 
-// Sin vivos, el paso borra el TerrainWall, escribe +0x16c y no gasta rand().
+// Without live characters, the step clears the TerrainWall, writes +0x16c and spends no rand().
 
 TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
 {
@@ -1151,9 +1145,9 @@ TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
     EXPECT_EQ(tested.random.State(), RandomAfter(0).State());
 }
 
-// Q-C217: antes de cualquier 0x5fb570 el global tiene los ceros de la .bss, un trapecio sin área en (0, 0): los
-// cuatro lados dan 0, que pasa el margen de −20, y se ven todos, en cualquier lugar, también el muerto del lugar
-// 0. Con un WorldState nuevo (lo que deja WinMain) el paso sigue entero.
+// Q-C217: before any 0x5fb570 the global has the .bss zeros, an area-less trapezoid at (0, 0): the four sides give 0,
+// which passes the −20 margin, so everyone is seen, anywhere, also the dead one in slot 0. With a new WorldState (what
+// WinMain leaves) the step runs whole.
 
 TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
 {
@@ -1172,10 +1166,10 @@ TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
-// 0x412140 en el mapa 30, antes del lazo: con el puesto del gremio del arranque (0x6c649a en 0xff) arma el panel
-// del asedio de la clase 0 y el paso sigue como en Lorencia, con los mismos rand() y las mismas paredes; con otro
-// puesto elige la clase 1 o 2 desde los globales del gremio. Fuera del 30, 0x412560 suelta el panel. Sin el mapa
-// cargado no hay TerrainWall: corta antes de tocar nada.
+// 0x412140 on map 30, before the loop: with the startup guild status (0x6c649a at 0xff) it builds the class 0 siege
+// panel and the step goes on as in Lorencia, with the same rand() and walls; with another status it picks class 1 or 2
+// from the guild globals. Outside 30, 0x412560 releases the panel. Without the map loaded there is no TerrainWall: it
+// stops before touching anything.
 
 TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
 {
@@ -1212,10 +1206,9 @@ TEST(CharacterStepTest, TheCastleSiegePanelAndAnUnloadedMapComeBeforeTheWalls)
     EXPECT_EQ(unloaded.random.State(), RandomAfter(0).State());
 }
 
-// 0x4fc450, solo con el héroe publicado: con el registro propio abierto, cada WORD de +0x3e, +0x40 y +0x42
-// baja si es positivo y, en 0, apaga su bit de +0x3c y llama a sus helpers; con +0x40 en 0, las 16 marcas de
-// la lista de [0x6eed3c] vuelven a 0. Al cerrar, los 3.848 rand() si la cuenta queda en 0; con el registro ya
-// abierto, ninguno.
+// 0x4fc450, only with the hero published: with the own record open, each WORD of +0x3e, +0x40 and +0x42 decreases if
+// positive and, at 0, clears its bit of +0x3c and calls its helpers; with +0x40 at 0, the 16 marks of the [0x6eed3c]
+// list go back to 0. On close, the 3848 rand() if the count stays at 0; with the record already open, none.
 
 TEST(CharacterStepTest, TheOwnRecordTimersRunWithTheHero)
 {
@@ -1243,7 +1236,7 @@ TEST(CharacterStepTest, TheOwnRecordTimersRunWithTheHero)
     }
 }
 
-// Con otro que el héroe, 0x4fc450 sale en 0x4fc464: el registro propio queda como estaba y no gasta.
+// With a non-hero, 0x4fc450 leaves at 0x4fc464: the own record stays as it was and spends nothing.
 
 TEST(CharacterStepTest, TheOwnRecordTimersSkipTheOthers)
 {
@@ -1265,8 +1258,8 @@ TEST(CharacterStepTest, TheOwnRecordTimersSkipTheOthers)
     EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OtherCellDraws + BodyDraws).State());
 }
 
-// 0x4e9980 desde 0x4fd72e: con +0x16d en 1 (0x511290) el alpha sube de a 0,05f, en doble, y llega a 1 en el paso
-// 20, el de la entrada (la respuesta del F3 03 lo deja en 0); la luz del blendMesh (+0x68) baja con él.
+// 0x4e9980 from 0x4fd72e: with +0x16d at 1 (0x511290) the alpha rises by 0.05f, in double, and reaches 1 at step 20,
+// the entrance's (the F3 03 reply leaves it at 0); the blendMesh light (+0x68) goes down with it.
 
 TEST(CharacterStepTest, TheHeroAppearsInTwentySteps)
 {
@@ -1290,7 +1283,7 @@ TEST(CharacterStepTest, TheHeroAppearsInTwentySteps)
     EXPECT_LT(hero.blendMeshLight, 0.1f) << "la luz del blendMesh no sube (Q-C112)";
 }
 
-// 4ec31f..4ec33a publica +a4/+a8 antes del sufijo, incluso sin un dibujo entre pasos.
+// 0x4ec31f..0x4ec33a publishes +0xa4/+0xa8 before the suffix, even without a draw between steps.
 TEST(CharacterStepTest, AdvancingTheBodyPublishesTheSharedFrameAndUnclampedKey)
 {
     GameWorld tested;
@@ -1305,7 +1298,8 @@ TEST(CharacterStepTest, AdvancingTheBodyPublishesTheSharedFrameAndUnclampedKey)
     EXPECT_EQ(tested.faunaModels.PoseKey(tested.Hero().type), 1);
 }
 
-// 4ec21b/4ec229 y 4f973a: sin avance no se publican+a4/+a8 ni se hereda el frame del actor.
+// 0x4ec21b/0x4ec229 and 0x4f973a: without progress, +0xa4/+0xa8 are not published and the actor's frame is not
+// inherited.
 TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
 {
     for (const bool frozen : {false, true})
@@ -1325,9 +1319,9 @@ TEST(CharacterStepTest, AOneKeyOrFrozenBodyPreservesTheSharedAnimationMetadata)
     }
 }
 
-// 0x4f9580: la velocidad de la acción (0,4 por paso acá) por 1,5 en las 3 y 4 con +0x3e3, por 0,5 en la 0x3f
-// pasado el frame 6 y en la 0x44, por 0,1f en las 0x4d, 0x4f y 0x5a pasado el 5,5, y de nuevo por 0,5 en la 0x44.
-// En la clase 4, las 0x94, 0x51 y 0x5b entre el frame 1 y el 3, por 0,5 fuera de la party (0x59e680).
+// 0x4f9580: the action's speed (0.4 per step here) times 1.5 in 3 and 4 with +0x3e3, times 0.5 in 0x3f past frame 6
+// and in 0x44, times 0.1f in 0x4d, 0x4f and 0x5a past 5.5, and again times 0.5 in 0x44. In class 4, 0x94, 0x51 and
+// 0x5b between frames 1 and 3, times 0.5 outside the party (0x59e680).
 
 TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
 {
@@ -1373,8 +1367,8 @@ TEST(CharacterStepTest, TheSpeedOfTheActionGoesThroughItsFactors)
     }
 }
 
-// 0x4f969d..0x4f96ba: con el personaje en la party (un lugar de 0x77f3cd0 que empieza con su nombre), las 0x94, 0x51 y
-// 0x5b de la clase 4 entre el frame 1 y el 3 avanzan por 0,125 (0x6ba170).
+// 0x4f969d..0x4f96ba: with the character in the party (a 0x77f3cd0 slot that starts with its name), class 4's 0x94,
+// 0x51 and 0x5b between frames 1 and 3 advance by 0.125 (0x6ba170).
 TEST(CharacterStepTest, TheLordInThePartySlowsItsActionsToAnEighth)
 {
     constexpr float Speed = 0.4f;
@@ -1403,11 +1397,10 @@ TEST(CharacterStepTest, TheLordInThePartySlowsItsActionsToAnEighth)
     }
 }
 
-// 0x4fcd00 con la acción que terminó (+0x78 & 0x1000: 0x4f9580 devuelve 0 sin avanzar, en cada paso) va a
-// 0x4fcb10: las de antes de la 0x0d, las 0xbd a 0xbf, las 0x54 y 0x55 y, de la 0x22 a la 0xc2, las que no
-// están en la lista vuelven a la de parado (0x4f2250: la 1 del jugador sin armas, con el rand() de su sufijo);
-// las demás quedan; la 0x44 vuelve al frame 0; las 0xc3 y 0xc4 quedan y ponen +0x38a en 1 (0x52e810, que con el
-// esqueleto de test, sin el hueso +0x54, no deja nada).
+// 0x4fcd00 with the ended action (+0x78 & 0x1000: 0x4f9580 returns 0 without advancing, each step) goes to 0x4fcb10:
+// those before 0x0d, 0xbd to 0xbf, 0x54 and 0x55 and, from 0x22 to 0xc2, those not in the list go back to standing
+// (0x4f2250: action 1 of the unarmed player, with its suffix's rand()); the others stay; 0x44 goes back to frame 0;
+// 0xc3 and 0xc4 stay and set +0x38a to 1 (0x52e810, which with the test skeleton, without bone +0x54, leaves nothing).
 
 TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
 {
@@ -1454,9 +1447,9 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
     }
 }
 
-// 0x4fcb87..0x4fcba6: el jugador que termina la 0xc3 o la 0xc4 con +0x38a en 0 lo pone en 1 y deja sus restos
-// (0x52e810): con el hueso 20 de Player.bmd posado en sus huesos propios, dos marcas 0x5e3 alrededor de él, por la
-// escala y posición publicadas al entrar al cuerpo, y sus diez rand(). En Lorencia y en Devias.
+// 0x4fcb87..0x4fcba6: the player that ends 0xc3 or 0xc4 with +0x38a at 0 sets it to 1 and leaves its remains
+// (0x52e810): with Player.bmd's bone 20 posed on its own bones, two 0x5e3 marks around it, by the scale and position
+// published on entering the body, and their ten rand().
 
 TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
 {
@@ -1474,8 +1467,8 @@ TEST(CharacterStepTest, AnEndedActionFortyFourRestartsItsFrame)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 2).State());
 }
 
-// Regresión del ataque observado en vivo: la mano visible debe producir una cinta, no cerrar Game.
-// 4fd236..4fd5bb: diez muestras, tipo0, color del nivel7 y continuación con el rand de432bf1.
+// Regression of the attack observed live: the visible hand must make a ribbon, not close Game.
+// 0x4fd236..0x4fd5bb: ten samples, type 0, level 7 color, and it goes on with 0x432bf1's rand.
 TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
 {
     GameWorld tested;
@@ -1502,7 +1495,7 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
     EXPECT_EQ(ribbon.ownerContext, &hero);
     EXPECT_EQ(ribbon.ownerEquipment, &hero.level);
     EXPECT_EQ(ribbon.type, 0);
-    // Las diez altas de 0x4fd5a0 preceden al único paso de las cintas al terminar el pool (0x5091d0).
+    // 0x4fd5a0's ten creations come before the single ribbon step at the end of the pool (0x5091d0).
     EXPECT_EQ(ribbon.count, 9);
     EXPECT_EQ(ribbon.life, 14);
     EXPECT_EQ(ribbon.light, (glm::vec3{1.0f, 0.6f, 0.2f}));
@@ -1511,9 +1504,9 @@ TEST(CharacterStepTest, AnEquippedSwordAttackCreatesItsTrailAndContinuesTheBody)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
 }
 
-// 0x4fcee0: antes del frame 3, salvo en la 0x8d, copia la posición a +0x17c y sale; si no, con el 0x20a, la estela
-// según la acción y el arma de la mano (la izquierda con las 0x25 y 0x26) corta en 0x52e470, y sin estela 0x432bd0
-// saca su rand() sin condición (0x432bf1).
+// 0x4fcee0: before frame 3, except in 0x8d, copies the position to +0x17c and leaves; otherwise, with the 0x20a, the
+// trail by action and hand weapon (the left one with 0x25 and 0x26) stops at 0x52e470, and without a trail 0x432bd0
+// draws its rand() unconditionally (0x432bf1).
 
 TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 {
@@ -1570,12 +1563,12 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
     }
 }
 
-// Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
-// el héroe 10 s en una celda con el bit 8 sin la sesión del C1 06 AF 02 (0x4fbee8), el 0xc5 sin Text.bmd (0x4fd63b),
-// el 0xf1 sin las alturas del terreno (0x4fb942), el nombre de 0x6c88b0 sin timeGetTime() (0x4fcd82), otro modelo,
-// Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0), la partícula de las 0x4d, 0x4f y 0x5a
-// (0x4fdb70) y, después de pegar, una habilidad de +0x38e en 0x4f97b0 (0x4f9899, después de leerla; también
-// muriéndose: el paso de morirse, 0x4fb9e0, y el de 0x4fd787 ya pasaron).
+// Where the body (0x4fd5f0) needs what MuRet lacks it stops, in its order and after the earlier rand(): maps 18 to 23
+// with the hero 10 s on a cell with bit 8 without the C1 06 AF 02 session (0x4fbee8), 0xc5 without Text.bmd
+// (0x4fd63b), 0xf1 without the terrain heights (0x4fb942), 0x6c88b0's name without timeGetTime() (0x4fcd82), another
+// model, Player.bmd not loaded or an action outside it (0x4f9580, 0x4f95c0), the particle of 0x4d, 0x4f and 0x5a
+// (0x4fdb70) and, after hitting, a +0x38e skill in 0x4f97b0 (0x4f9899, after reading it; also while dying: the dying
+// step, 0x4fb9e0, and 0x4fd787's already ran).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case
@@ -1651,8 +1644,8 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
     }
-    // Otro modelo sin cargar es el registro en 0 (+0x26 sin acciones): 0x4f9580 no avanza, sale el rand() % 6 y
-    // 0x505de0 arma la caja de 0x505e15 y sale, sin la celda ni el & 7.
+    // Another unloaded model is the record at 0 (+0x26 without actions): 0x4f9580 does not advance, the rand() % 6 is
+    // drawn and 0x505de0 builds 0x505e15's box and leaves, without the cell or the & 7.
     GameWorld unloaded;
     unloaded.Hero().type = 0x100;
     const auto boxed = unloaded.Step(Everything);
@@ -1660,8 +1653,8 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
     EXPECT_EQ(unloaded.random.State(), RandomAfter(AfterTheTimers + BodyDraws).State());
 }
 
-// Los bordes de esos cortes: los mapas 17 y 24, el nombre con +0x1e3 en 0 (el que deja la respuesta del F3 03) y
-// la partícula en el frame 5,5 justo siguen el camino entero.
+// The edges of those cuts: maps 17 and 24, the name with +0x1e3 at 0 (what the F3 03 reply leaves) and the particle
+// at exactly frame 5.5 take the whole path.
 
 TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
 {
@@ -1688,8 +1681,8 @@ TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
     EXPECT_EQ(particle.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
 }
 
-// 0x4fcd00 con +0x88 en 4 y el 0x20a de subtipo 0xd2 (el tipo 236) en Lorencia: gira a 90 y 0x4fc790 saca su rand()
-// después de los relojes; sin +0x376 en 0x101 no dice nada. El resto es el camino del héroe quieto, con uno más.
+// 0x4fcd00 with +0x88 at 4 and the 0x20a of subtype 0xd2 (type 236) in Lorencia: turns to 90 and 0x4fc790 draws its
+// rand() after the clocks; without +0x376 at 0x101 it says nothing. The rest is the idle hero's path, with one more.
 
 TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
 {
@@ -1757,7 +1750,8 @@ TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
     for (const std::int32_t map : {18, 21, 23})
     {
         SCOPED_TRACE(testing::Message() << "la misma, 10 s después y con el bit 8, en el mapa " << map);
-        // CL9 hito 11, 0x4fbeed..0x4fc39d: el C1 06 AF 02 con el byte bajo de 0x743a180 y 0x743a184, y el reloj.
+        // CL9 milestone 11, 0x4fbeed..0x4fc39d: the C1 06 AF 02 with the low byte of 0x743a180 and 0x743a184, and the
+        // clock.
         GameWorld reported(map);
         reported.StandOnTheReportedCell(map);
         reported.reportedCell.time = 0.0f;
@@ -1832,17 +1826,17 @@ TEST(CharacterStepTest, ChaosCastleStopsWithoutTheReportedCell)
     EXPECT_NE(stepped.Error().find("0x4fbe10"), std::string::npos) << stepped.Error();
 }
 
-// La celda (x, y) del buffer dinámico 0x7b4ccc4.
+// The (x, y) cell of the dynamic buffer 0x7b4ccc4.
 glm::vec3 DynamicLightAt(const Client::Terrain::DynamicWorldLight& light, std::uint8_t x, std::uint8_t y)
 {
     const auto& cell = light.Lighting().cells[Client::Data::Terrain::CellIndex(x, y)];
     return {cell[0], cell[1], cell[2]};
 }
 
-// 0x506acf..0x506b62: con +0x375 debajo de 6, un arma con luz en cualquiera de las dos manos suma al buffer
-// dinámico (0x5f9780) con la x y la y del objeto, sin rand(); el paso sigue hasta el final. El 0x21e da
-// (0,8; 0,64; 0,4) con radio 3 y los otros cuatro (0,64; 0,4; 0,24) con radio 2, con los bits de los DWORD de
-// 0x506af7..0x506b05 y 0x506b2d..0x506b3b. Con 6 o más, no hay luces.
+// 0x506acf..0x506b62: with +0x375 below 6, a weapon with light in either hand adds to the dynamic buffer (0x5f9780) at
+// the object's x and y, without rand(); the step runs to the end. 0x21e gives (0.8, 0.64, 0.4) with radius 3 and the
+// other four (0.64, 0.4, 0.24) with radius 2, with the DWORD bits of 0x506af7..0x506b05 and 0x506b2d..0x506b3b. With 6
+// or more, no lights.
 
 TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
 {
@@ -1862,7 +1856,7 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
             SCOPED_TRACE(::testing::Message() << probe.model << " en la mano " << hand);
             GameWorld tested;
             tested.Hero().hands[hand].model = probe.model;
-            // En (0; 0): la celda del centro recibe el color entero, con peso 1.
+            // At (0, 0): the centre cell gets the whole color, with weight 1.
             tested.Cell(0, 0) = 1;
 
             const auto stepped = tested.Step(Everything);
@@ -1874,7 +1868,7 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.r), probe.color[0]);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.g), probe.color[1]);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(center.b), probe.color[2]);
-            // A dos celdas, el peso de radio 2 es 0 y no toca la celda; el de radio 3 deja un tercio.
+            // Two cells away, the radius 2 weight is 0 and does not touch the cell; radius 3 leaves a third.
             const glm::vec3 two = DynamicLightAt(tested.light, 2, 0);
             if (probe.radiusThree)
             {
@@ -1896,8 +1890,7 @@ TEST(CharacterStepTest, TheHandLightsAddToTheDynamicBufferBelowPkSix)
     }
 }
 
-// Con luz en las dos manos, primero la derecha y después la izquierda: cada canal suma en double y guarda en
-// float, sobre lo que dejó la otra.
+// Each channel adds in double and stores in float, on top of what the other hand left.
 
 TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
 {
@@ -1918,10 +1911,9 @@ TEST(CharacterStepTest, BothHandsAddTheirLightsRightFirst)
     EXPECT_EQ(center.b, sum(0x3ecccccdu, 0x3e75c290u));
 }
 
-// El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: el mapa 7 y las
-// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja; la 0x44 y la 0x45 sin la tabla de joints, después
-// de los dos rand() de los ángulos del primer 0x619/8); el 9 tiene su test. Los pasos ya producen
-// solicitudes CL10 sin cortar ni agregar RNG.
+// The 0x20a case in 0x506cf8 and the hero's steps (0x50862f), after the rand() & 7: map 7 and actions 0x44, 0x45 and
+// 0x96 stop (7 without the bubble pool; 0x44 and 0x45 without the joint table, after the two angle rand() of the first
+// 0x619/8); 9 has its own test. The steps already make CL10 requests without stopping or adding RNG.
 
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 {
@@ -1956,10 +1948,10 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
     }
 }
 
-// 0x508ba0 con otro que el héroe, quieto: la X lógica y la Y en dos accesos que se cierran (8 rand()), iguales a
-// la copia en claro (0x511290 escribe las dos), así que no busca camino (Q-C236). Su cuerpo (0x4fd5f0) saca el
-// rand() % 6, sin el registro propio, y su 0x505de0, visto, la celda (8 más), la cabeza que sortea (0x5068fd) y el
-// rand() & 7. Después, el héroe del lugar 42 hace su paso entero. En Lorencia y en Devias.
+// 0x508ba0 with an idle non-hero: the logical X and Y in two closing accesses (8 rand()), equal to the clear copy
+// (0x511290 writes both), so it does not look for a path (Q-C236). Its body (0x4fd5f0) draws the rand() % 6, without
+// the own record, and its 0x505de0, seen, the cell (8 more), the head draw (0x5068fd) and the rand() & 7. Then the
+// hero in slot 42 takes its whole step.
 
 TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
 {
@@ -1987,9 +1979,9 @@ TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
     }
 }
 
-// 0x508e0e → 0x4eac00 (Q-C1351): otro quieto con el blanco lejos de su celda reintenta el camino (0x508c84), y
-// 0x4eac0a..0x4eac41 le pone la bandera si 0x6c8e54 tiene un altar (el registro 9, muerto) con la etapa 4 en el 34: su
-// blanco, de pared, queda en 0 y el camino llega. En Lorencia y Devias la pared queda y el camino para al lado.
+// 0x508e0e → 0x4eac00 (Q-C1351): an idle other with the target far from its cell retries the path (0x508c84), and
+// 0x4eac0a..0x4eac41 sets the flag if 0x6c8e54 has an altar (record 9, dead) with stage 4 on map 34: its wall target
+// stays at 0 and the path arrives. In Lorencia and Devias the wall stays and the path stops beside it.
 TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
 {
     for (const std::int32_t map : {0, 2, 34})
@@ -2015,9 +2007,9 @@ TEST(CharacterStepTest, AnotherCharacterRetriesItsPathWithTheCrywolfAltarFlag)
     }
 }
 
-// 0x5068eb..0x5069ab con otro que el héroe, paso a paso: rand() % 32 en 0 sortea el blanco con dos rand() más
-// (+0x34 y +0x38), y los dos ángulos giran hacia él (+0x28 y +0x2c), como en el login. Con el héroe muerto, cada
-// paso saca el TerrainWall del otro y lo suyo, con 1 o 3 en la cabeza. En Lorencia y en Devias.
+// 0x5068eb..0x5069ab with a non-hero, step by step: rand() % 32 at 0 draws the target with two more rand() (+0x34 and
+// +0x38), and both angles turn toward it (+0x28 and +0x2c), as in the login. With the hero dead, each step draws the
+// other's TerrainWall and its own, with 1 or 3 for the head.
 
 TEST(CharacterStepTest, TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo)
 {
@@ -2049,8 +2041,8 @@ TEST(CharacterStepTest, TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo)
     }
 }
 
-// Con el héroe la cabeza no sortea ni gasta: gira hacia el blanco (+0x34 y +0x38), que MoveHero escribe con el
-// mouse (CL7.4), a lo sumo el 20 % de lo que falta por paso. En Lorencia y en Devias.
+// With the hero the head neither draws nor spends: it turns toward the target (+0x34 and +0x38), which MoveHero writes
+// from the mouse (CL7.4), at most 20 % of what is left per step.
 
 TEST(CharacterStepTest, TheHeroTurnsItsHeadWithoutRandoms)
 {
@@ -2075,9 +2067,9 @@ TEST(CharacterStepTest, TheHeroTurnsItsHeadWithoutRandoms)
     }
 }
 
-// 0x5068be..0x5068d4: con +0x78 & 0x20 o & 0x1000 la cabeza no se mueve ni sortea, y el paso sigue con el
-// rand() & 7. Con 0x1000 la acción además termina sin avanzar y vuelve a la de parado (0x4f2250, con el rand() de
-// su sufijo). En Lorencia y en Devias.
+// 0x5068be..0x5068d4: with +0x78 & 0x20 or & 0x1000 the head neither moves nor draws, and the step goes on with the
+// rand() & 7. With 0x1000 the action also ends without advancing and goes back to standing (0x4f2250, with its
+// suffix's rand()).
 
 TEST(CharacterStepTest, TheFlagsOf78KeepTheHeadStill)
 {
@@ -2108,8 +2100,8 @@ TEST(CharacterStepTest, TheFlagsOf78KeepTheHeadStill)
     }
 }
 
-// 0x50862f..0x508641: los pasos (0x505770) son solo del héroe publicado. Otro en las acciones de los pasos no
-// corta y sigue hasta el final. En Lorencia y en Devias.
+// 0x50862f..0x508641: the steps (0x505770) are only the published hero's. Another one in the step actions does not
+// stop and runs to the end.
 
 TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
 {
@@ -2133,9 +2125,9 @@ TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
     }
 }
 
-// 0x5086cf..0x5087fc: en Kalima (los mapas 24 a 29 y el 36), el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b
-// saca dos rand() % 64 y el 0x6f4, que corta. En los mapas de al lado, o con otra acción, sigue. El héroe ya
-// atraviesa la solicitud de sonido 0x508668 y alcanza la misma partícula, con sus dos rand adicionales.
+// 0x5086cf..0x5087fc: in Kalima (maps 24 to 29 and 36), the 0x20a in actions 0x15, 0x1d to 0x21 and 0x4b draws two
+// rand() % 64 and 0x6f4, which stops. On the neighboring maps, or with another action, it goes on. The hero already
+// goes through the 0x508668 sound request and reaches the same particle, with its two extra rand.
 
 TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 {
@@ -2178,9 +2170,9 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
     EXPECT_EQ(hero.random.State(), RandomAfter(SeenHeroDraws + 2).State());
 }
 
-// Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano suma al buffer
-// dinámico y sigue; el mapa 7 (solo en el juego) y las acciones 0x44, 0x45 y 0x96 cortan después del rand() & 7 (la
-// 0x44 y la 0x45, sin la tabla de joints, en el primer 0x619/8).
+// After the head, a non-hero takes the hero's 0x20a path: one hand's light adds to the dynamic buffer and goes on; map
+// 7 (only in the game) and actions 0x44, 0x45 and 0x96 stop after the rand() & 7 (0x44 and 0x45, without the joint
+// table, at the first 0x619/8).
 
 TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
 {
@@ -2242,11 +2234,11 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     EXPECT_EQ(DynamicLightAt(lit.light, 0, 0).r, std::bit_cast<float>(0x3f4ccccdu));
 }
 
-// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y hace su cuerpo, con el paso de morirse
-// (0x4fb9e0) y el rand() % 6, hasta la habilidad de +0x38e después de pegar (0x4f9899), salvo el 0x154, que toma la
-// altura del terreno (0x508e89); el que camina sigue su camino (0x508e27). Cada uno, con el héroe vivo en el lugar 42,
-// después del TerrainWall. El 0x159 sale sin leer la celda; sin su modelo (el registro en 0), no avanza, saca el
-// rand() % 6 y 0x505de0 arma su caja (0x505e15), y después el héroe da su paso entero.
+// 0x508ba0's exits before the cell: the dying one leaves (0x508bb6) and runs its body, with the dying step (0x4fb9e0)
+// and the rand() % 6, up to the +0x38e skill after hitting (0x4f9899), except 0x154, which takes the terrain height
+// (0x508e89); the walking one follows its path (0x508e27). Each with the hero alive in slot 42, after the TerrainWall.
+// 0x159 leaves without reading the cell; without its model (the record at 0), it does not advance, draws the rand() %
+// 6 and 0x505de0 builds its box (0x505e15), and then the hero takes its whole step.
 
 TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 {
@@ -2263,7 +2255,7 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
     for (const Case& probe :
          {Case{"se muere", Player, 1, 0, FrameSkillCut, WallDraws + BodyDraws + SkillReadDraws + FrameSkillDraws},
           Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
-          // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
+          // Walk exists: it consumes its rand before Position finds the missing height.
           Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
           Case{"el 0x159", 0x159, 0, 0, "", 2 * WallDraws + BodyDraws + OwnRecordDraws + BodyDraws + SeenEffectsDraws}})
     {
@@ -2292,9 +2284,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
     }
 }
 
-// Una cuenta abierta no se vuelve a cifrar al cerrar: ni en el TerrainWall, ni en 0x508ba0, ni en la celda de
-// 0x505de0. Al otro le quedan el rand() % 6, la cabeza y el rand() & 7, y después el héroe hace su paso. En
-// Lorencia y en Devias.
+// An open count is not encrypted again on close: neither in the TerrainWall, nor in 0x508ba0, nor in 0x505de0's cell.
+// The other keeps the rand() % 6, the head and the rand() & 7, and then the hero takes its step.
 
 TEST(CharacterStepTest, AnotherCharacterWithOpenCellAccessesSpendsNothingOnThem)
 {
@@ -2320,11 +2311,11 @@ TEST(CharacterStepTest, AnotherCharacterWithOpenCellAccessesSpendsNothingOnThem)
     }
 }
 
-// La selección (0x6342f9) y el login (0x634d13) sobre su mapa del repo, con el .att del mapa en el global del
-// TerrainWall (0x7d0d348, que 0x61a560 pisa), el mundo en curso y el héroe publicado en `hero`. Los vivos son
-// jugadores de pie en sus lugares, con las dos copias de la celda en (0, 0), como los deja 0x511290 desde
-// 0x517270 o 0x6349a0, y +0x88 en 1. El registro propio queda como lo deja el login, en cero
-// (0x4baf79..0x4bafc2): su equipo es del tipo 0, y 0x54efe0 lee el +0x2d de sus alas en Item.bmd (`items`).
+// The selection (0x6342f9) and the login (0x634d13) on their repo map, with the map's .att in the TerrainWall global
+// (0x7d0d348, which 0x61a560 overwrites), the current world and the hero published in `hero`. The live ones are
+// standing players in their slots, with both cell copies at (0, 0), as 0x511290 leaves them from 0x517270 or 0x6349a0,
+// and +0x88 at 1. The own record stays as the login leaves it, zeroed (0x4baf79..0x4bafc2): its equipment is type 0,
+// and 0x54efe0 reads its wings' +0x2d in Item.bmd (`items`).
 struct SceneCharacters
 {
     SceneCharacters(const std::filesystem::path& dataRoot, std::uint8_t map, std::size_t hero)
@@ -2351,7 +2342,7 @@ struct SceneCharacters
         return actor;
     }
 
-    // Los cinco lugares de 0x4c20a0, con la z de 0x634680.
+    // 0x4c20a0's five slots, with 0x634680's z.
     void PlaceTheFiveSlots()
     {
         for (std::size_t slot = 0; slot < Client::FrontEnd::CharacterSlots.size(); ++slot)
@@ -2381,7 +2372,7 @@ struct SceneCharacters
     TerrainPolygon trapezoid{};
 };
 
-// El trapecio que deja el dibujo de la selección (0x63475c), el de su punto fijo.
+// The trapezoid the selection draw leaves (0x63475c), the one of its fixed point.
 TerrainPolygon SelectionPolygon()
 {
     return Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::CharacterSelect, SelectionMap,
@@ -2389,12 +2380,12 @@ TerrainPolygon SelectionPolygon()
                                              Client::Camera::SelectionCamera().angles.z);
 }
 
-// La selección con los cinco lugares y el héroe en el 0, con el trapecio de su dibujo, paso a paso: los cinco se
-// ven (P-C46 b, con la cuenta de MuRet) y marcan su celda lógica, la (0, 0), con 8 rand() cada uno. El héroe sale de
-// 0x508ba0 sin gastar (0x508bad) y hace el camino del juego: su cuerpo con el registro propio y su 0x505de0 entero.
-// Los lugares 1 a 4 gastan su 0x508ba0, su cuerpo, su celda, su cabeza (1 o 3) y el rand() & 7. Por paso, 40 +
-// 3.858 + 4 · 19 = 3.974, más 2 por cada cabeza que sortea (*simulado*). El esqueleto de prueba no tiene velocidad:
-// la animación no avanza, sin el rand() de 0x432bf1 desde el frame 3 ni el del sufijo al terminar la acción.
+// The selection with the five slots and the hero in 0, with its draw's trapezoid, step by step: all five are seen
+// (P-C46 b, with MuRet's count) and mark their logical cell, (0, 0), with 8 rand() each. The hero leaves 0x508ba0
+// without spending (0x508bad) and takes the game path: its body with the own record and its whole 0x505de0. Slots 1
+// to 4 spend their 0x508ba0, body, cell, head (1 or 3) and the rand() & 7. Per step, 40 + 3858 + 4 · 19 = 3974, plus
+// 2 per head that draws (*simulated*). The test skeleton has no speed: the animation does not advance, without
+// 0x432bf1's rand() from frame 3 or the suffix's at the action's end.
 
 TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
 {
@@ -2432,8 +2423,8 @@ TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
     EXPECT_EQ(origin & Client::Pathfinding::CharacterWallBit, Client::Pathfinding::CharacterWallBit);
 }
 
-// Sin Item.bmd, el héroe de la selección corta en las alas del tipo 0 de su registro en cero (0x54efe0, desde
-// 0x4fc450), después de los TerrainWall y de cerrar el registro propio.
+// Without Item.bmd, the selection hero stops at the type 0 wings of its zeroed record (0x54efe0, from 0x4fc450), after
+// the TerrainWalls and closing the own record.
 
 TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
 {
@@ -2447,10 +2438,9 @@ TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
     EXPECT_EQ(tested.random.State(), RandomAfter((5 * WallDraws) + OwnRecordDraws).State());
 }
 
-// Después de la vuelta, el héroe publicado sigue en el lugar del juego (Q-C213), que 0x510f70(−1) mató: los cinco
-// son otros, sin el registro propio, y cada uno saca su TerrainWall, su 0x508ba0, su cuerpo, su celda, su cabeza y
-// el rand() & 7: 40 + 5 · 19 = 135 por paso, más 2 por cada cabeza que sortea (*simulado*), con la animación
-// quieta.
+// After the return, the published hero stays in the game slot (Q-C213), which 0x510f70(−1) killed: the five are
+// others, without the own record, and each draws its TerrainWall, its 0x508ba0, its body, its cell, its head and the
+// rand() & 7: 40 + 5 · 19 = 135 per step, plus 2 per head that draws (*simulated*), with the animation still.
 
 TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
 {
@@ -2482,12 +2472,11 @@ TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
     EXPECT_GT(sorted, 0);
 }
 
-// El login con el personaje del lugar 2 en su lugar (0x6349a0, LoginCharacterTransform), con el cetro y el cuervo en
-// las manos (sin luz) y en su acción de parado, y el héroe del lugar 0 sin construir, desde el trapecio de la .bss
-// del primer paso (Q-C217): por paso, 8 rand() del TerrainWall, 8 de su 0x508ba0, el de su cuerpo, 8 de su celda, su
-// cabeza y el rand() & 7: 27, y 29 cuando la cabeza sortea (*simulado*), con la animación quieta (sin el rand() de
-// 0x432bf1 desde el frame 3). La cabeza es la que el login corre por su cuenta (LoginScene, 06 § Lo demás del
-// login).
+// The login with the slot 2 character in its place (0x6349a0, LoginCharacterTransform), with the scepter and the raven
+// in its hands (no light) and in its standing action, and the slot 0 hero not built, from the first step's .bss
+// trapezoid (Q-C217): per step, the TerrainWall's 8 rand(), 8 of its 0x508ba0, its body's, 8 of its cell, its head and
+// the rand() & 7: 27, and 29 when the head draws (*simulated*), with the animation still (no 0x432bf1 rand() from
+// frame 3). The head is the one the login runs on its own (LoginScene, 06 § Lo demás del login).
 
 TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
 {
@@ -2518,8 +2507,8 @@ TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
     EXPECT_FALSE(tested.world.Actors()[0].alive);
 }
 
-// Fuera del juego el héroe hace el mismo camino: con el héroe solo, en un mapa del juego (el 0 y el 2) y con la
-// selección o el login de escena, el cuerpo y 0x505de0 enteros, con los mismos rand().
+// Hero alone on a game map (0 and 2) in the selection or login scene: the whole body and 0x505de0, with the same
+// rand().
 
 TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
 {
@@ -2540,8 +2529,8 @@ TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
     }
 }
 
-// 0x506cf8: el 0x607 del mapa 7 es solo de la escena 5; en las otras el mapa 7 sigue de largo. Sin el pool de
-// partículas, la burbuja corta.
+// 0x506cf8: map 7's 0x607 is only in scene 5; in the others map 7 goes straight on. Without the particle pool, the
+// bubble stops.
 
 TEST(CharacterStepTest, TheClockEffectOfMapSevenIsOnlyInTheGame)
 {
@@ -2553,10 +2542,9 @@ TEST(CharacterStepTest, TheClockEffectOfMapSevenIsOnlyInTheGame)
     EXPECT_EQ(selection.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
-// 0x506d0a..0x506d7c: en el juego, en el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000 debajo
-// de 1000) saca la burbuja 0x607/0 (dos rand()) del hueso de la cabeza (20) de los huesos del último dibujo:
-// (0, 20, −10) por la escala, más la posición, con los ángulos del personaje y la luz en 1. Sin dibujo todavía,
-// de la posición (Q-C318).
+// 0x506d0a..0x506d7c: in the game, on map 7, the second of every ten of the world clock (ftol % 10000 below 1000)
+// blows the 0x607/0 bubble (two rand()) from the head bone (20) of the last draw's bones: (0, 20, −10) times the
+// scale, plus the position, with the character's angles and light at 1. Without a draw yet, from the position (Q-C318).
 
 TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
 {
@@ -2611,9 +2599,9 @@ TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
     }
 }
 
-// 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() & 3; con 0, una gota 0x68/0 del hueso 26 (el
-// primero) y del 35 (el segundo) del último dibujo: (−15, 0, 0) más la traslación del hueso, por la escala, más la
-// posición, con los ángulos del personaje y la luz en 1. Sin el pool corta sólo si tenía que crearla.
+// 0x506d7f..0x506e54: on map 9, in any scene, two rand() & 3; at 0, a 0x68/0 drop from bone 26 (the first) and 35
+// (the second) of the last draw: (−15, 0, 0) plus the bone's translation, times the scale, plus the position, with
+// the character's angles and light at 1. Without the pool it only stops if it had to create one.
 
 TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
 {
@@ -2705,8 +2693,8 @@ TEST(CharacterStepTest, DevilSquareRainsFromTwoBonesOfEachCharacter)
     EXPECT_GT(rained[1], 0);
 }
 
-// En la selección (la escena 4) 0x4ec200 decide el final con el frame + 2 (Q-C21): la acción de 6 keys a 1 por
-// paso termina en el frame 4 y vuelve a la de parado, con el rand() del sufijo de 0x4f2250; en el juego, no.
+// In the selection (scene 4) 0x4ec200 decides the end with frame + 2 (Q-C21): the 6-key action at 1 per step ends at
+// frame 4 and goes back to standing, with 0x4f2250's suffix rand(); in the game, it does not.
 
 TEST(CharacterStepTest, TheSelectionEndsTheActionTwoFramesEarlier)
 {
@@ -2798,10 +2786,10 @@ TEST(CharacterStepTest, ThePerchedRavenUsesItsOwnersPlacementBeforeDeathMovesThe
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(owner.darkSpirit->state, 3);
     EXPECT_FLOAT_EQ(owner.position.z, 579.6f);
-    // 1,25 · ((7, 8, 9) + (−10, 0, 10)) + (10.603, 14.112, 580).
+    // 1.25 · ((7, 8, 9) + (−10, 0, 10)) + (10603, 14112, 580).
     EXPECT_EQ(owner.darkSpirit->position, glm::vec3(10599.25f, 14122.0f, 603.75f));
     EXPECT_EQ(owner.darkSpirit->angles, glm::vec3(3.0f, 0.0f, 68.0f));
-    // El jugador posterior publica su modelo después del dueño.
+    // The later player publishes its model after the owner.
     EXPECT_EQ(tested.world.PlayerModel().scale, 1.25f);
     EXPECT_EQ(tested.world.PlayerModel().origin, owner.position);
 }
@@ -2834,7 +2822,7 @@ TEST(CharacterStepTest, TheBodyCountsDownTheRemovalWordAndKeepsItsMinus128Sentin
     }
 }
 
-// La baja del contador es por lugar, no por clave: otros duplicados de la clave y sus efectos quedan vivos.
+// The counter drops per slot, not per key: other duplicates of the key and their effects stay alive.
 
 TEST(CharacterStepTest, ExpiringOneActorCleansOnlyItsOwnEffectsAndLetsTheBodyFinish)
 {
@@ -2893,7 +2881,7 @@ TEST(CharacterStepTest, AnExpiringActorOutsideThePoolStillRunsItsDirectCleanup)
     EXPECT_FALSE(actor.darkSpirit.has_value());
 }
 
-// 0x416add: los estados 2, 5 y 6 son de las órdenes A7 (CL9) y cortan antes de tocar el cuervo.
+// 0x416add: states 2, 5 and 6 belong to the A7 orders (CL9) and stop before touching the raven.
 
 TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
 {
@@ -2931,8 +2919,8 @@ TEST(CharacterStepTest, DyingActorsReleaseTheirClothsAtTheFadeStart)
     }
 }
 
-// 0x4fbad6..0x4fbb08 y 0x401040: al bajar de 0,01 se borra el registro no héroe y sus huesos con nombre, sin
-// tocar los nombres de los demás lugares del pool.
+// 0x4fbad6..0x4fbb08 and 0x401040: dropping below 0.01 erases the non-hero record and its named bones, without
+// touching the names of the pool's other slots.
 
 TEST(CharacterStepTest, RemovingADyingActorForgetsOnlyItsNamedBones)
 {
@@ -2950,8 +2938,8 @@ TEST(CharacterStepTest, RemovingADyingActorForgetsOnlyItsNamedBones)
     EXPECT_EQ(tested.world.Runtime().namedBones[0].name, "Left_Hand");
 }
 
-// Una cuenta abierta en la tabla de protección no se vuelve a cifrar al cerrar: la celda no gasta, y quedan el
-// registro propio, el rand() % 6 del cuerpo y el rand() & 7.
+// An open count in the protection table is not encrypted again on close: the cell spends nothing, and the own record,
+// the body's rand() % 6 and the rand() & 7 remain.
 
 TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
 {
@@ -3014,7 +3002,7 @@ TEST(CharacterStepTest, TheEndOfTheMarkActionsLeavesTheBloodOnce)
     }
 }
 
-// 0x4fcb71: la 0x44 que terminó se queda y vuelve al frame 0; después, 0x505de0 corta en sus efectos.
+// 0x4fcb71: the ended 0x44 stays and goes back to frame 0; then 0x505de0 stops in its effects.
 
 TEST(CharacterStepTest, TheTurnedNpcTurnsAndDrawsItsLine)
 {
@@ -3030,6 +3018,6 @@ TEST(CharacterStepTest, TheTurnedNpcTurnsAndDrawsItsLine)
     EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + 1).State());
 }
 
-// 0x4fbe10 en los mapas 18 a 23, sin mandar nada: con otra celda guarda la del héroe y el reloj del mundo, y
-// abre y cierra la X dos veces y la Y una (12 rand()); con la misma y menos de 10 s, no toca nada y lee las dos (8);
-// con 10 s en una celda sin el bit 8, guarda el reloj. El resto del paso es el del mapa 17.
+// 0x4fbe10 on maps 18 to 23, sending nothing: with another cell it stores the hero's and the world clock, and opens
+// and closes X twice and Y once (12 rand()); with the same one and under 10 s, it touches nothing and reads both (8);
+// with 10 s on a cell without bit 8, it stores the clock. The rest of the step is map 17's.

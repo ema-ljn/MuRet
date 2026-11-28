@@ -24,35 +24,33 @@ namespace Client::Terrain
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-// CL9 hito 4: 0x517a20, los blancos de una skill alrededor de un punto y el C1 10 que los manda (FoxAnti: 1D). Lo llama
-// el choque de las flechas de skill (0x520170 en 0x520497, Scenes/ArrowEffects); la matriz lo pone en la CL11 (06,
-// "La flecha").
+// 0x517a20: a skill's targets around a point and the C1 10 that sends them (FoxAnti: 1D). Called by the skill arrows'
+// impact (0x520170 at 0x520497, Effects/ArrowEffects); the matrix puts it in CL11 (06, "La flecha").
 namespace Client::Actors
 {
 
-// Los seis argumentos de 0x517a20.
+// The six arguments of 0x517a20.
 struct SkillHitsRequest
 {
-    // El lugar de la skill en el registro propio (el byte de +0x6c + lugar, [0x7681eb0]).
+    // The skill's slot in the own record (the byte of +0x6c + slot, [0x7681eb0]).
     std::uint8_t skillIndex = 0;
     glm::vec3 point{};
     float radius = 0.0f;
-    // La cuenta de la tanda, que va en el paquete (+0x8c de la flecha).
+    // The volley's count, which goes in the packet (the arrow's +0x8c).
     std::uint8_t volley = 0;
-    // La clave (+0x8a de la flecha): un jugador (+0x88 en 1) entra solo con ella en +0x1f4.
+    // The key (the arrow's +0x8a): a player (+0x88 at 1) enters only with it in +0x1f4.
     std::uint16_t key = 0;
-    // Lo que va detrás de cada clave en el paquete.
+    // What goes after each key in the packet.
     std::uint8_t extra = 0;
 };
 
-// 0x517a20: la skill del lugar con el registro propio abierto y cerrado (3.848 rand() si queda en 0); en el mapa 30
-// con el asedio prendido corta (0x517b1e, CL9.5). Después, de los 400 en orden, los que están vivos, se ven
-// (+0x16c), no son el héroe ([0x743a170]) ni se están muriendo (+0x389), a `radius` o menos en el plano (la raíz en la
-// x87 con PC53, guardada en float; NaN entra), y son monstruos (+0x88 en 2) o el jugador de la clave: hasta cinco.
-// Con la skill 8 o 9, a cada uno con +0x394 en 0 le pone +0x398 en 10. Sin ninguno, false. Con "webzen" en el nombre
-// del héroe, true sin mandar. Si no, el C1 10 (Protocol::Skills::WriteSkillHits) con la celda del punto (ftol de
-// 0x69fd3c; fuera del entero, corta en 0x517deb) y en C3: sus dos rand() (el relleno y el serial) salen también sin
-// `send`. true.
+// 0x517a20: the slot's skill with the own record opened and closed (3848 rand() if it is left at 0); on map 30 with
+// the siege on, it cuts (0x517b1e, CL9.5). Then, from the 400 in order, those alive, visible (+0x16c), neither the hero
+// ([0x743a170]) nor dying (+0x389), at `radius` or less in the plane (the root on the x87 with PC53, stored as a float;
+// NaN enters), and monsters (+0x88 at 2) or the key's player: up to five. With skill 8 or 9, each one with +0x394 at 0
+// gets +0x398 at 10. With none, false. With "webzen" in the hero's name, true without sending. Otherwise the C1 10
+// (Protocol::Skills::WriteSkillHits) with the point's cell (ftol of 0x69fd3c; outside the integer range, cuts at
+// 0x517deb) and as a C3: its two rand() (padding and serial) come out even without `send`. true.
 [[nodiscard]] Core::Expected<bool, std::string>
 HitTheTargetsAround(const SkillHitsRequest& request, Kernel::WorldState& world, const Terrain::WorldTerrain& terrain,
                     Crt::CrtRandom& random, const std::function<void(Protocol::Outgoing)>& send);

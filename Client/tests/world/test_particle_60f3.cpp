@@ -33,7 +33,7 @@ namespace
 {
 using namespace Client;
 constexpr std::int32_t Type = 0x60f;
-// Evaluador analítico del fixture: sólo acepta u=0; los errores son explícitos.
+// The fixture's analytic evaluator: only accepts u=0; errors are explicit.
 class Trigonometry final : public Particles::IParticleTrigonometry
 {
 public:
@@ -67,7 +67,7 @@ public:
         return cosineProduct;
     }
 };
-// Observador puro del prefijo: devuelve error en el primer seno sin inventar un valor trigonométrico.
+// Pure observer of the prefix: returns an error on the first sine without inventing a trigonometric value.
 class MovementFailureTrigonometry final : public Particles::IParticleTrigonometry
 {
 public:
@@ -76,7 +76,7 @@ public:
     Core::Expected<double, Particles::ParticleError> SineProductPC53(double argument, float multiplier) const override
     {
         ++sineCalls;
-        EXPECT_EQ(argument, 0x1.99999ap-3); // (vida0 + Vx2) por f32 bits3dcccccd.
+        EXPECT_EQ(argument, 0x1.99999ap-3); // (life 0 + Vx 2) times f32 bits 3dcccccd.
         EXPECT_EQ(multiplier, 40);
         EXPECT_EQ(m_particle.life, 0);
         EXPECT_FALSE(m_particle.alive);
@@ -261,7 +261,7 @@ TEST(Particle60f3Test, LateSubtypeFourBypassesGateWithoutRefilterOrRecompute)
     ASSERT_TRUE(Particles::DrawParticlesChecked(particles, 0, std::cref(clock), services).HasValue());
     EXPECT_EQ(services.trace, (std::vector<int>{1, 2, 3, 4}));
 }
-// El ángulo es exactamente cero: sin(0)=0 y cos(0)=1, sin usar el SUT para derivar esperados.
+// The angle is exactly zero: sin(0)=0 and cos(0)=1, without using the SUT to derive expected values.
 TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
 {
     Particles::Particles particles;
@@ -286,7 +286,7 @@ TEST(Particle60f3Test, StepAtZeroAngleUsesPersistentBasesAndFadesAfterDecrement)
     EXPECT_TRUE(p.alive);
     EXPECT_EQ(p.position, glm::vec3(7, -27, 5));
     EXPECT_FLOAT_EQ(p.scale, .998f);
-    // K=bits3f68ba2e; por 1,2,4 sólo cambia el exponente: productos y stores exactos.
+    // K=bits 3f68ba2e; times 1,2,4 only the exponent changes: exact products and stores.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(p.light.x), 0x3f68ba2eu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(p.light.y), 0x3fe8ba2eu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(p.light.z), 0x4068ba2eu);
@@ -322,7 +322,7 @@ TEST(Particle60f3Test, CommonMovementRemainsVisibleBeforeTrigonometryError)
     EXPECT_EQ(random.State(), 3289278137u);
     EXPECT_FALSE(p.alive);
     EXPECT_EQ(p.life, 0);
-    // Ángulos cero: rotación identidad, (11,23,37)+(2,-3,5)=(13,20,42), sin usar el SUT como oráculo.
+    // Zero angles: identity rotation, (11,23,37)+(2,-3,5)=(13,20,42), without using the SUT as oracle.
     EXPECT_EQ(p.position, glm::vec3(13, 20, 42));
     EXPECT_EQ(p.start, glm::vec3(47, 53, 59));
     EXPECT_EQ(p.scale, 3);
@@ -439,7 +439,7 @@ TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
     ASSERT_FALSE(legacy.HasValue());
     EXPECT_EQ(legacy.Error(), Particles::ParticleError::UnsupportedType);
-    // CrywolfArrowDependenciesTest cubre el alta y paso de la /5. La /6 (0x542eeb) sigue sin acreditar.
+    // CrywolfArrowDependenciesTest covers /5's creation and step. /6 (0x542eeb) is still uncredited.
     const auto result = particles.CreateChecked(Type, {}, {}, {}, 6, 1, std::cref(clock), random, 0, trig);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), Particles::ParticleError::UnsupportedSubtype);

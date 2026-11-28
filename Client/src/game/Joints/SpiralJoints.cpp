@@ -20,7 +20,8 @@
 #include <format>
 #include <string>
 
-// El 0x62c (0x5346d8 y 0x53b93f): los que suben del efecto 0x62c/0 (la 0x41) y de la 0x4c, y los del hueso del dueño.
+// The 0x62c (0x5346d8 and 0x53b93f): the rising ones of the 0x62c/0 effect (the 0x41) and of the 0x4c, and those on
+// the owner's bone.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -32,15 +33,15 @@ using Math::OriginalVectorRotate;
 
 constexpr std::uint16_t SpiralTexture = 0x614;
 constexpr std::uint16_t OrbitTexture = 0x60d;
-constexpr float Pale = std::bit_cast<float>(0x3f4ccccdu); // 0,8f
+constexpr float Pale = std::bit_cast<float>(0x3f4ccccdu); // 0.8f
 
-// La /1..4 y la /0xb..0xd, que dan la vuelta alrededor de su subida (0x53476c, 0x53ba2c).
+// The /1..4 and /0xb..0xd, which spin around their rise (0x53476c, 0x53ba2c).
 bool Turns(std::int32_t subtype)
 {
     return (subtype >= 1 && subtype <= 4) || (subtype >= 0xb && subtype <= 0xd);
 }
 
-// La /5..7: siguen un hueso del dueño (0x53bbe6).
+// The /5..7: they follow an owner bone (0x53bbe6).
 bool Orbits(std::int32_t subtype)
 {
     return subtype >= 5 && subtype <= 7;
@@ -61,8 +62,8 @@ void Fade(glm::vec3& light, float factor)
     light = {F32(D(light.x) * D(factor)), F32(D(light.y) * D(factor)), F32(D(light.z) * D(factor))};
 }
 
-// Un tramo de la subida: la cola con la matriz de los ángulos y el avance (0, velocidad, 0) girado por ella, sumado al
-// incremento del camino (+0x24).
+// One segment of the rise: the tail with the angle matrix and the advance (0, speed, 0) rotated by it, added to the
+// path increment (+0x24).
 Core::Expected<Math::OriginalMatrix, std::string> Rise(Kernel::JointState& joint)
 {
     const auto matrix = OriginalAngleMatrix(joint.angles);
@@ -72,7 +73,7 @@ Core::Expected<Math::OriginalMatrix, std::string> Rise(Kernel::JointState& joint
     return matrix;
 }
 
-// 0x53b974..0x53ba27: la /0 sube derecho, con más tramos en cada paso (+0x9ec, que crece de a 2).
+// 0x53b974..0x53ba27: the /0 rises straight, with more segments each step (+0x9ec, which grows by 2).
 Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint)
 {
     constexpr double Brake = 2.0; // 0x6b8818
@@ -87,9 +88,9 @@ Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint)
     return {};
 }
 
-// 0x53ba4c..0x53bbe1: la /1..4 y la /0xb..0xd esperan su tanda (+0x9eb) y después suben como la /0, corridas del
-// camino por (0, 0, +0x58) girado por (0, +0x5c, la z de los ángulos): +0x5c baja 20 y +0x58 2,5 por tramo. La /3 y la
-// /4 restan el corrimiento; las demás lo suman.
+// 0x53ba4c..0x53bbe1: the /1..4 and /0xb..0xd wait for their batch (+0x9eb) and then rise like the /0, shifted from the
+// path by (0, 0, +0x58) rotated by (0, +0x5c, the angles' z): +0x5c drops 20 and +0x58 2.5 per segment. The /3 and /4
+// subtract the shift; the others add it.
 Core::Expected<void, std::string> StepTheSpiral(Kernel::JointState& joint)
 {
     if (joint.volley > 0)
@@ -104,7 +105,7 @@ Core::Expected<void, std::string> StepTheSpiral(Kernel::JointState& joint)
     {
         if (auto risen = Rise(joint); !risen.HasValue())
             return Core::Unexpected(risen.Error());
-        // 0x53bab9..0x53bafc: la condición del original deja siempre la resta (Q-C1624).
+        // 0x53bab9..0x53bafc: the original's condition always leaves the subtraction (Q-C1624).
         joint.targetPosition.y = F32(D(joint.targetPosition.y) - Turn);
         const auto turn = OriginalAngleMatrix({0, joint.targetPosition.y, joint.angles.z});
         const glm::vec3 offset = OriginalVectorRotate({0, 0, joint.targetPosition.x}, turn);
@@ -117,10 +118,10 @@ Core::Expected<void, std::string> StepTheSpiral(Kernel::JointState& joint)
     return {};
 }
 
-// 0x53bbf1..0x53be17: la /5..7 con dueño. Pone la posición del dueño en el modelo compartido de su tipo (sólo el
-// origen, +0x6c..+0x74; la escala queda la que tenga) y arma el camino en el punto (0, 20, 0) de su hueso +0x9ec
-// (0x4ec110 con +0x120 + hueso · 0x30). Después da tantos tramos como el menor entre +0x6c y la tanda, cada uno con la
-// cola de esa matriz, y suma uno a +0x6c, que crece así de a uno hasta la tanda (30).
+// 0x53bbf1..0x53be17: the /5..7 with an owner. Puts the owner's position into its type's shared model (only the origin,
+// +0x6c..+0x74; the scale stays whatever it is) and builds the path at the point (0, 20, 0) of its bone +0x9ec
+// (0x4ec110 with +0x120 + bone · 0x30). Then it takes as many segments as the lesser of +0x6c and the batch, each with
+// that matrix's tail, and adds one to +0x6c, which thus grows by one up to the batch (30).
 Core::Expected<void, std::string> FollowTheOwnerBone(Kernel::JointState& joint,
                                                      const JointKernels::StepServices& services)
 {
@@ -135,44 +136,44 @@ Core::Expected<void, std::string> FollowTheOwnerBone(Kernel::JointState& joint,
     Kernel::SharedModelPlacement placement = services.world->ModelPlacement(owner->type);
     placement.origin = owner->position;
     services.world->PlaceModel(owner->type, placement);
-    // Sin huesos propios (antes del primer dibujo) o fuera de ellos, la matriz en cero (Q-C318), como BonePoint de
+    // Without its own bones (before the first draw) or outside them, the matrix at zero (Q-C318), like BonePoint in
     // AttackFrameSkills.cpp.
     const auto bone = static_cast<std::size_t>(static_cast<std::uint32_t>(joint.field9ec));
     const Math::BoneTransform pose = bone < owner->bodyPose.size() ? owner->bodyPose[bone] : Math::BoneTransform(0.0f);
     const auto matrix = Math::OriginalMatrixOf(pose);
     constexpr glm::vec3 Above{0.0f, 20.0f, 0.0f}; // 0x53bc0d, 0x41a00000
     joint.pathIncrement = Math::OriginalTransformPosition(matrix, Above, placement.scale, placement.origin);
-    // 0x53bc76..0x53bcae: la posición en el camino, la cola vacía, +0x6c al menor (con signo contra el byte de la
-    // tanda) y el giro de +0x60 en +0x5c.
+    // 0x53bc76..0x53bcae: the position at the path, the tail empty, +0x6c at the lesser (signed against the batch byte)
+    // and the +0x60 turn into +0x5c.
     joint.position = joint.pathIncrement;
     joint.count = 0;
     const std::int32_t segments = std::min(joint.maximumCount, static_cast<std::int32_t>(joint.volley));
     joint.maximumCount = segments;
     joint.targetPosition.y = joint.targetPosition.z;
-    // [ebp−0x3c]: la velocidad (+0x9dc) en una local. Con la key en −1 baja 0,1f por tramo sólo ahí (0x53bdbf).
+    // [ebp−0x3c]: the velocity (+0x9dc) in a local. With the key at −1 it drops 0.1f per segment only there (0x53bdbf).
     glm::vec3 velocity = joint.velocity;
     constexpr double Swing = 40.0;                                                    // 0x6b8bf4
-    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0,15f
-    constexpr double Lower = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0,1f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3e19999au)); // 0x6b8ae8, 0.15f
+    constexpr double Lower = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8, 0.1f
     constexpr double HalfLight = 0.5;                                                 // 0x6b882c
     constexpr std::uint16_t Glint = 0x60f;                                            // 0x53bdf8
     for (std::int32_t segment = 0; segment < segments; ++segment)
     {
-        // 0x53bcbe..0x53bd05: el camino avanza la velocidad girada por el hueso.
+        // 0x53bcbe..0x53bd05: the path advances by the velocity rotated by the bone.
         joint.pathIncrement = Sum(OriginalVectorRotate(velocity, matrix), joint.pathIncrement);
-        // 0x53bce8..0x53bd22: la /5 y la /7 giran 40 a un lado, la /6 al otro.
+        // 0x53bce8..0x53bd22: the /5 and /7 turn 40 to one side, the /6 to the other.
         const double turned = D(joint.targetPosition.y);
         joint.targetPosition.y = F32(joint.subtype % 2 != 0 ? turned + Swing : turned - Swing);
-        // 0x53bd25..0x53bd96: la posición, (0, 0, radio) girado por (+0x5c, 0, 0) sobre el camino.
+        // 0x53bd25..0x53bd96: the position, (0, 0, radius) rotated by (+0x5c, 0, 0) over the path.
         const auto turn = OriginalAngleMatrix({joint.targetPosition.y, 0.0f, 0.0f});
         joint.position = Sum(OriginalVectorRotate({0.0f, 0.0f, joint.targetPosition.x}, turn), joint.pathIncrement);
-        // 0x53bda1: 0x535520 con la matriz del hueso.
+        // 0x53bda1: 0x535520 with the bone matrix.
         if (auto appended = JointKernels::AppendJointTail(joint, matrix); !appended.HasValue())
             return appended;
         joint.targetPosition.x = F32(D(joint.targetPosition.x) - Shrink);
         if (joint.key == -1)
             velocity.y = F32(D(velocity.y) - Lower);
-        // 0x53bdcb..0x53be02: en los tramos pares, el sprite 0x60f en el camino con media luz roja de escala.
+        // 0x53bdcb..0x53be02: on even segments, the 0x60f sprite on the path with half the red light as scale.
         if (segment % 2 == 0)
         {
             if (services.sprites == nullptr)
@@ -189,7 +190,7 @@ Core::Expected<void, std::string> FollowTheOwnerBone(Kernel::JointState& joint,
 Core::Expected<void, std::string> CreateSpiralJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                     Crt::CrtRandom& random)
 {
-    // 0x5346d8..0x534765: lo común, con la z 150 más alta y el camino (+0x24) en la posición.
+    // 0x5346d8..0x534765: the common part, with z 150 higher and the path (+0x24) at the position.
     constexpr double Lift = 150.0; // 0x6b87ac
     joint.tailEnabled = false;
     joint.speed = -3.0f; // 0xc0400000
@@ -206,8 +207,8 @@ Core::Expected<void, std::string> CreateSpiralJoint(Kernel::JointState& joint, c
     const std::int32_t subtype = joint.subtype;
     if (Turns(subtype))
     {
-        // 0x53477e..0x534887: la tanda rand() % 3 + 2 (en 0 con la /3 y la /4) se suma a la vida; el radio 80 y el
-        // giro 180 (−180 con la /2, la /4 y la /0xb..0xd, que tienen además su color) ponen la posición.
+        // 0x53477e..0x534887: the batch rand() % 3 + 2 (at 0 for the /3 and /4) is added to life; radius 80 and turn
+        // 180 (−180 for the /2, /4 and /0xb..0xd, which also have their color) set the position.
         joint.texture = SpiralTexture;
         joint.speed = -3.0f;
         joint.targetPosition.x = 80;
@@ -215,8 +216,8 @@ Core::Expected<void, std::string> CreateSpiralJoint(Kernel::JointState& joint, c
         joint.volley = static_cast<std::uint8_t>(random.Next() % 3 + 2);
         if (subtype == 2 || subtype == 4 || subtype >= 0xb)
         {
-            constexpr float Soft = std::bit_cast<float>(0x3f333333u); // 0,7f
-            constexpr float Dim = std::bit_cast<float>(0x3f19999au);  // 0,6f
+            constexpr float Soft = std::bit_cast<float>(0x3f333333u); // 0.7f
+            constexpr float Dim = std::bit_cast<float>(0x3f19999au);  // 0.6f
             if (subtype == 0xb)
                 joint.light = {Soft, 1, Soft};
             else if (subtype == 0xc)
@@ -233,8 +234,8 @@ Core::Expected<void, std::string> CreateSpiralJoint(Kernel::JointState& joint, c
     }
     else if (subtype != 0)
     {
-        // 0x534897..0x534926: los demás subtipos (los /5..7 del efecto 0x62c/1) quedan quietos en el camino, con el
-        // hueso del dueño en +0x9ec (el skill del pedido), una sola vuelta de cola y el giro subtipo · 90 en +0x60.
+        // 0x534897..0x534926: the other subtypes (the 0x62c/1 effect's /5..7) stay still on the path, with the owner's
+        // bone in +0x9ec (the request's skill), a single tail turn and the turn subtype · 90 in +0x60.
         joint.skill = 0;
         joint.speed = 0;
         joint.field9ec = request.skill & 0xff;
@@ -248,7 +249,7 @@ Core::Expected<void, std::string> CreateSpiralJoint(Kernel::JointState& joint, c
         if (joint.key != -1)
             joint.velocity.y = 0;
     }
-    // 0x53492c..0x534954 y 0x534cb6.
+    // 0x53492c..0x534954 and 0x534cb6
     if (Orbits(subtype))
         joint.texture = OrbitTexture;
     else if (subtype == 0)
@@ -264,7 +265,7 @@ Core::Expected<void, std::string> StepSpiralJoint(Kernel::JointState& joint, con
     const std::int32_t subtype = joint.subtype;
     if (Orbits(subtype))
     {
-        // 0x53bbe6..0x53be49: sin dueño, muere (y sigue a la cola); con dueño, sigue su hueso.
+        // 0x53bbe6..0x53be49: without an owner, it dies (and goes on to the tail); with an owner, it follows its bone.
         if (joint.ownerContext == nullptr)
             joint.alive = false;
         else if (auto followed = FollowTheOwnerBone(joint, services); !followed.HasValue())
@@ -274,7 +275,7 @@ Core::Expected<void, std::string> StepSpiralJoint(Kernel::JointState& joint, con
             Fade(joint.light, std::bit_cast<float>(0x3f2aaaabu)); // 0x6b8c64, 2/3
         return {};
     }
-    // 0x53b95d..0x53b966: con la cola llena (la cuenta en los puntos − 1), sólo se apaga.
+    // 0x53b95d..0x53b966: with the tail full (the count at points − 1), it only fades.
     if (joint.count < joint.maximumCount - 1)
     {
         if (subtype == 0)
@@ -288,7 +289,7 @@ Core::Expected<void, std::string> StepSpiralJoint(Kernel::JointState& joint, con
                 return stepped;
         }
     }
-    // 0x53be4c..0x53be71 y 0x53b671: la /0..4 y la /0xb..0xd con menos de 10 de vida.
+    // 0x53be4c..0x53be71 and 0x53b671: the /0..4 and /0xb..0xd with less than 10 life.
     constexpr std::int32_t FadeLife = 10;
     if ((subtype == 0 || Turns(subtype)) && joint.life < FadeLife)
         Fade(joint.light, std::bit_cast<float>(0x3f44ec4fu)); // 0x6ba240

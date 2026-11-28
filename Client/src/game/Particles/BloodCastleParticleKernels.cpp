@@ -21,15 +21,15 @@ using Math::F32;
 constexpr int FullTurn = Math::FullTurn;
 constexpr int Tens = 10;
 constexpr int Spread = 5;
-// 0x6b8b90 (0,02f), 0x6b882c (0,5), 0x6b87b4 (0,4f), 0x6b8854 (0,2f), 0x6b87b8 (0,1f) y 0x6b87d4 (1).
+// 0x6b8b90 (0.02f), 0x6b882c (0.5), 0x6b87b4 (0.4f), 0x6b8854 (0.2f), 0x6b87b8 (0.1f) and 0x6b87d4 (1).
 constexpr double Fiftieth = Math::FiftiethAsDouble;
 constexpr double Half = Math::HalfAsDouble;
 constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
 constexpr double Fifth = Math::FifthAsDouble;
 constexpr double Tenth = Math::TenthAsDouble;
 constexpr double One = 1.0;
-// 0x6ba30c (0,95f), 0x6b89dc (0,3f), 0x6ba190 (0,07f), 0x6ba3ac (0,09f), 0x6b8a20 (0,6f), 0x6b8a38 (0,8f),
-// 0x6b8a48 (0,05f), 0x6b8acc (0,04f) y 0x6b89e4 (0,02f).
+// 0x6ba30c (0.95f), 0x6b89dc (0.3f), 0x6ba190 (0.07f), 0x6ba3ac (0.09f), 0x6b8a20 (0.6f), 0x6b8a38 (0.8f),
+// 0x6b8a48 (0.05f), 0x6b8acc (0.04f) and 0x6b89e4 (0.02f).
 constexpr double Drag = static_cast<double>(std::bit_cast<float>(0x3f733333u));
 constexpr double SparkLift = static_cast<double>(std::bit_cast<float>(0x3e99999au));
 constexpr double SparkGrowth = static_cast<double>(std::bit_cast<float>(0x3d8f5c29u));
@@ -39,22 +39,22 @@ constexpr double FlameJitter = static_cast<double>(std::bit_cast<float>(0x3f4ccc
 constexpr double FlameGrowth = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
 constexpr double FlameLight = static_cast<double>(std::bit_cast<float>(0x3d23d70au));
 constexpr double SmokeLight = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
-// 0x6ba348 (0,08f): la luz de la 6ac/2, a la que 0x547a01 le resta el 1 de 0x6b87d4.
+// 0x6ba348 (0.08f): the light of the 6ac/2, from which 0x547a01 subtracts the 1 of 0x6b87d4.
 constexpr double BrightFlameLight = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
 
-// 0x543a7b, 0x5432a1: las escalas fijas de la 6ac y del 622/6.
+// 0x543a7b, 0x5432a1: the fixed scales of the 6ac and of the 622/6.
 constexpr float FlameScale = 0.5f;
 constexpr float SmokeScale = std::bit_cast<float>(0x3e4ccccdu);
-// 0x543b82: la vida que deja el caso del 6ec con un subtipo que no es 7.
+// 0x543b82: the life the 6ec case leaves with a subtype other than 7.
 constexpr std::int32_t SixEcLife = 24;
 
-// fild del entero y fmul del float de la tabla, guardado en float.
+// fild of the integer and fmul of the table's float, stored in a float.
 float Scaled(int value, double factor)
 {
     return F32(static_cast<double>(value) * factor);
 }
 
-// 0x543a9f..0x543ae0 y 0x5432b3..0x5432f9: la x (EBX, +0x54) y la z, con la y en 0.
+// 0x543a9f..0x543ae0 and 0x5432b3..0x5432f9: the x (EBX, +0x54) and the z, with the y at 0.
 void ForwardSpeed(Particle& p, Crt::CrtRandom& random)
 {
     const int forward = random.Next() % Tens + Spread;
@@ -88,13 +88,13 @@ void CreateFlame(Particle& p, Crt::CrtRandom& random)
     p.scale = p.subtype == 1 ? F32(static_cast<double>(argumentScale) * Half) : FlameScale;
     p.rotation = static_cast<float>(turn);
     ForwardSpeed(p, random);
-    // 0x543ae3: el caso del 6ec y del 6ed, con un subtipo que no es 7.
+    // 0x543ae3: the case of the 6ec and the 6ed, with a subtype other than 7.
     p.life = SixEcLife;
     const int side = random.Next() % Tens - Spread;
     p.velocity.y = 0.0f;
     p.velocity.x = Scaled(side, TwoFifths);
     p.velocity.z = Scaled(random.Next() % Tens + Spread, Fifth);
-    // 0x543e7d: el inicio vuelve a ser la posición.
+    // 0x543e7d: the start is the position again.
     p.start = p.position;
 }
 
@@ -108,7 +108,7 @@ void CreateSmoke(Particle& p, Crt::CrtRandom& random)
     ForwardSpeed(p, random);
 }
 
-// fld de la velocidad o de la posición, fadd de la otra, guardado en float; después la x y la y frenan.
+// fld of the speed or of the position, fadd of the other, stored in a float; then the x and the y brake.
 void Drift(Particle& p)
 {
     p.position.x = F32(D(p.velocity.x) + D(p.position.x));
@@ -123,7 +123,7 @@ void SetLight(Particle& p, float level)
     p.light = glm::vec3(level);
 }
 
-// rand() & 0x80000003 con el ajuste del signo, menos 2.
+// rand() & 0x80000003 with the sign adjustment, minus 2.
 int Jitter(Crt::CrtRandom& random)
 {
     constexpr int Mask = 3;
@@ -139,8 +139,8 @@ void StepSpark(Particle& p)
     p.scale = F32(D(p.scale) + (p.subtype == 0 ? SparkGrowth : WideSparkGrowth));
 }
 
-// 0x5479f6..0x547a0f: fild de la vida y fmul; la 6ac/2 (0x5479db, el subtipo leído antes del producto) resta 1 y
-// puede quedar negativa, que la función fija recorta a 0 en el glColor. 0x54748a..0x54756d: el 622/6.
+// 0x5479f6..0x547a0f: fild of the life and fmul; the 6ac/2 (0x5479db, the subtype read before the product) subtracts 1
+// and can go negative, which the fixed function clamps to 0 in glColor. 0x54748a..0x54756d: the 622/6.
 float FlameOrSmokeLight(const Particle& p)
 {
     const double life = static_cast<double>(p.life);
@@ -151,7 +151,7 @@ float FlameOrSmokeLight(const Particle& p)
     return F32(life * FlameLight);
 }
 
-// 0x54793f..0x547a38 y 0x54748a..0x54756d: lo mismo salvo la luz.
+// 0x54793f..0x547a38 and 0x54748a..0x54756d: the same except the light.
 void StepFlameOrSmoke(Particle& p, Crt::CrtRandom& random)
 {
     Drift(p);
@@ -167,8 +167,8 @@ void StepFlameOrSmoke(Particle& p, Crt::CrtRandom& random)
 
 bool IsBloodCastleParticle(std::int32_t type, std::int32_t subtype)
 {
-    // 0x543a5d: la 6ac/2 se crea como la /0; de los subtipos de la llama, solo el 1 (la escala, 0x543a84), el 5 y
-    // el 6 (la vida, 0x543bc1) y el 7 (0x543ae3) cambian algo.
+    // 0x543a5d: the 6ac/2 is created like the /0; of the flame's subtypes, only 1 (the scale, 0x543a84), 5 and 6 (the
+    // life, 0x543bc1) and 7 (0x543ae3) change anything.
     return (type == TorchSparkParticle && (subtype == 0 || subtype == 1)) ||
            (type == TorchFlameParticle && (subtype == 0 || subtype == 1 || subtype == BrightFlameSubtype)) ||
            (type == CloudParticle && subtype == TorchSmokeSubtype);

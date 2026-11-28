@@ -67,22 +67,23 @@
 #include <tuple>
 #include <vector>
 
-// El dibujo de los monstruos y los NPC (0x50ba30 con otro tipo que el 0x20a): vectores literales del ASM c32bbd5f, sin
-// ejecutar el original. Un modelo sintético de un triángulo en el hueso 0 deja ver el cuerpo, el contorno y la sombra.
+// The drawing of monsters and NPCs (0x50ba30 with a type other than 0x20a): literal vectors from the c32bbd5f ASM,
+// without running the original. A synthetic one-triangle model on bone 0 shows the body, the outline and the shadow.
 namespace
 {
 using Client::Actors::Drawing::GameCharacterPass;
 using Client::Kernel::ActorState;
 using Client::Math::RoundedSin;
 
-constexpr std::uint16_t Spider = 0x15b;    // Monster10.bmd, el 3 (Lorencia)
-constexpr std::uint16_t Yeti = 0x15e;      // Monster13.bmd, el 19 (Devias)
-constexpr std::uint16_t DeviasNpc = 0x1d5; // el NPC 241
-constexpr std::uint16_t FairyNpc = 0x1d9;  // el NPC 237 de Lorencia
-constexpr std::uint16_t Golem = 0x176;     // un caso con sprites de 0x50b870 y 0x50b920
+constexpr std::uint16_t Spider = 0x15b;    // Monster10.bmd, type 3 (Lorencia)
+constexpr std::uint16_t Yeti = 0x15e;      // Monster13.bmd, type 19 (Devias)
+constexpr std::uint16_t DeviasNpc = 0x1d5; // NPC 241
+constexpr std::uint16_t FairyNpc = 0x1d9;  // NPC 237 of Lorencia
+constexpr std::uint16_t Golem = 0x176;     // a case with sprites from 0x50b870 and 0x50b920
 constexpr std::uint16_t HelperType = 0x1b6;
 
-// Los tres rand() que saca el resto de 0x50ba30 en un dibujo que no corta (los de los demás tests con AfterRandoms(3)).
+// The three rand() the rest of 0x50ba30 draws in a draw that does not cut (those of the other tests with
+// AfterRandoms(3)).
 constexpr std::size_t TailDraws = 3;
 
 std::uint32_t AfterRandoms(std::size_t count)
@@ -104,7 +105,7 @@ public:
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
         bone.actions[0][0].rotation = AngleQuaternion({0.0f, 0.0f, 0.0f});
-        // El hueso k en (0, 0, k), como en los tests del jugador: un sprite deja ver de qué hueso sale.
+        // Bone k at (0, 0, k), as in the player tests: a sprite shows which bone it comes from.
         m_skeleton.bones.assign(48, bone);
         for (std::size_t index = 0; index < m_skeleton.bones.size(); ++index)
             m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
@@ -118,7 +119,7 @@ public:
         m_model.meshes = {mesh};
     }
 
-    // `count` huesos en vez de 48, como los arma el constructor.
+    // `count` bones instead of 48, as the constructor builds them.
     void SetBoneCount(std::size_t count)
     {
         const auto bone = m_skeleton.bones.front();
@@ -127,7 +128,7 @@ public:
             m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
     }
 
-    // `count` acciones iguales a la primera.
+    // `count` actions equal to the first.
     void SetActionCount(std::size_t count)
     {
         {
@@ -141,7 +142,7 @@ public:
         }
     }
 
-    // Una segunda malla igual a la primera, con su textura.
+    // A second mesh equal to the first, with its texture.
     void AddMesh()
     {
         m_model.meshes.push_back(m_model.meshes.front());
@@ -189,7 +190,7 @@ protected:
         m_faunaModels.Bind(nullptr);
     }
 
-    // Un monstruo como lo deja 0x511290 con lo que escribe el alta (0x511c70..0x511c88, 0x511d45, 0x51248d).
+    // A monster as 0x511290 leaves it, with what the creation writes (0x511c70..0x511c88, 0x511d45, 0x51248d).
     ActorState& Monster(std::size_t slot, std::uint16_t type, std::uint16_t monster)
     {
         ActorState& actor = m_world->Actors()[slot];
@@ -282,24 +283,24 @@ TEST_F(MonsterDrawingTest, ALorenciaSpiderDrawsItsBodyThenItsShadowWithTheOneAtt
     const auto result = Draw(Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x4eb8cd..0x4eb94c: la key de la pose en +0xa8 del modelo; la acción tiene una sola, la 0.
+    // 0x4eb8cd..0x4eb94c: the pose key in the model's +0xa8; the action has only one, key 0.
     EXPECT_EQ(m_faunaModels.PoseKey(Spider), 0);
     EXPECT_EQ(m_faunaModels.PoseFrame(Spider), spider.animation.frame);
-    // 0x6002e0 y después la sombra de 0x50bd89.
+    // 0x6002e0 and then the shadow of 0x50bd89.
     ASSERT_EQ(m_batch.Vertices().size(), 6u);
     ASSERT_EQ(m_batch.Commands().size(), 2u);
-    // 0x5ffce0 sin la luz por vértice: un décimo del terreno más la propia.
+    // 0x5ffce0 without the per-vertex light: a tenth of the terrain plus its own.
     ExpectColor(m_batch.Vertices()[0], 0.12f, 0.24f, 0.36f, 1.0f);
     EXPECT_EQ(m_batch.Commands()[1].state.blend, Client::Render::ModelBlend::Shadow);
     ExpectColor(m_batch.Vertices()[3], 0.0f, 0.0f, 0.0f, 1.0f);
-    // La sombra queda aplastada sobre el piso del objeto.
+    // The shadow stays flattened on the object's floor.
     EXPECT_FLOAT_EQ(m_batch.Vertices()[3].position.z, 15.0f);
-    // 0x50db94: la luz de lo que cuelga, el terreno más la propia.
+    // 0x50db94: the light of what hangs, the terrain plus its own.
     EXPECT_FLOAT_EQ(spider.drawnLight.x, 0.3f);
     EXPECT_FLOAT_EQ(spider.drawnLight.y, 0.6f);
     EXPECT_FLOAT_EQ(spider.drawnLight.z, 0.9f);
     EXPECT_EQ(spider.bodyPose.size(), 48u);
-    // El de 0x50db57 y los dos de +0x38e en el lazo de las manos (0x50e288), sin ninguna mano.
+    // The one of 0x50db57 and the two of +0x38e in the hands loop (0x50e288), with no hand.
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
 }
 
@@ -350,13 +351,13 @@ TEST_F(MonsterDrawingTest, AMonsterWithoutTheDrawHooksStopsBeforeDrawing)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(0));
 }
 
-// 0x50be15..0x50be52: después del cuerpo, en Blood Castle (0xb a 0x11), el que muere empujado (+0x1a1 y +0x389) baja a
-// la altura del terreno (0x5f93c0) y la sombra se aplasta ahí (5 sobre su z). El fcom con `test ah, 1` escribe también
-// con la z o la altura en NaN; con el terreno a la altura de la z o arriba, no: con la z en −0 y el terreno en +0, la z
-// queda en −0 (un `>` la pisaría con +0). Fuera de esos mapas, sin +0x1a1 o sin morirse, la z queda. El suelo va detrás
-// de las guardas de su sombra (0x50bd89..0x50bdfb): con el alpha por debajo de 0,3f (en 0,3f baja), con +0x88 en 8 o
-// con un +0x376 sin sombra (el 0x19), ni sombra ni suelo. Sin las alturas corta en la llamada a 0x5f93c0, después del
-// cuerpo.
+// 0x50be15..0x50be52: after the body, in Blood Castle (0xb to 0x11), one dying pushed (+0x1a1 and +0x389) drops to the
+// terrain height (0x5f93c0) and the shadow flattens there (5 above its z). The fcom with `test ah, 1` also writes with
+// the z or the height at NaN; with the terrain at the z's height or above, it does not: with z at −0 and the terrain at
+// +0, z stays −0 (a `>` would overwrite it with +0). Outside those maps, without +0x1a1 or without dying, z stays. The
+// floor comes after its shadow's guards (0x50bd89..0x50bdfb): with alpha below 0.3f (at 0.3f it drops), with +0x88 at 8
+// or with a +0x376 without shadow (the 0x19), neither shadow nor floor. Without the heights it cuts at the call to
+// 0x5f93c0, after the body.
 TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
 {
     m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -406,7 +407,7 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
             EXPECT_FLOAT_EQ(shadow, probe.grounded + 5.0f);
     }
 
-    // Detrás de las guardas de la sombra: sin ella, la z queda y sólo se dibuja el cuerpo.
+    // After the shadow's guards: without it, z stays and only the body is drawn.
     struct Guard
     {
         float alpha;
@@ -414,7 +415,7 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
         std::uint16_t monster;
         float grounded;
     };
-    const float shadowAlpha = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0,3f
+    const float shadowAlpha = std::bit_cast<float>(0x3e99999au); // 0x6b89dc, 0.3f
     const std::array guards{Guard{0.29f, 2, 3, 10.0f}, Guard{shadowAlpha, 2, 3, 4.0f}, Guard{1.0f, 8, 3, 10.0f},
                             Guard{1.0f, 2, 0x19, 10.0f}};
     m_terrain.heights->cells.fill(4.0f);
@@ -448,13 +449,13 @@ TEST_F(MonsterDrawingTest, TheDyingOfBloodCastleSinkToTheGroundUnderTheirShadow)
     EXPECT_EQ(m_batch.Vertices().size(), 3u);
 }
 
-// 0x5ffdf0 copia la posición al registro del modelo (+0x6c..+0x74, 0x5ffe8b..0x5ffe9a) al posar el cuerpo, antes del
-// suelo de Blood Castle (0x50be4d); después, salvo el 0x18e, el 0x18f y del 0xa8 al 0xac, el 0x60cf70 de la sombra
-// (0x50beb6) la vuelve a copiar ya en el suelo (0x60cfe8..0x60d015), y lo que sigue la lee con 0x4ec110 sobre
-// [ebp−0x14]: el flare01 (0x5ac) del +0x376 0x46 (0x50c0fb..0x50c136) en el hueso 20 (el hueso k está en (0, 0, k))
-// sale desde la araña en 4, en (150, 150, 24). El 0xa8 (un objeto del mundo que ninguna alta de monstruo da: con +0x58
-// en −2 para que 0x6002e0 no corte en 0x6004ed) y el 0x18f no llaman a 0x60cf70 y lo sacan desde la z de antes, 10;
-// el 0x18f, además, 60 más en y (0x5ffea7..0x5ffeef). Entre frames del original, lo mismo, sobre la copia.
+// 0x5ffdf0 copies the position to the model's register (+0x6c..+0x74, 0x5ffe8b..0x5ffe9a) when posing the body, before
+// the Blood Castle floor (0x50be4d); then, except for the 0x18e, the 0x18f and 0xa8 to 0xac, the shadow's 0x60cf70
+// (0x50beb6) copies it again, already on the floor (0x60cfe8..0x60d015), and what follows reads it with 0x4ec110 over
+// [ebp−0x14]: the flare01 (0x5ac) of +0x376 0x46 (0x50c0fb..0x50c136) on bone 20 (bone k is at (0, 0, k)) leaves from
+// the spider at 4, at (150, 150, 24). The 0xa8 (a world object no monster creation gives: with +0x58 at −2 so 0x6002e0
+// does not cut at 0x6004ed) and the 0x18f do not call 0x60cf70 and take it from the earlier z, 10; the 0x18f also adds
+// 60 in y (0x5ffea7..0x5ffeef). Between the original's frames, the same, on the copy.
 TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfTheirShadow)
 {
     m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -500,9 +501,9 @@ TEST_F(MonsterDrawingTest, TheTailOfTheDyingOfBloodCastleHangsFromTheRegisterOfT
     }
 }
 
-// Los pases de brillo de 0x60b130 (el +0x376 0x26, 0x50c671) dibujan las mallas de 0x5786f9c como las dejó el último
-// 0x4ebc80: en un muerto de Blood Castle con sombra, el de 0x60cf70 (0x60d186), con el origen ya en el suelo (z 4,
-// debajo del cuerpo en 10); el 0x18f no la llama y repite las del cuerpo de 0x5ffdf0, 60 más en y y en la z de antes.
+// The shine passes of 0x60b130 (the +0x376 0x26, 0x50c671) draw the meshes of 0x5786f9c as the last 0x4ebc80 left them:
+// on a Blood Castle dead with shadow, that of 0x60cf70 (0x60d186), with the origin already on the floor (z 4, below the
+// body at 10); the 0x18f does not call it and repeats those of the 0x5ffdf0 body, 60 more in y and at the earlier z.
 TEST_F(MonsterDrawingTest, TheShinesOfTheDyingOfBloodCastleRepeatTheMeshesOfTheLastPose)
 {
     m_terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -560,7 +561,7 @@ TEST_F(MonsterDrawingTest, TheShadowFollowsTheMapsOf0x60b3d0)
         std::int32_t map;
         std::size_t vertices;
     };
-    // El 7 la mezcla con alpha 0,2; el 10 (0x50bdf5) y Kalima (0x60b459) no la tienen.
+    // Map 7 blends it with alpha 0.2; map 10 (0x50bdf5) and Kalima (0x60b459) do not have it.
     constexpr std::array cases{Case{7, 6}, Case{10, 3}, Case{24, 3}, Case{36, 3}};
     for (const Case& value : cases)
     {
@@ -592,8 +593,8 @@ TEST_F(MonsterDrawingTest, TheShadowSkipsTheListedMonstersTheFaintAndThe0x92Off)
     EXPECT_EQ(m_batch.Vertices().size(), 12u); // cuatro cuerpos, ninguna sombra
 }
 
-// 0x50bed8: el 0xe8 y el 0xe9 llevan, después de la sombra sin la malla 2, el calco 0x61e aditivo de 2,7 celdas a 5 del
-// piso, con la luz (v / 2, v / 2, v) de v = sin(T · 0,0015f) · 0,3f + 0,8f; +0x58 vuelve a −1.
+// 0x50bed8: the 0xe8 and 0xe9 carry, after the shadow without mesh 2, the additive 0x61e decal of 2.7 cells 5 above the
+// floor, with light (v / 2, v / 2, v) for v = sin(T · 0.0015f) · 0.3f + 0.8f; +0x58 goes back to −1.
 TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
 {
     struct Case
@@ -620,7 +621,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
         EXPECT_EQ(archangel.dword58, -1);
-        // El cuerpo, la sombra (la malla 0: +0x58 en 2 oculta otra) y las 7 · 7 celdas del calco, de dos triángulos.
+        // The body, the shadow (mesh 0: +0x58 at 2 hides another) and the decal's 7 · 7 cells, of two triangles each.
         ASSERT_EQ(m_batch.Vertices().size(), 6u + 49u * 6u);
         const auto& decal = m_batch.Commands().back();
         EXPECT_EQ(decal.state.blend, Client::Render::ModelBlend::Additive);
@@ -637,7 +638,7 @@ TEST_F(MonsterDrawingTest, TheArchangelsMarkTheFloorUnderThem)
     }
 }
 
-// Sin las alturas del terreno, el calco corta en 0x5fb2f0 después de la sombra.
+// Without the terrain heights, the decal cuts at 0x5fb2f0 after the shadow.
 TEST_F(MonsterDrawingTest, TheFloorMarkNeedsTheTerrainHeights)
 {
     Monster(6, Spider, 0xe8);
@@ -660,20 +661,20 @@ TEST_F(MonsterDrawingTest, TheOutlineGoesBeforeTheBodyWithTheMonsterOrTheNpcColo
     const auto result = Draw(pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // Cada uno: dos pases del contorno, el cuerpo y la sombra.
+    // Each one: two outline passes, the body and the shadow.
     ASSERT_EQ(m_batch.Vertices().size(), 24u);
     EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Additive);
     ExpectColor(m_batch.Vertices()[0], 0.1f, 0.01f, 0.0f, 1.0f);
     ExpectColor(m_batch.Vertices()[3], 0.7f, 0.07f, 0.0f, 1.0f);
     ExpectColor(m_batch.Vertices()[12], 0.02f, 0.1f, 0.0f, 1.0f);
     ExpectColor(m_batch.Vertices()[15], 0.16f, 0.7f, 0.0f, 1.0f);
-    // El monstruo con +0x94 en 1,2: 0,1 / escala + 1. El NPC: +0x94, el vértice (1, 0, 0) a 1,2.
+    // The monster with +0x94 at 1.2: 0.1 / scale + 1. The NPC: +0x94, vertex (1, 0, 0) at 1.2.
     EXPECT_FLOAT_EQ(m_batch.Vertices()[1].position.x, 151.1f);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[13].position.x, 151.2f);
 }
 
-// 0x60cdd9: las puertas de Kalima (0xc5) llevan el contorno solo en la malla 0 (0x60ce4e); otro, en las dos. El cuerpo
-// del 0xc5 lo dibuja 0x438fe0 (las dos mallas) y su helper, 0x43c150, quieto (acción 0) no agrega nada.
+// 0x60cdd9: the Kalima gates (0xc5) carry the outline only on mesh 0 (0x60ce4e); any other, on both. The 0xc5's body is
+// drawn by 0x438fe0 (both meshes) and its helper, 0x43c150, standing (action 0) adds nothing.
 TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
 {
     constexpr std::uint16_t Gate = 0xc5;
@@ -700,12 +701,12 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
         SetUp();
         m_world->Runtime().map = map;
         Monster(4, Spider, 3);
-        // SetUp rehízo la luz: el pase se vuelve a armar para no apuntar a la anterior.
+        // SetUp rebuilt the light: the pass is rebuilt so it does not point at the previous one.
         pass = Pass();
         pass.hovered = 4;
         const auto spider = Draw(pass);
         ASSERT_TRUE(spider.HasValue()) << spider.Error();
-        // Dos pases por las dos mallas, el cuerpo y la sombra.
+        // Two passes for the two meshes, the body and the shadow.
         EXPECT_EQ(m_batch.Vertices().size(), 24u);
         TearDown();
     }
@@ -721,9 +722,9 @@ TEST_F(MonsterDrawingTest, TheKalimaGateOutlinesOnlyItsFirstMesh)
     EXPECT_EQ(m_batch.Vertices().size(), 0u);
 }
 
-// Sin los cortes del cuerpo (0x438fe0 y 0x42cc10), la cola llega a los helpers de 0x510a1e: el 0xc5 en la acción 1
-// cuenta su +0x60 en 0x43c150 (en Lorencia y Devias, con cualquier mapa) y el 0x1a1 del 30 sin el asedio apaga su
-// +0x42c y deja +0x58 en −2 en 0x42dfe0; ninguno saca rand() fuera de los tres de lo que cuelga.
+// Without the body's cuts (0x438fe0 and 0x42cc10), the tail reaches the helpers of 0x510a1e: the 0xc5 in action 1
+// counts its +0x60 in 0x43c150 (in Lorencia and Devias, with any map) and the 0x1a1 of 30 without the siege turns off
+// its +0x42c and leaves +0x58 at −2 in 0x42dfe0; neither draws rand() beyond the three of what hangs.
 TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
 {
     for (const std::int32_t map : {0, 2})
@@ -756,12 +757,12 @@ TEST_F(MonsterDrawingTest, TheBodyLeadsToTheKalimaAndSiegeHelpers)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
 }
 
-// 0x441688..0x4416a5: el 0x1a4 al morir (la 6) pide 0x4ee770(0, 0x13c, 0) sobre las mallas de su cuerpo recién
-// posado: un rand() % 45 por esquina (tres, de un triángulo) después de los tres de lo que cuelga, las piedras 0x13c
-// que salgan, +0 en 0 y el sonido 0x209.
+// 0x441688..0x4416a5: the 0x1a4 dying (action 6) requests 0x4ee770(0, 0x13c, 0) over the meshes of its freshly posed
+// body: one rand() % 45 per corner (three, of one triangle) after the three of what hangs, the 0x13c stones that come
+// out, +0 at 0 and sound 0x209.
 TEST_F(MonsterDrawingTest, The1a4DiesInStonesOverItsPosedBody)
 {
-    // La primera semilla con una piedra en la primera esquina.
+    // The first seed with a stone at the first corner.
     std::uint32_t seed = 1;
     for (;; ++seed)
     {
@@ -822,20 +823,20 @@ TEST_F(MonsterDrawingTest, TheLorenciaFairyNpcDrawsTwoSpinningFlaresAndDrawsItsJ
     for (const auto& sprite : sprites)
     {
         EXPECT_EQ(sprite.texture, 0x5d5);
-        // (3,5; −12; 10) del hueso 20, en (0, 0, 20).
+        // (3.5, −12, 10) from bone 20, at (0, 0, 20).
         EXPECT_EQ(sprite.position, glm::vec3(153.5f, 138.0f, 40.0f));
         EXPECT_FLOAT_EQ(sprite.scale, 0.3f);
         EXPECT_FLOAT_EQ(sprite.light.x, 0.65f);
     }
-    // El rand() de 0x50db57, los dos de +0x38e en las manos y el % 30 de 0x510815 (26500 % 30 = 10: sin joint).
+    // The rand() of 0x50db57, the two of +0x38e in the hands and the % 30 of 0x510815 (26500 % 30 = 10: no joint).
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
-// 0x5108a9: el 0x618/6 del hada, sin dueño, desde el punto al azar hacia el del hueso 20, con los ángulos del hada y
-// ancho 20 (0x53214b..0x5322df): velocidad 3, vida 120, 8 puntos y la luz (0,4; 0,3; 0,2), sin rand().
+// 0x5108a9: the fairy's 0x618/6, ownerless, from the random point toward bone 20's, with the fairy's angles and width
+// 20 (0x53214b..0x5322df): speed 3, life 120, 8 points and light (0.4, 0.3, 0.2), no rand().
 TEST_F(MonsterDrawingTest, TheFairyLeavesItsBeamAfterItsThreeRandoms)
 {
-    // Con la semilla 51 el cuarto rand() es 17250: % 30 da 0, y salen los tres % 100 del punto de partida.
+    // With seed 51 the fourth rand() is 17250: % 30 gives 0, and the three % 100 of the start point are drawn.
     m_clothWorld.random = Client::Crt::CrtRandom{51};
     Monster(6, FairyNpc, 237).byte88 = 4;
 
@@ -868,7 +869,7 @@ TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
     const auto result = Draw(Pass());
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // 0x50b920 (dos 0x5ff) y ocho 0x50b870.
+    // 0x50b920 (two 0x5ff) and eight 0x50b870.
     const auto sprites = LiveSprites();
     ASSERT_EQ(sprites.size(), 10u);
     EXPECT_EQ(sprites[0].texture, 0x5ff);
@@ -879,7 +880,7 @@ TEST_F(MonsterDrawingTest, AModelCaseDrawsItsSpritesAndSkipsTheHelperChain)
     EXPECT_EQ(m_world->Actors()[8].effectOrigin, glm::vec3(145.0f, 150.0f, 53.0f));
 }
 
-// 0x50c37e: el +0x376 0x4b deja el fuego 0x5d9/0 de 0,3 en el hueso 18 (tres rand(), 0x541172) y sigue con su brillo.
+// 0x50c37e: the +0x376 0x4b leaves fire 0x5d9/0 of 0.3 on bone 18 (three rand(), 0x541172) and goes on with its shine.
 TEST_F(MonsterDrawingTest, The0x4bLightsItsFireOnBone18)
 {
     m_clothWorld.random = Client::Crt::CrtRandom{1};
@@ -907,9 +908,9 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
         std::size_t vertices;
         std::size_t randoms;
     };
-    // La tela sobre la malla sin la tela persistente del lugar corta antes del cuerpo; el 0x1b6 de 0x4271d0, después de
-    // lo que cuelga y de su rand() % 30, en el primer hueso con nombre que su alta no registró (0x427291); lo de
-    // 0x50bf45, después de la sombra.
+    // The cloth over the mesh without the slot's persistent cloth cuts before the body; the 0x1b6 of 0x4271d0, after
+    // what hangs and its rand() % 30, at the first named bone its creation did not register (0x427291); the one of
+    // 0x50bf45, after the shadow.
     constexpr std::array cases{Case{Spider, 0x59, "0x50bb96", 0, 0}, Case{HelperType, 0x20, "0x427291", 6, 4},
                                Case{Spider, 0x49, "0x50c595", 9, 0}};
     for (const Case& value : cases)
@@ -928,9 +929,9 @@ TEST_F(MonsterDrawingTest, UnportedBranchesCutWithTheirAddress)
     }
 }
 
-// 0x601bd3..0x601c0d por el dibujo del juego: el 0x18e con menos de 25 pasos no se dibuja y pide 0x4ee770(0, 0x10a, 0,
-// 0, 0) sobre las mallas que posó 0x5ffdf0, después de los cuatro rand() del contador: sus piedras van a la tabla del
-// frame. Sin la tabla, corta.
+// 0x601bd3..0x601c0d through the game draw: the 0x18e with fewer than 25 steps is not drawn and requests
+// 0x4ee770(0, 0x10a, 0, 0, 0) over the meshes 0x5ffdf0 posed, after the counter's four rand(): its stones go to the
+// frame table. Without the table, it cuts.
 TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
 {
     m_clothWorld.random = Client::Crt::CrtRandom{1};
@@ -957,10 +958,10 @@ TEST_F(MonsterDrawingTest, TheSpiritStatueLeavesItsStonesInTheFrameTable)
     EXPECT_NE(m_clothWorld.random.State(), AfterRandoms(4));
 }
 
-// 0x50c671, 0x50c71b y 0x50c8ce: después de la sombra, los pases de brillo de 0x60b130 sobre la pose del cuerpo, con
-// el color de 0x608e00 (k = alpha · factor por el del modelo: (1; 0,5; 0) el de todos, (0,8; 0,8; 1) el 0x16d con el
-// 0x100) y RenderBody aditivo: el 0x44 con la textura 0x5c0, el 0x48 con la 0x5fc (o la 0x5fd del 0x35 y el 0x36) y el
-// 0x140 sin brillo, con la del modelo. En Lorencia y en Devias, igual: no miran el mapa ni sacan rand().
+// 0x50c671, 0x50c71b and 0x50c8ce: after the shadow, the shine passes of 0x60b130 over the body's pose, with the color
+// of 0x608e00 (k = alpha · factor times the model's: (1, 0.5, 0) for all, (0.8, 0.8, 1) for the 0x16d with 0x100) and
+// additive RenderBody: 0x44 with texture 0x5c0, 0x48 with 0x5fc (or the 0x5fd of the 0x35 and 0x36) and 0x140 without
+// shine, with the model's. In Lorencia and in Devias, the same: they neither check the map nor draw rand().
 TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
 {
     struct Shine
@@ -979,7 +980,7 @@ TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
     };
     const std::vector<Case> cases{
         {Spider, 0x26, true, {{0x5c0, 1.0f, 0.5f, 0.0f}}},
-        // El 0x3b, sin sombra, con el factor en 0,5.
+        // The 0x3b, without shadow, with factor 0.5.
         {Spider, 0x3b, false, {{0x5c0, 0.5f, 0.25f, 0.0f}}},
         {Spider, 0x2b, true, {{0x5fc, 1.0f, 0.5f, 0.0f}, {0x5c0, 1.0f, 0.5f, 0.0f}}},
         {Spider, 0x50, true, {{0x5fc, 1.0f, 0.5f, 0.0f}, {0x5c0, 1.0f, 0.5f, 0.0f}}},
@@ -1015,18 +1016,17 @@ TEST_F(MonsterDrawingTest, TheGlowingMonstersAddTheirShinePasses)
                 EXPECT_EQ(command.state.texture->value, pass.slot);
                 ExpectColor(m_batch.Vertices()[first + 3 * index], pass.red, pass.green, pass.blue, 1.0f);
             }
-            // Las mallas de los pases son las del cuerpo (los vértices 0 a 2), sin aplastar.
+            // The passes' meshes are the body's (vertices 0 to 2), not flattened.
             EXPECT_EQ(m_batch.Vertices()[first].position, m_batch.Vertices()[0].position);
-            // El de 0x50db57 y los dos de +0x38e en el lazo de las manos: los pases no sacan ninguno.
+            // The one of 0x50db57 and the two of +0x38e in the hands loop: the passes draw none.
             EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
             TearDown();
         }
     }
 }
 
-// Q-C95 en el brillo de un monstruo que se desvanece: con el alpha en 0,5, 0x608e00 deja k = 0,5 (el factor del 0x3b,
-// 0,5 · 0,5 = 0,25) por el color del modelo, y RenderMesh lo multiplica otra vez por el alpha en el lugar en cada
-// malla.
+// Q-C95 on the shine of a fading monster: with alpha at 0.5, 0x608e00 leaves k = 0.5 (the 0x3b's factor,
+// 0.5 · 0.5 = 0.25) times the model's color, and RenderMesh multiplies it again by the alpha in place on each mesh.
 TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
 {
     m_models.AddMesh();
@@ -1036,7 +1036,7 @@ TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
         float k;
         std::size_t first;
     };
-    // El 0x3b no tiene sombra; el 0x26, sí (el alpha no baja de 0,3f).
+    // The 0x3b has no shadow; the 0x26 does (alpha does not drop below 0.3f).
     for (const Case& value : {Case{0x26, 0.5f, 12}, Case{0x3b, 0.25f, 6}})
     {
         SCOPED_TRACE(value.monster);
@@ -1048,7 +1048,7 @@ TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
         const auto result = Draw(Pass());
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        // Las dos mallas del cuerpo, las de la sombra y las dos del pase 0x44.
+        // The body's two meshes, the shadow's and the two of the 0x44 pass.
         ASSERT_EQ(m_batch.Vertices().size(), value.first + 6);
         ExpectColor(m_batch.Vertices()[value.first], value.k * 0.5f, value.k * 0.25f, 0.0f, 1.0f);
         ExpectColor(m_batch.Vertices()[value.first + 3], value.k * 0.25f, value.k * 0.125f, 0.0f, 1.0f);
@@ -1056,8 +1056,8 @@ TEST_F(MonsterDrawingTest, AFadingShineDarkensEachMeshInPlace)
     }
 }
 
-// 0x50c951 y 0x50d58b: el +0x376 0x37, con cualquier tipo, arma y simula la tela de ClothMonster (bVar23) fuera de los
-// mapas 0x12 a 0x17, sobre los huesos propios, antes de lo que cuelga; la escena hace lo mismo que CharacterCloth.
+// 0x50c951 and 0x50d58b: the +0x376 0x37, with any type, builds and simulates the ClothMonster cloth (bVar23) outside
+// maps 0x12 to 0x17, on its own bones, before what hangs; the scene does the same as CharacterCloth.
 TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
 {
     struct Case
@@ -1106,7 +1106,7 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
         ASSERT_EQ(particles.size(), reference.size());
         for (std::size_t index = 0; index < particles.size(); ++index)
             EXPECT_EQ(particles[index].position, reference[index].position) << index;
-        // El cuerpo, la sombra y después la tela, como la dibuja CharacterCloth.
+        // The body, the shadow and then the cloth, as CharacterCloth draws it.
         ASSERT_EQ(m_batch.Vertices().size(), 6u + expectedBatch.Vertices().size());
         for (std::size_t index = 0; index < expectedBatch.Vertices().size(); ++index)
             EXPECT_EQ(m_batch.Vertices()[6 + index].position, expectedBatch.Vertices()[index].position) << index;
@@ -1124,11 +1124,11 @@ TEST_F(MonsterDrawingTest, TheMonster0x37WearsItsClothOutsideChaosCastle)
     EXPECT_NE(unsupplied.Error().find("0x50d58b"), std::string::npos) << unsupplied.Error();
 }
 
-// 0x50c177: el +0x376 0x4d (el monstruo 77, el tipo 0x189 con su segundo modelo 0x18a). Con el reloj en 0, s = 0,5: el
-// pase 0x44 con el factor 0,65 (k por el (1; 0,5; 0) del modelo), +0x68 en f(1,5 · 0,3f), el cuerpo otra vez a 1,2 y
-// a 1,4 alrededor de su hueso con la malla 0 de blendMesh, el 0x18a con su pase 0x42 de Chrome01 y su común en 0,6, y
-// la tela de la grilla del 0x4d, como la arma y la simula CharacterCloth. En Lorencia, en Devias y en Icarus (el 10,
-// sin sombra), igual.
+// 0x50c177: the +0x376 0x4d (monster 77, type 0x189 with its second model 0x18a). With the clock at 0, s = 0.5: the
+// 0x44 pass with factor 0.65 (k times the model's (1, 0.5, 0)), +0x68 at f(1.5 · 0.3f), the body again at 1.2 and
+// at 1.4 around its bone with the blendMesh mesh 0, the 0x18a with its 0x42 Chrome01 pass and its common one at 0.6,
+// and the 0x4d's grid cloth, as CharacterCloth builds and simulates it. In Lorencia, in Devias and in Icarus (map 10,
+// no shadow), the same.
 TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsCloth)
 {
     constexpr std::uint16_t Phoenix = 0x189;
@@ -1148,11 +1148,12 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         const auto result = Draw(pass);
 
         ASSERT_TRUE(result.HasValue()) << result.Error();
-        // El tipo vuelve, +0x64 queda en −1 y +0x68 en la luz de la tela del blendMesh.
+        // The type comes back, +0x64 stays at −1 and +0x68 at the light of the blendMesh cloth.
         EXPECT_EQ(phoenix.type, Phoenix);
         EXPECT_EQ(phoenix.dword64, -1);
         EXPECT_EQ(phoenix.blendMeshLight, static_cast<float>((1.0 - 0.5 + 1.0) * static_cast<double>(0.3f)));
-        // 0x743748c, 0x74374bc y 0x74374ec: los huesos 23 y 14 del 0x18a y el 24 del 0x189 (el hueso k en (0, 0, k)).
+        // 0x743748c, 0x74374bc and 0x74374ec: bones 23 and 14 of the 0x18a and bone 24 of the 0x189 (bone k at (0, 0,
+        // k)).
         const auto& bones = m_world->Runtime().phoenixBones;
         EXPECT_EQ(bones[0][3], glm::vec3(0.0f, 0.0f, 23.0f));
         EXPECT_EQ(bones[1][3], glm::vec3(0.0f, 0.0f, 14.0f));
@@ -1160,16 +1161,16 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         const std::size_t shadow = map == 10 ? 0u : 3u;
         const auto& vertices = m_batch.Vertices();
         ASSERT_GE(vertices.size(), 3u + shadow + 15u);
-        // El cuerpo en 0,6 (0x5ffce0 con el 0x189).
+        // The body at 0.6 (0x5ffce0 with the 0x189).
         ExpectColor(vertices[0], 0.6f, 0.6f, 0.6f, 1.0f);
-        // El pase 0x44: k = 0,65.
+        // The 0x44 pass: k = 0.65.
         const std::size_t shine = 3 + shadow;
         ExpectColor(vertices[shine], 0.65f, 0.325f, 0.0f, 1.0f);
-        // 0x602e90(objeto, 1, 2, 0) y (objeto, 1, 3, 0): el vértice (1, 0, 0) del hueso 0 a 1,2 y a 1,4.
+        // 0x602e90(object, 1, 2, 0) and (object, 1, 3, 0): vertex (1, 0, 0) of bone 0 at 1.2 and at 1.4.
         EXPECT_FLOAT_EQ(vertices[shine + 3 + 1].position.x, 151.2f);
         EXPECT_FLOAT_EQ(vertices[shine + 6 + 1].position.x, 151.4f);
         EXPECT_FLOAT_EQ(vertices[shine + 6 + 2].position.y, 151.4f);
-        // El 0x18a: RenderBody(0x42) con Chrome01 y el común en 0,6, a la escala 1.
+        // The 0x18a: RenderBody(0x42) with Chrome01 and the common one at 0.6, at scale 1.
         const auto& commands = m_batch.Commands();
         const std::size_t second = shine + 9;
         EXPECT_FLOAT_EQ(vertices[second + 1].position.x, 151.0f);
@@ -1179,7 +1180,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
             chromed = chromed || (command.state.texture.has_value() && command.state.texture->value == 0x5c0 &&
                                   command.state.blend == Client::Render::ModelBlend::Additive);
         EXPECT_TRUE(chromed);
-        // La tela: una, armada y simulada sobre la pose del 0x18a.
+        // The cloth: one, built and simulated on the 0x18a's pose.
         ASSERT_EQ(cloths[3].Cloths().size(), 1u);
         EXPECT_EQ(cloths[3].Count(), 1);
         EXPECT_EQ(cloths[3].Cloths()[0].Front().value, 0x629);
@@ -1201,7 +1202,7 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
         ASSERT_EQ(vertices.size(), second + 6 + expectedBatch.Vertices().size());
         for (std::size_t index = 0; index < expectedBatch.Vertices().size(); ++index)
             EXPECT_EQ(vertices[second + 6 + index].position, expectedBatch.Vertices()[index].position) << index;
-        // Los de la tela y, después, el de 0x50db57 y los dos de +0x38e del lazo de las manos.
+        // Those of the cloth and then the one of 0x50db57 and the two of +0x38e of the hands loop.
         for (std::size_t call = 0; call < 3; ++call)
             static_cast<void>(expectedWorld.random.Next());
         EXPECT_EQ(m_clothWorld.random.State(), expectedWorld.random.State());
@@ -1210,9 +1211,9 @@ TEST_F(MonsterDrawingTest, ThePhoenixDrawsItsWiderBodiesItsSecondModelAndItsClot
     }
 }
 
-// 0x50c59f: el +0x376 0x47 (con la textura 0x253), el 0x4a y el 0x12d (con la 0x255), con cualquier tipo, arman en su
-// lugar una tela de la grilla en el hueso 0x13 (5 · 15, sin esferas) sobre la pose guardada, la simulan y la dibujan
-// después de la sombra, como CharacterCloth. En Lorencia, en Devias y en Icarus (el 10, sin sombra), igual.
+// 0x50c59f: the +0x376 0x47 (with texture 0x253), the 0x4a and the 0x12d (with 0x255), with any type, build in their
+// slot a grid cloth on bone 0x13 (5 · 15, no spheres) over the stored pose, simulate it and draw it after the shadow,
+// like CharacterCloth. In Lorencia, in Devias and in Icarus (map 10, no shadow), the same.
 TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
 {
     struct Case
@@ -1279,8 +1280,8 @@ TEST_F(MonsterDrawingTest, TheCrustsWearTheirGridClothWithTheirTexture)
     EXPECT_NE(unsupplied.Error().find("0x50c59f"), std::string::npos) << unsupplied.Error();
 }
 
-// Entre frames del original el 0x4d dibuja lo mismo sobre la copia: no guarda +0x64, +0x68, el tipo ni los huesos,
-// no arma la tela ni saca rand(); sin la tela persistente del lugar, corta en 0x50c283.
+// Between the original's frames the 0x4d draws the same on the copy: it does not store +0x64, +0x68, the type or the
+// bones, does not build the cloth or draw rand(); without the slot's persistent cloth, it cuts at 0x50c283.
 TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
 {
     ActorState& phoenix = Monster(3, 0x189, 0x4d);
@@ -1303,12 +1304,12 @@ TEST_F(MonsterDrawingTest, ThePhoenixBetweenOriginalFramesStoresNothing)
     EXPECT_NE(unsupplied.Error().find("0x50c283"), std::string::npos) << unsupplied.Error();
 }
 
-// 0x50c762: el +0x376 0x2a cuelga del lugar de las alas el 0xef del hueso 9 con (0, 0, −40) y el 0xf0 del 0x3d con
-// (0, −40, 45), este a 0,9f con la luz en 1; la escala y la luz vuelven. El origen de cada uno es el desplazamiento
-// girado por su hueso y escalado como el cuerpo (0x4ec190), más la posición; el vértice del hueso 0, ese hueso por la
-// escala del modelo que cuelga más el origen; el color del 0xef es la luz de lo que cuelga que quedó del frame
-// anterior. Cada 0x509340 saca el cierre de +0x38e y el rand() de 0x509a92. En Lorencia, en Devias y en el mapa 5, el
-// de los dos modelos; el 0x2a no tiene sombra (0x50bd89).
+// 0x50c762: the +0x376 0x2a hangs from the wings slot the 0xef from bone 9 with (0, 0, −40) and the 0xf0 from 0x3d with
+// (0, −40, 45), the latter at 0.9f with light at 1; the scale and the light come back. Each one's origin is the offset
+// turned by its bone and scaled like the body (0x4ec190), plus the position; the vertex of bone 0, that bone times the
+// hanging model's scale plus the origin; the 0xef's color is the hanging light left from the previous frame. Each
+// 0x509340 draws the close of +0x38e and the rand() of 0x509a92. In Lorencia, in Devias and on map 5, the one of both
+// models; the 0x2a has no shadow (0x50bd89).
 TEST_F(MonsterDrawingTest, The0x2aCarriesTheHeadAndThePrincessFromTheWingsSlot)
 {
     for (const std::int32_t map : {0, 2, 5})
@@ -1335,30 +1336,30 @@ TEST_F(MonsterDrawingTest, The0x2aCarriesTheHeadAndThePrincessFromTheWingsSlot)
         EXPECT_EQ(carrier.wings.speed, std::bit_cast<float>(0x3e4ccccdu));
         ASSERT_EQ(carrier.bodyPose.size(), 64u);
         const auto& vertices = m_batch.Vertices();
-        // El cuerpo, el 0xef y el 0xf0.
+        // The body, the 0xef and the 0xf0.
         ASSERT_EQ(vertices.size(), 9u);
-        // El 0xef: (150, 150, 10) + (0, 0, −40) · 1,25, más el hueso 9 por 1,25.
+        // The 0xef: (150, 150, 10) + (0, 0, −40) · 1.25, plus bone 9 times 1.25.
         EXPECT_FLOAT_EQ(vertices[3].position.x, 150.0f);
         EXPECT_FLOAT_EQ(vertices[3].position.y, 150.0f);
         EXPECT_FLOAT_EQ(vertices[3].position.z, -40.0f + 9.0f * 1.25f);
         EXPECT_FLOAT_EQ(vertices[4].position.x, 151.25f);
         ExpectColor(vertices[3], 0.5f, 0.25f, 0.125f, 1.0f);
-        // El 0xf0: (150, 150, 10) + (0, −40, 45) · 1,25, más el hueso 0x3d por 0,9, con la luz en 1.
+        // The 0xf0: (150, 150, 10) + (0, −40, 45) · 1.25, plus bone 0x3d times 0.9, with light at 1.
         EXPECT_FLOAT_EQ(vertices[6].position.x, 150.0f);
         EXPECT_FLOAT_EQ(vertices[6].position.y, 100.0f);
         EXPECT_FLOAT_EQ(vertices[6].position.z, 66.25f + 61.0f * std::bit_cast<float>(0x3f666666u));
         EXPECT_FLOAT_EQ(vertices[7].position.x, 150.0f + std::bit_cast<float>(0x3f666666u));
         ExpectColor(vertices[6], 1.0f, 1.0f, 1.0f, 1.0f);
-        // Los dos de cada 0x509340 y los tres de la cola.
+        // The two of each 0x509340 and the three of the tail.
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(7));
         TearDown();
     }
 }
 
-// 0x50c83b: las estatuas de Blood Castle (+0x376 de 0x84 a 0x86) cuelgan del hueso 1, por el lugar de 0x5093f3, el
-// 0xc1c y el 0x225 a 0,7f con (90, 0, 90) y (0, 80, 120), y el 0xa24 a 0,9f con (10, 0, 0) y (0, 110, 80), desde la
-// posición del personaje. Los sprites del 0xc1c y del 0x225 sacan sus rand(); el 0x225, uno más con la acción 0. En
-// Lorencia, en Devias y en Blood Castle (el 11).
+// 0x50c83b: the Blood Castle statues (+0x376 0x84 to 0x86) hang from bone 1, through the slot of 0x5093f3, the 0xc1c
+// and the 0x225 at 0.7f with (90, 0, 90) and (0, 80, 120), and the 0xa24 at 0.9f with (10, 0, 0) and (0, 110, 80), from
+// the character's position. The sprites of the 0xc1c and the 0x225 draw their rand(); the 0x225, one more with action
+// 0. In Lorencia, in Devias and in Blood Castle (map 11).
 TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
 {
     struct Case
@@ -1395,9 +1396,9 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             EXPECT_EQ(statue.wings.animation.action, 1);
             EXPECT_EQ(statue.wings.speed, std::bit_cast<float>(0x3e4ccccdu));
             const auto& vertices = m_batch.Vertices();
-            // El cuerpo, la sombra (sin ella en el 11, como Spider) y los pases del arma (0x60b3d0).
+            // The body, the shadow (none on 11, like Spider) and the weapon's passes (0x60b3d0).
             ASSERT_GE(vertices.size(), 9u);
-            // El hueso 0 de lo que cuelga es la raíz: el hueso 1 del cuerpo por el lugar, a la escala del modelo.
+            // Bone 0 of what hangs is the root: the body's bone 1 times the slot, at the model's scale.
             const Client::Math::BoneTransform root = Client::Actors::PlacedRoot(
                 statue.bodyPose[1], Client::Actors::HangingPlacement{value.angles, value.translation});
             const glm::vec3 expected = root[3] * value.scale + statue.position;
@@ -1405,7 +1406,7 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
             EXPECT_NEAR(vertices[6].position.y, expected.y, 1e-3f);
             EXPECT_NEAR(vertices[6].position.z, expected.z, 1e-3f);
             EXPECT_NEAR(root[3].y, value.translation.y, 1e-3f);
-            // El cierre de +0x38e, el de 0x509a92 y los de los sprites del modelo; después, los tres de la cola.
+            // The close of +0x38e, the one of 0x509a92 and those of the model's sprites; then the three of the tail.
             Client::Crt::CrtRandom expectedRandom{1};
             static_cast<void>(expectedRandom.Next());
             static_cast<void>(expectedRandom.Next());
@@ -1431,9 +1432,9 @@ TEST_F(MonsterDrawingTest, TheBloodCastleStatuesHoldTheirWeaponInPlace)
     }
 }
 
-// Q-C1119: Staff11 (0xc1c) y Sword20 (0x225) tienen una sola acción, y la estatua los cuelga con la 1: 0x4ec200 la lee
-// fuera del arreglo y MuRet corta, después del cierre de +0x38e. Bow19 (0xa24) no avanza (un arma de 0xa12 a 0xc11 con
-// la bandera) y 0x4eb860 lleva la acción a la 0: se dibuja.
+// Q-C1119: Staff11 (0xc1c) and Sword20 (0x225) have a single action, and the statue hangs them with action 1: 0x4ec200
+// reads it past the array and MuRet cuts, after the close of +0x38e. Bow19 (0xa24) does not advance (a weapon from
+// 0xa12 to 0xc11 with the flag) and 0x4eb860 takes the action to 0: it is drawn.
 TEST_F(MonsterDrawingTest, TheStatueStaffAndSwordReadAnActionTheirModelLacks)
 {
     Monster(6, Spider, 0x84);
@@ -1452,8 +1453,8 @@ TEST_F(MonsterDrawingTest, TheStatueStaffAndSwordReadAnActionTheirModelLacks)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(5));
 }
 
-// Entre frames del original el 0x2a cuelga lo mismo sobre la copia: no guarda el lugar de las alas ni saca rand(); con
-// menos huesos que el 0x3d del 0xf0, corta en 0x509340.
+// Between the original's frames the 0x2a hangs the same on the copy: it does not store the wings slot or draw rand();
+// with fewer bones than the 0xf0's 0x3d, it cuts at 0x509340.
 TEST_F(MonsterDrawingTest, The0x2aBetweenOriginalFramesStoresNothing)
 {
     m_models.SetBoneCount(64);
@@ -1473,11 +1474,11 @@ TEST_F(MonsterDrawingTest, The0x2aBetweenOriginalFramesStoresNothing)
     EXPECT_NE(shortened.Error().find("0x509340: el hueso 0x3d"), std::string::npos) << shortened.Error();
 }
 
-// 0x50bf98: el +0x376 0x45 saca su rand() % 30, pone nueve flare01 de 0,6 con su luz y, antes de cada una de sus tres
-// partículas 0x5c6/3 (vida 5, sin rand(), 0x540675), cuatro rand().
+// 0x50bf98: the +0x376 0x45 draws its rand() % 30, sets nine flare01 of 0.6 with its light and, before each of its
+// three 0x5c6/3 particles (life 5, no rand(), 0x540675), four rand().
 TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
 {
-    // 0x51483f: el monstruo 69 (el +0x376 0x45) con el modelo 0x184, que no tiene caso en 0x6002e0.
+    // 0x51483f: monster 69 (+0x376 0x45) with model 0x184, which has no case in 0x6002e0.
     constexpr std::uint16_t ModelOf69 = 0x184;
     for (const std::int32_t map : {0, 2})
     {
@@ -1499,7 +1500,7 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
             particles->All(), [](const auto& particle)
             { return particle.alive && particle.type == 0x5c6 && particle.subtype == 3 && particle.life == 5; });
         EXPECT_EQ(sparks, 3);
-        // El cuerpo y la sombra antes.
+        // The body and the shadow first.
         EXPECT_EQ(m_batch.Vertices().size(), 6u);
         Client::Crt::CrtRandom random{1};
         const double x =
@@ -1511,12 +1512,12 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
         EXPECT_EQ(sprites[0].light.x, static_cast<float>(x * static_cast<double>(std::bit_cast<float>(0x3f4ccccdu))));
         EXPECT_EQ(sprites[0].light.y, static_cast<float>(x * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
         EXPECT_EQ(sprites[0].light.z, static_cast<float>(x));
-        // El hueso 10 en (0, 0, 10), más la posición.
+        // Bone 10 at (0, 0, 10), plus the position.
         EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 20.0f));
         EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(1 + 3 * 4 + TailDraws));
         TearDown();
     }
-    // Entre frames del original, los nueve flare01 sin las partículas, sobre una copia del rand().
+    // Between the original's frames, the nine flare01 without the particles, on a copy of the rand().
     m_world = std::make_unique<Client::Kernel::WorldState>();
     SetUp();
     m_clothWorld.random = Client::Crt::CrtRandom{1};
@@ -1532,9 +1533,10 @@ TEST_F(MonsterDrawingTest, The0x45LightsItsNineFlaresAndItsThreeSparks)
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-// 0x50c3ed..0x50c50e: el +0x376 0x49 pone catorce flare01 de 0,8 con (0,1; 0,1; 1) en los huesos 13 a 26 y siete en
-// los 52 a 58, y une los huesos 13 a 16 y 22 a 23 con cuatro joints 0x614/7 de ancho 20 sin rand(); su pase 0x44 y
-// después corta en 0x60b300 (0x50c595). 0x50c37e..0x50c3e8: el 0x4b suelta la 0x5d9/0 de 0,3 en su hueso 18 y sigue.
+// 0x50c3ed..0x50c50e: the +0x376 0x49 sets fourteen flare01 of 0.8 with (0.1, 0.1, 1) on bones 13 to 26 and seven on
+// 52 to 58, and links bones 13 to 16 and 22 to 23 with four 0x614/7 joints of width 20 without rand(); its 0x44 pass
+// and then it cuts at 0x60b300 (0x50c595). 0x50c37e..0x50c3e8: the 0x4b drops the 0x5d9/0 of 0.3 on its bone 18 and
+// goes on.
 TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
 {
     Monster(0, Spider, 0x49);
@@ -1548,7 +1550,7 @@ TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
     EXPECT_EQ(sprites[0].light, glm::vec3(std::bit_cast<float>(0x3dcccccdu), std::bit_cast<float>(0x3dcccccdu), 1.0f));
     EXPECT_EQ(sprites[0].position, glm::vec3(150.0f, 150.0f, 23.0f));
     EXPECT_EQ(sprites[13].position, glm::vec3(150.0f, 150.0f, 36.0f));
-    // Los huesos 52 a 58 quedan fuera de la pose de prueba: la matriz en cero, la posición.
+    // Bones 52 to 58 are outside the test pose: the zero matrix, the position.
     EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 10.0f));
     std::vector<const Client::Kernel::JointState*> links;
     for (const auto& joint : m_joints)
@@ -1587,13 +1589,13 @@ TEST_F(MonsterDrawingTest, The0x49ChainsItsBonesAndThe0x4bSparksItsEighteenth)
             fires.push_back(&particle);
     }
     ASSERT_EQ(fires.size(), 1u);
-    // La escala de 0,3 la pisa el alta de la 0x5d9/0 (0x541197) con la suya.
+    // The 0x5d9/0's creation (0x541197) overwrites the 0.3 scale with its own.
     EXPECT_EQ(fires[0]->position, glm::vec3(150.0f, 150.0f, 28.0f));
     EXPECT_EQ(fires[0]->light, glm::vec3(1.0f));
     EXPECT_TRUE(LiveSprites().empty());
 }
 
-// 0x50c0fb: el +0x376 0x46 pone un flare01 de 0,8 en blanco en su hueso 20, sin rand(), y sigue.
+// 0x50c0fb: the +0x376 0x46 sets one white flare01 of 0.8 on its bone 20, no rand(), and goes on.
 TEST_F(MonsterDrawingTest, The0x46LightsOneFlareOnItsBone20)
 {
     for (const std::int32_t map : {0, 2})
@@ -1621,7 +1623,7 @@ TEST_F(MonsterDrawingTest, The0x46LightsOneFlareOnItsBone20)
     }
 }
 
-// 0x510abd: el cuervo de +0x430 va con cualquier tipo (0x420df0), con el trapecio del dibujo.
+// 0x510abd: the +0x430 raven goes with any type (0x420df0), with the draw's trapezoid.
 TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
 {
     Monster(3, Spider, 3).darkSpirit.emplace();
@@ -1644,9 +1646,9 @@ TEST_F(MonsterDrawingTest, AMonsterWithARavenDrawsItAfterItsTail)
     EXPECT_GT(m_batch.Vertices().size(), 6u);
 }
 
-// 0x5108b6..0x510a1c, el 0x16e: por cada hueso que no es dummy, fuera de los 15..20 y 27..32 (36 de los 48), el 0x5fd
-// de 2,5 con la mezcla 1 (+0x1d6 en 0) o el 0x61e de 0,8 verde, y un rand() & 3; con 0 en las acciones 3 y 4, la
-// partícula 0x5ca con la misma luz. Después salta la cadena de helpers.
+// 0x5108b6..0x510a1c, the 0x16e: for each non-dummy bone outside 15..20 and 27..32 (36 of the 48), the 0x5fd of 2.5
+// with blend 1 (+0x1d6 at 0) or the green 0x61e of 0.8, and one rand() & 3; with 0 in actions 3 and 4, particle 0x5ca
+// with the same light. Then it skips the helper chain.
 TEST_F(MonsterDrawingTest, TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps)
 {
     ActorState& sparks = Monster(0, 0x16e, 0x22);
@@ -1663,14 +1665,14 @@ TEST_F(MonsterDrawingTest, TheBoneSparksOf0x16eGoOverEachBoneOutsideTheTwoGaps)
         EXPECT_EQ(sprite.blend, 1);
         EXPECT_EQ(sprite.light, glm::vec3(1.0f));
     }
-    // Los huesos 14 y 21 quedan a los lados del primer hueco, y el 26 y el 33 del segundo.
+    // Bones 14 and 21 sit on both sides of the first gap, and 26 and 33 on both sides of the second.
     EXPECT_EQ(sprites[14].position, glm::vec3(150.0f, 150.0f, 24.0f));
     EXPECT_EQ(sprites[15].position, glm::vec3(150.0f, 150.0f, 31.0f));
     EXPECT_EQ(sprites[20].position, glm::vec3(150.0f, 150.0f, 36.0f));
     EXPECT_EQ(sprites[21].position, glm::vec3(150.0f, 150.0f, 43.0f));
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3 + 36));
 
-    // Con nivel, el 0x61e verde; la acción 3 con un rand() & 3 en 0 pide la partícula 0x5ca, que necesita el pool.
+    // With a level, the green 0x61e; action 3 with a rand() & 3 at 0 requests particle 0x5ca, which needs the pool.
     for (auto& sprite : m_sprites.Sprites())
         sprite.alive = false;
     m_batch.Begin(Client::Render::Pass3D{});
@@ -1709,11 +1711,11 @@ TEST_F(MonsterDrawingTest, BetweenOriginalFramesNothingIsStored)
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
 }
 
-// 0x43f182..0x43f269: Kundun cayendo (+0x60 desde 100, la acción 6 desde el frame 8) suelta sus 0x56 vueltas del
-// 0x613/3 y el 0x6ee/3 en la tabla de joints real (0x74a8d78) y tiembla una vez por cuadro del original (ADR 0005).
-// Entre frames del original dibuja el cuerpo de la copia proyectada, pero no toca ninguna tabla de joints, ni la real
-// ni la proyectada, ni saca ningún rand(): el CRT queda como estaba (los de la cola del dibujo, 0x50db57.., también van
-// sobre la copia). En el cuadro del original sí los saca.
+// 0x43f182..0x43f269: Kundun falling (+0x60 from 100, action 6 from frame 8) drops its 0x56 turns of the 0x613/3 and
+// the 0x6ee/3 into the real joint table (0x74a8d78) and shakes once per original frame (ADR 0005). Between the
+// original's frames it draws the projected copy's body, but touches no joint table, neither the real one nor the
+// projected one, and draws no rand(): the CRT stays as it was (those of the draw's tail, 0x50db57.., also go on the
+// copy). In the original's frame it does draw them.
 TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTablesAlone)
 {
     constexpr std::uint16_t Kundun = 0x192;
@@ -1748,16 +1750,15 @@ TEST_F(MonsterDrawingTest, KundunFallingBetweenOriginalFramesLeavesTheJointTable
     EXPECT_TRUE(std::ranges::none_of(m_joints, alive));
     EXPECT_EQ(kundun.dword60, 0x5a);
     EXPECT_NE(shake, 0.0f);
-    // Los 0x56 de 0x43f1b4 (uno por vuelta), el del temblor (0x43f249) y los de la cola: uno de 0x50db57 y dos de
-    // 0x50e68a.
+    // The 0x56 of 0x43f1b4 (one per turn), the shake's (0x43f249) and the tail's: one of 0x50db57 and two of 0x50e68a.
     constexpr int FallingDraws = 0x56 + 1 + 1 + 2;
     EXPECT_EQ(m_clothWorld.random.State(), Client::Tests::AfterDraws(before.State(), FallingDraws).State());
 }
 
-// De punta a punta: el 1B con 0xc9 (0x4cbfc9) pasa por 0x439d40, que en el 0x197 con 0x100 lo baja y pone +0x110 en
-// 0x21 (con 0xca y 0x8, 0x22); el dibujo siguiente del 0x197 (0x43fb99) llama a 0x439d90, que suelta en las esquinas
-// de la malla 6 las piedras de 0x4ee770(6, 0x10a, 1 o 2): primero el 0x10b/2 o /3, pide el sonido 0x88 y vuelve +0x110
-// a 0.
+// End to end: the 1B with 0xc9 (0x4cbfc9) goes through 0x439d40, which on the 0x197 with 0x100 clears it and sets
+// +0x110 to 0x21 (with 0xca and 0x8, 0x22); the 0x197's next draw (0x43fb99) calls 0x439d90, which drops on the corners
+// of mesh 6 the stones of 0x4ee770(6, 0x10a, 1 or 2): first the 0x10b/2 or /3, requests sound 0x88 and sets +0x110
+// back to 0.
 TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
 {
     constexpr std::uint16_t Glow = 0x197;
@@ -1809,8 +1810,8 @@ TEST_F(MonsterDrawingTest, TheMagicCancelLeavesThe197sStonesOnItsNextDraw)
     }
 }
 
-// 0x5ffe9d..0x5ffeef: 0x18f suma 60 y 0x18e 120 a y antes de copiar escala y origen al modelo compartido; entre frames
-// del original no publica esa transformacion.
+// 0x5ffe9d..0x5ffeef: 0x18f adds 60 and 0x18e 120 to y before copying scale and origin to the shared model; between the
+// original's frames it does not publish that transform.
 TEST_F(MonsterDrawingTest, TheBodyPublishesItsSharedModelPlacementOnOriginalFrames)
 {
     ActorState& first = Monster(1, Spider, 3);
@@ -1895,8 +1896,8 @@ TEST_F(MonsterDrawingTest, InChaosCastleTheHeroFlagFadesTheStoredAlpha)
     EXPECT_FLOAT_EQ(spider.alpha, 0.85f);
 }
 
-// Las partes de los NPC del alta (0x5141e0): la biblioteca del monstruo con un triángulo propio por cada modelo de
-// parte, corrido en x por el número del modelo menos 0x1d0, para ver el orden; `missing` no está cargado.
+// The parts of the creation's NPCs (0x5141e0): the monster library with its own triangle for each part model, shifted
+// in x by the model number minus 0x1d0, to see the order; `missing` is not loaded.
 class PartModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -1936,8 +1937,8 @@ private:
     std::vector<Client::Data::Models::Model> m_parts;
 };
 
-// Un NPC del alta con sus partes: el tipo, su modelo y los modelos de +0x218, +0x238, +0x258, +0x278 y +0x298
-// (MonsterKindTable.cpp, 0x5162dd..0x5162f8 y los casos de 0x5141e0).
+// A creation NPC with its parts: the type, its model and the models of +0x218, +0x238, +0x258, +0x278 and +0x298
+// (MonsterKindTable.cpp, 0x5162dd..0x5162f8 and the cases of 0x5141e0).
 struct DressedNpc
 {
     std::int32_t type;
@@ -1971,7 +1972,7 @@ protected:
         return actor;
     }
 
-    // La x del primer vértice de la parte `model` con el NPC en 150 y la escala 1.
+    // The x of the first vertex of part `model` with the NPC at 150 and scale 1.
     static float PartX(std::uint16_t model)
     {
         return 150.0f + static_cast<float>(model - 0x1d0);
@@ -1980,10 +1981,10 @@ protected:
     PartModels m_parts{m_models};
 };
 
-// 0x50d3dc..0x50d4f5: sin +0x3e3, después de la sombra y de la luz de 0x50cc55, las partes de la 5 a la 0 (las botas,
-// los guantes, el pantalón, la armadura, el casco y la cabeza), cada una con 0x60cf70: 0x60b3d0 con la luz de +0x3b4 y
-// el nivel 0, sin brillo ni rand(). La chica de las pociones (253) y la cantinera (255) de Lorencia, y los NPC 230, 248
-// y 250 en Lorencia, Devias y Noria: el dibujo no mira el mapa fuera de Chaos Castle.
+// 0x50d3dc..0x50d4f5: without +0x3e3, after the shadow and the light of 0x50cc55, parts 5 to 0 (the boots, gloves,
+// pants, armour, helm and head), each with 0x60cf70: 0x60b3d0 with the light of +0x3b4 and level 0, no shine or rand().
+// The potion girl (253) and the barmaid (255) of Lorencia, and NPCs 230, 248 and 250 in Lorencia, Devias and Noria: the
+// draw does not check the map outside Chaos Castle.
 TEST_F(MonsterPartsTest, TheTownNpcsDrawTheirPartsFromTheBootsToTheHelm)
 {
     for (const DressedNpc& npc : DressedNpcs)
@@ -2005,23 +2006,23 @@ TEST_F(MonsterPartsTest, TheTownNpcsDrawTheirPartsFromTheBootsToTheHelm)
             for (std::size_t index = npc.parts.size(); index-- > 0;)
                 if (npc.parts[index] != 0xffff)
                     drawn.push_back(npc.parts[index]);
-            // El cuerpo, la sombra y un triángulo por parte.
+            // The body, the shadow and one triangle per part.
             ASSERT_EQ(m_batch.Vertices().size(), 6u + 3u * drawn.size());
             for (std::size_t index = 0; index < drawn.size(); ++index)
             {
                 const auto& vertex = m_batch.Vertices()[6 + 3 * index];
                 EXPECT_FLOAT_EQ(vertex.position.x, PartX(drawn[index])) << index;
-                // La luz de +0x3b4 (el terreno más la propia), por el factor del nivel 0.
+                // The light of +0x3b4 (the terrain plus its own), times the level 0 factor.
                 ExpectColor(vertex, 0.3f, 0.6f, 0.9f, 1.0f);
             }
-            // El de 0x50db57 y los dos de +0x38e en el lazo de las manos: las partes no sacan rand().
+            // The one of 0x50db57 and the two of +0x38e in the hands loop: the parts draw no rand().
             EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(3));
         }
     }
 }
 
-// 0x60cf70 con el modo 1 (el NPC bajo el mouse): antes de cada parte, los dos pases de 0x60cd60 con los colores del NPC
-// (+0x88 en 4: 0x60d069 y 0x60d0dd), la escala de +0x94 y 0,02 menos; con +0x78 & 0x4000, sin contorno (0x60cd74).
+// 0x60cf70 with mode 1 (the NPC under the mouse): before each part, the two passes of 0x60cd60 with the NPC's colors
+// (+0x88 at 4: 0x60d069 and 0x60d0dd), the scale of +0x94 and 0.02 less; with +0x78 & 0x4000, no outline (0x60cd74).
 TEST_F(MonsterPartsTest, AHoveredNpcOutlinesEachPartBeforeIt)
 {
     ActorState& npc = Npc(DressedNpcs[0]);
@@ -2031,12 +2032,12 @@ TEST_F(MonsterPartsTest, AHoveredNpcOutlinesEachPartBeforeIt)
     const auto result = Draw(pass);
 
     ASSERT_TRUE(result.HasValue()) << result.Error();
-    // El cuerpo con sus dos contornos, la sombra y, por cada una de las tres partes, dos contornos y el cuerpo.
+    // The body with its two outlines, the shadow and, for each of the three parts, two outlines and the body.
     ASSERT_EQ(m_batch.Vertices().size(), 12u + 3u * 9u);
     const auto& outer = m_batch.Vertices()[12];
     ExpectColor(outer, 0.02f, 0.1f, 0.0f, 1.0f);
     ExpectColor(m_batch.Vertices()[15], 0.16f, 0.7f, 0.0f, 1.0f);
-    // El vértice (1, 0, 0) de la bota (0x1f0) a 1,2 y a 1,18 alrededor del hueso 0.
+    // Vertex (1, 0, 0) of the boot (0x1f0) at 1.2 and at 1.18 around bone 0.
     EXPECT_FLOAT_EQ(m_batch.Vertices()[13].position.x, 150.0f + 1.2f * (1.0f + PartX(0x1f0) - 150.0f));
     EXPECT_FLOAT_EQ(m_batch.Vertices()[16].position.x, 150.0f + 1.18f * (1.0f + PartX(0x1f0) - 150.0f));
     EXPECT_FLOAT_EQ(m_batch.Vertices()[18].position.x, PartX(0x1f0));
@@ -2044,13 +2045,13 @@ TEST_F(MonsterPartsTest, AHoveredNpcOutlinesEachPartBeforeIt)
     m_batch.Begin(Client::Render::Pass3D{});
     npc.flags78 |= 0x4000;
     ASSERT_TRUE(Draw(pass).HasValue());
-    // Sin contornos (tampoco el del cuerpo) ni sombra (0x50be6e): el cuerpo y las tres partes.
+    // No outlines (not even the body's) and no shadow (0x50be6e): the body and the three parts.
     EXPECT_EQ(m_batch.Vertices().size(), 3u + 3u * 3u);
 }
 
-// La cabeza (+0x1f8) va última. Un modelo que no se cargó es un registro en 0 sin mallas: no dibuja nada. Uno fuera de
-// los 0x449d registros que 0x60dbe0 pone en 0 (la cabeza que deja el nombre de 34 letras del 231, P-C352) haría
-// escribir al original fuera de ellos: corta después de las partes que ya dibujó.
+// The head (+0x1f8) goes last. A model that was not loaded is a zeroed record with no meshes: it draws nothing. One
+// outside the 0x449d records that 0x60dbe0 zeroes (the head left by the 34-letter name of the 231, P-C352) would make
+// the original write past them: it cuts after the parts it already drew.
 TEST_F(MonsterPartsTest, TheHeadGoesLastAndAModelOutsideTheTableCuts)
 {
     ActorState& npc = Npc(DressedNpcs[0]);
@@ -2073,8 +2074,9 @@ TEST_F(MonsterPartsTest, TheHeadGoesLastAndAModelOutsideTheTableCuts)
     EXPECT_EQ(m_batch.Vertices().size(), 6u + 3u * 2u);
 }
 
-// 0x50c972..0x50cc29: el WORD +0x1f2 pisado por un nombre largo (P-C352) no hace nada sin la guerra de gremios ni el
-// duelo ([0x576796d], [0x576796f] y [0x78abad8] en 0): el NPC se dibuja con sus partes, sin rand() de más.
+// 0x50c972..0x50cc29: the +0x1f2 WORD overwritten by a long name (P-C352) does nothing without the guild war or the
+// duel
+// ([0x576796d], [0x576796f] and [0x78abad8] at 0): the NPC is drawn with its parts, no extra rand().
 TEST_F(MonsterPartsTest, ALongNameOverTheGuildWordDrawsAsUsual)
 {
     for (const std::int32_t map : {0, 2})
@@ -2101,11 +2103,11 @@ TEST(MonsterHangingLight, BloodCastleKeepersRedAndOrdinaryLight)
     actor.pk = 3;
     const glm::vec3 terrain{0.2f, 0.4f, 0.6f};
     actor.word376 = 0x57;
-    // El mapa 15: (15 − 9) / 3 = 2, por 0,5.
+    // Map 15: (15 − 9) / 3 = 2, times 0.5.
     EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 15), glm::vec3(1.0f, 0.1f, 0.1f));
-    // El 10 (el 1 de Blood Castle): el cociente da 0 y queda la del terreno.
+    // Map 10 (Blood Castle 1): the quotient gives 0 and the terrain's remains.
     EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 10), terrain + actor.light);
-    // Lorencia y Devias: la del terreno más la propia.
+    // Lorencia and Devias: the terrain's plus its own.
     EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 0), terrain + actor.light);
     EXPECT_EQ(Client::Actors::Drawing::HangingLightOf(actor, terrain, 2), terrain + actor.light);
     actor.word376 = 0x5a;
@@ -2121,7 +2123,7 @@ TEST(MonsterDecorations, EachListedMonsterCutsWithItsBranch)
     EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x45).Error().find("0x50bf98"), std::string::npos);
     EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x50).Error().find("0x50c671"), std::string::npos);
     EXPECT_NE(Client::Actors::Drawing::CheckMonsterDecorations(0x85).Error().find("0x50c83b"), std::string::npos);
-    // El camino del 0x20a corta también con los pases de brillo, que DrawGameMonster dibuja.
+    // The 0x20a path also cuts with the shine passes, which DrawGameMonster draws.
     constexpr std::array<std::uint16_t, 10> Shining{0x26, 0x2b, 0x34, 0x3b, 0x43, 0x4e, 0x53, 0x35, 0x36, 0x87};
     for (const std::uint16_t shining : Shining)
         EXPECT_TRUE(Client::Monsters::Drawing::MonsterShines(shining)) << shining;

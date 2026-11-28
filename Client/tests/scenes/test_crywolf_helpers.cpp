@@ -232,7 +232,7 @@ TEST(CrywolfHelpersTest, TheHeadAttackCreatesTheOwnedEarthquakeAboveTheScaleThre
         }
     }
 }
-// SetAction conserva el frame si ya estaba en3. El gate llama antes de comprobar el frame5 y el bit1 de la fase.
+// SetAction keeps the frame if it was already at 3. The gate calls before checking frame 5 and bit 1 of the phase.
 TEST(CrywolfHelpersTest, TheBalgassAppliesBothRandomGateOutcomesBeforeItsFrameGate)
 {
     for (const bool called : {false, true})

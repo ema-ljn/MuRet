@@ -38,7 +38,7 @@ constexpr float BaseHeight = 350;
 constexpr float CellScale = 50;
 constexpr std::int32_t DisturbInterval = 40;
 constexpr std::int32_t PeriodicRadius = 50;
-// Constantes de41d2d0/41d700/41d880/41cf00, verificadas en la imagen estática.
+// Constants of 0x41d2d0/0x41d700/0x41d880/0x41cf00, checked in the static image.
 constexpr int MeshOffsetX = 25;
 constexpr int MeshOffsetY = 15;
 constexpr double DisturbanceScale = 1024;
@@ -84,13 +84,13 @@ float Spill(double value)
 
 std::int32_t Truncate(double value)
 {
-    // Los productores internos sólo pasan valores finitos acotados por los senos/cosenos.
+    // The internal producers pass only finite values bounded by the sines/cosines.
     return Math::OriginalFtolLow(value).value();
 }
 
 float MeshHeight(std::int32_t wave, std::int32_t first, std::int32_t second)
 {
-    // 41d361..41d398: no redondea entre las dos medias.
+    // 0x41d361..0x41d398: no rounding between the two averages.
     return Spill((((static_cast<double>(first) + BaseHeight) + second + BaseHeight) * 0.5 + wave + BaseHeight) * 0.5);
 }
 
@@ -245,7 +245,7 @@ struct KalimaWorld::Storage
                 const glm::vec2 uv{Spill(static_cast<double>(normal.y) * 0.5f + UvOffset),
                                    Spill((static_cast<double>(normal.z) + 1.0f) * 0.5f)};
                 const double retainedLight = 1.0 - ((static_cast<double>(normal.x) + normal.z) - normal.y);
-                // 41d257: FST guarda una copia float sin sacar la luz retenida para el azul.
+                // 0x41d257: FST stores a float copy without popping the light retained for the blue.
                 const float light = Spill(retainedLight);
                 const Render::Color color = highlight ? Render::Color{light, Spill(light * GreenLightMultiplier),
                                                                       Spill(retainedLight * BlueLightMultiplier), 1}
@@ -355,7 +355,7 @@ std::optional<float> KalimaWorld::Height(float x, float y) const
     const double wave = std::bit_cast<std::int32_t>(plane[cell]);
     const double first = m_storage->periodic[0][cell];
     const double second = m_storage->periodic[1][cell];
-    // 41dcc6..41dcf0: ningún spill intermedio de la altura geométrica.
+    // 0x41dcc6..0x41dcf0: no intermediate spill of the geometric height.
     return Spill((wave + BaseHeight + ((first + BaseHeight) + second + BaseHeight) * 0.5) * 0.25);
 }
 

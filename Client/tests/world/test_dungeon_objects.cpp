@@ -21,9 +21,9 @@
 #include <string>
 #include <vector>
 
-// Los casos de 0x604ab0 del Dungeon (mapa 1, la tabla 0x605bc0), de Lost Tower (mapa 4, 0x605c50 con el
-// tipo − 3) y de la Arena (mapa 6, 0x6054fd), y la patada de 0x52f550 (06 § Los objetos del Dungeon y de Lost
-// Tower, § Los objetos de la Arena).
+// The cases of 0x604ab0 of the Dungeon (map 1, table 0x605bc0), of Lost Tower (map 4, 0x605c50 with type − 3) and
+// of the Arena (map 6, 0x6054fd), and the kick of 0x52f550 (06 § Los objetos del Dungeon y de Lost Tower, § Los
+// objetos de la Arena).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -56,7 +56,7 @@ CrtRandom After(std::uint32_t seed, int draws)
     return random;
 }
 
-// La primera semilla cuyo primer rand() cumple (o no) la condición.
+// The first seed whose first rand() meets (or does not meet) the condition.
 std::uint32_t SeedWhere(bool (*condition)(int))
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -67,8 +67,8 @@ std::uint32_t SeedWhere(bool (*condition)(int))
     }
 }
 
-// 0x604ff1..0x60502b: el model+0x88 del tipo en 1 y la V en el resto firmado de ftol(reloj) por 1.000 por
-// −0,001f (0x6ba1a4). Sin el estado de los modelos corta antes de escribir.
+// 0x604ff1..0x60502b: the type's model+0x88 at 1 and the V at the signed remainder of ftol(clock) by 1000 times
+// −0.001f (0x6ba1a4). Without the models' state it cuts before writing.
 TEST(DungeonObjectsTest, TheMapOneWaterfallsMarkTheirModelAndScrollTheirV)
 {
     for (const std::int16_t type : {std::int16_t{0x16}, std::int16_t{0x17}, std::int16_t{0x18}})
@@ -102,7 +102,7 @@ TEST(DungeonObjectsTest, TheMapOneWaterfallsMarkTheirModelAndScrollTheirV)
     }
 }
 
-// 0x6059dd (por la tabla del 1): el 0x27, el 0x28 y el 0x33 dejan +0x58 en −2 sin rand().
+// 0x6059dd (through map 1's table): the 0x27, the 0x28 and the 0x33 leave +0x58 at −2 with no rand().
 TEST(DungeonObjectsTest, TheMapOneHiddenTypesOnlyStoreTheirHiddenMesh)
 {
     for (const std::int16_t type : {std::int16_t{0x27}, std::int16_t{0x28}, std::int16_t{0x33}})
@@ -120,8 +120,8 @@ TEST(DungeonObjectsTest, TheMapOneHiddenTypesOnlyStoreTheirHiddenMesh)
     EXPECT_EQ(other.state.hiddenMesh, Client::Models::ObjectState{}.hiddenMesh);
 }
 
-// 0x605034 y 0x605052: 0x52f360(0, objeto, (0; −30; 240)) y (0; 0; 190), los fuegos de clase 0. Sin el
-// pool de partículas corta con la dirección de la llamada.
+// 0x605034 and 0x605052: 0x52f360(0, object, (0; −30; 240)) and (0; 0; 190), the class 0 fires. Without the
+// particle pool it cuts with the call's address.
 TEST(DungeonObjectsTest, TheMapOneFiresAreClassZeroAtTheirNativeOffsets)
 {
     struct Fire
@@ -164,8 +164,8 @@ TEST(DungeonObjectsTest, TheMapOneFiresAreClassZeroAtTheirNativeOffsets)
     }
 }
 
-// 0x604fb4..0x604fe3: con rand() % 3 en 0, 0x518cf0(0xda, posición, ángulos, luz +0xf4); siempre después,
-// +0x58 en −2. Sin la tabla de efectos, el rand() que la pide corta antes de ocultar.
+// 0x604fb4..0x604fe3: with rand() % 3 at 0, 0x518cf0(0xda, position, angles, light +0xf4); always after, +0x58 at
+// −2. Without the effect table, the rand() that asks for it cuts before hiding.
 TEST(DungeonObjectsTest, TheMapOneDripDropsAStoneOneTimeInThreeAndAlwaysHides)
 {
     const std::uint32_t drops = SeedWhere([](int value) { return value % 3 == 0; });
@@ -207,8 +207,8 @@ TEST(DungeonObjectsTest, TheMapOneDripDropsAStoneOneTimeInThreeAndAlwaysHides)
     EXPECT_EQ(random.State(), After(drops, 1).State());
 }
 
-// 0x605404 (el 3 y el 4) y 0x60542f (el 0x13 y el 0x14, con +0x64 en 4): la U en el −ftol(reloj) negado en
-// 32 bits, su resto firmado de 1.000 y 0,001f (0x6b89c8). 0x605461: el 0x12 y el 0x17 llevan +0x64 a 1.
+// 0x605404 (the 3 and the 4) and 0x60542f (the 0x13 and the 0x14, with +0x64 at 4): the U at −ftol(clock) negated
+// in 32 bits, its signed remainder of 1000 and 0.001f (0x6b89c8). 0x605461: the 0x12 and the 0x17 take +0x64 to 1.
 TEST(DungeonObjectsTest, TheLostTowerWaterScrollsItsUAndTheChromeTypesBlend)
 {
     for (const std::int16_t type : {std::int16_t{3}, std::int16_t{4}, std::int16_t{0x13}, std::int16_t{0x14}})
@@ -232,14 +232,14 @@ TEST(DungeonObjectsTest, TheLostTowerWaterScrollsItsUAndTheChromeTypesBlend)
         EXPECT_EQ(object.state.blendMesh, 1);
         EXPECT_EQ(object.state.uv.x, 0.0f);
     }
-    // ftol(-2.147.483.648) = 0x80000000: el neg lo deja igual y el resto es −648.
+    // ftol(-2147483648) = 0x80000000: the neg leaves it unchanged and the remainder is −648.
     ObjectStepGlobals wrap;
     wrap.worldClock = -2147483648.0f;
     auto object = Object(3);
     CrtRandom random(7);
     ASSERT_TRUE(StepLostTowerObject(object, random, wrap).HasValue());
     EXPECT_EQ(object.state.uv.x, static_cast<float>(-648.0 * static_cast<double>(std::bit_cast<float>(0x3a83126fu))));
-    // NaN da 0 (OriginalFtolLow); el infinito no está acreditado y corta.
+    // NaN gives 0 (OriginalFtolLow); infinity is not credited and cuts.
     wrap.worldClock = std::numeric_limits<float>::quiet_NaN();
     ASSERT_TRUE(StepLostTowerObject(object, random, wrap).HasValue());
     EXPECT_EQ(object.state.uv.x, 0.0f);
@@ -249,8 +249,8 @@ TEST(DungeonObjectsTest, TheLostTowerWaterScrollsItsUAndTheChromeTypesBlend)
     EXPECT_NE(cut.Error().find("0x60540a"), std::string::npos) << cut.Error();
 }
 
-// 0x6054fd..0x605546: el 0x15 de la Arena lleva el blendMesh a 3 antes del ftol y corre la V con el ftol
-// negado; el 0x26 sólo se oculta; los demás tipos no cambian nada. Ninguno saca rand().
+// 0x6054fd..0x605546: the Arena's 0x15 takes the blendMesh to 3 before the ftol and scrolls the V with the negated
+// ftol; the 0x26 only hides; the other types change nothing. None draws a rand().
 TEST(DungeonObjectsTest, TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers)
 {
     ObjectStepGlobals globals;
@@ -277,14 +277,13 @@ TEST(DungeonObjectsTest, TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers)
         EXPECT_EQ(other.state.uv, glm::vec2(0.0f));
     }
 
-    // Por StepWorldObjectChecked en el 6, sin rand().
     auto stepped = Object(0x15);
     CrtRandom random(7);
     ASSERT_TRUE(Client::WorldObjects::StepWorldObjectChecked(stepped, 6, nullptr, random, globals).HasValue());
     EXPECT_EQ(stepped.state.uv.y, water.state.uv.y);
     EXPECT_EQ(random.State(), 7u);
 
-    // Con el ftol fuera de lo acreditado corta después del blendMesh.
+    // With the ftol outside what is credited it cuts after the blendMesh.
     globals.worldClock = std::numeric_limits<float>::infinity();
     auto cut = Object(0x15);
     const auto failed = StepArenaObject(cut, globals);
@@ -294,8 +293,8 @@ TEST(DungeonObjectsTest, TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers)
     EXPECT_EQ(cut.state.uv.y, 0.0f);
 }
 
-// 0x60546f: el 0x18 deja +0x58 en −2 y, con rand() & 63 en 0, 0x518cf0(0x5de, …, luz +0xf4); el chorro
-// abre y cierra el registro propio. 0x6059dd: el 0x19 sólo se oculta.
+// 0x60546f: the 0x18 leaves +0x58 at −2 and, with rand() & 63 at 0, 0x518cf0(0x5de, …, light +0xf4); the jet
+// opens and closes its own record. 0x6059dd: the 0x19 only hides.
 TEST(DungeonObjectsTest, TheLostTowerJetHidesAndSometimesSpitsTheFlame)
 {
     const std::uint32_t spits = SeedWhere([](int value) { return (value & 63) == 0; });
@@ -351,9 +350,9 @@ struct Kick
     }
 };
 
-// 0x52f594..0x52f5fc: a menos de 50 (√(dy · dy en float + dx · dx)), la velocidad (dx · −0,4; dy · −0,4; 0),
-// el giro dy · −4 en +0x28 y dx · −4 en +0x2c, y el 0x7c. 0x52f608..0x52f6a1: todo por 0,6 y sumado a la
-// posición (la x con el producto sin redondear) y a los ángulos.
+// 0x52f594..0x52f5fc: under 50 (√(dy · dy as float + dx · dx)), the speed (dx · −0.4; dy · −0.4; 0), the turn
+// dy · −4 at +0x28 and dx · −4 at +0x2c, and the 0x7c. 0x52f608..0x52f6a1: everything times 0.6 and added to the
+// position (the x with the unrounded product) and to the angles.
 TEST(DungeonObjectsTest, TheKickPushesTheObjectAwayFromTheHeroAndDecays)
 {
     for (const std::uint8_t action : {std::uint8_t{0xd}, std::uint8_t{0x21}})
@@ -384,8 +383,8 @@ TEST(DungeonObjectsTest, TheKickPushesTheObjectAwayFromTheHeroAndDecays)
     }
 }
 
-// Fuera de las acciones 0xd..0x21, a 50 o más, o con la x de la velocidad en 0,1 o más, sólo decae. NaN en
-// la velocidad deja patear (fcomp sin orden pone C0).
+// Outside actions 0xd..0x21, at 50 or more, or with the speed's x at 0.1 or more, it only decays. NaN in the speed
+// lets it kick (an unordered fcomp sets C0).
 TEST(DungeonObjectsTest, TheKickNeedsTheActionTheReachAndAStillObject)
 {
     const auto decayed = [](float value)
@@ -410,10 +409,10 @@ TEST(DungeonObjectsTest, TheKickNeedsTheActionTheReachAndAStillObject)
         Kick kick;
         kick.hero = {1030.0f, 1540.0f, 0.0f};
         auto object = Object(0x27);
-        object.transform.position = {1000.0f, 1490.0f, 20.0f}; // dx 30, dy 50: √3.400 > 50
+        object.transform.position = {1000.0f, 1490.0f, 20.0f}; // dx 30, dy 50: √3400 > 50
         ASSERT_TRUE(KickObject(object, kick.globals).HasValue());
         EXPECT_TRUE(kick.sounds.empty());
-        kick.hero = {1000.0f, 1540.0f, 0.0f}; // dy exacto 50: no es menor
+        kick.hero = {1000.0f, 1540.0f, 0.0f}; // dy exactly 50: not less
         ASSERT_TRUE(KickObject(object, kick.globals).HasValue());
         EXPECT_TRUE(kick.sounds.empty());
     }
@@ -429,8 +428,8 @@ TEST(DungeonObjectsTest, TheKickNeedsTheActionTheReachAndAStillObject)
     }
 }
 
-// Sin el héroe publicado corta antes de leer; sin emisor, después de los stores de la patada y antes del
-// decaimiento.
+// Without the published hero it cuts before reading; without an emitter, after the kick's stores and before the
+// decay.
 TEST(DungeonObjectsTest, TheKickCutsWithoutItsBorrowedBindings)
 {
     auto object = Object(0x26);
@@ -447,7 +446,7 @@ TEST(DungeonObjectsTest, TheKickCutsWithoutItsBorrowedBindings)
     EXPECT_EQ(object.velocity.x, static_cast<float>(30.0 * static_cast<double>(std::bit_cast<float>(0xbecccccdu))));
     EXPECT_EQ(object.transform.position, glm::vec3(1000.0f, 1500.0f, 20.0f));
 
-    // StepLostTowerObject lleva el 0x26 y el 0x27 a la patada.
+    // StepLostTowerObject takes the 0x26 and the 0x27 to the kick.
     Kick routed;
     auto ball = Object(0x27);
     CrtRandom random(7);

@@ -44,9 +44,9 @@
 #include <string>
 #include <vector>
 
-// Los casos propios de 0x6002e0 (y de 0x438fe0) de los tipos altos: el 0x11b con sus huesos, sus sprites y sus dos
-// rand() por pase; el 0x114/3..5 con la textura 0x6ef; el 0x140 cromado; el 0x125 con sus sprites. 06, "Los efectos
-// con modelo de los tipos altos".
+// The high types' own cases of 0x6002e0 (and of 0x438fe0): the 0x11b with its bones, its sprites and its two rand()
+// per pass; the 0x114/3..5 with texture 0x6ef; the chromed 0x140; the 0x125 with its sprites. 06, "Los efectos con
+// modelo de los tipos altos".
 namespace
 {
 using Client::Actors::Drawing::DrawnObject;
@@ -61,7 +61,7 @@ constexpr glm::vec3 ThirdBonePoint{400.0f, 500.0f, 600.0f};
 constexpr glm::vec3 FourthBonePoint{-70.0f, 80.0f, 90.0f};
 constexpr Client::Render::TextureSlot OwnTexture{0x400};
 
-// Un triángulo con su textura y un hueso.
+// One triangle with its texture and one bone.
 class TriangleModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -103,7 +103,7 @@ BoneTransform Translation(const glm::vec3& point)
     return bone;
 }
 
-// Cuántos rand() sacó `random` desde la semilla.
+// How many rand() `random` drew since the seed.
 int DrawsSince(const CrtRandom& random)
 {
     CrtRandom probe(Seed);
@@ -116,7 +116,7 @@ int DrawsSince(const CrtRandom& random)
     return -1;
 }
 
-// Lo que la pose de 0x5ffdf0 deja en el buffer global: el hueso 2, el 3 y el 4 en sus puntos del mundo.
+// What 0x5ffdf0's pose leaves in the global buffer: bones 2, 3 and 4 at their world points.
 struct Drawer
 {
     Client::Core::Expected<void, std::string> Draw(std::span<ModelEffect> effects, std::uint8_t mode)
@@ -127,7 +127,7 @@ struct Drawer
             .onPose = [this](const DrawnObject& object) -> Client::Core::Expected<void, std::string>
             {
                 ++poses;
-                // Como en producción (GameSceneTail): 0x52da99 → 0x602e90(efecto, 0, …) deja el scratch del mundo.
+                // As in production (GameSceneTail): 0x52da99 → 0x602e90(effect, 0, …) leaves the world scratch.
                 auto published = Client::Actors::Drawing::PublishPose(carry, models, object, true);
                 bones = {BoneTransform(0.0f), BoneTransform(0.0f), Translation(SecondBonePoint),
                          Translation(ThirdBonePoint), Translation(FourthBonePoint)};
@@ -160,8 +160,8 @@ struct Drawer
     CrtRandom random{Seed};
     bool withRandom = true;
     float clock = 1000.0f;
-    // El pase de los objetos (su mapa, 0x6c9dd0), el +0x1a1 del héroe y si el dibujo es de un frame del original: lo
-    // que 0x5ffdf0 mira para la resta de Chaos Castle.
+    // The objects' pass (its map, 0x6c9dd0), the hero's +0x1a1 and whether the drawing is of an original frame: what
+    // 0x5ffdf0 looks at for the Chaos Castle subtraction.
     std::unique_ptr<Client::WorldObjects::GameObjectPass> pass;
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
@@ -212,10 +212,10 @@ void ExpectSprite(const Client::Particles::Sprite& sprite, std::uint16_t texture
 }
 } // namespace
 
-// 0x601e68..0x601faf: el 0x11b/1 (blendMesh −2) pasa el filtro del modo 1 de 0x52d620 (0x52d673): en cada pase, +0x40 y
-// +0x4c en los huesos 2 y 3 (0x4ec110 sin trasladar), los dos 0x5ac de luz (1, 0, 0) y escala 1 y los dos 0x5fd de luz
-// 0,5 y escala 0,5f, cada uno con su rand() % 360 de giro: dos rand() por pase y cuatro por frame. Con la semilla, los
-// giros son 211 y 205 en el modo 0 y 2 y 89 en el 1 (calculados aparte con el LCG del CRT).
+// 0x601e68..0x601faf: the 0x11b/1 (blendMesh −2) passes the filter of 0x52d620's mode 1 (0x52d673): in each pass, +0x40
+// and +0x4c on bones 2 and 3 (0x4ec110 without translating), the two 0x5ac with light (1, 0, 0) and scale 1 and the
+// two 0x5fd with light 0.5 and scale 0.5f, each with its rand() % 360 turn: two rand() per pass and four per frame.
+// With the seed, the turns are 211 and 205 in mode 0, and 2 and 89 in mode 1 (computed separately with the CRT's LCG).
 TEST(HighEffectDrawingTest, TheRingTakesTwoRandomsInEachPassAndLeavesItsPointsOnItsBones)
 {
     Drawer drawer;
@@ -241,12 +241,12 @@ TEST(HighEffectDrawingTest, TheRingTakesTwoRandomsInEachPassAndLeavesItsPointsOn
     EXPECT_EQ(drawer.poses, 2);
 }
 
-// 0x602e90 → 0x5ffdf0 (0x5ffe2a..0x5ffe3d): con el alpha por debajo de 0,01f (0x6b88d4), o sin orden, devuelve 0 sin
-// posar y 0x602eb0 salta 0x6002e0: el 0x11b no saca sus rand(), ni deja sprites, ni mueve +0x40 y +0x4c, en ningún
-// pase.
+// 0x602e90 → 0x5ffdf0 (0x5ffe2a..0x5ffe3d): with alpha below 0.01f (0x6b88d4), or unordered, it returns 0 without
+// posing and 0x602eb0 skips 0x6002e0: the 0x11b draws no rand(), leaves no sprites and does not move +0x40 and +0x4c,
+// in any pass.
 TEST(HighEffectDrawingTest, TheRingBelowTheVisibleAlphaTakesNoRandom)
 {
-    const float justBelow = std::bit_cast<float>(0x3c23d709u); // el float anterior a 0,01f (0x3c23d70a)
+    const float justBelow = std::bit_cast<float>(0x3c23d709u); // the float before 0.01f (0x3c23d70a)
     for (const float alpha : {0.0f, justBelow, std::numeric_limits<float>::quiet_NaN()})
     {
         SCOPED_TRACE(alpha);
@@ -270,11 +270,11 @@ TEST(HighEffectDrawingTest, TheRingBelowTheVisibleAlphaTakesNoRandom)
     }
 }
 
-// 0x5ffdff..0x5ffe24: en los mapas 18 a 23 (Chaos Castle), con +0x1a1 del héroe, cada llamada a 0x5ffdf0 le resta 0,15f
-// (0x6b8ae8) al alpha del efecto y lo guarda, antes del chequeo. El 0x11b/1 con 0,2f: en el primer frame queda en
-// 0x3d4ccccc (pasa, dos rand()); en el segundo, en 0xbdccccce (no pasa: ni pose, ni sprites, ni rand()). Fuera de 18 a
-// 23, sin el byte o en un dibujo intermedio de MuRet (la resta va una vez por llamada del frame del original), el 0x134
-// (camino común) queda como está.
+// 0x5ffdff..0x5ffe24: on maps 18 to 23 (Chaos Castle), with the hero's +0x1a1, each call to 0x5ffdf0 subtracts 0.15f
+// (0x6b8ae8) from the effect's alpha and stores it, before the check. The 0x11b/1 with 0.2f: in the first frame it ends
+// at 0x3d4ccccc (passes, two rand()); in the second, at 0xbdccccce (does not pass: no pose, sprites or rand()). Outside
+// 18 to 23, without the byte or in an intermediate MuRet drawing (the subtraction goes once per call of the original's
+// frame), the 0x134 (common path) stays as it is.
 TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
 {
     {
@@ -284,7 +284,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
         drawer.heroByte1a1 = 1;
         drawer.originalFrame = true;
         ModelEffect ring = EffectOf(0x11b, 1, -2);
-        ring.alpha = std::bit_cast<float>(0x3e4ccccdu); // 0,2f
+        ring.alpha = std::bit_cast<float>(0x3e4ccccdu); // 0.2f
         ASSERT_TRUE(drawer.Draw(std::span(&ring, 1), 0).HasValue());
         EXPECT_EQ(std::bit_cast<std::uint32_t>(ring.alpha), 0x3d4cccccu);
         EXPECT_EQ(DrawsSince(drawer.random), 2);
@@ -318,7 +318,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
         EXPECT_EQ(drawer.poses, 1);
         EXPECT_EQ(drawer.batch.Vertices().size(), 3u);
     }
-    // En el 23 con el byte, el 0x134 con alpha 1 queda en 0x3f59999a (1 − 0,15f) y se dibuja con ese alpha.
+    // On map 23 with the byte, the 0x134 with alpha 1 ends at 0x3f59999a (1 − 0.15f) and is drawn with that alpha.
     Drawer drawer;
     drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
     drawer.pass->map = 23;
@@ -331,10 +331,10 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(drawer.batch.Vertices()[0].color.alpha), 0x3f59999au);
 }
 
-// 0x52d86a..0x52d89f: el 0x135 llama dos veces a 0x602e90 (0x52d871 y 0x52d897) y cada una pasa por 0x5ffdf0. En los
-// mapas 18 a 23, con +0x1a1 del héroe, cada llamada le resta 0,15f (0x6b8ae8) al alpha guardado (0x5ffdff..0x5ffe24):
-// con alpha 1, la primera lo deja en 0x3f59999a y la segunda en 0x3f333334, y se dibuja las dos veces con ese alpha
-// (calculado aparte con RN a 53 bits en el fsub y a 24 en el fstp; a 64 o a 24 da lo mismo).
+// 0x52d86a..0x52d89f: the 0x135 calls 0x602e90 twice (0x52d871 and 0x52d897) and each goes through 0x5ffdf0. On maps
+// 18 to 23, with the hero's +0x1a1, each call subtracts 0.15f (0x6b8ae8) from the stored alpha (0x5ffdff..0x5ffe24):
+// with alpha 1, the first leaves it at 0x3f59999a and the second at 0x3f333334, and it is drawn both times with that
+// alpha (computed separately with RN at 53 bits in the fsub and at 24 in the fstp; at 64 or 24 it gives the same).
 TEST(HighEffectDrawingTest, ChaosCastleFadesTheMirroredEffectOnEachOfItsTwoBodies)
 {
     for (std::uint8_t map = 18; map <= 23; ++map)
@@ -361,12 +361,12 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheMirroredEffectOnEachOfItsTwoBodie
     }
 }
 
-// 0x5ffe2a..0x5ffe3d: fcomp con 0,01f (0x6b88d4) y test ah,1 sólo sale con C0 (menor o sin orden); con el alpha igual a
-// 0,01f (0x3c23d70a) devuelve 1 y se dibuja: el 0x134 posa y deja su cuerpo con ese alpha y el 0x11b/1 saca sus dos
-// rand() y deja sus cuatro sprites.
+// 0x5ffe2a..0x5ffe3d: fcomp with 0.01f (0x6b88d4) and test ah,1 only exits with C0 (less or unordered); with alpha
+// equal to 0.01f (0x3c23d70a) it returns 1 and draws: the 0x134 poses and leaves its body with that alpha and the
+// 0x11b/1 draws its two rand() and leaves its four sprites.
 TEST(HighEffectDrawingTest, AnEffectWithExactlyTheVisibleAlphaIsDrawn)
 {
-    const float visible = std::bit_cast<float>(0x3c23d70au); // 0,01f
+    const float visible = std::bit_cast<float>(0x3c23d70au); // 0.01f
     {
         Drawer drawer;
         ModelEffect aurora = EffectOf(0x134, 0);
@@ -388,10 +388,9 @@ TEST(HighEffectDrawingTest, AnEffectWithExactlyTheVisibleAlphaIsDrawn)
     EXPECT_EQ(ring.point40, SecondBonePoint);
 }
 
-// Regresión de 0x5ffdf0 antes de 0x6002e0: la puerta 0x3d..0x40 del mapa 30 (0x42cc10) y el tipo 9 de la cola de
-// Kalima (mapas 24 a 29 y 36), con alpha 0 o NaN, no posan ni dibujan nada (antes, con 0, caían a DrawObject sin pose;
-// con NaN, se posaban). Con alpha 1 los dos posan una vez y dibujan su cuerpo (RenderBody(2) de la puerta con +0x4 en
-// 0), y el tipo 9 llega a la cola de Kalima.
+// Regression of 0x5ffdf0 before 0x6002e0: map 30's gate 0x3d..0x40 (0x42cc10) and Kalima's tail type 9 (maps 24 to 29
+// and 36), with alpha 0 or NaN, neither pose nor draw anything. With alpha 1 both pose once and draw their body (the
+// gate's RenderBody(2) with +0x4 at 0), and type 9 reaches Kalima's tail.
 TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPoseNorDraw)
 {
     struct Case
@@ -431,7 +430,7 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
         EXPECT_EQ(drawer.batch.Vertices().size(), 3u);
         if (tested.type == 9)
         {
-            // Después del cuerpo, la cola de Kalima, que acá corta en su capa de agua sin el productor de DAT_07d2d360.
+            // After the body, Kalima's tail, which here stops at its water layer without the producer of DAT_07d2d360.
             ASSERT_FALSE(drawn.HasValue());
             EXPECT_TRUE(drawn.Error().starts_with("0x439593")) << drawn.Error();
         }
@@ -442,8 +441,8 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
     }
 }
 
-// 0x52d66a: el 0x11b/0 (blendMesh −1) sólo se dibuja en el modo 0, con el color del modelo en (1; 0,6f; 0,3f) y
-// RenderBody(2) con su textura; en el modo 1, ni sprites ni rand().
+// 0x52d66a: the 0x11b/0 (blendMesh −1) only draws in mode 0, with the model color at (1; 0.6f; 0.3f) and
+// RenderBody(2) with its texture; in mode 1, no sprites and no rand().
 TEST(HighEffectDrawingTest, TheRingSparkDrawsOnlyInTheFirstPassWithItsWarmLight)
 {
     Drawer drawer;
@@ -470,7 +469,7 @@ TEST(HighEffectDrawingTest, TheRingSparkDrawsOnlyInTheFirstPassWithItsWarmLight)
     }
 }
 
-// 0x601f49: sin el CRT corta después de los dos 0x5ac, con +0x40 y +0x4c ya escritos.
+// 0x601f49: without the CRT it stops after the two 0x5ac, with +0x40 and +0x4c already written.
 TEST(HighEffectDrawingTest, TheRingWithoutTheRandomStopsAfterItsGlows)
 {
     Drawer drawer;
@@ -484,8 +483,8 @@ TEST(HighEffectDrawingTest, TheRingWithoutTheRandomStopsAfterItsGlows)
     EXPECT_EQ(drawer.Alive().size(), 2u);
 }
 
-// 0x601ea9 y 0x601ed4 → 0x538256: el dibujo deja +0x40 y +0x4c en los huesos y el paso siguiente del 0x618/0xa y del
-// /0xb (BeamJoints) los sigue; sin ese dibujo seguirían en el punto de nacimiento (0x51c84b).
+// 0x601ea9 and 0x601ed4 → 0x538256: the drawing leaves +0x40 and +0x4c on the bones and the next step of the 0x618/0xa
+// and the /0xb (BeamJoints) follows them; without that drawing they would stay at the birth point (0x51c84b).
 TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
 {
     auto world = std::make_unique<Client::Kernel::WorldState>();
@@ -513,8 +512,9 @@ TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
     EXPECT_EQ(joints[1].position, ThirdBonePoint);
 }
 
-// 0x601fb4..0x602000: el 0x114/3, /4 y /5, RenderBody(2) con la malla oculta en −1 (dibuja la que +0x58 ocultaría) y la
-// textura 0x6ef; el /0 va por el pase común (la malla oculta no se dibuja) y el /2, por 0x601fd5, con su textura.
+// 0x601fb4..0x602000: the 0x114/3, /4 and /5, RenderBody(2) with the hidden mesh at −1 (it draws the one +0x58 would
+// hide) and texture 0x6ef; the /0 goes through the common pass (the hidden mesh is not drawn) and the /2 through
+// 0x601fd5, with its texture.
 TEST(HighEffectDrawingTest, ThePinkWavesDrawEveryMeshWithTheirTexture)
 {
     for (const std::int32_t subtype : {0, 2, 3, 4, 5})
@@ -540,15 +540,15 @@ TEST(HighEffectDrawingTest, ThePinkWavesDrawEveryMeshWithTheirTexture)
     }
 }
 
-// 0x602005..0x602044: el 0x140 con el color del modelo en (0,4f; 0,6f; 1) y dos RenderBody(0x44) con la textura en
-// −1: el cromado de 0x4ecc30, aditivo y con Chrome01 (0x5c0). Sin sprites ni rand().
+// 0x602005..0x602044: the 0x140 with the model color at (0.4f; 0.6f; 1) and two RenderBody(0x44) with the texture at
+// −1: 0x4ecc30's chrome, additive and with Chrome01 (0x5c0). No sprites or rand().
 TEST(HighEffectDrawingTest, TheGuildMarkTakesTwoChromePasses)
 {
     Drawer drawer;
     ModelEffect mark = EffectOf(0x140, 0);
     const auto drawn = drawer.Draw(std::span(&mark, 1), 0);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
-    // Los dos pases tienen el mismo estado: el lote los junta en un comando de seis vértices.
+    // Both passes have the same state: the batch joins them in one six-vertex command.
     const auto commands = DrawCommands(drawer.batch);
     ASSERT_FALSE(commands.empty());
     for (const Drawn& command : commands)
@@ -567,10 +567,10 @@ TEST(HighEffectDrawingTest, TheGuildMarkTakesTwoChromePasses)
     EXPECT_TRUE(drawer.Alive().empty());
 }
 
-// 0x52da99 → 0x602e90(efecto, 0, …): 0x5ffdf0 posa el 0x140 con la bandera de 0x4eb860 en 1 y 0x4ebc80 con Translate
-// en 0 (0x6001a1), la normal girada por R · s. Los dos RenderBody(0x44) de 0x602005..0x602044 toman la U del cromo de
-// 0x4ecc30, 0,5 · nz: con la escala 1,5 y la normal (0, 0, 1), 0,75, con la pose publicada (la de producción) y por el
-// camino de reserva, sin ella.
+// 0x52da99 → 0x602e90(effect, 0, …): 0x5ffdf0 poses the 0x140 with 0x4eb860's flag at 1 and 0x4ebc80 with Translate at
+// 0 (0x6001a1), the normal rotated by R · s. The two RenderBody(0x44) of 0x602005..0x602044 take the chrome U from
+// 0x4ecc30, 0.5 · nz: with scale 1.5 and normal (0, 0, 1), 0.75, with the published pose (production's) and through
+// the fallback path, without it.
 TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
 {
     constexpr float MarkScale = 1.5f;
@@ -603,12 +603,12 @@ TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
         EXPECT_EQ(vertex.uv.x, ScaledChromeU);
 }
 
-// 0x43909e..0x439214: el 0x125 con el color en 0,3 y RenderBody(2); en los huesos 3 y 4, el 0x5ca de escala 0,2f y el
-// 0x5fd de escala 0,5f con la luz (l; l · 0,2f; l · 0,1f), l = FSIN(T · 0,003f) · 0,2f + 0,8f: con T = 1000, l en
-// 0x3f54067d, l · 0,2f en 0x3e299ecb y l · 0,1f en 0x3da99ecb (calculados aparte). Sin rand(); sin el reloj del mundo,
-// corta. El 0x125 recién creado (0x51cdc9, el alpha en 0 en 0x51cdf5) no pasa 0x5ffdf0 (0x5ffe2a..0x5ffe3d) en ningún
-// pase: ni pose, ni cuerpo, ni sprites sobre los huesos viejos del buffer, ni rand(); lo enciende su joint 0x6ee/0x12
-// (0x53949a).
+// 0x43909e..0x439214: the 0x125 with the color at 0.3 and RenderBody(2); on bones 3 and 4, the 0x5ca with scale 0.2f
+// and the 0x5fd with scale 0.5f with light (l; l · 0.2f; l · 0.1f), l = FSIN(T · 0.003f) · 0.2f + 0.8f: with T = 1000,
+// l at 0x3f54067d, l · 0.2f at 0x3e299ecb and l · 0.1f at 0x3da99ecb (computed separately). No rand(); without the
+// world clock, it stops. The freshly created 0x125 (0x51cdc9, alpha at 0 at 0x51cdf5) does not pass 0x5ffdf0
+// (0x5ffe2a..0x5ffe3d) in any pass: no pose, body, sprites on the buffer's old bones or rand(); its joint 0x6ee/0x12
+// turns it on (0x53949a).
 TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
 {
     {
@@ -625,7 +625,7 @@ TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
         ASSERT_EQ(effects[0].alpha, 0.0f);
         ASSERT_EQ(effects[0].objectState.blendMesh, -2);
         Drawer drawer;
-        // Lo que dejó en el buffer de la pose el último que se posó.
+        // What the last one posed left in the pose buffer.
         drawer.bones = {BoneTransform(0.0f), BoneTransform(0.0f), Translation(SecondBonePoint),
                         Translation(ThirdBonePoint), Translation(FourthBonePoint)};
         for (const std::uint8_t mode : {std::uint8_t{0}, std::uint8_t{1}})

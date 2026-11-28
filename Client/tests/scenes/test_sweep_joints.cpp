@@ -35,8 +35,8 @@
 #include <utility>
 #include <vector>
 
-// El 0x61c/0 (SweepJoints.cpp): el alta 0x5342e4..0x534399 y el paso 0x53b3e1..0x53b623, con el pedido del efecto 0x5be
-// (0x52a72a: 0x530860(0x61c, posición + 100 en z, lo mismo, +0x28, 0, +0x108, 150, +0x8a, +0x89, 0, −1)).
+// The 0x61c/0 (SweepJoints.cpp): creation 0x5342e4..0x534399 and step 0x53b3e1..0x53b623, with the request of effect
+// 0x5be (0x52a72a: 0x530860(0x61c, position + 100 in z, the same, +0x28, 0, +0x108, 150, +0x8a, +0x89, 0, −1)).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -50,7 +50,7 @@ using Client::Math::F32;
 
 struct SweepWorld
 {
-    // El barrido en el último lugar: los rayos 0x614/3 que suelta caen en los primeros, que este paso ya pasó.
+    // The sweep in the last slot: the 0x614/3 bolts it drops land in the first ones, which this step already passed.
     Client::Core::Expected<std::optional<std::size_t>, std::string> Create(glm::vec3 angles, void* owner = nullptr)
     {
         for (std::size_t slot = 0; slot < Last; ++slot)
@@ -83,22 +83,22 @@ struct SweepWorld
     std::vector<JointState> joints = std::vector<JointState>(Last + 1);
     std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
     CrtRandom random{Seed};
-    // El asedio, los atributos y los blancos del héroe (0x53b569..0x53b5b1).
+    // The siege, the attributes and the hero's targets (0x53b569..0x53b5b1).
     std::unique_ptr<Client::Joints::JointKernels::VolleyServices> volley;
 };
 
 constexpr std::size_t HeroSlot = 42;
-// El lugar de la skill en el registro propio (+0x9ea del joint) y la skill que tiene ahí: la 0x37, que crea el 0x5be
+// The skill's slot in the own record (the joint's +0x9ea) and the skill there: 0x37, which creates the 0x5be
 // (0x4f9fae).
 constexpr std::uint8_t SkillPlace = 3;
 constexpr std::uint8_t Skill = 0x37;
-// +0x9eb: 0x530860 no la escribe, el 0x61c/0 manda la que el lugar tenía.
+// +0x9eb: 0x530860 does not write it; the 0x61c/0 sends the one the slot had.
 constexpr std::uint8_t Volley = 0x0c;
-// 0x517a20 con blancos: el relleno de 0x518515 y el cierre del serial (0x40b413) del C3, después del C1 10.
+// 0x517a20 with targets: 0x518515's padding and the serial close (0x40b413) of the C3, after the C1 10.
 constexpr std::uint32_t TargetRandoms = 2u;
 
-// El mundo del héroe para 0x517a20: Lorencia, el héroe en el lugar 42 y dos monstruos, uno a 30 del primer tramo y otro
-// cerca del sexto (la vuelta 5).
+// The hero's world for 0x517a20: Lorencia, the hero in slot 42 and two monsters, one 30 from the first segment and
+// another near the sixth (turn 5).
 struct HeroWorld
 {
     HeroWorld()
@@ -138,8 +138,8 @@ struct HeroWorld
     std::vector<Client::Protocol::Outgoing> sent;
 };
 
-// Los servicios del juego (GameSceneLogic.cpp) sobre el mundo del héroe: el asedio y los atributos como están al
-// llamarla, y 0x517a20 con el RNG del barrido.
+// The game's services (GameSceneLogic.cpp) over the hero's world: the siege and the attributes as they are when called,
+// and 0x517a20 with the sweep's RNG.
 void Attach(SweepWorld& sweep, HeroWorld& hero)
 {
     sweep.volley =
@@ -157,7 +157,7 @@ void Attach(SweepWorld& sweep, HeroWorld& hero)
             }});
 }
 
-// La partícula 0x5d9 con rand() & 1 en 0 y los anchos de los dos rayos (0x53b4a0..0x53b51d) de un tramo, en la réplica.
+// The particle 0x5d9 with rand() & 1 at 0 and the widths of a segment's two bolts (0x53b4a0..0x53b51d), in the replay.
 void ReplaySegment(CrtRandom& replay, Client::Particles::Particles& twin, glm::vec3 point)
 {
     if ((replay.Next() & 1) == 0)
@@ -169,7 +169,7 @@ void ReplaySegment(CrtRandom& replay, Client::Particles::Particles& twin, glm::v
     static_cast<void>(replay.Next());
 }
 
-// El punto del tramo con la velocidad del barrido: el destino (la partida) más (0, −180, 0) girado.
+// The segment point with the sweep's velocity: the target (the start) plus (0, −180, 0) turned.
 glm::vec3 SegmentPoint(glm::vec3 velocity)
 {
     const auto swing =
@@ -179,9 +179,9 @@ glm::vec3 SegmentPoint(glm::vec3 velocity)
 }
 } // namespace
 
-// 0x5342e4..0x534399: sin rand(); la z de los ángulos + 30, la velocidad (+0x9dc) con esos ángulos, el destino en la
-// partida, vida 20, 18 puntos, la cuenta en −1, sin la cola común, el ancho; la posición, (0, −180, 0) girado por los
-// ángulos nuevos y sumado, y la luz en 1. Con la z en −30 los ángulos quedan en 0 y el giro es exacto.
+// 0x5342e4..0x534399: without rand(); the angles' z + 30, the velocity (+0x9dc) with those angles, the target at the
+// start, life 20, 18 points, the count at −1, without the common tail, the width; the position, (0, −180, 0) turned by
+// the new angles and added, and the light at 1. With z at −30 the angles end at 0 and the turn is exact.
 TEST(SweepJointsTest, TheSweepBornsHundredEightyAway)
 {
     SweepWorld tested;
@@ -215,10 +215,10 @@ TEST(SweepJointsTest, TheSweepBornsHundredEightyAway)
                          F32(static_cast<double>(reach.z) + 400.0)}));
 }
 
-// 0x53b3f1..0x53b5c3: sin dueño, ocho tramos: la posición es el destino más (0, −180, 0) girado por la velocidad, un
-// tramo, vz − 11; con rand() & 1 en 0 la partícula 0x5d9 y siempre dos 0x614/3 sin dueño desde la posición de antes
-// hasta la nueva, con la key 5 (su vida) y el skill 0xa (sus puntos), de ancho rand() % 10 + 5 y (rand() & 7) + 4.
-// Después la luz es la vida · 0,033333335f (0x53b611).
+// 0x53b3f1..0x53b5c3: without an owner, eight segments: the position is the target plus (0, −180, 0) turned by the
+// velocity, a segment, vz − 11; with rand() & 1 at 0 the particle 0x5d9 and always two 0x614/3 without an owner from
+// the previous position to the new one, with key 5 (their life) and skill 0xa (their points), of width rand() % 10 + 5
+// and (rand() & 7) + 4. Then the light is life · 0.033333335f (0x53b611).
 TEST(SweepJointsTest, TheSweepShedsTwoSparksForEachOfItsEightSegments)
 {
     SweepWorld tested;
@@ -231,7 +231,7 @@ TEST(SweepJointsTest, TheSweepShedsTwoSparksForEachOfItsEightSegments)
     EXPECT_EQ(joint.life, 19);
     const float light = F32(20.0 * static_cast<double>(std::bit_cast<float>(0x3d088889u)));
     EXPECT_EQ(joint.light, glm::vec3(light));
-    // El primer tramo, con la velocidad en 0: 180 hacia −y del destino.
+    // The first segment, with the velocity at 0: 180 toward −y from the target.
     EXPECT_EQ(tested.joints[0].targetPosition, (glm::vec3{1000.0f, 1820.0f, 400.0f}));
     EXPECT_EQ(tested.joints[0].position, (glm::vec3{1000.0f, 1820.0f, 400.0f}));
 
@@ -277,8 +277,8 @@ TEST(SweepJointsTest, TheSweepShedsTwoSparksForEachOfItsEightSegments)
     EXPECT_EQ(alive, fires);
 }
 
-// 0x53b3f8: con la cuenta en los puntos − 1 (17) no agrega tramos ni saca rand(); con la vida debajo de 10, la x de la
-// luz por 0,6666667f en los tres canales (0x53b5fa).
+// 0x53b3f8: with the count at points − 1 (17) it adds no segments and draws no rand(); with life under 10, the light's
+// x times 0.6666667f in the three channels (0x53b5fa).
 TEST(SweepJointsTest, TheFullSweepOnlyDims)
 {
     SweepWorld tested;
@@ -300,10 +300,10 @@ TEST(SweepJointsTest, TheFullSweepOnlyDims)
     EXPECT_FALSE(tested.joints[0].alive);
 }
 
-// 0x53b53e..0x53b567: con dueño igual al héroe ([0x743a170]), vida de más de 18 y la vuelta múltiplo de 5, el asedio o
-// los blancos de la skill (0x53b569); sin ellos (JointKernels::VolleyServices), MuRet corta ahí. Con otro dueño sigue
-// como sin dueño (los mismos rand(), rayos y partículas). Sin el héroe en el paso corta en 0x53b548, salvo con vida 18,
-// donde no lo compara.
+// 0x53b53e..0x53b567: with the owner equal to the hero ([0x743a170]), life over 18 and the turn a multiple of 5, the
+// siege or the skill's targets (0x53b569); without them (JointKernels::VolleyServices), MuRet stops there. With another
+// owner it goes on as without an owner (the same rand(), bolts and particles). Without the hero in the step it stops at
+// 0x53b548, except with life 18, where it does not compare.
 TEST(SweepJointsTest, OnlyTheHeroSweepAsksForTheSiegeAndTheTargets)
 {
     ActorState owner{};
@@ -349,13 +349,12 @@ TEST(SweepJointsTest, OnlyTheHeroSweepAsksForTheSiegeAndTheTargets)
     EXPECT_EQ(late.joints[Last].count, 7);
 }
 
-// 0x53b569..0x53b5b6: el barrido del héroe, sin asedio, en las vueltas 0 y 5 (vida 20) llama a 0x517a20(+0x9ea,
-// posición, 150, +0x9eb, +0x9e8, 0) con la posición del tramo recién agregado: el cierre del registro propio (3.848
-// rand(), 0x40b4d0) y, con blancos, el C1 10 con los dos rand() del C3 (el relleno de 0x518515 y el cierre del serial,
-// 0x40b413), entre los rand() de los tramos. En la vuelta 0 entra el monstruo a 30, con la celda (9, 18): 1000 · 0,01f
-// (0x6b86c0) queda debajo de 10. En la 5 (vz −55) el tramo cae en (1000 − 180 · sen 55°, 2000 − 180 · cos 55°) ≈
-// (852,56; 1896,76): el 0x1006 queda a ~4,1 y el 0x1005 a ~154,7 (fuera de 150), con la celda (8, 18). El paso sigue
-// con todas las vueltas.
+// 0x53b569..0x53b5b6: the hero's sweep, without the siege, in turns 0 and 5 (life 20) calls 0x517a20(+0x9ea, position,
+// 150, +0x9eb, +0x9e8, 0) with the position of the segment just added: the own record's close (3848 rand(), 0x40b4d0)
+// and, with targets, the C1 10 with the C3's two rand() (0x518515's padding and the serial close, 0x40b413), among the
+// segments' rand(). In turn 0 the monster at 30 gets in, with cell (9, 18): 1000 · 0.01f (0x6b86c0) stays under 10. In
+// turn 5 (vz −55) the segment lands at (1000 − 180 · sin 55°, 2000 − 180 · cos 55°) ≈ (852.56; 1896.76): the 0x1006 is
+// at ~4.1 and the 0x1005 at ~154.7 (outside 150), with cell (8, 18). The step goes on with all the turns.
 TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
 {
     HeroWorld hero;
@@ -371,8 +370,8 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
     EXPECT_EQ(tested.joints[Last].count, 7);
     EXPECT_EQ(tested.joints[Last].life, 19);
 
-    // Cada llamada: el cierre del registro propio (0x517af3, sin mirar los blancos); con blancos, además, los dos
-    // rand() del C3. Las dos llamadas de este barrido tienen blancos.
+    // Each call: the own record's close (0x517af3, without looking at the targets); with targets, also the C3's two
+    // rand(). Both calls of this sweep have targets.
     constexpr std::uint32_t HitRandoms = Client::Models::OwnRecordCloseRandoms + TargetRandoms;
     CrtRandom replay{Seed};
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -398,10 +397,10 @@ TEST(SweepJointsTest, TheHeroSweepHitsTheTargetsAroundEveryFiveTurns)
                                          Client::Protocol::Skills::WriteSkillHits(second).packet.Bytes()));
 }
 
-// 0x517a44..0x517af3: 0x517a20 abre y cierra el registro propio al entrar, haya blancos o no: el cierre (3.848 rand(),
-// 0x40b4d0 en 0x517af3) corre en cada llamada, y sólo los dos rand() del C3 (0x518515 y 0x40b413) van con el C1 10.
-// Con el 0x1006 lejos, la llamada de la vuelta 5 no encuentra a nadie a 150 (el 0x1005 queda a ~154,7): no manda nada
-// y saca sólo el cierre.
+// 0x517a44..0x517af3: 0x517a20 opens and closes the own record on entry, with or without targets: the close (3848
+// rand(), 0x40b4d0 at 0x517af3) runs on every call, and only the C3's two rand() (0x518515 and 0x40b413) go with the C1
+// 10. With the 0x1006 far away, turn 5's call finds nobody within 150 (the 0x1005 is at ~154.7): it sends nothing and
+// draws only the close.
 TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
 {
     HeroWorld hero;
@@ -438,10 +437,10 @@ TEST(SweepJointsTest, AHeroSweepCallWithoutTargetsStillClosesTheOwnRecord)
                                          Client::Protocol::Skills::WriteSkillHits(first).packet.Bytes()));
 }
 
-// 0x53b56e..0x53b583 y 0x53b5cb..0x53b5e6: con el asedio prendido (0x4294b0) y el bit 0x100 en el atributo de la celda
-// del tramo (0x5f82c0), la velocidad en 0, la vida en ftol(20 · 0,2f) = 4 y sale de las vueltas después del primer
-// tramo, sin 0x517a20: con vida de menos de 10 se apaga la luz (0x53b5fa) y la vida baja a 3. Con la celda sin el bit,
-// sigue como sin asedio.
+// 0x53b56e..0x53b583 and 0x53b5cb..0x53b5e6: with the siege on (0x4294b0) and the bit 0x100 in the attribute of the
+// segment's cell (0x5f82c0), speed at 0, life at ftol(20 · 0.2f) = 4 and it leaves the turns after the first segment,
+// without 0x517a20: with life under 10 the light goes out (0x53b5fa) and life drops to 3. With the cell without the
+// bit, it goes on as without the siege.
 TEST(SweepJointsTest, TheSiegeStopsTheHeroSweepOnTheMarkedCells)
 {
     for (const std::uint32_t attribute : {0x100u, 0x4u})

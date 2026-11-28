@@ -42,7 +42,7 @@ constexpr float DoorApproach = std::bit_cast<float>(0x3e4ccccdu);
 constexpr std::int32_t SlidingDoorSound = 0x12;
 constexpr std::int32_t HingedDoorSound = 0x11;
 
-// fst conserva el rojo retenido: sus productos no parten del canal ya redondeado a float.
+// fst keeps the retained red: its products do not start from the channel already rounded to float.
 glm::vec3 WarmLight(std::int32_t intensity, float green, float blue)
 {
     const double red = static_cast<double>(intensity) * static_cast<double>(Tenth);
@@ -64,7 +64,7 @@ Core::Expected<void, std::string> AddDynamicLight(Terrain::TerrainLighting* dest
     {
         return Core::Unexpected(std::format("{}: falta el buffer dinámico 0x7b4ccc4 para 0x5f9780", address));
     }
-    // El kernel requiere un centro y límites int32 representables; no inventar una celda para NaN.
+    // The kernel needs a center and representable int32 limits; do not invent a cell for NaN.
     constexpr float CellScale = std::bit_cast<float>(0x3c23d70au);
     for (int axis = 0; axis < 2; ++axis)
     {
@@ -98,7 +98,7 @@ Core::Expected<void, std::string> EmitParticle(const ObjectStepGlobals& globals,
         return Core::Unexpected(std::format("0x53fe70: creación de partícula {:#x}/{} rechazada ({})", type, subtype,
                                             static_cast<int>(emitted.Error())));
     }
-    // Sin índice es pool lleno: no interrumpe el caller ni su luz posterior.
+    // No index means the pool is full: it does not interrupt the caller or its later light.
     return {};
 }
 
@@ -118,7 +118,7 @@ void OpenSlidingDoor(WorldObject& object, double opening)
     {
         object.transform.position.y = static_cast<float>(static_cast<double>(object.copiedPosition.y) - opening * 2.0);
     }
-    // fcomp/test C3 admite cero con ambos signos y unordered.
+    // fcomp/test C3 accepts zero with both signs and unordered.
     if (yaw == 0.0f || std::isnan(yaw))
     {
         object.transform.position.x = static_cast<float>(static_cast<double>(object.copiedPosition.x) + opening * 2.0);
@@ -170,7 +170,7 @@ Core::Expected<void, std::string> EmitObjectFire(std::int32_t fireClass, const g
     {
         position[axis] = static_cast<float>(static_cast<double>(position[axis]) + origin[axis]);
     }
-    // Tres stores separados tras las tres sumas anteriores, en X/Y/Z.
+    // Three separate stores after the three previous sums, in X/Y/Z.
     for (int axis = 0; axis < 3; ++axis)
     {
         const int jitter = (random.Next() & JitterMask) - JitterCenter;
@@ -255,7 +255,7 @@ Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object, cons
 Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRandom& random,
                                                  const ObjectStepGlobals& globals)
 {
-    // 0x6b8a24 (0,015f), 0x6b88d4 (0,01f), 0x6b87b4/0x6b8a20 (0,4f y 0,6f), 0x6b8a1c/0x6b8854 (0,9f y 0,2f).
+    // 0x6b8a24 (0.015f), 0x6b88d4 (0.01f), 0x6b87b4/0x6b8a20 (0.4f and 0.6f), 0x6b8a1c/0x6b8854 (0.9f and 0.2f).
     constexpr double Scroll = static_cast<double>(std::bit_cast<float>(0x3c75c28fu));
     constexpr double Hundredth = Math::HundredthAsDouble;
     constexpr double GreenLow = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
@@ -276,7 +276,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
     case 0x1e:
     case 0x47:
     {
-        // 0x425137/0x425186: el sorteo por 0,01 queda en la x87; cada canal se guarda de su suma.
+        // 0x425137/0x425186: the draw times 0.01 stays in the x87; each channel is stored from its sum.
         const double base = static_cast<double>(random.Next() % LightSpan) * Hundredth;
         const bool green = object.type == 0x1e;
         const float first = static_cast<float>(base + (green ? GreenLow : RedHigh));
@@ -309,7 +309,7 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Crt::CrtRa
     default:
         break;
     }
-    // 0x4251fb: 0x41ed10(0x246, 0, 0) con cada objeto que llega, de cualquier tipo.
+    // 0x4251fb: 0x41ed10(0x246, 0, 0) with each arriving object, of any type.
     if (!globals.sound)
     {
         return Core::Unexpected(std::string("0x4251fb: falta el emisor sonoro 0x41ed10 del 0x246"));
@@ -323,18 +323,18 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
 {
     constexpr std::uint32_t TimeMask = 0x3ff;
     constexpr std::uint32_t ButterflyWindow = 10;
-    constexpr std::uint32_t AmbientPeriod = 300000; // 0x440159: 0x493e0, sin signo (jbe).
+    constexpr std::uint32_t AmbientPeriod = 300000; // 0x440159: 0x493e0, unsigned (jbe).
     constexpr Audio::SoundId AmbientSound{0x1ef};
-    // 0x6b8bbc (0,0024f) y 0x6b89dc (0,3f): el vaivén del 0x1b.
+    // 0x6b8bbc (0.0024f) and 0x6b89dc (0.3f): the 0x1b's sway.
     constexpr double SwayRate = static_cast<double>(std::bit_cast<float>(0x3b1d4952u));
     constexpr float SwayHeight = std::bit_cast<float>(0x3e99999au);
-    // 0x6b87b8 (0,1f), 0x6b8a1c (0,9f) y 0x6b8854 (0,2f): la luz del 0x2a.
+    // 0x6b87b8 (0.1f), 0x6b8a1c (0.9f) and 0x6b8854 (0.2f): the 0x2a's light.
     constexpr double TorchStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
     constexpr double TorchRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));
     constexpr double TorchGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
     constexpr int TorchMask = 3, TorchBase = 3;
     constexpr std::int32_t TorchRadius = 3;
-    // 0x43ffd8 deja timeGetTime en EDI; cada llamada pide el reloj prestado donde la hace el ASM.
+    // 0x43ffd8 leaves timeGetTime in EDI; each call asks for the borrowed clock where the ASM makes it.
     const auto now = [&](std::string_view address) -> Core::Expected<std::uint32_t, std::string>
     {
         if (!globals.systemTime)
@@ -346,14 +346,14 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
         const auto time = now(address);
         if (!time.HasValue())
             return Core::Unexpected(time.Error());
-        // 0x43fffd: el and deja un valor no negativo, y el jl que sigue nunca salta.
+        // 0x43fffd: the and leaves a non-negative value, and the following jl never jumps.
         if ((time.Value() & TimeMask) < ButterflyWindow)
         {
             if (globals.effects == nullptr)
                 return Core::Unexpected(
                     std::string("0x440044: falta la tabla de efectos de modelo para la mariposa 0xae"));
-            // 0x518cf0(0xae, posición, ángulos, (1, 1, 1), subtipo, objeto, −1, 0, 0, 0, 0): el paso corre en
-            // la escena del juego (5), así que la mariposa no nace oculta.
+            // 0x518cf0(0xae, position, angles, (1, 1, 1), subtype, object, −1, 0, 0, 0, 0): the step runs in the game
+            // scene (5), so the butterfly is not born hidden.
             static_cast<void>(globals.effects->CreateButterflyEffect(object.transform.position, object.transform.angles,
                                                                      glm::vec3(1.0f), subtype, object.transform.scale,
                                                                      false, random));
@@ -377,13 +377,13 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
         break;
     case 3:
     case 0x35:
-        // 0x44014a: los que emiten en el frame (0x4401e0) no se dibujan.
+        // 0x44014a: those that emit in the frame (0x4401e0) are not drawn.
         object.state.hiddenMesh = HiddenObject;
         break;
     case 0x1b:
     {
-        // 0x4400ce..0x4400eb: z += sin(reloj · 0,0024f + fase) · 0,3f, cada paso sobre la z anterior; sin el
-        // −2 de +0x58.
+        // 0x4400ce..0x4400eb: z += sin(clock · 0.0024f + phase) · 0.3f, each step over the previous z; without +0x58's
+        // −2.
         const double argument =
             static_cast<double>(globals.worldClock) * SwayRate + static_cast<double>(object.field84);
         const auto sway = Math::Detail::SineProductPC53(argument, SwayHeight);
@@ -394,7 +394,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
     }
     case 0x2a:
     {
-        // 0x4400f0..0x44013f: ((rand() & 3) + 3) · 0,1f queda en la x87 para los tres canales.
+        // 0x4400f0..0x44013f: ((rand() & 3) + 3) · 0.1f stays in the x87 for the three channels.
         const double level = static_cast<double>((random.Next() & TorchMask) + TorchBase) * TorchStep;
         const glm::vec3 light(static_cast<float>(level * TorchRed), static_cast<float>(level * TorchGreen),
                               static_cast<float>(level * TorchStep));
@@ -407,8 +407,8 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
     default:
         break;
     }
-    // 0x440151..0x440170: con cualquier tipo, el ambiente 0x1ef cada más de cinco minutos del sistema; la
-    // hora que guarda es la de una segunda llamada.
+    // 0x440151..0x440170: with any type, the 0x1ef ambient every more than five system minutes; the time it stores is a
+    // second call's.
     const auto time = now("0x440151");
     if (!time.HasValue())
         return Core::Unexpected(time.Error());
@@ -419,7 +419,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
         const auto stored = now("0x440160");
         if (!stored.HasValue())
             return Core::Unexpected(stored.Error());
-        // 0x44016b guarda la hora antes del pedido sonoro.
+        // 0x44016b stores the time before the sound request.
         *globals.trialsAmbientTime = stored.Value();
         if (!globals.sound)
             return Core::Unexpected(std::string("0x440170: falta el emisor sonoro 0x41ed10 del 0x1ef"));
@@ -431,10 +431,10 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Cr
 Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::CrtRandom& random,
                                                     const ObjectStepGlobals& globals)
 {
-    // 0x430429..0x430437: (0,2f; 0,7f; 0,5f), en los bits del ASM.
+    // 0x430429..0x430437: (0.2f; 0.7f; 0.5f), in the ASM's bits.
     constexpr glm::vec3 GlowLight(std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3f333333u),
                                   std::bit_cast<float>(0x3f000000u));
-    // 0x6b8a20 (0,6f) y 0x6b8854 (0,2f): el verde y el azul de la antorcha.
+    // 0x6b8a20 (0.6f) and 0x6b8854 (0.2f)
     constexpr float TorchGreen = std::bit_cast<float>(0x3f19999au);
     constexpr float TorchBlue = std::bit_cast<float>(0x3e4ccccdu);
     constexpr std::int32_t GlowRadius = 2;
@@ -448,7 +448,7 @@ Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Crt::Cr
     case 0x39:
     case 0x47:
     {
-        // 0x43044d..0x430494: fst del rojo; el verde y el azul salen del producto sin redondear.
+        // 0x43044d..0x430494: fst of the red; the green and the blue come from the unrounded product.
         const std::int32_t intensity = (random.Next() & TorchMask) + TorchBase;
         return AddObjectLight(globals, object.transform.position, WarmLight(intensity, TorchGreen, TorchBlue),
                               TorchRadius, "0x430497");

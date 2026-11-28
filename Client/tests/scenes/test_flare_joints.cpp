@@ -24,8 +24,8 @@
 #include <tuple>
 #include <vector>
 
-// El 0x5ac (FlareJoints.cpp): el alta 0x530c93..0x530dd8 y 0x53323b..0x533253 y el paso 0x5359d7..0x535b32, con el
-// pedido del 0x114/0 (0x51c1b8: 0x530860(0x5ac, posición, posición, ángulos, 0, 0, escala, −1, 0, 0, −1)).
+// The 0x5ac (FlareJoints.cpp): creation 0x530c93..0x530dd8 and 0x53323b..0x533253 and step 0x5359d7..0x535b32, with
+// the 0x114/0's request (0x51c1b8: 0x530860(0x5ac, position, position, angles, 0, 0, scale, −1, 0, 0, −1)).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -67,9 +67,9 @@ struct FlareWorld
 using Client::Math::Bits;
 } // namespace
 
-// 0x530ca5..0x530d35: la /0 con vida 20, 30 puntos, el ancho, la velocidad rand() % 10 + 10, la x de los ángulos
-// 30 − rand() % 40, la z rand() % 360 y la luz (0,1f; 0,5f; 1), sin la cola común; +0x24 guarda la posición. El primer
-// tramo (0x530afa) va antes, con los ángulos del pedido y el ancho que tenía el lugar.
+// 0x530ca5..0x530d35: the /0 with life 20, 30 points, the width, speed rand() % 10 + 10, the angles' x 30 − rand() %
+// 40, z rand() % 360 and light (0.1f; 0.5f; 1), without the common tail; +0x24 stores the position. The first segment
+// (0x530afa) comes first, with the request's angles and the width the slot had.
 TEST(FlareJointsTest, TheFlareBornsWithThreeDraws)
 {
     FlareWorld tested;
@@ -104,9 +104,9 @@ TEST(FlareJointsTest, TheFlareBornsWithThreeDraws)
                                              static_cast<float>(300.0 + static_cast<double>(corner.z))}));
 }
 
-// 0x530d43..0x530dd8: la /1 con vida 10, 20 puntos, el skill rand() % 5, la velocidad rand() % 5 + 1, los ángulos
-// (30, 0, rand() % 360) y la luz (1; 0,8f; 0,6f). Otro subtipo (0x530d3d) sólo apaga la cola: sin rand(), con la vida y
-// los puntos del lugar, éstos con el tope de 50 (0x534cb6).
+// 0x530d43..0x530dd8: the /1 with life 10, 20 points, the skill rand() % 5, speed rand() % 5 + 1, angles (30, 0,
+// rand() % 360) and light (1; 0.8f; 0.6f). Another subtype (0x530d3d) only turns the tail off: without rand(), with the
+// slot's life and points, the latter capped at 50 (0x534cb6).
 TEST(FlareJointsTest, TheSecondFlareDrawsItsSkillAndAnotherSubtypeNothing)
 {
     FlareWorld tested;
@@ -140,9 +140,9 @@ TEST(FlareJointsTest, TheSecondFlareDrawsItsSkillAndAnotherSubtypeNothing)
     EXPECT_EQ(other.joints[0].angles, glm::vec3(10.0f, 20.0f, 30.0f));
 }
 
-// 0x5359e2..0x535a61: con vida de más de 16, la /0 agrega diez tramos (cada uno antes de avanzar) y avanza diez veces
-// (0, −velocidad, 0) girado por sus ángulos; con 16 o menos, se queda. 0x535b0e: la luz por 0,8333333f. Sin la cola
-// común: la cuenta es la de los diez tramos, y la vida baja de a una.
+// 0x5359e2..0x535a61: with life over 16, the /0 appends ten segments (each before advancing) and advances ten times
+// (0, −speed, 0) rotated by its angles; with 16 or less, it stays. 0x535b0e: the light times 0.8333333f. Without the
+// common tail: the count is that of the ten segments, and life drops by one.
 TEST(FlareJointsTest, TheFlareShootsTenSegmentsWhileItIsYoung)
 {
     FlareWorld tested;
@@ -157,7 +157,7 @@ TEST(FlareJointsTest, TheFlareShootsTenSegmentsWhileItIsYoung)
     EXPECT_EQ(tested.random.State(), before.State());
     EXPECT_EQ(joint.position, (glm::vec3{1000.0f, 1880.0f, 300.0f}));
     EXPECT_EQ(joint.count, 10);
-    // El último tramo, en la posición de antes del último avance.
+    // The last segment, at the position before the last advance.
     EXPECT_EQ(joint.points[0][0], (glm::vec3{960.0f, 1892.0f, 300.0f}));
     EXPECT_EQ(joint.points[0][3], (glm::vec3{1000.0f, 1892.0f, 340.0f}));
     EXPECT_EQ(joint.points[9][1], (glm::vec3{1040.0f, 2000.0f, 300.0f}));
@@ -172,9 +172,9 @@ TEST(FlareJointsTest, TheFlareShootsTenSegmentsWhileItIsYoung)
     EXPECT_EQ(joint.life, 15);
 }
 
-// Con los ángulos del alta (la semilla da (−7, 0, 199) y velocidad 10): cada avance gira (0, −velocidad, 0) con
-// 0x5fcbd0 en el mismo vector (0x535a1d..0x535a3f: la y relee la x girada y la z las dos) y lo suma en float. Los bits
-// salen de una emulación aparte del original (0x5fc8f0 y 0x5fcbd0 a doble, con cada fstp en float).
+// With the creation's angles (the seed gives (−7, 0, 199) and speed 10): each advance rotates (0, −speed, 0) with
+// 0x5fcbd0 in the same vector (0x535a1d..0x535a3f: y rereads the rotated x and z both) and adds it as float. The bits
+// come from a separate emulation of the original (0x5fc8f0 and 0x5fcbd0 in double, with each fstp to float).
 TEST(FlareJointsTest, TheFlareAdvancesAlongItsAngles)
 {
     FlareWorld tested;
@@ -190,8 +190,8 @@ TEST(FlareJointsTest, TheFlareAdvancesAlongItsAngles)
     EXPECT_EQ(Bits(joint.position.z), 0x438fa3f4u);
 }
 
-// 0x535ab6..0x535ad8: la /1 gira igual en el mismo vector. La semilla da el skill 0, la velocidad 3 y los ángulos
-// (30, 0, 199): cinco avances con la velocidad en 3; 3,5; 4; 4,5 y 5 (bits de la misma emulación aparte).
+// 0x535ab6..0x535ad8: the /1 rotates the same way in the same vector. The seed gives skill 0, speed 3 and angles (30,
+// 0, 199): five advances with the speed at 3; 3.5; 4; 4.5 and 5 (bits from the same separate emulation).
 TEST(FlareJointsTest, TheSecondFlareAdvancesAlongItsAngles)
 {
     FlareWorld tested;
@@ -210,8 +210,8 @@ TEST(FlareJointsTest, TheSecondFlareAdvancesAlongItsAngles)
     EXPECT_EQ(joint.count, 5);
 }
 
-// 0x535a71..0x535b0c: la /1 con el skill en 0 (o la vida de más de 3) agrega cinco tramos y avanza cinco veces, la
-// velocidad más 0,5 después de cada uno; con otro skill y vida de 3 o menos, se queda (y sólo se apaga).
+// 0x535a71..0x535b0c: the /1 with the skill at 0 (or life over 3) appends five segments and advances five times, the
+// speed plus 0.5 after each; with another skill and life 3 or less, it stays (and only fades).
 TEST(FlareJointsTest, TheSecondFlareSpeedsUpForFiveSegments)
 {
     for (const auto& [skill, life, moves] : {std::tuple{0, 2, true}, std::tuple{3, 4, true}, std::tuple{3, 3, false}})
@@ -229,7 +229,7 @@ TEST(FlareJointsTest, TheSecondFlareSpeedsUpForFiveSegments)
 
         if (moves)
         {
-            // 2 + 2,5 + 3 + 3,5 + 4 = 15.
+            // 2 + 2.5 + 3 + 3.5 + 4 = 15.
             EXPECT_EQ(joint.position, (glm::vec3{1000.0f, 1985.0f, 300.0f}));
             EXPECT_EQ(joint.speed, 4.5f);
             EXPECT_EQ(joint.count, 5);
@@ -245,10 +245,10 @@ TEST(FlareJointsTest, TheSecondFlareSpeedsUpForFiveSegments)
     }
 }
 
-// 0x51bf73..0x51c00d: el combo 0x112/0 (World/BlastModelEffects, por Combat::CreateBlastEffect) sube 50 y suelta
-// sesenta joints 0x5ac/0 sin dueño desde su posición con sus ángulos (en 0), cada uno con el ancho rand() % 40 + 70
-// sacado antes de su alta, que saca tres: 240 rand(). Con la tabla de joints llena 0x530860 no encuentra lugar y no
-// saca ninguno: sólo los 60 de los anchos.
+// 0x51bf73..0x51c00d: the 0x112/0 combo (Effects/BlastModelEffects, via Combat::CreateBlastEffect) rises 50 and
+// releases sixty ownerless 0x5ac/0 joints from its position with its angles (at 0), each with the width rand() % 40 +
+// 70 drawn before its creation, which draws three: 240 rand(). With the joint table full 0x530860 finds no slot and
+// draws none: only the 60 of the widths.
 TEST(FlareJointsTest, TheComboReleasesSixtyFlares)
 {
     for (const bool full : {false, true})

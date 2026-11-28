@@ -21,7 +21,7 @@ namespace Client::Weather
 {
 namespace
 {
-// 43ff20 y 425090: mismo rectángulo estricto, sin stores ni llamadas.
+// 0x43ff20 and 0x425090: the same strict rectangle, without stores or calls.
 constexpr float CloudAreaMinX = 5449;
 constexpr float CloudAreaMaxX = 17822;
 constexpr float CloudAreaMinY = 6784;
@@ -89,7 +89,7 @@ Core::Expected<void, std::string> CreateCloud(glm::vec3 position, GameLeafContex
 {
     if (!crywolf)
     {
-        // 443c96 guarda la altura en binary32 ANTES del rand%20 de 443c9e.
+        // 0x443c96 stores the height in binary32 BEFORE the rand%20 of 0x443c9e.
         const auto height = static_cast<float>(
             Terrain::TerrainHeightAt(context.heights, context.attributes, position.x, position.y, context.fixedHeight));
         position.z = static_cast<float>(static_cast<double>(context.random.Next() % CloudGroundOffsetSpan) + height);
@@ -121,7 +121,7 @@ Core::Expected<void, std::string> SpawnGameLeafCloud(Weather::Leaf& leaf, GameLe
         if (!compensated.HasValue())
             return compensated;
     }
-    // El segundo byte Movement se relee tras 508940, como 443c71/4358b6.
+    // The second Movement byte is reread after 0x508940, like 0x443c71/0x4358b6.
     if (context.cloudHero->movement != 0 || context.random.Next() % 2 == 0)
     {
         const auto created = CreateCloud(position, context, crywolf);

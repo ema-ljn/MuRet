@@ -40,7 +40,7 @@ Core::Expected<glm::vec3, std::string> Point(const WorldObjects::GameObjectPass&
 {
     if (pass.retainedPose == nullptr)
         return Core::Unexpected(std::format("0x4ec110: falta la pose global del hueso{} de Noria", bone));
-    // La .bss nativa empieza en cero; índices aún no publicados conservan esa matriz cero.
+    // The native .bss starts at zero; indices not yet published keep that zero matrix.
     if (bone >= pass.retainedPose->bones.size())
         return glm::vec3(0.0f);
     return Math::OriginalVectorTransform(glm::vec3(0.0f), Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));

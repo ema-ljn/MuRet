@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// 06 § El paso de ondas de Kalima: proyección de los slots nativos 0/1 de 0x41dbe0.
+// 06 § El paso de ondas de Kalima: a projection of the native slots 0/1 of 0x41dbe0.
 namespace Client::MapScripts::Kalima
 {
 inline constexpr std::size_t KalimaWaveSide = 256;
@@ -17,8 +17,8 @@ struct KalimaWaveState
     bool selected = false;
 };
 
-// El caller aloja los 512 KiB de planos directamente en heap, con un único dueño durante el paso.
-// Acepta todos los patrones DWORD; actualiza el interior seleccionado desde el plano opuesto.
-// Conserva fuente, bordes y selector. No reserva memoria ni adapta selectores raw nativos.
+// The caller puts the 512 KiB of planes straight on the heap, with a single owner during the step. Accepts every
+// DWORD pattern; updates the selected interior from the opposite plane. Keeps source, edges and selector. Does not
+// allocate memory or adapt raw native selectors.
 void UpdateKalimaWaves(KalimaWaveState& state);
 } // namespace Client::MapScripts::Kalima

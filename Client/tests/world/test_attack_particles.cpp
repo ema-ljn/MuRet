@@ -23,9 +23,8 @@
 #include <optional>
 #include <tuple>
 
-// Las partículas que piden el paso del ataque y los joints del que mató (CL9 hito 3, fase 2d): la chispa 0x5c6/12 del
-// 0x815 (0x540a04, 0x545397) y el rayo 0x5d5/0 y /1 del 0x618 (0x540bbe, 0x540bfe, 0x545419). 06, "El paso del
-// ataque".
+// The particles requested by the attack step and the killer's joints: spark 0x5c6/12 of 0x815 (0x540a04, 0x545397)
+// and lightning 0x5d5/0 and /1 of 0x618 (0x540bbe, 0x540bfe, 0x545419). 06, "El paso del ataque".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -41,9 +40,9 @@ double Bits(std::uint32_t bits)
     return static_cast<double>(std::bit_cast<float>(bits));
 }
 
-// 0x540a04..0x540b41: la textura 0x5fc, +0x38 en 1,0f, la posición corrida (0; −100; 0) girado y después
-// (rand() & 15) − 8 en x e y y 150 en z, la velocidad ((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3), la vida 40
-// y la escala del pedido menos (rand() % 15) · 0,1f: seis rand(). La luz y los ángulos, los del pedido.
+// 0x540a04..0x540b41: texture 0x5fc, +0x38 at 1.0f, the position shifted by (0; −100; 0) turned and then by
+// (rand() & 15) − 8 in x and y and 150 in z, velocity ((rand() % 20) · 0.1f − 1; same; −(rand() % 3) − 3), life 40 and
+// the requested scale minus (rand() % 15) · 0.1f: six rand(). Light and angles, the requested ones.
 TEST(AttackParticlesTest, TheBowSparkTakesSixDrawsAndStartsAboveItsOwner)
 {
     Particles particles;
@@ -85,8 +84,8 @@ TEST(AttackParticlesTest, TheBowSparkTakesSixDrawsAndStartsAboveItsOwner)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// 0x545397 y 0x545340: después del viento (dos rand()) y del movimiento común, rand() & 1 − 0,6f en el rojo y el verde
-// y − 0,8f en el azul, la escala − 0,04f y +0x38 − 0,001f. Muere por la vida en el paso 40.
+// 0x545397 and 0x545340: after the wind (two rand()) and the common movement, rand() & 1 − 0.6f in the red and the
+// green and − 0.8f in the blue, scale − 0.04f and +0x38 − 0.001f. It dies by life at step 40.
 TEST(AttackParticlesTest, TheBowSparkFlickersShrinksAndDiesAtForty)
 {
     Particles particles;
@@ -122,9 +121,9 @@ TEST(AttackParticlesTest, TheBowSparkFlickersShrinksAndDiesAtForty)
     }
 }
 
-// 0x540bbe y 0x540bfe: la /0 con la vida del prefijo (2) y la escala 0,15f, la /1 con vida 10 y escala 0; las dos con
-// la luz del pedido más 0,5. Sin rand(). Su paso (0x545419) gira con el reloj y pide la luz dinámica de radio 3; sin
-// ella corta.
+// 0x540bbe and 0x540bfe: /0 with the prefix's life (2) and scale 0.15f, /1 with life 10 and scale 0; both with the
+// requested light plus 0.5. No rand(). Their step (0x545419) turns with the clock and requests the dynamic light of
+// radius 3; without it, it cuts.
 TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
 {
     const glm::vec3 point{1200.0f, 3400.0f, 200.0f};
@@ -169,7 +168,7 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
     }
 }
 
-// 0x548644: el 0x5d5 va al billboard común (0x54889a) con su textura, y la 0x5c6/12, con la 0x5fc de su creación.
+// 0x548644: 0x5d5 goes to the common billboard (0x54889a) with its texture, and 0x5c6/12 with its creation's 0x5fc.
 TEST(AttackParticlesTest, TheLightningAndTheBowSparkUseTheCommonBillboard)
 {
     for (const auto& [type, subtype, texture] : {std::tuple{Client::Particles::LightningParticle, 0, 0x5d5},

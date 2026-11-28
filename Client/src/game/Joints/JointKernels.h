@@ -57,51 +57,54 @@ namespace Client::Actors
 struct SkillHitsRequest;
 } // namespace Client::Actors
 
-// Lo que comparten el alta de los joints (0x530860), su paso (0x535840) y las familias que viven en sus propios
-// archivos (FaunaJointCreation.cpp despacha).
+// What the joints' creation (0x530860), their step (0x535840) and the families that live in their own files share
+// (FaunaJointCreation.cpp dispatches).
 namespace Client::Joints::JointKernels
 {
-// 0x530afa..0x530c38 (y el final de 0x535520): los cuatro puntos del primer tramo, (∓ancho/2, 0, 0) y (0, 0,
-// ∓ancho/2) girados por la matriz y sumados a la posición. En el alta el ancho es el retenido del uso anterior.
+// 0x530afa..0x530c38 (and the end of 0x535520): the four points of the first segment, (∓width/2, 0, 0) and (0, 0,
+// ∓width/2) rotated by the matrix and added to the position. At creation the width is the one retained from the
+// previous use.
 void FirstQuad(Kernel::JointState& joint, const Math::OriginalMatrix& matrix);
 void FirstQuad(Kernel::JointState& joint);
-// 0x535520(joint, matriz): la cuenta + 1 hasta los puntos − 1, corre los tramos y rehace el primero.
+// 0x535520(joint, matrix): the count + 1 up to points − 1, shifts the segments and rebuilds the first.
 [[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint,
                                                                 const Math::OriginalMatrix& matrix);
 [[nodiscard]] Core::Expected<void, std::string> AppendJointTail(Kernel::JointState& joint);
-// 0x535520 sin rehacer el primer tramo: la cuenta y la corrida de los tramos. Sólo para una cola que no se dibuja y
-// cuya matriz es indefinida (Q-C1623).
+// 0x535520 without rebuilding the first segment: the count and the segment shift. Only for a tail that is not drawn and
+// whose matrix is undefined (Q-C1623).
 [[nodiscard]] Core::Expected<void, std::string> AdvanceJointTail(Kernel::JointState& joint);
-// 0x535020(joint, matriz, cruzado): lo mismo que 0x535520, pero con `crossed` el segundo par de puntos va en y,
-// (0, ∓ancho/2, 0), en vez de en z.
+// 0x535020(joint, matrix, crossed): the same as 0x535520, but with `crossed` the second pair of points goes in y,
+// (0, ∓width/2, 0), instead of in z.
 [[nodiscard]] Core::Expected<void, std::string>
 AppendCrossedJointTail(Kernel::JointState& joint, const Math::OriginalMatrix& matrix, bool crossed);
 
-// 0x4ec110(el modelo del jugador, los huesos propios del dueño + hueso · 0x30, offset, punto, 1): lo que el alta de
-// algunos joints lee de un personaje dueño (el 614/2, 0x5313fe). La escala y el origen son los que el último dibujo
-// dejó en el modelo del jugador (0x20a). Sin el servicio, esas altas cortan.
+// 0x4ec110(the player model, the owner's own bones + bone · 0x30, offset, point, 1): what the creation of some joints
+// reads from an owner character (the 614/2, 0x5313fe). The scale and origin are those the last draw left in the player
+// model (0x20a). Without the service, those creations stop.
 using PlayerBonePoint =
     std::function<glm::vec3(const Kernel::ActorState& owner, std::size_t bone, const glm::vec3& offset)>;
 struct CreationServices
 {
     PlayerBonePoint playerBonePoint{};
-    // 0x41ed10(sonido, 0, 0): el 0x613/1 suena al nacer (0x5330c5). Sin él, no suena (la CL10 decide cómo).
+    // 0x41ed10(sound, 0, 0): the 0x613/1 plays at creation (0x5330c5). Without it, no sound (CL10 decides how).
     std::function<void(Audio::SoundId)> soundRequest{};
-    // El registro propio ([0x7681eb4]): la cuenta de sus accesos abiertos y su +0xf04, que el 0x613/0 y el /5 leen con
-    // un acceso (0x532675, 0x532bab; el cierre que lo deja en 0 saca 3.848 rand()). Sin ellos, esas altas cortan.
+    // The own record ([0x7681eb4]): the count of its open accesses and its +0xf04, which the 0x613/0 and /5 read with
+    // an access (0x532675, 0x532bab; the close that leaves it at 0 draws 3848 rand()). Without them, those creations
+    // stop.
     std::uint8_t* ownRecordDepth = nullptr;
     const std::uint8_t* ownVolley = nullptr;
-    // Los 400 personajes (0x743a16c): el 614/0xf elige entre ellos los que encadena (0x531922). Sin ellos, corta.
+    // The 400 characters (0x743a16c): the 614/0xf picks among them the ones it chains (0x531922). Without them, it
+    // stops.
     std::span<const Kernel::ActorState> actors{};
 };
 
-// 0x520170(efecto): el choque de la flecha que el 0x60f/0xb y el /0x19 con skill 1 piden desde su paso (0x53ae6d), con
-// la flecha en la posición del joint. Lo pone el que tiene el contexto de las flechas (Scenes/ArrowEffects.h).
+// 0x520170(effect): the hit of the arrow that the 0x60f/0xb and /0x19 with skill 1 request from their step (0x53ae6d),
+// with the arrow at the joint's position. Set by whoever has the arrows' context (Effects/ArrowEffects.h).
 using EffectHit = std::function<Core::Expected<void, std::string>(Effects::ModelEffect&)>;
 
-// Lo que el 0x613/0, /5 y /0x13 de ancho 80 leen después de soltar su 0xd0 (0x539a50..0x539add): el asedio de
-// 0x4294b0 ([0x7239ec], CastleSiegeState::siegeActive), los atributos de 0x5f82c0 (0x7d0d348) y los blancos del héroe
-// de 0x517a20 (Actors::HitTheTargetsAround).
+// What the 0x613/0, /5 and /0x13 of width 80 read after releasing their 0xd0 (0x539a50..0x539add): the siege of
+// 0x4294b0 ([0x7239ec], CastleSiegeState::siegeActive), the attributes of 0x5f82c0 (0x7d0d348) and the hero's targets
+// of 0x517a20 (Actors::HitTheTargetsAround).
 struct VolleyServices
 {
     bool siegeActive = false;
@@ -109,8 +112,8 @@ struct VolleyServices
     std::function<Core::Expected<void, std::string>(const Actors::SkillHitsRequest&)> skillHits{};
 };
 
-// Lo que el paso de una familia de joints le pide al frame: el pool entero (las altas que hace el paso caen en él,
-// 0x53703d), el lugar del joint, y los servicios que el paso común ya recibe.
+// What a joint family's step asks of the frame: the whole pool (the creations the step makes land in it, 0x53703d), the
+// joint's slot, and the services the common step already receives.
 struct StepServices
 {
     std::span<Kernel::JointState> joints;
@@ -122,35 +125,39 @@ struct StepServices
     Terrain::TerrainLighting* lighting = nullptr;
     float worldClock = 0;
     const std::function<void(Audio::SoundId)>* soundRequest = nullptr;
-    // 0x53584f..0x53586c: [ebp−0x30] y [ebp+8], la posición menos el destino en x y en y, en float, antes del
-    // movimiento común. Las lee el 0x613/0 y el /5 (0x539b33).
+    // 0x53584f..0x53586c: [ebp−0x30] and [ebp+8], the position minus the target in x and y, as float, before the common
+    // move. Read by the 0x613/0 and /5 (0x539b33).
     float startDeltaX = 0;
     float startDeltaY = 0;
-    // 0x5f93c0(x, y): la altura del terreno, como la deja en la x87. La pide el 0x613/0 y el /5 (0x539c19).
+    // 0x5f93c0(x, y): the terrain height, as it leaves it on the x87 stack. Requested by the 0x613/0 and /5 (0x539c19).
     const std::function<double(float, float)>* terrainHeight = nullptr;
-    // Los 400 personajes (0x743a16c): el 0x10f/4 y el /9 miran el de su +0xa0c (0x535d63). Sin ellos, cortan.
+    // The 400 characters (0x743a16c): the 0x10f/4 and /9 look at the one of their +0xa0c (0x535d63). Without them, they
+    // stop.
     std::span<const Kernel::ActorState> actors{};
-    // El choque de la flecha dueña (0x520170). Sin él, el 0x60f/0xb y el /0x19 con skill 1 cortan.
+    // The owner arrow's hit (0x520170). Without it, the 0x60f/0xb and /0x19 with skill 1 stop.
     const EffectHit* effectHit = nullptr;
-    // El paso de la familia sale de 0x535840 (ret) sin la cola ni la vida de 0x53c393 (el 0x618 con el dueño muerto,
+    // The family's step leaves 0x535840 (ret) without the tail and life of 0x53c393 (the 0x618 with a dead owner,
     // 0x538216).
     bool* returned = nullptr;
-    // La tabla de efectos con modelo (0x7491fd8): el 0x613/0x13 suelta ahí el 0x11b/0 (0x539b08). Sin ella, corta.
+    // The table of effects with a model (0x7491fd8): the 0x613/0x13 releases the 0x11b/0 there (0x539b08). Without it,
+    // it stops.
     Effects::ModelEffects* effects = nullptr;
-    // El héroe ([0x743a170]): el 0x61c/0 compara su dueño con él (0x53b548). Sin él, el 0x61c/0 con dueño corta.
+    // The hero ([0x743a170]): the 0x61c/0 compares its owner with it (0x53b548). Without it, the 0x61c/0 with an owner
+    // stops.
     const Kernel::ActorState* hero = nullptr;
-    // Los modelos compartidos (0x5769ad8 + tipo · 0xe0, su escala y su posición): el 0x614/0xc se pone en el modelo del
-    // dueño (0x536b1d), el 0x62c/5..7 con dueño le escribe la posición al suyo (0x53bc42) y el 0x632/0 y /1 con dueño
-    // leen el del 0x20b (0x53c1eb). Sin ellos, cortan.
+    // The shared models (0x5769ad8 + type · 0xe0, their scale and position): the 0x614/0xc places itself in the owner's
+    // model (0x536b1d), the 0x62c/5..7 with an owner writes the position of its own (0x53bc42) and the 0x632/0 and /1
+    // with an owner read the 0x20b's (0x53c1eb). Without them, they stop.
     Kernel::WorldState* world = nullptr;
-    // El 0x613/0, /5 y /0x13 de ancho 80 (0x539a50) y el 0x61c/0 del héroe (0x53b569). Sin ellos, cortan ahí.
+    // The 0x613/0, /5 and /0x13 of width 80 (0x539a50) and the hero's 0x61c/0 (0x53b569). Without them, they stop
+    // there.
     const VolleyServices* volley = nullptr;
-    // Los modelos (0x5769ad8): el 0x632/0 y /1 con dueño posan el 0x20b (Player\Shadow01) al llegar al suelo
-    // (0x53c1eb). Sin ellos, cortan ahí.
+    // The models (0x5769ad8): the 0x632/0 and /1 with an owner pose the 0x20b (Player\Shadow01) on reaching the ground
+    // (0x53c1eb). Without them, they stop there.
     const Models::IModelLibrary* models = nullptr;
 };
 
-// El dueño de un joint de las familias de este archivo, cuando es un personaje (ActorState): el objeto del original,
-// con el byte vivo en +0, la posición en +0x10, los ángulos en +0x1c y la luz en +0xf4.
+// The owner of a joint of this file's families, when it is a character (ActorState): the original's object, with the
+// alive byte at +0, the position at +0x10, the angles at +0x1c and the light at +0xf4.
 [[nodiscard]] const Kernel::ActorState* ActorOwner(const Kernel::JointState& joint);
 } // namespace Client::Joints::JointKernels

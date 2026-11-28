@@ -20,7 +20,7 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
     if (hero.movement != 0 || state.inputBlocked)
         return {};
     state.movementTarget = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(state.movementTarget) + 1u);
-    // 0x59b357..0x59b367: 0x65972c → 0x6570a0, el gremio 2, lee un byte plano, sin cierre lógico ni rand().
+    // 0x59b357..0x59b367: 0x65972c → 0x6570a0, guild window 2, reads a plain byte, without a logical close or rand().
     if (!context.secondGuildOpen && state.facingMode == 1)
         return {};
     if (state.movementTarget < 40 || context.mouseOnUi != 0 || hero.dying != 0)
@@ -37,7 +37,7 @@ Core::Expected<void, std::string> StepHeroFacing(const HeroFacingContext& contex
         return Core::Unexpected(std::string("0x59b422: ángulo quieto fuera del perfil ftol"));
     const auto shifted = std::bit_cast<std::int32_t>(405u - std::bit_cast<std::uint32_t>(*angle));
     state.arrivalYaw = shifted % 360;
-    // 0x59b456: la misma cuenta que el C1 18 del emote y de sentarse.
+    // 0x59b456: the same calculation as the C1 18 of the emote and of sitting.
     const auto oldSector = Actors::ActionDirection(hero.angles.z);
     const auto newSector = Actors::ActionDirection(static_cast<float>(state.arrivalYaw));
     if (!oldSector || !newSector)

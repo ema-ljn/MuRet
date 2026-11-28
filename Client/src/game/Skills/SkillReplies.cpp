@@ -42,20 +42,20 @@ namespace Client::Skills
 {
 namespace
 {
-// 0x5110d0 sin nadie con la clave.
+// 0x5110d0 with nobody holding the key.
 constexpr std::size_t NoActor = 400;
-// +0x38e y +0x42e: entradas de un byte de la tabla de protección, un rand() al cerrarlas en 0 (0x40b3f0 y en línea).
+// +0x38e and +0x42e: one-byte entries of the protection table, one rand() when closed at 0 (0x40b3f0 and inline).
 constexpr std::uint16_t ActorByteCloseRandoms = 1;
-// Las monturas de +0x318 (el modelo del ítem): Uniria, Dinorant, el Dark Horse y Fenrir.
+// The mounts of +0x318 (the item's model).
 constexpr std::uint16_t UniriaModel = 0x1c14;
 constexpr std::uint16_t DinorantModel = 0x1c15;
 constexpr std::uint16_t DarkHorseModel = 0x1c16;
 constexpr std::uint16_t FenrirModel = 0x1c37;
-// 0x4cd3a5: el tipo que no suena con la skill 3.
+// 0x4cd3a5: the type that makes no sound with skill 3.
 constexpr std::uint16_t SilentSkill3Type = 0x1a5;
-// 0x4cd369: con +0x376 en 0x4d no suena el 0x6f.
+// 0x4cd369: with +0x376 at 0x4d, the 0x6f does not sound.
 constexpr std::uint16_t SilentWord376 = 0x4d;
-// 0x53d8d0 y 0x53d930: el destello del que se va y del que llega.
+// 0x53d8d0 and 0x53d930: the flash of the one leaving and of the one arriving.
 constexpr std::int16_t SparkEffect = 0x5c6;
 
 using Protocol::Skills::ActorEffect;
@@ -81,7 +81,7 @@ bool IsPlayer(const Kernel::ActorState& actor)
     return actor.type == Tables::PlayerSkeletonModel;
 }
 
-// 0x4ea030 con el modelo del tipo del personaje (+2): sin él en MuRet, corta.
+// 0x4ea030 with the model of the character's type (+2): without it in MuRet, cuts.
 Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t action,
                                       const Scenes::WorldEntryResources& resources)
 {
@@ -92,13 +92,13 @@ Core::Expected<void, std::string> Act(Kernel::ActorState& actor, std::uint8_t ac
     return {};
 }
 
-// 0x4f4a10, la acción de ataque (Combat::SetActorAttack, CL9 hito 3).
+// 0x4f4a10 (Combat::SetActorAttack).
 Core::Expected<void, std::string> AttackAction(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     return Combat::SetActorAttack(actor, Combat::CombatContextOf(resources));
 }
 
-// 0x4cd68e y 0x4cdd2e: 0x4f4a10, el frame en 0 y +0x381 en 1 (0x4cde62).
+// 0x4cd68e and 0x4cdd2e: 0x4f4a10, the frame at 0 and +0x381 at 1 (0x4cde62).
 Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor,
                                                   const Scenes::WorldEntryResources& resources)
 {
@@ -109,14 +109,14 @@ Core::Expected<void, std::string> AttackAndSettle(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x41ed10(id, …): el caller despacha el sonido tras comprobar el optional.
+// 0x41ed10(id, …): the caller dispatches the sound after checking the optional.
 void Sound(const Scenes::WorldEntryResources& resources, Audio::SoundId id)
 {
     resources.world.Runtime().RequestSound(id);
 }
 
-// 0x4f5290: en un jugador, las velocidades (0x4f3f80) y la acción de golpe por la montura, la clase o un rand(); en
-// otro, 3 y 4 alternadas de a tres con +0x38f, que sube.
+// 0x4f5290: on a player, the speeds (0x4f3f80) and the hit action by mount, class or a rand(); on another, 3 and 4
+// alternating every three with +0x38f, which goes up.
 Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     if (!IsPlayer(actor))
@@ -138,8 +138,8 @@ Core::Expected<void, std::string> HitAction(Kernel::ActorState& actor, const Sce
     return Act(actor, static_cast<std::uint8_t>(0x8e + bit), resources);
 }
 
-// Las acciones de 0x4cc110 y 0x4cc1d0, por las manos: la izquierda (+0x2d8) con un bastón, o la derecha (+0x2b8) con
-// otro arma, y el elfo con alas (+0x2f8) con la segunda de cada par.
+// The actions of 0x4cc110 and 0x4cc1d0, by hands: the left (+0x2d8) with a staff, or the right (+0x2b8) with another
+// weapon, and the winged elf (+0x2f8) with the second of each pair.
 struct HandActions
 {
     std::uint8_t left = 0;
@@ -153,7 +153,7 @@ constexpr HandActions RepeatHands{0x7e, 0x80, 0x7f, 0x81}; // 0x4cc1d0
 Core::Expected<void, std::string> ActByTheHands(Kernel::ActorState& actor, const HandActions& actions,
                                                 const Scenes::WorldEntryResources& resources)
 {
-    // Los CMP de WORD con signo: el 0xffff sin ítem es −1.
+    // The signed WORD CMPs: the 0xffff with no item is −1.
     const auto left = static_cast<std::int16_t>(actor.hands[1].model);
     const auto right = static_cast<std::int16_t>(actor.hands[0].model);
     const bool winged = Kernel::BaseClassOf(actor.characterClass) == Kernel::CharacterClass::Elf &&
@@ -165,8 +165,7 @@ Core::Expected<void, std::string> ActByTheHands(Kernel::ActorState& actor, const
     return {};
 }
 
-// 0x4e9c50(con, en): la acción de `on` por las manos de `by`: las dos 0x63, la derecha 0x64, la izquierda 0x65 y
-// ninguna 0x62.
+// 0x4e9c50(by, on): the action of `on` by the hands of `by`: both 0x63, the right 0x64, the left 0x65 and none 0x62.
 Core::Expected<void, std::string> ActByBothHands(const Kernel::ActorState& by, Kernel::ActorState& on,
                                                  const Scenes::WorldEntryResources& resources)
 {
@@ -181,8 +180,8 @@ Core::Expected<void, std::string> ActByBothHands(const Kernel::ActorState& by, K
     return Act(on, 0x62, resources);
 }
 
-// 0x53d8d0 y 0x53d930: el que se va (alpha a 0, +0x80 en 1) y el que llega (frame 5, +0x80 en 3, alpha a 1), con las
-// velocidades, la acción 0x93, el destello 0x5c6 y el sonido 0x76.
+// 0x53d8d0 and 0x53d930: the one leaving (alpha to 0, +0x80 at 1) and the one arriving (frame 5, +0x80 at 3, alpha to
+// 1), with the speeds, action 0x93, the 0x5c6 flash and sound 0x76.
 Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arriving,
                                          const Scenes::WorldEntryResources& resources)
 {
@@ -206,7 +205,7 @@ Core::Expected<void, std::string> Vanish(Kernel::ActorState& actor, bool arrivin
     return {};
 }
 
-// 0x4f2250 sobre `actor`, con el sonido de Fenrir que pida.
+// 0x4f2250 on `actor`, with the Fenrir sound it requests.
 Core::Expected<void, std::string> Stop(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
     const auto context = Scenes::TransitionStopContext(actor, resources);
@@ -218,8 +217,8 @@ Core::Expected<void, std::string> Stop(Kernel::ActorState& actor, const Scenes::
     return {};
 }
 
-// La acción por la montura de las ramas 0x43 a 0x48 de 0x4cc530: Dark Horse, Uniria, Dinorant y Fenrir, fuera de la
-// zona segura; si no, `otherwise`.
+// The action by mount of 0x4cc530's branches 0x43 to 0x48: Dark Horse, Uniria, Dinorant and Fenrir, outside the safe
+// zone; otherwise, `otherwise`.
 std::uint8_t MountedAction(const Kernel::ActorState& actor, std::uint8_t otherwise)
 {
     if (Riding(actor, DarkHorseModel))
@@ -233,7 +232,7 @@ std::uint8_t MountedAction(const Kernel::ActorState& actor, std::uint8_t otherwi
     return otherwise;
 }
 
-// La de las ramas 0x4b y 0x40 (0x4cd81a y 0x4cd841): el Dark Horse, Fenrir o 0x8e.
+// That of branches 0x4b and 0x40 (0x4cd81a and 0x4cd841): the Dark Horse, Fenrir or 0x8e.
 std::uint8_t ChargeAction(const Kernel::ActorState& actor)
 {
     if (Riding(actor, DarkHorseModel))
@@ -243,8 +242,8 @@ std::uint8_t ChargeAction(const Kernel::ActorState& actor)
     return 0x8e;
 }
 
-// La de las ramas 0x3c, 0x3d (0x4cd455) y 0x4a (0x4cd7b7): con un pegaso (en la 0x4a, solo el Dark Horse) 0x4e, con
-// Fenrir 0x58 y si no 0x4c.
+// That of branches 0x3c, 0x3d (0x4cd455) and 0x4a (0x4cd7b7): with a pegasus (in 0x4a, only the Dark Horse) 0x4e,
+// with Fenrir 0x58 and otherwise 0x4c.
 std::uint8_t ShoutAction(const Kernel::ActorState& actor, bool onlyTheDarkHorse)
 {
     const bool pegasus = onlyTheDarkHorse ? Riding(actor, DarkHorseModel) : RidingAPegasus(actor);
@@ -255,7 +254,7 @@ std::uint8_t ShoutAction(const Kernel::ActorState& actor, bool onlyTheDarkHorse)
     return 0x4c;
 }
 
-// Un 0x4cc530 en curso: la fuente, el blanco y si la fuente es el héroe (0x743a170).
+// A 0x4cc530 in progress: the source, the target and whether the source is the hero (0x743a170).
 struct Cast
 {
     const MagicAttack& attack;
@@ -265,14 +264,14 @@ struct Cast
     const Scenes::WorldEntryResources& resources;
 };
 
-// 0x4cde62: +0x381 en 1 y vuelve.
+// 0x4cde62: +0x381 at 1 and returns.
 Core::Expected<void, std::string> Settle(const Cast& cast)
 {
     cast.source.byte381 = 1;
     return {};
 }
 
-// 0x4cd381, la rama 0x10: fuera del héroe, 0x4f5290 y el frame en 0.
+// 0x4cd381, branch 0x10: except on the hero, 0x4f5290 and the frame at 0.
 Core::Expected<void, std::string> HitUnlessHero(const Cast& cast)
 {
     if (!cast.sourceIsHero)
@@ -284,7 +283,7 @@ Core::Expected<void, std::string> HitUnlessHero(const Cast& cast)
     return Settle(cast);
 }
 
-// 0x4cd3e0, las ramas 1, 2, 4, 7, 0xb y 0x11: fuera del héroe, 0x4f5290 en un jugador y 0x4f4a10 en otro.
+// 0x4cd3e0, branches 1, 2, 4, 7, 0xb and 0x11: except on the hero, 0x4f5290 on a player and 0x4f4a10 on another.
 Core::Expected<void, std::string> StrikeUnlessHero(const Cast& cast)
 {
     if (cast.sourceIsHero)
@@ -297,7 +296,7 @@ Core::Expected<void, std::string> StrikeUnlessHero(const Cast& cast)
     return Settle(cast);
 }
 
-// Una acción, +0x381 en 1 y un sonido, y vuelve (0x4cd4df, 0x4cd879 y sus parecidas).
+// An action, +0x381 at 1 and a sound, and returns (0x4cd4df, 0x4cd879 and the like).
 Core::Expected<void, std::string> ActAndSound(const Cast& cast, std::uint8_t action, std::int32_t sound)
 {
     if (auto acted = Act(cast.source, action, cast.resources); !acted.HasValue())
@@ -307,7 +306,7 @@ Core::Expected<void, std::string> ActAndSound(const Cast& cast, std::uint8_t act
     return {};
 }
 
-// Una acción y 0x4cde62.
+// An action and 0x4cde62.
 Core::Expected<void, std::string> ActAndSettle(const Cast& cast, std::uint8_t action)
 {
     if (auto acted = Act(cast.source, action, cast.resources); !acted.HasValue())
@@ -325,7 +324,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     const bool succeeded = source.skillSucceeded != 0;
     switch (skill)
     {
-    // 0x4cd316, 0x4cd34b y 0x4cd35b.
+    // 0x4cd316, 0x4cd34b and 0x4cd35b.
     case 0xc9:
         source.flags78 |= 0x100;
         source.byte381 = 1;
@@ -336,7 +335,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         return AttackAction(source, resources);
     case 0xc8:
         return AttackAction(source, resources);
-    // 0x4cd369: suena y sigue como la 0x10.
+    // 0x4cd369: plays the sound and continues like 0x10.
     case 0x1a:
     case 0x1b:
     case 0x1c:
@@ -352,7 +351,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         return HitUnlessHero(cast);
     case 0x10:
         return HitUnlessHero(cast);
-    // 0x4cd3a5: suena, para al blanco si está en una de cuatro acciones y sigue como la 1.
+    // 0x4cd3a5: plays the sound, stops the target if it is in one of four actions and continues like 1.
     case 0x3:
     {
         if (source.type != SilentSkill3Type)
@@ -372,7 +371,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     case 0xb:
     case 0x11:
         return StrikeUnlessHero(cast);
-    // 0x4cd410: el blanco se va y la fuente llega. Vuelve por 0x4cde69 (0x4cd442), sin pasar por el +0x381 de
+    // 0x4cd410: the target leaves and the source arrives. Returns through 0x4cde69 (0x4cd442), skipping the +0x381 of
     // 0x4cde62.
     case 0xf:
     {
@@ -393,7 +392,7 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         return ActAndSound(cast, ShoutAction(source, false), 0x1c9);
     case 0x4a:
         return ActAndSound(cast, ShoutAction(source, true), 0x1c9);
-    // 0x4cd4df..0x4cd59f: la acción es la skill + 0x25.
+    // 0x4cd4df..0x4cd59f: the action is the skill + 0x25.
     case 0x13:
         return ActAndSound(cast, 0x38, 0x70);
     case 0x14:
@@ -436,8 +435,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return acted;
         return Settle(cast);
     }
-    // 0x4cd617: con la skill salida, apaga el 0x628/0 del blanco y crea otro (Effects::PutTheSkullOn; con la tabla
-    // llena, ninguno). Después, el sonido 0x85 en el blanco (0x4cd669..0x4cd671) y su 0x40 (0x4cd676..0x4cd67e).
+    // 0x4cd617: with the skill succeeded, turns off the target's 0x628/0 and creates another (Effects::PutTheSkullOn;
+    // with the table full, none). Then sound 0x85 on the target (0x4cd669..0x4cd671) and its 0x40 (0x4cd676..0x4cd67e).
     case 0x37:
         if (succeeded)
         {
@@ -449,9 +448,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         if (IsPlayer(source))
             return {};
         return AttackAndSettle(source, resources);
-    // 0x4cd6a5: con la skill salida, el hielo del blanco (0x4cd6bc..0x4cd730: apaga su 0xc1/1 y crea el 0xc1/1 y el
-    // /2, Actors::WrapInIce; con la tabla llena, nada). Después (0x4cd733..0x4cd748): +0x378 del blanco en 0, 0x4f2250
-    // sobre él y su 0x20.
+    // 0x4cd6a5: with the skill succeeded, the target's ice (0x4cd6bc..0x4cd730: turns off its 0xc1/1 and creates the
+    // 0xc1/1 and the /2, Actors::WrapInIce; with the table full, nothing). Then (0x4cd733..0x4cd748): the target's
+    // +0x378 at 0, 0x4f2250 on it and its 0x20.
     case 0x33:
     {
         if (auto acted = ActByTheHands(source, StaffHands, resources); !acted.HasValue())
@@ -522,8 +521,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
                 return removed;
         return Settle(cast);
     }
-    // 0x4cdad7..0x4cdb7a: con la skill salida, 0x2000 en la fuente y 0x518cf0(0x138, su posición, sus ángulos, su
-    // luz, 0, sin dueño, −1, 0, 0, 0, 0): la runa de maná (Scenes/HighModelEffects, sin rand()).
+    // 0x4cdad7..0x4cdb7a: with the skill succeeded, 0x2000 in the source and 0x518cf0(0x138, its position, its angles,
+    // its light, 0, no owner, −1, 0, 0, 0, 0): the mana rune (Effects/HighModelEffects, no rand()).
     case 0x45:
     {
         if (auto acted = Act(source, MountedAction(source, 0x3f), resources); !acted.HasValue())
@@ -548,8 +547,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
                     return removed;
         }
         return ActAndSettle(cast, MountedAction(source, 0x3f));
-    // 0x4cdc37..0x4cdc9c: sin 0x400 en el blanco, apaga su 0x5ac/2 y sus joints 0x619/9 y crea otro 0x5ac/2 con él de
-    // dueño (0x4cdc88, Effects::ModelEffects::CreateSkillFlare; con la tabla llena, ninguno). Después, 0x400 y sigue.
+    // 0x4cdc37..0x4cdc9c: without 0x400 in the target, turns off its 0x5ac/2 and its 0x619/9 joints and creates another
+    // 0x5ac/2 with it as owner (0x4cdc88, Effects::ModelEffects::CreateSkillFlare; with the table full, none). Then
+    // 0x400 and it continues.
     case 0x35:
         if ((target.flags78 & 0x400u) != 0x400u)
         {
@@ -578,9 +578,9 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
             return AttackAndSettle(source, resources);
         return Settle(cast);
     }
-    // 0x4cdd45: sin 0x10 en el blanco, apaga su 0x5ac/1 y crea otro con él de dueño (0x4cdd84, CreateSkillFlare; con la
-    // tabla llena, ninguno), cuyo paso suelta partículas 5ac/4 de la CL11 (0x52a866, StepSkillFlare). Después, 0x10 y
-    // sigue.
+    // 0x4cdd45: without 0x10 in the target, turns off its 0x5ac/1 and creates another with it as owner (0x4cdd84,
+    // CreateSkillFlare; with the table full, none), whose step drops CL11's 0x5ac/4 particles (0x52a866,
+    // StepSkillFlare). Then 0x10 and it continues.
     case 0x30:
         if ((target.flags78 & 0x10u) != 0x10u)
         {
@@ -591,14 +591,14 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         }
         target.flags78 |= 0x10;
         return ActAndSettle(cast, 0x3f);
-    // 0x4cdda4: en los mapas 8 y 10 (Atlans y el cielo), 0x41.
+    // 0x4cdda4: on maps 8 and 10 (Atlans and the sky), 0x41.
     case 0x31:
     {
         const std::int32_t map = world.Runtime().map;
         return ActAndSettle(cast, map == 8 || map == 10 ? std::uint8_t{0x41} : std::uint8_t{0x40});
     }
-    // 0x4cddd3..0x4cde03: 0x518cf0(0x112, +0x10, +0x1c, +0xf4, 0, sin dueño, −1, 0, 0, 0, 0) en la fuente, con sus
-    // sesenta joints 0x5ac/0 (World/BlastModelEffects), y el sonido 0x94.
+    // 0x4cddd3..0x4cde03: 0x518cf0(0x112, +0x10, +0x1c, +0xf4, 0, no owner, −1, 0, 0, 0, 0) on the source, with its
+    // sixty 0x5ac/0 joints (Effects/BlastModelEffects), and sound 0x94.
     case 0x3b:
     {
         constexpr std::int16_t ComboEffect = 0x112;
@@ -622,8 +622,8 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
         source.byte1bc = 0;
         return {};
     }
-    // 0x4cde2f: en el héroe, apaga el derecho (0x4cde43..0x4cde58): el soltado (0x7d36840), el clic (0x7d36880), el
-    // abajo (0x7d3685c) y los frames de la carga (0x7d368a4), que así no se suelta otra vez.
+    // 0x4cde2f: on the hero, turns off the right button (0x4cde43..0x4cde58): the release (0x7d36840), the click
+    // (0x7d36880), the down state (0x7d3685c) and the charge frames (0x7d368a4), so it is not released again.
     case 0x28:
     {
         if (auto acted = Act(source, 0x45, resources); !acted.HasValue())
@@ -645,13 +645,13 @@ Core::Expected<void, std::string> CastTheSkill(const Cast& cast)
     }
 }
 
-// 0x4ce000: la acción de otro jugador por la skill con duración (la tabla de 0x4ced44).
+// 0x4ce000: another player's action by the duration skill (the table of 0x4ced44).
 Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std::uint8_t skill,
                                                  const Scenes::WorldEntryResources& resources)
 {
     switch (skill)
     {
-    // 0x4cea88 y 0x4ceaad.
+    // 0x4cea88 and 0x4ceaad.
     case 0x18:
     case 0x34:
     case 0x36:
@@ -694,7 +694,7 @@ Core::Expected<void, std::string> DurationAction(Kernel::ActorState& actor, std:
 
 Core::Expected<void, std::string> LevelUpEffect(Kernel::ActorState& actor, const Scenes::WorldEntryResources& resources)
 {
-    // 0x4dbfad..0x4dc004 y 0x4d319d..0x4d31f4: quince intentos, el calco /0 y el sonido aun con los pools llenos.
+    // 0x4dbfad..0x4dc004 and 0x4d319d..0x4d31f4: fifteen tries, the /0 decal and the sound even with the pools full.
     constexpr int Sparkles = 15;
     for (int sparkle = 0; sparkle < Sparkles; ++sparkle)
     {
@@ -726,7 +726,7 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack,
     Kernel::ActorState& source = actors[sourceIndex];
     Kernel::ActorState& target = actors[targetIndex];
     const bool sourceIsHero = sourceIndex == runtime.hero;
-    // 0x4ccea1: la 0x3b va derecho a la tabla.
+    // 0x4ccea1: 0x3b goes straight to the table.
     if (attack.skill != 0x3b)
     {
         if (!sourceIsHero && attack.skill != 0x6 && attack.skill != 0xf && target.seen)
@@ -736,13 +736,13 @@ Core::Expected<void, std::string> ApplyMagicAttack(const MagicAttack& attack,
         if (attack.skill == 0x4c)
             source.skillTarget4c = static_cast<std::int32_t>(targetIndex);
         source.skillSucceeded = attack.succeeded ? std::uint8_t{1} : std::uint8_t{0};
-        // 0x4ccf07..0x4cd2ef: la skill en +0x38e, abierta y cerrada en línea.
+        // 0x4ccf07..0x4cd2ef: the skill in +0x38e, opened and closed inline.
         const Models::LogicalAccess access(source.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         source.byte38e = attack.skill;
     }
-    // 0x4cce50: sin la fuente, el original sigue por la rama de la skill sobre el lugar 400, con lo que haya ahí (el
-    // tipo del modelo de 0x4ea030, la montura, las manos). MuRet deja lo de arriba en el 400 y descarta la rama
-    // (07, Q-C1237).
+    // 0x4cce50: without the source, the original continues through the skill's branch on slot 400, with whatever is
+    // there (the model type of 0x4ea030, the mount, the hands). MuRet leaves the above in 400 and drops the branch (07,
+    // Q-C1237).
     if (sourceIndex == NoActor)
     {
         resources.log.Debug("se descarta la rama de la skill {:#x} del 19: la fuente {:#x} no está", attack.skill,
@@ -762,18 +762,18 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
         const Models::LogicalAccess access(actor.byte38eAccesses, resources.cloth.random, ActorByteCloseRandoms);
         actor.byte38e = magic.skill;
     }
-    // 0x4cea3e..0x4cea4d: FILD, por 1/255 (0x6b88f8) y por 360 (0x6b869c), exacto en double (Q-C1201).
+    // 0x4cea3e..0x4cea4d: FILD, times 1/255 (0x6b88f8) and times 360 (0x6b869c), exact in double (Q-C1201).
     actor.angles.z = static_cast<float>(static_cast<double>(magic.direction) * static_cast<double>(1.0f / 255.0f) *
                                         static_cast<double>(360.0f));
-    // 0x4ce76c: sin el personaje, el 400. Su acción sale del tipo que haya ahí (0x4cea38); las dos ramas ponen el frame
-    // en 0, porque el 400 nunca es el héroe. MuRet descarta la acción y deja el frame (07, Q-C1204).
+    // 0x4ce76c: without the character, slot 400. Its action comes from the type there (0x4cea38); both branches set the
+    // frame to 0, because 400 is never the hero. MuRet drops the action and keeps the frame (07, Q-C1204).
     if (index == NoActor)
     {
         resources.log.Debug("se descarta la acción de la skill {:#x} del 1E: la clave {:#x} no está", magic.skill,
                             magic.key);
         actor.animation.frame = 0.0f;
     }
-    // 0x4cece8: otro que un jugador, 0x4f4a10 y el frame en 0, también el héroe.
+    // 0x4cece8: other than a player, 0x4f4a10 and the frame at 0, the hero too.
     else if (!IsPlayer(actor))
     {
         if (auto attacked = AttackAction(actor, resources); !attacked.HasValue())
@@ -786,7 +786,7 @@ Core::Expected<void, std::string> ApplyDurationMagic(const DurationMagic& magic,
             return acted;
         actor.animation.frame = 0.0f;
     }
-    // 0x4cecfe..: la celda, +0x381, +0x3a4 y +0x380.
+    // 0x4cecfe..: the cell, +0x381, +0x3a4 and +0x380.
     actor.skillCellY = magic.y;
     actor.skillCellX = magic.x;
     actor.byte381 = 1;
@@ -847,7 +847,7 @@ Core::Expected<void, std::string> ApplyMagicCancel(const MagicCancel& cancel,
     case 0x46:
         mask = 0x4000;
         break;
-    // 0x4cbfc8 y 0x4cbfdd: 0x439d40 antes.
+    // 0x4cbfc8 and 0x4cbfdd: 0x439d40 first.
     case 0xc9:
         Actors::SettleMonsterFlags(actor);
         mask = 0x8;
@@ -870,10 +870,10 @@ Core::Expected<void, std::string> ApplyActorState(const Protocol::Skills::ActorS
     const bool lit = (actor.flags78 & state.mask) == state.mask;
     if (state.type == 1)
     {
-        // 0x4cbe47: sin todas, 0x4e6380(máscara, personaje) (Actors::ApplyEffectFlags, CL9 hito 1).
+        // 0x4cbe47: without all of them, 0x4e6380(mask, character) (Actors::ApplyEffectFlags).
         if (!lit)
             return Actors::ApplyEffectFlags(actor, state.mask, &actor == &world.Hero(), resources);
-        // 0x4cbe52..0x4cbe72: el NEG/SBB deja +0x7c entero en 0x200000 si lo tenía y en 0 si no (Q-C1202).
+        // 0x4cbe52..0x4cbe72: the NEG/SBB leaves the whole +0x7c at 0x200000 if it had it and at 0 if not (Q-C1202).
         constexpr std::uint32_t Sitting = 0x200000;
         actor.flags7c = (actor.flags7c & Sitting) == Sitting ? Sitting : 0u;
         return {};
@@ -898,13 +898,13 @@ Core::Expected<void, std::string> ApplySkillTarget(const SkillTarget& target,
         source.byte42e = target.skill;
     }
     source.attackTarget = static_cast<std::uint16_t>(targetIndex);
-    // 0x4cc2a9: SAR 0xf del blanco entero; con el bit, 0x5110d0 no lo encontró y ya volvió.
+    // 0x4cc2a9: SAR 0xf of the whole target; with the bit, 0x5110d0 did not find it and already returned.
     source.skillSucceeded = (target.target >> 15) != 0 ? std::uint8_t{1} : std::uint8_t{0};
-    // 0x4cc503..0x4cc51c: 0x4f4a10, el frame en 0 y +0x381 en 1.
+    // 0x4cc503..0x4cc51c: 0x4f4a10, the frame at 0 and +0x381 at 1.
     if (target.skill < 1 || target.skill > 0xd)
         return {};
-    // 0x4cc2b0: sin la fuente, el 400, cuyo 0x4f4a10 sale del tipo que haya ahí. MuRet lo descarta y deja el frame y
-    // +0x381 (07, Q-C1237).
+    // 0x4cc2b0: without the source, slot 400, whose 0x4f4a10 comes from the type there. MuRet drops it and keeps the
+    // frame and +0x381 (07, Q-C1237).
     if (sourceIndex == NoActor)
     {
         resources.log.Debug("se descarta la acción de la skill {:#x} del 69: la fuente {:#x} no está", target.skill,
@@ -949,7 +949,7 @@ Core::Expected<void, std::string> ApplyLevelUp(const Protocol::Skills::LevelUp& 
         own.maxAddedPoints = reply.maxAddedPoints;
         own.word48 = reply.word48;
         own.word4a = reply.word4a;
-        // 0x550ca0: aritmética de DWORD, incluido el desborde.
+        // 0x550ca0: DWORD arithmetic, overflow included.
         const std::uint32_t level = reply.level;
         own.nextExperience = 10u * (level + 9u) * level * level;
         if (level > 255u)
@@ -973,7 +973,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
             own.SetSkillAt(list.slot, 0);
         else if (list.count == Protocol::Skills::SkillListAddOne)
             own.SetSkillAt(list.slot, list.skill);
-        // 0x4c52a6..0x4c52c2: el mismo lugar `cantidad` veces.
+        // 0x4c52a6..0x4c52c2: the same slot `count` times.
         else if (list.list == Protocol::Skills::SkillListClearSlot)
         {
             if (list.count > 0)
@@ -981,7 +981,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
         }
         else
         {
-            // 0x4c535a..0x4c53b7: con la lista en 0, los 256 en 0; después las entradas y las cuatro del Dark Lord.
+            // 0x4c535a..0x4c53b7: with the list at 0, all 256 at 0; then the entries and the Dark Lord's four.
             if (list.list == 0)
             {
                 own.words6c.fill(0);
@@ -996,7 +996,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
             }
         }
     }
-    // 0x4c53f6..0x4c5595: otra vez abierto, las cuentas y +0x425 del héroe.
+    // 0x4c53f6..0x4c5595: open again, the counts and the hero's +0x425.
     const Models::LogicalAccess access(runtime.ownRecordDepth, random, Models::OwnRecordCloseRandoms);
     own.byte6a = 0;
     own.byte6b = 0;
@@ -1014,7 +1014,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
             return Core::Unexpected(std::format("0x4c54ed: Skill.bmd no tiene la skill {}", skill));
         std::uint8_t hidden = 0;
         {
-            // 0x4c549a..0x4c54fa: abre la entrada y la cierra con 0x4e7c40.
+            // 0x4c549a..0x4c54fa: opens the entry and closes it with 0x4e7c40.
             const Models::LogicalAccess entry(runtime.movement.skillDepths[skill], random,
                                               static_cast<std::uint16_t>(Tables::SkillRecordSize));
             constexpr std::size_t HiddenOffset = 0x31;
@@ -1030,7 +1030,7 @@ Core::Expected<void, std::string> ApplySkillList(const SkillList& list, const Sc
         hero.skillIndex = 0;
     if (Kernel::OwnSkillByte(own, hero.skillIndex) == 0)
         hero.skillIndex = 0;
-    // 0x4c5557..0x4c5588: saltea las 0x43 a 0x48, hasta 256 veces, con el byte que envuelve.
+    // 0x4c5557..0x4c5588: skips 0x43 to 0x48, up to 256 times, with the byte wrapping.
     constexpr int MaximumSkips = 0x100;
     for (int skipped = 0; skipped < MaximumSkips; ++skipped)
     {

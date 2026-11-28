@@ -25,8 +25,8 @@ class WorldState;
 namespace Client::WorldObjects
 {
 
-// 4eb860 con flags (0, 1): conserva los huesos dummy y publica la pose global y la key del modelo en `faunaModels`;
-// sin ellos corta ahí.
+// 0x4eb860 with flags (0, 1): keeps the dummy bones and publishes the global pose and the model's key in
+// `faunaModels`; without them it stops there.
 [[nodiscard]] Core::Expected<void, std::string>
 PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                const Models::Skeleton& skeleton, float frame, const glm::vec3& angles);

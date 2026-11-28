@@ -29,8 +29,8 @@
 #include <string>
 #include <string_view>
 
-// Lo que dicen los NPC (CL9 hito 2): el giro de 0x4fcd0c, 0x4fc790, el mensaje del nombre (0x4fcd65..0x4fce15) y
-// 0x4fc8c0. Los textos son inventados; los índices y las ramas salen del ASM.
+// What the NPCs say: the 0x4fcd0c turn, 0x4fc790, the name message (0x4fcd65..0x4fce15) and 0x4fc8c0. The texts are
+// made up; the indices and branches come from the ASM.
 namespace
 {
 using Client::Actors::CharacterStepContext;
@@ -43,7 +43,7 @@ constexpr std::size_t NpcSlot = 9;
 constexpr std::int32_t Lorencia = 0;
 constexpr std::int32_t Devias = 2;
 constexpr std::int32_t CastleSiege = 30;
-// 0x6c88b0, el nombre del tipo 236.
+// 0x6c88b0, the name of type 236.
 constexpr std::array<std::uint8_t, 11> MessageName{0xc8, 0xb2, 0xb1, 0xdd, 0xc0, 0xc7, 0x20, 0xb1, 0xc3, 0xbc, 0xf6};
 
 class LetterMeasure final : public Client::Render::Text::ITextMeasure
@@ -56,7 +56,6 @@ public:
     }
 };
 
-// La primera semilla desde 1 cuyos rand() cumplen `wanted`.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& wanted)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -128,7 +127,7 @@ protected:
                                                               : std::function<std::uint32_t()>()};
     }
 
-    // Lo que dice el NPC, el renglón de abajo de su globo; vacío si no tiene.
+    // The bottom line of the NPC's bubble; empty if it has none.
     [[nodiscard]] std::optional<std::string> Said() const
     {
         for (const ChatBubble& bubble : m_world->Runtime().chat.bubbles)
@@ -163,7 +162,7 @@ protected:
     int m_clockReads = 0;
 };
 
-// 0x4fcd0c..0x4fcd55: con +0x88 en 4, en Lorencia y Devias, el 0x20a de subtipo 0xd1 a 0xd3 mira a 90 o a 0.
+// 0x4fcd0c..0x4fcd55: with +0x88 at 4, in Lorencia and Devias, the 0x20a of subtype 0xd1 to 0xd3 faces 90 or 0.
 TEST_F(NpcChatterTest, TheArcherTurnsInLorenciaAndDevias)
 {
     Npc().angles = {10.0f, 20.0f, 30.0f};
@@ -196,7 +195,7 @@ TEST_F(NpcChatterTest, TheArcherTurnsInLorenciaAndDevias)
     }
 }
 
-// 0x4fc790: con +0x88 en 4, un rand() par y el tipo, su mensaje con el globo del chat (0x557170 con 0 y −1).
+// 0x4fc790: with +0x88 at 4, an even rand() and the type, its message in the chat bubble (0x557170 with 0 and −1).
 TEST_F(NpcChatterTest, AnEvenRandomSaysTheLineOfTheType)
 {
     struct Case
@@ -231,7 +230,7 @@ TEST_F(NpcChatterTest, AnEvenRandomSaysTheLineOfTheType)
     }
 }
 
-// Un rand() impar no dice nada; sin +0x88 en 4 ni lo saca; el 0x1cd calla en el mapa 30.
+// An odd rand() says nothing; without +0x88 at 4 it is not even drawn; 0x1cd is silent on map 30.
 TEST_F(NpcChatterTest, AnOddRandomOrAnotherKindSaysNothing)
 {
     Npc().type = 0x1d3;
@@ -256,7 +255,7 @@ TEST_F(NpcChatterTest, AnOddRandomOrAnotherKindSaysNothing)
     EXPECT_EQ(m_random.State(), AfterDraws(even, 1).State());
 }
 
-// Sin Text.bmd o sin el medidor, el que tiene que hablar corta con la dirección de su 0x557170.
+// Without Text.bmd or the measure, the speaker cuts with the address of its 0x557170.
 TEST_F(NpcChatterTest, WithoutTheTextOrTheMeasureTheSpeakerStops)
 {
     Npc().type = 0x1d5;
@@ -276,8 +275,8 @@ TEST_F(NpcChatterTest, WithoutTheTextOrTheMeasureTheSpeakerStops)
     EXPECT_EQ(Said(), std::nullopt);
 }
 
-// 0x4fcd65..0x4fce15: la primera vez el reloj arranca 5.000 ms atrás, así que el primero habla enseguida, con el 1168
-// (0x743a190 en 0). Después, más de 4.000 ms sin signo, y los mensajes se turnan.
+// 0x4fcd65..0x4fce15: the first time the clock starts 5000 ms back, so the first one speaks at once, with 1168
+// (0x743a190 at 0). Then, more than 4000 ms unsigned, and the messages take turns.
 TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
 {
     TheMessageName();
@@ -302,8 +301,8 @@ TEST_F(NpcChatterTest, TheNamedLineTakesTurnsEveryFourSeconds)
     EXPECT_FALSE(m_world->Runtime().namedLineFirst);
 }
 
-// 0x4fcda2: el strcmp sigue después de los once bytes iguales y compara +0x1e4 con el 0 de 0x6c88b0. Con algo ahí (lo
-// que deja un nombre largo, Q-C847), el nombre no es el del mensaje; un byte de menos tampoco lo es.
+// 0x4fcda2: the strcmp goes on after the eleven equal bytes and compares +0x1e4 with the 0 of 0x6c88b0. With something
+// there (what a long name leaves, Q-C847), the name is not the message's; one byte short is not either.
 TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
 {
     TheMessageName();
@@ -315,7 +314,6 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
     Npc().byte1e3 = 0;
     EXPECT_FALSE(Client::Monsters::HasTheMessageName(Npc()));
 
-    // Con +0x1e4 en algo, SayTheNamedLine no habla aunque pasen los 4.000 ms.
     TheMessageName();
     Npc().nameSpill[0] = std::byte{'s'};
     m_now = 1000;
@@ -323,8 +321,8 @@ TEST_F(NpcChatterTest, TheMessageNameNeedsTheZeroAfterItsElevenBytes)
     EXPECT_EQ(Said(), std::nullopt);
 }
 
-// El reloj arranca con cualquier personaje, aunque no tenga el nombre; antes de las 5.000 ms del arranque la resta da
-// la vuelta sin signo. Sin timeGetTime() no se toca y solo el del nombre corta.
+// The clock starts with any character, even without the name; before the start's 5000 ms the unsigned subtraction
+// wraps. Without timeGetTime() it is not touched and only the named one cuts.
 TEST_F(NpcChatterTest, TheClockStartsWithAnyoneAndWithoutItOnlyTheNameStops)
 {
     m_now = 300;
@@ -344,7 +342,7 @@ TEST_F(NpcChatterTest, TheClockStartsWithAnyoneAndWithoutItOnlyTheNameStops)
     EXPECT_EQ(Said(), std::nullopt);
 }
 
-// 0x4fc8c0 fuera de la acción 1: el rand() % 100 sale igual y vuelve a la 1.
+// 0x4fc8c0 outside action 1: the rand() % 100 is drawn anyway and it goes back to action 1.
 TEST_F(NpcChatterTest, TheTurnedArcherGoesBackToRest)
 {
     Npc().animation.action = 0x9d;
@@ -355,8 +353,8 @@ TEST_F(NpcChatterTest, TheTurnedArcherGoesBackToRest)
     EXPECT_EQ(m_random.State(), AfterDraws(7, 1).State());
 }
 
-// 0x4fc8c0 en la acción 1: el tramo del rand() % 100 da la acción y, en Devias, con el segundo rand() par (o múltiplo
-// de 3 desde 90), el 904 o el 905. El segundo rand() sale también en Lorencia, que no habla.
+// 0x4fc8c0 in action 1: the rand() % 100 range gives the action and, in Devias, with the second rand() even (or a
+// multiple of 3 from 90), 904 or 905. The second rand() is drawn in Lorencia too, which does not speak.
 TEST_F(NpcChatterTest, TheRestingArcherDrawsItsNextAction)
 {
     struct Case

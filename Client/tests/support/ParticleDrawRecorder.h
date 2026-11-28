@@ -16,29 +16,29 @@
 #include <optional>
 #include <vector>
 
-// Los servicios de 0x548550 sin GL ni recursos, para Particles::DrawParticlesChecked: las dimensiones de cada
-// imagen (Recurso+20/+24 por Slot+08) y el byte de material de cada tipo (Recurso+28 por Slot+04) que fija
-// el test, y lo que el dibujo pidió de cada lugar. Los tipos que MuRet todavía no liga (0x620850 y
-// 0x620870) fallan con su fase, sin callbacks vacíos.
+// 0x548550's services without GL or resources, for Particles::DrawParticlesChecked: each image's dimensions
+// (Resource+20/+24 by Slot+08) and each type's material byte (Resource+28 by Slot+04) that the test sets, and what the
+// drawing requested of each slot. The types MuRet does not bind yet (0x620850 and 0x620870) fail with their phase,
+// without empty callbacks.
 namespace Client::Tests
 {
 struct RecordedParticleDraw
 {
-    // La mezcla que dejó el material: 0x620a90 con el byte en 3, 0x620a00(0) con otro, y 0x620b10 o 0x620c10 si
-    // el dibujo la pidió después.
+    // The blend the material left: 0x620a90 with the byte at 3, 0x620a00(0) with another, and 0x620b10 or 0x620c10 if
+    // the drawing requested it afterwards.
     enum class Blend : std::uint8_t
     {
         Alpha,
         Additive,
         Subtractive,
-        // 0x620c10, el modo 6 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA).
+        // 0x620c10, mode 6 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA).
         Blended,
     };
 
-    // Lo que llegó al billboard de 0x621400.
+    // What reached 0x621400's billboard.
     std::int32_t texture = 0;
     Blend blend = Blend::Additive;
-    // El modo de la textura con el que se dibujó (glTexEnvi, 0x5489eb).
+    // The texture mode it was drawn with (glTexEnvi, 0x5489eb).
     Render::TextureEnvMode textureEnv = Render::TextureEnvMode::Modulate;
     glm::vec3 position{};
     float width = 0.0f;
@@ -52,14 +52,13 @@ struct RecordedParticleDraw
 class ParticleDrawRecorder final : public Particles::IParticleDrawingServices
 {
 public:
-    // Por imagen (Slot+08) y por tipo (Slot+04); lo que falta es el error de su frontera.
+    // By image (Slot+08) and by type (Slot+04); a missing one is its boundary's error.
     std::map<std::int32_t, glm::vec2> dimensions;
     std::map<std::int32_t, std::uint8_t> materialFlags;
-    // Un billboard por lugar dibujado, en el orden del pool.
+    // One billboard per drawn slot, in pool order.
     std::vector<RecordedParticleDraw> draws;
-    // El modo de la textura que dejó el último glTexEnvi; GL arranca en GL_MODULATE.
+    // The texture mode the last glTexEnvi left; GL starts in GL_MODULATE.
     Render::TextureEnvMode textureEnv = Render::TextureEnvMode::Modulate;
-    // Cuántas veces se llamó a glTexEnvi.
     std::size_t textureEnvCalls = 0;
 
     [[nodiscard]] Core::Expected<glm::vec2, Particles::ParticleError> Dimensions(std::int32_t image) override;
@@ -76,10 +75,10 @@ private:
     RecordedParticleDraw::Blend m_blend = RecordedParticleDraw::Blend::Additive;
 };
 
-// 0x548550(`mode`) sobre un pool que solo tiene `particle`, en el lugar `slot` (el índice real que lee la
-// neblina), con `textureSize` para su imagen y `materialFlag` para su tipo, si están. Devuelve el billboard
-// que pidió, nada si el lugar no se dibujó, o el error. `particle` vuelve con lo que el dibujo le escribió. Si
-// `textureEnv` está, recibe el modo de la textura que quedó después del dibujo.
+// 0x548550(`mode`) over a pool that only has `particle`, at slot `slot` (the real index the mist reads), with
+// `textureSize` for its image and `materialFlag` for its type, if present. Returns the requested billboard, nothing if
+// the slot was not drawn, or the error. `particle` comes back with what the drawing wrote to it. If `textureEnv` is
+// set, it receives the texture mode left after the drawing.
 [[nodiscard]] Core::Expected<std::optional<RecordedParticleDraw>, Particles::ParticleDrawingError>
 DrawOneParticle(Particles::Particle& particle, std::optional<glm::vec2> textureSize,
                 std::optional<std::uint8_t> materialFlag, float clock = 0.0f, std::size_t slot = 0,

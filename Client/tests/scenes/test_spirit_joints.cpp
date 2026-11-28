@@ -40,8 +40,8 @@
 #include <string>
 #include <vector>
 
-// El 0x613 y el 0x6ee (SpiritJoints.cpp) y la gota 0x60f/2 (DropJoints.cpp): el alta de 0x53265e y 0x5340dc, el paso
-// de 0x538d77 y 0x53b156, y el dibujo común de 0x53c6a0. 06, "Los joints de las familias".
+// The 0x613 and the 0x6ee (SpiritJoints.cpp) and the drop 0x60f/2 (DropJoints.cpp): the creation in 0x53265e and
+// 0x5340dc, the step in 0x538d77 and 0x53b156, and the common drawing in 0x53c6a0. 06, "Los joints de las familias".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -114,7 +114,7 @@ ActorState Owner(glm::vec3 position)
     return owner;
 }
 
-// Una semilla cuyo rand() número `index` (desde 0) cumple `wanted`.
+// A seed whose rand() number `index` (from 0) satisfies `wanted`.
 template <typename Wanted> std::uint32_t SeedWhere(int index, Wanted wanted)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
@@ -136,7 +136,7 @@ std::vector<Client::Particles::Sprite> AliveSprites(Client::Particles::FrameSpri
     return found;
 }
 
-// La partícula que pide un paso, repetida en un pool gemelo con `replay`, que avanza los rand() como el original.
+// The particle a step asks for, repeated in a twin pool with `replay`, which advances the rand() like the original.
 Client::Particles::Particle Twin(CrtRandom& replay, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
                                  const glm::vec3& angles, const glm::vec3& light, float scale)
 {
@@ -151,7 +151,7 @@ std::array<std::uint32_t, 3> Bits(const glm::vec3& value)
     return {Bits(value.x), Bits(value.y), Bits(value.z)};
 }
 
-// Todos los campos, bit a bit.
+// Every field, bit for bit.
 void ExpectSameParticle(const Client::Particles::Particle& made, const Client::Particles::Particle& twin)
 {
     EXPECT_EQ(made.alive, twin.alive);
@@ -183,8 +183,8 @@ std::size_t AliveParticles(Client::Particles::Particles& particles)
     return count;
 }
 
-// 0x53265e y la tabla 0x534f18: los subtipos sin rand() escriben sus campos; la mezcla es 3 salvo donde la pisan (en
-// la /3, la /0xd y la /0x13 sólo el 0x613; en la /0x12 y la /0x14 sólo el 0x6ee).
+// 0x53265e and the table 0x534f18: the subtypes without rand() write their fields; the blend is 3 except where it is
+// overwritten (in the /3, the /0xd and the /0x13 only the 0x613; in the /0x12 and the /0x14 only the 0x6ee).
 TEST(SpiritJointsTest, TheFixedSubtypesWriteTheirFields)
 {
     struct Case
@@ -244,15 +244,15 @@ TEST(SpiritJointsTest, TheFixedSubtypesWriteTheirFields)
         EXPECT_EQ(pool.random.State(), CrtRandom(Seed).State());
         EXPECT_EQ(pool.sounds, probe.subtype == 1 ? std::vector<std::int32_t>{0x3e} : std::vector<std::int32_t>{});
     }
-    // 0x5334bb: la /0xe nace con la x de los ángulos en 20.
+    // 0x5334bb: the /0xe is born with the angles' x at 20.
     Pool pool;
     ASSERT_TRUE(pool.Create(0x613, 0xe, {}, 25.0f).HasValue());
     EXPECT_EQ(pool.joints[0].angles.x, 20.0f);
     EXPECT_EQ(pool.joints[0].life, 10);
 }
 
-// 0x5331e8..0x533201: la /6 sortea la key con rand() % 5 y sin 0 pierde la cola; la skill 1 la deja con velocidad 10 y
-// la luz 0,5 (0x533218).
+// 0x5331e8..0x533201: the /6 draws its key with rand() % 5 and without 0 loses its tail; skill 1 leaves it with speed
+// 10 and light 0.5 (0x533218).
 TEST(SpiritJointsTest, TheSixthDrawsItsKeyAndLosesItsTailWithoutZero)
 {
     for (const bool zero : {true, false})
@@ -273,8 +273,8 @@ TEST(SpiritJointsTest, TheSixthDrawsItsKeyAndLosesItsTailWithoutZero)
     }
 }
 
-// 0x532675 y 0x532bab: la /0 y la /5 copian el +0xf04 del registro propio a +0x9eb con un acceso; el cierre que lo
-// deja en 0 saca 3.848 rand(). Sin el registro, cortan. Con el pool lleno, nada.
+// 0x532675 and 0x532bab: the /0 and the /5 copy the own record's +0xf04 to +0x9eb with one access; the close that
+// leaves it at 0 draws 3848 rand(). Without the record, they stop. With the pool full, nothing.
 TEST(SpiritJointsTest, TheVolleySubtypesReadTheOwnRecord)
 {
     for (const std::int32_t subtype : {0, 5})
@@ -314,8 +314,9 @@ TEST(SpiritJointsTest, TheVolleySubtypesReadTheOwnRecord)
     }
 }
 
-// 0x5332b8 y 0x5333f6 con la tabla 0x534f18 compartida: la 6ee/4 nace como la 613/4 (la viga del ayudante, sin
-// velocidad) y la 613/9 como el meteoro 6ee/9; los pasos son los mismos (la /4 sin caso, la /9 con dos rand()).
+// 0x5332b8 and 0x5333f6 with the shared table 0x534f18: the 0x6ee/4 is born like the 0x613/4 (the helper's beam,
+// without speed) and the 0x613/9 like the meteor 0x6ee/9; the steps are the same (the /4 without a case, the /9 with
+// two rand()).
 TEST(SpiritJointsTest, TheFourthAndTheNinthShareTheirTable)
 {
     Pool beam;
@@ -340,8 +341,8 @@ TEST(SpiritJointsTest, TheFourthAndTheNinthShareTheirTable)
     EXPECT_EQ(meteor.joints[0].speed, 11.0f);
 }
 
-// 0x538d99..0x538dda: la /1 avanza 70 con sus ángulos, suelta el sprite 0x5ac de escala 4 con la luz (0,8; 0,4; 1) y el
-// giro rand() % 360, y pierde una vida.
+// 0x538d99..0x538dda: the /1 advances 70 with its angles, drops the sprite 0x5ac of scale 4 with the light (0.8; 0.4;
+// 1) and the turn rand() % 360, and loses one life.
 TEST(SpiritJointsTest, TheSparkStepsWithItsSprite)
 {
     Pool pool;
@@ -361,9 +362,10 @@ TEST(SpiritJointsTest, TheSparkStepsWithItsSprite)
     EXPECT_EQ(pool.random.State(), expected.State());
 }
 
-// 0x539586..0x539775: la /2 suelta en su primer paso el sprite de escala 4 con la luz (1; 0,5; 0,1) y sube la
-// velocidad 5; con vida 19 sortea los ángulos y un punto alrededor de la partida y suelta allí la gota 0x60f/2 de ancho
-// 40, que nace con vz en rand() % 20 + 35 y vida rand() % 50 + 25 y, en un lugar de después, pasa en la misma vuelta.
+// 0x539586..0x539775: on its first step the /2 drops the scale 4 sprite with the light (1; 0.5; 0.1) and raises the
+// speed by 5; with life 19 it draws the angles and a point around the start and drops there the drop 0x60f/2 of width
+// 40, which is born with vz at rand() % 20 + 35 and life rand() % 50 + 25 and, in a later slot, steps in the same
+// round.
 TEST(SpiritJointsTest, TheCrossDropsItsDropOnItsSecondStep)
 {
     Pool pool;
@@ -411,8 +413,8 @@ TEST(SpiritJointsTest, TheCrossDropsItsDropOnItsSecondStep)
     EXPECT_EQ(cross.life, 18);
 }
 
-// 0x53b156..0x53b185 y 0x53b339: con vida de 25 o menos, la gota baja sobre su destino con vz + 5; con menos de 10, la
-// luz por 0,7692308f.
+// 0x53b156..0x53b185 and 0x53b339: with life 25 or less, the drop falls onto its target with vz + 5; under 10, the
+// light times 0.7692308f.
 TEST(SpiritJointsTest, TheDropFallsOnItsTarget)
 {
     Pool pool;
@@ -428,8 +430,8 @@ TEST(SpiritJointsTest, TheDropFallsOnItsTarget)
     EXPECT_EQ(drop.life, 8);
 }
 
-// 0x539600..0x539641: con vida de menos de 10, la luz propia por 0,8333333f es también la del sprite, de escala
-// (20 − vida) / 5 + 4. La /6 con una skill que no es 0 ni 1 deja la luz local sin escribir: corta.
+// 0x539600..0x539641: with life under 10, its own light times 0.8333333f is also the sprite's, of scale (20 − life) / 5
+// + 4. The /6 with a skill other than 0 or 1 leaves the local light unwritten: it stops.
 TEST(SpiritJointsTest, TheCrossFadesBelowTenAndCutsWithoutLight)
 {
     Pool pool;
@@ -450,9 +452,9 @@ TEST(SpiritJointsTest, TheCrossFadesBelowTenAndCutsWithoutLight)
     EXPECT_TRUE(stepped.Error().starts_with("0x53975b")) << stepped.Error();
 }
 
-// 0x539941..0x5399a2 y 0x5399a2..0x539a09: la /3 avanza 140 y se desvía con 0x53d1a0(lugar, dir, 1): el contador con
-// su acceso (4 rand() al cerrarlo en 0) y la dirección de la fase lugar + contador, por 50; después los sprites 0x5ac
-// de escala 3 y 0x5fd de escala 1,5 con la luz (1; 0,5; 0,1).
+// 0x539941..0x5399a2 and 0x5399a2..0x539a09: the /3 advances 140 and veers with 0x53d1a0(slot, dir, 1): the counter
+// with its access (4 rand() when closing it at 0) and the direction of phase slot + counter, times 50; then the sprites
+// 0x5ac of scale 3 and 0x5fd of scale 1.5 with the light (1; 0.5; 0.1).
 TEST(SpiritJointsTest, TheBoltWandersWithTheSharedCounter)
 {
     Pool pool;
@@ -478,7 +480,7 @@ TEST(SpiritJointsTest, TheBoltWandersWithTheSharedCounter)
     EXPECT_EQ(sprites[1].light, glm::vec3(1.0f, 0.5f, Tenth));
     EXPECT_EQ(pool.random.State(), expected.State());
 
-    // Con el contador abierto, sin los 4 rand().
+    // With the counter open, without the 4 rand().
     Pool open;
     open.cloth.openCounterAccesses = 1;
     ASSERT_TRUE(open.Create(0x613, 3, {}, 50.0f).HasValue());
@@ -488,9 +490,9 @@ TEST(SpiritJointsTest, TheBoltWandersWithTheSharedCounter)
     EXPECT_EQ(open.random.State(), twoDraws.State());
 }
 
-// 0x539789..0x53993f: la /0xd con vida de 28 o menos y un personaje de dueño gira 20 en x con rand() & 1 en 0, busca
-// un punto ±70 alrededor del dueño y 50 más arriba con 0x4e9810 de a (velocidad − 20), sube la velocidad 1 y usa su
-// propia luz con escala (vida / 10 + 1) · 2. Sin dueño, la luz local queda sin escribir: corta.
+// 0x539789..0x53993f: the /0xd with life 28 or less and a character owner turns 20 in x with rand() & 1 at 0, seeks a
+// point ±70 around the owner and 50 higher with 0x4e9810 by (speed − 20), raises the speed by 1 and uses its own light
+// with scale (life / 10 + 1) · 2. Without an owner, the local light stays unwritten: it stops.
 TEST(SpiritJointsTest, TheThirteenthSeeksItsOwner)
 {
     ActorState owner = Owner({1500.0f, 1500.0f, 100.0f});
@@ -529,9 +531,9 @@ TEST(SpiritJointsTest, TheThirteenthSeeksItsOwner)
     EXPECT_TRUE(stepped.Error().starts_with("0x5399cd")) << stepped.Error();
 }
 
-// 0x53909f..0x539125: el 0x6ee/0xe (los 24 de Kundun, 0x43d19f) baja 2 la x de los ángulos y con rand() % 5 crea la
-// 0x6f2/2 (0), la 0x6f3/2 (1 o 2) o la 0x6f4/4, de escala 1 en su posición, con sus ángulos y su luz (+0x48); sigue a
-// la cola. Cada partícula se repite en un pool gemelo con el mismo CrtRandom.
+// 0x53909f..0x539125: the 0x6ee/0xe (Kundun's 24, 0x43d19f) lowers the angles' x by 2 and with rand() % 5 creates the
+// 0x6f2/2 (0), the 0x6f3/2 (1 or 2) or the 0x6f4/4, of scale 1 at its position, with its angles and its light (+0x48);
+// the tail follows. Each particle is repeated in a twin pool with the same CrtRandom.
 TEST(SpiritJointsTest, TheKundunSparkTiltsAndPicksItsParticle)
 {
     struct Case
@@ -565,8 +567,8 @@ TEST(SpiritJointsTest, TheKundunSparkTiltsAndPicksItsParticle)
     }
 }
 
-// 0x538e1e..0x538e7f: la /8 sube con la x en 110 y velocidad 10 hasta la vida 42; después va con velocidad 50 desde 180
-// de a rand() % 3 + 2. 0x538e89: la /0xa gira 50 en z por paso con velocidad 50.
+// 0x538e1e..0x538e7f: the /8 rises with x at 110 and speed 10 until life 42; then it goes with speed 50 from 180 by
+// rand() % 3 + 2. 0x538e89: the /0xa turns 50 in z per step with speed 50.
 TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
 {
     Pool pool;
@@ -589,11 +591,11 @@ TEST(SpiritJointsTest, TheEighthArcsAndTheTenthTurns)
     EXPECT_EQ(turning.random.State(), CrtRandom(Seed).State());
 }
 
-// 0x539a0e..0x539a48: con ancho 80, la /0, la /5 y la /0x13 sueltan el 0xd0 (el rayo, subtipo 3 la /5 y 0 las
-// demás) con su posición, sus ángulos y su luz, sin rand(); sin el asedio, sin ser el héroe su dueño o fuera de los
-// múltiplos de 15 de vida, siguen como con otro ancho (el mismo paso, los mismos rand()), y la /0x13 no suelta el
-// 0x11b/0. Con otro ancho, la /0x13 suelta el destello 0x11b/0 (0x539b08: vida 1, escala 2,3f, sin rand()) y sigue como
-// la /0; sin la tabla de efectos, corta ahí.
+// 0x539a0e..0x539a48: with width 80, the /0, the /5 and the /0x13 drop the 0xd0 (the ray, subtype 3 for the /5 and 0
+// for the others) with their position, angles and light, without rand(); without the siege, without the hero as owner
+// or off the multiples of 15 of life, they go on as with another width (the same step, the same rand()), and the /0x13
+// does not drop the 0x11b/0. With another width, the /0x13 drops the flash 0x11b/0 (0x539b08: life 1, scale 2.3f,
+// without rand()) and goes on like the /0; without the effect table, it stops there.
 TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
 {
     const ActorState someoneElse = Owner({});
@@ -639,7 +641,7 @@ TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
             EXPECT_FALSE(thin.effects->Effects()[0].alive);
             continue;
         }
-        // El 0x11b/0 del ancho 20 nace en el mismo punto del paso que el 0xd0: los mismos ángulos.
+        // The width 20's 0x11b/0 is born at the same step point as the 0xd0: the same angles.
         const auto& spark = thin.effects->Effects()[0];
         ASSERT_TRUE(spark.alive);
         EXPECT_EQ(spark.type, 0x11b);
@@ -664,7 +666,7 @@ TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
     const auto wideCut = wideTableless.Step();
     ASSERT_FALSE(wideCut.HasValue());
     EXPECT_TRUE(wideCut.Error().starts_with("0x539a48")) << wideCut.Error();
-    // Sin el asedio, los atributos y los blancos, corta después de soltar el 0xd0.
+    // Without the siege, the attributes and the targets, it stops after dropping the 0xd0.
     Pool bare;
     ASSERT_TRUE(bare.Create(0x613, 0, {}, 80.0f, &owner, JointOwnerKind::Actor).HasValue());
     const auto bareCut = bare.Step();
@@ -673,9 +675,9 @@ TEST(SpiritJointsTest, TheWideVolleyDropsItsRayAndGoesOn)
     EXPECT_TRUE(bare.effects->Effects()[0].alive);
 }
 
-// 0x539a50..0x539a95: con el asedio prendido y el bit 0x100 de 0x5f82c0 en el punto del joint, la velocidad en 0, la
-// vida en _ftol(49 · 0,2f) = 9 y la cola 0x53c393, sin el resto del paso ni sus rand(). Con el asedio y la celda sin
-// el bit, como sin asedio.
+// 0x539a50..0x539a95: with the siege on and the bit 0x100 of 0x5f82c0 at the joint's point, speed at 0, life at
+// _ftol(49 · 0.2f) = 9 and the tail 0x53c393, without the rest of the step or its rand(). With the siege and the cell
+// without the bit, as without the siege.
 TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
 {
     auto walled = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
@@ -704,7 +706,7 @@ TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     ASSERT_TRUE(going.Step().HasValue());
     ASSERT_TRUE(thin.Step().HasValue());
-    // La cola 0x53c393 resta la vida igual que con el paso entero.
+    // The tail 0x53c393 subtracts the life the same as with the whole step.
     const std::int32_t tail = thin.joints[0].life - 49;
     EXPECT_EQ(stopped.joints[0].life, 9 + tail);
     EXPECT_EQ(stopped.joints[0].speed, 0.0f);
@@ -715,9 +717,9 @@ TEST(SpiritJointsTest, TheWideVolleyStopsOverTheCastleWall)
     EXPECT_EQ(going.random.State(), thin.random.State());
 }
 
-// 0x539a9a..0x539add: con la vida múltiplo de 15 y el héroe de dueño, los blancos de 0x517a20 con la skill (+0x9ea),
-// la posición, 150, la tanda (+0x9eb), la clave (+0x9e8) y el byte de +0xa08; antes del resto del paso. Con otro dueño
-// u otra vida, ninguno.
+// 0x539a9a..0x539add: with life a multiple of 15 and the hero as owner, 0x517a20's targets with the skill (+0x9ea), the
+// position, 150, the volley (+0x9eb), the key (+0x9e8) and the byte at +0xa08; before the rest of the step. With
+// another owner or another life, none.
 TEST(SpiritJointsTest, TheWideVolleyOfTheHeroHitsEveryFifteenSteps)
 {
     std::vector<Client::Actors::SkillHitsRequest> hits;
@@ -767,8 +769,9 @@ TEST(SpiritJointsTest, TheWideVolleyOfTheHeroHitsEveryFifteenSteps)
     }
 }
 
-// 0x539b10..0x539cc7: la /0 y la /5 de otro ancho van hacia el dueño 80 más arriba, la /0 sacudida con dos rand(); el
-// terreno las sube a menos de 100 y las baja a más de 400; la luz es la vida · 0,1f y la luz dinámica, un rand() más.
+// 0x539b10..0x539cc7: the /0 and the /5 of another width go toward the owner 80 higher, the /0 shaken with two rand();
+// the ground raises them below 100 and lowers them above 400; the light is life · 0.1f and the dynamic light, one more
+// rand().
 TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
 {
     for (const std::int32_t subtype : {0, 5})
@@ -778,7 +781,7 @@ TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
             SCOPED_TRACE(ground);
             Pool pool;
             pool.terrainHeight = [ground](float, float) { return ground; };
-            pool.ownRecordDepth = 1; // Sin el cierre del registro propio (3.848 rand()) en el alta.
+            pool.ownRecordDepth = 1; // Without the own record's close (3848 rand()) in the creation.
             ActorState owner = Owner({900.0f, 700.0f, 120.0f});
             ASSERT_TRUE(pool.Create(0x613, subtype, {1000.0f, 1100.0f, 200.0f}, 20.0f, &owner, JointOwnerKind::Actor)
                             .HasValue());
@@ -829,7 +832,7 @@ TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
             EXPECT_EQ(stepped.life, 48);
             EXPECT_EQ(pool.random.State(), expected.State());
         }
-    // Sin la altura del terreno, corta en 0x5f93c0.
+    // Without the ground height, it stops at 0x5f93c0.
     Pool blind;
     ActorState owner = Owner({});
     ASSERT_TRUE(blind.Create(0x613, 5, {}, 20.0f, &owner, JointOwnerKind::Actor).HasValue());
@@ -838,10 +841,11 @@ TEST(SpiritJointsTest, TheThinVolleyFollowsItsOwnerOverTheGround)
     EXPECT_TRUE(cut.Error().starts_with("0x539c19")) << cut.Error();
 }
 
-// 0x538f45..0x538feb: la /0xb (vida 50) pone la vida en la x de los ángulos, deja la 0x5da/5 de 0,9f con la luz 1 en su
-// posición, saca rand() % 200 (con 0, el joint 0x613/0xc ahí) y avanza 20 por FCOS y FSIN de la z (30, sin pasar a
-// radianes). 0x539328..0x539384: la /0x10 igual con la 0x6f4/4 de escala 1 y su luz, sin rand() propio, y 30. Los bits
-// de la posición salen de una cuenta aparte (seno y coseno exactos a 64 bits, productos y sumas a 53, fstp a float).
+// 0x538f45..0x538feb: the /0xb (life 50) puts the life in the angles' x, leaves the 0x5da/5 of 0.9f with light 1 at its
+// position, draws rand() % 200 (with 0, the joint 0x613/0xc there) and advances 20 by FCOS and FSIN of z (30, not
+// converted to radians). 0x539328..0x539384: the /0x10 the same with the 0x6f4/4 of scale 1 and its light, without its
+// own rand(), and 30. The position's bits come from a separate computation (sine and cosine exact to 64 bits, products
+// and sums at 53, fstp to float).
 TEST(SpiritJointsTest, TheStillOnesLeaveTheirParticlesAndDrift)
 {
     struct Case
@@ -884,8 +888,8 @@ TEST(SpiritJointsTest, TheStillOnesLeaveTheirParticlesAndDrift)
     }
 }
 
-// 0x538f96..0x538fc3: con rand() % 200 en 0, la /0xb suelta el joint 0x613/0xc (vida 30) desde la copia de su
-// posición, con sus ángulos (la x ya en la vida), sin dueño y de ancho 0,9f; desde un 0x6ee, también un 0x613.
+// 0x538f96..0x538fc3: with rand() % 200 at 0, the /0xb drops the joint 0x613/0xc (life 30) from the copy of its
+// position, with its angles (x already the life), without an owner and of width 0.9f; from a 0x6ee, also a 0x613.
 TEST(SpiritJointsTest, TheStillOneSometimesReleasesASmoke)
 {
     std::uint32_t seed = 0;
@@ -919,8 +923,9 @@ TEST(SpiritJointsTest, TheStillOneSometimesReleasesASmoke)
     EXPECT_EQ(Bits(pool.joints[3].position.x), 0x42ce2b89u);
 }
 
-// 0x538ff9..0x539091: la /0xc saca rand() & 31 y en su posición deja la 0x5f5/0 de escala (r + 48) · 0,01f (bits de una
-// cuenta aparte) con la luz (1; 0,2f; 0,1f) y después la 0x5da/6 de 0,6f con la luz 1, con sus ángulos.
+// 0x538ff9..0x539091: the /0xc draws rand() & 31 and at its position leaves the 0x5f5/0 of scale (r + 48) · 0.01f (bits
+// from a separate computation) with the light (1; 0.2f; 0.1f) and then the 0x5da/6 of 0.6f with light 1, with its
+// angles.
 TEST(SpiritJointsTest, TheSmokeLeavesTwoParticles)
 {
     constexpr std::array<std::uint32_t, 32> Scales{
@@ -949,9 +954,10 @@ TEST(SpiritJointsTest, TheSmokeLeavesTwoParticles)
     EXPECT_EQ(pool.joints[0].position, before.position);
 }
 
-// 0x539133..0x53931e: la /0xf suma 30 a la key. Con vida de menos de 35 (la del alta, 20) deja la 0x5d9/7 de escala 1
-// con la luz 1 en su posición y saca rand() & 1: con 1, nada más. Siempre avanza k = key · 0,1f + 30 con el seno y el
-// coseno de la z (30). Con 35 o más, sólo avanza (sin rand()). Bits de una cuenta aparte.
+// 0x539133..0x53931e: the /0xf adds 30 to the key. With life under 35 (the creation's, 20) it leaves the 0x5d9/7 of
+// scale 1 with light 1 at its position and draws rand() & 1: with 1, nothing more. It always advances k = key · 0.1f +
+// 30 with the sine and cosine of z (30). With 35 or more, it only advances (without rand()). Bits from a separate
+// computation.
 TEST(SpiritJointsTest, TheSpiralTurnsWithItsKey)
 {
     std::uint32_t seed = 0;
@@ -986,17 +992,18 @@ TEST(SpiritJointsTest, TheSpiralTurnsWithItsKey)
     pool.joints[0].position = {100.0f, 200.0f, 0.0f};
     const CrtRandom still = pool.random;
     ASSERT_TRUE(pool.Step().HasValue());
-    // k = 59 · 0,1f + 30 retenido; bits de una cuenta aparte (seno y coseno de 30 exactos a 64 bits).
+    // k = 59 · 0.1f + 30 retained; bits from a separate computation (sine and cosine of 30 exact to 64 bits).
     EXPECT_EQ(pool.joints[0].key, 59);
     EXPECT_EQ(Bits(pool.joints[0].position.x), 0x42810f30u);
     EXPECT_EQ(Bits(pool.joints[0].position.y), 0x4342765eu);
     EXPECT_EQ(pool.random.State(), still.State());
 }
 
-// 0x5391a9..0x53923a: con rand() & 1 en 0, la copia de la posición pasa a (x − FSIN(z) · k, FCOS(z) · k + y, 350) con
-// k = 40 − key · 0,1f retenido y suelta dos joints 0x613/0xe (vida 10, la x de los ángulos en 20 por su alta) con los
-// ángulos (0, 0, 0) y (0, 0, 3), de ancho 0,9f; caen en lugares anteriores y no pasan en esta vuelta. En (0, 0) con la
-// z en 2, el k retenido da (0xc206f093, 0xc1770657) y guardado en float daría (0xc206f092, 0xc1770656). Bits aparte.
+// 0x5391a9..0x53923a: with rand() & 1 at 0, the position copy becomes (x − FSIN(z) · k, FCOS(z) · k + y, 350) with k =
+// 40 − key · 0.1f retained and drops two joints 0x613/0xe (life 10, the angles' x at 20 from their creation) with the
+// angles (0, 0, 0) and (0, 0, 3), of width 0.9f; they land in earlier slots and do not step in this round. At (0, 0)
+// with z at 2, the retained k gives (0xc206f093, 0xc1770657) and stored as a float would give (0xc206f092,
+// 0xc1770656). Bits from a separate computation.
 TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
 {
     std::uint32_t seed = 0;
@@ -1045,8 +1052,8 @@ TEST(SpiritJointsTest, TheSpiralSometimesReleasesTwoSplashes)
     EXPECT_TRUE(cut.Error().starts_with("0x539249")) << cut.Error();
 }
 
-// 0x539392..0x53941e: la /0x11 con vida 100 suelta 120 joints 0x613/0x10 de ancho 0,9f con los ángulos (0, 0, 3 · i).
-// Los que caen en lugares de más adelante pasan en la misma vuelta (y dejan su 0x6f4/4); acá caen todos antes.
+// 0x539392..0x53941e: the /0x11 with life 100 drops 120 joints 0x613/0x10 of width 0.9f with the angles (0, 0, 3 · i).
+// Those that land in later slots step in the same round (and leave their 0x6f4/4); here all land before.
 TEST(SpiritJointsTest, TheBurstReleasesItsPieces)
 {
     Pool pool;
@@ -1069,16 +1076,17 @@ TEST(SpiritJointsTest, TheBurstReleasesItsPieces)
     }
     EXPECT_FALSE(pool.joints[120].alive);
     EXPECT_EQ(pool.joints[129].life, 99);
-    // En el paso siguiente, cada pieza (0x613/0x10) deja su 0x6f4/4 y avanza 30 por el coseno y el seno de su z.
+    // On the next step, each piece (0x613/0x10) leaves its 0x6f4/4 and advances 30 by the cosine and sine of its z.
     ASSERT_TRUE(pool.Step().HasValue());
     EXPECT_EQ(AliveParticles(pool.particles), 120U);
     EXPECT_EQ(pool.joints[0].position, glm::vec3(40.0f, 20.0f, 30.0f));
     EXPECT_EQ(pool.joints[0].angles.x, 50.0f);
 }
 
-// 0x53942c..0x539500: la /0x12 sube 3 la velocidad, mueve la key de a 6 y apunta −90 − key en x y 10 más en z; deja la
-// 0x5f2/0x13 de escala 7 con la luz 1 en su posición y sigue a la cola. Con un personaje de dueño corta antes, en
-// 0x539494 (sólo el efecto con modelo del 0x125 está portado, test_high_effect_families). La /0x14 sube como la /8.
+// 0x53942c..0x539500: the /0x12 raises the speed by 3, moves the key by 6 and aims −90 − key in x and 10 more in z;
+// it leaves the 0x5f2/0x13 of scale 7 with light 1 at its position and the tail follows. With a character owner it
+// stops earlier, at 0x539494 (only the 0x125's model effect is ported, test_high_effect_families). The /0x14 rises like
+// the /8.
 TEST(SpiritJointsTest, TheSwingAndTheTwentiethStep)
 {
     Pool pool;
@@ -1110,7 +1118,7 @@ TEST(SpiritJointsTest, TheSwingAndTheTwentiethStep)
     EXPECT_EQ(rising.joints[0].speed, 10.0f);
 }
 
-// 0x53c6a0: el dibujo común, con la textura del tipo y la mezcla 3 (resta) o 1 (suma); la /2 sólo la segunda cara.
+// 0x53c6a0: the common drawing, with the type's texture and blend 3 (subtract) or 1 (add); the /2 only the second face.
 TEST(SpiritJointsTest, TheJointsDrawWithTheirBlend)
 {
     std::array<std::size_t, 2> vertices{};

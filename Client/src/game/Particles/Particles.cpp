@@ -37,25 +37,25 @@ namespace Client::Particles
 {
 namespace
 {
-// 0x53fe70: sin lugar libre no se consulta el binding ni se consume rand().
-// Las entradas compatibles hacen la búsqueda en CreateImpl; sólo se anticipa si se rechazaría el tipo.
+// 0x53fe70: without a free slot the binding is not queried and no rand() is taken. Compatible entries search in
+// CreateImpl; it only anticipates if the type would be rejected.
 bool IsParticlePoolFull(std::span<const Particle> particles)
 {
     return std::ranges::all_of(particles, [](const Particle& particle) { return particle.alive; });
 }
 
 constexpr std::int32_t BreathSubtype = 0;
-// Extensiones 53fe70/5446e0/548550 para 67/0 y 68/0 (los tipos, en Particles.h); recursos y backend
-// se validan por separado. La 68 nace como la 67 y después corre la posición.
+// Extensions of 0x53fe70/0x5446e0/0x548550 for 67/0 and 68/0 (the types, in Particles.h); resources and backend are
+// validated separately. The 68 is born like the 67 and then shifts its position.
 constexpr std::int32_t Particle67Life = 20;
-// Extensión 5446e0 de la nube 622/8: +38 usa estos operandos binarios.
+// Extension of 0x5446e0 for the cloud 622/8: +0x38 uses these binary operands.
 constexpr double Cloud8Rise = std::bit_cast<double>(std::uint64_t{0x3fa47ae147ae147bull});
 constexpr float Cloud8RiseLimit = std::bit_cast<float>(0x3f800000u);
 constexpr float Cloud8FallLimit = std::bit_cast<float>(0x3dcccccdu);
 constexpr float Cloud8Fall = std::bit_cast<float>(0x3ccccccdu);
 constexpr double Cloud8RandomStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
 constexpr float Cloud8InitialQ = std::bit_cast<float>(0x3dcccccdu);
-// 5446e0_ext_67 y contrato histórico íntegro leaf-4303c0 (predicado raw32 == 34, sin calls).
+// 5446e0_ext_67 and the full historical contract leaf-4303c0 (predicate raw32 == 34, no calls).
 constexpr std::int32_t Particle67ColorMap = 34;
 constexpr double Particle67Growth = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
 constexpr double Particle67Fade = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
@@ -63,10 +63,10 @@ constexpr float Particle67Blue = std::bit_cast<float>(0x3f333333u);
 constexpr int Particle67ScaleSpan = 6;
 constexpr int Particle67ScaleBase = 8;
 constexpr double Particle67ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
-// La 68 corre cada eje rand() % 10 − 5, en x, y, z.
+// The 68 shifts each axis rand() % 10 − 5, in x, y, z.
 constexpr int Particle68OffsetSpan = 10;
 constexpr int Particle68OffsetCenter = 5;
-// 53fe70/5446e0, extensión 5c6/9 (mapa3, objeto322).
+// 0x53fe70/0x5446e0, extension 5c6/9 (map 3, object 322).
 constexpr std::int32_t MapSparkLife = 30;
 constexpr int MapSparkOffsetSpan = 10;
 constexpr double MapSparkOffsetBase = 160.0;
@@ -85,12 +85,13 @@ constexpr double DropScaleStep = static_cast<double>(std::bit_cast<float>(0x3cf5
 constexpr int DropWalkSpan = 20;
 constexpr int DropWalkCenter = 10;
 constexpr double DropWalkFactor = 2.5;
-// 0x542d60..0x542d6e: la 607 de 0 a 4 (la tabla de 0x544614); las de fuera salen por 0x54304c con el prefijo.
+// 0x542d60..0x542d6e: the 607 from 0 to 4 (the table of 0x544614); those outside leave through 0x54304c with the
+// prefix.
 constexpr std::int32_t LastDropSubtype = 4;
-// La /1 de las burbujas (0x43c332, 0x52434e, 0x526d5f), la /2 que pide el sonido 0x1d8 (0x4ef02e), la /3 que sube con
-// su +0x50 (0x523089) y la /4 que se para en 350 (0x52a400).
+// The /1 of the bubbles (0x43c332, 0x52434e, 0x526d5f), the /2 that asks for sound 0x1d8 (0x4ef02e), the /3 that rises
+// with its +0x50 (0x523089) and the /4 that stops at 350 (0x52a400).
 constexpr std::int32_t BubbleDropSubtype = 1, SoundingDropSubtype = 2, RisingDropSubtype = 3, CappedDropSubtype = 4;
-// Contratos final-runtime 53fe70/5446e0/548550, casos 5d9/0..3 y 5f2/2.
+// final-runtime contracts 0x53fe70/0x5446e0/0x548550, cases 5d9/0..3 and 5f2/2.
 constexpr std::int32_t FireLife = 24;
 constexpr std::int32_t WorldSmokeLife = 50;
 constexpr double FireRise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
@@ -110,15 +111,15 @@ constexpr int SmokeScaleBase = 64;
 constexpr int SmokeSpeedBase = 60;
 constexpr int FrameSteps = 6;
 constexpr double FireHeightFactor = 10.0;
-// 0x53ff05: la vida de cualquier partícula al crearla; 0x54184b: la del aliento.
+// 0x53ff05: the life of any particle when created; 0x54184b: the breath's.
 constexpr std::int32_t DefaultLife = 2;
 constexpr std::int32_t BreathLife = 16;
-// 0x5406eb: la de la chispa del cuervo, y lo que suma a su rand() % 2 (0x6b8818).
+// 0x5406eb: the crow spark's, and what it adds to its rand() % 2 (0x6b8818).
 constexpr std::int32_t SparkLife = 10;
 constexpr float SparkPush = 2.0f;
 constexpr double SparkShrink = static_cast<double>(std::bit_cast<float>(0x3F666666u));
 constexpr double SparkFade = static_cast<double>(std::bit_cast<float>(0x3F788B30u));
-// 0x543407..0x5434d3: neblina del login, cinco rand() y constantes binary32 del PE.
+// 0x543407..0x5434d3: the login mist, five rand() and binary32 constants of the PE.
 constexpr std::int32_t CloudLife = 500;
 constexpr int CloudOffsetSpan = 400;
 constexpr int CloudOffsetCenter = 200;
@@ -128,7 +129,7 @@ constexpr int CloudSpeedSpan = 10;
 constexpr int CloudSpeedBase = 5;
 constexpr double CloudScaleStep = static_cast<double>(std::bit_cast<float>(0x3d888889u));
 constexpr double CloudSpeedStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));
-// 0x5475b6..0x547699 y 0x548c04..0x548c2f; 06 § Los efectos del login, neblina.
+// 0x5475b6..0x547699 and 0x548c04..0x548c2f; 06 § Los efectos del login, the mist.
 constexpr float CloudRotationFactor = 1.5f;
 constexpr double CloudGrowth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
 constexpr float CloudLightLimit = std::bit_cast<float>(0x3e19999au);
@@ -138,43 +139,43 @@ constexpr double CloudDeathRadius = 500.0;
 constexpr double BreathScaleStep = static_cast<double>(0.01f); // 0x6b88d4
 constexpr int BreathScaleBase = 48;
 constexpr int FullTurn = Math::FullTurn;
-// 0x545ec4: la luz es la vida por 0,125 (0x6ba170), la velocidad vertical suma 0,2 (0x6b8854) y la escala,
-// 0,05 (0x6b8a48).
+// 0x545ec4: the light is the life by 0.125 (0x6ba170), the vertical speed adds 0.2 (0x6b8854) and the scale, 0.05
+// (0x6b8a48).
 constexpr double BreathLightPerLife = 0.125;
 constexpr double BreathRise = static_cast<double>(0.2f);
 constexpr double BreathGrowth = static_cast<double>(0.05f);
-// 0x54271f..0x542838: la 5f3/0, vida 32, (rand() & 15) − 8 en x y en y, ((rand() & 31) + 32) · escala · 0,01f y
-// el empuje (0; 3; 0) girado por los ángulos del pedido.
+// 0x54271f..0x542838: the 5f3/0, life 32, (rand() & 15) − 8 in x and y, ((rand() & 31) + 32) · scale · 0.01f and the
+// push (0; 3; 0) turned by the requested angles.
 constexpr std::int32_t DustLife = 32;
 constexpr int DustOffsetSpan = 16;
 constexpr int DustOffsetCenter = 8;
 constexpr int DustScaleSpan = 32;
 constexpr int DustScaleBase = 32;
 constexpr glm::vec3 DustPush{0.0f, 3.0f, 0.0f};
-// 0x546b66..0x546bfb: la luz por 0,03125 (0x6b8880), la escala más 0,08f (0x6ba1ac), el freno 0,9f (0x6b8a1c) y
-// el medio alto de la textura (0x6b882c).
+// 0x546b66..0x546bfb: the light by 0.03125 (0x6b8880), the scale plus 0.08f (0x6ba1ac), the brake 0.9f (0x6b8a1c) and
+// the texture's half height (0x6b882c).
 constexpr double DustLightPerLife = static_cast<double>(std::bit_cast<float>(0x3d000000u));
 constexpr double DustGrowth = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
 constexpr double DustBrake = static_cast<double>(std::bit_cast<float>(0x3f666666u));
 constexpr double DustHalfHeight = static_cast<double>(std::bit_cast<float>(0x3f000000u));
-// 0x542a69 y 0x545cac..0x545ccd: la vida de la 5ed/0, el 0,05f de su luz (0x6b8ad0), los tres factores del color
-// (0x6b882c, 0x6b89dc y 0x6b87b8) y el radio.
+// 0x542a69 and 0x545cac..0x545ccd: the 5ed/0's life, the 0.05f of its light (0x6b8ad0), the three color factors
+// (0x6b882c, 0x6b89dc and 0x6b87b8) and the radius.
 constexpr std::int32_t ExplosionLife = 20;
 constexpr double ExplosionGlow = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
 constexpr double ExplosionRed = static_cast<double>(std::bit_cast<float>(0x3f000000u));
 constexpr double ExplosionGreen = static_cast<double>(std::bit_cast<float>(0x3e99999au));
 constexpr double ExplosionBlue = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 constexpr std::int32_t ExplosionLightRadius = 4;
-// 0x542b11 y 0x542b1b: la vida de la 5fd y su ángulo x (0x42340000). 0x546d08..0x546d2e: el paso del seno, 5° en float
-// (0x6ba368), su factor (0x6b87f8), el de la /2 en adelante (0x6ba36c) y lo que gira esa (0x6b8864).
+// 0x542b11 and 0x542b1b: the 5fd's life and its x angle (0x42340000). 0x546d08..0x546d2e: the sine step, 5° in float
+// (0x6ba368), its factor (0x6b87f8), that of the /2 onward (0x6ba36c) and how much that one turns (0x6b8864).
 constexpr std::int32_t HandShineLife = 0x24;
 constexpr float HandShineTilt = std::bit_cast<float>(0x42340000u);
 constexpr float HandShinePulseStep = std::bit_cast<float>(0x3db2b8c2u);
 constexpr float HandShinePulse = std::bit_cast<float>(0x40a00000u);
 constexpr double HandShineSecondScale = static_cast<double>(std::bit_cast<float>(0x3f400000u));
 constexpr double HandShineTurn = static_cast<double>(std::bit_cast<float>(0x41400000u));
-// 0x5446e0: el cambio del viento, (rand() % 2001 − 1000) · 0,0006 (0x6b8a50), entre ±0,6 (0x6b8a20 y
-// 0x6b8b8c), y el viento, entre ±1,7 (0x6ba3f0 y 0x6ba3ec).
+// 0x5446e0: the wind change, (rand() % 2001 − 1000) · 0.0006 (0x6b8a50), between ±0.6 (0x6b8a20 and 0x6b8b8c), and
+// the wind, between ±1.7 (0x6ba3f0 and 0x6ba3ec).
 constexpr int WindSpan = 2001;
 constexpr int WindCenter = 1000;
 constexpr double WindStep = static_cast<double>(0.0006f);
@@ -183,9 +184,9 @@ constexpr float WindLimit = 1.7f;
 
 using Math::F32;
 
-// El tope de 0x544730..0x544773 (y de 0x54479a..0x5447de), con las comparaciones de la x87: si no es
-// mayor o igual que el de arriba (C0, o sin orden), y el de abajo es mayor, el de abajo; si después
-// sigue sin ser mayor o igual que el de arriba, el valor; si no, el de arriba. Un NaN pasa.
+// The clamp of 0x544730..0x544773 (and of 0x54479a..0x5447de), with the x87 comparisons: if it is not greater than or
+// equal to the upper one (C0, or unordered) and the lower one is greater, the lower one; if it is then still not
+// greater than or equal to the upper one, the value; otherwise, the upper one. A NaN passes.
 float ClampLikeTheBinary(float value, float low, float high)
 {
     const bool belowHigh = value < high || std::isnan(value);
@@ -196,7 +197,7 @@ float ClampLikeTheBinary(float value, float low, float high)
     return belowHigh ? value : high;
 }
 
-// 0x4e98d0: la posición más la velocidad girada por AngleMatrix de los ángulos, cada suma en 53 bits.
+// 0x4e98d0: the position plus the speed rotated by AngleMatrix of the angles, each sum in 53 bits.
 void Move(Particle& particle)
 {
     const glm::vec3 turned = Math::OriginalVectorRotate(particle.velocity, Math::OriginalAngleMatrix(particle.angles));
@@ -221,8 +222,8 @@ void StepTheWind(ParticleWind& wind, Crt::CrtRandom& random)
     }
 }
 
-// 0x545ec4: el aliento sube, crece y se apaga con la vida. La z suma la velocidad vertical antes de que
-// se guarde en float (fst la deja en la pila).
+// 0x545ec4: the breath rises, grows and fades with the life. The z adds the vertical speed before it is stored in a
+// float (fst leaves it on the x87 stack).
 void StepTheBreath(Particle& particle)
 {
     const float light = F32(static_cast<double>(particle.life) * BreathLightPerLife);
@@ -238,7 +239,7 @@ bool IsBreath(const Particle& particle)
     return particle.type == BreathParticle && particle.subtype == BreathSubtype;
 }
 
-// 0x54271f y 0x546b66: la 5f3 y la 5f6 comparten alta y paso; MuRet acepta las dos con la /0 y la /1.
+// 0x54271f and 0x546b66: the 5f3 and the 5f6 share creation and step; MuRet accepts both with the /0 and the /1.
 bool IsDustType(std::int32_t type)
 {
     return type == DustParticle || type == ArrivalDustParticle;
@@ -249,17 +250,17 @@ bool IsDust(const Particle& particle)
     return IsDustType(particle.type) && (particle.subtype == 0 || particle.subtype == 1);
 }
 
-// 0x542a60..0x542a75 con el subtipo 0: vida 20 (la /2 tiene 30) y la escala del pedido otra vez en +0x10. Sin rand().
-// El sonido de 0x542a82 lo hace quien la crea.
+// 0x542a60..0x542a75 with subtype 0: life 20 (the /2 has 30) and the requested scale again in +0x10. No rand(). The
+// sound of 0x542a82 is played by whoever creates it.
 void CreateTheExplosion(Particle& particle, float scale)
 {
     particle.life = particle.subtype == 2 ? 30 : ExplosionLife;
     particle.scale = scale;
 }
 
-// 0x5459a4..0x5459bc y 0x545c91..0x545cd6 con el subtipo 0, después de la vida y del movimiento común: el cuadro
-// (+0x48) es (20 − vida) / 2 con el cociente de idiv (cdq, sub y sar: hacia 0), y la luz dinámica de radio 4 es
-// (f · 0,5f; f · 0,3f; f · 0,1f) con f = vida · 0,05f (0x6b8ad0) retenido en la x87 entre los tres productos.
+// 0x5459a4..0x5459bc and 0x545c91..0x545cd6 with subtype 0, after the life and the common movement: the frame (+0x48)
+// is (20 − life) / 2 with the idiv quotient (cdq, sub and sar: toward 0), and the dynamic light of radius 4 is
+// (f · 0.5f; f · 0.3f; f · 0.1f) with f = life · 0.05f (0x6b8ad0) retained on the x87 across the three products.
 Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particles& particles, Crt::CrtRandom& random,
                                                      const float* worldClock, Terrain::TerrainLighting* lighting,
                                                      const std::function<void(Audio::SoundId)>& sound)
@@ -302,9 +303,9 @@ Core::Expected<void, ParticleError> StepTheExplosion(Particle& particle, Particl
     return {};
 }
 
-// 0x540260..0x540316: la vida (rand() & 7) + 20 de todas; la /2 la pisa con 19 y corre la y rand() % 60 − 30
-// (0x5402ac); la /3 vive 7 y la /4 4, las dos con la textura 0x5fd (0x5402df, 0x5402f2), y la /4 gira rand() % 180 −
-// 360 (0x540310).
+// 0x540260..0x540316: the life (rand() & 7) + 20 for all; the /2 overrides it with 19 and shifts the y rand() % 60 −
+// 30 (0x5402ac); the /3 lives 7 and the /4 4, both with texture 0x5fd (0x5402df, 0x5402f2), and the /4 turns
+// rand() % 180 − 360 (0x540310).
 void CreateTheMagicSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Shine = 0x5fd;
@@ -331,8 +332,8 @@ void CreateTheMagicSpark(Particle& particle, Crt::CrtRandom& random)
     }
 }
 
-// 0x544e87..0x544ed5: la /2 se achica por 0,92f; la /3 crece por 1,3f y se apaga por 0,9f; la /4 salta al final
-// (0x544edd) sin nada propio.
+// 0x544e87..0x544ed5: the /2 shrinks by 0.92f; the /3 grows by 1.3f and fades by 0.9f; the /4 jumps to the end
+// (0x544edd) with nothing of its own.
 void StepTheMagicSpark(Particle& particle)
 {
     if (particle.subtype == 2)
@@ -350,9 +351,9 @@ void StepTheMagicSpark(Particle& particle)
     }
 }
 
-// 0x543939..0x5439c9 (la /0) y 0x5439ca..0x543a5c (la /1): vida 24 o 15, la velocidad (0; −(rand() % 16 + 32) ·
-// 0,1f; 0) del fild por −0,1f (0x6b8930), la escala (rand() % 128 + 128) · 0,01f (0x6b88d4), la luz 0,5 y el giro
-// rand() % 360. Tres rand(); con otro subtipo, 0x54304c sin nada propio.
+// 0x543939..0x5439c9 (the /0) and 0x5439ca..0x543a5c (the /1): life 24 or 15, the speed (0; −(rand() % 16 + 32) ·
+// 0.1f; 0) from the fild by −0.1f (0x6b8930), the scale (rand() % 128 + 128) · 0.01f (0x6b88d4), the light 0.5 and
+// the turn rand() % 360. Three rand(); with another subtype, 0x54304c with nothing of its own.
 void CreateTheCinder(Particle& particle, Crt::CrtRandom& random)
 {
     if (particle.subtype != 0 && particle.subtype != 1)
@@ -373,10 +374,10 @@ void CreateTheCinder(Particle& particle, Crt::CrtRandom& random)
     particle.rotation = static_cast<float>(turn);
 }
 
-// 0x5478d7..0x54793a, después de la vida y del movimiento común, con cualquier subtipo: la velocidad vertical sube
-// 0,004f (0x6b89e8), la escala baja 0,02f (0x6b8b90), el cuadro (+0x48) es (23 − vida) / 6 (imul por 0x2aaaaaab,
-// hacia 0) y la z sube la velocidad vertical (releída del float) por 10. La /1 se apaga con la vida · 0,1f
-// (0x6b8a34), un fst por canal.
+// 0x5478d7..0x54793a, after the life and the common movement, with any subtype: the vertical speed rises 0.004f
+// (0x6b89e8), the scale drops 0.02f (0x6b8b90), the frame (+0x48) is (23 − life) / 6 (imul by 0x2aaaaaab, toward 0)
+// and the z rises the vertical speed (reread from the float) times 10. The /1 fades with life · 0.1f (0x6b8a34), one
+// fst per channel.
 void StepTheCinder(Particle& particle)
 {
     constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
@@ -393,11 +394,11 @@ void StepTheCinder(Particle& particle)
         particle.light = glm::vec3(F32(static_cast<double>(life) * Tenth));
 }
 
-// 0x54271f..0x542838: la vida, la posición corrida en x y en y, la escala en la x87 (fild, por la escala del pedido y
-// por 0,01f; 0x542761 separa la 5f6 de la 5f3 en dos ramas iguales), la velocidad girada por AngleMatrix (0x5fc8f0 y
-// 0x5fcbd0) y el giro x en rand() % 360. Con el subtipo 0 (0x5427aa), el empuje (0; 3; 0) y los ángulos del pedido:
-// cuatro rand(). Con otro, antes el giro z en rand() % 360, el empuje (0; 15; 0) y los ángulos del lugar; la /1
-// (0x54282c, la 5f6 del recorrido y la 5f3 del freno de +0x3e5) además vive 40, queda quieta y corre la z: seis.
+// 0x54271f..0x542838: the life, the position shifted in x and y, the scale on the x87 (fild, by the requested scale
+// and by 0.01f; 0x542761 splits the 5f6 from the 5f3 in two equal branches), the speed turned by AngleMatrix (0x5fc8f0
+// and 0x5fcbd0) and the x turn at rand() % 360. With subtype 0 (0x5427aa), the push (0; 3; 0) and the requested
+// angles: four rand(). With another, first the z turn at rand() % 360, the push (0; 15; 0) and the slot's angles; the
+// /1 (0x54282c, the 5f6 of the path and the 5f3 of the +0x3e5 brake) also lives 40, stays still and shifts the z: six.
 void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Crt::CrtRandom& random)
 {
     particle.life = DustLife;
@@ -424,11 +425,11 @@ void CreateTheDust(Particle& particle, const glm::vec3& angles, float scale, Crt
     }
 }
 
-// 0x546b66..0x546bfb: después del movimiento común (0x4e98d0, con la velocidad girada), la luz por la vida, la
-// escala que crece, la posición más la velocidad otra vez, sin girar (Q-C402), y el freno. La z es la altura del
-// terreno (0x5f93c0) más el alto de la textura del tipo (+0x24 de su lugar) por la escala ya crecida y por 0,5. La
-// comparación de 0x546b69 deja flotar la /5, que MuRet no crea. Sin la altura o sin el alto, corta con lo demás
-// escrito.
+// 0x546b66..0x546bfb: after the common movement (0x4e98d0, with the turned speed), the light by the life, the growing
+// scale, the position plus the speed again, unturned (Q-C402), and the brake. The z is the terrain height (0x5f93c0)
+// plus the height of the type's texture (+0x24 of its slot) by the already grown scale and by 0.5. The comparison at
+// 0x546b69 lets the /5 float, which MuRet does not create. Without the height or the texture height, it cuts with the
+// rest written.
 Core::Expected<void, ParticleError> StepTheDust(Particle& particle, const ParticleTerrainHeight& terrainHeight,
                                                 const ParticleTextureHeight& textureHeight)
 {
@@ -463,16 +464,16 @@ bool IsFlowerType(std::int32_t type)
     return type >= FirstFlowerParticle && type <= LastFlowerParticle;
 }
 
-// 0x542c4b..0x542d00: las flores 608..60a después del prefijo, sin leer el subtipo: la vida rand() % 10 + 15, la luz
-// en 1, la escala (rand() % 8 + 4) · 0,03f (0x6b8bd4), que pisa la del pedido, y la velocidad ((rand() % 32 − 16) ·
-// 0,1f; (rand() % 32 − 16) · 0,1f; (rand() % 32 − 32) · 0,1f) (0x6b87b8). Cinco rand(); el and con la corrección del
-// signo es el % simple.
+// 0x542c4b..0x542d00: the flowers 608..60a after the prefix, without reading the subtype: the life rand() % 10 + 15,
+// the light at 1, the scale (rand() % 8 + 4) · 0.03f (0x6b8bd4), which overrides the requested one, and the speed
+// ((rand() % 32 − 16) · 0.1f; (rand() % 32 − 16) · 0.1f; (rand() % 32 − 32) · 0.1f) (0x6b87b8). Five rand(); the and
+// with the sign correction is the plain %.
 void CreateTheFlower(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 10, LifeBase = 15, SizeSpan = 8, SizeBase = 4;
     constexpr int DriftSpan = 32, DriftCenter = 16, FallCenter = 32;
-    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));  // 0x6b8bd4: 0,03f
-    constexpr double DriftStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f
+    constexpr double SizeStep = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));  // 0x6b8bd4: 0.03f
+    constexpr double DriftStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0.1f
     particle.life = random.Next() % LifeSpan + LifeBase;
     const int size = random.Next() % SizeSpan + SizeBase;
     particle.light = glm::vec3(1.0f);
@@ -482,18 +483,18 @@ void CreateTheFlower(Particle& particle, Crt::CrtRandom& random)
     particle.velocity.z = F32(static_cast<double>(random.Next() % DriftSpan - FallCenter) * DriftStep);
 }
 
-// 0x546da6..0x546f08: las flores, después del movimiento común (0x4e98d0, con la velocidad girada). Mientras +0x48
-// (un entero) esté en 0, en el aire: la /0 suma a cada eje de la velocidad (rand() % 32 − 16) · 0,1f; la /1 suma
-// (rand() % 8 − 4) · 0,05f (0x6b8a48) a la x y a la y y resta (rand() % 8) · 0,05f a la z; las demás, nada; y la
-// posición más la velocidad otra vez, sin girar. Siempre: con la altura del terreno (0x5f93c0) por encima de la z
-// (`fcom` y `test ah, 0x41`: ni menor, ni igual, ni NaN), la z pasa a ser la altura, +0x48 el entero 1 (posada) y la
-// velocidad 0; y el giro más rand() % 16. Sin la altura corta con lo demás escrito.
+// 0x546da6..0x546f08: the flowers, after the common movement (0x4e98d0, with the turned speed). While +0x48 (an
+// integer) is 0, in the air: the /0 adds (rand() % 32 − 16) · 0.1f to each speed axis; the /1 adds (rand() % 8 − 4) ·
+// 0.05f (0x6b8a48) to the x and the y and subtracts (rand() % 8) · 0.05f from the z; the others, nothing; and the
+// position plus the speed again, unturned. Always: with the terrain height (0x5f93c0) above the z (`fcom` and
+// `test ah, 0x41`: neither less, nor equal, nor NaN), the z becomes the height, +0x48 the integer 1 (landed) and the
+// speed 0; and the turn plus rand() % 16. Without the height it cuts with the rest written.
 Core::Expected<void, ParticleError> StepTheFlower(Particle& particle, Crt::CrtRandom& random,
                                                   const ParticleTerrainHeight& terrainHeight)
 {
     constexpr int DriftSpan = 32, DriftCenter = 16, SwaySpan = 8, SwayCenter = 4, TurnSpan = 16;
-    constexpr double DriftStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0,1f
-    constexpr double SwayStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));  // 0x6b8a48: 0,05f
+    constexpr double DriftStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8: 0.1f
+    constexpr double SwayStep = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));  // 0x6b8a48: 0.05f
     constexpr std::uint32_t Landed = 1;
     constexpr std::int32_t DriftingSubtype = 0, SwayingSubtype = 1;
     if (std::bit_cast<std::uint32_t>(particle.field48) == 0)
@@ -529,12 +530,12 @@ Core::Expected<void, ParticleError> StepTheFlower(Particle& particle, Crt::CrtRa
     return {};
 }
 
-// 0x542d01..0x542d5f: la 62b/0 después del prefijo: la vida rand() % 10 + 30, la luz en 1 y la velocidad (0; 0;
-// (rand() % 100) · 0,02f) (0x6b89e4). Dos rand(). Los demás subtipos salen en 0x54304c con sólo el prefijo.
+// 0x542d01..0x542d5f: the 62b/0 after the prefix: the life rand() % 10 + 30, the light at 1 and the speed (0; 0;
+// (rand() % 100) · 0.02f) (0x6b89e4). Two rand(). The other subtypes leave at 0x54304c with only the prefix.
 void CreateTheFlareColumn(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 10, LifeBase = 30, RiseSpan = 100;
-    constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4: 0,02f
+    constexpr double RiseStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b89e4: 0.02f
     if (particle.subtype != 0)
         return;
     particle.life = random.Next() % LifeSpan + LifeBase;
@@ -544,16 +545,16 @@ void CreateTheFlareColumn(Particle& particle, Crt::CrtRandom& random)
     particle.velocity.z = F32(static_cast<double>(random.Next() % RiseSpan) * RiseStep);
 }
 
-// 0x546f0d..0x546f51: la 62b/0, después del movimiento común (con la velocidad girada): la escala en 0,2f, la z de la
-// velocidad más 0,4f, hasta 8 (`fcomp` con `test ah, 1`: con más de 8, o un NaN, queda en 8); con menos de 5 de vida,
-// la luz por 0,8333333f (0x547fc9). Los demás subtipos no tienen nada propio.
+// 0x546f0d..0x546f51: the 62b/0, after the common movement (with the turned speed): the scale at 0.2f, the speed's z
+// plus 0.4f, up to 8 (`fcomp` with `test ah, 1`: with more than 8, or a NaN, it stays at 8); with less than 5 life,
+// the light by 0.8333333f (0x547fc9). The other subtypes have nothing of their own.
 void StepTheFlareColumn(Particle& particle)
 {
-    constexpr float ColumnScale = std::bit_cast<float>(0x3e4ccccdu);                // 0x546f21: 0,2f
-    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4: 0,4f
+    constexpr float ColumnScale = std::bit_cast<float>(0x3e4ccccdu);                // 0x546f21: 0.2f
+    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4: 0.4f
     constexpr double TopSpeed = 8.0;                                                // 0x6b86c4
     constexpr std::int32_t FadeLife = 5;
-    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98: 0,8333333f
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u)); // 0x6b8b98: 0.8333333f
     if (particle.subtype != 0)
         return;
     const double speed = static_cast<double>(particle.velocity.z) + Rise;
@@ -564,27 +565,28 @@ void StepTheFlareColumn(Particle& particle)
             particle.light[channel] = F32(static_cast<double>(particle.light[channel]) * Fade);
 }
 
-// 0x543bf1..0x543c25: el 6ae después del prefijo, sin leer el subtipo: la vida 30, la luz en 0,1f y el giro
-// rand() % 360. Un rand().
+// 0x543bf1..0x543c25: the 6ae after the prefix, without reading the subtype: life 30, the light at 0.1f and the turn
+// rand() % 360. One rand().
 void CreateTheHole(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t HoleLife = 30;
-    constexpr float HoleLight = std::bit_cast<float>(0x3dcccccdu); // 0x543c06: 0,1f
+    constexpr float HoleLight = std::bit_cast<float>(0x3dcccccdu); // 0x543c06: 0.1f
     particle.life = HoleLife;
     const int turn = random.Next() % FullTurn;
     particle.light = glm::vec3(HoleLight);
     particle.rotation = static_cast<float>(turn);
 }
 
-// 0x547d42..0x547dc1: el 6ae, sin leer el subtipo: el giro más 5; con menos de 20 de vida, la escala menos 0,08f
-// (0x6ba1ac) y, con menos de 10, la luz por 0,7692308f (0x6ba240); de 20 a 29, la luz por 1,1f (0x6b8830).
+// 0x547d42..0x547dc1: the 6ae, without reading the subtype: the turn plus 5; with less than 20 life, the scale minus
+// 0.08f (0x6ba1ac) and, with less than 10, the light by 0.7692308f (0x6ba240); from 20 to 29, the light by 1.1f
+// (0x6b8830).
 void StepTheHole(Particle& particle)
 {
     constexpr double Turn = 5.0; // 0x6b87f8
     constexpr std::int32_t ShrinkLife = 20, FadeLife = 10, BirthLife = 30;
-    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3da3d70au)); // 0,08f
-    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu));   // 0,7692308f
-    constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu));   // 1,1f
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3da3d70au)); // 0.08f
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu));   // 0.7692308f
+    constexpr double Glow = static_cast<double>(std::bit_cast<float>(0x3f8ccccdu));   // 1.1f
     particle.rotation = F32(static_cast<double>(particle.rotation) + Turn);
     double factor = 1.0;
     if (particle.life < ShrinkLife)
@@ -606,11 +608,11 @@ void StepTheHole(Particle& particle)
         particle.light[channel] = F32(static_cast<double>(particle.light[channel]) * factor);
 }
 
-// 0x542b3b..0x542bf3, la 5e4 después del prefijo: la vida 12, la escala ((rand() & 3) + 8) · 0,05f (0x6b8a48, en la
-// x87), que pisa la del argumento, el giro x rand() % 360 y la velocidad (0; −((rand() & 15) + 8); rand() % 6 − 3)
-// girada por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0, entre el segundo rand() y el tercero, sin
-// sacar ninguno); con el tipo 0x5e4 (0x542bdb), la luz (0,1f; 0; 0). Cuatro rand(). El and con la corrección del signo
-// es el & simple.
+// 0x542b3b..0x542bf3, the 5e4 after the prefix: life 12, the scale ((rand() & 3) + 8) · 0.05f (0x6b8a48, on the x87),
+// which overrides the argument's, the x turn rand() % 360 and the speed (0; −((rand() & 15) + 8); rand() % 6 − 3)
+// turned by AngleMatrix of the requested angles (0x5fc8f0 and 0x5fcbd0, between the second rand() and the third,
+// without taking any); with type 0x5e4 (0x542bdb), the light (0.1f; 0; 0). Four rand(). The and with the sign
+// correction is the plain &.
 constexpr std::int32_t BloodLife = 12;
 void CreateTheBlood(Particle& particle, const glm::vec3& angles, Crt::CrtRandom& random)
 {
@@ -627,10 +629,9 @@ void CreateTheBlood(Particle& particle, const glm::vec3& angles, Crt::CrtRandom&
     particle.light = glm::vec3(Red, 0.0f, 0.0f);
 }
 
-// 0x546b04..0x546b61, después de la vida y el movimiento comunes (también con la vida en 0): la velocidad por 0,95f
-// (0x6ba30c), el cuadro (+0x48) (12 − vida) / 3 (imul por 0x55555556, hacia 0) y la posición más la velocidad otra vez,
-// sin girar. La x suma el producto que quedó en la x87 después del fst (en 53 bits, exacto), la y y la z, el float
-// guardado.
+// 0x546b04..0x546b61, after the common life and movement (also with the life at 0): the speed by 0.95f (0x6ba30c), the
+// frame (+0x48) (12 − life) / 3 (imul by 0x55555556, toward 0) and the position plus the speed again, unturned. The x
+// adds the product left on the x87 after the fst (in 53 bits, exact); the y and the z, the stored float.
 void StepTheBlood(Particle& particle)
 {
     constexpr double Brake = static_cast<double>(std::bit_cast<float>(0x3f733333u));
@@ -650,7 +651,7 @@ bool IsSwellLifeParticle(std::int32_t type, std::int32_t subtype)
     return type == SwellLifeParticle && subtype == SwellLifeParticleSubtype;
 }
 
-// 0x544a9d..0x544ba0: aun sin dueño válido y en el paso final consume sus dos rand().
+// 0x544a9d..0x544ba0: even without a valid owner and on the last step it takes its two rand().
 void StepTheSwellLife(Particle& particle, Crt::CrtRandom& random, const ParticleOwnerBones& ownerBones)
 {
     const auto point =
@@ -673,9 +674,9 @@ void StepTheSwellLife(Particle& particle, Crt::CrtRandom& random, const Particle
         particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * Fade);
 }
 
-// 0x546d54..0x546d6e, después de la vida y el movimiento comunes (también con la vida en 0): la escala (+0x10)
-// sin(vida · [0x6ba370]) · [0x6b86b8] (fild, fmul, fsin y fmul en la x87) y 0x53fdb0, que vuelve a poner la posición en
-// el hueso del dueño.
+// 0x546d54..0x546d6e, after the common life and movement (also with the life at 0): the scale (+0x10)
+// sin(life · [0x6ba370]) · [0x6b86b8] (fild, fmul, fsin and fmul on the x87) and 0x53fdb0, which puts the position
+// back on the owner's bone.
 Core::Expected<void, ParticleError> StepTheSkillShine(Particle& particle, IParticleTrigonometry* trigonometry,
                                                       const ParticleOwnerBones& ownerBones)
 {
@@ -694,10 +695,10 @@ Core::Expected<void, ParticleError> StepTheSkillShine(Particle& particle, IParti
     return {};
 }
 
-// 0x540a04..0x540b41, el caso 12 de la 5c6 (las veinte del 0x815, 0x4fb0d1): la textura 0x5fc, +0x38 en 1,0f, la
-// posición más (0; −100; 0) girado por AngleMatrix de los ángulos del pedido (0x5fc8f0 y 0x5fcbd0) y después
-// (rand() & 15) − 8 en x y en y y 150 en z; la velocidad ((rand() % 20) · 0,1f − 1; igual; −(rand() % 3) − 3), la vida
-// 40 y la escala del pedido menos (rand() % 15) · 0,1f. Cada suma, en la x87 antes del store. Seis rand().
+// 0x540a04..0x540b41, case 12 of the 5c6 (the twenty of the 0x815, 0x4fb0d1): texture 0x5fc, +0x38 at 1.0f, the
+// position plus (0; −100; 0) turned by AngleMatrix of the requested angles (0x5fc8f0 and 0x5fcbd0) and then
+// (rand() & 15) − 8 in x and y and 150 in z; the speed ((rand() % 20) · 0.1f − 1; the same; −(rand() % 3) − 3), life
+// 40 and the requested scale minus (rand() % 15) · 0.1f. Each sum on the x87 before the store. Six rand().
 void CreateTheBowSpark(Particle& particle, float scale, Crt::CrtRandom& random)
 {
     constexpr std::int32_t BowSparkTexture = 0x5fc;
@@ -727,9 +728,9 @@ void CreateTheBowSpark(Particle& particle, float scale, Crt::CrtRandom& random)
     particle.scale = F32(static_cast<double>(scale) - (static_cast<double>(shrink) * Tenth));
 }
 
-// 0x545397..0x5453ce y 0x545340..0x545363, después de la vida y el movimiento comunes: rand() & 1 menos 0,6f en el rojo
-// y el verde y menos 0,8f en el azul, la escala menos 0,04f y +0x38 menos 0,001f; con +0x38 en 0 o menos (o NaN),
-// muere. Un rand().
+// 0x545397..0x5453ce and 0x545340..0x545363, after the common life and movement: rand() & 1 minus 0.6f in the red and
+// the green and minus 0.8f in the blue, the scale minus 0.04f and +0x38 minus 0.001f; with +0x38 at 0 or less (or
+// NaN), it dies. One rand().
 void StepTheBowSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr double RedGreen = static_cast<double>(std::bit_cast<float>(0x3f19999au)); // 0x6b8a20
@@ -747,10 +748,10 @@ void StepTheBowSpark(Particle& particle, Crt::CrtRandom& random)
         particle.alive = false;
 }
 
-// 0x540bb2..0x540c77, la tabla de 0x544428 por el subtipo: /0 escala 0,15f (0x3e19999a); /1 vida 10 y escala 0; /2
-// vida 20 y escala 1; /3 vida 1 y la escala del pedido; /4 escala 0,25f; /5 la escala del pedido. La /4 y la /5
-// conservan la luz del pedido; las demás (y los subtipos de fuera de la tabla) le suman 0,5 en cada canal. La /0 y la
-// /4 conservan la vida del prefijo (2). Sin rand().
+// 0x540bb2..0x540c77, the table of 0x544428 by subtype: /0 scale 0.15f (0x3e19999a); /1 life 10 and scale 0; /2 life
+// 20 and scale 1; /3 life 1 and the requested scale; /4 scale 0.25f; /5 the requested scale. The /4 and the /5 keep
+// the requested light; the others (and the subtypes outside the table) add 0.5 to each channel. The /0 and the /4
+// keep the prefix's life (2). No rand().
 void CreateTheLightning(Particle& particle, const glm::vec3& light)
 {
     constexpr std::int32_t HitLife = 10, FollowLife = 20, FlashLife = 1;
@@ -783,10 +784,10 @@ void CreateTheLightning(Particle& particle, const glm::vec3& light)
         particle.light[axis] = F32(static_cast<double>(light[axis]) + Lift);
 }
 
-// 0x545419..0x5454c8, con todos los subtipos, después de la vida y el movimiento comunes: el giro (+0x44) es
-// (ftol(reloj) % 1000) · 0,001f y la luz dinámica de radio 3 (0x5f9780) es (v · 0,5f; v; v · 0,8f) con v = vida · 0,1f:
-// el rojo, del producto sin redondear; el azul, del verde ya guardado. La /2 (0x54548f) además crece 0,1f, toma esa
-// misma luz y sigue a su dueño (+0x40 → +0x10), 80 más arriba. Sin rand().
+// 0x545419..0x5454c8, with all subtypes, after the common life and movement: the turn (+0x44) is
+// (ftol(clock) % 1000) · 0.001f and the dynamic light of radius 3 (0x5f9780) is (v · 0.5f; v; v · 0.8f) with
+// v = life · 0.1f: the red from the unrounded product, the blue from the already stored green. The /2 (0x54548f) also
+// grows 0.1f, takes that same light and follows its owner (+0x40 → +0x10), 80 higher. No rand().
 Core::Expected<void, ParticleError> StepTheLightning(Particle& particle, const float* worldClock,
                                                      Terrain::TerrainLighting* lighting,
                                                      const ParticleOwnerStates& ownerStates)
@@ -830,8 +831,8 @@ bool IsLoginCloud(const Particle& particle)
     return particle.type == CloudParticle && particle.subtype == LoginCloudSubtype;
 }
 
-// 0x54757a y 0x54768f: la 622/9 de Crywolf comparte con la 622/8 el paso desde 0x5476a8, y las dos caen al default
-// del giro (0x547738).
+// 0x54757a and 0x54768f: Crywolf's 622/9 shares the step from 0x5476a8 with the 622/8, and both fall into the turn's
+// default (0x547738).
 bool IsCloud8(const Particle& particle)
 {
     return particle.type == CloudParticle && (particle.subtype == 8 || particle.subtype == CrywolfCloudSubtype);
@@ -860,12 +861,12 @@ void CreateTheCloud8(Particle& particle, float inputScale, Crt::CrtRandom& rando
     const int r7 = random.Next() % 30;
     particle.rotationFactor = F32(static_cast<double>(r7) * Cloud8RandomStep + static_cast<double>(inputScale));
 
-    // El cuerpo vuelve a poner los tres dwords a cero tras R7.
+    // The body sets the three dwords back to zero after R7.
     particle.velocity = glm::vec3(0.0f);
 }
 
-// 0x54330a..0x5433f4, la 622/9 de los 0x4d y 0x4e de Crywolf: como la 622/8, siete rand() en el mismo orden, pero la
-// escala multiplica la del argumento (+0x10, la del prefijo) y +0x60 no le suma nada.
+// 0x54330a..0x5433f4, the 622/9 of Crywolf's 0x4d and 0x4e: like the 622/8, seven rand() in the same order, but the
+// scale multiplies the argument's (+0x10, the prefix's) and +0x60 adds nothing to it.
 void CreateTheCloud9(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int SpinSpan = 10;
@@ -882,7 +883,7 @@ void CreateTheCloud9(Particle& particle, Crt::CrtRandom& random)
     const int r5 = random.Next() % 100;
     particle.start.z = particle.position.z;
     particle.start.y = F32(static_cast<double>(r5) * Cloud8RandomStep);
-    // 0x5433bd..0x5433c9: fild, por 0,01f y por la escala de +0x10, en la x87.
+    // 0x5433bd..0x5433c9: fild, by 0.01f and by the scale at +0x10, on the x87.
     const int r6 = (random.Next() % 20) + 180;
     particle.scale = F32(static_cast<double>(r6) * Cloud8RandomStep * static_cast<double>(particle.scale));
     const int r7 = random.Next() % SpinSpan;
@@ -902,7 +903,7 @@ void StepTheCloud8(Particle& particle)
     const float q = std::bit_cast<float>(particle.field38);
     if (life > 150)
     {
-        // FCOMP toma también unordered por la suma, equivalente a q<1 o unordered.
+        // FCOMP also takes unordered through the sum, equivalent to q<1 or unordered.
         if (!(q >= Cloud8RiseLimit))
         {
             particle.field38 = std::bit_cast<std::uint32_t>(F32(static_cast<double>(q) + Cloud8Rise));
@@ -911,7 +912,7 @@ void StepTheCloud8(Particle& particle)
         return;
     }
 
-    // La comparación tardía exige estrictamente q>0.1f; unordered conserva +38.
+    // The late comparison strictly requires q>0.1f; unordered keeps +0x38.
     if (q > Cloud8FallLimit)
     {
         particle.field38 = std::bit_cast<std::uint32_t>(F32(static_cast<double>(q) - Cloud8Fall));
@@ -919,7 +920,7 @@ void StepTheCloud8(Particle& particle)
     particle.position.z = F32(static_cast<double>(particle.position.z) - 0.5);
 }
 
-// 0x53ff3a..: 5d9, 5db y 5dc van al mismo caso de 0x53fe70 (0x541172) y de 0x5446e0 (0x5457a5).
+// 0x53ff3a..: 5d9, 5db and 5dc go to the same case of 0x53fe70 (0x541172) and of 0x5446e0 (0x5457a5).
 bool IsFireType(std::int32_t type)
 {
     return type == FireParticle || type == DeathSpiritFireParticle || type == BlueTrailFireParticle;
@@ -930,15 +931,15 @@ bool IsFire(const Particle& particle)
     return IsFireType(particle.type);
 }
 
-// 0x5466c3: la tabla de 0x548310 manda al mismo paso la 5f2/2 y la 5f2/21 de Crywolf.
+// 0x5466c3: the table of 0x548310 sends the 5f2/2 and Crywolf's 5f2/21 to the same step.
 bool IsWorldSmoke(const Particle& particle)
 {
     return particle.type == BreathParticle &&
            (particle.subtype == WorldSmokeSubtype || particle.subtype == CrywolfSmokeSubtype);
 }
 
-// 0x542370..0x5423d8, la 5f2/21 de Crywolf: vida 80, escala ((rand() & 63) + 64) · escala · 0,005f, giro
-// rand() % 360 y velocidad vertical ((rand() & 31) + 60) · 0,1f; el and con la corrección del signo es el & simple.
+// 0x542370..0x5423d8, Crywolf's 5f2/21: life 80, scale ((rand() & 63) + 64) · scale · 0.005f, turn rand() % 360 and
+// vertical speed ((rand() & 31) + 60) · 0.1f; the and with the sign correction is the plain &.
 void CreateTheCrywolfSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 80;
@@ -956,10 +957,11 @@ bool IsStoneDust(const Particle& particle)
     return particle.type == BreathParticle && particle.subtype == StoneDustSubtype;
 }
 
-// 0x541d81..0x541e72, la 5f2/11 (y la /14, que MuRet no crea): vida 50; la x y la y más (rand() & 63) − 32 y la z más
-// (rand() & 63) + 32, cada una en la x87 hasta su fstp; la inclinación rand() % 90 − 45, el yaw rand() % 360 y el giro
-// del billboard rand() % 360; +0x60..+0x68 guardan la luz de la creación y la velocidad es (0, −((rand() & 7) + 40),
-// 0), que el movimiento común gira por los ángulos. Siete rand(); el and con la corrección del signo es el & simple.
+// 0x541d81..0x541e72, the 5f2/11 (and the /14, which MuRet does not create): life 50; the x and the y plus
+// (rand() & 63) − 32 and the z plus (rand() & 63) + 32, each on the x87 until its fstp; the tilt rand() % 90 − 45, the
+// yaw rand() % 360 and the billboard turn rand() % 360; +0x60..+0x68 store the creation's light and the speed is
+// (0, −((rand() & 7) + 40), 0), which the common movement turns by the angles. Seven rand(); the and with the sign
+// correction is the plain &.
 void CreateTheStoneDust(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t Life = 50;
@@ -977,14 +979,14 @@ void CreateTheStoneDust(Particle& particle, Crt::CrtRandom& random)
     particle.velocity.x = 0.0f;
     particle.field64 = {particle.light.y, particle.light.z};
     particle.rotationFactor = particle.light.x;
-    // fild y fchs: el empuje negado entra entero en el float.
+    // fild and fchs: the negated push enters the float whole.
     particle.velocity.y = -static_cast<float>((random.Next() & PushMask) + PushBase);
     particle.velocity.z = 0.0f;
 }
 
-// 0x546111..0x54616c, después del movimiento común: la luz es la vida por 0,02f (0x6b89e4) por la de la creación
-// (+0x60..+0x68), cada canal desde el mismo producto en la x87; la velocidad por 0,4f (0x6b87b4), la escala más
-// 0,05f (0x6b8a48) y la z 1 menos (0x6b87d4). No lee el dueño (+0x40).
+// 0x546111..0x54616c, after the common movement: the light is the life by 0.02f (0x6b89e4) by the creation's
+// (+0x60..+0x68), each channel from the same product on the x87; the speed by 0.4f (0x6b87b4), the scale plus 0.05f
+// (0x6b8a48) and the z 1 less (0x6b87d4). It does not read the owner (+0x40).
 void StepTheStoneDust(Particle& particle)
 {
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
@@ -1006,9 +1008,9 @@ bool IsRisingSmoke(const Particle& particle)
     return particle.type == BreathParticle && particle.subtype == CrywolfRisingSmokeSubtype;
 }
 
-// 0x541a8d..0x541b03, la 5f2/33 del 0x48 de Crywolf: la escala del argumento más 0,1f (0x6b87b8) y la vida rand() %
-// 150 (que puede ser 0), la inclinación rand() % 90 − 45, el giro rand() % 360 y la velocidad (0, −(rand() & 7), 0),
-// que mueve el prefijo; el and con la corrección del signo es el & simple.
+// 0x541a8d..0x541b03, the 5f2/33 of Crywolf's 0x48: the argument's scale plus 0.1f (0x6b87b8) and the life
+// rand() % 150 (which can be 0), the tilt rand() % 90 − 45, the turn rand() % 360 and the speed (0, −(rand() & 7), 0),
+// which the prefix moves; the and with the sign correction is the plain &.
 void CreateTheRisingSmoke(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int LifeSpan = 150, TiltSpan = 90, TiltCenter = 45, DriftMask = 7;
@@ -1021,9 +1023,9 @@ void CreateTheRisingSmoke(Particle& particle, Crt::CrtRandom& random)
     particle.velocity = glm::vec3(0.0f, -static_cast<float>(random.Next() & DriftMask), 0.0f);
 }
 
-// 0x545ffc..0x54604c: la luz es la vida por 0,125f (0x6ba170) en el azul y por 0,4f (0x6b87b4) en el rojo y el verde,
-// desde la x87; la velocidad, por 0,001f (0x6b89c8); la escala suma 0,02f (0x6b8b90) y fst la guarda, y la z suma la
-// suma sin redondear.
+// 0x545ffc..0x54604c: the light is the life by 0.125f (0x6ba170) in the blue and by 0.4f (0x6b87b4) in the red and the
+// green, from the x87; the speed, by 0.001f (0x6b89c8); the scale adds 0.02f (0x6b8b90) and fst stores it, and the z
+// adds the unrounded sum.
 void StepTheRisingSmoke(Particle& particle)
 {
     constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));
@@ -1039,8 +1041,8 @@ void StepTheRisingSmoke(Particle& particle)
     particle.position.z = F32(grown + static_cast<double>(particle.position.z));
 }
 
-// 0x543152..0x543178, la burbuja 698/0 del agua de Crywolf: vida 32 y la escala (rand() % 170 + 1) · 0,01f, que pisa
-// la del argumento.
+// 0x543152..0x543178, Crywolf's water bubble 698/0: life 32 and the scale (rand() % 170 + 1) · 0.01f, which overrides
+// the argument's.
 constexpr std::int32_t BubbleLife = 32;
 void CreateTheBubble(Particle& particle, Crt::CrtRandom& random)
 {
@@ -1049,7 +1051,7 @@ void CreateTheBubble(Particle& particle, Crt::CrtRandom& random)
     particle.scale = F32(static_cast<double>(random.Next() % ScaleSpan + 1) * BreathScaleStep);
 }
 
-// 0x54719f..0x5471b2: el cuadro (32 − vida) / 4, con la división con signo de cdq, and 3 y sar, en +0x48.
+// 0x54719f..0x5471b2: the frame (32 − life) / 4, with the signed division by cdq, and 3 and sar, in +0x48.
 void StepTheBubble(Particle& particle)
 {
     constexpr std::int32_t BubbleFrameSteps = 4;
@@ -1061,9 +1063,9 @@ bool IsHandShine(std::int32_t type, std::int32_t subtype)
     return type == HandShineParticle && (subtype == 0 || subtype == HandShineSecondSubtype);
 }
 
-// 0x546cd4..0x546d4f, la 5fd que no es la /0x63: la escala es sin(vida · 5°) · 5 (FST); de la /2 en adelante, ese
-// mismo valor de la pila por 0,75 (FSTP) y la rotación 12 menos. Después, 0x53fdb0 la vuelve a poner en la mano del
-// dueño (`hands`).
+// 0x546cd4..0x546d4f, the 5fd that is not the /0x63: the scale is sin(life · 5°) · 5 (FST); from the /2 onward, that
+// same x87 stack value by 0.75 (FSTP) and the rotation 12 less. Then 0x53fdb0 puts it back in the owner's hand
+// (`hands`).
 Core::Expected<void, ParticleError> StepTheHandShine(Particle& particle, IParticleTrigonometry* trigonometry,
                                                      const ParticleActorHands& hands)
 {
@@ -1104,7 +1106,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return std::nullopt;
     if (IsSwellLifeParticle(type, subtype))
         return std::nullopt;
-    // 0x54109f y 0x54573f: la 5ca trata cualquier subtipo; la /1 y la /2 tienen además lo suyo (0x5410d9, 0x545745).
+    // 0x54109f and 0x54573f: the 5ca handles any subtype; the /1 and the /2 also have their own (0x5410d9, 0x545745).
     if (type == ThunderParticle)
         return std::nullopt;
     if (type == ShinyParticle || type == FairySparkParticle)
@@ -1113,19 +1115,19 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     }
-    // 0x542d60 y 0x546fa2: la 607 de 0 a 4.
+    // 0x542d60 and 0x546fa2: the 607 from 0 to 4.
     if (type == DropParticle)
     {
         return subtype >= 0 && subtype <= LastDropSubtype ? std::nullopt
                                                           : std::optional(ParticleError::UnsupportedSubtype);
     }
-    // 0x541172 y 0x5457a5: el fuego trata cualquier subtipo (los de fuera de sus casos, sin nada propio).
+    // 0x541172 and 0x5457a5: the fire handles any subtype (those outside its cases, with nothing of their own).
     if (IsFireType(type))
         return std::nullopt;
-    // 0x540260 y 0x544e87: la /2, la /3 y la /4 (las de 0x1b6 y la mano de Crywolf).
+    // 0x540260 and 0x544e87: the /2, the /3 and the /4 (those of 0x1b6 and Crywolf's hand).
     if (type == MagicSparkParticle)
         return subtype >= 2 && subtype <= 4 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
-    // 0x540d13..0x54109e y 0x545565: la 5da trata cualquier subtipo (los de fuera de 0..9, sólo con el giro).
+    // 0x540d13..0x54109e and 0x545565: the 5da handles any subtype (those outside 0..9, only with the turn).
     if (type == MissileFireParticle)
         return std::nullopt;
     if (type == BreathParticle)
@@ -1140,12 +1142,13 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == BubbleParticle)
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
-    // 0x542c4b y 0x546da6: las flores 608..60a nacen sin leer el subtipo y su paso sólo mira la /0 y la /1; 0x542d01 y
-    // 0x546f0d: la 62b fuera de la /0 sólo tiene el prefijo; 0x543bf1 y 0x547d42: el 6ae no lee el subtipo.
+    // 0x542c4b and 0x546da6: the flowers 608..60a are born without reading the subtype and their step only checks the
+    // /0 and the /1; 0x542d01 and 0x546f0d: the 62b outside the /0 only has the prefix; 0x543bf1 and 0x547d42: the 6ae
+    // does not read the subtype.
     if (IsFlowerType(type) || type == FlareColumnParticle || type == HoleParticle)
         return std::nullopt;
-    // 0x54271f: la 5f3 y la 5f6 con la /0 (las piedras de Chaos Castle, 0x405630 y 0x405e00) y la /1 (el recorrido,
-    // 0x403c0c, y el freno de +0x3e5, 0x506a73).
+    // 0x54271f: the 5f3 and the 5f6 with the /0 (Chaos Castle's stones, 0x405630 and 0x405e00) and the /1 (the path,
+    // 0x403c0c, and the +0x3e5 brake, 0x506a73).
     if (IsDustType(type))
         return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == FireworkParticle)
@@ -1154,19 +1157,19 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
         return subtype == 0 || subtype == 1 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ExplosionParticle)
         return subtype >= 0 && subtype <= 2 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
-    // 0x542a94 y 0x545ce3: la 5ee no lee el subtipo.
+    // 0x542a94 and 0x545ce3: the 5ee does not read the subtype.
     if (type == BlazeParticle)
         return std::nullopt;
-    // 0x543939 y 0x5478d7: la 6ad trata cualquier subtipo (los de fuera de /0 y /1 nacen sin nada propio).
+    // 0x543939 and 0x5478d7: the 6ad handles any subtype (those outside /0 and /1 are born with nothing of their own).
     if (type == CinderParticle)
         return std::nullopt;
-    // 0x5443ae y 0x5481ab: la 6eb tampoco.
+    // 0x5443ae and 0x5481ab: neither does the 6eb.
     if (type == ShockWaveParticle)
         return std::nullopt;
-    // 0x542b3b y 0x546b04: la 5e4 no lee el subtipo.
+    // 0x542b3b and 0x546b04: the 5e4 does not read the subtype.
     if (type == BloodParticle || type == SiegeBlessingParticle)
         return std::nullopt;
-    // 0x540bb2 y 0x545419: la 5d5 trata cualquier subtipo (los de fuera de la tabla, como la /0 sin su escala).
+    // 0x540bb2 and 0x545419: the 5d5 handles any subtype (those outside the table, like the /0 without its scale).
     if (type == LightningParticle)
         return std::nullopt;
     if (type == HandShineParticle)
@@ -1187,7 +1190,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     return ParticleError::UnsupportedType;
 }
 
-// 53fe9c..53ff37: copias intercaladas y relectura de P, sin snapshot ni reset del slot reutilizado.
+// 0x53fe9c..0x53ff37: interleaved copies and a reread of P, without a snapshot or a reset of the reused slot.
 void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                 const glm::vec3& light, std::int32_t subtype, float scale, std::uint32_t owner)
 {
@@ -1222,7 +1225,7 @@ void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position
     particle.velocity = glm::vec3(0.0f);
 }
 
-// 0x54059f..0x54061c: tres ángulos de 0..359 y VectorRotate(0,-50,0); conserva la vida común (2).
+// 0x54059f..0x54061c: three angles of 0..359 and VectorRotate(0,-50,0); keeps the common life (2).
 void CreateTheTeleportSpark(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int FullCircle = 360;
@@ -1233,16 +1236,15 @@ void CreateTheTeleportSpark(Particle& particle, Crt::CrtRandom& random)
         Math::OriginalVectorRotate(glm::vec3(0.0f, Speed, 0.0f), Math::OriginalAngleMatrix(particle.angles));
 }
 
-// 0x541172..0x54140a, el mismo caso para 5d9, 5db y 5dc: la vida 24, la velocidad (0; ((rand() & 15) + 32) · −0,1f; 0),
-// lo de cada subtipo (leído una vez, después del primer rand(), en 0x541197), la escala de la /1 (0x5413c2 vuelve a
-// leer el subtipo) y el giro final. Los subtipos que no tienen caso (2..4, 6, 8, 10 y los de fuera) sólo hacen lo
-// común.
+// 0x541172..0x54140a, the same case for 5d9, 5db and 5dc: life 24, the speed (0; ((rand() & 15) + 32) · −0.1f; 0),
+// each subtype's part (read once, after the first rand(), at 0x541197), the /1's scale (0x5413c2 rereads the subtype)
+// and the final turn. The subtypes without a case (2..4, 6, 8, 10 and those outside) only do the common part.
 void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr std::int32_t ShortFireLife = 20;                                               // 0x541253
-    constexpr double FountainStep = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8, 0,15f
-    constexpr double TallScaleStep = static_cast<double>(std::bit_cast<float>(0x3c449ba6u)); // 0x6ba334, 0,012f
-    constexpr double SwayScaleStep = static_cast<double>(std::bit_cast<float>(0x3c03126fu)); // 0x6ba330, 0,008f
+    constexpr double FountainStep = static_cast<double>(std::bit_cast<float>(0x3e19999au));  // 0x6b8ae8, 0.15f
+    constexpr double TallScaleStep = static_cast<double>(std::bit_cast<float>(0x3c449ba6u)); // 0x6ba334, 0.012f
+    constexpr double SwayScaleStep = static_cast<double>(std::bit_cast<float>(0x3c03126fu)); // 0x6ba330, 0.008f
     constexpr int TallScaleSpan = 16, TallScaleBase = 150, FountainSpan = 128, FountainBase = 128;
     constexpr int SwaySpan = 32, SwayCenter = 16, RingSpan = 60, RingCenter = 30;
     constexpr double RingTop = 190.0; // 0x6b8a08
@@ -1264,13 +1266,13 @@ void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
             F32((static_cast<double>(random.Next() % FireScaleSpan + FireScaleBase) * argumentScale) * BreathScaleStep);
         break;
     case FireTallSubtype:
-        // 0x54120b: el giro de este rand() lo pisa el del final.
+        // 0x54120b: the final turn overrides this rand()'s.
         particle.rotation = static_cast<float>(random.Next() % FullTurn);
         particle.scale =
             F32((static_cast<double>(random.Next() % TallScaleSpan + TallScaleBase) * argumentScale) * TallScaleStep);
         break;
     case FireFountainSubtype:
-        // 0x541253..0x5412bf: vida 20, sube recto y no usa la escala del pedido.
+        // 0x541253..0x5412bf: life 20, rises straight and does not use the requested scale.
         particle.life = ShortFireLife;
         particle.velocity.x = 0.0f;
         particle.velocity.y = 0.0f;
@@ -1280,8 +1282,8 @@ void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
         break;
     case FireSwaySubtype:
     case FireLongSwaySubtype:
-        // 0x5412d2 (/7) y 0x54132c (/11, que vuelve a poner la vida 24): la velocidad (0; ((rand() & 31) − 16) ·
-        // −0,1f; 0) y la escala ((rand() & 63) + 128) · 0,008f más la del pedido.
+        // 0x5412d2 (/7) and 0x54132c (/11, which sets the life back to 24): the speed (0; ((rand() & 31) − 16) · −0.1f;
+        // 0) and the scale ((rand() & 63) + 128) · 0.008f plus the requested one.
         if (subtype == FireLongSwaySubtype)
             particle.life = FireLife;
         particle.velocity.x = 0.0f;
@@ -1295,8 +1297,8 @@ void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
         break;
     case FireRingSubtype:
     {
-        // 0x54138a..0x5413bf: la partida (+0x6c) es (r; r; 190 − |r| · 1,5) con r = rand() % 60 − 30; el paso le suma
-        // la posición del dueño.
+        // 0x54138a..0x5413bf: the start (+0x6c) is (r; r; 190 − |r| · 1.5) with r = rand() % 60 − 30; the step adds the
+        // owner's position.
         const int offset = random.Next() % RingSpan - RingCenter;
         particle.start.x = static_cast<float>(offset);
         particle.start.y = static_cast<float>(offset);
@@ -1306,7 +1308,7 @@ void CreateTheFire(Particle& particle, Crt::CrtRandom& random)
     default:
         break;
     }
-    if (particle.subtype == 1) // 005413c2 vuelve a leer el subtipo vivo.
+    if (particle.subtype == 1) // 0x5413c2 rereads the live subtype.
     {
         particle.scale =
             F32(static_cast<double>((random.Next() % FireSmallScaleSpan) + FireSmallScaleBase) * BreathScaleStep);
@@ -1322,7 +1324,7 @@ void CreateTheWorldSmoke(Particle& particle, Crt::CrtRandom& random)
     particle.verticalSpeed = F32(static_cast<double>((random.Next() % FireSpeedBase) + SmokeSpeedBase) * SmokeSlowdown);
 }
 
-// Contrato53fe70-map-variants §5f2/6..8 y Step5446e0 §5f2/4,6,7,8.
+// Contract 53fe70-map-variants §5f2/6..8 and Step5446e0 §5f2/4,6,7,8.
 constexpr std::int32_t Map8SmokeLife = 30;
 constexpr std::int32_t Map8EightLife = 24;
 constexpr int Map8PhaseSpan = 1000;
@@ -1339,7 +1341,7 @@ constexpr int Map8EightSpeedBase = 32;
 constexpr std::int32_t Map8FadeLife = 5;
 constexpr double Map8RiseFactor = 20.0;
 
-// Contrato53fe70-map-variants §5f2/6..8: cada R precede sus relecturas propias.
+// Contract 53fe70-map-variants §5f2/6..8: each R comes before its own rereads.
 bool IsMap8Smoke(std::int32_t type, std::int32_t subtype)
 {
     return type == BreathParticle && (subtype == 4 || subtype == 6 || subtype == 7 || subtype == 8);
@@ -1389,7 +1391,7 @@ void CreateTheMap8Smoke(Particle& p, float argumentScale, Crt::CrtRandom& random
     p.rotation = static_cast<float>(random.Next() % RandomTurn);
 }
 
-// Contrato5446e0 §5f2/4: Z usa el acumulador ancho, no su store f32.
+// Contract 5446e0 §5f2/4: Z uses the wide accumulator, not its f32 store.
 void StepTheMap8Four(Particle& p)
 {
     const double color = static_cast<double>(p.life) * BreathLightPerLife;
@@ -1402,8 +1404,8 @@ void StepTheMap8Four(Particle& p)
     p.scale = F32(static_cast<double>(p.scale) + BreathGrowth);
 }
 
-// Contrato5446e0 §5f2/6 y trig-design §Step5f2/6: el evaluador devuelve
-// el producto53 de una salida retenida64. t sigue independiente hasta FTOL.
+// Contract 5446e0 §5f2/6 and trig-design §Step5f2/6: the evaluator returns the 53-bit product of an output retained
+// in 64 bits. t stays independent until FTOL.
 Core::Expected<void, ParticleError> StepTheMap8Six(Particle& p, const float& worldClock,
                                                    IParticleTrigonometry& trigonometry)
 {
@@ -1498,7 +1500,7 @@ void CreateTheParticle67(Particle& particle, Crt::CrtRandom& random)
     particle.scale = F32(static_cast<double>(scaleSteps) * Particle67ScaleStep);
 }
 
-// La vida, el rand() y la escala de la 67, y después un rand() por eje para la posición.
+// The 67's life, rand() and scale, and then one rand() per axis for the position.
 void CreateTheParticle68(Particle& particle, Crt::CrtRandom& random)
 {
     CreateTheParticle67(particle, random);
@@ -1509,7 +1511,6 @@ void CreateTheParticle68(Particle& particle, Crt::CrtRandom& random)
     }
 }
 
-// El paso de la 67 y de la 68, que es el mismo.
 std::optional<ParticleError> StepTheParticle67Or68(Particle& particle, const std::int32_t* map)
 {
     if (particle.life <= 0)
@@ -1519,8 +1520,8 @@ std::optional<ParticleError> StepTheParticle67Or68(Particle& particle, const std
     particle.scale = particle.subtype == 1
                          ? F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale))
                          : F32(static_cast<double>(particle.scale) + Particle67Growth);
-    // 4303c0 (contrato leaf-4303c0) relee aquí el DWORD raw32 del mapa, no el byte bajo ni un mapa
-    // capturado al entrar, y devuelve AL=1 sólo para 34.
+    // 0x4303c0 (contract leaf-4303c0) rereads the map's raw32 DWORD here, not the low byte nor a map captured on entry,
+    // and returns AL=1 only for 34.
     if (map == nullptr)
     {
         return ParticleError::MissingMap;
@@ -1550,7 +1551,7 @@ void CreateTheMapSpark(Particle& particle, Crt::CrtRandom& random)
     glm::vec3 offset(0.0f);
     offset.z = F32(static_cast<double>(random.Next() % MapSparkOffsetSpan) + MapSparkOffsetBase);
     particle.velocity = Math::OriginalVectorRotate(offset, matrix);
-    // 005408c8/d7/e8 sustituyen velocidad después de cargar cada suma, antes de guardar posición.
+    // 0x5408c8/d7/e8 replace the speed after loading each sum, before storing the position.
     const double x = static_cast<double>(particle.position.x) + static_cast<double>(particle.velocity.x);
     particle.velocity.x = MapSparkForward;
     particle.position.x = F32(x);
@@ -1574,16 +1575,17 @@ void StepTheMapSpark(Particle& particle)
     {
         particle.alive = false;
     }
-    // TEST AH,1 comprueba C0: menor y unordered apagan, usando ST0 anterior al store32.
+    // TEST AH,1 checks C0: less and unordered turn it off, using the ST0 from before the store32.
     if (scale < MapSparkMinimum || std::isnan(scale))
     {
         particle.alive = false;
     }
 }
 
-// 0x542d75..0x542ecf: la vida rand() % 10 + 30, la luz 1 (pisa la del pedido) y la escala (rand() % 6 + 4) · 0,03f
-// (0x6b8bd4), dos rand(); la /2 además pide el sonido 0x1d8 (0x542e08, lo pide quien la crea). La /3 (0x542e1a) suma
-// esa escala a la del pedido y sortea otra igual para la subida (+0x50): tres rand().
+// 0x542d75..0x542ecf: the life rand() % 10 + 30, the light 1 (overrides the requested one) and the scale
+// (rand() % 6 + 4) · 0.03f (0x6b8bd4), two rand(); the /2 also asks for sound 0x1d8 (0x542e08, whoever creates it
+// asks). The /3 (0x542e1a) adds that scale to the requested one and rolls another one the same way for the rise
+// (+0x50): three rand().
 void CreateTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     particle.life = DropLifeBase + (random.Next() % DropLifeSpan);
@@ -1600,8 +1602,8 @@ void CreateTheDrop(Particle& particle, Crt::CrtRandom& random)
     particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep);
 }
 
-// 0x546fb2..0x547024 (/0) y 0x5470d3..0x547145 (/3): el cuadro +0x48 (un entero) sube 1 y la posición camina
-// (rand() % 20 − 10; rand() % 20 − 10; rand() % 20 + 10) por la escala (la /3, por su subida +0x50) y por 2,5.
+// 0x546fb2..0x547024 (/0) and 0x5470d3..0x547145 (/3): the frame +0x48 (an integer) goes up 1 and the position walks
+// (rand() % 20 − 10; rand() % 20 − 10; rand() % 20 + 10) by the scale (the /3, by its rise +0x50) and by 2.5.
 void WalkTheDrop(Particle& particle, Crt::CrtRandom& random, float stride)
 {
     const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
@@ -1610,19 +1612,19 @@ void WalkTheDrop(Particle& particle, Crt::CrtRandom& random, float stride)
     {
         const int direction = axis == 2 ? DropWalkCenter : -DropWalkCenter;
         const int steps = (random.Next() % DropWalkSpan) + direction;
-        // La escala se relee después de cada RNG; no hay store32 entre los dos productos.
+        // The scale is reread after each RNG; there is no store32 between the two products.
         particle.position[axis] = F32(static_cast<double>(steps) * static_cast<double>(stride) * DropWalkFactor +
                                       static_cast<double>(particle.position[axis]));
     }
 }
 
-// 0x5470a0..0x5470ce (/2) y 0x54714a..0x54719a (/4): la z sube (rand() % 20 + 10) · 0,3f y la escala crece 0,005f
-// (0x6b89d8); la /4, con la z guardada por encima de 350 (0x6b89ac; ni menor, ni igual, ni NaN), la deja en 350 y la
-// vida en 0.
+// 0x5470a0..0x5470ce (/2) and 0x54714a..0x54719a (/4): the z rises (rand() % 20 + 10) · 0.3f and the scale grows
+// 0.005f (0x6b89d8); the /4, with the stored z above 350 (0x6b89ac; neither less, nor equal, nor NaN), leaves it at
+// 350 and the life at 0.
 void FloatTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
-    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
-    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0,005f
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0.3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8, 0.005f
     constexpr float Ceiling = 350.0f;                                                // 0x6b89ac
     const int steps = (random.Next() % DropWalkSpan) + DropWalkCenter;
     particle.position.z = F32(static_cast<double>(steps) * Lift + static_cast<double>(particle.position.z));
@@ -1634,13 +1636,13 @@ void FloatTheDrop(Particle& particle, Crt::CrtRandom& random)
     }
 }
 
-// 0x547029..0x54709b, la /1: el cuadro sube 1, la x y la y caminan (rand() % 30 − 15) por la escala, la z sube
-// (rand() % 20 + 10) por la escala y por 0,3f, y la escala crece 0,002f (0x6b89bc).
+// 0x547029..0x54709b, the /1: the frame goes up 1, the x and the y walk (rand() % 30 − 15) by the scale, the z rises
+// (rand() % 20 + 10) by the scale and by 0.3f, and the scale grows 0.002f (0x6b89bc).
 void BubbleTheDrop(Particle& particle, Crt::CrtRandom& random)
 {
     constexpr int BubbleSpan = 30, BubbleCenter = 15;
-    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0,3f
-    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0,002f
+    constexpr double Lift = static_cast<double>(std::bit_cast<float>(0x3e99999au));  // 0x6b89dc, 0.3f
+    constexpr double Swell = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc, 0.002f
     const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
     particle.field48 = std::bit_cast<float>(frame);
     for (int axis = 0; axis < 2; ++axis)
@@ -1680,13 +1682,14 @@ std::int32_t WrapSubtract(std::int32_t left, std::int32_t right)
     return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(left) - static_cast<std::uint32_t>(right));
 }
 
-// 0x5457a5..0x545982, el paso de 5d9, 5db y 5dc: la subida (+0x50) + 0,004f, el caso del subtipo (la tabla de 0x548270
-// para 0..13; los demás, el de 1..4) y lo común: z + subida · 10 y el cuadro (+0x48) (23 − vida) / 6.
+// 0x5457a5..0x545982, the step of 5d9, 5db and 5dc: the rise (+0x50) + 0.004f, the subtype's case (the table of
+// 0x548270 for 0..13; the others, that of 1..4) and the common part: z + rise · 10 and the frame (+0x48)
+// (23 − life) / 6.
 Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRandom& random,
                                                 const ParticleOwnerStates& ownerStates)
 {
     constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));       // 0x6ba3c4
-    constexpr double Damp = static_cast<double>(std::bit_cast<float>(0x3f733333u));       // 0x6ba30c, 0,95f
+    constexpr double Damp = static_cast<double>(std::bit_cast<float>(0x3f733333u));       // 0x6ba30c, 0.95f
     constexpr double Turn = 5.0;                                                          // 0x6b87f8
     constexpr double RingShrink = static_cast<double>(std::bit_cast<float>(0x3c360b61u)); // 0x6ba3c0
     constexpr int TurnSpan = 10, TurnBase = 10, RingSpan = 60, RingDivisor = 100;
@@ -1698,26 +1701,26 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRand
     {
     case 0:
     case FireSwaySubtype:
-        // 0x545894 (/0) y 0x54587c (/7, que antes deja un cuadro que 0x54597f pisa: no se ve).
+        // 0x545894 (/0) and 0x54587c (/7, which first leaves a frame that 0x54597f overrides: it is not seen).
         if (particle.subtype == FireSwaySubtype)
             particle.field48 = std::bit_cast<float>(WrapSubtract(SwayLife, particle.life) / SwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
         break;
     case 5:
     case 6:
-        // 0x545842: la escala baja 0,04f y el giro suma 5, sin frenar la velocidad.
+        // 0x545842: the scale drops 0.04f and the turn adds 5, without braking the speed.
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
         particle.rotation = F32(static_cast<double>(particle.rotation) + Turn);
         break;
     case 8:
-        // 0x54585f: no frena la velocidad ni suma la subida a la escala.
+        // 0x54585f: does not brake the speed nor add the rise to the scale.
         particle.scale = F32(static_cast<double>(particle.scale) * Damp);
         particle.rotation = F32(static_cast<double>(particle.rotation) + Turn);
         break;
     case FireRingSubtype:
     {
-        // 0x5458d3..0x545926: la posición es la del dueño más la partida; la subida suma (rand() % 60 + 60) / 100,
-        // entera, y la escala baja la suma sin redondear por 0,011111111f.
+        // 0x5458d3..0x545926: the position is the owner's plus the start; the rise adds (rand() % 60 + 60) / 100,
+        // integer, and the scale drops the unrounded sum by 0.011111111f.
         const auto owner = ownerStates ? ownerStates(particle.typedOwner) : std::nullopt;
         if (!owner)
             return Core::Unexpected(ParticleError::MissingOwner);
@@ -1734,7 +1737,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRand
         particle.scale = F32(static_cast<double>(particle.scale) * Damp); // 0x545831
         break;
     case FireLongSwaySubtype:
-        // 0x5458a5: el cuadro de la /11, que 0x54597f pisa (no se ve), y la escala crece 0,04f.
+        // 0x5458a5: the /11's frame, which 0x54597f overrides (it is not seen), and the scale grows 0.04f.
         if (particle.life > LongSwayStart)
             particle.field48 = std::bit_cast<float>(WrapSubtract(LongSwayLife, particle.life) / LongSwaySteps);
         particle.scale = F32(static_cast<double>(particle.scale) + FireShrink);
@@ -1742,7 +1745,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRand
     case FireTallSubtype:
     case FireFountainSubtype:
     {
-        // 0x5457dc y 0x5457f1: también en el último paso, después de bajar la vida y del movimiento común.
+        // 0x5457dc and 0x5457f1: also on the last step, after lowering the life and the common movement.
         const double turn = static_cast<double>(random.Next() % TurnSpan) + TurnBase;
         particle.light = glm::vec3(light);
         particle.rotation = F32(turn + static_cast<double>(particle.rotation));
@@ -1750,7 +1753,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRand
         break;
     }
     default:
-        // 0x54592b: 1..4, los mayores que 13 y los negativos.
+        // 0x54592b: 1..4, those greater than 13 and the negative ones.
         particle.scale = F32(static_cast<double>(rise) + static_cast<double>(particle.scale));
         for (int axis = 0; axis < 3; ++axis)
             particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * FireDamping);
@@ -1766,7 +1769,7 @@ Core::Expected<void, ParticleError> StepTheFire(Particle& particle, Crt::CrtRand
 void StepTheWorldSmoke(Particle& particle)
 {
     particle.light = glm::vec3(F32(static_cast<double>(particle.life) * SmokeFade));
-    // FST +50 no redondea ST0: X y Z usan el acumulador double retenido en este paso.
+    // FST +0x50 does not round ST0: X and Z use the double accumulator retained in this step.
     const double speed = static_cast<double>(particle.verticalSpeed) - SmokeSlowdown;
     particle.verticalSpeed = F32(speed);
     particle.position.x = F32(static_cast<double>(particle.position.x) - speed * SmokeDrift);
@@ -1798,7 +1801,7 @@ void GrowTheCloudLight(Particle& particle)
     {
         particle.light[axis] = F32(static_cast<double>(particle.light[axis]) + CloudGrowth);
     }
-    // 0x547639: compara antes de recargar el rojo almacenado; un NaN no alcanza el umbral.
+    // 0x547639: compares before reloading the stored red; a NaN does not reach the threshold.
     if (red >= static_cast<double>(CloudLightLimit))
     {
         particle.light = glm::vec3(CloudLightLimit);
@@ -1808,7 +1811,7 @@ void GrowTheCloudLight(Particle& particle)
 void StepTheCloud(Particle& particle)
 {
     particle.rotationFactor = CloudRotationFactor;
-    // 0x5475be: X queda sin recargar después del fst; Y y Z se usan ya guardados en float.
+    // 0x5475be: X is not reloaded after the fst; Y and Z are used already stored in float.
     const double x = static_cast<double>(particle.velocity.x) + static_cast<double>(particle.position.x);
     particle.position.x = F32(x);
     particle.position.y = F32(static_cast<double>(particle.velocity.y) + static_cast<double>(particle.position.y));
@@ -1817,7 +1820,7 @@ void StepTheCloud(Particle& particle)
     const double dy = static_cast<double>(particle.position.y) - static_cast<double>(particle.start.y);
     const double dz = static_cast<double>(particle.position.z) - static_cast<double>(particle.start.z);
     const double distance = std::sqrt((dz * dz + dy * dy) + dx * dx);
-    // 0x547602: unordered toma la misma rama que <= 300 por los flags de la x87.
+    // 0x547602: unordered takes the same branch as <= 300 because of the x87 flags.
     if (distance <= CloudGrowthRadius || std::isnan(distance))
     {
         GrowTheCloudLight(particle);
@@ -1834,8 +1837,8 @@ void StepTheCloud(Particle& particle)
     }
 }
 
-// 0x545209 → 0x545f9e: la chispa se achica por 0,9 (0x6b8a1c) y se apaga por 1/1,03 (0x6ba3b0), cada
-// producto guardado en float.
+// 0x545209 → 0x545f9e: the spark shrinks by 0.9 (0x6b8a1c) and fades by 1/1.03 (0x6ba3b0), each product stored in a
+// float.
 void StepTheSpark(Particle& particle)
 {
     particle.scale = F32(static_cast<double>(particle.scale) * SparkShrink);
@@ -1857,17 +1860,17 @@ constexpr std::int32_t OrbitPhaseBias = 150;
 constexpr std::int32_t OrbitScaleSpan = 6;
 constexpr float OrbitUnit = 0.01f; // 006b86c0/006b88d4 bits3c23d70a.
 constexpr float OrbitRiseRange = 4.0f;
-// La 60f/4 de la antorcha de Blood Castle: 0x542f2e deja la vida en 40 y sube con 5 (0x6b87f8); 0x5472e2 achica
-// 0,004f (0x6b89e8) y apaga con la vida en 30 o menos.
+// The 60f/4 of Blood Castle's torch: 0x542f2e leaves the life at 40 and rises with 5 (0x6b87f8); 0x5472e2 shrinks
+// 0.004f (0x6b89e8) and fades with the life at 30 or less.
 constexpr std::int32_t TorchOrbitSubtype = 4;
 constexpr std::int32_t TorchOrbitLife = 40;
 constexpr float TorchOrbitRiseRange = 5.0f;
 constexpr float TorchOrbitShrink = 0.004f; // 006b89e8 bits3b83126f.
 constexpr std::int32_t TorchOrbitFadeLife = 30;
 
-// 0x542f74 y 0x5471bd: la /0 nace y gira con las mismas instrucciones que la /3 (y que la /6, sin portar).
+// 0x542f74 and 0x5471bd: the /0 is born and turns with the same instructions as the /3 (and as the /6, not ported).
 constexpr std::int32_t SetOrbitSubtype = 0;
-// 0x547380: la /1 en que se convierte la /0. 0x53fe70 no la crea; su paso sólo apaga (0x5472da).
+// 0x547380: the /1 the /0 turns into. 0x53fe70 does not create it; its step only fades (0x5472da).
 constexpr std::int32_t FallenOrbitSubtype = 1;
 constexpr std::int32_t FallenOrbitLife = 20;
 
@@ -1882,9 +1885,9 @@ bool IsSteppedOrbitSubtype(std::int32_t subtype)
     return IsOrbitSubtype(subtype) || subtype == FallenOrbitSubtype;
 }
 
-// La acción (+0x111) del dueño (+0x40) que lee 0x54735f: la del personaje del pool o, cuando el dueño es un efecto con
-// modelo (el 0x61d, 0x52b8ff y 0x52b977), la del lugar de la tabla de efectos, viva o no, como el byte que el original
-// lee por el puntero. nullopt si el dueño no es ninguno de los dos o falta el resolvedor.
+// The owner's (+0x40) action (+0x111) that 0x54735f reads: that of the pool's character or, when the owner is an
+// effect with a model (the 0x61d, 0x52b8ff and 0x52b977), that of the effect table's slot, alive or not, like the byte
+// the original reads through the pointer. nullopt if the owner is neither or the resolver is missing.
 std::optional<std::uint8_t> SetOrbitOwnerAction(const ParticleOwner& owner, const ParticleActorActions& actorActions,
                                                 const ParticleOwnerStates& ownerStates)
 {
@@ -1896,8 +1899,9 @@ std::optional<std::uint8_t> SetOrbitOwnerAction(const ParticleOwner& owner, cons
     return state ? std::optional<std::uint8_t>(state->action) : std::nullopt;
 }
 
-// 0x547354..0x5473a9: la /0 lee la acción (+0x111) del dueño (+0x40). En [0xd, 0x21] o [0x38, 0x3c] pasa a la /1,
-// con la vida en 20 si tenía más, la velocidad (+0x54, donde estaba la fase) en 0 y la partida en la posición.
+// 0x547354..0x5473a9: the /0 reads the owner's (+0x40) action (+0x111). In [0xd, 0x21] or [0x38, 0x3c] it becomes
+// the /1, with the life at 20 if it had more, the speed (+0x54, where the phase was) at 0 and the start at the
+// position.
 Core::Expected<void, ParticleError> FallTheSetOrbit(Particle& particle, const ParticleActorActions& actorActions,
                                                     const ParticleOwnerStates& ownerStates)
 {
@@ -1942,7 +1946,7 @@ Core::Expected<void, ParticleError> ContinueOrbitCreation(Particle& particle, fl
     return {};
 }
 
-// Create53fe70 §60f/3: cuatroR, relecturas después deR4 y continuador tardío10.
+// Create53fe70 §60f/3: four R, rereads after R4 and the late continuation 10.
 Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inputScale, Crt::CrtRandom& random,
                                                    IParticleTrigonometry& trigonometry)
 {
@@ -1976,14 +1980,14 @@ Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inp
     return ContinueOrbitCreation(particle, temporaryX, retainedY, trigonometry);
 }
 
-// Step5446e0 §60f/3: leídos los selectores tras el helper; sin cargas de reloj nuevas.
+// Step5446e0 §60f/3: the selectors read after the helper; no new clock loads.
 Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry,
                                                  const ParticleActorActions& actorActions,
                                                  const ParticleOwnerStates& ownerStates)
 {
     if (particle.subtype == FallenOrbitSubtype)
     {
-        // 0x5472da..0x547351: sin moverse, la luz por 0,9090909f con la vida en 20 o menos.
+        // 0x5472da..0x547351: without moving, the light by 0.9090909f with the life at 20 or less.
         if (particle.life <= OrbitFadeLife)
             for (int axis = 0; axis < 3; ++axis)
                 particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * static_cast<double>(OrbitFade));
@@ -1991,7 +1995,8 @@ Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTr
     }
     if (particle.subtype == AnchoredOrbitSubtype)
     {
-        // 0x547286..0x5472a5: la /10 calcula el argumento y lo tira (fstp st(0)); la x y la y vuelven a la partida.
+        // 0x547286..0x5472a5: the /10 computes the argument and drops it (fstp st(0)); the x and the y go back to the
+        // start.
         particle.position.x = particle.start.x;
         particle.position.y = particle.start.y;
         particle.position.z =
@@ -2187,18 +2192,19 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        // La 5fd sin un personaje de dueño: el paso no tendría de dónde sacar la mano (0x53fdb0).
+        // The 5fd without a character owner: the step would have nowhere to take the hand from (0x53fdb0).
         if (type == HandShineParticle && typedOwner.kind != ParticleOwnerKind::Actor)
         {
             return Core::Unexpected(ParticleError::MissingOwner);
         }
-        // 5c6/4, 5de/4 y 5c5/5 leen la posición del dueño al nacer (0x540686, 0x5417ba y 0x5403ad): sin ella no hay de
-        // dónde.
+        // 5c6/4, 5de/4 and 5c5/5 read the owner's position at birth (0x540686, 0x5417ba and 0x5403ad): without it there
+        // is nowhere to read it from.
         if (ownerPosition == nullptr && NeedsOwnerPosition(type, subtype))
         {
             return Core::Unexpected(ParticleError::MissingOwner);
         }
-        // La niebla 5f2/28..30 pide la altura del terreno al nacer (0x5f93c0): sin ella no hay de dónde.
+        // The mist 5f2/28..30 asks for the terrain height at birth (0x5f93c0): without it there is nowhere to read it
+        // from.
         if ((terrainHeight == nullptr || !*terrainHeight) && NeedsTerrainHeight(type, subtype))
         {
             return Core::Unexpected(ParticleError::MissingTerrainHeight);
@@ -2254,7 +2260,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (IsSwellLifeParticle(type, subtype))
         {
-            // 0x540112..0x54012a: el argumento escala es el índice de hueso en +44; sin rand().
+            // 0x540112..0x54012a: the scale argument is the bone index in +0x44; no rand().
             constexpr std::int32_t Life = 10;
             constexpr float Scale = 2;
             particle.typedOwner = typedOwner;
@@ -2266,8 +2272,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == HandShineParticle)
         {
-            // 0x542b0e..0x542b28: sin rand() ni reloj. La posición de 0x53fdb0 la pone quien la crea, que tiene los
-            // personajes.
+            // 0x542b0e..0x542b28: no rand() or clock. The position from 0x53fdb0 is set by whoever creates it, who has
+            // the characters.
             particle.typedOwner = typedOwner;
             particle.life = HandShineLife;
             particle.angles.x = HandShineTilt;
@@ -2275,7 +2281,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == SiegeBlessingParticle)
         {
-            // 0x53fe70, caso0x638: la vida20 y escalaargumento, X/Y con rand%30−15, Z+240. Cualquier subtipo.
+            // 0x53fe70, case 0x638: life 20 and the scale argument, X/Y with rand%30−15, Z+240. Any subtype.
             constexpr int Jitter = 30;
             constexpr float HalfJitter = 15.0f;
             constexpr float Height = 240.0f;
@@ -2288,8 +2294,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == ThunderParticle)
         {
-            // 54109f: la escala ((rand() & 7) + 6) · escala · 0,1f, el giro +0x50 en 20 y +0x44 rand() % 360. Los
-            // subtipos que no son la /1 ni la /2 conservan la vida 2, la luz y los ángulos del prefijo.
+            // 0x54109f: the scale ((rand() & 7) + 6) · scale · 0.1f, the turn +0x50 at 20 and +0x44 rand() % 360. The
+            // subtypes that are not the /1 or the /2 keep the prefix's life 2, light and angles.
             constexpr int ScaleSpan = 8;
             constexpr int ScaleBase = 6;
             constexpr float ScaleStep = 0.1f;
@@ -2300,16 +2306,16 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.rotation = static_cast<float>(rotation);
             if (subtype == ThunderGraySubtype)
             {
-                // 0x5410ea: vida 10 y la luz (0,5; 0,5; 0,5).
+                // 0x5410ea: life 10 and the light (0.5; 0.5; 0.5).
                 constexpr std::int32_t GrayLife = 10;
                 particle.life = GrayLife;
                 particle.light = glm::vec3(0.5f);
             }
             else if (subtype == ThunderBoltSubtype)
             {
-                // 0x541112..0x541167: la textura 0x61e, vida 10, un tercer rand() para la escala ((rand() & 7) + 6) ·
-                // escala · 0,1f + 0,3f, y +0x44 y +0x50 en 0. Copia la luz del lugar al vector del llamador
-                // (0x541154), que es la misma que le dio el prefijo: no cambia nada.
+                // 0x541112..0x541167: texture 0x61e, life 10, a third rand() for the scale ((rand() & 7) + 6) · scale ·
+                // 0.1f + 0.3f, and +0x44 and +0x50 at 0. Copies the slot's light to the caller's vector (0x541154),
+                // which is the one the prefix gave it: it changes nothing.
                 constexpr std::int32_t BoltTexture = 0x61e;
                 constexpr std::int32_t BoltLife = 10;
                 constexpr double BoltBase = static_cast<double>(std::bit_cast<float>(0x3e99999au)); // 0x6b89dc
@@ -2406,7 +2412,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == BreathParticle && subtype == CrywolfTideSmokeSubtype)
         {
-            // 5424bf: misma secuencia de tres CRT que640/0, con vida25 y textura5f2.
+            // 0x5424bf: the same three-CRT sequence as 640/0, with life 25 and texture 5f2.
             particle.life = 25;
             particle.scale = F32(static_cast<double>((random.Next() & 63) + 64) * static_cast<double>(0.01f));
             particle.rotation = static_cast<float>(random.Next() % 360);
@@ -2427,7 +2433,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == MissileFireParticle)
         {
-            // 0x540f7b..0x54108a: /8 tira seis veces y /9 tres; el giro final pisa el anterior.
+            // 0x540f7b..0x54108a: /8 rolls six times and /9 three; the final turn overrides the previous one.
             particle.life = 32;
             if (subtype == 8)
             {
@@ -2443,8 +2449,8 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             particle.rotation = static_cast<float>(random.Next() % 360);
             return std::optional(index);
         }
-        // 0x541a36..0x541a8c: la /34 y la /35, vida 30, la luz (1; 0,2f; 0,2f) y el giro rand() % 360; la /35 baja 5 en
-        // y y la /34 queda quieta (0x5435bb).
+        // 0x541a36..0x541a8c: the /34 and the /35, life 30, the light (1; 0.2f; 0.2f) and the turn rand() % 360; the
+        // /35 drops 5 in y and the /34 stays still (0x5435bb).
         if (type == BreathParticle &&
             (subtype == MissileSmokeSubtype || subtype == ExplosionSmokeSubtype || subtype == ViperSmokeSubtype))
         {
@@ -2481,7 +2487,7 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == PoundingBallParticle)
         {
-            // 0x54308a: el tercer sorteo sigue ocurriendo aunque su velocidad vertical no se usa en /1.
+            // 0x54308a: the third roll still happens even though its vertical speed is not used in /1.
             particle.life = 30;
             particle.scale = F32(static_cast<double>((random.Next() & 63) + 64) * static_cast<double>(0.01f));
             particle.rotation = static_cast<float>(random.Next() % 360);
@@ -2510,15 +2516,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == ShockWaveParticle)
         {
-            // 0x5443b2: vida 7, sin rand().
+            // 0x5443b2: life 7, no rand().
             constexpr std::int32_t ShockWaveLife = 7;
             particle.life = ShockWaveLife;
             return std::optional(index);
         }
         if (type == BlazeParticle)
         {
-            // 0x542a94..0x542aa4: vida 12 y la escala del pedido otra vez en +0x10. El sonido de 0x542aa7, quien la
-            // crea.
+            // 0x542a94..0x542aa4: life 12 and the requested scale again in +0x10. The sound of 0x542aa7 is played by
+            // whoever creates it.
             constexpr std::int32_t BlazeLife = 12;
             particle.life = BlazeLife;
             particle.scale = scale;
@@ -2576,16 +2582,15 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         if (type == SparkParticle)
         {
-            // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
-            // (el idiom de and 0x80000001, fild, fadd 2 de 0x6b8818 y fchs) girado por AngleMatrix de esos
-            // ángulos.
+            // 0x5406e5: life 10, the angles (0, 0, yaw) and the speed, the push (−(rand() % 2 + 2), 0, 0) (the and
+            // 0x80000001 idiom, fild, fadd 2 of 0x6b8818 and fchs) turned by AngleMatrix of those angles.
             particle.life = SparkLife;
             particle.angles = glm::vec3(0.0f, 0.0f, angles.z);
             const glm::vec3 push(-(static_cast<float>(random.Next() % 2) + SparkPush), 0.0f, 0.0f);
             particle.velocity = Math::OriginalVectorRotate(push, Math::OriginalAngleMatrix(particle.angles));
             return std::optional(index);
         }
-        // 0x54184b: el aliento. El rand() % 32 va con el idiom de and 0x8000001f.
+        // 0x54184b: the breath. The rand() % 32 goes with the and 0x8000001f idiom.
         particle.life = BreathLife;
         particle.scale = F32(static_cast<double>((random.Next() % 32) + BreathScaleBase) * BreathScaleStep);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
@@ -2645,8 +2650,8 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
     Terrain::TerrainLighting* lighting, const ParticleActorHands& actorHands, const ParticleOwnerBones& ownerBones,
     const std::function<void(Audio::SoundId)>& sound, const ParticleOwnerStates& ownerStates, FrameSprites* sprites)
 {
-    // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
-    // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
+    // The private pointers only tell legacy apart from the required public API. The live overload always provides the
+    // clock and the evaluator; there is no optional public service.
     StepTheWind(particles.Wind(), random);
     for (Particle& particle : particles.All())
     {
@@ -2769,11 +2774,11 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         }
         else if (particle.type == ThunderParticle)
         {
-            // 54573f: se ejecuta incluso después del último movimiento común con alive=0.
+            // 0x54573f: runs even after the last common movement with alive=0.
             particle.rotation = F32(static_cast<double>(particle.verticalSpeed) + particle.rotation);
             if (particle.subtype == ThunderGraySubtype)
             {
-                // 0x545750..0x54576b: la luz vida · 0,0666667f (0x6ba1e0) y la escala + 0,1f.
+                // 0x545750..0x54576b: the light life · 0.0666667f (0x6ba1e0) and the scale + 0.1f.
                 constexpr double GrayFade = static_cast<double>(std::bit_cast<float>(0x3d888889u));
                 constexpr double GrayGrowth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu)); // 0x6b87b8
                 particle.light = glm::vec3(F32(static_cast<double>(particle.life) * GrayFade));
@@ -2781,7 +2786,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
             }
             else if (particle.subtype == ThunderBoltSubtype)
             {
-                // 0x54577c..0x54579d: la luz baja 0,01f (0x6b88d4) por canal.
+                // 0x54577c..0x54579d: the light drops 0.01f (0x6b88d4) per channel.
                 constexpr double BoltFade = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
                 for (int channel = 0; channel < 3; ++channel)
                     particle.light[channel] = F32(static_cast<double>(particle.light[channel]) - BoltFade);
@@ -2922,7 +2927,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         }
         else if (particle.type == ShockWaveParticle)
         {
-            // 0x5481ab..0x5481d8: la luz por 0,5555556f (0x6ba234) y la escala más 0,3f (0x6b89dc).
+            // 0x5481ab..0x5481d8: the light by 0.5555556f (0x6ba234) and the scale plus 0.3f (0x6b89dc).
             for (int channel = 0; channel < 3; ++channel)
                 particle.light[channel] = F32(static_cast<double>(particle.light[channel]) *
                                               static_cast<double>(std::bit_cast<float>(0x3f0e38e4u)));
@@ -2931,7 +2936,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         }
         else if (particle.type == BlazeParticle)
         {
-            // 0x545ce3..0x545cfb: el cuadro (+0x48) es (12 − vida) / 3, el cociente de imul por 0x55555556 (hacia 0).
+            // 0x545ce3..0x545cfb: the frame (+0x48) is (12 − life) / 3, the quotient of imul by 0x55555556 (toward 0).
             constexpr std::int32_t BlazeLife = 12, BlazeFrameLength = 3;
             particle.field48 = std::bit_cast<float>((BlazeLife - particle.life) / BlazeFrameLength);
         }
@@ -2951,7 +2956,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         }
         else if (particle.type == SparkParticle && particle.subtype == PiercingSparkSubtype)
         {
-            // 0x5450ce: la partida guardada manda incluso tras el movimiento y la muerte comunes.
+            // 0x5450ce: the stored start rules even after the common movement and death.
             constexpr std::int32_t DetachedLife = 5;
             constexpr double Brightness = static_cast<double>(0.2f);
             constexpr double Growth = static_cast<double>(0.05f);
@@ -2983,7 +2988,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(
         }
         else if (particle.type == SparkParticle && particle.subtype == TeleportSparkSubtype)
         {
-            // 0x5450a9: resta 2 y muere bajo 0,2 (también unordered); no cambia la luz.
+            // 0x5450a9: subtracts 2 and dies under 0.2 (also unordered); it does not change the light.
             constexpr double Shrink = 2.0;
             constexpr double Minimum = static_cast<double>(0.2f);
             const double changed = static_cast<double>(particle.scale) - Shrink;

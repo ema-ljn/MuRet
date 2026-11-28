@@ -16,9 +16,9 @@ namespace Client::Kernel
 class WorldState;
 } // namespace Client::Kernel
 
-// La espera de las skills (+0x76c del registro propio, por el lugar de la barra), CL9 hito 4. Contrato: 06, "La
-// espera de las skills". Cada acceso al registro propio gasta sus 3.848 rand() al cerrarlo en 0, y cada uno a una
-// entrada de Skill.bmd, 60 (0x40f600), en el orden del original.
+// The skills' delay (+0x76c of the own record, by bar slot). Contract: 06, "La espera de las skills". Each access to
+// the own record spends its 3848 rand() on closing at 0, and each one to a Skill.bmd entry, 60 (0x40f600), in the
+// original's order.
 namespace Client::Skills
 {
 
@@ -26,25 +26,25 @@ struct SkillDelayContext
 {
     Kernel::WorldState& world;
     Crt::CrtRandom& random;
-    // Skill.bmd (0x76bd1d8). nullptr: lo que lo lee corta.
+    // Skill.bmd (0x76bd1d8). nullptr: what reads it cuts.
     const Tables::SkillTable* skills = nullptr;
 };
 
-// 0x5521f0(skill, &requisito): el WORD +0x2e de la entrada de Skill.bmd, abierta y cerrada.
+// 0x5521f0(skill, &requirement): WORD +0x2e of the Skill.bmd entry, opened and closed.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> SkillDelayRequirement(std::uint8_t skill,
                                                                               const SkillDelayContext& context);
 
-// 0x552990(lugar): la skill del lugar de la barra (+0x6c + lugar) y su espera (+0x28 de Skill.bmd); con espera, si la
-// del registro ya llegó a 0 y el requisito de 0x5521f0 no pasa de +0x36 + +0x20 (el liderazgo), la pone.
+// 0x552990(slot): the bar slot's skill (+0x6c + slot) and its delay (+0x28 of Skill.bmd); with a delay, if the
+// record's has reached 0 and the requirement of 0x5521f0 does not exceed +0x36 + +0x20 (leadership), it sets it.
 [[nodiscard]] Core::Expected<void, std::string> StartSkillDelay(std::uint8_t slot, const SkillDelayContext& context);
 
-// 0x552c50(lugar): lo mismo, pero dice si se puede usar: no con la espera todavía corriendo ni con el requisito sin
-// cumplir. Con la skill 0x4c no la pone.
+// 0x552c50(slot): the same, but says whether it can be used: not with the delay still running nor with the
+// requirement unmet. With skill 0x4c it does not set it.
 [[nodiscard]] Core::Expected<bool, std::string> TryStartSkillDelay(std::uint8_t slot, const SkillDelayContext& context);
 
-// 0x552f10(transcurrido): con el registro abierto, baja las esperas de los +0x6a + 2 primeros lugares (hasta 256) que
-// están corriendo, sin pasar de 0. La llama 0x4eb620 en la escena 5 con los milisegundos del frame (GameScene::Step, al
-// empezar cada frame del original).
+// 0x552f10(elapsed): with the record open, lowers the running delays of the first +0x6a + 2 slots (up to 256), not
+// below 0. 0x4eb620 calls it in scene 5 with the frame's milliseconds (GameScene::Step, at the start of each original
+// frame).
 [[nodiscard]] Core::Expected<void, std::string> CountDownSkillDelays(std::int32_t elapsed,
                                                                      const SkillDelayContext& context);
 } // namespace Client::Skills

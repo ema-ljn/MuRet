@@ -49,9 +49,8 @@
 #include <string_view>
 #include <utility>
 
-// CL9 hito 3 (04 § Pegar, el daño y la muerte): el 0x16 y el 0x9C (0x4cf200, 0x4cfce0), el 0x17 (0x4d0a30, con
-// 0x4d07c0 en Blood Castle y Chaos Castle), 0x4f4a10 y 0x4f5660 sobre el mundo. Las claves, los textos y los nombres
-// son inventados.
+// 04 § Pegar, el daño y la muerte: the 0x16 and the 0x9C (0x4cf200, 0x4cfce0), the 0x17 (0x4d0a30, with 0x4d07c0 in
+// Blood Castle and Chaos Castle), 0x4f4a10 and 0x4f5660 on the world. The keys, texts and names are invented.
 namespace
 {
 using Client::Combat::ActorCombatContext;
@@ -76,7 +75,7 @@ public:
     }
 };
 
-// Los esqueletos de 0x4ea030 para los monstruos de los tests (Player.bmd va aparte, en el contexto).
+// The skeletons of 0x4ea030 for the tests' monsters (Player.bmd goes apart, in the context).
 class CombatModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -123,7 +122,6 @@ protected:
     {
         return m_world->Actors()[index];
     }
-    // Un monstruo vivo con `key` en `index`.
     ActorState& MonsterAt(std::size_t index, std::uint16_t key)
     {
         ActorState& actor = Actor(index);
@@ -133,7 +131,6 @@ protected:
         actor.byte88 = 2;
         return actor;
     }
-    // Un jugador vivo, sin armas ni mascota, con `key` en `index`.
     ActorState& PlayerAt(std::size_t index, std::uint16_t key, std::uint8_t characterClass = 0)
     {
         ActorState& actor = Actor(index);
@@ -152,7 +149,7 @@ protected:
                                   .items = &m_items,
                                   .terrain = &m_terrain};
     }
-    // Con la tabla de sonidos `sounds` para el modelo Monster (la de 0x612c80) y ninguna para los demás.
+    // `sounds` as the table of the Monster model (that of 0x612c80) and none for the rest.
     [[nodiscard]] ActorCombatContext CombatWithSounds(const Client::Sound::ModelSounds& sounds)
     {
         ActorCombatContext combat = Combat();
@@ -183,7 +180,7 @@ protected:
         expected.Discard(count);
         return expected.State();
     }
-    // Una copia del rand() después de `count`, para sacar los mismos valores que el código.
+    // A copy of the rand() after `count`, to draw the same values as the code.
     [[nodiscard]] static CrtRandom DrawnAfter(std::uint32_t count)
     {
         CrtRandom expected(Seed);
@@ -208,9 +205,9 @@ protected:
     return !result.HasValue() && result.Error().find(address) != std::string::npos;
 }
 
-// 0x4cf200 sin el bit 15: el héroe anota el muerto (+0x380 en 2, el daño y el lugar), el número del daño sale con la
-// luz (1; 0,6; 0) y la escala 15, el muerto queda muriéndose y la experiencia se suma en el registro propio (3848
-// rand() al cerrarlo) y va al chat con el texto 486.
+// 0x4cf200 without bit 15: the hero records the kill (+0x380 at 2, the damage and the slot), the damage number comes
+// out with the light (1; 0.6; 0) and scale 15, the dead one is left dying and the experience is added to the own record
+// (3848 rand() when it closes) and goes to the chat with text 486.
 TEST_F(CombatRepliesTest, AKillWithoutShockMarksTheVictimOnTheHeroAndAddsTheExperience)
 {
     ActorState& dead = MonsterAt(12, 0x123);
@@ -243,7 +240,7 @@ TEST_F(CombatRepliesTest, AKillWithoutShockMarksTheVictimOnTheHeroAndAddsTheExpe
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 }
 
-// 0x4cfca6: con experiencia 0 no hay mensaje, pero el registro propio igual se abre y se cierra.
+// 0x4cfca6
 TEST_F(CombatRepliesTest, AKillWithoutExperienceStillClosesTheOwnRecordAndAddsNoMessage)
 {
     MonsterAt(12, 0x123);
@@ -255,8 +252,8 @@ TEST_F(CombatRepliesTest, AKillWithoutExperienceStillClosesTheOwnRecordAndAddsNo
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 }
 
-// 0x4cfce0, el PMSG_KILLPLAYER_EXT de la recompensa de Blood Castle (0x49af90): la experiencia de 32 bits, como la
-// arma el GameServer (dos WORD), entra entera en el registro propio.
+// 0x4cfce0, the PMSG_KILLPLAYER_EXT of Blood Castle's reward (0x49af90): the 32-bit experience, as the GameServer
+// builds it (two WORDs), goes whole into the own record.
 TEST_F(CombatRepliesTest, TheExtendedKillAddsTheWholeThirtyTwoBitExperience)
 {
     MonsterAt(30, 0x456);
@@ -269,8 +266,8 @@ TEST_F(CombatRepliesTest, TheExtendedKillAddsTheWholeThirtyTwoBitExperience)
     EXPECT_EQ(Hero().attackTarget, 30);
 }
 
-// Con el bit 15, 0x4f5660 sobre el muerto: un elfo de Devias toma la acción 0xc3, el sonido 0x6e y el frame 0,001.
-// El héroe no anota nada.
+// With bit 15, 0x4f5660 on the dead one: an elf in Devias takes action 0xc3, sound 0x6e and frame 0.001. The hero
+// records nothing.
 TEST_F(CombatRepliesTest, AShockKillsAnotherPlayerWithTheDeathActionAndSound)
 {
     Runtime().map = 2;
@@ -288,7 +285,7 @@ TEST_F(CombatRepliesTest, AShockKillsAnotherPlayerWithTheDeathActionAndSound)
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 }
 
-// 0x4f5a09..0x4f5ae8: el sonido de morir del jugador por la clase, y Fenrir lo pisa con el 0x278.
+// 0x4f5a09..0x4f5ae8
 TEST_F(CombatRepliesTest, ThePlayerDeathSoundFollowsTheClassAndFenrir)
 {
     struct Case
@@ -308,8 +305,7 @@ TEST_F(CombatRepliesTest, ThePlayerDeathSoundFollowsTheClassAndFenrir)
     }
 }
 
-// La muerte del héroe abre el registro propio para poner la vida en 0 (3848 rand()) y después el de la experiencia
-// los saca otra vez.
+// The hero's death opens the own record to set the life to 0 (3848 rand()) and then the experience's draws them again.
 TEST_F(CombatRepliesTest, AShockOnTheHeroZeroesTheOwnLifeInsideTheOwnRecord)
 {
     const auto applied = Client::Combat::ApplyKillExperience({.key = HeroKey, .shock = true, .amount = 1, .damage = 1},
@@ -323,7 +319,7 @@ TEST_F(CombatRepliesTest, AShockOnTheHeroZeroesTheOwnLifeInsideTheOwnRecord)
     EXPECT_EQ(Runtime().ownRecordDepth, 0);
 }
 
-// En Chaos Castle (18 a 23) el sonido de morir es rand() & 1 + 0x5e, para todos.
+// In Chaos Castle (18 to 23) the death sound is rand() & 1 + 0x5e, for everyone.
 TEST_F(CombatRepliesTest, InChaosCastleTheDeathSoundIsDrawn)
 {
     Runtime().map = 18;
@@ -338,10 +334,10 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeathSoundIsDrawn)
     EXPECT_EQ(m_random.State(), After(1 + OwnRecordDraws));
 }
 
-// El monstruo que muere con el frame en 0 pide el sonido de la WORD 4 de su tabla (0x5769ad8 + tipo · 0xe0 + 0xb2),
-// con signo, más 5 con el subtipo 9 y más 0xd2, sin rand(); con 0xffff, ninguno; sin la tabla, la WORD en 0 de
-// 0x60dc80: el 0xd2 (0xd7 con el subtipo 9). El frame queda en 0,001 igual. El que ya estaba en la acción 6 con otro
-// frame no pide sonido.
+// The monster dying with the frame at 0 requests the sound of WORD 4 of its table (0x5769ad8 + type · 0xe0 + 0xb2),
+// signed, plus 5 with subtype 9 and plus 0xd2, without rand(); with 0xffff, none; without the table, the WORD at 0 of
+// 0x60dc80: the 0xd2 (0xd7 with subtype 9). The frame ends at 0.001 anyway. One already in action 6 with another frame
+// requests no sound.
 TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZero)
 {
     struct Case
@@ -395,12 +391,13 @@ TEST_F(CombatRepliesTest, AMonsterDeathSoundComesFromItsTableOnlyWithTheFrameAtZ
     EXPECT_EQ(dying.animation.frame, 2.0f);
     EXPECT_FALSE(Runtime().lastSoundId.has_value());
     EXPECT_EQ(dying.dying, 1);
-    // Siete cierres del registro propio, uno por experiencia, y ningún rand() de los sonidos.
+    // Seven closes of the own record, one per experience, and no rand() from the sounds.
     EXPECT_EQ(m_random.State(), After(7 * OwnRecordDraws));
 }
 
-// 0x4f58a7, 0x4f5942 y 0x4f599e apagan el byte vivo antes de intentar los efectos; con el pool lleno no se crean y
-// siguen el sonido 0x7c, el gate del frame y 0x4f5a09. No cambia la acción ni se gastan rand() salvo en Chaos Castle.
+// 0x4f58a7, 0x4f5942 and 0x4f599e clear the alive byte before trying the effects; with the pool full they are not
+// created and the sound 0x7c, the frame gate and 0x4f5a09 follow. The action does not change and no rand() is spent
+// except in Chaos Castle.
 TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFull)
 {
     struct Case
@@ -485,9 +482,9 @@ TEST_F(CombatRepliesTest, SpecialEffectDeathsContinueWhenTheModelEffectPoolIsFul
     }
 }
 
-// 0x4f589d..0x4f58f6 y 0x4f5938..0x4f5991: con lugar, el jugador de subtipo 0xd1..0xd3 y el 0x170 sueltan un hueso
-// 0xd5/0 y diez 0xd6/0 sin dueño (150 y 100 más arriba, 0x51b398), cada uno con sus cinco rand() (0x51b72b), y siguen
-// con el sonido 0x7c. El 0x16b sigue cortando en sus 0xe5 (CL11, lote del switch).
+// 0x4f589d..0x4f58f6 and 0x4f5938..0x4f5991: with room, the player of subtype 0xd1..0xd3 and the 0x170 drop a bone
+// 0xd5/0 and ten ownerless 0xd6/0 (150 and 100 higher, 0x51b398), each with its five rand() (0x51b72b), and go on with
+// sound 0x7c. The 0x16b still cuts at its 0xe5 (CL11, switch batch).
 TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
 {
     constexpr std::size_t Bones = 11;
@@ -534,8 +531,8 @@ TEST_F(CombatRepliesTest, ThePlayerAndThe170ScatterTheirBones)
     }
 }
 
-// El cierre del registro propio ocurre antes del rand() del sonido de Chaos Castle, y solo lo cierra el acceso que lo
-// deja en 0. Incluso si la primera alta de efectos corta, el héroe ya quedó vivo=false y su vida en 0.
+// The own record's close comes before the rand() of Chaos Castle's sound, and only the access that leaves it at 0
+// closes it. Even if the first effect creation cuts, the hero is already alive=false with its life at 0.
 TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
 {
     for (const std::uint8_t depth : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{0xff}})
@@ -572,9 +569,9 @@ TEST_F(CombatRepliesTest, AHeroDeathClosesItsOwnRecordBeforeTheChaosSound)
     }
 }
 
-// 0x4f59ad..0x4f59f4: con lugar, la muerte del 0x16b (el héroe) deja ocho pares 0xe5/0 y 0xe6/0 en su posición, con
-// sus ángulos y su luz, después del cierre del registro propio; cada uno saca sus ocho rand() (0x51b659), repetidos en
-// un pool gemelo con el mismo CrtRandom. Con dos lugares libres, sólo el primer par; después, el sonido y el frame.
+// 0x4f59ad..0x4f59f4: with room, the death of the 0x16b (the hero) leaves eight pairs 0xe5/0 and 0xe6/0 at its
+// position, with its angles and light, after the own record's close; each draws its eight rand() (0x51b659), repeated
+// in a twin pool with the same CrtRandom. With two free slots, only the first pair; then the sound and the frame.
 TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathScattersItsSplinters)
 {
     for (const std::size_t free : {std::size_t{2}, std::size_t{200}})
@@ -647,9 +644,9 @@ TEST_F(CombatRepliesTest, AHeroSpecialEffectDeathScattersItsSplinters)
     }
 }
 
-// El 0x9C que manda el GameServer 0.97 (0x49af90) lleva la clave 0xFFFF: 0x7fff con el bit 15. Nadie tiene la 0x7fff y
-// 0x5110d0 devuelve el lugar 400, el de tipo 0, que muere con el sonido 0xd2 (nadie escribe la tabla del modelo 0 y el
-// REP STOSD de 0x60dc80 la dejó en diez WORD en 0) y suma la experiencia (Q-C1160, P-C252).
+// The 0x9C that GameServer 0.97 sends (0x49af90) carries the key 0xFFFF: 0x7fff with bit 15. Nobody has 0x7fff and
+// 0x5110d0 returns slot 400, of type 0, which dies with sound 0xd2 (nobody writes model 0's table and the REP STOSD of
+// 0x60dc80 left it as ten zero WORDs) and adds the experience (Q-C1160, P-C252).
 TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundred)
 {
     const auto applied = Client::Combat::ApplyKillExperience({.key = 0x7fff, .shock = true, .amount = 100, .damage = 0},
@@ -661,7 +658,7 @@ TEST_F(CombatRepliesTest, TheBloodCastleRewardLandsOnSlotFourHundred)
     EXPECT_EQ(m_world->OwnCharacter().experience, 100u);
 }
 
-// 0x4d0a30 fuera de los castillos y sin skill de empuje: muriéndose, quieto, con la skill anotada y sin rand().
+// 0x4d0a30 outside the castles and without a push skill: dying, still, with the skill recorded and without rand().
 TEST_F(CombatRepliesTest, AnOrdinaryDeathOnlyMarksTheActor)
 {
     for (const std::int32_t map : {0, 2})
@@ -680,7 +677,7 @@ TEST_F(CombatRepliesTest, AnOrdinaryDeathOnlyMarksTheActor)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4d0ac1..0x4d0b98: la skill 0x28 (y la 0x3b) lo empuja con dos rand() y lo gira hacia quien lo mató (0x4e93f0).
+// 0x4d0ac1..0x4d0b98: skill 0x28 (and 0x3b) pushes it with two rand() and turns it toward its killer (0x4e93f0).
 TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x28}, std::uint8_t{0x3b}})
@@ -713,9 +710,9 @@ TEST_F(CombatRepliesTest, APushingSkillThrowsTheDeadAwayFromTheKiller)
     }
 }
 
-// El 17 de otro jugador con la skill 0x3b y después su paso de morirse (0x4fb9e0, CL9 hito 3, fase 2a): hasta el
-// paso 14, +0xd0 baja +0xd8, +0xd8 sube 1 y 0x51fd20 lo corre por el rumbo hacia quien lo mató; sin rand() fuera del
-// mapa 7. Desde el 15 queda donde llegó.
+// Another player's 17 with skill 0x3b and then its dying step (0x4fb9e0): up to step 14, +0xd0 drops by +0xd8, +0xd8
+// rises 1 and 0x51fd20 moves it along the heading toward its killer; no rand() outside map 7. From 15 on it stays
+// where it got.
 TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
 {
     ActorState& dead = PlayerAt(20, 0x77);
@@ -749,8 +746,8 @@ TEST_F(CombatRepliesTest, AnotherPlayerPushedToDeathFliesThroughItsDyingSteps)
     EXPECT_EQ(m_random.State(), afterTheDeath);
 }
 
-// 0x4d07c0 en Blood Castle (11): sobre el TerrainWall 0x20 lo empujan del puente hacia el lado de la vecina con el
-// bit 8, con cinco rand().
+// 0x4d07c0 in Blood Castle (11): on TerrainWall 0x20 it is pushed off the bridge toward the side of the neighbor with
+// bit 8, with five rand().
 TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
 {
     Runtime().map = 11;
@@ -778,7 +775,7 @@ TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
     EXPECT_EQ(dead.pushOrigin, dead.position);
     EXPECT_EQ(m_random.State(), After(5));
 
-    // Con la vecina de la izquierda, hacia el otro lado.
+    // With the left neighbor, toward the other side.
     m_random = CrtRandom(Seed);
     Wall(13, 23) = 0;
     Wall(11, 23) = 0x08;
@@ -786,10 +783,10 @@ TEST_F(CombatRepliesTest, OnTheBloodCastleBridgeTheDeadIsPushedTowardsTheFall)
     EXPECT_EQ(dead.push, glm::vec3(0.0f, 0.0f, static_cast<float>(push + 85.0)));
 }
 
-// El puente de Blood Castle en el borde de la grilla: en la celda 0xffff la vecina de la derecha (0x4d0949) y en la 0
-// sin el bit 8 en la 1 la de la izquierda (0x4d0979) caen fuera de TerrainWall. MuRet saca los tres rand() de antes de
-// esa lectura y descarta el empujón (+0x1a1 en 0) sin cortar el handler (Q-C1180); en la celda 0 con el bit 8 en la 1,
-// el empujón sale con sus cinco rand(). En Lorencia y en Devias la misma celda no empuja.
+// Blood Castle's bridge at the grid's edge: at cell 0xffff the right neighbor (0x4d0949) and at 0 without bit 8 at 1
+// the left one (0x4d0979) fall outside TerrainWall. MuRet draws the three rand() before that read and discards the
+// push (+0x1a1 at 0) without cutting the handler (Q-C1180); at cell 0 with bit 8 at 1, the push goes out with its five
+// rand(). In Lorencia and Devias the same cell does not push.
 TEST_F(CombatRepliesTest, OnTheEdgeOfTheGridTheBridgePushIsDiscarded)
 {
     struct Case
@@ -837,7 +834,7 @@ TEST_F(CombatRepliesTest, OnTheEdgeOfTheGridTheBridgePushIsDiscarded)
     }
 }
 
-// 0x4d0848..0x4d08dc: en Chaos Castle (18) sobre el TerrainWall 8 cae al vacío, con el sonido 0x60 y dos rand().
+// 0x4d0848..0x4d08dc: in Chaos Castle (18) on TerrainWall 8 it falls into the void, with sound 0x60 and two rand().
 TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
 {
     Runtime().map = 18;
@@ -858,7 +855,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{0x60});
     EXPECT_EQ(m_random.State(), After(2));
 
-    // El mismo TerrainWall en Blood Castle no lo hace caer; la skill tampoco empuja en los castillos.
+    // The same TerrainWall in Blood Castle does not make it fall; the skill does not push in the castles either.
     m_random = CrtRandom(Seed);
     Runtime().map = 11;
     Runtime().lastSoundId.reset();
@@ -868,7 +865,7 @@ TEST_F(CombatRepliesTest, InChaosCastleTheDeadFallsIntoTheVoid)
     EXPECT_EQ(m_random.State(), After(0));
 }
 
-// 0x4d0a0c..0x4d0a25: el héroe que muere en un castillo devuelve el objeto del evento a 0x40ba20.
+// 0x4d0a0c..0x4d0a25: the event object goes back to 0x40ba20.
 TEST_F(CombatRepliesTest, TheHeroDyingInACastleResetsTheEventObject)
 {
     Runtime().map = 11;
@@ -882,14 +879,13 @@ TEST_F(CombatRepliesTest, TheHeroDyingInACastleResetsTheEventObject)
     EXPECT_EQ(Runtime().eventObject->field14, (std::array<std::int32_t, 4>{-1, -1, -1, -1}));
     EXPECT_EQ(Hero().dying, 1);
 
-    // Otro que muere no lo toca.
     Runtime().eventObject = object;
     MonsterAt(12, 0x123);
     ASSERT_TRUE(Client::Combat::ApplyDeath({.key = 0x123, .skill = 0, .killer = 0}, Combat()).HasValue());
     EXPECT_EQ(Runtime().eventObject->field10, 5);
 }
 
-// Sin los atributos del mundo cargado, 0x4d07c0 no tiene TerrainWall que leer.
+// Without the loaded world's attributes, 0x4d07c0 has no TerrainWall to read.
 TEST_F(CombatRepliesTest, ACastleDeathWithoutAttributesCuts)
 {
     Runtime().map = 23;
@@ -898,7 +894,7 @@ TEST_F(CombatRepliesTest, ACastleDeathWithoutAttributesCuts)
     EXPECT_TRUE(HasError(cut, "0x4d07ff"));
 }
 
-// 0x4f4a10 sobre un jugador: 0x4f3f80 primero (3848 rand()), la acción por las armas y el sonido con el frame en 0.
+// 0x4f4a10 on a player: 0x4f3f80 first (3848 rand()), the action by the weapons and the sound with the frame at 0.
 TEST_F(CombatRepliesTest, AnUnarmedPlayerPunchesWithoutSound)
 {
     ActorState& player = PlayerAt(20, 0x55);
@@ -909,8 +905,8 @@ TEST_F(CombatRepliesTest, AnUnarmedPlayerPunchesWithoutSound)
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws));
 }
 
-// Una espada sin la marca +0x1e alterna 0x23 y 0x24 por +0x38f & 1 y el sonido sale de rand() & 1 + 0x3c; con la
-// marca, 0x27 + (+0x38f % 3).
+// A sword without the +0x1e mark alternates 0x23 and 0x24 by +0x38f & 1 and the sound comes from rand() & 1 + 0x3c;
+// with the mark, 0x27 + (+0x38f % 3).
 TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
 {
     ActorState& player = PlayerAt(20, 0x55);
@@ -921,7 +917,7 @@ TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
     EXPECT_EQ(Runtime().lastSoundId, Client::Audio::SoundId{(expected.Next() & 1) + 0x3c});
     EXPECT_EQ(m_random.State(), After(OwnRecordDraws + 1));
 
-    // 0x4ea030 vuelve el frame a 0 al cambiar de acción: la segunda también pide sonido.
+    // 0x4ea030 resets the frame to 0 when the action changes: the second one requests a sound too.
     player.animation.frame = 1.0f;
     Runtime().lastSoundId.reset();
     ASSERT_TRUE(Client::Combat::SetActorAttack(player, Combat()).HasValue());
@@ -935,7 +931,7 @@ TEST_F(CombatRepliesTest, ASwordAlternatesByTheAttackCountAndDrawsItsSound)
     EXPECT_EQ(player.animation.action, 0x27 + 2);
 }
 
-// Un arco en la izquierda tira con 0x2e (0x30 con alas) y suena 0x55, sin sortear.
+// A bow in the left hand shoots with 0x2e (0x30 with wings) and sounds 0x55, without a draw.
 TEST_F(CombatRepliesTest, ABowShootsByTheWingsAndSoundsWithoutDrawing)
 {
     ActorState& player = PlayerAt(20, 0x55, 2);
@@ -951,8 +947,8 @@ TEST_F(CombatRepliesTest, ABowShootsByTheWingsAndSoundsWithoutDrawing)
     EXPECT_EQ(player.animation.action, 0x30);
 }
 
-// 0x4f4a4e..0x4f4af0: con Fenrir fuera de la zona segura, el Dark Lord pisa la acción de Fenrir con la 0x59; en la
-// zona segura pega a pie.
+// 0x4f4a4e..0x4f4af0: with Fenrir outside the safe zone, the Dark Lord overwrites Fenrir's action with 0x59; in the
+// safe zone it strikes on foot.
 TEST_F(CombatRepliesTest, OnFenrirTheDarkLordOverridesTheAction)
 {
     ActorState& player = PlayerAt(20, 0x55, 4);
@@ -973,7 +969,7 @@ TEST_F(CombatRepliesTest, OnFenrirTheDarkLordOverridesTheAction)
     EXPECT_EQ(safe.animation.action, 0x22);
 }
 
-// 0x4f4fd7..0x4f502f: el 0x172 sortea rand() & 7 y, de 3 en adelante, rand() & 1 + 3.
+// 0x4f4fd7..0x4f502f: the 0x172 draws rand() & 7 and, from 3 on, rand() & 1 + 3.
 TEST_F(CombatRepliesTest, TheModel172DrawsItsAttack)
 {
     CrtRandom expected = DrawnAfter(0);
@@ -985,7 +981,7 @@ TEST_F(CombatRepliesTest, TheModel172DrawsItsAttack)
         action = (expected.Next() & 1) + 3;
         ++draws;
     }
-    // Ya en esa acción y con el frame corrido, para no pedir el sonido de su tabla (CL10).
+    // Already in that action and with the frame advanced, so it does not request its table's sound.
     ActorState& monster = MonsterAt(12, 0x123);
     monster.type = 0x172;
     monster.animation.action = static_cast<std::uint8_t>(action);
@@ -997,10 +993,10 @@ TEST_F(CombatRepliesTest, TheModel172DrawsItsAttack)
     EXPECT_EQ(m_random.State(), After(draws));
 }
 
-// 0x4f5034..0x4f50b2: el monstruo común pega con 3 si +0x38f % 3 es 0 y con 4 si no, y suma uno más en 0x4f50b2;
-// con el frame en 0 (al cambiar de acción, 0x4ea030 lo vuelve a 0) el sonido es la WORD 2 o la 3 de su tabla por
-// rand() % 2, más 0xd2 (y 5 con el subtipo 9); con la WORD 2 en −1, ni sonido ni rand(); sin la tabla, las WORD en 0
-// de 0x60dc80: el rand() y el 0xd2.
+// 0x4f5034..0x4f50b2: the common monster strikes with 3 if +0x38f % 3 is 0 and with 4 otherwise, and adds one more at
+// 0x4f50b2; with the frame at 0 (on an action change, 0x4ea030 resets it to 0) the sound is WORD 2 or 3 of its table
+// by rand() % 2, plus 0xd2 (and 5 with subtype 9); with WORD 2 at −1, neither sound nor rand(); without the table, the
+// zero WORDs of 0x60dc80: the rand() and the 0xd2.
 TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
 {
     ActorState& monster = MonsterAt(12, 0x123);
@@ -1049,8 +1045,8 @@ TEST_F(CombatRepliesTest, AnOrdinaryMonsterCountsTwiceAndSoundsFromItsTable)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x4ea030 hace no-op si no encuentra el modelo; 0x4f50b2 y 0x4f5265 siguen contando, y el sonido solo sortea con
-// el frame en 0 o unordered (0x4f50b8..0x4f51ee).
+// 0x4ea030 is a no-op if it does not find the model; 0x4f50b2 and 0x4f5265 keep counting, and the sound only draws
+// with the frame at 0 or unordered (0x4f50b8..0x4f51ee).
 TEST_F(CombatRepliesTest, AnAttackWithoutAModelKeepsItsAnimationButStillCountsAndSounds)
 {
     const std::array<float, 3> frames{0.0f, 1.5f, UnorderedFrame};
@@ -1082,8 +1078,9 @@ TEST_F(CombatRepliesTest, AnAttackWithoutAModelKeepsItsAnimationButStillCountsAn
     }
 }
 
-// Un jugador con el subtipo 0xd1 a 0xd3 pide rand() & 1 + 0x3c y después el de la tabla del modelo 0x20a, que nadie
-// escribe: sus WORD quedan en 0 (0x60dc80), así que el segundo rand() elige entre dos 0 y el último pedido es el 0xd2.
+// A player with subtype 0xd1 to 0xd3 requests rand() & 1 + 0x3c and then the one from model 0x20a's table, which
+// nobody writes: its WORDs stay at 0 (0x60dc80), so the second rand() picks between two 0s and the last request is the
+// 0xd2.
 TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
 {
     ActorState& player = PlayerAt(20, 0x55);
@@ -1098,16 +1095,16 @@ TEST_F(CombatRepliesTest, APlayerWithAModelSoundSubtypeDrawsTwice)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x43a2f0, en cualquier mapa: los de Kalima que leen +0x38e cierran su entrada (un rand()) antes de elegir; los del
-// último grupo sacan rand() & 1. Ninguno suma +0x38f. Con la acción nueva el frame queda en 0 y 0x4f4a10 saca el
-// rand() del sonido de la tabla, que nadie escribió para este modelo (las WORD en 0 de 0x60dc80).
+// 0x43a2f0, on any map: the Kalima ones that read +0x38e close its entry (one rand()) before choosing; the last
+// group's draw rand() & 1. None adds to +0x38f. With the new action the frame stays at 0 and 0x4f4a10 draws the rand()
+// of the table's sound, which nobody wrote for this model (the zero WORDs of 0x60dc80).
 TEST_F(CombatRepliesTest, TheKalimaMonstersChooseByTheirSkillByte)
 {
     struct Case
     {
         std::uint16_t kind;
         std::uint8_t skill;
-        // 0: ninguna; el monstruo sigue con la acción que tenía, la 0 (Q-C1172).
+        // 0: none; the monster keeps the action it had, 0 (Q-C1172).
         std::uint8_t action;
     };
     const std::array cases{Case{0x91, 0x37, 4}, Case{0x10d, 0, 3},    Case{0xc1, 0x11, 4}, Case{0x110, 2, 3},
@@ -1139,8 +1136,8 @@ TEST_F(CombatRepliesTest, TheKalimaMonstersChooseByTheirSkillByte)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x443750: el 0x123 en el mapa 31 elige con +0x38e abierto ('2' la 3, otro la 4) y cierra después. Fuera del 31,
-// la 3 o la 4 de siempre, por +0x38f.
+// 0x443750: the 0x123 on map 31 chooses with +0x38e open ('2' gives 3, anything else 4) and closes afterwards. Outside
+// 31, the usual 3 or 4, by +0x38f.
 TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
 {
     Runtime().map = 0x1f;
@@ -1170,9 +1167,9 @@ TEST_F(CombatRepliesTest, TheTrialsMonsterChoosesWithItsSkillByteOpen)
     EXPECT_EQ(m_random.State(), After(2));
 }
 
-// 0x429270 y 0x437580 con 0x4f92f0: +0x42e (sin signo) buscado entre las cinco skills de MonsterSkill.bmd del +0x376;
-// en el lugar 0 a 4, las acciones 3, 4, 8, 9 y 0xb y el ayudante atiende. Encuentre o no, +0x42e queda en 0xff y su
-// entrada se cierra (un rand()). Sin encontrarla, la 3 o la 4 por +0x38f.
+// 0x429270 and 0x437580 with 0x4f92f0: +0x42e (unsigned) looked up among the five MonsterSkill.bmd skills of the
+// +0x376; in slots 0 to 4, actions 3, 4, 8, 9 and 0xb and the helper handles it. Found or not, +0x42e ends at 0xff and
+// its entry closes (one rand()). Not found, 3 or 4 by +0x38f.
 TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
 {
     Client::Tables::MonsterSkills crywolf;
@@ -1200,7 +1197,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     }
     EXPECT_EQ(m_random.State(), After(4));
 
-    // 0xff no es −1: no la encuentra, y el que vuelve a pegar ya la tiene en 0xff.
+    // 0xff is not −1: it does not find it, and the one striking again already has it at 0xff.
     ActorState& again = MonsterAt(slot++, 0x100);
     again.word376 = 0x154;
     again.byte42e = 0xff;
@@ -1210,7 +1207,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     EXPECT_EQ(again.attackCount, 2);
     EXPECT_EQ(m_random.State(), After(5));
 
-    // Los mapas 0x21 y 0x36 con 0x130, 0x131 y 0x135 (0x429270); sin registro, la .bss en 0 encuentra el 0.
+    // Maps 0x21 and 0x36 with 0x130, 0x131 and 0x135 (0x429270); without a record, the zeroed .bss finds the 0.
     Runtime().map = 0x36;
     ActorState& doppelganger = MonsterAt(slot++, 0x100);
     doppelganger.word376 = 0x131;
@@ -1221,7 +1218,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     EXPECT_EQ(doppelganger.byte42e, 0xff);
     EXPECT_EQ(m_random.State(), After(6));
 
-    // En otro mapa, ni lo mira.
+    // On another map, it does not even check it.
     Runtime().map = 0;
     ActorState& elsewhere = MonsterAt(slot, 0x100);
     elsewhere.word376 = 0x154;
@@ -1234,7 +1231,7 @@ TEST_F(CombatRepliesTest, TheSkillMonstersLookTheirSkillUpInTheTable)
     EXPECT_EQ(m_random.State(), After(6));
 }
 
-// El 0x19e pone +0x110 en 3 y la acción 5 (0x42dcb0) sin contar.
+// The 0x19e sets +0x110 to 3 and action 5 (0x42dcb0) without counting.
 TEST_F(CombatRepliesTest, TheSpecialMonsterSetsItsActionWithoutCountingTwice)
 {
     ActorState& special = MonsterAt(15, 0x126);
@@ -1247,8 +1244,8 @@ TEST_F(CombatRepliesTest, TheSpecialMonsterSetsItsActionWithoutCountingTwice)
     EXPECT_EQ(special.attackCount, 1);
 }
 
-// 0x4f4f5b y 0x4f4fb9: si el pool de efectos no tiene lugar, no se cambia la acción; igual se pide el sonido nativo,
-// corre 0x4f50b8..0x4f5262 con su regla de frame/tabla y al final se suma +0x38f una sola vez.
+// 0x4f4f5b and 0x4f4fb9: if the effect pool has no room, the action does not change; the native sound is still
+// requested, 0x4f50b8..0x4f5262 runs with its frame/table rule and +0x38f is added only once at the end.
 TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttackBookkeeping)
 {
     struct Case
@@ -1334,8 +1331,8 @@ TEST_F(CombatRepliesTest, EffectsWithoutPoolSpaceKeepTheAnimationAndFinishAttack
     }
 }
 
-// 0x4f4f3a..0x4f4f6a: con un lugar libre, el 0x27 crea la sierra 0xd4/0 sin dueño en su posición (130 más arriba,
-// 0x51a4ee), con sus ángulos y vida 10, sin rand(), y sigue con el sonido 0x10 y +0x38f.
+// 0x4f4f3a..0x4f4f6a: with a free slot, the 0x27 creates the ownerless saw 0xd4/0 at its position (130 higher,
+// 0x51a4ee), with its angles and life 10, without rand(), and goes on with sound 0x10 and +0x38f.
 TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
 {
     ActorState& saw = MonsterAt(12, 0x20c);
@@ -1368,9 +1365,9 @@ TEST_F(CombatRepliesTest, TheSawOf27GoesOutWithTheStrike)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x4f4f98..0x4f4fc4: con un lugar libre, el 0x33 crea el golpe 0x5da/0 sin dueño (Scenes/SkillBurstEffects): vida 10
-// y (0, −60, 0) girado por sus ángulos (en 0) más su posición, con 130 más de z, sin rand(); sigue con el sonido 0x79 y
-// +0x38f.
+// 0x4f4f98..0x4f4fc4: with a free slot, the 0x33 creates the ownerless strike 0x5da/0 (Effects/SkillBurstEffects):
+// life 10 and (0, −60, 0) rotated by its angles (at 0) plus its position, with z 130 higher, without rand(); it goes on
+// with sound 0x79 and +0x38f.
 TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
 {
     ActorState& burner = MonsterAt(12, 0x20c);
@@ -1405,7 +1402,7 @@ TEST_F(CombatRepliesTest, TheFlameOf33GoesOutWithTheStrike)
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// La tabla de sonidos que escribió el alta (WorldRuntime::modelSounds) es la de 0x4f4a10 si el contexto no trae otra.
+// The sound table the creation wrote (WorldRuntime::modelSounds) is 0x4f4a10's when the context carries none.
 TEST_F(CombatRepliesTest, TheModelSoundsComeFromTheRuntimeTable)
 {
     Client::Sound::ModelSounds sounds{};

@@ -34,7 +34,7 @@ using Client::Particles::Particles;
 constexpr std::int32_t Smoke = 0x5f2;
 using Client::Math::Bits;
 
-// En ramas sin trig, cualquier llamada al evaluador es un defecto observable.
+// In branches without trig, any call to the evaluator is an observable defect.
 struct RejectingTrigonometry final : Client::Particles::IParticleTrigonometry
 {
     Client::Core::Expected<double, Client::Particles::ParticleError> SineProductPC53(double, float) const override
@@ -54,7 +54,7 @@ TEST(ParticleMap8Test, CreateFourLoadsClockAfterItsAliasedAngleStore)
     RejectingTrigonometry trigonometry;
     Particles pool;
     Particle& p = pool.All()[0];
-    CrtRandom random(7); // R1=61, R2=17422; el store de ángulo142 modifica el reloj prestado.
+    CrtRandom random(7); // R1=61, R2=17422; the store of angle 142 modifies the borrowed clock.
     const auto result = pool.CreateChecked(Smoke, {100, 200, 300}, {10, 20, 30}, {2, 3, 4}, 4, 3, std::cref(p.angles.x),
                                            random, 123, trigonometry);
     ASSERT_TRUE(result.HasValue());
@@ -242,7 +242,7 @@ TEST(ParticleMap8Test, CreateFourUsesSignedLowWordAndMaskedInvalidProfile)
     EXPECT_EQ(Client::Math::FtolLow(std::nextafter(0x1p63, 0.0)), -1024);
 }
 
-// Observador CPU explícito: los métodos inesperados fallan, ningún servicio opaco se omite.
+// Explicit CPU observer: unexpected methods fail, no opaque service is skipped.
 struct DrawingSpy final : Client::Particles::IParticleDrawingServices
 {
     explicit DrawingSpy(Particle& particle) : p(particle) {}
@@ -513,8 +513,8 @@ struct TrigObservation
     float scale;
     glm::vec3 light;
 };
-// Productos prescritos para verificar el caller, no muestras numéricas FSIN del original.
-// El spy sólo observa: nunca modifica pool, reloj ni RNG.
+// Products prescribed to check the caller, not numeric FSIN samples from the original.
+// The spy only observes: it never modifies the pool, the clock or the RNG.
 struct ObservedTrigonometry final : Client::Particles::IParticleTrigonometry
 {
     ObservedTrigonometry(const Particle& observed, std::vector<TrigCall> prescribed)
@@ -697,7 +697,7 @@ TEST(ParticleMap8Test, SixLoadsClockAfterWindInsteadOfAtPassEntry)
     Particle& p = pool.All()[0];
     p = Particle{.alive = true, .type = Smoke, .subtype = 6, .life = 2};
     CrtRandom random(7);
-    // R1=61: (-939)*f32(.0006) se almacena como bf103afc; producto racional RN53 independiente.
+    // R1=61: (-939)*f32(.0006) is stored as bf103afc; independent rational RN53 product.
     ObservedTrigonometry trigonometry(p, {{-0x1.d89d3b6dc29p-14, 20, 0}, {0, .5f, 0}});
     ASSERT_TRUE(
         Client::Particles::StepParticlesChecked(pool, random, std::cref(pool.Wind().change.x), nullptr, trigonometry)
@@ -785,10 +785,10 @@ TEST(ParticleMap8Test, SixUsesNonzeroSecondProductBeforeTheScaleStore)
     p = Particle{.alive = true, .type = Smoke, .subtype = 6, .scale = 7, .life = 2};
     float clock = 1;
     CrtRandom random(7);
-    // Producto sintético PC53: .25 + 2^-23 - 2^-45, con h64 = 2*producto en [-1,1].
-    // Base exacta 3fe66666 + producto queda debajo del punto medio de dos f32.
-    // RN32 da40033333; omitir producto da3fe66666; narrow f32 previo empata y da40033334.
-    // No es una muestra FSIN ni demuestra sensibilidad h64->double para el factor0.5.
+    // Synthetic PC53 product: .25 + 2^-23 - 2^-45, with h64 = 2*product in [-1,1].
+    // Exact base 3fe66666 + product lands below the midpoint of two f32.
+    // RN32 gives 40033333; omitting the product gives 3fe66666; a previous f32 narrow ties and gives 40033334.
+    // It is not an FSIN sample nor does it prove h64->double sensitivity for the factor 0.5.
     ObservedTrigonometry trigonometry(p, {{0x1.a36e2ep-13, 20, 0}, {0x1.c9871p-10, .5f, 0x1.000007ffffe00p-2}});
     ASSERT_TRUE(
         Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
@@ -805,7 +805,7 @@ TEST(ParticleMap8Test, FourComputesNonzeroRgbFromPostDecrementLife)
     p = Particle{.alive = true, .type = Smoke, .subtype = 4, .light = {9, 8, 7}, .life = 9};
     float clock = 0;
     CrtRandom random(7);
-    // Contrato5446e0 §5f2/4: vida9->8; base ancha 8*.125=1, RGB conserva los tres f32 exactos.
+    // Contract 5446e0 §5f2/4: life 9->8; wide base 8*.125=1, RGB keeps the three exact f32.
     ASSERT_TRUE(
         Client::Particles::StepParticlesChecked(pool, random, std::cref(clock), nullptr, trigonometry).HasValue());
     EXPECT_EQ(p.life, 8);
@@ -814,7 +814,7 @@ TEST(ParticleMap8Test, FourComputesNonzeroRgbFromPostDecrementLife)
     EXPECT_EQ(Bits(p.light.z), 0x3ea0a0a1u);
 }
 
-// No se conserva el overload vivo provisional sin evaluador.
+// The provisional live overload without evaluator is not kept.
 using ClockOnlyCreateSignature = Client::Core::Expected<std::optional<std::size_t>, Client::Particles::ParticleError> (
     Particles::*)(std::int32_t, const glm::vec3&, const glm::vec3&, const glm::vec3&, std::int32_t, float,
                   std::reference_wrapper<const float>, CrtRandom&, std::uint32_t);

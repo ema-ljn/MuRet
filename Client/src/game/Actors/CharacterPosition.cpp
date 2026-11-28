@@ -15,7 +15,7 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x508a80: constantes del archivo, perfil FP de ADR 0012.
+// 0x508a80; FP profile of ADR 0012.
 constexpr std::uint16_t FloatingItem = 0x1c15;
 constexpr std::uint16_t BobbingType = 0x0154;
 constexpr std::int32_t NoMap = -1;
@@ -28,7 +28,7 @@ constexpr float PhaseIncrement = std::bit_cast<float>(0x3e19999au);
 
 double HeightOffset(CharacterPositionState state)
 {
-    // El mapa es un snapshot posterior a acumular XYZ; los otros dos filtros son cortocircuitos.
+    // The map is a snapshot taken after accumulating XYZ; the other two filters short-circuit.
     const std::int32_t map = state.map.get();
     if (map == NoMap || state.item.get() != FloatingItem || state.safeZone.get() != 0)
     {
@@ -56,7 +56,7 @@ bool TryUpdateCharacterPosition(CharacterPositionState state, const std::functio
         return false;
     }
     const double terrainHeight = height(x, y);
-    // CMP del tipo precede al store de altura: la consulta puede modificarlo por alias.
+    // The type CMP comes before the height store: the query can modify it through an alias.
     const bool bobbing = state.type.get() == BobbingType;
     state.position.z = static_cast<float>(offset == 0.0 ? terrainHeight : terrainHeight + offset);
     if (bobbing)

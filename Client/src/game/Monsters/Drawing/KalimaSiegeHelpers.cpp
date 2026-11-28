@@ -44,7 +44,7 @@ constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
 constexpr std::uint8_t DeadAction = 6;
 constexpr std::uint16_t NoModel = 0xffff;
 
-// Las texturas de los sprites (0x5491e0).
+// Sprite textures of 0x5491e0.
 constexpr std::uint16_t Star = 0x5ac;
 constexpr std::uint16_t Flare = 0x5ca;
 constexpr std::uint16_t Glow = 0x5fd;
@@ -52,7 +52,7 @@ constexpr std::uint16_t Ring = 0x61e;
 constexpr std::uint16_t Halo = 0x62b;
 constexpr std::uint16_t Pulse = 0x62d;
 
-// Las constantes float de la .data, con los mismos bits que el literal.
+// The .data float constants, with the same bits as the literal.
 using Math::Fifth;                  // 0x6b8854
 using Math::Tenth;                  // 0x6b87b8
 constexpr float ThreeTenths = 0.3f; // 0x6b89dc
@@ -62,9 +62,9 @@ using Math::Thousandth;             // 0x6b89c8
 using Math::D;
 using Math::F32;
 
-// FLD T; FMUL tasa; FSIN y FMUL de un float de la .data (`Wave`), FMUL de un double (`WaveDouble`) o FADD (`WavePlus`):
-// el seno retenido con un solo R53 (ADR0014). DrawTheTail llama a los helpers después de DrawGameHanging, que corta con
-// el reloj fuera de 2^40: el argumento cae siempre en el perfil y el 0 de afuera no se alcanza (como GameHanging).
+// FLD T; FMUL rate; FSIN and FMUL by a .data float (`Wave`), FMUL by a double (`WaveDouble`) or FADD (`WavePlus`): the
+// sine kept with a single R53 (ADR0014). DrawTheTail calls the helpers after DrawGameHanging, which cuts with the clock
+// outside 2^40: the argument always falls in the profile and the outer 0 is never reached (as in GameHanging).
 double Wave(float clock, float rate, float factor)
 {
     return Math::Detail::SineProductPC53(D(clock) * D(rate), factor).value_or(0.0);
@@ -80,15 +80,15 @@ double WavePlus(float clock, float rate, double addend)
     return Math::Detail::SineSumPC53(D(clock) * D(rate), addend).value_or(0.0);
 }
 
-// rand() % 360 en un float, como FILD/FSTP.
+// rand() % 360 into a float, as FILD/FSTP.
 float RandomTurn(Crt::CrtRandom& random)
 {
     constexpr int Turn = 360;
     return static_cast<float>(random.Next() % Turn);
 }
 
-// 0x620a90 y 0x620b10 ponen la mezcla con su perfil entero y no tocan el depth test ni la textura ligada (como las
-// marcas del suelo, GroundMarks.cpp).
+// 0x620a90 and 0x620b10 set the blend with its integer profile and touch neither the depth test nor the bound texture
+// (as the ground marks do, GroundMarks.cpp).
 Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend blend)
 {
     state.blend = blend;
@@ -99,7 +99,7 @@ Render::ModelDrawState Blended(Render::ModelDrawState state, Render::ModelBlend 
     return state;
 }
 
-// Los servicios de 0x43c150 y 0x42dfe0 sobre el pase.
+// The services of 0x43c150 and 0x42dfe0 over the pass.
 class Helper
 {
 public:
@@ -120,8 +120,8 @@ public:
         return m_pass.random;
     }
 
-    // 0x4ec110(hueso, offset, salida, 1) con el modelo del personaje: el hueso propio (+0x120) con la escala y la
-    // posición del registro del modelo (KalimaSiegeHelperPass::modelOrigin: la de la sombra o la de 0x5ffdf0).
+    // 0x4ec110(bone, offset, out, 1) with the character's model: its own bone (+0x120) with the scale and the position
+    // of the model's record (KalimaSiegeHelperPass::modelOrigin: the shadow's or 0x5ffdf0's).
     [[nodiscard]] glm::vec3 Point(std::size_t bone, const glm::vec3& offset) const
     {
         const Kernel::ActorState& actor = m_pass.actor;
@@ -130,15 +130,15 @@ public:
                                                m_pass.modelOrigin.value_or(actor.position));
     }
 
-    // 0x5491e0(textura, posición, escala, luz, objeto, rotación, mezcla).
+    // 0x5491e0(texture, position, scale, light, object, rotation, blend).
     void Sprite(std::uint16_t texture, const glm::vec3& position, float scale, const glm::vec3& light,
                 float rotation = 0.0f, int blend = 0) const
     {
         static_cast<void>(m_pass.sprites->Create(texture, position, scale, light, rotation, blend));
     }
 
-    // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en `address`. Llena, éxito sin nada; con lugar, el
-    // tipo que MuRet no tiene corta antes de sacar rand().
+    // 0x53fe70(type, position, angles, light, subtype, scale, 0) at `address`. Full, success with nothing; with room, a
+    // type MuRet does not have cuts before taking rand().
     [[nodiscard]] Result Particle(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                   const glm::vec3& light, std::int32_t subtype, float scale,
                                   std::string_view address) const
@@ -153,7 +153,7 @@ public:
         return {};
     }
 
-    // 0x530860 en `address`: llena, nada; con lugar, el tipo que MuRet no tiene corta.
+    // 0x530860 at `address`: full, nothing; with room, a type MuRet does not have cuts.
     [[nodiscard]] Result Joint(const Kernel::JointRequest& request, std::string_view address) const
     {
         if (m_pass.joints.empty())
@@ -164,8 +164,8 @@ public:
         return {};
     }
 
-    // 0x518cf0(0x128, posición, ángulos del personaje (+0x1c), su luz (+0xf4), subtipo, 0, −1, 0, 0, 0, 0): el efecto
-    // de Kundun (Scenes/KundunEffects), sin rand(); con la tabla llena, nada.
+    // 0x518cf0(0x128, position, the character's angles (+0x1c), its light (+0xf4), subtype, 0, −1, 0, 0, 0, 0):
+    // Kundun's effect (Effects/KundunEffects), without rand(); with the table full, nothing.
     [[nodiscard]] Result KundunCall(const glm::vec3& position, std::int32_t subtype, std::string_view address) const
     {
         if (m_pass.effects == nullptr)
@@ -181,7 +181,7 @@ public:
         return {};
     }
 
-    // 0x518cf0(9, posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0).
+    // 0x518cf0(9, position, angles, light, 0, 0, −1, 0, 0, 0, 0).
     [[nodiscard]] Result KalimaEffect(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light) const
     {
         if (m_pass.effects == nullptr)
@@ -190,7 +190,7 @@ public:
         return {};
     }
 
-    // 0x41ed10(id, 0, 0): en WorldRuntime::lastSoundId (CL10), solo en el frame del original.
+    // 0x41ed10(id, 0, 0): into WorldRuntime::lastSoundId (CL10), only in the original's frame.
     void Sound(Audio::SoundId id) const
     {
         if (m_pass.soundRequest)
@@ -211,8 +211,8 @@ public:
         return {};
     }
 
-    // Las celdas lógicas (+0x420 y después +0x41c, ReadLogicalCell) y 0x437860(x, y, 2, 2000), que sin el mundo de
-    // Kalima (0x723c48 en 0) no hace nada.
+    // The logical cells (+0x420 and then +0x41c, ReadLogicalCell) and 0x437860(x, y, 2, 2000), which does nothing
+    // without the Kalima world (0x723c48 at 0).
     [[nodiscard]] Result Disturb() const
     {
         const Actors::LogicalCell cell = Actors::ReadLogicalCell(m_pass.actor, m_pass.random);
@@ -232,14 +232,14 @@ private:
     const KalimaSiegeHelperPass& m_pass;
 };
 
-// 0x43c17f..0x43c22a, el 0xc5.
+// 0x43c17f..0x43c22a, type 0xc5.
 Result DrawTheGate(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action != 1)
         return {};
-    // 0x43c18c..0x43c1a6: la posición 20 más arriba va al local [ebp−0x38], que 0x4ec110 pisa con el punto del hueso 8
-    // antes de la partícula: la partícula sale del hueso.
+    // 0x43c18c..0x43c1a6: the position 20 higher goes to the local [ebp−0x38], which 0x4ec110 overwrites with bone 8's
+    // point before the particle: the particle comes out of the bone.
     if (actor.dword60 == 0)
     {
         constexpr std::int32_t GateParticle = 0x6ae;
@@ -250,7 +250,7 @@ Result DrawTheGate(const Helper& helper)
             !made.HasValue())
             return made;
     }
-    // 0x43c215..0x43c223: inc de 32 bits y, desde 5 (con signo), a 0.
+    // 0x43c215..0x43c223: a 32-bit inc and, from 5 (signed), back to 0.
     actor.dword60 = static_cast<std::int32_t>(static_cast<std::uint32_t>(actor.dword60) + 1u);
     constexpr std::int32_t GateCycle = 5;
     if (actor.dword60 >= GateCycle)
@@ -258,7 +258,7 @@ Result DrawTheGate(const Helper& helper)
     return {};
 }
 
-// 0x43c565..0x43c638: los 0x5ac de los huesos 51..55 y 29..33, también en la acción 6.
+// 0x43c565..0x43c638: the 0x5ac of bones 51..55 and 29..33, also in action 6.
 void DrawTheSpineStars(const Helper& helper)
 {
     const double lum = Wave(helper.Clock(), Thousandth, Fifth) + D(TwoFifths);
@@ -274,13 +274,13 @@ void DrawTheSpineStars(const Helper& helper)
     }
 }
 
-// 0x43c233..0x43c646, el 0x191.
+// 0x43c233..0x43c646, type 0x191.
 Result DrawTheFirstKalimaHelper(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action != DeadAction)
     {
-        // 0x43c26e..0x43c3dc: cinco vueltas, con la luz que sube 0,25 por vuelta y la escala que baja 0,2.
+        // 0x43c26e..0x43c3dc: five rounds, the light rising 0.25 per round and the scale falling 0.2.
         float level = 0.0f;
         constexpr std::size_t FirstLowBone = 62;
         constexpr std::size_t HighBones = 12; // 0x240 / 0x30
@@ -306,7 +306,7 @@ Result DrawTheFirstKalimaHelper(const Helper& helper)
                     return made;
             }
         }
-        // 0x43c3e2..0x43c55d: con la luz de las mallas (+0x68).
+        // 0x43c3e2..0x43c55d: with the meshes' light (+0x68).
         const float lit = actor.blendMeshLight;
         const float dim = F32(D(lit) * D(Tenth));
         const glm::vec3 white{lit, lit, lit};
@@ -325,7 +325,7 @@ Result DrawTheFirstKalimaHelper(const Helper& helper)
     return {};
 }
 
-// 0x43c7a8..0x43c8e3: el pulso de la acción 5 en +0x8a (un short) y +0x89, y la escala del 0x62d.
+// 0x43c7a8..0x43c8e3: action 5's pulse in +0x8a (a short) and +0x89, and the scale of the 0x62d.
 float KundunPulse(Kernel::ActorState& actor)
 {
     const float frame = actor.animation.frame;
@@ -338,7 +338,6 @@ float KundunPulse(Kernel::ActorState& actor)
         actor.word8a = Rest;
     constexpr float Step = 0.15f; // 0x6b8ae8
     float scale = F32(static_cast<double>(actor.word8a) * D(Step));
-    // El byte sube 3 antes de la mitad de la ventana y baja 3 después (si pasa de 3); fuera de las dos, a 0.
     const auto beat = [&actor, &scale, frame](float middle)
     {
         constexpr std::uint8_t Beat = 3;
@@ -357,7 +356,7 @@ float KundunPulse(Kernel::ActorState& actor)
     return scale;
 }
 
-// 0x43ce8b..0x43cfb6: el temblor y, en Kalima, los dos efectos 9 que caen.
+// 0x43ce8b..0x43cfb6: the shake and, in Kalima, the two falling 9 effects.
 Result ShakeForKundun(const Helper& helper)
 {
     const Kernel::ActorState& actor = helper.Actor();
@@ -377,8 +376,8 @@ Result ShakeForKundun(const Helper& helper)
         const float turn = RandomTurn(helper.Random());
         constexpr int Spread = 600;
         constexpr int Near = 200;
-        // 0x43cf7d..0x43cf99: FSIN y FCOS del giro (en radianes, sin convertir) por la distancia entera de la x87 (FMUL
-        // ST1), con un solo R53 cada uno (ADR0014); el giro, menor que 360, cae siempre en el perfil.
+        // 0x43cf7d..0x43cf99: FSIN and FCOS of the turn (in radians, unconverted) times the x87's integer distance
+        // (FMUL ST1), with a single R53 each (ADR0014); the turn, under 360, always falls in the profile.
         const auto distance = static_cast<float>(helper.Random().Next() % Spread + Near);
         const auto sine = Math::Detail::SineProductPC53(D(turn), distance);
         const auto cosine = Math::Detail::CosineProductPC53(D(turn), distance);
@@ -392,7 +391,7 @@ Result ShakeForKundun(const Helper& helper)
     return {};
 }
 
-// 0x43cfb8..0x43dc81: las acciones 3 y 4 de Kundun.
+// 0x43cfb8..0x43dc81: Kundun's actions 3 and 4.
 Result StepKundunAttacks(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
@@ -410,7 +409,7 @@ Result StepKundunAttacks(const Helper& helper)
         if (actor.dword60 == Armed && frame > 3.0f)
         {
             actor.dword60 = Cast;
-            // 0x43cff8..0x43d04e: la x y la y del objeto con la z del hueso 49 (0x930 / 0x30), para el 0x128/0.
+            // 0x43cff8..0x43d04e: the object's x and y with bone 49's z (0x930 / 0x30), for the 0x128/0.
             const glm::vec3 hand = helper.Point(HandBone, {});
             return helper.KundunCall({actor.position.x, actor.position.y, hand.z}, 0, "0x43d051");
         }
@@ -423,7 +422,7 @@ Result StepKundunAttacks(const Helper& helper)
     if (actor.dword60 == Armed && frame > 5.0f)
     {
         actor.dword60 = Cast;
-        // 0x43d09b..0x43d0f6: el hueso 49 con el offset (0, 0, 0), a 400 de altura (0x43c80000), para el 0x128/1.
+        // 0x43d09b..0x43d0f6: bone 49 with offset (0, 0, 0), at height 400 (0x43c80000), for the 0x128/1.
         glm::vec3 hand = helper.Point(HandBone, {});
         hand.z = 400.0f;
         if (auto made = helper.KundunCall(hand, 1, "0x43d0fd"); !made.HasValue())
@@ -432,7 +431,7 @@ Result StepKundunAttacks(const Helper& helper)
     if (actor.dword60 == Cast && frame > 6.0f)
     {
         actor.dword60 = Burst;
-        // 0x43d126..0x43d1b3: veinticuatro joints 0x6ee/14 desde el hueso 49 a 400 de altura, de a 30 grados.
+        // 0x43d126..0x43d1b3: twenty-four 0x6ee/14 joints from bone 49 at height 400, every 30 degrees.
         glm::vec3 point = helper.Point(HandBone, {});
         point.z = 400.0f;
         constexpr int FullTurn = 720;
@@ -468,13 +467,13 @@ Result StepKundunAttacks(const Helper& helper)
     return {};
 }
 
-// 0x43c647..0x43dc89, el 0x192 (Kundun).
+// 0x43c647..0x43dc89, type 0x192 (Kundun).
 Result DrawKundun(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
     if (actor.animation.action == DeadAction)
     {
-        // 0x43c650..0x43c65f: la mano izquierda sin ítem.
+        // 0x43c650..0x43c65f: the left hand without an item.
         actor.hands[1].model = NoModel;
         actor.hands[1].level = 0xff;
         return {};
@@ -530,7 +529,7 @@ Result DrawKundun(const Helper& helper)
     return StepKundunAttacks(helper);
 }
 
-// 0x43dc8a..0x43e07f, el 0x193.
+// 0x43dc8a..0x43e07f, type 0x193.
 void DrawTheThirdKalimaHelper(const Helper& helper)
 {
     if (helper.Actor().animation.action == DeadAction)
@@ -560,7 +559,7 @@ void DrawTheThirdKalimaHelper(const Helper& helper)
     helper.Sprite(Star, helper.Point(33, {30.0f, 25.0f, 0.0f}), 2.5f, light);
 }
 
-// 0x43e080..0x43e3f2, el 0x194.
+// 0x43e080..0x43e3f2, type 0x194.
 Result DrawTheFourthKalimaHelper(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
@@ -585,7 +584,7 @@ Result DrawTheFourthKalimaHelper(const Helper& helper)
     }
     if (actor.animation.action != 3)
         return {};
-    // 0x43e306..0x43e3e8: los joints 0x614/7 entre los huesos 10..16 y 31..37 de a pares.
+    // 0x43e306..0x43e3e8: the 0x614/7 joints between bones 10..16 and 31..37, in pairs.
     constexpr float Width = 30.0f;
     struct Chain
     {
@@ -608,14 +607,14 @@ Result DrawTheFourthKalimaHelper(const Helper& helper)
     return {};
 }
 
-// 0x43ebf0..0x43ec0c: las dos manos sin ítem.
+// 0x43ebf0..0x43ec0c: both hands without an item.
 void DropTheHands(Kernel::ActorState& actor)
 {
     actor.hands[0].model = NoModel;
     actor.hands[1].model = NoModel;
 }
 
-// 0x43e3f3..0x43e605, el 0x195.
+// 0x43e3f3..0x43e605, type 0x195.
 Result DrawTheFifthKalimaHelper(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
@@ -647,7 +646,7 @@ Result DrawTheFifthKalimaHelper(const Helper& helper)
     return {};
 }
 
-// 0x43e606..0x43e923, el 0x196.
+// 0x43e606..0x43e923, type 0x196.
 Result DrawTheSixthKalimaHelper(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
@@ -660,7 +659,7 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
     helper.Sprite(Star, knee, small, white);
     const glm::vec3 other = helper.Point(10, {5.0f, 0.0f, 0.0f});
     helper.Sprite(Star, other, small, white);
-    // 0x43e6fd..0x43e7f5: la luz del hueso 60, verde en la acción 4.
+    // 0x43e6fd..0x43e7f5: bone 60's light, green in action 4.
     const double lum = Wave(helper.Clock(), 0.002f, ThreeTenths) + D(0.6f);
     const float stored = F32(lum);
     const float tenth = F32(lum * D(Tenth));
@@ -673,7 +672,7 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
     if (auto made = helper.Particle(Star, heart, actor.angles, light, 0, HeartScale, "0x43e7f0"); !made.HasValue())
         return made;
     helper.Sprite(Star, other, 1.0f, {Tenth, TwoFifths, 1.0f});
-    // 0x43e843..0x43e915: los huesos 63..67, con rand() % 50 en las acciones 0 y 1 para el joint 0x610/5 hacia el 60.
+    // 0x43e843..0x43e915: bones 63..67, with rand() % 50 in actions 0 and 1 for the 0x610/5 joint towards bone 60.
     const glm::vec3 blue{Tenth, ThreeTenths, 1.0f};
     const float glow = F32(Wave(helper.Clock(), Thousandth, Fifth) + D(0.5f));
     for (std::size_t bone = 63; bone < 68; ++bone)
@@ -695,7 +694,7 @@ Result DrawTheSixthKalimaHelper(const Helper& helper)
     return {};
 }
 
-// 0x43e924..0x43ebef, el 0x197.
+// 0x43e924..0x43ebef, type 0x197.
 Result DrawTheSeventhKalimaHelper(const Helper& helper)
 {
     Kernel::ActorState& actor = helper.Actor();
@@ -707,7 +706,7 @@ Result DrawTheSeventhKalimaHelper(const Helper& helper)
     const float lum = F32(Wave(helper.Clock(), 0.003f, Fifth) + D(0.8f));
     const glm::vec3 first = helper.Point(33, {});
     const glm::vec3 second = helper.Point(34, {});
-    // +0x4: el subtipo 9 rojo; los demás, azules.
+    // +0x4: subtype 9 is red; the others, blue.
     constexpr std::int32_t RedSubtype = 9;
     const bool red = actor.subtype == RedSubtype;
     const float pale = F32(D(lum) * D(0.9f));
@@ -720,7 +719,7 @@ Result DrawTheSeventhKalimaHelper(const Helper& helper)
     helper.Sprite(Glow, first, 0.7f, fire);
     helper.Sprite(Glow, second, 0.7f, fire);
     const glm::vec3 light = red ? glm::vec3{lum, pale, pale} : glm::vec3{pale, pale, lum};
-    // 0x43eacc..0x43ebe1: seis vueltas por los huesos 41 y 51, 24 más abajo en y cada una.
+    // 0x43eacc..0x43ebe1: six rounds over bones 41 and 51, each one 24 lower in y.
     constexpr int Rounds = 6;
     for (int round = 0; round < Rounds; ++round)
     {
@@ -740,7 +739,7 @@ Result DrawTheSeventhKalimaHelper(const Helper& helper)
     return {};
 }
 
-// 0x43c150: el switch de 0x43ec18/0x43ec3c sobre el tipo − 0xc5.
+// 0x43c150: the switch of 0x43ec18/0x43ec3c on the type − 0xc5.
 Core::Expected<bool, std::string> DrawTheKalimaHelpers(const Helper& helper)
 {
     Result drawn;
@@ -778,7 +777,7 @@ Core::Expected<bool, std::string> DrawTheKalimaHelpers(const Helper& helper)
     return true;
 }
 
-// 0x42dfe0: solo en el mapa 30, el switch de 0x42e340/0x42e354 sobre el tipo − 0x19c.
+// 0x42dfe0: only in map 30, the switch of 0x42e340/0x42e354 on the type − 0x19c.
 Core::Expected<bool, std::string> DrawTheCastleHelpers(const Helper& helper)
 {
     const KalimaSiegeHelperPass& pass = helper.Pass();
@@ -868,7 +867,7 @@ Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pa
     constexpr std::int32_t Subtractive = 0x80;
     if (mode == Subtractive)
     {
-        // 0x42a1de: 0x620b10, y la luz en (v, v, v).
+        // 0x42a1de: 0x620b10, and the light at (v, v, v).
         pass.batch.SetState(Blended(pass.batch.State(), Render::ModelBlend::Subtractive));
         light = glm::vec3(lum);
     }
@@ -904,7 +903,6 @@ Core::Expected<void, std::string> DrawCastleGlow(const KalimaSiegeHelperPass& pa
 
 Core::Expected<bool, std::string> DrawKalimaSiegeHelpers(const KalimaSiegeHelperPass& pass)
 {
-    // Los que sacan sprites (0x5491e0): del 0x191 al 0x197 y, en el 30, el 0x1a1 y el 0x1a8.
     const std::uint16_t type = pass.actor.type;
     const bool drawsSprites =
         (type >= 0x191 && type <= 0x197) || (pass.map == CastleMap && (type == 0x1a1 || type == 0x1a8));
@@ -924,7 +922,7 @@ Core::Expected<void, std::string> DrawTheBoneSparks(const KalimaSiegeHelperPass&
         return Core::Unexpected<std::string>("0x5108b6: falta la tabla de sprites del frame (0x5491e0)");
     const Helper helper(pass);
     Kernel::ActorState& actor = pass.actor;
-    // 0x5108ce..0x510904: blanca con +0x1d6 en 0 y verde con otro.
+    // 0x5108ce..0x510904: white with +0x1d6 at 0 and green otherwise.
     const bool plain = actor.level == 0;
     const glm::vec3 light = plain ? glm::vec3{1.0f, 1.0f, 1.0f} : glm::vec3{Fifth, 0.7f, Tenth};
     constexpr std::size_t FirstSkipped = 15, LastSkipped = 20, FirstHidden = 27, LastHidden = 32;

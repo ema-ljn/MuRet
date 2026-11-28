@@ -42,9 +42,9 @@
 #include <string>
 #include <vector>
 
-// La tela sobre la malla de los monstruos (0x50bae7..0x50bbca) en el dibujo del juego: vectores literales del ASM
-// c32bbd5f, sin ejecutar el original. La escena tiene que hacer lo mismo que la clase de render (test_mesh_cloth) con
-// la malla 2, el hueso 0x12, las banderas 0x400, las dos esferas y cinco pasos de 0,005f.
+// The cloth on the monsters' mesh (0x50bae7..0x50bbca) in the game draw: literal vectors from the ASM c32bbd5f,
+// without running the original. The scene has to do the same as the render class (test_mesh_cloth) with mesh 2, bone
+// 0x12, flags 0x400, the two spheres and five steps of 0.005f.
 namespace
 {
 using Client::Actors::Drawing::GameCharacterPass;
@@ -54,12 +54,12 @@ using Client::Models::ClothBody;
 using Client::Models::ClothWindSource;
 using Client::Models::ClothWorld;
 
-constexpr std::uint16_t Spider = 0x15b;        // un modelo sin casos en 0x6002e0
-constexpr std::uint16_t MagicSkeleton = 0x190; // Monster63.bmd, el de los 89, 95, 112, 118, 124, 130 y 143
+constexpr std::uint16_t Spider = 0x15b;        // a model with no cases in 0x6002e0
+constexpr std::uint16_t MagicSkeleton = 0x190; // Monster63.bmd, the one of 89, 95, 112, 118, 124, 130 and 143
 constexpr std::uint16_t ClothMonster = 0x59;
 constexpr std::size_t Slot = 5;
-constexpr std::size_t FrameRandoms = 20; // cinco pasos de 0x4565f0, con las 4 de la protección del contador
-constexpr std::size_t TailRandoms = 3;   // 0x50db57 y los dos de las manos (0x50e288), como el monstruo sin tela
+constexpr std::size_t FrameRandoms = 20; // five steps of 0x4565f0, with the 4 of the counter's guard
+constexpr std::size_t TailRandoms = 3;   // 0x50db57 and the two of the hands (0x50e288), like the monster without cloth
 
 std::uint32_t AfterRandoms(std::size_t count)
 {
@@ -80,8 +80,8 @@ Client::Data::Models::Mesh Triangle()
     return mesh;
 }
 
-// La malla 2: un cuadrado de 12 por 10 a 200 del hueso 0x12 (fuera de las dos esferas), los vértices 1 y 2 en ese
-// hueso y el 0 y el 3 en el 0.
+// Mesh 2: a 12 by 10 square 200 from bone 0x12 (outside the two spheres), vertices 1 and 2 on that bone and 0 and 3 on
+// bone 0.
 Client::Data::Models::Mesh Robe()
 {
     Client::Data::Models::Mesh mesh = Triangle();
@@ -102,7 +102,7 @@ public:
         bone.parent = -1;
         bone.actions = {{BoneKey{}}};
         bone.actions[0][0].rotation = AngleQuaternion({0.0f, 0.0f, 0.0f});
-        // El hueso k en (0, 0, k): el 0x12, en (0, 0, 18).
+        // Bone k at (0, 0, k): 0x12 at (0, 0, 18).
         m_skeleton.bones.assign(48, bone);
         for (std::size_t index = 0; index < m_skeleton.bones.size(); ++index)
             m_skeleton.bones[index].actions[0][0].position = {0.0f, 0.0f, static_cast<float>(index)};
@@ -130,7 +130,7 @@ private:
         Client::Render::TextureSlot{0x300}, Client::Render::TextureSlot{0x301}, Client::Render::TextureSlot{0x302}};
 };
 
-// Los vértices de la malla 2 que deja 0x4ebc80 con el monstruo en `position`, sin girar y con la escala 1.
+// The vertices of mesh 2 that 0x4ebc80 leaves with the monster at `position`, unrotated and with scale 1.
 std::vector<glm::vec3> RobeAt(const glm::vec3& position)
 {
     return {position + glm::vec3(200.0f, 0.0f, 0.0f), position + glm::vec3(200.0f, 0.0f, 10.0f),
@@ -162,7 +162,7 @@ TEST(MonsterMeshClothTest, TheMeshRobeUsesTheMapWind)
     }
 }
 
-// Lo que arman 0x6a0210, el +0x24 y los dos 0x455cd0 (0x50bb0b..0x50bb84).
+// What 0x6a0210, the +0x24 and the two 0x455cd0 build (0x50bb0b..0x50bb84).
 Cloth BuiltRobe(std::span<const glm::vec3> vertices)
 {
     Cloth cloth;
@@ -172,7 +172,7 @@ Cloth BuiltRobe(std::span<const glm::vec3> vertices)
     return cloth;
 }
 
-// 0x455190(0,005f, 5) (0x50bba0..0x50bba9).
+// 0x455190(0.005f, 5) (0x50bba0..0x50bba9).
 bool StepTheRobe(Cloth& cloth, const ActorState& actor, std::span<const glm::vec3> vertices, ClothWorld& world,
                  std::uint8_t map)
 {
@@ -209,7 +209,7 @@ protected:
         m_faunaModels.Bind(nullptr);
     }
 
-    // Un monstruo con la tela sobre la malla como lo deja 0x511290 con lo que escribe el alta.
+    // A monster with the cloth on the mesh as 0x511290 leaves it with what the creation writes.
     ActorState& Monster(std::uint16_t type)
     {
         ActorState& actor = m_world->Actors()[Slot];
@@ -265,8 +265,7 @@ protected:
         return m_cloths[Slot].OnTheMesh().Cloth();
     }
 
-    // Los seis vértices de la malla 2 en el cuerpo (los triángulos (1, 2, 3) y (1, 3, 0)), después de las mallas 0 y
-    // 1.
+    // The six vertices of mesh 2 in the body (triangles (1, 2, 3) and (1, 3, 0)), after meshes 0 and 1.
     void ExpectTheBodyDrawsTheParticles()
     {
         ASSERT_TRUE(Worn().has_value());
@@ -292,8 +291,8 @@ protected:
     Client::Render::ModelBatch m_batch;
 };
 
-// Lorencia: el primer frame la arma sobre la malla 2 de la pose de ahora y la simula cinco pasos, con 20 rand() antes
-// de los 3 del monstruo sin tela; el cuerpo dibuja sus partículas.
+// Lorencia: the first frame builds it on mesh 2 of the current pose and simulates it five steps, with 20 rand() before
+// the 3 of the monster without cloth; the body draws its particles.
 TEST_F(MonsterClothTest, ALorenciaFrameBuildsTheClothOnMeshTwoAndStepsItFiveTimes)
 {
     ActorState& monster = Monster(Spider);
@@ -317,7 +316,7 @@ TEST_F(MonsterClothTest, ALorenciaFrameBuildsTheClothOnMeshTwoAndStepsItFiveTime
         EXPECT_EQ(particles[vertex].position, expected.Particles()[vertex].position);
         EXPECT_EQ(particles[vertex].velocity, expected.Particles()[vertex].velocity);
     }
-    // Las sueltas caen; las del hueso 0x12 quedan donde las dejó 0x4ebc80.
+    // The free ones fall; those on bone 0x12 stay where 0x4ebc80 left them.
     EXPECT_LT(particles[0].position.z, vertices[0].z);
     EXPECT_EQ(particles[1].position, vertices[1]);
     EXPECT_EQ(Worn()->Springs().size(), 7u);
@@ -327,7 +326,6 @@ TEST_F(MonsterClothTest, ALorenciaFrameBuildsTheClothOnMeshTwoAndStepsItFiveTime
     EXPECT_EQ(expectedWorld.random.State(), AfterRandoms(FrameRandoms));
 }
 
-// Devias: la tela queda en el lugar y el frame siguiente sigue la misma, sin armarla de nuevo.
 TEST_F(MonsterClothTest, ADeviasClothPersistsAcrossFrames)
 {
     m_world->Runtime().map = 2;
@@ -350,9 +348,9 @@ TEST_F(MonsterClothTest, ADeviasClothPersistsAcrossFrames)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(2 * (FrameRandoms + TailRandoms)));
 }
 
-// Blood Castle (el mapa 11), con el modelo de verdad: la tela se arma y se simula, y después el caso del 0x190 en
-// 0x6002e0 (0x60115e) dibuja su RenderBody(2) y otra vez la malla 2, con el blendMesh en 2 y la luz en 1, las dos con
-// las partículas.
+// Blood Castle (map 11), with the real model: the cloth is built and simulated, and then the 0x190 case in 0x6002e0
+// (0x60115e) draws its RenderBody(2) and mesh 2 again, with the blendMesh at 2 and the light at 1, both with the
+// particles.
 TEST_F(MonsterClothTest, InBloodCastleTheMagicSkeletonStepsItsClothBeforeTheBodyCase)
 {
     m_world->Runtime().map = 11;
@@ -370,8 +368,8 @@ TEST_F(MonsterClothTest, InBloodCastleTheMagicSkeletonStepsItsClothBeforeTheBody
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(FrameRandoms + TailRandoms));
 }
 
-// 0x50bafd: sin dibujo (alpha < 0,01) la tela se simula igual; MuRet la ancla a la pose guardada (Q-C862) y, sin
-// ella, corta.
+// 0x50bafd: without a draw (alpha < 0.01) the cloth is simulated anyway; MuRet anchors it to the stored pose (Q-C862)
+// and, without one, cuts.
 TEST_F(MonsterClothTest, AnUndrawnMonsterStillStepsItsClothOnItsStoredPose)
 {
     ActorState& monster = Monster(Spider);
@@ -392,8 +390,8 @@ TEST_F(MonsterClothTest, AnUndrawnMonsterStillStepsItsClothOnItsStoredPose)
     EXPECT_EQ(m_clothWorld.random.State(), AfterRandoms(2 * (FrameRandoms + TailRandoms)));
 }
 
-// 0x455190 que da 0 (un resorte a más de 20 veces su largo): 0x4fb1a0 la suelta, el cuerpo dibuja la malla 2 como
-// la dejó 0x4ebc80, y el frame siguiente la arma de nuevo.
+// 0x455190 returning 0 (a spring at more than 20 times its length): 0x4fb1a0 releases it, the body draws mesh 2 as
+// 0x4ebc80 left it, and the next frame builds it again.
 TEST_F(MonsterClothTest, ABrokenClothIsReleasedAndRebuiltTheNextFrame)
 {
     ActorState& monster = Monster(Spider);
@@ -413,8 +411,8 @@ TEST_F(MonsterClothTest, ABrokenClothIsReleasedAndRebuiltTheNextFrame)
     EXPECT_EQ(Worn()->Particles()[1].position, vertices[1]);
 }
 
-// Entre frames del original: ni la arma ni la simula ni gasta rand(); sus partículas van llevadas con el hueso 0x12
-// desde el cuerpo de la última simulación.
+// Between frames of the original: it neither builds nor simulates it nor spends rand(); its particles are carried with
+// bone 0x12 from the body of the last simulation.
 TEST_F(MonsterClothTest, BetweenOriginalFramesTheClothIsCarriedWithoutSteps)
 {
     ActorState& monster = Monster(Spider);
@@ -441,7 +439,6 @@ TEST_F(MonsterClothTest, BetweenOriginalFramesTheClothIsCarriedWithoutSteps)
         EXPECT_NEAR(drawn.y, particle.y, 1e-3f) << corner;
         EXPECT_NEAR(drawn.z, particle.z, 1e-3f) << corner;
     }
-    // La tela guardada no cambia.
     for (std::size_t vertex = 0; vertex < before.size(); ++vertex)
         EXPECT_EQ(Worn()->Particles()[vertex].position, before[vertex].position) << vertex;
 }

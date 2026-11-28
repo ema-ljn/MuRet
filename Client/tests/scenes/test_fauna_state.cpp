@@ -8,7 +8,7 @@
 
 namespace
 {
-// 60712a..607150 sólo escribe byte vivo; el dibujo conserva la historia de los slots muertos.
+// 0x60712a..0x607150 only writes the live byte; the draw keeps the history of the dead slots.
 TEST(FaunaStateTest, ClearingPreservesPhysicalRecordsAndTheirHistory)
 {
     Client::Fauna::FaunaState fauna;

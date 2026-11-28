@@ -86,7 +86,7 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
         .skillHits = [&world, &random, terrain, send = parts.send](const Effects::ModelEffect& effect,
                                                                    float radius) -> Core::Expected<void, std::string>
         {
-            // 0x517a20(+0x89, la posición, `radius`, el byte +0x8c, +0x8a, 0).
+            // 0x517a20(+0x89, the position, `radius`, the byte +0x8c, +0x8a, 0).
             const Actors::SkillHitsRequest request{.skillIndex = effect.byte89,
                                                    .point = effect.transform.position,
                                                    .radius = radius,
@@ -111,8 +111,9 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
         .otherEffect = [&world, &random, sound = parts.sound](
                            const Kernel::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
         {
-            // 0x524d38: el 0xf6/2 (World/BlastModelEffects) con el meteoro que lo suelta de dueño (+0x108), que tiene
-            // que ser un efecto de la tabla. Su paso (0x521324) no lo lee: sólo le suma 0,04f a la escala (+0xc).
+            // 0x524d38: the 0xf6/2 (Effects/BlastModelEffects) with the meteor that drops it as owner (+0x108), which
+            // must be an effect of the table. Its step (0x521324) does not read it: it only adds 0.04f to the scale
+            // (+0xc).
             const std::span<Effects::ModelEffect> table = world.Map().effects.Effects();
             const auto owner = std::ranges::find_if(table, [&arguments](const Effects::ModelEffect& effect)
                                                     { return &effect == arguments.owner; });
@@ -136,14 +137,14 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
         {
             constexpr std::size_t PooledActors = 400;                      // 0x524b1b: 0x69780 / 0x438.
             constexpr double PushRadius = 200.0;                           // 0x6b8928
-            constexpr std::uint16_t FenrirPet = 0x1c37;                    // 0x524aef: +0x318 del 0x20a con Fenrir
+            constexpr std::uint16_t FenrirPet = 0x1c37;                    // 0x524aef: the 0x20a's +0x318 with Fenrir
             constexpr std::uint8_t PlayerPushAction = Tables::ShockAction; // 0x524b03
             constexpr std::uint8_t MonsterPushAction = 5;                  // 0x524b0a
             const auto actors = world.Actors().first<PooledActors>();
             for (std::size_t index = 0; index < actors.size(); ++index)
             {
                 Kernel::ActorState& actor = actors[index];
-                // 0x524a93..0x524aa9: dx y dy se guardan en float antes de mirar al personaje.
+                // 0x524a93..0x524aa9: dx and dy are stored in float before looking at the character.
                 const auto dx = static_cast<float>(static_cast<double>(x) - static_cast<double>(actor.position.x));
                 const auto dy = static_cast<float>(static_cast<double>(y) - static_cast<double>(actor.position.y));
                 if (!actor.alive || !actor.seen || index == hero || actor.dying != 0)
@@ -152,8 +153,8 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
                                                   static_cast<double>(dx) * static_cast<double>(dx));
                 if (distance > PushRadius)
                     continue;
-                // 0x4ea030 lee las acciones de 0x5769ad8 + tipo · 0xe0: primero los modelos del mapa (FaunaModels) y
-                // después los del juego, como MonsterSkeletonOf. Un modelo que no está es el registro sin acciones.
+                // 0x4ea030 reads the actions of 0x5769ad8 + type · 0xe0: first the map's models (FaunaModels) and then
+                // the game's, as MonsterSkeletonOf. A model that is not there is the record with no actions.
                 const Models::Skeleton* skeleton =
                     Assets::FaunaModelsOrEmpty(faunaModels).SkeletonOf(Models::ModelId{actor.type});
                 if (skeleton == nullptr && models != nullptr)
@@ -168,7 +169,7 @@ Effects::WizardEffectServices WizardEffectServicesOf(Kernel::WorldState& world, 
                 if (skeleton == nullptr)
                     return Core::Unexpected(std::string("0x524afc: falta Player.bmd para el personaje que empuja el "
                                                         "0xc2/4"));
-                // 0x524afa: 0x4e9cd0(personaje, personaje), la acción de golpe de Fenrir por las manos; si no, 0xc2.
+                // 0x524afa: 0x4e9cd0(character, character), Fenrir's hand hit action; otherwise, 0xc2.
                 Models::SetAction(actor.animation, *skeleton,
                                   actor.pet.model == FenrirPet ? Actors::FenrirHitActionOf(actor) : PlayerPushAction);
             }

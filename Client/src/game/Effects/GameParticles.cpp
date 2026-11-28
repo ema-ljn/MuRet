@@ -61,7 +61,7 @@ struct WaterspoutDrop
     std::string_view createAddress;
 };
 
-// 0x603053..0x60313f: la segunda pareja de sorteos va DESPUÉS de Create de la primera gota.
+// 0x603053..0x60313f: the second pair of draws comes AFTER the first drop's Create.
 constexpr std::array<WaterspoutDrop, 2> Drops{
     {{1, -20.0f, "0x6030a5", "0x6030c7"}, {4, -80.0f, "0x603121", "0x60313a"}}};
 
@@ -100,10 +100,10 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
     {
         if (bone >= retainedPose->bones.size())
             return Core::Unexpected(std::format("falta el hueso {} del buffer global prestado", bone));
-        // 6030a5/603121 pasan Translate=0: 4ec16d..17e no consulta escala/origen del modelo.
+        // 0x6030a5/0x603121 pass Translate=0: 0x4ec16d..0x4ec17e does not consult the model's scale/origin.
         return Math::OriginalVectorTransform(offset, Math::OriginalMatrixOf(retainedPose->bones[bone]));
     }
-    // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
+    // 0x5ffdf0 returns before posing with alpha < 0.01; the dummies do not write the global buffer either.
     constexpr float VisibleAlpha = 0.01f;
     const Models::Skeleton* skeleton = models.SkeletonOf(Models::ModelId{drawn.model});
     if (drawn.alpha < VisibleAlpha || models.Find(Models::ModelId{drawn.model}) == nullptr || skeleton == nullptr ||
@@ -116,7 +116,7 @@ Core::Expected<glm::vec3, std::string> PosedDropPoint(const Models::IModelLibrar
     {
         return Core::Unexpected(std::format("no se pudo posar el hueso {} de la fuente", bone));
     }
-    // 0x4ec179 → 0x5fccc0, Translate=0: el hueso YA está escalado y trasladado al mundo.
+    // 0x4ec179 → 0x5fccc0, Translate=0: the bone is ALREADY scaled and translated to the world.
     return Math::OriginalVectorTransform(offset, world[bone]);
 }
 } // namespace
@@ -125,7 +125,7 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObj
                                                           Particles::Particles& particles, Crt::CrtRandom& random,
                                                           const float& worldClock, const WaterspoutBonePoint& bonePoint)
 {
-    object.state.light = 1.0f; // 0x603011, incluso cuando el ftol siguiente falla.
+    object.state.light = 1.0f; // 0x603011, even when the next ftol fails.
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(worldClock));
     if (!clock)
     {
@@ -259,8 +259,8 @@ ParticleOwnerStatesOf(Kernel::WorldState& world)
             return std::nullopt;
         const auto slot = static_cast<std::size_t>(owner.identity);
         const Kernel::ActorState& actor = actors[slot];
-        // 0x4010b0 → 0x4016c0 (el lugar y el nombre exacto en la lista de 0x401000) y 0x401550: 0x4ec110 sin
-        // trasladar con los huesos propios (+0x120), por la escala (+0xc) y más la posición (+0x10).
+        // 0x4010b0 → 0x4016c0 (the slot and the exact name in 0x401000's list) and 0x401550: 0x4ec110 without
+        // translating with the own bones (+0x120), times the scale (+0xc) and plus the position (+0x10).
         auto namedBone = [&world, slot](std::string_view name) -> std::optional<glm::vec3>
         {
             const auto& bones = world.Runtime().namedBones;
@@ -298,7 +298,8 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const Parti
     const Kernel::ActorState& owner = actors[static_cast<std::size_t>(particle.typedOwner.identity)];
     if (particle.type == Particles::SwellLifeParticle && particle.subtype == Particles::SwellLifeParticleSubtype)
     {
-        // 0x544a9d..0x544b09: dirección retenida, sin leer alive ni flags. No usa la escala del modelo ni 53fdb0.
+        // 0x544a9d..0x544b09: retained direction, without reading alive or flags. It uses neither the model's scale nor
+        // 0x53fdb0.
         constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
         if (owner.type != PlayerType || owner.byte88 != 1)
             return std::nullopt;
@@ -313,7 +314,7 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const Parti
             point[axis] = static_cast<float>(static_cast<double>(point[axis]) + owner.position[axis]);
         return point;
     }
-    // 0x53fe20..0x53fe42: el subtipo and 0x80000001 con la corrección del signo.
+    // 0x53fe20..0x53fe42: the subtype and 0x80000001 with the sign correction.
     const Kernel::ActorState& hero = world.Hero();
     std::uint8_t bone = 0;
     switch (particle.subtype % 2)
@@ -331,7 +332,7 @@ std::optional<glm::vec3> OwnerBonePointOf(Kernel::WorldState& world, const Parti
     const glm::vec3 offset = particle.type == Particles::SkillShineParticle || particle.type == ShineOwnerType
                                  ? ShineOffset
                                  : glm::vec3(0.0f);
-    // 0x53fe0b..0x53fe1a: el origen del modelo.
+    // 0x53fe0b..0x53fe1a: the model's origin.
     Kernel::SharedModelPlacement model = world.ModelPlacement(owner.type);
     model.origin = owner.position;
     world.PlaceModel(owner.type, model);

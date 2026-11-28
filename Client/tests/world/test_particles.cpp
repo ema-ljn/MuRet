@@ -31,10 +31,9 @@
 #include <sstream>
 #include <string>
 
-// Client::Particles::Particles con el aliento del caballo (0x5f2, subtipo 0) y la chispa del cuervo (0x5c6,
-// subtipo 5) contra el código real del main.exe: 0x53fe70, 0x5446e0 y 0x548550(0) en 20 casos del aliento
-// y 8 de la chispa, de 20 pasos, con las que nacen en pasos al azar (tests/vectors/world55/particles.txt,
-// make_particle_vectors.py), bit a bit.
+// The horse's breath (0x5f2, subtype 0) and the raven's spark (0x5c6, subtype 5) against main.exe's real code:
+// 0x53fe70, 0x5446e0 and 0x548550(0) in 20 breath cases and 8 spark cases, of 20 steps, with those born at random
+// steps (tests/vectors/world55/particles.txt, make_particle_vectors.py), bit for bit.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -53,7 +52,7 @@ float FromBits(const std::string& word)
     return std::bit_cast<float>(Hex(word));
 }
 
-// Los 0x78 bytes de un lugar de 0x743a198 como 30 palabras.
+// A 0x743a198 slot's 0x78 bytes as 30 words.
 std::array<std::uint32_t, 30> WordsOf(const Particle& particle)
 {
     std::array<std::uint32_t, 30> words{};
@@ -186,7 +185,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
             checkUnlisted();
             std::size_t calls = 0;
             words >> calls;
-            // 0x548550(0) sobre el pool entero: la textura de cada lugar es su tipo (0x53fe70 la copia).
+            // 0x548550(0) over the whole pool: each slot's texture is its type (0x53fe70 copies it).
             Client::Tests::ParticleDrawRecorder recorder;
             recorder.dimensions.insert_or_assign(particleType, textureSize);
             recorder.materialFlags.insert_or_assign(particleType, static_cast<std::uint8_t>(components));
@@ -245,7 +244,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
     EXPECT_GT(draws, 500u);
 }
 
-// 0x53fe70 toma el primer lugar sin el byte vivo, de los 3.000; con todos llenos no crea ni saca rand().
+// 0x53fe70 takes the first of the 3000 slots without the alive byte.
 TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
 {
     Particles particles;
@@ -269,7 +268,7 @@ TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
               0u);
 }
 
-// 0x53fe70: el barrido de los 3.000 lugares termina antes del despacho por tipo o subtipo.
+// 0x53fe70: the sweep of the 3000 slots ends before the dispatch by type or subtype.
 TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
 {
     Particles particles;
@@ -319,7 +318,7 @@ TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
     for (const Particle& particle : particles.All())
         EXPECT_EQ(WordsOf(particle), before);
 
-    // Un lugar libre al final alcanza para restablecer los errores de validación habituales.
+    // A free slot at the end is enough to restore the usual validation errors.
     particles.All().back().alive = false;
     constexpr std::array<Client::Particles::ParticleError, 6> Errors{
         Client::Particles::ParticleError::UnsupportedType,    Client::Particles::ParticleError::UnsupportedType,
@@ -337,7 +336,7 @@ TEST(ParticlesTest, FullPoolPrecedesValidationAcrossCheckedCreationEntryPoints)
     EXPECT_EQ(boneCalls, 1);
 }
 
-// Los subtipos vecinos a los tres que arma MuRet no se crean ni sacan rand().
+// The subtypes next to the three that MuRet builds are neither created nor take rand().
 TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
 {
     Particles particles;
@@ -359,9 +358,9 @@ TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
     EXPECT_EQ(random.State(), CrtRandom(5).State());
 }
 
-// 0x54271f..0x542838, el polvo 5f3/0 del galope del caballo: vida 32, (rand() & 15) − 8 en x y en y,
-// ((rand() & 31) + 32) · escala · 0,01f en la x87, el empuje (0; 3; 0) girado por los ángulos del pedido y el giro x en
-// rand() % 360. Con la semilla 1: 41, 18.467, 6.334 y 26.500, cuatro rand().
+// 0x54271f..0x542838, the dust 5f3/0 of the horse's gallop: life 32, (rand() & 15) − 8 in x and y, ((rand() & 31) +
+// 32) · scale · 0.01f on the x87, the push (0; 3; 0) turned by the requested angles and the x turn at rand() % 360.
+// With seed 1: 41, 18467, 6334 and 26500, four rand().
 TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
 {
     Particles particles;
@@ -395,10 +394,9 @@ TEST(ParticlesTest, TheGallopDustIsBornAroundItsPlaceWithFourRandoms)
               Client::Math::OriginalVectorRotate({0.0f, 3.0f, 0.0f}, Client::Math::OriginalAngleMatrix(turn)));
 }
 
-// 0x546b66..0x546bfb después del movimiento común: la luz por la vida y 0,03125, la escala más 0,08f, la posición más
-// la velocidad otra vez (Q-C402), el freno 0,9f y la z en el terreno (0x5f93c0) más el alto de la textura por la
-// escala por 0,5. Con los ángulos en 0 el giro común es la identidad: la y sube 3 dos veces. El viento saca sus dos
-// rand().
+// 0x546b66..0x546bfb after the common movement: the light times life and 0.03125, scale plus 0.08f, position plus
+// velocity again (Q-C402), brake 0.9f and z on the terrain (0x5f93c0) plus the texture's height times the scale times
+// 0.5. With angles at 0 the common turn is the identity: the y rises 3 twice. The wind takes its two rand().
 TEST(ParticlesTest, TheGallopDustMovesTwiceBrakesAndSitsOnTheGround)
 {
     Particles particles;
@@ -445,8 +443,8 @@ TEST(ParticlesTest, TheGallopDustMovesTwiceBrakesAndSitsOnTheGround)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Sin la altura del terreno o sin el alto de la textura, el paso de la 5f3 corta con la luz, la escala, la posición
-// y el freno ya escritos.
+// Without the terrain height or the texture's height, 5f3's step cuts with the light, the scale, the position and the
+// brake already written.
 TEST(ParticlesTest, TheGallopDustNeedsTheGroundAndItsTexture)
 {
     for (const bool withGround : {false, true})
@@ -479,8 +477,8 @@ TEST(ParticlesTest, TheGallopDustNeedsTheGroundAndItsTexture)
     }
 }
 
-// 0x548a51: la 5f3 pide 0x620c10 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA) y va al billboard común, con el giro de +0x44
-// (en 0: el giro x de la creación no cuenta) y el tamaño de su imagen por la escala.
+// 0x548a51: 5f3 requests 0x620c10 (SRC_ALPHA / ONE_MINUS_SRC_ALPHA) and goes to the common billboard, with the turn of
+// +0x44 (at 0: the creation's x turn does not count) and its image's size times the scale.
 TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
 {
     Particle dust;
@@ -504,10 +502,10 @@ TEST(ParticlesTest, TheGallopDustDrawsBlendedOnTheCommonBillboard)
     EXPECT_EQ(drawn.Value()->light, glm::vec3(0.75f));
 }
 
-// 0x542a60 con el subtipo 0: la explosión 5ed del terremoto nace con vida 20 y la escala del pedido, sin rand() (el
-// sonido 0x41ed10(0x40, 0, 0) de 0x542a82 lo emite quien la crea). 0x5459a4 y 0x545c91..0x545cd6: después de la vida
-// y del movimiento común, el cuadro (20 − vida) / 2 en +0x48 y la luz dinámica de radio 4 (f · 0,5f; f · 0,3f;
-// f · 0,1f) con f = vida · 0,05f retenido en la x87. El viento saca sus dos rand().
+// 0x542a60 with subtype 0: the earthquake's explosion 5ed is born with life 20 and the requested scale, without rand()
+// (the sound 0x41ed10(0x40, 0, 0) of 0x542a82 is emitted by the creator). 0x5459a4 and 0x545c91..0x545cd6: after the
+// life and the common movement, frame (20 − life) / 2 in +0x48 and the dynamic light of radius 4 (f · 0.5f; f · 0.3f;
+// f · 0.1f) with f = life · 0.05f retained on the x87. The wind takes its two rand().
 TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
 {
     Particles particles;
@@ -555,7 +553,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
         EXPECT_EQ(random.State(), expectedRandom.State());
     }
 
-    // Sin la luz dinámica, corta con el cuadro ya escrito.
+    // Without the dynamic light, it cuts with the frame already written.
     const auto blind = Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry);
     ASSERT_FALSE(blind.HasValue());
     EXPECT_EQ(blind.Error(), Client::Particles::ParticleError::MissingDynamicLight);
@@ -563,9 +561,9 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
     EXPECT_EQ(std::bit_cast<std::int32_t>(explosion.field48), 2);
 }
 
-// 0x548644 → 0x54864b: la 5ed no pide otra mezcla que la de su material (con el byte en 4, 0x620a00(0)), va sin giro
-// y con la celda del cuadro en el atlas de 4 × 4: la u del resto cuadro % 4 y la v del cociente cuadro / 4, cada una
-// · 0,25f + 0,005f, y el tamaño (0,24f; 0,24f).
+// 0x548644 → 0x54864b: 5ed requests no blend other than its material's (with the byte at 4, 0x620a00(0)), goes
+// without turn and with the frame's cell in the 4 × 4 atlas: u from the remainder frame % 4 and v from the quotient
+// frame / 4, each · 0.25f + 0.005f, and size (0.24f; 0.24f).
 TEST(ParticlesTest, TheEarthquakeExplosionDrawsItsFrameFromAFourByFourAtlas)
 {
     Particle explosion;
@@ -594,7 +592,7 @@ TEST(ParticlesTest, TheEarthquakeExplosionDrawsItsFrameFromAFourByFourAtlas)
     }
 }
 
-// _ftol del reloj (0x69fd3c): con un NaN la x87 guarda 0x8000000000000000 y la rotación queda en 0.
+// _ftol of the clock (0x69fd3c): with a NaN the x87 stores 0x8000000000000000 and the rotation stays at 0.
 TEST(ParticlesTest, ANotANumberClockTurnsNothing)
 {
     Particles particles;
@@ -605,8 +603,8 @@ TEST(ParticlesTest, ANotANumberClockTurnsNothing)
     EXPECT_EQ(particles.All()[*index].rotation, 0.0f);
 }
 
-// 0x6070a0, al entrar, solo apaga el byte vivo de cada lugar (0x607164..0x607174): el viento (0x7609bb8 y
-// 0x7609bc4, que solo escribe 0x5446e0) sigue como estaba.
+// 0x6070a0, on entering, only clears each slot's alive byte (0x607164..0x607174): the wind (0x7609bb8 and 0x7609bc4,
+// which only 0x5446e0 writes) stays as it was.
 TEST(ParticlesTest, ClearingLeavesTheWind)
 {
     Particles particles;
@@ -617,9 +615,8 @@ TEST(ParticlesTest, ClearingLeavesTheWind)
     EXPECT_EQ(particles.Wind().change, glm::vec2(0.1f, 0.2f));
 }
 
-// Con +0x4c, el paso suma a la posición la velocidad girada por los ángulos (0x4e98d0: AngleMatrix y
-// VectorRotate de la x87, cada suma en 53 bits) antes del caso del tipo. El aliento nace quieto; acá se
-// le da una velocidad.
+// With +0x4c, the step adds to the position the velocity turned by the angles (0x4e98d0: the x87's AngleMatrix and
+// VectorRotate, each sum in 53 bits) before the type's case. The breath is born still; here it is given a velocity.
 TEST(ParticlesTest, AMovingParticleTurnsItsVelocityByItsAngles)
 {
     Particles particles;

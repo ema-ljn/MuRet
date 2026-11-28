@@ -36,13 +36,13 @@ struct DrawSelection
 {
     ParticleDrawKind kind;
     bool cloud;
-    // La 6ac/2: el billboard va con GL_ADD, y después vuelve GL_MODULATE.
+    // The 6ac/2: the billboard goes with GL_ADD, and then GL_MODULATE comes back.
     bool addedTexture = false;
 };
 Core::Expected<ParticleDrawKind, ParticleDrawingError> PrepareSmoke(Particle& p, IParticleDrawingServices& services)
 {
     const std::int32_t subtype = p.subtype;
-    // Primer conjunto literal de548707..732; el resto continúa a la segunda guarda.
+    // First literal set of 0x548707..0x548732; the rest goes on to the second guard.
     switch (subtype)
     {
     case 2:
@@ -62,7 +62,7 @@ Core::Expected<ParticleDrawKind, ParticleDrawingError> PrepareSmoke(Particle& p,
     default:
         break;
     }
-    // 548737 y548749 son lecturas separadas después de los respectivos servicios.
+    // 0x548737 and 0x548749 are separate reads after the respective services.
     const std::int32_t repeated = p.subtype;
     if (repeated == 37 || repeated == 38)
     {
@@ -72,8 +72,8 @@ Core::Expected<ParticleDrawKind, ParticleDrawingError> PrepareSmoke(Particle& p,
     }
     return p.subtype == 6 ? ParticleDrawKind::Unrotated : ParticleDrawKind::Common;
 }
-// 0x548bf0: 7 y 10 restan (0x620b10) y caen a 0, 3 y 8, que giran con el reloj; los demás subtipos (la
-// 622/1 de los objetos de la selección) van directo al billboard común.
+// 0x548bf0: 7 and 10 subtract (0x620b10) and fall through to 0, 3 and 8, which turn with the clock; the other
+// subtypes (the 622/1 of the selection's objects) go straight to the common billboard.
 Result PrepareCloud(Particle& p, std::size_t index, std::reference_wrapper<const float> clock,
                     IParticleDrawingServices& services)
 {
@@ -102,8 +102,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
                                                                  IParticleDrawingServices& services)
 {
     const std::int32_t type = p.type;
-    // 0x548644: la 6f2/3 va al default (caseD_5c5) y la 5f2/22 sale del caso del 0x5f2 sin restar ni ser el
-    // /6 (0x548a64): las dos al billboard común.
+    // 0x548644: the 6f2/3 goes to the default (caseD_5c5) and the 5f2/22 leaves the 0x5f2 case without subtracting or
+    // being the /6 (0x548a64): both to the common billboard.
     if (IsKalimaParticle(type, p.subtype) || IsTrialsParticle(type, p.subtype) ||
         (type == SwellLifeParticle && p.subtype == SwellLifeParticleSubtype))
         return DrawSelection{ParticleDrawKind::Common, false};
@@ -112,8 +112,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     case BlueTrailFireParticle:
     case FireParticle:
     case DeathSpiritFireParticle:
-        // 0x548803..0x54881f: 5d9, 5db y 5dc comparten el caso; estos seis subtipos van al atlas de fuego girado por
-        // +0x44 (0x548850) y los demás al de los ángulos (0x548821), cada uno con la textura de su tipo.
+        // 0x548803..0x54881f: 5d9, 5db and 5dc share the case; these six subtypes go to the fire atlas turned by +0x44
+        // (0x548850) and the others to the angles one (0x548821), each with its type's texture.
         switch (p.subtype)
         {
         case 5:
@@ -126,7 +126,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         default:
             return DrawSelection{ParticleDrawKind::Fire, false};
         }
-    case BlazeParticle: // 0x5486b6: los argumentos del fuego de 0x548821 (un cuarto del ancho, el cuadro % 4, +0x20).
+    case BlazeParticle: // 0x5486b6: the fire arguments of 0x548821 (a quarter of the width, the frame % 4, +0x20).
         return DrawSelection{ParticleDrawKind::Fire, false};
     case BreathParticle:
     {
@@ -144,32 +144,32 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     }
     case ShinyParticle:
     case FairySparkParticle:
-    case FlameParticle:      // 0x548644: sin caso propio, al billboard común (caseD_5c5).
-    case ChaseLightParticle: // El default del segundo switch, al mismo caseD_5c5, con la textura de la creación.
+    case FlameParticle:      // 0x548644: no case of its own, to the common billboard (caseD_5c5).
+    case ChaseLightParticle: // The second switch's default, to the same caseD_5c5, with the creation's texture.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
-    case BubbleParticle: // 0x5488f6 → 0x54899a, sin leer el subtipo.
+    case BubbleParticle: // 0x5488f6 → 0x54899a, without reading the subtype.
         return DrawSelection{ParticleDrawKind::Bubble, false};
-    case ExplosionParticle: // 0x548644 → 0x54864b, sin leer el subtipo.
+    case ExplosionParticle: // 0x548644 → 0x54864b, without reading the subtype.
         return DrawSelection{ParticleDrawKind::Explosion, false};
-    case BloodParticle: // 0x548644 → 0x5487b9, sin leer el subtipo.
+    case BloodParticle: // 0x548644 → 0x5487b9, without reading the subtype.
         return DrawSelection{ParticleDrawKind::Blood, false};
-    case MagicSparkParticle:    // 548644, sin caso propio: billboard común.
-    case MissileFireParticle:   // 548cb1=8 →54889a; /8 y/9 no dividen atlas.
-    case PoundingBallParticle:  // 0x548d3a=8 → 0x54889a, billboard común.
-    case TorchSparkParticle:    // 0x5488f6: la 6ab va al default, 0x54889a.
-    case SkillShineParticle:    // 0x5488f6 → 0x54889a (el byte 8 de 0x548cf0), sin leer el subtipo.
-    case HandShineParticle:     // 0x5488f6: la 5fd también (el byte 8 de 0x548cf7), sin leer el subtipo.
-    case SiegeBlessingParticle: // 5488f6: el billboard común, sin leer el subtipo.
-    case CinderParticle:        // 0x5488f6 → 0x54889a (el byte 8 de 0x548da7), sin leer el subtipo.
-    case ShockWaveParticle:     // 0x5488f6 → 0x54889a (el byte 8 de 0x548de5), sin leer el subtipo.
+    case MagicSparkParticle:    // 0x548644, no case of its own: common billboard.
+    case MissileFireParticle:   // 0x548cb1=8 → 0x54889a; /8 and /9 do not split the atlas.
+    case PoundingBallParticle:  // 0x548d3a=8 → 0x54889a, common billboard.
+    case TorchSparkParticle:    // 0x5488f6: the 6ab goes to the default, 0x54889a.
+    case SkillShineParticle:    // 0x5488f6 → 0x54889a (byte 8 of 0x548cf0), without reading the subtype.
+    case HandShineParticle:     // 0x5488f6: the 5fd too (byte 8 of 0x548cf7), without reading the subtype.
+    case SiegeBlessingParticle: // 0x5488f6: the common billboard, without reading the subtype.
+    case CinderParticle:        // 0x5488f6 → 0x54889a (byte 8 of 0x548da7), without reading the subtype.
+    case ShockWaveParticle:     // 0x5488f6 → 0x54889a (byte 8 of 0x548de5), without reading the subtype.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DustParticle:
     case ArrivalDustParticle:
-    case RisingPuffParticle: // 0x548895: la 5f5 también, sin leer el subtipo.
+    case RisingPuffParticle: // 0x548895: the 5f5 too, without reading the subtype.
     {
-        // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
+        // 0x548a51: the 5f3 goes to 0x620c10 and to the common billboard, without reading the subtype.
         const auto blended = services.Blended();
         if (!blended.HasValue())
             return Core::Unexpected(blended.Error());
@@ -177,8 +177,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     }
     case TorchFlameParticle:
     {
-        // 0x5489eb: la /2 pone glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD) antes de 0x620c10 y dibuja
-        // el billboard con los argumentos del común (0x548a0d..0x548a33); las demás, 0x620c10 y el billboard común
+        // 0x5489eb: the /2 sets glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD) before 0x620c10 and draws the
+        // billboard with the common one's arguments (0x548a0d..0x548a33); the others, 0x620c10 and the common billboard
         // (0x548a51).
         const bool added = p.subtype == BrightFlameSubtype;
         if (added)
@@ -192,24 +192,24 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(blended.Error());
         return DrawSelection{ParticleDrawKind::Common, false, added};
     }
-    case RingParticle:      // 0x548644: el anillo 0x600 va al default (0x54889a), sin leer el subtipo.
-    case ThunderParticle:   // 548ca1→54889a: billboard común sin lectura del subtipo.
-    case LightningParticle: // 0x548644: el índice 8 de 0x548c9c, al mismo 0x54889a.
+    case RingParticle:      // 0x548644: the ring 0x600 goes to the default (0x54889a), without reading the subtype.
+    case ThunderParticle:   // 0x548ca1 → 0x54889a: common billboard without reading the subtype.
+    case LightningParticle: // 0x548644: index 8 of 0x548c9c, to the same 0x54889a.
     case SparkParticle:
     case Particle67:
     case Particle68:
-    case FirstFlowerParticle:     // 0x5488f6 → 0x54889a (los bytes 0x12..0x14 de 0x548cf0), sin leer el subtipo.
+    case FirstFlowerParticle:     // 0x5488f6 → 0x54889a (bytes 0x12..0x14 of 0x548cf0), without reading the subtype.
     case FirstFlowerParticle + 1: // 0x609
     case LastFlowerParticle:
-    case FlareColumnParticle: // 0x5488f6 → 0x54889a, sin leer el subtipo.
-    case HoleParticle:        // 0x5488f6 → 0x54889a, sin leer el subtipo.
-        // Destinos directos cerrados: no hay lectura de subtype en estas ramas.
+    case FlareColumnParticle: // 0x5488f6 → 0x54889a, without reading the subtype.
+    case HoleParticle:        // 0x5488f6 → 0x54889a, without reading the subtype.
+        // Closed direct destinations: these branches do not read subtype.
         return DrawSelection{ParticleDrawKind::Common, false};
     default:
         return Core::Unexpected(BranchError(ParticleError::UnsupportedType));
     }
 }
-// 0x548a81..0x548bc7: 23+(slot%8) billboards, de la punta a la posición actual, con color cíclico.
+// 0x548a81..0x548bc7: 23+(slot%8) billboards, from the tip to the current position, with a cyclic color.
 Result DrawFirework(const Particle& p, glm::vec2 extents, std::size_t index, IParticleDrawingServices& services)
 {
     const int length = static_cast<int>(index % 8) + 22;
@@ -246,7 +246,7 @@ Result DrawFirework(const Particle& p, glm::vec2 extents, std::size_t index, IPa
 Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::reference_wrapper<const float> clock,
                   IParticleDrawingServices& services)
 {
-    // 548bcf..be3: el subtipo se relee tras material y antes de consultar vida.
+    // 0x548bcf..0x548be3: the subtype is reread after the material and before checking the life.
     if (p.type == OrbitParticle)
     {
         if (p.subtype != 4 && p.life == OrbitLife)
@@ -277,7 +277,7 @@ Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::refere
     const auto drawn = services.Billboard(request);
     if (!drawn.HasValue() || !selected.Value().addedTexture)
         return drawn;
-    // 0x548a3b..0x548a4a: glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE) y al lugar siguiente.
+    // 0x548a3b..0x548a4a: glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE) and on to the next slot.
     return services.TextureEnv(Render::TextureEnvMode::Modulate);
 }
 Result DrawOne(Particle& p, std::size_t index, std::reference_wrapper<const float> clock,

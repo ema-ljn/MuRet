@@ -17,8 +17,8 @@
 #include <initializer_list>
 #include <limits>
 
-// Expectativas derivadas del ASM de 0x53fe70 y 0x5446e0 para 0x622/10. No son vectores
-// obtenidos ejecutando el original. Ver 06 § Los efectos del login, neblina.
+// Expectations derived from the ASM of 0x53fe70 and 0x5446e0 for 0x622/10, not vectors obtained by running the
+// original. See 06 § Los efectos del login, neblina.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -63,7 +63,7 @@ TEST(LoginCloudParticlesTest, CreationUsesFiveRandomValuesAndKeepsThePerturbedOr
     EXPECT_EQ(particle.verticalSpeed, 0.0f);
     EXPECT_EQ(particle.owner, 0u);
     EXPECT_EQ(particle.start, particle.position);
-    // CRT semilla 7: 61, 17422, 15215, 7040, 15521. Los cinco restos son parte del contrato.
+    // CRT seed 7: 61, 17422, 15215, 7040, 15521. The five remainders are part of the contract.
     EXPECT_EQ(particle.position, glm::vec3(861.0f, 2022.0f, 115.0f));
     EXPECT_EQ(Bits(particle.scale), 0x3fe00000u);
     EXPECT_EQ(Bits(particle.velocity.x), 0x3f3851ebu);
@@ -97,7 +97,7 @@ TEST(LoginCloudParticlesTest, TheCreationScaleMultipliesTheStoredConstantInstead
     CrtRandom random(1);
     const auto index = particles.Create(LoginCloudType, {}, {}, {}, LoginCloudSubtype, 0.1f, 0.0f, random);
     ASSERT_TRUE(index.has_value());
-    // El cuarto rand es 26500: (20 * floatBits(0x3d888889)) + 0,1f.
+    // The fourth rand is 26500: (20 * floatBits(0x3d888889)) + 0.1f.
     EXPECT_EQ(Bits(particles.All()[*index].scale), 0x3fb77778u);
 }
 
@@ -149,7 +149,7 @@ TEST(LoginCloudParticlesTest, DrawingUsesSlotParityTheRetainedFactorAndTheOrigin
         particle.start.y = 2022.0f;
         particle.rotationFactor = 1.5f;
         particle.rotation = 99.0f;
-        // El índice es el lugar real del pool: la paridad sale de ahí, no de un argumento aparte.
+        // The index is the pool's real slot: the parity comes from there, not from a separate argument.
         const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{4}, 1234.5f, index);
         ASSERT_TRUE(drawn.HasValue());
         ASSERT_TRUE(drawn.Value().has_value());
@@ -268,7 +268,7 @@ TEST(LoginCloudParticlesTest, TheRedComparisonUsesTheUnspilledSum)
     particle.light = {0.14f, 0.8f, -1.0f};
     CrtRandom random;
     Client::Particles::StepParticles(particles, random);
-    // 0,14f + 0,01f queda debajo de 0,15f en double, aunque guardado en float sea 0,15f.
+    // 0.14f + 0.01f stays below 0.15f in double, although stored as float it is 0.15f.
     EXPECT_EQ(Bits(particle.light.x), 0x3e19999au);
     EXPECT_GT(particle.light.y, 0.8f);
     EXPECT_LT(particle.light.z, 0.0f);

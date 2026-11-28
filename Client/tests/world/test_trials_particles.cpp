@@ -14,8 +14,8 @@
 #include <functional>
 #include <optional>
 
-// Las partículas de los objetos de Land of Trials: la salpicadura 6f2/3 del 3 y el humo 5f2/22 del 0x35
-// (06 § Los objetos de Land of Trials).
+// The particles of Land of Trials's objects: the splash 6f2/3 of 3 and the smoke 5f2/22 of 0x35 (06 § Los objetos de
+// Land of Trials).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -32,8 +32,8 @@ double Bits(std::uint32_t bits)
 }
 } // namespace
 
-// 0x544319..0x5443a6: vida 60, velocidad z −1, cuatro rand(): la escala (r % 10 + 15) · escala · 0,02f, el
-// giro, la x con r % 40 − 20 y la z con r % 25 − 10. La y queda.
+// 0x544319..0x5443a6: life 60, z velocity −1, four rand(): the scale (r % 10 + 15) · scale · 0.02f, the turn, the x
+// with r % 40 − 20 and the z with r % 25 − 10. The y stays.
 TEST(TrialsParticlesTest, TheSplashIsCreatedWithFourDrawsAroundItsObject)
 {
     for (const std::int32_t type : {Splash, Splash + 1})
@@ -65,8 +65,8 @@ TEST(TrialsParticlesTest, TheSplashIsCreatedWithFourDrawsAroundItsObject)
     }
 }
 
-// 0x5423e0..0x542448: vida 60, tres rand(): la escala ((r & 63) + 64) · escala · 0,005f, el giro y la
-// velocidad vertical ((r & 31) + 60) · 0,1f.
+// 0x5423e0..0x542448: life 60, three rand(): the scale ((r & 63) + 64) · scale · 0.005f, the turn and the vertical
+// speed ((r & 31) + 60) · 0.1f.
 TEST(TrialsParticlesTest, TheSmokeIsCreatedWithThreeDrawsAndItsRise)
 {
     Particles particles;
@@ -87,7 +87,6 @@ TEST(TrialsParticlesTest, TheSmokeIsCreatedWithThreeDrawsAndItsRise)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// Otros subtipos de esos tipos no son de esta familia.
 TEST(TrialsParticlesTest, OnlyTheTwoObjectSubtypesBelongToTheFamily)
 {
     EXPECT_TRUE(Client::Particles::IsTrialsParticle(0x6f2, 3));
@@ -99,7 +98,7 @@ TEST(TrialsParticlesTest, OnlyTheTwoObjectSubtypesBelongToTheFamily)
     EXPECT_FALSE(Client::Particles::IsTrialsParticle(0x5f3, 22));
 }
 
-// 0x54815d..0x54819e: la escala +0,005f, la velocidad z −0,05f y la luz por 0,97f, sin rand().
+// 0x54815d..0x54819e: scale +0.005f, z velocity −0.05f and light times 0.97f, without rand().
 TEST(TrialsParticlesTest, TheSplashGrowsFallsFasterAndFades)
 {
     Particle p;
@@ -117,9 +116,8 @@ TEST(TrialsParticlesTest, TheSplashGrowsFallsFasterAndFades)
               glm::vec3(static_cast<float>(fade), static_cast<float>(0.75 * fade), static_cast<float>(0.5 * fade)));
 }
 
-// 0x546706..0x546757: la luz de la vida (rojo por 0,9f, verde y azul por 0,5); la velocidad vertical −0,1f
-// guardada en float y usada sin redondear en el vaivén de la x (sin(reloj) por ella por 0,05f) y en la z;
-// la escala +0,04f.
+// 0x546706..0x546757: the light from life (red times 0.9f, green and blue times 0.5); the vertical speed −0.1f stored
+// as float and used unrounded in the x's sway (sin(clock) times it times 0.05f) and in the z; scale +0.04f.
 TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
 {
     Particle p;
@@ -144,7 +142,7 @@ TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
     EXPECT_EQ(p.position.z, static_cast<float>(rise + 300.0));
     EXPECT_EQ(p.scale, static_cast<float>(static_cast<double>(0.6f) + Bits(0x3d23d70au)));
 
-    // Sin el reloj del mundo, corta después de la luz y de la velocidad, sin tocar la posición.
+    // Without the world clock, it cuts after the light and the velocity, without touching the position.
     Particle q = p;
     const auto cut = Client::Particles::StepTrialsParticle(q, nullptr);
     ASSERT_FALSE(cut.HasValue());
@@ -153,8 +151,8 @@ TEST(TrialsParticlesTest, TheSmokeRisesSlowerSwaysWithTheClockAndDims)
     EXPECT_NE(q.verticalSpeed, p.verticalSpeed);
 }
 
-// FSIN y FMUL ST1 por un double: con un factor float da lo mismo que el producto por float, con el signo
-// del factor, y el cero conserva su signo.
+// FSIN and FMUL ST1 by a double: with a float factor it gives the same as the product by float, with the factor's
+// sign, and zero keeps its sign.
 TEST(TrialsParticlesTest, TheSineByADoubleMatchesTheFloatProductAndKeepsTheSign)
 {
     for (const double argument : {0.5, 1.0e3, 123456.0, -77.25})
@@ -174,7 +172,7 @@ TEST(TrialsParticlesTest, TheSineByADoubleMatchesTheFloatProductAndKeepsTheSign)
     EXPECT_FALSE(Client::Math::Detail::SineDoubleProductPC53(1.0, std::nan("")).has_value());
 }
 
-// Por el pool: las dos viven 60 pasos con la vida común y se mueven con la velocidad girada por los ángulos.
+// Through the pool: both live 60 steps with the common life and move with the velocity turned by the angles.
 TEST(TrialsParticlesTest, BothLiveSixtyStepsInThePool)
 {
     Particles particles;
@@ -195,7 +193,7 @@ TEST(TrialsParticlesTest, BothLiveSixtyStepsInThePool)
         ++steps;
     }
     EXPECT_EQ(steps, 60);
-    // La salpicadura cae: −1 el primer paso, después más rápido.
+    // The splash falls: −1 on the first step, then faster.
     EXPECT_LT(particles.All()[0].position.z, splashZ - 60.0f);
     EXPECT_GT(particles.All()[1].position.z, 500.0f);
 }

@@ -36,9 +36,7 @@
 #include <utility>
 #include <vector>
 
-// La rama del elfo de 0x57cfc0 (0x57d790..0x58187c, CL9 hito 4, fase 2c) y 0x55faa0, llamadas directo: el elfo en el
-// lugar 0 en (182, 115), un monstruo elegido en el lugar 5 en (184, 117) con la clave 0x0a1b y un Skill.bmd inventado.
-// Cada envío con sus bytes y cada camino con sus rand(), en Lorencia (0), Devias (2) y los mapas de cada caso.
+// The elf branch of 0x57cfc0 (0x57d790..0x58187c) and 0x55faa0, called directly, with an invented Skill.bmd.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -48,20 +46,20 @@ constexpr int OwnDraws = 3848;
 constexpr int EntryDraws = 60;
 constexpr int CellDraws = 4;
 constexpr int SendDraws = 2;
-// La cabeza (0x57d790..0x57e12a) sin espera: el registro propio y, con él abierto, el costo, la espera y la energía.
+// The head (0x57d790..0x57e12a) without a delay: the own record and, with it open, the cost, the delay and the energy.
 constexpr int HeadDraws = OwnDraws + 3 * EntryDraws;
-// La celda lógica del héroe: la Y y la X.
+// The hero's logical cell: the Y and the X.
 constexpr int HeroCellDraws = 2 * CellDraws;
-// 0x4f5290 sobre el elfo: 0x4f3f80 (el registro propio) y la acción 0x92, sin rand().
+// 0x4f5290 on the elf: 0x4f3f80 (the own record) and action 0x92, without rand().
 constexpr int ElfHitDraws = OwnDraws;
-// 0x55faa0 antes de su caso: la celda del héroe publicado para el D3 (la X y la Y) y el registro propio con la skill.
+// 0x55faa0 before its case: the published hero's cell for the D3 (the X and the Y) and the own record with the skill.
 constexpr int ReachedDraws = HeroCellDraws + OwnDraws;
 constexpr std::size_t ChosenSlot = 5;
 constexpr std::uint16_t ChosenKey = 0x0a1b;
 constexpr std::uint16_t PlayerKey = 0x1234;
 constexpr std::uint32_t Ticks = 100000;
 constexpr std::uint8_t ElfClass = 2;
-constexpr std::uint16_t BowModel = 0xa12; // un arco (0x800) en la izquierda
+constexpr std::uint16_t BowModel = 0xa12; // a bow (0x800) in the left hand
 
 CrtRandom Advanced(CrtRandom random, int count)
 {
@@ -81,8 +79,6 @@ struct InventedSkill
     std::uint8_t range = 4;
 };
 
-// Skill.bmd con el nivel (+0x20), el maná (+0x22), la stamina (+0x24), el alcance (+0x26), la espera (+0x28) y la
-// energía (+0x2c).
 Client::Tables::SkillTable SkillsWith(std::initializer_list<InventedSkill> skills)
 {
     std::vector<std::byte> plain(Client::Tables::SkillTableSize);
@@ -138,8 +134,8 @@ struct ElfHero
         auto& chosen = Chosen();
         chosen.alive = true;
         chosen.type = 0x20;
-        chosen.byte88 = 2;  // un monstruo: 0x558bb0 lo deja atacar
-        chosen.byte370 = 2; // y 0x558eb0 da su clave
+        chosen.byte88 = 2;  // a monster: 0x558bb0 lets it be attacked
+        chosen.byte370 = 2; // and 0x558eb0 gives its key
         chosen.key = ChosenKey;
         chosen.alpha = 1.0f;
         chosen.position = {18450.0f, 11750.0f, 0.0f};
@@ -158,7 +154,7 @@ struct ElfHero
     {
         return world.Runtime().movement;
     }
-    // Un aliado: un jugador del lugar 5 que 0x558bb0 no deja atacar.
+    // An ally: a player that 0x558bb0 does not let be attacked.
     void ChooseAnAlly()
     {
         auto& chosen = Chosen();
@@ -167,7 +163,7 @@ struct ElfHero
         chosen.byte370 = 0;
         chosen.hands[0].model = chosen.hands[1].model = Client::Kernel::NoItemModel;
     }
-    // Sin elegido: 0x57ce80 apunta al terreno, a (183, 116).
+    // Without a chosen one, 0x57ce80 aims at the terrain, at (183, 116).
     void AimAtTheTerrain()
     {
         world.Runtime().selectedTargets[2] = -1;
@@ -221,8 +217,8 @@ std::unique_ptr<ElfHero> AnElf(std::uint8_t skill, std::int32_t map = 0)
     return std::make_unique<ElfHero>(skill, map);
 }
 
-// 0x57d808..0x57d854: sin el maná, la poción de maná (sin ella, nada; con ella, el hito 5); con la stamina por encima
-// de +0x38 o la energía de 0x551f40 por encima de +0x1e + +0x30, nada.
+// 0x57d808..0x57d854: without the mana, the mana potion (without it, nothing); with the stamina above +0x38 or
+// 0x551f40's energy above +0x1e + +0x30, nothing.
 TEST(HeroSkillsElfTest, TheHeadPaysForTheSkill)
 {
     for (const std::int32_t map : {0, 2})
@@ -269,8 +265,8 @@ TEST(HeroSkillsElfTest, TheHeadPaysForTheSkill)
     EXPECT_EQ(tested->sent.size(), 1u);
 }
 
-// 0x57f252..0x57f9af: las invocaciones (0x1e a 0x24) mandan el 19 con la clave del jugador y ponen la acción 0x92
-// (0x4f5290 del elfo), sin mirar el alcance. En el mapa 10 y en Chaos Castle (18 a 23), nada después de la cabeza.
+// 0x57f252..0x57f9af: the summons (0x1e to 0x24) send the 19 with the player's key and set action 0x92 (the elf's
+// 0x4f5290), without checking the reach. On map 10 and in Chaos Castle (18 to 23), nothing after the head.
 TEST(HeroSkillsElfTest, TheSummonsSendTheMagicAttackWithThePlayerKey)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x1e}, std::uint8_t{0x24}})
@@ -304,7 +300,7 @@ TEST(HeroSkillsElfTest, TheSummonsSendTheMagicAttackWithThePlayerKey)
         EXPECT_EQ(tested->Hero().animation.action, 1);
     }
     {
-        // Con el freno o con "webzen" en el nombre, sin el 19, pero con la acción.
+        // With the brake or with "webzen" in the name, no 19, but the action.
         const auto braked = AnElf(0x1e);
         braked->Movement().lastActionTick = Ticks - 300;
         ASSERT_TRUE(braked->Use().HasValue());
@@ -319,10 +315,10 @@ TEST(HeroSkillsElfTest, TheSummonsSendTheMagicAttackWithThePlayerKey)
     }
 }
 
-// 0x57e14d..0x57f005: la 0x34 con un arco del héroe publicado, flechas (sin arma de tiro en el registro propio,
-// 0x561c50 da 1) y la celda del blanco al alcance: el rumbo hacia el blanco (135°), el 1E con la celda lógica, el rumbo
-// · 256/360, dos ceros y la clave de 0x558eb0 con 0x7758588, y 0x4f4a10. Después sigue por el alcance (0x57f008), que
-// con un monstruo y la 0x34 no hace nada más.
+// 0x57e14d..0x57f005: 0x34 with the published hero's bow, arrows (with no missile weapon in the own record, 0x561c50
+// gives 1) and the target's cell in reach: the heading toward the target (135°), the 1E with the logical cell, the
+// heading · 256/360, two zeros and 0x558eb0's key with 0x7758588, and 0x4f4a10. Then it goes on through the reach
+// (0x57f008), which with a monster and 0x34 does nothing more.
 TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
 {
     for (const std::int32_t map : {0, 2})
@@ -331,7 +327,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         const auto tested = AnElf(0x34, map);
         tested->Hero().hands[1].model = BowModel;
         tested->Movement().weaponSkill.target = static_cast<std::int32_t>(ChosenSlot);
-        // 0x561c50 y 0x4f3f80 (en 0x4f4a10) abren y cierran el registro propio; la línea de vista, la celda otra vez.
+        // 0x561c50 and 0x4f3f80 (in 0x4f4a10) open and close the own record; the line of sight, the cell again.
         const CrtRandom expected =
             Advanced(tested->random, HeadDraws + OwnDraws + HeroCellDraws + SendDraws + OwnDraws + HeroCellDraws);
         ASSERT_TRUE(tested->Use().HasValue());
@@ -344,7 +340,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         EXPECT_EQ(tested->Movement().weaponSkill.active, 1u);
     }
     {
-        // Sin el blanco de la skill del arma, la clave 0xffff.
+        // Without the weapon skill's target, the key 0xffff.
         const auto tested = AnElf(0x34);
         tested->Hero().hands[1].model = BowModel;
         tested->Movement().weaponSkill.target = -1;
@@ -354,7 +350,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         EXPECT_EQ(tested->Sent(0)[10], 0xff);
     }
     {
-        // Sin arma de tiro o fuera de alcance, sin el 1E: sigue por el alcance.
+        // Without a missile weapon or out of reach, no 1E: it goes on through the reach.
         const auto unarmed = AnElf(0x34);
         const CrtRandom expected = Advanced(unarmed->random, HeadDraws + HeroCellDraws);
         ASSERT_TRUE(unarmed->Use().HasValue());
@@ -368,7 +364,7 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
         EXPECT_FLOAT_EQ(far->Hero().angles.z, 0.0f);
     }
     {
-        // Con "webzen", sin el 1E ni 0x5767948, pero con 0x4f4a10.
+        // With "webzen", neither the 1E nor 0x5767948, but 0x4f4a10.
         const auto tested = AnElf(0x34);
         tested->Hero().hands[1].model = BowModel;
         tested->CallIt("webzen");
@@ -379,8 +375,8 @@ TEST(HeroSkillsElfTest, Skill34ShootsAtTheChosen)
     }
 }
 
-// 0x57fa46..0x580187 y 0x580188..0x5808d3: las 0x1a a 0x1c sin un jugador elegido (sobre el terreno o un monstruo) y
-// la 0x35 mandan el 19 con la clave del jugador y ponen 0x4f5290; la 0x35, además, +0x378 en 0.
+// 0x57fa46..0x580187 and 0x580188..0x5808d3: 0x1a to 0x1c without a chosen player (on the terrain or a monster) and
+// 0x35 send the 19 with the player's key and set 0x4f5290; 0x35 also sets +0x378 to 0.
 TEST(HeroSkillsElfTest, TheSupportSkillsSendTheMagicAttackWithThePlayerKey)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x1a}, std::uint8_t{0x1c}, std::uint8_t{0x35}})
@@ -401,7 +397,6 @@ TEST(HeroSkillsElfTest, TheSupportSkillsSendTheMagicAttackWithThePlayerKey)
             EXPECT_EQ(tested->Movement().weaponSkill.target, static_cast<std::int32_t>(ChosenSlot));
         }
     }
-    // Sin elegido, sobre el punto del terreno.
     const auto tested = AnElf(0x1b);
     tested->AimAtTheTerrain();
     ASSERT_TRUE(tested->Use().HasValue());
@@ -411,8 +406,8 @@ TEST(HeroSkillsElfTest, TheSupportSkillsSendTheMagicAttackWithThePlayerKey)
     EXPECT_EQ(tested->Movement().weaponSkill.active, 0u);
 }
 
-// 0x57f203..0x57f251 → 0x55faa0: las 0x1a a 0x1c con un jugador elegido a la vista: el D3 de girar primero (con el
-// ángulo de antes, 0: 0x10), el 19 con la clave del elegido y 0x4f5290; nada más.
+// 0x57f203..0x57f251 → 0x55faa0: 0x1a to 0x1c with a chosen player in sight: the turn D3 first (with the previous
+// angle, 0: 0x10), the 19 with the chosen one's key and 0x4f5290; nothing more.
 TEST(HeroSkillsElfTest, TheSupportSkillsOnAnAllyGoThroughTheTarget)
 {
     for (const std::int32_t map : {0, 2})
@@ -432,7 +427,7 @@ TEST(HeroSkillsElfTest, TheSupportSkillsOnAnAllyGoThroughTheTarget)
         EXPECT_FLOAT_EQ(tested->Hero().angles.z, 135.0f);
         EXPECT_EQ(tested->Hero().animation.action, 0x92);
     }
-    // Fuera de alcance, el camino hasta el aliado con +0x379 en 5 (0x57f0e3..0x57f15e), y nada más.
+    // Out of reach, the path to the ally with +0x379 at 5 (0x57f0e3..0x57f15e), and nothing more.
     const auto tested = AnElf(0x1a, 2);
     tested->ChooseAnAlly();
     tested->Movement().selectedSkillRange = 1.0f;
@@ -445,9 +440,9 @@ TEST(HeroSkillsElfTest, TheSupportSkillsOnAnAllyGoThroughTheTarget)
     EXPECT_GT(tested->Hero().path.count, 0);
 }
 
-// 0x57f9b0..0x57fa25 → 0x55faa0: la 0x33 y la 0x2e de un jugador con el arco, sobre un atacable a la vista: el D3, el
-// 19 con la clave del elegido y la acción (0x4f4a10 la 0x33; 0x4f48e0 la 0x2e: 0x7e sin alas, 0x80 con ellas); después
-// la rama sigue hasta 0x5808da, que con ellas no hace nada.
+// 0x57f9b0..0x57fa25 → 0x55faa0: a player's 0x33 and 0x2e with the bow, on an attackable one in sight: the D3, the 19
+// with the chosen one's key and the action (0x4f4a10 for 0x33; 0x4f48e0 for 0x2e: 0x7e without wings, 0x80 with
+// them); then the branch goes on to 0x5808da, which does nothing with them.
 TEST(HeroSkillsElfTest, TheShotsOfTheWeaponGoThroughTheTarget)
 {
     for (const std::uint8_t skill : {std::uint8_t{0x33}, std::uint8_t{0x2e}})
@@ -458,7 +453,7 @@ TEST(HeroSkillsElfTest, TheShotsOfTheWeaponGoThroughTheTarget)
             SCOPED_TRACE(map);
             const auto tested = AnElf(skill, map);
             tested->Hero().hands[1].model = BowModel;
-            // 0x561c50 y 0x4f3f80 abren y cierran el registro propio.
+            // 0x561c50 and 0x4f3f80 open and close the own record.
             const CrtRandom expected =
                 Advanced(tested->random, HeadDraws + HeroCellDraws + ReachedDraws + OwnDraws + SendDraws + OwnDraws);
             ASSERT_TRUE(tested->Use().HasValue());
@@ -481,7 +476,7 @@ TEST(HeroSkillsElfTest, TheShotsOfTheWeaponGoThroughTheTarget)
         EXPECT_EQ(tested->Hero().animation.action, 0x80);
         EXPECT_EQ(tested->Hero().attackCount, before + 1);
     }
-    // Sin el arco, 0x55faa0 no corre: ni el D3 ni el 19.
+    // Without the bow, 0x55faa0 does not run: neither the D3 nor the 19.
     const auto tested = AnElf(0x33);
     const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws);
     ASSERT_TRUE(tested->Use().HasValue());
@@ -489,9 +484,10 @@ TEST(HeroSkillsElfTest, TheShotsOfTheWeaponGoThroughTheTarget)
     EXPECT_TRUE(tested->sent.empty());
 }
 
-// 0x58097a..0x5817d6: la 0x4c en alcance con el elegido atacable: el 1E con la celda lógica, el rumbo, la celda de
-// 0x4e9920 en el byte 8, la clave de 0x558eb0 y la clave mágica; +0x434 en el elegido, +0x378 en 0 y la acción por las
-// manos (0x62, ninguna). Fuera de alcance, el camino hasta el alcance · 1,2 sin +0x379; sin elegido, 0x6c8e38 en −1.
+// 0x58097a..0x5817d6: 0x4c in reach with an attackable chosen one: the 1E with the logical cell, the heading, the cell
+// of 0x4e9920 in byte 8, 0x558eb0's key and the magic key; +0x434 at the chosen one, +0x378 at 0 and the action by the
+// hands (0x62, none). Out of reach, the path up to the reach · 1.2 without +0x379; without a chosen one, 0x6c8e38 at
+// −1.
 TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
 {
     for (const std::int32_t map : {0, 2})
@@ -499,7 +495,7 @@ TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
         SCOPED_TRACE(map);
         const auto tested = AnElf(0x4c, map);
         tested->Hero().movement = 1;
-        // La línea de vista (la celda), la espera de 0x552990 (el registro y la entrada) y la celda otra vez en el 1E.
+        // The line of sight (the cell), 0x552990's delay (the record and the entry) and the cell again in the 1E.
         const CrtRandom expected =
             Advanced(tested->random, HeadDraws + HeroCellDraws + OwnDraws + EntryDraws + HeroCellDraws + SendDraws);
         ASSERT_TRUE(tested->Use().HasValue());
@@ -536,9 +532,9 @@ TEST(HeroSkillsElfTest, TheSkill4cCastsWithThePositionAndTheMagicKey)
     EXPECT_EQ(tested->Hero().movement, 0);
 }
 
-// P-C256: fuera de alcance, un blanco con la celda fuera de 0..255 (que PathFinding2 toma como índice lineal)
-// no lleva camino: después de las lecturas de la celda del héroe, el camino se descarta sin cortar, en la 0x4c
-// (0x581853, con la celda leída antes) y hacia un aliado (0x57f148).
+// P-C256: out of reach, a target with its cell outside 0..255 (which PathFinding2 takes as a linear index) gets no
+// path: after the reads of the hero's cell, the path is discarded without cutting, for 0x4c (0x581853, with the cell
+// read before) and toward an ally (0x57f148).
 TEST(HeroSkillsElfTest, AWalkToACellOffTheGridIsDiscarded)
 {
     for (const std::int32_t map : {0, 2})
@@ -568,8 +564,8 @@ TEST(HeroSkillsElfTest, AWalkToACellOffTheGridIsDiscarded)
             EXPECT_EQ(ally->Hero().movementType, 0);
         }
     }
-    // La 0x47 hacia un aliado sigue a la línea de vista (0x57f1e5), que con la Y en 300 sale de TerrainWall
-    // (0x55886d): MuRet la toma como sin línea y la skill sigue sin cortar.
+    // 0x47 toward an ally goes on to the line of sight (0x57f1e5), which with the Y at 300 falls outside TerrainWall
+    // (0x55886d): MuRet takes it as no line and the skill goes on without cutting.
     const auto tested = AnElf(0x47, 2);
     tested->ChooseAnAlly();
     tested->Chosen().position = glm::vec3{18450.0f, 30000.0f, 0.0f};
@@ -578,9 +574,8 @@ TEST(HeroSkillsElfTest, AWalkToACellOffTheGridIsDiscarded)
     EXPECT_EQ(tested->Hero().path.count, 0);
 }
 
-// 0x57f098..0x57f184: fuera de alcance, un monstruo no lleva camino (solo un jugador, +0x88 en 1); las otras skills
-// terminan ahí. Las 0x43 a 0x47 siguen por la línea de vista hasta la cola (0x5808da, HeroSkillsTail); la 0x48, solo en
-// alcance.
+// 0x57f098..0x57f184: out of reach, a monster gets no path (only a player, +0x88 at 1); the other skills end there.
+// 0x43 to 0x47 go on through the line of sight to the tail (0x5808da, HeroSkillsTail); 0x48, only in reach.
 TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
 {
     for (const std::int32_t map : {0, 2})
@@ -598,7 +593,7 @@ TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(map);
-        // La 0x47: la línea de vista y, en la cola, el 19 con la clave del elegido y la acción 0x87.
+        // 0x47: the line of sight and, in the tail, the 19 with the chosen one's key and action 0x87.
         const auto tested = AnElf(0x47, map);
         tested->Movement().selectedSkillRange = 1.0f;
         const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws + HeadDraws + SendDraws);
@@ -610,7 +605,7 @@ TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
         EXPECT_EQ(tested->Hero().animation.action, 0x87);
     }
     {
-        // La 0x48 fuera de alcance termina con la cabeza.
+        // 0x48 out of reach ends with the head.
         const auto tested = AnElf(0x48);
         tested->Movement().selectedSkillRange = 1.0f;
         const CrtRandom expected = Advanced(tested->random, HeadDraws);
@@ -619,7 +614,7 @@ TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
         EXPECT_TRUE(tested->sent.empty());
         EXPECT_EQ(tested->Hero().animation.action, 1);
     }
-    // En alcance, la 0x48 llega a la cola.
+    // In reach, 0x48 gets to the tail.
     const auto tested = AnElf(0x48, 2);
     const CrtRandom expected = Advanced(tested->random, HeadDraws + HeroCellDraws + HeadDraws + SendDraws);
     ASSERT_TRUE(tested->Use().HasValue());
@@ -629,7 +624,7 @@ TEST(HeroSkillsElfTest, OutOfReachOnlyAPlayerIsWalkedTo)
     EXPECT_EQ(tested->Hero().animation.action, 0x3f);
 }
 
-// 0x55faa0 con las demás skills: el D3 y el ángulo, y nada más.
+// 0x55faa0 with the other skills: the D3 and the angle, and nothing more.
 TEST(HeroSkillsElfTest, TheTargetOfTheElfDoesNothingWithOtherSkills)
 {
     const auto tested = AnElf(0x13);
@@ -641,7 +636,6 @@ TEST(HeroSkillsElfTest, TheTargetOfTheElfDoesNothingWithOtherSkills)
     ASSERT_EQ(tested->sent.size(), 1u);
     EXPECT_EQ(tested->Sent(0)[2], 0xd3);
     EXPECT_EQ(tested->Hero().attackPosition, tested->Chosen().position);
-    // El blanco fuera del pool corta.
     tested->Movement().weaponSkill.target = -1;
     const auto result = Client::Skills::UseTheElfSkillOnItsTarget(tested->Hero(), tested->Hero(), tested->Context());
     ASSERT_FALSE(result.HasValue());
@@ -649,9 +643,9 @@ TEST(HeroSkillsElfTest, TheTargetOfTheElfDoesNothingWithOtherSkills)
 }
 } // namespace
 
-// 0x4c (Fenrir) fuera de alcance en el mapa 34, con Crywolf en la etapa 3 y un altar (0x206) en 0x6c8e54: PathFinding2
-// le pone la bandera al A* (0x4eac0a..0x4eac41), que con la distancia distinta de 0 no cuenta (0x4eadd4). El camino,
-// los rand() y +0x378 son los mismos que con otro NPC (0x203) elegido.
+// 0x4c (Fenrir) out of reach on map 34, with Crywolf at stage 3 and an altar (0x206) in 0x6c8e54: PathFinding2 sets
+// the A* flag (0x4eac0a..0x4eac41), which does not count with a nonzero distance (0x4eadd4). The path, the rand() and
+// +0x378 are the same as with another NPC (0x203) chosen.
 TEST(HeroSkillsElfTest, TheApproachWalksTheSameWithACrywolfAltar)
 {
     const auto approach = [](std::uint16_t chosenType)

@@ -47,9 +47,9 @@
 #include <utility>
 #include <vector>
 
-// Los helpers de los monstruos (0x441400, 0x434180, 0x4271d0 y 0x432bd0, CL9 hito 2, fase 6d): vectores literales del
-// ASM c32bbd5f, sin ejecutar el original. Los huesos propios no giran y el k está en (0, 0, k): el punto de un hueso
-// con nombre deja ver de qué hueso sale. En Lorencia (0), Devias (2) y Crywolf (34).
+// The monster helpers (0x441400, 0x434180, 0x4271d0 and 0x432bd0): literal vectors from the ASM c32bbd5f, without
+// running the original. The own bones do not rotate and bone k is at (0, 0, k), so a named bone's point shows which
+// bone it comes from.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -65,7 +65,6 @@ constexpr std::int32_t Crywolf = 34;
 const glm::vec3 Origin{100.0f, 200.0f, 10.0f};
 const glm::vec3 RedEyes{0.9f, 0.2f, 0.1f};
 
-// Un esqueleto de veinte huesos sin padre y ocho acciones de diez keys, cada una a 0,5 por paso.
 class SwingModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -173,7 +172,7 @@ protected:
         return m_world->Runtime().lastSoundId;
     }
 
-    // La tabla de 0x53fe70 llena: el original no crea nada ni saca rand().
+    // 0x53fe70's table full: the original creates nothing and draws no rand().
     void FillParticles()
     {
         for (auto& particle : m_particles->All())
@@ -216,7 +215,7 @@ protected:
         return Live(std::as_const(*m_particles).All());
     }
 
-    // La misma alta en una tabla aparte con el rand() esperado: saca los rand() de la partícula en su orden.
+    // The same creation in a separate table, drawing the particle's rand() in order from `expected`.
     void Expect(CrtRandom& expected, std::int32_t type, std::int32_t subtype, const glm::vec3& position,
                 const glm::vec3& angles, const glm::vec3& light, float scale = 1.0f, float clock = 0.0f)
     {
@@ -225,7 +224,6 @@ protected:
         EXPECT_TRUE(created.Value().has_value());
     }
 
-    // Las partículas vivas son las de la tabla de referencia, en el mismo orden.
     void ExpectTheParticles() const
     {
         const auto live = LiveParticles();
@@ -253,7 +251,7 @@ protected:
     std::unique_ptr<Client::Particles::Particles> m_reference = std::make_unique<Client::Particles::Particles>();
 };
 
-// FLD T; FMUL tasa; FSIN; FMUL factor con un solo R53 (ADR0014), como el original.
+// FLD T; FMUL rate; FSIN; FMUL factor with a single R53 (ADR0014), like the original.
 double ClockSine(float clock, float rate, float factor)
 {
     const auto product =
@@ -277,8 +275,7 @@ glm::vec3 At(std::uint32_t bone, const glm::vec3& offset = {})
     return Origin + glm::vec3(0.0f, 0.0f, static_cast<float>(bone)) + offset;
 }
 
-// Fuera de sus tipos, ninguno toca nada: ni rand(), ni +4, ni sprites. El 0x1a8 sale de 0x441400 sin la cola, y la
-// cadena de 0x434180 es solo del mapa 34.
+// 0x1a8 leaves 0x441400 without the tail, and the 0x434180 chain is for map 34 only.
 TEST_F(MonsterHelpersTest, OtherTypesAndMapsDoNothing)
 {
     for (const auto& [type, map] :
@@ -300,7 +297,8 @@ TEST_F(MonsterHelpersTest, OtherTypesAndMapsDoNothing)
     }
 }
 
-// 0x441440..0x44164b: los ojos de Monster81, el derecho primero; en la 2, rand() % 15 en 0 pide 0x1f5 más rand() % 2.
+// 0x441440..0x44164b: Monster81's eyes, the right one first; in action 2, rand() % 15 == 0 requests 0x1f5 plus
+// rand() % 2.
 TEST_F(MonsterHelpersTest, The1a3LightsItsEyesAndGrowlsWhenIdle)
 {
     Name("Monster81_EyeRight", 29);
@@ -329,8 +327,8 @@ TEST_F(MonsterHelpersTest, The1a3LightsItsEyesAndGrowlsWhenIdle)
     EXPECT_EQ(actor.subtype, 0);
 }
 
-// 0x4415fd..0x44164b y 0x442dd2: el ataque suena una vez (+4 en 1) y la acción 0 lo vuelve a 0. Entre frames del
-// original, el pedido no queda.
+// 0x4415fd..0x44164b and 0x442dd2: the attack sounds once (+4 at 1) and action 0 resets it to 0. Between original
+// frames, the request is not kept.
 TEST_F(MonsterHelpersTest, The1a3AttackSoundsOnceUntilItRests)
 {
     Name("Monster81_EyeRight", 29);
@@ -360,7 +358,8 @@ TEST_F(MonsterHelpersTest, The1a3AttackSoundsOnceUntilItRests)
     EXPECT_EQ(actor.subtype, 0);
 }
 
-// Sin el hueso con nombre que registra el alta (0x401000), 0x4010b0 dejaría el punto sin escribir: corta en la llamada.
+// Without the named bone the registration records (0x401000), 0x4010b0 would leave the point unwritten: it cuts at the
+// call.
 TEST_F(MonsterHelpersTest, AMissingNamedBoneCutsAtItsCall)
 {
     Name("Monster81_EyeRight", 29);
@@ -372,9 +371,9 @@ TEST_F(MonsterHelpersTest, AMissingNamedBoneCutsAtItsCall)
     EXPECT_EQ(LiveSprites().size(), 1u);
 }
 
-// 0x441688..0x4416a5 y 0x442159..0x442179: al morir (la 6), el 0x1a4 pide 0x4ee770(0, 0x13c, 0) y el 0x1a6
-// 0x4ee770(0, 0x13c, 1) sobre las mallas del cuerpo, los dos dejan +0 en 0 y piden su sonido (0x209 y 0x1ff); el 0x1a6
-// sigue con sus venenos. Entre frames del original, sin efectos ni sonido. Sin las mallas, cortan en la llamada.
+// 0x441688..0x4416a5 and 0x442159..0x442179: when dying (action 6), 0x1a4 calls 0x4ee770(0, 0x13c, 0) and 0x1a6
+// 0x4ee770(0, 0x13c, 1) on the body meshes; both set +0 to 0 and request their sound (0x209 and 0x1ff); 0x1a6 goes on
+// with its poisons. Between original frames, no effects or sound. Without the meshes, they cut at the call.
 TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
 {
     for (const char* bone : {"Monster84_PoisonTop", "Monster84_PoisonRight", "Monster84_PoisonLeft"})
@@ -429,8 +428,7 @@ TEST_F(MonsterHelpersTest, The1a4AndThe1a6DieInStones)
     EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(bare), "0x442165"));
 }
 
-// Lo que los monstruos sueltan en sus huesos: el tipo, el subtipo, la escala, el punto, la luz, si la partícula lleva
-// al personaje de dueño y, si no son los de todas, sus ángulos.
+// A particle a monster drops on a bone; without `angles`, it takes the shared ones.
 struct BoneParticle
 {
     std::int32_t type;
@@ -442,8 +440,8 @@ struct BoneParticle
     std::optional<glm::vec3> angles = std::nullopt;
 };
 
-// Las partículas de `made` en los primeros lugares de `particles`, contra un pool gemelo con el mismo rand() desde
-// `expected`; devuelve el rand() de después.
+// Checks `made` against the first slots of `particles` through a twin pool replaying `expected`; returns the rand()
+// after.
 CrtRandom ExpectTheBoneParticles(const Client::Particles::Particles& particles, std::span<const BoneParticle> made,
                                  const glm::vec3& angles, CrtRandom expected)
 {
@@ -476,11 +474,11 @@ CrtRandom ExpectTheBoneParticles(const Client::Particles::Particles& particles, 
     return expected;
 }
 
-// 0x441669..0x441d7d: el 0x1a4 corta en 0x4ee770 al morir sin las mallas del cuerpo. Si no, 0x4416aa..0x441a02, con la
-// luz (1, 1, 1): en el punto (5, 10, 5) de la mano izquierda la fanta 0x6ec/3 de 3,4f con él de dueño y el humo
-// 0x5f2/21 de 2,5f, en la mano derecha la 0x6ec/4 y otro humo, en el punto (−20, −2, −10) del ojo la 0x6ec/0 y el humo
-// de 0,8f sin dueño y en la espalda otro humo. Con la tabla llena sigue: rand() % 20 en 0 pide 0x205 más rand() % 2, y
-// en la 3 de 8,4 a 10,2 con +4 en 0, +4 = 1 y el corte de sus efectos.
+// 0x441669..0x441d7d: 0x1a4 cuts at 0x4ee770 when dying without the body meshes. Otherwise, 0x4416aa..0x441a02, with
+// light (1, 1, 1): at point (5, 10, 5) of the left hand the 0x6ec/3 fanta of 3.4f owned by it and the 0x5f2/21 smoke
+// of 2.5f, at the right hand the 0x6ec/4 and another smoke, at point (−20, −2, −10) of the eye the 0x6ec/0 and the 0.8f
+// smoke with no owner, and at the back another smoke. With the table full it goes on: rand() % 20 == 0 requests 0x205
+// plus rand() % 2, and in action 3 from 8.4 to 10.2 with +4 at 0, +4 = 1 and the cut at its effects.
 TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
 {
     Name("Monster82_LHand", 34);
@@ -537,13 +535,13 @@ TEST_F(MonsterHelpersTest, The1a4LeavesFantasAndSmokesOnItsBones)
     EXPECT_EQ(m_world->Map().effects.Effects()[0].type, 0x636);
 }
 
-// 0x441a8a..0x441c75, en Lorencia y en Devias: en la 3 de 8,4 a 10,2 con +4 en 0, el 0x1a4 golpea en su mano derecha
-// (Monster82_RHand, un hueso con traslación en x, y y z) con la x y la y del hueso y la z del personaje: el cráter
-// 0x636/2 (luz en blanco) y el joint 0x61c/6 (ancho 200, sin dueño, clave −1) con los ángulos (−90, 0, z) y la columna
-// 0x5de/3 con sus ángulos y su luz (vida 15). Después, lo mismo en cada uno de los primeros 400 jugadores visto y vivo
-// a más de 200 (200 justo no; 313,0001f − 113 sí) y menos de 1100 en el plano, la columna con los ángulos de él y en
-// blanco; el registro 400, aunque sea un jugador válido, no (0x441c60: 0x69780 = 400 · 0x438). El sonido 0x207. Los
-// rand() del joint, repetidos en un pool gemelo con el mismo CrtRandom; el cráter y la columna no sacan.
+// 0x441a8a..0x441c75, in Lorencia and Devias: in action 3 from 8.4 to 10.2 with +4 at 0, 0x1a4 strikes at its right
+// hand (Monster82_RHand, a bone translated in x, y and z) with the bone's x and y and the character's z: the 0x636/2
+// crater (white light), the 0x61c/6 joint (width 200, no owner, key −1) with angles (−90, 0, z) and the 0x5de/3 column
+// with its angles and light (life 15). Then the same on each of the first 400 players seen and alive at more than 200
+// (exactly 200 no; 313.0001f − 113 yes) and less than 1100 in the plane, the column with that player's angles and in
+// white; record 400, even a valid player, no (0x441c60: 0x69780 = 400 · 0x438). The sound 0x207. The crater and the
+// column draw no rand().
 TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
 {
     Name("Monster82_LHand", 34);
@@ -563,7 +561,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         ActorState& actor = Monster(0x1a4, 3, 9.0f);
         actor.subtype = 0;
         actor.angles = {1.0f, 2.0f, 30.0f};
-        // El hueso 45 en (13, −7, 45): la mano queda en (113, 193, 55) y el golpe en (113, 193, 10).
+        // Bone 45 at (13, −7, 45): the hand ends at (113, 193, 55) and the strike at (113, 193, 10).
         actor.bodyPose[45][3] = glm::vec3(13.0f, -7.0f, 45.0f);
         const glm::vec3 hand{113.0f, 193.0f, Origin.z};
         const auto player = [this, &hand](std::size_t slot, const glm::vec3& offset, bool seen) -> ActorState&
@@ -584,7 +582,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
         static_cast<void>(player(23, {600.0f, 0.0f, 0.0f}, false));
         static_cast<void>(player(24, {200.0f, 0.0f, 0.0f}, true));
         ActorState& edge = player(25, {0.0f, 0.0f, 0.0f}, true);
-        edge.position.x = 313.0001f; // 200,0000915… del golpe
+        edge.position.x = 313.0001f; // 200.0000915… from the strike
         static_cast<void>(player(400, {600.0f, 0.0f, 0.0f}, true));
         CrtRandom attack(quiet);
         MonsterHelperPass attacking = Pass(map, attack);
@@ -657,7 +655,7 @@ TEST_F(MonsterHelpersTest, The1a4StrikesTheGroundUnderItsHandAndItsVictims)
     }
 }
 
-// 0x441d7d consume cuarenta rand() aunque no haya slots; 0x441d89 pide 0x208 sin sortear.
+// 0x441d7d consumes forty rand() even with no free slots; 0x441d89 requests 0x208 without a draw.
 TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithTheParticlePoolFull)
 {
     Name("Monster82_LHand", 34);
@@ -692,10 +690,10 @@ TEST_F(MonsterHelpersTest, The1a4AttackBurstKeepsItsRandomsAndSoundWithThePartic
     }
 }
 
-// 0x441d96..0x4420f2: en la 4, el sonido 0x202 más rand() % 2, tres rand() % 12 − 6 para el punto de la cola, un 0x5fd
-// a 2,5 con la mezcla 1 y un 0x61e a 0,8, los dos con la luz propia, y dos 0x5ca/0 con (1; 0,3; 0); después doce
-// vueltas de tres rand() para el punto de la panza, con los mismos dos sprites y una 0x5ca/0. Con la tabla llena, los
-// mismos sprites sin las partículas ni sus rand().
+// 0x441d96..0x4420f2: in action 4, the sound 0x202 plus rand() % 2, three rand() % 12 − 6 for the tail point, a 0x5fd
+// at 2.5 with blend 1 and a 0x61e at 0.8, both with the own light, and two 0x5ca/0 with (1; 0.3; 0); then twelve loops
+// of three rand() for the belly point, with the same two sprites and one 0x5ca/0. With the table full, the same
+// sprites without the particles or their rand().
 TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
 {
     Name("Monster83_Tail", 62);
@@ -749,7 +747,7 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
         EXPECT_EQ(sprites[25].texture, 0x61e);
     }
 
-    // Con la tabla llena: 1 + 3 + 12 · 3 rand(), sin partículas nuevas.
+    // With the table full: 1 + 3 + 12 · 3 rand(), no new particles.
     FillParticles();
     m_sprites.Clear();
     Monster(0x1a5, 4).subtype = 0;
@@ -760,11 +758,11 @@ TEST_F(MonsterHelpersTest, The1a5TailAndBellyGlowWithTheirThunder)
     EXPECT_EQ(LiveSprites().size(), 26u);
 }
 
-// 0x4420f7..0x44281f: en la 3, rand() % 2 en 1 corta en la piedra 0x12e/3, que saldría en un punto que la llamada no
-// escribió (Q-C1580); en 0, otro elige el veneno y rand() % 32 + 50 por 0,025f es la escala de su 0x5f2/11, y la
-// piedra 0x12e/3 sale en ese punto con sus tres rand() (0x442397) antes de los venenos. En la 4 con el frame de 3,5 a
-// 4,2, la 0x5f2/11 de cada mano en el piso, de escala rand() % 32 + 50 por 0,05f. Descansando, tres rand() % 10 sin
-// acertar no hacen nada más que +4 a 0; cada uno que acierta crea su 0x5f2/0x17 con sus rand().
+// 0x4420f7..0x44281f: in action 3, rand() % 2 == 1 cuts at the 0x12e/3 stone, which would come out at a point the call
+// did not write (Q-C1580); at 0, another one picks the poison and rand() % 32 + 50 times 0.025f is the scale of its
+// 0x5f2/11, and the 0x12e/3 stone comes out at that point with its three rand() (0x442397) before the poisons. In
+// action 4 with frame from 3.5 to 4.2, the 0x5f2/11 of each hand on the floor, scale rand() % 32 + 50 times 0.05f. At
+// rest, three missed rand() % 10 do nothing but set +4 to 0; each hit creates its 0x5f2/0x17 with its rand().
 TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
 {
     Name("Monster84_PoisonTop", 52);
@@ -793,8 +791,8 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     const std::uint32_t side = expected.Next() % 2 == 0 ? 53 : 54;
     const auto dusty = static_cast<float>(static_cast<double>(expected.Next() % 32 + 50) * static_cast<double>(0.025f));
     Expect(expected, 0x5f2, 11, At(side), actor.angles, poison, dusty);
-    // 0x51d438: la vida, la escala y la caída de la piedra; después los tres venenos, cada uno con su rand() % 10 y, si
-    // acierta, su 0x5f2/0x17 con sus rand().
+    // 0x51d438: the stone's life, scale and fall; then the three poisons, each with its rand() % 10 and, on a hit, its
+    // 0x5f2/0x17 with its rand().
     const std::int32_t life = (expected.Next() & 15) + 32;
     const auto stoneScale = static_cast<float>(
         static_cast<double>(expected.Next() % 3 + 2) * static_cast<double>(0.12f) + static_cast<double>(1.2f));
@@ -826,7 +824,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     ASSERT_EQ(LiveParticles().size(), 1u + falling);
     EXPECT_EQ(LiveParticles()[0].scale, dusty);
 
-    // En la 4 con el frame de 3,5 a 4,2: 0x1fc más rand() % 2 y la 0x5f2/11 de cada mano, en la z del objeto.
+    // In action 4 with frame from 3.5 to 4.2: 0x1fc plus rand() % 2 and the 0x5f2/11 of each hand, at the object's z.
     for (const std::int32_t map : {Lorencia, Devias})
     {
         SCOPED_TRACE(map);
@@ -872,9 +870,9 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     EXPECT_EQ(resting.State(), AfterDraws(calm, 3).State());
     EXPECT_EQ(actor.subtype, 0);
 
-    // 0x4425bb..0x442817: con su rand() % 10 en 0, cada veneno crea su 0x5f2/23 en el punto de su hueso, con los
-    // ángulos del objeto, la luz de 0x442107 y escala 1, y saca los dos rand() de su alta antes del rand() % 10 del
-    // siguiente. Sólo el derecho (0x44274b):
+    // 0x4425bb..0x442817: with its rand() % 10 == 0, each poison creates its 0x5f2/23 at its bone's point, with the
+    // object's angles, the 0x442107 light and scale 1, and draws the two rand() of its creation before the next one's
+    // rand() % 10. Only the right one (0x44274b):
     const std::uint32_t right = FirstSeedWhere(
         [](CrtRandom& random)
         {
@@ -900,7 +898,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     ASSERT_EQ(LiveParticles().size(), 1u);
     EXPECT_EQ(LiveParticles()[0].life, 16);
 
-    // Los tres, en su orden: arriba (0x44267f), derecha (0x44274b) e izquierda (0x442817).
+    // The three, in order: top (0x44267f), right (0x44274b) and left (0x442817).
     const std::uint32_t all = FirstSeedWhere(
         [](CrtRandom& random)
         {
@@ -929,7 +927,7 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     ExpectTheParticles();
     EXPECT_EQ(LiveParticles().size(), 3u);
 
-    // Con la tabla llena, ningún veneno crea nada ni saca los rand() de su alta: quedan los tres rand() % 10.
+    // With the table full, no poison creates anything or draws its creation's rand(): the three rand() % 10 remain.
     FillParticles();
     CrtRandom crowded(all);
     MonsterHelperPass full = Pass(Devias, crowded);
@@ -937,9 +935,9 @@ TEST_F(MonsterHelpersTest, The1a6PoisonDrawsItsRandomsInOrder)
     EXPECT_EQ(crowded.State(), AfterDraws(all, 3).State());
 }
 
-// 0x442824..0x442a5d: los ojos de Monster85 a 0,7; en la 2, rand() % 10 en 0 es la partícula 0x5f3/0 en la posición,
-// con los ángulos del objeto y la luz de los ojos, y el sonido 0x1f0 más rand() % 2. Con la tabla llena, el sonido sin
-// los rand() de la partícula.
+// 0x442824..0x442a5d: Monster85's eyes at 0.7; in action 2, rand() % 10 == 0 is the 0x5f3/0 particle at the position,
+// with the object's angles and the eyes' light, and the sound 0x1f0 plus rand() % 2. With the table full, the sound
+// without the particle's rand().
 TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
 {
     Name("Monster85_LeftEye", 18);
@@ -979,10 +977,10 @@ TEST_F(MonsterHelpersTest, The1a7RaisesDustWhenIdle)
     EXPECT_EQ(full.State(), expected.State());
 }
 
-// 0x442a62..0x442dbc: dos 0x5ac por ojo en (0, −2, 0); en la 4, la primera vez +4 = 1, el efecto 0x13f (0x442cb9,
-// sin rand(): vida 20 y el monstruo de dueño) y el sonido 0x20d; después, en el punto (0, 0, −10) de la mano
-// izquierda, la fanta 0x6ec/3 de 3 con él de dueño y el humo 0x5f2/21 de 2, con la luz de los ojos. Con la tabla
-// llena, ninguna crea nada ni saca rand().
+// 0x442a62..0x442dbc: two 0x5ac per eye at (0, −2, 0); in action 4, the first time +4 = 1, the 0x13f effect (0x442cb9,
+// no rand(): life 20 and the monster as owner) and the sound 0x20d; then, at point (0, 0, −10) of the left hand, the
+// 0x6ec/3 fanta of 3 owned by it and the 0x5f2/21 smoke of 2, with the eyes' light. With the table full, neither
+// creates anything or draws rand().
 TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
 {
     Name("Monster87_LeftEye", 8);
@@ -1013,7 +1011,7 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     EXPECT_EQ(random.State(), ExpectTheBoneParticles(*m_particles, made, actor.angles, CrtRandom(1)).State());
     for (auto& particle : m_particles->All())
         particle.alive = false;
-    // La segunda vez, con +4 en 1, ni el efecto ni el sonido; las mismas dos partículas.
+    // The second time, with +4 at 1, neither the effect nor the sound; the same two particles.
     m_world->Runtime().lastSoundId.reset();
     random = CrtRandom(1);
     const auto drawn = Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(pass);
@@ -1024,15 +1022,14 @@ TEST_F(MonsterHelpersTest, The1a9AttackMarksItsFirstFrame)
     for (auto& particle : m_particles->All())
         particle.alive = false;
     random = CrtRandom(1);
-    // Con la tabla llena, la 0x6ec/3 y la 0x5f2/21 no crean nada.
     FillParticles();
     MonsterHelperPass crowded = Pass(Devias, random);
     ASSERT_TRUE(Client::Monsters::Drawing::DrawTheEffectsOf1a3To1a9(crowded).HasValue());
     EXPECT_EQ(random.State(), 1u);
 }
 
-// Entre frames del original el monstruo es una copia: +4 pasa a 1 en ella, pero el 0x13f no nace en la tabla del mundo
-// ni suena el 0x20d.
+// Between original frames the monster is a copy: +4 becomes 1 on it, but the 0x13f is not born in the world table and
+// the 0x20d does not sound.
 TEST_F(MonsterHelpersTest, The1a9CallsItsMeteorOnlyInAnOriginalFrame)
 {
     Name("Monster87_LeftEye", 8);
@@ -1048,7 +1045,7 @@ TEST_F(MonsterHelpersTest, The1a9CallsItsMeteorOnlyInAnOriginalFrame)
     EXPECT_FALSE(m_world->Map().effects.Effects()[0].alive);
 }
 
-// 0x518cf0 no inicia el efecto con la tabla llena: sigue el sonido de 0x442cc5 y la mano.
+// 0x518cf0 does not start the effect with the table full: the 0x442cc5 sound and the hand follow.
 TEST_F(MonsterHelpersTest, The1a9FullEffectPoolStillPlaysItsAttackSound)
 {
     Name("Monster87_LeftEye", 8);
@@ -1066,8 +1063,8 @@ TEST_F(MonsterHelpersTest, The1a9FullEffectPoolStillPlaysItsAttackSound)
     EXPECT_EQ(random.State(), 1u);
 }
 
-// 0x4343ba..0x434580 en Crywolf: el 0x1ab en la 8 suena 0x233 y devuelve 0 (la cadena sigue); el 0x1b0 en la 2 sortea
-// con rand() % 15 y devuelve 1; el 0x1b5 en la 4 suena y vuelve +4 a 0, y en la 3 lo deja.
+// 0x4343ba..0x434580 in Crywolf: 0x1ab in action 8 sounds 0x233 and returns 0 (the chain goes on); 0x1b0 in action 2
+// draws rand() % 15 and returns 1; 0x1b5 in action 4 sounds and resets +4 to 0, and in action 3 leaves it.
 TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
 {
     ActorState& actor = Monster(0x1ab, 8);
@@ -1104,8 +1101,6 @@ TEST_F(MonsterHelpersTest, TheCrywolfMonstersSoundByAction)
     EXPECT_EQ(random.State(), 1u);
 }
 
-// Las dos marcas 0x69b de un altar en el lote de referencia: la primera de 2,8 con `spin` y la segunda de 3,6 con
-// `backSpin`, si la hay, las dos con la luz al doble.
 struct AltarMarks
 {
     glm::vec3 light{};
@@ -1151,7 +1146,7 @@ void ExpectTheAltarMarks(const Client::Render::ModelBatch& batch, const Client::
     EXPECT_EQ(command.state.texture->value, 0x69b);
 }
 
-// b y g del reloj: sin(T · 0,002f) por 0,1f más 0,28f y por 0,04f más 0,2f, con el seno retenido (ADR0014).
+// b and g from the clock, with the retained sine (ADR0014).
 constexpr float AltarClock = 1000.0f;
 
 float AltarBright()
@@ -1164,9 +1159,10 @@ float AltarSoft()
     return static_cast<float>(ClockSine(AltarClock, 0.002f, 0.04f) + static_cast<double>(0.2f));
 }
 
-// 0x43421a..0x43439a, con +0x7c & 0x40000: la luz propia (0,09; 0,09; 0,04), las partículas 0x729/0 y /1 en la
-// posición con esa luz, y las dos marcas con los giros T · 0,01f y T · −0,01f; la luz es (g; g; 0,05f), o la de los
-// bits del color si también están. Con la tabla llena, las marcas sin las partículas ni sus rand(). Después, 0x620980.
+// 0x43421a..0x43439a, with +0x7c & 0x40000: own light (0.09; 0.09; 0.04), the 0x729/0 and /1 particles at the position
+// with that light, and the two marks with spins T · 0.01f and T · −0.01f; their light is (g; g; 0.05f), or the color
+// bits' light if those are set too. With the table full, the marks without the particles or their rand(). Then,
+// 0x620980.
 TEST_F(MonsterHelpersTest, TheCrywolfAltarsWithTheirOwnBitDrawTwoMarksAndTwoLights)
 {
     const float b = AltarBright();
@@ -1220,10 +1216,10 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsWithTheirOwnBitDrawTwoMarksAndTwoLigh
     }
 }
 
-// 0x4342a2..0x4343a2 sin 0x40000: con 0x100000 o 0x20000 la primera marca 0x69b de 2,8 con (b; 0,1; 0,1) al doble y
-// el giro g; con 0x10000 u 0x80000, (0,15; 0,15; b) al doble y el giro T · 0,01f. La segunda no se dibuja: su giro
-// ([ebp−0x1c]) es la pila sin escribir (Q-C1100). Sin ningún bit, tampoco la primera (su luz es la pila): solo se liga
-// la textura. Ninguno saca rand(), crea partículas ni toca la luz propia.
+// 0x4342a2..0x4343a2 without 0x40000: with 0x100000 or 0x20000 the first 0x69b mark of 2.8 with (b; 0.1; 0.1) doubled
+// and spin g; with 0x10000 or 0x80000, (0.15; 0.15; b) doubled and spin T · 0.01f. The second is not drawn: its spin
+// ([ebp−0x1c]) is unwritten stack (Q-C1100). With no bit, not the first either (its light is the stack): only the
+// texture is bound. None draws rand(), creates particles or touches the own light.
 TEST_F(MonsterHelpersTest, TheCrywolfAltarsSkipTheMarksThatReadTheStack)
 {
     struct Case
@@ -1281,15 +1277,14 @@ TEST_F(MonsterHelpersTest, TheCrywolfAltarsSkipTheMarksThatReadTheStack)
     EXPECT_EQ(random.State(), 1u);
     EXPECT_TRUE(LiveParticles().empty());
 
-    // Sin el lote o las alturas, corta en la llamada.
+    // Without the batch or the heights, it cuts at the call.
     actor.flags7c = 0x100000;
     pass.heights = nullptr;
     EXPECT_TRUE(CutAt(Client::Monsters::Drawing::DrawTheMonsterHelpers(pass), "0x43436c"));
     EXPECT_EQ(random.State(), 1u);
 }
 
-// Fuera de Crywolf (0x4303c0 da 0), 0x434180 no mira el tipo: en Lorencia y Devias el 0x204 no dibuja nada, ni con
-// 0x40000 crea sus partículas.
+// Outside Crywolf (0x4303c0 returns 0), 0x434180 does not look at the type.
 TEST_F(MonsterHelpersTest, OutsideCrywolfTheAltarsDrawNothing)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -1313,7 +1308,7 @@ TEST_F(MonsterHelpersTest, OutsideCrywolfTheAltarsDrawNothing)
     }
 }
 
-// 0x434602..0x434a70: el 0x1af suena y después saca rand() % 14, rand() % 360 y rand() % 2 para sus siete sprites.
+// 0x434602..0x434a70: 0x1af sounds, then draws rand() % 14, rand() % 360 and rand() % 2 for its seven sprites.
 TEST_F(MonsterHelpersTest, The1afGlowsAfterItsSounds)
 {
     Name("Monster94_zx", 27);
@@ -1352,9 +1347,9 @@ TEST_F(MonsterHelpersTest, The1afGlowsAfterItsSounds)
     EXPECT_FLOAT_EQ(sprites[7].scale, 1.5f);
 }
 
-// 0x434bf3..0x434e2e y 0x434f8a..0x4354a1: la cabeza del 0x1b1 fuera de la 6 y, en la 2 con rand() % 10 en 0, su
-// partícula 0x5f3/0 en la posición con la luz de los ojos, antes del sorteo del sonido; el centro y las puntas del
-// 0x1b2, la mitad en la 3 y la 4, con el seno retenido del reloj (ADR0014).
+// 0x434bf3..0x434e2e and 0x434f8a..0x4354a1: 0x1b1's head outside action 6 and, in action 2 with rand() % 10 == 0, its
+// 0x5f3/0 particle at the position with the eyes' light, before the sound draw; 0x1b2's center and tips, half in
+// actions 3 and 4, with the clock's retained sine (ADR0014).
 TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
 {
     Name("Monster95_Head", 6);
@@ -1384,7 +1379,7 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_EQ(random.State(), expected.State());
     ExpectTheParticles();
     EXPECT_EQ(LiveParticles().size(), 1u);
-    // Con la tabla llena, el sorteo del sonido sigue sin los rand() de la partícula.
+    // With the table full, the sound draw goes on without the particle's rand().
     FillParticles();
     m_sprites.Clear();
     CrtRandom crowded(seed);
@@ -1428,10 +1423,10 @@ TEST_F(MonsterHelpersTest, The1b1And1b2DrawTheirSprites)
     EXPECT_EQ(spinning.State(), AfterDraws(3, 1).State());
 }
 
-// El original dibuja una vez por cuadro, después de 0 a N pasos (ADR 0005): entre frames del original el personaje es
-// una copia proyectada y las tablas del mundo no se tocan. El golpe del 0x1a4 (0x441b33..0x441c4c: el cráter 0x636/2,
-// el joint 0x61c/6 y la columna 0x5de/3, en ese orden, sin otro jugador cerca), el 0x115/1 del 0x1b3 (0x434eb0) y el
-// 0x618/0x10 del 0x1b7 (0x427fd3) solo nacen en un frame del original, y nada más.
+// The original draws once per frame, after 0 to N steps (ADR 0005): between original frames the character is a
+// projected copy and the world tables are not touched. The 0x1a4 strike (0x441b33..0x441c4c: the 0x636/2 crater, the
+// 0x61c/6 joint and the 0x5de/3 column, in that order, with no other player near), 0x1b3's 0x115/1 (0x434eb0) and
+// 0x1b7's 0x618/0x10 (0x427fd3) are born only in an original frame, and nothing else.
 TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlone)
 {
     struct Born
@@ -1500,7 +1495,7 @@ TEST_F(MonsterHelpersTest, BetweenOriginalFramesTheHelpersLeaveTheWorldTablesAlo
     }
 }
 
-// 0x434e3f..0x434ecf: el 0x1b3 en la4 y frame[4,6] crea115/1 desde la posición, y luego suena.
+// 0x434e3f..0x434ecf: 0x1b3 in action 4 with frame in [4, 6] creates 115/1 from the position, then sounds.
 TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSounding)
 {
     ActorState& actor = Monster(0x1b3, 4, 6.0f);
@@ -1519,12 +1514,12 @@ TEST_F(MonsterHelpersTest, The1b3CreatesThePiercingInItsAttackWindowBeforeSoundi
     EXPECT_EQ(Sound(), Client::Audio::SoundId{0x21d});
 }
 
-// 0x42720d..0x42769f: el 0x1b6 saca rand() % 30 para la luz de sus cinco 0x5ad y suelta en el punto (0, 0, −65) del
-// pie la 0x5ad/4 de 4 (vida 4, textura 0x5fd, dos rand()) con la luz (0,7f; 0,5; 0,7f); quieto en la 2, sigue con su
-// rand() % 15.
-// 0x427764..0x427a4d: en la 3 desde el frame 6, en el punto (70, 0, 0) del pie, la 0x5f2/0x1b de 2 con la luz (0,5;
-// 0,2f; 0,5), la 0x5ad/2 de 1 y la 0x5ad/3 de 1,3f, y con el blanco, la 0x5ad/3 100 más arriba de él; en la 4 desde el
-// frame 4, sólo las dos primeras. Todas con los ángulos (0, 0, 0).
+// 0x42720d..0x42769f: 0x1b6 draws rand() % 30 for the light of its five 0x5ad and drops at point (0, 0, −65) of the
+// foot the 0x5ad/4 of 4 (life 4, texture 0x5fd, two rand()) with light (0.7f; 0.5; 0.7f); idle in action 2, it goes on
+// with its rand() % 15.
+// 0x427764..0x427a4d: in action 3 from frame 6, at point (70, 0, 0) of the foot, the 0x5f2/0x1b of 2 with light (0.5;
+// 0.2f; 0.5), the 0x5ad/2 of 1 and the 0x5ad/3 of 1.3f, and with the target, the 0x5ad/3 100 above it; in action 4
+// from frame 4, only the first two. All with angles (0, 0, 0).
 TEST_F(MonsterHelpersTest, The1b6GlowsAndSparksAtItsFootAndTarget)
 {
     Name("Monster100_L_Hand", 76);
@@ -1594,10 +1589,10 @@ TEST_F(MonsterHelpersTest, The1b6GlowsAndSparksAtItsFootAndTarget)
     }
 }
 
-// 0x4276a4..0x427a92 con la tabla llena: el 0x1b6 suena (en la 4, 0x9c más rand() % 2 y después 0x263, con +4 = 1) y,
-// en la 4 desde el frame 6 con el blanco +0x3a4 en el pool, crea el joint 0x614/0x10 sin dueño desde el blanco hasta
-// 100 sobre él (0x427a8d, dos rand()). Sin blanco (un WORD negativo o desde 0x190), o en la 3, sus partículas no crean
-// nada.
+// 0x4276a4..0x427a92 with the table full: 0x1b6 sounds (in action 4, 0x9c plus rand() % 2 and then 0x263, with +4 = 1)
+// and, in action 4 from frame 6 with the target +0x3a4 in the pool, creates the 0x614/0x10 joint with no owner from the
+// target to 100 above it (0x427a8d, two rand()). With no target (a negative WORD or from 0x190 up), or in action 3, its
+// particles create nothing.
 TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
 {
     Name("Monster100_L_Hand", 76);
@@ -1667,7 +1662,7 @@ TEST_F(MonsterHelpersTest, The1b6FollowsItsTailWithAFullTable)
     }
 }
 
-// 0x42822a..0x4282e5 y 0x428dbd: el 0x1b9 solo suena; en Lorencia y en Devias.
+// 0x42822a..0x4282e5 and 0x428dbd.
 TEST_F(MonsterHelpersTest, The1b9OnlySounds)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -1686,10 +1681,9 @@ TEST_F(MonsterHelpersTest, The1b9OnlySounds)
     }
 }
 
-// 0x427ab0..0x427fad: el 0x1b7 suelta la neblina 0x6f1/1 en los puntos de los brazos y la cabeza (ángulos 0, luz 1 y
-// escala 1; siete rand() cada una) y, después de su sonido, en la 3, en el punto (30, 0, 0) del brazo izquierdo con los
-// ángulos (0, 45, 45): desde el frame 4 el humo 0x5f2/0x19 de 1 con la luz 1 y, de 5 a 5,5, la onda 0x6eb/3 de 0,5 con
-// la luz 5. Sin sprites.
+// 0x427ab0..0x427fad: 0x1b7 drops the 0x6f1/1 mist at the arm and head points (angles 0, light 1, scale 1; seven
+// rand() each) and, after its sound, in action 3, at point (30, 0, 0) of the left arm with angles (0, 45, 45): from
+// frame 4 the 0x5f2/0x19 smoke of 1 with light 1 and, from 5 to 5.5, the 0x6eb/3 wave of 0.5 with light 5. No sprites.
 TEST_F(MonsterHelpersTest, The1b7MistsItsArmsAndHeadAndWavesItsArm)
 {
     Name("Monster101_L_Arm", 12);
@@ -1733,8 +1727,8 @@ TEST_F(MonsterHelpersTest, The1b7MistsItsArmsAndHeadAndWavesItsArm)
     }
 }
 
-// 0x42803b..0x428222: el 0x1b8 crea la chispa verde 0x5c6/7 (0x428164) en el punto (60, −30, 0) de la cabeza, con
-// ángulos (0, 0, 0), la luz (0; rand() % 10 · 0,01f + 0,2f; 0) de su 0x5ad a 3 y escala 1, antes de sus sonidos.
+// 0x42803b..0x428222: 0x1b8 creates the green 0x5c6/7 spark (0x428164) at point (60, −30, 0) of the head, with angles
+// (0, 0, 0), the light (0; rand() % 10 · 0.01f + 0.2f; 0) of its 0x5ad at 3 and scale 1, before its sounds.
 TEST_F(MonsterHelpersTest, The1b8SparksGreenAtItsHead)
 {
     Name("Monster102_Head", 6);
@@ -1766,10 +1760,10 @@ TEST_F(MonsterHelpersTest, The1b8SparksGreenAtItsHead)
     }
 }
 
-// 0x4282ea..0x4285a9: el 0x1ba, después de sus sonidos, crea en cada cuerno la chispa 0x5c6/6 (0x42849c) con ángulos
-// (0, 0, 0), la luz (0,4; rand() % 10 · 0,01f + 0,8f; 0,5) de su 0x5ad y escala 1; en la 4, el humo 0x5f2/26
-// (0x4285a4) en el punto (0, −100, 20) de Monster104_Footsteps, con los ángulos del objeto, (0,5; 0,7f; 0,5) y escala
-// 1. En la 3, sin el humo.
+// 0x4282ea..0x4285a9: 0x1ba, after its sounds, creates at each horn the 0x5c6/6 spark (0x42849c) with angles (0, 0, 0),
+// the light (0.4; rand() % 10 · 0.01f + 0.8f; 0.5) of its 0x5ad and scale 1; in action 4, the 0x5f2/26 smoke
+// (0x4285a4) at point (0, −100, 20) of Monster104_Footsteps, with the object's angles, (0.5; 0.7f; 0.5) and scale 1. In
+// action 3, no smoke.
 TEST_F(MonsterHelpersTest, The1baSparksAtItsHornsAndSmokesAtItsFoot)
 {
     for (std::uint32_t horn = 0; horn < 6; ++horn)
@@ -1806,11 +1800,10 @@ TEST_F(MonsterHelpersTest, The1baSparksAtItsHornsAndSmokesAtItsFoot)
     }
 }
 
-// 0x4285b1..0x428daf: el 0x1bb crea una fanta 0x6ec/6 en cada mano, la izquierda primero, con ángulos (0, 0, 0) y la
-// luz (rand() % 8 · 0,1f + 0,6f; 0; 0) de sus 0x5ad: en la 4, las dos a 5 en el punto de la mano (0x428adc y
-// 0x428d56); en las demás, la izquierda a 2,5 (0x428c52) y la derecha a 2,1f en el punto (0, 0, −10) de la mano
-// (0x428d56). En la 4 de 9 a 10, después de las dos, el rayo blanco 0x5e8/1 en el punto de la mano derecha (0x428da7),
-// sin rand().
+// 0x4285b1..0x428daf: 0x1bb creates a 0x6ec/6 fanta in each hand, the left first, with angles (0, 0, 0) and the light
+// (rand() % 8 · 0.1f + 0.6f; 0; 0) of its 0x5ad: in action 4, both at 5 at the hand's point (0x428adc and 0x428d56); in
+// the others, the left at 2.5 (0x428c52) and the right at 2.1f at point (0, 0, −10) of the hand (0x428d56). In action 4
+// from 9 to 10, after both, the white 0x5e8/1 ray at the right hand's point (0x428da7), with no rand().
 TEST_F(MonsterHelpersTest, The1bbLightsAFantaInEachHand)
 {
     for (const char* bone :
@@ -1868,10 +1861,11 @@ TEST_F(MonsterHelpersTest, The1bbLightsAFantaInEachHand)
     }
 }
 
-// Con la tabla llena, sus partículas no crean nada ni sacan rand() y siguen: el 0x1b7 suena y en la 3 desde el frame
-// 6,9 con el blanco en el pool crea el joint 0x618/0x10 (0x428036 salta a 0x427a8d: sus tres rand()); el 0x1b8
-// suena; el 0x1ba da sus seis cuernos, cada uno con su rand() % 10, y en la 4 igual pide el punto del pie; el 0x1bb
-// pide los puntos de las dos manos y en la 4 de 9 a 10 crea el rayo blanco 0x5e8/1 en la mano derecha, sin rand().
+// With the table full, its particles create nothing and draw no rand(), and it goes on: 0x1b7 sounds and in action 3
+// from frame 6.9 with the target in the pool creates the 0x618/0x10 joint (0x428036 jumps to 0x427a8d: its three
+// rand()); 0x1b8 sounds; 0x1ba gives its six horns, each with its rand() % 10, and in action 4 still asks for the foot
+// point; 0x1bb asks for both hands' points and in action 4 from 9 to 10 creates the white 0x5e8/1 ray at the right
+// hand, with no rand().
 TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
 {
     Name("Monster101_L_Arm", 12);
@@ -1936,8 +1930,8 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
             }
         }
     }
-    // El 0x618/0x10 del 0x1b7 (0x427fea..0x428036): desde el blanco, 100 más arriba, con sus ángulos, el actor de dueño
-    // y ancho 20; el sentido (rand() impar: 1) y los ángulos x e y en rand() % 45 (0x53217c..0x5321d8).
+    // 0x1b7's 0x618/0x10 (0x427fea..0x428036); the direction (odd rand(): 1) and the x and y angles at rand() % 45
+    // (0x53217c..0x5321d8).
     {
         auto& joints = m_world->DrawTail().joints;
         for (auto& joint : joints)
@@ -1964,7 +1958,7 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
         EXPECT_EQ(joint.angles.z, 45.0f);
         EXPECT_EQ(random.State(), expected.State());
     }
-    // Los cuernos del 0x1ba, en orden: (0,4; rand() % 10 · 0,01f + 0,8f; 0,5) a 0,4; en la 0, sin sonido ni sorteo.
+    // 0x1ba's horns in order; in action 0, no sound and no draw.
     m_sprites.Clear();
     Monster(0x1ba, 0);
     CrtRandom random(21);
@@ -1984,8 +1978,8 @@ TEST_F(MonsterHelpersTest, The1b7To1bbFollowTheirTailWithAFullTable)
     EXPECT_EQ(random.State(), expected.State());
 }
 
-// Con la tabla llena, el 0x1ba en la 4 y el 0x1bb igual piden el punto del pie (0x428540) y el de la mano derecha
-// (0x428b32 en la 4, 0x428cf8 en las demás): sin el hueso, cortan ahí.
+// With the table full, 0x1ba in action 4 and 0x1bb still ask for the foot point (0x428540) and the right hand's
+// (0x428b32 in action 4, 0x428cf8 in the others): without the bone, they cut there.
 TEST_F(MonsterHelpersTest, The1baAnd1bbAskForTheirPointsWithAFullTable)
 {
     for (std::uint32_t horn = 0; horn < 6; ++horn)
@@ -2007,7 +2001,7 @@ TEST_F(MonsterHelpersTest, The1baAnd1bbAskForTheirPointsWithAFullTable)
     }
 }
 
-// 0x432bf1: el rand() sin condición, con cualquier tipo; el 0x1ac, el 0x1ad y el 0x1b2 no hacen nada más.
+// 0x432bf1: the unconditional rand(), with any type; 0x1ac, 0x1ad and 0x1b2 do nothing else.
 TEST_F(MonsterHelpersTest, TheSwingStepDrawsItsRandomWithAnyType)
 {
     for (const std::uint16_t type :
@@ -2024,9 +2018,9 @@ TEST_F(MonsterHelpersTest, TheSwingStepDrawsItsRandomWithAnyType)
     EXPECT_TRUE(m_world->PoseCarry().models.empty());
 }
 
-// 0x432c12..0x432db0: el 0x1b0 en la 4 fuera de (5, 7) posa diez veces en el buffer global, desde el frame menos la
-// velocidad de la 4 y con un décimo de ella de paso, con la z de los ángulos 18 grados menos por vuelta; saca dos
-// rand() por vuelta y deja los ángulos del objeto como estaban.
+// 0x432c12..0x432db0: 0x1b0 in action 4 outside (5, 7) poses ten times into the global buffer, from the frame minus
+// action 4's speed with a tenth of it as step, with the angles' z 18 degrees less per loop; it draws two rand() per
+// loop and leaves the object's angles as they were.
 TEST_F(MonsterHelpersTest, The1b0SwingPosesTenTimes)
 {
     for (const float frame : {3.0f, 7.0f})
@@ -2046,7 +2040,6 @@ TEST_F(MonsterHelpersTest, The1b0SwingPosesTenTimes)
         EXPECT_FLOAT_EQ(carry.models.at(0x1b0).angles.z, 90.0f - 18.0f * 9.0f);
         EXPECT_EQ(carry.models.at(0x1b0).position, Origin);
         EXPECT_EQ(carry.bones.size(), 20u);
-        // La última pose: el frame menos 0,5 más nueve pasos de 0,05f.
         float pose = frame - 0.5f;
         for (int turn = 0; turn < 9; ++turn)
             pose = static_cast<float>(static_cast<double>(pose) + static_cast<double>(0.05f));
@@ -2054,9 +2047,9 @@ TEST_F(MonsterHelpersTest, The1b0SwingPosesTenTimes)
     }
 }
 
-// 0x432c12..0x432db0 con el frame del objeto en (5, 7): en cada una de las diez poses, la partícula 0x5d9/0 en el punto
-// (0, 100, −150) del hueso 16 del buffer global (sin trasladar: ya está en el mundo), con los ángulos de esa vuelta,
-// luz blanca y escala 1, antes de los dos rand() de la vuelta. Con la tabla llena, solo los rand() de las vueltas.
+// 0x432c12..0x432db0 with the object's frame in (5, 7): in each of the ten poses, the 0x5d9/0 particle at point
+// (0, 100, −150) of bone 16 of the global buffer (not translated: it is already in the world), with that loop's angles,
+// white light and scale 1, before the loop's two rand(). With the table full, only the loops' rand().
 TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
 {
     for (const std::int32_t map : {Lorencia, Devias})
@@ -2074,7 +2067,7 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
         EXPECT_EQ(actor.angles, glm::vec3(0.0f, 0.0f, 90.0f));
         const auto sparks = LiveParticles();
         ASSERT_EQ(sparks.size(), 10u);
-        // La última vuelta: su punto sale de la pose que quedó en el buffer.
+        // The last loop: its point comes from the pose left in the buffer.
         const auto& bones = m_world->PoseCarry().bones;
         ASSERT_GT(bones.size(), 16u);
         const glm::vec3 last =
@@ -2103,7 +2096,7 @@ TEST_F(MonsterHelpersTest, The1b0SwingSparksInEveryPose)
     EXPECT_EQ(full.State(), AfterDraws(1, 21).State());
 }
 
-// 0x432bd0: las estelas publican diez poses y agregan las muestras a las cintas del GameDrawTail.
+// 0x432bd0: the trails publish ten poses and add the samples to the GameDrawTail ribbons.
 TEST_F(MonsterHelpersTest, OtherSwingsEmitTheirRibbonSamplesAndKeepPoolLimits)
 {
     Name("Left_Hand", 17);

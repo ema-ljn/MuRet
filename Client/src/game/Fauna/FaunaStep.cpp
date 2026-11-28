@@ -45,7 +45,7 @@ std::error_code Unsupported()
 }
 FaunaObject& Object(Fauna::BirdRecord bird)
 {
-    // BirdRecord fue producido con as_writable_bytes del mismo objeto vivo y alineado.
+    // BirdRecord was produced with as_writable_bytes from the same live, aligned object.
     return *reinterpret_cast<FaunaObject*>(bird.data());
 }
 struct ModelBorrow
@@ -208,7 +208,7 @@ public:
         const auto* model =
             object.model == -1 ? m_context.prefixModel
                                : m_context.models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(object.model)});
-        // 4ea030 conserva su índice firmado: el prefijo de la tabla necesita préstamo explícito.
+        // 0x4ea030 keeps its signed index: the table prefix needs an explicit borrow.
         if (!model)
             return Core::Unexpected(std::make_error_code(std::errc::no_such_file_or_directory));
         SetFaunaAction(object, *model, static_cast<std::uint8_t>(mode));

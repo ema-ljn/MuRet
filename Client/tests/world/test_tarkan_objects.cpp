@@ -20,8 +20,8 @@
 #include <optional>
 #include <string>
 
-// Los casos de 0x604ab0 de Tarkan (mapa 8, la tabla 0x605cc0 por el tipo − 2), la velocidad del 8 y el
-// model+0x88 de la carga (06 § Los objetos de Tarkan).
+// Tarkan's cases of 0x604ab0 (map 8, the table 0x605cc0 by type − 2), the 8's speed and the load's model+0x88 (06 §
+// Los objetos de Tarkan).
 namespace
 {
 using Client::MapScripts::Tarkan::StepTarkanObject;
@@ -45,8 +45,8 @@ WorldObject Object(std::int16_t type)
 using Client::Math::D;
 using Client::Math::F32;
 
-// sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0: el seno de 64 bits
-// de FSIN por el float con un solo R53 (0x6056c8..0x6056d0).
+// sin(phase · 0.002f) · 0.35f + 0.65f, with the constants of 0x6b89bc, 0x6b8bc4 and 0x6b8bc0: FSIN's 64-bit sine times
+// the float with a single R53 (0x6056c8..0x6056d0).
 double Pulse(double phase)
 {
     const std::optional<double> wave = Client::Math::Detail::SineProductPC53(
@@ -55,14 +55,14 @@ double Pulse(double phase)
     return wave.value_or(0.0) + D(std::bit_cast<float>(0x3f266666u));
 }
 
-// La luz cálida: (L; L · 0,6f; L · 0,2f), cada una guardada en float desde la x87.
+// The warm light: (L; L · 0.6f; L · 0.2f), each stored in float from the x87.
 glm::vec3 Warm(double pulse)
 {
     return {F32(pulse), F32(pulse * D(std::bit_cast<float>(0x3f19999au))),
             F32(pulse * D(std::bit_cast<float>(0x3e4ccccdu)))};
 }
 
-// Lo que deja 0x5f9780 con ese color y ese radio en el lugar del objeto.
+// What 0x5f9780 leaves with that color and that radius at the object's place.
 std::unique_ptr<TerrainLighting> LightOf(const glm::vec3& color, std::int32_t radius)
 {
     auto lighting = std::make_unique<TerrainLighting>();
@@ -72,7 +72,7 @@ std::unique_ptr<TerrainLighting> LightOf(const glm::vec3& color, std::int32_t ra
     return lighting;
 }
 
-// 0x605683: el 2 lleva el blendMesh a 0 y la U a (−ftol(T) % 1.000) · 0,001f.
+// 0x605683: the 2 takes the blendMesh to 0 and the U to (−ftol(T) % 1000) · 0.001f.
 TEST(TarkanObjectsTest, TheTwoScrollsItsU)
 {
     ObjectStepGlobals globals;
@@ -84,8 +84,8 @@ TEST(TarkanObjectsTest, TheTwoScrollsItsU)
     EXPECT_EQ(object.state.uv.y, 0.0f);
 }
 
-// 0x6056b5..0x605718: el 4 deja la L guardada en la luz del blendMesh, la V en (−ftol(T) % 10.000) · 0,0001f
-// y una luz (L; L; L) de radio 3. Sin destino de luz corta en 0x605718 después de lo que ya escribió.
+// 0x6056b5..0x605718: the 4 leaves L stored in the blendMesh light, the V at (−ftol(T) % 10000) · 0.0001f and a light
+// (L; L; L) of radius 3. Without a light destination it cuts at 0x605718 after what it already wrote.
 TEST(TarkanObjectsTest, TheFourPulsesScrollsItsVAndLightsTheGround)
 {
     auto lighting = std::make_unique<TerrainLighting>();
@@ -110,8 +110,8 @@ TEST(TarkanObjectsTest, TheFourPulsesScrollsItsVAndLightsTheGround)
     EXPECT_EQ(unlit.state.uv.y, object.state.uv.y);
 }
 
-// 0x605727..0x60577d: el 7 suma el ángulo z por 100 al reloj; la L en la luz del blendMesh y la luz cálida de
-// radio 3.
+// 0x605727..0x60577d: the 7 adds the z angle times 100 to the clock; L in the blendMesh light and the warm light of
+// radius 3.
 TEST(TarkanObjectsTest, TheSevenPulsesWithItsAngle)
 {
     auto lighting = std::make_unique<TerrainLighting>();
@@ -127,8 +127,8 @@ TEST(TarkanObjectsTest, TheSevenPulsesWithItsAngle)
     EXPECT_EQ(lighting->cells, LightOf(Warm(pulse), 3)->cells);
 }
 
-// La V en (−ftol(T) % 10.000) · 0,0002f: el 0xb, el 0xd, el 0x49, el 0x4b y el 0x4f; el 0x48, además, con el
-// blendMesh en 0.
+// The V at (−ftol(T) % 10000) · 0.0002f: the 0xb, the 0xd, the 0x49, the 0x4b and the 0x4f; the 0x48, also with the
+// blendMesh at 0.
 TEST(TarkanObjectsTest, TheWaterTypesScrollTheirV)
 {
     const float v = F32(-2345.0 * D(std::bit_cast<float>(0x3951b717u)));
@@ -146,7 +146,7 @@ TEST(TarkanObjectsTest, TheWaterTypesScrollTheirV)
     }
 }
 
-// 0x6057b7..0x6057fd: el 0xc corre la U y la V con (−ftol(T) % 50.000) · 0,00005f, de dos ftol.
+// 0x6057b7..0x6057fd: the 0xc scrolls the U and the V with (−ftol(T) % 50000) · 0.00005f, from two ftol.
 TEST(TarkanObjectsTest, TheTwelveScrollsBothCoordinatesSlowly)
 {
     ObjectStepGlobals globals;
@@ -157,8 +157,8 @@ TEST(TarkanObjectsTest, TheTwelveScrollsBothCoordinatesSlowly)
     EXPECT_EQ(object.state.uv, glm::vec2(slow, slow));
 }
 
-// 0x605831/0x605855: el 0x3d, el 0x41 y el 0x42 llevan el blendMesh a 1, la V a (−ftol(T) % 1.000) · 0,001f y
-// una luz cálida de radio 2, sin tocar la luz del blendMesh.
+// 0x605831/0x605855: the 0x3d, the 0x41 and the 0x42 take the blendMesh to 1, the V to (−ftol(T) % 1000) · 0.001f and
+// a warm light of radius 2, without touching the blendMesh light.
 TEST(TarkanObjectsTest, TheLavaTypesBlendScrollAndLightNarrowly)
 {
     for (const std::int16_t type : {std::int16_t{0x3d}, std::int16_t{0x41}, std::int16_t{0x42}})
@@ -178,8 +178,8 @@ TEST(TarkanObjectsTest, TheLavaTypesBlendScrollAndLightNarrowly)
     }
 }
 
-// 0x6059dd: el 0x3f y el 0x40 se ocultan (sus sprites van en 0x602ed0); 0x605970: el 0x52 lleva el blendMesh
-// a 0 y la luz del objeto a blanco. Un tipo sin caso no cambia.
+// 0x6059dd: the 0x3f and the 0x40 hide (their sprites go in 0x602ed0); 0x605970: the 0x52 takes the blendMesh to 0
+// and the object's light to white. A type without a case does not change.
 TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
 {
     for (const std::int16_t type : {std::int16_t{0x3f}, std::int16_t{0x40}})
@@ -200,8 +200,8 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
     EXPECT_EQ(plain.light, Object(0x51).light);
 }
 
-// Un reloj que ftol no tiene acreditado corta con la dirección de su ftol; NaN da 0. El 4 y el 7 hacen antes el
-// fsin (0x6056c8 y 0x605755), que con ese reloj sale del perfil PC53 y corta primero.
+// A clock that ftol has not credited cuts with its ftol's address; NaN gives 0. The 4 and the 7 do the fsin first
+// (0x6056c8 and 0x605755), which with that clock leaves the PC53 profile and cuts first.
 TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
 {
     struct Case
@@ -231,8 +231,8 @@ TEST(TarkanObjectsTest, AnUnreadClockCutsAtItsFtol)
     EXPECT_EQ(object.state.uv, glm::vec2(0.0f));
 }
 
-// 0x604c70..0x604c8e: el 8 anima con la velocidad por 4 en una copia; el +0xd8 queda. Los demás, con la suya,
-// y en otro mapa el 8 tampoco cambia.
+// 0x604c70..0x604c8e: the 8 animates with the speed times 4 in a copy; +0xd8 stays. The others, with their own, and on
+// another map the 8 does not change either.
 TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
 {
     EXPECT_EQ(Client::MapScripts::Tarkan::TarkanAnimationSpeed(8, 0.25f), 1.0f);
@@ -262,7 +262,7 @@ TEST(TarkanObjectsTest, TheEightAnimatesFourTimesFaster)
     }
 }
 
-// 0x61a145..0x61a18f: al cargar el mapa 8, el model+0x88 de 11, 12, 13, 73, 75 y 79 en 0. En otro mapa, nada.
+// 0x61a145..0x61a18f: on loading map 8, the model+0x88 of 11, 12, 13, 73, 75 and 79 at 0. On another map, nothing.
 TEST(TarkanObjectsTest, TheLoadMarksTheScrolledModelsUnlit)
 {
     ObjectModelStepState state;

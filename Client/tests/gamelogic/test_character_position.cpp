@@ -116,7 +116,7 @@ TEST(CharacterPositionTest, SineIsSpilledBeforeAbsoluteAndPhaseUsesFloatRounding
     actor.type = 0x154;
     actor.phase = -1.0f;
     Client::Actors::UpdateCharacterPosition(actor.View(), [] { return 0.0; }, [](float, float) { return 20.0; });
-    // sin(-1) se redondea a 0xbf576aa4 antes de abs y de multiplicar por 70.
+    // sin(-1) rounds to 0xbf576aa4 before abs and the multiply by 70.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.position.z), 0x41f8c6b9u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.phase), 0xbf59999au);
 }
@@ -157,10 +157,10 @@ TEST(CharacterPositionTest, BobbingUsesTheFloatSpillOfTerrainPlusMapOffset)
         actor.View(), [] { return 0.0; },
         [&actor](float, float)
         {
-            actor.safeZone = 1; // El offset90 ya fue elegido antes de consultar altura.
+            actor.safeZone = 1; // The 90 offset was already chosen before querying the height.
             return 0x1.6666666666666p-17;
         });
-    // F32(90 + height) es90+2^-17; sumarle70 cae en el empate que redondea a160.
+    // F32(90 + height) is 90 + 2^-17; adding 70 lands on the tie that rounds to 160.
     EXPECT_EQ(std::bit_cast<std::uint32_t>(actor.position.z), 0x43200000u);
 }
 TEST(CharacterPositionTest, PhaseAboveTwoPiKeepsIncreasingWithoutWrap)

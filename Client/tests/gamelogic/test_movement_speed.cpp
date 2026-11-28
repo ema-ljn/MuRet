@@ -8,7 +8,7 @@
 #include <limits>
 #include <source_location>
 
-// 06 § Caminar, velocidad 0x508940: expectativas analíticas del ASM, sin ejecutar el original.
+// 06 § Caminar, speed 0x508940: analytic expectations from the ASM, without running the original.
 namespace
 {
 using Client::Actors::MovementSpeedInput;
@@ -29,7 +29,7 @@ void ExpectOutcome(const MovementSpeedInput& input, std::uint8_t run, MovementSp
                    float expectedSpeed, std::uint8_t expectedRun, std::uint32_t expectedLatch,
                    std::uint32_t expectedCounter, std::source_location location = std::source_location::current())
 {
-    // El argumento por defecto señala la llamada, no esta línea del helper.
+    // The default argument points at the call, not at this line of the helper.
     const ::testing::ScopedTrace trace(location.file_name(), static_cast<int>(location.line()), "ExpectOutcome");
     EXPECT_EQ(UpdateMovementSpeed(run, shared, input), expectedSpeed);
     EXPECT_EQ(run, expectedRun);
@@ -349,7 +349,7 @@ TEST(MovementSpeedTest, OnlyTheHalfSpeedMaskHalvesTheFullUnsignedBase)
         std::uint32_t flags;
         float speed;
     };
-    // 0x5089ce: AND EDX, 2; máscara 0x2, no índice de bit 2.
+    // 0x5089ce: AND EDX, 2; the mask 0x2, not bit index 2.
     constexpr std::array<FlagCase, 9> Cases = {{{0, 65535.0f},
                                                 {1, 65535.0f},
                                                 {2, 32767.5f},
@@ -418,7 +418,7 @@ TEST(MovementSpeedTest, RepeatedCallsAndTwoActorsUseOneSharedStateWithoutIncreme
     EXPECT_EQ(shared.itemLatch, 1u);
     EXPECT_EQ(shared.itemCounterBits, 0u);
 
-    // Un productor externo puede cambiar D4; no se simula Walk ni se le atribuye ese store aquí.
+    // An outside producer can change D4; Walk is not simulated and that store is not attributed to it here.
     shared.itemCounterBits = 20;
     EXPECT_EQ(UpdateMovementSpeed(secondRun, shared, secondInput), 19.0f);
     EXPECT_EQ(UpdateMovementSpeed(firstRun, shared, firstInput), 17.0f);

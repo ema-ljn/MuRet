@@ -22,7 +22,7 @@
 #include <optional>
 #include <limits>
 
-// Oráculos independientes del contrato final-runtime 53fe70/5446e0/548550, no del port.
+// Independent oracles of the final-runtime contract 0x53fe70/0x5446e0/0x548550, not of the port.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -31,7 +31,7 @@ using Client::Particles::Particles;
 using Client::Tests::DrawOneParticle;
 using Client::Tests::RecordedParticleDraw;
 constexpr std::int32_t Fire = 0x5d9;
-// 0x5dc, la llama azul de la estela de Kalima: su textura es su tipo (Effect\Fire05.jpg, 0x61ddac).
+// 0x5dc, Kalima's trail blue flame: its texture is its type (Effect\Fire05.jpg, 0x61ddac).
 constexpr std::int32_t BlueFire = 0x5dc;
 constexpr std::int32_t Smoke = 0x5f2;
 
@@ -159,7 +159,7 @@ TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
     for (std::int32_t subtype = 0; subtype < 4; ++subtype)
     {
         Particles particles;
-        CrtRandom random(7); // R: 61,17422,15215; estados c40e66b9/bb6f8e98.
+        CrtRandom random(7); // R: 61,17422,15215; states c40e66b9/bb6f8e98.
         const auto slot = particles.Create(Fire, {100, 200, 300}, {10, 20, 30}, {2, 3, 4}, subtype, 0.75f, 999, random);
         ASSERT_EQ(slot, 0u) << subtype;
         const Particle& particle = particles.All()[0];
@@ -174,7 +174,7 @@ TEST(GameplayParticlesTest, FireCreationKeepsTheFourDistinctScaleAndRandomPaths)
     }
 }
 
-// 0x541197..0x541403: la 5dc/12 con su propia textura (0x53feb3 copia el tipo en +0x8 y el caso no la cambia).
+// 0x541197..0x541403: 5dc/12 with its own texture (0x53feb3 copies the type into +0x8 and the case does not change it).
 TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndItsOwnTexture)
 {
     Particles particles;
@@ -191,7 +191,7 @@ TEST(GameplayParticlesTest, BlueTrailFireUsesFourRandomsAndItsOwnTexture)
     EXPECT_EQ(particle.angles, glm::vec3(10, 20, 30));
     EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
     EXPECT_EQ(particle.velocity, glm::vec3(0, -4.5f, 0));
-    // CRT(7): 61,17422,15215,7040; R2 se consume aunque R4 lo pisa.
+    // CRT(7): 61,17422,15215,7040; R2 is consumed although R4 overwrites it.
     EXPECT_EQ(particle.scale, static_cast<float>((165.0 * 0.75) * static_cast<double>(0.012f)));
     EXPECT_EQ(particle.rotation, 200.0f);
     CrtRandom expected(7);
@@ -252,7 +252,7 @@ TEST(GameplayParticlesTest, BlueTrailFireAdvancesItsWholeLifeIncludingTheDeathTi
             EXPECT_EQ(draw.texture, BlueFire);
         }
     }
-    // El lugar muerto ya no consume su tercer rand; el viento continúa.
+    // The dead slot no longer consumes its third rand; the wind goes on.
     (void)expectedRandom.Next();
     (void)expectedRandom.Next();
     ASSERT_TRUE(Client::Particles::StepParticlesChecked(particles, random).HasValue());
@@ -323,7 +323,7 @@ TEST(GameplayParticlesTest, ConstructorReadsAliasedAnglesAfterWritingThePrefix)
     particle.light = {2, 3, 4};
     particle.rotationFactor = -7.25f;
     CrtRandom random(7);
-    // A apunta a RGB del slot: su copia observa C ya escrito, no un snapshot de entrada.
+    // A points to the slot's RGB: its copy sees C already written, not an input snapshot.
     ASSERT_EQ(particles.Create(Fire, {100, 200, 300}, particle.light, {8, 9, 10}, 2, 0.75f, 0, random), 0u);
     EXPECT_EQ(particle.angles, glm::vec3(8, 9, 10));
     EXPECT_EQ(particle.rotationFactor, -7.25f);
@@ -352,7 +352,7 @@ TEST(GameplayParticlesTest, ExpiringFireStillMovesShrinksRisesAndWritesAnInteger
     EXPECT_EQ(Bits(particle.scale), 0x3f75c28fu);
     EXPECT_EQ(Bits(particle.field48), 3u); // Palabra int32 cruda, no float(3).
     EXPECT_EQ(particle.light, glm::vec3(2, 3, 4));
-    EXPECT_EQ(random.State(), 0xc40e66b9u); // Sólo los dos draws de viento.
+    EXPECT_EQ(random.State(), 0xc40e66b9u); // Only the two wind draws.
 }
 
 TEST(GameplayParticlesTest, FireDefaultsGrowFromTheRoundedAccumulatorThenDampVelocity)
@@ -458,7 +458,7 @@ TEST(GameplayParticlesTest, SmokeTwoDrawIsSubtractiveAndUsesTheWholeTexture)
     EXPECT_EQ(draw.uvSize, glm::vec2(1));
     EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Subtractive);
 }
-// Debe fallar si se valida el binding antes de la salida nativa sin slot.
+// Must fail if the binding is validated before the native no-slot exit.
 TEST(GameplayParticlesTest, AFullPoolIsSuccessWithoutEmissionEvenBeforeBindingDispatch)
 {
     Particles particles;
@@ -480,7 +480,7 @@ TEST(GameplayParticlesTest, CheckedCreationReportsUnsupportedBindingsWithoutMuta
     const auto type = particles.CreateChecked(std::numeric_limits<std::int32_t>::max(), {}, {}, {}, 0, 1, 0, random);
     ASSERT_FALSE(type.HasValue());
     EXPECT_EQ(type.Error(), Client::Particles::ParticleError::UnsupportedType);
-    // El fuego trata cualquier subtipo (0x541172); el 0x5ad sólo la /2, la /3 y la /4.
+    // Fire handles any subtype (0x541172); 0x5ad only /2, /3 and /4.
     const auto subtype = particles.CreateChecked(Client::Particles::MagicSparkParticle, {}, {}, {}, 7, 1, 0, random);
     ASSERT_FALSE(subtype.HasValue());
     EXPECT_EQ(subtype.Error(), Client::Particles::ParticleError::UnsupportedSubtype);
@@ -513,7 +513,7 @@ TEST(GameplayParticlesTest, SmokeTwoRetainsTheX87ValueAfterStoringItsRoundedSpee
     CrtRandom random(7);
     Client::Particles::StepParticles(particles, random);
     EXPECT_FALSE(particle.alive);
-    EXPECT_EQ(Bits(particle.position.x), 0xbe3851ecu); // recargar +50 produciría be3851eb.
+    EXPECT_EQ(Bits(particle.position.x), 0xbe3851ecu); // reloading +50 would give be3851eb.
     EXPECT_EQ(particle.light, glm::vec3(0));
 }
 
@@ -540,7 +540,7 @@ TEST(GameplayParticlesTest, CheckedDrawReportsMissingMetadataWithoutPretendingTo
     ASSERT_TRUE(draw.Value().has_value());
     EXPECT_EQ(draw.Value()->texture, 17);
     EXPECT_EQ(draw.Value()->blend, RecordedParticleDraw::Blend::Alpha);
-    // Un tipo fuera de la tabla de saltos falla en la rama, después del prefijo de dimensiones y material.
+    // A type outside the jump table fails in the branch, after the dimensions and material prefix.
     particle.type = std::numeric_limits<std::int32_t>::max();
     const auto unsupported = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{3});
     ASSERT_FALSE(unsupported.HasValue());
@@ -582,15 +582,15 @@ TEST(GameplayParticlesTest, HeightPassesOverlapAndKeepTheNativeUnorderedBehavior
 TEST(GameplayParticlesTest, AtlasWidthRoundsTheTextureProductBeforeDividingByFour)
 {
     Particle particle{.alive = true, .type = Fire, .subtype = 2, .scale = 0.5f};
-    // Cinco unidades subnormales: primer store 2,5 -> 2; segundo store 0,5 -> 0.
-    // Fusionar los productos daría 0,625 -> 1 unidad, alterando el ancho.
+    // Five subnormal units: first store 2.5 -> 2; second store 0.5 -> 0.
+    // Merging the products would give 0.625 -> 1 unit, changing the width.
     const auto draw = DrawOneParticle(particle, glm::vec2(std::bit_cast<float>(5u), 64), std::uint8_t{3});
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());
     EXPECT_EQ(Bits(draw.Value()->width), 0u);
 }
 
-// 5446e0 fire-smoke: el temporal f32 convierte la suma final en empate RN-even.
+// 0x5446e0 fire-smoke: the f32 temporary turns the final sum into an RN-even tie.
 TEST(GameplayParticlesTest, FireGrowthDiscriminatesTheStoredAccumulatorFromTheWideSum)
 {
     Particles particles;
@@ -604,10 +604,10 @@ TEST(GameplayParticlesTest, FireGrowthDiscriminatesTheStoredAccumulatorFromTheWi
     CrtRandom random(7);
     const auto stepped = Client::Particles::StepParticlesChecked(particles, random);
     ASSERT_TRUE(stepped.HasValue());
-    EXPECT_EQ(Bits(particle.scale), 0x3fa08314u); // Sin store intermedio: 3fa08313.
+    EXPECT_EQ(Bits(particle.scale), 0x3fa08314u); // Without the intermediate store: 3fa08313.
 }
 
-// 5446e0 fire-smoke: FST +50 conserva el acumulador para el FADD de Z.
+// 0x5446e0 fire-smoke: FST +50 keeps the accumulator for Z's FADD.
 TEST(GameplayParticlesTest, SmokeZDiscriminatesTheRetainedSpeedFromItsFloatReload)
 {
     Particles particles;

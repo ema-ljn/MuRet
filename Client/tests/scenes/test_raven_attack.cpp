@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <memory>
 
-// Los estados del ataque del cuervo en 0x416a20 (CL9 hito 4, 06 § El ataque del cuervo): el aviso con el A7, el 5,
-// el 2, el 6, el contador +0x38d y el vuelo hacia el blanco de +8. *Estático*, desde el ASM: el código real emulado
-// (tests/vectors/world55/raven.txt) sólo tiene los estados 0, 1, 3 y 4.
+// The raven's attack states in 0x416a20 (CL9 milestone 4, 06 § El ataque del cuervo): the warning with the A7, 5, 2,
+// 6, the +0x38d counter and the flight toward +8's target. *Static*, from the ASM: the real emulated code
+// (tests/vectors/world55/raven.txt) only has states 0, 1, 3 and 4.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,8 +52,8 @@ struct Raven
     CrtRandom random;
 };
 
-// 0x416a88..0x4176e6: con el dueño escondido, en el 2, el 5 y el 6, el aviso: +0x3b0 en 0xffff, el A7 y el estado 4
-// con la velocidad en 3. En la zona segura sigue bajando (Land acelera 1); fuera, la zona lo vuelve al 0.
+// 0x416a88..0x4176e6: with the owner hidden, in 2, 5 and 6, the warning: +0x3b0 at 0xffff, the A7 and state 4 with
+// speed 3. In the safe zone it keeps descending (Land accelerates 1); outside, the zone sets it back to 0.
 TEST(RavenAttackTest, AHiddenOwnerStopsTheAttack)
 {
     for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{5}, std::uint8_t{6}})
@@ -79,7 +79,7 @@ TEST(RavenAttackTest, AHiddenOwnerStopsTheAttack)
     }
 }
 
-// El blanco de +0x3b0 escondido corta igual, pero sólo si está entre los 400; los estados 0, 1, 3 y 4 no avisan.
+// A hidden +0x3b0 target stops it the same, but only if it is among the 400; states 0, 1, 3 and 4 do not warn.
 TEST(RavenAttackTest, AHiddenTargetStopsTheAttackOnlyInsideThePool)
 {
     Raven inPool;
@@ -97,8 +97,8 @@ TEST(RavenAttackTest, AHiddenTargetStopsTheAttackOnlyInsideThePool)
     }
 }
 
-// 0x4179ef..0x417ae3: el 5 avanza (0, −velocidad, 0) girado, gira hacia el blanco de +8 50 más arriba, sube la
-// lejanía, la velocidad suma +0xf0 y +0xf0 suma 0,2; la acción 3 y +0x38d sube. Sin rand().
+// 0x4179ef..0x417ae3: 5 advances (0, −speed, 0) rotated, turns toward +8's target 50 higher, raises the distance, the
+// speed adds +0xf0 and +0xf0 adds 0.2; action 3 and +0x38d rises. No rand().
 TEST(RavenAttackTest, TheAttackChargesTowardTheTarget)
 {
     Raven tested;
@@ -125,14 +125,14 @@ TEST(RavenAttackTest, TheAttackChargesTowardTheTarget)
     EXPECT_EQ(tested.spirit.animation.action, 3);
     EXPECT_EQ(tested.spirit.byte38d, 1);
     EXPECT_EQ(tested.spirit.byte1ad, 1);
-    // Sólo el rand() del grito.
+    // Only the cry's rand().
     CrtRandom expected;
     static_cast<void>(expected.Next());
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// 0x417a74..0x417aa6: a menos de 20 vuelve (2) con el cabeceo en −45 y la lejanía en 1; +0x1ad en 0 salvo con la
-// orden 3. Con la lejanía en más de 20, también.
+// 0x417a74..0x417aa6: under 20 it returns (2) with the pitch at −45 and the distance at 1; +0x1ad at 0 except with
+// order 3. With the distance over 20, too.
 TEST(RavenAttackTest, TheAttackReturnsNearTheTargetOrAfterTwentySteps)
 {
     for (const std::uint8_t order : {std::uint8_t{0}, std::uint8_t{3}})
@@ -160,7 +160,8 @@ TEST(RavenAttackTest, TheAttackReturnsNearTheTargetOrAfterTwentySteps)
     EXPECT_EQ(fresh.spirit.state, 5);
 }
 
-// 0x417aec..0x417b26: volviendo, a 250 o más del destino (antes de avanzar) pasa al 0; frena 1 y la acción 3.
+// 0x417aec..0x417b26: returning, at 250 or more from the target (before advancing) it goes to 0; it brakes 1 and takes
+// action 3.
 TEST(RavenAttackTest, TheReturnFlightBrakesUntilItIsFar)
 {
     Raven near;
@@ -179,7 +180,8 @@ TEST(RavenAttackTest, TheReturnFlightBrakesUntilItIsFar)
     EXPECT_EQ(far.spirit.state, 0);
 }
 
-// 0x417847..0x41789d: el 6 gira 40 hacia el personaje de +0x3b0 y no se mueve; con 0xffff, nada. +0x38d sube hasta 15.
+// 0x417847..0x41789d: 6 turns 40 toward the +0x3b0 character and does not move; with 0xffff, nothing. +0x38d rises up
+// to 15.
 TEST(RavenAttackTest, TheShoutTurnsTowardTheAttackTarget)
 {
     Raven tested;
@@ -203,8 +205,8 @@ TEST(RavenAttackTest, TheShoutTurnsTowardTheAttackTarget)
     EXPECT_EQ(still.spirit.angles.z, 0.0f);
 }
 
-// 0x4177b1 y 0x417b33: con +0x1ad en 1, los estados 0 y 1 vuelan hacia el blanco de +8 como lo harían hacia el dueño,
-// con la altura del blanco, y +0x1ad queda en 0. En Lorencia, Devias y el mapa del login (350 sobre el destino).
+// 0x4177b1 and 0x417b33: with +0x1ad at 1, states 0 and 1 fly toward +8's target as they would toward the owner, with
+// the target's height, and +0x1ad stays at 0. In Lorencia, Devias and the login map (350 above the target).
 TEST(RavenAttackTest, TheFreeFlightFollowsTheTargetOfEight)
 {
     for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}, std::uint8_t{0x37}})
@@ -227,7 +229,7 @@ TEST(RavenAttackTest, TheFreeFlightFollowsTheTargetOfEight)
     }
 }
 
-// Los estados de 7 en adelante (el tipo del A8 que envuelve) sólo hacen el grito y la lejanía.
+// States 7 onward (the A8 type that wraps) only do the cry and the distance.
 TEST(RavenAttackTest, AStateBeyondSixOnlyShoutsAndCounts)
 {
     Raven tested;

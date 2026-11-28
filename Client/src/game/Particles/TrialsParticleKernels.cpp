@@ -28,13 +28,13 @@ void ScaleLight(Particle& p, double factor)
         p.light[axis] = F32(static_cast<double>(p.light[axis]) * factor);
 }
 
-// 0x544319..0x5443a6: los cinco rand() en el orden del ASM; la escala multiplica la del argumento (+0x10,
-// todavía la del prefijo) antes del 0,02f, y las sumas a la posición son de la x87 guardadas en float.
+// 0x544319..0x5443a6: the five rand() in the ASM's order; the scale multiplies the argument's (+0x10, still the
+// prefix's) before the 0.02f, and the position sums are the x87's, stored as float.
 void CreateSplash(Particle& p, Crt::CrtRandom& random)
 {
     constexpr double SplashScale = static_cast<double>(std::bit_cast<float>(0x3ca3d70au)); // 0x6b8b90.
     constexpr int ScaleSpan = 10, ScaleBase = 15, XSpan = 40, ZSpan = 25;
-    constexpr double XCenter = 20.0, ZCenter = 10.0; // 0x6b86d0 y 0x6b87a8.
+    constexpr double XCenter = 20.0, ZCenter = 10.0; // 0x6b86d0 and 0x6b87a8.
     p.life = TrialsLife;
     p.velocity.z = -1.0f;
     const int size = random.Next() % ScaleSpan + ScaleBase;
@@ -44,7 +44,7 @@ void CreateSplash(Particle& p, Crt::CrtRandom& random)
     p.position.z = F32((static_cast<double>(random.Next() % ZSpan) - ZCenter) + static_cast<double>(p.position.z));
 }
 
-// 0x5423e0..0x542448: el and con la corrección del signo de rand() (que nunca es negativo) es el & simple.
+// 0x5423e0..0x542448: the and with rand()'s sign correction (rand() is never negative) is the plain &.
 void CreateSmoke(Particle& p, Crt::CrtRandom& random)
 {
     constexpr double SmokeScale = static_cast<double>(std::bit_cast<float>(0x3ba3d70au)); // 0x6b89d8.
@@ -75,17 +75,17 @@ Core::Expected<void, ParticleError> StepSmoke(Particle& p, const float* clock)
     constexpr double Slow = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));         // 0x6b87b8.
     constexpr double Sway = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));         // 0x6b8a48.
     constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3d23d70au));       // 0x6b8aec.
-    // 0x546706..0x546723: el producto queda en la x87 para el rojo y para la mitad del verde y del azul.
+    // 0x546706..0x546723: the product stays on the x87 for the red and for half the green and the blue.
     const double light = static_cast<double>(p.life) * LightPerLife;
     p.light.x = F32(light * Red);
     p.light.y = F32(light * Half);
     p.light.z = p.light.y;
-    // 0x546726..0x54672f: fst guarda la velocidad en float y la deja sin redondear en la pila.
+    // 0x546726..0x54672f: fst stores the speed as float and leaves it unrounded on the x87 stack.
     const double rise = static_cast<double>(p.verticalSpeed) - Slow;
     p.verticalSpeed = F32(rise);
     if (clock == nullptr)
         return Core::Unexpected(ParticleError::MissingClock);
-    // 0x546732..0x546745: FSIN del reloj, FMUL ST1 por la velocidad de la pila, por 0,05f y más la x.
+    // 0x546732..0x546745: FSIN of the clock, FMUL ST1 by the speed on the x87 stack, by 0.05f and plus the x.
     const std::optional<double> sway = Math::Detail::SineDoubleProductPC53(static_cast<double>(*clock), rise);
     if (!sway)
         return Core::Unexpected(ParticleError::UnrepresentableTrigonometry);

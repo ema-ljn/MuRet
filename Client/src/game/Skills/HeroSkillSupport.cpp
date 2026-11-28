@@ -27,7 +27,7 @@ constexpr std::string_view SilentName = "webzen";
 
 bool HasTheSilentName(const Kernel::WorldState& world)
 {
-    // El nombre como lo ve el strlen de 0x58a15d: los diez bytes de +0x1d9, +0x1e3 y, como MuRet no tiene +0x1e4, un 0.
+    // The name as 0x58a15d's strlen sees it: the ten bytes of +0x1d9, +0x1e3 and, since MuRet has no +0x1e4, a 0.
     const Kernel::ActorState& published = world.Hero();
     std::string name;
     bool ended = false;

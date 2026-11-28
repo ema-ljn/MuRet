@@ -11,11 +11,11 @@
 #include <optional>
 #include <string>
 
-// CL11, el lote de los tipos altos: las altas de 0x518cf0 de los tipos que salen del switch de 9..0x113 por otras
-// comparaciones (0x518e3c..0x518f31, 0x51e349 y 0x51f47f) y sus pasos de 0x5208a0 (0x525e6e, 0x52a688 y 0x52b56d), con
-// el prefijo de Effects::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". El dibujo de estos tipos
-// va por el camino común de 0x52d620 (0x52da84 → 0x602e90, GameDrawTail) o no se dibuja: los de 0x151 en adelante,
-// salvo 0x5e8..0x5ea y 0xc1a, no tienen caso en 0x52d620 ni en el pase del suelo (0x52dc20).
+// CL11, the high types' batch: the 0x518cf0 creations of the types that leave the 9..0x113 switch by other comparisons
+// (0x518e3c..0x518f31, 0x51e349 and 0x51f47f) and their 0x5208a0 steps (0x525e6e, 0x52a688 and 0x52b56d), with the
+// prefix of Effects::ModelEffects::Begin. 06, "Los efectos con modelo de los tipos altos". These types' draw goes
+// through 0x52d620's common path (0x52da84 → 0x602e90, GameDrawTail) or is not drawn: those from 0x151 on, except
+// 0x5e8..0x5ea and 0xc1a, have no case in 0x52d620 or in the floor pass (0x52dc20).
 namespace Client::Assets
 {
 class FaunaModels;
@@ -58,11 +58,11 @@ struct WorldTerrain;
 namespace Client::Effects
 {
 
-// Lo que las altas de estos tipos leen y escriben fuera de su lugar: la tabla de efectos (Effects::ModelEffects), los
-// joints (0x530860, GameDrawTailState::joints), las partículas (0x53fe70), el sonido (0x41ed10, que queda en
-// WorldRuntime), el héroe ([0x743a170]) y el registro propio, todo de `world`, y el reloj del mundo (0x5767b88). `send`
-// es lo que manda 0x517a20 (el C1 10) desde el alta del 0x5e8; vacío, no sale (sus rand() sí). `models`, si está, da el
-// BMD que 0x4ea030 no encuentra en `faunaModels` (los modelos del mapa), como MonsterSkeletonOf.
+// What these types' creations read and write outside their slot: the effects table (Effects::ModelEffects), the joints
+// (0x530860, GameDrawTailState::joints), the particles (0x53fe70), the sound (0x41ed10, which stays in WorldRuntime),
+// the hero ([0x743a170]) and the own record, all from `world`, and the world clock (0x5767b88). `send` is what 0x517a20
+// sends (the C1 10) from the 0x5e8's creation; if empty, nothing goes out (its rand() still run). `models`, if present,
+// gives the BMD that 0x4ea030 does not find in `faunaModels` (the map's models), as MonsterSkeletonOf.
 struct HighEffectContext
 {
     Kernel::WorldState& world;
@@ -76,32 +76,33 @@ struct HighEffectContext
     Assets::FaunaModels* faunaModels = nullptr;
 };
 
-// El contexto de las altas desde el paso de un personaje (0x4f5b70, 0x4fd5f0, 0x4f97b0 y sus helpers).
+// From a character's step (0x4f5b70, 0x4fd5f0, 0x4f97b0 and their helpers).
 [[nodiscard]] HighEffectContext HighContextOf(const Actors::CharacterStepContext& context);
 
-// 0x4f5b10(personaje, x, y, z, punto): `offset` girado por los ángulos del personaje (+0x1c) más su posición, un fstp
-// por eje.
+// 0x4f5b10(character, x, y, z, point): `offset` rotated by the character's angles (+0x1c) plus its position, one fstp
+// per axis.
 [[nodiscard]] glm::vec3 PointAround(const Kernel::ActorState& actor, const glm::vec3& offset);
 
-// 0x4ec110(modelo del tipo, huesos propios (+0x120) + hueso · 0x30, offset, punto, 1): el punto de un hueso del
-// personaje en el mundo, con la escala y el origen de su modelo (los que 0x4fd69b le copia antes del paso). Sin huesos
-// propios (antes del primer dibujo), la matriz en cero (Q-C318), como OwnBonePoint de CharacterStep.cpp.
+// 0x4ec110(the type's model, own bones (+0x120) + bone · 0x30, offset, point, 1): the world point of a character's
+// bone, with its model's scale and origin (the ones 0x4fd69b copies to it before the step). Without own bones (before
+// the first draw), the matrix at zero (Q-C318), as OwnBonePoint in CharacterStep.cpp.
 [[nodiscard]] glm::vec3 ActorBonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset,
                                        const Kernel::WorldState& world);
 
-// Los tipos cuya alta pasa por CreateHighModelEffect (la del 0x114/2..6, la del 0x115 y la del 0x621/0 son de World).
+// The types whose creation goes through CreateHighModelEffect (those of the 0x114/2..6, the 0x115 and the 0x621/0 are
+// ModelEffects').
 [[nodiscard]] bool IsHighModelEffect(std::int16_t type);
 
-// 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, +0x89, +0x88, +0x1bd, escala) con uno de esos tipos: el
-// prefijo (Effects::ModelEffects::Begin) y el caso del tipo, con sus rand(), joints, partículas y sonidos. Con la tabla
-// llena, nada y sin rand(). Corta, con lo de antes y sus rand(), donde el caso pide algo que MuRet no tiene (un joint
-// o una partícula de otro lote de la CL11). Devuelve el lugar.
+// 0x518cf0(type, position, angles, light, subtype, owner, key, +0x89, +0x88, +0x1bd, scale) with one of those types:
+// the prefix (Effects::ModelEffects::Begin) and the type's case, with its rand(), joints, particles and sounds. With
+// the table full, nothing and no rand(). It cuts, with what came before and its rand(), where the case asks for
+// something MuRet does not have (a joint or a particle from another CL11 batch). Returns the slot.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
 CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighEffectContext& context);
 
-// Lo que el paso de estos tipos pide: los servicios del paso común (la altura del terreno, la luz dinámica, el
-// sonido, la acción publicada del modelo) y el mundo y el CRT del juego. `models`, como en HighEffectContext, da el BMD
-// que Assets::AssetsState::fauna no tiene (el de un jugador dueño del 0x61e/6).
+// What these types' step asks for: the common step's services (the terrain height, the dynamic light, the sound, the
+// model's published action) and the game's world and CRT. `models`, as in HighEffectContext, gives the BMD that
+// Assets::AssetsState::fauna lacks (that of a player owning the 0x61e/6).
 struct HighEffectStepContext
 {
     Kernel::WorldState& world;
@@ -116,18 +117,17 @@ struct HighEffectStepContext
     Assets::FaunaModels* faunaModels = nullptr;
 };
 
-// Los tipos cuyo paso está en este archivo.
 [[nodiscard]] bool StepsAsHighModelEffect(const Effects::ModelEffect& effect);
 
-// 0x5208a0 sobre un efecto vivo de esos tipos: el rand() de la luz local (0x5208c5), el caso del tipo y la cola común
-// (0x52cb98: la acción publicada y la animación de los BMD de [0xad, 0x151), el movimiento de 0x51fc80 salvo los
-// tipos que lo saltan, una vida menos y, con 0 o menos, el lugar libre). Corta, con lo de antes y sus rand(), donde el
-// paso pide algo sin portar.
+// 0x5208a0 on a live effect of those types: the local light's rand() (0x5208c5), the type's case and the common tail
+// (0x52cb98: the published action and the animation of the BMDs in [0xad, 0x151), 0x51fc80's movement except for the
+// types that skip it, one life less and, at 0 or less, the slot freed). It cuts, with what came before and its rand(),
+// where the step asks for something unported.
 [[nodiscard]] Core::Expected<void, std::string> StepHighModelEffect(Effects::ModelEffect& effect,
                                                                     const Models::Skeleton* skeleton,
                                                                     const HighEffectStepContext& context);
 
-// La posición (+0x10) de un personaje de `world` que es el dueño (+0x108) de un efecto, para el pase del suelo (el
-// 0x61e/7, 0x52ded0); nullopt si el dueño no es uno de sus personajes. `world` tiene que vivir más que la función.
+// The position (+0x10) of a `world` character that owns (+0x108) an effect, for the floor pass (the 0x61e/7, 0x52ded0);
+// nullopt if the owner is not one of its characters. `world` must outlive the function.
 [[nodiscard]] std::function<std::optional<glm::vec3>(const void*)> ActorPositionOf(const Kernel::WorldState& world);
 } // namespace Client::Effects

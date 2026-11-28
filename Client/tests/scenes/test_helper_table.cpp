@@ -62,9 +62,9 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::HelperTable: la tabla de los ayudantes del juego (0x7d335d0) con el caballo oscuro (0xbf) y las
-// mascotas: 0x443fa0 → 0x443d70, 0x443d40, el paso de las escenas 4 y 5 (0x445230 → 0x444010) y su dibujo (0x4453b0
-// → 0x445260). 06 § El caballo oscuro y § Las mascotas.
+// Pets/HelperTable.h: the game's helper table (0x7d335d0) with the dark horse (0xbf) and the pets: 0x443fa0 →
+// 0x443d70, 0x443d40, the step of scenes 4 and 5 (0x445230 → 0x444010) and its draw (0x4453b0 → 0x445260). 06 § El
+// caballo oscuro and § Las mascotas.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -101,14 +101,14 @@ using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
 using Client::Terrain::TerrainPolygon;
 
-// Las semillas del rand() de la CRT, por su primer rand(): con QuietSeed, % 3 da 2 y % 2 da 1 (ni aliento
-// ni polvo); con BreathSeed, % 3 da 0; con DustSeed, % 2 da 0.
+// The CRT rand() seeds, by their first rand(): with QuietSeed, % 3 gives 2 and % 2 gives 1 (no breath, no dust); with
+// BreathSeed, % 3 gives 0; with DustSeed, % 2 gives 0.
 constexpr std::uint32_t QuietSeed = 1;
 constexpr std::uint32_t BreathSeed = 2;
 constexpr std::uint32_t DustSeed = 3;
 constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t OtherSlot = 7;
-// Las acciones del jinete (+0x111) que mira 0x444010.
+// The rider actions (+0x111) that 0x444010 looks at.
 constexpr std::uint8_t StandingRider = 0x4a;
 constexpr std::uint8_t GallopingRider = 0x4b;
 constexpr std::uint8_t RearingRider = 0x53;
@@ -140,8 +140,8 @@ bool HasError(const Client::Core::Expected<void, std::string>& result, std::stri
     return !result.HasValue() && result.Error().find(address) != std::string::npos;
 }
 
-// Las siete acciones de DarkHorse.bmd (u otras tantas), de 10 keys cada una, en `boneCount` huesos: el 0 en el origen
-// y los demás colgados de él, cada uno a su número de unidades en z.
+// DarkHorse.bmd's seven actions (or as many), 10 keys each, on `boneCount` bones: 0 at the origin and the others
+// hanging from it, each at its number of units in z.
 Skeleton HorseSkeleton(std::size_t boneCount = 1, std::size_t actionCount = 7)
 {
     Skeleton skeleton;
@@ -165,9 +165,9 @@ Skeleton HorseSkeleton(std::size_t boneCount = 1, std::size_t actionCount = 7)
     return skeleton;
 }
 
-// Las mascotas que mueve 0x444010 además del caballo.
+// The pets 0x444010 moves besides the horse.
 constexpr std::array<std::uint16_t, 6> PetModels{UniriaModel, DinorantModel, 0x14a, 0x14b, 0x14c, GuardianAngelModel};
-// El Uniria y el Dinorant llegan a la acción 7 (0x44498b).
+// The Uniria and the Dinorant reach action 7 (0x44498b).
 constexpr std::size_t PetActions = 8;
 
 bool IsPet(std::uint16_t model)
@@ -175,7 +175,7 @@ bool IsPet(std::uint16_t model)
     return std::find(PetModels.begin(), PetModels.end(), model) != PetModels.end();
 }
 
-// El caballo como un modelo de una malla con un triángulo, colgado del hueso 0.
+// The horse as a model of one mesh with one triangle, hanging from bone 0.
 class HorseModels final : public IModelLibrary
 {
 public:
@@ -216,12 +216,12 @@ private:
     std::array<TextureSlot, 1> m_slots{TextureSlot{0x3bc}};
 };
 
-// Un mundo con el héroe vivo en HeroSlot, como lo deja 0x511290 (+0x88 en 1), en la celda (100, 100) sin
-// atributos, y la tabla de los ayudantes vacía.
+// The hero alive in HeroSlot, as 0x511290 leaves it (+0x88 at 1), on cell (100, 100) without attributes, and the
+// helper table empty.
 class HelperWorld
 {
 private:
-    // Varios escenarios conviven en un test: el pool durable no debe agotar la pila de Windows.
+    // Several scenarios live in one test: the durable pool must not exhaust the Windows stack.
     std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
 
 public:
@@ -258,7 +258,7 @@ public:
         return terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
-    // 0x443fa0(0xbf, héroe + 0x10, héroe, 0, 0), como lo llama 0x5bc997.
+    // 0x443fa0(0xbf, hero + 0x10, hero, 0, 0), as 0x5bc997 calls it.
     void Mount()
     {
         const auto created = CreateHelper(world, DarkHorseModel, Rider().position, HeroSlot);
@@ -266,7 +266,7 @@ public:
         ASSERT_EQ(created.Value(), std::optional<std::size_t>{0});
     }
 
-    // 0x443fa0(tipo, héroe + 0x10, héroe, 0, 0) con el rand() compartido.
+    // 0x443fa0(type, hero + 0x10, hero, 0, 0) with the shared rand().
     void Ride(std::uint16_t type)
     {
         const auto created = CreateHelper(world, type, Rider().position, HeroSlot, &random);
@@ -284,7 +284,7 @@ public:
                                              .terrain = &terrain});
     }
 
-    // El paso del juego con la cuenta de los pasos lógicos (0x7d3a0f0) y el temblor de la cámara (0x7d325c8).
+    // The game step with the logic step count (0x7d3a0f0) and the camera shake (0x7d325c8).
     Client::Core::Expected<void, std::string> StepCounting(std::int32_t logicSteps, float* shake)
     {
         return StepHelpers(HelperStepContext{.world = world,
@@ -297,7 +297,7 @@ public:
                                              .cameraShake = shake});
     }
 
-    // El jinete en la 0x53 con el caballo ya en su acción 3, en `frame` y con la cuenta +0x8e en `count`.
+    // The rider in 0x53 with the horse already in its action 3, at `frame` and with the +0x8e count at `count`.
     void Rear(float frame, std::uint8_t count = 0)
     {
         Rider().animation.action = RearingRider;
@@ -308,8 +308,8 @@ public:
 
     static constexpr std::uint8_t EarthquakeAction = 3;
 
-    // El buffer global de la pose (0x68b181c) como lo dejaría un dibujo de 39 huesos (o `count`): cada uno sin giro,
-    // en PosedBone(hueso).
+    // The global pose buffer (0x68b181c) as a draw of 39 bones (or `count`) would leave it: each without rotation, at
+    // PosedBone(bone).
     void PoseTheGlobalBones(std::size_t count = PosedBones)
     {
         auto& bones = world.PoseCarry().bones;
@@ -320,7 +320,7 @@ public:
         }
     }
 
-    // El galope (0x4b) con el caballo ya en su acción 1 y en `frame`.
+    // The gallop (0x4b) with the horse already in its action 1 and at `frame`.
     void Gallop(float frame = 0.0f)
     {
         Rider().animation.action = GallopingRider;
@@ -336,7 +336,7 @@ public:
         return {10000.0f + at, 10100.0f + at, 170.0f + at};
     }
 
-    // Lo que el dibujo de `scene` lee: la luz del terreno de este mundo y la tabla de los sprites.
+    // What the `scene` draw reads: this world's terrain light and the sprite table.
     HelperDrawContext DrawContext(ModelBatch& batch, bool originalFrame = true, SceneId scene = SceneId::Game)
     {
         return HelperDrawContext{.batch = batch,
@@ -358,7 +358,7 @@ public:
                                  .trapezoid = &trapezoid};
     }
 
-    // El timeGetTime() que ve el dibujo de los Fenrir.
+    // The timeGetTime() the Fenrir draw sees.
     static constexpr std::uint32_t FenrirHour = 4321;
 
     Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
@@ -369,7 +369,6 @@ public:
         return DrawHelpers(DrawContext(batch, originalFrame, scene));
     }
 
-    // Los sprites vivos de la tabla del frame.
     std::vector<Client::Particles::Sprite> LiveSprites()
     {
         std::vector<Client::Particles::Sprite> live;
@@ -386,10 +385,10 @@ public:
     WorldState& world = *m_world;
     Client::Terrain::WorldTerrain terrain;
     CrtRandom random;
-    // El reloj del mundo (0x5767b88) con que 0x53fe70 gira las 5f2: 12.345 ms, 105 grados.
+    // The world clock (0x5767b88) with which 0x53fe70 turns the 0x5f2: 12345 ms, 105 degrees.
     float clock = 12345.0f;
     HorseModels models;
-    // La luz del terreno (0x5ffce0), (0,25; 0,5; 0,75) en cada celda, y los sprites del frame (0x5491e0).
+    // The terrain light (0x5ffce0), (0.25, 0.5, 0.75) on each cell, and the frame sprites (0x5491e0).
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = UniformLighting();
     Client::Particles::FrameSprites sprites;
     // The global trapezoid that 0x5fba90 reads (Camera::CameraState::trapezoid).
@@ -414,9 +413,8 @@ TEST(HelperTableTest, TheSeedsDrawWhatTheTestsNeed)
     EXPECT_EQ(FirstDraw(DustSeed) % 2, 0);
 }
 
-// 0x443d70 en el primer lugar libre: vivo, el 0xbf, el jinete, la posición que recibe, los ángulos del
-// jinete, la escala en 1, la velocidad en 0,5, el alpha en 0, sin verse, y el frame y la key anterior en 0.
-// Sin rand(). El siguiente va al lugar 1.
+// 0x443d70 in the first free slot: alive, 0xbf, the rider, the given position, the rider's angles, scale at 1, speed
+// at 0.5, alpha at 0, unseen, and the frame and the previous key at 0. No rand(). The next one goes to slot 1.
 TEST(HelperTableTest, CreatingFillsTheFirstFreeSlot)
 {
     HelperWorld tested;
@@ -444,8 +442,8 @@ TEST(HelperTableTest, CreatingFillsTheFirstFreeSlot)
     EXPECT_EQ(tested.random.State(), CrtRandom(QuietSeed).State());
 }
 
-// Q-C221: 0x443d70 no escribe la acción (+0x111) ni la anterior (+0x112): el lugar que se vuelve a usar se
-// queda con las del caballo de antes. En la celda segura del jinete, el primer paso avanza esa acción.
+// Q-C221: 0x443d70 writes neither the action (+0x111) nor the previous one (+0x112): a reused slot keeps the previous
+// horse's. On the rider's safe cell, the first step advances that action.
 TEST(HelperTableTest, AReusedSlotKeepsTheActionOfThePreviousHorse)
 {
     HelperWorld tested;
@@ -473,8 +471,8 @@ TEST(HelperTableTest, AReusedSlotKeepsTheActionOfThePreviousHorse)
     EXPECT_FLOAT_EQ(tested.Horse().horse.animation.frame, 0.5f);
 }
 
-// 0x443faa..0x443fc7: en los mapas 18 a 23, o con un jinete que no es un jugador, nada; con los 10 vivos,
-// tampoco. En el 17 y el 24, sí.
+// 0x443faa..0x443fc7: on maps 18 to 23, or with a rider that is not a player, nothing; with all 10 alive, neither. On
+// 17 and 24, yes.
 TEST(HelperTableTest, NothingIsCreatedInChaosCastleWithoutAPlayerOrWithAFullTable)
 {
     for (const std::int32_t map : {18, 20, 23})
@@ -514,7 +512,7 @@ TEST(HelperTableTest, NothingIsCreatedInChaosCastleWithoutAPlayerOrWithAFullTabl
     }
 }
 
-// Un tipo sin constructor portado corta donde el original lo crearía; en Chaos Castle, nada.
+// A type without a ported constructor stops where the original would create it; in Chaos Castle, nothing.
 TEST(HelperTableTest, UnknownHelpersFailBeforeConstruction)
 {
     for (const std::uint16_t type : std::array<std::uint16_t, 2>{0xbe, 0x14d})
@@ -560,7 +558,7 @@ TEST(HelperTableTest, TheSelectionRidingHelpersUseTheSharedFactoryAndKeepTheirAc
     }
 }
 
-// 0x443d40: apaga los vivos de ese jinete; los de otro y lo demás del lugar quedan.
+// 0x443d40: turns off that rider's live ones; another rider's and the rest of the slot stay.
 TEST(HelperTableTest, TurningOffTheRidersHorsesLeavesTheOthers)
 {
     HelperWorld tested;
@@ -580,8 +578,8 @@ TEST(HelperTableTest, TurningOffTheRidersHorsesLeavesTheOthers)
     EXPECT_EQ(helpers.size(), HelperCount);
 }
 
-// Q-C225: en la escena 5, con el jinete muerto o con su +0x88 distinto de 1, 0x444010 apaga el caballo y no
-// hace más: ni el alpha, ni rand().
+// Q-C225: in scene 5, with the rider dead or its +0x88 other than 1, 0x444010 turns the horse off and does nothing
+// else: no alpha, no rand().
 TEST(HelperTableTest, TheGameStepTurnsOffAHorseWithoutItsRider)
 {
     struct Case
@@ -605,9 +603,9 @@ TEST(HelperTableTest, TheGameStepTurnsOffAHorseWithoutItsRider)
     }
 }
 
-// 0x4440fd..0x445039 fuera de la celda segura: copia la posición y los ángulos del jinete, toma la acción y
-// la velocidad de la suya y avanza; el aliento saca su rand() % 3 (con QuietSeed, 2: sin aliento). Con +8
-// del jinete en otro valor que 1, lo vuelve a 0.
+// 0x4440fd..0x445039 outside the safe cell: copies the rider's position and angles, takes the action and the speed from
+// the rider's and advances; the breath draws its rand() % 3 (with QuietSeed, 2: no breath). With the rider's +8 at a
+// value other than 1, sets it back to 0.
 TEST(HelperTableTest, OutsideTheSafeCellTheHorseFollowsItsRider)
 {
     HelperWorld tested;
@@ -631,9 +629,9 @@ TEST(HelperTableTest, OutsideTheSafeCellTheHorseFollowsItsRider)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
 }
 
-// 0x4440b8..0x4440f8: en una celda con el bit 0 del byte bajo, la de la posición del jinete por 0,01, el
-// alpha va a 0 después de subir y el caballo avanza con la acción y la velocidad que tenía (0,5 de 0x443d70),
-// sin copiar nada del jinete ni sacar rand(). El 0x02 del héroe y los bits altos no cuentan.
+// 0x4440b8..0x4440f8: on a cell with bit 0 of the low byte, the one at the rider's position times 0.01, the alpha goes
+// to 0 after rising and the horse advances with the action and speed it had (0x443d70's 0.5), without copying anything
+// from the rider or drawing rand(). The hero's 0x02 and the high bits do not count.
 TEST(HelperTableTest, InTheRidersSafeCellTheHorseHides)
 {
     struct Case
@@ -672,8 +670,8 @@ TEST(HelperTableTest, InTheRidersSafeCellTheHorseHides)
     }
 }
 
-// 0x4440bb..0x4440d6: la celda es la de la posición truncada, con el byte bajo de cada coordenada (0x5f82a0):
-// 17.299,99 por 0,01 cae en la 172, y 25.650 (la 256,5) en la 0.
+// 0x4440bb..0x4440d6: the cell is the truncated position's, with the low byte of each coordinate (0x5f82a0): 17299.99
+// times 0.01 falls on 172, and 25650 (256.5) on 0.
 TEST(HelperTableTest, TheSafeCellTruncatesAndKeepsTheLowByte)
 {
     HelperWorld edge;
@@ -693,10 +691,10 @@ TEST(HelperTableTest, TheSafeCellTruncatesAndKeepsTheLowByte)
 
 using GoldenHelperTable = Client::Tests::GoldenDataTest;
 
-// Q-C222, con los .att de Lorencia (el 0) y Devias (el 2): el caballo mira la celda de la posición del
-// jinete, la que se dibuja, y no la lógica de +0x41c (la de +0x3e2, 0x505de0, que va una adelante). En el
-// borde del pueblo, con el jinete dibujado adentro, la celda lógica afuera y +0x3e2 en 0, el caballo se
-// oculta; dibujado afuera, con la lógica adentro y +0x3e2 en 1, se ve y lo sigue.
+// Q-C222, with the .att of Lorencia (0) and Devias (2): the horse looks at the cell of the rider's position, the drawn
+// one, not the logical one at +0x41c (that of +0x3e2, 0x505de0, one ahead). On the town border, with the rider drawn
+// inside, the logical cell outside and +0x3e2 at 0, the horse hides; drawn outside, with the logical one inside and
+// +0x3e2 at 1, it is seen and follows.
 TEST_F(GoldenHelperTable, TheHorseLooksAtTheDrawnCellAndNotAtTheLogicalOne)
 {
     struct Case
@@ -750,9 +748,9 @@ TEST_F(GoldenHelperTable, TheHorseLooksAtTheDrawnCellAndNotAtTheLogicalOne)
     }
 }
 
-// 0x44456b..0x4445d9: con rand() % 3 en 0, el aliento sale de (50; −4; 0) en el hueso 27 del buffer global de la
-// pose (0x4ec110 sin el origen) a las partículas del juego: la 5f2/0 con la luz 3 del caballo, sus dos rand() y el
-// reloj del mundo, o en Atlans (el 7) la gota 607/0, que nace con la luz en 1. Tres rand() en total.
+// 0x44456b..0x4445d9: with rand() % 3 at 0, the breath leaves from (50, −4, 0) on bone 27 of the global pose buffer
+// (0x4ec110 without the origin) into the game particles: 0x5f2/0 with the horse's light 3, its two rand() and the world
+// clock, or in Atlans (7) the 0x607/0 drop, born with light at 1. Three rand() in total.
 TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
 {
     HelperWorld tested(0, BreathSeed);
@@ -788,9 +786,9 @@ TEST(HelperTableTest, TheBreathLeavesFromBone27OfTheGlobalPose)
     EXPECT_EQ(atlans.random.State(), RandomAfter(BreathSeed, 3).State());
 }
 
-// Sin el hueso 27 en el buffer global (ningún dibujo lo escribió todavía) el hueso es la matriz en cero de la
-// .bss (200 huesos): el aliento sale del origen, con los mismos tres rand(). Con la acción 1 del caballo, o con
-// +0x78 & 0x4000 del jinete, no lo saca.
+// Without bone 27 in the global buffer (no draw wrote it yet) the bone is the .bss zero matrix (200 bones): the breath
+// leaves from the origin, with the same three rand(). With the horse's action 1, or the rider's +0x78 & 0x4000, there
+// is no breath.
 TEST(HelperTableTest, TheBreathWithoutItsBoneLeavesFromTheOrigin)
 {
     HelperWorld tested(0, BreathSeed);
@@ -813,8 +811,8 @@ TEST(HelperTableTest, TheBreathWithoutItsBoneLeavesFromTheOrigin)
     EXPECT_EQ(calm.random.State(), CrtRandom(BreathSeed).State());
 }
 
-// 0x445260 → 0x602e90 deja la pose del caballo en el buffer global (WorldState::PoseCarry) y el paso siguiente
-// saca el aliento del hueso 27 de esa pose.
+// 0x445260 → 0x602e90 leaves the horse's pose in the global buffer (WorldState::PoseCarry) and the next step takes the
+// breath from bone 27 of that pose.
 TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
 {
     HelperWorld tested(0, BreathSeed);
@@ -846,10 +844,10 @@ TEST(HelperTableTest, TheBreathReadsThePoseTheHorseDrawLeft)
     EXPECT_NE(breath.position, glm::vec3(0.0f));
 }
 
-// 0x44416b..0x4444ef, el galope (0x4b) del jinete fuera del 10: la acción 1, sin aliento. rand() % 2: con 1, nada;
-// con 0, en Kalima (24 a 29 y 36) o con +0x78 & 0x4000 del jinete, nada; si no, los tres rand() del lugar
-// alrededor del caballo, (rand() & 63) − 32 en x y en y y (rand() & 31) − 16 en z, y en Devias (el 2) la 5f2/0 con
-// sus dos rand(), y en los demás la 5f3/0 con sus cuatro, las dos con la luz 1.
+// 0x44416b..0x4444ef, the rider's gallop (0x4b) outside 10: action 1, no breath. rand() % 2: with 1, nothing; with 0,
+// in Kalima (24 to 29 and 36) or with the rider's +0x78 & 0x4000, nothing; otherwise, the place's three rand() around
+// the horse, (rand() & 63) − 32 in x and y and (rand() & 31) − 16 in z, and in Devias (2) 0x5f2/0 with its two rand(),
+// and elsewhere 0x5f3/0 with its four, both with light 1.
 TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
 {
     for (const std::int32_t map : {0, 2})
@@ -920,12 +918,11 @@ TEST(HelperTableTest, TheGallopRaisesTheDustOfItsMap)
     EXPECT_EQ(flagged.random.State(), RandomAfter(DustSeed, 1).State());
 }
 
-// 0x44419f..0x4443d1, el galope en Icarus (el 10), sin mirar Kalima ni +0x78 del jinete: (rand() & 63) − 32 en la z
-// de (120; 0; z), el punto del hueso del frame en el buffer global, la onda 0x6eb/1 corrida (rand() & 15) − 8 en x
-// y en y con su rand() de la escala, el rand() de la guarda y las 5f2/0 de a una, corridas rand() % 50 − 25 en x y en
-// y y (rand() & 15) − 18 en z, mientras su cuenta no llega a un rand() % 5 + 5 nuevo en cada vuelta (Q-C400). Con la
-// semilla 1 y el frame 1,25 (el hueso 25 en (10.025; 10.125; 195)): el lugar (10.145; 10.125; 204), siete
-// nubes y 47 rand().
+// 0x44419f..0x4443d1, the gallop in Icarus (10), ignoring Kalima and the rider's +0x78: (rand() & 63) − 32 in the z of
+// (120, 0, z), the frame bone's point in the global buffer, the 0x6eb/1 wave shifted (rand() & 15) − 8 in x and y with
+// its scale rand(), the guard's rand() and the 0x5f2/0 one at a time, shifted rand() % 50 − 25 in x and y and
+// (rand() & 15) − 18 in z, while their count does not reach a new rand() % 5 + 5 on each turn (Q-C400). With seed 1
+// and frame 1.25 (bone 25 at (10025, 10125, 195)): the place (10145, 10125, 204), seven clouds and 47 rand().
 TEST(HelperTableTest, InIcarusTheGallopRaisesAWaveAndPuffsFromTheGlobalPose)
 {
     struct Puff
@@ -983,9 +980,9 @@ TEST(HelperTableTest, InIcarusTheGallopRaisesAWaveAndPuffsFromTheGlobalPose)
     }
 }
 
-// 0x4441cd..0x4442ad: el hueso por el frame del caballo, en ventanas que se pisan y donde gana la primera: (1; 1,2)
-// el 19, (1,1; 1,4) el 25, (1,3; 1,6) el 32 y (1,5; 1,8] el 38, cerrada arriba. Fuera de todas, solo el rand() de la
-// z (Q-C404), sin onda ni nubes. La onda queda corrida −5 en x del hueso más 120.
+// 0x4441cd..0x4442ad: the bone by the horse's frame, in overlapping windows where the first wins: (1, 1.2) 19,
+// (1.1, 1.4) 25, (1.3, 1.6) 32 and (1.5, 1.8] 38, closed above. Outside all, only the z rand() (Q-C404), no wave or
+// clouds. The wave stays shifted −5 in x from the bone plus 120.
 TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
 {
     struct Case
@@ -1021,9 +1018,8 @@ TEST(HelperTableTest, TheIcarusDustPicksItsBoneByTheFrame)
     }
 }
 
-// Sin el hueso del frame en el buffer global vale la matriz en cero de la .bss: la onda nace en el corrimiento
-// de rand() % 16 − 8 alrededor del origen (el −5 de la semilla, el 115 − 120 de los huesos posados), igual que
-// con los huesos escritos en cero.
+// Without the frame bone in the global buffer, the .bss zero matrix applies: the wave is born at the rand() % 16 − 8
+// shift around the origin (the seed's −5, the posed bones' 115 − 120), the same as with the bones written as zero.
 TEST(HelperTableTest, TheIcarusDustWithoutItsBoneReadsAZeroBone)
 {
     HelperWorld tested(10, QuietSeed);
@@ -1052,7 +1048,7 @@ float QuakeF32(double value)
     return static_cast<float>(value);
 }
 
-// 0x445571: ((rand() % 3) − 3) · 0,7f (0x6b8a5c), guardado en float en 0x7d325c8.
+// 0x445571: ((rand() % 3) − 3) · 0.7f (0x6b8a5c), stored as a float in 0x7d325c8.
 float QuakeShake(CrtRandom& random)
 {
     return QuakeF32(static_cast<double>((random.Next() % 3) - 3) * static_cast<double>(0.7f));
@@ -1065,10 +1061,10 @@ std::size_t LiveEffects(HelperWorld& tested)
         std::count_if(effects.begin(), effects.end(), [](const auto& effect) { return effect.alive; }));
 }
 
-// 0x4445e1..0x44468a: con la acción 3 del caballo (la del jinete 0x53), después del aliento, 0x52e470 con el héroe
-// (0x743a170) de dueño, del punto (60; 0; 0) del hueso 9 del buffer global (0x68b19cc) al del mismo hueso, en blanco y
-// con el tipo, el largo y la key en 0; después 0x4453e0 sube la cuenta +0x8e. Con 1 paso lógico no hay onda y con el
-// frame en 0 queda fuera de la ventana: ni piedras ni temblor. Ninguno de los dos saca rand().
+// 0x4445e1..0x44468a: with the horse's action 3 (the rider's 0x53), after the breath, 0x52e470 with the hero
+// (0x743a170) as owner, from the point (60, 0, 0) of bone 9 of the global buffer (0x68b19cc) to the same bone's, in
+// white and with type, length and key at 0; then 0x4453e0 raises the +0x8e count. With 1 logic step there is no wave
+// and with frame 0 it is outside the window: no stones, no shake. Neither draws rand().
 TEST(HelperTableTest, TheRearingLeavesARibbonFromBone9AndCountsTheQuake)
 {
     HelperWorld rearing;
@@ -1097,15 +1093,15 @@ TEST(HelperTableTest, TheRearingLeavesARibbonFromBone9AndCountsTheQuake)
     EXPECT_EQ(shake, 5.0f);
     EXPECT_EQ(rearing.random.State(), RandomAfter(QuietSeed, 1).State());
 
-    // El paso siguiente alarga la misma cinta (el mismo dueño) y la cuenta sigue.
+    // The next step lengthens the same ribbon (the same owner) and the count goes on.
     ASSERT_TRUE(rearing.StepCounting(2, &shake).HasValue());
     EXPECT_EQ(ribbon.count, 2);
     EXPECT_EQ(rearing.Horse().horse.effectCount, 2u);
 }
 
-// 0x4453f8..0x445425: con la cuenta de los pasos lógicos múltiplo de 10 (el resto con signo de idiv, también en los
-// negativos), la onda 0x6eb/0 en la posición y los ángulos del caballo (los del jinete) con su luz (+0xf4, el 3 de
-// 0x443d70): vida 30 y escala 20, sin rand(). Con otra cuenta, ninguna.
+// 0x4453f8..0x445425: with the logic step count a multiple of 10 (idiv's signed remainder, also for negatives), the
+// 0x6eb/0 wave at the horse's position and angles (the rider's) with its light (+0xf4, 0x443d70's 3): life 30 and
+// scale 20, no rand(). With another count, none.
 TEST(HelperTableTest, EveryTenLogicStepsTheRearingStompsAShockWave)
 {
     for (const std::int32_t steps : {0, 20, -10})
@@ -1134,11 +1130,11 @@ TEST(HelperTableTest, EveryTenLogicStepsTheRearingStompsAShockWave)
     EXPECT_EQ(LiveEffects(quiet), 0u);
 }
 
-// 0x44542d..0x445553: con el frame en [8; 9,5] y la cuenta impar (4 + 1 = 5), seis piedras en un anillo de radio
-// (5 / 2) · 150 = 300 alrededor del caballo: el giro arranca en rand() % 360 y suma 60 antes de cada una, (0; 300; 0)
-// girado con esa z más la posición del caballo, cada eje en float; el tipo 0x118 + (rand() & 1) sale después del giro
-// y antes del alta, que saca sus dos rand() (la escala y el yaw) con la luz del caballo y vida 40. Después, el temblor
-// de la cámara. Con 1 paso lógico, sin onda.
+// 0x44542d..0x445553: with the frame in [8, 9.5] and an odd count (4 + 1 = 5), six stones on a ring of radius
+// (5 / 2) · 150 = 300 around the horse: the turn starts at rand() % 360 and adds 60 before each, (0, 300, 0) rotated by
+// that z plus the horse's position, each axis in float; type 0x118 + (rand() & 1) is drawn after the turn and before
+// the creation, which draws its two rand() (scale and yaw) with the horse's light and life 40. Then, the camera
+// shake. With 1 logic step, no wave.
 TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCamera)
 {
     HelperWorld quake;
@@ -1170,7 +1166,7 @@ TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCa
         EXPECT_EQ(effect.transform.position, place) << stone;
         EXPECT_EQ(effect.light, glm::vec3(3.0f, 3.0f, 3.0f)) << stone;
         EXPECT_EQ(effect.life, 40) << stone;
-        // El anillo, sin la matriz: (−300 · sen z; 300 · cos z) alrededor del caballo.
+        // The ring, without the matrix: (−300 · sin z, 300 · cos z) around the horse.
         const double radians = static_cast<double>(turn.z) * 3.14159265358979323846 / 180.0;
         EXPECT_NEAR(effect.transform.position.x - horse.x, -300.0 * RoundedSin(radians), 0.01) << stone;
         EXPECT_NEAR(effect.transform.position.y - horse.y, 300.0 * RoundedCos(radians), 0.01) << stone;
@@ -1180,7 +1176,8 @@ TEST(HelperTableTest, InItsWindowTheQuakeRingsSixStonesOnOddCountsAndShakesTheCa
     EXPECT_EQ(quake.random.State(), expected.State());
 }
 
-// 0x445476: con la cuenta par (5 + 1 = 6) no hay piedras, pero dentro de la ventana (9,5 incluido) el temblor sí.
+// 0x445476: with an even count (5 + 1 = 6) there are no stones, but inside the window (9.5 included) there is the
+// shake.
 TEST(HelperTableTest, OnEvenCountsTheQuakeOnlyShakesTheCamera)
 {
     HelperWorld quake;
@@ -1195,8 +1192,8 @@ TEST(HelperTableTest, OnEvenCountsTheQuakeOnlyShakesTheCamera)
     EXPECT_EQ(quake.random.State(), expected.State());
 }
 
-// 0x44542d..0x445455: el frame por debajo de 8, por encima de 9,5 o NaN (fcomp + test ah,1 lo manda afuera) solo
-// sube la cuenta: ni piedras ni temblor ni rand(), y con una cuenta que no llega a 0x13, nada más.
+// 0x44542d..0x445455: the frame below 8, above 9.5 or NaN (fcomp + test ah,1 sends it out) only raises the count: no
+// stones, shake or rand(), and with a count short of 0x13, nothing else.
 TEST(HelperTableTest, OutsideItsWindowTheQuakeOnlyCounts)
 {
     for (const float frame : {7.99f, 9.51f, std::numeric_limits<float>::quiet_NaN()})
@@ -1213,8 +1210,8 @@ TEST(HelperTableTest, OutsideItsWindowTheQuakeOnlyCounts)
     }
 }
 
-// 0x51cc8b: una piedra que cae en una celda con el bit 0x04, 0x08 o 0x10 no nace y no saca sus dos rand(); el tipo
-// ya salió. Con todo el mapa en 0x08: el giro, seis tipos y el temblor.
+// 0x51cc8b: a stone falling on a cell with bit 0x04, 0x08 or 0x10 is not born and does not draw its two rand(); the
+// type was already drawn. With the whole map at 0x08: the turn, six types and the shake.
 TEST(HelperTableTest, TheStonesSkipTheCellsTheirAttributeMasks)
 {
     HelperWorld quake;
@@ -1229,7 +1226,8 @@ TEST(HelperTableTest, TheStonesSkipTheCellsTheirAttributeMasks)
     EXPECT_EQ(quake.random.State(), expected.State());
 }
 
-// 0x44452e: sólo la rama de las otras acciones del jinete (la que da la acción 0) borra la cuenta; el galope la deja.
+// 0x44452e: only the branch of the rider's other actions (the one that gives action 0) clears the count; the gallop
+// leaves it.
 TEST(HelperTableTest, OnlyTheOtherGaitsClearTheQuakeCount)
 {
     HelperWorld standing;
@@ -1246,10 +1244,10 @@ TEST(HelperTableTest, OnlyTheOtherGaitsClearTheQuakeCount)
     EXPECT_EQ(galloping.Horse().horse.effectCount, 7u);
 }
 
-// 0x445581..0x4455b3: fuera de la ventana, con la cuenta en 0x13, el terremoto 0xfa con el caballo de dueño (su tipo y
-// sus ángulos, leídos vivos), su posición, sus ángulos, su luz y el estado 2; su alta saca el subtipo rand() % 100 y
-// cierra el registro propio (+0xf04 sube 1 y, con la profundidad en 0, 3.848 rand()). La cuenta pasa a 0xfd y el paso
-// siguiente (0xfe) ya no lo crea.
+// 0x445581..0x4455b3: outside the window, with the count at 0x13, the 0xfa earthquake with the horse as owner (its type
+// and angles, read live), its position, its angles, its light and state 2; its creation draws subtype rand() % 100 and
+// closes the own record (+0xf04 rises 1 and, with depth at 0, 3848 rand()). The count goes to 0xfd and the next step
+// (0xfe) no longer creates it.
 TEST(HelperTableTest, AtCount0x13OutsideItsWindowTheQuakeCracksTheEarth)
 {
     HelperWorld quake;
@@ -1284,7 +1282,7 @@ TEST(HelperTableTest, AtCount0x13OutsideItsWindowTheQuakeCracksTheEarth)
     EXPECT_EQ(LiveEffects(quake), 1u);
 }
 
-// Sin el temblor de la cámara (0x7d325c8), la ventana corta en 0x445577 (aquí, con la cuenta par).
+// Without the camera shake (0x7d325c8), the window stops at 0x445577 (here, with an even count).
 TEST(HelperTableTest, TheQuakeWithoutTheCameraShakeStops)
 {
     HelperWorld quake;
@@ -1293,8 +1291,7 @@ TEST(HelperTableTest, TheQuakeWithoutTheCameraShakeStops)
     EXPECT_TRUE(HasError(quake.StepCounting(1, nullptr), "0x445577"));
 }
 
-// Sin el esqueleto del 0xbf o sin el mapa cargado, el paso de un caballo vivo corta; con la tabla vacía
-// no los necesita.
+// Without the 0xbf skeleton or the map loaded, a live horse's step stops; with the table empty it needs neither.
 TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
 {
     HelperWorld empty;
@@ -1315,18 +1312,18 @@ TEST(HelperTableTest, ALiveHorseNeedsItsSkeletonAndTheMap)
     EXPECT_TRUE(HasError(noMap.Step(), "0x4440db"));
 }
 
-// Los doce 60f/0 de 0x44469d..0x44474c en el pool de los joints del mundo (0x74a8d78).
+// The twelve 0x60f/0 of 0x44469d..0x44474c in the world's joint pool (0x74a8d78).
 std::span<JointState> Joints(HelperWorld& tested)
 {
     return tested.world.DrawTail().joints;
 }
 
-// 0x44469d..0x44474c, con +8 del jinete en 1 (el que 0x421db0 pone con el A9): cuatro vueltas de z + 90 (0x6b8948), en
-// cada una (0; 50; 0) girado (−50 · sen z; 50 · cos z; 0) más la posición del caballo (la del jinete, (10050; 10050;
-// 170)), y tres 0x530860(0x60f, punto, punto, ángulos, 0, caballo, 40, 2, 0, 0, −1). Cada uno nace como el 60f/0 de
-// ancho 40 (0x5341fc..0x5342d2): vida 50, 20 puntos, velocidad 40, vy rand() % 500 − 250 y vz (rand() % 250 + 200)
-// · 0,01f, con la luz del caballo (+0xf4, el 3 de 0x443d70), el caballo de dueño y la key 2. Tres rand() cada uno,
-// después del del aliento; +8 vuelve a 0 y el caballo toma el byte vivo del jinete.
+// 0x44469d..0x44474c, with the rider's +8 at 1 (set by 0x421db0 with the A9): four turns of z + 90 (0x6b8948), on each
+// (0, 50, 0) rotated (−50 · sin z, 50 · cos z, 0) plus the horse's position (the rider's, (10050, 10050, 170)), and
+// three 0x530860(0x60f, point, point, angles, 0, horse, 40, 2, 0, 0, −1). Each is born as the width 40 0x60f/0
+// (0x5341fc..0x5342d2): life 50, 20 points, speed 40, vy rand() % 500 − 250 and vz (rand() % 250 + 200) · 0.01f, with
+// the horse's light (+0xf4, 0x443d70's 3), the horse as owner and key 2. Three rand() each, after the breath's; +8
+// goes back to 0 and the horse takes the rider's live byte.
 TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
 {
     HelperWorld tested;
@@ -1351,7 +1348,7 @@ TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
         SCOPED_TRACE(index);
         const JointState& joint = joints[index];
         const std::size_t turn = index / 3;
-        static_cast<void>(draws.Next()); // 0x534214: la vz de ancho 10, que el ancho 40 pisa.
+        static_cast<void>(draws.Next()); // 0x534214: the width 10 vz, which width 40 overwrites.
         const int drift = draws.Next();
         const int rise = draws.Next();
         ASSERT_TRUE(joint.alive);
@@ -1381,8 +1378,8 @@ TEST(HelperTableTest, TheOrbitsRaiseTwelveSparklesAroundTheHorse)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 37).State());
 }
 
-// 0x530860 recorre el pool: los doce van a los primeros lugares libres (con cinco, los tres de la primera vuelta y
-// dos de la segunda) y, con el pool lleno, no nacen ni sacan rand(); el paso sigue y +8 vuelve a 0.
+// 0x530860 walks the pool: the twelve go to the first free slots (with five, the three of the first turn and two of
+// the second) and, with the pool full, they are not born and draw no rand(); the step goes on and +8 goes back to 0.
 TEST(HelperTableTest, TheOrbitsTakeOnlyTheFreeJoints)
 {
     constexpr std::array<std::size_t, 5> FreeSlots{3, 77, 250, 498, 499};
@@ -1430,8 +1427,8 @@ TEST(HelperTableTest, TheOrbitsTakeOnlyTheFreeJoints)
     EXPECT_EQ(full.random.State(), RandomAfter(QuietSeed, 1).State());
 }
 
-// En la celda segura el paso salta de 0x4440f8 a 0x445006, sin pasar por 0x444752: +8 queda en 1 y los doce esperan a
-// que el caballo salga de ella (Q-C437).
+// On the safe cell the step jumps from 0x4440f8 to 0x445006, skipping 0x444752: +8 stays at 1 and the twelve wait for
+// the horse to leave it (Q-C437).
 TEST(HelperTableTest, TheOrbitsWaitUntilTheHorseLeavesTheSafeCell)
 {
     HelperWorld tested;
@@ -1454,9 +1451,9 @@ TEST(HelperTableTest, TheOrbitsWaitUntilTheHorseLeavesTheSafeCell)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1 + (12 * 3)).State());
 }
 
-// El paso de los joints (0x535840) con el caballo de dueño: el avance común de 40 por sus ángulos, el giro de 0x53b239
-// con la key 2 ((vida + vy) / 2) alrededor del destino, vz, la cola y una vida menos. Con el ancho en 40, 0x53b378 no
-// lee la acción del caballo (+0x111): aunque esté en la 0xd de la caída, sigue siendo el 60f/0. Sin rand().
+// The joints step (0x535840) with the horse as owner: the common advance of 40 by its angles, 0x53b239's turn with key
+// 2 ((life + vy) / 2) around the target, vz, the tail and one life less. With width 40, 0x53b378 does not read the
+// horse's action (+0x111): even in the fall's 0xd, it is still the 0x60f/0. No rand().
 TEST(HelperTableTest, TheOrbitsTurnWithoutReadingTheHorse)
 {
     HelperWorld tested;
@@ -1498,8 +1495,8 @@ TEST(HelperTableTest, TheOrbitsTurnWithoutReadingTheHorse)
     EXPECT_EQ(tested.random.State(), state);
 }
 
-// 0x445260 en la escena 5: +0x16c con el trapecio global; visto, la escala en 1, el dibujo de 0x602e90 y
-// el rand() % 30 de 0x445336.
+// 0x445260 in scene 5: +0x16c with the global trapezoid; seen, the scale at 1, 0x602e90's draw and 0x445336's
+// rand() % 30.
 TEST(HelperTableTest, ASeenHorseIsDrawnAndSpendsOneRandom)
 {
     HelperWorld tested;
@@ -1562,7 +1559,6 @@ TEST(HelperTableTest, OnlyTheOriginalHorseDrawPublishesItsPoseToTheNextFrame)
     EXPECT_EQ(publications, 1);
 }
 
-// Sin verse no se dibuja ni saca rand(); con un jinete que no es un jugador, tampoco, aunque se vea.
 TEST(HelperTableTest, AnUnseenHorseOrOneWithoutAPlayerSpendsNothing)
 {
     HelperWorld unseen;
@@ -1588,7 +1584,7 @@ TEST(HelperTableTest, AnUnseenHorseOrOneWithoutAPlayerSpendsNothing)
     EXPECT_EQ(monster.random.State(), CrtRandom(QuietSeed).State());
 }
 
-// Q-C223: con el alpha por debajo de 0,01, 0x5ffdf0 no lo dibuja, pero 0x445336 saca su rand() igual.
+// Q-C223: with the alpha below 0.01, 0x5ffdf0 does not draw it, but 0x445336 draws its rand() anyway.
 TEST(HelperTableTest, ATransparentHorseStillSpendsTheRandom)
 {
     HelperWorld tested;
@@ -1603,7 +1599,7 @@ TEST(HelperTableTest, ATransparentHorseStillSpendsTheRandom)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
 }
 
-// Q-C224: con +0x78 & 0x1000 del jinete, 0x5ffdf0 pone el frame del caballo en 0 si lo dibuja.
+// Q-C224: with the rider's +0x78 & 0x1000, 0x5ffdf0 sets the horse's frame to 0 if it draws it.
 TEST(HelperTableTest, TheRidersFrozenFlagResetsTheFrameOfADrawnHorse)
 {
     for (const float alpha : {1.0f, 0.0f})
@@ -1622,8 +1618,8 @@ TEST(HelperTableTest, TheRidersFrozenFlagResetsTheFrameOfADrawnHorse)
     }
 }
 
-// 0x5ffdf0 en los mapas 18 a 23: sin +0x1a1 del héroe, el caballo se dibuja como en otro mapa; con él, el alpha
-// guardado baja 0,15f en cada dibujo del original.
+// 0x5ffdf0 on maps 18 to 23: without the hero's +0x1a1, the horse is drawn as on another map; with it, the stored alpha
+// drops 0.15f on each draw of the original.
 TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
 {
     HelperWorld plain;
@@ -1647,12 +1643,12 @@ TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
     EXPECT_EQ(chaos.Horse().horse.alpha, static_cast<float>(1.0 - static_cast<double>(0.15f)));
 }
 
-// 0x445310: con +0x78 & 0x4000 del jinete, 0x602e90(lugar, 0, 0, 10). 0x5ffdf0 lo posa igual (publica la pose) y
-// 0x6002e0 no va por el caso de su tipo sino por 0x60033c: el color del modelo en 1 y 0x4ecc30(malla, 0x4040, 0,5, …,
-// 0x620) en cada malla, aditivo con Chrome02 y en 0,5 (Actors::Drawing::DrawChromeShell), sin el blanco ni el cromo ni
-// la sombra del caballo, sin el RenderBody(2) de las mascotas y sin los sprites, los rayos, la chispa ni los rand() del
-// Fenrir; ninguno lee la luz del terreno, que el blanco pisa. Después, el rand() % 30 + 70 de 0x445336 y, con el
-// 0x1c12, su brillo, como siempre.
+// 0x445310: with the rider's +0x78 & 0x4000, 0x602e90(slot, 0, 0, 10). 0x5ffdf0 poses it anyway (publishes the pose)
+// and 0x6002e0 takes 0x60033c instead of its type's case: the model color at 1 and 0x4ecc30(mesh, 0x4040, 0.5, …,
+// 0x620) on each mesh, additive with Chrome02 at 0.5 (Actors::Drawing::DrawChromeShell), without the horse's white,
+// chrome or shadow, without the pets' RenderBody(2) and without the Fenrir's sprites, bolts, spark or rand(); none
+// reads the terrain light, which the white overwrites. Then 0x445336's rand() % 30 + 70 and, with 0x1c12, its glow, as
+// always.
 TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
 {
     std::vector<std::uint16_t> types{DarkHorseModel};
@@ -1711,9 +1707,9 @@ TEST(HelperTableTest, TheRidersFlag4000DrawsEveryHelperAsAChromeShell)
     }
 }
 
-// 0x600343..0x600399: el camino del 10 busca al jinete en el pool; si no es el héroe, con el asedio (0x4294b0) y su
-// +0x370 distinto de 1, sale por 0x602e7d sin dibujar. Con el héroe de jinete, sin el asedio o con +0x370 en 1, lo
-// dibuja. La pose (0x5ffdf0) y el rand() de 0x445336 van igual.
+// 0x600343..0x600399: the 10 path looks for the rider in the pool; if it is not the hero, with the siege (0x4294b0) and
+// its +0x370 other than 1, it leaves through 0x602e7d without drawing. With the hero as rider, without the siege or
+// with +0x370 at 1, it draws. The pose (0x5ffdf0) and 0x445336's rand() run the same.
 TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessItsByte370IsOne)
 {
     struct Case
@@ -1756,9 +1752,9 @@ TEST(HelperTableTest, InTheSiegeTheFlag4000HidesTheHelperOfAnotherRiderUnlessIts
     }
 }
 
-// Q-C293: en la escena 4 (0x6342f4) 0x444010 no apaga el ayudante de un jinete muerto: el alpha sube, el caballo lo
-// sigue, saca el rand() % 3 del aliento y apaga su byte vivo con el del jinete (0x44475c). En la 5 lo apaga antes de
-// todo, sin rand().
+// Q-C293: in scene 4 (0x6342f4) 0x444010 does not turn off a dead rider's helper: the alpha rises, the horse follows
+// it, draws the breath's rand() % 3 and turns off its live byte with the rider's (0x44475c). In 5 it turns it off
+// before everything, without rand().
 TEST(HelperTableTest, TheSelectionStepRunsTheBodyOfAHorseWithoutItsRider)
 {
     HelperWorld selection(54, QuietSeed);
@@ -1785,8 +1781,8 @@ TEST(HelperTableTest, TheSelectionStepRunsTheBodyOfAHorseWithoutItsRider)
     EXPECT_EQ(game.random.State(), CrtRandom(QuietSeed).State());
 }
 
-// 0x444010 corta en 0x444083 con un tipo sin cuerpo (0x443d70 no lo construye) y en 0x444010 sin el modelo del
-// tipo, el de Skill\ (0x615700) o Player\Helper01.bmd (0x60ff50).
+// 0x444010 stops at 0x444083 with a type without a body (0x443d70 does not build it) and at 0x444010 without the type's
+// model, the Skill\ one (0x615700) or Player\Helper01.bmd (0x60ff50).
 TEST(HelperTableTest, APetNeedsItsBodyAndItsModel)
 {
     HelperWorld unknown;
@@ -1804,9 +1800,9 @@ TEST(HelperTableTest, APetNeedsItsBodyAndItsModel)
     }
 }
 
-// 0x4447c4..0x444ac4 con el galope del jinete (0x0d): el Uniria toma su lugar y sus ángulos, la acción 2 y la
-// velocidad 0,34 (0x444ab6), y con rand() % 2 en 0 el polvo 5f3 de Lorencia alrededor, con los mismos rand() que el
-// caballo (TheGallopRaisesTheDustOfItsMap). El alpha va a 1 con +0x80 del jinete en 0.
+// 0x4447c4..0x444ac4 with the rider's gallop (0x0d): the Uniria takes its place and angles, action 2 and speed 0.34
+// (0x444ab6), and with rand() % 2 at 0 Lorencia's 0x5f3 dust around, with the same rand() as the horse
+// (TheGallopRaisesTheDustOfItsMap). The alpha goes to 1 with the rider's +0x80 at 0.
 TEST(HelperTableTest, TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop)
 {
     HelperWorld tested(0, DustSeed);
@@ -1832,7 +1828,7 @@ TEST(HelperTableTest, TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop)
     EXPECT_EQ(dust.light, glm::vec3(1.0f));
     EXPECT_EQ(tested.random.State(), RandomAfter(DustSeed, 8).State());
 
-    // 0x4449d6 y 0x4449f1: en Icarus, o con 0x4000 en +0x78 del jinete, solo el rand() % 2.
+    // 0x4449d6 and 0x4449f1: in Icarus, or with 0x4000 in the rider's +0x78, only the rand() % 2.
     for (const auto& [map, flags] : {std::pair{10, 0u}, std::pair{0, 0x4000u}})
     {
         SCOPED_TRACE(map);
@@ -1846,9 +1842,9 @@ TEST(HelperTableTest, TheUniriaFollowsItsRiderAndRaisesTheDustOfItsGallop)
     }
 }
 
-// 0x444867..0x4449b7: la acción del Uniria y del Dinorant por la del jinete y el mapa, y la z del Dinorant: −10 en
-// Tarkan (8) e Icarus (10), −30 en los demás y la del jinete con el mundo en −1. Solo el galope saca su rand() % 2
-// (con la semilla 1, sin polvo).
+// 0x444867..0x4449b7: the action of the Uniria and the Dinorant from the rider's and the map, and the Dinorant's z: −10
+// in Tarkan (8) and Icarus (10), −30 elsewhere, and the rider's with the world at −1. Only the gallop draws its
+// rand() % 2 (with seed 1, no dust).
 TEST(HelperTableTest, TheRidingHelpersTakeTheirActionAndHeightFromTheRiderAndTheMap)
 {
     struct Case
@@ -1895,7 +1891,7 @@ TEST(HelperTableTest, TheRidingHelpersTakeTheirActionAndHeightFromTheRiderAndThe
     }
 }
 
-// 0x44480b..0x44484a: con +0x80 del jinete en 1 o en 2, el alpha que dejó 0x4e9980 baja 0,1f; con otro, 1.
+// 0x44480b..0x44484a: with the rider's +0x80 at 1 or 2, the alpha 0x4e9980 left drops 0.1f; with another, 1.
 TEST(HelperTableTest, TheRidersByte80FadesTheRidingHelpers)
 {
     struct Case
@@ -1921,8 +1917,8 @@ TEST(HelperTableTest, TheRidersByte80FadesTheRidingHelpers)
     }
 }
 
-// 0x4447e7..0x444806 y 0x444b13..0x444b36: en la celda segura del jinete el alpha va a 0 y el ayudante avanza con la
-// acción y la velocidad que tenía, sin moverse ni sacar rand(). El Uniria no copia el byte vivo del jinete ahí.
+// 0x4447e7..0x444806 and 0x444b13..0x444b36: on the rider's safe cell the alpha goes to 0 and the helper advances with
+// the action and speed it had, without moving or drawing rand(). The Uniria does not copy the rider's live byte there.
 TEST(HelperTableTest, InTheRidersSafeCellTheRidingHelpersHide)
 {
     for (const std::uint16_t type : {UniriaModel, DinorantModel, std::uint16_t{0x14a}})
@@ -1952,10 +1948,10 @@ TEST(HelperTableTest, InTheRidersSafeCellTheRidingHelpersHide)
     EXPECT_TRUE(HasError(noMap.Step(), "0x4447e7"));
 }
 
-// 0x444010(ayudante, 1) desde el retrato de las cartas (0x495796): un ayudante fuera de la tabla, con su jinete fuera
-// del pool (el lugar ActorPoolSize), lee la celda segura del jinete pero no se esconde (0x4440eb, 0x4447f9 y
-// 0x444b25): hace lo mismo, con los mismos rand(), que uno de la tabla con su jinete fuera de la celda. La tabla no se
-// toca. Sin el byte vivo, nada (0x444021).
+// 0x444010(helper, 1) from the letter portrait (0x495796): a helper outside the table, with its rider outside the pool
+// (slot ActorPoolSize), reads the rider's safe cell but does not hide (0x4440eb, 0x4447f9 and 0x444b25): it does the
+// same, with the same rand(), as a table one with its rider off the cell. The table is not touched. Without the live
+// byte, nothing (0x444021).
 TEST(HelperTableTest, TheLetterPortraitHelperFollowsItsRiderInTheSafeCell)
 {
     for (const std::int32_t map : {0, 2})
@@ -2015,9 +2011,9 @@ TEST(HelperTableTest, TheLetterPortraitHelperFollowsItsRiderInTheSafeCell)
     }
 }
 
-// 0x445260(ayudante, 1) desde el retrato de las cartas (0x4959cc): visto sin mirar el trapecio (0x4452a4), con la
-// escala en 0x3f3ae148 sea cual sea el tipo (0x4452d2, Q-C1010), dibujado y con el rand() % 30 + 70 de 0x445336. La
-// tabla no se toca. Sin el byte vivo, nada (0x44526b).
+// 0x445260(helper, 1) from the letter portrait (0x4959cc): seen without checking the trapezoid (0x4452a4), with the
+// scale at 0x3f3ae148 whatever the type (0x4452d2, Q-C1010), drawn and with 0x445336's rand() % 30 + 70. The table is
+// not touched. Without the live byte, nothing (0x44526b).
 TEST(HelperTableTest, TheLetterPortraitHelperIsAlwaysSeenAndDrawnAtItsOwnScale)
 {
     for (const std::int32_t map : {0, 2})
@@ -2057,7 +2053,7 @@ TEST(HelperTableTest, TheLetterPortraitHelperIsAlwaysSeenAndDrawnAtItsOwnScale)
     }
 }
 
-// 0x444ac0: el Uniria y el Dinorant se quedan con el byte vivo del jinete, que en la escena 4 puede estar muerto.
+// 0x444ac0: the Uniria and the Dinorant keep the rider's live byte, which in scene 4 can be dead.
 TEST(HelperTableTest, TheRidingHelpersCopyTheRidersAliveByte)
 {
     HelperWorld tested(54, QuietSeed);
@@ -2070,9 +2066,9 @@ TEST(HelperTableTest, TheRidingHelpersCopyTheRidersAliveByte)
     EXPECT_EQ(tested.Horse().horse.alpha, 1.0f);
 }
 
-// 0x444bbc..0x444c4b: la acción y la velocidad del Fenrir por la del jinete. Las quietas (3, 4, 5 y 0, a 0,4) van
-// directo al avance; la carrera (1, a 1) y el trote (2, a 0,6) y las demás (sin tocar acción ni velocidad) siguen al
-// polvo, que fuera del 10 saca su rand() % 3 (con la semilla 1, sin polvo).
+// 0x444bbc..0x444c4b: the Fenrir's action and speed from the rider's. The still ones (3, 4, 5 and 0, at 0.4) go
+// straight to the advance; the run (1, at 1), the trot (2, at 0.6) and the others (action and speed untouched) go on to
+// the dust, which outside 10 draws its rand() % 3 (with seed 1, no dust).
 TEST(HelperTableTest, TheFenrirTakesItsGaitFromTheRider)
 {
     struct Case
@@ -2120,9 +2116,9 @@ TEST(HelperTableTest, TheFenrirTakesItsGaitFromTheRider)
     }
 }
 
-// 0x444e1b..0x444f25: fuera del 10, con rand() % 3 en 0, fuera de Kalima y sin el 0x4000 del jinete, el polvo
-// alrededor del Fenrir: la 5f2 en Devias, a (0; −26; −13) con la semilla 2, y la 5f3 en los demás. El Fenrir no
-// copia el byte vivo del jinete.
+// 0x444e1b..0x444f25: outside 10, with rand() % 3 at 0, outside Kalima and without the rider's 0x4000, the dust around
+// the Fenrir: 0x5f2 in Devias, at (0, −26, −13) with seed 2, and 0x5f3 elsewhere. The Fenrir does not copy the
+// rider's live byte.
 TEST(HelperTableTest, TheRunningFenrirRaisesTheDustOfItsMap)
 {
     HelperWorld devias(2, BreathSeed);
@@ -2160,10 +2156,10 @@ TEST(HelperTableTest, TheRunningFenrirRaisesTheDustOfItsMap)
     }
 }
 
-// 0x444c78..0x444e16, el Fenrir en Icarus: sin rand() antes del frame. Entre 1 y 1,2, el hueso 22 del buffer global
-// con (120; 0; 32) y 40 más en x; entre 4,8 y 5 (cerrada arriba), el 44 con 40 más en x y 700 más en z (Q-C421). La
-// onda 0x6eb/1 sin corrimiento, con su rand() de la escala, y las 5f2 (PuffTheIcarusDust): con la semilla 1, ocho y
-// 50 rand(). Fuera de las ventanas, nada.
+// 0x444c78..0x444e16, the Fenrir in Icarus: no rand() before the frame. Between 1 and 1.2, bone 22 of the global buffer
+// with (120, 0, 32) and 40 more in x; between 4.8 and 5 (closed above), 44 with 40 more in x and 700 more in z
+// (Q-C421). The 0x6eb/1 wave unshifted, with its scale rand(), and the 0x5f2 (PuffTheIcarusDust): with seed 1, eight
+// and 50 rand(). Outside the windows, nothing.
 TEST(HelperTableTest, InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones)
 {
     struct Case
@@ -2219,10 +2215,10 @@ TEST(HelperTableTest, InIcarusTheFenrirRaisesAWaveAndPuffsFromTwoBones)
     }
 }
 
-// 0x444f2a..0x444fff: sin el 0x4000 del jinete, cuatro 5c5/1 con la luz 0,4 a (rand() & 15) − 8 del Guardian Angel
-// en cada eje, con los dos rand() de cada alta. Después del avance, el vuelo (0x445052..0x445221): cerca del jinete no
-// gira, se mueve con su velocidad girada por sus ángulos y (rand() & 15) − 8 en z, y saca el rand() % 32 (con la
-// semilla 1, 12: sin otro rumbo). A 150 sobre el jinete, sin subir ni bajar la velocidad.
+// 0x444f2a..0x444fff: without the rider's 0x4000, four 0x5c5/1 with light 0.4 at (rand() & 15) − 8 from the Guardian
+// Angel on each axis, with each creation's two rand(). After the advance, the flight (0x445052..0x445221): near the
+// rider it does not turn, moves with its velocity rotated by its angles and (rand() & 15) − 8 in z, and draws the
+// rand() % 32 (with seed 1, 12: no new course). At 150 above the rider, without raising or lowering the velocity.
 TEST(HelperTableTest, TheGuardianAngelSparklesAndFliesWithItsVelocity)
 {
     HelperWorld tested(0, QuietSeed);
@@ -2267,9 +2263,9 @@ TEST(HelperTableTest, TheGuardianAngelSparklesAndFliesWithItsVelocity)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 22).State());
 }
 
-// 0x444f32..0x444f41: con 0x4000 en +0x78 del jinete, sin chispas. 0x445117..0x4451cb con rand() % 32 en 0 (la
-// semilla 2): de cerca, la velocidad en y ((rand() & 63) + 16) · −0,1f, el rumbo rand() % 360, 0 en x y
-// ((rand() & 63) − 32) · 0,1f en z, que sigue igual entre 100 y 200 por encima del jinete.
+// 0x444f32..0x444f41: with 0x4000 in the rider's +0x78, no sparkles. 0x445117..0x4451cb with rand() % 32 at 0 (seed
+// 2): up close, the y velocity ((rand() & 63) + 16) · −0.1f, the course rand() % 360, 0 in x and
+// ((rand() & 63) − 32) · 0.1f in z, which stays the same between 100 and 200 above the rider.
 TEST(HelperTableTest, NearItsRiderTheGuardianAngelTakesANewCourse)
 {
     HelperWorld tested(0, 2);
@@ -2292,10 +2288,10 @@ TEST(HelperTableTest, NearItsRiderTheGuardianAngelTakesANewCourse)
     EXPECT_EQ(tested.random.State(), RandomAfter(2, 5).State());
 }
 
-// 0x445052..0x4450b4: a 150 o más del jinete gira 20 grados hacia donde estaba al empezar el paso (0x4e93f0 y
-// 0x4e9560), y con rand() % 32 en 0 (la semilla 48, después de las cuatro chispas) toma la velocidad de lejos,
-// ((rand() & 63) + 128) · −0,1f, sin otro rumbo. Por debajo de 100 sobre el jinete, la de z sube 1,5; por encima de
-// 200, baja 1,5.
+// 0x445052..0x4450b4: at 150 or more from the rider it turns 20 degrees toward where it was at the step's start
+// (0x4e93f0 and 0x4e9560), and with rand() % 32 at 0 (seed 48, after the four sparkles) it takes the far velocity,
+// ((rand() & 63) + 128) · −0.1f, without a new course. Below 100 above the rider, the z one rises 1.5; above 200, it
+// drops 1.5.
 TEST(HelperTableTest, FarFromItsRiderTheGuardianAngelTurnsAndClimbs)
 {
     HelperWorld tested(0, 48);
@@ -2334,8 +2330,8 @@ TEST(HelperTableTest, FarFromItsRiderTheGuardianAngelTurnsAndClimbs)
     EXPECT_EQ(high.Horse().velocity.z, -0.5f);
 }
 
-// Q-C420: 0x443d70 no escribe la velocidad (+0xcc): el Guardian Angel que se crea en un lugar usado se queda con la
-// del ayudante de antes. Sus tres rand() de lugar van con el rand() compartido.
+// Q-C420: 0x443d70 does not write the velocity (+0xcc): a Guardian Angel created in a used slot keeps the previous
+// helper's. Its three place rand() go with the shared rand().
 TEST(HelperTableTest, AReusedSlotKeepsTheVelocityOfThePreviousHelper)
 {
     HelperWorld tested(0, QuietSeed);
@@ -2349,7 +2345,7 @@ TEST(HelperTableTest, AReusedSlotKeepsTheVelocityOfThePreviousHelper)
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 3).State());
 }
 
-// Q-C225 también para las mascotas: en la escena 5, con el jinete sin el 1 en +0x88, 0x444010 las apaga sin rand().
+// Q-C225 also for the pets: in scene 5, with the rider without the 1 in +0x88, 0x444010 turns them off without rand().
 TEST(HelperTableTest, TheGameStepTurnsOffAPetWithoutItsRider)
 {
     for (const std::uint16_t type : PetModels)
@@ -2365,9 +2361,9 @@ TEST(HelperTableTest, TheGameStepTurnsOffAPetWithoutItsRider)
     }
 }
 
-// 0x445260 → 0x602e90 con el Uniria y el Dinorant en el juego: la escala en 1 (0x445309), el color de 0x5ffce0 con la
-// luz por vértice (la del terreno más el 3 de +0xf4) y RenderBody(2) sin blendMesh, con su luz en 1, la U y la V en
-// 0 y sin malla oculta (0x600b35 y 0x602360). Después, solo el rand() % 30 de 0x445336.
+// 0x445260 → 0x602e90 with the Uniria and the Dinorant in the game: the scale at 1 (0x445309), 0x5ffce0's color with
+// the per-vertex light (the terrain's plus +0xf4's 3) and RenderBody(2) without blendMesh, with its light at 1, U and V
+// at 0 and no hidden mesh (0x600b35 and 0x602360). Then, only 0x445336's rand() % 30.
 TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
 {
     for (const std::uint16_t type : {UniriaModel, DinorantModel})
@@ -2414,8 +2410,8 @@ TEST(HelperTableTest, TheUniriaAndTheDinorantDrawWithTheLightOfTheTerrain)
     }
 }
 
-// 0x4452db..0x445309: 1,6 (0x3fcccccd) en la escena 2 y 1 en la 4; en la 5, los Fenrir se quedan con el 0,9 de
-// 0x443d70 y los demás van a 1. Con el alpha en 0 no se dibuja nada, pero la escala queda.
+// 0x4452db..0x445309: 1.6 (0x3fcccccd) in scene 2 and 1 in 4; in 5, the Fenrir keep 0x443d70's 0.9 and the others go
+// to 1. With the alpha at 0 nothing is drawn, but the scale stays.
 TEST(HelperTableTest, TheDrawScaleDependsOnTheSceneAndOnTheFenrir)
 {
     struct Case
@@ -2445,11 +2441,11 @@ TEST(HelperTableTest, TheDrawScaleDependsOnTheSceneAndOnTheFenrir)
     }
 }
 
-// El Guardian Angel (0x1c12) se dibuja sin un jugador de jinete (0x4452c2), con la escala en 1 y su malla 1 de
-// blendMesh (+0x64 en 1, 0x443f1a). Después, 0x445336 saca rand() % 30 + 70 (26.500 % 30 + 70 = 80 con la semilla 1,
-// después de los tres de 0x443d70) y 0x445390 crea el sprite 0x5ac en su lugar, de escala 1, con 80 · 0,01f por
-// (0,5; 0,8; 0,6) en la x87 y guardado en float: (0x3ecccccc; 0x3f23d70a; 0x3ef5c290). Con el alpha por debajo de
-// 0,01 no hay cuerpo, pero sí el rand() y el sprite.
+// The Guardian Angel (0x1c12) is drawn without a player rider (0x4452c2), with the scale at 1 and its mesh 1 as
+// blendMesh (+0x64 at 1, 0x443f1a). Then 0x445336 draws rand() % 30 + 70 (26500 % 30 + 70 = 80 with seed 1, after
+// 0x443d70's three) and 0x445390 creates the 0x5ac sprite in its place, scale 1, with 80 · 0.01f times (0.5, 0.8, 0.6)
+// on the x87 and stored as float: (0x3ecccccc, 0x3f23d70a, 0x3ef5c290). With the alpha below 0.01 there is no body,
+// but there are the rand() and the sprite.
 TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
 {
     for (const float alpha : {1.0f, 0.0f})
@@ -2498,12 +2494,12 @@ TEST(HelperTableTest, TheGuardianAngelDrawsItsBlendMeshAndLeavesItsGlow)
     }
 }
 
-// Lo que el dibujo no tiene: los Fenrir (0x60277b: sus pases, la partícula 0x5c6, la sombra, los sprites de sus
-// huesos y los dos efectos 0x14d de 0x602b30), que cortan sin el rand() de 0x445336; la luz del terreno de 0x5ffce0
-// para los demás; y la tabla de los sprites para el brillo del 0x1c12, que corta después de su rand().
+// What the draw lacks: the Fenrir (0x60277b: its passes, the 0x5c6 particle, the shadow, its bones' sprites and
+// 0x602b30's two 0x14d effects), which stop without 0x445336's rand(); 0x5ffce0's terrain light for the others; and
+// the sprite table for 0x1c12's glow, which stops after its rand().
 TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
 {
-    // El Fenrir pide sus tablas antes de dibujar y de sacar el primer rand().
+    // The Fenrir asks for its tables before drawing and before the first rand().
     for (int missing = 0; missing < 5; ++missing)
     {
         SCOPED_TRACE(missing);
@@ -2550,10 +2546,11 @@ TEST(HelperTableTest, ThePetDrawStopsWhereMuRetHasNotArrived)
     EXPECT_TRUE(HasError(DrawHelpers(context), "0x445390"));
     EXPECT_EQ(angel.random.State(), RandomAfter(QuietSeed, 4).State());
 }
-// 0x60277b..0x602b50 con el Fenrir rojo (0x14b) en la acción 4, el seno del reloj p = sin(T · 0,002f) · 0,2f: el cuerpo
-// en blanco y su sombra; la chispa 0x5c6/15 del hueso 14 con dos rand() y su escala p · 0,05f + 0,7f; dos sprites
-// 0x5ac en cada ojo (el hueso 11) y dos en el pecho (el 13); y dos rayos 0x14d con (0,8f; 0; 0) y sus rand(). Después,
-// el rand() de 0x445336. Los esperados repiten las altas con otra CRT y el buffer global posado del test.
+// 0x60277b..0x602b50 with the red Fenrir (0x14b) in action 4, the clock sine p = sin(T · 0.002f) · 0.2f: the body in
+// white and its shadow; the 0x5c6/15 spark from bone 14 with two rand() and its scale p · 0.05f + 0.7f; two 0x5ac
+// sprites on each eye (bone 11) and two on the chest (13); and two 0x14d bolts with (0.8f, 0, 0) and their rand().
+// Then, 0x445336's rand(). The expected values repeat the creations with another CRT and the test's posed global
+// buffer.
 TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
 {
     for (const std::uint32_t seed : {QuietSeed, 2u, 3u, 5u, 8u})
@@ -2651,10 +2648,10 @@ TEST(HelperTableTest, TheFenrirDrawsItsSparkItsFlaresAndTwoBolts)
     }
 }
 
-// Sin la acción 4 no hay chispa ni pase del cromo, y los rayos del Fenrir negro (0x14a) y del azul (0x14c) van con
-// (1; 1; 0,2f) y (0,1f; 0,1f; 0,8f). Los calcos 0x14e, en blanco, con el subtipo del color (3 y 2) y la hora de
-// timeGetTime(): con la acción 1 y el frame en [0; 1,5], en los huesos 22, 28, 36 y 44; con la 2, en el 22 y el 28
-// con el frame en (1; 1,4f] y en el 36 y el 44 en (4,8f; 5,2f]; si no, ninguno.
+// Without action 4 there is no spark or chrome pass, and the bolts of the black (0x14a) and blue (0x14c) Fenrir go with
+// (1, 1, 0.2f) and (0.1f, 0.1f, 0.8f). The 0x14e decals, in white, with the color subtype (3 and 2) and
+// timeGetTime()'s hour: with action 1 and the frame in [0, 1.5], on bones 22, 28, 36 and 44; with 2, on 22 and 28 with
+// the frame in (1, 1.4f] and on 36 and 44 in (4.8f, 5.2f]; otherwise, none.
 TEST(HelperTableTest, TheFenrirLeavesItsDecalsInTheWindowsOfItsStrikes)
 {
     struct Case

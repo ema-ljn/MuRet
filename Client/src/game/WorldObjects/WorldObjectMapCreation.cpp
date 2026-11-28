@@ -17,7 +17,7 @@ namespace
 {
 std::uint8_t CreateChaosCastleObject(WorldObject& object, std::int32_t map)
 {
-    // 0x405950: el mapa aceptado retorna AL1 incluso si el tipo no escribe nada.
+    // 0x405950: the accepted map returns AL = 1 even if the type writes nothing.
     constexpr std::int32_t FirstChaosCastle = 18;
     constexpr std::int32_t LastChaosCastle = 23;
     if (map < FirstChaosCastle || map > LastChaosCastle)
@@ -38,7 +38,7 @@ std::uint8_t CreateChaosCastleObject(WorldObject& object, std::int32_t map)
 
 std::uint8_t CreateMapObject438A80(WorldObject&)
 {
-    // Los tres bytes verificados 32 c0 c3 de 0x438a80 retornan AL0 sin leer el objeto ni el mapa.
+    // The three verified bytes 32 c0 c3 of 0x438a80 return AL = 0 without reading the object or the map.
     return 0;
 }
 
@@ -51,7 +51,7 @@ enum class CastleStateGroup : std::uint8_t
 
 CastleStateGroup CastleStateGroupOf(std::int16_t type)
 {
-    // 0x42b480: la selección signed16 precede al getter y no se vuelve a evaluar tras él.
+    // 0x42b480: the signed16 selection comes before the getter and is not re-evaluated after it.
     constexpr std::array<std::int16_t, 20> VisibleWhenNonzero{4,  11, 37, 41, 43, 44, 45, 46, 47, 48,
                                                               67, 68, 69, 71, 72, 73, 74, 75, 76, 88};
     constexpr std::array<std::int16_t, 16> HiddenWhenNonzero{16, 38, 39, 40, 50, 58, 59, 78,
@@ -81,7 +81,7 @@ ApplyCastlePredicateState(WorldObject& object, const WorldObjectCreationContext&
     {
         return WorldObjectCreationError::UnsupportedMapHandler;
     }
-    // 0x4294b0: un BYTE vivo por invocación, sin normalización ni valor inicial inventado.
+    // 0x4294b0: one live BYTE per call, without normalization or an invented initial value.
     ApplyCastlePredicate(object, *context.state7239Ec, hideWhenNonzero);
     return std::nullopt;
 }
@@ -107,10 +107,10 @@ bool ApplyCreationRandomPhase(WorldObject& object, Crt::CrtRandom* random, const
     {
         return false;
     }
-    // 0x42c711..42c72b y 0x43ff90..43ffa9: un rand, resto signed1000 y store en +84.
+    // 0x42c711..0x42c72b and 0x43ff90..0x43ffa9: one rand, signed remainder of 1000 and a store at +0x84.
     constexpr int RandomSpan = 1000;
     const int remainder = random->Next() % RandomSpan;
-    // FMUL m32[6b88d4] viene después del RNG: tomar aquí el valor del almacenamiento prestado.
+    // FMUL m32[0x6b88d4] comes after the RNG: take the borrowed storage's value here.
     const float factorValue = factor;
     object.field84 = static_cast<float>(static_cast<double>(remainder) * static_cast<double>(factorValue));
     return true;
@@ -118,7 +118,7 @@ bool ApplyCreationRandomPhase(WorldObject& object, Crt::CrtRandom* random, const
 
 std::optional<WorldObjectCreationError> ApplyCastleSpecialCase(WorldObject& object, WorldObjectCreationContext& context)
 {
-    // 0x42c6c4 guarda una sola lectura del tipo; ningún callback cambia la ruta ya elegida.
+    // 0x42c6c4 stores a single read of the type; no callback changes the already chosen route.
     const std::int16_t type = object.type;
     if (type == 7 || type == 10 || type == 13 || type == 14 || (type >= 61 && type <= 64))
     {
@@ -171,12 +171,12 @@ std::optional<WorldObjectCreationError> CreateCastleSiegeObject(WorldObject& obj
     {
         return error;
     }
-    // H lee el tipo vivo tras el efecto309; su retorno AL no corta la cola de 0x606660.
+    // H reads the live type after effect 309; its AL return does not cut 0x606660's tail.
     return ApplyCastleObjectState(object, context);
 }
 std::optional<WorldObjectCreationError> CreateMapObject43FF70(WorldObject& object, WorldObjectCreationContext& context)
 {
-    // 0x43ff10 lee el DWORD vivo aquí, después de C/H; no reutilizar el mapa del dispatch inicial.
+    // 0x43ff10 reads the live DWORD here, after C/H; do not reuse the initial dispatch's map.
     constexpr std::int32_t LandOfTrialMap = Maps::LandOfTrialsMap;
     if (context.map != LandOfTrialMap)
     {
@@ -193,14 +193,14 @@ std::optional<WorldObjectCreationError> CreateMapObject43FF70(WorldObject& objec
 
 std::uint8_t CreateMapObject42EE30(const WorldObjectCreationContext& context)
 {
-    // 0x42ee20: un DWORD vivo igual a 35; el wrapper normaliza AL sin efectos ni RNG.
+    // 0x42ee20: a live DWORD equal to 35; the wrapper normalizes AL without effects or RNG.
     constexpr std::int32_t Map35 = Maps::SecondCrywolfMap;
     return static_cast<std::uint8_t>(context.map == Map35);
 }
 
 std::uint8_t CreateMapObject4250E0(const WorldObjectCreationContext& context)
 {
-    // 0x425070: una única lectura de 32 bits para ambas igualdades; el wrapper conserva AL0/1.
+    // 0x425070: a single 32-bit read for both equalities; the wrapper keeps AL 0/1.
     constexpr std::int32_t Map33 = Maps::AidaMap;
     using Maps::CharacterSelectMap;
     const std::int32_t map = context.map;
@@ -209,7 +209,7 @@ std::uint8_t CreateMapObject4250E0(const WorldObjectCreationContext& context)
 
 std::uint8_t CreateMapObject4303D0(const WorldObjectCreationContext& context)
 {
-    // 0x4303c0: un DWORD vivo igual a 34; el wrapper normaliza AL sin efectos ni RNG.
+    // 0x4303c0: a live DWORD equal to 34; the wrapper normalizes AL without effects or RNG.
     constexpr std::int32_t Map34 = Maps::CrywolfMap;
     return static_cast<std::uint8_t>(context.map == Map34);
 }
@@ -222,7 +222,7 @@ void ApplyCastleSiegeObjectState(WorldObject& object, std::uint8_t siegeState)
     {
         return;
     }
-    // El store nativo DWORD de 0x42b480 ocurre DESPUÉS del getter y pisa el valor anterior.
+    // 0x42b480's native DWORD store happens AFTER the getter and overwrites the previous value.
     ApplyCastlePredicate(object, siegeState, group == CastleStateGroup::HiddenWhenNonzero);
 }
 
@@ -242,7 +242,7 @@ std::optional<WorldObjectCreationError> ApplyDefaultWorldObjectCreation(WorldObj
     {
         return castleError;
     }
-    // Los retornos AL de esta cola se ignoran. Sólo se consulta el gate de integración del port.
+    // This tail's AL returns are ignored. Only the port's integration gate is checked.
     const auto fourthError = CreateMapObject43FF70(object, context);
     if (fourthError.has_value())
     {

@@ -40,13 +40,13 @@ namespace Client::Particles
 class Particles;
 } // namespace Client::Particles
 
-// Los objetos de un mundo (CL7.2): los del .obj como los arma 0x606660, su paso de 0x604ab0 y lo que
-// 0x6002e0 hace con cada uno. Contrato: 06 § El mundo del login; vectores del código real en
+// A world's objects (CL7.2): those of the .obj as 0x606660 builds them, their step of 0x604ab0 and what 0x6002e0 does
+// with each one. Contract: 06 § El mundo del login; vectors from the real code in
 // Client/tests/vectors/world55/objects.txt (scripts/login/make_world55_vectors.py).
 namespace Client::WorldObjects
 {
-// La escena en que se crea: los casos del farol y del dueño del dragón de 0x606660 solo corren en el
-// login (2) y la selección (4). Los casos por mapa no dependen de la escena.
+// The lantern and dragon owner cases of 0x606660 only run in the login (2) and the selection (4). The per-map cases do
+// not depend on the scene.
 enum class ObjectScene : std::uint8_t
 {
     Login,
@@ -54,70 +54,69 @@ enum class ObjectScene : std::uint8_t
     Other,
 };
 
-// Proyección tipada de los campos usados de 0x1d4 bytes; no reproduce el layout i386.
+// Typed projection of the used fields of the 0x1d4 bytes; does not reproduce the i386 layout.
 struct WorldObject
 {
-    WorldObjectIdentity identity = 0;  // ID del caller; 0 en la proyección sin registro
-    std::int16_t type = 0;             // +0x2, el modelo
-    Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
-    std::int32_t field04 = 0;          // +0x4, en 0 de 0x606660; lo miran las puertas del 30
-    std::uint8_t field08 = 0;          // +0x8, byte escrito por creación del mapa 30
-    float field84 = 0.0f;              // +0x84, store FP del mapa 30/tipo 41
-    std::uint8_t field91 = 0;          // +0x91, byte escrito por creación del mapa 30
-    // +0x8a: 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17; 1 en el 3 de 18..23 que 0x4055b0 elige.
+    WorldObjectIdentity identity = 0;  // caller's ID; 0 in the projection without a registry
+    std::int16_t type = 0;             // +0x2, the model
+    Models::ObjectTransform transform; // +0xc the scale, +0x10 the position, +0x1c the angles
+    Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 and +0x58
+    std::int32_t field04 = 0;          // +0x4, 0 from 0x606660; the doors of the 30 read it
+    std::uint8_t field08 = 0;          // +0x8, byte written by map 30's creation
+    float field84 = 0.0f;              // +0x84, FP store of map 30/type 41
+    std::uint8_t field91 = 0;          // +0x91, byte written by map 30's creation
+    // +0x8a: 4 when 0x5ff960 opens the 9 or the 10 of 11..17; 1 in the 3 of 18..23 that 0x4055b0 picks.
     std::int16_t field8a = 0;
-    std::int32_t field60 = 0;     // +0x60, la cuenta del 3 de 18..23 (0x4055b0 la pone en 10, 0x4059d0 la baja)
-    glm::vec3 light{};            // +0xf4..+0xfc, la que se suma a la del terreno
-    float speed = 0.0f;           // +0xd8, keys por paso
+    std::int32_t field60 = 0;     // +0x60, the count of the 3 of 18..23 (0x4055b0 sets it to 10, 0x4059d0 lowers it)
+    glm::vec3 light{};            // +0xf4..+0xfc, added to the terrain's
+    float speed = 0.0f;           // +0xd8, keys per step
     float cullingMargin = -30.0f; // +0xdc, margen inicial de 0x6067ae
-    float fieldE0 = 50.0f;        // +0xe0, significado/consumidor sin modelar
+    float fieldE0 = 50.0f;        // +0xe0, meaning/consumer not modeled
     glm::vec3 velocity{};         // +0xcc..d4, cero nativo606830..60683c
-    glm::vec3 copiedAngles{};     // +0x28..+0x30, copia del caso del mapa 2
-    glm::vec3 copiedPosition{};   // +0x34..+0x3c, copia del caso del mapa 2
-    glm::vec3 basePosition{};     // +0x17c, segunda copia inicial de la posición
+    glm::vec3 copiedAngles{};     // +0x28..+0x30, copy from the map 2 case
+    glm::vec3 copiedPosition{};   // +0x34..+0x3c, copy from the map 2 case
+    glm::vec3 basePosition{};     // +0x17c, second initial copy of the position
     glm::vec3 boundsMinimum{-40.0f, -40.0f, 0.0f}; // +0x124..+0x12c
     glm::vec3 boundsMaximum{40.0f, 40.0f, 80.0f};  // +0x130..+0x138
     bool alive = true;                             // +0x0
     float alpha = 1.0f;                            // +0x174
     float targetAlpha = 1.0f;                      // +0x170
     bool vertexLight = true;                       // +0xe8
-    Models::AnimationState animation;              // +0x111 la acción, +0x114 el frame
-    // +0x16c: se vio en el último dibujo; 0x606560 solo avanza los que tienen esto.
+    Models::AnimationState animation;              // +0x111 the action, +0x114 the frame
+    // +0x16c: seen in the last draw; 0x606560 only advances those that have it.
     bool seen = false;
-    // +8 de su sector (0x7d325d4 + 0x10 · (x · 16 + y), .bss 0): el sector pasó el trapecio del último dibujo
-    // (0x60470b). 0x606560 hace el derrumbe (0x5ff960) con los vivos de un sector que no pasó y apaga su +0x16c.
+    // +8 of its sector (0x7d325d4 + 0x10 · (x · 16 + y), .bss 0): the sector passed the last draw's trapezoid
+    // (0x60470b). 0x606560 does the collapse (0x5ff960) with the live ones of a sector that did not pass and clears
+    // +0x16c.
     bool sectorPassed = false;
-    // +0x1c8: el sector de 16 × 16 celdas donde lo guardó 0x606660, de la posición del archivo.
+    // +0x1c8: the 16 × 16 cell sector where 0x606660 stored it, from the file's position.
     int sectorX = 0;
     int sectorY = 0;
 };
 
 class IWorldObjectCreationServices;
 
-// Bits de imagen de 0x6b88d4: default del port con almacenamiento estático, no una garantía de
-// inmutabilidad del dato original durante ejecución.
+// Image bits of 0x6b88d4: the port's default with static storage, not a guarantee that the original value is
+// immutable at run time.
 inline constexpr float InitialWorldObjectRandomFactor = std::bit_cast<float>(0x3C23D70Au);
 
 struct WorldObjectCreationContext
 {
-    // Prestado y leído después del servicio de escena 180, como el global nativo en 0x606985.
+    // Borrowed and read after scene service 180, like the native global at 0x606985.
     std::int32_t map;
     ObjectScene scene;
     WorldObjectRegistrations& registrations;
-    // El binding y el servicio permanecen vivos y estables durante todo el batch; sus datos
-    // prestados sí pueden cambiar. Se configura entre creaciones, no entre emisiones.
+    // The binding and the service stay alive and stable for the whole batch; their borrowed data can change. Set
+    // between creations, not between emissions.
     IWorldObjectCreationServices* services = nullptr;
-    Crt::CrtRandom* random = nullptr; // El mismo estado CRT que usan los efectos y el mundo.
-    // Byte vivo de 0x7239ec, con almacenamiento/valor/sincronización del caller. nullptr no fabrica
-    // un valor inicial: conserva el gate hasta que el productor real preste este estado durable.
+    Crt::CrtRandom* random = nullptr; // The same CRT state the effects and the world use.
+    // Live byte of 0x7239ec, with the caller's storage/value/synchronization. nullptr does not fabricate an initial
+    // value: it keeps the gate until the real producer lends this durable state.
     const std::uint8_t* state7239Ec = nullptr;
-    // Factor vivo de 0x6b88d4, leído después del RNG. El caller conserva este almacenamiento hasta
-    // que termine la creación y sincroniza sus cambios; un alias mutable puede cambiarlo entre
-    // llamadas o desde un emisor anterior. El resultado no retiene la referencia.
-    // Dominio portable: factor finito y producto representable en float; binary64/PC53-RN y un
-    // store binary32. No se acreditan control word, traps o máscaras x87 arbitrarios.
-    // Préstamo no rvalue: no extiende ni administra la vida del almacenamiento del caller.
+    // Live factor of 0x6b88d4, read after the RNG. The caller keeps this storage until the creation ends and
+    // synchronizes its changes; a mutable alias can change it between calls or from an earlier emitter. The result
+    // keeps no reference. Portable domain: finite factor and product representable in float; binary64/PC53-RN and one
+    // binary32 store. Arbitrary x87 control words, traps or masks are not credited.
     const std::reference_wrapper<const float> randomPhaseFactor = std::cref(InitialWorldObjectRandomFactor);
 };
 
@@ -125,7 +124,7 @@ enum class WorldObjectCreationError : std::uint8_t
 {
     UnsupportedEffect,
     UnsupportedMapHandler,
-    InvalidAngle, // ftol con ±infinito o fuera de [-2^63,2^63), sin observar; −2^63 y NaN (Q-C186) sí valen.
+    InvalidAngle, // ftol with ±infinity or outside [-2^63,2^63), unobserved; −2^63 and NaN (Q-C186) are valid.
 };
 
 struct WorldObjectCreationFailure
@@ -137,177 +136,169 @@ struct WorldObjectCreationFailure
 struct WorldObjectCreationResult
 {
     std::vector<WorldObject> objects;
-    // Al retornar por valor, failure conserva objetos/registro/efectos previos e incluye el objeto
-    // actual parcialmente creado. Sus campos pendientes no son un resultado válido del caso fallido.
-    // Es estado provisional de integración, no un resultado del handler original.
+    // Returned by value, failure keeps the earlier objects/registry/effects and includes the partially created current
+    // object. Its pending fields are not a valid result of the failed case: provisional integration state, not a result
+    // of the original handler.
     std::optional<WorldObjectCreationFailure> failure;
 };
 
-// Árboles0/1: reciprocal binary64, producto y store binary32. El modelo IEEE del port conserva
-// ±0/±infinito; no acredita flags, payloads NaN, traps ni un CW x87 universal. No es un gate de escala.
-// Constructor común con estado durable y servicios prestados. Se detiene en la primera dependencia
-// sin implementar, sin rollback ni fallback silencioso; los records posteriores no se crean.
-// Records estables y disjuntos del estado/resultados. El caller conserva identidad única y contador
-// con 1<=nextIdentity y records.size()<=UINT64_MAX-nextIdentity, también al restaurar el mundo.
-// Garantía de conservación sólo al retornar por valor: reserve puede lanzar antes de consumir IDs;
-// el provider debe retornar normalmente, sin lanzar. No se capturan ni traducen excepciones.
+// Trees 0/1: binary64 reciprocal, product and binary32 store; the port's IEEE model keeps ±0/±infinity and credits no
+// flags, NaN payloads, traps or universal x87 CW. It is not a scale gate. Stops at the first unimplemented dependency,
+// with no rollback or silent fallback; later records are not created. Records stay stable and disjoint from the
+// state/results; the caller keeps a unique identity and counter with 1<=nextIdentity and
+// records.size()<=UINT64_MAX-nextIdentity, also when restoring the world. Preservation holds only on return by value:
+// reserve can throw before consuming IDs; the provider must return normally. Exceptions are not caught or translated.
 [[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                            WorldObjectCreationContext& context);
 
-// +0x58 = −2: 0x6002e0 no lo dibuja (DAT_077f3b18, el modo editor, nunca está prendido).
+// +0x58 = −2: 0x6002e0 does not draw it (DAT_077f3b18, the editor mode, is never on).
 inline constexpr std::int16_t HiddenObject = -2;
 
-// El farol del castillo (Object61.bmd, de un hueso) y lo que pide 0x602ed0 en la escena 2 (0x602f21): dos
-// sprites de flare01 (0x5ac), de escala 1, aditivos y sin giro, en las traslaciones de los huesos 8 y 9
-// del buffer global de la pose (0x68b199c y 0x68b19cc), las del último modelo posado que los tiene
-// (Q-C140).
+// The castle lantern (Object61.bmd, one bone) and what 0x602ed0 asks for in scene 2 (0x602f21): two flare01 sprites
+// (0x5ac), scale 1, additive and unrotated, at the translations of bones 8 and 9 of the global pose buffer (0x68b199c
+// and 0x68b19cc), those of the last posed model that has them (Q-C140).
 inline constexpr std::int16_t StreetLight = 0x3c;
 inline constexpr std::uint16_t StreetLightGlowTexture = 0x5ac;
 inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 
-// La luz de los dos sprites del farol con `random`, el rand() que 0x602ef4 saca por cada objeto: L =
-// (random % 30 + 70) · 0,01f (0x6b88d4) guardado en float, y (L; L · 0,5; L · 0,2f), cada producto
-// guardado en float (0x6b882c y 0x6b8854).
+// The light of the lantern's two sprites with `random`, the rand() 0x602ef4 takes per object: L =
+// (random % 30 + 70) · 0.01f (0x6b88d4) stored in float, and (L; L · 0.5; L · 0.2f), each product stored in float
+// (0x6b882c and 0x6b8854).
 [[nodiscard]] glm::vec3 StreetLightGlowLight(int random);
 
-// Proyección visual sin registro auxiliar: aplica los casos directos 0/1/2/3/7/8/55 y escenas 2/4.
-// Omite 0x606630, las emisiones 180/322 y la cadena default. No equivale al constructor completo.
-// Cada record válido crea otro objeto, sin pool ni reutilización; fuera de la grilla no se crea.
-// Una conversión no acreditada devuelve failure con el índice y el prefijo parcial: hay que
-// comprobarlo antes de consumir objects, también en esta proyección.
+// Visual projection without an auxiliary registry: applies the direct cases 0/1/2/3/7/8/55 and scenes 2/4. Omits
+// 0x606630, the 180/322 emissions and the default chain; not equivalent to the full constructor. Each valid record
+// creates another object, with no pool or reuse; outside the grid none is created. An uncredited conversion returns
+// failure with the index and the partial prefix: check it before consuming objects, in this projection too.
 [[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                            std::uint8_t map, ObjectScene scene);
 
-// Proyección visual con el registro PREEXISTENTE del caller. Aplica registros y casos directos,
-// pero omite emisiones 180/322 y handlers default: para éstos se usa el contexto con servicios.
-// Los records deben ser estables y disjuntos del estado/resultados durante la creación. El dominio
-// de tipo es el int16 del Data reader extendido con signo (el callee nativo admite int32).
-// El caller conserva registro/contador durante la vida del mundo y aporta nextIdentity libre.
-// Precondición portable: 1<=nextIdentity y records.size()<=UINT64_MAX-nextIdentity; no reproduce un
-// contador nativo. La tabla no mantiene con vida ni resuelve por sí misma los IDs.
+// Visual projection with the caller's PRE-EXISTING registry. Applies registrations and direct cases, but omits the
+// 180/322 emissions and default handlers (those need the context with services). Records must stay stable and
+// disjoint from the state/results during creation. The type domain is the Data reader's sign-extended int16 (the
+// native callee takes int32). The caller keeps the registry/counter for the world's lifetime and provides a free
+// nextIdentity. Portable precondition: 1<=nextIdentity and records.size()<=UINT64_MAX-nextIdentity; does not
+// reproduce a native counter. The table neither keeps alive nor resolves the IDs by itself.
 [[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                            std::uint8_t map, ObjectScene scene,
                                                            WorldObjectRegistrations& registrations);
 
-// 0x604ab0 sobre un objeto que se vio: el alpha hacia su meta (0x4e9980) y, si no quedó por debajo de
-// 0,01, la animación a su velocidad
-// (0x4ec200, con la acción de `skeleton`, si tiene) y los casos del mapa: en el 0x37, los marcadores
-// 0x54, 0x55, 0x57 y 0x59 se ocultan, el remolino 0x56 gira −0,6° (alpha 0,2, luz (1, 0, 0) y todas
-// las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
+// 0x604ab0 on an object that was seen: the alpha toward its target (0x4e9980) and, if it did not fall below 0.01, the
+// animation at its speed (0x4ec200, with `skeleton`'s action, if it has one) and the map cases: on the 0x37, markers
+// 0x54, 0x55, 0x57 and 0x59 hide, whirlpool 0x56 turns −0.6° (alpha 0.2, light (1, 0, 0) and every mesh through the
+// blendMesh) and the 0x5a −0.23° (alpha 1 and white light, also through the blendMesh).
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Models::Skeleton* skeleton);
 
 struct ObjectModelStepState;
 
-// Lo que 0x604ab0 lee afuera del objeto en el juego (CL7, hito 3).
+// What 0x604ab0 reads outside the object in the game (CL7, milestone 3).
 struct ObjectStepGlobals
 {
-    // 0x77f36d0: la capa 1 de la celda del héroe, la que escribe MoveHero (0x59e2ba). En la .bss, 0.
+    // 0x77f36d0: layer 1 of the hero's cell, the one MoveHero writes (0x59e2ba). In the .bss, 0.
     std::int32_t heroCellLayer = 0;
-    // 0x5767b88: el reloj del mundo, en ms.
+    // 0x5767b88: the world clock, in ms.
     float worldClock = 0.0f;
-    // 0x7b4ccc4 y 0x743a198: los destinos durables del paso; no se fabrican buffers locales.
+    // 0x7b4ccc4 and 0x743a198: the step's durable destinations; no local buffers are fabricated.
     Terrain::TerrainLighting* dynamicLighting = nullptr;
     Particles::Particles* particles = nullptr;
-    // Las puertas consultan al héroe publicado y el modo editor, antes de mover o sonar.
+    // The doors query the published hero and the editor mode, before moving or sounding.
     const glm::vec3* heroPosition = nullptr;
     bool editorMode = false;
-    // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
+    // 0x41ed10(id, 0, 0): the caller keeps or emits the request, even in consecutive steps.
     std::function<void(Audio::SoundId)> sound{};
-    // 0x41ed10(id, 0, 1): la misma petición, en bucle (el ambiente del 9, 0x604b9b).
+    // 0x41ed10(id, 0, 1): the same request, looped (the 9's ambient sound, 0x604b9b).
     std::function<void(Audio::SoundId)> loopedSound{};
     ObjectModelStepState* modelState = nullptr;
-    // 0x518cf0: la tabla de los efectos con modelo, donde el 0x34 del 1 suelta la piedra 0xda y el 0x18 del 4
-    // el chorro 0x5de; el chorro abre y cierra el registro propio (0x7681eb4) con su cuenta de accesos.
+    // 0x518cf0: the model effects table, where the 1's 0x34 drops stone 0xda and the 4's 0x18 the jet 0x5de; the jet
+    // opens and closes its own record (0x7681eb4) with its access count.
     Effects::ModelEffects* effects = nullptr;
     std::uint8_t* ownRecordDepth = nullptr;
-    // +0x111 del héroe (0x743a170): la acción que mira la patada de 0x52f550 en el 0x26 y el 0x27 del 4.
+    // The hero's +0x111 (0x743a170): the action that 0x52f550's kick looks at in the 4's 0x26 and 0x27.
     const std::uint8_t* heroAction = nullptr;
-    // 0x6b8544 (timeGetTime): la ventana de las mariposas del 31 y su sonido ambiente (0x43ffd8, Q-C304).
+    // 0x6b8544 (timeGetTime): the window of the 31's butterflies and its ambient sound (0x43ffd8, Q-C304).
     std::function<std::uint32_t()> systemTime{};
-    // 0x723c4c: cuándo sonó el ambiente 0x1ef del 31 por última vez, en ms del sistema. En la .bss, 0.
+    // 0x723c4c: when the 31's ambient sound 0x1ef last played, in system ms. In the .bss, 0.
     std::uint32_t* trialsAmbientTime = nullptr;
-    // 0x7239ec: el byte del asedio que lee 0x4294b0 en los casos del 30 (0x42c850). Sin él, el 30 corta.
+    // 0x7239ec: the siege byte that 0x4294b0 reads in the 30's cases (0x42c850). Without it, the 30 cuts.
     const bool* siegeActive = nullptr;
-    // 0x7239e4: las banderas del216 para la visibilidad del marcador42 en guerra.
+    // 0x7239e4: the flags of the 216 for the visibility of marker 42 during the war.
     const std::uint32_t* siegeCrownFlags = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 6 a 17, 30, 31, 33 y 34 (*estático*, 06 § Los
-// objetos del juego; los del 1, del 4 y del 6, World/DungeonObjectStep.h; los del 7, World/AtlansObjectStep.h; los del
-// 9 y de 11 a 17, World/EventMapObjectStep.h; los del 8, con
-// el tipo 8 animado al cuádruple, World/TarkanObjectStep.h; los del 30, 0x42c850, World/CastleSiegeObjectStep.h; los
-// del 31, 0x43ffc0, StepLandOfTrialsObject, y los del 34, 0x4303e0, StepCrywolfObject, en
-// World/WorldObjectStepServices.h). Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha
-// (+0x170) a 0 con la capa del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa
-// en 3 o desde 10 (0x604c06); a 1 si no. Después del alpha/animación, los casos del mapa: UV y flicker, lámparas
-// 0x5a/0x96 al destino dinámico, fuegos de 0x52f360 al pool durable y puertas del mapa 2 con posición del
-// héroe/editor/sonido prestados. Un binding ausente corta donde lo pide el ASM, conservando RNG, partículas y stores
-// anteriores. En el 0x37 corre lo de StepWorldObject; los demás mapas cortan antes de tocar el objeto.
+// 0x604ab0 with an object seen in the game, on maps 0 to 4, 6 to 17, 30, 31, 33 and 34 (*static*, 06 § Los objetos
+// del juego; those of the 1, the 4 and the 6, MapScripts/Dungeon/DungeonObjectStep.h; those of the 7,
+// MapScripts/Atlans/AtlansObjectStep.h; those of the 9 and 11 to 17, Events/EventMapObjectStep.h; those of the 8, with
+// type 8 animated at four times the speed, MapScripts/Tarkan/TarkanObjectStep.h; those of the 30, 0x42c850,
+// CastleSiege/CastleSiegeObjectStep.h; those of the 31, 0x43ffc0, StepLandOfTrialsObject, and those of the 34,
+// 0x4303e0, StepCrywolfObject, in WorldObjects/WorldObjectStepServices.h). Before the alpha, the roofs: the 0x7d and
+// the 0x7e of the 0 take the alpha target (+0x170) to 0 with the hero's layer at 4 (0x604bc4), and the 0x51, 0x52,
+// 0x60, 0x62 and 0x63 of the 2 with the layer at 3 or from 10 up (0x604c06); to 1 otherwise. After the
+// alpha/animation, the map cases: UV and flicker, lamps 0x5a/0x96 to the dynamic destination, fires of 0x52f360 to the
+// durable pool and map 2's doors with borrowed hero position/editor/sound. A missing binding cuts where the ASM does,
+// keeping the earlier RNG, particles and stores. On the 0x37 StepWorldObject's part runs; the other maps cut before
+// touching the object.
 [[nodiscard]] Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
                                                                        const Models::Skeleton* skeleton,
                                                                        Crt::CrtRandom& random,
                                                                        const ObjectStepGlobals& globals);
 
-// Lo que 0x5ffdf0 y 0x6002e0 hacen con un objeto en el dibujo.
+// What 0x5ffdf0 and 0x6002e0 do with an object in the draw.
 enum class ObjectDrawKind : std::uint8_t
 {
-    // Nada: el alpha por debajo de 0,01 o +0x58 en −2.
+    // Nothing: the alpha below 0.01 or +0x58 at −2.
     Hidden,
-    // Un RenderBody(2, alpha, blendMesh, luz del blendMesh, U, V, malla oculta, −1) con el color del
-    // modelo.
+    // A RenderBody(2, alpha, blendMesh, blendMesh light, U, V, hidden mesh, −1) with the model's color.
     Body,
-    // El remolino 0x5a del mapa 0x37: 0x4ecc30(0, 0x80, 1, blendMesh, 1, U, V, −1), la malla 0 sola,
-    // con GL_ZERO, GL_ONE_MINUS_SRC_COLOR, en blanco y sin luz.
+    // Map 0x37's whirlpool 0x5a: 0x4ecc30(0, 0x80, 1, blendMesh, 1, U, V, −1), mesh 0 alone, with GL_ZERO,
+    // GL_ONE_MINUS_SRC_COLOR, white and unlit.
     SubtractiveMesh,
-    // El 0x69 del mapa 0 (Waterspout, 0x600a4a): cuatro 0x4ecc30 sueltos en vez de RenderBody, las mallas
-    // 0 a 2 con el blendMesh y la luz del objeto y U = V = 0, y la 3 con el blendMesh 3, la luz y la U y
-    // la V del objeto.
+    // Map 0's 0x69 (Waterspout, 0x600a4a): four loose 0x4ecc30 instead of RenderBody, meshes 0 to 2 with the blendMesh,
+    // the object's light and U = V = 0, and mesh 3 with blendMesh 3, the light and the object's U and V.
     Waterspout,
-    // El 0x51 del mapa 8 (0x600c81): la malla 0 con 0x4ecc30(0, 2, …, −1) y otra vez con el cromo aditivo
-    // de Chrome01, 0x4ecc30(0, 0x44, …, 0x5c0).
+    // Map 8's 0x51 (0x600c81): mesh 0 with 0x4ecc30(0, 2, …, −1) and again with Chrome01's additive chrome,
+    // 0x4ecc30(0, 0x44, …, 0x5c0).
     TarkanChrome,
 };
 
 struct ObjectDraw
 {
     ObjectDrawKind kind = ObjectDrawKind::Hidden;
-    // 0x5ffdf0 lo posó en el buffer global de la pose (0x5fff7a): todos menos los de alpha por debajo de
-    // 0,01, que sale antes (0x5ffe3d); también los de +0x58 en −2, que 0x6002e0 no dibuja.
+    // 0x5ffdf0 posed it in the global pose buffer (0x5fff7a): all but those with alpha below 0.01, which exit earlier
+    // (0x5ffe3d); also those with +0x58 at −2, which 0x6002e0 does not draw.
     bool posed = false;
     float alpha = 1.0f;
     Models::ObjectState state;
-    // +0x48..+0x50 del modelo, el que le pone 0x5ffce0.
+    // The model's +0x48..+0x50, set by 0x5ffce0.
     glm::vec3 color{1.0f};
     bool vertexLight = false;
 };
 
-// El dibujo de `object` con `terrainLight`, la del terreno en su lugar (0x5f99e0).
+// `terrainLight` is the terrain's at the object's place (0x5f99e0).
 [[nodiscard]] ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map);
 
-// La fuente de Lorencia (Waterspout01): el único caso del mapa 0 en 0x6002e0 (0x600a4a) y uno de los dos
-// de 0x602ed0 (0x603011). Su alta le pone el blendMesh en 3 (06 § Lo propio de Lorencia).
+// Lorencia's fountain (Waterspout01): the only map 0 case in 0x6002e0 (0x600a4a) and one of the two of 0x602ed0
+// (0x603011). Its creation sets its blendMesh to 3 (06 § Lo propio de Lorencia).
 inline constexpr std::int16_t Waterspout = 0x69;
 
-// 0x603011, el caso del 0x69 en 0x602ed0, después del rand() común de 0x602ef4 (*estático*): la luz del
-// blendMesh (+0x68) en 1, la V (+0x70) con el reloj del mundo `worldClock` (0x5767b88), −(ftol(T) % 1000) ·
-// 0,001f como el 0x76 del paso, y un rand(): impar, nada más. Par, dos gotas 0x5f2 (0x53fe70) en los
-// huesos 1 y 4 (0x68b184c y 0x68b18dc), cada una a (rand() % 32 − 16, −20 u −80, rand() % 32 − 16) del
-// hueso. MuRet no tiene las partículas del juego (0x743a198): corta en la primera (0x6030c7) después de
-// sus dos rand(). Sin un ftol acreditado del reloj, corta en 0x60301e con la luz ya en 1, sin tocar la V
-// ni sacar rand().
+// 0x603011, the 0x69 case in 0x602ed0, after the common rand() of 0x602ef4 (*static*): the blendMesh light (+0x68) at
+// 1, the V (+0x70) with the world clock `worldClock` (0x5767b88), −(ftol(T) % 1000) · 0.001f like the step's 0x76, and
+// one rand(): odd, nothing more. Even, two 0x5f2 drops (0x53fe70) at bones 1 and 4 (0x68b184c and 0x68b18dc), each at
+// (rand() % 32 − 16, −20 or −80, rand() % 32 − 16) from the bone. MuRet does not have the game's particles
+// (0x743a198): it cuts at the first one (0x6030c7) after its two rand(). Without a credited ftol of the clock, it cuts
+// at 0x60301e with the light already at 1, without touching the V or taking a rand().
 [[nodiscard]] Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Crt::CrtRandom& random,
                                                                        float worldClock);
 
-// El sector de 16 × 16 celdas de un objeto, de 0 a 15: el que le dio 0x606660 con la posición del
-// archivo por 0,000625f, el producto sin redondear (la x87) y el dword bajo de ftol. Fuera de la grilla,
-// 0x606660 no lo crea; con un NaN, el sector es 0 (Q-C186).
+// An object's 16 × 16 cell sector, 0 to 15: the one 0x606660 gave it with the file position times 0.000625f, the
+// unrounded product (the x87) and ftol's low dword. Outside the grid, 0x606660 does not create it; with a NaN, the
+// sector is 0 (Q-C186).
 [[nodiscard]] int SectorX(const WorldObject& object);
 [[nodiscard]] int SectorY(const WorldObject& object);
-// El sector de una coordenada, como lo saca 0x606660 (de 0 a 15, o −1): para un objeto que no viene de
-// un .obj, como el logo.
+// A coordinate's sector, as 0x606660 computes it (0 to 15, or −1): for an object that does not come from a .obj, like
+// the logo.
 [[nodiscard]] int SectorOf(float coordinate);
 
-// El orden del dibujo de 0x6046a0: los sectores por x y después por y (0x7d325d0 + (x · 16 + y) ·
-// 0x10) y, en cada uno, el orden en que se crearon. Devuelve los índices de `objects`.
+// 0x6046a0's draw order: the sectors by x and then by y (0x7d325d0 + (x · 16 + y) · 0x10) and, in each one, the order
+// in which they were created. Returns indices into `objects`.
 [[nodiscard]] std::vector<std::size_t> DrawOrder(std::span<const WorldObject> objects);
 } // namespace Client::WorldObjects

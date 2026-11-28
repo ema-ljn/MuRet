@@ -11,9 +11,10 @@ class WorldState;
 
 namespace Client::Combat
 {
-// 0x548e40: el primer número libre de los 100 de 0x7609bd0 (de a 0x78) se prende con el número, la posición con
-// z + 140, la luz, la escala, la velocidad 10 (+0x50), el contador en 0 (+0x3c) y si sube (+0x4c). No saca rand() ni
-// llama a nadie; con los 100 vivos, no hace nada. Lo usan el D7 (0x4caae0), el 0x16 y el 0x9C (0x4cf200, 0x4cfce0).
+// 0x548e40: the first free number of the 100 at 0x7609bd0 (0x78 each) is lit with the number, the position with z +
+// 140, the light, the scale, speed 10 (+0x50), the counter at 0 (+0x3c) and whether it rises (+0x4c). It draws no
+// rand() and calls nothing; with all 100 alive, it does nothing. Used by the D7 (0x4caae0), the 0x16 and the 0x9C
+// (0x4cf200, 0x4cfce0).
 void CreateDamageNumber(Kernel::WorldState& world, const glm::vec3& position, std::int32_t amount,
                         const glm::vec3& light, float scale, bool rise);
 } // namespace Client::Combat

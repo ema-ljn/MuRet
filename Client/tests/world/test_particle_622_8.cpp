@@ -147,7 +147,7 @@ TEST(Particle622Subtype8Test, CreationAndDrawUseTheirNewExplicitBindings)
     EXPECT_TRUE(draw.Value().has_value());
 }
 
-// 5446e0_ext_622_8: q=1/8 separa K04 m64 de double(0.04f), que empata hacia 3e28f5c2.
+// 5446e0_ext_622_8: q=1/8 separates K04 m64 from double(0.04f), which ties toward 3e28f5c2.
 TEST(Particle622Subtype8Test, AscendingAtOneEighthDiscriminatesTheBinary64Constant)
 {
     Particles particles;

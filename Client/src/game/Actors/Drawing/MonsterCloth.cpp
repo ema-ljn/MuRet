@@ -20,7 +20,7 @@ namespace Client::Actors::Drawing
 {
 namespace
 {
-// 0x50bba2: 0,005f (0x3ba3d70a) por paso, cinco pasos; sin mirar +0x78 & 0x1000, como sí hace la de la clase 4.
+// 0x50bba2: 0.005f (0x3ba3d70a) per step, five steps; without checking +0x78 & 0x1000, as the class 4 one does.
 constexpr float StepTime = std::bit_cast<float>(0x3ba3d70au);
 constexpr int StepsPerFrame = 5;
 constexpr float CenterRadius = 50.0f; // 0x42480000
@@ -47,7 +47,7 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
             std::format("0x455f06: el modelo {:#x} no tiene la malla 2 de la tela sobre la malla", type));
     if (!m_cloth)
     {
-        // 0x50bb0b..0x50bb8f: new de una, 0x455e30 y el +0x24 (0x455ea0) con (objeto, 2, 0x12, 0x400, −1).
+        // 0x50bb0b..0x50bb8f: a new at once, 0x455e30 and the +0x24 (0x455ea0) with (object, 2, 0x12, 0x400, −1).
         Models::Cloth& cloth = m_cloth.emplace();
         cloth.BuildOnTheMesh(model.meshes[Index], MeshClothMesh, MeshClothBone, MeshClothFlags, skinned->positions);
         cloth.AddSphere({0.0f, 0.0f, 0.0f}, CenterRadius, MeshClothBone);
@@ -58,11 +58,11 @@ Core::Expected<void, std::string> MonsterMeshCloth::Frame(const Data::Models::Mo
     m_simulatedBody = Actors::Drawing::SimulatedBodyOf(onTheMesh);
     if (!m_cloth->Simulate(StepTime, StepsPerFrame, onTheMesh, world, Maps::ClothWindForMap(map)))
     {
-        // 0x50bbb5: 0x4fb1a0(personaje, objeto, 0); el frame siguiente, con +0x190 en 0, la arma de nuevo.
+        // 0x50bbb5: 0x4fb1a0(character, object, 0); the next frame, with +0x190 at 0, builds it again.
         Release();
         return {};
     }
-    // 0x50bbc7: el +0x18 con (0, 0).
+    // 0x50bbc7: the +0x18 with (0, 0).
     m_cloth->WriteTheMesh(meshes[Index].positions);
     return {};
 }

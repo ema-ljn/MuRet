@@ -56,7 +56,7 @@
 #include <string>
 #include <tuple>
 
-// Los casos de habilidad de 0x4fd5f0 (0x4fdeeb, 0x504372 y 0x5042ce), cotejados con el PE c32bbd5f: 06, "El paso del
+// The skill cases of 0x4fd5f0 (0x4fdeeb, 0x504372 and 0x5042ce), checked against the PE c32bbd5f: 06, "El paso del
 // ataque".
 namespace Client::Skills
 {
@@ -65,15 +65,15 @@ namespace
 using Math::D;
 using Math::F32;
 constexpr std::int16_t NoTarget = -1;
-// El sonido de los fuegos 0xc2 de la 0x02 y la 0x04 (0x5049f9, 0x504bda).
+// The sound of the 0xc2 fires of skills 0x02 and 0x04 (0x5049f9, 0x504bda).
 constexpr Audio::SoundId FireSound = Sound::MeteoriteSound;
 constexpr std::size_t PoolSlots = 400;
-// +0x78 & 0x4000: los casos 0x1b, 0x1c y 0x10 con blanco no hacen nada (0x50451c, 0x5046ca, 0x504836).
+// +0x78 & 0x4000: target cases 0x1b, 0x1c and 0x10 do nothing (0x50451c, 0x5046ca, 0x504836).
 constexpr std::uint32_t QuietFlag = 0x4000;
-// El joint 0x10f, el de los calcos que se van con 0x534f90 (0x4fe3ce, 0x504876).
+// The joint of the decals that 0x534f90 removes (0x4fe3ce, 0x504876).
 constexpr std::int32_t FlameJoint = 0x10f;
 
-// 0x41ed10(sonido, …): la CL10 decide cómo suena (WorldRuntime::lastSoundId en el juego).
+// 0x41ed10(sound, …): CL10 decides how it sounds (WorldRuntime::lastSoundId in the game).
 void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId sound,
                      const Kernel::ActorState* actor = nullptr)
 {
@@ -83,7 +83,7 @@ void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId
         context.soundRequest(sound);
 }
 
-// 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
+// 0x518cf0 of a high type (Effects/HighModelEffects) from a case: the error carries the skill and the slot.
 Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArguments& arguments, std::uint8_t skill,
                                                    std::size_t slot, const Actors::CharacterStepContext& context)
 {
@@ -92,8 +92,8 @@ Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArgu
     return {};
 }
 
-// 0x4fd81e y 0x4fdaeb..0x4fdb4d: la luz local del paso, (1; 1; 1) o, con la acción 0x4d, 0x4f o 0x5a pasado el frame
-// 5,5, la de la partícula 0x5ac/0 (0,3; 0,5; 1).
+// 0x4fd81e and 0x4fdaeb..0x4fdb4d: the step's local light, (1, 1, 1) or, with action 0x4d, 0x4f or 0x5a past frame
+// 5.5, that of particle 0x5ac/0 (0.3, 0.5, 1).
 glm::vec3 CaseLight(const Kernel::ActorState& actor)
 {
     constexpr std::array<std::uint8_t, 3> FlaredActions{0x4d, 0x4f, 0x5a};
@@ -103,8 +103,8 @@ glm::vec3 CaseLight(const Kernel::ActorState& actor)
     return flared ? glm::vec3(std::bit_cast<float>(0x3e99999au), 0.5f, 1.0f) : glm::vec3(1.0f);
 }
 
-// 0x530860(0x613, desde, hasta, ángulos, subtipo, o, ancho, key, skill, serial, −1): un joint 0x613 colgado de o, con
-// lo que su alta pide al paso (el sonido de la /1 y el registro propio de la /0). Con el pool lleno, nada.
+// 0x530860(0x613, from, to, angles, subtype, o, width, key, skill, serial, −1): a 0x613 joint hung from o, with what
+// its creation asks of the step (the /1's sound and the /0's own record). With the pool full, nothing.
 struct SpiritJointRequest
 {
     std::uint32_t address = 0;
@@ -146,8 +146,8 @@ CreateTheSpirit(Kernel::ActorState& actor, const Actors::CharacterStepContext& c
     return {};
 }
 
-// 0x530860(0x10f, desde, desde, ángulos, subtipo, dueño, ancho, −1, 0, 0, blanco): un joint 0x10f (AuraJoints.cpp).
-// Con el pool lleno, nada.
+// 0x530860(0x10f, from, from, angles, subtype, owner, width, −1, 0, 0, target): a 0x10f joint (AuraJoints.cpp). With
+// the pool full, nothing.
 Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, Kernel::ActorState& owner, glm::vec3& from,
                                                 glm::vec3& angles, std::int32_t subtype, float width,
                                                 std::int32_t target, const Actors::CharacterStepContext& context)
@@ -172,7 +172,7 @@ Core::Expected<void, std::string> CreateTheAura(std::uint32_t address, Kernel::A
     return {};
 }
 
-// Cinco 0x10f de ancho 20 alrededor del blanco, desde su +0x10 y con sus ángulos.
+// Five 0x10f of width 20 around the target, from its +0x10 and with its angles.
 Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, Kernel::ActorState& victim,
                                                   std::int32_t subtype, std::int32_t target,
                                                   const Actors::CharacterStepContext& context)
@@ -186,8 +186,8 @@ Core::Expected<void, std::string> CreateFiveAuras(std::uint32_t address, Kernel:
     return {};
 }
 
-// 0x4fe147..0x4fe18b (la 0x43): 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 7, nulo, 10, −1, 0, 0, −1), que suelta tres
-// 0x632/6 (StormJoints.cpp), y el sonido 0x266 aunque el pool esté lleno.
+// 0x4fe147..0x4fe18b (skill 0x43): 0x530860(0x632, o+0x10, o+0x10, o+0x1c, 7, null, 10, −1, 0, 0, −1), which drops
+// three 0x632/6 (StormJoints.cpp), and sound 0x266 even with the pool full.
 Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr Audio::SoundId StormSound{0x266};
@@ -210,8 +210,8 @@ Core::Expected<void, std::string> CallTheStorm(Kernel::ActorState& actor, const 
     return {};
 }
 
-// 0x504ac7..0x504b49: la 0x49 crea un 0x61c/4 sin dueño desde o 130 más arriba, con los ángulos (0, 0, z de o) y ancho
-// 40 (InfernoJoints.cpp, sin rand()), y pide el sonido 0x26f aunque el pool esté lleno.
+// 0x504ac7..0x504b49: skill 0x49 creates an ownerless 0x61c/4 from 130 above o, with angles (0, 0, o's z) and width 40
+// (InfernoJoints.cpp, no rand()), and requests sound 0x26f even with the pool full.
 Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& actor,
                                                   const Actors::CharacterStepContext& context)
 {
@@ -240,8 +240,8 @@ Core::Expected<void, std::string> RaiseTheInferno(const Kernel::ActorState& acto
     return {};
 }
 
-// 0x4f5b10(o, x, y, z, punto): (x, y, z) girado por los ángulos de o (0x5fc8f0 y 0x5fcbd0) y sumado a su posición,
-// sin rand().
+// 0x4f5b10(o, x, y, z, point): (x, y, z) turned by o's angles (0x5fc8f0 and 0x5fcbd0) and added to its position, no
+// rand().
 glm::vec3 TurnedPoint(const Kernel::ActorState& actor, const glm::vec3& offset)
 {
     const auto turned = Math::OriginalVectorRotate(offset, Math::OriginalAngleMatrix(actor.angles));
@@ -249,10 +249,8 @@ glm::vec3 TurnedPoint(const Kernel::ActorState& actor, const glm::vec3& offset)
             F32(D(actor.position.z) + D(turned.z))};
 }
 
-// 0x4fe795..0x4fe981 (la 0x35): cuatro 0x619/0xa de ancho 15 colgados de o, con los ángulos (−45, 0, z): z 45 y 405
-// desde (sen 4,5 · 80; cos 4,5 · 80; 300) más la posición de o, y 225 y 450 desde (cos 22,5 · 80; sen 22,5 · 80; 300)
-// (0x6a1a90 es el seno de la CRT y 0x6a19e0 el coseno, FSIN y FCOS con el producto por 80 en la x87). Su alta los pone
-// en la posición del dueño (FaunaJointCreation.cpp, CreateSetEnergy). Al final, el sonido 0x7f; sin rand().
+// 0x4fe795..0x4fe981 (skill 0x35), no rand(): 0x6a1a90 is the CRT sine and 0x6a19e0 the cosine (FSIN and FCOS, the
+// product by 80 on the x87). The creation puts them at the owner's position (FaunaJointCreation.cpp, CreateSetEnergy).
 Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::int32_t EnergyJoint = 0x619, EnergySubtype = 0xa, EnergySound = 0x7f;
@@ -306,10 +304,10 @@ Core::Expected<void, std::string> SpinTheEnergy(Kernel::ActorState& actor, const
     return {};
 }
 
-// 0x4feb3b..0x4febd3 (la 0x41): el punto de 0x4f5b10(o, 0, −90, −50), 80 más alto en la acción 0x51 y 40 en la 0x5b,
-// y 0x518cf0(0x62c, punto, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0). Su caso (0x51f25e) deja la vida en 0 y, con dueño,
-// suelta los cinco 0x62c (SpiralJoints.cpp): /1, /0 de ancho 250, /2, /3 y /4, los demás de ancho 100, desde el punto
-// y con los ángulos de o. Después, el sonido 0x1cd aunque la tabla esté llena.
+// 0x4feb3b..0x4febd3 (skill 0x41): the point of 0x4f5b10(o, 0, −90, −50), 80 higher in action 0x51 and 40 in 0x5b,
+// and 0x518cf0(0x62c, point, o+0x1c, o+0xf4, 0, o, −1, 0, 0, 0, 0). Its case (0x51f25e) sets the life to 0 and, with
+// an owner, drops the five 0x62c (SpiralJoints.cpp): /1, /0 of width 250, /2, /3 and /4, the others of width 100,
+// from the point and with o's angles. Then sound 0x1cd even with the table full.
 Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
                                                   const Actors::CharacterStepContext& context)
 {
@@ -371,8 +369,8 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
     return {};
 }
 
-// 0x4fe505..0x4fe790 (la 0x48): +0x78 de o en 0 y seis 0x10f/5..7 de ancho 170 desde o + 100 en z, girados 45, 135 y
-// 225 y después 90, 180 y 270; la copia baja 10 después de cada uno salvo los /7. Al final, el sonido 0x26b.
+// 0x4fe505..0x4fe790 (skill 0x48): o's +0x78 at 0 and six 0x10f/5..7 of width 170 from o + 100 in z, turned 45, 135
+// and 225 and then 90, 180 and 270; the copy drops 10 after each one except the /7s. Finally, sound 0x26b.
 Core::Expected<void, std::string> RaiseTheAuras(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr float Width = std::bit_cast<float>(0x432a0000u);
@@ -397,10 +395,9 @@ Core::Expected<void, std::string> RaiseTheAuras(Kernel::ActorState& actor, const
     return {};
 }
 
-// 0x4fe015..0x4fe13f (la 0x30) y 0x4fe253..0x4fe37b (la 0x45): treinta y seis joints 0x613 de ancho 60 colgados de o,
-// 100 más arriba, con los ángulos (−10, 0, 10 · i); en la vuelta 0 y en la 20, después del joint, el calco 0x61e
-// (`decalSubtype`) sobre o con esos ángulos, la luz `light` y o de dueño (0x4fe127, 0x4fe360). Sin rand(). Después, el
-// sonido.
+// 0x4fe015..0x4fe13f (skill 0x30) and 0x4fe253..0x4fe37b (skill 0x45): thirty-six 0x613 joints of width 60 hung from
+// o, 100 higher, with angles (−10, 0, 10 · i); in turns 0 and 20, after the joint, the 0x61e decal (`decalSubtype`)
+// over o with those angles, the light `light` and o as owner (0x4fe127, 0x4fe360). No rand(). Then the sound.
 struct SpiritRing
 {
     std::int32_t subtype = 0;
@@ -446,7 +443,7 @@ Core::Expected<void, std::string> RingTheSpirits(Kernel::ActorState& actor, std:
     return {};
 }
 
-// 500141/501147/501867/50202e: sólo el héroe publica la tanda; el cierre conserva sus 3848 rand().
+// 0x500141/0x501147/0x501867/0x50202e: only the hero publishes the volley; the close keeps its 3848 rand().
 void CountHeroVolley(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     if (&actor != &context.world.Hero())
@@ -456,8 +453,7 @@ void CountHeroVolley(const Kernel::ActorState& actor, const Actors::CharacterSte
     ++context.world.OwnCharacter().bytef04;
 }
 
-// El alta de un efecto de los magos (Effects::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
-// efecto pide y MuRet no tiene corta con la dirección de la llamada.
+// With the table full, nothing and no rand(); what the effect asks for and MuRet lacks cuts with the call's address.
 Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kernel::ModelEffectArguments& arguments,
                                                std::uint8_t skill, std::size_t slot,
                                                const Actors::CharacterStepContext& context)
@@ -471,7 +467,7 @@ Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kern
     return {};
 }
 
-// 0x5042d3..0x504324: los ángulos de o con la z en el rumbo de 0x4e93f0 de o al blanco (fstp, sin rand()).
+// 0x5042d3..0x504324: o's angles with z at the heading of 0x4e93f0 from o to the target (fstp, no rand()).
 glm::vec3 TowardsTheTarget(const Kernel::ActorState& actor, const Kernel::ActorState& victim)
 {
     return glm::vec3(actor.angles.x, actor.angles.y,
@@ -479,14 +475,14 @@ glm::vec3 TowardsTheTarget(const Kernel::ActorState& actor, const Kernel::ActorS
                          Math::CreateAngle(actor.position.x, actor.position.y, victim.position.x, victim.position.y)));
 }
 
-// Un tipo de la mano como WORD con signo (MOVSX).
+// MOVSX: the hand's type as a signed WORD.
 std::int32_t HandOf(const Kernel::ActorState& actor, std::size_t hand)
 {
     return std::bit_cast<std::int16_t>(actor.hands[hand].model);
 }
 
-// 0x4fdf2b..0x4fdf57 (y 0x4fdfb3, 0x4fdfe4, 0x4fec30): o+0x8c = el arma de la derecha (+0x2b8, MOVSX) − 0x212 y o+0x8e
-// = su nivel (+0x2ba), que leen por su dueño los efectos 0xf4 y 0xfa (Scenes/GameDrawTail.cpp).
+// 0x4fdf2b..0x4fdf57 (and 0x4fdfb3, 0x4fdfe4, 0x4fec30): o+0x8c = the right-hand weapon (+0x2b8, MOVSX) − 0x212 and
+// o+0x8e = its level (+0x2ba), which effects 0xf4 and 0xfa read through their owner (Scenes/GameDrawTail.cpp).
 void KeepTheWeapon(Kernel::ActorState& actor)
 {
     constexpr std::int32_t FirstWeaponModel = 0x212;
@@ -494,8 +490,8 @@ void KeepTheWeapon(Kernel::ActorState& actor)
     actor.byte8e = actor.hands[0].level;
 }
 
-// El blanco de +0x3a4 (MOVSX) de los casos 0x44, 0x46 y 0x47: el lugar del pool sin mirar el rango (0x4fe1ad y sus
-// copias). Fuera del pool, MuRet corta: el original leería otra memoria.
+// The target from +0x3a4 (MOVSX) of cases 0x44, 0x46 and 0x47: the pool slot without a range check (0x4fe1ad and its
+// copies). Outside the pool, MuRet cuts: the original would read other memory.
 Core::Expected<Kernel::ActorState*, std::string> TargetOf(Kernel::ActorState& actor, std::size_t slot,
                                                           const Actors::CharacterStepContext& context,
                                                           std::uint32_t address)
@@ -512,10 +508,10 @@ Core::Expected<Kernel::ActorState*, std::string> TargetOf(Kernel::ActorState& ac
     return &actors[static_cast<std::size_t>(target)];
 }
 
-// 0x4fdf2b..0x4fdfae, la 0x2a: el arma, 0x59fb80(0x2a) y 0x518cf0(0xfa, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0,
-// 0, 0), el terremoto con el estado 0 (que su dibujo hace con el arma de o, 0x52d43a); después el sonido 0x95. El
-// prefijo de 0x518cf0 deja +0x8a y +0x89 antes del caso (0x51a66d), que no los lee: MuRet los escribe después del alta.
-// Con la tabla llena, nada (y el sonido igual).
+// 0x4fdf2b..0x4fdfae, skill 0x2a: the weapon, 0x59fb80(0x2a) and 0x518cf0(0xfa, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a,
+// slot, 0, 0, 0), the earthquake with state 0 (which its draw does with o's weapon, 0x52d43a); then sound 0x95. The
+// prefix of 0x518cf0 sets +0x8a and +0x89 before the case (0x51a66d), which does not read them: MuRet writes them
+// after the creation. With the table full, nothing (and the sound anyway).
 Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t QuakeSkill = 0x2a;
@@ -541,13 +537,14 @@ Core::Expected<void, std::string> ShakeTheGround(Kernel::ActorState& actor, cons
     return {};
 }
 
-// 0x500496..0x500c0b, la 0x05 (la Flame): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la
-// x87, cada eje guardado en float) con la altura del terreno ahí (0x5f93c0), 0x59fb80(5) y 0x518cf0(0x5de, punto,
-// o+0x1c, o+0xf4, 0, o, o+0x8a, lugar, 0, 0, 0): el chorro con o de dueño (Effects::ModelEffects::CreateOwnedFlameJet),
-// cuyo paso con el héroe de dueño manda los blancos (0x52ae2a, World/GameModelEffects). Con c el héroe publicado
-// ([0x743a170]), el registro propio abierto, su cuenta +0xf04 uno más y cerrado (0x500539..0x500bfa, con sus 3.848
-// rand() si queda en 0); después, con cualquiera, el sonido 0x79 (0x500c03). Con la tabla llena no hay chorro (ni el
-// registro de su alta) y lo demás sigue igual. Sin las alturas del terreno, MuRet corta antes de 0x59fb80.
+// 0x500496..0x500c0b, skill 0x05 (the Flame): the point of the skill's cell (+0x39c and +0x39d, plus 0.5f, times 100
+// on the x87, each axis stored as a float) with the terrain height there (0x5f93c0), 0x59fb80(5) and 0x518cf0(0x5de,
+// point, o+0x1c, o+0xf4, 0, o, o+0x8a, slot, 0, 0, 0): the jet with o as owner
+// (Effects::ModelEffects::CreateOwnedFlameJet), whose step with the hero as owner sends the targets (0x52ae2a,
+// Effects/GameModelEffects). With c the published hero ([0x743a170]), the own record opened, its count +0xf04 one more
+// and closed (0x500539..0x500bfa, with its 3848 rand() if it is left at 0); then, with anyone, sound 0x79 (0x500c03).
+// With the table full there is no jet (nor its creation's record) and the rest stays the same. Without the terrain
+// heights, MuRet cuts before 0x59fb80.
 Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const Actors::CharacterStepContext& context)
 {
     constexpr std::uint8_t FlameSkill = 5;
@@ -584,9 +581,9 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
     return {};
 }
 
-// 0x518cf0(tipo, punto, o+0x1c, o+0xf4, 0, o, o+0x8a, `index`, 0, 0, 0): un efecto del lote switch de la CL11
-// (Scenes/BlastEffectCalls) con o de dueño, como lo piden la 0x29 (0x4fec9a), la 0xd (0x500d7b y 0x500dba) y la 0xe
-// (0x5014da). Con la tabla llena, nada.
+// 0x518cf0(type, point, o+0x1c, o+0xf4, 0, o, o+0x8a, `index`, 0, 0, 0): an effect of CL11's switch batch
+// (Combat/BlastEffectCalls) with o as owner, as skill 0x29 (0x4fec9a), 0xd (0x500d7b and 0x500dba) and 0xe (0x5014da)
+// request it. With the table full, nothing.
 Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm::vec3& point, Kernel::ActorState& actor,
                                                    std::int32_t index, const Actors::CharacterStepContext& context)
 {
@@ -604,8 +601,8 @@ Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm:
     return {};
 }
 
-// La celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en la x87, cada eje guardado en float) con la altura del
-// terreno ahí (0x5f93c0, guardada en float), como la leen 0x4ffcbe y 0x500cd4. Sin las alturas, MuRet corta en
+// The skill's cell (+0x39c and +0x39d, plus 0.5f, times 100 on the x87, each axis stored as a float) with the terrain
+// height there (0x5f93c0, stored as a float), as 0x4ffcbe and 0x500cd4 read it. Without the heights, MuRet cuts at
 // `address`.
 Core::Expected<glm::vec3, std::string>
 SkillCellPoint(const Kernel::ActorState& actor, const Actors::CharacterStepContext& context, std::uint32_t address)
@@ -624,18 +621,19 @@ SkillCellPoint(const Kernel::ActorState& actor, const Actors::CharacterStepConte
     return point;
 }
 
-// 0x4ffcbe..0x4ffdb7, la 0x27: la celda de la skill con su altura y diez vueltas: rand() % 50 por la vuelta sobre la
-// altura (FILD + FADD, guardado en float) y 0x518cf0(0x108, punto, o+0x1c, la luz local, 0, nadie, vuelta + 1, 0, 0, 0,
-// 0), aunque la tabla esté llena (el rand() sale antes del alta). La luz local es (1, 1, 1) de 0x4fd81e, o (0,3; 0,5;
-// 1) de 0x4fdb3f con las acciones 0x4d, 0x4f y 0x5a pasado el frame 5,5; da igual: el alta del 0x108/0 la pone en 0
-// (0x51bd37).
+// 0x4ffcbe..0x4ffdb7, skill 0x27: the skill's cell with its height and ten turns: rand() % 50 times the turn over the
+// height (FILD + FADD, stored as a float) and 0x518cf0(0x108, point, o+0x1c, the local light, 0, nobody, turn + 1, 0,
+// 0, 0, 0), even with the table full (the rand() comes before the creation). The local light is (1, 1, 1) from
+// 0x4fd81e, or (0.3, 0.5, 1) from 0x4fdb3f with actions 0x4d, 0x4f and 0x5a past frame 5.5; it does not matter: the
+// creation of the 0x108/0 sets it to 0 (0x51bd37).
 Core::Expected<void, std::string> DropTheIceStorm(const Kernel::ActorState& actor,
                                                   const Actors::CharacterStepContext& context)
 {
     constexpr int Rounds = 10;
     constexpr int Rise = 50;
     constexpr std::int16_t StormEffect = 0x108;
-    constexpr glm::vec3 White{1.0f, 1.0f, 1.0f}; // 0x4fd81e; la de 0x4fdb3f la pisa el alta igual (0x51bd37)
+    constexpr glm::vec3 White{1.0f, 1.0f,
+                              1.0f}; // 0x4fd81e; the creation overrides the one of 0x4fdb3f anyway (0x51bd37)
     const auto cell = SkillCellPoint(actor, context, 0x4ffd1e);
     if (!cell.HasValue())
         return Core::Unexpected(cell.Error());
@@ -658,10 +656,10 @@ Core::Expected<void, std::string> DropTheIceStorm(const Kernel::ActorState& acto
     return {};
 }
 
-// 0x4fe190..0x4fe24e (la 0x44, el subtipo 0) y 0x4fe442..0x4fe500 (la 0x47, el 1): con un blanco que no es o, el joint
-// 0x530860(0x632, p, p, los ángulos del blanco, subtipo, blanco, 120, −1, 0, 0, −1) con p la posición del blanco con
-// la z + 1200 (0x6ba198, en la x87 y guardada en float), que cae sobre él (StormJoints.cpp), y el sonido 0x267, se haya
-// creado o no.
+// 0x4fe190..0x4fe24e (skill 0x44, subtype 0) and 0x4fe442..0x4fe500 (skill 0x47, subtype 1): with a target that is not
+// o, the joint 0x530860(0x632, p, p, the target's angles, subtype, target, 120, −1, 0, 0, −1) with p the target's
+// position with z + 1200 (0x6ba198, on the x87 and stored as a float), which falls on it (StormJoints.cpp), and sound
+// 0x267, whether it was created or not.
 Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::size_t slot,
                                                 const Actors::CharacterStepContext& context, std::uint32_t read,
                                                 std::uint32_t joint, std::int32_t subtype)
@@ -696,8 +694,8 @@ Core::Expected<void, std::string> BindTheTarget(Kernel::ActorState& actor, std::
     return {};
 }
 
-// 0x4fe383..0x4fe43d, la 0x46: con blanco, 0x534f90(0x10f, blanco, 4) y (…, 9), el calco 0x61e/6 sobre él (0x518cf0)
-// y el sonido 0x269.
+// 0x4fe383..0x4fe43d, skill 0x46: with a target, 0x534f90(0x10f, target, 4) and (…, 9), the 0x61e/6 decal over it
+// (0x518cf0) and sound 0x269.
 Core::Expected<void, std::string> FreeTheTarget(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                 const Actors::CharacterStepContext& context)
 {
@@ -725,10 +723,11 @@ Core::Expected<void, std::string> FreeTheTarget(Kernel::ActorState& actor, std::
     return {};
 }
 
-// 0x4fe986..0x4feab6 (la 0x40) y 0x502993..0x502aee (la 0x4b): con otra cosa que 0xa21 en la derecha, el 0x117/0 en su
-// hueso (+0x2bd, 0x4ec110 con el offset en 0); con otra cosa que 0xa19 o 0xe12..0x1011 en la izquierda, el 0x117/1 en
-// el suyo (+0x2dd); los dos con los ángulos de o y la luz (1; 0,6; 0,3) de la 0x40 o (1; 1; 1) de la 0x4b. Después, la
-// 0x40 suena (0x1cf, con o de origen) y la 0x4b crea el 0x138 sobre o (0x502ae6) y suena (0x272).
+// 0x4fe986..0x4feab6 (skill 0x40) and 0x502993..0x502aee (skill 0x4b): with something other than 0xa21 in the right
+// hand, the 0x117/0 at its bone (+0x2bd, 0x4ec110 with the offset at 0); with something other than 0xa19 or
+// 0xe12..0x1011 in the left, the 0x117/1 at its own (+0x2dd); both with o's angles and the light (1, 0.6, 0.3) of 0x40
+// or (1, 1, 1) of 0x4b. Then 0x40 plays a sound (0x1cf, with o as origin) and 0x4b creates the 0x138 over o
+// (0x502ae6) and plays a sound (0x272).
 Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                 const Actors::CharacterStepContext& context, std::uint32_t right,
                                                 std::uint32_t left)
@@ -776,14 +775,15 @@ Core::Expected<void, std::string> SwingTheHands(const Kernel::ActorState& actor,
     }
     constexpr std::int32_t RaiseSound = 0x1cf;
     constexpr std::int32_t OtherSwingSound = 0x272;
-    // 0x4feaae: la 0x40 conserva o como origen.
+    // 0x4feaae: skill 0x40 keeps o as origin.
     RequestTheSound(context, Audio::SoundId{skill == RaiseSkill ? RaiseSound : OtherSwingSound},
                     skill == RaiseSkill ? &actor : nullptr);
     return {};
 }
 
-// 0x5023e4..0x502433 (y 0x5024d9..0x502528): la distancia en celdas de o a otro, con dx guardado en float, dy en la
-// pila (53 bits) por su copia en float, la raíz (0x6a1920) sobre 100 (0x6b86b4) y el cociente guardado en float.
+// 0x5023e4..0x502433 (and 0x5024d9..0x502528): the distance in cells from o to another, with dx stored as a float, dy
+// on the x87 stack (53 bits) times its float copy, the root (0x6a1920) over 100 (0x6b86b4) and the quotient stored as a
+// float.
 float CellsBetween(const Kernel::ActorState& from, const Kernel::ActorState& to)
 {
     constexpr double CellSize = Terrain::CellSizeAsDouble;
@@ -794,8 +794,8 @@ float CellsBetween(const Kernel::ActorState& from, const Kernel::ActorState& to)
     return static_cast<float>(std::sqrt(squared) / CellSize);
 }
 
-// 0x4f2230(o): el subtipo de los joints de la 0x4c según el byte +0x31b (el +0x1b de la mascota, el excelente de Fenrir
-// que copian 0x4c879d, 0x513c60 y 0x5bc9db): con 1, 0; con 2, 2; con cualquier otro, 1.
+// 0x4f2230(o): the subtype of skill 0x4c's joints by byte +0x31b (the pet's +0x1b, Fenrir's excellent that 0x4c879d,
+// 0x513c60 and 0x5bc9db copy): with 1, 0; with 2, 2; with any other, 1.
 std::int32_t FenrirShade(const Kernel::ActorState& actor)
 {
     constexpr std::uint8_t RedFenrir = 1, BlueFenrir = 2;
@@ -804,16 +804,16 @@ std::int32_t FenrirShade(const Kernel::ActorState& actor)
     return actor.pet.flags1b == BlueFenrir ? 2 : 1;
 }
 
-// 0x502352..0x502949, la 0x4c: el sonido 0x27d y el lazo de los 400 lugares hasta juntar diez blancos (0x502569): un
-// monstruo vivo (+0x88 en 2) que no está en la acción 6, o un jugador vivo (+0x88 en 1) fuera de la 0xc3 que 0x5588d0
-// deja atacar; de cada uno, la distancia y el alcance de la 0x4c sin dueño (0x5526f0(0x4c, 0), con los rand() de su
-// entrada), y entra si el alcance no es menor (FCOMP con C0). Después rand() % 360, que no se usa antes del corte. Con
-// +0x434 en −1 o desde 400, nada más; si no, dos vueltas por el blanco de +0x434 y otras dos por cada uno de los
-// juntados (0x5025d7..0x50284e): el punto de 0x4f5b10(o, 0, −140, 130), sin rand(), los ángulos (rand() % 360, 0,
-// rand() % 360) y dos joints 0x14f hacia la posición del blanco, con él de dueño: ancho 100 con el subtipo de
-// 0x4f2230(o) y 80 con ese más 3. Al final (0x502853..0x502944), seis 0x62c sin dueño de ancho 60 con el subtipo de
-// 0x4f2230(o) más 0xb, desde el punto de 0x4f5b10(o, 0, rand() % 40 − 20 + 10, 130) hacia él mismo, con los ángulos
-// (rand() % 360, 0, rand() % 360). Con el pool lleno, 0x530860 no crea nada ni saca rand().
+// 0x502352..0x502949, skill 0x4c: sound 0x27d and the loop over the 400 slots until ten targets are gathered
+// (0x502569): a living monster (+0x88 at 2) not in action 6, or a living player (+0x88 at 1) outside action 0xc3 that
+// 0x5588d0 lets be attacked; for each, the distance and the reach of 0x4c without an owner (0x5526f0(0x4c, 0), with the
+// rand() of its entry), and it enters if the reach is not smaller (FCOMP with C0). Then rand() % 360, unused before the
+// cut. With +0x434 at −1 or from 400 up, nothing more; otherwise two turns for the target of +0x434 and two more for
+// each gathered one (0x5025d7..0x50284e): the point of 0x4f5b10(o, 0, −140, 130), no rand(), the angles (rand() % 360,
+// 0, rand() % 360) and two 0x14f joints towards the target's position, with it as owner: width 100 with the subtype of
+// 0x4f2230(o) and 80 with that plus 3. At the end (0x502853..0x502944), six ownerless 0x62c of width 60 with the
+// subtype of 0x4f2230(o) plus 0xb, from the point of 0x4f5b10(o, 0, rand() % 40 − 20 + 10, 130) towards itself, with
+// the angles (rand() % 360, 0, rand() % 360). With the pool full, 0x530860 creates nothing and draws no rand().
 Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                const Actors::CharacterStepContext& context)
 {
@@ -826,7 +826,7 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
     RequestTheSound(context, AroundSound);
     const HeroSkillContext ranges{.world = context.world, .random = context.random, .skills = context.skills};
     std::size_t gathered = 0;
-    // [ebp−0x214]: los juntados, en su orden (0x50245e, 0x502553).
+    // [ebp−0x214]: the gathered ones, in their order (0x50245e, 0x502553).
     std::array<Kernel::ActorState*, MostTargets> found{};
     for (Kernel::ActorState& other : context.world.Actors().first<PoolSlots>())
     {
@@ -867,10 +867,10 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
     {
         constexpr int Rounds = 2, Turn = 360;
         constexpr std::int32_t PlasmaJoint = 0x14f, Paler = 3;
-        constexpr float Wide = 100.0f, Narrow = 80.0f; // 0x42c80000 y 0x42a00000
+        constexpr float Wide = 100.0f, Narrow = 80.0f; // 0x42c80000 and 0x42a00000
         for (int round = 0; round < Rounds; ++round)
         {
-            glm::vec3 from = TurnedPoint(actor, {0.0f, -140.0f, 130.0f}); // 0xc30c0000 y 0x43020000
+            glm::vec3 from = TurnedPoint(actor, {0.0f, -140.0f, 130.0f}); // 0xc30c0000 and 0x43020000
             const auto pitch = static_cast<float>(context.random.Next() % Turn);
             const auto yaw = static_cast<float>(context.random.Next() % Turn);
             glm::vec3 angles{pitch, 0.0f, yaw};
@@ -931,8 +931,8 @@ Core::Expected<void, std::string> StrikeAround(const Kernel::ActorState& actor, 
     return {};
 }
 
-// 0x4feabb..0x4feb36, la 0x3f: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 2, o, −1, …) y (0xcc, …, 3, sin dueño, −1, …), y
-// el sonido 0x1cb desde o.
+// 0x4feabb..0x4feb36, skill 0x3f: 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 2, o, −1, …) and (0xcc, …, 3, no owner, −1,
+// …), and sound 0x1cb from o.
 Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                 const Actors::CharacterStepContext& context)
 {
@@ -953,9 +953,9 @@ Core::Expected<void, std::string> RaiseTheRings(Kernel::ActorState& actor, std::
     return {};
 }
 
-// 0x4fecb5..0x4fed2a, la 0x0a (el Hellfire): 0x59fb80(0xa) y 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a,
-// lugar, 0, 0, 0), cuyo alta con el héroe de dueño cuenta en el registro propio y manda los blancos de 300
-// (0x51aa97); después 0x518cf0(0xcc, …, 0, sin dueño, −1, …). Lo de Kalima y el sonido 0x77 siguen en el caso.
+// 0x4fecb5..0x4fed2a, skill 0x0a (the Hellfire): 0x59fb80(0xa) and 0x518cf0(0xcb, o+0x10, o+0x1c, o+0xf4, 0, o,
+// o+0x8a, slot, 0, 0, 0), whose creation with the hero as owner counts in the own record and sends the targets within
+// 300 (0x51aa97); then 0x518cf0(0xcc, …, 0, no owner, −1, …). The Kalima part and sound 0x77 stay in the case.
 Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                    const Actors::CharacterStepContext& context)
 {
@@ -971,10 +971,10 @@ Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, st
         skill, slot, context);
 }
 
-// 0x4ff51c..0x4ff5f2, la 0x26 (el Meteorito): el punto de la celda de la skill (+0x39c y +0x39d, más 0,5f por 100 en
-// la x87, cada eje guardado en float) con la altura de 0x5f93c0, la luz local en (0,8f; 0,5; 0,1f) y dos
-// 0x518cf0(0xc2, punto, o+0x1c, luz, 6, sin dueño, 0, …); después el sonido 0x8e y la tanda del héroe (0x4ff5f5).
-// Sin las alturas del terreno, MuRet corta antes del primero.
+// 0x4ff51c..0x4ff5f2, skill 0x26 (the Meteorite): the point of the skill's cell (+0x39c and +0x39d, plus 0.5f, times
+// 100 on the x87, each axis stored as a float) with the height of 0x5f93c0, the local light at (0.8f, 0.5, 0.1f) and
+// two 0x518cf0(0xc2, point, o+0x1c, light, 6, no owner, 0, …); then sound 0x8e and the hero's volley (0x4ff5f5).
+// Without the terrain heights, MuRet cuts before the first.
 Core::Expected<void, std::string> RainTheMeteors(Kernel::ActorState& actor, std::size_t slot, std::uint8_t skill,
                                                  const Actors::CharacterStepContext& context)
 {
@@ -1019,8 +1019,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x22:
     case 0x23:
     case 0x24:
-        // 0x4fdef2..0x4fdf26: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0), y nada más. Su paso suelta
-        // los joints 619/3 de la CL11 (Scenes/CharacterEffectSteps.h, StepPetSummon). Con la tabla llena, nada.
+        // 0x4fdef2..0x4fdf26: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0), and nothing more. Its step
+        // drops CL11's 0x619/3 joints (Effects/CharacterEffectSteps.h, StepPetSummon). With the table full, nothing.
         static_cast<void>(context.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
                                                                       Effects::SummonDecalSubtype));
         return {};
@@ -1028,7 +1028,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return ShakeTheGround(actor, context);
     case 0x37:
     case 0x38:
-        // 0x4fdfb3 y 0x4fdfe4: el arma, y nada más.
+        // 0x4fdfb3 and 0x4fdfe4: the weapon, and nothing more.
         KeepTheWeapon(actor);
         return {};
     case 0x30:
@@ -1065,8 +1065,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return RaiseTheSpirals(actor, context);
     case 0x31:
     {
-        // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) sin
-        // 0x59fb80 antes (Effects::FireBreathEffect: sus cuarenta joints 0x617/1) y el sonido 0x72.
+        // 0x4febdb..0x4fec2b: 0x518cf0(0x6ac, o+0x10, o+0x1c, o+0xf4, 0, o, o+0x8a, [0x5767948], 0, 0, 0) with no
+        // 0x59fb80 before (Effects::FireBreathEffect: its forty 0x617/1 joints) and sound 0x72.
         constexpr Audio::SoundId BreathSound = Sound::KnightSkill3Sound;
         if (auto made =
                 CreateHighEffect({.type = Effects::FireBreathEffect,
@@ -1084,7 +1084,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     }
     case 0x29:
     {
-        // 0x4fec30: el arma, 0x59fb80(0x29), el 0xf3 sobre o (0x4fec9a) y el sonido 0x73.
+        // 0x4fec30: the weapon, 0x59fb80(0x29), the 0xf3 over o (0x4fec9a) and sound 0x73.
         KeepTheWeapon(actor);
         const std::int32_t index = OwnSkillIndex(context, skill);
         if (auto made = CreateOwnedBlast(0xf3, actor.position, actor, index, context); !made.HasValue())
@@ -1095,7 +1095,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x0a:
         if (auto lit = LightTheHellfire(actor, slot, skill, context); !lit.HasValue())
             return lit;
-        // 4fed2d..4ff4a8: Y, X y 437860(x,y,2,-1500); puntero 723c48 nulo es no-op, no una frontera.
+        // 0x4fed2d..0x4ff4a8: Y, X and 0x437860(x, y, 2, -1500); a null 0x723c48 pointer is a no-op, not a boundary.
         if (Maps::IsKalimaMap(context.world.Runtime().map))
         {
             const Actors::LogicalCell cell = Actors::ReadLogicalCell(actor, context.random);
@@ -1132,8 +1132,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return CastTheFlame(actor, context);
     case 0x08:
     {
-        // 0x500c10..0x500c5c (el Twister): 0x59fb80(8) y 0x518cf0(0xcf, o+0x10, o+0x1c, la luz local, 0, o, o+0x8a,
-        // lugar, 0, 0, 0); después el sonido 0x74.
+        // 0x500c10..0x500c5c (the Twister): 0x59fb80(8) and 0x518cf0(0xcf, o+0x10, o+0x1c, the local light, 0, o,
+        // o+0x8a, slot, 0, 0, 0); then sound 0x74.
         constexpr Audio::SoundId TwisterSound{0x74};
         const std::int32_t index = OwnSkillIndex(context, skill);
         Kernel::ModelEffectArguments storm =
@@ -1147,9 +1147,9 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     }
     case 0x0c:
     {
-        // 0x500c64..0x500ccf: el punto de 0x4f5b10(o, −20, −90, 100), sin rand(), 0x59fb80(0xc) y 0x518cf0(0x5e8,
-        // punto, o+0x1c, la luz del paso, 0, o, o+0x8a, lugar, 0, 0, 0): el rayo y, con el héroe de dueño, sus cuatro
-        // 0x517a20. Después, el sonido 0x7a.
+        // 0x500c64..0x500ccf: the point of 0x4f5b10(o, −20, −90, 100), no rand(), 0x59fb80(0xc) and 0x518cf0(0x5e8,
+        // point, o+0x1c, the step's light, 0, o, o+0x8a, slot, 0, 0, 0): the ray and, with the hero as owner, its four
+        // 0x517a20. Then sound 0x7a.
         constexpr std::int16_t LightningRay = 0x5e8;
         constexpr glm::vec3 RayOffset{-20.0f, -90.0f, 100.0f};
         const glm::vec3 point = Effects::PointAround(actor, RayOffset);
@@ -1169,7 +1169,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     }
     case 0x0d:
     {
-        // 0x500cd4: la celda con su altura, 0x59fb80(0xd) y dos 0xf5 ahí con o de dueño (0x500d7b y 0x500dba).
+        // 0x500cd4: the cell with its height, 0x59fb80(0xd) and two 0xf5 there with o as owner (0x500d7b and 0x500dba).
         const auto cell = SkillCellPoint(actor, context, 0x500d28);
         if (!cell.HasValue())
             return Core::Unexpected(cell.Error());
@@ -1185,7 +1185,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x0e:
         if (auto burst = Effects::ScatterCombatBurstAt(actor.position, context); !burst.HasValue())
             return burst;
-        // 0x5014da: el 0xf6 sobre o, con o de dueño.
+        // 0x5014da: the 0xf6 over o, with o as owner.
         if (auto made = CreateOwnedBlast(0xf6, actor.position, actor, OwnSkillIndex(context, skill), context);
             !made.HasValue())
             return made;
@@ -1193,11 +1193,11 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return {};
     case 0x09:
     {
-        // 0x501bab..0x501ca4: cuatro vueltas con 0x59fb80(9); en cada una, dos joints 0x613/0 colgados de o desde 100
-        // más arriba, con los ángulos (0, 0, 90 · i): el de ancho 80 con la key +0x8a, el índice de la skill y +0x1bd
-        // (0x501c67), y el de ancho 20 con la key −1 (0x501c9c).
+        // 0x501bab..0x501ca4: four turns with 0x59fb80(9); in each, two 0x613/0 joints hung from o from 100 higher,
+        // with angles (0, 0, 90 · i): the one of width 80 with key +0x8a, the skill's index and +0x1bd (0x501c67), and
+        // the one of width 20 with key −1 (0x501c9c).
         constexpr int Turns = 4;
-        constexpr float WideWidth = 80.0f, ThinWidth = 20.0f; // 0x42a00000 y 0x41a00000
+        constexpr float WideWidth = 80.0f, ThinWidth = 20.0f; // 0x42a00000 and 0x41a00000
         const glm::vec3 point{actor.position.x, actor.position.y,
                               static_cast<float>(static_cast<double>(actor.position.z) + 100.0)};
         for (int turn = 0; turn < Turns; ++turn)
@@ -1233,8 +1233,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         return StrikeAround(actor, slot, skill, context);
     case 0x2c:
     {
-        // 0x50294e..0x50298e: 0x518cf0(0x13b, o+0x10, o+0x1c, la luz del paso, 0, o, −1, 0, 0, 0, 0), la llama del
-        // asedio sobre o, y el sonido 0x26c.
+        // 0x50294e..0x50298e: 0x518cf0(0x13b, o+0x10, o+0x1c, the step's light, 0, o, −1, 0, 0, 0, 0), the siege flame
+        // over o, and sound 0x26c.
         constexpr std::int16_t SwordForce = 0x13b;
         constexpr Audio::SoundId ForceSound{0x26c};
         if (auto made = CreateHighEffect({.type = SwordForce,
@@ -1251,22 +1251,23 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x4b:
         return SwingTheHands(actor, slot, skill, context, 0x502a23, 0x502ab4);
     default:
-        // 0x502aff, como el 0.
+        // 0x502aff, as case 0.
         return {};
     }
 }
 
-// 0x504d87..0x504f51, la 0x3d: el punto (80, 0, 20) del primer hueso de o (0x4ec110) y tres 0x116/0 con el blanco de
-// dueño y los ángulos (0, 0, z de o + 90), (0, 0, z) y (0, 0, z − 90); la "luz" (0, 0, techo del blanco (+0x138) / 1)
-// del primero y (0, 0, eso − techo / 2) de los otros dos, que el alta guarda como la partida (el punto del blanco al
-// que van). Después, el 0x117/0 y el 0x117/1 ahí con los ángulos de o y la luz (1; 0,6; 0,3). Sin rand() ni sonido.
+// 0x504d87..0x504f51, skill 0x3d: the point (80, 0, 20) of o's first bone (0x4ec110) and three 0x116/0 with the target
+// as owner and angles (0, 0, o's z + 90), (0, 0, z) and (0, 0, z − 90); the "light" (0, 0, the target's ceiling
+// (+0x138) / 1) of the first and (0, 0, that − ceiling / 2) of the other two, which the creation stores as the start
+// (the target's point they go to). Then the 0x117/0 and 0x117/1 there with o's angles and the light (1, 0.6, 0.3). No
+// rand() or sound.
 Core::Expected<void, std::string> LaunchThePierParts(const Kernel::ActorState& actor, Kernel::ActorState& victim,
                                                      std::size_t slot, std::uint8_t skill,
                                                      const Actors::CharacterStepContext& context)
 {
-    constexpr glm::vec3 LaunchOffset{80.0f, 0.0f, 20.0f}; // 0x42a00000 y 0x41a00000
+    constexpr glm::vec3 LaunchOffset{80.0f, 0.0f, 20.0f}; // 0x42a00000 and 0x41a00000
     constexpr std::size_t LaunchBone = 0;
-    constexpr double Turn = 90.0, Half = 2.0, Whole = 1.0; // 0x6b8948, 0x6b8818 y 0x6b87d4
+    constexpr double Turn = 90.0, Half = 2.0, Whole = 1.0; // 0x6b8948, 0x6b8818 and 0x6b87d4
     constexpr std::int16_t PierPart = 0x116, DarkLordSkill = 0x117;
     const glm::vec3 point = Effects::ActorBonePoint(actor, LaunchBone, LaunchOffset, context.world);
     const double yaw = static_cast<double>(actor.angles.z);
@@ -1311,7 +1312,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     {
     case 0x18:
     {
-        // 0x504379..0x5043aa: 0x53e2b0(c, o, 0, 0x59fb80(+0x38e), 1, 0), la tanda sin blanco; sigue en la 0x34
+        // 0x504379..0x5043aa: 0x53e2b0(c, o, 0, 0x59fb80(+0x38e), 1, 0), the volley with no target; continues in 0x34
         // (0x5043b2).
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
         if (auto fired = Effects::FireTheArrow(actor, nullptr, slot, index, 1, 0, context); !fired.HasValue())
@@ -1321,15 +1322,15 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     case 0x34:
     case 0x33:
     {
-        // 0x5043b2..0x5043fb y 0x504403..0x50444b: la primera lectura es la skill de 0x53e2b0 y la segunda va a
-        // 0x59fb80; 0x53e2b0(c, o, 0, lugar, 0, skill).
+        // 0x5043b2..0x5043fb and 0x504403..0x50444b: the first read is the skill of 0x53e2b0 and the second goes to
+        // 0x59fb80; 0x53e2b0(c, o, 0, slot, 0, skill).
         const std::uint8_t shot = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
         return Effects::FireTheArrow(actor, nullptr, slot, index, 0, shot, context);
     }
     case 0x2e:
     {
-        // 0x504453..0x5044b4: lo mismo con el blanco, 0x53e2b0(c, o, blanco, lugar, 0, skill), y el sonido 0x26e.
+        // 0x504453..0x5044b4: the same with the target, 0x53e2b0(c, o, target, slot, 0, skill), and sound 0x26e.
         constexpr Audio::SoundId BlastSound{0x26e};
         const std::uint8_t shot = ReadTheSkill(actor, context.random);
         const std::int32_t index = OwnSkillIndex(context, ReadTheSkill(actor, context.random));
@@ -1339,13 +1340,14 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     }
     case 0x1a:
-        // 0x5044b9..0x5044f1: 0x518cf0(0x61e, blanco+0x10, blanco+0x1c, blanco+0xf4, 1, blanco, −1, 0, 0, 0, 0), el
-        // calco que suelta los 619/1 hacia su dueño (Scenes/CharacterEffectSteps.h). Con la tabla llena, nada.
+        // 0x5044b9..0x5044f1: 0x518cf0(0x61e, target+0x10, target+0x1c, target+0xf4, 1, target, −1, 0, 0, 0, 0), the
+        // decal that drops the 0x619/1 towards its owner (Effects/CharacterEffectSteps.h). With the table full,
+        // nothing.
         static_cast<void>(
             context.world.Map().effects.CreatePetSummon(victim.position, victim.angles, victim.light, &victim));
         return {};
     case 0x1b:
-        // 0x5044fe: con +0x38d y sin 0x4000 en o+0x78, el calco 0x61e/2 sobre el blanco.
+        // 0x5044fe: with +0x38d and without 0x4000 in o+0x78, the 0x61e/2 decal over the target.
         if (actor.skillSucceeded == 0 || (actor.flags78 & QuietFlag) != 0)
             return {};
         if (auto made = CreateHighEffect({.type = Effects::ColoredDecalEffect,
@@ -1369,7 +1371,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
                                                                    joint.ownerContext == &victim &&
                                                                    (joint.subtype == 4 || joint.subtype == 9);
                                                         });
-            // 0x5045b7/0x50466e: el blanco de los cinco es el +0x3a4 de c, con signo (movsx).
+            // 0x5045b7/0x50466e: the target of the five is c's +0x3a4, signed (movsx).
             if (!alreadyBound || !hasBinding)
                 return CreateFiveAuras(alreadyBound ? 0x5046b0 : 0x5045f9, victim, 4,
                                        std::bit_cast<std::int16_t>(actor.attackTarget), context);
@@ -1377,9 +1379,9 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     case 0x1c:
     {
-        // 0x5046bf..0x50473b: sin 0x4000 en o+0x78, 0x518cf0(0x61e, blanco+0x10, blanco+0x1c, blanco+0xf4, 3, blanco,
-        // −1, 0, 0, 0, 0), cuyo paso suelta los joints 619/3 de la CL11 (StepPetSummon), y con +0x38d de c, 4 en +0x78
-        // del blanco. Con la tabla llena, sin el calco y lo demás igual.
+        // 0x5046bf..0x50473b: without 0x4000 in o+0x78, 0x518cf0(0x61e, target+0x10, target+0x1c, target+0xf4, 3,
+        // target, −1, 0, 0, 0, 0), whose step drops CL11's 0x619/3 joints (StepPetSummon), and with c's +0x38d, 4 in
+        // the target's +0x78. With the table full, no decal and the rest the same.
         constexpr std::uint32_t SummonedFlag = 4;
         if ((actor.flags78 & QuietFlag) != 0)
             return {};
@@ -1391,9 +1393,9 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     }
     case 0x07:
     {
-        // 0x504740..0x504800 (el Ice): 0x518cf0(0xc1, blanco+0x10, o+0x1c, la luz local, 0, sin dueño, −1, …) y cinco
-        // pedazos de hielo 0xca (blanco+0x10, o+0x1c, o+0xf4; ModelEffects::CreateIceShard, cinco rand() cada uno);
-        // con +0x38d, 2 en +0x78 del blanco, y el sonido 0x78.
+        // 0x504740..0x504800 (the Ice): 0x518cf0(0xc1, target+0x10, o+0x1c, the local light, 0, no owner, −1, …) and
+        // five 0xca ice shards (target+0x10, o+0x1c, o+0xf4; ModelEffects::CreateIceShard, five rand() each); with
+        // +0x38d, 2 in the target's +0x78, and sound 0x78.
         constexpr int Shards = 5;
         if (auto created = CreateWizard(
                 0x504768, Effects::WizardArguments(Effects::IceEffect, victim.position, actor.angles, light, 0), skill,
@@ -1412,8 +1414,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     }
     case 0x10:
     {
-        // 0x504808..0x5048e5: el 0x189 prende 0x100 en su +0x78 y sale; con 0x4000, nada; si no, 0x100 en +0x78 del
-        // blanco, el sonido 0x84, 0x534f90(0x10f, blanco, 0) y cinco joints 0x10f/0.
+        // 0x504808..0x5048e5: the 0x189 sets 0x100 in its own +0x78 and leaves; with 0x4000, nothing; otherwise 0x100
+        // in the target's +0x78, sound 0x84, 0x534f90(0x10f, target, 0) and five 0x10f/0 joints.
         constexpr std::uint16_t SelfFlagType = 0x189;
         constexpr std::uint32_t ShieldFlag = 0x100;
         constexpr Audio::SoundId ShieldSound = Sound::SoulBarrierSound;
@@ -1433,8 +1435,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     }
     case 0x01:
     {
-        // 0x5048f1..0x50492b: el jugador crea el 0xc3 (blanco+0x10, o+0x1c, o+0xf4, 0, sin dueño, −1, …); después
-        // TODOS los tipos, con la luz local en (0,4f; 0,6f; 1), intentan diez partículas 5f2/1 (0x50497e).
+        // 0x5048f1..0x50492b: the player creates the 0xc3 (target+0x10, o+0x1c, o+0xf4, 0, no owner, −1, …); then ALL
+        // types, with the local light at (0.4f, 0.6f, 1), try ten 0x5f2/1 particles (0x50497e).
         constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
         if (actor.type == PlayerType)
         {
@@ -1445,8 +1447,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
                 !created.HasValue())
                 return created;
         }
-        // 0x50492e..0x504986: diez 0x53fe70(0x5f2, o + 0x10 del blanco, c + 0x1c, (0,4f; 0,6f; 1), 1, 1,0f, 0), el
-        // humo del veneno (0x541eb6, siete rand() cada una mientras haya lugar).
+        // 0x50492e..0x504986: ten 0x53fe70(0x5f2, the target's o + 0x10, c + 0x1c, (0.4f, 0.6f, 1), 1, 1.0f, 0), the
+        // poison smoke (0x541eb6, seven rand() each while there is room).
         constexpr std::int32_t PoisonSmoke = 0x5f2;
         constexpr std::int32_t PoisonSmokeSubtype = 1;
         constexpr int PoisonSmokeCount = 10;
@@ -1470,8 +1472,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     }
     case 0x02:
-        // 0x5049bf..0x5049fd (el Meteor): 0x518cf0(0xc2, blanco+0x10, blanco+0x1c, o+0xf4, 0, sin dueño, −1, …) y el
-        // sonido 0x42.
+        // 0x5049bf..0x5049fd (the Meteor): 0x518cf0(0xc2, target+0x10, target+0x1c, o+0xf4, 0, no owner, −1, …) and
+        // sound 0x42.
         if (auto created = CreateWizard(
                 0x5049ef, Effects::WizardArguments(Effects::FireEffect, victim.position, victim.angles, actor.light, 0),
                 skill, slot, context);
@@ -1481,8 +1483,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     case 0x2d:
     {
-        // 0x504a0a..0x504abf: tres 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtipo, blanco, −1, 0, 0, 0, 0), con los
-        // subtipos 0, 1 y 2 (Effects::JavelinEffect, un rand() cada uno), y el sonido 0x26d.
+        // 0x504a0a..0x504abf: three 0x518cf0(0x139, o+0x10, o+0x1c, o+0xf4, subtype, target, −1, 0, 0, 0, 0), with
+        // subtypes 0, 1 and 2 (Effects::JavelinEffect, one rand() each), and sound 0x26d.
         constexpr Audio::SoundId JavelinSound{0x26d};
         constexpr std::array<std::int32_t, 3> Subtypes{0, 1, 2};
         constexpr std::array<std::uint32_t, 3> Addresses{0x504a3a, 0x504a72, 0x504aa9};
@@ -1505,7 +1507,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return RaiseTheInferno(actor, context);
     case 0x4a:
     {
-        // 0x504b51..0x504b99: el 0x116/2 sobre o con el blanco de dueño y el sonido 0x271.
+        // 0x504b51..0x504b99: the 0x116/2 over o with the target as owner and sound 0x271.
         constexpr std::int16_t PierPart = 0x116;
         constexpr std::int32_t DivingSubtype = 2;
         constexpr Audio::SoundId DiveSound{0x271};
@@ -1522,8 +1524,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     }
     case 0x04:
-        // 0x504b9e..0x504bdc (la Fire Ball): 0x518cf0(0xc2, o+0x10, los ángulos hacia el blanco, o+0xf4, 1, el blanco
-        // de dueño, −1, …) y el sonido 0x42.
+        // 0x504b9e..0x504bdc (the Fire Ball): 0x518cf0(0xc2, o+0x10, the angles towards the target, o+0xf4, 1, the
+        // target as owner, −1, …) and sound 0x42.
         if (auto created =
                 CreateWizard(0x504bce,
                              Effects::WizardArguments(Effects::FireEffect, actor.position,
@@ -1535,9 +1537,9 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     case 0x0b:
     {
-        // 0x504be9..0x504cce (el Power Wave): 0x518cf0(0xce, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, sin dueño,
-        // −1, …); el 0x164 crea antes dos más, con el rumbo 10 más y después 20 menos (fld/fadd/fstp sobre el local),
-        // y lo devuelve con 10 más. Después, el sonido 0x76.
+        // 0x504be9..0x504cce (the Power Wave): 0x518cf0(0xce, o+0x10, the angles towards the target, o+0xf4, 0, no
+        // owner, −1, …); the 0x164 first creates two more, with the heading 10 more and then 20 less (fld/fadd/fstp on
+        // the local), and returns it with 10 more. Then sound 0x76.
         constexpr std::uint16_t TripleType = 0x164;
         constexpr double SideTurn = 10.0;  // 0x6b87a8
         constexpr double BothSides = 20.0; // 0x6b86d0
@@ -1566,8 +1568,9 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     }
     case 0x3c:
     {
-        // 0x504cdb..0x504d7a: dos 0x518cf0(0x114, o+0x10, o+0x1c, o+0xf4, 1, 0, −1, 0, 0, 0, 0) (0x504d05 y 0x504d37),
-        // uno con el 0x115/0 (0x504d69) y después el sonido 0x1c8. Cada 0x114/1 suelta dos joints 0x6e8/0 (0x51c25f).
+        // 0x504cdb..0x504d7a: two 0x518cf0(0x114, o+0x10, o+0x1c, o+0xf4, 1, 0, −1, 0, 0, 0, 0) (0x504d05 and
+        // 0x504d37), one with the 0x115/0 (0x504d69) and then sound 0x1c8. Each 0x114/1 drops two 0x6e8/0 joints
+        // (0x51c25f).
         constexpr std::uint16_t Wave = 0x114, Piercing = 0x115;
         constexpr std::int32_t SwirlSubtype = 1;
         constexpr Audio::SoundId WaveSound{0x1c8};
@@ -1592,8 +1595,8 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return LaunchThePierParts(actor, victim, slot, skill, context);
     case 0x11:
     {
-        // 0x504f56..0x504fd0: los +0x376 de las tablas de 0x50561a y 0x505672 que van a 0x504fd7, y el 0x76, no
-        // hacen nada; los demás (los jugadores, con 0xffff) crean el 0xd7 (el tipo 0x15e) o el 0x5ca.
+        // 0x504f56..0x504fd0: the +0x376 of the tables of 0x50561a and 0x505672 that go to 0x504fd7, and 0x76, do
+        // nothing; the others (the players, with 0xffff) create the 0xd7 (type 0x15e) or the 0x5ca.
         constexpr std::array<std::uint16_t, 31> QuietKinds{
             0x25, 0x2e, 0x3d, 0x42, 0x45, 0x46, 0x49, 0x4b, 0x4d, 0x57, 0x59, 0x5d, 0x5f, 0x63,  0x70, 0x74,
             0x76, 0x7a, 0x7c, 0x80, 0x82, 0x8d, 0x8f, 0xa3, 0xa5, 0xa7, 0xa9, 0xab, 0xad, 0x125, 0x12f};
@@ -1602,15 +1605,15 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
             return {};
         if (actor.type == RayType)
         {
-            // 0x504fdc..0x505022: 0x518cf0(0xd7, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño,
-            // −1, …), sin sonido.
+            // 0x504fdc..0x505022: 0x518cf0(0xd7, o+0x10, the angles towards the target, o+0xf4, 0, the target as owner,
+            // −1, …), no sound.
             return CreateWizard(0x50501a,
                                 Effects::WizardArguments(Effects::SnowEffect, actor.position,
                                                          TowardsTheTarget(actor, victim), actor.light, 0, &victim),
                                 skill, slot, context);
         }
-        // 0x505024..0x505061: 0x518cf0(0x5ca, o+0x10, los ángulos hacia el blanco, o+0xf4, 0, el blanco de dueño, −1,
-        // …) (Scenes/SkillBurstEffects) y el sonido 0x76, también con la tabla llena.
+        // 0x505024..0x505061: 0x518cf0(0x5ca, o+0x10, the angles towards the target, o+0xf4, 0, the target as owner,
+        // −1, …) (Effects/SkillBurstEffects) and sound 0x76, also with the table full.
         if (auto made = CreateHighEffect({.type = Effects::EnergyBallEffect,
                                           .position = actor.position,
                                           .angles = TowardsTheTarget(actor, victim),
@@ -1624,7 +1627,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
         return {};
     }
     default:
-        // 0x505069: el 3 y los demás.
+        // 0x505069: case 3 and the others.
         return {};
     }
 }
@@ -1632,10 +1635,10 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
 Core::Expected<void, std::string> SparkTheTarget(const Kernel::ActorState& actor, const Kernel::ActorState& victim,
                                                  std::size_t slot, const Actors::CharacterStepContext& context)
 {
-    // 0x52e740..0x52e804: 0x53fe70(0x5c6, o + 0x10 del blanco, sus ángulos, (1, 1, 1), 0, 1,0f, 0), la chispa del golpe
-    // (0x54058e..0x540592: la /0 sale a 0x54304c con sólo el prefijo); el (0, 50, 0) girado por los ángulos del que
-    // pega (0x5fc8f0 y 0x5fcbd0) y sumado a la posición no lo lee nadie. Después, veinte veces dos rand() y
-    // 0x53fe70(0x5c5, la misma posición y ángulos, (1, 1, 1), 0, 1,0f, 0), aun si el pool está lleno.
+    // 0x52e740..0x52e804: 0x53fe70(0x5c6, the target's o + 0x10, its angles, (1, 1, 1), 0, 1.0f, 0), the hit spark
+    // (0x54058e..0x540592: the /0 goes to 0x54304c with only the prefix); the (0, 50, 0) turned by the hitter's angles
+    // (0x5fc8f0 and 0x5fcbd0) and added to the position is read by nobody. Then, twenty times two rand() and
+    // 0x53fe70(0x5c5, the same position and angles, (1, 1, 1), 0, 1.0f, 0), even if the pool is full.
     constexpr std::int32_t HitSpark = 0x5c6;
     constexpr std::int32_t FairySpark = 0x5c5;
     constexpr int FairySparks = 20;

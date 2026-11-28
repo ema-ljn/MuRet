@@ -53,9 +53,9 @@
 
 namespace
 {
-// 0x523b8b..0x523d35 con el subtipo 3 (el pulso de la 0xf8/1): el mismo paso que la estela 0x105/0. Con la flecha viva,
-// +0xe4 90 más, sus ángulos en +0x1c y en +0x28, la partida en la posición de antes y la posición en la de ella; el
-// puntero retiene el lugar aunque cambie el tipo. Con la flecha apagada, la vida en −1 y la cola lo libera.
+// 0x523b8b..0x523d35 with subtype 3 (the 0xf8/1's pulse): the same step as trail 0x105/0. With the arrow alive, +0xe4
+// 90 more, its angles in +0x1c and +0x28, the start at the previous position and the position at the arrow's; the
+// pointer keeps the slot even if the type changes. With the arrow dead, life at −1 and the tail frees it.
 TEST(GameModelEffectsTest, TheVolleyPulseStepsLikeTheTrailAndRetiresWithItsArrow)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -122,7 +122,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailFollowsThePhysicalArrowSlotAndRunsIts
     EXPECT_EQ(trail.transform.position, arrow.transform.position);
     EXPECT_EQ(trail.transform.angles, arrow.transform.angles);
     EXPECT_EQ(trail.copiedAngles, (glm::vec3{10, 90, 30}));
-    arrow.type = 0x123; // El original sigue el lugar reutilizado, no una generación ni un tipo.
+    arrow.type = 0x123; // The original follows the reused slot, not a generation or a type.
     arrow.transform.position = {400, 500, 600};
     ASSERT_TRUE(
         Client::Effects::StepGameModelEffect(trail, nullptr, particles, 0, random, nullptr, services).HasValue());
@@ -181,8 +181,8 @@ TEST(GameModelEffectsTest, TheShortBowTrailPublishesAndAdvancesAnimationEvenOnIt
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
-// 0x52d78f: la estela 0x105/0 sigue por 0x52da92 → 0x602e90 con su malla, Piercing.bmd (0x615700), en los dos pases
-// del mundo. En el segundo, 0x52d66a..0x52d693 la filtra por blendMesh.
+// 0x52d78f: trail 0x105/0 goes on through 0x52da92 → 0x602e90 with its mesh, Piercing.bmd (0x615700), in both world
+// passes. In the second, 0x52d66a..0x52d693 filters it by blendMesh.
 TEST(GameModelEffectsTest, TheShortBowTrailDrawsPiercingBmdInBothNativePasses)
 {
     class TriangleModels final : public Client::Models::IModelLibrary
@@ -406,9 +406,9 @@ TEST(GameModelEffectsTest, SparseParticleSlotsPreserveTheirPayloadAndConsumeOnly
     EXPECT_EQ(particles.All()[5].rotationFactor, 23.0f);
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 7).State());
 }
-// 0x520d11..0x520fd1, la mariposa 0xae del 0x3c de la selección: el giro según +0x88, la deriva y el aleteo
-// de la velocidad z, el freno contra la altura del terreno (más 50 sube, más 150 baja), el salto de z, la
-// luz del subtipo y el sprite 0x5ac de escala 1 en su lugar, antes del paso común.
+// 0x520d11..0x520fd1, the selection's 0x3c butterfly 0xae: the turn by +0x88, the drift and flap of the z speed, the
+// brake against the terrain height (at +50 it rises, at +150 it falls), the z jump, the subtype's light and the 0x5ac
+// sprite with scale 1 at its place, before the common step.
 struct Butterfly
 {
     Client::Effects::ModelEffect effect;
@@ -481,8 +481,8 @@ TEST(GameModelEffectsTest, TheButterflyFlutterKeepsItsHeightBandAndGlowsWithItsS
     }
 }
 
-// 0x520ec6..0x520fb1: la /3 brilla (0,7; 0,9; 0,5) y, con rand() & 1 en 0, suelta una 5c5/7 con la luz del
-// efecto, tres desplazamientos de (rand() & 15) − 8 sorteados antes de sumarse.
+// 0x520ec6..0x520fb1: the /3 shines (0.7; 0.9; 0.5) and, with rand() & 1 at 0, releases a 0x5c5/7 with the effect's
+// light, three shifts of (rand() & 15) − 8 drawn before being added.
 TEST(GameModelEffectsTest, TheLargeButterflyDropsASparkOnEvenDraws)
 {
     int sparks = 0;
@@ -492,11 +492,11 @@ TEST(GameModelEffectsTest, TheLargeButterflyDropsASparkOnEvenDraws)
         Client::Crt::CrtRandom random(seed);
         Client::Crt::CrtRandom draws(seed);
         static_cast<void>(draws.Next()); // 0x5208c5.
-        static_cast<void>(draws.Next()); // El giro.
+        static_cast<void>(draws.Next()); // The turn.
         if ((draws.Next() & 31) == 0)
-            static_cast<void>(draws.Next()); // La deriva.
-        static_cast<void>(draws.Next());     // El aleteo.
-        static_cast<void>(draws.Next());     // El salto.
+            static_cast<void>(draws.Next()); // The drift.
+        static_cast<void>(draws.Next());     // The flap.
+        static_cast<void>(draws.Next());     // The jump.
         const double level = ((draws.Next() & 31) + 64) * static_cast<double>(0.01f);
         const bool spark = (draws.Next() & 1) == 0;
         glm::vec3 offset{};
@@ -527,7 +527,7 @@ TEST(GameModelEffectsTest, TheLargeButterflyDropsASparkOnEvenDraws)
     EXPECT_GT(sparks, 0);
 }
 
-// Sin la altura del terreno corta en 0x520dad; sin la tabla de sprites, en 0x520fd1.
+// Without the terrain height it stops at 0x520dad; without the sprite table, at 0x520fd1.
 TEST(GameModelEffectsTest, TheButterflyNeedsTheTerrainHeightAndTheSpriteTable)
 {
     Butterfly heightless(0);
@@ -546,7 +546,7 @@ TEST(GameModelEffectsTest, TheButterflyNeedsTheTerrainHeightAndTheSpriteTable)
     EXPECT_NE(cut.Error().find("0x520fd1"), std::string::npos);
 }
 
-// Los efectos del Dungeon y de Lost Tower, sin dueño y con la animación común fuera (sin esqueleto).
+// Dungeon and Lost Tower effects, ownerless and with the common animation off (no skeleton).
 Client::Effects::ModelEffect DungeonEffect(std::int16_t type, std::int32_t life)
 {
     Client::Effects::ModelEffect effect;
@@ -560,7 +560,7 @@ Client::Effects::ModelEffect DungeonEffect(std::int16_t type, std::int32_t life)
     return effect;
 }
 
-// La primera semilla cuya sorteo número `draw` (desde 0) cumple la condición.
+// The first seed whose draw number `draw` (from 0) meets the condition.
 std::uint32_t SeedWhereDraw(int draw, bool (*condition)(int))
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -573,9 +573,9 @@ std::uint32_t SeedWhereDraw(int draw, bool (*condition)(int))
     }
 }
 
-// 0x52444d..0x5244ae: la z suma la caída (+0xe4), que pierde 1; con el suelo por encima, se apoya, la caída
-// rebota a −0,4f, pierde 4 de vida y 2 en la y de su velocidad (que 0x51fc80 suma girada en el mismo paso).
-// Un solo rand(), el del prefijo. previousPosition guarda la posición de antes del paso entero.
+// 0x52444d..0x5244ae: z adds the fall (+0xe4), which loses 1; with the ground above, it rests, the fall bounces to
+// −0.4f, it loses 4 life and 2 in its speed's y (which 0x51fc80 adds rotated in the same step). A single rand(), the
+// prefix's. previousPosition keeps the position before the whole step.
 TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
 {
     Client::Effects::ModelEffect falling = DungeonEffect(Client::Effects::FallingStoneEffect, 30);
@@ -610,11 +610,12 @@ TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
     EXPECT_NE(cut.Error().find("0x524473"), std::string::npos) << cut.Error();
 }
 
-// La piedra 0x10b del ataque a las estatuas de Blood Castle. El alta (0x51bafb): nueve rand() con el 0x10b, que pasa al
-// subtipo 1, y ocho con el 0x10a; la z 50 más, sin dueño. El paso (0x52531d): la velocidad sin girar se suma y queda
-// por 0,9f (por 1,1f más con el subtipo 1), la caída suma y pierde 3; en el aire se inclina escala · 16 y en el suelo
-// se apoya, la caída por −0,2f, pierde 5 de vida y se inclina escala · 128; +0x174 = vida · 0,1f. Después, rand() % 10:
-// con 0 corta en 0x5252e6 (el polvo 0x5f3/0 va en un local sin escribir, Q-C1176); si no, la cola común resta la vida.
+// Stone 0x10b of the attack on Blood Castle's statues. The creation (0x51bafb): nine rand() with the 0x10b, which goes
+// to subtype 1, and eight with the 0x10a; z 50 more, no owner. The step (0x52531d): the unrotated speed is added and
+// multiplied by 0.9f (by 1.1f more with subtype 1), the fall adds and loses 3; in the air it tilts scale · 16 and on
+// the ground it rests, the fall times −0.2f, loses 5 life and tilts scale · 128; +0x174 = life · 0.1f. Then, rand() %
+// 10: with 0 it stops at 0x5252e6 (the 0x5f3/0 dust goes in an unwritten local, Q-C1176); otherwise, the common tail
+// takes the life.
 TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
 {
     {
@@ -681,7 +682,7 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
         EXPECT_EQ(landing.life, 34);
     }
     {
-        // El paso en que rand() % 10 da 0: corta en 0x5252e6 después de sus dos rand(), sin el polvo ni la cola.
+        // The step where rand() % 10 gives 0: it stops at 0x5252e6 after its two rand(), without the dust or the tail.
         const std::uint32_t dusty = SeedWhereDraw(1, [](int draw) { return draw % 10 == 0; });
         Client::Effects::ModelEffect raising = stone();
         services.terrainHeight = [](float, float) { return 0.0; };
@@ -705,9 +706,9 @@ TEST(GameModelEffectsTest, TheStatueStonesJumpFallTiltAndCutAtTheDust)
     EXPECT_NE(cut.Error().find("0x5253d9"), std::string::npos) << cut.Error();
 }
 
-// 0x5239c8..0x523b3a con el subtipo 0: la velocidad sin girar se suma y queda por 0,9f; la caída suma y
-// pierde 3; en el aire se inclina escala · 32 y en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se
-// inclina escala · 128. Con rand() % 10 en 0, un fuego 5d9 de subtipo rand() % 3 + 1 con su luz.
+// 0x5239c8..0x523b3a with subtype 0: the unrotated speed is added and multiplied by 0.9f; the fall adds and loses 3; in
+// the air it tilts scale · 32 and on the ground it rests, bounces to −0.5, loses 4 life and tilts scale · 128. With
+// rand() % 10 at 0, a 0x5d9 fire of subtype rand() % 3 + 1 with its light.
 TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
 {
     const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
@@ -751,9 +752,9 @@ TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
     }
 }
 
-// 0x523980, 0x523a3a y 0x523ad2: la piedrita 0xc8/0xc9 de la columna (subtipo 0xc) cae como la /0 (la velocidad sin
-// girar, el arrastre, la caída, el rebote y la inclinación) y, con rand() % 10 en 0, suelta su fuego 5d9 con el subtipo
-// rand() % 3 + 1 y su luz.
+// 0x523980, 0x523a3a and 0x523ad2: the column's small stone 0xc8/0xc9 (subtype 0xc) falls like the /0 (the unrotated
+// speed, the drag, the fall, the bounce and the tilt) and, with rand() % 10 at 0, releases its 0x5d9 fire with subtype
+// rand() % 3 + 1 and its light.
 TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
 {
     const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
@@ -764,7 +765,7 @@ TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
         for (const std::uint32_t seed : {cold, burns})
         {
             SCOPED_TRACE(seed);
-            // La /0xc y su gemela /0, con la misma semilla, el mismo empuje y el mismo terreno.
+            // The /0xc and its twin /0, with the same seed, the same push and the same terrain.
             std::array<Client::Effects::ModelEffect, 2> chips{DungeonEffect(type, 40), DungeonEffect(type, 40)};
             std::array<std::unique_ptr<Client::Particles::Particles>, 2> particles{
                 std::make_unique<Client::Particles::Particles>(), std::make_unique<Client::Particles::Particles>()};
@@ -805,8 +806,8 @@ TEST(GameModelEffectsTest, TheColumnChipFallsAndBurnsLikeTheFirstOne)
     }
 }
 
-// Los pedazos 0xe5 y 0xe6 de la muerte del 0x16b (subtipo 0) entran por 0x523926 → 0x523974 y dan el paso de la
-// piedrita; con rand() % 10 en 0 no sueltan nada (0x523b10): el del prefijo y el % 10.
+// Pieces 0xe5 and 0xe6 of the 0x16b's death (subtype 0) enter through 0x523926 → 0x523974 and take the small stone's
+// step; with rand() % 10 at 0 they release nothing (0x523b10): the prefix's and the % 10.
 TEST(GameModelEffectsTest, TheSplintersStepLikeChipsAndNeverBurn)
 {
     const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
@@ -867,8 +868,8 @@ TEST(GameModelEffectsTest, TheRisingStoneChipAcceleratesWithoutTerrainOrFire)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
-// 0x523985..0x523a62 con la /2 (la de las tormentas): se mueve y sube como la /1 con los ángulos de antes y, después
-// del movimiento, gira 20 en z (0x523a44, 0x6b86d0). Sin terreno ni fuego: sólo el rand() de la luz de cada paso.
+// 0x523985..0x523a62 with the /2 (the storms'): it moves and rises like the /1 with the previous angles and, after the
+// move, turns 20 in z (0x523a44, 0x6b86d0). No terrain or fire: only each step's light rand().
 TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
 {
     auto particles = std::make_unique<Client::Particles::Particles>();
@@ -878,8 +879,8 @@ TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
     chip.velocity = {0, 10, 0};
     chip.turnDirection = 8;
     Client::Crt::CrtRandom random(1);
-    // La gemela: el movimiento con los ángulos de antes, el arrastre, la caída, el giro de 20 y la cola común
-    // (StepModelEffect, 0x52cb98), escritos aparte.
+    // The twin: the move with the previous angles, the drag, the fall, the turn of 20 and the common tail
+    // (StepModelEffect, 0x52cb98), written separately.
     auto twin = chip;
     for (int step = 0; step < 2; ++step)
     {
@@ -911,10 +912,10 @@ TEST(GameModelEffectsTest, TheSpinningStoneChipRisesAndTurnsTwentyEachStep)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 }
 
-// El pedazo de hielo 0xca de 0x52e810 entra en 0x523974 con el subtipo 0: el mismo paso que la piedrita (se arrastra,
-// cae, rebota y se inclina) y, con rand() % 10 en 0, el aliento 5f2/0 con su luz y escala 1 en lugar del fuego, sin el
-// rand() de su subtipo (0x523af4 y 0x523b47): el prefijo, el % 10 y los dos de la creación de 0x54184b. Otro subtipo
-// corta en 0x523974.
+// 0x52e810's ice piece 0xca enters 0x523974 with subtype 0: the same step as the small stone (drags, falls, bounces
+// and tilts) and, with rand() % 10 at 0, the 0x5f2/0 breath with its light and scale 1 instead of the fire, without its
+// subtype's rand() (0x523af4 and 0x523b47): the prefix, the % 10 and the two of 0x54184b's creation. Another subtype
+// stops at 0x523974.
 TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
 {
     const std::uint32_t breathes = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
@@ -937,7 +938,7 @@ TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
         ASSERT_TRUE(breath.alive);
         EXPECT_EQ(breath.type, 0x5f2);
         EXPECT_EQ(breath.subtype, 0);
-        // Donde quedó antes de 0x51fc80, que después le suma la velocidad girada.
+        // Where it was before 0x51fc80, which then adds the rotated speed.
         EXPECT_EQ(breath.position, glm::vec3(1010.0f, 1000.0f, 200.0f));
         EXPECT_FALSE(particles->All()[1].alive);
         EXPECT_EQ(random.State(), Client::Tests::AfterDraws(breathes, 2 + 2).State());
@@ -960,16 +961,16 @@ TEST(GameModelEffectsTest, TheIceShardStepsLikeAChipAndSometimesBreathes)
     EXPECT_NE(cut.Error().find("0x523974"), std::string::npos) << cut.Error();
 }
 
-// 0x52ad21..0x52ae25 con el subtipo 0: seis llamas 5de/0 a ±25 en x e y (sus dos sorteos antes de cada
-// creación), con rand() & 7 en 0 la piedrita 0xc8 + (rand() & 1), y la luz dinámica (L; L · 0,4f; 0) de radio
-// 3 con L = ((primer rand() & 3) + 7) · 0,1f. Lo mismo con las mismas llamadas en otro orden daría otros
-// números: el esperado repite la secuencia del ASM con otro CrtRandom.
+// 0x52ad21..0x52ae25 with subtype 0: six 0x5de/0 flames at ±25 in x and y (their two draws before each creation), with
+// rand() & 7 at 0 the small stone 0xc8 + (rand() & 1), and the dynamic light (L; L · 0.4f; 0) with radius 3 and L =
+// ((first rand() & 3) + 7) · 0.1f. The same with the same calls in another order would give other numbers: the
+// expected one repeats the ASM's sequence with another CrtRandom.
 TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
 {
     for (const bool chipped : {true, false})
     {
         SCOPED_TRACE(chipped);
-        // Sin el + de los lambdas: en MSVC, con varias convenciones de llamada, es ambiguo.
+        // No unary + on the lambdas: in MSVC, with several calling conventions, it is ambiguous.
         const auto chips = [](int value) { return (value & 7) == 0; };
         const auto stays = [](int value) { return (value & 7) != 0; };
         const std::uint32_t seed = chipped ? SeedWhereDraw(25, chips) : SeedWhereDraw(25, stays);
@@ -1031,10 +1032,10 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
     }
 }
 
-// 0x52ae9a..0x52b019, el 0x5de/3 del 0x1a4: tres veces la llama 5de/6 y la brasa 6ec/0 (±5, 40 más arriba, 2,8f); el
-// humo 5f2/0x15 (±5, 40 más abajo, 0,8f), en blanco; el rand() % 2 de la piedrita 0xc8/0xc9 con el subtipo 0xc
-// (0x52afe1), en su posición, con sus ángulos y su luz, que con la tabla llena no hace nada ni saca sus cinco rand(); y
-// la luz (L; L · 0,4f; 0) de radio 3.
+// 0x52ae9a..0x52b019, the 0x1a4's 0x5de/3: three times the 0x5de/6 flame and the 0x6ec/0 ember (±5, 40 higher, 2.8f);
+// the 0x5f2/0x15 smoke (±5, 40 lower, 0.8f), in white; the rand() % 2 of the small stone 0xc8/0xc9 with subtype 0xc
+// (0x52afe1), at its position, with its angles and light, which with the table full does nothing and does not draw its
+// five rand(); and the light (L; L · 0.4f; 0) with radius 3.
 TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
 {
     for (const bool room : {false, true})
@@ -1057,7 +1058,7 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
         const auto stepped =
             Client::Effects::StepGameModelEffect(column, nullptr, *particles, 0.0f, random, nullptr, services);
 
-        // La réplica: el rand() de la luz local, las mismas partículas en un pool gemelo y el de la piedrita.
+        // The replay: the local light's rand(), the same particles in a twin pool and the small stone's.
         Client::Crt::CrtRandom draws(Seed);
         const auto luminosity =
             static_cast<float>(((draws.Next() & 3) + 7) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
@@ -1137,9 +1138,9 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
     }
 }
 
-// 0x52ae2a: después de la luz, con el héroe ([0x743a170]) de dueño (+0x108) y la vida de antes de la cola múltiplo de
-// 20, el chorro de la Flame pide 0x517a20 a 150 sobre sí mismo; con otro dueño, sin dueño o con otra vida, no. Los
-// rand() del paso son los del chorro sin dueño (los de 0x517a20 los saca quien los pide). Sin `skillHits`, corta.
+// 0x52ae2a: after the light, with the hero ([0x743a170]) as owner (+0x108) and the life before the tail a multiple of
+// 20, the Flame's jet asks 0x517a20 at 150 over itself; with another owner, no owner or another life, it does not. The
+// step's rand() are those of the ownerless jet (0x517a20's are drawn by whoever asks). Without `skillHits`, it stops.
 TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
 {
     int hero = 0;
@@ -1206,8 +1207,8 @@ TEST(GameModelEffectsTest, TheHerosFlameJetHitsEveryTwentySteps)
     EXPECT_NE(cut.Error().find("0x52ae72"), std::string::npos) << cut.Error();
 }
 
-// La luz local del primer rand() se apaga con menos de 5 de vida: L − (5 − vida) · 0,2f, en 0 si queda debajo.
-// Sin la tabla de efectos corta cuando la piedrita sale; sin la luz dinámica, al final; otro subtipo, antes.
+// The first rand()'s local light dims with life under 5: L − (5 − life) · 0.2f, at 0 if below. Without the effect
+// table it stops when the small stone comes out; without the dynamic light, at the end; another subtype, before.
 TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
 {
     Client::Effects::ModelEffect fading = DungeonEffect(Client::Effects::FlameJetEffect, 1);
@@ -1242,8 +1243,8 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x52ae25"), std::string::npos) << cut.Error();
 
-    // El /1 y el /2 son del lote switch de la CL11 (World/BlastModelEffects) y el /3 es la columna (StepFlameColumn);
-    // el /4 sigue sin portar.
+    // The /1 and the /2 belong to the CL11 switch batch (Effects/BlastModelEffects) and the /3 is the column
+    // (StepFlameColumn); the /4 is still unported.
     Client::Effects::ModelEffect other = DungeonEffect(Client::Effects::FlameJetEffect, 30);
     other.subtype = 4;
     cut = Client::Effects::StepGameModelEffect(other, nullptr, more, 0.0f, quietRandom, nullptr, services);
@@ -1252,9 +1253,9 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
 }
 } // namespace
 
-// 0x52a737..0x52a7af y 0x52cdb3..0x52cdfb: el 0x5ac suma su velocidad, la baja 0,01f en z, suelta una 5ac/1
-// con su luz y su escala, y la cola común la vuelve a sumar; con la vida que queda impar da otro paso entero.
-// La nube 0xbb sólo tiene la cola común.
+// 0x52a737..0x52a7af and 0x52cdb3..0x52cdfb: the 0x5ac adds its speed, lowers it 0.01f in z, releases a 0x5ac/1 with
+// its light and scale, and the common tail adds it again; with the remaining life odd it takes another whole step.
+// Cloud 0xbb only has the common tail.
 TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
 {
     Client::Effects::ModelEffect flare = DungeonEffect(Client::Effects::IcarusFlareEffect, 400);
@@ -1289,7 +1290,7 @@ TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
         EXPECT_EQ(particle.light, glm::vec3(0.25f, 0.5f, 0.75f));
     }
     EXPECT_EQ(trails, 2);
-    // El rand() común de 0x5208a0, uno por paso entero.
+    // 0x5208a0's common rand(), one per whole step.
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
 
     Client::Effects::ModelEffect sinking = DungeonEffect(Client::Effects::IcarusFlareEffect, 400);
@@ -1305,7 +1306,7 @@ TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
 
 namespace
 {
-// El seno · f de la x87 (FSIN y FMUL), con el signo de f.
+// The x87's sine · f (FSIN and FMUL), with f's sign.
 double SineTimes(double argument, float multiplier)
 {
     const auto product = Client::Math::Detail::SineProductPC53(argument, std::abs(multiplier));
@@ -1327,10 +1328,9 @@ Client::Effects::ModelEffect AidaWisp()
 }
 } // namespace
 
-// 0x520b77..0x520d0c: sin giros sorteados, el yaw suma sen(ftol(T) % 10.000 · 0,0001f) · +0xe4 y el pitch el
-// mismo seno · +0xec · 1/3f; la luz es +0x68 · (0,1f; 0,1f; 0,25f) y la 5ac/9 sale en el lugar con los
-// ángulos nuevos, antes de que la cola común lo avance por la velocidad girada. Tres rand(): el común y los dos
-// % 40.
+// 0x520b77..0x520d0c: without drawn turns, the yaw adds sin(ftol(T) % 10000 · 0.0001f) · +0xe4 and the pitch the same
+// sine · +0xec · 1/3f; the light is +0x68 · (0.1f; 0.1f; 0.25f) and the 0x5ac/9 comes out at its place with the new
+// angles, before the common tail advances it by the rotated speed. Three rand(): the common one and the two % 40.
 TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMoving)
 {
     const std::uint32_t seed = SeedWhereDraw(1, [](int value) { return value % 40 != 1; });
@@ -1358,7 +1358,7 @@ TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMovi
     EXPECT_EQ(trail.angles, wisp.transform.angles);
     EXPECT_EQ(trail.light, glm::vec3(0.1f, 0.1f, 0.25f));
     EXPECT_EQ(trail.scale, 0.95f);
-    EXPECT_EQ(trail.life, 37); // ftol(0,95f · 40) = ftol(37,999998).
+    EXPECT_EQ(trail.life, 37); // ftol(0.95f · 40) = ftol(37.999998).
     EXPECT_FALSE(particles.All()[1].alive);
     const glm::vec3 step = Client::Math::OriginalVectorRotate(glm::vec3(0.0f, -4.5f, 0.0f),
                                                               Client::Math::OriginalAngleMatrix(wisp.transform.angles));
@@ -1367,9 +1367,9 @@ TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMovi
                                                  static_cast<float>(static_cast<double>(step.z) + 100.0)));
 }
 
-// Con rand() % 40 en 1, el sentido +0xd8 se da vuelta y +0xe4 pasa a (rand() % 3 + 5) · sentido (el yaw gira
-// al revés); el segundo hace lo mismo con +0xec y rand() % 3 + 1. Lejos de la partida, vida 50 y estado 1, una
-// sola vez.
+// With rand() % 40 at 1, the direction +0xd8 flips and +0xe4 becomes (rand() % 3 + 5) · direction (the yaw turns the
+// other way); the second does the same with +0xec and rand() % 3 + 1. Far from the start, life 50 and state 1, only
+// once.
 TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsStart)
 {
     const std::uint32_t seed = SeedWhereDraw(1, [](int value) { return value % 40 == 1; });
@@ -1390,7 +1390,7 @@ TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsS
     EXPECT_EQ(wisp.flagEc, second ? static_cast<float>(pitchTurn) : 1.0f);
     const double argument = 5000.0 * static_cast<double>(std::bit_cast<float>(0x38d1b717u));
     EXPECT_EQ(wisp.transform.angles.z, static_cast<float>(SineTimes(argument, static_cast<float>(-yawTurn)) + 30.0));
-    // 0x520c3f: a 500 justo no es "menor"; vida 50 menos la de la cola.
+    // 0x520c3f: at exactly 500 it is not "less"; life 50 minus the tail's.
     EXPECT_EQ(wisp.life, 49);
     EXPECT_EQ(wisp.state, 1);
     ASSERT_TRUE(Client::Effects::StepGameModelEffect(wisp, nullptr, particles, 5000.0f, random).HasValue());
@@ -1403,10 +1403,10 @@ TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsS
     EXPECT_EQ(near.state, 0);
 }
 
-// 0x52c5ca..0x52c7a6, la onda 0x6eb/1: después del rand() común, la escala crece (rand() % 5) · 0,1f y la posición
-// tiembla (rand() & 7) − 4 en x y en y; con la vida hasta 20 la luz es la vida por 0,05f, y pasados los 20, 40 menos
-// la vida. La cola baja la vida. Con la semilla 1 (41 de la creación, 18.467 común, 6.334, 26.500 y 19.169): la
-// escala 1,5, x + 0 e y − 3.
+// 0x52c5ca..0x52c7a6, wave 0x6eb/1: after the common rand(), the scale grows (rand() % 5) · 0.1f and the position
+// shakes (rand() & 7) − 4 in x and y; with life up to 20 the light is life times 0.05f, and past 20, 40 minus life.
+// The tail lowers the life. With seed 1 (41 from the creation, 18467 common, 6334, 26500 and 19169): scale 1.5, x + 0
+// and y − 3.
 TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms)
 {
     Client::Effects::ModelEffects effects;
@@ -1428,7 +1428,7 @@ TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms
     EXPECT_EQ(std::bit_cast<std::uint32_t>(wave.light.x), 0x3f733333u);
     EXPECT_EQ(wave.life, 18);
 
-    // Pasados los 20, 40 − 25 = 15: 0,75. Una escala negativa vuelve a 0, también sin orden.
+    // Past 20, 40 − 25 = 15: 0.75. A negative scale goes back to 0, unordered too.
     for (const float scale : {-5.0f, std::numeric_limits<float>::quiet_NaN()})
     {
         Client::Effects::ModelEffect young = wave;
@@ -1441,9 +1441,9 @@ TEST(GameModelEffectsTest, TheGallopShockWaveGrowsShakesAndFadesWithThreeRandoms
     }
 }
 
-// 0x52c649..0x52c6d4 y 0x52c74e: después del rand() común, la /2 crece (rand() % 5) · 0,025f y tiembla como la /1; la
-// /3 crece 2 y la /4 0,3f, sin rand(); un subtipo sin rama (9, −1) no toca la escala. De 0 a 3 la luz sigue la vida;
-// fuera, con menos de 6 de vida, se apaga por 0,769f.
+// 0x52c649..0x52c6d4 and 0x52c74e: after the common rand(), the /2 grows (rand() % 5) · 0.025f and shakes like the /1;
+// the /3 grows 2 and the /4 0.3f, no rand(); a subtype without a branch (9, −1) does not touch the scale. From 0 to 3
+// the light follows the life; outside, with life under 6, it dims by 0.769f.
 TEST(GameModelEffectsTest, TheOtherShockWavesGrowByTheirOwnSteps)
 {
     Client::Particles::Particles particles;
@@ -1491,8 +1491,8 @@ TEST(GameModelEffectsTest, TheOtherShockWavesGrowByTheirOwnSteps)
 
 namespace
 {
-// 0x5295a4, el rayo 0x14d de los Fenrir, después del rand() común: con el subtipo 0 el alpha sube 0,3f hasta pasar a 1
-// con el subtipo 1; con el 1 baja 0,3f hasta apagarse en 0; los tres ángulos giran 0,15f; y la vida común.
+// 0x5295a4, the Fenrirs' ray 0x14d, after the common rand(): with subtype 0 alpha rises 0.3f until it switches to 1
+// with subtype 1; with 1 it drops 0.3f until it dies at 0; the three angles turn 0.15f; and the common life.
 TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
 {
     using Client::Effects::ModelEffect;
@@ -1512,7 +1512,7 @@ TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
     const auto spun = [](float angle)
     { return static_cast<float>(static_cast<double>(angle) + static_cast<double>(0.15f)); };
 
-    // 0,7f + 0,3f da 1 justo en double: el subtipo 1 y el alpha en 1 en el primer paso.
+    // 0.7f + 0.3f gives exactly 1 in double: subtype 1 and alpha at 1 on the first step.
     ASSERT_EQ(static_cast<double>(std::bit_cast<float>(0x3f333333u)) + static_cast<double>(0.3f), 1.0);
     step();
     EXPECT_EQ(bolt.subtype, 1);
@@ -1524,11 +1524,11 @@ TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
         step();
     EXPECT_TRUE(bolt.alive);
     EXPECT_EQ(bolt.subtype, 1);
-    step(); // la cuarta resta no deja nada: se apaga con el alpha en 0.
+    step(); // the fourth subtraction leaves nothing: it dies with alpha at 0.
     EXPECT_FALSE(bolt.alive);
     EXPECT_EQ(bolt.alpha, 0.0f);
 
-    ModelEffect dim = bolt; // por debajo de 1 sigue en el 0 con la suma guardada.
+    ModelEffect dim = bolt; // below 1 it stays at 0 with the stored sum.
     dim.alive = true;
     dim.subtype = 0;
     dim.life = 50;
@@ -1537,7 +1537,7 @@ TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
     EXPECT_EQ(dim.subtype, 0);
     EXPECT_EQ(dim.alpha, static_cast<float>(0.5 + static_cast<double>(0.3f)));
 
-    ModelEffect negative = bolt; // un alpha guardado negativo (o sin orden) con el subtipo 0 vuelve a 1.
+    ModelEffect negative = bolt; // a negative (or unordered) stored alpha with subtype 0 goes back to 1.
     negative.alive = true;
     negative.subtype = 0;
     negative.life = 50;
@@ -1550,9 +1550,9 @@ TEST(GameModelEffectsTest, TheLightningFlashesOnAndOffAndSpins)
     }
 }
 
-// 0x52965a, el calco 0x14e: x gira 0,1f, la luz baja 0,05f en los canales del subtipo y el alpha 0,05f; con más de 200
-// ms desde su hora pasa al cuadro siguiente con una hora nueva, y pasado el cuarto se apaga. Sin timeGetTime(), corta
-// antes de tocarlo.
+// 0x52965a, decal 0x14e: x turns 0.1f, the light drops 0.05f in the subtype's channels and alpha 0.05f; with more than
+// 200 ms since its time it goes to the next frame with a new time, and past the fourth it dies. Without
+// timeGetTime(), it stops before touching it.
 TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByTheClock)
 {
     using Client::Effects::ModelEffect;
@@ -1587,7 +1587,7 @@ TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByThe
         EXPECT_EQ(decal.light, value.light);
         EXPECT_EQ(decal.alpha, fade(1.0f));
         EXPECT_EQ(decal.transform.angles, glm::vec3(static_cast<float>(5.0 + static_cast<double>(0.1f)), 0.0f, 45.0f));
-        EXPECT_EQ(decal.textureFrame, 0); // 1000 − 800 = 200, que no pasa de 200.
+        EXPECT_EQ(decal.textureFrame, 0); // 1000 − 800 = 200, which does not pass 200.
         EXPECT_EQ(decal.textureTime, 800u);
         EXPECT_EQ(decal.life, 199);
     }
@@ -1612,7 +1612,7 @@ TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByThe
     EXPECT_EQ(decal.textureTime, 1201u);
     EXPECT_FALSE(decal.alive);
 
-    ModelEffect faded = decal; // la resta del alpha en 0 o menos lo apaga.
+    ModelEffect faded = decal; // the alpha subtraction at 0 or less kills it.
     faded.alive = true;
     faded.textureFrame = 0;
     faded.textureTime = now;
@@ -1633,7 +1633,7 @@ TEST(GameModelEffectsTest, TheLightningDecalFadesItsColourAndTurnsItsFramesByThe
 }
 } // namespace
 
-// El terremoto 0xfa del caballo y sus grietas 0xfb..0x102 (0x521c5c..0x522bd2).
+// The horse's earthquake 0xfa and its cracks 0xfb..0x102 (0x521c5c..0x522bd2).
 namespace
 {
 using Client::Effects::ModelEffect;
@@ -1659,13 +1659,13 @@ glm::vec3 QuakeTurned(const glm::vec3& offset, const glm::vec3& angles)
     return Client::Math::OriginalVectorRotate(offset, Client::Math::OriginalAngleMatrix(angles));
 }
 
-// La altura del terreno de los tests: depende de x y de y para que se vea qué punto se pidió.
+// The tests' terrain height: it depends on x and y so the asked point shows.
 double QuakeGround(float x, float y)
 {
     return Wide(x) * 0.0625 + Wide(y) * 0.03125;
 }
 
-// ftol(x · 0,01f) e y · 256 + x, como 0x5f8290.
+// ftol(x · 0.01f) and y · 256 + x, like 0x5f8290.
 std::size_t QuakeCell(const glm::vec3& point)
 {
     const double step = Wide(std::bit_cast<float>(0x3c23d70au));
@@ -1674,7 +1674,6 @@ std::size_t QuakeCell(const glm::vec3& point)
     return static_cast<std::size_t>(y) * 256u + static_cast<std::size_t>(x);
 }
 
-// La tabla de efectos, los atributos, el mapa, la luz dinámica, el temblor y los sonidos que pide el terremoto.
 struct QuakeScene
 {
     std::unique_ptr<ModelEffects> effects = std::make_unique<ModelEffects>();
@@ -1699,7 +1698,8 @@ struct QuakeScene
     }
 };
 
-// Lo que dejó 0x51a66d con el estado y el subtipo 17: la partida en la posición, +0x28 con 80 y 180 más, +0xe4 en 50.
+// What 0x51a66d left with the state and subtype 17: the start at the position, +0x28 with 80 and 180 more, +0xe4 at
+// 50.
 ModelEffect Earthquake(std::uint8_t state, std::int32_t life, const ModelEffectOwner& owner)
 {
     ModelEffect quake;
@@ -1748,7 +1748,7 @@ void ExpectSameEffects(const ModelEffects& actual, const ModelEffects& expected)
     }
 }
 
-// Un rayo de la vida 11, antes de mirar la celda: el punto con la z de la partida más 3, el tamaño y la inclinación.
+// A ray of life 11, before looking at the cell: the point with the start's z plus 3, the size and the tilt.
 struct QuakeSpoke
 {
     glm::vec3 point;
@@ -1756,8 +1756,8 @@ struct QuakeSpoke
     glm::vec3 tilt;
 };
 
-// Los cinco rayos de 0x522004..0x5221ea con sus tres rand(): rand() % 150 + 100 de largo a (k · 72 + subtipo)°,
-// rand() % 50 + 40 de tamaño y (rand() % 30 − 15) + 45 de inclinación.
+// The five rays of 0x522004..0x5221ea with their three rand(): rand() % 150 + 100 long at (k · 72 + subtype)°, rand()
+// % 50 + 40 in size and (rand() % 30 − 15) + 45 of tilt.
 std::array<QuakeSpoke, 5> QuakeSpokes(Client::Crt::CrtRandom& draws, const glm::vec3& start, std::int32_t subtype)
 {
     std::array<QuakeSpoke, 5> spokes{};
@@ -1775,11 +1775,11 @@ std::array<QuakeSpoke, 5> QuakeSpokes(Client::Crt::CrtRandom& draws, const glm::
 }
 } // namespace
 
-// 0x521c8f..0x5221f0, la vida 11 con el estado 2 del caballo: la partida 25 atrás y 80 al costado girados por los
-// ángulos del dueño, en el suelo más 25; la explosión 5ed/0 de 0,5f con su sonido 0x40; la partida 27 más abajo; con
-// un dueño que no es 0x1b1, las grietas 0xfd, 0xfb y 0xfc de tamaño 0x96 con el terremoto de dueño; y cinco rayos con
-// las grietas 0xfe y 0xff en el suelo más 3, con el dueño del terremoto. Una celda con 0x4, 0x8 o 0x10 deja su rayo
-// sin grietas. La cola no mueve el terremoto: sólo le quita una vida.
+// 0x521c8f..0x5221f0, life 11 with the horse's state 2: the start 25 back and 80 to the side rotated by the owner's
+// angles, on the ground plus 25; the 0x5ed/0 explosion of 0.5f with its sound 0x40; the start 27 lower; with an owner
+// that is not 0x1b1, cracks 0xfd, 0xfb and 0xfc of size 0x96 owned by the earthquake; and five rays with cracks 0xfe
+// and 0xff on the ground plus 3, owned by the earthquake's owner. A cell with 0x4, 0x8 or 0x10 leaves its ray without
+// cracks. The tail does not move the earthquake: it only takes a life.
 TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt)
 {
     for (const float yaw : {0.0f, 33.0f})
@@ -1792,7 +1792,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
         QuakeScene scene;
         Client::Particles::Particles particles;
 
-        // Lo esperado, con otra CRT en el orden del ASM.
+        // The expected values, with another CRT in the ASM's order.
         Client::Crt::CrtRandom draws(5);
         static_cast<void>(draws.Next()); // 0x5208c5
         const glm::vec3 behind = QuakeTurned({-25.0f, -80.0f, 0.0f}, horseAngles);
@@ -1816,7 +1816,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
             ASSERT_TRUE(
                 expected->CreateEarthquakeCrack(type, start, glm::vec3(0.0f), QuakeLight, 0, self, 0x96).has_value());
         const auto spokes = QuakeSpokes(draws, start, quake.subtype);
-        // El rayo 1 cae en una celda con un solo bit (0x8): sin grietas.
+        // Ray 1 lands on a cell with a single bit (0x8): no cracks.
         const std::size_t blocked = QuakeCell(spokes[1].point);
         scene.attributes->cells[blocked] = 0x8;
         for (std::size_t spoke = 0; spoke < spokes.size(); ++spoke)
@@ -1850,7 +1850,7 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
         EXPECT_EQ(scene.effects->Effects()[3].type, 0xfe);
         EXPECT_EQ(scene.effects->Effects()[4].type, 0xff);
         EXPECT_EQ(random.State(), draws.State());
-        // 0x52cbb0: sin animación ni 0x51fc80.
+        // 0x52cbb0: no animation or 0x51fc80.
         EXPECT_TRUE(quake.alive);
         EXPECT_EQ(quake.life, 10);
         EXPECT_EQ(quake.transform.position, (glm::vec3{5000.5f, 6000.25f, 300.0f}));
@@ -1859,8 +1859,8 @@ TEST(GameModelEffectsTest, TheEarthquakeAtElevenBurstsAndCracksTheGroundAroundIt
     }
 }
 
-// Con un dueño 0x1b1 (o sin dueño) no salen las tres primeras grietas, sólo las de los rayos. El estado 3 deja la
-// partida donde estaba y no lee los ángulos del dueño.
+// With a 0x1b1 owner (or no owner) the first three cracks do not come out, only the rays'. State 3 leaves the start
+// where it was and does not read the owner's angles.
 TEST(GameModelEffectsTest, TheEarthquakeSkipsItsFirstCracksForTheSeparateOwnerAndKeepsAnUnanchoredStart)
 {
     for (const bool separate : {true, false})
@@ -1903,8 +1903,9 @@ TEST(GameModelEffectsTest, TheEarthquakeSkipsItsFirstCracksForTheSeparateOwnerAn
     }
 }
 
-// En Kalima (24..29 y 36), con el estado 0 o 2 el terremoto agita el agua (0x437860 en la celda de la partida, radio 2
-// y −1.000) y sube 25; con otro estado no la agita y sube 100. Las grietas de los rayos quedan 100 sobre el suelo.
+// In Kalima (24..29 and 36), with state 0 or 2 the earthquake stirs the water (0x437860 at the start's cell, radius 2
+// and −1000) and rises 25; with another state it does not stir it and rises 100. The rays' cracks stay 100 above the
+// ground.
 TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
 {
     for (const std::uint8_t state : {std::uint8_t{2}, std::uint8_t{3}})
@@ -1953,7 +1954,7 @@ TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
                              Narrow(QuakeGround(spokes[0].point.x, spokes[0].point.y) + 100.0)}));
         EXPECT_EQ(random.State(), draws.State());
 
-        // Sin el agua de Kalima, el estado 2 corta antes de la altura.
+        // Without Kalima's water, state 2 stops before the height.
         if (state == 2)
         {
             ModelEffect dry = Earthquake(state, 11, horse);
@@ -1967,8 +1968,8 @@ TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
     }
 }
 
-// 0x5224ec..0x52266a: los dos grupos de cuatro estelas reutilizan el alta 0x5192a3.
-// El pool lleno no evita los dos rand() intermedios ni el sonido ni la hamaca del padre.
+// 0x5224ec..0x52266a: the two groups of four trails reuse creation 0x5192a3. The full pool does not avoid the two
+// intermediate rand(), the sound or the parent's swing.
 TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoundAndSwing)
 {
     constexpr std::uint32_t Seed = 19;
@@ -1980,7 +1981,7 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
         glm::vec3 horseAngles{0.0f, 0.0f, 0.0f};
         const ModelEffectOwner horse{.type = &horseType, .effect = nullptr, .angles = &horseAngles};
         ModelEffect quake = Earthquake(0, 13, horse);
-        // El dueño gira después del alta; la posición actual difiere de la partida de la hamaca.
+        // The owner turns after the creation; the current position differs from the swing's start.
         horseAngles = {15.0f, 25.0f, 75.0f};
         quake.transform.position = {5100.75f, 6200.5f, 450.25f};
         const glm::vec3 before = quake.transform.position;
@@ -1993,7 +1994,7 @@ TEST(GameModelEffectsTest, TheDarkLordAtThirteenDropsTwoTrailGroupsBeforeItsSoun
             expected->Effects()[slot] = scene.effects->Effects()[slot];
         }
         Client::Crt::CrtRandom draws(Seed);
-        static_cast<void>(draws.Next()); // Prólogo del padre.
+        static_cast<void>(draws.Next()); // The parent's prologue.
         const glm::vec3 offset = QuakeTurned({-25.0f, -40.0f, 0.0f}, horseAngles);
         glm::vec3 base;
         for (int axis = 0; axis < 3; ++axis)
@@ -2065,7 +2066,7 @@ TEST(GameModelEffectsTest, TheSecondTrailGroupAddsTheSignedRandomOffsetAsAnInteg
     quake.transform.position.z = NonzeroHeight;
     QuakeScene scene;
     Client::Particles::Particles particles;
-    // 0x5225fa: el tercer sorteo con semilla 48 da 26750. Su desplazamiento entero de Z vale cero.
+    // 0x5225fa: the third draw with seed 48 gives 26750. Its integer Z shift is zero.
     Client::Crt::CrtRandom random(48);
     const auto result =
         Client::Effects::StepGameModelEffect(quake, nullptr, particles, 0.0f, random, nullptr, scene.Services());
@@ -2102,7 +2103,7 @@ TEST(GameModelEffectsTest, TheSharedDispatcherStepsAndExpiresAnUnownedSpiritTrai
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 6).State());
 }
 
-// 0x521e13: orden real entre los ocho intentos, su primera chispa, el pulso y las grietas.
+// 0x521e13: the real order among the eight attempts, their first spark, the pulse and the cracks.
 TEST(GameModelEffectsTest, TheDarkLordEarthquakeEmitsItsBurstEvenWhenThePoolsAreFull)
 {
     struct Capacity
@@ -2235,8 +2236,8 @@ TEST(GameModelEffectsTest, TheEarthquakeBurstExpandsDriftsAndExpiresWithNegative
     EXPECT_EQ(center[1], center[2]);
 }
 
-// Sin el servicio de joints, el estado 0 corta después de sus cuatro sorteos del primer intento; los demás servicios
-// cortan en la dirección que los necesita.
+// Without the joint service, state 0 stops after its four draws of the first attempt; the other services stop at the
+// address that needs them.
 TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
 {
     const std::uint16_t horseType = HorseType;
@@ -2287,7 +2288,7 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
     EXPECT_NE(cutWith(2, 10, horse, [](QuakeScene&, auto& services) { services.terrainAttributes = nullptr; })
                   .find("0x522378"),
               std::string::npos);
-    // Q-C425: 0x5f8290 no enmascara; una celda fuera de las 256 × 256 corta.
+    // Q-C425: 0x5f8290 does not mask; a cell outside the 256 × 256 stops.
     const auto outside = cutWith(3, 11, horse, [](QuakeScene&, auto&) {});
     EXPECT_EQ(outside, "sin corte");
     ModelEffect far = Earthquake(3, 11, horse);
@@ -2301,11 +2302,11 @@ TEST(GameModelEffectsTest, TheEarthquakeCutsTheDarkLordStateAndWhatItLacks)
     EXPECT_NE(cut.Error().find("0x52211d: la celda (49, -3) de 0x5f8290 cae fuera"), std::string::npos) << cut.Error();
 }
 
-// 0x5221fe..0x522493, la vida 10: cuatro anillos de cinco grietas 0x101 y 0x102 de tamaño 100 que salen de la
-// partida. Cada anillo avanza (rand() % 15) + 85; los tres primeros alternan afuera (rand() % 30 + 50) y adentro
-// (−50 − rand() % 30) y el cuarto lo decide un rand() nuevo (Q-C429); el giro suma (rand() % 10 + 62) · i. Sólo una
-// celda con los tres bits deja la grieta sin crear (un solo bit no, Q-C424); la grieta mira 270° más. Después, la vida
-// en 0 y el sonido 0x97; la cola la deja en −1 y muere.
+// 0x5221fe..0x522493, life 10: four rings of five cracks 0x101 and 0x102 of size 100 coming out of the start. Each ring
+// advances (rand() % 15) + 85; the first three alternate out (rand() % 30 + 50) and in (−50 − rand() % 30) and the
+// fourth is decided by a new rand() (Q-C429); the turn adds (rand() % 10 + 62) · i. Only a cell with all three bits
+// leaves the crack uncreated (a single bit does not, Q-C424); the crack faces 270° more. Then life at 0 and sound 0x97;
+// the tail leaves it at −1 and it dies.
 TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
 {
     const std::uint16_t horseType = HorseType;
@@ -2342,12 +2343,12 @@ TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
             for (int axis = 0; axis < 3; ++axis)
                 points[crack][axis] = Narrow(Wide(step[axis]) + Wide(points[crack][axis]));
             plan[ring][crack] = {points[crack], local};
-            // La z del suelo la escribe sólo una grieta creada; las celdas se eligen abajo, antes de correr.
+            // Only a created crack writes the ground's z; the cells are chosen below, before running.
             points[crack].z = Narrow(QuakeGround(points[crack].x, points[crack].y) + 3.0);
         }
         ++parity;
     }
-    // La grieta 2 del primer anillo cae en una celda con los tres bits, y la 3 en una con uno solo.
+    // Crack 2 of the first ring lands on a cell with all three bits, and 3 on one with a single bit.
     const std::size_t walled = QuakeCell(plan[0][2].point);
     const std::size_t marked = QuakeCell(plan[0][3].point);
     ASSERT_NE(walled, marked);
@@ -2408,10 +2409,10 @@ TEST(GameModelEffectsTest, TheEarthquakeAtTenOpensFourRingsOfCracks)
     EXPECT_EQ(quake.life, -1);
 }
 
-// 0x522498..0x522765, las demás vidas: el pitch suma 80; la y de la velocidad es sen((20 − fase) · paso · π / 180) ·
-// 260 con la fase en la vida y el paso 15, o 12,5 y 18 entre 10 y 15; +0xe4 baja 8 con la fase en 12,5 y si no sube 8
-// (en la 15, antes cambia de signo); la posición es la partida más la velocidad girada por +0x28, con la z más +0xe4 y
-// 200. Un rand(), el del prólogo.
+// 0x522498..0x522765, the other lives: the pitch adds 80; the speed's y is sin((20 − phase) · step · π / 180) · 260
+// with the phase at the life and step 15, or 12.5 and 18 between 10 and 15; +0xe4 drops 8 with the phase at 12.5 and
+// otherwise rises 8 (at 15, it first changes sign); the position is the start plus the speed rotated by +0x28, with z
+// plus +0xe4 and 200. One rand(), the prologue's.
 TEST(GameModelEffectsTest, TheEarthquakeSwingsAroundItsStartBetweenItsBursts)
 {
     struct SwingCase
@@ -2454,7 +2455,7 @@ TEST(GameModelEffectsTest, TheEarthquakeSwingsAroundItsStartBetweenItsBursts)
 
 namespace
 {
-// Una grieta como la deja 0x518cf0, con la escala 1,5 y el dueño dado.
+// A crack as 0x518cf0 leaves it, with scale 1.5 and the given owner.
 ModelEffect Crack(std::int16_t type, std::int32_t life, const ModelEffectOwner& owner)
 {
     ModelEffect crack;
@@ -2479,7 +2480,7 @@ float CrackGlow(double factor)
 const double CrackTenth = Wide(std::bit_cast<float>(0x3dcccccdu));
 const double CrackThird = Wide(std::bit_cast<float>(0x3eaaaaabu));
 
-// La luz dinámica de radio 1 que deja una grieta con la luz local del primer rand().
+// The dynamic light with radius 1 that a crack leaves with the first rand()'s local light.
 void ExpectCrackLight(const QuakeScene& scene, const ModelEffect& crack, const glm::vec3& color)
 {
     auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
@@ -2495,8 +2496,8 @@ float CrackLuminosity(std::uint32_t seed)
 }
 } // namespace
 
-// 0x52276a: la 0xfb brilla vida · 0,1f · 1/3f, se hunde 0,5f con menos de 10 y, con más de 15 y múltiplo de 3, tiembla
-// la cámara (rand() % 8 − 4) · 0,1f. Sin luz dinámica; la cola la anima y le quita una vida.
+// 0x52276a: the 0xfb glows life · 0.1f · 1/3f, sinks 0.5f with under 10 and, with more than 15 and a multiple of 3,
+// shakes the camera (rand() % 8 − 4) · 0.1f. No dynamic light; the tail animates it and takes a life.
 TEST(GameModelEffectsTest, TheFirstCrackGlowsSinksAndShakesTheCamera)
 {
     const std::uint16_t horseType = HorseType;
@@ -2540,8 +2541,8 @@ TEST(GameModelEffectsTest, TheFirstCrackGlowsSinksAndShakesTheCamera)
     EXPECT_NE(cut.Error().find("0x5227ca"), std::string::npos) << cut.Error();
 }
 
-// 0x5227d5 y 0x522b04: la 0xfd y la 0x100 brillan vida · 0,1f · 0,1f y se hunden con menos de 13; la 0xfe y la 0x101,
-// vida · 0,1f · 1/3f y con menos de 10. Sin rand() propios ni luz dinámica.
+// 0x5227d5 and 0x522b04: the 0xfd and the 0x100 glow life · 0.1f · 0.1f and sink with under 13; the 0xfe and the
+// 0x101, life · 0.1f · 1/3f and with under 10. No own rand() or dynamic light.
 TEST(GameModelEffectsTest, TheQuietCracksOnlyGlowAndSink)
 {
     struct QuietCase
@@ -2570,9 +2571,10 @@ TEST(GameModelEffectsTest, TheQuietCracksOnlyGlowAndSink)
     }
 }
 
-// 0x5227f0: la 0xfc con escala mayor que 50 pierde la vida; con 10 o más brilla (20 − vida) · 0,1f; con menos, vida ·
-// 0,1f, se hunde debajo de 5 y, con 5 o más, rand() % 10 en 0 suelta una piedrita 0xc8 + (rand() & 1) a rand() % 150
-// girado rand() % 360. Siempre, +0x6c en vida · −0,01f y la luz dinámica de radio 1: roja con un dueño que no es 0x1b1.
+// 0x5227f0: the 0xfc with scale above 50 loses its life; with 10 or more it glows (20 − life) · 0.1f; with less, life ·
+// 0.1f, sinks below 5 and, with 5 or more, rand() % 10 at 0 releases a small stone 0xc8 + (rand() & 1) at rand() % 150
+// turned rand() % 360. Always, +0x6c at life · −0.01f and the dynamic light with radius 1: red with an owner that is
+// not 0x1b1.
 TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
 {
     const std::uint16_t horseType = HorseType;
@@ -2597,7 +2599,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         SCOPED_TRACE(chips);
         const std::uint32_t seed = chips ? SeedWhereDraw(1, [](int value) { return value % 10 == 0; })
                                          : SeedWhereDraw(1, [](int value) { return value % 10 != 0; });
-        // El dueño es el terremoto que la creó: su tipo 0xfa no es 0x1b1.
+        // The owner is the earthquake that created it: its type 0xfa is not 0x1b1.
         ModelEffect quake = Earthquake(2, 5, {});
         const ModelEffectOwner self{.type = nullptr, .effect = &quake, .angles = &quake.transform.angles};
         ModelEffect crack = Crack(0xfc, 7, self);
@@ -2635,7 +2637,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         ASSERT_TRUE(
             Client::Effects::StepGameModelEffect(crack, nullptr, particles, 0.0f, random, nullptr, scene.Services())
                 .HasValue());
-        // La vida en 0: hundida, sin brillo, +0x6c en −0 (0 · −0,01f) y sin rand() de piedrita; la cola la mata.
+        // Life at 0: sunk, no glow, +0x6c at −0 (0 · −0.01f) and no small-stone rand(); the tail kills it.
         EXPECT_EQ(crack.objectState.light, 0.0f);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(crack.objectState.uv.x), 0x80000000u);
         EXPECT_EQ(crack.transform.position.z, 299.5f);
@@ -2669,7 +2671,7 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
         EXPECT_NE(cut.Error().find("0x522af7"), std::string::npos) << cut.Error();
     }
     {
-        // Un dueño sin tipo que leer corta en la lectura de 0x522ab2.
+        // An owner without a type to read stops at the read at 0x522ab2.
         const glm::vec3 angles(0.0f);
         ModelEffect crack = Crack(0xfc, 15, {.type = nullptr, .effect = nullptr, .angles = &angles});
         QuakeScene scene;
@@ -2682,8 +2684,9 @@ TEST(GameModelEffectsTest, TheWideCrackDropsChipsAndLightsTheGroundRed)
     }
 }
 
-// 0x52294c: la 0xff brilla (40 − vida) · 0,1f con 30 o más; si no, vida · 0,1f, se hunde debajo de 15 y, con 5 o más,
-// rand() % 15 en 0 suelta una piedrita. La luz es azul con un dueño 0x1b1 y blanca sin dueño (Q-C427).
+// 0x52294c: the 0xff glows (40 − life) · 0.1f with 30 or more; otherwise life · 0.1f, sinks below 15 and, with 5 or
+// more, rand() % 15 at 0 releases a small stone. The light is blue with a 0x1b1 owner and white without an owner
+// (Q-C427).
 TEST(GameModelEffectsTest, TheLongCrackLightsBlueForTheSeparateOwnerAndWhiteWithoutOne)
 {
     const std::uint16_t separate = SeparateType;
@@ -2720,8 +2723,8 @@ TEST(GameModelEffectsTest, TheLongCrackLightsBlueForTheSeparateOwnerAndWhiteWith
     }
 }
 
-// 0x522b31: la 0x102 brilla (40 − vida) · 0,1f con 30 o más y si no vida · 0,1f, se hunde debajo de 15 y con 13 o más
-// saca un rand() que nadie usa (Q-C428). La luz va por 0x5212ce: roja con el caballo.
+// 0x522b31: the 0x102 glows (40 − life) · 0.1f with 30 or more and otherwise life · 0.1f, sinks below 15 and with 13 or
+// more draws a rand() nobody uses (Q-C428). The light goes through 0x5212ce: red with the horse.
 TEST(GameModelEffectsTest, TheLastCrackDrawsARandomItNeverUses)
 {
     const std::uint16_t horseType = HorseType;

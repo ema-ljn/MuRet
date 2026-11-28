@@ -28,10 +28,10 @@
 #include <optional>
 #include <string>
 
-// El pisotón del caballo oscuro (0x4453e0) en la capa World: las piedras 0x118/0x119 (0x51cc6b, 0x51cd1b y su paso
-// 0x5275ca), lo que sueltan (el polvo 5f2/11 de 0x541d81/0x546111 y la piedrita 0xc8/0xc9 con el subtipo 10 de
-// 0x51b432 y 0x5238be) y la onda 0x6eb/0 (0x51f4ad y 0x52c5ca). Los números esperados repiten las cuentas del ASM con
-// otro CrtRandom de la misma semilla.
+// The dark horse's stomp (0x4453e0) in the Effects module: stones 0x118/0x119 (0x51cc6b, 0x51cd1b and their step
+// 0x5275ca), what they release (the 0x5f2/11 dust of 0x541d81/0x546111 and the small stone 0xc8/0xc9 with subtype 10
+// of 0x51b432 and 0x5238be) and wave 0x6eb/0 (0x51f4ad and 0x52c5ca). The expected numbers repeat the ASM's
+// computations with another CrtRandom with the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -49,7 +49,7 @@ std::unique_ptr<Client::Data::Terrain::TerrainAttributes> OpenGround(std::uint16
     return attributes;
 }
 
-// 0x5f8290: y · 256 + x sin máscara, sobre el ftol truncado de cada eje por 0,01f.
+// 0x5f8290: y · 256 + x without a mask, on each axis's truncated ftol times 0.01f.
 TEST(GroundStonesTest, TheCellAttributeIsTheRowTimes256PlusTheColumnWithoutAMask)
 {
     auto attributes = OpenGround();
@@ -61,15 +61,15 @@ TEST(GroundStonesTest, TheCellAttributeIsTheRowTimes256PlusTheColumnWithoutAMask
     const auto inside = Client::Effects::UnmaskedCellAttribute(attributes.get(), {1250.5f, 3499.9f, 0.0f}, "test");
     ASSERT_TRUE(inside.HasValue()) << inside.Error();
     EXPECT_EQ(inside.Value(), 0x1234);
-    // La columna 257 de la fila 0 es la celda (1, 1): 0x5f82a0 la habría enmascarado a (1, 0).
+    // Column 257 of row 0 is cell (1, 1): 0x5f82a0 would have masked it to (1, 0).
     const auto wide = Client::Effects::UnmaskedCellAttribute(attributes.get(), {25750.0f, 50.0f, 0.0f}, "test");
     ASSERT_TRUE(wide.HasValue());
     EXPECT_EQ(wide.Value(), 0x77);
-    // 0,01f es un poco menos que 0,01: 25.700 · 0,01f es 256,99999… y el ftol lo deja en la columna 256.
+    // 0.01f is a bit less than 0.01: 25700 · 0.01f is 256.99999… and ftol leaves it in column 256.
     const auto under = Client::Effects::UnmaskedCellAttribute(attributes.get(), {25700.0f, 50.0f, 0.0f}, "test");
     ASSERT_TRUE(under.HasValue());
     EXPECT_EQ(under.Value(), 0x66);
-    // ftol(−1,5) es −1: la fila 1 menos uno es la última columna de la fila 0.
+    // ftol(−1.5) is −1: row 1 minus one is row 0's last column.
     const auto behind = Client::Effects::UnmaskedCellAttribute(attributes.get(), {-150.0f, 150.0f, 0.0f}, "test");
     ASSERT_TRUE(behind.HasValue());
     EXPECT_EQ(behind.Value(), 0x55);
@@ -86,8 +86,8 @@ TEST(GroundStonesTest, TheCellAttributeIsTheRowTimes256PlusTheColumnWithoutAMask
     EXPECT_NE(blind.Error().find("0xbeef"), std::string::npos) << blind.Error();
 }
 
-// 0x51cc6b y 0x51cd1b en una celda abierta (los bits 0x01, 0x02 y 0x20 y el byte alto no cuentan): el prefijo común
-// sin dueño, vida 40, la escala rand() % 30 · 0,01f más 1,2f o 1, +0xd8 en 0,3f y el yaw rand() % 360. Dos rand().
+// 0x51cc6b and 0x51cd1b on an open cell (bits 0x01, 0x02 and 0x20 and the high byte do not count): the common
+// ownerless prefix, life 40, scale rand() % 30 · 0.01f plus 1.2f or 1, +0xd8 at 0.3f and yaw rand() % 360. Two rand().
 TEST(GroundStonesTest, TheGroundStonesAreBornWithTwoRandomsOnAnOpenCell)
 {
     auto attributes = OpenGround(0xff23);
@@ -126,9 +126,9 @@ TEST(GroundStonesTest, TheGroundStonesAreBornWithTwoRandomsOnAnOpenCell)
     }
 }
 
-// 0x51cc9b..0x51cdc0: con el bit 0x04, el 0x08 o el 0x10 del byte bajo, el lugar queda con el prefijo escrito y el
-// byte vivo en 0, y sin rand(). Sin la tabla o fuera de ella, corta después del prefijo; otro tipo o la tabla de
-// efectos llena, nada.
+// 0x51cc9b..0x51cdc0: with bit 0x04, 0x08 or 0x10 of the low byte, the slot keeps the written prefix and the alive
+// byte at 0, and no rand(). Without the table or outside it, it stops after the prefix; another type or the effect
+// table full, nothing.
 TEST(GroundStonesTest, ABlockedCellLeavesTheStoneWrittenButDeadWithoutRandoms)
 {
     for (const std::uint16_t bit : {std::uint16_t{0x04}, std::uint16_t{0x08}, std::uint16_t{0x10}})
@@ -179,9 +179,9 @@ TEST(GroundStonesTest, ABlockedCellLeavesTheStoneWrittenButDeadWithoutRandoms)
     EXPECT_EQ(random.State(), 5u);
 }
 
-// 0x51b432..0x51b4ff, la piedrita con el subtipo 10: el empuje ((& 255) + 64) · 0,2 (el double 0x6ba1e8) en y, la vida
-// (& 15) + 32, la escala ((& 3) + 15) · 0,05f, el yaw rand() % 360, la velocidad (el empuje girado con ese yaw) y la
-// caída (& 15) + 28. Otro tipo, nada y sin rand().
+// 0x51b432..0x51b4ff, the small stone with subtype 10: the push ((& 255) + 64) · 0.2 (the double 0x6ba1e8) in y, life
+// (& 15) + 32, scale ((& 3) + 15) · 0.05f, yaw rand() % 360, the speed (the push rotated by that yaw) and the fall (&
+// 15) + 28. Another type, nothing and no rand().
 TEST(GroundStonesTest, TheGroundStoneChipIsBornWithFiveRandoms)
 {
     constexpr double Fifth = std::bit_cast<double>(0x3fc999999999999aull);
@@ -218,7 +218,7 @@ TEST(GroundStonesTest, TheGroundStoneChipIsBornWithFiveRandoms)
     EXPECT_EQ(random.State(), 11u);
 }
 
-// 0x51f4ad con el subtipo 0: vida 30 y escala 20, sin rand(). Lleno, ninguna.
+// 0x51f4ad with subtype 0: life 30 and scale 20, no rand(). Full, none.
 TEST(GroundStonesTest, TheStompShockWaveIsBornWithoutRandoms)
 {
     ModelEffects effects;
@@ -241,8 +241,8 @@ TEST(GroundStonesTest, TheStompShockWaveIsBornWithoutRandoms)
     EXPECT_FALSE(full.CreateStompShockWave({}, {}, glm::vec3(1.0f)).has_value());
 }
 
-// 0x52c5d1 y 0x52c74e..0x52c7a6: la /0 pierde 1 de escala por paso, sin rand() más que el común; una escala negativa
-// vuelve a 0 y la luz es (40 − vida) · 0,05f pasados los 20, o la vida · 0,05f, con la vida antes de la cola.
+// 0x52c5d1 and 0x52c74e..0x52c7a6: the /0 loses 1 of scale per step, with no rand() besides the common one; a negative
+// scale goes back to 0 and the light is (40 − life) · 0.05f past 20, or life · 0.05f, with the life before the tail.
 TEST(GroundStonesTest, TheStompShockWaveShrinksAndFadesWithItsLife)
 {
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
@@ -266,7 +266,7 @@ TEST(GroundStonesTest, TheStompShockWaveShrinksAndFadesWithItsLife)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(3, 30).State());
 }
 
-// Una piedra 0x118 de prueba, sin esqueleto (la animación común queda fuera).
+// A test 0x118 stone, without a skeleton (the common animation stays out).
 ModelEffect GroundStone(std::int32_t life)
 {
     ModelEffect stone;
@@ -280,9 +280,9 @@ ModelEffect GroundStone(std::int32_t life)
     return stone;
 }
 
-// 0x52769b..0x5276b2 → 0x52c4e5: la luz dinámica (0,79f; 0,72f; 0,49f) de radio 2 en cada paso. Con la vida bajo 8, el
-// alpha por 0,7692308f (0x6ba240) y la luz de las mallas por 0,5f, cada uno guardado; con 8, nada. Fuera de 33..36 no
-// suelta nada y sólo saca el rand() común.
+// 0x52769b..0x5276b2 → 0x52c4e5: the dynamic light (0.79f; 0.72f; 0.49f) with radius 2 each step. With life under 8,
+// alpha times 0.7692308f (0x6ba240) and the meshes' light times 0.5f, each stored; with 8, nothing. Outside 33..36 it
+// releases nothing and only draws the common rand().
 TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
 {
     constexpr glm::vec3 Glow{std::bit_cast<float>(0x3f4a3d71u), std::bit_cast<float>(0x3f3851ecu),
@@ -319,9 +319,9 @@ TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
     }
 }
 
-// 0x5275df..0x52766f: con la vida entre 33 y 36, en (x + 60; y − 60; z + 50) el polvo 5f2/11 con los ángulos de la
-// piedra, la luz (1; 0,8f; 0,6f) y la escala 2, y después la piedrita 0xc8 + (rand() & 1) con el subtipo 10, los mismos
-// ángulos y la luz de la piedra, en ese orden de rand().
+// 0x5275df..0x52766f: with life between 33 and 36, at (x + 60; y − 60; z + 50) the 0x5f2/11 dust with the stone's
+// angles, light (1; 0.8f; 0.6f) and scale 2, and then the small stone 0xc8 + (rand() & 1) with subtype 10, the same
+// angles and the stone's light, in that rand() order.
 TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirtySix)
 {
     const glm::vec3 point{1060.0f, 1940.0f, 350.0f};
@@ -383,8 +383,8 @@ TEST(GroundStonesTest, TheGroundStoneDropsDustAndAChipBetweenThirtyThreeAndThirt
     }
 }
 
-// Sin la tabla de efectos corta en 0x52766a con el polvo ya creado y antes del rand() de la piedrita; sin la luz
-// dinámica, en 0x52c4f1 con lo demás hecho.
+// Without the effect table it stops at 0x52766a with the dust already created and before the small stone's rand();
+// without the dynamic light, at 0x52c4f1 with the rest done.
 TEST(GroundStonesTest, TheGroundStoneCutsWithoutItsTables)
 {
     ModelEffect stone = GroundStone(35);
@@ -409,7 +409,7 @@ TEST(GroundStonesTest, TheGroundStoneCutsWithoutItsTables)
     EXPECT_EQ(dark.objectState.light, 0.5f);
 }
 
-// 0x523a2e..0x523ad5 con el subtipo 10: el mismo rebote que el 0, pero sale antes del rand() % 10 del fuego.
+// 0x523a2e..0x523ad5 with subtype 10: the same bounce as the 0, but it exits before the fire's rand() % 10.
 TEST(GroundStonesTest, TheGroundStoneChipBouncesWithoutBurning)
 {
     std::uint32_t burns = 1;
@@ -441,9 +441,9 @@ TEST(GroundStonesTest, TheGroundStoneChipBouncesWithoutBurning)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(burns, 1).State());
 }
 
-// 0x541d81..0x541e72: la 5f2/11 vive 50, se corre ((& 63) − 32; (& 63) − 32; (& 63) + 32), se inclina rand() % 90 −
-// 45, gira rand() % 360 en yaw y en el billboard, guarda su luz en +0x60..+0x68 y empuja −((& 7) + 40) en y. Siete
-// rand().
+// 0x541d81..0x541e72: the 0x5f2/11 lives 50, shifts ((& 63) − 32; (& 63) − 32; (& 63) + 32), tilts rand() % 90 − 45,
+// turns rand() % 360 in yaw and in the billboard, stores its light in +0x60..+0x68 and pushes −((& 7) + 40) in y.
+// Seven rand().
 TEST(GroundStonesTest, TheStoneDustIsBornWithSevenRandoms)
 {
     Client::Particles::Particles particles;
@@ -477,9 +477,9 @@ TEST(GroundStonesTest, TheStoneDustIsBornWithSevenRandoms)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x546111..0x54616c, después de la vida y del movimiento común (la velocidad girada por los ángulos): la luz es la
-// vida por 0,02f por la de la creación, la velocidad por 0,4f, la escala más 0,05f y la z 1 menos. Los dos rand() del
-// viento, nada más.
+// 0x546111..0x54616c, after the life and the common move (the speed rotated by the angles): the light is life times
+// 0.02f times the creation's, the speed times 0.4f, the scale plus 0.05f and z 1 less. The wind's two rand(), nothing
+// else.
 TEST(GroundStonesTest, TheStoneDustDimsBrakesGrowsAndSinks)
 {
     constexpr double LightPerLife = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
@@ -513,8 +513,8 @@ TEST(GroundStonesTest, TheStoneDustDimsBrakesGrowsAndSinks)
     EXPECT_EQ(random.State(), Client::Tests::AfterDraws(state, 2).State());
 }
 
-// 0x548707..0x548a64: la 5f2/11 no resta ni es la /6: el billboard común con su textura, el ancho y el alto por la
-// escala, su luz y el giro de +0x44.
+// 0x548707..0x548a64: the 0x5f2/11 neither subtracts nor is the /6: the common billboard with its texture, width and
+// height times the scale, its light and +0x44's turn.
 TEST(GroundStonesTest, TheStoneDustIsDrawnWithTheCommonBillboard)
 {
     Client::Particles::Particles particles;

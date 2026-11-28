@@ -8,47 +8,47 @@ namespace Client::WorldObjects
 {
 struct WorldObject;
 }
-// 0x602ed0 con Devil Square (el mapa 9, 0x603dd7) y con los Blood Castle (11 a 17, 0x604152), y la cadena de
-// 0x6044ed con los Chaos Castle (18 a 23, 0x4059d0), después del rand() común de 0x602ef4. Contrato: 06 § Los
-// objetos de Devil Square y de Blood Castle, y § Los objetos de Chaos Castle.
+// 0x602ed0 with Devil Square (map 9, 0x603dd7) and with Blood Castle (11 to 17, 0x604152), and 0x6044ed's chain with
+// Chaos Castle (18 to 23, 0x4059d0), after 0x602ef4's common rand(). Contract: 06 § Los objetos de Devil Square y de
+// Blood Castle, and § Los objetos de Chaos Castle.
 namespace Client::WorldObjects
 {
 struct GameObjectPass;
 
-// El 2: con rand() & 3 en 0, una 68/0 en el hueso 23 de la pose global (0x4ec110 con (−15; 0; 0)); con otro
-// rand() & 3 en 0, otra en el hueso 31; y siempre una más en el 23. Las tres con los ángulos del objeto, luz 1,
-// escala 1 y sin dueño. Los demás tipos, nada.
+// Type 2: with rand() & 3 at 0, a 0x68/0 at bone 23 of the global pose (0x4ec110 with (−15; 0; 0)); with another
+// rand() & 3 at 0, another at bone 31; and always one more at 23. All three with the object's angles, light 1, scale 1
+// and no owner. The other types, nothing.
 [[nodiscard]] Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
 
-// Con el reloj del mundo T y el seno en la x87:
-// - el 0xb: siete sprites 0x5ac de 0,5 en (0; 0; 2) por los huesos 1, 2, 4, 6, 9, 10 y 11, sin giro, con la luz
-//   (a; a · 0,5; 0), a = (sin((ángulo z · 20 + T) · 0,001f) + 1) · 0,5 (la y desde a sin redondear);
-// - el 0xd: un sprite 0x60f en el hueso 3, con v = sin(T · 0,001f) · 0,3f + 0,7f guardada en float, la luz
-//   (v; v; v) y la escala v + 0,5;
-// - el 0x25: con rand() & 1 en 0, ftol(fase + 2) % 4 y la fase (+0x84) más 1; con 0, una 6ac/0 y una 6ab/0 en el
-//   objeto. Después, con otro rand() & 1 en 0, ftol(fase) % 4 y la fase más 1; con 0, una 622/6 y una 6ab/1 con
-//   luz 1 y una 60f/4 con luz (1; 0,8f; 0,8f) y escala 0,19f. Todas con los ángulos del objeto y sin dueño.
-// Los demás tipos, nada. Un seno o un ftol fuera del perfil acreditado, la pose, los sprites o el pool ausentes
-// y un alta que MuRet no tiene cortan con su dirección, después de lo ya hecho.
+// With the world clock T and the sine in the x87:
+// - the 0xb: seven 0x5ac sprites of 0.5 at (0; 0; 2) on bones 1, 2, 4, 6, 9, 10 and 11, unrotated, with light
+//   (a; a · 0.5; 0), a = (sin((angle z · 20 + T) · 0.001f) + 1) · 0.5 (y from the unrounded a);
+// - the 0xd: one 0x60f sprite at bone 3, with v = sin(T · 0.001f) · 0.3f + 0.7f stored as float, light (v; v; v)
+//   and scale v + 0.5;
+// - the 0x25: with rand() & 1 at 0, ftol(phase + 2) % 4 and the phase (+0x84) plus 1; with 0, a 0x6ac/0 and a
+//   0x6ab/0 at the object. Then, with another rand() & 1 at 0, ftol(phase) % 4 and the phase plus 1; with 0, a
+//   0x622/6 and a 0x6ab/1 with light 1 and a 0x60f/4 with light (1; 0.8f; 0.8f) and scale 0.19f. All with the
+//   object's angles and no owner.
+// The other types, nothing. A sine or ftol outside the accredited profile, a missing pose, sprites or pool, and a
+// creation MuRet lacks stop with their address, after what was already done.
 [[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
 
-// 0x4059d0, con el área de 0x6c634c (`pass.chaosCastleArea`, un byte sin signo):
-// - del 0 al 3: con +0x8a distinto de 0 (lo prende 0x4055b0) y +0x58 distinto de −2, el punto del hueso 1 de la
-//   pose global; con +0x60 en 10, ahí el joint 0x615/2 (escala rand() % 10 + 60, los ángulos del objeto) y el
-//   sonido 0x9c + (rand() & 1); +0x60 por debajo de 5 apaga +0x8a y, si no, baja uno. Después, como el 4;
-// - el 4, el 5 y del 0xd al 0x11: con el área menor que 2 o en 0xff, nada; si no, +0x58 = −2;
-// - del 6 al 0xc: la primera vez (+0x58 distinto de −2), nubes 622 con la posición, los ángulos y la escala del
-//   objeto y el objeto de dueño: diez de los subtipos 0, 1 y 2 (el 6, el 7 y el 8), cinco del 3, el 4 y el 5 (el
-//   9, el 0xa y el 0xb), todas con la luz (0,05f; 0,05f; 0,1f), y siete del 7 (el 0xc) con la luz 0,3f. Después,
-//   +0x58 = −2;
-// - del 0x12 al 0x15: con el área en 7 o en 8, +0x58 = −1; si no, −2;
-// - del 0x18 al 0x1d: con el área en 4 o en 5, −1; con otra menor que 8, nada; si no, −2;
-// - del 0x1e al 0x23: con el área en 1 o en 2, −1; con otra menor que 5, nada; si no, −2;
-// - el 0x16, el 0x17 y los demás, nada.
-// Sin pool, sin pose, sin quien cree el joint o sin sonido, o con un alta que MuRet no tiene, corta con su
-// dirección, después de lo que ya hizo.
+// 0x4059d0, with 0x6c634c's area (`pass.chaosCastleArea`, an unsigned byte):
+// - 0 to 3: with +0x8a nonzero (set by 0x4055b0) and +0x58 other than −2, the point of bone 1 of the global pose;
+//   with +0x60 at 10, joint 0x615/2 there (scale rand() % 10 + 60, the object's angles) and sound 0x9c + (rand() &
+//   1); +0x60 below 5 turns +0x8a off and, otherwise, drops by one. Then, like the 4;
+// - the 4, the 5 and 0xd to 0x11: with the area under 2 or at 0xff, nothing; otherwise, +0x58 = −2;
+// - 6 to 0xc: the first time (+0x58 other than −2), 0x622 clouds with the object's position, angles and scale and the
+//   object as owner: ten of subtypes 0, 1 and 2 (the 6, the 7 and the 8), five of 3, 4 and 5 (the 9, the 0xa and the
+//   0xb), all with light (0.05f; 0.05f; 0.1f), and seven of 7 (the 0xc) with light 0.3f. Then, +0x58 = −2;
+// - 0x12 to 0x15: with the area at 7 or 8, +0x58 = −1; otherwise, −2;
+// - 0x18 to 0x1d: with the area at 4 or 5, −1; with another under 8, nothing; otherwise, −2;
+// - 0x1e to 0x23: with the area at 1 or 2, −1; with another under 5, nothing; otherwise, −2;
+// - the 0x16, the 0x17 and the others, nothing.
+// Without a pool, a pose, a joint creator or sound, or with a creation MuRet lacks, it stops with its address, after
+// what it already did.
 [[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::WorldObject& object,
                                                                            const GameObjectPass& pass);
 } // namespace Client::WorldObjects

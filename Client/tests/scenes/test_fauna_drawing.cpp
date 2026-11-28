@@ -236,7 +236,7 @@ TEST_F(FaunaDrawingTest, AShadowPublishesTheRetainedOriginUsedByTheNextTranspare
     const auto drawn = DrawGameBirds(m_batch, context);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_TRUE(m_sprites.Sprites()[2].alive);
-    // El primer sprite ya tuvo spillF32 al sumar300; no restarlo para reconstruir su componente local.
+    // The first sprite already had an F32 spill when adding 300; do not subtract it to rebuild its local component.
     const auto expected = Client::Math::OriginalTransformPosition(Client::Math::OriginalMatrixOf(m_carry.bones[1]),
                                                                   {-5, 0, 0}, 1, {1000, 1000, 0});
     EXPECT_EQ(m_sprites.Sprites()[2].position, expected);
@@ -330,8 +330,8 @@ TEST_F(FaunaDrawingTest, AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch)
     EXPECT_EQ(m_fauna.Birds()[0].seen, 0);
     EXPECT_EQ(m_cloth.random.State(), 1U);
 }
-// 0x5ffdf0 con el segundo argumento en 0: 0x4eb860 (bandera en 1) no toca el hueso dummy del scratch y 0x4ebc80, con
-// Translate en 0, lleva el vértice solo por esa matriz, sin la escala ni el origen del objeto.
+// 0x5ffdf0 with the second argument at 0: 0x4eb860 (flag at 1) does not touch the scratch's dummy bone and 0x4ebc80,
+// with Translate at 0, takes the vertex only through that matrix, without the object's scale or origin.
 TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposingFromIdentity)
 {
     std::array<Client::WorldObjects::WorldObject, 1> objects{};

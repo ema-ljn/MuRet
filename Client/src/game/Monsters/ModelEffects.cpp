@@ -57,7 +57,7 @@ namespace Client::Monsters
 namespace
 {
 using Result = Core::Expected<void, std::string>;
-// Si el tipo tiene caso en 0x505de0 (true) o va a los helpers de 0x5085db (false).
+// Whether the type has a case in 0x505de0 (true) or goes to the helpers of 0x5085db (false).
 using CaseResult = Core::Expected<bool, std::string>;
 
 using Math::D;
@@ -68,21 +68,21 @@ float Bits(std::uint32_t bits)
     return std::bit_cast<float>(bits);
 }
 
-// 0x6b87b8: 0,1f.
+// 0x6b87b8
 using Math::Tenth;
 const glm::vec3 White{1.0f, 1.0f, 1.0f};
 const glm::vec3 NoOffset{0.0f, 0.0f, 0.0f};
 
-// 0x4ec110(modelo, +0x120 + hueso · 0x30, offset, salida, 1): los huesos propios con la escala (+0x68) y la posición
-// (+0x6c) que 0x505ec6 copió del personaje al modelo. Antes del primer dibujo, una matriz en cero (Q-C318).
+// 0x4ec110(model, +0x120 + bone · 0x30, offset, out, 1): the own bones with the scale (+0x68) and the position (+0x6c)
+// 0x505ec6 copied from the character to the model. Before the first draw, a zero matrix (Q-C318).
 glm::vec3 BonePoint(const Kernel::ActorState& actor, std::size_t bone, const glm::vec3& offset)
 {
     const Math::BoneTransform matrix = bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Math::BoneTransform(0.0f);
     return Math::OriginalTransformPosition(Math::OriginalMatrixOf(matrix), offset, actor.scale, actor.position);
 }
 
-// 0x53fe70(tipo, posición, ángulos, luz, subtipo, 1, 0). Con el pool lleno no crea nada ni corta; con una que el pool
-// no conoce, corta (CL11).
+// 0x53fe70(type, position, angles, light, subtype, 1, 0). With the pool full it creates nothing and does not cut; with
+// one the pool does not know, it cuts (CL11).
 Result Emit(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, std::int32_t subtype,
             const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light)
 {
@@ -99,13 +99,13 @@ Result Emit(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, st
     return {};
 }
 
-// 0x5f9780(x, y, color, radio, 0x7b4ccc4).
+// 0x5f9780(x, y, color, radius, 0x7b4ccc4).
 Result Light(ModelEffectsPass& pass, std::string_view address, const glm::vec3& color, std::int32_t radius)
 {
     return WorldObjects::AddDynamicLight(pass.dynamicLighting, pass.actor.position, color, radius, address);
 }
 
-// 0x530860(tipo, primero, segundo, ángulos, subtipo, 0, ancho, −1, 0, 0, −1). Con el pool lleno no crea nada.
+// 0x530860(type, first, second, angles, subtype, 0, width, −1, 0, 0, −1). With the pool full it creates nothing.
 Result Joint(ModelEffectsPass& pass, std::uint32_t address, std::int32_t type, std::int32_t subtype, glm::vec3 first,
              glm::vec3 second, glm::vec3 angles, float width)
 {
@@ -133,7 +133,7 @@ void Sound(ModelEffectsPass& pass, Audio::SoundId sound)
     pass.world.Runtime().RequestSound(sound);
 }
 
-// FLD del reloj del mundo, _ftol y IDIV: el resto con signo.
+// FLD of the world clock, _ftol and IDIV: the signed remainder.
 Core::Expected<std::int32_t, std::string> ClockRemainder(const ModelEffectsPass& pass, std::uint32_t address,
                                                          std::int32_t modulus)
 {
@@ -143,7 +143,7 @@ Core::Expected<std::int32_t, std::string> ClockRemainder(const ModelEffectsPass&
     return *clock % modulus;
 }
 
-// FILD del resto y FMUL de un float, guardado en float.
+// FILD of the remainder and FMUL by a float, stored as a float.
 Core::Expected<float, std::string> ClockScroll(const ModelEffectsPass& pass, std::uint32_t address,
                                                std::int32_t modulus, float factor)
 {
@@ -153,14 +153,14 @@ Core::Expected<float, std::string> ClockScroll(const ModelEffectsPass& pass, std
     return F32(static_cast<double>(remainder.Value()) * D(factor));
 }
 
-// rand() % n con el IDIV (rand() no es negativo).
+// rand() % n with the IDIV (rand() is never negative).
 std::int32_t Roll(ModelEffectsPass& pass, std::int32_t modulus)
 {
     return pass.random.Next() % modulus;
 }
 
-// Tres rand() alrededor de la posición: (rand() & 63) − 32, (rand() & 63) − 32 y (rand() & 31) − 16, cada uno por FILD
-// y el FADD de la coordenada, guardado en float (0x50830d..0x508386, 0x5083d7..0x508449, 0x505cb5..0x505d29).
+// Three rand() around the position: (rand() & 63) − 32, (rand() & 63) − 32 and (rand() & 31) − 16, each through FILD
+// and the coordinate's FADD, stored as a float (0x50830d..0x508386, 0x5083d7..0x508449, 0x505cb5..0x505d29).
 glm::vec3 Scatter(ModelEffectsPass& pass)
 {
     const glm::vec3& at = pass.actor.position;
@@ -170,15 +170,15 @@ glm::vec3 Scatter(ModelEffectsPass& pass)
     return {x, y, z};
 }
 
-// 0x505bc0(c, modelo, a, b): +0x4c con el hueso a y +0x40 con el b, sin offset.
+// 0x505bc0(c, model, a, b): +0x4c with bone a and +0x40 with bone b, without offset.
 void MarkTheBones(ModelEffectsPass& pass, std::size_t first, std::size_t second)
 {
     pass.actor.bonePoint4c = BonePoint(pass.actor, first, NoOffset);
     pass.actor.effectOrigin = BonePoint(pass.actor, second, NoOffset);
 }
 
-// 0x505d50: en la acción 2, el polvo 0x5f3/0 en rand() % 200 + x − 100 y rand() % 200 + y − 100 (FILD, FADD de la
-// coordenada y FSUB de 100,0f en la x87), la z del personaje, con la luz propia (+0xf4).
+// 0x505d50: in action 2, the 0x5f3/0 dust at rand() % 200 + x − 100 and rand() % 200 + y − 100 (FILD, FADD of the
+// coordinate and FSUB of 100.0f on the x87), the character's z, with its own light (+0xf4).
 Result RaiseTheDust(ModelEffectsPass& pass)
 {
     if (pass.actor.animation.action != 2)
@@ -190,8 +190,8 @@ Result RaiseTheDust(ModelEffectsPass& pass)
     return Emit(pass, 0x505dc4, Particles::DustParticle, 0, {x, y, at.z}, pass.actor.angles, pass.actor.light);
 }
 
-// 0x505c50: en la acción 6 con el frame en [8, 9), veinte vueltas: la luz propia en (1, 1, 1), tres rand() alrededor
-// de la posición y el polvo 0x5f3/1.
+// 0x505c50: in action 6 with the frame in [8, 9), twenty rounds: its own light at (1, 1, 1), three rand() around the
+// position and the 0x5f3/1 dust.
 Result BurstTheDust(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -210,7 +210,7 @@ Result BurstTheDust(ModelEffectsPass& pass)
     return {};
 }
 
-// 0x4eb860 (0x4eb86d..0x4eb94c): la key que deja en +0xa8 del modelo, como PoseKeyOf de MonsterDrawing.
+// 0x4eb860 (0x4eb86d..0x4eb94c): the key it leaves in +0xa8 of the model, as MonsterDrawing's PoseKeyOf.
 std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Models::AnimationState& animation)
 {
     const auto truncated = Math::OriginalFtolLow(D(animation.frame));
@@ -225,7 +225,7 @@ std::optional<std::int16_t> PoseKeyOf(const Models::Skeleton& skeleton, const Mo
     return key;
 }
 
-// La velocidad de la acción del personaje en su modelo (+0x30 + acción · 0x10 + 4).
+// The speed of the character's action in its model (+0x30 + action · 0x10 + 4).
 Core::Expected<float, std::string> SpeedOf(const ModelEffectsPass& pass, std::uint32_t address)
 {
     const std::uint8_t action = pass.actor.animation.action;
@@ -235,11 +235,11 @@ Core::Expected<float, std::string> SpeedOf(const ModelEffectsPass& pass, std::ui
     return pass.skeleton.actions[action].speed;
 }
 
-// 0x4eb860(modelo, 0x68b181c, frame − velocidad, +0x118, +0x112, ángulos, +0x28, 0, 1): la pose en el buffer global
-// (WorldState::PoseCarry), con la bandera en 1 (0x4318bc y 0x4314f3 empujan el 1): la escala y el origen van en la raíz
-// (0x4ebbda..0x4ebc14) y los huesos quedan en el mundo, sin los dummy, que conservan lo que tenía el buffer (0x4eb973).
-// La key queda en +0xa8 del modelo. La acción, la escala y la posición del modelo son las del personaje (Q-C1102).
-// Devuelve la velocidad.
+// 0x4eb860(model, 0x68b181c, frame − speed, +0x118, +0x112, angles, +0x28, 0, 1): the pose in the global buffer
+// (WorldState::PoseCarry), with the flag at 1 (0x4318bc and 0x4314f3 push the 1): the scale and the origin go in the
+// root (0x4ebbda..0x4ebc14) and the bones stay in the world, without the dummies, which keep what the buffer held
+// (0x4eb973). The key stays in +0xa8 of the model. The model's action, scale and position are the character's
+// (Q-C1102). Returns the speed.
 Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uint32_t address)
 {
     const auto speed = SpeedOf(pass, address);
@@ -270,14 +270,14 @@ Core::Expected<float, std::string> PoseTheModel(ModelEffectsPass& pass, std::uin
     return speed;
 }
 
-// La ventana del ataque de 0x431470: el frame desde `first` y antes de la velocidad más `first` (FLD de la velocidad
-// guardada en float, FADD y FCOMP con el frame en la x87). NaN no entra.
+// The strike window of 0x431470: the frame from `first` and before the speed plus `first` (FLD of the speed stored as a
+// float, FADD and FCOMP with the frame on the x87). NaN does not enter.
 bool InTheStrike(float frame, float speed, float first)
 {
     return frame >= first && D(speed) + D(first) > D(frame);
 }
 
-// rand() % la cantidad de huesos del modelo (MOVSX de +0x22).
+// rand() % the model's bone count (MOVSX of +0x22).
 Core::Expected<std::size_t, std::string> RandomBone(ModelEffectsPass& pass, std::uint32_t address)
 {
     const auto count = static_cast<std::int16_t>(pass.skeleton.bones.size());
@@ -305,7 +305,7 @@ Result ScrollV(ModelEffectsPass& pass, std::uint32_t address, std::int32_t modul
     return {};
 }
 
-// 0x507006..0x5073c1: el 0x185, catorce joints 0x614/7 de ancho 14 entre pares de huesos.
+// 0x507006..0x5073c1: type 0x185, fourteen 0x614/7 joints of width 14 between pairs of bones.
 Result StepThe185(ModelEffectsPass& pass)
 {
     constexpr std::array<std::pair<std::size_t, std::size_t>, 14> Pairs{{{2, 3},
@@ -333,15 +333,15 @@ Result StepThe185(ModelEffectsPass& pass)
     return {};
 }
 
-// 0x507414..0x50748e: el 0x182, con rand() % 5 en 0, la marca 0x5e3 del suelo en (rand() % 21 − 10) · 3,657f más la x
-// y lo mismo en la y, con el ángulo x (+0x1c), la luz propia y 0,65f. La z sale de [EBP−0x8], lo que dejó ahí el código
-// de antes: 0x549130 no la lee (solo la x y la y).
+// 0x507414..0x50748e: type 0x182, with rand() % 5 at 0, the 0x5e3 ground mark at (rand() % 21 − 10) · 3.657f plus the x
+// and the same in y, with the x angle (+0x1c), its own light and 0.65f. The z comes from [EBP−0x8], whatever the
+// earlier code left there: 0x549130 does not read it (only x and y).
 Result StepThe182(ModelEffectsPass& pass)
 {
     if (Roll(pass, 5) != 0)
         return {};
     const Kernel::ActorState& actor = pass.actor;
-    const double step = D(Bits(0x406a0ea1u)); // 3,657f (0x6ba1a8)
+    const double step = D(Bits(0x406a0ea1u)); // 3.657f (0x6ba1a8)
     const float x = F32(static_cast<double>(Roll(pass, 21) - 10) * step + D(actor.position.x));
     const float y = F32(static_cast<double>(Roll(pass, 21) - 10) * step + D(actor.position.y));
     const Terrain::GroundMarkRequest request{.type = 0x5e3,
@@ -356,8 +356,9 @@ Result StepThe182(ModelEffectsPass& pass)
     return {};
 }
 
-// 0x5079c0..0x507a1b: el 0x177 sube +0x68 0,1 en la 3 y la 4, con tope 1, y lo baja 0,1 en las demás, con piso 0 (el
-// FCOMP mira la suma de la x87, no la guardada; con NaN, la 3 y la 4 la dejan y las demás la ponen en 0).
+// 0x5079c0..0x507a1b: type 0x177 raises +0x68 by 0.1 in actions 3 and 4, capped at 1, and lowers it by 0.1 in the
+// others, floored at 0 (the FCOMP looks at the x87 sum, not the stored one; with NaN, 3 and 4 leave it and the others
+// set it to 0).
 void StepThe177(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -376,7 +377,7 @@ void StepThe177(ModelEffectsPass& pass)
         actor.blendMeshLight = 0.0f;
 }
 
-// 0x507a20..0x507ab2: el 0x16f, +0x64 en 3, la V del reloj y, con rand() % 2 en 0, el 0x5d9/0 del hueso 2.
+// 0x507a20..0x507ab2: type 0x16f, +0x64 at 3, the clock's V and, with rand() % 2 at 0, the 0x5d9/0 of bone 2.
 Result StepThe16f(ModelEffectsPass& pass)
 {
     pass.actor.dword64 = 3;
@@ -388,9 +389,9 @@ Result StepThe16f(ModelEffectsPass& pass)
                 White);
 }
 
-// 0x507b05..0x507da6: el 0x172. En la 3, la 4, la 8 y la 9, del hueso de la acción el 0x5ca/0 con (0,6; 1; 0,8) y el
-// 0x5d9/0 con (1; 0,6; 1); en la 6 antes del frame 12 (o NaN), veinte 0x5d9/0 con (0,1; 0,8; 0,6) en huesos de
-// rand() % la cantidad de huesos.
+// 0x507b05..0x507da6: type 0x172. In actions 3, 4, 8 and 9, from the action's bone the 0x5ca/0 with (0.6, 1, 0.8) and
+// the 0x5d9/0 with (1, 0.6, 1); in action 6 before frame 12 (or NaN), twenty 0x5d9/0 with (0.1, 0.8, 0.6) on bones of
+// rand() % the bone count.
 Result StepThe172(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -438,8 +439,8 @@ Result StepThe172(ModelEffectsPass& pass)
     return {};
 }
 
-// 0x507dab..0x507e5e: el 0x15d, +0x68 en (rand() % 10) · 0,1f; con el nivel (+0x1d6) en 2, diez 0x5d9/0 en huesos de
-// rand() y la luz (s; s · 0,2; 0) de radio 2.
+// 0x507dab..0x507e5e: type 0x15d, +0x68 at (rand() % 10) · 0.1f; with the level (+0x1d6) at 2, ten 0x5d9/0 on rand()
+// bones and the light (s, s · 0.2, 0) of radius 2.
 Result StepThe15d(ModelEffectsPass& pass, float brightness)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -460,9 +461,9 @@ Result StepThe15d(ModelEffectsPass& pass, float brightness)
     return Light(pass, "0x507e56", {brightness, F32(D(brightness) * D(Bits(0x3e4ccccdu))), 0.0f}, 2);
 }
 
-// 0x507ee6..0x50808e: el 0x1ce. Con +0x7c & 0x10000000, nada. En la 0 con el frame en [5, 10], el sonido 0xa0; +0x68
-// en s, la luz (s; s · 0,4; 0) de radio 3 y +0x64 en 4; en la 0 con el frame en [5, 6], del hueso 17 cuatro joints
-// 0x617/0 de ancho 10 con los ángulos (rand() % 60 + 150, 0, rand() % 30) y el 0x5c5/0 blanco.
+// 0x507ee6..0x50808e: type 0x1ce. With +0x7c & 0x10000000, nothing. In action 0 with the frame in [5, 10], sound 0xa0;
+// +0x68 at s, the light (s, s · 0.4, 0) of radius 3 and +0x64 at 4; in action 0 with the frame in [5, 6], from bone 17
+// four 0x617/0 joints of width 10 with the angles (rand() % 60 + 150, 0, rand() % 30) and the white 0x5c5/0.
 Result StepThe1ce(ModelEffectsPass& pass, float brightness)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -495,9 +496,9 @@ Result StepThe1ce(ModelEffectsPass& pass, float brightness)
     return {};
 }
 
-// 0x508093..0x5081c4: el 0x1f5 en la 0: la luz (s · 0,5; s · 0,3; 0) de radio 3 y, del hueso 37 en (0, 5, 10), cuatro
-// joints 0x617/0 de ancho 10 con los ángulos (rand() % 60 + 90, 0, rand() % 30) y, con rand() % 2 en 1, el 0x5c5/0
-// con esa luz.
+// 0x508093..0x5081c4: type 0x1f5 in action 0: the light (s · 0.5, s · 0.3, 0) of radius 3 and, from bone 37 at (0, 5,
+// 10), four 0x617/0 joints of width 10 with the angles (rand() % 60 + 90, 0, rand() % 30) and, with rand() % 2 at 1,
+// the 0x5c5/0 with that light.
 Result StepThe1f5(ModelEffectsPass& pass, float brightness)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -524,9 +525,9 @@ Result StepThe1f5(ModelEffectsPass& pass, float brightness)
     return {};
 }
 
-// 0x50826d..0x50839c y 0x50844c: el 0x155, el 0x158 y el 0x166 (y el 0x154 después de lo suyo). El 0x166, el sprite
-// 0x5ac del hueso 7 con (s; s · 0,4; s · 0,2), que queda en la luz; sin morirse (+0x389), con rand() % 4 en 0, tres
-// rand() alrededor y, en Devias, el 0x5f2/0 o, si no, el 0x5f3/0 con esa luz.
+// 0x50826d..0x50839c and 0x50844c: types 0x155, 0x158 and 0x166 (and 0x154 after its own). 0x166, the 0x5ac sprite of
+// bone 7 with (s, s · 0.4, s · 0.2), which stays in the light; while not dying (+0x389), with rand() % 4 at 0, three
+// rand() around and, in Devias, the 0x5f2/0 or, otherwise, the 0x5f3/0 with that light.
 Result StepThe155(ModelEffectsPass& pass, float brightness)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -549,8 +550,8 @@ Result StepThe155(ModelEffectsPass& pass, float brightness)
     return Emit(pass, 0x508451, Particles::DustParticle, 0, position, actor.angles, light);
 }
 
-// 0x5081c9..0x508265: el 0x154 en la 3 con el frame en 4 o menos (o NaN), el 0x5d9/1 blanco del hueso 7 en (0,
-// rand() % 32 + 32, 0); después, lo del 0x155.
+// 0x5081c9..0x508265: type 0x154 in action 3 with the frame at 4 or less (or NaN), the white 0x5d9/1 of bone 7 at (0,
+// rand() % 32 + 32, 0); then what 0x155 does.
 Result StepThe154(ModelEffectsPass& pass, float brightness)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -565,8 +566,8 @@ Result StepThe154(ModelEffectsPass& pass, float brightness)
     return StepThe155(pass, brightness);
 }
 
-// 0x5083a1..0x508459: el 0x173 sin morirse y con el nivel en 1, con rand() % 4 en 0: tres rand() alrededor y el
-// 0x5f3/0 blanco.
+// 0x5083a1..0x508459: type 0x173 while not dying and with the level at 1, with rand() % 4 at 0: three rand() around and
+// the white 0x5f3/0.
 Result StepThe173(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -576,7 +577,7 @@ Result StepThe173(ModelEffectsPass& pass)
     return Emit(pass, 0x508451, Particles::DustParticle, 0, position, actor.angles, White);
 }
 
-// 0x50846c..0x5085d1: el 0x15e y el 0x15f, con rand() % 4 en 0, el 0x5f2/0 del hueso 22 con la luz propia.
+// 0x50846c..0x5085d1: types 0x15e and 0x15f, with rand() % 4 at 0, the 0x5f2/0 of bone 22 with its own light.
 Result StepThe15e(ModelEffectsPass& pass)
 {
     if (Roll(pass, 4) != 0)
@@ -585,8 +586,8 @@ Result StepThe15e(ModelEffectsPass& pass)
                 pass.actor.light);
 }
 
-// 0x5084b3..0x5085d1: el 0x152 con el frame en [15, 20] de la 0, en [20, 25] de la 1 o en [2, 3] o [5, 6] de la 2: con
-// rand() % 2 en 0, el 0x5f2/0 del hueso 24 en (0, −4, 0) con la luz propia.
+// 0x5084b3..0x5085d1: type 0x152 with the frame in [15, 20] of action 0, in [20, 25] of action 1 or in [2, 3] or [5, 6]
+// of action 2: with rand() % 2 at 0, the 0x5f2/0 of bone 24 at (0, −4, 0) with its own light.
 Result StepThe152(ModelEffectsPass& pass)
 {
     const Kernel::ActorState& actor = pass.actor;
@@ -612,8 +613,8 @@ Result StepThe152(ModelEffectsPass& pass)
                 actor.light);
 }
 
-// 0x5078b5..0x507989: el 0x17c. Con el subtipo 1, el 0x5d9/0 blanco de los huesos 6 y 13 y la luz (−1,3) × 3 de radio
-// 3; si no, 0x505d50 y 0x505c50.
+// 0x5078b5..0x507989: type 0x17c. With subtype 1, the white 0x5d9/0 of bones 6 and 13 and the light (−1.3) × 3 of
+// radius 3; otherwise, 0x505d50 and 0x505c50.
 Result StepThe17c(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -635,8 +636,8 @@ Result StepThe17c(ModelEffectsPass& pass)
     return Light(pass, "0x507970", {dark, dark, dark}, 3);
 }
 
-// 0x53fe70(0x5de, punto, ángulos, luz, subtipo, escala, 0): la llama con el reloj del mundo y su seno, que la /2 y la
-// /3 leen al nacer (0x541722, 0x54178c). Con el pool lleno no crea nada ni saca rand().
+// 0x53fe70(0x5de, point, angles, light, subtype, scale, 0): the flame with the world clock and its sine, which the /2
+// and the /3 read when born (0x541722, 0x54178c). With the pool full it creates nothing and takes no rand().
 Result Flame(ModelEffectsPass& pass, std::uint32_t address, std::int32_t subtype, const glm::vec3& position,
              const glm::vec3& angles, const glm::vec3& light, float scale)
 {
@@ -653,19 +654,20 @@ Result Flame(ModelEffectsPass& pass, std::uint32_t address, std::int32_t subtype
     return {};
 }
 
-// Un par de las tablas de bytes del 0x17e: el byte par es el punto de la llama y el destino de 0x4e9810; el impar,
-// desde dónde mira.
+// A pair of the byte tables of 0x17e: the even byte is the flame's point and the destination of 0x4e9810; the odd one,
+// where it looks from.
 struct FlamePair
 {
     std::uint8_t point;
     std::uint8_t from;
 };
 
-// 0x6c882c..0x6c884e: los 35 huesos que 0x5074f0 lleva al arreglo local [EBP − 0x234] (MOVSX de cada byte).
+// 0x6c882c..0x6c884e: the 35 bones 0x5074f0 takes to the local array [EBP − 0x234] (MOVSX of each byte).
 constexpr std::array<std::uint8_t, 35> FlameBones{5,  6,  33, 53, 35, 49, 50, 45, 46, 41, 42, 37,
                                                   38, 11, 31, 13, 27, 28, 23, 24, 19, 20, 15, 16,
                                                   54, 55, 62, 69, 70, 77, 2,  79, 81, 84, 86};
-// 0x6c8850..0x6c886d y 0x6c8870..0x6c888d: los quince pares de cada tabla que el bucle de 0x50752f lee de a dos.
+// 0x6c8850..0x6c886d and 0x6c8870..0x6c888d: the fifteen pairs of each table that the loop of 0x50752f reads two at a
+// time.
 constexpr std::array<FlamePair, 15> FirstFlamePairs{{{0, 2},
                                                      {2, 3},
                                                      {2, 4},
@@ -696,12 +698,12 @@ constexpr std::array<FlamePair, 15> SecondFlamePairs{{{0, 13},
                                                       {19, 18},
                                                       {21, 20},
                                                       {23, 22}}};
-// 0x6c8890..0x6c8897 y 0x6c8898..0x6c889f: los cuatro pares de cada tabla del bucle de 0x5075f4.
+// 0x6c8890..0x6c8897 and 0x6c8898..0x6c889f: the four pairs of each table of the loop of 0x5075f4.
 constexpr std::array<FlamePair, 4> ThirdFlamePairs{{{29, 28}, {28, 27}, {34, 33}, {33, 30}}};
 constexpr std::array<FlamePair, 4> FourthFlamePairs{{{26, 25}, {25, 24}, {32, 31}, {31, 30}}};
 
-// 0x4e9810(desde, ángulos, punto, 360,0f) con el fstp de la distancia a [EBP − 0x50], la x de la luz, y 0x53fe70(0x5de,
-// punto, ángulos, [EBP − 0x50], 2, escala, 0).
+// 0x4e9810(from, angles, point, 360.0f) with the fstp of the distance to [EBP − 0x50], the light's x, and
+// 0x53fe70(0x5de, point, angles, [EBP − 0x50], 2, scale, 0).
 Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::array<glm::vec3, FlameBones.size()>& points,
                   const FlamePair& pair, glm::vec3& angles, glm::vec3& light, float scale)
 {
@@ -710,15 +712,15 @@ Result FlameAlong(ModelEffectsPass& pass, std::uint32_t address, const std::arra
     return Flame(pass, address, 2, point, angles, light, scale);
 }
 
-// 0x5074bb..0x50775c: el 0x17e con +0x376 en 0x3f (el monstruo 63; 0x514bd1 le da el modelo 0x17e también al 61, que
-// va por la otra rama). Los 35 puntos de los huesos de 0x6c882c sin offset ([EBP − 0x60] en
-// 0); con los ángulos locales en 0 (0x5074c1), una 0x5de/2 por par de 0x6c8850 y de 0x6c8870 con escala 1,0f hasta el
-// par 11 (ESI desde 0x16) y 0,5f después, y por par de 0x6c8890 y de 0x6c8898 con 0,6f; con ftol(reloj) par (el resto
-// con signo de 0x5076b8), la 0x5de/2 del punto 30 mirado desde el 0 con 1,3f y la 0x5de/3 del punto 1 con 0,5f y la
-// misma luz; al final, la luz (−1,3) × 3 de radio 3. Los ángulos pasan de un 0x4e9810 al siguiente. La y y la z de la
-// luz ([EBP − 0x4c] y [EBP − 0x48]) no las escribe nadie en 0x505de0: la /2 sólo lee la x del pedido (0x5416dc,
-// 0x541702), la /3 no lee la luz del pedido (0x541750..0x5417b2), y las dos pisan las tres con la luz del reloj
-// (0x54173c..0x541748, 0x5417a6..0x5417b2), así que MuRet las deja en 0.
+// 0x5074bb..0x50775c: type 0x17e with +0x376 at 0x3f (monster 63; 0x514bd1 also gives model 0x17e to 61, which goes
+// through the other branch). The 35 points of the bones of 0x6c882c without offset ([EBP − 0x60] at 0); with the local
+// angles at 0 (0x5074c1), one 0x5de/2 per pair of 0x6c8850 and of 0x6c8870 with scale 1.0f up to pair 11 (ESI from
+// 0x16) and 0.5f after, and per pair of 0x6c8890 and of 0x6c8898 with 0.6f; with ftol(clock) even (the signed remainder
+// of 0x5076b8), the 0x5de/2 of point 30 looked at from 0 with 1.3f and the 0x5de/3 of point 1 with 0.5f and the same
+// light; at the end, the light (−1.3) × 3 of radius 3. The angles pass from one 0x4e9810 to the next. Nobody in
+// 0x505de0 writes the light's y and z ([EBP − 0x4c] and [EBP − 0x48]): the /2 only reads the request's x (0x5416dc,
+// 0x541702), the /3 does not read the request's light (0x541750..0x5417b2), and both overwrite all three with the
+// clock's light (0x54173c..0x541748, 0x5417a6..0x5417b2), so MuRet leaves them at 0.
 Result StepTheFlamingLimbs(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -738,7 +740,7 @@ Result StepTheFlamingLimbs(ModelEffectsPass& pass)
             !flamed.HasValue())
             return flamed;
     }
-    const float tail = Bits(0x3f19999au); // 0,6f
+    const float tail = Bits(0x3f19999au); // 0.6f
     for (std::size_t index = 0; index < ThirdFlamePairs.size(); ++index)
     {
         if (auto flamed = FlameAlong(pass, 0x507644, points, ThirdFlamePairs[index], angles, light, tail);
@@ -763,18 +765,19 @@ Result StepTheFlamingLimbs(ModelEffectsPass& pass)
     return Light(pass, "0x507754", {dark, dark, dark}, 3);
 }
 
-// 0x507761..0x507897: el 0x17e sin el 0x3f, desde las manos (los huesos 55 y 70 de 0x51255c). La luz (L; L · 0,5; L ·
-// 0,5) con L = sen(reloj · 0,002f) · 0,3f + 0,7f (FSIN en PC53, fst de L y fmul 0,5 de la suma sin redondear); con los
-// ángulos locales en 0, del hueso 55 al 62 y del 70 al 77 (sin offset: [EBP − 0x28] en 0 desde 0x506c97), 0x4e9810 de
-// 360,0f, cuya distancia se tira (fstp st(0)), y la 0x5de/1 en el segundo con 0,2f; después, 0x505d50 y 0x505c50.
+// 0x507761..0x507897: type 0x17e without 0x3f, from the hands (bones 55 and 70 of 0x51255c). The light (L, L · 0.5, L ·
+// 0.5) with L = sin(clock · 0.002f) · 0.3f + 0.7f (FSIN in PC53, fst of L and fmul 0.5 of the unrounded sum); with the
+// local angles at 0, from bone 55 to 62 and from 70 to 77 (without offset: [EBP − 0x28] at 0 since 0x506c97), 0x4e9810
+// of 360.0f, whose distance is dropped (fstp st(0)), and the 0x5de/1 at the second with 0.2f; then 0x505d50 and
+// 0x505c50.
 Result StepTheBurningHands(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
-    const double rate = D(Bits(0x3b03126fu)); // 0,002f (0x6b89bc)
+    const double rate = D(Bits(0x3b03126fu)); // 0.002f (0x6b89bc)
     const auto sine = Math::Detail::SineProductPC53(D(pass.worldClock) * rate, Bits(0x3e99999au));
     if (!sine)
         return Core::Unexpected(std::string("0x50777b: el reloj del mundo está fuera del dominio de FSIN"));
-    const double glow = *sine + D(Bits(0x3f333333u)); // 0,7f (0x6b8a5c)
+    const double glow = *sine + D(Bits(0x3f333333u)); // 0.7f (0x6b8a5c)
     const glm::vec3 light{F32(glow), F32(glow * 0.5), F32(glow * 0.5)};
     glm::vec3 angles{0.0f, 0.0f, 0.0f};
     struct Hand
@@ -784,7 +787,7 @@ Result StepTheBurningHands(ModelEffectsPass& pass)
         std::uint32_t address;
     };
     constexpr std::array<Hand, 2> Hands{{{55, 62, 0x50780d}, {70, 77, 0x507883}}};
-    const float scale = Bits(0x3e4ccccdu); // 0,2f
+    const float scale = Bits(0x3e4ccccdu); // 0.2f
     for (const Hand& hand : Hands)
     {
         const glm::vec3 start = BonePoint(actor, hand.from, NoOffset);
@@ -798,7 +801,7 @@ Result StepTheBurningHands(ModelEffectsPass& pass)
     return BurstTheDust(pass);
 }
 
-// 0x50749c..0x507897: el 0x17e, 0x505bc0(8, 9) y la rama de +0x376.
+// 0x50749c..0x507897: type 0x17e, 0x505bc0(8, 9) and the +0x376 branch.
 Result StepThe17e(ModelEffectsPass& pass)
 {
     MarkTheBones(pass, 8, 9);
@@ -808,7 +811,7 @@ Result StepThe17e(ModelEffectsPass& pass)
     return StepTheBurningHands(pass);
 }
 
-// El caso del tipo − 0x152 (0x506ccc..0x50862f).
+// The case of the type − 0x152 (0x506ccc..0x50862f).
 CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
 {
     Result stepped{};
@@ -869,12 +872,12 @@ CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
         stepped = ScrollV(pass, 0x507e69, 2000, Bits(0xba03126fu));
         break;
     case 0x1d8:
-        // 0x507e8a: rand() & 63 en 0, el sonido 0xa1.
+        // 0x507e8a: rand() & 63 at 0, sound 0xa1.
         if (Roll(pass, 64) == 0)
             Sound(pass, Audio::SoundId{0xa1});
         break;
     case 0x1d3:
-        // 0x507eb7: rand() & 255 en 0, el sonido 0xa0.
+        // 0x507eb7: rand() & 255 at 0, sound 0xa0.
         if (Roll(pass, 256) == 0)
             Sound(pass, Audio::SoundId{0xa0});
         break;
@@ -918,18 +921,18 @@ CaseResult StepTheTypeCase(ModelEffectsPass& pass, float brightness)
     return true;
 }
 
-// 0x43bdd0(c, modelo), la tabla 0x43c07c sobre 0x43c064 desde el 0xc5. Devuelve 1 con los suyos.
+// 0x43bdd0(c, model), the table 0x43c07c over 0x43c064 from 0xc5. Returns 1 with its own.
 CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
     const double clock = D(pass.worldClock);
-    const double rate = D(Bits(0x3a83126fu)); // 0,001f (0x6b89c8)
+    const double rate = D(Bits(0x3a83126fu)); // 0.001f (0x6b89c8)
     switch (actor.type)
     {
     case 0xc5:
     {
-        // 0x43bdfd..0x43bef3: en la 0, dos 0x5f3/0 en rand() % 200 + x − 100 y rand() % 100 + y − 50 con la luz propia
-        // y los efectos 0xc8/0xc9 en la posición del actor. Ambas ramas alcanzan +0x64 y el pulso de +0x68.
+        // 0x43bdfd..0x43bef3: in action 0, two 0x5f3/0 at rand() % 200 + x − 100 and rand() % 100 + y − 50 with its own
+        // light and the 0xc8/0xc9 effects at the actor's position. Both branches reach +0x64 and the pulse of +0x68.
         if (actor.animation.action == 0)
         {
             const float x = F32(static_cast<double>(Roll(pass, 200)) + D(actor.position.x) - 100.0);
@@ -939,7 +942,8 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
                 if (auto emitted = Emit(pass, address, Particles::DustParticle, 0, position, actor.angles, actor.light);
                     !emitted.HasValue())
                     return Core::Unexpected(emitted.Error());
-            // 0x43bea5 y 0x43bec6: el dueño es 0; omitir un alta con el pool lleno no detiene el segundo intento.
+            // 0x43bea5 and 0x43bec6: the owner is 0; skipping a spawn with the pool full does not stop the second
+            // attempt.
             for (const std::int16_t type : {std::int16_t{0xc8}, std::int16_t{0xc9}})
                 static_cast<void>(pass.world.Map().effects.CreateStoneChip(type, actor.position, actor.angles,
                                                                            actor.light, pass.random));
@@ -954,7 +958,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0x191:
     case 0x196:
     {
-        // 0x43bf84: +0x68 en sen(T · 0,001f) · 0,7f + 0,3f.
+        // 0x43bf84: +0x68 at sin(T · 0.001f) · 0.7f + 0.3f.
         const auto pulse = Math::Detail::SineProductPC53(clock * rate, Bits(0x3f333333u));
         if (!pulse)
             return Core::Unexpected(std::string("0x43bf92: el reloj del mundo está fuera del dominio de FSIN"));
@@ -964,8 +968,8 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     case 0x192:
     case 0x197:
     {
-        // 0x43befb y 0x43bfa8: el 0x197 en la 6, nada; si no, rand() % 2 en 0 pide del hueso 6 (el 0x192) o 31 (el
-        // 0x197) en (2, 30, 0) el humo 0x5f2/0x11 (Particles::GlowSmokeSubtype).
+        // 0x43befb and 0x43bfa8: 0x197 in action 6, nothing; otherwise, rand() % 2 at 0 requests from bone 6 (0x192) or
+        // 31 (0x197) at (2, 30, 0) the 0x5f2/0x11 smoke (Particles::GlowSmokeSubtype).
         if (actor.type == 0x197 && actor.animation.action == 6)
             return true;
         if (Roll(pass, 2) != 0)
@@ -991,7 +995,7 @@ CaseResult StepTheKalimaHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x42de90(c, modelo), solo en el mapa 30 ([0x6c9dd0]), la tabla 0x42df78 sobre 0x42df64 desde el 0x19b.
+// 0x42de90(c, model), only in map 30 ([0x6c9dd0]), the table 0x42df78 over 0x42df64 from 0x19b.
 CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
 {
     constexpr std::int32_t CastleMap = Maps::CastleSiegeMap;
@@ -1005,17 +1009,17 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     case 0x19e:
     case 0x19f:
     case 0x1a0:
-        // 0x42df47: el ángulo z (+0x24) en 0.
+        // 0x42df47: the z angle (+0x24) at 0.
         actor.angles.z = 0.0f;
         return true;
     case 0x1a1:
-        // 0x42df55: en 45.
+        // 0x42df55: at 45.
         actor.angles.z = 45.0f;
         return true;
     case 0x19c:
     {
-        // 0x42deeb..0x42df40: en 0 y la luz (v · 0,2; v · 0,7; v) de radio 2, con v = sen(T · 0,0005) · 0,58f + 0,42f
-        // (el reloj por el double de 0x6b8aa8 en la x87).
+        // 0x42deeb..0x42df40: at 0 and the light (v · 0.2, v · 0.7, v) of radius 2, with v = sin(T · 0.0005) · 0.58f +
+        // 0.42f (the clock times the double of 0x6b8aa8 on the x87).
         actor.angles.z = 0.0f;
         constexpr double Rate = 0.0005;
         const auto wave = Math::Detail::SineProductPC53(D(pass.worldClock) * Rate, Bits(0x3f147ae1u));
@@ -1029,7 +1033,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     }
     case 0x1fc:
     {
-        // 0x42dec1..0x42dee4: +0x58 en −2; con el asedio (0x4294b0) y [0x7239e4] en 0x20000, en −1. Devuelve 0.
+        // 0x42dec1..0x42dee4: +0x58 at −2; with the siege (0x4294b0) and [0x7239e4] at 0x20000, at −1. Returns 0.
         actor.dword58 = -2;
         const Kernel::WorldRuntime& runtime = pass.world.Runtime();
         constexpr std::uint32_t CrownOpen = 0x20000;
@@ -1042,7 +1046,7 @@ CaseResult StepTheCastleHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x431470 en la 2 y la 0xa: con rand() % 10 en 0, el 0x5f3/0 en la posición con la luz del caso (0x431e86).
+// 0x431470 in actions 2 and 0xa: with rand() % 10 at 0, the 0x5f3/0 at the position with the case's light (0x431e86).
 Result KickTheDust(ModelEffectsPass& pass, const glm::vec3* light, std::uint32_t local)
 {
     const std::uint8_t action = pass.actor.animation.action;
@@ -1089,8 +1093,8 @@ void CrywolfStone(ModelEffectsPass& pass, std::int16_t type, const glm::vec3& po
         static_cast<void>(effects.CreateStoneChip(type, point, pass.actor.angles, pass.actor.light, pass.random));
 }
 
-// 0x43192b..0x4319aa: el 0x636/2 de 0x518cf0 en el hueso 33, la explosión 0x5ed/2 de 0x53fe70 (blanca, escala 1, sin
-// dueño; su alta pide el sonido 0x40 en 0x542a82) y seis piedras 0xe5/0xa.
+// 0x43192b..0x4319aa: the 0x636/2 of 0x518cf0 on bone 33, the 0x5ed/2 explosion of 0x53fe70 (white, scale 1, no owner;
+// its spawn requests sound 0x40 at 0x542a82) and six 0xe5/0xa stones.
 Result CrywolfHeavyStrike(ModelEffectsPass& pass)
 {
     const glm::vec3 point = CrywolfGlobalPoint(pass, 33);
@@ -1174,7 +1178,7 @@ Result CrywolfNamedSprites(ModelEffectsPass& pass, std::uint32_t centerAddress)
 
 Result CrywolfPiercingStrike(ModelEffectsPass& pass)
 {
-    // 0x431edc y0x42f5e3 calculan una velocidad girada en un local que luego no se lee.
+    // 0x431edc and 0x42f5e3 compute a turned speed in a local that is never read afterwards.
     static_cast<void>(pass.world.Map().effects.CreatePiercingEffect({.type = 0x115,
                                                                      .position = pass.actor.position,
                                                                      .angles = pass.actor.angles,
@@ -1183,7 +1187,7 @@ Result CrywolfPiercingStrike(ModelEffectsPass& pass)
     return {};
 }
 
-// 0x431470(c, c, modelo), la tabla 0x432488 desde el 0x1ab. Devuelve 0 salvo el 0x1b5 después de su efecto.
+// 0x431470(c, c, model), the table 0x432488 from 0x1ab. Returns 0 except 0x1b5 after its effect.
 Result StepTheCrywolfHelper(ModelEffectsPass& pass)
 {
     Kernel::ActorState& actor = pass.actor;
@@ -1196,7 +1200,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     {
     case 0x1ab:
     {
-        // 0x431868: 0x505bc0(9, 10), la pose y, en la 4 dentro de [7,5; velocidad + 7,5), los efectos 0x636 de
+        // 0x431868: 0x505bc0(9, 10), the pose and, in action 4 within [7.5, speed + 7.5), the 0x636 effects of
         // 0x518cf0.
         MarkTheBones(pass, 9, 10);
         const auto speed = PoseTheModel(pass, 0x4318bc);
@@ -1212,11 +1216,11 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     }
     case 0x1ad:
     case 0x1af:
-        // 0x4319f1 y 0x431bdd: la luz (0,9; 0,2; 0,1).
+        // 0x4319f1 and 0x431bdd: the light (0.9, 0.2, 0.1).
         return KickTheDust(pass, &ember, 0);
     case 0x1ae:
     {
-        // 0x431a3c..0x431bd2: el aviso se consume antes de todas las altas, también con pools llenos.
+        // 0x431a3c..0x431bd2: the notice is consumed before every spawn, also with the pools full.
         auto& flag = pass.world.Runtime().crywolf.ui.byte723bec;
         if (stage != Siege || flag == 0)
             return {};
@@ -1244,7 +1248,7 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     }
     case 0x1b0:
     {
-        // 0x43161d: en la 3 dentro de [6,5; velocidad + 6,5), los efectos 0x636 y las partículas 0x640.
+        // 0x43161d: in action 3 within [6.5, speed + 6.5), the 0x636 effects and the 0x640 particles.
         const auto speed = SpeedOf(pass, 0x431636);
         if (!speed.HasValue())
             return Core::Unexpected(speed.Error());
@@ -1287,13 +1291,13 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     case 0x1b2:
         return CrywolfNamedSprites(pass, 0x431fa4);
     case 0x1b3:
-        // 0x431ea1: en la 4 con el frame en [4, 6], el efecto 0x115.
+        // 0x431ea1: in action 4 with the frame in [4, 6], effect 0x115.
         if (action == 4 && frame >= 4.0f && frame <= 6.0f)
             return CrywolfPiercingStrike(pass);
         return {};
     case 0x1b4:
     {
-        // 0x4314ad: la pose y, en la 4 dentro de [5,5; velocidad + 5,5), doce efectos 0xc9.
+        // 0x4314ad: the pose and, in action 4 within [5.5, speed + 5.5), twelve 0xc9 effects.
         const auto speed = PoseTheModel(pass, 0x4314f3);
         if (!speed.HasValue())
             return Core::Unexpected(speed.Error());
@@ -1315,8 +1319,8 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
     }
     case 0x1b5:
     {
-        // 0x4323d2: con la etapa de Crywolf en 4, rand() % 100 en 0 le pone la acción 3 (0x4ea030) y +0x84 en 1; en la
-        // 3 con +0x84 en 1 desde el frame 5, el efecto 0xed.
+        // 0x4323d2: with the Crywolf stage at 4, rand() % 100 at 0 sets action 3 (0x4ea030) and +0x84 to 1; in action 3
+        // with +0x84 at 1 from frame 5, effect 0xed.
         if (stage != Siege)
             return {};
         if (Roll(pass, 100) == 0)
@@ -1343,12 +1347,12 @@ Result StepTheCrywolfHelper(ModelEffectsPass& pass)
         return {};
     }
     default:
-        // 0x4315e0: el 0x1ac y los de fuera de la tabla.
+        // 0x4315e0: 0x1ac and those outside the table.
         return {};
     }
 }
 
-// 0x42f550: el helper de35 termina con0, por lo que después también corre431470.
+// 0x42f550: the map 35 helper ends with 0, so 0x431470 also runs afterwards.
 Result StepTheKanturuHelper(ModelEffectsPass& pass)
 {
     if (pass.map != 35)
@@ -1378,7 +1382,7 @@ Result StepTheKanturuHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x426ce0(c, modelo): la luz de radio 3 del 0x1b6, el 0x1b7 y el 0x1bb. Devuelve 0.
+// 0x426ce0(c, model): the radius 3 light of 0x1b6, 0x1b7 and 0x1bb. Returns 0.
 Result StepTheLightHelper(ModelEffectsPass& pass)
 {
     switch (pass.actor.type)
@@ -1394,7 +1398,7 @@ Result StepTheLightHelper(ModelEffectsPass& pass)
     }
 }
 
-// 0x5085db: los seis, hasta el primero que devuelve 1.
+// 0x5085db: the six, up to the first that returns 1.
 Result StepTheHelpers(ModelEffectsPass& pass)
 {
     const auto kalima = StepTheKalimaHelper(pass);
@@ -1407,7 +1411,7 @@ Result StepTheHelpers(ModelEffectsPass& pass)
         return Core::Unexpected(castle.Error());
     if (castle.Value())
         return {};
-    // 0x441210: el 0x1a4, la luz (1; 0,2; 0,1) de radio 3. Devuelve 0.
+    // 0x441210: type 0x1a4, the light (1, 0.2, 0.1) of radius 3. Returns 0.
     if (pass.actor.type == 0x1a4)
         if (auto lit = Light(pass, "0x441249", {1.0f, Bits(0x3e4ccccdu), Tenth}, 3); !lit.HasValue())
             return lit;
@@ -1421,7 +1425,7 @@ Result StepTheHelpers(ModelEffectsPass& pass)
 
 Core::Expected<void, std::string> StepTheModelEffects(ModelEffectsPass& pass)
 {
-    // 0x506c82..0x506cc6: la luz local en (1, 1, 1), el offset en 0 y s = ((rand() & 7) + 2) · 0,1f.
+    // 0x506c82..0x506cc6: the local light at (1, 1, 1), the offset at 0 and s = ((rand() & 7) + 2) · 0.1f.
     const float brightness = F32(static_cast<double>(pass.random.Next() % 8 + 2) * D(Tenth));
     const auto handled = StepTheTypeCase(pass, brightness);
     if (!handled.HasValue())

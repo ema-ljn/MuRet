@@ -9,7 +9,7 @@ namespace Client::Weather
 struct Leaf;
 }
 
-// Creadores externos de 530490: 443990 (31) y 435600 (34/estado2).
+// External creators of 0x530490: 0x443990 (31) and 0x435600 (34/state 2).
 namespace Client::Weather
 {
 struct GameLeafContext;

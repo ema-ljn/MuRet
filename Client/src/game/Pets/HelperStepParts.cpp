@@ -29,25 +29,25 @@ namespace Client::Pets
 {
 namespace
 {
-// 0x4440bb y 0x4440c9: la posición del jinete por 0,01f (0x6b86c0) y truncada (0x69fd3c).
+// 0x4440bb and 0x4440c9: the rider's position times 0.01f (0x6b86c0), truncated (0x69fd3c).
 constexpr double CellsPerUnit = static_cast<double>(0.01f);
-// 0x5f82a0: el byte bajo de cada coordenada.
+// 0x5f82a0: the low byte of each coordinate.
 constexpr std::int32_t CellMask = 0xff;
-// 0x4440e5: el bit 0 del byte bajo del atributo, la zona segura.
+// 0x4440e5: bit 0 of the attribute's low byte.
 constexpr std::uint16_t SafeCellBit = 0x01;
-// 0x444484 y 0x4444bd: en el 2 el polvo es la 5f2; en el 10, ninguno.
+// 0x444484 and 0x4444bd: on map 2 the dust is the 5f2; on 10, none.
 using Maps::DeviasMap;
 using Maps::IcarusMap;
-// Las partículas del ayudante nacen con la escala 1 (0x3f800000).
+// 0x3f800000
 constexpr float ParticleScale = 1.0f;
 constexpr std::int32_t DustSubtype = 0;
-// 0x444425..0x444476: (rand() & 63) − 32 en x y en y y (rand() & 31) − 16 en z.
+// 0x444425..0x444476: (rand() & 63) − 32 in x and y, and (rand() & 31) − 16 in z.
 constexpr int DustSpread = 64;
 constexpr int DustSpreadCentre = 32;
 constexpr int DustHeight = 32;
 constexpr int DustHeightCentre = 16;
-// 0x444325..0x4443d1: la cuenta de las 5f2, rand() % 5 + 5, y cada una a rand() % 50 − 25 en x y en y y
-// (rand() & 15) − 8 − 10 (0x6b87a8) en z.
+// 0x444325..0x4443d1: the 5f2 count, rand() % 5 + 5, each at rand() % 50 − 25 in x and y and (rand() & 15) − 8 − 10
+// (0x6b87a8) in z.
 constexpr int PuffSpan = 5;
 constexpr int PuffBase = 5;
 constexpr int PuffSpread = 50;
@@ -55,7 +55,7 @@ constexpr int PuffCentre = 25;
 constexpr int PuffHeight = 16;
 constexpr int PuffHeightCentre = 8;
 constexpr double PuffSink = 10.0;
-// 0x444817..0x44481d: los +0x80 del jinete con que el alpha baja; 0x44481f, el de los demás.
+// 0x444817..0x44481d: the rider's +0x80 values with which alpha falls; 0x44481f, the others'.
 constexpr std::uint8_t FadingRider = 1;
 constexpr std::uint8_t OtherFadingRider = 2;
 constexpr float ShownAlpha = 1.0f;
@@ -64,7 +64,7 @@ constexpr float HiddenAlpha = 0.0f;
 
 using Math::F32;
 
-// x + v en la x87: el entero exacto, el float del ayudante y un solo redondeo a float en el fstp.
+// x + v on the x87: the exact integer, the helper's float and a single rounding to float at the fstp.
 float Shifted(int by, float value)
 {
     return F32(static_cast<double>(by) + static_cast<double>(value));
@@ -154,7 +154,7 @@ Core::Expected<void, std::string> PuffTheIcarusDust(const glm::vec3& base, const
                                                     const HelperStepContext& context, std::string_view address)
 {
     Crt::CrtRandom& random = context.random;
-    static_cast<void>(random.Next()); // 0x444325..0x444336 y 0x444d6a..0x444d7b: la guarda, siempre positiva.
+    static_cast<void>(random.Next()); // 0x444325..0x444336 and 0x444d6a..0x444d7b: the guard, always positive.
     int puffs = 0;
     do
     {

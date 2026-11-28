@@ -33,9 +33,9 @@
 #include <string>
 #include <vector>
 
-// Los objetos de Icarus (el mapa 10): el caso de 0x602ed0 (0x603eef), el preludio 0x6061c0 con 0x605d70, el
-// paso 0x6063d0 de cada objeto visto y las dos uniones que sueltan, 615/0 y 614/6 (06 § Los objetos de
-// Icarus). Los valores esperados repiten las fórmulas del ASM con otro CrtRandom de la misma semilla.
+// The Icarus objects (map 10): the case of 0x602ed0 (0x603eef), the prelude 0x6061c0 with 0x605d70, the step
+// 0x6063d0 of each seen object and the two joints they release, 0x615/0 and 0x614/6 (06 § Los objetos de
+// Icarus). The expected values repeat the ASM's formulas with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -52,7 +52,7 @@ constexpr std::int32_t GameScene = 5;
 using Client::Math::D;
 using Client::Math::F32;
 
-// La primera semilla con la que `condition` acepta los sorteos de un CrtRandom nuevo.
+// The first seed with which `condition` accepts the draws of a new CrtRandom.
 std::uint32_t SeedWhere(const std::function<bool(CrtRandom&)>& condition)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -143,7 +143,7 @@ void ExpectSameParticles(const Client::Particles::Particles& actual, const Clien
     }
 }
 
-// Una unión pedida a 0x530860, copiada (la solicitud sólo presta sus vectores).
+// A joint requested from 0x530860, copied (the request only lends its vectors).
 struct JoinedRequest
 {
     std::int32_t type;
@@ -199,8 +199,8 @@ struct StepFixture
 };
 } // namespace
 
-// 0x603f03..0x6040db: del 0 al 2, veinte nubes 622 con el subtipo del tipo; del 3 al 5, diez. Con el objeto de
-// dueño, la luz 0,1f y la escala del objeto, y +0x58 queda en −2: la segunda vez no emite ni sortea.
+// 0x603f03..0x6040db: from 0 to 2, twenty 0x622 clouds with the type's subtype; from 3 to 5, ten. With the object
+// as owner, light 0.1f and the object's scale, and +0x58 is left at −2: the second time it neither emits nor draws.
 TEST(IcarusObjectsTest, TheCloudsEmitTwentyOrTenOwnedMistsOnlyOnce)
 {
     for (const std::int16_t type : {std::int16_t{1}, std::int16_t{4}})
@@ -233,7 +233,7 @@ TEST(IcarusObjectsTest, TheCloudsEmitTwentyOrTenOwnedMistsOnlyOnce)
     }
 }
 
-// 0x6040e9..0x604143: el 10 deja una 5ac/0 en el punto del hueso 3 de la pose global, sin dueño.
+// 0x6040e9..0x604143: the 10 leaves a 0x5ac/0 at the point of bone 3 of the global pose, with no owner.
 TEST(IcarusObjectsTest, TheFlareObjectSendsAKalimaFlareFromItsThirdBone)
 {
     FrameFixture fixture;
@@ -252,7 +252,7 @@ TEST(IcarusObjectsTest, TheFlareObjectSendsAKalimaFlareFromItsThirdBone)
     EXPECT_EQ(object.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
 }
 
-// Del 6 al 9, la tabla 0x60466c no hace nada; un tipo de nube sin pool corta con 0x603f3b sin ocultarse.
+// From 6 to 9, table 0x60466c does nothing; a cloud type without a pool cuts with 0x603f3b without hiding.
 TEST(IcarusObjectsTest, TheOtherTypesDoNothingAndTheCloudsNeedThePool)
 {
     FrameFixture fixture;
@@ -274,8 +274,8 @@ TEST(IcarusObjectsTest, TheOtherTypesDoNothingAndTheCloudsNeedThePool)
     EXPECT_EQ(cloud.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
 }
 
-// 0x6063d0: el selector en cero sólo suma a la cuenta; sin el 0 de rand() % 10, o con un tipo de más de 5, la
-// cuenta vuelve a bajar después de un rand().
+// 0x6063d0: the selector at zero only adds to the count; without the 0 of rand() % 10, or with a type above 5, the
+// count goes back down after a rand().
 TEST(IcarusObjectsTest, TheSeenObjectCountsAndOnlySparksWithItsTenth)
 {
     StepFixture fixture(SeedWhere([](CrtRandom& random) { return Draw(random) % 10 != 0; }));
@@ -301,8 +301,8 @@ TEST(IcarusObjectsTest, TheSeenObjectCountsAndOnlySparksWithItsTenth)
     EXPECT_TRUE(other.joins.empty());
 }
 
-// 0x60642b..0x60655b: el sprite 0x623 de escala 0,5 con la luz (rand() % 10) · 0,02f por canal y dos 614/6
-// del objeto, con sus ángulos y de ancho rand() % 20 + 10. La cuenta queda sumada.
+// 0x60642b..0x60655b: the sprite 0x623 of scale 0.5 with the light (rand() % 10) · 0.02f per channel and two
+// 0x614/6 of the object, with its angles and of width rand() % 20 + 10. The count stays added.
 TEST(IcarusObjectsTest, TheSeenObjectSparksASpriteAndTwoBoltsOfItsOwn)
 {
     const std::uint32_t seed = SeedWhere([](CrtRandom& random) { return Draw(random) % 10 == 0; });
@@ -342,7 +342,7 @@ TEST(IcarusObjectsTest, TheSeenObjectSparksASpriteAndTwoBoltsOfItsOwn)
     EXPECT_EQ(fixture.random.State(), draws.State());
 }
 
-// 0x605d70 y 0x6061c0 sin las dos puertas: un rand() cada una y nada más.
+// 0x605d70 and 0x6061c0 without their two gates: one rand() each and nothing else.
 TEST(IcarusObjectsTest, ThePreludeWithoutItsGatesOnlyDraws)
 {
     const std::uint32_t seed =
@@ -359,9 +359,9 @@ TEST(IcarusObjectsTest, ThePreludeWithoutItsGatesOnlyDraws)
     EXPECT_EQ(fixture.random.State(), draws.State());
 }
 
-// 0x605d91..0x605e49: la luz dinámica de radio 2 en (x del héroe + rand() % 300 − 150; y del héroe), un rand()
-// descartado, L = ((rand() & 3) + 4) · 0,05f y el color (L · 0,3f; L · 0,3f; L · 0,081f); la nube 0xbb en el
-// héroe con ese color; el selector rand() % cuenta.
+// 0x605d91..0x605e49: the dynamic light of radius 2 at (hero x + rand() % 300 − 150; hero y), a discarded rand(),
+// L = ((rand() & 3) + 4) · 0.05f and the color (L · 0.3f; L · 0.3f; L · 0.081f); the cloud 0xbb on the hero with
+// that color; the selector rand() % count.
 TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
 {
     const std::uint32_t seed = SeedWhere(
@@ -408,9 +408,9 @@ TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
     EXPECT_TRUE(fixture.joins.empty());
 }
 
-// 0x605e9a..0x606135: con rand() % 5 == 0, un lado de cuatro (rand() & 3). Su corrimiento gira −45° en el
-// lugar y se suma al héroe (el lado 1 lo resta); el alcance gira con el yaw del lado, también en el lugar.
-// Las dos 615/0 van de centro + alcance a centro − alcance, 300 más abajo, sin dueño ni giro.
+// 0x605e9a..0x606135: with rand() % 5 == 0, one side of four (rand() & 3). Its offset turns −45° in place and is
+// added to the hero (side 1 subtracts it); the reach turns with the side's yaw, also in place. The two 0x615/0 go
+// from center + reach to center − reach, 300 lower, with no owner or turn.
 TEST(IcarusObjectsTest, ThePreludeThrowsTwoSkyBoltsFromOneOfFourSides)
 {
     struct Side
@@ -480,7 +480,7 @@ TEST(IcarusObjectsTest, ThePreludeThrowsTwoSkyBoltsFromOneOfFourSides)
     }
 }
 
-// 0x60623b..0x6062d9: con rand() % 10 == 0 en 0x6061c0, el 0x5ac a ±2.500 del héroe y 1.000 más abajo.
+// 0x60623b..0x6062d9: with rand() % 10 == 0 in 0x6061c0, the 0x5ac at ±2500 from the hero and 1000 lower.
 TEST(IcarusObjectsTest, ThePreludeSometimesDropsAFlareAroundTheHero)
 {
     const std::uint32_t seed =
@@ -502,7 +502,7 @@ TEST(IcarusObjectsTest, ThePreludeSometimesDropsAFlareAroundTheHero)
     EXPECT_EQ(alive[0]->velocity.z, F32(RoundedSin(std::bit_cast<double>(0x3ff38c3540000000ull)) * (speed * 0.5)));
 }
 
-// Sin la tabla de uniones, el preludio corta con 0x530860 después de la luz y la nube.
+// Without the joint table, the prelude cuts with 0x530860 after the light and the cloud.
 TEST(IcarusObjectsTest, ThePreludeNeedsTheJointTable)
 {
     const std::uint32_t seed = SeedWhere(
@@ -523,8 +523,8 @@ TEST(IcarusObjectsTest, ThePreludeNeedsTheJointTable)
     EXPECT_EQ(fixture.AliveEffects().size(), 1u);
 }
 
-// 0x5319ea..0x531a30: el 615/0 toma la textura 0x614, el ancho, 50 puntos, vida 20, la velocidad
-// rand() % 20 + 80 y la z de la luz en 50; guarda la partida en +0x24. Un rand().
+// 0x5319ea..0x531a30: the 0x615/0 takes texture 0x614, the width, 50 points, life 20, the speed rand() % 20 + 80
+// and the light's z at 50; stores the start in +0x24. One rand().
 TEST(IcarusObjectsTest, TheSkyBoltIsCreatedWithOneDraw)
 {
     std::array<JointState, 1> joints{};
@@ -550,9 +550,9 @@ TEST(IcarusObjectsTest, TheSkyBoltIsCreatedWithOneDraw)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x53727d..0x537408: con vida de más de 15, el 615/0 vuelve a +0x24 y rehace sus 50 tramos (dos rand() del
-// destino y tres por tramo); con 15 o menos, sólo la z de la luz baja 10,12f. La cola común sigue con vida de
-// más de 10.
+// 0x53727d..0x537408: with life above 15, the 0x615/0 goes back to +0x24 and rebuilds its 50 segments (two rand()
+// of the destination and three per segment); with 15 or less, only the light's z drops 10.12f. The common tail goes
+// on with life above 10.
 TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
 {
     std::array<JointState, 1> joints{};
@@ -590,8 +590,8 @@ TEST(IcarusObjectsTest, TheSkyBoltRebuildsUntilItFades)
     EXPECT_FALSE(joint.tailEnabled);
 }
 
-// 0x531563..0x53168c: el 614/6 de un objeto: velocidad rand() % 10 + 15, vida rand() % 20 + 6, el gris
-// (rand() % 10) · 0,06666667f + 0,1f, el ancho y 50 puntos, sin cola común. El dueño queda como contexto.
+// 0x531563..0x53168c: an object's 0x614/6: speed rand() % 10 + 15, life rand() % 20 + 6, the grey
+// (rand() % 10) · 0.06666667f + 0.1f, the width and 50 points, no common tail. The owner stays as context.
 TEST(IcarusObjectsTest, TheObjectBoltIsCreatedWithThreeDraws)
 {
     std::array<JointState, 1> joints{};
@@ -618,9 +618,9 @@ TEST(IcarusObjectsTest, TheObjectBoltIsCreatedWithThreeDraws)
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x53683e..0x536e8a: con vida de más de 4 el 614/6 sólo avanza; con 4 o menos rehace los 50 tramos desde
-// +0x24 hacia el objeto dueño (cinco rand() por tramo), con el último destino 2.050..2.249 más allá en x y en
-// y y 10.000 más abajo.
+// 0x53683e..0x536e8a: with life above 4 the 0x614/6 only advances; with 4 or less it rebuilds the 50 segments from
+// +0x24 toward the owner object (five rand() per segment), with the last destination 2050..2249 beyond in x and
+// in y and 10000 lower.
 TEST(IcarusObjectsTest, TheObjectBoltRebuildsTowardsItsOwnerAtTheEnd)
 {
     std::array<JointState, 1> joints{};

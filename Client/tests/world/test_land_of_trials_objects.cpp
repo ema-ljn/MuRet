@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-// 0x43ffc0, el paso de los objetos de Land of Trials (el mapa 31, 0x43ff10) después de 0x438a90 y 0x42c850:
-// 06 § Los objetos de Land of Trials.
+// 0x43ffc0, the Land of Trials objects' step (map 31, 0x43ff10) after 0x438a90 and 0x42c850: 06 § Los objetos de Land
+// of Trials.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -29,7 +29,7 @@ using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
 constexpr std::int16_t Hidden = -2;
-// +0x58 de un objeto o de un efecto recién creado: −1, todas las mallas.
+// +0x58 of a freshly created object or effect: −1, all meshes.
 const std::int16_t Shown = WorldObject{}.state.hiddenMesh;
 
 WorldObject Object(std::int16_t type)
@@ -68,9 +68,8 @@ struct Step
 };
 } // namespace
 
-// 0x43fffb, 0x440051 y 0x44008e: con timeGetTime() & 0x3ff debajo de 10, la mariposa 0xae /0, /1 o /2 con
-// la luz (1, 1, 1) y la escala del objeto de dueño; con o sin ella, +0x58 queda en −2. No sacan rand() más
-// allá del de la creación.
+// 0x43fffb, 0x440051 and 0x44008e: with timeGetTime() & 0x3ff below 10, the butterfly 0xae /0, /1 or /2 with light (1,
+// 1, 1) and the owner object's scale; with or without it, +0x58 ends at −2. They draw no rand() beyond the creation's.
 TEST(LandOfTrialsObjectsTest, TheButterflyObjectsReleaseOneOnlyInsideTheWindowAndHide)
 {
     struct Case
@@ -99,7 +98,7 @@ TEST(LandOfTrialsObjectsTest, TheButterflyObjectsReleaseOneOnlyInsideTheWindowAn
                 EXPECT_EQ(effect.transform.position, object.transform.position);
                 EXPECT_EQ(effect.light, glm::vec3(1.0f));
                 EXPECT_EQ(effect.objectState.hiddenMesh, Shown);
-                // 0x51913a: la velocidad sale de la escala del dueño por −5.
+                // 0x51913a: the speed comes from the owner's scale times −5.
                 EXPECT_EQ(effect.velocity.y, -7.5f);
                 CrtRandom draws(7);
                 static_cast<void>(draws.Next());
@@ -110,15 +109,15 @@ TEST(LandOfTrialsObjectsTest, TheButterflyObjectsReleaseOneOnlyInsideTheWindowAn
                 EXPECT_FALSE(effect.alive);
                 EXPECT_EQ(random.State(), CrtRandom(7).State());
             }
-            // La ventana y la comparación del ambiente: dos lecturas del reloj.
+            // The window and the ambient comparison: two clock reads.
             EXPECT_EQ(step.times.size(), 2u);
             EXPECT_TRUE(step.sounds.empty());
         }
     }
 }
 
-// 0x44014a: el 3 y el 0x35 emiten en el frame (0x4401e0) y en el paso sólo quedan ocultos; los demás tipos no
-// tocan +0x58.
+// 0x44014a: the 3 and the 0x35 emit in the frame (0x4401e0) and in the step they only hide; the other types do not
+// touch +0x58.
 TEST(LandOfTrialsObjectsTest, TheEmittersHideAndTheOtherTypesKeepTheirMesh)
 {
     for (const std::int16_t type : {std::int16_t{3}, std::int16_t{0x35}, std::int16_t{0x31}, std::int16_t{0x34}})
@@ -135,8 +134,8 @@ TEST(LandOfTrialsObjectsTest, TheEmittersHideAndTheOtherTypesKeepTheirMesh)
     }
 }
 
-// 0x4400ce..0x4400eb: la z del 0x1b suma sin(reloj · 0,0024f + fase) · 0,3f sobre la anterior, cada paso;
-// no queda oculto.
+// 0x4400ce..0x4400eb: the 0x1b's z adds sin(clock · 0.0024f + phase) · 0.3f over the previous one, each step; it does
+// not hide.
 TEST(LandOfTrialsObjectsTest, TheFloatingObjectSwaysItsHeightWithTheClockAndItsPhase)
 {
     Step step;
@@ -162,8 +161,8 @@ TEST(LandOfTrialsObjectsTest, TheFloatingObjectSwaysItsHeightWithTheClockAndItsP
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
 
-// 0x4400f0..0x440142: ((rand() & 3) + 3) · 0,1f en la x87, por 0,9f, 0,2f y 0,1f, a la luz dinámica con radio
-// 3; después +0x58 en −2.
+// 0x4400f0..0x440142: ((rand() & 3) + 3) · 0.1f in the x87, times 0.9f, 0.2f and 0.1f, to the dynamic light with
+// radius 3; then +0x58 at −2.
 TEST(LandOfTrialsObjectsTest, TheTorchLightsTheDynamicBufferWithOneDrawAndHides)
 {
     Step step;
@@ -194,8 +193,8 @@ TEST(LandOfTrialsObjectsTest, TheTorchLightsTheDynamicBufferWithOneDrawAndHides)
     EXPECT_EQ(other.state.hiddenMesh, Shown);
 }
 
-// 0x440151..0x440170: con cualquier tipo, si pasaron más de 300.000 ms del sistema desde el último (sin
-// signo), una segunda lectura del reloj se guarda en 0x723c4c y suena el 0x1ef.
+// 0x440151..0x440170: with any type, if more than 300000 system ms passed since the last (unsigned), a second clock
+// read is stored at 0x723c4c and 0x1ef sounds.
 TEST(LandOfTrialsObjectsTest, TheAmbientSoundsEveryFiveMinutesOfTheSystemClock)
 {
     Step step;
@@ -213,15 +212,15 @@ TEST(LandOfTrialsObjectsTest, TheAmbientSoundsEveryFiveMinutesOfTheSystemClock)
     EXPECT_EQ(step.ambient, 301001u);
     EXPECT_EQ(step.times.size(), 3u);
 
-    // jbe sin signo: con el reloj del sistema detrás de la hora guardada, la resta da la vuelta y suena.
+    // Unsigned jbe: with the system clock behind the stored time, the subtraction wraps and it sounds.
     step.time = 5;
     ASSERT_TRUE(StepWorldObjectChecked(object, TrialsMap, nullptr, random, step.globals).HasValue());
     EXPECT_EQ(step.sounds, (std::vector<std::int32_t>{0x1ef, 0x1ef}));
     EXPECT_EQ(step.ambient, 5u);
 }
 
-// Sin el reloj del sistema, el paso corta donde lo lee; sin la hora del ambiente o sin el emisor, después de
-// los stores del caso. La hora se guarda antes del pedido sonoro.
+// Without the system clock, the step stops where it reads it; without the ambient time or the emitter, after the
+// case's stores. The time is stored before the sound request.
 TEST(LandOfTrialsObjectsTest, AMissingBindingCutsWhereTheBinaryReadsIt)
 {
     {

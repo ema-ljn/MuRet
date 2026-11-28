@@ -14,7 +14,7 @@ namespace Client::Movement
 {
 namespace
 {
-// Tipos, gates y textos de 0x59a08b..0x59a46d (06 § Los cambios de mapa).
+// Types, gates and texts of 0x59a08b..0x59a46d (06 § Los cambios de mapa).
 constexpr std::int16_t Uniria = 0x1a02;
 constexpr std::int16_t Dinorant = 0x1a03;
 constexpr std::int16_t DarkHorse = 0x1a04;
@@ -61,7 +61,7 @@ bool CanFly(const GateCheckState& state)
            state.mount == DarkHorse || state.mount == Fenrir;
 }
 
-// Estos avisos no escriben el contador: 0x59ad7d cierra el registro y sigue con el próximo gate.
+// These warnings do not write the counter: 0x59ad7d closes the record and goes on with the next gate.
 bool AppendEquipmentWarnings(GateDecision& decision, std::size_t index, const GateCheckState& state,
                              std::uint16_t requiredLevel)
 {
@@ -93,7 +93,7 @@ bool AppendEquipmentWarnings(GateDecision& decision, std::size_t index, const Ga
     return false;
 }
 
-// true cuando el contador cambiaría: los demás gates ya no pueden producir efectos ordinarios.
+// true when the counter would change: the other gates can no longer produce ordinary effects.
 bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Tables::GateRecord& gate,
                        const GateCheckState& state, bool& warpPending)
 {
@@ -114,7 +114,7 @@ bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Tables::
         decision.request = static_cast<std::uint8_t>(index);
         return true;
     }
-    // 0x59abdc/0x59abfa: rechazar el pedido limpia pending incluso antes de otro gate solapado.
+    // 0x59abdc/0x59abfa: rejecting the request clears pending even before another overlapping gate.
     decision.clearWarpPending = true;
     warpPending = false;
     return false;

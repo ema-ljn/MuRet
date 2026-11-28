@@ -24,8 +24,8 @@
 #include <utility>
 #include <vector>
 
-// El 0x610/5 y el 0x60f/0x29 y /0x2a (SparkJoints.cpp): las chispas del 0x196 de Kalima (0x43e904) y el que gira
-// alrededor del NPC 257 (0x5165d1) con las que suelta (0x53a0eb). 06, "Los joints de las familias".
+// The 0x610/5 and the 0x60f/0x29 and /0x2a (SparkJoints.cpp): the sparks of Kalima's 0x196 (0x43e904) and the one
+// circling NPC 257 (0x5165d1) with those it drops (0x53a0eb). 06, "Los joints de las familias".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -77,7 +77,7 @@ struct Pool
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
 };
 
-// Una semilla cuyos rand() desde `index` cumplen `wanted`.
+// A seed whose rand() from `index` satisfy `wanted`.
 template <typename Wanted> std::uint32_t SeedWhere(Wanted wanted)
 {
     for (std::uint32_t seed = 1; seed < 100000; ++seed)
@@ -89,9 +89,9 @@ template <typename Wanted> std::uint32_t SeedWhere(Wanted wanted)
     return 0;
 }
 
-// 0x531c43..0x531cc7 y 0x531dd0..0x531dff: la vida en la key y después 50, 8 puntos, velocidad 3, la mezcla 4, la
-// segunda cara y el pase 2, la luz en 1 y el ancho del skill (20 con el 0 y el 3, 40 con el 1, el retenido con otro);
-// el color 3 sin dueño corta. Sin rand().
+// 0x531c43..0x531cc7 and 0x531dd0..0x531dff: the life in the key and then 50, 8 points, speed 3, blend 4, the second
+// face and pass 2, the light at 1 and the skill's width (20 with 0 and 3, 40 with 1, the retained one with another);
+// color 3 without an owner stops. Without rand().
 TEST(SparkJointsTest, TheHelperSparkTakesItsWidthFromTheSkillColor)
 {
     for (const auto& [skill, width] : {std::pair{0, 20.0f}, std::pair{1, 40.0f}, std::pair{2, 7.5f}})
@@ -120,9 +120,9 @@ TEST(SparkJointsTest, TheHelperSparkTakesItsWidthFromTheSkillColor)
     EXPECT_TRUE(cut.Error().starts_with("0x531c7b")) << cut.Error();
 }
 
-// 0x537a00..0x537b31: con vida de 25 o más (después del avance común de 3), la z gira −10 y la posición sube 2,5; con
-// menos, acelera 5 hasta 30, gira hacia el destino y, cerca, con el rumbo cambiado en más de 20, frena 10; con menos de
-// 10 de vida, las tres luces son la roja por 0,8333333f. Un rand() para la luz dinámica.
+// 0x537a00..0x537b31: with life 25 or more (after the common advance of 3), z turns −10 and the position rises 2.5;
+// with less, it speeds up by 5 to 30, turns toward the target and, near it, with the heading changed by more than 20,
+// brakes 10; with life under 10, the three lights are the red one times 0.8333333f. One rand() for the dynamic light.
 TEST(SparkJointsTest, TheHelperSparkRisesThenChasesItsTarget)
 {
     Pool pool;
@@ -140,7 +140,7 @@ TEST(SparkJointsTest, TheHelperSparkRisesThenChasesItsTarget)
     static_cast<void>(twin.Next());
     EXPECT_EQ(pool.random.State(), twin.State());
 
-    // Cerca del destino y con la velocidad en 27: 32 se queda en 30, el giro cambia más de 20 y frena a 20.
+    // Near the target with speed at 27: 32 stays at 30, the turn changes more than 20 and it brakes to 20.
     joint.life = 8;
     joint.speed = 27.0f;
     joint.light = {0.6f, 0.2f, 0.3f};
@@ -164,10 +164,11 @@ TEST(SparkJointsTest, TheHelperSparkRisesThenChasesItsTarget)
     EXPECT_EQ(pool.random.State(), twin.State());
 }
 
-// 0x5339a5..0x533a1e y 0x53a039..0x53a122: el 0x60f/0x2a nace (0, −15, 0) girado más allá y queda en ese camino con
-// velocidad (0, −50, 0), vida 100, 20 puntos, el ancho del pedido y sin la cola común. Cada paso gira la z 15, vuelve a
-// vida 100 y se pone en el camino más la velocidad girada; saca rand() % 100 y, con la z en ftol múltiplo de 45 y el
-// rand() en 50 o menos, suelta una 0x60f/0x29 (tres rand()) en su posición. Con el dueño muerto apaga los /0x2a suyos.
+// 0x5339a5..0x533a1e and 0x53a039..0x53a122: the 0x60f/0x2a is born (0, −15, 0) turned further and stays on that path
+// with velocity (0, −50, 0), life 100, 20 points, the requested width and without the common tail. Each step turns z by
+// 15, goes back to life 100 and sets itself on the path plus the turned velocity; it draws rand() % 100 and, with the
+// ftol of z a multiple of 45 and the rand() at 50 or less, drops a 0x60f/0x29 (three rand()) at its position. With its
+// owner dead it turns off its /0x2a.
 TEST(SparkJointsTest, TheNpcSparkleCirclesAndDropsSparkles)
 {
     ActorState owner;
@@ -179,7 +180,6 @@ TEST(SparkJointsTest, TheNpcSparkleCirclesAndDropsSparkles)
     pool.startAngles = {0.0f, 0.0f, 30.0f};
     ASSERT_TRUE(
         pool.Create(0x60f, 0x2a, {500, 600, 700}, {500, 600, 700}, 15.0f, &owner, JointOwnerKind::Actor).HasValue());
-    // Otro del mismo dueño y uno de otro dueño.
     ActorState stranger;
     stranger.alive = true;
     ASSERT_TRUE(pool.Create(0x60f, 0x2a, {0, 0, 0}, {0, 0, 0}, 15.0f, &stranger, JointOwnerKind::Actor).HasValue());
@@ -197,7 +197,7 @@ TEST(SparkJointsTest, TheNpcSparkleCirclesAndDropsSparkles)
     EXPECT_EQ(joint.targetPosition, (glm::vec3{500, 600, 700}));
     EXPECT_EQ(pool.random.State(), seed);
 
-    // El de afuera gira de 0 a 15 (sin múltiplo de 45, no suelta) y saca su rand() % 100 después del primero.
+    // The outsider turns from 0 to 15 (not a multiple of 45, drops nothing) and draws its rand() % 100 after the first.
     CrtRandom twin(seed);
     static_cast<void>(twin.Next());
     const auto first = twin.Next() % 300;
@@ -224,7 +224,7 @@ TEST(SparkJointsTest, TheNpcSparkleCirclesAndDropsSparkles)
     const float red = F32(static_cast<double>(first) * thousandth);
     EXPECT_EQ(sparkle.light, (glm::vec3{F32(1.0 - D(red)), F32(1.0 - static_cast<double>(second) * thousandth), 1}));
     EXPECT_EQ(sparkle.velocity.z, static_cast<float>(lift));
-    // Nace después del lugar del paso: en esta misma vuelta da su paso (vida 39, sin rand()).
+    // Born after the step's slot: in this same round it takes its step (life 39, without rand()).
     EXPECT_EQ(sparkle.life, 39);
 
     owner.alive = false;
@@ -234,14 +234,14 @@ TEST(SparkJointsTest, TheNpcSparkleCirclesAndDropsSparkles)
     EXPECT_EQ(joint.angles.z, 60.0f);
     EXPECT_EQ(joint.position, spun);
     EXPECT_TRUE(pool.joints[1].alive);
-    // Sólo el rand() % 100 del de afuera (la z en 30, no suelta).
+    // Only the outsider's rand() % 100 (z at 30, it does not drop).
     CrtRandom after(state);
     static_cast<void>(after.Next());
     EXPECT_EQ(pool.random.State(), after.State());
 }
 
-// 0x539fc2..0x53a028 y 0x53b318: la 0x60f/0x29 con vida de 20 o menos queda sobre el destino y sube vz + 1 (vz crece
-// de a 1), con la luz por 0,9090909f; con menos de 10, además por 0,7692308f. Sin rand().
+// 0x539fc2..0x53a028 and 0x53b318: the 0x60f/0x29 with life 20 or less stays above the target and rises vz + 1 (vz
+// grows by 1), with the light times 0.9090909f; under 10, also times 0.7692308f. Without rand().
 TEST(SparkJointsTest, TheFallingSparkleRisesOverItsTarget)
 {
     Pool pool;

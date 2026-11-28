@@ -24,8 +24,8 @@ namespace
 using Client::Crt::CrtRandom;
 using Client::Kernel::JointState;
 
-// 0x531b0c, /7: dos rand() y z +1050, sin la cola común; el paso dibuja 50 tramos sin emitir las partículas de /2. Los
-// 45 de la bajada bajan 20 cada uno (0x53774b, 0x6b86d0).
+// 0x531b0c, /7: two rand() and z +1050, without the common tail; the step draws 50 segments without emitting the /2's
+// particles. The 45 of the descent drop 20 each (0x53774b, 0x6b86d0).
 TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmission)
 {
     std::array<JointState, 1> joints{};
@@ -58,9 +58,9 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     EXPECT_EQ(batch.Vertices().size(), 588u);
 }
 
-// 0x531b0c, /1 (el rayo del invocado que llega, 0x51747c): como la /7, pero la z sube 800 (0x6b8ac8) y la cola se
-// apaga después del destino (0x531b9e); el paso baja 16 por tramo (0x537753) y, como la /7, no vuelve a prender la cola
-// (0x5379ca), con los mismos rand() que la /2 y la /7. La /2 la prende con vida de más de 10.
+// 0x531b0c, /1 (the arriving summon's bolt, 0x51747c): like the /7, but z rises 800 (0x6b8ac8) and the tail turns off
+// after the target (0x531b9e); the step drops 16 per segment (0x537753) and, like the /7, does not turn the tail back
+// on (0x5379ca), with the same rand() as the /2 and /7. The /2 turns it on with life over 10.
 TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
 {
     std::array<JointState, 3> joints{};
@@ -98,15 +98,15 @@ TEST(CrywolfJointsTest, TheSummonBoltFallsLikeTheArrivalWithItsTailOff)
     EXPECT_EQ(alone[0].position, position);
     EXPECT_EQ(alone[0].points[5][0].z, 1100.0f - 45 * 16.0f);
     EXPECT_EQ(alone[0].count, 49);
-    // La /2 con la cola prendida agrega además el tramo de la cola común.
+    // The /2 with the tail on also appends the common tail's segment.
     EXPECT_EQ(chaos[0].points[6][0].z, alone[0].points[5][0].z);
     EXPECT_FALSE(alone[0].tailEnabled);
     EXPECT_TRUE(chaos[0].tailEnabled);
 }
 
-// 0x530afa → 0x5309d6 → 0x530a00: /17 pasa por FirstQuad con el ancho retenido (el 0x614 solo llega a 0x5309d6 por
-// la tabla 0x534ccc, después del primer tramo) y usa un rand() para la velocidad. Sigue el paso común del 614
-// (giro 25, dos rand por tramo, cola/vida), sin las emisiones del ancho 50.
+// 0x530afa → 0x5309d6 → 0x530a00: /17 goes through FirstQuad with the retained width (the 0x614 only reaches 0x5309d6
+// via table 0x534ccc, after the first segment) and uses one rand() for the speed. It follows the common 614 step (turn
+// 25, two rand per segment, tail/life), without the width-50 emissions.
 TEST(CrywolfJointsTest, RisingBeamBuildsItsFirstQuadWithTheRetainedWidthAndCompletesItsStep)
 {
     std::array<JointState, 1> joints{};
@@ -171,7 +171,7 @@ TEST(CrywolfJointsTest, TheBarrierBeamsFollowBothRetainedBonePointsAndStopWithTh
     ASSERT_TRUE(particles->All()[0].alive);
     EXPECT_EQ(particles->All()[0].type, 0x5d5);
     EXPECT_EQ(particles->All()[0].position, actor.effectOrigin);
-    // 0x540bf2 añade0,5 a cada componente del color que 0x538285 calculó para la partícula.
+    // 0x540bf2 adds 0.5 to each component of the color that 0x538285 computed for the particle.
     EXPECT_FLOAT_EQ(particles->All()[0].light.x, 0.9f);
     EXPECT_FLOAT_EQ(particles->All()[0].light.y, 0.58f);
     EXPECT_FLOAT_EQ(particles->All()[0].light.z, 1.3f);

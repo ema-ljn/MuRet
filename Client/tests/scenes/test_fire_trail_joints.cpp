@@ -16,9 +16,9 @@
 #include <string>
 #include <vector>
 
-// El 0x5f2 (FireTrailJoints.cpp): el alta 0x531229..0x53128f y 0x532073 y el paso 0x5366bd..0x5366ee, con el pedido
-// de los meteoros 0xc2/6 de los magos (0x51b098: 0x530860(0x5f2, posición, posición, +0x28, 0, efecto, 100, −1, 0, 0,
-// −1)).
+// The 0x5f2 (FireTrailJoints.cpp): creation 0x531229..0x53128f and 0x532073 and step 0x5366bd..0x5366ee, with the
+// request of the wizards' 0xc2/6 meteors (0x51b098: 0x530860(0x5f2, position, position, +0x28, 0, effect, 100, −1, 0,
+// 0, −1)).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -67,10 +67,10 @@ struct TrailWorld
 };
 } // namespace
 
-// 0x531229..0x53128f y 0x532073: el ancho, la luz en 1; la /0 con velocidad 0, 20 puntos, vida 20 y la textura 0x60f,
-// la /1 con 15 y 15, y las demás con los puntos y la vida del lugar, los puntos con el tope de 50 (0x534cb6). Los
-// únicos que piden un 0x5f2 (0x51b098 y 0x51b268) lo piden con el subtipo 0: la 0x24 de acá no tiene llamador. Pasa
-// por el primer tramo (0x530afa), sin rand().
+// 0x531229..0x53128f and 0x532073: the width, light at 1; the /0 with speed 0, 20 points, life 20 and texture 0x60f,
+// the /1 with 15 and 15, and the others with the slot's points and life, the points capped at 50 (0x534cb6). The only
+// ones that request a 0x5f2 (0x51b098 and 0x51b268) request subtype 0: the 0x24 here has no caller. It goes through
+// the first segment (0x530afa), without rand().
 TEST(FireTrailJointsTest, EachSubtypeBornsWithItsPointsAndLife)
 {
     struct Probe
@@ -106,15 +106,15 @@ TEST(FireTrailJointsTest, EachSubtypeBornsWithItsPointsAndLife)
         EXPECT_EQ(joint.position, tested.start);
         EXPECT_EQ(joint.angles, glm::vec3(0.0f, 20.0f, 0.0f));
         EXPECT_EQ(joint.ownerContext, &tested.meteor);
-        // El primer tramo con el ancho que tenía el lugar (0): las cuatro esquinas en la posición.
+        // The first segment with the width the slot had (0): the four corners at the position.
         for (const glm::vec3& corner : joint.points[0])
             EXPECT_EQ(corner, tested.start);
     }
 }
 
-// 0x5366bd..0x5366ee: con el meteoro vivo y de tipo 0xc2, la estela toma su posición; muerto o de otro tipo, se queda
-// (pasa por el movimiento común de 0x53590e, pero con la velocidad en 0). Cada paso suma un tramo y resta una vida;
-// muere en el paso 21. Sin rand().
+// 0x5366bd..0x5366ee: with the meteor alive and of type 0xc2, the trail takes its position; dead or of another type, it
+// stays (it goes through the common move of 0x53590e, but with speed 0). Each step adds a segment and subtracts a life;
+// it dies at step 21. No rand().
 TEST(FireTrailJointsTest, TheTrailFollowsItsMeteorWhileItLives)
 {
     for (const JointOwnerKind kind : {JointOwnerKind::ByType, JointOwnerKind::ModelEffect})
@@ -152,7 +152,7 @@ TEST(FireTrailJointsTest, TheTrailFollowsItsMeteorWhileItLives)
     }
 }
 
-// 0x5366c0: sin dueño, la estela no lee nada y sigue con la cola común.
+// 0x5366c0: without an owner, the trail reads nothing and goes on with the common tail.
 TEST(FireTrailJointsTest, AnOwnerlessTrailStaysInPlace)
 {
     TrailWorld tested;

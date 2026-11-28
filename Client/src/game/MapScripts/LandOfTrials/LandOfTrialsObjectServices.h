@@ -19,29 +19,29 @@ struct GameObjectPass;
 namespace Client::MapScripts::LandOfTrials
 {
 
-// 0x4401e0 (0x602ed0), con el mapa 31 (0x43ff10), después del rand() común de 0x602ef4 (que no usa): el 3 y
-// el 0x35, con rand() % 3 en 0, sueltan la salpicadura 6f2/3 y el humo 5f2/22 sobre el objeto, con luz
-// (1, 1, 1), su escala y sin dueño; el 0x31 deja en el hueso 3 de la pose global, 10 más abajo en la y, dos
-// sprites 0x5ac en rojo (el primero de escala ((sin(reloj · 0,002f) · 0,35f + 0,65f) · 1,2f + 0,3f), el
-// segundo de 0,5) y un 0x5fd de 1,2 en gris 0,3, girado rand() % 360. Un pool, un rand() o una pose
-// ausentes cortan donde lo pide el ASM, conservando lo ya creado.
+// 0x4401e0 (0x602ed0), with map 31 (0x43ff10), after the common rand() of 0x602ef4 (which it does not use): the 3
+// and the 0x35, with rand() % 3 at 0, release the splash 0x6f2/3 and the smoke 0x5f2/22 on the object, with light
+// (1, 1, 1), its scale and no owner; the 0x31 leaves on bone 3 of the global pose, 10 lower in y, two red 0x5ac
+// sprites (the first of scale ((sin(clock · 0.002f) · 0.35f + 0.65f) · 1.2f + 0.3f), the second of 0.5) and a 0x5fd
+// of 1.2 in grey 0.3, turned rand() % 360. A missing pool, rand() or pose cuts where the ASM does, keeping what is
+// already created.
 [[nodiscard]] Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects::WorldObject& object,
                                                                             const WorldObjects::GameObjectPass& pass);
 
-// Lo que 0x4403b0 (la cadena de 0x6002e0 en el 31) hace con el cuerpo de un objeto.
+// What 0x4403b0 (the chain of 0x6002e0 on the 31) does with an object's body.
 struct TrialsBodyDraw
 {
-    // El color del modelo (+0x48..+0x50) con que se dibuja el cuerpo.
+    // The model's color (+0x48..+0x50) the body is drawn with.
     glm::vec3 color{1.0f};
-    // El 0x34 dibuja un RenderBody propio y devuelve 0: 0x6002e0 sigue y lo vuelve a dibujar con el color
-    // que le quedó (Q-C317).
+    // The 0x34 draws a RenderBody of its own and returns 0: 0x6002e0 goes on and draws it again with the color it was
+    // left with (Q-C317).
     bool twice = false;
 };
 
-// 0x4403b0: el 0x1b y el 0x36 multiplican el color del modelo (`color`, el de 0x5ffce0) por
-// sin(reloj · 0,0012f + fase) · 0,5f + 0,9f, con la fase de +0x84; el 0x34, por el mismo pulso con 0,0009f;
-// el 0xa lo pone en (0,56; 0,8; 0,81). Los demás tipos siguen sin caso (nullopt). Un pulso fuera del
-// dominio portado corta.
+// 0x4403b0: the 0x1b and the 0x36 multiply the model's color (`color`, the one from 0x5ffce0) by
+// sin(clock · 0.0012f + phase) · 0.5f + 0.9f, with the phase at +0x84; the 0x34, by the same pulse with 0.0009f;
+// the 0xa sets it to (0.56; 0.8; 0.81). The other types still have no case (nullopt). A pulse outside the ported
+// domain cuts.
 [[nodiscard]] Core::Expected<std::optional<TrialsBodyDraw>, std::string>
 LandOfTrialsBody(const WorldObjects::WorldObject& object, const glm::vec3& color, float worldClock);
 } // namespace Client::MapScripts::LandOfTrials

@@ -22,9 +22,9 @@
 #include <string>
 #include <vector>
 
-// Los joints que crea lo que cuelga de un jugador (0x509340 y el lazo de las manos de 0x50ba30): el 614/10 de la
-// espada 0x224, y el 618/0x11 del bastón 0xc1e y el 610/4 de la espada 0x223, con el personaje como dueño. Los
-// esperados repiten las fórmulas del ASM de 0x530860 y 0x535840 con otro CrtRandom de la misma semilla.
+// The joints created by what hangs from a player (0x509340 and the hand loop of 0x50ba30): sword 0x224's 614/10, and
+// staff 0xc1e's 618/0x11 and sword 0x223's 610/4, owned by the character. The expected values repeat the ASM formulas
+// of 0x530860 and 0x535840 with another CrtRandom of the same seed.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -34,7 +34,7 @@ using Client::Kernel::JointState;
 using Client::Math::D;
 using Client::Math::F32;
 
-// 0x530860 con el 610/4: los ángulos del pedido no cuentan, el caso los pone en 0.
+// 0x530860 with the 610/4: the request's angles do not count, the case sets them to 0.
 Client::Core::Expected<std::optional<std::size_t>, std::string> CreateSwordTrail(std::span<JointState> joints,
                                                                                  glm::vec3 first, glm::vec3 second,
                                                                                  void* owner, float width,
@@ -48,15 +48,15 @@ Client::Core::Expected<std::optional<std::size_t>, std::string> CreateSwordTrail
     return created;
 }
 
-// Con los ángulos en 0, el tercer punto del cuadro de un tramo es (x; y; z − ancho / 2).
+// With angles at 0, the third point of a segment's quad is (x; y; z − width / 2).
 glm::vec3 ThirdCorner(const glm::vec3& at, float width)
 {
     return {at.x, at.y, F32(D(at.z) - D(F32(D(width) * 0.5)))};
 }
 
-// 0x5309d6 y 0x531691..0x53180e: el 614/10 sin dueño. Velocidad 50, el ancho, la textura repetida, vida 0, los
-// ángulos en 0, la luz (0,3; 0,3; 1) y 10 puntos. Nueve tramos corridos (rand() & 7) − 4 en x e y desde el décimo de
-// lo que falta, cada uno deshecho después de agregarlo; al final, la posición es el segundo punto.
+// 0x5309d6 and 0x531691..0x53180e: the ownerless 614/10. Speed 50, the width, the repeated texture, life 0, angles at
+// 0, light (0.3; 0.3; 1) and 10 points. Nine segments shifted by (rand() & 7) − 4 in x and y from a tenth of what is
+// left, each undone after appending it; at the end, the position is the second point.
 TEST(HangingJointsTest, TheSwordBeamWalksNineJitteredSamplesTowardItsTarget)
 {
     std::array<JointState, 1> joints{};
@@ -108,8 +108,8 @@ TEST(HangingJointsTest, TheSwordBeamWalksNineJitteredSamplesTowardItsTarget)
     }
 }
 
-// 0x53c478: el 614/10 comparte con el 614/14 la entrada 8 (0x536b24) y todo el paso de 0x535840: dos joints iguales
-// salvo el subtipo terminan iguales, con los mismos rand().
+// 0x53c478: the 614/10 shares entry 8 (0x536b24) and the whole step of 0x535840 with the 614/14: two joints equal
+// except for the subtype end up equal, with the same rand().
 TEST(HangingJointsTest, TheSwordBeamStepsLikeTheFlareBeam)
 {
     for (const float width : {27.5f, 50.0f})
@@ -144,8 +144,9 @@ TEST(HangingJointsTest, TheSwordBeamStepsLikeTheFlareBeam)
         EXPECT_EQ(swordParticles.Any(), flareParticles.Any());
     }
 }
-// 0x532125, 0x5321e0 y 0x5323ba: el 618/0x11 toma el ancho, velocidad 0, vida 12, la posición de +0x40 del personaje
-// y la luz (0,8; 0,2; 1), sin rand(). No escribe +0x6c: queda el del uso anterior del lugar, y 0x534cb6 lo baja a 50.
+// 0x532125, 0x5321e0 and 0x5323ba: the 618/0x11 takes the width, speed 0, life 12, the position of the character's
+// +0x40 and light (0.8; 0.2; 1), without rand(). It does not write +0x6c: the slot's previous use's stays, and 0x534cb6
+// lowers it to 50.
 TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoints)
 {
     Client::Kernel::ActorState actor;
@@ -179,8 +180,8 @@ TEST(HangingJointsTest, TheStaffBeamStartsOnTheCharactersPointWithTheRetainedPoi
     }
 }
 
-// 0x53820e..0x53823d: con el personaje vivo, el 618/0x11 vuelve a su +0x40 y sigue con la cola y la vida comunes; con
-// el personaje muerto se apaga sin cola ni vida.
+// 0x53820e..0x53823d: with the character alive, the 618/0x11 returns to its +0x40 and goes on with the common tail and
+// life; with the character dead it turns off without tail or life.
 TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
 {
     Client::Kernel::ActorState actor;
@@ -214,9 +215,9 @@ TEST(HangingJointsTest, TheStaffBeamFollowsTheCharacterAndDiesWithIt)
     EXPECT_EQ(joint.position, glm::vec3(430.0f, 600.0f, 90.0f));
 }
 
-// 0x531c43..0x531dcb y 0x532003: el 610/4 de la espada 0x223 con el personaje como dueño. La key en 0, mezcla 3, los
-// ángulos en 0, vida 0, el ancho, la luz en 1, 10 puntos y diez tramos con el décimo de lo que falta; el destino es el
-// segundo punto. Sin rand(). El cuadro del ancho retenido (0x530afa) sale de la cola.
+// 0x531c43..0x531dcb and 0x532003: sword 0x223's 610/4 owned by the character. The key at 0, blend 3, angles at 0, life
+// 0, the width, light at 1, 10 points and ten segments with a tenth of what is left; the target is the second point. No
+// rand(). The quad of the retained width (0x530afa) drops out of the tail.
 TEST(HangingJointsTest, TheSwordTrailLaysTenStepsTowardItsSecondPoint)
 {
     Client::Kernel::ActorState actor;
@@ -262,9 +263,10 @@ TEST(HangingJointsTest, TheSwordTrailLaysTenStepsTowardItsSecondPoint)
     }
 }
 
-// 0x537d55..0x537ebc y 0x53c393: con el personaje vivo, el destino arranca en su +0x17c y se corre tres veces un
-// tercio de lo que le falta hasta su posición; la posición lo sigue. En el medio agrega la cola solo si no está llena
-// o hay skill; con la vida 0 la luz baja a dos tercios, la cola común agrega una vez más y la vida −1 lo apaga.
+// 0x537d55..0x537ebc and 0x53c393: with the character alive, the target starts at its +0x17c and moves three times a
+// third of what is left to its position; the position follows it. In between it appends the tail only if it is not
+// full or there is a skill; with life 0 the light drops to two thirds, the common tail appends once more and life −1
+// turns it off.
 TEST(HangingJointsTest, TheSwordTrailWalksFromTheTrailOriginToTheCharacterAndDies)
 {
     struct Case
@@ -328,8 +330,9 @@ TEST(HangingJointsTest, TheSwordTrailWalksFromTheTrailOriginToTheCharacterAndDie
     }
 }
 
-// 0x537ec1..0x537ee1: con el personaje muerto, vida −1 y la posición 50 sobre el destino, sin tocar la luz; la cola
-// común la agrega y la vida la apaga. Sin dueño, la creación anda y el paso corta (el original lee +0x54 sin mirar).
+// 0x537ec1..0x537ee1: with the character dead, life −1 and the position 50 above the target, without touching the
+// light; the common tail appends it and the life turns it off. Without an owner, creation works and the step stops (the
+// original reads +0x54 without checking).
 TEST(HangingJointsTest, TheSwordTrailOfADeadCharacterRisesFromItsTargetAndAnOwnerlessOneStops)
 {
     Client::Kernel::ActorState actor;

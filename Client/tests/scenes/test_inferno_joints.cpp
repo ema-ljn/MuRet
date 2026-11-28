@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
-// El 0x61c/2..6 (InfernoJoints.cpp): alta 0x534444..0x53463b y paso 0x53b6a0..0x53b7ec, y el 0x62b/6 que suelta la /4
-// (alta 0x533faf..0x5340d7 con la vida y los puntos en 15, paso 0x53b029 con la vida · 0,8f).
+// The 0x61c/2..6 (InfernoJoints.cpp): creation 0x534444..0x53463b and step 0x53b6a0..0x53b7ec, and the 0x62b/6 that
+// the /4 releases (creation 0x533faf..0x5340d7 with life and points at 15, step 0x53b029 with life · 0.8f).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -80,8 +80,8 @@ std::vector<Client::Particles::Sprite> LiveSprites(Client::Particles::FrameSprit
 }
 } // namespace
 
-// 0x534444..0x5345bd: lo común de la /2..6 (velocidad 8, vx 3,5, vz 1, vida 20, 12 puntos, la cuenta en −1, +0x9ec en
-// 5, el giro (0, 0, z) en +0x3c) y lo de cada subtipo; el camino (+0x24) en la posición. Sin rand().
+// 0x534444..0x5345bd: the common part of the /2..6 (speed 8, vx 3.5, vz 1, life 20, 12 points, the count at −1, +0x9ec
+// at 5, the turn (0, 0, z) at +0x3c) and each subtype's own; the path (+0x24) at the position. No rand().
 TEST(InfernoJointsTest, EachSubtypeBornsWithItsTexture)
 {
     struct Probe
@@ -119,9 +119,9 @@ TEST(InfernoJointsTest, EachSubtypeBornsWithItsTexture)
     }
 }
 
-// 0x53b6b2..0x53b7ec: la /4 avanza con la velocidad de antes (0x53590e), la velocidad suma vz y vz suma vx (vida 20);
-// suelta un 0x62b/6 de ancho 30 desde su posición con sus ángulos (un rand(): vx del 0x62b), que pasa en la misma
-// vuelta, el sprite 0x5ac (1,6f) y el 0x5fd (1,5f, girado el reloj · 0,1f), con la luz (0,1; 0,6; 1).
+// 0x53b6b2..0x53b7ec: the /4 advances with the earlier speed (0x53590e), the speed adds vz and vz adds vx (life 20); it
+// releases a 0x62b/6 of width 30 from its position with its angles (one rand(): the 0x62b's vx), which steps in the
+// same loop, the 0x5ac sprite (1.6f) and the 0x5fd (1.5f, turned by the clock · 0.1f), with light (0.1; 0.6; 1).
 TEST(InfernoJointsTest, TheHoleRisesAndDropsSparks)
 {
     Pool pool;
@@ -148,7 +148,7 @@ TEST(InfernoJointsTest, TheHoleRisesAndDropsSparks)
     EXPECT_EQ(impact.subtype, 6);
     EXPECT_EQ(impact.width, 30.0f);
     EXPECT_EQ(impact.maximumCount, 15);
-    EXPECT_EQ(impact.life, 14); // 15 del alta y la vida del paso de la misma vuelta.
+    EXPECT_EQ(impact.life, 14); // 15 from creation and the life of the step in the same loop.
     EXPECT_EQ(impact.velocity.x, turn);
     EXPECT_EQ(impact.angles, pool.angles);
     const auto sprites = LiveSprites(*pool.sprites);
@@ -164,8 +164,8 @@ TEST(InfernoJointsTest, TheHoleRisesAndDropsSparks)
     EXPECT_EQ(sprites[1].rotation, F32(D(pool.worldClock) * D(std::bit_cast<float>(0x3dcccccdu))));
 }
 
-// 0x53b6cf: con menos de 15 de vida vz sólo suma 0,5; con menos de +0x9ec, la luz por 0,7692308f. Con el pool lleno,
-// el 0x62b/6 no está ni saca rand(), y los sprites sí.
+// 0x53b6cf: with less than 15 life vz only adds 0.5; with less than +0x9ec, the light times 0.7692308f. With the pool
+// full, the 0x62b/6 is missing and draws no rand(), and the sprites are there.
 TEST(InfernoJointsTest, TheHoleSlowsAndFadesAtTheEnd)
 {
     Pool pool;
@@ -175,7 +175,7 @@ TEST(InfernoJointsTest, TheHoleSlowsAndFadesAtTheEnd)
     for (std::size_t slot = 1; slot < pool.joints.size(); ++slot)
     {
         pool.joints[slot].alive = true;
-        pool.joints[slot].type = 0x617; // ocupados, sin rand() en su paso
+        pool.joints[slot].type = 0x617; // occupied, no rand() in their step
         pool.joints[slot].life = 100;
         pool.joints[slot].tailEnabled = false;
     }
@@ -190,8 +190,8 @@ TEST(InfernoJointsTest, TheHoleSlowsAndFadesAtTheEnd)
     EXPECT_EQ(LiveSprites(*pool.sprites).size(), 2u);
 }
 
-// 0x53b709..0x53b732 con +0x9ec en 5 (la /2, la /5 y la /6): con vida 9 no se apagan (con el 10 de la /3 y la /4 sí)
-// y con vida 4, la luz por 0,7692308f.
+// 0x53b709..0x53b732 with +0x9ec at 5 (the /2, /5 and /6): with life 9 they do not fade (with the 10 of the /3 and /4
+// they do) and with life 4, the light times 0.7692308f.
 TEST(InfernoJointsTest, TheLavaFadesBelowFive)
 {
     const double fade = D(std::bit_cast<float>(0x3f44ec4fu));
@@ -214,7 +214,7 @@ TEST(InfernoJointsTest, TheLavaFadesBelowFive)
     }
 }
 
-// 0x53b6f2..0x53b702: la /6 (la lava rápida) deja de agregar tramos con la cola llena y no suelta nada.
+// 0x53b6f2..0x53b702: the /6 (the fast lava) stops appending segments with the tail full and releases nothing.
 TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
 {
     Pool pool;
@@ -230,10 +230,10 @@ TEST(InfernoJointsTest, TheLavaStopsWithAFullTail)
     EXPECT_TRUE(LiveSprites(*pool.sprites).empty());
 }
 
-// 0x53b735..0x53b768: la /2 con la vida múltiplo de 5 suelta el 0xf6/6 en su camino (+0x24, la partida 10 más
-// arriba) con sus ángulos propios (+0x3c), su luz y la clave 20, sin dueño: vida 5, +0xec en 20 y la escala 20 · 0,01f,
-// velocidad y luz del modelo en 0,1f, sin rand(). Con otra vida, nada. Sin la tabla de efectos, corta ahí; sin el
-// héroe, nace igual: el /6 no lo mira (0x519a5c, solo por debajo de 2).
+// 0x53b735..0x53b768: the /2 with life a multiple of 5 releases the 0xf6/6 on its path (+0x24, the start 10 higher)
+// with its own angles (+0x3c), its light and key 20, ownerless: life 5, +0xec at 20 and scale 20 · 0.01f, the model's
+// speed and light at 0.1f, without rand(). With another life, nothing. Without the effect table, it stops there;
+// without the hero, it is created all the same: the /6 does not look at it (0x519a5c, only below 2).
 TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
 {
     const Client::Kernel::ActorState hero{};
@@ -287,10 +287,10 @@ TEST(InfernoJointsTest, TheInfernoDropsItsBurstEveryFiveSteps)
     EXPECT_EQ(heroless.effects->Effects()[0].subtype, 6);
 }
 
-// El 0x61c/1, el rayo rojo del láser 0xd0/1 de los magos (0x51a5dd), con el efecto de dueño. 0x53439e..0x53442d:
-// velocidad 0, el ancho, el pase 1 (+0x64), la luz en 1, 15 puntos, vida 30 y la posición y los ángulos del dueño. Sin
-// rand(). Los ángulos no son los del pedido sino los del dueño (+0x1c). Sin dueño, el original apaga el joint,
-// desreferencia el puntero nulo (+0x10, 0x5343fb) y revienta: MuRet corta (0x5343f8).
+// The 61c/1, the red ray of the wizards' 0xd0/1 laser (0x51a5dd), owned by the effect. 0x53439e..0x53442d: speed 0, the
+// width, pass 1 (+0x64), light at 1, 15 points, life 30 and the owner's position and angles. No rand(). The angles are
+// not the request's but the owner's (+0x1c). Without an owner, the original turns the joint off, dereferences the null
+// pointer (+0x10, 0x5343fb) and crashes: MuRet stops (0x5343f8).
 TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
 {
     Client::Effects::ModelEffect laser{};
@@ -332,8 +332,8 @@ TEST(InfernoJointsTest, TheLaserJointIsBornOnItsOwner)
     EXPECT_NE(cut.Error().find("0x5343f8"), std::string::npos) << cut.Error();
 }
 
-// 0x53b628..0x53b69b: toma el byte vivo del dueño, el ancho baja 1, la posición es la del dueño 100 más arriba y, con
-// menos de 15 de vida, la luz por 0,7692308f; después la cola común. Sin rand().
+// 0x53b628..0x53b69b: takes the owner's alive byte, the width drops 1, the position is the owner's 100 higher and, with
+// less than 15 life, the light times 0.7692308f; then the common tail. No rand().
 TEST(InfernoJointsTest, TheLaserJointFollowsItsOwnerAndNarrows)
 {
     Client::Effects::ModelEffect laser{};

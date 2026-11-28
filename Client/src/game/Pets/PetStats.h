@@ -17,9 +17,9 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-// Lo que llega con el A9 de las mascotas (CL9 hito 4): la tabla de 0x723960 (WorldRuntime::pets), el cuervo del héroe
-// y el caballo del registro propio. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El A9 de las mascotas".
-// Cada acceso al registro propio gasta sus 3.848 rand() al cerrarlo en 0.
+// What the pets' A9 brings: the 0x723960 table (WorldRuntime::pets), the hero's raven and the own record's horse.
+// Contract: Client/docs/research/06-render-escenas-y-ui.md, "El A9 de las mascotas". Each own-record access spends its
+// 3848 rand() when it closes at 0.
 namespace Client::Kernel
 {
 struct DarkSpirit;
@@ -38,34 +38,32 @@ struct WorldEntryResources;
 namespace Client::Pets
 {
 
-// 0x420cd0, desde 0x657670 en la vuelta a la selección: 0x723910 (la pestaña), 0x723911 (Ui::DelegatedPanels::pet)
-// y los quince dwords de las tres mascotas en 0. Sin rand().
+// 0x420cd0, from 0x657670 on the way back to the selection: 0x723910 (the tab), 0x723911 (Ui::DelegatedPanels::pet)
+// and the three pets' fifteen dwords to 0. No rand().
 void ResetThePets(Kernel::WorldRuntime& runtime);
 
-// 0x4221d0(tipo): con el registro propio abierto y cerrado, el liderazgo (+0x36 + +0x20) y, para el caballo, la fuerza
-// (+0x18) y +0x2a; después, con el tipo 0 o 1, la experiencia que sigue y +0xc..+0x12 de esa mascota. Con otro tipo,
-// solo el acceso.
+// 0x4221d0(type): with the own record opened and closed, the leadership (+0x36 + +0x20) and, for the horse, strength
+// (+0x18) and +0x2a; then, with type 0 or 1, that pet's next experience and +0xc..+0x12. With another type, only the
+// access.
 void UpdatePetStats(std::uint8_t pet, Kernel::WorldState& world, Crt::CrtRandom& random);
-// Lo mismo sobre `pets` (WorldRuntime::pets o una copia) y con la cuenta de accesos del registro propio dada: el
-// tooltip de las mascotas (0x422a35) lo llama con el registro abierto alrededor (0x5f7bc0), o con las copias de un
-// dibujo intermedio.
+// The same on `pets` (WorldRuntime::pets or a copy) with the given own-record access count: the pets' tooltip
+// (0x422a35) calls it with the record open around it (0x5f7bc0), or with an in-between draw's copies.
 void UpdatePetStats(std::uint8_t pet, const Kernel::WorldState& world,
                     std::array<Kernel::PetStats, Kernel::PetStatsCount>& pets, std::uint8_t& ownRecordDepth,
                     Crt::CrtRandom& random);
 
-// 0x417f30(nivel, experiencia), la vtable + 8 del cuervo: dos accesos al registro propio (el liderazgo y la
-// durabilidad del lugar 1, +0xbce) y lo que sale de ellos en el cuervo (DarkSpirit::word1e2 a word45a).
+// 0x417f30(level, experience), the raven's vtable + 8: two own-record accesses (the leadership and slot 1's durability,
+// +0xbce) and what comes from them in the raven (DarkSpirit::word1e2 to word45a).
 void ApplyRavenInfo(Kernel::DarkSpirit& raven, std::uint8_t level, std::uint32_t experience, Kernel::WorldState& world,
                     Crt::CrtRandom& random);
 
-// 0x4e4ca1: 0x421db0(tipo, clase, casilla, nivel, experiencia) y, con el registro propio abierto, 0x550d10. Con la
-// ventana de la mascota abierta (0x420cc0), el cuervo del héroe y la tabla con la durabilidad del caballo; si no, la
-// tabla con la del ítem del cartel (0x787a518) salvo con el entrenador abierto y la casilla debajo de 12, y con la
-// clase 0, 0xfe o 0xff, el cuervo del héroe (la casilla 1) o el caballo (la casilla 8: su nivel, su +8 en el héroe y su
-// opción, 0x4225d0). Un tipo de 3 o más que el original escribe fuera de 0x723960 se descarta entero (Q-C1208); sin
-// escribir la tabla (la ventana cerrada sin ítem en el cartel, o con el entrenador), solo el acceso de 0x4221d0. Corta
-// con la dirección del original: los joints del cuervo con 0xfe y 0xff (0x418390 y 0x418400, CL11) y lo que corta
-// 0x550d10.
+// 0x4e4ca1: 0x421db0(type, kind, slot, level, experience), then 0x550d10 with the own record open. With the pet window
+// open (0x420cc0), the hero's raven and the table with the horse's durability; otherwise the table with the label
+// item's (0x787a518) unless the trainer is open and the slot is under 12, and with kind 0, 0xfe or 0xff, the hero's
+// raven (slot 1) or the horse (slot 8: its level, its +8 on the hero and its option, 0x4225d0). A type of 3 or more,
+// which the original writes outside 0x723960, is dropped whole (Q-C1208); without writing the table, only the 0x4221d0
+// access. It cuts with the original's address at the raven's joints with 0xfe and 0xff (0x418390 and 0x418400, CL11)
+// and where 0x550d10 cuts.
 [[nodiscard]] Core::Expected<void, std::string> ApplyPetInfo(const Protocol::Pets::PetInfoReply& reply,
                                                              const Scenes::WorldEntryResources& resources);
 } // namespace Client::Pets

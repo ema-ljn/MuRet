@@ -18,9 +18,9 @@
 #include <memory>
 #include <utility>
 
-// Las partículas que sueltan los objetos de Castle Siege (el mapa 30) y que no comparten todo con las de Kalima y
-// Crywolf: la caída 6f4/6 de los braseros 0x34 y el dibujo de la chispa 6ec/0 de las antorchas (06 § Los objetos de
-// Castle Siege). El alta y el paso de la 6ec/0 son los de la 6ed/0 (CrywolfParticlesTest).
+// The particles released by Castle Siege's objects (map 30) that do not share everything with Kalima's and Crywolf's:
+// the fall 6f4/6 of the 0x34 braziers and the drawing of the torches' spark 6ec/0 (06 § Los objetos de Castle Siege).
+// 6ec/0's creation and step are 6ed/0's (CrywolfParticlesTest).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -40,9 +40,8 @@ CrtRandom After(std::uint32_t seed, int draws)
 }
 } // namespace
 
-// 0x543f04..0x543f47: la 6f4/6 nace con vida 30, el giro rand() % 360, la escala del argumento más 0,6f (0x6b8a20),
-// la caída −12 − rand() % 5 y la luz en 0,2f; la 6f4/0 de Kalima, en cambio, tiene la escala 1,6f y la caída −7 −
-// rand() % 5.
+// 0x543f04..0x543f47: 6f4/6 is born with life 30, turn rand() % 360, the argument's scale plus 0.6f (0x6b8a20), fall
+// −12 − rand() % 5 and light at 0.2f; Kalima's 6f4/0, instead, has scale 1.6f and fall −7 − rand() % 5.
 TEST(CastleSiegeParticlesTest, TheBrazierFallAddsSixTenthsToItsScaleAndFallsFaster)
 {
     auto particles = std::make_unique<Particles>();
@@ -65,7 +64,7 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallAddsSixTenthsToItsScaleAndFallsFast
     EXPECT_TRUE(fall.moves);
     EXPECT_EQ(random.State(), draws.State());
 
-    // Los demás subtipos del 0x6f4 que no salen de los mapas portados siguen sin alta.
+    // The other 0x6f4 subtypes, which no ported map releases, still have no creation.
     EXPECT_FALSE(particles
                      ->CreateChecked(Client::Particles::KalimaWaterfallLast, position, {}, glm::vec3(1.0f), 5, scale,
                                      0.0f, random)
@@ -73,9 +72,9 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallAddsSixTenthsToItsScaleAndFallsFast
     EXPECT_EQ(random.State(), draws.State());
 }
 
-// 0x547e7e..0x547fa7: la /6 no es la /0 ni la /5, que restan 0,005f a la escala y suman 0,1f a la caída; salta a
-// 0x547fc1, que solo cambia la luz: por 1,1f (0x6b8830) con la vida en más de 20 y por 0,8333f (0x6b8b98) con menos
-// de 8. El movimiento común (0x4e98d0) la baja con su caída girada por los ángulos. No saca rand() además del viento.
+// 0x547e7e..0x547fa7: /6 is neither /0 nor /5, which subtract 0.005f from the scale and add 0.1f to the fall; it jumps
+// to 0x547fc1, which only changes the light: by 1.1f (0x6b8830) with life above 20 and by 0.8333f (0x6b8b98) below 8.
+// The common movement (0x4e98d0) lowers it with its fall turned by the angles. No rand() besides the wind.
 TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChangesItsLight)
 {
     auto particles = std::make_unique<Particles>();
@@ -120,8 +119,8 @@ TEST(CastleSiegeParticlesTest, TheBrazierFallKeepsItsScaleAndSpeedAndOnlyChanges
     EXPECT_EQ(random.State(), After(born, 2 * Steps).State());
 }
 
-// 0x548550: el 0x6ec y el 0x6f4 caen al default (0x54889a), el billboard común con su textura, el ancho y el alto de
-// la imagen por la escala, la luz y el giro de +0x44, sin leer el subtipo ni pedir otra mezcla.
+// 0x548550: 0x6ec and 0x6f4 fall to the default (0x54889a), the common billboard with their texture, the image's width
+// and height times the scale, the light and the turn of +0x44, without reading the subtype or requesting another blend.
 TEST(CastleSiegeParticlesTest, TheSparkAndTheFallDrawTheCommonBillboard)
 {
     for (const auto& [type, subtype] : {std::pair<std::int32_t, std::int32_t>{Client::Particles::CrywolfFanta, 0},

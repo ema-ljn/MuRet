@@ -45,8 +45,8 @@
 #include <utility>
 #include <vector>
 
-// Combat::ApplyMagicAttackCount: el 1A, la skill que pega a varios (0x4cedd0). Las claves, las celdas y la vida son
-// inventadas; lo esperado sale del ASM (0x4cedd0, 0x53d810, 0x53fdb0, 0x548e40).
+// ApplyMagicAttackCount: the 1A (0x4cedd0). The keys, cells and life are invented; the expected values come from the
+// ASM (0x4cedd0, 0x53d810, 0x53fdb0, 0x548e40).
 namespace
 {
 using Client::Kernel::ActorState;
@@ -61,10 +61,10 @@ constexpr std::size_t FirstSlot = 20;
 constexpr std::uint16_t SecondKey = 0x0102;
 constexpr std::size_t SecondSlot = 21;
 constexpr std::uint8_t Magic = 0x29;
-// Un modelo de monstruo (0x152 + 1, Monster02.bmd), con las acciones hasta la 0x96.
+// 0x152 + 1, Monster02.bmd, with the actions up to 0x96.
 constexpr std::uint16_t MonsterModel = 0x153;
 constexpr std::size_t MonsterActionCount = 0x97;
-// 0x40b3f0 y 0x40b4d0: lo que gasta cada cierre.
+// 0x40b3f0 and 0x40b4d0: what each close spends.
 constexpr std::uint32_t SkillCloseRandoms = 1;
 constexpr std::uint32_t OwnRecordCloseRandoms = 0xf08;
 
@@ -86,7 +86,7 @@ public:
     Client::Models::Skeleton player = Client::Tests::PlayerActionsSkeleton();
 };
 
-// Lo que 0x612d90 deja en Assets::AssetsState::fauna para un monstruo: solo sus acciones.
+// What 0x612d90 leaves in Assets::AssetsState::fauna for a monster: only its actions.
 class MonsterModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -109,7 +109,6 @@ public:
     Client::Models::Skeleton monster;
 };
 
-// Un hueso que solo traslada a `at`.
 Client::Math::BoneTransform BoneAt(const glm::vec3& at)
 {
     Client::Math::BoneTransform bone(1.0f);
@@ -117,8 +116,8 @@ Client::Math::BoneTransform BoneAt(const glm::vec3& at)
     return bone;
 }
 
-// La semilla con la que el rand() de cada blanco (después del de +0x38e) sale par o impar como `evens`, con el rand()
-// del sonido del golpe de un jugador de clase 0 (0x4f54d7) cuando sale par.
+// The seed with which each target's rand() (after the +0x38e one) comes out even or odd as `evens`, counting the rand()
+// of a class-0 player's hit sound (0x4f54d7) when it is even.
 std::uint32_t SeedFor(std::initializer_list<bool> evens)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -222,7 +221,7 @@ protected:
         return numbers;
     }
 
-    // Antes de los estados: sus modelos de la fauna la prestan y se destruyen después.
+    // Before the states: it lends the models to their fauna and is destroyed after them.
     MonsterModels m_fauna;
     Client::Session::ModuleStates m_states;
     std::unique_ptr<Client::Kernel::WorldState> m_world = std::make_unique<Client::Kernel::WorldState>();
@@ -235,10 +234,10 @@ protected:
     Client::Core::Log m_log{m_sink, Client::Core::LogLevel::Debug};
 };
 
-// 0x4cedec..0x4cefe4 sin blancos: [0x5767964] con el lugar, las dos 5fd de 0x53d810 (nacen en el hueso +0x2bd del que
-// pega, con sus ángulos y la luz (1; 0,5; 0,2), y 0x53fdb0 las lleva al hueso de la mano del HÉROE sobre los huesos del
-// que pega: Q-C854), el sonido 0x76, la acción 0x96, la skill en +0x38e y +0x381 en 1. Un solo rand(): el cierre de
-// +0x38e.
+// 0x4cedec..0x4cefe4 without targets: [0x5767964] with the slot, the two 0x5fd of 0x53d810 (born at the striker's bone
+// +0x2bd, with its angles and the light (1; 0.5; 0.2), and 0x53fdb0 takes them to the HERO's hand bone over the
+// striker's bones: Q-C854), sound 0x76, action 0x96, the skill in +0x38e and +0x381 at 1. A single rand(): the close
+// of +0x38e.
 TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
 {
     const auto seed = m_cloth.random.State();
@@ -268,9 +267,9 @@ TEST_F(MagicAttackCountTest, TheCasterRaisesTheShineAndKeepsTheSkill)
     EXPECT_EQ(m_cloth.random.State(), expected.State());
 }
 
-// 0x4cf009..0x4cf084: cada blanco por su clave; con rand() par, el golpe de 0x4f53a0 (la acción 0xc2 de un jugador y
-// el rand() de su sonido); con +0x384, el número de 0x548e40 en su posición con z + 140, amarillo naranja, de 15 y que
-// sube; sin +0x384, ni golpe ni número.
+// 0x4cf009..0x4cf084: each target by its key; with an even rand(), 0x4f53a0's hit (a player's action 0xc2 and the
+// rand() of its sound); with +0x384, 0x548e40's number at its position with z + 140, orange yellow, of 15 and rising;
+// without +0x384, neither hit nor number.
 TEST_F(MagicAttackCountTest, EachTargetIsShockedOnAnEvenDrawAndShowsItsDamage)
 {
     m_cloth.random = Client::Crt::CrtRandom(SeedFor({true, false}));
@@ -300,8 +299,8 @@ TEST_F(MagicAttackCountTest, EachTargetIsShockedOnAnEvenDrawAndShowsItsDamage)
     EXPECT_TRUE(Numbers().empty());
 }
 
-// 0x4cf089..0x4cf17d: el blanco con la clave del jugador baja la vida del registro propio (abierto: sus 3.848 rand()
-// al cerrarse), hasta 0 con un golpe mayor; el héroe es el blanco por su clave, no por ser el héroe.
+// 0x4cf089..0x4cf17d: the target with the player's key lowers the own record's life (open: its 3848 rand() when it
+// closes), down to 0 with a bigger hit; the hero is the target by its key, not by being the hero.
 TEST_F(MagicAttackCountTest, ThePlayerLosesItsLifeDownToZero)
 {
     const std::uint32_t seed = SeedFor({false});
@@ -319,10 +318,10 @@ TEST_F(MagicAttackCountTest, ThePlayerLosesItsLifeDownToZero)
     EXPECT_EQ(m_world->OwnCharacter().life, 0);
 }
 
-// 0x5110d0 sin nadie con la clave: el 400 fantasma (Q-C778, Q-C1125) también pega, en Lorencia y en Devias. El brillo,
-// el sonido, la skill en su +0x38e (con el rand() de su cierre), +0x381 y los blancos van como con cualquiera; la
-// acción 0x96 lee el tipo que haya en el 400, memoria que MuRet no modela, y se descarta con un aviso, sin cortar la
-// sesión.
+// 0x5110d0 with nobody holding the key: the phantom 400 (Q-C778, Q-C1125) strikes too, in Lorencia and in Devias. The
+// shine, the sound, the skill in its +0x38e (with its close's rand()), +0x381 and the targets go as with anyone; action
+// 0x96 reads whatever type is in the 400, memory MuRet does not model, and is discarded with a warning, without
+// cutting the session.
 TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
 {
     constexpr std::size_t Ghost = 400;
@@ -336,7 +335,7 @@ TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
         Target(FirstSlot).damage = 0x30;
         const std::size_t shinesBefore = Shines().size();
         const std::size_t linesBefore = m_sink.lines.size();
-        // El blanco con rand() par: el golpe de 0x4f53a0 y el rand() de su sonido.
+        // The target with an even rand(): 0x4f53a0's hit and its sound's rand().
         const std::uint32_t seed = SeedFor({true});
         m_cloth.random = Client::Crt::CrtRandom(seed);
         const auto applied = Apply({FirstKey}, 0x0999);
@@ -358,8 +357,9 @@ TEST_F(MagicAttackCountTest, AnUnknownCasterIsTheGhostSlot)
     }
 }
 
-// Un monstruo que pega: 0x4ea030 lee las acciones de su modelo, el que cargó su alta en Assets::AssetsState::fauna
-// (0x612d90), no Player.bmd. El GS 0.97 manda el 1A también por un monstruo (user.cpp:11887). En Lorencia y en Devias.
+// A striking monster: 0x4ea030 reads the actions of its model, the one its creation loaded into
+// Assets::AssetsState::fauna (0x612d90), not Player.bmd. GS 0.97 also sends the 1A for a monster (user.cpp:11887). In
+// Lorencia and in Devias.
 TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
 {
     m_states.assets.fauna.Bind(&m_fauna);
@@ -371,7 +371,7 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
         Caster().animation = {};
         Caster().byte381 = 0;
         Target(FirstSlot).damage = 0;
-        // El blanco con rand() impar: sin golpe; sin +0x384, sin número.
+        // The target with an odd rand(): no hit; without +0x384, no number.
         const std::uint32_t seed = SeedFor({false});
         m_cloth.random = Client::Crt::CrtRandom(seed);
         const auto applied = Apply({FirstKey});
@@ -382,8 +382,8 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
         EXPECT_EQ(m_cloth.random.State(),
                   Client::Tests::AfterDraws(seed, static_cast<int>(SkillCloseRandoms) + 1).State());
     }
-    // Sin el modelo cargado, su registro de 0x5769ad8 está en 0 (+0x26 sin acciones): 0x4ea030 sale en 0x4ea056 sin
-    // tocar la acción (revisión B del hito 2, B3) y el 1A sigue.
+    // Without the model loaded, its 0x5769ad8 record is at 0 (+0x26 without actions): 0x4ea030 leaves at 0x4ea056
+    // without touching the action and the 1A goes on.
     m_states.assets.fauna.Bind(nullptr);
     Caster().animation = {};
     const auto before = Caster().animation.action;
@@ -393,7 +393,7 @@ TEST_F(MagicAttackCountTest, AMonsterCasterTakesTheActionOfItsModel)
     EXPECT_EQ(Caster().byte38e, Magic);
 }
 
-// El paso de las partículas pide la mano con ParticleActorHandsAmong: la del héroe sobre los huesos del dueño.
+// The particle step asks for the hand with ParticleActorHandsAmong: the hero's over the owner's bones.
 TEST_F(MagicAttackCountTest, TheStepFindsTheHandOfTheOwner)
 {
     const auto hands = Client::Effects::ParticleActorHandsAmong(m_world->Actors(), HeroSlot);

@@ -29,24 +29,22 @@ namespace Client::Particles
 class Particles;
 } // namespace Client::Particles
 
-// El cuervo (CL7.6 C): el pájaro del ítem 0x1c17 en la mano del Dark Lord, el modelo 0xc0
-// (Skill\DarkSpirit.bmd). Lo crea 0x420d60 con 0x4167b0 (un objeto de 0x460 bytes con un CHARACTER en
-// +0xc), lo mueve 0x416a20 en cada paso de su dueño y lo dibuja 0x4182f0. Contrato: 06 § El cuervo.
-// Verificado bit a bit contra el código real emulado (tests/vectors/world55/raven.txt), en los estados 0
-// y 1, los del vuelo libre: los únicos del login. El 3 (posado en el hombro) y el 4 (bajando al hombro) son
-// los de la zona segura, portados desde el ASM; el 2, el 5 y el 6 son los del ataque que pone el A8 (Scenes/PetOrders),
-// portados desde el ASM en el CL9 hito 4 (06 § El ataque del cuervo).
+// The raven: the bird of item 0x1c17 in the Dark Lord's hand, model 0xc0 (Skill\DarkSpirit.bmd). 0x420d60 creates it
+// with 0x4167b0 (a 0x460-byte object with a CHARACTER at +0xc), 0x416a20 moves it on each owner step and 0x4182f0 draws
+// it. Contract: 06 § El cuervo. States 0 and 1 (free flight, the only ones in the login) are checked bit for bit
+// against the emulated real code (tests/vectors/world55/raven.txt); 3 (perched) and 4 (landing), the safe zone's, and
+// 2, 5 and 6, the attack the A8 sets (Pets/PetOrders, 06 § El ataque del cuervo), are ported from the ASM.
 namespace Client::Pets
 {
 inline constexpr std::uint16_t DarkSpiritModel = Assets::DarkSpiritModel;
 
 using Kernel::DarkSpirit;
 
-// Lo que el paso lee del dueño: su posición (+0x10) y sus banderas (+0x78). Con 0x1000 el paso no hace
-// nada; con 0x4000 no hay chispa. En la zona segura (+0x3e2 en 1), además, sus ángulos (+0x1c), sus huesos
-// propios (+0x120, los del último dibujo; vacíos antes del primero, Q-C318) y la escala y la posición que
-// tiene el modelo compartido de su tipo (+0x68 y +0x6c de 0x5769ad8 + tipo · 0xe0): las del último 0x20a que
-// las copió (WorldState::PlayerModel, Q-C412). Con la mascota (+0x318) en 0x1a04, vuela a 350 (Q-C413).
+// The owner's position (+0x10) and flags (+0x78): with 0x1000 the step does nothing; with 0x4000 there is no spark. In
+// the safe zone (+0x3e2 at 1), also its angles (+0x1c), own bones (+0x120, the last draw's; empty before the first,
+// Q-C318) and its type's shared model scale and position (+0x68 and +0x6c of 0x5769ad8 + type · 0xe0): those of the
+// last 0x20a that copied them (WorldState::PlayerModel, Q-C412). With the pet (+0x318) at 0x1a04, it flies at 350
+// (Q-C413).
 struct DarkSpiritOwner
 {
     glm::vec3 position{};
@@ -59,10 +57,10 @@ struct DarkSpiritOwner
     glm::vec3 modelOrigin{};
 };
 
-// Lo que leen el aviso y los estados del ataque de los otros personajes del pool (CL9 hito 4): el de +8 (`target`),
-// que con +0x1ad en 1 es el destino del vuelo en vez del dueño (0x4177b1..0x417811), y el de +0x3b0: si está entre
-// los 400 (0x416a88..0x416a9b, con signo), sus banderas (+0x78, el 0x4000 de 0x416ab6), y su posición, que el
-// estado 6 mira con +0x3b0 distinto de 0xffff (0x417847).
+// What the notice and the attack states read from other pool characters: the +8 one (`target`), which with +0x1ad at 1
+// is the flight destination instead of the owner (0x4177b1..0x417811), and the +0x3b0 one: whether it is among the 400
+// (0x416a88..0x416a9b, signed), its flags (+0x78, the 0x4000 of 0x416ab6), and its position, which state 6 reads with
+// +0x3b0 other than 0xffff (0x417847).
 struct DarkSpiritTargets
 {
     glm::vec3 target{};
@@ -71,8 +69,7 @@ struct DarkSpiritTargets
     glm::vec3 attackPosition{};
 };
 
-// Lo que el paso pide afuera: el grito (0x41ed10(0x1d1)) y el A7 que corta el ataque (C1 07 A7 00 78 FF FF,
-// Protocol::Pets::WritePetCommand).
+// The shout (0x41ed10(0x1d1)) and the A7 that stops the attack (C1 07 A7 00 78 FF FF, Protocol::Pets::WritePetCommand).
 struct DarkSpiritStepped
 {
     bool shouts = false;
@@ -86,31 +83,18 @@ struct DarkSpiritBirthAccesses
     std::int32_t counter = 0;
 };
 
-// 0x4167b0 con 0x415be0: los 12 rand() con las cuentas cerradas, de los cierres de las celdas del dueño y del contador
-// (Q-C125), y el cuervo en el centro de la celda del dueño (con `and 0xff`), a la altura del terreno ahí
-// (`groundHeight`, la de 0x5f93c0 en (celda · 100 + 50), que 0x415ea7 guarda en float) más 300. En el
-// login, la celda (0, 0) (Q-C130).
+// 0x4167b0 with 0x415be0: the 12 rand() with the counts closed, from the closes of the owner's cells and of the counter
+// (Q-C125), and the raven at the center of the owner's cell (with `and 0xff`), at the terrain height there
+// (`groundHeight`, that of 0x5f93c0 at (cell · 100 + 50), which 0x415ea7 stores as float) plus 300. In the login, cell
+// (0, 0) (Q-C130).
 [[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Crt::CrtRandom& random,
                                           DarkSpiritBirthAccesses accesses = {});
 
-// 0x416a20, con el esqueleto del cuervo, en el mapa `map`, con el rand() de la CRT y el valor que el grito lee de
-// 0x7d3a0f0 (`counter`). Con 0x1000 en el dueño, nada. Primero el aviso (0x416a88..0x4176e6): con el blanco de
-// +0x3b0 entre los 400 y con 0x4000, o con el dueño con 0x4000, en los estados 2, 5 y 6, +0x3b0 en 0xffff, el A7
-// que corta el ataque (`stopsTheAttack`) y el estado 4 con la velocidad en 3: pasa por el 3 y la comparación con 50
-// de la distancia al dueño lee el estado ya en 3 y no decide nada (Q-C1206). Después la zona segura (0x4176f0):
-// dentro, si no está posado ni bajando, pasa a bajar (4) con la velocidad en 3 (Q-C414); fuera, posado o bajando
-// vuelve al 0. Después la animación de a 0,4 y la acción por el estado al dar la vuelta (0x417f0c). El destino es el
-// dueño o, con +0x1ad en 1, el blanco de +8 (`targets.target`). En los estados 0 y 1: +0x1ad en 0; la chispa desde
-// un hueso al azar de `pose` (0x5c6, subtipo 5, en `particles`; sin pose, desde su posición); el giro hacia el
-// destino a más de 150; el movimiento; el cabeceo hacia 350 sobre el destino en el mapa 0x37 o con la mascota en
-// 0x1a04 y 250 en los demás (Q-C131, Q-C413); el sorteo de la dirección y el estado. En el 5 y el 2 (0x4179ef),
-// avanza su velocidad; en el 5 gira hacia el destino 50 más arriba con 0x4e9810 y, a menos de 20 o con la lejanía
-// en más de 20, pasa al 2 con el cabeceo en −45 (y +0x1ad en 0 salvo con la orden 3); sube la lejanía, la
-// velocidad suma +0xf0 y +0xf0 suma 0,2; en el 2, a 250 o más del destino vuelve al 0 y frena 1; en los dos, la
-// acción 3. En el 6 (0x417847), con +0x3b0 distinto de 0xffff, gira 40 hacia ese personaje. En el 3 (0x4178a2), en
-// el hueso 37 del dueño con (−10, 0, 10) y sus ángulos, el rumbo menos 120. En el 4 (0x4178f4), avanza su
-// velocidad, gira hacia el hueso 42 del dueño con 0x4e9810, acelera 1 y se posa a menos de 50. En el 5 y el 6,
-// +0x38d sube hasta 15. En todos, el grito y el salto junto al dueño cuando el contador de lejanía pasa de 90.
+// 0x416a20 with the raven's skeleton; `counter` is the value the shout reads from 0x7d3a0f0. With 0x1000 on the owner,
+// nothing. In order: the notice (0x416a88..0x4176e6, Q-C1206), the safe zone (0x4176f0, Q-C414), the 0.4 animation and
+// the action by state on wrapping (0x417f0c), then the state: 0 and 1 the free flight (Q-C131, Q-C413), 5 and 2 the
+// charge (0x4179ef, 0x4e9810), 6 the shout (0x417847), 3 the perch (0x4178a2), 4 the landing (0x4178f4, 0x4e9810);
+// last, the shout and the jump next to the owner when the far count passes 90.
 [[nodiscard]] DarkSpiritStepped StepDarkSpirit(DarkSpirit& spirit, const Models::Skeleton& skeleton,
                                                const DarkSpiritOwner& owner, std::uint8_t map,
                                                Particles::Particles& particles, float worldClock,

@@ -49,7 +49,7 @@ constexpr double BlueFactor = static_cast<double>(0.4f);
 
 std::size_t BirdStepCount(std::int32_t map)
 {
-    // 446120-contract § Pool: el draw posterior visita40, aunque aquí se procesen menos.
+    // 0x446120 contract § Pool: the later draw visits 40, although fewer are processed here.
     if (map == AtlansMap)
         return AtlansCount;
     if (map == IcarusMap)
@@ -64,7 +64,7 @@ void FinishOrdinaryBirdMotion(const BirdStepTail& bird, const std::int32_t& map,
     if (bird.timer <= 0 && map == AtlansMap && tileAttributes == 1)
     {
         bird.angles.z = static_cast<float>(static_cast<double>(bird.angles.z) + 180.0);
-        // 44691a: unordered conserva el giro; se resta360 una sola vez, también en igualdad.
+        // 0x44691a: unordered keeps the turn; 360 is subtracted only once, also on equality.
         if (bird.angles.z >= 360)
             bird.angles.z = static_cast<float>(static_cast<double>(bird.angles.z) - 360.0);
         bird.timer = 10;
@@ -79,7 +79,7 @@ std::optional<glm::vec3> BirdGlowLight(std::int16_t model, Crt::CrtRandom& rando
 {
     if (model != SingleGlowModel && model != DoubleGlowModel)
         return std::nullopt;
-    // 446b60-contract § AE/BC: el segundo producto usa q retenido, no el primer storeF32.
+    // 0x446b60 contract § AE/BC: the second product uses the retained q, not the first F32 store.
     const int base = model == SingleGlowModel ? 64 : 128;
     const double q = static_cast<double>((random.Next() % 32) + base) * LightStep;
     if (model == SingleGlowModel)
@@ -91,8 +91,8 @@ std::optional<glm::vec3> BirdGlowLight(std::int16_t model, Crt::CrtRandom& rando
 }
 namespace
 {
-// Perfil aprobado PC53/RN: el binding establece RN y compila sin fast-math/FMA.
-// El store volatile fuerza el redondeo binario64 por operación, también con evaluación extendida.
+// Approved PC53/RN profile: the binding sets RN and compiles without fast-math/FMA. The volatile store forces the
+// binary64 rounding per operation, also with extended evaluation.
 double Round53(double value)
 {
     volatile double rounded = value;
@@ -103,7 +103,7 @@ float StoreFloat(double value)
     return static_cast<float>(Round53(value));
 }
 
-// Offsets de446120-contract. memcpy evita aliasing/alineación sobre la vista prestada.
+// Offsets from the 0x446120 contract. memcpy avoids aliasing/alignment issues on the borrowed view.
 enum Field : std::size_t
 {
     Active = 0,
@@ -349,7 +349,7 @@ std::error_code OrdinaryMotion(BirdRecord b, std::int32_t index, std::int32_t ti
     auto state = Read<std::int32_t>(b, State);
     auto timer = Read<std::int32_t>(b, Timer);
     auto angles = Read<glm::vec3>(b, Angles);
-    // Evita consultas de mapa/tile que el original no alcanza.
+    // Avoids map/tile queries that the original does not reach.
     const int map = timer <= 0 ? s.Map() : 0;
     const std::uint16_t attributes = timer <= 0 && map == AtlansMap ? s.TileAttributes(tile) : 0;
     FinishOrdinaryBirdMotion({alive, state, timer, angles}, map, attributes);
@@ -412,7 +412,7 @@ BirdStepResult StepBirds(std::span<BirdRecord> birds, IBirdStepServices& service
         {
             gate = services.Random() % 10 == 0;
             if (i >= 2)
-                break; // El draw terminal precede al límite,446289..4462aa.
+                break; // The terminal draw precedes the limit, 0x446289..0x4462aa.
             map = services.Map();
         }
         else if (i >= BirdStepCount(map))

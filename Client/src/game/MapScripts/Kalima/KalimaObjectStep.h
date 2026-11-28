@@ -16,10 +16,10 @@ class WorldState;
 
 namespace Client::MapScripts::Kalima
 {
-// 4379a0: tabla pública clase/nivel. Conserva el retorno7 cuando ningún rango acepta.
+// 0x4379a0: public class/level table. Keeps the return of 7 when no range accepts.
 [[nodiscard]] std::uint8_t KalimaLevelOf(std::uint8_t characterClass, std::uint16_t level);
-// 606560→6061c0→4385a0: antes de cualquier objeto, aun con el pool vacío. Devuelve el selector
-// local del pase; WorldRuntime conserva el count anterior hasta completar este prefijo.
+// 0x606560→0x6061c0→0x4385a0: before any object, even with an empty pool. Returns the pass's local selector;
+// WorldRuntime keeps the previous count until this prefix completes.
 [[nodiscard]] Core::Expected<std::int32_t, std::string> StepKalimaObjectPrelude(Kernel::WorldState& world,
                                                                                 Models::ClothWorld& cloth);
 } // namespace Client::MapScripts::Kalima

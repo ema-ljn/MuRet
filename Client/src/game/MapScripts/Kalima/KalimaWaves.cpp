@@ -22,7 +22,7 @@ void UpdateKalimaWaves(KalimaWaveState& state)
             sumBits += source[cell - 1];
             sumBits += source[cell + 1];
             sumBits += source[cell + KalimaWaveSide];
-            // 0x41dc2c..0x41dc58: wrap DWORD antes de cada SAR, aritmético en C++20.
+            // 0x41dc2c..0x41dc58: DWORD wrap before each SAR, arithmetic in C++20.
             const std::int32_t half = std::bit_cast<std::int32_t>(sumBits) >> 1;
             const std::uint32_t halfBits = std::bit_cast<std::uint32_t>(half);
             const std::uint32_t differenceBits = halfBits - destination[cell];

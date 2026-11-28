@@ -11,8 +11,8 @@
 
 namespace Client::Fauna
 {
-// Layout trivial común de los pools de 446120 y 447030. 06 § Los pájaros / Los peces.
-// +0xc y +0xd8 intercambian su uso entre aves y peces; los nombres describen el ave.
+// Common trivial layout of the pools of 0x446120 and 0x447030. 06 § Los pájaros / Los peces.
+// +0xc and +0xd8 swap their use between birds and fish; the names describe the bird.
 struct FaunaObject
 {
     std::uint8_t active = 0;

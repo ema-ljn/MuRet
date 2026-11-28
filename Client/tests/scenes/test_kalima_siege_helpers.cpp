@@ -32,9 +32,9 @@
 #include <string_view>
 #include <vector>
 
-// Los helpers de efectos por tipo de 0x510a1e (0x43c150 y 0x42dfe0) sobre un personaje ya posado: el hueso k en
-// (0, 0, k) sobre (1000, 2000, 100) deja ver de qué hueso sale cada sprite. Vectores literales del ASM c32bbd5f, sin
-// ejecutar el original. Kalima (24 y 36), Lorencia (0), Devias (2) y el castillo (30).
+// The per-type effect helpers of 0x510a1e (0x43c150 and 0x42dfe0) on an already posed character: bone k at (0, 0, k)
+// over (1000, 2000, 100) shows which bone each sprite comes from. Literal vectors from the c32bbd5f ASM, without
+// running the original. Kalima (24 and 36), Lorencia (0), Devias (2) and the castle (30).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -157,8 +157,8 @@ protected:
         return random.State();
     }
 
-    // El humo 0x5f2/13 (0x541c18) en el lugar 0 con los ángulos del personaje, contra un pool gemelo con el rand()
-    // desde `state`; devuelve el rand() de después.
+    // The 0x5f2/13 smoke (0x541c18) in slot 0 with the character's angles, against a twin pool with the rand() from
+    // `state`; returns the rand() state after it.
     [[nodiscard]] std::uint32_t ExpectTheEmber(const glm::vec3& point, const glm::vec3& light, float scale,
                                                std::uint32_t state) const
     {
@@ -204,7 +204,6 @@ protected:
     bool m_siege = false;
 };
 
-// Un tipo sin helper devuelve false sin tocar nada (la cadena sigue); los del castillo, fuera del 30, también.
 TEST_F(KalimaSiegeHelperTest, OtherTypesAndTheCastleOnesOutsideTheCastleGoOn)
 {
     for (const std::int32_t map : {0, 2, 24, 30})
@@ -231,7 +230,7 @@ TEST_F(KalimaSiegeHelperTest, OtherTypesAndTheCastleOnesOutsideTheCastleGoOn)
     }
     EXPECT_TRUE(Sprites().empty());
     EXPECT_EQ(m_random.State(), Seed);
-    // Sin la tabla de sprites corta solo el que la usa.
+    // Without the sprite table, only the one that uses it cuts.
     m_sprites.reset();
     Actor(0x15b);
     EXPECT_TRUE(Draw(0).HasValue());
@@ -239,9 +238,9 @@ TEST_F(KalimaSiegeHelperTest, OtherTypesAndTheCastleOnesOutsideTheCastleGoOn)
     ExpectCut(Draw(24), "0x510a1e", "0x193");
 }
 
-// 0x43c17f..0x43c22a, el 0xc5: en la acción 1, con +0x60 en 0, el agujero 0x6ae del hueso 8 con sus ángulos, escala 3
-// y un rand() (0x543bf1: vida 30, luz 0,1f y giro rand() % 360); +0x60 cuenta de 0 a 4. Con la tabla llena, sin rand().
-// En Kalima y en Lorencia.
+// 0x43c17f..0x43c22a, the 0xc5: in action 1, with +0x60 at 0, hole 0x6ae from bone 8 with its angles, scale 3 and one
+// rand() (0x543bf1: life 30, light 0.1f and turn rand() % 360); +0x60 counts from 0 to 4. With the table full, no
+// rand().
 TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
 {
     for (const std::int32_t map : {24, 0})
@@ -285,9 +284,9 @@ TEST_F(KalimaSiegeHelperTest, TheKalimaGateCountsItsParticle)
     }
 }
 
-// 0x43c233..0x43c646, el 0x191: fuera de la acción 6, cinco vueltas por los huesos 74..78 y 62..66 con dos 0x5ac y un
-// rand() & 1 cada uno (en 0, la burbuja 0x607/1: 0x43c332 arriba, 0x43c3bf abajo), los ojos del hueso 8 y los huesos 22
-// y 15; siempre, las estrellas de los huesos 51..55 y 29..33.
+// 0x43c233..0x43c646, the 0x191: outside action 6, five turns over bones 74..78 and 62..66 with two 0x5ac and one
+// rand() & 1 each (at 0, bubble 0x607/1: 0x43c332 above, 0x43c3bf below), the eyes of bone 8 and bones 22 and 15;
+// always, the stars of bones 51..55 and 29..33.
 TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandoms)
 {
     Actor(0x191, 6);
@@ -319,7 +318,6 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     EXPECT_EQ(sprites[18].position, Bone(66));
     EXPECT_EQ(sprites[18].scale, F32(1.5 - 4.0 * D(0.2f)));
     EXPECT_EQ(sprites[18].light.z, 1.25f);
-    // Los ojos: el 0x5ca blanco con +0x68 y el 0x5fd azul; los huesos 22 y 15, azules los dos.
     EXPECT_EQ(sprites[20].texture, 0x5ca);
     EXPECT_EQ(sprites[20].position, Bone(8, {2.0f, 2.0f, 0.0f}));
     EXPECT_EQ(sprites[20].light, glm::vec3(0.6f));
@@ -333,9 +331,9 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     EXPECT_EQ(m_random.State(), After(10));
     EXPECT_EQ(helper.dword60, 0);
 
-    // Con lugar en el pool, cada rand() & 1 en 0 suelta en su hueso la burbuja 0x607/1 de 1, con los ángulos del
-    // personaje y la luz 1 de su alta (0x542d96), y dos rand() más: la primera, la del hueso 75 (41 y 18467 son
-    // impares, 6334 par).
+    // With room in the pool, each rand() & 1 at 0 drops bubble 0x607/1 of 1 at its bone, with the character's angles
+    // and light 1 from its creation (0x542d96), and two more rand(): the first, at bone 75 (41 and 18467 are odd, 6334
+    // even).
     SetUp();
     Actor(0x191, 0);
     ASSERT_TRUE(Draw(2).HasValue());
@@ -370,8 +368,8 @@ TEST_F(KalimaSiegeHelperTest, TheFirstKalimaHelperDrawsItsStarsAndDrawsItsRandom
     EXPECT_EQ(m_random.State(), expected.State());
 }
 
-// 0x43c647..0x43c9d0, Kundun (0x192): en la acción 6 suelta la mano izquierda; si no, los ojos de los huesos 8 y 9,
-// el 0x62b del hueso 100 y un rand() & 1 para la partícula 0x5f2/13.
+// 0x43c647..0x43c9d0, Kundun (0x192): in action 6 it drops the left hand; otherwise the eyes of bones 8 and 9, the
+// 0x62b of bone 100 and one rand() & 1 for particle 0x5f2/13.
 TEST_F(KalimaSiegeHelperTest, KundunDropsItsLeftHandOrLightsItsStaff)
 {
     ActorState& kundun = Actor(0x192, 6);
@@ -398,8 +396,8 @@ TEST_F(KalimaSiegeHelperTest, KundunDropsItsLeftHandOrLightsItsStaff)
     EXPECT_EQ(m_actor->word8a, 0);
     EXPECT_EQ(m_random.State(), After(1));
 
-    // El humo 0x5f2/13 con lugar: 41 es impar, 18467 también; la tercera vez (6334) lo suelta en el bastón con la luz 1
-    // y escala 1 (tres rand() más).
+    // The 0x5f2/13 smoke with room: 41 is odd, 18467 too; the third time (6334) it drops it on the staff with light 1
+    // and scale 1 (three more rand()).
     SetUp();
     Actor(0x192, 0);
     ASSERT_TRUE(Draw(0).HasValue());
@@ -410,9 +408,9 @@ TEST_F(KalimaSiegeHelperTest, KundunDropsItsLeftHandOrLightsItsStaff)
     EXPECT_EQ(m_random.State(), ExpectTheEmber(Bone(100), glm::vec3(1.0f), 1.0f, After(3)));
 }
 
-// 0x43c7a8..0x43c8e3 (Q-C879): el pulso de la acción 5 avanza con cada dibujo. +0x8a sube pasado el frame 4 y baja
-// hasta 10 pasado el 10; +0x89 sube 3 antes de la mitad de las ventanas (4, 6) y (8, 10), baja 3 después si pasa de 3
-// y fuera de ellas vuelve a 0. El 0x62d crece con los dos.
+// 0x43c7a8..0x43c8e3 (Q-C879): the action 5 pulse advances with each draw. +0x8a rises past frame 4 and falls to 10
+// past 10; +0x89 rises by 3 before the middle of windows (4, 6) and (8, 10), falls by 3 after it if above 3, and
+// outside them returns to 0. The 0x62d grows with both.
 TEST_F(KalimaSiegeHelperTest, KundunsPulseFollowsTheDrawsOfItsFifthAction)
 {
     ActorState& kundun = Actor(0x192, 5);
@@ -445,13 +443,13 @@ TEST_F(KalimaSiegeHelperTest, KundunsPulseFollowsTheDrawsOfItsFifthAction)
         EXPECT_EQ(sprites.back().texture, 0x62d);
         EXPECT_EQ(sprites.back().scale, F32(halo * D(scale)));
     }
-    // El rand() & 1 de la partícula y el & 7 del temblor, en cada dibujo.
+    // The particle's rand() & 1 and the shake's & 7, on each draw.
     EXPECT_EQ(m_random.State(), After(2 * beats.size()));
 }
 
-// La acción 5 de Kundun: antes del frame 2, +0x60 en 100 y el sonido 0x1db (CL10) una sola vez; el pulso de +0x8a y
-// +0x89 agranda el 0x62d; pasado el 4, +0x60 en 0x65 y, en Kalima, 0x437860 en su celda lógica; pasado el 3, el temblor
-// (rand() & 7 − 8) · 0,2; en Kalima entre el 3 y el 14, dos efectos 9 que caen.
+// Kundun's action 5: before frame 2, +0x60 at 100 and sound 0x1db (CL10) once; the +0x8a and +0x89 pulse enlarges the
+// 0x62d; past 4, +0x60 at 0x65 and, in Kalima, 0x437860 on its logical cell; past 3, the shake (rand() & 7 − 8) · 0.2;
+// in Kalima between 3 and 14, two falling effects 9.
 TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
 {
     ActorState& kundun = Actor(0x192, 5, 1.0f);
@@ -482,7 +480,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
         roaring.cellX = 40;
         roaring.cellY = 50;
         FillParticles();
-        // Lo que sacan, en su orden: el & 1, las celdas y 0x437860, el & 7 y los dos efectos.
+        // What they draw, in order: the & 1, the cells and 0x437860, the & 7 and the two effects.
         CrtRandom expected{Seed};
         static_cast<void>(expected.Next());
         auto kalimaCopy = kalima ? m_kalima->CloneForFrame() : nullptr;
@@ -524,7 +522,7 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
         EXPECT_EQ(made, stones);
     }
 
-    // Sin el temblor de la cámara corta, después del rand().
+    // Without the camera shake it cuts, after the rand().
     SetUp();
     Actor(0x192, 5, 3.5f).dword60 = 0x65;
     FillParticles();
@@ -533,10 +531,10 @@ TEST_F(KalimaSiegeHelperTest, KundunRoarsShakesAndDropsStonesInKalima)
     ExpectCut(Client::Monsters::Drawing::DrawKalimaSiegeHelpers(pass), "0x43cec4", "0x7d325c8");
 }
 
-// Las acciones 3 y 4 de Kundun: el efecto 0x128 (0x518cf0, Scenes/KundunEffects), sin rand(); con la tabla llena,
-// nada. En la 4, pasado el 6, veinticuatro joints 0x6ee/0xe y, en Kalima, 0x437860; pasado el 9, otra vez 0x437860;
-// pasado el 6, el temblor (rand() & 15 − 16) · 0,1. El hueso 49 va en (5, 7, 49), fuera del eje del objeto en
-// (1000, 2000, 100): el /0 toma la x y la y del objeto, (1000, 2000, 149), y el /1 las del hueso, (1005, 2007, 400).
+// Kundun's actions 3 and 4: effect 0x128 (0x518cf0, Effects/KundunEffects), no rand(); with the table full, nothing. In
+// 4, past 6, twenty-four joints 0x6ee/0xe and, in Kalima, 0x437860; past 9, 0x437860 again; past 6, the shake
+// (rand() & 15 − 16) · 0.1. Bone 49 sits at (5, 7, 49), off the object's axis at (1000, 2000, 100): the /0 takes the
+// object's x and y, (1000, 2000, 149), and the /1 the bone's, (1005, 2007, 400).
 TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
 {
     constexpr std::size_t HandBone = 49;
@@ -563,7 +561,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
             continue;
         }
         drawn = m_random.State();
-        // 0x43cff8..0x43d051: la x y la y del objeto con la z del hueso 49; sus ángulos y su luz, el /0 y la clave −1.
+        // 0x43cff8..0x43d051: the object's x and y with bone 49's z; its angles and its light, the /0 and key −1.
         const auto& call = m_effects->Effects()[0];
         ASSERT_TRUE(call.alive);
         EXPECT_EQ(call.type, 0x128);
@@ -577,7 +575,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
         EXPECT_FALSE(m_effects->Effects()[1].alive);
     }
 
-    // 0x43d09b..0x43d0fd: el /1 en el hueso 49 a 400 de altura.
+    // 0x43d09b..0x43d0fd: the /1 at bone 49, at height 400.
     SetUp();
     m_actor->bodyPose[HandBone][3] = hand;
     Actor(0x192, 4, 5.5f).dword60 = 100;
@@ -593,8 +591,8 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
         EXPECT_EQ(call.transform.position, (glm::vec3{1005.0f, 2007.0f, 400.0f}));
     }
 
-    // 0x43d19f: los veinticuatro joints 0x6ee/0xe (0x53349a: quietos, vida 10, un punto y la x de los ángulos en 20)
-    // desde el hueso 49 a 400 de altura; fuera de Kalima, el temblor y nada más.
+    // 0x43d19f: the twenty-four joints 0x6ee/0xe (0x53349a: still, life 10, one point and the angles' x at 20) from
+    // bone 49 at height 400; outside Kalima, the shake and nothing else.
     SetUp();
     ActorState& burst = Actor(0x192, 4, 6.5f);
     burst.dword60 = 0x65;
@@ -658,7 +656,7 @@ TEST_F(KalimaSiegeHelperTest, KundunAttacksCallTheirEffectsAndCutInTheirJoints)
     }
 }
 
-// 0x43dc8a..0x43e07f, el 0x193: doce sprites, sin rand(); en la acción 6 nada.
+// 0x43dc8a..0x43e07f, the 0x193: twelve sprites, no rand(); in action 6, nothing.
 TEST_F(KalimaSiegeHelperTest, TheThirdKalimaHelperDrawsTwelveSprites)
 {
     Actor(0x193, 0);
@@ -687,8 +685,8 @@ TEST_F(KalimaSiegeHelperTest, TheThirdKalimaHelperDrawsTwelveSprites)
     EXPECT_TRUE(Sprites().empty());
 }
 
-// 0x43e080..0x43e3f2, el 0x194: ocho sprites con dos rand() % 360 y, en la acción 3, los doce joints 0x614/7 entre
-// los huesos 10..16 y 31..37, sin rand() (0x5315b7).
+// 0x43e080..0x43e3f2, the 0x194: eight sprites with two rand() % 360 and, in action 3, the twelve joints 0x614/7
+// between bones 10..16 and 31..37, no rand() (0x5315b7).
 TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBones)
 {
     Actor(0x194, 0);
@@ -725,8 +723,8 @@ TEST_F(KalimaSiegeHelperTest, TheFourthKalimaHelperTurnsItsGlowsAndChainsItsBone
     EXPECT_EQ(m_random.State(), After(2));
 }
 
-// 0x43e3f3..0x43e605, el 0x195: en la acción 6 suelta las dos manos; el 0x91 (+0x376) es rojo y saca rand() & 1 para
-// el humo 0x5f2/13 (0x43e4c0); los demás, blancos y sin rand().
+// 0x43e3f3..0x43e605, the 0x195: in action 6 it drops both hands; the 0x91 (+0x376) is red and draws rand() & 1 for
+// smoke 0x5f2/13 (0x43e4c0); the rest, white and without rand().
 TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
 {
     ActorState& helper = Actor(0x195, 6);
@@ -757,15 +755,15 @@ TEST_F(KalimaSiegeHelperTest, TheFifthKalimaHelperIsRedForItsMonster)
     EXPECT_EQ(sprites[0].light, glm::vec3(1.0f, 0.0f, 0.0f));
     ASSERT_TRUE(Draw(24).HasValue()); // 18467
     EXPECT_FALSE(m_particles->Any());
-    const auto third = Draw(24); // 6334, par: el humo rojo en el punto (0, 0, 30) del hueso 0, de 1
+    const auto third = Draw(24); // 6334, even: the red smoke at point (0, 0, 30) of bone 0, of 1
     ASSERT_TRUE(third.HasValue()) << third.Error();
     EXPECT_EQ(m_random.State(),
               ExpectTheEmber(Bone(0, {0.0f, 0.0f, 30.0f}), glm::vec3(1.0f, 0.0f, 0.0f), 1.0f, After(3)));
 }
 
-// 0x43e606..0x43e923, el 0x196: la partícula 0x5ac/0 del hueso 60 (la neblina de 0x5435cf, con sus rand()) y, en las
-// acciones 0 y 1, rand() % 50 por cada hueso de 63 a 67; en 0, dos rand() % 360 y el joint 0x610/5 hacia el 60
-// (0x43e904: con el skill 0, ancho 20; vida 50, velocidad 3, 8 puntos, la mezcla 4 y la segunda cara; sin rand()).
+// 0x43e606..0x43e923, the 0x196: particle 0x5ac/0 from bone 60 (the mist of 0x5435cf, with its rand()) and, in actions
+// 0 and 1, rand() % 50 for each bone from 63 to 67; at 0, two rand() % 360 and joint 0x610/5 toward 60 (0x43e904: skill
+// 0, width 20; life 50, speed 3, 8 points, blend 4 and the second face; no rand()).
 TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
 {
     ActorState& heart = Actor(0x196, 2);
@@ -800,7 +798,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     EXPECT_EQ(sprites[9].position, Bone(67));
     EXPECT_EQ(m_random.State(), Seed);
 
-    // 41, 18467 y 6334 no dan 0 % 50; 26500 sí (el hueso 66), y saca dos más para los ángulos.
+    // 41, 18467 and 6334 do not give 0 % 50; 26500 does (bone 66), and draws two more for the angles.
     SetUp();
     Actor(0x196, 0);
     FillParticles();
@@ -826,7 +824,7 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     EXPECT_EQ(spark.category, 2);
     EXPECT_EQ(spark.light, glm::vec3(1.0f));
     EXPECT_FALSE(m_joints[1].alive);
-    // El hueso 67 saca su rand() % 50 (que no da 0).
+    // Bone 67 draws its rand() % 50 (which is not 0).
     EXPECT_EQ(m_random.State(), After(7));
     SetUp();
     Actor(0x196, 1);
@@ -836,9 +834,9 @@ TEST_F(KalimaSiegeHelperTest, TheSixthKalimaHelperBeatsAndSparks)
     EXPECT_EQ(m_random.State(), After(7));
 }
 
-// 0x43e924..0x43ebef, el 0x197: rojo con el subtipo 9 (+0x4) y azul con otro; seis vueltas de dos partículas por los
-// huesos 41 y 51 (0x5da/1 o 0x5dc/12). La 0x5da/1 (0x540d1b) vive 3 y saca dos rand(): el empuje ((rand() & 7) + 32) ·
-// −0,3f en y y el giro. En la acción 6 suelta las dos manos.
+// 0x43e924..0x43ebef, the 0x197: red with subtype 9 (+0x4) and blue with another; six turns of two particles over bones
+// 41 and 51 (0x5da/1 or 0x5dc/12). The 0x5da/1 (0x540d1b) lives 3 and draws two rand(): the push
+// ((rand() & 7) + 32) · −0.3f in y and the turn. In action 6 it drops both hands.
 TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
 {
     Actor(0x197, 0).subtype = 9;
@@ -906,8 +904,8 @@ TEST_F(KalimaSiegeHelperTest, TheSeventhKalimaHelperIsRedOrBlue)
     EXPECT_EQ(dead.hands[1].model, 0xffff);
 }
 
-// 0x42a1b0 con el modo 0x80 (0x620b10): los dos calcos 0x61e con la luz en v y después en v · (1 − v); con otro modo
-// (0x620a90), la luz por v. La luz es la que recibe: la del objeto (+0xf4) queda pisada (Q-C876).
+// 0x42a1b0 with mode 0x80 (0x620b10): the two 0x61e decals with light v and then v · (1 − v); with another mode
+// (0x620a90), light times v. The light is the one it receives: the object's (+0xf4) is overwritten (Q-C876).
 TEST_F(KalimaSiegeHelperTest, TheCastleGlowMultipliesTheLightItReceives)
 {
     const float lum = F32(RoundedSin(D(Clock) * D(0.0015f)) * D(0.3f) + D(0.7f));
@@ -925,7 +923,7 @@ TEST_F(KalimaSiegeHelperTest, TheCastleGlowMultipliesTheLightItReceives)
     const std::size_t half = m_batch.Vertices().size() / 2;
     EXPECT_FLOAT_EQ(m_batch.Vertices()[half - 1].color.green, lum);
     EXPECT_FLOAT_EQ(m_batch.Vertices()[half].color.green, rest);
-    // Sobre el piso (0) más 5.
+    // On the floor (0) plus 5.
     EXPECT_EQ(m_batch.Vertices().front().position.z, 5.0f);
 
     SetUp();
@@ -945,8 +943,8 @@ TEST_F(KalimaSiegeHelperTest, TheCastleGlowMultipliesTheLightItReceives)
     ExpectCut(Draw(30), "0x42a248", "0x5fb2f0");
 }
 
-// 0x42e095..0x42e184, el 0x1a8: con +0x93 en 5 o más, +0x68 late y el calco aditivo; si no, el 0x5ac 50 más arriba
-// y el 0x5fd con rand() % 360.
+// 0x42e095..0x42e184, the 0x1a8: with +0x93 at 5 or more, +0x68 pulses and the additive decal; otherwise the 0x5ac 50
+// higher and the 0x5fd with rand() % 360.
 TEST_F(KalimaSiegeHelperTest, TheCastleCrownGlowsOrSparkles)
 {
     ActorState& crown = Actor(0x1a8);
@@ -971,9 +969,9 @@ TEST_F(KalimaSiegeHelperTest, TheCastleCrownGlowsOrSparkles)
     EXPECT_TRUE(m_batch.Vertices().empty());
 }
 
-// 0x42e185..0x42e2dc, el 0x1a1: con el asedio, +0x42c en 1, tres sprites (uno con rand() % 360) y el calco
-// sustractivo con su luz; sin él, +0x42c en 0 y +0x58 en −2. 0x42e2dd, el 0x1fd: la z desde +0xd8 (100 más abajo sin
-// el asedio) y +0x68 late.
+// 0x42e185..0x42e2dc, the 0x1a1: with the siege, +0x42c at 1, three sprites (one with rand() % 360) and the subtractive
+// decal with its light; without it, +0x42c at 0 and +0x58 at −2. 0x42e2dd, the 0x1fd: z from +0xd8 (100 lower without
+// the siege) and +0x68 pulses.
 TEST_F(KalimaSiegeHelperTest, TheCastleSwitchesFollowTheSiege)
 {
     m_siege = true;

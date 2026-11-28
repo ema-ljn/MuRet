@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 
-// El 0x60f/4 y /0xc (HelixJoints.cpp) que el 0x812 suelta en cada paso (0x52c9da y 0x52c9a7, con él de dueño): el alta
-// de 0x533faf..0x5340d7 y el paso de 0x53b08a..0x53b14c, que se repite en el mismo cuadro hasta que la vida que queda
-// es múltiplo de 12 (0x53c3c6). El 0x62b/4 y /0xc pasan por los mismos.
+// The 0x60f/4 and /0xc (HelixJoints.cpp) that the 0x812 releases each step (0x52c9da and 0x52c9a7, owned by it): the
+// creation of 0x533faf..0x5340d7 and the step of 0x53b08a..0x53b14c, which repeats in the same frame until the
+// remaining life is a multiple of 12 (0x53c3c6). The 0x62b/4 and /0xc go through the same.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -86,10 +86,10 @@ glm::vec3 Bits(std::uint32_t x, std::uint32_t y, std::uint32_t z)
 
 } // namespace
 
-// 0x533677..0x53368e y 0x533faf..0x5340d7: el ancho de la escala, el destino en el segundo punto y vx en rand() % 360
-// (un rand()); vy y vz, el seno y el coseno de −z en radianes por −4 (la /0xc) o −2 (la /4). La /0xc con vida 70, la
-// luz (0,1f; 0,1f; 1) y 50 puntos; la /4 con vida 110, la luz del dueño (+0xf4) y 200 puntos que el tope de 0x534cb6
-// deja en 50.
+// 0x533677..0x53368e and 0x533faf..0x5340d7: the width from the scale, the target at the second point and vx at
+// rand() % 360 (one rand()); vy and vz, the sine and cosine of −z in radians times −4 (the /0xc) or −2 (the /4). The
+// /0xc with life 70, light (0.1f; 0.1f; 1) and 50 points; the /4 with life 110, the owner's light (+0xf4) and 200
+// points that the 0x534cb6 cap leaves at 50.
 TEST(HelixJointsTest, EachHelixIsBornAroundItsTarget)
 {
     for (const std::int32_t type : {0x60f, 0x62b})
@@ -123,8 +123,8 @@ TEST(HelixJointsTest, EachHelixIsBornAroundItsTarget)
     }
 }
 
-// 0x534070: la /4 lee la luz de su dueño (+0xf4); sin dueño, el original desreferencia el puntero nulo y revienta, y
-// MuRet corta antes del rand(). Con la tabla llena, el alta no hace nada ni saca rand().
+// 0x534070: the /4 reads its owner's light (+0xf4); without an owner, the original dereferences the null pointer and
+// crashes, and MuRet stops before the rand(). With the table full, creation does nothing and draws no rand().
 TEST(HelixJointsTest, TheNarrowHelixNeedsItsOwnerAndAFreePlace)
 {
     Helix lonely;
@@ -144,8 +144,8 @@ TEST(HelixJointsTest, TheNarrowHelixNeedsItsOwnerAndAFreePlace)
     EXPECT_EQ(full.random.State(), CrtRandom{Seed}.State());
 }
 
-// 0x53c393 resta la vida y agrega el tramo, y 0x53c3c6 repite el paso mientras la vida que queda no sea múltiplo de 12.
-// Con vida 110 son dos vueltas (110 y 109); con 108, doce (108..97). Sin rand().
+// 0x53c393 subtracts the life and appends the segment, and 0x53c3c6 repeats the step while the remaining life is not a
+// multiple of 12. With life 110 it is two turns (110 and 109); with 108, twelve (108..97). No rand().
 TEST(HelixJointsTest, TheHelixTurnsUntilItsLifeIsAMultipleOfTwelve)
 {
     for (const std::int32_t subtype : {4, 0xc})
@@ -173,10 +173,10 @@ TEST(HelixJointsTest, TheHelixTurnsUntilItsLifeIsAMultipleOfTwelve)
     }
 }
 
-// Los bits de una corrida aparte de 0x53b08a..0x53b14c, 0x53b318..0x53b363 y 0x53c3c6 con la x87 de 53 bits (FSIN y
-// FCOS con el giro sin redondear o guardado según el ASM), desde el segundo punto (1100,5; 2100,25; 320,125) y la
-// luz del dueño (0,25; 0,5; 0,75). La /4 con el radio (vida + 40, no menos de 10) · 0,65f: con 0x7ffffff0 la suma da
-// la vuelta y el radio queda en 10. La 0x62b/4 con 8 de vida se apaga en cada una de sus ocho vueltas.
+// The bits of a separate run of 0x53b08a..0x53b14c, 0x53b318..0x53b363 and 0x53c3c6 with the 53-bit x87 (FSIN and FCOS
+// with the turn unrounded or stored as in the ASM), from the second point (1100.5; 2100.25; 320.125) and the owner's
+// light (0.25; 0.5; 0.75). The /4 with the radius (life + 40, no less than 10) · 0.65f: with 0x7ffffff0 the sum wraps
+// around and the radius stays at 10. The 0x62b/4 with 8 life fades in each of its eight turns.
 TEST(HelixJointsTest, TheHelixLandsOnTheBitsOfTheOriginal)
 {
     struct Case
@@ -267,7 +267,7 @@ TEST(HelixJointsTest, TheHelixLandsOnTheBitsOfTheOriginal)
     }
 }
 
-// 0x53c3bd: con 9 de vida, el cuadro da nueve vueltas hasta 0; el siguiente da una y el joint muere.
+// 0x53c3bd: with 9 life, the frame takes nine turns down to 0; the next takes one and the joint dies.
 TEST(HelixJointsTest, TheHelixDiesAfterItsLastTurn)
 {
     Helix helix;

@@ -33,7 +33,7 @@ std::int32_t ReadCell(std::uint8_t value, std::uint8_t& depth, const GameGateCon
     return value;
 }
 
-// 0x599f41..0x599ffd: no convertir en una lectura de X/Y por paso; cada comparación cierra la suya.
+// 0x599f41..0x599ffd: do not merge into one X/Y read per step; each comparison closes its own.
 bool ContainsWithAccesses(const Tables::GateRecord& gate, Kernel::ActorState& hero, const GameGateContext& context)
 {
     return ReadCell(hero.cellX, hero.cellXAccesses, context) >= gate.x1 &&
@@ -78,7 +78,7 @@ Movement::GateDecision DecideGate(std::size_t index, const Tables::GateRecord& g
     return Movement::CheckGate(index, gate, state);
 }
 
-// 0x59a094..0x59a16c: el gate28 abre/cierra sólo para probar el nivel, aun si después vuelve a abrir.
+// 0x59a094..0x59a16c: gate 28 opens/closes only to test the level, even if it opens again later.
 bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, const GameGateContext& context)
 {
     if (index != SilentLevelGate)
@@ -88,7 +88,7 @@ bool PassesSilentLevelCheck(std::size_t index, const Tables::GateRecord& gate, c
     const Models::LogicalAccess access(context.world.Runtime().ownRecordDepth, context.random,
                                        Models::OwnRecordCloseRandoms);
     const Movement::GateDecision decision = DecideGate(index, gate, context);
-    // En el gate28 sólo el nivel insuficiente no produce ninguno de estos efectos.
+    // At gate 28 only an insufficient level produces none of these effects.
     return decision.request.has_value() || decision.clearWarpPending || decision.waitSteps != 0 ||
            !decision.warnings.empty();
 }
@@ -99,14 +99,14 @@ Core::Expected<void, std::string> SendGate(std::uint8_t index, const Tables::Gat
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     if (index == 0)
     {
-        runtime.movement.gateRequestBlocked = 1; // 0x59a477, antes de SendPacket.
+        runtime.movement.gateRequestBlocked = 1; // 0x59a477, before SendPacket.
     }
     if (!context.requestGate)
     {
         return Core::Unexpected(std::string("0x599ef0: falta el servicio de envío del pedido de gate"));
     }
     context.requestGate(index);
-    WriteWait(Kernel::WorldLoadingWait, context); // 0x59ac6c, después de enviar y antes de las macros.
+    WriteWait(Kernel::WorldLoadingWait, context); // 0x59ac6c, after sending and before the macros.
     const auto destination = Tables::ReadGateRecord(context.gates, gate.target);
     if (!destination)
     {
@@ -130,7 +130,7 @@ Core::Expected<Movement::GateDecision, std::string> ApplyEligibleGate(std::size_
                                                                       const GameGateContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
-    // 0x59a172..0x59adc7: sigue abierto durante el envío, contador y resets, y cierra al final.
+    // 0x59a172..0x59adc7: stays open during the send, counter and resets, and closes at the end.
     const Models::LogicalAccess access(runtime.ownRecordDepth, context.random, Models::OwnRecordCloseRandoms);
     Movement::GateDecision decision = DecideGate(index, gate, context);
     if (decision.waitSteps != 0)
@@ -142,7 +142,7 @@ Core::Expected<Movement::GateDecision, std::string> ApplyEligibleGate(std::size_
     {
         return decision;
     }
-    // 0x59a41f..0x59a434: el nivel alcanzó, vuelve a leer el contador antes de los bloqueos del pedido.
+    // 0x59a41f..0x59a434: the level was enough; it reads the counter again before the request's blocks.
     static_cast<void>(ReadWait(context));
     if (decision.clearWarpPending)
     {
@@ -200,7 +200,7 @@ Core::Expected<Movement::GateDecision, std::string> CheckGameGates(const GameGat
             return Core::Unexpected(decision.Error());
         }
         AppendDecision(result, decision.Value());
-        // 0x59adcc: aun con el contador recién escrito, continúa leyendo los siguientes rectángulos.
+        // 0x59adcc: even with the counter just written, it keeps reading the next rectangles.
     }
     return result;
 }

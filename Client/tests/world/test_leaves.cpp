@@ -23,9 +23,9 @@
 #include <string>
 #include <vector>
 
-// Client::Weather::Leaves con las brasas del login y Client::Terrain::TerrainHeightAt contra el código real del
-// main.exe: 0x530490 (con 0x42b1e0 y 0x5303a0), 0x5306a0 y 0x5f93c0, en 3 casos de 150 pasos sobre un mapa
-// de alturas de una fórmula (tests/vectors/world55/leaves.txt, make_leaf_vectors.py), bit a bit.
+// Client::Weather::Leaves with the login embers and Client::Terrain::TerrainHeightAt against the real main.exe code:
+// 0x530490 (with 0x42b1e0 and 0x5303a0), 0x5306a0 and 0x5f93c0, in 3 cases of 150 steps on a height map from a
+// formula (tests/vectors/world55/leaves.txt, make_leaf_vectors.py), bit for bit.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -44,7 +44,7 @@ float FromBits(const std::string& word)
     return std::bit_cast<float>(Hex(word));
 }
 
-// Los 0x78 bytes de un lugar de 0x75e34b8 como 30 palabras.
+// The 0x78 bytes of a slot of 0x75e34b8 as 30 words.
 std::array<std::uint32_t, 30> WordsOf(const Leaf& leaf)
 {
     std::array<std::uint32_t, 30> words{};
@@ -97,8 +97,8 @@ std::uint32_t TableCrc(const Leaves& leaves)
     return Crc32(bytes);
 }
 
-// El mapa de alturas y los atributos de make_leaf_vectors.py: la altura de la fila i y la columna j es
-// 100 + ((i·a + j·b + (i·j) % 97) % 512) · 0,5, y el atributo lleva 0x40 donde (i·c + j·d) % 53 es 0.
+// The height map and the attributes of make_leaf_vectors.py: the height of row i and column j is
+// 100 + ((i·a + j·b + (i·j) % 97) % 512) · 0.5, and the attribute carries 0x40 where (i·c + j·d) % 53 is 0.
 struct Terrain
 {
     std::unique_ptr<Client::Data::Terrain::TerrainHeights> heights =
@@ -267,9 +267,9 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
     EXPECT_GT(quads, 300u);
 }
 
-// 0x5f93c0 con x o y negativos: 0; fuera de la grilla, 1.200. La fila sale del producto de la y por 0,01
-// en 53 bits: 25.600 · 0,01f es 255,99999 (en float, 256), la fila 255 y la fracción 1, que va hasta la
-// fila 0 (la vuelta): la altura de (100, 0), 100,5. Con 25.601, la fila 256, fuera.
+// 0x5f93c0 with negative x or y: 0; outside the grid, 1200. The row comes from the product of y times 0.01 in 53 bits:
+// 25600 · 0.01f is 255.99999 (in float, 256), row 255 and fraction 1, which reaches row 0 (the wrap): the height of
+// (100, 0), 100.5. With 25601, row 256, outside.
 TEST(TerrainHeightTest, OutsideTheGridIsFixed)
 {
     Terrain terrain;
@@ -281,8 +281,8 @@ TEST(TerrainHeightTest, OutsideTheGridIsFixed)
               static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
-// 0x5f9424: la y se guarda con fst y ftol trunca lo que queda en la pila. 20.000 · 0,01f es 199,9999955:
-// la fila 199 (en float sería la 200), y el 0x40 de su atributo da 1.200.
+// 0x5f9424: the y is stored with fst and ftol truncates what stays on the x87 stack. 20000 · 0.01f is 199.9999955:
+// row 199 (in float it would be 200), and its attribute's 0x40 gives 1200.
 TEST(TerrainHeightTest, TheRowComesFromTheUnroundedProduct)
 {
     Terrain terrain;
@@ -296,9 +296,9 @@ TEST(TerrainHeightTest, TheRowComesFromTheUnroundedProduct)
               static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
-// 0x5f9436: la fila por 256 más la columna, en 32 bits y con signo. Con la fila 2^24 (y = 1.677.721.728)
-// da la vuelta a la columna (la 50, con x 5.000), dentro de la grilla y en la fila 0; con la fila 2^24 − 1 (y
-// = 1.677.721.600) queda negativo y el original lee antes de la tabla de atributos (0x5f9451): MuRet da 1.200.
+// 0x5f9436: the row times 256 plus the column, in 32 bits and signed. With row 2^24 (y = 1677721728) the column wraps
+// (50, with x 5000), inside the grid and on row 0; with row 2^24 − 1 (y = 1677721600) it is negative and the original
+// reads before the attribute table (0x5f9451): MuRet gives 1200.
 TEST(TerrainHeightTest, TheCellIndexWrapsInThirtyTwoBits)
 {
     Terrain terrain;
@@ -313,8 +313,8 @@ TEST(TerrainHeightTest, TheCellIndexWrapsInThirtyTwoBits)
               static_cast<double>(Client::Terrain::FixedTerrainHeight));
 }
 
-// 0x5303e8: en el suelo, el rojo baja 0,05; con `test ah, 0x41` muere también cuando queda justo en 0. La
-// brasa del lugar 0 está en el suelo (z 0, el terreno arriba de 100) con el rojo en 0,05.
+// 0x5303e8: on the ground, the red drops 0.05; with `test ah, 0x41` it also dies when it lands exactly at 0. The ember
+// of slot 0 is on the ground (z 0, the terrain above 100) with the red at 0.05.
 TEST(LeavesTest, AnEmberOnTheGroundDiesWhenItsRedReachesZero)
 {
     Terrain terrain;

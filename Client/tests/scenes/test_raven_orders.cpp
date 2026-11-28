@@ -26,7 +26,7 @@
 #include <memory>
 #include <utility>
 
-// Las órdenes del cuervo (A7 y A8, CL9 hito 4, 06 § Las órdenes del cuervo), con claves inventadas.
+// The raven's orders (A7 and A8, CL9 milestone 4, 06 § Las órdenes del cuervo), with invented keys.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -85,7 +85,7 @@ struct Ravens
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
 };
 
-// 0x416510: la orden 3 sigue al blanco de la clave.
+// 0x416510: order 3 follows the key's target.
 TEST(RavenOrdersTest, TheFollowOrderTakesTheTarget)
 {
     auto tested = std::make_unique<Ravens>();
@@ -93,12 +93,12 @@ TEST(RavenOrdersTest, TheFollowOrderTakesTheTarget)
     EXPECT_EQ(tested->Raven().order, 3);
     EXPECT_EQ(tested->Raven().byte1ad, 1);
     EXPECT_EQ(tested->Raven().target, MonsterIndex);
-    // Sin el blanco, el 400.
+    // Without the target, 400.
     Client::Pets::ApplyPetOrder(PetOrder{3, 0x0777}, tested->world);
     EXPECT_EQ(tested->Raven().target, 400u);
 }
 
-// Las demás órdenes: +0x1ad en 0 salvo en los estados 5 y 6, y el blanco queda.
+// The other orders: +0x1ad at 0 except in states 5 and 6, and the target stays.
 TEST(RavenOrdersTest, TheOtherOrdersDropTheChargeOutsideTheAttackStates)
 {
     for (const std::uint8_t order : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}})
@@ -128,7 +128,7 @@ TEST(RavenOrdersTest, WithoutTheRavenTheOrderDoesNothing)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// 0x416570 con el tipo 0: el estado 5, la carga, la velocidad de rand() % 10 + 20 y el sonido 0x1d2.
+// 0x416570 with type 0: state 5, the charge, the speed of rand() % 10 + 20 and sound 0x1d2.
 TEST(RavenOrdersTest, TheAttackOfKindZeroCharges)
 {
     auto tested = std::make_unique<Ravens>();
@@ -150,7 +150,7 @@ TEST(RavenOrdersTest, TheAttackOfKindZeroCharges)
     EXPECT_EQ(tested->cloth.random.State(), expected.State());
 }
 
-// El tipo 1: el estado 6 y el sonido 0x1d0, sin rand().
+// Type 1: state 6 and sound 0x1d0, without rand().
 TEST(RavenOrdersTest, TheAttackOfKindOneShouts)
 {
     auto tested = std::make_unique<Ravens>();
@@ -161,7 +161,7 @@ TEST(RavenOrdersTest, TheAttackOfKindOneShouts)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// El tipo + 5 envuelve en el byte: 0xfd es el estado 2, sin sonido.
+// Type + 5 wraps in the byte: 0xfd is state 2, without sound.
 TEST(RavenOrdersTest, TheKindWrapsIntoTheState)
 {
     auto tested = std::make_unique<Ravens>();
@@ -171,7 +171,7 @@ TEST(RavenOrdersTest, TheKindWrapsIntoTheState)
     EXPECT_EQ(tested->cloth.random.State(), 1u);
 }
 
-// Con 0x1000 en el dueño, solo el blanco; con 0x4000, el blanco, +0x3b0 y el estado, sin la carga.
+// With 0x1000 on the owner, only the target; with 0x4000, the target, +0x3b0 and the state, without the charge.
 TEST(RavenOrdersTest, TheOwnerFlagsCutTheAttackShort)
 {
     auto stopped = std::make_unique<Ravens>();
@@ -193,7 +193,6 @@ TEST(RavenOrdersTest, TheOwnerFlagsCutTheAttackShort)
     EXPECT_EQ(hidden->cloth.random.State(), 1u);
 }
 
-// El cuervo de otro Dark Lord también obedece el A8.
 TEST(RavenOrdersTest, TheAttackReachesTheRavenOfAnotherLord)
 {
     auto tested = std::make_unique<Ravens>();

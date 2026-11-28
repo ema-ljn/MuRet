@@ -28,12 +28,12 @@ namespace
 using Math::D;
 using Math::F32;
 
-// 0x6b89c8 (0,001f), 0x6b8a94 (0,0001f), 0x6b8a64 (0,0002f) y 0x6b8a28 (0,00005f).
+// 0x6b89c8 (0.001f), 0x6b8a94 (0.0001f), 0x6b8a64 (0.0002f) and 0x6b8a28 (0.00005f).
 constexpr double Thousandth = Math::ThousandthAsDouble;
 constexpr double TenThousandth = static_cast<double>(std::bit_cast<float>(0x38d1b717u));
 constexpr double TwoTenThousandths = static_cast<double>(std::bit_cast<float>(0x3951b717u));
 constexpr double FiveHundredThousandths = static_cast<double>(std::bit_cast<float>(0x3851b717u));
-// 0x6b89bc (0,002f), 0x6b8bc4 (0,35f), 0x6b8bc0 (0,65f), 0x6b86b4 (100), 0x6b8a20 (0,6f) y 0x6b8854 (0,2f).
+// 0x6b89bc (0.002f), 0x6b8bc4 (0.35f), 0x6b8bc0 (0.65f), 0x6b86b4 (100), 0x6b8a20 (0.6f) and 0x6b8854 (0.2f).
 constexpr double PulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
 constexpr float PulseAmplitude = std::bit_cast<float>(0x3eb33333u);
 constexpr double PulseBase = static_cast<double>(std::bit_cast<float>(0x3f266666u));
@@ -43,8 +43,8 @@ constexpr double WarmBlue = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu
 constexpr std::int32_t WideLight = 3;
 constexpr std::int32_t NarrowLight = 2;
 
-// fld del reloj, ftol, neg en 32 bits (envuelve en −2^31), cdq, idiv por `period`, fild del resto y fmul
-// por `factor`, guardado en float.
+// fld of the clock, ftol, neg in 32 bits (wraps at −2^31), cdq, idiv by `period`, fild of the remainder and fmul
+// by `factor`, stored as float.
 std::optional<float> Scroll(float worldClock, std::int32_t period, double factor)
 {
     const std::optional<std::int32_t> low = Math::OriginalFtolLow(D(worldClock));
@@ -54,8 +54,8 @@ std::optional<float> Scroll(float worldClock, std::int32_t period, double factor
     return F32(static_cast<double>(negated % period) * factor);
 }
 
-// fsin de (fase) · 0,002f, con su resultado de 64 bits, fmul por 0,35f con un solo R53 y fadd de 0,65f, sin
-// guardar en la x87.
+// fsin of (phase) · 0.002f, with its 64-bit result, fmul by 0.35f with a single R53 and fadd of 0.65f, without
+// storing, on the x87.
 std::optional<double> Pulse(double phase)
 {
     const std::optional<double> wave = Math::Detail::SineProductPC53(phase * PulseRate, PulseAmplitude);
@@ -95,7 +95,7 @@ void SeedTarkanModelState(std::uint8_t map, WorldObjects::ObjectModelStepState& 
     constexpr std::uint8_t TarkanMap = Maps::TarkanMap;
     if (map != TarkanMap)
         return;
-    // 0x61a150..0x61a18f: los bytes 11 · 0xe0 + 0x88 a 79 · 0xe0 + 0x88 de la tabla 0x5769ad8.
+    // 0x61a150..0x61a18f: bytes 11 · 0xe0 + 0x88 to 79 · 0xe0 + 0x88 of table 0x5769ad8.
     constexpr std::array<std::int16_t, 6> Scrolled{0xb, 0xc, 0xd, 0x49, 0x4b, 0x4f};
     for (const std::int16_t type : Scrolled)
         state.unlitMeshes[type] = 0;
@@ -119,7 +119,7 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
     {
     case 2:
     {
-        // 0x605683: el blendMesh antes del ftol.
+        // 0x605683: the blendMesh before the ftol.
         object.state.blendMesh = 0;
         const std::optional<float> u = Scroll(clock, ShortPeriod, Thousandth);
         if (!u)
@@ -129,7 +129,7 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
     }
     case 4:
     {
-        // 0x6056b5..0x6056d6: la luz del blendMesh es la L guardada; la x87 la conserva para la luz dinámica.
+        // 0x6056b5..0x6056d6: the blendMesh light is the stored L; the x87 keeps it for the dynamic light.
         object.state.blendMesh = 0;
         const std::optional<double> pulse = Pulse(D(clock));
         if (!pulse)
@@ -143,7 +143,7 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
     }
     case 7:
     {
-        // 0x605727..0x60577d: la fase suma el ángulo z por 100 al reloj antes del fmul.
+        // 0x605727..0x60577d: the phase adds the z angle times 100 to the clock before the fmul.
         object.state.blendMesh = 0;
         const std::optional<double> pulse = Pulse((D(object.transform.angles.z) * PhasePerDegree) + D(clock));
         if (!pulse)
@@ -156,7 +156,7 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
         return ScrollV(object, clock, LongPeriod, TwoTenThousandths, "0x605792");
     case 0xc:
     {
-        // 0x6057b7..0x6057fd: dos ftol del mismo reloj, la U y después la V.
+        // 0x6057b7..0x6057fd: two ftol of the same clock, the U and then the V.
         const std::optional<float> u = Scroll(clock, SlowPeriod, FiveHundredThousandths);
         if (!u)
             return ClockOutOfDomain("0x6057bd");
@@ -169,7 +169,8 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
     case 0x41:
     case 0x42:
     {
-        // 0x605831/0x605855..0x605718: blendMesh 1, la V y la luz de radio 2; la del blendMesh no se toca.
+        // 0x605831/0x605855..0x605718: blendMesh 1, the V and the light of radius 2; the blendMesh light is not
+        // touched.
         object.state.blendMesh = 1;
         if (auto scrolled =
                 ScrollV(object, clock, ShortPeriod, Thousandth, object.type == 0x3d ? "0x60583e" : "0x605862");
@@ -195,7 +196,7 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObjects::WorldObject& ob
     case 0x4f:
         return ScrollV(object, clock, LongPeriod, TwoTenThousandths, "0x60594b");
     case 0x52:
-        // 0x605970: el blendMesh en 0 (EDX, todavía en 0 desde 0x604d50) y la luz del objeto en blanco.
+        // 0x605970: the blendMesh at 0 (EDX, still 0 since 0x604d50) and the object's light white.
         object.state.blendMesh = 0;
         object.light = glm::vec3(1.0f);
         return {};

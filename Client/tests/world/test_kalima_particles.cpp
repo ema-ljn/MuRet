@@ -154,7 +154,7 @@ TEST(KalimaParticlesTest, AllNineReachableLifecyclesExpireWithTheNativeRandomBud
                         .HasValue());
     }
     EXPECT_FALSE(particles.Any());
-    // 31 sorteos de creación; 22 de5ac/6,60 de6f1,40 de6f4/1;100 de viento.
+    // 31 creation draws; 22 of 5ac/6, 60 of 6f1, 40 of 6f4/1; 100 of wind.
     EXPECT_EQ(random.State(), 0x0460ebcau);
 }
 
@@ -206,7 +206,7 @@ TEST(KalimaParticlesTest, AbsentMistSceneRetainsTheInitializeAndThreeDrawPrefix)
     EXPECT_EQ(p.life, 30);
     EXPECT_EQ(p.rotation, 61);
     EXPECT_EQ(p.scale, 1);
-    EXPECT_EQ(p.velocity, glm::vec3(0)); // 543fd8 aún no se alcanzó.
+    EXPECT_EQ(p.velocity, glm::vec3(0)); // 0x543fd8 is not reached yet.
     EXPECT_EQ(p.position, position);
     EXPECT_EQ(p.start, position);
     EXPECT_EQ(p.angles, angles);
@@ -236,8 +236,8 @@ TEST(KalimaParticlesTest, FullLegacyMistPoolSkipsAbsentSceneAndAllRandom)
     EXPECT_EQ(random.State(), 7u);
 }
 
-// 0x540151..0x54018f: el 5ac/0 de Icarus usa las mismas instrucciones que el /6 (vida rand() % 10 + 10); el
-// 5ac/1, la estela del efecto 0x5ac, sólo vive 50 sin sacar rand() (0x54007f).
+// 0x540151..0x54018f: Icarus's 5ac/0 uses the same instructions as /6 (life rand() % 10 + 10); 5ac/1, the trail of
+// effect 0x5ac, only lives 50 without taking rand() (0x54007f).
 TEST(KalimaParticlesTest, TheIcarusFlareIsCreatedLikeTheSixthAndItsTrailWithoutDraws)
 {
     Particles six;
@@ -260,9 +260,9 @@ TEST(KalimaParticlesTest, TheIcarusFlareIsCreatedLikeTheSixthAndItsTrailWithoutD
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
 
-// 0x544c19..0x544dd6 con k = 0,5f: el paseo (rand() % 2.001 − 1.000) · 0,0001f más el viento, por k; la x
-// guardada en float en cada paso y la y no; la z sube k · 5. La escala baja 0,05f, la luz la copia y con la
-// escala en 0,1f o menos se apaga.
+// 0x544c19..0x544dd6 with k = 0.5f: the walk (rand() % 2001 − 1000) · 0.0001f plus the wind, times k; the x stored as
+// float each step and the y not; the z rises k · 5. The scale drops 0.05f, the light copies it and with the scale at
+// 0.1f or less it goes off.
 TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
 {
     Client::Particles::Particle p;
@@ -302,7 +302,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
     EXPECT_EQ(p.life, -1);
 }
 
-// 0x5449e1..0x544a11: la estela 5ac/1 multiplica la luz por 0,9f y la escala por 0,95f, sin rand().
+// 0x5449e1..0x544a11: the trail 5ac/1 multiplies the light by 0.9f and the scale by 0.95f, without rand().
 TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
 {
     Client::Particles::Particle p;
@@ -322,7 +322,7 @@ TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
 
-// 0x53ffb9: la estela 5ac/9 del 0xb3 de Aida vive ftol(escala · 40), sin rand().
+// 0x53ffb9: the trail 5ac/9 of Aida's 0xb3 lives ftol(scale · 40), without rand().
 TEST(KalimaParticlesTest, TheAidaWispTrailLivesFortyTimesItsScaleWithoutDraws)
 {
     for (const float scale : {0.9f, 0.975f, 1.0f})
@@ -337,9 +337,9 @@ TEST(KalimaParticlesTest, TheAidaWispTrailLivesFortyTimesItsScaleWithoutDraws)
     }
 }
 
-// 0x544b8e..0x544c04: la escala baja 0,011f; desde 75 de vida la luz sube por 1,05f y debajo baja por
-// 0,952381f. Con la escala que no queda por encima de 0, o con el byte vivo ya apagado, la vida va a 0 sin
-// apagarlo: lo apaga la resta del paso siguiente. Sin rand().
+// 0x544b8e..0x544c04: the scale drops 0.011f; from life 75 the light rises by 1.05f and below it falls by 0.952381f.
+// With the scale not staying above 0, or with the alive byte already off, the life goes to 0 without turning it off:
+// the next step's subtraction does. Without rand().
 TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
 {
     Client::Particles::Particle p;
@@ -367,7 +367,7 @@ TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
     EXPECT_EQ(p.light.x, static_cast<float>(static_cast<double>(before.x) * dim));
     EXPECT_EQ(p.life, 74);
 
-    // 0x544ba2: compara la resta de la x87 sin redondear; 0,011f menos 0,011f es 0 y no queda encima.
+    // 0x544ba2: compares the unrounded x87 difference; 0.011f minus 0.011f is 0 and does not stay above.
     p.scale = std::bit_cast<float>(0x3c343958u);
     ASSERT_TRUE(Client::Particles::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
     EXPECT_EQ(p.scale, 0.0f);
@@ -381,13 +381,13 @@ TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
     EXPECT_EQ(p.life, 0);
 }
 
-// La vida común del pool apaga la estela en el paso que la deja en 0, antes de que se achique del todo.
+// The pool's common life turns the trail off on the step that leaves it at 0, before it shrinks completely.
 TEST(KalimaParticlesTest, TheAidaWispTrailDiesWhenTheCommonLifeRunsOut)
 {
     Particles trail;
     CrtRandom random(7);
     ASSERT_TRUE(trail.CreateChecked(0x5ac, {100, 200, 300}, {}, {0.1f, 0.1f, 0.25f}, 9, 0.9f, 99, random).HasValue());
-    // 0,9f · 40 queda en 35,999999 y ftol trunca.
+    // 0.9f · 40 is 35.999999 and ftol truncates.
     ASSERT_EQ(trail.All()[0].life, 35);
     int steps = 0;
     while (trail.All()[0].alive && steps < 100)

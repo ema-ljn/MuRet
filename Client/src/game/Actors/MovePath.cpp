@@ -17,7 +17,7 @@ namespace Client::Actors
 {
 namespace
 {
-// 0x4ea270: centros y cuatro subpuntos literales, no polinomio continuo.
+// 0x4ea270: centers and four literal subpoints, not a continuous polynomial.
 constexpr double CellScale = Terrain::CellSizeAsDouble;
 constexpr double CellCenter = 0.5;
 constexpr double NearDistance = 20.0;
@@ -38,7 +38,7 @@ void Notify(const LogicalCellEffects& effects, LogicalAxis axis, LogicalStoreSta
 
 void StoreBeginningCell(MovePathState state, std::size_t index, const LogicalCellEffects& effects)
 {
-    // §5.1: k se captura antes de los helpers; cada componente se lee después de su prehelper.
+    // §5.1: k is captured before the helpers; each component is read after its prehelper.
     Notify(effects, LogicalAxis::X, LogicalStoreStage::BeginningBefore, state.logicalX);
     assert(index < Pathfinding::MaxPathCells);
     state.logicalX = state.path.cells[index].x;
@@ -51,7 +51,7 @@ void StoreBeginningCell(MovePathState state, std::size_t index, const LogicalCel
 
 void StoreArrivalCell(MovePathState state, const LogicalCellEffects& effects)
 {
-    // §6.3: current se relee por eje, tras su prehelper; el objetivo del snap ya está guardado.
+    // §6.3: current is reread per axis, after its prehelper; the snap target is already stored.
     Notify(effects, LogicalAxis::X, LogicalStoreStage::ArrivalBefore, state.logicalX);
     assert(state.path.current < Pathfinding::MaxPathCells);
     state.logicalX = state.path.cells[state.path.current].x;
@@ -143,7 +143,7 @@ bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects
     const double dx = static_cast<double>(state.position.x) - static_cast<double>(target.x);
     const double dy = static_cast<double>(state.position.y) - static_cast<double>(target.y);
     const double distance = std::sqrt((dy * dy) + (dx * dx));
-    // TEST AH,0x41 incluye unordered; no sustituir por <=.
+    // TEST AH,0x41 includes unordered; do not replace with <=.
     if (!(distance > NearDistance) && AdvancePath(state, target, effects))
     {
         return true;

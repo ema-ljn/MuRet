@@ -46,8 +46,8 @@
 #include <utility>
 #include <vector>
 
-// Client::Effects::CreateHighModelEffect y StepHighModelEffect: las altas de 0x518cf0 y los pasos de 0x5208a0 de los
-// tipos altos de la CL11 (0x134, 0x13b, 0x141, 0x19f, 0x61c y 0xc1a). 06, "Los efectos con modelo de los tipos altos".
+// Client::Effects::CreateHighModelEffect and StepHighModelEffect: 0x518cf0's creations and 0x5208a0's steps of the
+// CL11 high types (0x134, 0x13b, 0x141, 0x19f, 0x61c and 0xc1a). 06, "Los efectos con modelo de los tipos altos".
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -62,7 +62,6 @@ using Client::Kernel::WorldState;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 
-// Cuántos rand() sacó `random` desde la semilla.
 int DrawsSince(std::uint32_t seed, const CrtRandom& random)
 {
     CrtRandom probe(seed);
@@ -75,7 +74,7 @@ int DrawsSince(std::uint32_t seed, const CrtRandom& random)
     return -1;
 }
 
-// Un BMD con `actions` acciones de 10 keys, para 0x4ea030 y 0x4ec200.
+// A BMD with `actions` actions of 10 keys, for 0x4ea030 and 0x4ec200.
 class ActionModels final : public Client::Models::IModelLibrary
 {
 public:
@@ -170,7 +169,7 @@ bool HasError(const Client::Core::Expected<std::optional<std::size_t>, std::stri
     return !result.HasValue() && result.Error().starts_with(address);
 }
 
-// Los rand() de una partícula: la crea en un pool aparte con `replay`, que avanza como el original.
+// A particle's rand(): it creates it in a separate pool with `replay`, which advances like the original.
 void ReplayParticle(CrtRandom& replay, std::int32_t type, std::int32_t subtype, float scale = 1.0f)
 {
     auto twin = std::make_unique<Client::Particles::Particles>();
@@ -191,8 +190,8 @@ std::ptrdiff_t AliveParticles(WorldState& world, std::int32_t type, std::int32_t
                                  { return particle.alive && particle.type == type && particle.subtype == subtype; });
 }
 
-// 0x51d714: el aura 0x134 de la llegada del asedio, con vida 100, la escala de la clave (MOVSX) por 0,01f y +0x64 y
-// +0x68 en 0, sin rand(); con la tabla llena, nada.
+// 0x51d714: the siege arrival's 0x134 aura, with life 100, the scale from the key (MOVSX) times 0.01f and +0x64 and
+// +0x68 at 0, no rand(); with the table full, nothing.
 TEST(HighModelEffectsTest, TheArrivalAuraTakesItsScaleFromTheKeyWithoutRandoms)
 {
     HighWorld tested;
@@ -216,7 +215,7 @@ TEST(HighModelEffectsTest, TheArrivalAuraTakesItsScaleFromTheKeyWithoutRandoms)
     EXPECT_EQ(aura.ownerContext, &owner);
     EXPECT_EQ(tested.Draws(), 0);
 
-    // La clave se lee con signo: 0xff9c es −100.
+    // The key is read signed: 0xff9c is −100.
     const auto negative = CreateHighModelEffect({.type = 0x134, .key = 0xff9c}, tested.Context());
     ASSERT_TRUE(negative.HasValue()) << negative.Error();
     EXPECT_EQ(tested.Effect(1).transform.scale, static_cast<float>(-100.0 * static_cast<double>(0.01f)));
@@ -228,9 +227,9 @@ TEST(HighModelEffectsTest, TheArrivalAuraTakesItsScaleFromTheKeyWithoutRandoms)
     EXPECT_EQ(tested.Draws(), 0);
 }
 
-// 0x52952d: con el dueño vivo, +0x58 en −1 con el asedio o −2 sin él, la vida en 2 (y la cola la deja en 1), +0x68 en
-// FSIN(T · 0,001f) · 0,1f + 0,2f y +0x6c en T · 0,0005f; con el dueño muerto, el lugar libre y sólo +0x6c. El rand()
-// de la luz local sale siempre.
+// 0x52952d: with the owner alive, +0x58 at −1 with the siege or −2 without it, life at 2 (and the tail leaves it at 1),
+// +0x68 at FSIN(T · 0.001f) · 0.1f + 0.2f and +0x6c at T · 0.0005f; with the owner dead, the slot free and only +0x6c.
+// The local light's rand() always comes out.
 TEST(HighModelEffectsTest, TheArrivalAuraHoldsWhileItsActorLivesAndHidesWithoutTheSiege)
 {
     for (const bool siege : {false, true})
@@ -269,9 +268,9 @@ TEST(HighModelEffectsTest, TheArrivalAuraHoldsWhileItsActorLivesAndHidesWithoutT
     }
 }
 
-// 0x51e4ba: el lancero 0x19f/0 con vida 20, +0x58 en 3, +0xd8 en 0,33f, la acción 2 (0x4ea030, si el BMD la tiene: el
-// de AssetsState::fauna o, si no, el de la biblioteca) y los ángulos en 0. Sin el BMD, sin acción. Con otro subtipo,
-// sólo el prefijo.
+// 0x51e4ba: the 0x19f/0 spearman with life 20, +0x58 at 3, +0xd8 at 0.33f, action 2 (0x4ea030, if the BMD has it:
+// AssetsState::fauna's or, failing that, the library's) and zero angles. Without the BMD, no action. With another
+// subtype, only the prefix.
 TEST(HighModelEffectsTest, TheSiegeSpearmanTakesActionTwoWhenItsModelHasIt)
 {
     for (const std::size_t actions : {std::size_t{0}, std::size_t{2}, std::size_t{3}})
@@ -296,8 +295,8 @@ TEST(HighModelEffectsTest, TheSiegeSpearmanTakesActionTwoWhenItsModelHasIt)
     EXPECT_EQ(tested.Effect(0).transform.angles, (glm::vec3{4, 5, 6}));
 }
 
-// 0x52aa6a: con la vida múltiplo de 5, dos rand() para el punto y el fragmento 0x12b/2 (que con la tabla llena no
-// saca más); con menos de 5, el alpha por 0,769f. La cola lo mueve con su velocidad (0) y le quita una vida.
+// 0x52aa6a: with life a multiple of 5, two rand() for the point and the 0x12b/2 fragment (which with the table full
+// draws no more); under 5, alpha times 0.769f. The tail moves it with its speed (0) and takes one life.
 TEST(HighModelEffectsTest, TheSiegeSpearmanDropsAStoneEveryFiveSteps)
 {
     HighWorld tested;
@@ -321,7 +320,7 @@ TEST(HighModelEffectsTest, TheSiegeSpearmanDropsAStoneEveryFiveSteps)
     EXPECT_EQ(spearman.life, 3);
     EXPECT_EQ(tested.Draws(), 4);
 
-    // Con lugar: el 0x12b/2 en la posición corrida.
+    // With a slot: the 0x12b/2 at the shifted position.
     HighWorld roomy;
     ModelEffect& dropper = roomy.Effect(0);
     dropper.alive = true;
@@ -342,9 +341,9 @@ TEST(HighModelEffectsTest, TheSiegeSpearmanDropsAStoneEveryFiveSteps)
     EXPECT_EQ(stone.transform.position.y, fall);
 }
 
-// 0x51f154: el pulso 0x61c/0 con vida 20, la velocidad (0, −550, 0), los ángulos (−90, 0, z), +0x28 y +0x2c en 0 y
-// +0x30 en rand() % 360; después su joint 0x61c/3 (0x51f1c5, alta 0x534494 sin rand()) con escala 80 en la posición, y
-// la partida. El /1, (0, −250, 0) sin joint. Otro subtipo, sólo el prefijo y sin rand().
+// 0x51f154: the 0x61c/0 pulse with life 20, speed (0, −550, 0), angles (−90, 0, z), +0x28 and +0x2c at 0 and +0x30 at
+// rand() % 360; then its joint 0x61c/3 (0x51f1c5, creation 0x534494 without rand()) with scale 80 at the position, and
+// the start. The /1, (0, −250, 0) without a joint. Another subtype, only the prefix and no rand().
 TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndRaisesItsJoint)
 {
     {
@@ -394,10 +393,10 @@ TEST(HighModelEffectsTest, TheSiegePulseDrawsItsPhaseAndRaisesItsJoint)
     EXPECT_EQ(tested.Draws(), 1);
 }
 
-// 0x52c19a: con la vida en 10 o menos y par, el pulso gira +0x30 72 más, pone los ángulos en (90, 0, 0) y, con el /0,
-// saca rand() % 400 para el joint 0x632/5 (0x52c266, StormJoints.cpp: dos rand() más; con la tabla llena no se crea);
-// después sigue por el paso del 0x13b/0 (0x52c34e): en 12 o menos, cuatro chispas 0x617/0 (dos rand() cada una) y
-// 0x5d9/2 con su rand() % 60.
+// 0x52c19a: with life 10 or less and even, the pulse turns +0x30 by 72 more, sets the angles to (90, 0, 0) and, with
+// the /0, draws rand() % 400 for joint 0x632/5 (0x52c266, StormJoints.cpp: two more rand(); with the table full it is
+// not created); then it goes on through the 0x13b/0's step (0x52c34e): at 12 or less, four 0x617/0 sparks (two rand()
+// each) and 0x5d9/2 with its rand() % 60.
 TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
 {
     HighWorld tested;
@@ -406,9 +405,8 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     pulse.type = 0x61c;
     pulse.life = 10;
     pulse.transform.position = {1000, 2000, 300};
-    // La z de la velocidad girada y la de la partida no enteras: la suma se guarda en float antes del rand()
-    // (0x52c228). Con −300,1f, guardarla o no cambia el último bit de la z del joint (con el rand() % 400 de esta
-    // semilla, 178).
+    // The rotated speed's z and the start's are not integers: the sum is stored as float before the rand() (0x52c228).
+    // With −300.1f, storing it or not changes the last bit of the joint's z (with this seed's rand() % 400, 178).
     pulse.velocity = {0, -550, 0.3f};
     pulse.copiedAngles = {0, 0, 10};
     pulse.start = {1000, 2000, -300.1f};
@@ -418,8 +416,8 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     ASSERT_TRUE(raised.HasValue()) << raised.Error();
     EXPECT_EQ(pulse.transform.angles, (glm::vec3{90, 0, 0}));
     EXPECT_EQ(pulse.copiedAngles.z, 82.0f);
-    // La luz, el rand() % 400, los dos del 0x632/5 (rand() & 1 y rand() % 20), los dos del punto y, por chispa, su
-    // ángulo, los dos del 0x617/0 y los dos del fuego.
+    // The light, the rand() % 400, the 0x632/5's two (rand() & 1 and rand() % 20), the point's two and, per spark, its
+    // angle, the 0x617/0's two and the fire's two.
     EXPECT_EQ(tested.Draws(), 1 + 1 + 2 + 2 + 4 * 5);
     CrtRandom expected(Seed);
     static_cast<void>(expected.Next());
@@ -465,15 +463,15 @@ TEST(HighModelEffectsTest, TheSiegePulseTurnsAndFallsIntoTheFlareStep)
     EXPECT_EQ(joined.alpha, light);
     EXPECT_EQ(joined.light, glm::vec3(light));
     EXPECT_EQ(joined.velocity.y, -552.0f);
-    // La luz, el rand() % 400, los dos del punto y, por chispa, su ángulo y los dos del fuego 0x5d9/2.
+    // The light, the rand() % 400, the point's two and, per spark, its angle and the 0x5d9/2 fire's two.
     EXPECT_EQ(full.Draws(), 1 + 1 + 2 + 4 * 3);
     EXPECT_EQ(std::ranges::count_if(full.world->Particles().All(), [](const auto& particle)
                                     { return particle.alive && particle.type == Client::Particles::FireParticle; }),
               4);
 }
 
-// 0x52c2df..0x52c34a: con el /1, los dos 0x615/6 (0x52c31e y 0x52c342, escala 80, el pulso de dueño) en el punto 100
-// más arriba, dos rand() cada uno (la x y la y corridas, 0x531b0c); después, el /1 del paso del 0x13b sin rand().
+// 0x52c2df..0x52c34a: with the /1, the two 0x615/6 (0x52c31e and 0x52c342, scale 80, owned by the pulse) at the point
+// 100 higher, two rand() each (x and y shifted, 0x531b0c); then the /1 of the 0x13b's step without rand().
 TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
 {
     HighWorld tested;
@@ -482,8 +480,8 @@ TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
     pulse.type = 0x61c;
     pulse.subtype = 1;
     pulse.life = 8;
-    // La z de la partida y la de la velocidad girada no enteras: los 100 se suman en la x87, sin guardar (0x52c307);
-    // con −300,1f, guardar la suma cambiaría el último bit.
+    // The start's z and the rotated speed's are not integers: the 100 are added in the x87, without storing (0x52c307);
+    // with −300.1f, storing the sum would change the last bit.
     pulse.velocity = {0, -250, 0.3f};
     pulse.copiedAngles = {0, 0, 10};
     pulse.start = {1000, 2000, -300.1f};
@@ -513,9 +511,9 @@ TEST(HighModelEffectsTest, TheSecondSiegePulseDropsTwoBolts)
     EXPECT_FALSE(tested.world->DrawTail().joints[2].alive);
 }
 
-// 0x51e059 y 0x52c34e: el 0x13b/0 con vida 15, la escala en 0, la z 100 más, la velocidad (0, −10, 0) y +0xd8 en
-// 0,25f; con más de 12 de vida crece 0,9f, baja la y de la velocidad y suelta el 0x13b/1 con él de dueño (vida 5,
-// escala 3,5), que en su paso pone la luz y el alpha en vida · 0,1f. Los dos con la luz dinámica sólo el /0.
+// 0x51e059 and 0x52c34e: the 0x13b/0 with life 15, scale at 0, z 100 more, speed (0, −10, 0) and +0xd8 at 0.25f; with
+// life above 12 it grows 0.9f, lowers the speed's y and releases the 0x13b/1 owned by it (life 5, scale 3.5), which in
+// its step sets the light and alpha to life · 0.1f. Of the two, only the /0 has the dynamic light.
 TEST(HighModelEffectsTest, TheSiegeFlareGrowsAndLeavesSparksThatFade)
 {
     HighWorld tested;
@@ -559,8 +557,8 @@ TEST(HighModelEffectsTest, TheSiegeFlareGrowsAndLeavesSparksThatFade)
     EXPECT_EQ(tested.Draws(), 2);
 }
 
-// 0x52cd41..0x52cd84: el 0x13b anima dos veces por paso; cuando la primera termina la acción (0xff), la segunda lee
-// la acción 255 del BMD, fuera de su tabla, y corta.
+// 0x52cd41..0x52cd84: the 0x13b animates twice per step; when the first ends the action (0xff), the second reads the
+// BMD's action 255, outside its table, and stops.
 TEST(HighModelEffectsTest, TheSiegeFlareCutsWhenItsSecondAnimationReadsAFinishedAction)
 {
     HighWorld tested;
@@ -580,8 +578,8 @@ TEST(HighModelEffectsTest, TheSiegeFlareCutsWhenItsSecondAnimationReadsAFinished
     EXPECT_TRUE(HasError(StepHighModelEffect(flare, &models.skeleton, tested.StepContext()), "0x52cd84"));
 }
 
-// 0x51c410 y 0x525f1a: el 0x141 nace 20 más arriba con vida 20, +0xe8 en 0 y escala 0,05f; cada paso crece 0,1f y,
-// desde 1, se queda en 1 y pierde 0,07f de alpha.
+// 0x51c410 and 0x525f1a: the 0x141 is born 20 higher with life 20, +0xe8 at 0 and scale 0.05f; each step it grows
+// 0.1f and, from 1, stays at 1 and loses 0.07f of alpha.
 TEST(HighModelEffectsTest, TheGrowingFlashStopsAtOneAndFades)
 {
     HighWorld tested;
@@ -614,9 +612,9 @@ TEST(HighModelEffectsTest, TheGrowingFlashStopsAtOneAndFades)
     EXPECT_EQ(tested.Draws(), 15);
 }
 
-// 0x51f85a y 0x52c9fd: el fragmento 0xc1a nace 280 más arriba con vida 30, +0x64 en −2 y la velocidad (0, −80, −10);
-// con el terreno por encima de su z, la explosión 0x5ed/0 (y su sonido 0x40), seis piedritas 0xc8 o 0xc9 (rand() & 1)
-// y el lugar libre, aunque la cola lo mueve igual; siempre, la luz dinámica.
+// 0x51f85a and 0x52c9fd: the 0xc1a fragment is born 280 higher with life 30, +0x64 at −2 and speed (0, −80, −10); with
+// the terrain above its z, the 0x5ed/0 explosion (and its sound 0x40), six small stones 0xc8 or 0xc9 (rand() & 1) and
+// the slot freed, though the tail moves it anyway; always, the dynamic light.
 TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
 {
     HighWorld tested;
@@ -651,7 +649,7 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
         std::ranges::any_of(tested.world->Particles().All(), [](const auto& particle)
                             { return particle.alive && particle.type == Client::Particles::ExplosionParticle; }));
 
-    // Con las tablas llenas, sólo la luz y los seis rand() & 1.
+    // With the tables full, only the light and the six rand() & 1.
     HighWorld full;
     full.services.terrainHeight = [](float, float) { return 300.0; };
     full.FillTheEffects();
@@ -678,10 +676,10 @@ TEST(HighModelEffectsTest, TheRadialShardBurstsIntoChipsBelowTheTerrain)
 
 namespace
 {
-// 0x51eebb..0x51efa4: el caso del 0x61e en el alta, con sus rand() y la tabla llena sin ninguno.
+// 0x51eebb..0x51efa4: the 0x61e case in the creation, with its rand(), and the full table without any.
 TEST(HighModelEffectsTest, TheColoredDecalTakesItsLifeAndScaleBySubtype)
 {
-    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0,04f
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3d23d70au)); // 0.04f
     struct Probe
     {
         std::int32_t subtype;
@@ -734,10 +732,10 @@ TEST(HighModelEffectsTest, TheColoredDecalTakesItsLifeAndScaleBySubtype)
     EXPECT_EQ(full.Draws(), 0);
 }
 
-// 0x52b9c1..0x52bb24: el 0x61e/6 pone su partida como origen del modelo de su dueño, sortea +0x68 y, por cada vida, un
-// hueso; los dummy no sacan más; los otros, tres rand() del corrimiento y la partícula 0x5ac/8 (0x52baf5) con los
-// ángulos del dueño, luz 1 y escala 1, que saca otros tres; llena, sin ellos. Después, el alpha del dueño en vida ·
-// 0,0125f, y la cola: una vida menos sin moverse.
+// 0x52b9c1..0x52bb24: the 0x61e/6 sets its start as its owner's model origin, draws +0x68 and, per life, a bone;
+// dummies draw no more; the others, the shift's three rand() and particle 0x5ac/8 (0x52baf5) with the owner's angles,
+// light 1 and scale 1, which draws three more; full, without them. Then the owner's alpha at life · 0.0125f, and the
+// tail: one life less without moving.
 TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
 {
     HighWorld tested;
@@ -761,8 +759,8 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     const auto sparked = StepHighModelEffect(decal, nullptr, tested.StepContext());
     ASSERT_TRUE(sparked.HasValue()) << sparked.Error();
     {
-        // La luz local (0x5208c5), +0x68 (0x52ba0f) y, por vuelta, el hueso (0x52ba3d); el que no es un dummy saca los
-        // tres del corrimiento (0x52ba66..0x52ba98) y la 0x5ac/8 los suyos, replicados en un pool gemelo.
+        // The local light (0x5208c5), +0x68 (0x52ba0f) and, per turn, the bone (0x52ba3d); a non-dummy draws the
+        // shift's three (0x52ba66..0x52ba98) and the 0x5ac/8 its own, replayed in a twin pool.
         CrtRandom expected{Seed};
         for (int skipped = 0; skipped < before + 2; ++skipped)
             static_cast<void>(expected.Next());
@@ -806,7 +804,7 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     CrtRandom expected{Seed};
     for (int skipped = 0; skipped < before; ++skipped)
         static_cast<void>(expected.Next());
-    static_cast<void>(expected.Next()); // la luz local (0x5208c5)
+    static_cast<void>(expected.Next()); // the local light (0x5208c5)
     const int glow = expected.Next() % 10;
     int sparks = 0;
     int draws = before + 2;
@@ -832,8 +830,8 @@ TEST(HighModelEffectsTest, TheBindingDecalSparksOverTheBonesOfItsOwner)
     tested.faunaModels.Bind(nullptr);
 }
 
-// El 0x61e/6 sin huesos en el modelo de su dueño: el original divide por cero (0x52ba47); MuRet corta, después del
-// rand() de +0x68.
+// The 0x61e/6 without bones in its owner's model: the original divides by zero (0x52ba47); MuRet stops, after the
+// rand() of +0x68.
 TEST(HighModelEffectsTest, TheBindingDecalCutsWhenItsOwnerHasNoBones)
 {
     HighWorld tested;
@@ -846,8 +844,8 @@ TEST(HighModelEffectsTest, TheBindingDecalCutsWhenItsOwnerHasNoBones)
     EXPECT_EQ(tested.Draws(), 1 + 2);
 }
 
-// 0x52ba1d: el BMD del dueño sale de la tabla global, como en el alta del 0x19f: sin el de AssetsState::fauna (un
-// jugador), el de `models`. Con un solo hueso dummy, cada vida saca solo el hueso y la partícula no corre.
+// 0x52ba1d: the owner's BMD comes from the global table, as in the 0x19f's creation: without AssetsState::fauna's (a
+// player), `models`'s. With a single dummy bone, each life draws only the bone and the particle does not run.
 TEST(HighModelEffectsTest, TheBindingDecalFindsItsOwnerModelLikeTheSpearman)
 {
     HighWorld tested;
@@ -869,9 +867,10 @@ TEST(HighModelEffectsTest, TheBindingDecalFindsItsOwnerModelLikeTheSpearman)
     EXPECT_EQ(decal.life, 2);
 }
 
-// 0x51c884 y 0x5266ea: el seamanFX 0x11a nace con +0x64 en −2, +0x68 en 0,2f, escala 0,4f, vida 20, +0xe4 en 120 y la
-// velocidad (0, −40, 0) en +0xd8, con luz 1 y la partida en su lugar. Cada paso crece 0,02f, sube a la partida más
-// +0xe4 (que baja de a 20 hasta 60) y acelera 10; con la tabla de partículas llena, sin las 0x6f4/1 ni rand() de más.
+// 0x51c884 and 0x5266ea: the seamanFX 0x11a is born with +0x64 at −2, +0x68 at 0.2f, scale 0.4f, life 20, +0xe4 at 120
+// and speed (0, −40, 0) in +0xd8, with light 1 and the start at its place. Each step it grows 0.02f, rises to the start
+// plus +0xe4 (which drops by 20 down to 60) and speeds up 10; with the particle table full, without the 0x6f4/1 or
+// extra rand().
 TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
 {
     HighWorld tested;
@@ -904,9 +903,9 @@ TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
     EXPECT_EQ(seaman.life, 16);
     EXPECT_EQ(tested.Draws(), 4);
 
-    // Con lugar, las cuatro 0x6f4/1 (las de la cascada de Kalima) en su lugar, con la luz local (0x5208c5, sin la resta
-    // de las últimas 5 vidas) por (0,1f; 0,3f; 0,6f) (0x526740..0x526783) y un rand() cada una (0x543d30); después, la
-    // luz dinámica de radio 3 con esa misma luz (0x5267ba).
+    // With a slot, the four 0x6f4/1 (Kalima's waterfall ones) at its place, with the local light (0x5208c5, without the
+    // last 5 lives' subtraction) times (0.1f; 0.3f; 0.6f) (0x526740..0x526783) and one rand() each (0x543d30); then the
+    // dynamic light with radius 3 and that same light (0x5267ba).
     HighWorld roomy;
     ASSERT_TRUE(CreateHighModelEffect({.type = 0x11a, .position = {100, 200, 300}}, roomy.Context()).HasValue());
     const auto stepped = StepHighModelEffect(roomy.Effect(0), nullptr, roomy.StepContext());
@@ -930,7 +929,7 @@ TEST(HighModelEffectsTest, TheSeamanEffectRisesAndSpeedsUp)
     EXPECT_TRUE(std::ranges::any_of(roomy.lighting->cells, [](const auto& cell) { return cell[0] > 0; }));
 }
 
-// 0x52bb29..0x52bb74: el 0x61e/9 crece 0,3f y su luz baja a 0,909f; los /4, /7, /8 y /0xa solo pierden una vida.
+// 0x52bb29..0x52bb74: the 0x61e/9 grows 0.3f and its light drops to 0.909f; the /4, /7, /8 and /0xa only lose a life.
 TEST(HighModelEffectsTest, TheGrowingDecalWidensAndDims)
 {
     HighWorld tested;
@@ -961,9 +960,9 @@ TEST(HighModelEffectsTest, TheGrowingDecalWidensAndDims)
 
 namespace
 {
-// 0x51e596..0x51e69e: los rayos 0x5e8 (azul; el /1 blanco y de escala 3), 0x5e9 y 0x5ea (naranjas): vida 20, la luz,
-// la escala y la velocidad girada. Sin rand() sin el héroe de dueño; la tabla llena, nada. El paso solo les quita vida:
-// no se mueven (0x52cd1d).
+// 0x51e596..0x51e69e: rays 0x5e8 (blue; the /1 white with scale 3), 0x5e9 and 0x5ea (orange): life 20, the light, the
+// scale and the rotated speed. No rand() without the hero as owner; the table full, nothing. The step only takes their
+// life: they do not move (0x52cd1d).
 TEST(HighModelEffectsTest, TheMovingLightsTakeTheirColorScaleAndRush)
 {
     struct Probe
@@ -1010,8 +1009,8 @@ TEST(HighModelEffectsTest, TheMovingLightsTakeTheirColorScaleAndRush)
     EXPECT_EQ(full.Draws(), 0);
 }
 
-// 0x51e6bf..0x51e76a: con el héroe de dueño, cuatro 0x517a20 a 150, 300, 450 y 600 delante del rayo; cada uno abre y
-// cierra el registro propio (sus rand()) y, sin blancos, no manda nada.
+// 0x51e6bf..0x51e76a: with the hero as owner, four 0x517a20 at 150, 300, 450 and 600 ahead of the ray; each opens and
+// closes the own record (its rand()) and, without targets, sends nothing.
 TEST(HighModelEffectsTest, TheHerosMovingLightLooksForTargetsFourTimes)
 {
     HighWorld tested;
@@ -1025,8 +1024,8 @@ TEST(HighModelEffectsTest, TheHerosMovingLightLooksForTargetsFourTimes)
     EXPECT_EQ(tested.Draws(), 4 * Client::Models::OwnRecordCloseRandoms);
     EXPECT_EQ(sent, 0);
 }
-// 0x51f048..0x51f153: el 0x625 con su vida, +0xe4, +0xd8, la luz en 0, la escala y el reparto del subtipo, la z 500
-// más, la x 100 más, la partida en la posición y el sonido 0x42; con la tabla llena, nada y sin rand().
+// 0x51f048..0x51f153: the 0x625 with its life, +0xe4, +0xd8, light at 0, the scale and the subtype's spread, z 500
+// more, x 100 more, the start at the position and sound 0x42; with the table full, nothing and no rand().
 TEST(HighModelEffectsTest, TheFallingStarSpreadsAboveItsTarget)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -1073,7 +1072,7 @@ TEST(HighModelEffectsTest, TheFallingStarSpreadsAboveItsTarget)
     EXPECT_NE(full.world->Runtime().lastSoundId, Client::Audio::SoundId{0x42});
 }
 
-// Un 0x625 vivo en el lugar 0, con todo lo demás como recién construido.
+// A live 0x625 in slot 0, with everything else as freshly constructed.
 ModelEffect& FallingStarAt(HighWorld& tested, std::int32_t subtype, std::int32_t life)
 {
     ModelEffect& star = tested.Effect(0);
@@ -1085,7 +1084,7 @@ ModelEffect& FallingStarAt(HighWorld& tested, std::int32_t subtype, std::int32_t
     return star;
 }
 
-// 0x52be78: con más de 15 de vida, el 0x625 sólo saca la luz local y pierde una vida.
+// 0x52be78: with life above 15, the 0x625 only draws the local light and loses a life.
 TEST(HighModelEffectsTest, TheFallingStarWaitsUntilLifeFifteen)
 {
     HighWorld tested;
@@ -1099,9 +1098,9 @@ TEST(HighModelEffectsTest, TheFallingStarWaitsUntilLifeFifteen)
     EXPECT_EQ(tested.Draws(), 1);
 }
 
-// 0x52be8d..0x52bfce: el /0 tiembla alrededor de la partida, baja +0xe4, corre la partida, suelta el fuego 0x5db/7 (con
-// la tabla de partículas llena, nada y sin rand()), sube la luz 0,1f y deja los sprites 0x5fd y 0x5ac; con lugar para
-// el fuego, corta en 0x52bf29 después de los dos rand() del temblor.
+// 0x52be8d..0x52bfce: the /0 wobbles around the start, lowers +0xe4, shifts the start, releases the 0x5db/7 fire (with
+// the particle table full, nothing and no rand()), raises the light 0.1f and leaves the 0x5fd and 0x5ac sprites; with a
+// slot for the fire, it stops at 0x52bf29 after the wobble's two rand().
 TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
 {
     HighWorld tested;
@@ -1150,7 +1149,7 @@ TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
     EXPECT_EQ(made[1].rotation, flareTurn);
     EXPECT_FALSE(made[2].alive);
 
-    // Con lugar, el fuego 0x5db/7 (0x52bf29) saca sus rand() entre el temblor y los sprites.
+    // With a slot, the 0x5db/7 fire (0x52bf29) draws its rand() between the wobble and the sprites.
     HighWorld room;
     room.services.sprites = sprites.get();
     ModelEffect& next = FallingStarAt(room, 0, 3);
@@ -1164,9 +1163,9 @@ TEST(HighModelEffectsTest, TheWobblyFallingStarLeavesItsFireAndTwoSprites)
     EXPECT_EQ(AliveParticles(*room.world, Client::Particles::DeathSpiritFireParticle, 7), 1);
 }
 
-// 0x52bfdc..0x52c195: el /1 se queda en la partida y, con el terreno por encima, saca la escala del humo 0x5f2/0xb y
-// el rand() % 5 que, en 0, suelta el pedazo de hielo 0xca 50 más arriba; con el terreno por debajo, nada de eso. Con
-// lugar, el fuego 0x5db/0xb (0x52c036) saca sus rand() antes de los sprites.
+// 0x52bfdc..0x52c195: the /1 stays at the start and, with the terrain above, draws the scale of the 0x5f2/0xb smoke
+// and the rand() % 5 that, at 0, releases the 0xca ice piece 50 higher; with the terrain below, none of that. With a
+// slot, the 0x5db/0xb fire (0x52c036) draws its rand() before the sprites.
 TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrain)
 {
     for (const double ground : {-1000.0, 1000.0})
@@ -1218,9 +1217,9 @@ TEST(HighModelEffectsTest, TheStraightFallingStarSmokesAndDropsIceBelowTheTerrai
     EXPECT_EQ(room.random.State(), replay.State());
     EXPECT_EQ(AliveParticles(*room.world, Client::Particles::DeathSpiritFireParticle, 0xb), 1);
 }
-// 0x51ca31: el 0x116/0 guarda la luz que recibe como la partida y pone la suya en 1; el /2 baja 20; el /1 toma la vida
-// de su dueño (otro efecto) y suelta la llama 0x5da/0 (0x51cb38) con sus rand(); con la tabla de partículas llena,
-// sigue sin rand().
+// 0x51ca31: the 0x116/0 stores the light it receives as the start and sets its own to 1; the /2 drops 20; the /1 takes
+// its owner's life (another effect) and releases flame 0x5da/0 (0x51cb38) with its rand(); with the particle table
+// full, it goes on without rand().
 TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
 {
     HighWorld tested;
@@ -1273,9 +1272,9 @@ TEST(HighModelEffectsTest, ThePierPartsTakeTheirAimLifeAndFlame)
     EXPECT_EQ(tested.Draws(), 0);
 }
 
-// 0x52727b..0x527447: el 0x116/0 con +0xe4 en 2 da una vuelta (un rand(), el giro hacia su dueño más la partida, +0xd8
-// 0,4f más, el avance y el 0x116/1, que con lugar suelta su llama 0x5da/0), y después +0xe4 0,1f más y el sonido 0x1ca;
-// sin dueño, sólo la luz local.
+// 0x52727b..0x527447: the 0x116/0 with +0xe4 at 2 does one turn (one rand(), the turn toward its owner plus the start,
+// +0xd8 0.4f more, the advance and the 0x116/1, which with a slot releases its 0x5da/0 flame), and then +0xe4 0.1f more
+// and sound 0x1ca; without an owner, only the local light.
 TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
 {
     HighWorld tested;
@@ -1323,9 +1322,9 @@ TEST(HighModelEffectsTest, TheHomingPartTurnsTowardItsOwnerAndLeavesItsTrail)
     EXPECT_EQ(alone.Draws(), 1);
 }
 
-// 0x527455..0x527534 y 0x527252: el 0x116/2 gira hacia su dueño, +0xd8 2,4f más y avanza; con la vida múltiplo de 3,
-// el joint 0x61c/2 (alta 0x534578, sin rand()) con escala 150, 10 más arriba; lleno, sigue igual. El /1, con menos de 5
-// de vida, el alpha por 0,7692308f.
+// 0x527455..0x527534 and 0x527252: the 0x116/2 turns toward its owner, +0xd8 2.4f more and advances; with life a
+// multiple of 3, joint 0x61c/2 (creation 0x534578, no rand()) with scale 150, 10 higher; full, it goes on the same. The
+// /1, with life under 5, alpha times 0.7692308f.
 TEST(HighModelEffectsTest, TheDivingPartDropsAJointEveryThreeSteps)
 {
     HighWorld tested;
@@ -1373,8 +1372,9 @@ TEST(HighModelEffectsTest, TheDivingPartDropsAJointEveryThreeSteps)
     EXPECT_EQ(trail.life, 3);
 }
 
-// 0x51cbb2 y 0x527539: el 0x117 nace con vida 10, escala 0,2f y +0xd8 0,1f; con el subtipo 1 o menos, un rand() % 2
-// elige entre la inclinación subtipo · −90 + 45 y la fija; el /2, vida 12 y +0xd8 0,4f. Su paso crece y apaga +0x68.
+// 0x51cbb2 and 0x527539: the 0x117 is born with life 10, scale 0.2f and +0xd8 0.1f; with subtype 1 or less, a rand() %
+// 2 picks between the tilt subtype · −90 + 45 and the fixed one; the /2, life 12 and +0xd8 0.4f. Its step grows and
+// fades +0x68.
 TEST(HighModelEffectsTest, TheDarkLordSkillTiltsByItsSubtypeAndGrows)
 {
     for (const std::int32_t subtype : {-1, 0, 1, 2, 3})
@@ -1417,8 +1417,8 @@ TEST(HighModelEffectsTest, TheDarkLordSkillTiltsByItsSubtypeAndGrows)
     }
 }
 
-// 0x51da46 y 0x529a4f: el 0x138/0 nace 300 más arriba, oculto hasta la vida 40, crece desde la 40 y, al pasar de 1,
-// suelta el 0x138/1 con su luz; por debajo de 15 se achica, se apaga con la vida y baja. El /1 se achica hasta 1.
+// 0x51da46 and 0x529a4f: the 0x138/0 is born 300 higher, hidden until life 40, grows from 40 and, past 1, releases the
+// 0x138/1 with its light; below 15 it shrinks, fades with its life and sinks. The /1 shrinks down to 1.
 TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
 {
     HighWorld tested;
@@ -1463,10 +1463,10 @@ TEST(HighModelEffectsTest, TheManaRuneGrowsFlashesAndSinks)
     ASSERT_TRUE(StepHighModelEffect(shrinking, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(shrinking.transform.scale, 1.0f);
 }
-// 0x52c981 y 0x52caa5: el 0x812 suelta en cada paso el joint 0x60f/0xc (el /1, escala 100) o 0x60f/4 (el /0, escala
-// 50) con él de dueño (HelixJoints.cpp: un rand(), vx; la /4 toma su luz), y el 0x813 tres 0x619/6 del punto 100
-// hacia atrás a su posición, con dos rand() cada uno y sin dueño. Con la tabla llena, siguen sin los joints. Los dos
-// pierden una vida y no se mueven.
+// 0x52c981 and 0x52caa5: each step the 0x812 releases joint 0x60f/0xc (the /1, scale 100) or 0x60f/4 (the /0, scale
+// 50) owned by it (HelixJoints.cpp: one rand(), vx; the /4 takes its light), and the 0x813 three 0x619/6 from the
+// point 100 behind to its position, with two rand() each and no owner. With the table full, they go on without the
+// joints. Both lose a life and do not move.
 TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
 {
     for (const std::int32_t subtype : {0, 1})
@@ -1540,7 +1540,7 @@ TEST(HighModelEffectsTest, TheEmittersLeaveJointsEveryStep)
     EXPECT_EQ(bolt.life, 3);
     EXPECT_EQ(tested.Draws(), 7 + 7);
 }
-// El fld/fadd/fstp de cada eje, como Sum de HighModelEffects.
+// Each axis's fld/fadd/fstp, like HighModelEffects's Sum.
 glm::vec3 SumOf(const glm::vec3& a, const glm::vec3& b)
 {
     return {static_cast<float>(static_cast<double>(a.x) + static_cast<double>(b.x)),
@@ -1553,10 +1553,10 @@ glm::vec3 TurnedBy(const glm::vec3& vector, const glm::vec3& angles)
     return Client::Math::OriginalVectorRotate(vector, Client::Math::OriginalAngleMatrix(angles));
 }
 
-// 0x51f5fe..0x51f7f8: el 0x6ac vive 10, con +0xd8 en 1 y la velocidad (0, −30, 0), corrido (0, −20, 50) girado. Sus dos
-// bocas, (−20, −20, 60) y (30, −20, 60) giradas desde la posición que recibe (no la corrida), sueltan veinte 0x617/1
-// cada una: rand() % 20 + x + 5 en la x de los ángulos y la y que suma las vueltas de 18; dos rand() más por joint
-// (0x5320a4). Con los joints llenos, solo los cuarenta rand() del alta; con la tabla de efectos llena, nada.
+// 0x51f5fe..0x51f7f8: the 0x6ac lives 10, with +0xd8 at 1 and speed (0, −30, 0), shifted by (0, −20, 50) rotated. Its
+// two mouths, (−20, −20, 60) and (30, −20, 60) rotated from the position it receives (not the shifted one), release
+// twenty 0x617/1 each: rand() % 20 + x + 5 in the angles' x, and the y that adds the turns of 18; two more rand() per
+// joint (0x5320a4). With the joints full, only the creation's forty rand(); with the effect table full, nothing.
 TEST(HighModelEffectsTest, TheFireBreathRaisesFortyJointsFromTwoMouths)
 {
     const glm::vec3 origin{1000, 2000, 300};
@@ -1614,11 +1614,11 @@ TEST(HighModelEffectsTest, TheFireBreathRaisesFortyJointsFromTwoMouths)
     EXPECT_EQ(full.Draws(), 0);
 }
 
-// 0x52c7f0..0x52c97c: el paso del 0x6ac prende la luz dinámica de radio 2, saca rand() % 3 + 2 para la escala
-// (· (15 − vida) · 0,05f) y pone la partida a 20 de cada lado (los ángulos con la z 90 más) con el fuego 0x5db/0xa
-// (0x52c8f7, 0x52c95d; lote de partículas), que con lugar saca sus rand(); con las partículas llenas, sigue sin ellos,
-// se mueve (0, −30, 0) girado y, con la vida en 1, 0x51fef0 saca los cuarenta rand() de sus veinte chispas 0x5c5/2 (sin
-// lugar, ni ellas ni la 0x5ee/0) y se apaga.
+// 0x52c7f0..0x52c97c: the 0x6ac's step turns on the dynamic light with radius 2, draws rand() % 3 + 2 for the scale (·
+// (15 − life) · 0.05f) and puts the start 20 to each side (the angles with z 90 more) with the 0x5db/0xa fire
+// (0x52c8f7, 0x52c95d; particle batch), which with a slot draws its rand(); with the particles full, it goes on without
+// them, moves (0, −30, 0) rotated and, at life 1, 0x51fef0 draws the forty rand() of its twenty 0x5c5/2 sparks
+// (without a slot, neither they nor the 0x5ee/0) and dies.
 TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
 {
     const glm::vec3 angles{10, 20, 30};
@@ -1671,9 +1671,9 @@ TEST(HighModelEffectsTest, TheFireBreathBurnsAtItsSidesAndSparksAtTheEnd)
     EXPECT_FALSE(burning.alive);
     EXPECT_EQ(full.Draws(), 40 + 10 * 2 + 40);
 }
-// 0x51fef0(punto, 1) con lugar: las veinte 0x5c5/2 (0x51ff7e) y la llamarada 0x5ee/0 (0x51ffd5) en el mismo punto, con
-// los ángulos en 0, la luz (1, 1, 1) y escala 4, y el sonido 0x40 de su alta (0x542aa7). Con la tabla llena, ni la
-// llamarada ni el sonido.
+// 0x51fef0(point, 1) with a slot: the twenty 0x5c5/2 (0x51ff7e) and the 0x5ee/0 blaze (0x51ffd5) at the same point,
+// with zero angles, light (1, 1, 1) and scale 4, and its creation's sound 0x40 (0x542aa7). With the table full, neither
+// the blaze nor the sound.
 TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
 {
     const glm::vec3 angles{10, 20, 30};
@@ -1717,9 +1717,9 @@ TEST(HighModelEffectsTest, TheFireBreathEndsInABlaze)
     }
 }
 
-// 0x51dacb..0x51db6e: el 0x139 vive 35, con +0xe4 en 2, +0xd8 en 10, escala 1,2f y la velocidad (0, −5, 0); copia sus
-// ángulos en +0x28, toma la partida de la posición de su dueño y sube 150. Un rand() % 80 + 10 (r) mueve la z de
-// +0x28 subtipo · r − r. Sin dueño corta (el original lee la dirección 0x10); con la tabla llena, nada.
+// 0x51dacb..0x51db6e: the 0x139 lives 35, with +0xe4 at 2, +0xd8 at 10, scale 1.2f and speed (0, −5, 0); it copies its
+// angles to +0x28, takes the start from its owner's position and rises 150. A rand() % 80 + 10 (r) moves +0x28's z by
+// subtype · r − r. Without an owner it stops (the original reads address 0x10); with the table full, nothing.
 TEST(HighModelEffectsTest, TheJavelinStartsOverItsThrowerAimingAtItsOwner)
 {
     for (const std::int32_t subtype : {0, 1, 2})
@@ -1760,10 +1760,10 @@ TEST(HighModelEffectsTest, TheJavelinStartsOverItsThrowerAimingAtItsOwner)
     EXPECT_EQ(full.Draws(), 0);
 }
 
-// 0x529b86..0x529de9 y la cola (0x52ccb0 → 0x52cd94, sin moverse): con 25 o más de vida el 0x139 sube +0xe4 de a 10 y
-// avanza con +0x28; de 24 a 20, +0xd8 1,5 más, avanza, +0xe4 en rand() % 30 + 30 y la velocidad y 8 menos. Siempre
-// la partida sobre su dueño, la escala 0,015f más, la z de los ángulos más +0xe4, +0x68 y el alpha en vida · 0,1f, la
-// z del /1 en la partida más FSIN(vida · 0,1f) · 30 y la luz dinámica.
+// 0x529b86..0x529de9 and the tail (0x52ccb0 → 0x52cd94, without moving): with life 25 or more the 0x139 raises +0xe4 by
+// 10 and advances with +0x28; from 24 to 20, +0xd8 1.5 more, advances, +0xe4 at rand() % 30 + 30 and the speed's y 8
+// less. Always the start over its owner, scale 0.015f more, the angles' z plus +0xe4, +0x68 and alpha at life · 0.1f,
+// the /1's z at the start plus FSIN(life · 0.1f) · 30 and the dynamic light.
 TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
 {
     HighWorld tested;
@@ -1806,9 +1806,10 @@ TEST(HighModelEffectsTest, TheJavelinClimbsSpinsAndBrakes)
     EXPECT_EQ(tested.random.State(), expected.State());
 }
 
-// 0x529bde..0x529c69: por debajo de 20, 0x4e9810 gira +0x28 hacia la partida. Lejos (100 o más), la brasa 6ad/1 en
-// la posición girada, con los ángulos y la luz del efecto (la luz la pisa el alta con 0,5) y sus tres rand(), antes del
-// giro. Con las partículas llenas sigue sin ella; cerca, va a la partida y crece 0,04f más.
+// 0x529bde..0x529c69: below 20, 0x4e9810 turns +0x28 toward the start. Far (100 or more), the 0x6ad/1 ember at the
+// rotated position, with the effect's angles and light (the creation overwrites the light with 0.5) and its three
+// rand(), before the turn. With the particles full it goes on without it; near, it goes to the start and grows 0.04f
+// more.
 TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
 {
     HighWorld tested;
@@ -1855,11 +1856,11 @@ TEST(HighModelEffectsTest, TheJavelinHuntsItsOwnerAndTrailsFire)
     EXPECT_EQ(tested.Draws(), 6 + 2);
 }
 
-// 0x51ed79 y 0x52b4a7: el 0x615 vive 10 y, con dueño y el subtipo 0, se corre (−25, −80, 0) girado por los ángulos del
-// dueño. Su paso no hace nada hasta que le quedan menos de 5 pasos; con la vida par, tres rand() (x e y de rand() % 64
-// − 32 y la escala rand() % 10 + 50) y el joint 0x615/5 (0x52b560, con dos rand() más: la x y la y corridas rand() %
-// 10 − 5, 800 más arriba, la luz (1; 0,5; 0,2f)); con los joints llenos, sin él. La cola no lo mueve (sin velocidad)
-// ni lo dibuja.
+// 0x51ed79 and 0x52b4a7: the 0x615 lives 10 and, with an owner and subtype 0, shifts (−25, −80, 0) rotated by the
+// owner's angles. Its step does nothing until fewer than 5 steps remain; with even life, three rand() (x and y from
+// rand() % 64 − 32 and the scale rand() % 10 + 50) and joint 0x615/5 (0x52b560, with two more rand(): x and y shifted
+// rand() % 10 − 5, 800 higher, light (1; 0.5; 0.2f)); with the joints full, without it. The tail neither moves it (no
+// speed) nor draws it.
 TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
 {
     HighWorld tested;
@@ -1930,12 +1931,13 @@ TEST(HighModelEffectsTest, TheThunderShiftsOverItsOwnerAndDropsBoltsAtTheEnd)
     EXPECT_EQ(thunder.life, 1);
 }
 
-// 0x51efa5 y 0x52bb79: el 0x621/1 guarda la posición como partida y vive 20; su paso pone el origen del modelo de su
-// dueño en la partida, va al punto (0, 0, 10) del hueso 33 del dueño y hace sus tres emisiones (0x52bbf6): con la vida
-// par (20, se resta después), dos rand() de los ángulos, el joint 0x614/3 (escala 10, clave 10) del punto a la posición
-// y el sprite 0x5fd de escala ((rand() & 7) + 8) · 0,2f, sin la chispa 0x5c6/2; con la vida impar, la chispa antes que
-// el sprite. Sin el servicio de joints corta en 0x52bcc4. El /0 nace en World (vida 10) y su paso es de World.
-// Un joint 0x614/3 de 0x530860 tal como lo pidió el brillo 0x621 (copia: la petición sólo presta sus vectores).
+// 0x51efa5 and 0x52bb79: the 0x621/1 stores the position as the start and lives 20; its step sets its owner's model
+// origin at the start, goes to point (0, 0, 10) of the owner's bone 33 and does its three emissions (0x52bbf6): with
+// even life (20, subtracted later), the angles' two rand(), joint 0x614/3 (scale 10, key 10) from the point to the
+// position and the 0x5fd sprite with scale ((rand() & 7) + 8) · 0.2f, without the 0x5c6/2 spark; with odd life, the
+// spark before the sprite. Without the joint service it stops at 0x52bcc4. The /0 is born in Effects/ModelEffects
+// (life 10) and steps in Effects/GameModelEffects.
+// A 0x614/3 joint of 0x530860 as the 0x621 glow requested it (a copy: the request only lends its vectors).
 struct GlowJoint
 {
     std::int32_t type = 0;
@@ -1949,8 +1951,8 @@ struct GlowJoint
     glm::vec3 angles{};
 };
 
-// El 0x621 de `subtype` con su dueño en el slot 3 (el hueso 33 en (1, 2, 3) sin giro), los sprites y los joints a
-// mano. Con el origen del modelo en (100, 200, 300), el punto (0, 0, 10) del hueso queda en (101, 202, 313).
+// The 0x621 of `subtype` with its owner in slot 3 (bone 33 at (1, 2, 3) unrotated), the sprites and the joints by
+// hand. With the model origin at (100, 200, 300), the bone's point (0, 0, 10) lands at (101, 202, 313).
 struct GlowWorld
 {
     explicit GlowWorld(std::int32_t subtype)
@@ -1986,8 +1988,8 @@ struct GlowWorld
     bool created = false;
 };
 
-// Los ángulos (rand() % 360, 0, rand() % 360) y el punto (0, 120, 0) girado más la posición (0x52bbfe..0x52bc84) de
-// las tres emisiones, por glow621.py (x87 aparte, semilla 0x13579bdf) y no por OriginalAngleMatrix.
+// The angles (rand() % 360, 0, rand() % 360) and point (0, 120, 0) rotated plus the position (0x52bbfe..0x52bc84) of
+// the three emissions, from glow621.py (separate x87, seed 0x13579bdf) and not from OriginalAngleMatrix.
 std::array<std::uint32_t, 3> BitsOf(const glm::vec3& point)
 {
     return {std::bit_cast<std::uint32_t>(point.x), std::bit_cast<std::uint32_t>(point.y),
@@ -2018,7 +2020,7 @@ void ExpectTheJoints(const std::vector<GlowJoint>& joints, std::span<const GlowE
     }
 }
 
-// Los sprites 0x5fd desde `first`: rotación rand() % 360 y escala ((rand() & 7) + 8) · 0,2f (0x6b8854), en bits.
+// The 0x5fd sprites from `first`: rotation rand() % 360 and scale ((rand() & 7) + 8) · 0.2f (0x6b8854), in bits.
 void ExpectTheSprites(std::span<const Client::Particles::Sprite> sprites, std::size_t first,
                       std::span<const std::pair<float, std::uint32_t>> expected)
 {
@@ -2047,7 +2049,7 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     EXPECT_EQ(tested.world->ModelPlacement(0x4a2).origin, (glm::vec3{100, 200, 300}));
     EXPECT_EQ(glow.transform.position, (glm::vec3{101, 202, 313}));
     EXPECT_EQ(glow.life, 19);
-    // La luz (0x5208c5) y, por emisión, los dos ángulos y la rotación y la escala del sprite.
+    // The light (0x5208c5) and, per emission, the two angles and the sprite's rotation and scale.
     EXPECT_EQ(tested.Draws(), 1 + 3 * 4);
     constexpr std::array<GlowEmission, 3> EvenLife{{
         {{58, 0, 123}, {0x423eacbau, 0x43275dc2u, 0x43cf6205u}},
@@ -2060,8 +2062,8 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     ExpectTheSprites(glowing.sprites->Sprites(), 0, EvenSprites);
     EXPECT_FALSE(std::ranges::any_of(tested.world->Particles().All(),
                                      [](const Client::Particles::Particle& particle) { return particle.alive; }));
-    // Con la vida impar, la chispa 0x5c6/2 de escala (rand() % 50 + 10) · 0,01f (0x6b86c0) antes del sprite: un rand()
-    // más por emisión.
+    // With odd life, the 0x5c6/2 spark with scale (rand() % 50 + 10) · 0.01f (0x6b86c0) before the sprite: one more
+    // rand() per emission.
     const int before = tested.Draws();
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws() - before, 1 + 3 * 5);
@@ -2093,8 +2095,8 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowFollowsTheOwnersBone)
     EXPECT_FALSE(Client::Effects::StepsAsHighModelEffect(tested.Effect(1)));
 }
 
-// 0x52bd47..0x52bdd3: el /2 crea el joint 0x614/3 sólo con la vida par (0x52bd61) y siempre el sprite; nunca la
-// chispa. Los dos rand() de los ángulos salen igual.
+// 0x52bd47..0x52bdd3: the /2 creates joint 0x614/3 only with even life (0x52bd61) and always the sprite; never the
+// spark. The angles' two rand() come out the same.
 TEST(HighModelEffectsTest, TheThrownPiercingGlowJoinsOnlyOnEvenLives)
 {
     GlowWorld glowing(2);
@@ -2115,7 +2117,7 @@ TEST(HighModelEffectsTest, TheThrownPiercingGlowJoinsOnlyOnEvenLives)
         {{84.0f, 0x3fe66667u}, {18.0f, 0x3fcccccdu}, {13.0f, 0x40333333u}}};
     ExpectTheSprites(glowing.sprites->Sprites(), 0, EvenSprites);
 
-    // Vida 19: ni joint ni chispa, sólo el sprite. Sin el servicio de joints no corta: no lo pide.
+    // Life 19: no joint or spark, only the sprite. Without the joint service it does not stop: it does not ask for it.
     tested.services.joint = {};
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws(), 2 * (1 + 3 * 4));
@@ -2128,8 +2130,8 @@ TEST(HighModelEffectsTest, TheThrownPiercingGlowJoinsOnlyOnEvenLives)
     EXPECT_EQ(glow.life, 18);
 }
 
-// Con los pools llenos, 0x53fe70 y 0x5491e0 no crean pero sus argumentos ya sortearon: la escala de la chispa y la
-// rotación y la escala del sprite salen igual, en el mismo orden.
+// With the pools full, 0x53fe70 and 0x5491e0 do not create but their arguments were already drawn: the spark's scale
+// and the sprite's rotation and scale come out the same, in the same order.
 TEST(HighModelEffectsTest, TheHeldPiercingGlowDrawsItsRandomsWithFullPools)
 {
     GlowWorld glowing(1);
@@ -2141,12 +2143,12 @@ TEST(HighModelEffectsTest, TheHeldPiercingGlowDrawsItsRandomsWithFullPools)
     ASSERT_TRUE(StepHighModelEffect(glow, nullptr, tested.StepContext()).HasValue());
     EXPECT_EQ(tested.Draws(), 1 + 3 * 5);
     EXPECT_TRUE(glowing.joints.empty());
-    // Sin la chispa de 0x52bcce (su rand() % 50 sí salió), el segundo ángulo y los sprites no serían estos.
+    // Without 0x52bcce's spark (its rand() % 50 did come out), the second angle and the sprites would not be these.
     constexpr std::array<std::pair<float, std::uint32_t>, 3> OddSprites{
         {{9.0f, 0x40000000u}, {232.0f, 0x4019999au}, {126.0f, 0x40333333u}}};
     ExpectTheSprites(glowing.sprites->Sprites(), 0, OddSprites);
 
-    // Vida 18 con los sprites llenos: los joints de las tres emisiones con sus ángulos de siempre.
+    // Life 18 with the sprites full: the three emissions' joints with their usual angles.
     for (auto& sprite : glowing.sprites->Sprites())
         sprite.alive = true;
     glowing.sprites->Sprites()[0].scale = 0.5f;

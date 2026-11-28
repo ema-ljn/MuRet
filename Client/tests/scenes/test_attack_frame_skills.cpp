@@ -42,8 +42,8 @@
 #include <string_view>
 #include <vector>
 
-// Client::Skills::StepTheFrameSkill: los casos de 0x4f97b0 por la habilidad de +0x38e (0x4f9899..0x4fab5c, la tabla de
-// 0x4fb10c), y 0x4f8f5b de la cola de 0x4f5b70. 06, "Las habilidades de los frames del ataque".
+// Client::Skills::StepTheFrameSkill: the cases of 0x4f97b0 by the skill of +0x38e (0x4f9899..0x4fab5c, the table of
+// 0x4fb10c), and 0x4f8f5b of the tail of 0x4f5b70. 06, "Las habilidades de los frames del ataque".
 namespace
 {
 using Client::Actors::CharacterStepContext;
@@ -59,13 +59,12 @@ constexpr std::size_t HeroSlot = 42;
 constexpr std::size_t VictimSlot = 7;
 constexpr std::uint16_t Player = Client::Tables::PlayerSkeletonModel;
 constexpr std::uint16_t NoTarget = 0xffff;
-// El registro propio cerrado en 0: los 3.848 de 0x40b4d0.
+// The own record closed at 0: the 3848 of 0x40b4d0.
 constexpr int OwnRecord = Client::Models::OwnRecordCloseRandoms;
-// [0x6c88ac] como lo deja 0x4f987d antes del caso.
+// [0x6c88ac] as 0x4f987d leaves it before the case.
 constexpr std::int32_t FullThreshold = 15;
-// Un valor que ningún caso escribe en [0x6c88ac], para ver si lo tocó.
+// A value no case writes in [0x6c88ac], to see whether it was touched.
 constexpr std::int32_t UntouchedThreshold = 7;
-// Los huesos del esqueleto de prueba: el 3 es un dummy.
 constexpr std::uint8_t Bones = 4;
 constexpr std::uint8_t DummyBone = 3;
 constexpr std::uint8_t HandBone = 2;
@@ -94,7 +93,6 @@ template <typename T> std::string ErrorOf(const Client::Core::Expected<T, std::s
     return result.HasValue() ? std::string() : result.Error();
 }
 
-// Player.bmd con sus acciones y cuatro huesos, el 3 un dummy.
 Client::Models::Skeleton SkeletonWithBones()
 {
     Client::Models::Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
@@ -103,7 +101,7 @@ Client::Models::Skeleton SkeletonWithBones()
     return skeleton;
 }
 
-// El mundo de un mapa con el héroe en el lugar 42, el que pega; el WorldState, en el heap.
+// A map's world with the hero, the striker, in slot 42; the WorldState on the heap.
 struct FrameWorld
 {
     explicit FrameWorld(std::int32_t map)
@@ -113,7 +111,7 @@ struct FrameWorld
         world.Runtime().heroSlot = static_cast<std::int32_t>(HeroSlot);
         world.Runtime().skillThreshold = FullThreshold;
         world.OwnCharacter().ClearEquipmentForEntry();
-        // Los tiempos de 0x4fc450 lejos de 0, como en test_attack_step.cpp.
+        // 0x4fc450's timers far from 0, as in test_attack_step.cpp.
         constexpr std::uint16_t FarTimer = 1000;
         world.OwnCharacter().word3e = FarTimer;
         world.OwnCharacter().word40 = FarTimer;
@@ -121,7 +119,6 @@ struct FrameWorld
         terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     }
 
-    // El héroe, un jugador con +0x381 en `step`, la acción y el frame, sin blanco.
     ActorState& Striker(std::uint8_t action, float frame, std::uint8_t step)
     {
         ActorState& striker = world.Actors()[HeroSlot];
@@ -193,8 +190,8 @@ std::vector<const JointState*> AliveJoints(const std::vector<JointState>& joints
     return found;
 }
 
-// 0x4f9893: las habilidades sin caso en la tabla (las 0x29, 0x2a, 0x2d, 0x2e, 0x32, 0x33, 0x36, 0x3a, 0x3b, 0x40 y 0x42
-// van a 0x4fab5d) y las de fuera de 0x28..0x4a siguen en 0x4f97b0, sin rand() ni escrituras.
+// 0x4f9893: the skills without a case in the table (0x29, 0x2a, 0x2d, 0x2e, 0x32, 0x33, 0x36, 0x3a, 0x3b, 0x40 and 0x42
+// go to 0x4fab5d) and those outside 0x28..0x4a continue in 0x4f97b0, with no rand() or writes.
 TEST(AttackFrameSkillsTest, TheSkillsWithoutACaseGoOn)
 {
     for (const std::int32_t map : Maps)
@@ -217,8 +214,9 @@ TEST(AttackFrameSkillsTest, TheSkillsWithoutACaseGoOn)
     }
 }
 
-// Los casos sin efectos: +0x381 en 15 cuando el que pega llega a su acción y su frame (≥, NaN no pasa), o desde un
-// +0x381; la 0x41, en 10 si no llega; las 0x44, 0x46 y 0x47 siempre; las 0x43 y 0x45 nada. Sin rand() ni [0x6c88ac].
+// The cases without effects: +0x381 at 15 when the striker reaches its action and frame (≥, NaN does not pass), or
+// from a +0x381; 0x41, at 10 if it does not reach them; 0x44, 0x46 and 0x47 always; 0x43 and 0x45 nothing. No rand()
+// or [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheQuietSkillsEndTheAttackAtTheirFrame)
 {
     struct Case
@@ -275,9 +273,9 @@ TEST(AttackFrameSkillsTest, TheQuietSkillsEndTheAttackAtTheirFrame)
     }
 }
 
-// 0x2c (0x4fa895..0x4fa993): pasado el frame 5 (>, no ≥), +0x381 en 15; en cada paso, el punto con dos rand() % 30 − 15
-// y z + 20, y cuatro veces un rand() % 60 + 150 en la x de los ángulos, el joint 0x617/0 (dos rand()) y el fuego
-// 0x5d9/2 (dos rand()): 22 rand() por paso.
+// 0x2c (0x4fa895..0x4fa993): past frame 5 (>, not ≥), +0x381 at 15; each step, the point with two rand() % 30 − 15
+// and z + 20, and four times a rand() % 60 + 150 in the angles' x, the 0x617/0 joint (two rand()) and the 0x5d9/2
+// fire (two rand()): 22 rand() per step.
 TEST(AttackFrameSkillsTest, TheBoltsOf2cGoOutEveryStep)
 {
     for (const std::int32_t map : Maps)
@@ -324,8 +322,8 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cGoOutEveryStep)
     }
 }
 
-// La 0x2c sin el pool de joints corta en el primero (0x4fa964, con los rand() del punto y del primer ángulo), y sin
-// las partículas, en el primer fuego (0x4fa980), con el primer joint creado.
+// 0x2c without the joint pool cuts at the first one (0x4fa964, with the rand() of the point and the first angle), and
+// without the particles, at the first fire (0x4fa980), with the first joint created.
 TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
 {
     for (const std::int32_t map : Maps)
@@ -348,10 +346,10 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2cCutWithoutTheirPools)
     }
 }
 
-// 0x2b (0x4f98a0..0x4f9bcd): el hueso de la mano de 0x4f9780 (la izquierda con la 0x25 o la 0x26) en Player.bmd. Un
-// dummy o fuera de la cuenta (JGE: el igual tampoco), nada. Hasta 8, la mano a +0x194, corrida 300 por el rumbo; en 8,
-// el sonido 0x71; de 2 a 8, tres joints 0x10f/2 con tres rand() cada uno; de 6 a 12, los dos efectos
-// 0x812/1 (sin rand()); desde 12, +0x381 en [0x6c88ac].
+// 0x2b (0x4f98a0..0x4f9bcd): the hand bone of 0x4f9780 (the left with 0x25 or 0x26) in Player.bmd. A dummy or past
+// the count (JGE: equal neither), nothing. Up to 8, the hand at +0x194, moved 300 along the heading; at 8, sound 0x71;
+// from 2 to 8, three 0x10f/2 joints with three rand() each; from 6 to 12, the two 0x812/1 effects (no rand()); from
+// 12, +0x381 at [0x6c88ac].
 TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
 {
     struct Case
@@ -397,7 +395,7 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
             hero.bodyPose[HandBone][3] = {10.0f, 20.0f, 30.0f};
             const glm::vec3 untouched{-1.0f, -2.0f, -3.0f};
             hero.skillHandPoint = untouched;
-            tested.world.PlaceModel(hero); // El caller4fd69b publica antes de entrar al helper de frames.
+            tested.world.PlaceModel(hero); // The caller 0x4fd69b publishes before entering the frame helper.
 
             const auto stepped = tested.Step(hero, 0x2b);
 
@@ -419,10 +417,10 @@ TEST(AttackFrameSkillsTest, TheHandOf2bChargesUntilEight)
     }
 }
 
-// 0x4f9918..0x4f9a07: de 2 a 8, tres veces la posición de o con la z + 120 y tres rand() % 601 − 300 sumados, menos el
-// seno del rumbo · 1.400 en x y más el coseno en y (FSIN y FCOS retenidos, un redondeo con el FMUL: PC53), y el joint
-// 0x10f/2 de ancho 40 con o de dueño y sus ángulos, que va de su mano (AuraJoints.cpp). Con el pool lleno, los nueve
-// rand() igual y ningún joint; sin el pool, corta.
+// 0x4f9918..0x4f9a07: from 2 to 8, three times o's position with z + 120 and three rand() % 601 − 300 added, minus the
+// heading's sine · 1400 in x and plus the cosine in y (FSIN and FCOS retained, one rounding with the FMUL: PC53), and
+// the 0x10f/2 joint of width 40 with o as owner and its angles, which leaves from its hand (AuraJoints.cpp). With the
+// pool full, the nine rand() anyway and no joint; without the pool, cuts.
 TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
 {
     for (const std::int32_t map : Maps)
@@ -439,8 +437,8 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
         const auto stepped = tested.Step(hero, 0x2b);
 
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        // Los bits de (x, y, z) de cada joint en el orden de alta, calculados aparte (x87 con FSIN y FCOS de 64 bits y
-        // redondeo a 53 en el FMUL y a 24 en cada FSTP) con la semilla 0x2468ace1.
+        // The (x, y, z) bits of each joint in creation order, computed separately (x87 with 64-bit FSIN and FCOS and
+        // rounding to 53 at the FMUL and to 24 at each FSTP) with seed 0x2468ace1.
         constexpr std::array<std::array<std::uint32_t, 3>, 3> Points{{{0x423c0001u, 0x4550f6f8u, 0x439e4000u},
                                                                       {0x4408c000u, 0x455986f8u, 0x439c4000u},
                                                                       {0x41f80003u, 0x454206f8u, 0x429d0000u}}};
@@ -483,9 +481,9 @@ TEST(AttackFrameSkillsTest, TheBoltsOf2bLeaveFromTheHand)
     }
 }
 
-// La mano de la 0x2b con el rumbo: + seno · 300 en x y − coseno · 300 en y, en la x87 y guardado en float. FSIN y FCOS
-// quedan retenidos y el FMUL por 300 redondea una vez (0x4f9a61..0x4f9a80): el perfil PC53. Otro tipo toma su
-// esqueleto de la biblioteca de modelos; sin ella, corta (0x4f98e4).
+// 0x2b's hand with the heading: + sine · 300 in x and − cosine · 300 in y, on the x87 and stored as a float. FSIN and
+// FCOS stay retained and the FMUL by 300 rounds once (0x4f9a61..0x4f9a80): the PC53 profile. Another type takes its
+// skeleton from the model library; without it, cuts (0x4f98e4).
 TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
 {
     for (const std::int32_t map : Maps)
@@ -517,8 +515,8 @@ TEST(AttackFrameSkillsTest, TheHandOf2bTurnsWithTheHeading)
     }
 }
 
-// 0x2f (0x4f9bce..0x4f9e60): en 10, el sonido 0x7d; en 4, el efecto 0x813 de la mano; en 8, los 0x812/0 (sin
-// rand()); en 13 y 14, tres veces tres rand() y el efecto 0x10f. En los demás, nada.
+// 0x2f (0x4f9bce..0x4f9e60): at 10, sound 0x7d; at 4, the hand's 0x813 effect; at 8, the 0x812/0 (no rand()); at 13
+// and 14, three times three rand() and the 0x10f effect. Otherwise, nothing.
 TEST(AttackFrameSkillsTest, TheStepsOf2f)
 {
     struct Case
@@ -558,10 +556,10 @@ TEST(AttackFrameSkillsTest, TheStepsOf2f)
     }
 }
 
-// 0x4f9d44..0x4f9e52 (CL11): cada 0x10f de la 0x2f sale 145 por delante de o por su rumbo (PC53) y 110 más arriba, con
-// tres rand() % 60 − 30 sumados; sus argumentos: los ángulos de o, la luz (0,3; 0,3; 0,3), el modelo de la mano de
-// subtipo y o de dueño. Con la tabla llena, el lazo saca igual sus nueve rand(). La base, calculada aparte para el
-// rumbo 30 desde (1000, 2000, 300): FSIN y FCOS por 145 en double, guardados en float.
+// 0x4f9d44..0x4f9e52 (CL11): each 0x10f of 0x2f leaves 145 in front of o along its heading (PC53) and 110 higher, with
+// three rand() % 60 − 30 added; its arguments: o's angles, the light (0.3, 0.3, 0.3), the hand's model as subtype and
+// o as owner. With the table full, the loop still draws its nine rand(). The base, computed separately for heading 30
+// from (1000, 2000, 300): FSIN and FCOS times 145 in double, stored as floats.
 TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
 {
     constexpr std::uint16_t HandModel = 0x205;
@@ -610,9 +608,9 @@ TEST(AttackFrameSkillsTest, TheRocksOf2fFallInFrontOfTheStriker)
     }
 }
 
-// 0x4f9a86..0x4f9b69 y 0x4f9c0e..0x4f9d3c: los 0x812/1 de la 0x2b, (+0x381 − 8) · 10 + 100 delante de la mano por el
-// rumbo; el 0x813 de la 0x2f en la mano, con su modelo de subtipo y la luz (1; 1; 0,5); y los 0x812/0 de la 0x2f, 50
-// delante de o y 110 más arriba. Todos con o de dueño.
+// 0x4f9a86..0x4f9b69 and 0x4f9c0e..0x4f9d3c: 0x2b's 0x812/1, (+0x381 − 8) · 10 + 100 in front of the hand along the
+// heading; 0x2f's 0x813 at the hand, with its model as subtype and the light (1, 1, 0.5); and 0x2f's 0x812/0, 50 in
+// front of o and 110 higher. All with o as owner.
 TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
 {
     const auto emitters = [](const FrameWorld& tested)
@@ -677,8 +675,8 @@ TEST(AttackFrameSkillsTest, TheEmittersOf2bAnd2fStartAtTheHand)
     }
 }
 
-// 0x34 (0x4f9e61..0x4f9ef2): el 0x20a de la 0x22 a la 0x97, desde el frame 5, vuelve al 5 con la key anterior en 4; en
-// 3 crea el efecto 0x621/0 y suena0x81 antes del5 de[0x6c88ac].
+// 0x34 (0x4f9e61..0x4f9ef2): the 0x20a in actions 0x22 to 0x97, from frame 5, goes back to 5 with the previous key at
+// 4; at 3 it creates the 0x621/0 effect and plays 0x81 before the 5 of [0x6c88ac].
 TEST(AttackFrameSkillsTest, ThePiercingShotHoldsItsFrame)
 {
     struct Case
@@ -736,9 +734,9 @@ TEST(AttackFrameSkillsTest, ThePiercingShotHoldsItsFrame)
     }
 }
 
-// La 0x34 por el paso del ataque, sin blanco y con el arco a pie (0x2e): desde +0x381 en 1, [0x6c88ac] en 5 y +0x381
-// sube a2 y a3, emite621/0 y continúa a4. Desde4 llega a5 y corre la habilidad: 0x53e2b0 con la 0x34 (el sonido 0x55 y
-// [0x5767948] en 0x34; sin arco en el registro propio, sin flecha) y la cuenta de la tanda.
+// 0x34 through the attack step, without a target and with the bow on foot (0x2e): from +0x381 at 1, [0x6c88ac] at 5
+// and +0x381 goes up to 2 and 3, emits 0x621/0 and continues to 4. From 4 it reaches 5 and runs the skill: 0x53e2b0
+// with 0x34 (sound 0x55 and [0x5767948] at 0x34; without a bow in the own record, no arrow) and the volley's count.
 TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
 {
     for (const std::int32_t map : Maps)
@@ -759,7 +757,7 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
         EXPECT_EQ(striker.byte381, 4);
         EXPECT_EQ(counting.sounds, (std::vector<std::int32_t>{0x81}));
         EXPECT_TRUE(counting.world.Map().effects.Effects()[0].alive);
-        // Cada paso: la lectura de 0x4f97b0 y el rand() de 0x4f5b97 (sin blanco, la cola no lee +0x38e).
+        // Each step: the read of 0x4f97b0 and the rand() of 0x4f5b97 (without a target, the tail does not read +0x38e).
         EXPECT_EQ(DrawsSince(Seed, counting.random), 2 + 2 + 2);
 
         FrameWorld shooting(map);
@@ -772,17 +770,17 @@ TEST(AttackFrameSkillsTest, ThePiercingShotReachesTheArrowThroughTheAttack)
         EXPECT_EQ(shooting.world.Runtime().lastShotSkill, 0x34u);
         EXPECT_EQ(shooting.sounds, std::vector<std::int32_t>{0x55});
         EXPECT_EQ(shooting.world.OwnCharacter().bytef04, 1);
-        // 0x4f97b0 y 0x4f5b97; la cabeza, la bandera de 0x502b12 y las dos lecturas del tiro; el lugar de 0x59fb80, las
-        // armas de 0x53d9a0 y la tanda, con el registro propio cada uno; la escritura de +0x38e.
+        // 0x4f97b0 and 0x4f5b97; the head, the flag of 0x502b12 and the shot's two reads; the slot of 0x59fb80, the
+        // weapons of 0x53d9a0 and the volley, each with the own record; the write of +0x38e.
         EXPECT_EQ(DrawsSince(Seed, shooting.random), 2 + 4 + (3 * OwnRecord) + 1);
     }
 }
 
-// 0x37 (0x4f9ef3..0x4fa490), solo el 0x20a en la 0x3d, en todos los mapas: en 1 y 2, el efecto 0x621/1 sobre o;
-// antes del frame 3 sale con [0x6c88ac] en 15; desde el 3, la clave del elegido en +0x8a (0x558eb0), el sonido 0x72,
-// el lugar de la 0x37 en el registro propio (0x59fb80, 3.848 rand() al cerrarlo; la 0x37 en el lugar 5), el 0x5be/0
-// (0x4f9fae, Scenes/SkillBurstEffects) con o de dueño, la clave y el lugar, sin rand(), y la velocidad de la acción
-// 0x3d con otro registro propio; +0x381 en 15.
+// 0x37 (0x4f9ef3..0x4fa490), only the 0x20a in action 0x3d, on all maps: at 1 and 2, the 0x621/1 effect over o;
+// before frame 3 it leaves with [0x6c88ac] at 15; from 3, the chosen target's key in +0x8a (0x558eb0), sound 0x72, the
+// slot of 0x37 in the own record (0x59fb80, 3848 rand() on closing it; 0x37 in slot 5), the 0x5be/0 (0x4f9fae,
+// Effects/SkillBurstEffects) with o as owner, the key and the slot, no rand(), and the speed of action 0x3d with
+// another own record; +0x381 at 15.
 TEST(AttackFrameSkillsTest, TheThrowOf37)
 {
     struct Case
@@ -824,7 +822,7 @@ TEST(AttackFrameSkillsTest, TheThrowOf37)
             EXPECT_EQ(DrawsSince(Seed, tested.random), probe.thrown ? 2 * OwnRecord : 0);
             EXPECT_EQ(tested.sounds, probe.thrown ? std::vector<std::int32_t>{0x72} : std::vector<std::int32_t>{});
             EXPECT_EQ(tested.Threshold(), FullThreshold);
-            // Sin elegido, 0x558eb0 da −1.
+            // With no chosen target, 0x558eb0 gives −1.
             EXPECT_EQ(static_cast<std::uint16_t>(hero.word8a), probe.thrown ? 0xffff : 0x1234);
             EXPECT_EQ(hero.byte381, probe.thrown ? 15 : probe.step);
             const auto effects = tested.world.Map().effects.Effects();
@@ -901,9 +899,9 @@ TEST(AttackFrameSkillsTest, Skill39AttemptsEveryKeyAcrossPartialAndFullPools)
     }
 }
 
-// 0x38 (0x4fa4a8..0x4fa5d3): fuera del 0x20a en la 0x8d (TheSpinOf38ThrowsFiveWaves), [0x6c88ac] en 15. 0x39
-// (0x4fa994..0x4faaca), de cualquier tipo: pasado el frame 5, los joints 0x60f/0x17 (0x4fa9ca); entre 2,3f y 2,6f (sin
-// los bordes), los de las claves 2 y 3 (0x4faa81); siempre [0x6c88ac] en 15 para la0x39.
+// 0x38 (0x4fa4a8..0x4fa5d3): other than the 0x20a in 0x8d (TheSpinOf38ThrowsFiveWaves), [0x6c88ac] at 15. 0x39
+// (0x4fa994..0x4faaca), of any type: past frame 5, the 0x60f/0x17 joints (0x4fa9ca); between 2.3f and 2.6f (without
+// the edges), those of keys 2 and 3 (0x4faa81); always [0x6c88ac] at 15 for 0x39.
 TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
 {
     struct Case
@@ -955,9 +953,9 @@ TEST(AttackFrameSkillsTest, TheSpinOf38AndTheBoltsOf39)
     }
 }
 
-// 0x4fa4c1..0x4fa5c3, la 0x38 del 0x20a en la 0x8d: cinco 0xce/2 desde o con o de dueño, el rumbo 40 menos y después
-// 20 más cada vez; cada alta cuenta en el registro propio (+0x8c con la cuenta, que sube). Después el sonido 0x72,
-// +0x381 en 15 y [0x6c88ac] en 15.
+// 0x4fa4c1..0x4fa5c3, 0x38 of the 0x20a in 0x8d: five 0xce/2 from o with o as owner, the heading 40 less and then 20
+// more each time; each creation counts in the own record (+0x8c with the count, which goes up). Then sound 0x72,
+// +0x381 at 15 and [0x6c88ac] at 15.
 TEST(AttackFrameSkillsTest, TheSpinOf38ThrowsFiveWaves)
 {
     FrameWorld tested(0);
@@ -993,9 +991,9 @@ TEST(AttackFrameSkillsTest, TheSpinOf38ThrowsFiveWaves)
     EXPECT_EQ(tested.sounds, (std::vector<std::int32_t>{0x72}));
 }
 
-// 0x4f8f5b, la 3 sin caso de +0x376 en la cola de 0x4f5b70 (por el paso del ataque, con el blanco en el pool): el
-// hueso de la derecha contra la cuenta de huesos (JL: el igual pasa, Q-C1093); fuera, nada; si no, los dos joints
-// 0x614/0 (0x4f8fef y 0x4f9012, sin rand() propios) y la partícula 0x5ca/0 (0x4f9034, dos rand()).
+// 0x4f8f5b, the 3 without a case of +0x376 in the tail of 0x4f5b70 (through the attack step, with the target in the
+// pool): the right hand's bone against the bone count (JL: equal passes, Q-C1093); outside, nothing; otherwise the two
+// 0x614/0 joints (0x4f8fef and 0x4f9012, no rand() of their own) and the 0x5ca/0 particle (0x4f9034, two rand()).
 TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
 {
     struct Case
@@ -1034,13 +1032,12 @@ TEST(AttackFrameSkillsTest, TheHandBoltsOfTheTail)
                 EXPECT_EQ(joint->type, 0x614);
                 EXPECT_EQ(joint->subtype, 0);
             }
-            // La lectura de 0x4f97b0, el rand() de 0x4f5b97 y las lecturas de 0x4f811b y 0x4f8a2c; con los joints, los
-            // dos de la 0x5ca/0.
+            // The read of 0x4f97b0, the rand() of 0x4f5b97 and the reads of 0x4f811b and 0x4f8a2c; with the joints, the
+            // two of the 0x5ca/0.
             EXPECT_EQ(DrawsSince(Seed, tested.random), probe.cast ? 6 : 4);
         }
     }
 }
-// Un pool lleno omite el constructor CL11 y conserva todos los writes, sonidos y rand() de sus callers.
 TEST(AttackFrameSkillsTest, FullPoolsContinueTheNativeFrameTails)
 {
     struct Case

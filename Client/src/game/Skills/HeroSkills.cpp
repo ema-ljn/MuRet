@@ -44,7 +44,7 @@ constexpr std::uint32_t HiddenHeroFlag = 0x4000;
 constexpr std::uint32_t PartySkillFlag = 0x200;
 constexpr std::uint16_t PlayerType = Tables::PlayerSkeletonModel;
 constexpr float TeleportFade = 0.1f;
-constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0,001
+constexpr float SecondsPerMillisecond = std::bit_cast<float>(std::uint32_t{0x3a83126f}); // [0x6ba128], 0.001
 constexpr double MaximumHoldSeconds = 3600.0;                                            // [0x6ba43c]
 constexpr std::int32_t SpectatorMap = 6;
 using Kernel::BaseClassOf;
@@ -55,21 +55,21 @@ using Maps::IsChaosCastle;
 using Maps::LastBloodCastleMap;
 constexpr std::uint8_t ChargedSkill = 0x28;
 constexpr std::uint8_t ReleasedChargedSkill = 0x3a;
-constexpr std::size_t PartyOffset = 0x31; // Skill.bmd: con 2, la skill pide 0x200 en +0x78
-constexpr std::size_t WeaponHands = 2;    // 0x57d74c: +0xb6c y +0xbb4
+constexpr std::size_t PartyOffset = 0x31; // Skill.bmd: with 2, the skill asks for 0x200 in +0x78
+constexpr std::size_t WeaponHands = 2;    // 0x57d74c: +0xb6c and +0xbb4
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
 {
     return value >= first && value <= last;
 }
 
-// 0x57d1bc..0x57d1d7 y 0x57d3ab..0x57d3c9: el ataque automático (0x6c8e3c), fuera del mapa 6 y de Chaos Castle.
+// 0x57d1bc..0x57d1d7 and 0x57d3ab..0x57d3c9: auto attack (0x6c8e3c), outside map 6 and Chaos Castle.
 bool AutoAttacksHere(const Kernel::WorldRuntime& runtime)
 {
     return runtime.ui.autoAttack && runtime.map != SpectatorMap && !IsChaosCastle(runtime.map);
 }
 
-// 0x57d369..0x57d3a5: lo que se usa desde la zona segura de Blood Castle y Chaos Castle.
+// 0x57d369..0x57d3a5: what can be used from the Blood Castle and Chaos Castle safe zone.
 bool UsableInTheSafeZone(std::uint8_t skill)
 {
     switch (skill)
@@ -89,8 +89,8 @@ bool UsableInTheSafeZone(std::uint8_t skill)
     }
 }
 
-// 0x57d3cf..0x57d458: con el ataque automático, el otro elegido (0x6c8e38) por la clase y la skill: −1 con las que no
-// lo siguen y 2 con las demás.
+// 0x57d3cf..0x57d458: with auto attack, the other choice (0x6c8e38) by class and skill: −1 with those that do not
+// follow it and 2 with the others.
 std::int32_t AutoTargetOf(CharacterClass heroClass, std::uint8_t skill)
 {
     constexpr std::int32_t NoAutoTarget = -1;
@@ -115,14 +115,14 @@ std::int32_t AutoTargetOf(CharacterClass heroClass, std::uint8_t skill)
         if (skill == 0x3a || skill == 0x28)
             return NoAutoTarget;
     }
-    // 0x57d42f..0x57d452: las 0x43..0x48 y, por el SBB, la 0x4b.
+    // 0x57d42f..0x57d452: 0x43..0x48 and, through the SBB, 0x4b.
     if (InRange(skill, 0x43, 0x48) || skill == 0x4b)
         return NoAutoTarget;
     return FollowsTheChosen;
 }
 
-// 0x57d45d..0x57d4b0: la acción del héroe (+0x111). Un jugador, de 1 a 12, 0x8a, 0x44, 0x48, 0x4a o 0x76 a 0x79; si
-// no, nada y, si es jugador, los frames del derecho (0x7d368a4) en 0. Otro tipo, la 0 o la 1.
+// 0x57d45d..0x57d4b0: the hero's action (+0x111). A player, 1 to 12, 0x8a, 0x44, 0x48, 0x4a or 0x76 to 0x79;
+// otherwise, nothing and, if a player, the right button's frames (0x7d368a4) at 0. Another type, 0 or 1.
 enum class ActionGate : std::uint8_t
 {
     Passes,
@@ -164,7 +164,7 @@ std::uint8_t ReadCell(std::uint8_t& depth, std::uint8_t cell, Crt::CrtRandom& ra
     return cell;
 }
 
-// 0x57d2da..0x57d307: el byte +0x31 de la entrada (0x5aea30 la abre y 0x4e7c40 la cierra).
+// 0x57d2da..0x57d307: byte +0x31 of the entry (0x5aea30 opens it and 0x4e7c40 closes it).
 Core::Expected<std::uint8_t, std::string> PartyByteOf(std::uint8_t skill, const HeroSkillContext& context)
 {
     const auto record = context.skills->Record(skill);
@@ -174,7 +174,7 @@ Core::Expected<std::uint8_t, std::string> PartyByteOf(std::uint8_t skill, const 
     return std::to_integer<std::uint8_t>((*record)[PartyOffset]);
 }
 
-// 0x5a5540(skill): las del asedio (0x2c, 0x2d, 0x2e, 0x39, 0x49 y 0x4a) solo en el mapa 30 con el asedio (0x4294b0).
+// 0x5a5540(skill): the siege ones (0x2c, 0x2d, 0x2e, 0x39, 0x49 and 0x4a) only on map 30 with the siege (0x4294b0).
 bool UsableOnThisMap(std::uint8_t skill, const Kernel::WorldRuntime& runtime)
 {
     const bool siegeSkill =
@@ -182,12 +182,12 @@ bool UsableOnThisMap(std::uint8_t skill, const Kernel::WorldRuntime& runtime)
     return !siegeSkill || (runtime.map == CastleSiegeMap && runtime.castleSiege.siegeActive);
 }
 
-// 0x420f70(héroe, lugar): las órdenes del cuervo. Sin cuervo (+0x430), sin el clic ni el botón derecho o con un lugar
-// fuera de 0x78 a 0x7b, 0. Con el 0x7b (0x420fd6..0x42100f), si 0x558bb0 deja atacar al elegido y es un jugador (1) o
-// un monstruo (2) en +0x88, el A7 con la orden 3 y su clave (+0x1f4); con los otros, el A7 con el lugar − 0x78 y la
-// clave 0xffff (0x421599..0x4219cd). La mascota es el +0x444 del cuervo, siempre 0 (Protocol::Pets::RavenPet). Por
-// send() en línea; sin el socket (+0xc de 0x6c82a0 en −1), no sale. Después, con el A7 o sin él, el soltado, el clic,
-// el botón y los frames del derecho en 0 y 1 (0x421aff..0x421b20). Sin rand().
+// 0x420f70(hero, slot): the raven's orders. Without a raven (+0x430), without the click or the right button, or with a
+// slot outside 0x78 to 0x7b, 0. With 0x7b (0x420fd6..0x42100f), if 0x558bb0 lets the chosen target be attacked and it
+// is a player (1) or a monster (2) in +0x88, the A7 with order 3 and its key (+0x1f4); with the others, the A7 with
+// slot − 0x78 and key 0xffff (0x421599..0x4219cd). The pet is the raven's +0x444, always 0 (Protocol::Pets::RavenPet).
+// Through inline send(); without the socket (+0xc of 0x6c82a0 at −1), it is not sent. Then, with or without the A7,
+// the release, the click, the button and the right button's frames at 0 and 1 (0x421aff..0x421b20). No rand().
 Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& hero, std::uint8_t slot,
                                                    const HeroSkillContext& context)
 {
@@ -206,7 +206,7 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
         const auto attackable = Combat::IsAttackable(context.world, context.controlDown);
         if (!attackable.HasValue())
             return Core::Unexpected(attackable.Error());
-        // 0x558bb0 ya miró el −1 y el lugar del elegido.
+        // 0x558bb0 already checked the −1 and the chosen target's slot.
         if (attackable.Value())
         {
             const Kernel::ActorState& chosen =
@@ -231,8 +231,8 @@ Core::Expected<bool, std::string> UseTheRavenOrder(const Kernel::ActorState& her
     return true;
 }
 
-// 0x559890(héroe, ítem): la skill del arma de las clases 1, 3 y 4. Con lo que la frena, 0; las de la lista van a
-// 0x559afc (UseTheListedWeaponSkill) y las demás a las opciones del arma (UseTheWeaponOptions, HeroSkillCasts).
+// 0x559890(hero, item): the weapon skill of classes 1, 3 and 4. With what stops it, 0; the listed ones go to 0x559afc
+// (UseTheListedWeaponSkill) and the others to the weapon's options (UseTheWeaponOptions, HeroSkillCasts).
 Core::Expected<bool, std::string> UseTheWeaponSkill(Kernel::ActorState& hero, const Kernel::ItemState& item,
                                                     const HeroSkillContext& context)
 {
@@ -252,7 +252,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(Kernel::ActorState& hero, co
         const auto own = OwnAccess(context);
         skill = Kernel::OwnSkillByte(context.world.OwnCharacter(), runtime.movement.weaponSkill.slot);
     }
-    // 0x5599db..0x559afa: las skills de la lista y los tipos del arma derecha del héroe publicado (+0x2b8, MOVSX).
+    // 0x5599db..0x559afa: the listed skills and the types of the published hero's right weapon (+0x2b8, MOVSX).
     const Kernel::ActorState& published = context.world.Hero();
     const auto right = static_cast<std::int32_t>(static_cast<std::int16_t>(published.hands[0].model));
     bool special = false;
@@ -291,9 +291,9 @@ Core::Expected<bool, std::string> UseTheWeaponSkill(Kernel::ActorState& hero, co
     return UseTheWeaponOptions(hero, item, context);
 }
 
-// 0x57d532..0x57d758: por cada mano (+0xb6c y +0xbb4), la skill de su arma. La tabla 0x599d70 (por la skill − 0x2b)
-// deja montado solo las 0x2b, 0x2f, 0x31, 0x3c a 0x3e, 0x41, 0x4a y 0x4c. True: la usó (0x57df46, el registro cerrado
-// y nada más).
+// 0x57d532..0x57d758: for each hand (+0xb6c and +0xbb4), its weapon's skill. Table 0x599d70 (by skill − 0x2b) allows
+// only 0x2b, 0x2f, 0x31, 0x3c to 0x3e, 0x41, 0x4a and 0x4c while mounted. True: it used it (0x57df46, the record closed
+// and nothing more).
 Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, CharacterClass heroClass,
                                                      std::uint8_t skill, const HeroSkillContext& context)
 {
@@ -309,7 +309,8 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, C
             const bool skipped = Mounted(hero) && (index >= MountedSkills.size() || MountedSkills[index] != 0);
             if (!skipped)
             {
-                // 0x57d582..0x57d61b: el registro abierto, 0x7758580 en 1, el lugar y el elegido si se ataca.
+                // 0x57d582..0x57d61b: the record open, 0x7758580 at 1, the slot and the chosen target if it is
+                // attacked.
                 const auto own = OwnAccess(context);
                 Movement::WeaponSkillRequest& request = runtime.movement.weaponSkill;
                 request.active = 1;
@@ -334,8 +335,7 @@ Core::Expected<bool, std::string> UseTheWeaponSkills(Kernel::ActorState& hero, C
     return false;
 }
 
-// 0x57d787..0x58188e y 0x5897aa..0x5897b1: la rama de la clase. Las 0x43 a 0x48 (0x5808da, HeroSkillsTail) son de
-// todas.
+// 0x57d787..0x58188e and 0x5897aa..0x5897b1: the class branch. 0x43 to 0x48 (0x5808da, HeroSkillsTail) belong to all.
 Core::Expected<void, std::string> UseTheClassSkill(Kernel::ActorState& hero, CharacterClass heroClass,
                                                    std::uint8_t skill, const HeroSkillContext& context)
 {
@@ -346,18 +346,19 @@ Core::Expected<void, std::string> UseTheClassSkill(Kernel::ActorState& hero, Cha
     {
         if (auto used = UseTheKnightSkill(hero, heroClass, skill, context); !used.HasValue())
             return used;
-        // 0x5897a7..0x5897b1: el Magic Gladiator sigue en la rama del Wizard, que repite la prueba de la clase.
+        // 0x5897a7..0x5897b1: the Magic Gladiator continues in the Wizard's branch, which repeats the class test.
         if (heroClass == CharacterClass::MagicGladiator)
             return UseTheWizardSkill(hero, skill, context);
     }
     if (heroClass == CharacterClass::DarkWizard)
         return UseTheWizardSkill(hero, skill, context);
-    // 0x5897b1: las clases 1, 4 y 5 a 7, a 0x5808da (las 0x43 a 0x48).
+    // 0x5897b1: classes 1, 4 and 5 to 7, to 0x5808da (0x43 to 0x48).
     return UseTheSharedTail(hero, skill, context);
 }
 
-// 0x57d12c..0x57d1b8: el derecho. Con los frames de la carga (0x7d368a4), el soltado la usa y si no, cuentan; si no,
-// el clic o el botón abajo la usan y la 0x28 empieza a cargarse como 0x3a. Devuelve si la usa y deja la skill.
+// 0x57d12c..0x57d1b8: the right button. With the charge frames (0x7d368a4), the release uses it and otherwise they
+// count; otherwise, the click or the button down uses it and 0x28 starts charging as 0x3a. Returns whether it uses it
+// and leaves the skill.
 enum class RightButton : std::uint8_t
 {
     Idle,
@@ -409,19 +410,19 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     const CharacterClass heroClass = BaseClassOf(hero.characterClass);
     if (hero.byte80 == 1)
     {
-        // 0x57d02b..0x57d04a: fst conserva el resultado extendido para la comparación.
+        // 0x57d02b..0x57d04a: fst keeps the extended result for the comparison.
         const double faded = static_cast<double>(hero.alpha) - static_cast<double>(TeleportFade);
         hero.alpha = static_cast<float>(faded);
         if (faded < static_cast<double>(TeleportFade))
             hero.byte80 = 2;
     }
-    // 0x57d051..0x57d10d: la skill del lugar +0x425 del héroe publicado, con el registro abierto.
+    // 0x57d051..0x57d10d: the skill of the published hero's slot +0x425, with the record open.
     std::uint8_t skill = 0;
     {
         const auto own = OwnAccess(context);
         skill = Kernel::OwnSkillByte(world.OwnCharacter(), world.Hero().skillIndex);
     }
-    // 0x57d112: el alcance queda en un local que leen las ramas de las clases.
+    // 0x57d112: the reach stays in a local that the class branches read.
     const auto range = SkillRangeOf(skill, hero, context);
     if (!range.HasValue())
         return Core::Unexpected(range.Error());
@@ -429,7 +430,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     bool uses = false;
     if (state.movementBlocked)
     {
-        // 0x57d261..0x57d282: trabado, solo el clic izquierdo (el flanco se gasta) o el botón abajo, sin el reloj.
+        // 0x57d261..0x57d282: locked, only the left click (the edge is spent) or the button down, without the clock.
         if (!mouse.pendingClick && !mouse.leftHeld)
             return {};
         mouse.pendingClick = false;
@@ -441,7 +442,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
         if (right == RightButton::Leaves)
             return {};
         uses = right == RightButton::Uses;
-        // 0x57d1bc..0x57d1ef: el ataque automático con el otro elegido (0x6c8e38) en 2 y un elegido.
+        // 0x57d1bc..0x57d1ef: auto attack with the other choice (0x6c8e38) at 2 and a chosen target.
         if (AutoAttacksHere(runtime) && runtime.selectedTargets[4] == 2 && runtime.selectedTargets[2] != -1)
             uses = true;
         if (!uses)
@@ -451,7 +452,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
             state.actionInputElapsed = 0.0f;
             return {};
         }
-        // 0x57d1f8..0x57d22d: desde la última vez sin uso, en s; a las 3.600 suelta el derecho.
+        // 0x57d1f8..0x57d22d: since the last time without use, in s; at 3600 it releases the right button.
         const double elapsed = (static_cast<double>(context.worldTime) - static_cast<double>(state.actionInputTime)) *
                                static_cast<double>(SecondsPerMillisecond);
         state.actionInputElapsed = static_cast<float>(elapsed);
@@ -482,7 +483,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
         return {};
     if (!uses || hero.dying != 0)
         return {};
-    // 0x57d33d..0x57d3a5: en la zona segura, solo en Blood Castle o Chaos Castle y con las skills de la lista.
+    // 0x57d33d..0x57d3a5: in the safe zone, only in Blood Castle or Chaos Castle and with the listed skills.
     if (hero.safeZone != 0)
     {
         if (!InRange(runtime.map, FirstBloodCastleMap, LastBloodCastleMap) && !IsChaosCastle(runtime.map))
@@ -504,9 +505,9 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
     }
     if (heroClass != CharacterClass::DarkWizard)
     {
-        // 0x57d4be..0x57d51f: el blanco y, desde la celda lógica (la Y antes que la X), si se lo ve. La línea que sale
-        // de TerrainWall (0x55886d lee fuera de los 65.536 WORD) MuRet la toma como sin línea (08, P-C256).
-        // 0x57d4c7: nobody looks at the result.
+        // 0x57d4be..0x57d51f: the target and, from the logical cell (Y before X), whether it is seen. MuRet takes the
+        // line that leaves TerrainWall (0x55886d reads past the 65536 WORDs) as no line (08, P-C256). 0x57d4c7: nobody
+        // looks at the result.
         if (auto aimed = AimTheHeroSkill(hero, context); !aimed.HasValue())
             return Core::Unexpected(std::move(aimed).Error());
         const auto y = ReadCell(hero.cellYAccesses, hero.cellY, context.random);
@@ -528,7 +529,7 @@ Core::Expected<void, std::string> UseTheHeroSkill(Kernel::ActorState& hero, cons
         }
         else
         {
-            // 0x57d760..0x57d774: los tres en 0 y el elegido en −1.
+            // 0x57d760..0x57d774: the three at 0 and the chosen target at −1.
             state.weaponSkill = Movement::WeaponSkillRequest{.active = 0, .slot = 0, .target = -1};
         }
     }

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-// 06-render-escenas-y-ui § Caminar, velocidad 0x508940 completa: valor y estado persistente.
+// 06-render-escenas-y-ui § Caminar: the whole speed function 0x508940, value and persistent state.
 namespace Client::Actors
 {
 struct MovementSpeedInput
@@ -18,17 +18,17 @@ struct MovementSpeedInput
     std::int32_t map = -1;
 };
 
-// Una sola instancia entre actores: D0/D4 del original, no estado por actor. Los defaults son
-// del DTO; no afirman cómo se inicializan los globales nativos. D4 se compara como signed32.
+// A single instance across actors: the original's D0/D4, not per-actor state. The defaults are the DTO's; they do not
+// claim how the native globals are initialized. D4 is compared as signed32.
 struct MovementSpeedSharedState
 {
     std::uint32_t itemLatch = 0;
     std::uint32_t itemCounterBits = 0;
 };
 
-// Run es el único byte mutable del actor y admite 0..255. Inputs estables, memorias distintas y
-// estado con un solo dueño durante la llamada. Proyecta el retorno y los tres estados; no replica
-// ABI, slot de argumento, status x87, fallos ni aliases arbitrarios del original.
+// Run is the actor's only mutable byte and accepts 0..255. Stable inputs, distinct memories and state with a single
+// owner during the call. Projects the return and the three states; does not replicate the original's ABI, argument
+// slot, x87 status, faults or arbitrary aliases.
 [[nodiscard]] float UpdateMovementSpeed(std::uint8_t& run, MovementSpeedSharedState& shared,
                                         const MovementSpeedInput& input);
 } // namespace Client::Actors

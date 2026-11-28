@@ -10,19 +10,20 @@ namespace Client::Kernel
 struct ActorState;
 } // namespace Client::Kernel
 
-// CL9 hito 4, fase 2c: las skills del elfo sobre su blanco al alcance (0x55faa0). La llaman la rama del elfo de
-// 0x57cfc0 (0x57f239 y 0x57fa20, con el héroe dos veces) y la llegada de 0x5650c0 (0x56654a y 0x5666db, el caso 5).
+// The elf's skills on their target in reach (0x55faa0). Called by the elf branch of 0x57cfc0 (0x57f239 and 0x57fa20,
+// with the hero twice) and the arrival of 0x5650c0 (0x56654a and 0x5666db, case 5).
 namespace Client::Skills
 {
 
-// 0x55faa0(p1, p2): primero el D3 de girar con la celda lógica del héroe publicado (la X, +0x41c, y la Y, +0x420,
-// cada una abierta y cerrada) y su ángulo de ese momento. Después, la skill del lugar 0x7758584 (sin mirar
-// 0x7758580) en el registro propio abierto y cerrado; la posición del blanco (0x7758588, sin mirar el −1) en
-// +0x3a8..+0x3b0 de p1 y el ángulo de p2 hacia él (0x4e93f0); por la skill − 0x1a (la tabla 0x56181c):
-// - 0x1a, 0x1b y 0x1c: sin "webzen" y con el freno, el C1 06 19 con la clave del blanco (+0x1f4); 0x4f5290(p1).
-// - 0x33: sin flechas (0x561c50), nada; si no, el 19 como arriba y 0x4f4a10(p1).
-// - 0x2e: sin flechas, nada; si no, el 19 y 0x4f48e0(p1), la acción de tirar por las manos.
-// - Las demás, nada.
+// 0x55faa0(p1, p2): first the turning D3 with the published hero's logical cell (X, +0x41c, and Y, +0x420, each
+// opened and closed) and its angle at that moment. Then the skill of slot 0x7758584 (without checking 0x7758580) in the
+// own record opened and closed; the target's position (0x7758588, without checking the −1) in +0x3a8..+0x3b0 of p1 and
+// p2's angle towards it (0x4e93f0); by skill − 0x1a (table 0x56181c):
+// - 0x1a, 0x1b and 0x1c: without "webzen" and with the brake, the C1 06 19 with the target's key (+0x1f4);
+//   0x4f5290(p1).
+// - 0x33: without arrows (0x561c50), nothing; otherwise the 19 as above and 0x4f4a10(p1).
+// - 0x2e: without arrows, nothing; otherwise the 19 and 0x4f48e0(p1), the shooting action by hands.
+// - The others, nothing.
 [[nodiscard]] Core::Expected<void, std::string>
 UseTheElfSkillOnItsTarget(Kernel::ActorState& user, Kernel::ActorState& turned, const HeroSkillContext& context);
 } // namespace Client::Skills

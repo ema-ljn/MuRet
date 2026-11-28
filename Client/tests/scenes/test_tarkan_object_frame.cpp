@@ -25,8 +25,8 @@
 #include <string>
 #include <vector>
 
-// 0x602ed0 con el mapa 8 (0x603a3e, la tabla 0x6045f8): los sprites de los huesos, los humos del pool
-// compartido y la piedrita del 0x53 (06 § Los objetos de Tarkan).
+// 0x602ed0 with map 8 (0x603a3e, table 0x6045f8): the bone sprites, the smokes of the shared pool and the 0x53's
+// pebble (06 § Los objetos de Tarkan).
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -96,14 +96,14 @@ WorldObject ObjectOf(std::int16_t type)
     return object;
 }
 
-// s = sin(fase · 0,002f) · 0,3f + 0,7f, con 0x6b89bc, 0x6b89dc y 0x6b8a5c, sin redondear.
+// s = sin(phase · 0.002f) · 0.3f + 0.7f, with 0x6b89bc, 0x6b89dc and 0x6b8a5c, unrounded.
 double Pulse(double phase)
 {
     return (RoundedSin(phase * D(std::bit_cast<float>(0x3b03126fu))) * D(std::bit_cast<float>(0x3e99999au))) +
            D(std::bit_cast<float>(0x3f333333u));
 }
 
-// Lo que deja 0x53fe70(0x5f2, …) en un pool aparte con la misma semilla, para comparar lugar por lugar.
+// What 0x53fe70(0x5f2, …) leaves in a separate pool with the same seed, to compare slot by slot.
 struct Reference
 {
     std::unique_ptr<Client::Particles::Particles> particles = std::make_unique<Client::Particles::Particles>();
@@ -149,8 +149,8 @@ glm::vec3 BonePoint(const Fixture& fixture, std::size_t bone)
                                                  Client::Math::OriginalMatrixOf(fixture.pose.bones[bone]));
 }
 
-// 0x603a5a..0x603abd: el 0 deja un 0x5c6 en el hueso 6, de escala s guardada por 5 y luz
-// (s · 0,5882353f; s; s), con la fase T y sin rand().
+// 0x603a5a..0x603abd: the 0 leaves a 0x5c6 on bone 6, of scale stored s times 5 and light
+// (s · 0.5882353f; s; s), with phase T and no rand().
 TEST(TarkanObjectFrameTest, TheZeroSparksOnItsSixthBone)
 {
     Fixture fixture;
@@ -170,8 +170,8 @@ TEST(TarkanObjectFrameTest, TheZeroSparksOnItsSixthBone)
     EXPECT_EQ(fixture.random.State(), 7u);
 }
 
-// 0x603b0c y 0x603b87: el 0x3f y el 0x40 dejan un 0x716 (Impack03) en el hueso 2 con la fase ángulo z · 5 +
-// T y la escala s · 1,5; el 0x3f con la luz del 0, el 0x40 con (s; s · 0,32f; s · 0,32f).
+// 0x603b0c and 0x603b87: the 0x3f and the 0x40 leave a 0x716 (Impack03) on bone 2 with phase z angle · 5 + T and
+// scale s · 1.5; the 0x3f with the 0's light, the 0x40 with (s; s · 0.32f; s · 0.32f).
 TEST(TarkanObjectFrameTest, TheImpactsGlowOnTheirSecondBone)
 {
     for (const std::int16_t type : {std::int16_t{0x3f}, std::int16_t{0x40}})
@@ -194,7 +194,6 @@ TEST(TarkanObjectFrameTest, TheImpactsGlowOnTheirSecondBone)
     }
 }
 
-// Sin la pose global, sin la tabla de sprites: corta con la dirección.
 TEST(TarkanObjectFrameTest, TheSparksNeedThePoseAndTheSprites)
 {
     Fixture fixture;
@@ -213,8 +212,8 @@ TEST(TarkanObjectFrameTest, TheSparksNeedThePoseAndTheSprites)
     EXPECT_NE(unsprited.Error().find("0x603bf7"), std::string::npos) << unsprited.Error();
 }
 
-// 0x603acc: el 0x3c, la primera vez (+0x58 distinto de −2), veinte 5f2/6 con la posición, los ángulos, la luz
-// y la escala del objeto; después +0x58 = −2 y ya no humea.
+// 0x603acc: the 0x3c, the first time (+0x58 other than −2), twenty 0x5f2/6 with the object's position, angles,
+// light and scale; then +0x58 = −2 and it no longer smokes.
 TEST(TarkanObjectFrameTest, TheSixtyPuffsTwentyTimesOnce)
 {
     Fixture fixture;
@@ -232,7 +231,7 @@ TEST(TarkanObjectFrameTest, TheSixtyPuffsTwentyTimesOnce)
     EXPECT_EQ(fixture.Alive().size(), 20u);
 }
 
-// 0x603c06: el 0x46 se oculta y, con rand() % 5 == 0, deja un 5f2/7.
+// 0x603c06: the 0x46 hides and, with rand() % 5 == 0, leaves a 0x5f2/7.
 TEST(TarkanObjectFrameTest, TheSeventyPuffsOneTimeInFive)
 {
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u})
@@ -250,7 +249,7 @@ TEST(TarkanObjectFrameTest, TheSeventyPuffsOneTimeInFive)
     }
 }
 
-// 0x603c4c: el 0x4c se oculta y, con ftol(T) % 5.000 mayor que 4.500 (con signo), deja un 5f2/4.
+// 0x603c4c: the 0x4c hides and, with ftol(T) % 5000 above 4500 (signed), leaves a 0x5f2/4.
 TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
 {
     for (const float clock : {14500.0f, 14501.0f, 19999.0f, 20000.0f, -14600.0f})
@@ -279,12 +278,12 @@ TEST(TarkanObjectFrameTest, TheSeventySixPuffsInTheLastTenthOfItsPeriod)
     EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
 }
 
-// 0x603c9d..0x603dc8: el 0x53 se oculta y, con ftol(T) % 10.000 entre ftol(ángulo z) · 10 + 3.500 y + 4.000
-// (sin los bordes), deja un 5f2/8; con rand() % 3 == 0, además un 5f2/4 corrido ((rand() & 127) − 64) en x y
-// en y, de media escala, y la piedrita 200 + (rand() & 1) en el objeto.
+// 0x603c9d..0x603dc8: the 0x53 hides and, with ftol(T) % 10000 between ftol(z angle) · 10 + 3500 and + 4000
+// (borders excluded), leaves a 0x5f2/8; with rand() % 3 == 0, also a 0x5f2/4 shifted ((rand() & 127) − 64) in x
+// and in y, at half scale, and the pebble 200 + (rand() & 1) on the object.
 TEST(TarkanObjectFrameTest, TheEightyThreeSmokesInItsWindowAndSometimesThrowsAStone)
 {
-    // Con el ángulo 30, la ventana va de 3.800 a 4.300.
+    // With angle 30, the window goes from 3800 to 4300.
     for (const float clock : {3800.0f, 3801.0f, 4299.0f, 4300.0f, 13900.0f})
     {
         SCOPED_TRACE(clock);
@@ -347,8 +346,8 @@ TEST(TarkanObjectFrameTest, TheEightyThreeSmokesInItsWindowAndSometimesThrowsASt
     EXPECT_TRUE(stoned && plain);
 }
 
-// La piedrita sin la tabla de efectos corta en 0x603dc8, con los dos humos ya creados; un ángulo sin ftol
-// acreditado corta en 0x603ca7 después de ocultarse.
+// The pebble without the effect table cuts at 0x603dc8, with both smokes already created; an angle without a
+// credited ftol cuts at 0x603ca7 after hiding.
 TEST(TarkanObjectFrameTest, TheEightyThreeCutsWithItsAddresses)
 {
     for (std::uint32_t seed = 1;; ++seed)
@@ -385,7 +384,6 @@ TEST(TarkanObjectFrameTest, TheEightyThreeCutsWithItsAddresses)
     EXPECT_NE(unpooled.Error().find("0x603af3"), std::string::npos) << unpooled.Error();
 }
 
-// Un tipo sin caso en 0x6045f8 no hace nada.
 TEST(TarkanObjectFrameTest, TheOtherTypesDoNothing)
 {
     Fixture fixture;

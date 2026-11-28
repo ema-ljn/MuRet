@@ -16,7 +16,7 @@
 
 namespace
 {
-// Aísla las leafs: acepta sólo el request309 acreditado. No demuestra ModelEffects transitivo.
+// Isolates the leaves: accepts only the credited request 309. Does not prove transitive ModelEffects.
 class CastleEffectBinding final : public Client::WorldObjects::IWorldObjectCreationServices
 {
 public:
@@ -28,7 +28,7 @@ public:
     }
 };
 
-// Las dos listas son literales del contrato42b480, no una tabla derivada del port.
+// Both lists are literals of the 0x42b480 contract, not a table derived from the port.
 TEST(WorldObjectCreationLeavesTest, AllSignedTypesUseTheCorrectCastleGroupForEveryPredicateByte)
 {
     constexpr std::array<std::int16_t, 20> GroupA{4,  11, 37, 41, 43, 44, 45, 46, 47, 48,
@@ -65,7 +65,7 @@ TEST(WorldObjectCreationLeavesTest, AllSignedTypesUseTheCorrectCastleGroupForEve
     }
 }
 
-// D43ff70 lee el tipo sólo tras aceptar mapa31; el resto de la cadena no debe gastar RNG por él.
+// 0x43ff70 reads the type only after accepting map 31; the rest of the chain must not spend RNG on it.
 TEST(WorldObjectCreationLeavesTest, AllSignedTypesOnMap31ConsumeRandomOnlyFor27And54)
 {
     for (int type = -32768; type <= 32767; ++type)

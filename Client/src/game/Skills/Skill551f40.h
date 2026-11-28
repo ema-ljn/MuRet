@@ -5,10 +5,10 @@
 #include <cstdint>
 #include <string>
 
-// 0x551f40(skill, &requisito), CL9 hito 4, fase 2c: la energía que pide una skill, de su entrada de Skill.bmd con el
-// acceso abierto y cerrado (60 rand() si su cuenta vuelve a 0, 0x40f600). Con el byte +0x2c en 0, 0; si no,
-// (+0x20 · +0x2c · 4) / 100 + 20, con la división con signo de 0x51eb851f (*estático*). La llaman las ramas de las
-// clases de 0x57cfc0 (0x57e075, 0x582310, 0x589885 y 0x593feb), contra +0x30 + +0x1e del registro propio.
+// 0x551f40(skill, &requirement): the energy a skill asks for, from its Skill.bmd entry with the access opened and
+// closed (60 rand() if its count returns to 0, 0x40f600). With byte +0x2c at 0, 0; otherwise (+0x20 · +0x2c · 4) /
+// 100 + 20, with the signed division by 0x51eb851f (*static*). Called by the class branches of 0x57cfc0 (0x57e075,
+// 0x582310, 0x589885 and 0x593feb), against +0x30 + +0x1e of the own record.
 namespace Client::Skills
 {
 struct SkillDelayContext;

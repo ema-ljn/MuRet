@@ -26,7 +26,7 @@
 #include <optional>
 #include <string>
 
-// El 0x618 (0x530860 y 0x535840): los rayos que vuelven al dueño y los que lo siguen.
+// 0x618 (0x530860 and 0x535840): the beams that return to the owner and those that follow it.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -39,10 +39,10 @@ constexpr std::int32_t TarkanSubtype = 4;
 constexpr std::int32_t StaffSubtype = 0x11;
 constexpr std::int32_t WideSubtype = 8;
 
-// Lo que el 0x618 lee de su dueño (+0x54): el byte vivo (+0), la posición (+0x10) y los puntos de +0x40 y +0x4c. El
-// dueño es un personaje (ActorState: +0x40 es effectOrigin y +0x4c bonePoint4c), el FaunaObject de la /4 (0x447374:
-// +0x40 es previousPosition; su +0x4c no lo lee nadie) o el efecto con modelo (JointOwnerKind::ModelEffect: las
-// flechas de la /5 y el 0x11b/1 de la /0xa y la /0xb, con point40 y point4c).
+// What 0x618 reads from its owner (+0x54): the alive byte (+0), the position (+0x10) and the points of +0x40 and
+// +0x4c. The owner is a character (ActorState: +0x40 is effectOrigin and +0x4c bonePoint4c), /4's FaunaObject
+// (0x447374: +0x40 is previousPosition; nobody reads its +0x4c) or the model effect (JointOwnerKind::ModelEffect: /5's
+// arrows and 0x11b/1 of /0xa and /0xb, with point40 and point4c).
 struct BeamOwner
 {
     bool alive = false;
@@ -71,21 +71,21 @@ std::optional<BeamOwner> OwnerOf(const Kernel::JointState& joint)
     return BeamOwner{actor.alive, actor.position, actor.effectOrigin, actor.bonePoint4c};
 }
 
-// La /3, la /0xb y la /0xf siguen el +0x4c del dueño (0x5322b2, 0x538256); las demás de su grupo, el +0x40.
+// /3, /0xb and /0xf follow the owner's +0x4c (0x5322b2, 0x538256); the rest of their group, +0x40.
 bool FollowsThe4c(std::int32_t subtype)
 {
     return subtype == 3 || subtype == 0xb || subtype == 0xf;
 }
 
-// Los que vuelven al dueño (0x53214b en el alta, 0x538313 en el paso): la /0, /1, /6, /7, /9, /0xc, /0xd y /0x10.
-// La /7 no tiene paso propio (0x53c5a0: va derecho a la cola).
+// Those that return to the owner (0x53214b on creation, 0x538313 on step): /0, /1, /6, /7, /9, /0xc, /0xd and /0x10.
+// /7 has no step of its own (0x53c5a0: straight to the tail).
 bool Homes(std::int32_t subtype)
 {
     return subtype == 0 || subtype == 1 || subtype == 6 || subtype == 7 || subtype == 9 || subtype == 0xc ||
            subtype == 0xd || subtype == 0x10;
 }
 
-// La /0xc, la /0xd y la /0x10: con un sentido al azar (+0x9ec), más rápidos y sin la cuenta de vueltas de la /0.
+// /0xc, /0xd and /0x10: with a random direction (+0x9ec), faster and without /0's loop count.
 bool Swerves(std::int32_t subtype)
 {
     return subtype == 0xc || subtype == 0xd || subtype == 0x10;
@@ -102,7 +102,7 @@ Core::Expected<glm::vec3, std::string> PointOf(const Kernel::JointState& joint, 
     return *owner.point4c;
 }
 
-// 0x5322cc..0x5323ce: la luz de cada subtipo; la /7 y la /9 no la escriben aquí (la /9 ya tiene la suya).
+// 0x5322cc..0x5323ce: each subtype's light; /7 and /9 do not write it here (/9 already has its own).
 void PaintTheBeam(Kernel::JointState& joint)
 {
     const auto bits = [](std::uint32_t red, std::uint32_t green, std::uint32_t blue)
@@ -150,8 +150,9 @@ void PaintTheBeam(Kernel::JointState& joint)
     }
 }
 
-// 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, 0) en la posición y con los ángulos del joint. Todas las del
-// 0x618 (0x5d5/0, /1, /3, /4 y 0x5f2/0x1f) las acepta Particles::Particles; un error suyo corta con la dirección.
+// 0x53fe70(type, position, angles, light, subtype, scale, 0) at the joint's position and with its angles.
+// Particles::Particles accepts all of 0x618's (0x5d5/0, /1, /3, /4 and 0x5f2/0x1f); an error of theirs cuts with the
+// address.
 Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, const JointKernels::StepServices& services,
                                            std::uint32_t address, std::int32_t type, std::int32_t subtype,
                                            const glm::vec3& light, float scale)
@@ -168,7 +169,7 @@ Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, cons
     return {};
 }
 
-// 0x538352..0x538387 y 0x53840c..0x538441: rand() · el sentido, % 5 (el resto de C), en x y en y.
+// 0x538352..0x538387 and 0x53840c..0x538441: rand() · the direction, % 5 (C's remainder), in x and y.
 void Jitter(Kernel::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5;
@@ -181,7 +182,7 @@ void Jitter(Kernel::JointState& joint, CrtRandom& random)
     joint.position.y = F32(step() + D(joint.position.y));
 }
 
-// 0x5383a6..0x5383e7: (rand() % 5 + 3) · el sentido, en x y en y.
+// 0x5383a6..0x5383e7: (rand() % 5 + 3) · the direction, in x and y.
 void WideJitter(Kernel::JointState& joint, CrtRandom& random)
 {
     constexpr std::int32_t Spread = 5, Least = 3;
@@ -194,9 +195,9 @@ void WideJitter(Kernel::JointState& joint, CrtRandom& random)
     joint.position.y = F32(step() + D(joint.position.y));
 }
 
-// 0x538313..0x538470: con la vida en 100 o más, gira y sube. La /0 suma 10 al rumbo y 6 a la z; la /0xc, 15 y 6 con
-// dos rand() en x y en y; la /0x10 resta 20 · el sentido y suma 8, con dos rand(); la /0xd resta 20 y suma 6, con dos
-// rand(); las demás (la /1, /6 y /9) restan 10 y suman 5.
+// 0x538313..0x538470: with life at 100 or more, it turns and rises. /0 adds 10 to the heading and 6 to the z; /0xc, 15
+// and 6 with two rand() in x and y; /0x10 subtracts 20 · the direction and adds 8, with two rand(); /0xd subtracts 20
+// and adds 6, with two rand(); the others (/1, /6 and /9) subtract 10 and add 5.
 Core::Expected<void, std::string> Spin(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
@@ -235,10 +236,10 @@ Core::Expected<void, std::string> Spin(Kernel::JointState& joint, const JointKer
     return {};
 }
 
-// 0x538475..0x5385cd: debajo de vida 100, la velocidad sube (de a 7 hasta 40 la /0xc, /0xd y /0x10; de a 5 hasta 30
-// las demás) y 0x4e9810 los gira hacia el destino: el propio en la /6 y la /9, y en las demás el dueño (+0x10, la z +
-// 120), que queda en +0x58. A 35 o menos (o NaN) muere y pide el 0x5d5/1 y el sonido 0x23; de 35 a 70, con el rumbo
-// girado más de 20 y la velocidad en 20 o más, la velocidad − 10.
+// 0x538475..0x5385cd: below life 100, the speed rises (by 7 up to 40 for /0xc, /0xd and /0x10; by 5 up to 30 for the
+// others) and 0x4e9810 turns them toward the target: their own for /6 and /9, and the owner for the others (+0x10, the
+// z + 120), which stays in +0x58. At 35 or less (or NaN) it dies and requests 0x5d5/1 and sound 0x23; from 35 to 70,
+// with the heading turned more than 20 and the speed at 20 or more, speed − 10.
 Core::Expected<void, std::string> Return(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const std::int32_t subtype = joint.subtype;
@@ -246,14 +247,14 @@ Core::Expected<void, std::string> Return(Kernel::JointState& joint, const JointK
     const double faster = D(joint.speed) + (swerves ? 7.0 : 5.0); // 0x6b8878, 0x6b87f8
     const double top = swerves ? 40.0 : 30.0;                     // 0x6b8bf4, 0x6b8858
     joint.speed = F32(faster);
-    // 0x538496 y 0x5384c1: FCOMP con sólo C0, así que NaN no llega al tope.
+    // 0x538496 and 0x5384c1: FCOMP with only C0, so NaN does not reach the cap.
     if (faster >= top)
         joint.speed = F32(top);
     const float heading = joint.angles.z;
     double distance = 0;
     if (subtype == 6 || subtype == 9)
     {
-        // 0x538525: una copia local del destino propio (+0x58).
+        // 0x538525: a local copy of its own target (+0x58).
         const glm::vec3 target = joint.targetPosition;
         distance = Math::MoveToward(joint.position, joint.angles, target, joint.speed);
     }
@@ -286,9 +287,9 @@ Core::Expected<void, std::string> Return(Kernel::JointState& joint, const JointK
     return {};
 }
 
-// 0x5385d3..0x538704: v = ((rand() & 3) + 8) · 0,03f, la luz dinámica de radio 2 (v · 0,4f; v; v · 0,8f) y lo que
-// deja cada uno: la /6 y la /9 el 0x5d5/3 (escala 0,05f), la /0xc y la /0xd los sprites 0x5ac y 0x5fd (el segundo
-// girado rand() % 360), la /0x10 el 0x5f2/0x1f (escala 0,8f, luz (0,4; 0,8; 1)) y la /0 y la /1 el 0x5d5/0.
+// 0x5385d3..0x538704: v = ((rand() & 3) + 8) · 0.03f, the dynamic light of radius 2 (v · 0.4f; v; v · 0.8f) and what
+// each one leaves: /6 and /9 the 0x5d5/3 (scale 0.05f), /0xc and /0xd the sprites 0x5ac and 0x5fd (the second turned
+// rand() % 360), /0x10 the 0x5f2/0x1f (scale 0.8f, light (0.4; 0.8; 1)) and /0 and /1 the 0x5d5/0.
 Core::Expected<void, std::string> Glow(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (services.random == nullptr)
@@ -334,9 +335,9 @@ Core::Expected<void, std::string> Glow(Kernel::JointState& joint, const JointKer
                     joint.light, 1.0f);
 }
 
-// 0x53820e..0x53830e: el byte vivo del dueño en 0 apaga el joint y sale del paso sin la cola ni la vida. Vivo, la
-// posición sigue su +0x40 (la /2, /4, /5, /8, /0xa, /0xe y /0x11; la /8 además ensancha 10,1f) o su +0x4c (la /3,
-// /0xb y /0xf). La /2 y la /3 dejan el 0x5d5/0 y la /0xe y la /0xf el 0x5d5/4, con la luz del seno del reloj.
+// 0x53820e..0x53830e: the owner's alive byte at 0 turns off the joint and leaves the step without the tail or the
+// life. Alive, the position follows its +0x40 (/2, /4, /5, /8, /0xa, /0xe and /0x11; /8 also widens 10.1f) or its
+// +0x4c (/3, /0xb and /0xf). /2 and /3 leave 0x5d5/0 and /0xe and /0xf 0x5d5/4, with the light from the clock's sine.
 Core::Expected<void, std::string> Follow(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     const auto owner = OwnerOf(joint);
@@ -356,14 +357,14 @@ Core::Expected<void, std::string> Follow(Kernel::JointState& joint, const JointK
     joint.position = point.Value();
     if (joint.subtype == WideSubtype)
     {
-        constexpr double Widen = static_cast<double>(std::bit_cast<float>(0x4121999au)); // 0x6ba2f0, 10,1f
+        constexpr double Widen = static_cast<double>(std::bit_cast<float>(0x4121999au)); // 0x6ba2f0, 10.1f
         joint.width = F32(D(joint.width) + Widen);
     }
     const bool barrier = joint.subtype == 2 || joint.subtype == 3;
     const bool red = joint.subtype == 0xe || joint.subtype == 0xf;
     if (!barrier && !red)
         return {};
-    // 0x538285 y 0x5382c9: sen(reloj · 0,002f) · 0,3f + 0,8f, en la x87.
+    // 0x538285 and 0x5382c9: sin(clock · 0.002f) · 0.3f + 0.8f, on the x87.
     constexpr double Phase = static_cast<double>(std::bit_cast<float>(0x3b03126fu)); // 0x6b89bc
     constexpr float Amplitude = std::bit_cast<float>(0x3e99999au);                   // 0x6b89dc
     constexpr double Base = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));  // 0x6b8a38
@@ -385,20 +386,20 @@ Core::Expected<void, std::string> Follow(Kernel::JointState& joint, const JointK
 Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                   CrtRandom& random)
 {
-    // 0x532125: el ancho; 0x534ebc elige el grupo.
+    // 0x532125: the width; 0x534ebc picks the group.
     joint.width = request.scale;
     const std::int32_t subtype = request.subtype;
     constexpr std::int32_t MostPoints = 50; // 0x534cb6
     if (subtype < 0 || subtype > StaffSubtype)
     {
-        // 0x532136 → 0x5322cc → 0x534cb6: sólo el tope de los puntos.
+        // 0x532136 → 0x5322cc → 0x534cb6: only the cap on the points.
         if (joint.maximumCount > MostPoints)
             joint.maximumCount = MostPoints;
         return {};
     }
     if (subtype == StaffSubtype)
     {
-        // 0x5321e0..0x53220b: velocidad 0, vida 12 y la posición en el +0x40 del dueño; no escribe +0x6c.
+        // 0x5321e0..0x53220b: it does not write +0x6c.
         constexpr std::int32_t StaffLife = 12;
         joint.speed = 0;
         joint.life = StaffLife;
@@ -409,7 +410,7 @@ Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, con
     }
     else if (subtype == 9)
     {
-        // 0x532210..0x532229: luz (0,2; 0,2; 0,2), vida 120, 8 puntos y velocidad 3.
+        // 0x532210..0x532229
         constexpr float Gray = std::bit_cast<float>(0x3e4ccccdu);
         joint.light = glm::vec3(Gray);
         joint.life = 120;
@@ -418,8 +419,7 @@ Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, con
     }
     else if (Homes(subtype))
     {
-        // 0x53214b..0x5321db: velocidad 3, vida 120 y 8 puntos. La /0xc, /0xd y /0x10: el sentido (+0x9ec) es 1 con
-        // rand() impar y −1 con par, velocidad 10 y los ángulos x e y en rand() % 45.
+        // 0x53214b..0x5321db
         joint.speed = 3;
         joint.life = 120;
         joint.maximumCount = 8;
@@ -434,8 +434,7 @@ Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, con
     }
     else
     {
-        // 0x532238..0x5322c9: velocidad 0, vida 999.999.999, los puntos (10 la /5, 5 la /0xa y /0xb, 15 la /0xe y
-        // /0xf, 20 las demás) y la posición en el +0x40 o el +0x4c del dueño.
+        // 0x532238..0x5322c9
         constexpr std::int32_t FollowLife = 999999999;
         joint.speed = 0;
         joint.life = FollowLife;
@@ -459,7 +458,7 @@ Core::Expected<void, std::string> CreateBeamJoint(Kernel::JointState& joint, con
 
 Core::Expected<void, std::string> StepBeamJoint(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
-    // 0x5381f3: la /7 (y lo que pasa de 0x11) va derecho a la cola.
+    // 0x5381f3: /7 (and anything past 0x11) goes straight to the tail.
     const std::int32_t subtype = joint.subtype;
     if (subtype < 0 || subtype > StaffSubtype || subtype == 7)
         return {};

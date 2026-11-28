@@ -16,7 +16,7 @@
 
 namespace
 {
-// Inventario independiente de Gate.bmd: 38 entradas distribuidas en 13 mapas fuente (H2 T16).
+// An inventory independent of Gate.bmd: 38 entries spread over 13 source maps (H2 T16).
 constexpr std::array<std::uint8_t, 38> EntryGates{1,  3,  5,   7,   9,   11,  13,  15,  18,  20,  23,  25, 28,
                                                   30, 32, 34,  36,  38,  40,  43,  45,  47,  53,  55,  62, 64,
                                                   96, 98, 102, 107, 109, 115, 117, 120, 121, 123, 127, 129};
@@ -26,8 +26,8 @@ class GameT16GateTransport : public Client::Tests::T16::SceneTest, public ::test
 {
 };
 
-// Contrato de consumidor y transporte, no caminata de escena en los 13 mapas. La matriz de escena
-// registra las fronteras que impiden llegar a este consumidor desde una entrada real.
+// A consumer and transport contract, not a scene walk on the 13 maps. The scene matrix records the borders that keep
+// a real entry from reaching this consumer.
 TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBeforeAnyMacroBoundary)
 {
     const auto index = GetParam();
@@ -41,7 +41,7 @@ TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBefore
     Hero().cellX = record->x1;
     Hero().cellY = record->y1;
     m_world->OwnCharacter().level = 400;
-    m_world->OwnCharacter().equipment[7].id = 0x1800; // Alas: requisito del gate62.
+    m_world->OwnCharacter().equipment[7].id = 0x1800; // Wings: gate 62's requirement.
     const auto checked =
         Client::Movement::CheckGameGates({*m_world, *m_data->gates, m_cloth->random, 3000,
                                           [&](std::uint8_t requested) { m_online->session.RequestGate(requested); }});
@@ -53,7 +53,7 @@ TEST_P(GameT16GateTransport, EveryArchivedEntrySendsItsOwnEncryptedRequestBefore
     }
     const auto sent = Sent();
     ASSERT_EQ(sent.packets.size(), 1u);
-    ASSERT_EQ(sent.serials.size(), 1u); // C3 real, descifrado por el fakeGS con su serial.
+    ASSERT_EQ(sent.serials.size(), 1u); // Real C3, decrypted by the fakeGS with its serial.
     EXPECT_EQ(sent.packets[0].Opcode(), Client::Network::Opcode{0x1c});
     ASSERT_EQ(sent.packets[0].Bytes().size(), 6u);
     EXPECT_EQ(sent.packets[0].Bytes()[3], std::byte{index});

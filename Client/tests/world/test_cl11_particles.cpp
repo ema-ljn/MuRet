@@ -35,8 +35,8 @@
 #include <tuple>
 #include <utility>
 
-// Las partículas de la CL11 (0x53fe70, 0x5446e0 y 0x548550): oráculos escritos desde el ASM, con los rand() contados
-// contra Client::Tests::AfterDraws.
+// Oracles written from the ASM of 0x53fe70, 0x5446e0 and 0x548550, with the rand() counted against
+// Client::Tests::AfterDraws.
 namespace
 {
 using Client::Crt::CrtRandom;
@@ -61,7 +61,7 @@ double D(std::uint32_t bits)
     return static_cast<double>(std::bit_cast<float>(bits));
 }
 
-// Los rand() de la semilla, en orden.
+// The seed's rand(), in order.
 struct Draws
 {
     CrtRandom random{Seed};
@@ -76,7 +76,7 @@ Particle& Only(Particles& particles, std::size_t index)
     return particles.All()[index];
 }
 
-// 0x5446e0 con todos los servicios del juego menos la luz dinámica y los dueños.
+// 0x5446e0 with all the game's services except the dynamic light and the owners.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
                                                  const Client::Particles::ParticleOwnerStates& owners = {},
                                                  Client::Terrain::TerrainLighting* lighting = nullptr)
@@ -101,13 +101,13 @@ TEST(Cl11Particles, TheBurstRingTurnsWithOneRandAndPulsesWithTheSine)
     EXPECT_EQ(ring.rotation, static_cast<float>(draws.Next() % 360));
     EXPECT_EQ(random.State(), AfterDraws(Seed, 1).State());
 
-    // 0x5473f1 con la vida 14: la escala del seno de +0x50 (0), y +0x50 = (15 − 14) · 6.
+    // 0x5473f1 with life 14: the scale from the sine of +0x50 (0), and +0x50 = (15 − 14) · 6.
     CrtRandom stepRandom(Seed);
     ASSERT_TRUE(Step(*particles, stepRandom, 0.0f).HasValue());
     EXPECT_EQ(ring.life, 14);
     EXPECT_EQ(ring.scale, F32(RoundedSin(0.0) * 3.0 + 1.5));
     EXPECT_EQ(ring.verticalSpeed, 6.0f);
-    EXPECT_EQ(stepRandom.State(), AfterDraws(Seed, 2).State()); // sólo el viento
+    EXPECT_EQ(stepRandom.State(), AfterDraws(Seed, 2).State()); // only the wind
 }
 
 TEST(Cl11Particles, TheBurstRingStopsAtNinetyAndDimsBelowSix)
@@ -119,7 +119,7 @@ TEST(Cl11Particles, TheBurstRingStopsAtNinetyAndDimsBelowSix)
     ring.life = 6;
     ring.verticalSpeed = 40.0f;
     ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
-    // (15 − 5) · 6 + 40 = 100 > 90; la vida 5 apaga la luz a la mitad.
+    // (15 − 5) · 6 + 40 = 100 > 90; life 5 halves the light.
     EXPECT_EQ(ring.verticalSpeed, 90.0f);
     EXPECT_EQ(ring.light, glm::vec3(0.5f));
     EXPECT_EQ(ring.scale, F32(RoundedSin(40.0 * D(0x3c8efa35u)) * 3.0 + 1.5));
@@ -202,12 +202,12 @@ TEST(Cl11Particles, TheFountainFireRisesStraightAndTurnsInItsStep)
     ASSERT_TRUE(particles->CreateChecked(0x5d9, {}, {}, glm::vec3(1.0f), 13, 2.0f, 0.0f, random).HasValue());
     Draws draws;
     const Particle& fire = Only(*particles, 0);
-    static_cast<void>(draws.Next()); // la velocidad común, que la /13 pisa
+    static_cast<void>(draws.Next()); // the common velocity, which /13 overwrites
     EXPECT_EQ(fire.life, 20);
     EXPECT_EQ(fire.velocity.x, 0.0f);
     EXPECT_EQ(fire.velocity.y, 0.0f);
     EXPECT_EQ(fire.velocity.z, F32(static_cast<double>((draws.Next() & 127) + 128) * D(0x3e19999au)));
-    static_cast<void>(draws.Next()); // el giro que pisa el final
+    static_cast<void>(draws.Next()); // the turn that the end overwrites
     EXPECT_EQ(fire.scale, F32(static_cast<double>((draws.Next() & 15) + 150) * D(0x3c449ba6u)));
     EXPECT_EQ(fire.rotation, static_cast<float>(draws.Next() % 360));
     EXPECT_EQ(random.State(), AfterDraws(Seed, 5).State());
@@ -225,13 +225,13 @@ TEST(Cl11Particles, EveryFireSubtypeIsCreatedAndStepped)
             ASSERT_TRUE(particles->CreateChecked(type, {}, {}, glm::vec3(1.0f), subtype, 1.0f, 0.0f, random).HasValue())
                 << type << "/" << subtype;
             ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue()) << type << "/" << subtype;
-            // Lo común de 0x545958: el cuadro (23 − 23) / 6.
+            // 0x545958's common part: frame (23 − 23) / 6.
             EXPECT_EQ(std::bit_cast<std::int32_t>(Only(*particles, 0).field48), 0);
         }
 }
 
-// 0x5412d2 y 0x54132c: la /7 y la /11 se mecen de costado y crecen sobre la escala del pedido; sólo la /11 vuelve a
-// escribir la vida (24, la misma). Cuatro rand(): la velocidad común (que pisan), el vaivén, la escala y el giro.
+// 0x5412d2 and 0x54132c: /7 and /11 sway sideways and grow over the requested scale; only /11 writes the life again
+// (24, the same). Four rand(): the common velocity (which they overwrite), the sway, the scale and the turn.
 TEST(Cl11Particles, TheSwayingFiresDrawTheirSwayAndTheirScale)
 {
     for (const std::int32_t subtype : {7, 11})
@@ -252,8 +252,8 @@ TEST(Cl11Particles, TheSwayingFiresDrawTheirSwayAndTheirScale)
     }
 }
 
-// 0x5457a5: la subida + 0,004f y el caso del subtipo (0x548270): /5 y /6 bajan 0,04f y giran 5; /8 por 0,95f y gira 5;
-// /10 por 0,95f; /11 crece 0,04f. Lo común: z + subida · 10 y el cuadro (23 − vida) / 6.
+// 0x5457a5: rise + 0.004f and the subtype's case (0x548270): /5 and /6 fall 0.04f and turn 5; /8 by 0.95f and turns 5;
+// /10 by 0.95f; /11 grows 0.04f. Common part: z + rise · 10 and frame (23 − life) / 6.
 TEST(Cl11Particles, TheFireStepFollowsItsSubtypeTable)
 {
     struct Case
@@ -288,7 +288,7 @@ TEST(Cl11Particles, TheFireStepFollowsItsSubtypeTable)
     }
 }
 
-// 0x5410ea y 0x545750: la 5ca/1 vive 10 con la luz 0,5 y su paso la apaga con la vida y la agranda 0,1f.
+// 0x5410ea and 0x545750: 5ca/1 lives 10 with light 0.5 and its step fades it with life and enlarges it 0.1f.
 TEST(Cl11Particles, TheGrayThunderFadesWithItsLife)
 {
     auto particles = std::make_unique<Particles>();
@@ -308,8 +308,8 @@ TEST(Cl11Particles, TheGrayThunderFadesWithItsLife)
     EXPECT_EQ(thunder.scale, F32(static_cast<double>(scale) + D(0x3dcccccdu)));
 }
 
-// 0x541112..0x541167 y 0x54577c: la 5ca/2 cambia la textura a 0x61e, vive 10, saca un tercer rand() para la escala
-// (+ 0,3f) y queda sin giro; su paso baja la luz 0,01f por canal.
+// 0x541112..0x541167 and 0x54577c: 5ca/2 changes the texture to 0x61e, lives 10, takes a third rand() for the scale
+// (+ 0.3f) and stays without turn; its step lowers the light 0.01f per channel.
 TEST(Cl11Particles, TheThunderBoltTakesItsTextureAndAThirdRand)
 {
     auto particles = std::make_unique<Particles>();
@@ -330,9 +330,9 @@ TEST(Cl11Particles, TheThunderBoltTakesItsTextureAndAThirdRand)
     EXPECT_EQ(bolt.light, glm::vec3(F32(0.5 - D(0x3c23d70au))));
 }
 
-// 0x541693..0x54174b: la 5de/2 salta hacia adelante con 0x4e98d0 (ángulos 0: la y) t = rand() % 80 · rojo · 0,01f y
-// queda con la velocidad (0; (rojo − t) · 0,0666667f; 0). 0x5414a5: la /6 sube recta y escala con la del pedido.
-// 0x545d21: el paso de la /1 en la vida 10 suma 6,4f a la velocidad y baja la escala 0,15f; gira y apaga la luz 0,05f.
+// 0x541693..0x54174b: 5de/2 jumps forward with 0x4e98d0 (angles 0: the y) t = rand() % 80 · red · 0.01f and keeps the
+// velocity (0; (red − t) · 0.0666667f; 0). 0x5414a5: /6 rises straight and scales with the requested one. 0x545d21:
+// /1's step at life 10 adds 6.4f to the velocity and lowers the scale 0.15f; it turns and fades the light 0.05f.
 TEST(Cl11Particles, TheFlameJumpsGrowsAndKicks)
 {
     PortableParticleTrigonometry trigonometry;
@@ -374,7 +374,7 @@ TEST(Cl11Particles, TheFlameJumpsGrowsAndKicks)
         ASSERT_TRUE(Step(*particles, step, 0.0f).HasValue());
         Draws draws;
         static_cast<void>(draws.Next());
-        static_cast<void>(draws.Next()); // el viento
+        static_cast<void>(draws.Next()); // the wind
         EXPECT_EQ(flame.velocity.y, F32(1.0 + D(0x40cccccdu)));
         EXPECT_EQ(flame.scale, F32(1.0 - D(0x3e19999au)));
         EXPECT_EQ(flame.rotation, static_cast<float>(draws.Next() % 360));
@@ -470,7 +470,7 @@ TEST(Cl11Particles, TheFollowingSparkNeedsItsOwnerAndChasesIt)
     EXPECT_EQ(spark.velocity.z, F32(-6.0 * D(0x3e2aaaabu)));
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 
-    // El dueño muerto lo deja en vida 5; se movió (1, 2, 3) desde su partida.
+    // The dead owner leaves it at life 5; it moved (1, 2, 3) from its start.
     const auto owners = [](const ParticleOwner&)
     { return std::optional(ParticleOwnerState{false, {11, 22, 33}, glm::vec3(10, 20, 30)}); };
     const glm::vec3 velocity = spark.velocity;
@@ -484,7 +484,6 @@ TEST(Cl11Particles, TheFollowingSparkNeedsItsOwnerAndChasesIt)
 TEST(Cl11Particles, TheRareSparkIsBornOnceInFiftyAndTheOthersDie)
 {
     auto particles = std::make_unique<Particles>();
-    // Buscar una semilla con rand() % 50 == 0 y otra sin.
     std::uint32_t lucky = 1;
     while (CrtRandom(lucky).Next() % 50 != 0)
         ++lucky;
@@ -499,7 +498,7 @@ TEST(Cl11Particles, TheRareSparkIsBornOnceInFiftyAndTheOthersDie)
     EXPECT_EQ(Only(*particles, 1).life, 0);
     EXPECT_TRUE(Only(*particles, 1).alive);
     EXPECT_EQ(unlucky.State(), AfterDraws(lucky + 1, 1).State());
-    // El paso la apaga, pero su caso corre igual: viento (2) y el verde (1) de cada una.
+    // The step turns it off, but its case still runs: the wind (2) and the green (1) of each one.
     CrtRandom step(Seed);
     ASSERT_TRUE(Step(*particles, step, 0.0f).HasValue());
     EXPECT_FALSE(Only(*particles, 1).alive);
@@ -571,7 +570,7 @@ TEST(Cl11Particles, TheKundunSplashesRiseWithTheirTiltAndAdvanceTwenty)
         EXPECT_EQ(splash.position.y, F32(RoundedSin(2.0) * 20.0 + 6.0));
         EXPECT_EQ(splash.position.z, F32(static_cast<double>(speed) + 7.0));
         EXPECT_EQ(splash.rotation, F32(static_cast<double>(turn) + 1.0));
-        // La 6f4/4 sigue con el apagado de la 6f4 (vida 5 < 8); las otras, por 0,9090909f.
+        // 6f4/4 keeps 6f4's fade (life 5 < 8); the others, by 0.9090909f.
         const float faded = type == 0x6f4 ? F32(0.5 * D(0x3f555555u)) : F32(0.5 * D(0x3f68ba2eu));
         EXPECT_EQ(splash.light, glm::vec3(faded));
     }
@@ -595,10 +594,10 @@ TEST(Cl11Particles, TheKundunFallKeepsTheRequestedLightAndTurns)
     EXPECT_EQ(fall.scale, F32(D(0x3fcccccdu) - static_cast<double>(0.005f)));
 }
 
-// 0x543d68..0x543dba: la 6f4/2 del golpe de un pedazo de Kundun (0x52a37d) vive 20, gira rand() % 360, escala 0,5, sube
-// 50 la z (123,3f + 50: 0x432d4ccd) y la subida es rand() % 5 + 10, con la luz del pedido. 0x547ee2: después del
-// movimiento común (la z más la subida: 0x433b4ccd), la escala 0,1f más (0x3f19999a), x e y más rand() % 10 − 5 y la
-// subida 1 menos; con vida 19, sin apagado. Con los 3.000 llenos, nada. Bits calculados aparte (x87).
+// 0x543d68..0x543dba: 6f4/2 of the hit of a piece of Kundun (0x52a37d) lives 20, turns rand() % 360, scale 0.5, raises
+// the z 50 (123.3f + 50: 0x432d4ccd) and the rise is rand() % 5 + 10, with the requested light. 0x547ee2: after the
+// common movement (z plus the rise: 0x433b4ccd), scale 0.1f more (0x3f19999a), x and y plus rand() % 10 − 5 and the
+// rise 1 less; with life 19, no fade. With the 3000 full, nothing. Bits computed separately (x87).
 TEST(Cl11Particles, TheKundunDebrisRisesAndWanders)
 {
     auto particles = std::make_unique<Particles>();
@@ -626,13 +625,14 @@ TEST(Cl11Particles, TheKundunDebrisRisesAndWanders)
     EXPECT_EQ(debris.velocity.z, 13.0f);
     EXPECT_EQ(debris.light, dim);
     EXPECT_EQ(random.State(), AfterDraws(Seed, 6).State());
-    // 0x548550: al default (0x54889a), el billboard común con la textura 0x6f4.
+    // 0x548550: to the default (0x54889a), the common billboard with texture 0x6f4.
     const auto drawn = DrawOneParticle(debris, glm::vec2(32.0f), std::uint8_t{3});
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_TRUE(drawn.Value().has_value());
     EXPECT_EQ(drawn.Value()->texture, 0x6f4);
 
-    // Ya en 1 o más, la escala no crece; con vida 7, la luz por 0,8333333f (0x3f555555) después del paso.
+    // Already at 1 or more, the scale does not grow; with life 7, the light times 0.8333333f (0x3f555555) after the
+    // step.
     debris.scale = 1.0f;
     debris.life = 8;
     ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
@@ -648,7 +648,7 @@ TEST(Cl11Particles, TheKundunDebrisRisesAndWanders)
     EXPECT_EQ(full.State(), CrtRandom(Seed).State());
 }
 
-// 0x5446e0 con la altura del terreno (0x5f93c0) fija en `ground`.
+// 0x5446e0 with the terrain height (0x5f93c0) fixed at `ground`.
 Client::Core::Expected<void, ParticleError> StepOverGround(Particles& particles, CrtRandom& random, double ground)
 {
     PortableParticleTrigonometry trigonometry;
@@ -664,11 +664,10 @@ glm::vec3 Vec(std::uint32_t x, std::uint32_t y, std::uint32_t z)
     return {std::bit_cast<float>(x), std::bit_cast<float>(y), std::bit_cast<float>(z)};
 }
 
-// 0x542c4b..0x542d00 y 0x546da6..0x546f08: las flores 608..60a de la flecha 0xe1 (0x526a8b). Al nacer, cinco rand():
-// vida 21, escala 9 · 0,03f (pisa la del pedido), luz 1 y la velocidad (0,5; −0,9; −1,2). Su paso, después del
-// movimiento común (con ángulos en 0, la velocidad tal cual), suma a la velocidad tres derivas con la /0, o dos
-// vaivenes y una caída con la /1, la vuelve a sumar a la posición y gira con otro rand(). Los bits salen de x87.py,
-// aparte.
+// 0x542c4b..0x542d00 and 0x546da6..0x546f08: flowers 608..60a of arrow 0xe1 (0x526a8b). At birth, five rand(): life 21,
+// scale 9 · 0.03f (overwrites the requested one), light 1 and velocity (0.5; −0.9; −1.2). Their step, after the common
+// movement (with angles at 0, the velocity as is), adds three drifts to the velocity with /0, or two sways and a fall
+// with /1, adds it to the position again and turns with another rand(). The bits come from x87.py, separately.
 TEST(Cl11Particles, TheNatureArrowFlowersDriftAndSway)
 {
     struct Case
@@ -706,7 +705,7 @@ TEST(Cl11Particles, TheNatureArrowFlowersDriftAndSway)
         EXPECT_EQ(flower.rotation, 2.0f);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(flower.field48), 0u);
         EXPECT_EQ(random.State(), AfterDraws(Seed, 11).State());
-        // 0x548550: 0x5488f6 → 0x54889a, el billboard común con la textura del tipo.
+        // 0x548550: 0x5488f6 → 0x54889a, the common billboard with the type's texture.
         const auto drawn = DrawOneParticle(flower, glm::vec2(32.0f), std::uint8_t{3});
         ASSERT_TRUE(drawn.HasValue());
         ASSERT_TRUE(drawn.Value().has_value());
@@ -714,9 +713,9 @@ TEST(Cl11Particles, TheNatureArrowFlowersDriftAndSway)
     }
 }
 
-// 0x546eb8..0x546ee7: con el terreno por encima de la z, la flor se posa: la z en la altura, +0x48 en el entero 1 y la
-// velocidad en 0. Posada, ni deriva ni se mueve: sólo el viento y el rand() del giro; con el terreno a la par, nada.
-// Sin la altura corta (MissingTerrainHeight). Llena, nada ni rand().
+// 0x546eb8..0x546ee7: with the terrain above the z, the flower lands: z at the height, +0x48 at the integer 1 and
+// velocity at 0. Landed, it neither drifts nor moves: only the wind and the turn's rand(); with the terrain level with
+// it, nothing. Without the height it cuts (MissingTerrainHeight). Full, nothing and no rand().
 TEST(Cl11Particles, TheNatureArrowFlowerLandsOnTheGround)
 {
     auto particles = std::make_unique<Particles>();
@@ -748,10 +747,10 @@ TEST(Cl11Particles, TheNatureArrowFlowerLandsOnTheGround)
     EXPECT_EQ(full.State(), CrtRandom(Seed).State());
 }
 
-// 0x546e29..0x546e9d: la /2 (y cualquier otro subtipo fuera de la /0 y la /1) no deriva: sin rand() propios, la
-// posición más la velocidad otra vez después del movimiento común, y el giro. Con la semilla 0x1234, la 0x609 nace como
-// las de arriba y en un paso queda en (0x447a4000; 0x44f9c666; 0x4394cccc) con el giro en 0 (rand() % 16 de 22672):
-// el viento, el giro y los cinco de la alta, ocho rand() (flower2.py, aparte).
+// 0x546e29..0x546e9d: /2 (and any other subtype outside /0 and /1) does not drift: no rand() of its own, position plus
+// velocity again after the common movement, and the turn. With seed 0x1234, 0x609 is born like the ones above and in
+// one step ends at (0x447a4000; 0x44f9c666; 0x4394cccc) with the turn at 0 (rand() % 16 of 22672): the wind, the turn
+// and the five of creation, eight rand() (flower2.py, separately).
 TEST(Cl11Particles, TheNatureArrowFlowerOfSubtypeTwoDoesNotDrift)
 {
     auto particles = std::make_unique<Particles>();
@@ -771,8 +770,8 @@ TEST(Cl11Particles, TheNatureArrowFlowerOfSubtypeTwoDoesNotDrift)
     EXPECT_EQ(random.State(), AfterDraws(Seed, 8).State());
 }
 
-// 0x546ec5..0x546ed0: `fcom` de la altura contra la z y `test ah, 0x41`: con la altura en NaN, C0 y C3 en 1 y la flor
-// no se posa; el giro sale igual. La /0 queda como en TheNatureArrowFlowersDriftAndSway.
+// 0x546ec5..0x546ed0: `fcom` of the height against the z and `test ah, 0x41`: with the height NaN, C0 and C3 at 1 and
+// the flower does not land; the turn comes out the same. /0 stays as in TheNatureArrowFlowersDriftAndSway.
 TEST(Cl11Particles, TheNatureArrowFlowerDoesNotLandOnANaNGround)
 {
     auto particles = std::make_unique<Particles>();
@@ -788,10 +787,10 @@ TEST(Cl11Particles, TheNatureArrowFlowerDoesNotLandOnANaNGround)
     EXPECT_EQ(random.State(), AfterDraws(Seed, 11).State());
 }
 
-// 0x542d01..0x542d5f y 0x546f0d..0x546f51: la columna 62b/0 del círculo 0xcc (0x523677 y 0x52384c). Nace con dos
-// rand(): vida 36, luz 1 y la velocidad (0; 0; 89 · 0,02f). Su paso la sube con la velocidad (movimiento común), deja
-// la escala en 0,2f y acelera 0,4f hasta 8; con menos de 5 de vida, la luz por 0,8333333f. Los demás subtipos sólo
-// tienen el prefijo (0x54304c) y ningún paso propio, sin rand(). Bits de x87.py.
+// 0x542d01..0x542d5f and 0x546f0d..0x546f51: column 62b/0 of circle 0xcc (0x523677 and 0x52384c). Born with two
+// rand(): life 36, light 1 and velocity (0; 0; 89 · 0.02f). Its step raises it with the velocity (common movement),
+// leaves the scale at 0.2f and accelerates 0.4f up to 8; with life below 5, the light times 0.8333333f. The other
+// subtypes only have the prefix (0x54304c) and no step of their own, no rand(). Bits from x87.py.
 TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
 {
     auto particles = std::make_unique<Particles>();
@@ -819,7 +818,8 @@ TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
     ASSERT_TRUE(drawn.HasValue());
     ASSERT_TRUE(drawn.Value().has_value());
     EXPECT_EQ(drawn.Value()->texture, 0x62b);
-    // 0x546f2b..0x546f3c: `fcomp` de 8 contra la velocidad y `test ah, 1`: un NaN deja C0 en 1 y la velocidad en 8.
+    // 0x546f2b..0x546f3c: `fcomp` of 8 against the velocity and `test ah, 1`: a NaN leaves C0 at 1 and the velocity
+    // at 8.
     column.velocity.z = std::numeric_limits<float>::quiet_NaN();
     column.life = 6;
     ASSERT_TRUE(Step(*particles, random, 0.0f).HasValue());
@@ -830,7 +830,7 @@ TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
     ASSERT_TRUE(others->CreateChecked(0x62b, {1, 2, 3}, {}, glm::vec3(0.5f), 3, 1.5f, 0.0f, quiet).HasValue());
     EXPECT_EQ(quiet.State(), CrtRandom(Seed).State());
     const Particle& plain = Only(*others, 0);
-    EXPECT_EQ(plain.life, 2); // 0x53ff05: la vida del prefijo.
+    EXPECT_EQ(plain.life, 2); // 0x53ff05: the prefix's life.
     EXPECT_EQ(plain.scale, 1.5f);
     EXPECT_EQ(plain.light, glm::vec3(0.5f));
     ASSERT_TRUE(Step(*others, quiet, 0.0f).HasValue());
@@ -839,9 +839,9 @@ TEST(Cl11Particles, TheFlareColumnRisesFasterUpToEight)
     EXPECT_EQ(quiet.State(), AfterDraws(Seed, 2).State());
 }
 
-// 0x543bf1..0x543c25 y 0x547d42..0x547dc1: el agujero 6ae de la puerta 0xc5 de Kalima (0x43c20d), de cualquier
-// subtipo. Nace con un rand(): vida 30, luz 0,1f y giro 136. Su paso gira 5; de 29 a 20 de vida la luz por 1,1f; debajo
-// de 20 la escala menos 0,08f y, debajo de 10, además la luz por 0,7692308f. Bits de x87.py.
+// 0x543bf1..0x543c25 and 0x547d42..0x547dc1: hole 6ae of Kalima's gate 0xc5 (0x43c20d), any subtype. Born with one
+// rand(): life 30, light 0.1f and turn 136. Its step turns 5; from life 29 to 20 the light times 1.1f; below 20 the
+// scale minus 0.08f and, below 10, also the light times 0.7692308f. Bits from x87.py.
 TEST(Cl11Particles, TheKalimaGateHoleTurnsGlowsAndShrinks)
 {
     auto particles = std::make_unique<Particles>();
@@ -874,9 +874,9 @@ TEST(Cl11Particles, TheKalimaGateHoleTurnsGlowsAndShrinks)
     EXPECT_EQ(drawn.Value()->texture, 0x6ae);
 }
 
-// 0x543b82..0x543be5: la fanta 0x6ec/0x6ed de cualquier subtipo nace como la /0 (vida 24, la /6 vida
-// 32); 0x543aed: la /7 vive 15, con la escala rand() % 30 · 0,01f más la del pedido y la posición corrida. 0x547cc2: su
-// paso se achica 0,1f y sube 2 antes de lo común (la z sube 1 y la luz es vida · 0,04f).
+// 0x543b82..0x543be5: the fanta 0x6ec/0x6ed of any subtype is born like /0 (life 24, /6 life 32); 0x543aed: /7 lives
+// 15, with scale rand() % 30 · 0.01f plus the requested one and the position shifted. 0x547cc2: its step shrinks 0.1f
+// and rises 2 before the common part (the z rises 1 and the light is life · 0.04f).
 TEST(Cl11Particles, TheFantaTakesEverySubtype)
 {
     for (const std::int32_t subtype : {6, 12})
@@ -916,10 +916,11 @@ TEST(Cl11Particles, TheFantaTakesEverySubtype)
     EXPECT_EQ(swirl.light, glm::vec3(F32(14.0 * D(0x3d23d70au))));
 }
 
-// 0x543b82 y 0x547a40..0x547cb4: la fanta 0x6ec/1..4 nace como la /0, también sin dueño (que el paso no lee). Con
-// dueño, la /1 y la /2 pierden dos de vida con su acción (+0x111) en 1; la /3 y la /4 achican la escala la distancia a
-// la mano izquierda o derecha del Monster82 (0x4010b0) por 0,003f, en la x87 hasta la raíz, antes del paso común (la
-// luz, que restan d · 0,08f, la pisa la vida · 0,04f); sin la mano, nada. Sin los estados de los dueños, MissingOwner.
+// 0x543b82 and 0x547a40..0x547cb4: the fanta 0x6ec/1..4 is born like /0, also without owner (which the step does not
+// read). With owner, /1 and /2 lose two life with its action (+0x111) at 1; /3 and /4 shrink the scale by the distance
+// to Monster82's left or right hand (0x4010b0) times 0.003f, on the x87 up to the root, before the common step (the
+// light, which subtracts d · 0.08f, is overwritten by life · 0.04f); without the hand, nothing. Without the owners'
+// states, MissingOwner.
 TEST(Cl11Particles, TheOwnedFantasReadTheActionAndTheHandsOfTheirOwner)
 {
     const ParticleOwner owner{ParticleOwnerKind::Actor, 7};
@@ -988,9 +989,9 @@ TEST(Cl11Particles, TheOwnedFantasReadTheActionAndTheHandsOfTheirOwner)
     }
 }
 
-// 0x542a94 y 0x545ce3: la llamarada 0x5ee nace con vida 12 y la escala del pedido, de cualquier subtipo y sin rand();
-// su paso pone el cuadro (+0x48) en (12 − vida) / 3 y 0x5486b6 la dibuja con los argumentos del fuego de 0x548821: un
-// cuarto del ancho, el cuadro % 4 y el giro de +0x20.
+// 0x542a94 and 0x545ce3: the blaze 0x5ee is born with life 12 and the requested scale, any subtype, no rand(); its step
+// sets the frame (+0x48) to (12 − life) / 3 and 0x5486b6 draws it with 0x548821's fire arguments: a quarter of the
+// width, frame % 4 and the turn of +0x20.
 TEST(Cl11Particles, TheBlazeLivesTwelveAndWalksItsFourFrames)
 {
     for (const std::int32_t subtype : {0, 5})
@@ -1032,10 +1033,11 @@ TEST(Cl11Particles, TheBlazeLivesTwelveAndWalksItsFourFrames)
     }
 }
 
-// 0x543939 y 0x5478d7: la brasa 0x6ad/0 (vida 24) y /1 (vida 15) nacen con tres rand() (la caída por −0,1f, la
-// escala por 0,01f y el giro) y la luz 0,5; su paso sube la velocidad vertical 0,004f, achica 0,02f, pone el cuadro en
-// (23 − vida) / 6 y sube la z la velocidad vertical por 10; la /1 se apaga con la vida · 0,1f. Otro subtipo nace sin
-// nada propio (vida 2, sin rand()) y comparte el paso. La dibuja el billboard común (0x54889a).
+// 0x543939 and 0x5478d7: the cinder 0x6ad/0 (life 24) and /1 (life 15) are born with three rand() (the fall times
+// −0.1f, the scale times 0.01f and the turn) and light 0.5; their step raises the vertical speed 0.004f, shrinks 0.02f,
+// sets the frame to (23 − life) / 6 and raises the z by the vertical speed times 10; /1 fades with life · 0.1f. Another
+// subtype is born with nothing of its own (life 2, no rand()) and shares the step. The common billboard draws it
+// (0x54889a).
 TEST(Cl11Particles, TheCinderRisesShrinksAndTheJavelinOneFades)
 {
     for (const std::int32_t subtype : {0, 1, 2})
@@ -1095,7 +1097,7 @@ TEST(Cl11Particles, TheCinderRisesShrinksAndTheJavelinOneFades)
             EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(1.0f));
         }
     }
-    // 0x524f05 y 0x529c69: con las partículas llenas, ni la brasa ni sus rand().
+    // 0x524f05 and 0x529c69: with the particles full, neither the cinder nor its rand().
     auto full = std::make_unique<Particles>();
     for (Particle& particle : full->All())
         particle.alive = true;
@@ -1106,9 +1108,9 @@ TEST(Cl11Particles, TheCinderRisesShrinksAndTheJavelinOneFades)
     EXPECT_EQ(random.State(), CrtRandom(Seed).State());
 }
 
-// 0x540140 y 0x5449e1: la 0x5ac/5 vive 25 sin rand() y su paso (el de la /1, por 0x544a19) apaga la luz por 0,9f y
-// achica la escala por 0,95f. 0x540151 y 0x544c09: la /8 nace y camina como la /0 (el cmp por 8 todavía igual le da la
-// k = 0,5f) y después 0x544dd9 le pone la luz (escala; escala · 0,5; escala · 0,3f). Las dos, al billboard común.
+// 0x540140 and 0x5449e1: 0x5ac/5 lives 25 without rand() and its step (/1's, through 0x544a19) fades the light by 0.9f
+// and shrinks the scale by 0.95f. 0x540151 and 0x544c09: /8 is born and walks like /0 (the cmp by 8, still equal, gives
+// it k = 0.5f) and then 0x544dd9 sets its light (scale; scale · 0.5; scale · 0.3f). Both to the common billboard.
 TEST(Cl11Particles, TheFlaresFiveAndEightFollowTheTrailAndTheZero)
 {
     auto particles = std::make_unique<Particles>();
@@ -1167,9 +1169,9 @@ TEST(Cl11Particles, TheFlaresFiveAndEightFollowTheTrailAndTheZero)
     }
 }
 
-// 0x540260..0x540316 y 0x544e87: la chispa 0x5ad sortea la vida (rand() & 7) + 20 con cualquier subtipo; la /3 vive 7
-// y la /4 4, las dos con la textura 0x5fd, y la /4 gira rand() % 180 − 360. El paso agranda la /3 por 1,3f y la apaga
-// por 0,9f; la /4 salta al final (0x544edd). Las dos van al billboard común con su textura.
+// 0x540260..0x540316 and 0x544e87: spark 0x5ad rolls the life (rand() & 7) + 20 with any subtype; /3 lives 7 and /4 4,
+// both with texture 0x5fd, and /4 turns rand() % 180 − 360. The step enlarges /3 by 1.3f and fades it by 0.9f; /4 jumps
+// to the end (0x544edd). Both go to the common billboard with their texture.
 TEST(Cl11Particles, TheShineSparksOfTheFootFlashAndBlink)
 {
     for (const std::int32_t subtype : {3, 4})
@@ -1215,10 +1217,10 @@ TEST(Cl11Particles, TheShineSparksOfTheFootFlashAndBlink)
     EXPECT_FALSE(particles->CreateChecked(0x5ad, {}, {}, glm::vec3(1.0f), 5, 1.0f, 0.0f, random).HasValue());
 }
 
-// 0x543f49..0x544085 y 0x548000..0x5480ab: la neblina 0x6f1/1 del 0x1b7 nace como la /0 (vida 30, giro, escala
-// (rand() % 6 + 6) · 0,1f, caída y el corrimiento de ±10, ±10 y ±20) sin pedir la escena, cuya luz pisa con (0; 0,4f;
-// 0,4f); vive 50 y sortea otra caída: siete rand(). Su paso es el de la neblina (dos rand()) y además apaga la luz por
-// 0,95238101f. Con la tabla llena, nada.
+// 0x543f49..0x544085 and 0x548000..0x5480ab: mist 0x6f1/1 of 0x1b7 is born like /0 (life 30, turn, scale
+// (rand() % 6 + 6) · 0.1f, fall and the shift of ±10, ±10 and ±20) without requesting the scene, whose light it
+// overwrites with (0; 0.4f; 0.4f); it lives 50 and rolls another fall: seven rand(). Its step is the mist's (two
+// rand()) and also fades the light by 0.95238101f. With the table full, nothing.
 TEST(Cl11Particles, TheArmMistIsBornWithoutTheSceneAndFadesEveryStep)
 {
     auto particles = std::make_unique<Particles>();
@@ -1268,8 +1270,8 @@ TEST(Cl11Particles, TheArmMistIsBornWithoutTheSceneAndFadesEveryStep)
     EXPECT_EQ(full.State(), Seed);
 }
 
-// 0x5443ae y 0x5481ab: la onda 0x6eb de cualquier subtipo nace con vida 7 y sin rand(); su paso apaga la luz por
-// 0,5555556f (0x6ba234) y crece 0,3f (0x6b89dc), y va al billboard común con su textura.
+// 0x5443ae and 0x5481ab: wave 0x6eb of any subtype is born with life 7, no rand(); its step fades the light by
+// 0.5555556f (0x6ba234) and grows 0.3f (0x6b89dc), and it goes to the common billboard with its texture.
 TEST(Cl11Particles, TheShockWaveParticleFadesAndGrows)
 {
     for (const std::int32_t subtype : {3, 0, 9})
@@ -1290,7 +1292,7 @@ TEST(Cl11Particles, TheShockWaveParticleFadesAndGrows)
         EXPECT_EQ(wave.light, glm::vec3(F32(5.0 * D(0x3f0e38e4u))));
         EXPECT_EQ(wave.scale, F32(0.5 + D(0x3e99999au)));
         EXPECT_EQ(wave.position, glm::vec3(1, 2, 3));
-        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()); // sólo el viento
+        EXPECT_EQ(random.State(), AfterDraws(Seed, 2).State()); // only the wind
         const auto drawn = DrawOneParticle(wave, glm::vec2(64, 64), std::uint8_t{4});
         ASSERT_TRUE(drawn.HasValue());
         ASSERT_TRUE(drawn.Value().has_value());
@@ -1298,11 +1300,11 @@ TEST(Cl11Particles, TheShockWaveParticleFadesAndGrows)
     }
 }
 
-// 0x542d75..0x542ecf: la gota 0x607 de 1 a 4 vive rand() % 10 + 30 con la luz 1 y la escala (rand() % 6 + 4) · 0,03f;
-// la /3 la suma a la del pedido y sortea otra igual para la subida (tres rand()). Los pasos (0x547029, 0x5470a0,
-// 0x5470d3, 0x54714a): la /1 sube el cuadro, camina (rand() % 30 − 15) por la escala en x e y y sube (rand() % 20 + 10)
-// · escala · 0,3f, y crece 0,002f; la /2 y la /4 suben (rand() % 20 + 10) · 0,3f y crecen 0,005f, y la /4 se para en
-// 350 con la vida en 0; la /3 sube el cuadro y camina como la /0 con su subida en lugar de la escala.
+// 0x542d75..0x542ecf: drop 0x607 /1 to /4 lives rand() % 10 + 30 with light 1 and scale (rand() % 6 + 4) · 0.03f; /3
+// adds it to the requested one and rolls another equal one for the rise (three rand()). The steps (0x547029, 0x5470a0,
+// 0x5470d3, 0x54714a): /1 raises the frame, walks (rand() % 30 − 15) times the scale in x and y, rises
+// (rand() % 20 + 10) · scale · 0.3f and grows 0.002f; /2 and /4 rise (rand() % 20 + 10) · 0.3f and grow 0.005f, and /4
+// stops at 350 with life at 0; /3 raises the frame and walks like /0 with its rise instead of the scale.
 TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
 {
     const auto walk = [](int steps, double by, float from)
@@ -1360,7 +1362,7 @@ TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
             EXPECT_EQ(drop.scale, F32(static_cast<double>(before.scale) + D(0x3ba3d70au)));
             if (subtype == 4)
             {
-                // 0x54714a: pasada la z 350 la deja en 350 y la vida en 0, sin tocar el byte vivo.
+                // 0x54714a: past z 350 it leaves it at 350 and the life at 0, without touching the alive byte.
                 ASSERT_GT(risen, 350.0f);
                 EXPECT_EQ(drop.position.z, 350.0f);
                 EXPECT_EQ(drop.life, 0);
@@ -1387,7 +1389,7 @@ TEST(Cl11Particles, TheDropsBubbleFloatRiseAndStop)
         EXPECT_EQ(random.State(), draws.random.State());
     }
     {
-        // La /4 que no pasa de 350 sube y pierde uno de vida, como la /2.
+        // A /4 that does not pass 350 rises and loses one life, like /2.
         auto low = std::make_unique<Particles>();
         CrtRandom lowRandom(Seed);
         const auto made = low->CreateChecked(0x607, {10, 20, 30}, {}, glm::vec3(0.25f), 4, 0.1f, 0.0f, lowRandom);
@@ -1436,10 +1438,10 @@ TEST(Cl11Particles, TheNewTypesGoToTheirBillboards)
     }
 }
 
-// 0x542ad3..0x542b06 y 0x546c0f..0x546c9e: la 0x5fc/2 de la lluvia de sombras (0x5254f9) vive 25, gira rand() % 360 y
-// sale con (−0,1f; −0,5; −1). Su paso, después del movimiento común (girado con el x en 45), gira −12, baja la z de la
-// velocidad (rand() & 7) · 0,05f, vuelve a sumarla sin girar con la z retenida, apaga la luz por 0x3f73cf3e y deja el
-// flare01 (0x5ac) con la escala por 2/3 en la tabla de los sprites del frame (0x5491e0).
+// 0x542ad3..0x542b06 and 0x546c0f..0x546c9e: 0x5fc/2 of the shadow rain (0x5254f9) lives 25, turns rand() % 360 and
+// leaves with (−0.1f; −0.5; −1). Its step, after the common movement (turned with x at 45), turns −12, lowers the
+// velocity's z by (rand() & 7) · 0.05f, adds it again unturned with the z retained, fades the light by 0x3f73cf3e and
+// leaves flare01 (0x5ac) with the scale times 2/3 in the frame's sprite table (0x5491e0).
 TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
 {
     auto particles = std::make_unique<Particles>();
@@ -1494,20 +1496,20 @@ TEST(Cl11Particles, TheFallingShineDriftsDownAndLeavesAFlareEachStep)
     EXPECT_TRUE(flare.alive);
     EXPECT_EQ(flare.texture, 0x5ac);
     EXPECT_EQ(flare.position, shine.position);
-    EXPECT_EQ(std::bit_cast<std::uint32_t>(flare.scale), 0x3eccccceu); // 0,6f · 0x3f2aaaab, calculado aparte
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(flare.scale), 0x3eccccceu); // 0.6f · 0x3f2aaaab, computed separately
     EXPECT_EQ(flare.light, shine.light);
     EXPECT_EQ(flare.rotation, 0.0f);
     EXPECT_EQ(flare.blend, 0);
     EXPECT_FALSE(sprites->Sprites()[1].alive);
 
-    // Sin la tabla de los sprites, corta antes del sprite, con todo lo de antes hecho.
+    // Without the sprite table, it cuts before the sprite, with everything before done.
     const Particle second = shine;
     const auto cut = step(nullptr);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_EQ(cut.Error(), ParticleError::MissingSprites);
     expectTheStep(second);
 
-    // Con los 3.000 lugares llenos, ni la partícula ni su rand().
+    // With the 3000 slots full, neither the particle nor its rand().
     auto full = std::make_unique<Particles>();
     for (Particle& particle : full->All())
         particle.alive = true;

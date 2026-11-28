@@ -18,11 +18,11 @@
 #include <format>
 #include <string>
 
-// El 0x60f y el 0x62b con el subtipo 0x10, 0xe o 0xf (alta 0x533677, 0x5337fa y 0x534132; paso 0x53a5c7, 0x53b18a y
-// 0x53b318). La /0x10 es la columna de la lluvia de sombras 0xbd (0x51bcb0): veinte tramos que suben de a 50, sin la
-// cola común, que se corren con lo que se mueve su personaje dueño. La /0xe y la /0xf dan vueltas alrededor de su
-// destino con un radio (la velocidad) que crece, en sentidos opuestos; las pide el paso del efecto 0x60f (0x52b408 y
-// 0x52b42b, con él de dueño), que MuRet no crea.
+// The 0x60f and 0x62b with subtype 0x10, 0xe or 0xf (creation 0x533677, 0x5337fa and 0x534132; step 0x53a5c7, 0x53b18a
+// and 0x53b318). The /0x10 is the column of the 0xbd shadow rain (0x51bcb0): twenty segments rising by 50, without the
+// common tail, that shift with how much their owner character moves. The /0xe and /0xf circle their target with a
+// growing radius (the speed), in opposite directions; requested by the step of the 0x60f effect (0x52b408 and
+// 0x52b42b, owned by it), which MuRet does not create.
 namespace Client::Joints::JointFamilies
 {
 namespace
@@ -30,12 +30,12 @@ namespace
 using Math::D;
 using Math::F32;
 
-constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0,01f
+constexpr double Hundredth = Math::HundredthAsDouble; // 0x6b86c0, 0.01f
 
 Core::Expected<void, std::string> CreateTheColumn(Kernel::JointState& joint, const Kernel::JointRequest& request)
 {
-    // 0x5337fa..0x533855: sin la cola común, la luz en 0,1f, vida 60, el destino y el ancho; después, mientras sea
-    // menor que los puntos (20), la z + 50 y un tramo con la matriz de los ángulos del alta (0x530afa, [ebp−0x54]).
+    // 0x5337fa..0x533855: without the common tail, light at 0.1f, life 60, the target and the width; then, while it is
+    // less than the points (20), z + 50 and a segment with the creation's angle matrix (0x530afa, [ebp−0x54]).
     constexpr float Dim = std::bit_cast<float>(0x3dcccccdu);
     constexpr std::int32_t Life = 60;
     constexpr double Rise = 50.0; // 0x6b86b0
@@ -56,9 +56,9 @@ Core::Expected<void, std::string> CreateTheColumn(Kernel::JointState& joint, con
 
 void CreateTheWhirl(Kernel::JointState& joint, const Kernel::JointRequest& request, Crt::CrtRandom& random)
 {
-    // 0x534132..0x5341f7: la mezcla 4, el ancho, la textura 0x613; vz (rand() % 150) · 0,01f, vy rand() % 500 − 250,
-    // velocidad 30 y la luz (0,2f; 0,4f; 0,8f). Con el ancho de más de 10 (fcomp y test ah,0x41: ni menor, ni igual, ni
-    // sin orden), vz (rand() % 250 + 150) · 0,01f. Vida 20 y la z + rand() % 25.
+    // 0x534132..0x5341f7: blend 4, the width, texture 0x613; vz (rand() % 150) · 0.01f, vy rand() % 500 − 250, speed 30
+    // and light (0.2f; 0.4f; 0.8f). With the width over 10 (fcomp and test ah,0x41: neither less, nor equal, nor
+    // unordered), vz (rand() % 250 + 150) · 0.01f. Life 20 and z + rand() % 25.
     constexpr std::uint8_t Blend = 4;
     constexpr std::uint16_t Texture = 0x613;
     constexpr float Speed = 30, NarrowWidth = 10;
@@ -82,9 +82,10 @@ void CreateTheWhirl(Kernel::JointState& joint, const Kernel::JointRequest& reque
     joint.position.z = F32(static_cast<double>(height) + D(joint.position.z));
 }
 
-// 0x53a5c7..0x53a6ae: con el personaje dueño, lo que se movió desde el paso anterior (el destino menos su posición, en
-// float) se resta de los cuatro puntos de los tramos cuenta − 1..0 y el destino pasa a ser su posición. La luz: con
-// vida de menos de 20, por 0,9090909f; de menos de 40, en 0,25; si no, por 1,04f. Sin dueño, nada.
+// 0x53a5c7..0x53a6ae: with the owner character, how much it moved since the previous step (the target minus its
+// position, as float) is subtracted from the four points of segments count − 1..0 and the target becomes its position.
+// The light: with life under 20, times 0.9090909f; under 40, at 0.25; otherwise, times 1.04f. Without an owner,
+// nothing.
 Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint)
 {
     if (joint.ownerContext == nullptr)
@@ -118,9 +119,9 @@ Core::Expected<void, std::string> StepTheColumn(Kernel::JointState& joint)
     return {};
 }
 
-// 0x53b18a..0x53b234: con dueño (que no lee), el giro a = vy · 0,1f (la /0xf, por −1) retenido en la x87: la x es
-// FCOS(a) · velocidad + la x del destino y la y, la y del destino − FSIN(a) · velocidad; la z + vz. Con vida de menos
-// de 20, la velocidad + 5; el ancho + 1, vy + 4 y vz + (rand() % 200 + 200) · 0,01f. Sin dueño, nada.
+// 0x53b18a..0x53b234: with an owner (which it does not read), the turn a = vy · 0.1f (the /0xf, times −1) retained on
+// the x87 stack: x is FCOS(a) · speed + the target's x and y the target's y − FSIN(a) · speed; z + vz. With life under
+// 20, speed + 5; width + 1, vy + 4 and vz + (rand() % 200 + 200) · 0.01f. Without an owner, nothing.
 Core::Expected<void, std::string> StepTheWhirl(Kernel::JointState& joint, const JointKernels::StepServices& services)
 {
     if (joint.ownerContext == nullptr)
@@ -160,7 +161,7 @@ bool IsOrbit(std::int32_t type, std::int32_t subtype)
 Core::Expected<void, std::string> CreateOrbitJoint(Kernel::JointState& joint, const Kernel::JointRequest& request,
                                                    Crt::CrtRandom& random)
 {
-    // 0x533677..0x53368e: lo común del 0x60f (vida 100, 20 puntos y ancho 10), que el subtipo pisa.
+    // 0x533677..0x53368e: the common 0x60f part (life 100, 20 points and width 10), which the subtype overwrites.
     constexpr std::int32_t Life = 100, Points = 20;
     constexpr float Width = 10;
     joint.life = Life;
@@ -173,7 +174,7 @@ Core::Expected<void, std::string> CreateOrbitJoint(Kernel::JointState& joint, co
     }
     else
         CreateTheWhirl(joint, request, random);
-    // 0x5342be: el destino es el segundo punto. 0x534cb6: el tope de 50 puntos no cambia los 20.
+    // 0x5342be: the target is the second point. 0x534cb6: the 50-point cap does not change the 20.
     joint.targetPosition = request.secondPosition;
     return {};
 }
@@ -187,7 +188,7 @@ Core::Expected<void, std::string> StepOrbitJoint(Kernel::JointState& joint, cons
     }
     else if (auto stepped = StepTheWhirl(joint, services); !stepped.HasValue())
         return stepped;
-    // 0x53b318..0x53b363: con vida de menos de 10, la luz por 0,7692308f (0x6ba240).
+    // 0x53b318..0x53b363: with life under 10, the light times 0.7692308f (0x6ba240).
     constexpr std::int32_t FadeLife = 10;
     constexpr double Fading = static_cast<double>(std::bit_cast<float>(0x3f44ec4fu));
     if (joint.life < FadeLife)

@@ -23,7 +23,8 @@ mutools --version
 ```
 
 `[dev]` brings everything. To use the tool and not change it, `pip install -e Client/tools/mutools` has the commands and
-the console UI, and `pip install -e "Client/tools/mutools[web]"` adds the studio (NiceGUI: 39 packages, about 89 MB).
+the console UI, `pip install -e "Client/tools/mutools[web]"` adds the studio (NiceGUI: 39 packages, about 89 MB) and
+`pip install -e "Client/tools/mutools[gltf]"` the export to Blender (pygltflib and 8 small packages).
 
 ## The working copy
 
@@ -88,7 +89,8 @@ An action moves between models as a file of its own, the action file: `mutools a
 action's `keys` and `lock` and, for each bone, its name, its parent and its position and rotation in each key;
 `mutools action import` puts it into any model with the same skeleton (as many bones, the same names and parents),
 after its last action or over another one. That is how a new movement is made: export one, change its poses with a
-script, and import it as a new action. A new action of `player/Player.bmd` is number 205.
+script, and import it as a new action. A new action of `player/Player.bmd` is number 205. To make one in Blender, see
+[Blender](#blender).
 
 A texture's name decides three things in the client: the file it opens (`sword02.jpg` opens `sword02.OZJ`, and a name
 whose extension starts with `t` an `.OZT`), the mesh's slot on a character (a name that starts with `ski`, `level`,
@@ -118,11 +120,13 @@ is `PARENT_AFTER_CHILD`. The skill has the rules in full.
 | `mutools action export <model> <N> --output <json>` | One action of a model, as an action file |
 | `mutools action import <model> <json> [--at N]` | An action file into a model with the same skeleton, after its last action or over action N |
 | `mutools action remove <model> <N> [--yes]` | Take an action out; any but the last needs `--yes` |
+| `mutools gltf export <model> --output <glb> [--part <model>]... [--action N]...` | The model for Blender: its skeleton, its actions as animations and its meshes |
+| `mutools gltf import <model> <glb> [--animation <name or N>] [--at N]` | An animation of a `.glb` from Blender into a model with the same skeleton, as a new action or over action N |
 | `mutools roundtrip <folder>` | Decode and encode every file and report any that changes |
 | `mutools tui [<folder or file>]` | The console UI |
 | `mutools web [<folder or model>] [--port N] [--no-browser] [--edit]` | The studio of models, in the browser; `--edit` lets it change a working copy's actions |
 
-`set`, `apply`, `build`, `dump`, the three `action` commands and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
+`set`, `apply`, `build`, `dump`, the `action` and `gltf` commands and `workspace init` take `--dry-run`. `--human` anywhere prints tables instead of JSON.
 Every list pages the same way: 50 items by default, with `total` and `next_offset` (`null` on the last page).
 
 Output is one JSON object on stdout, `{"ok": true, "schema": 1, "command", "data", "warnings"}`. An error is one JSON
@@ -327,6 +331,29 @@ The server listens on 127.0.0.1 only, and refuses a request that reaches it unde
 the port (8765 by default, `0` for a free one) and `--no-browser` leaves the browser closed: the address is on
 stderr. `Ctrl+C` stops it, and then it prints its JSON object like any other command.
 
+## Blender
+
+`mutools gltf export` writes a model as a glTF binary file (`.glb`), which Blender opens with File > Import > glTF 2.0:
+
+- **The skeleton** is an armature with one bone per real bone of the model, named after it; a name that repeats gets
+  the bone's number after it, as `Box02 (40)`. Dummy bones are left out. Blender shows the model standing, in MU's own
+  numbers: a bone at height 106.9 in the file is at 106.9 in Blender.
+- **Every action** is an animation named after its number and the studio's name for it, as `001 Action 1` or
+  `003 Attack 1`, and one key is one frame at 24 frames a second, so frame 3 is key 3. `--action N` exports only some.
+- **The meshes** stand in the pose of key 0 of action 0, as the studio frames a model, with their textures inside the
+  file. `player/Player.bmd` has none of its own: `--part player/ArmorMale01.bmd --part player/HelmMale01.bmd` adds the
+  meshes of models that borrow its skeleton. A texture that is not found leaves its mesh white, and `untextured` says
+  which.
+
+To make a movement, pose the bones in Blender, keyframe them, and export with File > Export > glTF 2.0 as `glTF Binary
+(.glb)`. `mutools gltf import <model> <glb> --animation '001 Action 1'` puts that animation into the model after its
+last action, or over action N with `--at N`. It reads one key per frame: the smallest step between the frames the file
+holds, at most a frame at 24 frames a second, since Blender leaves out the frames that change nothing. Each bone of the
+model needs a joint of its name under the same parent, or the file is for another skeleton (`INVALID_VALUE`); a bone
+the animation does not move keeps its pose of the file at every key. Over an action, a key that comes back as it was
+keeps its stored numbers, so an action exported and imported over itself leaves the model byte for byte as it was, and
+the action keeps its `lock`. Every action of `player/Player.bmd` makes that round trip through Blender 5.3 unchanged.
+
 ## Development
 
 ```bash
@@ -335,8 +362,8 @@ ruff check . && ruff format --check . && mypy src tests && pytest
 ```
 
 The layers are `core` (formats, documents, checks; standard library only), `app` (use cases) and `adapters` (file
-system, CLI, console UI, studio); `tests/test_layers.py` keeps them apart, and keeps NiceGUI inside
-`adapters/web`. The snapshot tests compare the console UI against `tests/adapters/tui/__snapshots__/`; after a change
+system, CLI, console UI, studio, glTF); `tests/test_layers.py` keeps them apart, keeps NiceGUI inside
+`adapters/web` and pygltflib inside `adapters/gltf/writer.py`. The snapshot tests compare the console UI against `tests/adapters/tui/__snapshots__/`; after a change
 that is meant to be seen, look at `snapshot_report.html` and run `pytest --snapshot-update`.
 
 The studio's page is tested without a browser, through NiceGUI's test user. Its JavaScript (the Vue components in
@@ -350,13 +377,25 @@ pytest -m browser
 
 `MUTOOLS_CHROMIUM=/path/to/chromium` makes them use a Chromium that is already installed.
 
+The tests marked `blender` run Blender's own glTF importer and exporter on a file `mutools gltf export` wrote, and
+import the result back. They need Blender as a Python module, which runs on Python 3.13 and weighs about 1 GB, so CI
+leaves them out:
+
+```bash
+pip install bpy==5.3.0    # in a Python 3.13 environment, with mutools[dev]
+pytest -m blender
+```
+
+pygltflib writes the `.glb`. It reads one too, but it took 16 s on Blender's export of `player/Player.bmd` (it turns
+130,000 objects into dataclasses), so `adapters/gltf/reader.py` reads the file with the standard library, in 0.3 s.
+
 `adapters/web/studio/vendor/three/TransformControls.js` is three 0.187.0's, byte for byte, with three's MIT license
 beside it; `tests/adapters/web/test_vendored.py` pins both. It is the one piece of three.js not inside NiceGUI's
 wheel.
 
 ## Stages
 
-Stages 1 to 7 are done, and stage 8 is this version.
+Stages 1 to 8 are done, and stage 9 is this version.
 
 1. Design and skills.
 2. Texts end to end.
@@ -369,3 +408,4 @@ Stages 1 to 7 are done, and stage 8 is this version.
 7. Actions as files: `mutools action export`, `import` and `remove`, the base of the action editor.
 8. Editing actions in the studio: `mutools web --edit`, a gizmo on a bone, keys and actions copied and removed, undo
    and save.
+9. The Blender bridge: `mutools gltf export` and `import`.

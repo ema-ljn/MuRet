@@ -25,7 +25,7 @@ class ActionEdit:
     result: EditResult
 
 
-def _open_model(store: FileStore, path: Path) -> OpenDocument:
+def open_model(store: FileStore, path: Path) -> OpenDocument:
     opened = open_document(store, path)
     format_name = opened.identified.format.name
     if format_name != MODEL_FORMAT_NAME:
@@ -48,7 +48,7 @@ def export_action(store: FileStore, path: Path, index: int, output: Path, *, dry
         raise MutoolsError(
             ErrorCode.USAGE, f"An action file is JSON and {output.name} is a .bmd: give --output a .json name"
         )
-    exported = action_file(_open_model(store, path).view, index)
+    exported = action_file(open_model(store, path).view, index)
     data = view_text(exported).encode("utf-8")
     if not dry_run:
         expected = store.sha256(output) if store.exists(output) else None
@@ -60,14 +60,14 @@ def export_action(store: FileStore, path: Path, index: int, output: Path, *, dry
 
 def import_action(store: FileStore, path: Path, source: Path, *, at: int | None = None, dry_run: bool) -> ActionEdit:
     action = read_action_file(parse_json(store.read(source), str(source)))
-    opened = _open_model(store, path)
+    opened = open_model(store, path)
     view = with_action(opened.view, action, at)
     result = save_view(store, opened, view, dry_run=dry_run)
     return ActionEdit(_count(opened.view) if at is None else at, _count(view), result)
 
 
 def remove_action(store: FileStore, path: Path, index: int, *, yes: bool, dry_run: bool) -> ActionEdit:
-    opened = _open_model(store, path)
+    opened = open_model(store, path)
     view = without_action(opened.view, index)
     last = _count(opened.view) - 1
     if index != last and not yes:

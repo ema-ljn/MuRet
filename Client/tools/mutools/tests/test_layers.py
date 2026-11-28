@@ -6,6 +6,7 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parents[1] / "src" / "mutools"
 UI_LIBRARIES = {"typer", "textual", "rich", "click", "pydantic"}
 WEB_LIBRARIES = {"nicegui", "fastapi", "starlette", "uvicorn"}
+GLTF_LIBRARY = "pygltflib"
 OTHER_ADAPTERS = ("mutools.adapters.cli", "mutools.adapters.tui", "typer", "textual")
 
 
@@ -32,7 +33,8 @@ def test_app_does_not_import_adapters() -> None:
     offenders = [
         f"{path.name}: {module}"
         for path, module in imported_modules("app")
-        if module.startswith("mutools.adapters") or module.split(".")[0] in UI_LIBRARIES | WEB_LIBRARIES
+        if module.startswith("mutools.adapters")
+        or module.split(".")[0] in UI_LIBRARIES | WEB_LIBRARIES | {GLTF_LIBRARY}
     ]
     assert offenders == []
 
@@ -62,5 +64,25 @@ def test_the_cli_imports_the_web_adapter_only_inside_a_command() -> None:
         for path in sorted((PACKAGE / "adapters" / "cli").rglob("*.py"))
         for node in ast.parse(path.read_text(encoding="utf-8")).body
         if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("mutools.adapters.web")
+    ]
+    assert offenders == []
+
+
+def test_only_the_gltf_writer_imports_pygltflib() -> None:
+    writer = PACKAGE / "adapters" / "gltf" / "writer.py"
+    offenders = [
+        f"{path.name}: {module}"
+        for path, module in imported_modules("adapters")
+        if path != writer and module.split(".")[0] == GLTF_LIBRARY
+    ]
+    assert offenders == []
+
+
+def test_the_cli_imports_the_gltf_writer_only_inside_a_command() -> None:
+    offenders = [
+        f"{path.name}: {node.module}"
+        for path in sorted((PACKAGE / "adapters" / "cli").rglob("*.py"))
+        for node in ast.parse(path.read_text(encoding="utf-8")).body
+        if isinstance(node, ast.ImportFrom) and node.module == "mutools.adapters.gltf.writer"
     ]
     assert offenders == []

@@ -21,8 +21,8 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/ScepterGlow.h"
-#include "World/Sprites.h"
+#include "Actors/Drawing/ScepterGlow.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 

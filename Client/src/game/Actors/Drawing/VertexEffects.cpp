@@ -11,9 +11,9 @@
 #include "Actors/JointHooks.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/JointRequest.h"
-#include "World/Particles.h"
-#include "World/SiegeVertexEffects.h"
-#include "World/Sprites.h"
+#include "Particles/Particles.h"
+#include "CastleSiege/SiegeVertexEffects.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 

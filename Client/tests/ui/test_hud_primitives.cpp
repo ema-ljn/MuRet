@@ -1,4 +1,4 @@
-#include "UI/HudPrimitives.h"
+#include "Ui/HudPrimitives.h"
 
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"

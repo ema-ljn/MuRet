@@ -1,11 +1,11 @@
-#include "World/MissileFireParticleKernels.h"
+#include "Particles/MissileFireParticleKernels.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"

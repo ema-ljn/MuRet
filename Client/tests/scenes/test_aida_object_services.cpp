@@ -1,17 +1,17 @@
-#include "Scenes/AidaObjectServices.h"
+#include "MapScripts/Aida/AidaObjectServices.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ModelEffects.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/SelectionParticleKernels.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/SelectionParticleKernels.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

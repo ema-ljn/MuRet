@@ -1,9 +1,9 @@
 #include "Crt/CrtRandom.h"
-#include "World/ModelEffects.h"
-#include "World/KalimaWorld.h"
-#include "World/KalimaWaves.h"
-#include "World/GameModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "MapScripts/Kalima/KalimaWaves.h"
+#include "Effects/GameModelEffects.h"
+#include "Particles/Particles.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <memory>

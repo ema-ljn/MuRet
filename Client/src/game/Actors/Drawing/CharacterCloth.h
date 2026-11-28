@@ -5,7 +5,7 @@
 #include "Models/Animation.h"
 #include "Models/Cloth.h"
 #include "Actors/Drawing/ClothCarry.h"
-#include "Scenes/MonsterCloth.h"
+#include "Actors/Drawing/MonsterCloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

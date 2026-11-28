@@ -1,8 +1,8 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Core/Expected.h"
-#include "World/IParticleTrigonometry.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/IParticleTrigonometry.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include <gtest/gtest.h>
 

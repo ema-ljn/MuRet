@@ -3,9 +3,9 @@
 #include "Render/Pass3D.h"
 #include "Camera/SceneCameras.h"
 
-#include "App/ServerAddress.h"
+#include "Session/ServerAddress.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Core/PixelSize.h"
@@ -48,9 +48,9 @@
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 #include "support/UiInput.h"
-#include "UI/GameCursor.h"
-#include "UI/Widget.h"
-#include "Scenes/LoginModels.h"
+#include "Ui/GameCursor.h"
+#include "Ui/Widget.h"
+#include "FrontEnd/LoginModels.h"
 #include "support/FixedRandom.h"
 
 #include <glm/ext/vector_float3.hpp>

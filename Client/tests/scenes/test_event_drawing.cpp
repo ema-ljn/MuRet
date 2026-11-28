@@ -1,4 +1,4 @@
-#include "Scenes/EventDrawing.h"
+#include "Events/EventDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -10,12 +10,12 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/EventMapObject.h"
-#include "Scenes/GameHud.h"
-#include "Scenes/GamePanels.h"
+#include "Events/EventMapObject.h"
+#include "Hud/GameHud.h"
+#include "Hud/GamePanels.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/PanelRegistry.h"
+#include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
 
 #include "support/RecordingTextDrawer.h"

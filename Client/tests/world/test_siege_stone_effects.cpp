@@ -1,8 +1,8 @@
-#include "World/SiegeStoneEffects.h"
+#include "CastleSiege/SiegeStoneEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float3.hpp>
 

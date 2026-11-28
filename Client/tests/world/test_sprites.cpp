@@ -1,4 +1,4 @@
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 

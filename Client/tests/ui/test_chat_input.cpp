@@ -1,7 +1,7 @@
-#include "UI/ChatInput.h"
+#include "Chat/ChatInput.h"
 
-#include "UI/OldWindowBase.h"
-#include "UI/OldEditInput.h"
+#include "Ui/OldWindowBase.h"
+#include "Ui/OldEditInput.h"
 #include "Platform/IClipboard.h"
 
 #include <gtest/gtest.h>

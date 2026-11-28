@@ -1,10 +1,10 @@
 #include "Network/Xor32Packet.h"
-#include "Scenes/GameUi.h"
+#include "Hud/GameUi.h"
 
 #include "Crt/CrtRandom.h"
 #include "Input/InputState.h"
 #include "Protocol/Outgoing.h"
-#include "Scenes/InventoryMoves.h"
+#include "Items/InventoryMoves.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

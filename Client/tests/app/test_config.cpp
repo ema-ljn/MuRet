@@ -2,9 +2,9 @@
 
 #include "App/CommandLine.h"
 #include "App/ConfigError.h"
-#include "App/LoopTiming.h"
-#include "App/PacingMode.h"
-#include "App/ServerAddress.h"
+#include "Kernel/LoopTiming.h"
+#include "Kernel/PacingMode.h"
+#include "Session/ServerAddress.h"
 #include "Platform/VSyncMode.h"
 
 #include "support/AppPrinters.h"

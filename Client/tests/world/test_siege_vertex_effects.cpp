@@ -1,9 +1,9 @@
-#include "World/SiegeVertexEffects.h"
+#include "CastleSiege/SiegeVertexEffects.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 
 #include <gtest/gtest.h>
 

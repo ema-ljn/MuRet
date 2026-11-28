@@ -1,8 +1,8 @@
-#include "UI/NewUi.h"
+#include "Ui/NewUi.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 
 #include "support/UiInput.h"
 

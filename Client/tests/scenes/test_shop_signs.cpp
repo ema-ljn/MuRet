@@ -1,4 +1,4 @@
-#include "Scenes/ShopSigns.h"
+#include "PersonalShop/ShopSigns.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -9,12 +9,12 @@
 #include "Render/Text/TextBox.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GamePanels.h"
+#include "Hud/GamePanels.h"
 #include "Scenes/GameProjection.h"
-#include "Scenes/SocialState.h"
+#include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 

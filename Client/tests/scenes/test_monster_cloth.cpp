@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterCloth.h"
+#include "Actors/Drawing/MonsterCloth.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -22,10 +22,10 @@
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Sprites.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>

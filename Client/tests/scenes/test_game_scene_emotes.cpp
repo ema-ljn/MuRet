@@ -2,7 +2,7 @@
 #include "Scenes/GameScene.h"
 
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
 #include "Tables/TextTable.h"
@@ -18,7 +18,7 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/LoginModels.h"
+#include "FrontEnd/LoginModels.h"
 #include "Scenes/SceneContext.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

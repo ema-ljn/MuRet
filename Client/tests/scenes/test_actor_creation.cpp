@@ -1,7 +1,7 @@
 #include "Actors/ActorCreation.h"
 
 #include "Kernel/ActorState.h"
-#include "Scenes/HelperTable.h"
+#include "Pets/HelperTable.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 

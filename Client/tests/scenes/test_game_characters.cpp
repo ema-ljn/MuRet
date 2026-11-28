@@ -22,18 +22,18 @@
 #include "Actors/Drawing/CharacterCloth.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/FullSetScan.h"
-#include "Scenes/GuildMarks.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildMarks.h"
+#include "Guild/GuildState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <glm/ext/vector_float2.hpp>

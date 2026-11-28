@@ -2,7 +2,7 @@
 #include "Models/SkinningBuffers.h"
 #include "Models/IModelLibrary.h"
 #include "Models/MeshTraits.h"
-#include "Scenes/CrywolfAltarDrawing.h"
+#include "MapScripts/Crywolf/CrywolfAltarDrawing.h"
 
 #include "Core/IClock.h"
 #include "Core/Expected.h"
@@ -34,9 +34,9 @@
 #include "Actors/Drawing/GameItemGlowEffects.h"
 #include "Actors/Drawing/GameItemGlowSpecialDrawing.h"
 #include "Math/Ftol.h"
-#include "World/ObjectModelStepState.h"
-#include "World/ScepterGlow.h"
-#include "World/Sprites.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Actors/Drawing/ScepterGlow.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

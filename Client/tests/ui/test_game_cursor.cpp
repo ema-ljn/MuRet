@@ -1,4 +1,4 @@
-#include "UI/GameCursor.h"
+#include "Ui/GameCursor.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
@@ -7,7 +7,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/UiInput.h"
 
 #include <gtest/gtest.h>

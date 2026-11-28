@@ -7,8 +7,8 @@
 #include "Actors/CharacterStep.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float3.hpp>

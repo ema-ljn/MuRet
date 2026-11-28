@@ -105,19 +105,19 @@ target_link_libraries(Audio PRIVATE SDL3::SDL3
 
 # ClientLib: the game and the app, everything in src/ outside engine/. main.cpp is Main's.
 file(GLOB_RECURSE client_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-list(FILTER client_sources EXCLUDE REGEX "/src/main\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/app/main\\.cpp$")
 list(FILTER client_sources EXCLUDE REGEX "/src/engine/")
 # Each system's command line syntax (App/CommandLineSystem.h).
-list(FILTER client_sources EXCLUDE REGEX "/src/App/CommandLine(Posix|Windows)\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/app/App/CommandLine(Posix|Windows)\\.cpp$")
 if(WIN32)
-    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLineWindows.cpp")
+    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/app/App/CommandLineWindows.cpp")
 else()
-    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/App/CommandLinePosix.cpp")
+    list(APPEND client_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/app/App/CommandLinePosix.cpp")
 endif()
 # MU_XOR_REMAP picks Main's MakeObfuscation (below).
-list(FILTER client_sources EXCLUDE REGEX "/src/App/MakeObfuscation[^/]*\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/app/App/MakeObfuscation[^/]*\\.cpp$")
 add_library(ClientLib STATIC ${client_sources})
-target_include_directories(ClientLib PUBLIC src src/game)
+target_include_directories(ClientLib PUBLIC src src/game src/app)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
 target_link_libraries(ClientLib PUBLIC Engine)
 target_link_libraries(ClientLib PRIVATE CLI11::CLI11)
@@ -139,13 +139,13 @@ if(MU_XOR_REMAP)
     add_library(XorRemap STATIC src/engine/Network/XorRemap/XorRemapObfuscation.cpp)
     target_link_libraries(XorRemap PUBLIC Engine)
     mu_set_warnings(XorRemap)
-    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/MakeObfuscationXorRemap.cpp")
+    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/app/App/MakeObfuscationXorRemap.cpp")
 else()
-    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/App/MakeObfuscationNone.cpp")
+    set(MU_MAKE_OBFUSCATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/app/App/MakeObfuscationNone.cpp")
 endif()
 
 add_executable(Main
-    src/main.cpp
+    src/app/main.cpp
     ${MU_MAKE_OBFUSCATION_SOURCE}
 )
 # main.exe, as the original's (ADR 0028).

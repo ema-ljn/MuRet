@@ -1,4 +1,4 @@
-#include "UI/ServerListWindow.h"
+#include "FrontEnd/ServerListWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Tables/TextTable.h"
@@ -10,8 +10,8 @@
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
 #include "Assets/SceneTextures.h"
-#include "UI/ServerListModel.h"
-#include "UI/Widget.h"
+#include "FrontEnd/ServerListModel.h"
+#include "Ui/Widget.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 #include "support/UiInput.h"

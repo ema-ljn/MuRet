@@ -1,9 +1,9 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include "support/ParticleDrawRecorder.h"
 

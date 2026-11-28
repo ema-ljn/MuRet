@@ -1,4 +1,4 @@
-#include "UI/MessageArea.h"
+#include "Ui/MessageArea.h"
 
 #include "Core/PixelSize.h"
 #include "Render/SpriteBatch.h"

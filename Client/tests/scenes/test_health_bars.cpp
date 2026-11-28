@@ -1,4 +1,4 @@
-#include "Scenes/HealthBars.h"
+#include "Hud/HealthBars.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -7,7 +7,7 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/GameProjection.h"
 #include "Kernel/WorldRuntime.h"
-#include "UI/HudPrimitives.h"
+#include "Ui/HudPrimitives.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

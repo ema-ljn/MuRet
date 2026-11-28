@@ -1,8 +1,8 @@
 #include "Crt/CrtRandom.h"
-#include "World/SiegeGateEffects.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "CastleSiege/SiegeGateEffects.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <memory>

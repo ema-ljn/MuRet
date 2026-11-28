@@ -1,12 +1,12 @@
-#include "World/KalimaSurfaceDecal.h"
+#include "MapScripts/Kalima/KalimaSurfaceDecal.h"
 
 #include "Crt/CrtRandom.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "World/KalimaWaves.h"
-#include "World/KalimaWorld.h"
+#include "MapScripts/Kalima/KalimaWaves.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
 #include "Terrain/TerrainDecal.h"
 
 #include <gtest/gtest.h>

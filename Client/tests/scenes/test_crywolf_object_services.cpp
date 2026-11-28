@@ -1,6 +1,6 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/CrywolfObjectServices.h"
+#include "MapScripts/Crywolf/CrywolfObjectServices.h"
 
 #include "Core/Expected.h"
 
@@ -13,16 +13,16 @@
 #include "Models/ModelId.h"
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/WorldRuntime.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ModelEffects.h"
-#include "World/ObjectModelStepState.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

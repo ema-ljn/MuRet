@@ -1,4 +1,4 @@
-#include "Scenes/WorldModelPose.h"
+#include "WorldObjects/WorldModelPose.h"
 
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"

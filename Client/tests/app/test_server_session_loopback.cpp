@@ -2,10 +2,10 @@
 
 #include "App/AutoLogin.h"
 #include "Session/Credentials.h"
-#include "App/FaithfulPacer.h"
+#include "Kernel/FaithfulPacer.h"
 #include "App/LabXorRemapTables.h"
-#include "App/ServerAddress.h"
-#include "App/SessionState.h"
+#include "Session/ServerAddress.h"
+#include "Session/SessionState.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

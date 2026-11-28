@@ -2,12 +2,12 @@
 #include "Crt/CrtRandom.h"
 #include "Math/HalfLifeMath.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/NoriaObjectServices.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "MapScripts/Noria/NoriaObjectServices.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>

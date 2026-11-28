@@ -1,7 +1,7 @@
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/BloodCastleParticleKernels.h"
+#include "Particles/BloodCastleParticleKernels.h"
 
 #include "support/ParticleDrawRecorder.h"
 

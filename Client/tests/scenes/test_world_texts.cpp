@@ -1,4 +1,4 @@
-#include "Scenes/WorldTexts.h"
+#include "Hud/WorldTexts.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"

@@ -1,4 +1,4 @@
-#include "UI/OldEditWordMovement.h"
+#include "Ui/OldEditWordMovement.h"
 
 #include <gtest/gtest.h>
 

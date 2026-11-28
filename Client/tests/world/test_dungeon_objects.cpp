@@ -1,12 +1,12 @@
 #include "Crt/CrtRandom.h"
 #include "Models/ObjectState.h"
-#include "World/DungeonObjectStep.h"
-#include "World/ModelEffects.h"
-#include "World/ObjectModelStepState.h"
-#include "World/Particles.h"
+#include "MapScripts/Dungeon/DungeonObjectStep.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float2.hpp>

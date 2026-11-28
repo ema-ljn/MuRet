@@ -1,7 +1,7 @@
-#include "World/CastleSiegeObjectStep.h"
+#include "CastleSiege/CastleSiegeObjectStep.h"
 
 #include "Crt/CrtRandom.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <gtest/gtest.h>
 

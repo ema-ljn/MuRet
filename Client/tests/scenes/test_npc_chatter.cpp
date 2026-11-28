@@ -1,4 +1,4 @@
-#include "Scenes/NpcChatter.h"
+#include "Monsters/NpcChatter.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -9,7 +9,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Scenes/ChatBubbles.h"
+#include "Chat/ChatBubbles.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

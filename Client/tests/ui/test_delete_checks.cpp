@@ -1,7 +1,7 @@
-#include "UI/DeleteChecks.h"
+#include "FrontEnd/DeleteChecks.h"
 
 #include "Protocol/FrontEnd/CharacterList.h"
-#include "UI/Notices.h"
+#include "Ui/Notices.h"
 
 #include "support/SceneDataFiles.h"
 

@@ -1,11 +1,11 @@
-#include "UI/LetterModel.h"
-#include "UI/LetterWindows.h"
+#include "Messenger/LetterModel.h"
+#include "Messenger/LetterWindows.h"
 
 #include "Core/PixelSize.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "UI/FriendModel.h"
-#include "UI/OldWindows.h"
+#include "Messenger/FriendModel.h"
+#include "Ui/OldWindows.h"
 
 #include <gtest/gtest.h>
 

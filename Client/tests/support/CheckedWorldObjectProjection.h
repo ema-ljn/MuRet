@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "World/WorldObjectRegistrations.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <gtest/gtest.h>
 

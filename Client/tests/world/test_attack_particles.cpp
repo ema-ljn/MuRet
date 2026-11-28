@@ -1,12 +1,12 @@
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Math/Ftol.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"
 

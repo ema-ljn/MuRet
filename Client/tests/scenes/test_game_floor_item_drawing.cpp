@@ -20,10 +20,10 @@
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/GameFloorItemDrawing.h"
+#include "Items/GameFloorItemDrawing.h"
 #include "Terrain/SphereFrustum.h"
-#include "World/Sprites.h"
-#include "World/ObjectModelStepState.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/ObjectModelStepState.h"
 #include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>

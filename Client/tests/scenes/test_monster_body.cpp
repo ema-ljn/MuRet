@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterBody.h"
+#include "Monsters/Drawing/MonsterBody.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -16,14 +16,14 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/ActorEffectHooks.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Effects/ActorEffectHooks.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/MonsterBodyPasses.h"
+#include "Monsters/Drawing/MonsterBodyPasses.h"
 #include "Actors/Drawing/VertexEffects.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

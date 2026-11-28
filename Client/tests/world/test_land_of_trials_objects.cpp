@@ -2,9 +2,9 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>

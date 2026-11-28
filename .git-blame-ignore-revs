@@ -56,3 +56,33 @@ b7e0e91f2514d5aa32376f495c24dc6de9d77f50
 
 # refactor(AR2.2): move the session to Client/src/game (#515)
 e901a4fd80cc38a1638131062b649d0526157b80
+
+# refactor(AR4.1): move Kernel, Assets, Terrain, Camera, Player and Actors to Client/src/game (#534)
+e0cfc7c8faecdc3f93fbe4851025fee774778f95
+
+# refactor(AR4.1): name the moved files' namespaces after their folders (#537)
+227dea7c91a0d98ef9ad50432900f2a3f170341c
+
+# docs(AR4.1): trim and translate the comments of game/Kernel and Camera and their tests (#539)
+9e732216347cf9c2b3bc56fa24816ef67da8c978
+
+# docs(AR4.1): trim and translate the comments of game/Player and its tests (#540)
+0dfd028d9e220d3508e7224f7120f561fd173c89
+
+# docs(AR4.1): trim and translate the comments of game/Assets and its tests (#541)
+8a60f504f512e064bae68bb1a7d8b7106de3360e
+
+# docs(AR4.1): trim and translate the comments of game/Terrain and its tests (#542)
+4e734255d69ec66bf5b76271fdf86a35d226e864
+
+# docs(AR4.1): trim and translate the comments of game/Actors and its tests (#543)
+0a1a366ab63fb80282fcac9a195dc0f0dffee15d
+
+# docs(AR4.1): trim and translate the comments of game/Actors/Drawing and its tests (#544)
+da4dc9c47573a20add7a2c4b775718b2fb489115
+
+# docs(AR4.1): trim and translate the comments of the remaining game/Actors/Drawing tests (#545)
+a142b0c0300ae61793bdb1d1a4fda8b67246bcd4
+
+# refactor(AR4.1): move LoadedWorld to Client/src/game/Assets (#547)
+c5d07e8c4154241f842c0132a6f93bfaaf960dd7

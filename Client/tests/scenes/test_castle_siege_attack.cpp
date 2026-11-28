@@ -1,10 +1,10 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
-#include "Scenes/CastleSiegeAttack.h"
+#include "CastleSiege/CastleSiegeAttack.h"
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
-#include "World/ModelEffects.h"
-#include "World/SiegeVertexEffects.h"
+#include "Effects/ModelEffects.h"
+#include "CastleSiege/SiegeVertexEffects.h"
 #include <gtest/gtest.h>
 #include <glm/ext/vector_float3.hpp>
 #include <cstddef>

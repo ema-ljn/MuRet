@@ -1,4 +1,4 @@
-#include "Scenes/AttackFrameSkills.h"
+#include "Skills/AttackFrameSkills.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -10,7 +10,7 @@
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/AttackStep.h"
+#include "Combat/AttackStep.h"
 #include "Actors/CharacterStep.h"
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
@@ -18,9 +18,9 @@
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
-#include "World/ModelEffects.h"
-#include "World/WizardModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/ModelEffects.h"
+#include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 

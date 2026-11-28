@@ -2,7 +2,7 @@
 
 #include "test_game_t16_support.h"
 #include "Session/ServerSession.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Scenes/SceneManager.h"
 #include "support/Bytes.h"
 #include "support/SessionHarness.h"

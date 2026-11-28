@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
-#include "Scenes/CastleSiegeBlessing.h"
+#include "CastleSiege/CastleSiegeBlessing.h"
 #include "Kernel/ActorState.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include <gtest/gtest.h>
 #include <limits>
 namespace

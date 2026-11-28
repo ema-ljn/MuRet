@@ -1,13 +1,13 @@
-#include "UI/CreateCharacterWindow.h"
+#include "FrontEnd/CreateCharacterWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
-#include "UI/NewUi.h"
-#include "UI/NameChecks.h"
-#include "UI/Widget.h"
+#include "Ui/NewUi.h"
+#include "FrontEnd/NameChecks.h"
+#include "Ui/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"

@@ -1,11 +1,11 @@
-#include "Scenes/Slides.h"
+#include "Hud/Slides.h"
 
 #include "Crt/CrtRandom.h"
 #include "Tables/SlideTable.h"
 #include "Models/LogicalAccess.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/SlideBanner.h"
+#include "Ui/SlideBanner.h"
 
 #include <gtest/gtest.h>
 

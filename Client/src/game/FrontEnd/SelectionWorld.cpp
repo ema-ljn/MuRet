@@ -1,0 +1,538 @@
+#include "FrontEnd/SelectionWorld.h"
+
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
+#include "Crt/CrtRandom.h"
+#include "Data/Models/Model.h"
+#include "Render/Billboard.h"
+#include "Render/ITextureStore.h"
+#include "Render/ModelBatch.h"
+#include "Models/Cloth.h"
+#include "Models/IModelLibrary.h"
+#include "Models/MeshTraits.h"
+#include "Models/ModelTextureSlots.h"
+#include "Models/Skinning.h"
+#include "Render/Pass3D.h"
+#include "Render/TextureSlot.h"
+#include "Kernel/ActorState.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Events/ObjectCollapse.h"
+#include "Actors/Drawing/PosePublishing.h"
+#include "Kernel/PoseBuffer.h"
+#include "Joints/FaunaJointCreation.h"
+#include "Scenes/GameDrawTail.h"
+#include "Actors/Drawing/GameItemRenderState.h"
+#include "Effects/GameParticles.h"
+#include "Assets/SceneTextures.h"
+#include "Assets/TerrainTiles.h"
+#include "Models/TextureMetadata.h"
+#include "Models/ModelId.h"
+#include "Kernel/WorldMap.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Effects/GameModelEffects.h"
+#include "Kernel/JointRequest.h"
+#include "Terrain/GroundMarks.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Particles.h"
+#include "Terrain/SphereFrustum.h"
+#include "Particles/Sprites.h"
+#include "Terrain/TerrainCells.h"
+#include "Terrain/TerrainCulling.h"
+#include "Terrain/TerrainLighting.h"
+#include "WorldObjects/WorldObjects.h"
+#include "Terrain/WorldTerrain.h"
+#include "Audio/SoundId.h"
+
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float2.hpp>
+
+#include <algorithm>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <ratio>
+#include <span>
+#include <string>
+#include <vector>
+
+namespace Client::Scenes
+{
+namespace
+{
+constexpr std::int32_t SelectionScene = 4;
+
+float Milliseconds(Core::Duration clock)
+{
+    return static_cast<float>(std::chrono::duration<double, std::milli>(clock).count());
+}
+
+// 0x5fc365: MuRet no sube Effect\blood01.tga (P-C49); con una marca prendida, DrawGroundMarks corta.
+std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
+{
+    return std::nullopt;
+}
+} // namespace
+
+const Data::Models::Model* SelectionTextureLibrary::Find(Models::ModelId model) const
+{
+    return m_world.Find(model);
+}
+
+const Models::Skeleton* SelectionTextureLibrary::SkeletonOf(Models::ModelId model) const
+{
+    return m_world.SkeletonOf(model);
+}
+
+std::span<const Render::TextureSlot> SelectionTextureLibrary::MeshTextures(Models::ModelId model) const
+{
+    return m_world.MeshTextures(model);
+}
+
+std::span<const Models::MeshTraits> SelectionTextureLibrary::MeshTraitsOf(Models::ModelId model) const
+{
+    return m_world.MeshTraitsOf(model);
+}
+
+std::optional<Models::TextureMetadata> SelectionTextureLibrary::TextureMetadataOf(std::uint32_t selector) const
+{
+    if (auto scene = m_scene.MetadataOf(selector))
+        return scene;
+    return m_world.TextureMetadataOf(selector);
+}
+
+std::optional<Render::TextureSlot> SelectionTextureLibrary::TextureSlotOf(std::uint32_t selector) const
+{
+    // La clave salió del slot de 16 bits de su entrada: no se trunca nada.
+    if (m_scene.MetadataOf(selector))
+        return Render::TextureSlot{static_cast<std::uint16_t>(selector)};
+    return m_world.TextureSlotOf(selector);
+}
+
+std::optional<glm::vec2> SelectionTextureLibrary::TextureSize(Render::TextureSlot slot) const
+{
+    if (auto scene = m_scene.MetadataOf(slot.value))
+        return scene->size;
+    return m_world.TextureSize(slot);
+}
+
+// Un único dueño por dibujo intermedio: todos los servicios prestan estas mismas copias.
+struct SelectionWorld::Projection
+{
+    Terrain::TerrainLighting lighting{};
+    Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
+    World::Particles particles{};
+    World::ModelEffects effects{};
+    std::vector<World::WorldObject> objects{};
+    GameDrawTailState tail{};
+    Actors::Drawing::GameItemRenderState items{};
+    World::ObjectModelStepState modelState{};
+};
+
+SelectionWorld::SelectionWorld(Render::ITextureStore& store, Core::Log& log)
+    : m_store(store), m_log(log), m_tiles(store)
+{
+}
+
+SelectionWorld::~SelectionWorld() = default;
+
+Core::Expected<void, std::string> SelectionWorld::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
+                                                       const Models::ModelTextureSlots* gameSlots,
+                                                       const Models::IModelLibrary* globalModels)
+{
+    if (m_tiles.LoadedMap() != map)
+    {
+        std::vector<std::string> skipped;
+        if (auto loaded = m_tiles.Load(dataRoot, map, skipped, Assets::GrassTextures::Upload); !loaded.HasValue())
+        {
+            return Core::Unexpected("0x61a560: los tiles del terreno del mapa " + std::to_string(map) + ": " +
+                                    loaded.Error());
+        }
+        for (const std::string& tile : skipped)
+        {
+            m_log.Warning("la selección va sin una textura del terreno, que el original saltea: {}", tile);
+        }
+    }
+    if (m_modelsMap != map)
+    {
+        m_models.Release();
+        m_modelsMap.reset();
+        if (auto loaded = m_models.Load(dataRoot, map, m_store, m_log, gameSlots, globalModels); !loaded.HasValue())
+        {
+            return Core::Unexpected("0x616ec0: los modelos de los objetos del mapa " + std::to_string(map) + ": " +
+                                    loaded.Error());
+        }
+        m_modelsMap = map;
+    }
+    return {};
+}
+
+void SelectionWorld::Release()
+{
+    m_tiles.Release();
+    m_models.Release();
+    m_modelsMap.reset();
+    m_sprites.Clear();
+    m_spriteReplay.Clear();
+    m_spriteReplayValid = false;
+    m_projection.reset();
+    m_projecting = false;
+}
+
+bool SelectionWorld::IsLoaded() const
+{
+    return m_modelsMap.has_value() && m_tiles.LoadedMap().has_value();
+}
+
+const Assets::WorldModels& SelectionWorld::Models() const
+{
+    return m_models;
+}
+
+void SelectionWorld::StepWaves(Core::Duration clock, const Terrain::TerrainRange& range, std::uint8_t map)
+{
+    Terrain::UpdateWaves(m_water, clock, range, map);
+}
+
+Core::Expected<void, std::string> SelectionWorld::StepObjects(Kernel::WorldState& world,
+                                                              const Terrain::WorldTerrain& terrain,
+                                                              Terrain::TerrainLighting& dynamicLighting,
+                                                              Crt::CrtRandom& random, float worldClock)
+{
+    std::span<World::WorldObject> objects = world.Map().objects;
+    // 0x5ff960 con cada vivo del recorrido, también en la espera (Scenes/ObjectCollapse.h). La escena no tiene el
+    // temblor de la cámara del juego: la piedra de Chaos Castle corta antes, en el pool (0x4056e5, 0x4057bf y
+    // 0x405899).
+    const ObjectCollapseContext collapseContext{.runtime = world.Runtime(),
+                                                .random = random,
+                                                .particles = &world.Particles(),
+                                                .worldClock = worldClock,
+                                                .heroZ = world.Hero().position.z,
+                                                .cameraShake = nullptr,
+                                                .attributes = terrain.attributes.get()};
+    const AfterObjectStep collapse = [&collapseContext](World::WorldObject& object)
+    { return CollapseTheObject(object, collapseContext); };
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
+    // el derrumbe con los vivos y la cuenta (0x606610).
+    if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
+    {
+        if (auto walked = WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
+            return Core::Unexpected(walked.Error() + ", en la selección");
+        CountDownTheObjectCollapse(world.Runtime());
+        return {};
+    }
+    const auto map = static_cast<std::uint8_t>(world.Runtime().map);
+    const World::ObjectStepGlobals globals{.heroCellLayer = world.Runtime().heroCellLayer,
+                                           .worldClock = worldClock,
+                                           .dynamicLighting = &dynamicLighting,
+                                           .particles = &world.Particles(),
+                                           .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
+                                           .modelState = &world.Runtime().objectModelState};
+    if (auto stepped = StepGameWorldObjects(objects, map, m_models, random, globals, {}, collapse); !stepped.HasValue())
+    {
+        return Core::Unexpected(stepped.Error() + ", en la selección");
+    }
+    CountDownTheObjectCollapse(world.Runtime());
+    return {};
+}
+
+Core::Expected<void, std::string> SelectionWorld::StepEffects(Kernel::WorldState& world,
+                                                              Terrain::TerrainLighting& dynamicLighting,
+                                                              Models::ClothWorld& cloth, float worldClock,
+                                                              const std::function<double(float, float)>& height,
+                                                              std::uint32_t systemTime)
+{
+    const World::ModelEffectStepServices services{
+        .terrainHeight = height,
+        .sprites = &m_sprites,
+        .effects = &world.Map().effects,
+        .lighting = &dynamicLighting,
+        .systemTime = [systemTime]() { return systemTime; },
+        .sound = [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); },
+        .joint = [&world, &cloth](const Kernel::JointRequest& request) -> Core::Expected<void, std::string>
+        {
+            const auto created = CreateFaunaJoint(world.DrawTail().joints, request, cloth.random);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return {};
+        },
+        .publishAction =
+            [&world](std::uint16_t type, std::uint8_t action)
+        {
+            auto placement = world.ModelPlacement(type);
+            placement.action = action;
+            world.PlaceModel(type, placement);
+        },
+        .soundAt = [&world](Audio::SoundId id, const glm::vec3& origin) { world.Runtime().RequestSound(id, origin); }};
+    for (World::ModelEffect& effect : world.Map().effects.Effects())
+    {
+        const auto* skeleton = effect.type == World::EarthquakeBurstEffect
+                                   ? nullptr
+                                   : m_models.SkeletonOf(Models::ModelId{static_cast<std::uint16_t>(effect.type)});
+        if (auto stepped = World::StepGameModelEffect(effect, skeleton, world.Particles(), worldClock, cloth.random,
+                                                      world.Map().kalima.get(), services);
+            !stepped.HasValue())
+        {
+            return Core::Unexpected(stepped.Error() + ", en la selección (0x52d220)");
+        }
+    }
+    // 0x634310 → 0x53c670: el mismo paso de los joints que el juego (0x637123), con los mismos globales: la luz
+    // dinámica (0x7b4ccc4), la altura del terreno (0x5f93c0), los 400 personajes (0x743a16c), la tabla de efectos
+    // (0x7491fd8), el héroe ([0x743a170]) y los modelos compartidos (0x5769ad8). El choque de la flecha dueña
+    // (0x520170, que piden el 0x60f/0xb y /0x19 con skill 1) queda sin servicio: sin él, corta en 0x53ae6d. Tampoco van
+    // el asedio y los blancos del héroe (JointKernels::VolleyServices) ni los modelos del 0x20b: sus joints (el 0x613
+    // de ancho 80, el 0x61c/0 y la 0x632/0 y /1) los crean skills que la selección no corre; si llegaran, cortan.
+    const auto actors = world.Actors();
+    const std::size_t heroSlot = world.Runtime().hero;
+    const Kernel::ActorState* hero = heroSlot < actors.size() ? &actors[heroSlot] : nullptr;
+    if (auto stepped = StepJoints(
+            world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites, &dynamicLighting,
+            [&world](Audio::SoundId id) { world.Runtime().RequestSound(id); }, height, actors, {}, &world.Map().effects,
+            hero, &world);
+        !stepped.HasValue())
+    {
+        return Core::Unexpected(stepped.Error() + ", en la selección (0x53c670)");
+    }
+    return {};
+}
+
+void SelectionWorld::BeginFrame(Kernel::WorldState& world, Terrain::TerrainLighting& dynamicLighting,
+                                Models::ClothWorld& cloth, int frames)
+{
+    m_world = &world;
+    m_dynamicLighting = &dynamicLighting;
+    m_cloth = &cloth;
+    m_projecting = frames == 0;
+    if (!m_projecting)
+    {
+        return;
+    }
+    if (!m_projection)
+    {
+        m_projection = std::make_unique<Projection>();
+    }
+    m_projection->lighting = dynamicLighting;
+    m_projection->cloth = cloth;
+    m_projection->particles = world.Particles();
+    m_projection->effects = world.Map().effects;
+    m_projection->objects = world.Map().objects;
+    m_projection->tail = world.DrawTail();
+    m_projection->items = world.Runtime().itemRender;
+    m_projection->modelState = world.Runtime().objectModelState;
+    // Los sprites del dibujo intermedio salen de la muestra del último frame original (0x549510).
+    m_projectedSprites.Clear();
+}
+
+Terrain::TerrainLighting& SelectionWorld::FrameLighting()
+{
+    return m_projecting ? m_projection->lighting : *m_dynamicLighting;
+}
+
+Crt::CrtRandom& SelectionWorld::FrameRandom()
+{
+    return m_projecting ? m_projection->cloth.random : m_cloth->random;
+}
+
+Models::ClothWorld& SelectionWorld::FrameCloth()
+{
+    return m_projecting ? m_projection->cloth : *m_cloth;
+}
+
+Actors::Drawing::GameItemRenderState& SelectionWorld::FrameItemRender()
+{
+    return m_projecting ? m_projection->items : m_world->Runtime().itemRender;
+}
+
+World::ObjectModelStepState& SelectionWorld::FrameModelState()
+{
+    return m_projecting ? m_projection->modelState : m_world->Runtime().objectModelState;
+}
+
+World::Particles& SelectionWorld::FrameParticles()
+{
+    return m_projecting ? m_projection->particles : m_world->Particles();
+}
+
+World::ModelEffects& SelectionWorld::FrameEffects()
+{
+    return m_projecting ? m_projection->effects : m_world->Map().effects;
+}
+
+std::span<World::WorldObject> SelectionWorld::FrameObjects()
+{
+    return m_projecting ? std::span(m_projection->objects) : std::span(m_world->Map().objects);
+}
+
+GameDrawTailState& SelectionWorld::FrameTail()
+{
+    return m_projecting ? m_projection->tail : m_world->DrawTail();
+}
+
+World::FrameSprites& SelectionWorld::FrameSprites()
+{
+    return m_projecting ? m_projectedSprites : m_sprites;
+}
+
+Core::Expected<void, std::string> SelectionWorld::DrawTerrain(Kernel::WorldState& world,
+                                                              const Terrain::WorldTerrain& terrain,
+                                                              const Terrain::GroundMarkTable& groundMarks,
+                                                              const SelectionWorldFrame& frame)
+{
+    if (!terrain.mapping || !terrain.heights || !terrain.attributes)
+    {
+        return Core::Unexpected(std::string("0x5fc260: el terreno 54 de la selección no está cargado (0x61a560)"));
+    }
+    const auto map = static_cast<std::uint8_t>(world.Runtime().map);
+    Terrain::TerrainView view;
+    view.mapping = terrain.mapping.get();
+    view.heights = terrain.heights.get();
+    view.attributes = terrain.attributes.get();
+    view.lighting = &FrameLighting();
+    view.tiles = m_tiles.Sizes();
+    view.map = map;
+    view.fixedHeight = frame.fixedHeight;
+    // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: el pase del terreno.
+    m_water.offset = Terrain::WaterOffsetAt(frame.frameClock, map);
+    Terrain::DrawTerrain(frame.batch, view, frame.range, frame.polygon, m_water);
+    // 0x5fc32b..0x5fc353: el pase del pasto (0x6c9d58 prendido fuera de los mapas 18 a 23 y 30).
+    const Terrain::TerrainGrass grass{.heights = m_tiles.GrassHeights(), .offsets = world.Map().grassOffsets};
+    if (auto grown = Terrain::DrawGrass(frame.batch, view, frame.range, frame.polygon, m_water, grass);
+        !grown.HasValue())
+    {
+        return Core::Unexpected(grown.Error() + ", en el pase del pasto de la selección");
+    }
+    // 0x5fc35b..0x5fc36a: las marcas del suelo sin depth test y con culling, y el depth test de vuelta.
+    Render::ModelDrawState marksState = frame.batch.State();
+    marksState.depthTest = false;
+    marksState.cullEnabled = true;
+    frame.batch.SetState(marksState);
+    if (auto marked = Terrain::DrawGroundMarks(frame.batch, groundMarks, *terrain.heights, NoSlotComponents);
+        !marked.HasValue())
+    {
+        return Core::Unexpected(marked.Error() + ", en la selección");
+    }
+    Render::ModelDrawState afterMarks = frame.batch.State();
+    afterMarks.depthTest = true;
+    frame.batch.SetState(afterMarks);
+    return {};
+}
+
+Core::Expected<void, std::string>
+SelectionWorld::DrawObjects(Kernel::WorldState& world, const SelectionWorldFrame& frame, Kernel::PoseBuffer& poseCarry)
+{
+    const auto map = static_cast<std::uint8_t>(world.Runtime().map);
+    const float clock = Milliseconds(frame.frameClock);
+    const auto systemTime =
+        static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(frame.frameClock).count());
+    const GameObjectPass pass{.map = map,
+                              .originalFrame = frame.frames > 0,
+                              .random = &FrameRandom(),
+                              .worldClock = clock,
+                              .particles = &FrameParticles(),
+                              .onPose = [&](const Actors::Drawing::DrawnObject& drawn)
+                              { return Actors::Drawing::PublishPose(poseCarry, m_models, drawn, true); },
+                              .sprites = &FrameSprites(),
+                              .retainedPose = &poseCarry,
+                              .modelState = &world.Runtime().objectModelState,
+                              .publishProjectedPose = true,
+                              .effects = &FrameEffects(),
+                              // Q-C304: timeGetTime (0x6b8544) es el reloj del sistema; MuRet le presta el del dibujo.
+                              .systemTime = [systemTime]() { return systemTime; },
+                              .scene = SelectionScene,
+                              .objectDrawCounter = &world.Runtime().objectDrawCounter,
+                              .crywolf = &world.Runtime().crywolf};
+    if (auto drawn = DrawGameWorldObjects(frame.batch, m_models, FrameObjects(), frame.polygon, &FrameLighting(),
+                                          frame.frameClock, pass);
+        !drawn.HasValue())
+    {
+        return Core::Unexpected(drawn.Error() + ", en la selección");
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> SelectionWorld::DrawAfterCharacters(Kernel::WorldState& world,
+                                                                      const Terrain::WorldTerrain& terrain,
+                                                                      const SelectionWorldFrame& frame,
+                                                                      const Render::Camera3D& camera,
+                                                                      Kernel::PoseBuffer& poseCarry)
+{
+    const float clock = Milliseconds(frame.frameClock);
+    GameDrawTailState& tail = FrameTail();
+    // 0x52e590: las cintas.
+    if (auto ribbons = DrawRibbons(frame.batch, tail.ribbons); !ribbons.HasValue())
+        return ribbons;
+    // 0x53c6a0(0): las juntas.
+    const JointDrawResources joints{FrameRandom(), FrameSprites(), frame.frames > 0, clock};
+    if (auto drawn = DrawJoints(frame.batch, tail.joints, 0, joints); !drawn.HasValue())
+        return drawn;
+    // 0x52d620(0): los efectos con modelo; la mariposa de la escena 4 sale con +0x58 = −2 (0x600328).
+    if (!terrain.heights)
+    {
+        return Core::Unexpected(std::string("0x52d620: faltan las alturas del terreno 54"));
+    }
+    ModelEffectDrawResources resources{*terrain.heights, clock};
+    resources.onPose = [&](const Actors::Drawing::DrawnObject& object)
+    { return Actors::Drawing::PublishPose(poseCarry, m_models, object, true); };
+    resources.onUntranslatedPose = [&](const Actors::Drawing::DrawnObject& object)
+    { return Actors::Drawing::PublishPose(poseCarry, m_models, object, false); };
+    resources.posedMeshes = [&]() { return std::span<const Models::SkinnedMesh>(poseCarry.meshes); };
+    resources.sprites = &FrameSprites();
+    resources.dynamicLighting = &FrameLighting();
+    resources.random = &FrameRandom();
+    const Terrain::SphereFrustum frustum = Terrain::SphereFrustumOf(frame.batch.Pass().view, camera);
+    if (auto drawn = DrawGameModelEffects(frame.batch, m_models, FrameEffects().Effects(), frustum, &FrameLighting(),
+                                          frame.frameClock, 0, resources, 0);
+        !drawn.HasValue())
+    {
+        return Core::Unexpected(drawn.Error() + ", en la selección");
+    }
+    // 0x549510: prende +0x16c de los sprites vivos. Un dibujo intermedio repite la muestra del último
+    // frame original.
+    if (frame.frames > 0)
+    {
+        m_spriteReplay = m_sprites;
+        m_spriteReplayValid = true;
+    }
+    else if (m_spriteReplayValid)
+    {
+        m_projectedSprites = m_spriteReplay;
+    }
+    FrameSprites().MarkSeen();
+    static_cast<void>(world);
+    return {};
+}
+
+Core::Expected<void, std::string> SelectionWorld::DrawEye(const Render::Pass3D& pass, const SelectionWorldFrame& frame,
+                                                          const Assets::SceneTextures& sceneTextures,
+                                                          std::span<const DamageNumberState> damage)
+{
+    // 0x6213e0: la modelview en la identidad para el pase de ojo.
+    Render::Pass3D eye = pass;
+    eye.view = glm::mat4(1.0f);
+    frame.batch.Begin(eye);
+    const auto view = Render::ViewRows(pass.view);
+    const SelectionTextureLibrary textures(m_models, sceneTextures);
+    // 0x549440(0): dibuja y apaga los sprites.
+    DrawFrameSprites(frame.batch, FrameSprites(), textures, view, 0);
+    // 0x548550(0): las partículas.
+    if (auto particles =
+            DrawGameParticles(frame.batch, FrameParticles(), textures, view, Milliseconds(frame.frameClock), 0);
+        !particles.HasValue())
+    {
+        return Core::Unexpected(particles.Error() + ", en la selección");
+    }
+    // 0x548eb0(0): los números.
+    if (auto numbers = DrawDamage(frame.batch, damage, 0, view); !numbers.HasValue())
+        return numbers;
+    if (frame.flushModels)
+        frame.flushModels();
+    return {};
+}
+} // namespace Client::Scenes

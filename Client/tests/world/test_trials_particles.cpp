@@ -1,8 +1,8 @@
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRetainedMath.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/TrialsParticleKernels.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/TrialsParticleKernels.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

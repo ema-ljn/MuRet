@@ -2,7 +2,7 @@
 
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Kernel/ActorState.h"
-#include "UI/NameChecks.h"
+#include "FrontEnd/NameChecks.h"
 
 #include <algorithm>
 #include <array>

@@ -1,8 +1,8 @@
-#include "Scenes/SelectionInventory.h"
+#include "FrontEnd/SelectionInventory.h"
 
 #include "Crt/CrtRandom.h"
 #include "Models/LogicalAccess.h"
-#include "Scenes/NpcWindowState.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

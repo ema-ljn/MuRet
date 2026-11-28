@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/MonsterDrawing.h"
+#include "Monsters/Drawing/MonsterDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -28,16 +28,16 @@
 #include "Assets/FaunaModels.h"
 #include "Actors/Drawing/GameCharacters.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/SelectionState.h"
-#include "Scenes/SkillReplies.h"
+#include "FrontEnd/SelectionState.h"
+#include "Skills/SkillReplies.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Camera/GameCamera.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
@@ -45,7 +45,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <gtest/gtest.h>

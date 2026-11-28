@@ -11,7 +11,7 @@
 #include "support/ItemSetFiles.h"
 #include "Tables/FilterWords.h"
 #include "Tables/MoveRequirements.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "Tables/TextTable.h"
 #include "support/SceneDataFiles.h"
 #include "support/GateFiles.h"
@@ -19,7 +19,7 @@
 #include "support/SkillFiles.h"
 #include "support/GoldenDir.h"
 #include "Tables/SkillTable.h"
-#include "UI/MacroFile.h"
+#include "Chat/MacroFile.h"
 
 #include <gtest/gtest.h>
 

@@ -1,4 +1,4 @@
-#include "Scenes/PetTrainerDrawing.h"
+#include "PetTrainer/PetTrainerDrawing.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -10,8 +10,8 @@
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameHud.h"
-#include "Scenes/NpcWindowState.h"
+#include "Hud/GameHud.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

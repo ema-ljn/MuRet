@@ -6,11 +6,11 @@
 #include "Models/Cloth.h"
 #include "Models/LogicalAccess.h"
 #include "Pathfinding/PathFinder.h"
-#include "Scenes/CrywolfContract.h"
+#include "Events/Crywolf/CrywolfContract.h"
 #include "Protocol/FrontEnd/CharacterName.h"
 #include "Session/WorldEntry.h"
 #include "Terrain/TerrainDefines.h"
-#include "UI/NameChecks.h"
+#include "FrontEnd/NameChecks.h"
 
 #include <cstddef>
 #include <cstdint>

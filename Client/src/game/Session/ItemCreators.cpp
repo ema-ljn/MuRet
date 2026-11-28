@@ -4,9 +4,9 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/ItemDrawResources.h"
 #include "Kernel/JointRequest.h"
-#include "Scenes/FaunaEffects.h"
-#include "Scenes/FaunaJointCreation.h"
-#include "World/ModelEffects.h"
+#include "Fauna/FaunaEffects.h"
+#include "Joints/FaunaJointCreation.h"
+#include "Effects/ModelEffects.h"
 
 #include <cstdint>
 #include <string>

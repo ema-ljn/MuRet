@@ -8,7 +8,7 @@
 #include "Player/ItemSetOptionList.h"
 #include "Player/ItemSetState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/OwnItemOptions.h"
+#include "Items/OwnItemOptions.h"
 #include "Player/OwnItemSets.h"
 #include "Player/OwnStatHelpers.h"
 #include "Kernel/ItemState.h"

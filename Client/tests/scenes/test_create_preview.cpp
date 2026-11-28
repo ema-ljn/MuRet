@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/CreatePreview.h"
+#include "FrontEnd/CreatePreview.h"
 
 #include "Core/PixelSize.h"
 #include "Data/Models/Model.h"
@@ -11,7 +11,7 @@
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Camera/SceneCameras.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 
 #include <gtest/gtest.h>
 

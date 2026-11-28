@@ -1,4 +1,4 @@
-#include "Scenes/OwnItemOptions.h"
+#include "Items/OwnItemOptions.h"
 
 #include "Kernel/ItemState.h"
 

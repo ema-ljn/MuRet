@@ -1,6 +1,6 @@
-#include "World/SiegeStoneEffects.h"
-#include "World/ModelEffects.h"
-#include "World/WorldObjects.h"
+#include "CastleSiege/SiegeStoneEffects.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/WorldObjects.h"
 #include <gtest/gtest.h>
 #include <array>
 namespace

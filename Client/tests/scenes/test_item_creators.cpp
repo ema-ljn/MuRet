@@ -8,9 +8,9 @@
 #include "Kernel/JointRequest.h"
 #include "Kernel/PoseBuffer.h"
 #include "Scenes/GameDrawTail.h"
-#include "World/ModelEffects.h"
-#include "World/ObjectModelStepState.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "WorldObjects/ObjectModelStepState.h"
+#include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
 

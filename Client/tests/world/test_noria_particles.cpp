@@ -1,9 +1,9 @@
 #include "Crt/CrtRandom.h"
 #include "Math/OriginalRotation.h"
 #include "support/ParticleDrawRecorder.h"
-#include "World/ParticleOwner.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

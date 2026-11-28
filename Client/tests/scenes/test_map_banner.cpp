@@ -1,4 +1,4 @@
-#include "Scenes/MapBanner.h"
+#include "Hud/MapBanner.h"
 
 #include "Data/Textures/Sampling.h"
 #include "Render/TextureSlot.h"

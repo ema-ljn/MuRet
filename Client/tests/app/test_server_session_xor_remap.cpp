@@ -1,5 +1,5 @@
 #include "App/LabXorRemapTables.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 #include "Network/XorRemap/XorRemapObfuscation.h"
 
 #include "support/AppPrinters.h"

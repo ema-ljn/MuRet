@@ -1,12 +1,12 @@
-#include "UI/CreditsWindow.h"
+#include "FrontEnd/CreditsWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Tables/Credits.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
-#include "UI/NewUi.h"
-#include "UI/Widget.h"
+#include "Ui/NewUi.h"
+#include "Ui/Widget.h"
 
 #include "support/RecordingTextDrawer.h"
 #include "support/UiInput.h"

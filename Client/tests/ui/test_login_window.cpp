@@ -1,4 +1,4 @@
-#include "UI/LoginWindow.h"
+#include "FrontEnd/LoginWindow.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputEvent.h"
@@ -7,7 +7,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/AppPrinters.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"

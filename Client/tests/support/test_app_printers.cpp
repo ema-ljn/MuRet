@@ -2,7 +2,7 @@
 
 #include "Session/Credentials.h"
 #include "Platform/Resolution.h"
-#include "App/SessionState.h"
+#include "Session/SessionState.h"
 
 #include <gtest/gtest.h>
 

@@ -9,7 +9,7 @@
 #include "Render/TextureSlot.h"
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
-#include "World/ObjectModelStepState.h"
+#include "WorldObjects/ObjectModelStepState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

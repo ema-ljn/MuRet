@@ -1,11 +1,11 @@
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
 #include "Models/ObjectState.h"
-#include "World/EventMapObjectStep.h"
-#include "World/Particles.h"
+#include "Events/EventMapObjectStep.h"
+#include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "World/WorldObjectStepServices.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectStepServices.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>

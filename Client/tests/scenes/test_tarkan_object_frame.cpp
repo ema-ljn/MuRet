@@ -1,4 +1,4 @@
-#include "Scenes/TarkanObjectFrame.h"
+#include "MapScripts/Tarkan/TarkanObjectFrame.h"
 
 #include "Crt/CrtRandom.h"
 #include "Math/X87.h"
@@ -6,12 +6,12 @@
 #include "Math/OriginalRotation.h"
 #include "Math/RoundedMath.h"
 #include "Kernel/PoseBuffer.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

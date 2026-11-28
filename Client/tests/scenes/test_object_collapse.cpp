@@ -1,14 +1,14 @@
-#include "Scenes/ObjectCollapse.h"
+#include "Events/ObjectCollapse.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Models/ObjectState.h"
-#include "Scenes/EventGlobals.h"
-#include "Scenes/WorldObjectsDrawing.h"
+#include "Events/EventGlobals.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/WorldRuntime.h"
-#include "World/Particles.h"
-#include "World/WorldObjects.h"
+#include "Particles/Particles.h"
+#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>

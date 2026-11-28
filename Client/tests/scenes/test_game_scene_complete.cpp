@@ -12,7 +12,7 @@
 #include "Session/IWorldTransitionPublisher.h"
 #include "Session/WorldTransitions.h"
 #include "Protocol/Movement/World.h"
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 #include "Protocol/FrontEnd/CharacterSelectResult.h"
 #include "Input/InputState.h"
 #include "Camera/GameCamera.h"

@@ -1,4 +1,4 @@
-#include "Scenes/GroundEffectFrame.h"
+#include "Effects/GroundEffectFrame.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -6,10 +6,10 @@
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
-#include "Terrain/GroundEffectDrawing.h"
-#include "World/ModelEffects.h"
-#include "World/KalimaWorld.h"
-#include "World/KalimaWaves.h"
+#include "Effects/GroundEffectDrawing.h"
+#include "Effects/ModelEffects.h"
+#include "MapScripts/Kalima/KalimaWorld.h"
+#include "MapScripts/Kalima/KalimaWaves.h"
 
 #include <gtest/gtest.h>
 

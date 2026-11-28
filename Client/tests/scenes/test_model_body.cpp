@@ -1,5 +1,5 @@
 #include "Models/IModelLibrary.h"
-#include "Scenes/ModelBody.h"
+#include "Monsters/ModelBody.h"
 
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
@@ -15,7 +15,7 @@
 #include "Actors/CharacterStep.h"
 #include "Session/CharacterStepHooks.h"
 #include "Assets/FaunaModels.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

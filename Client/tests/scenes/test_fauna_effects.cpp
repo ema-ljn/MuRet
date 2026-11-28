@@ -1,11 +1,11 @@
-#include "Scenes/FaunaEffects.h"
-#include "World/ModelEffects.h"
+#include "Fauna/FaunaEffects.h"
+#include "Effects/ModelEffects.h"
 #include <gtest/gtest.h>
 #include "Crt/CrtRandom.h"
 #include "Models/Cloth.h"
-#include "World/Particles.h"
-#include "World/ParticleDrawParameters.h"
-#include "World/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/ParticleDrawParameters.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include <memory>
 

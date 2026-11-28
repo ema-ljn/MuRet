@@ -1,4 +1,4 @@
-#include "Scenes/SelectionState.h"
+#include "FrontEnd/SelectionState.h"
 
 #include "Session/CharacterEvent.h"
 #include "Core/Expected.h"
@@ -7,10 +7,10 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Models/Cloth.h"
-#include "Scenes/GuildState.h"
+#include "Guild/GuildState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/Particles.h"
+#include "Particles/Particles.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainState.h"

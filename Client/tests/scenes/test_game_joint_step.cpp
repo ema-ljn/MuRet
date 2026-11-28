@@ -1,4 +1,4 @@
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Core/Expected.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -9,10 +9,10 @@
 #include "Math/HalfLifeMath.h"
 #include "Math/OriginalRotation.h"
 #include "Math/OriginalRetainedMath.h"
-#include "World/Sprites.h"
-#include "World/Particles.h"
-#include "World/IParticleDrawingServices.h"
-#include "World/ParticleDrawing.h"
+#include "Particles/Sprites.h"
+#include "Particles/Particles.h"
+#include "Particles/IParticleDrawingServices.h"
+#include "Particles/ParticleDrawing.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/TextureEnvMode.h"
 #include <algorithm>
@@ -21,11 +21,11 @@
 #include <optional>
 
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
-#include "Scenes/FaunaObject.h"
+#include "Effects/ModelEffects.h"
+#include "Fauna/FaunaObject.h"
 #include "Scenes/GameDrawTail.h"
 #include "Models/Cloth.h"
-#include "Scenes/UiItemDrawing.h"
+#include "Items/UiItemDrawing.h"
 
 #include <gtest/gtest.h>
 #include <array>

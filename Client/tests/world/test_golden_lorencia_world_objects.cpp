@@ -1,9 +1,9 @@
 #include "support/CheckedWorldObjectProjection.h"
 
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "World/WorldObjectRegistrations.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"

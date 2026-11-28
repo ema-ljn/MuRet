@@ -1,4 +1,4 @@
-#include "Scenes/EventPackets.h"
+#include "Events/EventPackets.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -9,10 +9,10 @@
 #include "Protocol/Outgoing.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Scenes/NpcWindowState.h"
+#include "Npc/NpcWindowState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/MessageArea.h"
+#include "Ui/MessageArea.h"
 
 #include "support/Bytes.h"
 #include "support/SameBytes.h"

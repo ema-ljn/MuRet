@@ -1,4 +1,4 @@
-#include "World/ModelEffects.h"
+#include "Effects/ModelEffects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
@@ -7,8 +7,8 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
+#include "Particles/Sprites.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "support/DragonVectors.h"
 #include "support/WorldObjectVectors.h"

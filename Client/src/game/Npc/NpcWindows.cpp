@@ -1,0 +1,629 @@
+#include "Npc/NpcWindows.h"
+
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Kernel/FaithfulPacer.h"
+#include "Core/PixelSize.h"
+#include "Crt/CrtRandom.h"
+#include "Protocol/Session/Logout.h"
+#include "Protocol/Items/Inventory.h"
+#include "Protocol/CastleSiege/CastleSiege.h"
+#include "Protocol/Npc/NpcWindows.h"
+#include "Protocol/Outgoing.h"
+#include "Models/LogicalAccess.h"
+#include "Hud/GamePanels.h"
+#include "CastleSiege/CastleWindows.h"
+#include "CastleSiege/CastleSiegeReceive.h"
+#include "Items/InventoryMoves.h"
+#include "Npc/NpcWindowState.h"
+#include "Kernel/OwnCharacterRecord.h"
+#include "Player/OwnDerivedStats.h"
+#include "Items/OwnItemPlacement.h"
+#include "Player/OwnStatHelpers.h"
+#include "PetTrainer/PetTrainer.h"
+#include "Session/WorldEntry.h"
+#include "Social/SocialState.h"
+#include "Kernel/WorldRuntime.h"
+#include "Kernel/WorldState.h"
+#include "Chat/ChatInput.h"
+#include "Ui/Dialogs.h"
+#include "Ui/GameDialogs.h"
+#include "Ui/GameText.h"
+#include "Ui/PanelRegistry.h"
+#include "Kernel/ItemState.h"
+#include "Sound/SoundIds.h"
+#include "Audio/SoundId.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <format>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <utility>
+
+namespace Client::Scenes
+{
+namespace
+{
+namespace Npc = Protocol::Npc;
+
+// 0x41ed10 (CL10): lo que dejan en WorldRuntime::lastSoundId.
+constexpr Audio::SoundId FirstTalkSound = Sound::ButtonClickSound;   // 0x4d2899
+constexpr Audio::SoundId FirstChaosSound{0x57};                      // 0x4c5f7f, 0x4c5fcb y 0x4da31b
+constexpr Audio::SoundId SecondTalkSound = Sound::CreateWindowSound; // 0x4d28a2, después del 0x19
+constexpr Audio::SoundId ItemSound = Sound::GetItemSound;            // 0x4e3c4e y 0x4e3cb0
+constexpr Audio::SoundId RepairSound{0x25};                          // 0x4e3d1d
+constexpr Audio::SoundId ChaosListSound{0x44};                       // 0x4c5f88, después del 0x57
+constexpr Audio::SoundId ChaosSuccessSound = Sound::GemSound;        // 0x4da324, después del 0x57
+// La tabla de 0x4d2914 (pkt[3] − 2) y el default de 0x4d2881.
+constexpr std::uint8_t TalkWarehouse = 2;
+constexpr std::uint8_t TalkChaosBox = 3;
+constexpr std::uint8_t TalkEventNpc = 4;
+constexpr std::uint8_t TalkPanel2000 = 5;
+constexpr std::uint8_t TalkSecondEventNpc = 6;
+constexpr std::uint8_t TalkTrainer = 7;
+constexpr std::uint8_t TalkBloodCastle = 9;
+constexpr std::uint8_t TalkCastleSiegeList = 12;
+constexpr std::uint8_t TalkCastleSiegeRequest = 13;
+constexpr std::int32_t BloodCastleDialog = 0xa1;
+// 0x4c5f6b y 0x4c5fb0: las grillas del 31 que no son la de 0x78a7070.
+constexpr std::uint8_t ChaosBoxGrid = 3;
+constexpr std::uint8_t TrainerGrid = 5;
+// Los textos de Text.bmd de los mensajes (0x76bd1dc + 300 · índice) y su tipo de 0x555190.
+constexpr std::size_t ChaosBoxNotEmptyText = 593;    // 0x76e88c8, 0x65894f
+constexpr std::size_t TrainerBoxNotEmptyText = 1211; // 0x7715d00, 0x658de5
+constexpr std::size_t TrainerListText = 1208;        // 0x771597c, 0x4c5fb6
+constexpr std::size_t MixFailedText = 594;           // 0x76e89f4, 0x4da2a6
+constexpr std::size_t MixSucceededText = 595;        // 0x76e8b20, 0x4da2c7
+constexpr std::size_t MixRefusedText = 596;          // 0x76e8c4c, 0x4da333
+constexpr std::size_t MixNoticeText = 649;           // 0x76eca68, 0x4da352
+constexpr std::size_t SecondMixNoticeText = 689;     // 0x76ef948, 0x4da36c
+constexpr std::int32_t ErrorMessage = 2;
+constexpr std::int32_t SystemMessage = 1;
+// 0x4da38c/0x4da3a8: los resultados del 86.
+constexpr std::uint8_t MixFailed = 0;
+constexpr std::uint8_t MixRefused = 2;
+constexpr std::uint8_t MixNotice = 4;
+constexpr std::uint8_t SecondMixNotice = 9;
+constexpr std::uint8_t SecondMixRefused = 0xb;
+// 0x7d2dc80.
+constexpr std::int32_t MixIdle = 0;
+constexpr std::int32_t MixReady = 2;
+// 0x4e60dc/0x4e60c0: el 83.
+constexpr std::uint8_t WarehouseUnlocked = 0;
+constexpr std::uint8_t WarehouseLockedState = 1;
+constexpr std::uint8_t WarehouseFirstDialog = 0xa;
+constexpr std::uint8_t WarehouseSecondDialog = 0xb;
+constexpr std::uint8_t WarehousePasswordAccepted = 0xc;
+constexpr std::uint8_t WarehouseThirdDialog = 0xd;
+constexpr std::int32_t FirstWarehouseDialog = 0x85;
+constexpr std::int32_t SecondWarehouseDialog = 0x86;
+constexpr std::int32_t ThirdWarehouseDialog = 0x89;
+// 0x4e477c: el lugar de lo que esperaba la contraseña cuando era zen.
+constexpr std::int32_t PendingMoney = -1;
+// 0x4e4828: el diálogo que el 82 y el 87 cierran, y los campos de Tab que deja (0x4e484c).
+constexpr std::int32_t ClosedByTheServerDialog = 0x73;
+constexpr std::int32_t ClosedChatFieldCount = 2;
+// 0x4e483b: 0x6c8e78 en 0x2a.
+constexpr std::int32_t ClosedFieldLimit = 0x2a;
+// 0x4d28a9..0x4d28f6: el mundo de 260 sobre 640 y la pantalla en 640 × 480.
+constexpr std::int32_t TalkWorldWidth = 260;
+constexpr std::int32_t VirtualWidth = 640;
+constexpr std::uint32_t VirtualHeight = 480;
+// 0x40b0a0: el relleno y el serial de un C3 que arma la UI.
+constexpr std::size_t C3SendRandoms = 2;
+
+Core::Expected<void, std::string> Send(const NpcWindowSender& send, Protocol::Outgoing outgoing, std::string_view what)
+{
+    if (!send)
+        return Core::Unexpected(std::format("{} sin la sesión", what));
+    return send(std::move(outgoing));
+}
+
+// 0x657ab0 vacía las grillas así: el tipo en 0xffff y +0x3c en 0, nada más (0x658545..0x658557, 0x658914..0x658926).
+void EmptyTheGrid(std::span<Kernel::ItemState> cells)
+{
+    for (Kernel::ItemState& cell : cells)
+    {
+        cell.id = Kernel::EmptyOwnItemId;
+        cell.occupied = 0;
+    }
+}
+
+// 0x5e3c20(grilla, columnas, filas): 1 si ninguna casilla tiene un tipo y +0x3c mayor que 0.
+bool GridIsEmpty(std::span<const Kernel::ItemState> cells)
+{
+    return std::ranges::none_of(
+        cells, [](const Kernel::ItemState& cell)
+        { return cell.id != Kernel::EmptyOwnItemId && static_cast<std::int32_t>(cell.occupied) > 0; });
+}
+
+Core::Expected<void, std::string> Message(const InventoryServices& services, std::size_t text, std::int32_t type,
+                                          std::string_view where)
+{
+    if (!services.systemMessage)
+        return Core::Unexpected(std::format("{}: 0x555190 sin el chat", where));
+    return services.systemMessage(text, type);
+}
+
+Core::Expected<void, std::string> OpenTheBox(const WorldEntryResources& resources, std::size_t text)
+{
+    const std::optional<std::string_view> found = UI::TextAt(resources.texts, text);
+    if (!found)
+        return Core::Unexpected(std::format("0x632e30: sin el texto {} de Text.bmd", text));
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    UI::OpenMessageBox(runtime.dialogBox, runtime.dialogs, *found);
+    return {};
+}
+
+InventoryMoveContext MovesOf(const WorldEntryResources& resources, const InventoryServices& services)
+{
+    return InventoryMoveContext{.world = resources.world, .random = resources.cloth.random, .services = services};
+}
+} // namespace
+
+void LendTheNpcWindows(GamePanels& panels, const WorldEntryResources& resources)
+{
+    panels.LendTheNpcWindows(resources.world, resources.cloth.random, InventoryServicesOf(resources),
+                             resources.sendNpcWindowPacket);
+}
+
+Core::Expected<void, std::string> NpcWindowOpened(const NpcWindowContext& context, UI::PanelId id)
+{
+    NpcWindowState& npc = context.world.Runtime().npcWindows;
+    if (id == UI::WarehousePanel)
+    {
+        npc.warehouseLocked = 0;
+        context.world.Runtime().ui.field78abb20 = 0;
+        return {};
+    }
+    if (id == UI::TrainerPanel)
+    {
+        // 0x65be8b: 0x449940(1).
+        OpenTheTrainer(context.world, TrainerMenuMode);
+        return {};
+    }
+    if (id != UI::ChaosBoxPanel)
+        return Core::Unexpected(std::format("0x6599a0({:#x}) no es una ventana de NPC", id));
+    npc.field7d2dc9d = 0;
+    if (auto sent = Send(context.send, Npc::WriteChaosRateRequest(), "0x65a956: el C1 04 BD 09"); !sent.HasValue())
+        return sent;
+    npc.chaosMixState = MixIdle;
+    return {};
+}
+
+Core::Expected<bool, std::string> NpcWindowClosing(const NpcWindowContext& context, UI::PanelId id)
+{
+    Kernel::WorldRuntime& runtime = context.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    switch (id)
+    {
+    case UI::WarehousePanel:
+    {
+        if (runtime.ui.field78abb39 != 0)
+            return false;
+        EmptyTheGrid(npc.grid);
+        if (runtime.cursorItemCount > 0)
+        {
+            const InventoryMoveContext moves{
+                .world = context.world, .random = context.random, .services = context.services};
+            if (auto returned = ReturnTheCursorItem(moves); !returned.HasValue())
+                return Core::Unexpected(returned.Error());
+        }
+        if (auto sent = Send(context.send, Npc::WriteWarehouseClose(), "0x658567: el C1 03 82"); !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        npc.warehouseLocked = 0;
+        return true;
+    }
+    case UI::ChaosBoxPanel:
+    {
+        if (!GridIsEmpty(npc.chaosBox) || runtime.cursorItemCount > 0)
+        {
+            if (auto shown = Message(context.services, ChaosBoxNotEmptyText, ErrorMessage, "0x658959");
+                !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+            return false;
+        }
+        if (auto sent = Send(context.send, Npc::WriteChaosBoxClose(), "0x658767: el C1 03 87"); !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        EmptyTheGrid(npc.chaosBox);
+        return true;
+    }
+    case UI::TrainerPanel:
+    {
+        // 0x658dda..0x658dfd: con algo en la caja, el texto 1211 sin cerrar; si no, 0x4499b0, que vuelve a mirarla.
+        if (TrainerBoxHasItems(context.world))
+        {
+            if (auto shown = Message(context.services, TrainerBoxNotEmptyText, ErrorMessage, "0x658def");
+                !shown.HasValue())
+                return Core::Unexpected(shown.Error());
+            return false;
+        }
+        auto closed = CloseTheTrainer(context.world, &context.services, context.send);
+        if (!closed.HasValue())
+            return Core::Unexpected(std::move(closed).Error());
+        return true;
+    }
+    case UI::NpcShopPanel:
+    {
+        if (auto sent = Send(context.send, Protocol::Session::WriteWindowClose(), "0x659063: el C1 03 31");
+            !sent.HasValue())
+            return Core::Unexpected(sent.Error());
+        EmptyTheGrid(npc.grid);
+        return true;
+    }
+    default:
+        return Core::Unexpected(std::format("0x657ab0({:#x}) no es una ventana de NPC", id));
+    }
+}
+
+CursorWarp NpcTalkCursorWarp(std::int32_t mouseX, std::int32_t mouseY, std::int32_t screenWidth,
+                             std::int32_t screenHeight)
+{
+    // 0x4d28bd..0x4d28f2: el IMUL con signo y el redondeo hacia el 0; los MUL, sin signo.
+    const std::int32_t worldX = (mouseX * TalkWorldWidth) / VirtualWidth;
+    const auto x = (static_cast<std::uint32_t>(worldX) * static_cast<std::uint32_t>(screenWidth)) /
+                   static_cast<std::uint32_t>(VirtualWidth);
+    const auto y = (static_cast<std::uint32_t>(screenHeight) * static_cast<std::uint32_t>(mouseY)) / VirtualHeight;
+    return CursorWarp{.x = static_cast<std::int32_t>(x), .y = static_cast<std::int32_t>(y)};
+}
+
+Core::Expected<void, std::string> ApplyTalkResult(const Npc::TalkResult& talk, const WorldEntryResources& resources)
+{
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    GamePanels panels(resources.world, resources.cloth.random,
+                      GamePanelTables{.items = resources.items, .itemSetTables = resources.itemSetTables});
+    std::optional<std::string> sendError;
+    CastleSender sender;
+    if (resources.sendNpcWindowPacket)
+        sender = [&resources, &sendError](Protocol::Outgoing packet)
+        {
+            const auto sent = resources.sendNpcWindowPacket(std::move(packet));
+            if (!sent.HasValue() && !sendError)
+                sendError = sent.Error();
+        };
+    const CastleReceiveContext castle{.world = resources.world,
+                                      .random = resources.cloth.random,
+                                      .log = resources.log,
+                                      .measure = resources.textMeasure,
+                                      .screen = resources.screen ? resources.screen() : Core::PixelSize{640, 480},
+                                      .texts = resources.texts,
+                                      .send = sender,
+                                      .dataRoot = resources.dataRoot,
+                                      .tick =
+                                          resources.clock != nullptr ? App::TickCountMs(resources.clock->Now()) : 0u,
+                                      .entryResources = &resources,
+                                      .terrain = WritableTerrainOf(resources),
+                                      .faunaModels = FaunaModelsOf(resources)};
+    LendTheCastlePanelServices(panels, castle);
+    LendTheNpcWindows(panels, resources);
+    UI::PanelRegistry& registry = panels.Registry();
+    // 0x4d250c..0x4d2512: 0x657a90.
+    if (auto closed = registry.CloseAll(); !closed.HasValue())
+        return closed;
+    const auto open = [&registry](UI::PanelId id) -> Core::Expected<void, std::string>
+    {
+        if (auto opened = registry.Open(id); !opened.HasValue())
+            return Core::Unexpected(std::move(opened).Error());
+        return {};
+    };
+    Core::Expected<void, std::string> done{};
+    switch (talk.result)
+    {
+    case TalkWarehouse:
+        done = open(UI::WarehousePanel);
+        break;
+    case TalkChaosBox:
+        // 0x4d253b..0x4d2566: abre la caja y copia pkt[4..9] a 0x6c9da8, cada byte en un int.
+        done = open(UI::ChaosBoxPanel);
+        if (done.HasValue())
+            std::ranges::copy(talk.rates, runtime.npcWindows.chaosRates.begin());
+        break;
+    case TalkEventNpc:
+        done = open(UI::EventNpcPanel);
+        break;
+    case TalkPanel2000:
+        done = open(UI::Panel2000);
+        break;
+    case TalkSecondEventNpc:
+        done = open(UI::SecondEventNpcPanel);
+        break;
+    case TalkTrainer:
+        done = open(UI::TrainerPanel);
+        break;
+    case TalkBloodCastle:
+        // 0x4d259d..0x4d25b4: sin abrir nada.
+        if (runtime.npcWindows.field6e5798 == 0)
+            UI::PushDialog(runtime.dialogs, BloodCastleDialog);
+        break;
+    case TalkCastleSiegeList:
+        // 0x4d25bc: el byte se escribe ANTES del open; sólo el1 selecciona87 al cerrar.
+        runtime.castleSiege.senior.closeWith87 = talk.rates[0] == 1;
+        done = open(UI::CastleSiegeListPanel);
+        break;
+    case TalkCastleSiegeRequest:
+        done = Send(resources.sendNpcWindowPacket, Protocol::CastleSiege::WriteStateRequest(), "0x4d25dd: el B2 00");
+        break;
+    default:
+        // 0x4d2881..0x4d288e: la tienda de NPC (0, 1, 8, 10, 11 y desde 14).
+        done = open(UI::NpcShopPanel);
+        break;
+    }
+    if (!done.HasValue())
+        return done;
+    if (sendError)
+        return Core::Unexpected(std::move(*sendError));
+    // 0x4d2893..0x4d28f6: los dos sonidos y el SetCursorPos.
+    runtime.RequestSound(FirstTalkSound);
+    runtime.RequestSound(SecondTalkSound);
+    runtime.npcWindows.cursorWarpRequested = true;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyItemList(const Npc::ItemList& list, const WorldEntryResources& resources)
+{
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    if (list.grid == ChaosBoxGrid)
+    {
+        npc.chaosMixState = MixReady;
+        runtime.RequestSound(FirstChaosSound);
+        runtime.RequestSound(ChaosListSound);
+        EmptyTheGrid(npc.chaosBox);
+    }
+    else if (list.grid == TrainerGrid)
+    {
+        // 0x4c5fb4..0x4c5fde: el aviso 1208 (con el nombre de 0x576797c, que nadie escribe), los dos sonidos de la caja
+        // del caos y la del entrenador vacía (0x449c40), sin tocar 0x7d2dc80.
+        if (auto shown = Message(InventoryServicesOf(resources), TrainerListText, ErrorMessage, "0x4c5fc0");
+            !shown.HasValue())
+            return shown;
+        runtime.RequestSound(FirstChaosSound);
+        runtime.RequestSound(ChaosListSound);
+        EmptyTheGrid(npc.trainerBox);
+    }
+    else
+        EmptyTheGrid(npc.grid);
+    for (const Npc::ListedItem& entry : list.items)
+    {
+        const InventoryItemBytes bytes(entry.item);
+        const std::size_t cells =
+            list.grid == ChaosBoxGrid || list.grid == TrainerGrid ? npc.chaosBox.size() : npc.grid.size();
+        if (DiscardGridOverflow(cells, NpcGridColumns, entry.slot, bytes, resources, "31"))
+            continue;
+        Core::Expected<void, std::string> placed{};
+        if (list.grid == ChaosBoxGrid)
+            placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, entry.slot, bytes, resources,
+                                          "0x4c6029, 0x5bc740(0x7d2d380)");
+        // 0x4c6042: 0x44ad70(lugar, datos, 0), 0x5bc740(0x723c80, 8, 4, lugar, datos, 0) con su cola.
+        else if (list.grid == TrainerGrid)
+            placed = PlaceMovedItemInOtherGrid(npc.trainerBox, NpcGridColumns, entry.slot, entry.item, resources,
+                                               "0x4c6042, 0x5bc740(0x723c80)");
+        else
+            placed = PlaceInTheNpcGrid(npc.grid, entry.slot, bytes, resources);
+        if (!placed.HasValue())
+            return placed;
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyBuyResult(const Npc::BuyResult& result, const WorldEntryResources& resources)
+{
+    if (result.slot != Npc::BuyRejected &&
+        DiscardInventoryOverflow(result.slot, InventoryItemBytes(result.item), resources))
+        return {};
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    if (result.slot != Npc::BuyRejected)
+    {
+        const Protocol::Items::ItemData& item = result.item;
+        if (auto placed = PlaceMovedItem(result.slot, item, resources); !placed.HasValue())
+        {
+            runtime.npcWindows.buyLock = 0;
+            return placed;
+        }
+        runtime.RequestSound(ItemSound);
+    }
+    runtime.npcWindows.buyLock = 0;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplySellResult(const Npc::SellResult& result, const WorldEntryResources& resources)
+{
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    if (result.result == 0)
+    {
+        const InventoryServices services = InventoryServicesOf(resources);
+        return ReturnTheCursorItem(MovesOf(resources, services));
+    }
+    runtime.cursorItemCount = 0;
+    runtime.cursorItem.occupied = 0;
+    {
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
+        resources.world.OwnCharacter().zen = result.money;
+    }
+    runtime.RequestSound(ItemSound);
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyRepairResult(const Npc::RepairResult& result,
+                                                    const WorldEntryResources& resources)
+{
+    if (result.money == 0)
+        return {};
+    Kernel::WorldState& world = resources.world;
+    Kernel::WorldRuntime& runtime = world.Runtime();
+    {
+        const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
+        Kernel::OwnCharacterRecord& record = world.OwnCharacter();
+        record.zen = result.money;
+        auto recalculated =
+            Player::RecalculateOwnStats(record, Player::OwnStatsContext{.itemSetTables = resources.itemSetTables,
+                                                                        .itemSets = &world.ItemSets(),
+                                                                        .items = resources.items,
+                                                                        .publishedHero = world.Hero(),
+                                                                        .ownRecordAccesses = runtime.ownRecordDepth,
+                                                                        .random = resources.cloth.random,
+                                                                        .held = Player::HeldItemOf(runtime),
+                                                                        .scan505820 = runtime.fullSetScan});
+        if (!recalculated.HasValue())
+            return recalculated;
+    }
+    runtime.RequestSound(RepairSound);
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyWarehouseMoney(const Npc::WarehouseMoney& money,
+                                                      const WorldEntryResources& resources)
+{
+    if (money.result == 0)
+        return {};
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    const Models::LogicalAccess own(runtime.ownRecordDepth, resources.cloth.random, Models::OwnRecordCloseRandoms);
+    Kernel::OwnCharacterRecord& record = resources.world.OwnCharacter();
+    record.warehouseZen = money.warehouseMoney;
+    record.zen = money.inventoryMoney;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyNpcWindowClosed(const Npc::NpcWindowClosed&,
+                                                       const WorldEntryResources& resources)
+{
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    runtime.cursorItemCount = 0;
+    runtime.cursorItem.occupied = 0;
+    if (runtime.dialogs.current != ClosedByTheServerDialog)
+        return {};
+    // 0x4e4831..0x4e485d.
+    UI::PushDialog(runtime.dialogs, 0);
+    UI::ResetTheTextBuffers(runtime.chat.input, false);
+    runtime.social.dialogFieldLimit = ClosedFieldLimit;
+    runtime.chat.input.fieldCount = ClosedChatFieldCount;
+    runtime.social.moneyField = 0;
+    runtime.ui.chatOpen = false;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyWarehouseState(const Npc::WarehouseState& state,
+                                                      const WorldEntryResources& resources)
+{
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    switch (state.state)
+    {
+    case WarehouseUnlocked:
+    case WarehouseLockedState:
+        npc.warehouseLocked = state.state;
+        npc.field78abb1c = 0;
+        return {};
+    case WarehouseFirstDialog:
+        UI::PushDialog(runtime.dialogs, FirstWarehouseDialog);
+        return {};
+    case WarehouseSecondDialog:
+        UI::PushDialog(runtime.dialogs, SecondWarehouseDialog);
+        return {};
+    case WarehouseThirdDialog:
+        UI::PushDialog(runtime.dialogs, ThirdWarehouseDialog);
+        return {};
+    case WarehousePasswordAccepted:
+        break;
+    default:
+        return {};
+    }
+    // 0x4e4765..0x4e47d5: con la traba y sin 0x78abb1c, lo que esperaba; siempre, los dos en 1.
+    if (npc.warehouseLocked != 0 && npc.field78abb1c == 0)
+    {
+        const PendingWarehouseMove pending = npc.pendingMove;
+        if (pending.slot != PendingMoney)
+        {
+            // 0x4e47b0..0x4e47c6: 0x449d80(origen, lugar, destino, lugar) con los cuatro, el 24 del ítem del cursor
+            // en C3 por la misma sesión.
+            InventoryServices services = InventoryServicesOf(resources);
+            services.sendItemMove = [&resources](const Protocol::Items::ItemMove& move) {
+                return Send(resources.sendNpcWindowPacket, Protocol::Items::WriteItemMove(move),
+                            "0x4e47c6: el C1 0E 24");
+            };
+            const auto byte = [](std::int32_t value) { return static_cast<std::uint8_t>(value & 0xff); };
+            if (auto sent = SendTheCursorItemBetween(MovesOf(resources, services), byte(pending.slot),
+                                                     byte(pending.second), byte(pending.third), byte(pending.fourth));
+                !sent.HasValue())
+                return sent;
+        }
+        // 0x4e6f80(tipo, zen), con el XOR32 y en claro.
+        else if (auto sent = Send(resources.sendNpcWindowPacket,
+                                  Npc::WriteWarehouseMoney(static_cast<std::uint8_t>(pending.second & 0xff),
+                                                           static_cast<std::uint32_t>(pending.third)),
+                                  "0x4e478e: el C1 08 81");
+                 !sent.HasValue())
+            return sent;
+    }
+    npc.warehouseLocked = 1;
+    npc.field78abb1c = 1;
+    return {};
+}
+
+Core::Expected<void, std::string> ApplyChaosMixResult(const Npc::ChaosMixResult& result,
+                                                      const WorldEntryResources& resources)
+{
+    if ((result.result == Npc::ChaosMixSucceeded || result.result == Npc::TrainerMixResult) &&
+        DiscardGridOverflow(resources.world.Runtime().npcWindows.chaosBox.size(), NpcGridColumns, 0,
+                            InventoryItemBytes(result.item), resources, "86"))
+        return {};
+    Kernel::WorldRuntime& runtime = resources.world.Runtime();
+    NpcWindowState& npc = runtime.npcWindows;
+    const InventoryServices services = InventoryServicesOf(resources);
+    switch (result.result)
+    {
+    case MixFailed:
+        npc.chaosMixState = MixReady;
+        return Message(services, MixFailedText, ErrorMessage, "0x4da2ba");
+    case Npc::ChaosMixSucceeded:
+    {
+        npc.chaosMixState = MixReady;
+        if (auto shown = Message(services, MixSucceededText, SystemMessage, "0x4da2db"); !shown.HasValue())
+            return shown;
+        EmptyTheGrid(npc.chaosBox);
+        const InventoryItemBytes bytes(result.item);
+        if (auto placed = PlaceItemInOtherGrid(npc.chaosBox, NpcGridColumns, 0, bytes, resources,
+                                               "0x4da310, 0x5bc740(0x7d2d380)");
+            !placed.HasValue())
+            return placed;
+        runtime.RequestSound(FirstChaosSound);
+        runtime.RequestSound(ChaosSuccessSound);
+        return {};
+    }
+    case MixRefused:
+    case SecondMixRefused:
+        npc.chaosMixState = MixIdle;
+        return Message(services, MixRefusedText, ErrorMessage, "0x4da347");
+    case MixNotice:
+    case SecondMixNotice:
+    {
+        auto opened = OpenTheBox(resources, result.result == MixNotice ? MixNoticeText : SecondMixNoticeText);
+        npc.chaosMixState = MixReady;
+        return opened;
+    }
+    case Npc::TrainerMixResult:
+    {
+        // 0x4da373..0x4da385: la caja del entrenador vacía (0x449c40) y el ítem en su lugar 0 con 0x44ad70(0, datos,
+        // 1), sin la cola de 0x5bc740, sin sonido y sin tocar 0x7d2dc80.
+        EmptyTheGrid(npc.trainerBox);
+        const InventoryItemBytes bytes(result.item);
+        return PlaceItemInOtherGrid(npc.trainerBox, NpcGridColumns, 0, bytes, resources,
+                                    "0x4da380, 0x5bc740(0x723c80)");
+    }
+    default:
+        npc.chaosMixState = MixReady;
+        return {};
+    }
+}
+
+Core::Expected<void, std::string> SendRepair(Crt::CrtRandom& random, const NpcWindowSender& send, std::uint8_t position,
+                                             std::uint8_t requestPosition)
+{
+    random.Discard(C3SendRandoms);
+    return Send(send, Npc::WriteRepair(position, requestPosition), "0x5c4485: el C1 05 34");
+}
+} // namespace Client::Scenes

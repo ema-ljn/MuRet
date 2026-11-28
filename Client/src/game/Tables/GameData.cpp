@@ -17,7 +17,7 @@
 #include "Tables/NpcNames.h"
 #include "Tables/SlideTable.h"
 #include "Tables/TextTable.h"
-#include "UI/MacroFile.h"
+#include "Chat/MacroFile.h"
 
 #include <cstddef>
 #include <cstdint>

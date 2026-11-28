@@ -1,6 +1,6 @@
 #include "Math/X87.h"
 #include "Models/IModelLibrary.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -16,10 +16,10 @@
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/SkinShellEffects.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/SkinShellEffects.h"
+#include "Particles/Sprites.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/quaternion_float.hpp>

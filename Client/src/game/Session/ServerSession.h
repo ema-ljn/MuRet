@@ -2,8 +2,8 @@
 
 #include "Session/Credentials.h"
 #include "App/IChatRoomLinks.h"
-#include "App/ServerAddress.h"
-#include "App/SessionState.h"
+#include "Session/ServerAddress.h"
+#include "Session/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"

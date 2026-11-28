@@ -10,15 +10,15 @@
 #include "Render/TextureSlot.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/CharacterDrawing.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/ActorEffectHooks.h"
+#include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
-#include "World/BlastModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/SkinShellEffects.h"
-#include "World/Sprites.h"
+#include "Effects/BlastModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Effects/SkinShellEffects.h"
+#include "Particles/Sprites.h"
 
 #include <gtest/gtest.h>
 

@@ -1,4 +1,4 @@
-#include "World/ObjectAlpha.h"
+#include "Effects/ObjectAlpha.h"
 
 #include <gtest/gtest.h>
 

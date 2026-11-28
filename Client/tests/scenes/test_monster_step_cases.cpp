@@ -1,4 +1,4 @@
-#include "Scenes/MonsterStepCases.h"
+#include "Monsters/MonsterStepCases.h"
 
 #include "Core/Expected.h"
 #include "Tables/PlayerModels.h"
@@ -6,9 +6,9 @@
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
 #include "Actors/Drawing/GameCharacters.h"
-#include "Scenes/MonsterCreation.h"
+#include "Monsters/MonsterCreation.h"
 #include "Kernel/WorldRuntime.h"
-#include "Scenes/WorldTexts.h"
+#include "Hud/WorldTexts.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/SceneDataFiles.h"
 

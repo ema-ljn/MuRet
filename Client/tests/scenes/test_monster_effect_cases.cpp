@@ -1,4 +1,4 @@
-#include "Scenes/ModelEffects.h"
+#include "Monsters/ModelEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
@@ -16,10 +16,10 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Terrain/GroundMarks.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/PortableParticleTrigonometry.h"
-#include "World/Sprites.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
+#include "Particles/PortableParticleTrigonometry.h"
+#include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
 #include "Audio/SoundId.h"
 

@@ -1,11 +1,11 @@
-#include "World/SkinShellEffects.h"
+#include "Effects/SkinShellEffects.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/ModelEffectArguments.h"
-#include "World/GameModelEffects.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
+#include "Effects/GameModelEffects.h"
+#include "Effects/ModelEffects.h"
+#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 

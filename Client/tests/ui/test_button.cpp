@@ -1,11 +1,11 @@
-#include "UI/Button.h"
+#include "Ui/Button.h"
 
 #include "Core/PixelSize.h"
 #include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/TextureSlot.h"
-#include "UI/Widget.h"
+#include "Ui/Widget.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/UiInput.h"
 

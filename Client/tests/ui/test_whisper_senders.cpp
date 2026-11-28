@@ -1,4 +1,4 @@
-#include "UI/WhisperSenders.h"
+#include "Chat/WhisperSenders.h"
 
 #include <gtest/gtest.h>
 

@@ -13,8 +13,8 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "Scenes/WorldObjectsDrawing.h"
-#include "World/Sprites.h"
+#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/Sprites.h"
 #include "support/RecordingFrameTarget.h"
 
 #include <gtest/gtest.h>

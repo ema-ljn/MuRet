@@ -1,4 +1,4 @@
-#include "Scenes/SelectionWorld.h"
+#include "FrontEnd/SelectionWorld.h"
 #include "Terrain/DynamicWorldLight.h"
 
 #include "Core/Expected.h"
@@ -6,9 +6,9 @@
 #include "Core/Log.h"
 #include "Models/Cloth.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/FaunaJointCreation.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
-#include "Scenes/JointKernels.h"
+#include "Joints/JointKernels.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
 

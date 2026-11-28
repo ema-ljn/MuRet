@@ -1,4 +1,4 @@
-#include "Scenes/NpcTalk.h"
+#include "Npc/NpcTalk.h"
 
 #include "Models/LogicalAccess.h"
 
@@ -19,13 +19,13 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Actors/ActorActions.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameMovement.h"
-#include "Scenes/GameMovementState.h"
+#include "Movement/GameMovement.h"
+#include "Movement/GameMovementState.h"
 #include "Scenes/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "UI/MessageArea.h"
-#include "UI/PanelRegistry.h"
+#include "Ui/MessageArea.h"
+#include "Ui/PanelRegistry.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 

@@ -1,4 +1,4 @@
-#include "UI/Notices.h"
+#include "Ui/Notices.h"
 
 #include <gtest/gtest.h>
 

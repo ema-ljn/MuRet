@@ -1,4 +1,4 @@
-#include "GameLogic/CharacterPosition.h"
+#include "Actors/CharacterPosition.h"
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 #include <bit>

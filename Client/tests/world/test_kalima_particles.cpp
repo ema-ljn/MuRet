@@ -1,8 +1,8 @@
 #include "Crt/CrtRandom.h"
-#include "World/Particles.h"
-#include "World/KalimaParticleKernels.h"
-#include "World/ParticleOwner.h"
-#include "World/PortableParticleTrigonometry.h"
+#include "Particles/Particles.h"
+#include "Particles/KalimaParticleKernels.h"
+#include "Particles/ParticleOwner.h"
+#include "Particles/PortableParticleTrigonometry.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

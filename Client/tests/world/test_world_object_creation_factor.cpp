@@ -1,9 +1,9 @@
-#include "World/WorldObjects.h"
+#include "WorldObjects/WorldObjects.h"
 
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
-#include "World/IWorldObjectCreationServices.h"
-#include "World/WorldObjectRegistrations.h"
+#include "WorldObjects/IWorldObjectCreationServices.h"
+#include "WorldObjects/WorldObjectRegistrations.h"
 
 #include <gtest/gtest.h>
 

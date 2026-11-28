@@ -1,6 +1,6 @@
-#include "UI/OldControls.h"
+#include "Ui/OldControls.h"
 
-#include "UI/OldWindowBase.h"
+#include "Ui/OldWindowBase.h"
 #include "Audio/SoundId.h"
 
 #include <gtest/gtest.h>

@@ -1,9 +1,9 @@
-#include "Scenes/ItemNames.h"
+#include "Items/ItemNames.h"
 
 #include "Core/Expected.h"
 #include "Tables/ItemTable.h"
 #include "Tables/TextTable.h"
-#include "Scenes/NpcNames.h"
+#include "Monsters/NpcNames.h"
 #include "support/ItemFiles.h"
 #include "support/SceneDataFiles.h"
 

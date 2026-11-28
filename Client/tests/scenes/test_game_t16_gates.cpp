@@ -4,7 +4,7 @@
 #include "Tables/GateRecord.h"
 #include "Tables/GateTable.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/GameGates.h"
+#include "Movement/GameGates.h"
 
 #include <gtest/gtest.h>
 

@@ -1,7 +1,7 @@
 #include "App/CommandLine.h"
 
-#include "App/PacingMode.h"
-#include "App/ServerAddress.h"
+#include "Kernel/PacingMode.h"
+#include "Session/ServerAddress.h"
 #include "Platform/VSyncMode.h"
 #include "Core/PathText.h"
 #include "support/CommandLineTesting.h"

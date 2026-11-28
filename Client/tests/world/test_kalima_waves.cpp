@@ -1,4 +1,4 @@
-#include "World/KalimaWaves.h"
+#include "MapScripts/Kalima/KalimaWaves.h"
 
 #include <gtest/gtest.h>
 

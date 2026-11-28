@@ -33,7 +33,7 @@ game/Pets	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Events;game/F
 game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the player's path, gates, speed
 game/Skills	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Combat;game/Effects;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Joints;game/Monsters;game/Movement;game/Particles;game/Party;game/Player	the hero's skills and their replies
 game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Guild;game/Items;game/Joints;game/Particles;game/Player;game/Social	combat
-game/Items	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles	items and the inventory
+game/Items	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Monsters;game/Particles;game/Player	items and the inventory
 game/Tooltips	game	9		*layer<9;game/Actors;game/Items;game/Monsters;game/Npc;game/Pets;game/Player;game/Social	item, skill and pet tooltips
 game/Npc	game	9		*layer<9;game/Actors;game/Chat;game/Events;game/Events/Crywolf;game/Movement;game/Player;game/Quests;game/Social	NPC talk and the generic NPC windows
 game/Quests	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Monsters;game/Movement;game/Player	quests
@@ -42,8 +42,8 @@ game/Warehouse	game	9		*layer<9;game/Chat;game/Movement;game/Npc	the warehouse
 game/PetTrainer	game	9		*layer<9;game/Actors;game/ChaosMix;game/Chat;game/Items;game/Movement;game/Player	the pet trainer
 game/Party	game	9		*layer<9;game/Player;game/Social	the party
 game/Social	game	9		*layer<9;game/Actors;game/CastleSiege;game/Movement;game/Player	trade and duel
-game/Messenger	game	9		*layer<9;game/Actors;game/Combat;game/Items;game/Pets;game/Player;game/Tooltips	friends and letters
-game/PersonalShop	game	9		*layer<9;game/Actors;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
+game/Messenger	game	9		*layer<9;game/Actors;game/Chat;game/Combat;game/Items;game/Pets;game/Player;game/Tooltips	friends and letters
+game/PersonalShop	game	9		*layer<9;game/Actors;game/CastleSiege;game/FrontEnd;game/Npc;game/Player;game/Social	the personal shop
 game/Chat	game	9		*layer<9;game/Actors;game/FrontEnd;game/Player	chat
 game/Guild	game	9		*layer<9;game/Actors;game/Events;game/Player	guild, alliance and war
 game/Events	game	9		*layer<9;game/Actors;game/CastleSiege;game/ChaosMix;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	Blood Castle, Devil Square and Chaos Castle around the object and windows they share, and what the events share; Kalima waits for AR4.3 (ADR 0029)

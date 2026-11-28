@@ -157,7 +157,7 @@ void ClearTransitionActorsAndItems(std::uint16_t playerKey, const WorldEntryReso
         item.alive = false;
     KillOtherActors(resources.world, static_cast<std::int32_t>(playerKey));
     // 0x4c4e86..0x4c4e8d y 0x4c77eb..0x4c77f2: 0x451590 deja solo el cartel de la tienda del héroe.
-    PersonalShop::KeepTheHeroShopTitle(resources.world);
+    Social::KeepTheHeroShopTitle(resources.world);
 }
 void CreateTransitionArrival(Kernel::ActorState& actor, const WorldEntryResources& resources)
 {

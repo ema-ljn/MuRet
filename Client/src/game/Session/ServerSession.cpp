@@ -1232,7 +1232,7 @@ void ServerSession::OpenChatRoom(std::uint32_t room, std::int32_t window, std::s
     ChatRoomLink link{.window = window, .opened = false, .socket = m_chatRoomSockets.make(), .connection = nullptr};
     link.connection = std::make_unique<Network::Connection>(*link.socket, *m_chatRoomSockets.obfuscation, m_clock,
                                                             m_log, m_chatRoomSockets.paddingSeed);
-    link.connection->Open(address, ChatRoomPort, m_keys);
+    link.connection->Open(address, Chat::ChatRoomPort, m_keys);
     m_chatRooms.emplace(room, std::move(link));
 }
 

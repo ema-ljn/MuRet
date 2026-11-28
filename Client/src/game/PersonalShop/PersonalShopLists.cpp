@@ -185,7 +185,7 @@ Core::Expected<void, std::string> CloseThePersonalShop(Kernel::WorldState& world
         world.Inventory().secondCells = shops.ownGridBackup;
         // 0x5eb069..0x5eb0e5: the title of the hero's sign (0x743a170) or empty.
         const auto title = shops.titles.find(runtime.hero);
-        shops.ownTitle = HasShopTitle(shops, runtime.hero) ? title->second.title : std::string{};
+        shops.ownTitle = Social::HasShopTitle(shops, runtime.hero) ? title->second.title : std::string{};
         // 0x5eb0ec..0x5eb90f: with the owner's key, C1 10 3F 07 with their key and name, in C3.
         if (shops.ownerKey != 0)
         {

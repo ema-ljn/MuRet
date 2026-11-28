@@ -1288,7 +1288,7 @@ más de 5, `+0x14c` en 0 y `0x4a6420(0)`. `0x4a48b0` pone `+0x144`..`+0x150` en 
 
 El paso y el ubicado de las tres ventanas siguen el orden del ASM. El retrato lo da el juego
 ([El retrato de las cartas](#el-retrato-de-las-cartas)); el `CA` arma el chat y abre la conexión de la sala
-(`App::IChatRoomLinks`; 04).
+(`Chat::IChatRoomLinks`; 04).
 
 **Los paneles.**
 

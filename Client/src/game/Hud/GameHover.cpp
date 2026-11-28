@@ -63,7 +63,7 @@ Core::Expected<void, std::string> CharacterName(GameHoverContext& context, std::
     if (actor.byte88 != MonsterKind)
     {
         // 0x5bbd06..0x5bbd15: with its shop's sign in view (0x451770), nothing; otherwise, the name bubble.
-        if (PersonalShop::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
+        if (Social::ShopTitleShown(context.world.Runtime().social.personalShop, static_cast<std::size_t>(index)))
             return {};
         return NameBubble(context, index);
     }

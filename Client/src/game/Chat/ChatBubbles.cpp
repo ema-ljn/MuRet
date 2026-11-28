@@ -327,9 +327,9 @@ Core::Expected<void, std::string> StepTheChatBubbles(Kernel::WorldState& world, 
         // the owner at NULL finds nothing); with an owner and +time1 at 0, it shows (0x4516d0).
         Social::PersonalShopState& shops = runtime.social.personalShop;
         if (bubble.time1 > 0 && bubble.owner)
-            PersonalShop::HideShopTitle(shops, *bubble.owner);
+            Social::HideShopTitle(shops, *bubble.owner);
         if (bubble.owner && bubble.time1 == 0)
-            PersonalShop::ShowShopTitle(shops, *bubble.owner);
+            Social::ShowShopTitle(shops, *bubble.owner);
         if (input.screen.width <= 0 || input.screen.height <= 0)
             continue;
         // 0x557722..0x557738: the width and the height go to 640 × 480 with an unsigned division.

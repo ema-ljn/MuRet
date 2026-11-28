@@ -30,7 +30,7 @@
 #include "Chat/ChatInput.h"
 #include "Chat/ChatLog.h"
 #include "Chat/Emotes.h"
-#include "Messenger/FriendWindows.h"
+#include "Ui/OldEditFocus.h"
 #include "Ui/GameText.h"
 #include "Ui/GameUiState.h"
 #include "Ui/MessageArea.h"
@@ -497,7 +497,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         // (0x467b10) passes the Enter to its parent and, with a parent, the Tab to the EDIT of +0x98
         // (0x467cdf..0x467d28; only the write-a-letter one links them, CL9 milestone 10). Without the one of +0x98, the
         // Tab does nothing (P-C181).
-        const bool oldEdit = Messenger::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        const bool oldEdit = Ui::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         // The dialogs' EDIT with the focus: the one of [0x5763504] (the serial number input, milestone 11; the guild
         // name of window 2, CL9 milestone 8) or the one of [0x5763508] (the number of the 0x7d, CL9 milestone 8). The
         // same subclass, with the filter of +0x4c.
@@ -514,7 +514,7 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         if (const std::string_view run = rest.substr(0, key); !run.empty())
         {
             if (oldEdit)
-                Messenger::TypeInTheOldEdit(runtime.oldWindows, run);
+                Ui::TypeInTheOldEdit(runtime.oldWindows, run);
             else
                 Ui::TypeInTheChat(input, run);
         }
@@ -525,12 +525,12 @@ Core::Expected<void, std::string> TypeInTheGameChat(const GameChatContext& conte
         if (oldEdit)
         {
             if (pressed == Input::EnterChar)
-                Messenger::PressEnterInTheOldEdit(runtime.oldWindows);
+                Ui::PressEnterInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::BackspaceChar)
-                Messenger::BackspaceInTheOldEdit(runtime.oldWindows);
+                Ui::BackspaceInTheOldEdit(runtime.oldWindows);
             else if (pressed == Input::TabChar)
-                Messenger::ApplyKeyToTheOldEdit(runtime.oldWindows, Ui::OldEditKey::Tab, false, false,
-                                                context.clipboard, context.measure, &runtime.ui.focusedList);
+                Ui::ApplyKeyToTheOldEdit(runtime.oldWindows, Ui::OldEditKey::Tab, false, false, context.clipboard,
+                                         context.measure, &runtime.ui.focusedList);
             continue;
         }
         if (Ui::OldEdit* edit = Ui::ChatEditWithFocus(input); edit != nullptr && !edit->compositionText.empty())
@@ -580,13 +580,13 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
                 return typed;
             continue;
         }
-        const bool oldEdit = Messenger::HasAnOldEditFocused(runtime.oldWindows, input.focus);
+        const bool oldEdit = Ui::HasAnOldEditFocused(runtime.oldWindows, input.focus);
         Ui::OldEdit* chatEdit = Ui::ChatEditWithFocus(input);
         if (event.kind == Input::TextInputEvent::Kind::Composition)
         {
             if (oldEdit)
-                Messenger::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
-                                                    event.compositionLength);
+                Ui::SetTheOldEditComposition(runtime.oldWindows, event.text, event.compositionStart,
+                                             event.compositionLength);
             else if (chatEdit != nullptr)
                 Ui::SetTheEditComposition(*chatEdit, event.text, event.compositionStart, event.compositionLength);
             continue;
@@ -595,10 +595,10 @@ Core::Expected<void, std::string> TypeTheGameInput(const GameChatContext& contex
         if (oldEdit)
         {
             if (event.key == Input::Key::Enter)
-                Messenger::PressEnterInTheOldEdit(runtime.oldWindows);
+                Ui::PressEnterInTheOldEdit(runtime.oldWindows);
             else if (editKey)
-                Messenger::ApplyKeyToTheOldEdit(runtime.oldWindows, *editKey, event.shift, event.ctrl,
-                                                context.clipboard, context.measure, &runtime.ui.focusedList);
+                Ui::ApplyKeyToTheOldEdit(runtime.oldWindows, *editKey, event.shift, event.ctrl, context.clipboard,
+                                         context.measure, &runtime.ui.focusedList);
             continue;
         }
         // SDL delivers keys during the preedit. The EDIT's same guard avoids editing or sending before the commit; this

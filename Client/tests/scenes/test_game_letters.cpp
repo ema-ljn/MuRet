@@ -27,6 +27,7 @@
 #include "Chat/ChatInput.h"
 #include "Messenger/FriendModel.h"
 #include "Messenger/FriendWindows.h"
+#include "Ui/OldEditFocus.h"
 #include "Messenger/LetterModel.h"
 #include "Messenger/LetterWindows.h"
 #include "Messenger/LetterWindowsDraw.h"
@@ -128,7 +129,7 @@ std::vector<std::byte> Joined(std::vector<std::byte> head, const std::vector<std
     return head;
 }
 
-class FakeRooms final : public Client::App::IChatRoomLinks
+class FakeRooms final : public Client::Chat::IChatRoomLinks
 {
 public:
     struct Call
@@ -644,7 +645,7 @@ TEST_F(GameLettersTest, AClosedChatNeitherSaysNorInvites)
     EXPECT_EQ(chat->chat.edit.base.state, 0);
 
     chat->chat.edit.text.SetText("hola");
-    Client::Messenger::PressEnterInTheOldEdit(Manager());
+    Client::Ui::PressEnterInTheOldEdit(Manager());
     auto stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     chat = &Manager().windows.at(chatId);
@@ -655,7 +656,7 @@ TEST_F(GameLettersTest, AClosedChatNeitherSaysNorInvites)
     EXPECT_TRUE(m_sent.empty());
 
     Client::Messenger::CloseTheChat(*chat, 0, m_oldTexts);
-    Client::Messenger::PressEnterInTheOldEdit(Manager());
+    Client::Ui::PressEnterInTheOldEdit(Manager());
     stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(Manager().chatRooms.orders.size(), 1u);
@@ -836,17 +837,17 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     write->letter.text.text.SetText("Linea uno");
     write->letter.text.text.SetCursor(0);
     std::int32_t focusedList = 0;
-    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                            &focusedList);
+    Client::Ui::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
     EXPECT_EQ(Manager().focusedEdit, text);
     EXPECT_EQ(focusedList, text);
     EXPECT_EQ(write->letter.text.text.Cursor(), 9u);
-    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                            &focusedList);
+    Client::Ui::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
     EXPECT_EQ(Manager().focusedEdit, to);
     EXPECT_EQ(write->letter.to.text.Cursor(), 5u);
-    Client::Messenger::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
-                                            &focusedList);
+    Client::Ui::ApplyKeyToTheOldEdit(Manager(), Client::Ui::OldEditKey::Tab, false, false, nullptr, nullptr,
+                                     &focusedList);
     EXPECT_EQ(Manager().focusedEdit, subject);
     EXPECT_EQ(focusedList, subject);
 
@@ -856,7 +857,7 @@ TEST_F(GameLettersTest, TabGoesAroundTheWriteEditsAndTheClosedOneKeepsItsFocus)
     EXPECT_TRUE(Manager().focusedEditIsOrphan);
     ASSERT_TRUE(Manager().orphanedEdit.has_value());
     EXPECT_EQ(Manager().orphanedEdit->base.id, subject);
-    Client::Messenger::TypeInTheOldEdit(Manager(), "udos");
+    Client::Ui::TypeInTheOldEdit(Manager(), "udos");
     EXPECT_EQ(Manager().orphanedEdit->text.Value(), "Saludos");
 
     // Another write window takes the focus from the orphan.

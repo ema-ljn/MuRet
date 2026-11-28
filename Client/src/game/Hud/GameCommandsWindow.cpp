@@ -372,7 +372,7 @@ Core::Expected<void, std::string> CommandATrade(const Ui::GameUiContext& context
     }
     if (level < Chat::DefaultTradeLevel)
         return Refuse(chat, delegated.commandsWindow, Chat::TradeLevelText, Ui::SystemMessage, "0x406476");
-    if (PersonalShop::HasShopTitle(runtime.social.personalShop, index))
+    if (Social::HasShopTitle(runtime.social.personalShop, index))
         return Refuse(chat, delegated.commandsWindow, PersonalShopText, Ui::ErrorMessage, "0x4064b6");
     const Social::SocialRequestContext requests{
         .world = world, .random = context.random, .texts = *chat.texts, .send = chat.send};

@@ -1,4 +1,5 @@
 #include "Messenger/FriendWindows.h"
+#include "Ui/OldEditFocus.h"
 
 #include "Core/Expected.h"
 #include "Core/PixelSize.h"
@@ -320,12 +321,12 @@ TEST_F(FriendWindowsTest, TheAddBoxSendsTheTypedName)
     EXPECT_EQ(m_manager.windows.at(box).base.current.type, Client::Ui::SizeMessage);
     EXPECT_TRUE(m_manager.windows.at(box).base.queue.empty());
     EXPECT_EQ(m_focus, ChatFocus::OldWindow);
-    ASSERT_TRUE(Client::Messenger::HasAnOldEditFocused(m_manager, m_focus));
+    ASSERT_TRUE(Client::Ui::HasAnOldEditFocused(m_manager, m_focus));
 
-    Client::Messenger::TypeInTheOldEdit(m_manager, "Calandrias");
+    Client::Ui::TypeInTheOldEdit(m_manager, "Calandrias");
     // The game's backspace arrives as a key (SDL does not give WM_CHAR's '\b').
-    Client::Messenger::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Backspace, false, false);
-    Client::Messenger::PressEnterInTheOldEdit(m_manager);
+    Client::Ui::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Backspace, false, false);
+    Client::Ui::PressEnterInTheOldEdit(m_manager);
     stepped = Step();
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
     stepped = Step();
@@ -349,13 +350,13 @@ TEST_F(FriendWindowsTest, DestroyingTheFocusedAddBoxKeepsItsEditBufferWithoutIts
     ASSERT_TRUE(m_manager.orphanedEdit.has_value());
     EXPECT_TRUE(m_manager.focusedEditIsOrphan);
     EXPECT_EQ(m_manager.focusedEdit, editId);
-    EXPECT_TRUE(Client::Messenger::HasAnOldEditFocused(m_manager, m_focus));
-    Client::Messenger::TypeInTheOldEdit(m_manager, "z");
-    Client::Messenger::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Left, false, false);
-    Client::Messenger::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Backspace, false, false);
+    EXPECT_TRUE(Client::Ui::HasAnOldEditFocused(m_manager, m_focus));
+    Client::Ui::TypeInTheOldEdit(m_manager, "z");
+    Client::Ui::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Left, false, false);
+    Client::Ui::ApplyKeyToTheOldEdit(m_manager, Client::Ui::OldEditKey::Backspace, false, false);
     EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "abcz");
 
-    Client::Messenger::PressEnterInTheOldEdit(m_manager);
+    Client::Ui::PressEnterInTheOldEdit(m_manager);
     EXPECT_TRUE(m_manager.queue.empty());
     EXPECT_TRUE(m_sent.empty());
 }
@@ -369,8 +370,8 @@ TEST_F(FriendWindowsTest, ANewEditFocusReplacesTheOrphanAndGameFocusStopsEditing
     ASSERT_TRUE(m_manager.orphanedEdit.has_value());
 
     m_focus = ChatFocus::Game;
-    if (Client::Messenger::HasAnOldEditFocused(m_manager, m_focus))
-        Client::Messenger::TypeInTheOldEdit(m_manager, "x");
+    if (Client::Ui::HasAnOldEditFocused(m_manager, m_focus))
+        Client::Ui::TypeInTheOldEdit(m_manager, "x");
     EXPECT_EQ(m_manager.orphanedEdit->text.Value(), "orphan");
 
     const OldWindowGlobals globals = Globals();
@@ -427,9 +428,9 @@ TEST_F(FriendWindowsTest, WithTheWindowListArmedEnterIsNotTheEdits)
     Client::Ui::PostToTheWindow(m_manager, FriendTab().base.id, Client::Ui::CommandMessage, 1, 0);
     ASSERT_TRUE(Step().HasValue());
     const std::int32_t box = m_manager.letter;
-    Client::Messenger::TypeInTheOldEdit(m_manager, "Tero");
+    Client::Ui::TypeInTheOldEdit(m_manager, "Tero");
     m_manager.windowList.list.armed = 1;
-    Client::Messenger::PressEnterInTheOldEdit(m_manager);
+    Client::Ui::PressEnterInTheOldEdit(m_manager);
     EXPECT_TRUE(m_manager.windows.at(box).base.queue.empty());
 }
 

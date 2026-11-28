@@ -196,7 +196,7 @@ Core::Expected<void, std::string> DrawTheBubble(ChatBubbleDrawContext& context, 
     const bool clampY = context.clampBoxes != 0;
     // 0x5563a4..0x5565ef: with the owner's sign (0x451810, not +0x54), the text 1104 and the short title in bold, two
     // lines higher, and the others, one (Q-C978).
-    if (PersonalShop::HasShopTitle(runtime.social.personalShop, ownerSlot))
+    if (Social::HasShopTitle(runtime.social.personalShop, ownerSlot))
     {
         const auto header = PersonalShop::ShopSignHeader(context.texts, "0x556421");
         if (!header.HasValue())

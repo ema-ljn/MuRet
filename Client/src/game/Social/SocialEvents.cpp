@@ -836,7 +836,7 @@ void ApplyShopTitles(const Protocol::PersonalShop::ShopTitles& titles, Kernel::W
         const std::size_t index = Kernel::ActorWithKey(world, entry.key);
         if (index >= ShopKeysSearched)
             continue;
-        PersonalShop::AddShopTitle(world, entry.key, index, entry.title);
+        Social::AddShopTitle(world, entry.key, index, entry.title);
     }
 }
 
@@ -850,8 +850,8 @@ void ApplyShopCreated(const Protocol::PersonalShop::ShopCreated& created, Kernel
     shops.ownOpen = 1;
     const std::size_t hero = runtime.hero;
     const std::string title = shops.ownTitle;
-    PersonalShop::AddShopTitle(world, static_cast<std::int32_t>(static_cast<std::int16_t>(world.Actors()[hero].key)),
-                               hero, title);
+    Social::AddShopTitle(world, static_cast<std::int32_t>(static_cast<std::int16_t>(world.Actors()[hero].key)), hero,
+                         title);
 }
 
 void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, Kernel::WorldState& world)
@@ -865,7 +865,7 @@ void ApplyShopClosed(const Protocol::PersonalShop::ShopClosed& closed, Kernel::W
     Kernel::WorldRuntime& runtime = world.Runtime();
     if (index == runtime.hero)
         runtime.social.personalShop.ownOpen = 0;
-    PersonalShop::RemoveShopTitle(runtime.social.personalShop, index);
+    Social::RemoveShopTitle(runtime.social.personalShop, index);
 }
 
 Core::Expected<void, std::string> ApplyShopNotice(const Protocol::PersonalShop::ShopNotice& notice,
@@ -902,7 +902,7 @@ void ApplyOtherShopTitle(const Protocol::PersonalShop::ShopTitle& title, Kernel:
         if (actor.name[at] == std::byte{0})
             break;
     }
-    PersonalShop::AddShopTitle(world, title.key, index, title.title);
+    Social::AddShopTitle(world, title.key, index, title.title);
 }
 
 Core::Expected<void, std::string> ApplyShopOwnerLeft(const Protocol::PersonalShop::ShopOwnerLeft&,

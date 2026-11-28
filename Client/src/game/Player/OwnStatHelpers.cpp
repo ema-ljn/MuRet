@@ -226,7 +226,7 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
 void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& item)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
-    Items::AddOwnItemOptionValues(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes});
+    Player::AddOwnItemOptionValues(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes});
     word = FromLittleEndian(bytes);
 }
 
@@ -234,8 +234,8 @@ void AddOptions(std::uint16_t& word, std::uint32_t selector, const ItemState& it
 void ApplyOptionPercent(std::uint16_t& word, std::uint32_t selector, const ItemState& item, std::uint32_t factor)
 {
     std::array<std::byte, 2> bytes = LittleEndianWord(word);
-    Items::ApplyOwnItemOptionPercent(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes},
-                                     factor);
+    Player::ApplyOwnItemOptionPercent(bytes, selector, {item.id, item.durability, item.optionCount, item.optionBytes},
+                                      factor);
     word = FromLittleEndian(bytes);
 }
 

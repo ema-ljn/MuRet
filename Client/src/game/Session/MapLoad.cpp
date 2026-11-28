@@ -303,7 +303,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));
     }
     // 0x61a5b5..0x61a5bc, también en la selección: 0x451590 deja solo el cartel de la tienda del héroe.
-    PersonalShop::KeepTheHeroShopTitle(context.world);
+    Social::KeepTheHeroShopTitle(context.world);
     if (map == LoginMap)
     {
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));

@@ -594,7 +594,7 @@ TEST_P(CommandsWindowTest, TheTradeCommandRefusesALowLevelOrAShop)
     EXPECT_EQ(game->world.Runtime().panels.delegated.commands, 1);
 
     game->world.OwnCharacter().level = 6;
-    Client::PersonalShop::AddShopTitle(game->world, NearKey, 1, "Arcos");
+    Client::Social::AddShopTitle(game->world, NearKey, 1, "Arcos");
     ASSERT_TRUE(RightClick(1, 1).HasValue());
     EXPECT_EQ(game->world.Runtime().chat.log.entries.front().type, Client::Ui::ErrorMessage);
     EXPECT_EQ(Window().chosen, -1);

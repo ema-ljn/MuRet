@@ -459,7 +459,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
         !bubbles.HasValue())
         return bubbles;
     // 0x6370fe..0x637105: 0x451c10, the personal shop signs (0x7245c8) that changed key or type.
-    PersonalShop::CheckTheShopKeys(*m_context.world);
+    Social::CheckTheShopKeys(*m_context.world);
     // 0x63710a: MoveHero leaves with more than 30, but the later logic goes on during the wait.
     if (auto moved = StepTheHero(input); !moved.HasValue())
         return moved;

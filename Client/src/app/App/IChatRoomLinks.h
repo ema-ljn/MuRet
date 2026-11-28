@@ -13,7 +13,7 @@
 // that a room releases (0x49e110, the destructor of the 0x402c-byte object, → 0x4e8180 0x4e8860 0x4e8bd0 0x4e8c30
 // 0x4e8ea0 0x4e8ef0 0x4e8f10 0x4e8f50 0x4e9330 0x4e9350; P-C216, *inferred* from their callers) are replaced by
 // Network::Connection and its ISocket.
-namespace Client::App
+namespace Client::Chat
 {
 // 0x49de50's port (0xdaac).
 inline constexpr std::uint16_t ChatRoomPort = 55980;
@@ -35,4 +35,4 @@ protected:
     IChatRoomLinks(const IChatRoomLinks&) = default;
     IChatRoomLinks& operator=(const IChatRoomLinks&) = default;
 };
-} // namespace Client::App
+} // namespace Client::Chat

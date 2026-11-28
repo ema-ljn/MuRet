@@ -1715,7 +1715,7 @@ Q-C1000). `App::ServerSession`
 registra `C5`..`C8`, `CA` y `CB` juntos y los pasa al mundo (`Scenes::ApplyLetterSendResult`, `ApplyLetterRow`,
 `ApplyLetterRead`, `ApplyLetterDeleteResult`, `ApplyRoomAnswer` y `ApplyInviteResult`); lo que mandan las ventanas
 sale por `Scenes::SendAFriendPacket`, que saca los `rand()` de la carta. La conexión de la sala es otra
-`Network::Connection` de la sesión (`App::IChatRoomLinks`, P-C211): lo que llega por ella va a `Scenes::ApplyRoomPacket`
+`Network::Connection` de la sesión (`Chat::IChatRoomLinks`, P-C211): lo que llega por ella va a `Scenes::ApplyRoomPacket`
 (lo de `0x4e2a60`; uno más corto que lo que lee su handler se ignora con un aviso y la sesión sigue: Q-C1011) y su
 cierre a `Scenes::ApplyChatRoomClosed`; lo que mandan las ventanas lo saca
 `Scenes::FlushTheChatRoomOrders`. El connect no espera, como el del GameServer de MuRet: la sala se anota al empezar y

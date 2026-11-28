@@ -77,5 +77,5 @@ ApplyLetterDeleteResult(const Protocol::Messenger::LetterDeleteResult& result, c
 
 // What the windows left for the rooms (Messenger::ChatRooms::orders), in order: the C1 04, the C1 03 01 and the close,
 // or the C1 03 05. Without the connections, it is discarded.
-void FlushTheChatRoomOrders(Messenger::ChatRooms& rooms, App::IChatRoomLinks* links);
+void FlushTheChatRoomOrders(Messenger::ChatRooms& rooms, Chat::IChatRoomLinks* links);
 } // namespace Client::Messenger

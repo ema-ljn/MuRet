@@ -140,7 +140,7 @@ void ViewportLeaveHooks::ForgetTheSwitchHolder(std::uint16_t key) const
 void ViewportLeaveHooks::RemoveTheShopTitle(std::int32_t key) const
 {
     Social::PersonalShopState& shops = m_world.Runtime().social.personalShop;
-    if (const std::optional<std::size_t> owner = PersonalShop::ShopTitleWithKey(shops, key))
-        PersonalShop::RemoveShopTitle(shops, *owner);
+    if (const std::optional<std::size_t> owner = Social::ShopTitleWithKey(shops, key))
+        Social::RemoveShopTitle(shops, *owner);
 }
 } // namespace Client::Session

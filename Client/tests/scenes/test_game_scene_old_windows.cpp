@@ -33,6 +33,7 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/SameBytes.h"
 #include "support/SessionHarness.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

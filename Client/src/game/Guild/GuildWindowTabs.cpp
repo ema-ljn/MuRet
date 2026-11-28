@@ -25,6 +25,7 @@
 #include "Ui/OldWindowDrawParts.h"
 #include "Crt/SprintfFormat.h"
 #include "Kernel/CharacterClass.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

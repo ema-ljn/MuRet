@@ -19,6 +19,7 @@
 #include "Terrain/WorldTerrain.h"
 
 #include "support/PlayerActors.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <gtest/gtest.h>
 

@@ -8,6 +8,7 @@
 #include "Maps/MapId.h"
 #include "Social/SocialState.h"
 #include "Tables/SkillId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <cstddef>

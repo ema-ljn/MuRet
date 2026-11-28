@@ -21,6 +21,7 @@
 #include "Session/WorldEntry.h"
 #include "Tables/PlayerModels.h"
 #include "Terrain/TerrainCulling.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>

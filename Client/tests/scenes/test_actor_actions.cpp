@@ -14,6 +14,7 @@
 #include "Sound/SoundRequests.h"
 #include "support/PlayerActors.h"
 #include "support/SentActions.h"
+#include "Actors/MovementSpeed.h"
 
 #include <gtest/gtest.h>
 
@@ -109,7 +110,11 @@ protected:
         return actor.animation.action;
     }
 
-    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime = [] {
+        Client::Kernel::WorldRuntime runtime;
+        runtime.map = 0;
+        return runtime;
+    }();
     SceneId m_scene = SceneId::Game;
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Models::Skeleton m_actorModelSkeleton = Client::Tests::PlayerActionsSkeleton();

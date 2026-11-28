@@ -56,6 +56,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
 
 #include <array>
 #include <chrono>

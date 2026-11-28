@@ -20,6 +20,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 

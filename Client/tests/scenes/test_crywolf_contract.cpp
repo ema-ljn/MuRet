@@ -12,6 +12,7 @@
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

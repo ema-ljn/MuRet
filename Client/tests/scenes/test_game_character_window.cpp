@@ -25,6 +25,7 @@
 #include "support/ItemSetFiles.h"
 #include "support/SameBytes.h"
 #include "support/TableFiles.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

@@ -83,6 +83,11 @@
 #include "support/TestGameServer.h"
 #include "support/TemporaryFolder.h"
 #include "support/UiInput.h"
+#include "Chat/ChatRuntime.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

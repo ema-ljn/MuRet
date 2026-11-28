@@ -26,6 +26,9 @@
 #include "support/SameBytes.h"
 #include "support/TableFiles.h"
 #include "support/UiInput.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Guild/GuildState.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

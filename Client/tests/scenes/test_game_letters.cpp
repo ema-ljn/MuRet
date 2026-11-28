@@ -38,6 +38,8 @@
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

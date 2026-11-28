@@ -2,6 +2,8 @@
 
 #include "Kernel/WorldRuntime.h"
 #include "FrontEnd/OptionsWindow.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 namespace Client::Hud
 {

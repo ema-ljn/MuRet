@@ -40,6 +40,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/SessionHarness.h"
+#include "Weather/LeafWeather.h"
 
 #include <glm/ext/vector_float3.hpp>
 

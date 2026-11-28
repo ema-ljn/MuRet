@@ -24,6 +24,7 @@
 #include "Ui/MessageArea.h"
 #include "Ui/PanelDialog.h"
 #include "Ui/PanelRegistry.h"
+#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>

@@ -14,6 +14,8 @@
 #include "Ui/MessageLog.h"
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +30,7 @@ namespace Client::Chat
 Ui::MessageSink MessageSinkOf(Kernel::WorldRuntime& runtime, const Render::Text::ITextMeasure& measure,
                               Core::PixelSize screen)
 {
-    Kernel::ChatRuntime& chat = runtime.chat;
+    Chat::ChatRuntime& chat = runtime.chat;
     return Ui::MessageSink{.log = chat.log,
                            .area = chat.area,
                            .modes = runtime.ui.chatModes,

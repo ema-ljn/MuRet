@@ -24,6 +24,7 @@
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
+#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <array>

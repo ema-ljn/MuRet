@@ -18,6 +18,7 @@
 #include "Ui/PanelRegistry.h"
 #include "CastleSiege/SiegePanelState.h"
 #include "Math/Ftol.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <algorithm>
 #include <array>

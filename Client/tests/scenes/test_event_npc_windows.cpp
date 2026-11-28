@@ -30,6 +30,8 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

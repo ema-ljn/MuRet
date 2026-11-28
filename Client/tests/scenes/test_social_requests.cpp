@@ -56,6 +56,9 @@
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
 #include "support/ViewportPackets.h"
+#include "Guild/GuildState.h"
+#include "Ui/GameUiState.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

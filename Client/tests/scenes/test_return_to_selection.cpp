@@ -43,6 +43,10 @@
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/PanelRegistry.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 

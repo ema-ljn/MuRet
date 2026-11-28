@@ -34,6 +34,8 @@
 #include "support/FakeTextureStore.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/GameUiState.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

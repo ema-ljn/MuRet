@@ -38,6 +38,7 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

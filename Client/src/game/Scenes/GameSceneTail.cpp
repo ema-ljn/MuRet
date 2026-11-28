@@ -35,6 +35,7 @@
 #include "Ui/GameUiState.h"
 #include "Terrain/WorldTerrain.h"
 #include "Particles/Sprites.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <chrono>
 #include <algorithm>

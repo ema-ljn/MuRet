@@ -42,6 +42,8 @@
 #include "Kernel/ItemState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Models/Cloth.h"
+#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <array>

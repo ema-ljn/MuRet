@@ -41,6 +41,8 @@
 #include "Ui/OldWindows.h"
 #include "Ui/PanelRegistry.h"
 #include "Chat/WhisperSenders.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
 
 #include <algorithm>
 #include <array>

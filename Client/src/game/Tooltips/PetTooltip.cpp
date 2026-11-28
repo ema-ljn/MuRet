@@ -23,6 +23,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Math/Ftol.h"
 #include "Kernel/ItemState.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

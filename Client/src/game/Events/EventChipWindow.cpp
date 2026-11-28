@@ -29,6 +29,8 @@
 #include "Ui/OldWindowDraw.h"
 #include "Ui/OldWindowDrawParts.h"
 #include "Ui/PanelRegistry.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

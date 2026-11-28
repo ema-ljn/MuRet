@@ -33,6 +33,8 @@
 #include "Effects/ModelEffects.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Movement/GameMovementState.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>

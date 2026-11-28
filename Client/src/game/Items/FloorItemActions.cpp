@@ -19,6 +19,7 @@
 #include "Terrain/TerrainPickingSegment.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

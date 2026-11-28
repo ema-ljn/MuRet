@@ -15,6 +15,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

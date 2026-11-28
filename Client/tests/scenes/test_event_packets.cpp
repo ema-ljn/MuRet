@@ -46,6 +46,9 @@
 #include "support/TableFiles.h"
 
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Fauna/FaunaState.h"
 
 #include <gtest/gtest.h>
 

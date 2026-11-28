@@ -42,6 +42,7 @@
 #include "Ui/Widget.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
 
 #include <array>
 #include <cstddef>

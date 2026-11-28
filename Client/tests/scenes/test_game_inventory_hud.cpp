@@ -38,6 +38,9 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "Kernel/JointRequest.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
+#include "Actors/Drawing/GameItemRenderState.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_int4.hpp>

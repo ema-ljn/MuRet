@@ -33,6 +33,7 @@
 
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

@@ -112,6 +112,9 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Kernel/JointRequest.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
+#include "Actors/FullSetScan.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>

@@ -20,6 +20,7 @@
 #include "Particles/Particles.h"
 #include "support/UiInput.h"
 #include "support/RecordingFrameTarget.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

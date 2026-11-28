@@ -25,6 +25,7 @@
 #include "Ui/OldWindows.h"
 #include "Crt/SprintfFormat.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>

@@ -10,6 +10,8 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/PanelDialog.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
 
 #include <cstdint>
 #include <string>

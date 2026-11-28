@@ -28,6 +28,7 @@
 #include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "Fauna/FaunaState.h"
 #include <gtest/gtest.h>
 #include <chrono>
 #include <cstdint>

@@ -33,6 +33,7 @@
 #include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

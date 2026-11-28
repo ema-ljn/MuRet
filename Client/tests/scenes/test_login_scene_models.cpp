@@ -49,6 +49,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/TemporaryFolder.h"
 #include "support/TerrainFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

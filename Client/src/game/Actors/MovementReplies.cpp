@@ -23,6 +23,7 @@
 #include "Kernel/WorldState.h"
 #include "Assets/FaunaModels.h"
 #include "Terrain/TerrainDefines.h"
+#include "Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

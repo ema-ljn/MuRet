@@ -19,6 +19,7 @@
 #include "Session/WorldEntry.h"
 #include "Session/WorldTransitionSupport.h"
 #include "Effects/ModelEffects.h"
+#include "Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

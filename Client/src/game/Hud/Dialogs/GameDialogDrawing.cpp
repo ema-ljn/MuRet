@@ -36,6 +36,8 @@
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventMapObject.h"
 
 #include <algorithm>
 #include <array>

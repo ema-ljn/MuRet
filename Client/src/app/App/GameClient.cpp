@@ -29,6 +29,9 @@
 #include "Kernel/WorldRuntime.h"
 #include "Tables/GameData.h"
 #include "Ui/SlideBanner.h"
+#include "Chat/ChatRuntime.h"
+#include "Quests/QuestState.h"
+#include "Ui/GameUiState.h"
 
 #include <chrono>
 #include <cstdint>

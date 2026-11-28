@@ -20,6 +20,10 @@
 #include "support/GoldenDir.h"
 #include "support/FileBytes.h"
 #include "support/PlayerActors.h"
+#include "Movement/GameMovementState.h"
+#include "Chat/ChatRuntime.h"
+#include "Items/HudItems.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

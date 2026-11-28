@@ -21,6 +21,7 @@
 #include "Ui/MessageArea.h"
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Models/Cloth.h"
 
 #include <algorithm>
 #include <array>

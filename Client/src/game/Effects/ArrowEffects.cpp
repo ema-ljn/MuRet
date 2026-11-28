@@ -35,6 +35,7 @@
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 #include "Tables/SkillId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

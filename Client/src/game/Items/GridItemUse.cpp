@@ -17,6 +17,7 @@
 #include "Math/Ftol.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Ui/GameUiState.h"
 
 #include <bit>
 #include <cstddef>

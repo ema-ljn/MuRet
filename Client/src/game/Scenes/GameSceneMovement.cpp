@@ -30,6 +30,7 @@
 #include "Terrain/TerrainPickingTarget.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/WorldTerrain.h"
+#include "Chat/ChatRuntime.h"
 #include <glm/ext/vector_float3.hpp>
 #include <chrono>
 #include <cstdint>

@@ -64,6 +64,8 @@
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
 #include "support/ViewportPackets.h"
+#include "Chat/ChatRuntime.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

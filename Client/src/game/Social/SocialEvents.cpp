@@ -33,6 +33,9 @@
 #include "Kernel/ItemState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
+#include "Models/Cloth.h"
 
 #include <algorithm>
 #include <array>

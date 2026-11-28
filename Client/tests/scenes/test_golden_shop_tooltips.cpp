@@ -50,6 +50,8 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
+#include "Actors/Drawing/GameItemRenderState.h"
+#include "Tooltips/TooltipLines.h"
 
 #include <gtest/gtest.h>
 

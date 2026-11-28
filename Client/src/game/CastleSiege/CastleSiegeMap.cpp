@@ -5,6 +5,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/WorldTerrain.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <cstdint>
 #include <filesystem>

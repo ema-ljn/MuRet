@@ -11,6 +11,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldTextQueue.h"
 #include "Crt/SprintfFormat.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -27,6 +27,7 @@
 #include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
 #include "Tables/SkillId.h"
+#include "Movement/GameMovementState.h"
 
 #include <array>
 #include <cstddef>

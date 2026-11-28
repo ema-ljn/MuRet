@@ -24,6 +24,9 @@
 #include "Ui/Widget.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Chat/ChatRuntime.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <bit>

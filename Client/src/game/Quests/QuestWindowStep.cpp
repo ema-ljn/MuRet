@@ -14,6 +14,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Crt/CrtRandom.h"
 
 #include <cstddef>
 #include <cstdint>

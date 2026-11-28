@@ -13,6 +13,9 @@
 #include "Audio/SoundId.h"
 
 #include "support/TableFiles.h"
+#include "Movement/GameMovementState.h"
+#include "Ui/GameUiState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

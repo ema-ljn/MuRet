@@ -25,6 +25,7 @@
 #include "CastleSiege/SiegeBattleUiState.h"
 #include "CastleSiege/SiegePanelState.h"
 #include "Tables/SkillId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <bit>

@@ -35,6 +35,9 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Social/SocialState.h"
 
 #include <array>
 #include <cstddef>

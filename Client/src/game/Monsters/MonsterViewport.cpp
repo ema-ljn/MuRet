@@ -34,6 +34,7 @@
 #include "Terrain/TerrainCulling.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Events/EventGlobals.h"
 
 #include <algorithm>
 #include <array>

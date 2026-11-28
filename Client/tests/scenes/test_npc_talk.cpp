@@ -32,6 +32,8 @@
 
 #include "support/GoldenDir.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Quests/QuestState.h"
 
 #include <algorithm>
 #include <array>

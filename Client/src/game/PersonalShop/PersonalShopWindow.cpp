@@ -30,6 +30,7 @@
 #include "Ui/OldWindowBase.h"
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>

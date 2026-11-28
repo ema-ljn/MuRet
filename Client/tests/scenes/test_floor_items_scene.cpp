@@ -53,6 +53,9 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -25,6 +25,7 @@
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/PanelRegistry.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

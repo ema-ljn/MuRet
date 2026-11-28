@@ -56,6 +56,10 @@
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
+#include "Chat/ChatRuntime.h"
+#include "Npc/NpcWindowState.h"
+#include "Ui/PanelRegistry.h"
+#include "Movement/GameMovementState.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

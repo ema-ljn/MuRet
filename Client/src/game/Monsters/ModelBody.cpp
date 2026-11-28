@@ -10,6 +10,7 @@
 #include "Actors/ActorConstruction.h"
 #include "Kernel/ActorState.h"
 #include "Kernel/WorldRuntime.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <cmath>

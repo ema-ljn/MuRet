@@ -54,6 +54,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

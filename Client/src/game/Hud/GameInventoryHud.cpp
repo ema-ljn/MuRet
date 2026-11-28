@@ -40,6 +40,8 @@
 #include "Ui/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
 #include "Kernel/ItemState.h"
+#include "Actors/Drawing/GameItemRenderState.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>

@@ -3,22 +3,16 @@
 #include "Kernel/GameContext.h"
 #include "Protocol/FrontEnd/CharacterList.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterCloth.h"
 #include "Kernel/HelperTable.h"
-#include "Player/ItemSetState.h"
-#include "Actors/PlayerActionSpeeds.h"
-#include "Fauna/FaunaState.h"
 #include "Kernel/PoseBuffer.h"
 #include "Kernel/DrawTailState.h"
 #include "Kernel/JointCreation.h"
 #include "Kernel/JointRequest.h"
 #include "Core/Expected.h"
-#include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
-#include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -35,6 +29,41 @@ namespace Client::Crt
 {
 class CrtRandom;
 }
+
+namespace Client::Actors
+{
+class PlayerActionSpeeds;
+} // namespace Client::Actors
+
+namespace Client::Actors::Drawing
+{
+class CharacterCloth;
+} // namespace Client::Actors::Drawing
+
+namespace Client::Fauna
+{
+class FaunaState;
+} // namespace Client::Fauna
+
+namespace Client::Particles
+{
+class Particles;
+} // namespace Client::Particles
+
+namespace Client::Player
+{
+struct ItemSetState;
+} // namespace Client::Player
+
+namespace Client::Weather
+{
+class Leaves;
+} // namespace Client::Weather
+
+namespace Client::Session
+{
+struct WorldStates;
+} // namespace Client::Session
 
 // What WinMain zeroes and lasts from one scene to another: the pool of 401 character records (REP STOSD at
 // 0x4bafa6..0x4bafb3, with the hero in the first, 0x4bafdf), the own record ([0x7681eb0], 0x4bafbc..0x4bafc2), the own
@@ -65,8 +94,8 @@ inline constexpr float PlayerModelAlpha = 0.01f;
 class WorldState
 {
 public:
-    WorldState() = default;
-    ~WorldState() = default;
+    WorldState();
+    ~WorldState();
     WorldState(const WorldState&) = delete;
     WorldState& operator=(const WorldState&) = delete;
     WorldState(WorldState&&) = delete;
@@ -150,18 +179,13 @@ public:
 
 private:
     Kernel::GameContext m_context;
-    // On the heap for the same reason as the actor pool (GameContext.h).
-    std::unique_ptr<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>> m_actorCloths =
-        std::make_unique<std::array<Actors::Drawing::CharacterCloth, ActorPoolSize>>();
-    Player::ItemSetState m_itemSets;
+    // The modules' cloths, sets, particles, speeds, fauna and leaves, which Session defines and builds
+    // (Session/HeldModules.cpp): on the heap, for the same reason as the actor pool (GameContext.h).
+    std::unique_ptr<Session::WorldStates> m_modules;
     HelperTable m_helpers{};
-    std::unique_ptr<Particles::Particles> m_particles = std::make_unique<Particles::Particles>();
-    Actors::PlayerActionSpeeds m_actionSpeeds;
-    Fauna::FaunaState m_fauna;
     PoseBuffer m_poseCarry;
     std::unique_ptr<Kernel::GameDrawTailState> m_drawTail = std::make_unique<Kernel::GameDrawTailState>();
     CreateJointFunction m_createJoint = nullptr;
-    std::unique_ptr<Weather::Leaves> m_leaves = std::make_unique<Weather::Leaves>();
     SharedModelPlacement m_playerModel;
     std::map<std::uint16_t, SharedModelPlacement> m_modelPlacements;
 };

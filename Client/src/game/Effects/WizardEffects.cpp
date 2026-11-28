@@ -22,6 +22,7 @@
 #include "Effects/WizardModelEffects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <algorithm>
 #include <cmath>

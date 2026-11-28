@@ -17,6 +17,7 @@
 #include "support/Fnv1a.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingTextDrawer.h"
+#include "Chat/ChatRuntime.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>

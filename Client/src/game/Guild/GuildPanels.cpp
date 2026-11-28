@@ -21,6 +21,8 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <cstddef>
 #include <cstdint>

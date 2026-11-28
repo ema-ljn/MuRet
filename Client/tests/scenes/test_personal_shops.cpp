@@ -29,6 +29,7 @@
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

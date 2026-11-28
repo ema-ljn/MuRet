@@ -37,6 +37,12 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/TableFiles.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/Dialogs.h"
+#include "Ui/GameUiState.h"
+#include "Ui/PanelRegistry.h"
+#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 

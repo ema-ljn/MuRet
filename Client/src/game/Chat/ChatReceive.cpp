@@ -27,6 +27,9 @@
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 #include "Tables/SkillId.h"
+#include "Chat/ChatRuntime.h"
+#include "Items/HudItems.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

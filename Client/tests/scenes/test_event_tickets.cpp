@@ -13,6 +13,8 @@
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
 #include "support/SameBytes.h"
+#include "Ui/GameUiState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

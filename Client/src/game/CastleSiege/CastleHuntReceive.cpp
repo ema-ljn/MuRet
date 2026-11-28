@@ -9,6 +9,7 @@
 #include "Kernel/WorldState.h"
 #include "Ui/PanelDialog.h"
 #include "Ui/PanelRegistry.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <bit>

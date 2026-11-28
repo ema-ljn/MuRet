@@ -27,6 +27,7 @@
 #include "Tables/PlayerModels.h"
 #include "Tables/SkillId.h"
 #include "Tables/SkillRecord.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <bit>

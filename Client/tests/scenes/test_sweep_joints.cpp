@@ -20,6 +20,7 @@
 #include "Terrain/WorldTerrain.h"
 
 #include "support/SameBytes.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

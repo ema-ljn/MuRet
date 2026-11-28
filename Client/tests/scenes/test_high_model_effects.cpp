@@ -30,6 +30,7 @@
 #include "Audio/SoundId.h"
 
 #include "support/LentWorld.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

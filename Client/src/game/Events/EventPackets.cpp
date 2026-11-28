@@ -49,6 +49,8 @@
 #include "Protocol/Opcodes.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <bit>

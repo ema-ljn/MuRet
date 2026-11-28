@@ -29,6 +29,10 @@
 #include "Chat/WhisperSenders.h"
 #include "Camera/GameCamera.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
+#include "Movement/GameMovementState.h"
+#include "Ui/GameUiState.h"
 
 #include <cstdint>
 #include <string>

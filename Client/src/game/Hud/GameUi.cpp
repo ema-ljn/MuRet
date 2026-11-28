@@ -76,6 +76,8 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
 
 #include <algorithm>
 #include <array>
@@ -249,7 +251,7 @@ Core::Expected<void, std::string> StepTheChat(const GameUiContext& context)
 {
     Kernel::WorldRuntime& runtime = context.world.Runtime();
     Ui::GameUiState& ui = runtime.ui;
-    Kernel::ChatRuntime& chat = runtime.chat;
+    Chat::ChatRuntime& chat = runtime.chat;
     const Kernel::ActorState& hero = context.world.Hero();
     const Chat::ChatLogGlobals globals{.leftClick = runtime.mouse.pendingClick,
                                        .rightDown = ui.rightDown,

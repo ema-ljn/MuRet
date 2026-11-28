@@ -17,6 +17,8 @@
 #include "Ui/HudPrimitives.h"
 #include "Ui/PanelRegistry.h"
 #include "Crt/SprintfFormat.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

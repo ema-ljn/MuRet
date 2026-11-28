@@ -30,6 +30,7 @@
 #include "Terrain/TerrainDefines.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundIds.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

@@ -11,6 +11,7 @@
 #include "Kernel/WorldTextQueue.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "support/SceneDataFiles.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <gtest/gtest.h>
 

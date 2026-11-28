@@ -15,6 +15,7 @@
 #include "Math/Ftol.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "Terrain/WorldTerrain.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <array>
 #include <cmath>

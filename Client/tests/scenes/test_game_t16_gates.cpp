@@ -5,6 +5,7 @@
 #include "Tables/GateTable.h"
 #include "Kernel/ActorState.h"
 #include "Movement/GameGates.h"
+#include "Movement/GameMovementState.h"
 
 #include <gtest/gtest.h>
 

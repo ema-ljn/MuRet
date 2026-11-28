@@ -40,6 +40,7 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 #include "support/UiInput.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

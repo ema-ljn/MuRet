@@ -9,6 +9,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/ItemState.h"
+#include "Movement/GameMovementState.h"
 
 #include <cstddef>
 #include <cstdint>

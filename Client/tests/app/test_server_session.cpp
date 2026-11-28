@@ -64,6 +64,10 @@
 #include "support/TestGameServer.h"
 #include "test_server_session_support.h"
 #include "Protocol/Opcodes.h"
+#include "Events/EventGlobals.h"
+#include "Quests/QuestState.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

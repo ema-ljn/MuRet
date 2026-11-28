@@ -8,6 +8,7 @@
 #include "Ui/GameUiState.h"
 #include "CastleSiege/SiegePanelState.h"
 #include "Math/Ftol.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <cstdint>
 #include <bit>

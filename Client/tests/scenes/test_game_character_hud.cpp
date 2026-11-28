@@ -26,6 +26,8 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/TableFiles.h"
+#include "Movement/GameMovementState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

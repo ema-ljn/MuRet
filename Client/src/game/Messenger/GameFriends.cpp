@@ -24,6 +24,7 @@
 #include "Ui/SlideBanner.h"
 #include "Crt/SprintfFormat.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
 
 #include <cstddef>
 #include <cstdint>

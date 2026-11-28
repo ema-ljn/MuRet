@@ -25,6 +25,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/ViewportHandlers.h"
 #include "Assets/FaunaModels.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

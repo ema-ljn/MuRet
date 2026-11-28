@@ -72,6 +72,7 @@
 #include "support/FixedRandom.h"
 #include "support/LoginLogoFiles.h"
 #include "support/PlayerActors.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

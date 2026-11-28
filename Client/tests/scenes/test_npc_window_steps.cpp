@@ -39,6 +39,7 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

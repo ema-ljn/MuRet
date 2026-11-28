@@ -18,6 +18,10 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
+#include "Social/SocialState.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

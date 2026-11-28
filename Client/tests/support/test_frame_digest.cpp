@@ -4,6 +4,8 @@
 #include "Chat/ChatLog.h"
 #include "support/Fnv1a.h"
 #include "support/RecordingFrameTarget.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

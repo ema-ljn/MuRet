@@ -34,6 +34,12 @@
 #include "Audio/SoundId.h"
 
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Items/HudItems.h"
+#include "Ui/GameUiState.h"
+#include "Npc/NpcWindowState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/SlideBanner.h"
 
 #include <gtest/gtest.h>
 

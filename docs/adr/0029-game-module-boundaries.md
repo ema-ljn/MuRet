@@ -121,6 +121,8 @@ of the game a library of its own.
 
 1. The hosts use the event and the map script, never the reverse; the types a script takes move below both.
 2. The state leaves `WorldRuntime` module by module, into `Session::ModuleStates`; Task 38 deletes `WorldRuntime.h`.
+   Amended on 2026-11-28 ([below](#amendment-of-decision-2)): in AR4 Session holds the states and `Kernel` keeps a
+   reference to each.
 3. A map's monsters stay in `game/Monsters`, in files named for the map.
 4. One `modules.tsv` row per event and per map script that is its own folder.
 5. A milestone is done only when its modules are in no cycle, made or declared.
@@ -144,6 +146,25 @@ of the game a library of its own.
 - **The snapshot:** the client reference regenerated at `57ad3cd7`, its `metricas.tsv` included, in the PR stacked on
   this one, to compare the port numbers when AR4 ends.
 - **The spec's 58 modules stand.** The new rows are folders of `Events` and `MapScripts` that the check sees apart.
+
+## Amendment of Decision 2
+
+On 2026-11-28 Emanuel chose, for the AR4.4 design, that Session holds the modules' states ("Session guarda los
+estados"). Moving each state out with its module's design meant passing it to about 4,500 call sites that read it
+through `runtime.<field>` today, and moving the 57 state headers to `Kernel` instead meant about 20,800 lines in the
+wrong layer.
+
+- `Kernel/HeldModules.h` declares `HudModules`, `RuntimeModules` and `MapModules`, the bases of `HudState`,
+  `WorldRuntime` and `WorldMap`. Each owns a box that only `game/Session` defines (`Session/HeldModules.cpp`) and has
+  one reference member per state, bound to its own box, so `runtime.social` reads as before. A copy copies the box and
+  a move moves its contents; a reference never names another holder's state.
+- `WorldState` keeps the world's module states (the cloths, the sets, the particles, the action speeds, the fauna and
+  the leaves) the same way, behind the accessors it already had, defined in `Session/HeldModules.cpp`.
+- `Kernel/WorldRuntime.h`, `Kernel/WorldState.h` and `Kernel/WorldMap.h` include no module header, so `Kernel`'s
+  upward rows leave the baseline. A file that uses a state includes that state's header.
+- Passing each module its state as a parameter, so its files stop including `WorldRuntime.h`, is AR6's. Task 38 still
+  moves the plain fields of `WorldRuntime` to their owners, and `WorldRuntime.h` stays with only the references until
+  AR6.
 
 ## Consequences
 

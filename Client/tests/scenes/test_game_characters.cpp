@@ -35,6 +35,7 @@
 #include "support/PlayerActors.h"
 #include "Effects/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

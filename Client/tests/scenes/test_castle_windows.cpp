@@ -35,6 +35,8 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/RecordingTextDrawer.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

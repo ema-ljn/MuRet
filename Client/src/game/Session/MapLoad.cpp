@@ -33,6 +33,9 @@
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
 #include "Assets/FaunaModels.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Effects/ModelEffects.h"
+#include "Actors/Drawing/CharacterCloth.h"
 
 #include <array>
 #include <cstddef>

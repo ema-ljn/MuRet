@@ -20,6 +20,7 @@
 #include "support/ItemSetFiles.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

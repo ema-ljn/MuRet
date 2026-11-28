@@ -31,6 +31,8 @@
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <cstdint>

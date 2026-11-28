@@ -18,6 +18,8 @@
 #include "Ui/MessageArea.h"
 #include "Ui/MessageLog.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>

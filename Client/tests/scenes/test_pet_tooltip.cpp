@@ -29,6 +29,9 @@
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
 #include "support/TableFiles.h"
+#include "Movement/GameMovementState.h"
+#include "Social/SocialState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

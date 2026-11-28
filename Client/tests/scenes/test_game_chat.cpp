@@ -41,6 +41,9 @@
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Social/SocialState.h"
 
 #include <gtest/gtest.h>
 

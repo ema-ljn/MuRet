@@ -13,6 +13,8 @@
 #include "Kernel/WorldState.h"
 #include "support/Bytes.h"
 #include "support/SameBytes.h"
+#include "Ui/Dialogs.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

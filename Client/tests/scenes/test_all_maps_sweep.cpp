@@ -28,6 +28,7 @@
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/MapSweepCases.h"
+#include "Events/EventMapObject.h"
 
 #include <glm/ext/vector_float2.hpp>
 

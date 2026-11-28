@@ -33,6 +33,10 @@
 #include "Kernel/ItemState.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Models/Cloth.h"
 
 #include <algorithm>
 #include <cstddef>

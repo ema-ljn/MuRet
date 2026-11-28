@@ -32,6 +32,7 @@
 #include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

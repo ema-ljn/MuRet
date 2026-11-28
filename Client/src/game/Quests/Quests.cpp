@@ -11,6 +11,7 @@
 #include "Kernel/WorldState.h"
 #include "Ui/GameDialogs.h"
 #include "Kernel/ItemState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <algorithm>
 #include <cstddef>

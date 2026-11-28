@@ -28,6 +28,7 @@
 #include "Crt/SprintfFormat.h"
 #include "Kernel/CharacterClass.h"
 #include "Kernel/ItemState.h"
+#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <cstddef>

@@ -25,6 +25,7 @@
 #include "Kernel/CharacterClass.h"
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Ui/GameUiState.h"
 
 #include <array>
 #include <cstddef>

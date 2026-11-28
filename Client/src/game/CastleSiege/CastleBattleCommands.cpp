@@ -21,6 +21,7 @@
 #include "Crt/OriginalFormat.h"
 #include "Ui/PanelDialog.h"
 #include "Ui/PanelRegistry.h"
+#include "Chat/ChatRuntime.h"
 
 #include <array>
 #include <bit>

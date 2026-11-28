@@ -28,6 +28,7 @@
 #include "support/Bytes.h"
 #include "support/ItemFiles.h"
 #include "support/SameBytes.h"
+#include "Items/HudItems.h"
 
 #include <gtest/gtest.h>
 

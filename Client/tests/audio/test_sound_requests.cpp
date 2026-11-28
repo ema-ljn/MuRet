@@ -6,6 +6,7 @@
 #include "Ui/OldWindows.h"
 #include "Audio/SoundId.h"
 #include "Sound/SoundRequests.h"
+#include "Weather/LeafWeather.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>

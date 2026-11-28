@@ -121,7 +121,11 @@ protected:
     Client::Kernel::OwnCharacterRecord m_own;
     std::uint8_t m_accesses = 0;
     ActorState m_hero;
-    Client::Kernel::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
+    Client::Kernel::WorldRuntime m_runtime = [] {
+        Client::Kernel::WorldRuntime runtime;
+        runtime.map = 0;
+        return runtime;
+    }();
     Client::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
     // The set tables without any set: 0x40e1b0 walks the equipment and applies nothing.

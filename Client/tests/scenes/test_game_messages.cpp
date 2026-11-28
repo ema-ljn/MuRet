@@ -6,6 +6,7 @@
 #include "Kernel/WorldRuntime.h"
 #include "Chat/ChatLog.h"
 #include "Ui/MessageArea.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

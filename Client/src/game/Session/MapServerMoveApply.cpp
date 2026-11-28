@@ -12,6 +12,8 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/MacroFile.h"
+#include "Chat/ChatRuntime.h"
+#include "Models/Cloth.h"
 
 #include <cstdint>
 #include <optional>

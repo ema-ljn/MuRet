@@ -18,6 +18,7 @@
 #include "Math/Ftol.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Audio/SoundId.h"
+#include "Actors/MovementSpeed.h"
 
 #include <algorithm>
 #include <array>

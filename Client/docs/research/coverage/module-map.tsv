@@ -14,10 +14,12 @@ app/App/Config.h	125	app/App	app/App	high	engine or protocol layer, no game stat
 app/App/ConfigError.h	16	app/App	app/App	high	engine or protocol layer, no game state
 game/Session/ConnectionKeyFiles.cpp	117	game/Session	game/Session	medium	the session with the servers
 game/Session/ConnectionKeyFiles.h	29	game/Session	game/Session	medium	the session with the servers
+game/Session/HeldModules.cpp	250	game/Session	game/Session	high	the modules' states the Kernel holders bind to, defined above every module (ADR 0029, amended Decision 2)
 game/Session/Credentials.cpp	62	game/Session	game/Session	medium	the session with the servers
 game/Session/Credentials.h	49	game/Session	game/Session	medium	the session with the servers
 game/Kernel/FaithfulPacer.cpp	83	game/Kernel	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
 game/Kernel/FaithfulPacer.h	41	game/Kernel	game/Kernel	high	the original loop's rhythm (addr.) and its tick count, which the game's windows read too (AR4.5 Step 0)
+game/Kernel/HeldModules.h	221	game/Kernel	game/Kernel	high	the holders of the modules' states, which Session defines, so Kernel includes no module (ADR 0029, amended Decision 2)
 app/App/FixedStep.cpp	42	app/App	app/App	high	engine or protocol layer, no game state
 app/App/FixedStep.h	26	app/App	app/App	high	engine or protocol layer, no game state
 app/App/FontFiles.cpp	54	app/App	app/App	high	engine or protocol layer, no game state
@@ -33,6 +35,7 @@ game/Scenes/ILoopClient.h	40	game/Scenes	game/Scenes	high	what the app's loop ca
 game/Session/ISessionEventSink.h	54	game/Session	game/Session	medium	the session with the servers
 app/App/LabXorRemapTables.h	46	app/App	app/App	high	composition root: the lab server's values for the XOR and remap layer (AR1.1)
 game/Kernel/LoopTiming.h	43	game/Kernel	game/Kernel	high	the original loop's step and limits (addr.), which the game's steps read too (AR4.5 Step 0)
+game/Kernel/ModelSounds.h	18	game/Kernel	game/Kernel	high	the per-model sound table the runtime holds and Sound fills (addr.)
 app/App/MakeObfuscation.h	12	app/App	app/App	high	composition root: the build's choice of obfuscation layer (AR1.1)
 app/App/MakeObfuscationNone.cpp	14	app/App	app/App	high	composition root: the factory of a build without the XOR and remap layer (AR1.1)
 app/App/MakeObfuscationXorRemap.cpp	15	app/App	app/App	high	composition root: the factory of a build with the XOR and remap layer (AR1.1)
@@ -1004,7 +1007,7 @@ game/Assets/MonsterModelTable.h	116	game/Assets	game/Assets	medium	models and te
 game/Monsters/Drawing/MonsterRibbonTrails.cpp	202	game/Monsters/Drawing	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 game/Monsters/Drawing/MonsterRibbonTrails.h	24	game/Monsters/Drawing	game/Monsters/Drawing	high	weapon ribbon trails of monsters (AR0.1 review)
 game/Sound/MonsterSounds.cpp	137	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
-game/Sound/MonsterSounds.h	46	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
+game/Sound/MonsterSounds.h	42	game/Sound	game/Sound	medium	the per-model sound table and the sound request (2026-11-21 review)
 game/Monsters/MonsterStepCases.cpp	217	game/Monsters	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
 game/Monsters/MonsterStepCases.h	65	game/Monsters	game/Monsters	medium	per-type cases of the non-player step ((addr.)/(addr.)); include graph pulls to Hud (2 vs 1 own)
 game/Monsters/MonsterViewport.cpp	521	game/Monsters	game/Monsters	medium	monster/NPC creation, kinds table, viewport 0x13/0x1F, attack step, sounds; include graph pulls to Actors (5 vs 1 own)
@@ -1225,18 +1228,18 @@ game/Session/WorldEntry.cpp	385	game/Session	game/Session	medium	top-level packe
 game/Session/WorldEntry.h	193	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
 game/Scenes/WorldLoadingScene.cpp	130	game/Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
 game/Scenes/WorldLoadingScene.h	50	game/Scenes	game/Scenes	high	scene 3, the world loading scene script (AR0.1 review)
-game/Kernel/WorldMap.h	33	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
+game/Kernel/WorldMap.h	31	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to Hero (7 vs 1 own)
 game/Assets/WorldModels.cpp	484	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldModels.h	115	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/WorldObjects/WorldObjectsDrawing.cpp	769	game/WorldObjects	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
 game/WorldObjects/WorldObjectsDrawing.h	145	game/WorldObjects	game/WorldObjects	high	map objects step/draw ((addr.)/(addr.)), per-map object services, fauna (birds/fish/leaves)
-game/Kernel/WorldRuntime.h	558	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
+game/Kernel/WorldRuntime.h	446	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to SocialChat (20 vs 3
 game/Assets/WorldSpecialModels.cpp	134	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Assets/WorldSpecialModels.h	31	game/Assets	game/Assets	high	models and textures, out of Kernel (2026-11-21 review)
 game/Kernel/HelperTable.cpp	17	game/Kernel	game/Kernel	high	the helpers' table the world holds, shared by the actors and the pets (AR4.1)
 game/Kernel/HelperTable.h	66	game/Kernel	game/Kernel	high	the helpers' table the world holds, shared by the actors and the pets (AR4.1)
-game/Kernel/WorldState.cpp	292	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
-game/Kernel/WorldState.h	168	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.cpp	232	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
+game/Kernel/WorldState.h	192	game/Kernel	game/Kernel	medium	durable globals, map load, world entry F3 03, map transitions, terrain state; include graph pulls to CastleSiege (20 vs 
 game/Hud/WorldTexts.cpp	92	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Hud/WorldTexts.h	60	game/Hud	game/Hud	medium	game UI step/frame order, HUD (addr.), character/inventory windows, panels, misc windows; include graph pulls to Monste
 game/Session/WorldTransitionSupport.cpp	244	game/Session	game/Session	medium	top-level packet/transition application that reaches every feature: durable globals, map load, world entry F3 03, map tr
@@ -1260,6 +1263,7 @@ game/Chat/ChatInput.cpp	356	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSender
 game/Chat/ChatInput.h	271	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLog.cpp	468	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLog.h	204	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
+game/Chat/ChatRuntime.h	43	game/Chat	game/Chat	high	the chat's state the runtime holds: the log, the input, the bubbles and the whisper senders
 game/Chat/ChatLogDraw.cpp	479	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLogDraw.h	69	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)
 game/Chat/ChatLogWindow.cpp	402	game/Chat	game/Chat	medium	rule ^(Chat|WhisperSenders|MacroFile|Emotes)

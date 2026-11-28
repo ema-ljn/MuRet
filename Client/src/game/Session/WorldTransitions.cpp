@@ -27,6 +27,8 @@
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainDefines.h"
 #include "Sound/SoundIds.h"
+#include "Movement/GameMovementState.h"
+#include "Ui/GameUiState.h"
 
 #include <chrono>
 #include <cstddef>

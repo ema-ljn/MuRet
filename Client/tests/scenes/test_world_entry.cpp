@@ -64,6 +64,7 @@
 #include "support/SceneDataFiles.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
+#include "Chat/ChatRuntime.h"
 
 #include <glm/ext/vector_float3.hpp>
 

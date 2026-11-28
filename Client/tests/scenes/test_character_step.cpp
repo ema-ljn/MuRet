@@ -47,6 +47,9 @@
 #include "support/Bytes.h"
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Guild/GuildState.h"
+#include "Player/ItemSetState.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

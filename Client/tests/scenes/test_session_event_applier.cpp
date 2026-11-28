@@ -45,6 +45,12 @@
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Events/EventGlobals.h"
+#include "Guild/GuildState.h"
+#include "Ui/GameUiState.h"
+#include "Ui/OldWindows.h"
+#include "Ui/PanelRegistry.h"
 
 #include <gtest/gtest.h>
 

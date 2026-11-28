@@ -48,6 +48,8 @@
 #include "Terrain/TerrainLighting.h"
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Events/EventGlobals.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>

@@ -38,6 +38,7 @@
 #include "Ui/PanelRegistry.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
 
 #include <algorithm>
 #include <array>

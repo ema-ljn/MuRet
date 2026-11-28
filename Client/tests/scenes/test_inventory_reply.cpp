@@ -53,6 +53,7 @@
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 #include "support/ViewportPackets.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

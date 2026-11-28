@@ -7,6 +7,7 @@
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
+#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <bit>

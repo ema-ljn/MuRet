@@ -17,6 +17,7 @@
 #include "Ui/OldWindowDrawParts.h"
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
+#include "Npc/NpcWindowState.h"
 
 #include <array>
 #include <bit>

@@ -36,6 +36,9 @@
 #include "support/ItemFiles.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <gtest/gtest.h>
 

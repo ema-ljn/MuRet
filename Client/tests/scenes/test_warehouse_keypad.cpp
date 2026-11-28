@@ -29,6 +29,7 @@
 #include "support/RecordingTextDrawer.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "Chat/ChatRuntime.h"
 
 #include <gtest/gtest.h>
 

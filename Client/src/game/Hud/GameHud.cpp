@@ -76,6 +76,10 @@
 #include "Ui/Widget.h"
 #include "Kernel/ItemState.h"
 #include "Audio/SoundId.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Movement/GameMovementState.h"
 
 #include <algorithm>
 #include <array>

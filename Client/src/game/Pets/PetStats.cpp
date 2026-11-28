@@ -20,6 +20,7 @@
 #include "Kernel/WorldState.h"
 #include "Ui/PanelRegistry.h"
 #include "Kernel/ItemState.h"
+#include "Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
 

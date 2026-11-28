@@ -29,6 +29,8 @@
 #include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 #include "support/TextureFiles.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Effects/ModelEffects.h"
 
 #include <gtest/gtest.h>
 

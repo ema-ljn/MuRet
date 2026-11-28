@@ -26,6 +26,7 @@
 #include "Terrain/TerrainHeight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <algorithm>
 #include <bit>

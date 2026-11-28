@@ -36,6 +36,7 @@
 #include "Pathfinding/TerrainWalls.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainDefines.h"
+#include "CastleSiege/CastleSiegeState.h"
 
 #include <bit>
 #include <cmath>

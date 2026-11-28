@@ -32,6 +32,9 @@
 #include "Npc/NpcWindowState.h"
 #include "Ui/PanelRegistry.h"
 #include "Audio/SoundId.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
+#include "Actors/PlayerActionSpeeds.h"
 #include <glm/ext/vector_float2.hpp>
 #include <algorithm>
 #include <array>

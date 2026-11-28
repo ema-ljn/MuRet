@@ -18,6 +18,9 @@
 #include "Ui/GameText.h"
 #include "Ui/HudPrimitives.h"
 #include "CastleSiege/SiegeBattleUiState.h"
+#include "CastleSiege/CastleSiegeState.h"
+#include "Movement/GameMovementState.h"
+#include "Ui/PanelRegistry.h"
 
 #include <bit>
 #include <cstddef>

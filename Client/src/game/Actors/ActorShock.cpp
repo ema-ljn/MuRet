@@ -15,6 +15,7 @@
 #include "Kernel/WorldState.h"
 #include "Particles/Particles.h"
 #include "Audio/SoundId.h"
+#include "Models/Cloth.h"
 
 #include <cstddef>
 #include <cstdint>

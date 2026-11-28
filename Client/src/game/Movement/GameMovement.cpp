@@ -47,6 +47,8 @@
 #include "Ui/OldWindows.h"
 #include "Ui/PanelRegistry.h"
 #include "Assets/FaunaModels.h"
+#include "Chat/ChatRuntime.h"
+#include "Ui/GameUiState.h"
 
 #include <glm/ext/vector_float3.hpp>
 

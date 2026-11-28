@@ -27,6 +27,9 @@
 #include "Ui/PanelTimerFrame.h"
 #include "Crt/SprintfFormat.h"
 #include "Ui/Widget.h"
+#include "Chat/ChatRuntime.h"
+#include "Events/EventGlobals.h"
+#include "Ui/GameUiState.h"
 
 #include <algorithm>
 #include <array>

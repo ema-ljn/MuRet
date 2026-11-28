@@ -20,6 +20,7 @@
 
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "Events/EventGlobals.h"
 
 #include <gtest/gtest.h>
 

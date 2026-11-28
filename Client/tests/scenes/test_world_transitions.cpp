@@ -24,7 +24,7 @@
 #include "FrontEnd/LoginModels.h"
 #include "Hud/MapBanner.h"
 #include "Actors/PlayerActionSpeeds.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionInventory.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/SessionEventApplier.h"

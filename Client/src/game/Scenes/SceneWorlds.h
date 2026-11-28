@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Render/Frame/SceneWorld.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <array>
 #include <optional>

@@ -19,7 +19,7 @@
 #include "Hud/MapBanner.h"
 #include "Session/MapLoad.h"
 #include "Player/OwnStatHelpers.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionState.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"

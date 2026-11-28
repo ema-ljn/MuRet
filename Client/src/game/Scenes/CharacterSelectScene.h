@@ -31,7 +31,7 @@
 #include "Scenes/IScene.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Assets/SceneTextures.h"
 #include "FrontEnd/SelectionWorld.h"
 #include "FrontEnd/CharacterBalloons.h"

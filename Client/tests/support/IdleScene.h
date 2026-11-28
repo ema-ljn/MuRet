@@ -4,7 +4,7 @@
 #include "Input/InputState.h"
 #include "Scenes/IScene.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <optional>
 #include <string>

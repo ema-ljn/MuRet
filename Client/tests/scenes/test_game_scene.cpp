@@ -52,7 +52,7 @@
 #include "Session/ModuleStates.h"
 #include "Camera/SceneCameras.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Assets/WorldModels.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

@@ -9,7 +9,7 @@
 #include "Models/Skeleton.h"
 #include "Actors/ActionSend.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Sound/SoundRequests.h"
 #include "support/PlayerActors.h"

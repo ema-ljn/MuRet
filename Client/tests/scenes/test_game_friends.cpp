@@ -11,7 +11,7 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Chat/ChatReceive.h"
 #include "Hud/GameUi.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatLog.h"

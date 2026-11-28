@@ -22,7 +22,7 @@
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionState.h"
 #include "Actors/ActorsState.h"
 #include "Actors/ViewportPacketRing.h"

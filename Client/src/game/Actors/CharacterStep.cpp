@@ -33,7 +33,7 @@
 #include "Assets/FaunaModels.h"
 #include "Scenes/GameDrawTail.h"
 #include "Actors/Drawing/GameRibbonCreation.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"

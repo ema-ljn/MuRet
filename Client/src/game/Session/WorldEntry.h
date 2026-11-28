@@ -5,7 +5,7 @@
 #include "Tables/ItemTable.h"
 #include "Tables/SkillTable.h"
 #include "Protocol/Outgoing.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/ModuleStates.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"

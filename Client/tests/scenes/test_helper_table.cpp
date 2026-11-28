@@ -28,7 +28,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Pets/PetHelperSteps.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Effects/ModelEffects.h"

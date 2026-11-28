@@ -26,7 +26,7 @@
 #include "Tables/GameData.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneWorlds.h"
 #include "Assets/TextureSets.h"
 #include "Kernel/WorldState.h"

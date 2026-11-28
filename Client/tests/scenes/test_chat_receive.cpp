@@ -13,7 +13,7 @@
 #include "Chat/ChatBubbles.h"
 #include "Guild/GuildState.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "FrontEnd/SelectionInventory.h"

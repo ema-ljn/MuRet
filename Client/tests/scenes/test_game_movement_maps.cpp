@@ -23,7 +23,7 @@
 #include "Session/MapLoad.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/PlayerActionSpeeds.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Particles/Particles.h"

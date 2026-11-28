@@ -15,7 +15,7 @@
 #include "Guild/GuildWindow.h"
 #include "Chat/GameMessages.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Chat/ChatInput.h"

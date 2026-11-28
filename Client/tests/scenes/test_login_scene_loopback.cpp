@@ -17,7 +17,7 @@
 #include "Tables/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Assets/TextureSets.h"
 #include "support/AppPrinters.h"

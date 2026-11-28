@@ -1,7 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Session/MapLoad.h"
 #include "Assets/ModelTextureTable.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Assets/TerrainTiles.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldMap.h"

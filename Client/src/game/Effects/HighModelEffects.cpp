@@ -29,7 +29,7 @@
 #include "Effects/RingEffects.h"
 #include "Effects/SkillBurstEffects.h"
 #include "Effects/SkullEffects.h"
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Effects/WaveEffects.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"

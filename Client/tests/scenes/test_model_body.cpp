@@ -16,7 +16,7 @@
 #include "Session/CharacterStepHooks.h"
 #include "Assets/FaunaModels.h"
 #include "Effects/ActorEffectHooks.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Terrain/GroundMarks.h"

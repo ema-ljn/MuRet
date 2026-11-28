@@ -1483,3 +1483,8 @@ c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/Scenes/CharacterEffectSteps.
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/Scenes/CharacterEffectSteps.cpp	Client/src/game/Effects/CharacterEffectSteps.cpp
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/Scenes/CastleWeaponBodies.h	Client/src/game/Effects/CastleWeaponBodies.h
 c964abe2f644f8b3150cb533a69dc6511cab8e80	Client/src/Scenes/CastleWeaponBodies.cpp	Client/src/game/Effects/CastleWeaponBodies.cpp
+	Client/src/game/Combat/AttackStep.cpp	Client/src/game/Skills/AttackStep.cpp
+	Client/src/game/Combat/AttackStep.h	Client/src/game/Skills/AttackStep.h
+	Client/src/game/Scenes/SceneId.h	Client/src/game/Kernel/SceneId.h
+	Client/src/game/Skills/SkillHits.cpp	Client/src/game/Actors/SkillHits.cpp
+	Client/src/game/Skills/SkillHits.h	Client/src/game/Actors/SkillHits.h

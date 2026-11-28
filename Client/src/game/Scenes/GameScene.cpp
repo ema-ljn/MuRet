@@ -76,7 +76,7 @@
 #include "Assets/TextureSets.h"
 #include "Scenes/SceneContext.h"
 #include "Skills/SkillDelays.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Hud/Slides.h"
 #include "Camera/TerrainPolygonFrame.h"
 #include "Assets/TerrainTiles.h"

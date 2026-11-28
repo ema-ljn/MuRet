@@ -2,7 +2,7 @@
 #include "Tables/GameData.h"
 #include "Assets/GameModels.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/MapLoad.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/WorldRuntime.h"

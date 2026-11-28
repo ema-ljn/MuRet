@@ -1,4 +1,4 @@
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Terrain/WorldTerrain.h"
 

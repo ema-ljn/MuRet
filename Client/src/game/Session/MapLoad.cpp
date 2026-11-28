@@ -20,7 +20,7 @@
 #include "Pets/HelperTable.h"
 #include "WorldObjects/MapModelEffectServices.h"
 #include "PersonalShop/PersonalShopTitles.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/GameContext.h"

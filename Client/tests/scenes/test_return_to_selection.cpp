@@ -26,7 +26,7 @@
 #include "Npc/NpcWindowState.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Quests/QuestState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "FrontEnd/SelectionState.h"
 #include "Social/SocialState.h"
 #include "Session/WorldEntry.h"

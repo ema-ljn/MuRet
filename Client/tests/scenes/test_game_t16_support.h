@@ -8,7 +8,7 @@
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/IScene.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"

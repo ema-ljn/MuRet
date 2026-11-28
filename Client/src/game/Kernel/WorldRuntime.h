@@ -26,7 +26,7 @@
 #include "Monsters/NpcNames.h"
 #include "Npc/NpcWindowState.h"
 #include "Quests/QuestState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Social/SocialState.h"
 #include "Tooltips/TooltipLines.h"
 #include "Hud/WorldTexts.h"

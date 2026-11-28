@@ -1,4 +1,4 @@
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"

@@ -12,7 +12,7 @@
 #include "FrontEnd/CharacterSlots.h"
 #include "Guild/GuildReceive.h"
 #include "Session/MapLoad.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneWorlds.h"
 #include "FrontEnd/SelectionActor.h"
 #include "Kernel/WorldState.h"

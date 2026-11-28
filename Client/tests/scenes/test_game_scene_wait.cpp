@@ -21,7 +21,7 @@
 #include "Scenes/IScene.h"
 #include "Camera/SceneCameras.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "FrontEnd/SelectionState.h"
 #include "Scenes/WorldLoadingScene.h"

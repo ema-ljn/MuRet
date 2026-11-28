@@ -21,7 +21,7 @@
 #include "Kernel/ActorState.h"
 #include "Movement/GameMovement.h"
 #include "Movement/GameMovementState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Ui/MessageArea.h"

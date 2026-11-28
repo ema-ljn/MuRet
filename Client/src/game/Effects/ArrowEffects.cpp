@@ -19,7 +19,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Joints/JointFamilies.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

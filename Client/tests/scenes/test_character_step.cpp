@@ -31,7 +31,7 @@
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Camera/SceneCameras.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Social/SocialState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

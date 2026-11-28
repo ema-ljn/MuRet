@@ -15,7 +15,7 @@
 #include "Scenes/LoginScene.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Assets/TextureSets.h"
 #include "support/FakeClock.h"

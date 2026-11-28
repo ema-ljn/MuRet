@@ -13,7 +13,7 @@
 #include "Actors/ActorActions.h"
 #include "Combat/ActorCombat.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

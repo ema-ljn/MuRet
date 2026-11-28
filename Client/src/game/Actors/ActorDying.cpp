@@ -7,7 +7,7 @@
 #include "Math/OriginalRotation.h"
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/GameContext.h"
 #include "Kernel/WorldState.h"
 #include "Particles/KalimaParticleKernels.h"

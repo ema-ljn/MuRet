@@ -20,7 +20,7 @@
 #include "Monsters/NpcNames.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/Screenshots.h"
 #include "Scenes/WinMainLoop.h"

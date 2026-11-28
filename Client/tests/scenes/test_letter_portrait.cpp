@@ -35,7 +35,7 @@
 #include "Hud/GameHud.h"
 #include "Messenger/GameLetters.h"
 #include "Hud/GameUi.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Pets/HelperTable.h"
 #include "FrontEnd/LoginModels.h"
 #include "Kernel/OwnCharacterRecord.h"

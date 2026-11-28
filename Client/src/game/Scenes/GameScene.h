@@ -28,7 +28,7 @@
 #include "Effects/ModelEffects.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Assets/SceneTextures.h"
 #include "Assets/TerrainTiles.h"
 #include "Assets/WorldModels.h"

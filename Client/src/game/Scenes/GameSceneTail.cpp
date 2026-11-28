@@ -23,7 +23,7 @@
 #include "Scenes/GameTailPasses.h"
 #include "Pets/HelperTable.h"
 #include "Render/Frame/SceneCanvas.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Session/ModuleStates.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"

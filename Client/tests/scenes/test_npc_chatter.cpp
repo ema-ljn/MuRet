@@ -10,7 +10,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Chat/ChatBubbles.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 

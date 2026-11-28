@@ -12,7 +12,7 @@
 #include "Protocol/Pets/PetOrders.h"
 #include "Combat/ActorCombat.h"
 #include "Skills/AttackSkillCases.h"
-#include "Combat/AttackStep.h"
+#include "Skills/AttackStep.h"
 #include "Events/Crywolf/CrywolfContract.h"
 #include "Pets/DarkSpirit.h"
 #include "Joints/FaunaJointCreation.h"

@@ -24,7 +24,7 @@
 #include "Session/ReturnToSelection.h"
 #include "Render/Frame/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneTransitions.h"
 #include "FrontEnd/SelectionState.h"
 #include "Session/WorldEntry.h"

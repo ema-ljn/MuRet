@@ -12,7 +12,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/OwnCharacterRecord.h"
-#include "Skills/SkillHits.h"
+#include "Actors/SkillHits.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"

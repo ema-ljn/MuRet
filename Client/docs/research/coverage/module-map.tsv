@@ -570,8 +570,8 @@ game/Skills/AttackSkillCases.cpp	1658	game/Skills	game/Skills	medium	skills, a m
 game/Skills/AttackSkillCases.h	47	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 game/Skills/AttackSkillReads.cpp	34	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 game/Skills/AttackSkillReads.h	27	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
-game/Combat/AttackStep.cpp	416	game/Combat	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
-game/Combat/AttackStep.h	29	game/Combat	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
+game/Skills/AttackStep.cpp	416	game/Skills	game/Skills	high	the body step's skill: the attack frames, the skill cases and the strike, out of Combat (AR4.2)
+game/Skills/AttackStep.h	29	game/Skills	game/Skills	high	the body step's skill: the attack frames, the skill cases and the strike, out of Combat (AR4.2)
 game/Joints/AuraJoints.cpp	369	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 game/Joints/BeamJoints.cpp	477	game/Joints	game/Joints	high	joints (ribbons and beams), a module of their own below Effects (2026-11-21 review)
 game/Combat/BlastEffectCalls.cpp	120	game/Combat	game/Combat	high	character attack step (addr.)/(addr.), hits, combat/skill replies, damage numbers
@@ -1088,7 +1088,7 @@ game/Camera/SceneCameras.cpp	57	game/Camera	game/Camera	medium	the camera (2026-
 game/Camera/SceneCameras.h	40	game/Camera	game/Camera	medium	the camera (2026-11-21 review)
 engine/Render/Frame/SceneCanvas.h	40	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
 game/Scenes/SceneContext.h	87	game/Scenes	game/Scenes	high	what the scenes share: data folder, texture store, log, clock (AR0.1 review)
-game/Scenes/SceneId.h	39	game/Scenes	game/Scenes	medium	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4); include graph pulls to FrontEndScenes (11 vs 5 own)
+game/Kernel/SceneId.h	39	game/Kernel	game/Kernel	high	the five scenes' numbers, which the session, the characters and the windows read, out of Scenes (AR4.2)
 game/Scenes/SceneManager.cpp	304	game/Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 game/Scenes/SceneManager.h	149	game/Scenes	game/Scenes	high	scene machine: IScene/SceneManager/transitions/loop timing (CL5.4)
 engine/Render/Frame/SceneText.cpp	64	engine/Render/Frame	engine/Render/Frame	high	the scene to GL frame contract, below the scenes (AR1.1)
@@ -1138,8 +1138,8 @@ game/Effects/SkillBurstEffects.cpp	231	game/Effects	game/Effects	high	model effe
 game/Effects/SkillBurstEffects.h	69	game/Effects	game/Effects	high	model effects; uses Joints and Particles (2026-11-21 review)
 game/Skills/SkillDelays.cpp	168	game/Skills	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
 game/Skills/SkillDelays.h	46	game/Skills	game/Skills	high	skills, a module of their own like Spells/ in TrinityCore (2026-11-21 review)
-game/Skills/SkillHits.cpp	131	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
-game/Skills/SkillHits.h	50	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
+game/Actors/SkillHits.cpp	131	game/Actors	game/Actors	high	the characters around a point that a skill hits and their C1 10, which effects, joints and blasts send (AR4.2)
+game/Actors/SkillHits.h	50	game/Actors	game/Actors	high	the characters around a point that a skill hits and their C1 10, which effects, joints and blasts send (AR4.2)
 game/Skills/SkillReplies.cpp	1040	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 game/Skills/SkillReplies.h	77	game/Skills	game/Skills	medium	skills, a module of their own; review in AR4.2 (2026-11-21 review)
 game/Tooltips/SkillTooltip.cpp	643	game/Tooltips	game/Tooltips	high	item, skill and pet tooltips, above Items, Skills and Pets (2026-11-21 review)

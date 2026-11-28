@@ -3,7 +3,7 @@
 #include "Math/OriginalRotation.h"
 #include "Actors/ActorDying.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Particles/Particles.h"
 #include "Audio/SoundId.h"
 

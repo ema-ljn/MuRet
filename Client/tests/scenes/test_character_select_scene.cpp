@@ -40,7 +40,7 @@
 #include "Tables/GameData.h"
 #include "Camera/SceneCameras.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Pets/PetHelperSteps.h"
 #include "FrontEnd/SelectionState.h"
 #include "Kernel/OwnInventory.h"

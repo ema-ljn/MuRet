@@ -1,4 +1,4 @@
-#include "Combat/AttackStep.h"
+#include "Skills/AttackStep.h"
 #include "CastleSiege/CastleSiegeAttack.h"
 #include "CastleSiege/SiegeVertexEffects.h"
 

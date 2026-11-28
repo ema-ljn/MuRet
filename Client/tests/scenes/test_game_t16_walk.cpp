@@ -13,7 +13,7 @@
 #include "Render/ModelFog.h"
 #include "Render/Pass3D.h"
 #include "Kernel/ActorState.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Kernel/WorldMap.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainHeight.h"

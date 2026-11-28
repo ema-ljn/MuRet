@@ -3,7 +3,7 @@
 // ve. Por eso cada include de este header se queda.
 // IWYU pragma: always_keep
 
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 
 #include <ostream>
 

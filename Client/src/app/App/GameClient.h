@@ -27,7 +27,7 @@
 #include "Chat/GameMessages.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneContext.h"
-#include "Scenes/SceneId.h"
+#include "Kernel/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/Screenshots.h"
 #include "FrontEnd/SelectionState.h"

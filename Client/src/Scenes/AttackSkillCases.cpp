@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
@@ -84,7 +85,7 @@ void RequestTheSound(const Actors::CharacterStepContext& context, Audio::SoundId
 }
 
 // 0x518cf0 de un tipo alto (Scenes/HighModelEffects) desde un caso: el error lleva la habilidad y el lugar.
-Core::Expected<void, std::string> CreateHighEffect(const World::ModelEffectArguments& arguments, std::uint8_t skill,
+Core::Expected<void, std::string> CreateHighEffect(const Kernel::ModelEffectArguments& arguments, std::uint8_t skill,
                                                    std::size_t slot, const Actors::CharacterStepContext& context)
 {
     if (auto made = CreateHighModelEffect(arguments, HighContextOf(context)); !made.HasValue())
@@ -320,17 +321,17 @@ Core::Expected<void, std::string> RaiseTheSpirals(Kernel::ActorState& actor,
         point.z = F32(D(point.z) + 80.0); // 0x6b9ffc
     else if (actor.animation.action == LowAction)
         point.z = F32(D(point.z) + 40.0); // 0x6b8bf4
-    const World::ModelEffectArguments arguments{.type = SpiralEffect,
-                                                .position = point,
-                                                .angles = actor.angles,
-                                                .light = actor.light,
-                                                .subtype = 0,
-                                                .owner = &actor,
-                                                .key = 0xffff,
-                                                .byte89 = 0,
-                                                .byte88 = 0,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = SpiralEffect,
+                                                 .position = point,
+                                                 .angles = actor.angles,
+                                                 .light = actor.light,
+                                                 .subtype = 0,
+                                                 .owner = &actor,
+                                                 .key = 0xffff,
+                                                 .byte89 = 0,
+                                                 .byte88 = 0,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     if (const auto slot = context.world.Map().effects.Begin(arguments))
     {
         context.world.Map().effects.Effects()[*slot].life = 0;
@@ -456,7 +457,7 @@ void CountHeroVolley(const Kernel::ActorState& actor, const Actors::CharacterSte
 
 // El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
-Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kernel::ModelEffectArguments& arguments,
                                                std::uint8_t skill, std::size_t slot,
                                                const Actors::CharacterStepContext& context)
 {
@@ -563,14 +564,14 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
     point.z = static_cast<float>(
         Terrain::TerrainHeightAt(*terrain.heights, *terrain.attributes, point.x, point.y, context.fixedHeight));
     const std::int32_t index = OwnSkillIndex(context, FlameSkill);
-    const World::ModelEffectArguments arguments{.type = World::FlameJetEffect,
-                                                .position = point,
-                                                .angles = actor.angles,
-                                                .light = actor.light,
-                                                .subtype = 0,
-                                                .owner = &actor,
-                                                .key = static_cast<std::uint16_t>(actor.word8a),
-                                                .byte89 = static_cast<std::uint8_t>(index & 0xff)};
+    const Kernel::ModelEffectArguments arguments{.type = World::FlameJetEffect,
+                                                 .position = point,
+                                                 .angles = actor.angles,
+                                                 .light = actor.light,
+                                                 .subtype = 0,
+                                                 .owner = &actor,
+                                                 .key = static_cast<std::uint16_t>(actor.word8a),
+                                                 .byte89 = static_cast<std::uint8_t>(index & 0xff)};
     static_cast<void>(world.Map().effects.CreateOwnedFlameJet(arguments, runtime.ownRecordDepth,
                                                               world.OwnCharacter().bytef04, context.random));
     if (&actor == &world.Hero())
@@ -588,14 +589,14 @@ Core::Expected<void, std::string> CastTheFlame(Kernel::ActorState& actor, const 
 Core::Expected<void, std::string> CreateOwnedBlast(std::int16_t type, const glm::vec3& point, Kernel::ActorState& actor,
                                                    std::int32_t index, const Actors::CharacterStepContext& context)
 {
-    const World::ModelEffectArguments arguments{.type = type,
-                                                .position = point,
-                                                .angles = actor.angles,
-                                                .light = actor.light,
-                                                .subtype = 0,
-                                                .owner = &actor,
-                                                .key = static_cast<std::uint16_t>(actor.word8a),
-                                                .byte89 = static_cast<std::uint8_t>(index & 0xff)};
+    const Kernel::ModelEffectArguments arguments{.type = type,
+                                                 .position = point,
+                                                 .angles = actor.angles,
+                                                 .light = actor.light,
+                                                 .subtype = 0,
+                                                 .owner = &actor,
+                                                 .key = static_cast<std::uint16_t>(actor.word8a),
+                                                 .byte89 = static_cast<std::uint8_t>(index & 0xff)};
     const auto made = CreateBlastEffect(arguments, &actor, context);
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
@@ -643,13 +644,13 @@ Core::Expected<void, std::string> DropTheIceStorm(const Kernel::ActorState& acto
         glm::vec3 point = cell.Value();
         point.z =
             static_cast<float>(static_cast<double>(context.random.Next() % Rise * round) + static_cast<double>(height));
-        const World::ModelEffectArguments arguments{.type = StormEffect,
-                                                    .position = point,
-                                                    .angles = actor.angles,
-                                                    .light = White,
-                                                    .subtype = 0,
-                                                    .owner = nullptr,
-                                                    .key = static_cast<std::uint16_t>(round + 1)};
+        const Kernel::ModelEffectArguments arguments{.type = StormEffect,
+                                                     .position = point,
+                                                     .angles = actor.angles,
+                                                     .light = White,
+                                                     .subtype = 0,
+                                                     .owner = nullptr,
+                                                     .key = static_cast<std::uint16_t>(round + 1)};
         if (auto made = CreateBlastEffect(arguments, nullptr, context); !made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -956,7 +957,7 @@ Core::Expected<void, std::string> LightTheHellfire(Kernel::ActorState& actor, st
                                                    const Actors::CharacterStepContext& context)
 {
     const std::int32_t index = OwnSkillIndex(context, skill);
-    World::ModelEffectArguments inner =
+    Kernel::ModelEffectArguments inner =
         WizardArguments(World::InnerCircleEffect, actor.position, actor.angles, actor.light, 0, &actor,
                         static_cast<std::uint16_t>(actor.word8a));
     inner.byte89 = static_cast<std::uint8_t>(index & 0xff);
@@ -1016,7 +1017,7 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
     case 0x23:
     case 0x24:
         // 0x4fdef2..0x4fdf26: 0x518cf0(0x61e, o+0x10, o+0x1c, o+0xf4, 3, o, −1, 0, 0, 0, 0), y nada más. Su paso suelta
-        // los joints 619/3 de la CL11 (GameCharacterEffects.h, StepPetSummon). Con la tabla llena, nada.
+        // los joints 619/3 de la CL11 (Scenes/CharacterEffectSteps.h, StepPetSummon). Con la tabla llena, nada.
         static_cast<void>(context.world.Map().effects.CreatePetSummon(actor.position, actor.angles, actor.light, &actor,
                                                                       World::SummonDecalSubtype));
         return {};
@@ -1132,8 +1133,8 @@ Core::Expected<void, std::string> StepTheHeadSkill(Kernel::ActorState& actor, st
         // lugar, 0, 0, 0); después el sonido 0x74.
         constexpr Audio::SoundId TwisterSound{0x74};
         const std::int32_t index = OwnSkillIndex(context, skill);
-        World::ModelEffectArguments storm = WizardArguments(World::StormEffect, actor.position, actor.angles, light, 0,
-                                                            &actor, static_cast<std::uint16_t>(actor.word8a));
+        Kernel::ModelEffectArguments storm = WizardArguments(World::StormEffect, actor.position, actor.angles, light, 0,
+                                                             &actor, static_cast<std::uint16_t>(actor.word8a));
         storm.byte89 = static_cast<std::uint8_t>(index & 0xff);
         if (auto created = CreateWizard(0x500c49, storm, skill, slot, context); !created.HasValue())
             return created;
@@ -1335,7 +1336,7 @@ Core::Expected<void, std::string> StepTheTargetSkill(Kernel::ActorState& actor, 
     }
     case 0x1a:
         // 0x5044b9..0x5044f1: 0x518cf0(0x61e, blanco+0x10, blanco+0x1c, blanco+0xf4, 1, blanco, −1, 0, 0, 0, 0), el
-        // calco que suelta los 619/1 hacia su dueño (GameCharacterEffects.h). Con la tabla llena, nada.
+        // calco que suelta los 619/1 hacia su dueño (Scenes/CharacterEffectSteps.h). Con la tabla llena, nada.
         static_cast<void>(
             context.world.Map().effects.CreatePetSummon(victim.position, victim.angles, victim.light, &victim));
         return {};

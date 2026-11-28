@@ -1,6 +1,7 @@
 #include "World/ModelEffects.h"
 
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
 #include "Models/ObjectState.h"
@@ -292,7 +293,7 @@ TEST(ModelEffectsTest, AnUnimplementedSubtypeLeavesTheFreeSlotUntouched)
     ModelEffect& slot = effects.Effects()[0];
     slot.life = 42;
     slot.disturbanceState = 17;
-    const Client::World::ModelEffectArguments arguments{.type = Client::World::ArrivalEffect, .subtype = 6};
+    const Client::Kernel::ModelEffectArguments arguments{.type = Client::World::ArrivalEffect, .subtype = 6};
     EXPECT_FALSE(effects.Create(arguments));
     EXPECT_FALSE(slot.alive);
     EXPECT_EQ(slot.life, 42);
@@ -307,16 +308,16 @@ TEST(ModelEffectsTest, GenericCreationForwardsTheNativePrefixArguments)
         SCOPED_TRACE(type);
         ModelEffects effects;
         int owner = 0;
-        const Client::World::ModelEffectArguments arguments{.type = type,
-                                                            .position = {100, 200, 300},
-                                                            .angles = {10, 20, 30},
-                                                            .light = {0.2f, 0.3f, 0.4f},
-                                                            .owner = &owner,
-                                                            .key = 0x1234,
-                                                            .byte89 = 23,
-                                                            .byte88 = 2,
-                                                            .byte1bd = 24,
-                                                            .scale = 0.5f};
+        const Client::Kernel::ModelEffectArguments arguments{.type = type,
+                                                             .position = {100, 200, 300},
+                                                             .angles = {10, 20, 30},
+                                                             .light = {0.2f, 0.3f, 0.4f},
+                                                             .owner = &owner,
+                                                             .key = 0x1234,
+                                                             .byte89 = 23,
+                                                             .byte88 = 2,
+                                                             .byte1bd = 24,
+                                                             .scale = 0.5f};
         ASSERT_EQ(effects.Create(arguments), 0u);
         const ModelEffect& effect = effects.Effects()[0];
         EXPECT_TRUE(effect.hasOwner);
@@ -518,14 +519,14 @@ TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
 TEST(ModelEffectsTest, TheOwnedFlameJetKeepsTheOwnCountForItsOwner)
 {
     int owner = 0;
-    Client::World::ModelEffectArguments arguments{.type = Client::World::FlameJetEffect,
-                                                  .position = {1050.0f, 2050.0f, 130.0f},
-                                                  .angles = {0.0f, 0.0f, 90.0f},
-                                                  .light = glm::vec3(0.5f),
-                                                  .subtype = 0,
-                                                  .owner = &owner,
-                                                  .key = 0x0321,
-                                                  .byte89 = 4};
+    Client::Kernel::ModelEffectArguments arguments{.type = Client::World::FlameJetEffect,
+                                                   .position = {1050.0f, 2050.0f, 130.0f},
+                                                   .angles = {0.0f, 0.0f, 90.0f},
+                                                   .light = glm::vec3(0.5f),
+                                                   .subtype = 0,
+                                                   .owner = &owner,
+                                                   .key = 0x0321,
+                                                   .byte89 = 4};
     for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{1}})
     {
         SCOPED_TRACE(static_cast<int>(start));

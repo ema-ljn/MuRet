@@ -19,7 +19,6 @@
 #include "Scenes/ActorCombat.h"
 #include "Actors/ActorDying.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/ChatReceive.h"
 #include "Scenes/EventMapObject.h"
 #include "Scenes/GameDrawTail.h"

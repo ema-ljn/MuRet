@@ -417,7 +417,8 @@ Actors::CharacterStepContext StepContextOf(const WorldEntryResources& resources)
         .dynamicLighting = DynamicLightingOf(resources),
         .faunaModels = FaunaModelsOf(resources),
         .reportedCell = resources.states != nullptr ? &resources.states->actors.reportedCell : nullptr,
-        .hooks = resources.characterStepHooks};
+        .hooks = resources.characterStepHooks,
+        .effectHooks = resources.effectHooks};
 }
 
 // 0x495796: el paso del ayudante con lo del mundo de `resources`.

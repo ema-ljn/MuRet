@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -264,7 +265,7 @@ Core::Expected<void, std::string> BeginTheKundunPiece(World::ModelEffect& effect
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunPiece(World::ModelEffects& effects, const World::ModelEffectArguments& arguments, CrtRandom& random,
+CreateTheKundunPiece(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments, CrtRandom& random,
                      const KundunTerrainHeight& terrainHeight)
 {
     if (arguments.type < FirstKundunPieceEffect || arguments.type > LastKundunPieceEffect)

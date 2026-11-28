@@ -37,7 +37,6 @@ namespace Client::World
 class FrameSprites;
 class Particles;
 struct ModelEffect;
-struct ModelEffectArguments;
 } // namespace Client::World
 
 namespace Client::Actors
@@ -47,6 +46,7 @@ struct CharacterStepContext;
 
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 struct ActorState;
 class WorldState;
 } // namespace Client::Kernel
@@ -62,7 +62,7 @@ namespace Client::Scenes
 // por cada mano; la 0xdb con el subtipo 3 o 4 la crea el asedio (0x42c319 y 0x42c4e0, CL9.5) y la 0xe1/1 la fortaleza
 // y Crywolf (0x42fd32 y 0x43252d); su 610/13 conserva al efecto de dueño. Con el subtipo 2 (la skill 0x34), antes el
 // 0x105 con la flecha de dueño y cuatro intentos de joint 0x610 (0x51a08a). Con la tabla llena, nada y sin rand().
-[[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
+[[nodiscard]] Core::Expected<void, std::string> CreateTheArrowEffect(const Kernel::ModelEffectArguments& arguments,
                                                                      Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                      glm::vec3* callerAngles = nullptr);
 

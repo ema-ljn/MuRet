@@ -35,7 +35,6 @@ struct Skeleton;
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 struct ModelEffectStepServices;
 } // namespace Client::World
 
@@ -46,6 +45,7 @@ struct CharacterStepContext;
 
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 class WorldState;
 struct ActorState;
 } // namespace Client::Kernel
@@ -97,7 +97,7 @@ struct HighEffectContext
 // llena, nada y sin rand(). Corta, con lo de antes y sus rand(), donde el caso pide algo que MuRet no tiene (un joint
 // o una partícula de otro lote de la CL11). Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateHighModelEffect(const World::ModelEffectArguments& arguments, const HighEffectContext& context);
+CreateHighModelEffect(const Kernel::ModelEffectArguments& arguments, const HighEffectContext& context);
 
 // Lo que el paso de estos tipos pide: los servicios del paso común (la altura del terreno, la luz dinámica, el
 // sonido, la acción publicada del modelo) y el mundo y el CRT del juego. `models`, como en HighEffectContext, da el BMD

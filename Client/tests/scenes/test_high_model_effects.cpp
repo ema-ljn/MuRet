@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Protocol/Outgoing.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/LogicalAccess.h"
@@ -51,13 +52,13 @@ namespace
 {
 using Client::Crt::CrtRandom;
 using Client::Kernel::ActorState;
+using Client::Kernel::ModelEffectArguments;
 using Client::Kernel::WorldState;
 using Client::Scenes::CreateHighModelEffect;
 using Client::Scenes::HighEffectContext;
 using Client::Scenes::HighEffectStepContext;
 using Client::Scenes::StepHighModelEffect;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 
 constexpr std::uint32_t Seed = 0x13579bdfu;
 

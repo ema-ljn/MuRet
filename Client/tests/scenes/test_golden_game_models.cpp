@@ -4,6 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/ModelTextureCalls.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/Model.h"
@@ -235,7 +236,7 @@ TEST_F(GoldenGameModels, TheBowArrowDrawsInTheSecondPassOfKalima)
 
     auto world = std::make_unique<Client::Kernel::WorldState>();
     Client::Crt::CrtRandom random(1);
-    const Client::World::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
+    const Client::Kernel::ModelEffectArguments arguments{.type = 0xdb, .position = {100, 100, 100}, .light = {1, 1, 1}};
     const auto created = Client::Scenes::CreateTheArrowEffect(arguments, *world, random);
     ASSERT_TRUE(created.HasValue()) << created.Error();
     const auto& arrow = world->Map().effects.Effects().front();

@@ -64,7 +64,7 @@ game/Fauna	game	9		*layer<9;game/Actors;game/Particles	birds and fish
 game/Weather	game	9		*layer<9;game/Actors;game/Movement;game/Particles	leaves, rain and clouds
 game/Particles	game	9		*layer<9	particles
 game/Joints	game	9		*layer<9;game/Actors;game/Particles;game/WorldObjects	joints
-game/Effects	game	9		*layer<9;game/Particles;game/Player	model effects
+game/Effects	game	9		*layer<9;game/Actors;game/Particles;game/Player	model effects
 game/Hud	game	9		*layer<9;game/Actors;game/FrontEnd;game/Hero;game/Player	the HUD and its dialogs
 game/FrontEnd	game	9		*layer<9;game/Actors;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation
 game/Session	game	10		*layer<10	connection to the servers, keepalive, the opcode table and routing

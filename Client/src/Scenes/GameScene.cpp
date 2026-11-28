@@ -44,6 +44,7 @@
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
+#include "Kernel/ModelEffectArguments.h"
 #include "Session/ModuleStates.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
@@ -579,7 +580,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                    Models::SmallLogicalCloseRandoms, actor.cellYLeft);
                 return static_cast<std::int32_t>(actor.cellY);
             },
-            .emit = [&world, this](const World::ModelEffectArguments& args) -> Core::Expected<void, std::string>
+            .emit = [&world, this](const Kernel::ModelEffectArguments& args) -> Core::Expected<void, std::string>
             {
                 if (World::IsSiegeStoneEffect(args.type))
                 {
@@ -690,7 +691,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
             return World::StepCastleSiegeSeenObject(
                 object, world.Runtime().castleSiege.siegeActive, worldClock,
                 World::CastleGateCollapseServices{
-                    .emit = [&world](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                    .emit = [&world](const Kernel::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
                     {
                         const auto created = World::CreateCastleGateEffect(arguments, world.Map().effects);
                         if (!created.HasValue())
@@ -1276,7 +1277,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(Render::Frame::Sc
             .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake,
             .faunaModels = &LoadedFaunaModels(),
             .drawBuffers = &m_characterBuffers,
-            .hooks = &m_characterDrawHooks});
+            .hooks = &m_characterDrawHooks,
+            .effectHooks = &m_effectHooks});
     if (poseFailure)
         return Core::Unexpected(*poseFailure);
     return drawn;

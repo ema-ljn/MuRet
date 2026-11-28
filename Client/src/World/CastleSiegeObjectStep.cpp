@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "World/CastleSiegeEmission.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjectMapCreation.h"
@@ -168,11 +169,11 @@ Core::Expected<void, std::string> StepCastleSiegeSeenObject(WorldObject& object,
             {
                 if (!services.emit)
                     return Core::Unexpected(std::string("0x42c651: falta el alta de la puerta derrumbada"));
-                const ModelEffectArguments effect{.type = object.type,
-                                                  .position = object.transform.position,
-                                                  .angles = object.transform.angles,
-                                                  .light = object.light,
-                                                  .subtype = 1};
+                const Kernel::ModelEffectArguments effect{.type = object.type,
+                                                          .position = object.transform.position,
+                                                          .angles = object.transform.angles,
+                                                          .light = object.light,
+                                                          .subtype = 1};
                 if (auto emitted = services.emit(effect); !emitted.HasValue())
                     return emitted;
                 if (services.sound)

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Models/ObjectState.h"
 #include "Scenes/HighEffectEmitters.h"
@@ -49,7 +50,7 @@ Core::Expected<void, std::string> ScatterTheFlares(World::ModelEffect& effect, c
 
 // 0x51c1d3..0x51c2ab, la /1.
 Core::Expected<void, std::string> RaiseTheSwirl(World::ModelEffect& effect,
-                                                const World::ModelEffectArguments& arguments,
+                                                const Kernel::ModelEffectArguments& arguments,
                                                 const HighEffectContext& context)
 {
     constexpr std::int32_t SwirlLife = 15;
@@ -87,7 +88,8 @@ Core::Expected<void, std::string> RaiseTheSwirl(World::ModelEffect& effect,
 }
 } // namespace
 
-Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect, const World::ModelEffectArguments& arguments,
+Core::Expected<void, std::string> BeginTheWave(World::ModelEffect& effect,
+                                               const Kernel::ModelEffectArguments& arguments,
                                                const HighEffectContext& context)
 {
     constexpr std::int32_t WaveLife = 20;

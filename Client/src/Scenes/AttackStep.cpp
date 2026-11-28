@@ -4,6 +4,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Maps/MapId.h"
 #include "Models/LogicalAccess.h"
@@ -302,7 +303,7 @@ Core::Expected<void, std::string> StrikeTheTarget(Kernel::ActorState& actor, std
             const auto heroFlags = context.world.Hero().flags78;
             if (auto hit = EmitTheCastleAttackHit(
                     victim, heroFlags, context.random,
-                    [&](const World::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
+                    [&](const Kernel::ModelEffectArguments& arguments) -> Core::Expected<void, std::string>
                     {
                         auto& effects = context.world.Map().effects;
                         if (arguments.type == 0x114)

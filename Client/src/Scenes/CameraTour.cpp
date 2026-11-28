@@ -6,6 +6,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Protocol/Events/Events.h"
@@ -423,13 +424,13 @@ private:
                 if (effect)
                 {
                     auto created = CreateTheArrowEffect(
-                        World::ModelEffectArguments{.type = 0xed,
-                                                    .position = actor.position,
-                                                    .angles = actor.angles,
-                                                    .light = actor.light,
-                                                    .subtype = 1,
-                                                    .owner = &actor,
-                                                    .key = static_cast<std::uint16_t>(actor.word8a)},
+                        Kernel::ModelEffectArguments{.type = 0xed,
+                                                     .position = actor.position,
+                                                     .angles = actor.angles,
+                                                     .light = actor.light,
+                                                     .subtype = 1,
+                                                     .owner = &actor,
+                                                     .key = static_cast<std::uint16_t>(actor.word8a)},
                         m_context.world, m_context.random);
                     if (!created.HasValue())
                         return Core::Unexpected(std::move(created).Error());

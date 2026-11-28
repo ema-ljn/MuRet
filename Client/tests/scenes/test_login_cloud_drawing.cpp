@@ -27,7 +27,6 @@
 #include "Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Models/TextureMetadata.h"
 #include "Models/ModelId.h"
 #include "Data/Textures/Texture.h"

@@ -1,5 +1,6 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -818,13 +819,13 @@ Core::Expected<bool, std::string> VolleyFromTheSky(JointState& joint, const Join
         return Core::Unexpected(std::format("0x539a48: el joint {:#x}/{:#x} de ancho 80 pide la tabla de efectos "
                                             "(0x518cf0) para el 0xd0",
                                             joint.type, joint.subtype));
-    const World::ModelEffectArguments ray{.type = World::LaserEffect,
-                                          .position = joint.position,
-                                          .angles = joint.angles,
-                                          .light = joint.light,
-                                          .subtype = joint.subtype == ShieldSubtype ? FallingRay : 0,
-                                          .owner = nullptr,
-                                          .key = 0xffff};
+    const Kernel::ModelEffectArguments ray{.type = World::LaserEffect,
+                                           .position = joint.position,
+                                           .angles = joint.angles,
+                                           .light = joint.light,
+                                           .subtype = joint.subtype == ShieldSubtype ? FallingRay : 0,
+                                           .owner = nullptr,
+                                           .key = 0xffff};
     const auto created =
         World::CreateWizardModelEffect(*services.effects, ray, *services.random, World::WizardEffectServices{});
     if (!created.HasValue())

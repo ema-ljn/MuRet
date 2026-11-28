@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Kernel/PlayerKey.h"
 #include "Tables/PlayerModels.h"
 #include "Pathfinding/PathFinder.h"
@@ -22,7 +23,6 @@
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "World/ModelEffects.h"
 #include "Assets/FaunaModels.h"
 #include "Terrain/TerrainDefines.h"
 
@@ -197,12 +197,12 @@ Core::Expected<void, std::string> RaiseTheShield(Kernel::ActorState& hero, const
     // 0x4cb361..0x4cb376: fabs and fcomp with test ah,1: C0 also unordered.
     if (std::fabs(heading - static_cast<double>(striker.angles.z)) >= FacingSpan)
         return {};
-    const World::ModelEffectArguments shield{.type = ShieldEffect,
-                                             .position = hero.position,
-                                             .angles = {0.0f, 0.0f, static_cast<float>(heading + Behind)},
-                                             .light = hero.light,
-                                             .subtype = 0,
-                                             .key = 0xffff};
+    const Kernel::ModelEffectArguments shield{.type = ShieldEffect,
+                                              .position = hero.position,
+                                              .angles = {0.0f, 0.0f, static_cast<float>(heading + Behind)},
+                                              .light = hero.light,
+                                              .subtype = 0,
+                                              .key = 0xffff};
     if (auto made = Scenes::CreateBlastEffectOutsideTheStep(shield, &hero, world, resources.cloth.random);
         !made.HasValue())
         return Core::Unexpected(std::format("0x4cb3b0: {}", made.Error()));

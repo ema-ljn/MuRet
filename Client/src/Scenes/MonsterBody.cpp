@@ -234,7 +234,7 @@ LateResult EmitTheDeathMesh(MonsterBodyFrame& frame, bool dies, std::int32_t eff
             std::format("0x4ee770: faltan los efectos con modelo para los vértices del tipo {:#x}", frame.actor.type));
     MonsterBodyModel& model = frame.model;
     return Done(Actors::Drawing::EmitVertexEffects(model.models, model.object, model.meshes, 0, effect, 0,
-                                                   *frame.effects, frame.random),
+                                                   *frame.effects, frame.effectHooks, frame.random),
                 LateNext::Tail);
 }
 

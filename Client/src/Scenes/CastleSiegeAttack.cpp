@@ -1,3 +1,4 @@
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/CastleSiegeAttack.h"
 #include "Crt/CrtRandom.h"
 #include "Core/Expected.h"
@@ -10,7 +11,7 @@ namespace Client::Scenes
 {
 namespace
 {
-Core::Expected<void, std::string> Emit(const CastleAttackEmitter& emit, const World::ModelEffectArguments& arguments)
+Core::Expected<void, std::string> Emit(const CastleAttackEmitter& emit, const Kernel::ModelEffectArguments& arguments)
 {
     if (!emit)
         return Core::Unexpected(std::string("0x42ea90: falta el pool del impacto sobre la construcción del asedio"));

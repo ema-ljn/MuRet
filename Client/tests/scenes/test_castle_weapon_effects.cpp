@@ -15,7 +15,6 @@
 #include "Kernel/ActorState.h"
 #include "Scenes/CastleBattleReceive.h"
 #include "Scenes/CastleSiegeReceive.h"
-#include "Actors/Drawing/CharacterDrawing.h"
 #include "Scenes/SelectionState.h"
 #include "Session/WorldEntry.h"
 #include "Kernel/WorldRuntime.h"

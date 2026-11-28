@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Models/LogicalAccess.h"
 #include "World/ModelEffects.h"
 #include "Audio/SoundId.h"
@@ -21,7 +22,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::World::ModelEffectArguments;
+using Client::Kernel::ModelEffectArguments;
 
 class CastleSiegePreludeTest : public ::testing::Test
 {

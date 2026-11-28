@@ -33,6 +33,7 @@
 
 #include "support/FakeTextureStore.h"
 #include "support/PlayerActors.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -249,12 +250,17 @@ protected:
     }
     [[nodiscard]] Client::Actors::Drawing::GameCharacterPass Pass()
     {
-        return {.dynamicLighting = m_light.get(), .clothWorld = &m_cloth, .terrain = &m_terrain, .hooks = &m_drawHooks};
+        return {.dynamicLighting = m_light.get(),
+                .clothWorld = &m_cloth,
+                .terrain = &m_terrain,
+                .hooks = &m_drawHooks,
+                .effectHooks = &m_effectHooks};
     }
 
     std::unique_ptr<Client::Kernel::WorldState> m_world;
     Client::Terrain::WorldTerrain m_terrain;
     Client::Session::CharacterDrawHooks m_drawHooks;
+    Client::Scenes::ActorEffectHooks m_effectHooks;
     std::unique_ptr<Client::Terrain::TerrainLighting> m_light;
     UnarmedModels m_models;
     Client::Models::ClothWorld m_cloth;

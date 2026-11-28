@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Protocol/Outgoing.h"
 #include "World/ModelEffects.h"
 #include "World/WizardModelEffects.h"
@@ -90,15 +91,15 @@ struct WizardSceneParts
 [[nodiscard]] World::WizardEffectServices WizardEffectServicesOf(const Actors::CharacterStepContext& context);
 
 // 0x518cf0(tipo, posición, ángulos, luz, subtipo, dueño, clave, 0, 0, 0, 0): los argumentos de un efecto de los magos.
-[[nodiscard]] World::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position,
-                                                          const glm::vec3& angles, const glm::vec3& light,
-                                                          std::int32_t subtype, void* owner = nullptr,
-                                                          std::uint16_t key = 0xffff);
+[[nodiscard]] Kernel::ModelEffectArguments WizardArguments(std::int16_t type, const glm::vec3& position,
+                                                           const glm::vec3& angles, const glm::vec3& light,
+                                                           std::int32_t subtype, void* owner = nullptr,
+                                                           std::uint16_t key = 0xffff);
 
 // El alta de un efecto de los magos (World::CreateWizardModelEffect) desde un llamador del paso de los personajes, con
 // sus servicios (WizardEffectServicesOf). Con la tabla llena, nada y sin rand(). `callerLight` es la luz del llamador
 // que escriben el 0xc1/1 y el /2.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateWizardEffect(const Actors::CharacterStepContext& context, const World::ModelEffectArguments& arguments,
+CreateWizardEffect(const Actors::CharacterStepContext& context, const Kernel::ModelEffectArguments& arguments,
                    glm::vec3* callerLight = nullptr);
 } // namespace Client::Scenes

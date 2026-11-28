@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/CastleSiegeAttack.h"
 #include "Core/Expected.h"
 #include "Kernel/ActorState.h"
@@ -19,7 +20,7 @@ TEST(CastleSiegeAttackTest, TheClosedGateEmitsItsWaveBeforeFiveRandomizedFragmen
     target.type = 0x19b;
     target.position = {100, 200, 300};
     Client::Crt::CrtRandom random(1);
-    std::vector<Client::World::ModelEffectArguments> emissions;
+    std::vector<Client::Kernel::ModelEffectArguments> emissions;
     ASSERT_TRUE(
         Client::Scenes::EmitTheCastleAttackHit(target, 0, random,
                                                [&](const auto& args) -> Client::Core::Expected<void, std::string>

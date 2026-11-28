@@ -71,6 +71,7 @@ class WorldState;
 namespace Client::Actors
 {
 class ICharacterStepHooks;
+class IEffectHooks;
 class PlayerActionSpeeds;
 struct ReportedCell;
 
@@ -159,6 +160,9 @@ struct CharacterStepContext
     ReportedCell* reportedCell = nullptr;
     // What the step asks of other modules (Session::CharacterStepHooks). nullptr: the step does not start.
     const ICharacterStepHooks* hooks = nullptr;
+    // Who creates the model effects of the remains (0x518cf0, Scenes::ActorEffectHooks). nullptr: the ice monster's
+    // shards stop.
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // 0x508f00. It stops with an error, in the original's order, without the map loaded

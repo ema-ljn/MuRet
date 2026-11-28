@@ -6,7 +6,6 @@
 #include "Actors/FullSetScan.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SocialState.h"
-#include "World/ParticleOwner.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -61,6 +60,7 @@ class WorldState;
 // juego, "Los efectos del jugador".
 namespace Client::Actors
 {
+class IEffectHooks;
 class IJointHooks;
 } // namespace Client::Actors
 
@@ -82,8 +82,10 @@ struct GameCharacterEffectsPass
     std::span<Scenes::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
     World::ModelEffects* effects = nullptr;
+    // Who creates those model effects (0x518cf0). Without it, they stop there.
+    const IEffectHooks* effectHooks = nullptr;
     // The world, for the 0x518cf0 additions of the Dark Lord's actions 0x51 and 0x5b (the 0x621/2 of 0x50f9b3 and the
-    // 0x117/2 of 0x50fb64, through CreateHighModelEffect) and their sound 0x1cc. Without it, those windows stop.
+    // 0x117/2 of 0x50fb64) and their sound 0x1cc. Without it, those windows stop.
     Kernel::WorldState* world = nullptr;
     // The character's place in the pool: the owner's identity (+0x40) of the 0x60f/0 orbit.
     std::size_t slot = 0;
@@ -124,40 +126,6 @@ struct GameCharacterEffectsPass
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacterEffects(Kernel::ActorState& actor,
                                                                          const GameCharacterEffectsPass& pass);
 
-// 0x5208a0 on the full set's 0x5ac/3 (0x52a9ad): the light's rand() for every live effect (0x5208c5), +0xd8 one step
-// more and, with the life a multiple of 15 and an owner, the z turn 180 more; the position at 50 from the owner
-// character (+0x108, read live) with the unrounded sine of the turn and the cosine of the stored turn (Q-C380), 20
-// higher, and the 0x619/9 joint there. Then the common tail (0x52cb98): no animation or speed, one life less.
-[[nodiscard]] Core::Expected<void, std::string> StepFullSetFlare(World::ModelEffect& effect,
-                                                                 std::span<Scenes::JointState> joints,
-                                                                 const IJointHooks* jointHooks, Crt::CrtRandom& random);
-
-// 0x5208a0 on the 0x61e/0 decal of the level-up, /1 of the pet and /3 of summoning. /0 only consumes the common rand()
-// and takes off a life (0x52b984 → 0x52bb29). /1 (0x52b9a6 → 0x518900): the light's rand() for every live effect
-// (0x5208c5) and three 0x619/1 joints of width 5, each with its turn (rand() % 90, 0, rand() % 360), born where that
-// turn takes (0, −200, 0) subtracted from the effect's position, with 120 more z; the effect's position as the second
-// point, the effect's owner (the hero), key −1 and no skill or target. /3 of the 0x1c and of the summons does the same
-// with 0x619/3 joints (0x5189cc), with the decal's character as owner. /2, /5 and those from 0xb on also go to
-// 0x518900, with 0x619 joints of the same subtype except /5, which asks for 0x619/0xb (0x51898b). Negative ones, like
-// /0. Then the common tail (0x52cb98): no animation or speed, one life less. /4 and /6 to /0xa belong to
-// Scenes/HighModelEffects (StepsAsPetSummon leaves them out).
-[[nodiscard]] bool StepsAsPetSummon(const World::ModelEffect& effect);
-[[nodiscard]] Core::Expected<void, std::string> StepPetSummon(World::ModelEffect& effect,
-                                                              std::span<Scenes::JointState> joints,
-                                                              const IJointHooks* jointHooks, Crt::CrtRandom& random);
-
-// 0x5208a0 on the 0x5ac/1 and /2 of the skills that arrive (0x52a7b7 and 0x52a8a7, Scenes/SkillReplies): the light's
-// rand() for every live effect (0x5208c5) and the life at 10 with the owner (+0x108) alive (+0x0 at 1) and its flag of
-// +0x78 (0x10 for /1, 0x400 for /2), otherwise at 0. With 0x4000 in the owner's +0x78, nothing more. Otherwise /1 draws
-// rand() % 7 and creates its two 0x5ac/4 particles (0x52a866/0x52a89a) with `particleOwner`, the owner's identity in
-// the pool; /2 raises +0xd8 by 1 and, with its ftol a multiple of 50, turns 50 more in z, places itself at 80 from the
-// owner with the unrounded sine of the turn and the cosine of the stored turn (Q-C380), 50 higher, and releases the
-// 0x619/9 joint of width 15 there (with the joint table full, none). Then the common tail (0x52cb98): no animation or
-// speed, one life less. Without an owner, the original reads +0x78 of 0: MuRet stops.
-[[nodiscard]] Core::Expected<void, std::string>
-StepSkillFlare(World::ModelEffect& effect, std::span<Scenes::JointState> joints, const IJointHooks* jointHooks,
-               Crt::CrtRandom& random, World::Particles* particles = nullptr, World::ParticleOwner particleOwner = {});
-
 // What the game's raven reads (0x420df0 → 0x4182f0) outside its owner.
 struct GameRavenPass
 {
@@ -186,8 +154,9 @@ struct GameRavenPass
     // effects of 0x518cf0) and for the end of the shout (0x418a8c: the 0x613/0xd joints toward the character of +0x3b0,
     // one of its 400). Without them, they stop at the first addition.
     Kernel::WorldState* world = nullptr;
-    // Who creates those joints (0x530860). Without it, they stop there too.
+    // Who creates those joints (0x530860) and effects (0x518cf0). Without them, they stop there too.
     const IJointHooks* jointHooks = nullptr;
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // 0x4182f0: whether the raven passes the trapezoid of 0x5fba90 at its (x, y) times 0.01f, with −20. If not, the draw

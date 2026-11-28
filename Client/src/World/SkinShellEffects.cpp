@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
@@ -32,7 +33,7 @@ float RandomAngle(Crt::CrtRandom& random)
 }
 } // namespace
 
-std::optional<std::size_t> CreateSkinShell(const ModelEffectArguments& arguments, ModelEffects& effects,
+std::optional<std::size_t> CreateSkinShell(const Kernel::ModelEffectArguments& arguments, ModelEffects& effects,
                                            Crt::CrtRandom& random)
 {
     const auto slot = effects.Begin(arguments);

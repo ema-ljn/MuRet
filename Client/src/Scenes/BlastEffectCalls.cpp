@@ -4,6 +4,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/SkillHits.h"
@@ -35,12 +36,12 @@ World::ModelEffectOwner BlastOwnerOf(const Kernel::ActorState& actor)
 namespace
 {
 // El alta con el dueño en +0x108 (lo que el paso lee en vivo) y sus +0x8c y +0x8e.
-Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const World::ModelEffectArguments& arguments,
+Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const Kernel::ModelEffectArguments& arguments,
                                                                       Kernel::ActorState* owner,
                                                                       Kernel::WorldState& world, Crt::CrtRandom& random,
                                                                       const World::BlastEffectServices& services)
 {
-    World::ModelEffectArguments placed = arguments;
+    Kernel::ModelEffectArguments placed = arguments;
     placed.owner = owner;
     const World::ModelEffectOwner live = owner != nullptr ? BlastOwnerOf(*owner) : World::ModelEffectOwner{};
     auto made = World::CreateBlastModelEffect(world.Map().effects, placed, live, random, services);
@@ -54,7 +55,7 @@ Core::Expected<std::optional<std::size_t>, std::string> PlaceTheBlast(const Worl
 }
 } // namespace
 
-Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const World::ModelEffectArguments& arguments,
+Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const Kernel::ModelEffectArguments& arguments,
                                                                           Kernel::ActorState* owner,
                                                                           const Actors::CharacterStepContext& context)
 {
@@ -99,7 +100,7 @@ Core::Expected<std::optional<std::size_t>, std::string> CreateBlastEffect(const 
 }
 
 Core::Expected<std::optional<std::size_t>, std::string>
-CreateBlastEffectOutsideTheStep(const World::ModelEffectArguments& arguments, Kernel::ActorState* owner,
+CreateBlastEffectOutsideTheStep(const Kernel::ModelEffectArguments& arguments, Kernel::ActorState* owner,
                                 Kernel::WorldState& world, Crt::CrtRandom& random)
 {
     // 0x530860: la tabla de joints es la global (0x74a8d78), también fuera del paso (los sesenta 0x5ac/0 del 0x112).

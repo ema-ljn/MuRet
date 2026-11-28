@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "World/CastleSiegeObjectStep.h"
 #include "World/ModelEffects.h"
 #include "Terrain/TerrainDefines.h"
@@ -40,7 +41,7 @@ int SeparateFromTheHero(int offset, int threshold, CrtRandom& random)
     return offset;
 }
 
-Result Emit(const CastleSiegePrelude& prelude, const ModelEffectArguments& arguments)
+Result Emit(const CastleSiegePrelude& prelude, const Kernel::ModelEffectArguments& arguments)
 {
     if (!prelude.emit)
         return Core::Unexpected(std::string("0x42bd01/0x42c31e/0x42c4e5: falta el alta de efectos 0x518cf0"));
@@ -55,7 +56,7 @@ Result EmitTheRock(const CastleSiegePrelude& prelude, std::int32_t y)
     if ((far && (y <= 70 || y >= 177)) || (!far && (y <= 50 || y >= 131)))
         return {};
     const int offset = SeparateFromTheHero(random.Next() % 1000 - 500, far ? 100 : 30, random);
-    ModelEffectArguments arguments{
+    Kernel::ModelEffectArguments arguments{
         .type = far ? FarStone : NearStone,
         .position = {static_cast<float>(static_cast<double>(prelude.heroPosition.x) + offset), 0.0f, RockZ},
         .light = glm::vec3(1.0f)};
@@ -82,7 +83,7 @@ Result EmitTheArrowRow(const CastleSiegePrelude& prelude, std::int32_t y)
         const bool side = (random.Next() & 1) != 0;
         const bool south = y < 113 || (y <= 117 && side);
         static_cast<void>(random.Next());
-        ModelEffectArguments arguments{
+        Kernel::ModelEffectArguments arguments{
             .type = BattleArrow,
             .position = {static_cast<float>(static_cast<double>(prelude.heroPosition.x) + offset),
                          static_cast<float>(static_cast<double>(y + (south ? -10 : 10)) * CellScale), ArrowZ},
@@ -116,7 +117,7 @@ Result EmitTheSingleArrow(const CastleSiegePrelude& prelude, std::int32_t y)
     const std::int32_t target = south ? y - delta - 10 : y + delta + 10;
     const int jitter = random.Next() % 60 - 30;
     const float base = static_cast<float>(static_cast<double>(target) * CellScale);
-    ModelEffectArguments arguments{
+    Kernel::ModelEffectArguments arguments{
         .type = BattleArrow,
         .position = {static_cast<float>(static_cast<double>(prelude.heroPosition.x) + offset),
                      south ? static_cast<float>(static_cast<double>(target) * CellScale + jitter)

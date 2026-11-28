@@ -7,6 +7,11 @@
 
 // The creation of colored decal 0x61e (Effect\Magic_Ground2), which the skills and the ground pass ask for: 06, "Los
 // efectos con modelo de los tipos altos".
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -15,7 +20,6 @@ class CrtRandom;
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 } // namespace Client::World
 
 namespace Client::Terrain
@@ -37,6 +41,6 @@ void BeginColoredDecal(World::ModelEffect& effect, Crt::CrtRandom& random);
 // 0x518cf0(0x61e, …) on `table`: the prefix (BeginModelEffect) and BeginColoredDecal. With the table full, nothing and
 // no rand().
 [[nodiscard]] std::optional<std::size_t> CreateColoredDecal(std::span<World::ModelEffect> table,
-                                                            const World::ModelEffectArguments& arguments,
+                                                            const Kernel::ModelEffectArguments& arguments,
                                                             Crt::CrtRandom& random);
 } // namespace Client::Terrain

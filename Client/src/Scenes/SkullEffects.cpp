@@ -5,7 +5,6 @@
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRetainedMath.h"
-#include "Actors/ActorFlags.h"
 #include "Kernel/ActorState.h"
 #include "Scenes/HighEffectEmitters.h"
 #include "Scenes/HighModelEffects.h"
@@ -225,7 +224,7 @@ Core::Expected<void, std::string> StepTheSkull(World::ModelEffect& effect, const
 Core::Expected<void, std::string> PutTheSkullOn(Kernel::ActorState& actor, Kernel::WorldState& world,
                                                 Crt::CrtRandom& random, std::uint32_t address)
 {
-    static_cast<void>(Actors::KillModelEffectsOf(world.Map().effects, SkullEffect, &actor, PlainSubtype));
+    static_cast<void>(World::KillModelEffectsOf(world.Map().effects, SkullEffect, &actor, PlainSubtype));
     const auto made = CreateHighModelEffect({.type = SkullEffect,
                                              .position = actor.position,
                                              .angles = actor.angles,

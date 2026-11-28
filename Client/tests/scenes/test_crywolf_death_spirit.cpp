@@ -1,7 +1,8 @@
 #include "Kernel/JointRequest.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Scenes/CrywolfDeathSpiritEffects.h"
 #include "Kernel/ActorState.h"
-#include "Actors/Drawing/GameCharacterEffects.h"
+#include "Scenes/CharacterEffectSteps.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/GameDrawTail.h"
 #include "Session/CharacterDrawHooks.h"
@@ -26,7 +27,7 @@ TEST(CrywolfDeathSpiritTest, TheMainSpiritRetainsItsTargetOffsetAndCopiesTheInpu
     auto particles = std::make_unique<Client::World::Particles>();
     Client::Kernel::ActorState owner;
     Client::Crt::CrtRandom random(7);
-    const Client::World::ModelEffectArguments args{
+    const Client::Kernel::ModelEffectArguments args{
         .type = 0x147, .position = {100, 200, 300}, .angles = {11, 22, 33}, .light = {0, 0, 80}, .owner = &owner};
     const auto result = Client::Scenes::CreateCrywolfDeathSpirit(args, *effects, particles.get(), random, 0);
     ASSERT_TRUE(result.HasValue());
@@ -183,7 +184,7 @@ TEST(CrywolfDeathSpiritTest, TheLateDecalJointsFollowTheDurableModelEffectOwner)
     Client::Crt::CrtRandom random(7), expected(7);
     const Client::Session::CharacterDrawHooks hooks;
     expected.Discard(13);
-    ASSERT_TRUE(Client::Actors::Drawing::StepPetSummon(decal, joints, &hooks, random).HasValue());
+    ASSERT_TRUE(Client::Scenes::StepPetSummon(decal, joints, &hooks, random).HasValue());
     for (auto& joint : joints)
     {
         EXPECT_TRUE(joint.alive);

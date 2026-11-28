@@ -6,6 +6,7 @@
 #include "Render/Pass3D.h"
 #include "Camera/GameCamera.h"
 
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Session/ServerSession.h"
 #include "App/SessionState.h"
@@ -350,5 +351,6 @@ private:
     bool m_quit = false;
     // Who creates the joints of the character's draw (0x530860).
     Session::CharacterDrawHooks m_characterDrawHooks;
+    ActorEffectHooks m_effectHooks;
 };
 } // namespace Client::Scenes

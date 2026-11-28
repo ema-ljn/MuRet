@@ -537,7 +537,8 @@ Actors::CharacterStepContext CharacterSelectScene::CharacterContext()
                 m_context.states != nullptr ? &m_context.states->terrain.dynamicLight.Lighting() : nullptr,
             .faunaModels = m_context.states != nullptr ? &m_context.states->assets.fauna : nullptr,
             .reportedCell = m_context.states != nullptr ? &m_context.states->actors.reportedCell : nullptr,
-            .hooks = &m_stepHooks};
+            .hooks = &m_stepHooks,
+            .effectHooks = &m_effectHooks};
 }
 
 // 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
@@ -1776,7 +1777,8 @@ void CharacterSelectScene::DrawTheTail(Render::Frame::SceneCanvas& canvas, Kerne
                                                   .polygon = &m_polygon,
                                                   .fixedHeight = CameraState().fixedHeight,
                                                   .terrain = StepTerrain(),
-                                                  .hooks = &m_characterDrawHooks};
+                                                  .hooks = &m_characterDrawHooks,
+                                                  .effectHooks = &m_effectHooks};
     if (auto drawnTail = Actors::Drawing::DrawCharacterTail(canvas.models, m_models, world, actor, slot, drawn, pass,
                                                             scan, originalFrame);
         !drawnTail.HasValue())

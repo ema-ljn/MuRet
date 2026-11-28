@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/X87.h"
 #include "Models/LogicalAccess.h"
 #include "Math/OriginalRotation.h"
@@ -39,8 +40,8 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ModelEffectArguments;
 using Client::World::ModelEffect;
-using Client::World::ModelEffectArguments;
 using Client::World::ModelEffects;
 using Client::World::WizardEffectServices;
 using Client::World::WizardOwnerView;

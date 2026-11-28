@@ -5,6 +5,7 @@
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
 #include "Kernel/ActorState.h"
+#include "Scenes/ActorEffectHooks.h"
 #include "Terrain/GroundMarks.h"
 #include "World/ModelEffects.h"
 #include "support/PlayerActors.h"
@@ -41,6 +42,7 @@ struct Remains
 {
     Client::Models::Skeleton skeleton;
     Client::World::ModelEffects effects;
+    Client::Scenes::ActorEffectHooks hooks;
     Client::Terrain::GroundMarkTable marks{};
     CrtRandom random{Seed};
 
@@ -51,7 +53,8 @@ struct Remains
                                    .modelOrigin = origin,
                                    .effects = effects,
                                    .random = random,
-                                   .marks = &marks};
+                                   .marks = &marks,
+                                   .effectHooks = &hooks};
     }
 
     [[nodiscard]] std::size_t LiveEffects() const
@@ -151,6 +154,22 @@ TEST(ActorRemainsTest, TheIceMonsterOfDeviasBreaksIntoTenIceShards)
         EXPECT_EQ(shard.velocity, wanted.velocity);
         EXPECT_EQ(shard.turnDirection, wanted.turnDirection);
     }
+}
+
+// The shards are born through the effect hooks: without them, the monster stops after turning off its live byte.
+TEST(ActorRemainsTest, TheIceShardsStopWithoutTheEffectHooks)
+{
+    auto remains = std::make_unique<Remains>();
+    remains->skeleton.headBone = 0x13;
+    ActorState actor = Dead(0x161);
+    ActorRemainsContext context = remains->Context();
+    context.effectHooks = nullptr;
+    const auto stopped = LeaveTheRemains(actor, context);
+    ASSERT_FALSE(stopped.HasValue());
+    EXPECT_NE(stopped.Error().find("0x52e841"), std::string::npos) << stopped.Error();
+    EXPECT_FALSE(actor.alive);
+    EXPECT_EQ(remains->LiveEffects(), 0u);
+    EXPECT_EQ(remains->random.State(), Seed);
 }
 
 // 0x52e88a..0x52e8a5: 0x159, 0x160 and 0x164 leave nothing, without rand().

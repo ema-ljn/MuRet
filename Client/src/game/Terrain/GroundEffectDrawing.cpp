@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Render/ModelBatch.h"
@@ -274,12 +275,12 @@ Core::Expected<glm::vec3, std::string> ColoredDecalLight(std::int32_t subtype, d
 // position, angles, light and owner (0x518cf0 with key −1; /7 draws its rand() % 360).
 void SpawnColoredDecal(const World::ModelEffect& effect, const GroundEffectResources& resources, std::int32_t subtype)
 {
-    const World::ModelEffectArguments child{.type = ArrivalDecal,
-                                            .position = effect.transform.position,
-                                            .angles = effect.transform.angles,
-                                            .light = effect.light,
-                                            .subtype = subtype,
-                                            .owner = effect.ownerContext};
+    const Kernel::ModelEffectArguments child{.type = ArrivalDecal,
+                                             .position = effect.transform.position,
+                                             .angles = effect.transform.angles,
+                                             .light = effect.light,
+                                             .subtype = subtype,
+                                             .owner = effect.ownerContext};
     static_cast<void>(CreateColoredDecal(resources.table, child, resources.random));
 }
 

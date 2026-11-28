@@ -31,20 +31,20 @@ struct TerrainLighting;
 
 namespace Client::Kernel
 {
+struct ModelEffectArguments;
 struct JointRequest;
 } // namespace Client::Kernel
 
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 class ModelEffects;
 class Particles;
 class KalimaWorld;
 class FrameSprites;
 // 0x5192a3 y 0x5212e7: alta y cuerpo de la estela compartida por Crywolf y el terremoto.
 inline constexpr std::int16_t SpiritTrailEffect = 0x104;
-[[nodiscard]] std::optional<std::size_t> CreateSpiritTrail(const ModelEffectArguments&, ModelEffects&);
+[[nodiscard]] std::optional<std::size_t> CreateSpiritTrail(const Kernel::ModelEffectArguments&, ModelEffects&);
 
 // Lo que los casos piden afuera de su efecto: la altura del terreno (0x5f93c0) de la mariposa, de las
 // piedras y del terremoto, la tabla de sprites del frame (0x5491e0) de la mariposa, la de los efectos (0x518cf0) y

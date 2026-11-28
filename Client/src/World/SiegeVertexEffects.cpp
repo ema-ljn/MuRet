@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
@@ -286,7 +287,7 @@ bool IsSiegeVertexEffect(std::int16_t type)
     return (type >= FirstStoneFragment && type <= LastStatueFragment) || type == GolemStone;
 }
 
-std::optional<std::size_t> CreateSiegeVertexEffect(const ModelEffectArguments& arguments, ModelEffects& effects,
+std::optional<std::size_t> CreateSiegeVertexEffect(const Kernel::ModelEffectArguments& arguments, ModelEffects& effects,
                                                    Crt::CrtRandom& random)
 {
     if (!IsSiegeVertexEffect(arguments.type))

@@ -14,10 +14,14 @@
 // corre con el alpha en 0,01 o más (0x5ffdf0, 0x5ffe2a..0x5ffe3d): el 0x125 nace con el alpha en 0 (0x51cdf5) y sólo su
 // joint 0x6ee/0x12 lo enciende (0x53949a); el 0x126 y el 0x128 van por el camino común. 06, "Los efectos con modelo de
 // los tipos altos".
+namespace Client::Kernel
+{
+struct ModelEffectArguments;
+} // namespace Client::Kernel
+
 namespace Client::World
 {
 struct ModelEffect;
-struct ModelEffectArguments;
 class ModelEffects;
 } // namespace Client::World
 
@@ -39,7 +43,7 @@ void BeginTheKundunCall(World::ModelEffects& effects, std::size_t slot);
 // 0x518cf0(0x128, ...) sobre `effects` sin el resto del mundo, como lo piden 0x43d051 y 0x43d0fd: el prefijo
 // (World::ModelEffects::Begin) y BeginTheKundunCall. Con la tabla llena, nada. Devuelve el lugar.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateTheKundunCall(World::ModelEffects& effects, const World::ModelEffectArguments& arguments);
+CreateTheKundunCall(World::ModelEffects& effects, const Kernel::ModelEffectArguments& arguments);
 
 // 0x527ad6..0x527c51, el paso del 0x128:
 // - /0: con la vida en 30, diez 0x126 (0x527b37, i = 0, 8, …, 72) en su posición y con su luz, sin dueño, de ángulos

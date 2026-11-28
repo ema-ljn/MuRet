@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Maps/MapId.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
@@ -179,8 +180,9 @@ Result StrikeTheGlow(MonsterBodyFrame& frame)
         {
             const Actors::Drawing::VertexEffectCall call{
                 .mesh = StruckMesh, .type = Stones, .subtype = actor.byte110 == BlueStrike ? BlueStones : GreenStones};
-            if (auto emitted = Actors::Drawing::EmitVertexEffectsOf(*found, model.object.transform.scale, model.meshes,
-                                                                    call, {.effects = frame.effects}, frame.random);
+            if (auto emitted = Actors::Drawing::EmitVertexEffectsOf(
+                    *found, model.object.transform.scale, model.meshes, call,
+                    {.effects = frame.effects, .effectHooks = frame.effectHooks}, frame.random);
                 !emitted.HasValue())
                 return Core::Unexpected(std::format("0x439dc5: {}", emitted.Error()));
         }
@@ -235,14 +237,14 @@ Result ScatterKundun(MonsterBodyFrame& frame)
                                std::bit_cast<float>(piece.offset[2])};
         const glm::vec3 point = Math::OriginalTransformPosition(matrix, offset, model.object.transform.scale,
                                                                 model.object.transform.position);
-        const World::ModelEffectArguments arguments{.type = piece.type,
-                                                    .position = point,
-                                                    .angles = actor.angles,
-                                                    .light = actor.light,
-                                                    .subtype = piece.subtype,
-                                                    .owner = &actor,
-                                                    .key = std::bit_cast<std::uint16_t>(piece.key),
-                                                    .byte89 = piece.byte89};
+        const Kernel::ModelEffectArguments arguments{.type = piece.type,
+                                                     .position = point,
+                                                     .angles = actor.angles,
+                                                     .light = actor.light,
+                                                     .subtype = piece.subtype,
+                                                     .owner = &actor,
+                                                     .key = std::bit_cast<std::uint16_t>(piece.key),
+                                                     .byte89 = piece.byte89};
         const auto made = CreateTheKundunPiece(*frame.effects, arguments, frame.random, frame.terrainHeight);
         if (!made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", piece.call, made.Error()));
@@ -624,7 +626,7 @@ Result EmitCastleVertices(MonsterBodyFrame& frame, std::int32_t type)
     if (frame.effects == nullptr)
         return Core::Unexpected(std::string("0x4ee770: falta el pool de efectos del monstruo del asedio"));
     return Actors::Drawing::EmitVertexEffects(frame.model.models, frame.model.object, frame.model.meshes, 0, type, 0,
-                                              *frame.effects, frame.random);
+                                              *frame.effects, frame.effectHooks, frame.random);
 }
 
 Chained DrawCastleGuard(MonsterBodyFrame& frame)

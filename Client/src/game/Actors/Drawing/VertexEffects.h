@@ -40,6 +40,7 @@ struct JointState;
 
 namespace Client::Actors
 {
+class IEffectHooks;
 class IJointHooks;
 } // namespace Client::Actors
 
@@ -58,9 +59,9 @@ struct VertexEffectCall
     Kernel::ActorState* target = nullptr;
 };
 
-// The tables it releases into: 0x518cf0 (the model effects), 0x53fe70 (the particles, with their clock), 0x5491e0 (the
-// sprites) and 0x530860 (the joints, born through `jointHooks`). Only the one the type asks for is needed; without it,
-// it stops at its address.
+// The tables it releases into: 0x518cf0 (the model effects, born through `effectHooks` except the siege's), 0x53fe70
+// (the particles, with their clock), 0x5491e0 (the sprites) and 0x530860 (the joints, born through `jointHooks`). Only
+// the one the type asks for is needed; without it, it stops at its address.
 struct VertexEffectTables
 {
     World::ModelEffects* effects = nullptr;
@@ -69,6 +70,7 @@ struct VertexEffectTables
     World::FrameSprites* sprites = nullptr;
     std::span<Scenes::JointState> joints{};
     const IJointHooks* jointHooks = nullptr;
+    const IEffectHooks* effectHooks = nullptr;
 };
 
 // 0x4ee770: with the mesh between 0 and the model's (+0x24) and with triangles (+0xa), each corner of each polygon (the
@@ -96,9 +98,11 @@ struct VertexEffectTables
 EmitVertexEffectsOf(const Data::Models::Model& model, float modelScale, std::span<const Models::SkinnedMesh> meshes,
                     const VertexEffectCall& call, const VertexEffectTables& tables, Crt::CrtRandom& random);
 
-// EmitVertexEffectsOf with the model of `object` (without it, nothing), its scale and only the model effects' table.
+// EmitVertexEffectsOf with the model of `object` (without it, nothing), its scale and only the model effects' table and
+// hooks.
 [[nodiscard]] Core::Expected<void, std::string>
 EmitVertexEffects(const Models::IModelLibrary& models, const DrawnObject& object,
                   std::span<const Models::SkinnedMesh> meshes, std::int32_t mesh, std::int32_t type,
-                  std::int32_t subtype, World::ModelEffects& effects, Crt::CrtRandom& random);
+                  std::int32_t subtype, World::ModelEffects& effects, const IEffectHooks* effectHooks,
+                  Crt::CrtRandom& random);
 } // namespace Client::Actors::Drawing

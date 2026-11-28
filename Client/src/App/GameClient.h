@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/Credentials.h"
@@ -181,6 +182,7 @@ private:
     Assets::GameModels m_models;
     Session::CharacterStepHooks m_characterStepHooks;
     Session::CharacterDrawHooks m_characterDrawHooks;
+    Scenes::ActorEffectHooks m_effectHooks;
     Scenes::ChatMessages m_onScreenMessages;
     Scenes::WorldEntryResources m_worldEntry;
     Scenes::SessionEventApplier m_eventApplier;

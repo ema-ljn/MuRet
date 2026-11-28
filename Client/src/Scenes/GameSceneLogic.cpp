@@ -11,7 +11,7 @@
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
-#include "Actors/Drawing/GameCharacterEffects.h"
+#include "Scenes/CharacterEffectSteps.h"
 #include "Scenes/GameFloorItems.h"
 #include "World/GameModelEffects.h"
 #include "Kernel/JointRequest.h"
@@ -143,7 +143,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock,
             .dynamicLighting = &DynamicLight().Lighting(),
             .faunaModels = &LoadedFaunaModels(),
             .reportedCell = &m_context.states->actors.reportedCell,
-            .hooks = &hooks});
+            .hooks = &hooks,
+            .effectHooks = &m_effectHooks});
         !stepped.HasValue())
     {
         return stepped;
@@ -248,8 +249,8 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
         // 0x52a9ad: el 5ac/3 del conjunto completo lee al personaje dueño y crea joints, fuera de World.
         if (effect.type == World::IcarusFlareEffect && effect.subtype == World::FullSetFlareSubtype)
         {
-            if (auto stepped = Actors::Drawing::StepFullSetFlare(effect, m_context.world->DrawTail().joints,
-                                                                 &m_characterDrawHooks, m_context.cloth->random);
+            if (auto stepped = StepFullSetFlare(effect, m_context.world->DrawTail().joints, &m_characterDrawHooks,
+                                                m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;
@@ -269,19 +270,18 @@ GameScene::StepTheModelEffects(float worldClock, const std::function<double(floa
                     break;
                 }
             }
-            if (auto stepped = Actors::Drawing::StepSkillFlare(effect, m_context.world->DrawTail().joints,
-                                                               &m_characterDrawHooks, m_context.cloth->random,
-                                                               &m_context.world->Particles(), particleOwner);
+            if (auto stepped = StepSkillFlare(effect, m_context.world->DrawTail().joints, &m_characterDrawHooks,
+                                              m_context.cloth->random, &m_context.world->Particles(), particleOwner);
                 !stepped.HasValue())
                 return stepped;
             continue;
         }
         // 0x52b9a6: el calco 0x61e/1 de la mascota suelta joints 619/1 con el héroe de dueño, y el /3 de la 0x1c y de
         // las invocaciones, los 619/3 de la CL11, fuera de World.
-        if (Actors::Drawing::StepsAsPetSummon(effect))
+        if (StepsAsPetSummon(effect))
         {
-            if (auto stepped = Actors::Drawing::StepPetSummon(effect, m_context.world->DrawTail().joints,
-                                                              &m_characterDrawHooks, m_context.cloth->random);
+            if (auto stepped = StepPetSummon(effect, m_context.world->DrawTail().joints, &m_characterDrawHooks,
+                                             m_context.cloth->random);
                 !stepped.HasValue())
                 return stepped;
             continue;

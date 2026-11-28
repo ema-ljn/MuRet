@@ -1,6 +1,7 @@
 #include "Scenes/MonsterCreation.h"
 
 #include "Core/Expected.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Models/Cloth.h"
 #include "Actors/ActorConstruction.h"
 #include "Actors/ActorCreation.h"
@@ -404,12 +405,12 @@ private:
                 // 0x42d4c0..0x42d513 y 0x42d5af: 0x518cf0(0x134, el actor, sus ángulos, su luz, 0, el actor, 120, 0, 0,
                 // 0, 0): el aura de la llegada, con el actor de dueño y la escala de la clave.
                 constexpr std::uint16_t ArrivalScaleKey = 120;
-                const World::ModelEffectArguments arguments{.type = ArrivalAuraEffect,
-                                                            .position = actor.position,
-                                                            .angles = actor.angles,
-                                                            .light = actor.light,
-                                                            .owner = &actor,
-                                                            .key = ArrivalScaleKey};
+                const Kernel::ModelEffectArguments arguments{.type = ArrivalAuraEffect,
+                                                             .position = actor.position,
+                                                             .angles = actor.angles,
+                                                             .light = actor.light,
+                                                             .owner = &actor,
+                                                             .key = ArrivalScaleKey};
                 const auto created =
                     CreateHighModelEffect(arguments, {.world = m_resources.world, .random = m_resources.cloth.random});
                 if (!created.HasValue())

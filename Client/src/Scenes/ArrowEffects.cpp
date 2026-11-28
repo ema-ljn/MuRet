@@ -5,6 +5,7 @@
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainGrid.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/Angles.h"
 #include "Math/FloatConstants.h"
 #include "Math/HalfLifeMath.h"
@@ -137,17 +138,17 @@ Core::Expected<void, std::string> CreateTheArrowTrail(World::ModelEffect& arrow,
     constexpr std::int16_t TrailType = 0x105;
     constexpr std::int32_t TrailLife = 100, PulseSubtype = 3;
     constexpr float TrailScale = 12.0f, PulseScale = 10.0f; // 0x41400000, 0x41200000
-    const World::ModelEffectArguments arguments{.type = TrailType,
-                                                .position = arrow.transform.position,
-                                                .angles = arrow.transform.angles,
-                                                .light = arrow.light,
-                                                .subtype = subtype,
-                                                .owner = &arrow,
-                                                .key = 0xffff,
-                                                .byte89 = 0,
-                                                .byte88 = 0,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = TrailType,
+                                                 .position = arrow.transform.position,
+                                                 .angles = arrow.transform.angles,
+                                                 .light = arrow.light,
+                                                 .subtype = subtype,
+                                                 .owner = &arrow,
+                                                 .key = 0xffff,
+                                                 .byte89 = 0,
+                                                 .byte88 = 0,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     World::ModelEffects& effects = world.Map().effects;
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
@@ -436,17 +437,17 @@ Core::Expected<void, std::string> CreateTheArrow(std::int16_t type, Kernel::Acto
                                                  std::int32_t skillIndex, std::uint8_t flag,
                                                  const Actors::CharacterStepContext& context)
 {
-    const World::ModelEffectArguments arguments{.type = type,
-                                                .position = owner.position,
-                                                .angles = owner.angles,
-                                                .light = owner.light,
-                                                .subtype = subtype,
-                                                .owner = &owner,
-                                                .key = static_cast<std::uint16_t>(owner.word8a),
-                                                .byte89 = static_cast<std::uint8_t>(skillIndex & 0xff),
-                                                .byte88 = flag,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = type,
+                                                 .position = owner.position,
+                                                 .angles = owner.angles,
+                                                 .light = owner.light,
+                                                 .subtype = subtype,
+                                                 .owner = &owner,
+                                                 .key = static_cast<std::uint16_t>(owner.word8a),
+                                                 .byte89 = static_cast<std::uint8_t>(skillIndex & 0xff),
+                                                 .byte88 = flag,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     return CreateTheArrowEffect(arguments, context.world, context.random, &owner.angles);
 }
 
@@ -462,17 +463,17 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
     constexpr std::int16_t BlastType = 0x13a;
     constexpr std::int32_t BlastLife = 20;
     constexpr glm::vec3 Muzzle{-10.0f, -80.0f, 200.0f};
-    const World::ModelEffectArguments arguments{.type = BlastType,
-                                                .position = owner.position,
-                                                .angles = owner.angles,
-                                                .light = owner.light,
-                                                .subtype = 0,
-                                                .owner = target,
-                                                .key = static_cast<std::uint16_t>(owner.word8a),
-                                                .byte89 = static_cast<std::uint8_t>(skillIndex & 0xff),
-                                                .byte88 = flag,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = BlastType,
+                                                 .position = owner.position,
+                                                 .angles = owner.angles,
+                                                 .light = owner.light,
+                                                 .subtype = 0,
+                                                 .owner = target,
+                                                 .key = static_cast<std::uint16_t>(owner.word8a),
+                                                 .byte89 = static_cast<std::uint8_t>(skillIndex & 0xff),
+                                                 .byte88 = flag,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     World::ModelEffects& effects = context.world.Map().effects;
     const auto slot = effects.Begin(arguments);
     if (!slot.has_value())
@@ -1365,17 +1366,17 @@ Core::Expected<void, std::string> CreateAquagoldArrow(Kernel::ActorState& owner,
                                                       const Actors::CharacterStepContext& context)
 {
     constexpr std::int16_t ArrowType = 0xe2;
-    const World::ModelEffectArguments arguments{.type = ArrowType,
-                                                .position = owner.position,
-                                                .angles = angles,
-                                                .light = owner.light,
-                                                .subtype = 0,
-                                                .owner = &owner,
-                                                .key = 0xffff,
-                                                .byte89 = 0,
-                                                .byte88 = 0,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = ArrowType,
+                                                 .position = owner.position,
+                                                 .angles = angles,
+                                                 .light = owner.light,
+                                                 .subtype = 0,
+                                                 .owner = &owner,
+                                                 .key = 0xffff,
+                                                 .byte89 = 0,
+                                                 .byte88 = 0,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     const auto slot = context.world.Map().effects.Begin(arguments);
     if (!slot.has_value())
         return {};
@@ -1413,7 +1414,7 @@ bool IsArrowEffect(std::int16_t type)
            type == ArchangelArrow || type == ReignArrow || type == TwentiethArrow || type == TourArrow;
 }
 
-Core::Expected<void, std::string> CreateTheArrowEffect(const World::ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateTheArrowEffect(const Kernel::ModelEffectArguments& arguments,
                                                        Kernel::WorldState& world, CrtRandom& random,
                                                        glm::vec3* callerAngles)
 {

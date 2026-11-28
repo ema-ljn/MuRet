@@ -4,6 +4,7 @@
 #include "Models/IModelLibrary.h"
 #include "Camera/GameCamera.h"
 
+#include "Scenes/ActorEffectHooks.h"
 #include "Session/CharacterDrawHooks.h"
 #include "Session/CharacterStepHooks.h"
 #include "Session/ServerSession.h"
@@ -255,6 +256,7 @@ private:
     Render::Camera3D m_previewCamera;
     Session::CharacterStepHooks m_stepHooks;
     Session::CharacterDrawHooks m_characterDrawHooks;
+    ActorEffectHooks m_effectHooks;
     const Tables::TextTable* m_texts;
     const Tables::ItemTable* m_items;
     const Models::IModelLibrary& m_models;

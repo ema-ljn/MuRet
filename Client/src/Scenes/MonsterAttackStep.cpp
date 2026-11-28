@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Tables/PlayerModels.h"
 #include "Math/Angles.h"
 #include "Math/HalfLifeMath.h"
@@ -216,17 +217,17 @@ Core::Expected<void, std::string> CreateTheBlastEffect(std::int16_t type, std::i
                                                        const glm::vec3& light, Kernel::ActorState* owner,
                                                        const Actors::CharacterStepContext& context)
 {
-    const World::ModelEffectArguments arguments{.type = type,
-                                                .position = position,
-                                                .angles = angles,
-                                                .light = light,
-                                                .subtype = subtype,
-                                                .owner = owner,
-                                                .key = 0xffff,
-                                                .byte89 = 0,
-                                                .byte88 = 0,
-                                                .byte1bd = 0,
-                                                .scale = 0.0f};
+    const Kernel::ModelEffectArguments arguments{.type = type,
+                                                 .position = position,
+                                                 .angles = angles,
+                                                 .light = light,
+                                                 .subtype = subtype,
+                                                 .owner = owner,
+                                                 .key = 0xffff,
+                                                 .byte89 = 0,
+                                                 .byte88 = 0,
+                                                 .byte1bd = 0,
+                                                 .scale = 0.0f};
     const auto made = CreateBlastEffect(arguments, owner, context);
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
@@ -256,7 +257,7 @@ constexpr glm::vec3 MeteorLight{std::bit_cast<float>(0x3f4ccccdu), 0.5f, std::bi
 
 // El alta de un efecto de los magos (Scenes::CreateWizardEffect). Con la tabla llena, nada y sin rand(); lo que el
 // efecto pide y MuRet no tiene corta con la dirección de la llamada.
-Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const World::ModelEffectArguments& arguments,
+Core::Expected<void, std::string> CreateWizard(std::uint32_t address, const Kernel::ModelEffectArguments& arguments,
                                                const Kernel::ActorState& actor, std::size_t slot,
                                                const Actors::CharacterStepContext& context)
 {
@@ -877,10 +878,10 @@ Core::Expected<Helped, std::string> StepTheSiege(const Kernel::ActorState& actor
     const bool pulse = found.address == 0x42dd23;
     if (!pulse && actor.byte381 != FifthStep)
         return Helped::Exit;
-    World::ModelEffectArguments arguments{.type = pulse ? PulseEffect : SpearmanEffect,
-                                          .position = actor.position,
-                                          .angles = actor.angles,
-                                          .light = actor.light};
+    Kernel::ModelEffectArguments arguments{.type = pulse ? PulseEffect : SpearmanEffect,
+                                           .position = actor.position,
+                                           .angles = actor.angles,
+                                           .light = actor.light};
     if (!pulse)
     {
         // 0x42dd6e..0x42dd92: la z más 500 (0x6b8a98) en la x87 y su FSTP, antes del alta.
@@ -926,11 +927,11 @@ Core::Expected<Helped, std::string> StepTheDoppelganger(const Kernel::ActorState
         {
             constexpr std::int16_t FlashEffect = 0x141, PulseEffect = 0x61c;
             const bool flash = found.address == 0x4291b1;
-            const World::ModelEffectArguments arguments{.type = flash ? FlashEffect : PulseEffect,
-                                                        .position = actor.position,
-                                                        .angles = actor.angles,
-                                                        .light = glm::vec3(1.0f),
-                                                        .subtype = flash ? 0 : 1};
+            const Kernel::ModelEffectArguments arguments{.type = flash ? FlashEffect : PulseEffect,
+                                                         .position = actor.position,
+                                                         .angles = actor.angles,
+                                                         .light = glm::vec3(1.0f),
+                                                         .subtype = flash ? 0 : 1};
             if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
                 return Core::Unexpected(std::format("{} (lugar {})", created.Error(), slot));
         }
@@ -973,7 +974,7 @@ Core::Expected<void, std::string> LaunchTheRadialVolley(const Kernel::ActorState
     {
         angles.z =
             static_cast<float>(static_cast<double>(shard) * DegreesPerShard + static_cast<double>(actor.angles.z));
-        const World::ModelEffectArguments arguments{
+        const Kernel::ModelEffectArguments arguments{
             .type = ShardEffect, .position = actor.position, .angles = angles, .light = actor.light};
         if (auto created = CreateHighModelEffect(arguments, HighContextOf(context)); !created.HasValue())
             return Core::Unexpected(created.Error());

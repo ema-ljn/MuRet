@@ -25,6 +25,7 @@
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/CharacterClass.h"
+#include "Kernel/ModelEffectArguments.h"
 #include "Math/FloatConstants.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelBatchParticleBackend.h"
@@ -238,11 +239,11 @@ Core::Expected<void, std::string> CreateObjectCloud(const World::WorldObject& ob
         point.z = static_cast<float>((static_cast<double>(effects.random->Next() % LoginMeteorRiseSpan) +
                                       static_cast<double>(object.transform.position.z)) +
                                      LoginMeteorRise);
-        const World::ModelEffectArguments meteor{.type = World::FireEffect,
-                                                 .position = point,
-                                                 .angles = object.transform.angles,
-                                                 .light = object.light,
-                                                 .subtype = LoginMeteorSubtype};
+        const Kernel::ModelEffectArguments meteor{.type = World::FireEffect,
+                                                  .position = point,
+                                                  .angles = object.transform.angles,
+                                                  .light = object.light,
+                                                  .subtype = LoginMeteorSubtype};
         // El caso 9 del 0xc2 (0x51b280) sólo saca sus rand(): no pide servicios.
         const auto created = World::CreateWizardModelEffect(*effects.modelEffects, meteor, *effects.random,
                                                             World::WizardEffectServices{});
@@ -700,7 +701,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                         if (pass.effects == nullptr || pass.random == nullptr)
                             return Core::Unexpected(std::string("0x42cfcb: falta el pool o CRT para los vértices12f"));
                         return Actors::Drawing::EmitVertexEffects(models, gate, meshes, 0, 0x12f, 0, *pass.effects,
-                                                                  *pass.random);
+                                                                  nullptr, *pass.random);
                     }},
                 frameClock);
             if (!drew.HasValue())

@@ -1,9 +1,20 @@
 #include "Terrain/DynamicWorldLight.h"
 
+#include "Core/Expected.h"
+#include "Data/Terrain/TerrainLight.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainLighting.h"
 
+#include <glm/ext/vector_float3.hpp>
+
+#include <bit>
+#include <cmath>
+#include <cstdint>
+#include <format>
+#include <limits>
 #include <memory>
+#include <string>
+#include <string_view>
 
 namespace Client::Terrain
 {
@@ -42,5 +53,29 @@ void DynamicWorldLight::PublishRange(const Terrain::TerrainRange& range)
 void DynamicWorldLight::Update(const Terrain::TerrainLighting& base)
 {
     Terrain::CopyTerrainLightWindow(base, *m_lighting, m_range.firstX, m_range.lastX, m_range.firstY, m_range.lastY);
+}
+
+Core::Expected<void, std::string> AddDynamicLight(TerrainLighting* destination, const glm::vec3& position,
+                                                  const glm::vec3& color, std::int32_t radius, std::string_view address)
+{
+    if (destination == nullptr)
+    {
+        return Core::Unexpected(std::format("{}: falta el buffer dinámico 0x7b4ccc4 para 0x5f9780", address));
+    }
+    // The kernel needs a center and representable int32 limits; do not invent a cell for NaN.
+    constexpr float CellScale = std::bit_cast<float>(0x3c23d70au);
+    for (int axis = 0; axis < 2; ++axis)
+    {
+        const float scaled = static_cast<float>(static_cast<double>(position[axis]) * static_cast<double>(CellScale));
+        const double center = std::trunc(static_cast<double>(scaled));
+        if (!std::isfinite(center) || center < static_cast<double>(std::numeric_limits<std::int32_t>::min()) + radius ||
+            center > static_cast<double>(std::numeric_limits<std::int32_t>::max()) - radius - 1)
+        {
+            return Core::Unexpected(std::format("{}: centro de luz fuera del dominio int32 de 0x5f9780", address));
+        }
+    }
+    const Data::Terrain::TerrainLightColor channels{color.x, color.y, color.z};
+    AddTerrainLight(*destination, position.x, position.y, channels, radius);
+    return {};
 }
 } // namespace Client::Terrain

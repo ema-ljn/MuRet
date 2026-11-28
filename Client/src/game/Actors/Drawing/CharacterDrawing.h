@@ -34,17 +34,13 @@
 namespace Client::Kernel
 {
 struct JointRequest;
+struct ObjectModelStepState;
 } // namespace Client::Kernel
 
 namespace Client::Actors::Drawing
 {
 class ScepterGlowCarry;
 } // namespace Client::Actors::Drawing
-
-namespace Client::WorldObjects
-{
-struct ObjectModelStepState;
-} // namespace Client::WorldObjects
 
 namespace Client::Particles
 {
@@ -314,7 +310,7 @@ struct ItemDrawContext
     float glowPulse = 0;
     std::map<std::uint16_t, std::int32_t>* selections = nullptr;
     bool originalFrame = true;
-    WorldObjects::ObjectModelStepState* modelState = nullptr;
+    Kernel::ObjectModelStepState* modelState = nullptr;
     std::int32_t map = 0;
     void* ownerContext = nullptr;
     std::function<std::span<const Math::BoneTransform>()> poseBones{};
@@ -343,6 +339,11 @@ DrawItemFromMeshes(Render::ModelBatch& batch, const Models::IModelLibrary& model
 DrawSkeletonBody(Render::ModelBatch& batch, const Models::IModelLibrary& models, const DrawnCharacter& character,
                  Core::Duration frameClock, std::uint16_t model, std::uint8_t level, const Models::ObjectState& state,
                  bool vertexLight, const ItemDrawContext& context);
+
+// The object's meshes skinned as its draw poses them, for a pass that lends them to DrawItemMeshPass; none with the
+// alpha below 0.01.
+void SkinTheDrawnObject(const Models::IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
+                        std::vector<Models::SkinnedMesh>& skinned);
 
 // 0x4ecc30/0x4ef0c0: mesh < 0 walks RenderBody; mesh >= 0 asks for that mesh directly. The special passes lend the same
 // meshes and compute no other pose. storedColor gets only the RGB FSTPs, also before a later error. Bit 0x20 projects

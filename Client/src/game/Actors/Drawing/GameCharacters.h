@@ -47,10 +47,10 @@ namespace Client::Effects
 class ModelEffects;
 } // namespace Client::Effects
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 namespace Client::Particles
 {
@@ -127,7 +127,7 @@ struct GameCharacterPass
     // What the monsters' helpers touch (0x43c150, Scenes/KalimaSiegeHelpers.h): this frame's Kalima world (0x723c48,
     // which 0x437860 perturbs; without it, nothing happens) and the camera shake (0x7d325c8). In an intermediate draw,
     // the projection's.
-    MapScripts::Kalima::KalimaWorld* kalima = nullptr;
+    Kernel::KalimaWater* kalima = nullptr;
     float* cameraShake = nullptr;
     // The models a creation loaded for the monsters and NPCs (Assets::AssetsState::fauna), where their pose leaves
     // its key. nullptr: no monster or NPC is drawn.

@@ -3,10 +3,10 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Models/Skeleton.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "MapScripts/Tarkan/TarkanObjectStep.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -24,11 +24,11 @@
 // Los objetos de Tarkan).
 namespace
 {
+using Client::Kernel::ObjectModelStepState;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Tarkan::StepTarkanObject;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectModelStepState;
-using Client::WorldObjects::ObjectStepGlobals;
-using Client::WorldObjects::WorldObject;
 
 constexpr float Clock = 12345.0f;
 
@@ -66,9 +66,8 @@ glm::vec3 Warm(double pulse)
 std::unique_ptr<TerrainLighting> LightOf(const glm::vec3& color, std::int32_t radius)
 {
     auto lighting = std::make_unique<TerrainLighting>();
-    EXPECT_TRUE(
-        Client::WorldObjects::AddDynamicLight(lighting.get(), Object(0).transform.position, color, radius, "test")
-            .HasValue());
+    EXPECT_TRUE(Client::Terrain::AddDynamicLight(lighting.get(), Object(0).transform.position, color, radius, "test")
+                    .HasValue());
     return lighting;
 }
 
@@ -186,7 +185,7 @@ TEST(TarkanObjectsTest, TheHiddenTheWhiteAndTheRest)
     {
         auto object = Object(type);
         ASSERT_TRUE(StepTarkanObject(object, ObjectStepGlobals{}).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
     }
     auto white = Object(0x52);
     ASSERT_TRUE(StepTarkanObject(white, ObjectStepGlobals{}).HasValue());

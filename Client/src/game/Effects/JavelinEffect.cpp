@@ -11,7 +11,7 @@
 #include "Effects/HighModelEffects.h"
 #include "Effects/GameModelEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -140,7 +140,6 @@ Core::Expected<void, std::string> StepTheJavelin(Effects::ModelEffect& effect, c
         effect.transform.position.z =
             effect.subtype == RisingSubtype ? F32(*wave + D(effect.start.z)) : F32(D(effect.start.z) - *wave);
     }
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, Glow, GlowRadius,
-                                         "0x529de1");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, Glow, GlowRadius, "0x529de1");
 }
 } // namespace Client::Effects

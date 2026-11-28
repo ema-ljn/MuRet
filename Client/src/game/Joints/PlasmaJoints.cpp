@@ -10,7 +10,7 @@
 #include "Joints/JointKernels.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -73,7 +73,7 @@ Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, const Jo
     constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3ecccccdu));  // 0x6b87b4, 0.4f
     const std::int32_t shade = (services.random->Next() & 3) + 4;
     const float value = F32(static_cast<double>(shade) * Step * Dim);
-    return WorldObjects::AddDynamicLight(services.lighting, joint.position, glm::vec3(value), 2, "0x535c77");
+    return Terrain::AddDynamicLight(services.lighting, joint.position, glm::vec3(value), 2, "0x535c77");
 }
 } // namespace
 

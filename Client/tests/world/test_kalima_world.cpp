@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Kernel/KalimaWater.h"
 #include "Maps/MapId.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "MapScripts/Kalima/KalimaResources.h"
@@ -12,6 +13,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "support/GoldenDir.h"
+#include "support/KalimaWaves.h"
 #include "support/TemporaryFolder.h"
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -30,7 +32,7 @@
 namespace
 {
 using Client::Crt::CrtRandom;
-using Client::MapScripts::Kalima::KalimaFrameContext;
+using Client::Kernel::KalimaFrameContext;
 using Client::MapScripts::Kalima::KalimaWorld;
 using Client::Render::ModelBatch;
 using Client::Render::TextureSlot;
@@ -207,10 +209,10 @@ TEST(KalimaWorldTest, ExplicitProjectionCopiesAllStateAndHasIndependentLifetime)
     CrtRandom random;
     ASSERT_TRUE(world->Disturb(64, 64, 4, 1000000, random).HasValue());
     auto projected = world->CloneForFrame();
-    EXPECT_EQ(projected->Waves().planes, world->Waves().planes);
+    EXPECT_EQ(Client::Tests::WavesOf(*projected).planes, world->Waves().planes);
     ASSERT_TRUE(projected->Update(KalimaFrameContext{1, 1000, 64, 64, random}).HasValue());
     EXPECT_FALSE(world->Waves().selected);
-    EXPECT_TRUE(projected->Waves().selected);
+    EXPECT_TRUE(Client::Tests::WavesOf(*projected).selected);
     world.reset();
     EXPECT_TRUE(projected->Height(6400, 6400).has_value());
 }

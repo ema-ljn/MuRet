@@ -15,7 +15,7 @@
 #include "Joints/FaunaJointCreation.h"
 #include "Effects/KundunEffects.h"
 #include "Kernel/JointRequest.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"

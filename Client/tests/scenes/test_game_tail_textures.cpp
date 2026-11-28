@@ -17,6 +17,7 @@
 #include "Fauna/FaunaObject.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Models/TextureMetadata.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Sprites.h"
@@ -214,10 +215,10 @@ TEST_F(GameTailTextureTest, SupportedFaunaJointBindingsResolveToTheirUploadedNat
             joint.points[1][point] = joint.points[0][point] + glm::vec3{0, 0, 1};
         }
         Client::Particles::FrameSprites sprites;
-        const Client::Scenes::JointDrawResources resources{random, sprites};
+        const Client::Joints::JointDrawResources resources{random, sprites};
         Client::Render::ModelBatch batch;
 
-        const auto drawn = Client::Scenes::DrawJoints(batch, joints, 0, resources);
+        const auto drawn = Client::Joints::DrawJoints(batch, joints, 0, resources);
 
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_FALSE(batch.Vertices().empty());

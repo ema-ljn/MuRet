@@ -1,6 +1,7 @@
 #include "support/CheckedWorldObjectProjection.h"
 
 #include "Math/X87.h"
+#include "Kernel/WorldObject.h"
 #include "WorldObjects/WorldObjects.h"
 
 #include "Core/ILogSink.h"
@@ -30,13 +31,13 @@
 // bit.
 namespace
 {
+using Client::Kernel::ObjectDraw;
+using Client::Kernel::ObjectDrawKind;
+using Client::Kernel::WorldObject;
 using Client::Tests::WorldObjectVector;
 using Client::Tests::WorldObjectVectorCall;
 using Client::Tests::WorldObjectVectors;
 using Client::Tests::WorldObjectVectorState;
-using Client::WorldObjects::ObjectDraw;
-using Client::WorldObjects::ObjectDrawKind;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 

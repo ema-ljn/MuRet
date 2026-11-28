@@ -9,8 +9,7 @@
 #include "Scenes/IScene.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "MapScripts/Noria/NoriaObjectStep.h"
-#include "WorldObjects/WorldObjects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Models/Animation.h"
 #include "Render/SpriteVertex.h"
 #include "Assets/GameModels.h"
@@ -30,11 +29,12 @@
 #include "Render/TextureSlot.h"
 #include "Terrain/TerrainLighting.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Session/ModuleStates.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/KalimaWaves.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include <gtest/gtest.h>
@@ -309,14 +309,14 @@ TEST_F(GameSceneTailIntegrationTest, KalimaWaterRunsBothModesWithAnExplicitEmpty
     frame.cloth.logicSteps = 1;
     Render();
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
-    const bool selected = frame.world.Map().kalima->Waves().selected;
+    const bool selected = Client::Tests::WavesOf(*frame.world.Map().kalima).selected;
     const auto random = frame.cloth.random.State();
     frame.scene->PrepareFrame();
     const auto beforeReplay = frame.cloth.random.State();
     auto& canvas = frame.target.BeginFrame(frame.clock.Now());
     frame.scene->Render(canvas, 0.5f);
     ASSERT_FALSE(frame.scene->Failure().has_value()) << *frame.scene->Failure();
-    EXPECT_EQ(frame.world.Map().kalima->Waves().selected, selected);
+    EXPECT_EQ(Client::Tests::WavesOf(*frame.world.Map().kalima).selected, selected);
     EXPECT_EQ(frame.cloth.random.State(), beforeReplay);
     EXPECT_NE(random, 0u);
 }
@@ -370,7 +370,7 @@ TEST_F(GameSceneTailIntegrationTest, ReloadInvalidatesDurableNoriaMaterialsBefor
         auto& state = frame.world.Runtime().objectModelState;
         for (const std::int16_t type : std::array<std::int16_t, 2>{0x2a, 0x2b})
         {
-            Client::WorldObjects::WorldObject object;
+            Client::Kernel::WorldObject object;
             object.type = type;
             ASSERT_TRUE(Client::MapScripts::Noria::StepNoriaObject(object, frame.cloth.random, {.modelState = &state})
                             .HasValue());

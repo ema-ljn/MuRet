@@ -1,4 +1,5 @@
 #include "Kernel/DrawTailState.h"
+#include "Kernel/ObjectPass.h"
 #include "Scenes/GameDrawTail.h"
 #include "Maps/MapId.h"
 #include "Math/X87.h"
@@ -6,9 +7,8 @@
 #include "Actors/Drawing/VertexEffects.h"
 #include "Effects/CrywolfMissileDrawing.h"
 #include "MapScripts/Kalima/KalimaObjectServices.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/KalimaWater.h"
+#include "Kernel/WorldObject.h"
 #include "Events/ChaosCastle/ChaosCastle.h"
 
 #include "Core/IClock.h"
@@ -643,7 +643,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
             });
         if (!body.HasValue())
             return body;
-        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
+        if ((effect.type == 0xed || effect.type == 0xee) && effect.objectState.hiddenMesh != Kernel::HiddenObject)
         {
             if (resources == nullptr || resources->particles == nullptr || resources->sprites == nullptr ||
                 resources->random == nullptr || !resources->posedBones)
@@ -655,7 +655,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
     }
     const bool castleGate = effect.type >= 0x3d && effect.type <= 0x40 && resources != nullptr &&
                             resources->kalimaPass != nullptr && resources->kalimaPass->map == 30;
-    if (castleGate && effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
+    if (castleGate && effect.objectState.hiddenMesh != Kernel::HiddenObject)
     {
         if (resources->onPose)
         {
@@ -715,7 +715,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
         if (auto published = resources->onPose(object); !published.HasValue())
             return published;
         // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección), 0x6002e0 sale después de posar.
-        if (effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
+        if (effect.objectState.hiddenMesh != Kernel::HiddenObject)
         {
             if (resources->posedMeshes)
                 object.retainedMeshes = resources->posedMeshes();
@@ -731,7 +731,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
             }
         }
     }
-    else if (effect.objectState.hiddenMesh != WorldObjects::HiddenObject)
+    else if (effect.objectState.hiddenMesh != Kernel::HiddenObject)
     {
         const auto special = drawTheSpecialBody();
         if (!special.HasValue())
@@ -743,7 +743,7 @@ DrawPlainModelEffect(Render::ModelBatch& batch, Effects::ModelEffect& effect, co
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&
         Maps::IsKalimaMap(resources->kalimaPass->map))
     {
-        WorldObjects::WorldObject view;
+        Kernel::WorldObject view;
         view.type = effect.type;
         return MapScripts::Kalima::DrawKalimaObjectTail(batch, models, view, object, frameClock,
                                                         *resources->kalimaPass);

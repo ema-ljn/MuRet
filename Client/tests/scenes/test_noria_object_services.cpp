@@ -3,11 +3,11 @@
 #include "Math/HalfLifeMath.h"
 #include "Kernel/PoseBuffer.h"
 #include "MapScripts/Noria/NoriaObjectServices.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
@@ -44,10 +44,10 @@ TEST(NoriaObjectServicesTest, CommonFlaresReadTheRetainedWorldBonesAndTheCommonR
     {
         auto pose = Pose();
         Client::Particles::FrameSprites sprites;
-        Client::WorldObjects::GameObjectPass pass;
+        Client::Kernel::GameObjectPass pass;
         pass.sprites = &sprites;
         pass.retainedPose = &pose;
-        Client::WorldObjects::WorldObject object;
+        Client::Kernel::WorldObject object;
         object.type = probe.type;
         const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -73,13 +73,13 @@ TEST(NoriaObjectServicesTest, TheFairyPublishesItsPairedRingsAndFiveWhiteFlaresB
     Client::Particles::FrameSprites sprites;
     auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(7);
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
     pass.retainedPose = &pose;
     pass.worldClock = 1234.75f;
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x27;
     const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -106,7 +106,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
     for (auto& particle : particles->All())
         particle.alive = true;
     Client::Crt::CrtRandom random(4);
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
@@ -130,7 +130,7 @@ TEST(NoriaObjectServicesTest, TheFairyInterleavesEachJointWithItsSparkEvenWhenTh
         ++calls;
         return {};
     };
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x27;
     const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
@@ -145,11 +145,11 @@ TEST(NoriaObjectServicesTest, AFailedShinyEmissionKeepsItsGuardAndTheSpritesAlre
     auto pose = Pose();
     Client::Particles::FrameSprites sprites;
     Client::Crt::CrtRandom random(7);
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.retainedPose = &pose;
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x27;
     const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_FALSE(stepped.HasValue());
@@ -165,7 +165,7 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
     Client::Particles::FrameSprites sprites;
     auto particles = std::make_unique<Client::Particles::Particles>();
     Client::Crt::CrtRandom random(4);
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.random = &random;
     pass.sprites = &sprites;
     pass.particles = particles.get();
@@ -179,7 +179,7 @@ TEST(NoriaObjectServicesTest, AFailedLaterJointKeepsTheEarlierSparksAndTheirInte
         static_cast<void>(random.Next());
         return {};
     };
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x27;
     const auto stepped = Client::MapScripts::Noria::StepNoriaObjectFrame(object, 61, pass);
     ASSERT_FALSE(stepped.HasValue());

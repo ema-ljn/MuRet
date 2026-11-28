@@ -1,6 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Models/IModelLibrary.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffectDrawing.h"
+#include "Particles/SpriteDrawing.h"
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -12,6 +13,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Scenes/GameProjection.h"
 #include "Effects/GameParticles.h"
 #include "Joints/FaunaJointCreation.h"
@@ -31,7 +33,7 @@
 #include "Effects/WizardModelEffects.h"
 #include "Effects/GroundEffectDrawing.h"
 #include "Terrain/SphereFrustum.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <gtest/gtest.h>
 
@@ -185,7 +187,7 @@ TEST(GameDrawTailTest, GroundOnlyEffectsPublishVisibilityWithoutLookingForModels
         effects[i].alive = true;
         effects[i].type = static_cast<std::int16_t>(0x61d + i);
     }
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.0f);
+    Client::Effects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.0f);
     EXPECT_EQ(models.lookups, 0);
     for (const auto& effect : effects)
         EXPECT_TRUE(effect.seen);
@@ -336,7 +338,7 @@ TEST(GameDrawTailTest, CommonHorseJointsDrawTheirSelectedFacesWithSegmentUvs)
     joint.points[0][3] = {4, 5, 6};
     joint.points[1][3] = {7, 8, 9};
     joint.points[1][2] = {10, 11, 12};
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 12u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].uv.x, 0.5f);
@@ -354,11 +356,11 @@ TEST(GameDrawTailTest, FirstSpritePassRetainsSpritesAndSecondPassKillsItsLowerBa
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, 300}, 1, {1, 1, 1}, 0, 0));
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, std::numeric_limits<float>::quiet_NaN()}, 1, {1, 1, 1}, 0, 0));
     const auto view = Client::Render::ViewRows(glm::mat4(1.0f));
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, view, 1);
+    Client::Particles::DrawFrameSprites(batch, sprites, models, view, 1);
     EXPECT_TRUE(sprites.Sprites()[0].alive);
     EXPECT_TRUE(sprites.Sprites()[1].alive);
     EXPECT_TRUE(sprites.Sprites()[2].alive);
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, view, 2);
+    Client::Particles::DrawFrameSprites(batch, sprites, models, view, 2);
     EXPECT_FALSE(sprites.Any());
 }
 
@@ -368,7 +370,7 @@ TEST(GameDrawTailTest, SpriteBlendThreeUsesTheInverseColorAdditiveProfile)
     LookupCounter models;
     Client::Particles::FrameSprites sprites;
     ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, 0}, 1, {1, 1, 1}, 0, 3));
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, models, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::Particles::DrawFrameSprites(batch, sprites, models, Client::Render::ViewRows(glm::mat4(1.0f)));
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::InverseColorAdditive);
 }
 
@@ -675,12 +677,12 @@ TEST(GameDrawTailTest, BloodCastleJointRendersItsFadingAndUnfadedSubtypes)
     joint.texture = 0x613;
     joint.light = {0.2f, 0.4f, 0.8f};
     joint.life = 10;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.1f);
     batch.Begin(Client::Render::Pass3D{});
     joint.subtype = 3;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.2f);
 }
@@ -703,8 +705,8 @@ TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFac
     Client::Crt::CrtRandom random(7), expected(7);
     const auto first = expected.Next() % 360;
     const auto second = expected.Next() % 360;
-    const Client::Scenes::JointDrawResources resources{random, sprites};
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
+    const Client::Joints::JointDrawResources resources{random, sprites};
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::InverseColorAdditive);
     EXPECT_EQ(random.State(), expected.State());
@@ -717,8 +719,8 @@ TEST(GameDrawTailTest, IcarusJointEmitsTwoRotatedSpritesBeforeDrawingItsFirstFac
     EXPECT_FLOAT_EQ(sprites.Sprites()[1].scale, 1);
     sprites.Clear();
     batch.Begin(Client::Render::Pass3D{});
-    const Client::Scenes::JointDrawResources intermediate{random, sprites, false};
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, intermediate).HasValue());
+    const Client::Joints::JointDrawResources intermediate{random, sprites, false};
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, intermediate).HasValue());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_FLOAT_EQ(sprites.Sprites()[0].rotation, static_cast<float>(first));
     EXPECT_FLOAT_EQ(sprites.Sprites()[1].rotation, static_cast<float>(second));
@@ -902,7 +904,7 @@ TEST(GameDrawTailTest, AReusedSlotKeepsItsVisibilityUntilTheModelPass)
     auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
     const Client::Effects::GroundEffectResources resources{.heights = *heights, .random = random, .map = 30};
     Client::Render::ModelBatch batch;
-    const auto drawn = Client::WorldObjects::DrawGroundEffects(batch, effects->Effects(), resources);
+    const auto drawn = Client::Effects::DrawGroundEffects(batch, effects->Effects(), resources);
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
 
     Client::Crt::CrtRandom expected(11);
@@ -1016,7 +1018,7 @@ TEST(GameDrawTailTest, NoriaJointConsumesTwoConstructorRandomsAndMovesBeforeGrow
     EXPECT_EQ(joint.points[0][0], glm::vec3(9, 13, 30));
     EXPECT_FLOAT_EQ(joint.points[1][0].x, 5);
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, joints, 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, joints, 0).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 12u);
     EXPECT_EQ(batch.State().texture->value, 0x617);
     EXPECT_EQ(random.State(), 3289278137u);
@@ -1520,7 +1522,7 @@ TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
         effect.type = Client::Effects::ButterflyEffect;
         effect.transform.scale = 1;
         if (hidden)
-            effect.objectState.hiddenMesh = Client::WorldObjects::HiddenObject;
+            effect.objectState.hiddenMesh = Client::Kernel::HiddenObject;
         const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), frustum, nullptr,
                                                                 {}, 0, resources);
         ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
@@ -1686,9 +1688,8 @@ TEST(GameDrawTailTest, LegacyModelEffectsConsumeTheSamePublishedDummyBone)
     { return Client::Actors::Drawing::PublishPose(carry, models, object, true); };
     const Client::Actors::Drawing::TailMeshProvider posedMeshes = [&]() -> std::span<const Client::Models::SkinnedMesh>
     { return carry.meshes; };
-    ASSERT_TRUE(
-        Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
-            .HasValue());
+    ASSERT_TRUE(Client::Effects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0, onPose, posedMeshes)
+                    .HasValue());
     ASSERT_EQ(batch.Vertices().size(), 6u);
     EXPECT_EQ(batch.Vertices()[3].position,
               glm::vec3(7, 8, 9)); // The previous one's matrix, without the origin (0x4ebc80).

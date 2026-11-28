@@ -6,7 +6,7 @@
 #include "Math/Ftol.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include "support/ParticleDrawRecorder.h"
 
@@ -160,7 +160,7 @@ TEST(AttackParticlesTest, TheLightningTakesNoDrawsAndLightsTheGround)
         const glm::vec3 color{F32(glow * 0.5), F32(glow), F32(static_cast<double>(F32(glow)) * Bits(0x3f4ccccdu))};
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
-            Client::WorldObjects::AddDynamicLight(expectedLighting.get(), bolt.position, color, 3, "test").HasValue());
+            Client::Terrain::AddDynamicLight(expectedLighting.get(), bolt.position, color, 3, "test").HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
 
         EXPECT_FALSE(Client::Particles::StepParticlesChecked(particles, random, std::cref(clock), &map, trigonometry)

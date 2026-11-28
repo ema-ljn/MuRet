@@ -22,6 +22,7 @@
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "Models/ModelId.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
@@ -29,9 +30,10 @@
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Audio/SoundId.h"
 
+#include "support/KalimaWaves.h"
 #include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -280,7 +282,7 @@ TEST(GameModelEffectsTest, TheShortBowTrailOnlyDisturbsKalimaForThePublishedHero
             const auto stepped =
                 Client::Effects::StepGameModelEffect(trail, nullptr, particles, 0, random, water.get(), services);
             ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-            EXPECT_EQ(water->Waves().planes, expectedWater->Waves().planes);
+            EXPECT_EQ(water->Waves().planes, Client::Tests::WavesOf(*expectedWater).planes);
             EXPECT_EQ(random.State(), expected.State());
             EXPECT_EQ(trail.life, 99);
         }
@@ -1019,7 +1021,7 @@ TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
         EXPECT_EQ(effects.Effects()[0].velocity, expectedEffects.Effects()[0].velocity);
         EXPECT_EQ(random.State(), draws.State());
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(
+        ASSERT_TRUE(Client::Terrain::AddDynamicLight(
                         expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
                         {luminosity,
                          static_cast<float>(static_cast<double>(luminosity) *
@@ -1125,7 +1127,7 @@ TEST(GameModelEffectsTest, TheFlameColumnSpitsFlamesEmbersSmokeAndItsChip)
         EXPECT_EQ(random.State(), draws.State());
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(
+        ASSERT_TRUE(Client::Terrain::AddDynamicLight(
                         expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
                         {luminosity,
                          static_cast<float>(static_cast<double>(luminosity) *
@@ -1938,7 +1940,7 @@ TEST(GameModelEffectsTest, TheEarthquakeInKalimaDisturbsTheWaterOrRisesHigher)
         EXPECT_EQ(water->Waves().planes, expectedWater->Waves().planes);
         if (state == 2)
         {
-            EXPECT_NE(water->Waves().planes, stillWater->Waves().planes);
+            EXPECT_NE(water->Waves().planes, Client::Tests::WavesOf(*stillWater).planes);
         }
         Client::Particles::Particles expectedParticles;
         ASSERT_TRUE(expectedParticles
@@ -2485,7 +2487,7 @@ void ExpectCrackLight(const QuakeScene& scene, const ModelEffect& crack, const g
 {
     auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
     ASSERT_TRUE(
-        Client::WorldObjects::AddDynamicLight(expected.get(), crack.transform.position, color, 1, "test").HasValue());
+        Client::Terrain::AddDynamicLight(expected.get(), crack.transform.position, color, 1, "test").HasValue());
     EXPECT_EQ(scene.lighting->cells, expected->cells);
 }
 

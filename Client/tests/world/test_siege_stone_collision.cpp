@@ -1,6 +1,6 @@
 #include "CastleSiege/SiegeStoneEffects.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include <gtest/gtest.h>
 #include <array>
 namespace
@@ -10,7 +10,7 @@ TEST(SiegeStoneCollisionTest, TheFirstInsertedObjectTakesTheImpactAndTheAirCutof
     Client::Effects::ModelEffect projectile;
     projectile.transform.position = {500, 500, 0};
     projectile.byte90 = 63;
-    std::array<Client::WorldObjects::WorldObject, 2> objects;
+    std::array<Client::Kernel::WorldObject, 2> objects;
     for (auto& object : objects)
     {
         object.transform.position = {500, 500, 0};
@@ -31,7 +31,7 @@ TEST(SiegeStoneCollisionTest, AirRequiresStrictHeightButGroundOnlyMarksWithoutCh
     Client::Effects::ModelEffect projectile;
     projectile.transform.position = {500, 500, 250};
     projectile.life = 300;
-    std::array<Client::WorldObjects::WorldObject, 1> objects;
+    std::array<Client::Kernel::WorldObject, 1> objects;
     auto& object = objects[0];
     object.transform.position = {500, 500, 0};
     object.field91 = 1;

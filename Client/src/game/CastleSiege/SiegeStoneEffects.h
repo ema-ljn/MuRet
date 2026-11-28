@@ -15,6 +15,7 @@
 namespace Client::Kernel
 {
 struct ModelEffectArguments;
+struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Crt
@@ -43,16 +44,11 @@ namespace Client::Particles
 class Particles;
 } // namespace Client::Particles
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
-
 namespace Client::CastleSiege
 {
 // 429ec0: sector original y primer objeto válido en orden de inserción; el quinto argumento nativo no se lee.
 [[nodiscard]] Core::Expected<bool, std::string> CollideTheSiegeObject(Effects::ModelEffect& projectile,
-                                                                      std::span<WorldObjects::WorldObject> objects,
+                                                                      std::span<Kernel::WorldObject> objects,
                                                                       float radius, float heightLimit, bool markOnly);
 
 struct SiegeStoneStepServices

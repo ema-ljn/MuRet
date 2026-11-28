@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Kernel/WorldObject.h"
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "MapScripts/Crywolf/CrywolfWater.h"
@@ -42,12 +43,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::Particles::Particle;
 using Client::Particles::Particles;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectStepGlobals;
 using Client::WorldObjects::StepWorldObjectChecked;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CrywolfMap = 34;
 constexpr std::int16_t Hidden = -2;

@@ -2,9 +2,8 @@
 
 #include "Data/Terrain/TerrainObjects.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/KalimaWater.h"
+#include "Kernel/WorldObject.h"
 
 #include <cstdint>
 #include <memory>
@@ -20,14 +19,14 @@ struct WorldMap
     // Internal invalidation per LoadMap attempt; neither a counter nor a native rand.
     std::uint64_t loadRevision = 0;
     // 0x723c48: replaced only on reaching 0x4377a0, after the files.
-    std::unique_ptr<MapScripts::Kalima::KalimaWorld> kalima;
+    std::unique_ptr<Kernel::KalimaWater> kalima;
     // 0x7b0cca4: the 65,536 (rand() % 4) · 0.25 that 0x5f8300 fills (Q-C146).
     std::vector<float> grassOffsets;
     // EncTerrain<N>.obj, in the file's order, and what 0x606660 created with them and with the map's specials
     // (0x616ec0).
     std::vector<Data::Terrain::TerrainObject> objectRecords;
-    std::vector<WorldObjects::WorldObject> objects;
-    WorldObjects::WorldObjectRegistrations registrations;
+    std::vector<Kernel::WorldObject> objects;
+    Kernel::WorldObjectRegistrations registrations;
     // The effects with a model (0x7491fd8), the arrival effect's (0x61f) included.
     Effects::ModelEffects effects;
 };

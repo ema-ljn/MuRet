@@ -28,10 +28,11 @@
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
 #include "Effects/WizardModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Assets/FaunaModels.h"
 
+#include "support/LentWorld.h"
 #include "support/SyntheticModels.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -119,7 +120,7 @@ struct FamilyWorld
         return DrawsSince(Seed, random);
     }
 
-    std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
+    std::unique_ptr<WorldState> world = Client::Tests::LentWorld();
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};
     float clock = 1234.5f;
@@ -509,7 +510,7 @@ TEST(HighEffectFamiliesTest, TheMeteorPulsesShakesAndDropsAStone)
         const glm::vec3 color{static_cast<float>(*wave), static_cast<float>(*wave),
                               static_cast<float>(*wave + 0.10000000149011612)};
         auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
+        ASSERT_TRUE(Client::Terrain::AddDynamicLight(lit.get(), origin, color, 10, "prueba").HasValue());
         EXPECT_TRUE(lit->cells == tested.lighting->cells);
         EXPECT_EQ(rock.life, 39);
     }
@@ -1385,10 +1386,10 @@ TEST(HighEffectFamiliesTest, TheEnergyBallGlowsAndBurstsOnItsOwner)
         EXPECT_EQ(tested.random.State(), replay.State());
         auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
         ASSERT_TRUE(
-            Client::WorldObjects::AddDynamicLight(expected.get(), point,
-                                                  {std::bit_cast<float>(0x3f2e147bu), std::bit_cast<float>(0x3fae147bu),
-                                                   std::bit_cast<float>(0x4059999au)},
-                                                  2, "test")
+            Client::Terrain::AddDynamicLight(expected.get(), point,
+                                             {std::bit_cast<float>(0x3f2e147bu), std::bit_cast<float>(0x3fae147bu),
+                                              std::bit_cast<float>(0x4059999au)},
+                                             2, "test")
                 .HasValue());
         EXPECT_EQ(tested.lighting->cells, expected->cells);
         EXPECT_EQ(ball.life, near ? 0 : 16);
@@ -1441,7 +1442,7 @@ TEST(HighEffectFamiliesTest, TheFlameBurstLeavesItsFlameAndItsLight)
                        TwinParticle(replay, 0x5da, 1, point, glm::vec3(0.0f), glm::vec3(1.0f), 1.0f));
     EXPECT_EQ(tested.random.State(), replay.State());
     auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
-    ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(
+    ASSERT_TRUE(Client::Terrain::AddDynamicLight(
                     expected.get(), point,
                     {std::bit_cast<float>(light[0]), std::bit_cast<float>(light[1]), std::bit_cast<float>(light[2])}, 2,
                     "test")
@@ -1744,7 +1745,7 @@ TEST(HighEffectFamiliesTest, TheShakingKundunPieceSpitsDustAndSmoke)
         const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(replay.Next() % 360)};
         static_cast<void>(replay.Next());
         const glm::vec3 point{1000.0f, 2000.0f, 300.0f};
-        auto twin = std::make_unique<WorldState>();
+        auto twin = Client::Tests::LentWorld();
         if (full)
             for (auto& joint : twin->DrawTail().joints)
                 joint.alive = true;
@@ -2017,7 +2018,7 @@ TEST(HighEffectFamiliesTest, TheLooseKundunEchoCallsFireAroundTheHero)
     const auto dy = static_cast<double>(replay.Next() % 1200 - 600);
     const glm::vec3 point{static_cast<float>(dx + 1202.0), static_cast<float>(dy + 1602.0), 100.0f};
     const glm::vec3 angles{0.0f, 0.0f, static_cast<float>(replay.Next() % 10 * 20)};
-    auto twin = std::make_unique<WorldState>();
+    auto twin = Client::Tests::LentWorld();
     const Client::Terrain::WorldTerrain twinTerrain;
     const auto fire = Client::Effects::CreateWizardModelEffect(
         twin->Map().effects, Client::Effects::WizardArguments(0xc2, point, angles, glm::vec3(1.0f), 0, nullptr, 0),

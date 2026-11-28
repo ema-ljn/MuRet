@@ -12,6 +12,7 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Kernel/DrawTailState.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"

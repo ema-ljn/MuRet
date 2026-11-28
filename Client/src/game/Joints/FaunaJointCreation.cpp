@@ -20,13 +20,12 @@
 #include <cmath>
 #include "Math/OriginalRetainedMath.h"
 #include "Kernel/ActorState.h"
-#include "Pets/DarkSpirit.h"
+#include "Kernel/ActorSpirit.h"
 #include "Fauna/FaunaObject.h"
-#include "Pets/HelperTable.h"
+#include "Kernel/HelperTable.h"
 #include "Joints/JointFamilies.h"
 #include "Joints/JointKernels.h"
-#include "WorldObjects/WorldObjects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include <glm/ext/vector_float3.hpp>
 #include <array>
 #include <bit>
@@ -1122,6 +1121,14 @@ CreateFaunaJoint(std::span<Kernel::JointState> joints, const Kernel::JointReques
     return std::optional<std::size_t>{};
 }
 
+Core::Expected<std::optional<std::size_t>, std::string> CreateJoint(std::span<Kernel::JointState> joints,
+                                                                    const Kernel::JointRequest& request,
+                                                                    Crt::CrtRandom& random,
+                                                                    Kernel::JointOwnerKind ownerKind)
+{
+    return CreateFaunaJoint(joints, request, random, ownerKind);
+}
+
 namespace
 {
 std::int32_t AddWrapped(std::int32_t value, std::uint32_t amount)
@@ -1684,7 +1691,7 @@ Core::Expected<void, std::string> StepTargetBolt(Kernel::JointState& joint, Crt:
     constexpr float Red = 0.4f, Blue = 0.8f;                  // 0x6b87b4 and 0x6b8a38
     const double luminosity = static_cast<double>((random->Next() & 3) + 8) * D(Step);
     const glm::vec3 color{F32(luminosity * D(Red)), F32(luminosity), F32(luminosity * D(Blue))};
-    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x537c75");
+    return Terrain::AddDynamicLight(lighting, joint.position, color, 2, "0x537c75");
 }
 
 // 0x53b7f1..0x53b93a: the 6e8/0 and /1, without the common move (0x53585e's list). With more than 9 life, thirty times
@@ -1802,7 +1809,7 @@ Core::Expected<void, std::string> StepArrowTrail(Kernel::JointState& joint, Crt:
         static_cast<double>((random->Next() & 3) + 8) * static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
     const glm::vec3 color{F32(luminosity * static_cast<double>(.4f)), F32(luminosity),
                           F32(luminosity * static_cast<double>(.8f))};
-    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x538011");
+    return Terrain::AddDynamicLight(lighting, joint.position, color, 2, "0x538011");
 }
 
 // 0x538a52..0x538a70, 0x538b17..0x538b4a, 0x538b5d..0x538bdf and 0x538cc9..0x538d28: the 619/1 and 619/3, after the

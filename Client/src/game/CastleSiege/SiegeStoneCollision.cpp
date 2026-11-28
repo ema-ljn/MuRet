@@ -2,14 +2,14 @@
 #include "CastleSiege/SiegeStoneEffects.h"
 #include "Core/Expected.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include <cmath>
 #include <span>
 #include <string>
 namespace Client::CastleSiege
 {
 Core::Expected<bool, std::string> CollideTheSiegeObject(Effects::ModelEffect& projectile,
-                                                        std::span<WorldObjects::WorldObject> objects, float radius,
+                                                        std::span<Kernel::WorldObject> objects, float radius,
                                                         float heightLimit, bool markOnly)
 {
     const auto& p = projectile.transform.position;

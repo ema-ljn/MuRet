@@ -16,7 +16,6 @@
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
 #include "Assets/FaunaModels.h"
-#include "Joints/FaunaJointCreation.h"
 #include "Effects/GuildMarkEffects.h"
 #include "Effects/FireBreathEffect.h"
 #include "Effects/HighEffectEmitters.h"
@@ -39,7 +38,7 @@
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "CastleSiege/SiegeStoneEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
 
@@ -736,8 +735,7 @@ Core::Expected<void, std::string> StepTheSiegeFlare(Effects::ModelEffect& effect
         }
     }
     constexpr glm::vec3 GlowColor{1.0f, std::bit_cast<float>(0x3f4ccccdu), std::bit_cast<float>(0x3f19999au)};
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, GlowColor, 1,
-                                         "0x52c4f1");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, GlowColor, 1, "0x52c4f1");
 }
 
 // 0x525f1a..0x525f65, the 0x141: scale 0.1f more (FST) and, with the x87 sum at 1 or more, the alpha 0.07f less and
@@ -1145,7 +1143,7 @@ Core::Expected<void, std::string> StepTheRadialShard(Effects::ModelEffect& effec
     constexpr double Fifth = Math::FifthAsDouble;                                        // 0x6b8854
     constexpr double TwoFifths = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4
     const glm::vec3 color{F32(D(luminosity) * Fifth), F32(D(luminosity) * TwoFifths), luminosity};
-    return WorldObjects::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
+    return Terrain::AddDynamicLight(context.services.lighting, position, color, 2, "0x521246");
 }
 
 // 0x52b9c1..0x52bb24, the 0x61e/6 (the decal 0x46 puts on the target, its owner, 0x4fe424): the owner's model

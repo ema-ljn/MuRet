@@ -20,17 +20,13 @@ class CrtRandom;
 namespace Client::Kernel
 {
 struct JointRequest;
+struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Particles
 {
 class Particles;
 } // namespace Client::Particles
-
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
 
 namespace Client::Events::ChaosCastle
 {
@@ -99,7 +95,7 @@ StepChaosCastlePrelude(std::int32_t count, const ChaosCastlePreludeContext& cont
 // 0x4055b0 por cada objeto visto, después de 0x604ab0: solo el 3, que suma 1 a la cuenta. Con la trampa armada
 // (0x6c634d, 1 en la .data; solo el paquete de 0x404e20 la vuelve a armar) prende +0x8a, deja +0x60 en 10 y la
 // desarma. Si no, con el selector distinto de 0 lo baja: +0x60 = 10 y +0x8a en 0, o en 1 si llegó a 0.
-void StepChaosCastleSeenObject(WorldObjects::WorldObject& object, std::int32_t& selector, std::int32_t& count,
+void StepChaosCastleSeenObject(Kernel::WorldObject& object, std::int32_t& selector, std::int32_t& count,
                                std::uint8_t& trapArmed);
 
 // 0x5ffdf0 (0x5ffdff..0x5ffe24): en los mapas 18 a 23, con +0x1a1 del héroe prendido, el alpha del objeto baja

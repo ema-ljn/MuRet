@@ -15,13 +15,11 @@
 #include "Actors/ActorCreation.h"
 #include "Kernel/ActorState.h"
 #include "Actors/CharacterStep.h"
-#include "Joints/FaunaJointCreation.h"
-#include "Kernel/DrawTailState.h"
-#include "Joints/JointFamilies.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Actors/SkillHits.h"
 #include "Kernel/WorldMap.h"
 #include "Kernel/WorldRuntime.h"
+#include "Kernel/JointCreation.h"
 #include "Kernel/WorldState.h"
 #include "Math/Ftol.h"
 #include "Effects/GameModelEffects.h"
@@ -32,7 +30,7 @@
 #include "Particles/SmokeParticleKernels.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Terrain/WorldTerrain.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
@@ -174,11 +172,10 @@ Core::Expected<void, std::string> CreateTheArrowTrail(Effects::ModelEffect& arro
     constexpr std::int32_t TrailJoint = 0x610, JointLife = 30, NoTarget = -1;
     for (std::int32_t joint = 0; joint < 4; ++joint)
     {
-        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
-                                                   {TrailJoint, trail.transform.position, trail.transform.position,
-                                                    trail.transform.angles, joint, &trail, trail.transform.scale,
-                                                    JointLife, subtype, 0, NoTarget},
-                                                   random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made =
+            world.CreateJoint({TrailJoint, trail.transform.position, trail.transform.position, trail.transform.angles,
+                               joint, &trail, trail.transform.scale, JointLife, subtype, 0, NoTarget},
+                              random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected("0x51a08a/aa/cd/ed: " + made.Error());
     }
@@ -259,11 +256,10 @@ Core::Expected<void, std::string> BeginTheArrow(Effects::ModelEffect& effect, Ke
         // 0x51c542..0x51c56c: 0x530860(0x610, position, position, angles, 0xe, arrow, 50, 40, 0, 0, −1).
         constexpr std::int32_t ViperTrailSubtype = 0xe, ViperTrailKey = 0x28;
         constexpr float ViperTrailWidth = 50.0f; // 0x42480000
-        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
-                                                   {0x610, effect.transform.position, effect.transform.position,
-                                                    effect.transform.angles, ViperTrailSubtype, &effect,
-                                                    ViperTrailWidth, ViperTrailKey, 0, 0, -1},
-                                                   random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made =
+            world.CreateJoint({0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                               ViperTrailSubtype, &effect, ViperTrailWidth, ViperTrailKey, 0, 0, -1},
+                              random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c56c: {}", made.Error()));
     }
@@ -284,10 +280,9 @@ Core::Expected<void, std::string> BeginTheArrow(Effects::ModelEffect& effect, Ke
     }
     if (type == NatureArrow && effect.subtype == 1)
     {
-        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
-                                                   {0x610, effect.transform.position, effect.transform.position,
-                                                    effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
-                                                   random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = world.CreateJoint({0x610, effect.transform.position, effect.transform.position,
+                                             effect.transform.angles, 13, &effect, 20, 40, 0, 0, -1},
+                                            random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(made.Error());
     }
@@ -306,11 +301,10 @@ Core::Expected<void, std::string> BeginTheArrow(Effects::ModelEffect& effect, Ke
         // 0x51c6ef..0x51c713: 0x530860(0x610, position, position, angles, 0xc, arrow, 40, 80, 0, 0, −1).
         constexpr std::int32_t TwentiethTrailSubtype = 0xc, TwentiethTrailKey = 0x50;
         constexpr float TwentiethTrailWidth = 40.0f; // 0x42200000
-        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
-                                                   {0x610, effect.transform.position, effect.transform.position,
-                                                    effect.transform.angles, TwentiethTrailSubtype, &effect,
-                                                    TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
-                                                   random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made =
+            world.CreateJoint({0x610, effect.transform.position, effect.transform.position, effect.transform.angles,
+                               TwentiethTrailSubtype, &effect, TwentiethTrailWidth, TwentiethTrailKey, 0, 0, -1},
+                              random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("0x51c713: {}", made.Error()));
     }
@@ -363,10 +357,9 @@ Core::Expected<void, std::string> BeginCelestialArrow(Effects::ModelEffect& effe
     const int joints = celestial ? 3 : 4;
     for (int joint = 0; joint < joints; ++joint)
     {
-        const auto made = Joints::CreateFaunaJoint(world.DrawTail().joints,
-                                                   {ArrowJoint, effect.start, effect.start, angles, jointSubtype,
-                                                    &effect, ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
-                                                   random, Kernel::JointOwnerKind::ModelEffect);
+        const auto made = world.CreateJoint({ArrowJoint, effect.start, effect.start, angles, jointSubtype, &effect,
+                                             ArrowJointScale, NoKey, joint == 1 ? 1 : 0, 0, NoTarget},
+                                            random, Kernel::JointOwnerKind::ModelEffect);
         if (!made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", celestial ? 0x51a3b7u : 0x51a405u, made.Error()));
     }
@@ -407,7 +400,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(Effects::ModelEffect& effec
         const auto address = effect.type == SaintArrow ? 0x51a24au : effect.type == ReignArrow ? 0x51bf35u : 0x51a173u;
         constexpr std::int32_t ArrowBeamSubtype = 5;
         constexpr float ArrowBeamWidth = 100.0f; // 0x42c80000
-        const Kernel::JointRequest request{.type = Joints::JointFamilies::BeamJoint,
+        const Kernel::JointRequest request{.type = Kernel::BeamJoint,
                                            .firstPosition = effect.transform.position,
                                            .secondPosition = effect.transform.position,
                                            .angles = effect.transform.angles,
@@ -418,9 +411,7 @@ Core::Expected<void, std::string> BeginAdvancedArrow(Effects::ModelEffect& effec
                                            .skill = 0,
                                            .skillSerial = 0,
                                            .target = -1};
-        if (auto made =
-                Joints::CreateFaunaJoint(world.DrawTail().joints, request, random, Kernel::JointOwnerKind::ModelEffect);
-            !made.HasValue())
+        if (auto made = world.CreateJoint(request, random, Kernel::JointOwnerKind::ModelEffect); !made.HasValue())
             return Core::Unexpected(std::format("{:#x}: {}", address, made.Error()));
     }
     if (effect.type != ReignArrow && effect.subtype != 0)
@@ -493,7 +484,7 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
     // 0x13a (JointFamilies::StormJoint, creation 0x534977, without rand()); with the joints full, nothing.
     constexpr std::int32_t BlastJointSubtype = 4, BlastJointKey = 0x32, NoTarget = -1;
     constexpr float BlastJointWidth = 40.0f; // 0x42200000
-    const Kernel::JointRequest request{.type = Joints::JointFamilies::StormJoint,
+    const Kernel::JointRequest request{.type = Kernel::StormJoint,
                                        .firstPosition = blast.transform.position,
                                        .secondPosition = blast.transform.position,
                                        .angles = blast.transform.angles,
@@ -504,8 +495,7 @@ Core::Expected<void, std::string> CreateTheBlast(Kernel::ActorState& owner, Kern
                                        .skill = 0,
                                        .skillSerial = 0,
                                        .target = NoTarget};
-    if (auto made = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
-                                             Kernel::JointOwnerKind::ModelEffect);
+    if (auto made = context.world.CreateJoint(request, context.random, Kernel::JointOwnerKind::ModelEffect);
         !made.HasValue())
         return Core::Unexpected(std::format("0x51e01a: {}", made.Error()));
     // 0x51e01f..0x51e04d: the volley count in +0x8c.
@@ -538,7 +528,7 @@ Core::Expected<void, std::string> CreateTheReignHandShine(Kernel::ActorState& ac
         {
             const Kernel::JointRequest request{ShineJoint, point, point, angles, ShineSubtype, nullptr, 10.0f,
                                                -1,         0,     0,     -1};
-            const auto joint = Joints::CreateFaunaJoint(context.joints, request, context.random);
+            const auto joint = context.world.CreateJoint(context.joints, request, context.random);
             if (!joint.HasValue())
                 return Core::Unexpected(std::format("0x53e6a8: {}", joint.Error()));
         }
@@ -693,8 +683,7 @@ Core::Expected<void, std::string> CreatePiercingImpactJoint(Effects::ModelEffect
                                        0,
                                        0,
                                        -1};
-    const auto created = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random,
-                                                  Kernel::JointOwnerKind::ModelEffect);
+    const auto created = context.world.CreateJoint(request, context.random, Kernel::JointOwnerKind::ModelEffect);
     if (!created.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, created.Error()));
     return {};
@@ -905,7 +894,7 @@ Core::Expected<void, std::string> GreenLight(const Effects::ModelEffect& effect,
     const double six = static_cast<double>(std::bit_cast<float>(0x3f19999au));
     const double eight = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
     const glm::vec3 color{F32(D(luminosity) * six), F32(D(luminosity) * eight), F32(D(luminosity) * eight)};
-    return WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, address);
+    return Terrain::AddDynamicLight(context.lighting, effect.transform.position, color, 2, address);
 }
 
 // 0x52413a..0x5241f1: arrow 0xdb with subtype 3 or 4. With 3, +0xe4 is added to the angles' x; x stays at 50 at most
@@ -971,7 +960,7 @@ Core::Expected<void, std::string> StepBowArrow(Effects::ModelEffect& effect, flo
     const double half = 0.5;
     const double fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
     const glm::vec3 color{F32(D(luminosity) * eight), F32(D(luminosity) * half), F32(D(luminosity) * fifth)};
-    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x5240a5");
+    if (auto lit = Terrain::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x5240a5");
         !lit.HasValue())
         return lit;
     // 0x5240aa..0x5240bc: subtypes 3 and 4 (the siege ones) do not hit.
@@ -1016,7 +1005,7 @@ Core::Expected<void, std::string> StepTheFortressArrow(Effects::ModelEffect& eff
     const double fifth = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu)); // 0x6b8854
     const double eight = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu)); // 0x6b8a38
     const glm::vec3 color{F32(D(luminosity) * fifth), F32(D(luminosity) * eight), F32(D(luminosity) * fifth)};
-    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x52688a");
+    if (auto lit = Terrain::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x52688a");
         !lit.HasValue())
         return lit;
     constexpr double Turn = 60.0; // 0x6b86cc
@@ -1219,7 +1208,7 @@ Core::Expected<void, std::string> StepTwentiethArrow(Effects::ModelEffect& effec
     glm::vec3 color{};
     for (int axis = 0; axis < 3; ++axis)
         color[axis] = F32(D(luminosity) * D(Tint[axis]));
-    if (auto lit = WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x526c44");
+    if (auto lit = Terrain::AddDynamicLight(context.lighting, effect.transform.position, color, 2, "0x526c44");
         !lit.HasValue())
         return lit;
     return HitWithTheArrow(effect, context);
@@ -1232,7 +1221,7 @@ Core::Expected<void, std::string> ArrowLightAt(const glm::vec3& position, float 
     for (int axis = 0; axis < 3; ++axis)
         color[axis] = F32(D(luminosity) * D(tint[axis]));
     constexpr int Radius = 2;
-    return WorldObjects::AddDynamicLight(context.lighting, position, color, Radius, address);
+    return Terrain::AddDynamicLight(context.lighting, position, color, Radius, address);
 }
 
 // 0x523f33..0x524067: the /1 hits; the others light the start and return without the hit.
@@ -1533,8 +1522,7 @@ Core::Expected<void, std::string> StepArrow(Effects::ModelEffect& effect, const 
     case TourArrow:
         // 0x524210 → 0x52c4e9: red light and the common tail; it skips the arrows' hit.
         effect.light = {1.0f, 0.0f, 0.0f};
-        stepped =
-            WorldObjects::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
+        stepped = Terrain::AddDynamicLight(context.lighting, effect.transform.position, effect.light, 2, "0x52c4f1");
         break;
     case BowArrow:
         stepped = StepBowArrow(effect, luminosity, context);

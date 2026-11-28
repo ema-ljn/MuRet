@@ -28,8 +28,8 @@ game/Ui	game	8		*layer<8;game/Assets;game/Sound	the widget kit
 game/Actors	game	9		*layer<9;game/Particles	actors and character drawing
 game/Player	game	9		*layer<9	the player state
 game/Hero	game	9		*layer<9;game/Actors;game/Combat;game/Events;game/Events/Crywolf;game/Guild;game/Movement;game/Player;game/Skills;game/Social	the hero's attack and facing
-game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Joints;game/Particles;game/Pets;game/Player;game/WorldObjects	monsters and their drawing
-game/Pets	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Events;game/Fauna;game/Particles;game/Player	pets
+game/Monsters	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Fauna;game/Joints;game/Particles;game/Pets;game/Player	monsters and their drawing
+game/Pets	game	9		*layer<9;game/Actors;game/Chat;game/Effects;game/Events;game/Fauna;game/Joints;game/Particles;game/Player	pets
 game/Movement	game	9		*layer<9;game/Actors;game/Chat;game/Items;game/Player	the player's path, gates, speed
 game/Skills	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Combat;game/Effects;game/Events;game/Events/Crywolf;game/Fauna;game/Hud;game/Items;game/Joints;game/Monsters;game/Movement;game/Particles;game/Party;game/Player	the hero's skills and their replies
 game/Combat	game	9		*layer<9;game/Actors;game/CastleSiege;game/Chat;game/Effects;game/Events;game/Fauna;game/Guild;game/Items;game/Joints;game/Particles;game/Player;game/Social	combat
@@ -46,24 +46,24 @@ game/Messenger	game	9		*layer<9;game/Actors;game/Combat;game/Items;game/Pets;gam
 game/PersonalShop	game	9		*layer<9;game/Actors;game/CastleSiege;game/FrontEnd;game/Npc;game/Player	the personal shop
 game/Chat	game	9		*layer<9;game/Actors;game/FrontEnd;game/Player	chat
 game/Guild	game	9		*layer<9;game/Actors;game/Events;game/Player	guild, alliance and war
-game/Events	game	9		*layer<9;game/Actors;game/CastleSiege;game/ChaosMix;game/Chat;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	Blood Castle, Devil Square and Chaos Castle around the object and windows they share, and what the events share; Kalima waits for AR4.3 (ADR 0029)
-game/Events/Crywolf	game	9		*layer<9;game/Actors;game/Events;game/Fauna;game/Joints;game/Particles	the Crywolf event: its packets, contract, interface, music and camera tour (ADR 0029)
+game/Events	game	9		*layer<9;game/Actors;game/CastleSiege;game/ChaosMix;game/Chat;game/Effects;game/Fauna;game/Items;game/Joints;game/Particles;game/Player;game/Social	Blood Castle, Devil Square and Chaos Castle around the object and windows they share, and what the events share; Kalima waits for AR4.3 (ADR 0029)
+game/Events/Crywolf	game	9		*layer<9;game/Actors;game/Effects;game/Events;game/Fauna;game/Joints;game/Particles	the Crywolf event: its packets, contract, interface, music and camera tour (ADR 0029)
 game/CastleSiege	game	9		*layer<9;game/Actors;game/Items;game/Movement;game/Particles;game/Player;game/Tooltips	Castle Siege
-game/WorldObjects	game	9		*layer<9;game/Fauna;game/Weather	world objects
+game/WorldObjects	game	9		*layer<9;game/Actors;game/Effects;game/Events;game/Fauna;game/MapScripts/Aida;game/MapScripts/Atlans;game/MapScripts/CastleSiege;game/MapScripts/Crywolf;game/MapScripts/Dungeon;game/MapScripts/Icarus;game/MapScripts/Kalima;game/MapScripts/LandOfTrials;game/MapScripts/Noria;game/MapScripts/Tarkan;game/Particles;game/Weather	world objects
 game/MapScripts/Aida	game	9		*layer<9;game/Effects;game/Particles	what Aida does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Atlans	game	9		*layer<9;game/Particles	what Atlans does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/CastleSiege	game	9		*layer<9;game/Particles	what the Castle Siege map does with the map as its gate: its object steps and services (ADR 0029)
-game/MapScripts/Crywolf	game	9		*layer<9;game/Effects;game/Particles	what the Crywolf map does with the map as its gate: its object steps and services (ADR 0029)
-game/MapScripts/Dungeon	game	9		*layer<9;game/Effects	what Dungeon does with the map as its gate: its object steps and services (ADR 0029)
+game/MapScripts/Crywolf	game	9		*layer<9;game/Actors;game/Effects;game/Particles	what the Crywolf map does with the map as its gate: its object steps and services (ADR 0029)
+game/MapScripts/Dungeon	game	9		*layer<9;game/Effects;game/Particles	what Dungeon does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Icarus	game	9		*layer<9;game/Effects;game/Fauna;game/Particles	what Icarus does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Kalima	game	9		*layer<9;game/Actors;game/Effects;game/Events;game/Fauna;game/Particles	what Kalima does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/LandOfTrials	game	9		*layer<9;game/Particles	what the Land of Trials does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Noria	game	9		*layer<9;game/Fauna;game/Particles	what Noria does with the map as its gate: its object steps and services (ADR 0029)
 game/MapScripts/Tarkan	game	9		*layer<9;game/Effects;game/Particles	what Tarkan does with the map as its gate: its object steps and services (ADR 0029)
-game/Fauna	game	9		*layer<9;game/Actors;game/Particles	birds and fish
+game/Fauna	game	9		*layer<9;game/Actors;game/Effects;game/Particles	birds and fish
 game/Weather	game	9		*layer<9;game/Actors;game/Movement;game/Particles	leaves, rain and clouds
 game/Particles	game	9		*layer<9	particles
-game/Joints	game	9		*layer<9;game/Actors;game/Particles;game/WorldObjects	joints
+game/Joints	game	9		*layer<9;game/Actors;game/Effects;game/Fauna;game/Particles	joints
 game/Effects	game	9		*layer<9;game/Actors;game/Particles;game/Player	model effects
 game/Hud	game	9		*layer<9;game/Actors;game/Combat;game/FrontEnd;game/Movement;game/Player	the HUD and its dialogs
 game/FrontEnd	game	9		*layer<9;game/Actors;game/ChaosMix;game/Effects;game/Events;game/Fauna;game/Items;game/Joints;game/Npc;game/Particles;game/Pets;game/Player;game/WorldObjects	login, server list, character selection and creation

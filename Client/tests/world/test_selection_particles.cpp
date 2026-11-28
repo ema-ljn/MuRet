@@ -6,7 +6,7 @@
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
 #include "Particles/SelectionParticleKernels.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -71,13 +71,13 @@ public:
 // A 0x5446e0 step with the world clock and the objects of `objects` as owners.
 Client::Core::Expected<void, ParticleError> Step(Particles& particles, CrtRandom& random, float clock,
                                                  RecordingSine& sine,
-                                                 std::vector<Client::WorldObjects::WorldObject>* objects = nullptr)
+                                                 std::vector<Client::Kernel::WorldObject>* objects = nullptr)
 {
     const std::int32_t map = 54;
     Client::Particles::ParticleObjectOwners owners;
     if (objects != nullptr)
     {
-        owners = [objects](std::uint64_t identity) -> Client::WorldObjects::WorldObject*
+        owners = [objects](std::uint64_t identity) -> Client::Kernel::WorldObject*
         {
             for (auto& object : *objects)
             {
@@ -302,10 +302,10 @@ TEST(SelectionParticlesTest, TheOwnedMistDrawsSevenTimesAndAddsTheScaleArgumentT
 // and the turn, the clock times the factor times 0.02 plus the phase.
 TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsSeen)
 {
-    std::vector<Client::WorldObjects::WorldObject> objects(1);
+    std::vector<Client::Kernel::WorldObject> objects(1);
     objects[0].identity = 77;
     objects[0].seen = true;
-    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    objects[0].state.hiddenMesh = Client::Kernel::HiddenObject;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
@@ -323,7 +323,7 @@ TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsS
     ASSERT_TRUE(Step(*particles, random, clock, sine, &objects).HasValue());
     EXPECT_EQ(p.life, 50);
     EXPECT_TRUE(p.alive);
-    EXPECT_EQ(objects[0].state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(objects[0].state.hiddenMesh, Client::Kernel::HiddenObject);
     ASSERT_EQ(sine.arguments.size(), 1u);
     EXPECT_EQ(sine.arguments[0], (1234.0 + 500.0) * static_cast<double>(std::bit_cast<float>(0x3951b717u)));
     EXPECT_EQ(p.position.z, F32(3.0 + 310.0));
@@ -334,10 +334,10 @@ TEST(SelectionParticlesTest, TheOwnedMistFloatsWithTheWorldClockWhileItsOwnerIsS
 // finishes its height and turn.
 TEST(SelectionParticlesTest, TheOwnedMistLetsItsOwnerEmitAgainWhenItDiesUnseen)
 {
-    std::vector<Client::WorldObjects::WorldObject> objects(1);
+    std::vector<Client::Kernel::WorldObject> objects(1);
     objects[0].identity = 77;
     objects[0].seen = false;
-    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    objects[0].state.hiddenMesh = Client::Kernel::HiddenObject;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];
     p.alive = true;
@@ -362,7 +362,7 @@ TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
     for (std::int32_t subtype = 0; subtype <= 5; ++subtype)
     {
         SCOPED_TRACE(subtype);
-        std::vector<Client::WorldObjects::WorldObject> objects(1);
+        std::vector<Client::Kernel::WorldObject> objects(1);
         objects[0].identity = 77;
         objects[0].seen = true;
         auto particles = std::make_unique<Particles>();
@@ -393,7 +393,7 @@ TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
 // Without the owner object among the map's, the step cuts with MissingOwner before writing the particle.
 TEST(SelectionParticlesTest, TheOwnedMistNeedsItsOwnerAmongTheMapObjects)
 {
-    std::vector<Client::WorldObjects::WorldObject> objects(1);
+    std::vector<Client::Kernel::WorldObject> objects(1);
     objects[0].identity = 5;
     auto particles = std::make_unique<Particles>();
     Particle& p = particles->All()[0];

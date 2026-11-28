@@ -32,6 +32,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/LentWorld.h"
 #include "support/LetterMeasure.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
@@ -302,7 +303,7 @@ protected:
     FakeTextureStore m_textures;
     FakeClock m_clock;
     std::unique_ptr<Models::ClothWorld> m_cloth = std::make_unique<Models::ClothWorld>();
-    std::unique_ptr<Kernel::WorldState> m_world = std::make_unique<Kernel::WorldState>();
+    std::unique_ptr<Kernel::WorldState> m_world = Client::Tests::LentWorld();
     std::unique_ptr<Session::ModuleStates> m_states = std::make_unique<Session::ModuleStates>();
     std::unique_ptr<FrontEnd::SelectionState> m_selection = std::make_unique<FrontEnd::SelectionState>(*m_world);
     std::unique_ptr<Assets::GameModels> m_models = std::make_unique<Assets::GameModels>();

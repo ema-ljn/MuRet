@@ -3,7 +3,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "WorldObjects/IWorldObjectCreationServices.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 
 #include <gtest/gtest.h>
 
@@ -30,7 +30,7 @@ TEST(WorldObjectCreationFactorTest, CastleAndMap31UseTheBorrowedFactorForANonzer
         SCOPED_TRACE(test.map);
         SCOPED_TRACE(test.type);
         const Client::Data::Terrain::TerrainObject record{.type = test.type};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::Crt::CrtRandom random(1);
         const std::uint8_t state = 0;
         float factor = 0.02f;
@@ -47,7 +47,7 @@ TEST(WorldObjectCreationFactorTest, CastleAndMap31UseTheBorrowedFactorForANonzer
 TEST(WorldObjectCreationFactorTest, ReusingTheContextReadsTheChangedStorageWithoutReseedingTheCrt)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 27};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::Crt::CrtRandom random(1);
     float factor = 0.01f;
     Client::WorldObjects::WorldObjectCreationContext context{
@@ -74,7 +74,7 @@ public:
     }
 
     bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
-                           Client::WorldObjects::WorldObject& source) noexcept override
+                           Client::Kernel::WorldObject& source) noexcept override
     {
         if (request.type != 309 || request.owner != source.identity)
         {
@@ -94,7 +94,7 @@ private:
 TEST(WorldObjectCreationFactorTest, Map31ReadsTheFactorChangedByTheEarlier309Emitter)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::Crt::CrtRandom random(1);
     float factor = 0.01f;
     Client::WorldObjects::WorldObjectCreationContext context{
@@ -115,7 +115,7 @@ TEST(WorldObjectCreationFactorTest, BorrowedFactorAcceptsLvaluesRejectsRvaluesAn
 {
     using Context = Client::WorldObjects::WorldObjectCreationContext;
     using Scene = Client::WorldObjects::ObjectScene;
-    using Registry = Client::WorldObjects::WorldObjectRegistrations;
+    using Registry = Client::Kernel::WorldObjectRegistrations;
     using Services = Client::WorldObjects::IWorldObjectCreationServices;
     using Random = Client::Crt::CrtRandom;
     EXPECT_TRUE((std::is_constructible_v<Context, std::int32_t, Scene, Registry&, Services*, Random*,
@@ -147,6 +147,6 @@ TEST(WorldObjectCreationFactorTest, EmissionProviderContractRequiresNormalReturn
 {
     EXPECT_TRUE(noexcept(std::declval<Client::WorldObjects::IWorldObjectCreationServices&>().CreateModelEffect(
         std::declval<const Client::WorldObjects::WorldObjectModelEffectRequest&>(),
-        std::declval<Client::WorldObjects::WorldObject&>())));
+        std::declval<Client::Kernel::WorldObject&>())));
 }
 } // namespace

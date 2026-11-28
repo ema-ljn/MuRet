@@ -10,7 +10,7 @@
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -95,7 +95,7 @@ bool Turn(JointState& joint, CrtRandom& replay, Client::Terrain::TerrainLighting
     if (lighting != nullptr)
     {
         const glm::vec3 glow(std::bit_cast<float>(GlowBits[shade]));
-        EXPECT_TRUE(Client::WorldObjects::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
+        EXPECT_TRUE(Client::Terrain::AddDynamicLight(lighting, joint.position, glow, 2, "prueba").HasValue());
     }
     const auto moved =
         Client::Math::OriginalVectorRotate({0.0f, -joint.speed, 0.0f}, Client::Math::OriginalAngleMatrix(shaken));

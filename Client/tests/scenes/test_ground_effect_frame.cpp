@@ -8,6 +8,7 @@
 #include "Render/TextureSlot.h"
 #include "Effects/GroundEffectDrawing.h"
 #include "Effects/ModelEffects.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "MapScripts/Kalima/KalimaWaves.h"
 

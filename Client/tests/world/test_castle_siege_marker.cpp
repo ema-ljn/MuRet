@@ -1,7 +1,7 @@
 #include "CastleSiege/CastleSiegeObjectStep.h"
 
 #include "Crt/CrtRandom.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <gtest/gtest.h>
 
@@ -13,12 +13,12 @@ TEST(CastleSiegeMarkerTest, WarUsesTheWholeCrownFlagsAndScrollsTheMarkerWithoutR
 {
     bool war = true;
     std::uint32_t flags = 0;
-    Client::WorldObjects::ObjectStepGlobals globals;
+    Client::Kernel::ObjectStepGlobals globals;
     globals.siegeActive = &war;
     globals.siegeCrownFlags = &flags;
     globals.worldClock = 12345.5f;
     Client::Crt::CrtRandom random(7);
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x42;
     for (const std::uint32_t value : {0u, 0x20000u, 0x20001u})
     {

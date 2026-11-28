@@ -4,6 +4,7 @@
 
 #include "Crt/CrtRandom.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ParticleDrawServices.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -93,7 +94,7 @@ public:
         return metadata ? std::optional(metadata->size) : std::nullopt;
     }
 };
-Client::WorldObjects::WorldObject Marker(std::int16_t type = CloudMarker)
+Client::Kernel::WorldObject Marker(std::int16_t type = CloudMarker)
 {
     Client::Data::Terrain::TerrainObject record;
     record.type = type;
@@ -104,9 +105,8 @@ Client::WorldObjects::WorldObject Marker(std::int16_t type = CloudMarker)
                                                        Client::WorldObjects::ObjectScene::Login)
         .front();
 }
-void Emit(Client::WorldObjects::WorldObject& object, Client::Particles::Particles& particles,
-          Client::Crt::CrtRandom& random, std::uint8_t map = LoginMap,
-          const Client::Terrain::TerrainPolygon& polygon = {.everything = true})
+void Emit(Client::Kernel::WorldObject& object, Client::Particles::Particles& particles, Client::Crt::CrtRandom& random,
+          std::uint8_t map = LoginMap, const Client::Terrain::TerrainPolygon& polygon = {.everything = true})
 {
     const CloudTextures models;
     Client::Render::ModelBatch batch;
@@ -200,9 +200,8 @@ TEST(LoginCloudDrawingTest, TheMeteorMarkerCutsInsideItsWindow)
 }
 
 // Map 55's 0x59 drawn once with the clock `clock`, with the model effects table.
-std::vector<std::string> DropTheMeteor(Client::WorldObjects::WorldObject& object,
-                                       Client::Effects::ModelEffects& effects, Client::Crt::CrtRandom& random,
-                                       std::int64_t clock)
+std::vector<std::string> DropTheMeteor(Client::Kernel::WorldObject& object, Client::Effects::ModelEffects& effects,
+                                       Client::Crt::CrtRandom& random, std::int64_t clock)
 {
     const CloudTextures models;
     Client::Particles::Particles particles;
@@ -348,9 +347,9 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
     SetCloud(particles.All()[4], 40.0f);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures,
-                                                    Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f)
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::Effects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f)
+            .HasValue());
     std::size_t draws = 0;
     for (const auto& command : batch.Commands())
     {
@@ -375,9 +374,9 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
         EXPECT_FLOAT_EQ(vertex.position.z, -300.0f);
     }
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures,
-                                                    Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f)
-                    .HasValue());
+    ASSERT_TRUE(
+        Client::Effects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f)
+            .HasValue());
     EXPECT_FLOAT_EQ(particles.All()[1].rotation, 2.0f) << "no acumula el giro anterior";
     EXPECT_FLOAT_EQ(particles.All()[4].rotation, 48.0f);
 }

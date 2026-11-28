@@ -96,7 +96,7 @@
 #include "Ui/Widget.h"
 #include "Camera/GameCamera.h"
 #include "Terrain/GroundMarks.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Terrain/SphereFrustum.h"
 #include "Terrain/TerrainCells.h"
 #include "Terrain/TerrainCulling.h"
@@ -107,7 +107,8 @@
 #include "Terrain/TerrainHeight.h"
 #include "MapScripts/Tarkan/TarkanObjectStep.h"
 #include "Terrain/TerrainPickingSegment.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 #include "Kernel/JointRequest.h"
@@ -487,7 +488,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
 {
     Kernel::WorldState& world = *m_context.world;
     const std::int32_t map = world.Runtime().map;
-    std::span<WorldObjects::WorldObject> objects = world.Map().objects;
+    std::span<Kernel::WorldObject> objects = world.Map().objects;
     if (Maps::IsKalimaMap(map))
     {
         // 606572 antes del early-return y del reset60657a, incluso sin un objeto visto.
@@ -624,12 +625,11 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                                                         .heroZ = world.Hero().position.z,
                                                         .cameraShake = &CameraInputState().shake,
                                                         .attributes = MapTerrain().attributes.get()};
-    const WorldObjects::AfterObjectStep collapse = [&collapseContext](WorldObjects::WorldObject& object)
+    const WorldObjects::AfterObjectStep collapse = [&collapseContext](Kernel::WorldObject& object)
     { return Events::CollapseTheObject(object, collapseContext); };
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no le hace el paso a ninguno: queda
     // el derrumbe con los vivos y la cuenta (0x606610).
-    if (std::ranges::none_of(objects,
-                             [](const WorldObjects::WorldObject& object) { return object.alive && object.seen; }))
+    if (std::ranges::none_of(objects, [](const Kernel::WorldObject& object) { return object.alive && object.seen; }))
     {
         if (auto walked = WorldObjects::WalkTheObjectSectors(objects, {}, collapse); !walked.HasValue())
             return Core::Unexpected(walked.Error() + ", en el " + MapText(map));
@@ -653,7 +653,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso; el 1 y el 4
     // crean efectos con modelo y la patada del 4 mira la acción del héroe.
     const Kernel::ActorState& hero = world.Hero();
-    const WorldObjects::ObjectStepGlobals globals{
+    const Kernel::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
         .worldClock = worldClock,
         .dynamicLighting = &DynamicLight().Lighting(),
@@ -680,13 +680,13 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .siegeCrownFlags = &world.Runtime().castleSiege.castleFlags7239e4};
     WorldObjects::AfterObjectStep after;
     if (icarus)
-        after = [&](WorldObjects::WorldObject& object)
+        after = [&](Kernel::WorldObject& object)
         {
             return MapScripts::Icarus::StepIcarusSeenObject(object, icarusSelector,
                                                             world.Runtime().objectSelectionCount, *icarus);
         };
     if (chaosCastle)
-        after = [&](WorldObjects::WorldObject& object) -> Core::Expected<void, std::string>
+        after = [&](Kernel::WorldObject& object) -> Core::Expected<void, std::string>
         {
             Events::ChaosCastle::StepChaosCastleSeenObject(object, chaosCastleSelector,
                                                            world.Runtime().objectSelectionCount,
@@ -695,7 +695,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         };
     // 0x6063d0 → 0x42c500 en el 30, con el reloj del paso.
     if (map == CastleMap)
-        after = [&](WorldObjects::WorldObject& object)
+        after = [&](Kernel::WorldObject& object)
         {
             return CastleSiege::StepCastleSiegeSeenObject(
                 object, world.Runtime().castleSiege.siegeActive, worldClock,
@@ -1121,7 +1121,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
                               (map >= ArenaMap && map <= Maps::LastChaosCastleMap) || map == CastleMap ||
                               map == LandOfTrialsMap || map == AidaMap || map == CrywolfMap || Maps::IsKalimaMap(map);
     if (!knownObjects &&
-        std::ranges::any_of(FrameObjects(), [](const WorldObjects::WorldObject& object) { return object.alive; }))
+        std::ranges::any_of(FrameObjects(), [](const Kernel::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
                                 " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, "
@@ -1138,126 +1138,107 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(Render::Frame::Sce
     // del mundo (0x5767b88), el del frame, como el de la cámara.
     if (knownObjects)
     {
-        if (auto
-                objects = WorldObjects::DrawGameWorldObjects(canvas.models, m_worldModels, FrameObjects(), polygon,
-                                                             &FrameLighting(), canvas.frameClock,
-                                                             WorldObjects::GameObjectPass{.map =
-                                                                                              static_cast<std::uint8_t>(
-                                                                                                  map),
-                                                                                          .originalFrame = frames > 0,
-                                                                                          .random =
-                                                                                              &FrameCloth().random,
-                                                                                          .heroClass =
-                                                                                              hero.characterClass,
-                                                                                          .ownLevel =
-                                                                                              world.OwnCharacter()
-                                                                                                  .level,
-                                                                                          .ownRecordDepth =
-                                                                                              m_projectingFrame
-                                                                                                  ? &m_projection
-                                                                                                         ->ownRecordDepth
-                                                                                                  : &world.Runtime().ownRecordDepth,
-                                                                                          .worldClock = static_cast<float>(std::
-                                                                                                                               chrono::
-                                                                                                                                   duration_cast<std::chrono::milliseconds>(canvas
+        if (auto objects = WorldObjects::DrawGameWorldObjects(canvas.models, m_worldModels, FrameObjects(), polygon,
+                                                              &FrameLighting(), canvas.frameClock,
+                                                              Kernel::GameObjectPass{.map =
+                                                                                         static_cast<std::uint8_t>(map),
+                                                                                     .originalFrame = frames > 0,
+                                                                                     .random = &FrameCloth().random,
+                                                                                     .heroClass = hero.characterClass,
+                                                                                     .ownLevel =
+                                                                                         world.OwnCharacter().level,
+                                                                                     .ownRecordDepth =
+                                                                                         m_projectingFrame
+                                                                                             ? &m_projection
+                                                                                                    ->ownRecordDepth
+                                                                                             : &world.Runtime()
+                                                                                                    .ownRecordDepth,
+                                                                                     .worldClock = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas
                                                                                                                                                                                 .frameClock)
-                                                                                                                                       .count()),
-                                                                                          .particles = &FrameParticles(),
-                                                                                          .onPose =
-                                                                                              [&](const Actors::Drawing::DrawnObject& drawn) {
-                                                                                                  return Actors::Drawing::
-                                                                                                      PublishPose(
-                                                                                                          FramePoseCarry(),
-                                                                                                          m_worldModels,
-                                                                                                          drawn, true);
-                                                                                              },
-                                                                                          .sprites =
-                                                                                              &FrameSpritesForDraw(),
-                                                                                          .retainedPose =
-                                                                                              &FramePoseCarry(),
-                                                                                          .createJoint = [&](const Kernel::JointRequest
-                                                                                                                 & request) -> Core::Expected<void, std::string>
-                                                                                          {
-                                                                                              const auto created =
-                                                                                                  Joints::
-                                                                                                      CreateFaunaJoint(
-                                                                                                          FrameTail()
-                                                                                                              .joints,
-                                                                                                          request,
-                                                                                                          FrameCloth()
-                                                                                                              .random);
-                                                                                              if (!created.HasValue())
-                                                                                                  return Core::
-                                                                                                      Unexpected(
-                                                                                                          created
-                                                                                                              .Error());
-                                                                                              return {};
-                                                                                          },
-                                                                                          .modelState = &FrameModelState(),
-                                                                                          .publishProjectedPose = true,
-                                                                                          .waterTextureFrame =
-                                                                                              FrameCloth()
-                                                                                                  .waterTextureFrame,
-                                                                                          .hero = &hero,
-                                                                                          .kalima = FrameKalima(),
-                                                                                          .requestSound =
-                                                                                              [&](Audio::SoundId sound)
-                                                                                          {
-                                                                                              if (frames > 0 &&
-                                                                                                  !m_projectingFrame)
-                                                                                              {
-                                                                                                  world.Fauna().Sound(
-                                                                                                      sound.Value(),
-                                                                                                      nullptr);
-                                                                                                  world.Runtime()
-                                                                                                      .RequestSound(
-                                                                                                          sound);
-                                                                                              }
-                                                                                          },
-                                                                                          .effects = &FrameEffects(),
-                                                                                          // Q-C304: el 0x46 de Aida lee
-                                                                                          // timeGetTime (0x6b8544);
-                                                                                          // MuRet le presta el reloj
-                                                                                          // del dibujo.
-                                                                                          .systemTime = [systemTime = static_cast<std::
-                                                                                                                                      uint32_t>(std::
-                                                                                                                                                    chrono::
-                                                                                                                                                        duration_cast<std::
-                                                                                                                                                                          chrono::milliseconds>(canvas
-                                                                                                                                                                                                    .frameClock)
-                                                                                                                                                            .count())]()
-                                                                                          { return systemTime; },
-                                                                                          .scene = static_cast<
-                                                                                              std::int32_t>(Kernel::
-                                                                                                                SceneId::Game),
-                                                                                          .terrainHeight =
-                                                                                              [&](float x, float y)
-                                                                                          {
-                                                                                              const Terrain::
-                                                                                                  WorldTerrain&
-                                                                                                      terrain =
-                                                                                                          MapTerrain();
-                                                                                              return static_cast<float>(
-                                                                                                  Terrain::TerrainHeightAt(
-                                                                                                      *terrain.heights,
-                                                                                                      *terrain
-                                                                                                           .attributes,
-                                                                                                      x, y,
-                                                                                                      CameraState()
-                                                                                                          .fixedHeight));
-                                                                                          },
-                                                                                          .chaosCastleArea =
-                                                                                              world.Runtime()
-                                                                                                  .chaosCastleArea,
-                                                                                          .siegeActive =
-                                                                                              world.Runtime()
-                                                                                                  .castleSiege
-                                                                                                  .siegeActive,
-                                                                                          .objectDrawCounter =
-                                                                                              &world.Runtime()
-                                                                                                   .objectDrawCounter,
-                                                                                          .crywolf = &world.Runtime()
-                                                                                                          .crywolf});
+                                                                                                                          .count()),
+                                                                                     .particles = &FrameParticles(),
+                                                                                     .onPose =
+                                                                                         [&](const Actors::
+                                                                                                 Drawing::DrawnObject& drawn) {
+                                                                                             return Actors::Drawing::
+                                                                                                 PublishPose(
+                                                                                                     FramePoseCarry(),
+                                                                                                     m_worldModels,
+                                                                                                     drawn, true);
+                                                                                         },
+                                                                                     .sprites = &FrameSpritesForDraw(),
+                                                                                     .retainedPose = &FramePoseCarry(),
+                                                                                     .createJoint = [&](const Kernel::JointRequest&
+                                                                                                            request) -> Core::
+                                                                                                                         Expected<void, std::string>
+                                                                                     {
+                                                                                         const auto created =
+                                                                                             Joints::CreateFaunaJoint(
+                                                                                                 FrameTail().joints,
+                                                                                                 request,
+                                                                                                 FrameCloth().random);
+                                                                                         if (!created.HasValue())
+                                                                                             return Core::Unexpected(
+                                                                                                 created.Error());
+                                                                                         return {};
+                                                                                     },
+                                                                                     .modelState = &FrameModelState(),
+                                                                                     .publishProjectedPose = true,
+                                                                                     .waterTextureFrame =
+                                                                                         FrameCloth().waterTextureFrame,
+                                                                                     .hero = &hero,
+                                                                                     .kalima = FrameKalima(),
+                                                                                     .requestSound =
+                                                                                         [&](Audio::SoundId sound)
+                                                                                     {
+                                                                                         if (frames > 0 &&
+                                                                                             !m_projectingFrame)
+                                                                                         {
+                                                                                             world.Fauna().Sound(
+                                                                                                 sound.Value(),
+                                                                                                 nullptr);
+                                                                                             world.Runtime()
+                                                                                                 .RequestSound(sound);
+                                                                                         }
+                                                                                     },
+                                                                                     .effects = &FrameEffects(),
+                                                                                     // Q-C304: el 0x46 de Aida lee
+                                                                                     // timeGetTime (0x6b8544);
+                                                                                     // MuRet le presta el reloj
+                                                                                     // del dibujo.
+                                                                                     .systemTime =
+                                                                                         [systemTime = static_cast<
+                                                                                              std::uint32_t>(std::chrono::duration_cast<
+                                                                                                                 std::chrono::milliseconds>(canvas
+                                                                                                                                                .frameClock)
+                                                                                                                 .count())]()
+                                                                                     { return systemTime; },
+                                                                                     .scene = static_cast<std::int32_t>(
+                                                                                         Kernel::SceneId::Game),
+                                                                                     .terrainHeight =
+                                                                                         [&](float x, float y)
+                                                                                     {
+                                                                                         const Terrain::WorldTerrain&
+                                                                                             terrain = MapTerrain();
+                                                                                         return static_cast<float>(
+                                                                                             Terrain::TerrainHeightAt(
+                                                                                                 *terrain.heights,
+                                                                                                 *terrain.attributes, x,
+                                                                                                 y,
+                                                                                                 CameraState()
+                                                                                                     .fixedHeight));
+                                                                                     },
+                                                                                     .chaosCastleArea =
+                                                                                         world.Runtime()
+                                                                                             .chaosCastleArea,
+                                                                                     .siegeActive =
+                                                                                         world.Runtime()
+                                                                                             .castleSiege.siegeActive,
+                                                                                     .objectDrawCounter =
+                                                                                         &world.Runtime()
+                                                                                              .objectDrawCounter,
+                                                                                     .crywolf =
+                                                                                         &world.Runtime().crywolf});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

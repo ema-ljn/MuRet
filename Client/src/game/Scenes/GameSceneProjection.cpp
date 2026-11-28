@@ -11,7 +11,7 @@
 #include "Models/LogicalAccess.h"
 #include "Models/Cloth.h"
 #include "Ui/GameUiState.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include <memory>
 #include <span>
 #include <cstdint>
@@ -66,7 +66,7 @@ Models::ClothWorld& GameScene::FrameCloth()
 {
     return m_projectingFrame ? m_projection->cloth : *m_context.cloth;
 }
-WorldObjects::ObjectModelStepState& GameScene::FrameModelState()
+Kernel::ObjectModelStepState& GameScene::FrameModelState()
 {
     return m_projectingFrame ? m_projection->modelState : m_context.world->Runtime().objectModelState;
 }
@@ -82,11 +82,11 @@ Particles::Particles& GameScene::FrameParticles()
 {
     return m_projectingFrame ? m_projection->particles : m_context.world->Particles();
 }
-std::span<WorldObjects::WorldObject> GameScene::FrameObjects()
+std::span<Kernel::WorldObject> GameScene::FrameObjects()
 {
     return m_projectingFrame ? std::span(m_projection->objects) : std::span(m_context.world->Map().objects);
 }
-MapScripts::Kalima::KalimaWorld* GameScene::FrameKalima()
+Kernel::KalimaWater* GameScene::FrameKalima()
 {
     return m_projectingFrame ? m_projection->kalima.get() : m_context.world->Map().kalima.get();
 }

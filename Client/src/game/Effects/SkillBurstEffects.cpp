@@ -6,15 +6,13 @@
 #include "Math/X87.h"
 #include "Math/OriginalRotation.h"
 #include "Kernel/ActorState.h"
-#include "Joints/FaunaJointCreation.h"
-#include "Kernel/DrawTailState.h"
 #include "Effects/HighEffectEmitters.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldState.h"
 #include "Effects/GameModelEffects.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -147,7 +145,7 @@ Core::Expected<void, std::string> StepTheSweepEmitter(Effects::ModelEffect& effe
                                        .skill = effect.byte89,
                                        .skillSerial = 0,
                                        .target = NoTarget};
-    const auto made = Joints::CreateFaunaJoint(context.world.DrawTail().joints, request, context.random);
+    const auto made = context.world.CreateJoint(request, context.random);
     if (!made.HasValue())
         return Core::Unexpected(std::format("0x52a72a: {} (CL11)", made.Error()));
     return {};
@@ -173,8 +171,8 @@ Core::Expected<void, std::string> StepTheEnergyBall(Effects::ModelEffect& effect
     if (!spark.HasValue())
         return Core::Unexpected(spark.Error());
     const glm::vec3 light{F32(D(level) * Fifth), F32(D(level) * TwoFifths), level};
-    if (auto lit = WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, light,
-                                                 BurstLightRadius, "0x52ac64");
+    if (auto lit = Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, light,
+                                            BurstLightRadius, "0x52ac64");
         !lit.HasValue())
         return lit;
     return HitTheEnergyBallOwner(effect, context);
@@ -190,8 +188,8 @@ Core::Expected<void, std::string> StepTheFlameBurst(Effects::ModelEffect& effect
     if (!made.HasValue())
         return Core::Unexpected(made.Error());
     const glm::vec3 light{luminosity, F32(D(luminosity) * ThreeFifths), F32(D(luminosity) * ThreeTenths)};
-    return WorldObjects::AddDynamicLight(context.services.lighting, effect.transform.position, light, BurstLightRadius,
-                                         "0x52b3a9");
+    return Terrain::AddDynamicLight(context.services.lighting, effect.transform.position, light, BurstLightRadius,
+                                    "0x52b3a9");
 }
 
 Core::Expected<void, std::string> StepTheArrowBlast(Effects::ModelEffect& effect, const HighEffectStepContext& context)

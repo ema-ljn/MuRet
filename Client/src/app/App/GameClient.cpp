@@ -18,6 +18,7 @@
 #include "Scenes/LoadingScene.h"
 #include "Scenes/LoginScene.h"
 #include "Monsters/NpcNames.h"
+#include "Joints/FaunaJointCreation.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Scenes/SceneContext.h"
 #include "Kernel/SceneId.h"
@@ -142,6 +143,7 @@ GameClient::GameClient(const Tables::GameData& data, const GameClientDevices& de
                 { AfterSceneFrame(now); }, [this] { return AfterSceneStep(); }, [this] { return BeforeSceneDraw(); },
                 [this](Render::Frame::SceneCanvas& canvas) { return AfterSceneDraw(canvas); })
 {
+    m_world.LendJointCreation(&Joints::CreateJoint);
     Kernel::WorldRuntime& runtime = m_world.Runtime();
     runtime.music.SetEnabled(m_options.music);
     if (m_devices.playback != nullptr)

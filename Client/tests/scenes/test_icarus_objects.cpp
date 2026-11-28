@@ -10,7 +10,6 @@
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/DrawTailState.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Effects/ModelEffects.h"
@@ -18,8 +17,9 @@
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -39,12 +39,12 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
 using Client::Kernel::JointState;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::Icarus::IcarusObjectServices;
 using Client::Math::RoundedSin;
 using Client::Particles::Particle;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t IcarusMap = 10;
 constexpr std::int32_t GameScene = 5;
@@ -209,7 +209,7 @@ TEST(IcarusObjectsTest, TheCloudsEmitTwentyOrTenOwnedMistsOnlyOnce)
         FrameFixture fixture;
         WorldObject object = ObjectOf(type);
         ASSERT_TRUE(Client::MapScripts::Icarus::StepIcarusObjectFrame(object, fixture.Pass()).HasValue());
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
         EXPECT_EQ(fixture.AliveCount(), type <= 2 ? 20u : 10u);
 
         auto reference = std::make_unique<Client::Particles::Particles>();
@@ -391,7 +391,7 @@ TEST(IcarusObjectsTest, ThePreludeLightsTheSkyAndPicksTheSelector)
 
     auto lit = std::make_unique<Client::Terrain::TerrainLighting>();
     ASSERT_TRUE(
-        Client::WorldObjects::AddDynamicLight(lit.get(), {lightX, fixture.hero.y, 0.0f}, color, 2, "test").HasValue());
+        Client::Terrain::AddDynamicLight(lit.get(), {lightX, fixture.hero.y, 0.0f}, color, 2, "test").HasValue());
     EXPECT_TRUE(lit->cells == fixture.lighting->cells);
 
     const auto alive = fixture.AliveEffects();

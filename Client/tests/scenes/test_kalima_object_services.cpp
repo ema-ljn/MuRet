@@ -14,6 +14,7 @@
 #include "Kernel/PoseBuffer.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/Sprites.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Particles/Particles.h"
 #include "Particles/ParticleOwner.h"
@@ -87,9 +88,9 @@ private:
                                                           Client::Render::TextureSlot{101}};
 };
 
-Client::WorldObjects::WorldObject Object(std::int16_t type)
+Client::Kernel::WorldObject Object(std::int16_t type)
 {
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = type;
     object.transform.position = glm::vec3(100, 100, 0);
     object.light = glm::vec3(1);
@@ -98,8 +99,8 @@ Client::WorldObjects::WorldObject Object(std::int16_t type)
 }
 
 Client::Core::Expected<void, std::string> Draw(Client::Render::ModelBatch& batch, const KalimaModel& models,
-                                               std::span<Client::WorldObjects::WorldObject> objects,
-                                               const Client::WorldObjects::GameObjectPass& pass)
+                                               std::span<Client::Kernel::WorldObject> objects,
+                                               const Client::Kernel::GameObjectPass& pass)
 {
     batch.Begin(Client::Render::Pass3D{});
     return Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, {.everything = true}, nullptr, {}, pass);
@@ -284,7 +285,7 @@ TEST(KalimaObjectServicesTest, FullParticlePoolStillHidesMarkersStoresScaleAndRe
         p.alive = true;
     Client::Crt::CrtRandom random(7);
     std::vector<std::int32_t> sounds;
-    const Client::WorldObjects::GameObjectPass pass{
+    const Client::Kernel::GameObjectPass pass{
         .map = 24, .random = &random, .particles = &particles, .requestSound = [&](Client::Audio::SoundId sound) {
             sounds.push_back(sound.Value());
         }};

@@ -1,4 +1,5 @@
 #include "Crt/CrtRandom.h"
+#include "Kernel/WorldObject.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "CastleSiege/CastleSiegeObjectStep.h"
@@ -7,7 +8,7 @@
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "WorldObjects/WorldObjectMapCreation.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
@@ -28,12 +29,12 @@ namespace
 {
 using Client::CastleSiege::CastleSiegePrelude;
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectStepGlobals;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CastleSiegeMap = 30;
-constexpr std::int16_t Hidden = Client::WorldObjects::HiddenObject;
+constexpr std::int16_t Hidden = Client::Kernel::HiddenObject;
 const std::int16_t Shown = WorldObject{}.state.hiddenMesh;
 
 WorldObject Object(std::int16_t type)
@@ -75,8 +76,8 @@ std::unique_ptr<TerrainLighting> TorchLightOf(const WorldObject& object, int dra
     const double level = static_cast<double>((draw & 3) + 3) * static_cast<double>(0.1f);
     const glm::vec3 light(static_cast<float>(level), static_cast<float>(level * static_cast<double>(0.6f)),
                           static_cast<float>(level * static_cast<double>(0.2f)));
-    EXPECT_TRUE(Client::WorldObjects::AddDynamicLight(lighting.get(), object.transform.position, light, 3, "oráculo")
-                    .HasValue());
+    EXPECT_TRUE(
+        Client::Terrain::AddDynamicLight(lighting.get(), object.transform.position, light, 3, "oráculo").HasValue());
     return lighting;
 }
 } // namespace

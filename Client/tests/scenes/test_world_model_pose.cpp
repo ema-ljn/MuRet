@@ -1,4 +1,4 @@
-#include "WorldObjects/WorldModelPose.h"
+#include "Actors/Drawing/PosePublishing.h"
 
 #include "Math/HalfLifeMath.h"
 #include "Models/Skeleton.h"
@@ -27,7 +27,8 @@ TEST(WorldModelPoseTest, AnInvalidPublishedActionIsClampedInTheSharedModel)
     Client::Models::Skeleton skeleton;
     skeleton.actions.resize(2, {.keyCount = 10});
 
-    const auto posed = Client::WorldObjects::PoseWorldModel(*world, &faunaModels, actor, skeleton, 3.25f, actor.angles);
+    const auto posed =
+        Client::Actors::Drawing::PoseWorldModel(*world, &faunaModels, actor, skeleton, 3.25f, actor.angles);
 
     ASSERT_TRUE(posed.HasValue()) << posed.Error();
     EXPECT_EQ(world->ModelPlacement(actor.type).action, 0);
@@ -49,7 +50,8 @@ TEST(WorldModelPoseTest, AModelWithoutActionsLeavesTheGlobalPoseAndModelUntouche
     faunaModels.RecordAnimation(actor.type, 6.5f, 9);
     Client::Models::Skeleton skeleton;
 
-    const auto posed = Client::WorldObjects::PoseWorldModel(*world, &faunaModels, actor, skeleton, 3.25f, actor.angles);
+    const auto posed =
+        Client::Actors::Drawing::PoseWorldModel(*world, &faunaModels, actor, skeleton, 3.25f, actor.angles);
 
     ASSERT_TRUE(posed.HasValue()) << posed.Error();
     EXPECT_EQ(world->ModelPlacement(actor.type).action, 7);
@@ -69,7 +71,7 @@ TEST(WorldModelPoseTest, WithoutTheFaunaModelsThePoseStopsBeforeWritingTheShared
     Client::Models::Skeleton skeleton;
     skeleton.actions.resize(2, {.keyCount = 10});
 
-    const auto posed = Client::WorldObjects::PoseWorldModel(*world, nullptr, actor, skeleton, 3.25f, actor.angles);
+    const auto posed = Client::Actors::Drawing::PoseWorldModel(*world, nullptr, actor, skeleton, 3.25f, actor.angles);
 
     ASSERT_FALSE(posed.HasValue());
     EXPECT_NE(posed.Error().find("0x5769ad8"), std::string::npos) << posed.Error();

@@ -7,7 +7,7 @@
 #include "Particles/ParticleDrawing.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/WorldObjectVectors.h"
@@ -545,8 +545,8 @@ TEST(ParticlesTest, TheEarthquakeExplosionCountsItsFramesAndLightsTheGround)
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3e99999au))),
                               static_cast<float>(glow * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)))};
         auto expectedLighting = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test")
-                        .HasValue());
+        ASSERT_TRUE(
+            Client::Terrain::AddDynamicLight(expectedLighting.get(), explosion.position, color, 4, "test").HasValue());
         EXPECT_EQ(lighting->cells, expectedLighting->cells);
         static_cast<void>(expectedRandom.Next());
         static_cast<void>(expectedRandom.Next());

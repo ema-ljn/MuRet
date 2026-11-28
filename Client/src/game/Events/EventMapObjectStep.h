@@ -6,6 +6,12 @@
 
 #include <string>
 
+namespace Client::Kernel
+{
+struct ObjectStepGlobals;
+struct WorldObject;
+} // namespace Client::Kernel
+
 namespace Client::Crt
 {
 class CrtRandom;
@@ -15,12 +21,6 @@ namespace Client::Particles
 {
 class Particles;
 } // namespace Client::Particles
-
-namespace Client::WorldObjects
-{
-struct ObjectStepGlobals;
-struct WorldObject;
-} // namespace Client::WorldObjects
 
 // Lo que 0x604ab0 hace con los objetos de Devil Square (mapa 9) y de los Blood Castle (mapas 11 a 17), fuera de
 // lo común. Contrato: 06 § Los objetos de Devil Square y de Blood Castle.
@@ -34,7 +34,7 @@ namespace Client::Events
 // en bucle (0x41ed10(1, 0, 1)). Un reloj sin ftol acreditado, el héroe, la luz o el sonido ausentes cortan con su
 // dirección después de lo ya hecho.
 [[nodiscard]] Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
-                                                                       const WorldObjects::ObjectStepGlobals& globals);
+                                                                       const Kernel::ObjectStepGlobals& globals);
 
 // 0x6062e6..0x6063c3, la parte de los mapas 11 a 17 de 0x6061c0, una vez por paso y antes de mirar si hay
 // objetos vistos: un punto en (x del héroe + rand() % 900 − 300; y del héroe + rand() % 900 − 300; z del héroe +
@@ -47,5 +47,5 @@ namespace Client::Events
 
 // 0x605991, en los mapas 11 a 17 después del alpha y la animación: el 9 y el 10 quedan con +0x58 en −2, salvo
 // con +0x8a en 4 (la puerta que abrió 0x5ff960). Los demás tipos, nada.
-void StepBloodCastleObject(WorldObjects::WorldObject& object);
+void StepBloodCastleObject(Kernel::WorldObject& object);
 } // namespace Client::Events

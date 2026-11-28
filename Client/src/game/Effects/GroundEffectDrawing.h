@@ -24,10 +24,10 @@ namespace Client::Crt
 class CrtRandom;
 }
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 // The cases of 0x52dc20 after the alive/seen filter, the common rand() and the additive blend. Static contract: 06 §
 // Después de los objetos, P-C55 (b).
@@ -40,7 +40,7 @@ struct GroundEffectResources
     Crt::CrtRandom& random;
     float worldClock = 0.0f;
     std::uint8_t map = 0;
-    const MapScripts::Kalima::KalimaWorld* kalima = nullptr;
+    const Kernel::KalimaWater* kalima = nullptr;
     // The table the pass walks: the drawing of 0x61e/6 and /8 creates the /7 and /9 there (0x52e04c, 0x52e0a2).
     std::span<Effects::ModelEffect> table{};
     // The position (+0x10) of an effect's owner (+0x108), read live: that of 0x61e/7 (0x52ded0). nullopt if the owner

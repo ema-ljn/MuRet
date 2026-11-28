@@ -1,7 +1,11 @@
 #include "Models/IModelLibrary.h"
 #include "support/CheckedWorldObjectProjection.h"
 
+#include "Kernel/WorldObject.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
+#include "Effects/ModelEffectDrawing.h"
+#include "Effects/ParticleDrawServices.h"
+#include "Particles/SpriteDrawing.h"
 #include "MapScripts/LandOfTrials/LandOfTrialsObjectServices.h"
 
 #include "Core/Expected.h"
@@ -31,6 +35,7 @@
 #include "Terrain/TerrainLighting.h"
 #include "Effects/ModelEffects.h"
 #include "Effects/GroundEffectDrawing.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Terrain/SphereFrustum.h"
@@ -62,6 +67,7 @@ namespace
 {
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Kernel::WorldObject;
 using Client::Models::Skeleton;
 using Client::Models::TextureMetadata;
 using Client::Render::ModelBatch;
@@ -69,7 +75,6 @@ using Client::Render::ModelBlend;
 using Client::Render::TextureSlot;
 using Client::WorldObjects::DrawWorldObjects;
 using Client::WorldObjects::StepWorldObjects;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
@@ -322,7 +327,7 @@ TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
     std::vector<WorldObject> objects{ObjectAt(Rock, 14400.0f, 12100.0f), ObjectAt(Rock, 100.0f, 100.0f),
                                      ObjectAt(Rock, 14450.0f, 12150.0f), ObjectAt(Rock, 14420.0f, 12120.0f)};
     objects[2].alpha = 0.0f;
-    objects[3].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    objects[3].state.hiddenMesh = Client::Kernel::HiddenObject;
     const auto polygon =
         Client::Terrain::TerrainPolygonOf(Client::Terrain::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Client::Crt::CrtRandom random(7);
@@ -356,7 +361,7 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
 // The game objects pass (0x6046a0 at 0x6374ce) with the fake models, everything seen and seed 7.
 Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Models::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
-                                                   const Client::WorldObjects::GameObjectPass& pass)
+                                                   const Client::Kernel::GameObjectPass& pass)
 {
     batch.Begin(Client::Render::Pass3D{});
     return Client::WorldObjects::DrawGameWorldObjects(batch, models, objects, Everything, nullptr, {}, pass);
@@ -386,7 +391,7 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
             ObjectAt(Rock, 100.0f, 5000.0f, map, Client::WorldObjects::ObjectScene::Other),
             ObjectAt(Rock, 200.0f, 5100.0f, map, Client::WorldObjects::ObjectScene::Other)};
         objects[1].alive = false;
-        objects[2].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+        objects[2].state.hiddenMesh = Client::Kernel::HiddenObject;
         Client::Crt::CrtRandom random(7);
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects, {.map = map, .random = &random});
@@ -667,7 +672,7 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
             ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
         if (probe.hidden)
         {
-            objects[1].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+            objects[1].state.hiddenMesh = Client::Kernel::HiddenObject;
         }
         objects[1].state.light = 0.25f;
         const std::uint32_t seed = SeedWithThirdRand(probe.odd);
@@ -713,17 +718,17 @@ TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlo
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto initial = batch.State();
-    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
+    EXPECT_TRUE(Client::Effects::DrawGroundEffects(batch, effects, resources).HasValue());
     effects[1].alive = true;
     effects[1].type = Client::Effects::ArrivalEffect;
-    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
+    EXPECT_TRUE(Client::Effects::DrawGroundEffects(batch, effects, resources).HasValue());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.State(), initial);
     effects[0].seen = true; // muerto: tampoco participa.
     effects[2].alive = true;
     effects[2].seen = true;
     effects[2].type = Client::Effects::DragonEffect;
-    EXPECT_TRUE(Client::WorldObjects::DrawGroundEffects(batch, effects, resources).HasValue());
+    EXPECT_TRUE(Client::Effects::DrawGroundEffects(batch, effects, resources).HasValue());
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
@@ -745,7 +750,7 @@ TEST(WorldObjectsDrawingTest, AVisibleArrivalConsumesTheCommonRandomBeforeDrawin
     Client::Crt::CrtRandom expected(1234);
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::WorldObjects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random});
+    const auto drawn = Client::Effects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
@@ -762,8 +767,7 @@ TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATex
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(
-        Client::WorldObjects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random}).HasValue());
+    ASSERT_TRUE(Client::Effects::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random}).HasValue());
     using Operation = Client::Render::ModelStateOperation;
     const std::array wanted{Operation::Blend, Operation::Cull, Operation::DepthWrite, Operation::AlphaTest,
                             Operation::Texture2d};
@@ -786,7 +790,7 @@ TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDep
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::WorldObjects::DrawGroundEffects(
+    const auto drawn = Client::Effects::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     using Operation = Client::Render::ModelStateOperation;
@@ -814,7 +818,7 @@ TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabled
     Client::Crt::CrtRandom random;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    const auto drawn = Client::WorldObjects::DrawGroundEffects(
+    const auto drawn = Client::Effects::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24, .kalima = &water});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x41dd90"), std::string::npos);
@@ -1055,7 +1059,7 @@ TEST(WorldObjectsDrawingTest, ProjectedPosePublicationDoesNotRunOriginalFramePro
     Client::Crt::CrtRandom random(7);
     ModelBatch batch;
     int publications = 0;
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.map = Lorencia;
     pass.originalFrame = false;
     pass.random = &random;
@@ -1081,7 +1085,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
     {
         std::vector<WorldObject> objects{
             ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
-        objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
+        objects.front().state.hiddenMesh = Client::Kernel::HiddenObject;
         Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
@@ -1089,7 +1093,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         auto& target = original ? native : projected;
         Client::Crt::CrtRandom random(7);
         ModelBatch batch;
-        Client::WorldObjects::GameObjectPass pass;
+        Client::Kernel::GameObjectPass pass;
         pass.map = Lorencia;
         pass.originalFrame = original;
         pass.publishProjectedPose = !original;
@@ -1098,7 +1102,7 @@ TEST(WorldObjectsDrawingTest, HiddenGameObjectsPublishNativeOrProjectedPoseWitho
         int publications = 0;
         pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& pose) -> Client::Core::Expected<void, std::string>
         {
-            EXPECT_EQ(pose.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+            EXPECT_EQ(pose.state.hiddenMesh, Client::Kernel::HiddenObject);
             ++publications;
             return Client::Actors::Drawing::PublishPose(target, models, pose, true);
         };
@@ -1125,7 +1129,7 @@ TEST(WorldObjectsDrawingTest, HiddenLoginObjectsPublishNativeOrProjectedPoseWith
     {
         std::vector<WorldObject> objects{
             ObjectAt(Rock, 100.0f, 100.0f, Login, Client::WorldObjects::ObjectScene::Login)};
-        objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
+        objects.front().state.hiddenMesh = Client::Kernel::HiddenObject;
         Client::Kernel::PoseBuffer native;
         native.bones.resize(1, Client::Math::BoneTransform(1.0f));
         native.bones.front()[3].x = 900.0f;
@@ -1167,7 +1171,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
     std::vector<WorldObject> objects{
         ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::WorldObjects::ObjectScene::Other)};
     objects.front().alpha = 0.005f;
-    objects.front().state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    objects.front().state.hiddenMesh = Client::Kernel::HiddenObject;
     int publications = 0;
     const auto observe = [&](const Client::Actors::Drawing::DrawnObject&) -> Client::Core::Expected<void, std::string>
     {
@@ -1175,7 +1179,7 @@ TEST(WorldObjectsDrawingTest, AlphaRejectedObjectsDoNotPublishPoseEvenWithProjec
         return {};
     };
     ModelBatch batch;
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.map = Lorencia;
     pass.originalFrame = false;
     pass.publishProjectedPose = true;
@@ -1224,7 +1228,7 @@ TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
     objects[2].alive = false;
     Client::Crt::CrtRandom random(7);
     const auto stepped = Client::WorldObjects::StepGameWorldObjects(objects, Lorencia, models, random,
-                                                                    Client::WorldObjects::ObjectStepGlobals{});
+                                                                    Client::Kernel::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x605718"), std::string::npos) << stepped.Error();
     EXPECT_GT(objects[0].alpha, 0.5f);
@@ -1458,7 +1462,7 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
     ASSERT_TRUE(posed.rock9.has_value());
     EXPECT_EQ(posed.sprites[1].position, *posed.rock9);
 
-    objects[0].state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    objects[0].state.hiddenMesh = Client::Kernel::HiddenObject;
     const LanternGlow hidden = GlowOf(objects, Client::WorldObjects::ObjectScene::Login, 3);
     ASSERT_EQ(hidden.sprites.size(), 2u);
     EXPECT_EQ(hidden.sprites[1].position, *hidden.rock9) << "posado aunque no se dibuje";
@@ -1593,8 +1597,8 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
     std::array<Client::Effects::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, lighting.get(), {},
-                                           0.0f);
+    Client::Effects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, lighting.get(), {},
+                                      0.0f);
     ASSERT_EQ(batch.Vertices().size(), 6u);
     const float light = Client::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     const auto& color = batch.Vertices()[0].color;
@@ -1621,7 +1625,7 @@ TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHis
     effects[2].seen = true;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 1.0f);
+    Client::Effects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 1.0f);
     EXPECT_FALSE(effects[0].seen);
     EXPECT_TRUE(effects[1].seen);
     EXPECT_TRUE(effects[2].seen);
@@ -1659,11 +1663,11 @@ TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
     effects[0].transform.position.x = -401.0f;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    Client::Effects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
     EXPECT_FALSE(effects[0].seen);
     EXPECT_EQ(models.lookups, 0);
     effects[0].transform.position.x = 0.0f;
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    Client::Effects::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
     EXPECT_TRUE(effects[0].seen);
     EXPECT_GT(models.lookups, 0);
     EXPECT_TRUE(batch.Vertices().empty());
@@ -1676,7 +1680,7 @@ TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
     effects[1].alive = false;
     effects[0].life = 100;
     effects[1].life = 100;
-    Client::WorldObjects::StepModelEffects(effects, models);
+    Client::Effects::StepModelEffects(effects, models);
     EXPECT_EQ(effects[0].life, 99);
     EXPECT_EQ(effects[1].life, 100);
 }
@@ -1689,7 +1693,7 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
     std::array<Client::Effects::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.5f);
+    Client::Effects::DrawModelEffects(batch, models, effects, Client::Terrain::SphereFrustum{}, nullptr, {}, 0.5f);
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
@@ -1778,7 +1782,7 @@ TEST(SpritesDrawingTest, RgbaSpritesUseLightRedAsBillboardAlpha)
         sprites.MarkSeen();
         ModelBatch batch;
         batch.Begin(Client::Render::Pass3D{});
-        Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1)));
+        Client::Particles::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1)));
         ASSERT_EQ(batch.Vertices().size(), 6u);
         for (const auto& vertex : batch.Vertices())
         {
@@ -1803,7 +1807,7 @@ TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNex
                 .Create(Client::Particles::BreathParticle, {0, 0, -300}, glm::vec3(0), glm::vec3(1), 0, 1, 0, random)
                 .has_value());
     const auto view = Client::Render::ViewRows(glm::mat4(1));
-    const auto failed = Client::WorldObjects::DrawParticles(batch, particles, textures, view);
+    const auto failed = Client::Effects::DrawParticles(batch, particles, textures, view);
     ASSERT_FALSE(failed.HasValue());
     EXPECT_EQ(failed.Error().slot, 1u);
     EXPECT_EQ(failed.Error().error.reason, Client::Particles::ParticleError::MissingColorFlag);
@@ -1817,10 +1821,10 @@ TEST(ParticlesDrawingTest, InterruptedQuadPreservesCompletedGeometryAndAllowsNex
         completed += command.vertexCount;
     EXPECT_EQ(completed, 6u);
     textures.interrupt = false;
-    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures, view).HasValue());
+    ASSERT_TRUE(Client::Effects::DrawParticles(batch, particles, textures, view).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 18u);
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::WorldObjects::DrawParticles(batch, particles, textures, view).HasValue());
+    ASSERT_TRUE(Client::Effects::DrawParticles(batch, particles, textures, view).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 12u);
 }
 
@@ -1850,7 +1854,7 @@ TEST(ParticlesDrawingTest, AnInterruptedTextureOverrideDoesNotAffectTheNextProdu
             second.subtype = Client::Particles::BrightFlameSubtype;
         }
         const auto result =
-            Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
+            Client::Effects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1)));
         ASSERT_FALSE(result.HasValue());
         EXPECT_EQ(result.Error().slot, 1u);
         EXPECT_EQ(result.Error().error.phase, Client::Particles::ParticleDrawingPhase::ColorFlag);
@@ -1874,7 +1878,7 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
     const auto identity = Client::Render::ViewRows(glm::mat4(1.0f));
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, identity);
+    Client::Particles::DrawFrameSprites(batch, sprites, textures, identity);
     ASSERT_EQ(batch.Commands().size(), 1u);
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
     EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5ac});
@@ -1898,7 +1902,7 @@ TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
     EXPECT_FLOAT_EQ((minX + maxX) / 2.0f, 10.0f);
     EXPECT_FALSE(sprites.Sprites()[0].alive);
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, identity);
+    Client::Particles::DrawFrameSprites(batch, sprites, textures, identity);
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
@@ -1912,7 +1916,7 @@ TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
     sprites.MarkSeen();
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::Particles::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_EQ(batch.Commands().size(), 2u);
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Subtractive);
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
@@ -1927,7 +1931,7 @@ TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
     ASSERT_TRUE(sprites.Create(0x5ac, {0.0f, 0.0f, -300.0f}, 2.0f, glm::vec3(1.0f), 0.0f, 0));
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::WorldObjects::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    Client::Particles::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_EQ(batch.Vertices().size(), 6u);
     float minX = 1e9f;
     float maxX = -1e9f;
@@ -1954,9 +1958,8 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
     const float scale = particles.All()[*index].scale;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(
-        Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)))
-            .HasValue());
+    ASSERT_TRUE(Client::Effects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)))
+                    .HasValue());
     ASSERT_FALSE(batch.Commands().empty());
     const auto& drawn = batch.Commands().back();
     EXPECT_EQ(drawn.operation, Client::Render::ModelStateOperation::Draw);
@@ -2015,7 +2018,7 @@ TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn =
-        Client::WorldObjects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+        Client::Effects::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_EQ(drawn.Error().slot, *index);
     EXPECT_EQ(drawn.Error().error.reason, Client::Particles::ParticleError::MissingTextureSize);

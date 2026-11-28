@@ -11,6 +11,7 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Joints/JointKernels.h"
 #include "Kernel/WorldState.h"
 #include "Kernel/JointRequest.h"
@@ -635,7 +636,7 @@ TEST(HandBoltJointsTest, TheBoltDrawsWithItsOwnTexture)
     ASSERT_EQ(joint.count, 2);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, pool.joints, 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, pool.joints, 0).HasValue());
     ASSERT_TRUE(batch.State().texture.has_value());
     EXPECT_EQ(*batch.State().texture, Client::Render::TextureSlot{0x61b});
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);

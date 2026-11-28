@@ -10,7 +10,7 @@
 #include "Math/OriginalRotation.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"
@@ -309,8 +309,8 @@ TEST(GroundStonesTest, TheGroundStoneLightsTheGroundAndFadesAtTheEnd)
         EXPECT_FALSE(particles.Any());
         EXPECT_FALSE(effects.Effects()[0].alive);
         auto expected = std::make_unique<Client::Terrain::TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expected.get(), {1000.0f, 2000.0f, 300.0f}, Glow, 2, "test")
-                        .HasValue());
+        ASSERT_TRUE(
+            Client::Terrain::AddDynamicLight(expected.get(), {1000.0f, 2000.0f, 300.0f}, Glow, 2, "test").HasValue());
         EXPECT_EQ(lighting->cells, expected->cells);
         EXPECT_EQ(stone.transform.position, glm::vec3(1000.0f, 2000.0f, 300.0f));
         EXPECT_EQ(stone.life, life - 1);

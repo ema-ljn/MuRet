@@ -735,7 +735,7 @@ TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
     ASSERT_TRUE(effects[0].hasOwner);
     ASSERT_NE(effects[0].ownerContext, nullptr);
     EXPECT_EQ(effects[0].disturbanceState, 0xffff);
-    const auto* owner = static_cast<const Client::WorldObjects::WorldObject*>(effects[0].ownerContext);
+    const auto* owner = static_cast<const Client::Kernel::WorldObject*>(effects[0].ownerContext);
     EXPECT_EQ(owner->type, Client::Effects::DragonEffect);
     EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
     static_cast<void>(Frame(scene, 1));
@@ -782,7 +782,7 @@ TEST_F(GoldenLoginWorld, TheLoginDragonOwnerIsDetachedOnReentryAndDestruction)
         EXPECT_TRUE(effects[1].seen);
         ASSERT_TRUE(effects[0].hasOwner);
         ASSERT_NE(effects[0].ownerContext, nullptr);
-        const auto* owner = static_cast<const Client::WorldObjects::WorldObject*>(effects[0].ownerContext);
+        const auto* owner = static_cast<const Client::Kernel::WorldObject*>(effects[0].ownerContext);
         EXPECT_EQ(owner->type, Client::Effects::DragonEffect);
         EXPECT_EQ(owner->transform.position, glm::vec3(5600, 23000, 0));
         effects[0].seen = true;
@@ -1411,9 +1411,9 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     record.type = static_cast<std::int16_t>(Client::Assets::DragonModel);
     record.position = {5600.0f, 23000.0f, 0.0f};
     record.scale = 1.0f;
-    Client::WorldObjects::WorldObject owner = Client::Tests::CheckedWorldObjectProjection(
-                                                  std::span(&record, 1), 0x37, Client::WorldObjects::ObjectScene::Login)
-                                                  .front();
+    Client::Kernel::WorldObject owner = Client::Tests::CheckedWorldObjectProjection(
+                                            std::span(&record, 1), 0x37, Client::WorldObjects::ObjectScene::Login)
+                                            .front();
     const Client::Models::Skeleton* horseSkeleton =
         m_models.SkeletonOf(Client::Models::ModelId{Client::Pets::DarkHorseModel});
     ASSERT_NE(horseSkeleton, nullptr);

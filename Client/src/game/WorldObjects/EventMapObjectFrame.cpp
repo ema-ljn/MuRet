@@ -1,6 +1,8 @@
 #include "WorldObjects/EventMapObjectFrame.h"
 
 #include "Core/Expected.h"
+#include "Kernel/ObjectPass.h"
+#include "Kernel/WorldObject.h"
 #include "Math/FloatConstants.h"
 #include "Math/X87.h"
 #include "Models/ObjectState.h"
@@ -88,7 +90,7 @@ constexpr std::int32_t TrapJoint = 0x615;
 constexpr std::int32_t TrapJointSubtype = 2;
 constexpr std::int32_t TrapSound = 0x9c;
 
-Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t type, const glm::vec3& position,
+Core::Expected<void, std::string> Emit(const Kernel::GameObjectPass& pass, std::int32_t type, const glm::vec3& position,
                                        const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
                                        float scale, std::string_view address)
 {
@@ -105,7 +107,8 @@ Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t 
 
 // 0x6042a5..0x6042ac: 0x53fe70(0x60f, position, angles, (1; 0.8f; 0.8f), 4, 0.19f, 0), with the world clock and the
 // orbit's trigonometry borrowed.
-Core::Expected<void, std::string> Orbit(const GameObjectPass& pass, const glm::vec3& position, const glm::vec3& angles)
+Core::Expected<void, std::string> Orbit(const Kernel::GameObjectPass& pass, const glm::vec3& position,
+                                        const glm::vec3& angles)
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(std::string("0x6042ac: falta el pool de partículas 0x743a198 para 0x60f/4"));
@@ -120,8 +123,9 @@ Core::Expected<void, std::string> Orbit(const GameObjectPass& pass, const glm::v
 }
 
 // 0x5491e0(texture, point, scale, light, object, 0, 0): MuRet does not keep the sprite's owner (Q-C303).
-Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::int32_t texture, const glm::vec3& position,
-                                         float scale, const glm::vec3& light, std::string_view address)
+Core::Expected<void, std::string> Sprite(const Kernel::GameObjectPass& pass, std::int32_t texture,
+                                         const glm::vec3& position, float scale, const glm::vec3& light,
+                                         std::string_view address)
 {
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::format("{}: falta el pool de sprites (0x5491e0)", address));
@@ -129,17 +133,17 @@ Core::Expected<void, std::string> Sprite(const GameObjectPass& pass, std::int32_
     return {};
 }
 
-Core::Expected<void, std::string> RainAt(const WorldObjects::WorldObject& object, const GameObjectPass& pass,
+Core::Expected<void, std::string> RainAt(const Kernel::WorldObject& object, const Kernel::GameObjectPass& pass,
                                          std::size_t bone, std::string_view address)
 {
-    const auto point = ObjectBonePoint(pass, bone, RainOffset);
+    const auto point = Kernel::ObjectBonePoint(pass, bone, RainOffset);
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     return Emit(pass, RainParticle, point.Value(), object.transform.angles, glm::vec3(1.0f), 0, 1.0f, address);
 }
 
 // 0x60433a..0x6043e9.
-Core::Expected<void, std::string> StatueGlows(const WorldObjects::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> StatueGlows(const Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     const double phase =
         (static_cast<double>(object.transform.angles.z) * AngleRate) + static_cast<double>(pass.worldClock);
@@ -150,7 +154,7 @@ Core::Expected<void, std::string> StatueGlows(const WorldObjects::WorldObject& o
     const glm::vec3 light{F32(level), F32(level * Half), 0.0f};
     for (const std::size_t bone : StatueBones)
     {
-        const auto point = ObjectBonePoint(pass, bone, StatueOffset);
+        const auto point = Kernel::ObjectBonePoint(pass, bone, StatueOffset);
         if (!point.HasValue())
             return Core::Unexpected(point.Error());
         if (auto created = Sprite(pass, GlowSpriteTexture, point.Value(), StatueSprite, light, "0x6043dd");
@@ -161,14 +165,14 @@ Core::Expected<void, std::string> StatueGlows(const WorldObjects::WorldObject& o
 }
 
 // 0x6042bb..0x60432b.
-Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
+Core::Expected<void, std::string> PulsingOrbSprite(const Kernel::GameObjectPass& pass)
 {
     const std::optional<double> wave =
         Math::Detail::SineProductPC53(static_cast<double>(pass.worldClock) * Thousandth, PulseSwing);
     if (!wave)
         return Core::Unexpected(std::string("0x6042d0: el seno del reloj no cabe en el perfil PC53"));
     const float level = F32(*wave + PulseBase);
-    const auto point = ObjectBonePoint(pass, OrbBone, glm::vec3(0.0f));
+    const auto point = Kernel::ObjectBonePoint(pass, OrbBone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     return Sprite(pass, OrbTexture, point.Value(), F32(static_cast<double>(level) + Half), glm::vec3(level),
@@ -176,7 +180,7 @@ Core::Expected<void, std::string> PulsingOrbSprite(const GameObjectPass& pass)
 }
 
 // 0x604199..0x6041c2 and 0x60421c..0x604245: ftol of the phase (plus `lead`) % 4 and the phase plus 1, stored.
-Core::Expected<bool, std::string> TorchTurn(WorldObjects::WorldObject& object, double lead, std::string_view address)
+Core::Expected<bool, std::string> TorchTurn(Kernel::WorldObject& object, double lead, std::string_view address)
 {
     const std::optional<std::int32_t> turn = Math::OriginalFtolLow(static_cast<double>(object.field84) + lead);
     if (!turn)
@@ -187,7 +191,7 @@ Core::Expected<bool, std::string> TorchTurn(WorldObjects::WorldObject& object, d
 }
 
 // 0x604171..0x6042ac.
-Core::Expected<void, std::string> TorchFrame(WorldObjects::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> TorchFrame(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     const glm::vec3& position = object.transform.position;
     const glm::vec3& angles = object.transform.angles;
@@ -225,9 +229,9 @@ Core::Expected<void, std::string> TorchFrame(WorldObjects::WorldObject& object, 
     return Orbit(pass, position, angles);
 }
 // 0x405abb..0x405c5c: the clouds of 6 to 0xc, owned by the object, the first time.
-Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> ChaosCastleClouds(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
-    if (object.state.hiddenMesh != WorldObjects::HiddenObject)
+    if (object.state.hiddenMesh != Kernel::HiddenObject)
     {
         const std::int16_t type = object.type;
         const bool bright = type == BrightCloudObject;
@@ -248,7 +252,7 @@ Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& o
                                                     static_cast<unsigned>(created.Error())));
         }
     }
-    object.state.hiddenMesh = WorldObjects::HiddenObject;
+    object.state.hiddenMesh = Kernel::HiddenObject;
     return {};
 }
 
@@ -256,9 +260,9 @@ Core::Expected<void, std::string> ChaosCastleClouds(WorldObjects::WorldObject& o
 // 0x68b184c and zero offset). With +0x60 at 10 it creates joint 0x615/2 there, from that point to that point, with the
 // object's angles and scale rand() % 10 + 60 (0x6b86cc), and asks for sound 0x9c + (rand() & 1) with 0x41ed10(id, 0,
 // 0). Then, +0x60 below 5 turns +0x8a off and, otherwise, drops by one.
-Core::Expected<void, std::string> ChaosCastleTrap(WorldObjects::WorldObject& object, const GameObjectPass& pass)
+Core::Expected<void, std::string> ChaosCastleTrap(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
-    const auto point = ObjectBonePoint(pass, TrapBone, glm::vec3(0.0f));
+    const auto point = Kernel::ObjectBonePoint(pass, TrapBone, glm::vec3(0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     if (object.field60 == TrapStart)
@@ -295,14 +299,14 @@ Core::Expected<void, std::string> ChaosCastleTrap(WorldObjects::WorldObject& obj
 }
 
 // 0x405c7f and 0x405d95: −1 draws it again and −2 hides it.
-void ShowChaosCastleObject(WorldObjects::WorldObject& object, bool shown)
+void ShowChaosCastleObject(Kernel::WorldObject& object, bool shown)
 {
-    object.state.hiddenMesh = shown ? Models::NoHiddenMesh : WorldObjects::HiddenObject;
+    object.state.hiddenMesh = shown ? Models::NoHiddenMesh : Kernel::HiddenObject;
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects::WorldObject& object,
-                                                             const GameObjectPass& pass)
+Core::Expected<void, std::string> StepDevilSquareObjectFrame(const Kernel::WorldObject& object,
+                                                             const Kernel::GameObjectPass& pass)
 {
     if (object.type != DevilSquareRainObject)
         return {};
@@ -321,8 +325,8 @@ Core::Expected<void, std::string> StepDevilSquareObjectFrame(const WorldObjects:
     return RainAt(object, pass, FirstRainBone, "0x603ee0");
 }
 
-Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::WorldObject& object,
-                                                             const GameObjectPass& pass)
+Core::Expected<void, std::string> StepBloodCastleObjectFrame(Kernel::WorldObject& object,
+                                                             const Kernel::GameObjectPass& pass)
 {
     if (object.type == GlowingStatue)
         return StatueGlows(object, pass);
@@ -336,14 +340,13 @@ Core::Expected<void, std::string> StepBloodCastleObjectFrame(WorldObjects::World
     return TorchFrame(object, pass);
 }
 
-Core::Expected<void, std::string> StepChaosCastleObjectFrame(WorldObjects::WorldObject& object,
-                                                             const GameObjectPass& pass)
+Core::Expected<void, std::string> StepChaosCastleObjectFrame(Kernel::WorldObject& object,
+                                                             const Kernel::GameObjectPass& pass)
 {
     const std::int16_t type = object.type;
     const std::uint8_t area = pass.chaosCastleArea;
     // 0x4055b0 sets +0x8a in the step (the trap armed or the chosen one's count); then it falls to the area.
-    if (type >= 0 && type <= LastTrapObject && object.field8a != 0 &&
-        object.state.hiddenMesh != WorldObjects::HiddenObject)
+    if (type >= 0 && type <= LastTrapObject && object.field8a != 0 && object.state.hiddenMesh != Kernel::HiddenObject)
         if (auto trap = ChaosCastleTrap(object, pass); !trap.HasValue())
             return trap;
     constexpr std::uint8_t OpenAreas = 2;

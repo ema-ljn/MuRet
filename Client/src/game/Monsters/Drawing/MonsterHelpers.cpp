@@ -20,7 +20,7 @@
 #include "Effects/HighModelEffects.h"
 #include "Joints/JointFamilies.h"
 #include "Effects/MeteorEffects.h"
-#include "WorldObjects/WorldModelPose.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/WorldRuntime.h"
 #include "Tables/PlayerModels.h"
 #include "Render/TextureSlot.h"
@@ -1407,7 +1407,7 @@ Core::Expected<Swing, std::string> SwingOf(const Assets::FaunaModels* faunaModel
 Result PoseTheSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, const Kernel::ActorState& actor,
                     const Swing& swing, float frame, const glm::vec3& angles)
 {
-    return WorldObjects::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, angles);
+    return Actors::Drawing::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, angles);
 }
 
 struct SwingLeg
@@ -1429,7 +1429,8 @@ Result EmitSwing(Kernel::WorldState& world, Assets::FaunaModels* faunaModels, co
     glm::vec3 particleLight(1.0f);
     for (int sample = 0; sample < SwingSampleCount; ++sample)
     {
-        if (auto posed = WorldObjects::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, actor.angles);
+        if (auto posed =
+                Actors::Drawing::PoseWorldModel(world, faunaModels, actor, *swing.skeleton, frame, actor.angles);
             !posed.HasValue())
             return posed;
         const auto& bones = world.PoseCarry().bones;

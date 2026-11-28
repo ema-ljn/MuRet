@@ -4,13 +4,12 @@
 #include "Crt/CrtRandom.h"
 #include "Math/Angles.h"
 #include "Math/OriginalRetainedMath.h"
-#include "WorldObjects/ObjectFrameSprites.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
 #include "Particles/TrialsParticleKernels.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -36,9 +35,8 @@ constexpr float ShinyScale = std::bit_cast<float>(0x3f99999au);
 constexpr float ShinyGrey = std::bit_cast<float>(0x3e99999au);
 constexpr int FullTurn = Math::FullTurn;
 
-Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
-                                       const WorldObjects::WorldObject& object, std::int32_t type, std::int32_t subtype,
-                                       std::string_view address)
+Core::Expected<void, std::string> Emit(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                       std::int32_t type, std::int32_t subtype, std::string_view address)
 {
     if (pass.particles == nullptr)
     {
@@ -57,10 +55,10 @@ Core::Expected<void, std::string> Emit(const WorldObjects::GameObjectPass& pass,
 }
 
 // 0x440263..0x440346.
-Core::Expected<void, std::string> Sprites(const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> Sprites(const Kernel::GameObjectPass& pass)
 {
     // 0x4ec110(0x68b18ac, (0, −10, 0), out, 0).
-    const auto point = WorldObjects::ObjectBonePoint(pass, SpriteBone, glm::vec3(0.0f, -10.0f, 0.0f));
+    const auto point = Kernel::ObjectBonePoint(pass, SpriteBone, glm::vec3(0.0f, -10.0f, 0.0f));
     if (!point.HasValue())
         return Core::Unexpected(point.Error());
     // 0x44028f..0x4402d7: the clock times 0.002f (0x6b89bc), FSIN, times 0.35f (0x6b8bc4), plus 0.65f (0x6b8bc0),
@@ -87,8 +85,8 @@ Core::Expected<void, std::string> Sprites(const WorldObjects::GameObjectPass& pa
 }
 } // namespace
 
-Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects::WorldObject& object,
-                                                              const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const Kernel::WorldObject& object,
+                                                              const Kernel::GameObjectPass& pass)
 {
     if (pass.random == nullptr)
     {
@@ -112,7 +110,7 @@ Core::Expected<void, std::string> StepLandOfTrialsObjectFrame(const WorldObjects
     }
 }
 
-Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(const WorldObjects::WorldObject& object,
+Core::Expected<std::optional<TrialsBodyDraw>, std::string> LandOfTrialsBody(const Kernel::WorldObject& object,
                                                                             const glm::vec3& color, float worldClock)
 {
     // 0x6b8ac4 (0.0012f) for the 0x1b and the 0x36, 0x6b8bc8 (0.0009f) for the 0x34; 0x6b882c (0.5f) and

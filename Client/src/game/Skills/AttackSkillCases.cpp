@@ -33,7 +33,7 @@
 #include "Effects/ColoredDecals.h"
 #include "Kernel/JointRequest.h"
 #include "Effects/ModelEffects.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainHeight.h"
 #include "Effects/WizardModelEffects.h"

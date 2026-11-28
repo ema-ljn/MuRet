@@ -11,7 +11,6 @@
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
 
 #include "support/ParticleDrawRecorder.h"
 #include "support/PlayerActors.h"

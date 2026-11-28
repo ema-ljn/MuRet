@@ -15,8 +15,8 @@
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -237,7 +237,7 @@ Core::Expected<void, std::string> FollowTheOwner(Kernel::JointState& joint)
 Core::Expected<float, std::string> TurnFromTheObject(Kernel::JointState& joint, CrtRandom& random)
 {
     const auto* owner = joint.ownerKind == Kernel::JointOwnerKind::ByType
-                            ? static_cast<const WorldObjects::WorldObject*>(joint.ownerContext)
+                            ? static_cast<const Kernel::WorldObject*>(joint.ownerContext)
                             : nullptr;
     if (owner == nullptr)
         return Core::Unexpected(std::string("0x536a15: falta el objeto dueño del joint 0x614/6"));
@@ -364,7 +364,7 @@ Core::Expected<void, std::string> Glow(const Kernel::JointState& joint, CrtRando
     const double value = static_cast<double>((random.Next() & 3) + 4) * Step;
     const glm::vec3 color = subtype == 2 ? glm::vec3(F32(value * Red), F32(value * Tenth), F32(value * Tenth))
                                          : glm::vec3(F32(value * Tenth), F32(value * Tenth), F32(value * 0.5));
-    return WorldObjects::AddDynamicLight(lighting, joint.position, color, 2, "0x536e2d");
+    return Terrain::AddDynamicLight(lighting, joint.position, color, 2, "0x536e2d");
 }
 
 Core::Expected<void, std::string> Particle(const Kernel::JointState& joint, std::int32_t type,

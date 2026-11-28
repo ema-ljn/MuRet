@@ -5,6 +5,7 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
+#include "Kernel/ObjectPass.h"
 #include "Render/ModelBatch.h"
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
@@ -48,9 +49,9 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::WorldObject;
 using Client::Particles::Particle;
 using Client::Particles::Particles;
-using Client::WorldObjects::WorldObject;
 WorldObject Fountain()
 {
     WorldObject object;
@@ -426,8 +427,7 @@ TEST(GameParticlesTest, TheGameObjectPassEmitsFromThePosedBoneMatrixAfterItsComm
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::WorldObjects::GameObjectPass{
-            .map = 0, .random = &random, .worldClock = 1234.0f, .particles = &particles});
+        Client::Kernel::GameObjectPass{.map = 0, .random = &random, .worldClock = 1234.0f, .particles = &particles});
     ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     ASSERT_TRUE(particles.All()[0].alive);
     ASSERT_TRUE(particles.All()[1].alive);
@@ -458,7 +458,7 @@ TEST(GameParticlesTest, AnUnwrittenBoneStopsWithoutInventingItsRetainedPose)
     batch.Begin(Client::Render::Pass3D{});
     const auto failed = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::WorldObjects::GameObjectPass{.map = 0, .random = &random, .particles = &particles});
+        Client::Kernel::GameObjectPass{.map = 0, .random = &random, .particles = &particles});
     ASSERT_FALSE(failed.HasValue());
     EXPECT_NE(failed.Error().find("0x603121"), std::string::npos);
     EXPECT_TRUE(particles.All()[0].alive);
@@ -481,7 +481,7 @@ TEST(GameParticlesTest, AnIntermediateObjectDrawDoesNotEmitOrConsumeRandom)
     batch.Begin(Client::Render::Pass3D{});
     ASSERT_TRUE(Client::WorldObjects::DrawGameWorldObjects(
                     batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-                    Client::WorldObjects::GameObjectPass{
+                    Client::Kernel::GameObjectPass{
                         .map = 0, .originalFrame = false, .random = &random, .particles = &particles})
                     .HasValue());
     EXPECT_FALSE(particles.Any());
@@ -512,13 +512,12 @@ TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTrans
         batch.Begin(Client::Render::Pass3D{});
         const auto result = Client::WorldObjects::DrawGameWorldObjects(
             batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-            Client::WorldObjects::GameObjectPass{
-                .map = 0,
-                .random = &random,
-                .particles = &particles,
-                .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
-                { return Client::Actors::Drawing::PublishPose(carry, models, drawn, true); },
-                .retainedPose = &carry});
+            Client::Kernel::GameObjectPass{.map = 0,
+                                           .random = &random,
+                                           .particles = &particles,
+                                           .onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
+                                           { return Client::Actors::Drawing::PublishPose(carry, models, drawn, true); },
+                                           .retainedPose = &carry});
         ASSERT_TRUE(result.HasValue()) << result.Error();
         CrtRandom expected(2);
         static_cast<void>(expected.Next()); // The object's common part, before the fountain's guard.
@@ -564,7 +563,7 @@ TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNative
         batch.Begin(Client::Render::Pass3D{});
         const auto result = Client::WorldObjects::DrawGameWorldObjects(
             batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-            Client::WorldObjects::GameObjectPass{
+            Client::Kernel::GameObjectPass{
                 .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
         if (missingSecondBone)
         {
@@ -593,8 +592,7 @@ TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInste
     batch.Begin(Client::Render::Pass3D{});
     const auto result = Client::WorldObjects::DrawGameWorldObjects(
         batch, models, objects, Client::Terrain::TerrainPolygon{.everything = true}, nullptr, {},
-        Client::WorldObjects::GameObjectPass{
-            .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
+        Client::Kernel::GameObjectPass{.map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("0x6030a5"), std::string::npos);
     EXPECT_FALSE(particles.Any());

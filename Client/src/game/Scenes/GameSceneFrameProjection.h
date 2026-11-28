@@ -7,12 +7,11 @@
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Kernel/WorldRuntime.h"
 #include "Ui/OldWindows.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 #include <cstdint>
 #include <memory>
@@ -26,14 +25,14 @@ struct GameSceneFrameProjection
 {
     Kernel::GameDrawTailState tail{};
     Terrain::TerrainLighting lighting{};
-    WorldObjects::ObjectModelStepState modelState{};
+    Kernel::ObjectModelStepState modelState{};
     Actors::Drawing::GameItemRenderState items{};
     Models::ClothWorld cloth{.random = Crt::CrtRandom{}};
     Effects::ModelEffects effects{};
     Particles::Particles particles{};
-    std::vector<WorldObjects::WorldObject> objects{};
+    std::vector<Kernel::WorldObject> objects{};
     std::vector<Actors::ActorPickingBox> actorPickingBoxes{};
-    std::unique_ptr<MapScripts::Kalima::KalimaWorld> kalima{};
+    std::unique_ptr<Kernel::KalimaWater> kalima{};
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;
     std::uint8_t ownRecordDepth = 0;

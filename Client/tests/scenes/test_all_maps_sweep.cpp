@@ -17,12 +17,12 @@
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
 #include "Effects/ModelEffects.h"
+#include "Kernel/KalimaWater.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
 #include "Terrain/TerrainState.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/FileBytes.h"
@@ -56,8 +56,8 @@ using Client::Tests::MapSweepWorldCase;
 using Client::Tests::MapSweepWorlds;
 
 constexpr std::uint16_t PlayerKey = 5;
-constexpr Client::WorldObjects::WorldObjectIdentity FirstIdentity = 50000;
-constexpr Client::WorldObjects::WorldObjectIdentity StaleIdentity = 1000;
+constexpr Client::Kernel::WorldObjectIdentity FirstIdentity = 50000;
+constexpr Client::Kernel::WorldObjectIdentity StaleIdentity = 1000;
 constexpr std::int16_t StaleType = -30000;
 constexpr std::int32_t EffectLife = 73;
 constexpr std::int32_t ParticleLife = 81;
@@ -112,7 +112,7 @@ void SeedThePreviousMap(WorldState& world, Client::Terrain::WorldTerrain& terrai
     terrain.heights->cells.front() = -123456.0f;
     loaded.grassOffsets = {-99.0f};
     loaded.objectRecords.push_back(Client::Data::Terrain::TerrainObject{.type = StaleType});
-    Client::WorldObjects::WorldObject stale;
+    Client::Kernel::WorldObject stale;
     stale.identity = StaleIdentity;
     stale.type = StaleType;
     loaded.objects.push_back(stale);

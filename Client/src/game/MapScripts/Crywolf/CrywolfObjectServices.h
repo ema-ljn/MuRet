@@ -4,15 +4,12 @@
 
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct ObjectDraw;
-struct WorldObject;
-} // namespace Client::WorldObjects
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct ObjectDraw;
+struct WorldObject;
+} // namespace Client::Kernel
 
 namespace Client::MapScripts::Crywolf
 {
@@ -24,8 +21,8 @@ namespace Client::MapScripts::Crywolf
 // first unrotated and the second with the glow's turn. The 0x54 takes a rand() and, at 0 modulo 3 with Crywolf's state
 // at 1, releases the smoke 0x5f2/21 with light (1, 1, 1), its scale and no owner. Without the globals, the pool or the
 // count, it cuts where the ASM does, with the earlier work already done.
-[[nodiscard]] Core::Expected<void, std::string> StepCrywolfObjectFrame(const WorldObjects::WorldObject& object,
-                                                                       const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepCrywolfObjectFrame(const Kernel::WorldObject& object,
+                                                                       const Kernel::GameObjectPass& pass);
 
 // 0x4306a0, the last link of the chain of 0x6002e0, with map 34 and an object that 0x6002e0 draws (`draw`, the one
 // from WorldObjects::DrawOf, in Body). With the 0x24, the model color at 0.4 and its RenderBody; with the 0xfa, at
@@ -40,7 +37,6 @@ namespace Client::MapScripts::Crywolf
 // 0x4d and the 0x4e, with rand() % 6 at 0, the cloud 0x622/9 with its light; and the 0x49, with the weather at 0, the
 // HUD sand (0x576353c) at 1. The 0x51 with the state at 2 leaves the PC53 RGB of 0x430a40..0x430ac1; the caller keeps
 // the previous pose and runs 0x44→0x240 of mesh 0.
-[[nodiscard]] Core::Expected<void, std::string> CrywolfObjectBody(const WorldObjects::WorldObject& object,
-                                                                  WorldObjects::ObjectDraw& draw,
-                                                                  const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string>
+CrywolfObjectBody(const Kernel::WorldObject& object, Kernel::ObjectDraw& draw, const Kernel::GameObjectPass& pass);
 } // namespace Client::MapScripts::Crywolf

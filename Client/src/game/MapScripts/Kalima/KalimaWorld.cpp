@@ -4,6 +4,8 @@
 #include "Crt/CrtRandom.h"
 #include "Maps/MapId.h"
 #include "Math/RoundedMath.h"
+#include "Kernel/KalimaWater.h"
+#include "MapScripts/Kalima/KalimaSurfaceDecal.h"
 #include "MapScripts/Kalima/KalimaWaves.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -143,7 +145,7 @@ struct KalimaWorld::Storage
         }
     }
 
-    void UpdatePeriodic(const KalimaFrameContext& context, std::int32_t heroX, std::int32_t heroY)
+    void UpdatePeriodic(const Kernel::KalimaFrameContext& context, std::int32_t heroX, std::int32_t heroY)
     {
         const int startX = std::max(0, TwicePlus(heroX, -PeriodicRadius));
         const int startY = std::max(0, TwicePlus(heroY, -PeriodicRadius));
@@ -280,14 +282,14 @@ KalimaWorld::KalimaWorld(std::int32_t map) : m_storage(std::make_unique<Storage>
 
 KalimaWorld::~KalimaWorld() = default;
 
-std::unique_ptr<KalimaWorld> KalimaWorld::CloneForFrame() const
+std::unique_ptr<Kernel::KalimaWater> KalimaWorld::CloneForFrame() const
 {
     auto clone = std::make_unique<KalimaWorld>(m_storage->map);
     *clone->m_storage = *m_storage;
     return clone;
 }
 
-Core::Expected<void, std::string> KalimaWorld::Update(const KalimaFrameContext& context)
+Core::Expected<void, std::string> KalimaWorld::Update(const Kernel::KalimaFrameContext& context)
 {
     if (!Maps::IsKalimaMap(m_storage->map) || !std::isfinite(context.worldTime))
         return Core::Unexpected(std::string("0x41cca0: mapa o tiempo fuera del contrato portable"));
@@ -367,5 +369,11 @@ const KalimaWaveState& KalimaWorld::Waves() const
 std::int32_t KalimaWorld::Map() const
 {
     return m_storage->map;
+}
+
+Core::Expected<void, std::string> KalimaWorld::DrawSurfaceDecal(Render::ModelBatch& batch,
+                                                                const Terrain::TerrainDecal& decal) const
+{
+    return DrawKalimaSurfaceDecal(batch, *this, decal);
 }
 } // namespace Client::MapScripts::Kalima

@@ -18,11 +18,11 @@
 #include "Particles/Particles.h"
 #include "Particles/ParticleBurst.h"
 #include "Particles/ParticleOwner.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 #include "Particles/PortableParticleTrigonometry.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "Math/OriginalRotation.h"
 #include "Sound/SoundIds.h"
 #include "Audio/SoundId.h"
@@ -127,7 +127,7 @@ Core::Expected<void, std::string> EmitPiercingShotGlow(ModelEffect& effect, Part
 
 namespace
 {
-Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, MapScripts::Kalima::KalimaWorld* kalima,
+Core::Expected<void, std::string> StepKalimaEffect(ModelEffect& effect, Kernel::KalimaWater* kalima,
                                                    Crt::CrtRandom& random)
 {
     constexpr double Acceleration = 3, RotationFactor = 5;
@@ -470,7 +470,7 @@ Core::Expected<void, std::string> StepFlameColumn(ModelEffect& effect, float lum
     constexpr std::int32_t LightRadius = 3;
     constexpr double Orange = static_cast<double>(std::bit_cast<float>(0x3ecccccdu)); // 0x6b87b4, 0.4f
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
-    return WorldObjects::AddDynamicLight(services.lighting, position, light, LightRadius, "0x52b011");
+    return Terrain::AddDynamicLight(services.lighting, position, light, LightRadius, "0x52b011");
 }
 
 // 0x52ad21..0x52ae7a with subtype 0: six flames 0x5de/0 at ±25 in x and y with the local light in white (the two draws
@@ -511,7 +511,7 @@ Core::Expected<void, std::string> StepFlameJet(ModelEffect& effect, float lumino
             services.effects->CreateStoneChip(type, position, effect.transform.angles, effect.light, random));
     }
     const glm::vec3 light{luminosity, F32(static_cast<double>(luminosity) * Orange), 0.0f};
-    if (auto lit = WorldObjects::AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
+    if (auto lit = Terrain::AddDynamicLight(services.lighting, position, light, LightRadius, "0x52ae25");
         !lit.HasValue())
         return lit;
     constexpr std::int32_t HitPeriod = 20;
@@ -565,7 +565,7 @@ Core::Expected<void, std::string> StepGroundStone(ModelEffect& effect, Particles
         effect.alpha = F32(static_cast<double>(effect.alpha) * Fade);
         effect.objectState.light = F32(static_cast<double>(effect.objectState.light) * Dim);
     }
-    return WorldObjects::AddDynamicLight(services.lighting, position, Glow, GlowRadius, "0x52c4f1");
+    return Terrain::AddDynamicLight(services.lighting, position, Glow, GlowRadius, "0x52c4f1");
 }
 // 0x52a737..0x52a7af with subtype 0: the unturned velocity added, the velocity's z 0.01f less, a particle 0x5ac/1 in
 // place with the effect's light and scale and, with the velocity's z under −2 (or NaN), life 0. The common tail adds
@@ -758,7 +758,7 @@ Core::Expected<void, std::string> StepCrywolfTide(ModelEffect& effect, Particles
     }
     const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
                           F32(static_cast<double>(luminosity) * static_cast<double>(0.6f)), luminosity};
-    return WorldObjects::AddDynamicLight(services.lighting, point, light, 3, "0x5264fa");
+    return Terrain::AddDynamicLight(services.lighting, point, light, 3, "0x5264fa");
 }
 
 // 0x526dd0..0x526f9b: the step of the waves 0x114, without rand(). The scale adds +0xe4 and +0xe4 grows (the /0 only
@@ -934,7 +934,7 @@ Core::Expected<void, std::string> StepCrywolfMissile(ModelEffect& effect, Partic
         effect.transform.scale = 1;
         effect.transform.position = effect.start;
     }
-    return WorldObjects::AddDynamicLight(services.lighting, effect.transform.position, {1, 0, 0}, 4, "0x525d5f");
+    return Terrain::AddDynamicLight(services.lighting, effect.transform.position, {1, 0, 0}, 4, "0x525d5f");
 }
 
 Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float luminosity, Particles::Particles& particles,
@@ -990,7 +990,7 @@ Core::Expected<void, std::string> StepFirework(ModelEffect& effect, float lumino
     const glm::vec3 light{F32(static_cast<double>(luminosity) * static_cast<double>(0.4f)),
                           F32(static_cast<double>(luminosity) * static_cast<double>(0.3f)),
                           F32(static_cast<double>(luminosity) * static_cast<double>(0.2f))};
-    return WorldObjects::AddDynamicLight(services.lighting, effect.transform.position, light, 1, "0x52b3a9");
+    return Terrain::AddDynamicLight(services.lighting, effect.transform.position, light, 1, "0x52b3a9");
 }
 
 // 0x52c5ca..0x52c7a6, the wave 0x6eb. With subtype 0 (the horse's stomp) the scale loses 1 (0x6b87d4), without
@@ -1260,7 +1260,7 @@ Core::Expected<void, std::string> EmitEarthquakeBurst(ModelEffect& effect, Parti
 // 0x521c8f..0x5221f0, life 11, with the local light in white and the local angles at 0.
 Core::Expected<void, std::string> StepEarthquakeAtEleven(ModelEffect& effect, Particles::Particles& particles,
                                                          float worldClock, Crt::CrtRandom& random,
-                                                         MapScripts::Kalima::KalimaWorld* kalima,
+                                                         Kernel::KalimaWater* kalima,
                                                          const ModelEffectStepServices& services)
 {
     constexpr glm::vec3 Behind{-25.0f, -80.0f, 0.0f}; // 0x521cda..0x521cee.
@@ -1536,7 +1536,7 @@ Core::Expected<void, std::string> EmitEarthquakeTrails(ModelEffect& effect, Crt:
 }
 
 Core::Expected<void, std::string> StepEarthquake(ModelEffect& effect, Particles::Particles& particles, float worldClock,
-                                                 Crt::CrtRandom& random, MapScripts::Kalima::KalimaWorld* kalima,
+                                                 Crt::CrtRandom& random, Kernel::KalimaWater* kalima,
                                                  const ModelEffectStepServices& services)
 {
     constexpr std::int32_t BurstLife = 11, RingLife = 10;
@@ -1568,7 +1568,7 @@ Core::Expected<void, std::string> LightTheCrack(ModelEffect& effect, float lumin
     if (ownerType.Value())
         color = *ownerType.Value() == SeparateOwnerType ? glm::vec3(0.0f, 0.0f, luminosity)
                                                         : glm::vec3(luminosity, 0.0f, 0.0f);
-    return WorldObjects::AddDynamicLight(services.lighting, effect.transform.position, color, Radius, lightAddress);
+    return Terrain::AddDynamicLight(services.lighting, effect.transform.position, color, Radius, lightAddress);
 }
 
 // 0x52284f..0x522a94 (and 0x522995..0x522a94): the pebble 0xc8 + (rand() & 1) at the position plus (0; rand() % 150;
@@ -1779,7 +1779,7 @@ Core::Expected<void, std::string> StepTheTrailSpark(ModelEffect& effect, Crt::Cr
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Models::Skeleton* skeleton,
                                                       Particles::Particles& particles, float worldClock,
-                                                      Crt::CrtRandom& random, MapScripts::Kalima::KalimaWorld* kalima,
+                                                      Crt::CrtRandom& random, Kernel::KalimaWater* kalima,
                                                       const ModelEffectStepServices& services)
 {
     if (!effect.alive)
@@ -1954,7 +1954,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
         }
         const auto radius = Math::FtolLow(static_cast<double>(effect.start.x) - 1.0);
         if (auto lit =
-                WorldObjects::AddDynamicLight(services.lighting, effect.transform.position, Shadow, radius, "0x528790");
+                Terrain::AddDynamicLight(services.lighting, effect.transform.position, Shadow, radius, "0x528790");
             !lit.HasValue())
             return lit;
     }
@@ -1986,8 +1986,7 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
             effect.objectState.light =
                 F32(static_cast<double>(effect.life) * static_cast<double>(std::bit_cast<float>(0x3d088889u)));
         const glm::vec3 shadow(F32(-0.5 * static_cast<double>(StepLuminosity(lightDraw, effect.life))));
-        if (auto lit =
-                WorldObjects::AddDynamicLight(services.lighting, effect.transform.position, shadow, 5, "0x5212da");
+        if (auto lit = Terrain::AddDynamicLight(services.lighting, effect.transform.position, shadow, 5, "0x5212da");
             !lit.HasValue())
             return lit;
         if (services.publishAction)

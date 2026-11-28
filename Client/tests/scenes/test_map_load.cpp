@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Kernel/WorldObject.h"
 #include "Models/Cloth.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
@@ -114,12 +115,12 @@ TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
     auto& registrations = loaded.registrations;
     for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
     {
-        registrations.entries[slot] = Client::WorldObjects::WorldObjectRegistration{
+        registrations.entries[slot] = Client::Kernel::WorldObjectRegistration{
             .active = 0x80,
             .metadata = {1, 2, 3, 4, 5, 6, 7},
-            .object = static_cast<Client::WorldObjects::WorldObjectIdentity>(slot + 1)};
+            .object = static_cast<Client::Kernel::WorldObjectIdentity>(slot + 1)};
     }
-    constexpr Client::WorldObjects::WorldObjectIdentity NewObject = 999;
+    constexpr Client::Kernel::WorldObjectIdentity NewObject = 999;
     registrations.nextIdentity = NewObject;
     const auto before = registrations.entries;
 

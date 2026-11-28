@@ -6,9 +6,8 @@
 #include "Math/X87.h"
 #include "Math/Ftol.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Particles/ObjectFire.h"
 #include "Audio/SoundId.h"
 #include "Tables/PlayerActions.h"
 
@@ -51,18 +50,18 @@ std::optional<float> LostTowerScroll(float worldClock)
     return F32(static_cast<double>(negated % ScrollPeriod) * Thousandth);
 }
 
-Core::Expected<void, std::string> Fire(const WorldObjects::WorldObject& object, const glm::vec3& offset,
-                                       Crt::CrtRandom& random, const WorldObjects::ObjectStepGlobals& globals,
+Core::Expected<void, std::string> Fire(const Kernel::WorldObject& object, const glm::vec3& offset,
+                                       Crt::CrtRandom& random, const Kernel::ObjectStepGlobals& globals,
                                        const char* address)
 {
-    if (auto emitted = WorldObjects::EmitObjectFire(0, object, offset, random, globals); !emitted.HasValue())
+    if (auto emitted = Particles::EmitObjectFire(0, object, offset, random, globals); !emitted.HasValue())
         return Core::Unexpected(std::format("{}: {}", address, emitted.Error()));
     return {};
 }
 } // namespace
 
-Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                                    const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepDungeonObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                    const Kernel::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -83,7 +82,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& o
     case 0x27:
     case 0x28:
     case 0x33:
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 0x29:
         return Fire(object, glm::vec3(0.0f, -30.0f, 240.0f), random, globals, "0x605043");
@@ -100,7 +99,7 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& o
             static_cast<void>(globals.effects->CreateFallingStone(object.transform.position, object.transform.angles,
                                                                   object.light, random));
         }
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     }
     default:
@@ -108,8 +107,8 @@ Core::Expected<void, std::string> StepDungeonObject(WorldObjects::WorldObject& o
     }
 }
 
-Core::Expected<void, std::string> StepLostTowerObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                                      const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepLostTowerObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                      const Kernel::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -134,7 +133,7 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObjects::WorldObject&
         return {};
     case 0x18:
     {
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         constexpr int JetMask = 63;
         if ((random.Next() & JetMask) != 0)
             return {};
@@ -146,7 +145,7 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObjects::WorldObject&
         return {};
     }
     case 0x19:
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
         return {};
     case 0x26:
     case 0x27:
@@ -156,14 +155,13 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObjects::WorldObject&
     }
 }
 
-Core::Expected<void, std::string> StepArenaObject(WorldObjects::WorldObject& object,
-                                                  const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepArenaObject(Kernel::WorldObject& object, const Kernel::ObjectStepGlobals& globals)
 {
     constexpr std::int16_t ScrollingObject = 0x15;
     constexpr std::int16_t HiddenType = 0x26;
     if (object.type == HiddenType)
     {
-        object.state.hiddenMesh = WorldObjects::HiddenObject; // 0x60550f.
+        object.state.hiddenMesh = Kernel::HiddenObject; // 0x60550f.
         return {};
     }
     if (object.type != ScrollingObject)
@@ -178,8 +176,7 @@ Core::Expected<void, std::string> StepArenaObject(WorldObjects::WorldObject& obj
     return {};
 }
 
-Core::Expected<void, std::string> KickObject(WorldObjects::WorldObject& object,
-                                             const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> KickObject(Kernel::WorldObject& object, const Kernel::ObjectStepGlobals& globals)
 {
     if (globals.heroPosition == nullptr || globals.heroAction == nullptr)
         return Core::Unexpected(std::string("0x52f556: la patada 0x52f550 lee la posición y la acción del héroe "

@@ -7,7 +7,7 @@
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <bit>
 #include <format>
@@ -33,7 +33,7 @@ std::optional<double> Wave(float worldClock, double rate, float factor)
     return Math::Detail::SineProductPC53(static_cast<double>(worldClock) * rate, factor);
 }
 
-Core::Expected<void, std::string> SetSwingLight(WorldObjects::WorldObject& object, float worldClock, double rate,
+Core::Expected<void, std::string> SetSwingLight(Kernel::WorldObject& object, float worldClock, double rate,
                                                 std::string_view address)
 {
     const std::optional<double> wave = Wave(worldClock, rate, Swing);
@@ -45,14 +45,14 @@ Core::Expected<void, std::string> SetSwingLight(WorldObjects::WorldObject& objec
 
 // 0x60556e..0x6055c8: the phase goes up 0.1f (0x6b87b8) with fst, the unrounded sum is compared with 10 (0x6b87a8) and
 // the stored phase with 5 (0x6b87f8); test ah, 0x41 lets only the ordered greater through.
-Core::Expected<void, std::string> StepBubbles(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                              const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepBubbles(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                              const Kernel::ObjectStepGlobals& globals)
 {
     constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
     constexpr double Ceiling = 10.0;
     constexpr float Threshold = 5.0f;
     const double phase = static_cast<double>(object.field84) + Rise;
-    object.state.hiddenMesh = WorldObjects::HiddenObject;
+    object.state.hiddenMesh = Kernel::HiddenObject;
     object.field84 = F32(phase);
     if (phase > Ceiling)
         object.field84 = 0.0f; // EDX, still 0 from 0x604d50.
@@ -71,8 +71,8 @@ Core::Expected<void, std::string> StepBubbles(WorldObjects::WorldObject& object,
 }
 } // namespace
 
-Core::Expected<void, std::string> StepAtlansObject(WorldObjects::WorldObject& object, Crt::CrtRandom& random,
-                                                   const WorldObjects::ObjectStepGlobals& globals)
+Core::Expected<void, std::string> StepAtlansObject(Kernel::WorldObject& object, Crt::CrtRandom& random,
+                                                   const Kernel::ObjectStepGlobals& globals)
 {
     switch (object.type)
     {

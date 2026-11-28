@@ -1,9 +1,13 @@
 #include "Actors/Drawing/PosePublishing.h"
 
 #include "Actors/Drawing/CharacterDrawing.h"
+#include "Assets/FaunaModels.h"
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
+#include "Kernel/ActorState.h"
 #include "Kernel/PoseBuffer.h"
+#include "Kernel/WorldState.h"
+#include "Math/Ftol.h"
 #include "Math/HalfLifeMath.h"
 #include "Models/IModelLibrary.h"
 #include "Models/ModelId.h"
@@ -12,8 +16,10 @@
 #include "Models/Skinning.h"
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -126,6 +132,44 @@ Core::Expected<void, std::string> PublishPoseRaw(Kernel::PoseBuffer& buffer, con
     bones = std::span(buffer.bones).first(count);
     if (skin)
         SkinTheScratch(buffer, *model, bones, transform, translated);
+    return {};
+}
+
+Core::Expected<void, std::string> PoseWorldModel(Kernel::WorldState& world, Assets::FaunaModels* faunaModels,
+                                                 const Kernel::ActorState& actor, const Models::Skeleton& skeleton,
+                                                 float frame, const glm::vec3& angles)
+{
+    // 0x4eb86d: without actions it publishes neither metadata nor scratch, even if the model has bones.
+    if (skeleton.actions.empty())
+        return {};
+    if (faunaModels == nullptr)
+        return Core::Unexpected(std::string("0x4eb860: no fauna models (0x5769ad8)"));
+    Kernel::SharedModelPlacement placement = world.ModelPlacement(actor.type);
+    const std::uint8_t action = placement.action < skeleton.actions.size() ? placement.action : 0;
+    if (placement.action != action)
+    {
+        placement.action = action;
+        world.PlaceModel(actor.type, placement);
+    }
+    const Models::AnimationState animation{.action = action,
+                                           .frame = frame,
+                                           .previousAction = actor.animation.previousAction,
+                                           .previousKey = actor.animation.previousKey};
+    auto& carry = world.PoseCarry();
+    if (carry.bones.size() < skeleton.bones.size())
+        carry.bones.resize(skeleton.bones.size(), Math::BoneTransform(0.0f));
+    const auto bones = std::span(carry.bones).first(skeleton.bones.size());
+    const Models::ObjectTransform transform{.position = placement.origin, .angles = angles, .scale = placement.scale};
+    if (!Models::PoseWorldSkeleton(skeleton, animation, transform, actor.headTurn.angles, bones))
+        return Core::Unexpected(std::string("0x4eb860: no se pudo posar el modelo de la estela"));
+    carry.models[actor.type] = transform;
+    const auto whole = Math::OriginalFtolLow(static_cast<double>(frame));
+    if (!whole)
+        return Core::Unexpected(std::string("0x4eb8bf: el frame de la estela no tiene conversión nativa observada"));
+    std::int16_t key = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(*whole));
+    if (key < 0 || key >= skeleton.actions[action].keyCount)
+        key = 0;
+    faunaModels->RecordAnimation(actor.type, frame, key);
     return {};
 }
 } // namespace Client::Actors::Drawing

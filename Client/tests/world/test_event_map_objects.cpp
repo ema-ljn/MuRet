@@ -1,10 +1,11 @@
 #include "Crt/CrtRandom.h"
+#include "Kernel/WorldObject.h"
 #include "Math/X87.h"
 #include "Models/ObjectState.h"
 #include "Events/EventMapObjectStep.h"
 #include "Particles/Particles.h"
 #include "Terrain/TerrainLighting.h"
-#include "WorldObjects/WorldObjectStepServices.h"
+#include "Terrain/DynamicWorldLight.h"
 #include "WorldObjects/WorldObjects.h"
 #include "Audio/SoundId.h"
 
@@ -22,10 +23,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectStepGlobals;
 using Client::WorldObjects::StepWorldObjectChecked;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t DevilSquareMap = 9;
 
@@ -106,7 +107,7 @@ TEST(EventMapObjectsTest, TheDevilSquareFlashLightsAroundTheHeroInsideTheWindow)
         const float x = F32((draws.Next() % 1200 + static_cast<double>(step.hero.x)) - 600.0);
         EXPECT_EQ(random.State(), draws.State());
         auto expected = std::make_unique<TerrainLighting>();
-        ASSERT_TRUE(Client::WorldObjects::AddDynamicLight(expected.get(), {x, y, 0.0f}, color, 12, "test").HasValue());
+        ASSERT_TRUE(Client::Terrain::AddDynamicLight(expected.get(), {x, y, 0.0f}, color, 12, "test").HasValue());
         EXPECT_TRUE(step.lighting->cells == expected->cells);
         EXPECT_EQ(step.looped, std::vector<std::int32_t>{1});
     }
@@ -151,7 +152,7 @@ TEST(EventMapObjectsTest, TheBloodCastleGatesHideUntilTheyOpen)
             ASSERT_TRUE(StepWorldObjectChecked(closed, map, nullptr, random, ObjectStepGlobals{}).HasValue());
             ASSERT_TRUE(StepWorldObjectChecked(open, map, nullptr, random, ObjectStepGlobals{}).HasValue());
             EXPECT_EQ(closed.state.hiddenMesh,
-                      type == 11 ? WorldObject{}.state.hiddenMesh : Client::WorldObjects::HiddenObject);
+                      type == 11 ? WorldObject{}.state.hiddenMesh : Client::Kernel::HiddenObject);
             EXPECT_EQ(open.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
             EXPECT_EQ(random.State(), CrtRandom(7).State());
         }

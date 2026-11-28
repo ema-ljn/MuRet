@@ -20,17 +20,13 @@ struct TerrainLighting;
 namespace Client::Kernel
 {
 struct JointRequest;
+struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Effects
 {
 class ModelEffects;
 } // namespace Client::Effects
-
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
 
 namespace Client::Particles
 {
@@ -71,7 +67,7 @@ struct IcarusObjectServices
 // rand() % 10 == 0 and the type from 0 to 5, a sprite 0x623 of scale 0.5 on the object with the light
 // ((rand() % 10) · 0.02f) per channel and two object joints 0x614/6, of width rand() % 20 + 10; if not, count goes
 // back down.
-[[nodiscard]] Core::Expected<void, std::string> StepIcarusSeenObject(WorldObjects::WorldObject& object,
-                                                                     std::int32_t selector, std::int32_t& count,
+[[nodiscard]] Core::Expected<void, std::string> StepIcarusSeenObject(Kernel::WorldObject& object, std::int32_t selector,
+                                                                     std::int32_t& count,
                                                                      const IcarusObjectServices& services);
 } // namespace Client::MapScripts::Icarus

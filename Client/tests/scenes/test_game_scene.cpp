@@ -1399,7 +1399,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         }
         ASSERT_EQ(cloth.random.State(), RandomAfter(probe.drawDraws).State());
         world.Runtime().heroCellLayer = probe.layer;
-        std::vector<Client::WorldObjects::WorldObject>& objects = world.Map().objects;
+        std::vector<Client::Kernel::WorldObject>& objects = world.Map().objects;
         for (const std::size_t roof : probe.roofs)
         {
             ASSERT_TRUE(objects[roof].seen) << roof;
@@ -1467,7 +1467,7 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     world.Runtime().map = 35;
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
-    const Client::WorldObjects::WorldObject before = world.Map().objects.front();
+    const Client::Kernel::WorldObject before = world.Map().objects.front();
     GameScene scene = Scene();
     ASSERT_TRUE(scene.Enter().HasValue());
 

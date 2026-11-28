@@ -29,6 +29,7 @@
 #include "Terrain/WorldTerrain.h"
 #include "Audio/SoundId.h"
 
+#include "support/LentWorld.h"
 #include "support/PlayerActors.h"
 #include "support/SameBytes.h"
 
@@ -281,7 +282,7 @@ struct ArrowWorld
         return steps;
     }
 
-    std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
+    std::unique_ptr<WorldState> ownedWorld = Client::Tests::LentWorld();
     WorldState& world = *ownedWorld;
     Client::Terrain::WorldTerrain terrain;
     CrtRandom random{Seed};

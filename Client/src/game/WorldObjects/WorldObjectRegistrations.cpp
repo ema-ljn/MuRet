@@ -1,10 +1,11 @@
 #include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 
 namespace Client::WorldObjects
 {
-void RegisterWorldObject(WorldObjectRegistrations& registrations, WorldObjectIdentity object)
+void RegisterWorldObject(Kernel::WorldObjectRegistrations& registrations, Kernel::WorldObjectIdentity object)
 {
-    for (WorldObjectRegistration& entry : registrations.entries)
+    for (Kernel::WorldObjectRegistration& entry : registrations.entries)
     {
         if (entry.active != 0)
         {

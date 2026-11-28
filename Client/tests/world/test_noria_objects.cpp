@@ -1,5 +1,5 @@
 #include "Crt/CrtRandom.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Particles.h"
 #include "WorldObjects/WorldObjects.h"
 
@@ -25,10 +25,10 @@ TEST(NoriaObjectsTest, ClockCasesStoreTheirNativeUvAndSharedModelSelection)
           Probe{0x2b, 0.468f, 0.0f, -1}, Probe{0x27, 0.0f, 0.0f, 1}})
     {
         SCOPED_TRACE(probe.type);
-        Client::WorldObjects::WorldObject object;
+        Client::Kernel::WorldObject object;
         object.type = probe.type;
-        Client::WorldObjects::ObjectModelStepState models;
-        Client::WorldObjects::ObjectStepGlobals globals;
+        Client::Kernel::ObjectModelStepState models;
+        Client::Kernel::ObjectStepGlobals globals;
         globals.worldClock = 1234.75f;
         globals.modelState = &models;
         Client::Crt::CrtRandom random(7);
@@ -49,7 +49,7 @@ TEST(NoriaObjectsTest, NoriaNeverRunsTheLoginMarkersOrWhirlpools)
 {
     for (const std::int16_t type : {std::int16_t{0x54}, std::int16_t{0x56}, std::int16_t{0x5a}})
     {
-        Client::WorldObjects::WorldObject object;
+        Client::Kernel::WorldObject object;
         object.type = type;
         object.transform.angles.z = 90.0f;
         Client::Crt::CrtRandom random(7);
@@ -64,10 +64,10 @@ TEST(NoriaObjectsTest, NoriaKeepsTheModelAndBlendPrefixWhenTheClockCannotConvert
 {
     for (const std::int16_t type : {std::int16_t{0x29}, std::int16_t{0x2a}, std::int16_t{0x2b}})
     {
-        Client::WorldObjects::WorldObject object;
+        Client::Kernel::WorldObject object;
         object.type = type;
-        Client::WorldObjects::ObjectModelStepState models;
-        Client::WorldObjects::ObjectStepGlobals globals;
+        Client::Kernel::ObjectModelStepState models;
+        Client::Kernel::ObjectStepGlobals globals;
         globals.modelState = &models;
         globals.worldClock = std::numeric_limits<float>::infinity();
         Client::Crt::CrtRandom random(7);
@@ -83,11 +83,11 @@ TEST(NoriaObjectsTest, NoriaKeepsTheModelAndBlendPrefixWhenTheClockCannotConvert
 
 TEST(NoriaObjectsTest, ARegisteredTowerEmitsItsMapSparkBeforeScrolling)
 {
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.type = 0x142;
     object.transform.position = {1000, 2000, 300};
     auto particles = std::make_unique<Client::Particles::Particles>();
-    Client::WorldObjects::ObjectStepGlobals globals;
+    Client::Kernel::ObjectStepGlobals globals;
     globals.particles = particles.get();
     globals.worldClock = 1234.75f;
     Client::Crt::CrtRandom random(7);

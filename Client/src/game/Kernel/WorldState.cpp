@@ -14,6 +14,9 @@
 #include "Actors/PlayerActionSpeeds.h"
 #include "Fauna/FaunaState.h"
 #include "Kernel/DrawTailState.h"
+#include "Kernel/JointCreation.h"
+#include "Kernel/JointRequest.h"
+#include "Core/Expected.h"
 #include "Weather/Leaves.h"
 #include "Kernel/OwnCharacterRecord.h"
 #include "Kernel/OwnInventory.h"
@@ -26,6 +29,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <span>
 
 namespace Client::Kernel
@@ -229,6 +234,27 @@ Kernel::GameDrawTailState& WorldState::DrawTail()
 const Kernel::GameDrawTailState& WorldState::DrawTail() const
 {
     return *m_drawTail;
+}
+
+void WorldState::LendJointCreation(CreateJointFunction create)
+{
+    m_createJoint = create;
+}
+
+Core::Expected<std::optional<std::size_t>, std::string> WorldState::CreateJoint(std::span<JointState> joints,
+                                                                                const JointRequest& request,
+                                                                                Crt::CrtRandom& random,
+                                                                                JointOwnerKind ownerKind) const
+{
+    if (m_createJoint == nullptr)
+        return Core::Unexpected(std::string("0x530860: the joint creation is not lent"));
+    return m_createJoint(joints, request, random, ownerKind);
+}
+
+Core::Expected<std::optional<std::size_t>, std::string>
+WorldState::CreateJoint(const JointRequest& request, Crt::CrtRandom& random, JointOwnerKind ownerKind) const
+{
+    return CreateJoint(m_drawTail->joints, request, random, ownerKind);
 }
 Weather::Leaves& WorldState::Leaves()
 {

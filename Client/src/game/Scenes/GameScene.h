@@ -58,10 +58,10 @@ struct TerrainLighting;
 struct WorldTerrain;
 } // namespace Client::Terrain
 
-namespace Client::MapScripts::Kalima
+namespace Client::Kernel
 {
-class KalimaWorld;
-} // namespace Client::MapScripts::Kalima
+class KalimaWater;
+} // namespace Client::Kernel
 
 namespace Client::Particles
 {
@@ -73,12 +73,6 @@ class Particles;
 // Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
 // Los servicios o familias aún no portados devuelven su frontera después de conservar el prefijo.
 // Contrato: research06, «La entrada al mundo», «El paso del juego» y «El dibujo del juego».
-namespace Client::WorldObjects
-{
-struct ObjectModelStepState;
-struct WorldObject;
-} // namespace Client::WorldObjects
-
 namespace Client::Models
 {
 struct ClothWorld;
@@ -110,6 +104,8 @@ struct InventoryServices;
 namespace Client::Kernel
 {
 struct GameDrawTailState;
+struct ObjectModelStepState;
+struct WorldObject;
 } // namespace Client::Kernel
 
 namespace Client::Scenes
@@ -263,12 +259,12 @@ private:
     [[nodiscard]] Kernel::GameDrawTailState& FrameTail();
     [[nodiscard]] Terrain::TerrainLighting& FrameLighting();
     [[nodiscard]] Models::ClothWorld& FrameCloth();
-    [[nodiscard]] WorldObjects::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] Kernel::ObjectModelStepState& FrameModelState();
     [[nodiscard]] Actors::Drawing::GameItemRenderState& FrameItemRender();
     [[nodiscard]] Effects::ModelEffects& FrameEffects();
     [[nodiscard]] Particles::Particles& FrameParticles();
-    [[nodiscard]] std::span<WorldObjects::WorldObject> FrameObjects();
-    [[nodiscard]] MapScripts::Kalima::KalimaWorld* FrameKalima();
+    [[nodiscard]] std::span<Kernel::WorldObject> FrameObjects();
+    [[nodiscard]] Kernel::KalimaWater* FrameKalima();
     [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
     [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(Render::Frame::SceneCanvas& canvas);
 

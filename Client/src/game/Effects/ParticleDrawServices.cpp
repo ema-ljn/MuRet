@@ -3,6 +3,9 @@
 #include "Models/TextureMetadata.h"
 #include "Core/Expected.h"
 #include "Render/Billboard.h"
+#include "Render/ModelBatch.h"
+#include "Render/ModelBatchParticleBackend.h"
+#include "Render/ModelBatchParticleState.h"
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/SpriteVertex.h"
@@ -135,5 +138,27 @@ Particles::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Rend
             return vertex;
     }
     return Checked(m_backend.get().End(), Phase::End);
+}
+
+Core::Expected<void, Particles::ParticleDrawingFailure>
+DrawParticles(Render::ModelBatch& batch, Particles::Particles& particles, const Models::IModelLibrary& textures,
+              const Math::OriginalMatrix& view, float worldClock, std::uint8_t mode)
+{
+    bool restoreTextureEnv = false;
+    const auto drawn = [&]
+    {
+        // One adapter per pass imports the material the batch left.
+        Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
+                                                  Render::ModelBatchParticleState::ForModelPass());
+        ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
+        const auto result = Particles::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
+        restoreTextureEnv = !result.HasValue() && services.HasOpenTextureEnvOverride();
+        return result;
+    }();
+    // 0x548a4a restores GL_MODULATE after the billboard. If MuRet interrupts the pass, it closes the incomplete quad
+    // first and completes only this restore.
+    if (restoreTextureEnv)
+        batch.SetTextureEnv(Render::TextureEnvMode::Modulate);
+    return drawn;
 }
 } // namespace Client::Effects

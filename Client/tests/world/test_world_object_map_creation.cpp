@@ -6,7 +6,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Maps/WorldFolder.h"
 #include "WorldObjects/IWorldObjectCreationServices.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -72,7 +72,7 @@ TEST(WorldObjectMapCreationTest, EverySpecialMapUsesOnlyItsOwnDirectCases)
                                                         .position = {1600.0f, 14400.0f, 25.0f},
                                                         .angle = {10.0f, 20.0f, 30.0f},
                                                         .scale = 2.0f};
-            Client::WorldObjects::WorldObjectRegistrations registrations;
+            Client::Kernel::WorldObjectRegistrations registrations;
             registrations.entries[0] = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 999};
             registrations.nextIdentity = 1000;
             const auto objects = Client::Tests::CheckedWorldObjectProjection(
@@ -179,7 +179,7 @@ TEST(WorldObjectMapCreationTest, EveryMapRegistrationPreservesAFullTableAndStabl
     {
         SCOPED_TRACE(test.map);
         SCOPED_TRACE(test.type);
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         for (auto& entry : registrations.entries)
         {
             entry = {.active = 255, .metadata = {9, 8, 7, 6, 5, 4, 3}, .object = 400};
@@ -226,7 +226,7 @@ TEST(WorldObjectMapCreationTest, SignedTypeBoundariesPreserveDefaultsOnEverySpec
             SCOPED_TRACE(type);
             const Client::Data::Terrain::TerrainObject record{
                 .type = type, .position = {10.0f, 20.0f, 30.0f}, .angle = {40.0f, 50.0f, 60.0f}, .scale = 2.0f};
-            Client::WorldObjects::WorldObjectRegistrations registrations;
+            Client::Kernel::WorldObjectRegistrations registrations;
             const auto objects = Client::Tests::CheckedWorldObjectProjection(
                 std::span(&record, 1), map, Client::WorldObjects::ObjectScene::Login, &registrations);
             ASSERT_EQ(objects.size(), 1u);
@@ -255,7 +255,7 @@ TEST_F(GoldenWorldObjectMapCreationTest, RealSpecialMapObjectsReceiveTheDirectRu
         const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, map);
         ASSERT_TRUE(records.HasValue()) << records.Error();
         ASSERT_FALSE(records.Value().empty());
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         const auto objects = Client::Tests::CheckedWorldObjectProjection(
             records.Value(), map, Client::WorldObjects::ObjectScene::Other, &registrations);
         ASSERT_FALSE(objects.empty());
@@ -304,17 +304,17 @@ public:
         glm::vec3 angles;
         glm::vec3 light;
         float scale;
-        Client::WorldObjects::WorldObjectIdentity owner;
+        Client::Kernel::WorldObjectIdentity owner;
     };
     std::vector<Emission> emissions;
     std::size_t failAt = std::numeric_limits<std::size_t>::max();
     Client::WorldObjects::WorldObjectCreationContext* context = nullptr;
     bool changeScene = false;
-    std::function<bool(const Client::WorldObjects::WorldObjectModelEffectRequest&, Client::WorldObjects::WorldObject&)>
+    std::function<bool(const Client::WorldObjects::WorldObjectModelEffectRequest&, Client::Kernel::WorldObject&)>
         onCreate;
 
     bool CreateModelEffect(const Client::WorldObjects::WorldObjectModelEffectRequest& request,
-                           Client::WorldObjects::WorldObject& source) noexcept override
+                           Client::Kernel::WorldObject& source) noexcept override
     {
         emissions.push_back(
             {request.type, request.position, source.transform.angles, source.light, request.scale, request.owner});
@@ -350,7 +350,7 @@ TEST(WorldObjectMapCreationTest, NoriaEmitsFiveEffectsAndRereadsTheLiveSourceBet
 {
     const Client::Data::Terrain::TerrainObject record{
         .type = 322, .position = {10.0f, 20.0f, 30.0f}, .angle = {1.0f, 2.0f, 3.0f}, .scale = 2.0f};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{3, Client::WorldObjects::ObjectScene::Other, registrations,
                                                              &services};
@@ -383,7 +383,7 @@ TEST(WorldObjectMapCreationTest, SceneEmissionRunsBeforeReadingTheMapAndPreserve
 {
     const Client::Data::Terrain::TerrainObject record{
         .type = 180, .position = {10.0f, 20.0f, 30.0f}, .angle = {1.0f, 2.0f, 3.0f}, .scale = 2.0f};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{4, Client::WorldObjects::ObjectScene::Login, registrations,
                                                              &services};
@@ -409,7 +409,7 @@ TEST(WorldObjectMapCreationTest, UnsupportedEffectRetainsTheCreatedObjectsAndSto
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 8, .position = {10.0f, 20.0f, 30.0f}},
                              Client::Data::Terrain::TerrainObject{.type = 322, .position = {10.0f, 20.0f, 30.0f}},
                              Client::Data::Terrain::TerrainObject{.type = 8, .position = {10.0f, 20.0f, 30.0f}}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     services.failAt = 3;
     Client::WorldObjects::WorldObjectCreationContext context{3, Client::WorldObjects::ObjectScene::Other, registrations,
@@ -432,7 +432,7 @@ TEST(WorldObjectMapCreationTest, MissingEmissionServiceIsAnExplicitIntegrationEr
          {Client::WorldObjects::ObjectScene::Login, Client::WorldObjects::ObjectScene::CharacterSelect})
     {
         Client::Data::Terrain::TerrainObject record{.type = 180};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{0, scene, registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
         ASSERT_TRUE(result.failure.has_value());
@@ -449,7 +449,7 @@ TEST(WorldObjectMapCreationTest, FullDeviasCreationRejectsTheUnverifiedFtolDomai
     for (const float angle : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p63f})
     {
         const Client::Data::Terrain::TerrainObject record{.type = 20, .angle = {1.0f, 2.0f, angle}};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{2, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
@@ -472,7 +472,7 @@ TEST(WorldObjectMapCreationTest, ChaosCastleAcceptsEverySignedTypeAndStopsBefore
     for (const std::int32_t map : {18, 19, 20, 21, 22, 23})
     {
         SCOPED_TRACE(map);
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{map, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(records, context);
@@ -496,7 +496,7 @@ TEST(WorldObjectMapCreationTest, CastleCreationPreservesKnownStoresBeforeAnyRequ
     {
         SCOPED_TRACE(type);
         const Client::Data::Terrain::TerrainObject record{.type = type, .scale = 2.0f};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{30, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
@@ -522,7 +522,7 @@ TEST(WorldObjectMapCreationTest, CastleCreationPreservesKnownStoresBeforeAnyRequ
 TEST(WorldObjectMapCreationTest, CastleRandomRunsBeforeARequiredLiveStateRead)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 41};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::Crt::CrtRandom random(1);
     Client::WorldObjects::WorldObjectCreationContext context{30, Client::WorldObjects::ObjectScene::Other,
                                                              registrations, nullptr, &random};
@@ -536,7 +536,7 @@ TEST(WorldObjectMapCreationTest, CastleRandomRunsBeforeARequiredLiveStateRead)
 TEST(WorldObjectMapCreationTest, CastleEffectRunsBeforeTheFollowingCreationHandlers)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 79, .position = {10.0f, 20.0f, 30.0f}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{30, Client::WorldObjects::ObjectScene::Other,
                                                              registrations, &services};
@@ -569,7 +569,7 @@ TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistra
             Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {25700.0f, 0.0f, 0.0f}},
             Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {0.0f, 25700.0f, 0.0f}},
             Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {-1601.0f, 0.0f, 0.0f}}};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         registrations.nextIdentity = 900;
         registrations.entries[0] = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 899};
         const auto previous = registrations.entries;
@@ -591,7 +591,7 @@ TEST(WorldObjectMapCreationTest, EachRecordReadsTheSceneAfterThePreviousSynchron
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 180},
                              Client::Data::Terrain::TerrainObject{.type = 180}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{0, Client::WorldObjects::ObjectScene::Login, registrations,
                                                              &services};
@@ -612,7 +612,7 @@ TEST(WorldObjectMapCreationTest, EveryCatalogAndRawMapCompletesTheDefaultType)
     {
         SCOPED_TRACE(map);
         const Client::Data::Terrain::TerrainObject record{.type = -1};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{map, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
@@ -649,7 +649,7 @@ TEST(WorldObjectMapCreationTest, BothProjectionsReturnInvalidAngleAndStopBeforeT
                     Client::Data::Terrain::TerrainObject{
                         .type = type, .position = {123, 456, 789}, .angle = {10, 20, angle}, .scale = 2},
                     Client::Data::Terrain::TerrainObject{.type = 22, .position = {44, 55, 66}}};
-                Client::WorldObjects::WorldObjectRegistrations registrations;
+                Client::Kernel::WorldObjectRegistrations registrations;
                 registrations.entries[5] = {.active = 2, .metadata = {7, 6, 5, 4, 3, 2, 1}, .object = 999};
                 const auto result =
                     withRegistry ? Client::WorldObjects::CreateWorldObjects(
@@ -680,7 +680,7 @@ TEST(WorldObjectMapCreationTest, BothProjectionsReturnInvalidAngleAndStopBeforeT
 TEST(WorldObjectMapCreationTest, SceneEmissionChangesMapZeroToThirtyBeforeTheDirectDispatch)
 {
     const Client::Data::Terrain::TerrainObject record{.type = 180, .position = {10, 20, 30}, .scale = 2};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{0, Client::WorldObjects::ObjectScene::Login, registrations,
                                                              &services};
@@ -708,7 +708,7 @@ TEST(WorldObjectMapCreationTest, ASceneFailureSkipsTheDiscriminatingMapThirtyCas
 {
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 180, .position = {10, 20, 30}, .scale = 2},
                              Client::Data::Terrain::TerrainObject{.type = 7, .position = {40, 50, 60}}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     MutatingCreationServices services;
     Client::WorldObjects::WorldObjectCreationContext context{0, Client::WorldObjects::ObjectScene::Login, registrations,
                                                              &services};
@@ -733,7 +733,7 @@ TEST(WorldObjectMapCreationTest, NoriaFirstEmissionFailureKeepsTheRegisteredPref
     const std::array records{Client::Data::Terrain::TerrainObject{.type = 8, .position = {10, 20, 30}},
                              Client::Data::Terrain::TerrainObject{.type = 322, .position = {40, 50, 60}},
                              Client::Data::Terrain::TerrainObject{.type = 8, .position = {70, 80, 90}}};
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     registrations.entries[5] = {.active = 2, .metadata = {7, 6, 5, 4, 3, 2, 1}, .object = 999};
     MutatingCreationServices services;
     services.failAt = 1;
@@ -761,7 +761,7 @@ TEST(WorldObjectMapCreationTest, CastleByteStoresOverwriteAndPreserveNondefaultI
     {
         SCOPED_TRACE(type);
         const Client::Data::Terrain::TerrainObject record{.type = 180, .position = {10, 20, 30}, .scale = 2};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         const std::uint8_t state = 0;
         MutatingCreationServices services;
         Client::WorldObjects::WorldObjectCreationContext context{
@@ -790,7 +790,7 @@ TEST(WorldObjectMapCreationTest, FullApiRoutesTheExistingDirectRuleTableAndPrese
         SCOPED_TRACE(row.type);
         const Client::Data::Terrain::TerrainObject record{
             .type = static_cast<std::int16_t>(row.type), .position = {10, 20, 30}, .angle = {40, 50, 60}, .scale = 2};
-        Client::WorldObjects::WorldObjectRegistrations registrations;
+        Client::Kernel::WorldObjectRegistrations registrations;
         Client::WorldObjects::WorldObjectCreationContext context{row.map, Client::WorldObjects::ObjectScene::Other,
                                                                  registrations};
         const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);
@@ -832,7 +832,7 @@ TEST(WorldObjectMapCreationTest, FullApiCopiesAllFourMapTwoTypesIncludingTheVali
             SCOPED_TRACE(row.angle);
             const Client::Data::Terrain::TerrainObject record{
                 .type = type, .position = {10, 20, 30}, .angle = {40, 50, row.angle}, .scale = 2};
-            Client::WorldObjects::WorldObjectRegistrations registrations;
+            Client::Kernel::WorldObjectRegistrations registrations;
             Client::WorldObjects::WorldObjectCreationContext context{2, Client::WorldObjects::ObjectScene::Other,
                                                                      registrations};
             const auto result = Client::WorldObjects::CreateWorldObjects(std::span(&record, 1), context);

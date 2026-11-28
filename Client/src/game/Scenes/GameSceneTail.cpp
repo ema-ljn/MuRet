@@ -1,4 +1,6 @@
 #include "Scenes/GameScene.h"
+#include "Actors/Drawing/CharacterDrawing.h"
+#include "Kernel/ObjectPass.h"
 #include "Actors/Drawing/GameItemRenderState.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Actors/Drawing/ItemDrawResources.h"
@@ -6,7 +8,7 @@
 #include "Terrain/ITerrainAttributeQuerySource.h"
 #include "Terrain/TerrainAttributeQuery.h"
 #include "Data/Terrain/TerrainAttributes.h"
-#include "MapScripts/Kalima/KalimaWorld.h"
+#include "Kernel/KalimaWater.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -19,6 +21,7 @@
 #include "Fauna/FaunaDrawing.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Effects/GameParticles.h"
 #include "Scenes/GameProjection.h"
 #include "Scenes/GameTailPasses.h"
@@ -28,7 +31,7 @@
 #include "Session/ModuleStates.h"
 #include "Kernel/WorldRuntime.h"
 #include "Kernel/WorldState.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Particles/SpriteDrawing.h"
 #include "Ui/GameUiState.h"
 #include "Terrain/WorldTerrain.h"
 #include "Particles/Sprites.h"
@@ -169,14 +172,14 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);
-    const JointDrawResources jointResources{FrameCloth().random, FrameSpritesForDraw(), frames > 0, clock};
+    const Joints::JointDrawResources jointResources{FrameCloth().random, FrameSpritesForDraw(), frames > 0, clock};
     TailAttributeQuery attributes(*MapTerrain().attributes);
-    const WorldObjects::GameObjectPass kalimaPass{.map = static_cast<std::uint8_t>(runtime.map),
-                                                  .originalFrame = false,
-                                                  .worldClock = clock,
-                                                  .retainedPose = &FramePoseCarry(),
-                                                  .waterTextureFrame = FrameCloth().waterTextureFrame,
-                                                  .kalima = FrameKalima()};
+    const Kernel::GameObjectPass kalimaPass{.map = static_cast<std::uint8_t>(runtime.map),
+                                            .originalFrame = false,
+                                            .worldClock = clock,
+                                            .retainedPose = &FramePoseCarry(),
+                                            .waterTextureFrame = FrameCloth().waterTextureFrame,
+                                            .kalima = FrameKalima()};
     ModelEffectDrawResources effectResources{*MapTerrain().heights, clock};
     effectResources.onPose = [&](const Actors::Drawing::DrawnObject& object)
     { return Actors::Drawing::PublishPose(FramePoseCarry(), m_worldModels, object, true); };
@@ -206,7 +209,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
                 // 0x5307b2: el 0x66 del 34 solo se dibuja con el clima de Crywolf en 1.
                 return DrawGameLeaves(canvas.models, world.Leaves(), runtime.map, view, runtime.crywolf.weather);
             case GameTailStage::Joints:
-                return DrawJoints(canvas.models, tail.joints, mode, jointResources);
+                return Joints::DrawJoints(canvas.models, tail.joints, mode, jointResources);
             case GameTailStage::ModelEffects:
                 return DrawGameModelEffects(canvas.models, m_worldModels, effects, m_frustum, &FrameLighting(),
                                             canvas.frameClock, 0, effectResources, mode);
@@ -234,7 +237,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(Render::Frame::SceneCan
                 BeginGameTailPass(canvas.models, pass, stage == GameTailStage::BeginEye, canvas.flushModels);
                 return {};
             case GameTailStage::Sprites:
-                WorldObjects::DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);
+                Particles::DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);
                 return {};
             case GameTailStage::Particles:
                 return Effects::DrawGameParticles(canvas.models, FrameParticles(), m_worldModels, view, clock, mode);
@@ -254,7 +257,7 @@ Core::Expected<void, std::string> GameScene::DrawKalimaWater(Render::Frame::Scen
     if (kalima == nullptr)
         return {}; // 4378a0, dueño ausente: el wrapper no entra en41cca0/41cf00.
     const float time = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-    MapScripts::Kalima::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
+    Kernel::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
     context.readHeroX = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(true); };
     context.readHeroY = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(false); };
     if (auto updated = kalima->Update(context); !updated.HasValue())

@@ -9,7 +9,7 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/GameItemSpecialDrawing.h"
 #include "Kernel/JointRequest.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>

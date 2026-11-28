@@ -18,11 +18,11 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Particles/Sprites.h"
 #include "Terrain/SphereFrustum.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Effects/ModelEffects.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -54,6 +54,8 @@ using Client::Actors::Drawing::DrawnObject;
 using Client::Crt::CrtRandom;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
+using Client::Kernel::GameObjectPass;
+using Client::Kernel::WorldObject;
 using Client::MapScripts::CastleSiege::StepCastleSiegeObjectFrame;
 using Client::Math::RoundedSin;
 using Client::Models::IModelLibrary;
@@ -63,8 +65,6 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawState;
 using Client::Render::TextureSlot;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t CastleSiegeMap = 30;
 constexpr std::uint32_t Seed = 7;

@@ -18,7 +18,7 @@ class MapModelEffectServices final : public WorldObjects::IWorldObjectCreationSe
 public:
     MapModelEffectServices(Effects::ModelEffects& effects, Crt::CrtRandom& random);
     bool CreateModelEffect(const WorldObjects::WorldObjectModelEffectRequest& request,
-                           WorldObjects::WorldObject& source) noexcept override;
+                           Kernel::WorldObject& source) noexcept override;
 
 private:
     Effects::ModelEffects& m_effects;

@@ -9,7 +9,7 @@
 #include "Kernel/PoseBuffer.h"
 #include "Kernel/DrawTailState.h"
 #include "Effects/ModelEffects.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Particles/Sprites.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -75,7 +75,7 @@ protected:
     Client::Actors::Drawing::GameItemRenderState m_render;
     Client::Particles::FrameSprites m_sprites;
     Client::Kernel::PoseBuffer m_carry;
-    Client::WorldObjects::ObjectModelStepState m_modelState;
+    Client::Kernel::ObjectModelStepState m_modelState;
     std::vector<Client::Kernel::JointState> m_joints = std::vector<Client::Kernel::JointState>(4);
     std::unique_ptr<Client::Effects::ModelEffects> m_effects = std::make_unique<Client::Effects::ModelEffects>();
     Client::Actors::Drawing::ItemDrawResources m_resources{.random = m_random,

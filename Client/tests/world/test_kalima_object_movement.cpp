@@ -1,5 +1,5 @@
 #include "MapScripts/Kalima/KalimaObjectMovement.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
@@ -12,7 +12,7 @@ TEST(KalimaObjectMovementTest, UnsignedActionWindowControlsDampingAndRepulsion)
     constexpr std::array<std::uint8_t, 6> Actions{0x0c, 0x0d, 0x15, 0x21, 0x22, 0xff};
     for (const auto action : Actions)
     {
-        Client::WorldObjects::WorldObject object;
+        Client::Kernel::WorldObject object;
         object.transform.position = {100, 200, 300};
         object.copiedAngles = {10, 20, 30};
         Client::MapScripts::Kalima::MoveKalimaObject(object, {110, 220, 999}, action);
@@ -27,7 +27,7 @@ TEST(KalimaObjectMovementTest, UnsignedActionWindowControlsDampingAndRepulsion)
 }
 TEST(KalimaObjectMovementTest, PositiveVelocityThresholdDoesNotUseMagnitudeAndUnorderedTakesRepulsion)
 {
-    Client::WorldObjects::WorldObject object;
+    Client::Kernel::WorldObject object;
     object.velocity = {0.1f, -10, 5};
     Client::MapScripts::Kalima::MoveKalimaObject(object, {1, 2, 0}, 0x15);
     EXPECT_FLOAT_EQ(object.velocity.x, 0.06f);

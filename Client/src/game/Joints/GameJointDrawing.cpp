@@ -1,5 +1,5 @@
 #include "Kernel/DrawTailState.h"
-#include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 
 #include "Math/X87.h"
 #include "Render/SpriteVertex.h"
@@ -23,13 +23,13 @@
 #include <span>
 #include <string>
 
-namespace Client::Scenes
+namespace Client::Joints
 {
 namespace
 {
 using Math::F32;
-using TailDrawing::Blend;
-using TailDrawing::Quad;
+using Scenes::TailDrawing::Blend;
+using Scenes::TailDrawing::Quad;
 } // namespace
 
 namespace
@@ -348,4 +348,4 @@ Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::spa
 {
     return DrawJointsChecked(batch, joints, mode, &resources);
 }
-} // namespace Client::Scenes
+} // namespace Client::Joints

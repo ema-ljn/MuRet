@@ -6,6 +6,7 @@
 #include "Kernel/ActorState.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
@@ -54,7 +55,7 @@ TEST(CrywolfJointsTest, ArrivalBoltCreatesStepsAndDrawsWithoutTheChaosCastleEmis
     EXPECT_FALSE(joint.tailEnabled);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, joints, 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, joints, 0).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 588u);
 }
 

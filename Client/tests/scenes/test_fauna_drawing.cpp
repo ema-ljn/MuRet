@@ -17,8 +17,9 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Fauna/FaunaObject.h"
 #include "Fauna/FaunaState.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "WorldObjects/WorldObjectsDrawing.h"
-#include "WorldObjects/WorldObjects.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainCulling.h"
 #include "Terrain/TerrainLighting.h"
@@ -181,10 +182,10 @@ TEST_F(FaunaDrawingTest, AnIntermediateFrameDrawsWithoutRepeatingNativeMutations
 }
 TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
 {
-    std::array<Client::WorldObjects::WorldObject, 1> objects{};
+    std::array<Client::Kernel::WorldObject, 1> objects{};
     objects[0].type = 0;
     objects[0].transform.position = {1000, 1000, 0};
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.map = 0;
     pass.originalFrame = true;
     pass.random = &m_cloth.random;
@@ -194,20 +195,22 @@ TEST_F(FaunaDrawingTest, ThePrecedingWorldObjectsPublishOnlyActualPoses)
         ++publications;
         return Client::Actors::Drawing::PublishPose(m_carry, m_models, drawn, true);
     };
-    const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
+    const auto result =
+        Client::WorldObjects::DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(publications, 1);
     EXPECT_TRUE(m_carry.models.contains(0));
     objects[0].alpha = 0;
-    ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass)
+                    .HasValue());
     EXPECT_EQ(publications, 1);
 }
 
 TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAgain)
 {
-    std::array<Client::WorldObjects::WorldObject, 1> objects{};
+    std::array<Client::Kernel::WorldObject, 1> objects{};
     objects[0].transform.position = {1000, 1000, 0};
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.originalFrame = false;
     int publications = 0;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& drawn)
@@ -215,7 +218,8 @@ TEST_F(FaunaDrawingTest, AnIntermediateWorldDrawDoesNotPublishTheNativeScratchAg
         ++publications;
         return Client::Actors::Drawing::PublishPose(m_carry, m_models, drawn, true);
     };
-    const auto result = DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
+    const auto result =
+        Client::WorldObjects::DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_EQ(publications, 0);
     EXPECT_TRUE(m_carry.bones.empty());
@@ -334,16 +338,17 @@ TEST_F(FaunaDrawingTest, AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch)
 // with Translate at 0, takes the vertex only through that matrix, without the object's scale or origin.
 TEST_F(FaunaDrawingTest, WorldBodiesDrawThePublishedDummyScratchInsteadOfReposingFromIdentity)
 {
-    std::array<Client::WorldObjects::WorldObject, 1> objects{};
+    std::array<Client::Kernel::WorldObject, 1> objects{};
     objects[0].transform.position = {1000, 1000, 300};
     m_carry.bones.resize(3, Client::Math::BoneTransform(0));
     m_carry.bones[2][3] = {7, 8, 9};
-    Client::WorldObjects::GameObjectPass pass;
+    Client::Kernel::GameObjectPass pass;
     pass.random = &m_cloth.random;
     pass.retainedPose = &m_carry;
     pass.onPose = [&](const Client::Actors::Drawing::DrawnObject& object)
     { return Client::Actors::Drawing::PublishPose(m_carry, m_models, object, true); };
-    ASSERT_TRUE(DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass).HasValue());
+    ASSERT_TRUE(Client::WorldObjects::DrawGameWorldObjects(m_batch, m_models, objects, m_polygon, &m_light, {}, pass)
+                    .HasValue());
     ASSERT_FALSE(m_batch.Vertices().empty());
     EXPECT_EQ(m_batch.Vertices()[0].position, glm::vec3(7, 8, 9));
 }

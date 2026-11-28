@@ -21,13 +21,15 @@
 #include "Scenes/GameDrawTail.h"
 #include "Effects/HighModelEffects.h"
 #include "Kernel/WorldMap.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/ObjectPass.h"
 #include "Kernel/WorldState.h"
 #include "Effects/ModelEffects.h"
 #include "Particles/Particles.h"
 #include "Terrain/SphereFrustum.h"
 #include "Particles/Sprites.h"
 #include "Terrain/TerrainLighting.h"
+
+#include "support/LentWorld.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -162,7 +164,7 @@ struct Drawer
     float clock = 1000.0f;
     // The objects' pass (its map, 0x6c9dd0), the hero's +0x1a1 and whether the drawing is of an original frame: what
     // 0x5ffdf0 looks at for the Chaos Castle subtraction.
-    std::unique_ptr<Client::WorldObjects::GameObjectPass> pass;
+    std::unique_ptr<Client::Kernel::GameObjectPass> pass;
     std::uint8_t heroByte1a1 = 0;
     bool originalFrame = false;
     std::vector<BoneTransform> bones;
@@ -279,7 +281,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
 {
     {
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
         drawer.pass->map = 18;
         drawer.heroByte1a1 = 1;
         drawer.originalFrame = true;
@@ -308,7 +310,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
         SCOPED_TRACE(outside.heroByte1a1);
         SCOPED_TRACE(outside.originalFrame);
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
         drawer.pass->map = outside.map;
         drawer.heroByte1a1 = outside.heroByte1a1;
         drawer.originalFrame = outside.originalFrame;
@@ -320,7 +322,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheEffectBeforeItsVisibleCheck)
     }
     // On map 23 with the byte, the 0x134 with alpha 1 ends at 0x3f59999a (1 − 0.15f) and is drawn with that alpha.
     Drawer drawer;
-    drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+    drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
     drawer.pass->map = 23;
     drawer.heroByte1a1 = 1;
     drawer.originalFrame = true;
@@ -341,7 +343,7 @@ TEST(HighEffectDrawingTest, ChaosCastleFadesTheMirroredEffectOnEachOfItsTwoBodie
     {
         SCOPED_TRACE(static_cast<int>(map));
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
         drawer.pass->map = map;
         drawer.heroByte1a1 = 1;
         drawer.originalFrame = true;
@@ -407,7 +409,7 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
         {
             SCOPED_TRACE(alpha);
             Drawer drawer;
-            drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+            drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
             drawer.pass->map = tested.map;
             ModelEffect effect = EffectOf(tested.type, 0);
             effect.alpha = alpha;
@@ -422,7 +424,7 @@ TEST(HighEffectDrawingTest, TheGateAndTheKalimaTailBelowTheVisibleAlphaNeitherPo
             EXPECT_EQ(DrawsSince(drawer.random), 0);
         }
         Drawer drawer;
-        drawer.pass = std::make_unique<Client::WorldObjects::GameObjectPass>();
+        drawer.pass = std::make_unique<Client::Kernel::GameObjectPass>();
         drawer.pass->map = tested.map;
         ModelEffect effect = EffectOf(tested.type, 0);
         const auto drawn = drawer.Draw(std::span(&effect, 1), 0);
@@ -487,7 +489,7 @@ TEST(HighEffectDrawingTest, TheRingWithoutTheRandomStopsAfterItsGlows)
 // and the /0xb (BeamJoints) follows them; without that drawing they would stay at the birth point (0x51c84b).
 TEST(HighEffectDrawingTest, TheRingBeamsFollowTheBonesAfterTheDraw)
 {
-    auto world = std::make_unique<Client::Kernel::WorldState>();
+    auto world = Client::Tests::LentWorld();
     CrtRandom random(Seed);
     Client::Kernel::ActorState owner;
     const auto made = Client::Effects::CreateHighModelEffect(
@@ -612,7 +614,7 @@ TEST(HighEffectDrawingTest, TheGuildMarkChromeKeepsTheScaleOfItsNormal)
 TEST(HighEffectDrawingTest, TheKundunSpiritGlowsOnItsThirdAndFourthBones)
 {
     {
-        auto world = std::make_unique<Client::Kernel::WorldState>();
+        auto world = Client::Tests::LentWorld();
         for (Client::Kernel::JointState& joint : world->DrawTail().joints)
             joint.alive = true;
         CrtRandom creation(Seed);

@@ -1,5 +1,6 @@
 #include "MapScripts/Kalima/KalimaObjectServices.h"
 
+#include "Assets/EffectTextures.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Crt/CrtRandom.h"
@@ -13,9 +14,9 @@
 #include "Actors/Drawing/CharacterDrawing.h"
 #include "Actors/Drawing/PosePublishing.h"
 #include "Kernel/PoseBuffer.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "MapScripts/Kalima/KalimaObjectMovement.h"
 #include "Particles/Particles.h"
@@ -80,7 +81,7 @@ Core::Expected<void, std::string> KalimaMeshPass(Render::ModelBatch& batch, cons
 
 Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const Models::IModelLibrary& models,
                                                Actors::Drawing::DrawnObject& drawn, Core::Duration frameClock,
-                                               const WorldObjects::GameObjectPass& pass)
+                                               const Kernel::GameObjectPass& pass)
 {
     // 0x439570: the argument has no binary32 spill; the color does have three identical FSTPs.
     const auto pulse = Math::Detail::SineProductPC53(
@@ -100,7 +101,7 @@ Core::Expected<void, std::string> WaterOverlay(Render::ModelBatch& batch, const 
     return KalimaMeshPass(batch, models, drawn, frameClock, -1, 2, texture);
 }
 
-Core::Expected<void, std::string> Flare(const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> Flare(const Kernel::GameObjectPass& pass)
 {
     // 0x438c53..0x438cd0: bone 20 of the global scratch; a bone not yet written keeps the .bss zero.
     constexpr std::size_t Bone = 20;
@@ -116,12 +117,11 @@ Core::Expected<void, std::string> Flare(const WorldObjects::GameObjectPass& pass
     if (pass.sprites == nullptr)
         return Core::Unexpected(std::string("0x438cd0: falta el pool de sprites de Kalima"));
     const float scale = static_cast<float>((*pulse + FlareBase) + FlareExtra);
-    static_cast<void>(pass.sprites->Create(WorldObjects::StreetLightGlowTexture, point, scale,
+    static_cast<void>(pass.sprites->Create(Assets::Flare01Texture.value, point, scale,
                                            glm::vec3(FlareChannel, FlareChannel, 1.0f), 0.0f, 0));
     return {};
 }
-Core::Expected<void, std::string> MoveObject(WorldObjects::WorldObject& object,
-                                             const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> MoveObject(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     if (pass.hero == nullptr)
         return Core::Unexpected(std::string("0x438ad0: falta el préstamo del héroe de Kalima"));
@@ -142,9 +142,8 @@ Core::Expected<void, std::string> MoveObject(WorldObjects::WorldObject& object,
     object.transform.position.z = static_cast<float>(static_cast<double>(*height) + AboveWater);
     return {};
 }
-Core::Expected<void, std::string> EmitParticle(WorldObjects::WorldObject& object,
-                                               const WorldObjects::GameObjectPass& pass, std::int32_t type,
-                                               std::int32_t subtype, const glm::vec3& light)
+Core::Expected<void, std::string> EmitParticle(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass,
+                                               std::int32_t type, std::int32_t subtype, const glm::vec3& light)
 {
     if (pass.particles == nullptr || pass.random == nullptr)
         return Core::Unexpected(std::string("0x53fe70: falta el pool/CRT de partículas de Kalima"));
@@ -159,7 +158,7 @@ Core::Expected<void, std::string> EmitParticle(WorldObjects::WorldObject& object
                                             static_cast<unsigned>(made.Error())));
     return {};
 }
-Core::Expected<void, std::string> WaterfallSound(const WorldObjects::GameObjectPass& pass, std::string_view callSite)
+Core::Expected<void, std::string> WaterfallSound(const Kernel::GameObjectPass& pass, std::string_view callSite)
 {
     if (!pass.requestSound)
         return Core::Unexpected(std::format("{}: falta el servicio de sonido0x1d6 de Kalima", callSite));
@@ -170,10 +169,9 @@ Core::Expected<void, std::string> WaterfallSound(const WorldObjects::GameObjectP
 } // namespace
 
 Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch, const Models::IModelLibrary& models,
-                                                       const WorldObjects::WorldObject& object,
+                                                       const Kernel::WorldObject& object,
                                                        const Actors::Drawing::DrawnObject& drawn,
-                                                       Core::Duration frameClock,
-                                                       const WorldObjects::GameObjectPass& pass)
+                                                       Core::Duration frameClock, const Kernel::GameObjectPass& pass)
 {
     Actors::Drawing::DrawnObject current = drawn;
     if (HasWaterOverlay(object.type))
@@ -199,8 +197,7 @@ Core::Expected<void, std::string> DrawKalimaObjectTail(Render::ModelBatch& batch
     return {};
 }
 
-Core::Expected<void, std::string> StepKalimaObjectFrame(WorldObjects::WorldObject& object,
-                                                        const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepKalimaObjectFrame(Kernel::WorldObject& object, const Kernel::GameObjectPass& pass)
 {
     // 0x6044ed→0x4059d0 returns AL=0; 0x438c10 returns AL=1 even in the default of 0x438f90.
     switch (object.type)

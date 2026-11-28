@@ -1,16 +1,17 @@
 #include "MapScripts/Noria/NoriaObjectServices.h"
 
+#include "Assets/EffectTextures.h"
 #include "Core/Expected.h"
 #include "Crt/CrtRandom.h"
 #include "Kernel/PoseBuffer.h"
 #include "Math/FloatConstants.h"
 #include "Math/OriginalRotation.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Math/Ftol.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -36,7 +37,7 @@ constexpr std::array<std::size_t, 3> TreeBones{2, 4, 6};
 constexpr std::array<std::size_t, 4> HouseBones{4, 7, 10, 13};
 constexpr std::array<std::size_t, 5> FairyBones{61, 62, 63, 64, 65};
 
-Core::Expected<glm::vec3, std::string> Point(const WorldObjects::GameObjectPass& pass, std::size_t bone)
+Core::Expected<glm::vec3, std::string> Point(const Kernel::GameObjectPass& pass, std::size_t bone)
 {
     if (pass.retainedPose == nullptr)
         return Core::Unexpected(std::format("0x4ec110: falta la pose global del hueso{} de Noria", bone));
@@ -46,7 +47,7 @@ Core::Expected<glm::vec3, std::string> Point(const WorldObjects::GameObjectPass&
     return Math::OriginalVectorTransform(glm::vec3(0.0f), Math::OriginalMatrixOf(pass.retainedPose->bones[bone]));
 }
 
-Core::Expected<void, std::string> Sprite(const WorldObjects::GameObjectPass& pass, std::uint16_t texture,
+Core::Expected<void, std::string> Sprite(const Kernel::GameObjectPass& pass, std::uint16_t texture,
                                          const glm::vec3& position, const glm::vec3& light, float scale,
                                          float rotation = 0.0f)
 {
@@ -56,18 +57,18 @@ Core::Expected<void, std::string> Sprite(const WorldObjects::GameObjectPass& pas
     return {};
 }
 
-Core::Expected<void, std::string> Flare(const WorldObjects::GameObjectPass& pass, std::size_t bone,
-                                        const glm::vec3& light, float scale)
+Core::Expected<void, std::string> Flare(const Kernel::GameObjectPass& pass, std::size_t bone, const glm::vec3& light,
+                                        float scale)
 {
     const auto position = Point(pass, bone);
     if (!position.HasValue())
         return Core::Unexpected(position.Error());
-    return Sprite(pass, WorldObjects::StreetLightGlowTexture, position.Value(), light, scale);
+    return Sprite(pass, Assets::Flare01Texture.value, position.Value(), light, scale);
 }
 
-Core::Expected<void, std::string> Particle(const WorldObjects::GameObjectPass& pass,
-                                           const WorldObjects::WorldObject& object, std::int32_t type,
-                                           std::int32_t subtype, const glm::vec3& position, const glm::vec3& angles)
+Core::Expected<void, std::string> Particle(const Kernel::GameObjectPass& pass, const Kernel::WorldObject& object,
+                                           std::int32_t type, std::int32_t subtype, const glm::vec3& position,
+                                           const glm::vec3& angles)
 {
     if (pass.particles == nullptr)
         return Core::Unexpected(std::string("0x53fe70: falta el pool de partículas de Noria"));
@@ -80,8 +81,8 @@ Core::Expected<void, std::string> Particle(const WorldObjects::GameObjectPass& p
     return {};
 }
 
-Core::Expected<void, std::string> Fairy(const WorldObjects::WorldObject& object, const glm::vec3& light,
-                                        const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> Fairy(const Kernel::WorldObject& object, const glm::vec3& light,
+                                        const Kernel::GameObjectPass& pass)
 {
     const auto turn = Math::OriginalFtolLow(static_cast<double>(pass.worldClock) * FairyTurnScale);
     if (!turn)
@@ -103,7 +104,7 @@ Core::Expected<void, std::string> Fairy(const WorldObjects::WorldObject& object,
         const auto position = Point(pass, bone);
         if (!position.HasValue())
             return Core::Unexpected(position.Error());
-        const auto flare = Sprite(pass, WorldObjects::StreetLightGlowTexture, position.Value(), glm::vec3(1.0f), 1.0f);
+        const auto flare = Sprite(pass, Assets::Flare01Texture.value, position.Value(), glm::vec3(1.0f), 1.0f);
         if (!flare.HasValue())
             return flare;
         if ((pass.random->Next() & 31) == 0)
@@ -143,8 +144,8 @@ Core::Expected<void, std::string> Fairy(const WorldObjects::WorldObject& object,
 }
 } // namespace
 
-Core::Expected<void, std::string> StepNoriaObjectFrame(WorldObjects::WorldObject& object, int commonRandom,
-                                                       const WorldObjects::GameObjectPass& pass)
+Core::Expected<void, std::string> StepNoriaObjectFrame(Kernel::WorldObject& object, int commonRandom,
+                                                       const Kernel::GameObjectPass& pass)
 {
     const float intensity = static_cast<float>(static_cast<double>(commonRandom % 30 + 70) * Hundredth);
     const glm::vec3 light(

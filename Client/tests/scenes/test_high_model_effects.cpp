@@ -29,6 +29,8 @@
 #include "Assets/FaunaModels.h"
 #include "Audio/SoundId.h"
 
+#include "support/LentWorld.h"
+
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -151,7 +153,7 @@ struct HighWorld
     }
 
     static constexpr std::size_t HeroSlot = 12;
-    std::unique_ptr<WorldState> world = std::make_unique<WorldState>();
+    std::unique_ptr<WorldState> world = Client::Tests::LentWorld();
     Client::Assets::FaunaModels faunaModels;
     std::unique_ptr<Client::Terrain::TerrainLighting> lighting = std::make_unique<Client::Terrain::TerrainLighting>();
     CrtRandom random{Seed};

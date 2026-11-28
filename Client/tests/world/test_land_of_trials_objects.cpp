@@ -1,5 +1,6 @@
 #include "Crt/CrtRandom.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Kernel/WorldObject.h"
 #include "Models/ObjectState.h"
 #include "Math/OriginalRetainedMath.h"
 #include "Effects/ModelEffects.h"
@@ -22,10 +23,10 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::ObjectStepGlobals;
+using Client::Kernel::WorldObject;
 using Client::Terrain::TerrainLighting;
-using Client::WorldObjects::ObjectStepGlobals;
 using Client::WorldObjects::StepWorldObjectChecked;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t TrialsMap = 31;
 constexpr std::int16_t Hidden = -2;

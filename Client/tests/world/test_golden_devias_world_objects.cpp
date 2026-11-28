@@ -1,6 +1,6 @@
 #include "WorldObjects/WorldObjects.h"
 
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -136,12 +136,12 @@ std::optional<CapturedLists> ReadCapturedLists(const std::filesystem::path& path
 }
 
 // MuRet's lists: each object in its sector's, in the order WorldObjects::DrawOrder walks them.
-ObjectLists ListsOf(std::span<const Client::WorldObjects::WorldObject> objects)
+ObjectLists ListsOf(std::span<const Client::Kernel::WorldObject> objects)
 {
     ObjectLists lists;
     for (const std::size_t index : Client::WorldObjects::DrawOrder(objects))
     {
-        const Client::WorldObjects::WorldObject& object = objects[index];
+        const Client::Kernel::WorldObject& object = objects[index];
         const int list =
             (Client::WorldObjects::SectorX(object) * SectorsPerSide) + Client::WorldObjects::SectorY(object);
         lists.at(static_cast<std::size_t>(list)).push_back(index);
@@ -166,7 +166,7 @@ TEST_F(GoldenDeviasWorldObjects, EveryListEqualsTheOriginalsMemory)
     const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, Devias);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), DeviasRecords);
-    Client::WorldObjects::WorldObjectRegistrations registrations;
+    Client::Kernel::WorldObjectRegistrations registrations;
     Client::WorldObjects::WorldObjectCreationContext context{Devias, Client::WorldObjects::ObjectScene::Other,
                                                              registrations};
     const auto created = Client::WorldObjects::CreateWorldObjects(records.Value(), context);

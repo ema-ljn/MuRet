@@ -4,14 +4,11 @@
 
 #include <string>
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-}
-namespace Client::WorldObjects
+namespace Client::Kernel
 {
 struct GameObjectPass;
-} // namespace Client::WorldObjects
+struct WorldObject;
+} // namespace Client::Kernel
 
 // 0x602ed0 with map 8 (0x603a3e, table 0x6045f8), after the common rand() of 0x602ef4. Contract:
 // 06 § Los objetos de Tarkan.
@@ -32,6 +29,6 @@ namespace Client::MapScripts::Tarkan
 //   scale, and the pebble 200 + rand() % 2 (0x518cf0) on the object.
 // The smokes go to the particles' shared pool (0x53fe70) with the borrowed clock, with no owner; a full one is not
 // an error. Without the pool, the sprites or the effect table it cuts with its address, after what it already did.
-[[nodiscard]] Core::Expected<void, std::string> StepTarkanObjectFrame(WorldObjects::WorldObject& object,
-                                                                      const WorldObjects::GameObjectPass& pass);
+[[nodiscard]] Core::Expected<void, std::string> StepTarkanObjectFrame(Kernel::WorldObject& object,
+                                                                      const Kernel::GameObjectPass& pass);
 } // namespace Client::MapScripts::Tarkan

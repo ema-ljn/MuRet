@@ -24,7 +24,7 @@
 #include "Items/GameFloorItemDrawing.h"
 #include "Terrain/SphereFrustum.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/ObjectModelStepState.h"
+#include "Kernel/WorldObject.h"
 #include "Kernel/JointRequest.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -597,7 +597,7 @@ TEST(GameFloorItemDrawingTest, TheBasePassReadsTheSharedUnlitSelectionBeforeDraw
     models.model.meshes[0].normals[0].normal = {0, 0, -1};
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
-    Client::WorldObjects::ObjectModelStepState state;
+    Client::Kernel::ObjectModelStepState state;
     state.unlitMeshes[0x212] = 0;
     auto item = Item(0x212);
     item.vertexLight = true;
@@ -620,7 +620,7 @@ TEST(GameFloorItemDrawingTest, RedGlowSelectsUnlitMeshBeforeRenderingItsScroll)
     Client::Render::ModelBatch batch;
     Client::Terrain::SphereFrustum frustum;
     Client::Particles::FrameSprites sprites;
-    Client::WorldObjects::ObjectModelStepState modelState;
+    Client::Kernel::ObjectModelStepState modelState;
     modelState.unlitMeshes[0x2247] = -1;
     auto item = Item(0x2247);
     item.vertexLight = true;
@@ -652,7 +652,7 @@ TEST(GameFloorItemDrawingTest, RedGlowPublishesUnlitSelectionBeforeMissingBonesO
         FloorModels models;
         Client::Render::ModelBatch batch;
         Client::Terrain::SphereFrustum frustum;
-        Client::WorldObjects::ObjectModelStepState modelState;
+        Client::Kernel::ObjectModelStepState modelState;
         modelState.unlitMeshes[0x2247] = -1;
         auto item = Item(0x2247);
         Client::Kernel::PoseBuffer carry;

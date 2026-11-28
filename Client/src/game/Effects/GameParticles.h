@@ -33,11 +33,6 @@ namespace Client::Terrain
 struct TerrainLighting;
 } // namespace Client::Terrain
 
-namespace Client::WorldObjects
-{
-struct WorldObject;
-} // namespace Client::WorldObjects
-
 namespace Client::Particles
 {
 class FrameSprites;
@@ -52,6 +47,7 @@ namespace Client::Kernel
 {
 struct ActorState;
 struct PoseBuffer;
+struct WorldObject;
 class WorldState;
 } // namespace Client::Kernel
 
@@ -66,7 +62,7 @@ using WaterspoutBonePoint =
 
 // 0x603011..0x60313f, after 0x602ef4's common rand(): light and V, the half-of-the-frames guard, and two 0x5f2/0 with
 // their interleaved rand() and bones 1 and 4. A full pool consumes no Create rand().
-[[nodiscard]] Core::Expected<void, std::string> StepGameWaterspoutFrame(WorldObjects::WorldObject& object,
+[[nodiscard]] Core::Expected<void, std::string> StepGameWaterspoutFrame(Kernel::WorldObject& object,
                                                                         Particles::Particles& particles,
                                                                         Crt::CrtRandom& random, const float& worldClock,
                                                                         const WaterspoutBonePoint& bonePoint);
@@ -74,7 +70,7 @@ using WaterspoutBonePoint =
 // With the loan, 0x4ec110(Translate=0) reads the exact global matrix, even dummy/low alpha.
 // Without it, only the bone written by this model is credited; a missing matrix stops after X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameWaterspoutFrame(WorldObjects::WorldObject& object, Particles::Particles& particles, Crt::CrtRandom& random,
+StepGameWaterspoutFrame(Kernel::WorldObject& object, Particles::Particles& particles, Crt::CrtRandom& random,
                         const float& worldClock, const Models::IModelLibrary& models,
                         const Actors::Drawing::DrawnObject& drawn, const Kernel::PoseBuffer* retainedPose = nullptr);
 
@@ -88,7 +84,7 @@ StepGameWaterspoutFrame(WorldObjects::WorldObject& object, Particles::Particles&
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
                   const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f,
-                  const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners = {},
+                  const std::function<Kernel::WorldObject*(std::uint64_t)>& owners = {},
                   const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions = {},
                   const std::function<std::optional<float>(std::int32_t)>& textureHeight = {},
                   Terrain::TerrainLighting* lighting = nullptr,
@@ -100,7 +96,7 @@ StepGameParticles(Particles::Particles& particles, Crt::CrtRandom& random, const
 [[nodiscard]] Core::Expected<void, std::string> StepGameParticles(
     Particles::Particles& particles, Crt::CrtRandom& random, const std::int32_t& map,
     const std::function<double(float, float)>& terrainHeight, const float& worldClock,
-    const std::function<WorldObjects::WorldObject*(std::uint64_t)>& owners,
+    const std::function<Kernel::WorldObject*(std::uint64_t)>& owners,
     const std::function<std::optional<std::uint8_t>(std::uint64_t)>& actorActions,
     const std::function<std::optional<float>(std::int32_t)>& textureHeight, Terrain::TerrainLighting* lighting,
     const std::function<std::optional<glm::vec3>(std::uint64_t, std::int32_t)>& actorHands,
@@ -122,8 +118,8 @@ ParticleTextureHeightsOf(const Models::IModelLibrary& textures);
 
 // A particle's owner by its object's identity (WorldObject::identity) among `objects`, which must outlive the
 // resolver: what the original reads through the pointer +0x40.
-[[nodiscard]] std::function<WorldObjects::WorldObject*(std::uint64_t)>
-ParticleOwnersAmong(std::span<WorldObjects::WorldObject> objects);
+[[nodiscard]] std::function<Kernel::WorldObject*(std::uint64_t)>
+ParticleOwnersAmong(std::span<Kernel::WorldObject> objects);
 
 // 0x5ac/4 (0x544a9d): owner type 0x20a and byte88=1, bone ftol(rotation) of the own pose, local vector `angles` plus
 // the owner's position, without scale or model publication. An invalid owner returns nullopt to turn off the light.

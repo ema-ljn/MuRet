@@ -33,7 +33,7 @@
 #include "Weather/Leaves.h"
 #include "Particles/ParticleDrawing.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/Frame/SceneWorld.h"
 #include "FrontEnd/LoginModels.h"
@@ -168,7 +168,7 @@ private:
     void RetainTheTerrain();
     void LoadTheObjects();
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
-    void StepTheLogo(WorldObjects::WorldObject& logo) const;
+    void StepTheLogo(Kernel::WorldObject& logo) const;
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
     void DetachTheDragonOwner();
     [[nodiscard]] Core::Expected<void, std::string> PlaceTheCharacter();
@@ -296,7 +296,7 @@ private:
     std::vector<Data::Terrain::TerrainObject> m_objectRecords;
     // Los objetos del mundo como los crea 0x606660, y el logo al final (0x61c7c0 lo crea después de la
     // carga del mundo).
-    std::vector<WorldObjects::WorldObject> m_objects;
+    std::vector<Kernel::WorldObject> m_objects;
     std::optional<std::size_t> m_logoIndex;
     // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
     Particles::FrameSprites m_sprites;

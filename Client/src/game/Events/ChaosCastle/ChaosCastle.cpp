@@ -6,7 +6,7 @@
 #include "Math/X87.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/TerrainDefines.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -151,7 +151,7 @@ Core::Expected<std::int32_t, std::string> StepChaosCastlePrelude(std::int32_t co
     return 0;
 }
 
-void StepChaosCastleSeenObject(WorldObjects::WorldObject& object, std::int32_t& selector, std::int32_t& count,
+void StepChaosCastleSeenObject(Kernel::WorldObject& object, std::int32_t& selector, std::int32_t& count,
                                std::uint8_t& trapArmed)
 {
     if (object.type != TrapObject)

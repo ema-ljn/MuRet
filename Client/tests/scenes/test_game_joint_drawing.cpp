@@ -1,6 +1,7 @@
 #include "Crt/CrtRandom.h"
 #include "Kernel/DrawTailState.h"
 #include "Scenes/GameDrawTail.h"
+#include "Joints/JointDrawing.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/JointRequest.h"
 #include "Kernel/ActorState.h"
@@ -35,7 +36,7 @@ TEST(GameJointDrawingTest, RepeatedUvsUseOneSixteenthBeforeDoubling)
     auto joint = Joint(0x617);
     joint.repeatedTexture = true;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 24u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].uv.x, 0.25f);
     EXPECT_FLOAT_EQ(batch.Vertices()[2].uv.x, 0.125f);
@@ -45,7 +46,7 @@ TEST(GameJointDrawingTest, SparkSkipsItsFirstSegmentAndUsesLifeTimesOneTenth)
 {
     auto joint = Joint(0x5f2);
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 12u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.5f);
 }
@@ -55,7 +56,7 @@ TEST(GameJointDrawingTest, InverseColorJointOverridesItsConfiguredBlend)
     auto joint = Joint(0x62b, 20);
     joint.blend = 2;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::InverseColorAdditive);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 0.6f);
 }
@@ -66,7 +67,7 @@ TEST(GameJointDrawingTest, LaserEmitsOnlyItsSingleFaceWithSegmentGray)
     joint.drawEnabled = 0x80;
     joint.points[0][0] = {7, 8, 9};
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 12u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 7);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1);
@@ -79,7 +80,7 @@ TEST(GameJointDrawingTest, AnimatedFlareDoublesItsUvsAndSpiritUsesHalfAnIntegerD
     {
         auto joint = Joint(type, type == 0x615 ? 1 : 0);
         Client::Render::ModelBatch batch;
-        ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+        ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
         ASSERT_EQ(batch.Vertices().size(), 24u);
         EXPECT_FLOAT_EQ(batch.Vertices()[0].uv.x, 1);
         EXPECT_FLOAT_EQ(batch.Vertices()[2].uv.x, 0.5f);
@@ -96,7 +97,7 @@ TEST(GameJointDrawingTest, FlareZeroSelectsItsGrayAtEachSegment)
     auto joint = Joint(0x615);
     joint.light.z = 0.25f;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0).HasValue());
     ASSERT_EQ(batch.Vertices().size(), 24u);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
     EXPECT_FLOAT_EQ(batch.Vertices()[12].color.red, 0);
@@ -110,10 +111,10 @@ TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
         SCOPED_TRACE(type);
         Client::Crt::CrtRandom random(9);
         Client::Particles::FrameSprites sprites;
-        Client::Scenes::JointDrawResources resources{random, sprites, true, 250.0f};
+        Client::Joints::JointDrawResources resources{random, sprites, true, 250.0f};
         auto joint = Joint(type, 1);
         Client::Render::ModelBatch batch;
-        ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
+        ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
         ASSERT_EQ(batch.Vertices().size(), 24u);
         const float first = batch.Vertices()[0].uv.x;
         const float second = batch.Vertices()[6].uv.x;
@@ -127,10 +128,10 @@ TEST(GameJointDrawingTest, AnimatedUvsUseSignedClockRemainderWithoutRandoms)
     Client::Crt::CrtRandom random(9);
     Client::Crt::CrtRandom expected(9);
     Client::Particles::FrameSprites sprites;
-    Client::Scenes::JointDrawResources resources{random, sprites, true, -1250.75f};
+    Client::Joints::JointDrawResources resources{random, sprites, true, -1250.75f};
     auto joint = Joint(0x614, 1);
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].uv.x, 1.25f);
     EXPECT_EQ(random.Next(), expected.Next());
     EXPECT_FALSE(sprites.Any());
@@ -141,13 +142,13 @@ TEST(GameJointDrawingTest, BloodCastleOwnerHeightSetsPerSegmentColorAndMiddleSpr
     Client::Crt::CrtRandom random(9);
     Client::Crt::CrtRandom expected(9);
     Client::Particles::FrameSprites sprites;
-    const Client::Scenes::JointDrawResources resources{random, sprites};
+    const Client::Joints::JointDrawResources resources{random, sprites};
     auto joint = Joint(0x10f, 0);
     joint.points[0][0].z = 30;
     joint.points[1][0].z = 50;
     joint.ownerContext = nullptr;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1);
     ASSERT_TRUE(sprites.Any());
     EXPECT_EQ(sprites.Sprites()[0].texture, 0x62b);
@@ -161,10 +162,10 @@ TEST(GameJointDrawingTest, ModeFiltersRunBeforeSpecialResourcesAndPreserveLiveJo
     auto joint = Joint(0x10f, 0);
     joint.category = 2;
     Client::Render::ModelBatch batch;
-    EXPECT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 1).HasValue());
+    EXPECT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 1).HasValue());
     EXPECT_TRUE(batch.Commands().empty());
     joint.category = 1;
-    EXPECT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 2).HasValue());
+    EXPECT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 2).HasValue());
     EXPECT_TRUE(batch.Commands().empty());
     EXPECT_TRUE(joint.alive);
 }
@@ -177,10 +178,10 @@ TEST(GameJointDrawingTest, IntermediateSpecialSpritesRepeatWithoutChangingTheRan
     Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch original;
     Client::Render::ModelBatch replay;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(original, std::span(&joint, 1), 0, {random, sprites, true}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(original, std::span(&joint, 1), 0, {random, sprites, true}).HasValue());
     const auto light = sprites.Sprites()[0].light;
     sprites.Clear();
-    ASSERT_TRUE(Client::Scenes::DrawJoints(replay, std::span(&joint, 1), 0, {random, sprites, false}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(replay, std::span(&joint, 1), 0, {random, sprites, false}).HasValue());
     EXPECT_EQ(replay.Vertices().size(), original.Vertices().size());
     EXPECT_EQ(sprites.Sprites()[0].light, light);
     EXPECT_EQ(random.Next(), expected.Next());
@@ -198,7 +199,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
         Client::Crt::CrtRandom random(1);
         Client::Particles::FrameSprites sprites;
         Client::Render::ModelBatch batch;
-        ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
+        ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
         EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 0.35f);
     }
@@ -213,7 +214,7 @@ TEST(GameJointDrawingTest, OwnerHeightUsesFiftyForTheFirstFamilyAndOneEightyForN
     Client::Crt::CrtRandom random(1);
     Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 0.25f);
 }
 
@@ -228,7 +229,7 @@ TEST(GameJointDrawingTest, EnergyArrowMutatesItsLightAndEmitsOneSpritePerAdmitte
     Client::Crt::CrtRandom expected(5);
     Client::Particles::FrameSprites sprites;
     Client::Render::ModelBatch batch;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(batch, std::span(&joint, 1), 0, {random, sprites}).HasValue());
     EXPECT_EQ(batch.Vertices().size(), 24u);
     EXPECT_TRUE(sprites.Sprites()[0].alive);
     EXPECT_TRUE(sprites.Sprites()[1].alive);
@@ -249,14 +250,14 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
     ASSERT_TRUE(Client::Joints::CreateFaunaJoint(joints, request, random).HasValue());
     auto& joint = joints[0];
     Client::Render::ModelBatch waiting;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(waiting, joints, 0, {random, sprites}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(waiting, joints, 0, {random, sprites}).HasValue());
     EXPECT_TRUE(waiting.Vertices().empty());
     while (joint.life > 0)
         ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     ASSERT_TRUE(joint.alive);
     ASSERT_EQ(joint.count, 14);
     Client::Render::ModelBatch last;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(last, joints, 0, {random, sprites}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(last, joints, 0, {random, sprites}).HasValue());
     ASSERT_EQ(last.Vertices().size(), 14u * 12u);
     EXPECT_EQ(last.State().blend, Client::Render::ModelBlend::Additive);
     EXPECT_EQ(last.Vertices()[0].color.red, joint.light.x);
@@ -264,13 +265,13 @@ TEST(GameJointDrawingTest, Skill39KeepsItsFinalLiveFrameAndDrawsBothFacesWithout
     EXPECT_EQ(last.Vertices()[6].position, joint.points[0][0]);
     EXPECT_EQ(random.State(), 1u);
     Client::Render::ModelBatch replay;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(replay, joints, 0, {random, sprites, false}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(replay, joints, 0, {random, sprites, false}).HasValue());
     EXPECT_EQ(replay.Vertices().size(), last.Vertices().size());
     EXPECT_EQ(random.State(), 1u);
     ASSERT_TRUE(Client::Joints::StepJoints(joints, random).HasValue());
     EXPECT_FALSE(joint.alive);
     EXPECT_EQ(joint.life, -1);
     Client::Render::ModelBatch expired;
-    ASSERT_TRUE(Client::Scenes::DrawJoints(expired, joints, 0, {random, sprites}).HasValue());
+    ASSERT_TRUE(Client::Joints::DrawJoints(expired, joints, 0, {random, sprites}).HasValue());
     EXPECT_TRUE(expired.Vertices().empty());
 }

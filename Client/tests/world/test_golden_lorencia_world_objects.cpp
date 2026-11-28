@@ -3,7 +3,7 @@
 #include "WorldObjects/WorldObjects.h"
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 #include "Terrain/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -42,7 +42,7 @@ TEST_F(GoldenLorenciaWorldObjects, AllFileRecordsKeepTheirOrderAndReceiveTheClos
     const auto records = Client::Terrain::LoadWorldObjects(m_dataRoot, 0);
     ASSERT_TRUE(records.HasValue()) << records.Error();
     ASSERT_EQ(records.Value().size(), 2870u);
-    Client::WorldObjects::WorldObjectRegistrations registry;
+    Client::Kernel::WorldObjectRegistrations registry;
     const auto objects = Client::Tests::CheckedWorldObjectProjection(
         records.Value(), 0, Client::WorldObjects::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 2870u);

@@ -10,14 +10,14 @@
 #include "Kernel/PoseBuffer.h"
 #include "Joints/FaunaJointCreation.h"
 #include "Kernel/DrawTailState.h"
-#include "WorldObjects/WorldObjectsDrawing.h"
 #include "Kernel/JointRequest.h"
 #include "Particles/KalimaParticleKernels.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
 #include "Particles/SelectionParticleKernels.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
+#include "Kernel/ObjectPass.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -40,13 +40,13 @@
 namespace
 {
 using Client::Crt::CrtRandom;
+using Client::Kernel::GameObjectPass;
 using Client::Kernel::JointRequest;
 using Client::Kernel::JointState;
+using Client::Kernel::WorldObject;
 using Client::Math::BoneTransform;
 using Client::Particles::Particle;
 using Client::Particles::Particles;
-using Client::WorldObjects::GameObjectPass;
-using Client::WorldObjects::WorldObject;
 
 constexpr std::uint8_t ChaosCastleMap = 18;
 
@@ -460,7 +460,7 @@ TEST(ChaosCastleTest, TheCloudObjectsReleaseTheirMistsOnce)
         const GameObjectPass pass{.map = ChaosCastleMap, .random = &random, .particles = &particles, .scene = 5};
         const auto stepped = Client::WorldObjects::StepChaosCastleObjectFrame(object, pass);
         ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
-        EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+        EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
 
         Particles expected;
         CrtRandom draws(9);
@@ -569,7 +569,7 @@ TEST(ChaosCastleTest, TheSelectedTrapFiresItsBoltFromItsFirstBone)
     EXPECT_EQ(sounds, std::vector<std::int32_t>{sound});
     EXPECT_EQ(object.field60, 9);
     EXPECT_EQ(object.field8a, 1);
-    EXPECT_EQ(object.state.hiddenMesh, Client::WorldObjects::HiddenObject);
+    EXPECT_EQ(object.state.hiddenMesh, Client::Kernel::HiddenObject);
 
     object.state.hiddenMesh = Client::Models::NoHiddenMesh;
     for (std::int32_t expected = 8; expected >= 4; --expected)
@@ -595,7 +595,7 @@ TEST(ChaosCastleTest, TheTrapNeedsItsFlagItsPoseItsJointAndItsSound)
     WorldObject hidden = Object(0);
     hidden.field8a = 1;
     hidden.field60 = 10;
-    hidden.state.hiddenMesh = Client::WorldObjects::HiddenObject;
+    hidden.state.hiddenMesh = Client::Kernel::HiddenObject;
     const GameObjectPass full{.map = ChaosCastleMap,
                               .random = &random,
                               .retainedPose = &pose,

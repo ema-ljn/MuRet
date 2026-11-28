@@ -8,7 +8,7 @@
 #include "Particles/IParticleTrigonometry.h"
 #include "Particles/ParticleOwner.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -129,7 +129,7 @@ Core::Expected<void, ParticleError> StepOwnedMist(Particle& p, const float* worl
                                                   IParticleTrigonometry* trigonometry,
                                                   const ParticleObjectOwners& owners)
 {
-    WorldObjects::WorldObject* owner = nullptr;
+    Kernel::WorldObject* owner = nullptr;
     if (p.typedOwner.kind == ParticleOwnerKind::WorldObject && owners)
         owner = owners(p.typedOwner.identity);
     if (owner == nullptr)

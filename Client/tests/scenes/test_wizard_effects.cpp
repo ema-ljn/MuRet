@@ -21,6 +21,8 @@
 #include "Particles/Sprites.h"
 #include "Effects/WizardModelEffects.h"
 
+#include "support/LentWorld.h"
+
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -76,7 +78,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
     constexpr std::uint8_t Standing = 1;
     constexpr std::uint16_t Missing = 0x11;
     constexpr std::uint16_t Sword = 0;
-    auto world = std::make_unique<Client::Kernel::WorldState>();
+    auto world = Client::Tests::LentWorld();
     world->Runtime().hero = Hero;
     const PushedModels models;
     Client::Crt::CrtRandom random(1);
@@ -140,7 +142,7 @@ TEST(WizardEffectsTest, TheFallingFirePushesWhoIsClose)
 // rand(). An owner that is not a slot of the table cannot be read: it stops.
 TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 {
-    auto world = std::make_unique<Client::Kernel::WorldState>();
+    auto world = Client::Tests::LentWorld();
     Client::Crt::CrtRandom random(5);
     const Client::Effects::WizardEffectServices services =
         Client::Effects::WizardEffectServicesOf(*world, random, Client::Effects::WizardSceneParts{});
@@ -186,7 +188,7 @@ TEST(WizardEffectsTest, TheFallingMeteorDropsItsBurstIntoTheWorld)
 // them without stopping.
 TEST(WizardEffectsTest, TheHiddenCircleFansItsRaysIntoTheWorld)
 {
-    auto world = std::make_unique<Client::Kernel::WorldState>();
+    auto world = Client::Tests::LentWorld();
     ActorState& caster = world->Actors()[5];
     caster.alive = true;
     caster.byte1bc = 0;

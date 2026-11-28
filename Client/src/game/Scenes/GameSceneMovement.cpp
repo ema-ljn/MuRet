@@ -203,8 +203,8 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
     const Assets::FaunaModelLoadContext resources{
         m_context.dataRoot,           m_context.textures,   m_context.log, *slots, &LoadedFaunaModels().TextureTable(),
         &world.Runtime().modelSounds, world.Runtime().audio};
-    context.effects = Fauna::BindFaunaStepEffects(LoadedFaunaModels(), resources, world.DrawTail().joints,
-                                                  world.Map().effects, m_context.cloth->random);
+    context.effects = Fauna::BindFaunaStepEffects(LoadedFaunaModels(), resources, world, world.Map().effects,
+                                                  m_context.cloth->random);
     return Fauna::StepGameFauna(context);
 }
 

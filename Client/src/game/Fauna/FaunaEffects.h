@@ -7,11 +7,10 @@
 #include <cstddef>
 #include <glm/ext/vector_float3.hpp>
 #include <optional>
-#include <span>
 #include <string>
 namespace Client::Kernel
 {
-struct JointState;
+class WorldState;
 } // namespace Client::Kernel
 
 namespace Client::Terrain
@@ -45,6 +44,6 @@ StepFaunaLightning(Effects::ModelEffect& effect, std::size_t physicalIndex, cons
                    Terrain::TerrainLighting& lighting, Models::ClothWorld& cloth);
 // Durable borrows; load holds valid references until the step ends.
 [[nodiscard]] FaunaStepEffects BindFaunaStepEffects(Assets::FaunaModels& models, Assets::FaunaModelLoadContext load,
-                                                    std::span<Kernel::JointState> joints,
-                                                    Effects::ModelEffects& effects, Crt::CrtRandom& random);
+                                                    const Kernel::WorldState& world, Effects::ModelEffects& effects,
+                                                    Crt::CrtRandom& random);
 } // namespace Client::Fauna

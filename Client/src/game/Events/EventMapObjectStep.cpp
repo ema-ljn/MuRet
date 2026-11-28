@@ -8,8 +8,8 @@
 #include "Math/Ftol.h"
 #include "Particles/Particles.h"
 #include "Particles/PortableParticleTrigonometry.h"
-#include "WorldObjects/WorldObjectStepServices.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Terrain/DynamicWorldLight.h"
+#include "Kernel/WorldObject.h"
 #include "Audio/SoundId.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -71,7 +71,7 @@ float FlashCoordinate(int spread, float hero)
 } // namespace
 
 Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
-                                                         const WorldObjects::ObjectStepGlobals& globals)
+                                                         const Kernel::ObjectStepGlobals& globals)
 {
     const std::optional<std::int32_t> clock = Math::OriginalFtolLow(static_cast<double>(globals.worldClock));
     if (!clock)
@@ -86,8 +86,8 @@ Core::Expected<void, std::string> StepDevilSquarePrelude(Crt::CrtRandom& random,
         const float y = FlashCoordinate(spreadY, globals.heroPosition->y);
         const int spreadX = random.Next() % FlashSpread;
         const float x = FlashCoordinate(spreadX, globals.heroPosition->x);
-        if (auto lit = WorldObjects::AddDynamicLight(globals.dynamicLighting, glm::vec3(x, y, 0.0f), color, FlashRadius,
-                                                     "0x604b8e");
+        if (auto lit = Terrain::AddDynamicLight(globals.dynamicLighting, glm::vec3(x, y, 0.0f), color, FlashRadius,
+                                                "0x604b8e");
             !lit.HasValue())
             return lit;
     }
@@ -122,9 +122,9 @@ Core::Expected<void, std::string> StepBloodCastlePrelude(Crt::CrtRandom& random,
     return {};
 }
 
-void StepBloodCastleObject(WorldObjects::WorldObject& object)
+void StepBloodCastleObject(Kernel::WorldObject& object)
 {
     if (object.type >= FirstGate && object.type <= LastGate && object.field8a != OpenGate)
-        object.state.hiddenMesh = WorldObjects::HiddenObject;
+        object.state.hiddenMesh = Kernel::HiddenObject;
 }
 } // namespace Client::Events

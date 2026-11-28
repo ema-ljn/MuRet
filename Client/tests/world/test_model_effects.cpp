@@ -8,7 +8,7 @@
 #include "Math/OriginalRotation.h"
 #include "Models/Skeleton.h"
 #include "Particles/Sprites.h"
-#include "WorldObjects/WorldObjects.h"
+#include "Kernel/WorldObject.h"
 
 #include "support/DragonVectors.h"
 #include "support/WorldObjectVectors.h"
@@ -418,7 +418,7 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
             EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
             EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, 45.0f));
             EXPECT_EQ(effect.objectState.hiddenMesh,
-                      selection ? Client::WorldObjects::HiddenObject : ModelEffect{}.objectState.hiddenMesh);
+                      selection ? Client::Kernel::HiddenObject : ModelEffect{}.objectState.hiddenMesh);
             EXPECT_EQ(effect.life, 250);
             EXPECT_EQ(effect.speed, std::bit_cast<float>(0x3e99999au));
             EXPECT_FALSE(effect.vertexLight);

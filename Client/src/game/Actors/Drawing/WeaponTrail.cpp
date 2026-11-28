@@ -14,7 +14,7 @@
 #include "Actors/Drawing/GameRibbonCreation.h"
 #include "Actors/PlayerActionSpeeds.h"
 #include "Kernel/WorldState.h"
-#include "WorldObjects/WorldModelPose.h"
+#include "Actors/Drawing/PosePublishing.h"
 #include "Particles/Particles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -215,8 +215,8 @@ Result SampleRibbon(Kernel::ActorState& actor, const Trail& trail, const Models:
     const auto offsets = OffsetsOf(trail.mode);
     for (int sample = 0; sample < TrailSamples; ++sample)
     {
-        if (auto posed =
-                WorldObjects::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame, actor.angles);
+        if (auto posed = Actors::Drawing::PoseWorldModel(context.world, context.faunaModels, actor, skeleton, frame,
+                                                         actor.angles);
             !posed.HasValue())
             return posed;
         const auto& bones = context.world.PoseCarry().bones;

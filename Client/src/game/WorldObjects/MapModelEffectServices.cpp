@@ -14,7 +14,7 @@ MapModelEffectServices::MapModelEffectServices(Effects::ModelEffects& effects, C
 {
 }
 bool MapModelEffectServices::CreateModelEffect(const WorldObjects::WorldObjectModelEffectRequest& request,
-                                               WorldObjects::WorldObject& source) noexcept
+                                               Kernel::WorldObject& source) noexcept
 {
     constexpr std::int16_t FirstTowerEffect = 322;
     constexpr std::int16_t LastTowerEffect = 324;

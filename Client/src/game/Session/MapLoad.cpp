@@ -28,7 +28,7 @@
 #include "Weather/Leaves.h"
 #include "MapScripts/Kalima/KalimaWorld.h"
 #include "Particles/Particles.h"
-#include "WorldObjects/WorldObjectRegistrations.h"
+#include "Kernel/WorldObject.h"
 #include "WorldObjects/WorldObjects.h"
 #include "Terrain/WorldTerrain.h"
 #include "Terrain/TerrainState.h"
@@ -142,7 +142,7 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                                                       .random = &random,
                                                       .state7239Ec = &siegeState};
     WorldObjects::WorldObjectCreationResult created = WorldObjects::CreateWorldObjects(records, creation);
-    for (WorldObjects::WorldObject& object : created.objects)
+    for (Kernel::WorldObject& object : created.objects)
     {
         loaded.objects.push_back(std::move(object));
     }
@@ -253,7 +253,7 @@ void ReleaseTheMapObjects(Kernel::WorldMap& loaded)
     loaded.objects.clear();
     loaded.objectRecords.clear();
     // 0x60719c..0x6071ac: solo el byte vivo de los 200 registros; los demás campos sobreviven.
-    for (WorldObjects::WorldObjectRegistration& entry : loaded.registrations.entries)
+    for (Kernel::WorldObjectRegistration& entry : loaded.registrations.entries)
     {
         entry.active = 0;
     }

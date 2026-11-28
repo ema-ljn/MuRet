@@ -9,7 +9,6 @@
 #include "Tables/MoveRequirements.h"
 #include "Tables/NpcNames.h"
 #include "Actors/MovementSpeed.h"
-#include "Math/HalfLifeMath.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/TextStyle.h"
 #include "Chat/ChatBubbles.h"
